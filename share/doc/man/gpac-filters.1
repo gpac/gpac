@@ -3727,14 +3727,22 @@ If the sort mode is datex and source files are images or single frame files, the
 .br
 - the last frame is assigned the same duration as the previous one
 .br
-
-.br
 .SH Playlist mode
 .LP
 .br
 The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions m3u, txt or pl).
 .br
 In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.
+.br
+
+.br
+The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
+.br
+If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.
+.br
+.P
+.B
+Playlist directives
 .br
 The following directives, separated with space or comma, are supported:
 .br
@@ -3744,7 +3752,7 @@ The following directives, separated with space or comma, are supported:
 .br
 * stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).
 .br
-* cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionnally specify a byte range if desired, otherwise the full file is concatenated.
+* cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.
 .br
 * srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.
 .br
@@ -3756,6 +3764,10 @@ Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO o
 .br
 
 .br
+.P
+.B
+Source syntax
+.br
 The source lines follow the usual source syntax, see gpac -h.
 .br
 Additional pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
@@ -3764,17 +3776,81 @@ Additional pid properties can be added per source (see gpac -h doc), but are val
 .br
 The URL given can either be a single URL, or a list of URLs separated by " && " to load several sources for the active entry.
 .br
+Warning: There shall not be any other space/tab characters between sources.
+.br
 Example
 .br
 audio.mp4 && video.mp4
 .br
 
 .br
+.P
+.B
+Source with filter chains
+.br
+Each URL can be followed by a chain of one or more filters, using the @ link directive as used in gpac (see gpac -h doc).
+.br
+A negative link index (e.g. @-1) can be used to setup a new filter chain starting from the last specified source in the line.
+.br
+Warning: There shall be a single character, with value space (' '), before and after each link directive.
+.br
 
 .br
-The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
+Example
 .br
-If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.
+src.mp4 @ reframer:rt=on
+.br
+
+.br
+This will inject a refamer with real-time regulation between source and flist filter.
+.br
+Example
+.br
+src.mp4 @ reframer:saps=1 @1 reframer:saps=0,2,3
+.br
+src.mp4 @ reframer:saps=1 @-1 reframer:saps=0,2,3
+.br
+
+.br
+This will inject a refamer filtering only SAP1 frames and a reframer filtering only non-SAP1 frames between source and flist filter
+.br
+
+.br
+Link options can be specified (see gpac -h doc).
+.br
+Example
+.br
+src.mp4 @#video reframer:rt=on
+.br
+
+.br
+This will inject a refamer with real-time regulation between video pid of source and flist filter.
+.br
+
+.br
+When using filter chains, the flist filter will only accept PIDs from the last declared filter in the chain.
+.br
+In order to accept other PIDs from the source, you must specify a final link directive with no following filter.
+.br
+Example
+.br
+src.mp4 @#video reframer:rt=on @-1#audio
+.br
+
+.br
+This will inject a refamer with real-time regulation between video pid of source and flist filter, and will also allow audio pids from source to connect to flist filter.
+.br
+
+.br
+The empty link directive can also be used on the last declared filter
+.br
+Example
+.br
+src.mp4 @ reframer:rt=on @#audio
+.br
+
+.br
+This will inject a refamer with real-time regulation between source and flist filter and only connect audio pids to flist filter.
 .br
 
 .br
@@ -7337,7 +7413,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev524-gf9318eba6-master
+build: 1.1.0-DEV-rev532-g699074b35-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

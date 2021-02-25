@@ -462,7 +462,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	while (f) {
 		u32 crc;
 		char *l = gf_fgets(szURL, GF_MAX_PATH, f);
-		if (!l || gf_feof(f)) {
+		if (!l || (gf_feof(f) && !szURL[0]) ) {
 			if (ctx->floop != 0) {
 				gf_fseek(f, 0, SEEK_SET);
 				//load first line
@@ -606,6 +606,11 @@ GF_Err filelist_process(GF_Filter *filter)
 
 	if (ctx->load_next) {
 		GF_Filter *fsrc;
+		GF_Filter *prev_filter;
+		GF_List *filters = NULL;
+		char *link_args = NULL;
+		s32 link_idx = -1;
+		Bool is_filter_chain = GF_FALSE;
 		u32 s_idx;
 		char *url;
 		char szURL[GF_MAX_PATH];
@@ -617,7 +622,10 @@ GF_Err filelist_process(GF_Filter *filter)
 			gf_filter_ask_rt_reschedule(filter, ctx->ka*1000);
 			return GF_OK;
 		}
-		if (!next_url_ok || !ctx->do_cat) {
+		if (!ctx->do_cat
+			//only reset if not last entry, so that we keep the last graph setup at the end
+			&& next_url_ok
+		) {
 			while (gf_list_count(ctx->filter_srcs)) {
 				fsrc = gf_list_pop_back(ctx->filter_srcs);
 				gf_filter_remove_src(filter, fsrc);
@@ -644,24 +652,75 @@ GF_Err filelist_process(GF_Filter *filter)
 				an_iopid->ipid = NULL;
 			}
 		}
+		fsrc = NULL;
+		prev_filter = NULL;
 		s_idx = 0;
 		url = szURL;
 		while (url) {
 			char c = 0;
-			char *sep = strstr(url, " && ");
+			char *sep, *lsep;
+			char *sep_f = strstr(url, " @");
+
+			sep = strstr(url, " && ");
 			if (!sep && ctx->srcs.nb_items)
 				sep = strstr(url, "&&");
+
+			if (sep_f && ctx->do_cat) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Cannot use filter directives in cat mode\n"));
+				return GF_BAD_PARAM;
+			}
+
+			if (sep && sep_f) {
+				if (sep_f < sep)
+					sep = NULL;
+				else
+					sep_f = NULL;
+			}
+
 			if (sep) {
 				c = sep[0];
 				sep[0] = 0;
 			}
+			else if (sep_f) {
+				sep_f[0] = 0;
+			}
+			//skip empty
+			while (url[0] == ' ')
+				url++;
 
-			if (ctx->do_cat) {
+
+#define SET_SOURCE(_filter, _from) \
+				if (link_idx>0) { \
+					prev_filter = gf_list_get(filters, (u32) link_idx); \
+					if (!prev_filter) { \
+						if (filters) gf_list_del(filters); \
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Invalid link directive, filter index %d does not point to a valid filter\n")); \
+						return GF_SERVICE_ERROR; \
+					} \
+				}\
+				lsep = link_args ? strchr(link_args, ' ') : NULL; \
+				if (lsep) lsep[0] = 0; \
+				gf_filter_set_source(_filter, _from, link_args); \
+				if (lsep) lsep[0] = ' '; \
+				link_args = NULL;\
+				link_idx=-1;
+
+
+			if (!url[0]) {
+				//last link directive before new source specifier
+				if (is_filter_chain && prev_filter && (link_idx>=0)) {
+					SET_SOURCE(filter, prev_filter);
+					prev_filter = NULL;
+					gf_list_reset(filters);
+				}
+			} else if (ctx->do_cat) {
 				char *f_url;
 				GF_FilterEvent evt;
 				fsrc = gf_list_get(ctx->filter_srcs, s_idx);
 				if (!fsrc) {
-					if (sep) sep[0] = ' ';
+					if (sep) sep[0] = c;
+					else if (sep_f) sep_f[0] = ' ';
+
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] More URL to cat than opened service!\n"));
 					return GF_BAD_PARAM;
 				}
@@ -675,18 +734,105 @@ GF_Err filelist_process(GF_Filter *filter)
 				if (f_url)
 					gf_free(f_url);
 			} else {
-				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_TRUE, &e);
+				GF_Filter *f = NULL;
+				if (is_filter_chain) {
+					f = gf_filter_load_filter(filter, url, &e);
+				} else {
+					fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_TRUE, &e);
+				}
+
 				if (e) {
-					if (sep) sep[0] = ' ';
+					if (sep) sep[0] = c;
+					else if (sep_f) sep_f[0] = ' ';
+
+					if (filters) gf_list_del(filters);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
 					return GF_SERVICE_ERROR;
 				}
-				gf_list_add(ctx->filter_srcs, fsrc);
+				if (is_filter_chain) {
+
+					if (!filters) filters = gf_list_new();
+					if (!gf_list_count(filters)) gf_list_add(filters, fsrc);
+
+					SET_SOURCE(f, prev_filter);
+
+					//insert at begining, so that link_idx=0 <=> last declared filter
+					gf_list_insert(filters, f, 0);
+					prev_filter = f;
+				} else {
+					gf_list_add(ctx->filter_srcs, fsrc);
+				}
 			}
-			if (!sep) break;
-			sep[0] = c;
-			url = (sep[0]==' ') ? sep+4 : sep+2;
+			if (!sep && !sep_f) break;
+			if (sep) {
+				sep[0] = c;
+				url = (sep[0]==' ') ? sep+4 : sep+2;
+				is_filter_chain = GF_FALSE;
+				if (prev_filter) {
+					gf_filter_set_source(filter, prev_filter, NULL);
+					prev_filter = NULL;
+				}
+				if (filters) gf_list_reset(filters);
+				link_idx = -1;
+			} else {
+				sep_f[0] = ' ';
+
+				if (sep_f[2] != ' ') link_args = sep_f+2;
+				else link_args = NULL;
+
+				link_idx = 0;
+				if (link_args) {
+					if (link_args[0] != '#') {
+						sep = strchr(link_args, '#');
+						if (sep) {
+							sep[0] = 0;
+							link_idx = atoi(link_args);
+							sep[0] = '#';
+							link_args = sep+1;
+						} else {
+							link_idx = atoi(link_args);
+							link_args = NULL;
+						}
+						// " @-1" directive restart chain from source
+						if (link_idx<0) {
+							if (prev_filter) {
+								gf_filter_set_source(filter, prev_filter, NULL);
+								prev_filter = NULL;
+							}
+							if (filters) gf_list_reset(filters);
+						}
+
+					} else {
+						link_args++;
+					}
+				}
+
+				url = strchr(sep_f+2, ' ');
+				if (url && (url[1]!='&'))
+					url += 1;
+
+				is_filter_chain = GF_TRUE;
+				if (!prev_filter) {
+					if (!fsrc) {
+						if (filters) gf_list_del(filters);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Missing source declaration before filter directive\n"));
+						return GF_BAD_PARAM;
+					}
+					prev_filter = fsrc;
+				}
+				
+				//last empty link
+				if (!url && prev_filter) {
+					SET_SOURCE(filter, prev_filter);
+					prev_filter = NULL;
+				}
+			}
 		}
+		if (prev_filter) {
+			gf_filter_set_source(filter, prev_filter, NULL);
+			prev_filter = NULL;
+		}
+		if (filters) gf_list_del(filters);
 		//wait for PIDs to connect
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
 	}
@@ -1155,28 +1301,54 @@ GF_FilterRegister FileListRegister = {
 		"- the first frame is assigned a timestamp of 0\n"
 		"- each frame (coming from each file) is assigned a duration equal to the difference of modification time between the file and the next file\n"
 		"- the last frame is assigned the same duration as the previous one\n"
-		"\n"
 		"# Playlist mode\n"
 		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions `m3u`, `txt` or `pl`).\n"
 		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
+		"\n"
+		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
+		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n"
+		"## Playlist directives\n"
 		"The following directives, separated with space or comma, are supported:\n"
 		"- repeat=N: repeats N times the content (hence played N+1).\n"
 		"- start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
 		"- stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).\n"
-		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionnally specify a byte range if desired, otherwise the full file is concatenated.\n"
+		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.\n"
 		"- srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"\n"
 		"Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.\n"
 		"\n"
+		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
 		"\n"
 		"The URL given can either be a single URL, or a list of URLs separated by \" && \" to load several sources for the active entry.\n"
+		"Warning: There shall not be any other space/tab characters between sources.\n"
 		"EX audio.mp4 && video.mp4\n"
+		"## Source with filter chains\n"
+		"Each URL can be followed by a chain of one or more filters, using the `@` link directive as used in gpac (see `gpac -h doc`).\n"
+		"A negative link index (e.g. `@-1`) can be used to setup a new filter chain starting from the last specified source in the line.\n"
+		"Warning: There shall be a single character, with value space (' '), before and after each link directive.\n"
 		"\n"
-		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
-		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n")
+		"EX src.mp4 @ reframer:rt=on\n"
+		"This will inject a refamer with real-time regulation between source and `flist` filter.\n"
+		"EX src.mp4 @ reframer:saps=1 @1 reframer:saps=0,2,3\n"
+		"EX src.mp4 @ reframer:saps=1 @-1 reframer:saps=0,2,3\n"
+		"This will inject a refamer filtering only SAP1 frames and a reframer filtering only non-SAP1 frames between source and `flist` filter\n"
+		"\n"
+		"Link options can be specified (see `gpac -h doc`).\n"
+		"EX src.mp4 @#video reframer:rt=on\n"
+		"This will inject a refamer with real-time regulation between video pid of source and `flist` filter.\n"
+		"\n"
+		"When using filter chains, the `flist` filter will only accept PIDs from the last declared filter in the chain.\n"
+		"In order to accept other PIDs from the source, you must specify a final link directive with no following filter.\n"
+		"EX src.mp4 @#video reframer:rt=on @-1#audio\n"
+		"This will inject a refamer with real-time regulation between video pid of source and `flist` filter, and will also allow audio pids from source to connect to `flist` filter.\n"
+		"\n"
+		"The empty link directive can also be used on the last declared filter\n"
+		"EX src.mp4 @ reframer:rt=on @#audio\n"
+		"This will inject a refamer with real-time regulation between source and `flist` filter and only connect audio pids to `flist` filter.\n"
+		)
 	.private_size = sizeof(GF_FileListCtx),
 	.max_extra_pids = -1,
 	.flags = GF_FS_REG_ACT_AS_SOURCE | GF_FS_REG_REQUIRES_RESOLVER,
