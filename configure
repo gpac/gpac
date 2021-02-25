@@ -1677,48 +1677,45 @@ if docc $LDFLAGS ; then
 fi
 
 
-
 #look for nghttp2 support
 
-if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libnghttp2 ; then
-    has_nghttp2="system"
-    nghttp2_cflags=`$pkg_config --cflags libnghttp2`
-    nghttp2_ldflags=`$pkg_config --libs libnghttp2`
-  fi
-fi
-
-if test "$has_nghttp2" = "no" ; then
 cat > $TMPC << EOF
 #include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) { return 0; }
 EOF
 
-if docc $LDFLAGS -lnghttp2 ; then
-    has_nghttp2="system"
+if docc -I$local_inc -L$local_lib -lnghttp2 ; then
+    has_nghttp2="local"
     nghttp2_ldflags="-lnghttp2"
-fi
-if test "$cross_prefix" = "" ; then
-    if test "$has_nghttp2" = "no" ; then
-        if test "$alt_macosx_dir" != "" ; then
-            if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lnghttp2 2>>$logs ; then
-                has_nghttp2="system"
-                nghttp2_ldflags="-lnghttp2"
-            fi
-        fi
-    fi
 fi
 
 if test "$has_nghttp2" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lnghttp2 ; then
-        has_nghttp2="local"
-        nghttp2_ldflags="-lnghttp2"
+
+  if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+    if $pkg_config --exists libnghttp2 ; then
+      has_nghttp2="system"
+      nghttp2_cflags=`$pkg_config --cflags libnghttp2`
+      nghttp2_ldflags=`$pkg_config --libs libnghttp2`
     fi
-fi
+  fi
+
+  if docc $LDFLAGS -lnghttp2 ; then
+      has_nghttp2="system"
+      nghttp2_ldflags="-lnghttp2"
+  fi
+  if test "$cross_prefix" = "" ; then
+      if test "$has_nghttp2" = "no" ; then
+          if test "$alt_macosx_dir" != "" ; then
+              if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lnghttp2 2>>$logs ; then
+                  has_nghttp2="system"
+                  nghttp2_ldflags="-lnghttp2"
+              fi
+          fi
+      fi
+  fi
 
 fi
-
 
 
 #overwrite detection with manual settings
@@ -1760,8 +1757,8 @@ for opt do
             ;;
         --static-build) static_build="yes";
             ;;
-        --enable-static-bin) 
-            echo "$opt deprecated, use --static-build instead" 
+        --enable-static-bin)
+            echo "$opt deprecated, use --static-build instead"
             static_build="yes";
             ;;
         --disable-ipv6) has_ipv6="no"
@@ -1795,7 +1792,7 @@ for opt do
         --static-bin) static_bin="yes"
             ;;
         --static-mp4box)
-            echo "$opt deprecated, use --static-bin instead" 
+            echo "$opt deprecated, use --static-bin instead"
             static_bin="yes"
             ;;
         --use-faad=*) has_faad=${opt#--use-faad=}
@@ -2337,7 +2334,7 @@ if test "$static_bin" = "yes"; then
     has_ssl="no"
     #we cannot use ipv6 due to getaddrinfo not being present
     has_ipv6="no"
-    
+
 #    has_js="no"
 #    has_ft="no"
 #    has_jpeg="no"
