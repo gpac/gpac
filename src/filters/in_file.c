@@ -314,6 +314,16 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		filein_initialize(filter);
 		gf_filter_post_process_task(filter);
 		break;
+	case GF_FEVT_FILE_DELETE:
+		if (ctx->is_end && !strcmp(evt->file_del.url, "__gpac_self__")) {
+			if (ctx->file) {
+				gf_fclose(ctx->file);
+				ctx->file = NULL;
+			}
+			gf_file_delete(ctx->src);
+		}
+		break;
+
 	default:
 		break;
 	}

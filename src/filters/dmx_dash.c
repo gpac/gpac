@@ -58,7 +58,7 @@ typedef struct
 	char *algo;
 	Bool max_res, immediate, abort, use_bmin;
 	char *query;
-	Bool noxlink, split_as, noseek;
+	Bool noxlink, split_as, noseek, groupsel;
 	u32 lowlat;
 
 	GF_FilterPid *mpd_pid;
@@ -776,6 +776,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			gf_dash_switch_quality(ctx->dash, GF_TRUE, GF_TRUE);
 		}
 #endif
+		if (ctx->groupsel)
+			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
 
 		//let the player decide which group to play: we declare everything
 		return GF_OK;
@@ -783,6 +785,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 	/*for all selected groups, create input service and connect to init/first segment*/
 	if (dash_evt==GF_DASH_EVENT_CREATE_PLAYBACK) {
+		u32 nb_groups_selected = 0;
 		//coverage of a few functions from old arch not deprecated (yet)
 #ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_cov_mode()) {
@@ -834,6 +837,9 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			if (!gf_dash_is_group_selectable(ctx->dash, i))
 				continue;
 
+			if (ctx->groupsel && !gf_dash_is_group_selected(ctx->dash, i))
+				continue;
+
 			j=0;
 			while (1) {
 				const char *desc_id, *desc_scheme, *desc_value;
@@ -850,6 +856,8 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				gf_dash_group_select(ctx->dash, i, GF_FALSE);
 				continue;
 			}
+
+			nb_groups_selected++;
 
 			if (gf_dash_group_has_dependent_group(ctx->dash, i) >=0 ) {
 				gf_dash_group_select(ctx->dash, i, GF_TRUE);
@@ -882,6 +890,11 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		if (!ctx->initial_setup_done) {
 			ctx->initial_setup_done = GF_TRUE;
 		}
+
+		if (!nb_groups_selected) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] No groups selectable, not playing !\n"));
+		}
+
 
 		//we had a seek outside of the period we were setting up, during period setup !
 		//request the seek again from the player
@@ -2813,6 +2826,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(skip_lqt), "disable decoding of tiles with highest degradation hints (not visible, not gazed at) for debug purposes", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(llhls_merge), "merge LL-HLS byte range parts into a single open byte range request", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(filemode), "alias for forward=file", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(groupsel), "select groups based on language (by default all playable groups are exposed)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

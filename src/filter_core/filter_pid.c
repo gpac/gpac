@@ -3342,8 +3342,22 @@ u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 	return chain_len;
 }
 
-static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid, char *args, u32 argfile_level)
+static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid, char *args, Bool use_default_seps, u32 argfile_level)
 {
+	char sep_args, sep_frag, sep_name, sep_list;
+
+	if (use_default_seps) {
+		sep_args = ':';
+		sep_frag = '#';
+		sep_name = '=';
+		sep_list = ',';
+	} else {
+		sep_args = filter->session->sep_args;
+		sep_frag = filter->session->sep_frag;
+		sep_name = filter->session->sep_name;
+		sep_list = filter->session->sep_list;
+	}
+
 	//parse each arg
 	while (args) {
 		u32 p4cc=0;
@@ -3363,7 +3377,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				u32 xlen = (u32) (xml_start-args);
 				if ((xlen < len) && (args[len-1] != '>')) {
 					while (1) {
-						sep = strchr(sep+1, filter->session->sep_args);
+						sep = strchr(sep+1, sep_args);
 						if (!sep) {
 							break;
 						}
@@ -3378,7 +3392,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 		if (sep) sep[0]=0;
 
-		if (args[0] != filter->session->sep_frag) {
+		if (args[0] != sep_frag) {
 			//if arg is not one of our reserved keywords and is a valid file, try to open it
 			if (strcmp(args, "gpac") && strcmp(args, "gfopt") && strcmp(args, "gfloc") && gf_file_exists(args)) {
 				if (argfile_level<5) {
@@ -3405,7 +3419,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 						if ((subarg[0] == '/') && (subarg[1] == '/'))
 							continue;
 
-						gf_filter_pid_set_args_internal(filter, pid, subarg, argfile_level+1);
+						gf_filter_pid_set_args_internal(filter, pid, subarg, use_default_seps, argfile_level+1);
 					}
 					gf_fclose(arg_file);
 				} else {
@@ -3416,7 +3430,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		}
 
 		value = NULL;
-		value_sep = strchr(args, filter->session->sep_name);
+		value_sep = strchr(args, sep_name);
 		if (value_sep) {
 			value_sep[0]=0;
 			value = value_sep+1;
@@ -3450,7 +3464,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 			parse_prop = GF_FALSE;
 
-			next_val = strchr(closing, filter->session->sep_list);
+			next_val = strchr(closing, sep_list);
 			if (next_val) next_val[0] = 0;
 
 			while (closing) {
@@ -3477,7 +3491,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 				break;
 			}
 			if (!next_val) break;
-			next_val[0] = filter->session->sep_list;
+			next_val[0] = sep_list;
 			value = next_val+1;
 		}
 
@@ -3486,7 +3500,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 
 		if (prop_type != GF_PROP_FORBIDEN) {
-			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL, pid->filter->session->sep_list);
+			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
 			if (prop_type==GF_PROP_NAME) {
 				p.type = GF_PROP_STRING;
 				gf_filter_pid_set_property(pid, p4cc, &p);
@@ -3506,9 +3520,9 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			Bool reset_prop=GF_FALSE;
 			GF_PropertyValue p;
 			if (!strncmp(value, "bxml@", 5)) {
-				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, value, NULL, pid->filter->session->sep_list);
+				p = gf_props_parse_value(GF_PROP_DATA_NO_COPY, name, value, NULL, sep_list);
 			} else if (!strncmp(value, "file@", 5)) {
-				p = gf_props_parse_value(GF_PROP_STRING, name, value, NULL, pid->filter->session->sep_list);
+				p = gf_props_parse_value(GF_PROP_STRING, name, value, NULL, sep_list);
 				p.type = GF_PROP_STRING_NO_COPY;
 			} else {
 				u32 ptype = GF_PROP_FORBIDEN;
@@ -3528,7 +3542,7 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 					p.type = GF_PROP_STRING;
 					p.value.string = value;
 				} else {
-					p = gf_props_parse_value(ptype, name, value, NULL, pid->filter->session->sep_list);
+					p = gf_props_parse_value(ptype, name, value, NULL, sep_list);
 					reset_prop = GF_TRUE;
 				}
 			}
@@ -3536,14 +3550,14 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			if (reset_prop) gf_props_reset_single(&p);
 		}
 		if (value_next_list)
-			value_next_list[0] = filter->session->sep_list;
+			value_next_list[0] = sep_list;
 
 skip_arg:
 		if (value_sep)
-			value_sep[0] = filter->session->sep_name;
+			value_sep[0] = sep_name;
 
 		if (sep) {
-			sep[0] = filter->session->sep_args;
+			sep[0] = sep_args;
 			args=sep+1;
 		} else {
 			break;
@@ -3551,17 +3565,35 @@ skip_arg:
 	}
 }
 
+GF_EXPORT
+GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool use_default_seps)
+{
+	Bool req_map_bck;
+	if (!args) return GF_OK;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+
+	//pid props specified by user are merged directly
+	req_map_bck = pid->request_property_map;
+	pid->request_property_map = GF_FALSE;
+	gf_filter_pid_set_args_internal(pid->filter, pid, args, use_default_seps, 0);
+	pid->request_property_map = req_map_bck;
+	return GF_OK;
+}
+
 static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 {
-	char *args;
 	Bool req_map_bck;
+	char *args;
 	if (!filter->src_args && !filter->orig_args) return;
 	args = filter->orig_args ? filter->orig_args : filter->src_args;
 
 	//pid props specified by user are merged directly
 	req_map_bck = pid->request_property_map;
 	pid->request_property_map = GF_FALSE;
-	gf_filter_pid_set_args_internal(filter, pid, args, 0);
+	gf_filter_pid_set_args_internal(filter, pid, args, GF_FALSE, 0);
 	pid->request_property_map = req_map_bck;
 }
 
