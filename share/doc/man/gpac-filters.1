@@ -1823,6 +1823,8 @@ skip_lqt (bool, default: no):  disable decoding of tiles with highest degradatio
 .br
 llhls_merge (bool, default: yes): merge LL-HLS byte range parts into a single open byte range request
 .br
+groupsel (bool, default: no):  select groups based on language (by default all playable groups are exposed)
+.br
 
 .br
 .SH cdcrypt
@@ -2772,6 +2774,8 @@ The file output filter is used to write output to disk, and does not produce any
 It can work as a null sink when its destination is null, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
 .br
 In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in .I cat mode.
+.br
+If the output file name is std or stdout, writes to stdout.
 .br
 The ouput file name can use gpac templating mechanism, see gpac -h doc.The filter watches the property FileNumber on incoming packets to create new files.
 .br
@@ -3734,6 +3738,8 @@ The playlist mode is activated when opening a playlist file (m3u format, utf-8 e
 .br
 In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.
 .br
+Lines stating with ## are ignored.
+.br
 
 .br
 The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.
@@ -3744,7 +3750,7 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .B
 Playlist directives
 .br
-The following directives, separated with space or comma, are supported:
+A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:
 .br
 * repeat=N: repeats N times the content (hence played N+1).
 .br
@@ -3754,15 +3760,15 @@ The following directives, separated with space or comma, are supported:
 .br
 * cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.
 .br
+Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.
+.br
 * srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.
 .br
 * send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.
 .br
-
+* props=STR: assigns properties described in STR to all pids coming from the listed sources on next line. STR is formatted according to gpac -h doc using the default parameter set.
 .br
-Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.
-.br
-
+* del: specifies that the source file(s) must be deleted once processed, true by default is .I fdel is set.
 .br
 .P
 .B
@@ -3886,6 +3892,8 @@ fsort (enum, default: no):     sort list of files
 
 .br
 sigcues (bool, default: false): inject CueStart property at each source begin (new or repeated) for DASHing
+.br
+fdel (bool, default: false):   delete source files after processing in playlist mode (does not delete the playlist)
 .br
 
 .br
@@ -7413,7 +7421,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev532-g699074b35-master
+build: 1.1.0-DEV-rev535-gd128fd2f7-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

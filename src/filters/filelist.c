@@ -82,7 +82,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues;
+	Bool revert, sigcues, fdel;
 	s32 floop;
 	u32 fsort;
 	u32 ka;
@@ -105,7 +105,7 @@ typedef struct
 
 	u32 nb_repeat;
 	Double start, stop;
-	Bool do_cat;
+	Bool do_cat, do_del;
 	u64 start_range, end_range;
 	GF_List *file_list;
 	s32 file_list_idx;
@@ -118,6 +118,9 @@ typedef struct
 	u64 last_file_modif_time;
 
 	char *frag_url;
+
+	char *unknown_params;
+	char *pid_props;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -156,7 +159,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid)
 	iopid->first_dts_plus_one = 0;
 }
 
-Bool filelist_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+static Bool filelist_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
 {
 	const GF_PropertyValue *p;
 	GF_FilterPid *pid = (GF_FilterPid *) cbk;
@@ -167,7 +170,7 @@ Bool filelist_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const G
 	return GF_TRUE;
 }
 
-GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	FileListPid *iopid;
 	const GF_PropertyValue *p;
@@ -182,7 +185,8 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			ctx->file_pid = NULL;
 		else {
 			iopid = gf_filter_pid_get_udta(pid);
-			if (iopid) iopid->ipid = NULL;
+			if (iopid)
+				iopid->ipid = NULL;
 		}
 		return GF_OK;
 	}
@@ -307,6 +311,10 @@ GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			gf_filter_pid_set_property(iopid->opid, GF_PROP_PID_URL, p);
 	}
 
+	if (ctx->pid_props) {
+		gf_filter_pid_push_properties(iopid->opid, ctx->pid_props, GF_TRUE);
+	}
+
 	return GF_OK;
 }
 
@@ -343,46 +351,8 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	return GF_TRUE;
 }
 
-enum
-{
-	FL_ARG_BOOL=0,
-	FL_ARG_INT,
-	FL_ARG_DOUBLE,
-	FL_ARG_LUINT
-};
 
-void filelist_parse_arg(char *com, char *name, u32 type, u32 *int_val, Double *float_val, u64 *luint_val)
-{
-	char *val = strstr(com, name);
-	if (val) {
-		char c= 0;
-		char *sep = strchr(val, ' ');
-		if (!sep) sep = strchr(val, ',');
-		if (!sep) sep = strchr(val, '\n');
-		if (!sep) sep = strchr(val, '\r');
-		if (sep) {
-			c = sep[0];
-			sep[0] = 0;
-		}
-		val += strlen(name);
-		if (type==FL_ARG_INT) {
-			if (int_val)
-				(*int_val) = atoi(val);
-		} else if (type==FL_ARG_DOUBLE) {
-			if (float_val)
-				(*float_val) = atof(val);
-		} else if (type==FL_ARG_LUINT) {
-			if (luint_val)
-				sscanf(val, LLU, luint_val);
-		} else if (type==FL_ARG_BOOL) {
-			if (int_val)
-				(*int_val) = 1;
-		}
-		if (sep) sep[0] = c;
-	}
-}
-
-void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
+static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
 	if (ctx->file_path) {
@@ -411,7 +381,7 @@ void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 		gf_free(res_url);
 }
 
-Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
+static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 {
 	u32 len;
 	Bool last_found = GF_FALSE;
@@ -420,6 +390,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	u64 start_range=0, end_range=0;
 	Double start=0, stop=0;
 	Bool do_cat=0;
+	Bool do_del=0;
 	Bool is_end=0;
 
 	if (ctx->file_list) {
@@ -489,21 +460,80 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 
 		//comment
 		if (szURL[0] == '#') {
+			//ignored line
+			if (szURL[1] == '#')
+				continue;
+
+			char *args = szURL+1;
 			nb_repeat=0;
 			start=stop=0;
 			do_cat = 0;
 			start_range=end_range=0;
-
-			filelist_parse_arg(szURL, "repeat=", FL_ARG_INT, &nb_repeat, NULL, NULL);
-			filelist_parse_arg(szURL, "start=", FL_ARG_DOUBLE, NULL, &start, NULL);
-			filelist_parse_arg(szURL, "stop=", FL_ARG_DOUBLE, NULL, &stop, NULL);
-			filelist_parse_arg(szURL, "cat", FL_ARG_BOOL, (u32 *)&do_cat, NULL, NULL);
-			if (do_cat) {
-				filelist_parse_arg(szURL, "srange=", FL_ARG_LUINT, NULL, NULL, &start_range);
-				filelist_parse_arg(szURL, "send=", FL_ARG_LUINT, NULL, NULL, &end_range);
+			if (ctx->pid_props) {
+				gf_free(ctx->pid_props);
+				ctx->pid_props = NULL;
 			}
-			if (ctx->ka) {
-				filelist_parse_arg(szURL, "end", FL_ARG_BOOL, (u32 *)&is_end, NULL, NULL);
+
+			while (args) {
+				char c;
+				char *sep, *aval = NULL;
+				while (args[0]==' ') args++;
+
+				sep = strchr(args, ' ');
+				if (strncmp(args, "props", 5))
+					aval = strchr(args, ',');
+
+				if (sep && aval && (aval < sep))
+					sep = aval;
+				else if (aval)
+					sep = aval;
+
+				if (sep) {
+					c = sep[0];
+					sep[0] = 0;
+				}
+				aval = strchr(args, '=');
+				if (aval) {
+					aval[0] = 0;
+					aval++;
+				}
+
+				if (!strcmp(args, "repeat")) {
+					if (aval)
+						nb_repeat = atoi(aval);
+				} else if (!strcmp(args, "start")) {
+					if (aval)
+						start = atof(aval);
+				} else if (!strcmp(args, "stop")) {
+					if (aval)
+						stop = atof(aval);
+				} else if (!strcmp(args, "cat")) {
+					do_cat = GF_TRUE;
+				} else if (!strcmp(args, "del")) {
+					do_del = GF_TRUE;
+				} else if (do_cat && !strcmp(args, "srange")) {
+					if (aval)
+						sscanf(aval, LLU, &start_range);
+				} else if (do_cat && !strcmp(args, "send")) {
+					if (aval)
+						sscanf(aval, LLU, &end_range);
+				} else if (ctx->ka && !strcmp(args, "end")) {
+					is_end = GF_TRUE;
+				} else if (!strcmp(args, "props")) {
+					if (aval)
+						ctx->pid_props = gf_strdup(aval);
+				} else {
+					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] Unrecognized directive %s, ignoring\n", args));
+						gf_dynstrcat(&ctx->unknown_params, args, ",");
+					}
+				}
+
+				if (aval) aval[0] = '=';
+
+				if (!sep) break;
+				sep[0] = c;
+				args = sep+1;
 			}
 			strcpy(ctx->szCom, szURL);
 			continue;
@@ -531,6 +561,7 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		nb_repeat=0;
 		start=stop=0;
 		do_cat=0;
+		do_del=0;
 		start_range=end_range=0;
 		ctx->szCom[0] = 0;
 	}
@@ -545,13 +576,15 @@ Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 	ctx->start = start;
 	ctx->stop = stop;
 	ctx->do_cat = do_cat;
+	if (!ctx->floop)
+		ctx->do_del = (do_del || ctx->fdel) ? GF_TRUE : GF_FALSE;
 	ctx->start_range = start_range;
 	ctx->end_range = end_range;
 	filelist_check_implicit_cat(ctx, szURL);
 	return GF_TRUE;
 }
 
-GF_Err filelist_process(GF_Filter *filter)
+static GF_Err filelist_process(GF_Filter *filter)
 {
 	Bool start, end;
 	GF_Err e;
@@ -611,6 +644,7 @@ GF_Err filelist_process(GF_Filter *filter)
 		char *link_args = NULL;
 		s32 link_idx = -1;
 		Bool is_filter_chain = GF_FALSE;
+		Bool do_del = ctx->do_del;
 		u32 s_idx;
 		char *url;
 		char szURL[GF_MAX_PATH];
@@ -622,6 +656,16 @@ GF_Err filelist_process(GF_Filter *filter)
 			gf_filter_ask_rt_reschedule(filter, ctx->ka*1000);
 			return GF_OK;
 		}
+
+		if (do_del) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_FILE_DELETE, NULL);
+			evt.file_del.url = "__gpac_self__";
+			for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
+				fsrc = gf_list_get(ctx->filter_srcs, i);
+				gf_filter_send_event(fsrc, &evt, GF_FALSE);
+			}
+		}
 		if (!ctx->do_cat
 			//only reset if not last entry, so that we keep the last graph setup at the end
 			&& next_url_ok
@@ -631,6 +675,7 @@ GF_Err filelist_process(GF_Filter *filter)
 				gf_filter_remove_src(filter, fsrc);
 			}
 		}
+		
 
 		ctx->load_next = GF_FALSE;
 
@@ -835,16 +880,30 @@ GF_Err filelist_process(GF_Filter *filter)
 		if (filters) gf_list_del(filters);
 		//wait for PIDs to connect
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
+		return GF_OK;
 	}
 
 	//init first timestamp
 	if (!ctx->dts_sub_plus_one) {
 		u32 nb_eos = 0;
+
+//		if (gf_filter_connections_pending(filter))
+//				return GF_OK;
+		for (i=0; i<gf_list_count(ctx->filter_srcs); i++) {
+			GF_Filter *fsrc = gf_list_get(ctx->filter_srcs, i);
+			if (gf_filter_has_pid_connection_pending(fsrc, filter)) {
+				return GF_OK;
+			}
+		}
+
 		for (i=0; i<count; i++) {
 			GF_FilterPacket *pck;
 			u64 dts;
 			iopid = gf_list_get(ctx->io_pids, i);
-            if (!iopid->ipid) return GF_OK;
+            if (!iopid->ipid) {
+				if (iopid->opid) gf_filter_pid_set_eos(iopid->opid);
+				return GF_OK;
+			}
             if (iopid->skip_dts_init) continue;
             pck = gf_filter_pid_get_packet(iopid->ipid);
 			if (!pck) {
@@ -1043,7 +1102,7 @@ GF_Err filelist_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
+static void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
 {
 	u32 i, count;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s to list\n", fentry->file_name));
@@ -1075,7 +1134,7 @@ void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
 	gf_list_add(ctx->file_list, fentry);
 }
 
-Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+static Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	FileListEntry *fentry;
 	GF_FileListCtx *ctx = cbck;
@@ -1095,7 +1154,7 @@ Bool filelist_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo
 	return GF_FALSE;
 }
 
-GF_Err filelist_initialize(GF_Filter *filter)
+static GF_Err filelist_initialize(GF_Filter *filter)
 {
 	u32 i, count;
 	char *sep_dir, c=0, *dir, *pattern;
@@ -1179,7 +1238,7 @@ GF_Err filelist_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-void filelist_finalize(GF_Filter *filter)
+static void filelist_finalize(GF_Filter *filter)
 {
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 	while (gf_list_count(ctx->io_pids)) {
@@ -1198,6 +1257,8 @@ void filelist_finalize(GF_Filter *filter)
 	gf_list_del(ctx->filter_srcs);
 	if (ctx->file_path) gf_free(ctx->file_path);
 	if (ctx->frag_url) gf_free(ctx->frag_url);
+	if (ctx->unknown_params) gf_free(ctx->unknown_params);
+	if (ctx->pid_props) gf_free(ctx->pid_props);
 }
 
 static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -1265,6 +1326,7 @@ static const GF_FilterArgs GF_FileListArgs[] =
 		, GF_PROP_UINT, "no", "no|name|size|date|datex", 0},
 
 	{ OFFS(sigcues), "inject CueStart property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(fdel), "delete source files after processing in playlist mode (does not delete the playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -1304,20 +1366,21 @@ GF_FilterRegister FileListRegister = {
 		"# Playlist mode\n"
 		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions `m3u`, `txt` or `pl`).\n"
 		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
+		"Lines stating with `##` are ignored.\n"
 		"\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n"
 		"## Playlist directives\n"
-		"The following directives, separated with space or comma, are supported:\n"
+		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
 		"- repeat=N: repeats N times the content (hence played N+1).\n"
 		"- start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
 		"- stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).\n"
 		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.\n"
+		"Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.\n"
 		"- srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
-		"\n"
-		"Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.\n"
-		"\n"
+		"- props=STR: assigns properties described in `STR` to all pids coming from the listed sources on next line. `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
+		"- del: specifies that the source file(s) must be deleted once processed, true by default is [-fdel]() is set.\n"
 		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"

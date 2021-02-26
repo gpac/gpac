@@ -5169,6 +5169,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				}
 				rep->segment_list->segment_URLs = gf_list_new();
 
+				if (rep->segment_base) rep->segment_list->presentation_time_offset = rep->segment_base->presentation_time_offset;
+				else if (group->adaptation_set->segment_base) rep->segment_list->presentation_time_offset = group->adaptation_set->segment_base->presentation_time_offset;
+				else if (group->period->segment_base) rep->segment_list->presentation_time_offset = group->period->segment_base->presentation_time_offset;
+
 				if (init_in_base) {
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 					if (!rep->segment_list->initialization_segment) {
@@ -8291,9 +8295,13 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
-		if (!group->adaptation_set->lang) continue;
 
-		if (!stricmp(group->adaptation_set->lang, lang_code_rfc_5646)) {
+		//select groups with no language info or undetermined or matching our code
+		if (!group->adaptation_set->lang
+			|| !stricmp(group->adaptation_set->lang, lang_code_rfc_5646)
+			|| !strnicmp(group->adaptation_set->lang, "und", 3)
+			|| !strnicmp(group->adaptation_set->lang, "unkn", 4)
+		) {
 			gf_dash_group_select(dash, i, 1);
 			gf_list_add(groups_selected, group);
 		}
@@ -8337,11 +8345,14 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 			   ) {
 				gf_dash_group_select(dash, i, 1);
 				gf_list_add(groups_selected, group);
+			} else {
+				gf_dash_group_select(dash, i, 0);
 			}
 
 			if (sep) sep[0] = '-';
 		}
 	}
+
 	gf_list_del(groups_selected);
 }
 

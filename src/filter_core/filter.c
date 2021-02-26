@@ -3877,6 +3877,21 @@ static Bool gf_filter_has_pid_connection_pending_internal(GF_Filter *filter, GF_
 	if (filter == stop_at_filter) return GF_FALSE;
 
 	if (filter->has_pending_pids) return GF_TRUE;
+	if (filter->in_pid_connection_pending) return GF_TRUE;
+	if (filter->out_pid_connection_pending) return GF_TRUE;
+
+	if (!filter->num_output_pids) {
+		if (!filter->act_as_sink && !filter->multi_sink_target) {
+			if (filter->forced_caps) {
+				if (gf_filter_has_out_caps(filter->forced_caps, filter->nb_forced_caps))
+					return GF_TRUE;
+			} else {
+				if (gf_filter_has_out_caps(filter->freg->caps, filter->freg->nb_caps))
+					return GF_TRUE;
+			}
+		}
+		return GF_FALSE;
+	}
 
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
@@ -4078,18 +4093,39 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 	gf_mx_p(filter->session->filters_mx);
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
+		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
-		if (f==filter) continue;
 
-		gf_mx_p(filter->tasks_mx);
-		if (f->num_input_pids && ! f->num_output_pids) {
+		gf_mx_p(f->tasks_mx);
+		for (j=0; j<f->num_output_pids; j++) {
+			GF_FilterPid *pid = gf_list_get(f->output_pids, j);
+			if (pid->init_task_pending) {
+				res = GF_TRUE;
+				break;
+			}
+		}
+		if (res) {
+			gf_mx_v(f->tasks_mx);
+			break;
+		}
+
+		if (f==filter) {
+			gf_mx_v(f->tasks_mx);
+			continue;
+		}
+
+		if (f->in_pid_connection_pending || f->out_pid_connection_pending) {
+			res = GF_TRUE;
+		}
+		//filter has no output, check if it is expected or not
+		else if (!f->num_output_pids && !f->act_as_sink && !f->multi_sink_target) {
 			if (f->forced_caps) {
 				res = gf_filter_has_out_caps(f->forced_caps, f->nb_forced_caps);
 			} else {
 				res = gf_filter_has_out_caps(f->freg->caps, f->freg->nb_caps);
 			}
 		}
-		gf_mx_v(filter->tasks_mx);
+		gf_mx_v(f->tasks_mx);
 		if (res)
 			break;
 	}

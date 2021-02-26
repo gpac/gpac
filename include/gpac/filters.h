@@ -1460,7 +1460,7 @@ typedef enum
 	GF_FEVT_USER,
 	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
 	GF_FEVT_PLAY_HINT,
-	/*! file delete event, sent upstream by dahser to notify file deletion*/
+	/*! file delete event, sent upstream by dahser to notify file deletion, downstream by flist to ask for file deletion. The associated file processing (reading, writing) MUST be done when firing this event*/
 	GF_FEVT_FILE_DELETE,
 
 	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/
@@ -1609,7 +1609,7 @@ typedef struct
 typedef struct
 {
 	FILTER_EVENT_BASE
-	/*! URL to delete*/
+	/*! URL to delete, or "__gpac_self__" when asking source filter to delete file */
 	const char *url;
 } GF_FEVT_FileDelete;
 
@@ -3079,6 +3079,14 @@ Bool gf_filter_pid_get_buffer_occupancy(GF_FilterPid *PID, u32 *max_units, u32 *
 \param PID the target filter PID
 */
 void gf_filter_pid_set_loose_connect(GF_FilterPid *PID);
+
+/*! Adds PID properties from textual description - this does not reset the PID properties
+\param PID the target filter PID
+\param args one or more serialized properties to set, as documented in gpac -h doc
+\param use_default_seps if GF_TRUE, the serialized properties are using the default separator set, otherwise they are using the current separator set of the session
+\return Error if any
+*/
+GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool use_default_seps);
 
 
 /*! Negotiate a given property on an input PID for built-in properties
