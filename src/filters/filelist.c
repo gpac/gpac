@@ -114,7 +114,7 @@ typedef struct
 	Bool last_is_isom;
 	char szCom[GF_MAX_PATH];
 
-	Bool wait_update;
+	u32 wait_update_start;
 	u64 last_file_modif_time;
 
 	char *frag_url;
@@ -421,11 +421,17 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		return GF_TRUE;
 	}
 
-	if (ctx->wait_update) {
+	if (ctx->wait_update_start) {
 		u64 last_modif_time = gf_file_modification_time(ctx->file_path);
-		if (ctx->last_file_modif_time >= last_modif_time)
+		if (ctx->last_file_modif_time >= last_modif_time) {
+			u32 diff = gf_sys_clock() - ctx->wait_update_start;
+			if (diff > 60 * ctx->ka) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] Timeout refreshing playlist after %d ms, triggering eos\n", diff));
+				ctx->ka = 0;
+			}
 			return GF_FALSE;
-		ctx->wait_update = GF_FALSE;
+		}
+		ctx->wait_update_start = 0;
 		ctx->last_file_modif_time = last_modif_time;
 	}
 
@@ -444,7 +450,7 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 			if (is_end) {
 				ctx->ka = 0;
 			} else if (ctx->ka) {
-				ctx->wait_update = GF_TRUE;
+				ctx->wait_update_start = gf_sys_clock();
 				ctx->last_file_modif_time = gf_file_modification_time(ctx->file_path);
 			}
 			return GF_FALSE;
@@ -452,6 +458,14 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 		lineno++;
 
 		len = (u32) strlen(szURL);
+		//in keep-alive mode, each line shall end with \n, of not consider the file is not yet ready
+		if (ctx->ka && !is_end && len && (szURL[len-1]!='\n')) {
+			gf_fclose(f);
+			ctx->wait_update_start = gf_sys_clock();
+			ctx->last_file_modif_time = gf_file_modification_time(ctx->file_path);
+			return GF_FALSE;
+		}
+		//strip all \r, \n, \t at the end
 		while (len && strchr("\n\r\t ", szURL[len-1])) {
 			szURL[len-1] = 0;
 			len--;
@@ -519,6 +533,10 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH])
 						sscanf(aval, LLU, &end_range);
 				} else if (ctx->ka && !strcmp(args, "end")) {
 					is_end = GF_TRUE;
+				} else if (!strcmp(args, "ka")) {
+					sscanf(aval, "%u", &ctx->ka);
+				} else if (!strcmp(args, "floop")) {
+					ctx->floop = atoi(aval);
 				} else if (!strcmp(args, "props")) {
 					if (aval)
 						ctx->pid_props = gf_strdup(aval);
@@ -1370,6 +1388,11 @@ GF_FilterRegister FileListRegister = {
 		"\n"
 		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n"
+		"\n"
+		"When [-ka]() is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.\n"
+		"Playlist refreshing will abort:\n"
+		"- if the input playlist has a line not ending with a LF `(\\n)` character, in order to avoid asynchronous issues when reading the playlist.\n"
+		"- if the input playlist has not been modified for 60 times the refresh rate (based on file system modification time info).\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
 		"- repeat=N: repeats N times the content (hence played N+1).\n"
@@ -1381,6 +1404,10 @@ GF_FilterRegister FileListRegister = {
 		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"- props=STR: assigns properties described in `STR` to all pids coming from the listed sources on next line. `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
 		"- del: specifies that the source file(s) must be deleted once processed, true by default is [-fdel]() is set.\n"
+		"\n"
+		"The following global options (applying to the filter, not the sources) may also be set in the playlist:\n"
+		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"
+		"- floop=N: set [-floop]() option from within playlist.\n"
 		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
