@@ -893,6 +893,7 @@ Bool gf_sys_has_filter_global_meta_args()
 }
 
 static u32 gpac_quiet = 0;
+char gf_prog_lf = '\r';
 
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
@@ -956,6 +957,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
 				if (!gpac_quiet) gpac_quiet = 1;
+			} else if (!strcmp(arg, "-proglf")) {
+				gf_prog_lf = '\n';
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = bool_value;
 			} else if (!stricmp(arg, "-old-arch")) {

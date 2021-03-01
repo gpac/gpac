@@ -92,6 +92,8 @@ static const char *szProg[] =
 
 static u64 prev_pos = (u64) -1;
 static u64 prev_pc = (u64) -1;
+extern char gf_prog_lf;
+
 static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
@@ -109,7 +111,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 	if ((pos!=prev_pos) || (pc!=prev_pc)) {
 		prev_pos = pos;
 		prev_pc = pc;
-		fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
+		fprintf(stderr, "%s: |%s| (%02d/100)%c", szT, szProg[pos], pc, gf_prog_lf);
 		fflush(stderr);
 	}
 	if (done==total) {
@@ -119,7 +121,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 				fprintf(stderr, " ");
 				len--;
 			};
-			fprintf(stderr, "\r");
+			fprintf(stderr, "%c", gf_prog_lf);
 		}
 		prev_pos = 0;
 	}

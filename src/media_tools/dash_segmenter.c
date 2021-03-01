@@ -488,6 +488,8 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	return GF_OK;
 }
 
+extern char gf_prog_lf;
+
 static Bool on_dasher_event(void *_udta, GF_Event *evt)
 {
 	u32 i, count;
@@ -514,9 +516,9 @@ static Bool on_dasher_event(void *_udta, GF_Event *evt)
 	dasher->last_prog = stats.percent / 100;
 
 	if ( stats.status) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s%c", stats.status, gf_prog_lf));
 	} else if (stats.percent>0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent) / 100));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf));
 	}
 	return GF_FALSE;
 }

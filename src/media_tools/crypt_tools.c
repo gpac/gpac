@@ -528,6 +528,8 @@ GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 	return info;
 }
 
+extern char gf_prog_lf;
+
 static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
@@ -542,9 +544,9 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 
 	*prev_progress = (u32) progress;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%\r", progress));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%%c", progress, gf_prog_lf));
 #else
-	fprintf(stderr, "Decrypting: % 2.2f %%\r", progress);
+	fprintf(stderr, "Decrypting: % 2.2f %%%c", progress, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }
@@ -671,9 +673,9 @@ static Bool on_crypt_event(void *_udta, GF_Event *evt)
 
 	*prev_progress = (u32) progress;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%\r", progress));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%%c", progress, gf_prog_lf));
 #else
-	fprintf(stderr, "Encrypting: % 2.2f %%\r", progress);
+	fprintf(stderr, "Encrypting: % 2.2f %%%c", progress, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }
