@@ -4348,10 +4348,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_isom_purge_track_reference(ctx->file, tkw->track_num);
 	}
 
-	if (max_dur.num) {
+	if (max_dur.num && max_dur.den) {
 		u64 mdur = max_dur.num;
-		mdur *= (u32) ctx->moovts;
-		mdur /= max_dur.den;
+		if (ctx->moovts != max_dur.den) {
+			mdur *= (u32) ctx->moovts;
+			mdur /= max_dur.den;
+		}
 		gf_isom_set_movie_duration(ctx->file, mdur);
 	}
 
