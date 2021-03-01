@@ -545,8 +545,14 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!read->mem_load_mode) {
 			//if no edit list (whether complex or simple TS offset) and no sidx, use media duration
 			if (!ch->has_edit_list && !use_sidx_dur && !ch->ts_offset) {
-				u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
+				//no specific edit list type but edit present, use the duration in the edit
+				if (gf_isom_get_edits_count(read->mov, ch->track)) {
+					u64 dur = gf_isom_get_track_duration(read->mov, ch->track);
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, read->time_scale));
+				} else {
+					u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
+				}
 			}
 			//otherwise trust track duration
 			else {
