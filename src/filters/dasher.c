@@ -7059,8 +7059,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//because this is the before-last sample, don't flush unless:
 			//- we have an asto set (low latency)
 			//- this is not an audio stream or all samples are SAPs
+			//- we use cues
 			else if (seg_over && ds->nb_samples_in_source && !ctx->loop
 				&& (ds->nb_pck+1 == ds->nb_samples_in_source)
+				&& !ds->inband_cues && !ds->cues
 				&& !ctx->asto
 				&& ! ((ds->sync_points_type==DASHER_SYNC_NONE) && (ds->stream_type!=GF_STREAM_AUDIO))
 			) {
