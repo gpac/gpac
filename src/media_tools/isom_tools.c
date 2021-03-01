@@ -3607,6 +3607,8 @@ typedef struct
 	GF_FilterSession *fsess;
 } FragCallback;
 
+extern char gf_prog_lf;
+
 static Bool on_frag_event(void *_udta, GF_Event *evt)
 {
 	u32 i, count;
@@ -3636,9 +3638,9 @@ static Bool on_frag_event(void *_udta, GF_Event *evt)
 	fc->last_prog = stats.percent / 100;
 
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf));
 #else
-	fprintf(stderr, "Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100);
+	fprintf(stderr, "Fragmenting: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }

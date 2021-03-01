@@ -1171,6 +1171,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "EX -logs all@info:dash@debug:ncl\n"\
 			"This moves all log to info level, dash to debug level and disable color logs"\
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("proglf", NULL, "use new line at each progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
 
  GF_DEF_ARG("strict-error", "se", "exit after the first error is reported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("store-dir", NULL, "set storage directory", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),

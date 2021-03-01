@@ -3750,7 +3750,11 @@ If the last URL played cannot be found in the playlist, the first URL in the pla
 .br
 When .I ka is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.
 .br
-Playlist refreshing will abort if the input playlist has a line not ending with a LF (\n) character, in order to avoid asynchronous issues when reading the playlist.
+Playlist refreshing will abort:
+.br
+- if the input playlist has a line not ending with a LF (\n) character, in order to avoid asynchronous issues when reading the playlist.
+.br
+- if the input playlist has not been modified for 60 times the refresh rate (based on file system modification time info).
 .br
 .P
 .B
@@ -7435,7 +7439,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev536-gf6b3fad71-master
+build: 1.1.0-DEV-rev539-gbc210e1d3-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
