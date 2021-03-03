@@ -1248,13 +1248,13 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		} else {
 			gf_fprintf(dump, "nb_tiles=\"unknown\">\n");
 		}
-		gf_fprintf(dump, "</OBU>\n");
+		gf_fprintf(dump, "   </OBU>\n");
 		break;
 	default:
 		break;
 
 	}
-	if (obu_type != OBU_TILE_GROUP)
+	if (obu_type != OBU_TILE_GROUP && obu_type != OBU_FRAME)
 		gf_fprintf(dump, "/>\n");
 
 	return obu_size;
