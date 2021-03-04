@@ -471,6 +471,9 @@ windres="${cross_prefix}${windres}"
 
 if test "$use_static" = "yes" ; then
 pkg_config="${pkg_config} --static"
+if test "$darwin" != "yes" ; then
+  LDFLAGS="-static $LDFLAGS"
+fi
 else
 pkg_config="${pkg_config}"
 fi
@@ -885,7 +888,7 @@ fi
 if test "$has_ft" = "no" ; then
     ft_cflags="-I$local_inc/freetype"
     ft_lflags="-L$local_lib -lfreetype"
-    if docc $ft_cflags $ft_lflags ; then
+    if docc $ft_cflags $ft_lflags $LDFLAGS ; then
         has_ft="local"
     fi
 fi
@@ -991,7 +994,7 @@ fi
 if test "$has_jpeg" = "no" ; then
     jpeg_cflags="-I$local_inc/jpeg"
     jpeg_lflags="-L$local_lib -ljpeg"
-    if docc $jpeg_cflags $jpeg_lflags ; then
+    if docc $jpeg_cflags $jpeg_lflags $LDFLAGS ; then
         has_jpeg="local"
     fi
 fi
@@ -1035,7 +1038,7 @@ if test "$cross_prefix" = "" ; then
 fi
 
 if test "$has_openjpeg" = "no" ; then
-    if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
+    if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg $LDFLAGS ; then
         has_openjpeg="local"
 	openjpeg_ldflags="-lopenjpeg"
     fi
@@ -1067,7 +1070,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_png" = "no" ; then
-    if docc -I$local_inc/png -L$local_lib -lpng ; then
+    if docc -I$local_inc/png -L$local_lib -lpng $LDFLAGS ; then
         has_png="local"
     fi
 fi
@@ -1093,11 +1096,10 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_mad" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lmad ; then
+    if docc -I$local_inc -L$local_lib -lmad $LDFLAGS ; then
         has_mad="local"
     fi
 fi
-
 
 
 #look for A52DEC support
@@ -1123,11 +1125,10 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_a52" = "no" ; then
-    if docc -I$local_inc -L$local_lib -la52 ; then
+    if docc -I$local_inc -L$local_lib -la52 $LDFLAGS ; then
         has_a52="local"
     fi
 fi
-
 
 
 #look for XVID support
@@ -1151,11 +1152,10 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_xvid" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lxvidcore -lpthread ; then
+    if docc -I$local_inc -L$local_lib -lxvidcore -lpthread  $LDFLAGS ; then
         has_xvid="local"
     fi
 fi
-
 
 
 #look for FAAD support
@@ -1177,11 +1177,10 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_faad" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lfaad -lm ; then
+    if docc -I$local_inc -L$local_lib -lfaad -lm $LDFLAGS ; then
         has_faad="local"
     fi
 fi
-
 
 
 #look for FFMPEG support
@@ -1255,7 +1254,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_ffmpeg" = "no" ; then
-    if docc -I$local_inc -L$local_lib $ffmpeg_lflags ; then
+    if docc -I$local_inc -L$local_lib $ffmpeg_lflags  $LDFLAGS ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
@@ -1677,7 +1676,6 @@ if docc $LDFLAGS ; then
 fi
 
 
-
 #look for nghttp2 support
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
@@ -1711,14 +1709,13 @@ if test "$cross_prefix" = "" ; then
 fi
 
 if test "$has_nghttp2" = "no" ; then
-    if docc -I$local_inc -L$local_lib -lnghttp2 ; then
+    if docc -I$local_inc -L$local_lib -lnghttp2  $LDFLAGS ; then
         has_nghttp2="local"
         nghttp2_ldflags="-lnghttp2"
     fi
 fi
 
 fi
-
 
 
 #overwrite detection with manual settings
@@ -1760,8 +1757,8 @@ for opt do
             ;;
         --static-build) static_build="yes";
             ;;
-        --enable-static-bin) 
-            echo "$opt deprecated, use --static-build instead" 
+        --enable-static-bin)
+            echo "$opt deprecated, use --static-build instead"
             static_build="yes";
             ;;
         --disable-ipv6) has_ipv6="no"
@@ -1795,7 +1792,7 @@ for opt do
         --static-bin) static_bin="yes"
             ;;
         --static-mp4box)
-            echo "$opt deprecated, use --static-bin instead" 
+            echo "$opt deprecated, use --static-bin instead"
             static_bin="yes"
             ;;
         --use-faad=*) has_faad=${opt#--use-faad=}
@@ -2096,6 +2093,12 @@ if test "$disable_core_tools" = "no"; then
     echo "error: zlib not found on system or in local libs"
     exit 1
   fi
+  if test "$has_zlib" = "force-no" ; then
+    # can't have libpng without zlib
+    has_png="no"
+    # can't have freetype without libpng
+    has_ft="no"
+  fi
   if test "$dlopen" = "no"; then
     if test "$win32" = "no"; then
       echo "error: dlopen not found on system"
@@ -2337,7 +2340,7 @@ if test "$static_bin" = "yes"; then
     has_ssl="no"
     #we cannot use ipv6 due to getaddrinfo not being present
     has_ipv6="no"
-    
+
 #    has_js="no"
 #    has_ft="no"
 #    has_jpeg="no"
@@ -2379,12 +2382,6 @@ fi
     has_x11="no"
     has_dvb4linux="no"
     has_mingw_directx="no"
-
-if test "$darwin" != "yes" ; then
- if test "$win32" != "yes" ; then
-    LDFLAGS="-static $LDFLAGS"
- fi
-fi
 
 fi
 

@@ -47,6 +47,10 @@
 #if defined(_MSC_VER)
 typedef SSIZE_T ssize_t;
 #define NGHTTP2_STATICLIB
+#else
+#if defined(WIN32) && defined(GPAC_STATIC_BUILD)
+#define NGHTTP2_STATICLIB
+#endif
 #endif
 #include <nghttp2/nghttp2.h>
 
