@@ -606,6 +606,8 @@ static GF_FilterArgs BSRWArgs[] =
 
 static const GF_FilterCapability BSRWCaps[] =
 {
+	//this is correct but we want the filter to act as passthrough for other media
+#if 0
 	CAP_UINT(GF_CAPS_INPUT_STATIC ,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED|GF_CAPFLAG_STATIC , GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
@@ -624,6 +626,12 @@ static const GF_FilterCapability BSRWCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_APCN),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_APCO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_APCS),
+#else
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+#endif
+
 };
 
 GF_FilterRegister BSRWRegister = {
@@ -648,6 +656,8 @@ GF_FilterRegister BSRWRegister = {
 	"  \n"
 	"The filter can currently modify the following properties in the stream configuration but not in the bitstream:\n"
 	"- HEVC: profile IDC, profile space, general compatibility flags\n"
+	"  \n"
+	"The filter will work in passthrough mode for all other codecs and media types.\n"
 	)
 	.private_size = sizeof(GF_BSRWCtx),
 	.max_extra_pids = 0xFFFFFFFF,
