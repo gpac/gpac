@@ -2356,6 +2356,16 @@ Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *medi
 			time /= trak->moov->mvhd->timeScale;
 			time *= trak->Media->mediaHeader->timeScale;
 			*mediaOffset = (s64) time;
+
+			//check next entry, if we start from mediaOffset > 0 this may still result in a skip
+			ent = (GF_EdtsEntry*)gf_list_get(trak->editBox->editList->entryList, 1);
+			//next entry playback rate is not nominal, we need edit list handling
+			if (ent->mediaRate != 0x10000)
+				return GF_TRUE;
+
+			if (ent->mediaTime > 0) {
+				*mediaOffset -= ent->mediaTime;
+			}
 			return GF_FALSE;
 		}
 	}

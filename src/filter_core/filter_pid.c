@@ -5557,7 +5557,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 		return GF_FALSE;
 	}
 	if (!pid->pid->has_seen_eos && !pidi->discard_inputs && !pidi->discard_packets) {
-		((GF_FilterPidInst *)pid)->is_end_of_stream = GF_FALSE;
+		pidi->is_end_of_stream = GF_FALSE;
 		return GF_FALSE;
 	}
 	//peek next for eos

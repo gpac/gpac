@@ -3229,13 +3229,14 @@ static GF_Err inspect_process(GF_Filter *filter)
 	count = gf_list_count(ctx->src_pids);
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
-		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
+		GF_FilterPacket *pck = NULL;
+		pck = pctx->src_pid ? gf_filter_pid_get_packet(pctx->src_pid) : NULL;
 
 		if (pctx->init_pid_config_done)
 			nb_hdr_done++;
 
 		if (!pck) {
-			if (!gf_filter_pid_is_eos(pctx->src_pid))
+			if (pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
 				continue;
 			else
 				ctx->has_seen_eos = GF_TRUE;
@@ -3336,7 +3337,10 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
 		assert(pctx->src_pid == pid);
-		if (!ctx->is_prober) pctx->dump_pid = 1;
+		if (is_remove)
+			pctx->src_pid = NULL;
+		else if (!ctx->is_prober)
+			pctx->dump_pid = 1;
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);

@@ -8287,7 +8287,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 	u32 i, len;
 	s32 lang_idx;
 	GF_List *groups_selected;
-	if (!lang_code_rfc_5646) return;
+	if (!lang_code_rfc_5646) lang_code_rfc_5646 = "und";
 
 	groups_selected = gf_list_new();
 

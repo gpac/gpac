@@ -4053,6 +4053,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	u32 start_number = 1;
 	u32 timescale=0;
 	u64 duration=0;
+	u64 pto=0;
 	char *url;
 	char *url_to_solve, *solved_template, *first_sep, *media_url;
 	char *init_template, *index_template;
@@ -4247,6 +4248,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
 		if (!timescale && period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (!duration && period->segment_template->duration) duration = period->segment_template->duration;
+		pto = period->segment_template->presentation_time_offset;
 	}
 	if (set->segment_template) {
 		if (set->segment_template->initialization) init_template = set->segment_template->initialization;
@@ -4256,6 +4258,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
 		if (!timescale && set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (!duration && set->segment_template->duration) duration = set->segment_template->duration;
+		if (set->segment_template->presentation_time_offset) pto = set->segment_template->presentation_time_offset;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->initialization) init_template = rep->segment_template->initialization;
@@ -4264,7 +4267,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (rep->segment_template->start_number != (u32) -1) start_number = rep->segment_template->start_number;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 		if (!timescale && rep->segment_template->timescale) timescale = rep->segment_template->timescale;
-		if (!duration&& rep->segment_template->duration) duration = rep->segment_template->duration;
+		if (!duration && rep->segment_template->duration) duration = rep->segment_template->duration;
+		if (rep->segment_template->presentation_time_offset) pto = rep->segment_template->presentation_time_offset;
 	}
 
 	/*return segment duration in all cases*/
@@ -4424,7 +4428,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 					break;
 				}
 			} else if (duration) {
-				u64 time = item_index * duration;
+				u64 time = item_index * duration + pto;
 				szPrintFormat[strlen(szPrintFormat)-1] = 0;
 				strcat(szPrintFormat, &LLD[1]);
 				sprintf(szFormat, szPrintFormat, time);
