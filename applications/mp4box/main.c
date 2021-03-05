@@ -678,7 +678,7 @@ MP4BoxArg m4b_imp_args[] =
 
 
 static MP4BoxArg m4b_imp_fileopt_args [] = {
-	GF_DEF_ARG("dur", NULL, "`X` import only the specified duration from the media. Value can be:\n"
+	GF_DEF_ARG("dur", NULL, "`XC` import only the specified duration from the media. Value can be:\n"
 		"  - positive float: specifies duration in seconds\n"
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
@@ -698,8 +698,8 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("refs", NULL, "`DS` import only reference pictures", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("trailing", NULL, "keep trailing 0-bytes in AVC/HEVC samples", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("agg", NULL, "`X` same as [-agg]()", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("dref", NULL, "`X` same as [-dref]()", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("keep_refs", NULL, "keep track reference when importing a single track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("dref", NULL, "`XC` same as [-dref]()", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("keep_refs", NULL, "`C` keep track reference when importing a single track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("nodrop", NULL, "same as [-nodrop]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("packed", NULL, "`X` same as [-packed]()", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("sbr", NULL, "same as [-sbr]()", NULL, NULL, GF_ARG_BOOL, 0),
@@ -732,10 +732,10 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("subsamples", NULL, "add SubSample information for AVC+SVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("deps", NULL, "import sample dependency information for AVC and HEVC", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("ccst", NULL, "`S` add default HEIF ccst box to visual sample entry", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
+	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("xps_inband", NULL, "`X` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("xps_inbandx", NULL, "`X` same as xps_inband and also keep first xPS in sample desciption", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("xps_inband", NULL, "`XC` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("xps_inbandx", NULL, "`XC` same as xps_inband and also keep first xPS in sample desciption", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("au_delim", NULL, "keep AU delimiter NAL units in the imported file", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("max_lid", NULL, "set HEVC max layer ID to be imported to `N` (by default imports all layers)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("max_tid", NULL, "set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)", NULL, NULL, GF_ARG_INT, 0),
@@ -848,6 +848,8 @@ void PrintImportUsage()
 		"This will apply `moovts` and `noedit` option to track with `ID=2` in src.mp4\n"
 		"Only per-file options marked with a `S` are possible in this mode.\n"
 		"  \n"
+		"When importing an ISOBMFF/QT file, only options marked as `C` or `S` can be used\n"
+		"  \n"
 		"Allowed per-file options:\n\n"
 	);
 
@@ -870,6 +872,33 @@ void PrintImportUsage()
 		gf_sys_print_arg(helpout, help_flags, arg, "mp4box-import");
 	}
 }
+
+Bool mp4box_check_isom_fileopt(char *opt)
+{
+	GF_GPACArg *arg = NULL;
+	u32 i=0;
+
+	while (m4b_imp_fileopt_args[i].name) {
+		arg = (GF_GPACArg *) &m4b_imp_fileopt_args[i];
+		i++;
+		if (!stricmp(arg->name, opt)) break;
+		arg = NULL;
+	}
+	if (!arg) {
+		fprintf(stderr, "Option %s not described in doc, please report to GPAC devs!\n", opt);
+		return GF_FALSE;
+	}
+	if (arg->description[0] != '`')
+		return GF_FALSE;
+	const char *d = arg->description+1;
+	while (d[0] != '`') {
+		if (d[0]=='S') return GF_TRUE;
+		if (d[0]=='C') return GF_TRUE;
+		d++;
+	}
+	return GF_FALSE;
+}
+
 
 MP4BoxArg m4b_senc_args[] =
 {

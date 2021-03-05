@@ -61,6 +61,8 @@ typedef enum {
 void convert_file_info(char *inName, GF_ISOTrackID trackID);
 #endif
 
+Bool mp4box_check_isom_fileopt(char *opt);
+
 GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
