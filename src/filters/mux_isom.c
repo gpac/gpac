@@ -3023,9 +3023,15 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_list_del_item(ctx->tracks, tkw);
 			gf_free(tkw);
 		}
-		//removing last pid, flush file
-		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file && !ctx->init_movie_done) {
-			return mp4_mux_done(filter, ctx, GF_TRUE);
+		//removing last pid
+		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file) {
+			//non-frag file, flush file
+			if (!ctx->init_movie_done) {
+				mp4_mux_done(filter, ctx, GF_TRUE);
+			}
+			//delete output pid (to flush destruction of filter chain)
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
 		}
 		return GF_OK;
 	}

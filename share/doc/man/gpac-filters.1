@@ -3780,6 +3780,16 @@ Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO o
 .br
 * del: specifies that the source file(s) must be deleted once processed, true by default is .I fdel is set.
 .br
+* out=V: specifies splicing start time (cf below).
+.br
+* in=V: specifies splicing end time (cf below).
+.br
+* keep: keeps spliced period in output (cf below).
+.br
+* mark: only inject marker for the splice period and do not load any replacement content (cf below).
+.br
+* sprops=STR: assigns properties described in STR to all pids of the main content during a splice (cf below). STR is formatted according to gpac -h doc using the default parameter set.
+.br
 
 .br
 The following global options (applying to the filter, not the sources) may also be set in the playlist:
@@ -3875,6 +3885,98 @@ src.mp4 @ reframer:rt=on @#audio
 
 .br
 This will inject a refamer with real-time regulation between source and flist filter and only connect audio pids to flist filter.
+.br
+.P
+.B
+Splicing
+.br
+The playlist can be used to splice content with other content following a media in the playlist.
+.br
+A source item is declared as main media in a splice operation if and only if it has an out directive set (possibly empty).
+.br
+Directive can be used for the main media except concatenation directives.
+.br
+
+.br
+The splicing operations do not alter media frames and do not perform uncompressed domain operations such as cross-fade or mixing.
+.br
+
+.br
+The out (resp. in) directive specifies the media splice start (resp. end) time. The value can be formatted as follows:
+.br
+* empty: the time is not yet assigned
+.br
+* `now`: the time is resolved to the next SAP point in the media
+.br
+* integer, float or fraction: set time in seconds
+.br
+* `+VAL`: used for in only, specify the end point as delta in seconds from the start point (VAL can be integer, float or fraction)
+.br
+* DATE: set splice time according to wall clock DATE, formated as an XSD dateTime
+.br
+The splice times (except wall clock) are expressed in the source (main media) timing, not the reconstructed output timeline.
+.br
+
+.br
+When a splice begins (out time reached), the source items following the main media are played until the end of the splice or the end of the main media.
+.br
+Sources used during the splice period can use directives such as start, dur or repeat.
+.br
+
+.br
+Once a splice is done (in time reached), the main media out splice time is reset to undefined.
+.br
+
+.br
+When the main media has undefined out or in splice times, the playlist is reloaded at each new main media packet to check for resolved values.
+.br
+- out can only be modified when no splice is active, otherwise it is ignored. If modified, it resets the next source to play to be the one following the modified main media.
+.br
+- in can only be modified when a splice is active with an undefined end time, otherwise it is ignored.
+.br
+
+.br
+When the main media is over:
+.br
+- if repeat directive is set, the main media is repeated, in and out set to their initial values and the next splicing content is the one following the main content,
+.br
+- otherwise, the next source queued is the one following the last source played during the last splice period.
+.br
+
+.br
+It is allowed to defined several main media in the playlist, but a main media is not allowed as media for a splice period.
+.br
+
+.br
+The filter will look for the property Period on the output PIDs of the main media for multi-period DASH.
+.br
+If found, _N is appended to the period ID, with N starting from 1 and increased at each main media resume.
+.br
+If no Period property is set on main or spliced media, period switch can still be forced using .I -pswitch DASH option.
+.br
+
+.br
+If mark directive is set for a main media, no content replacement is done and the splice boundaries will be signaled in the main media.
+.br
+If keep directive is set for a main media, the main media is forwarded along with the replacement content.
+.br
+When mark or keep directives are set, it is possible to alter the PID properties of the main media using sprops directive.
+.br
+
+.br
+Example
+.br
+#out=2 in=4 mark sprops=#xlink=http://foo.bar/
+.br
+src:#Period=main
+.br
+
+.br
+This will inject property xlink on the output pids in the splice zone (corresponding to period main_2) but not in the rest of the main media.
+.br
+
+.br
+Directives mark, keep and sprops are reset at the end of the splice period.
 .br
 
 .br
@@ -7439,7 +7541,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev539-gbc210e1d3-master
+build: 1.1.0-DEV-rev541-g5703ea1fb-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

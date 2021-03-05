@@ -107,7 +107,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->disable_seek = GF_TRUE;
 		ch->au_seq_num = ch->sample_num;
 	} else {
-		//if seek is disabled, get the next closest sample for this time; otherwose, get the previous RAP sample for this time
+		//if seek is disabled, get the next closest sample for this time; otherwise, get the previous RAP sample for this time
 		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 
 		/*take care of seeking out of the track range*/

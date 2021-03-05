@@ -696,7 +696,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	struct sockaddr_in LocalAdd;
 	struct hostent *Host = NULL;
 #endif
-	s32 ret;
+	s32 ret = 0;
 	s32 optval;
 
 	if (!sock || sock->socket) return GF_BAD_PARAM;

@@ -301,9 +301,13 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		}
 
 		if (group->max_cts_in_period && (s64) cts > group->max_cts_in_period) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", cts, group->max_cts_in_period));
-
-			seek_flag = 1;
+			u64 adj_cts = cts;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(in_pid, GF_PROP_PID_DELAY);
+			if (p) adj_cts += p->value.longsint;
+			if ( (s64) adj_cts > group->max_cts_in_period) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", adj_cts, group->max_cts_in_period));
+				seek_flag = 1;
+			}
 		}
 
 		//remap timestamps to our timeline

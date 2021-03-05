@@ -754,8 +754,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 	//send from filter, update flags
 	if (from_filter) {
-		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
-		if (! is_cmd ) {
+		Bool is_cmd = (pck->info.flags & GF_PCK_CMD_MASK) ? GF_TRUE : GF_FALSE;
+		//not a clock, flush any pending clock
+		if (!  (pck->info.flags & GF_PCK_CKTYPE_MASK) ) {
 			gf_filter_forward_clock(pck->pid->filter);
 		}
 		if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {

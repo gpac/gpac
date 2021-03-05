@@ -1188,15 +1188,15 @@ const char *gf_props_4cc_get_name(u32 prop_4cc);
 u32 gf_props_4cc_get_type(u32 prop_4cc);
 
 /*! Checks if two properties are equal
-\param p1 first property to compare
-\param p2 second property to compare
+\param p1 first property to compare - shall not be NULL
+\param p2 second property to compare - shall not be NULL
 \return GF_TRUE if properties are equal, GF_FALSE otherwise
 */
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
 
 /*! Same as \ref gf_props_equal but do not match string with value "*"  to string with value different from "*"
-\param p1 first property to compare
-\param p2 second property to compare
+\param p1 first property to compare - shall not be NULL
+\param p2 second property to compare - shall not be NULL
 \return GF_TRUE if properties are equal, GF_FALSE otherwise
 */
 Bool gf_props_equal_strict(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
@@ -3086,7 +3086,7 @@ void gf_filter_pid_set_loose_connect(GF_FilterPid *PID);
 \param use_default_seps if GF_TRUE, the serialized properties are using the default separator set, otherwise they are using the current separator set of the session
 \return Error if any
 */
-GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool use_default_seps);
+GF_Err gf_filter_pid_push_properties(GF_FilterPid *PID, char *args, Bool use_default_seps);
 
 
 /*! Negotiate a given property on an input PID for built-in properties
