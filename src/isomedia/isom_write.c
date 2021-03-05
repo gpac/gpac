@@ -4920,17 +4920,19 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				stbl->TimeToSample->entries[idx].sampleCount=1;
 			}
 		}
-		//add the sample delta for the last sample
-		if (stbl->TimeToSample->entries[idx].sampleDelta == last_delta) {
-			stbl->TimeToSample->entries[idx].sampleCount++;
-		} else {
-			idx++;
-			stbl->TimeToSample->entries[idx].sampleDelta = last_delta;
-			stbl->TimeToSample->entries[idx].sampleCount=1;
-		}
+		if (stbl->SampleSize->sampleCount > 1) {
+			//add the sample delta for the last sample
+			if (stbl->TimeToSample->entries[idx].sampleDelta == last_delta) {
+				stbl->TimeToSample->entries[idx].sampleCount++;
+			} else {
+				idx++;
+				stbl->TimeToSample->entries[idx].sampleDelta = last_delta;
+				stbl->TimeToSample->entries[idx].sampleCount=1;
+			}
 
-		stbl->TimeToSample->nb_entries = idx+1;
-		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
+			stbl->TimeToSample->nb_entries = idx+1;
+			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
+		}
 	}
 
 	if (CTSs && stbl->SampleSize->sampleCount>0) {
