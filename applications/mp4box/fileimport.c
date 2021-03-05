@@ -818,7 +818,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			moov_timescale = atoi(ext+8);
 		}
 
-		else if (!stricmp(ext+1, "noedit")) { CHECK_FAKEIMPORT("noedit") import_flags |= GF_IMPORT_NO_EDIT_LIST; }
+		else if (!stricmp(ext+1, "noedit")) { import_flags |= GF_IMPORT_NO_EDIT_LIST; }
 
 
 		else if (!strnicmp(ext+1, "rvc=", 4)) {
@@ -1442,6 +1442,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 		//if moov timescale is <0 (auto mode) set it at import time
 		if (fake_import) {
+			if (import_flags & GF_IMPORT_NO_EDIT_LIST)
+				gf_isom_remove_edits(dest, track);
+
 			if (moov_timescale<0) {
 				moov_timescale = gf_isom_get_media_timescale(dest, track);
 			}
