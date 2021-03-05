@@ -52,6 +52,7 @@ typedef struct
 	u32 size, bytes_consumed;
 	Fixed speed;
 	GF_FilterPacket *in_pck;
+	Bool cfg_changed;
 } GF_ResampleCtx;
 
 
@@ -69,8 +70,8 @@ static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u
 	//planar mode, bytes consumed correspond to all channels, so move frame pointer
 	//to first sample non consumed = bytes_consumed/nb_channels
 	if (ctx->src_is_planar) {
-		*planar_stride = ctx->size / ctx->nb_ch;
-		sample_offset /= ctx->nb_ch;
+		*planar_stride = ctx->size / ctx->input_ai.chan;
+		sample_offset /= ctx->input_ai.chan;
 	}
 	return (char*)ctx->data + sample_offset;
 }
@@ -97,6 +98,11 @@ static void resample_release_frame(void *callback, u32 nb_bytes)
 
 static Bool resample_get_config(struct _audiointerface *ai, Bool for_reconf)
 {
+	GF_ResampleCtx *ctx = (GF_ResampleCtx *) ai->callback;
+	if (ctx->cfg_changed) {
+		ctx->cfg_changed = GF_FALSE;
+		return GF_FALSE;
+	}
 	return GF_TRUE;
 }
 static Bool resample_is_muted(void *callback)
@@ -210,6 +216,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->input_ai.chan = nb_ch;
 		ctx->input_ai.ch_layout = ch_cfg;
 		ctx->src_is_planar = gf_audio_fmt_is_planar(afmt);
+		ctx->cfg_changed = GF_TRUE;
 	}
 
 	ctx->passthrough = GF_FALSE;
@@ -269,22 +276,27 @@ static GF_Err resample_process(GF_Filter *filter)
 		gf_filter_pck_merge_properties(ctx->in_pck, dstpck);
 
 		written = gf_mixer_get_output(ctx->mixer, output, osize, 0);
-		if (written != osize) {
-			gf_filter_pck_truncate(dstpck, written);
-		}
-		gf_filter_pck_set_dts(dstpck, ctx->out_cts);
-		gf_filter_pck_set_cts(dstpck, ctx->out_cts);
-		gf_filter_pck_send(dstpck);
-
-		if (ctx->timescale==ctx->freq) {
-			ctx->out_cts += (u64) (ctx->speed * written / bytes_per_samp);
+		if (!written) {
+			gf_filter_pck_discard(dstpck);
 		} else {
-			u64 ts_inc = written / bytes_per_samp;
-			ts_inc *= ctx->timescale;
-			ts_inc /= ctx->freq;
+			if (written != osize) {
+				gf_filter_pck_truncate(dstpck, written);
+			}
+			gf_filter_pck_set_dts(dstpck, ctx->out_cts);
+			gf_filter_pck_set_cts(dstpck, ctx->out_cts);
+			gf_filter_pck_send(dstpck);
 
-			ctx->out_cts += (u64) (ctx->speed * ts_inc);
+			if (ctx->timescale==ctx->freq) {
+				ctx->out_cts += (u64) (ctx->speed * written / bytes_per_samp);
+			} else {
+				u64 ts_inc = written / bytes_per_samp;
+				ts_inc *= ctx->timescale;
+				ts_inc /= ctx->freq;
+
+				ctx->out_cts += (u64) (ctx->speed * ts_inc);
+			}
 		}
+
 		//still some bytes to use from packet, do not discard
 		if (ctx->bytes_consumed<ctx->size) {
 			continue;

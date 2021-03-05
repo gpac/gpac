@@ -919,6 +919,7 @@ reuse_codec_context:
 
 		//override PID props with what decoder gives us
 		if (ctx->decoder->channels) {
+			ctx->channels = 0;
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 		}
 		if (ctx->decoder->channel_layout) {
@@ -929,6 +930,7 @@ reuse_codec_context:
 			}
 		}
 		if (ctx->decoder->sample_rate) {
+			ctx->sample_rate = 0;
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 		}
 		if (!ctx->frame)
