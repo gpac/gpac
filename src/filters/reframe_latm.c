@@ -72,6 +72,7 @@ typedef struct
 	u32 resume_from;
 
 	Bool prev_sap;
+	u32 bitrate;
 } GF_LATMDmxCtx;
 
 
@@ -222,7 +223,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	FILE *stream;
 	GF_BitStream *bs;
 	GF_M4ADecSpecInfo acfg;
-	u64 duration, cur_dur, cur_pos;
+	u64 duration, cur_dur, cur_pos, rate;
 	s32 sr_idx = -1;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -276,6 +277,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 
 		cur_pos = gf_bs_get_position(bs);
 	}
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
@@ -285,6 +287,12 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 			ctx->duration.den = GF_M4ASampleRates[sr_idx];
 
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+			if (duration && !gf_sys_is_test_mode() ) {
+				rate *= 8 * ctx->duration.den;
+				rate /= ctx->duration.num;
+				ctx->bitrate = (u32) rate;
+			}
 		}
 	}
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -346,6 +354,9 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 }
 
 static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

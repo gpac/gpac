@@ -334,6 +334,13 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
 			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]!='-') ? 2 : 1);
+
+			if (!strcmp(arg+2, "template")) {
+				if (strstr(sep+1, "$Bandwidth$")) {
+					gf_opts_set_key("temp", "force_indexing", "true");
+				}
+			}
+
 			if (sep) sep[0] = '=';
 		}
 	}

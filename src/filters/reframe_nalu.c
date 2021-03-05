@@ -221,6 +221,8 @@ typedef struct
 	Bool interlaced, eos_in_bs;
 
 	Bool is_mvc;
+
+	u32 bitrate;
 } GF_NALUDmxCtx;
 
 
@@ -371,7 +373,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 {
 	FILE *stream;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, nal_start, start_code_pos;
+	u64 duration, cur_dur, nal_start, start_code_pos, rate;
 	AVCState *avc_state = NULL;
 	HEVCState *hevc_state = NULL;
 	VVCState *vvc_state = NULL;
@@ -390,11 +392,15 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 	ctx->is_file = GF_TRUE;
 
 	if (ctx->index<0) {
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-		if (!p || (p->value.longuint > 100000000)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 100M, skipping indexing\n", ctx->log_name));
+		if (gf_opts_get_bool("temp", "force_indexing")) {
+			ctx->index = 1.0;
 		} else {
-			ctx->index = -ctx->index;
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+			if (!p || (p->value.longuint > 100000000)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 100M, skipping indexing\n", ctx->log_name));
+			} else {
+				ctx->index = -ctx->index;
+			}
 		}
 	}
 	if (ctx->index<=0) {
@@ -543,6 +549,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		nal_start = gf_bs_get_position(bs);
 	}
 
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 	if (hevc_state) gf_free(hevc_state);
@@ -554,7 +561,14 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
+
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -1502,6 +1516,10 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 		if (dsi_enh) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, &PROP_DATA_NO_COPY(dsi_enh, dsi_enh_size) );
+	}
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
 	}
 
 	if ((ctx->codecid==GF_CODECID_HEVC) && gf_list_count(ctx->vps) ) {

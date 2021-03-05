@@ -848,7 +848,7 @@ void PrintImportUsage()
 		"This will apply `moovts` and `noedit` option to track with `ID=2` in src.mp4\n"
 		"Only per-file options marked with a `S` are possible in this mode.\n"
 		"  \n"
-		"When importing an ISOBMFF/QT file, only options marked as `C` or `S` can be used\n"
+		"When importing an ISOBMFF/QT file, only options marked as `C` or `S` can be used.\n"
 		"  \n"
 		"Allowed per-file options:\n\n"
 	);

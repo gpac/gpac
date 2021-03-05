@@ -85,6 +85,7 @@ typedef struct
 
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 bitrate;
 } GF_MPGVidDmxCtx;
 
 
@@ -171,7 +172,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	GF_M4VParser *vparser;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
-	u64 duration, cur_dur;
+	u64 duration, cur_dur, rate;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -232,6 +233,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			cur_dur = 0;
 		}
 	}
+	rate = gf_bs_get_position(bs);
 	gf_m4v_parser_del(vparser);
 	gf_fclose(stream);
 
@@ -240,6 +242,12 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -341,6 +349,10 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_MPEG4_PART2));
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->dsi.VideoPL) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 	ctx->b_frames = 0;
 

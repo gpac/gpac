@@ -131,6 +131,15 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
 
+	if (!gf_sys_is_test_mode() ) {
+		u32 osize = 0;
+		gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &osize, &stride, &stride_uv, NULL, NULL);
+		if (osize) {
+			u32 rate = osize * 8 * ctx->fps.num / ctx->fps.den;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(rate));
+		}
+	}
+
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
