@@ -72,6 +72,7 @@ typedef struct
 	Bool recompute_cts;
 	FLACIdx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 bitrate;
 } GF_FLACDmxCtx;
 
 
@@ -111,8 +112,8 @@ GF_Err flac_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 {
-	u64 duration;
-	s32 prev_sr = -1;
+	u64 rate;
+	FILE *stream;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -129,14 +130,16 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	/*todo ...*/
-	duration = 0;
+	stream = gf_fopen(p->value.string, "rb");
+	if (!stream) return;
+	gf_fseek(stream, 0, SEEK_END);
 
-	if (!ctx->duration.num || (ctx->duration.num  * prev_sr != duration * ctx->duration.den)) {
-		ctx->duration.num = (s32) duration;
-		ctx->duration.den = prev_sr ;
-
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	rate = gf_ftell(stream);
+	gf_fclose(stream);
+	if (ctx->duration.num && !gf_sys_is_test_mode() ) {
+		rate *= 8 * ctx->duration.den;
+		rate /= ctx->duration.num;
+		ctx->bitrate = (u32) rate;
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -171,6 +174,10 @@ static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_BPS, & PROP_UINT(ctx->bits_per_sample) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 }
 
@@ -505,8 +512,9 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 					if (min_block_size==max_block_size) ctx->block_size = min_block_size;
 					else ctx->block_size = 0;
 
+					ctx->duration.num = gf_bs_read_long_int(ctx->bs, 36);
+					ctx->duration.den = ctx->sample_rate;
 					//ignore the rest
-					/*total samples*/gf_bs_read_long_int(ctx->bs, 36);
 					gf_bs_skip_bytes(ctx->bs, 16);
 					dsi_end = (u32) gf_bs_get_position(ctx->bs);
 

@@ -82,6 +82,7 @@ typedef struct
 	u32 nb_frames;
 
 	u32 nb_unknown_pck;
+	u32 bitrate;
 } GF_MHASDmxCtx;
 
 
@@ -131,7 +132,7 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 	GF_Fraction64 duration;
 	FILE *stream;
 	GF_BitStream *bs;
-	u32 frame_len, cur_dur;
+	u32 frame_len, cur_dur, rate;
 	Bool mhas_sap;
 	u64 mhas_last_cfg;
 	const GF_PropertyValue *p;
@@ -234,12 +235,19 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		}
 	}
 
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * duration.den != duration.num * ctx->duration.den)) {
 		ctx->duration = duration;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration.num && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -312,6 +320,10 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, & PROP_LONGUINT(chan_layout) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(nb_channels) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_len) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 }
 
 static Bool mhas_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

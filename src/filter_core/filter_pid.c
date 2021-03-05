@@ -3507,6 +3507,12 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 			} else {
 				gf_filter_pid_set_property(pid, p4cc, &p);
 			}
+			if ((p4cc==GF_PROP_PID_TEMPLATE) && p.value.string) {
+				if (strstr(p.value.string, "$Bandwidth$")) {
+					gf_opts_set_key("temp", "force_indexing", "true");
+				}
+			}
+
 			if (prop_type==GF_PROP_STRING_LIST) {
 				p.value.string_list.vals = NULL;
 				p.value.string_list.nb_items = 0;

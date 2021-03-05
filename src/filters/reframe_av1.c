@@ -96,6 +96,7 @@ typedef struct
 
 	Bool pts_from_file;
 	u64 cumulated_dur, last_pts;
+	u32 bitrate;
 } GF_AV1DmxCtx;
 
 
@@ -245,7 +246,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	FILE *stream;
 	GF_Err e;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, last_cdur;
+	u64 duration, cur_dur, last_cdur, rate;
 	AV1State av1state;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
@@ -264,11 +265,15 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	ctx->is_file = GF_TRUE;
 
 	if (ctx->index<0) {
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-		if (!p || (p->value.longuint > 100000000)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[AV1/VP9] Source file larger than 100M, skipping indexing\n"));
+		if (gf_opts_get_bool("temp", "force_indexing")) {
+			ctx->index = 1.0;
 		} else {
-			ctx->index = -ctx->index;
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+			if (!p || (p->value.longuint > 100000000)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[AV1/VP9] Source file larger than 100M, skipping indexing\n"));
+			} else {
+				ctx->index = -ctx->index;
+			}
 		}
 	}
 	if (ctx->index<=0)
@@ -343,6 +348,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			cur_dur = 0;
 		}
 	}
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 	gf_odf_av1_cfg_del(av1state.config);
@@ -353,6 +359,12 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	//currently not supported because of OBU size field rewrite - could work on some streams but we would
@@ -507,6 +519,10 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 	if (dsi && dsi_size)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
