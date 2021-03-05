@@ -501,6 +501,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	GF_ISOMTrackFlagOp track_flags_mode=0;
 	u32 roll_change=0;
 	u32 roll = 0;
+	Bool src_is_isom = GF_FALSE;
 
 	rvc_predefined = 0;
 	chapter_name = NULL;
@@ -565,6 +566,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
  	if (!strlen(szName) || !strcmp(szName, "self")) {
 		fake_import = 2;
 	}
+	if (gf_isom_probe_file(szName))
+		src_is_isom = GF_TRUE;
+
 	if (ext) ext[0] = c_sep;
 
 	ext = gf_url_colon_suffix(szName);
@@ -1085,6 +1089,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (ext2) ext2[0] = ':';
 			ext = ext2;
 			continue;
+		}
+		if (src_is_isom) {
+			char *opt = ext+1;
+			char *sep_eq = strchr(opt, '=');
+			if (sep_eq) sep_eq[0] = 0;
+			if (!mp4box_check_isom_fileopt(opt)) {
+				M4_LOG(GF_LOG_ERROR, ("\t! Import option `%s` not available for ISOBMFF/QT sources, ignoring !\n", ext+1));
+			}
+			if (sep_eq) sep_eq[0] = '=';
 		}
 
 		if (ext2) ext2[0] = ':';

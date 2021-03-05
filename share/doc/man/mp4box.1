@@ -1348,6 +1348,10 @@ Only per-file options marked with a S are possible in this mode.
 .br
   
 .br
+When importing an ISOBMFF/QT file, only options marked as C or S can be used
+.br
+  
+.br
 Allowed per-file options:
 .br
 
@@ -1355,7 +1359,7 @@ Allowed per-file options:
 .TP
 .B dur (int)
 .br
-X import only the specified duration from the media. Value can be:
+XC import only the specified duration from the media. Value can be:
 .br
   * positive float: specifies duration in seconds
 .br
@@ -1446,12 +1450,12 @@ X same as .I agg
 .TP
 .B dref
 .br
-X same as .I dref
+XC same as .I dref
 .br
 .TP
 .B keep_refs
 .br
-keep track reference when importing a single track
+C keep track reference when importing a single track
 .br
 .TP
 .B nodrop
@@ -1580,19 +1584,19 @@ S add default HEIF ccst box to visual sample entry
 .TP
 .B forcesync
 .br
-force non IDR samples with I slices to be marked as sync points (AVC GDR)
+force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points
 .br
 Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players
 .br
 .TP
 .B xps_inband
 .br
-X set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
+XC set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)
 .br
 .TP
 .B xps_inbandx
 .br
-X same as xps_inband and also keep first xPS in sample desciption
+XC same as xps_inband and also keep first xPS in sample desciption
 .br
 .TP
 .B au_delim
@@ -2650,7 +2654,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev544-gd052bbf9e-master
+build: 1.1.0-DEV-rev547-g9e1505da7-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
