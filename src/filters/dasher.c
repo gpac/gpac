@@ -555,6 +555,79 @@ static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 	return GF_OK;
 }
 
+static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	u32 bitrate = ds->bitrate;
+	if (ds->dep_id) {
+		u32 i, count = gf_list_count(ctx->current_period->streams);
+		for (i=0; i<count; i++) {
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+			if (a_ds == ds) continue;
+
+			if (gf_list_find(a_ds->complementary_streams, ds)>=0) {
+
+				bitrate += dasher_get_dep_bitrate(ctx, a_ds);
+			}
+		}
+	}
+	return bitrate;
+}
+
+static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	u64 rate;
+	u32 scaler;
+	if (!ds->dyn_bitrate || ds->bitrate) {
+		return;
+	}
+
+	if (!ds->rate_first_dts_plus_one) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't compute bitrate in time for manifest generation, please report to GPAC devs !\n"));
+		return;
+	}
+
+	rate = ds->rate_media_size;
+	rate *= 8;
+	if (ds->rate_last_dts > ds->rate_first_dts_plus_one - 1) {
+		rate *= ds->timescale;
+		rate /= (ds->rate_last_dts - ds->rate_first_dts_plus_one + 1);
+	} else {
+		rate *= ds->dash_dur.den;
+		rate /= ds->dash_dur.num;
+	}
+	//express rates in 100kbps or 10kbps, and if ds is done, trust the average, otherwise add 10%
+	scaler = (rate > 1000000) ? 100000 : 10000;
+	if (rate > 10*scaler) {
+		rate /= scaler;
+		if (!ds->done) scaler = 11 * scaler / 10;
+		rate *= scaler;
+	}
+
+	ds->bitrate = rate;
+
+	if (ds->rep)
+		ds->rep->bandwidth = ds->bitrate;
+
+	if (ds->dep_id) {
+		ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
+	} else if (ds->nb_comp && !ds->muxed_base) {
+		u32 i, count = gf_list_count(ctx->current_period->streams);
+		for (i=0; i<count; i++) {
+			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+			if (ds == a_ds) continue;;
+			if (a_ds->muxed_base != ds) continue;
+			if (a_ds->dyn_bitrate) {
+				dasher_update_bitrate(ctx, a_ds);
+			}
+			ds->rep->bandwidth += a_ds->bitrate;
+		}
+	}
+
+	//keep refreshing our rate estimation
+	if (!ds->done && (ds->dyn_bitrate==1))
+		ds->bitrate = 0;
+}
+
 
 static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_new_period_request)
 {
@@ -578,6 +651,7 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 		if (base_ds->nb_comp_done == base_ds->nb_comp) {
 			dasher_flush_segment(ctx, base_ds, GF_TRUE);
 		}
+
 		ctx->force_period_switch = GF_TRUE;
 		dasher_update_period_duration(ctx, GF_TRUE);
 	}
@@ -611,6 +685,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (is_remove) {
 		ds = gf_filter_pid_get_udta(pid);
 		if (ds) {
+			if (ds->dyn_bitrate) dasher_update_bitrate(ctx, ds);
 			gf_list_del_item(ctx->pids, ds);
 			gf_list_del_item(ctx->current_period->streams, ds);
 			if (ctx->next_period)
@@ -971,6 +1046,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
+
+		if (ds->rate_first_dts_plus_one)
+			dasher_update_bitrate(ctx, ds);
 
 		if (!ds->bitrate) {
 			char *tpl = ds->template ? ds->template : ctx->template;
@@ -1625,23 +1703,6 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	return GF_OK;
 }
 
-static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
-{
-	u32 bitrate = ds->bitrate;
-	if (ds->dep_id) {
-		u32 i, count = gf_list_count(ctx->current_period->streams);
-		for (i=0; i<count; i++) {
-			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
-			if (a_ds == ds) continue;
-
-			if (gf_list_find(a_ds->complementary_streams, ds)>=0) {
-
-				bitrate += dasher_get_dep_bitrate(ctx, a_ds);
-			}
-		}
-	}
-	return bitrate;
-}
 
 static GF_DashStream *get_base_ds(GF_DasherCtx *ctx, GF_DashStream *for_ds)
 {
@@ -1898,44 +1959,6 @@ static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const 
 	if (out_subtype) *out_subtype = subtype;
 	if (!mux_ext) mux_ext = "mp4";
 	if (out_ext) *out_ext = mux_ext;
-}
-
-static void dasher_update_bitrates(GF_DasherCtx *ctx, GF_DashStream *ds)
-{
-	u64 rate;
-	u32 scaler;
-	if (!ds->dyn_bitrate || ds->bitrate)
-		return;
-
-	if (!ds->rate_first_dts_plus_one) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't compute bitrate in time for manifest generation, please report to GPAC devs !\n"));
-		return;
-	}
-
-	rate = ds->rate_media_size;
-	rate *= 8;
-	if (ds->rate_last_dts > ds->rate_first_dts_plus_one - 1) {
-		rate *= ds->timescale;
-		rate /= (ds->rate_last_dts - ds->rate_first_dts_plus_one + 1);
-	} else {
-		rate *= ds->dash_dur.den;
-		rate /= ds->dash_dur.num;
-	}
-	//express rates in 100kbps or 10kbps, and if ds is done, trust the average, otherwise add 10%
-	scaler = (rate > 1000000) ? 100000 : 10000;
-	rate /= scaler;
-	if (!ds->done) scaler = 11 * scaler / 10;
-	rate *= scaler;
-
-	ds->bitrate = rate;
-
-	ds->rep->bandwidth = ds->bitrate;
-	if (ds->dep_id)
-		ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
-
-	//keep refreshing our rate estimation
-	if (!ds->done && (ds->dyn_bitrate==1))
-		ds->bitrate = 0;
 }
 
 
@@ -4004,10 +4027,19 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 	return GF_OK;
 }
 
+static void dasher_update_dyn_bitrates(GF_DasherCtx *ctx)
+{
+	u32 i, count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->dyn_bitrate) dasher_update_bitrate(ctx, ds);
+	}
+}
+
 GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_only)
 {
 	GF_Err e;
-	u32 i, max_opid, count;
+	u32 i, max_opid;
 	FILE *tmp;
 	u64 store_mpd_dur=0;
 	u64 max_seg_dur=0;
@@ -4017,12 +4049,8 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	if (ctx->forward_mode == DASHER_FWD_ALL)
 		return GF_OK;
 
-
-	count = gf_list_count(ctx->current_period->streams);
-	for (i=0; i<count; i++) {
-		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->dyn_bitrate) dasher_update_bitrates(ctx, ds);
-	}
+	if (ctx->dyn_rate)
+		dasher_update_dyn_bitrates(ctx);
 
 	//UGLY PATCH, to remove - we don't have the same algos in old arch and new arch, which result in slightly different max segment duration
 	//on audio for our test suite - patch it manually to avoid hash failures :(
@@ -4954,6 +4982,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		dasher_check_outpath(ctx);
 	}
 	if (ctx->current_period->period) {
+		if (ctx->dyn_rate)
+			dasher_update_dyn_bitrates(ctx);
+
 		dasher_udpate_periods_and_manifest(filter, ctx);
 	}
 
