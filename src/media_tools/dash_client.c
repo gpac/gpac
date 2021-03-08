@@ -2503,9 +2503,11 @@ process_m3u8_manifest:
 						if (dash->is_m3u8 && is_static) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[m3u8] MPD type changed from dynamic to static\n"));
 							group->dash->mpd->type = GF_MPD_TYPE_STATIC;
-							group->dash->mpd->media_presentation_duration = dur;
 							group->dash->mpd->minimum_update_period = 0;
-							group->period->duration = dur;
+							if (group->dash->mpd->media_presentation_duration < dur)
+								group->dash->mpd->media_presentation_duration = dur;
+							if (group->period->duration < dur)
+								group->period->duration = dur;
 						}
 					}
 				}
@@ -3193,9 +3195,11 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		//if this is static, we need to update infos in mpd and period
 		if (group->dash->is_m3u8 && is_static) {
 			group->dash->mpd->type = GF_MPD_TYPE_STATIC;
-			group->dash->mpd->media_presentation_duration = dur;
 			group->dash->mpd->minimum_update_period = 0;
-			group->period->duration = dur;
+			if (group->dash->mpd->media_presentation_duration < dur)
+				group->dash->mpd->media_presentation_duration = dur;
+			if (group->period->duration < dur)
+				group->period->duration = dur;
 		}
 	}
 
