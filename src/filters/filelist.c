@@ -179,7 +179,7 @@ typedef struct
 	GF_Fraction64 init_splice_start, init_splice_end;
 	u32 init_flags_splice_start, init_flags_splice_end;
 	Double init_start, init_stop;
-
+	Bool force_splice_resume;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -231,8 +231,6 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 		if (
 			//skip sync mode, do not adjust timestamps
 			ctx->skip_sync
-			//cat mode, do not adjust timestamps
-			|| ctx->do_cat
 			//in case of rounding
 			|| ((dts > iopid->dts_o) && (cts > iopid->cts_o))
 		) {
@@ -857,6 +855,13 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 			ctx->mark_only = mark_only;
 			ctx->init_flags_splice_start = ctx->flags_splice_start = start_flags;
 			ctx->init_flags_splice_end = ctx->flags_splice_end = end_flags;
+
+			if (!ctx->first_loaded) {
+				if (ctx->splice_start.num == -2)
+					ctx->splice_start.num = -1;
+				if (ctx->splice_end.num == -2)
+					ctx->splice_end.num = -1;
+			}
 		}
 	}
 	//in active splicing and we hava a splice end set, update splice value if previous one was undefined or not set
@@ -959,6 +964,18 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 	ctx->load_next = GF_FALSE;
 
 	if (! next_url_ok) {
+		if (ctx->splice_state==FL_SPLICE_ACTIVE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No next URL for splice but splice period still active, resuming splice with possible broken coding dependencies!\n"));
+			ctx->wait_splice_end = GF_TRUE;
+			ctx->splice_state = FL_SPLICE_AFTER;
+			ctx->dts_sub_plus_one = 1;
+			for (i=0; i<count; i++) {
+				FileListPid *iopid = gf_list_get(ctx->io_pids, i);
+				iopid->splice_ready = GF_TRUE;
+			}
+			return GF_OK;
+		}
+
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
 			gf_filter_pid_set_eos(iopid->opid);
@@ -1200,6 +1217,9 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	if (!pck) {
 		if (!gf_filter_pid_is_eos(ipid))
 			return GF_FALSE;
+
+		if (ctx->splice_state==FL_SPLICE_BEFORE)
+			ctx->splice_state = FL_SPLICE_AFTER;
 
 		//if we are in end of stream, abort
 		if (ctx->splice_state==FL_SPLICE_ACTIVE) {
@@ -1584,6 +1604,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 						iopid->splice_ready = GF_TRUE;
 					} else {
 						iopid->is_eos = GF_TRUE;
+						if (ctx->splice_state==FL_SPLICE_ACTIVE)
+							purge_splice = GF_TRUE;
 					}
 				}
 
@@ -1752,6 +1774,10 @@ static GF_Err filelist_process(GF_Filter *filter)
 			//if we have an end range, compute max_dts (includes dur) - first_dts
 			if (ctx->stop > ctx->start) {
 				if ( (ctx->stop-ctx->start) * iopid->timescale <= (iopid->max_dts - iopid->first_dts_plus_one + 1)) {
+					GF_FilterEvent evt;
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
+					gf_filter_pid_send_event(iopid->ipid, &evt);
+					gf_filter_pid_set_discard(iopid->ipid, GF_TRUE);
 					iopid->is_eos = GF_TRUE;
 					nb_done++;
 					break;
@@ -1766,6 +1792,9 @@ static GF_Err filelist_process(GF_Filter *filter)
 	if (ctx->wait_source) {
 		if (nb_ready + nb_inactive + nb_done == count) {
 			ctx->wait_source = GF_FALSE;
+
+			if (ctx->splice_state==FL_SPLICE_AFTER)
+				ctx->splice_state = FL_SPLICE_BEFORE;
 		}
 	}
 
@@ -1780,118 +1809,120 @@ static GF_Err filelist_process(GF_Filter *filter)
 				break;
 			}
 		}
-		if (ready) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice end reached, resuming main content\n"));
-			ctx->wait_splice_end = GF_FALSE;
-			ctx->nb_repeat = ctx->splice_nb_repeat;
-			ctx->splice_nb_repeat = 0;
+		if (!ready)
+			return GF_OK;
 
-			//reset props pushed by splice
-			if (ctx->pid_props) gf_free(ctx->pid_props);
-			ctx->pid_props = ctx->splice_pid_props;
-			ctx->splice_pid_props = NULL;
-			ctx->skip_sync = GF_FALSE;
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice end reached, resuming main content\n"));
+		ctx->wait_splice_end = GF_FALSE;
+		ctx->nb_repeat = ctx->splice_nb_repeat;
+		ctx->splice_nb_repeat = 0;
 
-			for (i=0; i<count; i++) {
-				iopid = gf_list_get(ctx->io_pids, i);
-				iopid->splice_ready = GF_FALSE;
-				//detach
-				if (!ctx->mark_only && iopid->ipid) {
-					gf_filter_pid_set_udta(iopid->ipid, NULL);
-					gf_filter_pid_set_discard(iopid->ipid, GF_TRUE);
-				}
+		//reset props pushed by splice
+		if (ctx->pid_props) gf_free(ctx->pid_props);
+		ctx->pid_props = ctx->splice_pid_props;
+		ctx->splice_pid_props = NULL;
+		ctx->skip_sync = GF_FALSE;
 
-				if (iopid->splice_ipid) {
-					iopid->ipid = iopid->splice_ipid;
-					iopid->dts_o = iopid->dts_o_splice;
-					iopid->cts_o = iopid->cts_o_splice;
-					iopid->dts_sub = iopid->dts_sub_splice;
-					iopid->dts_sub_splice = 0;
-					iopid->dts_o_splice = 0;
-					iopid->cts_o_splice = 0;
-					iopid->splice_ipid = NULL;
-				} else if (!ctx->mark_only) {
-					iopid->ipid = NULL;
-				}
-			}
-			if (!ctx->mark_only) {
-				while (gf_list_count(ctx->filter_srcs)) {
-					GF_Filter *fsrc = gf_list_pop_back(ctx->filter_srcs);
-					gf_filter_remove_src(filter, fsrc);
-				}
-				gf_list_del(ctx->filter_srcs);
-				ctx->filter_srcs = ctx->splice_srcs;
-				ctx->splice_srcs = NULL;
-			} else {
-				for (i=0; i<count; i++) {
-					iopid = gf_list_get(ctx->io_pids, i);
-					if (!iopid->ipid) continue;
-					gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
-					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
-					gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
-					gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
-				}
-			}
-			ctx->mark_only = GF_FALSE;
-
-			ctx->splice_state = FL_SPLICE_AFTER;
-			if (ctx->keep_splice) {
-				for (i=0; i<count; i++) {
-					iopid = gf_list_get(ctx->io_pids, i);
-					if (iopid->opid_aux) {
-						gf_filter_pid_set_eos(iopid->opid_aux);
-						gf_filter_pid_remove(iopid->opid_aux);
-						iopid->opid_aux = NULL;
-					}
-				}
-				ctx->keep_splice = GF_FALSE;
-
-				if (ctx->splice_props) {
-					gf_free(ctx->splice_props);
-					ctx->splice_props = NULL;
-				}
-			}
-
-			//spliced media is still active, restore our timeline as it was before splicing
-			if (! gf_filter_pid_is_eos(ctx->splice_ctrl->ipid)) {
-
-				ctx->cur_splice_index ++;
-				//force a reconfig
-				for (i=0; i<count; i++) {
-					iopid = gf_list_get(ctx->io_pids, i);
-					if (iopid->ipid) {
-						filelist_configure_pid(filter, iopid->ipid, GF_FALSE);
-						gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
-					}
-				}
-
-				ctx->cts_offset = ctx->cts_offset_at_splice;
-				ctx->dts_offset = ctx->dts_offset_at_splice;
-				ctx->dts_sub_plus_one = ctx->dts_sub_plus_one_at_splice;
-				//set splice start as undefined to probe for new splice time
-				ctx->splice_start.num = -1;
-				ctx->splice_start.den = 1;
-				ctx->splice_end.num = -1;
-				ctx->splice_end.den = 1;
-				//make sure we have a packet ready on each input pid before dispatching packets from the main content
-				//so that we trigger synchronized reconfig on all pids
-				ctx->wait_source = GF_TRUE;
-				return GF_OK;
-			}
-
-			for (i=0; i<count; i++) {
-				iopid = gf_list_get(ctx->io_pids, i);
-				if (!iopid->ipid) continue;
+		for (i=0; i<count; i++) {
+			iopid = gf_list_get(ctx->io_pids, i);
+			iopid->splice_ready = GF_FALSE;
+			//detach
+			if (!ctx->mark_only && iopid->ipid) {
 				gf_filter_pid_set_udta(iopid->ipid, NULL);
 				gf_filter_pid_set_discard(iopid->ipid, GF_TRUE);
 			}
-			//spliced media is done, load next
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Spliced media is over, switching to next item in playlist\n"));
-			nb_inactive = 0;
-			nb_done = count;
-			ctx->cur_splice_index = 0;
-			ctx->splice_state = ctx->nb_repeat ? FL_SPLICE_BEFORE : FL_SPLICE_NONE;
+
+			if (iopid->splice_ipid) {
+				iopid->ipid = iopid->splice_ipid;
+				iopid->dts_o = iopid->dts_o_splice;
+				iopid->cts_o = iopid->cts_o_splice;
+				iopid->dts_sub = iopid->dts_sub_splice;
+				iopid->dts_sub_splice = 0;
+				iopid->dts_o_splice = 0;
+				iopid->cts_o_splice = 0;
+				iopid->splice_ipid = NULL;
+			} else if (!ctx->mark_only) {
+				iopid->ipid = NULL;
+			}
+			iopid->is_eos = GF_FALSE;
 		}
+		if (!ctx->mark_only) {
+			while (gf_list_count(ctx->filter_srcs)) {
+				GF_Filter *fsrc = gf_list_pop_back(ctx->filter_srcs);
+				gf_filter_remove_src(filter, fsrc);
+			}
+			gf_list_del(ctx->filter_srcs);
+			ctx->filter_srcs = ctx->splice_srcs;
+			ctx->splice_srcs = NULL;
+		} else {
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				if (!iopid->ipid) continue;
+				gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
+				gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+				gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
+				gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
+			}
+		}
+		ctx->mark_only = GF_FALSE;
+
+		ctx->splice_state = FL_SPLICE_AFTER;
+		if (ctx->keep_splice) {
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				if (iopid->opid_aux) {
+					gf_filter_pid_set_eos(iopid->opid_aux);
+					gf_filter_pid_remove(iopid->opid_aux);
+					iopid->opid_aux = NULL;
+				}
+			}
+			ctx->keep_splice = GF_FALSE;
+
+			if (ctx->splice_props) {
+				gf_free(ctx->splice_props);
+				ctx->splice_props = NULL;
+			}
+		}
+
+		//spliced media is still active, restore our timeline as it was before splicing
+		if (! gf_filter_pid_is_eos(ctx->splice_ctrl->ipid)) {
+
+			ctx->cur_splice_index ++;
+			//force a reconfig
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				if (iopid->ipid) {
+					filelist_configure_pid(filter, iopid->ipid, GF_FALSE);
+					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+				}
+			}
+
+			ctx->cts_offset = ctx->cts_offset_at_splice;
+			ctx->dts_offset = ctx->dts_offset_at_splice;
+			ctx->dts_sub_plus_one = ctx->dts_sub_plus_one_at_splice;
+			//set splice start as undefined to probe for new splice time
+			ctx->splice_start.num = -1;
+			ctx->splice_start.den = 1;
+			ctx->splice_end.num = -1;
+			ctx->splice_end.den = 1;
+			//make sure we have a packet ready on each input pid before dispatching packets from the main content
+			//so that we trigger synchronized reconfig on all pids
+			ctx->wait_source = GF_TRUE;
+			return GF_OK;
+		}
+
+		for (i=0; i<count; i++) {
+			iopid = gf_list_get(ctx->io_pids, i);
+			if (!iopid->ipid) continue;
+			gf_filter_pid_set_udta(iopid->ipid, NULL);
+			gf_filter_pid_set_discard(iopid->ipid, GF_TRUE);
+		}
+		//spliced media is done, load next
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Spliced media is over, switching to next item in playlist\n"));
+		nb_inactive = 0;
+		nb_done = count;
+		ctx->cur_splice_index = 0;
+		ctx->splice_state = ctx->nb_repeat ? FL_SPLICE_BEFORE : FL_SPLICE_NONE;
 	}
 
 	if (ctx->wait_splice_start) {
@@ -1904,52 +1935,53 @@ static GF_Err filelist_process(GF_Filter *filter)
 				break;
 			}
 		}
-		if (ready) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice start reached, loading splice content\n"));
-			ctx->splice_nb_repeat = ctx->nb_repeat;
-			ctx->nb_repeat = 0;
-			ctx->init_start = ctx->start;
-			ctx->init_stop = ctx->stop;
-			ctx->stop = ctx->start = 0;
-			nb_inactive = 0;
-			nb_done = count;
+		if (!ready)
+			return GF_OK;
 
-			assert(!ctx->splice_pid_props);
-			ctx->splice_pid_props = ctx->pid_props;
-			ctx->pid_props = NULL;
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice start reached, loading splice content\n"));
+		ctx->splice_nb_repeat = ctx->nb_repeat;
+		ctx->nb_repeat = 0;
+		ctx->init_start = ctx->start;
+		ctx->init_stop = ctx->stop;
+		ctx->stop = ctx->start = 0;
+		nb_inactive = 0;
+		nb_done = count;
 
-			ctx->cts_offset_at_splice = ctx->cts_offset;
-			ctx->dts_offset_at_splice = ctx->dts_offset;
-			ctx->dts_sub_plus_one_at_splice = ctx->dts_sub_plus_one;
+		assert(!ctx->splice_pid_props);
+		ctx->splice_pid_props = ctx->pid_props;
+		ctx->pid_props = NULL;
 
-			if (ctx->mark_only) {
-				ctx->cur_splice_index ++;
-				for (i=0; i<count; i++) {
-					iopid = gf_list_get(ctx->io_pids, i);
-					if (iopid->ipid) {
-						gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
-						gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
-						gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
-						gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
-					}
-					if (ctx->splice_props)
-						gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE);
+		ctx->cts_offset_at_splice = ctx->cts_offset;
+		ctx->dts_offset_at_splice = ctx->dts_offset;
+		ctx->dts_sub_plus_one_at_splice = ctx->dts_sub_plus_one;
 
-					if (ctx->dyn_period_id)
-						filelist_push_period_id(ctx, iopid->opid);
+		if (ctx->mark_only) {
+			ctx->cur_splice_index ++;
+			for (i=0; i<count; i++) {
+				iopid = gf_list_get(ctx->io_pids, i);
+				if (iopid->ipid) {
+					gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
+					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+					gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
+					gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
 				}
-				if (ctx->splice_props) {
-					gf_free(ctx->splice_props);
-					ctx->splice_props = NULL;
-				}
-				ctx->wait_splice_start = GF_FALSE;
-				ctx->splice_ctrl->splice_ipid = ctx->splice_ctrl->ipid;
-				return GF_OK;
+				if (ctx->splice_props)
+					gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE);
+
+				if (ctx->dyn_period_id)
+					filelist_push_period_id(ctx, iopid->opid);
 			}
-			//make sure we have a packet ready on each input pid before dispatching packets from the splice
-			//so that we trigger synchronized reconfig on all pids
-			ctx->wait_source = GF_TRUE;
+			if (ctx->splice_props) {
+				gf_free(ctx->splice_props);
+				ctx->splice_props = NULL;
+			}
+			ctx->wait_splice_start = GF_FALSE;
+			ctx->splice_ctrl->splice_ipid = ctx->splice_ctrl->ipid;
+			return GF_OK;
 		}
+		//make sure we have a packet ready on each input pid before dispatching packets from the splice
+		//so that we trigger synchronized reconfig on all pids
+		ctx->wait_source = GF_TRUE;
 	}
 
 
@@ -2013,6 +2045,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 				GF_FilterEvent evt;
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (!iopid->ipid) continue;
+
+				gf_filter_pid_set_discard(iopid->ipid, GF_FALSE);
 
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid);
 				gf_filter_pid_send_event(iopid->ipid, &evt);
