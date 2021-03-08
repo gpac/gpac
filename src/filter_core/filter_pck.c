@@ -971,7 +971,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (!dst->filter || dst->filter->finalized || dst->filter->removed || !dst->filter->freg->process) continue;
+		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process) continue;
 
 		if (dst->discard_inputs) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen

@@ -617,7 +617,8 @@ struct __gf_filter
 	Bool finalized;
 	//filter is scheduled for removal: any filter connected to this filter will
 	//not be checked for graph resolution - destroy has not yet been posted
-	Bool removed;
+	//if value is 2, packets are still dispatched to this PID instance (pid reconfig)
+	u32 removed;
 	//setup has been notified
 	Bool setup_notified;
 	//filter loaded to solve a filter chain
@@ -818,7 +819,6 @@ struct __gf_filter_pid_inst
 	GF_Filter *alias_orig;
 
 	GF_Fraction64 last_ts_drop;
-
 };
 
 struct __gf_filter_pid

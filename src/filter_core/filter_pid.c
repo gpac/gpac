@@ -391,7 +391,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	gf_filter_pid_del(pid);
 
 	//no more pids on filter, destroy it
-	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
+	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids) && !filter->finalized) {
 		gf_filter_post_remove(filter);
 	}
 	gf_mx_v(filter->tasks_mx);
@@ -406,7 +406,7 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 	//pid instance buffer (not consumed)
 	gf_filter_pid_inst_reset(pidinst);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s swap destruction\n",  filter->name, pidinst->pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s swap destruction\n",  filter->name, pidinst->pid ? pidinst->pid->name : pid->name));
 	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(filter->input_pids, pidinst);
 	filter->num_input_pids = gf_list_count(filter->input_pids);
@@ -662,7 +662,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	//first connection of this PID to this filter
 	if (!pidinst) {
 		if (ctype != GF_PID_CONF_CONNECT) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to disconnect PID %s not found in filter %s inputs\n",  pid->name, filter->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to disconnect PID %s not present in filter %s inputs\n",  pid->name, filter->name));
 			return GF_SERVICE_ERROR;
 		}
 		pidinst = gf_filter_pid_inst_new(filter, pid);
@@ -739,11 +739,12 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	}
 	//failure on reconfigure, try reloading a filter chain
 	else if ((ctype==GF_PID_CONF_RECONFIG) && (e != GF_FILTER_NOT_SUPPORTED)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
-
 		if (e==GF_BAD_PARAM) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
+
 			filter->session->last_connect_error = e;
 		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 			gf_filter_relink_dst(pidinst);
 		}
 	} else {
@@ -1075,7 +1076,7 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 
 	//first connection of this PID to this filter
 	if (!pidinst) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not found in filter %s inputs\n",  pid->name, filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Trying to detach PID %s not present in filter %s inputs\n",  pid->name, filter->name));
 		assert(!new_chain_input->swap_pidinst_dst);
 		assert(!new_chain_input->swap_pidinst_src);
 		new_chain_input->swap_needs_init = GF_FALSE;
@@ -4853,7 +4854,9 @@ static const GF_PropertyValue *gf_filter_pid_get_info_internal(GF_FilterPid *pid
 		const GF_PropertyValue *prop;
 		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
 		if (!pidinst->pid) continue;
-		
+		if (!pidinst->pid->filter) continue;
+		if (pidinst->pid->filter->removed) continue;
+
 		prop = gf_filter_pid_get_info_internal((GF_FilterPid *)pidinst, prop_4cc, prop_name, GF_FALSE, propentry);
 		if (prop) {
 			prop_ent = *propentry;
