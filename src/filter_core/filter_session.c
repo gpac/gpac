@@ -1031,6 +1031,7 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 
 static Bool locate_js_script(char *path, const char *file_name, const char *file_ext)
 {
+	u32 len = (u32) strlen(path);
 	strcat(path, file_name);
 	if (gf_file_exists(path))
 		return GF_TRUE;
@@ -1040,6 +1041,12 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 		if (gf_file_exists(path))
 			return GF_TRUE;
 	}
+	path[len] = 0;
+	strcat(path, file_name);
+	strcat(path, "/init.js");
+	if (gf_file_exists(path))
+		return GF_TRUE;
+
 	return GF_FALSE;
 }
 
@@ -1134,6 +1141,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	}
 	/*check JS file*/
 	file_ext = gf_file_ext_start(name);
+	if (file_ext && (file_ext > sep) )
+		file_ext = NULL;
+
 	if (!file_ext || strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
 		Bool file_exists = GF_FALSE;
 		char szName[10+GF_MAX_PATH];
@@ -2556,7 +2566,18 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 				if (try_js) {
 					if (!strncmp(url, "gpac://", 7)) url += 7;
-					return gf_fs_load_filter(fsess, url, err);
+					filter = gf_fs_load_filter(fsess, url, err);
+
+					if (filter) {
+						//for link resolution
+						if (dst_filter && for_source)	{
+							if (gf_list_find(filter->destination_links, dst_filter)<0)
+								gf_list_add(filter->destination_links, dst_filter);
+							//to remember our connection target
+							filter->target_filter = dst_filter;
+						}
+					}
+					return filter;
 				}
 
 				if (err) *err = GF_URL_ERROR;
