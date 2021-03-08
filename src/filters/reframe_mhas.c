@@ -132,9 +132,9 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 	GF_Fraction64 duration;
 	FILE *stream;
 	GF_BitStream *bs;
-	u32 frame_len, cur_dur, rate;
+	u32 frame_len, cur_dur;
 	Bool mhas_sap;
-	u64 mhas_last_cfg;
+	u64 mhas_last_cfg, rate;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 

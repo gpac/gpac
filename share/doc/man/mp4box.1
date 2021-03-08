@@ -1272,7 +1272,7 @@ dump timing of an input MPEG-2 TS stream sample timing
 .SH File importing
 .LP
 .br
-Syntax is .I add / .I cat filename[#FRAGMENT][:opt1...:optN=val]
+Syntax is .I add / .I cat URL[#FRAGMENT][:opt1...:optN=val]
 .br
 This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add .I -new.
 .br
@@ -1280,7 +1280,7 @@ The supported input media types depend on your installation, check filters docum
 .br
   
 .br
-To select a desired media track from a source, a fragment identifier '#' can be specified, bfore any other options. The following syntax is used:
+To select a desired media track from a source, a fragment identifier '#' can be specified, before any other options. The following syntax is used:
 .br
 * `#video`: adds the first video track found in source
 .br
@@ -1314,7 +1314,7 @@ If you wish to create an interleaved new file with no temporary storage, use the
 .br
   
 .br
-Note: MP4Box cannot start importing from a random point in the input, it always import from the begining.  If you wish to import from another point in the source, use the gpac application.
+Source URL can be any URL supported by GPAC, not limited to local files.
 .br
   
 .br
@@ -1348,7 +1348,7 @@ Only per-file options marked with a S are possible in this mode.
 .br
   
 .br
-When importing an ISOBMFF/QT file, only options marked as C or S can be used
+When importing an ISOBMFF/QT file, only options marked as C or S can be used.
 .br
   
 .br
@@ -1366,6 +1366,11 @@ XC import only the specified duration from the media. Value can be:
   * fraction: specifies duration as NUM/DEN fraction
 .br
   * negative integer: specifies duration in number of coded frames
+.br
+.TP
+.B start (number)
+.br
+C target start time in source media, may not be supported depending on the source
 .br
 .TP
 .B lang (string)
@@ -2654,7 +2659,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev547-g9e1505da7-master
+build: 1.1.0-DEV-rev551-g1752299a3-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

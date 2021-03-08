@@ -603,7 +603,7 @@ static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 		rate *= scaler;
 	}
 
-	ds->bitrate = rate;
+	ds->bitrate = (u32) rate;
 
 	if (ds->rep)
 		ds->rep->bandwidth = ds->bitrate;
@@ -5277,7 +5277,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				u64 num = period_start / seg_duration;
 				if (num * seg_duration < period_start)
 					num++;
-				ds->startNumber = num+1;
+				ds->startNumber = (u32) (num+1);
 			}
 		}
 

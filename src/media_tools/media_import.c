@@ -1105,7 +1105,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		magic |= (importer->source_magic & 0xFFFFFFFFUL);
 		importer->source_magic = magic;
 		source_is_isom = GF_TRUE;
-		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session)
+		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session && !importer->start_time)
 			|| (importer->flags & GF_IMPORT_PROBE_ONLY)
 		) {
 			importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
@@ -1291,6 +1291,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (source_is_isom && gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
 
+	if (importer->start_time) {
+		sprintf(szSubArg, "start=%f", importer->start_time);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 	if (e) {
 		gf_fs_del(fsess);
 		gf_free(args);

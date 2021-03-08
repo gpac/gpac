@@ -429,6 +429,8 @@ typedef struct __track_import
 	char *update_mux_args;
 	/*! index of source importer when running multiple importers in one session*/
 	u32 track_index;
+	/*! target start time in source*/
+	Double start_time;
 } GF_MediaImporter;
 
 /*!
