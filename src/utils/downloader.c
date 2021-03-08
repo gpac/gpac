@@ -1594,7 +1594,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 								"Upgrade: h2c\r\n\r\n", NULL);
 
 
-		len = strlen(rsp_buf);
+		len = (u32) strlen(rsp_buf);
 		e = gf_sk_send(sess->sock, rsp_buf, len);
 		gf_free(rsp_buf);
 		rsp_buf = NULL;
@@ -1698,7 +1698,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 		if (!rsp_buf) return GF_OUT_OF_MEM;
 	}
 
-	count = strlen(rsp_buf);
+	count = (u32) strlen(rsp_buf);
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		e = gf_ssl_write(sess->ssl, rsp_buf, count);
