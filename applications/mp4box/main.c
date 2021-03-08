@@ -682,6 +682,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - positive float: specifies duration in seconds\n"
 		"  - fraction: specifies duration as NUM/DEN fraction\n"
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("start", NULL, "`C` target start time in source media, may not be supported depending on the source", NULL, NULL, GF_ARG_DOUBLE, 0),
 	GF_DEF_ARG("lang", NULL, "`S` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay in ms or as fractionnal seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("par", NULL, "`S` set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
@@ -814,11 +815,11 @@ void PrintImportUsage()
 
 	gf_sys_format_help(helpout, help_flags, "# Importing Options\n"
 		"# File importing\n"
-		"Syntax is [-add]() / [-cat]() `filename[#FRAGMENT][:opt1...:optN=val]`\n"
+		"Syntax is [-add]() / [-cat]() `URL[#FRAGMENT][:opt1...:optN=val]`\n"
 		"This process will create the destination file if not existing, and add the track(s) to it. If you wish to always create a new destination file, add [-new](MP4B_GEN).\n"
 		"The supported input media types depend on your installation, check [filters documentation](Filters) for more info.\n"
 		"  \n"
-		"To select a desired media track from a source, a fragment identifier '#' can be specified, bfore any other options. The following syntax is used:\n"
+		"To select a desired media track from a source, a fragment identifier '#' can be specified, before any other options. The following syntax is used:\n"
 		"- `#video`: adds the first video track found in source\n"
 		"- `#audio`: adds the first audio track found in source\n"
 		"- `#auxv`: adds the first auxiliary video track found in source\n"
@@ -835,7 +836,7 @@ void PrintImportUsage()
 		" - Some muxing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
 		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perforom more complex cat/add operations without temp file, use the [gpac application](Filters).\n"
 		"  \n"
-		"Note: MP4Box cannot start importing from a random point in the input, it always import from the begining.  If you wish to import from another point in the source, use the [gpac application](Filters).\n"
+		"Source URL can be any URL supported by GPAC, not limited to local files.\n"
 		"  \n"
 		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
 		"  \n"

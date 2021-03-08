@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -603,6 +603,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 			import.duration.num = dur_n;
 			import.duration.den = dur_d;
+		}
+		else if (!strnicmp(ext+1, "start=", 6)) {
+			CHECK_FAKEIMPORT("start")
+			import.start_time = atof(ext+7);
 		}
 		else if (!strnicmp(ext+1, "lang=", 5)) {
 			/* prevent leak if param is set twice */

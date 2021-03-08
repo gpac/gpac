@@ -165,6 +165,8 @@ typedef struct
 
 	Bool is_hevc_tile_base;
 	Bool insert_pssh;
+
+	Bool wait_sap;
 } TrackWriter;
 
 enum
@@ -262,6 +264,7 @@ typedef struct
 	Bool mfra;
 	Bool forcesync, refrag;
 	u32 itags;
+	Double start;
 
 	//internal
 	Bool owns_mov;
@@ -339,6 +342,9 @@ typedef struct
 	u64 frag_duration;
 	u32 frag_timescale;
 	Bool frag_has_intra;
+
+	u64 wait_dts_plus_one;
+	u32 wait_dts_timescale;
 } GF_MP4MuxCtx;
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
@@ -838,7 +844,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			}
 #endif
 			if (!ctx->owns_mov || ctx->force_play) {
-				GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+				if (!ctx->owns_mov) {
+					if (ctx->start != 0)
+						tkw->wait_sap = GF_TRUE;
+					gf_filter_pid_init_play_event(pid, &evt, ctx->start, 0, "MP4Mux");
+				} else {
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+				}
 				gf_filter_pid_send_event(pid, &evt);
 			}
 			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -850,7 +862,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				ctx->config_timing = GF_TRUE;
 				ctx->update_report = GF_TRUE;
 			}
-
 		}
 	}
 
@@ -5181,6 +5192,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
+
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {
 			dts_min = tkw->ts_shift * 1000000;
@@ -5191,6 +5203,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 			}
 			continue;
 		}
+retry_pck:
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		//check this after fetching a packet since it may reconfigure the track
 		if (!tkw->track_num) {
@@ -5200,6 +5213,39 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 			}
 			return;
 		}
+
+		if (pck) {
+			if (tkw->wait_sap) {
+				GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+				Bool seek = gf_filter_pck_get_seek_flag(pck);
+				if (seek || !sap) {
+					gf_filter_pid_drop_packet(tkw->ipid);
+					goto retry_pck;
+				} else {
+					if (sap)
+						tkw->wait_sap = GF_FALSE;
+
+					if (!ctx->wait_dts_plus_one) {
+						ctx->wait_dts_plus_one = 1 + gf_filter_pck_get_dts(pck);
+						ctx->wait_dts_timescale = tkw->src_timescale;
+					}
+				}
+			}
+
+			if (ctx->wait_dts_plus_one) {
+				ts = gf_filter_pck_get_dts(pck);
+				if (ts==GF_FILTER_NO_TS)
+					ts = gf_filter_pck_get_cts(pck);
+				if (ts==GF_FILTER_NO_TS)
+					ts=0;
+
+				if (ts * ctx->wait_dts_timescale < (ctx->wait_dts_plus_one-1) * tkw->src_timescale) {
+					gf_filter_pid_drop_packet(tkw->ipid);
+					goto retry_pck;
+				}
+			}
+		}
+
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
 				if (tkw->cenc_state==CENC_NEED_SETUP)
@@ -6217,6 +6263,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- cmfc: use CMAF `cmfc` guidelines\n"
 		"- cmf2: use CMAF `cmf2` guidelines"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(start), "set playback start offset (MP4Box import only). Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
