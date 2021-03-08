@@ -150,6 +150,8 @@ typedef struct
 	u32 wait_update_start;
 	u64 last_file_modif_time;
 
+	Bool skip_sync;
+	Bool first_loaded;
 	char *frag_url;
 
 	char *unknown_params;
@@ -215,8 +217,10 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 	if (prev_timescale) {
 		u64 dts, cts;
 
+		//in input timescale
 		dts = iopid->max_dts - iopid->dts_sub;
 		cts = iopid->max_cts - iopid->dts_sub;
+		//convert to output timescale
 		if (prev_timescale != iopid->o_timescale) {
 			dts *= iopid->o_timescale;
 			dts /= prev_timescale;
@@ -224,8 +228,14 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 			cts *= iopid->o_timescale;
 			cts /= prev_timescale;
 		}
-		//in case of rounding
-		if ((dts > iopid->dts_o) && (cts > iopid->cts_o)) {
+		if (
+			//skip sync mode, do not adjust timestamps
+			ctx->skip_sync
+			//cat mode, do not adjust timestamps
+			|| ctx->do_cat
+			//in case of rounding
+			|| ((dts > iopid->dts_o) && (cts > iopid->cts_o))
+		) {
 			iopid->dts_o = dts;
 			iopid->cts_o = cts;
 		}
@@ -563,7 +573,7 @@ static void filelist_parse_splice_time(char *aval, GF_Fraction64 *frac, u32 *fla
 	}
 	if (strchr(aval, '.')) {
 		Double v = atof(aval);
-		frac->num = v*1000000;
+		frac->num = (s64) (v*1000000);
 		frac->den = 1000000;
 		return;
 	}
@@ -584,6 +594,7 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 	Bool is_end=0;
 	Bool keep_splice=0;
 	Bool mark_only=0;
+	Bool no_sync=0;
 	u32 start_flags=0;
 	u32 end_flags=0;
 
@@ -746,6 +757,8 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 					keep_splice = GF_TRUE;
 				} else if (!strcmp(args, "mark")) {
 					mark_only = GF_TRUE;
+				} else if (!strcmp(args, "nosync")) {
+					no_sync = GF_TRUE;
 				} else if (!strcmp(args, "sprops")) {
 					if (ctx->splice_props) gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
@@ -788,6 +801,7 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 			mark_only = 0;
 			start_flags=0;
 			end_flags=0;
+			no_sync=0;
 			continue;
 		}
 		if (last_found) {
@@ -805,6 +819,7 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 		mark_only = 0;
 		start_flags=0;
 		end_flags=0;
+		no_sync=0;
 	}
 	gf_fclose(f);
 
@@ -868,6 +883,8 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 	ctx->start = start;
 	ctx->stop = stop;
 	ctx->do_cat = do_cat;
+	ctx->skip_sync = no_sync;
+
 	if (!ctx->floop)
 		ctx->do_del = (do_del || ctx->fdel) ? GF_TRUE : GF_FALSE;
 	ctx->start_range = start_range;
@@ -956,7 +973,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		FileListPid *an_iopid = gf_list_get(ctx->io_pids, i);
 		if (ctx->do_cat) {
 			gf_filter_pid_clear_eos(an_iopid->ipid, GF_TRUE);
-			filelist_start_ipid(ctx, an_iopid, 0);
+			filelist_start_ipid(ctx, an_iopid, an_iopid->timescale);
 		} else {
 			if (ctx->wait_splice_start && !an_iopid->splice_ipid) {
 				an_iopid->splice_ipid = an_iopid->ipid;
@@ -1231,12 +1248,12 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 
 			//we're entering the splice period
 			if ((ctx->splice_start.num >= 0)
-				&& (cts * ctx->splice_start.den >= ctx->splice_start.num * ctx->splice_ctrl->timescale_splice)
+				&& ( (s64) cts * (s64) ctx->splice_start.den >= ctx->splice_start.num * ctx->splice_ctrl->timescale_splice)
 			) {
 				//cts larger than splice end, move directly to splice_in state
 				if ((ctx->splice_end.num >= 0)
 					&& !ctx->flags_splice_end
-					&& (cts * ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
+					&& ((s64) cts * (s64) ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
 				) {
 					ctx->splice_state = FL_SPLICE_AFTER;
 					ctx->splice_end_cts = filelist_translate_splice_cts(ctx->splice_ctrl, cts);
@@ -1295,7 +1312,7 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 
 		if (sap && (sap <= GF_FILTER_SAP_3)
 			&& (ctx->splice_end.num >= 0)
-			&& (cts * ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
+			&& ((s64) cts * (s64) ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
 		) {
 			ctx->splice_state = FL_SPLICE_AFTER;
 			ctx->splice_end_cts = filelist_translate_splice_cts(ctx->splice_ctrl, cts);
@@ -1360,7 +1377,7 @@ static void filelist_purge_slice(GF_FileListCtx *ctx)
 static GF_Err filelist_process(GF_Filter *filter)
 {
 	Bool start, end, purge_splice = GF_FALSE;
-	u32 i, count, nb_done, nb_inactive, nb_ready;
+	u32 i, count, nb_done, nb_inactive, nb_stop, nb_ready;
 	FileListPid *iopid;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 
@@ -1494,6 +1511,17 @@ static GF_Err filelist_process(GF_Filter *filter)
 			}
 			return GF_OK;
 		}
+
+		//if we start with a splice, set first dst_sub to 0 to keep timestamps untouched
+		if (!ctx->splice_state) {
+			ctx->first_loaded = GF_TRUE;
+			ctx->skip_sync = GF_FALSE;
+		} else if (!ctx->first_loaded) {
+			ctx->dts_sub_plus_one = 1;
+			ctx->first_loaded = 1;
+			ctx->skip_sync = GF_FALSE;
+		}
+
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
 			iopid->dts_sub = ctx->dts_sub_plus_one - 1;
@@ -1508,7 +1536,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			return GF_OK;
 	}
 
-	nb_done = nb_inactive = nb_ready = 0;
+	nb_done = nb_inactive = nb_stop = nb_ready = 0;
 	for (i=0; i<count; i++) {
 		iopid = gf_list_get(ctx->io_pids, i);
 		if (!iopid->ipid) {
@@ -1519,6 +1547,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 		if (iopid->play_state==FLIST_STATE_WAIT_PLAY)
 			continue;
         if (iopid->play_state==FLIST_STATE_STOP) {
+			nb_stop++;
             //in case the input still dispatch packets, drop them
             while (1) {
                 GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->ipid);
@@ -1761,6 +1790,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (ctx->pid_props) gf_free(ctx->pid_props);
 			ctx->pid_props = ctx->splice_pid_props;
 			ctx->splice_pid_props = NULL;
+			ctx->skip_sync = GF_FALSE;
 
 			for (i=0; i<count; i++) {
 				iopid = gf_list_get(ctx->io_pids, i);
@@ -1928,7 +1958,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 		//compute max cts and dts in 1Mhz timescale
 		u64 max_cts = 0, max_dts = 0;
 
-		if (gf_filter_end_of_session(filter)) {
+		if (gf_filter_end_of_session(filter) || (nb_stop + nb_inactive == count) ) {
 			for (i=0; i<count; i++) {
 				iopid = gf_list_get(ctx->io_pids, i);
 				gf_filter_pid_set_eos(iopid->opid);
@@ -1988,7 +2018,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				gf_filter_pid_send_event(iopid->ipid, &evt);
 
 				iopid->is_eos = GF_FALSE;
-				filelist_start_ipid(ctx, iopid, 0);
+				filelist_start_ipid(ctx, iopid, iopid->timescale);
 				if (is_splice_resume) {
 					iopid->dts_o_splice = iopid->cts_o;
 					iopid->cts_o_splice = iopid->dts_o;
@@ -2297,6 +2327,7 @@ GF_FilterRegister FileListRegister = {
 		"- del: specifies that the source file(s) must be deleted once processed, true by default is [-fdel]() is set.\n"
 		"- out=V: specifies splicing start time (cf below).\n"
 		"- in=V: specifies splicing end time (cf below).\n"
+		"- nosync: prevents timestamp adjustments when joining sources (implied if `cat` is set).\n"
 		"- keep: keeps spliced period in output (cf below).\n"
 		"- mark: only inject marker for the splice period and do not load any replacement content (cf below).\n"
 		"- sprops=STR: assigns properties described in `STR` to all pids of the main content during a splice (cf below). `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
@@ -2304,6 +2335,10 @@ GF_FilterRegister FileListRegister = {
 		"The following global options (applying to the filter, not the sources) may also be set in the playlist:\n"
 		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"
 		"- floop=N: set [-floop]() option from within playlist.\n"
+		"\n"
+		"The default behaviour when joining sources is to realign the timeline origin of the new source to the maximum time in all pids of the previous sources.\n"
+		"This may create gaps in the timeline in case each pid are not of equal duration (quite common with most audio codecs).\n"
+		"Using `nosync` directive will disable this realignment and provide a continuous timeline but may introduce synchronization errors depending in the source encoding (use with caution).\n"
 		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
