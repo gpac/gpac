@@ -5452,6 +5452,9 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 				tkw->suspended = GF_FALSE;
 				nb_eos++;
 			}
+			if (tkw->aborted) {
+				nb_eos++;
+			}
 			continue;
 		}
 
@@ -6001,8 +6004,14 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			gf_isom_remove_sample(ctx->file, tkw->track_num, tkw->nb_samples);
 
 		p = gf_filter_pid_get_info_str(tkw->ipid, "ttxt:last_dur", &pe);
-		if (p)
-			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, p->value.uint);
+		if (p) {
+			u64 val = p->value.uint;
+			if (tkw->src_timescale != tkw->tk_timescale) {
+				val *= tkw->tk_timescale;
+				val /= tkw->src_timescale;
+			}
+			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, (u32) val);
+		}
 
 		if (tkw->is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->file)!=GF_ISOM_OPEN_WRITE)) {
 			u32 msize = 0;
