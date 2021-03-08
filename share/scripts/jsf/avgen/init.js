@@ -447,6 +447,7 @@ function process_audio()
 
 	/*set packet properties and send it*/
 	pck.cts = audio_cts;
+	pck.dur = filter.flen;
 	pck.sap = GF_FILTER_SAP_1;
 	
 	//when prop value is set to true for 'SenderNTP', automatically set 
@@ -550,6 +551,7 @@ function process_video()
 				}
 				/*set packet properties and send it*/
 				pck.cts = video_cts;
+				pck.dur = filter.fps.d;
 				pck.sap = GF_FILTER_SAP_1;
 				if (filter.ntp)
 					pck.set_prop('SenderNTP', ntp);
