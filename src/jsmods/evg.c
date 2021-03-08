@@ -5243,6 +5243,7 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 }
 static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
 {
+	char szPath[GF_MAX_PATH];
 	u8 *data;
 	u32 size;
 	GF_Err e;
@@ -5254,7 +5255,6 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 		fileName = full_url;
 	}
 	if (!strncmp(fileName, "$GSHARE/", 8)) {
-		char szPath[GF_MAX_PATH];
 		gf_opts_default_shared_directory(szPath);
 		strcat(szPath, fileName + 7);
 		fileName = szPath;
