@@ -1784,7 +1784,7 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 
 	//make sure we flush the end of the pipeline  !
 	if (needs_flush) {
-		cur_filter->removed = GF_TRUE;
+		cur_filter->removed = 2;
 		//prevent any fetch from pid
 		safe_int_inc(&src_pidinst->detach_pending);
 		gf_fs_post_task(cur_filter->session, gf_filter_relink_task, cur_filter, NULL, "relink_dst", src_pidinst);
@@ -1860,6 +1860,8 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 
 		//we will reassign packets from that pid instance to the new connection
 		filter_dst->swap_pidinst_dst = a_dst_pidi;
+
+		src_pidi->filter->removed = 2;
 
 	}
 	//we are inserting a new chain for reconfiguration only
@@ -2820,7 +2822,7 @@ void gf_filter_post_remove(GF_Filter *filter)
 	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
 }
 
-static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter)
+static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter, Bool keep_end_connections)
 {
 	u32 i, count, j, nb_inst;
 	u32 nb_rem_inst=0;
@@ -2859,8 +2861,8 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		nb_inst = pid->num_destinations;
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-			gf_filter_tag_remove(pidi->filter, filter, until_filter);
-			if (!mark_only) {
+			gf_filter_tag_remove(pidi->filter, filter, until_filter, keep_end_connections);
+			if (!mark_only && (!keep_end_connections || (pidi->filter != until_filter)) ) {
 				//unlock filter before posting remove task on other filter
 				if (do_unlock) gf_mx_v(filter->tasks_mx);
 				gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
@@ -2902,7 +2904,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 
 			if (until_filter) {
-				gf_filter_tag_remove(pidi->filter, filter, until_filter);
+				gf_filter_tag_remove(pidi->filter, filter, until_filter, keep_end_connections);
 			}
 
 			if (keep_end_connections && (pidi->filter == until_filter)) {
