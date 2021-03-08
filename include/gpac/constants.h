@@ -778,6 +778,10 @@ typedef enum
 	GF_AUDIO_FMT_FLT,
 	/*! sample = 1 double, interleaved channels*/
 	GF_AUDIO_FMT_DBL,
+	/*! sample = signed integer, interleaved channels*/
+	GF_AUDIO_FMT_S24,
+	/*! not a format, indicates the value of last packed format*/
+	GF_AUDIO_FMT_LAST_PACKED,
 	/*! sample = unsigned byte, planar channels*/
 	GF_AUDIO_FMT_U8P,
 	/*! sample = signed short, planar channels*/
@@ -788,8 +792,6 @@ typedef enum
 	GF_AUDIO_FMT_FLTP,
 	/*! sample = 1 double, planar channels*/
 	GF_AUDIO_FMT_DBLP,
-	/*! sample = signed integer, interleaved channels*/
-	GF_AUDIO_FMT_S24,
 	/*! sample = signed integer, planar channels*/
 	GF_AUDIO_FMT_S24P,
 } GF_AudioFormat;

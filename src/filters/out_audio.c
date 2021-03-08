@@ -84,6 +84,9 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		gf_filter_pid_get_packet(ctx->pid);
 		return;
 	}
+	//we only support packed audio at output
+	if (afmt>GF_AUDIO_FMT_LAST_PACKED)
+		afmt -= GF_AUDIO_FMT_LAST_PACKED;
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
@@ -372,7 +375,9 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
-	gf_filter_pid_check_caps(pid);
+
+	if (!gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
 
 	sr = afmt = nb_ch = timescale = 0;
 	ch_cfg = 0;
