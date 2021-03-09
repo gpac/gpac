@@ -834,7 +834,7 @@ void PrintImportUsage()
 		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
 		" - Some muxing options (marked with `X` below) will be activated for all inputs (e.g it is not possible to import one AVC track with `xps_inband` and another without).\n"
 		" - Some muxing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
-		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perforom more complex cat/add operations without temp file, use the [gpac application](Filters).\n"
+		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a [playlist](flist).\n"
 		"  \n"
 		"Source URL can be any URL supported by GPAC, not limited to local files.\n"
 		"  \n"

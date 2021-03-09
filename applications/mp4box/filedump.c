@@ -2305,6 +2305,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	}
 }
 
+void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100]);
 
 void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num, Bool dump_m4sys)
 {
@@ -2345,7 +2346,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 
 	nb_edits = gf_isom_get_edits_count(file, trackNum);
 	if (nb_edits)
-		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
+		fprintf(stderr, "Track has %d edits: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
 
 	cts_shift = gf_isom_get_composition_offset_shift(file, trackNum);
 	if (cts_shift)
@@ -3074,7 +3075,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		if (gf_isom_truehd_config_get(file, trackNum, 1, &fmt, &prate) != GF_OK) {
 			fprintf(stderr, "\tInvalid TrueHD audio config\n");
 		}
-		fprintf(stderr, "\tTrueHD Audio stream - Sample Rate %u - channels %u - format %u peak rate %u\n", sr, nb_ch, fmt, prate);
+		fprintf(stderr, "TrueHD Audio stream - Sample Rate %u - channels %u - format %u peak rate %u\n", sr, nb_ch, fmt, prate);
 	} else if (codecid) {
 		if (gf_isom_is_video_handler_type(mtype) ) {
 			u32 w, h;
@@ -3090,6 +3091,21 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stderr, "Raw video %s - Resolution %d x %d\n", gf_pixel_fmt_name(pfmt), w, h);
+	} else if (msub_type==GF_QT_SUBTYPE_TMCD) {
+		u32 stsd_idx;
+		GF_ISOSample *sample = gf_isom_get_sample(file, trackNum, 1, &stsd_idx);
+		fprintf(stderr, "Time Code stream\n");
+		if (sample) {
+			char szTimecode[100];
+			u32 tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt;
+
+			gf_isom_get_tmcd_config(file, trackNum, stsd_idx, &tmcd_flags, &tmcd_num, &tmcd_den, &tmcd_fpt);
+
+			gf_inspect_format_timecode(sample->data, sample->dataLength, tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt, szTimecode);
+
+			gf_isom_sample_del(&sample);
+			fprintf(stderr, "\tFirst timecode: %s\n", szTimecode);
+		}
 	} else {
 		GF_GenericSampleDescription *udesc;
 

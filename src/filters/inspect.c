@@ -1564,7 +1564,7 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 		}
 		gf_fclose(pctx->tmp);
 		if (ctx->xml)
-			gf_fprintf(ctx->dump, "</PIDInspect>");
+			gf_fprintf(ctx->dump, "</PIDInspect>\n");
 		pctx->tmp = NULL;
 	}
 }
@@ -1865,11 +1865,12 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype)
 			gf_fprintf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
 			
-		if (pname && strchr(pname, ' ')) {
+		if (pname && (strchr(pname, ' ') || strchr(pname, ':'))) {
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
 				if (pname_no_space[i]==' ') pname_no_space[i]='_';
+				if (pname_no_space[i]==':') pname_no_space[i]='_';
 				i++;
 			}
 
@@ -2205,55 +2206,89 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 }
 #endif
 
-static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 size, FILE *dump)
+static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100], GF_BitStream *bs, Bool force_ff, FILE *dump)
 {
-	u32 h, m, s, f;
+	u32 h, m, s, f, value;
 	Bool neg=GF_FALSE;
+	Bool parse_fmt = 1;
+	Bool is_drop = GF_FALSE;
+	GF_BitStream *loc_bs = NULL;
 
-	if (!pctx->tmcd_rate.den || !pctx->tmcd_rate.num)
+	if (szFmt)
+		szFmt[0] = 0;
+
+	if (!tc_num || !tc_den)
 		return;
-	gf_bs_reassign_buffer(pctx->bs, data, size);
 
-	u32 value = gf_bs_read_u32(pctx->bs);
-	gf_bs_seek(pctx->bs, 0);
-	gf_fprintf(dump, "<TimeCode");
+	if (!bs) {
+		loc_bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = loc_bs;
+	} else {
+		gf_bs_reassign_buffer(bs, data, size);
+	}
 
-	if (ctx->fftmcd || (pctx->tmcd_flags & 0x00000008)) {
+	value = gf_bs_read_u32(bs);
+	gf_bs_seek(bs, 0);
+
+	if (tmcd_flags & 0x00000001)
+		is_drop = GF_TRUE;
+
+	if (tmcd_flags & 0x00000004)
+		neg = GF_TRUE;
+
+	if (dump)
+		gf_fprintf(dump, "<TimeCode");
+
+	if (!force_ff && !(tmcd_flags & 0x00000008)) {
+		h = gf_bs_read_u8(bs);
+		neg = gf_bs_read_int(bs, 1);
+		m = gf_bs_read_int(bs, 7);
+		s = gf_bs_read_u8(bs);
+		f = gf_bs_read_u8(bs);
+
+		if (tmcd_fpt && (f > tmcd_fpt))
+			parse_fmt = 2;
+		else if ((m>=60) || (s>=60))
+			parse_fmt = 2;
+		else
+			parse_fmt = GF_FALSE;
+	}
+
+	if (parse_fmt) {
 		u64 nb_secs, nb_frames = value;
-		Bool is_drop = GF_FALSE;
-		if (!ctx->fftmcd && pctx->tmcd_fpt)
-			nb_frames *= pctx->tmcd_fpt;
+		neg = GF_FALSE;
+		if (parse_fmt==2) force_ff = GF_TRUE;
 
-		if (ctx->fftmcd) {
-			u32 fps = pctx->tmcd_rate.num / pctx->tmcd_rate.den;
-			if (fps * pctx->tmcd_rate.den != pctx->tmcd_rate.num)
-				is_drop = GF_TRUE;
+		if (!force_ff && tmcd_fpt)
+			nb_frames *= tmcd_fpt;
+
+		if (is_drop && tc_num) {
+			u32 tc_drop_frames, min_10;
+
+			nb_secs = nb_frames;
+			nb_secs *= tc_den;
+			nb_secs /= tc_num;
+
+			m = (u32) (nb_secs/60);
+
+			min_10 = m / 10;
+			m-= min_10;
+
+			tc_drop_frames = m*2;
+			nb_frames += tc_drop_frames;
 		}
-		else if (pctx->tmcd_flags & 0x00000001) {
-			is_drop = GF_TRUE;
-		}
 
-		if (is_drop) {
-			u32 drop_frames, frame_base;
+		if (!tmcd_fpt) tmcd_fpt = 30;
 
-			frame_base = 100 * pctx->tmcd_rate.num;
-			frame_base /= pctx->tmcd_rate.den;
-
-			drop_frames = (u32) (nb_frames / frame_base);
-			nb_frames -= 3*drop_frames;
-		}
-
-		nb_secs = nb_frames * pctx->tmcd_rate.den / pctx->tmcd_rate.num;
-
-		gf_fprintf(dump, " counter=\"%d\"", value);
+		nb_secs = nb_frames / tmcd_fpt;
 		h = (u32) nb_secs/3600;
 		m = (u32) (nb_secs/60 - h*60);
 		s = (u32) (nb_secs - m*60 - h*3600);
 
-		nb_secs *= pctx->tmcd_rate.num;
-		nb_secs /= pctx->tmcd_rate.den;
+		nb_secs *= tmcd_fpt;
+
 		f = (u32) (nb_frames - nb_secs);
-		if (pctx->tmcd_fpt && (f==pctx->tmcd_fpt)) {
+		if (tmcd_fpt && (f==tmcd_fpt)) {
 			f = 0;
 			s++;
 			if (s==60) {
@@ -2265,14 +2300,25 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 				}
 			}
 		}
-	} else {
-		h = gf_bs_read_u8(pctx->bs);
-		neg = gf_bs_read_int(pctx->bs, 1);
-		m = gf_bs_read_int(pctx->bs, 7);
-		s = gf_bs_read_u8(pctx->bs);
-		f = gf_bs_read_u8(pctx->bs);
 	}
-	gf_fprintf(dump, " time=\"%s%02d:%02d:%02d:%02d\"/>\n", neg ? "-" : "", h, m, s, f);
+	if (dump)
+		gf_fprintf(dump, " time=\"%s%02d:%02d:%02d%c%02d\"/>\n", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+	else if (szFmt)
+		sprintf(szFmt, "%s%02d:%02d:%02d%c%02d", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+
+	if (loc_bs) gf_bs_del(loc_bs);
+}
+
+
+GF_EXPORT
+void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100])
+{
+	inspect_format_tmcd_internal(data, size, tmcd_flags, tc_num, tc_den, tmcd_fpt, szFmt, NULL, GF_FALSE, NULL);
+}
+
+static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
+{
+	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_flags, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
@@ -3126,7 +3172,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			InspectLogCbk lcbk;
 
 			gf_fprintf(dump, ">\n");
-			gf_fprintf(dump, "<MPEG4AudioConfiguration");
+			gf_fprintf(dump, "<MPEG4AudioConfiguration ");
 
 			if (!pctx->bs)
 				pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
@@ -3430,7 +3476,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! ctx->interleave && !pctx->tmp && ctx->dump) {
 		pctx->tmp = gf_file_temp(NULL);
 		if (ctx->xml)
-			gf_fprintf(ctx->dump, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
+			gf_fprintf(pctx->tmp, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
 	}
 
 	switch (ctx->mode) {

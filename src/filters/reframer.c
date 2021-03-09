@@ -75,7 +75,7 @@ typedef struct
 	u64 ts_at_range_end;
 
 	GF_List *pck_queue;
-	//0: not comuted, 1: computed and valid TS, 2: end of stream on pid
+	//0: not computed, 1: computed and valid TS, 2: end of stream on pid
 	u32 range_start_computed;
 	u64 range_end_reached_ts;
 	u64 prev_sap_ts;
@@ -90,8 +90,10 @@ typedef struct
 	u32 split_end;
 
 	GF_FilterPacket *split_pck;
-	GF_FilterPacket *resinsert_single_pck;
+	GF_FilterPacket *reinsert_single_pck;
 	Bool is_playing;
+
+	u32 codec_id, stream_type;
 } RTStream;
 
 typedef struct
@@ -105,7 +107,7 @@ typedef struct
 	Double speed;
 	Bool raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust;
+	Bool nosap, splitrange, xadjust, tcmdrw;
 	u32 xround;
 	Double seeksafe;
 
@@ -147,6 +149,9 @@ typedef struct
 	u32 wait_video_range_adjust;
 	Bool is_eos, has_seen_eos;
 	u32 nb_non_saps;
+
+	u32 nb_video_frames_since_start_at_range_start;
+	u32 nb_video_frames_since_start;
 } GF_ReframerCtx;
 
 static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st)
@@ -159,7 +164,7 @@ static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st)
 		gf_list_del(st->pck_queue);
 	}
 	if (st->split_pck) gf_filter_pck_unref(st->split_pck);
-	if (st->resinsert_single_pck) gf_filter_pck_unref(st->resinsert_single_pck);
+	if (st->reinsert_single_pck) gf_filter_pck_unref(st->reinsert_single_pck);
 	gf_free(st);
 }
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -208,13 +213,16 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 	st->can_split = GF_FALSE;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	if (p) {
-		switch (p->value.uint) {
-		case GF_STREAM_TEXT:
-			st->can_split = GF_TRUE;
-			break;
-		}
+	st->stream_type = p ? p->value.uint : 0;
+	switch (st->stream_type) {
+	case GF_STREAM_TEXT:
+		st->can_split = GF_TRUE;
+		break;
 	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	st->codec_id = p ? p->value.uint : 0;
+
 	st->needs_adjust = ctx->xadjust ? GF_TRUE : GF_FALSE;
 
 	st->tk_delay = 0;
@@ -345,6 +353,8 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	u64 prev_frame = ctx->start_frame_idx_plus_one;
 	GF_Fraction64 prev_end;
 	char *start_date=NULL, *end_date=NULL;
+
+	ctx->nb_video_frames_since_start_at_range_start = ctx->nb_video_frames_since_start;
 
 	if (ctx->extract_mode==EXTRACT_DUR) {
 		ctx->cur_start.num += (ctx->extract_dur.num * ctx->cur_start.den) / ctx->extract_dur.den;
@@ -589,8 +599,26 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 	//range processing
 	if (st->ts_at_range_start_plus_one) {
+		Bool is_split = GF_FALSE;
 		s64 ts;
-		GF_FilterPacket *new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+		GF_FilterPacket *new_pck;
+
+		//tmcd, rewrite sample
+		if (ctx->tcmdrw && (st->codec_id==GF_CODECID_TMCD) && st->split_start && ctx->nb_video_frames_since_start_at_range_start) {
+			GF_BitStream *bs;
+			u32 nb_frames;
+			u8 *tcmd_data = NULL;
+			new_pck = gf_filter_pck_new_copy(st->opid, pck, &tcmd_data);
+			bs = gf_bs_new(tcmd_data, 4, GF_BITSTREAM_READ);
+			nb_frames = gf_bs_read_u32(bs);
+			gf_bs_del(bs);
+			bs = gf_bs_new(tcmd_data, 4, GF_BITSTREAM_WRITE);
+			gf_bs_seek(bs, 0);
+			gf_bs_write_u32(bs, nb_frames+ctx->nb_video_frames_since_start_at_range_start);
+			gf_bs_del(bs);
+		} else {
+			new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+		}
 		gf_filter_pck_merge_properties(pck, new_pck);
 
 		//signal chunk start boundary
@@ -678,6 +706,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				gf_filter_pck_set_dts(new_pck, (u64) ts);
 			}
 		}
+		//packet was split or was re-inserted
 		if (st->split_start) {
 			u32 dur = gf_filter_pck_get_duration(pck);
 			assert(dur>st->split_start);
@@ -685,20 +714,38 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			gf_filter_pck_set_duration(new_pck, dur);
 			st->ts_at_range_start_plus_one += st->split_start;
 			st->split_start = 0;
+			is_split = GF_TRUE;
 		}
 		//last packet and forced duration
 		if (st->split_end && (gf_list_count(st->pck_queue)==1)) {
 			gf_filter_pck_set_duration(new_pck, st->split_end);
 			st->split_end = 0;
+			is_split = GF_TRUE;
+		}
+		//packet reinserted (not split), adjust duration and store offset in split start
+		if (!is_split && st->reinsert_single_pck) {
+			u64 ndur = st->range_end_reached_ts;
+			ndur -= st->ts_at_range_start_plus_one-1;
+			gf_filter_pck_set_duration(new_pck, (u32) ndur);
+			st->split_start = (u32) ndur;
 		}
 
 		gf_filter_pck_send(new_pck);
+
 	} else {
 		gf_filter_pck_forward(pck, st->opid);
 	}
 
+
 	reframer_drop_packet(ctx, st, pck, pck_is_ref);
 	st->nb_frames++;
+
+	if (st->stream_type==GF_STREAM_VISUAL) {
+		if (st->nb_frames > ctx->nb_video_frames_since_start) {
+			ctx->nb_video_frames_since_start = st->nb_frames;
+		}
+	}
+
 	return GF_TRUE;
 }
 
@@ -746,7 +793,7 @@ void reframer_purge_queues(GF_ReframerCtx *ctx, u64 ts, u32 timescale)
 	for (i=0; i<count; i++) {
 		RTStream *st = gf_list_get(ctx->streams, i);
 		u64 ts_rescale = ts;
-		if (st->resinsert_single_pck)
+		if (st->reinsert_single_pck)
 			continue;
 
 		if (st->timescale != timescale) {
@@ -817,7 +864,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			}
 			//in SAP split, flush as soon as we no longer have 2 consecutive saps
 			if (!last_sap_ts) {
-				if (st->in_eos && !flush_all && !st->resinsert_single_pck) {
+				if (st->in_eos && !flush_all && !st->reinsert_single_pck) {
 					flush_all = GF_TRUE;
 				} else if (!st->all_saps) {
 					wait_for_sap = GF_TRUE;
@@ -890,7 +937,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			GF_FilterPacket *pck;
 			RTStream *st = gf_list_get(ctx->streams, i);
 			if (st->range_start_computed==2) continue;
-			if (st->resinsert_single_pck) continue;
+			if (st->reinsert_single_pck) continue;
 			pck = gf_list_last(st->pck_queue);
 			assert(pck);
 			ts = gf_filter_pck_get_dts(pck);
@@ -1098,11 +1145,11 @@ GF_Err reframer_process(GF_Filter *filter)
 				if (gf_filter_pid_is_eos(ipid)) {
 					//special case for PIDs with a single packet, we reinsert them at the begining of each extracted range
 					//this allows dealing with BIFS/OD/JPEG/PNG tracks
-					if (st->resinsert_single_pck) {
+					if (st->reinsert_single_pck) {
 						if (!ctx->in_range && !st->range_start_computed) {
 							st->range_start_computed = 3;
 							if (!gf_list_count(st->pck_queue)) {
-								pck = st->resinsert_single_pck;
+								pck = st->reinsert_single_pck;
 								gf_filter_pck_ref(&pck);
 								gf_list_add(st->pck_queue, pck);
 								if (!ctx->is_range_extraction) {
@@ -1175,10 +1222,10 @@ GF_Err reframer_process(GF_Filter *filter)
 				//keep ref to first packet until we see a second one
 				if (st->nb_frames_range==1) {
 					gf_filter_pck_ref(&pck);
-					st->resinsert_single_pck = pck;
-				} else if (st->resinsert_single_pck) {
-					gf_filter_pck_unref(st->resinsert_single_pck);
-					st->resinsert_single_pck = NULL;
+					st->reinsert_single_pck = pck;
+				} else if (st->reinsert_single_pck) {
+					gf_filter_pck_unref(st->reinsert_single_pck);
+					st->reinsert_single_pck = NULL;
 				}
 				continue;
 			}
@@ -1301,10 +1348,10 @@ GF_Err reframer_process(GF_Filter *filter)
 				//keep ref to first packet until we see a second one
 				if (st->nb_frames_range==1) {
 					gf_filter_pck_ref(&pck);
-					st->resinsert_single_pck = pck;
-				} else if (st->resinsert_single_pck) {
-					gf_filter_pck_unref(st->resinsert_single_pck);
-					st->resinsert_single_pck = NULL;
+					st->reinsert_single_pck = pck;
+				} else if (st->reinsert_single_pck) {
+					gf_filter_pck_unref(st->reinsert_single_pck);
+					st->reinsert_single_pck = NULL;
 				}
 			} else {
 				assert(pck == st->split_pck);
@@ -1599,7 +1646,7 @@ load_next_range:
 			RTStream *st = gf_filter_pid_get_udta(ipid);
 			//we reinsert the same PCK, so the ts_at_range_start_plus is always the packet cts
 			//we therefore need to compute the ts at and as the target end time minus the target start time
-			if (st->resinsert_single_pck) {
+			if (st->reinsert_single_pck) {
 				u64 start = ctx->cur_start.num;
 				start *= st->timescale;
 				start /= ctx->cur_start.den;
@@ -1764,6 +1811,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sur I-frame preceeding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
