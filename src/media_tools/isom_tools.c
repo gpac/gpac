@@ -3925,7 +3925,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 {
-	if (codec_id<GF_CODECID_LAST_MPEG4_MAPPING) {
+	if (codec_id && (codec_id<GF_CODECID_LAST_MPEG4_MAPPING)) {
 		u32 stype = gf_codecid_type(codec_id);
 		if (stype==GF_STREAM_VISUAL)
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", codec_id);

@@ -1417,6 +1417,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_nalu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_obu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_prores) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_inspect_format_timecode) )
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

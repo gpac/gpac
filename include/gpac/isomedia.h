@@ -355,6 +355,8 @@ enum
 
 	GF_ISOM_ITEM_TYPE_AUXI 	= GF_4CC('a', 'u', 'x', 'i'),
 
+	GF_QT_SUBTYPE_TMCD = GF_4CC( 't', 'm', 'c', 'd' ),
+
 };
 
 
