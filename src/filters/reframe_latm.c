@@ -73,6 +73,7 @@ typedef struct
 
 	Bool prev_sap;
 	u32 bitrate;
+	GF_Err in_error;
 } GF_LATMDmxCtx;
 
 
@@ -310,6 +311,11 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		latm_dmx_check_dur(filter, ctx);
 	}
+	if (!GF_M4ASampleRates[ctx->acfg.base_sr_index]) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[LATMDmx] Wrong sample rate in audio config, broken stream\n"));
+		ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
+		return;
+	}
 
 	if ((ctx->sr_idx == ctx->acfg.base_sr_index) && (ctx->nb_ch == ctx->acfg.nb_chan )
 		&& (ctx->base_object_type == ctx->acfg.base_object_type) ) return;
@@ -445,6 +451,9 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 	u8 *data, *output;
 	u32 pck_size, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
+
+	if (ctx->in_error)
+		return ctx->in_error;
 
 	//always reparse duration
 	if (!ctx->duration.num)
