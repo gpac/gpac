@@ -1067,7 +1067,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 
 		if (!ds->src_url)
-			ds->src_url = "file";
+			ds->src_url = gf_strdup("file");
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
 		ds->dash_dur = ctx->segdur;
