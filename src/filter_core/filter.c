@@ -2195,7 +2195,8 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 		if (!filter->nb_consecutive_errors) filter->time_at_first_error = gf_sys_clock_high_res();
 
 		filter->nb_consecutive_errors ++;
-		if (filter->nb_pck_io) filter->nb_consecutive_errors = 0;
+		if (filter->nb_pck_io && !filter->session->in_final_flush)
+			filter->nb_consecutive_errors = 0;
 		//give it at most one second
 		diff = gf_sys_clock_high_res() - filter->time_at_first_error;
 		if (diff >= 1000000) {

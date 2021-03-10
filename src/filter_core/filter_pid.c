@@ -1660,6 +1660,13 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 			return GF_TRUE;
 		}
 	}
+	for (i=0; i<gf_list_count(parent->temp_input_pids); i++) {
+		GF_FilterPid *a_src_pid = gf_list_get(parent->temp_input_pids, i);
+		if (gf_filter_in_parent_chain(a_src_pid->filter, filter)) {
+			gf_mx_v(parent->tasks_mx);
+			return GF_TRUE;
+		}
+	}
 	gf_mx_v(parent->tasks_mx);
 	return GF_FALSE;
 }
