@@ -1667,7 +1667,7 @@ struct _gf_scene
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;
 
-	/*list of GF_MediaObject - these are the links betwwen scene nodes (URL, xlink:href) and media resources.
+	/*list of GF_MediaObject - these are the links between scene nodes (URL, xlink:href) and media resources.
 	We need this link because of MPEG-4 Systems, where an OD (media resource) can be removed or replaced by the server
 	without the scene being modified*/
 	GF_List *scene_objects;

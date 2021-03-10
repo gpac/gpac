@@ -6180,7 +6180,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
         }
 	} else if (group->prev_segment_ok && !group->time_at_first_failure && !group->loop_detected) {
         group->time_at_first_failure = clock_time;
-        GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms (delay betwwen retry %d ms)\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration, min_wait));
+        GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms (delay between retry %d ms)\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration, min_wait));
 
         will_retry = GF_TRUE;
 	}

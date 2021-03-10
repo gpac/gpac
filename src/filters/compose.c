@@ -822,7 +822,7 @@ static GF_FilterArgs CompositorArgs[] =
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specify 2D rendering mode\n"\
-				"- auto: automatically decides betwwen on, off and hybrid based on content\n"\
+				"- auto: automatically decides between on, off and hybrid based on content\n"\
 				"- off: disables OpenGL; 3D will not be rendered\n"\
 				"- on: uses OpenGL for all graphics; this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode\n"\
 				"- hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects"\
