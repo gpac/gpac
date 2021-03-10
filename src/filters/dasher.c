@@ -390,7 +390,7 @@ typedef struct _dash_stream
 	Bool inband_cues;
 	
 	Bool clamp_done;
-	Bool dcd_not_ready;
+	u32 dcd_not_ready;
 
 	Bool reschedule;
 
@@ -1026,7 +1026,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_AV1:
 			case GF_CODECID_VP8:
 			case GF_CODECID_VP9:
-				ds->dcd_not_ready = GF_TRUE;
+				ds->dcd_not_ready = gf_sys_clock();
 				ctx->streams_not_ready = GF_TRUE;
 				break;
 			default:
@@ -6531,24 +6531,31 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 }
 
 //depending on input formats, streams may be declared with or without DCD. For streams requiring the config, wait for it
-static Bool dasher_check_streams_ready(GF_DasherCtx *ctx)
+static Bool dasher_check_streams_ready(GF_DasherCtx *ctx, Bool is_session_end)
 {
 	u32 i=0;
 	GF_DashStream *ds;
 	ctx->streams_not_ready = GF_FALSE;;
 	while ((ds = gf_list_enum(ctx->pids, &i))) {
+
+		if (is_session_end)
+			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
+
 		if (ds->dcd_not_ready) {
 			GF_FilterPacket *pck;
-			ds->dcd_not_ready = GF_FALSE;
+			u32 prev = ds->dcd_not_ready;
+			ds->dcd_not_ready = 0;
 			pck = gf_filter_pid_get_packet(ds->ipid);
 			if (!pck) {
-				ds->dcd_not_ready = GF_TRUE;
+				u32 diff = gf_sys_clock() - prev;
+				if (diff > 10000) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Failed to initialize PID %s, no packets after %d ms, aborting\n", gf_filter_pid_get_name(ds->ipid), diff));
+					ctx->in_error = GF_TRUE;
+					return GF_FALSE;
+				}
+				ds->dcd_not_ready = prev;
 				ctx->streams_not_ready = GF_TRUE;
 				return GF_FALSE;
-			}
-			if (ds->dcd_not_ready) {
-				ds->dcd_not_ready = GF_FALSE;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s first packet dispatched but no decoder config available, will use default one\n", gf_filter_pid_get_name(ds->ipid) ));
 			}
 		}
 	}
@@ -6690,7 +6697,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 	}
 
 	if (ctx->streams_not_ready) {
-		if (! dasher_check_streams_ready(ctx)) return GF_OK;
+		Bool is_eos = gf_filter_end_of_session(filter);
+		if (! dasher_check_streams_ready(ctx, is_eos)) {
+			return is_eos ? GF_SERVICE_ERROR : GF_OK;
+		}
 	}
 	if (ctx->check_connections) {
 		if (gf_filter_connections_pending(filter))
