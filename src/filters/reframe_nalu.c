@@ -34,11 +34,7 @@
 
 #define CTS_POC_OFFSET_SAFETY	1000
 
-//storage for nal header + slice header when not fully included in an input buffer - this needs to be big enough to hold a slice header
-//note that we only copy the entire input packet in an internal buffer when the current NAL needs to be fully available for parsing (VPS, SPS, PPS),
-//or for temporary storage (SEI)
-//otherwise we copy remaining bytes in the hdr store if a startcode may be split across two input packets
-#define SAFETY_NAL_STORE	50
+GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
 typedef struct
 {
@@ -67,6 +63,7 @@ typedef struct
 	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
 	u32 nal_length;
 	u32 strict_poc;
+	u32 bsdbg;
 	GF_Fraction idur;
 
 	//only one input pid declared
@@ -140,11 +137,9 @@ typedef struct
 	//max size of NALUs in the bitstream
 	u32 max_nalu_size;
 
-	//we store a few bytes here to make sure we have at least start code and NAL type
-	//we also store here NALUs we must completely parse (xPS, SEIs)
-	u32 bytes_in_header;
-	char *hdr_store;
-	u32 hdr_store_size, hdr_store_alloc;
+
+	u8 *nal_store;
+	u32 nal_store_size, nal_store_alloc;
 
 	//list of param sets found
 	GF_List *sps, *pps, *vps, *sps_ext, *pps_svc, *vvc_aps_pre, *vvc_dci;
@@ -177,8 +172,6 @@ typedef struct
 	Bool has_ref_slices;
 	//frame has redundant coding
 	Bool has_redundant;
-
-	Bool next_nal_end_skip;
 
 	Bool last_frame_is_idr;
 
@@ -223,6 +216,7 @@ typedef struct
 	Bool is_mvc;
 
 	u32 bitrate;
+	u32 nb_frames;
 } GF_NALUDmxCtx;
 
 
@@ -396,8 +390,8 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			ctx->index = 1.0;
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-			if (!p || (p->value.longuint > 100000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 100M, skipping indexing\n", ctx->log_name));
+			if (!p || (p->value.longuint > 20000000)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 20M, skipping indexing\n", ctx->log_name));
 			} else {
 				ctx->index = -ctx->index;
 			}
@@ -1590,6 +1584,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					return GF_FALSE;
 			}
 			ctx->resume_from = 0;
+			ctx->nal_store_size = 0;
 			return GF_FALSE;
 		}
 		if (ctx->start_range && (ctx->index<0)) {
@@ -1617,14 +1612,17 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//seek will not change the current source state, don't send a seek
 			if (!file_pos) {
 				//very short streams, input is done before we get notified for play and everything stored in memory: flush
-				if (gf_filter_pid_is_eos(ctx->ipid) && (ctx->bytes_in_header || ctx->hdr_store_size)) {
+				if (gf_filter_pid_is_eos(ctx->ipid) && (ctx->nal_store_size)) {
 					gf_filter_post_process_task(filter);
 				}
 				return GF_TRUE;
 			}
 		}
+		ctx->nb_frames = 0;
+		ctx->nb_nalus = 0;
 		ctx->resume_from = 0;
-		
+		ctx->nal_store_size = 0;
+
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = file_pos;
@@ -1636,7 +1634,8 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
-		ctx->bytes_in_header = 0;
+		ctx->nal_store_size = 0;
+		ctx->resume_from = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -1944,6 +1943,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 
 		naludmx_update_time(ctx);
 		*au_start = GF_FALSE;
+		ctx->nb_frames++;
 	} else {
 		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	}
@@ -2545,34 +2545,69 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 	}
 }
 
+static void naldmx_check_timestamp_switch(GF_NALUDmxCtx *ctx, u32 *nalu_store_before, u32 bytes_drop, Bool *drop_packet, GF_FilterPacket *pck)
+{
+	if (*nalu_store_before) {
+		if (*nalu_store_before > bytes_drop) {
+			*nalu_store_before -= bytes_drop;
+		} else {
+			//all data from previous frame consumed, update timestamps with info from current packet
+			*nalu_store_before = 0;
+			naldmx_switch_timestamps(ctx, pck);
+			if (*drop_packet) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				*drop_packet = GF_FALSE;
+			}
+		}
+	}
+}
+
+static void naldmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3)
+{
+	GF_NALUDmxCtx *ctx = (GF_NALUDmxCtx *) udta;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, (" %s", field_name));
+	if (idx1>=0) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx1));
+		if (idx2>=0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx2));
+			if (idx3>=0) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx3));
+			}
+		}
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("=\""LLD, field_val));
+	if ((ctx->bsdbg==2) && ((s32) nb_bits > 1) )
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("(%u)", nb_bits));
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, (" "));
+}
+
 GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_Err e;
-	char *data;
 	u8 *start;
-	u32 pck_size;
-	u32 hdr_size_at_resume = 0;
 	u32 nalu_before = ctx->nb_nalus;
+	u32 nalu_store_before = 0;
 	s32 remain;
 	Bool is_eos = GF_FALSE;
+	Bool drop_packet = GF_FALSE;
+	u64 byte_offset = GF_FILTER_NO_BO;
 
 	//always reparse duration
 	if (!ctx->file_loaded)
 		naludmx_check_dur(filter, ctx);
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
+	if (!ctx->resume_from && !pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
-			if (ctx->bytes_in_header || ctx->hdr_store_size) {
+			if (ctx->nal_store_size) {
 				if (!ctx->is_playing)
 					return GF_OK;
 
-				start = data = ctx->hdr_store;
-				remain = pck_size = ctx->bytes_in_header ? ctx->bytes_in_header : ctx->hdr_store_size;
-				ctx->bytes_in_header = 0;
-				ctx->hdr_store_size = 0;
+				start = ctx->nal_store;
+				remain = ctx->nal_store_size;
 				is_eos = GF_TRUE;
 				goto naldmx_flush;
 			}
@@ -2600,51 +2635,57 @@ GF_Err naludmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
-	start = data;
-	remain = pck_size;
+	if (!ctx->is_playing && ctx->opid)
+		return GF_OK;
 
 	//if we have bytes from previous packet in the header, we cannot switch timing until we know what these bytes are
-	if (!ctx->bytes_in_header)
+	if (!ctx->nal_store_size)
 		naldmx_switch_timestamps(ctx, pck);
 
-	//we stored some data to find the complete vosh, aggregate this packet with current one
-	if (!ctx->resume_from && ctx->hdr_store_size) {
-		if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {
-			ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;
-			ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+	nalu_store_before = ctx->nal_store_size;
+	if (!ctx->resume_from && pck) {
+		u32 pck_size;
+		const u8 *data = gf_filter_pck_get_data(pck, &pck_size);
+		if (ctx->nal_store_alloc < ctx->nal_store_size + pck_size) {
+			ctx->nal_store_alloc = ctx->nal_store_size + pck_size;
+			ctx->nal_store = gf_realloc(ctx->nal_store, sizeof(char)*ctx->nal_store_alloc);
+			if (!ctx->nal_store) {
+				ctx->nal_store_alloc = 0;
+				return GF_OUT_OF_MEM;
+			}
 		}
-		hdr_size_at_resume = ctx->hdr_store_size;
-		memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);
-		ctx->hdr_store_size += pck_size;
-		start = data = ctx->hdr_store;
-		remain = pck_size = ctx->hdr_store_size;
+		byte_offset = gf_filter_pck_get_byte_offset(pck);
+		if (byte_offset != GF_FILTER_NO_BO)
+			byte_offset -= ctx->nal_store_size;
+		memcpy(ctx->nal_store + ctx->nal_store_size, data, sizeof(char)*pck_size);
+		ctx->nal_store_size += pck_size;
+		drop_packet = GF_TRUE;
 	}
+	start = ctx->nal_store;
+	remain = ctx->nal_store_size;
 
 	if (ctx->resume_from) {
 		if (ctx->opid && gf_filter_pid_would_block(ctx->opid))
 			return GF_OK;
 
-		//resume from data copied internally
-		if (ctx->hdr_store_size) {
-			assert(ctx->resume_from <= ctx->hdr_store_size);
-			start = data = ctx->hdr_store + ctx->resume_from;
-			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
-		} else {
-			assert((s32)ctx->resume_from >0);
-            if (ctx->resume_from > (u32) remain) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] something wrong, resuming parsing at %d bytes but only %d bytes in packet, discarding data\n", ctx->log_name, ctx->resume_from, remain));
-            } else {
-                start += ctx->resume_from;
-                remain -= ctx->resume_from;
-            }
-		}
+		assert(ctx->resume_from < ctx->nal_store_size);
+		start += ctx->resume_from;
+		remain -= ctx->resume_from;
 		ctx->resume_from = 0;
+
+		if (!pck && gf_filter_pid_is_eos(ctx->ipid))
+			is_eos = GF_TRUE;
 	}
 
 naldmx_flush:
 	if (!ctx->bs_r) {
 		ctx->bs_r = gf_bs_new(start, remain, GF_BITSTREAM_READ);
+
+#ifndef GPAC_DISABLE_LOG
+		if (ctx->bsdbg && gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG))
+			gf_bs_set_logger(ctx->bs_r, naldmx_bs_log, ctx);
+#endif
+
 	} else {
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
@@ -2653,23 +2694,17 @@ naldmx_flush:
 	ctx->eos_in_bs = GF_FALSE;
 
     assert(remain>=0);
-    
+//    fprintf(stderr, "nb nal %d\n", ctx->nb_nalus);
+    if (ctx->nb_nalus==15467)
+		assert(remain>=0);
+
 	while (remain) {
 		u8 *pck_data;
-		u8 *hdr_start;
-		u32 hdr_avail;
-		u8 *pck_start;
-		u32 pck_avail;
+		u8 *nal_data;
+		u32 nal_size;
 		s32 current;
-		Bool nal_hdr_in_store = GF_FALSE;
-		Bool nal_sc_in_store = GF_FALSE;
-		u32 nal_bytes_from_store = 0;
 		Bool skip_nal = GF_FALSE;
-		u64 size=0;
-		u32 sc_size, store_sc_size=0;
-		u32 bytes_from_store = 0;
-		u32 hdr_offset = 0;
-		Bool full_nal_required = GF_FALSE;
+		u32 sc_size=0;
 		u32 nal_type = 0;
 		u32 nal_ref_idc = 0;
 		s32 next=0;
@@ -2687,153 +2722,31 @@ naldmx_flush:
 		Bool bIntraSlice = GF_FALSE;
 		GF_FilterSAPType au_sap_type = GF_FILTER_SAP_NONE;
 		Bool slice_is_b = GF_FALSE;
-		Bool full_nal = GF_FALSE;
 		s32 slice_poc = 0;
-		u32 next_size = 0;
 
-		Bool copy_last_bytes = GF_FALSE;
-
-		//not enough bytes to parse start code
+		//not enough bytes to parse start code + nal hdr
 		if (!is_eos && (remain<6)) {
-			memcpy(ctx->hdr_store, start, remain);
-			ctx->bytes_in_header = remain;
 			break;
 		}
-		current = -1;
 
-		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
-		//if not, dispatch these bytes as continuation of the data
-		if (ctx->bytes_in_header) {
-			u32 hcopy_size = SAFETY_NAL_STORE - ctx->bytes_in_header;
-			u32 hstore_size = SAFETY_NAL_STORE;
-			Bool split_start_code=GF_FALSE;
-			if (hcopy_size > (u32) remain) {
-					hstore_size -= hcopy_size - remain;
-					hcopy_size = remain;
-			}
+		//locate next start code
+		current = gf_media_nalu_next_start_code(start, remain, &sc_size);
+		if (current == remain)
+			current = -1;
 
-			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, hcopy_size);
-			current = gf_media_nalu_next_start_code(ctx->hdr_store, hstore_size, &sc_size);
-			if (current==hstore_size)
-					current = -1;
-
-			//no start code in stored buffer
-			if (current<0) {
-				if (!ctx->next_nal_end_skip) {
-					e = naludmx_realloc_last_pck(ctx, ctx->bytes_in_header, &pck_data);
-					if (e==GF_OK) {
-						memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
-					}
-				}
-				ctx->bytes_in_header = 0;
-			} else {
-				//if start is greater than stored data, the nal is completely in the input packet (but the start code may not be)
-				if (current + sc_size > ctx->bytes_in_header) {
-					//we need to dispatch current bytes from the header, whether all these bytes were in the previous
-					//packet or some are in the new one does not matter
-
-					bytes_from_store = current;
-					//the offset to the NAL first byte in the store is current+sc_size,
-					//hence current+sc_pos-ctx->bytes_in_header in the new packet
-					hdr_offset = current + sc_size - ctx->bytes_in_header;
-					nal_sc_in_store = GF_TRUE;
-
-					//since the nal is completely in the pes, its timestamp is the one of the source packet, switch timing
-					naldmx_switch_timestamps(ctx, pck);
-				} else {
-					//this is trickier, nal start is in the store buffer
-					u8 lastb2, lastb1, nextb1;
-
-					lastb2 = ctx->hdr_store[ctx->bytes_in_header-2];
-					lastb1 = ctx->hdr_store[ctx->bytes_in_header-1];
-					nextb1 = start[0];
-
-					if (!lastb1 && !lastb2) { split_start_code=GF_TRUE; }
-					else if (!lastb1 && !nextb1) { split_start_code = GF_TRUE; }
-
-					if (split_start_code ) {
-						u32 store_remain = SAFETY_NAL_STORE - (current + sc_size);
-						u32 following_sc_size;
-						s32 following = gf_media_nalu_next_start_code(ctx->hdr_store + current+sc_size, store_remain, &following_sc_size);
-						assert(!current);
-						if ((following>0) && (following + current+sc_size < ctx->bytes_in_header)) {
-							next_size = following - current;
-							nal_bytes_from_store = next_size;
-							store_sc_size = sc_size;
-						} else {
-							split_start_code = 0;
-						}
-					}
-
-					//we still have current bytes to dispatch
-					bytes_from_store = current;
-
-					//the offset in the STORE is current+sc_size, and we parse the store, not the packet !!
-					hdr_offset = current + sc_size;
-
-					nal_hdr_in_store = GF_TRUE;
-
-
-					if (!split_start_code) {
-						if (sc_size == ctx->bytes_in_header) {
-							nal_hdr_in_store = GF_FALSE;
-							sc_size = 0;
-							hdr_offset=0;
-							nal_bytes_from_store = 0;
-						} else {
-							//we need to copy the nal first bytes from the store
-							nal_bytes_from_store = ctx->bytes_in_header - (current + sc_size);
-						}
-					}
-
-				}
-				if (!split_start_code) {
-					ctx->bytes_in_header = 0;
-				}
-			}
-		}
-		//no starcode in store, look for startcode in packet
-		if (current == -1) {
-			//locate next start code
-			current = gf_media_nalu_next_start_code(start, remain, &sc_size);
-			if (current == remain)
-				current = -1;
-
-			//no start code, dispatch the block
-			if (current<0) {
-				u8 b3, b2, b1;
-				if (! ctx->first_pck_in_au) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] no start code in block and no frame started, discarding data\n", ctx->log_name));
-					break;
-				}
-				size = remain;
-				if (!is_eos) {
-					b3 = start[remain-3];
-					b2 = start[remain-2];
-					b1 = start[remain-1];
-					//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-					if (!b1 || !b2 || !b3) {
-						copy_last_bytes = GF_TRUE;
-						assert(size >= 3);
-						size -= 3;
-						ctx->bytes_in_header = 3;
-					}
-				}
-				if (!ctx->next_nal_end_skip) {
-					e = naludmx_realloc_last_pck(ctx, (u32) size, &pck_data);
-					if (e==GF_OK)
-						memcpy(pck_data, start, (size_t) size);
-				}
-
-				if (copy_last_bytes) {
-					memcpy(ctx->hdr_store, start+remain-3, 3);
-				}
+		//no start code: if eos or full AU dispatch mode, send remaining otherwise gather
+		if (current<0) {
+			if (!is_eos && !ctx->full_au_source) {
 				break;
 			}
+			e = naludmx_realloc_last_pck(ctx, (u32) remain, &pck_data);
+			if (e==GF_OK)
+				memcpy(pck_data, start, (size_t) remain);
+			remain = 0;
+			break;
 		}
 
 		assert(current>=0);
-
 
 		//skip if no output pid
 		if (!ctx->opid && current) {
@@ -2843,244 +2756,81 @@ naldmx_flush:
 			start += current;
 			remain -= current;
 			current = 0;
-			ctx->next_nal_end_skip = GF_FALSE;
 		}
 
 		//dispatch remaining bytes
 		if (current>0) {
-			e = GF_EOS;
 			//flush remaining bytes in NAL
-			if (!ctx->next_nal_end_skip) {
+			if (gf_list_count(ctx->pck_queue)) {
 				e = naludmx_realloc_last_pck(ctx, current, &pck_data);
-			}
-			//bytes were partly in store, partly in packet
-			if (bytes_from_store) {
-				if (bytes_from_store>=(u32) current) {
-					//we still have that many bytes from the store to dispatch
-//					bytes_from_store -= current;
-				} else {
-					//we are done, the nal header and start code is completely in the new packet
-					u32 shift = current - bytes_from_store;
-//					bytes_from_store = 0;
-                    assert(remain >= (s32) shift);
-                    assert((s32) shift >= 0);
-					start += shift;
-					remain -= shift;
-					nal_sc_in_store = 0;
-				}
-				if (e==GF_OK) {
-					memcpy(pck_data, ctx->hdr_store, current);
-				}
-			} else {
 				if (e==GF_OK) {
 					memcpy(pck_data, start, current);
 				}
-				assert(remain>=current);
-				start += current;
-				remain -= current;
 			}
+			assert(remain>=current);
+			start += current;
+			remain -= current;
+			naldmx_check_timestamp_switch(ctx, &nalu_store_before, current, &drop_packet, pck);
 		}
 		if (!remain)
 			break;
 
-		//nal hdr is in the store, use the store to parse slice header
-		if (nal_hdr_in_store) {
-			hdr_start = ctx->hdr_store + hdr_offset;
-			hdr_avail = SAFETY_NAL_STORE - hdr_offset;
-			pck_start = start;
-			pck_avail = remain;
-			sc_size = 0;
+		//not enough bytes to parse start code + nal hdr
+		if (!is_eos && (remain<6)) {
+			break;
 		}
-		//nal hdr is in new packet at hdr_offset, use the packet to parse slice header
-		else if (nal_sc_in_store) {
-			hdr_start = start + hdr_offset;
-			hdr_avail = remain - hdr_offset;
-			pck_start = hdr_start;
-			pck_avail = hdr_avail;
-			sc_size = 0;
-		}
-		//nal hdr is in new packet start + sc_size, use the packet to parse slice header
-		else {
-			hdr_start = start + sc_size;
-			hdr_avail = remain - sc_size;
-			pck_start = hdr_start;
-			pck_avail = hdr_avail;
-		}
+
+		nal_data = start + sc_size;
+		nal_size = remain - sc_size;
 
 		//figure out which nal we need to completely load
 		if (ctx->codecid==GF_CODECID_HEVC) {
-			nal_type = hdr_start[0];
+			nal_type = nal_data[0];
 			nal_type = (nal_type & 0x7E) >> 1;
-			switch (nal_type) {
-			case GF_HEVC_NALU_VID_PARAM:
-			case GF_HEVC_NALU_SEQ_PARAM:
-			case GF_HEVC_NALU_PIC_PARAM:
-			case GF_HEVC_NALU_SEI_PREFIX:
-			case GF_HEVC_NALU_SEI_SUFFIX:
-				//require full nal even in analyze mode
-				full_nal_required = GF_TRUE;
-				break;
-			case GF_HEVC_NALU_SLICE_TRAIL_N:
-			case GF_HEVC_NALU_SLICE_TSA_N:
-			case GF_HEVC_NALU_SLICE_STSA_N:
-			case GF_HEVC_NALU_SLICE_RADL_N:
-			case GF_HEVC_NALU_SLICE_RASL_N:
-			case GF_HEVC_NALU_SLICE_RSV_VCL_N10:
-			case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
-			case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
-				if (ctx->deps) {
-					HEVC_VPS *vps;
-					u32 temporal_id = hdr_start[1] & 0x7;
-					vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
-					if (temporal_id + 1 < vps->max_sub_layers) {
-						nal_ref_idc = GF_TRUE;
-					}
-				}
-				break;
-			default:
-				if (nal_type<GF_HEVC_NALU_VID_PARAM)
+
+			if (ctx->deps && (nal_type<GF_HEVC_NALU_VID_PARAM)) {
+				HEVC_VPS *vps;
+				u32 temporal_id = nal_data[1] & 0x7;
+				vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
+				if (temporal_id + 1 < vps->max_sub_layers) {
 					nal_ref_idc = GF_TRUE;
-				break;
+				}
 			}
 		} else if (ctx->codecid==GF_CODECID_VVC) {
-			nal_type = hdr_start[1]>>3;
-			switch (nal_type) {
-			case GF_VVC_NALU_OPI:
-			case GF_VVC_NALU_DEC_PARAM:
-			case GF_VVC_NALU_VID_PARAM:
-			case GF_VVC_NALU_SEQ_PARAM:
-			case GF_VVC_NALU_PIC_PARAM:
-			case GF_VVC_NALU_SEI_PREFIX:
-			case GF_VVC_NALU_SEI_SUFFIX:
-			case GF_VVC_NALU_APS_PREFIX:
-			case GF_VVC_NALU_APS_SUFFIX:
-			case GF_VVC_NALU_PIC_HEADER:
-				//require full nal even in analyze mode
-				full_nal_required = GF_TRUE;
-				break;
-
-			case GF_VVC_NALU_SLICE_TRAIL:
-			case GF_VVC_NALU_SLICE_STSA:
-			case GF_VVC_NALU_SLICE_RADL:
-			case GF_VVC_NALU_SLICE_RASL:
-			case GF_VVC_NALU_SLICE_IDR_W_RADL:
-			case GF_VVC_NALU_SLICE_IDR_N_LP:
-			case GF_VVC_NALU_SLICE_CRA:
-			case GF_VVC_NALU_SLICE_GDR:
-				if (ctx->deps) {
-					if (ctx->vvc_state->s_info.non_ref_pic) {
-						nal_ref_idc = GF_FALSE;
-					} else {
-						//todo
-						nal_ref_idc = GF_TRUE;
-					}
-				}
-				break;
-			default:
-				if (nal_type<GF_HEVC_NALU_VID_PARAM)
+			nal_type = nal_data[1]>>3;
+			if (ctx->deps && (nal_type<GF_VVC_NALU_OPI)) {
+				if (ctx->vvc_state->s_info.non_ref_pic) {
+					nal_ref_idc = GF_FALSE;
+				} else {
+					//todo
 					nal_ref_idc = GF_TRUE;
-				break;
+				}
 			}
 		} else {
-			nal_type = hdr_start[0] & 0x1F;
-			switch (nal_type) {
-			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-			case GF_AVC_NALU_SEQ_PARAM:
-			case GF_AVC_NALU_PIC_PARAM:
-			case GF_AVC_NALU_SVC_PREFIX_NALU:
-			//we also need the SEI in AVC since some SEI messages have to be removed
-			case GF_AVC_NALU_SEI:
-				//require full nal even in analyze mode
-				full_nal_required = GF_TRUE;
-				break;
-			default:
-				break;
-			}
-			nal_ref_idc = (hdr_start[0] & 0x60) >> 5;
+			nal_type = nal_data[0] & 0x1F;
+			nal_ref_idc = (nal_data[0] & 0x60) >> 5;
 		}
-		if (!next_size) {
-			if (full_nal_required && !is_eos) {
-				//we need the full nal loaded
-				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-				if (!ctx->full_au_source && (next==pck_avail))
-					next = -1;
 
-				if (next<0) {
-					if (sc_size) pck_avail += sc_size;
-					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_avail) {
-						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_avail;
-						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
-					}
-					memcpy(ctx->hdr_store + ctx->hdr_store_size, start, sizeof(char)*pck_avail);
-					ctx->hdr_store_size += pck_avail;
-					gf_filter_pid_drop_packet(ctx->ipid);
-					return GF_OK;
-				}
-			} else {
-				next = gf_media_nalu_next_start_code(pck_start, pck_avail, &next_sc_size);
-				if ( (next == pck_avail) && !ctx->full_au_source) {
-					if (!is_eos)
-						next = -1;
-					else if ((ctx->codecid==GF_CODECID_HEVC) && pck_avail<2)
-						next = -1;
-				}
-			}
-
-			//ok we have either a full nal, or the start of a NAL we can start to process, parse NAL
-			if (next<0) {
-				size = pck_avail;
-				if (!nal_hdr_in_store) {
-					hdr_avail = (u32) size;
-				}
-			} else {
-				full_nal = GF_TRUE;
-				size = next;
-				if (full_nal_required) {
-					if (!nal_bytes_from_store && nal_sc_in_store) {
-						hdr_avail = (u32) size;
-						hdr_start = pck_start;
-
-					} else {
-						size += nal_bytes_from_store;
-						//we require full nal but begining of the nal is in the store, the rest in the current packet.
-						//We must copy the complete nal in the store before parsing it
-						if (nal_bytes_from_store && (size > SAFETY_NAL_STORE)) {
-							u32 copy_size = (u32) (size - nal_bytes_from_store);
-							if (ctx->hdr_store_alloc<copy_size) {
-								ctx->hdr_store_alloc = copy_size;
-								ctx->hdr_store = gf_realloc(ctx->hdr_store, ctx->hdr_store_alloc);
-							}
-							memcpy(ctx->hdr_store + hdr_offset + nal_bytes_from_store, start, copy_size);
-						}
-						hdr_avail = (u32) size;
-					}
-				} else if (hdr_avail>(u32) size && !nal_bytes_from_store)
-					hdr_avail = (u32) size;
-			}
-			//if nal_hdr_in_store is set, we are sure this is a valid NAL start, otherwise if too small we copy it to the reassemble buffer
-			if (!full_nal && !nal_hdr_in_store && (size < SAFETY_NAL_STORE/2)) {
-				assert(!nal_sc_in_store);
-				assert(remain < SAFETY_NAL_STORE);
-				//we may have garbage at the end os stream, if the stream was cancelled in the middle (truncated nal)
-				if (!is_eos) {
-					memcpy(ctx->hdr_store, start, remain);
-					ctx->bytes_in_header = remain;
-				}
-				if (!skip_nal)
-					naludmx_check_pid(filter, ctx);
-				break;
-			}
-		} else {
-			full_nal = GF_TRUE;
-			size = next_size;
+		//locate next NAL start
+		next = gf_media_nalu_next_start_code(nal_data, nal_size, &next_sc_size);
+		if (!is_eos && (next == nal_size) && !ctx->full_au_source) {
+			next = -1;
 		}
+
+		//next nal start not found, wait
+		if (next<0) {
+			break;
+		}
+
+		//this is our exact NAL size, without start code
+		nal_size = next;
 
 		if (ctx->codecid==GF_CODECID_HEVC) {
-			nal_parse_result = naludmx_parse_nal_hevc(ctx, hdr_start, hdr_avail, &skip_nal, &is_slice, &is_islice);
+			nal_parse_result = naludmx_parse_nal_hevc(ctx, nal_data, nal_size, &skip_nal, &is_slice, &is_islice);
 		} else if (ctx->codecid==GF_CODECID_VVC) {
-			nal_parse_result = naludmx_parse_nal_vvc(ctx, hdr_start, hdr_avail, &skip_nal, &is_slice, &is_islice);
+			nal_parse_result = naludmx_parse_nal_vvc(ctx, nal_data, nal_size, &skip_nal, &is_slice, &is_islice);
 		} else {
-			nal_parse_result = naludmx_parse_nal_avc(ctx, hdr_start, hdr_avail, nal_type, &skip_nal, &is_slice, &is_islice);
+			nal_parse_result = naludmx_parse_nal_avc(ctx, nal_data, nal_size, nal_type, &skip_nal, &is_slice, &is_islice);
 		}
 
 		if (ctx->eos_in_bs && is_eos) {
@@ -3105,58 +2855,25 @@ naldmx_flush:
 			ctx->bottom_field_flag = GF_FALSE;
 		}
 
-		if (skip_nal) {
-			assert(remain >= (s32)sc_size+next);
-			if (next<0) {
-				u8 b3, b2, b1;
-				b3 = start[remain-3];
-				b2 = start[remain-2];
-				b1 = start[remain-1];
-				//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-				if (!b1 || !b2 || !b3) {
-					memcpy(ctx->hdr_store, start+remain-3, 3);
-					ctx->bytes_in_header = 3;
-				}
-				ctx->next_nal_end_skip = GF_TRUE;
-				break;
-			}
-			assert(remain >= next);
-			start = pck_start + next;
-            assert((u32) (start - (u8*)data) <= pck_size);
-			remain = pck_size - (u32) (start - (u8*)data);
-			if (nal_hdr_in_store) {
-				if (full_nal && ctx->bytes_in_header) {
-					memmove(ctx->hdr_store, hdr_start+nal_bytes_from_store, ctx->bytes_in_header - nal_bytes_from_store);
-					ctx->bytes_in_header -= next_size+store_sc_size;
-				} else {
-					ctx->bytes_in_header = 0;
-				}
-			}
-			continue;
-		}
-		ctx->next_nal_end_skip = GF_FALSE;
-
 		naludmx_check_pid(filter, ctx);
-		if (!ctx->opid) {
-            u32 skip = sc_size+next;
-			assert(remain >= (s32) skip);
-            if (skip) {
-                start += sc_size+next;
-                remain -= sc_size+next;
-            } else {
-                ctx->bytes_in_header = 0;
-            }
+		if (!ctx->opid) skip_nal = GF_TRUE;
+
+		if (skip_nal) {
+			nal_size += sc_size;
+			assert(remain >= nal_size);
+			start += nal_size;
+			remain -= nal_size;
+			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
-
-		//at this point, we no longer reaggregate packets
-		ctx->hdr_store_size = 0;
-
 
 		if (!ctx->is_playing) {
-			ctx->resume_from = (u32) ( (char *)start -  (char *)data);
-            assert(ctx->resume_from<=pck_size);
+			ctx->resume_from = (u32) (start - ctx->nal_store);
+            assert(ctx->resume_from<=ctx->nal_store_size);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] not yet playing\n", ctx->log_name));
+
+			if (drop_packet)
+				gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 		if (ctx->in_seek) {
@@ -3168,10 +2885,19 @@ naldmx_flush:
 		}
 
 		if (nal_parse_result<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit type %d - skipping\n", ctx->log_name,  nal_type));
-			assert(remain >= (s32) sc_size+next);
-			start += sc_size+next;
-			remain -= sc_size+next;
+			if (byte_offset != GF_FILTER_NO_BO) {
+				u64 bo = byte_offset;
+				bo += (start - ctx->nal_store);
+
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit %d (byte offset "LLU" size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, bo, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit %d (size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
+			}
+			nal_size += sc_size;
+			assert(remain >= nal_size);
+			start += nal_size;
+			remain -= nal_size;
+			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
 
@@ -3295,16 +3021,16 @@ naldmx_flush:
 					ctx->svc_nalu_prefix_reserved = avc_svc_subs_reserved;
 					ctx->svc_nalu_prefix_priority = avc_svc_subs_priority;
 
-					ctx->svc_prefix_buffer_size = next;
+					ctx->svc_prefix_buffer_size = nal_size;
 					if (ctx->svc_prefix_buffer_size > ctx->svc_prefix_buffer_alloc) {
 						ctx->svc_prefix_buffer_alloc = ctx->svc_prefix_buffer_size;
 						ctx->svc_prefix_buffer = gf_realloc(ctx->svc_prefix_buffer, ctx->svc_prefix_buffer_size);
 					}
 					memcpy(ctx->svc_prefix_buffer, start+sc_size, ctx->svc_prefix_buffer_size);
 
-					assert( remain >= (s32) sc_size+next );
-					start += sc_size+next;
-					remain -= sc_size+next;
+					assert( remain >= (s32) sc_size + nal_size);
+					start += sc_size + nal_size;
+					remain -= sc_size + nal_size;
 					continue;
 				}
 			} else if (is_slice) {
@@ -3473,25 +3199,6 @@ naldmx_flush:
 			}
 		}
 
-		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
-		//needs adjustement
-		if (nal_hdr_in_store && !next_size && !full_nal_required) {
-			size += nal_bytes_from_store;
-		}
-
-		if (! full_nal) {
-			u8 b3 = start[remain-3];
-			u8 b2 = start[remain-2];
-			u8 b1 = start[remain-1];
-
-			//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
-			if (!b1 || !b2 || !b3) {
-				copy_last_bytes = GF_TRUE;
-				assert(size >= 3);
-				size -= 3;
-				ctx->bytes_in_header = 3;
-			}
-		}
 
 		au_start = ctx->first_pck_in_au ? GF_FALSE : GF_TRUE;
 
@@ -3524,61 +3231,44 @@ naldmx_flush:
 		}
 
 		//nalu size field
-		/*dst_pck = */naludmx_start_nalu(ctx, (u32) size, GF_FALSE, &au_start, &pck_data);
+		/*dst_pck = */naludmx_start_nalu(ctx, (u32) nal_size, GF_FALSE, &au_start, &pck_data);
 		pck_data += ctx->nal_length;
 
 		//add subsample info before touching the size
 		if (ctx->subsamples) {
-			naludmx_add_subsample(ctx, (u32) size, avc_svc_subs_priority, avc_svc_subs_reserved);
+			naludmx_add_subsample(ctx, (u32) nal_size, avc_svc_subs_priority, avc_svc_subs_reserved);
 		}
 
-		//bytes come from both our store and the data packet
-		if (nal_hdr_in_store) {
-			memcpy(pck_data, hdr_start, nal_bytes_from_store);
-			assert(size >= nal_bytes_from_store);
-			size -= nal_bytes_from_store;
-			if (size)
-				memcpy(pck_data + nal_bytes_from_store, pck_start, (size_t) size);
 
-			if (next_size) {
-				assert(!size);
-				memmove(ctx->hdr_store, hdr_start+nal_bytes_from_store,ctx->bytes_in_header - nal_bytes_from_store);
-				ctx->bytes_in_header -= next_size+store_sc_size;
-				continue;
-			}
-			//we're done consuming data from previous packet, switch timing
-			naldmx_switch_timestamps(ctx, pck);
-		} else {
-			//bytes only come from the data packet
-			memcpy(pck_data, pck_start, (size_t) size);
-		}
+		//bytes only come from the data packet
+		memcpy(pck_data, nal_data, (size_t) nal_size);
 
-		if (! full_nal) {
-			if (copy_last_bytes) {
-				memcpy(ctx->hdr_store, start+remain-3, 3);
-			}
-			break;
-		}
-
-		assert(remain >= size);
-		start = pck_start + size;
-        assert((u32) (start - (u8*)data) <= pck_size);
-		remain = pck_size - (u32) (start - (u8*)data);
-
+		nal_size += sc_size;
+		start += nal_size;
+		remain -= nal_size;
+		naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
 		//a huge number of frames in a single call
 		if (remain && gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (u32) ((char *)start -  (char *)data);
-			if (data == ctx->hdr_store) {
-				assert(ctx->resume_from > hdr_size_at_resume);
-				ctx->resume_from -= hdr_size_at_resume;
-            } else {
-                assert(ctx->resume_from<=pck_size);
-            }
+			ctx->resume_from = (u32) (start - ctx->nal_store);
+			assert(ctx->resume_from <= ctx->nal_store_size);
+			assert(ctx->resume_from == ctx->nal_store_size - remain);
+			if (drop_packet)
+				gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 	}
+
+	if (remain) {
+		assert(remain<=ctx->nal_store_size);
+		memmove(ctx->nal_store, start, remain);
+	}
+	ctx->nal_store_size = remain;
+
+	if (drop_packet)
+		gf_filter_pid_drop_packet(ctx->ipid);
+
 	if (is_eos)
 		return naludmx_process(filter);
 
@@ -3589,16 +3279,12 @@ naldmx_flush:
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 
-	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }
 
 static GF_Err naludmx_initialize(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
-	ctx->hdr_store_size = 0;
-	ctx->hdr_store_alloc = SAFETY_NAL_STORE;
-	ctx->hdr_store = gf_malloc(sizeof(char)*SAFETY_NAL_STORE);
 	ctx->sps = gf_list_new();
 	ctx->pps = gf_list_new();
 	switch (ctx->nal_length) {
@@ -3697,7 +3383,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->indexes) gf_free(ctx->indexes);
-	if (ctx->hdr_store) gf_free(ctx->hdr_store);
+	if (ctx->nal_store) gf_free(ctx->nal_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
 			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
@@ -3901,6 +3587,11 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
+
+	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
+		"- off: not enabled\n"
+		"- on: enabled\n"
+		"- full: enable with number of bits dumped", GF_PROP_UINT, "off", "off|on|full", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
