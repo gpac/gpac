@@ -2318,7 +2318,7 @@ void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc
 
 static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
 {
-	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_flags, NULL, pctx->bs, ctx->fftmcd, dump);
+	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)

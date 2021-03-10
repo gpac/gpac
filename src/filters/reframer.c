@@ -709,8 +709,9 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		//packet was split or was re-inserted
 		if (st->split_start) {
 			u32 dur = gf_filter_pck_get_duration(pck);
-			assert(dur>st->split_start);
-			dur -= st->split_start;
+			//can happen if source packet is less than split period duration, we just copy with no timing adjustment
+			if (dur > st->split_start)
+				dur -= st->split_start;
 			gf_filter_pck_set_duration(new_pck, dur);
 			st->ts_at_range_start_plus_one += st->split_start;
 			st->split_start = 0;
@@ -723,10 +724,12 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			is_split = GF_TRUE;
 		}
 		//packet reinserted (not split), adjust duration and store offset in split start
-		if (!is_split && st->reinsert_single_pck) {
+		if (!st->can_split && !is_split && st->reinsert_single_pck) {
+			u32 dur = gf_filter_pck_get_duration(pck);
 			u64 ndur = st->range_end_reached_ts;
 			ndur -= st->ts_at_range_start_plus_one-1;
-			gf_filter_pck_set_duration(new_pck, (u32) ndur);
+			if (ndur && (ndur < dur))
+				gf_filter_pck_set_duration(new_pck, (u32) ndur);
 			st->split_start = (u32) ndur;
 		}
 
