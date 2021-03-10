@@ -193,11 +193,9 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		}
 		else if (strlen(line) && !in_multiline && (strchr(line, '=') != NULL) ) {
 			if (!p) {
-				gf_list_del(tmp->sections);
-				gf_free(tmp->fileName);
-				gf_free(tmp);
 				gf_fclose(file);
 				gf_free(line);
+				gf_cfg_clear(tmp);
 				return GF_IO_ERR;
 			}
 			FLUSH_EMPTY_LINES
