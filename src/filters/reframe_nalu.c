@@ -2722,6 +2722,7 @@ naldmx_flush:
 		Bool bIntraSlice = GF_FALSE;
 		GF_FilterSAPType au_sap_type = GF_FILTER_SAP_NONE;
 		Bool slice_is_b = GF_FALSE;
+		Bool check_dep = GF_FALSE;
 		s32 slice_poc = 0;
 
 		//not enough bytes to parse start code + nal hdr
@@ -2788,23 +2789,59 @@ naldmx_flush:
 			nal_type = nal_data[0];
 			nal_type = (nal_type & 0x7E) >> 1;
 
-			if (ctx->deps && (nal_type<GF_HEVC_NALU_VID_PARAM)) {
-				HEVC_VPS *vps;
-				u32 temporal_id = nal_data[1] & 0x7;
-				vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
-				if (temporal_id + 1 < vps->max_sub_layers) {
+			switch (nal_type) {
+			case GF_HEVC_NALU_VID_PARAM:
+			case GF_HEVC_NALU_SEQ_PARAM:
+			case GF_HEVC_NALU_PIC_PARAM:
+			case GF_HEVC_NALU_SEI_PREFIX:
+			case GF_HEVC_NALU_SEI_SUFFIX:
+				break;
+			case GF_HEVC_NALU_SLICE_TRAIL_N:
+			case GF_HEVC_NALU_SLICE_TSA_N:
+			case GF_HEVC_NALU_SLICE_STSA_N:
+			case GF_HEVC_NALU_SLICE_RADL_N:
+			case GF_HEVC_NALU_SLICE_RASL_N:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N10:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N12:
+			case GF_HEVC_NALU_SLICE_RSV_VCL_N14:
+				check_dep = GF_TRUE;
+				break;
+			default:
+				if (nal_type<GF_HEVC_NALU_VID_PARAM)
 					nal_ref_idc = GF_TRUE;
-				}
+				break;
 			}
 		} else if (ctx->codecid==GF_CODECID_VVC) {
 			nal_type = nal_data[1]>>3;
-			if (ctx->deps && (nal_type<GF_VVC_NALU_OPI)) {
-				if (ctx->vvc_state->s_info.non_ref_pic) {
-					nal_ref_idc = GF_FALSE;
-				} else {
-					//todo
-					nal_ref_idc = GF_TRUE;
+			switch (nal_type) {
+			case GF_VVC_NALU_OPI:
+			case GF_VVC_NALU_DEC_PARAM:
+			case GF_VVC_NALU_VID_PARAM:
+			case GF_VVC_NALU_SEQ_PARAM:
+			case GF_VVC_NALU_PIC_PARAM:
+			case GF_VVC_NALU_SEI_PREFIX:
+			case GF_VVC_NALU_SEI_SUFFIX:
+			case GF_VVC_NALU_APS_PREFIX:
+			case GF_VVC_NALU_APS_SUFFIX:
+			case GF_VVC_NALU_PIC_HEADER:
+				break;
+
+			case GF_VVC_NALU_SLICE_TRAIL:
+			case GF_VVC_NALU_SLICE_STSA:
+			case GF_VVC_NALU_SLICE_RADL:
+			case GF_VVC_NALU_SLICE_RASL:
+			case GF_VVC_NALU_SLICE_IDR_W_RADL:
+			case GF_VVC_NALU_SLICE_IDR_N_LP:
+			case GF_VVC_NALU_SLICE_CRA:
+			case GF_VVC_NALU_SLICE_GDR:
+				if (ctx->deps) {
+					check_dep = GF_TRUE;
 				}
+				break;
+			default:
+				if (nal_type<GF_HEVC_NALU_VID_PARAM)
+					nal_ref_idc = GF_TRUE;
+				break;
 			}
 		} else {
 			nal_type = nal_data[0] & 0x1F;
@@ -2900,6 +2937,25 @@ naldmx_flush:
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
 			continue;
 		}
+
+		if (check_dep) {
+			if ((ctx->codecid==GF_CODECID_HEVC) && ctx->hevc_state->s_info.sps) {
+				HEVC_VPS *vps;
+				u32 temporal_id = nal_data[1] & 0x7;
+				vps = & ctx->hevc_state->vps[ctx->hevc_state->s_info.sps->vps_id];
+				if (temporal_id + 1 < vps->max_sub_layers) {
+					nal_ref_idc = GF_TRUE;
+				}
+			} else if (ctx->codecid==GF_CODECID_VVC) {
+				if (ctx->vvc_state->s_info.non_ref_pic) {
+					nal_ref_idc = GF_FALSE;
+				} else {
+					//todo
+					nal_ref_idc = GF_TRUE;
+				}
+			}
+		}
+
 
 		if (is_islice) ctx->has_islice = GF_TRUE;
 
