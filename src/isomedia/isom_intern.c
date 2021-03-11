@@ -692,14 +692,17 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	/*we MUST have movie header*/
-	if (mov->moov && !mov->moov->mvhd) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
-		return GF_ISOM_INVALID_FILE;
-	}
-	/*we MUST have meta handler*/
-	if (mov->meta && !mov->meta->handler) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing handler in META!\n"));
-		return GF_ISOM_INVALID_FILE;
+	if (!gf_opts_get_bool("core", "no-check")) {
+		if (mov->moov && !mov->moov->mvhd) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
+			return GF_ISOM_INVALID_FILE;
+		}
+
+		/*we MUST have meta handler*/
+		if (mov->meta && !mov->meta->handler) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing handler in META!\n"));
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1236,7 +1239,7 @@ GF_Err gf_isom_insert_moov(GF_ISOFile *file)
 	mvhd->timeScale = 600;
 
 	file->interleavingTime = mvhd->timeScale;
-	moov_on_child_box((GF_Box*)file->moov, (GF_Box *)mvhd);
+	moov_on_child_box((GF_Box*)file->moov, (GF_Box *)mvhd, GF_FALSE);
 	gf_list_add(file->TopBoxes, file->moov);
 	return GF_OK;
 }

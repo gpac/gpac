@@ -74,7 +74,7 @@ GF_Err ghnt_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->FEC_overhead = gf_bs_read_u16(bs);
 
 	}
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

@@ -610,8 +610,8 @@ GF_Err gf_isom_box_size(GF_Box *ptr);
 GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
 
 GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
-GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b));
-GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*check_child_box)(GF_Box *par, GF_Box *b), u32 parent_type);
+GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs);
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, u32 parent_type);
 
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
@@ -637,6 +637,26 @@ void gf_isom_box_array_reset_parent(GF_List **child_boxes, GF_List *boxlist);
 
 void gf_isom_box_freeze_order(GF_Box *box);
 
+#define BOX_FIELD_ASSIGN(_field, _box_cast) \
+	if (is_rem) {\
+		ptr->_field = NULL;\
+		return GF_OK;\
+	} else {\
+		if (ptr->_field) ERROR_ON_DUPLICATED_BOX(a, ptr)\
+		ptr->_field = (_box_cast *)a;\
+	}
+
+#define BOX_FIELD_LIST_ASSIGN(_field) \
+	if (is_rem) {\
+		gf_list_del_item(ptr->_field, a);\
+	} else {\
+		if (!ptr->_field) ptr->_field = gf_list_new();\
+		GF_Err _e = gf_list_add(ptr->_field, a);\
+		if (_e) return _e;\
+	}
+
+
+void gf_isom_box_remove_from_parent(GF_Box *parent_box, GF_Box *box);
 
 typedef struct
 {
@@ -4180,20 +4200,20 @@ u32 GetHintFormat(GF_TrackBox *trak);
 /*locate a box by its type or UUID*/
 GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
-GF_Err moov_on_child_box(GF_Box *ptr, GF_Box *a);
-GF_Err trak_on_child_box(GF_Box *ptr, GF_Box *a);
-GF_Err mvex_on_child_box(GF_Box *ptr, GF_Box *a);
-GF_Err stsd_on_child_box(GF_Box *ptr, GF_Box *a);
-GF_Err hnti_on_child_box(GF_Box *hnti, GF_Box *a);
-GF_Err udta_on_child_box(GF_Box *ptr, GF_Box *a);
-GF_Err edts_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err moov_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err trak_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err mvex_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err stsd_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err hnti_on_child_box(GF_Box *hnti, GF_Box *a, Bool is_rem);
+GF_Err udta_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
+GF_Err edts_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
 GF_Err stdp_box_read(GF_Box *s, GF_BitStream *bs);
-GF_Err stbl_on_child_box(GF_Box *ptr, GF_Box *a);
+GF_Err stbl_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err sdtp_box_read(GF_Box *s, GF_BitStream *bs);
-GF_Err dinf_on_child_box(GF_Box *s, GF_Box *a);
-GF_Err minf_on_child_box(GF_Box *s, GF_Box *a);
-GF_Err mdia_on_child_box(GF_Box *s, GF_Box *a);
-GF_Err traf_on_child_box(GF_Box *s, GF_Box *a);
+GF_Err dinf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
+GF_Err minf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
+GF_Err mdia_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
+GF_Err traf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem);
 
 /*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);

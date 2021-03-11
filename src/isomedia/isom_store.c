@@ -162,7 +162,17 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		trak = gf_isom_get_track(movie->moov, i+1);
 
 		stbl = (trak->Media && trak->Media->information) ? trak->Media->information->sampleTable : NULL;
-		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk) {
+		if (!stbl || !stbl->SampleSize || !stbl->ChunkOffset || !stbl->SampleToChunk || !stbl->SampleSize) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Isom] Box '%s' missing from track, cannot write\n",
+				!trak->Media ? "mdia" :
+				!trak->Media->information ? "minf" :
+				!stbl ? "stbl" :
+				!stbl->SampleSize ? "stsz" :
+				!stbl->ChunkOffset ? "stco" :
+				!stbl->SampleToChunk ? "stsc" :
+				"stsz"
+			));
+
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -651,6 +661,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 	maxExtendSize = 0;
 	if (mdatSize) *mdatSize = 0;
 	if (!meta->item_locations) return GF_OK;
+	if (!meta->item_infos) return GF_OK;
 
 	count = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<count; i++) {
@@ -2175,7 +2186,7 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			if (gf_sys_is_test_mode()) {
 				trak->Header->creationTime = 0;
 				trak->Header->modificationTime = 0;
-				if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
+				if (trak->Media->handler && trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
 					gf_free(trak->Media->handler->nameUTF8);
 					trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
 				}

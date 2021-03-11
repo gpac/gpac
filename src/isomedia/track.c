@@ -387,7 +387,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	if (e) return e;
 
 	//assert the timeScales are non-NULL
-	if (!trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
+	if (!trak->moov->mvhd || !trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
 	trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
 
 	//if we have an edit list, the duration is the sum of all the editList
@@ -403,6 +403,9 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 	}
 	if (!trackDuration) {
 		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+	}
+	if (!trak->Header) {
+		return GF_OK;
 	}
 	trak->Header->duration = trackDuration;
 	if (!trak->moov->mov->keep_utc && !gf_sys_is_test_mode() )
@@ -1187,25 +1190,25 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 	if (!mdhd) {
 		mdhd = (GF_MediaHeaderBox *) gf_isom_box_new_parent( & ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_MDHD);
 		if (! mdhd) { e = GF_OUT_OF_MEM; goto err_exit; }
-		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) mdhd);
+		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) mdhd, GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (!hdlr) {
 		hdlr = (GF_HandlerBox *) gf_isom_box_new_parent(& ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_HDLR);
 		if (! hdlr) { e = GF_OUT_OF_MEM; goto err_exit; }
-		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) hdlr);
+		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) hdlr, GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (!minf) {
 		minf = (GF_MediaInformationBox *) gf_isom_box_new_parent(& ((*mdia)->child_boxes), GF_ISOM_BOX_TYPE_MINF);
 		if (! minf) { e = GF_OUT_OF_MEM; goto err_exit; }
-		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) minf);
+		e = mdia_on_child_box((GF_Box*)*mdia, (GF_Box *) minf, GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (!dinf) {
 		dinf = (GF_DataInformationBox *) gf_isom_box_new_parent(&minf->child_boxes, GF_ISOM_BOX_TYPE_DINF);
 		if (! dinf) { e = GF_OUT_OF_MEM; goto err_exit; }
-		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) dinf);
+		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) dinf, GF_FALSE);
 		if (e) goto err_exit;
 	}
 
@@ -1291,7 +1294,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		if (!minf->child_boxes) minf->child_boxes = gf_list_new();
 		gf_list_add(minf->child_boxes, mediaInfo);
 
-		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) mediaInfo);
+		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) mediaInfo, GF_FALSE);
 		if (e) goto err_exit;
 	}
 
@@ -1304,7 +1307,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		//Create a data reference WITHOUT DATA ENTRY (we don't know anything yet about the media Data)
 		dref = (GF_DataReferenceBox *) gf_isom_box_new_parent(&dinf->child_boxes, GF_ISOM_BOX_TYPE_DREF);
 		if (! dref) { e = GF_OUT_OF_MEM; goto err_exit; }
-		e = dinf_on_child_box((GF_Box*)dinf, (GF_Box *)dref);
+		e = dinf_on_child_box((GF_Box*)dinf, (GF_Box *)dref, GF_FALSE);
 		if (e) goto err_exit;
 	}
 
@@ -1313,7 +1316,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		stbl = (GF_SampleTableBox *) gf_isom_box_new_parent(&minf->child_boxes, GF_ISOM_BOX_TYPE_STBL);
 		if (! stbl) { e = GF_OUT_OF_MEM; goto err_exit; }
 
-		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) stbl);
+		e = minf_on_child_box((GF_Box*)minf, (GF_Box *) stbl, GF_FALSE);
 		if (e) goto err_exit;
 	}
 	if (!stbl->SampleDescription) {
@@ -1385,7 +1388,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (!trak->References) {
 			tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
 			if (!tref) return GF_OUT_OF_MEM;
-			e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
+			e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref, GF_FALSE);
 			if (e) return e;
 		}
 		tref = trak->References;
@@ -1629,7 +1632,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			trak->Media->information->sampleTable->SampleDescription->child_boxes = gf_list_new();
 		gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
 		
-		e = stsd_on_child_box((GF_Box*)trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
+		e = stsd_on_child_box((GF_Box*)trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry, GF_FALSE);
 		if (e) return e;
 		if(outStreamIndex) *outStreamIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
 	}

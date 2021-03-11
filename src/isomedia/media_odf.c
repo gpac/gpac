@@ -256,7 +256,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 	if (!tref) {
 		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&mdia->mediaTrack->child_boxes, GF_ISOM_BOX_TYPE_TREF);
 		if (!tref) return GF_OUT_OF_MEM;
-		e = trak_on_child_box((GF_Box*)mdia->mediaTrack, (GF_Box *) tref);
+		e = trak_on_child_box((GF_Box*)mdia->mediaTrack, (GF_Box *) tref, GF_FALSE);
 		if (e) return e;
 	}
 	//then find the OD reference, and create it if none

@@ -143,21 +143,22 @@ GF_Err boxstring_box_read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-static GF_Err vtcu_Add(GF_Box *s, GF_Box *box)
+
+GF_Err vtcu_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
-	switch(box->type) {
+	GF_VTTCueBox *ptr = (GF_VTTCueBox *)s;
+	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_CTIM:
-		cuebox->time = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(time, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_IDEN:
-		cuebox->id = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(id, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_STTG:
-		cuebox->settings = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(settings, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_PAYL:
-		cuebox->payload = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(payload, GF_StringBox);
 		break;
 	}
 	return GF_OK;
@@ -165,20 +166,20 @@ static GF_Err vtcu_Add(GF_Box *s, GF_Box *box)
 
 GF_Err vtcu_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, vtcu_Add);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Err vtte_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
-static GF_Err wvtt_Add(GF_Box *s, GF_Box *box)
+GF_Err wvtt_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
-	switch(box->type) {
+	GF_WebVTTSampleEntryBox *ptr = (GF_WebVTTSampleEntryBox *)s;
+	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_VTTC_CONFIG:
-		wvtt->config = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(config, GF_StringBox);
 		break;
 	}
 	return GF_OK;
@@ -192,7 +193,7 @@ GF_Err wvtt_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	wvtt->size -= 8;
-	return gf_isom_box_array_read(s, bs, wvtt_Add);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

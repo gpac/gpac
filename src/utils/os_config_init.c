@@ -1201,6 +1201,7 @@ GF_GPACArg GPAC_Args[] = {
  "- desktop: desktop device", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
 
  GF_DEF_ARG("bs-cache-size", NULL, "cache size for bitstream read and write from file (0 disable cache, slower IOs)", "512", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("no-check", NULL, "disable compliancy tests for inputs (ISOBMFF for now). This will likely result in random crashes", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-name", NULL, "set HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),

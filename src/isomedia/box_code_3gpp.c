@@ -304,13 +304,12 @@ void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec)
 	rec->text_color = gpp_read_rgba(bs);
 }
 
-GF_Err tx3g_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err tx3g_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_FTAB:
-		if (ptr->font_table) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->font_table = (GF_FontTableBox *)a;
+		BOX_FIELD_ASSIGN(font_table, GF_FontTableBox)
 		break;
 	default:
 		return GF_OK;
@@ -336,7 +335,7 @@ GF_Err tx3g_box_read(GF_Box *s, GF_BitStream *bs)
 	gpp_read_style(bs, &ptr->default_style);
 
 
-	return gf_isom_box_array_read(s, bs, tx3g_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 /*this is a quicktime specific box - see apple documentation*/
@@ -411,7 +410,7 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->textName[pSize] = '\0';				/*Font name*/
 	}
 	ISOM_DECREASE_SIZE(ptr, pSize);
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 void gpp_write_rgba(GF_BitStream *bs, u32 col)
@@ -1156,17 +1155,15 @@ void dims_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-static GF_Err dims_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err dims_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_DIMSSampleEntryBox *ptr = (GF_DIMSSampleEntryBox  *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_DIMC:
-		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->config = (GF_DIMSSceneConfigBox*)a;
+		BOX_FIELD_ASSIGN(config, GF_DIMSSceneConfigBox)
 		break;
 	case GF_ISOM_BOX_TYPE_DIST:
-		if (ptr->scripts) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->scripts = (GF_DIMSScriptTypesBox*)a;
+		BOX_FIELD_ASSIGN(scripts, GF_DIMSScriptTypesBox)
 		break;
 	}
 	return GF_OK;
@@ -1180,7 +1177,7 @@ GF_Err dims_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	ISOM_DECREASE_SIZE(p, 8);
-	return gf_isom_box_array_read(s, bs, dims_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

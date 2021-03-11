@@ -1134,9 +1134,9 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->aux_info_type = 0;
 		senc->cenc_saiz->aux_info_type_parameter = use_multikey ? 1 : 0;
 		if (stbl)
-			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
+			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz, GF_FALSE);
 		else
-			traf_on_child_box((GF_Box*)traf, (GF_Box *)senc->cenc_saiz);
+			traf_on_child_box((GF_Box*)traf, (GF_Box *)senc->cenc_saiz, GF_FALSE);
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_SAIO);
@@ -1148,9 +1148,9 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->aux_info_type_parameter = use_multikey ? 1 : 0;
 		senc->cenc_saio->entry_count = 1;
 		if (stbl)
-			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
+			stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio, GF_FALSE);
 		else
-			traf_on_child_box((GF_Box*)traf, (GF_Box *)senc->cenc_saio);
+			traf_on_child_box((GF_Box*)traf, (GF_Box *)senc->cenc_saio, GF_FALSE);
 	}
 
 	if (!senc->cenc_saiz->sample_count || ((senc->cenc_saiz->default_sample_info_size==len) && len) ) {
@@ -1183,7 +1183,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 		if (!senc->cenc_saiz) return GF_OUT_OF_MEM;
 		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
-		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
+		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz, GF_FALSE);
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SAIO);
@@ -1192,7 +1192,7 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 		senc->cenc_saio->version = 1;
 		senc->cenc_saio->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saio->aux_info_type_parameter = 0;
-		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
+		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio, GF_FALSE);
 	}
 
 	if (!senc->cenc_saiz->sample_count || (!senc->cenc_saiz->sample_alloc && (senc->cenc_saiz->default_sample_info_size==len))) {
