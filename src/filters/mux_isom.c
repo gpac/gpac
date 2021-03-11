@@ -247,7 +247,7 @@ typedef struct
 	char *styp;
 	Bool sseg;
 	Bool noroll;
-	Bool saio32;
+	Bool saio32, tfdt64;
 	u32 compress;
 	Bool trun_inter;
 	Bool truns_first;
@@ -4601,6 +4601,8 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 		if (ctx->sdtp_traf)
 			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_SAMPLE_DEPS_BOX, ctx->sdtp_traf);
 
+		if (ctx->tfdt64)
+			gf_isom_set_fragment_option(ctx->file, tkw->track_id, GF_ISOM_TRAF_USE_LARGE_TFDT, ctx->tfdt64);
 
 		if (ctx->insert_pssh)
 			mp4_mux_cenc_insert_pssh(ctx, tkw);
@@ -6235,6 +6237,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "use 32 bit offset for side data location instead of 64 bit offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tfdt64), "use 64 bit tfdt even for 32 bits timestamps", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 #ifdef GF_ENABLE_CTRN
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
