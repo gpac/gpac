@@ -526,6 +526,11 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		if (!traf) return GF_BAD_PARAM;
 		traf->truns_v1 = Param;
 		break;
+	case GF_ISOM_TRAF_USE_LARGE_TFDT:
+		traf = gf_isom_get_traf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->large_tfdt = Param;
+		break;
 	}
 	return GF_OK;
 }
@@ -2621,6 +2626,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		traf_2->interleave_id = traf->interleave_id;
 		traf_2->truns_first = traf->truns_first;
 		traf_2->truns_v1 = traf->truns_v1;
+		traf_2->large_tfdt = traf->large_tfdt;
 		traf_2->DataCache  = traf->DataCache;
 		traf_2->tfhd->sample_desc_index  = DescIndex;
 
@@ -3170,6 +3176,8 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID 
 		if (!traf->tfdt) return GF_OUT_OF_MEM;
 	}
 	traf->tfdt->baseMediaDecodeTime = decode_time;
+	if (traf->large_tfdt)
+		traf->tfdt->version = 1;
 	return GF_OK;
 }
 

@@ -4403,7 +4403,9 @@ typedef enum
 	GF_ISOM_TRAF_TRUNS_FIRST,
 	/*! forces trun v1
 	param: on/off (0/1)*/
-	GF_ISOM_TRAF_TRUN_V1
+	GF_ISOM_TRAF_TRUN_V1,
+	/*force usage of 64 bits in tfdt*/
+	GF_ISOM_TRAF_USE_LARGE_TFDT
 } GF_ISOTrackFragmentOption;
 
 /*! sets a track fragment option. Options can be set at the beginning of each new fragment only, and for the
