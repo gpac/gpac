@@ -747,8 +747,11 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 					if (entry->extent_index) continue;
 					if (j && (maxExtendOffset<it_size) ) maxExtendOffset = it_size;
 					/*compute new offset*/
-					entry->extent_offset = baseOffset + it_size;
-
+					if (iloc->construction_method != 2) {
+						entry->extent_offset = it_size;
+					} else {
+						entry->extent_offset = baseOffset + it_size;
+					}
 					it_size += entry->extent_length;
 					if (maxExtendSize<entry->extent_length) maxExtendSize = entry->extent_length;
 

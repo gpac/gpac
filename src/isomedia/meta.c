@@ -738,6 +738,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			break;
 			case GF_ISOM_BOX_TYPE_HVCC:
 			case GF_ISOM_BOX_TYPE_AVCC:
+			case GF_ISOM_BOX_TYPE_AV1C:
 				prop->config = b;
 				break;
 			}
@@ -1197,8 +1198,10 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	/*get relative name*/
 	else if (item_name) {
 		infe->item_name = gf_strdup(item_name);
+		file->no_inplace_rewrite = GF_TRUE;
 	} else if (resource_path) {
 		infe->item_name = gf_strdup(gf_file_basename( resource_path ));
+		file->no_inplace_rewrite = GF_TRUE;
 	}
 
 	infe->item_type = item_type;

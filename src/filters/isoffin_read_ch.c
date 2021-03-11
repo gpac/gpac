@@ -279,6 +279,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 
 	ch->sample = ch->static_sample;
 	ch->sample->IsRAP = RAP;
+	ch->au_duration = 1000;
 	ch->dts = ch->cts = 1000 * ch->au_seq_num;
 	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
 
