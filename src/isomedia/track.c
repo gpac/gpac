@@ -1051,7 +1051,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					break;
 				}
 			}
-			if (saiz && saio) {
+			if (saiz && saio && senc) {
 				for (i = 0; i < saiz->sample_count; i++) {
 					GF_CENCSampleAuxInfo *sai;
 					const u8 *key_info=NULL;
