@@ -767,7 +767,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	if (dash_evt==GF_DASH_EVENT_PERIOD_SETUP_ERROR) {
 		if (!ctx->initial_setup_done) {
 			gf_filter_setup_failure(ctx->filter, error_code);
-			ctx->initial_setup_done= GF_TRUE;
+			ctx->initial_setup_done = GF_TRUE;
 		}
 		return GF_OK;
 	}

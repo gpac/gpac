@@ -6315,7 +6315,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	rep->playback.broadcast_flag = GF_FALSE;
 
 llhls_rety:
-	//spectial case for LL-HLS: if we have a switch request pending, check if next fragment is the first of a new seg
+	//special case for LL-HLS: if we have a switch request pending, check if next fragment is the first of a new seg
 	//or a complete seg (we do not switch in the middle of a segment)
 	if (group->llhls_switch_request>=0) {
 		GF_MPD_SegmentURL *hlsseg = gf_list_get(rep->segment_list->segment_URLs, group->download_segment_index);
@@ -6552,7 +6552,7 @@ llhls_rety:
 		} else if (use_byterange) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next %s: %s (range: "LLU" -> "LLU")\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment",  gf_file_basename(new_base_seg_url), start_range, end_range));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next %s: %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", gf_file_basename(new_base_seg_url), start_range, end_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Queing next %s: %s\n", (llhls_live_edge_type==1) ? "LL-HLS part" : "segment", gf_file_basename(new_base_seg_url)));
 		}
 	}
 #endif
@@ -6637,7 +6637,7 @@ llhls_rety:
 		group->active_rep_index = rep->playback.enhancement_rep_index_plus_one - 1;
 		group->has_pending_enhancement = GF_TRUE;
 	}
-	/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase dowloaded segment index by 1*/
+	/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase downloaded segment index by 1*/
 	else {
 		if (group->base_rep_index_plus_one) group->active_rep_index = group->base_rep_index_plus_one - 1;
 		if (dash->speed >= 0) {
