@@ -273,7 +273,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 	if (!movie->moov->mvex) {
 		mvex = (GF_MovieExtendsBox *) gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_MVEX);
 		if (!mvex) return GF_OUT_OF_MEM;
-		moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex);
+		moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex, GF_FALSE);
 	} else {
 		mvex = movie->moov->mvex;
 	}
@@ -287,7 +287,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 		trex = (GF_TrackExtendsBox *) gf_isom_box_new_parent(&mvex->child_boxes, GF_ISOM_BOX_TYPE_TREX);
 		if (!trex) return GF_OUT_OF_MEM;
 		trex->trackID = TrackID;
-		mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex);
+		mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex, GF_FALSE);
 	}
 	trex->track = trak;
 	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority, force_traf_flags);
@@ -343,7 +343,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID Tr
 			//create MVEX if needed
 			if (!movie->moov->mvex) {
 				mvex = (GF_MovieExtendsBox *) gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_MVEX);
-				moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex);
+				moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex, GF_FALSE);
 			} else {
 				mvex = movie->moov->mvex;
 			}
@@ -360,7 +360,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID Tr
 			trex->track = trak;
 			if (force_traf_flags) trex->cannot_use_default = GF_TRUE;
 			gf_list_add(mvex->child_boxes, trex);
-			mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex);
+			mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex, GF_FALSE);
 		}
 	}
 	gf_bs_del(bs);

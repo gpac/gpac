@@ -2067,7 +2067,6 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 	char szInd[2];
 	u32 i, count, brand, primary_id;
 	brand = gf_isom_get_meta_type(file, root_meta, tk_num);
-	if (!brand) return;
 	if (name[0]=='\t') {
 		szInd[0] = '\t';
 		szInd[1] = 0;
@@ -2077,7 +2076,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 
 	count = gf_isom_get_meta_item_count(file, root_meta, tk_num);
 	primary_id = gf_isom_get_meta_primary_item_id(file, root_meta, tk_num);
-	fprintf(stderr, "%s type: \"%s\" - %d resource item(s)\n", name, gf_4cc_to_str(brand), (count+(primary_id>0)));
+	fprintf(stderr, "%s type: \"%s\" - %d resource item(s)\n", name, brand ? gf_4cc_to_str(brand) : "undefined", (count+(primary_id>0)));
 	switch (gf_isom_has_meta_xml(file, root_meta, tk_num)) {
 	case 1:
 		fprintf(stderr, "%sMeta has XML resource\n", szInd);

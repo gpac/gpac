@@ -909,7 +909,7 @@ u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *file, u32 moof_in
 GF_EXPORT
 u32 gf_isom_get_timescale(GF_ISOFile *movie)
 {
-	if (!movie || !movie->moov) return 0;
+	if (!movie || !movie->moov || !movie->moov->mvhd) return 0;
 	return movie->moov->mvhd->timeScale;
 }
 
@@ -918,7 +918,7 @@ u32 gf_isom_get_timescale(GF_ISOFile *movie)
 GF_EXPORT
 u64 gf_isom_get_duration(GF_ISOFile *movie)
 {
-	if (!movie || !movie->moov) return 0;
+	if (!movie || !movie->moov || !movie->moov->mvhd) return 0;
 
 	//if file was open in Write or Edit mode, recompute the duration
 	//the duration of a movie is the MaxDuration of all the tracks...
@@ -933,7 +933,7 @@ u64 gf_isom_get_duration(GF_ISOFile *movie)
 GF_EXPORT
 u64 gf_isom_get_original_duration(GF_ISOFile *movie)
 {
-	if (!movie || !movie->moov) return 0;
+	if (!movie || !movie->moov|| !movie->moov->mvhd) return 0;
 	return movie->moov->mvhd->original_duration;
 }
 
@@ -1103,7 +1103,7 @@ GF_Err gf_isom_get_track_kind(GF_ISOFile *the_file, u32 trackNumber, u32 index, 
 		GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 		if (!trak) return GF_BAD_PARAM;
 		if (!trak->udta) {
-			e = trak_on_child_box((GF_Box*)trak, gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA));
+			e = trak_on_child_box((GF_Box*)trak, gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 			if (e) return e;
 		}
 		udta = trak->udta;

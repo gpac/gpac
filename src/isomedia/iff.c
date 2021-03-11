@@ -414,7 +414,7 @@ void ipco_box_del(GF_Box *s)
 
 GF_Err ipco_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -442,17 +442,15 @@ void iprp_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-static GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
+	GF_ItemPropertiesBox *ptr = (GF_ItemPropertiesBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_IPCO:
-		if (p->property_container) ERROR_ON_DUPLICATED_BOX(a, p)
-		p->property_container = (GF_ItemPropertyContainerBox*)a;
+		BOX_FIELD_ASSIGN(property_container, GF_ItemPropertyContainerBox)
 		break;
 	case GF_ISOM_BOX_TYPE_IPMA:
-		if (p->property_association) ERROR_ON_DUPLICATED_BOX(a, p)
-		p->property_association = (GF_ItemPropertyAssociationBox*)a;
+		BOX_FIELD_ASSIGN(property_association, GF_ItemPropertyAssociationBox)
 		break;
 	default:
 		return GF_OK;
@@ -462,7 +460,7 @@ static GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err iprp_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, iprp_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -620,7 +618,7 @@ void grpl_box_del(GF_Box *s)
 
 GF_Err grpl_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, NULL, s->type);
+	return gf_isom_box_array_read_ex(s, bs, s->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

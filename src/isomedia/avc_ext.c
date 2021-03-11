@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2441,7 +2441,7 @@ GF_ISOMAVCType gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
+	if (!trak || !trak->Media || !trak->Media->handler || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
 	if (!gf_isom_is_video_handler_type(trak->Media->handler->handlerType))
 		return GF_ISOM_AVCTYPE_NONE;
 

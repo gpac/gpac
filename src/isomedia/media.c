@@ -671,7 +671,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	}
 	if (!a) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] broken file: Data reference index set to %d but no data reference entry found\n", drefIndex));
-		return 0;
+		return 1;
 	}
 	if (a->flags & 1) return 1;
 	/*QT specific*/
@@ -685,7 +685,7 @@ GF_ISOMDataRefAllType Media_SelfContainedType(GF_MediaBox *mdia)
 	u32 i, count;
 
 	nb_ext = nb_self = 0;
-	count = gf_list_count(mdia->information->sampleTable->SampleDescription->child_boxes);
+	count = mdia->information->sampleTable->SampleDescription ? gf_list_count(mdia->information->sampleTable->SampleDescription->child_boxes) : 0;
 	for (i=0; i<count; i++) {
 		if (Media_IsSelfContained(mdia, i+1)) nb_self++;
 		else nb_ext++;

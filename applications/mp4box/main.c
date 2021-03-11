@@ -840,7 +840,7 @@ void PrintImportUsage()
 		"  \n"
 		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
 		"  \n"
-		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options par stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
+		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options per stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
 		"  \n"
 		"The import file name may be set to empty or `self`, indicating that the import options should be applied to the destination file track(s).\n"
 		"EX -add self:moovts=-1:noedit src.mp4\n"
@@ -5672,7 +5672,8 @@ int mp4boxMain(int argc, char **argv)
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
 				gf_isom_open_progressive(inName, 0, 0, GF_FALSE, &file, &missing_bytes);
-				M4_LOG(GF_LOG_ERROR, ("Truncated file - missing "LLD" bytes\n", missing_bytes));
+				if (missing_bytes)
+					M4_LOG(GF_LOG_ERROR, ("Truncated file - missing "LLD" bytes\n", missing_bytes));
 			}
 
 			if (!file) {

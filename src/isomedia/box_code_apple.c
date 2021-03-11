@@ -144,7 +144,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 		u64 pos = gf_bs_get_position(bs);
 		u64 prev_size = s->size;
 		/*try parsing as generic box list*/
-		e = gf_isom_box_array_read(s, bs, NULL);
+		e = gf_isom_box_array_read(s, bs);
 		if (e==GF_OK) return GF_OK;
 		//reset content and retry - this deletes ptr->data !!
 		gf_isom_box_array_del(s->child_boxes);
@@ -396,7 +396,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) {
-		e = moov_on_child_box((GF_Box*)mov->moov, gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_on_child_box((GF_Box*)mov->moov, gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 		if (e) return NULL;
 	}
 
@@ -414,7 +414,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
 	if (meta) {
-		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta);
+		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
 		if (!for_xtra) {
 			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
 			if(meta->handler == NULL) {
@@ -554,7 +554,7 @@ GF_Err tmcd_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->frames_per_counter_tick = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs); //reserved
 
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *tmcd_box_new()
