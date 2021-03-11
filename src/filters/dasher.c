@@ -5552,6 +5552,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		ctx->mpd->gpac_init_ntp_ms = gf_net_get_ntp_ms();
 		ctx->mpd->availabilityStartTime = dasher_get_utc(ctx);
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] MPD Availability start time initialized to "LLU" ms\n", ctx->mpd->availabilityStartTime));
 
 		if (dash_start_date && (dash_start_date < ctx->mpd->availabilityStartTime)) {
 			u64 start_date_sec_ntp, secs;
@@ -5960,6 +5961,15 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			ds->first_cts_in_next_seg = ds->first_cts_in_seg = ds->est_first_cts_in_next_seg = 0;
 		}
 
+		//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
+		//flush the segment at next segment start which could be after the segment AST => 404
+		if (ctx->dmode>=GF_DASH_DYNAMIC) {
+			GF_FilterPacket *eods_pck;
+			eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
+			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pck_send(eods_pck);
+		}
+
 		if (ds->muxed_base) {
 			if (!ds->done) {
 				ds->segment_started = GF_FALSE;
@@ -6002,7 +6012,6 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				}
 			}
 #endif
-
 
 			assert(base_ds->segment_started);
 			base_ds->segment_started = GF_FALSE;
