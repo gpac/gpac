@@ -336,6 +336,7 @@ typedef struct
 #define MP4BOX_ARG(_a, _c, _f, _g, _h, _i, _j) {_a, NULL, _c, NULL, NULL, _f, _g, _h, _i, _j}
 #define MP4BOX_ARG_ALT(_a, _b, _c, _f, _g, _h, _i, _j) {_a, _b, _c, NULL, NULL, _f, _g, _h, _i, _j}
 #define MP4BOX_ARG_S(_a, _s, _c, _g, _h, _i, _j) {_a, NULL, _c, _s, NULL, GF_ARG_CUSTOM, _g, _h, _i, _j}
+#define MP4BOX_ARG_S_ALT(_a, _b, _s, _c, _g, _h, _i, _j) {_a, _b, _c, _s, NULL, GF_ARG_CUSTOM, _g, _h, _i, _j}
 
 
 MP4BoxArg m4b_gen_args[] =
@@ -1163,7 +1164,7 @@ MP4BoxArg m4b_meta_args[] =
 	MP4BOX_ARG("add-image-grid", "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
 	    "- any other options from [-add-image]() can be used\n", GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_GRID, ARG_IS_FUN),
-	MP4BOX_ARG_S("rem-item", "item_ID[:tk=tkID]", "remove resource from meta", 0, parse_meta_args, META_ACTION_REM_ITEM, ARG_IS_FUN),
+	MP4BOX_ARG_S_ALT("rem-item", "rem-image", "item_ID[:tk=tkID]", "remove resource from meta", 0, parse_meta_args, META_ACTION_REM_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG_S("set-primary", "item_ID[:tk=tkID]", "set item as primary for meta", 0, parse_meta_args, META_ACTION_SET_PRIMARY_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG_S("set-xml", "xml_file_path[:tk=tkID][:binary]", "set meta XML data", 0, parse_meta_args, META_ACTION_SET_XML, ARG_IS_FUN),
 	MP4BOX_ARG_S("rem-xml", "[tk=tkID]", "remove meta XML data", 0, parse_meta_args, META_ACTION_REM_XML, ARG_IS_FUN),
