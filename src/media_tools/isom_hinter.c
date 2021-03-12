@@ -640,7 +640,11 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	if (hintType==GF_RTP_PAYT_MPEG4) {
 		tmp->rtp_p->slMap.CodecID = codecid;
 		/*set this SL for extraction.*/
-		gf_isom_set_extraction_slc(file, TrackNum, 1, &my_sl);
+		*e = gf_isom_set_extraction_slc(file, TrackNum, 1, &my_sl);
+		if (*e) {
+			gf_hinter_track_del(tmp);
+			return NULL;
+		}
 	}
 	tmp->bandwidth = bandwidth;
 
