@@ -12432,12 +12432,12 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 prop_type = 0;
 
 		char *data=NULL, *data2=NULL;
-		ISOM_DECREASE_SIZE(ptr, 18)
+		ISOM_DECREASE_SIZE_NO_ERR(ptr, 18)
 		s32 tag_size = gf_bs_read_u32(bs);
 		u32 name_size = gf_bs_read_u32(bs);
 		tag_size -= 8;
 
-		ISOM_DECREASE_SIZE(ptr, name_size)
+		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
 		data = gf_malloc(sizeof(char) * (name_size+1));
 		gf_bs_read_data(bs, data, name_size);
 		data[name_size] = 0;
@@ -12451,7 +12451,7 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			tag_size-=2;
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;
-			ISOM_DECREASE_SIZE(ptr, prop_size)
+			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
 			data2 = gf_malloc(sizeof(char) * (prop_size));
 			gf_bs_read_data(bs, data2, prop_size);
 			tag_size-=prop_size;
