@@ -5961,15 +5961,6 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			ds->first_cts_in_next_seg = ds->first_cts_in_seg = ds->est_first_cts_in_next_seg = 0;
 		}
 
-		//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
-		//flush the segment at next segment start which could be after the segment AST => 404
-		if (ctx->dmode>=GF_DASH_DYNAMIC) {
-			GF_FilterPacket *eods_pck;
-			eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
-			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
-			gf_filter_pck_send(eods_pck);
-		}
-
 		if (ds->muxed_base) {
 			if (!ds->done) {
 				ds->segment_started = GF_FALSE;
@@ -7296,6 +7287,16 @@ assert(ds);
 				}
 
 				ds->seg_done = GF_TRUE;
+
+				//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
+				//flush the segment at next segment start which could be after the segment AST => 404
+				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC)) {
+					GF_FilterPacket *eods_pck;
+					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
+					gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
+					gf_filter_pck_send(eods_pck);
+				}
+
 				ds->first_cts_in_next_seg = cts;
 				assert(base_ds->nb_comp_done < base_ds->nb_comp);
 				base_ds->nb_comp_done ++;
@@ -7530,7 +7531,7 @@ assert(ds);
 		return GF_OK;
 	}
 
-	//in subdur mode once we are done, flush outpud pids and discard all input packets
+	//in subdur mode once we are done, flush output pids and discard all input packets
 	//this is done at the end to be able to resume dashing when loop is requested
 	if (ctx->subdur) {
 		for (i=0; i<count; i++) {
