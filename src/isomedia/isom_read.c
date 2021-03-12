@@ -3903,6 +3903,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 			{
 				GF_DecoderConfig *dcd = gf_isom_get_decoder_config(file, i+1, 1);
+				if (!dcd) break;
 				switch (dcd->streamType) {
 				case GF_STREAM_VISUAL:
 					if (dcd->objectTypeIndication==GF_CODECID_MPEG4_PART2) nb_m4v++;
