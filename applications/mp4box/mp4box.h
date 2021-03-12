@@ -74,17 +74,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	return GF_NOT_SUPPORTED;
 }
 #endif
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags);
-GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags);
+GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
 
 GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits);
 
 #if !defined(GPAC_DISABLE_SCENE_ENCODER)
 GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *logs);
-GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir);
+GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext);
 #endif
 
-GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt);
+GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt);
 
 #endif
 
@@ -151,7 +151,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
 
 GF_Err rip_mpd(const char *mpd, const char *dst_file);
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 
 u32 parse_track_dump(char *arg, u32 dump_type);

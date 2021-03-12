@@ -1777,7 +1777,7 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, const char *tmpdir, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
 	Bool chunk_extraction, rap_split, split_until_end;
 	GF_Err e;
@@ -1938,7 +1938,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	return e;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
 static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 {
@@ -2106,9 +2106,9 @@ exit:
 }
 
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
-GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
+GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl)
 {
 	u32 i, j, count, nb_tracks, nb_samp, nb_done;
 	GF_ISOFile *orig;
@@ -2122,10 +2122,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	GF_ISOSample *samp;
 	GF_Fraction64 aligned_to_DTS_frac;
 
-	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
+	if (is_pl) return cat_playlist(dest, fileName, import_flags, force_fps, frames_per_sample, force_cat, align_timelines, allow_add_in_command);
 
 	if (strchr(fileName, '*') || (strchr(fileName, '@')) )
-		return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command);
+		return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, force_cat, align_timelines, allow_add_in_command);
 
 	multi_cat = allow_add_in_command ? strchr(fileName, '+') : NULL;
 	if (multi_cat) {
@@ -2141,13 +2141,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	is_isom = gf_isom_probe_file(fileName);
 
 	if (!is_isom || multi_cat) {
-		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, tmp_dir);
+		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, NULL);
 		if (opts) opts[0] = ':';
 		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
 		if (e) return e;
 	} else {
 		//open read+edit mode to allow applying options on file
-		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ_EDIT, tmp_dir);
+		orig = gf_isom_open(fileName, GF_ISOM_OPEN_READ_EDIT, NULL);
 		if (opts) opts[0] = ':';
 		if (!orig) return gf_isom_last_error(NULL);
 
@@ -2697,7 +2697,6 @@ typedef struct
 	u32 import_flags;
 	GF_Fraction force_fps;
 	u32 frames_per_sample;
-	char *tmp_dir;
 	Bool force_cat, align_timelines, allow_add_in_command;
 } CATEnum;
 
@@ -2714,12 +2713,12 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	strcpy(szFileName, szPath);
 	strcat(szFileName, cat_enum->szOpt);
 
-	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
+	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command, GF_FALSE);
 	if (e) return 1;
 	return 0;
 }
 
-GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	CATEnum cat_enum;
 	char *sep;
@@ -2728,7 +2727,6 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	cat_enum.import_flags = import_flags;
 	cat_enum.force_fps = force_fps;
 	cat_enum.frames_per_sample = frames_per_sample;
-	cat_enum.tmp_dir = tmp_dir;
 	cat_enum.force_cat = force_cat;
 	cat_enum.align_timelines = align_timelines;
 	cat_enum.allow_add_in_command = allow_add_in_command;
@@ -2778,7 +2776,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	return gf_enum_directory(cat_enum.szPath, 0, cat_enumerate, &cat_enum, NULL);
 }
 
-GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
+GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
 	GF_Err e;
 	FILE *pl = gf_fopen(playlistName, "r");
@@ -2805,7 +2803,7 @@ GF_Err cat_playlist(GF_ISOFile *dest, char *playlistName, u32 import_flags, GF_F
 		url = gf_url_concatenate(playlistName, szLine);
 		if (!url) url = gf_strdup(szLine);
 
-		e = cat_isomedia_file(dest, url, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat, align_timelines, allow_add_in_command, GF_FALSE);
+		e = cat_isomedia_file(dest, url, import_flags, force_fps, frames_per_sample, force_cat, align_timelines, allow_add_in_command, GF_FALSE);
 
 
 		if (e) {
@@ -3127,7 +3125,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
                    can be NULL, without .bt
 \param tmpdir can be NULL
  */
-GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir)
+GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext)
 {
 #if defined(GPAC_DISABLE_SMGR) || defined(GPAC_DISABLE_BIFS_ENC) || defined(GPAC_DISABLE_SCENE_ENCODER) || defined (GPAC_DISABLE_SCENE_DUMP)
 	M4_LOG(GF_LOG_WARNING, ("BIFS encoding is not supported in this build of GPAC\n"));
@@ -3202,7 +3200,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		if (do_enc) {
 			GF_ISOFile *mp4;
 			strcat(szF, ".mp4");
-			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, tmpdir);
+			mp4 = gf_isom_open(szF, GF_ISOM_WRITE_EDIT, NULL);
 			e = gf_sm_encode_to_file(ctx, mp4, NULL);
 			if (e) gf_isom_delete(mp4);
 			else gf_isom_close(mp4);
@@ -3264,7 +3262,7 @@ static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path, GF_FileEn
 	return gf_enum_directory(file_path, 1, wgt_enum_dir, cbck, NULL);
 }
 
-GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
+GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 {
 	GF_ISOFile *file = NULL;
 	GF_Err e;
@@ -3377,9 +3375,9 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	}
 
 	if (isom_src) {
-		file = gf_isom_open(isom_src, GF_ISOM_OPEN_EDIT, tmpdir);
+		file = gf_isom_open(isom_src, GF_ISOM_OPEN_EDIT, NULL);
 	} else {
-		file = gf_isom_open("package", GF_ISOM_WRITE_EDIT, tmpdir);
+		file = gf_isom_open("package", GF_ISOM_WRITE_EDIT, NULL);
 	}
 
 	e = gf_isom_set_meta_type(file, 1, 0, mtype);
@@ -3550,7 +3548,7 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 }
 
 #else
-GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt)
+GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 {
 	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot package file\n"));
 	return NULL;

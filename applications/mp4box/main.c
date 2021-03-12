@@ -240,7 +240,7 @@ Bool print_sdp=0, open_edit=0, dump_cr=0, force_ocr=0, encode=0, do_scene_log=0,
 Bool do_hash=0, verbose=0, force_cat=0, pack_wgt=0, single_group=0, clean_groups=0, dash_live=0, no_fragments_defaults=0;
 Bool single_traf_per_moof=0, tfdt_per_traf=0, hls_clock=0, do_mpd_rip=0, merge_vtt_cues=0, compress_moov=0, get_nb_tracks=0;
 
-char *inName=NULL, *outName=NULL, *mediaSource=NULL, *tmpdir=NULL, *input_ctx=NULL, *output_ctx=NULL, *drm_file=NULL, *avi2raw=NULL, *cprt=NULL;
+char *inName=NULL, *outName=NULL, *mediaSource=NULL, *input_ctx=NULL, *output_ctx=NULL, *drm_file=NULL, *avi2raw=NULL, *cprt=NULL;
 char *chap_file=NULL, *chap_file_qt=NULL, *itunes_tags=NULL, *pack_file=NULL, *raw_cat=NULL, *seg_name=NULL, *dash_ctx_file=NULL;
 char *compress_top_boxes=NULL, *high_dynamc_range_filename=NULL, *use_init_seg=NULL, *box_patch_filename=NULL, *udp_dest = NULL;
 
@@ -352,7 +352,6 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("flat", "store file with all media data first, non-interleaved. This speeds up writing time when creating new files", GF_ARG_BOOL, 0, &do_flat, 0, ARG_OPEN_EDIT| ARG_NO_INPLACE),
  	MP4BOX_ARG("frag", "fragment file, producing track fragments of given duration in ms. This disables interleaving", GF_ARG_DOUBLE, 0, parse_store_mode, 2, ARG_IS_FUN),
  	MP4BOX_ARG("out", "specify ISOBMFF output file name. By default input file is overwritten", GF_ARG_STRING, 0, &outName, 0, 0),
-	MP4BOX_ARG("tmp", "specify directory for temporary file creation", GF_ARG_STRING, 0, &tmpdir, 0, 0),
  	MP4BOX_ARG("co64","force usage of 64-bit chunk offsets for ISOBMF files", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &force_co64, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("new", "force creation of a new destination file", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &force_new, 0, 0),
  	MP4BOX_ARG("newfs", "force creation of a new destination file without temp file but interleaving support", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_store_mode, 3, ARG_IS_FUN),
@@ -4060,7 +4059,7 @@ static u32 do_add_cat(int argc, char **argv)
 			}
 		}
 		open_edit = do_flat ? GF_FALSE : GF_TRUE;
-		file = gf_isom_open(inName, open_mode, tmpdir);
+		file = gf_isom_open(inName, open_mode, NULL);
 		if (!file) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) ));
 			return mp4box_cleanup(1);
@@ -4171,14 +4170,14 @@ static u32 do_add_cat(int argc, char **argv)
 					}
 
 					open_edit = GF_TRUE;
-					file = gf_isom_open(inName, open_mode, tmpdir);
+					file = gf_isom_open(inName, open_mode, NULL);
 					if (!file) {
 						M4_LOG(GF_LOG_ERROR, ("Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) ));
 						return mp4box_cleanup(1);
 					}
 				}
 
-				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE, !strcmp(argv[i], "-catpl") ? GF_TRUE : GF_FALSE);
+				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, force_cat, align_cat, !strcmp(argv[i], "-catx") ? GF_TRUE : GF_FALSE, !strcmp(argv[i], "-catpl") ? GF_TRUE : GF_FALSE);
 				if (e) {
 					M4_LOG(GF_LOG_ERROR, ("Error appending %s: %s\n", argv[i+1], gf_error_to_string(e)));
 					gf_isom_delete(file);
@@ -4250,7 +4249,7 @@ static GF_Err do_scene_encode()
 		outfile[strlen(outfile)-1] = 0;
 	}
 	strcat(outfile, ".mp4");
-	file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, tmpdir);
+	file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, NULL);
 	smenc_opts.mediaSource = mediaSource ? mediaSource : outfile;
 	e = EncodeFile(inName, file, &smenc_opts, logs);
 	if (logs) gf_fclose(logs);
@@ -4334,7 +4333,7 @@ static GF_Err do_dash()
 	}
 
 	/*setup dash*/
-	dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx_file);
+	dasher = gf_dasher_new(szMPD, dash_profile, NULL, dash_scale, dash_ctx_file);
 	if (!dasher) {
 		return mp4box_cleanup(1);
 	}
@@ -5595,7 +5594,7 @@ int mp4boxMain(int argc, char **argv)
 			M4_LOG(GF_LOG_ERROR, ("chunk encoding syntax: [-outctx outDump] -inctx inScene auFile\n"));
 			return mp4box_cleanup(1);
 		}
-		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx, tmpdir);
+		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx);
 		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("Error encoding chunk file %s\n", gf_error_to_string(e)));
 			return mp4box_cleanup(1);
@@ -5616,10 +5615,10 @@ int mp4boxMain(int argc, char **argv)
 		char *fileName = gf_url_colon_suffix(pack_file);
 		if (fileName && ((fileName - pack_file)==4)) {
 			fileName[0] = 0;
-			file = package_file(fileName + 1, pack_file, tmpdir, pack_wgt);
+			file = package_file(fileName + 1, pack_file, pack_wgt);
 			fileName[0] = ':';
 		} else {
-			file = package_file(pack_file, NULL, tmpdir, pack_wgt);
+			file = package_file(pack_file, NULL, pack_wgt);
 			if (!file) {
 				M4_LOG(GF_LOG_ERROR, ("Failed to package file\n"));
 				return mp4box_cleanup(1);
@@ -5654,10 +5653,10 @@ int mp4boxMain(int argc, char **argv)
 				//keep fragment signaling in moov
 				omode = GF_ISOM_OPEN_READ;
 				if (use_init_seg)
-					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, tmpdir);
+					file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ, NULL);
 			}
 			if (!crypt && use_init_seg) {
-				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, tmpdir);
+				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
 				if (file) {
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
 					if (e) {
@@ -5668,7 +5667,7 @@ int mp4boxMain(int argc, char **argv)
 				}
 			}
 			if (!file)
-				file = gf_isom_open(inName, omode, tmpdir);
+				file = gf_isom_open(inName, omode, NULL);
 
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
@@ -5679,7 +5678,7 @@ int mp4boxMain(int argc, char **argv)
 
 			if (!file) {
 				if (open_edit && nb_meta_act) {
-					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
+					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, NULL);
 					if (!outName && file) outName = inName;
 				}
 
@@ -5769,7 +5768,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 			else if (open_edit) {
-				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
+				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, NULL);
 				if (!outName && file) outName = inName;
 			} else if (!file_exists) {
 				M4_LOG(GF_LOG_ERROR, ("Error %s file %s: %s\n", force_new ? "creating" : "opening", inName, gf_error_to_string(GF_URL_ERROR)));
@@ -5907,7 +5906,7 @@ int mp4boxMain(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size || split_range_str) {
-		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir, seg_at_rap, split_range_str, fs_dump_flags);
+		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, seg_at_rap, split_range_str, fs_dump_flags);
 
 		/*never save file when splitting is desired*/
 		open_edit = GF_FALSE;
@@ -5989,13 +5988,14 @@ int mp4boxMain(int argc, char **argv)
 		if (outName) {
 			strcpy(outfile, outName);
 		} else {
+			const char *tmp_dir = gf_opts_get_key("core", "tmp");
 			char *rel_name = strrchr(inName, GF_PATH_SEPARATOR);
 			if (!rel_name) rel_name = strrchr(inName, '/');
 
 			strcpy(outfile, "");
-			if (tmpdir) {
-				strcpy(outfile, tmpdir);
-				if (!strchr("\\/", tmpdir[strlen(tmpdir)-1])) strcat(outfile, "/");
+			if (tmp_dir) {
+				strcpy(outfile, tmp_dir);
+				if (!strchr("\\/", tmp_dir[strlen(tmp_dir)-1])) strcat(outfile, "/");
 			}
 			if (!pack_file) strcat(outfile, "out_");
 			strcat(outfile, rel_name ? rel_name + 1 : inName);
