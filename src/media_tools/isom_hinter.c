@@ -661,8 +661,6 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_isom_set_track_priority_in_group(file, TrackNum, InterleaveGroupPriority+1);
 	gf_isom_set_track_priority_in_group(file, tmp->HintTrack, InterleaveGroupPriority);
 
-#if 0
-#endif
 	*e = GF_OK;
 	return tmp;
 }

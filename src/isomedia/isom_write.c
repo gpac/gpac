@@ -5381,7 +5381,7 @@ GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 		slc = & ((GF_MPEGVisualSampleEntryBox *)entry)->slc;
 		break;
 	default:
-		return GF_BAD_PARAM;
+		return GF_OK;
 	}
 
 	if (*slc) {
