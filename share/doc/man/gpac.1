@@ -1367,9 +1367,13 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .B
 Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).
+Link between filters may be manually specified. The syntax is an @ character optionaly followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter.
 .br
-Only the last link directive occuring before a filter is used to setup links for that filter.
+The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).
+.br
+If @@ is used instead of @, the optional integer gives the filter index starting from the first filter specified in command line.
+.br
+Several link directives can be given for a filter.
 .br
 Example
 .br
@@ -1381,11 +1385,19 @@ This indicates that fC only accepts inputs from fA.
 .br
 Example
 .br
-fA fB @1 @0 fC
+fA fB fC @1 @0 fD
 .br
 
 .br
-This indicates that fC only accepts inputs from fB, @1 is ignored.
+This indicates that fD only accepts inputs from fB and fC.
+.br
+Example
+.br
+fA fB fC ... @@1 fZ
+.br
+
+.br
+This indicates that fZ only accepts inputs from fC.
 .br
 
 .br
@@ -4006,7 +4018,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev579-g653e0d2d5-master
+build: 1.1.0-DEV-rev587-g4319318d4-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

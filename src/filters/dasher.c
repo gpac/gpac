@@ -232,7 +232,7 @@ typedef struct
 
 	GF_CryptInfo *cinfo;
 
-
+	Bool use_cues;
 	Bool dyn_rate;
 } GF_DasherCtx;
 
@@ -5197,6 +5197,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	ctx->dyn_rate = GF_FALSE;
+	ctx->use_cues = GF_FALSE;
 	min_dur = min_adur = max_adur = 0;
 	//setup representation dependency / components (muxed)
 	count = gf_list_count(ctx->current_period->streams);
@@ -5206,6 +5207,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		ds->period = ctx->current_period;
 		if (ds->dyn_bitrate) ctx->dyn_rate = GF_TRUE;
+		if (ds->inband_cues || ds->cues)
+			ctx->use_cues = GF_TRUE;
 
 		if (ctx->loop) {
 			Double d=0;
@@ -7715,6 +7718,12 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if (evt->base.type == GF_FEVT_PLAY) {
 		ctx->is_playing = GF_TRUE;
+		if (ctx->sfile || ctx->stl || ctx->use_cues)
+			return GF_FALSE;
+
+		count = gf_list_count(ctx->pids);
+		for (i=0; i<count; i++) {
+		}
 		return GF_FALSE;
 	}
 	if (evt->base.type == GF_FEVT_STOP) {

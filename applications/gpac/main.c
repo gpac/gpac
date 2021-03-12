@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -202,12 +202,16 @@ const char *gpac_doc =
 "\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
-"This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
-"Only the last link directive occuring before a filter is used to setup links for that filter.\n"
+"This indicates that the following filter specified at prompt should be linked only to a previous listed filter.\n"
+"The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
+"If `@@` is used instead of `@`, the optional integer gives the filter index starting from the first filter specified in command line.\n"
+"Several link directives can be given for a filter.\n"
 "EX fA fB @1 fC\n"
 "This indicates that `fC` only accepts inputs from `fA`.\n"
-"EX fA fB @1 @0 fC\n"
-"This indicates that `fC` only accepts inputs from `fB`, `@1` is ignored.\n"
+"EX fA fB fC @1 @0 fD\n"
+"This indicates that `fD` only accepts inputs from `fB` and `fC`.\n"
+"EX fA fB fC ... @@1 fZ\n"
+"This indicates that `fZ` only accepts inputs from `fC`.\n"
 "\nIf no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (__see below__).\n"
 "Warning: This means that `fA fB fC` and `fA fB @ fC` will likely not give the same result.\n"
 "\n"
@@ -1556,8 +1560,7 @@ static int gpac_main(int argc, char **argv)
 	Bool write_profile=GF_FALSE;
 	Bool write_core_opts=GF_FALSE;
 	Bool write_extensions=GF_FALSE;
-	s32 link_prev_filter = -1;
-	char *link_prev_filter_ext=NULL;
+	GF_List *links_directive=NULL;
 	GF_List *loaded_filters=NULL;
 	GF_SysArgMode argmode = GF_ARGMODE_BASE;
 	u32 nb_filters = 0;
@@ -1991,6 +1994,7 @@ restart:
 
 	//all good to go, load filters
 	has_xopt = GF_FALSE;
+	links_directive = gf_list_new();
 	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
 		GF_Filter *filter=NULL;
@@ -2034,22 +2038,7 @@ restart:
 		}
 		if (!f_loaded && !has_xopt) {
 			if (arg[0]== separator_set[SEP_LINK] ) {
-				char *ext = strchr(arg, separator_set[SEP_FRAG]);
-				if (ext) {
-					ext[0] = 0;
-					link_prev_filter_ext = ext+1;
-				}
-				link_prev_filter = 0;
-				if (strlen(arg)>1) {
-					link_prev_filter = atoi(arg+1);
-					if (link_prev_filter<0) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_prev_filter));
-						e = GF_BAD_PARAM;
-						goto exit;
-					}
-				}
-
-				if (ext) ext[0] = separator_set[SEP_FRAG];
+				gf_list_add(links_directive, arg);
 				continue;
 			}
 
@@ -2105,18 +2094,45 @@ restart:
 		}
 		nb_filters++;
 
-		if (link_prev_filter>=0) {
-			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
+		while (gf_list_count(links_directive)) {
+			char *link_prev_filter_ext = NULL;
+			GF_Filter *link_from;
+			Bool reverse_order = GF_FALSE;
+			s32 link_filter_idx = -1;
+			char *link = gf_list_pop_front(links_directive);
+			char *ext = strchr(link, separator_set[SEP_FRAG]);
+			if (ext) {
+				ext[0] = 0;
+				link_prev_filter_ext = ext+1;
+			}
+			if (strlen(link)>1) {
+				if (link[1] == separator_set[SEP_LINK] ) {
+					reverse_order = GF_TRUE;
+					link++;
+				}
+				link_filter_idx = atoi(link+1);
+				if (link_filter_idx < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
+					e = GF_BAD_PARAM;
+					goto exit;
+				}
+			} else {
+				link_filter_idx = 0;
+			}
+			if (ext) ext[0] = separator_set[SEP_FRAG];
+
+			if (reverse_order)
+				link_from = gf_list_get(loaded_filters, link_filter_idx);
+			else
+				link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
+
 			if (!link_from) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_prev_filter));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
 				e = GF_BAD_PARAM;
 				goto exit;
 			}
-			link_prev_filter = -1;
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
-			link_prev_filter_ext = NULL;
 		}
-
 		gf_list_add(loaded_filters, filter);
 	}
 	if (!gf_list_count(loaded_filters) && !session_js) {
@@ -2221,6 +2237,7 @@ exit:
 	session = NULL;
 	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
+	if (links_directive) gf_list_del(links_directive);
 
 	cleanup_file_io();
 
