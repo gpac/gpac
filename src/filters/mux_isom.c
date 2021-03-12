@@ -3074,13 +3074,29 @@ static Bool mp4_mux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 	}
 	if (evt->base.on_pid && (evt->base.type==GF_FEVT_PLAY) ) {
-		//by default don't cancel event - to rework once we have downloading in place
+		u32 i, count;
+		GF_FilterEvent anevt;
 		ctx->force_play = GF_TRUE;
 		if (evt->play.speed<0)
 			ctx->is_rewind = GF_TRUE;
-		return GF_FALSE;
+
+		if (ctx->start == 0)
+			return GF_FALSE;
+
+		count = gf_list_count(ctx->tracks);
+		for (i=0; i<count; i++) {
+			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+			if (tkw->fake_track) continue;
+
+			anevt.play = evt->play;
+			gf_filter_pid_init_play_event(tkw->ipid, &anevt, ctx->start, 0, "MP4Mux");
+			if (anevt.play.start_range > 0)
+				tkw->wait_sap = GF_TRUE;
+
+			gf_filter_pid_send_event(tkw->ipid, &anevt);
+		}
+		return GF_TRUE;
 	}
-	//by default don't cancel event - to rework once we have downloading in place
 	return GF_FALSE;
 }
 
