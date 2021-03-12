@@ -61,7 +61,6 @@ struct __gf_dash_segmenter
 	Bool daisy_chain_sidx, use_ssix;
 
 	Bool fragments_start_with_rap;
-	char *tmpdir;
 	Double mpd_update_time;
 	s32 time_shift_depth;
 	u32 min_buffer_time;
@@ -142,7 +141,6 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	dasher->mpd_name = gf_strdup(mpdName);
 
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
-	if (tmp_dir) dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
 	dasher->dash_state = dasher_context_file;
 	dasher->inputs = gf_list_new();
@@ -173,7 +171,6 @@ void gf_dasher_del(GF_DASHSegmenter *dasher)
 {
 	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
 	gf_dasher_clean_inputs(dasher);
-	gf_free(dasher->tmpdir);
 	gf_free(dasher->mpd_name);
 	if (dasher->title) gf_free(dasher->title);
 	if (dasher->moreInfoURL) gf_free(dasher->moreInfoURL);
@@ -758,10 +755,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->fragments_start_with_rap) e |= gf_dynstrcat(&args, "sfrag", ":");
-	if (dasher->tmpdir) {
-		sprintf(szArg, "tmpd=%s", dasher->tmpdir );
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
 
 	if (dasher->cues_file) {
 		sprintf(szArg, "cues=%s", dasher->cues_file );

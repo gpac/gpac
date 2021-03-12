@@ -627,8 +627,7 @@ u32 gf_isom_probe_data(const u8*inBuf, u32 inSize);
 If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
 \param fileName name of the file to open, , gmem:// or gfio:// resource. The special name "_gpac_isobmff_redirect" is used to indicate that segment shall be written to a memory buffer passed to callback function set through \ref gf_isom_set_write_callback.
 \param OpenMode file opening mode
-\param tmp_dir for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
-OS temporary file management schemes.
+\param tmp_dir for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default libgpac temporary file management schemes.
 \return the created ISO file if no error
 */
 GF_ISOFile *gf_isom_open(const char *fileName, GF_ISOOpenMode OpenMode, const char *tmp_dir);

@@ -219,7 +219,6 @@ typedef struct
 {
 	//filter args
 	GF_ISOFile *file;
-	char *tmpd;
 	Bool m4sys, dref;
 	GF_Fraction idur;
 	u32 pack3gp, ctmode;
@@ -5695,7 +5694,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			open_mode = GF_ISOM_WRITE_EDIT;
 			break;
 		}
-		ctx->file = gf_isom_open("_gpac_isobmff_redirect", open_mode, ctx->tmpd);
+		ctx->file = gf_isom_open("_gpac_isobmff_redirect", open_mode, NULL);
 		if (!ctx->file) return GF_OUT_OF_MEM;
 
 		gf_isom_set_write_callback(ctx->file, mp4_mux_on_data, mp4_mux_on_data_patch, filter, ctx->block_size);
@@ -6215,7 +6214,6 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- no: disables import\n"
 	"- yes: clones all extension boxes\n"
 	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tmpd), "set temp directory for intermediate file(s)", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mvex), "set mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sdtp_traf), "use sdtp in traf rather than using flags in trun sample entries\n"
 		"- no: do not use sdtp\n"

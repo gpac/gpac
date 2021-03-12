@@ -742,7 +742,7 @@ typedef struct __gf_dash_segmenter GF_DASHSegmenter;
  Create a new DASH segmenter
 \param mpdName target MPD file name, cannot be changed
 \param profile target DASH profile, cannot be changed
-\param tmp_dir temp dir for file generation, OS NULL for default
+\param tmp_dir temp dir for file generation, if NULL uses libgpac default
 \param timescale timescale used to specif most of the dash timings. If 0, 1000 is used
 \param dasher_context_file config file used to store the context of the DASH segmenter. This allows destroying the segmenter and restarting it later on with the right DASH segquence numbers, MPD and and timing info
 \return the DASH segmenter object
