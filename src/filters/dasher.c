@@ -668,6 +668,15 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 	return GF_OK;
 }
 
+static void dasher_send_encode_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	if (!ctx->sfile && !ctx->stl && !ctx->use_cues) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_ENCODE_HINTS, ds->ipid)
+		evt.encode_hints.intra_period = ds->dash_dur;
+		gf_filter_pid_send_event(ds->ipid, &evt);
+	}
+}
 
 static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -838,6 +847,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		*/
 		if (ctx->is_playing) {
 			GF_FilterEvent evt;
+
+			dasher_send_encode_hints(ctx, ds);
+
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 			evt.play.speed = 1.0;
 			gf_filter_pid_send_event(ds->ipid, &evt);
@@ -5118,6 +5130,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 				gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
 
+				dasher_send_encode_hints(ctx, ds);
+
 				GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 				evt.play.speed = 1.0;
 				gf_filter_pid_send_event(ds->ipid, &evt);
@@ -6524,6 +6538,8 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 			gf_filter_pid_set_discard(a_ds->ipid, GF_FALSE);
 
+			dasher_send_encode_hints(ctx, ds);
+
 			GF_FEVT_INIT(evt, GF_FEVT_PLAY, a_ds->ipid);
 			evt.play.speed = 1.0;
 			gf_filter_pid_send_event(a_ds->ipid, &evt);
@@ -7611,6 +7627,7 @@ static void dasher_resume_subdur(GF_Filter *filter, GF_DasherCtx *ctx)
 		GF_FEVT_INIT(evt, GF_FEVT_STOP, ds->ipid);
 		gf_filter_pid_send_event(ds->ipid, &evt);
 
+		dasher_send_encode_hints(ctx, ds);
 		GF_FEVT_INIT(evt, GF_FEVT_PLAY, ds->ipid);
 		evt.play.speed = 1.0;
 		if (!ctx->subdur || !ctx->loop) {
@@ -7718,11 +7735,16 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	if (evt->base.type == GF_FEVT_PLAY) {
 		ctx->is_playing = GF_TRUE;
-		if (ctx->sfile || ctx->stl || ctx->use_cues)
-			return GF_FALSE;
-
-		count = gf_list_count(ctx->pids);
-		for (i=0; i<count; i++) {
+		if (!ctx->sfile && !ctx->stl && !ctx->use_cues) {
+			GF_FilterEvent anevt;
+			GF_FEVT_INIT(anevt, GF_FEVT_ENCODE_HINTS, NULL)
+			count = gf_list_count(ctx->pids);
+			for (i=0; i<count; i++) {
+				GF_DashStream *ds = gf_list_get(ctx->pids, i);
+				anevt.base.on_pid = ds->ipid;
+				anevt.encode_hints.intra_period = ds->dash_dur;
+				gf_filter_pid_send_event(ds->ipid, &anevt);
+			}
 		}
 		return GF_FALSE;
 	}

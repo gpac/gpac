@@ -1627,7 +1627,7 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 
 		sprintf(szFmt, "%d", reply_code);
 		NV_HDR(hdrs[0], ":status", szFmt);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id %d (body %d) headers:\n:status: %s\n", sess->h2_stream_id, !no_body, szFmt));
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP/2] send reply for stream_id %d (body %d) headers:\n:status: %s\n", sess->h2_stream_id, !no_body, szFmt));
 		for (i=0; i<count; i++) {
 			GF_HTTPHeader *hdr = gf_list_get(sess->headers, i);
 			NV_HDR(hdrs[i+1], hdr->name, hdr->value)
@@ -1675,8 +1675,6 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	case 206: gf_dynstrcat(&rsp_buf, "Partial Content", NULL); break;
 	case 200: gf_dynstrcat(&rsp_buf, "OK", NULL); break;
 	case 201: gf_dynstrcat(&rsp_buf, "Created", NULL); break;
-
-
 	default:
 		gf_dynstrcat(&rsp_buf, "OK", NULL); break;
 	}
@@ -1692,6 +1690,8 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 	}
 	gf_dynstrcat(&rsp_buf, "\r\n", NULL);
 	if (!rsp_buf) return GF_OUT_OF_MEM;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] send reply for %s: %s\n", sess->orig_url, rsp_buf));
 
 	if (response_body) {
 		gf_dynstrcat(&rsp_buf, response_body, NULL);

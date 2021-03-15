@@ -856,10 +856,11 @@ setup_route:
 
 			//HTTP date is in second - if the clock diff is less than 1 sec, we cannot infer anything
 			if (ABS(drift_estimate) > 1000) {
-				group->dash->utc_drift_estimate = drift_estimate;
+				group->dash->utc_drift_estimate = 1 + drift_estimate;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Estimated UTC diff between client and server "LLD" ms (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", group->dash->utc_drift_estimate, fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] No UTC diff between client and server (UTC fetch "LLU" - server UTC "LLU" - MPD AST "LLU" - MPD PublishTime "LLU"\n", fetch_time, utc, group->dash->mpd->availabilityStartTime, group->dash->mpd->publishTime));
+				group->dash->utc_drift_estimate = 1;
 			}
 		}
 	}

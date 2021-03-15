@@ -2508,7 +2508,7 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	GF_FilterRegDesc *reg_desc = NULL;
 	const GF_FilterCapability *caps = freg->caps;
 	nb_caps = freg->nb_caps;
-	if (dst_filter && (freg->flags & (GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))) {
+	if (dst_filter && ((freg->flags & (GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM)) || (src_pid && dst_filter->forced_caps) ) ) {
 		caps = dst_filter->forced_caps;
 		nb_caps = dst_filter->nb_forced_caps;
 	}
@@ -3267,10 +3267,13 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL, GF_TRUE);
 			if (!af) goto exit;
 
-			//remember our target cap bundle on that filter
-			af->bundle_idx_at_resolution = bundle_idx;
-			//remember our target cap on that filter
-			af->cap_idx_at_resolution = cap_idx;
+			if (!af->forced_caps) {
+				//remember our target cap bundle on that filter
+				af->bundle_idx_at_resolution = bundle_idx;
+				//remember our target cap on that filter
+				af->cap_idx_at_resolution = cap_idx;
+			}
+			
 			//copy source IDs for all filters in the chain
 			//we cannot figure out the destination sourceID when initializing PID connection tasks
 			//by walking up the filter chain because PIDs connection might be pending

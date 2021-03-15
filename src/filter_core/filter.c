@@ -1569,7 +1569,7 @@ skip_date:
 				}
 				internal_arg = GF_TRUE;
 			}
-			else if (has_meta_args && filter->freg->update_arg && value) {
+			else if (has_meta_args && filter->freg->update_arg) {
 				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
 					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 					FSESS_CHECK_THREAD(filter)
@@ -1888,6 +1888,13 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		if (pid->adapters_blacklist) {
 			gf_list_del(pid->adapters_blacklist);
 			pid->adapters_blacklist = NULL;
+		}
+		if (pid->num_destinations==1) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+			gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+			gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 		}
 		if (dst_pidi) {
 			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, dst_pidi->filter, dst_pidi->pid, "pidinst_disconnect", NULL);
@@ -3362,6 +3369,7 @@ GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *cap
 	}
 	filter->forced_caps = nb_caps ? caps : NULL;
 	filter->nb_forced_caps = nb_caps;
+	filter->bundle_idx_at_resolution = -1;
 	return GF_OK;
 }
 

@@ -6237,7 +6237,15 @@ dlist (bool, default: false):  enable HTML listing for GET requests on directori
 .br
 sutc (bool, default: false):   insert server UTC in response headers as Server-UTC: VAL_IN_MS
 .br
-cors (bool, default: false):   insert CORS header allowing all domains
+cors (enum, default: auto):    insert CORS header allowing all domains
+.br
+* off: disable CORS
+.br
+* on: enable CORS
+.br
+* auto: enable CORS when Origin is found in request
+.br
+
 .br
 reqlog (str):                  provide short log of the requests indicated in this option (comma separated list, * for all) regardless of HTTP log settings. Value REC logs file writing start/end
 .br
@@ -6783,6 +6791,8 @@ The filter will force a closed gop boundary:
 .br
 When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.
 .br
+If .I fintra is not set and the output of the encoder is a DASH session in live profile without segment timeline, .I fintra will be set to the target segment duration and .I rc will be set.
+.br
 
 .br
 
@@ -6794,7 +6804,7 @@ c (str):                       codec identifier. Can be any supported GPAC codec
 .br
 pfmt (pfmt, default: none):    pixel format for input video. When not set, input format is used
 .br
-fintra (frac, default: 0):     force intra / IDR frames at the given period in sec, eg fintra=60000/1001 will force an intra every 2 seconds on 29.97 fps video; ignored for audio
+fintra (frac, default: -1/1):  force intra / IDR frames at the given period in sec, eg fintra=60000/1001 will force an intra every 2 seconds on 29.97 fps video; ignored for audio
 .br
 all_intra (bool, default: false, updatable): only produce intra frames
 .br
@@ -7424,7 +7434,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev587-g4319318d4-master
+build: 1.1.0-DEV-rev589-gb2f344f5f-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
