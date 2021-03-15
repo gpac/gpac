@@ -65,6 +65,13 @@ enum
 	MODE_SOURCE,
 };
 
+enum
+{
+	CORS_AUTO=0,
+	CORS_OFF,
+	CORS_ON,
+};
+
 typedef struct
 {
 	//options
@@ -659,6 +666,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	Bool is_upload = GF_FALSE;
 	Bool is_head = GF_FALSE;
 	Bool no_body = GF_FALSE;
+	Bool send_cors;
 	u32 i, count;
 	GF_HTTPOutInput *source_pid = NULL;
 	Bool source_pid_is_ll_hls_chunk = GF_FALSE;
@@ -679,6 +687,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	}
 
+	send_cors = GF_FALSE;
 	sess->reply_code = 0;
 	switch (parameter->reply) {
 	case GF_HTTP_GET:
@@ -914,6 +923,20 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	sess->nb_bytes = 0;
 	sess->upload_type = 0;
 
+	switch (sess->ctx->cors) {
+	case CORS_ON:
+		send_cors = GF_TRUE;
+		break;
+	case CORS_AUTO:
+		if (gf_dm_sess_get_header(sess->http_sess, "Origin") != NULL) {
+			send_cors = GF_TRUE;
+			break;
+		}
+	default:
+		send_cors = GF_FALSE;
+		break;
+	}
+
 	if (parameter->reply==GF_HTTP_DELETE) {
 		no_body = GF_TRUE;
 		sess->upload_type = 0;
@@ -1081,7 +1104,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	httpout_format_date(gf_net_get_utc(), szDate, GF_FALSE);
 	gf_dm_sess_set_header(sess->http_sess, "Date", szDate);
 
-	if (sess->ctx->cors) {
+	if (send_cors) {
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Expose-Headers", "*");
 	}
@@ -1277,7 +1300,7 @@ exit:
 
 	gf_dm_sess_set_header(sess->http_sess, "Connection", "close");
 
-	if (sess->ctx->cors) {
+	if (send_cors) {
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Expose-Headers", "*");
 	}
@@ -1553,7 +1576,8 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 	strcpy(sess->peer_address, peer_address);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Accepting new connection from %s\n", sess->peer_address));
-	ctx->next_wake_us = 0;
+	//ask immediate reschedule
+	ctx->next_wake_us = 1;
 }
 
 static GF_Err httpout_initialize(GF_Filter *filter)
@@ -1967,6 +1991,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 
 			if (!write_e) {
 				sess->last_active_time = gf_sys_clock_high_res();
+				//don't reschedule in upload, let server decide
 				ctx->next_wake_us = 0;
 				//we way be in end of stream
 				if (e==GF_OK)
@@ -1975,6 +2000,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				e = write_e;
 			}
 		} else if (e==GF_IP_NETWORK_EMPTY) {
+			//don't reschedule in upload, let server decide
 			ctx->next_wake_us = 0;
 			sess->last_active_time = gf_sys_clock_high_res();
 			httpout_check_connection(sess);
@@ -2034,11 +2060,6 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 				gf_dm_sess_set_header(sess->http_sess, "Connection", "close");
 			else
 				gf_dm_sess_set_header(sess->http_sess, "Connection", "keep-alive");
-
-			if (sess->ctx->cors) {
-				gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
-				gf_dm_sess_set_header(sess->http_sess, "Access-Control-Expose-Headers", "*");
-			}
 
 			if (e==GF_EOS) {
 				if (ctx->hmode==MODE_SOURCE) {
@@ -2102,12 +2123,15 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		//check we have something to read if not http2
 		//if http2, data might have been received on this session while processing another session
 		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] nothing to read\n"));
 			return;
 		}
 		e = gf_dm_sess_process(sess->http_sess);
 
-		if (e==GF_IP_NETWORK_EMPTY)
+		if (e==GF_IP_NETWORK_EMPTY) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] nothing to read\n"));
 			return;
+		}
 
 		if (e<0) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Connection to %s closed: %s\n", sess->peer_address, gf_error_to_string(e) ));
@@ -2118,7 +2142,8 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		}
 
 		sess->last_active_time = gf_sys_clock_high_res();
-		ctx->next_wake_us = 0;
+		//reschedule asap
+		ctx->next_wake_us = 1;
 
 		//request has been process, if not an upload we don't need the session anymore
 		//otherwise we use the session to parse transfered data
@@ -2191,7 +2216,8 @@ resend:
 	}
 
 	if (to_read) {
-		ctx->next_wake_us = 0;
+		//rescedule asap while we send
+		ctx->next_wake_us = 1;
 
 		if (to_read > (u64) sess->ctx->block_size)
 			to_read = (u64) sess->ctx->block_size;
@@ -2610,6 +2636,7 @@ retry:
 			}
 		}
 	}
+	//don't reschedule, we will be notified when new packets are ready
 	ctx->next_wake_us = 0;
 	return out;
 }
@@ -2880,7 +2907,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		else
 			ctx->done = GF_TRUE;
 	}
-	//push mode and no packets on inputs, do not ask for RT reschedule (we will get called f new packets are to be processed)
+	//push mode and no packets on inputs, do not ask for RT reschedule (we will get called if new packets are to be processed)
 	if ((nb_nopck==count) && (ctx->hmode==MODE_PUSH))
 		ctx->next_wake_us = 0;
 }
@@ -2957,8 +2984,14 @@ static GF_Err httpout_process(GF_Filter *filter)
 		e=GF_OK;
 	}
 
-	if (ctx->next_wake_us)
+	//reschedule was canceled but we still have active sessions, reschedule for our default timeout
+	if (!ctx->next_wake_us && gf_list_count(ctx->active_sessions)) {
+		ctx->next_wake_us = 50000;
+	}
+
+	if (ctx->next_wake_us) {
 		gf_filter_ask_rt_reschedule(filter, ctx->next_wake_us);
+	}
 
 	return e;
 }
@@ -3049,7 +3082,10 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(post), "use POST instead of PUT for uploading files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dlist), "enable HTML listing for GET requests on directories", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sutc), "insert server UTC in response headers as `Server-UTC: VAL_IN_MS`", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cors), "insert CORS header allowing all domains", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cors), "insert CORS header allowing all domains\n"
+		"- off: disable CORS\n"
+		"- on: enable CORS\n"
+		"- auto: enable CORS when `Origin` is found in request", GF_PROP_UINT, "auto", "auto|off|on", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC` logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}

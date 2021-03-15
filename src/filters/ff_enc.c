@@ -124,6 +124,32 @@ typedef struct _gf_ffenc_ctx
 
 static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf);
 
+static const GF_FilterCapability FFEncodeCapsVideo[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE)
+};
+
+static const GF_FilterCapability FFEncodeCapsAudio[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW)
+};
+
+static void ffenc_override_caps(GF_Filter *filter, u32 media_type)
+{
+	if (media_type==AVMEDIA_TYPE_AUDIO) {
+		gf_filter_override_caps(filter, FFEncodeCapsAudio, GF_ARRAY_LENGTH(FFEncodeCapsAudio) );
+	} else {
+		gf_filter_override_caps(filter, FFEncodeCapsVideo, GF_ARRAY_LENGTH(FFEncodeCapsVideo) );
+	}
+}
+
 static GF_Err ffenc_initialize(GF_Filter *filter)
 {
 	u32 codec_id;
@@ -139,14 +165,17 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 
 	//first look by name, to handle cases such as "aac" vs "vo_aacenc"
 	ctx->force_codec = avcodec_find_encoder_by_name(ctx->c);
-	if (ctx->force_codec) return GF_OK;
-
+	if (ctx->force_codec) {
+		ffenc_override_caps(filter, ctx->force_codec->type);
+		return GF_OK;
+	}
 	//then look by codec ID
 	codec_id = gf_codecid_parse(ctx->c);
 	if (codec_id!=GF_CODECID_NONE) {
 		ctx->force_codec = avcodec_find_encoder(ffmpeg_codecid_from_gpac(codec_id, NULL) );
 	}
 	if (!ctx->force_codec) return GF_NOT_SUPPORTED;
+	ffenc_override_caps(filter, ctx->force_codec->type);
 	ctx->force_codec = NULL;
 	return GF_OK;
 }
@@ -301,7 +330,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 
 	//check if we need to force a closed gop
-	if (pck && (ctx->fintra.den && ctx->fintra.num) && !ctx->force_reconfig) {
+	if (pck && (ctx->fintra.den && (ctx->fintra.num>0)) && !ctx->force_reconfig) {
 		u64 cts = gf_filter_pck_get_cts(pck);
 		if (!ctx->fintra_setup) {
 			ctx->fintra_setup = GF_TRUE;
@@ -1272,7 +1301,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_media_get_reduced_frame_rate(&ctx->encoder->time_base.den, &ctx->encoder->time_base.num);
 
 		if (ctx->low_delay) {
-			av_dict_set(&ctx->options, "vprofile", "baseline", 0);
+			av_dict_set(&ctx->options, "profile", "baseline", 0);
 			av_dict_set(&ctx->options, "preset", "ultrafast", 0);
 			av_dict_set(&ctx->options, "tune", "zerolatency", 0);
 			if (ctx->codecid==GF_CODECID_AVC) {
@@ -1283,7 +1312,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 #endif
 		}
 
-		if (ctx->fintra.den && ctx->fintra.num && !ctx->rc) {
+		if (ctx->fintra.den && (ctx->fintra.num>0) && !ctx->rc) {
 			av_dict_set(&ctx->options, "forced-idr", "1", 0);
 		}
 
@@ -1432,7 +1461,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 //	else if (!strcmp(arg_name, "gop")) arg_name = "g";
 	//disable low delay if these options are set
 	else if (!strcmp(arg_name, "x264opts")) ctx->low_delay = GF_FALSE;
-	else if (!strcmp(arg_name, "vprofile")) ctx->low_delay = GF_FALSE;
+	else if (!strcmp(arg_name, "profile")) ctx->low_delay = GF_FALSE;
 	else if (!strcmp(arg_name, "preset")) ctx->low_delay = GF_FALSE;
 	else if (!strcmp(arg_name, "tune")) ctx->low_delay = GF_FALSE;
 
@@ -1476,6 +1505,23 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
+static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
+{
+	if (evt->base.type==GF_FEVT_ENCODE_HINTS) {
+		GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
+		if ((ctx->fintra.num<0) && evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
+			ctx->fintra = evt->encode_hints.intra_period;
+			ctx->rc = GF_TRUE;
+			if (gf_list_count(ctx->src_packets) && !ctx->force_reconfig) {
+				ctx->reconfig_pending = GF_TRUE;
+				ctx->force_reconfig = GF_TRUE;
+			}
+		}
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 static const GF_FilterCapability FFEncodeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
@@ -1489,7 +1535,6 @@ static const GF_FilterCapability FFEncodeCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-
 };
 
 GF_FilterRegister FFEncodeRegister = {
@@ -1511,6 +1556,7 @@ GF_FilterRegister FFEncodeRegister = {
 		"- at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
 		"- if [-fintra]() and [-rc]() is set.\n"
 		"When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.\n"
+		"If [-fintra]() is not set and the output of the encoder is a DASH session in live profile without segment timeline, [-fintra]() will be set to the target segment duration and [-rc]() will be set.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
@@ -1518,6 +1564,7 @@ GF_FilterRegister FFEncodeRegister = {
 	.finalize = ffenc_finalize,
 	.configure_pid = ffenc_configure_pid,
 	.process = ffenc_process,
+	.process_event = ffenc_process_event,
 	.update_arg = ffenc_update_arg,
 	.flags = GF_FS_REG_META,
 };
@@ -1527,7 +1574,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 {
 	{ OFFS(c), "codec identifier. Can be any supported GPAC codec name or ffmpeg codec name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pfmt), "pixel format for input video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(fintra), "force intra / IDR frames at the given period in sec, eg `fintra=60000/1001` will force an intra every 2 seconds on 29.97 fps video; ignored for audio", GF_PROP_FRACTION, "-1/1", NULL, 0},
 
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},

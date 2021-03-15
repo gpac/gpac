@@ -941,10 +941,11 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 			*transfer_characteristics = avc.sps[idx].vui.transfer_characteristics;
 			*matrix_coefficients = avc.sps[idx].vui.matrix_coefficients;
 			*full_range_flag = avc.sps[idx].vui.video_full_range_flag;
-			break;
+			gf_odf_avc_cfg_del(avcc);
+			return GF_OK;
 		}
 		gf_odf_avc_cfg_del(avcc);
-		return GF_OK;
+		return GF_NOT_FOUND;
 	}
 	if ((stype==GF_ISOM_SUBTYPE_HEV1)
 			|| (stype==GF_ISOM_SUBTYPE_HEV2)
@@ -986,7 +987,7 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 			}
 		}
 		gf_odf_hevc_cfg_del(hvcc);
-		return GF_OK;
+		return GF_NOT_FOUND;
 	}
 	if (stype==GF_ISOM_SUBTYPE_AV01) {
 		AV1State av1;
@@ -1011,13 +1012,15 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 					*transfer_characteristics = av1.transfer_characteristics;
 					*matrix_coefficients = av1.matrix_coefficients;
 					*full_range_flag = av1.color_range;
-					break;
+					if (av1.config) gf_odf_av1_cfg_del(av1.config);
+					gf_av1_reset_state(&av1, GF_TRUE);
+					return GF_OK;
 				}
 			}
 		}
 		if (av1.config) gf_odf_av1_cfg_del(av1.config);
 		gf_av1_reset_state(&av1, GF_TRUE);
-		return GF_OK;
+		return GF_NOT_FOUND;
 	}
 
 #endif

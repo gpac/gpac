@@ -1465,6 +1465,9 @@ typedef enum
 
 	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/
 	GF_FEVT_FRAGMENT_SIZE,
+
+	/*! Encoder hints*/
+	GF_FEVT_ENCODE_HINTS,
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1642,6 +1645,17 @@ typedef struct
 	Bool pid_only;
 } GF_FEVT_BufferRequirement;
 
+
+/*! Event structure for GF_FEVT_ENCODE_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! duration of intra (IDR, closed GOP) as expected by the dasher */
+	GF_Fraction intra_period;
+
+} GF_FEVT_EncodeHints;
+
 /*!
 Filter Event object
  */
@@ -1658,6 +1672,7 @@ union __gf_filter_event
 	GF_FEVT_SegmentSize seg_size;
 	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
+	GF_FEVT_EncodeHints encode_hints;
 };
 
 /*! Gets readable name for event type
