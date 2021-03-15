@@ -153,10 +153,10 @@ echo
 echo "[OK] success module for Osmo4."
 
 
-LIBS_DIR="$BASEPATH/applications/mp4box_android/libs"
+LIBS_DIR="$BASEPATH/applications/mp4box_android/app/src/main/libs"
 mkdir -p $LIBS_DIR
 echo "Copying libs to libs dir $LIBS_DIR ..."
-for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
+for i in $(find . \( -name '*.so' \) )
 do
 	echo " Copy $i"
 	TMP_DIR=$(dirname $i)
@@ -179,12 +179,12 @@ do
 done
 echo "[OK] success extra lib for Osmo4."
 
-LIBS_DIR="$BASEPATH/applications/mp4box_android/libs"
+LIBS_DIR="$BASEPATH/applications/mp4box_android/app/src/main/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
 
-for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
+for i in $(find . \( -name '*.so' \) )
 do
 	echo " Copy $i"
 	TMP_DIR=$(dirname $i)
@@ -205,23 +205,34 @@ echo "[OK] success shared resources for Osmo4."
 
 if [ \( $SDK -eq 1 \) -a \( $JDK -eq 1 \) ]
 then
+
+	TAG="$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )"
+
 	echo "Building osmo4 apk"
 	cd $BASEPATH/applications/osmo4_android_studio/
 	./gradlew assembleDebug
 	cd -
-	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+	if [ -f $BASEPATH/osmo4-$TAG-rev$version.apk ]
 	then
 	echo -e "\nOld Osmo4.apk found. Removing it ..."
-	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+	rm $BASEPATH/osmo4-$TAG-rev$version.apk
 	fi
 
-	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$TAG-rev$version.apk
 	echo "[OK] success Building osmo4 apk"
 
-	# echo "Building mp4box apk"
-	# cd $BASEPATH/applications/mp4box_android/
-	# ./gradlew assembleDebug
-	# echo "[OK] success Building mp4box apk"
+	echo "Building mp4box apk"
+	cd $BASEPATH/applications/mp4box_android/
+	./gradlew assembleDebug
+	cd -
+	if [ -f $BASEPATH/mp4box-$TAG-rev$version.apk ]
+	then
+	echo -e "\nOld mp4box.apk found. Removing it ..."
+	rm $BASEPATH/mp4box-$TAG-rev$version.apk
+	fi
+
+	cp $BASEPATH/applications/mp4box_android/app/build/outputs/apk/app-debug.apk $BASEPATH/mp4box-$TAG-rev$version.apk
+	echo "[OK] success Building mp4box apk"
 else
 	echo "Run project with Android studio to generate APK"
 fi
