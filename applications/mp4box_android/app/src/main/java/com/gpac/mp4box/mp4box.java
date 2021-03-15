@@ -42,7 +42,7 @@ public class mp4box extends Activity {
     }
 
 
-    private final static String LOG_LIB = "gpac.libloader";
+    private final static String LOG_LIB = "com.gpac.mp4box.libloader";
 
     private static Map<String, Throwable> errors = null;
 
@@ -60,75 +60,31 @@ public class mp4box extends Activity {
         final String[] toLoad = {"avutil", "swresample", "swscale", "avcodec", "avformat", "avfilter", "avdevice",
                 "editline", "faad", "ft2",
                 "jpegdroid", "js_osmo", "mad", "openjpeg",
-                "png", "stlport_shared", "swresample",
-                "swscale", "z", "gpac", "mp4box"};//mp4box lib needs to be added like in sample project from gpac android resources
+                "png", "stlport_shared",
+                "z", "gpac", "mp4box"};
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
     for (String s : toLoad) {
         try {
-            String msg = "Loading library " + s + "...";//$NON-NLS-1$//$NON-NLS-2$
+            String msg = "Loading library " + s + "...";
             sb.append(msg);
             Log.i(LOG_LIB, msg);
             System.loadLibrary(s);
         } catch (UnsatisfiedLinkError e) {
-            sb.append("Failed to load " + s + ", error=" + e.getLocalizedMessage() + " :: " //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
+            sb.append("Failed to load " + s + ", error=" + e.getLocalizedMessage() + " :: "
                       + e.getClass().getSimpleName() + "\n"); //$NON-NLS-1$
             exceptions.put(s, e);
-            Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
+            Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e);
         } catch (SecurityException e) {
             exceptions.put(s, e);
-            Log.e(LOG_LIB, "Failed to load library : " + s + " due to security error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
+            Log.e(LOG_LIB, "Failed to load library : " + s + " due to security error " + e.getLocalizedMessage(), e);
         } catch (Throwable e) {
             exceptions.put(s, e);
-            Log.e(LOG_LIB, "Failed to load library : " + s + " due to Runtime error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
+            Log.e(LOG_LIB, "Failed to load library : " + s + " due to Runtime error " + e.getLocalizedMessage(), e);
         }
     }
 
-    /*if (!exceptions.isEmpty()) {
-        try {
-            PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
-            out.println("$Revision: 2972 $"); //$NON-NLS-1$
-            out.println(new Date());
-            out.println("\n*** Configuration\n"); //$NON-NLS-1$
-            out.println(config.getConfigAsText());
-            sb.append("*** Libs listing: "); //$NON-NLS-1$
-            sb.append(config.getGpacLibsDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacLibsDirectory()), 2);
-            sb.append("*** Modules listing: "); //$NON-NLS-1$
-            sb.append(config.getGpacModulesDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacModulesDirectory()), 2);
-            sb.append("*** Fonts listing: \n"); //$NON-NLS-1$
-            sb.append(config.getGpacFontDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacFontDirectory()), 2);
-            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
-            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
-                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
-                  .append(ex.getValue().getLocalizedMessage())
-                  .append('(')
-                  .append(ex.getValue().getClass())
-                  .append(")\n"); //$NON-NLS-1$
-            }
-            out.println(sb.toString());
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            Log.e(LOG_LIB, "Failed to output debug info to debug file", e); //$NON-NLS-1$
-        }
-    }*/
     errors = Collections.unmodifiableMap(exceptions);
     return errors;
 }
-    /*public void showKeyboard(boolean showKeyboard) {
-        if (keyboardIsVisible == showKeyboard == true)
-            return;
-        InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
-        this.keyboardIsVisible = showKeyboard;
-        if (showKeyboard)
-            mgr.showSoftInput(findViewById(R.id.CommandLineEdit ), 0);
-        else
-            mgr.hideSoftInputFromInputMethod(findViewById(R.id.CommandLineEdit ).getWindowToken(), 0);
 
-    }*/
 }
