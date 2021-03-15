@@ -1730,6 +1730,9 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
+	if (hSpacing<0) hSpacing = 1;
+	if (vSpacing<0) vSpacing = 1;
+
 	GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_PASP);
 	if (!hSpacing || !vSpacing || ((hSpacing == vSpacing) && !force_par))  {
 		if (pasp) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *)pasp);
