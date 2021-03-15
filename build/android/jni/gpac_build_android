@@ -225,13 +225,10 @@ then
 	cd $BASEPATH/applications/mp4box_android/
 	./gradlew assembleDebug
 	cd -
-	if [ -f $BASEPATH/mp4box-$TAG-rev$version.apk ]
-	then
-	echo -e "\nOld mp4box.apk found. Removing it ..."
-	rm $BASEPATH/mp4box-$TAG-rev$version.apk
-	fi
 
-	cp $BASEPATH/applications/mp4box_android/app/build/outputs/apk/app-debug.apk $BASEPATH/mp4box-$TAG-rev$version.apk
+	# uncomment to copy apk to public build dir
+	# rm -f $BASEPATH/mp4box-$TAG-rev$version.apk
+	# cp $BASEPATH/applications/mp4box_android/app/build/outputs/apk/app-debug.apk $BASEPATH/mp4box-$TAG-rev$version.apk
 	echo "[OK] success Building mp4box apk"
 else
 	echo "Run project with Android studio to generate APK"
