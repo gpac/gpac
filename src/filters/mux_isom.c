@@ -1311,7 +1311,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		if (ctx->cmaf) {
 			gf_isom_modify_alternate_brand(ctx->file, (ctx->cmaf==MP4MX_CMAF_CMF2) ? GF_ISOM_BRAND_CMF2 : GF_ISOM_BRAND_CMFC, GF_TRUE);
-
 		}
 	}
 
@@ -2775,7 +2774,8 @@ sample_entry_done:
 					e = gf_isom_get_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
 					if (e==GF_NOT_FOUND) {
 						e = gf_media_get_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
-						if (e) e = GF_NOT_FOUND;
+						if (e)
+							e = GF_NOT_FOUND;
 					}
 					if (e==GF_NOT_FOUND) {
 						colour_primaries = 1;
@@ -4948,12 +4948,13 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 					if ((sap && sap<GF_FILTER_SAP_3)) {
 						frag_done = GF_TRUE;
-						ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
-						ctx->adjusted_next_frag_start *= ctx->cdur.den;
-						ctx->adjusted_next_frag_start /= tkw->src_timescale;
 					}
 				}
 				if (frag_done) {
+					ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
+					ctx->adjusted_next_frag_start *= ctx->cdur.den;
+					ctx->adjusted_next_frag_start /= tkw->src_timescale;
+//
 					tkw->fragment_done = GF_TRUE;
 					nb_done ++;
 					tkw->dur_in_frag = 0;
@@ -5097,7 +5098,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			e = gf_isom_close_segment(ctx->file, subs_sidx, track_ref_id, ctx->ref_tkw->first_dts_in_seg, ctx->ref_tkw->ts_delay, next_ref_ts, ctx->chain_sidx, ctx->ssix, ctx->sseg ? GF_FALSE : is_eos, GF_FALSE, ctx->eos_marker, &idx_start_range, &idx_end_range, &segment_size_in_bytes);
 			if (e) return e;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing segment %d - estimated next fragment times start %g end %g\n", ctx->dash_seg_num_plus_one - 1, ((Double)next_ref_ts)/ref_timescale, ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 
 			if (ctx->dash_mode != MP4MX_DASH_VOD) {
 				mp4_mux_flush_seg(ctx, GF_FALSE, offset + idx_start_range, idx_end_range ? offset + idx_end_range : 0);
@@ -5126,7 +5127,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
 			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Done writing fragment - next fragment start time %g\n", ((Double)ctx->next_frag_start)/ctx->cdur.den ));
 		}
 		ctx->fragment_started = GF_FALSE;
 
@@ -5773,7 +5774,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		ctx->tfdt_traf = GF_TRUE;
 		//7.3.3 : If SegmentIndexBoxes exist, each subsegment referenced in the SegmentIndexBox shall be a single CMAF fragment
 		ctx->chain_sidx = GF_FALSE;
-		ctx->subs_sidx = 0;
+		if (ctx->subs_sidx>0)
+			ctx->subs_sidx = 0;
 
 		if (ctx->cmaf==MP4MX_CMAF_CMF2) {
 			/*7.7 cmf2
