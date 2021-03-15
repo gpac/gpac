@@ -17,6 +17,6 @@ LOCAL_SRC_FILES :=  ../../../../applications/mp4box/filedump.c \
 					../../../../applications/mp4box/fileimport.c \
 					../../../../applications/mp4box/live.c \
 					../../../../applications/mp4box/main.c \
-					../../../../applications/mp4box/wrapper.c
+					../../../../applications/mp4box_android/app/src/main/jni/wrapper.c
 
 include $(BUILD_SHARED_LIBRARY)
