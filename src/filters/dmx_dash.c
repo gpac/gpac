@@ -138,6 +138,7 @@ typedef struct
 	u32 last_bw_check;
 	u64 us_at_seg_start;
 	Bool signal_seg_name;
+	Bool init_ok;
 
 	u32 seg_discard_state;
 
@@ -367,7 +368,9 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 			group->eos_detected = GF_TRUE;
 		} else {
 			group->in_error = GF_TRUE;
-			group->seg_filter_src = NULL;
+			//failure at init, abort group
+			if (!group->init_ok)
+				group->seg_filter_src = NULL;
 		}
 	}
 }
@@ -2314,6 +2317,8 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	u64 start_range, end_range, switch_start_range, switch_end_range;
 	bin128 key_IV;
 	u32 group_idx;
+
+	group->init_ok = GF_TRUE;
 
 fetch_next:
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
