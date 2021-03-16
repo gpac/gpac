@@ -1511,8 +1511,7 @@ static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 		if ((ctx->fintra.num<0) && evt->encode_hints.intra_period.den && evt->encode_hints.intra_period.num) {
 			ctx->fintra = evt->encode_hints.intra_period;
-			ctx->rc = GF_TRUE;
-			if (gf_list_count(ctx->src_packets) && !ctx->force_reconfig) {
+			if (!ctx->rc || (gf_list_count(ctx->src_packets) && !ctx->force_reconfig)) {
 				ctx->reconfig_pending = GF_TRUE;
 				ctx->force_reconfig = GF_TRUE;
 			}
