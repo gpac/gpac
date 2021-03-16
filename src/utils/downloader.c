@@ -937,6 +937,15 @@ static void h2_flush_data_ex(GF_DownloadSession *sess, u8 *obuffer, u32 size, u3
 
 #endif
 
+static void sess_connection_closed(GF_DownloadSession *sess)
+{
+#ifdef GPAC_HAS_HTTP2
+	if (sess->h2_sess) {
+		sess->h2_sess->do_shutdown = GF_TRUE;
+		sess->h2_switch_sess = GF_TRUE;
+	}
+#endif
+}
 
 /*
  * Private methods of cache
@@ -1405,7 +1414,7 @@ static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnl
 static void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
 	DownloadedCacheEntry entry;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ? "no" : "yes" ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[Downloader] gf_dm_configure_cache(%p), cached=%s URL=%s\n", sess, (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ? "no" : "yes", sess->orig_url ));
 	gf_dm_remove_cache_entry_from_session(sess);
 	//session is not cached and we don't cache the first URL
 	if ((sess->flags & GF_NETIO_SESSION_NOT_CACHED) && !(sess->flags & GF_NETIO_SESSION_KEEP_FIRST_CACHE))  {
@@ -2242,8 +2251,12 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 	if (sep_frag) sep_frag[0]='#';
 
 #ifdef GPAC_HAS_HTTP2
-	if (sess->h2_sess && sess->h2_sess->do_shutdown)
-		socket_changed = GF_TRUE;
+	if (sess->h2_sess) {
+		if (sess->h2_sess->do_shutdown)
+			socket_changed = GF_TRUE;
+		sess->h2_buf.size = 0;
+		sess->h2_buf.offset = 0;
+	}
 #endif
 
 	if (sess->sock && !socket_changed) {
@@ -3193,6 +3206,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 				if (sess->status == GF_NETIO_STATE_ERROR) {
 					sess->status = GF_NETIO_DISCONNECTED;
 					sess->last_error = GF_IP_CONNECTION_CLOSED;
+					sess_connection_closed(sess);
 					go = GF_FALSE;
 				} else if (sess->last_error==GF_IP_NETWORK_EMPTY) {
 					go = GF_FALSE;
@@ -4060,7 +4074,12 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			e = gf_sk_probe(sess->sock);
 			if ((e==GF_IP_CONNECTION_CLOSED) || (gf_sys_clock_high_res() - sess->last_fetch_time > 1000 * sess->request_timeout)
 			) {
-				sess->last_error = (e==GF_IP_CONNECTION_CLOSED) ? e : GF_IP_NETWORK_EMPTY;
+				if (e==GF_IP_CONNECTION_CLOSED) {
+					sess->last_error = GF_IP_CONNECTION_CLOSED;
+					sess_connection_closed(sess);
+				} else {
+					sess->last_error = GF_IP_NETWORK_EMPTY;
+				}
 				sess->status = GF_NETIO_STATE_ERROR;
 				return GF_IP_NETWORK_EMPTY;
 			}
@@ -4789,15 +4808,20 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		case GF_IP_NETWORK_EMPTY:
 			if (!bytesRead) {
 				e = gf_sk_probe(sess->sock);
-				if ((e==GF_IP_CONNECTION_CLOSED) || (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)
-				) {
-					sess->last_error = (e==GF_IP_CONNECTION_CLOSED) ? e : GF_IP_NETWORK_EMPTY;
+
+				if (e==GF_IP_CONNECTION_CLOSED) {
+					sess->last_error = GF_IP_CONNECTION_CLOSED;
+					sess_connection_closed(sess);
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
 				}
-				if (sess->server_mode) {
+				if (!sess->server_mode && (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)) {
 					sess->last_error = GF_IP_NETWORK_EMPTY;
+					sess->status = GF_NETIO_STATE_ERROR;
+					return GF_IP_NETWORK_EMPTY;
 				}
+				if (sess->server_mode)
+					sess->last_error = GF_IP_NETWORK_EMPTY;
 				return GF_OK;
 			}
 			if (sess->status==GF_NETIO_STATE_ERROR)
@@ -4820,6 +4844,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			}
 			if (sess->server_mode) {
 				sess->last_error = GF_IP_CONNECTION_CLOSED;
+				sess_connection_closed(sess);
 				sess->status = GF_NETIO_DISCONNECTED;
 				GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Connection closed by client\n", sess->remote_path));
 				return GF_IP_CONNECTION_CLOSED;
@@ -5133,7 +5158,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error: %s\n", nghttp2_strerror(rv)));
 				return GF_IP_NETWORK_FAILURE;
 			}
-			h2_flush_data(sess, GF_TRUE);
+			//stay in WAIT_FOR_REPLY state and do not flush data, cache is not fully configured yet
 		}
 		//send pending frames
 		e = h2_session_send(sess);
@@ -5235,8 +5260,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, GF_TRUE, NULL, NULL);
 		}
 
-#ifdef GPAC_HAS_HTTP2
-#endif
+		sess->request_start_time = gf_sys_clock_high_res();
+
 		par.reply = method;
 		gf_dm_sess_user_io(sess, &par);
 		sess->status = GF_NETIO_DATA_TRANSFERED;
@@ -6257,6 +6282,7 @@ GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size)
 		e = gf_sk_send(sess->sock, data, size);
 
 	if (e==GF_IP_CONNECTION_CLOSED) {
+		sess_connection_closed(sess);
 		sess->status = GF_NETIO_STATE_ERROR;
 		return e;
 	}
