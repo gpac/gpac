@@ -78,7 +78,7 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors;
 
 	//internal
 	GF_Filter *filter;
@@ -191,12 +191,13 @@ typedef struct __httpout_session
 
 	Bool do_log;
 	u64 req_id;
-	u32 method_type, reply_code;
+	u32 method_type, reply_code, nb_consecutive_errors;
 
 	Bool is_h2;
 	Bool sub_sess_pending;
 	Bool canceled;
 
+	Bool force_destroy;
 } GF_HTTPOutSession;
 
 static void httpout_close_session(GF_HTTPOutSession *sess)
@@ -822,6 +823,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 			}
 		}
+		sess->nb_consecutive_errors = 0;
 		sess->req_start_time = gf_sys_clock_high_res();
 		if (url) gf_free(url);
 		gf_dm_sess_clear_headers(sess->http_sess);
@@ -958,9 +960,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				gf_dynstrcat(&response_body, ": ", NULL);
 				gf_dynstrcat(&response_body, gf_error_to_string(e), NULL);
 				goto exit;
-			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Deleting file %s (full path %s)\n", url, full_path));
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] Deleting file %s (full path %s)\n", url, full_path));
 
 			if (sess->do_log) {
 				sess->req_id = ++sess->ctx->req_id;
@@ -1248,6 +1249,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
+	sess->nb_consecutive_errors = 0;
 	sess->canceled = GF_FALSE;
 	e = gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, response_body, no_body);
 	sess->headers_done = GF_TRUE;
@@ -1298,7 +1300,12 @@ exit:
 	httpout_format_date(gf_net_get_utc(), szDate, GF_FALSE);
 	gf_dm_sess_set_header(sess->http_sess, "Date", szDate);
 
-	gf_dm_sess_set_header(sess->http_sess, "Connection", "close");
+	sess->nb_consecutive_errors++;
+	if (sess->nb_consecutive_errors == sess->ctx->max_client_errors) {
+		gf_dm_sess_set_header(sess->http_sess, "Connection", "close");
+	} else {
+		sess->last_active_time = gf_sys_clock_high_res();
+	}
 
 	if (send_cors) {
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
@@ -1327,6 +1334,12 @@ exit:
 	sess->done = GF_TRUE;
 	sess->canceled = GF_FALSE;
 	sess->headers_done = GF_FALSE;
+
+	if (!sess->is_h2 && (sess->ctx->close || (sess->nb_consecutive_errors == sess->ctx->max_client_errors))) {
+		sess->force_destroy = GF_TRUE;
+	} else if (sess->http_sess) {
+		gf_dm_sess_server_reset(sess->http_sess);
+	}
 	return;
 }
 
@@ -1968,6 +1981,12 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 	GF_Err e = GF_OK;
 	Bool close_session = ctx->close;
 
+	if (sess->force_destroy) {
+		httpout_close_session(sess);
+		return;
+	}
+
+
 	//upload session (PUT, POST)
 	if (sess->upload_type) {
 		u32 i, count;
@@ -2095,6 +2114,7 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		sess->done = GF_TRUE;
 		sess->canceled = GF_FALSE;
 		sess->upload_type = 0;
+		sess->nb_consecutive_errors = 0;
 
 		//notify all download (GET, HEAD) sessions using the same resource that we are done
 		count = gf_list_count(sess->ctx->sessions);
@@ -2123,13 +2143,11 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 		//check we have something to read if not http2
 		//if http2, data might have been received on this session while processing another session
 		if (!sess->is_h2 && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_READ)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] nothing to read\n"));
 			return;
 		}
 		e = gf_dm_sess_process(sess->http_sess);
 
 		if (e==GF_IP_NETWORK_EMPTY) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOut] nothing to read\n"));
 			return;
 		}
 
@@ -3088,6 +3106,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 		"- auto: enable CORS when `Origin` is found in request", GF_PROP_UINT, "auto", "auto|off|on", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC` logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_client_errors), "force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when `close` is set)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
