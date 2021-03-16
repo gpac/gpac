@@ -3334,7 +3334,9 @@ naldmx_flush:
 		sprintf(szStatus, "%s %dx%d % 10d NALU % 8d I % 8d P % 8d B % 8d SEI", ctx->log_name, ctx->width, ctx->height, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei);
 		gf_filter_update_status(filter, -1, szStatus);
 	}
-
+	if (ctx->full_au_source && ctx->poc_probe_done) {
+		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+	}
 	return GF_OK;
 }
 
