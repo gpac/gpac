@@ -805,6 +805,7 @@ typedef struct
 	Bool decoder_model_info_present_flag;
 	u16 OperatingPointIdc;
 	u32 width, height, UpscaledWidth;
+	u32 sequence_width, sequence_height;
 	u32 tb_num, tb_den;
 
 	Bool use_128x128_superblock;
