@@ -4822,6 +4822,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				if (p && p->value.boolean) {
 					nb_done ++;
 					tkw->fragment_done = GF_TRUE;
+					tkw->samples_in_frag = 0;
 					gf_filter_pid_drop_packet(tkw->ipid);
 					ctx->flush_seg = GF_TRUE;
 					tkw->next_seg_cts = tkw->cts_next;
