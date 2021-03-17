@@ -61,9 +61,22 @@ static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u
 	u32 sample_offset;
 	GF_ResampleCtx *ctx = (GF_ResampleCtx *) callback;
 	if (!ctx->data) {
-		*size = 0;
-		return NULL;
+		//fetch data if none present (we may have drop the previous frame while mixing)
+		assert(!ctx->in_pck);
+		ctx->in_pck = gf_filter_pid_get_packet(ctx->ipid);
+		if (!ctx->in_pck) {
+			*size = 0;
+			return NULL;
+		}
+		ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
+		ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
+
+		if (!ctx->data) {
+			*size = 0;
+			return NULL;
+		}
 	}
+
 	assert(ctx->data);
 	*size = ctx->size - ctx->bytes_consumed;
 	sample_offset = ctx->bytes_consumed;
@@ -85,14 +98,9 @@ static void resample_release_frame(void *callback, u32 nb_bytes)
 		//trash packet and get a new one
 		gf_filter_pid_drop_packet(ctx->ipid);
 		ctx->data = NULL;
+		ctx->in_pck = NULL;
 		ctx->size = ctx->bytes_consumed = 0;
-		ctx->in_pck = gf_filter_pid_get_packet(ctx->ipid);
-		if (!ctx->in_pck) {
-			return;
-		}
-		ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
-		ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
-		ctx->bytes_consumed = 0;
+		//do NOT fetch data until needed
 	}
 }
 
