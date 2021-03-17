@@ -4043,7 +4043,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 			h2_flush_data_ex(sess, buffer, buffer_size, &nb_read);
 			h2_session_send(sess);
 
-			if (sess->h2_data_done && !sess->server_mode) {
+			//stream is over and all data flushed, move to GF_NETIO_DATA_TRANSFERED in client mode
+			if (sess->h2_data_done && !sess->h2_buf.size && !sess->server_mode) {
 				sess->status = GF_NETIO_DATA_TRANSFERED;
 			}
 		}
