@@ -2964,12 +2964,12 @@ sample_entry_done:
 			//media skip
 			if (p->value.longsint < 0) {
 				//if cmf2, remove edits and use negctss
-				if (ctx->cmaf==MP4MX_CMAF_CMF2) {
+				if ((ctx->cmaf==MP4MX_CMAF_CMF2) && (tkw->stream_type==GF_STREAM_VISUAL)) {
 					ctx->ctmode = MP4MX_CT_NEGCTTS;
 					gf_isom_remove_edits(ctx->file, tkw->track_num);
 					use_negccts = GF_TRUE;
 				}
-				else if (ctx->ctmode==MP4MX_CT_NEGCTTS) {
+				else if ((ctx->ctmode==MP4MX_CT_NEGCTTS) && (tkw->stream_type==GF_STREAM_VISUAL)) {
 					use_negccts = GF_TRUE;
 				} else {
 					if (remove_edits) {
