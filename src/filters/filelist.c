@@ -139,7 +139,7 @@ typedef struct
 
 	u32 nb_repeat;
 	Double start, stop;
-	Bool do_cat, do_del;
+	Bool do_cat, do_del, src_error;
 	u64 start_range, end_range;
 	GF_List *file_list;
 	s32 file_list_idx;
@@ -898,6 +898,28 @@ static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool
 	return GF_TRUE;
 }
 
+static void filelist_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+{
+	u32 i, count;
+	GF_Filter *filter = (GF_Filter *)udta;
+	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
+
+	GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to load URL %s: %s\n", gf_filter_get_src_args(failed_filter), gf_error_to_string(err) ));
+
+	count = gf_list_count(ctx->io_pids);
+	for (i=0; i<count; i++) {
+		FileListPid *iopid = gf_list_get(ctx->io_pids, i);
+		if (!iopid->ipid) continue;
+
+		if (gf_filter_pid_is_filter_in_parents(iopid->ipid, failed_filter))
+			iopid->ipid = NULL;
+	}
+	ctx->src_error = GF_TRUE;
+	gf_list_del_item(ctx->filter_srcs, failed_filter);
+	gf_filter_post_process_task(filter);
+}
+
+
 static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 {
 	GF_Filter *fsrc;
@@ -1089,6 +1111,9 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				f = gf_filter_load_filter(filter, url, &e);
 			} else {
 				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_TRUE, &e);
+
+				if (fsrc)
+					gf_filter_set_setup_failure_callback(filter, fsrc, filelist_on_filter_setup_error, filter);
 			}
 
 			if (e) {
@@ -1465,6 +1490,11 @@ static GF_Err filelist_process(GF_Filter *filter)
 			u64 dts;
 			iopid = gf_list_get(ctx->io_pids, i);
             if (!iopid->ipid) {
+				if (ctx->src_error) {
+					nb_eos++;
+					continue;
+				}
+
 				if (iopid->opid) gf_filter_pid_set_eos(iopid->opid);
 				if (iopid->opid_aux) gf_filter_pid_set_eos(iopid->opid_aux);
 				return GF_OK;
@@ -1523,6 +1553,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (!ctx->dts_sub_plus_one) ctx->dts_sub_plus_one = dts + 1;
 			else if (dts < ctx->dts_sub_plus_one - 1) ctx->dts_sub_plus_one = dts + 1;
 	 	}
+	 	ctx->src_error = GF_FALSE;
 	 	if (nb_eos) {
 			if (nb_eos==count) {
 				//force load
