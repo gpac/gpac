@@ -574,12 +574,12 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 		return NGHTTP2_ERR_CALLBACK_FAILURE;
 
 	if (sess->h2_buf.size + len > sess->h2_buf.alloc) {
-		sess->h2_buf.alloc = sess->h2_buf.size + len;
+		sess->h2_buf.alloc = sess->h2_buf.size + (u32) len;
 		sess->h2_buf.data = gf_realloc(sess->h2_buf.data, sizeof(u8) * sess->h2_buf.alloc);
 		if (!sess->h2_buf.data) return NGHTTP2_ERR_NOMEM;
 	}
 	memcpy(sess->h2_buf.data + sess->h2_buf.size, data, len);
-	sess->h2_buf.size += len;
+	sess->h2_buf.size += (u32) len;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes - flags %d\n", sess->h2_stream_id, len, flags));
 	return 0;
 }
@@ -633,7 +633,7 @@ static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		assert(length);
-		int res = SSL_write(sess->ssl, data, length);
+		int res = SSL_write(sess->ssl, data, (int) length);
 		if (res <= 0) {
 			int err = SSL_get_error(sess->ssl, res);
 			if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
@@ -647,7 +647,7 @@ static ssize_t h2_write_data(GF_DownloadSession *sess, const uint8_t *data, size
 	}
 #endif
 
-	e = gf_sk_send(sess->sock, data, length);
+	e = gf_sk_send(sess->sock, data, (u32) length);
 	switch (e) {
 	case GF_OK:
 		return length;
@@ -694,8 +694,8 @@ static ssize_t h2_data_source_read_callback(nghttp2_session *session, int32_t st
 	}
 
 	if (sess->h2_sess->copy) {
-		u32 copy = (sess->h2_send_data_len > length) ? length : sess->h2_send_data_len;
-		memcpy(buf, sess->h2_send_data, length);
+		u32 copy = (sess->h2_send_data_len > length) ? (u32) length : sess->h2_send_data_len;
+		memcpy(buf, sess->h2_send_data, copy);
 		sess->h2_send_data += copy;
 		sess->h2_send_data_len -= copy;
 		return copy;
@@ -738,15 +738,15 @@ static int h2_send_data_callback(nghttp2_session *session, nghttp2_frame *frame,
 	if (rv<0) goto err;
 
 	if (frame->data.padlen > 0) {
-		u32 padlen = frame->data.padlen - 1;
+		u32 padlen = (u32) frame->data.padlen - 1;
 		rv = h2_write_data(sess, padding, padlen);
 		if (rv<0) goto err;
 	}
 	rv = h2_write_data(sess, (u8 *) sess->h2_send_data, length);
 	if (rv<0) goto err;
 
-	sess->h2_send_data += length;
-	sess->h2_send_data_len -= length;
+	sess->h2_send_data += (u32) length;
+	sess->h2_send_data_len -= (u32) length;
 	return 0;
 err:
 
@@ -2665,7 +2665,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		if (*out_read > 0) {
 			ssize_t read_len = nghttp2_session_mem_recv(sess->h2_sess->ng_sess, data, *out_read);
 			if(read_len < 0 ) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror(read_len)));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error:  %s\n", nghttp2_strerror((int) read_len)));
 				return GF_IO_ERR;
 			}
 		}
@@ -4344,7 +4344,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		PUSH_HDR("Upgrade", "h2c")
 
 
-		settings_len = nghttp2_pack_settings_payload(settings, HTTP2_BUFFER_SETTINGS_SIZE, h2_settings, GF_ARRAY_LENGTH(h2_settings));
+		settings_len = (u32) nghttp2_pack_settings_payload(settings, HTTP2_BUFFER_SETTINGS_SIZE, h2_settings, GF_ARRAY_LENGTH(h2_settings));
 		b64len = gf_base64_encode(settings, settings_len, b64, 100);
 		b64[b64len] = 0;
 		PUSH_HDR("HTTP2-Settings", b64)
@@ -4739,7 +4739,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	u32 res, i, buf_size;
 	s32 LinePos, Pos;
 	u32 method=0;
-	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	u32 rsp_code=0, ContentLength, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = GF_FALSE;
 	char buf[1025];
 	char comp[400];
@@ -5143,7 +5143,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100},
 			{NGHTTP2_SETTINGS_ENABLE_PUSH, 0}
 		};
-		settings_len = nghttp2_pack_settings_payload(settings, HTTP2_BUFFER_SETTINGS_SIZE, h2_settings, GF_ARRAY_LENGTH(h2_settings));
+		settings_len = (u32) nghttp2_pack_settings_payload(settings, HTTP2_BUFFER_SETTINGS_SIZE, h2_settings, GF_ARRAY_LENGTH(h2_settings));
 
 		h2_initialize_session(sess);
 		sess->h2_stream_id = 1;
@@ -5154,7 +5154,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		//push the body
 		if (bytesRead > BodyStart) {
-			rv = nghttp2_session_mem_recv(sess->h2_sess->ng_sess, sHTTP + BodyStart , bytesRead - BodyStart);
+			rv = (int) nghttp2_session_mem_recv(sess->h2_sess->ng_sess, sHTTP + BodyStart , bytesRead - BodyStart);
 			if (rv < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP/2] nghttp2_session_mem_recv error: %s\n", nghttp2_strerror(rv)));
 				return GF_IP_NETWORK_FAILURE;

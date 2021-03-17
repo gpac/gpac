@@ -2897,7 +2897,7 @@ naldmx_flush:
 
 		if (skip_nal) {
 			nal_size += sc_size;
-			assert(remain >= nal_size);
+			assert((u32) remain >= nal_size);
 			start += nal_size;
 			remain -= nal_size;
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
@@ -2931,7 +2931,7 @@ naldmx_flush:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit %d (size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
 			}
 			nal_size += sc_size;
-			assert(remain >= nal_size);
+			assert((u32) remain >= nal_size);
 			start += nal_size;
 			remain -= nal_size;
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, nal_size, &drop_packet, pck);
@@ -3084,7 +3084,7 @@ naldmx_flush:
 					}
 					memcpy(ctx->svc_prefix_buffer, start+sc_size, ctx->svc_prefix_buffer_size);
 
-					assert( remain >= (s32) sc_size + nal_size);
+					assert( (u32) remain >= sc_size + nal_size);
 					start += sc_size + nal_size;
 					remain -= sc_size + nal_size;
 					continue;
@@ -3317,7 +3317,7 @@ naldmx_flush:
 	}
 
 	if (remain) {
-		assert(remain<=ctx->nal_store_size);
+		assert((u32) remain<=ctx->nal_store_size);
 		memmove(ctx->nal_store, start, remain);
 	}
 	ctx->nal_store_size = remain;
