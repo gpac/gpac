@@ -4639,10 +4639,14 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	if (!blocksize) return GF_EOS;
 	pck = gf_filter_pck_new_alloc(ctx->opid, blocksize, &output);
 	nb_read = (u32) gf_fread(output, blocksize, ctx->tmp_store);
-	ctx->flush_done += nb_read;
 	if (nb_read != blocksize) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error flushing fragmented file, read %d bytes but asked %d bytes\n", nb_read, blocksize));
+		char tmp[1];
+		//weird behaviour on some file systems, dump debug info
+		gf_fread(tmp, 1, ctx->tmp_store);
+		Bool is_eof = gf_feof(ctx->tmp_store);
+		GF_LOG(is_eof ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error reading from VOD temp cache, read %d bytes but asked %d bytes\n\tCache EOF %d - cache size "LLU" - read pos "LLU" - file pos "LLU"\n", nb_read, blocksize, is_eof, ctx->flush_size, ctx->flush_done, gf_ftell(ctx->tmp_store)));
 	}
+	ctx->flush_done += nb_read;
 	if (ctx->flush_done==ctx->flush_size) {
 		gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 		gf_filter_pck_send(pck);
@@ -5163,6 +5167,7 @@ check_eos:
 
 				mp4_mux_flush_seg(ctx, GF_TRUE, ctx->current_offset, ctx->current_offset + ctx->current_size - 1);
 
+				gf_fflush(ctx->tmp_store);
 				ctx->flush_size = gf_ftell(ctx->tmp_store);
 				ctx->flush_done = 0;
 				gf_fseek(ctx->tmp_store, 0, SEEK_SET);
@@ -5447,7 +5452,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 	}
 
-	//in frag mode, force fetching a sample from each track before processing
+	//fragmented mode
 	if (ctx->store>=MP4MX_MODE_FRAG) {
 		u32 done=0;
 		GF_Err e = mp4_mux_process_fragmented(filter, ctx);
@@ -5456,6 +5461,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		return e;
 	}
 
+	//regular mode
 	nb_suspended = 0;
 	for (i=0; i<count; i++) {
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
