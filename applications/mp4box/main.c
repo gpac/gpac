@@ -5659,7 +5659,9 @@ int mp4boxMain(int argc, char **argv)
 				file = gf_isom_open(use_init_seg, GF_ISOM_OPEN_READ_DUMP, NULL);
 				if (file) {
 					e = gf_isom_open_segment(file, inName, 0, 0, 0);
-					if (e) {
+					if (e==GF_ISOM_INCOMPLETE_FILE) {
+						M4_LOG(GF_LOG_WARNING, ("Segment %s: %s\n", inName, gf_error_to_string(e) ));
+					} else if (e) {
 						M4_LOG(GF_LOG_ERROR, ("Error opening segment %s: %s\n", inName, gf_error_to_string(e) ));
 						gf_isom_delete(file);
 						file = NULL;
