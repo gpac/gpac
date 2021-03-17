@@ -444,14 +444,18 @@ static GF_Err httpin_process(GF_Filter *filter)
 				httpin_notify_error(filter, ctx, e);
 
 			ctx->is_end = GF_TRUE;
-			//no packet out, we can signal eos
+
+			//do not return an error if first fetch after source switch fails with removed or 404, this happens in DASH dynamic
+			//and the error might be absorbed by the dash demux later
+			//also do not signal eos in that case, this could trigger the consuming filter (dashdmx, filein) to consider the stream is in regular EOS
+			//and not wait for notify failure
+			if (ctx->is_source_switch && !ctx->nb_read && ((e==GF_URL_REMOVED) || (e==GF_URL_ERROR)))
+				return GF_OK;
+
+			//no packet out, we can signal eos, except for source switch failures
 			if (ctx->pid) {
 				gf_filter_pid_set_eos(ctx->pid);
 			}
-			//do not return an error if first fetch after source switch fails with removed or 404, this happens in DASH dynamic
-			//and the error might be absorbed by the dash demux later
-			if (ctx->is_source_switch && !ctx->nb_read && ((e==GF_URL_REMOVED) || (e==GF_URL_ERROR)))
-				return GF_OK;
 
 			gf_dm_sess_abort(ctx->sess);
 			ctx->is_source_switch = GF_FALSE;

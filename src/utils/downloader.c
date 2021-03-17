@@ -4088,6 +4088,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	}
 
 	if (sess->server_mode && (sess->status == GF_NETIO_DATA_EXCHANGE)) {
+		assert(e>=0);
 		sess->status = GF_NETIO_DATA_TRANSFERED;
 	}
 
@@ -5579,7 +5580,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 exit:
 	if (e) {
 		if (e<0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Error parsing reply: %s for URL %s\nReply was:\n%s\n", gf_error_to_string(e), sess->orig_url, sHTTP ));
+			GF_LOG((e==GF_URL_ERROR) ? GF_LOG_INFO : GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Error parsing reply for URL %s: %s (code %d)\n", sess->orig_url,  gf_error_to_string(e), rsp_code ));
 		} else {
 			e = GF_OK;
 		}
