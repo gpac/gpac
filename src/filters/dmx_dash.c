@@ -2765,9 +2765,9 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(segstore), "enable file caching\n"
 		"- mem: all files are stored in memory, no disk IO\n"
-		"- file: files are stored to disk but discarded once played\n"
+		"- disk: files are stored to disk but discarded once played\n"
 		"- cache: all files are stored to disk and kept"
-		"", GF_PROP_UINT, "mem", "mem|file|cache", GF_FS_ARG_HINT_ADVANCED},
+		"", GF_PROP_UINT, "mem", "mem|disk|cache", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(algo), "adaptation algorithm to use\n"
 		"- none: no adaptation logic\n"
 		"- grate: GPAC legacy algo based on available rate\n"
