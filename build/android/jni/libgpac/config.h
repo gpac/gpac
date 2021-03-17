@@ -15,4 +15,7 @@
 
 #define GPAC_USE_GLES2 1
 //#define GPAC_FIXED_POINT 1
+
+#define GPAC_CONFIGURATION "(android configuration file)"
+
 #endif

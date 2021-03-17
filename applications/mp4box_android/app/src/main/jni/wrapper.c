@@ -27,7 +27,7 @@ extern "C" {
 
 char ** ConvertCommandLine( const char* sCommand, int* iNbArg );
 
-JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
+JNIEXPORT void JNICALL Java_com_gpac_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
 {
 	//CAST_HANDLE(wr);
 	jniLOGV("mp4terminal::start");
@@ -40,7 +40,7 @@ JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 	const char * sOriginalCommand = (*env)->GetStringUTFChars(env, sCommand, &isCopy);
 
 	jniLOGV("mp4terminal::command get back ok");
-	jniLOGV(sOriginalCommand);
+	//jniLOGV(sOriginalCommand);
 
 	int i = 0;
 	char** sConvertedCommandLine;
@@ -99,4 +99,3 @@ char ** ConvertCommandLine( const char* sCommand, int* iNbArg )
 #ifdef __cplusplus
 }
 #endif
-
