@@ -874,6 +874,20 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
+	switch (sess->ctx->cors) {
+	case CORS_ON:
+		send_cors = GF_TRUE;
+		break;
+	case CORS_AUTO:
+		if (gf_dm_sess_get_header(sess->http_sess, "Origin") != NULL) {
+			send_cors = GF_TRUE;
+			break;
+		}
+	default:
+		send_cors = GF_FALSE;
+		break;
+	}
+
 	if (!full_path && !source_pid) {
 		if (!sess->ctx->dlist || strcmp(url, "/")) {
 			sess->reply_code = 404;
@@ -924,20 +938,6 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	sess->put_in_progress = 0;
 	sess->nb_bytes = 0;
 	sess->upload_type = 0;
-
-	switch (sess->ctx->cors) {
-	case CORS_ON:
-		send_cors = GF_TRUE;
-		break;
-	case CORS_AUTO:
-		if (gf_dm_sess_get_header(sess->http_sess, "Origin") != NULL) {
-			send_cors = GF_TRUE;
-			break;
-		}
-	default:
-		send_cors = GF_FALSE;
-		break;
-	}
 
 	if (parameter->reply==GF_HTTP_DELETE) {
 		no_body = GF_TRUE;
