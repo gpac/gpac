@@ -1741,6 +1741,8 @@ static void av1_parse_sequence_header_obu(GF_BitStream *bs, AV1State *state)
 	state->frame_height_bits_minus_1 = gf_bs_read_int_log(bs, 4, "frame_height_bits_minus1");
 	state->width = gf_bs_read_int_log(bs, state->frame_width_bits_minus_1 + 1, "width_minus1") + 1;
 	state->height = gf_bs_read_int_log(bs, state->frame_height_bits_minus_1 + 1, "height_minus1") + 1;
+	state->sequence_width = state->width;
+	state->sequence_height = state->height;
 	state->frame_id_numbers_present_flag = GF_FALSE;
 	if (!state->reduced_still_picture_header) {
 		state->frame_id_numbers_present_flag = gf_bs_read_int_log(bs, 1, "frame_id_numbers_present_flag");
@@ -2905,6 +2907,9 @@ static void av1_frame_size(GF_BitStream *bs, AV1State *state, Bool frame_size_ov
 		frame_height_minus_1 = gf_bs_read_int_log(bs, n, "frame_height_minus_1");
 		state->width = frame_width_minus_1 + 1;
 		state->height = frame_height_minus_1 + 1;
+	} else {
+		state->width = state->sequence_width;
+		state->height = state->sequence_height;
 	}
 	superres_params(bs, state);
 	//compute_image_size(); //no bits
