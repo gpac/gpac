@@ -2492,6 +2492,12 @@ const char *gf_filter_get_dst_args(GF_Filter *filter);
 */
 char *gf_filter_get_dst_name(GF_Filter *filter);
 
+/*! Get the filter arguments.
+\param filter the target filter
+\return the argument string of the filter
+*/
+const char *gf_filter_get_src_args(GF_Filter *filter);
+
 /*! Sends an event on all input PIDs (downstream) or on all output PIDs (upstream)
 \param filter the target filter
 \param evt the event to send
