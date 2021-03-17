@@ -4088,7 +4088,6 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	}
 
 	if (sess->server_mode && (sess->status == GF_NETIO_DATA_EXCHANGE)) {
-		assert(e>=0);
 		sess->status = GF_NETIO_DATA_TRANSFERED;
 	}
 
