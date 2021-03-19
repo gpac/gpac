@@ -2579,7 +2579,7 @@ static void naldmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 f
 	if ((ctx->bsdbg==2) && ((s32) nb_bits > 1) )
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("(%u)", nb_bits));
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, (" "));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("\" "));
 }
 
 GF_Err naludmx_process(GF_Filter *filter)
