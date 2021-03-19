@@ -33,7 +33,7 @@
 typedef struct
 {
 	//opts
-	u32 ch, sr, fmt;
+	u32 och, osr, ofmt;
 
 	//internal
 	GF_FilterPid *ipid, *opid;
@@ -207,9 +207,9 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//initial config
 	if (!ctx->freq || !ctx->nb_ch || !ctx->afmt) {
-		ctx->afmt = ctx->fmt ? ctx->fmt : afmt;
-		ctx->freq = ctx->sr ? ctx->sr : sr;
-		ctx->nb_ch = ctx->ch ? ctx->ch : nb_ch;
+		ctx->afmt = ctx->ofmt ? ctx->ofmt : afmt;
+		ctx->freq = ctx->osr ? ctx->osr : sr;
+		ctx->nb_ch = ctx->och ? ctx->och : nb_ch;
 		ctx->ch_cfg = ch_cfg;
 
 		gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
@@ -407,9 +407,9 @@ static const GF_FilterCapability ResamplerCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)
 static const GF_FilterArgs ResamplerArgs[] =
 {
-	{ OFFS(ch), "desired number of output audio channels - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(sr), "desired sample rate of output audio - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(fmt), "desired format of output audio - none for auto", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(och), "desired number of output audio channels - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(osr), "desired sample rate of output audio - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(ofmt), "desired format of output audio - none for auto", GF_PROP_PCMFMT, "none", NULL, 0},
 	{0}
 };
 

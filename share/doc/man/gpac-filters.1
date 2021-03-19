@@ -3402,11 +3402,11 @@ This filter resamples raw audio to a target sample rate, number of channels or a
 .SH Options (expert):
 .LP
 .br
-ch (uint, default: 0):         desired number of output audio channels - 0 for auto
+och (uint, default: 0):        desired number of output audio channels - 0 for auto
 .br
-sr (uint, default: 0):         desired sample rate of output audio - 0 for auto
+osr (uint, default: 0):        desired sample rate of output audio - 0 for auto
 .br
-fmt (afmt, default: none):     desired format of output audio - none for auto
+ofmt (afmt, default: none):    desired format of output audio - none for auto
 .br
 
 .br
@@ -5720,7 +5720,7 @@ nbcached (uint, default: 8):   number of segments to keep in cache per service
 .br
 kc (bool, default: false):     keep corrupted file
 .br
-sr (bool, default: true):      skip repeated files - ignored in cache mode
+skipr (bool, default: true):   skip repeated files - ignored in cache mode
 .br
 stsi (bool, default: false):   define one output pid per tsi/serviceID - ignored in cache mode, see filter help
 .br
@@ -7436,7 +7436,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev603-g3e44b2865-master
+build: 1.1.0-DEV-rev615-ge91c5c0f8-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
