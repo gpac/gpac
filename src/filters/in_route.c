@@ -55,7 +55,7 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir;
-	Bool gcache, kc, sr, reorder, fullseg;
+	Bool gcache, kc, skipr, reorder, fullseg;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	s32 tunein, stsi;
 	
@@ -381,7 +381,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			p_pid = &tsio->opid;
 
 			if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD)) {
-				if (ctx->sr && !finfo->updated) return;
+				if (ctx->skipr && !finfo->updated) return;
 			}
 		}
 		pid = *p_pid;
@@ -853,7 +853,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
     { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(skipr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
