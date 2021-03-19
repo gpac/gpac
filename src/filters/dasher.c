@@ -2200,7 +2200,7 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 
 	//need same dash duration if aligned
 	if (ctx->align) {
-		if (ds->dash_dur.num * ds_test->dash_dur.den != ds_test->dash_dur.num * ds->dash_dur.den) return GF_FALSE;
+		if ((u64) ds->dash_dur.num * ds_test->dash_dur.den != (u64) ds_test->dash_dur.num * ds->dash_dur.den) return GF_FALSE;
 	}
 
 	//if one of the pid is marked with period resume and the other is not, one is a spliced media the other no
@@ -5616,7 +5616,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		//setup segmentation
 		ds->rep_init = GF_FALSE;
 		ds->seg_done = GF_FALSE;
-		ds->next_seg_start = (u32) ( ds->dash_dur.num * ds->timescale / ds->dash_dur.den);
+		ds->next_seg_start = (u32) ( ((u64) ds->dash_dur.num * ds->timescale) / ds->dash_dur.den);
 		ds->adjusted_next_seg_start = ds->next_seg_start;
 		ds->segment_started = GF_FALSE;
 		ds->seg_number = ds->startNumber;
@@ -7197,7 +7197,7 @@ assert(ds);
 
 					if ((idx==nb_pck) && ctx->last_seg_merge) {
 						u64 next_seg_dur = (cts_next + next_dur - cts);
-						if (next_seg_dur * ds->dash_dur.den < ds->dash_dur.num * ds->timescale / 2)
+						if (next_seg_dur * ds->dash_dur.den < (u64) ds->dash_dur.num * ds->timescale / 2)
 							continue;
 					}
 
@@ -7245,6 +7245,11 @@ assert(ds);
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
+				}
+				else if ((ds->stream_type==GF_STREAM_AUDIO)
+					&& ((cts + check_dur) * base_ds->timescale == base_ds->adjusted_next_seg_start * ds->timescale)
+				) {
+
 				}
 				// sap, segment is over
 				else if (sap_type) {

@@ -273,9 +273,9 @@ GF_EXPORT
 GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration, Double sub_duration)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->segment_duration = default_segment_duration * 1000 / dasher->dash_scale;
+	dasher->segment_duration = default_segment_duration;
 	if (default_fragment_duration)
-		dasher->fragment_duration = default_fragment_duration * 1000 / dasher->dash_scale;
+		dasher->fragment_duration = default_fragment_duration;
 	else
 		dasher->fragment_duration = dasher->segment_duration;
 	dasher->sub_duration = sub_duration;
@@ -561,7 +561,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		sep_ext[0] = 0;
 	}
 
-	sprintf(szArg, "segdur=%g", dasher->segment_duration);
+	if (dasher->segment_duration == (u32) dasher->segment_duration) {
+		sprintf(szArg, "segdur=%u/%u", (u32) dasher->segment_duration, dasher->dash_scale);
+	} else {
+		sprintf(szArg, "segdur=%g", dasher->segment_duration/dasher->dash_scale);
+	}
 	e = gf_dynstrcat(&args, szArg, ":");
 
 	if (sep_ext)
@@ -683,7 +687,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 	}
 	if (dasher->sub_duration) {
-		sprintf(szArg, "subdur=%g", dasher->sub_duration);
+		//subdur is in seconds in dasher filter
+		sprintf(szArg, "subdur=%g", dasher->sub_duration/dasher->dash_scale);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->dash_state) {
@@ -708,7 +713,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		diff -= dasher->segment_duration;
 		if (diff<0) diff = -diff;
 		if (diff > 0.01) {
-			sprintf(szArg, "cdur=%g", dasher->fragment_duration);
+			if (dasher->fragment_duration == (u32) dasher->fragment_duration) {
+				sprintf(szArg, "cdur=%u/%u", (u32) dasher->fragment_duration, dasher->dash_scale);
+			} else {
+				sprintf(szArg, "cdur=%g", dasher->fragment_duration/dasher->dash_scale);
+			}
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 	}

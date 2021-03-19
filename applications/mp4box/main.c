@@ -510,7 +510,7 @@ static void PrintSplitUsage()
 
 MP4BoxArg m4b_dash_args[] =
 {
- 	MP4BOX_ARG ("dash", "create DASH from input files with given segment (subsegment for onDemand profile) duration in ms", GF_ARG_DOUBLE, 0, &dash_duration, 0, ARG_DIV_1000 | ARG_NON_ZERO),
+ 	MP4BOX_ARG ("dash", "create DASH from input files with given segment (subsegment for onDemand profile) duration in ms", GF_ARG_DOUBLE, 0, &dash_duration, 0, ARG_NON_ZERO),
  	MP4BOX_ARG("dash-live", "generate a live DASH session using the given segment duration in ms; using `-dash-live=F` will also write the live context to `F`. MP4Box will run the live session until `q` is pressed or a fatal error occurs", GF_ARG_DOUBLE, 0, parse_dashlive, 0, ARG_IS_FUN2),
  	MP4BOX_ARG("ddbg-live", "same as [-dash-live]() without time regulation for debug purposes", GF_ARG_DOUBLE, 0, parse_dashlive, 1, ARG_IS_FUN2),
 	MP4BOX_ARG("frag", "specify the fragment duration in ms. If not set, this is the DASH duration (one fragment per segment)", GF_ARG_DOUBLE, 0, parse_store_mode, 2, ARG_IS_FUN),
@@ -544,11 +544,11 @@ MP4BoxArg m4b_dash_args[] =
 	MP4BOX_ARG("mpd-duration", "set the duration in second of a live session (if `0`, you must use [-mpd-refresh]())", GF_ARG_DOUBLE, 0, &mpd_live_duration, 0, 0),
 	MP4BOX_ARG("mpd-refresh", "specify MPD update time in seconds", GF_ARG_DOUBLE, 0, &mpd_update_time, 0, 0),
 	MP4BOX_ARG("time-shift", "specify MPD time shift buffer depth in seconds, `-1` to keep all files)", GF_ARG_INT, 0, &time_shift_depth, 0, 0),
-	MP4BOX_ARG("subdur", "specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless [-no-loop]() is used which triggers a period end", GF_ARG_DOUBLE, 0, &dash_subduration, 0, ARG_DIV_1000),
+	MP4BOX_ARG("subdur", "specify maximum duration in ms of the input file to be dashed in LIVE or context mode. This does not change the segment duration, but stops dashing once segments produced exceeded the duration. If there is not enough samples to finish a segment, data is looped unless [-no-loop]() is used which triggers a period end", GF_ARG_DOUBLE, 0, &dash_subduration, 0, 0),
 	MP4BOX_ARG("run-for", "run for given ms  the dash-live session then exits", GF_ARG_INT, 0, &run_for, 0, 0),
 	MP4BOX_ARG("min-buffer", "specify MPD min buffer time in ms", GF_ARG_INT, 0, &min_buffer, 0, ARG_DIV_1000),
 	MP4BOX_ARG("ast-offset", "specify MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative", GF_ARG_INT, 0, &ast_offset_ms, 0, 0),
-	MP4BOX_ARG("dash-scale", "specify that timing for [-dash]() and [-do_frag]() are expressed in given timexale (units per seconds)", GF_ARG_INT, 0, &dash_scale, 0, ARG_NON_ZERO),
+	MP4BOX_ARG("dash-scale", "specify that timing for [-dash](),  [-dash-live](), [-subdur]() and [-do_frag]() are expressed in given timescale (units per seconds) rather than ms", GF_ARG_INT, 0, &dash_scale, 0, ARG_NON_ZERO),
 	MP4BOX_ARG("mem-frags", "fragmentation happens in memory rather than on disk before flushing to disk", GF_ARG_BOOL, 0, &memory_frags, 0, 0),
 	MP4BOX_ARG("pssh", "set pssh store mode\n"
 	"- v: initial movie\n"
@@ -2475,7 +2475,7 @@ u32 parse_store_mode(char *arg_val, u32 opt)
 		no_inplace = GF_TRUE;
 		if (opt==1) old_interleave = 1;
 	} else if (opt==2) {
-		interleaving_time = atof(arg_val) / 1000;
+		interleaving_time = atof(arg_val);
 		do_frag = GF_TRUE;
 	} else {
 		force_new = 2;
@@ -2768,7 +2768,7 @@ u32 parse_dashlive(char *arg, char *arg_val, u32 opt)
 	if (arg[10] == '=') {
 		dash_ctx_file = arg + 11;
 	}
-	dash_duration = atof(arg_val) / 1000;
+	dash_duration = atof(arg_val);
 	return 0;
 }
 
@@ -5446,6 +5446,9 @@ int mp4boxMain(int argc, char **argv)
 		return mp4box_cleanup(ret);
 	}
 #endif
+
+	if (!dash_duration && interleaving_time && do_frag)
+		interleaving_time /= 1000;
 
 	if (do_mpd_conv) inName = do_mpd_conv;
 
