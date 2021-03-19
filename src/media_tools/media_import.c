@@ -259,6 +259,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
+	u64 mtimescale;
 	s32 trans_x, trans_y;
 	s16 layer;
 	char *lang;
@@ -490,9 +491,10 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
 
+	mtimescale = gf_isom_get_media_timescale(import->orig, track_in);
 	duration = 0;
 	if ((import->duration.num>0) && import->duration.den) {
-		duration = (u64) (((Double)import->duration.num * gf_isom_get_media_timescale(import->orig, track_in)) / import->duration.den);
+		duration = (u64) (((Double)import->duration.num * mtimescale) / import->duration.den);
 	}
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
@@ -558,7 +560,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				e = gf_isom_last_error(import->orig);
 				goto exit;
 			}
+
 			samp->DTS -= dts_offset;
+			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+				gf_isom_sample_del(&samp);
+				break;
+			}
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
@@ -588,6 +595,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				}
 				samp->DTS = sampDTS + 1;
 			}
+
+			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+				gf_isom_sample_del(&samp);
+				break;
+			}
+
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
@@ -632,7 +645,9 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
-		if (duration && (sampDTS > duration) ) break;
+
+		if (duration && gf_sys_old_arch_compat() && (sampDTS > duration))
+			break;
 	}
 
 	//adjust last sample duration
