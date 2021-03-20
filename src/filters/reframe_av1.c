@@ -52,6 +52,8 @@ typedef struct
 	Bool importer;
 	Bool deps;
 	
+	u32 bsdbg;
+
 	//only one input pid declared
 	GF_FilterPid *ipid;
 	//only one output pid declared
@@ -841,6 +843,27 @@ GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 }
 
+GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
+static void av1dmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3)
+{
+	GF_AV1DmxCtx *ctx = (GF_AV1DmxCtx *) udta;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, (" %s", field_name));
+	if (idx1>=0) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx1));
+		if (idx2>=0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx2));
+			if (idx3>=0) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx3));
+			}
+		}
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("=\""LLD, field_val));
+	if ((ctx->bsdbg==2) && ((s32) nb_bits > 1) )
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("(%u)", nb_bits));
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("\" "));
+}
+
 GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *data, u32 data_size, Bool is_copy)
 {
 	u32 last_obu_end = 0;
@@ -848,6 +871,11 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ctx->bs, data, data_size);
+
+#ifndef GPAC_DISABLE_LOG
+	if (ctx->bsdbg && gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG))
+		gf_bs_set_logger(ctx->bs, av1dmx_bs_log, ctx);
+#endif
 
 	//check ivf vs obu vs annexB
 	e = av1dmx_check_format(filter, ctx, ctx->bs, &last_obu_end);
@@ -1100,6 +1128,11 @@ static const GF_FilterArgs AV1DmxArgs[] =
 
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
+		"- off: not enabled\n"
+		"- on: enabled\n"
+		"- full: enable with number of bits dumped", GF_PROP_UINT, "off", "off|on|full", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
