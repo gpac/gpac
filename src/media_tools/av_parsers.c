@@ -1647,13 +1647,19 @@ static u32 av1_uvlc(GF_BitStream *bs, const char *fname)
 
 static void timing_info(GF_BitStream *bs, AV1State *state) {
 	u32 time_scale = 0;
-	/*num_units_in_display_tick*/ gf_bs_read_int_log(bs, 32, "num_units_in_display_tick");
+	u32 num_units_in_display_tick = gf_bs_read_int_log(bs, 32, "num_units_in_display_tick");
+	if (num_units_in_display_tick == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] num_units_in_display_tick must be greater than 0.\n"));
+	}
 	time_scale = gf_bs_read_int_log(bs, 32, "time_scale");
+	if (time_scale == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] time_scale must be greater than 0.\n"));
+	}
 	state->equal_picture_interval = gf_bs_read_int_log(bs, 1, "equal_picture_interval");
 	if (state->equal_picture_interval) {
 		u32 num_ticks_per_picture_minus_1 = av1_uvlc(bs, "num_ticks_per_picture_minus_1");
-		state->tb_num = (num_ticks_per_picture_minus_1 + 1);
-		state->tb_den = time_scale;
+		state->tb_num = time_scale;
+		state->tb_den = (num_ticks_per_picture_minus_1 + 1)*num_units_in_display_tick;
 	}
 	else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] VFR not supported.\n"));
@@ -1835,11 +1841,11 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height, u32 *codec_fourcc, u32 *timebase_den, u32 *timebase_num, u32 *num_frames)
 {
 	u32 dw = 0;
 
-	if (!width || !height || !codec_fourcc || !frame_rate || !time_scale || !num_frames) {
+	if (!width || !height || !codec_fourcc || !timebase_den || !timebase_num || !num_frames) {
 		assert(0);
 		return GF_BAD_PARAM;
 	}
@@ -1872,8 +1878,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	*width = gf_bs_read_u16_le(bs);
 	*height = gf_bs_read_u16_le(bs);
 
-	*frame_rate = gf_bs_read_u32_le(bs);
-	*time_scale = gf_bs_read_u32_le(bs);
+	*timebase_den = gf_bs_read_u32_le(bs);
+	*timebase_num = gf_bs_read_u32_le(bs);
 
 	*num_frames = gf_bs_read_u32_le(bs);
 	gf_bs_read_u32_le(bs); //skip unused
