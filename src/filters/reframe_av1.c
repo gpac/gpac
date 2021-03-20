@@ -159,10 +159,10 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	ctx->pts_from_file = GF_FALSE;
 	if (gf_media_probe_ivf(bs)) {
 		u32 width = 0, height = 0;
-		u32 codec_fourcc = 0, frame_rate = 0, time_scale = 0, num_frames = 0;
+		u32 codec_fourcc = 0, timebase_den = 0, timebase_num = 0, num_frames = 0;
 		ctx->bsmode = IVF;
 
-		e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &frame_rate, &time_scale, &num_frames);
+		e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &timebase_den, &timebase_num, &num_frames);
 		if (e) return e;
 
 		switch (codec_fourcc) {
@@ -199,8 +199,8 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 
 		ctx->state.width = ctx->state.width < width ? width : ctx->state.width;
 		ctx->state.height = ctx->state.height < height ? height : ctx->state.height;
-		ctx->state.tb_num = frame_rate; //time_base.numerator
-		ctx->state.tb_den = time_scale; //time_base.denominator
+		ctx->state.tb_num = timebase_num;
+		ctx->state.tb_den = timebase_den;
 
 		if ((!ctx->fps.num || !ctx->fps.den) && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
 			ctx->cur_fps.num = ctx->state.tb_num;
