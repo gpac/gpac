@@ -1841,7 +1841,7 @@ Bool gf_media_probe_ivf(GF_BitStream *bs)
 	return GF_TRUE;
 }
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height, u32 *codec_fourcc, u32 *timebase_den, u32 *timebase_num, u32 *num_frames)
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height, u32 *codec_fourcc, u32 *timebase_num, u32 *timebase_den, u32 *num_frames)
 {
 	u32 dw = 0;
 
@@ -1878,8 +1878,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 	*width = gf_bs_read_u16_le(bs);
 	*height = gf_bs_read_u16_le(bs);
 
-	*timebase_den = gf_bs_read_u32_le(bs);
 	*timebase_num = gf_bs_read_u32_le(bs);
+	*timebase_den = gf_bs_read_u32_le(bs);
 
 	*num_frames = gf_bs_read_u32_le(bs);
 	gf_bs_read_u32_le(bs); //skip unused

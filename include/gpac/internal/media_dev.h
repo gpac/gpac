@@ -732,7 +732,7 @@ s32 gf_media_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type
 
 
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *timebase_num, u32 *timebase_den, u32 *num_frames);
 
 
 
