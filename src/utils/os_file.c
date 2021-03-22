@@ -580,12 +580,19 @@ FILE *gf_file_temp(char ** const fileName)
 			gf_dynstrcat(&opath, "/", NULL);
 		if (!opath) return NULL;
 
-		if (fileName) {
-			sprintf(szFName, "_libgpac_%d_%p_%p.tmp", gf_sys_get_process_id(), opath, fileName);
-		} else {
-			sprintf(szFName, "_libgpac_%d_%p.tmp", gf_sys_get_process_id(), opath);
-		}
+		sprintf(szFName, "_libgpac_%d_%p_"LLU"_%d", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
 		gf_dynstrcat(&opath, szFName, NULL);
+		if (fileName) {
+			sprintf(szFName, "%p", fileName);
+			gf_dynstrcat(&opath, szFName, "_");
+		}
+
+		if (gf_file_exists(opath)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Something went wrong creating temp file path %s, file already exists !\n", opath));
+			gf_free(opath);
+			return NULL;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Opening new temp file %s\n", opath));
 		res = gf_fopen_ex(opath, "__temp_file", "w+b");
 		if (!res) {
 			gf_free(opath);
