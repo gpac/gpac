@@ -1260,10 +1260,11 @@ static GF_Err gf_isom_set_last_sample_duration_internal(GF_ISOFile *movie, u32 t
 		if (cum_dur <= dur_num || !nb_samp) return GF_OK;
 		avg_dur = (u32) (dur_num / nb_samp);
 
-		for (i=0; i<stts->nb_entries; i++) {
-			ent = (GF_SttsEntry*) &stts->entries[i];
-			ent->sampleDelta = avg_dur;
+		stts->entries[0].sampleDelta = avg_dur;
+		for (i=1; i<stts->nb_entries; i++) {
+			stts->entries[0].sampleCount += stts->entries[i].sampleCount;
 		}
+		stts->nb_entries = 1;
 		stts->w_LastDTS = dur_num - avg_dur;
 		return GF_OK;
 	}
