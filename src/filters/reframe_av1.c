@@ -162,7 +162,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		u32 codec_fourcc = 0, timebase_den = 0, timebase_num = 0, num_frames = 0;
 		ctx->bsmode = IVF;
 
-		e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &timebase_den, &timebase_num, &num_frames);
+		e = gf_media_parse_ivf_file_header(bs, &width, &height, &codec_fourcc, &timebase_num, &timebase_den, &num_frames);
 		if (e) return e;
 
 		switch (codec_fourcc) {
