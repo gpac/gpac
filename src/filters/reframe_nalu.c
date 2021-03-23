@@ -211,7 +211,7 @@ typedef struct
 	Bool has_initial_aud;
 	char init_aud[3];
 
-	Bool interlaced, eos_in_bs;
+	Bool interlaced;
 
 	Bool is_mvc;
 
@@ -2333,8 +2333,6 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
 	res = gf_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
-	if (ctx->eos_in_bs)
-		return -1;
 	if (res < 0) {
 		if (res == -1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
@@ -2498,12 +2496,6 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		break;
 	}
 	return res;
-}
-
-static void naludmx_on_eos(void *par)
-{
-	GF_NALUDmxCtx *ctx = (GF_NALUDmxCtx *)par;
-	ctx->eos_in_bs = GF_TRUE;
 }
 
 static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
@@ -2689,14 +2681,8 @@ naldmx_flush:
 	} else {
 		gf_bs_reassign_buffer(ctx->bs_r, start, remain);
 	}
-	if (is_eos)
-		gf_bs_set_eos_callback(ctx->bs_r, naludmx_on_eos, ctx);
-	ctx->eos_in_bs = GF_FALSE;
 
     assert(remain>=0);
-//    fprintf(stderr, "nb nal %d\n", ctx->nb_nalus);
-    if (ctx->nb_nalus==15467)
-		assert(remain>=0);
 
 	while (remain) {
 		u8 *pck_data;
@@ -2868,10 +2854,6 @@ naldmx_flush:
 			nal_parse_result = naludmx_parse_nal_vvc(ctx, nal_data, nal_size, &skip_nal, &is_slice, &is_islice);
 		} else {
 			nal_parse_result = naludmx_parse_nal_avc(ctx, nal_data, nal_size, nal_type, &skip_nal, &is_slice, &is_islice);
-		}
-
-		if (ctx->eos_in_bs && is_eos) {
-			break;
 		}
 
 		//dispatch right away if analyze
@@ -3317,8 +3299,13 @@ naldmx_flush:
 	}
 
 	if (remain) {
-		assert((u32) remain<=ctx->nal_store_size);
-		memmove(ctx->nal_store, start, remain);
+		if (is_eos && (remain == ctx->nal_store_size)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] Incomplete last NAL and eos, discarding\n", ctx->log_name));
+			remain = 0;
+		} else {
+			assert((u32) remain<=ctx->nal_store_size);
+			memmove(ctx->nal_store, start, remain);
+		}
 	}
 	ctx->nal_store_size = remain;
 

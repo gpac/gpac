@@ -4705,6 +4705,9 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 	u32 val;
 	u32 bits = 0, read = 0;
 	while (1) {
+		u32 nb_bits = gf_bs_bits_available(bs);
+		if (nb_bits>8) nb_bits = 8;
+
 		read = gf_bs_peek_bits(bs, 8, 0);
 		if (read) break;
 		//check whether we still have bits once the peek is done since we may have less than 8 bits available
