@@ -2199,7 +2199,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range)
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -2217,7 +2217,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 	
 	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
-	if (exact_range)
+	if (force_v1)
 		movie->root_sidx->version = 1;
 		
 	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
