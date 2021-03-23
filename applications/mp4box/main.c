@@ -255,6 +255,8 @@ GF_ISOFile *file = NULL;
 
 Bool insert_utc=0, chunk_mode=0, HintCopy=0, hint_no_offset=0, do_bin_xml=0, frag_real_time=0, force_co64=0, live_scene=0, use_mfra=0;
 Bool dump_iod=0, samplegroups_in_traf=0, mvex_after_traks=0, daisy_chain_sidx=0, use_ssix=0, single_segment=0, single_file=0, segment_timeline=0;
+Bool has_add_image=0;
+
 char *do_mpd_conv=NULL;
 u32 MTUSize = 1450;
 char *dash_start_date=NULL;
@@ -1664,6 +1666,9 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 	open_edit = GF_TRUE;
 
 	if (!opts) return 2;
+
+	if (act_type == META_ACTION_ADD_IMAGE_ITEM)
+		has_add_image = GF_TRUE;
 
 	while (1) {
 		char *next;
@@ -4067,6 +4072,19 @@ static u32 do_add_cat(int argc, char **argv)
 
 		if (freeze_box_order)
 			gf_isom_freeze_order(file);
+
+		if (do_flat) {
+			if (major_brand)
+				gf_isom_set_brand_info(file, major_brand, minor_version);
+			for (i=0; i<nb_alt_brand_add; i++) {
+				gf_isom_modify_alternate_brand(file, brand_add[i], GF_TRUE);
+				do_save = GF_TRUE;
+			}
+
+			if (!major_brand && !nb_alt_brand_add && has_add_image) {
+				gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MIF1, GF_TRUE);
+			}
+		}
 	}
 
 	if (file && keep_utc && open_edit) {
