@@ -2093,7 +2093,11 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 		Bool self_ref;
 		u32 ID;
 		u32 it_type, cenc_scheme, cenc_version;
-		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, &cenc_scheme, &cenc_version, &self_ref, &it_name, &mime, &enc, &url, &urn);
+		GF_Err e = gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, &cenc_scheme, &cenc_version, &self_ref, &it_name, &mime, &enc, &url, &urn);
+		if (e) {
+			fprintf(stderr, "%sItem #%d fetch info error: %s\n", szInd, i+1, gf_error_to_string(e) );
+			continue;
+		}
 		fprintf(stderr, "%sItem #%d - ID %d - type %s ", szInd, i+1, ID, gf_4cc_to_str(it_type));
 		if (self_ref) fprintf(stderr, " - Self-Reference");
 		else if (it_name && it_name[0]) fprintf(stderr, " - Name: %s", it_name);

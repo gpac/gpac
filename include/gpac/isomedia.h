@@ -415,6 +415,7 @@ enum
 	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12) + support for version 1*/
 	GF_ISOM_BRAND_ISO4 =  GF_4CC( 'i', 's', 'o', '4' ),
 	/* Image File Format */
+	GF_ISOM_BRAND_HEIF = GF_4CC('h', 'e', 'i', 'f'),
 	GF_ISOM_BRAND_MIF1 = GF_4CC('m', 'i', 'f', '1'),
 	GF_ISOM_BRAND_HEIC = GF_4CC('h', 'e', 'i', 'c'),
 	GF_ISOM_BRAND_HEIM = GF_4CC('h', 'e', 'i', 'm'),

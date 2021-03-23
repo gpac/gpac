@@ -185,6 +185,8 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 				break;
 			} else if (is_self_reference && !iloc->base_offset) {
 				GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
+				if (!entry) return GF_ISOM_INVALID_FILE;
+
 				if (!entry->extent_length
 #ifndef GPAC_DISABLE_ISOM_WRITE
 				        && !entry->original_extent_offset
@@ -217,6 +219,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	char szPath[1024];
 	FILE *resource = NULL;
 	u32 i, count;
+	GF_Err e;
 	GF_ItemLocationEntry *location_entry;
 	u32 item_num;
 	u32 item_type = 0;
@@ -370,6 +373,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		}
 	}
 
+	e = GF_OK;
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
 		u64 remain;
@@ -379,8 +383,16 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		remain = extent_entry->extent_length;
 		while (remain) {
 			if (nalu_size_length) {
+				if (remain < nalu_size_length) {
+					e = GF_ISOM_INVALID_FILE;
+					break;
+				}
+
 				u32 nal_size = gf_bs_read_int(file->movieFileMap->bs, 8*nalu_size_length);
-				assert(remain>nalu_size_length);
+				if (remain - nalu_size_length < nal_size) {
+					e = GF_ISOM_INVALID_FILE;
+					break;
+				}
 
 				if (use_annex_b)
 					gf_bs_write_u32(item_bs, 1);
@@ -410,7 +422,7 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 	if (resource) {
 		gf_fclose(resource);
 	}
-	return GF_OK;
+	return e;
 }
 
 GF_EXPORT
@@ -1363,20 +1375,32 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		}
 	}
 	else if (tk_id && sample_num) {
-		if (file->openMode == GF_ISOM_OPEN_WRITE) {
+		if ((file->openMode == GF_ISOM_OPEN_WRITE) || (file->openMode == GF_ISOM_OPEN_EDIT)) {
 			GF_ItemExtentEntry *entry;
 			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 			if (!entry) return GF_OUT_OF_MEM;
 
 			entry->extent_length = data_len;
-			location_entry->base_offset = gf_bs_get_position(file->editFileMap->bs);
+			location_entry->base_offset = 0;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, tk_id, sample_num, NULL, &entry->extent_offset);
 			if (samp) gf_isom_sample_del(&samp);
 			gf_list_add(location_entry->extent_entries, entry);
+
+			if (data_len>0xFFFFFFFF) meta->item_locations->length_size = 8;
+			else if (! meta->item_locations->base_offset_size) meta->item_locations->length_size = 4;
+
+			//for in-place rewrite + add-image
+			if (file->openMode == GF_ISOM_OPEN_EDIT) {
+				location_entry->base_offset = 0;
+				infe->tk_id = tk_id;
+				infe->sample_num = sample_num;
+				infe->data_len = data_len;
+			}
 		} else {
 			infe->tk_id = tk_id;
 			infe->sample_num = sample_num;
 			infe->data_len = data_len;
+			file->no_inplace_rewrite = GF_TRUE;
 		}
 		meta->use_item_sample_sharing = GF_TRUE;
 	}
