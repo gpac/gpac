@@ -1992,6 +1992,7 @@ static GFINLINE GF_Err stbl_AddOffset(GF_SampleTableBox *stbl, GF_Box **old_stco
 		stco = (GF_ChunkOffsetBox *) *old_stco;
 		//if dataOffset is bigger than 0xFFFFFFFF, move to LARGE offset
 		if (offset > 0xFFFFFFFF) {
+			s32 prev_pos = gf_list_find(stbl->child_boxes, *old_stco);
 			co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 			if (!co64) return GF_OUT_OF_MEM;
 			co64->nb_entries = stco->nb_entries + 1;
@@ -2010,7 +2011,9 @@ static GFINLINE GF_Err stbl_AddOffset(GF_SampleTableBox *stbl, GF_Box **old_stco
 			*old_stco = (GF_Box *)co64;
 
 			assert (stbl->child_boxes);
-			gf_list_add(stbl->child_boxes, *old_stco);
+			//register new box only if old one was registered
+			if (prev_pos>=0)
+				gf_list_insert(stbl->child_boxes, *old_stco, prev_pos);
 			return GF_OK;
 		}
 		//OK, stick with regular...
