@@ -5156,12 +5156,12 @@ check_eos:
 			if (ctx->vodcache!=MP4MX_VODCACHE_ON) {
 				ctx->final_sidx_flush = GF_TRUE;
 				//flush SIDX in given space - this will reserve 8 bytes for free box if not fitting
-				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size, ctx->sidx_size_exact);
+				gf_isom_flush_sidx(ctx->file, ctx->sidx_max_size, (ctx->sidx_size_exact || ctx->tfdt64) ? GF_TRUE : GF_FALSE);
 			} else {
 				u64 start_offset;
 				//reenable packet dispatch
 				ctx->store_output = GF_FALSE;
-				gf_isom_flush_sidx(ctx->file, 0, GF_FALSE);
+				gf_isom_flush_sidx(ctx->file, 0, ctx->tfdt64);
 				//flush sidx packet
 				mp4mux_send_output(ctx);
 
@@ -6260,7 +6260,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "use 32 bit offset for side data location instead of 64 bit offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tfdt64), "use 64 bit tfdt even for 32 bits timestamps", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tfdt64), "use 64 bit tfdt and sidx even for 32 bits timestamps", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 #ifdef GF_ENABLE_CTRN
 	{ OFFS(ctrn), "use compact track run (experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctrni), "use inheritance in compact track run for HEVC tile tracks (highly experimental)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
