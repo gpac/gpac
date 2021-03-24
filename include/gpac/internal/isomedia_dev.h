@@ -3993,6 +3993,7 @@ struct __tag_isom {
 	u32 single_moof_state;
 
 	Bool sample_groups_in_traf;
+	Bool force_sidx_v1;
 
 	/* optional mfra box used in write mode */
 	GF_MovieFragmentRandomAccessBox *mfra;
