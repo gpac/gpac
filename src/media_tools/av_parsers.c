@@ -4679,55 +4679,39 @@ const char *gf_avc_hevc_get_chroma_format_name(u8 chroma_format)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-
-static u8 avc_golomb_bits[256] = {
-	8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2,
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0
-};
-
 u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 idx2, s32 idx3)
 {
-	u8 coded;
-	u32 val;
-	u32 bits = 0, read = 0;
-	while (1) {
-		u32 nb_bits = gf_bs_bits_available(bs);
-		if (nb_bits>8) nb_bits = 8;
-
-		read = gf_bs_peek_bits(bs, 8, 0);
-		if (read) break;
-		//check whether we still have bits once the peek is done since we may have less than 8 bits available
-		if (!gf_bs_available(bs)) {
-			//log moved as debug, erro log thrown by gf_bs_read_*
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AVC/HEVC] Not enough bits in bitstream !!\n"));
+	u32 val=0, code;
+	s32 nb_lead = -1;
+	u32 bits = 0;
+	for (code=0; !code; nb_lead++) {
+		if (nb_lead>=32) {
+			//gf_bs_read_int keeps returning 0 on EOS, so if no more bits available, rbsp was truncated otherwise code is broken in rbsp)
+			//we only test once nb_lead>=32 to avoid testing at each bit read
+			if (!gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] exp-golomb read failed, not enough bits in bitstream !\n"));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] corrupted exp-golomb code, %d leading zeros, max 31 allowed !\n", nb_lead));
+			}
 			return 0;
 		}
-		gf_bs_read_int(bs, 8);
-		bits += 8;
+
+		code = gf_bs_read_int(bs, 1);
+		bits++;
 	}
-	coded = avc_golomb_bits[read];
-	gf_bs_read_int(bs, coded);
-	bits += coded;
-	val = gf_bs_read_int(bs, bits + 1) - 1;
+
+	if (nb_lead) {
+		val = gf_bs_read_int(bs, nb_lead);
+		val += (1 << nb_lead) - 1;
+		bits += nb_lead;
+	}
+
 	if (fname) {
-		gf_bs_log_idx(bs, bits+1, fname, val, idx1, idx2, idx3);
+		gf_bs_log_idx(bs, bits, fname, val, idx1, idx2, idx3);
 	}
 	return val;
 }
+
 #define gf_bs_read_ue_log_idx2(_bs, _fname, _idx1, _idx2) gf_bs_read_ue_log_idx3(_bs, _fname, (s32) _idx1, (s32) _idx2, -1)
 #define gf_bs_read_ue_log_idx(_bs, _fname, _idx) gf_bs_read_ue_log_idx3(_bs, _fname, (s32) _idx, -1, -1)
 #define gf_bs_read_ue_log(_bs, _fname) gf_bs_read_ue_log_idx3(_bs, _fname, -1, -1, -1)
