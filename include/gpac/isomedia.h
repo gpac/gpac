@@ -4404,7 +4404,7 @@ typedef enum
 	/*! forces trun v1
 	param: on/off (0/1)*/
 	GF_ISOM_TRAF_TRUN_V1,
-	/*force usage of 64 bits in tfdt*/
+	/*force usage of 64 bits in tfdt and in per-segment sidx*/
 	GF_ISOM_TRAF_USE_LARGE_TFDT
 } GF_ISOTrackFragmentOption;
 

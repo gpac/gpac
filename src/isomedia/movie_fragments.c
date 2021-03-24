@@ -530,6 +530,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->large_tfdt = Param;
+		movie->force_sidx_v1 = Param ? GF_TRUE : GF_FALSE;
 		break;
 	}
 	return GF_OK;
@@ -1734,6 +1735,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		} else {
 			sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
 			if (!sidx) return GF_OUT_OF_MEM;
+			if (movie->force_sidx_v1)
+				sidx->version = 1;
 		}
 		sidx->reference_ID = referenceTrackID;
 		sidx->timescale = trak->Media->mediaHeader->timeScale;
