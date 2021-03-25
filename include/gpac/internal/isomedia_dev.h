@@ -418,6 +418,9 @@ enum
 	GF_ISOM_BOX_TYPE_CLLI	= GF_4CC('c', 'l', 'l', 'i'),
 	GF_ISOM_BOX_TYPE_MDCV	= GF_4CC('m', 'd', 'c', 'v'),
 
+	/* AVIF Boxes */
+	GF_ISOM_BOX_TYPE_A1LX   = GF_4CC('a', '1', 'l', 'x'),
+
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
@@ -3645,6 +3648,12 @@ typedef struct __item_association_box {
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 } GF_ItemPropertyAssociationBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u8 large_size;
+	u32 layer_size[3];
+} GF_AV1LayeredImageIndexingPropertyBox;
 
 
 typedef struct {

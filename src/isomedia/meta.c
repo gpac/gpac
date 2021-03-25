@@ -748,6 +748,12 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 				prop->clap_vonum = clap->vertOffN;
 			}
 			break;
+			case GF_ISOM_BOX_TYPE_A1LX:
+			{
+				GF_AV1LayeredImageIndexingPropertyBox *a1lx = (GF_AV1LayeredImageIndexingPropertyBox *)b;
+				memcpy(prop->av1_layer_size, a1lx->layer_size, sizeof(prop->av1_layer_size));
+			}
+			break;
 			case GF_ISOM_BOX_TYPE_HVCC:
 			case GF_ISOM_BOX_TYPE_AVCC:
 			case GF_ISOM_BOX_TYPE_AV1C:
@@ -845,6 +851,14 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 				&& prop->cenc_info->key_info && ienc->key_info
 				&& !memcmp(prop->cenc_info->key_info, ienc->key_info, ienc->key_info_size)
 			) {
+				return i;
+			}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_A1LX:
+		{
+			GF_AV1LayeredImageIndexingPropertyBox *a1lx = (GF_AV1LayeredImageIndexingPropertyBox *)b;
+			if (memcmp(prop->av1_layer_size, a1lx->layer_size, sizeof(prop->av1_layer_size)) == 0) {
 				return i;
 			}
 		}
@@ -1071,6 +1085,22 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
 		searchprop.num_channels = 0;
+	}
+	if ((image_props->av1_layer_size[0] != image_props->av1_layer_size[1]) ||
+		(image_props->av1_layer_size[1] != image_props->av1_layer_size[2]) ||
+		(image_props->av1_layer_size[0] != image_props->av1_layer_size[2])) {
+		memcpy(searchprop.av1_layer_size, image_props->av1_layer_size, sizeof(searchprop.av1_layer_size));
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_AV1LayeredImageIndexingPropertyBox *a1lx = (GF_AV1LayeredImageIndexingPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_A1LX);
+			if (!a1lx) return GF_OUT_OF_MEM;
+			a1lx->large_size = 1;
+			memcpy(a1lx->layer_size, image_props->av1_layer_size, sizeof(a1lx->layer_size));
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
+		if (e) return e;
+		memset(searchprop.av1_layer_size, 0, sizeof(searchprop.av1_layer_size));
 	}
 
 	if (image_props->cenc_info) {

@@ -5298,6 +5298,16 @@ GF_Err ispe_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
+{
+    GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "AV1LayeredImageIndexingPropertyBox", trace);
+	gf_fprintf(trace, "large_size=\"%d\" layer_size0=\"%d\" layer_size1=\"%d\" layer_size2=\"%d\">\n", ptr->large_size, ptr->layer_size[0], ptr->layer_size[1], ptr->layer_size[2]);
+	gf_isom_box_dump_done("AV1LayeredImageIndexingPropertyBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err colr_box_dump(GF_Box *a, FILE * trace)
 {
 	u8 *prof_data_64=NULL;

@@ -83,6 +83,62 @@ GF_Err ispe_box_size(GF_Box *s)
 	}
 }
 
+GF_Box *a1lx_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AV1LayeredImageIndexingPropertyBox, GF_ISOM_BOX_TYPE_A1LX);
+	return (GF_Box *)tmp;
+}
+
+void a1lx_box_del(GF_Box *a)
+{
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)a;
+	gf_free(p);
+}
+
+GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)s;
+	p->large_size = gf_bs_read_u8(bs);
+	if (p->large_size & 1) {
+		for (int i = 0; i < 3; i++) {
+			p->layer_size[i] = gf_bs_read_u32(bs);
+		}
+	} else {
+		for (int i = 0; i < 3; i++) {
+			p->layer_size[i] = gf_bs_read_u16(bs);
+		}
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err a1lx_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
+	p->large_size = 1;
+	gf_bs_write_u8(bs, p->large_size);
+	for (int i = 0; i < 3; i++) {
+		if (p->large_size & 1) {
+			gf_bs_write_u32(bs, p->layer_size[i]);
+		} else {
+			gf_bs_write_u16(bs, p->layer_size[i]);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err a1lx_box_size(GF_Box *s)
+{
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
+	int field_length_bytes = ((p->large_size & 1) + 1) * 2;
+	p->size += field_length_bytes * 3 + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *colr_box_new()
@@ -1360,6 +1416,7 @@ import_next_sample:
 				bits_per_channel[1] = depth;
 				bits_per_channel[2] = depth;
 			}
+			gf_isom_av1_layer_size_get(fsrc, imported_track, image_props->av1_layer_size);
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;
