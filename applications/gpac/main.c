@@ -2719,16 +2719,25 @@ struct __jsenum_info
 	GF_FilterSession *session;
 	GF_SysArgMode argmode;
 	Bool print_filter_info;
+	char *js_dir;
 };
 
 static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
-	GF_Filter *f = gf_fs_load_filter(jsi->session, item_path, NULL);
+	GF_Filter *f;
+	if (jsi->js_dir && strcmp(item_name, "init.js")) {
+		return GF_FALSE;
+	}
+	f = gf_fs_load_filter(jsi->session, item_path, NULL);
 	if (f) {
 		char szPath[GF_MAX_PATH];
 		char *ext;
-		strcpy(szPath, item_name);
+		if (jsi->js_dir) {
+			strcpy(szPath, jsi->js_dir);
+		} else {
+			strcpy(szPath, item_name);
+		}
 		ext = gf_file_ext_start(szPath);
 		if (ext) ext[0] = 0;
 		if (jsi->print_filter_info || gen_doc)
@@ -2736,6 +2745,15 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 		else
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", szPath, gf_filter_get_description(f));
 	}
+	return GF_FALSE;
+}
+static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
+	jsi->js_dir = item_name;
+
+	gf_enum_directory(item_path, GF_FALSE, jsinfo_enum, jsi, ".js");
+	jsi->js_dir = NULL;
 	return GF_FALSE;
 }
 
@@ -2865,6 +2883,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 		if (gf_opts_default_shared_directory(szPath)) {
 			strcat(szPath, "/scripts/jsf/");
 			gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
+			gf_enum_directory(szPath, GF_TRUE, jsinfo_dir_enum, &jsi, NULL);
 		}
 		while (js_dirs && js_dirs[0]) {
 			char *sep = strchr(js_dirs, ',');
