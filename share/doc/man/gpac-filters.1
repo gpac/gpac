@@ -6594,7 +6594,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.65.101
+Version: Lavf58.77.100
 .br
 
 .br
@@ -6622,7 +6622,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.119.100
+Version: Lavc58.135.100
 .br
 
 .br
@@ -6654,7 +6654,7 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd58.11.103
+Version: Lavd58.14.100
 .br
 
 .br
@@ -6721,7 +6721,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS5.8.100
+Version: SwS5.10.100
 .br
 
 .br
@@ -6769,7 +6769,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.119.100
+Version: Lavc58.135.100
 .br
 
 .br
@@ -6833,7 +6833,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.65.101
+Version: Lavf58.77.100
 .br
 
 .br
@@ -6887,7 +6887,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.65.101
+Version: Lavf58.77.100
 .br
 
 .br
@@ -7437,6 +7437,149 @@ reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
+.SH avgen
+.LP
+.br
+Description: AV Counter Generator
+.br
+Version: 1.0
+.br
+Author: GPAC Team
+.br
+
+.br
+This filter generates AV streams representing a counter. Streams can be enabled or disabled using .I type.
+.br
+The filter is software-based and does not use GPU.
+.br
+
+.br
+When .I adjust is set, the first video frame is adjusted such that a full circle happens at each exact second according to the system UTC clock.
+.br
+By default, video UTC and date are computed at each frame generation from current clock and not from frame number.
+.br
+This will result in broken timing when playing at speeds other than 1.0.
+.br
+This can be changed using .I lock.
+.br
+
+.br
+Audio beep is generated every second, with octave (2xfreq) of even beep used every 10 seconds.
+.br
+When video is generated, beep is synchronized to video at each exact second.
+.br
+
+.br
+If NTP injection is used, each video packet (but not audio ones) has a SenderNTP property set; if video is not used, each audio packet has a SenderNTP property set.
+.br
+
+.br
+.SH Multistream generation
+.LP
+.br
+More than one output size can be specified. This will result in multiple sources being generated, one per size.
+.br
+A size can be specified more than once, resulting in packet references when [-copy] is not set, or full copies otherwise.
+.br
+Target encoding bitrates can be assigned to each output using .I rates. This can be usefull when generating dash:
+.br
+Example
+.br
+gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:clone -o live.mpd:SID=1,2
+.br
+
+.br
+
+.br
+.SH Multiview generation
+.LP
+.br
+In multiview mode, only the animated counter will move in depth backward and forward, as indicated by the .I disparity value.
+.br
+When .I pack is set, a packed stereo couple is generated for each video packet.
+.br
+Otherwise, when .I views is greater than 2, each view is generated on a dedicated output pid with the property ViewIdx set in [1, views].
+.br
+Multi-view output forces usage of .I copy mode.
+.br
+
+.br
+.SH PID Naming
+.LP
+.br
+The audio PID is assigned the name audio and ID 1.
+.br
+If a single video PID is produced, it is assigned the name video and ID 2.
+.br
+If multiple video PIDs are produced, they are assigned the names videoN and ID N+1, N in [1, sizes].
+.br
+If multiple .I views are generated, they are assigned the names videoN_vK and ID N*views+K-1, N in [1, sizes], K in [1, views].
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+type (enum, default: av):      output selection
+.br
+* a: audio only
+.br
+* v: video only
+.br
+* av: audio and video
+.br
+
+.br
+freq (uint, default: 440):     frequency of beep
+.br
+freq2 (uint, default: 659):    frequency of odd beep
+.br
+sr (uint, default: 44100):     output samplerate
+.br
+flen (uint, default: 1024):    output frame length in samples
+.br
+ch (uint, default: 1):         number of channels
+.br
+alter (bool, default: false):  beep alternatively on each channel
+.br
+blen (uint, default: 50):      length of beep in milliseconds
+.br
+fps (frac, default: 25):       video frame rate
+.br
+sizes (v2il, default: 1280x720): video size in pixels
+.br
+lock (bool, default: false):   lock timing to video generation
+.br
+dyn (bool, default: true):     move bottom banner
+.br
+ntp (bool, default: true):     send NTP along with packets
+.br
+copy (bool, default: false):   copy the framebuffer into each video packet instead of using packet references
+.br
+dur (frac, default: 0/0):      run for the given time in second
+.br
+adjust (bool, default: true):  adjust start time to synchronize counter and UTC - see filter help
+.br
+pack (enum, default: no):      packing mode for stereo views
+.br
+ * no: no packing
+.br
+ * ss: side by side packing, forces .I views to 2
+.br
+ * tb: top-bottom packing, forces .I views to 2
+.br
+
+.br
+disparity (uint, default: 20): disparity in pixels between left-most and right-most views
+.br
+views (uint, default: 1):      number of views
+.br
+rates (strl):                  number of target bitrates to assign, one per size
+.br
+
+.br
 .SH EXAMPLES
 .TP
 Basic and advanced examples are available at https://wiki.gpac.io/Filters
@@ -7446,7 +7589,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev625-g63db8fe89-master
+build: 1.1.0-DEV-rev631-gea69f4857-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
