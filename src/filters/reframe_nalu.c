@@ -3179,8 +3179,9 @@ naldmx_flush:
 			/*ref slice, reset poc*/
 			if (slice_is_ref) {
 				if (first_in_au) {
-					//two consecutive IDRs, force poc_diff to 0 to force frame dispatch
-					if (ctx->last_frame_is_idr) ctx->poc_diff=1;
+					//two consecutive IDRs, force poc_diff to 1 if 0 (when we have intra-only) to force frame dispatch
+					if (ctx->last_frame_is_idr && !ctx->poc_diff)
+						ctx->poc_diff=1;
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
