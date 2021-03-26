@@ -4802,7 +4802,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				old_ts_inc = stbl->TimeToSample->entries[i].sampleDelta;
 		}
 
-		if ((old_timescale==newTS) && (old_ts_inc==new_tsinc))
+		if ((old_timescale==newTS) && (old_ts_inc==new_tsinc) && (force_rescale_type!=2) )
 			return GF_EOS;
 
 		if (!force_rescale_type)
