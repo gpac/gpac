@@ -745,6 +745,12 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			break;
 		}
 
+		if (ctx->hdr.frame_size < ctx->hdr.hdr_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] Corrupted ADTS frame header, resyncing\n"));
+			ctx->nb_frames = 0;
+			goto drop_byte;
+		}
+
 		adts_dmx_check_pid(filter, ctx);
 
 		if (!ctx->is_playing) {
