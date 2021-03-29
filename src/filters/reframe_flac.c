@@ -59,6 +59,7 @@ typedef struct
 	Bool is_playing;
 	Bool is_file;
 	Bool initial_play_done, file_loaded;
+	Bool in_error;
 
 	Bool initialized;
 	u32 sample_rate, nb_channels, bits_per_sample, block_size;
@@ -388,6 +389,9 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 	u64 cts = GF_FILTER_NO_TS;
 	FLACHeader hdr;
 
+	if (ctx->in_error)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	//always reparse duration
 	if (!ctx->duration.num)
 		flac_dmx_check_dur(filter, ctx);
@@ -494,7 +498,12 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 			gf_bs_reassign_buffer(ctx->bs, ctx->flac_buffer, size);
 			u32 magic = gf_bs_read_u32(ctx->bs);
 			if (magic != GF_4CC('f','L','a','C')) {
-
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC magic\n"));
+				ctx->in_error = GF_TRUE;
+				ctx->flac_buffer_size = 0;
+				if (pck)
+					gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			while (gf_bs_available(ctx->bs)) {
 				Bool last = gf_bs_read_int(ctx->bs, 1);
@@ -524,6 +533,14 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 					gf_bs_skip_bytes(ctx->bs, len);
 				}
 				if (last) break;
+			}
+			if (!dsi_end) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC header\n"));
+				ctx->in_error = GF_TRUE;
+				ctx->flac_buffer_size = 0;
+				if (pck)
+					gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			flac_dmx_check_pid(filter, ctx, ctx->flac_buffer+4, dsi_end-4);
 			remain -= size;
