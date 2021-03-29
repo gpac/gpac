@@ -739,6 +739,9 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	GF_FilterPacket *pck;
 	u8 *output;
 
+	if (!ctx->opid)
+		return GF_NON_COMPLIANT_BITSTREAM;
+		
 	gf_bs_get_content_no_truncate(ctx->state.bs, &ctx->state.frame_obus, &pck_size, &ctx->state.frame_obus_alloc);
 
 	if (!pck_size) {
