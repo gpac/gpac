@@ -3194,6 +3194,7 @@
 					"-llzma",
 					"-lkvazaar",
 					"-lnghttp2",
+					"-lvmaf",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
@@ -3302,6 +3303,7 @@
 					"-llzma",
 					"-lkvazaar",
 					"-lnghttp2",
+					"-lvmaf",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;

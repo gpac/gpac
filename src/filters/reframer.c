@@ -1857,7 +1857,7 @@ GF_FilterRegister ReframerRegister = {
 		"In this mode, the timestamps are rewritten to form a continuous timeline.\n"
 		"When multiple ranges are given, the filter will try to seek if supported by source."
 		"\n"
-		"EX gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xs=T00:00:20,T00:01:20 [dst]\n"
+		"EX gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 [dst]\n"
 		"This will extract the time ranges [10s,20s], [1m10s,1m20s] and all media starting from 2m\n"
 		"\n"
 		"It is possible to signal range boundaries in output packets using [-splitrange]().\n"
