@@ -380,7 +380,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mixer_lock(st->am, GF_FALSE);
 	tr_state->audio_parent = parent;
 
-	/*Note the audio buffer is ALWAYS registered untill destroyed since buffer filling shall happen even when inactive*/
+	/*Note the audio buffer is ALWAYS registered until destroyed since buffer filling shall happen even when inactive*/
 	if (!st->output.register_with_parent || !st->output.register_with_renderer)
 		gf_sc_audio_register(&st->output, tr_state);
 

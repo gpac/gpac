@@ -88,7 +88,7 @@ typedef struct _gf_ffenc_ctx
 	u32 channels, sample_rate, channel_layout, bytes_per_sample;
 	//ffmpeg one
 	u32 sample_fmt;
-	//we store input audio frame in this buffer untill we have enough data for one encoder frame
+	//we store input audio frame in this buffer until we have enough data for one encoder frame
 	//we also store the remaining of a consumed frame here, so that input packet is realeased ASAP
 	char *audio_buffer;
 	u32 audio_buffer_size;
