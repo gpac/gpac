@@ -72,7 +72,7 @@ typedef struct __gf_js_field
 
 	/*pointer to the SFNode if this is an SFNode or MFNode[i] field */
 	GF_Node *node;
-	/*when creating MFnode from inside the script, the node list is stored here untill attached to an object*/
+	/*when creating MFnode from inside the script, the node list is stored here until attached to an object*/
 	GF_ChildNodeItem *temp_list;
 	/*only set when not owned by a node, in which case field.far_ptr is also set to this value*/
 	void *field_ptr;

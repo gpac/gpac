@@ -900,7 +900,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		if (keynav) gf_sc_change_key_navigator(compositor, keynav);
 
 		/*call the sensor LAST, as this may triger a destroy of the scene the sensor is in
-		this is only true for anchors, as other other sensors output events are queued as routes untill next pass*/
+		this is only true for anchors, as other other sensors output events are queued as routes until next pass*/
 		res += hs->OnUserEvent(hs, GF_TRUE, GF_FALSE, ev, compositor);
 		if (stype == TAG_MPEG4_Anchor) check_anchor = GF_TRUE;
 #ifndef GPAC_DISABLE_X3D

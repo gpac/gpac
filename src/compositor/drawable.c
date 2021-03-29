@@ -697,7 +697,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 			else {
 				ctx->flags |= CTX_TEXTURE_DIRTY;
 			}
-			//wait untill we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
+			//wait until we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
 			if (ctx->aspect.fill_texture->compute_gradient_matrix || ctx->aspect.fill_texture->data)
 				texture_ready=1;
 		}
@@ -719,7 +719,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 			else
 				ctx->flags |= CTX_TEXTURE_DIRTY;
 
-			//wait untill we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
+			//wait until we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
 			if (ctx->aspect.line_texture->compute_gradient_matrix || ctx->aspect.line_texture->data)
 				texture_ready=1;
 		}
