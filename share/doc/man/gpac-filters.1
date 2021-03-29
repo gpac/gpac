@@ -2982,7 +2982,7 @@ When multiple ranges are given, the filter will try to seek if supported by sour
 .br
 Example
 .br
-gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xs=T00:00:20,T00:01:20 [dst]
+gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 [dst]
 .br
 
 .br
@@ -7479,7 +7479,7 @@ If NTP injection is used, each video packet (but not audio ones) has a SenderNTP
 .br
 More than one output size can be specified. This will result in multiple sources being generated, one per size.
 .br
-A size can be specified more than once, resulting in packet references when [-copy] is not set, or full copies otherwise.
+A size can be specified more than once, resulting in packet references when .I copy is not set, or full copies otherwise.
 .br
 Target encoding bitrates can be assigned to each output using .I rates. This can be usefull when generating dash:
 .br
@@ -7589,7 +7589,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev631-gea69f4857-master
+build: 1.1.0-DEV-rev635-g9c51f2274-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
