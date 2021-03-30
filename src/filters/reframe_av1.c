@@ -546,12 +546,16 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(ctx->state.matrix_coefficients) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->state.color_range) );
 	}
+	//disabled for the time being, matchin `colr` box will be injected by mp43mx if needed
+	//check vpX specs to see if always needed
+#if 0
 	else if (ctx->vp_cfg) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(ctx->vp_cfg->colour_primaries) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(ctx->vp_cfg->transfer_characteristics) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(ctx->vp_cfg->matrix_coefficients) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->vp_cfg->video_fullRange_flag) );
 	}
+#endif
 }
 
 GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
