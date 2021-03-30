@@ -248,7 +248,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	FILE *stream;
 	GF_Err e;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, last_cdur, rate;
+	u64 duration, cur_dur, last_cdur, rate, max_pts, last_pts;
 	AV1State av1state;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
@@ -271,8 +271,8 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->index = 1.0;
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
-			if (!p || (p->value.longuint > 100000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[AV1/VP9] Source file larger than 100M, skipping indexing\n"));
+			if (!p || (p->value.longuint > 20000000)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[AV1/VP9] Source file larger than 20M, skipping indexing\n"));
 			} else {
 				ctx->index = -ctx->index;
 			}
@@ -295,6 +295,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	av1state.skip_frames = GF_TRUE;
 	av1state.config = gf_odf_av1_cfg_new();
 
+	max_pts = last_pts = 0;
 	duration = 0;
 	cur_dur = last_cdur = 0;
 	while (gf_bs_available(bs)) {
@@ -328,8 +329,14 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		 	break;
 
 		if (pts != GF_FILTER_NO_TS) {
+			if (pts + max_pts < last_pts) {
+				max_pts = last_pts + ctx->cur_fps.den;
+			}
+			pts += max_pts;
 			duration = pts;
 			cur_dur = pts - last_cdur;
+
+			last_pts = pts;
 		} else {
 			duration += ctx->cur_fps.den;
 			cur_dur += ctx->cur_fps.den;
@@ -539,6 +546,12 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(ctx->state.matrix_coefficients) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->state.color_range) );
 	}
+	else if (ctx->vp_cfg) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(ctx->vp_cfg->colour_primaries) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(ctx->vp_cfg->transfer_characteristics) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(ctx->vp_cfg->matrix_coefficients) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->vp_cfg->video_fullRange_flag) );
+	}
 }
 
 GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
@@ -627,6 +640,10 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	pos_ivf_hdr = gf_bs_get_position(ctx->bs);
 	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
 	if (e) return e;
+	if (!frame_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[IVF/VP9] Corrupted frame header !\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	pos = gf_bs_get_position(ctx->bs);
 	if (gf_bs_available(ctx->bs) < frame_size) {
