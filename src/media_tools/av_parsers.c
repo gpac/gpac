@@ -1890,6 +1890,8 @@ GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32 *height,
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *pts)
 {
 	if (!frame_size) return GF_BAD_PARAM;
+	if (gf_bs_available(bs) < 12)
+		return GF_BUFFER_TOO_SMALL;
 
 	*frame_size = gf_bs_read_u32_le(bs);
 	if (*frame_size > 256 * 1024 * 1024) {
