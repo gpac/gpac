@@ -1098,7 +1098,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	GF_Filter *isobmff_mux, *source;
 	GF_Filter *filter_orig;
 	char *ext;
-	char *fmt = "";
+	char *fmt = NULL;
 
 	if (!importer || (!importer->dest && (importer->flags!=GF_IMPORT_PROBE_ONLY)) || (!importer->in_name && !importer->orig) ) return GF_BAD_PARAM;
 
@@ -1134,10 +1134,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 
 	/*SC3DMC*/
-	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
+	if (!strnicmp(ext, ".s3d", 4) || (fmt && !stricmp(fmt, "SC3DMC")) )
 		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 	/* chapter */
-	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") ) {
+	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || (fmt && !stricmp(fmt, "CHAP")) ) {
 		e =  gf_media_import_chapters_file(importer);
 		if (!strnicmp(ext, ".txt", 4) && (e==GF_NOT_FOUND)) {
 
