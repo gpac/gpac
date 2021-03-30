@@ -2621,8 +2621,12 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		if (!strstr(szDST, szSRC))
 			gf_dynstrcat(&szDST, szSRC, NULL);
 	}
-	sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
-	gf_dynstrcat(&szDST, szSRC, NULL);
+
+	//we don't append mime in case of raw streams, raw format (writegen doesn't use mime types for raw media, only file ext)
+	if ((ctx->muxtype!=DASHER_MUX_RAW) || (ds->codec_id != GF_CODECID_RAW)) {
+		sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
+		gf_dynstrcat(&szDST, szSRC, NULL);
+	}
 
 	if (ds->moof_sn>1) {
 		sprintf(szSRC, "%cmsn%c%d", sep_args, sep_name, ds->moof_sn);
@@ -3245,6 +3249,17 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			else if (ctx->muxtype==DASHER_MUX_OGG) def_ext = "ogg";
 			else if (ctx->muxtype==DASHER_MUX_RAW) {
 				char *ext = (char *) gf_codecid_file_ext(ds->codec_id);
+				if (ds->codec_id==GF_CODECID_RAW) {
+					const GF_PropertyValue *p;
+					if (ds->stream_type==GF_STREAM_VISUAL) {
+						p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PIXFMT);
+						if (p) ext = (char *) gf_pixel_fmt_sname(p->value.uint);
+					}
+					else if (ds->stream_type==GF_STREAM_AUDIO) {
+						p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AUDIO_FORMAT);
+						if (p) ext = (char *) gf_audio_fmt_sname(p->value.uint);
+					}
+				}
 				strncpy(szRawExt, ext ? ext : "raw", 19);
 				szRawExt[19] = 0;
 				ext = strchr(szRawExt, '|');
