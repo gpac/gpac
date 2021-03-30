@@ -726,11 +726,14 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		//packet reinserted (not split), adjust duration and store offset in split start
 		if (!st->can_split && !is_split && st->reinsert_single_pck) {
 			u32 dur = gf_filter_pck_get_duration(pck);
-			u64 ndur = st->range_end_reached_ts;
-			ndur -= st->ts_at_range_start_plus_one-1;
-			if (ndur && (ndur < dur))
-				gf_filter_pck_set_duration(new_pck, (u32) ndur);
-			st->split_start = (u32) ndur;
+			//only for closed range
+			if (st->range_end_reached_ts) {
+				u64 ndur = st->range_end_reached_ts;
+				ndur -= st->ts_at_range_start_plus_one-1;
+				if (ndur && (ndur < dur))
+					gf_filter_pck_set_duration(new_pck, (u32) ndur);
+				st->split_start = (u32) ndur;
+			}
 		}
 
 		gf_filter_pck_send(new_pck);
@@ -1653,10 +1656,13 @@ load_next_range:
 				u64 start = ctx->cur_start.num;
 				start *= st->timescale;
 				start /= ctx->cur_start.den;
-				st->ts_at_range_end = ctx->cur_end.num;
-				st->ts_at_range_end *= st->timescale;
-				st->ts_at_range_end /= ctx->cur_end.den;
-				st->ts_at_range_end -= start;
+				//closed range, compute TS at range end
+				if (ctx->cur_end.num && ctx->cur_end.den) {
+					st->ts_at_range_end = ctx->cur_end.num;
+					st->ts_at_range_end *= st->timescale;
+					st->ts_at_range_end /= ctx->cur_end.den;
+					st->ts_at_range_end -= start;
+				}
 			} else {
 				st->ts_at_range_end = (st->range_end_reached_ts - 1)  - (st->ts_at_range_start_plus_one - 1);
 			}
