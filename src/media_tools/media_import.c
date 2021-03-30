@@ -1241,7 +1241,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->run_in_session) {
 		fsess = importer->run_in_session;
 	} else {
-		fsess = gf_fs_new_defaults(0);
+		fsess = gf_fs_new_defaults(fmt ? GF_FS_FLAG_NO_PROBE : 0);
 		if (!fsess) {
 			return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session for import");
 		}
@@ -1409,6 +1409,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	e = gf_dynstrcat(&args, "importer:index=0", ":");
 	if (importer->trackID && !source_id_set) {
 		sprintf(szSubArg, "FID=%s", szFilterID);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
+	if (fmt) {
+		sprintf(szSubArg, "ext=%s", fmt);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");

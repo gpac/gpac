@@ -449,6 +449,8 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (gf_opts_get_bool("core", "no-probe"))
 		flags |= GF_FS_FLAG_NO_PROBE;
+	else if (inflags & GF_FS_FLAG_NO_PROBE)
+		flags |= GF_FS_FLAG_NO_PROBE;
 
 	if (gf_opts_get_bool("core", "no-argchk"))
 		flags |= GF_FS_FLAG_NO_ARG_CHECK;

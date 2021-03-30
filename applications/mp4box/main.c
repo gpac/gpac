@@ -755,7 +755,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("moovts", NULL, "`S` set movie timescale to TS. A negative value picks the media timescale of the first track imported", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("noedit", NULL, "`XS` do not set edit list when importing B-frames video tracks", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("rvc", NULL, "`S` set RVC configuration for the media", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("fmt", NULL, "override format detection with given format (cf BT/XMTA doc)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("fmt", NULL, "override format detection with given format - disable data probing and force `ext` option on source", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("profile", NULL, "`S` override AVC profile. Integer value, or `high444`, `high`, `extended`, `main`, `baseline`", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("level", NULL, "`S` override AVC level, if value < 6, interpreted as decimal expression", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibity flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
