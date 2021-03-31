@@ -1570,13 +1570,14 @@ skip_date:
 				internal_arg = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
+				GF_Err e = GF_OK;
 				if (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT) ) {
 					GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL, filter->session->sep_list);
 					FSESS_CHECK_THREAD(filter)
-					filter->freg->update_arg(filter, szArg, &argv);
+					e = filter->freg->update_arg(filter, szArg, &argv);
 					if (argv.value.string) gf_free(argv.value.string);
 				}
-				if (!(filter->freg->flags&GF_FS_REG_SCRIPT))
+				if (!(filter->freg->flags&GF_FS_REG_SCRIPT) && (e==GF_OK) )
 					found = GF_TRUE;
 			}
 		}
