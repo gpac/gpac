@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -121,10 +121,10 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		ent = &stts->entries[stts->nb_entries];
 		stts->nb_entries++;
 
-		ent->sampleCount = 2;
+		ent->sampleCount = 1 + nb_packed_samples;
 		ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
 		stts->w_LastDTS = DTS;
-		stts->w_currentSampleNum ++;
+		stts->w_currentSampleNum += nb_packed_samples;
 		(*sampleNumber) = stts->w_currentSampleNum;
 		return GF_OK;
 	}
