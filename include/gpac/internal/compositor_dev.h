@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -1185,6 +1185,7 @@ typedef struct _audiointerface
 	Bool forced_layout;
 	//updated at each frame, used if frame fetch returns NULL
 	Bool is_buffering;
+	Bool is_eos;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
