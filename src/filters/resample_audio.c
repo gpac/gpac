@@ -42,7 +42,7 @@ typedef struct
 	//output config
 	u32 freq, nb_ch, afmt;
 	u64 ch_cfg;
-	u64 out_cts;
+	u64 out_cts_plus_one;
 	//source is planar
 	Bool src_is_planar;
 	GF_AudioInterface input_ai;
@@ -68,8 +68,8 @@ static u8 *resample_fetch_frame(void *callback, u32 *size, u32 *planar_stride, u
 			*size = 0;
 			return NULL;
 		}
-		ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
 		ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
+		//note we only update CTS when no packet is present at the start of process()
 
 		if (!ctx->data) {
 			*size = 0;
@@ -234,6 +234,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->passthrough = GF_TRUE;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->freq));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->freq));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->afmt));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->nb_ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(ctx->ch_cfg));
@@ -259,14 +260,33 @@ static GF_Err resample_process(GF_Filter *filter)
 
 			if (!ctx->in_pck) {
 				if (gf_filter_pid_is_eos(ctx->ipid)) {
-					if (ctx->opid)
-						gf_filter_pid_set_eos(ctx->opid);
-					return GF_EOS;
+					if (ctx->passthrough || ctx->input_ai.is_eos) {
+						if (ctx->opid)
+							gf_filter_pid_set_eos(ctx->opid);
+						return GF_EOS;
+					}
+					ctx->input_ai.is_eos = 1;
+				} else {
+					ctx->input_ai.is_eos = 0;
+					return GF_OK;
 				}
-				return GF_OK;
+			} else {
+				ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
+				u64 cts = gf_filter_pck_get_cts(ctx->in_pck);
+				cts *= ctx->freq;
+				cts /= FIX2INT(ctx->speed * ctx->timescale);
+
+				if (!ctx->out_cts_plus_one) {
+					ctx->out_cts_plus_one = cts + 1;
+				} else {
+					s64 diff = cts;
+					diff -= ctx->out_cts_plus_one-1;
+					//200ms max
+					if (ABS(diff) * 1000 > ctx->freq * 200) {
+						ctx->out_cts_plus_one = cts + 1;
+					}
+				}
 			}
-			ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
-			ctx->out_cts = gf_filter_pck_get_cts(ctx->in_pck);
 		}
 
 		if (ctx->passthrough) {
@@ -276,12 +296,19 @@ static GF_Err resample_process(GF_Filter *filter)
 			continue;
 		}
 
-		osize = ctx->size * ctx->nb_ch * bps;
-		osize /= ctx->input_ai.chan * gf_audio_fmt_bit_depth(ctx->input_ai.afmt);
+		if (ctx->in_pck) {
+			osize = ctx->size * ctx->nb_ch * bps;
+			osize /= ctx->input_ai.chan * gf_audio_fmt_bit_depth(ctx->input_ai.afmt);
+		} else {
+			//flush remaining samples from mixer, use 20 sample buffer
+			osize = 20*ctx->nb_ch * bps / 8;
+		}
 
 		dstpck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
 		if (!dstpck) return GF_OK;
-		gf_filter_pck_merge_properties(ctx->in_pck, dstpck);
+
+		if (ctx->in_pck)
+			gf_filter_pck_merge_properties(ctx->in_pck, dstpck);
 
 		written = gf_mixer_get_output(ctx->mixer, output, osize, 0);
 		if (!written) {
@@ -290,19 +317,12 @@ static GF_Err resample_process(GF_Filter *filter)
 			if (written != osize) {
 				gf_filter_pck_truncate(dstpck, written);
 			}
-			gf_filter_pck_set_dts(dstpck, ctx->out_cts);
-			gf_filter_pck_set_cts(dstpck, ctx->out_cts);
+			gf_filter_pck_set_dts(dstpck, ctx->out_cts_plus_one - 1);
+			gf_filter_pck_set_cts(dstpck, ctx->out_cts_plus_one - 1);
 			gf_filter_pck_send(dstpck);
 
-			if (ctx->timescale==ctx->freq) {
-				ctx->out_cts += (u64) (ctx->speed * written / bytes_per_samp);
-			} else {
-				u64 ts_inc = written / bytes_per_samp;
-				ts_inc *= ctx->timescale;
-				ts_inc /= ctx->freq;
-
-				ctx->out_cts += (u64) (ctx->speed * ts_inc);
-			}
+			//out_cts is in output time scale ( = freq), increase by the amount of bytes/bps
+			ctx->out_cts_plus_one += written / bytes_per_samp;
 		}
 
 		//still some bytes to use from packet, do not discard
@@ -380,7 +400,9 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 
 static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	if ((evt->base.type==GF_FEVT_SET_SPEED) && evt->play.speed) {
+	if (((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED) )
+		&& evt->play.speed
+	) {
 		GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 		ctx->speed = FLT2FIX(evt->play.speed);
 		if (ctx->speed<0) ctx->speed = -ctx->speed;
