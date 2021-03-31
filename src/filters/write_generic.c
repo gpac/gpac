@@ -71,6 +71,7 @@ typedef struct
 	u32 w, h, stride;
 	u64 nb_bytes;
 	Bool dash_mode;
+	Bool trunc_audio;
 
 	u64 first_dts_plus_one;
 
@@ -344,6 +345,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 					//make sure we reconfigure
 					ctx->codecid = 0;
 				}
+				if (ctx->dur.num && ctx->dur.den && !gf_audio_fmt_is_planar(ctx->target_afmt ? ctx->target_afmt : ctx->afmt))
+					ctx->trunc_audio = GF_TRUE;
 			}
 
 		} else {
@@ -1043,6 +1046,45 @@ GF_Err writegen_process(GF_Filter *filter)
 			return e;
 		}
 		goto no_output;
+	} else if (ctx->trunc_audio) {
+		u64 dts = gf_filter_pck_get_dts(pck);
+		if (dts==GF_FILTER_NO_TS)
+			dts = gf_filter_pck_get_cts(pck);
+
+		if (!ctx->first_dts_plus_one) {
+			ctx->first_dts_plus_one = dts+1;
+		} else {
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u32 dur = gf_filter_pck_get_duration(pck);
+			if (ctx->dur.den * (dts + dur + 1 - ctx->first_dts_plus_one) > ctx->dur.num * timescale) {
+				u32 bpp;
+				u8 *odata;
+				const GF_PropertyValue *p;
+				dur = ctx->dur.num * timescale / ctx->dur.den;
+				dur -= dts + 1 - ctx->first_dts_plus_one;
+
+				bpp = gf_audio_fmt_bit_depth(ctx->target_afmt);
+				p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NUM_CHANNELS);
+				if (p) bpp *= p->value.uint;
+				bpp/= 8;
+
+				p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAMPLE_RATE);
+				if (p && (p->value.uint != timescale)) {
+					dur *= p->value.uint;
+					dur /= timescale;
+				}
+				assert(pck_size >= bpp * dur);
+				pck_size = bpp * dur;
+
+				dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &odata);
+				memcpy(odata, data, pck_size);
+			}
+		}
+
+		if (!dst_pck) {
+			dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
+		}
+
 	} else {
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 	}
