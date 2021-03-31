@@ -3694,7 +3694,16 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 		if (ds->xlink && (ds->stream_type==GF_STREAM_FILE) ) {
 			pdur = (u32) (1000*ds->period_dur);
 		} else {
-			u64 ds_dur = ds->max_period_dur;
+			u64 ds_dur;
+			//if delay/skip, adjust period duration
+			if (ds->pts_minus_cts) {
+				s64 diff = ds->pts_minus_cts;
+				diff *= 1000;
+				diff /= ds->timescale;
+				ds_dur = (u64) ((s64) ds->max_period_dur + diff);
+			} else {
+				ds_dur = ds->max_period_dur;
+			}
 			//we had to generate one extra segment to unlock looping, but we don't want to advertise it in the manifest duration
 			//because other sets may not be ready for this time interval
 			if (ds->subdur_forced_use_period_dur)
