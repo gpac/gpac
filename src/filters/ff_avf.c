@@ -67,9 +67,6 @@ typedef struct
 	GF_List *ipids;
 	GF_List *opids;
 
-	//decode options
-	AVDictionary *options;
-
 	AVFilterGraph *filter_graph;
 	char *filter_desc;
 
@@ -894,9 +891,6 @@ static void ffavf_finalize(GF_Filter *filter)
 	gf_list_del(ctx->opids);
 	if (ctx->filter_desc) gf_free(ctx->filter_desc);
 	if (ctx->frame) av_frame_free(&ctx->frame);
-
-	if (ctx->options) av_dict_free(&ctx->options);
-	return;
 }
 
 static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
@@ -949,13 +943,12 @@ static GF_Err ffavf_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		ret = avfilter_graph_send_command(ctx->filter_graph, szTargetName, arg, arg_value, szCommandRes, 1024, 0);
 		if (ret<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Failed to execute command %s: %s\n", arg_name, av_err2str(ret) ));
+			return GF_BAD_PARAM;
 		}
+		return GF_OK;
 	}
-	ret = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
-	if (ret<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFAVF] Failed to set option %s:%s\n", arg_name, arg_val ));
-	}
-	return GF_OK;
+	//other options are not allowed, they MUST be passed as part of `f` option
+	return GF_NOT_FOUND;
 }
 
 
