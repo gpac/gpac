@@ -429,8 +429,12 @@ escape_duration:
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		for (j=0; j<trun->nb_samples; j++) {
+			u32 ssize;
 			ent = &trun->samples[j];
-			ret = GetNumUsedValues(traf, ent->size, 2);
+			ssize = ent->size;
+			if (ent->nb_pack>1)
+				ssize /= ent->nb_pack;
+			ret = GetNumUsedValues(traf, ssize, 2);
 			if (ret>MaxNum || (ret==1)) {
 				//at least 2 sizes so we must specify all sizes
 				if (MaxNum) {
@@ -438,7 +442,7 @@ escape_duration:
 					goto escape_size;
 				}
 				MaxNum = ret;
-				DefValue = ent->size;
+				DefValue = ssize;
 			}
 		}
 	}
@@ -634,7 +638,8 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 				if (j==1 || (trun->nb_samples==1) ) RunFlags = ent->flags;
 
 				if (ssize != RunSize) RunSize = 0;
-				if (ent->Duration != RunDur) RunDur = 0;
+				if (ent->Duration != RunDur)
+					RunDur = 0;
 				if (j && (RunFlags != ent->flags)) NeedFlags = 1;
 			}
 			if (ent->CTS_Offset) UseCTS = 1;
@@ -2707,8 +2712,9 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	}
 
 	if (prev_ent && prev_ent->dts && sample->DTS) {
-		if (prev_ent->Duration != sample->DTS - prev_ent->dts)
-			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts);
+		u32 nsamp = prev_ent->nb_pack ? prev_ent->nb_pack : 1;
+		if (nsamp*prev_ent->Duration != sample->DTS - prev_ent->dts)
+			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts) / nsamp;
 	}
 	if (trun->nb_samples >= trun->sample_alloc) {
 		trun->sample_alloc += 50;

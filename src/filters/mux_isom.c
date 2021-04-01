@@ -141,7 +141,7 @@ typedef struct
 	u32 amr_mode_set;
 	Bool has_seig;
 	u64 empty_init_dur;
-	u32 raw_audio_bytes_per_sample;
+	u32 raw_audio_bytes_per_sample, raw_samplerate;
 	u64 dts_patch;
 
 	Bool is_item;
@@ -1720,6 +1720,8 @@ sample_entry_setup:
 			tkw->raw_audio_bytes_per_sample = raw_bitdepth;
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+			tkw->raw_samplerate = p ? p->value.uint : 0;
 		}
 		else if (tkw->stream_type == GF_STREAM_VISUAL) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
@@ -3531,7 +3533,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	tkw->sample.nb_pack = 0;
 	if (tkw->raw_audio_bytes_per_sample) {
 		tkw->sample.nb_pack = tkw->sample.dataLength / tkw->raw_audio_bytes_per_sample;
-		if (tkw->sample.nb_pack) duration /= tkw->sample.nb_pack;
+		if (tkw->sample.nb_pack) {
+			duration = 1;
+			if (tkw->raw_samplerate && (tkw->tk_timescale != tkw->raw_samplerate)) {
+				duration *= tkw->tk_timescale;
+				duration /= tkw->raw_samplerate;
+			}
+		}
 	}
 
 	if (tkw->cenc_state && tkw->clear_stsd_idx && !gf_filter_pck_get_crypt_flags(pck)) {
@@ -4247,6 +4255,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	//good to go, finalize for fragments
 	for (i=0; i<count; i++) {
 		u32 def_pck_dur;
+		u32 def_samp_size=0;
 		u32 def_is_rap;
 #ifdef GF_ENABLE_CTRN
 		u32 inherit_traf_from_track = 0;
@@ -4282,9 +4291,18 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 					min_dts = dts;
 					min_dts_scale = tscale;
 				}
+				if (tkw->raw_audio_bytes_per_sample) {
+					u32 pck_size;
+					gf_filter_pck_get_data(pck, &pck_size);
+					pck_size /= tkw->raw_audio_bytes_per_sample;
+					if (pck_size)
+						def_pck_dur /= pck_size;
+				}
 			} else {
 				def_pck_dur = 0;
 			}
+			if (tkw->raw_audio_bytes_per_sample)
+				def_samp_size = tkw->raw_audio_bytes_per_sample;
 		}
 		if (tkw->src_timescale != tkw->tk_timescale) {
 			def_pck_dur *= tkw->tk_timescale;
@@ -4329,7 +4347,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		//use 1 for the default sample description index. If no multi stsd, this is always the case
 		//otherwise we need to update the stsd idx in the traf headers
-		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, tkw->stsd_idx, def_pck_dur, 0, (u8) def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
+		e = gf_isom_setup_track_fragment(ctx->file, tkw->track_id, tkw->stsd_idx, def_pck_dur, def_samp_size, (u8) def_is_rap, 0, 0, ctx->nofragdef ? GF_TRUE : GF_FALSE);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to setup fragmentation for track ID %d: %s\n", tkw->track_id, gf_error_to_string(e) ));
 			return e;
