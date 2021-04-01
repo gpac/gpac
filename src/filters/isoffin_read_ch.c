@@ -165,11 +165,16 @@ static void init_reader(ISOMChannel *ch)
 		ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
 		ch->start = 0;
 	} else {
+		s64 cts;
 		ch->dts = ch->start;
 		ch->cts = ch->start;
 
+		cts = ch->sample->DTS + ch->sample->CTS_Offset;
+		if (ch->ts_offset<0)
+			cts += ch->ts_offset;
+
 		//TODO - we need to notify scene decoder how many secs elapsed between RAP and seek point
-		if (ch->cts != ch->sample->DTS + ch->sample->CTS_Offset) {
+		if (ch->cts != cts) {
 			ch->seek_flag = 1;
 		}
 	}
