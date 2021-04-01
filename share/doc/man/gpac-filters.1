@@ -2966,19 +2966,25 @@ The filter can perform time range extraction of the source using .I xs and .I xe
 .br
 The formats allowed for times specifiers are:
 .br
-* 'T'H:M:S: specify time in hours, minutes, seconds
+* 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds
 .br
-* 'T'H:M:S.MS: specify time in hours, minutes, seconds and milliseconds
+* 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds
 .br
 * INT: specify time in millisecond
+.br
+* FLOAT: specify time in second
 .br
 * NUM/DEN: specify time in seconds as fraction
 .br
 * 'F'NUM: specify time as frame number
 .br
+Warning: xs=10 means 10 milliseconds while xs=10.0 means 10 seconds.
+.br
 In this mode, the timestamps are rewritten to form a continuous timeline.
 .br
-When multiple ranges are given, the filter will try to seek if supported by source.
+When multiple ranges are given, the filter will try to seek if needed and supported by source.
+.br
+
 .br
 Example
 .br
@@ -2987,6 +2993,32 @@ gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 
 
 .br
 This will extract the time ranges [10s,20s], [1m10s,1m20s] and all media starting from 2m
+.br
+
+.br
+If no end range is found for a given start range:
+.br
+- if a following start range is set, the end range is set to this next start
+.br
+- otherwise, the end range is open
+.br
+
+.br
+Example
+.br
+gpac src=m.mp4 reframer:xs=0.0,10.0,25.0:xe=5.0 [dst]
+.br
+
+.br
+This will extract the time ranges [0s,5s], [10s,25s] and all media starting from 25s
+.br
+Example
+.br
+gpac src=m.mp4 reframer:xs=0.0,10.0,25.0 [dst]
+.br
+
+.br
+This will extract the time ranges [0s,10s], [10s,25s] and all media starting from 25s
 .br
 
 .br
@@ -3009,6 +3041,22 @@ gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10:xe=T00:00:20:splitrange -o dump_$
 This will create two output files dump_T00.00.10_T00.02.00.264 and dump_T00.01.10.264.
 .br
 Note: The : and / characters are replaced by . in FileSuffix property.
+.br
+
+.br
+It is possible to modify PID properties per range using .I props. Each set of property must be specified using the active separator set.
+.br
+Example
+.br
+gpac src=m.mp4 reframer:xs=0.0,30.0:props=#Period=P1,#Period=P2:#foo=bar
+.br
+
+.br
+This will assign to output PIDs
+.br
+* during the range [0,30]: property Period to P1
+.br
+* during the range [30, end]: properties Period to P2 and property foo to bar
 .br
 
 .br
@@ -3085,6 +3133,8 @@ splitrange (bool, default: false): signal file boundary at each extraction first
 seeksafe (dbl, default: 10.0): rewind play requests by given seconds (to make sur I-frame preceeding start is catched)
 .br
 tcmdrw (bool, default: true):  rewrite TCMD samples when splitting
+.br
+props (strl):                  extra output PID properties per extraction range
 .br
 
 .br
@@ -7589,7 +7639,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev642-gc9d796610-master
+build: 1.1.0-DEV-rev662-g19118ed5e-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

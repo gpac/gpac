@@ -366,7 +366,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
 
 		if (ctx->splice_props)
-			gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE);
+			gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE, GF_TRUE);
 
 	} else {
 		gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
@@ -422,7 +422,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 
 	if (ctx->pid_props) {
-		gf_filter_pid_push_properties(opid, ctx->pid_props, GF_TRUE);
+		gf_filter_pid_push_properties(opid, ctx->pid_props, GF_TRUE, GF_TRUE);
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
@@ -1997,7 +1997,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 					gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
 				}
 				if (ctx->splice_props)
-					gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE);
+					gf_filter_pid_push_properties(iopid->opid, ctx->splice_props, GF_TRUE, GF_TRUE);
 
 				if (ctx->dyn_period_id)
 					filelist_push_period_id(ctx, iopid->opid);

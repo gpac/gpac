@@ -387,26 +387,27 @@ typedef struct
 	u32 st;
 	const char *name;
 	const char *desc;
+	const char *sname;
 	const char *alt_name;
 } GF_StreamTypeDesc;
 
 static const GF_StreamTypeDesc GF_StreamTypes[] =
 {
-	{GF_STREAM_VISUAL, "Visual", "Video or Image stream", "Video"},
-	{GF_STREAM_AUDIO, "Audio", "Audio stream"},
-	{GF_STREAM_SCENE, "SceneDescription", "Scene stream"},
-	{GF_STREAM_TEXT, "Text", "Text or subtitle stream"},
-	{GF_STREAM_METADATA, "Metadata", "Metadata stream"},
-	{GF_STREAM_FILE, "File", "Raw file stream"},
-	{GF_STREAM_ENCRYPTED, "Encrypted", "Encrypted media stream"},
-	{GF_STREAM_OD, "ObjectDescriptor", "MPEG-4 ObjectDescriptor stream"},
-	{GF_STREAM_OCR, "ClockReference", "MPEG-4 Clock Reference stream"},
-	{GF_STREAM_MPEG7, "MPEG7", "MPEG-7 description stream"},
-	{GF_STREAM_IPMP, "IPMP", "MPEG-4 IPMP/DRM stream"},
-	{GF_STREAM_OCI, "OCI", "MPEG-4 ObjectContentInformation stream"},
-	{GF_STREAM_MPEGJ, "MPEGJ", "MPEG-4 JAVA stream"},
-	{GF_STREAM_INTERACT, "Interaction", "MPEG-4 Interaction Sensor stream"},
-	{GF_STREAM_FONT, "Font", "MPEG-4 Font stream"}
+	{GF_STREAM_VISUAL, "Visual", "Video or Image stream", "video", "Video"},
+	{GF_STREAM_AUDIO, "Audio", "Audio stream", "audio"},
+	{GF_STREAM_SCENE, "SceneDescription", "Scene stream", "scene"},
+	{GF_STREAM_TEXT, "Text", "Text or subtitle stream", "text"},
+	{GF_STREAM_METADATA, "Metadata", "Metadata stream", "meta"},
+	{GF_STREAM_FILE, "File", "Raw file stream", "file"},
+	{GF_STREAM_ENCRYPTED, "Encrypted", "Encrypted media stream", "crypt"},
+	{GF_STREAM_OD, "ObjectDescriptor", "MPEG-4 ObjectDescriptor stream", "od"},
+	{GF_STREAM_OCR, "ClockReference", "MPEG-4 Clock Reference stream", "ocr"},
+	{GF_STREAM_MPEG7, "MPEG7", "MPEG-7 description stream", "mpeg7"},
+	{GF_STREAM_IPMP, "IPMP", "MPEG-4 IPMP/DRM stream", "ipmp"},
+	{GF_STREAM_OCI, "OCI", "MPEG-4 ObjectContentInformation stream", "oci"},
+	{GF_STREAM_MPEGJ, "MPEGJ", "MPEG-4 JAVA stream", "mpegj"},
+	{GF_STREAM_INTERACT, "Interaction", "MPEG-4 Interaction Sensor stream", "interact"},
+	{GF_STREAM_FONT, "Font", "MPEG-4 Font stream", "font"}
 };
 
 GF_EXPORT
@@ -418,6 +419,17 @@ const char *gf_stream_type_name(u32 streamType)
 			return GF_StreamTypes[i].name;
 	}
 	return "Unknown";
+}
+
+GF_EXPORT
+const char *gf_stream_type_short_name(u32 streamType)
+{
+	u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+	for (i=0; i<nb_st; i++) {
+		if (GF_StreamTypes[i].st == streamType)
+			return GF_StreamTypes[i].sname;
+	}
+	return "unkn";
 }
 
 GF_EXPORT

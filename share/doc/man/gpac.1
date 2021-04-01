@@ -1635,7 +1635,7 @@ This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .br
 Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
 .br
-KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD are:
+KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD:
 .br
 * num: replaced by file number if defined, 0 otherwise
 .br
@@ -1644,6 +1644,8 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 * URL: URL of source file
 .br
 * File: path on disk for source file; if not found, use URL if set, or PID name otherwise
+.br
+* Type: name of stream type of PID (video, audio ...)
 .br
 * p4cc=ABCD: uses PID property with 4CC value ABCD
 .br
@@ -4018,7 +4020,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev642-gc9d796610-master
+build: 1.1.0-DEV-rev662-g19118ed5e-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

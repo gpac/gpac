@@ -3583,9 +3583,8 @@ skip_arg:
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool use_default_seps)
+GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool direct_merge, Bool use_default_seps)
 {
-	Bool req_map_bck;
 	if (!args) return GF_OK;
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
@@ -3593,10 +3592,14 @@ GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool use_def
 	}
 
 	//pid props specified by user are merged directly
-	req_map_bck = pid->request_property_map;
-	pid->request_property_map = GF_FALSE;
-	gf_filter_pid_set_args_internal(pid->filter, pid, args, use_default_seps, 0);
-	pid->request_property_map = req_map_bck;
+	if (direct_merge) {
+		Bool req_map_bck = pid->request_property_map;
+		pid->request_property_map = GF_FALSE;
+		gf_filter_pid_set_args_internal(pid->filter, pid, args, use_default_seps, 0);
+		pid->request_property_map = req_map_bck;
+	} else {
+		gf_filter_pid_set_args_internal(pid->filter, pid, args, use_default_seps, 0);
+	}
 	return GF_OK;
 }
 
@@ -6851,6 +6854,13 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 		} else if (!strcmp(name, "FS")) {
 			str_val = file_suffix ? file_suffix : "";
 			is_ok = GF_TRUE;
+		} else if (!strcmp(name, "Type")) {
+			prop_val = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
+			if (prop_val) {
+				str_val = gf_stream_type_short_name(prop_val->value.uint);
+				is_ok = GF_TRUE;
+			}
+			prop_val = NULL;
 		} else if (!strncmp(name, "p4cc=", 5)) {
 			if (strlen(name) != 9) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] wrong length in 4CC template, expecting 4cc=ABCD\n", name));
