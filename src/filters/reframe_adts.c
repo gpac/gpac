@@ -108,6 +108,7 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 	u64 pos;
 
 	while (gf_bs_available(bs)>7) {
+		u32 nb_blocks_per_frame;
 		val = gf_bs_read_u8(bs);
 		if (val!=0xFF) continue;
 		val = gf_bs_read_int(bs, 4);
@@ -131,13 +132,29 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 		gf_bs_read_int(bs, 4);
 		hdr->frame_size = gf_bs_read_int(bs, 13);
 		gf_bs_read_int(bs, 11);
-		gf_bs_read_int(bs, 2);
+
+		nb_blocks_per_frame = gf_bs_read_int(bs, 2);
 		hdr->hdr_size = 7;
-		if (!hdr->no_crc) {
-			gf_bs_read_u16(bs);
-			hdr->hdr_size = 9;
+
+		if ((!hdr->nb_ch && (nb_blocks_per_frame<2)) || (nb_blocks_per_frame>2)) {
+			hdr->frame_size = 0;
+			gf_bs_seek(bs, pos+1);
+			continue;
 		}
+
+		if (!hdr->no_crc) {
+			u32 skip;
+			if (!nb_blocks_per_frame) {
+				skip = 2;
+			} else {
+				skip = 2 + 2*nb_blocks_per_frame; //and we have 2 bytes per raw_data_block
+			}
+			hdr->hdr_size += skip;
+			gf_bs_skip_bytes(bs, skip);
+		}
+
 		if (!GF_M4ASampleRates[hdr->sr_idx] || (hdr->frame_size < hdr->hdr_size)) {
+			hdr->frame_size = 0;
 			gf_bs_seek(bs, pos+1);
 			continue;
 		}
@@ -153,11 +170,13 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 		gf_bs_skip_bytes(bs, hdr->frame_size);
 		val = gf_bs_read_u8(bs);
 		if (val!=0xFF) {
+			hdr->frame_size = 0;
 			gf_bs_seek(bs, pos+1);
 			continue;
 		}
 		val = gf_bs_read_int(bs, 4);
 		if (val!=0x0F) {
+			hdr->frame_size = 0;
 			gf_bs_read_int(bs, 4);
 			gf_bs_seek(bs, pos+1);
 			continue;
