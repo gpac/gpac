@@ -129,7 +129,7 @@ filter.initialize = function() {
 	if (filter.type != 0) {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
 	}
-	this.set_cap({id: "CodecID", value: "raw", ouput: true} );
+	this.set_cap({id: "CodecID", value: "raw", output: true} );
 
 	//setup audio
 	if (filter.type != 1) {
