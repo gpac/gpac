@@ -3104,10 +3104,11 @@ void gf_filter_pid_set_loose_connect(GF_FilterPid *PID);
 /*! Adds PID properties from textual description - this does not reset the PID properties
 \param PID the target filter PID
 \param args one or more serialized properties to set, as documented in gpac -h doc
+\param direct_merge if true, next packet to be sent will not trigger a property change
 \param use_default_seps if GF_TRUE, the serialized properties are using the default separator set, otherwise they are using the current separator set of the session
 \return Error if any
 */
-GF_Err gf_filter_pid_push_properties(GF_FilterPid *PID, char *args, Bool use_default_seps);
+GF_Err gf_filter_pid_push_properties(GF_FilterPid *PID, char *args, Bool direct_merge, Bool use_default_seps);
 
 
 /*! Negotiate a given property on an input PID for built-in properties
@@ -3601,6 +3602,8 @@ However, packets do not have to be send in their creation order: a created packe
 
 
 /*! Keeps a reference to the given input packet. The packet shall be released at some point using \ref gf_filter_pck_unref
+
+ Filters keeping reference to packets should check if the packet is a blocking reference using gf_filter_pck_is_blocking_ref. If this is the case, the input chain will likely be blocked until the packet reference is released.
 \param pck the target input packet
 \return error if any
 */

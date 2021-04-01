@@ -2318,6 +2318,7 @@
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_short_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_types_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_afx_name) )
