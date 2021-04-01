@@ -3694,16 +3694,8 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 		if (ds->xlink && (ds->stream_type==GF_STREAM_FILE) ) {
 			pdur = (u32) (1000*ds->period_dur);
 		} else {
-			u64 ds_dur;
-			//if delay/skip, adjust period duration
-			if (ds->pts_minus_cts) {
-				s64 diff = ds->pts_minus_cts;
-				diff *= 1000;
-				diff /= ds->timescale;
-				ds_dur = (u64) ((s64) ds->max_period_dur + diff);
-			} else {
-				ds_dur = ds->max_period_dur;
-			}
+			u64 ds_dur = ds->max_period_dur;
+
 			//we had to generate one extra segment to unlock looping, but we don't want to advertise it in the manifest duration
 			//because other sets may not be ready for this time interval
 			if (ds->subdur_forced_use_period_dur)
@@ -5658,7 +5650,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			ds->ts_offset += nb_skip*seg_dur;
 			ds->seg_number += nb_skip;
 
-//			ds->max_period_dur += nb_skip*seg_dur;
 			ds->max_period_dur = ds->cumulated_dur;
 			ds->adjusted_next_seg_start += ds->ts_offset;
 			ds->next_seg_start += ds->ts_offset;
@@ -6779,7 +6770,7 @@ assert(ds);
 		while (1) {
 			u32 sap_type, dur, o_dur, split_dur;
 			s32 check_dur;
-			u64 cts, orig_cts, dts, ncts, split_dur_next;
+			u64 cts, orig_cts, dts, split_dur_next;
 			Bool seg_over = GF_FALSE;
 			Bool is_packet_split = GF_FALSE;
 			Bool is_queue_flush = GF_FALSE;
@@ -7365,10 +7356,17 @@ assert(ds);
 				cts = ds->last_cts;
 				dts = ds->last_dts;
 			} else {
-
-				ncts = cts + (split_dur ? split_dur : dur);
+				u64 ncts = cts + (split_dur ? split_dur : dur);
 				if (ncts>ds->est_first_cts_in_next_seg)
 					ds->est_first_cts_in_next_seg = ncts;
+
+				//we compute max period duration, move back to original timeline (dts-based) and remove any media skip part
+				ncts += ds->first_cts;
+				ncts -= ds->first_dts;
+				if ((s64) ncts + ds->pts_minus_cts < 0)
+					ncts = 0;
+				else
+					ncts = ncts + ds->pts_minus_cts;
 
 				ncts *= 1000;
 				ncts /= ds->timescale;
