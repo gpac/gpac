@@ -397,6 +397,7 @@ typedef struct _dash_stream
 	GF_Fraction64 duration;
 	GF_List *packet_queue;
 	u32 nb_sap_in_queue;
+	u32 sbound;
 
 	u32 request_period_switch;
 
@@ -839,6 +840,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->complementary_streams = gf_list_new();
 		period_switch = GF_TRUE;
 		gf_filter_pid_set_udta(pid, ds);
+		ds->sbound = ctx->sbound;
 		if (ctx->sbound!=DASHER_BOUNDS_OUT)
 			ds->packet_queue = gf_list_new();
 
@@ -5296,7 +5298,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		// period resume (end of content replacement/splice/...): if using templates, check if period ID is used, if not force startNumber to resume
 		prop = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
-		if (ctx->tpl && prop && prop->value.string) {
+		if (ctx->tpl && prop && prop->value.string && ds->mpd_timescale) {
 			char *template = ds->template;
 			if (!template) template = ctx->template;
 			if (
@@ -6688,7 +6690,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 
 static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard_all)
 {
-	if (ctx->sbound) {
+	if (ds->sbound) {
 		while (gf_list_count(ds->packet_queue)) {
 			GF_FilterPacket *pck = gf_list_pop_front(ds->packet_queue);
 			if (gf_filter_pck_get_sap(pck)) {
@@ -6783,7 +6785,7 @@ assert(ds);
 				//we may change period after a packet fetch (reconfigure of input pid)
 				if ((ds->period != ctx->current_period) || ds->request_period_switch) {
 					//in closest mode, flush queue
-					if (!ctx->sbound || !gf_list_count(ds->packet_queue)) {
+					if (!ds->sbound || !gf_list_count(ds->packet_queue)) {
 						assert(gf_list_find(ctx->current_period->streams, ds)<0);
 						count = gf_list_count(ctx->current_period->streams);
 						i--;
@@ -6794,6 +6796,10 @@ assert(ds);
 			} else {
 				is_queue_flush = GF_TRUE;
 			}
+			if (ds->sbound && pck && gf_filter_pck_is_blocking_ref(pck)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot use `sbound` with blocking input packet references, disabling packet buffering for PID %s\n", gf_filter_pid_get_name(ds->ipid) ));
+				ds->sbound = DASHER_BOUNDS_OUT;
+			}
 
 			//skipped merged tile base
 			if (ds->merged_tile_dep) {
@@ -6801,7 +6807,7 @@ assert(ds);
 				pck = NULL;
 			}
 			//queue mode
-			else if (ctx->sbound) {
+			else if (ds->sbound) {
 				if (!is_queue_flush && pck) {
 					gf_filter_pck_ref(&pck);
 					gf_filter_pid_drop_packet(ds->ipid);
@@ -7188,7 +7194,7 @@ assert(ds);
 			}
 			//we have a SAP and we work in closest mode: check the next SAP in the queue, and decide if we
 			//split the segment at this SAP or wait for the next one
-			else if (ds->segment_started && ctx->sbound && sap_type) {
+			else if (ds->segment_started && ds->sbound && sap_type) {
 				u32 idx, nb_queued, nb_pck = gf_list_count(ds->packet_queue);
 				nb_queued = nb_pck;
 				if (is_queue_flush) nb_queued += 1;
@@ -7222,7 +7228,7 @@ assert(ds);
 						s64 diff_next = cts_next * base_ds->timescale / ds->timescale;
 						diff_next -= base_ds->adjusted_next_seg_start;
 						//bounds at closest: if this SAP is closer to the target next segment start than the next SAP, split at this packet
-						if (ctx->sbound==DASHER_BOUNDS_CLOSEST) {
+						if (ds->sbound==DASHER_BOUNDS_CLOSEST) {
 							s64 diff = cts * base_ds->timescale / ds->timescale;
 							diff -= base_ds->adjusted_next_seg_start;
 							//this one may be negative, but we always want diff_next positive (next SAP in next segment)
@@ -7256,7 +7262,7 @@ assert(ds);
 			}
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
-			else if (!ctx->sbound && ds->segment_started && ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) ) {
+			else if (!ds->sbound && ds->segment_started && ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) ) {
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
