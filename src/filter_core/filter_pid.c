@@ -3927,7 +3927,7 @@ single_retry:
 			}
 
 			//explicitly clonable but caps don't match, don't connect to it
-			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1)) {
+			if (!gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1)) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s caps does not match clonable filter %s\n", pid->name, filter_dst->name));
 				continue;
 			}
