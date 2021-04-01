@@ -1728,6 +1728,13 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		gf_isom_set_track_enabled(file, svc_track, GF_TRUE);
 		gf_isom_set_track_reference(file, svc_track, GF_ISOM_REF_BASE, ref_trackID);
+		//copy over edit list
+		for (i=0; i<gf_isom_get_edits_count(file, track); i++) {
+			GF_ISOEditType emode;
+			u64 etime, edur, mtime;
+			gf_isom_get_edit(file, track, i+1, &etime, &edur, &mtime, &emode);
+			gf_isom_set_edit(file, svc_track, etime, edur, mtime, emode);
+		}
 		cfg = gf_odf_avc_cfg_new();
 		cfg->complete_representation = 1; //SVC
 		/*this layer depends on the base layer and the lower layers*/
