@@ -221,6 +221,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid) && !ctx->reverse_play) {
 			if (ctx->out_pck) {
 				gf_filter_pck_truncate(ctx->out_pck, ctx->nb_bytes_in_frame);
+				gf_filter_pck_set_duration(ctx->out_pck, ctx->nb_bytes_in_frame/ctx->Bps/ctx->ch);
 				pcmreframe_flush_packet(ctx);
 			}
 			if (ctx->opid)
