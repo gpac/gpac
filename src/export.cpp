@@ -2560,6 +2560,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_would_block ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_query_buffer_duration ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_has_seen_eos ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_eos_received ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_send_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_exec_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_is_filter_in_parents ) )

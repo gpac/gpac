@@ -5783,6 +5783,18 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 }
 
 GF_EXPORT
+Bool gf_filter_pid_eos_received(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_FALSE;
+	}
+	if (pid->pid->has_seen_eos) return GF_TRUE;
+	return GF_FALSE;
+}
+
+
+GF_EXPORT
 const char *gf_filter_event_name(GF_FEventType type)
 {
 	switch (type) {

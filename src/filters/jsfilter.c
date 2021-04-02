@@ -151,6 +151,7 @@ enum
 	JSF_PID_NAME=0,
 	JSF_PID_EOS,
 	JSF_PID_EOS_SEEN,
+	JSF_PID_EOS_RECEIVED,
 	JSF_PID_WOULD_BLOCK,
 	JSF_PID_FILTER_NAME,
 	JSF_PID_FILTER_SRC,
@@ -1918,6 +1919,8 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		return JS_NewBool (ctx, gf_filter_pid_is_eos(pctx->pid) );
 	case JSF_PID_EOS_SEEN:
 		return JS_NewBool (ctx, gf_filter_pid_has_seen_eos(pctx->pid) );
+	case JSF_PID_EOS_RECEIVED:
+		return JS_NewBool (ctx, gf_filter_pid_eos_received(pctx->pid) );
 	case JSF_PID_WOULD_BLOCK:
 		return JS_NewBool(ctx, gf_filter_pid_would_block(pctx->pid) );
 	case JSF_PID_FILTER_NAME:
@@ -2598,6 +2601,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("name", jsf_pid_get_prop, jsf_pid_set_prop, JSF_PID_NAME),
     JS_CGETSET_MAGIC_DEF("eos", jsf_pid_get_prop, jsf_pid_set_prop, JSF_PID_EOS),
     JS_CGETSET_MAGIC_DEF("eos_seen", jsf_pid_get_prop, NULL, JSF_PID_EOS_SEEN),
+    JS_CGETSET_MAGIC_DEF("eos_received", jsf_pid_get_prop, NULL, JSF_PID_EOS_RECEIVED),
     JS_CGETSET_MAGIC_DEF("would_block", jsf_pid_get_prop, NULL, JSF_PID_WOULD_BLOCK),
     JS_CGETSET_MAGIC_DEF("filter_name", jsf_pid_get_prop, NULL, JSF_PID_FILTER_NAME),
     JS_CGETSET_MAGIC_DEF("src_name", jsf_pid_get_prop, NULL, JSF_PID_FILTER_SRC),

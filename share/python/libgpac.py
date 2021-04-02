@@ -2921,6 +2921,9 @@ _libgpac.gf_filter_pid_set_eos.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_has_seen_eos.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_has_seen_eos.restype = gf_bool
 
+_libgpac.gf_filter_pid_eos_received.argtypes = [_gf_filter_pid]
+_libgpac.gf_filter_pid_eos_received.restype = gf_bool
+
 _libgpac.gf_filter_pid_would_block.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_would_block.restype = gf_bool
 _libgpac.gf_filter_pid_set_loose_connect.argtypes = [_gf_filter_pid]
@@ -3031,9 +3034,12 @@ class FilterPid:
             ##end of stream property of PID  - see \ref gf_filter_pid_is_eos and \ref gf_filter_pid_set_eos
             #\hideinitializer
             self.eos=0
-            ##True if end of stream was seen in the chain but not yet reached by the filter, readonly  - see \ref gf_filter_pid_has_seen_eos
+            ##True if end of stream was seen in the chain but has not yet reached the filter, readonly  - see \ref gf_filter_pid_has_seen_eos
             #\hideinitializer
             self.has_seen_eos=0
+            ##True if end of stream was seen on the input PID but some packets are still to be processed, readonly  - see \ref gf_filter_pid_eos_received
+            #\hideinitializer
+            self.eos_received=0
             ##True if PID would block, readonly - see \ref gf_filter_pid_would_block
             #\hideinitializer
             self.would_block=0
@@ -3471,11 +3477,17 @@ class FilterPid:
         _libgpac.gf_filter_pid_set_eos(self._pid)
     ##\endcond private
 
-    ##True if end of stream was seen in the chain but not yet reached by the filter  - see \ref gf_filter_pid_has_seen_eos
+    ##True if end of stream was seen in the chain but not yet reached by the filter - see \ref gf_filter_pid_has_seen_eos
     #\return
     @property
     def has_seen_eos(self):
         return _libgpac.gf_filter_pid_has_seen_eos(self._pid)
+
+    ##True if end of stream was seen on pid but some packets are still pending - see \ref gf_filter_pid_eos_received
+    #\return
+    @property
+    def eos_receievd(self):
+        return _libgpac.gf_filter_pid_eos_received(self._pid)
 
     ##True if PID would block - see \ref gf_filter_pid_would_block
     #\return
