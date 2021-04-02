@@ -2970,15 +2970,11 @@ The formats allowed for times specifiers are:
 .br
 * 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds
 .br
-* INT: specify time in millisecond
-.br
-* FLOAT: specify time in second
+* INT, FLOAT: specify time in seconds
 .br
 * NUM/DEN: specify time in seconds as fraction
 .br
 * 'F'NUM: specify time as frame number
-.br
-Warning: xs=10 means 10 milliseconds while xs=10.0 means 10 seconds.
 .br
 In this mode, the timestamps are rewritten to form a continuous timeline.
 .br
@@ -3006,7 +3002,7 @@ If no end range is found for a given start range:
 .br
 Example
 .br
-gpac src=m.mp4 reframer:xs=0.0,10.0,25.0:xe=5.0 [dst]
+gpac src=m.mp4 reframer:xs=0,10,25:xe=5 [dst]
 .br
 
 .br
@@ -3014,7 +3010,7 @@ This will extract the time ranges [0s,5s], [10s,25s] and all media starting from
 .br
 Example
 .br
-gpac src=m.mp4 reframer:xs=0.0,10.0,25.0 [dst]
+gpac src=m.mp4 reframer:xs=0,10,25 [dst]
 .br
 
 .br
@@ -3048,7 +3044,7 @@ It is possible to modify PID properties per range using .I props. Each set of pr
 .br
 Example
 .br
-gpac src=m.mp4 reframer:xs=0.0,30.0:props=#Period=P1,#Period=P2:#foo=bar
+gpac src=m.mp4 reframer:xs=0,30:props=#Period=P1,#Period=P2:#foo=bar
 .br
 
 .br
@@ -7639,7 +7635,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev663-ga19a19e70-master
+build: 1.1.0-DEV-rev668-ga58e41485-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
