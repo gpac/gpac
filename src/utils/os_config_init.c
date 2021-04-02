@@ -1290,6 +1290,9 @@ GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot
  GF_DEF_ARG("rmt-qsize", NULL, "set remotery message queue size in bytes", "131072", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-log", NULL, "redirect logs to remotery (experimental, usually not well handled by browser)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
  GF_DEF_ARG("rmt-ogl", NULL, "make remotery sample opengl calls", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_RMT),
+
+ GF_DEF_ARG("m2ts-vvc-old", NULL, "hack for old TS streams using 0x32 for VVC instead of 0x33", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HACKS),
+
  {0}
 };
 
