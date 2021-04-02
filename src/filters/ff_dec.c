@@ -164,6 +164,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
+	u64 out_cts;
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
 	u32 i, count, ff_pfmt;
@@ -301,18 +302,25 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	memset(&pict, 0, sizeof(pict));
 
-
 	pck_src = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
+		u64 cts;
 		pck_src = gf_list_get(ctx->src_packets, i);
-		if (gf_filter_pck_get_cts(pck_src) == frame->pkt_pts) break;
+		cts = gf_filter_pck_get_cts(pck_src);
+		if (cts == frame->pts)
+			break;
+		if (cts == frame->pkt_pts)
+			break;
 		pck_src = NULL;
 	}
 
 	seek_flag = GF_FALSE;
 	if (pck_src) {
 		seek_flag = gf_filter_pck_get_seek_flag(pck_src);
+		out_cts = gf_filter_pck_get_cts(pck_src);
+	} else {
+		out_cts = frame->pts;
 	}
 	//this was a seek frame, do not dispatch
 	if (seek_flag) {
@@ -335,8 +343,8 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
     //rewrite dts and pts to PTS value
-    gf_filter_pck_set_dts(dst_pck, frame->pkt_pts);
-    gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+    gf_filter_pck_set_dts(dst_pck, out_cts);
+    gf_filter_pck_set_cts(dst_pck, out_cts);
 
 	ff_pfmt = ctx->decoder->pix_fmt;
 	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
@@ -669,6 +677,17 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	return ctx->process(filter, ctx);
 }
 
+static const GF_FilterCapability FFDecodeAnnexBCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
+
 static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
@@ -730,6 +749,20 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	ctx->sample_rate = prop ? prop->value.uint : 0;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	ctx->channels = prop ? prop->value.uint : 0;
+
+	if (gpac_codecid==GF_CODECID_VVC) {
+		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		//libvvdec only supports annexB, request ufnalu adaptation filter
+		if (codec && codec->name && strstr(codec->name, "vvdec")) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+			if (!prop || !prop->value.boolean) {
+				gf_filter_override_caps(filter, FFDecodeAnnexBCaps, GF_ARRAY_LENGTH(FFDecodeAnnexBCaps));
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+				return GF_OK;
+			}
+		}
+	}
 
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
