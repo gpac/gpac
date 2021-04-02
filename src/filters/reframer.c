@@ -360,10 +360,9 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 	}
 	if (sscanf(date, LLU, &v)==1) {
 		value->num = v;
-		value->den = 1000;
+		value->den = 1;
 		return GF_TRUE;
 	}
-
 
 exit:
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Unrecognized date format %s, expecting TXX:XX:XX[.XX], INT or FRAC\n", date));
@@ -1924,11 +1923,9 @@ GF_FilterRegister ReframerRegister = {
 		"The formats allowed for times specifiers are:\n"
 		"- 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds\n"
 		"- 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds\n"
-		"- INT: specify time in millisecond\n"
-		"- FLOAT: specify time in second\n"
+		"- INT, FLOAT: specify time in seconds\n"
 		"- NUM/DEN: specify time in seconds as fraction\n"
 		"- 'F'NUM: specify time as frame number\n"
-		"Warning: `xs=10` means 10 milliseconds while `xs=10.0` means 10 seconds.\n"
 		"In this mode, the timestamps are rewritten to form a continuous timeline.\n"
 		"When multiple ranges are given, the filter will try to seek if needed and supported by source.\n"
 		"\n"
@@ -1939,9 +1936,9 @@ GF_FilterRegister ReframerRegister = {
 		"- if a following start range is set, the end range is set to this next start\n"
 		"- otherwise, the end range is open\n"
 		"\n"
-		"EX gpac src=m.mp4 reframer:xs=0.0,10.0,25.0:xe=5.0 [dst]\n"
+		"EX gpac src=m.mp4 reframer:xs=0,10,25:xe=5 [dst]\n"
 		"This will extract the time ranges [0s,5s], [10s,25s] and all media starting from 25s\n"
-		"EX gpac src=m.mp4 reframer:xs=0.0,10.0,25.0 [dst]\n"
+		"EX gpac src=m.mp4 reframer:xs=0,10,25 [dst]\n"
 		"This will extract the time ranges [0s,10s], [10s,25s] and all media starting from 25s\n"
 		"\n"
 		"It is possible to signal range boundaries in output packets using [-splitrange]().\n"
@@ -1954,7 +1951,7 @@ GF_FilterRegister ReframerRegister = {
 		"Note: The `:` and `/` characters are replaced by `.` in `FileSuffix` property.\n"
 		"\n"
 		"It is possible to modify PID properties per range using [-props](). Each set of property must be specified using the active separator set.\n"
-		"EX gpac src=m.mp4 reframer:xs=0.0,30.0:props=#Period=P1,#Period=P2:#foo=bar\n"
+		"EX gpac src=m.mp4 reframer:xs=0,30:props=#Period=P1,#Period=P2:#foo=bar\n"
 		"This will assign to output PIDs\n"
 		"- during the range [0,30]: property `Period` to `P1`\n"
 		"- during the range [30, end]: properties `Period` to `P2` and property `foo` to `bar`\n"
