@@ -3346,9 +3346,15 @@ This is a recursive call on input chain. The function is typically used to abort
 */
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *PID);
 
+/*! Checks for end of stream has been signaled a PID. Contrary to \ref gf_filter_pid_has_seen_eos this is not a recursive call and only checks the given pid.
+\param PID the target filter PID
+\return GF_TRUE if end of stream was signaled for that pid (there may be pending packets in queue)
+*/
+Bool gf_filter_pid_eos_received(GF_FilterPid *PID);
+
 /*! Checks for end of stream signaling on a PID.
 \param PID the target filter PID
-\return GF_TRUE if end of stream was signaled on that PID
+\return GF_TRUE if end of stream is set on that PID (no more packet in queue)
 */
 Bool gf_filter_pid_is_eos(GF_FilterPid *PID);
 

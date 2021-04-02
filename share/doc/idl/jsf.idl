@@ -352,6 +352,8 @@ attribute DOMString name;
 attribute boolean eos;
 /*! end of stream pending state - see \ref gf_filter_pid_has_seen_eos*/
 readonly attribute boolean eos_seen;
+/*! end of stream pending state - see \ref gf_filter_pid_eos_received*/
+readonly attribute boolean eos_received;
 /*! blocking state - see \ref gf_filter_pid_would_block*/
 readonly attribute boolean would_block;
 /*! name of parent filter*/
