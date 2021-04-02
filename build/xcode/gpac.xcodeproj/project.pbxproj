@@ -3104,22 +3104,7 @@
 					GPAC_HAS_OPENSVC,
 					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
-					GPAC_STATIC_MODULES,
-					GPAC_CONFIG_DARWIN,
-					CONFIG_DARWIN_GL,
-					"DEBUG=1",
-					GPAC_HAS_MAD,
-					GPAC_HAS_FAAD,
-					GPAC_HAS_XVID,
-					GPAC_HAS_JP2,
-					GPAC_HAS_LIBA52,
-					GPAC_HAS_VORBIS,
-					GPAC_HAS_THEORA,
-					GPAC_HAS_OPENSVC,
-					GPAC_HAS_OPENHEVC,
-					GPAC_HAS_FFMPEG,
+					FFMPEG_ENABLE_VVC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3195,6 +3180,8 @@
 					"-lkvazaar",
 					"-lnghttp2",
 					"-lvmaf",
+					"-lvvdec",
+					"-lc++",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
@@ -3231,6 +3218,7 @@
 					GPAC_HAS_OPENSVC,
 					GPAC_HAS_OPENHEVC,
 					GPAC_HAS_FFMPEG,
+					FFMPEG_ENABLE_VVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
@@ -3304,6 +3292,8 @@
 					"-lkvazaar",
 					"-lnghttp2",
 					"-lvmaf",
+					"-lvvdec",
+					"-lc++",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;

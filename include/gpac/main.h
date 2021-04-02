@@ -141,6 +141,8 @@ typedef struct
 #define GF_ARG_SUBSYS_TEXT 		(1<<11)
 /*! argument applies to the remotery subsystem*/
 #define GF_ARG_SUBSYS_RMT 		(1<<12)
+/*! argument belongs to hack tools, usually never used*/
+#define GF_ARG_SUBSYS_HACKS 		(1<<13)
 
 /*! argument is a boolean*/
 #define GF_ARG_BOOL		0
