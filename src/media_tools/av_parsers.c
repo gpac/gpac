@@ -9485,7 +9485,7 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 		}
 		memset(p_ptl, 0, sizeof(VVC_ProfileTierLevel));
 		p_ptl->pt_present = 1;
-		p_ptl->ptl_max_tid = sps->max_sublayers;
+		p_ptl->ptl_max_tid = sps->max_sublayers-1;
 		vvc_profile_tier_level(bs, p_ptl, 0);
 	}
 	sps->gdr_enabled = gf_bs_read_int_log(bs, 1, "gdr_enabled");
