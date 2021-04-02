@@ -1258,16 +1258,21 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (gf_filter_pid_get_property_str(pid, "period_switch"))
 		period_switch = GF_TRUE;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_START);
+	if (p) {
+		if (ds->period_start != p->value.number) period_switch = GF_TRUE;
+		ds->period_start = p->value.number;
+	} else {
+		if (ds->period_start) period_switch = GF_TRUE;
+		ds->period_start = 0;
+	}
+
 	if (period_switch) {
 		new_period_request = GF_TRUE;
 	} else {
 		period_switch = old_period_switch;
 	}
 
-
-	ds->period_start = 0;
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_START);
-	if (p) ds->period_start = p->value.number;
 
 	ds->period_dur = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_DUR);
