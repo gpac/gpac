@@ -3057,7 +3057,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 \param reconfigurable_only indicates the chain should be loaded for reconfigurable filters
 \return the first filter in the matching chain, or NULL if no match
 */
-static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, Bool reconfigurable_only, u32 *min_chain_len, GF_List *skip_if_in_filter_list, Bool *skipped)
+static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, u32 reconfigurable_only_type, u32 *min_chain_len, GF_List *skip_if_in_filter_list, Bool *skipped)
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
@@ -3065,12 +3065,15 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	u32 i, count;
 	char prefRegister[1001];
 	char szForceReg[20];
+	Bool reconfigurable_only;
 
 	if (!fsess->max_resolve_chain_len) return NULL;
 
 	filter_chain = gf_list_new();
 
 	if (!dst) return NULL;
+
+	reconfigurable_only = (reconfigurable_only_type==2) ? GF_TRUE : GF_FALSE;
 
 	sprintf(szForceReg, "gfreg%c", pid->filter->session->sep_name);
 	prefRegister[0]=0;
@@ -3197,7 +3200,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_INFO)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only ? "adaptation " : "", pid->filter->name, pid->name, dst->freg->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved %sfilter chain from filter %s PID %s to filter %s - dumping chain:\n", reconfigurable_only_type ? "adaptation " : "", pid->filter->name, pid->name, dst->freg->name));
 		}
 #endif
 		prev_af = NULL;
@@ -3305,7 +3308,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 
 			prev_af = af;
 
-			if (reconfigurable_only) af->is_pid_adaptation_filter = GF_TRUE;
+			if (reconfigurable_only_type) af->is_pid_adaptation_filter = GF_TRUE;
 
 			//remember the first in the chain
 			if (!i) chain_input = af;
@@ -3333,23 +3336,23 @@ exit:
 
 GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
 {
-	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, GF_FALSE, NULL, NULL, NULL);
+	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, 0, NULL, NULL, NULL);
 }
 
 GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, GF_List *skip_if_in_filter_list, Bool *skipped)
 {
-	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, GF_FALSE, NULL, skip_if_in_filter_list, skipped);
+	return gf_filter_pid_resolve_link_internal(pid, dst, filter_reassigned, 0, NULL, skip_if_in_filter_list, skipped);
 }
 
-GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst)
+GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst, Bool check_reconfig_only)
 {
-	return gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_TRUE, NULL, NULL, NULL);
+	return gf_filter_pid_resolve_link_internal(pid, dst, NULL, check_reconfig_only ? 2 : 1, NULL, NULL, NULL);
 }
 
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst)
 {
 	u32 chain_len=0;
-	gf_filter_pid_resolve_link_internal(pid, dst, NULL, GF_FALSE, &chain_len, NULL, NULL);
+	gf_filter_pid_resolve_link_internal(pid, dst, NULL, 0, &chain_len, NULL, NULL);
 	return chain_len;
 }
 

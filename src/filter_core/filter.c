@@ -966,7 +966,9 @@ Bool gf_filter_update_arg_apply(GF_Filter *filter, const char *arg_name, const c
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e = GF_OK;
-			FSESS_CHECK_THREAD(filter)
+			if (!is_sync_call) {
+				FSESS_CHECK_THREAD(filter)
+			}
 			//if no update function consider the arg OK
 			if (filter->freg->update_arg) {
 				e = filter->freg->update_arg(filter, arg_name, &argv);
@@ -1870,8 +1872,18 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		gf_fs_check_graph_load(filter_dst->session, GF_TRUE);
 		//make sure we don't try the PID parent filter since we just failed reconfiguring it
 		gf_list_add(pid->filter->blacklisted, (void *) pid->filter->freg);
-		new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst);
+		new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst, GF_TRUE);
+
 		gf_list_del_item(pid->filter->blacklisted, (void *)pid->filter->freg);
+
+		//special case: no adaptation filter found but destination filter has forced caps set, try to load a filter chain allowing fo rnew caps
+		if (!new_f && filter_dst->forced_caps) {
+			new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst, GF_FALSE);
+			if (new_f) {
+				//drop caps negociate
+				reconfig_only = GF_FALSE;
+			}
+		}
 	}
 	//we are inserting a new chain
 	else {
