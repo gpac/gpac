@@ -359,6 +359,17 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		faaddec_check_mc_config(ctx);
 	}
 
+	if (ctx->timescale && pck && gf_filter_pid_eos_received(ctx->ipid)) {
+		u64 odur = gf_filter_pck_get_duration(pck);
+		if (ctx->timescale != ctx->sample_rate) {
+			odur *= ctx->sample_rate;
+			odur /= ctx->timescale;
+		}
+		if (odur * ctx->info.channels < ctx->info.samples) {
+			ctx->info.samples = odur * ctx->info.channels;
+		}
+	}
+
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) (sizeof(short) * ctx->info.samples), &output);
 	if (!dst_pck) {
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);

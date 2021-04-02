@@ -641,14 +641,17 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	u32 f_idx, s_idx;
 	u32 i, bytes_per_chan, src_frame_size;
 
-	if (!ctx->audio_buffer || !data)
+	if (!ctx->audio_buffer || !nb_samples)
 		return;
 
 	if (!ctx->planar_audio) {
 		u32 offset_src = sample_offset * ctx->bytes_per_sample;
 		u32 offset_dst = ctx->samples_in_audio_buffer * ctx->bytes_per_sample;
 		u32 len = nb_samples * ctx->bytes_per_sample;
-		memcpy(ctx->audio_buffer + offset_dst, data + offset_src, sizeof(u8)*len);
+		if (data)
+			memcpy(ctx->audio_buffer + offset_dst, data + offset_src, sizeof(u8)*len);
+		else
+			memset(ctx->audio_buffer + offset_dst, 0, sizeof(u8)*len);
 		ctx->samples_in_audio_buffer += nb_samples;
 		return;
 	}
@@ -656,7 +659,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	bytes_per_chan = ctx->bytes_per_sample / ctx->channels;
 	src_frame_size = size / ctx->bytes_per_sample;
 	assert(ctx->samples_in_audio_buffer + nb_samples <= (u32) ctx->audio_buffer_size);
-	assert(sample_offset + nb_samples <= src_frame_size);
+	assert(!data || (sample_offset + nb_samples <= src_frame_size));
 	assert(ctx->encoder->frame_size);
 
 	f_idx = ctx->samples_in_audio_buffer / ctx->encoder->frame_size;
@@ -666,20 +669,24 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 	}
 	dst = ctx->audio_buffer + (f_idx * ctx->channels * ctx->encoder->frame_size + s_idx) * bytes_per_chan;
 	while (nb_samples) {
-		const u8 *src;
+		const u8 *src = NULL;
 		u32 nb_samples_to_copy = nb_samples;
 		if (nb_samples_to_copy > (u32) ctx->encoder->frame_size)
 			nb_samples_to_copy = ctx->encoder->frame_size;
 
-		assert(sample_offset<src_frame_size);
-
-		src = data + sample_offset * bytes_per_chan;
+		if (data) {
+			assert(sample_offset<src_frame_size);
+			src = data + sample_offset * bytes_per_chan;
+		}
 
 		for (i=0; i<ctx->channels; i++) {
-			memcpy(dst, src, sizeof(u8) * nb_samples_to_copy * bytes_per_chan);
-
+			if (src) {
+				memcpy(dst, src, sizeof(u8) * nb_samples_to_copy * bytes_per_chan);
+				src += src_frame_size * bytes_per_chan;
+			} else {
+				memset(dst, 0, sizeof(u8) * nb_samples_to_copy * bytes_per_chan);
+			}
 			dst += ctx->encoder->frame_size * bytes_per_chan;
-			src += src_frame_size * bytes_per_chan;
 		}
 		ctx->samples_in_audio_buffer += nb_samples_to_copy;
 		nb_samples -= nb_samples_to_copy;
@@ -775,20 +782,52 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_SERVICE_ERROR;
 		}
+	} else if (ctx->samples_in_audio_buffer) {
+		u32 real_samples = ctx->samples_in_audio_buffer;
+		if (ctx->encoder->frame_size) {
+			nb_samples = ctx->encoder->frame_size - ctx->samples_in_audio_buffer;
+			ffenc_audio_append_samples(ctx, NULL, 0, 0, nb_samples);
+			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->encoder->frame_size * ctx->bytes_per_sample, 0);
+		} else {
+			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->samples_in_audio_buffer * ctx->bytes_per_sample, 0);
+		}
+		ctx->frame->nb_samples = real_samples;
+		if (res<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error filling raw audio frame: %s\n", av_err2str(res) ));
+			ctx->samples_in_audio_buffer = 0;
+		} else {
+			ctx->samples_in_audio_buffer = real_samples;
+			if (ctx->ts_shift && ctx->encoder->frame_size && (ctx->encoder->frame_size>ctx->ts_shift)) {
+				ctx->samples_in_audio_buffer += ctx->ts_shift;
+				if (ctx->samples_in_audio_buffer > ctx->encoder->frame_size)
+					ctx->samples_in_audio_buffer = ctx->encoder->frame_size;
+			}
+		}
 	}
 
 	av_init_packet(&pkt);
 	pkt.data = (uint8_t*)ctx->enc_buffer;
 	pkt.size = ctx->enc_buffer_size;
 
-	ctx->frame->nb_samples = ctx->encoder->frame_size;
+	if (pck)
+		ctx->frame->nb_samples = ctx->encoder->frame_size;
 	ctx->frame->format = ctx->encoder->sample_fmt;
 	ctx->frame->channels = ctx->encoder->channels;
 	ctx->frame->channel_layout = ctx->encoder->channel_layout;
 	gotpck = 0;
-	if (pck) {
+	if (pck || ctx->samples_in_audio_buffer) {
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts = ctx->first_byte_cts;
 		res = avcodec_encode_audio2(ctx->encoder, &pkt, ctx->frame, &gotpck);
+		if (!pck) {
+			if (! (ctx->encoder->codec->capabilities & AV_CODEC_CAP_DELAY)) {
+				pkt.duration = ctx->samples_in_audio_buffer;
+				if (ctx->timescale != ctx->sample_rate) {
+					pkt.duration *= ctx->timescale;
+					pkt.duration /= ctx->sample_rate;
+				}
+			}
+			ctx->samples_in_audio_buffer = 0;
+		}
 	} else {
 		res = avcodec_encode_audio2(ctx->encoder, &pkt, NULL, &gotpck);
 		if (!gotpck) {
@@ -857,16 +896,6 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
 	memcpy(output, pkt.data, pkt.size);
 
-	if (ctx->init_cts_setup) {
-		ctx->init_cts_setup = GF_FALSE;
-		if (ctx->frame->pts != pkt.pts) {
-			ctx->ts_shift = (s64) ctx->frame->pts - (s64) pkt.pts;
-		}
-		if (ctx->ts_shift) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( - ctx->ts_shift) );
-		}
-	}
-
 	//try to locate first source packet with cts greater than this packet cts and use it as source for properties
 	//this is not optimal because we dont produce N for N because of different window coding sizes
 	src_pck = NULL;
@@ -895,6 +924,19 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_list_del_item(ctx->src_packets, src_pck);
 		gf_filter_pck_unref(src_pck);
 	}
+
+	if (ctx->init_cts_setup) {
+		u64 octs;
+		ctx->init_cts_setup = GF_FALSE;
+		octs = src_pck ? gf_filter_pck_get_cts(src_pck) : ctx->frame->pts;
+		if (octs != pkt.pts) {
+			ctx->ts_shift = (s64) octs - (s64) pkt.pts;
+		}
+		if (ctx->ts_shift) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( - ctx->ts_shift) );
+		}
+	}
+
 	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
 	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
 	//this is not 100% correct since we don't have any clue if this is SAP1/4 (roll info missing)

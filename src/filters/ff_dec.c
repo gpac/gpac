@@ -89,6 +89,8 @@ typedef struct _gf_ffdec_ctx
 	u32 o_ff_pfmt;
 	Bool force_full_range;
 	Bool drop_non_refs;
+
+	s64 delay;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -435,6 +437,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	AVPacket pkt;
 	s32 gotpic;
 	s32 len, in_size, i;
+	u32 samples_to_trash;
 	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
 	u8 *data;
@@ -488,6 +491,27 @@ decode_next:
 	frame = ctx->frame;
 	len = avcodec_decode_audio4(ctx->decoder, frame, &gotpic, &pkt);
 
+	samples_to_trash = 0;
+	if ( gotpic && (ctx->delay<0)) {
+		if (pkt.pts + ctx->delay < 0) {
+			if (pkt.duration + ctx->delay < 0) {
+				frame->nb_samples = 0;
+				samples_to_trash = 0;
+				ctx->delay += pkt.duration;
+			} else {
+				samples_to_trash = -ctx->delay;
+			}
+			
+			if (!samples_to_trash || (samples_to_trash>frame->nb_samples) ) {
+				frame->nb_samples = 0;
+				samples_to_trash = 0;
+			}
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
+		} else {
+			ctx->delay = 0;
+		}
+	}
+
 	//this will handle eos as well
 	if ((len<0) || !gotpic) {
 		ctx->frame_start = 0;
@@ -526,7 +550,20 @@ decode_next:
 		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
 	}
 
-	output_size = frame->nb_samples*ctx->channels*ctx->bytes_per_sample;
+	if (pck && gf_filter_pid_eos_received(ctx->in_pid)) {
+		u32 timescale = gf_filter_pck_get_timescale(pck);
+		u64 odur = gf_filter_pck_get_duration(pck);
+		if (timescale != ctx->sample_rate) {
+			odur *= ctx->sample_rate;
+			odur /= timescale;
+		}
+		if (odur < frame->nb_samples) {
+			frame->nb_samples = odur;
+		}
+	}
+
+
+	output_size = (frame->nb_samples - samples_to_trash) * ctx->channels * ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
 
 	switch (frame->format) {
@@ -536,13 +573,13 @@ decode_next:
 	case AV_SAMPLE_FMT_FLTP:
 	case AV_SAMPLE_FMT_DBLP:
 		for (i=0; (u32) i< ctx->channels; i++) {
-			char *inputChannel = frame->extended_data[i];
-			memcpy(data, inputChannel, ctx->bytes_per_sample * frame->nb_samples);
-			data += ctx->bytes_per_sample * frame->nb_samples;
+			char *inputChannel = frame->extended_data[i] + samples_to_trash * ctx->bytes_per_sample;
+			memcpy(data, inputChannel, ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash) );
+			data += ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash);
 		}
 		break;
 	default:
-		memcpy(data, ctx->frame->data[0], ctx->bytes_per_sample * frame->nb_samples * ctx->channels);
+		memcpy(data, ctx->frame->data[0] + samples_to_trash * ctx->bytes_per_sample, ctx->bytes_per_sample * (frame->nb_samples - samples_to_trash) * ctx->channels);
 		break;
 	}
 
@@ -972,6 +1009,9 @@ reuse_codec_context:
 		if (ctx->sample_fmt) {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ctx->sample_fmt) );
 		}
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+		ctx->delay = prop ? prop->value.longsint : 0;
 
 	} else {
 #ifdef FF_SUB_SUPPORT
