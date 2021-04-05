@@ -197,6 +197,7 @@ typedef struct
 	Double nb_secs_to_discard;
 	Bool first_context_load, store_init_params;
 	Bool do_m3u8, do_mpd;
+	Bool is_period_restore, is_empty_period;
 
 	Bool store_seg_states;
 
@@ -206,7 +207,7 @@ typedef struct
 	Bool post_play_events;
 
 	Bool force_period_switch;
-	Bool streams_not_ready;
+	Bool period_not_ready;
 	Bool check_connections;
 
 	//-1 forces report update, otherwise this is a packet count
@@ -1041,7 +1042,6 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			case GF_CODECID_VP8:
 			case GF_CODECID_VP9:
 				ds->dcd_not_ready = gf_sys_clock();
-				ctx->streams_not_ready = GF_TRUE;
 				break;
 			default:
 				break;
@@ -4994,22 +4994,18 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 	gf_dm_sess_del(sess);
 }
 
+static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx);
+
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
-	u32 i, count, j, nb_sets, nb_done, srd_rep_idx;
+	u32 i, count, nb_done;
 	u32 nb_periods = 0;
-	Bool has_muxed_bases=GF_FALSE;
 	char *period_id;
 	const char *remote_xlink = NULL;
 	const char *period_xlink = NULL;
 	u64 remote_dur = 0;
-	Bool empty_period = GF_FALSE;
-	Bool is_restore = GF_FALSE;
-	Bool has_as_id = GF_FALSE;
-	Bool has_deps = GF_FALSE;
 	GF_DasherPeriod *p;
-	const GF_PropertyValue *prop;
-	Double period_idx, period_start, next_period_start, min_dur, min_adur, max_adur;
+	Double period_idx, period_start, next_period_start;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
 
@@ -5029,6 +5025,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->current_period->period) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of Period %s\n", ctx->current_period->period->ID ? ctx->current_period->period->ID : ""));
 	}
+	ctx->is_period_restore = GF_FALSE;
+	ctx->is_empty_period = GF_FALSE;
 
 	//safety check at period switch, probe each first packet in case we have a reconfigure pending
 	count = gf_list_count(ctx->pids);
@@ -5089,7 +5087,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			ctx->setup_failure = e;
 			return e;
 		}
-		if (ctx->current_period->period) is_restore = GF_TRUE;
+		if (ctx->current_period->period) ctx->is_period_restore = GF_TRUE;
 
 		if (ctx->dmode==GF_DASH_DYNAMIC_LAST) {
 			dasher_udpate_periods_and_manifest(filter, ctx);
@@ -5105,7 +5103,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	//filter out PIDs not for this period
 	count = gf_list_count(ctx->current_period->streams);
 	period_id = NULL;
-	srd_rep_idx = 2; //2 for compat with old arch
 	for (i=0; i<count; i++) {
 		Bool in_period=GF_TRUE;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -5136,12 +5133,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
-			else empty_period = GF_TRUE;
+			else ctx->is_empty_period = GF_TRUE;
 			remote_dur = (u64) (ds->period_dur * 1000);
-		} else if (!is_restore) {
-			//setup representation - the representation is created independently from the period
-			dasher_setup_rep(ctx, ds, &srd_rep_idx);
-
+		} else if (!ctx->is_period_restore) {
 			if (ds->xlink)
 				period_xlink = ds->xlink;
 
@@ -5178,7 +5172,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	//we need a new period unless created during reload, create it
-	if (!is_restore) {
+	if (!ctx->is_period_restore) {
 		ctx->current_period->period = gf_mpd_period_new();
 		if (!ctx->mpd) dasher_setup_mpd(ctx);
 		gf_list_add(ctx->mpd->periods, ctx->current_period->period);
@@ -5233,11 +5227,56 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		ctx->current_period->period->ID = gf_strdup(szPName);
 	}
 
+	//check all streams are ready
+	ctx->period_not_ready = GF_FALSE;
+	count = gf_list_count(ctx->current_period->streams);
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		//assign force_rep_end
+		if (next_period_start>0) {
+			ds->force_rep_end = (u64) ((next_period_start - period_start) * ds->timescale);
+		}
+		if (ds->dcd_not_ready) {
+			ctx->period_not_ready = GF_TRUE;
+		}
+	}
+	//not all streams are ready, cannot setup period yet
+	if (ctx->period_not_ready)
+		return GF_OK;
+
+	return dasher_setup_period(filter, ctx);
+}
+
+static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
+{
+	u32 i, count, j, nb_sets;
+	u32 nb_periods = 0;
+	Bool has_muxed_bases=GF_FALSE;
+	const char *remote_xlink = NULL;
+	Bool has_as_id = GF_FALSE;
+	Bool has_deps = GF_FALSE;
+	const GF_PropertyValue *prop;
+	Double min_dur, min_adur, max_adur;
+	u32 srd_rep_idx;
+
 	ctx->dyn_rate = GF_FALSE;
 	ctx->use_cues = GF_FALSE;
 	min_dur = min_adur = max_adur = 0;
-	//setup representation dependency / components (muxed)
+	srd_rep_idx = 2; //2 for compat with old arch
+
 	count = gf_list_count(ctx->current_period->streams);
+	//setup representations
+	for (i=0; i<count; i++) {
+		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (ds->stream_type == GF_STREAM_FILE) {
+			if (ds->xlink) remote_xlink = ds->xlink;
+		} else if (!ctx->is_period_restore) {
+			//setup representation - the representation is created independently from the period
+			dasher_setup_rep(ctx, ds, &srd_rep_idx);
+		}
+	}
+
+	//setup representation dependency / components (muxed)
 	for (i=0; i<count; i++) {
 		Bool remove = GF_FALSE;
 		GF_DashStream *ds_video=NULL;
@@ -5270,7 +5309,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		} else if (remote_xlink) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] period uses xlink but other media source %s, ignoring source\n", ds->src_url));
 			remove = GF_TRUE;
-		} else if (empty_period) {
+		} else if (ctx->is_empty_period) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] empty period defines but other media source %s, ignoring source\n", ds->src_url));
 			remove = GF_TRUE;
 		}
@@ -5285,11 +5324,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			continue;
 		}
 
-		if (next_period_start>0) {
-			ds->force_rep_end = (u64) ((next_period_start - period_start) * ds->timescale);
-		}
-
-		if (is_restore) continue;
+		if (ctx->is_period_restore) continue;
 
 		//add period descriptors
 		dasher_add_descriptors(&ctx->current_period->period->x_children, ds->p_period_desc);
@@ -5398,7 +5433,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 
-	if (is_restore) return GF_OK;
+	if (ctx->is_period_restore) return GF_OK;
 
 	if (has_deps) {
 		for (i=0; i<count; i++) {
@@ -6572,12 +6607,12 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 }
 
 //depending on input formats, streams may be declared with or without DCD. For streams requiring the config, wait for it
-static Bool dasher_check_streams_ready(GF_DasherCtx *ctx, Bool is_session_end)
+static Bool dasher_check_period_ready(GF_DasherCtx *ctx, Bool is_session_end)
 {
 	u32 i=0;
 	GF_DashStream *ds;
-	ctx->streams_not_ready = GF_FALSE;;
-	while ((ds = gf_list_enum(ctx->pids, &i))) {
+	ctx->period_not_ready = GF_FALSE;
+	while ((ds = gf_list_enum(ctx->current_period->streams, &i))) {
 
 		if (is_session_end)
 			gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
@@ -6595,7 +6630,7 @@ static Bool dasher_check_streams_ready(GF_DasherCtx *ctx, Bool is_session_end)
 					return GF_FALSE;
 				}
 				ds->dcd_not_ready = prev;
-				ctx->streams_not_ready = GF_TRUE;
+				ctx->period_not_ready = GF_TRUE;
 				return GF_FALSE;
 			}
 		}
@@ -6737,11 +6772,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 		}
 	}
 
-	if (ctx->streams_not_ready) {
+	//streams in period are not all ready, wait for them
+	if (ctx->period_not_ready) {
 		Bool is_eos = gf_filter_end_of_session(filter);
-		if (! dasher_check_streams_ready(ctx, is_eos)) {
+		if (! dasher_check_period_ready(ctx, is_eos)) {
 			return is_eos ? GF_SERVICE_ERROR : GF_OK;
 		}
+		e = dasher_setup_period(filter, ctx);
+		if (e) return e;
 	}
 	if (ctx->check_connections) {
 		if (gf_filter_connections_pending(filter))
