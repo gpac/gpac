@@ -9673,7 +9673,7 @@ static s32 gf_media_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		pps->cw_bottom = gf_bs_read_ue_log(bs, "conf_win_bottom_offset");
 	}
 	//scaling window
-	if (gf_bs_read_int_log(bs, 1, "scaling_window_explicit_signalling_flag")) {
+	if (gf_bs_read_int_log(bs, 1, "scaling_window_explicit_signaling_flag")) {
 		gf_bs_read_se_log(bs, "scaling_win_left_offset");
 		gf_bs_read_se_log(bs, "scaling_win_right_offset");
 		gf_bs_read_se_log(bs, "scaling_win_top_offset");
