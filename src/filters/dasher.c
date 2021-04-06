@@ -646,7 +646,10 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] PID %s config changed during active period, forcing period switch\n", gf_filter_pid_get_name(ds->ipid) ));
 		}
 		ds->seg_done = GF_TRUE;
-		assert(base_ds->nb_comp_done < base_ds->nb_comp);
+		if(base_ds->nb_comp_done >= base_ds->nb_comp) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Invalid new period: %u components processed (max %u expected)\n", base_ds->nb_comp_done, base_ds->nb_comp));
+			return GF_BAD_PARAM;
+		}
 		base_ds->nb_comp_done ++;
 		ds->first_cts_in_next_seg = ds->est_next_dts;;
 
@@ -6797,7 +6800,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_DashStream *base_ds;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-assert(ds);
+		assert(ds);
 		if (ds->done) continue;
 		base_ds = ds->muxed_base ? ds->muxed_base : ds;
 		//subdur mode abort, don't process
@@ -6881,7 +6884,12 @@ assert(ds);
 
 			if (!pck) {
 				if (ds->request_period_switch) {
-					dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					e = dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					if (e < 0) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Period switch request failed.\n"));
+						i--;
+						break;
+					}
 					assert(gf_list_find(ctx->current_period->streams, ds)<0);
 					count = gf_list_count(ctx->current_period->streams);
 					i--;
@@ -7367,7 +7375,11 @@ assert(ds);
 				assert(!ds->seg_done);
 
 				if (ds->request_period_switch && !gf_list_count(ds->packet_queue)) {
-					dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					e = dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					if (e < 0) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Period switch request failed.\n"));
+						break;
+					}
 					assert(gf_list_find(ctx->current_period->streams, ds)<0);
 					count = gf_list_count(ctx->current_period->streams);
 					i--;
