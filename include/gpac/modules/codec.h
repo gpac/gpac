@@ -282,7 +282,7 @@ typedef struct _mediadecoderframe
 	void (*Release)(struct _mediadecoderframe *frame);
 	//get media frame plane
 	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
-	// @outPlane: adress of target color plane
+	// @outPlane: address of target color plane
 	// @outStride: stride in bytes of target color plane
 	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
 

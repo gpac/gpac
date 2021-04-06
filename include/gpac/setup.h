@@ -700,14 +700,14 @@ void gf_free(void *ptr);
 
 /*! allocates memory, shall be freed using \ref gf_free
 \param size same as malloc()
-\return adress of allocated block
+\return address of allocated block
 */
 void* gf_malloc(size_t size);
 
 /*! allocates memory array, shall be freed using \ref gf_free
 \param num same as calloc()
 \param size_of same as calloc()
-\return adress of allocated block
+\return address of allocated block
 */
 void* gf_calloc(size_t num, size_t size_of);
 
@@ -720,7 +720,7 @@ char* gf_strdup(const char *str);
 /*! reallocates memory, shall be freed using \ref gf_free
 \param ptr same as realloc()
 \param size same as realloc()
-\return adress of reallocated block
+\return address of reallocated block
 */
 void* gf_realloc(void *ptr, size_t size);
 

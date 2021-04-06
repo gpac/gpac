@@ -1876,7 +1876,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 
 		gf_list_del_item(pid->filter->blacklisted, (void *)pid->filter->freg);
 
-		//special case: no adaptation filter found but destination filter has forced caps set, try to load a filter chain allowing fo rnew caps
+		//special case: no adaptation filter found but destination filter has forced caps set, try to load a filter chain allowing for new caps
 		if (!new_f && filter_dst->forced_caps) {
 			new_f = gf_filter_pid_resolve_link_for_caps(pid, filter_dst, GF_FALSE);
 			if (new_f) {

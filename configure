@@ -241,7 +241,7 @@ GPAC configuration options:
   --strip                  enable strip
   --std-allocator          uses standard lib memory allocator
   --enable-mem-track       enable tracking of all memory allocated by gpac
-  --enable-sanitizer       enable adress sanitizer
+  --enable-sanitizer       enable address sanitizer
   --enable-afl             enable instrumentation for American Fuzzy Lop
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support

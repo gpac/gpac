@@ -592,7 +592,7 @@ static GF_Err routeout_initialize(GF_Filter *filter)
 	}
 
 	if (!gf_sk_is_multicast_address(ctx->ip)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] IP %s is not a multicast adress\n", ctx->ip));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] IP %s is not a multicast address\n", ctx->ip));
 		return GF_BAD_PARAM;
 	}
 

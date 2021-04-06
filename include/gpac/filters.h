@@ -1264,7 +1264,7 @@ typedef enum
 {
 	/*! do not dump data*/
 	GF_PROP_DUMP_DATA_NONE=0,
-	/*! dump data if less than 40 bytes, otherwise dump ptr adress and CRC*/
+	/*! dump data if less than 40 bytes, otherwise dump ptr address and CRC*/
 	GF_PROP_DUMP_DATA_INFO,
 	/*! dump data to parsable property, as ADDRESS+'@'+POINTER*/
 	GF_PROP_DUMP_DATA_PTR,
