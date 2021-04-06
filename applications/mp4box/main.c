@@ -1282,6 +1282,7 @@ void PrintTags()
 	"Setting a tag with no value or value `NULL` removes the tag.\n"
 	"Special tag value `clear` (or `reset`) removes all tags.\n"
 	"Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.\n"
+	"If the tag name length is 3, the prefix 0xA9 is used to create the four character code.\n"
 	"  \n"
 	"Tags can also be loaded from a text file using `-itags filename`. The file must be in UTF8 with:\n"
 	"- lines starting with `tag_name=value` specify the start of a tag\n"
@@ -5192,9 +5193,14 @@ static GF_Err do_itunes_tag()
 			is_wma = GF_TRUE;
 		} else {
 			tag_idx = gf_itags_find_by_name(tags);
-			if ((tag_idx<0) && (strlen(tags)==4)) {
-				itag = GF_4CC(tags[0], tags[1], tags[2], tags[3]);
-				tagtype = GF_ITAG_STR;
+			if (tag_idx<0) {
+				if (strlen(tags)==4) {
+					itag = GF_4CC(tags[0], tags[1], tags[2], tags[3]);
+					tagtype = GF_ITAG_STR;
+				} else if (strlen(tags)==3) {
+					itag = GF_4CC(0xA9, tags[0], tags[1], tags[2]);
+					tagtype = GF_ITAG_STR;
+				}
 			}
 		}
 		if (val) {

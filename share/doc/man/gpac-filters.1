@@ -1909,11 +1909,13 @@ The box patch can either be a filename or the full XML string.
 .br
 When tagging is enabled, the filter will watch the property CoverArt and all custom properties on incoming pid.
 .br
-The built-in tag names are album, artist, comment, compilation, composer, year, disk, tool, genre, contentgroup, title, tempo, track, tracknum, writer, encoder, album_artist, gapless, conductor.
+The built-in tag names are indicated by MP4Box -h tags.
 .br
 Other tag class may be specified using tag_NAME property names, and will be added if .I tags is set to all using:
 .br
 - NAME as a box 4CC if NAME is four characters long
+.br
+- NAME as a box 4CC if NAME is 3 characters long, and will be prefixed by 0xA9
 .br
 - the CRC32 of the NAME as a box 4CC if NAME is not four characters long
 .br
@@ -7556,7 +7558,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev674-g99632fd00-master
+build: 1.1.0-DEV-rev675-g3911d80af-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

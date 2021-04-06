@@ -6084,6 +6084,28 @@ typedef enum
 	GF_ISOM_ITUNE_TRACK 		= GF_4CC( 0xA9, 't', 'r', 'k' ),
 	GF_ISOM_ITUNE_CONDUCTOR 	= GF_4CC( 0xA9, 'c', 'o', 'n' ),
 
+	GF_ISOM_ITUNE_ART_DIRECTOR 	= GF_4CC( 0xA9, 'a', 'r', 'd' ),
+	GF_ISOM_ITUNE_ARRANGER	 	= GF_4CC( 0xA9, 'a', 'r', 'g' ),
+	GF_ISOM_ITUNE_LYRICIST	 	= GF_4CC( 0xA9, 'a', 'u', 't' ),
+	GF_ISOM_ITUNE_COPY_ACK	 	= GF_4CC( 0xA9, 'c', 'a', 'k' ),
+	GF_ISOM_ITUNE_SONG_DESC	 	= GF_4CC( 0xA9, 'd', 'e', 's' ),
+	GF_ISOM_ITUNE_DIRECTOR	 	= GF_4CC( 0xA9, 'd', 'i', 'r' ),
+	GF_ISOM_ITUNE_EQ_PRESET	 	= GF_4CC( 0xA9, 'e', 'q', 'u' ),
+	GF_ISOM_ITUNE_LINER_NOTES 	= GF_4CC( 0xA9, 'l', 'n', 't' ),
+	GF_ISOM_ITUNE_REC_COMPANY 	= GF_4CC( 0xA9, 'm', 'a', 'k' ),
+	GF_ISOM_ITUNE_ORIG_ARTIST 	= GF_4CC( 0xA9, 'o', 'p', 'e' ),
+	GF_ISOM_ITUNE_PHONO_RIGHTS 	= GF_4CC( 0xA9, 'p', 'h', 'g' ),
+	GF_ISOM_ITUNE_PRODUCER	 	= GF_4CC( 0xA9, 'p', 'r', 'd' ),
+	GF_ISOM_ITUNE_PERFORMER	 	= GF_4CC( 0xA9, 'p', 'r', 'f' ),
+	GF_ISOM_ITUNE_PUBLISHER	 	= GF_4CC( 0xA9, 'p', 'u', 'b' ),
+	GF_ISOM_ITUNE_SOUND_ENG	 	= GF_4CC( 0xA9, 's', 'n', 'e' ),
+	GF_ISOM_ITUNE_SOLOIST	 	= GF_4CC( 0xA9, 's', 'o', 'l' ),
+	GF_ISOM_ITUNE_CREDITS	 	= GF_4CC( 0xA9, 's', 'r', 'c' ),
+	GF_ISOM_ITUNE_THANKS	 	= GF_4CC( 0xA9, 't', 'h', 'x' ),
+	GF_ISOM_ITUNE_ONLINE	 	= GF_4CC( 0xA9, 'u', 'r', 'l' ),
+	GF_ISOM_ITUNE_EXEC_PRODUCER	= GF_4CC( 0xA9, 'x', 'p', 'd' ),
+
+
 	GF_ISOM_ITUNE_ITUNES_DATA 	= GF_4CC( '-', '-', '-', '-' ),
 
 	/* not mapped:
