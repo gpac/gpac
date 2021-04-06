@@ -2459,6 +2459,8 @@ Special tag value clear (or reset) removes all tags.
 .br
 Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.
 .br
+If the tag name length is 3, the prefix 0xA9 is used to create the four character code.
+.br
   
 .br
 Tags can also be loaded from a text file using -itags filename. The file must be in UTF8 with:
@@ -2553,13 +2555,53 @@ keywords (kyyw) string
 .br
 category (catg) string
 .br
-hdvideo (hdvd) bool (yes or no)
+hdvideo (hdvd) integer
 .br
 media (stik) integer (alias mediaType)
 .br
 rating (rtng) integer (alias contentRating)
 .br
 gapless (pgap) bool (yes or no)
+.br
+art_director (A9ard) string
+.br
+arranger (A9arg) string
+.br
+lyricist (A9aut) string
+.br
+acknowledgement (A9cak) string
+.br
+song_description (A9des) string
+.br
+director (A9dir) string
+.br
+equalizer (A9equ) string
+.br
+liner (A9lnt) string
+.br
+record_company (A9mak) string
+.br
+original_artist (A9ope) string
+.br
+phono_rights (A9phg) string
+.br
+producer (A9prd) string
+.br
+performer (A9prf) string
+.br
+publisher (A9pub) string
+.br
+sound_engineer (A9sne) string
+.br
+soloist (A9sol) string
+.br
+credits (A9src) string
+.br
+thanks (A9thx) string
+.br
+online_info (A9url) string
+.br
+exec_producer (A9xpd) string
 .br
 .SH Live Scene Encoder Options
 .LP
@@ -2654,7 +2696,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev674-g99632fd00-master
+build: 1.1.0-DEV-rev675-g3911d80af-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

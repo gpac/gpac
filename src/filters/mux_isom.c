@@ -636,6 +636,8 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 
 			if (strlen(tag_name)==4) {
 				itag = GF_4CC(tag_name[0], tag_name[1], tag_name[2], tag_name[3]);
+			} else if (strlen(tag_name)==3) {
+				itag = GF_4CC(0xA9, tag_name[0], tag_name[1], tag_name[2]);
 			} else {
 				itag = gf_crc_32(tag_name, (u32) strlen(tag_name));
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Tag name %s is not a 4CC, using CRC32 %08X as value\n", tag_name, itag));
@@ -6360,9 +6362,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"# Tagging\n"
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming pid.\n"
-	"The built-in tag names are `album`, `artist`, `comment`, `compilation`, `composer`, `year`, `disk`, `tool`, `genre`, `contentgroup`, `title`, `tempo`, `track`, `tracknum`, `writer`, `encoder`, `album_artist`, `gapless`, `conductor`.\n"
+	"The built-in tag names are indicated by `MP4Box -h tags`.\n"
 	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
+	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
 	"  \n"
 	"# Notes\n"
