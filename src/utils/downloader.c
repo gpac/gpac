@@ -5600,7 +5600,7 @@ exit:
 }
 
 /**
- * Default performing behaviour
+ * Default performing behavior
 \param sess The session
  */
 void http_do_requests(GF_DownloadSession *sess)

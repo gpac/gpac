@@ -1103,7 +1103,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.version = LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG decoder")
-	GF_FS_SET_HELP("Encodes audio and video streams.\n"
+	GF_FS_SET_HELP("Decodes audio and video streams.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported decoders for your GPAC build, use `gpac -h ffdec:*`.\n"
 	"\n"

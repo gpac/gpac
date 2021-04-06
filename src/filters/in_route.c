@@ -865,7 +865,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(repair), "repair mode for corrupted files (see filter help)\n"
 		"- no: no repair is performed\n"
 		"- simple: simple repair is performed (incomplete mdat boxes will be kept)\n"
-		"- strict: incomplete mdat boxes will be lost as well as preceeding moof box\n"
+		"- strict: incomplete mdat boxes will be lost as well as preceding moof box\n"
 		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	
@@ -887,7 +887,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
-	"The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"
+	"The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"
 	"In cached mode, repeated files are always pushed to cache.\n"
 	"The maximum number of media segment objects in cache per service is defined by [-nbcached](); this is a safety used to force object removal in case DASH client timing is wrong and some files are never requested at cache level.\n"
 	"  \n"
@@ -923,7 +923,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
 	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except mdat kept as is if [-repair]() is set to simple.\n"
 	"\n"
-	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially recieved, they will be kept.\n"
+	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially received, they will be kept.\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"

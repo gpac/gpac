@@ -1853,7 +1853,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
 	u32 i, count;
 	Bool threaded;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stoping sources\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stopping sources\n"));
 	if (!fsess) return GF_BAD_PARAM;
 	threaded = (!fsess->filters_mx && (fsess->main_th.th_id==gf_th_id())) ? GF_FALSE : GF_TRUE;
 

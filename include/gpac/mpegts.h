@@ -1619,7 +1619,7 @@ enum {
 	GF_M2TS_MPEG4_SIGNALING_NONE = 0,
 	/*! Full MPEG-4 signaling*/
 	GF_M2TS_MPEG4_SIGNALING_FULL,
-	/*MPEG-4 over MPEG-2 profile where PES media streams may be refered to by the scene without SL-packetization*/
+	/*MPEG-4 over MPEG-2 profile where PES media streams may be referred to by the scene without SL-packetization*/
 	GF_M2TS_MPEG4_SIGNALING_SCENE
 };
 

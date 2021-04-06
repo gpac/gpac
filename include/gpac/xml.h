@@ -51,7 +51,7 @@ This section documents the XML functions (full doc parsing and SAX parsing) of t
 \ingroup xml_grp
 \defgroup dom_grp DOM Parsing
 \ingroup xml_grp
-\defgroup xmlb_grp XML Binary Formating
+\defgroup xmlb_grp XML Binary Formatting
 \ingroup xml_grp
 */
 
@@ -312,7 +312,7 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
 char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape);
 
 
-/*! Serialize a root document node - same as \ref gf_xml_dom_serialize but insert \code <?xml version="1.0" encoding="UTF-8"?> \endcode at begining
+/*! Serialize a root document node - same as \ref gf_xml_dom_serialize but insert \code <?xml version="1.0" encoding="UTF-8"?> \endcode at beginning
 \param node the node to flush
 \param content_only Whether to include or not the parent node
 \param no_escape if set, disable escape of XML reserved chars (<,>,",') in text nodes

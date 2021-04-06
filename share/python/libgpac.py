@@ -104,7 +104,7 @@
 #
 # # Posting user tasks
 # 
-# You can post tasks to the session scheduler to get called back (usefull when running the session in blocking mode)
+# You can post tasks to the session scheduler to get called back (useful when running the session in blocking mode)
 # Tasks must derive FilterTask class and implement their own `execute` method
 # \code
 # class MyTask(FilterTask): 
@@ -128,7 +128,7 @@
 #- custom filters cannot be used as sources of filters loading a source filter graph dynamically, such as the dashin filter.
 #- custom filters cannot be used as destination of filters loading a destination filter graph dynamically, such as the dasher filters.
 #
-# A custom filter must implement the \ref FilterCustom class, and optionaly provide the following methods
+# A custom filter must implement the \ref FilterCustom class, and optionally provide the following methods
 # - configure_pid: callback for PID configuration, mandatory if your filter is not a source
 # - process: callback for processing
 # - process_event: callback for processing and event
@@ -251,7 +251,7 @@ _libgpac_abi_mismatch=False
 ## \cond private
 if (gpac_abi_major != GF_ABI_MAJOR) or (gpac_abi_minor != GF_ABI_MINOR):
     abi_mismatch=True
-    print('WARNING: this python wrapper is for GPAC ABI ' + str(GF_ABI_MAJOR) + '.' + str(GF_ABI_MINOR)  + ' but native libgpac ABI is ' + str(gpac_abi_major) + '.'  + str(gpac_abi_minor) + '\n\tUndefined behaviour or crashes might happen, please update libgpac.py')
+    print('WARNING: this python wrapper is for GPAC ABI ' + str(GF_ABI_MAJOR) + '.' + str(GF_ABI_MINOR)  + ' but native libgpac ABI is ' + str(gpac_abi_major) + '.'  + str(gpac_abi_minor) + '\n\tUndefined behavior or crashes might happen, please update libgpac.py')
 
 ## \endcond private
 

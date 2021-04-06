@@ -117,7 +117,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 - audio: since the audio compositor may not be threaded, it must be reconfigured by another thread otherwise
 we lock the audio module
 - video: this is typical to OpenGL&co: multithreaded is forbidden, so resizing/fullscreen MUST be done by the same
-thread accessing the HW ressources
+thread accessing the HW resources
 */
 static void gf_sc_reconfig_task(GF_Compositor *compositor)
 {

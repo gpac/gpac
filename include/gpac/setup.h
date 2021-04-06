@@ -180,7 +180,7 @@ typedef unsigned int size_t;
 /*! default path separator of the current platform*/
 #define GF_PATH_SEPARATOR	'\\'
 
-/*we must explicitely export our functions...*/
+/*we must explicitly export our functions...*/
 
 /*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT EXPORT_C
@@ -663,7 +663,7 @@ typedef struct {
 \brief Memory management
 
 GPAC can use its own memory tracker, depending on compilation option. It is recommended to use only the functions
-defined in this section to allocate and free memory whenever developping within the GPAC library.
+defined in this section to allocate and free memory whenever developing within the GPAC library.
 
 \warning these functions shall only be used after initializing the library using \ref gf_sys_init
 @{

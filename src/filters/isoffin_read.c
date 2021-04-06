@@ -1485,12 +1485,12 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
-	{ OFFS(tkid), "declare only track based on given param"
+	{ OFFS(tkid), "declare only track based on given param\n"
 	"- integer value: declares track with the given ID\n"
 	"- audio: declares first audio track\n"
 	"- video: declares first video track\n"
 	"- 4CC: declares first track with matching 4CC for handler type", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stsd), "only extract sample mapped to the given sample description index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
@@ -1501,7 +1501,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_check), "parameter sets extraction mode from AVC/HEVC/VVC samples\n"
 	"- keep: do not inspect sample (assumes input file is compliant when generating DASH/HLS/CMAF)\n"
-	"- rem: removes all inband xPS and notify configuration chenges accordingly\n"
+	"- rem: removes all inband xPS and notify configuration changes accordingly\n"
 	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
 	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
 	{0}

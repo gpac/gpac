@@ -750,7 +750,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	//if durmode>0, dur on ts_diff_mode
 	//if sap==4, roll on signed 16 bits
 	//if (has sample deps) sample_deps_flags on 8 bits
-	//if has_carousel, carrousel version on 8 bits
+	//if has_carousel, carousel version on 8 bits
 	//if has_byteoffset, byte offset on 64 bits
 	//if (has builtin) vlen nb builtin_props then props[builtin_props]
 	//if (has props) vlen nb_str_props then props[nb_str_props]
@@ -1223,7 +1223,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 #ifndef GPAC_DISABLE_CRYPTO
 	{ OFFS(key), "encrypt packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(IV), "set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
-	{ OFFS(pattern), "set nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pattern), "set nb_crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
 #endif // GPAC_DISABLE_CRYPTO
 	{ OFFS(mpck), "set max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1248,7 +1248,7 @@ GF_FilterRegister GSFMxRegister = {
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "
 			"using either pipes or sockets. Upstream events are not serialized.\n"
 			"\n"
-			"The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
+			"The default behavior does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
 			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO
@@ -1264,16 +1264,16 @@ GF_FilterRegister GSFMxRegister = {
 #endif
 			"# Filtering properties\n"
 			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the [-minp]() option can be used: "
-			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
+			"this will remove all built-in properties marked as droppable (cf property help) as well as all non built-in properties.\n"
 			"The [-skp]() option may also be used to specify which property to drop:\n"
 			"EX skp=\"4CC1,Name2\n"\
 			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.\n"
 			"\n"
 			"# File mode\n"
-			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explictly loading the filter with [-ext]() or [-dst]() set.\n"
+			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explicitly loading the filter with [-ext]() or [-dst]() set.\n"
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd @ -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
-			"In order to demux such a file, the GSF demuxer will likely need to be explictly loaded:\n"
+			"In order to demux such a file, the GSF demuxer will likely need to be explicitly loaded:\n"
 			"EX gpac -i mux.gsf gsfdmx @ -o dump/$File$:dynext:clone\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"

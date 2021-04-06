@@ -1295,7 +1295,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 	}
 	gf_list_add(mov->TopBoxes, mov->mdat);
 
-	//default behaviour is capture mode, no interleaving (eg, no rewrite of mdat)
+	//default behavior is capture mode, no interleaving (eg, no rewrite of mdat)
 	mov->storageMode = GF_ISOM_STORE_FLAT;
 	return mov;
 

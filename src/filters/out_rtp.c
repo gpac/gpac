@@ -406,9 +406,9 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 							count--;
 						}
 					}
-					//insert SPS at begining
+					//insert SPS at beginning
 					gf_list_insert(hvcc->param_array, spsa, 0);
-					//insert VPS at begining - we now have VPS, SPS and other (PPS, SEI...)
+					//insert VPS at beginning - we now have VPS, SPS and other (PPS, SEI...)
 					gf_list_insert(hvcc->param_array, vpsa, 0);
 				} else
 					gf_odf_hevc_cfg_del(hvcc);
@@ -1129,13 +1129,13 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
-	{ OFFS(ttl), "time-to-live for muticast packets", GF_PROP_UINT, "2", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttl), "time-to-live for multicast packets", GF_PROP_UINT, "2", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ifce), "default network interface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(payt), "payload type to use for dynamic configs", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(runfor), "run for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, 0},
-	{ OFFS(tso), "set timestamp offset in microsecs. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tso), "set timestamp offset in microseconds. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dst), "URL for direct RTP mode - see filter help", GF_PROP_NAME, NULL, NULL, 0},

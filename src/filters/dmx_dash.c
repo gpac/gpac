@@ -2796,9 +2796,9 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(init_timeshift), "set initial timshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(init_timeshift), "set initial timeshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tile_mode), "tile adaptation mode\n"
-		"- none: bitrate is shared equaly accross all tiles\n"
+		"- none: bitrate is shared equally across all tiles\n"
 		"- rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row\n"
 		"- rrows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row\n"
 		"- mrows: bitrate decreased for top and bottom rows only, same rate for each tile on the row\n"
@@ -2809,8 +2809,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- edges: bitrate decreased for all tiles on the center of the picture"
 		, GF_PROP_UINT, "none", "none|rows|rrows|mrows|cols|rcols|mcols|center|edges", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tiles_rate), "indicate the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(delay40X), "delay in millisconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(exp_threshold), "delay in millisconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(delay40X), "delay in milliseconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(exp_threshold), "delay in milliseconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(switch_count), "indicate how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(aggressive), "if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(debug_as), "play only the adaptation sets indicated by their indices (0-based) in the MPD", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
@@ -2864,7 +2864,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"\n"
 	"# Regular mode\n"
 	"This is the default mode, in which the filter produces media PIDs and frames from sources indicated in the manifest.\n"
-	"The default behaviour is to perform adaptation according to [-algo](), but the filter can:\n"
+	"The default behavior is to perform adaptation according to [-algo](), but the filter can:\n"
 	"- run with no adaptation, to grab maximum quality.\n"
 	"EX gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4\n"
 	"- run with no adaptation, fetching all qualities.\n"
@@ -2874,14 +2874,14 @@ GF_FilterRegister DASHDmxRegister = {
 	"When [-forward]() is set to `file`, the client forwards media files without demultiplexing them.\n"
 	"This is mostly used to expose the DASH session to a file server such as ROUTE or HTTP.\n"
 	"In this mode, the manifest is forwarded as an output PID.\n"
-	"Warning: This mode cannot be set through inheritance as it changes the link capabilities of the filter. The filter MUST be explicitely declared.\n"
+	"Warning: This mode cannot be set through inheritance as it changes the link capabilities of the filter. The filter MUST be explicitly declared.\n"
 	"\n"
 	"To expose a live DASH session to route:\n"
 	"EX gpac -i MANIFEST_URL dashin:forward=file @ -o route://225.0.0.1:8000/\n"
 	"\n"
 	"Note: This mode used to be trigger by [-filemode]() option, still recognized.\n"
 	"\n"
-	"If the source has dependent media streams (scability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
+	"If the source has dependent media streams (scalability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
 	"\n"
 	"# Segment bound modes\n"
 	"When [-forward]() is set to `segs` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"
@@ -2912,7 +2912,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"- `DFPStart`: set to current period start value\n"
 	"- `FileName`: set to associated init segment if any\n"
 	"- `Representation`: set to the associated representation ID in the manifest\n"
-	"- `DashDur`: set to the average segment duration as advertized in the manifest\n"
+	"- `DashDur`: set to the average segment duration as indicated in the manifest\n"
 	"\n"
 	"When the [dasher](dasher) is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones.\n"
 	"It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.\n"

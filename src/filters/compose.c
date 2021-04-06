@@ -776,7 +776,7 @@ static GF_FilterArgs CompositorArgs[] =
 		"- always: always render text to texture before drawing"\
 		"", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(out8b), "convert 10-bit video to 8 bit texture before GPU upload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(drop), "drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(drop), "drop late frame when drawing. By default frames are not dropped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(sclock), "force synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgaze), "simulate gaze events through mouse", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckey), "color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
@@ -818,7 +818,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(ntpsync), "ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(noback), "ignore background nodes and viewport fill (usefull when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noback), "ignore background nodes and viewport fill (useful when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specify 2D rendering mode\n"\
@@ -981,7 +981,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"If audio streams are loaded, an audio output pid is created.\n"
 	"\n"
 	"The default output pixel format in filter mode is:\n"
-	"- `rgb` when the filter is explictly loaded by the application\n"
+	"- `rgb` when the filter is explicitly loaded by the application\n"
 	"- `rgba` when the filter is loaded during a link resolution\n"
 	"This can be changed by assigning the [-opfmt]() option.\n"
 	"\n"
@@ -1003,7 +1003,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"The compositor can act as a source filter when the [-src]() option is explicitly set, independently from the operating mode:\n"
 	"EX gpac compositor:src=source.mp4 vout\n"
 	"\n"
-	"The compositor can act as a source filter when the source url uses one of the compositor buildin protocol schemes:\n"
+	"The compositor can act as a source filter when the source url uses one of the compositor built-in protocol schemes:\n"
 	"EX gpac -i mosaic://URL1:URL2 vout\n"
 	"\n"
 	)

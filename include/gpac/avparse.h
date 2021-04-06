@@ -612,7 +612,7 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, u8 **dsi, u32 *dsi_size);
 */
 GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 /*! parses MPEG-4 audio dsi from bitstream
-\param bs the bitstream object to use (shall start in the begining of the dsi)
+\param bs the bitstream object to use (shall start in the beginning of the dsi)
 \param cfg will be filled with the parsed value
 \param size_known set to GF_TRUE if the bitstream contains the complete DSI (and only it), to parse backward-compatible extensions
 \return error code if any
@@ -621,14 +621,14 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 
 
 /*! reads program config element of MPEG-4 audio dsi
-\param bs the bitstream object to use (shall start in the begining of the dsi)
+\param bs the bitstream object to use (shall start in the beginning of the dsi)
 \param cfg the config to fill
 \return error code if any
 */
 GF_Err gf_m4a_parse_program_config_element(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 
 /*! writes program config element of MPEG-4 audio dsi
-\param bs the bitstream object to use (shall start in the begining of the dsi)
+\param bs the bitstream object to use (shall start in the beginning of the dsi)
 \param cfg the config to write
 \return error code if any
 */

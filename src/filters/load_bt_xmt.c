@@ -963,7 +963,7 @@ static const GF_FilterArgs CTXLoadArgs[] =
 GF_FilterRegister CTXLoadRegister = {
 	.name = "btplay",
 	GF_FS_SET_DESCRIPTION("BT/XMT/X3D loader")
-	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor. It cannot be used to dump content.")
+	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.")
 	.private_size = sizeof(CTXLoadPriv),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,

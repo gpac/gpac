@@ -570,7 +570,7 @@ u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_
 			pause_at_first_frame = 0;
 	}
 
-	/*for dynamic scene OD ressources are static and all object use the same clock, so don't restart the root
+	/*for dynamic scene OD resources are static and all object use the same clock, so don't restart the root
 	OD, just act as a mediaControl on all playing streams*/
 	if (compositor->root_scene->is_dynamic_scene) {
 

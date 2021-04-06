@@ -1138,13 +1138,13 @@ GF_GPACArg GPAC_Args[] = {
 	        "- warning: logs error+warning messages\n"\
 	        "- info: logs error+warning+info messages\n"\
 	        "- debug: logs all messages\n"\
-	        "`toolX` can be one of:\n"\
+	        "\n`toolX` can be one of:\n"\
 	        "- core: libgpac core\n"\
 	        "- coding: bitstream formats (audio, video, scene)\n"\
 	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
-	        "- network: network data except RTP trafic\n"\
-	        "- http: HTTP trafic\n"\
-	        "- rtp: RTP trafic\n"\
+	        "- network: network data except RTP traffic\n"\
+	        "- http: HTTP traffic\n"\
+	        "- rtp: RTP traffic\n"\
 	        "- author: authoring tools (hint, import, export)\n"\
 	        "- sync: terminal sync layer\n"\
 	        "- codec: terminal codec messages\n"\
@@ -1169,7 +1169,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- all: all tools logged - other tools can be specified afterwards.  \n"\
 	        "The special keyword `ncl` can be set to disable color logs.  \n"\
 	        "The special keyword `strict` can be set to exit at first error.  \n"\
-	        "EX -logs all@info:dash@debug:ncl\n"\
+	        "\nEX -logs=all@info:dash@debug:ncl\n"\
 			"This moves all log to info level, dash to debug level and disable color logs"\
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("proglf", NULL, "use new line at each progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
@@ -1193,7 +1193,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-save", NULL, "discard any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("version", NULL, "set to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("mod-reload", NULL, "unload / reload module shared libs when no longer used", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("for-test", NULL, "disable all creation/modif dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("for-test", NULL, "disable all creation/modification dates and GPAC versions in files", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("old-arch", NULL, "enable compatibility with pre-filters versions of GPAC", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("ntp-shift", NULL, "shift NTP clock by given amount in seconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("devclass", NULL, "set device class\n"
@@ -1258,7 +1258,7 @@ GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot
  "- always: always on hardware\n"
  "- never: always on system memory\n"
  "- auto: selected by GPAC based on content type (graphics or video)", "auto", "auto|always|never", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("pref-yuv4cc", NULL, "set prefered YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("pref-yuv4cc", NULL, "set preferred YUV 4CC for overlays (used by DirectX only)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overridden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
@@ -1597,6 +1597,11 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		sep = strstr(arg->description, ".\n");
 		if (sep) {
 			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should not contain .\\n \n", arg->name, arg->description);
+			exit(1);
+		}
+		sep = strstr(arg->description, "- ");
+		if (sep && (sep[-1]!='\n') && !strcmp(sep, "- see")) {
+			fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should have \\n before first bullet\n", arg->name, arg->description);
 			exit(1);
 		}
 

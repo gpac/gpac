@@ -6952,7 +6952,7 @@ assert(ds);
 					}
 					ds->nb_pck = sn-1;
 				} else {
-					//no sn signaled, this implies we played from the begining
+					//no sn signaled, this implies we played from the beginning
 					if (ds->nb_pck < ds->seek_to_pck) {
 						ds->nb_pck ++;
 						dasher_drop_input(ctx, ds, GF_FALSE);
@@ -7153,7 +7153,7 @@ assert(ds);
 						s64 ts = (cue->cts - ds->cues_ts_offset) * ds->timescale;
 						s64 ts2 = (cts + ds->first_cts) * ds->cues_timescale;
 
-						//cues are given in track timeline (presentation time), substract the media time to pres time offset
+						//cues are given in track timeline (presentation time), subtract the media time to pres time offset
 						if (ds->cues_use_edits) {
 							ts2 += (s64) (ds->pts_minus_cts) * ds->cues_timescale;
 						}
@@ -7437,7 +7437,7 @@ assert(ds);
 
 				ds->cumulated_dur += dur;
 
-				//drop packet if not spliting
+				//drop packet if not splitting
 				if (!ds->split_dur_next)
 					gf_filter_pid_drop_packet(ds->ipid);
 
@@ -7561,7 +7561,7 @@ assert(ds);
 				ds->rate_media_size += dsize;
 			}
 
-			//drop packet if not spliting
+			//drop packet if not splitting
 			if (!ds->split_dur_next)
 				dasher_drop_input(ctx, ds, GF_FALSE);
 
@@ -8284,9 +8284,9 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(sseg), "single segment is used", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sfile), "use a single file for all segments (default in on_demand)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(align), "enable segment time alignment between representations", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sap), "enable spliting segments at SAP boundaries", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(sap), "enable splitting segments at SAP boundaries", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mix_codecs), "enable mixing different codecs in an adaptation set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(ntp), "insert/override NTP clock at the begining of each segment\n"
+	{ OFFS(ntp), "insert/override NTP clock at the beginning of each segment\n"
 	"- rem: removes NTP from all input packets\n"
 	"- yes: inserts NTP at each segment start\n"
 	"- keep: leaves input packet NTP untouched", GF_PROP_UINT, "rem", "rem|yes|keep", GF_FS_ARG_HINT_ADVANCED},
@@ -8355,14 +8355,14 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(split), "enable cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlsc), "insert clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cues), "set cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(strict_cues), "strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(strict_cues), "strict mode for cues, complains if splitting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_sap), "strict mode for sap\n"
 	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
 	"- sig: same as [-off]() but keep _startsWithSAP_ to the true SAP value\n"
 	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile", GF_PROP_UINT, "off", "off|sig|on", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for more compacity", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "use manifest generation only mode - see filter help", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -8378,7 +8378,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- otherwise in dynamic mode without context, do not generate segments ahead of time", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(scope_deps), "scope PID dependencies to be within source. If disabled, PID dependencies will be checked across all input PIDs regardless of their sources", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(utcs), "URL to use as time server / UTCTiming source. Special value `inband` enables inband UTC (same as publishTime), special prefix `xsd@` uses xsDateTime schemeURI rather than ISO", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(force_flush), "force generating a single segment for each input. This can be usefull in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force_flush), "force generating a single segment for each input. This can be useful in batch mode when average source duration is known and used as segment duration but actual duration may sometimes be greater", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(last_seg_merge), "force merging last segment if less than half the target duration", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mha_compat), "adaptation set generation mode for compatible MPEG-H Audio profile\n"
 		"- no: only generate the adaptation set for the main profile\n"
@@ -8446,8 +8446,8 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "## PID assignment and configuration\n"
 "To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:\n"
-"- Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"
-"- Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time\n"
+"- Representation: assigns representation ID to input pid. If not set, the default behavior is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"
+"- Period: assigns period ID to input pid. If not set, the default behavior is to have all media in the same period with the same start time\n"
 "- PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"
 "Note: When both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)\n"
 "- ASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
@@ -8535,11 +8535,11 @@ GF_FilterRegister DasherRegister = {
 "- id: integer for stream/track/pid ID\n"
 "- timescale: integer giving the units of following timestamps\n"
 "- mode: if present and value is `edit`, the timestamp are in presentation time (edit list applied) otherwise they are in media time\n"
-"- ts_offset: integer giving a value (in timescale) to substract to the DTS/CTS values listed\n"
+"- ts_offset: integer giving a value (in timescale) to subtract to the DTS/CTS values listed\n"
 "\nThe children of <Stream> are one or more <Cue> elements, with attributes:\n"
-"- sample: integer giving the sample/frame number of a sample at which spliting shall happen\n"
-"- dts: long integer giving the decoding time stamp of a sample at which spliting shall happen\n"
-"- cts: long integer giving the composition / presentation time stamp of a sample at which spliting shall happen\n"
+"- sample: integer giving the sample/frame number of a sample at which splitting shall happen\n"
+"- dts: long integer giving the decoding time stamp of a sample at which splitting shall happen\n"
+"- cts: long integer giving the composition / presentation time stamp of a sample at which splitting shall happen\n"
 "Warning: Cues shall be listed in decoding order.\n"
 "\n"
 "If the `DashCue` property of a PID equals `inband`, the PID will be segmented according to the `CueStart` property of input packets.\n"
@@ -8577,7 +8577,7 @@ GF_FilterRegister DasherRegister = {
 " - FileNumber: if set, indicate the start of a new DASH segment\n"
 " - FileName: if set, indicate the file name. If not present, output shall be a single file. This is only set for packet carrying the `FileNumber` property, and only on one PID (usually the first) for multiplexed outputs\n"
 " - IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"
-" - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
+" - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stopping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
 "- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"
 "- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
 "- the following filter options are passed to muxers, which should declare them as arguments:\n"

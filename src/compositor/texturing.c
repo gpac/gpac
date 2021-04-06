@@ -129,7 +129,7 @@ GF_EXPORT
 void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
-	/*release texture WITHOUT droping frame*/
+	/*release texture WITHOUT dropping frame*/
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 1);
 		txh->needs_release = 0;
@@ -147,7 +147,7 @@ GF_EXPORT
 void gf_sc_texture_stop(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
-	/*release texture WITHOUT droping frame*/
+	/*release texture WITHOUT dropping frame*/
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
 		txh->needs_release = 0;

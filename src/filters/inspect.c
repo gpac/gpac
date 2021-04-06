@@ -3611,20 +3611,20 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(dump_data), "enable full data dump (__heavy!__), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(fmt), "set packet dump format (see filter help)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hdr), "print a header corresponding to fmt string without '$' or \"pid\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(allp), "analyse for the entire duration, rather than stopping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(analyze), "analyze sample content (NALU, OBU)\n"
 	"- off: no analyzing\n"
 	"- on: simple analyzing\n"
 	"- bs: log bitstream syntax (all elements read from bitstream)\n"
-	"- full: log bitstream syntax and bit sizes signaled as `(N)` after field value, except 1-bit fields (ommited)", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	"- full: log bitstream syntax and bit sizes signaled as `(N)` after field value, except 1-bit fields (omitted)", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(crc), "dump crc of NALU/OBU/... when analyzing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
@@ -3666,9 +3666,9 @@ const GF_FilterRegister InspectRegister = {
 				"- frame: framing status\n"
 				"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
 				"  - frame_full: complete AU\n"
-				"  - frame_start: begining of frame\n"
+				"  - frame_start: beginning of frame\n"
 				"  - frame_end: end of frame\n"
-				"  - frame_cont: frame continuation (not begining, not end)\n"
+				"  - frame_cont: frame continuation (not beginning, not end)\n"
 				"- sap or rap: SAP type of the frame\n"\
 				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"- corr: corrupted packet flag\n"\
@@ -3676,13 +3676,13 @@ const GF_FilterRegister InspectRegister = {
 				"- bo: byte offset in source, N/A if not available\n"\
 				"- roll: roll info\n"\
 				"- crypt: crypt flag\n"\
-				"- vers: carrousel version number\n"\
+				"- vers: carousel version number\n"\
 				"- size: size of packet\n"\
 				"- crc: 32 bit CRC of packet\n"\
 				"- lf: insert linefeed\n"\
 				"- cr: insert carriage return\n"\
 				"- t: insert tab\n"\
-				"- data: hex dump of packet (** WARNING, BIG OUTPUT !! **)\n"\
+				"- data: hex dump of packet (__big output!__)\n"\
 				"- lp: leading picture flag\n"\
 				"- depo: depends on other packet flag\n"\
 				"- depf: is depended on other packet flag\n"\
@@ -3696,7 +3696,7 @@ const GF_FilterRegister InspectRegister = {
 	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
 	 			"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"\
 	 			"  \n"\
-	 			"An unrecognized keywork or missing property will resolve to an empty string.\n"\
+	 			"An unrecognized keyword or missing property will resolve to an empty string.\n"\
 	 			"\n"\
 	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
 	.private_size = sizeof(GF_InspectCtx),
@@ -3736,11 +3736,10 @@ const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	GF_FS_SET_DESCRIPTION("Probe source")
 	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demuxed pids available in a source chain.\n"
-	"The filter does not produce any output nor feedback, it is up to the app developper to query input pids of the prober and take appropriated decisions.")
+	"The filter does not produce any output nor feedback, it is up to the app developer to query input pids of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
-	.args = InspectArgs,
 	.initialize = inspect_initialize,
 	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,

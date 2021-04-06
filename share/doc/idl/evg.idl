@@ -92,12 +92,12 @@ void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clear(IRect rc, DOMString color);
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clear(IRect rc, DOMString color);
 
 /*! clears the canvas with the given color
@@ -112,7 +112,7 @@ void clearf(IRect rc, double r, double g, double b, double a);
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clearf(IRect rc, DOMString color);
 
 /*! fills the path with the given solid brush or gradient stencil - see \ref gf_evg_surface_fill
@@ -588,7 +588,7 @@ interface ColorMatrix {
 	ColorMatrix multiply(ColorWatrix with);
 	
 	/*! apply a color transformation as 8bit RGB
-	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB
 	\return transformed color*/
 	Color apply(DOMString color);
 
@@ -598,7 +598,7 @@ interface ColorMatrix {
 	Color apply(Color color);
 
 	/*! apply a color transformation as float RGB
-	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB
 	\return transformed color*/
 	Colorf applyf(DOMString color);
 
@@ -655,7 +655,7 @@ interface Stencil {
 	void set_color(Color color);
 
 	/*! set color for solid brush stencil
-	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+	\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 	void set_color(DOMString color);
 
 	/*! set color for solid brush stencil - see \ref gf_evg_stencil_set_brush_color.
@@ -719,7 +719,7 @@ interface Stencil {
 
 	/*! defines a new stop color for the gradient. Stops must be declared in order on the gradient. See \ref gf_evg_stencil_push_gradient_interpolation
 	\param pos position between 0.0 and 1.0
-	\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB
+	\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB
 	*/
 	void set_stop(double pos, DOMString color);
 
@@ -1282,12 +1282,12 @@ void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clear(IRect rc, DOMString color);
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clear(IRect rc, DOMString color);
 
 /*! clears the canvas with the given color
@@ -1302,7 +1302,7 @@ void clearf(IRect rc, double r, double g, double b, double a);
 
 /*! clears the canvas with the given color. See \ref gf_evg_surface_clear
 \param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formated as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
+\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
 void clearf(IRect rc, DOMString color);
 
 /*! reassign internal data (typically at each new packet)
@@ -1601,7 +1601,7 @@ Name | rv1 | rv2 | Semantic
 'sign' | any | none | assigns sign vector of rv1 to left value - cf GLSL
 'floor' | any | none | assigns floor(rv1) to left value
 'ceil' | any | none | assigns ceil(rv1) to left value
-'fract' | any | none | assigns fractionnal part of rv1 to left value - cf GLSL
+'fract' | any | none | assigns fractional part of rv1 to left value - cf GLSL
 'mod' | any | any | assigns modulo of rv1 by rv2 to left value - cf GLSL
 'min' | any | any | assigns minimum of rv1 and rv2 to left value - cf GLSL
 'max' | any | any | assigns maximum of rv1 and rv2 to left value - cf GLSL
@@ -1694,7 +1694,7 @@ shader.push('end');
 shader.push('elseif', 'my_var.x', '<=', '.uniform');
 shader.push('goto', '.label_start'); //go to the instruction at position label_start
 shader.push('else');
-shader.push('goto', 0); //go to begining of the instruction stack
+shader.push('goto', 0); //go to beginning of the instruction stack
 shader.label_end = shader.push('end');
 ...
 \endcode

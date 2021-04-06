@@ -307,7 +307,7 @@ The profile allows using a different global config file than the default, and ma
 GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile);
 /*!
 \brief System closing
-Closes the system high-resolution clock and any CPU associated ressources.
+Closes the system high-resolution clock and any CPU associated resources.
 \note This can be called several times but the system will be closed when no more users are counted.
  */
 void gf_sys_close();
@@ -516,13 +516,13 @@ typedef enum
 \brief Log exits at first error assignment
 
 When GF_LOG_ERROR happens, program leaves with instruction exit(1);
-\param strict strict behaviour when encoutering a serious error.
+\param strict strict behavior when encoutering a serious error.
 \return old value before the call.
  */
 Bool gf_log_set_strict_error(Bool strict);
 
 /*!
-\brief gets string-formated log tools
+\brief gets string-formatted log tools
 
 Gets the string-formatted log tools and levels. Returned string shall be freed by the caller.
 \return string-formatted log tools.

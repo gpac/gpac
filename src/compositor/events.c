@@ -989,7 +989,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	}
 	if (res) {
 		GF_SceneGraph *sg;
-		/*apply event cascade - this is needed for cases where several events are processed inbetween
+		/*apply event cascade - this is needed for cases where several events are processed between
 		2 simulation tick. If we don't flush the routes stack, the result will likely be wrong
 		*/
 		gf_sg_activate_routes(compositor->scene);

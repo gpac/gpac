@@ -279,7 +279,7 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 			GF_ChunkLargeOffsetBox *new_stco64 = NULL;
 			GF_ChunkOffsetBox *stco = (GF_ChunkOffsetBox *) _stco;
 
-			//be carefull for the last entry, nextChunk is set to 0 in edit mode...
+			//be careful for the last entry, nextChunk is set to 0 in edit mode...
 			last = ent->nextChunk ? ent->nextChunk : stco->nb_entries + 1;
 			for (k = ent->firstChunk; k < last; k++) {
 
@@ -311,7 +311,7 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 			}
 		} else {
 			GF_ChunkLargeOffsetBox *stco64 = (GF_ChunkLargeOffsetBox *) _stco;
-			//be carefull for the last entry ...
+			//be careful for the last entry ...
 			last = ent->nextChunk ? ent->nextChunk : stco64->nb_entries + 1;
 			for (k = ent->firstChunk; k < last; k++) {
 				stco64->offsets[k-1] += offset;

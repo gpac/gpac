@@ -4663,7 +4663,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	nb_read = (u32) gf_fread(output, blocksize, ctx->tmp_store);
 	if (nb_read != blocksize) {
 		char tmp[1];
-		//weird behaviour on some file systems, dump debug info
+		//weird behavior on some file systems, dump debug info
 		gf_fread(tmp, 1, ctx->tmp_store);
 		Bool is_eof = gf_feof(ctx->tmp_store);
 		GF_LOG(is_eof ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error reading from VOD temp cache, read %d bytes but asked %d bytes\n\tCache EOF %d - cache size "LLU" - read pos "LLU" - file pos "LLU"\n", nb_read, blocksize, is_eof, ctx->flush_size, ctx->flush_done, gf_ftell(ctx->tmp_store)));
@@ -6213,9 +6213,9 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(xps_inband), "use inband (in sample data) param set for NALU-based video (AVC/HEVC/...)\n"
+	{ OFFS(xps_inband), "use inband (in sample data) parameter set for NALU-based video (AVC/HEVC/...)\n"
 	"- no: paramater sets are not inband, several sample descriptions might be created\n"
-	"- all: paramater sets are inband, no param sets in sample description\n"
+	"- all: paramater sets are inband, no parameter sets in sample description\n"
 	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix", 0},
 	{ OFFS(store), "file storage mode\n"
@@ -6234,7 +6234,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fsap), "split truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source pid", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(m4cc), "4 character code of empty box to appen at the end of a segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(m4cc), "4 character code of empty box to append at the end of a segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_sidx), "use daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(msn), "sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},
 	{ OFFS(msninc), "sequence number increase between moofs", GF_PROP_UINT, "1", NULL, 0},
@@ -6277,7 +6277,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"\
 			"- v1qt: use v1 signaling, QTFF style"\
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
-	{ OFFS(ssix), "create ssix when sidx is present, level 1 mappping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ssix), "create ssix when sidx is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -6320,7 +6320,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- cmfc: use CMAF `cmfc` guidelines\n"
 		"- cmf2: use CMAF `cmf2` guidelines"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(start), "set playback start offset (MP4Box import only). Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(start), "set playback start offset (MP4Box import only). Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
@@ -6339,9 +6339,9 @@ GF_FilterRegister MP4MuxRegister = {
 	"EX -i source.jpg:#ItemID=1 -o file.mp4\n"
 	"  \n"
 	"# Storage\n"
-	"The [-store]() option allows controling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
+	"The [-store]() option allows controlling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
-	"The [-vodcache]() option allows controling how DASH onDemand segments are generated:\n"
+	"The [-vodcache]() option allows controlling how DASH onDemand segments are generated:\n"
 	"- If set to `on`, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
 	"- If set to `insert`, SIDX/SSIX will be injected upon completion of the file by shifting bytes in file. In this case, no padding is required but this might not be compatible with all output sinks and will take longer to write the file.\n"
 	"- If set to `replace`, SIDX/SSIX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX. If input pids have the properties `DSegs` set, this will be as the number of segments.\n"
@@ -6360,7 +6360,7 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"# Tagging\n"
 	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming pid.\n"
-	"The built-in tag names are `album`, `artist`, `comment`, `complilation`, `composer`, `year`, `disk`, `tool`, `genre`, `contentgroup`, `title`, `tempo`, `track`, `tracknum`, `writer`, `encoder`, `album_artist`, `gapless`, `conductor`.\n"
+	"The built-in tag names are `album`, `artist`, `comment`, `compilation`, `composer`, `year`, `disk`, `tool`, `genre`, `contentgroup`, `title`, `tempo`, `track`, `tracknum`, `writer`, `encoder`, `album_artist`, `gapless`, `conductor`.\n"
 	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"

@@ -1133,7 +1133,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 				SET_SOURCE(f, prev_filter);
 
-				//insert at begining, so that link_idx=0 <=> last declared filter
+				//insert at beginning, so that link_idx=0 <=> last declared filter
 				gf_list_insert(filters, f, 0);
 				prev_filter = f;
 			} else {
@@ -1707,7 +1707,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 						if (
 							//packet is after splice end, drop
 							(cts * ctx->splice_ctrl->o_timescale >= ctx->splice_end_cts * iopid->o_timescale)
-							//packet is before splice end but a previous packet was droped because after splice end (i.e. we dropped a ref), drop
+							//packet is before splice end but a previous packet was dropped because after splice end (i.e. we dropped a ref), drop
 							|| iopid->splice_ready
 						) {
 							iopid->splice_ready = GF_TRUE;
@@ -2401,7 +2401,7 @@ GF_FilterRegister FileListRegister = {
 		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"
 		"- floop=N: set [-floop]() option from within playlist.\n"
 		"\n"
-		"The default behaviour when joining sources is to realign the timeline origin of the new source to the maximum time in all pids of the previous sources.\n"
+		"The default behavior when joining sources is to realign the timeline origin of the new source to the maximum time in all pids of the previous sources.\n"
 		"This may create gaps in the timeline in case each pid are not of equal duration (quite common with most audio codecs).\n"
 		"Using `nosync` directive will disable this realignment and provide a continuous timeline but may introduce synchronization errors depending in the source encoding (use with caution).\n"
 		"## Source syntax\n"
@@ -2417,23 +2417,23 @@ GF_FilterRegister FileListRegister = {
 		"Warning: There shall be a single character, with value space (' '), before and after each link directive.\n"
 		"\n"
 		"EX src.mp4 @ reframer:rt=on\n"
-		"This will inject a refamer with real-time regulation between source and `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between source and `flist` filter.\n"
 		"EX src.mp4 @ reframer:saps=1 @1 reframer:saps=0,2,3\n"
 		"EX src.mp4 @ reframer:saps=1 @-1 reframer:saps=0,2,3\n"
-		"This will inject a refamer filtering only SAP1 frames and a reframer filtering only non-SAP1 frames between source and `flist` filter\n"
+		"This will inject a reframer filtering only SAP1 frames and a reframer filtering only non-SAP1 frames between source and `flist` filter\n"
 		"\n"
 		"Link options can be specified (see `gpac -h doc`).\n"
 		"EX src.mp4 @#video reframer:rt=on\n"
-		"This will inject a refamer with real-time regulation between video pid of source and `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between video pid of source and `flist` filter.\n"
 		"\n"
 		"When using filter chains, the `flist` filter will only accept PIDs from the last declared filter in the chain.\n"
 		"In order to accept other PIDs from the source, you must specify a final link directive with no following filter.\n"
 		"EX src.mp4 @#video reframer:rt=on @-1#audio\n"
-		"This will inject a refamer with real-time regulation between video pid of source and `flist` filter, and will also allow audio pids from source to connect to `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between video pid of source and `flist` filter, and will also allow audio pids from source to connect to `flist` filter.\n"
 		"\n"
 		"The empty link directive can also be used on the last declared filter\n"
 		"EX src.mp4 @ reframer:rt=on @#audio\n"
-		"This will inject a refamer with real-time regulation between source and `flist` filter and only connect audio pids to `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between source and `flist` filter and only connect audio pids to `flist` filter.\n"
 		"## Splicing\n"
 		"The playlist can be used to splice content with other content following a media in the playlist.\n"
 		"A source item is declared as main media in a splice operation if and only if it has an `out` directive set (possibly empty).\n"
@@ -2446,7 +2446,7 @@ GF_FilterRegister FileListRegister = {
 		"- `now`: the time is resolved to the next SAP point in the media\n"
 		"- integer, float or fraction: set time in seconds\n"
 		"- `+VAL`: used for `in` only, specify the end point as delta in seconds from the start point (`VAL` can be integer, float or fraction)\n"
-		"- DATE: set splice time according to wall clock `DATE`, formated as an `XSD dateTime`\n"
+		"- DATE: set splice time according to wall clock `DATE`, formatted as an `XSD dateTime`\n"
 		"The splice times (except wall clock) are expressed in the source (main media) timing, not the reconstructed output timeline.\n"
 		"\n"
 		"When a splice begins (`out` time reached), the source items following the main media are played until the end of the splice or the end of the main media.\n"

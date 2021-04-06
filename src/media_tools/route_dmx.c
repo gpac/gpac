@@ -1851,7 +1851,7 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
 				GF_ROUTELCTChannel *rlct = obj->rlct;
 				//we likely have a loop here
 				if (obj == s->last_active_obj) break;
-				//obj being recieved do not destroy
+				//obj being received do not destroy
 				if (obj->status == GF_LCT_OBJ_RECEPTION) break;
 
 
@@ -1928,7 +1928,7 @@ void gf_route_dmx_purge_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 		if (s->last_active_obj == obj) continue;
 		//if object is static file keep it - this may need refinement in case we had init segment updates
 		if (obj->rlct_file) continue;
-		//obj being recieved do not destroy
+		//obj being received do not destroy
 		if (obj->status == GF_LCT_OBJ_RECEPTION) continue;
 		//trash
 		gf_route_obj_to_reservoir(routedmx, s, obj);

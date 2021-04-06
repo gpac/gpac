@@ -83,7 +83,7 @@ typedef enum
 	GF_DASH_EVENT_QUALITY_SWITCH,
 	/*! position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
+	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations dropped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 	/*! event send when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
@@ -867,7 +867,7 @@ s32 gf_dash_group_get_active_quality(GF_DashClient *dash, u32 group_idx);
 void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp);
 
 /*! Tile adaptation mode
-This mode specifies how bitrate is allocated accross tiles of the same video
+This mode specifies how bitrate is allocated across tiles of the same video
 */
 typedef enum
 {

@@ -3193,7 +3193,7 @@ typedef struct __adobe_bootstrap_info_box
 	GF_List *quality_entry_table;
 	char *drm_data;
 	char *meta_data;
-	//entries in these two lists are NOT registered with the box child_boxes because of the inbetween 8 bits !!
+	//entries in these two lists are NOT registered with the box child_boxes because of the in-between 8 bits !!
 	u8 segment_run_table_count;
 	GF_List *segment_run_table_entries;
 	u8 fragment_run_table_count;

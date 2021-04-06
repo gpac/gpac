@@ -1159,7 +1159,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec reconfiguration, begining flush\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec reconfiguration, beginning flush\n"));
 		ctx->reconfig_pending = GF_TRUE;
 		return GF_OK;
 	}

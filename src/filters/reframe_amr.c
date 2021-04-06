@@ -447,7 +447,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 		toc = start[0];
 		if (!toc) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Could not find TOC word in packet, droping\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Could not find TOC word in packet, dropping\n"));
 			break;
 		}
 		switch (ctx->codecid) {

@@ -47,7 +47,7 @@ extern "C" {
 This section documents the math and trigo functions used in the GPAC framework. GPAC can be compiled with
  fixed-point support, representing float values on a 16.16 signed integer, which implies a developer
  must take care of float computations when using GPAC.\n
- A developper should not need to know in which mode the framework has been compiled as long as he uses
+ A developer should not need to know in which mode the framework has been compiled as long as he uses
  the math functions of GPAC which work in both float and fixed-point mode.\n
  Using fixed-point version is decided at compilation time and cannot be changed. The feature is signaled
  through the GPAC_FIXED_POINT macro: when defined, GPAC has been compiled in fixed-point mode

@@ -39,7 +39,7 @@ extern "C" {
 \addtogroup sysmain_grp
 @{
 
-Thiis section decribes functions useful when developping an application using libgpac such as:
+Thiis section decribes functions useful when developing an application using libgpac such as:
 - quick UTF8 conversion of arguments for main() on windows
 - setting, checking and printing libgpac arguments as given from command line
 */
@@ -202,7 +202,7 @@ typedef enum
 	GF_PRINTARG_OPT_DESC = 1<<2,
 	/*! the format string is an application string, not a gpac core one*/
 	GF_PRINTARG_IS_APP = 1<<3,
-	/*! insert an extra '-' at the begining*/
+	/*! insert an extra '-' at the beginning*/
 	GF_PRINTARG_ADD_DASH = 1<<4,
 	/*! do not insert '-' before arg name*/
 	GF_PRINTARG_NO_DASH = 1<<5,

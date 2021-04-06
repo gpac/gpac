@@ -346,7 +346,7 @@ GF_Err gf_bifs_enc_field(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node
 	return gf_bifs_enc_mf_field(codec, bs, node, field);
 }
 
-/*we assume a node field is not ISed several times (that's stated as "undefined behaviour" in VRML*/
+/*we assume a node field is not ISed several times (that's stated as "undefined behavior" in VRML*/
 GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fieldIndex)
 {
 	GF_Route *r;

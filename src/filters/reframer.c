@@ -727,7 +727,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			ts -= st->ts_at_range_start_plus_one - 1;
 
 			if (ts<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while spliting, something went wrong during range estimation, forcing to 0\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
 				ts = 0;
 			}
 
@@ -1190,7 +1190,7 @@ GF_Err reframer_process(GF_Filter *filter)
 			}
 			if (!pck) {
 				if (gf_filter_pid_is_eos(ipid)) {
-					//special case for PIDs with a single packet, we reinsert them at the begining of each extracted range
+					//special case for PIDs with a single packet, we reinsert them at the beginning of each extracted range
 					//this allows dealing with BIFS/OD/JPEG/PNG tracks
 					if (st->reinsert_single_pck) {
 						if (!ctx->in_range && !st->range_start_computed) {
@@ -1878,13 +1878,13 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(xs), "extraction start time(s), see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjustment of extraction start range I-frame\n"
-	"- before: use first I-frame preceeding or equal to start range\n"
+	"- before: use first I-frame preceding or equal to start range\n"
 	"- after: use first I-frame (if any) following or equal to start range\n"
 	"- closest: use I-frame closest to start range", GF_PROP_UINT, "before", "before|after|closest", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xadjust), "adjust end time of extraction range to be before next I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sur I-frame preceeding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sur I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(props), "extra output PID properties per extraction range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
@@ -1898,7 +1898,7 @@ GF_FilterRegister ReframerRegister = {
 		"- optionally force decoding\n"
 		"- real-time regulation\n"
 		"- packet filtering based on SAP types or frame numbers\n"
-		"- time-range extraction and spliting\n"
+		"- time-range extraction and splitting\n"
 		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit).\n"
 		"It is typcially needed to force remultiplexing in file to file operations when source and destination files use the same format.\n"
 		"  \n"

@@ -463,7 +463,7 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(ext), "indicate file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicate mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(block_size), "buffer size used to write to pipe, windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
@@ -483,7 +483,7 @@ GF_FilterRegister PipeOutRegister = {
 	GF_FS_SET_DESCRIPTION("pipe output")
 	GF_FS_SET_HELP("This filter handles generic output pipes (mono-directional) in blocking mode only.\n"\
 		"Warning: Output pipes do not currently support non blocking mode.\n"\
-		"The assoicated protocol scheme is `pipe://` when loaded as a generic output (eg, -o `pipe://URL` where URL is a relative or absolute pipe name).\n"\
+		"The associated protocol scheme is `pipe://` when loaded as a generic output (eg, -o `pipe://URL` where URL is a relative or absolute pipe name).\n"\
 		"Data format of the pipe **shall** be specified using extension (either in filename or through [-ext]() option) or MIME type through [-mime]()\n"\
 		"The pipe name indicated in [-dst]() can use template mechanisms from gpac, e.g. `dst=pipe_$ServiceID$`\n"\
 		"\n"\

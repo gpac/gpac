@@ -277,8 +277,8 @@ toolX peut être l'un des suivants:
 	core: libgpac core
 	coding: bitstream formats (audio, video, scene)
 	container: container formats (ISO File, MPEG-2 TS, AVI, ...)
-	network: network data sauf trafic RTP
-	rtp: trafic rtp
+	network: network data sauf traffic RTP
+	rtp: traffic rtp
 	author: outils de création (hint, import, export)
 	sync: messages de synchro
 	codec: messages des encodeurs/décodeurs
@@ -344,7 +344,7 @@ maxrate=définit le débit de téléchargement HTTP maximal en bits par seconde.
 maxrate_crc=1922316623
 no-cache=désactive la mise en cache HTTP
 no-cache_crc=3498973804
-offline-cache=active la mise en cache HTTP hors connexion (pas de revalidation des ressources existantes avec le serveur)
+offline-cache=active la mise en cache HTTP hors connexion (pas de revalidation des resources existantes avec le serveur)
 offline-cache_crc=2358998211
 clean-cache=indique si le cache HTTP doit être propre au lancement / à la sortie
 clean-cache_crc=3957340416
@@ -596,11 +596,11 @@ Cached=Indique que le fichier est complètement mis en cache - les modifications
 Cached_crc=3151091158
 DownloadRate=Vitesse de téléchargement en bits/s - les modifications sont signalées via pid info (pas de reconfiguration)
 DownloadRate_crc=3036537463
-DownloadSize=Taille de la ressource en octets
+DownloadSize=Taille de la resource en octets
 DownloadSize_crc=3043116296
 DownBytes=Nombre d'octets téléchargés - les modifications sont signalées via pid info (pas de reconfiguration)
 DownBytes_crc=4224364036
-ByteRange=Plage d'octets de la ressource associée en octets. Si non specifiée, les données représentent tout le fichier.
+ByteRange=Plage d'octets de la resource associée en octets. Si non specifiée, les données représentent tout le fichier.
 ByteRange_crc=589585796
 DisableProgressive=le flux/fichier ne peut pas être poussé/stocké progressivement car les premiers blocs doivent être ré-écrits à la fermeture
 DisableProgressive_crc=1253734822
@@ -612,7 +612,7 @@ ServiceWidth=Largeur d'affichage du service
 ServiceWidth_crc=365048394
 ServiceHeight=Hauteur d'affichage du service
 ServiceHeight_crc=3683000823
-CarouselRate=Taux de répétition en ms pour les données carrousel éventuelles
+CarouselRate=Taux de répétition en ms pour les données carousel éventuelles
 CarouselRate_crc=2407619266
 UTC=date et heure UTC du PID
 UTC_crc=1412134201
@@ -750,7 +750,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 	bo: byte offset in source, N/A if not available
 	roll: roll info
 	crypt: crypt flag
-	vers: carrousel version number
+	vers: carousel version number
 	size: size of packet
 	crc: 32 bit CRC of packet
 	lf: insert linefeed
@@ -863,7 +863,7 @@ fsize=Forces the scene to resize to the biggest bitmap available if no size info
 fsize_crc=4245810103
 mode2d=specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether the setting is applied or not depends on the graphics module (currently all modules handle both mode). debug mode only renders changed areas.
 mode2d_crc=384263271
-amc=audio multichannel support; if disabled always downmix to stereo. usefull if the multichannel output doesn't work properly
+amc=audio multichannel support; if disabled always downmix to stereo. useful if the multichannel output doesn't work properly
 amc_crc=1601428466
 asr=forces output sample rate - 0 for auto
 asr_crc=1603958301
@@ -1524,13 +1524,13 @@ udp_timeout=Default timeout before considering UDP is down
 udp_timeout_crc=2324324210
 rtsp_timeout=Default timeout before considering RTSP is down
 rtsp_timeout_crc=2959531576
-rtcp_timeout=Default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
+rtcp_timeout=Default timeout for RTCP traffic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
 rtcp_timeout_crc=2760381520
 autortsp=Automatically reconfig RTSP interleaving if UDP timeout
 autortsp_crc=682354717
 first_packet_drop=Sets number of first RTP packet to drop - 0 if no drop
 first_packet_drop_crc=134810345
-frequency_drop=Drop 1 out of N packet - 0 disable droping
+frequency_drop=Drop 1 out of N packet - 0 disable dropping
 frequency_drop_crc=3638295141
 user_agent=User agent string, by default solved from GPAC preferences
 user_agent_crc=4142140091
@@ -1639,7 +1639,7 @@ exporter=compatibility with old exporter, displays export results
 exporter_crc=4138638672
 dims=Uses DIMS mode
 dims_crc=1900107902
-name=Sets output name of files produced (needed media/info files refered to from XML
+name=Sets output name of files produced (needed media/info files referred to from XML
 name_crc=943156470
 nhmlonly=Only dumps NHML info, not media
 nhmlonly_crc=1508283746
@@ -1697,7 +1697,7 @@ drv=video driver name
 drv_crc=1693149976
 vsync=enables video screen sync
 vsync_crc=2823729754
-drop=enables droping late frames
+drop=enables dropping late frames
 drop_crc=1318529139
 disp=Display mode, gl: OpenGL, pbo: OpenGL with PBO, blit: 2D HW blit, soft: software blit
 disp_crc=2153025248
@@ -1911,8 +1911,8 @@ Additionnal replacement strings (not DASH, not generic GPAC replacements but may
 	$DS$ (Dash Suffix) is replaced by "_trackN" in case the source is an AV multiplex, or kept empty otherwise
 
 To assign PIDs into periods and adaptation sets and configure the session, the dasher looks for the following properties on each input pid:
-	Representation: assigns representation ID to input pid. If not set, the default behaviour is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)
-	Period: assigns period ID to input pid. If not set, the default behaviour is to have all media in the same period with the same start time
+	Representation: assigns representation ID to input pid. If not set, the default behavior is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)
+	Period: assigns period ID to input pid. If not set, the default behavior is to have all media in the same period with the same start time
 	PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end
 		When both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)
 	ASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set
@@ -1960,9 +1960,9 @@ Cues are given in an XML file with a root element called <DASHCues>, with curren
 	"timescale":integer giving the units of following timestamps
 	"mode": if present and value is "edit", the timestamp are in presentation time (edit list applied). Otherwise they are in media time
 The children of <Stream> are <Cue> elements, with attributes:
-	"sample": integer giving the sample/frame number of a sample at which spliting shall happen
-	"dts": long integer giving the decoding time stamp of a sample at which spliting shall happen
-	"cts": long integer giving the composition / presentation time stamp of a sample at which spliting shall happen
+	"sample": integer giving the sample/frame number of a sample at which splitting shall happen
+	"dts": long integer giving the decoding time stamp of a sample at which splitting shall happen
+	"cts": long integer giving the composition / presentation time stamp of a sample at which splitting shall happen
 WARNING: cues shall be listed in decoding order. Cue files can be specified for the entire dasher, or per PID using DashCue property.
 
 Note to developpers: output muxers allowing segmented output must obey the following:
@@ -1974,7 +1974,7 @@ Note to developpers: output muxers allowing segmented output must obey the follo
 		"FileName" property is only on one PID (usually the first) for multiplexed outputs
 	"IDXName" gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now
 		"EODS" property is set on packets with no DATA, no TS to signal the end of a DASH segment
-			This is only used when stoping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher "subdur" option)
+			This is only used when stopping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see dasher "subdur" option)
 * for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any
 * for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any
 * the following filter options are passed to muxers, which should declare them as arguments:
@@ -2003,11 +2003,11 @@ sfile=Segments are contained in a single file (default in on_demand)
 sfile_crc=2818224601
 align=Enables segment time alignment between representations
 align_crc=2358410793
-sap=Enables spliting segments at SAP boundaries
+sap=Enables splitting segments at SAP boundaries
 sap_crc=1678442801
 mix_codecs=Enables mixing different codecs in an adaptation set
 mix_codecs_crc=3192116776
-ntp=Inserts/overrides NTP clock at the begining of each segment. rem removes NTP from all input packets. yes inserts NTP at each segment start. keep leaves input packet NTP untouched.
+ntp=Inserts/overrides NTP clock at the beginning of each segment. rem removes NTP from all input packets. yes inserts NTP at each segment start. keep leaves input packet NTP untouched.
 ntp_crc=1312122791
 no_sar=Does not check for identical sample aspect ratio for adaptation sets
 no_sar_crc=2264793386
@@ -2095,7 +2095,7 @@ hlsc=inserts clock reference in variant playlist in live HLS
 hlsc_crc=2539913156
 cues=sets cue file - see filter help
 cues_crc=3959109360
-strict_cues=strict mode for cues, complains if spliting is not on SAP type 1/2/3 or if unused cue is found
+strict_cues=strict mode for cues, complains if splitting is not on SAP type 1/2/3 or if unused cue is found
 strict_cues_crc=4206252436
 subs_sidx=number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination
 subs_sidx_crc=462930136
@@ -2131,7 +2131,7 @@ The pipe input can create the pipe if not found using mkp option. On windows hos
 On non windows hosts, the created pipe will delete the pipe file upon filter destruction
 
 Input pipes can be setup to run forever using the ka option. In this case, end of stream will never be triggered
-This can be usefull to pipe raw streams from different process into gpac:
+This can be useful to pipe raw streams from different process into gpac:
 Receiver side: gpac -i pipe://mypipe:ext=.264:mkp:ka
 Sender side: cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264@
 help_crc=2923617023
@@ -2187,7 +2187,7 @@ desc=GPAC Super/Simple/Serialized/Stream/State Format multiplexer
 desc_crc=2320300515
 help=@This filter serializes the streams states (config/reconfig/info update/remove/eos) and packets of input PIDs. This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC using either pipes or sockets. Upstream events are not serialized.
 
-The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.
+The default behavior does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.
 The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed
 
 The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optionnal seq num) are in the clear and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.
@@ -2252,7 +2252,7 @@ desc_crc=706603685
 help=@This filter handles generic output sockets (mono-directionnal) in blocking mode only.
 The filter can work in server mode, waiting for source connections, or can directly connect
 In server mode, the filter can be instructed to keep running at the end of the stream
-In server mode, the default behaviour is to keep input packets when no more clients are connected; this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.
+In server mode, the default behavior is to keep input packets when no more clients are connected; this can be adjusted though the kp option, however there is no realtime regulation of how fast packets are droped.
 If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send rate option
 
 Your platform supports unix domain sockets, use tcpu://NAME and udpu://NAME
@@ -2316,7 +2316,7 @@ rcfg_crc=1063479090
 desc=ATSC input
 desc_crc=2310180652
 help=@This filter is a receiver for ATSC 3.0 ROUTE sessions. Source is identified using the string atsc://.
-The default behaviour is to populate GPAC HTTP cache with the recieved files, using "http://gpatsc/serviceN/" as service root, N being the ATSC service ID.
+The default behavior is to populate GPAC HTTP cache with the recieved files, using "http://gpatsc/serviceN/" as service root, N being the ATSC service ID.
 In cache mode, repeated files are always send.
 The cached MPD is assigned the following headers:
 	"x-dash-atsc: N" indicates the ATSC service ID
@@ -2325,7 +2325,7 @@ The cached MPD is assigned the following headers:
 The cached files are assigned the following headers:
 	"x-atsc: yes" indicates the file comes from an ATSC session
 
-This behaviour can be changed by disabling the cache, in which case the filter will output files on a single output pid of type "file". The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
+This behavior can be changed by disabling the cache, in which case the filter will output files on a single output pid of type "file". The files are dispatched once fully received, the output pid carries a sequence of complete files. Repeated files are not repeated unless requested.
 If needed, one pid per TSI can be used rather than a single pid. This avoids mixing files of different mime types on the same pid (e.g. mpd and isobmff).
 
 On OSX with VM packet replay you will need to force multicast routing, eg: "route add -net 239.255.1.4/32 -interface vboxnet0"@

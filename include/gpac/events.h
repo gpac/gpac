@@ -304,7 +304,7 @@ typedef struct
 	u8 type;
 	/*the URL the auth request is for*/
 	const char *site_url;
-	/*user name (provided buffer can hold 50 bytes). It may already be formated, or an empty ("") string*/
+	/*user name (provided buffer can hold 50 bytes). It may already be formatted, or an empty ("") string*/
 	char *user;
 	/*password (provided buffer can hold 50 bytes)*/
 	char *password;

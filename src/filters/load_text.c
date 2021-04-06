@@ -3597,7 +3597,7 @@ static const GF_FilterArgs TXTInArgs[] =
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
-	GF_FS_SET_HELP("This filter reads subtitle data from inpud file PID to produce subtitle frames on a single PID.\n"
+	GF_FS_SET_HELP("This filter reads subtitle data from input file PID to produce subtitle frames on a single PID.\n"
 	"The filter supports the following formats:\n"
 	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
 	"- WebVTT: https://www.w3.org/TR/webvtt1/\n"
@@ -3625,7 +3625,7 @@ GF_FilterRegister TXTInRegister = {
 	"\nThe embedded data is added as a subsample to the TTML frame, and the referring elements will use `src=urn:mpeg:14496-30:N` with `N` the index of the subsample.\n"
 	"\n"
 	"A `subtitle zero` may be specified using [-ttml_zero](). This will remove all subtitles before the given time `T0`, and rewrite each subtitle begin/end `T` to `T-T0` using millisecond accuracy.\n"
-	"Warning: Original time formating (tick, frames/subframe ...) will be lost when this option is used, converted to `HH:MM:SS.ms`.\n"
+	"Warning: Original time formatting (tick, frames/subframe ...) will be lost when this option is used, converted to `HH:MM:SS.ms`.\n"
 	"\n"
 	"The subtitle zero time **must** be prefixed with `T` when the option is not set as a global argument:\n"
 	"EX gpac -i test.ttml:ttml_zero=T10:00:00 [...]\n"
