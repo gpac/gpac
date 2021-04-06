@@ -3826,7 +3826,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	if (filter->user_pid_props)
 		gf_filter_pid_set_args(filter, pid);
 
-	//since we may have inserted filters in the middle (demuxers typically), get the last explicitely
+	//since we may have inserted filters in the middle (demuxers typically), get the last explicitly
 	//loaded ID in the chain
 	filter_id = gf_filter_last_id_in_chain(filter, GF_FALSE);
 	if (!filter_id && filter->cloned_from)
@@ -3943,7 +3943,7 @@ single_retry:
 
 		//we try to load a filter chain, so don't test against filters loaded for another chain
 		if (filter_dst->dynamic_filter && (filter_dst != pid->filter->dst_filter)) {
-			//dst was explicitely set and does not match
+			//dst was explicitly set and does not match
 			if (pid->filter->dst_filter) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has explicit dest %s not %s\n", pid->name, pid->filter->dst_filter->name, filter_dst->name));
 				continue;
@@ -5473,7 +5473,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		s64 d = ((u64)pck->info.duration) * 1000000;
 		d /= timescale;
 		if (d > pidinst->buffer_duration) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), droping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), dropping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
 			d = pidinst->buffer_duration;
 		}
 		assert(d <= pidinst->buffer_duration);

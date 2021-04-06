@@ -459,7 +459,7 @@ static const GF_FilterArgs SVGInArgs[] =
 GF_FilterRegister SVGInRegister = {
 	.name = "svgplay",
 	GF_FS_SET_DESCRIPTION("SVG loader")
-	GF_FS_SET_HELP("This filter parses SVG files directly into the scene graph of the compositor. It cannot be used to dump content.")
+	GF_FS_SET_HELP("This filter parses SVG files directly into the scene graph of the compositor.")
 	.private_size = sizeof(SVGIn),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = SVGInArgs,

@@ -2154,7 +2154,7 @@ struct _od_manager
 #ifndef GPAC_DISABLE_VRML
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;
-	/*the list of media control controling the object*/
+	/*the list of media control controlling the object*/
 	GF_List *mc_stack;
 	/*the media sensor(s) attached to this object*/
 	GF_List *ms_stack;
@@ -2438,8 +2438,8 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
 
 /*post extended user mouse interaction to terminal
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
-	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
-	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
+	@xxx_but_down: specify whether the mouse button is down(2) or up (1), 0 if unchanged
+	@wheel: specify current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
 */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *event);
@@ -2531,7 +2531,7 @@ typedef struct _media_control
 
 	/*stream object list (segments)*/
 	GF_List *seg;
-	/*current active segment index (ie, controling the PLAY range of the media)*/
+	/*current active segment index (ie, controlling the PLAY range of the media)*/
 	u32 current_seg;
 } MediaControlStack;
 void InitMediaControl(GF_Scene *scene, GF_Node *node);

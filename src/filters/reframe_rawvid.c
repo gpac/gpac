@@ -186,7 +186,7 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		ctx->filepos = nb_frames * ctx->frame_size;
 		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
 
-		//post a seek even for the begining, to try to load frame by frame
+		//post a seek even for the beginning, to try to load frame by frame
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->filepos;
 		fevt.seek.hint_block_size = ctx->frame_size;

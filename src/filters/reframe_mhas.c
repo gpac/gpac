@@ -881,7 +881,7 @@ GF_FilterRegister MHASDmxRegister = {
 	GF_FS_SET_DESCRIPTION("MPEH-H Audio Stream reframer")
 	GF_FS_SET_HELP("This filter parses MHAS files/data and outputs corresponding audio PID and frames.\n"
 		"By default, the filter expects a MHAS stream with SYNC packets set, otherwise tune-in will fail. Using [-nosync]()=false can help parsing bitstreams with no SYNC packets.\n"
-		"The default behaviour is to dispatch a framed MHAS bitstream. To demultiplex into a raw MPEG-H Audio, use [-mpha]().\n"
+		"The default behavior is to dispatch a framed MHAS bitstream. To demultiplex into a raw MPEG-H Audio, use [-mpha]().\n"
 		)
 	.private_size = sizeof(GF_MHASDmxCtx),
 	.args = MHASDmxArgs,

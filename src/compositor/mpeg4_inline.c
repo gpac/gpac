@@ -267,7 +267,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 				/*this is unspecified in the spec: whenever an inline not using the
 				OD framework is destroyed, destroy the associated resource*/
 				if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) {
-					/*get parent scene and remove MediaObject in case the ressource
+					/*get parent scene and remove MediaObject in case the resource
 					gets re-requested later on*/
 					GF_Scene *parent_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
 					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
@@ -433,7 +433,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 
 	if (!lib_url || !lib_url->count) return NULL;
 
-	/*internal, don't waste ressources*/
+	/*internal, don't waste resources*/
 	if (gf_inline_is_hardcoded_proto(scene->compositor, lib_url)) return NULL;
 
 	i=0;

@@ -623,7 +623,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 		ck = (GF_Clock*)gf_list_get(ck_namespace, 0);
 		OD_OCR_ID = ck->clock_id;
 	}
-	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload ressources)*/
+	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload resources)*/
 	else if (odm->parentscene && odm->parentscene->is_dynamic_scene && !odm->subscene) {
 		GF_ObjectManager *parent_od = odm->parentscene->root_od;
 		if (parent_od->scene_ns && parent_od->scene_ns->clocks && (gf_list_count(parent_od->scene_ns->clocks)==1)) {

@@ -499,7 +499,7 @@ typedef struct _proto_instance
 	/*Prototype interface for coding and field addressing*/
 	GF_Proto *proto_interface;
 
-	/*proto implementation at run-time (aka the state of the nodes may differ accross
+	/*proto implementation at run-time (aka the state of the nodes may differ across
 	different instances of the proto)*/
 	GF_List *fields;
 

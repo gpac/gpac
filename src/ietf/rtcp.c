@@ -78,7 +78,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 			//we return OK
 			return GF_CORRUPTED_DATA;
 		}
-		//substract this RTCP pck size
+		//subtract this RTCP pck size
 		pck_size -= rtcp_hdr.Length * 4;
 
 		/*we read the RTCP header*/

@@ -519,7 +519,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 
 
 	/*pixel texture doesn not use any media object but has data in the content.
-	However we still use the same texture object, just be carefull not to use media funtcions*/
+	However we still use the same texture object, just be careful not to use media funtcions*/
 	txh->transparent = 0;
 	stride = pt->image.width;
 	/*num_components are as in VRML (1->4) not as in BIFS bitstream (0->3)*/

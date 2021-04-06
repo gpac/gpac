@@ -3077,7 +3077,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 {
 	{ OFFS(dst), "location of destination resource - see filter help", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(port), "server port", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(ifce), "default network inteface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ifce), "default network interface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rdirs), "list of directories to expose for read - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(wdir), "directory to expose for write - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(cert), "certificate file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
@@ -3152,7 +3152,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"# HTTP server sink\n"
 		"In this mode, the filter will forward input PIDs to connected clients, trashing the data if no client is connected unless [-hold]() is specified.\n"
 		"The filter does not use any read directory in this mode.\n"
-		"This mode is mostly usefull to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other muxed representations:\n"
+		"This mode is mostly useful to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other muxed representations:\n"
 		"EX gpac -i MP3_SOURCE -o http://localhost/live.mp3 --hold\n"
 		"In this example, the server waits for client requests on `/live.mp3` and will then push each input packet to all connected clients.\n"
 		"If the source is not real-time, you can inject a reframer filter performing realtime regulation.\n"

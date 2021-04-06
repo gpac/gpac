@@ -726,7 +726,7 @@ GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
-	GF_FS_SET_HELP("Demuxes files and open protocol using FFMPEG.\n"
+	GF_FS_SET_HELP("Demultiplexes files and open protocol using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
 	)

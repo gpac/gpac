@@ -338,7 +338,7 @@ void gf_sm_load_done(GF_SceneLoader *sload);
 
 \param sload the target scene loader
 \param str the string to load; MUST be at least 4 bytes long in order to detect BOM (unicode encoding); can be either UTF-8 or UTF-16 data
-\param clean_at_end if GF_TRUE, associated parser is terminated. Otherwise, a call to gf_sm_load_done must be done to clean ressources (needed for SAX progressive loading)
+\param clean_at_end if GF_TRUE, associated parser is terminated. Otherwise, a call to gf_sm_load_done must be done to clean resources (needed for SAX progressive loading)
 \return error if any
 */
 GF_Err gf_sm_load_string(GF_SceneLoader *sload, const char *str, Bool clean_at_end);

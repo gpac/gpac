@@ -1281,7 +1281,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
 	/*
 		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
-		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample,
+		If this index is 0, this means that we are at the beginning of a new block and we can use it as IV for next sample,
 		otherwise we must discard unused bytes in the counter (next sample shall begin with counter at 0)
 		if less than 16 blocks were cyphered, we must force increasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered,
 		which is forbidden by CENC (unique IV per sample). In GPAC, we ALWAYS force counter increase

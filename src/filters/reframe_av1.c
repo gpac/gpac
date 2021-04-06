@@ -1016,7 +1016,7 @@ GF_Err av1dmx_process(GF_Filter *filter)
 			if (e) return e;
 		}
 
-		//begining of a new frame
+		//beginning of a new frame
 		cts = gf_filter_pck_get_cts(pck);
 		if (cts != GF_FILTER_NO_TS)
 			ctx->cts = cts;

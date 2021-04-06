@@ -940,7 +940,7 @@ Bool gf_svg_attribute_is_interpolatable(u32 type);
 \param a first attribute
 \param b second attribute
 \param c destination attribute
-\param coef interpolation coeficient
+\param coef interpolation coefficient
 \param clamp if GF_TRUE, the interpolated value is clamped to its min/max possible values
 \return error if any
 */

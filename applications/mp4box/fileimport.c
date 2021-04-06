@@ -1633,7 +1633,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (check_track_for_svc) {
 		if (svc_mode) {
 			e = gf_media_split_svc(dest, check_track_for_svc, (svc_mode==2) ? 1 : 0);
-			GOTO_EXIT("spliting SVC track")
+			GOTO_EXIT("splitting SVC track")
 		} else {
 			e = gf_media_merge_svc(dest, check_track_for_svc, 1);
 			GOTO_EXIT("merging SVC/SHVC track")
@@ -1646,7 +1646,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (svc_mode==3) xmode = GF_LHVC_EXTRACTORS_OFF;
 			else if (svc_mode==4) xmode = GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND;
 			e = gf_media_split_lhvc(dest, check_track_for_lhvc, GF_FALSE, (svc_mode==1) ? 0 : 1, xmode );
-			GOTO_EXIT("spliting L-HEVC track")
+			GOTO_EXIT("splitting L-HEVC track")
 		} else {
 			//TODO - merge, temporal sublayers
 		}
@@ -1655,12 +1655,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	if (check_track_for_hevc) {
 		if (split_tile_mode) {
 			e = gf_media_split_hevc_tiles(dest, split_tile_mode - 1);
-			GOTO_EXIT("spliting HEVC tiles")
+			GOTO_EXIT("splitting HEVC tiles")
 		}
 		if (temporal_mode) {
 			GF_LHVCExtractoreMode xmode = (temporal_mode==3) ? GF_LHVC_EXTRACTORS_OFF : GF_LHVC_EXTRACTORS_ON;
 			e = gf_media_split_lhvc(dest, check_track_for_hevc, GF_TRUE, (temporal_mode==1) ? GF_FALSE : GF_TRUE, xmode );
-			GOTO_EXIT("spliting HEVC temporal sublayers")
+			GOTO_EXIT("splitting HEVC temporal sublayers")
 		}
 	}
 #endif
@@ -1770,9 +1770,9 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 
 	*prev_progress = (u32) progress;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Spliting: % 2.2f %%\r", progress));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("splitting: % 2.2f %%\r", progress));
 #else
-	fprintf(stderr, "Spliting: % 2.2f %%\r", progress);
+	fprintf(stderr, "splitting: % 2.2f %%\r", progress);
 #endif
 	return GF_FALSE;
 }

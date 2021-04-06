@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
- *  This file is part of GPAC / GPAC stream deserializer filter
+ *  This file is part of GPAC / GPAC stream format reader filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -377,7 +377,7 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			p->value.uint = gsfdmx_read_vlen(bs);
 			break;
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Cannot deserialize property of unknown type\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Cannot read property of unknown type\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
@@ -709,7 +709,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	//if durmode>0, dur on ts_diff_mode
 	//if sap==4, roll on signed 16 bits
 	//if (has sample deps) sample_deps_flags on 8 bits
-	//if has_carousel, carrousel version on 8 bits
+	//if has_carousel, carousel version on 8 bits
 	//if has_byteoffset, byte offset on 64 bits
 	//if (has builtin) vlen nb builtin_props then props[builtin_props]
 	//if (has props) vlen nb_str_props then props[nb_str_props]
@@ -1322,7 +1322,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	GF_FS_SET_DESCRIPTION("GSF Demuxer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) demultiplexing.\n"
-			"It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
+			"It unserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO

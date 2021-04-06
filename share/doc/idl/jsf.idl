@@ -136,7 +136,7 @@ readonly attribute unsigned long long connections_pending;
 attribute DOMString iname;
 
 
-/*! sets filter desciption as visible when checking filter info
+/*! sets filter description as visible when checking filter info
 \param description description of filter*/
 void set_desc(DOMString description);
 /*! sets filter author as visible when checking filter info

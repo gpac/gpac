@@ -1447,7 +1447,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					}
 				} else {
 					if (txh->is_open) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s playing on hidden partial sphere - stoping it\n", pid_name));
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s playing on hidden partial sphere - stopping it\n", pid_name));
 						gf_sc_texture_stop_no_unregister(txh);
 					}
 				}

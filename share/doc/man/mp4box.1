@@ -16,13 +16,13 @@ MP4Box is a multimedia packager, with a vast number of functionalities: conversi
 .br
 MP4Box provides a large set of options, classified by categories (see .I -h). These options do not follow any particular ordering.
 .br
-MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the .I out option.
+MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behavior by using the .I out option.
 .br
-MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behaviour.
+MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behavior.
 .br
 MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
 .br
-Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.
+Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.
 .br
 Option values:
 .br
@@ -51,7 +51,7 @@ interleave file, producing track chunks with given duration in ms. A value of 0 
 .TP
 .B \-old-inter (number)
 .br
-same as .I inter but wihout drift correction
+same as .I inter but without drift correction
 .br
 .TP
 .B \-tight
@@ -365,9 +365,9 @@ set edit list. The following syntax is used (no separators between entries):
 .br
    - VAL-DUR: start time and duration in milliseconds
 .br
-   - VAL/NUM: start time as fractionnal seconds (media duration used as edit duration)
+   - VAL/NUM: start time as fractional seconds (media duration used as edit duration)
 .br
-   - VAL-DUR/NUM: start time and duration as fractionnal seconds
+   - VAL-DUR/NUM: start time and duration as fractional seconds
 .br
  * `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)
 .br
@@ -941,18 +941,18 @@ merge last segment if shorter than half the target duration
 .br
   
 .br
-.SH File Spliting
+.SH File splitting
 .LP
 .br
 MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s).
 .br
 This requires that at most one track in the input file has non random-access points (typically one video track at most).
 .br
-Spliting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.
+splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.
 .br
 The input file must have enough random access points in order to be split. If this is not the case, you will have to re-encode the content.
 .br
-You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without spliting) will not be stored.
+You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.
 .br
   
 .br
@@ -974,7 +974,7 @@ split in files of given max size (in kb)
 .TP
 .B \-split-chunk,-splitx (string)
 .br
-extract a new file from source. VAL can be formated as:
+extract a new file from source. VAL can be formatted as:
 .br
 * `S:E`: S (number of seconds) to E with E a number (in seconds), end or end-N, N  number of seconds before the end
 .br
@@ -1094,7 +1094,7 @@ same as .I dts but does not print offset
 .TP
 .B \-dtsc
 .br
-same as .I dts but analyse each sample for duplicated dts/cts (slow !)
+same as .I dts but analyses each sample for duplicated dts/cts (slow !)
 .br
 .TP
 .B \-dtsxc
@@ -1179,7 +1179,7 @@ extract chapter file as zoom format
 .TP
 .B \-dump-udta [tkID:]4cc
 .br
-extract udta for the given 4CC. If tkID is given, dumps from UDTA of the given track ID, otherwise moov is used
+extract user data for the given 4CC. If tkID is given, dumps from UDTA of the given track ID, otherwise moov is used
 .br
 .TP
 .B \-mergevtt
@@ -1219,17 +1219,17 @@ generate SHA-1 Hash of the input file
 .TP
 .B \-comp (string)
 .br
-replace with compressed version all top level box types given as parameter, formated as orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]
+replace with compressed version all top level box types given as parameter, formatted as orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]
 .br
 .TP
 .B \-topcount (string)
 .br
-print to stdout the number of top-level boxes matching box types given as parameter, formated as 4cc_1,4cc_2N
+print to stdout the number of top-level boxes matching box types given as parameter, formatted as 4cc_1,4cc_2N
 .br
 .TP
 .B \-topsize (string)
 .br
-print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as 4cc_1,4cc_2N or all for all boxes
+print to stdout the number of bytes of top-level boxes matching types given as parameter, formatted as 4cc_1,4cc_2N or all for all boxes
 .br
 .TP
 .B \-bin
@@ -1254,7 +1254,7 @@ raw concatenation of given file with input file
 .TP
 .B \-wget (string)
 .br
-fetch ressource from http(s) URL
+fetch resource from http(s) URL
 .br
 .TP
 .B \-dm2ts
@@ -1313,7 +1313,7 @@ Source URL can be any URL supported by GPAC, not limited to local files.
 .br
   
 .br
-Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check TTXT doc.
+Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likely not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check TTXT doc.
 .br
   
 .br
@@ -1375,7 +1375,7 @@ S set imported media language code
 .TP
 .B delay (int)
 .br
-S set imported media initial delay in ms or as fractionnal seconds (N/D)
+S set imported media initial delay in ms or as fractional seconds (N/D)
 .br
 .TP
 .B par (string)
@@ -1596,7 +1596,7 @@ XC set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from r
 .TP
 .B xps_inbandx
 .br
-XC same as xps_inband and also keep first xPS in sample desciption
+XC same as xps_inband and also keep first xPS in sample description
 .br
 .TP
 .B au_delim
@@ -1626,7 +1626,7 @@ DS split HEVC tiles into different tile tracks, one tile (or all tiles of one sl
 .TP
 .B negctts
 .br
-S use negative CTS-DTS offsets (ISO4 brand). Use negctts=no to force using postive offset on existing track
+S use negative CTS-DTS offsets (ISO4 brand). Use negctts=no to force using positive offset on existing track
 .br
 .TP
 .B chap
@@ -1696,7 +1696,7 @@ S override AVC level, if value < 6, interpreted as decimal expression
 .TP
 .B compat (int)
 .br
-S force the profile compatibity flags for the H.264 content
+S force the profile compatibility flags for the H.264 content
 .br
 .TP
 .B novpsext
@@ -1855,7 +1855,7 @@ S force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or
 .TP
 .B tc (string)
 .br
-S inject a single QT timecode. Value is formated as:
+S inject a single QT timecode. Value is formatted as:
 .br
   * [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number
 .br
@@ -1871,7 +1871,7 @@ S override edit list, same syntax as .I edits
 .TP
 .B lastsampdur (string)
 .br
-S set duration of the last sample. Value is formated as:
+S set duration of the last sample. Value is formatted as:
 .br
   * no value: use the previous sample duration
 .br
@@ -1938,7 +1938,7 @@ Note: Each listed file is concatenated as if called with -cat
 .TP
 .B \-unalign-cat
 .br
-do not attempt to align timestamps of samples inbetween tracks
+do not attempt to align timestamps of samples in-between tracks
 .br
 .TP
 .B \-force-cat
@@ -1955,7 +1955,7 @@ keep all MPEG-4 Systems info when using .I add and .I cat (only used when adding
 .TP
 .B \-dref
 .br
-keep media data in original file using data referencing. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developping content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  
+keep media data in original file using data referencing. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  
 .br
 Note: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (AVC or HEVC cannot use this option)
 .br
@@ -2168,7 +2168,7 @@ force BIFS sync shadow sample generation every given time in ms (cannot be used 
 .TP
 .B \-carousel (int)
 .br
-use bifs carousel (cannot be used with .I sync or .I shadow )
+use BIFS carousel (cannot be used with .I sync or .I shadow )
 .br
 .TP
 .B \-sclog
@@ -2193,7 +2193,7 @@ specify storage of updated context (MP4/BT/XMT) file for chunk processing, optio
 .TP
 .B \-resolution (int)
 .br
-resolution factor (-8 to 7, default 0) for LASeR encoding, and all coords are multiplied by 2^res before truncation (LASeR encoding)
+resolution factor (-8 to 7, default 0) for LASeR encoding, and all coordinates are multiplied by 2^res before truncation (LASeR encoding)
 .br
 .TP
 .B \-coord-bits (int)
@@ -2208,12 +2208,12 @@ extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encodin
 .TP
 .B \-auto-quant (int)
 .br
-resolution is given as if using -resolution but coord-bits and scale-bits are infered (LASeR encoding)
+resolution is given as if using .I resolution but coord-bits and scale-bits are infered (LASeR encoding)
 .br
 .TP
 .B \-global-quant (int)
 .br
-resolution is given as if using -resolution but the res is inferred (BIFS encoding)
+resolution is given as if using .I resolution but the res is inferred (BIFS encoding)
 .br
 .SH Encryption/Decryption Options
 .LP
@@ -2250,7 +2250,7 @@ IsoMedia files can be used as generic meta-data containers, for examples storing
 .br
   
 .br
-These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the moovie or track level for a regular movie.  
+These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the movie or track level for a regular movie.  
 .br
   
 .br
@@ -2334,7 +2334,7 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 create an image grid item, with parameter syntax grid[:opt1:optN]
 .br
-* image-grid-size=rxc: set the number of rows and colums of the grid
+* image-grid-size=rxc: set the number of rows and columns of the grid
 .br
 - any other options from .I add-image can be used
 .br
@@ -2457,7 +2457,7 @@ Setting a tag with no value or value NULL removes the tag.
 .br
 Special tag value clear (or reset) removes all tags.
 .br
-Unsupported tags can be added using their four characer code as a tag name, and string value will be assumed.
+Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.
 .br
   
 .br
@@ -2465,7 +2465,7 @@ Tags can also be loaded from a text file using -itags filename. The file must be
 .br
 - lines starting with tag_name=value specify the start of a tag
 .br
-- other lines specify the remainer of the last declared tag
+- other lines specify the remainder of the last declared tag
 .br
   
 .br
@@ -2505,7 +2505,7 @@ disk (disk) fraction (syntax: A/B or A, B will be 0)
 .br
 tempo (tmpo) integer
 .br
-complilation (cpil) bool (yes or no)
+compilation (cpil) bool (yes or no)
 .br
 show (tvsh) string (alias tvShow)
 .br
@@ -2654,7 +2654,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev668-ga58e41485-master
+build: 1.1.0-DEV-rev674-g99632fd00-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

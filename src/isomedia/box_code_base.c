@@ -1503,7 +1503,7 @@ GF_Err gnrm_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_GenericSampleEntryBox *ptr = (GF_GenericSampleEntryBox *)s;
 
-	//carefull we are not writing the box type but the entry type so switch for write
+	//careful we are not writing the box type but the entry type so switch for write
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -1553,7 +1553,7 @@ GF_Err gnrv_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_GenericVisualSampleEntryBox *ptr = (GF_GenericVisualSampleEntryBox *)s;
 
-	//carefull we are not writing the box type but the entry type so switch for write
+	//careful we are not writing the box type but the entry type so switch for write
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -1604,7 +1604,7 @@ GF_Err gnra_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_GenericAudioSampleEntryBox *ptr = (GF_GenericAudioSampleEntryBox *)s;
 
-	//carefull we are not writing the box type but the entry type so switch for write
+	//careful we are not writing the box type but the entry type so switch for write
 	ptr->type = ptr->EntryType;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;

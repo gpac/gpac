@@ -1086,7 +1086,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 	if (opt)
 		return opt;
 
-	//ifce (used by socket and keep MP4Client behaviour: some options are set in MP4Client main apply them
+	//ifce (used by socket and keep MP4Client behavior: some options are set in MP4Client main apply them
 	if (!strcmp(arg_name, "ifce")) {
 		opt = gf_opts_get_key("core", "ifce");
 		if (opt)
@@ -1515,7 +1515,7 @@ skip_date:
 			else if (
 				//generic encoder load
 				!strcmp("c", szArg)
-				//prefered registry to use
+				//preferred registry to use
 				|| !strcmp("gfreg", szArg)
 				//non inherited options
 				|| !strcmp("gfloc", szArg)

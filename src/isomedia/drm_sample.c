@@ -1886,7 +1886,7 @@ Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size)
 	return GF_TRUE;
 
 exit:
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info formating, missing %d bytes\n", nb_missing));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Invalid key info format, missing %d bytes\n", nb_missing));
 	return GF_FALSE;
 }
 

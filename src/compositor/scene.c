@@ -1546,8 +1546,8 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 }
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
-just once when receiving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
-to update the OD ressources, we still take care of it*/
+just once when receiving the first OD AU (resources are NOT destroyed when seeking), but since the network may need
+to update the OD resources, we still take care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
 	GF_Node *n1, *n2;

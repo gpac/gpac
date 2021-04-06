@@ -231,7 +231,7 @@ GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 GF_SceneDumpFormat dump_mode=GF_SM_DUMP_NONE;
 #endif
 
-/*align cat is the new default behaviour for -cat*/
+/*align cat is the new default behavior for -cat*/
 Bool align_cat=GF_TRUE;
 
 Double mpd_live_duration=0;
@@ -349,7 +349,7 @@ MP4BoxArg m4b_gen_args[] =
 #endif
  	MP4BOX_ARG("p", "use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name `0` means a new profile, not stored to disk. Works using -p=NAME or -p NAME", GF_ARG_STRING, GF_ARG_HINT_EXPERT, NULL, 0, 0),
  	{"inter", NULL, "interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving ", "0.5", NULL, GF_ARG_DOUBLE, 0, parse_store_mode, 0, ARG_IS_FUN},
- 	MP4BOX_ARG("old-inter", "same as [-inter]() but wihout drift correction", GF_ARG_DOUBLE, GF_ARG_HINT_EXPERT, parse_store_mode, 1, ARG_IS_FUN),
+ 	MP4BOX_ARG("old-inter", "same as [-inter]() but without drift correction", GF_ARG_DOUBLE, GF_ARG_HINT_EXPERT, parse_store_mode, 1, ARG_IS_FUN),
  	MP4BOX_ARG("tight", "tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &full_interleave, 0, ARG_OPEN_EDIT|ARG_NEED_SAVE),
  	MP4BOX_ARG("flat", "store file with all media data first, non-interleaved. This speeds up writing time when creating new files", GF_ARG_BOOL, 0, &do_flat, 0, ARG_OPEN_EDIT| ARG_NO_INPLACE),
  	MP4BOX_ARG("frag", "fragment file, producing track fragments of given duration in ms. This disables interleaving", GF_ARG_DOUBLE, 0, parse_store_mode, 2, ARG_IS_FUN),
@@ -434,8 +434,8 @@ MP4BoxArg m4b_gen_args[] =
 			" - `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be\n"
 			"   - `VAL`: start time in milliseconds (media duration used as edit duration)\n"
 			"   - `VAL-DUR`: start time and duration in milliseconds\n"
-			"   - `VAL/NUM`: start time as fractionnal seconds (media duration used as edit duration)\n"
-			"   - `VAL-DUR/NUM`: start time and duration as fractionnal seconds\n"
+			"   - `VAL/NUM`: start time as fractional seconds (media duration used as edit duration)\n"
+			"   - `VAL-DUR/NUM`: start time and duration as fractional seconds\n"
 			" - `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)\n"
 			" - Examples: \n"
 			"   - `-edits=re0-5/1e5-3/1,100/25`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
@@ -455,10 +455,10 @@ void PrintGeneralUsage()
 	gf_sys_format_help(helpout, help_flags, "# General Options\n"
 		"MP4Box is a multimedia packager, with a vast number of functionalities: conversion, splitting, hinting, dumping, DASH-ing, encryption, transcoding and others.\n"
 		"MP4Box provides a large set of options, classified by categories (see [-h]()). These options do not follow any particular ordering.\n"
-		"MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behaviour by using the [-out]() option.\n"
-		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behaviour.\n"
+		"MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behavior by using the [-out]() option.\n"
+		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behavior.\n"
 		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
-		"Note: Track operations identify tracks through their ID (usually refered as tkID in the help), not their order.\n"
+		"Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.\n"
 		"Option values:\n"
 		"Unless specified otherwise, an option of type `integer` expects a trackID value following it."
 		"An option of type `boolean` expects no following value."
@@ -479,7 +479,7 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (in kb)", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract a new file from source. `VAL` can be formated as:\n"
+	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract a new file from source. `VAL` can be formatted as:\n"
 	"- `S:E`: `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N  number of seconds before the end\n"
 	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
 	MP4BOX_ARG_S("splitz", "S:E", "same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges `A:B` and `B:C` share exactly the same boundary `B`", 0, parse_split, 4, ARG_IS_FUN),
@@ -491,12 +491,12 @@ static void PrintSplitUsage()
 {
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "  \n"
-		"# File Spliting\n"
+		"# File splitting\n"
 		"MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s).\n"
 		"This requires that at most one track in the input file has non random-access points (typically one video track at most).\n"
-		"Spliting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.\n"
+		"splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.\n"
 		"The input file must have enough random access points in order to be split. If this is not the case, you will have to re-encode the content.\n"
-		"You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without spliting) will not be stored.\n"
+		"You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.\n"
 		"  \n"
 	);
 
@@ -661,10 +661,10 @@ MP4BoxArg m4b_imp_args[] =
  	MP4BOX_ARG("cat", "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`, eg `-cat url1+url2`.  \nNote: This aligns initial timestamp of the file to be concatenated", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catx", "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catpl", "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).  \nNote: Each listed file is concatenated as if called with -cat", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
- 	MP4BOX_ARG("unalign-cat", "do not attempt to align timestamps of samples inbetween tracks", GF_ARG_BOOL, 0, &align_cat, 0, ARG_BOOL_REV),
+ 	MP4BOX_ARG("unalign-cat", "do not attempt to align timestamps of samples in-between tracks", GF_ARG_BOOL, 0, &align_cat, 0, ARG_BOOL_REV),
  	MP4BOX_ARG("force-cat", "skip media configuration check when concatenating file.  \nWarning: THIS MAY BREAK THE CONCATENATED TRACK(S)", GF_ARG_BOOL, 0, &force_cat, 0, 0),
  	MP4BOX_ARG("keep-sys", "keep all MPEG-4 Systems info when using [-add]() and [-cat]() (only used when adding IsoMedia files)", GF_ARG_BOOL, 0, &keep_sys_tracks, 0, 0),
- 	MP4BOX_ARG("dref", "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developping content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  \nNote: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_USE_DATAREF, ARG_BIT_MASK),
+ 	MP4BOX_ARG("dref", "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  \nNote: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_USE_DATAREF, ARG_BIT_MASK),
  	MP4BOX_ARG_ALT("no-drop", "nodrop", "force constant FPS when importing AVI video", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_NO_FRAME_DROP, ARG_BIT_MASK),
  	MP4BOX_ARG("packed", "force packed bitstream when importing raw MPEG-4 part 2 Advanced Simple Profile", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_FORCE_PACKED, ARG_BIT_MASK),
  	MP4BOX_ARG("sbr", "backward compatible signaling of AAC-SBR", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_SBR_IMPLICIT, ARG_BIT_MASK),
@@ -686,7 +686,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("start", NULL, "`C` target start time in source media, may not be supported depending on the source", NULL, NULL, GF_ARG_DOUBLE, 0),
 	GF_DEF_ARG("lang", NULL, "`S` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay in ms or as fractionnal seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay in ms or as fractional seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("par", NULL, "`S` set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("clap", NULL, "`S` set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mx", NULL, "`S` set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
@@ -738,13 +738,13 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("forcesync", NULL, "force non IDR samples with I slices (OpenGOP or GDR) to be marked as sync points\n"
 		"Warning: RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("xps_inband", NULL, "`XC` set xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("xps_inbandx", NULL, "`XC` same as xps_inband and also keep first xPS in sample desciption", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("xps_inbandx", NULL, "`XC` same as xps_inband and also keep first xPS in sample description", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("au_delim", NULL, "keep AU delimiter NAL units in the imported file", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("max_lid", NULL, "set HEVC max layer ID to be imported to `N` (by default imports all layers)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("max_tid", NULL, "set HEVC max temporal ID to be imported to `N` (by default imports all temporal sublayers)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("tiles", NULL, "`S` add HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("split_tiles", NULL, "`DS` split HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("negctts", NULL, "`S` use negative CTS-DTS offsets (ISO4 brand). Use `negctts=no` to force using postive offset on existing track", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("negctts", NULL, "`S` use negative CTS-DTS offsets (ISO4 brand). Use `negctts=no` to force using positive offset on existing track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("chap", NULL, "`S` specify the track is a chapter track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("chapter", NULL, "`S` add a single chapter (old nero format) with given name lasting the entire file", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("chapfile", NULL, "`S` add a chapter file (old nero format)", NULL, NULL, GF_ARG_STRING, 0),
@@ -758,7 +758,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("fmt", NULL, "override format detection with given format - disable data probing and force `ext` option on source", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("profile", NULL, "`S` override AVC profile. Integer value, or `high444`, `high`, `extended`, `main`, `baseline`", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("level", NULL, "`S` override AVC level, if value < 6, interpreted as decimal expression", NULL, NULL, GF_ARG_INT, 0),
-	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibity flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibility flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
@@ -794,12 +794,12 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("colorprim", NULL, "`S` force the colour primaries in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colortfc", NULL, "`S` force transfer characteristics in VUI for AVC|H264 and HEVC (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("colormx", NULL, "`S` force the matrix coefficients in VUI for the AVC|H264 and HEVC content (int or string, cf `-h cicp`)", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tc", NULL, "`S` inject a single QT timecode. Value is formated as:\n"
+	GF_DEF_ARG("tc", NULL, "`S` inject a single QT timecode. Value is formatted as:\n"
 		"  - [d]FPS[/FPS_den],h,m,s,f[,framespertick]: optional drop flag, framerate (integer or fractional), hours, minutes, seconds and frame number\n"
 		"  - : `d` is an optional flag used to indicate that the counter is in drop-frame format\n"
 		"  - : the `framespertick` is optional and defaults to round(framerate); it indicates the number of frames per counter tick", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("edits", NULL, "`S` override edit list, same syntax as [-edits]()", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("lastsampdur", NULL, "`S` set duration of the last sample. Value is formated as:\n"
+	GF_DEF_ARG("lastsampdur", NULL, "`S` set duration of the last sample. Value is formatted as:\n"
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
 		"  - N/D: indicate the duration as fractional second", NULL, NULL, GF_ARG_STRING, 0),
@@ -840,7 +840,7 @@ void PrintImportUsage()
 		"  \n"
 		"Source URL can be any URL supported by GPAC, not limited to local files.\n"
 		"  \n"
-		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likelly not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
+		"Note: When importing SRT or SUB files, MP4Box will choose default layout options to make the subtitle appear at the bottom of the video. You SHOULD NOT import such files before any video track is added to the destination file, otherwise the results will likely not be useful (default SRT/SUB importing uses default serif font, fontSize 18 and display size 400x60). For more details, check [TTXT doc](Subtitling-with-GPAC).\n"
 		"  \n"
 		"When importing several tracks/sources in one pass, all options will be applied if relevant to each source. These options are set for all imported streams. If you need to specify these options per stream, set per-file options using the syntax `-add stream[:opt1:...:optN]`.\n"
 		"  \n"
@@ -909,17 +909,17 @@ MP4BoxArg m4b_senc_args[] =
  	MP4BOX_ARG("def", "encode DEF names in BIFS", GF_ARG_BOOL, 0, &smenc_opts.flags, GF_SM_ENCODE_USE_NAMES, ARG_BIT_MASK),
  	MP4BOX_ARG("sync", "force BIFS sync sample generation every given time in ms (cannot be used with [-shadow]() or [-carousel]() )", GF_ARG_INT, 0, parse_senc_param, 0, ARG_IS_FUN),
  	MP4BOX_ARG("shadow", "force BIFS sync shadow sample generation every given time in ms (cannot be used with [-sync]() or [-carousel]() )", GF_ARG_INT, 0, parse_senc_param, 1, ARG_IS_FUN),
- 	MP4BOX_ARG("carousel", "use bifs carousel (cannot be used with [-sync]() or [-shadow]() )", GF_ARG_INT, 0, parse_senc_param, 2, ARG_IS_FUN),
+ 	MP4BOX_ARG("carousel", "use BIFS carousel (cannot be used with [-sync]() or [-shadow]() )", GF_ARG_INT, 0, parse_senc_param, 2, ARG_IS_FUN),
 
  	MP4BOX_ARG("sclog", "generate scene codec log file if available", GF_ARG_BOOL, 0, &do_scene_log, 0, 0),
  	MP4BOX_ARG("ms", "import tracks from the given file", GF_ARG_STRING, 0, &mediaSource, 0, 0),
  	MP4BOX_ARG("ctx-in", "specify initial context (MP4/BT/XMT) file for chunk processing. Input file must be a commands-only file", GF_ARG_STRING, 0, parse_senc_param, 5, ARG_IS_FUN),
  	MP4BOX_ARG("ctx-out", "specify storage of updated context (MP4/BT/XMT) file for chunk processing, optional", GF_ARG_STRING, 0, &output_ctx, 0, 0),
- 	MP4BOX_ARG("resolution", "resolution factor (-8 to 7, default 0) for LASeR encoding, and all coords are multiplied by `2^res` before truncation (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.resolution, 0, 0),
+ 	MP4BOX_ARG("resolution", "resolution factor (-8 to 7, default 0) for LASeR encoding, and all coordinates are multiplied by `2^res` before truncation (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.resolution, 0, 0),
  	MP4BOX_ARG("coord-bits", "number of bits used for encoding truncated coordinates (0 to 31, default 12) (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.coord_bits, 0, 0),
  	MP4BOX_ARG("scale-bits", "extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.scale_bits, 0, 0),
- 	MP4BOX_ARG("auto-quant", "resolution is given as if using -resolution but coord-bits and scale-bits are infered (LASeR encoding)", GF_ARG_INT, 0, parse_senc_param, 3, ARG_IS_FUN),
- 	MP4BOX_ARG("global-quant", "resolution is given as if using -resolution but the res is inferred (BIFS encoding)", GF_ARG_INT, 0, parse_senc_param, 4, ARG_IS_FUN),
+ 	MP4BOX_ARG("auto-quant", "resolution is given as if using [-resolution]() but coord-bits and scale-bits are infered (LASeR encoding)", GF_ARG_INT, 0, parse_senc_param, 3, ARG_IS_FUN),
+ 	MP4BOX_ARG("global-quant", "resolution is given as if using [-resolution]() but the res is inferred (BIFS encoding)", GF_ARG_INT, 0, parse_senc_param, 4, ARG_IS_FUN),
  	{0}
 };
 
@@ -1072,7 +1072,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("drtp", "dump rtp hint samples structure to XML output", GF_ARG_BOOL, 0, &dump_rtp, 0, 0),
  	MP4BOX_ARG("dts", "print sample timing, size and position in file to text output", GF_ARG_BOOL, 0, parse_dump_ts, 0, ARG_IS_FUN),
  	MP4BOX_ARG("dtsx", "same as [-dts]() but does not print offset", GF_ARG_BOOL, 0, &dump_timestamps, 2, 0),
- 	MP4BOX_ARG("dtsc", "same as [-dts]() but analyse each sample for duplicated dts/cts (__slow !__)", GF_ARG_BOOL, 0, &dump_timestamps, 3, 0),
+ 	MP4BOX_ARG("dtsc", "same as [-dts]() but analyses each sample for duplicated dts/cts (__slow !__)", GF_ARG_BOOL, 0, &dump_timestamps, 3, 0),
  	MP4BOX_ARG("dtsxc", "same as [-dtsc]() but does not print offset (__slow !__)", GF_ARG_BOOL, 0, &dump_timestamps, 4, 0),
  	MP4BOX_ARG("dnal", "print NAL sample info of given track", GF_ARG_INT, 0, parse_dnal, 0, ARG_IS_FUN),
  	MP4BOX_ARG("dnalc", "print NAL sample info of given track, adding CRC for each nal", GF_ARG_INT, 0, parse_dnal, 1, ARG_IS_FUN),
@@ -1089,7 +1089,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("dump-chap", "extract chapter file as TTXT format", GF_ARG_BOOL, 0, &dump_chap, 1, 0),
  	MP4BOX_ARG("dump-chap-ogg", "extract chapter file as OGG format", GF_ARG_BOOL, 0, &dump_chap, 2, 0),
  	MP4BOX_ARG("dump-chap-zoom", "extract chapter file as zoom format", GF_ARG_BOOL, 0, &dump_chap, 3, 0),
- 	MP4BOX_ARG_S("dump-udta", "[tkID:]4cc", "extract udta for the given 4CC. If `tkID` is given, dumps from UDTA of the given track ID, otherwise moov is used", 0, parse_dump_udta, 0, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("dump-udta", "[tkID:]4cc", "extract user data for the given 4CC. If `tkID` is given, dumps from UDTA of the given track ID, otherwise moov is used", 0, parse_dump_udta, 0, ARG_IS_FUN),
  	MP4BOX_ARG("mergevtt", "merge vtt cues while dumping", GF_ARG_BOOL, 0, &merge_vtt_cues, 0, 0),
  	MP4BOX_ARG("ttxt", "convert input subtitle to GPAC TTXT format if no parameter. Otherwise, dump given text track to GPAC TTXT format", GF_ARG_INT, 0, parse_ttxt, 0, ARG_IS_FUN),
  	MP4BOX_ARG("srt", "convert input subtitle to SRT format if no parameter. Otherwise, dump given text track to SRT format", GF_ARG_INT, 0, parse_ttxt, 1, ARG_IS_FUN),
@@ -1097,14 +1097,14 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("stats", "generate node/field statistics per Access Unit", GF_ARG_BOOL, 0, &stat_level, 2, 0),
  	MP4BOX_ARG("statx", "generate node/field statistics for scene after each AU", GF_ARG_BOOL, 0, &stat_level, 3, 0),
  	MP4BOX_ARG("hash", "generate SHA-1 Hash of the input file", GF_ARG_BOOL, 0, &do_hash, 0, 0),
- 	MP4BOX_ARG("comp", "replace with compressed version all top level box types given as parameter, formated as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", GF_ARG_STRING, 0, parse_comp_box, 0, ARG_IS_FUN),
- 	MP4BOX_ARG("topcount", "print to stdout the number of top-level boxes matching box types given as parameter, formated as `4cc_1,4cc_2N`", GF_ARG_STRING, 0, parse_comp_box, 2, ARG_IS_FUN),
- 	MP4BOX_ARG("topsize", "print to stdout the number of bytes of top-level boxes matching types given as parameter, formated as `4cc_1,4cc_2N` or `all` for all boxes", GF_ARG_STRING, 0, parse_comp_box, 1, ARG_IS_FUN),
+ 	MP4BOX_ARG("comp", "replace with compressed version all top level box types given as parameter, formatted as `orig_4cc_1=comp_4cc_1[,orig_4cc_2=comp_4cc_2]`", GF_ARG_STRING, 0, parse_comp_box, 0, ARG_IS_FUN),
+ 	MP4BOX_ARG("topcount", "print to stdout the number of top-level boxes matching box types given as parameter, formatted as `4cc_1,4cc_2N`", GF_ARG_STRING, 0, parse_comp_box, 2, ARG_IS_FUN),
+ 	MP4BOX_ARG("topsize", "print to stdout the number of bytes of top-level boxes matching types given as parameter, formatted as `4cc_1,4cc_2N` or `all` for all boxes", GF_ARG_STRING, 0, parse_comp_box, 1, ARG_IS_FUN),
  	MP4BOX_ARG("bin", "convert input XML file using NHML bitstream syntax to binary", GF_ARG_BOOL, 0, &do_bin_xml, 0, 0),
  	MP4BOX_ARG("mpd-rip", "fetch MPD and segment to disk", GF_ARG_BOOL, 0, &do_mpd_rip, 0, 0),
  	MP4BOX_ARG_S("udp-write", "IP[:port]", "write input name to UDP (default port 2345)", GF_FS_ARG_HINT_EXPERT, &udp_dest, 0, 0),
  	MP4BOX_ARG("raw-cat", "raw concatenation of given file with input file", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &raw_cat, 0, 0),
- 	MP4BOX_ARG("wget", "fetch ressource from http(s) URL", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &do_wget, 0, 0),
+ 	MP4BOX_ARG("wget", "fetch resource from http(s) URL", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &do_wget, 0, 0),
  	MP4BOX_ARG("dm2ts", "dump timing of an input MPEG-2 TS stream sample timing", GF_ARG_BOOL, 0, &dump_m2ts, 0, 0),
  	{0}
 };
@@ -1163,7 +1163,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-image-grid", "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
-		"- image-grid-size=rxc: set the number of rows and colums of the grid\n"
+		"- image-grid-size=rxc: set the number of rows and columns of the grid\n"
 	    "- any other options from [-add-image]() can be used\n", GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_GRID, ARG_IS_FUN),
 	MP4BOX_ARG_S_ALT("rem-item", "rem-image", "item_ID[:tk=tkID]", "remove resource from meta", 0, parse_meta_args, META_ACTION_REM_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG_S("set-primary", "item_ID[:tk=tkID]", "set item as primary for meta", 0, parse_meta_args, META_ACTION_SET_PRIMARY_ITEM, ARG_IS_FUN),
@@ -1182,7 +1182,7 @@ void PrintMetaUsage()
 	gf_sys_format_help(helpout, help_flags, "# Meta and HEIF Options\n"
 	"IsoMedia files can be used as generic meta-data containers, for examples storing XML information and sample images for a movie. The resulting file may not always contain a movie as is the case with some HEIF files or MPEG-21 files.\n"
 	"  \n"
-	"These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the moovie or track level for a regular movie."
+	"These information can be stored at the file root level, as is the case for HEIF/IFF and MPEG-21 file formats, or at the movie or track level for a regular movie."
 	"  \n  \n");
 	while (m4b_meta_args[i].name) {
 		GF_GPACArg *arg = (GF_GPACArg *) &m4b_meta_args[i];
@@ -1281,11 +1281,11 @@ void PrintTags()
 	"Tags are specified as a colon-separated list `tag_name=tag_value[:tag2=val2]`\n"
 	"Setting a tag with no value or value `NULL` removes the tag.\n"
 	"Special tag value `clear` (or `reset`) removes all tags.\n"
-	"Unsupported tags can be added using their four characer code as a tag name, and string value will be assumed.\n"
+	"Unsupported tags can be added using their four character code as a tag name, and string value will be assumed.\n"
 	"  \n"
 	"Tags can also be loaded from a text file using `-itags filename`. The file must be in UTF8 with:\n"
 	"- lines starting with `tag_name=value` specify the start of a tag\n"
-	"- other lines specify the remainer of the last declared tag\n"
+	"- other lines specify the remainder of the last declared tag\n"
 	"  \n"
 	"If tag name starts with `WM/`, the tag is added to `Xtra` box (WMA tag, string only).\n"
 	"  \n"
@@ -1359,7 +1359,7 @@ MP4BoxArg m4b_usage_args[] =
 		"- dash: DASH segmenter help\n"
 		"- split: split options help\n"
 		"- import: import options help\n"
-		"- encode: encode options help\n"
+		"- encode: scene descrription encoding options help\n"
 		"- meta: meta (HEIF, MPEG-21) handling options help\n"
 		"- extract: extraction options help\n"
 		"- dump: dump options help\n"

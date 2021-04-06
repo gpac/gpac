@@ -56,7 +56,7 @@ This section documents the API between the compositor of GPAC and the decoding e
   opaque handler for all natural media objects (audio, video, image) so that compositor and systems engine
 are not too tied up.
 	NOTE: the media object location relies on the node parent graph (this is to deal with namespaces in OD framework)
-therefore it is the task of the media management app to setup clear links between the scene graph and its ressources
+therefore it is the task of the media management app to setup clear links between the scene graph and its resources
 (but this is not mandatory, cf URLs in VRML )
 */
 typedef struct _mediaobj GF_MediaObject;
@@ -269,7 +269,7 @@ typedef enum
 {
 	/*used by animation stream to remove TEXT from display upon delete and URL change*/
 	GF_MO_DISPLAY_REMOVE = (1<<1),
-	/*used when resyncing a stream (droping late frames)*/
+	/*used when resyncing a stream (dropping late frames)*/
 	GF_MO_IN_RESYNC = (1<<2),
 } GF_MOUserFlags;
 /*! sets flags on a media object

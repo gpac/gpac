@@ -484,7 +484,7 @@ typedef enum
 		\brief OGG DecoderConfig
 
 	 The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
-	  and is formated as follows:\n
+	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
 			bit(16) packet_size;

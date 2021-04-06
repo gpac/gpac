@@ -1024,7 +1024,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 \param segment_list the segment list to delete*/
 void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
-/*! deletes a list content and optionaly destructs the list
+/*! deletes a list content and optionally destructs the list
 \param list the target list
 \param __destructor the destructor function to use to destroy list items
 \param reset_only  if GF_TRUE, does not destroy the target list
@@ -1186,7 +1186,7 @@ typedef struct
 \param stream_id the ID of the stream for which we load cues (typically, TrackID or GF_PROP_PID_ID)
 \param cues_timescale set to the timescale used in the cues document
 \param use_edit_list set to GF_TRUE if the cts values of cues have edit list applied (i.e. are ISOBMFF presentation times)
-\param ts_offset set to the timestamp offset to substract from DTS/CTS values
+\param ts_offset set to the timestamp offset to subtract from DTS/CTS values
 \param out_cues set to a newly allocated list of cues, to free by the caller
 \param nb_cues set to the number of cues parsed
 \return error if any

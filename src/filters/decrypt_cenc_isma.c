@@ -948,7 +948,7 @@ static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 			return GF_IO_ERR;
 		}
 	} else {
-		//always restore IV at begining of sample regardless of the mode (const IV or IV CBC or CTR)
+		//always restore IV at beginning of sample regardless of the mode (const IV or IV CBC or CTR)
 		if (!cstr->is_cbc) {
 			if (!iv_size)
 				iv_size = const_iv_size;

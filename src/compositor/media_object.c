@@ -998,7 +998,7 @@ u32 gf_mo_get_od_id(MFURL *url)
 				j++;
 			}
 			j = sscanf(s_url, "%u", &tmpid);
-			/*be carefull, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
+			/*be careful, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
 			if (j==1) {
 				char szURL[20];
 				sprintf(szURL, "%u", tmpid);

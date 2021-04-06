@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
- *  This file is part of GPAC / tile spliting filter
+ *  This file is part of GPAC / tile splitting filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -566,7 +566,7 @@ static const GF_FilterArgs TileSplitArgs[] =
 GF_FilterRegister TileSplitRegister = {
 	.name = "tilesplit",
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
-	GF_FS_SET_DESCRIPTION("HEVC tile bitstream spliter")
+	GF_FS_SET_DESCRIPTION("HEVC tile bitstream splitter")
 	GF_FS_SET_HELP("This filter splits an HEVC tiled stream into tiled HEVC streams (`hvt1` or `hvt2` in isobmff)."
 	"\n"
 	"The filter will move to passthrough mode if the bitstream is not tiled.\n"

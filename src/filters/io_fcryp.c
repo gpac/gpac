@@ -311,7 +311,7 @@ static const GF_FilterCapability CryptFileCaps[] =
 GF_FilterRegister CryptFinRegister = {
 	.name = "cryptin",
 	GF_FS_SET_DESCRIPTION("CryptFile input")
-	GF_FS_SET_HELP("This filter dispatch raw blocks from crypted files with AES 128 CBC in PKCS7 to clear input files\n"
+	GF_FS_SET_HELP("This filter dispatch raw blocks from encrypted files with AES 128 CBC in PKCS7 to clear input files\n"
 	"\n"
 	"The filter accepts URL with scheme `gcryp://URL`, where `URL` is the URL to decrypt.\n"
 	"\n"
@@ -581,7 +581,7 @@ static const GF_FilterArgs CryptFoutArgs[] =
 GF_FilterRegister CryptFoutRegister = {
 	.name = "cryptout",
 	GF_FS_SET_DESCRIPTION("CryptFile output")
-	GF_FS_SET_HELP("This filter dispatch raw blocks from clear input files to crypted files with AES 128 CBC in PKCS7\n"
+	GF_FS_SET_HELP("This filter dispatch raw blocks from clear input files to encrypted files with AES 128 CBC in PKCS7\n"
 	"\n"
 	"The filter accepts URL with scheme `gcryp://URL`, where `URL` is the URL to encrypt.")
 	.private_size = sizeof(GF_CryptFileCtx),

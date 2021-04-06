@@ -404,7 +404,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
-	2- nodes refered to in commands of conditionals children of this node (MPEG-4 is mute about that)
+	2- nodes referred to in commands of conditionals children of this node (MPEG-4 is mute about that)
 	we recursively preocess from last declared DEF node to first one
 	*/
 restart:

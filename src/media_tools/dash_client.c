@@ -1179,7 +1179,7 @@ setup_route:
 
 		if (!group->dash->initial_time_shift_value) {
 			Double time_in_seg;
-			//by default playback starts at begining of segment
+			//by default playback starts at beginning of segment
 			group->start_playback_range = shift * group->segment_duration;
 
 			time_in_seg = (Double) current_time/1000.0;

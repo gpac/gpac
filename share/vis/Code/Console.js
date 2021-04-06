@@ -177,7 +177,7 @@ Console = (function()
 				self.UserInput.SetValue(command);
 			}
 
-			// Stops default behaviour of moving cursor to the beginning
+			// Stops default behavior of moving cursor to the beginning
 			DOM.Event.StopDefaultAction(evt);
 		}
 
@@ -191,7 +191,7 @@ Console = (function()
 				self.UserInput.SetValue(command);
 			}
 
-			// Stops default behaviour of moving cursor to the end
+			// Stops default behavior of moving cursor to the end
 			DOM.Event.StopDefaultAction(evt);
 		}
 	}

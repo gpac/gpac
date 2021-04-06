@@ -60,7 +60,7 @@ The filter management in GPAC is built using the following core objects:
  resolving filter graphs to handle PID connection(s)
  tracking data packets and properties exchanged on PIDs
  scheduling tasks between filters
- ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitely asked not to), but only by a single thread at any time.
+ ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitly asked not to), but only by a single thread at any time.
 - \ref __gf_filter_register static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
 	Each filter share the same API (register definition) regardless of its type: source/sink, mux/demux, encode/decode, raw media processing, encoded media processing, ...
 - \ref GF_Filter is an instance of the filter register. A filter implementation typical tasks are:
@@ -203,9 +203,9 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT
 } GF_FilterSchedulerType;
 
-/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various subfilters.
-The subfilters are usually not exposed as filters, only the parent one is.
-When set, all subfilters are exposed. This should only be set when inspecting filters help*/
+/*! Flag set to indicate meta filters should be loaded. A meta filter is a filter providing various sub-filters.
+The sub-filters are usually not exposed as filters, only the parent one is.
+When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
 #define GF_FS_FLAG_LOAD_META	1<<1
 /*! Flag set to disable the blocking mode of the filter session. The default is a semi-blocking mode, cf \ref gf_filter_pid_would_block*/
 #define GF_FS_FLAG_NO_BLOCKING	1<<2
@@ -225,7 +225,7 @@ When set, all subfilters are exposed. This should only be set when inspecting fi
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
 /*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
 #define GF_FS_FLAG_NO_RESERVOIR (1<<10)
-/*! Throws an error if any PID in the filter graph cannot be linked. The default behaviour is tu run the session even when some PIDs are not connected*/
+/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is tu run the session even when some PIDs are not connected*/
 #define GF_FS_FLAG_FULL_LINK (1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
@@ -248,7 +248,7 @@ GF_FilterSession *gf_fs_new_defaults(u32 flags);
 */
 void gf_fs_del(GF_FilterSession *session);
 /*! Loads a given filter by its register name. Filter are created using their register name, with options appended as a list of colon-separated Name=Value pairs.
-Value can be omitted for booleans, defaulting to true (eg :noedit). Using '!' before the name negates the result (eg :!moof_first).
+Value can be omitted for boolean, defaulting to true (eg :noedit). Using '!' before the name negates the result (eg :!moof_first).
 Name can be omitted for enumerations (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enum names in one filter.
 
 \param session filter session
@@ -573,7 +573,7 @@ typedef struct
 	u32 codecid;
 	/*! timestamp and timescale of last packet emitted on output pids*/
 	GF_Fraction64 last_ts_sent;
-	/*! timestamp and timescale of last packet droped on input pids*/
+	/*! timestamp and timescale of last packet dropped on input pids*/
 	GF_Fraction64 last_ts_drop;
 } GF_FilterStats;
 
@@ -1693,7 +1693,7 @@ const char *gf_filter_event_name(GF_FEventType type);
 The API for filters documents declaration of filters, their creation and functions available to interact with the filter session.
 The gf_filter_* functions shall only be called from within a given filter, this filter being the target of the function. This is not checked at runtime.
 
-Calling these functions on other filters will result in unpredictable behaviour, very likely crashes in multi-threading conditions.
+Calling these functions on other filters will result in unpredictable behavior, very likely crashes in multi-threading conditions.
 
 A filter is instanciated through a filter register. The register holds entry points to a filter, arguments of a filter (basically property values) and capabilities.
 
@@ -1909,7 +1909,7 @@ void gf_filter_set_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 Bool gf_filter_is_instance_of(GF_Filter *filter, const GF_FilterRegister *freg);
 
 
-/*! Aborts a filter, discarding and stoping all input PIDs and sending EOS on all output PIDs
+/*! Aborts a filter, discarding and stopping all input PIDs and sending EOS on all output PIDs
 \param filter filter to abort
 */
 void gf_filter_abort(GF_Filter *filter);
@@ -2164,13 +2164,13 @@ struct __gf_filter_register
 	*/
 	const char *author;
 	/*! help of the filter. Conventions:
-		- describe any non-obvious behaviour of the filter here
+		- describe any non-obvious behavior of the filter here
 		- markdown is allowed. Use '`' for code, "__" for italic, "**" for bold and  "~~" for strikethrough.
 		- mardown top-level sections shall use '#', second level '##', and so on
 		- mardown bullet lists shall use "- ", " - " etc...
 		- notes shall be identifed as a line starting with "Note: "
 		- warnings shall be identifed as a line starting with "Warning: "
-		- the sequence "[-" is reserved for option links. It is formated as:
+		- the sequence "[-" is reserved for option links. It is formatted as:
 		 		- "[-OPT]()": link to self page for option OPT
 		 		- "[-OPT](LINK)": link to other page for option OPT.
 			LINK can be:
@@ -2523,7 +2523,7 @@ GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events);
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
 This is a recursive call on both input and ouput chain.
 There is no guarantee that a queried property will still be valid at the setter side upon returning the call, the setter could have
-already reassigned it to NULL. To avoids random behaviour, the property returned is reference counted so that it is not
+already reassigned it to NULL. To avoids random behavior, the property returned is reference counted so that it is not
 destroyed by the setter while the caller uses it.
 
 Properties retrieved shall be released using \ref gf_filter_release_property. Failure to do so will cause memory leaks in the program.
@@ -2697,7 +2697,7 @@ GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter);
 /*! Count the number of source filters for the given filter matching the given protocol type.
 \param filter filter to inspect
 \param protocol_scheme scheme of the protocol to test, without ://, eg "http", "rtp", "https"
-\param expand_proto if set to GF_TRUE, any source protocol with a name begining like protocol_scheme will be matched. For example, use this with "http" to match all http and https schemes.
+\param expand_proto if set to GF_TRUE, any source protocol with a name beginning like protocol_scheme will be matched. For example, use this with "http" to match all http and https schemes.
 \param enum_pids user function to enumerate PIDs against which the source should be checked . If not set, all source filters will be checked.
 \param udta user data for the callback function
 \return the number of source filters matched by protocols
@@ -2851,7 +2851,7 @@ GF_FilterArgs *gf_filter_get_args(GF_Filter *filter);
 */
 const GF_FilterCapability *gf_filter_get_caps(GF_Filter *filter, u32 *nb_caps);
 
-/*! probes mime type of a given block of data (should be begining of file )
+/*! probes mime type of a given block of data (should be beginning of file )
 \param filter target filter
 \param data buffer to probe
 \param size size of buffer
@@ -3262,7 +3262,7 @@ GF_Err gf_filter_pid_merge_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_p
 /*! Gets a built-in property of the PID
 Warning: properties are only valid until the next configure_pid is called. Attempting to use a property
 value (either the pointer or one of the value) queried before the current configure_pid will result in
- unpredictable behaviour, potentially crashes.
+ unpredictable behavior, potentially crashes.
 \param PID the target filter PID
 \param prop_4cc the code of the built-in property to retrieve
 \return the property if found or NULL otherwise
@@ -3659,7 +3659,7 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *PID, const u8 *data, u32
 The packet has by default no DTS, no CTS, no duration framing set to full frame (start=end=1) and all other flags set to 0 (including SAP type).
 \param PID the target output PID
 \param data_offset offset in the source data block
-\param data_size the size of the data block to dispatch - if 0, the entire data of the source packet begining at offset is used
+\param data_size the size of the data block to dispatch - if 0, the entire data of the source packet beginning at offset is used
 \param source_packet the source packet this data belongs to (at least from the filter point of view).
 \return new packet or NULL if error
 */
@@ -4024,16 +4024,16 @@ GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *PID, u64 *clock_va
 */
 GF_FilterClockType gf_filter_pck_get_clock_type(GF_FilterPacket *pck);
 
-/*! Sets packet carrousel info
+/*! Sets packet carousel info
 \param pck target packet
-\param version_number carrousel version number associated with this data chunk
+\param version_number carousel version number associated with this data chunk
 \return error code if any
 */
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
 
-/*! Gets packet carrousel info
+/*! Gets packet carousel info
 \param pck target packet
-\return version_number carrousel version number associated with this data chunk
+\return version_number carousel version number associated with this data chunk
 */
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 

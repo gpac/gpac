@@ -275,7 +275,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 			gf_filter_pck_set_carousel_version(q_pck, 0);
 			cts = gf_filter_pck_get_cts(q_pck);
 			if (cts != GF_FILTER_NO_TS) {
-				//offset the cts of the ref frame to the number of B frames inbetween
+				//offset the cts of the ref frame to the number of B frames in-between
 				if (ctx->last_ref_cts == cts) {
 					cts += ctx->b_frames * ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
@@ -777,7 +777,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 		//parse headers
 
-		//we have a start code loaded, eg the data packet does not have a full start code at the begining
+		//we have a start code loaded, eg the data packet does not have a full start code at the beginning
 		if (sc_type_forced) {
 			gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);
 			sc_type = forced_sc_type;
@@ -999,7 +999,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ctx->input_is_au_start) {
 			ctx->input_is_au_start = GF_FALSE;
 		} else {
-			//we use the carrousel flag temporarly to indicate the cts must be recomputed
+			//we use the carousel flag temporarly to indicate the cts must be recomputed
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
 		}
 		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
@@ -1088,7 +1088,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		//if start is more than 4 (start-code size), we have garbage at the beginning, do not parse
 		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;
@@ -1120,7 +1120,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		//if start is more than 4 (start-code size), we have garbage at the beginning, do not parse
 		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;

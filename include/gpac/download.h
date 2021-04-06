@@ -165,7 +165,7 @@ typedef enum
 /*!session download flags*/
 typedef enum
 {
-	/*!session is not threaded, the user must explicitely fetch the data , either with the function gf_dm_sess_fetch_data
+	/*!session is not threaded, the user must explicitly fetch the data , either with the function gf_dm_sess_fetch_data
 	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
 	GF_NETIO_SESSION_NOT_THREADED = 1,
 	/*! session data is cached or not */
@@ -391,7 +391,7 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
 #ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
 Downloads a file over the network using a download manager
-\param dm The download manager to use, function will use all associated cache ressources
+\param dm The download manager to use, function will use all associated cache resources
 \param url The url to download
 \param filename The filename to download
 \param start_range start position of a byte range

@@ -74,7 +74,7 @@ typedef enum
 	/*! Segment reception, identified through a file template, service ID is in evt_param*/
 	GF_ROUTE_EVT_DYN_SEG,
     /*! fragment reception (part of a segment), identified through a file template, service ID is in evt_param
-     \note The data is always begining at the start of the object
+     \note The data is always beginning at the start of the object
     */
     GF_ROUTE_EVT_DYN_SEG_FRAG,
     /*! Object deletion (only for dynamic TOIs), used to notify the cache that an object is no longer available. File info only contains the filename being removed*/
@@ -182,7 +182,7 @@ GF_Err gf_route_set_reorder(GF_ROUTEDmx *routedmx, Bool force_reorder, u32 timeo
 
 /*! Allow segments to be sent while being downloaded.
  
-\note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the begining of the file in that case.
+\note Files with a static TOI association are always sent once completely received, other files using TOI templating may be sent while being received if enabled. The data sent is always contiguous data since the beginning of the file in that case.
  
 \param routedmx the ROUTE demultiplexer
 \param allow_progressive if TRUE,  fragments of segments will be sent during download

@@ -706,7 +706,7 @@ void gf_m2ts_target_ip(GF_M2TS_IP_Stream* ip_str, u8 * data)
 }
 
 
-/*generate RS code and fullfill the RS table of MPE_FEC_FRAME*/
+/*generate RS code and fill the RS table of MPE_FEC_FRAME*/
 void encode_fec(MPE_FEC_FRAME * mff)
 {
 #if 0

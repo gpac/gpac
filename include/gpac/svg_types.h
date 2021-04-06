@@ -894,7 +894,7 @@ enum {
 /*! DOM Event phase*/
 typedef u8 XMLEV_Phase;
 
-/*! SMIL sync behaviour types */
+/*! SMIL sync behavior types */
 enum {
 	SMIL_SYNCBEHAVIOR_INHERIT		= 0,
 	/*LASeR order*/
@@ -903,7 +903,7 @@ enum {
 	SMIL_SYNCBEHAVIOR_INDEPENDENT,
 	SMIL_SYNCBEHAVIOR_LOCKED,
 };
-/*! SMIL sync behaviour*/
+/*! SMIL sync behavior*/
 typedef u8 SMIL_SyncBehavior;
 
 /*! SMIL sync tolerance types */
@@ -977,7 +977,7 @@ enum {
 /*! SVG initial visibility*/
 typedef u8 SVG_InitialVisibility;
 
-/*! SVG transform behaviour types */
+/*! SVG transform behavior types */
 enum {
 	SVG_TRANSFORMBEHAVIOR_GEOMETRIC = 0,
 	SVG_TRANSFORMBEHAVIOR_PINNED,
@@ -985,7 +985,7 @@ enum {
 	SVG_TRANSFORMBEHAVIOR_PINNED270,
 	SVG_TRANSFORMBEHAVIOR_PINNED90,
 };
-/*! SVG transform behaviour*/
+/*! SVG transform behavior*/
 typedef u8 SVG_TransformBehavior;
 
 /*! SVG overlay types */
