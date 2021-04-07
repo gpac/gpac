@@ -65,6 +65,7 @@ typedef struct
 	u32 tmcd_flags;
 	u32 tmcd_fpt;
 
+	u32 csize;
 	Bool buffer_done, no_analysis;
 } PidCtx;
 
@@ -1941,8 +1942,10 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 	if (!dump) return;
 	assert(str);
 
-	if (pck)
+	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
+		pctx->csize += size;
+	}
 
 	while (str) {
 		char csep;
@@ -2050,6 +2053,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "crypt")) gf_fprintf(dump, "%d", gf_filter_pck_get_crypt_flags(pck) );
 		else if (!strcmp(key, "vers")) gf_fprintf(dump, "%d", gf_filter_pck_get_carousel_version(pck) );
 		else if (!strcmp(key, "size")) gf_fprintf(dump, "%d", size );
+		else if (!strcmp(key, "csize")) gf_fprintf(dump, "%d", pctx->csize);
 		else if (!strcmp(key, "crc")) gf_fprintf(dump, "0x%08X", gf_crc_32(data, size) );
 		else if (!strcmp(key, "lf")) gf_fprintf(dump, "\n" );
 		else if (!strcmp(key, "cr")) gf_fprintf(dump, "\r" );
@@ -3678,6 +3682,7 @@ const GF_FilterRegister InspectRegister = {
 				"- crypt: crypt flag\n"\
 				"- vers: carousel version number\n"\
 				"- size: size of packet\n"\
+				"- csize: cumulated size of packets\n"\
 				"- crc: 32 bit CRC of packet\n"\
 				"- lf: insert linefeed\n"\
 				"- cr: insert carriage return\n"\
