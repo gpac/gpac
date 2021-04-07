@@ -281,6 +281,7 @@ typedef struct _dash_stream
 	GF_Fraction dash_dur;
 
 	char *period_id;
+	char *period_continuity_id;
 	Double period_start;
 	Double period_dur;
 	//0: not done, 1: eos/abort, 2: subdur exceeded
@@ -648,7 +649,7 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 		ds->seg_done = GF_TRUE;
 		assert(base_ds->nb_comp_done < base_ds->nb_comp);
 		base_ds->nb_comp_done ++;
-		ds->first_cts_in_next_seg = ds->est_next_dts;;
+		ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;;
 
 		if (base_ds->nb_comp_done == base_ds->nb_comp) {
 			dasher_flush_segment(ctx, base_ds, GF_TRUE);
@@ -1024,6 +1025,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 		}
 		//check if input is ready
+		ds->dcd_not_ready = 0;
 		if (!dc_crc && !dc_enh_crc) {
 			switch (ds->codec_id) {
 			case GF_CODECID_AVC:
@@ -1248,6 +1250,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 	}
+
+	//stream representation was not yet setup but is scheduled for this period, do not trigger period switch
+	//this typically happens when we post-poned representation setup waiting for the decoder config
+	if (!ds->rep && (gf_list_find(ctx->current_period->streams, ds)>=0))
+		period_switch = GF_FALSE;
+
 	old_period_switch = period_switch;
 	period_switch = GF_FALSE;
 	CHECK_PROP_STR(GF_PROP_PID_PERIOD_ID, ds->period_id, GF_EOS)
@@ -1273,6 +1281,26 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		period_switch = old_period_switch;
 	}
 
+	if (ds->period_continuity_id) gf_free(ds->period_continuity_id);
+	ds->period_continuity_id = NULL;
+	p = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
+	if (p && p->value.string) {
+		if (!ctx->current_period->period->ID) {
+			if (p->value.string[0]) {
+				ctx->current_period->period->ID = p->value.string;
+			} else {
+				char szPName[50];
+				sprintf(szPName, "%s%d", (ctx->dmode==GF_DASH_STATIC) ? "P" : "DID", ctx->last_dyn_period_id + 1);
+				ctx->current_period->period->ID = gf_strdup(szPName);
+			}
+		}
+		if (ds->set->id<0) {
+			if (!ds->as_id)
+				ds->as_id = gf_list_find(ds->period->period->adaptation_sets, ds->set) + 1;
+			ds->set->id = ds->as_id;
+		}
+		ds->period_continuity_id = gf_strdup(ctx->current_period->period->ID);
+	}
 
 	ds->period_dur = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_DUR);
@@ -2099,7 +2127,14 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 	dasher_update_rep(ctx, ds);
 
 	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AS_ID);
-	ds->as_id = p ? p->value.uint : 0;
+	//do not reset as id in case of period continuity
+	if (p) {
+		if (ds->as_id != p->value.uint) {
+			if (ds->period_continuity_id) gf_free(ds->period_continuity_id);
+			ds->period_continuity_id = NULL;
+		}
+		ds->as_id = p->value.uint;
+	}
 
 	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_REP_ID);
 	if (p) {
@@ -4305,6 +4340,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 		RESET_PROP_STR(ds->hls_vp_name)
 		RESET_PROP_STR(ds->xlink)
 		RESET_PROP_STR(ds->period_id)
+		RESET_PROP_STR(ds->period_continuity_id)
 
 #undef RESET_PROP_STR
 		return;
@@ -4999,7 +5035,6 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx);
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	u32 i, count, nb_done;
-	u32 nb_periods = 0;
 	char *period_id;
 	const char *remote_xlink = NULL;
 	const char *period_xlink = NULL;
@@ -5076,10 +5111,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	if (period_start>=0)
 		period_idx = 0;
-
-	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		nb_periods = dasher_period_count(ctx->current_period->streams);
-	}
 
 	if (ctx->first_context_load) {
 		GF_Err e = dasher_reload_context(filter, ctx);
@@ -5250,7 +5281,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
 	u32 i, count, j, nb_sets;
-	u32 nb_periods = 0;
 	Bool has_muxed_bases=GF_FALSE;
 	const char *remote_xlink = NULL;
 	Bool has_as_id = GF_FALSE;
@@ -5338,7 +5368,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		// period resume (end of content replacement/splice/...): if using templates, check if period ID is used, if not force startNumber to resume
 		prop = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
-		if (ctx->tpl && prop && prop->value.string && ds->mpd_timescale) {
+		if (prop && prop->value.string && ctx->tpl && ds->mpd_timescale) {
 			char *template = ds->template;
 			if (!template) template = ctx->template;
 			if (
@@ -5355,7 +5385,6 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				ds->startNumber = (u32) (num+1);
 			}
 		}
-
 
 		ds->nb_comp = 1;
 
@@ -5486,6 +5515,11 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 				ds->set->hls_ll_frag_dur = ((Double)ctx->cdur.num) / ctx->cdur.den;
 		}
 		ds->set->udta = ds;
+		if (ds->period_continuity_id) {
+			GF_MPD_Descriptor *desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:period-continuity:2015", ds->period_continuity_id);
+			gf_list_add(ds->set->supplemental_properties, desc);
+		}
+
 
 		if (ctx->mha_compat && ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA))) {
 			const GF_PropertyValue *prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
@@ -5592,6 +5626,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	/*HbbTV 1.5 ISO live specific checks*/
 	if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		u32 nb_periods = dasher_period_count(ctx->current_period->streams);
 		if (nb_sets > 16) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to DASH AVC/264 live profile\n"));
 			ctx->profile = GF_DASH_PROFILE_AVC264_LIVE;
@@ -6143,6 +6178,25 @@ static char *dasher_strip_base(GF_DasherCtx *ctx, char *url)
 	return res;
 }
 
+static GFINLINE
+u64 dasher_translate_cts(GF_DashStream *ds, u64 cts)
+{
+	if (ds->cues) {
+		cts -= ds->first_cts;
+	} else if (cts < ds->first_dts) {
+		cts = 0;
+	} else if (ds->pts_minus_cts<0) {
+		if (cts - ds->first_dts >= -ds->pts_minus_cts) {
+			cts = cts - ds->first_dts + ds->pts_minus_cts;
+		} else {
+			cts = 0;
+		}
+	} else {
+		cts -= ds->first_cts;
+	}
+	return cts;
+}
+
 static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_FilterPacket *pck, GF_FilterPacket *in_pck)
 {
 	GF_DASH_SegmentContext *seg_state=NULL;
@@ -6453,8 +6507,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if ((ds->dash_dur.num>0) && (ABS(drift) * 2 * ds->dash_dur.den > ds->dash_dur.num)) {
 			u64 cts = 0;
 			if (pck) {
-				cts = gf_filter_pck_get_cts(pck);
-				cts -= ds->first_cts;
+				cts = dasher_translate_cts(ds, gf_filter_pck_get_cts(pck) );
 			}
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] First CTS "LLU" in segment %d drifting by %g (more than half a segment duration) from segment time, consider reencoding or using segment timeline\n", cts, ds->seg_number,  drift));
 		}
@@ -6703,7 +6756,7 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 
 			mpdtime = (Double) ds->last_dts;
-			mpdtime -= (Double) ds->first_cts;
+			mpdtime -= (Double) ds->first_dts;
 			if (mpdtime<0) mpdtime=0;
 			mpdtime /= ds->timescale;
 
@@ -6747,6 +6800,8 @@ static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard
 		gf_filter_pid_set_discard(ds->ipid, GF_TRUE);
 	}
 }
+
+
 
 static GF_Err dasher_process(GF_Filter *filter)
 {
@@ -7015,6 +7070,9 @@ assert(ds);
 						else if (ds->rep->segment_base)
 							ds->rep->segment_base->presentation_time_offset = pto;
 					}
+					//period continuity, skip priming in new periods
+					if (ds->period_continuity_id)
+						ds->pts_minus_cts = 0;
 				}
 
 				ds->first_cts = cts;
@@ -7035,7 +7093,8 @@ assert(ds);
 				e = dasher_send_manifest(filter, ctx, GF_TRUE);
 				if (e) return e;
 			}
-			cts -= ds->first_cts;
+
+			cts = dasher_translate_cts(ds, cts);
 			dts -= ds->first_dts;
 
 			if (ctx->sreg && ctx->mpd->gpac_mpd_time && (dts * 1000 > ctx->mpd->gpac_mpd_time * ds->timescale)) {
@@ -7225,7 +7284,8 @@ assert(ds);
 				}
 			}
 			//forcing max time
-			else if ((base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
+			else if (
+				(base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
 				|| (base_ds->clamped_dur && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur * ds->timescale))
 			) {
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
@@ -7257,7 +7317,7 @@ assert(ds);
 					if (ds->ts_offset) {
 						cts_next += ds->ts_offset;
 					}
-					cts_next -= ds->first_cts;
+					cts_next = dasher_translate_cts(ds, cts_next);
 
 					if ((idx==nb_pck) && ctx->last_seg_merge) {
 						u64 next_seg_dur = (cts_next + next_dur - cts);
@@ -7409,14 +7469,6 @@ assert(ds);
 				if (ncts>ds->est_first_cts_in_next_seg)
 					ds->est_first_cts_in_next_seg = ncts;
 
-				//we compute max period duration, move back to original timeline (dts-based) and remove any media skip part
-				ncts += ds->first_cts;
-				ncts -= ds->first_dts;
-				if ((s64) ncts + ds->pts_minus_cts < 0)
-					ncts = 0;
-				else
-					ncts = ncts + ds->pts_minus_cts;
-
 				ncts *= 1000;
 				ncts /= ds->timescale;
 				if (ncts>base_ds->max_period_dur)
@@ -7454,8 +7506,8 @@ assert(ds);
 			gf_filter_pck_merge_properties(pck, dst);
 			//we have ts offset, use computed cts and dts
 			if (ds->ts_offset) {
-				gf_filter_pck_set_cts(dst, cts + ds->first_cts);
-				gf_filter_pck_set_dts(dst, dts + ds->first_dts);
+				gf_filter_pck_set_cts(dst, gf_filter_pck_get_cts(pck) + ds->ts_offset);
+				gf_filter_pck_set_dts(dst, gf_filter_pck_get_dts(pck) + ds->ts_offset);
 			}
 
 			if (gf_sys_old_arch_compat() && ds->clamped_dur && ctx->loop && (cts + 2*o_dur >= ds->ts_offset + base_ds->clamped_dur * ds->timescale)
