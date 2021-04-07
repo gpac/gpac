@@ -3029,6 +3029,7 @@ sample_entry_done:
 	return GF_OK;
 }
 
+static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx);
 static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final);
 
 static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -3042,10 +3043,17 @@ static GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_free(tkw);
 		}
 		//removing last pid
-		if (ctx->opid && !gf_list_count(ctx->tracks) && ctx->file) {
-			//non-frag file, flush file
-			if (!ctx->init_movie_done) {
-				mp4_mux_done(filter, ctx, GF_TRUE);
+		if (ctx->opid && !gf_list_count(ctx->tracks)) {
+			if (ctx->file) {
+				//non-frag file, flush file
+				if (!ctx->init_movie_done) {
+					mp4_mux_done(filter, ctx, GF_TRUE);
+				}
+			} else {
+				while (ctx->flush_size) {
+					GF_Err e = mp4_mux_flush_fragmented(filter, ctx);
+					if (e) break;
+				}
 			}
 			//delete output pid (to flush destruction of filter chain)
 			gf_filter_pid_remove(ctx->opid);
@@ -4680,7 +4688,7 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(pck);
 	//we are not done flushing but we have no more input packets, signal we still need processing
-	gf_filter_post_process_task(filter);
+	gf_filter_ask_rt_reschedule(filter, 1);
 	return GF_OK;
 }
 
