@@ -2042,7 +2042,7 @@ GF_FilterRegister ReframerRegister = {
 		"- during the range [0,30]: property `Period` to `P1`\n"
 		"- during the range [30, end]: properties `Period` to `P2` and property `foo` to `bar`\n"
 		"\n"
-		"For uncompressed audio pids, input frames will be split to closest audio sample number.\n"
+		"For uncompressed audio pids, input frame will be split to closest audio sample number.\n"
 		"# Other split actions\n"
 		"The filter can perform splitting of the source using [-xs]() option.\n"
 		"The additional formats allowed for [-xs]() option are:\n"
