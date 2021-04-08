@@ -95,9 +95,9 @@ typedef struct
 	Bool is_playing;
 
 	u32 codec_id, stream_type;
-	u32 audio_bytes_per_samp;
+	u32 nb_ch, sample_rate, abps;
+	Bool audio_planar;
 	u32 audio_samples_to_keep;
-	u32 sample_rate, nb_ch;
 } RTStream;
 
 typedef struct
@@ -237,19 +237,19 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	st->codec_id = p ? p->value.uint : 0;
-	st->audio_bytes_per_samp = 0;
+	st->nb_ch = st->abps = st->sample_rate = 0;
+	st->audio_planar = GF_FALSE;
 	if ((st->codec_id==GF_CODECID_RAW) && (st->stream_type==GF_STREAM_AUDIO)) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
-		if (p) {
-			st->audio_bytes_per_samp = gf_audio_fmt_bit_depth(p->value.uint) / 8;
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
-			if (p) {
-				st->nb_ch = p->value.uint;
-				st->audio_bytes_per_samp *= p->value.uint;
-			}
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
-			st->sample_rate = p ? p->value.uint : st->timescale;
-		}
+		if (p) st->abps = gf_audio_fmt_bit_depth(p->value.uint) / 8;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+		if (p) st->nb_ch = p->value.uint;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+		st->sample_rate = p ? p->value.uint : st->timescale;
+		st->abps *= st->nb_ch;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+		if (p && (p->value.uint>GF_AUDIO_FMT_LAST_PACKED))
+			st->audio_planar = GF_TRUE;
 	}
 
 
@@ -587,6 +587,20 @@ void reframer_drop_packet(GF_ReframerCtx *ctx, RTStream *st, GF_FilterPacket *pc
 	}
 }
 
+void reframer_copy_raw_audio(RTStream *st, const u8 *src, u32 src_size, u32 offset, u8 *dst, u32 nb_samp)
+{
+	if (st->audio_planar) {
+		u32 i, bps, stride;
+		stride = src_size / st->nb_ch;
+		bps = st->abps / st->nb_ch;
+		for (i=0; i<st->nb_ch; i++) {
+			memcpy(dst + i*bps*nb_samp, src + i*stride + offset * bps, nb_samp * bps);
+		}
+	} else {
+		memcpy(dst, src + offset * st->abps, nb_samp * st->abps);
+	}
+}
+
 Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, GF_FilterPacket *pck, Bool pck_is_ref)
 {
 	Bool do_send = GF_FALSE;
@@ -688,17 +702,19 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			const u8 *data;
 			u32 pck_size;
 			data = gf_filter_pck_get_data(pck, &pck_size);
-			new_pck = gf_filter_pck_new_alloc(st->opid, st->audio_samples_to_keep * st->audio_bytes_per_samp, &output);
-			memcpy(output, data, st->audio_samples_to_keep * st->audio_bytes_per_samp);
+			new_pck = gf_filter_pck_new_alloc(st->opid, st->audio_samples_to_keep * st->abps, &output);
+			reframer_copy_raw_audio(st, data, pck_size, 0, output, st->audio_samples_to_keep);
 			dur = st->audio_samples_to_keep;
 		} else if (st->audio_samples_to_keep) {
 			u8 *output;
 			const u8 *data;
 			u32 pck_size;
 			data = gf_filter_pck_get_data(pck, &pck_size);
-			new_pck = gf_filter_pck_new_alloc(st->opid, pck_size - st->audio_samples_to_keep * st->audio_bytes_per_samp, &output);
-			memcpy(output, data + st->audio_samples_to_keep * st->audio_bytes_per_samp, pck_size - st->audio_samples_to_keep * st->audio_bytes_per_samp);
-			dur = pck_size/st->audio_bytes_per_samp - st->audio_samples_to_keep;
+			new_pck = gf_filter_pck_new_alloc(st->opid, pck_size - st->audio_samples_to_keep * st->abps, &output);
+
+			reframer_copy_raw_audio(st, data, pck_size, st->audio_samples_to_keep, output, pck_size - st->audio_samples_to_keep * st->abps);
+
+			dur = pck_size/st->abps - st->audio_samples_to_keep;
 
 			cts_offset = st->audio_samples_to_keep;
 			//if first range, add CTS offset to ts at range start
@@ -875,15 +891,23 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		//ts not after our range start
 		if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
 			before = GF_TRUE;
-			if (st->audio_bytes_per_samp && ( (s64) (ts+dur) * ctx->cur_start.den > ctx->cur_start.num * st->timescale)) {
+			if (st->abps && ( (s64) (ts+dur) * ctx->cur_start.den > ctx->cur_start.num * st->timescale)) {
 				*nb_audio_samples_to_keep = ctx->cur_start.num * st->timescale / ctx->cur_end.den - ts;
+				if (st->timescale != st->sample_rate) {
+					*nb_audio_samples_to_keep *= st->sample_rate;
+					*nb_audio_samples_to_keep /= st->timescale;
+				}
 				before = GF_FALSE;
 			}
 		}
 		//consider after if time+duration is STRICTLY greater than cut point
 		if ((ctx->range_type!=RANGE_OPEN) && ((s64) ((ts+dur) * ctx->cur_end.den) > ctx->cur_end.num * st->timescale)) {
-			if (st->audio_bytes_per_samp && ( (s64) ts * ctx->cur_end.den < ctx->cur_end.num * st->timescale)) {
+			if (st->abps && ( (s64) ts * ctx->cur_end.den < ctx->cur_end.num * st->timescale)) {
 				*nb_audio_samples_to_keep = ctx->cur_end.num * st->timescale / ctx->cur_end.den - ts;
+				if (st->timescale != st->sample_rate) {
+					*nb_audio_samples_to_keep *= st->sample_rate;
+					*nb_audio_samples_to_keep /= st->timescale;
+				}
 			}
 			after = GF_TRUE;
 		}
