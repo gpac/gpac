@@ -511,7 +511,7 @@ Input media files to dash can use the following modifiers
 .br
 * :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.
 .br
-* :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.
+* :dur=VALUE: process VALUE seconds (fraction) from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
 * :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option
 .br
@@ -521,9 +521,9 @@ Warning: This does not modify generated files location (see segment template).
 .br
 * :bandwidth=VALUE: set the representation's bandwidth to a given value
 .br
-* :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:pdur=Y
+* :pdur=VALUE: sets the duration of the associated period to VALUE seconds (fraction) (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:pdur=Y
 .br
-* :duration=VALUE: override target DASH segment duration for this input
+* :ddur=VALUE: override target DASH segment duration to VALUE seconds (fraction) for this input (alias for duration:VALUE)
 .br
 * :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used
 .br
@@ -2696,7 +2696,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev680-gd22b1c894-master
+build: 1.1.0-DEV-rev692-g7443d3bc5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

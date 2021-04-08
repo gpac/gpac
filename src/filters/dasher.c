@@ -282,8 +282,8 @@ typedef struct _dash_stream
 
 	char *period_id;
 	char *period_continuity_id;
-	Double period_start;
-	Double period_dur;
+	GF_Fraction64 period_start;
+	GF_Fraction64 period_dur;
 	//0: not done, 1: eos/abort, 2: subdur exceeded
 	u32 done;
 	Bool seg_done;
@@ -376,7 +376,7 @@ typedef struct _dash_stream
 	u32 split_dur_next;
 
 	u32 moof_sn_inc, moof_sn;
-	Double clamped_dur;
+	GF_Fraction64 clamped_dur;
 
 	u32 nb_segments_purged;
 	Double dur_purged;
@@ -1113,9 +1113,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			break;
 		}
 
-		ds->clamped_dur = 0;
+		ds->clamped_dur.num = 0;
+		ds->clamped_dur.den = 1;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAMP_DUR);
-		if (p) ds->clamped_dur = p->value.number;
+		if (p && p->value.lfrac.den) ds->clamped_dur = p->value.lfrac;
 
 		//HDR
 #if !defined(GPAC_DISABLE_AV_PARSERS)
@@ -1268,11 +1269,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_START);
 	if (p) {
-		if (ds->period_start != p->value.number) period_switch = GF_TRUE;
-		ds->period_start = p->value.number;
+		if (ds->period_start.num * p->value.lfrac.den != p->value.lfrac.num * ds->period_start.den) period_switch = GF_TRUE;
+		ds->period_start = p->value.lfrac;
 	} else {
-		if (ds->period_start) period_switch = GF_TRUE;
-		ds->period_start = 0;
+		if (ds->period_start.num) period_switch = GF_TRUE;
+		ds->period_start.num = 0;
+		ds->period_start.den = 1;
 	}
 
 	if (period_switch) {
@@ -1284,7 +1286,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (ds->period_continuity_id) gf_free(ds->period_continuity_id);
 	ds->period_continuity_id = NULL;
 	p = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
-	if (p && p->value.string) {
+	if (p && p->value.string && ctx->current_period->period) {
 		if (!ctx->current_period->period->ID) {
 			if (p->value.string[0]) {
 				ctx->current_period->period->ID = p->value.string;
@@ -1302,12 +1304,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->period_continuity_id = gf_strdup(ctx->current_period->period->ID);
 	}
 
-	ds->period_dur = 0;
+	ds->period_dur.num = 0;
+	ds->period_dur.den = 1;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PERIOD_DUR);
-	if (p) ds->period_dur = p->value.number;
+	if (p) ds->period_dur = p->value.lfrac;
 
 	if (ds->stream_type==GF_STREAM_FILE) {
-		if (!ds->xlink && !ds->period_start && !ds->period_dur) {
+		if (!ds->xlink && !ds->period_start.num && !ds->period_dur.num) {
 			ds->done = 1;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] null PID specified without any XLINK/start/duration, ignoring\n"));
 		} else if (ds->xlink) {
@@ -3734,7 +3737,7 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 		if (ds->muxed_base) continue;
 
 		if (ds->xlink && (ds->stream_type==GF_STREAM_FILE) ) {
-			pdur = (u32) (1000*ds->period_dur);
+			pdur = (u32) (1000*(s64)ds->period_dur.num / ds->period_dur.den);
 		} else {
 			u64 ds_dur = ds->max_period_dur;
 
@@ -3743,9 +3746,9 @@ static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_swit
 			if (ds->subdur_forced_use_period_dur)
 				ds_dur = ds->subdur_forced_use_period_dur;
 
-			if (ds->clamped_dur && !ctx->loop) {
-				u64 clamp_dur = (u64) (ds->clamped_dur * 1000);
-				if (clamp_dur<ds_dur) ds_dur = clamp_dur;
+			if (ds->clamped_dur.num && !ctx->loop) {
+				u64 clamp_dur = (u64) (ds->clamped_dur.num * 1000);
+				if (clamp_dur < ds->clamped_dur.den * ds_dur) ds_dur = clamp_dur / ds->clamped_dur.den;
 			}
 
 			if (ds->dur_purged && (ctx->mpd->type != GF_MPD_TYPE_DYNAMIC)) {
@@ -4624,12 +4627,12 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 					nb_done_in_period++;
 					continue;
 				}
-				if (ds->period_start != rep->dasher_ctx->period_start) {
+				if (ds->period_start.num * rep->dasher_ctx->period_start.den != rep->dasher_ctx->period_start.num * ds->period_start.den) {
 					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
 					continue;
 				}
-				if (ds->period_dur != rep->dasher_ctx->period_duration) {
+				if (ds->period_dur.num * rep->dasher_ctx->period_duration.den != rep->dasher_ctx->period_duration.num * ds->period_dur.den) {
 					rep->dasher_ctx->done = 1;
 					nb_done_in_period++;
 					continue;
@@ -4849,7 +4852,7 @@ static void dasher_udpate_periods_and_manifest(GF_Filter *filter, GF_DasherCtx *
 
 typedef struct
 {
-	Double period_start;
+	GF_Fraction64 period_start;
 	const char *period_id;
 } PeriodInfo;
 
@@ -4866,7 +4869,7 @@ static u32 dasher_period_count(GF_List *streams_in /*GF_DashStream*/)
 		nb_periods = gf_list_count(pinfos);
 		for (j=0; j < nb_periods; j++) {
 			info = gf_list_get(pinfos, j);
-			if (info->period_start == ds->period_start) {
+			if (info->period_start.num * ds->period_start.den == ds->period_start.num * info->period_start.den) {
 				same_period = GF_TRUE;
 				break;
 			}
@@ -5097,15 +5100,17 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	period_idx = 0;
 	period_start = -1;
 	for (i=0; i<count; i++) {
-		Double pstart;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 
 		if (ds->done) continue;
-		if (ds->period_start < 0) {
-			pstart = -ds->period_start;
-			if (!period_idx || (pstart<period_idx)) period_idx = pstart;
+		if (ds->period_start.num < 0) {
+			s64 pstart = -ds->period_start.num;
+			if (!period_idx || (pstart < period_idx)) period_idx = pstart;
 		} else {
-			if ((period_start<0) || (ds->period_start < period_start)) period_start = ds->period_start;
+			if ((period_start<0) || (ds->period_start.num < period_start * ds->period_start.den)) {
+				period_start = ds->period_start.num;
+				period_start /= ds->period_start.den;
+			}
 		}
 	}
 
@@ -5147,8 +5152,11 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			in_period = GF_FALSE;
 		}
 		if (in_period) {
-			if ((period_start>=0) && (ds->period_start != period_start)) in_period = GF_FALSE;
-			else if ((period_idx>0) && (-ds->period_start != period_idx)) in_period = GF_FALSE;
+			if ((period_start>=0) && (ds->period_start.num != period_start * ds->period_start.den))
+				in_period = GF_FALSE;
+			else if ((period_idx>0) && (-ds->period_start.num != period_idx))
+				in_period = GF_FALSE;
+
 			if (!in_period && (first_in_period == ds))
 				period_id = NULL;
 		}
@@ -5165,7 +5173,9 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
 			else ctx->is_empty_period = GF_TRUE;
-			remote_dur = (u64) (ds->period_dur * 1000);
+			remote_dur = 0;
+			if (ds->period_dur.den)
+				remote_dur = (u64) (ds->period_dur.num * 1000) / ds->period_dur.den;
 		} else if (!ctx->is_period_restore) {
 			if (ds->xlink)
 				period_xlink = ds->xlink;
@@ -5229,17 +5239,22 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		for (i=0; i<count; i++)	 {
 			GF_DashStream *ds = gf_list_get(ctx->next_period->streams, i);
 			if (ds->done) continue;
-			if (ds->period_start<period_start) continue;
-			if ((next_period_start<0) || (next_period_start>ds->period_start))
-				next_period_start = ds->period_start;
+			if (ds->period_start.num < period_start * ds->period_start.den) continue;
+			if ((next_period_start<0) || (next_period_start * ds->period_start.den > ds->period_start.num)) {
+				next_period_start = ds->period_start.num;
+				next_period_start /= ds->period_start.den;
+			}
 		}
 		//check current period dur
 		count = gf_list_count(ctx->current_period->streams);
 		for (i=0; i<count; i++)	 {
 			Double dur;
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-			if (!ds->period_dur) continue;
-			dur = period_start + ds->period_dur;
+			if (!ds->period_dur.den) continue;
+			dur = period_start;
+			if (ds->period_dur.den)
+				dur += ((Double) ds->period_dur.num)/ds->period_dur.num;
+			
 			if ((next_period_start<0) || (next_period_start>dur))
 				next_period_start = dur;
 		}
@@ -5286,12 +5301,13 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	Bool has_as_id = GF_FALSE;
 	Bool has_deps = GF_FALSE;
 	const GF_PropertyValue *prop;
-	Double min_dur, min_adur, max_adur;
+	GF_Fraction64 min_dur, min_adur, max_adur;
 	u32 srd_rep_idx;
 
 	ctx->dyn_rate = GF_FALSE;
 	ctx->use_cues = GF_FALSE;
-	min_dur = min_adur = max_adur = 0;
+	min_dur.num = min_adur.num = max_adur.num = 0;
+	min_dur.den = min_adur.den = max_adur.den = 1;
 	srd_rep_idx = 2; //2 for compat with old arch
 
 	count = gf_list_count(ctx->current_period->streams);
@@ -5317,19 +5333,20 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			ctx->use_cues = GF_TRUE;
 
 		if (ctx->loop) {
-			Double d=0;
 			prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DURATION);
 			if (prop && prop->value.lfrac.den) {
-				d = (Double) prop->value.lfrac.num;
-				d /= prop->value.lfrac.den;
-				if (ds->clamped_dur && (ds->clamped_dur<d))
+				GF_Fraction64 d;
+				d.num = prop->value.lfrac.num;
+				d.den = prop->value.lfrac.den;
+				if (ds->clamped_dur.num && (ds->clamped_dur.num * d.den < d.num * ds->clamped_dur.den)) {
 					d = ds->clamped_dur;
+				}
 
 				if (ds->stream_type == GF_STREAM_AUDIO) {
-					if (d > max_adur) max_adur = d;
-					if (!min_adur || (d < min_adur)) min_adur = d;
+					if (d.num * max_adur.den > max_adur.num * d.den) max_adur = d;
+					if (!min_adur.num || (d.num * min_adur.den < min_adur.num * d.den)) min_adur = d;
 				} else {
-					if (!min_dur || (d < min_dur)) min_dur = d;
+					if (!min_dur.num || (d.num * min_dur.den < min_dur.num * d.den)) min_dur = d;
 				}
 			}
 		}
@@ -5448,14 +5465,14 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 
-	if (ctx->loop && max_adur) {
-		if (max_adur != min_adur) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Audio streams in the period have different durations (min %lf, max %lf), may result in bad synchronization while looping\n", min_adur, max_adur));
+	if (ctx->loop && max_adur.num) {
+		if (max_adur.num * min_adur.den != min_adur.num * max_adur.den) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Audio streams in the period have different durations (min "LLU"/"LLD", max "LLU"/"LLD"), may result in bad synchronization while looping\n", min_adur.num, min_adur.den, max_adur.num, max_adur.den));
 		}
 		for (i=0; i<count; i++) {
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-			if (ds->duration.num  > max_adur * ds->duration.den) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration (%lf) in the period is less than duration (%lf), clamping will happen\n", ds->src_url , max_adur, ((Double)ds->duration.num)/ds->duration.den ));
+			if (ds->duration.num * max_adur.den > max_adur.num * ds->duration.den) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Input %s: max audio duration "LLU"/"LLD" in the period is less than duration "LLU"/"LLD", clamping will happen\n", ds->src_url, max_adur.num, max_adur.den, ds->duration.num, ds->duration.den ));
 			}
 			ds->clamped_dur = max_adur;
 		}
@@ -7286,7 +7303,7 @@ assert(ds);
 			//forcing max time
 			else if (
 				(base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
-				|| (base_ds->clamped_dur && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur * ds->timescale))
+				|| (base_ds->clamped_dur.num && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur.num * ds->timescale / base_ds->clamped_dur.den))
 			) {
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Inputs duration do not match, %s truncated to %g duration\n", ds->src_url, ((Double)base_ds->force_rep_end)/base_ds->timescale ));
@@ -7510,11 +7527,12 @@ assert(ds);
 				gf_filter_pck_set_dts(dst, gf_filter_pck_get_dts(pck) + ds->ts_offset);
 			}
 
-			if (gf_sys_old_arch_compat() && ds->clamped_dur && ctx->loop && (cts + 2*o_dur >= ds->ts_offset + base_ds->clamped_dur * ds->timescale)
+			if (gf_sys_old_arch_compat() && ds->clamped_dur.num && ctx->loop
+				&& (cts + 2*o_dur >= ds->ts_offset + base_ds->clamped_dur.num * ds->timescale / base_ds->clamped_dur.den)
 			) {
 				u32 _dur = dur;
 				/* simple round with (int)+.5 to avoid trucating .99999 to 0 */
-				dur = (u32)( ds->clamped_dur * ds->timescale - (dts - ds->ts_offset) + 0.5);
+				dur = (u32) (ds->clamped_dur.num * ds->timescale / ds->clamped_dur.den - (dts - ds->ts_offset) + 0.5);
 				//it may happen that the sample duration is 0 if the clamp duration is right after the sample DTS and timescale is not big enough to express it - force to 1
 				if (dur==0)
 					dur=1;

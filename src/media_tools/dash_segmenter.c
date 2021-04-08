@@ -846,7 +846,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	for (i=0; i<count; i++) {
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
-		if (di->periodID || di->period_duration || di->xlink) {
+		if (di->periodID || (di->period_duration.num && di->period_duration.den) || di->xlink) {
 			multi_period = GF_TRUE;
 		}
 		di->period_order=0;
@@ -887,15 +887,16 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		u32 j;
 		GF_Filter *src = NULL;
 		GF_Filter *rt = NULL;
-		const char *url = "null";
+		const char *url = NULL;
 		char *frag=NULL;
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
 
 		if (dasher->real_time) {
 			rt = gf_fs_load_filter(dasher->fsess, "reframer:rt=sync", NULL);
 		}
-		if (di->file_name && strlen(di->file_name)) url = di->file_name;
-		if (!stricmp(url, "null")) url = NULL;
+		if (di->file_name && strlen(di->file_name) && stricmp(di->file_name, "null") )
+			url = di->file_name;
+
 		if (url) {
 			frag = strrchr(di->file_name, '#');
 			if (frag) frag[0] = 0;
@@ -939,22 +940,24 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			sprintf(szArg, "#PStart=-%d", di->period_order);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->period_duration) {
-			if (!url) {
-				sprintf(szArg, "#PDur=%g", di->period_duration );
-				e |= gf_dynstrcat(&args, szArg, ":");
-			} else {
-				sprintf(szArg, "#DashDur=%g", di->period_duration );
-				e |= gf_dynstrcat(&args, szArg, ":");
-			}
-		}
 
-		if (di->dash_duration) {
-			sprintf(szArg, "#DashDur=%g", di->period_duration );
+		if (di->period_duration.num && di->period_duration.den) {
+			if (di->period_duration.den==1)
+				sprintf(szArg, "#PDur=%d", di->period_duration.num );
+			else
+				sprintf(szArg, "#PDur=%d/%u", di->period_duration.num, di->period_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
-		if (url && di->media_duration) {
-			sprintf(szArg, "#ClampDur=%g", di->media_duration );
+
+		if (di->dash_duration.num && di->dash_duration.den) {
+			if (di->dash_duration.den==1)
+				sprintf(szArg, "#DashDur=%d", di->dash_duration.num );
+			else
+				sprintf(szArg, "#DashDur=%d/%u", di->dash_duration.num, di->dash_duration.den);
+			e |= gf_dynstrcat(&args, szArg, ":");
+		}
+		if (url && di->media_duration.num && di->media_duration.den) {
+			sprintf(szArg, "#ClampDur="LLU"/"LLD"", di->media_duration.num, di->media_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 

@@ -2793,12 +2793,12 @@ ISOBMFF track header matrix
 ID of DASH period
 .br
 .TP
-.B PStart (PEST,dbl,D )
+.B PStart (PEST,lfrac,D )
 .br
 DASH Period start - cf dasher help
 .br
 .TP
-.B PDur (PEDU,dbl,D )
+.B PDur (PEDU,lfrac,D )
 .br
 DASH Period duration - cf dasher help
 .br
@@ -2825,7 +2825,7 @@ DASH mode to be used by muxer if any, set by dasher. 0 is no DASH, 1 is regular 
 .TP
 .B DashDur (DDUR,frac,D )
 .br
-DASH target segment duration in seconds to muxer if any, set by dasher
+DASH target segment duration in seconds
 .br
 .TP
 .B Role (ROLE,strl,D )
@@ -2873,7 +2873,7 @@ Start number to use for this pid - cf dasher help
 Remote period URL for DASH - cf dasher help
 .br
 .TP
-.B ClampDur (DCMD,dbl,D )
+.B ClampDur (DCMD,lfrac,D )
 .br
 Max media duration to process from pid in DASH mode
 .br
@@ -4029,7 +4029,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev680-gd22b1c894-master
+build: 1.1.0-DEV-rev692-g7443d3bc5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

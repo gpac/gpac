@@ -457,9 +457,9 @@ typedef struct
 	/*! ID of active period*/
 	char *period_id;
 	/*! start of active period*/
-	Double period_start;
+	GF_Fraction64 period_start;
 	/*! duration of active period*/
-	Double period_duration;
+	GF_Fraction64 period_duration;
 	/*! if GF_TRUE, representation is over*/
 	Bool done;
 	/*! niumber of last packet processed (to resume dashing)*/

@@ -603,7 +603,7 @@ typedef struct
 	/*! ID of the adaptation set, may be 0 (assigned by dasher)*/
 	u32 asID;
 	/*! forced media duration.*/
-	Double media_duration;
+	GF_Fraction64 media_duration;
 	/*! number of base URLs in the baseURL structure*/
 	u32 nb_baseURL;
 	/*! list of baseURL to be used for this representation*/
@@ -633,9 +633,9 @@ typedef struct
 	/*! forces bandwidth in bits per seconds of the source media. If 0, computed from file */
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
-	Double period_duration;
+	GF_Fraction period_duration;
 	/*! forced dash target duration for this rep*/
-	Double dash_duration;
+	GF_Fraction dash_duration;
 	/*! sets default start number for this representation. if not set, assigned automatically */
 	u32 startNumber; 	//TODO: start number, template
 	/*! overrides template for this input*/

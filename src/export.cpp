@@ -95,6 +95,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_enum_directory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_load_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dynstrcat) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_parse_lfrac) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_parse_frac) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gmtime) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )

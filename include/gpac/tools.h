@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -257,6 +257,25 @@ Dynamic concatenation of string with optional separator
 \return error code
  */
 GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
+
+
+/*!
+\brief fraction parsing
+
+Parse a 64 bit fraction from string
+\param str string to parse
+\return fraction
+ */
+GF_Fraction64 gf_parse_lfrac(char *str);
+
+/*!
+\brief fraction parsing
+
+Parse a 32 bit fraction from string
+\param str string to parse
+\return fraction
+ */
+GF_Fraction gf_parse_frac(char *str);
 
 /*! @} */
 
