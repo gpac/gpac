@@ -448,8 +448,8 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u32 pos;
-	u8 *data, *output;
-	u32 pck_size, prev_pck_size;
+	u8 *data=NULL, *output;
+	u32 pck_size=0, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
 
 	if (ctx->in_error)
@@ -475,9 +475,9 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		} else {
 			return GF_OK;
 		}
+	} else {
+		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	}
-
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale && pck) {
