@@ -1686,7 +1686,7 @@ void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescrip
 				seig_entry = gf_list_get(sgdesc->group_descriptions, sgdesc->default_description_index-1);
 			else
 				seig_entry = gf_list_get(sgdesc->group_descriptions, 0);
-			if (!seig_entry->key_info[0])
+			if (seig_entry && !seig_entry->key_info[0])
 				seig_entry = NULL;
 			break;
 		}
