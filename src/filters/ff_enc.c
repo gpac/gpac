@@ -851,8 +851,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		} else {
 			ctx->samples_in_audio_buffer = real_samples;
 			if (ctx->ts_shift && ctx->encoder->frame_size && (ctx->encoder->frame_size>ctx->ts_shift)) {
-				ctx->samples_in_audio_buffer += ctx->ts_shift;
-				if (ctx->samples_in_audio_buffer > ctx->encoder->frame_size)
+				ctx->samples_in_audio_buffer += (u32) ctx->ts_shift;
+				if (ctx->samples_in_audio_buffer > (u32) ctx->encoder->frame_size)
 					ctx->samples_in_audio_buffer = ctx->encoder->frame_size;
 			}
 		}

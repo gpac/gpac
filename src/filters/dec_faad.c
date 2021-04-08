@@ -366,7 +366,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 			odur /= ctx->timescale;
 		}
 		if (odur * ctx->info.channels < ctx->info.samples) {
-			ctx->info.samples = odur * ctx->info.channels;
+			ctx->info.samples = (unsigned long) (odur * ctx->info.channels);
 		}
 	}
 

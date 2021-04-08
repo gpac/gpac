@@ -1061,7 +1061,7 @@ GF_Err writegen_process(GF_Filter *filter)
 				u8 *odata;
 				const GF_PropertyValue *p;
 				dur = ctx->dur.num * timescale / ctx->dur.den;
-				dur -= dts + 1 - ctx->first_dts_plus_one;
+				dur -= (u32) (dts + 1 - ctx->first_dts_plus_one);
 
 				bpp = gf_audio_fmt_bit_depth(ctx->target_afmt);
 				p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NUM_CHANNELS);

@@ -6186,7 +6186,7 @@ u64 dasher_translate_cts(GF_DashStream *ds, u64 cts)
 	} else if (cts < ds->first_dts) {
 		cts = 0;
 	} else if (ds->pts_minus_cts<0) {
-		if (cts - ds->first_dts >= -ds->pts_minus_cts) {
+		if ((s64) (cts - ds->first_dts) >= -ds->pts_minus_cts) {
 			cts = cts - ds->first_dts + ds->pts_minus_cts;
 		} else {
 			cts = 0;

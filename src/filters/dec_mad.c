@@ -252,7 +252,7 @@ mad_resync:
 				num = 0;
 				ctx->delay += dur;
 			} else {
-				samples_to_trash = -ctx->delay;
+				samples_to_trash = (u32) -ctx->delay;
 			}
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
 		} else {

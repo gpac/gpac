@@ -871,7 +871,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 	return GF_TRUE;
 }
 
-static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u32 dur, u32 frame_idx, u64 *nb_audio_samples_to_keep)
+static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u32 dur, u32 frame_idx, u32 *nb_audio_samples_to_keep)
 {
 	if (ctx->start_frame_idx_plus_one) {
 		//frame not after our range start
@@ -891,23 +891,25 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		//ts not after our range start
 		if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
 			before = GF_TRUE;
-			if (st->abps && ( (s64) (ts+dur) * ctx->cur_start.den > ctx->cur_start.num * st->timescale)) {
-				*nb_audio_samples_to_keep = ctx->cur_start.num * st->timescale / ctx->cur_end.den - ts;
+			if (st->abps && ( (s64) (ts+dur) * (s64) ctx->cur_start.den > ctx->cur_start.num * (s64) st->timescale)) {
+				u64 nb_samp = ctx->cur_start.num * st->timescale / ctx->cur_end.den - ts;
 				if (st->timescale != st->sample_rate) {
-					*nb_audio_samples_to_keep *= st->sample_rate;
-					*nb_audio_samples_to_keep /= st->timescale;
+					nb_samp *= st->sample_rate;
+					nb_samp /= st->timescale;
 				}
+				*nb_audio_samples_to_keep = (u32) nb_samp;
 				before = GF_FALSE;
 			}
 		}
 		//consider after if time+duration is STRICTLY greater than cut point
 		if ((ctx->range_type!=RANGE_OPEN) && ((s64) ((ts+dur) * ctx->cur_end.den) > ctx->cur_end.num * st->timescale)) {
-			if (st->abps && ( (s64) ts * ctx->cur_end.den < ctx->cur_end.num * st->timescale)) {
-				*nb_audio_samples_to_keep = ctx->cur_end.num * st->timescale / ctx->cur_end.den - ts;
+			if (st->abps && ( (s64) ts * (s64) ctx->cur_end.den < ctx->cur_end.num * (s64) st->timescale)) {
+				u64 nb_samp = ctx->cur_end.num * st->timescale / ctx->cur_end.den - ts;
 				if (st->timescale != st->sample_rate) {
-					*nb_audio_samples_to_keep *= st->sample_rate;
-					*nb_audio_samples_to_keep /= st->timescale;
+					nb_samp *= st->sample_rate;
+					nb_samp /= st->timescale;
 				}
+				*nb_audio_samples_to_keep = (u32)nb_samp;
 			}
 			after = GF_TRUE;
 		}
@@ -1253,7 +1255,8 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		//fetch input packets
 		for (i=0; i<count; i++) {
-			u64 ts, nb_audio_samples_to_keep=0;
+			u64 ts;
+			u32 nb_audio_samples_to_keep = 0;
 			u32 pck_in_range, dur;
 			Bool is_sap;
 			Bool drop_input = GF_TRUE;
