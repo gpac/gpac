@@ -847,6 +847,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
 					u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
+					if (vosh_start<0) vosh_start = 0;
 					vosh_end = start - (u8 *)data + obj_size;
 					vosh_end -= vosh_start;
 					mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
@@ -1020,14 +1021,6 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		assert(remain>=size);
 		start += size;
 		remain -= (s32) size;
-
-
-		//don't demux too much of input, abort when we would block. This avoid dispatching
-		//a huge number of frames in a single call
-		if (!ctx->timescale && gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (u32) ((char *)start -  (char *)data);
-			return GF_OK;
-		}
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 
