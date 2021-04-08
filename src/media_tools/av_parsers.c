@@ -8209,7 +8209,7 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 		pps->state = 1;
 	}
 	pps->sps_id = gf_bs_read_ue_log(bs, "sps_id");
-	if ((pps->sps_id<0) || (pps->sps_id >= 16)) {
+	if (((s32)pps->sps_id<0) || (pps->sps_id >= 16)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong SPS ID %d in PPS\n", pps->sps_id));
 		pps->sps_id=0;
 		return -1;
@@ -9656,7 +9656,7 @@ static s32 gf_media_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 		pps->state = 1;
 	}
 	pps->sps_id = gf_bs_read_int_log(bs, 4, "sps_id");
-	if ((pps->sps_id<0) || (pps->sps_id >= 16)) {
+	if (((s32)pps->sps_id<0) || (pps->sps_id >= 16)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] wrong SPS ID %d in PPS\n", pps->sps_id));
 		pps->sps_id=0;
 		return -1;
@@ -9714,7 +9714,7 @@ static s32 gf_media_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 static
 s32 vvc_parse_picture_header(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 {
-	u32 pps_id;
+	s32 pps_id;
 
 	si->irap_or_gdr_pic = gf_bs_read_int_log(bs, 1, "irap_or_gdr_pic");
 	si->non_ref_pic = gf_bs_read_int_log(bs, 1, "non_ref_pic");

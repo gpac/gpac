@@ -5169,7 +5169,7 @@ static GF_Err do_itunes_tag()
 		Bool clear = GF_FALSE;
 		Bool is_wma = GF_FALSE;
 		u32 tlen, tagtype=0, itag = 0;
-		s32 tag_idx;
+		s32 tag_idx=-1;
 		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags);
 		while (sep) {
 			char *eq = strchr(sep+1, '=');

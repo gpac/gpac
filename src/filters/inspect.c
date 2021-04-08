@@ -2214,7 +2214,7 @@ static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flag
 {
 	u32 h, m, s, f, value;
 	Bool neg=GF_FALSE;
-	Bool parse_fmt = 1;
+	u32 parse_fmt = 1;
 	Bool is_drop = GF_FALSE;
 	GF_BitStream *loc_bs = NULL;
 
@@ -2255,7 +2255,7 @@ static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flag
 		else if ((m>=60) || (s>=60))
 			parse_fmt = 2;
 		else
-			parse_fmt = GF_FALSE;
+			parse_fmt = 0;
 	}
 
 	if (parse_fmt) {
