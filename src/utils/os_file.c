@@ -482,14 +482,15 @@ static void gf_register_file_handle(char *filename, FILE *ptr, Bool is_temp_file
 #include <gpac/thread.h>
 extern GF_Mutex *logs_mx;
 
-static void gf_unregister_file_handle(FILE *ptr)
+static Bool gf_unregister_file_handle(FILE *ptr)
 {
 	u32 i, count;
+	Bool res = GF_FALSE;
 	assert(gpac_file_handles);
 	gpac_file_handles--;
 
 	if (!gpac_open_files)
-		return;
+		return GF_FALSE;
 
 	gf_mx_p(logs_mx);
 	count = gf_list_count(gpac_open_files);
@@ -497,8 +498,15 @@ static void gf_unregister_file_handle(FILE *ptr)
 		GF_FileHandle *h = gf_list_get(gpac_open_files, i);
 		if (h->ptr != ptr) continue;
 
-		if (h->is_temp)
-			gf_file_delete(h->url);
+		if (h->is_temp) {
+			GF_Err e;
+			fclose(h->ptr);
+			e = gf_file_delete(h->url);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Failed to delete temp file %s: %s\n", h->url, gf_error_to_string(e)));
+			}
+			res = GF_TRUE;
+		}
 		gf_free(h->url);
 		gf_free(h);
 		gf_list_rem(gpac_open_files, i);
@@ -509,6 +517,7 @@ static void gf_unregister_file_handle(FILE *ptr)
 		break;
 	}
 	gf_mx_v(logs_mx);
+	return res;
 }
 
 static FILE *gf_file_temp_os(char ** const fileName)
@@ -1423,9 +1432,10 @@ GF_EXPORT
 s32 gf_fclose(FILE *file)
 {
 	if (!file)
-		return GF_OK;
+		return 0;
 
-	gf_unregister_file_handle(file);
+	if (gf_unregister_file_handle(file))
+		return 0;
 	if (gf_fileio_check(file)) {
 		GF_Err e;
 		gf_fileio_open_url((GF_FileIO *) file, NULL, "deref", &e);
