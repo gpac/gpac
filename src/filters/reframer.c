@@ -892,7 +892,7 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
 			before = GF_TRUE;
 			if (st->abps && ( (s64) (ts+dur) * (s64) ctx->cur_start.den > ctx->cur_start.num * (s64) st->timescale)) {
-				u64 nb_samp = ctx->cur_start.num * st->timescale / ctx->cur_end.den - ts;
+				u64 nb_samp = ctx->cur_start.num * st->timescale / ctx->cur_start.den - ts;
 				if (st->timescale != st->sample_rate) {
 					nb_samp *= st->sample_rate;
 					nb_samp /= st->timescale;

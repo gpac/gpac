@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1437,13 +1437,13 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ISOM_TRACK_MATRIX, "TrackMatrix", "ISOBMFF track header matrix", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_REP_ID, "Representation", "ID of DASH representation", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AS_ID, "ASID", "ID of parent DASH AS", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MUX_SRC, "MuxSrc", "Name of mux source(s), set by dasher to direct its outputs", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_MODE, "DashMode", "DASH mode to be used by muxer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_DASH_DUR, "DashDur", "DASH target segment duration in seconds to muxer if any, set by dasher", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_DASH_DUR, "DashDur", "DASH target segment duration in seconds", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_MULTI_PID, NULL, "Pointer to the GF_List of input pids for multi-stsd entries segments, set by dasher", GF_PROP_POINTER, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_MULTI_PID_IDX, NULL, "1-based index of PID in the multi PID list, set by dasher", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_MULTI_TRACK, NULL, "Pointer to the GF_List of input pids for multi-tracks segments, set by dasher", GF_PROP_POINTER, GF_PROP_FLAG_GSF_REM},
@@ -1456,7 +1456,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TEMPLATE, "Template", "Template to use for DASH generation for this pid", GF_PROP_STRING, 0},
 	{ GF_PROP_PID_START_NUMBER, "StartNumber", "Start number to use for this pid - cf dasher help", GF_PROP_UINT, 0},
 	{ GF_PROP_PID_XLINK, "xlink", "Remote period URL for DASH - cf dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from pid in DASH mode", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CLAMP_DUR, "ClampDur", "Max media duration to process from pid in DASH mode", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_PLAYLIST, "HLSPL", "Name of the HLS variant playlist for this media", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HLS_GROUPID, "HLSGroup", "Name of HLS Group of a stream", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_CUE, "DCue", "Name of a cue list file for this pid - see dasher help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},

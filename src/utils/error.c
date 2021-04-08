@@ -1799,3 +1799,43 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Fraction64 gf_parse_lfrac(char *opts)
+{
+	GF_Fraction64 res;
+	char *sep;
+	res.num = 0;
+	res.den = 0;
+	if (!opts) return res;
+	if (strchr(opts, '/')) {
+		sscanf(opts, LLD"/"LLU, &res.num, &res.den);
+		return res;
+	}
+	if (strchr(opts+1, '-')) {
+		sscanf(opts, LLD"-"LLU, &res.num, &res.den);
+		return res;
+	}
+	sep = strchr(opts, '.');
+	if (!sep) {
+		res.num = atoi(opts);
+		res.den = 1;
+		return res;
+	}
+	sep += 1;
+	if (strlen(sep)<=3) res.den = 1000;
+	else if (strlen(sep)<=6) res.den = 1000000;
+	else res.den = 1000000000;
+
+	res.num = (u64)( (atof(opts) * res.den) + 0.5 );
+	return res;
+}
+
+GF_EXPORT
+GF_Fraction gf_parse_frac(char *opts)
+{
+	GF_Fraction64 r = gf_parse_lfrac(opts);
+	GF_Fraction res;
+	res.num = (s32) r.num;
+	res.den = (u32) r.den;
+	return res;
+}

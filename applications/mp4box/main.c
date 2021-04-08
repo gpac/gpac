@@ -618,12 +618,12 @@ void PrintDASHUsage()
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
 		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.\n"
-		"- :dur=VALUE: process VALUE seconds from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
+		"- :dur=VALUE: process VALUE seconds (fraction) from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
 		"- :bandwidth=VALUE: set the representation's bandwidth to a given value\n"
-		"- :pdur=VALUE: increase the duration of this period by the given duration in seconds (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:pdur=Y`\n"
-		"- :duration=VALUE: override target DASH segment duration for this input\n"
+		"- :pdur=VALUE: sets the duration of the associated period to VALUE seconds (fraction) (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:pdur=Y`\n"
+		"- :ddur=VALUE: override target DASH segment duration to VALUE seconds (fraction) for this input (alias for duration:VALUE)\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
 		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
 		"- :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.\n"
@@ -1994,7 +1994,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					di->representationID = gf_strdup(opts+3);
 				/*we allow the same repID to be set to force muxed representations*/
 			}
-			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
+			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = gf_parse_lfrac(opts+4);
 			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "BaseURL=", 8)) {
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
@@ -2040,9 +2040,10 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
 			else if (!strnicmp(opts, "sscale", 6)) di->sscale = GF_TRUE;
-			else if (!strnicmp(opts, "pdur=", 5)) di->period_duration = (Double) atof(opts+5);
-			else if (!strnicmp(opts, "period_duration=", 16)) di->period_duration = (Double) atof(opts+16);
-			else if (!strnicmp(opts, "duration=", 9)) di->dash_duration = (Double) atof(opts+9);
+			else if (!strnicmp(opts, "pdur=", 5)) di->period_duration = gf_parse_frac(opts+5);
+			else if (!strnicmp(opts, "period_duration=", 16)) di->period_duration = gf_parse_frac(opts+16);
+			else if (!strnicmp(opts, "ddur=", 5)) di->dash_duration = gf_parse_frac(opts+5);
+			else if (!strnicmp(opts, "duration=", 9)) di->dash_duration = gf_parse_frac(opts+9);
 			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
 			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
@@ -2585,8 +2586,7 @@ u32 parse_fps(char *arg_val, u32 opt)
 		import_fps.num = ticks;
 		import_fps.den = dts_inc;
 	} else {
-		import_fps.num = (s32) (1000 * atof(arg_val));
-		import_fps.den = 1000;
+		import_fps = gf_parse_frac(arg_val);
 	}
 	return 0;
 }
