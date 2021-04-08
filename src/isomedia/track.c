@@ -1035,10 +1035,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				if ((aux_info_type == GF_ISOM_CENC_SCHEME) || (aux_info_type == GF_ISOM_CBC_SCHEME) ||
 					(aux_info_type == GF_ISOM_CENS_SCHEME) || (aux_info_type == GF_ISOM_CBCS_SCHEME) ||
 					(gf_list_count(traf->sai_offsets) == 1)) {
-					offset = saio->offsets[0] + moof_offset;
-					nb_saio = saio->entry_count;
-					break;
+					if (saio->offsets && saio->entry_count) {
+						offset = saio->offsets[0] + moof_offset;
+						nb_saio = saio->entry_count;
+						break;
+					}
 				}
+				saio = NULL;
 			}
 			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
 				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
@@ -1050,6 +1053,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					(gf_list_count(traf->sai_sizes) == 1)) {
 					break;
 				}
+				saiz = NULL;
 			}
 			if (saiz && saio && senc) {
 				for (i = 0; i < saiz->sample_count; i++) {
