@@ -701,14 +701,14 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	/*while output not full and input data, convert*/
 	next = prev = 0;
 	while (1) {
-		u64 src_pos, src_pos_unscale;
+		u64 src_pos, src_pos_unscale, lfrac;
 		src_pos_unscale = in->out_samples_pos;
 		src_pos_unscale *= in->scaled_sr;
 		src_pos = src_pos_unscale;
 		src_pos /= am->sample_rate;
-		frac = src_pos_unscale - src_pos * am->sample_rate;
-		frac *= RESAMPLE_SCALER;
-		frac /= am->sample_rate;
+		lfrac = src_pos_unscale - src_pos * am->sample_rate;
+		lfrac *= RESAMPLE_SCALER;
+		frac = (s32) (lfrac / am->sample_rate);
 
 		if (src_samp) {
 			if (src_pos < in->in_samples_pos) {
@@ -716,7 +716,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 				prev = 0;
 				next = 0;
 			} else {
-				prev = src_pos - in->in_samples_pos;
+				prev = (u32) (src_pos - in->in_samples_pos);
 				next = prev+1;
 			}
 

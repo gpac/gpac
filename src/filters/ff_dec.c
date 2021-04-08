@@ -499,10 +499,10 @@ decode_next:
 				samples_to_trash = 0;
 				ctx->delay += pkt.duration;
 			} else {
-				samples_to_trash = -ctx->delay;
+				samples_to_trash = (u32) -ctx->delay;
 			}
 			
-			if (!samples_to_trash || (samples_to_trash>frame->nb_samples) ) {
+			if (!samples_to_trash || (samples_to_trash > (u32) frame->nb_samples) ) {
 				frame->nb_samples = 0;
 				samples_to_trash = 0;
 			}
@@ -558,7 +558,7 @@ decode_next:
 			odur /= timescale;
 		}
 		if (odur < frame->nb_samples) {
-			frame->nb_samples = odur;
+			frame->nb_samples = (int) odur;
 		}
 	}
 
