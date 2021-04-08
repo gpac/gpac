@@ -3370,7 +3370,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 
 		streamType = 0;
 		esd = gf_isom_get_esd(file, i+1, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			streamType = esd->decoderConfig->streamType;
 			if (!prev_ocr) {
 				prev_ocr = esd->OCRESID;
