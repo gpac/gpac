@@ -1838,10 +1838,7 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		}
 	}
 	if (all_num) {
-		char c = sep[0];
-		sep[0] = 0;
-		frac->num = atoi(value);
-		sep[0] = c;
+		sscanf(value, LLD"."LLU, &frac->num, &frac->den);
 
 		frac->den = 1;
 		while (len) {
