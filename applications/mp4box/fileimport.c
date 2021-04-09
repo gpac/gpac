@@ -594,7 +594,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				import.duration.num = atoi(ext+5);
 				import.duration.den = 1;
 			} else {
-				import.duration = gf_parse_frac(ext+5);
+				gf_parse_frac(ext+5, &import.duration);
 			}
 		}
 		else if (!strnicmp(ext+1, "start=", 6)) {
@@ -698,7 +698,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 					force_fps.den = 1000;
 					force_fps.num = (u32) (atof(ext+5) * force_fps.den);
 				} else {
-					force_fps = gf_parse_frac(ext+5);
+					gf_parse_frac(ext+5, &force_fps);
 				}
 			}
 		}
@@ -1114,7 +1114,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	/*check duration import (old syntax)*/
 	ext = strrchr(szName, '%');
 	if (ext) {
-		import.duration = gf_parse_frac(ext+1);
+		gf_parse_frac(ext+1, &import.duration);
 		ext[0] = 0;
 	}
 

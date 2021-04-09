@@ -1408,8 +1408,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_FRAG_URL, &PROP_NAME(ctx->frag_url) );
 
 	if (stream_type == GF_STREAM_AUDIO) {
+		Bool is_cont = GF_FALSE;
 		if (is_period_switch) {
-			Bool is_cont = GF_FALSE;
 			u32 j=0;
 			while (1) {
 				const char *desc_id, *desc_scheme, *desc_value;
@@ -1421,10 +1421,8 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 					break;
 				}
 			}
-			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, &PROP_BOOL(is_cont));
-		} else {
-			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, NULL);
 		}
+		gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, is_cont ? &PROP_BOOL(GF_TRUE) : NULL);
 	}
 	if (ctx->forward > DFWD_FILE) {
 		u64 pstart;

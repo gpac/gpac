@@ -562,7 +562,7 @@ static void filelist_parse_splice_time(char *aval, GF_Fraction64 *frac, u32 *fla
 		*flags |= FL_SPLICE_FRAME;
 	}
 
-	*frac = gf_parse_lfrac(aval);
+	gf_parse_lfrac(aval, frac);
 }
 
 static Bool filelist_next_url(GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool is_splice_update)

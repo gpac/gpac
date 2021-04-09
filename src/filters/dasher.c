@@ -175,7 +175,6 @@ typedef struct
 
 	GF_MPD *mpd;
 
-	Double period_start;
 	GF_DasherPeriod *current_period, *next_period;
 	GF_List *pids;
 	Bool template_use_source;
@@ -1276,6 +1275,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ds->period_start.num = 0;
 		ds->period_start.den = 1;
 	}
+	assert(ds->period_start.den);
 
 	if (period_switch) {
 		new_period_request = GF_TRUE;
@@ -4715,11 +4715,23 @@ static GF_Err dasher_reload_context(GF_Filter *filter, GF_DasherCtx *ctx)
 			}
 
 			ds->period_start = rep->dasher_ctx->period_start;
+			if (!ds->period_start.den) {
+				ds->period_start.num = 0;
+				ds->period_start.den = 1;
+			}
 			ds->period_dur = rep->dasher_ctx->period_duration;
+			if (!ds->period_dur.den) {
+				ds->period_dur.num = 0;
+				ds->period_dur.den = 1;
+			}
 			ds->pid_id = rep->dasher_ctx->pid_id;
 			ds->dep_pid_id = rep->dasher_ctx->dep_pid_id;
 			ds->seek_to_pck = rep->dasher_ctx->last_pck_idx;
 			ds->dash_dur = rep->dasher_ctx->dash_dur;
+			if (!ds->dash_dur.den) {
+				ds->dash_dur.num = 0;
+				ds->dash_dur.den = 1;
+			}
 			ds->next_seg_start = rep->dasher_ctx->next_seg_start;
 			ds->adjusted_next_seg_start = ds->next_seg_start;
 			ds->first_cts = rep->dasher_ctx->first_cts;
@@ -5043,7 +5055,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	const char *period_xlink = NULL;
 	u64 remote_dur = 0;
 	GF_DasherPeriod *p;
-	Double period_idx, period_start, next_period_start;
+	Double period_idx;
+	GF_Fraction64 period_start, next_period_start;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
 
@@ -5098,7 +5111,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	//figure out next period
 	count = gf_list_count(ctx->current_period->streams);
 	period_idx = 0;
-	period_start = -1;
+	period_start.num = -1;
+	period_start.den = 1;
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 
@@ -5107,14 +5121,14 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			s64 pstart = -ds->period_start.num;
 			if (!period_idx || (pstart < period_idx)) period_idx = pstart;
 		} else {
-			if ((period_start<0) || (ds->period_start.num < period_start * ds->period_start.den)) {
-				period_start = ds->period_start.num;
-				period_start /= ds->period_start.den;
+			if ((period_start.num<0) || (ds->period_start.num * period_start.den < period_start.num * ds->period_start.den)) {
+				period_start = ds->period_start;
+				assert(ds->period_start.den);
 			}
 		}
 	}
 
-	if (period_start>=0)
+	if (period_start.num >= 0)
 		period_idx = 0;
 
 	if (ctx->first_context_load) {
@@ -5152,7 +5166,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			in_period = GF_FALSE;
 		}
 		if (in_period) {
-			if ((period_start>=0) && (ds->period_start.num != period_start * ds->period_start.den))
+			if ((period_start.num>=0) && (ds->period_start.num * period_start.den != period_start.num * ds->period_start.den))
 				in_period = GF_FALSE;
 			else if ((period_idx>0) && (-ds->period_start.num != period_idx))
 				in_period = GF_FALSE;
@@ -5231,35 +5245,44 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	assert(period_id);
 
-	next_period_start = -1;
-	if (period_start>=0) {
-		ctx->current_period->period->start = (u64)(period_start*1000);
+	next_period_start.num = -1;
+	next_period_start.den = 1;
+	if (period_start.num >= 0) {
+		ctx->current_period->period->start = (u64)(period_start.num*1000 / period_start.den);
 		//check next period start
 		count = gf_list_count(ctx->next_period->streams);
 		for (i=0; i<count; i++)	 {
 			GF_DashStream *ds = gf_list_get(ctx->next_period->streams, i);
 			if (ds->done) continue;
-			if (ds->period_start.num < period_start * ds->period_start.den) continue;
-			if ((next_period_start<0) || (next_period_start * ds->period_start.den > ds->period_start.num)) {
-				next_period_start = ds->period_start.num;
-				next_period_start /= ds->period_start.den;
+			if (ds->period_start.num * period_start.den < period_start.num * ds->period_start.den) continue;
+			if ((next_period_start.num<0) || (next_period_start.num * ds->period_start.den > ds->period_start.num * next_period_start.den)) {
+				next_period_start = ds->period_start;
 			}
 		}
 		//check current period dur
 		count = gf_list_count(ctx->current_period->streams);
 		for (i=0; i<count; i++)	 {
-			Double dur;
+			GF_Fraction64 dur;
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 			if (!ds->period_dur.den) continue;
 			dur = period_start;
-			if (ds->period_dur.den)
-				dur += ((Double) ds->period_dur.num)/ds->period_dur.num;
+			if (ds->period_dur.den) {
+				if (dur.den != ds->period_dur.den)
+					dur.num += ds->period_dur.num * dur.den / ds->period_dur.den;
+				else
+					dur.num += ds->period_dur.num;
+			}
 			
-			if ((next_period_start<0) || (next_period_start>dur))
+			if ((next_period_start.num < 0) || (next_period_start.num * dur.den > dur.num * next_period_start.den))
 				next_period_start = dur;
 		}
-		if (next_period_start>0) {
-			ctx->current_period->period->duration = (u32) ( (next_period_start - period_start) * 1000 );
+		if (next_period_start.num > 0) {
+			u64 next = next_period_start.num;
+			if (next_period_start.den != period_start.den) {
+				next *= period_start.den;
+				next /= next_period_start.den;
+			}
+			ctx->current_period->period->duration = (u32) ( (next - period_start.num) * 1000 / period_start.den);
 		}
 	}
 
@@ -5279,8 +5302,14 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		//assign force_rep_end
-		if (next_period_start>0) {
-			ds->force_rep_end = (u64) ((next_period_start - period_start) * ds->timescale);
+		if (next_period_start.num > 0) {
+			u64 next = next_period_start.num;
+			if (next_period_start.den != period_start.den) {
+				next *= period_start.den;
+				next /= next_period_start.den;
+			}
+
+			ds->force_rep_end = (u64) ((next - period_start.num) * ds->timescale / period_start.den);
 		}
 		if (ds->dcd_not_ready) {
 			ctx->period_not_ready = GF_TRUE;

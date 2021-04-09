@@ -239,64 +239,17 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_FRACTION:
-		if (!value) {
+		if (gf_parse_frac(value, &p.value.frac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
-		} else {
-			if (sscanf(value, "%d/%u", &p.value.frac.num, &p.value.frac.den) != 2) {
-				if (sscanf(value, "%d-%u", &p.value.frac.num, &p.value.frac.den) != 2) {
-					u32 ret=0;
-					p.value.frac.den=1;
-					if (strchr(value, '.') || strchr(value, ',')) {
-						Float v;
-						ret = sscanf(value, "%g", &v);
-						if (ret==1) {
-							p.value.frac.num = (u32) (v*1000000);
-							p.value.frac.den = 1000000;
-						} else {
-							ret = 0;
-						}
-					}
-					if (!ret && (sscanf(value, "%d", &p.value.frac.num) != 1)) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
-						p.value.frac.num = 0;
-						p.value.frac.den = 1;
-					}
-				}
-			}
 		}
 		break;
 	case GF_PROP_FRACTION64:
-		if (!value) {
+		if (gf_parse_lfrac(value, &p.value.lfrac)==GF_FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
-			p.value.frac.num = 0;
-			p.value.frac.den = 1;
-		}
-		else {
-			if (sscanf(value, LLD"/"LLU, &p.value.lfrac.num, &p.value.lfrac.den) != 2) {
-				if (sscanf(value, LLD"-"LLU, &p.value.lfrac.num, &p.value.lfrac.den) != 2) {
-					u32 ret=0;
-					p.value.lfrac.den = 1;
-
-					if (strchr(value, '.') || strchr(value, ',')) {
-						Float v;
-						ret = sscanf(value, "%g", &v);
-						if (ret==1) {
-							p.value.lfrac.num = (u64) (v*1000000);
-							p.value.lfrac.den = 1000000;
-						} else {
-							ret = 0;
-						}
-					}
-
-					if (!ret && (sscanf(value, LLD, &p.value.lfrac.num) != 1)) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
-						p.value.lfrac.num = 0;
-						p.value.lfrac.den = 1;
-					}
-				}
-			}
+			p.value.lfrac.num = 0;
+			p.value.lfrac.den = 1;
 		}
 		break;
 	case GF_PROP_FLOAT:

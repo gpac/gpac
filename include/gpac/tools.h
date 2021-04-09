@@ -264,18 +264,20 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 
 Parse a 64 bit fraction from string
 \param str string to parse
-\return fraction
+\param frac fraction to fill
+\return GF_TRUE if success, GF_FALSE otherwisen fraction being set to {0,0}
  */
-GF_Fraction64 gf_parse_lfrac(char *str);
+Bool gf_parse_lfrac(const char *str, GF_Fraction64 *frac);
 
 /*!
 \brief fraction parsing
 
 Parse a 32 bit fraction from string
 \param str string to parse
-\return fraction
+\param frac fraction to fill
+\return GF_TRUE if success, GF_FALSE otherwisen fraction being set to {0,0}
  */
-GF_Fraction gf_parse_frac(char *str);
+Bool gf_parse_frac(const char *str, GF_Fraction *frac);
 
 /*! @} */
 

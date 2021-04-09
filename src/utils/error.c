@@ -1800,42 +1800,77 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 }
 
 GF_EXPORT
-GF_Fraction64 gf_parse_lfrac(char *opts)
+Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 {
-	GF_Fraction64 res;
+	Float v;
+	u32 len, i;
+	Bool all_num=GF_TRUE;
 	char *sep;
-	res.num = 0;
-	res.den = 0;
-	if (!opts) return res;
-	if (strchr(opts, '/')) {
-		sscanf(opts, LLD"/"LLU, &res.num, &res.den);
-		return res;
-	}
-	if (strchr(opts+1, '-')) {
-		sscanf(opts, LLD"-"LLU, &res.num, &res.den);
-		return res;
-	}
-	sep = strchr(opts, '.');
-	if (!sep) {
-		res.num = atoi(opts);
-		res.den = 1;
-		return res;
-	}
-	sep += 1;
-	if (strlen(sep)<=3) res.den = 1000;
-	else if (strlen(sep)<=6) res.den = 1000000;
-	else res.den = 1000000000;
+	if (!frac) return GF_FALSE;
+	frac->num = 0;
+	frac->den = 0;
+	if (!value) return GF_FALSE;
 
-	res.num = (u64)( (atof(opts) * res.den) + 0.5 );
-	return res;
+	if (sscanf(value, LLD"/"LLU, &frac->num, &frac->den) == 2) {
+		return GF_TRUE;
+	}
+	if (sscanf(value, LLD"-"LLU, &frac->num, &frac->den) == 2) {
+		return GF_TRUE;
+	}
+	if (sscanf(value, "%g", &v) != 1) {
+		frac->num = 0;
+		frac->den = 0;
+		return GF_FALSE;
+	}
+	sep = strchr(value, '.');
+	if (!sep) sep = strchr(value, ',');
+	if (!sep) {
+		frac->num = atoi(value);
+		frac->den = 1;
+		return GF_TRUE;
+	}
+
+	len = (u32) strlen(sep+1);
+	for (i=1; i<=len; i++) {
+		if ((sep[i]<'0') || (sep[i]>'9')) {
+			all_num = GF_FALSE;
+			break;
+		}
+	}
+	if (all_num) {
+		char c = sep[0];
+		sep[0] = 0;
+		frac->num = atoi(value);
+		sep[0] = c;
+
+		frac->den = 1;
+		while (len) {
+			len--;
+			frac->den *= 10;
+		}
+		frac->num *= frac->den;
+		frac->num += atoi(sep+1);
+
+		return GF_TRUE;
+	}
+
+	sep += 1;
+	if (len <= 3) frac->den = 1000;
+	else if (len <= 6) frac->den = 1000000;
+	else frac->den = 1000000000;
+
+	frac->num = (u64)( (atof(value) * frac->den) + 0.5 );
+	return GF_TRUE;
 }
 
 GF_EXPORT
-GF_Fraction gf_parse_frac(char *opts)
+Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 {
-	GF_Fraction64 r = gf_parse_lfrac(opts);
-	GF_Fraction res;
-	res.num = (s32) r.num;
-	res.den = (u32) r.den;
+	GF_Fraction64 r;
+	Bool res;
+	if (!frac) return GF_FALSE;
+	res = gf_parse_lfrac(value, &r);
+	frac->num = (s32) r.num;
+	frac->den = (u32) r.den;
 	return res;
 }
