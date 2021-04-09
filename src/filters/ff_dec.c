@@ -609,9 +609,10 @@ decode_next:
 					pts += ctx->nb_samples_already_in_frame;
 				}
 			}
-			assert(pts >= ctx->ts_offset);
-			gf_filter_pck_set_cts(dst_pck, pts - ctx->ts_offset);
-			gf_filter_pck_set_dts(dst_pck, pts - ctx->ts_offset);
+			if (pts >= ctx->ts_offset) pts -= ctx->ts_offset;
+			else pts = 0;
+			gf_filter_pck_set_cts(dst_pck, pts);
+			gf_filter_pck_set_dts(dst_pck, pts);
 		}
 		gf_filter_pck_send(dst_pck);
 	} else {

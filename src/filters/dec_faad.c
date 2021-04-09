@@ -397,8 +397,11 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);
 		if (ctx->first_priming_cts_plus_one && !ctx->ts_offset) {
-			assert(ctx->last_cts + 1 >= ctx->first_priming_cts_plus_one);
-			ctx->ts_offset = ctx->last_cts - (ctx->first_priming_cts_plus_one-1);
+			if (ctx->last_cts + 1 >= ctx->first_priming_cts_plus_one)
+				ctx->ts_offset = ctx->last_cts - (ctx->first_priming_cts_plus_one-1);
+			else
+				//neg speed
+				ctx->ts_offset = (ctx->first_priming_cts_plus_one-1) - ctx->last_cts;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
 		}
 		ctx->last_cts -= ctx->ts_offset;
