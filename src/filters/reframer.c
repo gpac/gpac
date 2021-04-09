@@ -337,9 +337,6 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		*frame_idx_plus_one = 1 + atoi(date+1);
 		return GF_TRUE;
 	}
-	if (sscanf(date, LLD"/"LLU, &value->num, &value->den)==2) {
-		return GF_TRUE;
-	}
 	if (!strcmp(date, "RAP") || !strcmp(date, "SAP")) {
 		if (extract_mode)
 			*extract_mode = EXTRACT_SAP;
@@ -370,15 +367,7 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		}
 	}
 
-	if (strchr(date, '.')) {
-		Double val = atof(date);
-		value->num = (u64) (val * 1000000);
-		value->den = 1000000;
-		return GF_TRUE;
-	}
-	if (sscanf(date, LLU, &v)==1) {
-		value->num = v;
-		value->den = 1;
+	if (gf_parse_lfrac(date, value)) {
 		return GF_TRUE;
 	}
 
