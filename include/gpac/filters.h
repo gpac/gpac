@@ -977,6 +977,7 @@ enum
 	GF_PROP_PID_UNFRAMED_LATM = GF_4CC('L','A','T','M'),
 	GF_PROP_PID_DELAY = GF_4CC('M','D','L','Y'),
 	GF_PROP_PID_CTS_SHIFT = GF_4CC('M','D','T','S'),
+	GF_PROP_PID_NO_PRIMING = GF_4CC('A','S','K','P'),
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	GF_PROP_PID_HEIGHT = GF_4CC('H','E','I','G'),
 	GF_PROP_PID_PIXFMT = GF_4CC('P','F','M','T'),

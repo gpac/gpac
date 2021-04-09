@@ -72,6 +72,25 @@ typedef struct
 
 } GF_MADCtx;
 
+static void maddec_copy_props(GF_MADCtx *ctx)
+{
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+
+	if (ctx->sample_rate)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
+
+	if (ctx->num_channels) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT((ctx->num_channels==1) ? GF_AUDIO_CH_FRONT_CENTER : GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT) );
+	}
+
+	if (!ctx->delay)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
+}
+
 static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
@@ -88,7 +107,21 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+
 	if (ctx->configured) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
+		//no re-prime, skip if same config
+		if (p && p->value.boolean) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+			u32 sr = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+			u32 ch = p ? p->value.uint : 0;
+			if ((ctx->sample_rate==sr) && (ctx->num_channels==ch)) {
+				maddec_copy_props(ctx);
+				return GF_OK;
+			}
+		}
+
 		mad_stream_finish(&ctx->stream);
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
@@ -107,27 +140,14 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) ctx->sample_rate = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) ctx->num_channels = p->value.uint;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-
 	if (!ctx->buffer) {
 		ctx->buffer = (unsigned char*)gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
-	}
-
-	if (ctx->sample_rate)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
-
-	if (ctx->num_channels) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT((ctx->num_channels==1) ? GF_AUDIO_CH_FRONT_CENTER : GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT) );
 	}
 
 	gf_filter_set_name(filter, "dec_mad:MAD " MAD_VERSION);
@@ -135,6 +155,9 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	ctx->delay = p ? p->value.longsint : 0;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	maddec_copy_props(ctx);
+
 	return GF_OK;
 }
 

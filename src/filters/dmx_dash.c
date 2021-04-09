@@ -1201,7 +1201,7 @@ Bool dashdmx_merge_prop(void *cbk, u32 prop_4cc, const char *prop_name, const GF
 	return GF_TRUE;
 }
 
-static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid)
+static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, u32 group_idx, GF_FilterPid *opid, GF_FilterPid *ipid, Bool is_period_switch)
 {
 	GF_DASHQualityInfo qinfo;
 	GF_PropertyValue qualities, srd, srdref;
@@ -1265,23 +1265,20 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		if (!qinfo.mime) qinfo.mime="unknown";
 		if (!qinfo.codec) qinfo.codec="codec";
 
-		if (ctx->forward==DFWD_FILE) {
-			if (qinfo.width && qinfo.height) {
-				stream_type = GF_STREAM_VISUAL;
-			} else if (qinfo.sample_rate || qinfo.nb_channels) {
-				stream_type = GF_STREAM_AUDIO;
-			} else if (strstr(qinfo.mime, "text")
-				|| strstr(qinfo.codec, "vtt")
-				|| strstr(qinfo.codec, "srt")
-				|| strstr(qinfo.codec, "text")
-				|| strstr(qinfo.codec, "tx3g")
-				|| strstr(qinfo.codec, "stxt")
-				|| strstr(qinfo.codec, "stpp")
-			) {
-				stream_type = GF_STREAM_TEXT;
-			}
+		if (qinfo.width && qinfo.height) {
+			stream_type = GF_STREAM_VISUAL;
+		} else if (qinfo.sample_rate || qinfo.nb_channels) {
+			stream_type = GF_STREAM_AUDIO;
+		} else if (strstr(qinfo.mime, "text")
+			|| strstr(qinfo.codec, "vtt")
+			|| strstr(qinfo.codec, "srt")
+			|| strstr(qinfo.codec, "text")
+			|| strstr(qinfo.codec, "tx3g")
+			|| strstr(qinfo.codec, "stxt")
+			|| strstr(qinfo.codec, "stpp")
+		) {
+			stream_type = GF_STREAM_TEXT;
 		}
-
 
 		snprintf(szInfo, 500, "id=%s", qinfo.ID);
 
@@ -1410,7 +1407,25 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	if (ctx->frag_url)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_FRAG_URL, &PROP_NAME(ctx->frag_url) );
 
-
+	if (stream_type == GF_STREAM_AUDIO) {
+		if (is_period_switch) {
+			Bool is_cont = GF_FALSE;
+			u32 j=0;
+			while (1) {
+				const char *desc_id, *desc_scheme, *desc_value;
+				if (! gf_dash_group_enum_descriptor(ctx->dash, group_idx, GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
+					break;
+				j++;
+				if (!strcmp(desc_scheme, "urn:mpeg:dash:period-continuity:2015") && desc_value) {
+					is_cont = GF_TRUE;
+					break;
+				}
+			}
+			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, &PROP_BOOL(is_cont));
+		} else {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, NULL);
+		}
+	}
 	if (ctx->forward > DFWD_FILE) {
 		u64 pstart;
 		u32 timescale;
@@ -1439,6 +1454,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 group_idx;
+	Bool is_period_switch = GF_FALSE;
 	GF_FilterPid *opid;
 	GF_Err e;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
@@ -1565,10 +1581,12 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
 				gf_filter_pid_send_event(pid, &evt);
 				group->is_playing = GF_FALSE;
+			} else {
+				is_period_switch = GF_TRUE;
 			}
 		}
 	}
-	dashdmx_declare_properties(ctx, group, group_idx, opid, pid);
+	dashdmx_declare_properties(ctx, group, group_idx, opid, pid, is_period_switch);
 
 
 	//reset the file cache property (init segment could be cached but not the rest)

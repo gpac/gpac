@@ -90,7 +90,9 @@ typedef struct _gf_ffdec_ctx
 	Bool force_full_range;
 	Bool drop_non_refs;
 
+	s64 first_cts_plus_one;
 	s64 delay;
+	u32 ts_offset;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -483,6 +485,9 @@ decode_next:
 		if (gf_filter_pck_get_sap(pck)>0)
 			pkt.flags = AV_PKT_FLAG_KEY;
 
+		if (!ctx->first_cts_plus_one)
+			ctx->first_cts_plus_one = pkt.pts + 1;
+
 	} else {
 		pkt.size = 0;
 	}
@@ -493,7 +498,7 @@ decode_next:
 
 	samples_to_trash = 0;
 	if ( gotpic && (ctx->delay<0)) {
-		if (pkt.pts + ctx->delay < 0) {
+		if (pkt.pts + 1 - ctx->first_cts_plus_one + ctx->delay < 0) {
 			if (pkt.duration + ctx->delay < 0) {
 				frame->nb_samples = 0;
 				samples_to_trash = 0;
@@ -595,23 +600,23 @@ decode_next:
 		gf_filter_pck_unref(src_pck);
 	}
 
-	if (frame->pkt_pts != AV_NOPTS_VALUE) {
-		u64 pts = frame->pkt_pts;
-		u32 timescale = gf_filter_pck_get_timescale(pck);
-		if (ctx->nb_samples_already_in_frame) {
-			if (ctx->sample_rate == timescale) {
-				pts += ctx->nb_samples_already_in_frame;
+	if (output_size) {
+		if (frame->pkt_pts != AV_NOPTS_VALUE) {
+			u64 pts = frame->pkt_pts;
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			if (ctx->nb_samples_already_in_frame) {
+				if (ctx->sample_rate == timescale) {
+					pts += ctx->nb_samples_already_in_frame;
+				}
 			}
+			assert(pts >= ctx->ts_offset);
+			gf_filter_pck_set_cts(dst_pck, pts - ctx->ts_offset);
+			gf_filter_pck_set_dts(dst_pck, pts - ctx->ts_offset);
 		}
-		gf_filter_pck_set_cts(dst_pck, pts);
+		gf_filter_pck_send(dst_pck);
+	} else {
+		gf_filter_pck_discard(dst_pck);
 	}
-
-	if (frame->pkt_dts != AV_NOPTS_VALUE) {
-		gf_filter_pck_set_dts(dst_pck, frame->pkt_dts);
-	}
-
-
-	gf_filter_pck_send(dst_pck);
 
 	ctx->frame_start += len;
 	//done with this input packet
@@ -1010,8 +1015,19 @@ reuse_codec_context:
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ctx->sample_fmt) );
 		}
 
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-		ctx->delay = prop ? prop->value.longsint : 0;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
+		if (prop && prop->value.boolean) {
+			ctx->delay = 0;
+		} else {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+			ctx->delay = prop ? prop->value.longsint : 0;
+			ctx->first_cts_plus_one = 0;
+
+			if (ctx->delay<0)
+				ctx->ts_offset = (u32) -ctx->delay;
+			else
+				ctx->ts_offset = 0;
+		}
 
 	} else {
 #ifdef FF_SUB_SUPPORT
