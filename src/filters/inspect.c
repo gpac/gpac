@@ -1750,8 +1750,12 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 
-	if (!pname) pname = gf_props_4cc_get_name(p4cc);
+	if (!pname)
+		pname = gf_props_4cc_get_name(p4cc);
 	else {
+		//all properties starting with __ are not dumped
+		if (!strncmp(pname, "__", 2))
+			return;
 		if (!strcmp(pname, "isom_force_ctts"))
 			return;
 	}

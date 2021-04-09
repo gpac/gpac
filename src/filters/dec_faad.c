@@ -57,7 +57,8 @@ typedef struct
 
 	u32 channel_mask;
 	char ch_reorder[16];
-	u64 last_cts;
+	u64 last_cts, first_priming_cts_plus_one;
+	u32 ts_offset;
 } GF_FAADCtx;
 
 static void faaddec_check_mc_config(GF_FAADCtx *ctx)
@@ -133,14 +134,21 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	ctx->ipid = pid;
 
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
+	//force re-priming
+	if (p && !p->value.boolean) {
+		ctx->cfg_crc = 0;
+	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
-		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
-			//shoud we flush ?
-			if (ctx->codec) NeAACDecClose(ctx->codec);
-			ctx->codec = NULL;
-		}
+		if (ctx->cfg_crc == ex_crc)
+			return GF_OK;
+		//no need to flush
+		if (ctx->codec) NeAACDecClose(ctx->codec);
+		ctx->codec = NULL;
+		ctx->cfg_crc = ex_crc;
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Reconfiguring but no DSI set, skipping\n"));
 		return GF_OK;
@@ -151,6 +159,9 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing decoder\n"));
 		return GF_IO_ERR;
 	}
+
+	ctx->ts_offset = 0;
+	ctx->first_priming_cts_plus_one = 0;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	e = gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &a_cfg);
@@ -221,6 +232,8 @@ base_object_type_error: /*error case*/
 		else gf_filter_set_name(filter,  "dec_faad:FAAD2");
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+
 	return GF_OK;
 }
 
@@ -297,7 +310,13 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (!ctx->info.samples || !buffer || !ctx->info.bytesconsumed) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] empty/non complete AU\n"));
 		if (is_eos) gf_filter_pid_set_eos(ctx->opid);
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+		if (pck) {
+			if (!ctx->first_priming_cts_plus_one) {
+				ctx->first_priming_cts_plus_one = gf_filter_pck_get_cts(pck) + 1;
+
+			}
+			gf_filter_pid_drop_packet(ctx->ipid);
+		}
 		return GF_OK;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] AU decoded\n"));
@@ -377,6 +396,12 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	}
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);
+		if (ctx->first_priming_cts_plus_one && !ctx->ts_offset) {
+			assert(ctx->last_cts + 1 >= ctx->first_priming_cts_plus_one);
+			ctx->ts_offset = ctx->last_cts - (ctx->first_priming_cts_plus_one-1);
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
+		}
+		ctx->last_cts -= ctx->ts_offset;
 		ctx->timescale = gf_filter_pck_get_timescale(pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 	}
