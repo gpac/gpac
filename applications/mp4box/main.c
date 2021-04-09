@@ -1994,7 +1994,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					di->representationID = gf_strdup(opts+3);
 				/*we allow the same repID to be set to force muxed representations*/
 			}
-			else if (!strnicmp(opts, "dur=", 4)) di->media_duration = gf_parse_lfrac(opts+4);
+			else if (!strnicmp(opts, "dur=", 4)) gf_parse_lfrac(opts+4, &di->media_duration);
 			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "BaseURL=", 8)) {
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
@@ -2040,10 +2040,10 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
 			else if (!strnicmp(opts, "sscale", 6)) di->sscale = GF_TRUE;
-			else if (!strnicmp(opts, "pdur=", 5)) di->period_duration = gf_parse_frac(opts+5);
-			else if (!strnicmp(opts, "period_duration=", 16)) di->period_duration = gf_parse_frac(opts+16);
-			else if (!strnicmp(opts, "ddur=", 5)) di->dash_duration = gf_parse_frac(opts+5);
-			else if (!strnicmp(opts, "duration=", 9)) di->dash_duration = gf_parse_frac(opts+9);
+			else if (!strnicmp(opts, "pdur=", 5)) gf_parse_frac(opts+5, &di->period_duration);
+			else if (!strnicmp(opts, "period_duration=", 16)) gf_parse_frac(opts+16, &di->period_duration);
+			else if (!strnicmp(opts, "ddur=", 5)) gf_parse_frac(opts+5, &di->dash_duration);
+			else if (!strnicmp(opts, "duration=", 9)) gf_parse_frac(opts+9, &di->dash_duration);
 			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
 			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
@@ -2586,7 +2586,7 @@ u32 parse_fps(char *arg_val, u32 opt)
 		import_fps.num = ticks;
 		import_fps.den = dts_inc;
 	} else {
-		import_fps = gf_parse_frac(arg_val);
+		gf_parse_frac(arg_val, &import_fps);
 	}
 	return 0;
 }

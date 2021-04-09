@@ -735,8 +735,8 @@ static GF_DASH_SegmenterContext *gf_mpd_parse_dasher_context(GF_MPD *mpd, GF_XML
 		else if (!strcmp(att->name, "lastPacketIdx")) dasher->last_pck_idx = gf_mpd_parse_long_int(att->value);
 		else if (!strcmp(att->name, "pidID")) dasher->pid_id = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "depID")) dasher->dep_pid_id = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "periodStart")) dasher->period_start = gf_parse_lfrac(att->value);
-		else if (!strcmp(att->name, "periodDuration")) dasher->period_duration = gf_parse_lfrac(att->value);
+		else if (!strcmp(att->name, "periodStart")) gf_parse_lfrac(att->value, &dasher->period_start);
+		else if (!strcmp(att->name, "periodDuration")) gf_parse_lfrac(att->value, &dasher->period_duration);
 		else if (!strcmp(att->name, "ownsSet")) dasher->owns_set = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "multiPIDInit")) dasher->multi_pids = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "dashDuration")) dasher->dash_dur = gf_mpd_parse_fraction(att->value);
