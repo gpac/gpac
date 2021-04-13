@@ -701,7 +701,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			data = gf_filter_pck_get_data(pck, &pck_size);
 			new_pck = gf_filter_pck_new_alloc(st->opid, pck_size - st->audio_samples_to_keep * st->abps, &output);
 
-			reframer_copy_raw_audio(st, data, pck_size, st->audio_samples_to_keep, output, pck_size - st->audio_samples_to_keep * st->abps);
+			reframer_copy_raw_audio(st, data, pck_size, st->audio_samples_to_keep, output, pck_size/st->abps - st->audio_samples_to_keep);
 
 			dur = pck_size/st->abps - st->audio_samples_to_keep;
 
