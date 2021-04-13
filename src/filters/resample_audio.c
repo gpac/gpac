@@ -275,7 +275,6 @@ static GF_Err resample_process(GF_Filter *filter)
 				u64 cts = gf_filter_pck_get_cts(ctx->in_pck);
 				cts *= ctx->freq;
 				cts /= FIX2INT(ctx->speed * ctx->timescale);
-
 				if (!ctx->out_cts_plus_one) {
 					ctx->out_cts_plus_one = cts + 1;
 				} else {
@@ -299,6 +298,13 @@ static GF_Err resample_process(GF_Filter *filter)
 		if (ctx->in_pck) {
 			osize = ctx->size * ctx->nb_ch * bps;
 			osize /= ctx->input_ai.chan * gf_audio_fmt_bit_depth(ctx->input_ai.afmt);
+			//output in higher samplerate, need more space for same samples
+			if (ctx->freq > ctx->input_ai.samplerate) {
+				osize *= ctx->freq;
+				osize /= ctx->input_ai.samplerate;
+				while (osize % bytes_per_samp)
+					osize++;
+			}
 		} else {
 			//flush remaining samples from mixer, use 20 sample buffer
 			osize = 20*ctx->nb_ch * bps / 8;
