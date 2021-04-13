@@ -491,6 +491,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		/*cfg has changed, we must reconfig everything*/
 		if (cfg_changed || (max_sample_rate != am->sample_rate) ) {
 			in->ratio_aligned = 0;
+			in->bit_depth = 0;
 			memset(&in->last_channels, 0, sizeof(s32)*GF_AUDIO_MIXER_MAX_CHANNELS);
 		}
 	}
@@ -734,6 +735,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 			if (!frac || (src_pos >= in->in_samples_pos)) {
 				//so that next call will trigger EOS for this stream
 				in->has_prev = GF_FALSE;
+				in->in_bytes_used = src_size + 1;
 				return;
 			}
 			frac = 0;
@@ -838,6 +840,8 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	single_source = (MixerInput *) gf_list_get(am->sources, 0);
 	/*if cfg changed or unknown, reconfigure the mixer if the audio renderer is attached. Otherwise,  the mixer config never changes internally*/
 	if (!single_source->src->GetConfig(single_source->src, GF_FALSE)) {
+		single_source->ratio_aligned = 0;
+		single_source->bit_depth = 0;
 		if (am->ar) {
 			am->must_reconfig = GF_TRUE;
 			gf_mixer_reconfig(am);
