@@ -1040,6 +1040,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_name, const char *arg_name, const char *arg_val)
 {
+	char szArg[101];
 	Bool gf_sys_has_filter_global_args();
 	const char *opt;
 	GF_FilterSession *session = filter->session;
@@ -1049,18 +1050,21 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 		u32 alen = (u32) strlen(arg_name);
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
+			u32 flen = 0;
 			const char *per_filter;
-			const char *arg = gf_sys_get_arg(i);
+			const char *o_arg, *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
 
 			arg += 2;
+			o_arg = arg;
 			per_filter = strchr(arg, '@');
 			if (per_filter) {
-				u32 len = (u32) (per_filter - arg);
-				if (!len || strncmp(filter->freg->name, arg, len))
+				flen = (u32) (per_filter - arg);
+				if (!flen || strncmp(filter->freg->name, arg, flen))
 					continue;
-				arg += len+1;
+				flen++;
+				arg += flen;
 			}
 
 			if (!strncmp(arg, arg_name, alen)) {
@@ -1072,7 +1076,9 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 					len = (u32) strlen(arg);
 				}
 				if (len != alen) continue;
-				gf_fs_push_arg(session, arg_name, GF_TRUE, 0);
+				strncpy(szArg, o_arg, 100);
+				szArg[ MIN(flen + alen, 100) ] = 0;
+				gf_fs_push_arg(session, szArg, GF_TRUE, 0);
 
 				if (sep) return sep+1;
 				//no arg value means boolean true
@@ -1136,38 +1142,41 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 #define META_MAX_ARG	1000
 		char szArg[META_MAX_ARG+1];
 		GF_Err e;
+		u32 len = 0;
 		const char *per_filter;
-		const char *sep, *arg = gf_sys_get_arg(i);
+		const char *sep, *o_arg, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
 		if (arg[1] != '+') continue;
 		arg+=2;
 
+		o_arg = arg;
 		per_filter = strchr(arg, '@');
 		if (per_filter) {
-			u32 len = (u32) (per_filter - arg);
+			len = (u32) (per_filter - arg);
 			if (!len || strncmp(filter->freg->name, arg, len))
 				continue;
-			arg += len+1;
+			len++;
+			arg += len;
 		}
 
 		sep = strchr(arg, '=');
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		if (sep) {
-			u32 cplen = (u32) (sep - arg);
+			u32 cplen = (u32) (sep - o_arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			strncpy(szArg, arg, cplen);
+			strncpy(szArg, o_arg, cplen);
 			szArg[cplen] = 0;
 			argv.value.string = (char *) sep+1;
 		} else {
-			u32 cplen = (u32) strlen(arg);
+			u32 cplen = (u32) strlen(o_arg);
 			if (cplen>=META_MAX_ARG) cplen=META_MAX_ARG;
-			memcpy(szArg, arg, cplen);
+			memcpy(szArg, o_arg, cplen);
 			szArg[cplen] = 0;
 		}
 #undef META_MAX_ARG
 
-		e = filter->freg->update_arg(filter, szArg, &argv);
+		e = filter->freg->update_arg(filter, szArg + len, &argv);
 		gf_fs_push_arg(filter->session, szArg, (e==GF_OK) ? GF_TRUE : GF_FALSE, 2);
 	}
 }
