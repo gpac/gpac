@@ -158,10 +158,15 @@ u32 gf_mixer_get_src_count(GF_AudioMixer *am)
 	return gf_list_count(am->sources);
 }
 
-void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels)
+GF_Err gf_mixer_force_channel_out(GF_AudioMixer *am, u32 num_channels)
 {
+	if (num_channels > GF_AUDIO_MIXER_MAX_CHANNELS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioMixer] Number of output channels %d higher than max channels supported %d\n", num_channels, GF_AUDIO_MIXER_MAX_CHANNELS));
+		return GF_NOT_SUPPORTED;
+	}
 	am->force_channel_out = GF_TRUE;
 	am->nb_channels = num_channels;
+	return GF_OK;
 }
 
 u32 gf_mixer_get_block_align(GF_AudioMixer *am)
@@ -253,15 +258,24 @@ void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT,
 }
 
 GF_EXPORT
-void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 outChCfg)
+GF_Err gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 outChCfg)
 {
 	if ((am->afmt == outFMT) && (am->nb_channels == outCH)
-	        && (am->sample_rate==outSR) && (am->channel_layout == outChCfg)) return;
+	        && (am->sample_rate==outSR) && (am->channel_layout == outChCfg)) return GF_OK;
 
+	if (outCH > GF_AUDIO_MIXER_MAX_CHANNELS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioMixer] Number of output channels %d higher than max channels supported %d\n", outCH, GF_AUDIO_MIXER_MAX_CHANNELS));
+		return GF_NOT_SUPPORTED;
+	}
+	if (!outSR) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioMixer] Invalid output sample rate 0\n"));
+		return GF_NOT_SUPPORTED;
+	}
 	gf_mixer_lock(am, GF_TRUE);
 	am->afmt = outFMT;
 	am->bit_depth = gf_audio_fmt_bit_depth(am->afmt);
-	if (!am->force_channel_out) am->nb_channels = outCH;
+	if (!am->force_channel_out)
+		am->nb_channels = outCH;
 	if (get_best_samplerate(am, &outSR, &outCH, &outFMT) == GF_OK) {
 		am->sample_rate = outSR;
 		if (outCH>2) am->channel_layout = outChCfg;
@@ -272,6 +286,7 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u6
 	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
 	am->must_reconfig = GF_FALSE;
 	gf_mixer_lock(am, GF_FALSE);
+	return GF_OK;
 }
 
 static GFINLINE s32 make_s24_int(u8 *ptr)
