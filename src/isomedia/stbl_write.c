@@ -73,13 +73,18 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	}
 	//check the last DTS - we allow 0-duration samples (same DTS)
 	if (DTS >= stts->w_LastDTS) {
+		u32 nb_extra = 0;
 		ent = &stts->entries[stts->nb_entries-1];
 		if (!ent->sampleDelta && (ent->sampleCount>1)) {
 			ent->sampleDelta = (u32) ( DTS / ent->sampleCount);
 			stts->w_LastDTS = DTS - ent->sampleDelta;
 		}
 		//OK, we're adding at the end
-		if (DTS == stts->w_LastDTS + ent->sampleDelta) {
+		if ((DTS == stts->w_LastDTS + ent->sampleDelta)
+			//for raw audio, consider (dts==last_dts) and (dts==last_dts+2*delta) as sample append to cope with
+			//timescale vs samplerate precision
+			|| ((nb_packed_samples>1) && ((DTS == stts->w_LastDTS) || (DTS == stts->w_LastDTS + 2*ent->sampleDelta) ))
+		) {
 			(*sampleNumber) = stts->w_currentSampleNum + 1;
 			ent->sampleCount += nb_packed_samples;
 			stts->w_currentSampleNum += nb_packed_samples;
@@ -112,20 +117,43 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		}
 		//we definitely need to split the entry ;)
 		ent->sampleCount --;
-		if (stts->alloc_size==stts->nb_entries) {
+
+		if (nb_packed_samples>1)
+			nb_extra = 1;
+
+		if (stts->alloc_size <= stts->nb_entries + nb_extra) {
 			ALLOC_INC(stts->alloc_size);
 			stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry)*stts->alloc_size);
 			if (!stts->entries) return GF_OUT_OF_MEM;
 			memset(&stts->entries[stts->nb_entries], 0, sizeof(GF_SttsEntry)*(stts->alloc_size-stts->nb_entries) );
 		}
+
+		if (nb_extra)
+			nb_extra = stts->entries[stts->nb_entries-1].sampleDelta;
+
 		ent = &stts->entries[stts->nb_entries];
 		stts->nb_entries++;
 
-		ent->sampleCount = 1 + nb_packed_samples;
+		if (nb_packed_samples==1) {
+			ent->sampleCount = 2;
+			ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
+			stts->w_LastDTS = DTS;
+			(*sampleNumber) = stts->w_currentSampleNum+1;
+			stts->w_currentSampleNum += 1;
+			return GF_OK;
+		}
+
+		ent->sampleCount = 1;
 		ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
+
+		ent = &stts->entries[stts->nb_entries];
+		stts->nb_entries++;
+
+		ent->sampleCount = nb_packed_samples;
+		ent->sampleDelta = nb_extra;
 		stts->w_LastDTS = DTS;
+		(*sampleNumber) = stts->w_currentSampleNum + 1;
 		stts->w_currentSampleNum += nb_packed_samples;
-		(*sampleNumber) = stts->w_currentSampleNum;
 		return GF_OK;
 	}
 
