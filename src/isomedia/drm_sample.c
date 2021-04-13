@@ -1307,11 +1307,24 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf, u32 s
 	has_saiz = has_saio = GF_FALSE;
 
 	if (stbl) {
+		if (!stbl->patch_piff_psec) {
+			stbl->patch_piff_psec = gf_opts_get_bool("core", "piff-force-subsamples") ? 2 : 1;
+		}
+		if (stbl->patch_piff_psec==2)
+			return GF_FALSE;
 		sai_sizes = stbl->sai_sizes;
 		sai_offsets = stbl->sai_offsets;
 	}
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	else if (_traf) {
+		if (traf->trex && traf->trex->track && traf->trex->track->Media->information->sampleTable) {
+			GF_SampleTableBox *_stbl = traf->trex->track->Media->information->sampleTable;
+			if (!_stbl->patch_piff_psec) {
+				_stbl->patch_piff_psec = gf_opts_get_bool("core", "piff-force-subsamples") ? 2 : 1;
+			}
+			if (_stbl->patch_piff_psec==2)
+				return GF_FALSE;
+		}
 		sai_sizes = traf->sai_sizes;
 		sai_offsets = traf->sai_offsets;
 	}

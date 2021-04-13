@@ -1277,6 +1277,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	u64 pos = gf_bs_get_position(bs);
 	Bool do_warn = GF_TRUE;
 	Bool use_multikey = GF_FALSE;
+	Bool patch_subsamples_present = GF_FALSE;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (!traf)
@@ -1320,6 +1321,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	else if (senc_size >= count * (subs_size)) {
 		def_IV_size = 0;
 	}
+
+	if (gf_opts_get_bool("core", "piff-force-subsamples") && !(senc->flags & 0x00000002))
+		patch_subsamples_present = GF_TRUE;
 
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
@@ -1432,6 +1436,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			}
 			gf_bs_read_data(bs, sai->cenc_data, sai->cenc_data_size);
 			senc_size -= sai->cenc_data_size;
+
+			if (patch_subsamples_present) {
+				gf_bs_read_int(bs, nb_subs_bits);
+			}
 		} else {
 			i--;
 			sai->isNotProtected = 1;

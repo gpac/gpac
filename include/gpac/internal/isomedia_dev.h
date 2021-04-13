@@ -2050,6 +2050,7 @@ typedef struct
 	Bool no_sync_found;
 
 	u32 r_last_chunk_num, r_last_sample_num, r_last_offset_in_chunk;
+	u8 patch_piff_psec;
 } GF_SampleTableBox;
 
 GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end);
