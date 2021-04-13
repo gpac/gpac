@@ -368,7 +368,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (update_mixer) {
 		gf_mixer_remove_all(st->am);
-		gf_mixer_force_chanel_out(st->am, ab->numChan);
+		gf_mixer_force_channel_out(st->am, ab->numChan);
 	}
 
 	while (gf_list_count(st->new_inputs)) {

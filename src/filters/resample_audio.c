@@ -207,12 +207,14 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//initial config
 	if (!ctx->freq || !ctx->nb_ch || !ctx->afmt) {
+		GF_Err e;
 		ctx->afmt = ctx->ofmt ? ctx->ofmt : afmt;
 		ctx->freq = ctx->osr ? ctx->osr : sr;
 		ctx->nb_ch = ctx->och ? ctx->och : nb_ch;
 		ctx->ch_cfg = ch_cfg;
 
-		gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
+		e = gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
+		if (e) return e;
 	}
 	//input reconfig
 	if ((sr != ctx->input_ai.samplerate) || (nb_ch != ctx->input_ai.chan)
@@ -277,7 +279,7 @@ static GF_Err resample_process(GF_Filter *filter)
 				cts /= FIX2INT(ctx->speed * ctx->timescale);
 				if (!ctx->out_cts_plus_one) {
 					ctx->out_cts_plus_one = cts + 1;
-				} else {
+				} else if (ctx->freq != ctx->input_ai.samplerate) {
 					s64 diff = cts;
 					diff -= ctx->out_cts_plus_one-1;
 					//200ms max
@@ -348,6 +350,7 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 {
 	u32 sr, nb_ch, afmt;
 	u64 ch_cfg;
+	GF_Err e;
 	const GF_PropertyValue *p;
 	GF_ResampleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->opid != pid) return GF_BAD_PARAM;
@@ -383,7 +386,8 @@ static GF_Err resample_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 	ctx->nb_ch = nb_ch;
 	ctx->ch_cfg = ch_cfg;
 
-	gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->afmt, ctx->ch_cfg);
+	e = gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->afmt, ctx->ch_cfg);
+	if (e) return e;
 	ctx->passthrough = GF_FALSE;
 
 	if ((ctx->input_ai.samplerate==ctx->freq) && (ctx->input_ai.chan==ctx->nb_ch) && (ctx->input_ai.afmt==afmt) && (ctx->speed == FIX_ONE))
