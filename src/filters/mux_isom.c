@@ -1724,6 +1724,9 @@ sample_entry_setup:
 			tkw->raw_audio_bytes_per_sample /= 8;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 			tkw->raw_samplerate = p ? p->value.uint : 0;
+			//force timescale to be samplerate, except if explicit overwrite
+			if (ctx->mediats==0)
+				tkw->tk_timescale = tkw->raw_samplerate;
 		}
 		else if (tkw->stream_type == GF_STREAM_VISUAL) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
@@ -3488,7 +3491,11 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 
 	tkw->sample.IsRAP = 0;
-	sap_type = mp4_mux_get_sap(ctx, pck);
+	if (tkw->codecid==GF_CODECID_RAW) {
+		sap_type = GF_FILTER_SAP_1;
+	} else {
+		sap_type = mp4_mux_get_sap(ctx, pck);
+	}
 	if (sap_type==GF_FILTER_SAP_1)
 		tkw->sample.IsRAP = SAP_TYPE_1;
 	else if ( (sap_type == GF_FILTER_SAP_4) && (tkw->stream_type != GF_STREAM_VISUAL) )
