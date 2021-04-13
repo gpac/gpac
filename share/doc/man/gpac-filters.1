@@ -3029,7 +3029,7 @@ refs (bool, default: false):   forward only frames used as reference frames, if 
 .br
 speed (dbl, default: 1.0):     speed for real-time regulation mode - only positive value
 .br
-raw (bool, default: false):    force input streams to be in raw format (i.e. forces decoding of input)
+raw (bool, default: false):    force input AV streams to be in raw format (i.e. forces decoding of AV input)
 .br
 frames (uintl):                drop all except listed frames (first being 1), off by default
 .br
@@ -3785,6 +3785,8 @@ The following global options (applying to the filter, not the sources) may also 
 .br
 * floop=N: set .I floop option from within playlist.
 .br
+* raw: set .I raw option from within playlist.
+.br
 
 .br
 The default behavior when joining sources is to realign the timeline origin of the new source to the maximum time in all pids of the previous sources.
@@ -4009,6 +4011,8 @@ fsort (enum, default: no):     sort list of files
 sigcues (bool, default: false): inject CueStart property at each source begin (new or repeated) for DASHing
 .br
 fdel (bool, default: false):   delete source files after processing in playlist mode (does not delete the playlist)
+.br
+raw (bool, default: false):    force input AV streams to be in raw format (i.e. forces decoding of AV input)
 .br
 
 .br
@@ -7562,7 +7566,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev704-gef4a3757a-master
+build: 1.1.0-DEV-rev709-gf539650ec-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
