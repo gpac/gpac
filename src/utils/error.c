@@ -1838,15 +1838,29 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		}
 	}
 	if (all_num) {
+		u32 div_trail_zero = 1;
 		sscanf(value, LLD"."LLU, &frac->num, &frac->den);
 
+		i=0;
 		frac->den = 1;
-		while (len) {
-			len--;
+		while (i<len) {
+			i++;
 			frac->den *= 10;
 		}
-		frac->num *= frac->den;
-		frac->num += atoi(sep+1);
+		//trash trailing zero
+		i=len;
+		while (i>0) {
+			if (sep[i] != '0') {
+				break;
+			}
+			div_trail_zero *= 10;
+			i--;
+		}
+
+
+		frac->num *= frac->den / div_trail_zero;
+		frac->num += atoi(sep+1) / div_trail_zero;
+		frac->den /= div_trail_zero;
 
 		return GF_TRUE;
 	}
@@ -1867,6 +1881,10 @@ Bool gf_parse_frac(const char *value, GF_Fraction *frac)
 	Bool res;
 	if (!frac) return GF_FALSE;
 	res = gf_parse_lfrac(value, &r);
+	while ((r.num >= 0x80000000) && (r.den > 1000)) {
+		r.num /= 1000;
+		r.den /= 1000;
+	}
 	frac->num = (s32) r.num;
 	frac->den = (u32) r.den;
 	return res;
