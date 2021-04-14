@@ -5063,7 +5063,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	const char *period_xlink = NULL;
 	u64 remote_dur = 0;
 	GF_DasherPeriod *p;
-	Double period_idx;
+	s64 period_idx;
 	GF_Fraction64 period_start, next_period_start;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;

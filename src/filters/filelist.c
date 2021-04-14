@@ -1798,7 +1798,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (!pck) {
 				iopid->wait_rap = GF_TRUE;
 				if (!ctx->wait_dts_plus_one.num
-					|| ((dts + 1) * ctx->wait_dts_plus_one.den > ctx->wait_dts_plus_one.num * iopid->timescale)
+					|| ((dts + 1) * ctx->wait_dts_plus_one.den > ctx->wait_dts_plus_one.num * (u64) iopid->timescale)
 				) {
 					ctx->wait_dts_plus_one.num = dts + 1;
 					ctx->wait_dts_plus_one.den = iopid->timescale;
@@ -1806,7 +1806,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				ctx->dts_sub_plus_one.num = 0;
 				return GF_OK;
 			}
-			if (ctx->wait_dts_plus_one.num && (dts * ctx->wait_dts_plus_one.den < (ctx->wait_dts_plus_one.num - 1) * iopid->timescale) ) {
+			if (ctx->wait_dts_plus_one.num && (dts * ctx->wait_dts_plus_one.den < (ctx->wait_dts_plus_one.num - 1) * (u64) iopid->timescale) ) {
 				gf_filter_pid_drop_packet(iopid->ipid);
 				iopid->wait_rap = GF_TRUE;
 				ctx->dts_sub_plus_one.num = 0;
@@ -1818,7 +1818,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			if (!ctx->dts_sub_plus_one.num
-				|| (dts * ctx->dts_sub_plus_one.den < (ctx->dts_sub_plus_one.num - 1) * iopid->timescale)
+				|| (dts * ctx->dts_sub_plus_one.den < (ctx->dts_sub_plus_one.num - 1) *(u64)  iopid->timescale)
 			) {
 				ctx->dts_sub_plus_one.num = dts + 1;
 				ctx->dts_sub_plus_one.den = iopid->timescale;
@@ -1972,7 +1972,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 										ts_diff *= iopid->ra_info.sample_rate;
 										ts_diff /= iopid->o_timescale;
 									}
-									iopid->audio_samples_to_keep = ts_diff;
+									iopid->audio_samples_to_keep = (s32) ts_diff;
 									if (ts_diff) keep_pck = GF_TRUE;
 								}
 							}
@@ -2021,7 +2021,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 										ts_diff *= iopid->ra_info.sample_rate;
 										ts_diff /= iopid->o_timescale;
 									}
-									iopid->audio_samples_to_keep = ts_diff;
+									iopid->audio_samples_to_keep = (s32) ts_diff;
 									if (ts_diff)
 										do_break = GF_FALSE;
 								}
@@ -2149,7 +2149,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 								diff_ts *= iopid->ra_info.sample_rate;
 								diff_ts /= iopid->timescale;
 							}
-							iopid->audio_samples_to_keep = diff_ts;
+							iopid->audio_samples_to_keep = (s32) diff_ts;
 							if (ctx->keep_splice) {
 								filein_send_packet(ctx, iopid, pck, GF_TRUE);
 							} else {
@@ -2327,13 +2327,13 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (!iopid->ipid) continue;
 
 			ts = iopid->max_cts - iopid->dts_sub;
-			if (max_cts.num * iopid->timescale < ts * max_cts.den) {
+			if (max_cts.num * (u64) iopid->timescale < ts * max_cts.den) {
 				max_cts.num = ts;
 				max_cts.den = iopid->timescale;
 			}
 
 			ts = iopid->max_dts - iopid->dts_sub;
-			if (max_dts.num * iopid->timescale < ts * max_dts.den) {
+			if (max_dts.num * (u64) iopid->timescale < ts * max_dts.den) {
 				max_dts.num = ts;
 				max_dts.den = iopid->timescale;
 			}
