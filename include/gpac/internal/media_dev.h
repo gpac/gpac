@@ -859,6 +859,9 @@ typedef struct
 	AV1GMParams SavedGmParams[AV1_NUM_REF_FRAMES];
 	u8 RefFrameType[AV1_NUM_REF_FRAMES];
 
+	u32 RefUpscaledWidth[AV1_NUM_REF_FRAMES];
+	u32 RefFrameHeight[AV1_NUM_REF_FRAMES];
+
 	/*frame parsing state*/
 	AV1StateFrame frame_state;
 } AV1State;
