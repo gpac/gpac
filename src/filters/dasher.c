@@ -1409,6 +1409,11 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		strcpy(profiles_string, "urn:mpeg:dash:profile:full:2011");
 	}
 
+	if (ctx->cmaf) {
+		const size_t offset = strlen(profiles_string);
+		strncat(profiles_string+offset, ",urn:mpeg:dash:profile:cmaf:2019", GF_MAX_PATH-offset-1);
+	}
+
 	if (ctx->profX) {
 		char profiles_w_ext[GF_MAX_PATH+256];
 		sprintf(profiles_w_ext, "%s,%s", profiles_string, ctx->profX);
@@ -2712,7 +2717,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	gf_filter_set_source(ds->dst_filter, filter, szSRC);
 
 	if (ds->tci && !trash_init) {
-		//push NULL key, we are not encrypting the  init segment
+		//push NULL key, we are not encrypting the init segment
 		gf_cryptfout_push_key(ds->dst_filter, NULL, NULL);
 	}
 }
