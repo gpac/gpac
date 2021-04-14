@@ -170,6 +170,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_PIXFMT, NULL);
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAR, NULL);
@@ -629,6 +630,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_STRIDE_UV, NULL);
 
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(opid->io_filter_ctx->inputs[0]->time_base.den) );
+				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(opid->io_filter_ctx->inputs[0]->time_base.den, opid->io_filter_ctx->inputs[0]->time_base.num) );
 
 				opid->width = frame->width;
 				opid->height = frame->height;
