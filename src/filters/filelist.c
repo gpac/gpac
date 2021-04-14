@@ -231,14 +231,21 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 	}
 
 	//and convert back cts/dts offsets to output timescale
-	iopid->dts_o = ctx->dts_offset.num;
-	iopid->dts_o *= iopid->o_timescale;
-	iopid->dts_o /= ctx->dts_offset.den;
-
-	iopid->cts_o = ctx->cts_offset.num;
-	iopid->cts_o *= iopid->o_timescale;
-	iopid->cts_o /= ctx->cts_offset.den;
-
+	if (ctx->dts_offset.num && ctx->dts_offset.den) {
+		iopid->dts_o = ctx->dts_offset.num;
+		iopid->dts_o *= iopid->o_timescale;
+		iopid->dts_o /= ctx->dts_offset.den;
+	} else {
+		iopid->dts_o = 0;
+	}
+	if (ctx->cts_offset.num && ctx->cts_offset.den) {
+		iopid->cts_o = ctx->cts_offset.num;
+		iopid->cts_o *= iopid->o_timescale;
+		iopid->cts_o /= ctx->cts_offset.den;
+	} else {
+		iopid->cts_o = 0;
+	}
+	
 	if (prev_timescale) {
 		u64 dts, cts;
 

@@ -1018,7 +1018,7 @@ do_mix:
 		for (i=0; i<count; i++) {
 			in = (MixerInput *)gf_list_get(am->sources, i);
 			if (in->muted) continue;
-			if (in->in_bytes_used) in->src->ReleaseFrame(in->src->callback, in->in_bytes_used-1);
+			if (in->in_bytes_used>1) in->src->ReleaseFrame(in->src->callback, in->in_bytes_used-1);
 			in->in_bytes_used = 0;
 		}
 		if (!nb_to_fill) break;
