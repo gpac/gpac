@@ -663,7 +663,8 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 	//remove stream from period
 	if (res>=0) {
 		//force an EOS on this stream for ondemand / side index generation flush
-		gf_filter_pid_set_eos(ds->opid);
+		if (ds->opid)
+			gf_filter_pid_set_eos(ds->opid);
 		ds->rep_init = GF_FALSE;
 		gf_list_rem(ctx->current_period->streams, res);
 	}
