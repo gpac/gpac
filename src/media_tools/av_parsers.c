@@ -2946,20 +2946,16 @@ static void read_interpolation_filter(GF_BitStream *bs)
 	}
 }
 
-static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
+static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag, s8 *ref_frame_idx)
 {
 	Bool found_ref = GF_FALSE;
 	u32 i = 0;
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
 		if (found_ref == 1) {
-#if 0
-			UpscaledWidth = RefUpscaledWidth[ref_frame_idx[i]];
-			FrameWidth = UpscaledWidth;
-			FrameHeight = RefFrameHeight[ref_frame_idx[i]];
-			RenderWidth = RefRenderWidth[ref_frame_idx[i]];
-			RenderHeight = RefRenderHeight[ref_frame_idx[i]];
-#endif
+			state->UpscaledWidth = state->RefUpscaledWidth[ref_frame_idx[i]];
+			state->width = state->UpscaledWidth;
+			state->height = state->RefFrameHeight[ref_frame_idx[i]];
 			break;
 		}
 	}
@@ -3164,6 +3160,8 @@ static void av1_decode_frame_wrapup(AV1State *state)
 			state->RefOrderHint[i] = state->frame_state.order_hint;
 			state->SavedGmParams[i] = state->GmParams;
 			state->RefFrameType[i] = state->frame_state.frame_type;
+			state->RefUpscaledWidth[i] = state->UpscaledWidth;
+			state->RefFrameHeight[i] = state->height;
 		}
 	}
 	state->frame_state.seen_frame_header = GF_FALSE;
@@ -3502,7 +3500,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 				}
 			}
 			if (frame_size_override_flag && !error_resilient_mode) {
-				frame_size_with_refs(bs, state, frame_size_override_flag);
+				frame_size_with_refs(bs, state, frame_size_override_flag, ref_frame_idx);
 			}
 			else {
 				av1_frame_size(bs, state, frame_size_override_flag);
