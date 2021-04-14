@@ -1201,8 +1201,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 		if (full_dump) break;
-		DUMP_OBU_INT(width)
-		DUMP_OBU_INT(height)
+		DUMP_OBU_INT(sequence_width)
+		DUMP_OBU_INT(sequence_height)
 		DUMP_OBU_INT(bit_depth)
 		DUMP_OBU_INT(still_picture)
 		DUMP_OBU_INT(OperatingPointIdc)
@@ -1233,6 +1233,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 
 				DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
 				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+				DUMP_OBU_INT(width);
+				DUMP_OBU_INT(height);
 			}
 			if (obu_type==OBU_FRAME_HEADER)
 				break;
