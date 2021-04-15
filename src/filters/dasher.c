@@ -1301,7 +1301,8 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 		}
 		if (ds->set->id<0) {
-			if (!ds->as_id)
+			//period may be NULL (no longer scheduled)
+			if (!ds->as_id && ds->period && ds->period->period)
 				ds->as_id = gf_list_find(ds->period->period->adaptation_sets, ds->set) + 1;
 			ds->set->id = ds->as_id;
 		}
