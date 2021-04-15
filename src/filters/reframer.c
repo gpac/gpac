@@ -85,7 +85,10 @@ typedef struct
 	u64 sap_ts_plus_one;
 	Bool first_pck_sent;
 
+	//only positive delay here
 	u64 tk_delay;
+	//only media skip (video, audio priming)
+	u32 ts_sub;
 	Bool in_eos;
 	u32 split_start;
 	u32 split_end;
@@ -256,11 +259,13 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	st->needs_adjust = ctx->xadjust ? GF_TRUE : GF_FALSE;
 
 	st->tk_delay = 0;
+	st->ts_sub = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (p) {
 		//delay negative is skip: this is CTS adjustment for B-frames: we keep that notif in the stream
 		if (p->value.longsint<=0) {
 			st->tk_delay = 0;
+			st->ts_sub = (u32) -p->value.longsint;
 		}
 		//delay positive is delay, we keep the value for RT regulation and range
 		else {
@@ -1244,7 +1249,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 		//fetch input packets
 		for (i=0; i<count; i++) {
-			u64 ts;
+			u64 ts, check_ts;
 			u32 nb_audio_samples_to_keep = 0;
 			u32 pck_in_range, dur;
 			Bool is_sap;
@@ -1321,6 +1326,15 @@ GF_Err reframer_process(GF_Filter *filter)
 				ts = gf_filter_pck_get_cts(pck);
 			ts += st->tk_delay;
 
+			//in range extraction we target the presentation time, use CTS and apply delay
+			if (ctx->is_range_extraction) {
+				check_ts = gf_filter_pck_get_cts(pck) + st->tk_delay;
+				if (check_ts > st->ts_sub) check_ts -= st->ts_sub;
+				else check_ts = 0;
+			} else {
+				check_ts = ts;
+			}
+
 			//if nosap is set, consider all packet SAPs
 			is_sap = (ctx->nosap || ctx->raw || gf_filter_pck_get_sap(pck)) ? GF_TRUE : GF_FALSE;
 
@@ -1373,7 +1387,7 @@ GF_Err reframer_process(GF_Filter *filter)
 				continue;
 
 			//check if packet is in our range
-			pck_in_range = reframer_check_pck_range(ctx, st, ts, dur, st->nb_frames_range, &nb_audio_samples_to_keep);
+			pck_in_range = reframer_check_pck_range(ctx, st, check_ts, dur, st->nb_frames_range, &nb_audio_samples_to_keep);
 
 
 			//SAP packet, decide if we cut here or at previous SAP
@@ -1653,6 +1667,7 @@ GF_Err reframer_process(GF_Filter *filter)
 									st->split_start /= min_timescale;
 								}
 							}
+
 							st->ts_at_range_start_plus_one = ots + 1;
 
 							if ((st->range_start_computed==1)
