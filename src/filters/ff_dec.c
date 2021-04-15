@@ -513,6 +513,7 @@ decode_next:
 			}
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
 		} else {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
 			ctx->delay = 0;
 		}
 	}
