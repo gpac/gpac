@@ -729,6 +729,9 @@ GF_FilterRegister FFDemuxRegister = {
 	GF_FS_SET_HELP("Demultiplexes files and open protocol using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
+	"This will list both supported input formats and protocols.\n"
+	"Input protocols are listed with `Description: Input protocol`, and the subclass name identitfes the protocol scheme.\n"
+	"For example, if `ffdmx:rtmp` is listed as input protocol, this means `rtmp://` source URLs are supported.\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
@@ -749,6 +752,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
+
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
@@ -1001,7 +1005,15 @@ GF_FilterRegister FFAVInRegister = {
 	"- `FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"
 	"- `screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"
 	"- `Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"
-	"- X display name (eg `:0.0`) on linux"
+	"- X display name (eg `:0.0`) on linux\n"
+	"\n"
+	"The general mapping from ffmpeg command line is:\n"
+	"- ffmpeg `-f` maps to [-fmt]() option\n"
+	"- ffmpeg `-i` maps to [-dev]() option\n"
+	"\n"
+	"EX ffmpeg -f libndi_newtek -i MY_NDI_TEST ...\n"
+	"EX gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...\n"
+	"\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),

@@ -6581,6 +6581,12 @@ See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more detail
 .br
 To list all supported demuxers for your GPAC build, use gpac -h ffdmx:*.
 .br
+This will list both supported input formats and protocols.
+.br
+Input protocols are listed with Description: Input protocol, and the subclass name identitfes the protocol scheme.
+.br
+For example, if ffdmx:rtmp is listed as input protocol, this means rtmp:// source URLs are supported.
+.br
 
 .br
 
@@ -6659,6 +6665,28 @@ Typical device name can be the webcam name:
 - Capture screen 0 on OSX (0=first screen), or screenN for short
 .br
 - X display name (eg :0.0) on linux
+.br
+
+.br
+The general mapping from ffmpeg command line is:
+.br
+- ffmpeg -f maps to .I fmt option
+.br
+- ffmpeg -i maps to .I dev option
+.br
+
+.br
+Example
+.br
+ffmpeg -f libndi_newtek -i MY_NDI_TEST ...
+.br
+gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...
+.br
+
+.br
+
+.br
+
 .br
 
 .br
@@ -6818,7 +6846,13 @@ Mulitiplexes files and open output protocols using FFMPEG.
 .br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
-To list all supported muxers for your GPAC build, use gpac -h ffmx:*.
+To list all supported muxers for your GPAC build, use gpac -h ffmx:*.This will list both supported output formats and protocols.
+.br
+Output protocols are listed with Description: Output protocol, and the subclass name identitfes the protocol scheme.
+.br
+For example, if ffmx:rtmp is listed as output protocol, this means rtmp:// destination URLs are supported.
+.br
+
 .br
 Some URL formats may not be sufficient to derive the multiplexing format, you must then use .I ffmt to specify the desired format.
 .br
@@ -7566,7 +7600,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev709-gf539650ec-master
+build: 1.1.0-DEV-rev720-g36dfa62ef-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
