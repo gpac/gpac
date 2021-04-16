@@ -3467,7 +3467,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *PID, char szTemplate
 
 This only affect the current PID, not the source filter(s) for that PID.
 
-PID reconfigurations are still forwarded to the filter, so that a filter may decide to re-enable regular mode.
+PID reconfigurations are still forwarded to the filter, so that a filter may decide to re-enable regular mode. Packets sent after a PID reconfiguration are kept until the PID is reconfigured, and discarded if the PID is still in discard mode.
 
 This is typically needed for filters that stop consuming data for a while (dash forced period duration for example) but may resume
 consumption later on (stream moving from period 1 to period 2 for example).

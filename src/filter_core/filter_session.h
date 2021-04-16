@@ -778,7 +778,7 @@ struct __gf_filter_pid_inst
 	Bool force_reconfig;
 
 	//set by filter
-	Bool discard_inputs;
+	u32 discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
@@ -912,6 +912,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid);
 
 /*internal tasks definitions*/
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
+void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task);
 void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
