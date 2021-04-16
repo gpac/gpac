@@ -219,6 +219,9 @@ typedef struct
 	u32 nb_frames;
 } GF_NALUDmxCtx;
 
+static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
+static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx);
+
 
 GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -346,6 +349,14 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	//copy properties at init or reconfig
 	if (ctx->opid) {
+		if (ctx->poc_probe_done) {
+			//full frame mode, flush everything before signaling discontinuity
+			//for other modes discontinuity we signal disconntinuity before the current AU being reconstructed
+			if (ctx->full_au_source && ctx->first_pck_in_au)
+				naludmx_finalize_au_flags(ctx);
+
+			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+		}
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
@@ -1784,7 +1795,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 	gf_list_add(list, sl);
 }
 
-void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
+static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 {
 	u64 ts;
 	Bool is_rap = GF_FALSE;
@@ -3323,6 +3334,9 @@ naldmx_flush:
 		gf_filter_update_status(filter, -1, szStatus);
 	}
 	if (ctx->full_au_source && ctx->poc_probe_done) {
+		if (ctx->first_pck_in_au)
+			naludmx_finalize_au_flags(ctx);
+
 		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	}
 	return GF_OK;
