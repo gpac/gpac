@@ -970,7 +970,9 @@ const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, 
 const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 prop_4cc);
 const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, const char *prop_name);
 
+void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid);
 
+Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst);
 enum
 {
 	EDGE_STATUS_NONE=0,

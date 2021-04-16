@@ -550,7 +550,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	}
 }
 
-static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
+Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 {
 	u32 size=0, pos=0;
 	u64 byte_offset = 0;
@@ -779,6 +779,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 		if (!pid->request_property_map && !is_cmd_pck && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
+
+			if (pid->filter->user_pid_props)
+				gf_filter_pid_set_args(pid->filter, pid);
 
 			pck->info.flags |= GF_PCKF_PROPS_CHANGED;
 		}

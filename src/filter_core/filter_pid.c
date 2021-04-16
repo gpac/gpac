@@ -3379,11 +3379,30 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		Bool parse_prop = GF_TRUE;
 		char *value_next_list = NULL;
 		char *value_sep = NULL;
-		char *value, *name;
-		//look for our arg separator
+		char *value, *name, *sep;
 
-		char *sep = (char *)gf_fs_path_escape_colon(filter->session, args);
-
+		//escaped arg separator, skip everything until next escape sep or end
+		if (args[0] == sep_args) {
+			args++;
+			while (1) {
+				if (sep_args == ':') {
+					sep = (char *)gf_fs_path_escape_colon(filter->session, args);
+				} else {
+					sep = strchr(args, sep_args);
+				}
+				if (!sep) return;
+				if (sep[1]==sep_args) {
+					args = sep+1;
+					break;
+				}
+				args = sep+1;
+			}
+		}
+		if (sep_args == ':') {
+			sep = (char *)gf_fs_path_escape_colon(filter->session, args);
+		} else {
+			sep = strchr(args, sep_args);
+		}
 		if (sep) {
 			char *xml_start = strchr(args, '<');
 			u32 len = (u32) (sep-args);
@@ -3606,7 +3625,7 @@ GF_Err gf_filter_pid_push_properties(GF_FilterPid *pid, char *args, Bool direct_
 	return GF_OK;
 }
 
-static void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
+void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid)
 {
 	Bool req_map_bck;
 	char *args;
@@ -7066,6 +7085,7 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 	}
 	if (discard_on) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Discarding packets on PID %s (filter %s to %s)\n", pid->pid->name, pid->pid->filter->name, pid->filter->name));
+		gf_filter_aggregate_packets(pidi);
 		while (gf_filter_pid_get_packet(pid)) {
 			gf_filter_pid_drop_packet(pid);
 		}
