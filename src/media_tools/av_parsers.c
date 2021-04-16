@@ -2946,20 +2946,16 @@ static void read_interpolation_filter(GF_BitStream *bs)
 	}
 }
 
-static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag)
+static void frame_size_with_refs(GF_BitStream *bs, AV1State *state, Bool frame_size_override_flag, s8 *ref_frame_idx)
 {
 	Bool found_ref = GF_FALSE;
 	u32 i = 0;
 	for (i = 0; i < AV1_REFS_PER_FRAME; i++) {
 		found_ref = gf_bs_read_int_log_idx(bs, 1, "found_ref", i);
 		if (found_ref == 1) {
-#if 0
-			UpscaledWidth = RefUpscaledWidth[ref_frame_idx[i]];
-			FrameWidth = UpscaledWidth;
-			FrameHeight = RefFrameHeight[ref_frame_idx[i]];
-			RenderWidth = RefRenderWidth[ref_frame_idx[i]];
-			RenderHeight = RefRenderHeight[ref_frame_idx[i]];
-#endif
+			state->UpscaledWidth = state->RefUpscaledWidth[ref_frame_idx[i]];
+			state->width = state->UpscaledWidth;
+			state->height = state->RefFrameHeight[ref_frame_idx[i]];
 			break;
 		}
 	}
@@ -3164,6 +3160,8 @@ static void av1_decode_frame_wrapup(AV1State *state)
 			state->RefOrderHint[i] = state->frame_state.order_hint;
 			state->SavedGmParams[i] = state->GmParams;
 			state->RefFrameType[i] = state->frame_state.frame_type;
+			state->RefUpscaledWidth[i] = state->UpscaledWidth;
+			state->RefFrameHeight[i] = state->height;
 		}
 	}
 	state->frame_state.seen_frame_header = GF_FALSE;
@@ -3419,7 +3417,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	else
 		frame_size_override_flag = gf_bs_read_int_log(bs, 1, "frame_size_override_flag");
 
-	frame_state->order_hint = gf_bs_read_int(bs, state->OrderHintBits);
+	frame_state->order_hint = gf_bs_read_int_log(bs, state->OrderHintBits, "order_hint");
 	if (FrameIsIntra || error_resilient_mode) {
 		primary_ref_frame = AV1_PRIMARY_REF_NONE;
 	}
@@ -3502,7 +3500,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 				}
 			}
 			if (frame_size_override_flag && !error_resilient_mode) {
-				frame_size_with_refs(bs, state, frame_size_override_flag);
+				frame_size_with_refs(bs, state, frame_size_override_flag, ref_frame_idx);
 			}
 			else {
 				av1_frame_size(bs, state, frame_size_override_flag);
@@ -3555,7 +3553,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 
 	av1_parse_tile_info(bs, state);
 	//quantization_params( ):
-	u8 base_q_idx = gf_bs_read_int(bs, 8);
+	u8 base_q_idx = gf_bs_read_int_log(bs, 8, "base_q_idx");
 	s32 DeltaQUDc = 0;
 	s32 DeltaQUAc = 0;
 	s32 DeltaQVDc = 0;
@@ -3564,7 +3562,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (!state->config->monochrome) {
 		u8 diff_uv_delta = 0;
 		if (state->separate_uv_delta_q)
-			diff_uv_delta = gf_bs_read_int(bs, 1);
+			diff_uv_delta = gf_bs_read_int_log(bs, 1, "diff_uv_delta");
 
 		DeltaQUDc = av1_delta_q(bs, "DeltaQUDc_coded", "DeltaQUDc");
 		DeltaQUAc = av1_delta_q(bs, "DeltaQUAc_coded", "DeltaQUAc");
@@ -4005,7 +4003,7 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	Bool tile_start_and_end_present_flag = GF_FALSE;
 	GF_Err e = GF_OK;
 	if (numTiles > 1)
-		tile_start_and_end_present_flag = gf_bs_read_int(bs, 1);
+		tile_start_and_end_present_flag = gf_bs_read_int_log(bs, 1, "tile_start_and_end_present_flag");
 
 	if (numTiles == 1 || !tile_start_and_end_present_flag) {
 		tg_start = 0;
@@ -4015,8 +4013,8 @@ static GF_Err av1_parse_tile_group(GF_BitStream *bs, AV1State *state, u64 obu_st
 	}
 	else {
 		u32 tileBits = state->tileColsLog2 + state->tileRowsLog2;
-		/*state->frame_state.tg[state->frame_state.tg_idx].start_idx*/ tg_start = gf_bs_read_int(bs, tileBits);
-		/*state->frame_state.tg[state->frame_state.tg_idx].end_idx*/ tg_end = gf_bs_read_int(bs, tileBits);
+		/*state->frame_state.tg[state->frame_state.tg_idx].start_idx*/ tg_start = gf_bs_read_int_log(bs, tileBits, "tg_start");
+		/*state->frame_state.tg[state->frame_state.tg_idx].end_idx*/ tg_end = gf_bs_read_int_log(bs, tileBits, "tg_end");
 	}
 	/*state->frame_state.tg_idx++;*/
 
