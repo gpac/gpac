@@ -59,7 +59,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TEXT_MPEG4, GF_CODECID_TEXT_MPEG4, GF_STREAM_TEXT, "MPEG-4 Streaming Text", "m4txt", "text", "application/x-mpeg4-text"},
 	{GF_CODECID_LASER, GF_CODECID_LASER, GF_STREAM_SCENE, "MPEG-4 LASeR", "laser", "lsr1", "application/x-laser"},
 	{GF_CODECID_SAF, GF_CODECID_SAF, GF_STREAM_SCENE, "MPEG-4 Simple Aggregation Format", "saf", "mp4s", "application/saf"},
-	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "cmp|m4vp2", "mp4v", "video/mp4v-es"},
+	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "cmp|m4ve|m4v", "mp4v", "video/mp4v-es"},
 	{GF_CODECID_AVC, GF_CODECID_AVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video", "264|avc|h264", "avc1", "video/avc"},
 	{GF_CODECID_AVC_PS, GF_CODECID_AVC_PS, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video Parameter Sets", "avcps", "avcp", "video/avc"},
 	{GF_CODECID_SVC, GF_CODECID_SVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Scalable Video Coding", "svc|avc|264|h264", "svc1", "video/svc"},
