@@ -178,6 +178,7 @@ typedef struct
 	GF_DasherPeriod *current_period, *next_period;
 	GF_List *pids;
 	Bool template_use_source;
+	s32 period_idx;
 
 	Bool use_xlink, use_cenc, check_main_role;
 
@@ -276,6 +277,7 @@ typedef struct _dash_stream
 
 	u32 bitrate;
 	GF_DasherPeriod *period;
+	GF_MPD_Period *last_period;
 
 	GF_Fraction dash_dur;
 
@@ -423,12 +425,15 @@ typedef struct _dash_stream
 	Bool dyn_bitrate;
 	u64 rate_first_dts_plus_one, rate_last_dts;
 	u64 rate_media_size;
+
+	u64 period_continuity_next_cts;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
 static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds);
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy);
 static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch);
+static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *for_ds);
 
 static GF_DasherPeriod *dasher_new_period()
 {
@@ -631,7 +636,7 @@ static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 }
 
 
-static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_new_period_request)
+static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_new_period_request)
 {
 	//period switching, check the stream is still scheduled - if so and not done, flush it, update period duration
 	s32 res = gf_list_find(ctx->current_period->streams, ds);
@@ -669,6 +674,29 @@ static GF_Err dasher_stream_period_changed(GF_DasherCtx *ctx, GF_DashStream *ds,
 		gf_list_rem(ctx->current_period->streams, res);
 	}
 	ds->request_period_switch = 0;
+
+	//this is tricky, when reassigning period IDs in the middle of a stream, we may have cases where some streams
+	//are ready several packets before other streams due to processing delay, which results in period switch signal not
+	//happening at the same time
+	if (is_new_period_request && !ds->rep && ctx->current_period->period && gf_list_count(ctx->current_period->streams)) {
+		Bool inject_in_period = GF_FALSE;
+		if (ds->period_id && ctx->current_period->period->ID && !strcmp(ds->period_id, ctx->current_period->period->ID))
+			inject_in_period = GF_TRUE;
+		else if ((ctx->period_idx>0) && (ds->period_start.num<0) && ((s32) -ds->period_start.num == ctx->period_idx))
+			inject_in_period = GF_TRUE;
+		else if (ds->period_start.num * 1000 == ctx->current_period->period->start * ds->period_start.den)
+			inject_in_period = GF_TRUE;
+
+		if (inject_in_period) {
+			gf_list_add(ctx->current_period->streams, ds);
+			ds->period = ctx->current_period;
+			dasher_setup_period(filter, ctx, ds);
+			//force a MPD publish asap
+			if (ctx->dmode != GF_DASH_STATIC)
+				ctx->mpd->publishTime = 0;
+			return GF_OK;
+		}
+	}
 	gf_list_add(ctx->next_period->streams, ds);
 	ds->period = ctx->next_period;
 	return GF_OK;
@@ -695,6 +723,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	u32 prev_stream_type;
 	Bool new_period_request = GF_FALSE;
 	const char *cue_file=NULL;
+	s64 old_clamp_dur = 0;
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -1116,6 +1145,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			break;
 		}
 
+		old_clamp_dur = ds->clamped_dur.num;
 		ds->clamped_dur.num = 0;
 		ds->clamped_dur.den = 1;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAMP_DUR);
@@ -1290,24 +1320,28 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (ds->period_continuity_id) gf_free(ds->period_continuity_id);
 	ds->period_continuity_id = NULL;
 	p = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
-	if (p && p->value.string && ctx->current_period->period) {
-		if (!ctx->current_period->period->ID) {
+	if (!ctx->mpd || (gf_list_find(ctx->mpd->periods, ds->last_period)<0))
+		ds->last_period = NULL;
+
+	if (p && p->value.string && ds->last_period) {
+		if (!ds->last_period->ID) {
 			if (p->value.string[0]) {
-				ctx->current_period->period->ID = p->value.string;
+				ds->last_period->ID = p->value.string;
 			} else {
 				char szPName[50];
-				sprintf(szPName, "%s%d", (ctx->dmode==GF_DASH_STATIC) ? "P" : "DID", ctx->last_dyn_period_id + 1);
-				ctx->current_period->period->ID = gf_strdup(szPName);
+				sprintf(szPName, "P%d", 1 + gf_list_find(ctx->mpd->periods, ds->last_period));
+				ds->last_period->ID = gf_strdup(szPName);
 			}
 		}
-		if (ds->set->id<0) {
+		if (ds->set && (ds->set->id<0)) {
 			//period may be NULL (no longer scheduled)
 			if (!ds->as_id && ds->period && ds->period->period)
 				ds->as_id = gf_list_find(ds->period->period->adaptation_sets, ds->set) + 1;
 			ds->set->id = ds->as_id;
 		}
-		ds->period_continuity_id = gf_strdup(ctx->current_period->period->ID);
+		ds->period_continuity_id = gf_strdup(ds->last_period->ID);
 	}
+	ds->last_period = NULL;
 
 	ds->period_dur.num = 0;
 	ds->period_dur.den = 1;
@@ -1327,6 +1361,31 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_XLINK, ds->xlink, GF_EOS)
 		if (ds->xlink)
 			ctx->use_xlink = GF_TRUE;
+	}
+
+	//input was done due to clamp but forced to new period, reschedule
+	if (new_period_request && ds->done && old_clamp_dur) {
+		gf_list_del_item(ctx->next_period->streams, ds);
+		//reset discard, blocking mode on output (set by EOS) and reset dasher EOS state
+		gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
+		if (ds->opid) {
+			gf_filter_pid_discard_block(ds->opid);
+			gf_filter_pid_remove(ds->opid);
+			ds->opid = NULL;
+		}
+		if (ctx->is_eos) {
+			ctx->is_eos = GF_FALSE;
+			gf_filter_pid_discard_block(ctx->opid);
+			if (ctx->opid_alt)
+			gf_filter_pid_discard_block(ctx->opid_alt);
+		}
+		ds->rep_init = GF_FALSE;
+		ds->rep = NULL;
+		ds->set = NULL;
+		ds->period = NULL;
+		ds->done = 0;
+//		gf_filter_post_process_task(filter);
+//		dasher_reset_stream(filter, ds, GF_FALSE);
 	}
 
 	//our stream is already scheduled for next period, don't do anything
@@ -1361,7 +1420,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 	//done for this stream
-	return dasher_stream_period_changed(ctx, ds, new_period_request);
+	return dasher_stream_period_changed(filter, ctx, ds, new_period_request);
 }
 
 
@@ -2365,7 +2424,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 */
 
 		/*set trick mode*/
-		if (set->intra_only) {
+		if (set->intra_only && (ds->stream_type==GF_STREAM_VISUAL)) {
 			char value[256];
 			GF_MPD_Descriptor* desc;
 			sprintf(value, "%d", ds->sync_as_id);
@@ -5055,7 +5114,6 @@ static void dasher_init_utc(GF_Filter *filter, GF_DasherCtx *ctx)
 	gf_dm_sess_del(sess);
 }
 
-static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx);
 
 static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 {
@@ -5065,7 +5123,6 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	const char *period_xlink = NULL;
 	u64 remote_dur = 0;
 	GF_DasherPeriod *p;
-	s64 period_idx;
 	GF_Fraction64 period_start, next_period_start;
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
@@ -5120,7 +5177,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 	//figure out next period
 	count = gf_list_count(ctx->current_period->streams);
-	period_idx = 0;
+	ctx->period_idx = 0;
 	period_start.num = -1;
 	period_start.den = 1;
 	for (i=0; i<count; i++) {
@@ -5128,8 +5185,8 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 
 		if (ds->done) continue;
 		if (ds->period_start.num < 0) {
-			s64 pstart = -ds->period_start.num;
-			if (!period_idx || (pstart < period_idx)) period_idx = pstart;
+			s32 pstart = (s32) -ds->period_start.num;
+			if (!ctx->period_idx || (pstart < ctx->period_idx)) ctx->period_idx = pstart;
 		} else {
 			if ((period_start.num<0) || (ds->period_start.num * period_start.den < period_start.num * ds->period_start.den)) {
 				period_start = ds->period_start;
@@ -5139,7 +5196,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	if (period_start.num >= 0)
-		period_idx = 0;
+		ctx->period_idx = 0;
 
 	if (ctx->first_context_load) {
 		GF_Err e = dasher_reload_context(filter, ctx);
@@ -5178,7 +5235,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		if (in_period) {
 			if ((period_start.num>=0) && (ds->period_start.num * period_start.den != period_start.num * ds->period_start.den))
 				in_period = GF_FALSE;
-			else if ((period_idx>0) && (-ds->period_start.num != period_idx))
+			else if ((ctx->period_idx>0) && ((s32) -ds->period_start.num != ctx->period_idx))
 				in_period = GF_FALSE;
 
 			if (!in_period && (first_in_period == ds))
@@ -5232,6 +5289,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		if (nb_done == count) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] End of MPD (no more active streams)\n"));
+			ctx->on_demand_done = GF_TRUE;
 			return GF_EOS;
 		}
 	}
@@ -5329,10 +5387,10 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	if (ctx->period_not_ready)
 		return GF_OK;
 
-	return dasher_setup_period(filter, ctx);
+	return dasher_setup_period(filter, ctx, NULL);
 }
 
-static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
+static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *inject_ds)
 {
 	u32 i, count, j, nb_sets;
 	Bool has_muxed_bases=GF_FALSE;
@@ -5353,6 +5411,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	//setup representations
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (inject_ds && (ds != inject_ds))
+			continue;
+
 		if (ds->stream_type == GF_STREAM_FILE) {
 			if (ds->xlink) remote_xlink = ds->xlink;
 		} else if (!ctx->is_period_restore) {
@@ -5366,7 +5427,12 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		Bool remove = GF_FALSE;
 		GF_DashStream *ds_video=NULL;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (inject_ds && (ds != inject_ds))
+			continue;
+
 		ds->period = ctx->current_period;
+		ds->last_period = ds->period->period;
+
 		if (ds->dyn_bitrate) ctx->dyn_rate = GF_TRUE;
 		if (ds->inband_cues || ds->cues)
 			ctx->use_cues = GF_TRUE;
@@ -5396,7 +5462,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] period uses xlink but other media source %s, ignoring source\n", ds->src_url));
 			remove = GF_TRUE;
 		} else if (ctx->is_empty_period) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] empty period defines but other media source %s, ignoring source\n", ds->src_url));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] empty period defined but other media source %s, ignoring source\n", ds->src_url));
 			remove = GF_TRUE;
 		}
 
@@ -5572,9 +5638,16 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		}
 		ds->set->udta = ds;
 		if (ds->period_continuity_id) {
-			GF_MPD_Descriptor *desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:period-continuity:2015", ds->period_continuity_id);
-			gf_list_add(ds->set->supplemental_properties, desc);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (pck && (gf_filter_pck_get_cts(pck) != ds->period_continuity_next_cts)) {
+				gf_free(ds->period_continuity_id);
+				ds->period_continuity_id = NULL;
+			} else {
+				GF_MPD_Descriptor *desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:period-continuity:2015", ds->period_continuity_id);
+				gf_list_add(ds->set->supplemental_properties, desc);
+			}
 		}
+		ds->period_continuity_next_cts = 0;
 
 
 		if (ctx->mha_compat && ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA))) {
@@ -5647,6 +5720,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 		assert(rep);
 		ds = rep->playback.udta;
 
+		if (inject_ds && (ds != inject_ds))
+			continue;
+
 		if (!dasher_template_use_source_url(ds->template ? ds->template : ctx->template))
 			continue;
 
@@ -5704,7 +5780,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	}
 
 	//init UTC reference time for dynamic
-	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) ) {
+	if (!ctx->mpd->availabilityStartTime && (ctx->dmode!=GF_MPD_TYPE_STATIC) && !inject_ds) {
 		u64 dash_start_date = ctx->ast ? gf_net_parse_date(ctx->ast) : 0;
 
 		if (!ctx->utc_initialized) {
@@ -5746,6 +5822,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		if (!ds->owns_set) continue;
+		if (inject_ds && (ds != inject_ds))
+			continue;
 		//check bitstream switching
 		dasher_check_bitstream_swicthing(ctx, ds->set);
 		//setup AS defaults, roles and co
@@ -5762,6 +5840,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	//good to go !
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+		if (inject_ds && (ds != inject_ds))
+			continue;
 		//setup segmentation
 		ds->rep_init = GF_FALSE;
 		ds->seg_done = GF_FALSE;
@@ -6889,7 +6969,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		if (! dasher_check_period_ready(ctx, is_eos)) {
 			return is_eos ? GF_SERVICE_ERROR : GF_OK;
 		}
-		e = dasher_setup_period(filter, ctx);
+		e = dasher_setup_period(filter, ctx, NULL);
 		if (e) return e;
 	}
 	if (ctx->check_connections) {
@@ -6926,7 +7006,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		while (1) {
 			u32 sap_type, dur, o_dur, split_dur;
 			s32 check_dur;
-			u64 cts, orig_cts, dts, split_dur_next;
+			u64 cts, orig_cts, dts, split_dur_next, pcont_cts;
 			Bool seg_over = GF_FALSE;
 			Bool is_packet_split = GF_FALSE;
 			Bool is_queue_flush = GF_FALSE;
@@ -6992,7 +7072,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (!pck) {
 				if (ds->request_period_switch) {
-					e = dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					e = dasher_stream_period_changed(filter, ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
 					if (e < 0) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Period switch request failed.\n"));
 						i--;
@@ -7083,6 +7163,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
+			pcont_cts = cts;
+
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
 				if (!sap_type) {
@@ -7164,6 +7246,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			dur = o_dur = gf_filter_pck_get_duration(pck);
+			pcont_cts += dur;
+			if (ds->period_continuity_next_cts < pcont_cts)
+				ds->period_continuity_next_cts = pcont_cts;
 
 			split_dur = 0;
 			split_dur_next = 0;
@@ -7488,7 +7573,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				assert(!ds->seg_done);
 
 				if (ds->request_period_switch && !gf_list_count(ds->packet_queue)) {
-					e = dasher_stream_period_changed(ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
+					e = dasher_stream_period_changed(filter, ctx, ds, (ds->request_period_switch==2) ? GF_TRUE : GF_FALSE);
 					if (e < 0) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Period switch request failed.\n"));
 						break;
