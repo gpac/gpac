@@ -1618,6 +1618,7 @@ GF_Err reframer_process(GF_Filter *filter)
 				Bool start_found = GF_FALSE;
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 				RTStream *st = gf_filter_pid_get_udta(ipid);
+				if (!st->is_playing) continue;
 
 				while (gf_list_count(st->pck_queue)) {
 					GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
