@@ -180,7 +180,7 @@ typedef struct
 	char *dyn_period_id;
 	u32 cur_splice_index;
 	u32 splice_nb_repeat;
-	Bool keep_splice, mark_only;
+	Bool keep_splice, mark_only, was_kept;
 	char *splice_props;
 	char *splice_pid_props;
 
@@ -2042,8 +2042,11 @@ static GF_Err filelist_process(GF_Filter *filter)
 							check_ts -= 1;
 						}
 						if (!iopid->audio_samples_to_keep && (check_ts * ctx->splice_ctrl->o_timescale < ctx->splice_end_cts * iopid->o_timescale)) {
-							gf_filter_pid_drop_packet(iopid->ipid);
-							break;
+							//do not drop if not raw audio and we were in keep/mark mode
+							if (iopid->ra_info.is_raw || !ctx->was_kept) {
+								gf_filter_pid_drop_packet(iopid->ipid);
+								break;
+							}
 						}
 						if (ctx->wait_splice_start) {
 							iopid->splice_ready = GF_FALSE;
@@ -2182,7 +2185,10 @@ static GF_Err filelist_process(GF_Filter *filter)
 				gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
 			}
 		}
+		ctx->was_kept = (ctx->mark_only || ctx->keep_splice) ? GF_TRUE : GF_FALSE;
+
 		ctx->mark_only = GF_FALSE;
+
 
 		ctx->splice_state = FL_SPLICE_AFTER;
 		if (ctx->keep_splice) {
@@ -2261,6 +2267,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 		ctx->nb_repeat = 0;
 		ctx->init_start = ctx->start;
 		ctx->init_stop = ctx->stop;
+		ctx->was_kept = GF_FALSE;
 		ctx->stop = ctx->start = 0;
 		nb_inactive = 0;
 		nb_done = count;
