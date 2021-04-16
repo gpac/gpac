@@ -239,7 +239,9 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	} else {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
 	}
-
+	if (ctx->width && ctx->height) {
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HAS_SYNC, ctx->all_intra ? NULL : &PROP_BOOL(GF_TRUE) );
+	}
 }
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
