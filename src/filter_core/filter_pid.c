@@ -1022,6 +1022,26 @@ void gf_filter_pid_reconfigure_task(GF_FSTask *task)
 	}
 }
 
+void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *) task->pid;
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s reconfigure to %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
+
+	if (!pidi->pid) return;
+	gf_filter_pid_configure(task->filter, pidi->pid, GF_PID_CONF_RECONFIG);
+	//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
+	if (!task->pid->pid->nb_pck_sent) {
+		task->pid->pid->request_property_map = GF_TRUE;
+		task->pid->pid->pid_info_changed = GF_FALSE;
+	}
+
+	if (pidi->discard_inputs==2) {
+		gf_filter_aggregate_packets(pidi);
+		while (gf_filter_pid_get_packet((GF_FilterPid *) pidi)) {
+			gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
+		}
+	}
+}
 void gf_filter_pid_disconnect_task(GF_FSTask *task)
 {
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
@@ -7098,7 +7118,7 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 		if (!gf_fq_count(pidi->packets) && !pid->pid->filter->postponed_packets)
 			pidi->is_end_of_stream = pid->pid->has_seen_eos;
 	}
-	pidi->discard_inputs = discard_on;
+	pidi->discard_inputs = discard_on ? 1 : 0;
 	return GF_OK;
 }
 
