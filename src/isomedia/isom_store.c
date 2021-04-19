@@ -3,7 +3,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -368,8 +368,8 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 			*box_csize = (u32) root_box->size;
 
 		gf_bs_get_content(comp_bs, &box_data, &box_size);
-		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_TRUE, NULL);
-		if (mov->force_compress || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
+		gf_gz_compress_payload_ex(&box_data, box_size, &comp_size, 8, GF_FALSE, NULL);
+		if ((mov->compress_flags & GF_ISOM_COMP_FORCE_ALL) || (comp_size + COMP_BOX_COST_BYTES < box_size)) {
 			if (bs) {
 				gf_bs_write_u32(bs, comp_size+8);
 				gf_bs_write_u32(bs, repl_type);
@@ -378,7 +378,7 @@ GF_Err gf_isom_write_compressed_box(GF_ISOFile *mov, GF_Box *root_box, u32 repl_
 			if (box_csize)
 				*box_csize = comp_size + COMP_BOX_COST_BYTES;
 		} else if (bs) {
-			gf_bs_write_data(bs, box_data, box_size);
+			gf_isom_box_write(root_box, bs);
 		}
 		gf_free(box_data);
 	}
@@ -430,7 +430,7 @@ static GF_Err WriteMoovAndMeta(GF_ISOFile *movie, GF_List *writers, GF_BitStream
 		e = gf_isom_box_size((GF_Box *)movie->moov);
 		if (e) return e;
 
-		if ((movie->compress_mode==GF_ISO_COMP_ALL) || (movie->compress_mode==GF_ISO_COMP_MOOV)) {
+		if ((movie->compress_mode==GF_ISOM_COMP_ALL) || (movie->compress_mode==GF_ISOM_COMP_MOOV)) {
 			e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moov, GF_4CC('!', 'm', 'o', 'v'), bs, NULL);
 		} else {
 			e = gf_isom_box_write((GF_Box *)movie->moov, bs);
@@ -994,6 +994,14 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 					totSize += movie->brand->size;
 					begin += movie->brand->size;
 				}
+				if (movie->otyp) {
+					e = gf_isom_box_size((GF_Box *)movie->otyp);
+					if (e) goto exit;
+					e = gf_isom_box_write((GF_Box *)movie->otyp, movie->editFileMap->bs);
+					if (e) goto exit;
+					totSize += movie->otyp->size;
+					begin += movie->otyp->size;
+				}
 				if (movie->pdin) {
 					e = gf_isom_box_size((GF_Box *)movie->pdin);
 					if (e) goto exit;
@@ -1008,6 +1016,11 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 					e = gf_isom_box_size((GF_Box *)movie->brand);
 					if (e) goto exit;
 					begin += movie->brand->size;
+				}
+				if (movie->otyp) {
+					e = gf_isom_box_size((GF_Box *)movie->otyp);
+					if (e) goto exit;
+					begin += movie->otyp->size;
 				}
 				if (movie->pdin) {
 					e = gf_isom_box_size((GF_Box *)movie->pdin);
@@ -1028,6 +1041,12 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 				e = gf_isom_box_write((GF_Box *)movie->brand, bs);
 				if (e) goto exit;
 			}
+			if (movie->otyp) {
+				e = gf_isom_box_size((GF_Box *)movie->otyp);
+				if (e) goto exit;
+				e = gf_isom_box_write((GF_Box *)movie->otyp, bs);
+				if (e) goto exit;
+			}
 			/*then progressive download*/
 			if (movie->pdin) {
 				e = gf_isom_box_size((GF_Box *)movie->pdin);
@@ -1046,6 +1065,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			case GF_ISOM_BOX_TYPE_META:
 				moov_meta_pos = i-1;
 			case GF_ISOM_BOX_TYPE_FTYP:
+			case GF_ISOM_BOX_TYPE_OTYP:
 			case GF_ISOM_BOX_TYPE_PDIN:
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 			case GF_ISOM_BOX_TYPE_AFRA:
@@ -1182,6 +1202,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			case GF_ISOM_BOX_TYPE_MOOV:
 			case GF_ISOM_BOX_TYPE_META:
 			case GF_ISOM_BOX_TYPE_FTYP:
+			case GF_ISOM_BOX_TYPE_OTYP:
 			case GF_ISOM_BOX_TYPE_PDIN:
 			case GF_ISOM_BOX_TYPE_MDAT:
 				break;
@@ -1211,6 +1232,12 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 		e = gf_isom_box_write((GF_Box *)movie->brand, bs);
 		if (e) goto exit;
 	}
+	if (movie->otyp) {
+		e = gf_isom_box_size((GF_Box *)movie->otyp);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *)movie->otyp, bs);
+		if (e) goto exit;
+	}
 	/*then progressive dnload*/
 	if (movie->pdin) {
 		e = gf_isom_box_size((GF_Box *)movie->pdin);
@@ -1228,6 +1255,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 			moov_meta_pos = i-1;
 			break;
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
@@ -1292,6 +1320,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
@@ -1745,6 +1774,12 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		e = gf_isom_box_write((GF_Box *)movie->brand, bs);
 		if (e) goto exit;
 	}
+	if (movie->otyp) {
+		e = gf_isom_box_size((GF_Box *)movie->otyp);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *)movie->otyp, bs);
+		if (e) goto exit;
+	}
 	if (movie->pdin) {
 		e = gf_isom_box_size((GF_Box *)movie->pdin);
 		if (e) goto exit;
@@ -1761,6 +1796,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 			moov_meta_pos = i-1;
 			break;
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
@@ -1854,6 +1890,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
@@ -2058,6 +2095,11 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 		if (e) return e;
 		mdat_offset += (u32) movie->brand->size;
 	}
+	if (movie->otyp) {
+		e = gf_isom_box_size((GF_Box *)movie->otyp);
+		if (e) return e;
+		mdat_offset += (u32) movie->otyp->size;
+	}
 	if (movie->pdin) {
 		e = gf_isom_box_size((GF_Box *)movie->pdin);
 		if (e) return e;
@@ -2075,6 +2117,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 			mdat_pos = i-1;
 			break;
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 			break;
 		default:
@@ -2132,6 +2175,10 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)movie->brand, bs);
 		if (e) return e;
 	}
+	if (movie->otyp) {
+		e = gf_isom_box_write((GF_Box *)movie->otyp, bs);
+		if (e) return e;
+	}
 	if (movie->pdin) {
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) return e;
@@ -2144,6 +2191,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_FTYP:
+		case GF_ISOM_BOX_TYPE_OTYP:
 		case GF_ISOM_BOX_TYPE_PDIN:
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
@@ -2248,6 +2296,34 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
+
+	if ((movie->compress_flags & GF_ISOM_COMP_WRAP_FTYPE) && !movie->otyp && movie->brand) {
+		u32 i, found=0;
+		for (i=0; i<movie->brand->altCount; i++) {
+			if ((movie->brand->altBrand[i] == GF_ISOM_BRAND_COMP)
+				|| (movie->brand->altBrand[i] == GF_ISOM_BRAND_ISOC)
+			) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) {
+			u32 brand = (movie->compress_mode==GF_ISOM_COMP_ALL) ? GF_ISOM_BRAND_COMP : GF_ISOM_BRAND_ISOC;
+			u32 pos = gf_list_find(movie->TopBoxes, movie->brand);
+			GF_Box *otyp = gf_isom_box_new(GF_ISOM_BOX_TYPE_OTYP);
+			gf_list_rem(movie->TopBoxes, pos);
+			gf_list_insert(movie->TopBoxes, otyp, pos);
+			otyp->child_boxes = gf_list_new();
+			gf_list_add(otyp->child_boxes, movie->brand);
+			movie->otyp = otyp;
+			movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
+			gf_list_insert(movie->TopBoxes, movie->brand, pos);
+			movie->brand->majorBrand = brand;
+			movie->brand->altCount = 1;
+			movie->brand->altBrand = gf_malloc(sizeof(u32));
+			movie->brand->altBrand[0] = brand;
+		}
+	}
 
 
 	if (movie->moov) {

@@ -211,7 +211,7 @@ GF_Err moov_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MovieBox *p = (GF_MovieBox *) a;
 	gf_isom_box_dump_start(a, "MovieBox", trace);
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, "compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieBox", a, trace);
@@ -2503,7 +2503,7 @@ GF_Err moof_box_dump(GF_Box *a, FILE * trace)
 	p = (GF_MovieFragmentBox *)a;
 	gf_isom_box_dump_start(a, "MovieFragmentBox", trace);
 	gf_fprintf(trace, "TrackFragments=\"%d\"", gf_list_count(p->TrackList));
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieFragmentBox", a, trace);
@@ -4349,7 +4349,7 @@ GF_Err sidx_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SegmentIndexBox", trace);
 
 	gf_fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\"", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
-		if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 
@@ -4370,7 +4370,7 @@ GF_Err ssix_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SubsegmentIndexBox", trace);
 
 	gf_fprintf(trace, "subsegment_count=\"%d\"", p->subsegment_count);
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 
@@ -5057,7 +5057,7 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
+u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
@@ -5145,7 +5145,7 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
 				u32 idx = gf_bs_read_u16(bs);
-				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, nb_keys, idx, NULL, NULL);
+				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
 				assert(mk_iv_size);
 				pos = (u32) gf_bs_get_position(bs);
 				gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
@@ -5586,6 +5586,9 @@ GF_Err def_parent_box_dump(GF_Box *a, FILE *trace)
 		break;
 	case GF_ISOM_BOX_TYPE_PROJ:
 		name = "ProjectionBox";
+		break;
+	case GF_ISOM_BOX_TYPE_OTYP:
+		name = "OriginalFileTypeBox";
 		break;
 	}
 

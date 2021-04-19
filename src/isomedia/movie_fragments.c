@@ -1190,7 +1190,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (movie->on_block_out)
 		gf_bs_prevent_dispatch(bs, GF_TRUE);
 
-	if (movie->compress_mode>GF_ISO_COMP_MOOV) {
+	if (movie->compress_mode>GF_ISOM_COMP_MOOV) {
 		e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moof, GF_4CC('!', 'm', 'o', 'f'), bs, moof_size);
 	} else {
 		e = gf_isom_box_write((GF_Box *) movie->moof, bs);
@@ -2274,7 +2274,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 		if (movie->root_ssix) {
 			gf_isom_box_size((GF_Box *) movie->root_ssix);
 
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SSIX) {
 				u32 ssix_comp_size;
 				//compute ssix compressed size by using NULL destination bitstream
 				//not really optimum since we compress twice the ssix, to optimize ...
@@ -2285,7 +2285,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 			}
 		}
 		if (!e) {
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SIDX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SIDX) {
 				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_sidx, GF_4CC('!', 's', 'i', 'x'), bs, NULL);
 			} else {
 				e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
@@ -2293,7 +2293,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 		}
 
 		if (!e && movie->root_ssix) {
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SSIX) {
 				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_ssix, GF_4CC('!', 's', 's', 'x'), bs, NULL);
 			} else {
 				e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
@@ -2509,6 +2509,15 @@ GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_si
 			}
 			movie->brand = (GF_FileTypeBox *) a;
 			gf_list_add(movie->TopBoxes, movie->brand);
+			continue;
+		}
+		if (a->type==GF_ISOM_BOX_TYPE_OTYP) {
+			if (movie->otyp) {
+				gf_list_del_item(movie->TopBoxes, movie->otyp);
+				gf_isom_box_del(movie->otyp);
+			}
+			movie->otyp = (GF_Box *) a;
+			gf_list_add(movie->TopBoxes, movie->otyp);
 			continue;
 		}
 		if (a->type==GF_ISOM_BOX_TYPE_MOOF) {

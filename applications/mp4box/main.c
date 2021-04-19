@@ -238,8 +238,8 @@ Double mpd_live_duration=0;
 Bool do_hint=0, do_save=0, full_interleave=0, do_frag=0, hint_interleave=0, dump_rtp=0, regular_iod=0, remove_sys_tracks=0, remove_hint=0, remove_root_od=0;
 Bool print_sdp=0, open_edit=0, dump_cr=0, force_ocr=0, encode=0, do_scene_log=0, dump_srt=0, dump_ttxt=0, do_saf=0, dump_m2ts=0, dump_cart=0;
 Bool do_hash=0, verbose=0, force_cat=0, pack_wgt=0, single_group=0, clean_groups=0, dash_live=0, no_fragments_defaults=0;
-Bool single_traf_per_moof=0, tfdt_per_traf=0, hls_clock=0, do_mpd_rip=0, merge_vtt_cues=0, compress_moov=0, get_nb_tracks=0;
-
+Bool single_traf_per_moof=0, tfdt_per_traf=0, hls_clock=0, do_mpd_rip=0, merge_vtt_cues=0, get_nb_tracks=0;
+u32 compress_moov=0;
 char *inName=NULL, *outName=NULL, *mediaSource=NULL, *input_ctx=NULL, *output_ctx=NULL, *drm_file=NULL, *avi2raw=NULL, *cprt=NULL;
 char *chap_file=NULL, *chap_file_qt=NULL, *itunes_tags=NULL, *pack_file=NULL, *raw_cat=NULL, *seg_name=NULL, *dash_ctx_file=NULL;
 char *compress_top_boxes=NULL, *high_dynamc_range_filename=NULL, *use_init_seg=NULL, *box_patch_filename=NULL, *udp_dest = NULL;
@@ -428,7 +428,8 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG_S("patch", "[tkID=]FILE", "apply box patch described in FILE, for given trackID if set", GF_ARG_HINT_ADVANCED, parse_boxpatch, 0, ARG_IS_FUN),
 	MP4BOX_ARG("bo", "freeze the order of boxes in input file", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &freeze_box_order, 0, 0),
 	MP4BOX_ARG("init-seg", "use the given file as an init segment for dumping or for encryption", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &use_init_seg, 0, 0),
-	MP4BOX_ARG("zmov", "compress movie box according to ISOBMFF box compression", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &compress_moov, 0, 0),
+	MP4BOX_ARG("zmov", "compress movie box according to ISOBMFF box compression", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 0, ARG_IS_FUN),
+	MP4BOX_ARG("xmov", "same as zmov and wraps ftyp in otyp", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 1, ARG_IS_FUN),
  	MP4BOX_ARG_S("edits", "tkID=EDITS", "set edit list. The following syntax is used (no separators between entries):\n"
 			" - `r`: removes all edits\n"
 			" - `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be\n"
@@ -2697,6 +2698,12 @@ u32 parse_boxpatch(char *arg_val, u32 opt)
 		sep[0] = '=';
 		box_patch_filename = sep+1;
 	}
+	open_edit = GF_TRUE;
+	return 0;
+}
+u32 parse_compress(char *arg_val, u32 opt)
+{
+	compress_moov = opt ? 2 : 1;
 	open_edit = GF_TRUE;
 	return 0;
 }
@@ -6198,7 +6205,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
 
 	if (compress_moov)
-		gf_isom_enable_compression(file, GF_ISO_COMP_MOOV, GF_FALSE);
+		gf_isom_enable_compression(file, GF_ISOM_COMP_ALL, (compress_moov==2) ? GF_ISOM_COMP_WRAP_FTYPE : 0);
 
 	if (no_inplace)
 		gf_isom_disable_inplace_rewrite(file);

@@ -251,7 +251,7 @@ typedef struct
 	Bool trun_inter;
 	Bool truns_first;
 	char *boxpatch;
-	Bool fcomp;
+	Bool fcomp, otyp;
 	Bool deps;
 	Bool mvex;
 	u32 sdtp_traf;
@@ -5806,8 +5806,12 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Invalid segment marker 4cc %s, ignoring\n", ctx->m4cc));
 		}
 	}
-	if (ctx->compress)
-		gf_isom_enable_compression(ctx->file, ctx->compress, ctx->fcomp);
+	if (ctx->compress) {
+		u32 flags = 0;
+		if (ctx->fcomp) flags |= GF_ISOM_COMP_FORCE_ALL;
+		if (ctx->otyp) flags |= GF_ISOM_COMP_WRAP_FTYPE;
+		gf_isom_enable_compression(ctx->file, ctx->compress, flags);
+	}
 
 	if (ctx->cmaf) {
 		//cf table 3, 4, 5 of CMAF
@@ -6314,6 +6318,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 						"- ssix: compress moof, sidx and ssix boxes\n"
 						"- all: compress moov, moof, sidx and ssix boxes", GF_PROP_UINT, "no", "no|moov|moof|sidx|ssix|all", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(fcomp), "force using compress box even when compressed size is larger than uncompressed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(otyp), "inject original file type when using compressed boxes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(truns_first), "store track runs before sample group description and sample encryption information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

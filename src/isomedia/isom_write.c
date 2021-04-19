@@ -2389,11 +2389,11 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, GF_ISOStorageMode storageMode
 
 
 GF_EXPORT
-GF_Err gf_isom_enable_compression(GF_ISOFile *file, GF_ISOCompressMode compress_mode, Bool force_compress)
+GF_Err gf_isom_enable_compression(GF_ISOFile *file, GF_ISOCompressMode compress_mode, u32 compress_flags)
 {
 	if (!file) return GF_BAD_PARAM;
 	file->compress_mode = compress_mode;
-	file->force_compress = force_compress;
+	file->compress_flags = compress_flags;
 	return GF_OK;
 }
 
