@@ -86,6 +86,7 @@ enum
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_FTYP	= GF_4CC( 'f', 't', 'y', 'p' ),
+	GF_ISOM_BOX_TYPE_OTYP	= GF_4CC( 'o', 't', 'y', 'p' ),
 	GF_ISOM_BOX_TYPE_PADB	= GF_4CC( 'p', 'a', 'd', 'b' ),
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
@@ -542,6 +543,7 @@ enum
 //internal flags (up to 16)
 //if flag is set, position checking of child boxes is ignored
 #define GF_ISOM_ORDER_FREEZE 1
+#define GF_ISOM_BOX_COMPRESSED 2
 
 	/*the default size is 64, cause we need to handle large boxes...
 
@@ -3912,6 +3914,7 @@ enum
 	GF_ISOM_FRAG_READ_DEBUG		=	0x02,
 };
 
+
 /*this is our movie object*/
 struct __tag_isom {
 	/*the last fatal error*/
@@ -3950,6 +3953,9 @@ struct __tag_isom {
 	GF_MediaDataBox *mdat;
 	/*file brand (since v2, NULL means mp4 v1)*/
 	GF_FileTypeBox *brand;
+	/*original file type box if any*/
+	GF_Box *otyp;
+
 	/*progressive download info*/
 	GF_ProgressiveDownloadBox *pdin;
 	/*meta box if any*/
@@ -3961,7 +3967,7 @@ struct __tag_isom {
 	Bool disable_odf_translate;
 
 	GF_ISOCompressMode compress_mode;
-	Bool force_compress;
+	u32 compress_flags;
 
 	void (*progress_cbk)(void *udta, u64 nb_done, u64 nb_total);
 	void *progress_cbk_udta;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1238,27 +1238,37 @@ void senc_box_del(GF_Box *s)
 }
 
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv)
+u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
 {
-	u32 i, kpos=3;
+	u32 i=0, kpos=3;
 	if (const_iv_size) *const_iv_size = 0;
 	if (const_iv) *const_iv = NULL;
 
-	for (i=0; i<nb_keys; i++) {
+	while (1) {
 		u8 civ_size=0;
 		const u8 *civ = NULL;
 		u8 iv_size = key_info[kpos];
 		kpos += 17;
+
 		if (!iv_size) {
+			if (kpos>key_info_size)
+				break;
 			civ_size = key_info[kpos];
 			civ = key_info + kpos + 1;
-			kpos += 1 + iv_size;
+			kpos += 1 + civ_size;
 		}
+
+		if (kpos>key_info_size)
+			break;
+
 		if (i+1==idx) {
 			if (const_iv_size) *const_iv_size = civ_size;
 			if (const_iv) *const_iv = civ;
 			return iv_size;
 		}
+		i++;
+		if (kpos==key_info_size)
+			break;
 	}
 	return 0;
 }
@@ -1393,7 +1403,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				u32 nb_iv_init = gf_bs_read_u16(bs);
 				for (j=0; j<nb_iv_init; j++) {
 					u32 idx = gf_bs_read_u16(bs);
-					IV_size = key_info_get_iv_size(key_info, nb_keys, idx, NULL, NULL);
+					IV_size = key_info_get_iv_size(key_info, key_info_size, idx, NULL, NULL);
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI multikey with IV size 0\n" ));

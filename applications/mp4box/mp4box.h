@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -184,6 +184,7 @@ u32 parse_dump_udta(char *code, u32 opt);
 u32 parse_dump_ts(char *arg_val, u32 opt);
 u32 parse_ttxt(char *arg_val, u32 opt);
 u32 parse_dashlive(char *arg, char *arg_val, u32 opt);
+u32 parse_compress(char *arg_val, u32 opt);
 
 #endif // _MP4BOX_H
 

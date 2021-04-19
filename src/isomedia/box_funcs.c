@@ -139,6 +139,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			Bool do_uncompress = GF_FALSE;
 			u8 *compb = NULL;
 			u32 osize = 0;
+			u32 otype = type;
 			if (type==GF_4CC('!', 'm', 'o', 'f')) {
 				do_uncompress = GF_TRUE;
 				type = GF_ISOM_BOX_TYPE_MOOF;
@@ -161,7 +162,11 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 				compressed_size = (u32) (size - 8);
 				gf_bs_read_data(bs, compb, compressed_size);
-				gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
+				e = gf_gz_decompress_payload(compb, compressed_size, &uncomp_data, &osize);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Failed to uncompress payload for box type %s (0x%08X)\n", gf_4cc_to_str(otype), otype));
+					return e;
+				}
 
 				//keep size as complete box size for tests below
 				size = osize + 8;
@@ -292,6 +297,7 @@ retry_unknown_box:
 		else if (type==GF_ISOM_BOX_TYPE_SSIX) {
 			((GF_SubsegmentIndexBox *)newBox)->compressed_diff = (s32)size - (s32)compressed_size;
 		}
+		newBox->internal_flags = GF_ISOM_BOX_COMPRESSED;
 	}
 
 
@@ -1062,7 +1068,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_FLAGS(GF_ISOM_BOX_TYPE_SAIO, saio, "stbl traf", 1, 1),
 	FBOX_DEFINE_FLAGS( GF_ISOM_BOX_TYPE_SUBS, subs, "stbl traf", 0, 7), //warning flags are not used as a bit mask but as an enum!!
 	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_TRGR, trgr, "trak"),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_FTYP, ftyp, "file"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_FTYP, ftyp, "file otyp"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_OTYP, def_parent, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_PADB, padb, "stbl", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_BTRT, btrt, "sample_entry"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PASP, pasp, "video_sample_entry ipco"),
@@ -2022,9 +2029,13 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	if (a->registry->max_version_plus_one) {
 		gf_fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ((GF_FullBox*)a)->version,((GF_FullBox*)a)->flags);
 	}
-
 	gf_fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
-	gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
+	//we don't want to rewrite our hashes
+	if (gf_sys_is_test_mode() && (a->type==GF_ISOM_BOX_TYPE_FTYP)) {
+		gf_fprintf(trace, "Container=\"file\" ");
+	} else {
+		gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
+	}
 	return GF_OK;
 }
 

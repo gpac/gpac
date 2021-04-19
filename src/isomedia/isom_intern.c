@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -464,7 +464,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			/*ONE AND ONLY ONE FTYP*/
 			if (mov->brand) {
 				gf_isom_box_del(a);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate FTYP detected!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'ftyp' detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->brand = (GF_FileTypeBox *)a;
@@ -473,11 +473,38 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			if (e) return e;
 			break;
 
+		case GF_ISOM_BOX_TYPE_OTYP:
+			/*ONE AND ONLY ONE FTYP*/
+			if (mov->otyp) {
+				gf_isom_box_del(a);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'otyp' detected!\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+
+			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
+				mov->otyp = (GF_Box *)a;
+				totSize += a->size;
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
+			} else {
+				GF_FileTypeBox *brand = (GF_FileTypeBox *) gf_isom_box_find_child(a->child_boxes, GF_ISOM_BOX_TYPE_FTYP);
+				if (brand) {
+					s32 pos;
+					gf_list_del_item(a->child_boxes, brand);
+					pos = gf_list_del_item(mov->TopBoxes, mov->brand);
+					gf_isom_box_del((GF_Box *) mov->brand);
+					mov->brand = brand;
+					if (pos<0) pos=0;
+					gf_list_insert(mov->TopBoxes, brand, pos);
+				}
+			}
+			break;
+
 		case GF_ISOM_BOX_TYPE_PDIN:
 			/*ONE AND ONLY ONE PDIN*/
 			if (mov->pdin) {
 				gf_isom_box_del(a);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate PDIN detected!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'pdin'' detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->pdin = (GF_ProgressiveDownloadBox *) a;
