@@ -105,6 +105,7 @@ typedef struct
 	GF_FilterPacket *reinsert_single_pck;
 	Bool is_playing;
 
+	Bool is_raw;
 	u32 codec_id, stream_type;
 	u32 nb_ch, sample_rate, abps;
 	Bool audio_planar;
@@ -250,7 +251,9 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	st->codec_id = p ? p->value.uint : 0;
 	st->nb_ch = st->abps = st->sample_rate = 0;
 	st->audio_planar = GF_FALSE;
-	if ((st->codec_id==GF_CODECID_RAW) && (st->stream_type==GF_STREAM_AUDIO)) {
+	st->is_raw = (st->codec_id==GF_CODECID_RAW) ? GF_TRUE : GF_FALSE;
+
+	if (st->is_raw && (st->stream_type==GF_STREAM_AUDIO)) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 		if (p) st->abps = gf_audio_fmt_bit_depth(p->value.uint) / 8;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
@@ -811,11 +814,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			}
 
 			gf_filter_pck_set_cts(new_pck, (u64) ts);
-			if (ctx->raw) {
+			if (st->is_raw) {
 				gf_filter_pck_set_dts(new_pck, ts);
 			}
 		}
-		if (!ctx->raw) {
+		if (!st->is_raw) {
 			ts = gf_filter_pck_get_dts(pck) + cts_offset;
 			if (ts != GF_FILTER_NO_TS) {
 				ts += st->tk_delay;
@@ -987,7 +990,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			for (j=0; j<nb_pck; j++) {
 				u64 ts;
 				GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
-				if (!ctx->raw && !gf_filter_pck_get_sap(pck) ) {
+				if (!st->is_raw && !gf_filter_pck_get_sap(pck) ) {
 					continue;
 				}
 				ts = gf_filter_pck_get_dts(pck);
@@ -1344,7 +1347,16 @@ GF_Err reframer_process(GF_Filter *filter)
 			}
 
 			//if nosap is set, consider all packet SAPs
-			is_sap = (ctx->nosap || ctx->raw || gf_filter_pck_get_sap(pck)) ? GF_TRUE : GF_FALSE;
+			if (ctx->nosap || st->is_raw) {
+				is_sap = GF_TRUE;
+			} else {
+				GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+				if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2) || (sap==GF_FILTER_SAP_3)) {
+					is_sap = GF_TRUE;
+				} else {
+					is_sap = GF_FALSE;
+				}
+			}
 
 			if (!is_sap) {
 				if (st->all_saps) {
