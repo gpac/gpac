@@ -122,7 +122,7 @@ EX: src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true
 Cela encode un ficher YUV 25 fps en AVC à 175 kbps avec une durée de GOP de 2 secondes, en utilisant des paramètres de codage fast et GOP fermé de ffmpeg.
 
 Note: l'opération inverse (forcer un décodage) est possible en utilisant le filtre reframer:
-EX: src=fichier.mp4 reframer:raw @ -o null
+EX: src=fichier.mp4 reframer:raw=av @ -o null
 Cela forcera le décodage du média à partir du fichier et jettera le résultat (par exemple, pour un benchmark du décodeur)
 
 Expliciter des liens entre les filtres [LINK]

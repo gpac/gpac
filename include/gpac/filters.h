@@ -1861,6 +1861,8 @@ enum
 #define GF_CAPS_INPUT_OUTPUT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT)
 /*! Shortcut macro to set for optional input and output capability flags*/
 #define GF_CAPS_INPUT_OUTPUT_OPT	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_OPTIONAL)
+/*! Shortcut macro to set for excluded input capability flags*/
+#define GF_CAPS_IN_OUT_EXCLUDED	(GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUTPUT|GF_CAPFLAG_EXCLUDED)
 
 /*! Filter capability description*/
 typedef struct
@@ -2445,7 +2447,10 @@ GF_Err gf_filter_assign_id(GF_Filter *filter, const char *filter_id);
 const char *gf_filter_get_id(GF_Filter *filter);
 
 
-/*! Overrides the filter register caps with new caps for this instance. Typically used when an option of the filter changes the capabilities
+/*! Overrides the filter caps with new caps for this instance. Typically used when an option of the filter changes the capabilities
+
+The new caps are only taken into account for future graph resolutions, any current link from/to the target filter will not be re-solved when calling this function.
+
 \param filter the target filter
 \param caps the new set of capabilities to use for the filter. These are NOT copied and shall be valid for the lifetime of the filter
 \param nb_caps number of capabilities set

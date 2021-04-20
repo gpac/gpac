@@ -58,6 +58,14 @@ enum
 	EXTRACT_DUR,
 };
 
+enum
+{
+	RAW_AV=0,
+	RAW_AUDIO,
+	RAW_VIDEO,
+	RAW_NONE,
+};
+
 #define RT_PRECISION_US	2000
 
 typedef struct
@@ -112,7 +120,7 @@ typedef struct
 	Bool refs;
 	u32 rt;
 	Double speed;
-	Bool raw;
+	u32 raw;
 	GF_PropStringList xs, xe;
 	Bool nosap, splitrange, xadjust, tcmdrw;
 	u32 xround;
@@ -1896,37 +1904,75 @@ load_next_range:
 	return GF_OK;
 }
 
-static const GF_FilterCapability ReframerRAWCaps[] =
+static const GF_FilterCapability ReframerCaps_RAW_AV[] =
 {
-	//raw audio and video
+	//raw audio and video only
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	//no restriction for media other than audio and video - cf regular caps for comments
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
+};
+
+
+static const GF_FilterCapability ReframerCaps_RAW_A[] =
+{
+	//raw audio only
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	//no restriction for media other than audio - cf regular caps for comments
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
+};
+
+
+static const GF_FilterCapability ReframerCaps_RAW_V[] =
+{
+	//raw video only
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	//no restriction for media other than video - cf regular caps for comments
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
 
 static GF_Err reframer_initialize(GF_Filter *filter)
 {
+	GF_Err e;
 	GF_ReframerCtx *ctx = gf_filter_get_udta(filter);
 
 	ctx->streams = gf_list_new();
 	ctx->seekable = GF_TRUE;
 	reframer_load_range(ctx);
 
-	if (ctx->raw) {
-		gf_filter_override_caps(filter, ReframerRAWCaps, sizeof(ReframerRAWCaps) / sizeof(GF_FilterCapability) );
+	switch (ctx->raw) {
+	case RAW_AV:
+		e = gf_filter_override_caps(filter, ReframerCaps_RAW_AV, GF_ARRAY_LENGTH(ReframerCaps_RAW_AV));
+		break;
+	case RAW_VIDEO:
+		e = gf_filter_override_caps(filter, ReframerCaps_RAW_V, GF_ARRAY_LENGTH(ReframerCaps_RAW_V));
+		break;
+	case RAW_AUDIO:
+		e = gf_filter_override_caps(filter, ReframerCaps_RAW_A, GF_ARRAY_LENGTH(ReframerCaps_RAW_A));
+		break;
+	default:
+		e = GF_OK;
 	}
-	return GF_OK;
+	return e;
 }
 
 static Bool reframer_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -2003,7 +2049,11 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(saps), "drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(raw), "force input AV streams to be in raw format (i.e. forces decoding of AV input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(raw), "force input AV streams to be in raw format\n"
+	"- no: do not force decoding of inputs\n"
+	"- av: force decoding of audio and video inputs\n"
+	"- a: force decoding of audio inputs\n"
+	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(frames), "drop all except listed frames (first being 1), off by default", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xs), "extraction start time(s), see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
@@ -2042,7 +2092,7 @@ GF_FilterRegister ReframerRegister = {
 		"  \n"
 		"# Frame decoding\n"
 		"This filter can force input media streams to be decoded using the [-raw]() option.\n"
-		"EX gpac src=m.mp4 reframer:raw @ [dst]\n"
+		"EX gpac src=m.mp4 reframer:raw=av @ [dst]\n"
 		"# Real-time Regulation\n"
 		"The filter can perform real-time regulation of input packets, based on their timescale and timestamps.\n"
 		"For example to simulate a live DASH:\n"
