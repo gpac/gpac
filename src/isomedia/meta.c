@@ -777,6 +777,11 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 				memcpy(prop->av1_layer_size, a1lx->layer_size, sizeof(prop->av1_layer_size));
 			}
 			break;
+			case GF_ISOM_BOX_TYPE_A1OP:
+			{
+				GF_AV1OperatingPointSelectorPropertyBox *a1op = (GF_AV1OperatingPointSelectorPropertyBox *)b;
+				prop->av1_op_index = a1op->op_index;
+			}
 			case GF_ISOM_BOX_TYPE_HVCC:
 			case GF_ISOM_BOX_TYPE_AVCC:
 			case GF_ISOM_BOX_TYPE_AV1C:
@@ -882,6 +887,14 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 		{
 			GF_AV1LayeredImageIndexingPropertyBox *a1lx = (GF_AV1LayeredImageIndexingPropertyBox *)b;
 			if (memcmp(prop->av1_layer_size, a1lx->layer_size, sizeof(prop->av1_layer_size)) == 0) {
+				return i;
+			}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_A1OP:
+		{
+			GF_AV1OperatingPointSelectorPropertyBox *a1op = (GF_AV1OperatingPointSelectorPropertyBox *)b;
+			if (prop->av1_op_index == a1op->op_index) {
 				return i;
 			}
 		}
@@ -1142,6 +1155,19 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_FALSE);
 		if (e) return e;
 		memset(searchprop.av1_layer_size, 0, sizeof(searchprop.av1_layer_size));
+	}
+	if (image_props->av1_op_index) {
+		searchprop.av1_op_index = image_props->av1_op_index;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_AV1OperatingPointSelectorPropertyBox *a1op = (GF_AV1LayeredImageIndexingPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_A1OP);
+			if (!a1op) return GF_OUT_OF_MEM;
+			a1op->op_index = image_props->av1_op_index;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.av1_op_index = 0;
 	}
 
 	if (image_props->cenc_info) {

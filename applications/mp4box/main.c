@@ -1192,6 +1192,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- samp=N: indicate the sample number of the source sample\n"
 		"- ref: do not copy the data but refer to the final sample location\n"
 		"- agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will **try to** have `AR` aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden\n"
+		"- av1_op_index: select the AV1 operating point to use via a1op box\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-derived-image", "create an image grid, overlay or identity item, with parameter syntax `:type=(grid|iovl|iden)[:opt1:optN]`\n"
@@ -1957,6 +1958,13 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			meta->image_props->auto_grid = GF_TRUE;
 			if (!strnicmp(szSlot, "agrid=", 6))
 				meta->image_props->auto_grid_ratio = atof(szSlot+6);
+		}
+		else if (!strnicmp(szSlot, "av1_op_index=", 13)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 2;
+			}
+			meta->image_props->av1_op_index = atoi(szSlot+13);
 		}
 		else if (!strchr(szSlot, '=')) {
 			switch (meta->act_type) {

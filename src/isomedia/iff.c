@@ -152,6 +152,44 @@ GF_Err a1lx_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *a1op_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AV1OperatingPointSelectorPropertyBox, GF_ISOM_BOX_TYPE_A1OP);
+	return (GF_Box *)tmp;
+}
+
+void a1op_box_del(GF_Box *a)
+{
+	GF_AV1OperatingPointSelectorPropertyBox *p = (GF_AV1OperatingPointSelectorPropertyBox *)a;
+	gf_free(p);
+}
+
+GF_Err a1op_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AV1OperatingPointSelectorPropertyBox *p = (GF_AV1OperatingPointSelectorPropertyBox *)s;
+	p->op_index = gf_bs_read_u8(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err a1op_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	GF_AV1OperatingPointSelectorPropertyBox *p = (GF_AV1OperatingPointSelectorPropertyBox*)s;
+	gf_bs_write_u8(bs, p->op_index);
+	return GF_OK;
+}
+
+GF_Err a1op_box_size(GF_Box *s)
+{
+	GF_AV1OperatingPointSelectorPropertyBox *p = (GF_AV1OperatingPointSelectorPropertyBox*)s;
+	p->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *colr_box_new()
@@ -1439,7 +1477,11 @@ import_next_sample:
 			}
 			gf_list_del(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 			((GF_AV1ConfigurationBox *)config_box)->config->obu_array = NULL;
-			gf_media_av1_layer_size_get(fsrc, imported_track, sample_number, image_props->av1_layer_size);
+			e = gf_media_av1_layer_size_get(fsrc, imported_track, sample_number, image_props->av1_op_index, image_props->av1_layer_size);
+      if (e) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("AV1 operating point index out of range for stream\n"));
+        goto exit;
+      }
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;

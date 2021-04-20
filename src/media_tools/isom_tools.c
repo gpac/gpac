@@ -4179,7 +4179,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 }
 
 
-GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample_number, u32 layer_size[3])
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample_number, u8 op_index, u32 layer_size[3])
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i;
@@ -4228,6 +4228,12 @@ GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample
 		gf_bs_del(bs);
 	}
 	gf_isom_sample_del(&samp);
+
+  if (op_index > av1.operating_points_count) {
+    if (av1.config) gf_odf_av1_cfg_del(av1.config);
+    gf_av1_reset_state(&av1, GF_TRUE);
+    return GF_BAD_PARAM;
+  }
 
 	for (i=0; i<3; i++) {
 		if (av1.layer_size[i+1]==av1.layer_size[i]) {
