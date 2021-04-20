@@ -3385,10 +3385,7 @@ GF_EXPORT
 GF_Err gf_filter_override_caps(GF_Filter *filter, const GF_FilterCapability *caps, u32 nb_caps )
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->num_output_pids) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempts at setting input caps on filter %s during execution of filter, not supported\n", filter->name));
-		return GF_NOT_SUPPORTED;
-	}
+	//we accept caps override event on a running filter, this will only impact the next link solving
 	filter->forced_caps = nb_caps ? caps : NULL;
 	filter->nb_forced_caps = nb_caps;
 	filter->bundle_idx_at_resolution = -1;

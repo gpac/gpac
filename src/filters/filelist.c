@@ -115,6 +115,15 @@ enum
 
 enum
 {
+	FL_RAW_AV=0,
+	FL_RAW_AUDIO,
+	FL_RAW_VIDEO,
+	FL_RAW_NO
+};
+
+
+enum
+{
 	FL_SPLICE_DELTA = 1,
 	FL_SPLICE_FRAME = 1<<1,
 };
@@ -122,7 +131,8 @@ enum
 typedef struct
 {
 	//opts
-	Bool revert, sigcues, fdel, raw;
+	Bool revert, sigcues, fdel;
+	u32 raw;
 	s32 floop;
 	u32 fsort;
 	u32 ka;
@@ -196,17 +206,41 @@ static const GF_FilterCapability FileListCapsSrc[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 };
 
-
-
-static const GF_FilterCapability FileListCapsSrcRAW[] =
+static const GF_FilterCapability FileListCapsSrc_RAW_AV[] =
 {
-	//raw audio and video
+	//raw audio and video only
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
 	//no restriction for media other than audio and video - cf regular caps for comments
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+};
+
+static const GF_FilterCapability FileListCapsSrc_RAW_A[] =
+{
+	//raw audio only
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	//no restriction for media other than audio - cf regular caps for comments
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+};
+
+static const GF_FilterCapability FileListCapsSrc_RAW_V[] =
+{
+	//raw video only
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT,  GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	//no restriction for media other than video - cf regular caps for comments
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
@@ -297,6 +331,23 @@ static void filelist_push_period_id(GF_FileListCtx *ctx, GF_FilterPid *opid)
 	gf_filter_pid_set_property(opid, GF_PROP_PID_PERIOD_ID, &PROP_STRING_NO_COPY(dyn_period));
 }
 
+static void filelist_override_caps(GF_Filter *filter, GF_FileListCtx *ctx)
+{
+	switch (ctx->raw) {
+	case FL_RAW_AV:
+		gf_filter_override_caps(filter, FileListCapsSrc_RAW_AV, GF_ARRAY_LENGTH(FileListCapsSrc_RAW_AV) );
+		break;
+	case FL_RAW_AUDIO:
+		gf_filter_override_caps(filter, FileListCapsSrc_RAW_A, GF_ARRAY_LENGTH(FileListCapsSrc_RAW_A) );
+		break;
+	case FL_RAW_VIDEO:
+		gf_filter_override_caps(filter, FileListCapsSrc_RAW_V, GF_ARRAY_LENGTH(FileListCapsSrc_RAW_V) );
+		break;
+	default:
+		gf_filter_override_caps(filter, FileListCapsSrc, 2);
+	}
+}
+
 static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	FileListPid *iopid;
@@ -329,11 +380,7 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		//we will declare pids later
 
 		//from now on we only accept the above caps
-		if (ctx->raw)
-			gf_filter_override_caps(filter, FileListCapsSrcRAW, GF_ARRAY_LENGTH(FileListCapsSrcRAW) );
-		else
-			gf_filter_override_caps(filter, FileListCapsSrc, 2);
-
+		filelist_override_caps(filter, ctx);
 	}
 	if (ctx->file_pid == pid) return GF_OK;
 
@@ -785,16 +832,15 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (!strcmp(args, "ka")) {
 					sscanf(aval, "%u", &ctx->ka);
 				} else if (!strcmp(args, "raw")) {
-					Bool is_raw = GF_TRUE;
-					if (aval && stricmp(aval, "yes") && stricmp(aval, "1") && stricmp(aval, "true"))
-						is_raw = GF_FALSE;
-
-					if (filter && (ctx->raw != is_raw) ) {
-						ctx->raw = is_raw;
-						if (ctx->raw)
-							gf_filter_override_caps(filter, FileListCapsSrcRAW, GF_ARRAY_LENGTH(FileListCapsSrcRAW) );
-						else
-							gf_filter_override_caps(filter, FileListCapsSrc, 2);
+					u32 raw_type = 0;
+					if (aval) {
+						if (!stricmp(aval, "av")) raw_type = FL_RAW_AV;
+						else if (!stricmp(aval, "a")) raw_type = FL_RAW_AUDIO;
+						else if (!stricmp(aval, "v")) raw_type = FL_RAW_VIDEO;
+					}
+					if (filter && (ctx->raw != raw_type) ) {
+						ctx->raw = raw_type;
+						filelist_override_caps(filter, ctx);
 					}
 				} else if (!strcmp(args, "floop")) {
 					ctx->floop = atoi(aval);
@@ -2556,10 +2602,7 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 	ctx->file_list_idx = ctx->revert ? gf_list_count(ctx->file_list) : -1;
 	ctx->load_next = GF_TRUE;
 	//from now on we only accept the above caps
-	if (ctx->raw)
-		gf_filter_override_caps(filter, FileListCapsSrcRAW, GF_ARRAY_LENGTH(FileListCapsSrcRAW) );
-	else
-		gf_filter_override_caps(filter, FileListCapsSrc, 2);
+	filelist_override_caps(filter, ctx);
 	//and we act as a source, request processing
 	gf_filter_post_process_task(filter);
 	//prevent deconnection of filter when no input
@@ -2659,7 +2702,12 @@ static const GF_FilterArgs GF_FileListArgs[] =
 
 	{ OFFS(sigcues), "inject CueStart property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdel), "delete source files after processing in playlist mode (does not delete the playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(raw), "force input AV streams to be in raw format (i.e. forces decoding of AV input)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(raw), "force input AV streams to be in raw format\n"
+	"- no: do not force decoding of inputs\n"
+	"- av: force decoding of audio and video inputs\n"
+	"- a: force decoding of audio inputs\n"
+	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
+
 	{0}
 };
 
