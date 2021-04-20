@@ -421,6 +421,7 @@ enum
 
 	/* AVIF Boxes */
 	GF_ISOM_BOX_TYPE_A1LX   = GF_4CC('a', '1', 'l', 'x'),
+	GF_ISOM_BOX_TYPE_A1OP   = GF_4CC('a', '1', 'o', 'p'),
 
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
@@ -3660,6 +3661,11 @@ typedef struct {
 	u8 large_size;
 	u32 layer_size[3];
 } GF_AV1LayeredImageIndexingPropertyBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u8 op_index;
+} GF_AV1OperatingPointSelectorPropertyBox;
 
 
 typedef struct {

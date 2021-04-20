@@ -143,10 +143,11 @@ void gf_media_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber);
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sample_number the target sample to query
+\param op_index AV1 operating point index to retrieve sizes for
 \param layer_size returned 3 layer sizes (4th is implied, see a1lx spec)
 \return error if any
 */
-GF_Err gf_media_av1_layer_size_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 layer_size[3]);
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u8 op_index, u32 layer_size[3]);
 
 #endif
 
