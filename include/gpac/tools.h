@@ -368,6 +368,14 @@ Gets the number of argument of the user application if any
  */
 const char *gf_sys_get_arg(u32 arg);
 
+/*!
+\brief Locate a global filter arg
+
+Looks for a filter option specified as global argument
+\param arg name of option to search, without "--" or "-+" specififers
+\return argument value string, empty string for booleans or NULL if not found
+ */
+const char *gf_sys_find_global_arg(const char *arg);
 
 /*!
 \brief Mark arg as used

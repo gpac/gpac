@@ -1835,15 +1835,22 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		//so that two calls with X:Y and Y:Z have the same Y boundary
 		if (adjust_split_end) {
 			gf_dynstrcat(&filter_args, ":xadjust:xround=after", NULL);
-		} else {
+		} else if (!gf_sys_find_global_arg("xround")) {
 			gf_dynstrcat(&filter_args, ":xround=closest", NULL);
 		}
 
 		if (split_range_str) {
+			Bool is_frac = GF_FALSE;
 			char *end = (char *) strchr(split_range_str, '-');
 			assert(end);
+			if (strchr(split_range_str, '/'))
+				is_frac = GF_TRUE;
 			end[0] = 0;
-			sprintf(szArgs, ":xs=T%s:xe=T%s", split_range_str, end+1);
+			if (is_frac) {
+				sprintf(szArgs, ":xs=%s:xe=%s", split_range_str, end+1);
+			} else {
+				sprintf(szArgs, ":xs=T%s:xe=T%s", split_range_str, end+1);
+			}
 			end[0] = '-';
 		} else if (split_until_end) {
 			Double end=0;

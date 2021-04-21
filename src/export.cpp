@@ -51,6 +51,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_find_global_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_arg_used) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_mark_arg_used) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_is_test_mode) )
