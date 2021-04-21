@@ -1477,9 +1477,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_process_error(fsess);
 
 	if (importer->last_error) {
+		gf_fs_print_non_connected(fsess);
+		if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
+		if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 		if (!importer->run_in_session)
 			gf_fs_del(fsess);
-		return gf_import_message(importer, importer->last_error, "[Importer] Error probing %s", importer->in_name);
+		return gf_import_message(importer, importer->last_error, "[Importer] Error importing %s", importer->in_name);
 	}
 
 	importer->final_trackID = gf_isom_get_last_created_track_id(importer->dest);

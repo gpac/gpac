@@ -5747,6 +5747,7 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 			return GF_BAD_PARAM;
 		}
 		ctx->owns_mov = GF_FALSE;
+		gf_filter_act_as_sink(filter);
 	} else {
 		u32 open_mode = GF_ISOM_OPEN_WRITE;
 		ctx->owns_mov = GF_TRUE;

@@ -804,8 +804,8 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - no value: use the previous sample duration\n"
 		"  - integer: indicate the duration in milliseconds\n"
 		"  - N/D: indicate the duration as fractional second", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("fstat", NULL, "print filter session stats after import", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("fgraph", NULL, "print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("fstat", NULL, "`C` print filter session stats after import", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("fgraph", NULL, "`C` print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
 	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
 	{"dopt:[OPTS]", NULL, "`X` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
 	{"@f1[:args][@fN:args]", NULL, "set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). A `@@` separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified"},
