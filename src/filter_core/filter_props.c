@@ -1467,6 +1467,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	{ GF_PROP_PID_CUBE_MAP_PAD, "CMPad", "Number of pixels to pad from edge of each face in cube map", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_EQR_CLAMP, "EQRClamp", "Clamping of frame for EQR as 0.32 fixed point (x is top, y is bottom, z is left and w is right)", GF_PROP_VEC4I, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from begining of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 };
 
 GF_EXPORT

@@ -1154,6 +1154,8 @@ enum
 	//internal for HLS low latency
 	GF_PROP_PID_LLHLS = GF_4CC('H','L','S','L'),
 	GF_PROP_PCK_HLS_FRAG_NUM = GF_4CC('H','L','S','N'),
+	//we also use this property on PID to signal sample-accurate seek info is present
+	GF_PROP_PCK_SKIP_BEGIN = GF_4CC('P','C','K','S'),
 
 	//internal for DASH forward mode
 	GF_PROP_PID_DASH_FWD = GF_4CC('D','F','W','D'),
@@ -3942,6 +3944,8 @@ that the packet is a PATCH packet, replacing bytes located at gf_filter_pck_get_
 inserting bytes located at gf_filter_pck_get_byte_offset in file if the interlaced flag of the packet is set.
 If the corrupted flag is set, this indicates the data will be replaced later on.
 A seek packet is not meant to be displayed but is needed for decoding.
+\note If a packet is partially skiped but completely decoded, it shall not be marked as seek but have the property "SkipBegin" set.
+\note Raw audio packets MUST be split at the proper boundary
 \param pck target packet
 \param is_seek indicates packet is seek frame
 \return error code if any

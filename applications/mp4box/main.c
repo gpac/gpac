@@ -493,11 +493,17 @@ static void PrintSplitUsage()
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "  \n"
 		"# File splitting\n"
-		"MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s).\n"
+		"MP4Box can split input files by size, duration or extract a given part of the file to new IsoMedia file(s).\n"
 		"This requires that at most one track in the input file has non random-access points (typically one video track at most).\n"
-		"splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.\n"
+		"Splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.\n"
 		"The input file must have enough random access points in order to be split. If this is not the case, you will have to re-encode the content.\n"
 		"You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.\n"
+		"  \n"
+		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
+		"- `splitrange` option of the reframer is always set\n"
+		"- start and end ranges are passed to `xs` and `xe` options of the reframer\n"
+		"- `xadjust`and `xround=after` options are enforced for `-splitz`\n"
+		"- for other modes, `xround` defaults to `closest` if not specified at prompt\n"
 		"  \n"
 	);
 
@@ -2612,7 +2618,7 @@ u32 parse_split(char *arg_val, u32 opt)
 		adjust_split_end = 1;
 		//fallthrough
 	case 3: //-split-chunk, -splitx
-		if (!strstr(arg_val, ":")) {
+		if (!strstr(arg_val, ":") && !strstr(arg_val, "-")) {
 			M4_LOG(GF_LOG_ERROR, ("Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n"));
 			return 2;
 		}
@@ -2627,6 +2633,8 @@ u32 parse_split(char *arg_val, u32 opt)
 			}
 		} else {
 			if (strchr(arg_val, '-')) {
+				split_range_str = arg_val;
+			} else if (strchr(arg_val, '/')) {
 				split_range_str = arg_val;
 			} else {
 				sscanf(arg_val, "%lf:%lf", &split_start, &split_duration);

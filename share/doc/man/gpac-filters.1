@@ -2985,6 +2985,24 @@ This will assign to output PIDs
 .br
 For uncompressed audio pids, input frame will be split to closest audio sample number.
 .br
+
+.br
+When .I xround is set to seek, the following applies:
+.br
+- a single range shall be specified
+.br
+- the first I-frame preceding or matching the range start is used as split point
+.br
+- all packets before range start are marked as seek points
+.br
+- packets overlapping range start are forwarded with a SkipBegin property set to the amount of media to skip
+.br
+- packets overlapping range end are forwarded with an adjusted duration to match the range end
+.br
+This mode is typically used to extract a range in a frame/sample accurate way, rather than a GOP-aligned way.
+.br
+
+.br
 .SH Other split actions
 .LP
 .br
@@ -3049,13 +3067,15 @@ xs (strl):                     extraction start time(s), see filter help
 .br
 xe (strl):                     extraction end time(s). If less values than start times, the last time interval extracted is an open range
 .br
-xround (enum, default: before): adjustment of extraction start range I-frame
+xround (enum, default: before): adjust start time of extraction range to I-frame
 .br
-* before: use first I-frame preceding or equal to start range
+* before: use first I-frame preceding or matching range start
 .br
-* after: use first I-frame (if any) following or equal to start range
+* seek: see filter help
 .br
-* closest: use I-frame closest to start range
+* after: use first I-frame (if any) following or matching range start
+.br
+* closest: use I-frame closest to range start
 .br
 
 .br
@@ -7622,7 +7642,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev741-g0a9de33a1-master
+build: 1.1.0-DEV-rev743-g4b6d0cd42-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

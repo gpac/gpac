@@ -1689,7 +1689,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff *= 1000;
 				diff /= ctx->timescale;
 				//diff less than 100ms (eg 10fps or more), init on the second frame
-				if (diff<100) {
+				//do not apply this if playing at speed lower than nominal speed
+				if ((diff<100) && (ABS(ctx->speed)>=1)) {
 					ctx->first_cts_plus_one = 1 + cts;
 					ctx->clock_at_first_cts = now;
 				}

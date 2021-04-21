@@ -949,15 +949,27 @@ merge last segment if shorter than half the target duration
 .SH File splitting
 .LP
 .br
-MP4Box can split IsoMedia files by size, duration or extract a given part of the file to new IsoMedia file(s).
+MP4Box can split input files by size, duration or extract a given part of the file to new IsoMedia file(s).
 .br
 This requires that at most one track in the input file has non random-access points (typically one video track at most).
 .br
-splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.
+Splitting will ignore all MPEG-4 Systems tracks and hint tracks, but will try to split private media tracks.
 .br
 The input file must have enough random access points in order to be split. If this is not the case, you will have to re-encode the content.
 .br
 You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.
+.br
+  
+.br
+MP4Box splitting runs a filter session using the reframer filter as follows:
+.br
+- splitrange option of the reframer is always set
+.br
+- start and end ranges are passed to xs and xe options of the reframer
+.br
+- xadjustand xround=after options are enforced for -splitz
+.br
+- for other modes, xround defaults to closest if not specified at prompt
 .br
   
 .br
@@ -2701,7 +2713,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev741-g0a9de33a1-master
+build: 1.1.0-DEV-rev743-g4b6d0cd42-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

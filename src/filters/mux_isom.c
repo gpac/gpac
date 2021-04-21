@@ -167,6 +167,8 @@ typedef struct
 	Bool insert_pssh;
 
 	Bool wait_sap;
+	s64 min_ts_seek_plus_one;
+	Bool check_seek_ts;
 } TrackWriter;
 
 enum
@@ -2654,6 +2656,12 @@ multipid_stsd_setup:
 					mp4_mux_write_track_refs(ctx, base_tk, "isom:sabt", GF_ISOM_REF_SABT);
 			}
 		}
+
+		//check if we have sample-accurate seek info for the pid. If so, enable seek ts checking
+		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_SKIP_BEGIN);
+		if (p && p->value.uint)
+			tkw->check_seek_ts = GF_TRUE;
+
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
 		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
 	}
@@ -3422,8 +3430,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	timescale = gf_filter_pck_get_timescale(pck);
 
-	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
-
 	prev_dts = tkw->nb_samples ? tkw->sample.DTS : GF_FILTER_NO_TS;
 	prev_size = tkw->sample.dataLength;
 	tkw->sample.CTS_Offset = 0;
@@ -3473,6 +3479,23 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] broken timing in track, initial ts "LLU" greater than TS "LLU"\n", tkw->ts_shift, tkw->sample.DTS));
 			}
+		}
+	}
+
+	//sample-accurate seek info, start logging min CTS of packets marked as non-sync
+	if (tkw->check_seek_ts && !gf_filter_pck_get_seek_flag(pck)) {
+		u64 ts_check = cts;
+		subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SKIP_BEGIN);
+		if (subs)
+			ts_check += subs->value.uint;
+
+		if (!tkw->min_ts_seek_plus_one) {
+			tkw->min_ts_seek_plus_one = ts_check + 1;
+		} else if (tkw->min_ts_seek_plus_one > ts_check + 1) {
+			tkw->min_ts_seek_plus_one = ts_check + 1;
+		} else {
+			//TS is greater than last non-seek packet TS, we're done seeking
+			tkw->check_seek_ts = GF_FALSE;
 		}
 	}
 
@@ -3702,6 +3725,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	}
 	
+	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 	if (subs) {
 		//if no AUDelim nal and inband header injection, push new subsample
 		if (!first_nal_is_audelim && insert_subsample_dsi_size) {
@@ -5999,6 +6023,37 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			has_bframes = GF_TRUE;
 		} else if (tkw->ts_delay || tkw->empty_init_dur) {
 			gf_isom_update_edit_list_duration(ctx->file, tkw->track_num);
+		}
+
+		if (tkw->min_ts_seek_plus_one) {
+			u64 min_ts = tkw->min_ts_seek_plus_one - 1;
+			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
+			u32 delay = 0;
+			if (mdur > min_ts)
+				mdur -= min_ts;
+			else
+				mdur = 0;
+
+			if ((ctx->ctmode!=MP4MX_CT_NEGCTTS) && (tkw->ts_delay<0) && (tkw->stream_type==GF_STREAM_VISUAL)) {
+				delay = (u32) -tkw->ts_delay;
+			}
+
+			if (tkw->src_timescale != tkw->tk_timescale) {
+				min_ts *= tkw->tk_timescale;
+				min_ts /= tkw->src_timescale;
+				delay *= tkw->tk_timescale;
+				delay /= tkw->src_timescale;
+			}
+			mdur += delay;
+
+			if (ctx->moovts != tkw->tk_timescale) {
+				mdur *= ctx->moovts;
+				mdur /= tkw->tk_timescale;
+			}
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
+			if (tkw->empty_init_dur)
+				gf_isom_set_edit(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit(ctx->file, tkw->track_num, tkw->empty_init_dur, mdur, min_ts, GF_ISOM_EDIT_NORMAL);
 		}
 
 		if (tkw->force_ctts) {

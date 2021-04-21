@@ -1058,6 +1058,32 @@ const char *gf_sys_get_arg(u32 arg)
 	if (arg>=gpac_argc) return NULL;
 	return gpac_argv[arg];
 }
+GF_EXPORT
+const char *gf_sys_find_global_arg(const char *arg)
+{
+	u32 i;
+	if (!gpac_argc || !gpac_argv) return NULL;
+	for (i=0; i<gpac_argc; i++) {
+		const char *sep;
+		u32 len;
+		const char *an_arg = gpac_argv[i];
+		if (an_arg[0]!='-') continue;
+		if ((an_arg[1]!='-') && (an_arg[1]!='+')) continue;
+		an_arg += 2;
+		sep = strchr(an_arg, '@');
+		if (sep) an_arg = sep+1;
+		sep = strchr(an_arg, '=');
+		if (sep) len = (u32) (sep - an_arg);
+		else len = (u32) strlen(an_arg);
+		if (len != (u32) strlen(arg)) continue;
+
+		if (strncmp(an_arg, arg, len)) continue;
+
+		if (!sep) return "";
+		return sep;
+	}
+	return NULL;
+}
 
 
 #ifndef GPAC_DISABLE_REMOTERY
