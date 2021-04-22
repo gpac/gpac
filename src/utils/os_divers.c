@@ -1793,8 +1793,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		count = THREAD_BASIC_INFO_COUNT;
 		error = thread_info(thread_table[i], THREAD_BASIC_INFO, (thread_info_t)thi, &count);
 		if (error != KERN_SUCCESS) {
-			mach_error("[RTI] Unexpected thread_info() call return", error);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[RTI] Unexpected thread info for PID %d\n", the_rti.pid));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[RTI] Unexpected thread_info error for process %d: %s\n", the_rti.pid, mach_error_string(error) ));
 			break;
 		}
 		if ((thi->flags & TH_FLAGS_IDLE) == 0) {
