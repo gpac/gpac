@@ -115,6 +115,9 @@ typedef struct
 	u32 audio_samples_to_keep;
 
 	u32 nb_frames_until_start;
+
+	Bool seek_mode;
+
 } RTStream;
 
 typedef struct
@@ -128,7 +131,7 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek;
 	u32 xround;
 	Double seeksafe;
 	GF_PropStringList props;
@@ -203,7 +206,7 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(GF_FALSE)); //false: all samples are sync
 
 	//seek mode, signal we have sample-accurate seek info for the pid
-	if (ctx->xround==REFRAME_ROUND_SEEK)
+	if (st->seek_mode)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(1));
 }
 
@@ -315,6 +318,21 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		}
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	//NEVER use seek mode for uncompressed audio
+	if (st->abps) {
+		st->seek_mode = GF_FALSE;
+	}
+	//use seek if seek is forced
+	else if (ctx->xround==REFRAME_ROUND_SEEK) {
+		st->seek_mode = GF_TRUE;
+	}
+	//use seek mode for compressed audio with priming
+	else if ((st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
+		st->seek_mode = ctx->no_audio_seek ? GF_FALSE : GF_TRUE;
+	} else {
+		st->seek_mode = GF_FALSE;
+	}
 
 	reframer_push_props(ctx, st);
 
@@ -835,7 +853,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		if (ts != GF_FILTER_NO_TS) {
 			if (ctx->is_range_extraction
-				&& (ctx->xround==REFRAME_ROUND_SEEK)
+				&& st->seek_mode
 				&& ((ts + ts_adj - st->ts_sub) * ctx->cur_start.den < ctx->cur_start.num * st->timescale)
 			) {
 				gf_filter_pck_set_seek_flag(new_pck, GF_TRUE);
@@ -944,10 +962,15 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 
 		//check ts not after our range start:
 		//if round_seek mode, check TS+dur is less than or equal to desired start, and we will notify the duration of data to skip from the packet
-		//otherwise, check TS is strictly less than to desired start
-		if (ctx->xround==REFRAME_ROUND_SEEK) {
+		//otherwise, check TS is strictly less than desired start
+		if (st->seek_mode) {
 			if ((s64) ((ts+dur) * ctx->cur_start.den) <= ctx->cur_start.num * st->timescale) {
 				before = GF_TRUE;
+				if ((st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
+					if ((s64) ((ts+st->ts_sub) * ctx->cur_start.den) > ctx->cur_start.num * st->timescale) {
+						before = GF_FALSE;
+					}
+				}
 			}
 		}
 		else if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
@@ -964,7 +987,7 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		}
 		//consider after if time+duration is STRICTLY greater than cut point
 		if ((ctx->range_type!=RANGE_OPEN) && ((s64) ((ts+dur) * ctx->cur_end.den) > ctx->cur_end.num * st->timescale)) {
-			if ((st->abps || (ctx->xround==REFRAME_ROUND_SEEK))
+			if ((st->abps || st->seek_mode )
 				&& ( (s64) ts * (s64) ctx->cur_end.den < ctx->cur_end.num * (s64) st->timescale)
 			) {
 				u64 nb_samp = ctx->cur_end.num * st->timescale / ctx->cur_end.den - ts;
@@ -1712,18 +1735,28 @@ GF_Err reframer_process(GF_Filter *filter)
 					GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
 					if (!purge_all) {
 						u32 is_start = 0;
-						u64 ts, ots;
+						u64 ts, ots, check_ts;
 						u64 dur;
+						Bool check_priming = GF_FALSE;
 						ts = gf_filter_pck_get_dts(pck);
 						if (ts==GF_FILTER_NO_TS)
 							ts = gf_filter_pck_get_cts(pck);
 						ts += st->tk_delay;
 						dur = (u64) gf_filter_pck_get_duration(pck);
 						if (!dur) dur=1;
-						ots = ts;
+						check_ts = ots = ts;
+						if (st->seek_mode && (st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
+							check_priming = GF_TRUE;
+							check_ts += st->ts_sub;
+						}
+
 						if (min_timescale != st->timescale) {
 							ts *= min_timescale;
 							ts /= st->timescale;
+							if (check_priming) {
+								check_ts *= min_timescale;
+								check_ts /= st->timescale;
+							}
 							dur *= min_timescale;
 							dur /= st->timescale;
 						}
@@ -1738,6 +1771,9 @@ GF_Err reframer_process(GF_Filter *filter)
 							is_start = 1;
 						}
 						else if (st->range_start_computed==3) {
+							is_start = 1;
+						}
+						else if (check_priming && (check_ts >= min_ts)) {
 							is_start = 1;
 						}
 
@@ -2165,6 +2201,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sur I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(props), "extra output PID properties per extraction range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(no_audio_seek), "disable seek mode on audio streams (no change of priming duration) - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2243,6 +2280,10 @@ GF_FilterRegister ReframerRegister = {
 		"- packets overlapping range start are forwarded with a `SkipBegin` property set to the amount of media to skip\n"
 		"- packets overlapping range end are forwarded with an adjusted duration to match the range end\n"
 		"This mode is typically used to extract a range in a frame/sample accurate way, rather than a GOP-aligned way.\n"
+		"\n"
+		"When [-xround]() is not set to `seek`, compressed audio streams using priming will still use seek mode.\n"
+		"Consequently, these streams will have modified edit lists in ISOBMFF which might not be properly handled by players.\n"
+		"This can be avoided using [-no_audio_seek](), but this will introduce audio delay.\n"
 		"\n"
 		"# Other split actions\n"
 		"The filter can perform splitting of the source using [-xs]() option.\n"
