@@ -995,20 +995,22 @@ split in files of given max size (in kb)
 .TP
 .B \-split-chunk,-splitx (string)
 .br
-extract a new file from source. VAL can be formatted as:
+extract the specified time range formatted as:
 .br
-* `S:E`: S (number of seconds) to E with E a number (in seconds), end or end-N, N  number of seconds before the end
+* `S:E` or `S-E`: S start time and E end time in seconds (int, double, fraction)
+.br
+* `S:end` or `S:end-N`: S start time in seconds (int, double), N number of seconds (int, double) before the end
 .br
 * `S-E`: start and end dates, each formatted as HH:MM:SS.ms or MM:SS.ms
 .br
 .TP
 .B \-splitz (string)
 .br
-same as -splitx, but adjust range times so that ranges A:B and B:C share exactly the same boundary B
+same as -splitx, but adjust range times so that ranges A:B and B:C share exactly the same boundary B:
 .br
 - the start time is moved to the RAP sample at or after the specified start time
 .br
-- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time
+- the end time is moved to the frame preceeding the RAP sample at or following the specified end time
 .br
 .TP
 .B \-splitg (string)
@@ -1017,12 +1019,12 @@ same as -splitx, but adjust range times so that:
 .br
 - the start time is moved to the RAP sample at or before the specified start time
 .br
-- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time
+- the end time is moved to the frame preceeding the RAP sample at or following the specified end time
 .br
 .TP
 .B \-splitf (string)
 .br
-same as -splitx but insert edits such that the output is exactly the extracted range
+same as -splitx but insert edits such that the extracted output is exactly the specified range
 .br
 
 .br
@@ -2737,7 +2739,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev751-g3c3168a94-master
+build: 1.1.0-DEV-rev752-g57ca8bcc2-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
