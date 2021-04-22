@@ -967,7 +967,11 @@ MP4Box splitting runs a filter session using the reframer filter as follows:
 .br
 - start and end ranges are passed to xs and xe options of the reframer
 .br
-- xadjustand xround=after options are enforced for -splitz
+- xadjust and xround=after options are enforced for -splitz
+.br
+- xadjust and xround=before options are enforced for -splitg
+.br
+- xround=seek option is enforced for -splitf
 .br
 - for other modes, xround defaults to closest if not specified at prompt
 .br
@@ -998,9 +1002,29 @@ extract a new file from source. VAL can be formatted as:
 * `S-E`: start and end dates, each formatted as HH:MM:SS.ms or MM:SS.ms
 .br
 .TP
-.B \-splitz S:E
+.B \-splitz (string)
 .br
-same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges A:B and B:C share exactly the same boundary B
+same as -splitx, but adjust range times so that ranges A:B and B:C share exactly the same boundary B
+.br
+- the start time is moved to the RAP sample at or after the specified start time
+.br
+- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time
+.br
+.TP
+.B \-splitg (string)
+.br
+same as -splitx, but adjust range times so that:
+.br
+- the start time is moved to the RAP sample at or before the specified start time
+.br
+- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time
+.br
+.TP
+.B \-splitf (string)
+.br
+same as -splitx but insert edits such that the output is exactly the extracted range
+.br
+
 .br
 .SH File Dumping
 .LP
@@ -2713,7 +2737,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev750-g25ed531f7-master
+build: 1.1.0-DEV-rev751-g3c3168a94-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

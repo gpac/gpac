@@ -268,7 +268,8 @@ GF_DASHPSSHMode pssh_mode=0;
 GF_DashProfile dash_profile=GF_DASH_PROFILE_AUTO;
 char *dash_profile_extension = NULL;
 char *dash_cues = NULL;
-Bool strict_cues=0, use_url_template=0, seg_at_rap=0, frag_at_rap=0, adjust_split_end=0, memory_frags=0, keep_utc=0, has_next_arg=0, no_cache=0, no_loop=0;
+Bool strict_cues=0, use_url_template=0, seg_at_rap=0, frag_at_rap=0, memory_frags=0, keep_utc=0, has_next_arg=0, no_cache=0, no_loop=0;
+u32 adjust_split_end=0;
 char *do_wget = NULL;
 char *mux_name = NULL;
 char *seg_ext = NULL;
@@ -483,7 +484,15 @@ MP4BoxArg m4b_split_args[] =
 	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract a new file from source. `VAL` can be formatted as:\n"
 	"- `S:E`: `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N  number of seconds before the end\n"
 	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
-	MP4BOX_ARG_S("splitz", "S:E", "same as -split-chunk, but adjust the end time to be before the next RAP sample, so that ranges `A:B` and `B:C` share exactly the same boundary `B`", 0, parse_split, 4, ARG_IS_FUN),
+	MP4BOX_ARG("splitz", "same as -splitx, but adjust range times so that ranges `A:B` and `B:C` share exactly the same boundary `B`\n"
+	"- the start time is moved to the RAP sample at or after the specified start time\n"
+	"- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time"
+	, GF_ARG_STRING, 0, parse_split, 4, ARG_IS_FUN),
+	MP4BOX_ARG("splitg", "same as -splitx, but adjust range times so that:\n"
+	"- the start time is moved to the RAP sample at or before the specified start time\n"
+	"- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time"
+	, GF_ARG_STRING, 0, parse_split, 5, ARG_IS_FUN),
+	MP4BOX_ARG("splitf", "same as -splitx but insert edits such that the output is exactly the extracted range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
 	{0}
 };
 
@@ -502,7 +511,9 @@ static void PrintSplitUsage()
 		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
 		"- `splitrange` option of the reframer is always set\n"
 		"- start and end ranges are passed to `xs` and `xe` options of the reframer\n"
-		"- `xadjust`and `xround=after` options are enforced for `-splitz`\n"
+		"- `xadjust` and `xround=after` options are enforced for `-splitz`\n"
+		"- `xadjust` and `xround=before` options are enforced for `-splitg`\n"
+		"- `xround=seek` option is enforced for `-splitf`\n"
 		"- for other modes, `xround` defaults to `closest` if not specified at prompt\n"
 		"  \n"
 	);
@@ -2614,12 +2625,13 @@ u32 parse_split(char *arg_val, u32 opt)
 		split_size = (u32)atoi(arg_val);
 		split_duration = 0;
 		break;
-	case 4: //-splitz
-		adjust_split_end = 1;
-		//fallthrough
 	case 3: //-split-chunk, -splitx
+	case 4: //-splitz
+	case 5: //-splitg
+	case 6: //-splitf
+		adjust_split_end = opt-3;
 		if (!strstr(arg_val, ":") && !strstr(arg_val, "-")) {
-			M4_LOG(GF_LOG_ERROR, ("Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n"));
+			M4_LOG(GF_LOG_ERROR, ("Chunk extraction usage: \"-split* start:end\" expressed in seconds\n"));
 			return 2;
 		}
 		if (strstr(arg_val, "end")) {
