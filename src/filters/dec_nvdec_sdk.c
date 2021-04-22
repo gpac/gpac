@@ -20,7 +20,7 @@
 #include <gpac/tools.h>
 
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN))
+#if ((defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
 
 #include "dec_nvdec_sdk.h"
 
@@ -709,4 +709,4 @@ const char *cudaGetErrorEnum(CUresult error)
 	return "<unknown>";
 }
 
-#endif //WIN32
+#endif // ((defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
