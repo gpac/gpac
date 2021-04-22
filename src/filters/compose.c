@@ -652,7 +652,12 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	if (ctx->rbuffer >= ctx->buffer)
 		ctx->rbuffer = 0;
 
+
     if (ctx->player) {
+		//explicit disable of openGL
+		if (ctx->drv==GF_SC_DRV_OFF)
+			ctx->ogl = GF_SC_GLMODE_OFF;
+
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
 			ctx->ogl = GF_SC_GLMODE_HYBRID;
 
@@ -928,9 +933,9 @@ static GF_FilterArgs CompositorArgs[] =
 	"- gui: player mode with GUI auto-start", GF_PROP_UINT, "no", "no|base|gui", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(noaudio), "disable audio output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in [-player]() mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(drv), "indicate if graphics driver should be used. Ignored in player mode\n"\
-				"- no: never loads a graphics driver (software blitting used, no 3D possible)\n"\
-				"- yes: always loads a graphics driver. Output pixel format will be RGB\n"\
+	{ OFFS(drv), "indicate if graphics driver should be used\n"\
+				"- no: never loads a graphics driver, software blitting is used, no 3D possible (in player mode, disables OpenGL)\n"\
+				"- yes: always loads a graphics driver, output pixel format will be RGB (in player mode, same to `auto`)\n"\
 				"- auto: decides based on the loaded content"\
 			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},

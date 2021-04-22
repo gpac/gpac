@@ -106,7 +106,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 			gf_sc_texture_restart(txh);
 		}
 		/*if active deactivate*/
-		else if (txnode->isActive && gf_mo_should_deactivate(st->txh.stream) ) {
+		else if (txnode->isActive && (txnode->startTime<txnode->stopTime) && gf_mo_should_deactivate(st->txh.stream) ) {
 			movietexture_deactivate(st, txnode);
 		}
 	}

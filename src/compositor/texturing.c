@@ -157,6 +157,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	gf_mo_stop(&txh->stream);
 	if (!txh->stream) {
 		txh->data = NULL;
+		txh->frame_ifce = NULL;
 	}
 	txh->is_open = 0;
 
