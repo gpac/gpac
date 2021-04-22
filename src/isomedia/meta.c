@@ -200,6 +200,18 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 }
 
 GF_EXPORT
+GF_Err gf_isom_get_meta_item_flags(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num)
+{
+	GF_ItemInfoEntryBox *iinf;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta || !meta->item_infos || !meta->item_locations) return 0;
+
+	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
+	if (!iinf) return 0;
+	return iinf->flags;
+}
+
+GF_EXPORT
 u32 gf_isom_get_meta_item_by_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_ID)
 {
 	u32 i, count;
@@ -667,7 +679,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 GF_EXPORT
 GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {
-	u32 count, i;
+	u32 count, i, inum;
 	u32 j;
 	GF_ItemPropertyAssociationBox *ipma = NULL;
 	GF_ItemPropertyContainerBox *ipco = NULL;
@@ -679,6 +691,11 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 
 	ipma = meta->item_props->property_association;
 	ipco = meta->item_props->property_container;
+
+	inum = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
+	i = gf_isom_get_meta_item_flags(file, root_meta, track_num, inum);
+	if (i & 0x1)
+		prop->hidden = GF_TRUE;
 
 	count = gf_list_count(ipma->entries);
 	for (i = 0; i < count; i++) {
