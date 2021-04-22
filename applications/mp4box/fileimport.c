@@ -1773,7 +1773,7 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, Bool adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
 	Bool chunk_extraction, rap_split, split_until_end;
 	GF_Err e;
@@ -1833,8 +1833,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	} else if (chunk_extraction) {
 		//we adjust end: start at the iframe at or after requested time and use xadjust (move end to next I-frame)
 		//so that two calls with X:Y and Y:Z have the same Y boundary
-		if (adjust_split_end) {
+		if (adjust_split_end==1) {
 			gf_dynstrcat(&filter_args, ":xadjust:xround=after", NULL);
+		} else if (adjust_split_end==2) {
+			gf_dynstrcat(&filter_args, ":xadjust:xround=before", NULL);
+		} else if (adjust_split_end==3) {
+			gf_dynstrcat(&filter_args, ":xround=seek", NULL);
 		} else if (!gf_sys_find_global_arg("xround")) {
 			gf_dynstrcat(&filter_args, ":xround=closest", NULL);
 		}

@@ -74,7 +74,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	return GF_NOT_SUPPORTED;
 }
 #endif
-GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags);
+GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, Bool force_cat, Bool align_timelines, Bool allow_add_in_command, Bool is_pl);
 
 GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits);
