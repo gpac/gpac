@@ -875,6 +875,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_meta_get_next_item_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_flags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_xml) )

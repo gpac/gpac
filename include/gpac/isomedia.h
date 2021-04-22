@@ -5702,6 +5702,16 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *isom_file, Bool root_meta, u32 tra
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn);
 
+/*! gets item flags for the givesn item
+
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param item_num 1-based index of item to query
+\return item flags
+*/
+GF_Err gf_isom_get_meta_item_flags(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num);
+
 /*! gets item index from item ID
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
