@@ -1844,18 +1844,32 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		}
 
 		if (split_range_str) {
-			Bool is_frac = GF_FALSE;
+			Bool is_time = GF_FALSE;
+			char c;
+			//S-E syntax
 			char *end = (char *) strchr(split_range_str, '-');
-			assert(end);
-			if (strchr(split_range_str, '/'))
-				is_frac = GF_TRUE;
-			end[0] = 0;
-			if (is_frac) {
-				sprintf(szArgs, ":xs=%s:xe=%s", split_range_str, end+1);
-			} else {
-				sprintf(szArgs, ":xs=T%s:xe=T%s", split_range_str, end+1);
+			if (!end) {
+				//S:E syntax
+				end = (char *) strchr(split_range_str, ':');
+				//if another `:` assume time format
+				if (end && strchr(end+1, ':'))
+					is_time = GF_TRUE;
 			}
-			end[0] = '-';
+			if (!end) {
+				gf_free(filter_args);
+				M4_LOG(GF_LOG_ERROR, ("Invalid range specifer %s, expecting START-END or START:END\n", split_range_str ));
+				gf_fs_del(fs);
+				return GF_BAD_PARAM;
+			}
+
+			c = end[0];
+			end[0] = 0;
+			if (is_time) {
+				sprintf(szArgs, ":xs=T%s:xe=T%s", split_range_str, end+1);
+			} else {
+				sprintf(szArgs, ":xs=%s:xe=%s", split_range_str, end+1);
+			}
+			end[0] = c;
 		} else if (split_until_end) {
 			Double end=0;
 			if (split_dur<-2) {

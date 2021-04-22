@@ -481,18 +481,19 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (in kb)", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract a new file from source. `VAL` can be formatted as:\n"
-	"- `S:E`: `S` (number of seconds) to `E` with `E` a number (in seconds), `end` or `end-N`, N  number of seconds before the end\n"
+	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract the specified time range formatted as:\n"
+	"- `S:E` or `S-E`: `S` start time and `E` end time in seconds (int, double, fraction)\n"
+	"- `S:end` or `S:end-N`: `S` start time in seconds (int, double), `N` number of seconds (int, double) before the end\n"
 	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
-	MP4BOX_ARG("splitz", "same as -splitx, but adjust range times so that ranges `A:B` and `B:C` share exactly the same boundary `B`\n"
+	MP4BOX_ARG("splitz", "same as -splitx, but adjust range times so that ranges `A:B` and `B:C` share exactly the same boundary `B`:\n"
 	"- the start time is moved to the RAP sample at or after the specified start time\n"
-	"- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time"
+	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
 	, GF_ARG_STRING, 0, parse_split, 4, ARG_IS_FUN),
 	MP4BOX_ARG("splitg", "same as -splitx, but adjust range times so that:\n"
 	"- the start time is moved to the RAP sample at or before the specified start time\n"
-	"- the end time is moved to be at the frame preceeding the next RAP sample at or following the specified end time"
+	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
 	, GF_ARG_STRING, 0, parse_split, 5, ARG_IS_FUN),
-	MP4BOX_ARG("splitf", "same as -splitx but insert edits such that the output is exactly the extracted range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
+	MP4BOX_ARG("splitf", "same as -splitx but insert edits such that the extracted output is exactly the specified range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
 	{0}
 };
 
@@ -2644,14 +2645,7 @@ u32 parse_split(char *arg_val, u32 opt)
 				split_duration = -2;
 			}
 		} else {
-			if (strchr(arg_val, '-')) {
-				split_range_str = arg_val;
-			} else if (strchr(arg_val, '/')) {
-				split_range_str = arg_val;
-			} else {
-				sscanf(arg_val, "%lf:%lf", &split_start, &split_duration);
-				split_duration -= split_start;
-			}
+			split_range_str = arg_val;
 		}
 		split_size = 0;
 		break;
