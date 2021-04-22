@@ -1065,6 +1065,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_interleaving_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_priority_in_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_max_chunk_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hint_max_chunk_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_extraction_slc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_make_interleave) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_new) )

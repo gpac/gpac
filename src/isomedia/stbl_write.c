@@ -2099,7 +2099,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 		//3 - make sure we do not exceed the MaxSamplesPerChunk and we have the same descIndex
 		if (StreamDescIndex != cur_ent->sampleDescriptionIndex)
 			newChunk = 1;
-		if (stbl->MaxSamplePerChunk && cur_ent->samplesPerChunk == stbl->MaxSamplePerChunk)
+		if (stbl->MaxSamplePerChunk && cur_ent->samplesPerChunk >= stbl->MaxSamplePerChunk)
 			newChunk = 1;
 	}
 

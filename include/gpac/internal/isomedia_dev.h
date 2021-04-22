@@ -2051,7 +2051,7 @@ typedef struct
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
 
-	u32 MaxSamplePerChunk, MaxChunkSize;
+	u32 MaxSamplePerChunk, MaxChunkSize, MaxChunkDur;
 	u16 groupID;
 	u16 trackPriority;
 	u32 currentEntryIndex;
