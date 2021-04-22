@@ -599,6 +599,13 @@ typedef struct
 		}\
 		__ptr->size -= bytes; \
 
+#define ISOM_DECREASE_SIZE_GOTO_EXIT(__ptr, bytes)	if (__ptr->size < (bytes) ) {\
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(__ptr->type), (u32) __ptr->size, (bytes), __FILE__, __LINE__ )); \
+			e = GF_ISOM_INVALID_FILE; \
+			goto exit;\
+		}\
+		__ptr->size -= bytes; \
+
 
 #define ISOM_DECREASE_SIZE_NO_ERR(__ptr, bytes)	if (__ptr->size < (bytes) ) {\
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d), skipping box\n", gf_4cc_to_str(__ptr->type), (u32) __ptr->size, (bytes), __FILE__, __LINE__ )); \

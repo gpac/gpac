@@ -80,7 +80,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	u32 tmp_strsize;
 	char *tmp_str;
 	Bool zfound=GF_FALSE;
-	GF_Err e;
+	GF_Err e = GF_OK;
 
 	ISOM_DECREASE_SIZE(ptr, 25)
 	ptr->bootstrapinfo_version = gf_bs_read_u32(bs);
@@ -100,7 +100,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
 
 	while (tmp_strsize) {
-		ISOM_DECREASE_SIZE(ptr, 1)
+		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i]) {
@@ -109,20 +109,22 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		i++;
 	}
-	if (!zfound)
-		return GF_ISOM_INVALID_FILE;
+	if (!zfound) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
 	if (i) {
 		ptr->movie_identifier = gf_strdup(tmp_str);
 	}
 
-	ISOM_DECREASE_SIZE(ptr, 1)
+	ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 	ptr->server_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->server_entry_count; i++) {
 		int j=0;
 		zfound = GF_FALSE;
 		tmp_strsize=(u32)ptr->size;
 		while (tmp_strsize) {
-			ISOM_DECREASE_SIZE(ptr, 1)
+			ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
 			if (!tmp_str[j]) {
@@ -131,21 +133,27 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 			j++;
 		}
-		if (!zfound)
-			return GF_ISOM_INVALID_FILE;
+		if (!zfound) {
+			e = GF_ISOM_INVALID_FILE;
+			goto exit;
+		}
 		if (j) {
 			gf_list_insert(ptr->server_entry_table, gf_strdup(tmp_str), i);
 		}
 	}
+	if (ptr->server_entry_count != gf_list_count(ptr->server_entry_table)) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
 
-	ISOM_DECREASE_SIZE(ptr, 1)
+	ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
 		zfound = GF_FALSE;
 		tmp_strsize=(u32)ptr->size;
 		while (tmp_strsize) {
-			ISOM_DECREASE_SIZE(ptr, 1)
+			ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
 			if (!tmp_str[j]) {
@@ -155,18 +163,24 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 			j++;
 		}
 
-		if (!zfound)
-			return GF_ISOM_INVALID_FILE;
+		if (!zfound) {
+			e = GF_ISOM_INVALID_FILE;
+			goto exit;
+		}
 		if (j) {
 			gf_list_insert(ptr->quality_entry_table, gf_strdup(tmp_str), i);
 		}
+	}
+	if (ptr->quality_entry_count != gf_list_count(ptr->quality_entry_table)) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
 	}
 
 	i=0;
 	tmp_strsize=(u32)ptr->size;
 	zfound = GF_FALSE;
 	while (tmp_strsize) {
-		ISOM_DECREASE_SIZE(ptr, 1)
+		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i]) {
@@ -175,8 +189,11 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		i++;
 	}
-	if (!zfound)
-		return GF_ISOM_INVALID_FILE;
+	if (!zfound) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
+
 	if (i) {
 		ptr->drm_data = gf_strdup(tmp_str);
 	}
@@ -185,7 +202,7 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	tmp_strsize=(u32)ptr->size;
 	zfound = GF_FALSE;
 	while (tmp_strsize) {
-		ISOM_DECREASE_SIZE(ptr, 1)
+		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
 		if (!tmp_str[i]) {
@@ -194,41 +211,50 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 		}
 		i++;
 	}
-	if (!zfound)
-		return GF_ISOM_INVALID_FILE;
+	if (!zfound) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
+
 	if (i) {
 		ptr->meta_data = gf_strdup(tmp_str);
 	}
 
-	ISOM_DECREASE_SIZE(ptr, 1)
+	ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_AdobeSegmentRunTableBox *asrt = NULL;
 		e = gf_isom_box_parse((GF_Box **)&asrt, bs);
 		if (e) {
 			if (asrt) gf_isom_box_del((GF_Box*)asrt);
-			gf_free(tmp_str);
-			return e;
+			goto exit;
 		}
 		gf_list_add(ptr->segment_run_table_entries, asrt);
 	}
+	if (ptr->segment_run_table_count != gf_list_count(ptr->segment_run_table_entries)) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
 
-	ISOM_DECREASE_SIZE(ptr, 1)
+	ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_AdobeFragmentRunTableBox *afrt = NULL;
 		e = gf_isom_box_parse((GF_Box **)&afrt, bs);
 		if (e) {
 			if (afrt) gf_isom_box_del((GF_Box*)afrt);
-			gf_free(tmp_str);
-			return e;
+			goto exit;
 		}
 		gf_list_add(ptr->fragment_run_table_entries, afrt);
 	}
+	if (ptr->fragment_run_table_count != gf_list_count(ptr->fragment_run_table_entries)) {
+		e = GF_ISOM_INVALID_FILE;
+		goto exit;
+	}
 
+exit:
 	gf_free(tmp_str);
-
-	return GF_OK;
+	return e;
 }
 
 GF_Box *abst_box_new()
