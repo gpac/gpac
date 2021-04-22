@@ -653,11 +653,11 @@ noaudio (bool, default: false): disable audio output
 .br
 opfmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,yuv444ap,yuv444p_10,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format to use for output. Ignored in .I player mode
 .br
-drv (enum, default: auto):     indicate if graphics driver should be used. Ignored in player mode
+drv (enum, default: auto):     indicate if graphics driver should be used
 .br
-* no: never loads a graphics driver (software blitting used, no 3D possible)
+* no: never loads a graphics driver, software blitting is used, no 3D possible (in player mode, disables OpenGL)
 .br
-* yes: always loads a graphics driver. Output pixel format will be RGB
+* yes: always loads a graphics driver, output pixel format will be RGB (in player mode, same to auto)
 .br
 * auto: decides based on the loaded content
 .br
@@ -7642,7 +7642,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev743-g4b6d0cd42-master
+build: 1.1.0-DEV-rev746-gb8b96e969-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
