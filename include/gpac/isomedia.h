@@ -2588,6 +2588,14 @@ GF_Err gf_isom_set_track_priority_in_group(GF_ISOFile *isom_file, u32 trackNumbe
 */
 GF_Err gf_isom_hint_max_chunk_size(GF_ISOFile *isom_file, u32 trackNumber, u32 maxChunkSize);
 
+/*! sets the maximum chunk duration for a track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param maxChunkDur the maximum chunk duration in media timescale
+\return error if any
+*/
+GF_Err gf_isom_hint_max_chunk_duration(GF_ISOFile *isom_file, u32 trackNumber, u32 maxChunkDur);
+
 /*! sets up interleaving for storage (shortcut for storeage mode + interleave_time)
 \param isom_file the target ISO file
 \param TimeInSec the desired interleaving time in seconds

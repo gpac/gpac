@@ -210,7 +210,11 @@ GF_Err SetupWriters(MovieWriter *mw, GF_List *writers, u8 interleaving)
 		}
 		if (!writer->stco) return GF_OUT_OF_MEM;
 		/*stops from chunk escape*/
-		if (interleaving) writer->stbl->MaxSamplePerChunk = 0;
+		if (interleaving)
+			writer->stbl->MaxSamplePerChunk = 0;
+		else if (writer->stbl->MaxChunkDur && trak->Media->mediaHeader->duration) {
+			writer->stbl->MaxSamplePerChunk = (u32) ((u64) writer->stbl->MaxChunkDur * writer->stbl->SampleSize->sampleCount / trak->Media->mediaHeader->duration);
+		}
 		/*for progress, assume only one descIndex*/
 		if (Media_IsSelfContained(writer->mdia, 1))
 			mw->total_samples += writer->stbl->SampleSize->sampleCount;

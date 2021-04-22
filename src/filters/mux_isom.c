@@ -2699,6 +2699,9 @@ sample_entry_done:
 		if (ctx->maxchunk)
 			gf_isom_hint_max_chunk_size(ctx->file, tkw->track_num, ctx->maxchunk);
 
+		if (ctx->store==MP4MX_MODE_FLAT)
+			gf_isom_hint_max_chunk_duration(ctx->file, tkw->track_num, tkw->tk_timescale * ctx->cdur.num / ctx->cdur.den);
+
 		if (sr) {
 			if (use_flac_entry) {
 				while (sr>65535) {
@@ -6302,7 +6305,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
 	"- frag: fragments the file using cdur duration\n"
 	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
-	{ OFFS(cdur), "chunk duration for interleaving and fragmentation modes\n"
+	{ OFFS(cdur), "chunk duration for flat and interleaving modes or fragment duration for fragmentation modes\n"
 	"- 0: no specific interleaving but moov first\n"
 	"- negative: defaults to 1.0 unless overridden by storage profile", GF_PROP_FRACTION, "-1/1", NULL, 0},
 	{ OFFS(moovts), "timescale to use for movie. A negative value picks the media timescale of the first track added", GF_PROP_SINT, "600", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -1079,9 +1079,10 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			u32 sr, nb_ch, bps;
 			gf_isom_get_audio_info(mp4, i+1, 1, &sr, &nb_ch, &bps);
 			gf_isom_set_audio_info(mp4, i+1, 1, sr, nb_ch, bps, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF);
+
+			gf_isom_hint_max_chunk_duration(mp4, i+1, gf_isom_get_media_timescale(mp4, i+1) / 2);
 			continue;
 		}
-		if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
 	}
 	//make QT
 	gf_isom_remove_root_od(mp4);
