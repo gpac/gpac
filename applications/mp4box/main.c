@@ -3402,7 +3402,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 			/*single AU - check if base64 would fit in ESD (consider 33% overhead of base64), otherwise stream*/
 			if (gf_isom_get_sample_count(file, i+1)==1) {
 				GF_ISOSample *samp = gf_isom_get_sample(file, i+1, 1, &val);
-				if (streamType) {
+				if (streamType && samp) {
 					res = gf_hinter_can_embbed_data(samp->data, samp->dataLength, streamType);
 				} else {
 					/*not a system track, we shall hint it*/

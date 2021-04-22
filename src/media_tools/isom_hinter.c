@@ -1196,7 +1196,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			esd = gf_isom_get_esd(file, odT, 1);
 			if (gf_isom_get_sample_count(file, odT)==1) {
 				samp = gf_isom_get_sample(file, odT, 1, &descIndex);
-				if (gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {
+				if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {
 					InitSL_NULL(&slc);
 					slc.predefined = 0;
 					slc.hasRandomAccessUnitsOnlyFlag = 1;
