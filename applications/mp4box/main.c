@@ -511,6 +511,7 @@ static void PrintSplitUsage()
 		"  \n"
 		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
 		"- `splitrange` option of the reframer is always set\n"
+		"- source is demuxed with `alltk` option set\n"
 		"- start and end ranges are passed to `xs` and `xe` options of the reframer\n"
 		"- `xadjust` and `xround=after` options are enforced for `-splitz`\n"
 		"- `xadjust` and `xround=before` options are enforced for `-splitg`\n"
@@ -2894,6 +2895,7 @@ u32 parse_gendoc(char *name, u32 opt)
 		fprintf(helpout, "<!-- automatically generated - do not edit, patch gpac/applications/mp4box/main.c -->\n");
 		PrintExtractUsage();
 		PrintDumpUsage();
+		PrintSplitUsage();
 		gf_fclose(helpout);
 
 		helpout = gf_fopen("mp4box-meta-opts.md", "w");
