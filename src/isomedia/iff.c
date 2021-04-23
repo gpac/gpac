@@ -654,7 +654,7 @@ GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->group_id = gf_bs_read_u32(bs);
 	ptr->entity_id_count = gf_bs_read_u32(bs);
 
-	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
+	if (ptr->entity_id_count > ptr->size / 4) return GF_ISOM_INVALID_FILE;
 
 	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
 	if (!ptr->entity_ids) return GF_OUT_OF_MEM;

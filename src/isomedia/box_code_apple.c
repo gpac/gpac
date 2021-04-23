@@ -844,7 +844,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->bitmap = gf_bs_read_u32(bs);
 	ptr->num_audio_description = gf_bs_read_u32(bs);
 
-	if (ptr->size < ptr->num_audio_description*20)
+	if (ptr->size / 20 < ptr->num_audio_description)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);

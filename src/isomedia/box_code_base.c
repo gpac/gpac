@@ -5394,7 +5394,7 @@ GF_Err stsh_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(s, 4)
 	count = gf_bs_read_u32(bs);
-	if (ptr->size < count*8)
+	if (ptr->size / 8 < count)
 		return GF_ISOM_INVALID_FILE;
 
 	for (i = 0; i < count; i++) {
@@ -5467,7 +5467,7 @@ GF_Err stss_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->size <  ptr->nb_entries * 4) {
+	if (ptr->size / 4 <  ptr->nb_entries) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stss\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5770,7 +5770,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->size < ptr->nb_entries * 8) {
+	if (ptr->size / 8 < ptr->nb_entries) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5808,7 +5808,6 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 #endif
 
 	}
-	if (ptr->size<(ptr->nb_entries*8)) return GF_ISOM_INVALID_FILE;
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries*8);
 
 	//remove the last sample delta.
@@ -8860,7 +8859,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	//each subseg has at least one range_count (4 bytes), abort if not enough bytes (broken box)
-	if (ptr->size < ptr->subsegment_count*4)
+	if (ptr->size / 4 < ptr->subsegment_count)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->subsegment_alloc = ptr->subsegment_count;
@@ -8872,7 +8871,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4)
 		subseg->range_count = gf_bs_read_u32(bs);
 		//each range is 4 bytes, abort if not enough bytes
-		if (ptr->size < subseg->range_count*4)
+		if (ptr->size / 4 < subseg->range_count)
 			return GF_ISOM_INVALID_FILE;
 		subseg->ranges = (GF_SubsegmentRangeInfo*) gf_malloc(sizeof(GF_SubsegmentRangeInfo) * subseg->range_count);
 		if (!subseg->ranges) return GF_OUT_OF_MEM;
@@ -8944,7 +8943,7 @@ GF_Err leva_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 1)
 	ptr->level_count = gf_bs_read_u8(bs);
 	//each level is at least 5 bytes
-	if (ptr->size < ptr->level_count * 5)
+	if (ptr->size / 5 < ptr->level_count)
 		return GF_ISOM_INVALID_FILE;
 
 	GF_SAFE_ALLOC_N(ptr->levels, ptr->level_count, GF_LevelAssignment);
@@ -9950,7 +9949,7 @@ GF_Err saiz_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->sample_count = gf_bs_read_u32(bs);
 
 	if (ptr->default_sample_info_size == 0) {
-		if (ptr->size < sizeof(u8)*ptr->sample_count)
+		if (ptr->size < ptr->sample_count)
 		    return GF_ISOM_INVALID_FILE;
 
 		ptr->sample_info_size = gf_malloc(sizeof(u8)*ptr->sample_count);
@@ -10033,7 +10032,7 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->entry_count) {
 		u32 i;
-		if (ptr->size < (ptr->version == 0 ? 4 : 8) * ptr->entry_count)
+		if (ptr->size / (ptr->version == 0 ? 4 : 8) < ptr->entry_count)
 			return GF_ISOM_INVALID_FILE;
 		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
 		if (!ptr->offsets)
@@ -10543,7 +10542,7 @@ GF_Err fpar_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
-	if (ptr->nb_entries > UINT_MAX / 6)
+	if (ptr->nb_entries > ptr->size / 6)
 		return GF_ISOM_INVALID_FILE;
 
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * 6 );
@@ -10803,7 +10802,7 @@ GF_Err gitn_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 2);
 	ptr->nb_entries = gf_bs_read_u16(bs);
-	if (ptr->size < ptr->nb_entries*4)
+	if (ptr->size / 4 < ptr->nb_entries)
 		return GF_ISOM_INVALID_FILE;
 
 	GF_SAFE_ALLOC_N(ptr->entries, ptr->nb_entries, GroupIdNameEntry);
@@ -10892,7 +10891,7 @@ GF_Err fdpa_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->info.transport_object_identifier = gf_bs_read_u16(bs);
 	ISOM_DECREASE_SIZE(ptr, 2);
 	ptr->header_ext_count = gf_bs_read_u16(bs);
-	if (ptr->size < ptr->header_ext_count*2) {
+	if (ptr->size / 2 < ptr->header_ext_count) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in fdpa\n", ptr->header_ext_count));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -11825,7 +11824,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 	ptr->min_temporal_id = gf_bs_read_int(bs, 3);
 	ptr->max_temporal_id = gf_bs_read_int(bs, 3);
 	ptr->num_views = gf_bs_read_u16(bs);
-	if (6 * ptr->num_views > ptr->size)
+	if (ptr->num_views > ptr->size / 6)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->views = gf_malloc(sizeof(ViewIDEntry)*ptr->num_views);
@@ -11845,7 +11844,7 @@ GF_Err vwid_box_read(GF_Box *s,GF_BitStream *bs)
 		ptr->views[i].base_view_type = gf_bs_read_int(bs, 2);
 		ptr->views[i].num_ref_views = gf_bs_read_int(bs, 10);
 
-		if (2 * ptr->views[i].num_ref_views > ptr->size)
+		if (ptr->views[i].num_ref_views > ptr->size / 2)
 			return GF_ISOM_INVALID_FILE;
 
 		ptr->views[i].view_refs = gf_malloc(sizeof(ViewIDRefViewEntry)*ptr->views[i].num_ref_views);
@@ -12243,7 +12242,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->pattern_count = gf_bs_read_u32(bs);
 
 
-	if (ptr->size < ptr->pattern_count * (pattern_size + scount_size) / 8 )
+	if (ptr->size / ( (pattern_size + scount_size) / 8 ) < ptr->pattern_count )
 	    return GF_ISOM_INVALID_FILE;
 
 	ptr->patterns = gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);

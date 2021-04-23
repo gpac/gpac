@@ -402,7 +402,7 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->time_scale = gf_bs_read_u32(bs);
 
 	ptr->entry_count = gf_bs_read_u32(bs);
-	if (ptr->size < ptr->entry_count * (ptr->long_offsets ? 16 : 12))
+	if (ptr->size / ( (ptr->long_offsets ? 16 : 12) ) < ptr->entry_count)
 		return GF_ISOM_INVALID_FILE;
 
 	for (i=0; i<ptr->entry_count; i++) {
@@ -578,7 +578,7 @@ GF_Err asrt_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->segment_run_entry_count = gf_bs_read_u32(bs);
-	if (ptr->size < ptr->segment_run_entry_count*8)
+	if (ptr->size / 8 < ptr->segment_run_entry_count)
 		return GF_ISOM_INVALID_FILE;
 
 	for (i=0; i<ptr->segment_run_entry_count; i++) {
@@ -695,11 +695,11 @@ GF_Err afrt_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	ptr->fragment_run_entry_count = gf_bs_read_u32(bs);
-	if (ptr->size < ptr->fragment_run_entry_count*16)
+	if (ptr->size / 16 < ptr->fragment_run_entry_count)
 		return GF_ISOM_INVALID_FILE;
 	for (i=0; i<ptr->fragment_run_entry_count; i++) {
 		GF_AdobeFragmentRunEntry *fre = gf_malloc(sizeof(GF_AdobeFragmentRunEntry));
-		if (!fre) return GF_ISOM_INVALID_FILE;
+		if (!fre) return GF_OUT_OF_MEM;
 		ISOM_DECREASE_SIZE(ptr, 16)
 		fre->first_fragment = gf_bs_read_u32(bs);
 		fre->first_fragment_timestamp = gf_bs_read_u64(bs);

@@ -532,7 +532,7 @@ GF_Err styl_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 2);
 	ptr->entry_count = gf_bs_read_u16(bs);
 
-	if (ptr->size<ptr->entry_count * GPP_STYLE_SIZE)
+	if (ptr->size / GPP_STYLE_SIZE < ptr->entry_count)
 		return GF_ISOM_INVALID_FILE;
 
 	if (ptr->entry_count) {
@@ -668,7 +668,7 @@ GF_Err krok_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 6)
 	ptr->highlight_starttime = gf_bs_read_u32(bs);
 	ptr->nb_entries = gf_bs_read_u16(bs);
-	if (ptr->size < ptr->nb_entries * 8)
+	if (ptr->size / 8 < ptr->nb_entries)
 		return GF_ISOM_INVALID_FILE;
 
 	if (ptr->nb_entries) {
