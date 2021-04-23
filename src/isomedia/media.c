@@ -181,8 +181,11 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	}
 
+
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_MP4V:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		ESDa = ((GF_MPEGVisualSampleEntryBox*)entry)->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		/*avc1 encrypted*/
@@ -202,10 +205,14 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_DVHE:
 	case GF_ISOM_BOX_TYPE_VVC1:
 	case GF_ISOM_BOX_TYPE_VVI1:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_MVC1:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		if ((mdia->mediaTrack->extractor_mode & 0x0000FFFF) != GF_ISOM_NALU_EXTRACT_INSPECT)
 			AVC_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*) entry, mdia);
 		else
@@ -214,6 +221,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_LHV1:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		if ((mdia->mediaTrack->extractor_mode & 0x0000FFFF) != GF_ISOM_NALU_EXTRACT_INSPECT)
 			HEVC_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*) entry, mdia);
 		else
@@ -221,15 +230,21 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_AV01:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		AV1_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_VP08:
 	case GF_ISOM_BOX_TYPE_VP09:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		VP9_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*)entry, mdia);
 		esd = ((GF_MPEGVisualSampleEntryBox*)entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4A:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
         {
             GF_MPEGAudioSampleEntryBox *ase = (GF_MPEGAudioSampleEntryBox*)entry;
             ESDa = ase->esd;
@@ -270,6 +285,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+			return GF_ISOM_INVALID_MEDIA;
+
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {
 			GF_Err e = gf_isom_get_ttxt_esd(mdia, out_esd);
 			if (e) return e;
@@ -280,6 +298,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 #endif
 #ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_WVTT:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+			return GF_ISOM_INVALID_MEDIA;
 	{
 		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
 		esd =  gf_odf_desc_esd_new(2);
@@ -304,13 +324,18 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
 		if (!true_desc_only) {
 			GF_Err e = gf_isom_get_3gpp_audio_esd(mdia->information->sampleTable, type, (GF_GenericAudioSampleEntryBox*)entry, out_esd);
 			if (e) return e;
 			break;
 		} else return GF_ISOM_INVALID_MEDIA;
 
-	case GF_ISOM_SUBTYPE_OPUS: {
+	case GF_ISOM_SUBTYPE_OPUS:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
+	{
 		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
 		GF_BitStream *bs_out;
 		if (!e) {
@@ -331,6 +356,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		break;
 	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
+			return GF_ISOM_INVALID_MEDIA;
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
@@ -342,6 +369,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		}
 
 	case GF_ISOM_SUBTYPE_MP3:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
@@ -353,6 +382,8 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		}
 
 	case GF_ISOM_SUBTYPE_LSR1:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+			return GF_ISOM_INVALID_MEDIA;
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
@@ -371,6 +402,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_SUBTYPE_MH3D_MHA2:
 	case GF_ISOM_SUBTYPE_MH3D_MHM1:
 	case GF_ISOM_SUBTYPE_MH3D_MHM2:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
+			return GF_ISOM_INVALID_MEDIA;
+
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;
 		} else {
