@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -299,10 +299,8 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 
 		if (ctx->blankframe && !c && (pos->start>0)) {
 			dst_pck = gf_filter_pck_new_alloc(pid, sizeof(null_subpic), &packet);
-			if (!dst_pck) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Memory allocation failed\n"));
-				return GF_OUT_OF_MEM;
-			}
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			memcpy(packet, null_subpic, sizeof(null_subpic));
 			gf_filter_pck_set_cts(dst_pck, 0);
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
@@ -311,10 +309,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		}
 
 		dst_pck = gf_filter_pck_new_alloc(pid, psize, &packet);
-		if (!dst_pck) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Memory allocation failed\n"));
-			return GF_OUT_OF_MEM;
-		}
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		for (i = 0, left = psize; i < psize; i += size, left -= size) {
 			hsize = 0x18 + buf[0x16];

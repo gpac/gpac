@@ -3147,6 +3147,10 @@ void gf_filter_forward_clock(GF_Filter *filter)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s internal forward of clock reference\n", pid->filter->name, pid->name));
 		pck = gf_filter_pck_new_shared((GF_FilterPid *)pid, NULL, 0, NULL);
+		if (!pck) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s PID %s failted to allocate packet for clock reference forward\n", pid->filter->name, pid->name));
+			continue;
+		}
 		gf_filter_pck_set_cts(pck, clock_val);
 		gf_filter_pck_set_clock_type(pck, filter->next_clock_dispatch_type);
 

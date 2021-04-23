@@ -464,6 +464,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			//no start code in stored buffer
 			if (current<0) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 				memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
@@ -507,6 +509,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 			}
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			if (ctx->bytes_in_header) {
@@ -584,6 +588,8 @@ GF_Err h263dmx_process(GF_Filter *filter)
 		}
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		if (ctx->bytes_in_header && current) {
 			memcpy(pck_data, ctx->hdr_store+current, ctx->bytes_in_header);

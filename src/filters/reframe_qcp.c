@@ -447,6 +447,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		}
 		if (! ctx->in_seek) {
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -619,6 +620,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(pck_data, start, size);
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);

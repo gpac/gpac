@@ -260,6 +260,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 		const GF_PropertyValue *p;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhnt, nhnt_hdr_size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		if (!ctx->bs) ctx->bs = gf_bs_new(output, nhnt_hdr_size, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(ctx->bs, output, nhnt_hdr_size);
 
@@ -292,9 +294,11 @@ GF_Err nhntdump_process(GF_Filter *filter)
 
 		if (ctx->opid_info) {
 			dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
-			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-			gf_filter_pck_set_readonly(dst_pck);
-			gf_filter_pck_send(dst_pck);
+			if (dst_pck) {
+				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+				gf_filter_pck_set_readonly(dst_pck);
+				gf_filter_pck_send(dst_pck);
+			}
 		}
 	}
 
@@ -304,6 +308,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 	//nhnt data size
 	size = 3 + 1 + 3*(ctx->large ? 8 : 4);
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhnt, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	//send nhnt data
 	gf_bs_reassign_buffer(ctx->bs, output, size);
 
@@ -334,6 +340,8 @@ GF_Err nhntdump_process(GF_Filter *filter)
 
 	//send the complete data packet
 	dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, pck_size, pck);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//keep byte offset ?
 //	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

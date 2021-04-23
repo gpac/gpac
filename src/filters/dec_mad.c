@@ -298,6 +298,7 @@ mad_resync:
 	right_ch = ctx->synth.pcm.samples[1] + samples_to_trash;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, (num - samples_to_trash) * 2 * ctx->num_channels, &ptr);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);

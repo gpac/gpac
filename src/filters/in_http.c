@@ -276,6 +276,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
 			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			if (!pck) return GF_TRUE;
 			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 
 			ctx->pck_out = GF_TRUE;
@@ -389,8 +390,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 			to_read = (u32) lto_read;
 
 		if (ctx->full_file_only) {
-			ctx->is_end = GF_TRUE;
 			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			if (!pck) return GF_OUT_OF_MEM;
+			ctx->is_end = GF_TRUE;
 			gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
 
 			//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
@@ -543,7 +545,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	}
 
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, httpin_rel_pck);
-	if (!pck) return GF_OK;
+	if (!pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_set_cts(pck, 0);
 

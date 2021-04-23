@@ -172,6 +172,8 @@ static void jpgenc_init_dest(j_compress_ptr cinfo)
 		return;
 
 	ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ALLOC_STEP_SIZE, &ctx->output);
+	if (!ctx->dst_pck) return;
+
     cinfo->dest->next_output_byte = ctx->output;
     cinfo->dest->free_in_buffer = ALLOC_STEP_SIZE;
     ctx->dst_pck_size += ALLOC_STEP_SIZE;
@@ -261,6 +263,10 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 
 	if (ctx->max_size) {
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->max_size, &ctx->output);
+		if (!ctx->dst_pck) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		ctx->dst.next_output_byte = ctx->output;
 		ctx->dst.free_in_buffer = ctx->max_size;
 		ctx->dst_pck_size = ctx->max_size;

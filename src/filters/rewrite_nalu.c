@@ -343,6 +343,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (!ctx->nb_nalu && ctx->dsi) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->dsi_size, &output);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				memcpy(output, ctx->dsi, ctx->dsi_size);
 				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 				gf_filter_pck_send(dst_pck);
@@ -436,6 +438,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, size);

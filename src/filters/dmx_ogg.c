@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -694,6 +694,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					if (oggpackB_read(&opb, 1) != 0) continue;
 
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					if (!dst_pck) return GF_OUT_OF_MEM;
+
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					gf_filter_pck_set_sap(dst_pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
@@ -728,6 +730,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						}
 					}
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					if (!dst_pck) return GF_OUT_OF_MEM;
+					
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					//compat with old arch (keep same hashes), to remove once dropping it

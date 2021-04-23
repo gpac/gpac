@@ -210,6 +210,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		vframe->frame_ifce.user_data = vframe;
 		vframe->frame_ifce.get_plane = vcrop_frame_get_plane;
 		dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vframe->frame_ifce, vcrop_packet_destruct);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		//keep a ref to input packet
 		vframe->pck = pck;
 		gf_filter_pck_ref(&vframe->pck);
@@ -222,10 +224,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
-	if (!dst_pck) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OUT_OF_MEM;
-	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	dst_planes[0] = output;
 	if (ctx->nb_planes==1) {

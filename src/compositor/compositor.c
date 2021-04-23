@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -478,8 +478,10 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		vi->height = compositor->display_height;
 		gf_pixel_get_size_info(pfmt, compositor->display_width, compositor->display_height, NULL, &vi->pitch_y, NULL, NULL, NULL);
 		if (compositor->passthrough_txh && !compositor->passthrough_txh->frame_ifce && (pfmt == compositor->passthrough_txh->pixelformat)) {
-			if (!compositor->passthrough_pck)
+			if (!compositor->passthrough_pck) {
 				compositor->passthrough_pck = gf_filter_pck_new_clone(compositor->vout, compositor->passthrough_txh->stream->pck, &compositor->passthrough_data);
+				if (!compositor->passthrough_pck) return GF_OUT_OF_MEM;
+			}
 
 			vi->video_buffer = compositor->passthrough_data;
 			vi->pitch_y = compositor->passthrough_txh->stride;
@@ -2918,6 +2920,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
 				}
+
+				if (!pck) return;
 
 				if (compositor->passthrough_txh) {
 					gf_filter_pck_merge_properties(compositor->passthrough_txh->stream->pck, pck);

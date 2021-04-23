@@ -4594,6 +4594,8 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			ctx->sidx_chunk_offset = (u32) (ctx->current_offset + ctx->current_size);
 			//send a dummy packet
 			pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
+			if (!pck) return GF_OUT_OF_MEM;
+
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 			//format as free box for now
 			bs = gf_bs_new(output, ctx->sidx_max_size, GF_BITSTREAM_WRITE);
@@ -4704,6 +4706,8 @@ static GF_Err mp4_mux_flush_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 	}
 	if (!blocksize) return GF_EOS;
 	pck = gf_filter_pck_new_alloc(ctx->opid, blocksize, &output);
+	if (!pck) return GF_OUT_OF_MEM;
+
 	nb_read = (u32) gf_fread(output, blocksize, ctx->tmp_store);
 	if (nb_read != blocksize) {
 		char tmp[1];
@@ -5650,6 +5654,8 @@ static GF_Err mp4_mux_on_data_patch(void *cbk, u8 *data, u32 block_size, u64 fil
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
+	if (!pck) return GF_OUT_OF_MEM;
+
 	memcpy(output, data, block_size);
 	gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
@@ -5677,6 +5683,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 
 		if (ctx->vodcache==MP4MX_VODCACHE_INSERT) {
 			pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
+			if (!pck) return GF_OUT_OF_MEM;
+
 			memcpy(output, data, block_size);
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 			gf_filter_pck_set_byte_offset(pck, ctx->sidx_chunk_offset);
@@ -5693,6 +5701,8 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 			}
 			free_size = ctx->sidx_max_size - block_size;
 			pck = gf_filter_pck_new_alloc(ctx->opid, ctx->sidx_max_size, &output);
+			if (!pck) return GF_OUT_OF_MEM;
+
 			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
 			gf_filter_pck_set_byte_offset(pck, ctx->sidx_chunk_offset);
 			gf_filter_pck_set_seek_flag(pck, GF_TRUE);
@@ -5721,12 +5731,11 @@ static GF_Err mp4_mux_on_data(void *cbk, u8 *data, u32 block_size)
 
 	//allocate new one
 	ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, block_size, &output);
-	if (!ctx->dst_pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot allocate output packets, lost %d bytes\n", block_size));
-	} else {
-		memcpy(output, data, block_size);
-		gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
-	}
+	if (!ctx->dst_pck) return GF_OUT_OF_MEM;
+
+	memcpy(output, data, block_size);
+	gf_filter_pck_set_framing(ctx->dst_pck, !ctx->first_pck_sent, GF_FALSE);
+
 	//set packet prop as string since we may discard the seg_name  packet before this packet is processed
 	if (!ctx->first_pck_sent && ctx->seg_name) {
 		ctx->current_offset = 0;

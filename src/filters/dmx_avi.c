@@ -486,6 +486,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 
 			if (size > 4) {
 				GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->v_opid, size, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
 				AVI_read_frame(ctx->avi, pck_data, &key);
 				gf_filter_pck_set_byte_offset(dst_pck, file_offset);
 				gf_filter_pck_set_cts(dst_pck, cts);
@@ -542,7 +543,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 			u8 *pck_data;
 			u64 file_offset;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(st->opid, size, &pck_data);
-
+			if (!dst_pck) return GF_OUT_OF_MEM;
+			
 			file_offset = gf_ftell(ctx->avi->fdes);
 			AVI_read_audio(ctx->avi, pck_data, size, (int*)&continuous);
 

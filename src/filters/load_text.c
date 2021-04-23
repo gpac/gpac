@@ -582,6 +582,8 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	size = gf_isom_text_sample_size(txt_samp);
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+	if (!dst_pck) return;
+
 	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
 	gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
 
@@ -1013,15 +1015,17 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 		u8 *pck_data;
 
 		pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-		memcpy(pck_data, s->data, s->dataLength);
-		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
-		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		if (pck) {
+			memcpy(pck_data, s->data, s->dataLength);
+			gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
+			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 
-		if (end && (end>=start) ) {
-			gf_filter_pck_set_duration(pck, (u32) (ctx->timescale * (end-start) / 1000) );
+			if (end && (end>=start) ) {
+				gf_filter_pck_set_duration(pck, (u32) (ctx->timescale * (end-start) / 1000) );
+			}
+			gf_filter_pck_send(pck);
 		}
-		gf_filter_pck_send(pck);
 
 		gf_isom_sample_del(&s);
 	}
@@ -2078,6 +2082,10 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 
 		if (!skip_pck) {
 			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
+			if (!pck) {
+				gf_free(samp_text);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(pck_data, txt_str, txt_len);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
@@ -2156,12 +2164,14 @@ static GF_Err swf_svg_add_iso_sample(void *user, const u8 *data, u32 length, u64
 	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
-	memcpy(pck_data, data, length);
-	gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
-	gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
+	if (pck) {
+		memcpy(pck_data, data, length);
+		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
+		gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+		gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
 
-	gf_filter_pck_send(pck);
+		gf_filter_pck_send(pck);
+	}
 
 	if (gf_filter_pid_would_block(ctx->opid))
 		ctx->do_suspend = GF_TRUE;
@@ -2181,10 +2191,12 @@ static GF_Err swf_svg_add_iso_header(void *user, const u8 *data, u32 length, Boo
 		GF_FilterPacket *pck;
 		u8 *pck_data;
 		pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
-		memcpy(pck_data, data, length);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
+		if (pck) {
+			memcpy(pck_data, data, length);
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 
-		gf_filter_pck_send(pck);
+			gf_filter_pck_send(pck);
+		}
 	}
 	return GF_OK;
 }

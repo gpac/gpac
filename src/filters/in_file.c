@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -358,8 +358,10 @@ static GF_Err filein_process(GF_Filter *filter)
 	}
 
 	if (ctx->full_file_only && ctx->pid && !ctx->do_reconfigure && ctx->cached_set) {
-		ctx->is_end = GF_TRUE;
 		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, filein_pck_destructor);
+		if (!pck) return GF_OUT_OF_MEM;
+
+		ctx->is_end = GF_TRUE;
 		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 		ctx->pck_out = GF_TRUE;
@@ -427,8 +429,7 @@ static GF_Err filein_process(GF_Filter *filter)
 			if (e) return e;
 		}
 		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, ctx->block_size, filein_pck_destructor);
-		if (!pck)
-			return GF_OK;
+		if (!pck) return GF_OUT_OF_MEM;
 
 		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, GF_FALSE);
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
@@ -510,8 +511,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	}
 
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
-	if (!pck)
-		return GF_OK;
+	if (!pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
 

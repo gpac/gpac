@@ -532,6 +532,8 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 			GF_FilterSAPType sap = GF_FILTER_SAP_1;
 
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, latm_frame_size, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, latm_buffer, latm_frame_size);

@@ -105,10 +105,8 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	memset(src_planes, 0, sizeof(src_planes));
 	memset(dst_planes, 0, sizeof(dst_planes));
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
-	if (!dst_pck) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OUT_OF_MEM;
-	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
 	if (data) {

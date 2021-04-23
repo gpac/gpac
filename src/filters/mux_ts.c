@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -1191,6 +1191,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 			if (ctx->idx_filter) gf_filter_set_source(ctx->idx_filter, filter, NULL);
 		}
 		idx_pck = gf_filter_pck_new_alloc(ctx->idx_opid, segidx_size, &output);
+		if (!idx_pck) return;
 
 		if (!ctx->idx_bs) ctx->idx_bs = gf_bs_new(output, segidx_size, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(ctx->idx_bs, output, segidx_size);
@@ -1390,6 +1391,8 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		}
 		osize = nb_pck_in_pack * 188;
 		pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+		if (!pck) return GF_OUT_OF_MEM;
+		
 		memcpy(output, ts_pck, osize);
 		gf_filter_pck_set_framing(pck, ctx->nb_pck ? ctx->next_is_start : GF_TRUE, (status==GF_M2TS_STATE_EOS) ? GF_TRUE : GF_FALSE);
 

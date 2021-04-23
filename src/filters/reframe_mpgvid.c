@@ -656,6 +656,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			//no start code in stored buffer
 			if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 				gf_filter_pck_set_dts(dst_pck, GF_FILTER_NO_TS);
@@ -709,6 +711,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				}
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				memcpy(pck_data, start, (size_t) size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
@@ -747,6 +751,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (current>0) {
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 			gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 			gf_filter_pck_set_dts(dst_pck, GF_FILTER_NO_TS);
@@ -973,6 +979,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		ctx->nb_frames++;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		//bytes come from both our store and the data packet
 		if (bytes_from_store) {

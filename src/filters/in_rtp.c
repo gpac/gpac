@@ -251,6 +251,7 @@ static void rtpin_send_data_base64(GF_RTPInStream *stream)
 	size = gf_base64_decode(data, (u32) strlen(data), stream->buffer, stream->rtpin->block_size);
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
+	if (!pck) return;
 	memcpy(pck_data, stream->buffer, size);
 	gf_filter_pck_set_cts(pck, (u64) (stream->current_start * stream->ts_res));
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);

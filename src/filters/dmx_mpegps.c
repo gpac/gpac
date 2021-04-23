@@ -382,6 +382,8 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 
 			if ((buf[buf_len - 4] == 0) && (buf[buf_len - 3] == 0) && (buf[buf_len - 2] == 1)) buf_len -= 4;
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
+			if (!dst_pck) continue;
+
 			memcpy(pck_data, buf, buf_len);
 			if (ftype==1) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
@@ -404,6 +406,8 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 				continue;
 			}
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
+			if (!dst_pck) continue;
+			
 			memcpy(pck_data, buf, buf_len);
 			if (cts != GF_FILTER_NO_TS) {
 				cts -= ctx->first_dts;

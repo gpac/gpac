@@ -776,7 +776,10 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &output);
-	if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, pck);
+	if (!pck) return GF_OUT_OF_MEM;
+
+	if (ctx->src_pck)
+		gf_filter_pck_merge_properties(ctx->src_pck, pck);
 
 	gf_filter_pck_set_cts(pck, ctx->cts);
 	gf_filter_pck_set_sap(pck, ctx->state.frame_state.key_frame ? GF_FILTER_SAP_1 : 0);

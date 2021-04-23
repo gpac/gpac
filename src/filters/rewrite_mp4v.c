@@ -118,6 +118,7 @@ GF_Err m4vmx_process(GF_Filter *filter)
 		size = pck_size + ctx->dsi_size;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 		memcpy(output, ctx->dsi, ctx->dsi_size);
 		memcpy(output+ctx->dsi_size, data, pck_size);
 		gf_filter_pck_merge_properties(pck, dst_pck);

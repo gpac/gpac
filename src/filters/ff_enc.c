@@ -633,6 +633,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	if (insert_jp2c) {
 		u32 bsize = pkt.size + 8;
 		output[0] = (bsize >> 24) & 0xFF;
@@ -960,6 +962,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		return GF_OK;
 	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 	memcpy(output, pkt.data, pkt.size);
 
 	if (ctx->init_cts_setup) {

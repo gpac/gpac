@@ -336,15 +336,15 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, outsize, &out_buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (pck_src) {
-		if (dst_pck) gf_filter_pck_merge_properties(pck_src, dst_pck);
+		gf_filter_pck_merge_properties(pck_src, dst_pck);
 		gf_list_del_item(ctx->src_packets, pck_src);
 		gf_filter_pck_unref(pck_src);
 	} else {
-		if (dst_pck) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	}
-	if (!dst_pck) return GF_OUT_OF_MEM;
 
     //rewrite dts and pts to PTS value
     gf_filter_pck_set_dts(dst_pck, out_cts);
@@ -571,6 +571,7 @@ decode_next:
 
 	output_size = (frame->nb_samples - samples_to_trash) * ctx->channels * ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	switch (frame->format) {
 	case AV_SAMPLE_FMT_U8P:

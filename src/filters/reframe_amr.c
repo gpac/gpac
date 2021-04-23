@@ -384,6 +384,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		}
 		if (! ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -504,6 +505,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		}
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 
 			memcpy(output, start, size);
 

@@ -463,11 +463,13 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
-		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-		gf_filter_pck_set_readonly(dst_pck);
-		gf_filter_pck_send(dst_pck);
+		if (dst_pck) {
+			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+			gf_filter_pck_set_readonly(dst_pck);
+			gf_filter_pck_send(dst_pck);
+		}
 	}
-
+	
 	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
 	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
 	ctx->uncompress = GF_FALSE;
@@ -493,6 +495,8 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
+	if (!dst_pck) return;
+
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
@@ -614,6 +618,8 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
+	if (!dst_pck) return;
+
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
@@ -811,15 +817,19 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-	memcpy(output, ctx->nhml_buffer, size);
-	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
-	gf_filter_pck_send(dst_pck);
+	if (dst_pck) {
+		memcpy(output, ctx->nhml_buffer, size);
+		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		gf_filter_pck_send(dst_pck);
+	}
 
 	ctx->mdia_pos += data_size;
 
 	if (ctx->opid_mdia) {
 		//send the complete data packet
 		dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, data_size, pck);
+		if (!dst_pck) return;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		//keep byte offset ?
 //		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
@@ -859,9 +869,11 @@ GF_Err nhmldump_process(GF_Filter *filter)
 					GF_FilterPacket *dst_pck;
 					u8 *output;
 					dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-					memcpy(output, ctx->nhml_buffer, size);
-					gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-					gf_filter_pck_send(dst_pck);
+					if (dst_pck) {
+						memcpy(output, ctx->nhml_buffer, size);
+						gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+						gf_filter_pck_send(dst_pck);
+					}
 				}
 				ctx->szRootName = NULL;
 			}

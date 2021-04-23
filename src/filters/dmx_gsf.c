@@ -583,6 +583,16 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 	return GF_OK;
 }
 
+
+static GFINLINE void gsfdmx_pck_reset(GSF_Packet *pck)
+{
+	u32 alloc_frags = pck->nb_alloc_frags;
+	GSF_PacketFragment *frags = pck->frags;
+	memset(pck, 0, sizeof(GSF_Packet));
+	pck->nb_alloc_frags = alloc_frags;
+	pck->frags = frags;
+}
+
 static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool pck_frag, s32 frame_sn, u8 pkt_type, u32 frame_size)
 {
 	u32 i=0, count;
@@ -612,6 +622,11 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck->pck_type = pkt_type;
 		gpck->full_block_size = frame_size;
 		gpck->pck = gf_filter_pck_new_alloc(gst->opid, frame_size, &gpck->output);
+		if (!gpck->pck) {
+			gsfdmx_pck_reset(gpck);
+			gf_list_add(ctx->pck_res, gpck);
+			return NULL;
+		}
 		memset(gpck->output, (u8) ctx->pad, sizeof(char) * gpck->full_block_size);
 
 		count = gf_list_count(gst->packets);
@@ -899,14 +914,6 @@ static const char *gsfdmx_pck_name(u32 pck_type)
 }
 #endif
 
-static GFINLINE void gsfdmx_pck_reset(GSF_Packet *pck)
-{
-	u32 alloc_frags = pck->nb_alloc_frags;
-	GSF_PacketFragment *frags = pck->frags;
-	memset(pck, 0, sizeof(GSF_Packet));
-	pck->nb_alloc_frags = alloc_frags;
-	pck->frags = frags;
-}
 
 static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush)
 {

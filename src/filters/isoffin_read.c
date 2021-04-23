@@ -1309,7 +1309,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				isor_reader_check_config(ch);
 
 				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
-				assert(pck);
+				if (!pck) return GF_OUT_OF_MEM;
 
 				memcpy(data, ch->sample->data, ch->sample->dataLength);
 

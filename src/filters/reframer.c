@@ -727,6 +727,8 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			u32 nb_frames;
 			u8 *tcmd_data = NULL;
 			new_pck = gf_filter_pck_new_copy(st->opid, pck, &tcmd_data);
+			if (!new_pck) return GF_FALSE;
+
 			bs = gf_bs_new(tcmd_data, 4, GF_BITSTREAM_READ);
 			nb_frames = gf_bs_read_u32(bs);
 			gf_bs_del(bs);
@@ -748,9 +750,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			if (st->abps) {
 				u8 *output;
 				new_pck = gf_filter_pck_new_alloc(st->opid, st->audio_samples_to_keep * st->abps, &output);
+				if (!new_pck) return GF_FALSE;
 				reframer_copy_raw_audio(st, data, pck_size, 0, output, st->audio_samples_to_keep);
 			} else {
 				new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+				if (!new_pck) return GF_FALSE;
 			}
 			dur = st->audio_samples_to_keep;
 		} else if (st->audio_samples_to_keep) {
@@ -760,6 +764,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			data = gf_filter_pck_get_data(pck, &pck_size);
 			if (st->abps) {
 				new_pck = gf_filter_pck_new_alloc(st->opid, pck_size - st->audio_samples_to_keep * st->abps, &output);
+				if (!new_pck) return GF_FALSE;
 
 				reframer_copy_raw_audio(st, data, pck_size, st->audio_samples_to_keep, output, pck_size/st->abps - st->audio_samples_to_keep);
 
@@ -771,12 +776,15 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					st->ts_at_range_start_plus_one += cts_offset;
 			} else {
 				new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+				if (!new_pck) return GF_FALSE;
+
 				dur = gf_filter_pck_get_duration(pck);
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT( st->audio_samples_to_keep ) );
 			}
 			st->audio_samples_to_keep = 0;
 		} else {
 			new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+			if (!new_pck) return GF_FALSE;
 		}
 		gf_filter_pck_merge_properties(pck, new_pck);
 

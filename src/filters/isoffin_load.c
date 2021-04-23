@@ -1353,9 +1353,11 @@ GF_Err isor_declare_objects(ISOMReader *read)
 				gf_filter_pid_set_property(cover_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 				gf_filter_pid_set_name(cover_pid, "CoverArt");
 				dst_pck = gf_filter_pck_new_alloc(cover_pid, tlen, &out_buffer);
-				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-				memcpy(out_buffer, tag, tlen);
-				gf_filter_pck_send(dst_pck);
+				if (dst_pck) {
+					gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+					memcpy(out_buffer, tag, tlen);
+					gf_filter_pck_send(dst_pck);
+				}
 				gf_filter_pid_set_eos(cover_pid);
 			}
 		}

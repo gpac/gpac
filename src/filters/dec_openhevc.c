@@ -748,6 +748,7 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	oh_output_update(ctx->codec, 1, &ctx->frame_ptr);
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &ctx->frame_ifce, ohevcframe_release);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
@@ -860,6 +861,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 		if (!ctx->packed_pck) {
 			ctx->packed_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &ctx->packed_data);
+			if (!ctx->packed_pck) return GF_OUT_OF_MEM;
 			if (src_pck) gf_filter_pck_merge_properties(src_pck, ctx->packed_pck);
 			else gf_filter_pck_set_cts(ctx->packed_pck, cts);
 		}
@@ -941,7 +943,8 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
-
+	if (!pck) return GF_OUT_OF_MEM;
+	
 	openHevcFrame_FL.data_y = (void*) data;
 
 	if (ctx->nb_layers==2 && ctx->is_multiview && !ctx->no_copy){

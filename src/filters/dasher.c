@@ -3920,6 +3920,8 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, 
 	size = (u32) gf_fsize(f);
 
 	pck = gf_filter_pck_new_alloc(opid, size, &output);
+	if (!pck) return;
+
 	nb_read = (u32) gf_fread(output, size, f);
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
@@ -4017,6 +4019,8 @@ static void dasher_forward_manifest_raw(GF_DasherCtx *ctx, GF_DashStream *ds, co
 	size = (u32) strlen(manifest);
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, size+1, &output);
+	if (!pck) return;
+
 	memcpy(output, manifest, size);
 	output[size] = 0;
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
@@ -7591,8 +7595,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC)) {
 					GF_FilterPacket *eods_pck;
 					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
-					gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
-					gf_filter_pck_send(eods_pck);
+					if (eods_pck) {
+						gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
+						gf_filter_pck_send(eods_pck);
+					}
 				}
 
 				ds->first_cts_in_next_seg = cts;
@@ -7652,6 +7658,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//create new ref to input
 			dst = gf_filter_pck_new_ref(ds->opid, 0, 0, pck);
+			if (!dst) return GF_OUT_OF_MEM;
+
 			//merge all props
 			gf_filter_pck_merge_properties(pck, dst);
 			//we have ts offset, use computed cts and dts
@@ -7836,9 +7844,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 			GF_FilterPacket *eods_pck;
 			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 			if (ds->done) continue;
+			eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
+			if (!eods_pck) return GF_OUT_OF_MEM;
 			ds->done = 2;
 			ds->subdur_done = GF_TRUE;
-			eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
 			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
 			gf_filter_pck_send(eods_pck);
 

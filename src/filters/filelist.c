@@ -1550,6 +1550,8 @@ static void filelist_forward_splice_pck(FileListPid *iopid, GF_FilterPacket *pck
 		}
 		osize = nb_samp * iopid->splice_ra_info.abps;
 		dst_pck = gf_filter_pck_new_alloc(iopid->opid, osize, &output);
+		if (!dst_pck) return;
+
 		filelist_copy_raw_audio(iopid, data, pck_size, offset, output, nb_samp, &iopid->splice_ra_info);
 
 		dur = nb_samp;
@@ -1633,9 +1635,12 @@ void filein_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPacket
 
 		osize = ABS(iopid->audio_samples_to_keep) * ra->abps;
 		dst_pck = gf_filter_pck_new_alloc((!is_splice_forced && iopid->opid_aux) ? iopid->opid_aux : iopid->opid, osize, &output);
+		if (!dst_pck) return;
+
 		filelist_copy_raw_audio(iopid, data, pck_size, offset, output, nb_samp, ra);
 	} else {
 		dst_pck = gf_filter_pck_new_ref(iopid->opid_aux ? iopid->opid_aux : iopid->opid, 0, 0, pck);
+		if (!dst_pck) return;
 	}
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
