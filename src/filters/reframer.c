@@ -857,6 +857,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				&& ((ts + ts_adj - st->ts_sub) * ctx->cur_start.den < ctx->cur_start.num * st->timescale)
 			) {
 				gf_filter_pck_set_seek_flag(new_pck, GF_TRUE);
+				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, NULL);
 				if (st->stream_type!=GF_STREAM_VISUAL) {
 					u32 dur = gf_filter_pck_get_duration(new_pck);
 					if ((ts + ts_adj + dur - st->ts_sub) * ctx->cur_start.den > ctx->cur_start.num * st->timescale) {
@@ -1723,6 +1724,11 @@ GF_Err reframer_process(GF_Filter *filter)
 				ctx->eos_state = 1;
 			} else {
 				min_ts -= 1;
+
+				if ((ctx->extract_mode==EXTRACT_RANGE) && (ctx->xround==REFRAME_ROUND_BEFORE)) {
+					ctx->cur_start.num = min_ts;
+					ctx->cur_start.den = min_timescale;
+				}
 			}
 			//purge everything before min ts
 			for (i=0; i<count; i++) {

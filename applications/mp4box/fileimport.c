@@ -1809,8 +1809,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		return GF_IO_ERR;
 	}
 
-
-	sprintf(szArgs, "mp4dmx:mov=%p", mp4);
+	//load source with all tracks processing
+	sprintf(szArgs, "mp4dmx:mov=%p:alltk", mp4);
 	src = gf_fs_load_filter(fs, szArgs, &e);
 
 	if (!src) {
