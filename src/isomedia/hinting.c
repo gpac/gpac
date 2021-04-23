@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -31,7 +31,8 @@ GF_Box *ghnt_box_new()
 {
 	GF_HintSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_HintSampleEntryBox);
-	if (tmp == NULL) return NULL;
+	if (!tmp) return NULL;
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
 
 	//this type is used internally for protocols that share the same base entry
 	//currently only RTP uses this, but a flexMux could use this entry too...
@@ -45,6 +46,7 @@ void ghnt_box_del(GF_Box *s)
 {
 	GF_HintSampleEntryBox *ptr;
 
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 	ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
 	gf_free(ptr);

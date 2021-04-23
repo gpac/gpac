@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2000-2012
+ *          Copyright (c) Telecom ParisTech 2000-2021
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -106,12 +106,6 @@ GF_Box *vtte_box_new() {
 	return (GF_Box *)tmp;
 }
 
-GF_Box *wvtt_box_new()
-{
-	ISOM_DECL_BOX_ALLOC(GF_WebVTTSampleEntryBox, GF_ISOM_BOX_TYPE_WVTT);
-	return (GF_Box *)tmp;
-}
-
 void boxstring_box_del(GF_Box *s)
 {
 	GF_StringBox *box = (GF_StringBox *)s;
@@ -129,8 +123,16 @@ void vtte_box_del(GF_Box *s)
 	gf_free(s);
 }
 
+GF_Box *wvtt_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_WebVTTSampleEntryBox, GF_ISOM_BOX_TYPE_WVTT);
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
+	return (GF_Box *)tmp;
+}
+
 void wvtt_box_del(GF_Box *s)
 {
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 	gf_free(s);
 }
 
