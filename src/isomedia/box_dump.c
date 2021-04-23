@@ -3856,8 +3856,8 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 		if (idx>=0) {
 			name = gf_itags_get_name((u32) idx);
 			itype = gf_itags_get_type((u32) idx);
+			dbox = itune->data;
 		}
-		dbox = itune->data;
 	}
 	gf_isom_box_dump_start(a, name, trace);
 
