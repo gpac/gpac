@@ -1345,7 +1345,7 @@ static struct box_registry_entry {
 	//3GPP dims
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_DIMS, dims, "stsd", "3gpp"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIMC, dimC, "dims encs", "3gpp"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIST, diST, "stsd", "3gpp"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DIST, diST, "dims", "3gpp"),
 
 
 	//CENC boxes

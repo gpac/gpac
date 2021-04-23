@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -241,6 +241,7 @@ GF_Err ftab_box_size(GF_Box *s)
 GF_Box *text_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TextSampleEntryBox, GF_ISOM_BOX_TYPE_TEXT);
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
 	return (GF_Box *) tmp;
 }
 
@@ -257,6 +258,7 @@ void text_box_del(GF_Box *s)
 GF_Box *tx3g_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_Tx3gSampleEntryBox, GF_ISOM_BOX_TYPE_TX3G);
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
 	return (GF_Box *) tmp;
 }
 
@@ -1147,6 +1149,7 @@ GF_Err diST_box_size(GF_Box *s)
 GF_Box *dims_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DIMSSampleEntryBox, GF_ISOM_BOX_TYPE_DIMS);
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
 	return (GF_Box*)tmp;
 }
 void dims_box_del(GF_Box *s)
