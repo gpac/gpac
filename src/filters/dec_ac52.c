@@ -235,6 +235,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->num_channels * sizeof(short) * AC3_FRAME_SIZE, &buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);

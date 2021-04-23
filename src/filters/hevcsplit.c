@@ -846,6 +846,8 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 				}
 				if (!tpid->cur_pck) {
 					tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+					if (!tpid->cur_pck) return GF_OUT_OF_MEM;
+
 					gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
 				} else {
 					u8 *data_start;
@@ -862,6 +864,8 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 			}
 			if (!tpid->cur_pck) {
 				tpid->cur_pck = gf_filter_pck_new_alloc(tpid->opid, ctx->hevc_nalu_size_length + out_nal_size, &output_nal);
+				if (!tpid->cur_pck) return GF_OUT_OF_MEM;
+
 				gf_filter_pck_merge_properties(pck_src, tpid->cur_pck);
 			} else {
 				u8 *data_start;

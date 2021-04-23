@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / DVB4Linux input filter
@@ -381,6 +381,7 @@ static GF_Err dvblin_process(GF_Filter *filter)
 #endif
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->pid, nb_read, &out_data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 	memcpy(out_data, ctx->block, nb_read);
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_send(dst_pck);

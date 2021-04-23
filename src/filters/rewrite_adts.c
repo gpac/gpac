@@ -239,6 +239,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 
 		size = pck_size+20;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(ctx->bs_w, output, size);
@@ -317,6 +318,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 		}
 #endif
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 		else gf_bs_reassign_buffer(ctx->bs_w, output, size);

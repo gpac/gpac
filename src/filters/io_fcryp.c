@@ -241,6 +241,7 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 
 		gf_filter_pck_get_data(pck, &size);
 		pck_out = gf_filter_pck_new_clone(ctx->opid, pck, &output);
+		if (!pck_out) return GF_OUT_OF_MEM;
 
 		e = gf_crypt_decrypt(ctx->crypt, output, size);
 		pad = output[size-1];
@@ -267,6 +268,8 @@ static GF_Err cryptfin_process(GF_Filter *filter)
 		}
 	}
 	pck_out = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+	if (!pck_out) return GF_OUT_OF_MEM;
+
 	if (ctx->remain)
 		memcpy(output, ctx->store, ctx->remain);
 	memcpy(output+ctx->remain, data, osize - ctx->remain);
@@ -470,6 +473,11 @@ static GF_Err cryptfout_process(GF_Filter *filter)
 			pad = 16 - (ctx->remain % 16);
 			osize = ctx->remain + pad;
 			pck_out = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+			if (!pck_out) {
+				gf_list_insert(ctx->keys, ki, 0);
+				return GF_OUT_OF_MEM;
+			}
+
 			if (ctx->remain)
 				memcpy(output, ctx->store, ctx->remain);
 
@@ -524,6 +532,8 @@ static GF_Err cryptfout_process(GF_Filter *filter)
 		data = gf_filter_pck_get_data(pck_in, &size);
 		pad = 16 - (size % 16);
 		pck_out = gf_filter_pck_new_alloc(ctx->opid, size+pad, &output);
+		if (!pck_out) return GF_OUT_OF_MEM;
+
 		memcpy(output, data, size);
 		for (i=0; i<pad; i++) {
 			output[size+i] = (u8) pad;
@@ -551,6 +561,8 @@ static GF_Err cryptfout_process(GF_Filter *filter)
 	}
 
 	pck_out = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+	if (!pck_out) return GF_OUT_OF_MEM;
+	
 	if (ctx->remain)
 		memcpy(output, ctx->store, ctx->remain);
 	memcpy(output+ctx->remain, data, osize - ctx->remain - pad);

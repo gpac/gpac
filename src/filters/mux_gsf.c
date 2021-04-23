@@ -226,6 +226,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		osize = hdr_size + to_write;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+		if (!dst_pck) return;
 
 		//format header
 		gf_bs_reassign_buffer(ctx->bs_w, output, osize);

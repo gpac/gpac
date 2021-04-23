@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -164,6 +164,8 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	}
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
+	if (!pck) return;
+	
 	memcpy(pck_data, payload, size);
 	if (hdr->decodingTimeStampFlag)
 		gf_filter_pck_set_dts(pck, hdr->decodingTimeStamp);

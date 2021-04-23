@@ -544,6 +544,7 @@ GF_Err truehd_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr.frame_size, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, frame, hdr.frame_size);

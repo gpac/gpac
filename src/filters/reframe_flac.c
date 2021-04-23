@@ -581,6 +581,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, next_frame, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, start, next_frame);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);

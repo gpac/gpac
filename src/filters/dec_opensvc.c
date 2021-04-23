@@ -531,6 +531,8 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	memcpy(data, pic.pY[0], ctx->stride*ctx->height);
 	memcpy(data + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
 	memcpy(data + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);

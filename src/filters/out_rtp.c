@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2020
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / rtp output filter
@@ -521,6 +521,7 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 		if (read != fsize) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to read SDP from temp file, got %d bytes but expecting %d\n", read, fsize));
 			gf_filter_pck_discard(pck);
+			e = GF_IO_ERR;
 		} else {
 			char c = output[fsize-1];
 			output[fsize-1] = 0;
@@ -528,13 +529,13 @@ static GF_Err rtpout_setup_sdp(GF_RTPOutCtx *ctx)
 			output[fsize-1] = c;
 			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 			gf_filter_pck_send(pck);
+			e = GF_OK;
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Failed to send SDP file packet\n"));
+		e = GF_OUT_OF_MEM;
 	}
-
 	gf_fclose(sdp_out);
-	return GF_OK;
+	return e;
 }
 
 static u16 rtpout_check_next_port(GF_RTPOutCtx *ctx, u16 first_port)

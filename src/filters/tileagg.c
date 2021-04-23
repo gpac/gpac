@@ -232,6 +232,8 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		ctx->flush_packets--;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	final_size = size;
 
 	gf_filter_pck_merge_properties(base_pck, dst_pck);

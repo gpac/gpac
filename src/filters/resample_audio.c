@@ -313,7 +313,7 @@ static GF_Err resample_process(GF_Filter *filter)
 		}
 
 		dstpck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
-		if (!dstpck) return GF_OK;
+		if (!dstpck) return GF_OUT_OF_MEM;
 
 		if (ctx->in_pck)
 			gf_filter_pck_merge_properties(ctx->in_pck, dstpck);

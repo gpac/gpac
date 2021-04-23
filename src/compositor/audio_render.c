@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -102,6 +102,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		GF_FilterPacket *pck;
 		//issue a dummy packet to tag the point at which we reconfigured
 		pck = gf_filter_pck_new_shared(ar->aout, (u8 *) ar, 0, gf_ar_rcfg_done);
+		if (!pck) return GF_OUT_OF_MEM;
 		ar->wait_for_rcfg ++;
 		gf_filter_pck_set_readonly(pck);
 		gf_filter_pck_send(pck);

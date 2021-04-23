@@ -184,6 +184,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				u8 *output;
 				ref = gf_filter_pck_new_copy(out_pid, in_pck, &output);
 			}
+			if (!ref) return;
 
 			group->signal_seg_name = 0;
 			gf_filter_pck_get_framing(in_pck, NULL, &is_end);
@@ -196,6 +197,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		} else {
 			const GF_PropertyValue *p;
 			ref = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
+			if (!ref) return;
+
 			gf_filter_pck_merge_properties(in_pck, ref);
 			p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_CUE_START);
 			if (p && p->value.boolean) {
@@ -336,6 +339,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 	}
 
 	dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
+	if (!dst_pck) return;
+	
 	//this will copy over clock info for PCR in TS
 	gf_filter_pck_merge_properties(in_pck, dst_pck);
 	gf_filter_pck_set_dts(dst_pck, dts);

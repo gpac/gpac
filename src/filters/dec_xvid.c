@@ -296,6 +296,7 @@ static GF_Err xviddec_process(GF_Filter *filter)
 packed_frame :
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->width*ctx->height*3/2, &buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 #ifdef XVID_USE_OLD_API
 	frame.colorspace = XVID_CSP_I420;

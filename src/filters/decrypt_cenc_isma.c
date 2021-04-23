@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -362,6 +362,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (! gf_filter_pck_get_crypt_flags(in_pck)) {
 		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
+		if (!out_pck) return GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);
 		gf_filter_pck_send(out_pck);
@@ -417,6 +418,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	data_size -= offset;
 
 	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	memcpy(out_data, in_data, data_size);
 	/*decrypt*/
@@ -998,6 +1000,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (!data_size || ! gf_filter_pck_get_crypt_flags(in_pck)) {
 		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
+		if (!out_pck) return GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);
@@ -1015,11 +1018,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	//CENC can use inplace processing for decryption
 	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
-	if (!out_pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for decrypting payload\n" ) );
-		gf_filter_pid_drop_packet(cstr->ipid);
-		return GF_SERVICE_ERROR;
-	}
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	subsample_count = 0;
 
@@ -1271,6 +1270,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	memcpy(out_data, in_data, data_size);
 

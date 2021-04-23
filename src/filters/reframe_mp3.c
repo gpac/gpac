@@ -302,9 +302,11 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 						gf_filter_pid_set_name(*video_pid_p, "CoverArt");
 						gf_filter_pid_set_property(*video_pid_p, GF_PROP_PID_COVER_ART, &PROP_BOOL(GF_TRUE));
 						dst_pck = gf_filter_pck_new_alloc(*video_pid_p, pic_size, &out_buffer);
-						gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-						memcpy(out_buffer, sep_desc+1, pic_size);
-						gf_filter_pck_send(dst_pck);
+						if (dst_pck) {
+							gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+							memcpy(out_buffer, sep_desc+1, pic_size);
+							gf_filter_pck_send(dst_pck);
+						}
 
 						gf_filter_pid_set_eos(*video_pid_p);
 					}
@@ -636,6 +638,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+			if (!dst_pck) break;
 			memcpy(output, sync, size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);

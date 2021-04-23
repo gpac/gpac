@@ -217,6 +217,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->ti.width*ctx->ti.height * 3 / 2, &buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	pYO = yuv.y;
 	pUO = yuv.u;

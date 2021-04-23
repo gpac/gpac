@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -398,10 +398,12 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 
 		pck = gf_filter_pck_new_alloc(pid, finfo->blob->size, &output);
-		memcpy(output, finfo->blob->data, finfo->blob->size);
-		if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
-		gf_filter_pck_send(pck);
-
+		if (pck) {
+			memcpy(output, finfo->blob->data, finfo->blob->size);
+			if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
+			gf_filter_pck_send(pck);
+		}
+		
         if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG))
             push_seg_info(ctx, pid, finfo);
 	}

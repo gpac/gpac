@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -1185,6 +1185,8 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		}
 		if (ctx->samp_buffer_size) {
 			pck = gf_filter_pck_new_alloc(ctx->opid, ctx->samp_buffer_size, &data);
+			if (!pck) return GF_OUT_OF_MEM;
+
 			memcpy(data, ctx->samp_buffer, ctx->samp_buffer_size);
 			gf_filter_pck_set_framing(pck, append ? GF_FALSE : GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
 			if (!append) {
@@ -1244,6 +1246,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 						//send continuation frame
 						pck = gf_filter_pck_new_alloc(ctx->opid, (u32) subsMediaFileSize, &data);
+						if (!pck) {
+							gf_fclose(f);
+							return GF_OUT_OF_MEM;
+						}
 						subsMediaFileSize = (u32) gf_fread(data, (u32) subsMediaFileSize, f);
 						gf_fclose(f);
 

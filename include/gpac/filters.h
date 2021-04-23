@@ -3648,7 +3648,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param PID the target output PID
 \param data_size the desired size of the packet - can be changed later
 \param data set to the writable buffer of the created packet
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *PID, u32 data_size, u8 **data);
 
@@ -3659,7 +3659,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param data the data block to dispatch
 \param data_size the size of the data block to dispatch
 \param destruct the callback function used to destroy the packet when no longer used - may be NULL
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *PID, const u8 *data, u32 data_size, gf_fsess_packet_destructor destruct);
 
@@ -3669,7 +3669,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param data_offset offset in the source data block
 \param data_size the size of the data block to dispatch - if 0, the entire data of the source packet beginning at offset is used
 \param source_packet the source packet this data belongs to (at least from the filter point of view).
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *PID, u32 data_offset, u32 data_size, GF_FilterPacket *source_packet);
 
@@ -3679,7 +3679,7 @@ The packet has by default no DTS, no CTS, no duration framing set to full frame 
 \param data_size the desired size of the packet - can be changed later
 \param data set to the writable buffer of the created packet
 \param destruct the callback function used to destroy the packet when no longer used - may be NULL
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *PID, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct);
 
@@ -3691,7 +3691,7 @@ Otherwise, the source data is assigned to the output packet.
 \param PID the target output PID
 \param pck_source the desired source packet to clone
 \param data set to the writable buffer of the created packet
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
@@ -3699,7 +3699,7 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck
 \param PID the target output PID
 \param pck_source the desired source packet to clone
 \param data set to the writable buffer of the created packet
-\return new packet or NULL if error
+\return new packet or NULL if allocation error or not an output PID
 */
 GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 

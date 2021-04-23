@@ -1113,6 +1113,8 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		return GF_OK;
 	}
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, size+isma_hdr_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	memcpy(output+isma_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
@@ -1219,6 +1221,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 		len += padding_bytes;
 	}
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, len + adobe_hdr_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 	memcpy(output+adobe_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
@@ -1404,11 +1407,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	//CENC can use inplace processing for decryption
 	dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
-	if (!dst_pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for encrypting payload\n" ) );
-		gf_filter_pid_drop_packet(cstr->ipid);
-		return GF_SERVICE_ERROR;
-	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
@@ -1915,6 +1914,8 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		Bool signal_sai = GF_FALSE;
 		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+		
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / pipe input filter
@@ -444,8 +444,7 @@ static GF_Err pipein_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_NONE) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->buffer, nb_read, pipein_pck_destructor);
-	if (!pck)
-		return GF_OK;
+	if (!pck) return GF_OUT_OF_MEM;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] sending %d bytes\n", nb_read));
 	gf_filter_pck_set_framing(pck, ctx->is_first, ctx->is_end);

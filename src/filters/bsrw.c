@@ -133,6 +133,8 @@ static GF_Err avc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 		return gf_filter_pck_forward(pck, pctx->opid);
 
 	dst = gf_filter_pck_new_alloc(pctx->opid, final_size, &output);
+	if (!dst) return GF_OUT_OF_MEM;
+
 	gf_filter_pck_merge_properties(pck, dst);
 
 	size=0;
@@ -272,6 +274,8 @@ static GF_Err hevc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 		return gf_filter_pck_forward(pck, pctx->opid);
 
 	dst = gf_filter_pck_new_alloc(pctx->opid, final_size, &output);
+	if (!dst) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst);
 
 	size=0;
@@ -384,7 +388,8 @@ static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPac
 {
 	u8 *output;
 	GF_FilterPacket *dst_pck = gf_filter_pck_new_clone(pctx->opid, pck, &output);
-
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	//starting at offset 20 in frame:
 	/*
 	prores_frame->chroma_format = gf_bs_read_int(bs, 2);

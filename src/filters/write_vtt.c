@@ -191,14 +191,15 @@ void vttmx_parser_flush(GF_WebVTTMxCtx *ctx)
 		u32 size;
 		gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->cues_buffer, &size, &ctx->cues_buffer_size);
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-		memcpy(output, ctx->cues_buffer, size);
+		if (dst_pck) {
+			memcpy(output, ctx->cues_buffer, size);
 
-		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
+			gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 
-		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-		gf_filter_pck_send(dst_pck);
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+			gf_filter_pck_send(dst_pck);
+		}
 	}
-
 
 	gf_webvtt_parser_del(ctx->parser);
 	ctx->parser = NULL;
@@ -230,6 +231,8 @@ GF_Err vttmx_process(GF_Filter *filter)
 	if (ctx->first && ctx->dcd) {
 		size = (u32) strlen(ctx->dcd)+2;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		memcpy(output, ctx->dcd, size-2);
 		output[size-2] = '\n';
 		output[size-1] = '\n';
@@ -267,11 +270,11 @@ GF_Err vttmx_process(GF_Filter *filter)
 	gf_bs_get_content_no_truncate(ctx->bs_w, &ctx->cues_buffer, &size, &ctx->cues_buffer_size);
 	if (size) {
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-		memcpy(output, ctx->cues_buffer, size);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
+		memcpy(output, ctx->cues_buffer, size);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
-
 
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;

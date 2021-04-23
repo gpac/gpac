@@ -456,6 +456,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 #endif
 
 	pck_dst = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &buffer);
+	if (!pck_dst) return GF_OUT_OF_MEM;
 
 	w = image->comps[0].w;
 	wr = int_ceildivpow2(image->comps[0].w, image->comps[0].factor);

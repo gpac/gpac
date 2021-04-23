@@ -1394,9 +1394,6 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
 
-void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr);
-
-
 GF_Box *gf_isom_box_find_child(GF_List *parent_child_list, u32 code);
 void gf_isom_box_del_parent(GF_List **parent_child_list, GF_Box*b);
 GF_Box *gf_isom_box_new_parent(GF_List **parent_child_list, u32 code);

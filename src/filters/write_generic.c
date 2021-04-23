@@ -434,6 +434,7 @@ static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 d
 	size = data_size + 8*4 /*jP%20%20 + ftyp*/ + ctx->dcfg_size + 8;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return NULL;
 
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
@@ -500,6 +501,7 @@ static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 d
 
 	size = ctx->w*ctx->h*3 + 54; //14 + 40 = size of BMP file header and BMP file info;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return NULL;
 
 	memset(&fh, 0, sizeof(fh));
 	fh.bfType = 19778;
@@ -563,6 +565,7 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 
 	size = 44;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return;
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs, output, size);
@@ -939,6 +942,8 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 	if (!data) return GF_OK;
 	size = (u32) strlen(data);
 	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!pck) return GF_OUT_OF_MEM;
+
 	memcpy(output, data, size);
 	gf_free(data);
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
@@ -1008,6 +1013,8 @@ GF_Err writegen_process(GF_Filter *filter)
 		split = GF_TRUE;
 	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
@@ -1030,6 +1037,8 @@ GF_Err writegen_process(GF_Filter *filter)
 	} else if (ctx->is_wav && ctx->first) {
 		u8 * output;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
@@ -1077,7 +1086,8 @@ GF_Err writegen_process(GF_Filter *filter)
 				pck_size = bpp * dur;
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &odata);
-				memcpy(odata, data, pck_size);
+				if (dst_pck)
+					memcpy(odata, data, pck_size);
 			}
 		}
 
@@ -1088,6 +1098,8 @@ GF_Err writegen_process(GF_Filter *filter)
 	} else {
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//don't keep byte offset
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

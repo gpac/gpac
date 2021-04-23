@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -438,6 +438,8 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 	opid = pck->stream->user;
 
 	dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len, &data);
+	if (!dst_pck) return;
+
 	memcpy(data, pck->data, pck->data_len);
 	//we don't have end of frame signaling
 	gf_filter_pck_set_framing(dst_pck, (pck->flags & GF_M2TS_PES_PCK_AU_START) ? GF_TRUE : GF_FALSE, GF_FALSE);
@@ -495,6 +497,8 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len - slh_len, &data);
+	if (!dst_pck) return;
+
 	memcpy(data, pck->data + slh_len, pck->data_len - slh_len);
 	start = end = GF_FALSE;
 	if (slc->useAccessUnitStartFlag && slh.accessUnitStartFlag) start = GF_TRUE;
@@ -648,8 +652,10 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)param;
 			u8 *data;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->eit_pid, pck->data_len, &data);
-			memcpy(data, pck->data, pck->data_len);
-			gf_filter_pck_send(dst_pck);
+			if (dst_pck) {
+				memcpy(data, pck->data, pck->data_len);
+				gf_filter_pck_send(dst_pck);
+			}
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
@@ -685,6 +691,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (!stream->user) continue;
 
 			dst_pck = gf_filter_pck_new_shared(stream->user, NULL, 0, NULL);
+			if (!dst_pck) continue;
+
 			gf_filter_pck_set_cts(dst_pck, pcr);
 			gf_filter_pck_set_clock_type(dst_pck, discontinuity ? GF_FILTER_CLOCK_PCR_DISC : GF_FILTER_CLOCK_PCR);
 			if (pck->stream->is_seg_start) {

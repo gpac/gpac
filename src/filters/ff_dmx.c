@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -204,10 +204,12 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (ctx->raw_data && !copy) {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_shared(ctx->pids[ctx->pkt.stream_index], ctx->pkt.data, ctx->pkt.size, ffdmx_shared_pck_release);
+		if (!pck_dst) return GF_OUT_OF_MEM;
 		ctx->raw_pck_out = GF_TRUE;
 	} else {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_alloc(ctx->pids[ctx->pkt.stream_index] , ctx->pkt.size, &data_dst);
+		if (!pck_dst) return GF_OUT_OF_MEM;
 		assert(pck_dst);
 		memcpy(data_dst, ctx->pkt.data, ctx->pkt.size);
 	}

@@ -940,6 +940,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 	assert(ctx->out_size);
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	memset(&params, 0, sizeof(params));
 	params.progressive_frame = f->frame_info.progressive_frame;
@@ -1315,7 +1316,8 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 		f->gframe.flags = GF_FRAME_IFCE_BLOCKING;
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &f->gframe, nvframe_release);
-
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	nvdec_merge_pck_props(ctx, f, dst_pck);
 	if (gf_filter_pck_get_seek_flag(dst_pck)) {
 		gf_filter_pck_discard(dst_pck);

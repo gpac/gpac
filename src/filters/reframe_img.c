@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / image (jpg/png/bmp/j2k) reframer filter
@@ -278,7 +278,8 @@ GF_Err img_process(GF_Filter *filter)
 			}
 		}
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, start_offset, size-start_offset, pck);
-		if (!dst_pck) e = GF_OUT_OF_MEM;
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		if (ctx->owns_timescale) {
 			gf_filter_pck_set_cts(dst_pck, 0);
@@ -318,6 +319,8 @@ GF_Err img_process(GF_Filter *filter)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	if (ctx->owns_timescale) {
 		gf_filter_pck_set_cts(dst_pck, 0);
