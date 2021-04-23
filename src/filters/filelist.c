@@ -1744,8 +1744,6 @@ static GF_Err filelist_process(GF_Filter *filter)
 	FileListPid *iopid;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 
-	if (ctx->is_eos)
-		return GF_EOS;
 
 	if (!ctx->file_list) {
 		GF_FilterPacket *pck;
@@ -1786,6 +1784,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 			}
 		}
 	}
+	if (ctx->is_eos)
+		return GF_EOS;
 
 	if (ctx->load_next) {
 		return filelist_load_next(filter, ctx);
@@ -2643,6 +2643,7 @@ static void filelist_finalize(GF_Filter *filter)
 
 static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
+	u32 nb_lines = 0;
 	if (!gf_utf8_is_legal(data, size)) {
 		return NULL;
 	}
@@ -2663,17 +2664,21 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 
 		//line is comment
 		if (data[0] != '#') {
+			Bool line_empty = GF_TRUE;
 			for (i=0;i<line_size; i++) {
 				char c = (char) data[i];
 				if (!c) return NULL;
 				if ( isalnum(c)) continue;
 				//valid URL chars plus backslash for win path
-				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c))
+				if (strchr("-._~:/?#[]@!$&'()*+,;%=\\", c)) {
+					line_empty = GF_FALSE;
 					continue;
-
+				}
 				//not a valid URL
 				return NULL;
 			}
+			if (!line_empty)
+				nb_lines++;
 		}
 		if (!nl) break;
 		size -= (u32) (nl+1 - (char *) data);
@@ -2683,6 +2688,7 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 			data++;
 		}
 	}
+	if (!nb_lines) return NULL;
 	*score = GF_FPROBE_MAYBE_SUPPORTED;
 	return "application/x-gpac-playlist";
 }
