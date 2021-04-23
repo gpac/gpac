@@ -770,7 +770,7 @@ GF_Err pssh_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		if (ptr->KID_count) {
 			u32 i;
-			if (ptr->size < ptr->KID_count * sizeof(bin128))
+			if (ptr->size / sizeof(bin128) < ptr->KID_count)
 				return GF_ISOM_INVALID_FILE;
 			ptr->KIDs = gf_malloc(ptr->KID_count*sizeof(bin128));
 			if (!ptr->KIDs)
@@ -1183,7 +1183,7 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
-	if (ptr->size < sizeof(char)*ptr->private_data_size)
+	if (ptr->size < ptr->private_data_size)
 	    return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	if (!ptr->private_data)
