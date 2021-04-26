@@ -4455,6 +4455,14 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		gf_isom_set_movie_duration(ctx->file, mdur);
 	}
 
+	if (ctx->cmaf && max_dur.num == 0) {
+		//CMAF 7.3.2.1.c.6) "The MovieExtendsBox may contain a MovieExtendsHeaderBox,
+		//as defined in ISO/IEC 14496-12, and if so, shall provide the overall duration
+		//of the CMAF track. If the duration is unknown, this box shall be omitted."
+		gf_isom_box_del_parent(&ctx->file->moov->mvex->child_boxes, (GF_Box*)ctx->file->moov->mvex->mehd);
+		ctx->file->moov->mvex->mehd = NULL;
+	}
+
 	//if we have an explicit track reference for fragmenting, move it first in our list
 	if (ref_tkw) {
 		gf_list_del_item(ctx->tracks, ref_tkw);
