@@ -1090,6 +1090,8 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 	ffmpeg_initialize();
 
+	orig_reg->author = avfilter_configuration();
+	
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		orig_reg->args = default_args;
@@ -1097,12 +1099,12 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		return;
 	}
 
-
 	if (reg_type==FF_REG_TYPE_ENCODE) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_MUX) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_AVF) opt_type = 0xFFFFFFFF;
 
 	if ((reg_type==FF_REG_TYPE_ENCODE) || (reg_type==FF_REG_TYPE_DECODE)) {
+		orig_reg->author = avcodec_configuration();
 		codec_ctx = avcodec_alloc_context3(NULL);
 		av_class = codec_ctx->av_class;
 	} else if (reg_type==FF_REG_TYPE_AVF) {
