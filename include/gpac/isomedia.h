@@ -4254,9 +4254,10 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *isom_file, u32 media_segment_ty
 /*! sets the duration of the movie in case of movie fragments
 \param isom_file the target ISO file
 \param duration the complete duration (movie and all fragments) in movie timescale
+\param remove_mehd force removal of mehd box, only setting mvhd.duration to 0
 \return error if any
 */
-GF_Err gf_isom_set_movie_duration(GF_ISOFile *isom_file, u64 duration);
+GF_Err gf_isom_set_movie_duration(GF_ISOFile *isom_file, u64 duration, Bool remove_mehd);
 
 /*! fragment creatio option*/
 typedef enum
