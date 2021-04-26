@@ -1791,7 +1791,7 @@ void gf_isom_box_del(GF_Box *a)
 	} else {
 		a_box_registry->del_fn(a);
 	}
-	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
+	//delete the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
 	if (child_boxes) {
 		gf_isom_box_array_del(child_boxes);
 	}
