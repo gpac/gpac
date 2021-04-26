@@ -2512,14 +2512,21 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (filter_inst) {
 		const char *str = gf_filter_get_author(filter_inst);
 		if (str)
-			gf_sys_format_help(helpout, help_flags, "Author: %s\n", str );
+			gf_sys_format_help(helpout, help_flags, "%s: %s\n", (str[0]=='-') ? "Configuration" : "Author", str );
 		str = gf_filter_get_help(filter_inst);
 		if (str)
 			gf_sys_format_help(helpout, help_flags, "\n%s\n\n", str);
 	} else {
 #ifndef GPAC_DISABLE_DOC
-		if (reg->author)
-			gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+		if (reg->author) {
+			if (reg->author[0]=='-') {
+				if (! (help_flags & (GF_PRINTARG_MD|GF_PRINTARG_MAN))) {
+					gf_sys_format_help(helpout, help_flags, "Configuration: %s\n", reg->author);
+				}
+			} else {
+				gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+			}
+		}
 		if (reg->help) {
 			u32 hf = help_flags;
 			if (gen_doc==1) hf |= GF_PRINTARG_ESCAPE_XML;

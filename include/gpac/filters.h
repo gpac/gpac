@@ -2166,6 +2166,8 @@ struct __gf_filter_register
 		- shall not use markdown
 		- first line if present is author name and should be normally capitalized
 		- second line if present is comma-separated list of contact info (eg http://foo.bar,mailto:foo@bar.com)
+
+		If first character is a `-`, this field is interpreted as a configuration info (typically for meta filters such as ffmpeg).
 	*/
 	const char *author;
 	/*! help of the filter. Conventions:
