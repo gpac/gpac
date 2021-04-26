@@ -70,7 +70,7 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
 
 
 GF_EXPORT
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, Bool mvex_after_tracks)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, Bool mvex_after_tracks, Bool mehd_omit_on_unknown_dur)
 {
 	GF_Err e;
 	u32 i;
@@ -89,8 +89,15 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type, 
 	{
 		movie->NextMoofNumber = 1;
 	}
+
 	movie->moov->mvex_after_traks = mvex_after_tracks;
-	
+
+	if (movie->moov->mvex->mehd->fragment_duration == 0 && mehd_omit_on_unknown_dur)
+	{
+		gf_isom_box_del_parent(&movie->moov->mvex->child_boxes, (GF_Box*)movie->moov->mvex->mehd);
+		movie->moov->mvex->mehd = NULL;
+	}
+
 	//this is only allowed in write mode
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 

@@ -484,7 +484,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		return -1;
 	}
 
-	ret = gf_isom_finalize_for_fragment(video_output_file->isof, track);
+	ret = gf_isom_finalize_for_fragment(video_output_file->isof, track, 1);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
 		return -1;

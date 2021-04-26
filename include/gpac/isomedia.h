@@ -4247,9 +4247,10 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *isom_file, GF_ISOTrack
 \param isom_file the target ISO file
 \param media_segment_type 0 if no segments, 1 if regular segment, 2 if single segment
 \param mvex_after_tracks forces writing mvex box after track boxes
+\param mehd_omit_on_unknown_dur removes mehd box when duration is zero (e.g. unknown)
 \return error if any
 */
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *isom_file, u32 media_segment_type, Bool mvex_after_tracks);
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *isom_file, u32 media_segment_type, Bool mvex_after_tracks, Bool mehd_omit_on_unknown_dur);
 
 /*! sets the duration of the movie in case of movie fragments
 \param isom_file the target ISO file

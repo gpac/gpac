@@ -146,7 +146,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 	//gf_isom_add_track_to_root_od(video_output_file->isof,1);
 
-	ret = gf_isom_finalize_for_fragment(audio_output_file->isof, 1);
+	ret = gf_isom_finalize_for_fragment(audio_output_file->isof, 1, 1);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
 		return -1;

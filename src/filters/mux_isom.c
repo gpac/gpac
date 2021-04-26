@@ -256,6 +256,7 @@ typedef struct
 	Bool fcomp, otyp;
 	Bool deps;
 	Bool mvex;
+	Bool mehd_omit_on_unknown_dur;
 	u32 sdtp_traf;
 	u32 cmaf;
 #ifdef GF_ENABLE_CTRN
@@ -4455,14 +4456,6 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		gf_isom_set_movie_duration(ctx->file, mdur);
 	}
 
-	if (ctx->cmaf && max_dur.num == 0) {
-		//CMAF 7.3.2.1.c.6) "The MovieExtendsBox may contain a MovieExtendsHeaderBox,
-		//as defined in ISO/IEC 14496-12, and if so, shall provide the overall duration
-		//of the CMAF track. If the duration is unknown, this box shall be omitted."
-		gf_isom_box_del_parent(&ctx->file->moov->mvex->child_boxes, (GF_Box*)ctx->file->moov->mvex->mehd);
-		ctx->file->moov->mvex->mehd = NULL;
-	}
-
 	//if we have an explicit track reference for fragmenting, move it first in our list
 	if (ref_tkw) {
 		gf_list_del_item(ctx->tracks, ref_tkw);
@@ -4520,7 +4513,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		ctx->box_patched = GF_TRUE;
 	}
 
-	e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0, ctx->mvex);
+	e = gf_isom_finalize_for_fragment(ctx->file, ctx->dash_mode ? 1 : 0, ctx->mvex, ctx->mehd_omit_on_unknown_dur);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unable to finalize moov for fragmentation: %s\n", gf_error_to_string(e) ));
 		return e;
@@ -5861,6 +5854,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	if (ctx->cmaf) {
 		//cf table 3, 4, 5 of CMAF
 		ctx->mvex = GF_TRUE;
+		//7.3.2.1.c.6) "If the duration is unknown, th[e MovieExtendsHeaderBox] shall be omitted."
+		ctx->mehd_omit_on_unknown_dur = GF_TRUE;
 		ctx->truns_first = GF_TRUE;
 		//single trun, single traf (table 5 of CMAF)
 		ctx->strun = GF_TRUE;
