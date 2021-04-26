@@ -56,14 +56,22 @@ GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
+GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration, Bool remove_mehd)
 {
-	if (!movie->moov->mvex) return GF_BAD_PARAM;
-	if (!movie->moov->mvex->mehd) {
-		movie->moov->mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new_parent(&movie->moov->mvex->child_boxes, GF_ISOM_BOX_TYPE_MEHD);
-		if (!movie->moov->mvex->mehd) return GF_OUT_OF_MEM;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+
+	if (remove_mehd) {
+		if (!movie->moov->mvex->mehd) {
+			gf_isom_box_del_parent(&movie->moov->mvex->child_boxes, (GF_Box*)movie->moov->mvex->mehd);
+			movie->moov->mvex->mehd = NULL;
+		}
+	} else {
+		if (!movie->moov->mvex->mehd) {
+			movie->moov->mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new_parent(&movie->moov->mvex->child_boxes, GF_ISOM_BOX_TYPE_MEHD);
+			if (!movie->moov->mvex->mehd) return GF_OUT_OF_MEM;
+		}
+		movie->moov->mvex->mehd->fragment_duration = duration;
 	}
-	movie->moov->mvex->mehd->fragment_duration = duration;
 	movie->moov->mvhd->duration = 0;
 	return GF_OK;
 }
