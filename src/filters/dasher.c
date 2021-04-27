@@ -180,6 +180,7 @@ typedef struct
 	Bool template_use_source;
 	s32 period_idx;
 
+	GF_List *tpl_records;
 	Bool use_xlink, use_cenc, check_main_role;
 
 	//options for muxers, constrained by profile
@@ -3006,6 +3007,29 @@ static void dasher_set_content_components(GF_DashStream *ds)
 	gf_list_add(base_ds->set->content_component, component);
 }
 
+typedef struct
+{
+	char *tpl;
+	u32 nb_reused;
+} DashTemplateRecord;
+
+static u32 dasher_check_template_reuse(GF_DasherCtx *ctx, const char *tpl)
+{
+	DashTemplateRecord *tr;
+	u32 i, count = gf_list_count(ctx->tpl_records);
+	for (i=0; i<count; i++) {
+		tr = gf_list_get(ctx->tpl_records, i);
+		if (!strcmp(tr->tpl, tpl)) {
+			tr->nb_reused++;
+			return tr->nb_reused;
+		}
+	}
+	GF_SAFEALLOC(tr, DashTemplateRecord)
+	tr->tpl = gf_strdup(tpl);
+	gf_list_add(ctx->tpl_records, tr);
+	return 0;
+}
+
 static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	char szDASHTemplate[GF_MAX_PATH];
@@ -3266,6 +3290,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		Bool skip_init = GF_FALSE;
 		GF_DashStream *tile_base_ds = NULL;
 		Bool is_bs_switch;
+		u32 reused_template_idx;
 		u32 init_template_mode = GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE;
 		rep = gf_list_get(set->representations, i);
 		ds = rep->playback.udta;
@@ -3336,6 +3361,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			ds->done = 1;
 			continue;
 		}
+
+
 		if (single_template && ds->split_set_names && !use_dash_suffix) {
 			char szStrName[20];
 			sprintf(szStrName, "_set%d", 1 + gf_list_find(ctx->current_period->period->adaptation_sets, set)  );
@@ -3398,6 +3425,17 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		is_bs_switch = set->bitstream_switching;
 		//only used to force _init in default templates
 		if (ds->tile_base) is_bs_switch = GF_FALSE;
+
+
+		//check we are not reusing an existing template from previous periods, if so append a suffix
+		//we check the final init name
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
+		reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
+		if (reused_template_idx) {
+			char szExName[20];
+			sprintf(szExName, "_r%d_", reused_template_idx);
+			strcat(szDASHTemplate, szExName);
+		}
 
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
@@ -8344,6 +8382,7 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 
 	ctx->pids = gf_list_new();
 	ctx->postponed_pids = gf_list_new();
+	ctx->tpl_records = gf_list_new();
 
 	if (!ctx->initext && (ctx->muxtype==DASHER_MUX_AUTO))
 		ctx->muxtype = DASHER_MUX_ISOM;
@@ -8425,6 +8464,13 @@ static void dasher_finalize(GF_Filter *filter)
 	}
 	gf_list_del(ctx->pids);
 	if (ctx->mpd) gf_mpd_del(ctx->mpd);
+
+	while (gf_list_count(ctx->tpl_records)) {
+		DashTemplateRecord *tr = gf_list_pop_back(ctx->tpl_records);
+		gf_free(tr->tpl);
+		gf_free(tr);
+	}
+	gf_list_del(ctx->tpl_records);
 
 	if (ctx->next_period->period) gf_mpd_period_free(ctx->next_period->period);
 	gf_list_del(ctx->current_period->streams);
