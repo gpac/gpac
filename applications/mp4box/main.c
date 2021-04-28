@@ -513,10 +513,10 @@ static void PrintSplitUsage()
 		"- `splitrange` option of the reframer is always set\n"
 		"- source is demuxed with `alltk` option set\n"
 		"- start and end ranges are passed to `xs` and `xe` options of the reframer\n"
-		"- `xadjust` and `xround=after` options are enforced for `-splitz`\n"
-		"- `xadjust` and `xround=before` options are enforced for `-splitg`\n"
-		"- `xround=seek` option is enforced for `-splitf`\n"
-		"- for other modes, `xround` defaults to `closest` if not specified at prompt\n"
+		"- for `-splitz`, options `xadjust` and `xround=after` are enforced\n"
+		"- for `-splitg`, options `xadjust` and `xround=before` are enforced\n"
+		"- for `-splitf`, option `xround=seek` is enforced and `propbe_ref`set if not specified at prompt\n"
+		"- for `-splitx`, option `xround=closest` and `propbe_ref` are enforced if not specified at prompt\n"
 		"  \n"
 	);
 

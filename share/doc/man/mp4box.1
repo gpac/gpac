@@ -969,13 +969,13 @@ MP4Box splitting runs a filter session using the reframer filter as follows:
 .br
 - start and end ranges are passed to xs and xe options of the reframer
 .br
-- xadjust and xround=after options are enforced for -splitz
+- for -splitz, options xadjust and xround=after are enforced
 .br
-- xadjust and xround=before options are enforced for -splitg
+- for -splitg, options xadjust and xround=before are enforced
 .br
-- xround=seek option is enforced for -splitf
+- for -splitf, option xround=seek is enforced and propbe_refset if not specified at prompt
 .br
-- for other modes, xround defaults to closest if not specified at prompt
+- for -splitx, option xround=closest and propbe_ref are enforced if not specified at prompt
 .br
   
 .br
@@ -2741,7 +2741,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev757-g5bd956a56-master
+build: 1.1.0-DEV-rev773-g6bb555067-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
