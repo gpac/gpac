@@ -3182,7 +3182,7 @@ static void dump_all_codec(GF_FilterSession *session)
 		cp.value.uint = gf_codecid_enum(cidx, &sname, &lname);
 		cidx++;
 		if (cp.value.uint == GF_CODECID_NONE) break;
-		if (cp.value.uint == GF_CODECID_RAW) continue;
+//		if (cp.value.uint == GF_CODECID_RAW) continue;
 		if (!sname) break;
 
 		stp.value.uint = gf_codecid_type(cp.value.uint);

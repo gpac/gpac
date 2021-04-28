@@ -136,7 +136,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_IBM_ALAW, 0, GF_STREAM_AUDIO, "IBM ALAW", "ialaw", NULL, "audio/pcm"},
 	{GF_CODECID_IBM_ADPCM, 0, GF_STREAM_AUDIO, "IBM ADPCL", "iadpcl", NULL, "audio/pcm"},
 	{GF_CODECID_FLASH, 0, GF_STREAM_SCENE, "Adobe Flash", "swf", NULL, "audio/pcm"},
-	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "audio/pcm"},
+	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "*/*"},
 
 	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "av1|ivf|obu|av1b", NULL, "video/av1"},
 	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8|ivf", NULL, "video/vp8"},
@@ -166,14 +166,24 @@ CodecIDReg CodecRegistry [] = {
 GF_EXPORT
 GF_CodecID gf_codecid_parse(const char *cname)
 {
-	u32 len = (u32) strlen(cname);
+	u32 ilen = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	for (i=0; i<count; i++) {
-		char *sep;
-		if (!strcmp(CodecRegistry[i].sname, cname)) return CodecRegistry[i].codecid;
-		if (!strchr(CodecRegistry[i].sname, '|') ) continue;
-		sep = strstr(CodecRegistry[i].sname, cname);
-		if (sep && (!sep[len] || (sep[len]=='|'))) return CodecRegistry[i].codecid;
+		const char *n = CodecRegistry[i].sname;
+		while (n) {
+			char *sep = strchr(n, '|');
+			u32 len;
+			if (sep)
+				len = sep - n;
+			else
+				len = (u32) strlen(n);
+
+			//allow case insensitive names
+			if ((len==ilen) && !strnicmp(n, cname, len))
+				return CodecRegistry[i].codecid;
+			if (!sep) break;
+			n = sep+1;
+		}
 	}
 	return GF_CODECID_NONE;
 }
