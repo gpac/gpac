@@ -553,7 +553,17 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	}
 
 
-	if (no_data) return GF_OK;
+	if (no_data) {
+		if ( ((*samp)->dataLength != 0) && mdia->mediaTrack->pack_num_samples) {
+			u32 idx_in_chunk = sampleNumber - mdia->information->sampleTable->SampleToChunk->firstSampleInCurrentChunk;
+			u32 left_in_chunk = stsc_entry->samplesPerChunk - idx_in_chunk;
+			if (left_in_chunk > mdia->mediaTrack->pack_num_samples)
+				left_in_chunk = mdia->mediaTrack->pack_num_samples;
+			(*samp)->dataLength *= left_in_chunk;
+			(*samp)->nb_pack = left_in_chunk;
+		}
+		return GF_OK;
+	}
 
 	// Open the data handler - check our mode, don't reopen in read only if this is
 	//the same entry. In other modes we have no choice because the main data map is

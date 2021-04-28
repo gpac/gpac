@@ -1308,11 +1308,15 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				//strip param sets from payload, trigger reconfig if needed
 				isor_reader_check_config(ch);
 
-				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
-				if (!pck) return GF_OUT_OF_MEM;
+				if (read->nodata) {
+					pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);
+					if (!pck) return GF_OUT_OF_MEM;
+				} else {
+					pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+					if (!pck) return GF_OUT_OF_MEM;
 
-				memcpy(data, ch->sample->data, ch->sample->dataLength);
-
+					memcpy(data, ch->sample->data, ch->sample->dataLength);
+				}
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts);
 				if (ch->sample->IsRAP==-1) {
@@ -1504,6 +1508,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- rem: removes all inband xPS and notify configuration changes accordingly\n"
 	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
 	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

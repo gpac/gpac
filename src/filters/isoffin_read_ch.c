@@ -117,7 +117,11 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else {
 			ch->sample_num = 1;
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			if (ch->owner->nodata) {
+				ch->sample = gf_isom_get_sample_info_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, &ch->sample_data_offset, ch->static_sample);
+			} else {
+				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			}
 			if (!ch->sample) ch->last_state = GF_EOS;
 		}
 		if (ch->last_state) {
@@ -434,7 +438,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 		if (do_fetch) {
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			if (ch->owner->nodata) {
+				ch->sample = gf_isom_get_sample_info_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, &ch->sample_data_offset, ch->static_sample);
+			} else {
+				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			}
 			/*if sync shadow / carousel RAP skip*/
 			if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
 				ch->sample = NULL;
