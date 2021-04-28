@@ -518,8 +518,11 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	gf_filter_pid_copy_properties(pctx->opid, pctx->ipid);
 	pctx->codec_id = prop->value.uint;
-	pctx->reconfigure = GF_TRUE;
+	pctx->reconfigure = GF_FALSE;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+	//rewrite asap - waiting for first packet could lead to issues further down the chain, especially for movie fragments
+	//were the init segment could have already been flushed at the time we will dispatch the first packet
+	rewrite_pid_config(ctx, pctx);
 	return GF_OK;
 }
 
