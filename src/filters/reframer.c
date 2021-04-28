@@ -880,13 +880,13 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (ts != GF_FILTER_NO_TS) {
 			if (ctx->is_range_extraction
 				&& st->seek_mode
-				&& ((ts + ts_adj - st->ts_sub) * ctx->cur_start.den < ctx->cur_start.num * st->timescale)
+				&& ((ts + ts_adj - st->ts_sub) * ctx->cur_start.den < ctx->cur_start.num * (u64) st->timescale)
 			) {
 				gf_filter_pck_set_seek_flag(new_pck, GF_TRUE);
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, NULL);
 				if (st->stream_type!=GF_STREAM_VISUAL) {
 					u32 dur = gf_filter_pck_get_duration(new_pck);
-					if ((ts + ts_adj + dur - st->ts_sub) * ctx->cur_start.den > ctx->cur_start.num * st->timescale) {
+					if ((ts + ts_adj + dur - st->ts_sub) * ctx->cur_start.den > ctx->cur_start.num * (u64) st->timescale) {
 						u32 ts_diff = (u32) (ctx->cur_start.num * st->timescale / ctx->cur_start.den - (ts + ts_adj - st->ts_sub) );
 						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(ts_diff));
 						gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
