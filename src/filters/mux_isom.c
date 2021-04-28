@@ -168,7 +168,12 @@ typedef struct
 
 	Bool wait_sap;
 	s64 min_ts_seek_plus_one;
+	s64 clamp_ts_plus_one;
 	Bool check_seek_ts;
+
+	u64 max_cts, min_cts;
+	u32 max_cts_samp_dur;
+
 } TrackWriter;
 
 enum
@@ -837,6 +842,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		gf_list_add(ctx->tracks, tkw);
 		tkw->ipid = pid;
 		tkw->fake_track = !is_true_pid;
+		tkw->min_cts = (u64) -1;
+
 		if (is_true_pid) {
 			gf_filter_pid_set_udta(pid, tkw);
 
@@ -2659,7 +2666,7 @@ multipid_stsd_setup:
 
 		//check if we have sample-accurate seek info for the pid. If so, enable seek ts checking
 		p = gf_filter_pid_get_property(pid, GF_PROP_PCK_SKIP_BEGIN);
-		if (p && p->value.uint)
+		if (p && p->value.sint)
 			tkw->check_seek_ts = GF_TRUE;
 
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
@@ -3692,6 +3699,27 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	tkw->samples_in_frag++;
 
 	if (e) return e;
+
+	if (!for_fragment) {
+		u64 samp_cts;
+		if (!tkw->clamp_ts_plus_one) {
+			const GF_PropertyValue *skp = gf_filter_pck_get_property(pck, GF_PROP_PCK_SKIP_PRES);
+			if (skp && skp->value.boolean) {
+				tkw->clamp_ts_plus_one = 1 + tkw->sample.DTS + tkw->sample.CTS_Offset;
+			}
+		}
+		//store min max cts for edit list updates
+		samp_cts = tkw->sample.DTS + tkw->sample.CTS_Offset;
+		if (!tkw->clamp_ts_plus_one || (samp_cts + 1 < tkw->clamp_ts_plus_one)) {
+			if (samp_cts > tkw->max_cts) {
+				tkw->max_cts = samp_cts;
+				tkw->max_cts_samp_dur = duration;
+			}
+
+			if (tkw->min_cts > samp_cts)
+				tkw->min_cts = samp_cts;
+		}
+	}
 
 	//compat with old arch: write sample to group info for all samples
 	if ((sap_type==3) || tkw->has_open_gop)  {
@@ -4790,6 +4818,8 @@ GF_Err mp4mx_reload_output(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 		tkw->suspended = GF_FALSE;
 		tkw->track_num = 0;
 		tkw->nb_samples = 0;
+		tkw->max_cts = 0;
+		tkw->min_cts = (u64) -1;
 		e = mp4_mux_configure_pid(filter, tkw->ipid, GF_FALSE);
 		if (e) return e;
 		tkw->nb_samples = 0;
@@ -5881,11 +5911,43 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-
-static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+//old code, commented - we track min/max cts while adding to avoid the time-consuming rescan below
+#if 0
+static void mp4_mux_get_min_max_cts(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 *omax_cts, u64 *omin_cts)
 {
 	u32 i, count, di;
 	u64 max_cts, min_cts, doff;
+
+	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
+	max_cts = 0;
+	min_cts = (u64) -1;
+	for (i=0; i<count; i++) {
+		GF_ISOSample *s = gf_isom_get_sample_info(ctx->file, tkw->track_num, i+1, &di, &doff);
+		if (!s) return;
+		if (tkw->clamp_ts_plus_one) {
+			if (s->DTS + s->CTS_Offset + 1 >= tkw->clamp_ts_plus_one ) {
+				gf_isom_sample_del(&s);
+				continue;
+			}
+		}
+
+		if (s->DTS + s->CTS_Offset > max_cts)
+			max_cts = s->DTS + s->CTS_Offset;
+
+		if (min_cts > s->DTS + s->CTS_Offset)
+			min_cts = s->DTS + s->CTS_Offset;
+
+		fprintf(stderr, "checking samp DTS "LLU" CTS "LLU"\n", s->DTS, s->DTS + s->CTS_Offset);
+		gf_isom_sample_del(&s);
+	}
+	*omax_cts = max_cts;
+	*omin_cts = min_cts;
+}
+#endif
+
+static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	u64 max_cts, min_cts;
 	s64 moffset;
 
 	if (ctx->ctmode > MP4MX_CT_EDIT) return;
@@ -5895,24 +5957,16 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 
 	gf_isom_remove_edits(ctx->file, tkw->track_num);
 
-	count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
-	max_cts = 0;
-	min_cts = (u64) -1;
-	for (i=0; i<count; i++) {
-		GF_ISOSample *s = gf_isom_get_sample_info(ctx->file, tkw->track_num, i+1, &di, &doff);
-		if (!s) return;
-
-		if (s->DTS + s->CTS_Offset > max_cts)
-			max_cts = s->DTS + s->CTS_Offset;
-
-		if (min_cts > s->DTS + s->CTS_Offset)
-			min_cts = s->DTS + s->CTS_Offset;
-
-		gf_isom_sample_del(&s);
-	}
+#if 0
+	mp4_mux_get_min_max_cts(ctx, tkw, &max_cts, &min_cts);
+#else
+	max_cts = tkw->max_cts - tkw->min_neg_ctts;
+	min_cts = tkw->min_cts - tkw->min_neg_ctts;
+#endif
 
 	if (min_cts || tkw->empty_init_dur) {
 		max_cts -= min_cts;
+		u32 count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
 		max_cts += gf_isom_get_sample_duration(ctx->file, tkw->track_num, count);
 
 		max_cts *= ctx->moovts;
@@ -6047,6 +6101,16 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			u64 min_ts = tkw->min_ts_seek_plus_one - 1;
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 			u32 delay = 0;
+			if (tkw->clamp_ts_plus_one) {
+#if 0
+				u64 maxcts, mincts;
+				mp4_mux_get_min_max_cts(ctx, tkw, &maxcts, &mincts);
+				mdur = maxcts - mincts;
+#else
+				mdur = tkw->max_cts - tkw->min_cts;
+				mdur += tkw->max_cts_samp_dur;
+#endif
+			}
 			if (mdur > min_ts)
 				mdur -= min_ts;
 			else

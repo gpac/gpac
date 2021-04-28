@@ -117,6 +117,7 @@ typedef struct
 	u32 nb_frames_until_start;
 
 	Bool seek_mode;
+	u64 probe_ref_frame_ts;
 
 } RTStream;
 
@@ -131,7 +132,7 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref;
 	u32 xround;
 	Double seeksafe;
 	GF_PropStringList props;
@@ -280,7 +281,10 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 
 
-	st->needs_adjust = ctx->xadjust ? GF_TRUE : GF_FALSE;
+	//if non SAP1 detected and xadjust, move directly to needs_adjust=TRUE
+	//otherwise consider we don't need to probe for nect sap, this will be updated
+	//if one packet is not sap
+	st->needs_adjust = (ctx->xadjust && !st->all_saps) ? GF_TRUE : GF_FALSE;
 
 	st->tk_delay = 0;
 	st->ts_sub = 0;
@@ -319,21 +323,24 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
-	//NEVER use seek mode for uncompressed audio
-	if (st->abps) {
-		st->seek_mode = GF_FALSE;
-	}
-	//use seek if seek is forced
-	else if (ctx->xround==REFRAME_ROUND_SEEK) {
-		st->seek_mode = GF_TRUE;
-	}
-	//use seek mode for compressed audio with priming
-	else if ((st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
-		st->seek_mode = ctx->no_audio_seek ? GF_FALSE : GF_TRUE;
+	//NEVER use seek mode for uncompressed audio, packets are splitted anyway
+	if (ctx->extract_mode==EXTRACT_RANGE) {
+		if (st->abps) {
+			st->seek_mode = GF_FALSE;
+		}
+		//use seek if seek is forced
+		else if (ctx->xround==REFRAME_ROUND_SEEK) {
+			st->seek_mode = GF_TRUE;
+		}
+		//use seek mode for compressed audio with or without priming
+		else if (st->stream_type==GF_STREAM_AUDIO) {
+			st->seek_mode = ctx->no_audio_seek ? GF_FALSE : GF_TRUE;
+		} else {
+			st->seek_mode = GF_FALSE;
+		}
 	} else {
 		st->seek_mode = GF_FALSE;
 	}
-
 	reframer_push_props(ctx, st);
 
 	if (ctx->cur_range_idx && (ctx->cur_range_idx <= ctx->props.nb_items)) {
@@ -748,10 +755,17 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			u32 pck_size;
 			data = gf_filter_pck_get_data(pck, &pck_size);
 			if (st->abps) {
-				u8 *output;
-				new_pck = gf_filter_pck_new_alloc(st->opid, st->audio_samples_to_keep * st->abps, &output);
-				if (!new_pck) return GF_FALSE;
-				reframer_copy_raw_audio(st, data, pck_size, 0, output, st->audio_samples_to_keep);
+				if (st->audio_samples_to_keep * st->abps <= pck_size) {
+					u8 *output;
+					new_pck = gf_filter_pck_new_alloc(st->opid, st->audio_samples_to_keep * st->abps, &output);
+					if (!new_pck) return GF_FALSE;
+					reframer_copy_raw_audio(st, data, pck_size, 0, output, st->audio_samples_to_keep);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Broken raw audio frame size/duration: %d samples to keep but packet is smaller (%d samples)\n", st->audio_samples_to_keep, pck_size/st->abps));
+					st->audio_samples_to_keep = 0;
+					new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
+					if (!new_pck) return GF_FALSE;
+				}
 			} else {
 				new_pck = gf_filter_pck_new_ref(st->opid, 0, 0, pck);
 				if (!new_pck) return GF_FALSE;
@@ -763,6 +777,10 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			u32 pck_size;
 			data = gf_filter_pck_get_data(pck, &pck_size);
 			if (st->abps) {
+				if (pck_size < st->audio_samples_to_keep * st->abps) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Broken raw audio frame size/duration: %d samples to keep but packet is smaller (%d samples)\n", st->audio_samples_to_keep, pck_size/st->abps));
+					st->audio_samples_to_keep = 0;
+				}
 				new_pck = gf_filter_pck_new_alloc(st->opid, pck_size - st->audio_samples_to_keep * st->abps, &output);
 				if (!new_pck) return GF_FALSE;
 
@@ -883,6 +901,9 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			if (ts<0) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
 				ts = 0;
+			}
+			if (st->probe_ref_frame_ts && (gf_filter_pck_get_dts(pck) + st->tk_delay + 1 == st->probe_ref_frame_ts)) {
+				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_PRES, &PROP_BOOL(GF_TRUE));
 			}
 
 			gf_filter_pck_set_cts(new_pck, (u64) ts);
@@ -1015,7 +1036,8 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 			else
 				return 2;
 		}
-		if (after) return 2;
+		if (after)
+			return 2;
 		return 1;
 	}
 	return 0;
@@ -1319,7 +1341,7 @@ GF_Err reframer_process(GF_Filter *filter)
 		- if packet is in range:
 			- queue it (ref &nd detach from pid)
 			- if pck is SAP and first SAP after start and context is not yet marked "in range":
-				- check if we start from this SAP or from previous SAP (possibly before start) according to cround
+				- check if we start from this SAP or from previous SAP (possibly before start) according to xround
 				- and mark stream as "start ready"
 				- if stream is video and xadjust is set, prevent all other stream processing
 		- if packet is out of range
@@ -1413,10 +1435,12 @@ GF_Err reframer_process(GF_Filter *filter)
 							ctx->wait_video_range_adjust = GF_FALSE;
 						}
 					}
+					if (st->range_start_computed) {
+						nb_start_range_reached++;
+					}
 					//force flush in case of extract dur to avoid creating file with only a few samples of one track only
 					if (st->is_playing && (ctx->extract_mode==EXTRACT_DUR)) {
 						ctx->has_seen_eos = GF_TRUE;
-						ctx->in_range = 1;
 					}
 				}
 				continue;
@@ -1513,59 +1537,58 @@ GF_Err reframer_process(GF_Filter *filter)
 
 				//packet in range and global context not yet in range, mark which SAP will be the beginning of our range
 				if (!ctx->in_range && (pck_in_range==1)) {
-					u32 ts_adj = nb_audio_samples_to_keep;
-					if (ts_adj && (st->sample_rate!=st->timescale)) {
-						ts_adj *= st->timescale;
-						ts_adj /= st->sample_rate;
-					}
-
-					if (ctx->xround==REFRAME_ROUND_CLOSEST) {
-						Bool cur_closer = GF_FALSE;
-						//check which frame is closer
-						if (ctx->start_frame_idx_plus_one) {
-							s64 diff_prev = ctx->start_frame_idx_plus_one-1;
-							s64 diff_cur = ctx->start_frame_idx_plus_one-1;
-							diff_prev -= st->prev_sap_frame_idx;
-							diff_cur -= st->nb_frames_range;
-							if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
-						} else {
-							s64 diff_prev, diff_cur;
-							u64 start_range_ts = ctx->cur_start.num;
-							start_range_ts *= st->timescale;
-							start_range_ts /= ctx->cur_start.den;
-
-							diff_prev = diff_cur = start_range_ts;
-							diff_prev -= st->prev_sap_ts;
-							diff_cur -= ts+ts_adj;
-							if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
+					if (!st->range_start_computed) {
+						u32 ts_adj = nb_audio_samples_to_keep;
+						if (ts_adj && (st->sample_rate!=st->timescale)) {
+							ts_adj *= st->timescale;
+							ts_adj /= st->sample_rate;
 						}
-						if (cur_closer) {
-							st->sap_ts_plus_one = ts+ts_adj+1;
-							st->nb_frames_until_start = 0;
-						} else {
-							st->sap_ts_plus_one = st->prev_sap_ts + 1;
-						}
-					} else if (ctx->xround<=REFRAME_ROUND_SEEK) {
-						st->sap_ts_plus_one = st->prev_sap_ts+1;
 
-						if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
-							u64 start_range_ts = ctx->cur_start.num;
-							start_range_ts *= st->timescale;
-							start_range_ts /= ctx->cur_start.den;
-							if (ts + ts_adj == start_range_ts) {
+						if (ctx->xround==REFRAME_ROUND_CLOSEST) {
+							Bool cur_closer = GF_FALSE;
+							//check which frame is closer
+							if (ctx->start_frame_idx_plus_one) {
+								s64 diff_prev = ctx->start_frame_idx_plus_one-1;
+								s64 diff_cur = ctx->start_frame_idx_plus_one-1;
+								diff_prev -= st->prev_sap_frame_idx;
+								diff_cur -= st->nb_frames_range;
+								if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
+							} else {
+								s64 diff_prev, diff_cur;
+								u64 start_range_ts = ctx->cur_start.num;
+								start_range_ts *= st->timescale;
+								start_range_ts /= ctx->cur_start.den;
+
+								diff_prev = diff_cur = start_range_ts;
+								diff_prev -= st->prev_sap_ts;
+								diff_cur -= ts+ts_adj;
+								if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
+							}
+							if (cur_closer) {
 								st->sap_ts_plus_one = ts+ts_adj+1;
 								st->nb_frames_until_start = 0;
+							} else {
+								st->sap_ts_plus_one = st->prev_sap_ts + 1;
 							}
-						}
-					} else {
-						st->sap_ts_plus_one = ts+ts_adj+1;
-						st->nb_frames_until_start = 0;
-					}
-					st->range_start_computed = 1;
-					nb_start_range_reached++;
+						} else if (ctx->xround<=REFRAME_ROUND_SEEK) {
+							st->sap_ts_plus_one = st->prev_sap_ts+1;
 
-					if (nb_audio_samples_to_keep)
-						st->audio_samples_to_keep = nb_audio_samples_to_keep;
+							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
+								u64 start_range_ts = ctx->cur_start.num;
+								start_range_ts *= st->timescale;
+								start_range_ts /= ctx->cur_start.den;
+								if (ts + ts_adj == start_range_ts) {
+									st->sap_ts_plus_one = ts+ts_adj+1;
+									st->nb_frames_until_start = 0;
+								}
+							}
+						} else {
+							st->sap_ts_plus_one = ts+ts_adj+1;
+							st->nb_frames_until_start = 0;
+						}
+						st->range_start_computed = 1;
+					}
+					nb_start_range_reached++;
 				}
 				//remember prev sap time
 				if (pck_in_range!=2) {
@@ -1576,7 +1599,7 @@ GF_Err reframer_process(GF_Filter *filter)
 				}
 				//video stream start and xadjust set, prevent all other streams from being processed until we determine the end of the video range
 				//and re-enable other streams processing
-				if (!ctx->wait_video_range_adjust && ctx->xadjust && st->needs_adjust) {
+				if (!ctx->wait_video_range_adjust && ctx->xadjust && st->needs_adjust && !st->all_saps) {
 					ctx->wait_video_range_adjust = GF_TRUE;
 				}
 			}
@@ -1586,6 +1609,18 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			if (!pck_in_range && st->nb_frames_until_start)
 				st->nb_frames_until_start++;
+
+			//video stream and not adjusting to next SAP:, packet was not sap, probe for P/B reference frame :
+			//we include this frame in the output but mark it as skip
+			if (ctx->probe_ref && !ctx->xadjust && (pck_in_range==2) && (st->stream_type==GF_STREAM_VISUAL)) {
+				if (!st->probe_ref_frame_ts) {
+					pck_in_range = 1;
+					st->probe_ref_frame_ts = ts+1;
+				} else {
+					ts = st->probe_ref_frame_ts - 1;
+					st->probe_ref_frame_ts = 0;
+				}
+			}
 
 			//after range: whether SAP or not, mark end of range reached
 			if (pck_in_range==2) {
@@ -1733,7 +1768,7 @@ GF_Err reframer_process(GF_Filter *filter)
 			} else {
 				min_ts -= 1;
 
-				if ((ctx->extract_mode==EXTRACT_RANGE) && (ctx->xround==REFRAME_ROUND_BEFORE)) {
+				if ((ctx->extract_mode==EXTRACT_RANGE) && (ctx->xround!=REFRAME_ROUND_SEEK)) {
 					ctx->cur_start.num = min_ts;
 					ctx->cur_start.den = min_timescale;
 				}
@@ -1750,14 +1785,15 @@ GF_Err reframer_process(GF_Filter *filter)
 					if (!purge_all) {
 						u32 is_start = 0;
 						u64 ts, ots, check_ts;
-						u64 dur;
+						u64 dur, odur;
 						Bool check_priming = GF_FALSE;
 						ts = gf_filter_pck_get_dts(pck);
 						if (ts==GF_FILTER_NO_TS)
 							ts = gf_filter_pck_get_cts(pck);
 						ts += st->tk_delay;
-						dur = (u64) gf_filter_pck_get_duration(pck);
+						odur = dur = (u64) gf_filter_pck_get_duration(pck);
 						if (!dur) dur=1;
+
 						check_ts = ots = ts;
 						if (st->seek_mode && (st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
 							check_priming = GF_TRUE;
@@ -1781,13 +1817,26 @@ GF_Err reframer_process(GF_Filter *filter)
 						else if (st->can_split && (ts+dur >= min_ts)) {
 							is_start = 2;
 						}
-						else if (st->audio_samples_to_keep && (ts+dur >= min_ts)) {
+						else if (check_priming && (check_ts >= min_ts)) {
 							is_start = 1;
+						}
+						else if ((st->abps || st->seek_mode) && (ts+dur >= min_ts) && (st->stream_type==GF_STREAM_AUDIO)) {
+							u64 diff;
+							diff = min_ts*st->timescale;
+							diff /= min_timescale;
+							diff -= ots;
+							if (st->abps) {
+								if (st->sample_rate != st->timescale) {
+									diff *= st->sample_rate;
+									diff /= st->timescale;
+								}
+							}
+							if (diff < odur) {
+								st->audio_samples_to_keep = (u32) diff;
+								is_start = 1;
+							}
 						}
 						else if (st->range_start_computed==3) {
-							is_start = 1;
-						}
-						else if (check_priming && (check_ts >= min_ts)) {
 							is_start = 1;
 						}
 
@@ -2216,6 +2265,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(props), "extra output PID properties per extraction range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(no_audio_seek), "disable seek mode on audio streams (no change of priming duration) - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(probe_ref), "allow extracted range to be longer in case of B-frames with reference frames presented outside of range", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -2295,7 +2345,7 @@ GF_FilterRegister ReframerRegister = {
 		"- packets overlapping range end are forwarded with an adjusted duration to match the range end\n"
 		"This mode is typically used to extract a range in a frame/sample accurate way, rather than a GOP-aligned way.\n"
 		"\n"
-		"When [-xround]() is not set to `seek`, compressed audio streams using priming will still use seek mode.\n"
+		"When [-xround]() is not set to `seek`, compressed audio streams will still use seek mode.\n"
 		"Consequently, these streams will have modified edit lists in ISOBMFF which might not be properly handled by players.\n"
 		"This can be avoided using [-no_audio_seek](), but this will introduce audio delay.\n"
 		"\n"

@@ -791,6 +791,8 @@ xps_check (enum, default: auto): parameter sets extraction mode from AVC/HEVC/VV
 .br
 
 .br
+nodata (bool, default: false): do not load sample data
+.br
 
 .br
 .SH bifsdec
@@ -3003,7 +3005,7 @@ This mode is typically used to extract a range in a frame/sample accurate way, r
 .br
 
 .br
-When .I xround is not set to seek, compressed audio streams using priming will still use seek mode.
+When .I xround is not set to seek, compressed audio streams will still use seek mode.
 .br
 Consequently, these streams will have modified edit lists in ISOBMFF which might not be properly handled by players.
 .br
@@ -3100,6 +3102,8 @@ tcmdrw (bool, default: true):  rewrite TCMD samples when splitting
 props (strl):                  extra output PID properties per extraction range
 .br
 no_audio_seek (bool, default: false): disable seek mode on audio streams (no change of priming duration) - see filter help
+.br
+probe_ref (bool, default: false): allow extracted range to be longer in case of B-frames with reference frames presented outside of range
 .br
 
 .br
@@ -7652,7 +7656,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev757-g5bd956a56-master
+build: 1.1.0-DEV-rev773-g6bb555067-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

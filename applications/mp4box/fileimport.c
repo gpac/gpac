@@ -1842,6 +1842,11 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		} else if (!gf_sys_find_global_arg("xround")) {
 			gf_dynstrcat(&filter_args, ":xround=closest", NULL);
 		}
+		if (!adjust_split_end || (adjust_split_end==3)) {
+			if (!gf_sys_find_global_arg("probe_ref")) {
+				gf_dynstrcat(&filter_args, ":probe_ref", NULL);
+			}
+		}
 
 		if (split_range_str) {
 			Bool is_time = GF_FALSE;
