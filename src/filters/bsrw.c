@@ -54,7 +54,6 @@ struct _bsrw_ctx
 	s32 cprim, ctfc, cmx, vidfmt;
 	Bool rmsei, fullrange, novsi;
 
-
 	GF_List *pids;
 	Bool reconfigure;
 };
@@ -63,7 +62,6 @@ static GF_Err none_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacke
 {
 	return gf_filter_pck_forward(pck, pctx->opid);
 }
-
 
 static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
@@ -207,7 +205,7 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 		u32 i, count = gf_list_count(avcc->sequenceParameterSets);
 		for (i=0; i<count; i++) {
 			GF_NALUFFParam *sps = gf_list_get(avcc->sequenceParameterSets, i);
-			//first byte is nalu header, then profile_idc (8bits), prof_comp (8buts) a,d level_idc (8bits)
+			//first byte is nalu header, then profile_idc (8bits), prof_comp (8bits), and level_idc (8bits)
 			if (ctx->prof>=0) {
 				sps->data[1] = (u8) ctx->prof;
 			}
@@ -635,7 +633,7 @@ static const GF_FilterCapability BSRWCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 #endif
 
 };
