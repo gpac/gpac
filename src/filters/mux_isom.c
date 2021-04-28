@@ -167,8 +167,8 @@ typedef struct
 	Bool insert_pssh;
 
 	Bool wait_sap;
-	s64 min_ts_seek_plus_one;
-	s64 clamp_ts_plus_one;
+	u64 min_ts_seek_plus_one;
+	u64 clamp_ts_plus_one;
 	Bool check_seek_ts;
 
 	u64 max_cts, min_cts;

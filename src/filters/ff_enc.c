@@ -247,7 +247,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 {
 	u64 ts = gf_filter_pck_get_cts(pck);
-	if ((ctx->in_tk_delay<0) && (ts < -ctx->in_tk_delay)) {
+	if ((ctx->in_tk_delay<0) && (ts < (u64) -ctx->in_tk_delay)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Negative input TS \n"));
 		return 0;
 	}

@@ -81,7 +81,7 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 
 		/*get frame header FFC0*/
 		while (gf_bs_available(bs)) {
-			u32 w, h,length, prec;
+			u32 w, h,length;
 			if (gf_bs_read_u8(bs) != 0xFF) continue;
 			if (!offset) offset = (u32)gf_bs_get_position(bs) - 1;
 
@@ -102,7 +102,7 @@ void gf_img_parse(GF_BitStream *bs, u32 *codecid, u32 *width, u32 *height, u8 **
 			case 0xCE:
 			case 0xCF:
                 length = gf_bs_read_u16(bs);
-                prec = gf_bs_read_u8(bs);
+                /*prec = */gf_bs_read_u8(bs);
 				h = gf_bs_read_int(bs, 16);
 				w = gf_bs_read_int(bs, 16);
                 nb_comp = gf_bs_read_int(bs, 8);
