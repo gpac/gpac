@@ -189,8 +189,11 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 	u32 i, w, h, stride, stride_uv, pf, osize;
 	u32 nb_planes, uv_height;
 	GF_FilterPacket *dst, *ref;
+	u8 *pck_data;
 	GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck_source;
 	const GF_PropertyValue *p;
+
+	if (data) *data = NULL;
 
 	ref = pcki->pck;
 
@@ -216,10 +219,10 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
 	}
 
-	dst = gf_filter_pck_new_alloc(pid, osize, data);
+	dst = gf_filter_pck_new_alloc(pid, osize, &pck_data);
 	if (!dst) return NULL;
-	
-	u8 *out_ptr = *data;
+	if (data) *data = pck_data;
+
 	for (i=0; i<nb_planes; i++) {
 		u32 j, write_h, dst_stride;
 		const u8 *in_ptr;
@@ -237,9 +240,9 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 			dst_stride = stride;
 		}
 		for (j=0; j<write_h; j++) {
-			memcpy(out_ptr, in_ptr, dst_stride);
+			memcpy(pck_data, in_ptr, dst_stride);
 			in_ptr += src_stride;
-			out_ptr += dst_stride;
+			pck_data += dst_stride;
 		}
 	}
 	gf_filter_pck_merge_properties(pck_source, dst);
