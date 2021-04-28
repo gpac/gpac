@@ -1104,7 +1104,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 		opt = gf_opts_get_key("core", "ifce");
 		if (opt)
 			return opt;
-		return "127.0.0.1";
+		return NULL;
 	}
 
 	return arg_val;
