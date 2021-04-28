@@ -5923,7 +5923,8 @@ static void mp4_mux_get_min_max_cts(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 *om
 	min_cts = (u64) -1;
 	for (i=0; i<count; i++) {
 		GF_ISOSample *s = gf_isom_get_sample_info(ctx->file, tkw->track_num, i+1, &di, &doff);
-		if (!s) return;
+		if (!s)
+			break;
 		if (tkw->clamp_ts_plus_one) {
 			if (s->DTS + s->CTS_Offset + 1 >= tkw->clamp_ts_plus_one ) {
 				gf_isom_sample_del(&s);
@@ -5937,7 +5938,6 @@ static void mp4_mux_get_min_max_cts(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 *om
 		if (min_cts > s->DTS + s->CTS_Offset)
 			min_cts = s->DTS + s->CTS_Offset;
 
-		fprintf(stderr, "checking samp DTS "LLU" CTS "LLU"\n", s->DTS, s->DTS + s->CTS_Offset);
 		gf_isom_sample_del(&s);
 	}
 	*omax_cts = max_cts;
