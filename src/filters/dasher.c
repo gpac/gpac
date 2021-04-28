@@ -329,6 +329,7 @@ typedef struct _dash_stream
 	//segment start time in target MPD timescale
 	u64 seg_start_time;
 	Bool split_set_names;
+	Bool skip_tpl_reuse;
 	u64 max_period_dur;
 
 	GF_Filter *dst_filter;
@@ -3429,14 +3430,16 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		//check we are not reusing an existing template from previous periods, if so append a suffix
 		//we check the final init name
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
-		reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
-		if (reused_template_idx) {
-			char szExName[20];
-			sprintf(szExName, "_r%d_", reused_template_idx);
-			strcat(szDASHTemplate, szExName);
+		if (!ds->skip_tpl_reuse) {
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
+			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
+			if (reused_template_idx) {
+				char szExName[20];
+				sprintf(szExName, "_r%d_", reused_template_idx);
+				strcat(szDASHTemplate, szExName);
+			}
 		}
-
+		
 		//get final segment template with path resolution - output file name is NULL, we already have solved this
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE_WITH_PATH, is_bs_switch, szSegmentName, ds->rep_id, NULL, szDASHTemplate, seg_ext, 0, 0, 0, ctx->stl);
 		ds->seg_template = gf_strdup(szSegmentName);
@@ -5530,6 +5533,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		if (ds->stream_type==GF_STREAM_VISUAL)
 			ds_video = ds;
 
+		ds->skip_tpl_reuse = GF_FALSE;
 		// period resume (end of content replacement/splice/...): if using templates, check if period ID is used, if not force startNumber to resume
 		prop = gf_filter_pid_get_property_str(ds->ipid, "period_resume");
 		if (prop && prop->value.string && ctx->tpl && ds->mpd_timescale) {
@@ -5547,6 +5551,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				if (num * seg_duration < period_start)
 					num++;
 				ds->startNumber = (u32) (num+1);
+				ds->skip_tpl_reuse = GF_TRUE;
 			}
 		}
 
