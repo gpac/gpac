@@ -323,6 +323,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 
 		szDBSep[0] = szDBSep[1] = filter->session->sep_args;
 		szDBSep[2] = 0;
+
+		//handle the case where the first src arg was escaped ("filter::opt"), src args is now ":opt
+		//consider we have one double sep
+		if (src_striped[0] == filter->session->sep_args)
+			nb_db_sep = 1;
+
 		dbsep = src_striped;
 		while (dbsep) {
 			char *next_dbsep = strstr(dbsep, szDBSep);
@@ -332,6 +338,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		}
 		if (nb_db_sep % 2) nb_db_sep=1;
 		else nb_db_sep=0;
+
 
 		if (!nb_db_sep) {
 			szDBSep[1] = 0;
