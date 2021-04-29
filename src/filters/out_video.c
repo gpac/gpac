@@ -1217,7 +1217,7 @@ exit:
 	if (ctx->oldata.ptr) {
 		// overlay is set, lock filter to make sure the data is still valid
 		gf_filter_lock(ctx->filter, GF_TRUE);
-		if (ctx->oldata.ptr) {
+		if (ctx->oldata.ptr && (ctx->oldata.size <= 4 * ctx->olsize.x * ctx->olsize.y) ) {
 			if (!ctx->overlay_tx) {
 				glGenTextures(1, &ctx->overlay_tx);
 
