@@ -2105,7 +2105,7 @@ the media normal timing. EditTime and EditDuration are expressed in movie timesc
 \param EditDuration the duration of the edit in movie timecale
 \param MediaTime the corresponding media time of the start of the edit, in media timescale. -1 for empty edits
 \param EditMode the edit mode
-\return error if any
+\return error if any, GF_EOS if empty edit was inserted 
 */
 GF_Err gf_isom_set_edit(GF_ISOFile *isom_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode);
 

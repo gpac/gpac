@@ -2448,15 +2448,24 @@ static GF_Err gf_isom_set_edit_internal(GF_ISOFile *movie, u32 trackNumber, u64 
 		startTime += ent->segmentDuration;
 	}
 
-	//not found, add a new entry and adjust the prev one if any
+	//not found, add a new entry, insert empty one if gap
 	if (!ent) {
+		Bool empty_inserted = GF_FALSE;
+		if (startTime != EditTime) {
+			newEnt = CreateEditEntry(EditTime - startTime, 0, GF_ISOM_EDIT_EMPTY);
+			if (!newEnt) return GF_OUT_OF_MEM;
+			empty_inserted = GF_TRUE;
+			gf_list_add(elst->entryList, newEnt);
+		}
 		newEnt = CreateEditEntry(EditDuration, MediaTime, EditMode);
 		if (!newEnt) return GF_OUT_OF_MEM;
 		if (EditMode==GF_ISOM_EDIT_NORMAL+1) {
 			newEnt->mediaRate = media_rate;
 		}
 		gf_list_add(elst->entryList, newEnt);
-		return SetTrackDuration(trak);
+		e = SetTrackDuration(trak);
+		if (e) return e;
+		return empty_inserted ? GF_EOS : GF_OK;
 	}
 
 	startTime -= ent->segmentDuration;

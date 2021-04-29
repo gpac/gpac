@@ -385,7 +385,7 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG("disable", "disable given track", GF_ARG_INT, 0, parse_track_action, TRAC_ACTION_DISABLE, ARG_IS_FUN),
  	{"timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0, &timescale, 0, ARG_OPEN_EDIT},
  	MP4BOX_ARG_S("lang", "[tkID=]LAN", "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", 0, parse_track_action, TRAC_ACTION_SET_LANGUAGE, ARG_IS_FUN),
- 	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRAC_ACTION_SET_DELAY, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRAC_ACTION_SET_DELAY, ARG_IS_FUN),
  	MP4BOX_ARG_S("par", "tkID=PAR", "set visual track pixel aspect ratio. PAR is:\n"
 					"  - N:D: set PAR to N:D in track, do not modify the bitstream\n"
 					"  - wN:D: set PAR to N:D in track and try to modify the bitstream\n"
@@ -433,15 +433,13 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG("xmov", "same as zmov and wraps ftyp in otyp", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, parse_compress, 1, ARG_IS_FUN),
  	MP4BOX_ARG_S("edits", "tkID=EDITS", "set edit list. The following syntax is used (no separators between entries):\n"
 			" - `r`: removes all edits\n"
-			" - `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be\n"
-			"   - `VAL`: start time in milliseconds (media duration used as edit duration)\n"
-			"   - `VAL-DUR`: start time and duration in milliseconds\n"
-			"   - `VAL/NUM`: start time as fractional seconds (media duration used as edit duration)\n"
-			"   - `VAL-DUR/NUM`: start time and duration as fractional seconds\n"
-			" - `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)\n"
+			" - `eSTART`: add empty edit with given start time. START can be\n"
+			"   - `VAL`: start time in seconds (int, double, fraction), media duration used as edit duration\n"
+			"   - `VAL-DUR`: start time and duration in seconds (int, double, fraction)\n"
+			" - `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time in seconds (int, double, fraction) and rate (fraction or INT)\n"
 			" - Examples: \n"
-			"   - `-edits=re0-5/1e5-3/1,100/25`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
-			"   - `-edits=re0-4/1,0,2/1`: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 2\n"
+			"   - `re0-5e5-3,4`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
+			"   - `re0-4,0,0.5`: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 0.5\n"
 				, 0, parse_track_action, TRAC_ACTION_SET_EDITS, ARG_IS_FUN),
  	MP4BOX_ARG("moovpad", "specify amount of padding to keep after moov box for later inplace editing - if 0, moov padding is disabled", GF_ARG_INT, GF_ARG_HINT_EXPERT, &moov_pading, 0, ARG_NEED_SAVE),
  	MP4BOX_ARG("no-inplace", "disable inplace rewrite", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &no_inplace, 0, 0),
@@ -706,7 +704,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - negative integer: specifies duration in number of coded frames", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("start", NULL, "`C` target start time in source media, may not be supported depending on the source", NULL, NULL, GF_ARG_DOUBLE, 0),
 	GF_DEF_ARG("lang", NULL, "`S` set imported media language code", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay in ms or as fractional seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("delay", NULL, "`S` set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (`N/D`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("par", NULL, "`S` set visual pixel aspect ratio (see [-par](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("clap", NULL, "`S` set visual clean aperture (see [-clap](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("mx", NULL, "`S` set track matrix (see [-mx](MP4B_GEN) )", NULL, NULL, GF_ARG_STRING, 0),
