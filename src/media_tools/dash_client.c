@@ -949,9 +949,10 @@ setup_route:
 	}
 
 	//compute current time in period
-	if (current_time < group->period->start)
+	if (current_time < group->period->start) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Period will start in %d ms\n", group->period->start - current_time));
 		current_time = 0;
-	else {
+	} else {
 		if (group->dash->initial_period_tunein || group->force_timeline_reeval) {
 			current_time -= group->period->start;
 		} else {
@@ -2243,7 +2244,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 #endif
 
 	//if current period was a remote period, do a pass on the new manifest periods, check for xlink
-	if (period->origin_base_url) {
+	if (period->origin_base_url || period->broken_xlink) {
 restart_period_check:
 		for (i=0; i<gf_list_count(new_mpd->periods); i++) {
 			new_period = gf_list_get(new_mpd->periods, i);
@@ -2260,7 +2261,7 @@ restart_period_check:
 				}
 				//this is a static period xlink, no need to further update the mpd, jsut swap the old periods in the new MPD
 
-				base_url = period->origin_base_url;
+				base_url = period->origin_base_url ? period->origin_base_url : period->broken_xlink;
 				if (!base_url) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - found new Xlink period overlapping a non-xlink period in original manifest\n"));
 					gf_mpd_del(new_mpd);
@@ -2270,8 +2271,9 @@ restart_period_check:
 				gf_list_rem(new_mpd->periods, i);
 				for (j=0; j<gf_list_count(dash->mpd->periods); j++) {
 					GF_MPD_Period *ap = gf_list_get(dash->mpd->periods, j);
-					if (!ap->origin_base_url) continue;
-					if (strcmp(ap->origin_base_url, base_url)) continue;
+					if (!ap->origin_base_url && !ap->broken_xlink) continue;
+					if (ap->origin_base_url && strcmp(ap->origin_base_url, base_url)) continue;
+					if (ap->broken_xlink && strcmp(ap->broken_xlink, base_url)) continue;
 					gf_list_rem(dash->mpd->periods, j);
 					j--;
 					gf_list_insert(new_mpd->periods, ap, insert_idx);
@@ -5361,6 +5363,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 	GF_DOMParser *parser;
 	GF_MPD *new_mpd;
 	GF_MPD_Period *period;
+	u32 nb_inserted = 0;
 	GF_DASHFileIOSession xlink_sess=NULL;
 
 	period = gf_list_get(period_list, period_idx);
@@ -5498,6 +5501,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 		gf_list_rem(new_mpd->periods, 0);
 		//forbiden
 		if (inserted_period->xlink_href && inserted_period->xlink_actuate_on_load) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Invalid remote period with xlink:actuate=\"onLoad\" and xlink:href set, removing parent period.\n"));
 			gf_mpd_period_free(inserted_period);
 			continue;
 		}
@@ -5507,6 +5511,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 
 		gf_list_insert(period_list, inserted_period, period_idx);
 		period_idx++;
+		nb_inserted++;
 
 		if (period->duration) {
 			//truncate duration
@@ -5521,9 +5526,15 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, GF_List *period_list
 	}
 	if (url) gf_free(url);
 
-	//this will do the garbage collection
-	gf_list_add(new_mpd->periods, period);
-
+	if (!nb_inserted && gf_list_count(period->adaptation_sets)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No periods inserted during ad insertion, but origin period not empty - ignoring ad insertion.\n"));
+		gf_list_insert(period_list, period, period_idx);
+		period->broken_xlink = period->xlink_href;
+		period->xlink_href = NULL;
+	} else {
+		//this will do the garbage collection
+		gf_list_add(new_mpd->periods, period);
+	}
 	gf_mpd_del(new_mpd);
 }
 
@@ -7149,15 +7160,16 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 			GF_MPD_Type type = dash->mpd->type;
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
 
-			if (group->period->origin_base_url)
-				type = group->period->type;
-
 			if ((group->selection != GF_DASH_GROUP_SELECTED)
 				|| group->depend_on_group
+				|| !group->adaptation_set
 				|| (group->done && !group->nb_cached_segments)
 			) {
 				continue;
 			}
+			if (group->period->origin_base_url)
+				type = group->period->type;
+
 			all_groups_done = 0;
 			if (type==GF_MPD_TYPE_DYNAMIC) {
 				gf_dash_group_check_time(group);
