@@ -1317,6 +1317,9 @@ _libgpac.gf_fs_is_supported_mime.restype = gf_bool
 _libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p]
 _libgpac.gf_fs_is_supported_source.restype = gf_bool
 
+_libgpac.gf_pixel_fmt_sname.argtypes = [c_uint]
+_libgpac.gf_pixel_fmt_sname.restype = c_char_p
+
 
 @CFUNCTYPE(c_int, _gf_filter_session, c_void_p, POINTER(c_uint))
 def fs_task_fun(sess, cbk, resched):
@@ -1636,6 +1639,9 @@ _libgpac.gf_filter_release_property.argtypes = [POINTER(_gf_property_entry)]
 
 _libgpac.gf_props_type_is_enum.argtypes = [c_uint]
 _libgpac.gf_props_type_is_enum.restype = c_int
+
+_libgpac.gf_props_parse_enum.argtypes = [c_uint, c_char_p]
+_libgpac.gf_props_parse_enum.restype = c_uint
 
 _libgpac.gf_pixel_fmt_name.argtypes = [c_uint]
 _libgpac.gf_pixel_fmt_name.restype = c_char_p
@@ -2021,19 +2027,26 @@ def dash_download_monitor(cbk, groupidx, stats):
  return obj.on_download_monitor(group, stats.contents)
 
 
-
 def _prop_to_python(pname, prop):
     type = prop.type
+
     if type==GF_PROP_SINT:
         return prop.value.sint
     if type==GF_PROP_UINT:
         if pname=="StreamType":
             return _libgpac.gf_stream_type_name(prop.value.uint).decode('utf-8')
+        if pname=="PixelFormat":
+            return _libgpac.gf_pixel_fmt_sname(prop.value.uint).decode('utf-8')
         if pname=="CodecID":
             cid = _libgpac.gf_codecid_file_ext(prop.value.uint).decode('utf-8')
             names=cid.split('|')
             return names[0]
         return prop.value.uint
+
+    if _libgpac.gf_props_type_is_enum(type):
+        pname = _libgpac.gf_props_enum_name(type, prop.value.uint)
+        return pname.decode('utf-8')
+
     if type==GF_PROP_4CC:
         return _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
     if type==GF_PROP_LSINT:
@@ -2094,10 +2107,6 @@ def _prop_to_python(pname, prop):
             val = prop.value.v2i_list.vals[i]
             res.append(val)
         return res
-
-    if _libgpac.gf_props_type_is_enum(type):
-        pname = _libgpac.gf_props_enum_name(type, prop.value.uint)
-        return pname.decode('utf-8')
 
     raise Exception('Unknown property type ' + str(type))
 
@@ -2544,8 +2553,8 @@ def _make_prop(prop4cc, propname, prop, custom_type=0):
             prop_val.value.v2i_list.vals[i].x = prop[i].x
             prop_val.value.v2i_list.vals[i].y = prop[i].y
 
-    elif _lingpac.gf_props_type_is_enum(type):
-        prop_val.value.uint = _libgpac.gf_props_parse_enum(prop.encode('utf-8'))
+    elif _libgpac.gf_props_type_is_enum(type):
+        prop_val.value.uint = _libgpac.gf_props_parse_enum(type, prop.encode('utf-8'))
         return prop_val
     else:
         raise Exception('Unsupported property type ' + str(type) )
