@@ -768,8 +768,13 @@ typedef struct
 	/*! xlink evaluation on load if set, otherwise on use*/
 	Bool xlink_actuate_on_load;
 
-	/*! original xlink URL before resolution, used to identify already resolved xlinks in MPD updates - GPAC internal*/
+	/*! original xlink URL before resolution - GPAC internal. Used to
+		- identify already resolved xlinks in MPD updates
+		- resolve URLs in remote period if no baseURL is explictly listed
+	*/
 	char *origin_base_url;
+	/*! broken/ignored xlink, used to identify ignored xlinks in MPD updates  - GPAC internal*/
+	char *broken_xlink;
 	/*! type of the period - GPAC internal*/
 	GF_MPD_Type type;
 } GF_MPD_Period;

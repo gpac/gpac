@@ -512,6 +512,8 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 			if (!ctx->segstore) {
 				gf_dm_sess_force_memory_mode(sess, 1);
 			}
+			if (ctx->reuse_download_session)
+				gf_dm_sess_setup_from_url(sess, url, GF_FALSE);
 			ctx->reuse_download_session = GF_TRUE;
 			return (GF_DASHFileIOSession) sess;
 		}

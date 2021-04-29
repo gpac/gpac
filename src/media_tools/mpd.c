@@ -1291,6 +1291,7 @@ void gf_mpd_period_free(void *_item)
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
 	if (ptr->ID) gf_free(ptr->ID);
 	if (ptr->origin_base_url) gf_free(ptr->origin_base_url);
+	if (ptr->broken_xlink) gf_free(ptr->broken_xlink);
 	if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
