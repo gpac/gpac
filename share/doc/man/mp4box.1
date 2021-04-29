@@ -214,7 +214,7 @@ set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given,
 .TP
 .B \-delay tkID=TIME
 .br
-set track start delay in ms or in fractional seconds (N/D)
+set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (N/D)
 .br
 .TP
 .B \-par tkID=PAR
@@ -364,23 +364,19 @@ set edit list. The following syntax is used (no separators between entries):
 .br
  * `r`: removes all edits
 .br
- * `eSTART`: add empty edit with given start time (fractional or milliseconds). START can be
+ * `eSTART`: add empty edit with given start time. START can be
 .br
-   - VAL: start time in milliseconds (media duration used as edit duration)
+   - VAL: start time in seconds (int, double, fraction), media duration used as edit duration
 .br
-   - VAL-DUR: start time and duration in milliseconds
+   - VAL-DUR: start time and duration in seconds (int, double, fraction)
 .br
-   - VAL/NUM: start time as fractional seconds (media duration used as edit duration)
-.br
-   - VAL-DUR/NUM: start time and duration as fractional seconds
-.br
- * `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time (ms or fraction) and rate (fraction or INT/1000)
+ * `eSTART,MEDIA[,RATE]`: add regular edit with given start, media start time in seconds (int, double, fraction) and rate (fraction or INT)
 .br
  * Examples: 
 .br
-   - -edits=re0-5/1e5-3/1,100/25: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track
+   - re0-5e5-3,4: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track
 .br
-   - -edits=re0-4/1,0,2/1: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 2
+   - re0-4,0,0.5: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 0.5
 .br
 
 .br
@@ -1420,7 +1416,7 @@ S set imported media language code
 .TP
 .B delay (int)
 .br
-S set imported media initial delay in ms or as fractional seconds (N/D)
+S set imported media initial delay (>0) or initial skip (<0) in ms or as fractional seconds (N/D)
 .br
 .TP
 .B par (string)
@@ -2741,7 +2737,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev783-gd1aded403-master
+build: 1.1.0-DEV-rev786-g72c6ee61c-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

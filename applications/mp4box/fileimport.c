@@ -283,25 +283,23 @@ static GF_Err set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_tra
 	return GF_OK;
 }
 
-GF_Err parse_fracs(char *str, GF_Fraction64 *f, u64 *dur)
+GF_Err parse_fracs(char *str, GF_Fraction64 *f, GF_Fraction64 *dur)
 {
+	GF_Err e = GF_OK;
 	if (dur) {
-		if (sscanf(str, LLD"-"LLU"/"LLU, &f->num, dur, &f->den)==3) {
-			return GF_OK;
+		char *sep = strchr(str, '-');
+		if (sep) {
+			sep[0] = 0;
+			if (!gf_parse_lfrac(str, f)) e = GF_BAD_PARAM;
+			if (!gf_parse_lfrac(sep+1, dur)) e = GF_BAD_PARAM;
+			sep[0] = '-';
+			return e;
 		}
-		if (sscanf(str, LLD"-"LLU, &f->num, dur)==2) {
-			f->den = 1000;
-			return GF_OK;
-		}
-		*dur = 0;
+		dur->num = 0;
+		dur->den = 0;
 	}
-	if (sscanf(str, LLD"/"LLU, &f->num, &f->den)==2)
-		return GF_OK;
-	f->den = 1000;
-	if (sscanf(str, LLD, &f->num)==1) {
-		return GF_OK;
-	}
-	return GF_BAD_PARAM;
+	if (!gf_parse_lfrac(str, f)) e = GF_BAD_PARAM;
+	return e;
 }
 
 Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr_full_range)
@@ -369,9 +367,9 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 			if (e) goto error;
 		}
 		else if (edits[0]=='e') {
-			u64 movie_t, media_t, edit_dur;
+			u64 movie_t, media_t, edur;
 			u32 rate;
-			GF_Fraction64 movie_time, media_time, media_rate;
+			GF_Fraction64 movie_time, media_time, media_rate, edit_dur;
 			char *mtime_sep;
 
 			edits+=1;
@@ -401,24 +399,26 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					if (e) goto error;
 				}
 			}
-			if (!movie_time.den) {
+			if (!movie_time.den || (movie_time.num<0)) {
 				e = GF_BAD_PARAM;
+				fprintf(stderr, "Wrong edit format %s, movie time must be valid and >= 0\n", edits);
 				goto error;
 			}
 			movie_t = movie_time.num * movie_ts / movie_time.den;
-			if (!edit_dur) {
-				edit_dur = media_dur;
-				edit_dur *= movie_ts;
-				edit_dur /= media_ts;
+			if (!edit_dur.den || !edit_dur.num) {
+				edur = media_dur;
+				edur *= movie_ts;
+				edur /= media_ts;
 			} else {
-				edit_dur *= movie_ts;
-				edit_dur /= movie_time.den;
-				if (edit_dur>media_dur)
-					edit_dur = media_dur;
+				edur = edit_dur.num;
+				edur *= movie_ts;
+				edur /= edit_dur.den;
+				edur /= movie_time.den;
+				if (edur>media_dur)
+					edur = media_dur;
 			}
 			if (!media_time.den) {
-				e = gf_isom_set_edit(dest, track, movie_t, edit_dur, 0, GF_ISOM_EDIT_EMPTY);
-				if (e) goto error;
+				e = gf_isom_set_edit(dest, track, movie_t, edur, 0, GF_ISOM_EDIT_EMPTY);
 			} else {
 				rate = 0;
 				if (media_rate.den) {
@@ -430,9 +430,13 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 					rate = (rate<<16) | (u32) frac;
 				}
 				media_t = media_time.num * media_ts / media_time.den;
-				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edit_dur, media_t, rate);
-				if (e) goto error;
+				e = gf_isom_set_edit_with_rate(dest, track, movie_t, edur, media_t, rate);
 			}
+			if (e==GF_EOS) {
+				fprintf(stderr, "Inserted empty edit before edit at start time "LLD"/"LLU"\n", movie_time.num, movie_time.den);
+				e = GF_OK;
+			}
+			if (e) goto error;
 		}
 error:
 		if (sep) sep[0] = c;
