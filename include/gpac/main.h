@@ -174,7 +174,7 @@ const GF_GPACArg *gf_sys_get_options();
 u32 gf_sys_is_gpac_arg(const char *arg_name);
 
 /*! parses config string and update config accordingly
-\param opt_string section/key/val formatted as Section:Key (discard key), Section:Key=null (discard key), Section:Key=Val (set key) or Section:*=null (discard section)
+\param opt_string section/key/val formatted as Section:Key (discard key), Section:Key=null (discard key), Section:Key=Val (set key) or Section=null (discard section)
 \return GF_TRUE if update is OK, GF_FALSE otherwise*/
 Bool gf_sys_set_cfg_option(const char *opt_string);
 
