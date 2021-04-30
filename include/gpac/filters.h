@@ -2901,6 +2901,18 @@ GF_Err gf_filter_get_stats(GF_Filter *filter, GF_FilterStats *stats);
 */
 const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
 
+
+/*! Enumerates default arguments of a filter
+\param filter filter session
+\param service_url
+\param parent_url
+\param out_relocated_url - must be GF_MAX_PATH size
+\param out_localized_url - must be GF_MAX_PATH size
+\return GF_TRUE if success
+*/
+Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url);
+
+
 /*! @} */
 
 

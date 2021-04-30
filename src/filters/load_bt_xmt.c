@@ -194,21 +194,6 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		return GF_OK;
 	}
 
-#ifdef FILTER_FIXME
-	/*animation stream like*/
-	if (priv->ctx) {
-		GF_StreamContext *sc;
-		u32 i = 0;
-		while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
-			if (esd->ESID == sc->ESID) {
-				priv->nb_streams++;
-				return GF_OK;
-			}
-		}
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-#endif
-
 	priv->file_name = prop->value.string;
 	priv->nb_streams = 1;
 
@@ -430,12 +415,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 		i=0;
 		while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
-#ifdef FILTER_FIXME
-			/*not our stream*/
-			if (!sc->in_root_od && (sc->ESID != ES_ID)) continue;
-			/*not the base stream*/
-			if (sc->in_root_od && (priv->base_stream_id != ES_ID)) continue;
-#endif
 			/*handle SWF media extraction*/
 			if ((sc->streamType == GF_STREAM_OD) && (priv->load_flags==1)) continue;
 			sc->last_au_time = 0;
@@ -544,12 +523,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		if (priv->scene->compositor->check_eos_state==2)
 			stream_time=0xFFFFFFFF;
 
-#ifdef FILTER_FIXME
-		/*not our stream*/
-		if (!sc->in_root_od && (sc->ESID != ES_ID)) continue;
-		/*not the base stream*/
-		if (sc->in_root_od && (priv->base_stream_id != ES_ID)) continue;
-#endif
 		/*handle SWF media extraction*/
 		if ((sc->streamType == GF_STREAM_OD) && (priv->load_flags==1)) continue;
 

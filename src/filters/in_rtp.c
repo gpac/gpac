@@ -232,7 +232,7 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 }
 
 
-#ifdef FILTER_FIXME
+#if 0 //unused
 static void rtpin_send_data_base64(GF_RTPInStream *stream)
 {
 	u32 size;

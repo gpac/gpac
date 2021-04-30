@@ -65,20 +65,6 @@ Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 }
 
 
-#ifdef FILTER_FIXME
-
-static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
-{
-	GF_Event evt;
-	GF_Terminal *term = (GF_Terminal *)usr_cbk;
-	evt.type = GF_EVENT_AUTHORIZATION;
-	evt.auth.site_url = site_url;
-	evt.auth.user = usr_name;
-	evt.auth.password = password;
-	return gf_term_send_event(term, &evt);
-}
-#endif
-
 static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, Bool force_resume_pause)
 {
 	/*only play/pause if connected*/
@@ -355,15 +341,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
 
-#ifdef FILTER_FIXME
-	gf_dm_set_auth_callback(tmp->downloader, gf_term_get_user_pass, tmp);
-
-	tmp->uri_relocators = gf_list_new();
-	tmp->locales.relocate_uri = term_check_locales;
-	tmp->locales.term = tmp;
-	gf_list_add(tmp->uri_relocators, &tmp->locales);
-#endif
-
 	gf_term_refresh_cache();
 	gf_fs_run(tmp->fsess);
 
@@ -442,6 +419,8 @@ const char *gf_term_get_url(GF_Terminal *term)
 	return compositor->root_scene->root_od->scene_ns->url;
 }
 
+GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
+
 /*set rendering option*/
 GF_EXPORT
 GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
@@ -451,11 +430,13 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 	case GF_OPT_PLAY_STATE:
 		gf_term_set_play_state(term->compositor, value, 0, 1);
 		return GF_OK;
-#ifdef FILTER_FIXME
 	case GF_OPT_HTTP_MAX_RATE:
-		gf_dm_set_data_rate(term->downloader, value);
+	{
+		GF_DownloadManager *dm = gf_filter_get_download_manager(term->compositor->filter);
+		if (!dm) return GF_SERVICE_ERROR;
+		gf_dm_set_data_rate(dm, value);
 		return GF_OK;
-#endif
+	}
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
 	}
@@ -502,11 +483,11 @@ u32 gf_sc_term_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_CAN_SELECT_STREAMS:
 		return (compositor->root_scene && compositor->root_scene->is_dynamic_scene) ? 1 : 0;
 	case GF_OPT_HTTP_MAX_RATE:
-#if FILTER_FIXME
-		return gf_dm_get_data_rate(compositor->downloader);
-#else
-		return 0;
-#endif
+	{
+		GF_DownloadManager *dm = gf_filter_get_download_manager(compositor->filter);
+		if (!dm) return 0;
+		return gf_dm_get_data_rate(dm);
+	}
 	case GF_OPT_VIDEO_BENCH:
 		return compositor->bench_mode ? GF_TRUE : GF_FALSE;
 	case GF_OPT_ORIENTATION_SENSORS_ACTIVE:
@@ -536,26 +517,6 @@ typedef struct
 	char *service_url, *parent_url;
 } GF_TermConnectObject;
 
-
-#ifdef FILTER_FIXME
-
-
-/* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
-GF_EXPORT
-Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
-{
-	u32 i, count;
-
-	count = gf_list_count(term->uri_relocators);
-	for (i=0; i<count; i++) {
-		Bool result;
-		GF_URIRelocator *uri_relocator = gf_list_get(term->uri_relocators, i);
-		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, out_relocated_url, out_localized_url);
-		if (result) return 1;
-	}
-	return 0;
-}
-#endif
 
 GF_EXPORT
 u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame)
@@ -1018,16 +979,15 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	if (speed<0) {
 		i=0;
 		while ( (ns = (GF_SceneNamespace*)gf_list_enum(term->compositor->root_scene->namespaces, &i)) ) {
-#ifdef FILTER_FIXME
-			GF_NetworkCommand com;
-			GF_Err e;
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
-			e = gf_term_service_command(ns, &com);
-			if (e != GF_OK) {
-				return e;
+			u32 k=0;
+			GF_ObjectManager *odm;
+			if (!ns->owner || !ns->owner->subscene) continue;
+
+			while ( (odm = gf_list_enum(ns->owner->subscene->resources, &k))) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_PLAYBACK_MODE);
+				if (!p || (p->value.uint!=GF_PLAYBACK_MODE_REWIND))
+					return GF_NOT_SUPPORTED;
 			}
-#endif
 		}
 	}
 
@@ -1748,4 +1708,18 @@ void gf_term_print_graph(GF_Terminal *term)
 {
 	if (term->fsess)
 		gf_fs_print_connections(term->fsess);
+}
+
+
+
+GF_EXPORT
+Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check)
+{
+	char *parent_url = NULL;
+	if (!term || !term->compositor || !term->compositor->root_scene || !term->compositor->root_scene->root_od || !term->compositor->root_scene->root_od->scene_ns)
+		return GF_FALSE;
+		
+	if (use_parent_url && term->compositor->root_scene)
+		parent_url = term->compositor->root_scene->root_od->scene_ns->url;
+	return gf_filter_is_supported_source(term->compositor->filter, fileName, parent_url);
 }

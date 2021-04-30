@@ -103,51 +103,6 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 }
 
 
-
-#ifdef FILTER_FIXME
-static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF_Err response)
-{
-	GF_ObjectManager *root;
-	GF_Channel *ch;
-	GF_Terminal *term = service->term;
-
-	/*may be null upon destroy*/
-	root = service->owner;
-	if (root && (root->net_service != service)) {
-		if (root->net_service) gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
-		return;
-	}
-	//reset global seek time
-	if (term->root_scene && term->root_scene->root_od)
-		term->root_scene->root_od->media_start_time = 0;
-
-	/*this is service disconnect*/
-	if (!netch) {
-		if (service->subservice_disconnect) {
-			if (service->owner && service->subservice_disconnect==1) {
-				GF_Scene *scene = service->owner->subscene ? service->owner->subscene : service->owner->parentscene;
-				/*destroy all media*/
-				gf_scene_disconnect(scene, GF_TRUE);
-			}
-			return;
-		}
-		/*unregister from valid services*/
-		if (gf_list_del_item(term->net_services, service)>=0) {
-			/*and queue for destroy*/
-			gf_list_add(term->net_services_to_remove, service);
-		}
-		return;
-	}
-	/*this is channel disconnect*/
-
-	/*no notif in case of failure for disconnection*/
-	ch = gf_term_get_channel(service, netch);
-	if (!ch) return;
-	/*signal channel state*/
-	ch->es_state = GF_ESM_ES_DISCONNECTED;
-}
-#endif
-
 void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod)
 {
 	u32 i, min_od_id;
@@ -206,9 +161,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	odm = NULL;
 	min_od_id = 0;
 	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
-#if FILTER_FIXME
 		char *frag = NULL;
-#endif
 		char *ext, *url;
 		u32 match_esid = 0;
 		Bool type_matched = GF_FALSE;
@@ -279,9 +232,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 		ext = strrchr(mo->URLs.vals[0].url, '#');
 		if (ext) {
-#if FILTER_FIXME
 			frag = strchr(ext, '=');
-#endif
 			ext[0] = 0;
 		}
 		url = mo->URLs.vals[0].url;
@@ -313,16 +264,16 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		default:
 			continue;
 		}
-#if FILTER_FIXME
+
 		if (frag) {
 			u32 frag_id = 0;
-			u32 ID = od->objectDescriptorID;
-			if (ID==GF_MEDIA_EXTERNAL_ID) ID = esd->ESID;
+			u32 ID = mo->OD_ID;
+			if (ID==GF_MEDIA_EXTERNAL_ID) ID = pid_id;
 			frag++;
 			frag_id = atoi(frag);
 			if (ID!=frag_id) continue;
 		}
-#endif
+
 		the_mo = mo;
 		odm = mo->odm;
 		pid_odid = odm->ID = mo->OD_ID;
@@ -399,7 +350,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 	//we insert right away the PID as a new object if the scene is dynamic
 	//if the scene is not dynamic, we wait for the corresponding OD update
-	//FILTER_FIXME: needs rework to enable attaching subtitle to a non-dynamic scene
 	//otherwise if subscene, this is an IOD
 	if (odm->subscene || (odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->ID, odm->mo));
@@ -588,25 +538,4 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 
 	/*OK connect*/
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
-}
-
-
-GF_EXPORT
-Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check)
-{
-#ifdef FILTER_FIXME
-	GF_InputService *ifce;
-	GF_Err e;
-	char *sURL;
-	char *mime=NULL;
-	char *parent_url = NULL;
-	if (use_parent_url && term->root_scene) parent_url = term->root_scene->root_od->net_service->url;
-
-	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e, NULL, &mime);
-	if (!ifce) return 0;
-	gf_modules_close_interface((GF_BaseInterface *) ifce);
-	gf_free(sURL);
-	if (mime) gf_free(mime);
-#endif
-	return 1;
 }
