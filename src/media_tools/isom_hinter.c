@@ -1211,9 +1211,11 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 					buf64[size64] = 0;
 					sprintf(sdpLine, "data:application/mpeg4-od-au;base64,%s", buf64);
 
-					esd->decoderConfig->avgBitrate = 0;
-					esd->decoderConfig->bufferSizeDB = samp->dataLength;
-					esd->decoderConfig->maxBitrate = 0;
+					if (esd->decoderConfig) {
+						esd->decoderConfig->avgBitrate = 0;
+						esd->decoderConfig->bufferSizeDB = samp->dataLength;
+						esd->decoderConfig->maxBitrate = 0;
+					}
 					size64 = (u32) strlen(sdpLine)+1;
 					esd->URLString = (char*)gf_malloc(sizeof(char) * size64);
 					strcpy(esd->URLString, sdpLine);
@@ -1246,9 +1248,11 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 				buf64[size64] = 0;
 				sprintf(sdpLine, "data:application/mpeg4-bifs-au;base64,%s", buf64);
 
-				esd->decoderConfig->avgBitrate = 0;
-				esd->decoderConfig->bufferSizeDB = samp->dataLength;
-				esd->decoderConfig->maxBitrate = 0;
+				if (esd->decoderConfig) {
+					esd->decoderConfig->avgBitrate = 0;
+					esd->decoderConfig->bufferSizeDB = samp->dataLength;
+					esd->decoderConfig->maxBitrate = 0;
+				}
 				esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));
 				strcpy(esd->URLString, sdpLine);
 			} else {
@@ -1268,12 +1272,14 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				esd = gf_isom_get_esd(file, i+1, 1);
 				if (!esd) continue;
-				if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
-					if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) has_i_v ++;
-					else has_v++;
-				} else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
-					if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) has_i_a ++;
-					else has_a++;
+				if (esd->decoderConfig) {
+					if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
+						if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) has_i_v ++;
+						else has_v++;
+					} else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
+						if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) has_i_a ++;
+						else has_a++;
+					}
 				}
 				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
