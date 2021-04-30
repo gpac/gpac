@@ -1006,7 +1006,7 @@ GF_FilterRegister FFAVFilterRegister = {
 		"- name#com_name=value: sends command `com_name` with value `value` to filter named `name`\n"
 		"\n"
 	)
-	.flags =  GF_FS_REG_META | GF_FS_REG_EXPLICIT_ONLY,
+	.flags =  GF_FS_REG_META | GF_FS_REG_EXPLICIT_ONLY | GF_FS_REG_ALLOW_CYCLIC,
 	.private_size = sizeof(GF_FFAVFilterCtx),
 	SETCAPS(FFAVFilterCaps),
 	.initialize = ffavf_initialize,

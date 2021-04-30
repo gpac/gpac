@@ -453,6 +453,7 @@ GF_FilterRegister ResamplerRegister = {
 	.initialize = resample_initialize,
 	.finalize = resample_finalize,
 	.args = ResamplerArgs,
+	.flags = GF_FS_REG_ALLOW_CYCLIC,
 	SETCAPS(ResamplerCaps),
 	.configure_pid = resample_configure_pid,
 	.process = resample_process,
