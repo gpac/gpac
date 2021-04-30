@@ -1108,7 +1108,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		esd = gf_media_map_esd(dumper->file, track_num, 0);
 		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			if (esd->decoderConfig->objectTypeIndication<GF_CODECID_LAST_MPEG4_MAPPING) {
 				codec_id = gf_codecid_from_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 #ifndef GPAC_DISABLE_AV_PARSERS
