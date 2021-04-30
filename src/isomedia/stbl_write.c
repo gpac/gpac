@@ -37,11 +37,20 @@ gf_realloc low, which greatly impacts performances for large files*/
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+
+#define CHECK_PACK(_e) \
+	if (!nb_pack) nb_pack = 1; \
+	else if ((s32) nb_pack < 0) { \
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Too many samples %u in packed sample\n", nb_pack)); \
+		return _e; \
+	}
+
+
 //adds a DTS in the table and get the sample number of this new sample
 //we could return an error if a sample with the same DTS already exists
 //but this is not true for QT or MJ2K, only for MP4...
 //we assume the authoring tool tries to create a compliant MP4 file.
-GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration, u32 nb_packed_samples)
+GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 LastAUDefDuration, u32 nb_pack)
 {
 	u32 i, j, sampNum;
 	u64 *DTSs, curDTS;
@@ -54,8 +63,9 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 	stts->r_FirstSampleInEntry = 0;
 
 	*sampleNumber = 0;
-	if (!nb_packed_samples)
-		nb_packed_samples=1;
+
+	CHECK_PACK(GF_BAD_PARAM)
+
 
 	//if we don't have an entry, that's the first one...
 	if (!stts->nb_entries) {
@@ -65,10 +75,10 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		stts->nb_entries = 1;
 		stts->entries = gf_malloc(sizeof(GF_SttsEntry));
 		if (!stts->entries) return GF_OUT_OF_MEM;
-		stts->entries[0].sampleCount = nb_packed_samples;
-		stts->entries[0].sampleDelta = (nb_packed_samples>1) ? 0 : LastAUDefDuration;
+		stts->entries[0].sampleCount = nb_pack;
+		stts->entries[0].sampleDelta = (nb_pack>1) ? 0 : LastAUDefDuration;
 		(*sampleNumber) = 1;
-		stts->w_currentSampleNum = nb_packed_samples;
+		stts->w_currentSampleNum = nb_pack;
 		return GF_OK;
 	}
 	//check the last DTS - we allow 0-duration samples (same DTS)
@@ -83,12 +93,12 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		if ((DTS == stts->w_LastDTS + ent->sampleDelta)
 			//for raw audio, consider (dts==last_dts) and (dts==last_dts+2*delta) as sample append to cope with
 			//timescale vs samplerate precision
-			|| ((nb_packed_samples>1) && ((DTS == stts->w_LastDTS) || (DTS == stts->w_LastDTS + 2*ent->sampleDelta) ))
+			|| ((nb_pack>1) && ((DTS == stts->w_LastDTS) || (DTS == stts->w_LastDTS + 2*ent->sampleDelta) ))
 		) {
 			(*sampleNumber) = stts->w_currentSampleNum + 1;
-			ent->sampleCount += nb_packed_samples;
-			stts->w_currentSampleNum += nb_packed_samples;
-			stts->w_LastDTS = DTS + ent->sampleDelta * (nb_packed_samples-1);
+			ent->sampleCount += nb_pack;
+			stts->w_currentSampleNum += nb_pack;
+			stts->w_LastDTS = DTS + ent->sampleDelta * (nb_pack-1);
 			return GF_OK;
 		}
 		//we need to split the entry
@@ -118,7 +128,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		//we definitely need to split the entry ;)
 		ent->sampleCount --;
 
-		if (nb_packed_samples>1)
+		if (nb_pack>1)
 			nb_extra = 1;
 
 		if (stts->alloc_size <= stts->nb_entries + nb_extra) {
@@ -134,7 +144,7 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		ent = &stts->entries[stts->nb_entries];
 		stts->nb_entries++;
 
-		if (nb_packed_samples==1) {
+		if (nb_pack==1) {
 			ent->sampleCount = 2;
 			ent->sampleDelta = (u32) (DTS - stts->w_LastDTS);
 			stts->w_LastDTS = DTS;
@@ -149,11 +159,11 @@ GF_Err stbl_AddDTS(GF_SampleTableBox *stbl, u64 DTS, u32 *sampleNumber, u32 Last
 		ent = &stts->entries[stts->nb_entries];
 		stts->nb_entries++;
 
-		ent->sampleCount = nb_packed_samples;
+		ent->sampleCount = nb_pack;
 		ent->sampleDelta = nb_extra;
 		stts->w_LastDTS = DTS;
 		(*sampleNumber) = stts->w_currentSampleNum + 1;
-		stts->w_currentSampleNum += nb_packed_samples;
+		stts->w_currentSampleNum += nb_pack;
 		return GF_OK;
 	}
 
@@ -393,7 +403,7 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 }
 
 //add size
-GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_pack_samples)
+GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_pack)
 {
 	u32 i, k;
 	u32 *newSizes;
@@ -401,24 +411,26 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_p
 
 	if (sampleNumber > stsz->sampleCount + 1) return GF_BAD_PARAM;
 
-	if (!nb_pack_samples) nb_pack_samples = 1;
-	else if (nb_pack_samples>1)
-		size /= nb_pack_samples;
+	CHECK_PACK(GF_BAD_PARAM)
+
+	if (nb_pack>1)
+		size /= nb_pack;
+
 
 	//all samples have the same size
 	if (stsz->sizes == NULL) {
 		//1 first sample added in NON COMPACT MODE
 		if (! stsz->sampleCount && (stsz->type != GF_ISOM_BOX_TYPE_STZ2) ) {
-			stsz->sampleCount = nb_pack_samples;
+			stsz->sampleCount = nb_pack;
 			stsz->sampleSize = size;
 			return GF_OK;
 		}
 		//2- sample has the same size
 		if (stsz->sampleSize == size) {
-			stsz->sampleCount += nb_pack_samples;
+			stsz->sampleCount += nb_pack;
 			return GF_OK;
 		}
-		if (nb_pack_samples>1) {
+		if (nb_pack>1) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Inserting packed samples with different sizes is not yet supported\n" ));
 			return GF_NOT_SUPPORTED;
 		}
@@ -698,7 +710,7 @@ GF_Err stbl_AddShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber, u32 shadowNumber
 }
 
 //used in edit/write, where sampleNumber == chunkNumber
-GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIndex, u64 offset, u32 nb_pack_samples)
+GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIndex, u64 offset, u32 nb_pack)
 {
 	GF_SampleTableBox *stbl;
 	GF_ChunkOffsetBox *stco;
@@ -713,8 +725,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	stsc = stbl->SampleToChunk;
 
 //	if (stsc->w_lastSampleNumber + 1 < sampleNumber ) return GF_BAD_PARAM;
-	if (!nb_pack_samples)
-		nb_pack_samples = 1;
+	CHECK_PACK(GF_BAD_PARAM)
 
 	if (!stsc->nb_entries || (stsc->nb_entries + 2 >= stsc->alloc_size)) {
 		if (!stsc->alloc_size) stsc->alloc_size = 1;
@@ -730,7 +741,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 		if (stsc->nb_entries) stsc->entries[stsc->nb_entries-1].nextChunk = stsc->w_lastChunkNumber;
 
 		new_chunk_idx = stsc->w_lastChunkNumber;
-		stsc->w_lastSampleNumber = sampleNumber + nb_pack_samples-1;
+		stsc->w_lastSampleNumber = sampleNumber + nb_pack-1;
 		stsc->nb_entries += 1;
 	} else {
 		u32 cur_samp = 1;
@@ -785,11 +796,11 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	}
 	ent->isEdited = (Media_IsSelfContained(mdia, StreamDescIndex)) ? 1 : 0;
 	ent->sampleDescriptionIndex = StreamDescIndex;
-	ent->samplesPerChunk = nb_pack_samples;
+	ent->samplesPerChunk = nb_pack;
 	ent->nextChunk = ent->firstChunk+1;
 
 	//OK, now if we've inserted a chunk, update the sample to chunk info...
-	if (sampleNumber + nb_pack_samples - 1 == stsc->w_lastSampleNumber) {
+	if (sampleNumber + nb_pack - 1 == stsc->w_lastSampleNumber) {
 		if (stsc->nb_entries)
 			stsc->entries[stsc->nb_entries-1].nextChunk = ent->firstChunk;
 
@@ -1596,7 +1607,8 @@ GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack)
 {
 	GF_TimeToSampleBox *stts = stbl->TimeToSample;
 
-	if (!nb_pack) nb_pack = 1;
+	CHECK_PACK(GF_ISOM_INVALID_FILE)
+
 	if (stts->nb_entries) {
 		if (stts->entries[stts->nb_entries-1].sampleDelta == duration) {
 			stts->entries[stts->nb_entries-1].sampleCount += nb_pack;
@@ -1619,7 +1631,7 @@ GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack)
 GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 {
 	u32 i;
-	if (!nb_pack) nb_pack = 1;
+	CHECK_PACK(GF_ISOM_INVALID_FILE)
 
 	if (!stbl->SampleSize->sampleCount) {
 		stbl->SampleSize->sampleSize = size;
@@ -1630,11 +1642,13 @@ GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 		stbl->SampleSize->sampleCount += nb_pack;
 		return GF_OK;
 	}
+
 	if (!stbl->SampleSize->sizes || (stbl->SampleSize->sampleCount+nb_pack > stbl->SampleSize->alloc_size)) {
 		Bool init_table = (stbl->SampleSize->sizes==NULL) ? 1 : 0;
 		ALLOC_INC(stbl->SampleSize->alloc_size);
-		if (stbl->SampleSize->sampleCount+nb_pack > stbl->SampleSize->alloc_size)
+		if (stbl->SampleSize->sampleCount+nb_pack > stbl->SampleSize->alloc_size) {
 			stbl->SampleSize->alloc_size = stbl->SampleSize->sampleCount+nb_pack;
+		}
 
 		stbl->SampleSize->sizes = (u32 *)gf_realloc(stbl->SampleSize->sizes, sizeof(u32)*stbl->SampleSize->alloc_size);
 		if (!stbl->SampleSize->sizes) return GF_OUT_OF_MEM;
