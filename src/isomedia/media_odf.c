@@ -131,8 +131,9 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				//then rewrite the ESDesc
 				j=0;
 				while ((ref = (GF_ES_ID_Ref*)gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))) {
+					if (!mpod->trackIDs || !ref->trackRef || (ref->trackRef>mpod->trackIDCount)) continue;
 					//if the ref index is not valid, skip this desc...
-					if (!mpod->trackIDs || gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
+					if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 					//OK, get the esd
 					e = GetESDForTime(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1], sample->DTS, &esd);
 					if (!e) e = gf_odf_desc_add_desc((GF_Descriptor *) od, (GF_Descriptor *) esd);
@@ -160,6 +161,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdU2->ODID = esdU->ODID;
 			i=0;
 			while ((ref = (GF_ES_ID_Ref*)gf_list_enum(esdU->ESDescriptors, &i))) {
+				if (!mpod->trackIDs || !ref->trackRef || (ref->trackRef>mpod->trackIDCount)) continue;
 				//if the ref index is not valid, skip this desc...
 				if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 				//OK, get the esd
@@ -187,6 +189,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			skipped = 0;
 			//get the ES_ID in the mpod indicated in the ES_ID[]
 			for (i = 0; i < esdR->NbESDs; i++) {
+				if (!mpod->trackIDs || !esdR->ES_ID[i] || (esdR->ES_ID[i]>mpod->trackIDCount)) continue;
 				//if the ref index is not valid, remove this desc...
 				if (gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[esdR->ES_ID[i] - 1]) == NULL) {
 					skipped ++;
