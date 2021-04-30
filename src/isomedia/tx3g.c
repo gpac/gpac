@@ -83,7 +83,7 @@ GF_Err gf_isom_get_text_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	if (qt_txt) {
 		(*out_desc)->back_color = rgb_48_to_32(qt_txt->background_color);
 		(*out_desc)->default_pos = qt_txt->default_box;
-		(*out_desc)->default_style.style_flags = qt_txt->fontFace;
+		(*out_desc)->default_style.style_flags = 0; //todo, expose qt_txt->fontFace;
 		(*out_desc)->default_style.text_color = rgb_48_to_32(qt_txt->foreground_color);
 		(*out_desc)->displayFlags = qt_txt->displayFlags;
 		(*out_desc)->vert_justif = -1;
@@ -760,7 +760,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *_a, GF_BitStream *bs, u32 
 		gpp_write_rgba(bs, rgb_48_to_32(qt->background_color) );
 		gpp_write_box(bs, &qt->default_box);
 		sr.text_color = rgb_48_to_32(qt->foreground_color);
-		sr.style_flags = qt->fontFace;
+		sr.style_flags = 0; //todo expose qt->fontFace;
 		gpp_write_style(bs, &sr);
 	} else {
 		gf_bs_write_u8(bs, ttxt->horizontal_justification);

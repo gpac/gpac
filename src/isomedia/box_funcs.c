@@ -91,7 +91,7 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size, restore_type;
-	u64 size, start, comp_start, payload_start, end;
+	u64 size, start, comp_start, end;
 	char uuid[16];
 	GF_Err e;
 	GF_BitStream *uncomp_bs = NULL;
@@ -247,8 +247,6 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (!newBox->type) newBox->type = type;
 	if (restore_type)
 		newBox->type = restore_type;
-
-	payload_start = gf_bs_get_position(bs);
 
 	end = gf_bs_available(bs);
 	if (size - hdr_size > end ) {
