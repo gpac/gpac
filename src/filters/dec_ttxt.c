@@ -255,6 +255,9 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 			ctx->cfg = NULL;
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		if (!sd->default_style.text_color)
+			sd->default_style.text_color = 0xFFFFFFFF;
+
 		gf_list_add(ctx->cfg->sample_descriptions, sd);
 		ctx->is_tx3g = GF_TRUE;
 	}
@@ -514,6 +517,16 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 		fontSize = tsd->default_style.font_size;
 		styleFlags = tsd->default_style.style_flags;
 		color = tsd->default_style.text_color;
+		if (!color && !tsd->back_color)
+			color = 0xFFFFFFFF;
+		if (!fontSize) {
+			if (ctx->cfg->text_height > 2000)
+				fontSize = 80;
+			if (ctx->cfg->text_height > 700)
+				fontSize = 40;
+			else
+				fontSize = 20;
+		}
 	} else {
 		fontName = ttd_find_font(tsd, tc->srec->fontID);
 		fontSize = tc->srec->font_size;
