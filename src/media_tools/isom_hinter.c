@@ -1233,7 +1233,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 		esd = gf_isom_get_esd(file, sceneT, 1);
 		if (gf_isom_get_sample_count(file, sceneT)==1) {
 			samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);
-			if (gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {
+			if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {
 
 				slc.timeScale = slc.timestampResolution = gf_isom_get_media_timescale(file, sceneT);
 				slc.OCRResolution = 1000;
