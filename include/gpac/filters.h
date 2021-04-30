@@ -1993,6 +1993,9 @@ typedef enum
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
 	/*! Indicates the filter requires graph resolver (typically because it creates new destinations/sinks at run time)*/
 	GF_FS_REG_REQUIRES_RESOLVER = 1<<11,
+	/*! Indicates the filter can connect to another instance of the same class (avoids cyclic detection in linker graph)
+	Filters of the same class can only connect directly to each other if the destination filter is explictly loaded */
+	GF_FS_REG_ALLOW_CYCLIC = 1<<12,
 
 
 	/*! flag dynamically set at runtime for custom filters*/

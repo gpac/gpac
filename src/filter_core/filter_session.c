@@ -3007,7 +3007,10 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 		count = gf_list_count(session->links);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegDesc *src = gf_list_get(session->links, i);
-			if (!strcmp(src->freg->name, filter_name)) continue;
+			if (!strcmp(src->freg->name, filter_name)) {
+				if (!(src->freg->flags & GF_FS_REG_EXPLICIT_ONLY) || !(src->freg->flags & GF_FS_REG_ALLOW_CYCLIC))
+					continue;
+			}
 
 			for (j=0; j<src->nb_edges; j++) {
 				if (strcmp(src->edges[j].src_reg->freg->name, filter_name)) continue;

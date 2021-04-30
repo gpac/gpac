@@ -2519,6 +2519,73 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 	return 0;
 }
 
+static void gf_filter_reg_build_graph_single(GF_FilterRegDesc *reg_desc, const GF_FilterRegister *freg, GF_FilterRegDesc *a_reg, Bool freg_has_output, u32 nb_dst_caps, GF_CapsBundleStore *capstore, GF_Filter *dst_filter)
+{
+	u32 nb_src_caps, k, l;
+	u32 path_weight;
+
+	//check which cap of this filter matches our destination
+	nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
+	for (k=0; k<nb_src_caps; k++) {
+		for (l=0; l<nb_dst_caps; l++) {
+			s32 bundle_idx;
+
+			if (gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
+				u32 loaded_filter_only_flags = 0;
+
+				path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
+
+				if (path_weight && (bundle_idx == l)) {
+					GF_FilterRegEdge *edge;
+					if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
+						reg_desc->nb_alloc_edges += 10;
+						reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
+					}
+					assert(path_weight<0xFF);
+					assert(k<0xFFFF);
+					assert(l<0xFFFF);
+					edge = &reg_desc->edges[reg_desc->nb_edges];
+					memset(edge, 0, sizeof(GF_FilterRegEdge));
+					edge->src_reg = a_reg;
+					edge->weight = (u8) path_weight;
+					edge->src_cap_idx = (u16) k;
+					edge->dst_cap_idx = (u16) l;
+
+					//we inverted the caps, invert the flags
+					if (loaded_filter_only_flags & EDGE_LOADED_SOURCE_ONLY)
+						edge->loaded_filter_only |= EDGE_LOADED_DEST_ONLY;
+					if (loaded_filter_only_flags & EDGE_LOADED_DEST_ONLY)
+						edge->loaded_filter_only |= EDGE_LOADED_SOURCE_ONLY;
+					edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
+					reg_desc->nb_edges++;
+				}
+			}
+
+			if ( freg_has_output ) {
+				u32 loaded_filter_only_flags = 0;
+
+				path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
+
+				if (path_weight && (bundle_idx == k)) {
+					GF_FilterRegEdge *edge;
+					if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
+						a_reg->nb_alloc_edges += 10;
+						a_reg->edges = gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
+					}
+					edge = &a_reg->edges[a_reg->nb_edges];
+					edge->src_reg = reg_desc;
+					edge->weight = (u8) path_weight;
+					edge->src_cap_idx = (u16) l;
+					edge->dst_cap_idx = (u16) k;
+					edge->priority = 0;
+					edge->loaded_filter_only = loaded_filter_only_flags;
+					edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
+					a_reg->nb_edges++;
+				}
+			}
+		}
+	}
+}
 
 static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_FilterRegister *freg, GF_CapsBundleStore *capstore, GF_FilterPid *src_pid, GF_Filter *dst_filter)
 {
@@ -2549,72 +2616,14 @@ static GF_FilterRegDesc *gf_filter_reg_build_graph(GF_List *links, const GF_Filt
 	//setup all connections
 	nb_regs = gf_list_count(links);
 	for (i=0; i<nb_regs; i++) {
-		u32 nb_src_caps, k, l;
-		u32 path_weight;
 		GF_FilterRegDesc *a_reg = gf_list_get(links, i);
 		if (a_reg->freg == freg) continue;
 
-		//check which cap of this filter matches our destination
-		nb_src_caps = gf_filter_caps_bundle_count(a_reg->freg->caps, a_reg->freg->nb_caps);
-		for (k=0; k<nb_src_caps; k++) {
-			for (l=0; l<nb_dst_caps; l++) {
-				s32 bundle_idx;
+		gf_filter_reg_build_graph_single(reg_desc, freg, a_reg, freg_has_output, nb_dst_caps, capstore, dst_filter);
+	}
 
-				if (gf_filter_has_out_caps(a_reg->freg->caps, a_reg->freg->nb_caps)) {
-					u32 loaded_filter_only_flags = 0;
-
-					path_weight = gf_filter_caps_to_caps_match(a_reg->freg, k, (const GF_FilterRegister *) freg, dst_filter, &bundle_idx, l, &loaded_filter_only_flags, capstore);
-
-					if (path_weight && (bundle_idx == l)) {
-						GF_FilterRegEdge *edge;
-						if (reg_desc->nb_edges==reg_desc->nb_alloc_edges) {
-							reg_desc->nb_alloc_edges += 10;
-							reg_desc->edges = gf_realloc(reg_desc->edges, sizeof(GF_FilterRegEdge) * reg_desc->nb_alloc_edges);
-						}
-						assert(path_weight<0xFF);
-						assert(k<0xFFFF);
-						assert(l<0xFFFF);
-						edge = &reg_desc->edges[reg_desc->nb_edges];
-						memset(edge, 0, sizeof(GF_FilterRegEdge));
-						edge->src_reg = a_reg;
-						edge->weight = (u8) path_weight;
-						edge->src_cap_idx = (u16) k;
-						edge->dst_cap_idx = (u16) l;
-
-						//we inverted the caps, invert the flags
-						if (loaded_filter_only_flags & EDGE_LOADED_SOURCE_ONLY)
-							edge->loaded_filter_only |= EDGE_LOADED_DEST_ONLY;
-						if (loaded_filter_only_flags & EDGE_LOADED_DEST_ONLY)
-							edge->loaded_filter_only |= EDGE_LOADED_SOURCE_ONLY;
-					 	edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
-						reg_desc->nb_edges++;
-					}
-				}
-
-				if ( freg_has_output ) {
-					u32 loaded_filter_only_flags = 0;
-
-					path_weight = gf_filter_caps_to_caps_match(freg, l, a_reg->freg, dst_filter, &bundle_idx, k, &loaded_filter_only_flags, capstore);
-
-					if (path_weight && (bundle_idx == k)) {
-						GF_FilterRegEdge *edge;
-						if (a_reg->nb_edges==a_reg->nb_alloc_edges) {
-							a_reg->nb_alloc_edges += 10;
-							a_reg->edges = gf_realloc(a_reg->edges, sizeof(GF_FilterRegEdge) * a_reg->nb_alloc_edges);
-						}
-						edge = &a_reg->edges[a_reg->nb_edges];
-						edge->src_reg = reg_desc;
-						edge->weight = (u8) path_weight;
-						edge->src_cap_idx = (u16) l;
-						edge->dst_cap_idx = (u16) k;
-						edge->priority = 0;
-						edge->loaded_filter_only = loaded_filter_only_flags;
-					 	edge->src_stream_type = gf_filter_reg_get_bundle_stream_type(edge->src_reg->freg, edge->src_cap_idx, GF_TRUE);
-						a_reg->nb_edges++;
-					}
-				}
-			}
-		}
+	if (!dst_filter && (freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
+		gf_filter_reg_build_graph_single(reg_desc, freg, reg_desc, freg_has_output, nb_dst_caps, capstore, NULL);
 	}
 	return reg_desc;
 }
@@ -3906,9 +3915,17 @@ single_retry:
 		if (filter_dst->finalized || filter_dst->removed || filter_dst->disabled || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
 		if (filter_dst->target_filter == pid->filter) continue;
 
-		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
+		//handle re-entrant filter registries (eg filter foo of type A output usually cannot connect to filter bar of type A)
 		if (pid->pid->filter->freg == filter_dst->freg) {
-			continue;
+			//only allowed for:
+			if (
+				// explicitly loaded filters
+				filter->dynamic_filter
+				//if cyclic explictly allowed by filter registry or if script or custom filter
+				|| !(filter_dst->freg->flags & (GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))
+			) {
+				continue;
+			}
 		}
 		//we already linked to this one
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
@@ -4301,7 +4318,9 @@ single_retry:
 			gf_list_add(loaded_filters, new_f);
 		}
 
-		assert(pid->pid->filter->freg != filter_dst->freg);
+		if (!(filter_dst->freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
+			assert(pid->pid->filter->freg != filter_dst->freg);
+		}
 
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_list_add(filter_dst->temp_input_pids, pid);
@@ -4469,7 +4488,9 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 {
 	assert(pid->pid);
 	assert(pid->filter != filter);
-	assert(pid->filter->freg != filter->freg);
+	if (!(filter->freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
+		assert(pid->filter->freg != filter->freg);
+	}
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);

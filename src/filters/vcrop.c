@@ -612,7 +612,7 @@ GF_FilterRegister VCropRegister = {
 	GF_FS_SET_DESCRIPTION("Video crop")
 	GF_FS_SET_HELP("This filter is used to crop raw video data.")
 	.private_size = sizeof(GF_VCropCtx),
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
+	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
 	.args = VCropArgs,
 	.configure_pid = vcrop_configure_pid,
 	SETCAPS(VCropCaps),

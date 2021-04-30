@@ -127,7 +127,6 @@ Please use [github](https://github.com/gpac/gpac/issues) for feature requests an
 
 ## V1.1.0
 Targets:
-- [ ] add kvazaar/other encoders support?
 - [ ] improve remotery support
 - [x] more JS filters
 - [x] Python bindings for libgpac

@@ -492,7 +492,7 @@ GF_FilterRegister VFlipRegister = {
 		GF_FS_SET_DESCRIPTION("Video flip")
 		GF_FS_SET_HELP("Filter used to flip video frames vertically, horizontally, in both directions or no flip")
 		.private_size = sizeof(GF_VFlipCtx),
-		.flags = GF_FS_REG_EXPLICIT_ONLY,
+		.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
 		.args = VFlipArgs,
 		.configure_pid = vflip_configure_pid,
 		SETCAPS(VFlipCaps),

@@ -2488,6 +2488,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
 				gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
 			}
+			if (reg->flags & GF_FS_REG_ALLOW_CYCLIC) {
+				gf_sys_format_help(helpout, help_flags, "Filters of this class can connect to each-other.\n");
+			}
 		}
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_name);
@@ -2547,6 +2550,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " ConfigureMainThread");
 		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) gf_sys_format_help(helpout, help_flags, " HideWeight");
 		if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) gf_sys_format_help(helpout, help_flags, " RequireResolver");
+		if (reg->flags & GF_FS_REG_ALLOW_CYCLIC) gf_sys_format_help(helpout, help_flags, " CyclicAllowed");
 		if (reg->flags & GF_FS_REG_DYNLIB) gf_sys_format_help(helpout, help_flags, " DynamicLib");
 		if (reg->probe_url) gf_sys_format_help(helpout, help_flags, " URLMimeProber");
 		if (reg->probe_data) gf_sys_format_help(helpout, help_flags, " DataProber");
