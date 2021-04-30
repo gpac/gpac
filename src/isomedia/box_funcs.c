@@ -250,8 +250,6 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	payload_start = gf_bs_get_position(bs);
 
-retry_unknown_box:
-
 	end = gf_bs_available(bs);
 	if (size - hdr_size > end ) {
 		newBox->size = size - hdr_size - end;
@@ -305,14 +303,6 @@ retry_unknown_box:
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
 
-		if (parent_type==GF_ISOM_BOX_TYPE_STSD) {
-			newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
-			if (!newBox) return GF_OUT_OF_MEM;
-			((GF_UnknownBox *)newBox)->original_4cc = type;
-			newBox->size = size;
-			gf_bs_seek(bs, payload_start);
-			goto retry_unknown_box;
-		}
 		if (!skip_logs) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" (start "LLU") failed (%s) - skipping\n", gf_4cc_to_str(type), start, gf_error_to_string(e)));
 		}
