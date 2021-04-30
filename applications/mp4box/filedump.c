@@ -2880,23 +2880,27 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "\tAOM AV1 stream - Resolution %d x %d\n", w, h);
 
 		av1c = gf_isom_av1_config_get(file, trackNum, 1);
-		fprintf(stderr, "\tversion=%u, profile=%u, level_idx0=%u, tier=%u\n", (u32)av1c->version, (u32)av1c->seq_profile, (u32)av1c->seq_level_idx_0, (u32)av1c->seq_tier_0);
-		fprintf(stderr, "\thigh_bitdepth=%u, twelve_bit=%u, monochrome=%u\n", (u32)av1c->high_bitdepth, (u32)av1c->twelve_bit, (u32)av1c->monochrome);
-		fprintf(stderr, "\tchroma: subsampling_x=%u, subsampling_y=%u, sample_position=%u\n", (u32)av1c->chroma_subsampling_x, (u32)av1c->chroma_subsampling_y, (u32)av1c->chroma_sample_position);
+		if (!av1c) {
+			fprintf(stderr, "\tCorrupted av1 config\n");
+		} else {
+			fprintf(stderr, "\tversion=%u, profile=%u, level_idx0=%u, tier=%u\n", (u32)av1c->version, (u32)av1c->seq_profile, (u32)av1c->seq_level_idx_0, (u32)av1c->seq_tier_0);
+			fprintf(stderr, "\thigh_bitdepth=%u, twelve_bit=%u, monochrome=%u\n", (u32)av1c->high_bitdepth, (u32)av1c->twelve_bit, (u32)av1c->monochrome);
+			fprintf(stderr, "\tchroma: subsampling_x=%u, subsampling_y=%u, sample_position=%u\n", (u32)av1c->chroma_subsampling_x, (u32)av1c->chroma_subsampling_y, (u32)av1c->chroma_sample_position);
 
-		if (av1c->initial_presentation_delay_present)
-			fprintf(stderr, "\tInitial presentation delay %u\n", (u32) av1c->initial_presentation_delay_minus_one+1);
+			if (av1c->initial_presentation_delay_present)
+				fprintf(stderr, "\tInitial presentation delay %u\n", (u32) av1c->initial_presentation_delay_minus_one+1);
 
-		count = gf_list_count(av1c->obu_array);
-		for (i=0; i<count; i++) {
-			u8 hash[20];
-			GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
-			gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
-			fprintf(stderr, "\tOBU#%d %s hash: ", i+1, gf_av1_get_obu_name(obu->obu_type) );
-			for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
-			fprintf(stderr, "\n");
+			count = gf_list_count(av1c->obu_array);
+			for (i=0; i<count; i++) {
+				u8 hash[20];
+				GF_AV1_OBUArrayEntry *obu = gf_list_get(av1c->obu_array, i);
+				gf_sha1_csum((u8*)obu->obu, (u32)obu->obu_length, hash);
+				fprintf(stderr, "\tOBU#%d %s hash: ", i+1, gf_av1_get_obu_name(obu->obu_type) );
+				for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
+				fprintf(stderr, "\n");
+			}
+			gf_odf_av1_cfg_del(av1c);
 		}
-		gf_odf_av1_cfg_del(av1c);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_H263) {
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
