@@ -1895,12 +1895,18 @@ void print_udta(GF_ISOFile *file, u32 track_number, Bool has_itags)
 			u32 udta_size;
 			gf_isom_get_user_data(file, track_number, type, uuid, j+1, &udta, &udta_size);
 			if (!udta) continue;
-			if (gf_utf8_is_legal(udta, udta_size)) {
+			if (udta_size && gf_utf8_is_legal(udta, udta_size)) {
+				u32 idx;
 				if (first) {
 					fprintf(stderr, "\n");
 					first = GF_FALSE;
 				}
-				fprintf(stderr, "\t%s\n", (char *) udta);
+				fprintf(stderr, "\t");
+				for (idx=0; idx<udta_size; idx++) {
+					if (!udta[idx]) break;
+					fprintf(stderr, "%c", udta[idx]);
+				}
+				fprintf(stderr, "\n");
 			}
 			gf_free(udta);
 		}
