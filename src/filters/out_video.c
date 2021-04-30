@@ -1214,10 +1214,10 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 exit:
 
 	//we don't lock since most of the time overlay is not set
-	if (ctx->oldata.ptr) {
+	if (ctx->oldata.ptr && (ctx->olsize.x>0) && (ctx->olsize.y>0)) {
 		// overlay is set, lock filter to make sure the data is still valid
 		gf_filter_lock(ctx->filter, GF_TRUE);
-		if (ctx->oldata.ptr && (ctx->oldata.size <= 4 * ctx->olsize.x * ctx->olsize.y) ) {
+		if (ctx->oldata.ptr && ((s32) ctx->oldata.size <= 4 * ctx->olsize.x * ctx->olsize.y) ) {
 			if (!ctx->overlay_tx) {
 				glGenTextures(1, &ctx->overlay_tx);
 

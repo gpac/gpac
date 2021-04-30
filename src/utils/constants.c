@@ -174,7 +174,7 @@ GF_CodecID gf_codecid_parse(const char *cname)
 			char *sep = strchr(n, '|');
 			u32 len;
 			if (sep)
-				len = sep - n;
+				len = (u32) (sep - n);
 			else
 				len = (u32) strlen(n);
 
