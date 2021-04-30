@@ -2335,9 +2335,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_get_bytes_per_pixel) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_sname) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_from_qt_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_to_qt_type) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
