@@ -347,10 +347,16 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 	u16 pSize;
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 
-	ISOM_DECREASE_SIZE(ptr, 51);
-
+	ISOM_DECREASE_SIZE(ptr, 8);
 	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
 	if (e) return e;
+	//some weird text entries are not QT text nor 3gpp, cf issue #1030
+	if (!ptr->size) {
+		ptr->textJustification = 1;
+		return GF_OK;
+	}
+	ISOM_DECREASE_SIZE(ptr, 43);
+
 
 	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
 	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
@@ -472,6 +478,7 @@ GF_Err text_box_write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
+
 	gf_bs_write_u32(bs, ptr->displayFlags);			/*Display flags*/
 	gf_bs_write_u32(bs, ptr->textJustification);	/*Text justification*/
 	gf_bs_write_data(bs, ptr->background_color, 6);	/*Background color*/
@@ -503,8 +510,9 @@ GF_Err text_box_size(GF_Box *s)
 {
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 
+	s->size += 8;
 	/*base + this + string length*/
-	s->size += 51 + 1;
+	s->size += 43 + 1;
 	if (ptr->textName)
 		s->size += strlen(ptr->textName);
 	return GF_OK;
