@@ -1074,12 +1074,10 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 			scene = gf_scene_get_root_scene(obj->odm->parentscene ? obj->odm->parentscene : obj->odm->subscene);
 			while ( (sns = (GF_SceneNamespace*) gf_list_enum(scene->namespaces, &j) ) ) {
 				/*sub-service of an existing service - don't touch any fragment*/
-#ifdef FILTER_FIXME
-				if (gf_term_service_can_handle_url(sns, an_url->vals[i].url)) {
+				if (gf_filter_is_supported_source(scene->compositor->filter, an_url->vals[i].url, scene->root_od->scene_ns->url)) {
 					*keep_fragment = GF_TRUE;
 					return GF_FALSE;
 				}
-#endif
 			}
 		}
 	}
@@ -1346,9 +1344,7 @@ void gf_mo_set_flag(GF_MediaObject *mo, GF_MOUserFlags flag, Bool set_on)
 GF_EXPORT
 u32 gf_mo_has_audio(GF_MediaObject *mo)
 {
-#ifdef FILTER_FIXME
 	char *sub_url;
-#endif
 	u32 i;
 	GF_SceneNamespace *ns;
 	GF_Scene *scene;
@@ -1358,22 +1354,19 @@ u32 gf_mo_has_audio(GF_MediaObject *mo)
 
 	ns = mo->odm->scene_ns;
 	scene = mo->odm->parentscene;
-#ifdef FILTER_FIXME
 	sub_url = strchr(ns->url, '#');
-#endif
+
 	for (i=0; i<gf_list_count(scene->resources); i++) {
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
 		if (odm->scene_ns != ns) continue;
 		//object already associated
 		if (odm->mo) continue;
 
-#ifdef FILTER_FIXME
 		if (sub_url) {
 			char *ext = mo->URLs.count ? mo->URLs.vals[0].url : NULL;
 			if (ext) ext = strchr(ext, '#');
 			if (!ext || strcmp(sub_url, ext)) continue;
 		}
-#endif
 		/*we have one audio object not bound with the scene from the same service, let's use it*/
 		if (odm->type == GF_STREAM_AUDIO) return 1;
 	}

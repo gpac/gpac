@@ -1494,26 +1494,12 @@ int mp4client_main(int argc, char **argv)
 			strcpy(the_url, url_arg);
 		}
 		ext = strrchr(the_url, '.');
-		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+		//only local playlist - maybe we could remove and control through flist ?
+		if (ext && !strncmp("http", the_url, 4) && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			e = GF_OK;
 			fprintf(stderr, "Opening Playlist %s\n", the_url);
 
 			strcpy(pl_path, the_url);
-			/*this is not clean, we need to have a plugin handle playlist for ourselves*/
-			if (!strncmp("http:", the_url, 5)) {
-#ifdef FILTER_FIXME
-				GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-				if (sess) {
-					e = gf_dm_sess_process(sess);
-					if (!e) {
-						strncpy(the_url, gf_dm_sess_get_cache_name(sess), sizeof(the_url) - 1);
-						the_url[sizeof(the_url) - 1] = 0;
-					}
-					gf_dm_sess_del(sess);
-				}
-#endif
-			}
-
 			playlist = e ? NULL : gf_fopen(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {

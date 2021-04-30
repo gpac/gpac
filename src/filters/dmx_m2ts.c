@@ -370,18 +370,6 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	u32 i, count;
 
 	count = gf_list_count(prog->streams);
-#ifdef FILTER_FIXME
-	if (ctx->ts->tuner) {
-		Bool found = 0;
-		for (i=0; i<count; i++) {
-			GF_M2TS_PES *pes = gf_list_get(prog->streams, i);
-			if (pes->pid==ctx->ts->tuner->vpid) found = 1;
-			else if (pes->pid==ctx->ts->tuner->apid) found = 1;
-		}
-		if (!found) return;
-	}
-#endif
-
 	for (i=0; i<count; i++) {
 		GF_M2TS_PES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
@@ -574,7 +562,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	}
 }
 
-#ifdef FILTER_FIXME
+#if 0  //unused
 static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 {
 	assert(ctx->eit_pid == NULL);

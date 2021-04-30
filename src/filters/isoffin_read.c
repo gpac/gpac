@@ -202,7 +202,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		gf_isom_reset_fragment_info(read->mov, GF_TRUE);
 
 		if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
-#ifdef FILTER_FIXME
+
+		//no longer used in filters
+#if 0
 		if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
 #endif
 		e = gf_isom_open_segment(read->mov, next_url, read->start_range, read->end_range, flags);

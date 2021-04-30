@@ -1872,32 +1872,6 @@ void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
 
 #if FILTER_FIXME
 
-
-/*URI relocators are used for containers like zip or ISO FF with file items. The relocator
-is in charge of translating the URI, potentially extracting the associated resource and sending
-back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
-
-relocate a URI - if NULL is returned, this relocator is not concerned with the URI
-otherwise returns the translated URI
-*/
-
-#define GF_TERM_URI_RELOCATOR	\
-	Bool (*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char *out_relocated_uri, char *out_localized_uri);		\
-
-typedef struct __gf_uri_relocator GF_URIRelocator;
-
-struct __gf_uri_relocator
-{
-	GF_TERM_URI_RELOCATOR
-};
-
-typedef struct
-{
-	GF_TERM_URI_RELOCATOR
-	GF_Terminal *term;
-	char *szAbsRelocatedPath;
-} GF_TermLocales;
-
 #define	MAX_SHORTCUTS	200
 
 typedef struct
@@ -1906,17 +1880,6 @@ typedef struct
 	u8 mods;
 	u8 action;
 } GF_Shortcut;
-
-typedef struct
-{
-	void *udta;
-	/*called when an event should be filtered
-	*/
-	Bool (*on_event)(void *udta, GF_Event *evt, Bool consumed_by_compositor);
-} GF_TermEventFilter;
-
-GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
-GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);

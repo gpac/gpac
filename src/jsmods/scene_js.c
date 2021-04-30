@@ -994,7 +994,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	Bool ilced=GF_FALSE, disabled=GF_FALSE, selected=GF_FALSE, automatic=GF_FALSE;
 	Double fps=30.0;
 	s32 idx;
-#if 0 //FILTER_FIXME
+#ifdef FILTER_FIXME
 	s32 dep_idx=0;
 #endif
 
@@ -1003,7 +1003,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	if (JS_ToInt32(ctx, &idx, argv[0]))
 		return JS_EXCEPTION;
 
-#if 0 //FILTER_FIXME
+#ifdef FILTER_FIXME
 	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 #endif
 
@@ -1106,7 +1106,7 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	x = y = w = h = 0;
 	if (argc) {
-#if 0 //FILTER_FIXME
+#ifdef FILTER_FIXME
 	 	s32 dep_idx;
 	 	if (JS_ToInt32(ctx, &dep_idx, argv[0]) )
 	 		return JS_EXCEPTION;

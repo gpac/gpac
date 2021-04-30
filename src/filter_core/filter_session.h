@@ -139,6 +139,32 @@ typedef struct __gf_filter_pck_inst
 } GF_FilterPacketInstance;
 
 
+/*URI relocators are used for containers like zip or ISO FF with file items. The relocator
+is in charge of translating the URI, potentially extracting the associated resource and sending
+back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
+
+relocate a URI - if NULL is returned, this relocator is not concerned with the URI
+otherwise returns the translated URI
+*/
+
+#define GF_FS_URI_RELOCATOR	\
+	Bool (*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char *out_relocated_uri, char *out_localized_uri);		\
+
+typedef struct __gf_uri_relocator GF_URIRelocator;
+
+struct __gf_uri_relocator
+{
+	GF_FS_URI_RELOCATOR
+};
+
+typedef struct
+{
+	GF_FS_URI_RELOCATOR
+	GF_FilterSession *sess;
+	char *szAbsRelocatedPath;
+} GF_FSLocales;
+
+
 //packet flags
 enum
 {
@@ -303,6 +329,9 @@ enum
 	GF_FS_NOBLOCK
 };
 
+#define GF_FS_ENABLE_LOCALES
+
+
 struct __gf_filter_session
 {
 	u32 flags;
@@ -431,6 +460,11 @@ struct __gf_filter_session
 
 	gf_fs_on_filter_creation on_filter_create_destroy;
 	void *rt_udta;
+
+#ifdef GF_FS_ENABLE_LOCALES
+	GF_List *uri_relocators;
+	GF_FSLocales locales;
+#endif
 };
 
 #ifdef GPAC_HAS_QJS

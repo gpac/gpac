@@ -180,9 +180,8 @@ static Bool gf_scene_script_action(void *opaque, GF_JSAPIActionType type, GF_Nod
 	if (type==GF_JSAPI_OP_RESOLVE_URI) {
 		char *url;
 		char new_url[GF_MAX_PATH];
-#ifdef FILTER_FIXME
 		char localized_url[GF_MAX_PATH];
-#endif
+
 		Bool result=GF_FALSE;
 		GF_Scene *a_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
@@ -193,9 +192,8 @@ static Bool gf_scene_script_action(void *opaque, GF_JSAPIActionType type, GF_Nod
 		}
 
 		new_url[0]=0;
-#ifdef FILTER_FIXME
-		result = gf_term_relocate_url(term, url, a_scene->root_od->net_service->url, new_url, localized_url);
-#endif
+		result = gf_filter_relocate_url(a_scene->compositor->filter, url, a_scene->root_od->scene_ns->url, new_url, localized_url);
+
 		if (result) param->uri.url = gf_strdup(new_url);
 		else param->uri.url = gf_url_concatenate(a_scene->root_od->scene_ns->url, url);
 		return 1;
