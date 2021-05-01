@@ -2061,6 +2061,9 @@ struct _od_manager
 	u32 ID;
 	u32 pid_id; //esid for clock solving
 
+	//MPEG-4 OD descriptor
+	GF_ObjectDescriptor *OD;
+
 	//parent service ID as defined from input
 	u32 ServiceID;
 	Bool hybrid_layered_coded;

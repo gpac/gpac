@@ -329,7 +329,7 @@ enum
 	GF_FS_NOBLOCK
 };
 
-#define GF_FS_ENABLE_LOCALES
+//#define GF_FS_ENABLE_LOCALES
 
 
 struct __gf_filter_session

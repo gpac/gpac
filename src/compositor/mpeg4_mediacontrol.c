@@ -430,7 +430,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->current_seg = 0;
 
 		/*we shouldn't have to restart unless start/stop times have been changed, which is tested below*/
-		need_restart = 0;
+		need_restart = (stack->stream->odm->state==GF_ODM_STATE_PLAY) ? 1 : 0;
 	}
 
 	if ((stack->is_init && !stack->changed) || !stack->control->enabled || !stack->stream) return;
@@ -438,8 +438,10 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*if not previously enabled and now enabled, switch all other controls off and reactivate*/
 	if (!stack->enabled) {
+		Bool restart;
 		stack->enabled = 1;
-		need_restart = gf_odm_switch_mediacontrol(stack->stream->odm, stack);
+		restart = gf_odm_switch_mediacontrol(stack->stream->odm, stack);
+		if (restart) need_restart = 1;
 	}
 
 	stack->changed = 0;

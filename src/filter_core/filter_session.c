@@ -741,6 +741,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 #ifdef GF_FS_ENABLE_LOCALES
 	if (fsess->uri_relocators) gf_list_del(fsess->uri_relocators);
+	if (fsess->locales.szAbsRelocatedPath) gf_free(fsess->locales.szAbsRelocatedPath);
 #endif
 
 	gf_free(fsess);

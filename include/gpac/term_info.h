@@ -172,8 +172,7 @@ typedef struct
 	u32 nb_iraps;
 	s32 ntp_diff;
 
-	/*set if ISMACryp present on the object - will need refinement for IPMPX...
-	0: not protected - 1: protected and OK - 2: protected and DRM failed*/
+	/*4CC of original protection scheme used*/
 	u32 protection;
 
 	u32 lang;
