@@ -2596,7 +2596,7 @@ static void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f us %d max)\n\tTotal decoded frames %d\n",
 		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
-	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
+	if (odi.protection) fprintf(stderr, "Encrypted Media scheme %s\n", gf_4cc_to_str(odi.protection) );
 
 	fprintf(stderr, "\nStream ID %d - %s - Clock ID %d\n", odi.pid_id, gf_stream_type_name(odi.od_type), odi.ocr_id);
 //	if (esd->dependsOnESID) fprintf(stderr, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);

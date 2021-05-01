@@ -92,6 +92,20 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
+static void attach_desc_to_odm(GF_ObjectManager *odm, GF_ObjectDescriptor *od)
+{
+	if (odm->OD) {
+		gf_odf_desc_del((GF_Descriptor *)odm->OD);
+		odm->OD = NULL;
+	}
+	if (gf_list_count(od->OCIDescriptors)) {
+		char *url = od->URLString;
+		od->URLString = NULL;
+		gf_odf_desc_copy((GF_Descriptor *) od, (GF_Descriptor **) &odm->OD);
+		od->URLString = url;
+	}
+
+}
 void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 {
 	u32 i, j, count, nb_scene, nb_od, nb_esd;
@@ -104,6 +118,9 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm->parentscene = scene;
 		if (od->fake_remote)
 			odm->ignore_sys = GF_TRUE;
+
+		attach_desc_to_odm(odm, od);
+
 		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
@@ -164,6 +181,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm->scene_ns->nb_odm_users++;
 				gf_list_add(scene->resources, odm);
 			}
+			attach_desc_to_odm(odm, od);
+
 			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
 				gf_scene_setup_object(scene, odm);
 				gf_input_sensor_setup_object(odm, esd);
@@ -192,7 +211,12 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		}
 
 		odm->ID = od->objectDescriptorID;
+		if (odm->mo->OD_ID != odm->ID) {
+			odm->mo->OD_ID = odm->ID;
+
+		}
 		odm->ServiceID = od->ServiceID;
+		attach_desc_to_odm(odm, od);
 
 		/*setup PID for this object */
 		gf_odm_setup_object(odm, scene->root_od->scene_ns, pid);
@@ -229,7 +253,9 @@ static GF_Err ODS_RemoveOD(GF_Scene *scene, GF_ODRemove *odR)
 
 static GF_Err ODS_UpdateESD(GF_Scene *scene, GF_ESDUpdate *ESDs)
 {
-#if FILTER_FIXME
+	//no more support for ESD update in new arch (never used anyway)
+	//following is kept for the case we need to reintroduce it one day
+#if 0
 	GF_ObjectManager *odm;
 	u32 count, i;
 

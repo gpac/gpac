@@ -212,7 +212,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 {
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return GF_FALSE;
 
-	if (mo->config_changed) {
+	if (mo->config_changed || !mo->width || !mo->height) {
 		gf_mo_update_caps(mo);
 	}
 	if (width) *width = mo->width;
@@ -515,6 +515,8 @@ retry:
 					mediasensor_update_timing(mo->odm, GF_TRUE);
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					force_decode_mode=0;
+					if (!mo->pck)
+						goto retry;
 				}
 				break;
 			}
@@ -1072,11 +1074,13 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 			}
 
 			scene = gf_scene_get_root_scene(obj->odm->parentscene ? obj->odm->parentscene : obj->odm->subscene);
-			while ( (sns = (GF_SceneNamespace*) gf_list_enum(scene->namespaces, &j) ) ) {
-				/*sub-service of an existing service - don't touch any fragment*/
-				if (gf_filter_is_supported_source(scene->compositor->filter, an_url->vals[i].url, scene->root_od->scene_ns->url)) {
-					*keep_fragment = GF_TRUE;
-					return GF_FALSE;
+			if (scene->root_od->scene_ns && scene->root_od->scene_ns->url) {
+				while ( (sns = (GF_SceneNamespace*) gf_list_enum(scene->namespaces, &j) ) ) {
+					/*sub-service of an existing service - don't touch any fragment*/
+					if (gf_filter_is_supported_source(scene->compositor->filter, an_url->vals[i].url, scene->root_od->scene_ns->url)) {
+						*keep_fragment = GF_TRUE;
+						return GF_FALSE;
+					}
 				}
 			}
 		}

@@ -102,6 +102,10 @@ void gf_odm_del(GF_ObjectManager *odm)
 		}
 		gf_list_del(odm->extra_pids);
 	}
+
+	if (odm->OD)
+		gf_odf_desc_del((GF_Descriptor *)odm->OD);
+
 	gf_free(odm);
 }
 
@@ -429,16 +433,23 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		}
 
 		/*setup node decoder*/
-#if FILTER_FIXME
-		if (odm->mo && odm->codec && odm->codec->decio && (odm->codec->decio->InterfaceType==GF_NODE_DECODER_INTERFACE) ) {
-			GF_NodeDecoder *ndec = (GF_NodeDecoder *) odm->codec->decio;
-			GF_Node *n = gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0));
-			if (n) ndec->AttachNode(ndec, n);
+		if (odm->pid && (odm->type==GF_STREAM_SCENE)) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_SCENE_NODE);
+			if (p && p->value.boolean) {
+				GF_FilterEvent fevt;
+				void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
-			/*not clear in the spec how the streams attached to AFX are started - default to "right now"*/
-			gf_odm_start(odm);
+				GF_Node *n = gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0));
+				GF_FEVT_INIT(fevt, GF_FEVT_ATTACH_SCENE, odm->pid);
+				fevt.attach_scene.object_manager = odm;
+				fevt.attach_scene.node = n;
+				gf_filter_pid_exec_event(odm->pid, &fevt);
+
+				/*not clear in the spec how the streams attached to AFX are started - default to "right now"*/
+				gf_odm_start(odm);
+			}
 		}
-#endif
+
 		if (odm->pid && (odm->pid==for_pid)) {
 			evt.type = GF_EVENT_CONNECT;
 			evt.connect.is_connected = GF_TRUE;
@@ -1364,7 +1375,6 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName)
 {
-#if FILTER_FIXME
 	GF_Segment *desc;
 	u32 i = 0;
 	if (!odm->OD) return NULL;
@@ -1372,15 +1382,12 @@ GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName)
 		if (desc->tag != GF_ODF_SEGMENT_TAG) continue;
 		if (!stricmp(desc->SegmentName, descName)) return desc;
 	}
-#endif
 	return NULL;
 }
 
-#if FILTER_FIXME
 static void gf_odm_insert_segment(GF_ObjectManager *odm, GF_Segment *seg, GF_List *list)
 {
 	/*this reorders segments when inserting into list - I believe this is not compliant*/
-#if 0
 	GF_Segment *desc;
 	u32 i = 0;
 	while ((desc = gf_list_enum(list, &i))) {
@@ -1390,15 +1397,12 @@ static void gf_odm_insert_segment(GF_ObjectManager *odm, GF_Segment *seg, GF_Lis
 			return;
 		}
 	}
-#endif
 	gf_list_add(list, seg);
 }
-#endif
 
 /*add segment descriptor and sort them*/
 void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 {
-#if FILTER_FIXME
 	char *str, *sep;
 	char seg1[1024], seg2[1024], seg_url[4096];
 	GF_Segment *first_seg, *last_seg, *seg;
@@ -1447,7 +1451,6 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 			gf_odm_insert_segment(odm, seg, list);
 		}
 	}
-#endif
 }
 
 static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *pid, Bool *signal_eob)
@@ -1886,10 +1889,12 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 				info->buffer = (u32) gf_filter_pid_query_buffer_duration(pid, GF_FALSE) / 1000;
 			info->max_buffer = odm->buffer_max_ms;
 			info->min_buffer = odm->buffer_min_ms;
+		}
 
-#ifdef FILTER_FIXME
-			info->protection = ch->ipmp_tool ? 1 : 2;
-#endif
+		if (odm->pid) {
+			prop = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_ORIG_CRYPT_SCHEME);
+			if (prop)
+				info->protection = prop->value.uint;
 		}
 	}
 

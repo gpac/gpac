@@ -690,10 +690,11 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 
 			if ((discard_obj==1) && !obj->num_open) {
 				gf_list_rem(scene->scene_objects, i-1);
+				i--;
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				gf_mo_del(obj);
 			}
-			return;
+//			return;
 		}
 	}
 }

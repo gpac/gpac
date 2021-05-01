@@ -1149,6 +1149,9 @@ enum
 	GF_PROP_PID_CUBE_MAP_PAD = GF_4CC('P','C','M','P'),
 	GF_PROP_PID_EQR_CLAMP = GF_4CC('P','E','Q','C'),
 
+	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
+	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
+
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	//internal for HLS low latency
@@ -1584,6 +1587,8 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! Pointer to a GF_ObjectManager structure for this PID*/
 	void *object_manager;
+	/*! Pointer to a GF_Node structure for this PID if node decoder pid*/
+	void *node;
 } GF_FEVT_AttachScene;
 
 /*! Event structure for GF_FEVT_QUALITY_SWITCH*/

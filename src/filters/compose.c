@@ -311,6 +311,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
 				u32 j;
 				for (j=0; j<gf_list_count(sns->owner->parentscene->scene_objects); j++) {
@@ -329,8 +330,16 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					break;
 				}
 			}
+			if (sns->owner->parentscene
+				&& sns->owner->parentscene->root_od
+				&& sns->owner->parentscene->root_od->pid
+				&& ((sns->owner->parentscene->root_od->type==GF_STREAM_SCENE) || (sns->owner->parentscene->root_od->type==GF_STREAM_OD))
+			) {
+				scene_setup = GF_TRUE;
+			}
+
 			//we are attaching an inline, create the subscene if not done already
-			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+			if (!scene_setup && !sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE))  ) {
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
 				//created from a container (mp4) and still referring to that container for the media streams
 				if (sns->owner->ignore_sys) {
@@ -399,6 +408,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_sg_reset(scene->graph);
 		gf_sc_set_scene(ctx, scene->graph);
 		ctx->reload_scene_size = GF_TRUE;
+		//force clock to NULL, will resetup based on OCR_ES_IDs
+		scene->root_od->ck = NULL;
 	}
 
 	//setup object (clock) and playback requests

@@ -706,8 +706,12 @@ static GF_Err ctxload_process(GF_Filter *filter)
 							/*if files were created we'll have to clean up (swf import)*/
 							if (mux->delete_file) gf_list_add(priv->files_to_delete, gf_strdup(remote));
 
+							GF_List *oci_descr = od->OCIDescriptors;
+							od->OCIDescriptors = NULL;
 							gf_odf_desc_del((GF_Descriptor *) od);
 							od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
+							gf_list_del(od->OCIDescriptors);
+							od->OCIDescriptors = oci_descr;
 							od->URLString = remote;
 							od->fake_remote = GF_TRUE;
 							od->objectDescriptorID = k;
