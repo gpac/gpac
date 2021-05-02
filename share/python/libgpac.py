@@ -727,7 +727,7 @@ class FEVT_AttachScene(Structure):
     _fields_ =  [
         ("type", c_uint),
         ("on_pid", _gf_filter_pid),
-        ("odm", c_void_p)
+        ("odm", c_void_p),
         ("node", c_void_p)
     ]
     ## \endcond
