@@ -211,7 +211,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		}
 
 		odm->ID = od->objectDescriptorID;
-		if (odm->mo->OD_ID != odm->ID) {
+		if (odm->mo && (odm->mo->OD_ID != odm->ID)) {
 			odm->mo->OD_ID = odm->ID;
 
 		}
