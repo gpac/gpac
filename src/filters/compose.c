@@ -298,6 +298,17 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	scene = ctx->root_scene;
 	top_scene = ctx->root_scene;
 
+	switch (mtype) {
+	case GF_STREAM_SCENE:
+	case GF_STREAM_OD:
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
+		if (prop && prop->value.boolean) {
+			in_iod = GF_TRUE;
+		}
+		break;
+	}
+
+
 	//browse all scene namespaces and figure out our parent scene
 	count = gf_list_count(top_scene->namespaces);
 	for (i=0; i<count; i++) {
@@ -330,7 +341,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					break;
 				}
 			}
-			if (sns->owner->parentscene
+			if (!in_iod
+				&& sns->owner->parentscene
 				&& sns->owner->parentscene->root_od
 				&& sns->owner->parentscene->root_od->pid
 				&& ((sns->owner->parentscene->root_od->type==GF_STREAM_SCENE) || (sns->owner->parentscene->root_od->type==GF_STREAM_OD))
@@ -371,15 +383,14 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	switch (mtype) {
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-		if (prop && scene->is_dynamic_scene) {
+		if (in_iod) {
 			scene->is_dynamic_scene = GF_FALSE;
-		}
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-		if (prop && prop->value.boolean) {
-			scene->is_dynamic_scene = GF_FALSE;
-			in_iod = GF_TRUE;
+		} else {
+			//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+			if (prop && scene->is_dynamic_scene) {
+				scene->is_dynamic_scene = GF_FALSE;
+			}
 		}
 		break;
 	}

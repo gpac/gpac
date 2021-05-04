@@ -412,6 +412,12 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			stack->changed = 0;
 			return;
 		}
+		if (stack->stream->connect_failure) {
+			gf_sg_vrml_mf_reset(&stack->control->url, GF_SG_VRML_MFURL);
+			stack->enabled = GF_FALSE;
+			stack->stream = NULL;
+			return;
+		}
 		stack->ck = gf_odm_get_media_clock(stack->stream->odm);
 		/*OD not ready yet*/
 		if (!stack->ck) {
