@@ -60,6 +60,10 @@ static Bool gf_inline_set_scene(M_Inline *root)
 
 	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
 	if (!mo) return GF_FALSE;
+	if (mo->connect_failure) {
+		gf_sg_vrml_mf_reset(&root->url, GF_SG_VRML_MFURL);
+		return GF_FALSE;
+	}
 	//invalidate as soon as we have an mo (eg something is attached to the scene)
 	gf_sc_invalidate(parent->compositor, NULL);
 
@@ -292,6 +296,9 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	//if no private scene is associated	get the node parent graph, retrieve the IS and find the OD
 	if (!scene) {
 		M_Inline *inl = (M_Inline *)n;
+		if (!inl->url.count)
+			return;
+
 		gf_inline_set_scene(inl);
 		scene = (GF_Scene *)gf_node_get_private(n);
 		if (!scene) {

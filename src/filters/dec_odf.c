@@ -136,6 +136,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	}
 
 	for (j=0; j<nb_esd; j++) {
+		Bool skip_od = GF_FALSE;
 		GF_FilterPid *pid = NULL;
 		esd = gf_list_get(od->ESDescriptors, j);
 
@@ -144,8 +145,14 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			u32 k=0;
 			GF_ODMExtraPid *xpid;
 			odm = gf_list_get(scene->resources, i);
-			//can happen with interaction streams
+			//can happen with interaction and scene streams
 			if (!odm->pid) {
+				if (odm->mo && odm->mo->OD_ID == od->objectDescriptorID) {
+					odm->ServiceID = od->ServiceID;
+					attach_desc_to_odm(odm, od);
+					skip_od = GF_TRUE;
+					break;
+				}
 				odm = NULL;
 				continue;
 			}
@@ -163,6 +170,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			if (pid) break;
 			odm = NULL;
 		}
+		if (skip_od)
+			continue;
 
 		//OCR streams and input sensors don't have PIDs associated for now (only local sensors supported)
 		if ((esd->decoderConfig->streamType == GF_STREAM_INTERACT)

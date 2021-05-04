@@ -512,6 +512,19 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (!odm->scene_ns->source_filter) {
 		Bool remove_scene=GF_FALSE;
 		GF_Scene *target_scene = odm->subscene ? NULL : odm->parentscene;
+
+		if (!odm->mo) {
+			u32 i;
+			for (i=0; i<gf_list_count(target_scene->scene_objects); i++) {
+				GF_MediaObject *mo = gf_list_get(target_scene->scene_objects, i);
+				if (mo->odm) continue;
+				if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (mo->OD_ID==odm->ID)) {
+					odm->mo = mo;
+					mo->odm = odm;
+					break;
+				}
+			}
+		}
 		if (odm->mo) odm->mo->connect_failure = GF_TRUE;
 		odm->skip_disconnect_state = 1;
 		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
