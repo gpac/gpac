@@ -227,7 +227,7 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 		return;
 	}
 
-	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path);
+	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path, NULL);
 }
 
 
@@ -692,7 +692,6 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 
 	if (!type && !strncmp(com, "gpac ", 5)) {
-#ifdef FILTER_FIXME
 		com += 5;
 		//new add-on
 		if (compositor->root_scene && !strncmp(com, "add ", 4)) {
@@ -704,7 +703,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			return GF_OK;
 		}
 		//new splicing add-on
-		if (term->root_scene && !strncmp(com, "splice ", 7)) {
+		if (compositor->root_scene && !strncmp(com, "splice ", 7)) {
 			char *sep;
 			Double start, end;
 			Bool is_pts = GF_FALSE;
@@ -729,9 +728,9 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			}
 			//splice end, locate first splice with no end set and set it
 			else if (sscanf(com, "%lf", &end)==1) {
-				u32 count = gf_list_count(term->root_scene->declared_addons);
+				u32 count = gf_list_count(compositor->root_scene->declared_addons);
 				for (i=0; i<count; i++) {
-					GF_AddonMedia *addon = gf_list_get(term->root_scene->declared_addons, i);
+					GF_AddonMedia *addon = gf_list_get(compositor->root_scene->declared_addons, i);
 					if (addon->is_splicing && (addon->splice_end<0) ) {
 						addon->splice_end = end;
 						break;
@@ -747,16 +746,15 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			addon_info.splice_start_time = start;
 			addon_info.splice_end_time = end;
 			addon_info.splice_time_pts = is_pts;
-			gf_scene_register_associated_media(term->root_scene, &addon_info);
+			gf_scene_register_associated_media(compositor->root_scene, &addon_info);
 			return GF_OK;
 		}
 		//select object
-		if (term->root_scene && !strncmp(com, "select ", 7)) {
+		if (compositor->root_scene && !strncmp(com, "select ", 7)) {
 			u32 idx = atoi(com+7);
-			gf_term_select_object(term, gf_list_get(term->root_scene->resources, idx));
+			gf_term_select_object(term, gf_list_get(compositor->root_scene->resources, idx));
 			return GF_OK;
 		}
-#endif
 		return GF_OK;
 	}
 
@@ -921,50 +919,6 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 }
 
 
-enum
-{
-	GF_ACTION_PLAY,
-	GF_ACTION_STOP,
-	GF_ACTION_STEP,
-	GF_ACTION_EXIT,
-	GF_ACTION_MUTE,
-	GF_ACTION_VOLUP,
-	GF_ACTION_VOLDOWN,
-	GF_ACTION_JUMP_FORWARD,
-	GF_ACTION_JUMP_BACKWARD,
-	GF_ACTION_JUMP_START,
-	GF_ACTION_JUMP_END,
-	GF_ACTION_VERY_FAST_FORWARD,
-	GF_ACTION_FAST_FORWARD,
-	GF_ACTION_SLOW_FORWARD,
-	GF_ACTION_VERY_FAST_REWIND,
-	GF_ACTION_FAST_REWIND,
-	GF_ACTION_SLOW_REWIND,
-	GF_ACTION_NEXT,
-	GF_ACTION_PREVIOUS,
-	GF_ACTION_QUALITY_UP,
-	GF_ACTION_QUALITY_DOWN,
-};
-
-#ifdef FILTER_FIXME //unused for now, need to patch compositor shortcuts
-static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
-{
-	u32 i, j;
-	GF_SceneNamespace *ns;
-
-	/*pause all clocks on all services*/
-	i=0;
-	while ( (ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i)) ) {
-		GF_Clock *ck;
-		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			Fixed s = gf_mulfix(ck->speed, ratio);
-			gf_clock_set_speed(ck, s);
-		}
-	}
-}
-#endif
-
 GF_EXPORT
 GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
@@ -1038,8 +992,59 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	return GF_OK;
 }
 
-#ifdef FILTER_FIXME
-GF_EXPORT
+#if 0 //no more support for shortcuts in MP4 client, this must be done through GUI
+
+enum
+{
+	GF_ACTION_PLAY,
+	GF_ACTION_STOP,
+	GF_ACTION_STEP,
+	GF_ACTION_EXIT,
+	GF_ACTION_MUTE,
+	GF_ACTION_VOLUP,
+	GF_ACTION_VOLDOWN,
+	GF_ACTION_JUMP_FORWARD,
+	GF_ACTION_JUMP_BACKWARD,
+	GF_ACTION_JUMP_START,
+	GF_ACTION_JUMP_END,
+	GF_ACTION_VERY_FAST_FORWARD,
+	GF_ACTION_FAST_FORWARD,
+	GF_ACTION_SLOW_FORWARD,
+	GF_ACTION_VERY_FAST_REWIND,
+	GF_ACTION_FAST_REWIND,
+	GF_ACTION_SLOW_REWIND,
+	GF_ACTION_NEXT,
+	GF_ACTION_PREVIOUS,
+	GF_ACTION_QUALITY_UP,
+	GF_ACTION_QUALITY_DOWN,
+};
+
+#define	MAX_SHORTCUTS	200
+
+typedef struct
+{
+	u8 code;
+	u8 mods;
+	u8 action;
+} GF_Shortcut;
+
+static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
+{
+	u32 i, j;
+	GF_SceneNamespace *ns;
+
+	/*pause all clocks on all services*/
+	i=0;
+	while ( (ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			Fixed s = gf_mulfix(ck->speed, ratio);
+			gf_clock_set_speed(ck, s);
+		}
+	}
+}
+
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 {
 	GF_Event evt;

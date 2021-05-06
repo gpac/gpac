@@ -131,5 +131,5 @@ Targets:
 - [x] more JS filters
 - [x] Python bindings for libgpac
 - [ ] move input sensors to filter ?
-- [-] fixed features disabled during rearchitecture or drop them (FILTER_FIXME macro)
+- [X] fixed features disabled during rearchitecture or drop them
 - [x] move Android client to filters

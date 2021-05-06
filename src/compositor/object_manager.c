@@ -293,7 +293,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 }
 
 
-void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url)
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon)
 {
 	char *parent_url = NULL;
 	if (!remote_url) {
@@ -340,7 +340,7 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 	}
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 	odm->ServiceID = 0;
-	gf_scene_ns_connect_object(odm->subscene ? odm->subscene : odm->parentscene, odm, remote_url, parent_url);
+	gf_scene_ns_connect_object(odm->subscene ? odm->subscene : odm->parentscene, odm, remote_url, parent_url, for_addon ? parent_ns : NULL);
 }
 
 GF_EXPORT
@@ -428,9 +428,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		GF_Event evt;
 
 		//this may result in an attempt to lock the compositor, so release the net MX before
-		if (!odm->scalable_addon) {
-			gf_scene_setup_object(odm->parentscene, odm);
-		}
+		gf_scene_setup_object(odm->parentscene, odm);
 
 		/*setup node decoder*/
 		if (odm->pid && (odm->type==GF_STREAM_SCENE)) {
@@ -719,6 +717,13 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 		/*update scene duration*/
 		gf_scene_set_duration(odm->subscene ? odm->subscene : odm->parentscene);
 	}
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HAS_TEMI);
+	if (prop && prop->value.boolean)
+		odm->flags |= GF_ODM_HAS_TEMI;
+	else
+		odm->flags &= ~GF_ODM_HAS_TEMI;
+
 }
 
 /*this is the tricky part: make sure the net is locked before doing anything since an async service
@@ -836,11 +841,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		if (ck_time<0)
 			ck_time=0;
-
-		if (odm->scalable_addon) {
-			//this is a scalable extension to an object in the parent scene
-			gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
-		}
 	}
 
 	com.play.start_range = ck_time;
@@ -1006,7 +1006,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->flags &= ~GF_ODM_PREFETCH;
 	
 	//root ODs of dynamic scene may not have seen play/pause request
-	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
+	if (!odm->state && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
 	//PID not yet attached, mark as state_stop and wait for error or OK
 	if (!odm->pid ) {
@@ -1530,6 +1530,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_FilterClockType ck_type;
 	u64 clock_reference;
 	GF_FilterPacket *pck;
+	Bool check_disc = GF_TRUE;
 
 	assert(odm);
 
@@ -1584,8 +1585,10 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (scene->nb_buffering || signal_eob)
 		gf_scene_buffering_info(scene, GF_FALSE);
 
+	if (odm->parentscene && odm->parentscene->root_od->addon)
+		check_disc = GF_FALSE;
 	//handle both PCR discontinuities or TS looping when no PCR disc is present/signaled
-	if (pck) {
+	if (pck && check_disc) {
 		s32 diff=0;
 		u64 pck_time = 0;
 		u32 clock_time = gf_clock_time(odm->ck);
@@ -1797,10 +1800,10 @@ Bool gf_odm_stop_or_destroy(GF_ObjectManager *odm)
 }
 
 
-static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
+static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info, Bool scalable_addon)
 {
 	GF_FilterPidStatistics stats;
-	gf_filter_pid_get_statistics(pid, &stats, GF_STATS_LOCAL_INPUTS);
+	gf_filter_pid_get_statistics(pid, &stats, scalable_addon ? GF_STATS_LOCAL : GF_STATS_LOCAL_INPUTS);
 
 	info->avg_bitrate = stats.avgerage_bitrate;
 	info->max_bitrate = stats.max_bitrate;
@@ -1824,6 +1827,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	const GF_PropertyValue *prop;
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
+	GF_ObjectManager *scalable_addon_par = NULL;
 
 	if (!odm || !info) return GF_BAD_PARAM;
 	memset(info, 0, sizeof(GF_MediaInfo));
@@ -1842,6 +1846,29 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	while (an_odm->lower_layer_odm) {
 		an_odm = an_odm->lower_layer_odm;
 		pid = an_odm->pid;
+	}
+
+	if (odm->subscene && !odm->pid && odm->addon && !gf_list_count(odm->subscene->resources)) {
+		GF_FilterPid *gf_filter_pid_first_pid_for_source(GF_FilterPid *pid, GF_Filter *source);
+		u32 i;
+		for (i=0; i<gf_list_count(odm->parentscene->resources); i++) {
+			GF_ObjectManager *par_odm = gf_list_get(odm->parentscene->resources, i);
+			if (!par_odm->pid) continue;
+			pid = gf_filter_pid_first_pid_for_source(par_odm->pid, odm->addon->root_od->scene_ns->source_filter);
+			if (!pid) continue;;
+			if (!odm->ID) {
+				info->ServiceID = odm->ServiceID = par_odm->ServiceID;
+				prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+				if (prop) info->pid_id = odm->pid_id = odm->ID = prop->value.uint;
+				prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+				if (prop) info->od_type = odm->type = prop->value.uint;
+
+				odm->buffer_max_ms = par_odm->buffer_max_ms;
+				odm->buffer_min_ms = par_odm->buffer_min_ms;
+			}
+			scalable_addon_par = par_odm;
+			break;
+		}
 	}
 
 	if (pid) {
@@ -1874,6 +1901,9 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 		GF_Clock *ck;
 
 		ck = gf_odm_get_media_clock(odm);
+		if (scalable_addon_par)
+			ck = scalable_addon_par->ck;
+
 		/*no clock means setup failed*/
 		if (!ck) {
 			info->status = 4;
@@ -1910,30 +1940,50 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	}
 
 	if (pid) {
-		info->codec_name = gf_filter_pid_get_filter_name(pid);
+		info->codec_name = gf_filter_pid_get_filter_name(scalable_addon_par ? scalable_addon_par->pid : pid);
 		info->od_type = odm->type;
 
 		gf_filter_pid_get_buffer_occupancy(pid, &info->cb_max_count, &info->cb_unit_count, NULL, NULL);
 
-		get_codec_stats(pid, info);
+		get_codec_stats(pid, info, scalable_addon_par ? GF_TRUE : GF_FALSE);
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
 		if (prop) info->lang_code = prop->value.string;
 	}
 
-	if (odm->subscene) {
-		gf_sg_get_scene_size_info(odm->subscene->graph, &info->width, &info->height);
-	} else if (odm->mo) {
+	if (!scalable_addon_par) {
+		if (odm->subscene) {
+			gf_sg_get_scene_size_info(odm->subscene->graph, &info->width, &info->height);
+		} else if (odm->mo) {
+			switch (info->od_type) {
+			case GF_STREAM_VISUAL:
+				gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, &info->par, &info->pixelFormat, NULL);
+				break;
+			case GF_STREAM_AUDIO:
+				gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->afmt, &info->num_channels, NULL, NULL);
+				info->clock_drift = 0;
+				break;
+			case GF_STREAM_TEXT:
+				gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, NULL, NULL, NULL);
+				break;
+			}
+		}
+	} else {
 		switch (info->od_type) {
 		case GF_STREAM_VISUAL:
-			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, &info->par, &info->pixelFormat, NULL);
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+			if (prop) info->width = prop->value.uint;
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+			if (prop) info->height = prop->value.uint;
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+			if (prop) info->par = (prop->value.frac.num) << 16 | (prop->value.frac.den);
 			break;
 		case GF_STREAM_AUDIO:
-			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->afmt, &info->num_channels, NULL, NULL);
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+			if (prop) info->sample_rate = prop->value.uint;
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+			if (prop) info->num_channels = prop->value.uint;
 			info->clock_drift = 0;
-			break;
-		case GF_STREAM_TEXT:
-			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, NULL, NULL, NULL);
 			break;
 		}
 	}

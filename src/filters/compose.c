@@ -242,6 +242,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
+		Bool notify_quality = GF_FALSE;
 		if (mtype==GF_STREAM_SCENE) { }
 		else if (mtype==GF_STREAM_OD) { }
 		//change of stream type for a given object, no use case yet
@@ -257,8 +258,18 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			gf_odm_update_duration(odm, pid);
 			gf_odm_check_clock_mediatime(odm);
+			notify_quality = GF_TRUE;
 		}
 		merge_properties(ctx, pid, mtype, odm->parentscene);
+
+		if (notify_quality) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_QUALITY_SWITCHED;
+
+			gf_filter_forward_gf_event(filter, &evt, GF_FALSE, GF_FALSE);
+		}
+
 		return GF_OK;
 	}
 

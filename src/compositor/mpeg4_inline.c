@@ -58,7 +58,7 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	parent = (GF_Scene *)gf_sg_get_private(graph);
 	if (!parent) return GF_FALSE;
 
-	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
+	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root, NULL);
 	if (!mo) return GF_FALSE;
 	if (mo->connect_failure) {
 		gf_sg_vrml_mf_reset(&root->url, GF_SG_VRML_MFURL);

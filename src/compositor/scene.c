@@ -551,7 +551,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	scene->object_attached = 0;
 }
 
-static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
+static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene, Bool for_addon)
 {
 	GF_ObjectManager *odm;
 	char *url, *final_url;
@@ -586,7 +586,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
 	gf_list_add(scene->resources, odm);
 
-	gf_odm_setup_remote_object(odm, original_parent_scene ? original_parent_scene->root_od->scene_ns : NULL, final_url);
+	gf_odm_setup_remote_object(odm, original_parent_scene ? original_parent_scene->root_od->scene_ns : NULL, final_url, for_addon);
 }
 
 static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
@@ -598,7 +598,7 @@ static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
 	mo->URLs.vals[mo->URLs.count-1].url = NULL;
 	mo->URLs.count-=1;
 	/*FIXME - we should re-ananlyse whether the fragment is important or not ...*/
-	gf_scene_insert_object(scene, mo, GF_FALSE, NULL, GF_FALSE, NULL);
+	gf_scene_insert_object(scene, mo, GF_FALSE, NULL, GF_FALSE, NULL, GF_FALSE);
 }
 
 
@@ -928,11 +928,11 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 }
 
 GF_EXPORT
-GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool force_new_if_not_attached, GF_Node *node)
+GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool force_new_if_not_attached, GF_Node *node, GF_Scene *parent_scene_addon)
 {
 	GF_MediaObject *obj;
-	GF_Scene *original_parent_scene = NULL;
 	Bool keep_fragment = GF_TRUE;
+	GF_Scene *original_parent_scene = parent_scene_addon;
 	Bool first_pass = force_new_if_not_attached ? GF_FALSE : GF_TRUE;
 	u32 i, OD_ID;
 
@@ -1028,7 +1028,7 @@ restart:
 	gf_list_add(scene->scene_objects, obj);
 	if (OD_ID == GF_MEDIA_EXTERNAL_ID) {
 		gf_sg_vrml_copy_mfurl(&obj->URLs, url);
-		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene);
+		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene, parent_scene_addon ? GF_TRUE : GF_FALSE);
 		/*safety check!!!*/
 		if (gf_list_find(scene->scene_objects, obj)<0) {
 			return NULL;
@@ -1055,7 +1055,7 @@ restart:
 
 GF_MediaObject *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines)
 {
-	return gf_scene_get_media_object_ex(scene, url, obj_type_hint, lock_timelines, NULL, GF_FALSE, NULL);
+	return gf_scene_get_media_object_ex(scene, url, obj_type_hint, lock_timelines, NULL, GF_FALSE, NULL, NULL);
 }
 
 
@@ -1351,7 +1351,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = (GF_ObjectManager*)gf_list_get(scene->resources, i);
-			if (odm->scalable_addon || !odm->ID)
+			if (!odm->ID)
 				continue;
 
 			if (type==GF_STREAM_TEXT) {
@@ -1443,7 +1443,7 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	for (i=0; i<count; i++) {
 		const GF_PropertyValue *prop;
 		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
-		if (!odm->mo) continue;
+		if (!odm->mo || !odm->pid) continue;
 
 		prop = gf_filter_pid_get_property_str(odm->pid, "MouseEvents");
 		if (prop && prop->value.boolean) {
@@ -1858,12 +1858,10 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 
 	if (show_addons) {
-#ifdef FILTER_FIXME
 		GF_AssociatedContentLocation addon_info;
 		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 		addon_info.timeline_id = -100;
 		gf_scene_register_associated_media(scene, &addon_info);
-#endif
 	} else {
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 	}
@@ -2902,7 +2900,6 @@ void gf_scene_reset_addons(GF_Scene *scene)
 		gf_scene_reset_addon(addon, GF_FALSE);
 	}
 }
-#ifdef FILTER_FIXME
 
 static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 {
@@ -2920,15 +2917,19 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	//we may need to change the object type once we have more ideas what the external resource is about.
 	//By default we start with scene
 	//we force the timeline of the addon to be locked with the main scene
-	mo = gf_scene_get_media_object(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE);
+	mo = gf_scene_get_media_object_ex(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE, NULL, GF_FALSE, NULL, scene);
 
 	if (!mo || !mo->odm) {
-		assert(0);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Compositor] Failed to load media addon %s\n", addon->url));
 		return;
 	}
 
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
+
+	if (mo->odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
+		gf_scene_select_object(mo->odm->parentscene, mo->odm);
+	}
 }
 
 
@@ -3021,7 +3022,11 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	}
 
 	addon->is_splicing = addon_info->is_splicing;
-	addon->activation_time = gf_scene_get_time(scene)+addon_info->activation_countdown;
+	addon->activation_time = gf_scene_get_time(scene);
+
+	if (addon_info->activation_countdown.den)
+		addon->activation_time += ((Double)addon_info->activation_countdown.num) / addon_info->activation_countdown.den;
+
 	addon->url = gf_strdup(addon_info->external_URL);
 	addon->media_timescale = 1;
 	addon->timeline_ready = (addon_info->timeline_id<0) ? 1 : 0;
@@ -3136,15 +3141,15 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 	}
 
 	//and forward ntp if any to underlying service
-	if (addon_time->ntp && addon->root_od && addon->root_od->net_service) {
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(com));
-		com.addon_time = *addon_time;
-		gf_term_service_command(addon->root_od->net_service, &com);
+	if (addon_time->ntp && addon->root_od && addon->root_od->pid) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, addon->root_od->pid);
+		evt.ntp.ntp = addon_time->ntp;
+		gf_filter_pid_send_event(addon->root_od->pid, &evt);
 	}
 }
 
-#endif
+
 
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 {
@@ -3231,110 +3236,6 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 	return media_ts_ms;
 }
 
-void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
-{
-#ifdef FILTER_FIXME
-	Bool nalu_annex_b;
-	Bool force_attach=GF_FALSE;
-#endif
-	GF_ObjectManager *odm_base = NULL;
-	u32 i, count;
-
-	count = gf_list_count(scene->resources);
-	for (i=0; i<count; i++) {
-		odm_base = gf_list_get(scene->resources, i);
-		if ((odm->type==odm_base->type) && odm_base->ID)
-			break;
-		odm_base=NULL;
-		//todo
-		//1- check if we use compatible formats, for now we only do demos with hevc/lhvc
-		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/lhvc
-	}
-	if (!odm_base) return;
-
-	odm_base->upper_layer_odm = odm;
-	odm->lower_layer_odm = odm_base;
-
-	switch (odm_base->original_oti) {
-	case GF_CODECID_AVC:
-	case GF_CODECID_SVC:
-	case GF_CODECID_MVC:
-		switch (odm->original_oti) {
-		case GF_CODECID_LHVC:
-			if (!odm_base->hybrid_layered_coded) {
-#ifdef FILTER_FIXME
-				force_attach=GF_TRUE;
-#endif
-
-			}
-			odm_base->hybrid_layered_coded=GF_TRUE;
-			break;
-		}
-		break;
-	case GF_CODECID_HEVC:
-#ifdef FILTER_FIXME
-		force_attach=GF_TRUE;
-#endif
-		break;
-	}
-	odm->lower_layer_odm = odm_base;
-
-#ifdef FILTER_FIXME
-	GF_NetworkCommand com;
-
-	if (odm_base->upper_layer_odm) {
-		force_attach=GF_FALSE;
-	} else {
-		odm_base->upper_layer_odm = odm;
-	}
-	odm->lower_layer_odm = odm_base;
-
-	nalu_annex_b = 1;
-	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
-		nalu_annex_b = 0;
-
-	if (odm_base->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
-
-		nalu_annex_b = 0;
-		if (force_attach) {
-			odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
-		}
-	} else if (force_attach) {
-		//we force annexB mode, delete avcC/hvcC
-		if (nalu_annex_b && ch->esd->decoderConfig->decoderSpecificInfo) {
-			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->decoderSpecificInfo);
-			ch->esd->decoderConfig->decoderSpecificInfo=NULL;
-		}
-		odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
-	}
-
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.command_type = GF_NET_CHAN_NALU_MODE;
-	//force AnnexB mode and no sync sample seeking
-	com.nalu_mode.extract_mode = nalu_annex_b ? 2 : 0;
-	count = gf_list_count(odm->channels);
-	for (i=0; i<count; i++) {
-		com.base.on_channel = ch = gf_list_get(odm->channels, i);
-		//we must wait for RAP otherwise we won't be able to detect temporal scalability correctly
-		ch->stream_state = 1;
-		ch->media_padding_bytes = base_ch->media_padding_bytes;
-		gf_term_service_command(ch->service, &com);
-	}
-
-	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
-	// splicing, signal to the base decoder that we will want low quality and wait for splice activation
-	if (odm->parentscene->root_od->addon->is_splicing) {
-		caps.cap.valueInt = 0;
-	}
-	//not splicing, signal to the base decoder that we will want full quality right now
-	else {
-		caps.cap.valueInt = 2;
-	}
-	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
-#endif
-}
-
-
 GF_EXPORT
 void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 {
@@ -3365,14 +3266,5 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 		}
 		if (odm->subscene)
 			gf_scene_switch_quality(odm->subscene, up);
-
-#ifdef FILTER_FIXME
-		if (odm->scalable_addon) {
-			if (up)
-				gf_odm_start(odm, 0);
-			else
-				gf_odm_stop(odm, GF_FALSE);
-		}
-#endif
 	}
 }

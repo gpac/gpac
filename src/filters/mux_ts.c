@@ -508,8 +508,12 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 					}
 					tc += temi->init_val;
 				} else {
-					//TOCHECK: do we want media timeline or composition timeline ?
-					tc = cts;
+					//we want media timeline
+					if ((s64) cts + (u64) tspid->media_delay >= 0)
+						tc = cts + tspid->media_delay;
+					else
+						tc = 0;
+
 					if (timescale != ifce->timescale) {
 						tc *= temi->timescale;
 						tc /= ifce->timescale;

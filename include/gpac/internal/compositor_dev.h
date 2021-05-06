@@ -1645,7 +1645,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 /*destroy service*/
 void gf_scene_ns_del(GF_SceneNamespace *ns, GF_Scene *scene);
 
-void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url, GF_SceneNamespace *parent_ns);
 
 
 
@@ -1795,7 +1795,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done);
 void gf_scene_attach_to_compositor(GF_Scene *scene);
 struct _mediaobj *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
-struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
+struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr, GF_Scene *original_parent_scene);
 void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*updates scene duration based on sub objects*/
 void gf_scene_set_duration(GF_Scene *scene);
@@ -1870,21 +1870,37 @@ const char *gf_scene_get_fragment_uri(GF_Node *node);
 void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
 
 
-#if FILTER_FIXME
-
-#define	MAX_SHORTCUTS	200
+/*GF_NET_ASSOCIATED_CONTENT_TIMING*/
+typedef struct
+{
+	u32 timeline_id;
+	u32 media_timescale;
+	u64 media_timestamp;
+	//for now only used in MPEG-2, so media_pts is in 90khz scale
+	u64 media_pts;
+	Bool force_reload;
+	Bool is_paused;
+	Bool is_discontinuity;
+	u64 ntp;
+} GF_AssociatedContentTiming;
 
 typedef struct
 {
-	u8 code;
-	u8 mods;
-	u8 action;
-} GF_Shortcut;
+	//negative values mean "timeline is ready no need for timing message"
+	s32 timeline_id;
+	const char *external_URL;
+	Bool is_announce, is_splicing;
+	Bool reload_external;
+	Bool enable_if_defined;
+	Bool disable_if_defined;
+	GF_Fraction activation_countdown;
+	//start and end times of splicing if any
+	Double splice_start_time, splice_end_time;
+	Bool splice_time_pts;
+} GF_AssociatedContentLocation;
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
-
-#endif
 
 
 /*clock*/
@@ -2009,6 +2025,8 @@ enum
 	GF_ODM_PASSTHROUGH = (1<<15),
 	/*flag indicates the clock is shared between tiles and a play should not trigger a rebuffer*/
 	GF_ODM_TILED_SHARED_CLOCK = (1<<16),
+	/*flag indicates TEMI info is associated with PID*/
+	GF_ODM_HAS_TEMI = (1<<17),
 };
 
 enum
@@ -2130,8 +2148,6 @@ struct _od_manager
 	GF_AddonMedia *addon;
 	//set for objects splicing the main content, indicates the media type (usually in @codec but no codec created for splicing)
 	u32 splice_addon_mtype;
-	//set to true if this is a scalable addon for an existing object
-	Bool scalable_addon;
 
 	//for a regular ODM, this indicates that the current scalable_odm associated
 	struct _od_manager *upper_layer_odm;
@@ -2156,7 +2172,7 @@ void gf_odm_del(GF_ObjectManager *ODMan);
 /*setup OD*/
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid);
 
-void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url);
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon);
 
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
@@ -2206,6 +2222,8 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
 void gf_odm_check_clock_mediatime(GF_ObjectManager *odm);
+
+void gf_odm_addon_setup(GF_ObjectManager *odm);
 
 
 /*!
@@ -2334,8 +2352,8 @@ void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *messa
 
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
 Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u8 *timestamp_based);
-s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
-void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts_ms);
+
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
