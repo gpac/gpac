@@ -334,6 +334,9 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
 	gf_list_del_item(es->program->streams, es);
 
+	if (ts->on_event)
+		ts->on_event(ts, GF_M2TS_EVT_STREAM_REMOVED, es);
+
 	if (es->flags & GF_M2TS_ES_IS_SECTION) {
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);

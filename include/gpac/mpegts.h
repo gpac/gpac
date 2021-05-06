@@ -474,7 +474,9 @@ enum
 	/*! a TEMI locator has been found or repeated*/
 	GF_M2TS_EVT_TEMI_LOCATION,
 	/*! a TEMI timecode has been found*/
-	GF_M2TS_EVT_TEMI_TIMECODE
+	GF_M2TS_EVT_TEMI_TIMECODE,
+	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
+	GF_M2TS_EVT_STREAM_REMOVED
 };
 
 /*! table parsing state*/
