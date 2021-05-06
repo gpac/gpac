@@ -5049,19 +5049,6 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		if (!ent1 || !ent2) return GF_FALSE;
 		if (ent1->type != ent2->type) return GF_FALSE;
 		if (ent1->internal_type != ent2->internal_type) return GF_FALSE;
-		if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
-			GF_VisualSampleEntryBox *vent1 = (GF_VisualSampleEntryBox *) ent1;
-			GF_VisualSampleEntryBox *vent2 = (GF_VisualSampleEntryBox *) ent2;
-			if (vent1->Width != vent2->Width) return GF_FALSE;
-			if (vent1->Height != vent2->Height) return GF_FALSE;
-		}
-		else if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
-			GF_AudioSampleEntryBox *aent1 = (GF_AudioSampleEntryBox *) ent1;
-			GF_AudioSampleEntryBox *aent2 = (GF_AudioSampleEntryBox *) ent2;
-			if (aent1->samplerate_hi != aent2->samplerate_hi) return GF_FALSE;
-			if (aent1->samplerate_lo != aent2->samplerate_lo) return GF_FALSE;
-			if (aent1->channel_count != aent2->channel_count) return GF_FALSE;
-		}
 
 		switch (ent1->type) {
 		/*for MPEG-4 streams, only compare decSpecInfo (bitrate may not be the same but that's not an issue)*/
@@ -5204,7 +5191,6 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_QT_SUBTYPE_QDMC2:
 		case GF_QT_SUBTYPE_QCELP:
 		case GF_QT_SUBTYPE_kMP3:
-			return GF_TRUE;
 		case GF_QT_SUBTYPE_APCH:
 		case GF_QT_SUBTYPE_APCO:
 		case GF_QT_SUBTYPE_APCN:
@@ -5226,6 +5212,20 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_QT_SUBTYPE_YVYU:
 		case GF_QT_SUBTYPE_RGBA:
 		case GF_QT_SUBTYPE_ABGR:
+		default:
+			if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+				GF_VisualSampleEntryBox *vent1 = (GF_VisualSampleEntryBox *) ent1;
+				GF_VisualSampleEntryBox *vent2 = (GF_VisualSampleEntryBox *) ent2;
+				if (vent1->Width != vent2->Width) return GF_FALSE;
+				if (vent1->Height != vent2->Height) return GF_FALSE;
+			}
+			else if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
+				GF_AudioSampleEntryBox *aent1 = (GF_AudioSampleEntryBox *) ent1;
+				GF_AudioSampleEntryBox *aent2 = (GF_AudioSampleEntryBox *) ent2;
+				if (aent1->samplerate_hi != aent2->samplerate_hi) return GF_FALSE;
+				if (aent1->samplerate_lo != aent2->samplerate_lo) return GF_FALSE;
+				if (aent1->channel_count != aent2->channel_count) return GF_FALSE;
+			}
 			return GF_TRUE;
 		}
 

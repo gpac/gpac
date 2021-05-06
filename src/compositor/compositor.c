@@ -3060,7 +3060,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				compositor->scene_sampled_clock = (u32) res;
 			}
 
-			if (all_tx_done && !has_timed_nodes)
+			if (compositor->check_eos_state && all_tx_done && !has_timed_nodes)
 				compositor->check_eos_state = 2;
 		}
 	}
