@@ -2394,6 +2394,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source_restricted ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_abort ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_lock ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_lock_all) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_all_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_filter_register_cap ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )

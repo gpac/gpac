@@ -428,10 +428,11 @@ Bool scene_ns_remove_object(GF_Filter *filter, void *callback, u32 *reschedule_m
 }
 
 /*connects given OD manager to its URL*/
-void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url, GF_SceneNamespace *addon_parent_ns)
 {
 	GF_Err e;
 	char *frag;
+	char *url_with_args = NULL;
 	Bool reloc_result=GF_FALSE;
 
 	/*check cache*/
@@ -506,13 +507,31 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (!parent_url && odm->parentscene && odm->parentscene->root_od->scene_ns)
 		parent_url = odm->parentscene->root_od->scene_ns->url;
 
-	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, GF_FALSE, &e);
+	//we setup an addon, use the same filter chain (so copy source id) as orginial content
+	//so that any scalable streams in the addon can connect to decoders
+    if (addon_parent_ns) {
+		const char *fid = gf_filter_get_id(addon_parent_ns->source_filter);
+		if (fid) {
+			char szExt[100];
+			char sep_a = gf_filter_get_sep(scene->compositor->filter, GF_FS_SEP_ARGS);
+			char sep_v = gf_filter_get_sep(scene->compositor->filter, GF_FS_SEP_NAME);
+			gf_dynstrcat(&url_with_args, serviceURL, NULL);
+			sprintf(szExt, "%cgpac%cFID%c", sep_a, sep_a, sep_v);
+			gf_dynstrcat(&url_with_args, szExt, NULL);
+			gf_dynstrcat(&url_with_args, fid, NULL);
+		}
+	}
+
+	gf_filter_lock_all(scene->compositor->filter, GF_TRUE);
+	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, url_with_args ? url_with_args : serviceURL, parent_url, GF_FALSE, &e);
+	if (url_with_args) gf_free(url_with_args);
 
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {
 		Bool remove_scene=GF_FALSE;
 		GF_Scene *target_scene = odm->subscene ? NULL : odm->parentscene;
 
+		gf_filter_lock_all(scene->compositor->filter, GF_FALSE);
 		if (!odm->mo) {
 			u32 i;
 			for (i=0; i<gf_list_count(target_scene->scene_objects); i++) {
@@ -544,10 +563,12 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 		return;
 	}
-    //make sure we only connect this filter to ourselves 
-    gf_filter_set_source_restricted(scene->compositor->filter, odm->scene_ns->source_filter, NULL);
-    
+    //make sure we only connect this filter to ourselves
+	gf_filter_set_source_restricted(scene->compositor->filter, odm->scene_ns->source_filter, NULL);
+
 	gf_filter_set_setup_failure_callback(scene->compositor->filter, odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
+
+	gf_filter_lock_all(scene->compositor->filter, GF_FALSE);
 
 	/*OK connect*/
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);

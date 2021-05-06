@@ -99,8 +99,14 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 	Double prog;
 	u32 pos, pc;
 	const char *szT = _title ? (char *)_title : (char *) "";
-	prog = (double) done;
-	prog /= total;
+
+	if (total) {
+		prog = (double) done;
+		prog /= total;
+	} else {
+		prog = 0;
+	}
+
 	pos = MIN((u32) (20 * prog), 20);
 
 	if (pos>prev_pos) {

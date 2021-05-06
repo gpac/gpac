@@ -604,7 +604,7 @@ typedef struct
 	const char *external_URL;
 	Bool is_announce, is_splicing;
 	Bool reload_external;
-	Double activation_countdown;
+	GF_Fraction activation_countdown;
 } GF_M2TS_TemiLocationDescriptor;
 
 /*! MPEG-2 TS demuxer TEMI timecode*/
@@ -699,7 +699,9 @@ enum
 	/*! flag used to signal next discontinuity on stream should be ignored*/
 	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<17,
 	/*! flag used by importers/readers to mark streams that have been seen already in PMT process (update/found)*/
-	GF_M2TS_ES_ALREADY_DECLARED = 1<<18
+	GF_M2TS_ES_ALREADY_DECLARED = 1<<18,
+	/*! flag indicates TEMI info is declared on this stream*/
+	GF_M2TS_ES_TEMI_INFO = 1<<19
 };
 
 /*! macro for abstract Section/PES stream object, only used for type casting*/

@@ -183,7 +183,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 	while (scene->secondary_resource && scene->root_od->parentscene)
 		scene = scene->root_od->parentscene;
 
-	res = gf_scene_get_media_object_ex(scene, url, obj_type, lock_timelines, syncRef, force_new_res, node);
+	res = gf_scene_get_media_object_ex(scene, url, obj_type, lock_timelines, syncRef, force_new_res, node, NULL);
 	return res;
 }
 
@@ -390,9 +390,79 @@ static u64 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *dis
 			ts -= -mo->odm->timestamp_offset;
 		}
 	}
+
+
 	ts *= 1000;
 	ts /= timescale;
+
+	//if addon, translate back into main content timing
+	if (mo->odm->parentscene && mo->odm->parentscene->root_od->addon) {
+		if (!mo->odm->parentscene->root_od->addon->timeline_ready) {
+			ts = 0;
+		} else {
+			s64 res = gf_scene_adjust_timestamp_for_addon(mo->odm->parentscene->root_od->addon, ts);
+			if (res<0) res=0;
+			ts = (u64) res;
+		}
+	}
 	return ts;
+}
+
+
+static void check_temi(GF_MediaObject *mo)
+{
+	u32 idx=0;
+	if (!(mo->odm->flags & GF_ODM_HAS_TEMI)) return;
+
+	while (1) {
+		const GF_PropertyValue *p;
+		u32 p4cc = 0;
+		const char *pname = NULL;
+		p = gf_filter_pck_enum_properties(mo->pck, &idx, &p4cc, &pname);
+		if (!p) break;
+		if (!pname) continue;
+		if (p->type != GF_PROP_DATA) continue;
+		if (!strncmp(pname, "temi_l:", 7)) {
+			GF_AssociatedContentLocation temi_l;
+			u8 *data = p->value.data.ptr;
+			u32 len = (u32) strlen(data);
+			memset(&temi_l, 0, sizeof(GF_AssociatedContentLocation));
+			temi_l.timeline_id = atoi(pname+7);
+			temi_l.is_announce = data[len+1] & 0x80 ? GF_TRUE : GF_FALSE;
+			temi_l.is_splicing = data[len+1] & 0x40 ? GF_TRUE : GF_FALSE;
+			temi_l.reload_external = data[len+1] & 0x20 ? GF_TRUE : GF_FALSE;
+			if (temi_l.is_announce) {
+				temi_l.activation_countdown.den = GF_4CC(data[len+2], data[len+3], data[len+4], data[len+5]);
+				temi_l.activation_countdown.num = GF_4CC(data[len+6], data[len+7], data[len+8], data[len+9]);
+			}
+			temi_l.external_URL = data;
+
+			gf_scene_register_associated_media(mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene, &temi_l);
+			continue;
+		}
+		if (!strncmp(pname, "temi_t:", 7)) {
+			GF_BitStream *bs;
+			GF_AssociatedContentTiming temi_t;
+			memset(&temi_t, 0, sizeof(GF_AssociatedContentTiming));
+			temi_t.timeline_id = atoi(pname+7);
+			bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+			temi_t.media_timescale = gf_bs_read_u32(bs);
+			temi_t.media_timestamp = gf_bs_read_u64(bs);
+			temi_t.media_pts = gf_bs_read_u64(bs);
+			temi_t.force_reload = gf_bs_read_int(bs, 1);
+			temi_t.is_paused = gf_bs_read_int(bs, 1);
+			temi_t.is_discontinuity = gf_bs_read_int(bs, 1);
+			temi_t.ntp = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 4);
+			if (temi_t.ntp)
+				temi_t.ntp = gf_bs_read_u64(bs);
+
+			gf_bs_del(bs);
+
+			gf_scene_notify_associated_media_timeline(mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene, &temi_t);
+			continue;
+		}
+	}
 }
 
 GF_EXPORT
@@ -465,6 +535,7 @@ retry:
 		} else {
 			gf_filter_pck_ref(&mo->pck);
 			gf_filter_pid_drop_packet(mo->odm->pid);
+			check_temi(mo);
 		}
 		is_first = GF_TRUE;
 	}
@@ -640,6 +711,7 @@ retry:
 			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 			assert(mo->pck);
 			gf_filter_pck_ref( &mo->pck);
+			check_temi(mo);
 
 			pck_ts = convert_ts_to_ms(mo, gf_filter_pck_get_cts(mo->pck), timescale, &discard);
 			//drop next packet from pid

@@ -6444,6 +6444,45 @@ Bool gf_filter_pid_share_origin(GF_FilterPid *pid, GF_FilterPid *other_pid)
     return GF_FALSE;
 }
 
+static void filter_pid_inst_collect_stats(GF_FilterPidInst *pidi, GF_FilterPidStatistics *stats)
+{
+	if (!pidi->pid) return;
+
+	stats->avgerage_bitrate += pidi->avg_bit_rate;
+	if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
+		stats->first_process_time = pidi->first_frame_time;
+	if (stats->last_process_time < pidi->last_pck_fetch_time)
+		stats->last_process_time = pidi->last_pck_fetch_time;
+
+	stats->max_bitrate += pidi->max_bit_rate;
+
+	if (stats->max_process_time < (u32) pidi->max_process_time)
+		stats->max_process_time = (u32) pidi->max_process_time;
+	if (stats->max_sap_process_time < (u32) pidi->max_sap_process_time)
+		stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
+	if (!stats->min_frame_dur || (stats->min_frame_dur > pidi->pid->min_pck_duration))
+		stats->min_frame_dur = pidi->pid->min_pck_duration;
+	stats->nb_processed += pidi->nb_processed;
+	stats->nb_saps += pidi->nb_sap_processed;
+	stats->total_process_time += pidi->total_process_time;
+	stats->total_sap_process_time += pidi->total_sap_process_time;
+	stats->average_process_rate += pidi->avg_process_rate;
+	stats->max_process_rate += pidi->max_process_rate;
+
+	if (stats->nb_buffer_units < pidi->pid->nb_buffer_unit)
+		stats->nb_buffer_units = pidi->pid->nb_buffer_unit;
+	if (stats->max_buffer_time < pidi->pid->max_buffer_time)
+		stats->max_buffer_time = pidi->pid->max_buffer_time;
+
+	if (stats->max_playout_time < pidi->pid->user_max_playout_time)
+		stats->max_playout_time = pidi->pid->user_max_playout_time;
+	if (!stats->min_playout_time || (stats->min_playout_time > pidi->pid->user_min_playout_time))
+		stats->min_playout_time = pidi->pid->user_min_playout_time;
+
+	if (stats->buffer_time < pidi->pid->buffer_duration)
+		stats->buffer_time = pidi->pid->buffer_duration;
+}
+
 static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics *stats)
 {
 	u32 i;
@@ -6451,41 +6490,10 @@ static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics 
 		GF_FilterPidInst *pidi = (GF_FilterPidInst *) gf_list_get(pidi_list, i);
 		if (!pidi->pid) continue;
 
-		stats->avgerage_bitrate += pidi->avg_bit_rate;
-		if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
-			stats->first_process_time = pidi->first_frame_time;
-		if (stats->last_process_time < pidi->last_pck_fetch_time)
-			stats->last_process_time = pidi->last_pck_fetch_time;
-
-		stats->max_bitrate += pidi->max_bit_rate;
-
-		if (stats->max_process_time < (u32) pidi->max_process_time)
-			stats->max_process_time = (u32) pidi->max_process_time;
-		if (stats->max_sap_process_time < (u32) pidi->max_sap_process_time)
-			stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
-		if (!stats->min_frame_dur || (stats->min_frame_dur > pidi->pid->min_pck_duration))
-			stats->min_frame_dur = pidi->pid->min_pck_duration;
-		stats->nb_processed += pidi->nb_processed;
-		stats->nb_saps += pidi->nb_sap_processed;
-		stats->total_process_time += pidi->total_process_time;
-		stats->total_sap_process_time += pidi->total_sap_process_time;
-		stats->average_process_rate += pidi->avg_process_rate;
-		stats->max_process_rate += pidi->max_process_rate;
-
-		if (stats->nb_buffer_units < pidi->pid->nb_buffer_unit)
-			stats->nb_buffer_units = pidi->pid->nb_buffer_unit;
-		if (stats->max_buffer_time < pidi->pid->max_buffer_time)
-			stats->max_buffer_time = pidi->pid->max_buffer_time;
-
-		if (stats->max_playout_time < pidi->pid->user_max_playout_time)
-			stats->max_playout_time = pidi->pid->user_max_playout_time;
-		if (!stats->min_playout_time || (stats->min_playout_time > pidi->pid->user_min_playout_time))
-			stats->min_playout_time = pidi->pid->user_min_playout_time;
-
-		if (stats->buffer_time < pidi->pid->buffer_duration)
-			stats->buffer_time = pidi->pid->buffer_duration;
+		filter_pid_inst_collect_stats(pidi, stats);
 	}
 }
+
 
 static GF_Filter *filter_locate_enc_dec_sink(GF_Filter *filter, Bool locate_decoder)
 {
@@ -6546,20 +6554,7 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 			filter_pid_collect_stats(pid->destinations, stats);
 			return GF_OK;
 		}
-		stats->avgerage_bitrate = pidi->avg_bit_rate;
-		stats->first_process_time = pidi->first_frame_time;
-		stats->last_process_time = pidi->last_pck_fetch_time;
-		stats->max_bitrate = pidi->max_bit_rate;
-		stats->max_process_time = (u32) pidi->max_process_time;
-		stats->max_sap_process_time = (u32) pidi->max_sap_process_time;
-		stats->min_frame_dur = pidi->pid->min_pck_duration;
-		stats->nb_processed = pidi->nb_processed;
-		stats->nb_saps = pidi->nb_sap_processed;
-		stats->total_process_time = pidi->total_process_time;
-		stats->total_sap_process_time = pidi->total_sap_process_time;
-
-		stats->average_process_rate = pidi->avg_process_rate;
-		stats->max_process_rate = pidi->max_process_rate;
+		filter_pid_inst_collect_stats(pidi, stats);
 		return GF_OK;
 	case GF_STATS_LOCAL_INPUTS:
 		if (PID_IS_OUTPUT(pid)) {
@@ -7245,6 +7240,26 @@ char *gf_filter_pid_get_source(GF_FilterPid *pid)
 	}
 	gf_mx_v(pid->filter->tasks_mx);
 	return NULL;
+}
+
+GF_FilterPid *gf_filter_pid_first_pid_for_source(GF_FilterPid *pid, GF_Filter *source)
+{
+	u32 i;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to locate PID on output PID %s in filter %s not allowed\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	pid = pid->pid;
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPid *a_pid;
+		GF_FilterPidInst *a_pidi = gf_list_get(pid->filter->input_pids, i);
+		if (gf_filter_in_parent_chain(a_pidi->pid->filter, source))
+			return (GF_FilterPid *) a_pidi;
+		a_pid = gf_filter_pid_first_pid_for_source((GF_FilterPid *) a_pidi, source);
+		if (a_pid) return a_pid;
+	}
+	return NULL;
+
 }
 
 GF_EXPORT

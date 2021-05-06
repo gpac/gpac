@@ -157,10 +157,10 @@ GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const ch
 		gf_fprintf(dump, " %s 0x%08X", _name, _val);\
 	}
 
-#define DUMP_ATT_F(_name, _val)  if (ctx->xml) { \
-		gf_fprintf(dump, " %s=\"%f\"", _name, _val);\
+#define DUMP_ATT_FRAC(_name, _val)  if (ctx->xml) { \
+		gf_fprintf(dump, " %s=\"%d/%u\"", _name, _val.num, _val.den);\
 	} else {\
-		gf_fprintf(dump, " %s %f", _name, _val);\
+		gf_fprintf(dump, " %s %d/%u", _name, _val.num, _val.den);\
 	}
 
 
@@ -1628,7 +1628,8 @@ static void inspect_finalize(GF_Filter *filter)
 static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
 	u32 val;
-	Double dval;
+	Bool is_announce = GF_FALSE;
+
 	if (ctx->xml) {
 		gf_fprintf(dump, " <TEMILocation");
 	} else {
@@ -1650,6 +1651,7 @@ static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const ch
 	DUMP_ATT_STR("url", att->value.data.ptr)
 	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("announce", 1)
+		is_announce = GF_TRUE;
 	}
 	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("splicing", 1)
@@ -1658,14 +1660,14 @@ static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const ch
 		DUMP_ATT_D("reload", 1)
 	}
 	gf_bs_read_int(pctx->bs, 5);
-	dval =	gf_bs_read_double(pctx->bs);
-	if (dval) {
-		DUMP_ATT_F("splice_start", dval)
+	if (is_announce) {
+		GF_Fraction time;
+		time.den = gf_bs_read_u32(pctx->bs);
+		time.num = gf_bs_read_u32(pctx->bs);
+
+		DUMP_ATT_FRAC("splice_start", time)
 	}
-	dval =	gf_bs_read_double(pctx->bs);
-	if (dval) {
-		DUMP_ATT_F("splice_end", dval)
-	}
+
 	if (ctx->xml) {
 		gf_fprintf(dump, "/>\n");
 	} else {

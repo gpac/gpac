@@ -398,7 +398,7 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	}
 }
 
-static void m2tdmx_merge_temi(GF_M2TS_ES *stream, GF_FilterPacket *pck)
+static void m2tdmx_merge_temi(GF_FilterPid *pid, GF_M2TS_ES *stream, GF_FilterPacket *pck)
 {
 	if (stream->props) {
 		char szID[100];
@@ -411,6 +411,12 @@ static void m2tdmx_merge_temi(GF_M2TS_ES *stream, GF_FilterPacket *pck)
 		}
 		gf_list_del(stream->props);
 		stream->props = NULL;
+
+		if (!(stream->flags & GF_M2TS_ES_TEMI_INFO)) {
+			stream->flags |= GF_M2TS_ES_TEMI_INFO;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_HAS_TEMI, &PROP_BOOL(GF_TRUE) );
+		}
+		
 	}
 }
 
@@ -439,7 +445,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		}
 		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
-	m2tdmx_merge_temi((GF_M2TS_ES *)pck->stream, dst_pck);
+	m2tdmx_merge_temi(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
 
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
@@ -504,7 +510,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 
-	m2tdmx_merge_temi(pck->stream, dst_pck);
+	m2tdmx_merge_temi(opid, pck->stream, dst_pck);
 	if (pck->stream->is_seg_start) {
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
@@ -775,7 +781,10 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		gf_bs_write_int(bs, temi_l->is_splicing, 1);
 		gf_bs_write_int(bs, temi_l->reload_external, 1);
 		gf_bs_write_int(bs, 0, 5);
-		gf_bs_write_double(bs, temi_l->activation_countdown);
+		if (temi_l->is_announce) {
+			gf_bs_write_u32(bs, temi_l->activation_countdown.den);
+			gf_bs_write_u32(bs, temi_l->activation_countdown.num);
+		}
 		gf_bs_get_content(bs, &t->data, &t->len);
 		gf_bs_del(bs);
 

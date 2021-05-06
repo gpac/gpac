@@ -6017,7 +6017,8 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		dm->limit_data_rate = rate_in_bits_per_sec/8;
 
 		sprintf(opt, "%d", rate_in_bits_per_sec);
-		gf_opts_set_key("core", "maxrate", opt);
+		//temporary store of maxrate
+		gf_opts_set_key("temp", "maxrate", opt);
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 		//when rate is limited, use smaller smaller read size

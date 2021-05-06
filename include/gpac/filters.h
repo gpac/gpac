@@ -474,7 +474,8 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *filter_reg, u32 in
 */
 void gf_fs_enable_reporting(GF_FilterSession *session, Bool reporting_on);
 
-/*! Locks global session mutex - mostly used to query filter reports and avoids concurrent destruction of a filter
+/*! Locks global session mutex - mostly used to query filter reports and avoids concurrent destruction of a filter.
+ When adding a filter in an already running session, the session must be locked if set_source is to be used.
 \param session filter session
 \param do_lock if GF_TRUE, session is locked, otherwise session is unlocked
 */
@@ -1152,6 +1153,8 @@ enum
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
 
+	/* All properties below are internal to GPAC*/
+
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
 	//internal for HLS low latency
@@ -1168,7 +1171,10 @@ enum
 	GF_PROP_PCK_HLS_VARIANT_NAME = GF_4CC('D','H','L','N'),
 	GF_PROP_PID_HLS_KMS = GF_4CC('H','L','S','K'),
 	//internal property indicating pointer to associated GF_DownloadSession
-	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T')
+	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
+
+	//PID has temi information
+	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M')
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -1474,6 +1480,8 @@ typedef enum
 
 	/*! Encoder hints*/
 	GF_FEVT_ENCODE_HINTS,
+	/*! NTP source clocl send by other services (eg from TS to dash using TEMI) */
+	GF_FEVT_NTP_REF,
 } GF_FEventType;
 
 /*! type: the type of the event*/
@@ -1664,6 +1672,17 @@ typedef struct
 
 } GF_FEVT_EncodeHints;
 
+
+/*! Event structure for GF_FEVT_NTP_REF*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*! 64 bit NTP timestamp */
+	u64 ntp;
+
+} GF_FEVT_NTPRef;
+
 /*!
 Filter Event object
  */
@@ -1681,6 +1700,7 @@ union __gf_filter_event
 	GF_FEVT_FragmentSize frag_size;
 	GF_FEVT_FileDelete file_del;
 	GF_FEVT_EncodeHints encode_hints;
+	GF_FEVT_NTPRef ntp;
 };
 
 /*! Gets readable name for event type
@@ -1930,6 +1950,14 @@ void gf_filter_abort(GF_Filter *filter);
 \param do_lock if GF_TRUE, locks the filter global mutex, otherwise unlocks it
 */
 void gf_filter_lock(GF_Filter *filter, Bool do_lock);
+
+
+
+/*! Lock global filter session. This is needed when assigning source IDs after a connect  source or destination to the loaded source to connect in an async way
+\param filter target filter
+\param do_lock if GF_TRUE, locks the filter session global mutex, otherwise unlocks it
+*/
+void gf_filter_lock_all(GF_Filter *filter, Bool do_lock);
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum
@@ -2413,6 +2441,8 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, GF_Fraction64 
 
 /*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
 If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used
+
+\Warning In multithreaded sessions, the session must be locked before the filter creation step and unlocked after calling this function, otherwise graph resolution might happen before  gf_filter_set_source is called
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:

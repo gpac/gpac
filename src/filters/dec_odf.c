@@ -122,7 +122,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		attach_desc_to_odm(odm, od);
 
 		gf_list_add(scene->resources, odm);
-		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
+		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString, GF_FALSE);
 		return;
 	}
 
