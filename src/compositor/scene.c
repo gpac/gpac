@@ -2926,6 +2926,9 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
+	//force graph_attached for scalable cases where the inserted pid never connects to the compositor
+	if (mo->odm->subscene)
+		mo->odm->subscene->graph_attached = 1;
 
 	if (mo->odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
 		gf_scene_select_object(mo->odm->parentscene, mo->odm);
@@ -3055,9 +3058,13 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	//notify we found a new addon
 
 	if (! scene->root_od->parentscene) {
-		evt.type = GF_EVENT_ADDON_DETECTED;
-		evt.addon_connect.addon_url = addon->url;
-		addon->enabled = gf_sc_send_event(scene->compositor, &evt);
+		if (!scene->compositor->player && gf_sys_is_test_mode()) {
+			addon->enabled = GF_TRUE;
+		} else {
+			evt.type = GF_EVENT_ADDON_DETECTED;
+			evt.addon_connect.addon_url = addon->url;
+			addon->enabled = gf_sc_send_event(scene->compositor, &evt);
+		}
 
 		if (addon->timeline_ready)
 			load_associated_media(scene, addon);

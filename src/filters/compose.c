@@ -197,6 +197,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *prop;
 	u32 mtype, codecid;
 	u32 i, count;
+	GF_Scene *def_scene = NULL;
 	GF_Scene *scene = NULL;
 	GF_Scene *top_scene = NULL;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
@@ -325,9 +326,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	for (i=0; i<count; i++) {
 		GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
 		if (!sns->source_filter) {
-			if (sns->connect_ack && sns->owner) {
-				scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
-				break;
+			if (sns->connect_ack && sns->owner && !def_scene) {
+				def_scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
 			}
 			continue;
 		}
@@ -381,6 +381,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			break;
 		}
 	}
+	if (!scene) scene = def_scene;
 	assert(scene);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));

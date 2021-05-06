@@ -504,7 +504,9 @@ static void composite_update(GF_TextureHandler *txh)
 	memset(st->tr_state, 0, sizeof(GF_TraverseState));
 	st->tr_state->vrml_sensors = sensor_bck;
 	st->tr_state->visual = st->visual;
+#ifndef GPAC_DISABLE_3D
 	st->tr_state->camera = &st->visual->camera;
+#endif
 	st->tr_state->invalidate_all = invalidate_all;
 
 	st->tr_state->immediate_draw = st->visual->compositor->traverse_state->immediate_draw;

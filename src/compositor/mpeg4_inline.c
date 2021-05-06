@@ -316,11 +316,14 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	/*if not attached return (attaching the graph cannot be done in render since render is not called while unattached :) */
 	if (!scene->graph_attached) {
-		/*just like protos, we must invalidate parent graph until attached*/
-		gf_node_dirty_set(n, 0, GF_TRUE);
-		//and request bew anim frame until attached
-		if (scene->object_attached)
-			gf_sc_invalidate(scene->compositor, NULL);
+		M_Inline *inl = (M_Inline *)n;
+		if (inl->url.count) {
+			/*just like protos, we must invalidate parent graph until attached*/
+			gf_node_dirty_set(n, 0, GF_TRUE);
+			//and request bew anim frame until attached
+			if (scene->object_attached)
+				gf_sc_invalidate(scene->compositor, NULL);
+		}
 		return;
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
