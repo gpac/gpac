@@ -832,6 +832,19 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		gf_list_add(es->props, t);
 	}
 	break;
+	case GF_M2TS_EVT_STREAM_REMOVED:
+	{
+		GF_M2TS_ES *es = (GF_M2TS_ES *)param;
+		if (es && es->props) {
+			while (gf_list_count(es->props)) {
+				GF_TEMIInfo *t = gf_list_pop_back(es->props);
+				gf_free(t->data);
+				gf_free(t);
+			}
+			gf_list_del(es->props);
+		}
+	}
+		break;
 	}
 }
 
