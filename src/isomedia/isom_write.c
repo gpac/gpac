@@ -5040,14 +5040,28 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 
 	need_memcmp = GF_TRUE;
 	for (i=0; i<count; i++) {
-		GF_Box *ent1 = (GF_Box *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->child_boxes, i);
-		GF_Box *ent2 = (GF_Box *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, i);
+		GF_SampleEntryBox *ent1 = (GF_SampleEntryBox *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->child_boxes, i);
+		GF_SampleEntryBox *ent2 = (GF_SampleEntryBox *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, i);
 
-		if (sdesc_index1) ent1 = (GF_Box *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->child_boxes, sdesc_index1 - 1);
-		if (sdesc_index2) ent2 = (GF_Box *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, sdesc_index2 - 1);
+		if (sdesc_index1) ent1 = (GF_SampleEntryBox *)gf_list_get(trak1->Media->information->sampleTable->SampleDescription->child_boxes, sdesc_index1 - 1);
+		if (sdesc_index2) ent2 = (GF_SampleEntryBox *)gf_list_get(trak2->Media->information->sampleTable->SampleDescription->child_boxes, sdesc_index2 - 1);
 
 		if (!ent1 || !ent2) return GF_FALSE;
 		if (ent1->type != ent2->type) return GF_FALSE;
+		if (ent1->internal_type != ent2->internal_type) return GF_FALSE;
+		if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+			GF_VisualSampleEntryBox *vent1 = (GF_VisualSampleEntryBox *) ent1;
+			GF_VisualSampleEntryBox *vent2 = (GF_VisualSampleEntryBox *) ent2;
+			if (vent1->Width != vent2->Width) return GF_FALSE;
+			if (vent1->Height != vent2->Height) return GF_FALSE;
+		}
+		else if (ent1->internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
+			GF_AudioSampleEntryBox *aent1 = (GF_AudioSampleEntryBox *) ent1;
+			GF_AudioSampleEntryBox *aent2 = (GF_AudioSampleEntryBox *) ent2;
+			if (aent1->samplerate_hi != aent2->samplerate_hi) return GF_FALSE;
+			if (aent1->samplerate_lo != aent2->samplerate_lo) return GF_FALSE;
+			if (aent1->channel_count != aent2->channel_count) return GF_FALSE;
+		}
 
 		switch (ent1->type) {
 		/*for MPEG-4 streams, only compare decSpecInfo (bitrate may not be the same but that's not an issue)*/

@@ -483,6 +483,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			lang_desc = NULL;
 		}
 
+		ch->streamType = streamtype;
 
 		if (has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
@@ -1180,8 +1181,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 void isor_update_channel_config(ISOMChannel *ch)
 {
-	isor_declare_track(ch->owner, ch, ch->track, ch->last_sample_desc_index, GF_STREAM_UNKNOWN, GF_FALSE);
-
+	isor_declare_track(ch->owner, ch, ch->track, ch->last_sample_desc_index, ch->streamType, GF_FALSE);
 }
 
 GF_Err isor_declare_objects(ISOMReader *read)
