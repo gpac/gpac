@@ -2328,6 +2328,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					use_base_temi_url = gf_bs_read_int(bs, 1);
 					gf_bs_read_int(bs, 5); //reserved
 					temi_loc.timeline_id = gf_bs_read_int(bs, 7);
+					if (temi_loc.is_announce) {
+						temi_loc.activation_countdown.den = gf_bs_read_u32(bs);
+						temi_loc.activation_countdown.num = gf_bs_read_u32(bs);
+					}
 					if (!use_base_temi_url) {
 						char *_url = URL;
 						u8 scheme = gf_bs_read_int(bs, 8);

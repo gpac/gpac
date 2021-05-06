@@ -47,10 +47,12 @@ typedef struct
 	u32 id;
 	u32 dep_id;
 	u32 codec_id;
+	u32 timescale;
 	Bool sublayer;
 
 	u8 *inject_hdr;
 	u32 inject_hdr_size;
+	GF_Filter *src_filter;
 } GF_HEVCStream;
 
 
@@ -115,9 +117,14 @@ typedef struct
 
 	GF_List *src_packets;
 	Bool drop_non_refs;
+
+	Bool check_hybrid_clock, has_temi_time;
+	u32 temi_media_timescale;
+	u64 temi_media_timestamp, temi_media_pts;
+	u64 last_base_dts;
 } GF_OHEVCDecCtx;
 
-static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid)
+static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 codecid, GF_HEVCStream *stream)
 {
 	GF_HEVCConfig *cfg = NULL;
 	u8 *data;
@@ -153,6 +160,21 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	ctx->cur_layer++;
 	oh_select_active_layer(ctx->codec, ctx->nb_layers-1);
 	oh_select_view_layer(ctx->codec, ctx->nb_layers-1);
+
+	if (ctx->streams[0].src_filter != stream->src_filter) {
+		ctx->check_hybrid_clock = GF_TRUE;
+		if (gf_filter_pid_is_playing(ctx->streams[0].ipid)) {
+			GF_FilterEvent evt;
+
+			GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
+			evt.buffer_req.max_buffer_us = gf_filter_pid_get_max_buffer(ctx->streams[0].ipid);
+			gf_filter_pid_send_event(pid, &evt);
+
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+			gf_filter_pid_send_event(pid, &evt);
+
+		}
+	}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	//LHVC mode with base AVC layer: set extradata for LHVC
@@ -420,6 +442,10 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}
 	ctx->nb_layers = ctx->cur_layer = 1;
 
+	stream->src_filter = gf_filter_pid_get_source_filter(pid);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	stream->timescale = p ? p->value.uint : 1000;
+
 	//temporal sublayer stream setup, do nothing
 	if (stream->sublayer)
 		return GF_OK;
@@ -427,7 +453,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	//scalable stream setup
 	if (stream->dep_id) {
 		GF_Err e;
-		e = ohevcdec_configure_scalable_pid(ctx, pid, codecid);
+		e = ohevcdec_configure_scalable_pid(ctx, pid, codecid, stream);
 		ohevcdec_set_codec_name(filter);
 		return e;
 	}
@@ -997,6 +1023,31 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	return GF_OK;
 }
 
+static u64 translate_ts_temi(GF_OHEVCDecCtx *ctx, GF_HEVCStream *stream, s64 ts)
+{
+	if (stream->timescale != ctx->temi_media_timescale) {
+		ts *= ctx->temi_media_timescale;
+		ts /= stream->timescale;
+	}
+	ts -= ctx->temi_media_timestamp;
+
+	//translate to output timescale
+	if (ctx->temi_media_timescale != ctx->streams[0].timescale) {
+		ts *= ctx->streams[0].timescale;
+		ts /= ctx->temi_media_timescale;
+	}
+	if (ctx->streams[0].timescale != 90000) {
+		u64 diff = ctx->temi_media_pts;
+		diff *= ctx->streams[0].timescale;
+		diff /= 90000;
+ 		ts += diff;
+	} else {
+		ts += ctx->temi_media_pts;
+	}
+	if (ts<0) return 0;
+	return ts;
+}
+
 static GF_Err ohevcdec_process(GF_Filter *filter)
 {
 	s32 got_pic;
@@ -1042,6 +1093,28 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	}
 	if (!ctx->codec) return GF_SERVICE_ERROR;
 
+	if (ctx->check_hybrid_clock) {
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[0].ipid);
+		u32 idx=0;
+		while (pck) {
+			GF_BitStream *bs;
+			u32 p4cc;
+			const char *pname;
+			const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &p4cc, &pname);
+			if (!p) break;
+			if (!pname) continue;
+			if (p->type != GF_PROP_DATA) continue;
+			if (strncmp(pname, "temi_t:", 7)) continue;
+
+			bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+			ctx->temi_media_timescale = gf_bs_read_u32(bs);
+			ctx->temi_media_timestamp = gf_bs_read_u64(bs);
+			ctx->temi_media_pts = gf_bs_read_u64(bs);
+			ctx->has_temi_time = GF_TRUE;
+			gf_bs_del(bs);
+		}
+	}
+
 	//probe all streams
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -1066,6 +1139,18 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
+
+		//adjust timing
+		if (idx && ctx->check_hybrid_clock && (ctx->streams[0].src_filter!=ctx->streams[idx].src_filter) && ctx->has_temi_time ) {
+			dts = translate_ts_temi(ctx, &ctx->streams[idx], (s64) dts);
+			cts = translate_ts_temi(ctx, &ctx->streams[idx], (s64) cts);
+
+			if (ctx->last_base_dts > dts) {
+				gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
+				idx--;
+				continue;
+			}
+		}
 
 		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 		//TODO: this is a clock signaling, for now just trash ..
@@ -1137,7 +1222,16 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
+
+		//adjust timing
+		if (idx && ctx->check_hybrid_clock && (ctx->streams[0].src_filter!=ctx->streams[idx].src_filter) && ctx->has_temi_time ) {
+			dts = translate_ts_temi(ctx, &ctx->streams[idx], (s64) dts);
+			cts = translate_ts_temi(ctx, &ctx->streams[idx], (s64) cts);
+		}
+
 		if (dts==GF_FILTER_NO_TS) dts = cts;
+
+		if (!idx) ctx->last_base_dts = dts;
 
 		if (min_dts != GF_FILTER_NO_TS) {
 			if (min_dts != dts) continue;

@@ -1480,6 +1480,9 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, NULL);
 
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_CRYPT_SCHEME, &PROP_UINT(scheme_type) );
+
+
 	cstr->is_nalu = GF_FALSE;;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (prop) {

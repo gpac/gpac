@@ -242,6 +242,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
+		Bool notify_quality = GF_FALSE;
 		if (mtype==GF_STREAM_SCENE) { }
 		else if (mtype==GF_STREAM_OD) { }
 		//change of stream type for a given object, no use case yet
@@ -257,8 +258,18 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			gf_odm_update_duration(odm, pid);
 			gf_odm_check_clock_mediatime(odm);
+			notify_quality = GF_TRUE;
 		}
 		merge_properties(ctx, pid, mtype, odm->parentscene);
+
+		if (notify_quality) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_QUALITY_SWITCHED;
+
+			gf_filter_forward_gf_event(filter, &evt, GF_FALSE, GF_FALSE);
+		}
+
 		return GF_OK;
 	}
 
@@ -298,6 +309,17 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	scene = ctx->root_scene;
 	top_scene = ctx->root_scene;
 
+	switch (mtype) {
+	case GF_STREAM_SCENE:
+	case GF_STREAM_OD:
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
+		if (prop && prop->value.boolean) {
+			in_iod = GF_TRUE;
+		}
+		break;
+	}
+
+
 	//browse all scene namespaces and figure out our parent scene
 	count = gf_list_count(top_scene->namespaces);
 	for (i=0; i<count; i++) {
@@ -311,6 +333,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
 				u32 j;
 				for (j=0; j<gf_list_count(sns->owner->parentscene->scene_objects); j++) {
@@ -329,8 +352,17 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					break;
 				}
 			}
+			if (!in_iod
+				&& sns->owner->parentscene
+				&& sns->owner->parentscene->root_od
+				&& sns->owner->parentscene->root_od->pid
+				&& ((sns->owner->parentscene->root_od->type==GF_STREAM_SCENE) || (sns->owner->parentscene->root_od->type==GF_STREAM_OD))
+			) {
+				scene_setup = GF_TRUE;
+			}
+
 			//we are attaching an inline, create the subscene if not done already
-			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+			if (!scene_setup && !sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE))  ) {
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
 				//created from a container (mp4) and still referring to that container for the media streams
 				if (sns->owner->ignore_sys) {
@@ -362,15 +394,14 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	switch (mtype) {
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-		if (prop && scene->is_dynamic_scene) {
+		if (in_iod) {
 			scene->is_dynamic_scene = GF_FALSE;
-		}
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-		if (prop && prop->value.boolean) {
-			scene->is_dynamic_scene = GF_FALSE;
-			in_iod = GF_TRUE;
+		} else {
+			//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+			if (prop && scene->is_dynamic_scene) {
+				scene->is_dynamic_scene = GF_FALSE;
+			}
 		}
 		break;
 	}
@@ -399,6 +430,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_sg_reset(scene->graph);
 		gf_sc_set_scene(ctx, scene->graph);
 		ctx->reload_scene_size = GF_TRUE;
+		//force clock to NULL, will resetup based on OCR_ES_IDs
+		scene->root_od->ck = NULL;
 	}
 
 	//setup object (clock) and playback requests

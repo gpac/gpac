@@ -46,7 +46,7 @@ extension.view_stats = function () {
 		}
 
         var label = '' + m.type;
-		if (m.dependent_group_id) label += '(Dep. Group)';
+		if (m.dependent_group_id) label += '(dep grp#' + m.dependent_group_id + ')';
         else if (m.scalable_enhancement) label += ' (Enh. Layer)';
         else if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
         else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';

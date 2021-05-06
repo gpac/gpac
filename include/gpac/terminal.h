@@ -202,13 +202,6 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn
 \return error if any
 */
 GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height);
-
-/*! process shortcuts for key events
-\param term the target terminal
-\param ev the event to process
-*/
-void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
-
 /*! sets playback speed
 \param term the target terminal
 \param speed the requested speed
