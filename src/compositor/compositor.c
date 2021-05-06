@@ -1253,7 +1253,6 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	compositor->grab_use = NULL;
 	compositor->focus_node = NULL;
 	compositor->focus_text_type = 0;
-	compositor->frame_number = 0;
 	if (compositor->video_memory!=2)
 		compositor->video_memory = compositor->was_system_memory ? 0 : 1;
 	compositor->rotation = 0;
@@ -2875,10 +2874,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				emit_frame = GF_FALSE;
 				compositor->last_error = GF_OK;
 			}
-			else if (!scene_drawn) emit_frame = GF_FALSE;
-			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
-			else if (compositor->fonts_pending>0) emit_frame = GF_FALSE;
-			else emit_frame = GF_TRUE;
+			else if (!scene_drawn)
+				emit_frame = GF_FALSE;
+			else if (compositor->frame_draw_type)
+				emit_frame = GF_FALSE;
+			else if (compositor->fonts_pending>0)
+				emit_frame = GF_FALSE;
+			else
+				emit_frame = GF_TRUE;
 
 #ifdef GPAC_CONFIG_ANDROID
             if (!emit_frame && scene_drawn) {
@@ -3056,6 +3059,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				assert(res >= compositor->scene_sampled_clock);
 				compositor->scene_sampled_clock = (u32) res;
 			}
+
+			if (all_tx_done && !has_timed_nodes)
+				compositor->check_eos_state = 2;
 		}
 	}
 	compositor->reset_graphics = 0;

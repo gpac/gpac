@@ -435,6 +435,10 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	char *url_with_args = NULL;
 	Bool reloc_result=GF_FALSE;
 
+    if (addon_parent_ns) {
+		parent_url = NULL;
+    }
+
 	/*check cache*/
 	if (parent_url) {
 		u32 i, count;
@@ -504,7 +508,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		if (frag) frag[0] = '#';
 		return;
 	}
-	if (!parent_url && odm->parentscene && odm->parentscene->root_od->scene_ns)
+	if (!addon_parent_ns && !parent_url && odm->parentscene && odm->parentscene->root_od->scene_ns)
 		parent_url = odm->parentscene->root_od->scene_ns->url;
 
 	//we setup an addon, use the same filter chain (so copy source id) as orginial content
@@ -532,7 +536,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		GF_Scene *target_scene = odm->subscene ? NULL : odm->parentscene;
 
 		gf_filter_lock_all(scene->compositor->filter, GF_FALSE);
-		if (!odm->mo) {
+		if (!odm->mo && target_scene) {
 			u32 i;
 			for (i=0; i<gf_list_count(target_scene->scene_objects); i++) {
 				GF_MediaObject *mo = gf_list_get(target_scene->scene_objects, i);
