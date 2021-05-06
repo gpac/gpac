@@ -663,6 +663,14 @@ static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	} else if (!filter->source_ids) {
 		filter->source_ids = gf_strdup(sources_ID);
 	} else {
+		char *found = strstr(filter->source_ids, sources_ID);
+		if (found) {
+			u32 len = (u32) strlen(sources_ID);
+			if ((found[len]==0) || (found[len]==',')) {
+				gf_mx_v(filter->session->filters_mx);
+				return;
+			}
+		}
 		gf_dynstrcat(&filter->source_ids, sources_ID, ",");
 	}
 
@@ -4361,6 +4369,16 @@ void gf_filter_lock(GF_Filter *filter, Bool do_lock)
 		gf_mx_p(filter->tasks_mx);
 	else
 		gf_mx_v(filter->tasks_mx);
+}
+
+GF_EXPORT
+void gf_filter_lock_all(GF_Filter *filter, Bool do_lock)
+{
+	if (!filter) return;
+	if (do_lock)
+		gf_mx_p(filter->session->filters_mx);
+	else
+		gf_mx_v(filter->session->filters_mx);
 }
 
 void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)

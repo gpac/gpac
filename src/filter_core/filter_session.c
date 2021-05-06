@@ -122,6 +122,15 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 	if (evt->type==GF_EVENT_QUIT) {
 		gf_fs_abort(fs, GF_FALSE);
 	}
+	if (evt->type==GF_EVENT_MESSAGE) {
+		if (evt->message.error) {
+			if (evt->message.service) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Service %s %s: %s\n", evt->message.service, evt->message.message, gf_error_to_string(evt->message.error) ))
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("%s: %s\n", evt->message.message, gf_error_to_string(evt->message.error) ))
+			}
+		}
+	}
 
 #ifdef GPAC_HAS_QJS
 	if (fs->on_evt_task)
@@ -129,6 +138,12 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 #endif
 	return 0;
 }
+
+
+#ifdef GF_FS_ENABLE_LOCALES
+static Bool fs_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path);
+#endif
+
 
 GF_EXPORT
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
@@ -343,6 +358,12 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		}
 	}
 
+#ifdef GF_FS_ENABLE_LOCALES
+	fsess->uri_relocators = gf_list_new();
+	fsess->locales.relocate_uri = fs_check_locales;
+	fsess->locales.sess = fsess;
+	gf_list_add(fsess->uri_relocators, &fsess->locales);
+#endif
 	return fsess;
 }
 
@@ -726,6 +747,11 @@ void gf_fs_del(GF_FilterSession *fsess)
 		}
 		gf_list_del(fsess->auto_inc_nums);
 	}
+
+#ifdef GF_FS_ENABLE_LOCALES
+	if (fsess->uri_relocators) gf_list_del(fsess->uri_relocators);
+	if (fsess->locales.szAbsRelocatedPath) gf_free(fsess->locales.szAbsRelocatedPath);
+#endif
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
@@ -2794,34 +2820,40 @@ GF_Err gf_filter_remove_event_listener(GF_Filter *filter, GF_FSEventListener *el
 }
 
 GF_EXPORT
-Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
+Bool gf_fs_forward_gf_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool skip_user)
 {
-	if (!filter || !filter->session || filter->session->in_final_flush) return GF_FALSE;
+	if (!fsess || fsess->in_final_flush) return GF_FALSE;
 
-	if (filter->session->event_listeners) {
+	if (fsess->event_listeners) {
 		GF_FSEventListener *el;
 		u32 i=0;
 
-		gf_mx_p(filter->session->evt_mx);
-		filter->session->in_event_listener ++;
-		gf_mx_v(filter->session->evt_mx);
-		while ((el = gf_list_enum(filter->session->event_listeners, &i))) {
+		gf_mx_p(fsess->evt_mx);
+		fsess->in_event_listener ++;
+		gf_mx_v(fsess->evt_mx);
+		while ((el = gf_list_enum(fsess->event_listeners, &i))) {
 			if (el->on_event(el->udta, evt, consumed)) {
-				filter->session->in_event_listener --;
+				fsess->in_event_listener --;
 				return GF_TRUE;
 			}
 		}
-		filter->session->in_event_listener --;
+		fsess->in_event_listener --;
 	}
 
-	if (!skip_user && !consumed && filter->session->ui_event_proc) {
+	if (!skip_user && !consumed && fsess->ui_event_proc) {
 		Bool res;
-//		term->nb_calls_in_event_proc++;
-		res = gf_fs_ui_event(filter->session, evt);
-//		term->nb_calls_in_event_proc--;
+		res = gf_fs_ui_event(fsess, evt);
 		return res;
 	}
 	return GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
+{
+	if (!filter) return GF_FALSE;
+	return gf_fs_forward_gf_event(filter->session, evt, consumed, skip_user);
+
 }
 
 GF_EXPORT
@@ -3084,6 +3116,17 @@ u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
 	}
 }
 
+static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
+{
+	GF_Event evt;
+	GF_FilterSession *fsess = (GF_FilterSession *)usr_cbk;
+	evt.type = GF_EVENT_AUTHORIZATION;
+	evt.auth.site_url = site_url;
+	evt.auth.user = usr_name;
+	evt.auth.password = password;
+	return gf_fs_forward_gf_event(fsess, &evt, GF_FALSE, GF_FALSE);
+}
+
 GF_EXPORT
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 {
@@ -3093,6 +3136,9 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 
 	if (!fsess->download_manager) {
 		fsess->download_manager = gf_dm_new(fsess);
+
+		gf_dm_set_auth_callback(fsess->download_manager, gf_fsess_get_user_pass, fsess);
+
 	}
 	return fsess->download_manager;
 }
@@ -3627,11 +3673,9 @@ GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_fi
 }
 
 
+#ifdef GF_FS_ENABLE_LOCALES
 
-#ifdef FILTER_FIXME
-
-
-static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)
+static Bool fsess_find_res(GF_FSLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)
 {
 	FILE *f;
 
@@ -3653,12 +3697,12 @@ static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *r
    if this is the case, it returns the absolute localized path, otherwise it returns null.
    if the resource was localized, the last parameter is set to the localized relative path.
 */
-static Bool term_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
+static Bool fs_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
 {
 	char path[GF_MAX_PATH];
 	const char *opt;
 
-	GF_TermLocales *loc = (GF_TermLocales*)__self;
+	GF_FSLocales *loc = (GF_FSLocales*)__self;
 
 	/* Checks if the rel_path argument really contains a relative path (no ':', no '/' at the beginning) */
 	if (strstr(rel_path, "://") || (rel_path[0]=='/') || strstr(rel_path, ":\\") || !strncmp(rel_path, "\\\\", 2)) {
@@ -3700,7 +3744,7 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 		}
 
 		sprintf(path, "locales/%s/%s", lan, rel_path);
-		if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
+		if (fsess_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
 			return 1;
 
 		/*recursively remove region (sub)tags*/
@@ -3709,18 +3753,39 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 			if (!sep) break;
 			sep[0] = 0;
 			sprintf(path, "locales/%s/%s", lan, rel_path);
-			if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
+			if (fsess_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
 				return 1;
 		}
 	}
 
-	if (term_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path))
+	if (fsess_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path))
 		return 1;
 	/* if we did not find the localized file, both the relocated and localized strings are NULL */
 	strcpy(localized_rel_path, "");
 	strcpy(relocated_path, "");
 	return 0;
 }
-
 #endif
 
+static Bool gf_fs_relocate_url(GF_FilterSession *session, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
+{
+#ifdef GF_FS_ENABLE_LOCALES
+	u32 i, count;
+
+	count = gf_list_count(session->uri_relocators);
+	for (i=0; i<count; i++) {
+		Bool result;
+		GF_URIRelocator *uri_relocator = gf_list_get(session->uri_relocators, i);
+		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, out_relocated_url, out_localized_url);
+		if (result) return 1;
+	}
+#endif
+	return 0;
+}
+
+GF_EXPORT
+Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
+{
+	if (!filter) return 0;
+	return gf_fs_relocate_url(filter->session, service_url, parent_url, out_relocated_url, out_localized_url);
+}

@@ -112,18 +112,6 @@ static GF_Err svgin_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-#ifdef FILTER_FIXME
-	if (stream_time==(u32)-1) {
-		if (svgin->src) gf_gzclose(svgin->src);
-		svgin->src = NULL;
-		gf_sm_load_done(&svgin->loader);
-		svgin->loader.fileName = NULL;
-		svgin->file_pos = 0;
-		gf_sg_reset(svgin->scene->graph);
-		return GF_OK;
-	}
-#endif
-
 	switch (svgin->codecid) {
 	/*! streaming SVG*/
 	case GF_CODECID_SVG:

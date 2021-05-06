@@ -1598,6 +1598,25 @@ static JSValue jsf_filter_add_filter(JSContext *ctx, JSValueConst this_val, int 
 {
 	return jsf_filter_load_filter(ctx, this_val, argc, argv, JSF_FINST_FILTER);
 }
+
+static JSValue jsf_filter_lock(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	Bool do_lock;
+    if (!jsf || !argc) return JS_EXCEPTION;
+    do_lock = JS_ToBool(ctx, argv[0]) ? GF_TRUE : GF_FALSE;
+	gf_filter_lock(jsf->filter, do_lock);
+	return JS_UNDEFINED;
+}
+static JSValue jsf_filter_lock_all(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	Bool do_lock;
+    if (!jsf || !argc) return JS_EXCEPTION;
+    do_lock = JS_ToBool(ctx, argv[0]) ? GF_TRUE : GF_FALSE;
+	gf_filter_lock_all(jsf->filter, do_lock);
+	return JS_UNDEFINED;
+}
 static JSValue jsf_filter_make_sticky(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
@@ -1687,6 +1706,8 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("add_source", 0, jsf_filter_add_source),
     JS_CFUNC_DEF("add_destination", 0, jsf_filter_add_dest),
     JS_CFUNC_DEF("add_filter", 0, jsf_filter_add_filter),
+    JS_CFUNC_DEF("lock", 0, jsf_filter_lock),
+    JS_CFUNC_DEF("lock_all", 0, jsf_filter_lock_all),
     JS_CFUNC_DEF("make_sticky", 0, jsf_filter_make_sticky),
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),

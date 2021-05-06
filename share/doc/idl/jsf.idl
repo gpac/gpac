@@ -237,6 +237,16 @@ void hint_clock(unsigned long long time_in_microseconds, double media_time_sec);
 */
 void send_update(DOMString filter_id, DOMString arg_name, DOMString arg_value, long propagate_mask);
 
+/*! locks filter session - see \ref gf_filter_lock_all
+\param do_lock if true locks filter
+*/
+void lock_all(boolean do_lock);
+
+/*! locks a filter - see \ref gf_filter_lock
+\param do_lock if true locks filter
+*/
+void lock(boolean do_lock);
+
 /*! adds a source filter in the media session - see \ref gf_filter_connect_source
 \param source URL of source to load
 \param parent URL of parent, used as baseURL for the source. May be NULL

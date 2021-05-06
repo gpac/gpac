@@ -88,6 +88,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	st = (CompositeTextureStack *) gf_node_get_private(visual->offscreen);
 
 	if (!compositor_texture_rectangles(visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
+	if (! ctx->aspect.fill_texture->data) return 0;
 
 	memset(&video_src, 0, sizeof(GF_VideoSurface));
 	video_src.height = ctx->aspect.fill_texture->height;
@@ -503,6 +504,7 @@ static void composite_update(GF_TextureHandler *txh)
 	memset(st->tr_state, 0, sizeof(GF_TraverseState));
 	st->tr_state->vrml_sensors = sensor_bck;
 	st->tr_state->visual = st->visual;
+	st->tr_state->camera = &st->visual->camera;
 	st->tr_state->invalidate_all = invalidate_all;
 
 	st->tr_state->immediate_draw = st->visual->compositor->traverse_state->immediate_draw;

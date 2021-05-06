@@ -102,10 +102,6 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 
 	txh->last_frame_time = (u32) (-1);
 
-	//we need to rework the raw memory stuff to be transparent
-#ifdef FILTER_FIXME
-	txh->raw_memory = GF_FALSE;
-#endif
 	/*request play*/
 	return GF_OK;
 }

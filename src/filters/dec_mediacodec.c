@@ -873,7 +873,8 @@ static GF_Err mcdec_process(GF_Filter *filter)
 
 	Bool mcdec_buffer_available = GF_FALSE;
 
-#if FILTER_FIXME
+	//commented out, leading to some crashes
+#if 0
 	if (!ctx->before_exit_registered) {
 		ctx->before_exit_registered = GF_TRUE;
 		if (gf_register_before_exit_function(gf_th_current(), &mcdec_exit_callback) != GF_OK) {
