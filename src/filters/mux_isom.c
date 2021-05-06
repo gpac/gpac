@@ -174,6 +174,8 @@ typedef struct
 	u64 max_cts, min_cts;
 	u32 max_cts_samp_dur;
 
+	u32 w_or_sr, h_or_ch, pf_or_af;
+
 } TrackWriter;
 
 enum
@@ -1672,13 +1674,15 @@ sample_entry_setup:
 		use_m4sys = GF_FALSE;
 		tkw->skip_bitrate_update = GF_TRUE;
 		if (tkw->stream_type == GF_STREAM_AUDIO) {
+			u32 afmt;
 			u32 req_non_planar_type = 0;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
 			if (!p) break;
 			comp_name = "RawAudio";
 			unknown_generic = GF_FALSE;
+			afmt = p->value.uint;
 			//m_subtype used for QTFF-style raw media, m_subtype_alt_raw for ISOBMFF raw audio
-			switch (p->value.uint) {
+			switch (afmt) {
 			case GF_AUDIO_FMT_U8P:
 			 	req_non_planar_type = GF_AUDIO_FMT_U8;
 			case GF_AUDIO_FMT_U8:
@@ -1727,7 +1731,7 @@ sample_entry_setup:
 					return GF_NOT_SUPPORTED;
 				}
 			}
-			raw_bitdepth = gf_audio_fmt_bit_depth(p->value.uint);
+			raw_bitdepth = gf_audio_fmt_bit_depth(afmt);
 			tkw->raw_audio_bytes_per_sample = raw_bitdepth;
 			tkw->raw_audio_bytes_per_sample *= nb_chan;
 			tkw->raw_audio_bytes_per_sample /= 8;
@@ -1736,10 +1740,21 @@ sample_entry_setup:
 			//force timescale to be samplerate, except if explicit overwrite
 			if (ctx->mediats==0)
 				tkw->tk_timescale = tkw->raw_samplerate;
+
+			if ((sr == tkw->w_or_sr) && (nb_chan==tkw->h_or_ch) && (afmt==tkw->pf_or_af)) {
+
+			} else {
+				needs_sample_entry = GF_TRUE;
+				tkw->w_or_sr = sr;
+				tkw->h_or_ch = nb_chan;
+				tkw->pf_or_af = afmt;
+			}
 		}
 		else if (tkw->stream_type == GF_STREAM_VISUAL) {
+			u32 pfmt;
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 			if (!p) break;
+			pfmt = p->value.uint;
 			comp_name = "RawVideo";
 			unknown_generic = GF_FALSE;
 			tkw->skip_bitrate_update = GF_TRUE;
@@ -1751,6 +1766,15 @@ sample_entry_setup:
 			} else {
 				unknown_generic = GF_TRUE;
 				m_subtype = p->value.uint;
+			}
+
+			if ((width == tkw->w_or_sr) && (height==tkw->h_or_ch) && (pfmt==tkw->pf_or_af)) {
+
+			} else {
+				needs_sample_entry = GF_TRUE;
+				tkw->w_or_sr = width;
+				tkw->h_or_ch = height;
+				tkw->pf_or_af = pfmt;
 			}
 		}
 		break;
