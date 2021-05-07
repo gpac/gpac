@@ -1358,6 +1358,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_AUDIO_DTS:
+		case GF_M2TS_AUDIO_OPUS:
 		case GF_M2TS_MHAS_MAIN:
 		case GF_M2TS_MHAS_AUX:
 		case GF_M2TS_SUBTITLE_DVB:
@@ -1493,13 +1494,27 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_REGISTRATION_DESCRIPTOR:
 					if (len>=4) {
 						reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
-						/* cf http://www.smpte-ra.org/mpegreg/mpegreg.html */
+						/* cf https://smpte-ra.org/registered-mpeg-ts-ids */
 						switch (reg_desc_format) {
 						case GF_M2TS_RA_STREAM_AC3:
 							es->stream_type = GF_M2TS_AUDIO_AC3;
 							break;
+						case GF_M2TS_RA_STREAM_EAC3:
+							es->stream_type = GF_M2TS_AUDIO_EC3;
+							break;
 						case GF_M2TS_RA_STREAM_VC1:
 							es->stream_type = GF_M2TS_VIDEO_VC1;
+							break;
+						case GF_M2TS_RA_STREAM_HEVC:
+							es->stream_type = GF_M2TS_VIDEO_HEVC;
+							break;
+						case GF_M2TS_RA_STREAM_DTS1:
+						case GF_M2TS_RA_STREAM_DTS2:
+						case GF_M2TS_RA_STREAM_DTS3:
+							es->stream_type = GF_M2TS_AUDIO_DTS;
+							break;
+						case GF_M2TS_RA_STREAM_OPUS:
+							es->stream_type = GF_M2TS_AUDIO_OPUS;
 							break;
 						case GF_M2TS_RA_STREAM_GPAC:
 							if (len==8) {
