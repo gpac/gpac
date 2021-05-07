@@ -352,7 +352,7 @@ MP4BoxArg m4b_gen_args[] =
  	{"inter", NULL, "interleave file, producing track chunks with given duration in ms. A value of 0 disables interleaving ", "0.5", NULL, GF_ARG_DOUBLE, 0, parse_store_mode, 0, ARG_IS_FUN},
  	MP4BOX_ARG("old-inter", "same as [-inter]() but without drift correction", GF_ARG_DOUBLE, GF_ARG_HINT_EXPERT, parse_store_mode, 1, ARG_IS_FUN),
  	MP4BOX_ARG("tight", "tight interleaving (sample based) of the file. This reduces disk seek operations but increases file size", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &full_interleave, 0, ARG_OPEN_EDIT|ARG_NEED_SAVE),
- 	MP4BOX_ARG("flat", "store file with all media data first, non-interleaved. This speeds up writing time when creating new files", GF_ARG_BOOL, 0, &do_flat, 0, ARG_OPEN_EDIT| ARG_NO_INPLACE),
+ 	MP4BOX_ARG("flat", "store file with all media data first, non-interleaved. This speeds up writing time when creating new files", GF_ARG_BOOL, 0, &do_flat, 0, ARG_NO_INPLACE),
  	MP4BOX_ARG("frag", "fragment file, producing track fragments of given duration in ms. This disables interleaving", GF_ARG_DOUBLE, 0, parse_store_mode, 2, ARG_IS_FUN),
  	MP4BOX_ARG("out", "specify ISOBMFF output file name. By default input file is overwritten", GF_ARG_STRING, 0, &outName, 0, 0),
  	MP4BOX_ARG("co64","force usage of 64-bit chunk offsets for ISOBMF files", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &force_co64, 0, ARG_OPEN_EDIT),
@@ -479,19 +479,19 @@ MP4BoxArg m4b_split_args[] =
  	MP4BOX_ARG("split", "split in files of given max duration", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (in kb)", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract the specified time range formatted as:\n"
-	"- `S:E` or `S-E`: `S` start time and `E` end time in seconds (int, double, fraction)\n"
-	"- `S:end` or `S:end-N`: `S` start time in seconds (int, double), `N` number of seconds (int, double) before the end\n"
-	"- `S-E`: start and end dates, each formatted as `HH:MM:SS.ms` or `MM:SS.ms`", GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
-	MP4BOX_ARG("splitz", "same as -splitx, but adjust range times so that ranges `A:B` and `B:C` share exactly the same boundary `B`:\n"
+	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract the specified time range as follows:\n"
+	"- the start time is moved to the RAP sample closest to the specified start time\n"
+	"- the end time is kept as requested"
+		, GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
+	MP4BOX_ARG("splitz", "extract the specified time range so that ranges `A:B` and `B:C` share exactly the same boundary `B`:\n"
 	"- the start time is moved to the RAP sample at or after the specified start time\n"
 	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
-	, GF_ARG_STRING, 0, parse_split, 4, ARG_IS_FUN),
-	MP4BOX_ARG("splitg", "same as -splitx, but adjust range times so that:\n"
+		, GF_ARG_STRING, 0, parse_split, 4, ARG_IS_FUN),
+	MP4BOX_ARG("splitg", "extract the specified time range as follows:\n"
 	"- the start time is moved to the RAP sample at or before the specified start time\n"
 	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
-	, GF_ARG_STRING, 0, parse_split, 5, ARG_IS_FUN),
-	MP4BOX_ARG("splitf", "same as -splitx but insert edits such that the extracted output is exactly the specified range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
+		, GF_ARG_STRING, 0, parse_split, 5, ARG_IS_FUN),
+	MP4BOX_ARG("splitf", "extract the specified time range and insert edits such that the extracted output is exactly the specified range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
 	{0}
 };
 
@@ -507,6 +507,11 @@ static void PrintSplitUsage()
 		"The input file must have enough random access points in order to be split. If this is not the case, you will have to re-encode the content.\n"
 		"You can add media to a file and split it in the same pass. In this case, the destination file (the one which would be obtained without splitting) will not be stored.\n"
 		"  \n"
+		"Time ranges are specified as follows:\n"
+		"- `S-E`: `S` start and `E` end times, formatted as `HH:MM:SS.ms`, `MM:SS.ms` or time in seconds (int, double, fraction)\n"
+		"- `S:E`: `S` start time and `E` end times in seconds (int, double, fraction)\n"
+		"- `S:end` or `S:end-N`: `S` start time in seconds (int, double), `N` number of seconds (int, double) before the end\n"
+		"  \n"
 		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
 		"- `splitrange` option of the reframer is always set\n"
 		"- source is demuxed with `alltk` option set\n"
@@ -515,6 +520,8 @@ static void PrintSplitUsage()
 		"- for `-splitg`, options `xadjust` and `xround=before` are enforced\n"
 		"- for `-splitf`, option `xround=seek` is enforced and `propbe_ref`set if not specified at prompt\n"
 		"- for `-splitx`, option `xround=closest` and `propbe_ref` are enforced if not specified at prompt\n"
+		"  \n"
+		"The output file(s) storage mode can be specified using -flat, -newfs, -inter and -frag\n"
 		"  \n"
 	);
 
@@ -5524,7 +5531,7 @@ int mp4boxMain(int argc, char **argv)
 		/*by default use single fragment per dash segment*/
 		if (dash_duration)
 			interleaving_time = dash_duration;
-		else if (!do_flat) {
+		else if (!do_flat && !(split_duration || split_size || split_range_str)) {
 			interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 		}
 	}
@@ -5682,6 +5689,16 @@ int mp4boxMain(int argc, char **argv)
 		e = do_dash();
 		if (e) return mp4box_cleanup(1);
 		goto exit;
+	}
+
+	if (split_duration || split_size || split_range_str) {
+		if (force_new==2) {
+			do_flat = 3;
+			force_new = 0;
+		}
+	} else {
+		if (do_flat)
+			open_edit = GF_TRUE;
 	}
 
 	//need to open input

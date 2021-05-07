@@ -1777,6 +1777,10 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 	return GF_FALSE;
 }
 
+extern u32 do_flat;
+extern Bool do_frag;
+extern Double interleaving_time;
+
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
 	Bool chunk_extraction, rap_split, split_until_end;
@@ -1915,6 +1919,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 
 	reframe = gf_fs_load_filter(fs, filter_args, &e);
 	gf_free(filter_args);
+	filter_args = NULL;
 	if (!reframe) {
 		M4_LOG(GF_LOG_ERROR, ("Failed to load reframer filter: %s\n", gf_error_to_string(e) ));
 		gf_fs_del(fs);
@@ -1926,6 +1931,22 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	} else {
 		strcpy(szFile, outName);
 	}
+	if (do_frag) {
+		sprintf(szArgs, ":cdur=%g", interleaving_time);
+		strcat(szFile, ":store=frag");
+		strcat(szFile, szArgs);
+	}
+	else if (do_flat==1) {
+		strcat(szFile, ":store=flat");
+	}
+	else if (do_flat || interleaving_time) {
+		if (do_flat==3) {
+			strcat(szFile, ":store=fstart");
+		}
+		sprintf(szArgs, ":cdur=%g", interleaving_time);
+		strcat(szFile, szArgs);
+	}
+
 	dst = gf_fs_load_destination(fs, szFile, NULL, NULL, &e);
 	if (!dst) {
 		M4_LOG(GF_LOG_ERROR, ("Failed to load destination filter: %s\n", gf_error_to_string(e) ));
