@@ -16,17 +16,23 @@ MP4Box is a multimedia packager, with a vast number of functionalities: conversi
 .br
 MP4Box provides a large set of options, classified by categories (see .I -h). These options do not follow any particular ordering.
 .br
-MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behavior by using the .I out option.
+  
 .br
-MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use .I flat to change this behavior.
+By default, MP4Box rewrites the input file. You can change this behavior by using the .I out option.
+.br
+MP4Box stores by default the file with 0.5 second interleaving and meta-data (moov ...) at the beginning, making it suitable for HTTP download-and-play. This may however takes longer to store the file, use .I flat to change this behavior.
+.br
+  
 .br
 MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with .I tmp.
 .br
-Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.
+  
 .br
 Option values:
 .br
-Unless specified otherwise, an option of type integer expects a trackID value following it.An option of type boolean expects no following value.  
+Unless specified otherwise, an option of type integer expects a trackID value following it.An option of type boolean expects no following value.Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.
+.br
+  
 .br
 .TP
 .B \-mem-track
@@ -1208,6 +1214,11 @@ same as .I dsap but only print presentation time
 .B \-dcr
 .br
 dump ISMACryp samples structure to XML output
+.br
+.TP
+.B \-dchunk
+.br
+dump chunk info
 .br
 .TP
 .B \-dump-cover
@@ -2749,7 +2760,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev813-ge55dd8941-master
+build: 1.1.0-DEV-rev815-g2dee5aa5e-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

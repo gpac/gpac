@@ -236,7 +236,7 @@ Bool align_cat=GF_TRUE;
 
 Double mpd_live_duration=0;
 Bool do_hint=0, do_save=0, full_interleave=0, do_frag=0, hint_interleave=0, dump_rtp=0, regular_iod=0, remove_sys_tracks=0, remove_hint=0, remove_root_od=0;
-Bool print_sdp=0, open_edit=0, dump_cr=0, force_ocr=0, encode=0, do_scene_log=0, dump_srt=0, dump_ttxt=0, do_saf=0, dump_m2ts=0, dump_cart=0;
+Bool print_sdp=0, open_edit=0, dump_cr=0, force_ocr=0, encode=0, do_scene_log=0, dump_srt=0, dump_ttxt=0, do_saf=0, dump_m2ts=0, dump_cart=0, dump_chunk=0;
 Bool do_hash=0, verbose=0, force_cat=0, pack_wgt=0, single_group=0, clean_groups=0, dash_live=0, no_fragments_defaults=0;
 Bool single_traf_per_moof=0, tfdt_per_traf=0, hls_clock=0, do_mpd_rip=0, merge_vtt_cues=0, get_nb_tracks=0;
 u32 compress_moov=0;
@@ -455,13 +455,16 @@ void PrintGeneralUsage()
 	gf_sys_format_help(helpout, help_flags, "# General Options\n"
 		"MP4Box is a multimedia packager, with a vast number of functionalities: conversion, splitting, hinting, dumping, DASH-ing, encryption, transcoding and others.\n"
 		"MP4Box provides a large set of options, classified by categories (see [-h]()). These options do not follow any particular ordering.\n"
-		"MP4Box performs in-place rewrite of IsoMedia files (the input file is overwritten). You can change this behavior by using the [-out]() option.\n"
-		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP streaming. This may however takes longer to store the file, use [-flat]() to change this behavior.\n"
+		"  \n"
+		"By default, MP4Box rewrites the input file. You can change this behavior by using the [-out]() option.\n"
+		"MP4Box stores by default the file with 0.5 second interleaving and meta-data (`moov` ...) at the beginning, making it suitable for HTTP download-and-play. This may however takes longer to store the file, use [-flat]() to change this behavior.\n"
+		"  \n"
 		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
-		"Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.\n"
+		"  \n"
 		"Option values:\n"
 		"Unless specified otherwise, an option of type `integer` expects a trackID value following it."
 		"An option of type `boolean` expects no following value."
+		"Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.\n"
 		"  \n"
 	);
 
@@ -1110,6 +1113,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("dsapd", "same as [-dsap]() but only print DTS", GF_ARG_INT, 0, parse_dsap, 3, ARG_IS_FUN),
  	MP4BOX_ARG("dsapp", "same as [-dsap]() but only print presentation time", GF_ARG_INT, 4, parse_dsap, 4, ARG_IS_FUN),
  	MP4BOX_ARG("dcr", "dump ISMACryp samples structure to XML output", GF_ARG_BOOL, 0, &dump_cr, 0, 0),
+ 	MP4BOX_ARG("dchunk", "dump chunk info", GF_ARG_BOOL, 0, &dump_chunk, 0, 0),
  	MP4BOX_ARG("dump-cover", "extract cover art", GF_ARG_BOOL, 0, &dump_cart, 0, 0),
  	MP4BOX_ARG("dump-chap", "extract chapter file as TTXT format", GF_ARG_BOOL, 0, &dump_chap, 1, 0),
  	MP4BOX_ARG("dump-chap-ogg", "extract chapter file as OGG format", GF_ARG_BOOL, 0, &dump_chap, 2, 0),
@@ -5962,6 +5966,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
+	if (dump_chunk) dump_isom_chunks(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_chap) dump_isom_chapters(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_chap);
 	if (dump_udta_type) dump_isom_udta(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_udta_type, dump_udta_track);

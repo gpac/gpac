@@ -1606,6 +1606,26 @@ GF_Err gf_isom_dump(GF_ISOFile *isom_file, FILE *trace, Bool skip_init, Bool ski
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
+/*! gets number of chunks in track
+\param isom_file the target ISO file
+\param trackNumber the desired track to purge
+\return number of chunks in track
+*/
+u32 gf_isom_get_chunk_count(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! gets info for a given chunk in track
+\param isom_file the target ISO file
+\param trackNumber the desired track to purge
+\param chunkNumber the 1-based index of the desired chunk
+\param chunk_offset set to the chunk offset in bytes from start of file
+\param first_sample_num set to the sample number of the first sample in the chunk
+\param sample_per_chunk set to number of samples per chunk
+\param sample_desc_idx set to sample desc index of samples of this chunk
+\return error if any
+*/
+GF_Err gf_isom_get_chunk_info(GF_ISOFile *isom_file, u32 trackNumber, u32 chunkNumber, u64 *chunk_offset, u32 *first_sample_num, u32 *sample_per_chunk, u32 *sample_desc_idx);
+
+
 /*! @} */
 
 
