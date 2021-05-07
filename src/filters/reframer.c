@@ -1468,6 +1468,8 @@ GF_Err reframer_process(GF_Filter *filter)
 				GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
 				if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2) || (sap==GF_FILTER_SAP_3)) {
 					is_sap = GF_TRUE;
+				} else if ((st->stream_type==GF_STREAM_AUDIO) && (sap==GF_FILTER_SAP_4)) {
+					is_sap = GF_TRUE;
 				} else {
 					is_sap = GF_FALSE;
 				}
