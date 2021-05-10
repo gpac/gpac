@@ -694,7 +694,17 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 
 	//duplicate our descriptor
 	movie->LastError = gf_odf_desc_copy((GF_Descriptor *) movie->moov->iods->descriptor, &desc);
-	if (movie->LastError) return NULL;
+	if (movie->LastError) {
+		if (od) {
+			gf_list_del(od->ESDescriptors);
+			gf_free(od);
+		}
+		if (iod) {
+			gf_list_del(iod->ESDescriptors);
+			gf_free(iod);
+		}
+		return NULL;
+	}
 
 	if (!useIOD) {
 		isom_od = (GF_IsomObjectDescriptor *)desc;
