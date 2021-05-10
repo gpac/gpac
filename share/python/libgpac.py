@@ -302,6 +302,9 @@ _libgpac.gf_4cc_to_str.res = c_char_p
 _libgpac.gf_4cc_parse.argtypes = [c_char_p]
 _libgpac.gf_4cc_parse.res = c_uint
 
+_libgpac.gf_sleep.argtypes = [c_uint]
+_libgpac.gf_sleep.res = c_uint
+
 #\endcond
 
 ##libgpac version (string)
@@ -432,6 +435,13 @@ def rmt_on():
 def rmt_enable(value):
     _libgpac.gf_sys_profiler_enable_sampling(value)
     
+
+## sleep for given time in milliseconds
+# \param value time to sleep
+# \return
+def sleep(value):
+    _libgpac.gf_sleep(value)
+
 
 ## @}
 
@@ -3121,6 +3131,7 @@ class FilterPid:
     def get_packet(self):
         ##\cond private
         if self._cur_pck:
+            print('SAME PACKET FETCHED !')
             return self._cur_pck
         pck = _libgpac.gf_filter_pid_get_packet(self._pid)
         if pck:

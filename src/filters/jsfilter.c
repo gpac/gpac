@@ -4550,6 +4550,9 @@ static void jsfilter_finalize(GF_Filter *filter)
 
 	JS_SetOpaque(jsf->filter_obj, NULL);
 
+	if (jsf->is_custom)
+		JS_FreeValue(jsf->ctx, jsf->filter_obj);
+
 	if (jsf->unload_session_api)
 		gf_fs_unload_script(filter->session, jsf->ctx);
 
@@ -4791,7 +4794,7 @@ JSValue jsfilter_initialize_custom(GF_Filter *filter, JSContext *ctx)
 //	((GF_FilterRegister *) filter->freg)->probe_data = jsfilter_probe_data;
 	//signal reg is script, so we don't free the filter reg caps as with custom filters
 	((GF_FilterRegister *) filter->freg)->flags |= GF_FS_REG_SCRIPT;
-	return jsf->filter_obj;
+	return JS_DupValue(ctx, jsf->filter_obj);
 }
 
 #else
