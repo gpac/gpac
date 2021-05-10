@@ -97,14 +97,18 @@ void a1lx_box_del(GF_Box *a)
 
 GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	u32 i;
 	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)s;
-	p->large_size = gf_bs_read_u8(bs);
-	if (p->large_size & 1) {
-		for (int i = 0; i < 3; i++) {
+	
+	ISOM_DECREASE_SIZE(p, 1);
+	gf_bs_read_int(bs, 7);
+	p->large_size = gf_bs_read_int(bs, 1);
+	for (i=0; i<3; i++) {
+		if (p->large_size) {
+			ISOM_DECREASE_SIZE(p, 4);
 			p->layer_size[i] = gf_bs_read_u32(bs);
-		}
-	} else {
-		for (int i = 0; i < 3; i++) {
+		} else {
+			ISOM_DECREASE_SIZE(p, 2);
 			p->layer_size[i] = gf_bs_read_u16(bs);
 		}
 	}
@@ -114,13 +118,15 @@ GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err a1lx_box_write(GF_Box *s, GF_BitStream *bs)
 {
+	u32 i;
 	GF_Err e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
-	p->large_size = 1;
-	gf_bs_write_u8(bs, p->large_size);
-	for (int i = 0; i < 3; i++) {
-		if (p->large_size & 1) {
+
+	gf_bs_write_int(bs, 0, 7);
+	gf_bs_write_int(bs, p->large_size ? 1 : 0, 1);
+	for (i=0; i<3; i++) {
+		if (p->large_size) {
 			gf_bs_write_u32(bs, p->layer_size[i]);
 		} else {
 			gf_bs_write_u16(bs, p->layer_size[i]);
@@ -132,8 +138,15 @@ GF_Err a1lx_box_write(GF_Box *s, GF_BitStream *bs)
 GF_Err a1lx_box_size(GF_Box *s)
 {
 	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
-	int field_length_bytes = ((p->large_size & 1) + 1) * 2;
-	p->size += field_length_bytes * 3 + 1;
+
+	//if large was set, do not override
+	if (! p->large_size) {
+		if (p->layer_size[0]>0xFFFF) p->large_size = 1;
+		else if (p->layer_size[1]>0xFFFF) p->large_size = 1;
+		else if (p->layer_size[2]>0xFFFF) p->large_size = 1;
+	}
+
+	p->size += (p->large_size ? 4 : 2) * 3 + 1;
 	return GF_OK;
 }
 
@@ -1416,7 +1429,7 @@ import_next_sample:
 				bits_per_channel[1] = depth;
 				bits_per_channel[2] = depth;
 			}
-			gf_isom_av1_layer_size_get(fsrc, imported_track, image_props->av1_layer_size);
+			gf_media_av1_layer_size_get(fsrc, imported_track, sample_number, image_props->av1_layer_size);
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;

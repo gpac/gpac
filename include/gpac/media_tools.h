@@ -138,6 +138,16 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *isom_file, u32 trackNumber, Bool non_
  */
 void gf_media_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber);
 
+
+/*! gets AV1 scalable layer byte offsets of a sample for a1lx box
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sample_number the target sample to query
+\param layer_size returned 3 layer sizes (4th is implied, see a1lx spec)
+\return error if any
+*/
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 layer_size[3]);
+
 #endif
 
 /*! @} */
