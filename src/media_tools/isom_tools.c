@@ -4178,4 +4178,72 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	return GF_OK;
 }
 
+
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample_number, u32 layer_size[3])
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i;
+	AV1State av1;
+	ObuType obu_type;
+	u64 obu_size;
+	u32 hdr_size;
+	GF_BitStream *bs;
+	u32 sdidx;
+	GF_ISOSample *samp;
+	GF_Err e = GF_OK;
+
+	samp = gf_isom_get_sample(file, trackNumber, sample_number, &sdidx);
+	if (!samp) return GF_BAD_PARAM;
+
+	if (!sdidx) {
+		gf_isom_sample_del(&samp);
+		return GF_BAD_PARAM;
+	}
+	if (gf_isom_get_media_subtype(file, trackNumber, sdidx) != GF_ISOM_SUBTYPE_AV01) {
+		gf_isom_sample_del(&samp);
+		return GF_BAD_PARAM;
+	}
+
+	gf_av1_init_state(&av1);
+	av1.config = gf_isom_av1_config_get(file, trackNumber, sdidx);
+	if (!av1.config) {
+		gf_isom_sample_del(&samp);
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+		e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		gf_bs_del(bs);
+		if (e) break;
+	}
+
+	if (!e) {
+		bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+		while (gf_bs_available(bs)) {
+			e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			if (e) break;
+		}
+		gf_bs_del(bs);
+	}
+	gf_isom_sample_del(&samp);
+
+	for (i=0; i<3; i++) {
+		if (av1.layer_size[i+1]==av1.layer_size[i]) {
+			layer_size[i] = 0;
+		} else {
+			layer_size[i] = av1.layer_size[i];
+		}
+	}
+
+	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+	gf_av1_reset_state(&av1, GF_TRUE);
+
+	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
 #endif //GPAC_DISABLE_ISOM

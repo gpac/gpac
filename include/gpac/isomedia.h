@@ -3246,14 +3246,6 @@ GF_VVCConfig *gf_isom_vvc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 */
 GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-/*! gets AV1 scalable layer byte offsets for a1lx box
-\param isom_file the target ISO file
-\param trackNumber the target track
-\param layer_size returned 3 layer sizes (4th is implied, see a1lx spec)
-\return error if any
-*/
-GF_Err gf_isom_av1_layer_size_get(GF_ISOFile *file, GF_ISOTrackID trackID, u32 layer_size[3]);
-
 /*! gets VP8/9 config for a sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
