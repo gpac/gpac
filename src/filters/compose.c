@@ -352,8 +352,13 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					break;
 				}
 			}
-			if (!in_iod
-				&& sns->owner->parentscene
+			//this is an animation stream
+			if (!in_iod && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+				scene_setup = GF_TRUE;
+			}
+			//otherwise if parent scene is setup and root object type is scene or OD, do not create an inline
+			//inline nodes using od:// must trigger subscene creation by using gf_scene_get_media_object with object type GF_MEDIA_OBJECT_SCENE
+			else if (sns->owner->parentscene
 				&& sns->owner->parentscene->root_od
 				&& sns->owner->parentscene->root_od->pid
 				&& ((sns->owner->parentscene->root_od->type==GF_STREAM_SCENE) || (sns->owner->parentscene->root_od->type==GF_STREAM_OD))
@@ -409,9 +414,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
 
-	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namesapce for
+	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namespace for
 	//the scene and reassign the old namespace to the previously created ODM
-	if (!scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
+	if ( !scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
 		GF_SceneNamespace *new_sns=NULL;
 		const char *service_url = "unknown";
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -451,6 +456,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) || (mtype==GF_STREAM_TEXT) ) {
 		void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
+		if (was_dyn_scene)
+			scene->graph_attached = GF_FALSE;
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_exec_event(pid, &evt);

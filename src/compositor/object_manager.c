@@ -324,7 +324,7 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 		This is needed in order to register the nodes using the resource for event
 		propagation (stored at the inline level)
 	*/
-	if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE)) {
+	if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE) && !odm->subscene) {
 		odm->subscene = gf_scene_new(NULL, odm->parentscene);
 		odm->subscene->root_od = odm;
 		//scenes are by default dynamic

@@ -122,6 +122,21 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		attach_desc_to_odm(odm, od);
 
 		gf_list_add(scene->resources, odm);
+		if (odm->ID != GF_MEDIA_EXTERNAL_ID) {
+			count = gf_list_count(scene->scene_objects);
+			for (i=0; i<count; i++) {
+				GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
+				if (mo->OD_ID != odm->ID) continue;
+				if (mo->type == GF_MEDIA_OBJECT_SCENE) {
+					odm->subscene = gf_scene_new(scene->compositor, scene);
+					odm->subscene->is_dynamic_scene = GF_TRUE;
+					odm->subscene->root_od = odm;
+					odm->mo = mo;
+					mo->odm = odm;
+					break;
+				}
+			}
+		}
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString, GF_FALSE);
 		return;
 	}
@@ -466,6 +481,7 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	if (!com->attach_scene.on_pid) return GF_TRUE;
 
 	count = gf_filter_get_ipid_count(filter);
+	//attach inline scenes
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);
