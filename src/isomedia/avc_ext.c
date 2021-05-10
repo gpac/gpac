@@ -3373,8 +3373,10 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		op->output_layer_set_idx = gf_bs_read_u16(bs);
 		op->max_temporal_id = gf_bs_read_u8(bs);
 		op->layer_count = gf_bs_read_u8(bs);
-		if (op->layer_count > GF_ARRAY_LENGTH(op->layers_info))
+		if (op->layer_count > GF_ARRAY_LENGTH(op->layers_info)) {
+			gf_free(op);
 			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		for (j = 0; j < op->layer_count; j++) {
 			op->layers_info[j].ptl_idx = gf_bs_read_u8(bs);
 			op->layers_info[j].layer_id = gf_bs_read_int(bs, 6);
