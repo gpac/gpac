@@ -408,6 +408,7 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->entry_count; i++) {
 		GF_AfraEntry *ae = gf_malloc(sizeof(GF_AfraEntry));
 		if (!ae) return GF_OUT_OF_MEM;
+		gf_list_insert(ptr->local_access_entries, ae, i);
 
 		ISOM_DECREASE_SIZE(ptr, 8)
 		ae->time = gf_bs_read_u64(bs);
@@ -418,8 +419,6 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 			ISOM_DECREASE_SIZE(ptr, 4)
 			ae->offset = gf_bs_read_u32(bs);
 		}
-
-		gf_list_insert(ptr->local_access_entries, ae, i);
 	}
 
 	if (ptr->global_entries) {
@@ -428,6 +427,8 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 		for (i=0; i<ptr->global_entry_count; i++) {
 			GF_GlobalAfraEntry *ae = gf_malloc(sizeof(GF_GlobalAfraEntry));
 			if (!ae) return GF_OUT_OF_MEM;
+			gf_list_insert(ptr->global_access_entries, ae, i);
+
 			ISOM_DECREASE_SIZE(ptr, 8)
 			ae->time = gf_bs_read_u64(bs);
 			if (ptr->long_ids) {
@@ -448,8 +449,6 @@ GF_Err afra_box_read(GF_Box *s, GF_BitStream *bs)
 				ae->afra_offset = gf_bs_read_u32(bs);
 				ae->offset_from_afra = gf_bs_read_u32(bs);
 			}
-
-			gf_list_insert(ptr->global_access_entries, ae, i);
 		}
 	}
 
