@@ -497,6 +497,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					if (pos<0) pos=0;
 					gf_list_insert(mov->TopBoxes, brand, pos);
 				}
+				gf_isom_box_del(a);
 			}
 			break;
 
