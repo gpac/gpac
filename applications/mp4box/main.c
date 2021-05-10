@@ -5439,6 +5439,14 @@ static u32 mp4box_cleanup(u32 ret_code) {
 	}
 	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
+		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+		gf_memory_print();
+	}
+#endif
+
 	return ret_code;
 }
 
