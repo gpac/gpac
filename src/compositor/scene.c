@@ -886,6 +886,11 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 
 	/*main display scene, setup compositor*/
 	if (!scene->root_od->parentscene) {
+		//force a resize
+		if (gf_sg_get_scene_size_info(scene->graph, NULL, NULL)) {
+			scene->compositor->scene_width = 0;
+			scene->compositor->scene_height = 0;
+		}
 		gf_sc_set_scene(scene->compositor, scene->graph);
 	}
 	else {

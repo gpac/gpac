@@ -741,15 +741,16 @@ retry:
 	mo->frame = (char *) gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
 
-	//planar mode, RenderedLength correspond to all channels, so move frame pointer
-	//to first sample non consumed = RenderedLength/nb_channels
-	if (mo->planar_audio) {
-		mo->frame += mo->RenderedLength / mo->num_channels;
-	} else {
-		mo->frame += mo->RenderedLength;
+	if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
+		//planar mode, RenderedLength correspond to all channels, so move frame pointer
+		//to first sample non consumed = RenderedLength/nb_channels
+		if (mo->planar_audio) {
+			mo->frame += mo->RenderedLength / mo->num_channels;
+		} else {
+			mo->frame += mo->RenderedLength;
+		}
 	}
 	mo->frame_ifce = gf_filter_pck_get_frame_interface(mo->pck);
-//	mo->media_frame = CU->frame;
 
 	diff = (s32) ( (mo->speed >= 0) ? ( (s64) pck_ts - (s64) obj_time) : ( (s64) obj_time - (s64) pck_ts) );
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);

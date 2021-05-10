@@ -604,8 +604,8 @@ GF_EXPORT
 Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height)
 {
 	if (!sg) return 0;
-	*width = sg->width;
-	*height = sg->height;
+	if (width) *width = sg->width;
+	if (height) *height = sg->height;
 	return (sg->width && sg->height) ? 1 : 0;
 }
 
