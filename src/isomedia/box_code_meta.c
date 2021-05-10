@@ -566,10 +566,13 @@ GF_Err infe_box_read(GF_Box *s, GF_BitStream *bs)
 				ptr->content_type = (char*)gf_malloc(sizeof(char)*string_len);
 				if (!ptr->content_type) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_type, buf+string_start, string_len);
-			} else {
+			} else if (!ptr->content_encoding) {
 				ptr->content_encoding = (char*)gf_malloc(sizeof(char)*string_len);
 				if (!ptr->content_encoding) return GF_OUT_OF_MEM;
 				memcpy(ptr->content_encoding, buf+string_start, string_len);
+			} else {
+				//we could throw an error but we silently accept this infe
+				break;
 			}
 			string_start += string_len;
 			string_len = 0;
