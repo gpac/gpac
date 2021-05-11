@@ -2630,7 +2630,7 @@ GF_Err naludmx_process(GF_Filter *filter)
 			if (ctx->codecid==GF_CODECID_HEVC) {
 				naludmx_set_hevc_oinf(ctx, ctx->max_temporal_id);
 				naludmx_set_hevc_linf(ctx);
-				gf_filter_pid_set_property_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
+				gf_filter_pid_set_info_str(ctx->opid, "hevc:min_lid", &PROP_UINT(ctx->min_layer_id) );
 			}
 			if (ctx->opid)
 				gf_filter_pid_set_eos(ctx->opid);

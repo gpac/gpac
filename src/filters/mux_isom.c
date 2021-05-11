@@ -6025,6 +6025,7 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	u32 avc_base_track, hevc_base_track, ref_track_id;
 	avc_base_track = hevc_base_track = 0;
 	u32 i;
+	u32 min_lid = 0;
 	GF_PropertyEntry *pe=NULL;
 	const GF_PropertyValue *p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:oinf", &pe);
 	if (p) {
@@ -6038,10 +6039,12 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		}
 	}
 
+	p = gf_filter_pid_get_info_str(tkw->ipid, "hevc:min_lid", &pe);
+	if (p) min_lid = p->value.uint;
+
 	gf_filter_release_property(pe);
 
-	p = gf_filter_pid_get_property_str(tkw->ipid, "hevc:min_lid");
-	if ((!p || !p->value.uint) && (tkw->codecid!=GF_CODECID_LHVC)) {
+	if (!min_lid && (tkw->codecid!=GF_CODECID_LHVC)) {
 		return;
 	}
 	//set linf
