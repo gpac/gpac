@@ -5105,7 +5105,7 @@ GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 
 static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_FilterPid *src_pid, gf_filter_prop_filter filter_prop, void *cbk, Bool is_merge)
 {
-	GF_PropertyMap *dst_props, *src_props, *old_dst_props=NULL;
+	GF_PropertyMap *dst_props, *src_props = NULL, *old_dst_props=NULL;
 	if (PID_IS_INPUT(dst_pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reset all properties on input PID in filter %s - ignoring\n", dst_pid->filter->name));
 		return GF_BAD_PARAM;
@@ -5123,15 +5123,32 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", dst_pid->filter->name));
 		return GF_OUT_OF_MEM;
 	}
+	//if pid is input, use the current properties - cf filter_pid_get_prop_map
+	if (PID_IS_INPUT(src_pid)) {
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *)src_pid;
+		if (!pidi->props) {
+			//see \ref gf_filter_pid_merge_properties_internal for mutex
+			gf_mx_p(src_pid->filter->tasks_mx);
+			pidi->props = gf_list_get(src_pid->pid->properties, 0);
+			gf_mx_v(src_pid->filter->tasks_mx);
+			assert(pidi->props);
+			safe_int_inc(&pidi->props->reference_count);
+		}
+		src_props = pidi->props;
+	}
+	//move to rela pid
 	src_pid = src_pid->pid;
-	//our list is not thread-safe, so we must lock the filter when destroying the props
-	//otherwise gf_list_last() (this caller) might use the last entry while another threads sets this last entry to NULL
-	gf_mx_p(src_pid->filter->tasks_mx);
-	src_props = gf_list_last(src_pid->properties);
-	gf_mx_v(src_pid->filter->tasks_mx);
+	//this is a copy props on output pid
 	if (!src_props) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for source pid in filter %s, ignoring merge\n", src_pid->filter->name));
-		return GF_OK;
+		//our list is not thread-safe, so we must lock the filter when destroying the props
+		//otherwise gf_list_last() (this caller) might use the last entry while another threads sets this last entry to NULL
+		gf_mx_p(src_pid->filter->tasks_mx);
+		src_props = gf_list_last(src_pid->properties);
+		gf_mx_v(src_pid->filter->tasks_mx);
+		if (!src_props) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties to copy from pid %s in filter %s, ignoring merge\n", src_pid->name, src_pid->filter->name));
+			return GF_OK;
+		}
 	}
 	if (src_pid->name && !old_dst_props)
 		gf_filter_pid_set_name(dst_pid, src_pid->name);
