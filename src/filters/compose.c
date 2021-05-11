@@ -456,8 +456,6 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) || (mtype==GF_STREAM_TEXT) ) {
 		void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
-		if (was_dyn_scene)
-			scene->graph_attached = GF_FALSE;
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_exec_event(pid, &evt);
