@@ -1582,29 +1582,29 @@ typedef struct
 	u32 timescale;
 	u32 sample_per_chunk;
 	u64 chunk_offset;
+	u64 size;
 } ChunkInfo;
 
-void push_chunk(GF_List *chunks, ChunkInfo *ci)
+static s32 sort_chunk(const void* e1, const void* e2)
 {
-	u32 i, count = gf_list_count(chunks);
-	for (i=0; i<count; i++) {
-		ChunkInfo *a_ci = gf_list_get(chunks, i);
-		if (a_ci->chunk_offset > ci->chunk_offset) {
-			gf_list_insert(chunks, ci, i);
-			return;
-		}
-	}
-	gf_list_add(chunks, ci);
+	const ChunkInfo *p1 = e1;
+	const ChunkInfo *p2 = e2;
+
+	if (p1->chunk_offset < p2->chunk_offset) return -1;
+	if (p1->chunk_offset > p2->chunk_offset) return 1;
+	return 0;
 }
 
 void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 {
-	u32 i, count, total, cur;
+	u32 i, count, nb_chunks_total, cur;
 	FILE *dump;
 	Bool dump_stsd = 0;
 	u32 dump_hm = 0;
 	u64 prev_time = 0;
-	GF_List *chunks = gf_list_new();
+	u64 unused_space = 0;
+	u64 prev_chunk_end = 0;
+	ChunkInfo *all_chunks;
 
 	if (inName) {
 		char szBuf[1024];
@@ -1620,12 +1620,17 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 	}
 
 	count = gf_isom_get_track_count(file);
-	total = 0;
+	nb_chunks_total = 0;
 	for (i=0; i<count; i++) {
-		total += gf_isom_get_chunk_count(file, i+1);
+		nb_chunks_total += gf_isom_get_chunk_count(file, i+1);
 	}
-	cur = 1;
+	all_chunks = gf_malloc(sizeof(ChunkInfo) * nb_chunks_total);
+	memset(all_chunks, 0, sizeof(ChunkInfo) * nb_chunks_total);
+
+	cur = 0;
 	for (i=0; i<count; i++) {
+		u32 csize = 0;
+		u32 c1, c2;
 		u32 j, nb_chunks = gf_isom_get_chunk_count(file, i+1);
 		u32 ts = gf_isom_get_media_timescale(file, i+1);
 		u64 dur = gf_isom_get_media_duration(file, i+1);
@@ -1633,37 +1638,56 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 		if (dur > 3600 * ts) dump_hm = 2;
 		else if (dur > 60 * ts) dump_hm = 1;
 
+		if (nb_chunks>1) {
+			csize = gf_isom_get_constant_sample_size(file, i+1);
+			if (csize) {
+				gf_isom_enable_raw_pack(file, i+1, 1024);
+				csize = gf_isom_get_constant_sample_size(file, i+1);
+			}
+		}
+		c1 = c2 = 0;
 		for (j=0; j<nb_chunks; j++) {
 			ChunkInfo *ci;
+			u32 k;
 			u32 sample_num, spc, di;
 			u64 offset;
-			gf_isom_get_chunk_info(file, i+1,j+1, &offset, &sample_num, &spc, &di);
+			gf_isom_get_chunk_info(file, i+1,j+1, &offset, &sample_num, &spc, &di, &c1, &c2);
 
-			GF_SAFEALLOC(ci, ChunkInfo)
+			ci = &all_chunks[cur];
+
 			ci->track_num = i+1;
 			ci->chunk_num = j+1;
 			ci->chunk_offset = offset;
 			ci->first_sample_num = sample_num;
 			ci->timescale = ts;
 			ci->sample_per_chunk = spc;
-			push_chunk(chunks, ci);
+
+			if (csize) {
+				ci->size += csize * spc;
+			} else {
+				for (k=0; k<spc; k++) {
+					ci->size += gf_isom_get_sample_size(file, i+1, sample_num+k);
+				}
+			}
+
 			if (di>1) dump_stsd=1;
 
-			gf_set_progress("Analysing chunks", cur, total);
+			gf_set_progress("Analysing chunks", cur+1, nb_chunks_total);
 			cur++;
 		}
 	}
 
+	qsort(all_chunks, nb_chunks_total, sizeof(ChunkInfo), sort_chunk);
+
 	fprintf(stderr, "Dumping chunk info - diff_prev_ms is the diff in ms between start time of current and prev chunk\n");
 
 	if (dump_stsd)
-		fprintf(dump, "ChunkNum\tOffset\tTkNum\tChkNbInTk\tSamp/Chunk\tFirstSample\tDescIdx\tSAP\tTime\tCTS\tdiff_prev_ms\n");
+		fprintf(dump, "ChunkNum\tOffset\tTkNum\tChkNbInTk\tChkSize\tSamp/Chunk\tFirstSample\tDescIdx\tSAP\tTime\tCTS\tdiff_prev_ms\n");
 	else
-		fprintf(dump, "ChunkNum\tOffset\tTkNum\tChkNbInTk\tSamp/Chunk\tFirstSample\tSAP\tTime\tCTS\tdiff_prev_ms\n");
-	count = gf_list_count(chunks);
-	i=1;
-	while (gf_list_count(chunks)) {
-		ChunkInfo *ci = gf_list_pop_front(chunks);
+		fprintf(dump, "ChunkNum\tOffset\tTkNum\tChkNbInTk\tChkSize\tSamp/Chunk\tFirstSample\tSAP\tTime\tCTS\tdiff_prev_ms\n");
+
+	for (i=0; i<nb_chunks_total; i++) {
+		ChunkInfo *ci = &all_chunks[i];
 		u32 di;
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, ci->track_num, ci->first_sample_num, &di, NULL);
 		if (samp) {
@@ -1683,7 +1707,7 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 			diff -= prev_time;
 			prev_time = time;
 
-			fprintf(dump, "%d\t"LLU"\t%d\t%d\t%d\t%d\t", i, ci->chunk_offset, ci->track_num, ci->chunk_num, ci->sample_per_chunk, ci->first_sample_num);
+			fprintf(dump, "%d\t"LLU"\t%d\t%d\t"LLU"\t%d\t%d\t", i+1, ci->chunk_offset, ci->track_num, ci->chunk_num, ci->size, ci->sample_per_chunk, ci->first_sample_num);
 			if (dump_stsd) fprintf(dump, "%d\t", di);
 			fprintf(dump, "%d\t", samp->IsRAP);
 			if (dump_hm==2)
@@ -1692,16 +1716,29 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 				fprintf(dump, "%02d:", m);
 			fprintf(dump, "%02d.%03d\t"LLD"\t"LLD"\n", s, ms, samp->DTS+samp->CTS_Offset, diff);
 			gf_isom_sample_del(&samp);
-
 		} else {
-			fprintf(dump, "%d\t"LLU"\t%d\t%d\t%d\tN/A\tN/A\tN/A\tN/A\n", i, ci->chunk_offset, ci->track_num, ci->chunk_num, ci->first_sample_num);
+			fprintf(dump, "%d\t"LLU"\t%d\t%d\t%d\tN/A\tN/A\tN/A\tN/A\n", i+1, ci->chunk_offset, ci->track_num, ci->chunk_num, ci->first_sample_num);
 		}
-		gf_free(ci);
-		gf_set_progress("Dumping chunks", i, count);
-		i++;
+		//we assume single mdat ...
+		if (!prev_chunk_end) {
+			prev_chunk_end = gf_isom_get_first_mdat_start(file);
+		}
+
+		if (ci->chunk_offset > prev_chunk_end)
+			unused_space += ci->chunk_offset - prev_chunk_end;
+
+		prev_chunk_end = ci->chunk_offset + ci->size;
+
+		gf_set_progress("Dumping chunks", i+1, nb_chunks_total);
 	}
-	gf_list_del(chunks);
+	gf_free(all_chunks);
 	gf_fclose(dump);
+
+	prev_chunk_end = gf_isom_get_unused_box_bytes(file);
+	if (prev_chunk_end)
+		fprintf(stderr, "Unused bytes in box structure: "LLU"\n", prev_chunk_end);
+	if (unused_space)
+		fprintf(stderr, "Unused bytes in mdat: "LLU"\n", unused_space);
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP

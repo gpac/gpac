@@ -946,6 +946,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_subtitle_get_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_chunk_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_chunk_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_first_mdat_start) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_unused_box_bytes) )
 
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
