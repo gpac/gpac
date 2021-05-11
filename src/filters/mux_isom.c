@@ -6530,9 +6530,9 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_inband), "use inband (in sample data) parameter set for NALU-based video (AVC/HEVC/...)\n"
-	"- no: paramater sets are not inband, several sample descriptions might be created\n"
-	"- all: paramater sets are inband, no parameter sets in sample description\n"
-	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample description\n"
+	"- no: parameter sets are not inband, several sample descriptions might be created\n"
+	"- all: parameter sets are inband, no parameter sets in sample description\n"
+	"- both: parameter sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband\n"
 	"- auto: keep source config, or defaults to no if qource is not isobmff", GF_PROP_UINT, "no", "no|all|both|mix|auto", 0},
 	{ OFFS(store), "file storage mode\n"
