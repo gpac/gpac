@@ -146,6 +146,8 @@ typedef struct
 	char *template;
 } GF_DASHGroup;
 
+static void dashdmw_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
+
 static void dashdmx_set_string_list_prop(GF_FilterPacket *ref, u32 prop_name, GF_List **str_list)
 {
 	u32 i, count;
@@ -964,6 +966,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		//do not notify HAS status (selected qualities & co) right away, we are still potentially processing packets from previous segment(s)
 		if (group)
 			group->notify_quality_change = GF_TRUE;
+
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {
@@ -1394,9 +1397,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 
 	//setup initial quality - this is disabled in test mode for the time being (invalidates all dash playback hashes)
 	//in forward mode, always send the event to setup dash templates
-	if (!gf_sys_is_test_mode() || ctx->forward)
-		dashdmx_io_on_dash_event(&ctx->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->idx, GF_OK);
-
+	if (!gf_sys_is_test_mode() || ctx->forward) {
+		group->notify_quality_change = GF_TRUE;
+		dashdmw_notify_group_quality(ctx, group);
+	}
 
 	//if MPD file pid is defined, merge its properties. This will allow forwarding user-defined properties,
 	// eg -i dash.mpd:#MyProp=toto to all PIDs coming from media sources
