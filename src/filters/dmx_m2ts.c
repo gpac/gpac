@@ -160,6 +160,31 @@ static void m2tsdmx_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type, v
 	}
 }
 
+static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
+{
+	u32 i, count = gf_list_count(ts->programs);
+	for (i=0; i<count; i++) {
+		u32 j, nb_streams;
+		GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+		GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, prog->number);
+		if (!sdt) continue;
+
+		nb_streams = gf_list_count(prog->streams);
+		for (j=0; j<nb_streams; j++) {
+			GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+			if (!es->user) continue;
+			if (for_pid && (es->user != for_pid)) continue;
+			//TODO, translate non standard character maps to UTF8
+			//we for now comment in test mode to avoid non UTF characters in text dumps
+			if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
+				gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(sdt->service ) );
+
+			if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
+				gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_STRING( sdt->provider ) );
+		}
+	}
+}
+
 static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD *esd)
 {
 	u32 i, count, codecid=0, stype=0;
@@ -370,6 +395,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			}
 		}
 	}
+
+	m2tsdmx_update_sdt(ctx->ts, opid);
+
 	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 }
 
@@ -589,6 +617,7 @@ static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 }
 #endif
 
+
 static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	u32 i, count;
@@ -627,27 +656,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_SDT_FOUND:
 	case GF_M2TS_EVT_SDT_UPDATE:
 //	case GF_M2TS_EVT_SDT_REPEAT:
-		count = gf_list_count(ts->programs);
-		for (i=0; i<count; i++) {
-			GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
-			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, prog->number);
-			if (sdt) {
-				u32 j, nb_streams;
-				nb_streams = gf_list_count(prog->streams);
-				for (j=0; j<nb_streams; j++) {
-					GF_M2TS_ES *es = gf_list_get(prog->streams, j);
-					if (es->user) {
-						//TODO, translate non standard character maps to UTF8
-						//we for now comment in test mode to avoid non UTF characters in text dumps
-						if (isalnum(sdt->service[0]) || !gf_sys_is_test_mode())
-							gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_NAME, &PROP_NAME( sdt->service ) );
-
-						if (isalnum(sdt->provider[0]) || !gf_sys_is_test_mode())
-							gf_filter_pid_set_property((GF_FilterPid *)es->user, GF_PROP_PID_SERVICE_PROVIDER, &PROP_NAME( sdt->provider ) );
-					}
-				}
-			}
-		}
+		m2tsdmx_update_sdt(ts, NULL);
 		break;
 	case GF_M2TS_EVT_DVB_GENERAL:
 		if (ctx->eit_pid) {
