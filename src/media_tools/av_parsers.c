@@ -4152,7 +4152,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 
 	/* for AVIF a1lx */
 	for (int i = state->spatial_id; i < 4; i++) {
-		state->layer_size[i] = pos + *obu_size;
+		state->layer_size[i] = (u32) (pos + *obu_size);
 	}
 
 	switch (*obu_type) {

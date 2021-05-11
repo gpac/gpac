@@ -1076,10 +1076,10 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 			automatic = GF_TRUE;
 		prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode", &pe);
 		if (prop) tile_adaptation_mode = prop->value.uint;
-	} else {
+	} else if (dep_idx>0) {
 		prop = gf_filter_pid_get_info_str(odm->pid, "has:deps_selected", &pe);
 		if (prop && (prop->type==GF_PROP_SINT_LIST)) {
-			if (dep_idx<=prop->value.sint_list.nb_items) {
+			if ((u32) dep_idx<=prop->value.sint_list.nb_items) {
 				s32 sel = prop->value.sint_list.vals[dep_idx-1];
 				if ((sel>=0) && (idx==sel)) {
 					selected = GF_TRUE;
@@ -1132,13 +1132,13 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 	 	s32 dep_idx;
 	 	if (JS_ToInt32(ctx, &dep_idx, argv[0]) )
 	 		return JS_EXCEPTION;
-		if (!dep_idx)
+		if (dep_idx<=0)
 	 		return JS_EXCEPTION;
 		dep_idx--;
 		p = gf_filter_pid_get_info_str(odm->pid, "has:groups_srd", &pe);
 		if (p && (p->type==GF_PROP_STRING_LIST)) {
 			char *srd;
-			if (dep_idx>=p->value.string_list.nb_items) {
+			if ((u32) dep_idx>=p->value.string_list.nb_items) {
 				gf_filter_release_property(pe);
 				return JS_EXCEPTION;
 			}

@@ -1627,7 +1627,7 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 	cur = 1;
 	for (i=0; i<count; i++) {
 		u32 j, nb_chunks = gf_isom_get_chunk_count(file, i+1);
-		u64 ts = gf_isom_get_media_timescale(file, i+1);
+		u32 ts = gf_isom_get_media_timescale(file, i+1);
 		u64 dur = gf_isom_get_media_duration(file, i+1);
 
 		if (dur > 3600 * ts) dump_hm = 2;
@@ -1673,11 +1673,11 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 			time *= 1000;
 			time /= ci->timescale;
 
-			secs = time/1000;
+			secs = (u32) (time/1000);
 			h = secs / 3600;
 			m = (secs - 3600 * h) / 60;
 			s = (secs - 3600 * h - 60 * m);
-			ms = (time - secs*1000);
+			ms = (u32) (time - secs*1000);
 
 			diff = time;
 			diff -= prev_time;
