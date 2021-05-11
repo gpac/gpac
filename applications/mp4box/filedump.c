@@ -1604,6 +1604,7 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 	u64 prev_time = 0;
 	u64 unused_space = 0;
 	u64 prev_chunk_end = 0;
+	Bool do_prog=GF_TRUE;
 	ChunkInfo *all_chunks;
 
 	if (inName) {
@@ -1617,6 +1618,7 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 		}
 	} else {
 		dump = stdout;
+		do_prog = GF_FALSE;
 	}
 
 	count = gf_isom_get_track_count(file);
@@ -1672,7 +1674,8 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 			if (di>1) dump_stsd=1;
 
-			gf_set_progress("Analysing chunks", cur+1, nb_chunks_total);
+			if (do_prog)
+				gf_set_progress("Analysing chunks", cur+1, nb_chunks_total);
 			cur++;
 		}
 	}
@@ -1729,10 +1732,12 @@ void dump_isom_chunks(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 		prev_chunk_end = ci->chunk_offset + ci->size;
 
-		gf_set_progress("Dumping chunks", i+1, nb_chunks_total);
+		if (do_prog)
+			gf_set_progress("Dumping chunks", i+1, nb_chunks_total);
 	}
 	gf_free(all_chunks);
-	gf_fclose(dump);
+	if (inName)
+		gf_fclose(dump);
 
 	prev_chunk_end = gf_isom_get_unused_box_bytes(file);
 	if (prev_chunk_end)
