@@ -62,6 +62,14 @@ enum{
 	TAG_ALL
 };
 
+enum
+{
+	XPS_IB_NO = 0,
+	XPS_IB_ALL,
+	XPS_IB_BOTH,
+	XPS_IB_MIX,
+	XPS_IB_AUTO
+};
 
 typedef struct
 {
@@ -175,7 +183,7 @@ typedef struct
 	u32 max_cts_samp_dur;
 
 	u32 w_or_sr, h_or_ch, pf_or_af;
-
+	u32 xps_inband;
 } TrackWriter;
 
 enum
@@ -735,7 +743,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool force_mix_xps = GF_FALSE;
 	Bool make_inband_headers = GF_FALSE;
 	Bool is_prores = GF_FALSE;
-
 	const char *lang_name = NULL;
 	const char *comp_name = NULL;
 	const char *imp_name = NULL;
@@ -757,6 +764,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 	GF_AudioSampleEntryImportMode ase_mode = ctx->ase;
 	TrackWriter *tkw;
+	u32 xps_inband = XPS_IB_NO;
 
 	if (ctx->owns_mov && !ctx->opid) {
 		char *dst;
@@ -1343,7 +1351,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		multi_pid_final_stsd_idx = p->value.uint;
 
 		//should never be the case
-		ctx->xps_inband = 0;
+		tkw->xps_inband = XPS_IB_NO;
 		ctx->dref = GF_FALSE;
 		orig_pid = pid;
 		goto multipid_stsd_setup;
@@ -1538,24 +1546,44 @@ sample_entry_setup:
 		break;
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
-		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
+		if (ctx->xps_inband==XPS_IB_AUTO) {
+			if (m_subtype_src == GF_ISOM_SUBTYPE_AVC3_H264) {
+				m_subtype = GF_ISOM_SUBTYPE_AVC3_H264;
+				xps_inband = XPS_IB_ALL;
+			} else {
+				m_subtype = GF_ISOM_SUBTYPE_AVC_H264;
+			}
+		} else {
+			xps_inband = ctx->xps_inband;
+			m_subtype = ((xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_AVC3_H264 : GF_ISOM_SUBTYPE_AVC_H264;
+		}
 		use_avc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_SVC) ? "MPEG-4 SVC" : "MPEG-4 AVC";
 		use_gen_sample_entry = GF_FALSE;
-		if (ctx->xps_inband) {
+		if (m_subtype != GF_ISOM_SUBTYPE_AVC_H264) {
 			use_m4sys = GF_FALSE;
-			if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+			if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
 		}
 		break;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
-		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
+		if (ctx->xps_inband==XPS_IB_AUTO) {
+			if (m_subtype_src == GF_ISOM_SUBTYPE_HEV1) {
+				m_subtype = GF_ISOM_SUBTYPE_HEV1;
+				xps_inband = XPS_IB_ALL;
+			} else {
+				m_subtype = GF_ISOM_SUBTYPE_HVC1;
+			}
+		} else {
+			xps_inband = ctx->xps_inband;
+			m_subtype = ((xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_HEV1  : GF_ISOM_SUBTYPE_HVC1;
+		}
 		use_hevc = GF_TRUE;
 		comp_name = (codec_id == GF_CODECID_LHVC) ? "L-HEVC" : "HEVC";
 		use_gen_sample_entry = GF_FALSE;
-		if (ctx->xps_inband) {
+		if (m_subtype != GF_ISOM_SUBTYPE_HVC1) {
 			use_m4sys = GF_FALSE;
-			if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+			if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
 		}
 		if (codec_id==GF_CODECID_HEVC_TILES) {
 			m_subtype = GF_ISOM_SUBTYPE_HVT1;
@@ -1571,11 +1599,21 @@ sample_entry_setup:
 		use_gen_sample_entry = GF_FALSE;
 		break;
 	case GF_CODECID_VVC:
-		m_subtype = ((ctx->xps_inband==1) || (ctx->xps_inband==2)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
+		if (ctx->xps_inband==XPS_IB_AUTO) {
+			if (m_subtype_src == GF_ISOM_SUBTYPE_VVI1) {
+				m_subtype = GF_ISOM_SUBTYPE_VVI1;
+				xps_inband = XPS_IB_ALL;
+			} else {
+				m_subtype = GF_ISOM_SUBTYPE_VVC1;
+			}
+		} else {
+			xps_inband = ctx->xps_inband;
+			m_subtype = ((xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
+		}
 		use_vvc = GF_TRUE;
 		comp_name = "HEVC";
 		use_gen_sample_entry = GF_FALSE;
-		if (ctx->xps_inband==1) skip_dsi = GF_TRUE;
+		if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
 		break;
 	case GF_CODECID_MPEG1:
 	case GF_CODECID_MPEG2_422:
@@ -1833,15 +1871,15 @@ sample_entry_setup:
 		}
 		force_mix_xps = GF_TRUE;
 	} else if (ctx->store < MP4MX_MODE_FRAG) {
-		if ((needs_sample_entry==2) && (ctx->xps_inband==2)) {
+		if ((needs_sample_entry==2) && (xps_inband==XPS_IB_BOTH)) {
 			force_mix_xps = GF_TRUE;
 		}
-		else if ((needs_sample_entry==2) && ((ctx->xps_inband==1)||(ctx->xps_inband==3)) ) {
+		else if ((needs_sample_entry==2) && ((xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_MIX)) ) {
 			needs_sample_entry = 0;
 			make_inband_headers = GF_TRUE;
 		}
 	}
-	
+
 	if (force_mix_xps) {
 
 		//for AVC and HEVC, move to inband params if config changed
@@ -1854,11 +1892,11 @@ sample_entry_setup:
 				if (tkw->svcc) gf_odf_avc_cfg_del(tkw->svcc);
 				tkw->svcc = gf_odf_avc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
 			}
-			if (!ctx->xps_inband) {
+			if (!xps_inband) {
 				if (ctx->init_movie_done) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] AVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
-				ctx->xps_inband = 2;
+				tkw->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
 			if (ctx->pps_inband)
@@ -1873,11 +1911,11 @@ sample_entry_setup:
 				if (tkw->lvcc) gf_odf_hevc_cfg_del(tkw->lvcc);
 				tkw->lvcc = gf_odf_hevc_cfg_read(enh_dsi->value.data.ptr, enh_dsi->value.data.size, GF_TRUE);
 			}
-			if (!ctx->xps_inband) {
+			if (!xps_inband) {
 				if (ctx->init_movie_done) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] HEVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
-				ctx->xps_inband = 2;
+				tkw->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
 			if (ctx->pps_inband)
@@ -1888,11 +1926,11 @@ sample_entry_setup:
 			if (tkw->vvcc) gf_odf_vvc_cfg_del(tkw->vvcc);
 			tkw->vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 
-			if (!ctx->xps_inband) {
+			if (!xps_inband) {
 				if (ctx->init_movie_done) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] VVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
-				ctx->xps_inband = 2;
+				ctx->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
 			if (ctx->pps_inband)
@@ -1903,9 +1941,10 @@ sample_entry_setup:
 		return GF_NOT_SUPPORTED;
 	}
 
+	tkw->xps_inband = xps_inband;
 
 	//little optim here: if no samples were added on the stream description remove it
-	if (!tkw->samples_in_stsd && tkw->stsd_idx) {
+	if (!tkw->samples_in_stsd && tkw->stsd_idx && needs_sample_entry) {
 		gf_isom_remove_stream_description(ctx->file, tkw->track_num, tkw->stsd_idx);
 	}
 
@@ -1996,8 +2035,8 @@ sample_entry_setup:
 						tkw->svcc = NULL;
 					}
 
-					if (ctx->xps_inband) {
-						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+					if (xps_inband) {
+						gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
 					}
 				}
 			}
@@ -2007,10 +2046,10 @@ sample_entry_setup:
 			}
 		}
 		
-		if (ctx->xps_inband) {
+		if (xps_inband) {
 			//this will cleanup all PS in avcC / svcC
-			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
-			if (ctx->xps_inband==2) make_inband_headers = GF_TRUE;
+			gf_isom_avc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
+			if (xps_inband==XPS_IB_BOTH) make_inband_headers = GF_TRUE;
 		} else {
 			gf_odf_avc_cfg_del(tkw->avcc);
 			tkw->avcc = NULL;
@@ -2085,8 +2124,8 @@ sample_entry_setup:
 						tkw->lvcc = NULL;
 					}
 
-					if (!dsi && ctx->xps_inband) {
-						gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+					if (!dsi && tkw->xps_inband) {
+						gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (tkw->xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
 					}
 				}
 			} else if (codec_id == GF_CODECID_LHVC) {
@@ -2100,9 +2139,9 @@ sample_entry_setup:
 			}
 		}
 
-		if (dsi && ctx->xps_inband) {
+		if (dsi && tkw->xps_inband) {
 			//this will cleanup all PS in avcC / svcC
-			gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+			gf_isom_hevc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (tkw->xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
 		} else {
 			gf_odf_hevc_cfg_del(tkw->hvcc);
 			tkw->hvcc = NULL;
@@ -2148,9 +2187,9 @@ sample_entry_setup:
 			}
 		}
 
-		if (ctx->xps_inband) {
+		if (tkw->xps_inband) {
 			//this will cleanup all PS in vvcC
-			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (ctx->xps_inband==2) ? GF_TRUE : GF_FALSE);
+			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (tkw->xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
 		} else {
 			gf_odf_vvc_cfg_del(tkw->vvcc);
 			tkw->vvcc = NULL;
@@ -2971,7 +3010,7 @@ sample_entry_done:
 
 	}
 	if (txt_font) gf_free(txt_font);
-	if (!ctx->xps_inband || tkw->is_item) {
+	if (!tkw->xps_inband || tkw->is_item) {
 		if (tkw->svcc) {
 			gf_odf_avc_cfg_del(tkw->svcc);
 			tkw->svcc = NULL;
@@ -3213,7 +3252,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	if (keyIDs) gf_free(keyIDs);
 }
 
-static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, u32 act_type, u32 pck_size)
+static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_FilterPacket *pck, u32 act_type, u32 pck_size, u32 injected_hdr_size)
 {
 	const GF_PropertyValue *p;
 	GF_Err e;
@@ -3421,6 +3460,97 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			gf_bs_get_content(bs, &fake_sai, &sai_size);
 			gf_bs_del(bs);
 			sai = fake_sai;
+		}
+	}
+	//we injected xPS at the begining of the sample (AVC/HEVC/VVC), we must patch the first subsample
+	//of SAI data
+	else if (injected_hdr_size) {
+		u32 offset = 0;
+		u32 first_sub_clear, sub_count_size;
+		u8 *sai_d;
+		u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
+
+		assert(tkw->cenc_subsamples);
+
+		//multi-key skip all IV inits
+		if (tkw->cenc_ki->value.data.ptr[0]) {
+			u32 remain;
+			u32 j, nb_iv_init = sai[0];
+			nb_iv_init <<= 8;
+			nb_iv_init |= sai[1];
+			u8 *sai_p = sai + 2;
+			remain = sai_size-2;
+
+			for (j=0; j<nb_iv_init; j++) {
+				u32 mk_iv_size;
+				u32 idx = sai_p[0];
+				idx<<=8;
+				idx |= sai_p[1];
+
+				mk_iv_size = key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, idx, NULL, NULL);
+				mk_iv_size += 2; //idx
+				if (mk_iv_size > remain) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
+				sai_p += mk_iv_size;
+				remain -= mk_iv_size;
+			}
+			offset = (u32) (sai_p - sai);
+			sub_count_size = 4; //32bit sub count
+
+		} else {
+			offset = key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, 1, NULL, NULL);
+			sub_count_size = 2; //16bit sub count
+		}
+
+		//get size of first subsample
+		offset += sub_count_size;
+		sai_d = sai + offset;
+		first_sub_clear = sai_d[0];
+		first_sub_clear<<=8;
+		first_sub_clear |= sai_d[1];
+		first_sub_clear += injected_hdr_size;
+		//fits, only patch first subsample size
+		if (first_sub_clear < 0xFFFF) {
+			fake_sai = gf_malloc(sizeof(u8) * sai_size);
+			if (!fake_sai) return GF_OUT_OF_MEM;
+			memcpy(fake_sai, sai, sizeof(u8) * sai_size);
+			sai_d = fake_sai + offset;
+			sai_d[0] = (first_sub_clear>>8) & 0xFF;
+			sai_d[1] = (first_sub_clear) & 0xFF;
+			sai = fake_sai;
+		}
+		//injected header size does not fit in first subsample, add a new subsample
+		else {
+			fake_sai = gf_malloc(sizeof(u8) * (sai_size+6));
+			if (!fake_sai) return GF_OUT_OF_MEM;
+			//copy till start of first subsample (including subsample_count)
+			memcpy(fake_sai, sai, sizeof(u8) * offset);
+			//copy all subsamples
+			memcpy(fake_sai+offset+6, sai+offset, sizeof(u8) * (sai_size - offset) );
+			//insert subsample
+			sai_d = fake_sai + offset;
+			sai_d[0] = (injected_hdr_size>>8) & 0xFF;
+			sai_d[1] = (injected_hdr_size) & 0xFF;
+			sai_d[2] = sai_d[3] = sai_d[4] = sai_d[5] = 0;
+			//update subsample count
+			sai_d = fake_sai + offset - sub_count_size;
+			if (sub_count_size==2) {
+				u32 cnt = ((u32) sai_d[0]) << 8 | (u32) sai_d[1];
+				cnt++;
+				sai_d[0] = (cnt>>8) & 0xFF;
+				sai_d[1] = (cnt) & 0xFF;
+			} else {
+				u32 cnt = GF_4CC( sai_d[0], sai_d[1], sai_d[2], sai_d[3]);
+				cnt++;
+				sai_d[0] = (cnt>>24) & 0xFF;
+				sai_d[1] = (cnt>>16) & 0xFF;
+				sai_d[2] = (cnt>>8) & 0xFF;
+				sai_d[3] = (cnt) & 0xFF;
+			}
+			sai = fake_sai;
+			sai_size += 6;
 		}
 	}
 
@@ -3641,7 +3771,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 		}
 	} else {
-		if ((tkw->sample.IsRAP || tkw->force_inband_inject || ctx->pps_inband) && ctx->xps_inband) {
+		if ((tkw->sample.IsRAP || tkw->force_inband_inject || ctx->pps_inband) && tkw->xps_inband) {
 			u8 *inband_xps;
 			u32 inband_xps_size;
 			char *au_delim=NULL;
@@ -3710,7 +3840,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 
 		if (!e && tkw->cenc_state) {
-			e = mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength);
+			e = mp4_mux_cenc_update(ctx, tkw, pck, for_fragment ? CENC_ADD_FRAG : CENC_ADD_NORMAL, tkw->sample.dataLength, insert_subsample_dsi_size);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample CENC information: %s\n", gf_error_to_string(e) ));
 				return e;
@@ -4326,7 +4456,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		}
 
 		if (tkw->cenc_state==CENC_NEED_SETUP) {
-			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
+			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0, 0);
 		}
 
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
@@ -5403,7 +5533,7 @@ retry_pck:
 		if (!pck) {
 			if (gf_filter_pid_is_eos(tkw->ipid)) {
 				if (tkw->cenc_state==CENC_NEED_SETUP)
-					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0);
+					mp4_mux_cenc_update(ctx, tkw, NULL, CENC_CONFIG, 0, 0);
 
 				if (!tkw->nb_samples) {
 					const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TREX_TEMPLATE);
@@ -5663,7 +5793,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		}
 
 		if (tkw->cenc_state==CENC_NEED_SETUP)
-			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0);
+			mp4_mux_cenc_update(ctx, tkw, pck, CENC_CONFIG, 0, 0);
 
 		if (tkw->is_item) {
 			mp4_mux_process_item(ctx, tkw, pck);
@@ -6403,7 +6533,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- no: paramater sets are not inband, several sample descriptions might be created\n"
 	"- all: paramater sets are inband, no parameter sets in sample description\n"
 	"- both: paramater sets are inband, signaled as inband, and also first set is kept in sample description\n"
-	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband", GF_PROP_UINT, "no", "no|all|both|mix", 0},
+	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband\n"
+	"- auto: keep source config, or defaults to no if qource is not isobmff", GF_PROP_UINT, "no", "no|all|both|mix|auto", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
 	"- flat: write samples as they arrive and moov at end (fastest mode)\n"
