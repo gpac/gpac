@@ -3822,6 +3822,51 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *movie, u32 trackNumber)
 	return size;
 }
 
+GF_EXPORT
+u64 gf_isom_get_first_mdat_start(GF_ISOFile *movie)
+{
+	u64 offset;
+	if (!movie) return 0;
+	offset = movie->first_data_toplevel_offset + 8;
+	if (movie->first_data_toplevel_size > 0xFFFFFFFFUL)
+		offset += 8;
+	return offset;
+}
+
+static u64 box_unused_bytes(GF_Box *b)
+{
+	u32 i, count;
+	u64 size = 0;
+	switch (b->type) {
+	case GF_QT_BOX_TYPE_WIDE:
+	case GF_ISOM_BOX_TYPE_FREE:
+	case GF_ISOM_BOX_TYPE_SKIP:
+		size += b->size;
+		break;
+	}
+	count = gf_list_count(b->child_boxes);
+	for (i=0; i<count; i++) {
+		GF_Box *child = gf_list_get(b->child_boxes, i);
+		size += box_unused_bytes(child);
+	}
+	return size;
+}
+
+extern u64 unused_bytes;
+
+GF_EXPORT
+u64 gf_isom_get_unused_box_bytes(GF_ISOFile *movie)
+{
+	u64 size = unused_bytes;
+	u32 i, count;
+	if (!movie) return 0;
+	count = gf_list_count(movie->TopBoxes);
+	for (i=0; i<count; i++) {
+		GF_Box *b = gf_list_get(movie->TopBoxes, i);
+		size += box_unused_bytes(b);
+	}
+	return size;
+}
 
 GF_EXPORT
 void gf_isom_set_default_sync_track(GF_ISOFile *movie, u32 trackNumber)
@@ -5523,7 +5568,7 @@ u32 gf_isom_get_chunk_count(GF_ISOFile *movie, u32 trackNumber)
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num, u64 *chunk_offset, u32 *first_sample_num, u32 *sample_per_chunk, u32 *sample_desc_idx)
+GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num, u64 *chunk_offset, u32 *first_sample_num, u32 *sample_per_chunk, u32 *sample_desc_idx, u32 *cache_1, u32 *cache_2)
 {
 	GF_ChunkOffsetBox *stco = NULL;
 	GF_ChunkLargeOffsetBox *co64 = NULL;
@@ -5548,7 +5593,18 @@ GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num,
 
 	sample_desc_index = 0;
 	nb_samples = 1;
-	for (i=0; i<stsc->nb_entries; i++) {
+	i=0;
+
+	if (cache_1 && cache_2) {
+		if (chunk_num==1) {
+			*cache_1 = 0;
+			*cache_2 = 1;
+		}
+		i = *cache_1;
+		nb_samples = *cache_2;
+	}
+
+	for (; i<stsc->nb_entries; i++) {
 		u32 nb_chunks_before;
 
 		if (stsc->entries[i].firstChunk == chunk_num) {
@@ -5573,7 +5629,13 @@ GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num,
 
 		nb_chunks_before = stsc->entries[i+1].firstChunk - stsc->entries[i].firstChunk;
 		nb_samples += stsc->entries[i].samplesPerChunk * nb_chunks_before;
+
+		if (cache_1 && cache_2) {
+			*cache_1 = i+1;
+			*cache_2 = nb_samples;
+		}
 	}
+
 	if (first_sample_num) *first_sample_num = nb_samples;
 	if (sample_desc_idx) *sample_desc_idx = sample_desc_index;
 	if (chunk_offset) {

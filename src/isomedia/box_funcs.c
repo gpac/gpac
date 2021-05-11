@@ -88,6 +88,8 @@ u32 gf_isom_solve_uuid_box(u8 *UUID)
 
 static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 
+u64 unused_bytes = 0;
+
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size, restore_type;
@@ -319,6 +321,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		if (!skip_logs) {
 			if ((to_skip!=4) || gf_bs_peek_bits(bs, 32, 0)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" (start "LLU") has %u extra bytes\n", gf_4cc_to_str(type), start, to_skip));
+				unused_bytes += to_skip;
 			}
 		}
 		gf_bs_skip_bytes(bs, to_skip);

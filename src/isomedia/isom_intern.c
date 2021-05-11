@@ -762,6 +762,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	return GF_OK;
 }
 
+extern u64 unused_bytes;
+
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Err e;
@@ -775,6 +777,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 	if (blob)
 		gf_mx_p(blob->mx);
 
+	unused_bytes = 0;
 	e = gf_isom_parse_movie_boxes_internal(mov, boxType, bytesMissing, progressive_mode);
 
 	if (blob)

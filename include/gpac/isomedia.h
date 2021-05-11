@@ -1621,10 +1621,24 @@ u32 gf_isom_get_chunk_count(GF_ISOFile *isom_file, u32 trackNumber);
 \param first_sample_num set to the sample number of the first sample in the chunk
 \param sample_per_chunk set to number of samples per chunk
 \param sample_desc_idx set to sample desc index of samples of this chunk
+\param cache_1 updated by function at each call. May be NULL (slower). Must be set to 0 if not querying consecutive chunks
+\param cache_2 updated by function at each call. May be NULL (slower). Must be set to 0 if not querying consecutive chunks
 \return error if any
 */
-GF_Err gf_isom_get_chunk_info(GF_ISOFile *isom_file, u32 trackNumber, u32 chunkNumber, u64 *chunk_offset, u32 *first_sample_num, u32 *sample_per_chunk, u32 *sample_desc_idx);
+GF_Err gf_isom_get_chunk_info(GF_ISOFile *isom_file, u32 trackNumber, u32 chunkNumber, u64 *chunk_offset, u32 *first_sample_num, u32 *sample_per_chunk, u32 *sample_desc_idx, u32 *cache_1, u32 *cache_2);
 
+
+/*! gets the file offset of the first usable byte of the first mdat box in the file
+\param isom_file the target ISO file
+\return byte offset
+*/
+u64 gf_isom_get_first_mdat_start(GF_ISOFile *isom_file);
+
+/*! gets the size of all skip, free and wide boxes present in the file and bytes skipped during parsing (assumes a single file was opened)
+\param isom_file the target ISO file
+\return size
+*/
+u64 gf_isom_get_unused_box_bytes(GF_ISOFile *isom_file);
 
 /*! @} */
 
