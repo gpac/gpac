@@ -590,7 +590,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		url = gf_fileio_translate_url(ctx->src);
 	}
 
-	res = avformat_open_input(&ctx->demuxer, url, av_in, ctx->options ? &ctx->options : NULL);
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_open_input(&ctx->demuxer, url, av_in, &options);
 
 	switch (res) {
 	case 0:
@@ -614,11 +617,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
+		if (options) av_dict_free(&options);
 		return e;
 	}
-
-
-	ffmpeg_report_unused_options(filter, ctx->options);
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
 	if (res <0) {
@@ -626,10 +627,12 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_NOT_SUPPORTED;
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
+		if (options) av_dict_free(&options);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
 
+	ffmpeg_report_options(filter, options, ctx->options);
 	return ffdmx_init_common(filter, ctx, GF_FALSE);
 }
 
@@ -880,43 +883,48 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ctx->demuxer = avformat_alloc_context();
 	ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
 
-	res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 	if ( (res < 0) && !stricmp(ctx->dev, "screen-capture-recorder") ) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", ctx->fname, res));
-		av_dict_set(&ctx->options, "video_size", NULL, 0);
-		res = avformat_open_input(&ctx->demuxer, ctx->dev, dev_fmt, &ctx->options);
+		av_dict_set(&options, "video_size", NULL, 0);
+		res = avformat_open_input(&ctx->demuxer, ctx->dev, dev_fmt, &options);
 	}
 
 	if (res < 0) {
-		if (ctx->options) {
-			av_dict_free(&ctx->options);
+		if (options) {
+			av_dict_free(&options);
+			options = NULL;
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
 			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, NULL);
 		}
 		if (res<0) {
-			av_dict_set(&ctx->options, "framerate", "30", 0);
+			av_dict_set(&options, "framerate", "30", 0);
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
-			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 			if (res < 0) {
-				av_dict_set(&ctx->options, "framerate", "25", 0);
+				av_dict_set(&options, "framerate", "25", 0);
 				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ctx->fname, res));
-				res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+				res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 			}
 		}
 	}
 
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot open device %s:%s\n", ctx->fname, dev_fmt->priv_class->class_name, ctx->dev));
+		if (options) av_dict_free(&options);
 		return -1;
 	}
-
-	ffmpeg_report_unused_options(filter, ctx->options);
 
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
 	ctx->raw_data = GF_TRUE;
 	ctx->audio_idx = ctx->video_idx = -1;
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
+
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname,  av_err2str(res)));

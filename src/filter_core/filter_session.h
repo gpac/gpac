@@ -317,10 +317,11 @@ typedef struct
 {
 	char *argname;
 	u32 type;
-	Bool found;
+	//0: not found, 1: found but can be later reset to 0, 2: found no reset
+	u32 found_type;
 } GF_FSArgItem;
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type);
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found, u32 type);
 
 enum
 {

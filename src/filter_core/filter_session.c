@@ -348,7 +348,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if ((arg[1]!='-') && (arg[1]!='+')) continue;
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
-			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]!='-') ? 2 : 1);
+			gf_fs_push_arg(fsess, arg+2, 0, (arg[1]!='-') ? 2 : 1);
 
 			if (sep && !strcmp(arg+2, "template") && strstr(sep+1, "$Bandwidth$")) {
 				gf_opts_set_key("temp", "force_indexing", "true");
@@ -367,7 +367,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	return fsess;
 }
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type)
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found, u32 type)
 {
 	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
 		return;
@@ -381,8 +381,8 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
 				afound = GF_TRUE;
-				if ((ai->type==2) && (type==2))
-					ai->found = GF_FALSE;
+				if ((ai->type==2) && (type==2) && (ai->found_type==1))
+					ai->found_type = 0;
 				break;
 			}
 		}
@@ -403,7 +403,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		for (k=0; k<acount; k++) {
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
-				ai->found = GF_TRUE;
+				ai->found_type = was_found;
 				found = GF_TRUE;
 				break;
 			}
@@ -414,7 +414,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			if (ai) {
 				ai->argname = gf_strdup(szArg);
 				ai->type = type;
-				ai->found = GF_TRUE;
+				ai->found_type = was_found;
 				gf_list_add(session->parsed_args, ai );
 			}
 		}
@@ -574,7 +574,7 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argna
 	for (i=*idx; i<count; i++) {
 		GF_FSArgItem *ai = gf_list_get(fsess->parsed_args, i);
 		(*idx)++;
-		if (ai->found) continue;
+		if (ai->found_type) continue;
 		if (argname) *argname = ai->argname;
 		if (argtype) *argtype = ai->type;
 		return GF_TRUE;
