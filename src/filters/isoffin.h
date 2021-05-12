@@ -191,7 +191,8 @@ typedef struct
 	Bool pck_encrypted;
 
 	u32 key_info_crc;
-
+	const GF_PropertyValue *cenc_ki;
+	
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
