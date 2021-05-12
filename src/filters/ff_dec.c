@@ -915,10 +915,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	if (options) {
-		ffmpeg_report_unused_options(filter, options);
-		av_dict_free(&options);
-	}
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	//we're good to go, declare our output pid
 	ctx->in_pid = pid;

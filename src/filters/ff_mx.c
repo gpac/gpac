@@ -97,11 +97,16 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	assert(ctx->status==FFMX_STATE_AVIO_OPEN);
 
 	ctx->status = FFMX_STATE_HDR_DONE;
-	res = avformat_init_output(ctx->muxer, &ctx->options);
+
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_init_output(ctx->muxer, &options);
 
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
+		if (options) av_dict_free(&options);
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -118,14 +123,15 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		}
 	}
 
-	res = avformat_write_header(ctx->muxer, &ctx->options);
+	res = avformat_write_header(ctx->muxer, &options);
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write header for %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
+		if (options) av_dict_free(&options);
 		return GF_SERVICE_ERROR;
 	}
 
-	ffmpeg_report_unused_options(filter, ctx->options);
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	return GF_OK;
 }
@@ -344,7 +350,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
         av_dict_copy(&options, ctx->options, 0);
         av_dict_set(&options, "fflags", "-autobsf", 0);
         res = avformat_write_header(ctx->muxer, &options);
-        av_dict_free(&options);
+		if (options) av_dict_free(&options);
         if (res < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;

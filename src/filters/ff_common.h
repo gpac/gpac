@@ -77,4 +77,5 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx);
 u64 ffmpeg_channel_layout_from_gpac(u64 gpac_ch_layout);
 u64 ffmpeg_channel_layout_to_gpac(u64 ff_ch_layout);
 
-void ffmpeg_report_unused_options(GF_Filter *filter, AVDictionary *options);
+//this will destroy unknown_options if set
+void ffmpeg_report_options(GF_Filter *filter, AVDictionary *unknown_options, AVDictionary *all_options);

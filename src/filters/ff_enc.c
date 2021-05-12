@@ -1540,10 +1540,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 
-	if (options) {
-		ffmpeg_report_unused_options(filter, options);
-		av_dict_free(&options);
-	}
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	if (!is_force_reconf)
 		ffenc_copy_pid_props(ctx);

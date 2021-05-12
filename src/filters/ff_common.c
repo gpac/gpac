@@ -1295,14 +1295,22 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 	}
 }
 
-void ffmpeg_report_unused_options(GF_Filter *filter, AVDictionary *options)
+void ffmpeg_report_options(GF_Filter *filter, AVDictionary *options, AVDictionary *all_options)
 {
 	AVDictionaryEntry *prev_e = NULL;
-	while (options) {
-		prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
-		if (!prev_e) break;
-		gf_filter_report_unused_meta_option(filter, prev_e->key);
-	}
 
+	while (all_options) {
+		Bool unknown_opt = GF_FALSE;
+		prev_e = av_dict_get(all_options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		if (options) {
+			AVDictionaryEntry *unkn = av_dict_get(options, prev_e->key, NULL, 0);
+			if (unkn) unknown_opt = GF_TRUE;
+		}
+		gf_filter_report_meta_option(filter, prev_e->key, unknown_opt ? GF_FALSE : GF_TRUE);
+	}
+	if (options)
+		av_dict_free(&options);
 }
+
 #endif

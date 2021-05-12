@@ -2818,12 +2818,13 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus);
 */
 Bool gf_filter_end_of_session(GF_Filter *filter);
 
-/*! used by meta-filters (ffmpeg and co) to report an option was set but not used by the filter. This is needed since these filters might not
+/*! used by meta-filters (ffmpeg and co) to report used/unused options. This is needed since these filters might not
 know the set of available options at initialize() time.
 \param filter target filter
 \param arg name of the argument not used/found
+\param was_found indicate that this option was found
 */
-void gf_filter_report_unused_meta_option(GF_Filter *filter, const char *arg);
+void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_found);
 
 /*! used by script to set a per-instance description
 \param filter target filter
