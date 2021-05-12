@@ -3204,8 +3204,11 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 	}
 	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
+		char *rem_opts[] = {"FID", "SID", "N", "clone", NULL};
 		char szSep[10];
 		char *loc_args;
+		u32 opt_idx;
+		u32 dst_offset = 0;
 		u32 len = (u32) strlen(args);
 		sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
 		loc_args = strstr(args, szSep);
@@ -3221,11 +3224,26 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 				sprintf(szSep, "%c", filter->session->sep_args);
 				gf_dynstrcat(&full_args, szSep, NULL);
 			}
+			if (full_args)
+				dst_offset = (u32) strlen(full_args);
+
 			gf_dynstrcat(&full_args, args, NULL);
 			sprintf(szSep, "%cgfloc%c", filter->session->sep_args, filter->session->sep_args);
 			loc_args = strstr(full_args, "gfloc");
 			if (loc_args) loc_args[0] = 0;
 
+			//remove all internal options FIS, SID, N
+			opt_idx = 0;
+			while (rem_opts[opt_idx]) {
+				sprintf(szSep, "%c%s%c", filter->session->sep_args, rem_opts[opt_idx], filter->session->sep_name);
+				loc_args = strstr(full_args + dst_offset, szSep);
+				if (loc_args) {
+					char *sep = strchr(loc_args+1, filter->session->sep_args);
+					if (sep) memmove(loc_args, sep, strlen(sep)+1);
+					else loc_args[0] = 0;
+				}
+				opt_idx++;
+			}
 			url = full_args;
 		}
 	}

@@ -1216,7 +1216,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			if (is_filter_chain) {
 				f = gf_filter_load_filter(filter, url, &e);
 			} else {
-				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_TRUE, &e);
+				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_FALSE, &e);
 
 				if (fsrc)
 					gf_filter_set_setup_failure_callback(filter, fsrc, filelist_on_filter_setup_error, filter);
@@ -2799,6 +2799,7 @@ GF_FilterRegister FileListRegister = {
 		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
 		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
+		"The loaded sources do not inherit arguments from the parent playlist filter.\n"
 		"\n"
 		"The URL given can either be a single URL, or a list of URLs separated by \" && \" to load several sources for the active entry.\n"
 		"Warning: There shall not be any other space/tab characters between sources.\n"
