@@ -3851,6 +3851,8 @@ The source lines follow the usual source syntax, see gpac -h.
 .br
 Additional pid properties can be added per source (see gpac -h doc), but are valid only for the current source, and reset at next source.
 .br
+The loaded sources do not inherit arguments from the parent playlist filter.
+.br
 
 .br
 The URL given can either be a single URL, or a list of URLs separated by " && " to load several sources for the active entry.
@@ -6629,7 +6631,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.77.100
+Version: Lavf58.78.100
 .br
 
 .br
@@ -6663,7 +6665,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.135.100
+Version: Lavc58.136.101
 .br
 
 .br
@@ -6832,7 +6834,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.135.100
+Version: Lavc58.136.101
 .br
 
 .br
@@ -6896,7 +6898,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.77.100
+Version: Lavf58.78.100
 .br
 
 .br
@@ -6956,7 +6958,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.77.100
+Version: Lavf58.78.100
 .br
 
 .br
@@ -7658,7 +7660,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev836-gd86940989-master
+build: 1.1.0-DEV-rev845-g45fd47bd3-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
