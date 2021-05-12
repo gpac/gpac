@@ -245,6 +245,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	}
 
 	ch->pck_encrypted = Is_Encrypted;
+	ch->cenc_ki = NULL;
 
 	/*notify change of IV/KID only when packet is encrypted
 	1- these info are ignored when packet is not encrypted
@@ -269,6 +270,8 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 
 		if (item_mkey)
 			key_info[0] = item_mkey;
+
+		ch->cenc_ki = gf_filter_pid_get_property(ch->pid, GF_PROP_PID_CENC_KEY_INFO);
 	}
 }
 
@@ -706,17 +709,92 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 	gf_list_add(list, sl);
 }
 
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
+
+void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
+{
+	u32 offset = 0;
+	u8 *sai;
+	u32 sai_size, cur_pos;
+	u32 sub_count_size = 0;
+	u32 i, subs_count = 0;
+
+	if (!ch->cenc_ki || !ch->sai_buffer) return;
+
+	sai = ch->sai_buffer;
+	sai_size = ch->sai_buffer_size;
+
+	//multikey
+	if (ch->cenc_ki->value.data.ptr[0]) {
+		u32 remain;
+		u32 j, nb_iv_init = sai[0];
+		nb_iv_init <<= 8;
+		nb_iv_init |= sai[1];
+		u8 *sai_p = sai + 2;
+		remain = sai_size-2;
+
+		for (j=0; j<nb_iv_init; j++) {
+			u32 mk_iv_size;
+			u32 idx = sai_p[0];
+			idx<<=8;
+			idx |= sai_p[1];
+
+			mk_iv_size = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
+			mk_iv_size += 2; //idx
+			if (mk_iv_size > remain) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
+				return;
+			}
+			sai_p += mk_iv_size;
+			remain -= mk_iv_size;
+		}
+		offset = (u32) (sai_p - sai);
+		sub_count_size = 4; //32bit sub count
+
+	} else {
+		offset = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
+		sub_count_size = 2; //16bit sub count
+	}
+
+	sai += offset;
+	if (sub_count_size==2) {
+		subs_count = ((u32) sai[0]) << 8 | sai[1];
+	} else {
+		subs_count = GF_4CC(sai[0], sai[1], sai[2], sai[3]);
+	}
+	sai += sub_count_size;
+	sai_size -= offset + sub_count_size;
+	cur_pos = 0;
+	for (i=0; i<subs_count; i++) {
+		if (sai_size<6)
+			return;
+		u32 clear = ((u32) sai[0]) << 8 | sai[1];
+		u32 crypt = GF_4CC(sai[2], sai[3], sai[4], sai[5]);
+		if (cur_pos + clear > pos) {
+			clear -= removed;
+			sai[0] = (clear>>8) & 0xFF;
+			sai[1] = (clear) & 0xFF;
+			return;
+		}
+		cur_pos += clear + crypt;
+		sai += 6;
+	}
+}
+
 void isor_reader_check_config(ISOMChannel *ch)
 {
 	u32 nalu_len, reset_state;
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
-	//we cannot touch the payload if encrypted !!
-	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
-	if (ch->is_encrypted) return;
+
+	//we cannot touch the payload if encrypted but not CENC !!
+	if (ch->is_encrypted && !ch->is_cenc)
+		return;
 
 	if (ch->check_mhas_pl) {
+		//we cannot touch the payload if encrypted !!
+		if (ch->pck_encrypted) return;
 		u64 ch_layout = 0;
 		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength, &ch_layout);
 		if (PL>0) {
@@ -727,9 +805,13 @@ void isor_reader_check_config(ISOMChannel *ch)
 		}
 		return;
 	}
-
+	//analyze mode, do not rewrite
 	if (ch->owner->analyze) return;
-	
+
+	//we cannot touch the payload if encrypted but no SAI buffer
+	if (ch->pck_encrypted && !ch->sai_buffer)
+		return;
+
 	nalu_len = 4;
 	if (ch->avcc) nalu_len = ch->avcc->nal_unit_size;
 	else if (ch->hvcc) nalu_len = ch->hvcc->nal_unit_size;
@@ -793,6 +875,10 @@ void isor_reader_check_config(ISOMChannel *ch)
 			ch->sample->dataLength -= size + nalu_len;
 			gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
 			gf_bs_seek(ch->nal_bs, pos);
+
+			//remove nal from clear subsample range
+			if (ch->pck_encrypted)
+				isor_sai_bytes_removed(ch, pos, nalu_len+size);
 		}
 	}
 
