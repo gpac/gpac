@@ -1104,7 +1104,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			gf_odf_avc_cfg_del(cfg);
 
-			if (ctx->avc.sps[ctx->active_sps].vui_parameters_present_flag) {
+			if ((ctx->active_sps>=0) && ctx->avc.sps[ctx->active_sps].vui_parameters_present_flag) {
 				Bool full_range = ctx->avc.sps[ctx->active_sps].vui.video_full_range_flag;
 				u32 cmx = ctx->avc.sps[ctx->active_sps].vui.matrix_coefficients;
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
@@ -1170,7 +1170,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			gf_odf_hevc_cfg_del(cfg);
 
-			if (ctx->hevc.sps[ctx->active_sps].vui_parameters_present_flag) {
+			if ((ctx->active_sps>=0) && ctx->hevc.sps[ctx->active_sps].vui_parameters_present_flag) {
 				Bool full_range = ctx->hevc.sps[ctx->active_sps].video_full_range_flag;
 				u32 cmx = ctx->hevc.sps[ctx->active_sps].matrix_coeffs;
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
