@@ -157,7 +157,9 @@ GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 	ctx->reconfig_needed = GF_FALSE;
 	ctx->inject_xps = GF_TRUE;
 
+	if (ctx->active_sps<0) return GF_OK;
 	idx = ctx->active_sps;
+
 	ctx->width = ctx->avc.sps[idx].width;
 	ctx->height = ctx->avc.sps[idx].height;
 	ctx->crop_left = ctx->avc.sps[idx].crop.left;
@@ -273,6 +275,8 @@ GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 	if (!vps) return GF_NON_COMPLIANT_BITSTREAM;
 	ctx->reconfig_needed = GF_FALSE;
 	ctx->inject_xps = GF_TRUE;
+
+	if (ctx->active_sps<0) return GF_OK;
 
 	idx = ctx->active_sps;
 	ctx->width = ctx->hevc.sps[idx].width;
