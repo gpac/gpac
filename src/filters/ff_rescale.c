@@ -221,9 +221,24 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->ipid = pid;
 	}
 
-	//if nothing is set we, consider we run as an adaptation filter, wait for caps to be set to declare output
-	if (!ctx->ofmt && !ctx->osize.x && !ctx->osize.y)
+	//if nothing is set we, consider we run as an adaptation filter, wait for reconfiguration to be called to declare output format
+	if (!ctx->ofmt && !ctx->osize.x && !ctx->osize.y) {
+		//we were explicitly loaded, act as a passthrough filter until we get a reconfig
+		//we must do so for cases where the declared properties match the consuming format (so reconfiguration will never be called)
+		if (!gf_filter_is_dynamic(filter)) {
+			gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+			//make sure we init at some default values as filters down the chain will check for w/h/pfmt
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+			if (!p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(128));
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+			if (!p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(128));
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (!p) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGB));
+
+			ctx->passthrough = GF_TRUE;
+		}
 		return GF_OK;
+	}
 
 
 
