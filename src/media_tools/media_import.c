@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -259,6 +259,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	u64 offset, sampDTS, duration, dts_offset;
 	Bool is_nalu_video=GF_FALSE;
 	u32 track, di, trackID, track_in, i, num_samples, mtype, w, h, sr, sbr_sr, ch, mstype, cur_extract_mode, cdur, bps;
+	u64 mtimescale;
 	s32 trans_x, trans_y;
 	s16 layer;
 	char *lang;
@@ -490,9 +491,10 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	cdur = gf_isom_get_constant_sample_duration(import->orig, track_in);
 	gf_isom_enable_raw_pack(import->orig, track_in, 2048);
 
+	mtimescale = gf_isom_get_media_timescale(import->orig, track_in);
 	duration = 0;
 	if ((import->duration.num>0) && import->duration.den) {
-		duration = (u64) (((Double)import->duration.num * gf_isom_get_media_timescale(import->orig, track_in)) / import->duration.den);
+		duration = (u64) (((Double)import->duration.num * mtimescale) / import->duration.den);
 	}
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
 
@@ -558,7 +560,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				e = gf_isom_last_error(import->orig);
 				goto exit;
 			}
+
 			samp->DTS -= dts_offset;
+			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+				gf_isom_sample_del(&samp);
+				break;
+			}
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
@@ -588,6 +595,12 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				}
 				samp->DTS = sampDTS + 1;
 			}
+
+			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+				gf_isom_sample_del(&samp);
+				break;
+			}
+
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;
@@ -632,7 +645,9 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		}
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
-		if (duration && (sampDTS > duration) ) break;
+
+		if (duration && gf_sys_old_arch_compat() && (sampDTS > duration))
+			break;
 	}
 
 	//adjust last sample duration
@@ -750,6 +765,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	u32 state, offset;
 	u32 cur_chap;
 	u64 ts;
+	Bool found_chap = GF_FALSE;
 	u32 i, h, m, s, ms, fr, fps;
 	char line[1024];
 	char szTitle[1024];
@@ -984,6 +1000,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				}
 			}
 			if (state==2) {
+				found_chap = GF_TRUE;
 				e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
 				if (e) goto err_exit;
 				state = 0;
@@ -992,6 +1009,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		}
 		else continue;
 
+		found_chap = GF_TRUE;
 		if (strlen(szTitle)) {
 			e = gf_isom_add_chapter(import->dest, 0, ts, szTitle);
 		} else {
@@ -1002,6 +1020,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 
 err_exit:
 	gf_fclose(f);
+	if (!found_chap) return GF_NOT_FOUND;
 	return e;
 }
 
@@ -1079,7 +1098,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	GF_Filter *isobmff_mux, *source;
 	GF_Filter *filter_orig;
 	char *ext;
-	char *fmt = "";
+	char *fmt = NULL;
 
 	if (!importer || (!importer->dest && (importer->flags!=GF_IMPORT_PROBE_ONLY)) || (!importer->in_name && !importer->orig) ) return GF_BAD_PARAM;
 
@@ -1101,7 +1120,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		magic |= (importer->source_magic & 0xFFFFFFFFUL);
 		importer->source_magic = magic;
 		source_is_isom = GF_TRUE;
-		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session)
+		if ((!importer->filter_chain && !importer->filter_dst_opts && !importer->run_in_session && !importer->start_time)
 			|| (importer->flags & GF_IMPORT_PROBE_ONLY)
 		) {
 			importer->orig = gf_isom_open(importer->in_name, GF_ISOM_OPEN_READ, NULL);
@@ -1115,15 +1134,17 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	}
 
 	/*SC3DMC*/
-	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
+	if (!strnicmp(ext, ".s3d", 4) || (fmt && !stricmp(fmt, "SC3DMC")) )
 		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 	/* chapter */
-	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
-		return gf_media_import_chapters_file(importer);
+	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || (fmt && !stricmp(fmt, "CHAP")) ) {
+		e =  gf_media_import_chapters_file(importer);
+		if (!strnicmp(ext, ".txt", 4) && (e==GF_NOT_FOUND)) {
 
-#ifdef FILTER_FIXME
-	#error "importer TO CHECK: SAF, TS"
-#endif
+		} else {
+			return e;
+		}
+	}
 
 	e = GF_OK;
 	importer->last_error = GF_OK;
@@ -1220,7 +1241,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->run_in_session) {
 		fsess = importer->run_in_session;
 	} else {
-		fsess = gf_fs_new_defaults(0);
+		fsess = gf_fs_new_defaults(fmt ? GF_FS_FLAG_NO_PROBE : 0);
 		if (!fsess) {
 			return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session for import");
 		}
@@ -1246,7 +1267,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->filter_dst_opts)
-		e |= gf_dynstrcat(&args, importer->filter_dst_opts, ":");
+		e |= gf_dynstrcat(&args, importer->filter_dst_opts, ":gfloc:");
 
 	if (importer->flags & GF_IMPORT_FORCE_MPEG4)
 		e |= gf_dynstrcat(&args, "m4sys", ":");
@@ -1285,6 +1306,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (source_is_isom && gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
 
+	if (importer->start_time) {
+		sprintf(szSubArg, "start=%f", importer->start_time);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 	if (e) {
 		gf_fs_del(fsess);
 		gf_free(args);
@@ -1386,6 +1411,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "FID=%s", szFilterID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
+	if (fmt) {
+		sprintf(szSubArg, "ext=%s", fmt);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
 	if (importer->filter_src_opts) e |= gf_dynstrcat(&args, importer->filter_src_opts, ":");
 
 	if (importer->flags & GF_IMPORT_SBR_IMPLICIT) e |= gf_dynstrcat(&args, "sbr=imp", ":");
@@ -1448,9 +1477,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!importer->last_error) importer->last_error = gf_fs_get_last_process_error(fsess);
 
 	if (importer->last_error) {
+		gf_fs_print_non_connected(fsess);
+		if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
+		if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);
 		if (!importer->run_in_session)
 			gf_fs_del(fsess);
-		return gf_import_message(importer, importer->last_error, "[Importer] Error probing %s", importer->in_name);
+		return gf_import_message(importer, importer->last_error, "[Importer] Error importing %s", importer->in_name);
 	}
 
 	importer->final_trackID = gf_isom_get_last_created_track_id(importer->dest);
@@ -1475,6 +1507,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 	}
 
+	if (!e) gf_fs_print_unused_args(fsess, "index,fps,mpeg4");
 	gf_fs_print_non_connected(fsess);
 	if (importer->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (importer->print_stats_graph & 2) gf_fs_print_connections(fsess);

@@ -1,4 +1,4 @@
-package com.enst.mp4box;
+package com.gpac.mp4box;
 
 
 public class mp4terminal {

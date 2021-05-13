@@ -48,8 +48,8 @@ filter.set_help(
 +"\n"
 +"# Multistream generation\n"
 +"More than one output size can be specified. This will result in multiple sources being generated, one per size.\n"
-+"A size can be specified more than once, resulting in packet references when [-copy] is not set, or full copies otherwise.\n"
-+"Target encoding bitrates can be assigned to each output using [-rates](). This can be usefull when generating dash:\n"
++"A size can be specified more than once, resulting in packet references when [-copy]() is not set, or full copies otherwise.\n"
++"Target encoding bitrates can be assigned to each output using [-rates](). This can be useful when generating dash:\n"
 +"EX gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:clone -o live.mpd:SID=1,2\n"
 +"\n"
 +"# Multiview generation\n"
@@ -62,7 +62,7 @@ filter.set_help(
 +"The audio PID is assigned the name `audio` and ID `1`.\n"
 +"If a single video PID is produced, it is assigned the name `video` and ID `2`.\n"
 +"If multiple video PIDs are produced, they are assigned the names `videoN` and ID `N+1`, N in [1, sizes].\n"
-+"If multiple [-views]() are generated, they are assigned the names `videoN_vK` and ID `N*views+K-1, N in [1,sizes], K in [1, views].\n"
++"If multiple [-views]() are generated, they are assigned the names `videoN_vK` and ID `N*views+K-1`, N in [1, sizes], K in [1, views].\n"
 );
 
 filter.set_arg({ name: "type", desc: "output selection\n- a: audio only\n- v: video only\n- av: audio and video", type: GF_PROP_UINT, def: "av", minmax_enum: "a|v|av"} );
@@ -129,7 +129,7 @@ filter.initialize = function() {
 	if (filter.type != 0) {
 		this.set_cap({id: "StreamType", value: "Video", output: true} );
 	}
-	this.set_cap({id: "CodecID", value: "raw", ouput: true} );
+	this.set_cap({id: "CodecID", value: "raw", output: true} );
 
 	//setup audio
 	if (filter.type != 1) {
@@ -447,6 +447,7 @@ function process_audio()
 
 	/*set packet properties and send it*/
 	pck.cts = audio_cts;
+	pck.dur = filter.flen;
 	pck.sap = GF_FILTER_SAP_1;
 	
 	//when prop value is set to true for 'SenderNTP', automatically set 
@@ -550,6 +551,7 @@ function process_video()
 				}
 				/*set packet properties and send it*/
 				pck.cts = video_cts;
+				pck.dur = filter.fps.d;
 				pck.sap = GF_FILTER_SAP_1;
 				if (filter.ntp)
 					pck.set_prop('SenderNTP', ntp);

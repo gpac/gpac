@@ -39,7 +39,7 @@
 typedef struct _st_entry
 {
 	struct _st_entry *next;
-	/*as refered to by xlink-href*/
+	/*as referred to by xlink-href*/
 	char *stream_name;
 	/*stream id*/
 	u32 id;

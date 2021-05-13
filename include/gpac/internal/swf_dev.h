@@ -133,7 +133,7 @@ struct SWFReader
 	GF_Err (*define_text)(SWFReader *read, SWFText *text);
 	GF_Err (*define_edit_text)(SWFReader *read, SWFEditText *text);
 	/*@button is NULL to signal end of button declaration, non-null otherwise. "action" callback will be
-	called inbetween*/
+	called in between*/
 	GF_Err (*define_button)(SWFReader *read, SWF_Button *button);
 
 	GF_Err (*setup_image)(SWFReader *read, u32 ID, char *fileName);

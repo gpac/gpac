@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -204,10 +204,12 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (ctx->raw_data && !copy) {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_shared(ctx->pids[ctx->pkt.stream_index], ctx->pkt.data, ctx->pkt.size, ffdmx_shared_pck_release);
+		if (!pck_dst) return GF_OUT_OF_MEM;
 		ctx->raw_pck_out = GF_TRUE;
 	} else {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 		pck_dst = gf_filter_pck_new_alloc(ctx->pids[ctx->pkt.stream_index] , ctx->pkt.size, &data_dst);
+		if (!pck_dst) return GF_OUT_OF_MEM;
 		assert(pck_dst);
 		memcpy(data_dst, ctx->pkt.data, ctx->pkt.size);
 	}
@@ -588,7 +590,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		url = gf_fileio_translate_url(ctx->src);
 	}
 
-	res = avformat_open_input(&ctx->demuxer, url, av_in, ctx->options ? &ctx->options : NULL);
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_open_input(&ctx->demuxer, url, av_in, &options);
 
 	switch (res) {
 	case 0:
@@ -612,11 +617,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Fail to open %s - error %s\n", ctx->fname, ctx->src, av_err2str(res) ));
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
+		if (options) av_dict_free(&options);
 		return e;
 	}
-
-
-	ffmpeg_report_unused_options(filter, ctx->options);
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
 	if (res <0) {
@@ -624,10 +627,12 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_NOT_SUPPORTED;
 		avformat_close_input(&ctx->demuxer);
 		avformat_free_context(ctx->demuxer);
+		if (options) av_dict_free(&options);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
 
+	ffmpeg_report_options(filter, options, ctx->options);
 	return ffdmx_init_common(filter, ctx, GF_FALSE);
 }
 
@@ -726,9 +731,12 @@ GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
-	GF_FS_SET_HELP("Demuxes files and open protocol using FFMPEG.\n"
+	GF_FS_SET_HELP("Demultiplexes files and open protocol using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
+	"This will list both supported input formats and protocols.\n"
+	"Input protocols are listed with `Description: Input protocol`, and the subclass name identitfes the protocol scheme.\n"
+	"For example, if `ffdmx:rtmp` is listed as input protocol, this means `rtmp://` source URLs are supported.\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFDmxCaps),
@@ -749,6 +757,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffdmx` and `gpac -hx ffdmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
+
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
@@ -874,43 +883,48 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ctx->demuxer = avformat_alloc_context();
 	ffmpeg_set_mx_dmx_flags(ctx->options, ctx->demuxer);
 
-	res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 	if ( (res < 0) && !stricmp(ctx->dev, "screen-capture-recorder") ) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", ctx->fname, res));
-		av_dict_set(&ctx->options, "video_size", NULL, 0);
-		res = avformat_open_input(&ctx->demuxer, ctx->dev, dev_fmt, &ctx->options);
+		av_dict_set(&options, "video_size", NULL, 0);
+		res = avformat_open_input(&ctx->demuxer, ctx->dev, dev_fmt, &options);
 	}
 
 	if (res < 0) {
-		if (ctx->options) {
-			av_dict_free(&ctx->options);
+		if (options) {
+			av_dict_free(&options);
+			options = NULL;
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
 			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, NULL);
 		}
 		if (res<0) {
-			av_dict_set(&ctx->options, "framerate", "30", 0);
+			av_dict_set(&options, "framerate", "30", 0);
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
-			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+			res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 			if (res < 0) {
-				av_dict_set(&ctx->options, "framerate", "25", 0);
+				av_dict_set(&options, "framerate", "25", 0);
 				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ctx->fname, res));
-				res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &ctx->options);
+				res = avformat_open_input(&ctx->demuxer, dev_name, dev_fmt, &options);
 			}
 		}
 	}
 
 	if (res < 0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot open device %s:%s\n", ctx->fname, dev_fmt->priv_class->class_name, ctx->dev));
+		if (options) av_dict_free(&options);
 		return -1;
 	}
-
-	ffmpeg_report_unused_options(filter, ctx->options);
 
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
 	ctx->raw_data = GF_TRUE;
 	ctx->audio_idx = ctx->video_idx = -1;
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
+
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] cannot locate streams - error %s\n", ctx->fname,  av_err2str(res)));
@@ -1001,7 +1015,15 @@ GF_FilterRegister FFAVInRegister = {
 	"- `FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"
 	"- `screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"
 	"- `Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"
-	"- X display name (eg `:0.0`) on linux"
+	"- X display name (eg `:0.0`) on linux\n"
+	"\n"
+	"The general mapping from ffmpeg command line is:\n"
+	"- ffmpeg `-f` maps to [-fmt]() option\n"
+	"- ffmpeg `-i` maps to [-dev]() option\n"
+	"\n"
+	"EX ffmpeg -f libndi_newtek -i MY_NDI_TEST ...\n"
+	"EX gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...\n"
+	"\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),

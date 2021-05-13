@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / video cropping filter
@@ -210,6 +210,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 		vframe->frame_ifce.user_data = vframe;
 		vframe->frame_ifce.get_plane = vcrop_frame_get_plane;
 		dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vframe->frame_ifce, vcrop_packet_destruct);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		//keep a ref to input packet
 		vframe->pck = pck;
 		gf_filter_pck_ref(&vframe->pck);
@@ -222,10 +224,8 @@ static GF_Err vcrop_process(GF_Filter *filter)
 
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
-	if (!dst_pck) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OUT_OF_MEM;
-	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	dst_planes[0] = output;
 	if (ctx->nb_planes==1) {
@@ -455,6 +455,7 @@ static GF_Err vcrop_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (is_remove) {
 		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
 		}
 		return GF_OK;
 	}
@@ -611,7 +612,7 @@ GF_FilterRegister VCropRegister = {
 	GF_FS_SET_DESCRIPTION("Video crop")
 	GF_FS_SET_HELP("This filter is used to crop raw video data.")
 	.private_size = sizeof(GF_VCropCtx),
-	.flags = GF_FS_REG_EXPLICIT_ONLY,
+	.flags = GF_FS_REG_EXPLICIT_ONLY|GF_FS_REG_ALLOW_CYCLIC,
 	.args = VCropArgs,
 	.configure_pid = vcrop_configure_pid,
 	SETCAPS(VCropCaps),

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -61,7 +61,6 @@ struct __gf_dash_segmenter
 	Bool daisy_chain_sidx, use_ssix;
 
 	Bool fragments_start_with_rap;
-	char *tmpdir;
 	Double mpd_update_time;
 	s32 time_shift_depth;
 	u32 min_buffer_time;
@@ -142,7 +141,6 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	dasher->mpd_name = gf_strdup(mpdName);
 
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
-	if (tmp_dir) dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
 	dasher->dash_state = dasher_context_file;
 	dasher->inputs = gf_list_new();
@@ -162,6 +160,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 {
 	gf_list_reset(dasher->inputs);
 	if (dasher->fsess) {
+		gf_fs_print_unused_args(dasher->fsess, "smode");
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}
@@ -172,7 +171,6 @@ void gf_dasher_del(GF_DASHSegmenter *dasher)
 {
 	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
 	gf_dasher_clean_inputs(dasher);
-	gf_free(dasher->tmpdir);
 	gf_free(dasher->mpd_name);
 	if (dasher->title) gf_free(dasher->title);
 	if (dasher->moreInfoURL) gf_free(dasher->moreInfoURL);
@@ -275,9 +273,9 @@ GF_EXPORT
 GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration, Double sub_duration)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->segment_duration = default_segment_duration * 1000 / dasher->dash_scale;
+	dasher->segment_duration = default_segment_duration;
 	if (default_fragment_duration)
-		dasher->fragment_duration = default_fragment_duration * 1000 / dasher->dash_scale;
+		dasher->fragment_duration = default_fragment_duration;
 	else
 		dasher->fragment_duration = dasher->segment_duration;
 	dasher->sub_duration = sub_duration;
@@ -487,6 +485,8 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, const GF_DashSegmenterInput
 	return GF_OK;
 }
 
+extern char gf_prog_lf;
+
 static Bool on_dasher_event(void *_udta, GF_Event *evt)
 {
 	u32 i, count;
@@ -513,9 +513,9 @@ static Bool on_dasher_event(void *_udta, GF_Event *evt)
 	dasher->last_prog = stats.percent / 100;
 
 	if ( stats.status) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s\r", stats.status));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing %s%c", stats.status, gf_prog_lf));
 	} else if (stats.percent>0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%\r", ((Double)stats.percent) / 100));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Dashing: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf));
 	}
 	return GF_FALSE;
 }
@@ -561,7 +561,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		sep_ext[0] = 0;
 	}
 
-	sprintf(szArg, "segdur=%g", dasher->segment_duration);
+	if (dasher->segment_duration == (u32) dasher->segment_duration) {
+		sprintf(szArg, "segdur=%u/%u", (u32) dasher->segment_duration, dasher->dash_scale);
+	} else {
+		sprintf(szArg, "segdur=%g", dasher->segment_duration/dasher->dash_scale);
+	}
 	e = gf_dynstrcat(&args, szArg, ":");
 
 	if (sep_ext)
@@ -683,7 +687,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 	}
 	if (dasher->sub_duration) {
-		sprintf(szArg, "subdur=%g", dasher->sub_duration);
+		//subdur is in seconds in dasher filter
+		sprintf(szArg, "subdur=%g", dasher->sub_duration/dasher->dash_scale);
 		e |= gf_dynstrcat(&args, szArg, ":");
 	}
 	if (dasher->dash_state) {
@@ -708,7 +713,11 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		diff -= dasher->segment_duration;
 		if (diff<0) diff = -diff;
 		if (diff > 0.01) {
-			sprintf(szArg, "cdur=%g", dasher->fragment_duration);
+			if (dasher->fragment_duration == (u32) dasher->fragment_duration) {
+				sprintf(szArg, "cdur=%u/%u", (u32) dasher->fragment_duration, dasher->dash_scale);
+			} else {
+				sprintf(szArg, "cdur=%g", dasher->fragment_duration/dasher->dash_scale);
+			}
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 	}
@@ -755,10 +764,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	}
 
 	if (dasher->fragments_start_with_rap) e |= gf_dynstrcat(&args, "sfrag", ":");
-	if (dasher->tmpdir) {
-		sprintf(szArg, "tmpd=%s", dasher->tmpdir );
-		e |= gf_dynstrcat(&args, szArg, ":");
-	}
 
 	if (dasher->cues_file) {
 		sprintf(szArg, "cues=%s", dasher->cues_file );
@@ -841,7 +846,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	for (i=0; i<count; i++) {
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
-		if (di->periodID || di->period_duration || di->xlink) {
+		if (di->periodID || (di->period_duration.num && di->period_duration.den) || di->xlink) {
 			multi_period = GF_TRUE;
 		}
 		di->period_order=0;
@@ -882,22 +887,22 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		u32 j;
 		GF_Filter *src = NULL;
 		GF_Filter *rt = NULL;
-		const char *url = "null";
+		const char *url = NULL;
 		char *frag=NULL;
 		GF_DashSegmenterInput *di = gf_list_get(dasher->inputs, i);
 
 		if (dasher->real_time) {
 			rt = gf_fs_load_filter(dasher->fsess, "reframer:rt=sync", NULL);
 		}
-		if (di->file_name && strlen(di->file_name)) url = di->file_name;
-		if (!stricmp(url, "null")) url = NULL;
+		if (di->file_name && strlen(di->file_name) && stricmp(di->file_name, "null") )
+			url = di->file_name;
+
 		if (url) {
 			frag = strrchr(di->file_name, '#');
 			if (frag) frag[0] = 0;
 		}
 
 		args = NULL;
-
 		//if source is isobmf using extractors, we want to keep the extractors
 		e = gf_dynstrcat(&args, "smode=splitx", ":");
 
@@ -935,22 +940,24 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 			sprintf(szArg, "#PStart=-%d", di->period_order);
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
-		if (di->period_duration) {
-			if (!url) {
-				sprintf(szArg, "#PDur=%g", di->period_duration );
-				e |= gf_dynstrcat(&args, szArg, ":");
-			} else {
-				sprintf(szArg, "#DashDur=%g", di->period_duration );
-				e |= gf_dynstrcat(&args, szArg, ":");
-			}
-		}
 
-		if (di->dash_duration) {
-			sprintf(szArg, "#DashDur=%g", di->period_duration );
+		if (di->period_duration.num && di->period_duration.den) {
+			if (di->period_duration.den==1)
+				sprintf(szArg, "#PDur=%d", di->period_duration.num );
+			else
+				sprintf(szArg, "#PDur=%d/%u", di->period_duration.num, di->period_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
-		if (url && di->media_duration) {
-			sprintf(szArg, "#ClampDur=%g", di->media_duration );
+
+		if (di->dash_duration.num && di->dash_duration.den) {
+			if (di->dash_duration.den==1)
+				sprintf(szArg, "#DashDur=%d", di->dash_duration.num );
+			else
+				sprintf(szArg, "#DashDur=%d/%u", di->dash_duration.num, di->dash_duration.den);
+			e |= gf_dynstrcat(&args, szArg, ":");
+		}
+		if (url && di->media_duration.num && di->media_duration.den) {
+			sprintf(szArg, "#ClampDur="LLU"/"LLD"", di->media_duration.num, di->media_duration.den );
 			e |= gf_dynstrcat(&args, szArg, ":");
 		}
 
@@ -1032,7 +1039,6 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		}
 
 		if (di->sscale) e |= gf_dynstrcat(&args, "#SingleScale=true", ":");
-
 
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to setup source arguments for %s\n", di->file_name));
@@ -1208,6 +1214,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher)
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
 
 	if (dasher->no_cache) {
+		if (!e) gf_fs_print_unused_args(dasher->fsess, "smode");
 		gf_fs_del(dasher->fsess);
 		dasher->fsess = NULL;
 	}

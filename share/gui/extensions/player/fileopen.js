@@ -175,7 +175,7 @@ extension.open_local_file = function () {
 
     filebrowse.go_net = filebrowse.add_tool('remote_location');
     filebrowse.go_net.on_click = function () {
-        var popup = gw_new_window_full(null, true, 'Enter Adress');
+        var popup = gw_new_window_full(null, true, 'Enter Address');
         popup.dlg = this.dlg;
         this.dlg.disable();
         popup.area = gw_new_grid_container(popup);

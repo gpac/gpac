@@ -192,12 +192,13 @@ Get content length of resource
 u32 gf_cache_get_content_length( const DownloadedCacheEntry entry);
 
 /**
-Append cache directives to an HTTP GET request
+Get  directives headers associated with the cache
 \param entry The entry of cache to use
-\param httpRequest The HTTP GET request to populate. The request must have been allocated enough to handle the cache arguments
+\param etag set to etag value or NULL if no cache
+\param last_modif set to last modif value or NULL if no cache
 \return GF_OK if everything went fine, GF_BAD_PARAM if parameters are wrong
  */
-GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest);
+GF_Err gf_cache_get_http_headers(const DownloadedCacheEntry entry, const char **etag, const char **last_modif);
 
 /*
  * Cache Management functions

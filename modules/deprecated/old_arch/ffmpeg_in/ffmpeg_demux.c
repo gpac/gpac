@@ -128,7 +128,7 @@ static u32 FFDemux_Run(void *par)
 		gf_mx_v(ffd->mx);
 		av_free_packet(&pkt);
 
-		/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
+		/*sleep until the buffer occupancy is too low - note that this work because all streams in this
 		demuxer are synchronized*/
 		while (ffd->audio_run || ffd->video_run) {
 			gf_service_command(ffd->service, &com, GF_OK);

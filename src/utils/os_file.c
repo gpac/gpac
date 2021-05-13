@@ -417,17 +417,20 @@ u64 gf_file_modification_time(const char *filename)
 	return 0;
 }
 
-#ifdef GPAC_MEMORY_TRACKING
 #include <gpac/list.h>
 extern int gf_mem_track_enabled;
 static  GF_List * gpac_open_files = NULL;
+
 typedef struct
 {
 	FILE *ptr;
 	char *url;
+	Bool is_temp;
 } GF_FileHandle;
-#endif
+
 static u32 gpac_file_handles = 0;
+
+
 
 GF_EXPORT
 u32 gf_file_handles_count()
@@ -452,56 +455,72 @@ const char *enum_open_handles(u32 *idx)
 }
 #endif
 
-static void gf_register_file_handle(const char *filename, FILE *ptr)
+static void gf_register_file_handle(char *filename, FILE *ptr, Bool is_temp_file)
 {
+	if (is_temp_file
 #ifdef GPAC_MEMORY_TRACKING
-	if (gf_mem_track_enabled) {
+		|| gf_mem_track_enabled
+#endif
+	) {
 		GF_FileHandle *h;
 		if (!gpac_open_files) gpac_open_files = gf_list_new();
 		GF_SAFEALLOC(h, GF_FileHandle);
 		if (h) {
 			h->ptr = ptr;
-			h->url = gf_strdup(filename);
+			if (is_temp_file) {
+				h->is_temp = GF_TRUE;
+				h->url = filename;
+			} else {
+				h->url = gf_strdup(filename);
+			}
 			gf_list_add(gpac_open_files, h);
 		}
 	}
-#endif
 	gpac_file_handles++;
 }
 
 #include <gpac/thread.h>
 extern GF_Mutex *logs_mx;
 
-static void gf_unregister_file_handle(FILE *ptr)
+static Bool gf_unregister_file_handle(FILE *ptr)
 {
+	u32 i, count;
+	Bool res = GF_FALSE;
 	assert(gpac_file_handles);
 	gpac_file_handles--;
-#ifdef GPAC_MEMORY_TRACKING
-	if (gf_mem_track_enabled) {
-		u32 i, count;
-		gf_mx_p(logs_mx);
-		count = gf_list_count(gpac_open_files);
-		for (i=0; i<count; i++) {
-			GF_FileHandle *h = gf_list_get(gpac_open_files, i);
-			if (h->ptr==ptr) {
-				gf_free(h->url);
-				gf_free(h);
-				gf_list_rem(gpac_open_files, i);
-				if (!gf_list_count(gpac_open_files)) {
-					gf_list_del(gpac_open_files);
-					gpac_open_files = NULL;
-				}
-				gf_mx_v(logs_mx);
-				return;
+
+	if (!gpac_open_files)
+		return GF_FALSE;
+
+	gf_mx_p(logs_mx);
+	count = gf_list_count(gpac_open_files);
+	for (i=0; i<count; i++) {
+		GF_FileHandle *h = gf_list_get(gpac_open_files, i);
+		if (h->ptr != ptr) continue;
+
+		if (h->is_temp) {
+			GF_Err e;
+			fclose(h->ptr);
+			e = gf_file_delete(h->url);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Failed to delete temp file %s: %s\n", h->url, gf_error_to_string(e)));
 			}
+			res = GF_TRUE;
 		}
-		gf_mx_v(logs_mx);
+		gf_free(h->url);
+		gf_free(h);
+		gf_list_rem(gpac_open_files, i);
+		if (!gf_list_count(gpac_open_files)) {
+			gf_list_del(gpac_open_files);
+			gpac_open_files = NULL;
+		}
+		break;
 	}
-#endif
+	gf_mx_v(logs_mx);
+	return res;
 }
 
-GF_EXPORT
-FILE *gf_file_temp(char ** const fileName)
+static FILE *gf_file_temp_os(char ** const fileName)
 {
 	FILE *res;
 #if defined(_WIN32_WCE)
@@ -550,10 +569,50 @@ FILE *gf_file_temp(char ** const fileName)
 #endif
 
 	if (res) {
-		gf_register_file_handle("temp file", res);
+		gf_register_file_handle("temp file", res, GF_FALSE);
 	}
 	return res;
 }
+
+GF_EXPORT
+FILE *gf_file_temp(char ** const fileName)
+{
+	const char *tmp_dir = gf_opts_get_key("core", "tmp");
+
+	if (tmp_dir && tmp_dir[0]) {
+		FILE *res;
+		char *opath=NULL, szFName[100];
+		u32 len = (u32) strlen(tmp_dir);
+
+		gf_dynstrcat(&opath, tmp_dir, NULL);
+		if (!strchr("/\\", tmp_dir[len-1]))
+			gf_dynstrcat(&opath, "/", NULL);
+		if (!opath) return NULL;
+
+		sprintf(szFName, "_libgpac_%d_%p_"LLU"_%d", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
+		gf_dynstrcat(&opath, szFName, NULL);
+		if (fileName) {
+			sprintf(szFName, "%p", fileName);
+			gf_dynstrcat(&opath, szFName, "_");
+		}
+
+		if (gf_file_exists(opath)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Something went wrong creating temp file path %s, file already exists !\n", opath));
+			gf_free(opath);
+			return NULL;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Opening new temp file %s\n", opath));
+		res = gf_fopen_ex(opath, "__temp_file", "w+b");
+		if (!res) {
+			gf_free(opath);
+			return NULL;
+		}
+		gf_register_file_handle(opath, res, GF_TRUE);
+		return res;
+	}
+	return gf_file_temp_os(fileName);
+}
+
 
 /*enumerate directories*/
 GF_EXPORT
@@ -1254,7 +1313,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			return NULL;
 		new_gfio = gf_fileio_from_blob(file_name);
 		if (new_gfio)
-			gf_register_file_handle(file_name, (FILE *) new_gfio);
+			gf_register_file_handle((char *)file_name, (FILE *) new_gfio, GF_FALSE);
 		return (FILE *) new_gfio;
 
 	}
@@ -1289,7 +1348,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s open in mode %s failed: %s\n", file_name, mode, gf_error_to_string(e)));
 			return NULL;
 		}
-		gf_register_file_handle(file_name, (FILE *) new_gfio);
+		gf_register_file_handle((char *)file_name, (FILE *) new_gfio, GF_FALSE);
 		return (FILE *) new_gfio;
 	}
 
@@ -1346,7 +1405,9 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 #endif
 
 	if (res) {
-		gf_register_file_handle(file_name, res);
+		if (!parent_name || strcmp(parent_name, "__temp_file"))
+			gf_register_file_handle((char *)file_name, res, GF_FALSE);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file \"%s\" opened in mode \"%s\" - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
@@ -1371,9 +1432,10 @@ GF_EXPORT
 s32 gf_fclose(FILE *file)
 {
 	if (!file)
-		return GF_OK;
+		return 0;
 
-	gf_unregister_file_handle(file);
+	if (gf_unregister_file_handle(file))
+		return 0;
 	if (gf_fileio_check(file)) {
 		GF_Err e;
 		gf_fileio_open_url((GF_FileIO *) file, NULL, "deref", &e);

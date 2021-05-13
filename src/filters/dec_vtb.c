@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -28,7 +28,7 @@
 
 #include <gpac/thread.h>
 
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB)
 
 #include <stdint.h>
 
@@ -950,8 +950,10 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		gf_list_del_item(ctx->streams, pid);
 		return GF_OK;
 	}
@@ -1102,7 +1104,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			gf_odf_avc_cfg_del(cfg);
 
-			if (ctx->avc.sps[ctx->active_sps].vui_parameters_present_flag) {
+			if ((ctx->active_sps>=0) && ctx->avc.sps[ctx->active_sps].vui_parameters_present_flag) {
 				Bool full_range = ctx->avc.sps[ctx->active_sps].vui.video_full_range_flag;
 				u32 cmx = ctx->avc.sps[ctx->active_sps].vui.matrix_coefficients;
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
@@ -1168,7 +1170,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			}
 			gf_odf_hevc_cfg_del(cfg);
 
-			if (ctx->hevc.sps[ctx->active_sps].vui_parameters_present_flag) {
+			if ((ctx->active_sps>=0) && ctx->hevc.sps[ctx->active_sps].vui_parameters_present_flag) {
 				Bool full_range = ctx->hevc.sps[ctx->active_sps].video_full_range_flag;
 				u32 cmx = ctx->hevc.sps[ctx->active_sps].matrix_coeffs;
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
@@ -1252,7 +1254,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			}
 
 			if (nal_size > inBufferLength) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size indicated %d but %d bytes only in payload\n", nal_size, inBufferLength));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size indicated %u but %u bytes only in payload\n", nal_size, inBufferLength));
 				break;
 			}
 			ptr += ctx->nalu_size_length;
@@ -1448,6 +1450,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(vtbframe->frame, 0);
 
 		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &dst);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		//TOCHECK - for now the 3 planes are consecutive in VideoToolbox
 		if (stride==ctx->width) {
@@ -1902,6 +1905,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	safe_int_inc(&ctx->decoded_frames_pending);
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &vtb_frame->frame_ifce, vtbframe_release);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
 
@@ -2038,7 +2042,6 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.finalize = vtbdec_finalize,
 	.configure_pid = vtbdec_configure_pid,
 	.process = vtbdec_process,
-	.max_extra_pids = 5,
 	.process_event = vtbdec_process_event,
 };
 
@@ -2047,11 +2050,11 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 #include <gpac/maths.h>
 #include <gpac/filters.h>
 
-#endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
+#endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB)
 
 const GF_FilterRegister *vtbdec_register(GF_FilterSession *session)
 {
-#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) )
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_IOS) ) && defined(GPAC_HAS_VTB)
 	return &GF_VTBDecCtxRegister;
 #else
 	return NULL;

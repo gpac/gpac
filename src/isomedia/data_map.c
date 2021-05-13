@@ -123,7 +123,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		return GF_OK;
 	}
 	//we need a temp file ...
-	if (!strcmp(location, "mp4_tmp_edit")) {
+	if (!strcmp(location, "_gpac_isobmff_tmp_edit")) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		*outDataMap = gf_isom_fdm_new_temp(parentPath);
 		if (! (*outDataMap)) {
@@ -392,7 +392,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	tmp->type = GF_ISOM_DATA_FILE;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	//open a temp file
-	if (!strcmp(sPath, "mp4_tmp_edit")) {
+	if (!strcmp(sPath, "_gpac_isobmff_tmp_edit")) {
 		//create a temp file (that only occurs in EDIT/WRITE mode)
 		tmp->stream = gf_file_temp(&tmp->temp_file);
 //		bs_mode = GF_BITSTREAM_READ;

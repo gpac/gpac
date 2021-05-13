@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -84,6 +84,9 @@ void aout_reconfig(GF_AudioOutCtx *ctx)
 		gf_filter_pid_get_packet(ctx->pid);
 		return;
 	}
+	//we only support packed audio at output
+	if (afmt>GF_AUDIO_FMT_LAST_PACKED)
+		afmt -= GF_AUDIO_FMT_LAST_PACKED;
 
 	e = ctx->audio_out->Configure(ctx->audio_out, &sr, &nb_ch, &afmt, ch_cfg);
 	if (e) {
@@ -237,14 +240,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 	} else if (ctx->rbuffer && !ctx->rebuffer) {
 		//query full buffer duration in us
 		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
 		if ((dur < ctx->rbuffer * 1000) && !gf_filter_pid_has_seen_eos(ctx->pid)) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[AudioOut] buffer %u less than min threshold %u, rebuffering\n", (u32) (dur/1000), ctx->rbuffer));
 			ctx->rebuffer = gf_sys_clock_high_res();
 			ctx->buffer_done = GF_FALSE;
 			return GF_OK;
 		}
-
+#ifndef GPAC_DISABLE_LOG
+	} else if (gf_log_tool_level_on(GF_LOG_MMIO, GF_LOG_DEBUG)) {
+		u64 dur = gf_filter_pid_query_buffer_duration(ctx->pid, GF_FALSE);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] buffer %d / %d ms\r", dur/1000, ctx->buffer));
+#endif
 	}
+
 	//do not throw underflow log util first packet is fetched
 	if (ctx->first_write_done)
 		is_first_pck = GF_FALSE;
@@ -366,7 +375,9 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
-	gf_filter_pid_check_caps(pid);
+
+	if (!gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
 
 	sr = afmt = nb_ch = timescale = 0;
 	ch_cfg = 0;
@@ -625,7 +636,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(clock), "hint audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
@@ -648,7 +659,7 @@ static const GF_FilterCapability AudioOutCaps[] =
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
 	GF_FS_SET_DESCRIPTION("Audio output")
-	GF_FS_SET_HELP("This filter outputs a single uncompressed audio PID to a soundcard.")
+	GF_FS_SET_HELP("This filter outputs a single uncompressed audio PID to a sound card or other audio output device.")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

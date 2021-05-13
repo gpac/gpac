@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Authoring Tools sub-project
@@ -110,7 +110,7 @@ GF_Err gf_media_change_par(GF_ISOFile *isom_file, u32 trackNumber, s32 ar_num, s
 /*! Changes color property of the media (bitstream rewrite) - only AVC/H264 supported for now. See CICP for value types
 Negative values keep source settings for the corresponding flags.
 If source stream has no VUI info, create one and set corresponding flags to specified values.
-In this case, any other flags are set to prefered values (typically, flag=0 or value=undef).
+In this case, any other flags are set to preferred values (typically, flag=0 or value=undef).
 \param isom_file target ISOBMF file
 \param trackNumber target track
 \param fullrange fullrange flag
@@ -137,6 +137,16 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *isom_file, u32 trackNumber, Bool non_
 \param trackNumber target track
  */
 void gf_media_update_bitrate(GF_ISOFile *isom_file, u32 trackNumber);
+
+
+/*! gets AV1 scalable layer byte offsets of a sample for a1lx box
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sample_number the target sample to query
+\param layer_size returned 3 layer sizes (4th is implied, see a1lx spec)
+\return error if any
+*/
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 layer_size[3]);
 
 #endif
 
@@ -398,15 +408,11 @@ typedef struct __track_import
 	const char *filter_src_opts;
 	/*! any filter options to pass to sink*/
 	const char *filter_dst_opts;
-	/*! filter chain to insert before destination, formated as "f1[:args]@f2[:args]" options to pass to sink*/
+	/*! filter chain to insert before destination, formatted as "f1[:args]@f2[:args]" options to pass to sink*/
 	const char *filter_chain;
 
 	/*! force mode for the created  ISOBMFF sample entry*/
 	GF_AudioSampleEntryImportMode asemode;
-	/*! set audio roll using audio_roll below*/
-	Bool audio_roll_change;
-	/*! audio_roll distance */
-	s16 audio_roll;
 
 	/*! indicate to tag the imported media as an alpha channel stream*/
 	Bool is_alpha;
@@ -433,6 +439,8 @@ typedef struct __track_import
 	char *update_mux_args;
 	/*! index of source importer when running multiple importers in one session*/
 	u32 track_index;
+	/*! target start time in source*/
+	Double start_time;
 } GF_MediaImporter;
 
 /*!
@@ -605,7 +613,7 @@ typedef struct
 	/*! ID of the adaptation set, may be 0 (assigned by dasher)*/
 	u32 asID;
 	/*! forced media duration.*/
-	Double media_duration;
+	GF_Fraction64 media_duration;
 	/*! number of base URLs in the baseURL structure*/
 	u32 nb_baseURL;
 	/*! list of baseURL to be used for this representation*/
@@ -635,9 +643,9 @@ typedef struct
 	/*! forces bandwidth in bits per seconds of the source media. If 0, computed from file */
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
-	Double period_duration;
+	GF_Fraction period_duration;
 	/*! forced dash target duration for this rep*/
-	Double dash_duration;
+	GF_Fraction dash_duration;
 	/*! sets default start number for this representation. if not set, assigned automatically */
 	u32 startNumber; 	//TODO: start number, template
 	/*! overrides template for this input*/
@@ -744,7 +752,7 @@ typedef struct __gf_dash_segmenter GF_DASHSegmenter;
  Create a new DASH segmenter
 \param mpdName target MPD file name, cannot be changed
 \param profile target DASH profile, cannot be changed
-\param tmp_dir temp dir for file generation, OS NULL for default
+\param tmp_dir temp dir for file generation, if NULL uses libgpac default
 \param timescale timescale used to specif most of the dash timings. If 0, 1000 is used
 \param dasher_context_file config file used to store the context of the DASH segmenter. This allows destroying the segmenter and restarting it later on with the right DASH segquence numbers, MPD and and timing info
 \return the DASH segmenter object
@@ -845,7 +853,7 @@ GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode 
 GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration, Double sub_duration);
 
 /*!
- Enables spliting at RAP boundaries
+ Enables splitting at RAP boundaries
 \param dasher the DASH segmenter object
 \param segments_start_with_rap segments will be split at RAP boundaries
 \param fragments_start_with_rap fragments will be split at RAP boundaries
@@ -1135,12 +1143,12 @@ enum
 	GF_EXPORT_RAW_SAMPLES = (1<<1),
 	/*! NHNT format (any MPEG-4 media)*/
 	GF_EXPORT_NHNT = (1<<2),
-	/*! AVI (MPEG4 video and AVC tracks only)*/
-	GF_EXPORT_AVI = (1<<3),
+	/*! full remux of source file - equivalent to `gpac -i in_name:FID=1 reframer:FID=2:SID=1 -o out_name:SID=2` */
+	GF_EXPORT_REMUX = (1<<3),
 	/*! MP4 (all except OD)*/
 	GF_EXPORT_MP4 = (1<<4),
-	/*! AVI->RAW to dump video (trackID=1) or audio (trackID>=2)*/
-	GF_EXPORT_AVI_NATIVE = (1<<5),
+	/*! currently unused*/
+	GF_EXPORT_UNUSED = (1<<4),
 	/*! NHML format (any media)*/
 	GF_EXPORT_NHML = (1<<6),
 	/*! SAF format*/
@@ -1195,7 +1203,10 @@ typedef struct __track_exporter
 	char *in_name;
 	/*! optional FILE for output*/
 	FILE *dump_file;
+	/*! filter session dump flags*/
 	u32 print_stats_graph;
+	/*! track type: 0: none specified, 1: video, 2: audio*/
+	u32 track_type;
 } GF_MediaExporter;
 
 /*!

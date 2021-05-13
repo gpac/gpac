@@ -215,6 +215,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Rescaning %d font directories\n", gf_list_count(ftpriv->font_dirs) ));
 
 	gf_opts_del_section("FontCache");
+	gf_opts_del_section("temp_freetype");
 	gf_opts_set_key("core", "rescan-fonts", "no");
 
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
@@ -308,18 +309,29 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 static GF_Err ft_init_font_engine(GF_FontReader *dr)
 {
 	const char *sOpt;
-	Bool rescan = GF_FALSE;
+	u32 rescan = 0;
+	GF_Err e;
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
 
-	sOpt = gf_opts_get_key("core", "font-dirs");
-	if (!sOpt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] No fonts directory indicated!"));
-		return GF_BAD_PARAM;
-	}
 	/*inits freetype*/
 	if (FT_Init_FreeType(&ftpriv->library) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] Cannot initialize FreeType\n"));
 		return GF_IO_ERR;
+	}
+
+	if (!gf_opts_get_key_count("FontCache"))
+		rescan = 1;
+	else {
+		sOpt = gf_opts_get_key("core", "rescan-fonts");
+		if (!sOpt || !strcmp(sOpt, "yes") )
+			rescan = 1;
+	}
+
+rescan_font_dirs:
+	sOpt = gf_opts_get_key("core", "font-dirs");
+	if (!sOpt) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] No fonts directory indicated!"));
+		return GF_BAD_PARAM;
 	}
 
 	while (sOpt) {
@@ -344,14 +356,8 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 		sep[0] = ',';
 		sOpt = sep+1;
 	}
-	if (!gf_opts_get_key_count("FontCache"))
-		rescan = GF_TRUE;
-	else {
-		sOpt = gf_opts_get_key("core", "rescan-fonts");
-		if (!sOpt || !strcmp(sOpt, "yes") )
-			rescan = GF_TRUE;
-	}
 
+rescan_fonts:
 	if (rescan)
 		ft_rescan_fonts(dr);
 
@@ -370,6 +376,52 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 		ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - %d font directory (first %s)\n", gf_list_count(ftpriv->font_dirs), gf_list_get(ftpriv->font_dirs, 0) ));
+
+	e = dr->set_font(dr, ftpriv->font_serif, 0);
+	if (!e) e = dr->set_font(dr, ftpriv->font_sans, 0);
+	if (!e) e = dr->set_font(dr, ftpriv->font_fixed, 0);
+	if (!e) return GF_OK;
+
+	if (rescan==3)
+		return e;
+
+	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+	ftpriv->font_serif = NULL;
+	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+	ftpriv->font_sans = NULL;
+	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	ftpriv->font_fixed = NULL;
+
+	//error and we rescanned font dirs, restore default fonts
+	if (e && ftpriv->cache_checked)
+		rescan = 2;
+
+	if (!rescan) {
+		sOpt = gf_opts_get_key("core", "font-dirs");
+		rescan = 2;
+		if (sOpt) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Default fonts not valid, rescanning font directories %s\n", sOpt));
+			goto rescan_fonts;
+		}
+	}
+	if (rescan==2) {
+		void gf_get_default_font_dir(char szPath[GF_MAX_PATH]);
+		
+		char szPath[GF_MAX_PATH];
+		//check if font directory is default one, if not reset and rescan
+		gf_get_default_font_dir(szPath);
+		sOpt = gf_opts_get_key("core", "font-dirs");
+		if (sOpt && !strcmp(sOpt, szPath))
+			return e;
+
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] No fonts found in %s, restoring default directories %s and rescanning\n", sOpt, szPath));
+		gf_opts_set_key("core", "font-dirs", szPath);
+		rescan = 3;
+		while (gf_list_count(ftpriv->font_dirs)) {
+			gf_free(gf_list_pop_back(ftpriv->font_dirs));
+		}
+		goto rescan_font_dirs;
+	}
 
 	return GF_OK;
 }
@@ -456,14 +508,17 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	if (!fontName || !strlen(fontName) || !stricmp(fontName, "SERIF")) {
 		fontName = ftpriv->font_serif;
 		is_def_font = GF_TRUE;
+		OrigFontName = "";
 	}
 	else if (!stricmp(fontName, "SANS") || !stricmp(fontName, "sans-serif")) {
 		fontName = ftpriv->font_sans;
 		is_def_font = GF_TRUE;
+		OrigFontName = "SANS";
 	}
 	else if (!stricmp(fontName, "TYPEWRITER") || !stricmp(fontName, "monospace")) {
 		fontName = ftpriv->font_fixed;
 		is_def_font = GF_TRUE;
+		OrigFontName = "TYPEWRITER";
 	}
 
 	/*first look in loaded fonts*/

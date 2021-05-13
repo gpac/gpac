@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / RAW video (YUV,RGB) reframer filter
@@ -61,8 +61,10 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		if (ctx->opid)
+		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -129,6 +131,15 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_REWIND));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
 
+	if (!gf_sys_is_test_mode() ) {
+		u32 osize = 0;
+		gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &osize, &stride, &stride_uv, NULL, NULL);
+		if (osize) {
+			u32 rate = osize * 8 * ctx->fps.num / ctx->fps.den;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(rate));
+		}
+	}
+
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -175,7 +186,7 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		ctx->filepos = nb_frames * ctx->frame_size;
 		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
 
-		//post a seek even for the begining, to try to load frame by frame
+		//post a seek even for the beginning, to try to load frame by frame
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->filepos;
 		fevt.seek.hint_block_size = ctx->frame_size;

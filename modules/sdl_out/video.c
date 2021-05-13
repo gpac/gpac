@@ -731,8 +731,10 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 
 #if SDL_VERSION_ATLEAST(1, 2, 10)
 	vinf = SDL_GetVideoInfo();
-	dr->max_screen_width = vinf->current_w;
-	dr->max_screen_height = vinf->current_h;
+	if (vinf) {
+		dr->max_screen_width = vinf->current_w;
+		dr->max_screen_height = vinf->current_h;
+	}
 	dr->max_screen_bpp = 8;
 #else
 	{

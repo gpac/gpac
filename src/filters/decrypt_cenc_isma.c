@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA decrypt filter
@@ -167,16 +167,17 @@ static GF_Err cenc_dec_get_gpac_kms(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENC/ISMA] Fetching ISMACryp key for channel %d\n", id) );
 
-	sess = gf_dm_sess_new(ctx->dm, kms_url, 0, cenc_dec_kms_netio, ctx, NULL);
+	sess = gf_dm_sess_new(ctx->dm, kms_url, GF_NETIO_SESSION_NOT_THREADED, cenc_dec_kms_netio, ctx, NULL);
 	if (!sess) return GF_IO_ERR;
-	/*start our download (threaded)*/
-	gf_dm_sess_process(sess);
 
 	while (1) {
-		e = gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, NULL);
+		GF_NetIOStatus status;
+		e = gf_dm_sess_process(sess);
 		if (e) break;
+		gf_dm_sess_get_stats(sess, NULL, NULL, NULL, NULL, NULL, &status);
+		if (status>=GF_NETIO_DATA_TRANSFERED) break;
 	}
-	if (e==GF_EOS) {
+	if (e >= GF_EOS) {
 		e = gf_ismacryp_gpac_get_info(id, (char *) gf_dm_sess_get_cache_name(sess), cstr->key, cstr->salt);
 	}
 	gf_dm_sess_del(sess);
@@ -361,6 +362,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (! gf_filter_pck_get_crypt_flags(in_pck)) {
 		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
+		if (!out_pck) return GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);
 		gf_filter_pck_send(out_pck);
@@ -416,6 +418,7 @@ static GF_Err cenc_dec_process_isma(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	data_size -= offset;
 
 	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	memcpy(out_data, in_data, data_size);
 	/*decrypt*/
@@ -759,7 +762,6 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (cinfo_prop) {
-		GF_Err e;
 		cinfo = gf_crypt_info_load(cinfo_prop->value.string, &e);
 		if (!cinfo) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Failed to open crypt info file %s\n", cinfo_prop->value.string));
@@ -806,7 +808,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	}
 
 	if (ctx->decrypt!=DECRYPT_FULL) return GF_OK;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aboring!\n\tUse '--decrypt=nokey' to force decrypting\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
 	return GF_NOT_SUPPORTED;
 }
 
@@ -948,7 +950,7 @@ static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 			return GF_IO_ERR;
 		}
 	} else {
-		//always restore IV at begining of sample regardless of the mode (const IV or IV CBC or CTR)
+		//always restore IV at beginning of sample regardless of the mode (const IV or IV CBC or CTR)
 		if (!cstr->is_cbc) {
 			if (!iv_size)
 				iv_size = const_iv_size;
@@ -970,12 +972,12 @@ static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv);
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 
 static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 subsample_count;
 	u32 data_size;
 	u8 *out_data;
@@ -998,6 +1000,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	if (!data_size || ! gf_filter_pck_get_crypt_flags(in_pck)) {
 		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
+		if (!out_pck) return GF_OUT_OF_MEM;
 		gf_filter_pck_merge_properties(in_pck, out_pck);
 		gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
 		gf_filter_pck_set_crypt_flags(out_pck, 0);
@@ -1015,11 +1018,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 
 	//CENC can use inplace processing for decryption
 	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
-	if (!out_pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for decrypting payload\n" ) );
-		gf_filter_pid_drop_packet(cstr->ipid);
-		return GF_SERVICE_ERROR;
-	}
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	subsample_count = 0;
 
@@ -1039,7 +1038,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		//init all non-const IV listed
 		for (k=0; k<nb_iv_init; k++) {
 			u8 IV_size;
-			u8 kidx = gf_bs_read_u8(ctx->bs_r);
+			u32 kidx = gf_bs_read_u16(ctx->bs_r);
 
 			if (!kidx || (kidx>cstr->nb_crypts)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai, kidx %d but valid range is [1,%d]\n", kidx, cstr->nb_crypts));
@@ -1271,6 +1270,7 @@ static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr,
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 	out_pck = gf_filter_pck_new_alloc(cstr->opid, data_size, &out_data);
+	if (!out_pck) return GF_OUT_OF_MEM;
 
 	memcpy(out_data, in_data, data_size);
 
@@ -1385,7 +1385,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	if (ctx->cinfo) {
 		u32 stream_id=0;
-		u32 i, count = gf_list_count(ctx->cinfo->tcis);
+		u32 count = gf_list_count(ctx->cinfo->tcis);
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 		if (prop) stream_id = prop->value.uint;
@@ -1479,6 +1479,9 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_KEY_INFO, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_PATTERN, NULL);
 	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_HLS_KMS, NULL);
+
+	gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_CRYPT_SCHEME, &PROP_UINT(scheme_type) );
+
 
 	cstr->is_nalu = GF_FALSE;;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
@@ -1608,14 +1611,14 @@ static const GF_FilterCapability CENCDecCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ISMACRYP_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_OMADRM_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENC_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENS_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBC_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_PIFF_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ISMACRYP_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_OMADRM_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENC_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENS_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBC_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_PIFF_SCHEME),
 
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -1636,7 +1639,7 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 		, GF_PROP_UINT, "full", "full|nokey|skip", GF_ARG_HINT_ADVANCED},
 	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(kids), "define KIDs. If `keys` is empty, consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(keys), "define key values for each of the specififed KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(keys), "define key values for each of the specified KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 

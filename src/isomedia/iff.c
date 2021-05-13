@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -82,6 +82,75 @@ GF_Err ispe_box_size(GF_Box *s)
 		return GF_NOT_SUPPORTED;
 	}
 }
+
+GF_Box *a1lx_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AV1LayeredImageIndexingPropertyBox, GF_ISOM_BOX_TYPE_A1LX);
+	return (GF_Box *)tmp;
+}
+
+void a1lx_box_del(GF_Box *a)
+{
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)a;
+	gf_free(p);
+}
+
+GF_Err a1lx_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox *)s;
+	
+	ISOM_DECREASE_SIZE(p, 1);
+	gf_bs_read_int(bs, 7);
+	p->large_size = gf_bs_read_int(bs, 1);
+	for (i=0; i<3; i++) {
+		if (p->large_size) {
+			ISOM_DECREASE_SIZE(p, 4);
+			p->layer_size[i] = gf_bs_read_u32(bs);
+		} else {
+			ISOM_DECREASE_SIZE(p, 2);
+			p->layer_size[i] = gf_bs_read_u16(bs);
+		}
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err a1lx_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	u32 i;
+	GF_Err e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
+
+	gf_bs_write_int(bs, 0, 7);
+	gf_bs_write_int(bs, p->large_size ? 1 : 0, 1);
+	for (i=0; i<3; i++) {
+		if (p->large_size) {
+			gf_bs_write_u32(bs, p->layer_size[i]);
+		} else {
+			gf_bs_write_u16(bs, p->layer_size[i]);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err a1lx_box_size(GF_Box *s)
+{
+	GF_AV1LayeredImageIndexingPropertyBox *p = (GF_AV1LayeredImageIndexingPropertyBox*)s;
+
+	//if large was set, do not override
+	if (! p->large_size) {
+		if (p->layer_size[0]>0xFFFF) p->large_size = 1;
+		else if (p->layer_size[1]>0xFFFF) p->large_size = 1;
+		else if (p->layer_size[2]>0xFFFF) p->large_size = 1;
+	}
+
+	p->size += (p->large_size ? 4 : 2) * 3 + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -414,7 +483,7 @@ void ipco_box_del(GF_Box *s)
 
 GF_Err ipco_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -442,17 +511,15 @@ void iprp_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-static GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
+	GF_ItemPropertiesBox *ptr = (GF_ItemPropertiesBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_IPCO:
-		if (p->property_container) ERROR_ON_DUPLICATED_BOX(a, p)
-		p->property_container = (GF_ItemPropertyContainerBox*)a;
+		BOX_FIELD_ASSIGN(property_container, GF_ItemPropertyContainerBox)
 		break;
 	case GF_ISOM_BOX_TYPE_IPMA:
-		if (p->property_association) ERROR_ON_DUPLICATED_BOX(a, p)
-		p->property_association = (GF_ItemPropertyAssociationBox*)a;
+		BOX_FIELD_ASSIGN(property_association, GF_ItemPropertyAssociationBox)
 		break;
 	default:
 		return GF_OK;
@@ -462,7 +529,7 @@ static GF_Err iprp_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err iprp_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, iprp_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -620,7 +687,7 @@ void grpl_box_del(GF_Box *s)
 
 GF_Err grpl_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, NULL, s->type);
+	return gf_isom_box_array_read_ex(s, bs, s->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -656,7 +723,7 @@ GF_Err grptype_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->group_id = gf_bs_read_u32(bs);
 	ptr->entity_id_count = gf_bs_read_u32(bs);
 
-	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
+	if (ptr->entity_id_count > ptr->size / 4) return GF_ISOM_INVALID_FILE;
 
 	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
 	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
@@ -1368,6 +1435,7 @@ import_next_sample:
 			}
 			gf_list_del(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 			((GF_AV1ConfigurationBox *)config_box)->config->obu_array = NULL;
+			gf_media_av1_layer_size_get(fsrc, imported_track, sample_number, image_props->av1_layer_size);
 			//media_brand = GF_ISOM_BRAND_AVIF;
 		}
 		break;
@@ -1468,9 +1536,9 @@ import_next_sample:
 	}
 	if (image_props->use_reference) {
 		if (image_props->sample_num) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Refering trackID %d sample %d as item %d\n", imported_track, sample_number, item_id));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("referring trackID %d sample %d as item %d\n", imported_track, sample_number, item_id));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Refering trackID %d sample at time %.3f as item %d\n", imported_track, (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("referring trackID %d sample at time %.3f as item %d\n", imported_track, (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
 		}
 		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, &item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
 	} else {
@@ -1585,6 +1653,7 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	u32 nb_imgs=0, nb_src_imgs;
 	u32 nb_cols, nb_rows;
 	u32 last_valid_nb_cols;
+	Bool first_pass = GF_TRUE;
 	Double ar;
 	u32 i, nb_items = gf_isom_get_meta_item_count(movie, root_meta, meta_track_number);
 	for (i=0; i<nb_items; i++) {
@@ -1627,13 +1696,11 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 	}
 	nb_src_imgs = nb_imgs;
 
+recompute_grid:
 	nb_cols=1;
 	nb_rows=1;
 	last_valid_nb_cols = 0;
-	if (nb_imgs % 2) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Not an even number of images, removing last item from grid\n"));
-		nb_imgs--;
-	}
+
 	if (nb_imgs>1) {
 		while (nb_cols < nb_imgs) {
 			Double target_ar = ((Double) nb_cols) * w;
@@ -1652,6 +1719,16 @@ static GF_Err iff_create_auto_grid(GF_ISOFile *movie, Bool root_meta, u32 meta_t
 		nb_cols = last_valid_nb_cols;
 		nb_rows = nb_imgs / nb_cols;
 	}
+
+	if (first_pass && (nb_imgs>1) && ((nb_cols==1) || (nb_rows==1) ) ) {
+		if (nb_imgs % 2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Not an even number of images, removing last item from grid\n"));
+			nb_imgs--;
+			first_pass = GF_FALSE;
+			goto recompute_grid;
+		}
+	}
+
 	memset(&props, 0, sizeof(props));
 	if (image_props)
 		memcpy(&props, image_props, sizeof(props));
@@ -1750,6 +1827,7 @@ GF_Err gf_isom_iff_create_image_identity_item(GF_ISOFile *movie, Bool root_meta,
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs)
 {
 

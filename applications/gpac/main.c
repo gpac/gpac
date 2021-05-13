@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -102,15 +102,15 @@ const char *gpac_doc =
 "to uncompressed sources).\n"
 "  \nEach filter exposes one or more sets of capabilities, called __capability bundle__, which are property type and values "
 "that must be matched or excluded by connecting PIDs.\n"
-"  \nEach filter exposes a set of argument to configure itself, using property types and values described as strings formated with "
+"  \nEach filter exposes a set of argument to configure itself, using property types and values described as strings formatted with "
 "separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use [-seps](GPAC) to change them.\n"
 "# Property format\n"
-"- boolean: formatted as `yes`|`true`|`1` or `no`|`false`|`0`\n"
+"- boolean: formatted as `yes`,`true`,`1` or `no`,`false`,`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
-"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`|`K` (x 1000) or `m`|`M` (x 1000000) or `g`|`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
+"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`,`K` (x 1000) or `m`,`M` (x 1000000) or `g`,`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
 "For such properties, value `+I` means maximum possible value, `-I` minimum possible value.\n"
 "- fraction: formatted as `num/den` or `num-den` or `num`, in which case the denominator is 1 if `num` is an integer, or 1000000 if `num` is a floating-point value.\n"
-"- unsigned 32 bit integer: formated as number or hexadecimal using the format `0xAABBCCDD`.\n"
+"- unsigned 32 bit integer: formatted as number or hexadecimal using the format `0xAABBCCDD`.\n"
 "- N-dimension (vectors): formatted as `DIM1xDIM2[xDIM3[xDIM4]]` values, without unit multiplier.\n"
 "- string: formatted as:\n"
 " - `value`: copies value to string.\n"
@@ -137,7 +137,7 @@ const char *gpac_doc =
 "EX filter:ARG=http://foo/bar?yes:opt=VAL\n"
 "This will fail to extract it and keep `:opt=VAL` as part of the URL.\n"
 "The escape mechanism is not needed for local source, for which file existence is probed during argument parsing. "
-"It is also not needed for builtin procotol handlers (`avin://`, `video://`, `audio://`, `pipe://`)\n"
+"It is also not needed for builtin protocol handlers (`avin://`, `video://`, `audio://`, `pipe://`)\n"
 "For `tcp://` and `udp://` protocols, the escape is not needed if a trailing `/` is appended after the port number.\n"
 "EX -i tcp://127.0.0.1:1234:OPT\n"
 "This will fail to extract the URL and options.\n"
@@ -173,9 +173,9 @@ const char *gpac_doc =
 "## Specifying encoders and decoders\n"
 "By default filters chain will be resolved without any decoding/encoding if the destination accepts the desired format. "
 "Otherwise, decoders/encoders will be dynamically loaded to perform the conversion, unless dynamic resolution is disabled. "
-"There is a special shorcut filter name for encoders `enc` allowing to match a filter providing the desired encoding. "
+"There is a special shortcut filter name for encoders `enc` allowing to match a filter providing the desired encoding. "
 "The parameters for `enc` are:\n"
-"- c=NAME: identifes the desired codec. `NAME` can be the gpac codec name or the encoder instance for ffmpeg/others\n"
+"- c=NAME: identifies the desired codec. `NAME` can be the GPAC codec name or the encoder instance for ffmpeg/others\n"
 "- b=UINT, rate=UINT, bitrate=UINT: indicates the bitrate in bits per second\n"
 "- g=UINT, gop=UINT: indicates the GOP size in frames\n"
 "- pfmt=NAME: indicates the target pixel format name (see [properties (-h props)](filters_properties) ) of the source, if supported by codec\n"
@@ -185,12 +185,12 @@ const char *gpac_doc =
 "This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.\n"
 "\n"
 "The inverse operation (forcing a decode to happen) is possible using the __reframer__ filter.\n"
-"EX src=file.mp4 reframer:raw @ -o null\n"
+"EX src=file.mp4 reframer:raw=av @ -o null\n"
 "This will force decoding media from `file.mp4` and trash (send to `null`) the result (doing a decoder benchmark for example).\n"
 "\n"
 "When a filter uses an option defined as a string using the same separator character as gpac, you can either "
-"modify the set of separators, or escape the seperator by duplicating it. The options enclosed by duplicated "
-"separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to subfilters "
+"modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated "
+"separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters "
 "such as libx264 (cf `x264opts` parameter).\n"
 "EX f:a=foo:b=bar\n"
 "This will set option `a` to `foo` and option `b` to `bar` on the filter.\n"
@@ -198,17 +198,21 @@ const char *gpac_doc =
 "This will set option `a` to `foo:b=bar` on the filter.\n"
 "EX f:a=foo::b=bar:c::d=fun\n"
 "This will set option `a` to `foo`, `b` to `bar:c` and the option `d` to `fun` on the filter.\n"
-"# Expliciting links between filters [__LINK__]\n"
+"# Explicit links between filters [__LINK__]\n"
 "\n"
 "## Quick links\n"
-"Link between filters may be manually specified. The syntax is an `@` character optionaly followed by an integer (0 if omitted). "
-"This indicates that the following filter specified at prompt should be linked only to a previous listed filter. The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
-"Only the last link directive occuring before a filter is used to setup links for that filter.\n"
+"Link between filters may be manually specified. The syntax is an `@` character optionally followed by an integer (0 if omitted). "
+"This indicates that the following filter specified at prompt should be linked only to a previous listed filter.\n"
+"The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
+"If `@@` is used instead of `@`, the optional integer gives the filter index starting from the first filter specified in command line.\n"
+"Several link directives can be given for a filter.\n"
 "EX fA fB @1 fC\n"
 "This indicates that `fC` only accepts inputs from `fA`.\n"
-"EX fA fB @1 @0 fC\n"
-"This indicates that `fC` only accepts inputs from `fB`, `@1` is ignored.\n"
-"\nIf no link directives are given, the links will be dynamically solved to fullfill as many connections as possible (__see below__).\n"
+"EX fA fB fC @1 @0 fD\n"
+"This indicates that `fD` only accepts inputs from `fB` and `fC`.\n"
+"EX fA fB fC ... @@1 fZ\n"
+"This indicates that `fZ` only accepts inputs from `fB`.\n"
+"\nIf no link directives are given, the links will be dynamically solved to fulfill as many connections as possible (__see below__).\n"
 "Warning: This means that `fA fB fC` and `fA fB @ fC` will likely not give the same result.\n"
 "\n"
 "## Complex links\n"
@@ -218,16 +222,16 @@ const char *gpac_doc =
 "\n"
 "EX fA fB @1 fC\n"
 "This is equivalent to `fA:FID=1 fB fC:SID=1`.\n"
-"Link directives specify which source a filter can accept connections from. They do not specifiy which destination a filter can connect to.\n"
+"Link directives specify which source a filter can accept connections from. They do not specify which destination a filter can connect to.\n"
 "EX fA:FID=1 fB fC:SID=1\n"
-"This indicates that `fC` only accpets input from `fA`, but `fB` might accept inputs from `fA`.\n"
+"This indicates that `fC` only accepts input from `fA`, but `fB` might accept inputs from `fA`.\n"
 "EX fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2\n"
 "This indicates that `fD` only accepts input from `fA` and `fB` and `fC` only from `fA`\n"
 "Note: A filter with sourceID set cannot get input from filters with no IDs.\n"
 "A sourceID name can be further extended using fragment identifier (`#` by default):\n"
 "- name#PIDNAME: accepts only PID(s) with name `PIDNAME`\n"
 "- name#TYPE: accepts only PIDs of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
-"- name#TYPEN: accepts only `N`th PID of matching type from source\n"
+"- name#TYPEN: accepts only `N` (1-based index) PID of matching type from source (eg `video2` to only accept second video PID)\n"
 "- name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching `VAL`\n"
 "- name#P4CC=VAL: accepts only PIDs with property matching `VAL`.\n"
 "- name#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
@@ -263,14 +267,14 @@ const char *gpac_doc =
 "This indicates to connect to `vout` only PIDs with `Width` property equal to `640` and `Height` greater than `380`.\n"
 "\n"
 "Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
-"be done to connect it to other filters, unless sourceIDs are set. Link directives should be carfully setup.\n"
+"be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.\n"
 "EX src=video.264.mp4 @ reframer dst=dump.mp4\n"
 "This will link src `file.mp4` PID (type `file`) to dst `dump.mp4` filter (type `file`) because dst has no sourceID and therefore will "
 "accept input from src. Since the PID is connected, the filter engine will not try to solve "
 "a link between src and `reframer`. The result is a direct copy of the source file, `reframer` being unused.\n"
 "EX src=file.mp4 reframer @ dst=dump.mp4\n"
 "This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
-"src PID will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remux of the source file.\n"
+"src PID will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remultiplexing of the source file.\n"
 "\n"
 "Note: the linker will prevent cycles in the graph, and a given filter can never have the same PID connected twice as an input, whether directly or through a filter chain.\n"
 "# Arguments inheriting\n"
@@ -286,19 +290,20 @@ const char *gpac_doc =
 "This will pass the `:OPTBAR` to all filters loaded between `file.mp4` source and `file.aac` destination, but not `OPTFOO`.\n"
 "Arguments inheriting can be stopped by using the keyword `gfloc`: arguments after the keyword will not be inherited.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfloc:OPTBAR dst=file.264\n"
-"This will pass `:OPTFOO` to all filters loaded between `file.mp4`source and `file.aac` destination, but not `OPTBAR`\n"
+"This will pass `:OPTFOO` to all filters loaded between `file.mp4` source and `file.aac` destination, but not `OPTBAR`\n"
 "Arguments are by default tracked to check if they were used by the filter chain, and a warning is thrown if this is not the case.\n"
-"It may be usefull to specify arguments which may not be consumed depending on the graph resolution; the specific keyword `gfopt` indicates that arguments after the keyword will not be tracked.\n"
+"It may be useful to specify arguments which may not be consumed depending on the graph resolution; the specific keyword `gfopt` indicates that arguments after the keyword will not be tracked.\n"
 "EX src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264\n"
 "This will warn if `OPTFOO` is not consumed, but will not track `OPTBAR`.\n"
 "# URL templating\n"
 "Destination URLs can be templated using the same mechanism as MPEG-DASH, where `$KEYWORD$` is replaced in the template with the "
 "resolved value and `$KEYWORD%%0Nd$` is replaced in the template with the resolved integer, padded with up to N zeros if needed.\n"
-"`KEYWORD` is **case sensitive**, and may be present multiple times in the string. Supported `KEYWORD` are:\n"
+"`KEYWORD` is **case sensitive**, and may be present multiple times in the string. Supported `KEYWORD`:\n"
 "- num: replaced by file number if defined, 0 otherwise\n"
 "- PID: ID of the source PID\n"
 "- URL: URL of source file\n"
 "- File: path on disk for source file; if not found, use URL if set, or PID name otherwise\n"
+"- Type: name of stream type of PID (`video`, `audio` ...)\n"
 "- p4cc=ABCD: uses PID property with 4CC value `ABCD`\n"
 "- pname=VAL: uses PID property with name `VAL`\n"
 "- OTHER: locates property 4CC for the given name, or property name if no 4CC matches.\n"
@@ -307,11 +312,11 @@ const char *gpac_doc =
 "\n"
 "Templating can be useful when encoding several qualities in one pass.\n"
 "EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone\n"
-"This will create a croped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k. "
-"Outputs will be `dump_0x0x320x180.264` for the croped version and `dump_0x0x640x360.264` for the non-croped one.\n"
+"This will create a cropped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k. "
+"Outputs will be `dump_0x0x320x180.264` for the cropped version and `dump_0x0x640x360.264` for the non-cropped one.\n"
 "# Cloning filters\n"
 "When a filter accepts a single connection and has a connected input, it is no longer available for dynamic resolution. "
-"There may be cases where this behaviour is undesired. Take a HEIF file with N items and do:\n"
+"There may be cases where this behavior is undesired. Take a HEIF file with N items and do:\n"
 "EX src=img.heif dst=dump_$ItemID$.jpg\n"
 "In this case, only one item (likely the first declared in the file) will connect to the destination.\n"
 "Other items will not be connected since the destination only accepts one input PID.\n"
@@ -331,7 +336,7 @@ const char *gpac_doc =
 "It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example `ServiceID`). "
 "The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`.\n"
-"This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for booleans "
+"This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for boolean "
 "(defaults to true, eg `:#Alpha`).\n"
 "Non built-in properties are parsed as follows:\n"
 "- `file@FOO` will be declared as string with a value set to the content of `FOO`.\n"
@@ -342,12 +347,12 @@ const char *gpac_doc =
 "User-assigned PID properties on filter `fA` will be inherited by all filters dynamically loaded to solve `fA -> fB` connection.\n"
 "If `fB` also has user-assigned PID properties, these only apply starting from `fB` in the chain and are not inherited by filters between `fA` and `fB`.\n"
 "\n"
-"Warning: Properties are not filtered and override the properties of the filter's output PIDs, be carefull not to break "
+"Warning: Properties are not filtered and override the properties of the filter's output PIDs, be careful not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
 "This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`.\n"
 "\n"
-"PID properties may be conditionally assigned by checking other PID properties. The syntax uses paranthesis (not configurable) after the property assignment sign:\n"
+"PID properties may be conditionally assigned by checking other PID properties. The syntax uses parenthesis (not configurable) after the property assignment sign:\n"
 "`#Prop=(CP=CV)VAL`\n"
 "This will assign PID property `Prop` to `VAL` for PIDs with property `CP` equal to `CV`.\n"
 "`#Prop=(CP=CV)VAL,(CP2=CV2)VAL2`\n"
@@ -368,7 +373,7 @@ const char *gpac_doc =
 "It is possible to use a file to define options of a filter, by specifying the target file name as an option without value, i.e. `:myopts.txt`.\n"
 "Warning: Only local files are allowed.\n"
 "An option file is a simple text file containing one or more options or PID properties on one or more lines.\n"
-"A line begining with \"//\" is a comment and is ignored.\n"
+"A line beginning with \"//\" is a comment and is ignored.\n"
 "Options in an option file may point to other option files, with a maximum redirection level of 5.\n"
 "An option file declaration (`filter:myopts.txt`) follows the same inheritance rules as regular options.\n"
 "EX src=source.mp4:myopts.txt:foo=bar dst\n"
@@ -488,7 +493,7 @@ const char *gpac_alias =
 "EX -alias=\"list inspect src=@{+2:N}\"\n"
 "The command `gpac list f1 f2 f3` expands to `gpac inspect src=f2 src=f3 f1`\n"
 "EX -alias=\"plist aout vout flist:srcs=@{-,N}\"\n"
-"The command `gpac plist f1 f2 f3` expands to `gpac aout vout plist:srcs=\"f1,f2,f3\"`  \n"
+"The command `gpac plist f1 f2 f3` expands to `gpac aout vout flist:srcs=\"f1,f2,f3\"`  \n"
 "\n"
 "Alias documentation can be set using `gpac -aliasdoc=\"NAME VALUE\"`, with `NAME` the alias name and `VALUE` the documentation.\n"
 "Alias documentation will then appear in gpac help.\n"
@@ -571,7 +576,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("r", NULL, "enable reporting\n"
 			"- r: runtime reporting\n"
-			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx`for ISOBMFF muxer only\n"
+			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx` for ISOBMFF muxer only\n"
 			"- r=: only print final report"
 			, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to separate various arguments\n"\
@@ -648,7 +653,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 		"Boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `-src`, [-o](), `-dst` and [-h]() options.\n\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
-			(gen_doc==1) ? "[gpac -h doc](filters_general#expliciting-links-between-filters-link)" : "`gpac -h doc`",
+			(gen_doc==1) ? "[gpac -h doc](filters_general#explicit-links-between-filters-link)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -hx](gpac_general#h)" : "`gpac -hx`",
 			(gen_doc==1) ? "[gpac -hx core](core_options)" : "`gpac -hx core`",
 			(gen_doc==1) ? "[gpac -h doc](core_config#global-filter-options)" : "`gpac -h doc`",
@@ -708,7 +713,7 @@ static const char *gpac_config =
 "Setting this in the config file is equivalent to using `-threads=2`.\n"
 "The options specified at prompt overrides the value of the config file.\n"
 "# Filter options in configuration\n"
-"It is possible to alter the default value of a filter option by modifing the configuration file. Filter __foo__ options are stored in section "
+"It is possible to alter the default value of a filter option by modifying the configuration file. Filter __foo__ options are stored in section "
 "`[filter@foo]`, using option name and value as key-value pair. Options specified through the configuration file do not take precedence over "
 "options specified at prompt or through alias.\n"
 "EX [filter@rtpin]interleave=yes\n"
@@ -1245,7 +1250,7 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 		if (gen_doc==2) {
 			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
-			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
+			".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
 			".br\nCopyright: %s\n.br\n"
 			".SH SEE ALSO\n"
@@ -1556,8 +1561,7 @@ static int gpac_main(int argc, char **argv)
 	Bool write_profile=GF_FALSE;
 	Bool write_core_opts=GF_FALSE;
 	Bool write_extensions=GF_FALSE;
-	s32 link_prev_filter = -1;
-	char *link_prev_filter_ext=NULL;
+	GF_List *links_directive=NULL;
 	GF_List *loaded_filters=NULL;
 	GF_SysArgMode argmode = GF_ARGMODE_BASE;
 	u32 nb_filters = 0;
@@ -1798,7 +1802,7 @@ static int gpac_main(int argc, char **argv)
 			if (gen_doc==2) {
 				fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/Filters\n");
 				fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
-				".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
+				".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 				".br\nbuild: %s\n"
 				".br\nCopyright: %s\n.br\n"
 				".SH SEE ALSO\n"
@@ -1991,6 +1995,7 @@ restart:
 
 	//all good to go, load filters
 	has_xopt = GF_FALSE;
+	links_directive = gf_list_new();
 	loaded_filters = gf_list_new();
 	for (i=1; i<argc; i++) {
 		GF_Filter *filter=NULL;
@@ -2034,22 +2039,7 @@ restart:
 		}
 		if (!f_loaded && !has_xopt) {
 			if (arg[0]== separator_set[SEP_LINK] ) {
-				char *ext = strchr(arg, separator_set[SEP_FRAG]);
-				if (ext) {
-					ext[0] = 0;
-					link_prev_filter_ext = ext+1;
-				}
-				link_prev_filter = 0;
-				if (strlen(arg)>1) {
-					link_prev_filter = atoi(arg+1);
-					if (link_prev_filter<0) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_prev_filter));
-						e = GF_BAD_PARAM;
-						goto exit;
-					}
-				}
-
-				if (ext) ext[0] = separator_set[SEP_FRAG];
+				gf_list_add(links_directive, arg);
 				continue;
 			}
 
@@ -2105,18 +2095,45 @@ restart:
 		}
 		nb_filters++;
 
-		if (link_prev_filter>=0) {
-			GF_Filter *link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_prev_filter);
+		while (gf_list_count(links_directive)) {
+			char *link_prev_filter_ext = NULL;
+			GF_Filter *link_from;
+			Bool reverse_order = GF_FALSE;
+			s32 link_filter_idx = -1;
+			char *link = gf_list_pop_front(links_directive);
+			char *ext = strchr(link, separator_set[SEP_FRAG]);
+			if (ext) {
+				ext[0] = 0;
+				link_prev_filter_ext = ext+1;
+			}
+			if (strlen(link)>1) {
+				if (link[1] == separator_set[SEP_LINK] ) {
+					reverse_order = GF_TRUE;
+					link++;
+				}
+				link_filter_idx = atoi(link+1);
+				if (link_filter_idx < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
+					e = GF_BAD_PARAM;
+					goto exit;
+				}
+			} else {
+				link_filter_idx = 0;
+			}
+			if (ext) ext[0] = separator_set[SEP_FRAG];
+
+			if (reverse_order)
+				link_from = gf_list_get(loaded_filters, link_filter_idx);
+			else
+				link_from = gf_list_get(loaded_filters, gf_list_count(loaded_filters)-1-link_filter_idx);
+
 			if (!link_from) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_prev_filter));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index @%d\n", link_filter_idx));
 				e = GF_BAD_PARAM;
 				goto exit;
 			}
-			link_prev_filter = -1;
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
-			link_prev_filter_ext = NULL;
 		}
-
 		gf_list_add(loaded_filters, filter);
 	}
 	if (!gf_list_count(loaded_filters) && !session_js) {
@@ -2221,6 +2238,7 @@ exit:
 	session = NULL;
 	gf_fs_del(tmp_sess);
 	if (loaded_filters) gf_list_del(loaded_filters);
+	if (links_directive) gf_list_del(links_directive);
 
 	cleanup_file_io();
 
@@ -2470,6 +2488,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) {
 				gf_sys_format_help(helpout, help_flags, "This filter requires the graph resolver to be activated.\n");
 			}
+			if (reg->flags & GF_FS_REG_ALLOW_CYCLIC) {
+				gf_sys_format_help(helpout, help_flags, "Filters of this class can connect to each-other.\n");
+			}
 		}
 	} else {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_name);
@@ -2494,14 +2515,21 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (filter_inst) {
 		const char *str = gf_filter_get_author(filter_inst);
 		if (str)
-			gf_sys_format_help(helpout, help_flags, "Author: %s\n", str );
+			gf_sys_format_help(helpout, help_flags, "%s: %s\n", (str[0]=='-') ? "Configuration" : "Author", str );
 		str = gf_filter_get_help(filter_inst);
 		if (str)
 			gf_sys_format_help(helpout, help_flags, "\n%s\n\n", str);
 	} else {
 #ifndef GPAC_DISABLE_DOC
-		if (reg->author)
-			gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+		if (reg->author) {
+			if (reg->author[0]=='-') {
+				if (! (help_flags & (GF_PRINTARG_MD|GF_PRINTARG_MAN))) {
+					gf_sys_format_help(helpout, help_flags, "Configuration: %s\n", reg->author);
+				}
+			} else {
+				gf_sys_format_help(helpout, help_flags, "Author: %s\n", reg->author);
+			}
+		}
 		if (reg->help) {
 			u32 hf = help_flags;
 			if (gen_doc==1) hf |= GF_PRINTARG_ESCAPE_XML;
@@ -2522,6 +2550,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 		if (reg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD) gf_sys_format_help(helpout, help_flags, " ConfigureMainThread");
 		if (reg->flags & GF_FS_REG_HIDE_WEIGHT) gf_sys_format_help(helpout, help_flags, " HideWeight");
 		if (reg->flags & GF_FS_REG_REQUIRES_RESOLVER) gf_sys_format_help(helpout, help_flags, " RequireResolver");
+		if (reg->flags & GF_FS_REG_ALLOW_CYCLIC) gf_sys_format_help(helpout, help_flags, " CyclicAllowed");
 		if (reg->flags & GF_FS_REG_DYNLIB) gf_sys_format_help(helpout, help_flags, " DynamicLib");
 		if (reg->probe_url) gf_sys_format_help(helpout, help_flags, " URLMimeProber");
 		if (reg->probe_data) gf_sys_format_help(helpout, help_flags, " DataProber");
@@ -2702,16 +2731,25 @@ struct __jsenum_info
 	GF_FilterSession *session;
 	GF_SysArgMode argmode;
 	Bool print_filter_info;
+	char *js_dir;
 };
 
 static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
-	GF_Filter *f = gf_fs_load_filter(jsi->session, item_path, NULL);
+	GF_Filter *f;
+	if (jsi->js_dir && strcmp(item_name, "init.js")) {
+		return GF_FALSE;
+	}
+	f = gf_fs_load_filter(jsi->session, item_path, NULL);
 	if (f) {
 		char szPath[GF_MAX_PATH];
 		char *ext;
-		strcpy(szPath, item_name);
+		if (jsi->js_dir) {
+			strcpy(szPath, jsi->js_dir);
+		} else {
+			strcpy(szPath, item_name);
+		}
 		ext = gf_file_ext_start(szPath);
 		if (ext) ext[0] = 0;
 		if (jsi->print_filter_info || gen_doc)
@@ -2719,6 +2757,15 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 		else
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", szPath, gf_filter_get_description(f));
 	}
+	return GF_FALSE;
+}
+static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	struct __jsenum_info *jsi = (struct __jsenum_info *)cbck;
+	jsi->js_dir = item_name;
+
+	gf_enum_directory(item_path, GF_FALSE, jsinfo_enum, jsi, ".js");
+	jsi->js_dir = NULL;
 	return GF_FALSE;
 }
 
@@ -2848,6 +2895,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 		if (gf_opts_default_shared_directory(szPath)) {
 			strcat(szPath, "/scripts/jsf/");
 			gf_enum_directory(szPath, GF_FALSE, jsinfo_enum, &jsi, ".js");
+			gf_enum_directory(szPath, GF_TRUE, jsinfo_dir_enum, &jsi, NULL);
 		}
 		while (js_dirs && js_dirs[0]) {
 			char *sep = strchr(js_dirs, ',');
@@ -2936,13 +2984,14 @@ static void dump_all_props(void)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %s  \n", gf_props_get_type_name(i), gf_props_get_type_desc(i) );
 		}
 
 		gf_sys_format_help(helpout, help_flags, "## Built-in properties for PIDs and packets, pixel formats and audio formats\n"
 		"  \n"
 		"Flags can be:\n"
-		"- D: dropable property, see [GSF mux](gsfmx) filter help for more info\n"
+		"- D: droppable property, see [GSF mux](gsfmx) filter help for more info\n"
 		"- P: property applying to packet\n"
 		"  \n");
 		gf_sys_format_help(helpout, help_flags, "Name | type | Flags | Description | 4CC  \n");
@@ -2952,6 +3001,7 @@ static void dump_all_props(void)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 
 			if (gen_doc==2) {
 				gf_sys_format_help(helpout, help_flags, ".TP\n.B %s\n%s\n", gf_props_get_type_name(i), gf_props_get_type_desc(i));
@@ -2961,7 +3011,7 @@ static void dump_all_props(void)
 		}
 		gf_sys_format_help(helpout, help_flags, "\n\n");
 
-		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (dropable - see GSF mux filter help), P (packet property)\n");
+		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF mux filter help), P (packet property)\n");
 	}
 	i=0;
 	while ((prop_info = gf_props_get_description(i))) {
@@ -3011,14 +3061,8 @@ static void dump_all_props(void)
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_pixel_fmt_all_names(), gf_pixel_fmt_all_shortnames() );
 			} else if (prop_info->data_type==GF_PROP_PCMFMT) {
 				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\tFile extensions: %s", gf_audio_fmt_all_names(), gf_audio_fmt_all_shortnames() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_PRIM) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_primaries_all_names() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_TFC) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_transfer_all_names() );
-			} else if (prop_info->data_type==GF_PROP_CICP_COL_MX) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_cicp_color_matrix_all_names() );
-			} else if (prop_info->type==GF_PROP_PID_STREAM_TYPE) {
-				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_stream_type_all_names() );
+			} else if (gf_props_type_is_enum(prop_info->data_type)) {
+				gf_sys_format_help(helpout, help_flags, "\n\tNames: %s\n\t", gf_props_enum_all_names(prop_info->data_type) );
 			}
 			gf_sys_format_help(helpout, help_flags, "\n");
 		}
@@ -3142,7 +3186,7 @@ static void dump_all_codec(GF_FilterSession *session)
 		cp.value.uint = gf_codecid_enum(cidx, &sname, &lname);
 		cidx++;
 		if (cp.value.uint == GF_CODECID_NONE) break;
-		if (cp.value.uint == GF_CODECID_RAW) continue;
+//		if (cp.value.uint == GF_CODECID_RAW) continue;
 		if (!sname) break;
 
 		stp.value.uint = gf_codecid_type(cp.value.uint);
@@ -3579,6 +3623,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 {
 #ifdef GPAC_ENABLE_COVERAGE
 	u32 ucs4_buf[4];
+	u32 i;
 	u8 utf8_buf[7];
 
 	void *mem = gf_calloc(4, sizeof(u32));
@@ -3589,6 +3634,14 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gpac_fsess_task_help(); //for coverage
 	gf_dm_sess_last_error(NULL);
 	gf_log_use_color();
+	gf_4cc_parse("abcd");
+	gf_gpac_abi_micro();
+	gf_audio_fmt_get_layout_from_name("3/2.1");
+	gf_audio_fmt_get_dolby_chanmap(4);
+	gf_itags_get_id3tag(1);
+	i=0;
+	gf_itags_enum_tags(&i, NULL, NULL, NULL);
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
 
 	utf8_buf[0] = 'a';

@@ -21,7 +21,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lz
+LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz
 
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
@@ -207,6 +207,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/in_rtp_stream.c \
 	../../../../src/filters/in_sock.c \
 	../../../../src/filters/inspect.c \
+	../../../../src/filters/io_fcryp.c \
 	../../../../src/filters/isoffin_load.c \
 	../../../../src/filters/isoffin_read.c \
 	../../../../src/filters/isoffin_read_ch.c \
@@ -241,6 +242,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/reframe_qcp.c \
 	../../../../src/filters/reframe_rawpcm.c \
 	../../../../src/filters/reframe_rawvid.c \
+	../../../../src/filters/reframe_truehd.c \
 	../../../../src/filters/reframer.c \
 	../../../../src/filters/resample_audio.c \
 	../../../../src/filters/rewind.c \

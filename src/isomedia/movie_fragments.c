@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -56,14 +56,22 @@ GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID)
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
+GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration, Bool remove_mehd)
 {
-	if (!movie->moov->mvex) return GF_BAD_PARAM;
-	if (!movie->moov->mvex->mehd) {
-		movie->moov->mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new_parent(&movie->moov->mvex->child_boxes, GF_ISOM_BOX_TYPE_MEHD);
-		if (!movie->moov->mvex->mehd) return GF_OUT_OF_MEM;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+
+	if (remove_mehd) {
+		if (!movie->moov->mvex->mehd) {
+			gf_isom_box_del_parent(&movie->moov->mvex->child_boxes, (GF_Box*)movie->moov->mvex->mehd);
+			movie->moov->mvex->mehd = NULL;
+		}
+	} else {
+		if (!movie->moov->mvex->mehd) {
+			movie->moov->mvex->mehd = (GF_MovieExtendsHeaderBox *) gf_isom_box_new_parent(&movie->moov->mvex->child_boxes, GF_ISOM_BOX_TYPE_MEHD);
+			if (!movie->moov->mvex->mehd) return GF_OUT_OF_MEM;
+		}
+		movie->moov->mvex->mehd->fragment_duration = duration;
 	}
-	movie->moov->mvex->mehd->fragment_duration = duration;
 	movie->moov->mvhd->duration = 0;
 	return GF_OK;
 }
@@ -273,7 +281,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 	if (!movie->moov->mvex) {
 		mvex = (GF_MovieExtendsBox *) gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_MVEX);
 		if (!mvex) return GF_OUT_OF_MEM;
-		moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex);
+		moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex, GF_FALSE);
 	} else {
 		mvex = movie->moov->mvex;
 	}
@@ -287,7 +295,7 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *movie, GF_ISOTrackID TrackID,
 		trex = (GF_TrackExtendsBox *) gf_isom_box_new_parent(&mvex->child_boxes, GF_ISOM_BOX_TYPE_TREX);
 		if (!trex) return GF_OUT_OF_MEM;
 		trex->trackID = TrackID;
-		mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex);
+		mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex, GF_FALSE);
 	}
 	trex->track = trak;
 	return gf_isom_change_track_fragment_defaults(movie, TrackID, DefaultSampleDescriptionIndex, DefaultSampleDuration, DefaultSampleSize, DefaultSampleIsSync, DefaultSamplePadding, DefaultDegradationPriority, force_traf_flags);
@@ -343,7 +351,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID Tr
 			//create MVEX if needed
 			if (!movie->moov->mvex) {
 				mvex = (GF_MovieExtendsBox *) gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_MVEX);
-				moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex);
+				moov_on_child_box((GF_Box*)movie->moov, (GF_Box *) mvex, GF_FALSE);
 			} else {
 				mvex = movie->moov->mvex;
 			}
@@ -360,7 +368,7 @@ GF_Err gf_isom_setup_track_fragment_template(GF_ISOFile *movie, GF_ISOTrackID Tr
 			trex->track = trak;
 			if (force_traf_flags) trex->cannot_use_default = GF_TRUE;
 			gf_list_add(mvex->child_boxes, trex);
-			mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex);
+			mvex_on_child_box((GF_Box*)mvex, (GF_Box *) trex, GF_FALSE);
 		}
 	}
 	gf_bs_del(bs);
@@ -429,8 +437,12 @@ escape_duration:
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
 		for (j=0; j<trun->nb_samples; j++) {
+			u32 ssize;
 			ent = &trun->samples[j];
-			ret = GetNumUsedValues(traf, ent->size, 2);
+			ssize = ent->size;
+			if (ent->nb_pack>1)
+				ssize /= ent->nb_pack;
+			ret = GetNumUsedValues(traf, ssize, 2);
 			if (ret>MaxNum || (ret==1)) {
 				//at least 2 sizes so we must specify all sizes
 				if (MaxNum) {
@@ -438,7 +450,7 @@ escape_duration:
 					goto escape_size;
 				}
 				MaxNum = ret;
-				DefValue = ent->size;
+				DefValue = ssize;
 			}
 		}
 	}
@@ -520,6 +532,17 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, GF_ISOTrackID TrackID, GF_
 		traf = gf_isom_get_traf(movie, TrackID);
 		if (!traf) return GF_BAD_PARAM;
 		traf->truns_first = Param;
+		break;
+	case GF_ISOM_TRAF_TRUN_V1:
+		traf = gf_isom_get_traf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->truns_v1 = Param;
+		break;
+	case GF_ISOM_TRAF_USE_LARGE_TFDT:
+		traf = gf_isom_get_traf(movie, TrackID);
+		if (!traf) return GF_BAD_PARAM;
+		traf->large_tfdt = Param;
+		movie->force_sidx_v1 = Param ? GF_TRUE : GF_FALSE;
 		break;
 	}
 	return GF_OK;
@@ -623,7 +646,8 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 				if (j==1 || (trun->nb_samples==1) ) RunFlags = ent->flags;
 
 				if (ssize != RunSize) RunSize = 0;
-				if (ent->Duration != RunDur) RunDur = 0;
+				if (ent->Duration != RunDur)
+					RunDur = 0;
 				if (j && (RunFlags != ent->flags)) NeedFlags = 1;
 			}
 			if (ent->CTS_Offset) UseCTS = 1;
@@ -1174,7 +1198,7 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	if (movie->on_block_out)
 		gf_bs_prevent_dispatch(bs, GF_TRUE);
 
-	if (movie->compress_mode>GF_ISO_COMP_MOOV) {
+	if (movie->compress_mode>GF_ISOM_COMP_MOOV) {
 		e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->moof, GF_4CC('!', 'm', 'o', 'f'), bs, moof_size);
 	} else {
 		e = gf_isom_box_write((GF_Box *) movie->moof, bs);
@@ -1724,6 +1748,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 		} else {
 			sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
 			if (!sidx) return GF_OUT_OF_MEM;
+			if (movie->force_sidx_v1)
+				sidx->version = 1;
 		}
 		sidx->reference_ID = referenceTrackID;
 		sidx->timescale = trak->Media->mediaHeader->timeScale;
@@ -2189,7 +2215,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range)
+GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -2207,7 +2233,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 	
 	assert(movie->root_sidx_index == movie->root_sidx->nb_refs);
 
-	if (exact_range)
+	if (force_v1)
 		movie->root_sidx->version = 1;
 		
 	e = gf_isom_box_size((GF_Box*)movie->root_sidx);
@@ -2256,7 +2282,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 		if (movie->root_ssix) {
 			gf_isom_box_size((GF_Box *) movie->root_ssix);
 
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SSIX) {
 				u32 ssix_comp_size;
 				//compute ssix compressed size by using NULL destination bitstream
 				//not really optimum since we compress twice the ssix, to optimize ...
@@ -2267,7 +2293,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 			}
 		}
 		if (!e) {
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SIDX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SIDX) {
 				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_sidx, GF_4CC('!', 's', 'i', 'x'), bs, NULL);
 			} else {
 				e = gf_isom_box_write((GF_Box *) movie->root_sidx, bs);
@@ -2275,7 +2301,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool exact_range
 		}
 
 		if (!e && movie->root_ssix) {
-			if (movie->compress_mode>=GF_ISO_COMP_MOOF_SSIX) {
+			if (movie->compress_mode>=GF_ISOM_COMP_MOOF_SSIX) {
 				e = gf_isom_write_compressed_box(movie, (GF_Box *) movie->root_ssix, GF_4CC('!', 's', 's', 'x'), bs, NULL);
 			} else {
 				e = gf_isom_box_write((GF_Box *) movie->root_ssix, bs);
@@ -2493,6 +2519,15 @@ GF_Err gf_isom_set_fragment_template(GF_ISOFile *movie, u8 *tpl_data, u32 tpl_si
 			gf_list_add(movie->TopBoxes, movie->brand);
 			continue;
 		}
+		if (a->type==GF_ISOM_BOX_TYPE_OTYP) {
+			if (movie->otyp) {
+				gf_list_del_item(movie->TopBoxes, movie->otyp);
+				gf_isom_box_del(movie->otyp);
+			}
+			movie->otyp = (GF_Box *) a;
+			gf_list_add(movie->TopBoxes, movie->otyp);
+			continue;
+		}
 		if (a->type==GF_ISOM_BOX_TYPE_MOOF) {
 			u32 i, count, j, nb_trex;
 			s32 idx;
@@ -2615,6 +2650,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		traf_2->use_sample_interleave = traf->use_sample_interleave;
 		traf_2->interleave_id = traf->interleave_id;
 		traf_2->truns_first = traf->truns_first;
+		traf_2->truns_v1 = traf->truns_v1;
+		traf_2->large_tfdt = traf->large_tfdt;
 		traf_2->DataCache  = traf->DataCache;
 		traf_2->tfhd->sample_desc_index  = DescIndex;
 
@@ -2666,6 +2703,8 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 		trun->ctso_multiplier = traf->trex->def_sample_duration;
 #endif
 		trun->interleave_id = traf->interleave_id;
+		if (traf->truns_v1)
+			trun->version = 1;
 
 		//if we use data caching, create a bitstream
 		if (traf->DataCache)
@@ -2690,8 +2729,9 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, GF_ISOTrackID TrackID, con
 	}
 
 	if (prev_ent && prev_ent->dts && sample->DTS) {
-		if (prev_ent->Duration != sample->DTS - prev_ent->dts)
-			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts);
+		u32 nsamp = prev_ent->nb_pack ? prev_ent->nb_pack : 1;
+		if (nsamp*prev_ent->Duration != sample->DTS - prev_ent->dts)
+			prev_ent->Duration = (u32) (sample->DTS - prev_ent->dts) / nsamp;
 	}
 	if (trun->nb_samples >= trun->sample_alloc) {
 		trun->sample_alloc += 50;
@@ -2938,7 +2978,7 @@ static GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf,
 		}
 	}
 
-	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex);
+	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex, NULL);
 }
 /*copy over the subsample and sampleToGroup information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, GF_ISOTrackID TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
@@ -3162,6 +3202,8 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, GF_ISOTrackID 
 		if (!traf->tfdt) return GF_OUT_OF_MEM;
 	}
 	traf->tfdt->baseMediaDecodeTime = decode_time;
+	if (traf->large_tfdt)
+		traf->tfdt->version = 1;
 	return GF_OK;
 }
 

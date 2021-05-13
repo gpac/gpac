@@ -180,7 +180,7 @@ typedef unsigned int size_t;
 /*! default path separator of the current platform*/
 #define GF_PATH_SEPARATOR	'\\'
 
-/*we must explicitely export our functions...*/
+/*we must explicitly export our functions...*/
 
 /*! macro for cross-platform signaling of exported function of libgpac*/
 #define GF_EXPORT EXPORT_C
@@ -663,7 +663,7 @@ typedef struct {
 \brief Memory management
 
 GPAC can use its own memory tracker, depending on compilation option. It is recommended to use only the functions
-defined in this section to allocate and free memory whenever developping within the GPAC library.
+defined in this section to allocate and free memory whenever developing within the GPAC library.
 
 \warning these functions shall only be used after initializing the library using \ref gf_sys_init
 @{
@@ -700,14 +700,14 @@ void gf_free(void *ptr);
 
 /*! allocates memory, shall be freed using \ref gf_free
 \param size same as malloc()
-\return adress of allocated block
+\return address of allocated block
 */
 void* gf_malloc(size_t size);
 
 /*! allocates memory array, shall be freed using \ref gf_free
 \param num same as calloc()
 \param size_of same as calloc()
-\return adress of allocated block
+\return address of allocated block
 */
 void* gf_calloc(size_t num, size_t size_of);
 
@@ -720,7 +720,7 @@ char* gf_strdup(const char *str);
 /*! reallocates memory, shall be freed using \ref gf_free
 \param ptr same as realloc()
 \param size same as realloc()
-\return adress of reallocated block
+\return address of reallocated block
 */
 void* gf_realloc(void *ptr, size_t size);
 
@@ -730,6 +730,13 @@ void* gf_realloc(void *ptr, size_t size);
 
 /*end GPAC memory tracking*/
 
+/*! copy source string to destination, ensuring 0-terminated string result
+\param dst  destination buffer
+\param src  source buffer
+\param dsize size of destination buffer
+\return same as strlcpy
+*/
+size_t gf_strlcpy(char *dst, const char *src, size_t dsize);
 
 #ifdef __cplusplus
 }

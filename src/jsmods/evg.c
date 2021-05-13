@@ -1277,7 +1277,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	u32 nif_level=0;
 	Bool cond_res;
 
-	//assign to dummy values, this will prevent any badly formated shader to assign a value to a NULL left-val or read a null right-val
+	//assign to dummy values, this will prevent any badly formatted shader to assign a value to a NULL left-val or read a null right-val
 	tmpl.x = tmpl.y = tmpl.z = tmpl.q = 0;
 	left_val = &tmpl;
 	tmpr.x = tmpr.y = tmpr.z = tmpr.q = 0;
@@ -5243,6 +5243,7 @@ static GF_Err texture_load_data(JSContext *c, GF_JSTexture *tx, u8 *data, u32 si
 }
 static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *fileName, Bool rel_to_script)
 {
+	char szPath[GF_MAX_PATH];
 	u8 *data;
 	u32 size;
 	GF_Err e;
@@ -5254,7 +5255,6 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 		fileName = full_url;
 	}
 	if (!strncmp(fileName, "$GSHARE/", 8)) {
-		char szPath[GF_MAX_PATH];
 		gf_opts_default_shared_directory(szPath);
 		strcat(szPath, fileName + 7);
 		fileName = szPath;

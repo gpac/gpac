@@ -51,7 +51,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_SSL
 
 #define GPAC_HAS_QJS
-//codecs  
+//codecs
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_LIBA52
@@ -65,6 +65,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_XVID
 #define GPAC_HAS_FFMPEG
 #define GPAC_HAS_DTAPI
+#define GPAC_HAS_HTTP2
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 
@@ -122,6 +123,7 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_QJS
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_HTTP2
 
 /*Configuration for XCode OSX (not iOS) */
 #elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
@@ -140,6 +142,8 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU
+#define GPAC_HAS_VTB
+#define GPAC_HAS_HTTP2
 
 #define GPAC_MEMORY_TRACKING
 
@@ -176,6 +180,9 @@ This section documents the base data types of GPAC.
 #define GPAC_HAS_IPV6
 #define GPAC_HAS_SSL
 #define GPAC_DISABLE_OGG
+#define GPAC_HAS_STRLCPY
+#define GPAC_HAS_VTB
+#define GPAC_HAS_HTTP2
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)
@@ -335,4 +342,3 @@ this macro is currently defined in setup.h */
 /*! @} */
 
 #endif		/*_GF_CONFIG_H_*/
-

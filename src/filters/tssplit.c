@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019
+ *			Copyright (c) Telecom Paris 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Transport Stream splitter filter
@@ -81,15 +81,19 @@ void m2tssplit_send_packet(GF_M2TSSplitCtx *ctx, GF_M2TSSplit_SPTS *stream, u8 *
 		}
 		u32 osize = size*stream->nb_pck;
 		pck = gf_filter_pck_new_alloc(stream->opid, osize, &buffer);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
-		memcpy(buffer, stream->pck_buffer, osize);
-		gf_filter_pck_send(pck);
+		if (pck) {
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+			memcpy(buffer, stream->pck_buffer, osize);
+			gf_filter_pck_send(pck);
+		}
 		stream->nb_pck = 0;
 	} else {
 		pck = gf_filter_pck_new_alloc(stream->opid, size, &buffer);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
-		memcpy(buffer, data, size);
-		gf_filter_pck_send(pck);
+		if (pck) {
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+			memcpy(buffer, data, size);
+			gf_filter_pck_send(pck);
+		}
 	}
 }
 
@@ -115,7 +119,7 @@ GF_Err m2tssplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		m2tssplit_flush(ctx);
 		while (gf_list_count(ctx->streams) ) {
 			GF_M2TSSplit_SPTS *st = gf_list_pop_back(ctx->streams);
-			gf_filter_pid_remove(st->opid);
+			if (st->opid) gf_filter_pid_remove(st->opid);
 			if (st->pck_buffer) gf_free(st->pck_buffer);
 			gf_free(st);
 		}
@@ -269,9 +273,11 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			//output new PAT
 			if (stream->opid) {
 				GF_FilterPacket *pck = gf_filter_pck_new_alloc(stream->opid, tot_len, &buffer);
-				gf_filter_pck_set_framing(pck, first_pck, GF_FALSE);
-				memcpy(buffer, ctx->tsbuf, tot_len);
-				gf_filter_pck_send(pck);
+				if (pck) {
+					gf_filter_pck_set_framing(pck, first_pck, GF_FALSE);
+					memcpy(buffer, ctx->tsbuf, tot_len);
+					gf_filter_pck_send(pck);
+				}
 			}
 		}
 		return;
@@ -286,9 +292,11 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			if (!stream->opid) continue;
 
 			GF_FilterPacket *pck = gf_filter_pck_new_alloc(stream->opid, stream->pat_pck_size, &buffer);
-			gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
-			memcpy(buffer, stream->pat_pck, stream->pat_pck_size);
-			gf_filter_pck_send(pck);
+			if (pck) {
+				gf_filter_pck_set_framing(pck, GF_FALSE, GF_FALSE);
+				memcpy(buffer, stream->pat_pck, stream->pat_pck_size);
+				gf_filter_pck_send(pck);
+			}
 		}
 		return;
 	}
@@ -348,9 +356,11 @@ void m2tssplit_on_event(struct tag_m2ts_demux *ts, u32 evt_type, void *par)
 			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(prog->number));
 
 			GF_FilterPacket *pck = gf_filter_pck_new_alloc(stream->opid, stream->pat_pck_size, &buffer);
-			gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
-			memcpy(buffer, stream->pat_pck, stream->pat_pck_size);
-			gf_filter_pck_send(pck);
+			if (pck) {
+				gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
+				memcpy(buffer, stream->pat_pck, stream->pat_pck_size);
+				gf_filter_pck_send(pck);
+			}
 		}
 		return;
 	}

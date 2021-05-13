@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -371,6 +371,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 
 	{AV_CODEC_ID_V210, GF_CODECID_V210, 0},
 
+	{AV_CODEC_ID_TRUEHD, GF_CODECID_TRUEHD, 0},
 
 	{0}
 };
@@ -1089,6 +1090,8 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 
 	ffmpeg_initialize();
 
+	orig_reg->author = avfilter_configuration();
+	
 	//by default no need to load option descriptions, everything is handled by av_set_opt in update_args
 	if (!load_meta_filters) {
 		orig_reg->args = default_args;
@@ -1096,12 +1099,12 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 		return;
 	}
 
-
 	if (reg_type==FF_REG_TYPE_ENCODE) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_MUX) opt_type = AV_OPT_FLAG_ENCODING_PARAM;
 	else if (reg_type==FF_REG_TYPE_AVF) opt_type = 0xFFFFFFFF;
 
 	if ((reg_type==FF_REG_TYPE_ENCODE) || (reg_type==FF_REG_TYPE_DECODE)) {
+		orig_reg->author = avcodec_configuration();
 		codec_ctx = avcodec_alloc_context3(NULL);
 		av_class = codec_ctx->av_class;
 	} else if (reg_type==FF_REG_TYPE_AVF) {
@@ -1292,14 +1295,22 @@ void ffmpeg_set_mx_dmx_flags(const AVDictionary *options, AVFormatContext *ctx)
 	}
 }
 
-void ffmpeg_report_unused_options(GF_Filter *filter, AVDictionary *options)
+void ffmpeg_report_options(GF_Filter *filter, AVDictionary *options, AVDictionary *all_options)
 {
 	AVDictionaryEntry *prev_e = NULL;
-	while (options) {
-		prev_e = av_dict_get(options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
-		if (!prev_e) break;
-		gf_filter_report_unused_meta_option(filter, prev_e->key);
-	}
 
+	while (all_options) {
+		Bool unknown_opt = GF_FALSE;
+		prev_e = av_dict_get(all_options, "", prev_e, AV_DICT_IGNORE_SUFFIX);
+		if (!prev_e) break;
+		if (options) {
+			AVDictionaryEntry *unkn = av_dict_get(options, prev_e->key, NULL, 0);
+			if (unkn) unknown_opt = GF_TRUE;
+		}
+		gf_filter_report_meta_option(filter, prev_e->key, unknown_opt ? GF_FALSE : GF_TRUE);
+	}
+	if (options)
+		av_dict_free(&options);
 }
+
 #endif

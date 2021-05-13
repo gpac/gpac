@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / FLAC reframer filter
@@ -59,6 +59,7 @@ typedef struct
 	Bool is_playing;
 	Bool is_file;
 	Bool initial_play_done, file_loaded;
+	Bool in_error;
 
 	Bool initialized;
 	u32 sample_rate, nb_channels, bits_per_sample, block_size;
@@ -72,6 +73,7 @@ typedef struct
 	Bool recompute_cts;
 	FLACIdx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 bitrate;
 } GF_FLACDmxCtx;
 
 
@@ -84,7 +86,10 @@ GF_Err flac_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -108,8 +113,8 @@ GF_Err flac_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 {
-	u64 duration;
-	s32 prev_sr = -1;
+	u64 rate;
+	FILE *stream;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -126,14 +131,16 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 	}
 	ctx->is_file = GF_TRUE;
 
-	/*todo ...*/
-	duration = 0;
+	stream = gf_fopen(p->value.string, "rb");
+	if (!stream) return;
+	gf_fseek(stream, 0, SEEK_END);
 
-	if (!ctx->duration.num || (ctx->duration.num  * prev_sr != duration * ctx->duration.den)) {
-		ctx->duration.num = (s32) duration;
-		ctx->duration.den = prev_sr ;
-
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	rate = gf_ftell(stream);
+	gf_fclose(stream);
+	if (ctx->duration.num && !gf_sys_is_test_mode() ) {
+		rate *= 8 * ctx->duration.den;
+		rate /= ctx->duration.num;
+		ctx->bitrate = (u32) rate;
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -168,6 +175,10 @@ static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size) );
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_BPS, & PROP_UINT(ctx->bits_per_sample) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 }
 
@@ -378,6 +389,9 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 	u64 cts = GF_FILTER_NO_TS;
 	FLACHeader hdr;
 
+	if (ctx->in_error)
+		return GF_NON_COMPLIANT_BITSTREAM;
+
 	//always reparse duration
 	if (!ctx->duration.num)
 		flac_dmx_check_dur(filter, ctx);
@@ -484,7 +498,12 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 			gf_bs_reassign_buffer(ctx->bs, ctx->flac_buffer, size);
 			u32 magic = gf_bs_read_u32(ctx->bs);
 			if (magic != GF_4CC('f','L','a','C')) {
-
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC magic\n"));
+				ctx->in_error = GF_TRUE;
+				ctx->flac_buffer_size = 0;
+				if (pck)
+					gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			while (gf_bs_available(ctx->bs)) {
 				Bool last = gf_bs_read_int(ctx->bs, 1);
@@ -502,8 +521,9 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 					if (min_block_size==max_block_size) ctx->block_size = min_block_size;
 					else ctx->block_size = 0;
 
+					ctx->duration.num = gf_bs_read_long_int(ctx->bs, 36);
+					ctx->duration.den = ctx->sample_rate;
 					//ignore the rest
-					/*total samples*/gf_bs_read_long_int(ctx->bs, 36);
 					gf_bs_skip_bytes(ctx->bs, 16);
 					dsi_end = (u32) gf_bs_get_position(ctx->bs);
 
@@ -513,6 +533,14 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 					gf_bs_skip_bytes(ctx->bs, len);
 				}
 				if (last) break;
+			}
+			if (!dsi_end) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC header\n"));
+				ctx->in_error = GF_TRUE;
+				ctx->flac_buffer_size = 0;
+				if (pck)
+					gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			flac_dmx_check_pid(filter, ctx, ctx->flac_buffer+4, dsi_end-4);
 			remain -= size;
@@ -524,7 +552,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 		//we have a next frame, check we are synchronize
 		if ((start[0] != 0xFF) && ((start[1]&0xFC) != 0xF8)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FLACDmx] invalid frame, droping %d bytes and resyncing\n", next_frame));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FLACDmx] invalid frame, dropping %d bytes and resyncing\n", next_frame));
 			start += next_frame;
 			remain -= next_frame;
 			continue;
@@ -553,6 +581,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, next_frame, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, start, next_frame);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);

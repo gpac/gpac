@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -189,7 +189,10 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 
 void gf_isom_push_mdat_end(GF_ISOFile *mov, u64 mdat_end)
 {
-	u32 i, count = gf_list_count(mov->moov->trackList);
+	u32 i, count;
+	if (!mov || !mov->moov) return;
+	
+	count = gf_list_count(mov->moov->trackList);
 	for (i=0; i<count; i++) {
 		u32 j;
 		GF_TrafToSampleMap *traf_map;
@@ -340,6 +343,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->moov = (GF_MovieBox *)a;
+			mov->original_moov_offset = mov->current_top_box_start;
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -401,6 +405,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->meta = (GF_MetaBox *)a;
+			mov->original_meta_offset = mov->current_top_box_start;
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) {
 				return e;
@@ -413,6 +418,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 		/*we only keep the MDAT in READ for dump purposes*/
 		case GF_ISOM_BOX_TYPE_MDAT:
+			if (!mov->first_data_toplevel_offset) {
+				mov->first_data_toplevel_offset = mov->current_top_box_start;
+				mov->first_data_toplevel_size = a->size;
+			}
 			totSize += a->size;
 			if (mov->openMode == GF_ISOM_OPEN_READ) {
 				if (!mov->mdat) {
@@ -455,7 +464,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			/*ONE AND ONLY ONE FTYP*/
 			if (mov->brand) {
 				gf_isom_box_del(a);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate FTYP detected!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'ftyp' detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->brand = (GF_FileTypeBox *)a;
@@ -464,11 +473,39 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			if (e) return e;
 			break;
 
+		case GF_ISOM_BOX_TYPE_OTYP:
+			/*ONE AND ONLY ONE FTYP*/
+			if (mov->otyp) {
+				gf_isom_box_del(a);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'otyp' detected!\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+
+			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
+				mov->otyp = (GF_Box *)a;
+				totSize += a->size;
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
+			} else {
+				GF_FileTypeBox *brand = (GF_FileTypeBox *) gf_isom_box_find_child(a->child_boxes, GF_ISOM_BOX_TYPE_FTYP);
+				if (brand) {
+					s32 pos;
+					gf_list_del_item(a->child_boxes, brand);
+					pos = gf_list_del_item(mov->TopBoxes, mov->brand);
+					gf_isom_box_del((GF_Box *) mov->brand);
+					mov->brand = brand;
+					if (pos<0) pos=0;
+					gf_list_insert(mov->TopBoxes, brand, pos);
+				}
+				gf_isom_box_del(a);
+			}
+			break;
+
 		case GF_ISOM_BOX_TYPE_PDIN:
 			/*ONE AND ONLY ONE PDIN*/
 			if (mov->pdin) {
 				gf_isom_box_del(a);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate PDIN detected!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Duplicate 'pdin'' detected!\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
 			mov->pdin = (GF_ProgressiveDownloadBox *) a;
@@ -496,6 +533,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 
 		case GF_ISOM_BOX_TYPE_SIDX:
 		case GF_ISOM_BOX_TYPE_SSIX:
+			if (mov->moov && !mov->first_data_toplevel_offset) {
+				mov->first_data_toplevel_offset = mov->current_top_box_start;
+				mov->first_data_toplevel_size = a->size;
+			}
 			totSize += a->size;
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				e = gf_list_add(mov->TopBoxes, a);
@@ -531,6 +572,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			break;
 
 		case GF_ISOM_BOX_TYPE_MOOF:
+			//no support for inplace rewrite for fragmented files
+			gf_isom_disable_inplace_rewrite(mov);
 			if (!mov->moov) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Movie fragment but no moov (yet) - possibly broken parsing!\n"));
 			}
@@ -677,14 +720,17 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	/*we MUST have movie header*/
-	if (mov->moov && !mov->moov->mvhd) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
-		return GF_ISOM_INVALID_FILE;
-	}
-	/*we MUST have meta handler*/
-	if (mov->meta && !mov->meta->handler) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing handler in META!\n"));
-		return GF_ISOM_INVALID_FILE;
+	if (!gf_opts_get_bool("core", "no-check")) {
+		if (mov->moov && !mov->moov->mvhd) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MVHD in MOOV!\n"));
+			return GF_ISOM_INVALID_FILE;
+		}
+
+		/*we MUST have meta handler*/
+		if (mov->meta && !mov->meta->handler) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing handler in META!\n"));
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -716,6 +762,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 	return GF_OK;
 }
 
+extern u64 unused_bytes;
+
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissing, Bool progressive_mode)
 {
 	GF_Err e;
@@ -729,6 +777,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u32 *boxType, u64 *bytesMissin
 	if (blob)
 		gf_mx_p(blob->mx);
 
+	unused_bytes = 0;
 	e = gf_isom_parse_movie_boxes_internal(mov, boxType, bytesMissing, progressive_mode);
 
 	if (blob)
@@ -776,9 +825,20 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 		mov->store_traf_map = GF_TRUE;
 #endif
 
-	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) ) {
-		//always in read ...
-		mov->openMode = GF_ISOM_OPEN_READ;
+	if ( (OpenMode == GF_ISOM_OPEN_READ) || (OpenMode == GF_ISOM_OPEN_READ_DUMP) || (OpenMode == GF_ISOM_OPEN_READ_EDIT) ) {
+		if (OpenMode == GF_ISOM_OPEN_READ_EDIT) {
+			mov->openMode = GF_ISOM_OPEN_READ_EDIT;
+
+			// create a memory edit map in case we add samples, typically during import
+			e = gf_isom_datamap_new(NULL, tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+			if (e) {
+				gf_isom_set_last_error(NULL, e);
+				gf_isom_delete_movie(mov);
+				return NULL;
+			}
+		} else {
+			mov->openMode = GF_ISOM_OPEN_READ;
+		}
 		mov->es_id_default_sync = -1;
 		//for open, we do it the regular way and let the GF_DataMap assign the appropriate struct
 		//this can be FILE (the only one supported...) as well as remote
@@ -825,7 +885,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, GF_ISOOpenMode OpenMode, con
 			return NULL;
 		}
 		//and create a temp fileName for the edit
-		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		e = gf_isom_datamap_new("_gpac_isobmff_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);
@@ -1210,7 +1270,7 @@ GF_Err gf_isom_insert_moov(GF_ISOFile *file)
 	mvhd->timeScale = 600;
 
 	file->interleavingTime = mvhd->timeScale;
-	moov_on_child_box((GF_Box*)file->moov, (GF_Box *)mvhd);
+	moov_on_child_box((GF_Box*)file->moov, (GF_Box *)mvhd, GF_FALSE);
 	gf_list_add(file->TopBoxes, file->moov);
 	return GF_OK;
 }
@@ -1247,7 +1307,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
 		mov->finalName = fileName ? gf_strdup(fileName) : NULL;
-		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
+		e = gf_isom_datamap_new("_gpac_isobmff_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);
@@ -1266,7 +1326,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, GF_ISOOpenMode OpenMode, 
 	}
 	gf_list_add(mov->TopBoxes, mov->mdat);
 
-	//default behaviour is capture mode, no interleaving (eg, no rewrite of mdat)
+	//default behavior is capture mode, no interleaving (eg, no rewrite of mdat)
 	mov->storageMode = GF_ISOM_STORE_FLAT;
 	return mov;
 

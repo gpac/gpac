@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / libjpeg encoder filter
@@ -65,8 +65,10 @@ static GF_Err jpgenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
-		//one in one out, this is simple
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
@@ -170,6 +172,8 @@ static void jpgenc_init_dest(j_compress_ptr cinfo)
 		return;
 
 	ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ALLOC_STEP_SIZE, &ctx->output);
+	if (!ctx->dst_pck) return;
+
     cinfo->dest->next_output_byte = ctx->output;
     cinfo->dest->free_in_buffer = ALLOC_STEP_SIZE;
     ctx->dst_pck_size += ALLOC_STEP_SIZE;
@@ -259,6 +263,10 @@ static GF_Err jpgenc_process(GF_Filter *filter)
 
 	if (ctx->max_size) {
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->max_size, &ctx->output);
+		if (!ctx->dst_pck) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		ctx->dst.next_output_byte = ctx->output;
 		ctx->dst.free_in_buffer = ctx->max_size;
 		ctx->dst_pck_size = ctx->max_size;

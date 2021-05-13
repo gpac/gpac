@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -48,6 +48,13 @@ enum
 	MP4DMX_SINGLE,
 };
 
+enum
+{
+	MP4DMX_XPS_AUTO=0,
+	MP4DMX_XPS_KEEP,
+	MP4DMX_XPS_REMOVE,
+};
+
 typedef struct
 {
 	//options
@@ -60,9 +67,10 @@ typedef struct
 	u32 frame_size;
 	char* tkid;
 	Bool analyze;
+	u32 xps_check;
 	char *catseg;
 	Bool sigfrag;
-	Bool nocrypt, strtxt;
+	Bool nocrypt, strtxt, nodata;
 	u32 mstore_purge, mstore_samples, mstore_size;
 
 	//internal
@@ -183,13 +191,15 @@ typedef struct
 	Bool pck_encrypted;
 
 	u32 key_info_crc;
-
+	const GF_PropertyValue *cenc_ki;
+	
 	u8 *sai_buffer;
 	u32 sai_alloc_size, sai_buffer_size;
 
-	Bool check_avc_ps, check_hevc_ps, check_mhas_pl;
+	Bool check_avc_ps, check_hevc_ps, check_vvc_ps, check_mhas_pl;
 	GF_HEVCConfig *hvcc;
 	GF_AVCConfig *avcc;
+	GF_VVCConfig *vvcc;
 	GF_BitStream *nal_bs;
 	u32 dsi_crc;
 

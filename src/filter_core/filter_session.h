@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -72,7 +72,7 @@ typedef struct
 	GF_List *properties;
 #endif
 	volatile u32 reference_count;
-	//number of references hold by packet references - since these may be destroyed at the end of the refering filter
+	//number of references hold by packet references - since these may be destroyed at the end of the referring filter
 	//the pid might be dead. This is only used for pid props maps
 	volatile u32 pckrefs_reference_count;
 	GF_FilterSession *session;
@@ -137,6 +137,32 @@ typedef struct __gf_filter_pck_inst
 
 	//DO NOT EXTEND UNLESS UPDATING CODE IN gf_filter_pck_send()
 } GF_FilterPacketInstance;
+
+
+/*URI relocators are used for containers like zip or ISO FF with file items. The relocator
+is in charge of translating the URI, potentially extracting the associated resource and sending
+back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
+
+relocate a URI - if NULL is returned, this relocator is not concerned with the URI
+otherwise returns the translated URI
+*/
+
+#define GF_FS_URI_RELOCATOR	\
+	Bool (*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char *out_relocated_uri, char *out_localized_uri);		\
+
+typedef struct __gf_uri_relocator GF_URIRelocator;
+
+struct __gf_uri_relocator
+{
+	GF_FS_URI_RELOCATOR
+};
+
+typedef struct
+{
+	GF_FS_URI_RELOCATOR
+	GF_FilterSession *sess;
+	char *szAbsRelocatedPath;
+} GF_FSLocales;
 
 
 //packet flags
@@ -291,10 +317,11 @@ typedef struct
 {
 	char *argname;
 	u32 type;
-	Bool found;
+	//0: not found, 1: found but can be later reset to 0, 2: found no reset
+	u32 found_type;
 } GF_FSArgItem;
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type);
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found, u32 type);
 
 enum
 {
@@ -302,6 +329,9 @@ enum
 	GF_FS_NOBLOCK_FANOUT,
 	GF_FS_NOBLOCK
 };
+
+//#define GF_FS_ENABLE_LOCALES
+
 
 struct __gf_filter_session
 {
@@ -431,6 +461,11 @@ struct __gf_filter_session
 
 	gf_fs_on_filter_creation on_filter_create_destroy;
 	void *rt_udta;
+
+#ifdef GF_FS_ENABLE_LOCALES
+	GF_List *uri_relocators;
+	GF_FSLocales locales;
+#endif
 };
 
 #ifdef GPAC_HAS_QJS
@@ -617,7 +652,8 @@ struct __gf_filter
 	Bool finalized;
 	//filter is scheduled for removal: any filter connected to this filter will
 	//not be checked for graph resolution - destroy has not yet been posted
-	Bool removed;
+	//if value is 2, packets are still dispatched to this PID instance (pid reconfig)
+	u32 removed;
 	//setup has been notified
 	Bool setup_notified;
 	//filter loaded to solve a filter chain
@@ -777,7 +813,7 @@ struct __gf_filter_pid_inst
 	Bool force_reconfig;
 
 	//set by filter
-	Bool discard_inputs;
+	u32 discard_inputs;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile s64 buffer_duration;
@@ -818,7 +854,6 @@ struct __gf_filter_pid_inst
 	GF_Filter *alias_orig;
 
 	GF_Fraction64 last_ts_drop;
-
 };
 
 struct __gf_filter_pid
@@ -912,6 +947,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid);
 
 /*internal tasks definitions*/
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
+void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task);
 void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
@@ -944,7 +980,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned);
 GF_Filter *gf_filter_pid_resolve_link_check_loaded(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned, GF_List *skip_if_in_filter_list, Bool *skipped);
 
-GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst);
+GF_Filter *gf_filter_pid_resolve_link_for_caps(GF_FilterPid *pid, GF_Filter *dst, Bool check_reconfig_only);
 u32 gf_filter_pid_resolve_link_length(GF_FilterPid *pid, GF_Filter *dst);
 
 Bool gf_filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, GF_Filter *filter_inst, u8 *priority, u32 *dst_bundle_idx, GF_Filter *dst_filter, s32 for_bundle_idx);
@@ -970,7 +1006,9 @@ const GF_PropertyEntry *gf_filter_pid_get_property_entry_str(GF_FilterPid *pid, 
 const GF_PropertyValue *gf_filter_pid_get_property_first(GF_FilterPid *pid, u32 prop_4cc);
 const GF_PropertyValue *gf_filter_pid_get_property_str_first(GF_FilterPid *pid, const char *prop_name);
 
+void gf_filter_pid_set_args(GF_Filter *filter, GF_FilterPid *pid);
 
+Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst);
 enum
 {
 	EDGE_STATUS_NONE=0,

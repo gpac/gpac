@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / libjpeg and libpng decoder filter
@@ -41,8 +41,10 @@ static GF_Err imgdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
-		//one in one out, this is simple
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
@@ -123,7 +125,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->BPP*ctx->width) );
 		}
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, out_size, &output);
-		if (!dst_pck) return GF_SERVICE_ERROR;
+		if (!dst_pck) return GF_OUT_OF_MEM;
 
 		if (ctx->codecid == GF_CODECID_JPEG) {
 			e = gf_img_jpeg_dec(data, size, &ctx->width, &ctx->height, &ctx->pixel_format, output, &out_size, ctx->BPP);

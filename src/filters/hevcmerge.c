@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile merger filter
@@ -1171,9 +1171,10 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_list_del_item(ctx->pids, tile_pid);
 		gf_free(tile_pid);
 		if (!gf_list_count(ctx->pids)) {
-			if (ctx->opid)
+			if (ctx->opid) {
 				gf_filter_pid_remove(ctx->opid);
-
+				ctx->opid = NULL;
+			}
 			return GF_OK;
 		}
 		grid_config_changed = GF_TRUE;
@@ -1496,6 +1497,8 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			}
 			if (!output_pck) {
 				output_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hevc_nalu_size_length + nal_pck_size, &output_nal);
+				if (!output_pck) return GF_OUT_OF_MEM;
+				
 				// todo: might need to rewrite crypto info
 				gf_filter_pck_merge_properties(pck_src, output_pck);
 			}
@@ -1604,7 +1607,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"  \n"
 		"## Spatial Relationship Description (SRD)\n"
 		"\n"
-		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD`or `CropOrigin` are set on all input PIDs.\n"
+		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD` or `CropOrigin` are set on all input PIDs.\n"
 		"The `SRDMap` allows forwarding the logical sources `SRD` in the merged PID.\n"
 		"The output pid `SRDRef` is set to the output video size.\n"
 		"The input `SRDRef` and `SRD` are usually specified in DASH MPD, but can be manually assigned to inputs.\n"

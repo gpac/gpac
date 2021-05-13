@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE (ATSC3, DVB-I) input filter
@@ -55,7 +55,7 @@ typedef struct
 {
 	//options
 	char *src, *ifce, *odir;
-	Bool gcache, kc, sr, reorder, fullseg;
+	Bool gcache, kc, skipr, reorder, fullseg;
 	u32 buffer, timeout, stats, max_segs, tsidbg, rtimeout, nbcached, repair;
 	s32 tunein, stsi;
 	
@@ -381,7 +381,7 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 			p_pid = &tsio->opid;
 
 			if ((evt_type==GF_ROUTE_EVT_FILE) || (evt_type==GF_ROUTE_EVT_MPD)) {
-				if (ctx->sr && !finfo->updated) return;
+				if (ctx->skipr && !finfo->updated) return;
 			}
 		}
 		pid = *p_pid;
@@ -398,10 +398,12 @@ static void routein_send_file(ROUTEInCtx *ctx, u32 service_id, GF_ROUTEEventFile
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext ? (ext+1) : "*" ));
 
 		pck = gf_filter_pck_new_alloc(pid, finfo->blob->size, &output);
-		memcpy(output, finfo->blob->data, finfo->blob->size);
-		if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
-		gf_filter_pck_send(pck);
-
+		if (pck) {
+			memcpy(output, finfo->blob->data, finfo->blob->size);
+			if (finfo->blob->flags & GF_BLOB_CORRUPTED) gf_filter_pck_set_corrupted(pck, GF_TRUE);
+			gf_filter_pck_send(pck);
+		}
+		
         if (ctx->max_segs && (evt_type==GF_ROUTE_EVT_DYN_SEG))
             push_seg_info(ctx, pid, finfo);
 	}
@@ -798,6 +800,7 @@ static GF_Err routein_initialize(GF_Filter *filter)
 		ctx->route_dmx = gf_route_dmx_new(ctx->src+8, port, ctx->ifce, ctx->buffer, routein_on_event, ctx);
 		sep[0] = ':';
 	}
+	if (!ctx->route_dmx) return GF_SERVICE_ERROR;
 	
 	gf_route_set_allow_progressive_dispatch(ctx->route_dmx, !ctx->fullseg);
 
@@ -852,7 +855,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(timeout), "timeout in ms after which tunein fails", GF_PROP_UINT, "5000", NULL, 0},
     { OFFS(nbcached), "number of segments to keep in cache per service", GF_PROP_UINT, "8", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(kc), "keep corrupted file", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(skipr), "skip repeated files - ignored in cache mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(stsi), "define one output pid per tsi/serviceID - ignored in cache mode, see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(stats), "log statistics at the given rate in ms (0 disables stats)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tsidbg), "gather only objects with given TSI (debug)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -864,7 +867,7 @@ static const GF_FilterArgs ROUTEInArgs[] =
 	{ OFFS(repair), "repair mode for corrupted files (see filter help)\n"
 		"- no: no repair is performed\n"
 		"- simple: simple repair is performed (incomplete mdat boxes will be kept)\n"
-		"- strict: incomplete mdat boxes will be lost as well as preceeding moof box\n"
+		"- strict: incomplete mdat boxes will be lost as well as preceding moof box\n"
 		"- full: HTTP-based repair, not yet implemented"
 		, GF_PROP_UINT, "simple", "no|simple|strict|full", GF_FS_ARG_HINT_EXPERT},
 	
@@ -886,7 +889,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"\n"
 	"The filter can work in cached mode, source mode or standalone mode.\n"
 	"# Cached mode\n"
-	"The cached mode is the default filter behaviour. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"
+	"The cached mode is the default filter behavior. It populates GPAC HTTP Cache with the received files, using `http://groute/serviceN/` as service root, N being the ROUTE service ID.\n"
 	"In cached mode, repeated files are always pushed to cache.\n"
 	"The maximum number of media segment objects in cache per service is defined by [-nbcached](); this is a safety used to force object removal in case DASH client timing is wrong and some files are never requested at cache level.\n"
 	"  \n"
@@ -922,7 +925,7 @@ GF_FilterRegister ROUTEInRegister = {
 	"- MPEG-2 TS: all lost ranges are adjusted to 188-bytes boundaries, and transformed into NULL TS packets.\n"
 	"- ISOBMFF: all top-level boxes are scanned, and incomplete boxes are transformed in `free` boxes, except mdat kept as is if [-repair]() is set to simple.\n"
 	"\n"
-	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially recieved, they will be kept.\n"
+	"If [-kc]() option is set, corrupted files will be kept. If [-fullseg]() is not set and files are only partially received, they will be kept.\n"
 	"\n"
 	"# Interface setup\n"
 	"On some systems (OSX), when using VM packet replay, you may need to force multicast routing on your local interface.\n"

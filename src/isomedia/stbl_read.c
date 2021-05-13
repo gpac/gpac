@@ -419,11 +419,13 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 		if ( stbl->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
 			stco = (GF_ChunkOffsetBox *)stbl->ChunkOffset;
 			if (!stco->offsets) return GF_ISOM_INVALID_FILE;
+			if (stco->nb_entries < sampleNumber) return GF_ISOM_INVALID_FILE;
 
 			(*offset) = (u64) stco->offsets[sampleNumber - 1];
 		} else {
 			co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
 			if (!co64->offsets) return GF_ISOM_INVALID_FILE;
+			if (co64->nb_entries < sampleNumber) return GF_ISOM_INVALID_FILE;
 
 			(*offset) = co64->offsets[sampleNumber - 1];
 		}
@@ -454,7 +456,10 @@ GF_Err stbl_GetSampleInfos(GF_SampleTableBox *stbl, u32 sampleNumber, u64 *offse
 	//first get the chunk
 	for (; i < stbl->SampleToChunk->nb_entries; i++) {
 		assert(stbl->SampleToChunk->firstSampleInCurrentChunk <= sampleNumber);
-		assert (k <= stbl->SampleToChunk->ghostNumber);
+		//corrupted file (less sample2chunk info than sample count
+		if (k > stbl->SampleToChunk->ghostNumber) {
+			return GF_ISOM_INVALID_FILE;
+		}
 
 
 		//check if sample is in current chunk

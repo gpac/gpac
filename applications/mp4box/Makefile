@@ -46,7 +46,7 @@ else
 EXT=
 PROG=MP4Box
 
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 LINKFLAGS+= $(GPAC_SH_FLAGS)
 endif
 
@@ -61,6 +61,10 @@ endif
 
 
 SRCS := $(OBJS:.o=.c)
+
+ifeq ($(CONFIG_WIN32),yes)
+OBJS+=$(SRC_PATH)/manifest.o
+endif
 
 all: $(PROG)
 

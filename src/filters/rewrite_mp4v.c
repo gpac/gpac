@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 part2 video rewrite filter
@@ -51,7 +51,10 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -115,6 +118,7 @@ GF_Err m4vmx_process(GF_Filter *filter)
 		size = pck_size + ctx->dsi_size;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
 		memcpy(output, ctx->dsi, ctx->dsi_size);
 		memcpy(output+ctx->dsi_size, data, pck_size);
 		gf_filter_pck_merge_properties(pck, dst_pck);

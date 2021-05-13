@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -157,7 +157,9 @@ GF_Err mcdec_init_avc_dec(GF_MCDecCtx *ctx)
 	ctx->reconfig_needed = GF_FALSE;
 	ctx->inject_xps = GF_TRUE;
 
+	if (ctx->active_sps<0) return GF_OK;
 	idx = ctx->active_sps;
+
 	ctx->width = ctx->avc.sps[idx].width;
 	ctx->height = ctx->avc.sps[idx].height;
 	ctx->crop_left = ctx->avc.sps[idx].crop.left;
@@ -273,6 +275,8 @@ GF_Err mcdec_init_hevc_dec(GF_MCDecCtx *ctx)
 	if (!vps) return GF_NON_COMPLIANT_BITSTREAM;
 	ctx->reconfig_needed = GF_FALSE;
 	ctx->inject_xps = GF_TRUE;
+
+	if (ctx->active_sps<0) return GF_OK;
 
 	idx = ctx->active_sps;
 	ctx->width = ctx->hevc.sps[idx].width;
@@ -554,8 +558,10 @@ static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		gf_list_del_item(ctx->streams, pid);
 		if (!gf_list_count(ctx->streams)) {
 			if (ctx->codec) AMediaCodec_stop(ctx->codec);
-			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+			if (ctx->opid) {
+				gf_filter_pid_remove(ctx->opid);
+				ctx->opid = NULL;
+			}
 		}
 		return GF_OK;
 	}
@@ -871,7 +877,8 @@ static GF_Err mcdec_process(GF_Filter *filter)
 
 	Bool mcdec_buffer_available = GF_FALSE;
 
-#if FILTER_FIXME
+	//commented out, leading to some crashes
+#if 0
 	if (!ctx->before_exit_registered) {
 		ctx->before_exit_registered = GF_TRUE;
 		if (gf_register_before_exit_function(gf_th_current(), &mcdec_exit_callback) != GF_OK) {

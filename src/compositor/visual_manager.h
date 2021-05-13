@@ -204,7 +204,7 @@ struct _visual_manager
 	u32 num_clips;
 	u32 max_clips;
 
-	//when using 2D layering in opengl, we store the bounding rect of drawn objects betwwen GL calls, so we
+	//when using 2D layering in opengl, we store the bounding rect of drawn objects between GL calls, so we
 	//can flush only the minimum part of the texture
 	GF_RectArray hybgl_drawn;
 	u32 nb_objects_on_canvas_since_last_ogl_flush;

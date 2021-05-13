@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -457,9 +457,9 @@ typedef struct
 	/*! ID of active period*/
 	char *period_id;
 	/*! start of active period*/
-	Double period_start;
+	GF_Fraction64 period_start;
 	/*! duration of active period*/
-	Double period_duration;
+	GF_Fraction64 period_duration;
 	/*! if GF_TRUE, representation is over*/
 	Bool done;
 	/*! niumber of last packet processed (to resume dashing)*/
@@ -566,6 +566,8 @@ typedef struct
 	Bool encrypted;
 	/*! HLS key params (URI and co)*/
 	char *hls_key_uri;
+	/*! HLS IV*/
+	bin128 hls_iv;
 } GF_DASH_SegmentContext;
 
 /*! Representation*/
@@ -636,7 +638,9 @@ typedef struct {
 	/*! temp file for m3u8 generation*/
 	FILE *m3u8_var_file;
 
-	u32 is_encrypted;
+	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
+	u8 crypto_type;
+	u8 def_kms_used;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -714,8 +718,8 @@ typedef struct
 	/*! max number of valid chunks in smooth manifest*/
 	u32 smooth_max_chunks;
 
-	/*! HLS INTRA-ONLY trick mode*/
-	Bool hls_intra_only;
+	/*! INTRA-ONLY trick mode*/
+	Bool intra_only;
 	/*! adaptation set uses HLS LL*/
 	Bool use_hls_ll;
 	/*! target part (cmaf chunk) duration for HLS LL*/
@@ -764,8 +768,13 @@ typedef struct
 	/*! xlink evaluation on load if set, otherwise on use*/
 	Bool xlink_actuate_on_load;
 
-	/*! original xlink URL before resolution, used to identify already resolved xlinks in MPD updates - GPAC internal*/
+	/*! original xlink URL before resolution - GPAC internal. Used to
+		- identify already resolved xlinks in MPD updates
+		- resolve URLs in remote period if no baseURL is explictly listed
+	*/
 	char *origin_base_url;
+	/*! broken/ignored xlink, used to identify ignored xlinks in MPD updates  - GPAC internal*/
+	char *broken_xlink;
 	/*! type of the period - GPAC internal*/
 	GF_MPD_Type type;
 } GF_MPD_Period;
@@ -1020,7 +1029,7 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 \param segment_list the segment list to delete*/
 void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
-/*! deletes a list content and optionaly destructs the list
+/*! deletes a list content and optionally destructs the list
 \param list the target list
 \param __destructor the destructor function to use to destroy list items
 \param reset_only  if GF_TRUE, does not destroy the target list
@@ -1182,7 +1191,7 @@ typedef struct
 \param stream_id the ID of the stream for which we load cues (typically, TrackID or GF_PROP_PID_ID)
 \param cues_timescale set to the timescale used in the cues document
 \param use_edit_list set to GF_TRUE if the cts values of cues have edit list applied (i.e. are ISOBMFF presentation times)
-\param ts_offset set to the timestamp offset to substract from DTS/CTS values
+\param ts_offset set to the timestamp offset to subtract from DTS/CTS values
 \param out_cues set to a newly allocated list of cues, to free by the caller
 \param nb_cues set to the number of cues parsed
 \return error if any

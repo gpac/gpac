@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / SAF demuxer filter
@@ -181,18 +181,20 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				u8 *pck_data;
 				bs_pos = gf_bs_get_position(bs);
 				pck = gf_filter_pck_new_alloc(st->opid, au_size, &pck_data);
-				memcpy(pck_data, ctx->saf_data+bs_pos, au_size);
-				//TODO: map byte range pos ?
-				//TODO: map AU SN  ?
+				if (pck) {
+					memcpy(pck_data, ctx->saf_data+bs_pos, au_size);
+					//TODO: map byte range pos ?
+					//TODO: map AU SN  ?
 
-				gf_filter_pck_set_cts(pck, cts);
-				if (is_rap)
-					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+					gf_filter_pck_set_cts(pck, cts);
+					if (is_rap)
+						gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
-				if (ctx->start_range && (ctx->start_range * st->ts_res > cts*1000)) {
-					gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+					if (ctx->start_range && (ctx->start_range * st->ts_res > cts*1000)) {
+						gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+					}
+					gf_filter_pck_send(pck);
 				}
-				gf_filter_pck_send(pck);
 			}
 			gf_bs_skip_bytes(bs, au_size);
 			break;

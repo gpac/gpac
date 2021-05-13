@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -1090,6 +1090,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	u32 sample_count=0;
 	Bool skip_write_filter = GF_FALSE;
 	Bool ext_forced = GF_FALSE;
+	Bool use_dynext = GF_FALSE;
 
 	args = NULL;
 	strcpy(szExt, "");
@@ -1107,7 +1108,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		}
 		esd = gf_media_map_esd(dumper->file, track_num, 0);
 		sample_count = gf_isom_get_sample_count(dumper->file, dumper->trackID);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			if (esd->decoderConfig->objectTypeIndication<GF_CODECID_LAST_MPEG4_MAPPING) {
 				codec_id = gf_codecid_from_oti(esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1181,8 +1182,9 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			case GF_CODECID_SUBS_TEXT:
 			case GF_CODECID_SUBS_XML:
 			case GF_CODECID_SIMPLE_TEXT:
-				//szExt[0] = 0;
-				strcpy(szExt, "*");
+				//use dynamic extension
+				szExt[0] = 0;
+				use_dynext = GF_TRUE;
 				break;
 			}
 			break;
@@ -1215,6 +1217,11 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			return e;
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+	} else {
+		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
+		skip_write_filter = GF_TRUE;
+		if (!export_ext)
+			use_dynext = GF_TRUE;
 	}
 
 	fsess = gf_fs_new_defaults(0);
@@ -1224,8 +1231,17 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 	file_out = NULL;
 	args = NULL;
+
+	if (dumper->flags & GF_EXPORT_REMUX) {
+		file_out = gf_fs_load_destination(fsess, dumper->out_name, NULL, NULL, &e);
+		if (!file_out) {
+			gf_fs_del(fsess);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot open destination %s\n", dumper->out_name));
+			return e;
+		}
+	}
 	//except in nhml inband file dump, create a sink filter
-	if (!dumper->dump_file && !(dumper->flags & GF_EXPORT_AVI)) {
+	else if (!dumper->dump_file) {
 		Bool no_ext = (dumper->flags & GF_EXPORT_NO_FILE_EXT) ? GF_TRUE : GF_FALSE;
 		char *ext = gf_file_ext_start(dumper->out_name);
 		//mux args, for now we only dump to file
@@ -1262,10 +1278,6 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				if (ext) e |= gf_dynstrcat(&args, ext, NULL);
 			}
 			e |= gf_dynstrcat(&args, ":dynext", NULL);
-		} else if (dumper->flags & GF_EXPORT_AVI_NATIVE) {
-			if (!strlen(szExt)) {
-				e |= gf_dynstrcat(&args, ":dynext", NULL);
-			}
 		} else if (dumper->trackID && strlen(szExt) ) {
 			if (!no_ext && !gf_file_ext_start(dumper->out_name)) {
 				if (args) gf_free(args);
@@ -1277,6 +1289,8 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 				e |= gf_dynstrcat(&args, ":ext=", NULL);
 				e |= gf_dynstrcat(&args, szExt, NULL);
 			}
+		} else if ((dumper->trackID || dumper->track_type) && use_dynext) {
+			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load arguments for output file dumper\n"));
@@ -1333,20 +1347,6 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHML write filter\n"));
-			return e ? e : GF_FILTER_NOT_FOUND;
-		}
-	}
-	else if (dumper->flags & GF_EXPORT_AVI) {
-		e = gf_dynstrcat(&args, "avimx:dst=", NULL);
-		e |= gf_dynstrcat(&args, dumper->out_name, NULL);
-		if (!strstr(args, ".avi")) e |= gf_dynstrcat(&args, ".avi", NULL);
-		e |= gf_dynstrcat(&args, ":noraw", NULL);
-
-		file_out = e ? NULL : gf_fs_load_filter(fsess, args, &e);
-		if (!file_out || e) {
-			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load AVI output filter\n"));
-			if (args) gf_free(args);
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	} else if (!skip_write_filter) {
@@ -1415,20 +1415,35 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		return e;
 	}
 
-	if (dumper->trackID) {
+	if (dumper->track_type) {
+		const char *mtype = (dumper->track_type==1) ? "video" : "audio";
+		if (dumper->trackID) {
+			sprintf(szSubArgs, "%s%d", mtype, dumper->trackID);
+		} else {
+			sprintf(szSubArgs, "%s", mtype);
+		}
+	}
+	else if (dumper->trackID) {
 		sprintf(szSubArgs, "PID=%d", dumper->trackID);
 	}
 	if (remux) {
-		gf_filter_set_source(file_out, remux, dumper->trackID ? szSubArgs : NULL);
-		gf_filter_set_source(remux, reframer, dumper->trackID ? szSubArgs : NULL);
+		gf_filter_set_source(file_out, remux, (dumper->trackID || dumper->track_type) ? szSubArgs : NULL);
+		gf_filter_set_source(remux, reframer, (dumper->trackID || dumper->track_type) ? szSubArgs : NULL);
 	} else {
-		gf_filter_set_source(file_out, reframer, dumper->trackID ? szSubArgs : NULL);
+		gf_filter_set_source(file_out, reframer, (dumper->trackID || dumper->track_type) ? szSubArgs : NULL);
 	}
 
 	e = gf_fs_run(fsess);
 	if (e>GF_OK) e = GF_OK;
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
+
+	if (!e) {
+		if (dumper->file)
+			gf_fs_print_unused_args(fsess, NULL);
+		else
+			gf_fs_print_unused_args(fsess, "alltk,allt,noedit");
+	}
 	gf_fs_print_non_connected(fsess);
 	if (dumper->print_stats_graph & 1) gf_fs_print_stats(fsess);
 	if (dumper->print_stats_graph & 2) gf_fs_print_connections(fsess);

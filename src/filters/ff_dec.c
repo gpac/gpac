@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -89,6 +89,10 @@ typedef struct _gf_ffdec_ctx
 	u32 o_ff_pfmt;
 	Bool force_full_range;
 	Bool drop_non_refs;
+
+	s64 first_cts_plus_one;
+	s64 delay;
+	u32 ts_offset;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -164,6 +168,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
+	u64 out_cts;
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
 	u32 i, count, ff_pfmt;
@@ -301,18 +306,25 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	memset(&pict, 0, sizeof(pict));
 
-
 	pck_src = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
+		u64 cts;
 		pck_src = gf_list_get(ctx->src_packets, i);
-		if (gf_filter_pck_get_cts(pck_src) == frame->pkt_pts) break;
+		cts = gf_filter_pck_get_cts(pck_src);
+		if (cts == frame->pts)
+			break;
+		if (cts == frame->pkt_pts)
+			break;
 		pck_src = NULL;
 	}
 
 	seek_flag = GF_FALSE;
 	if (pck_src) {
 		seek_flag = gf_filter_pck_get_seek_flag(pck_src);
+		out_cts = gf_filter_pck_get_cts(pck_src);
+	} else {
+		out_cts = frame->pts;
 	}
 	//this was a seek frame, do not dispatch
 	if (seek_flag) {
@@ -324,19 +336,19 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, outsize, &out_buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (pck_src) {
-		if (dst_pck) gf_filter_pck_merge_properties(pck_src, dst_pck);
+		gf_filter_pck_merge_properties(pck_src, dst_pck);
 		gf_list_del_item(ctx->src_packets, pck_src);
 		gf_filter_pck_unref(pck_src);
 	} else {
-		if (dst_pck) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	}
-	if (!dst_pck) return GF_OUT_OF_MEM;
 
     //rewrite dts and pts to PTS value
-    gf_filter_pck_set_dts(dst_pck, frame->pkt_pts);
-    gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+    gf_filter_pck_set_dts(dst_pck, out_cts);
+    gf_filter_pck_set_cts(dst_pck, out_cts);
 
 	ff_pfmt = ctx->decoder->pix_fmt;
 	if (ff_pfmt==AV_PIX_FMT_YUVJ420P) {
@@ -427,13 +439,18 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	AVPacket pkt;
 	s32 gotpic;
 	s32 len, in_size, i;
-	u32 output_size;
+	u32 samples_to_trash;
+	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
 	u8 *data;
 	AVFrame *frame;
 	GF_FilterPacket *dst_pck, *src_pck;
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
+	GF_FilterPacket *pck;
 
+decode_next:
+	pck = gf_filter_pid_get_packet(ctx->in_pid);
+	in_size = 0;
+	
 	if (ctx->reconfig_pending) {
 		pck = NULL;
 	} else if (!pck) {
@@ -468,12 +485,38 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		if (gf_filter_pck_get_sap(pck)>0)
 			pkt.flags = AV_PKT_FLAG_KEY;
 
+		if (!ctx->first_cts_plus_one)
+			ctx->first_cts_plus_one = pkt.pts + 1;
+
 	} else {
 		pkt.size = 0;
 	}
 
+	prev_afmt = ctx->decoder->sample_fmt;
 	frame = ctx->frame;
 	len = avcodec_decode_audio4(ctx->decoder, frame, &gotpic, &pkt);
+
+	samples_to_trash = 0;
+	if ( gotpic && (ctx->delay<0)) {
+		if (pkt.pts + 1 - ctx->first_cts_plus_one + ctx->delay < 0) {
+			if (pkt.duration + ctx->delay < 0) {
+				frame->nb_samples = 0;
+				samples_to_trash = 0;
+				ctx->delay += pkt.duration;
+			} else {
+				samples_to_trash = (u32) -ctx->delay;
+			}
+			
+			if (!samples_to_trash || (samples_to_trash > (u32) frame->nb_samples) ) {
+				frame->nb_samples = 0;
+				samples_to_trash = 0;
+			}
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
+		} else {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, NULL);
+			ctx->delay = 0;
+		}
+	}
 
 	//this will handle eos as well
 	if ((len<0) || !gotpic) {
@@ -507,8 +550,28 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
 	FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 
-	output_size = frame->nb_samples*ctx->channels*ctx->bytes_per_sample;
+	if (prev_afmt != ctx->decoder->sample_fmt) {
+		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
+		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+	}
+
+	if (pck && gf_filter_pid_eos_received(ctx->in_pid)) {
+		u32 timescale = gf_filter_pck_get_timescale(pck);
+		u64 odur = gf_filter_pck_get_duration(pck);
+		if (timescale != ctx->sample_rate) {
+			odur *= ctx->sample_rate;
+			odur /= timescale;
+		}
+		if (odur < frame->nb_samples) {
+			frame->nb_samples = (int) odur;
+		}
+	}
+
+
+	output_size = (frame->nb_samples - samples_to_trash) * ctx->channels * ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	switch (frame->format) {
 	case AV_SAMPLE_FMT_U8P:
@@ -517,13 +580,13 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	case AV_SAMPLE_FMT_FLTP:
 	case AV_SAMPLE_FMT_DBLP:
 		for (i=0; (u32) i< ctx->channels; i++) {
-			char *inputChannel = frame->extended_data[i];
-			memcpy(data, inputChannel, ctx->bytes_per_sample * frame->nb_samples);
-			data += ctx->bytes_per_sample * frame->nb_samples;
+			char *inputChannel = frame->extended_data[i] + samples_to_trash * ctx->bytes_per_sample;
+			memcpy(data, inputChannel, ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash) );
+			data += ctx->bytes_per_sample * (frame->nb_samples-samples_to_trash);
 		}
 		break;
 	default:
-		memcpy(data, ctx->frame->data[0], ctx->bytes_per_sample * frame->nb_samples * ctx->channels);
+		memcpy(data, ctx->frame->data[0] + samples_to_trash * ctx->bytes_per_sample, ctx->bytes_per_sample * (frame->nb_samples - samples_to_trash) * ctx->channels);
 		break;
 	}
 
@@ -539,22 +602,24 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pck_unref(src_pck);
 	}
 
-	if (frame->pkt_pts != AV_NOPTS_VALUE) {
-		u64 pts = frame->pkt_pts;
-		u32 timescale = gf_filter_pck_get_timescale(pck);
-		if (ctx->nb_samples_already_in_frame) {
-			if (ctx->sample_rate == timescale) {
-				pts += ctx->nb_samples_already_in_frame;
+	if (output_size) {
+		if (frame->pkt_pts != AV_NOPTS_VALUE) {
+			u64 pts = frame->pkt_pts;
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			if (ctx->nb_samples_already_in_frame) {
+				if (ctx->sample_rate == timescale) {
+					pts += ctx->nb_samples_already_in_frame;
+				}
 			}
+			if (pts >= ctx->ts_offset) pts -= ctx->ts_offset;
+			else pts = 0;
+			gf_filter_pck_set_cts(dst_pck, pts);
+			gf_filter_pck_set_dts(dst_pck, pts);
 		}
-		gf_filter_pck_set_cts(dst_pck, pts);
+		gf_filter_pck_send(dst_pck);
+	} else {
+		gf_filter_pck_discard(dst_pck);
 	}
-	if (frame->pkt_dts != AV_NOPTS_VALUE) {
-		gf_filter_pck_set_dts(dst_pck, frame->pkt_dts);
-	}
-
-
-	gf_filter_pck_send(dst_pck);
 
 	ctx->frame_start += len;
 	//done with this input packet
@@ -563,7 +628,13 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		ctx->frame_start = 0;
 		ctx->nb_samples_already_in_frame = 0;
 		gf_filter_pid_drop_packet(ctx->in_pid);
-		return GF_OK;
+
+		if (gf_filter_pid_would_block(ctx->out_pid))
+			return GF_OK;
+
+		//if space available in ouput, decode right away - needed for audio formats with very short frames
+		//avoid recursion
+		goto decode_next;
 	}
 	//still some data to decode in packet, don't drop it
 	//todo: check if frame->pkt_pts or frame->pts is updated by ffmpeg, otherwise do it ourselves !
@@ -571,7 +642,10 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	ctx->nb_samples_already_in_frame += frame->nb_samples;
 	frame->nb_samples = 0;
 
-	return ffdec_process_audio(filter, ctx);
+	//avoid recursion
+	goto decode_next;
+
+//	return ffdec_process_audio(filter, ctx);
 }
 
 #ifdef FF_SUB_SUPPORT
@@ -648,6 +722,17 @@ static GF_Err ffdec_process(GF_Filter *filter)
 	return ctx->process(filter, ctx);
 }
 
+static const GF_FilterCapability FFDecodeAnnexBCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+};
+
+
 static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
@@ -660,7 +745,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
 		//one in one out, this is simple
-		if (ctx->out_pid) gf_filter_pid_remove(ctx->out_pid);
+		if (ctx->out_pid) {
+			gf_filter_pid_remove(ctx->out_pid);
+			ctx->out_pid = NULL;
+		}
 		return GF_OK;
 	}
 
@@ -706,6 +794,20 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	ctx->sample_rate = prop ? prop->value.uint : 0;
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	ctx->channels = prop ? prop->value.uint : 0;
+
+	if (gpac_codecid==GF_CODECID_VVC) {
+		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
+		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
+		//libvvdec only supports annexB, request ufnalu adaptation filter
+		if (codec && codec->name && strstr(codec->name, "vvdec")) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+			if (!prop || !prop->value.boolean) {
+				gf_filter_override_caps(filter, FFDecodeAnnexBCaps, GF_ARRAY_LENGTH(FFDecodeAnnexBCaps));
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+				return GF_OK;
+			}
+		}
+	}
 
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
@@ -813,10 +915,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	if (options) {
-		ffmpeg_report_unused_options(filter, options);
-		av_dict_free(&options);
-	}
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	//we're good to go, declare our output pid
 	ctx->in_pid = pid;
@@ -887,12 +986,15 @@ reuse_codec_context:
 
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffdec_process_audio;
-		ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
-		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+		if (ctx->decoder->sample_fmt != AV_SAMPLE_FMT_NONE) {
+			ctx->sample_fmt = ffmpeg_audio_fmt_to_gpac(ctx->decoder->sample_fmt);
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(ctx->sample_fmt) );
+			ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
+		}
 
 		//override PID props with what decoder gives us
 		if (ctx->decoder->channels) {
+			ctx->channels = 0;
 			FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 		}
 		if (ctx->decoder->channel_layout) {
@@ -903,6 +1005,7 @@ reuse_codec_context:
 			}
 		}
 		if (ctx->decoder->sample_rate) {
+			ctx->sample_rate = 0;
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 		}
 		if (!ctx->frame)
@@ -910,6 +1013,20 @@ reuse_codec_context:
 
 		if (ctx->sample_fmt) {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT( ctx->sample_fmt) );
+		}
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
+		if (prop && prop->value.boolean) {
+			ctx->delay = 0;
+		} else {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+			ctx->delay = prop ? prop->value.longsint : 0;
+			ctx->first_cts_plus_one = 0;
+
+			if (ctx->delay<0)
+				ctx->ts_offset = (u32) -ctx->delay;
+			else
+				ctx->ts_offset = 0;
 		}
 
 	} else {
@@ -1002,7 +1119,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.version = LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG decoder")
-	GF_FS_SET_HELP("Encodes audio and video streams.\n"
+	GF_FS_SET_HELP("Decodes audio and video streams.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported decoders for your GPAC build, use `gpac -h ffdec:*`.\n"
 	"\n"

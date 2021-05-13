@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 visual p2 xvid decoder filter
@@ -141,8 +141,10 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
@@ -294,6 +296,7 @@ static GF_Err xviddec_process(GF_Filter *filter)
 packed_frame :
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->width*ctx->height*3/2, &buffer);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 #ifdef XVID_USE_OLD_API
 	frame.colorspace = XVID_CSP_I420;

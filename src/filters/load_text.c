@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -41,6 +41,15 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
+
+#define CHECK_STR(__str)	\
+	if (!__str) { \
+		e = gf_import_message(import, GF_BAD_PARAM, "Invalid XML formatting (line %d)", parser.line);	\
+		goto exit;	\
+	}
+
+
 typedef struct __txtin_ctx GF_TXTIn;
 
 struct __txtin_ctx
@@ -48,14 +57,15 @@ struct __txtin_ctx
 	//opts
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
-	const char *fontname, *lang;
-	Bool nodefbox, noflush, webvtt;
+	const char *fontname, *lang, *ttml_zero;
+	Bool nodefbox, noflush, webvtt, ttml_embed;
 	u32 timescale;
 	GF_Fraction fps;
+	s32 ttml_dur;
 
 
 	GF_FilterPid *ipid, *opid;
-	const char *file_name;
+	char *file_name;
 	u32 fmt;
 	u32 playstate;
 	//0: not seeking, 1: seek request pending, 2: seek configured, discarding packets up until start_range
@@ -95,9 +105,13 @@ struct __txtin_ctx
 	u32 current_tt_interval;
 
 	//TTML state
-	GF_XMLNode *root_working_copy, *div_node, *sample_list_node;
+	GF_XMLNode *root_working_copy, *body_node;
 	GF_DOMParser *parser_working_copy;
 	Bool non_compliant_ttml;
+	u32 tick_rate, ttml_fps_num, ttml_fps_den, ttml_sfps;
+	GF_List *ttml_resources;
+	GF_List *div_nodes_list;
+	Bool has_images;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	//SWF text
@@ -111,7 +125,15 @@ struct __txtin_ctx
 
 typedef struct
 {
+	u32 size;
+	u8 *data;
+	Bool global;
+} TTMLRes;
+
+typedef struct
+{
 	s64 begin, end;
+	GF_List *resources;
 } TTMLInterval;
 
 
@@ -290,10 +312,11 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	}
 
 #ifdef GPAC_BIG_ENDIAN
-	if (unicode_type==3) {
+	if (unicode_type==3)
 #else
-	if (unicode_type==2) {
+	if (unicode_type==2)
 #endif
+	{
 		i=0;
 		while (1) {
 			char c;
@@ -421,37 +444,41 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 	}
 
 	if (ctx->fmt == GF_TXTIN_MODE_TTML) {
-		u32 i=0;
-		GF_XMLNode *node, *p_node;
+		u32 i=0, k=0;
+		GF_XMLNode *div_node;
 
-		while ((node = gf_list_enum(ctx->div_node->content, &i))) {
-			GF_XMLAttribute *att;
-			u32 h, m, s, ms, p_idx=0;
-			u64 ts_end=0;
-			h = m = s = ms = 0;
-			while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &p_idx))) {
-				if (strcmp(att->name, "end")) continue;
-
-				if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
-					ts_end = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(att->value, "%u:%u:%u", &h, &m, &s) == 3) {
-					ts_end = (h*3600 + m*60+s)*1000;
-				}
-			}
-			//or under a <span>
-			p_idx = 0;
-			while ( (p_node = (GF_XMLNode*)gf_list_enum(node->content, &p_idx))) {
-				u32 span_idx = 0;
-				while ( (att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+		while ((div_node = gf_list_enum(ctx->div_nodes_list, &k))) {
+			GF_XMLNode *node;
+			while ((node = gf_list_enum(div_node->content, &i))) {
+				GF_XMLNode *p_node;
+				GF_XMLAttribute *att;
+				u32 h, m, s, ms, p_idx=0;
+				u64 ts_end=0;
+				h = m = s = ms = 0;
+				while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &p_idx))) {
 					if (strcmp(att->name, "end")) continue;
+
 					if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 						ts_end = (h*3600 + m*60+s)*1000+ms;
 					} else if (sscanf(att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 						ts_end = (h*3600 + m*60+s)*1000;
 					}
 				}
+				//or under a <span>
+				p_idx = 0;
+				while ( (p_node = (GF_XMLNode*)gf_list_enum(node->content, &p_idx))) {
+					u32 span_idx = 0;
+					while ( (att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+						if (strcmp(att->name, "end")) continue;
+						if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+							ts_end = (h*3600 + m*60+s)*1000+ms;
+						} else if (sscanf(att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+							ts_end = (h*3600 + m*60+s)*1000;
+						}
+					}
+				}
+				if (ts_end > (u64) dur.num) dur.num = (s64) ts_end;
 			}
-			if (ts_end > (u64) dur.num) dur.num = (s64) ts_end;
 		}
 		if (dur.num) {
 			dur.den = 1000;
@@ -555,6 +582,8 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	size = gf_isom_text_sample_size(txt_samp);
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+	if (!dst_pck) return;
+
 	gf_bs_reassign_buffer(ctx->bs_w, pck_data, size);
 	gf_isom_text_sample_write_bs(txt_samp, ctx->bs_w);
 
@@ -986,15 +1015,17 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 		u8 *pck_data;
 
 		pck = gf_filter_pck_new_alloc(ctx->opid, s->dataLength, &pck_data);
-		memcpy(pck_data, s->data, s->dataLength);
-		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
-		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+		if (pck) {
+			memcpy(pck_data, s->data, s->dataLength);
+			gf_filter_pck_set_cts(pck, (u64) (ctx->timescale * start / 1000) );
+			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 
-		if (end && (end>=start) ) {
-			gf_filter_pck_set_duration(pck, (u32) (ctx->timescale * (end-start) / 1000) );
+			if (end && (end>=start) ) {
+				gf_filter_pck_set_duration(pck, (u32) (ctx->timescale * (end-start) / 1000) );
+			}
+			gf_filter_pck_send(pck);
 		}
-		gf_filter_pck_send(pck);
 
 		gf_isom_sample_del(&s);
 	}
@@ -1135,19 +1166,19 @@ static char *ttxt_parse_string(char *str, Bool strip_lines)
 	return str;
 }
 
-static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **sample_list_node)
+static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 {
 	u32 idx = 0;
 	GF_XMLNode *node = NULL;
-	*sample_list_node = NULL;
+	*out_body_node = NULL;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &idx))) {
 		if (!strcmp(node->name, "body")) {
 			GF_XMLNode *body_node;
 			u32 body_idx = 0;
+			*out_body_node = node;
 			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
 				if (!strcmp(body_node->name, "div")) {
 					u32 body_num;
-					*sample_list_node = body_node;
 					body_num = gf_list_count(body_node->content);
 					while (body_num--) {
 						GF_XMLNode *content_node = (GF_XMLNode*)gf_list_get(body_node->content, 0);
@@ -1155,28 +1186,109 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **sample_list_no
 						gf_list_rem(body_node->content, 0);
 						gf_xml_dom_node_del(content_node);
 					}
-					return;
 				}
 			}
+			return;
 		}
 	}
 }
 
-#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
-
-static s64 ttml_get_timestamp(const char *value)
+static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 {
-	u32 h, m, s, ms;
+	u32 h, m, s, ms, f, sf;
 	s64 ts = -1;
-	if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+	u32 len = (u32) strlen(value);
+
+	//tick metrick - cannot be fractional
+	if (len && (value[len-1]=='t')) {
+		value[len-1] = 0;
+		ts = (s64) (atoi(value) * 1000);
+		value[len-1] = 't';
+		if (ctx->tick_rate)
+			ts /= ctx->tick_rate;
+	}
+	//hours metric, can be fractional
+	else if (len && (value[len-1]=='h')) {
+		value[len-1] = 0;
+		ts = (s64) (atof(value) * 1000 * 3600);
+		value[len-1] = 'h';
+	}
+	//minutes metric, can be fractional
+	else if (len && (value[len-1]=='m')) {
+		value[len-1] = 0;
+		ts = (s64) (atof(value) * 1000 * 60);
+		value[len-1] = 'm';
+	}
+	else if (len && (value[len-1]=='s')) {
+		//milliseconds metric, can be fractional but we work at 1ms clock resolution anyway
+		if ((len > 1) && (value[len-2]=='m')) {
+			value[len-2] = 0;
+			ts = (s64) (atof(value));
+			value[len-2] = 'm';
+		}
+		//seconds metric, can be fractional
+		else {
+			value[len-1] = 0;
+			ts = (s64) (atof(value) * 1000);
+			value[len-1] = 's';
+		}
+	}
+	//frames metric, can be fractional
+	else if (len && (value[len-1]=='f')) {
+		f = sf = 0;
+		value[len-1] = 0;
+		if (sscanf(value, "%u.%u", &f, &sf) != 2) {
+			sscanf(value, "%u", &f);
+			sf = 0;
+		}
+		value[len-1] = 'f';
+
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		if (sf && !ctx->ttml_sfps) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
+			ctx->ttml_sfps = 1;
+		}
+		ts = ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		if (sf)
+			ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 		ts = (h*3600 + m*60+s)*1000+ms;
-	} else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
+	}
+	else if (sscanf(value, "%u:%u:%u:%u.%u", &h, &m, &s, &f, &sf) == 5) {
+		ts = (h*3600 + m*60+s)*1000;
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		if (!ctx->ttml_sfps) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
+			ctx->ttml_sfps = 1;
+		}
+		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
+		ts = (h*3600 + m*60+s)*1000;
+		if (!ctx->ttml_fps_num) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
+			ctx->ttml_fps_num = 25;
+			ctx->ttml_fps_den = 1;
+		}
+		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+	}
+	else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
 		ts = (h*3600 + m*60+s)*1000;
 	}
 	return ts;
 }
 
-static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
+static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval **out_interval)
 {
 	u32 i;
 	TTMLInterval *interval;
@@ -1191,9 +1303,19 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 	interval = NULL;
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
 		interval = gf_list_get(ctx->intervals, i);
-		//contained, do nothing
-		if ((begin>=interval->begin) && (end<=interval->end))
+
+		//generate a single sample for the input, merge interval
+		if (ctx->ttml_dur>=0) {
+			if (interval->begin > begin) interval->begin = begin;
+			if (interval->end < end) interval->end = end;
+			*out_interval = interval;
 			return GF_OK;
+		}
+		//contained, do nothing
+		if ((begin>=interval->begin) && (end<=interval->end)) {
+			*out_interval = interval;
+			return GF_OK;
+		}
 		//not overlapping
 		if ((end < interval->begin) || (begin > interval->end))
 			continue;
@@ -1204,7 +1326,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 				begin = interval->begin;
 			gf_list_rem(ctx->intervals, i);
 			gf_free(interval);
-			return ttml_push_interval(ctx, begin, end);
+			return ttml_push_interval(ctx, begin, end, out_interval);
 		}
 		//new interval starts before current and end before, remove current and push rewinded
 		if ((begin < interval->end) && (end <= interval->end)) {
@@ -1213,13 +1335,14 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end)
 				begin = interval->begin;
 			gf_list_rem(ctx->intervals, i);
 			gf_free(interval);
-			return ttml_push_interval(ctx, begin, end);
+			return ttml_push_interval(ctx, begin, end, out_interval);
 		}
 	}
 	//need a new interval
 	GF_SAFEALLOC(interval, TTMLInterval);
 	interval->begin = begin;
 	interval->end = end;
+	*out_interval = interval;
 
 	for (i=0; i<gf_list_count(ctx->intervals); i++) {
 		TTMLInterval *an_interval = gf_list_get(ctx->intervals, i);
@@ -1234,13 +1357,203 @@ static void ttml_reset_intervals(GF_TXTIn *ctx)
 {
 	while (gf_list_count(ctx->intervals)) {
 		TTMLInterval *ival = gf_list_pop_back(ctx->intervals);
+		if (ival->resources) {
+			while (gf_list_count(ival->resources)) {
+				TTMLRes *ires = gf_list_pop_back(ival->resources);
+				if (!ires->global) {
+					gf_free(ires->data);
+					gf_free(ires);
+				}
+			}
+			gf_list_del(ival->resources);
+		}
 		gf_free(ival);
 	}
 }
 
+#include <gpac/base_coding.h>
+
+static GF_Err ttml_push_res(GF_TXTIn *ctx, TTMLInterval *interval, u8 *f_data, u32 f_size)
+{
+	GF_Err e;
+	TTMLRes *res;
+	GF_List *res_list;
+	if (interval) {
+		if (!interval->resources) {
+			if (ctx->ttml_resources)
+				interval->resources = gf_list_clone(ctx->ttml_resources);
+			else
+				interval->resources = gf_list_new();
+		}
+		res_list = interval->resources;
+	} else {
+		if (!ctx->ttml_resources) {
+			ctx->ttml_resources = gf_list_new();
+		}
+		res_list = ctx->ttml_resources;
+	}
+	if (!res_list) {
+		gf_free(f_data);
+		return GF_OUT_OF_MEM;
+	}
+	GF_SAFEALLOC(res, TTMLRes)
+	if (!res) {
+		gf_free(f_data);
+		return GF_OUT_OF_MEM;
+	}
+	res->size = f_size;
+	res->data = f_data;
+	if (!interval)
+		res->global = GF_TRUE;
+
+	e = gf_list_add(res_list, res);
+	if (e) {
+		gf_free(res);
+		gf_free(f_data);
+		return e;
+	}
+	return GF_OK;
+}
+
+static GF_Err ttml_push_resources(GF_TXTIn *ctx, TTMLInterval *interval, GF_XMLNode *node, GF_XMLNode *parent_source_node)
+{
+	u32 i;
+	char szURN[1024];
+	u8 *f_data;
+	u32 f_size;
+	u32 idx;
+	GF_Err e;
+	GF_XMLAttribute *att, *data_type = NULL;
+	GF_XMLNode *child;
+	Bool is_source = GF_FALSE;
+	Bool is_data = GF_FALSE;
+	Bool check_src = GF_FALSE;
+
+	if (!ctx->ttml_embed)
+		return GF_OK;
+
+	if (!strcmp(node->name, "source")) {
+		is_source = GF_TRUE;
+		check_src = GF_TRUE;
+	}
+	else if (!strcmp(node->name, "data")) {
+		is_data = parent_source_node ? GF_TRUE : GF_FALSE;
+		check_src = GF_TRUE;
+	}
+	//we don't embed chunks
+	else if (!strcmp(node->name, "chunk")) {
+		return GF_OK;
+	}
+	else if (!strcmp(node->name, "audio") || !strcmp(node->name, "font") || !strcmp(node->name, "image")) {
+		check_src = GF_TRUE;
+	}
+
+	if (check_src) {
+		i = 0;
+		while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &i))) {
+			char *url;
+			if (!att->value) continue;
+			if (is_data && !strcmp(att->name, "type")) {
+				data_type = att;
+				continue;
+			}
+			if (strcmp(att->name, "src")) continue;
+			if (att->value[0]=='#') continue;
+
+			if (!strncmp(att->value, "file://", 7)) {}
+			else if (strstr(att->value, "://"))
+				continue;
+
+			url = gf_url_concatenate(ctx->file_name, att->value);
+			//embed image
+			e = gf_file_load_data(url, &f_data, &f_size);
+			gf_free(url);
+			if (e) return e;
+
+			e = ttml_push_res(ctx, interval, f_data, f_size);
+			if (e) return e;
+
+			idx = gf_list_count(interval ? interval->resources : ctx->ttml_resources);
+			gf_free(att->value);
+			sprintf(szURN, "urn:mpeg:14496-30:%d", idx);
+			att->value = gf_strdup(szURN);
+			if (!att->value) return GF_OUT_OF_MEM;
+
+			ctx->has_images = GF_TRUE;
+		}
+	}
+
+	i = 0;
+	while ( (child = (GF_XMLNode*) gf_list_enum(node->content, &i))) {
+		if (child->type) {
+			if (!is_data) continue;
+			u8 *data = child->name;
+			u32 ilen = (u32) strlen(data);
+			f_size = 3*ilen/4;
+			f_data = gf_malloc(sizeof(u8) * f_size);
+
+			f_size = gf_base64_decode(data, ilen, f_data, f_size);
+
+			e = ttml_push_res(ctx, interval, f_data, f_size);
+			if (e) return e;
+
+			idx = gf_list_count(interval ? interval->resources : ctx->ttml_resources);
+			sprintf(szURN, "urn:mpeg:14496-30:%d", idx);
+
+			GF_SAFEALLOC(att, GF_XMLAttribute)
+			if (att) {
+				att->name = gf_strdup("src");
+				att->value = gf_strdup(szURN);
+				gf_list_add(parent_source_node->attributes, att);
+			}
+			if (!att || !att->value || !att->name) return GF_OUT_OF_MEM;
+			if (data_type) {
+				gf_list_del_item(node->attributes, data_type);
+				gf_list_add(parent_source_node->attributes, data_type);
+			}
+			gf_xml_dom_node_reset(parent_source_node, GF_FALSE, GF_TRUE);
+			ctx->has_images = GF_TRUE;
+			return GF_OK;
+		}
+
+		e = ttml_push_resources(ctx, interval, child, is_source ? node : NULL);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+static GF_Err ttml_rewrite_timestamp(GF_TXTIn *ctx, s64 ttml_zero, GF_XMLAttribute *att, s64 *value, Bool *drop)
+{
+	u64 v;
+	char szTS[21];
+	u32 h, m, s, ms;
+	*value = ttml_get_timestamp(ctx, att->value);
+	if (!ttml_zero)
+		return GF_OK;
+
+	if (*value < ttml_zero) {
+		*drop = GF_TRUE;
+		return GF_OK;
+	}
+
+	*value -= ttml_zero;
+	v = (u64) (*value / 1000);
+	h = (u32) (v / 3600);
+	m = (u32) (v - h*60) / 60;
+	s = (u32) (v - h*3600 - m*60);
+	ms = (*value) % 1000;
+
+	snprintf(szTS, 20, "%02d:%02d:%02d.%03d", h, m, s, ms);
+	szTS[20] = 0;
+	gf_free(att->value);
+	att->value = gf_strdup(szTS);
+	return GF_OK;
+}
+
 static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 {
-	u32 k;
+	u32 k, i, nb_divs;
+	s64 ttml_zero_ms = 0;
 	GF_Err e;
 	GF_XMLNode *root;
 
@@ -1249,62 +1562,118 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	else
 		ttml_reset_intervals(ctx);
 
+	ctx->has_images = GF_FALSE;
+	root = ctx->root_working_copy;
+	for (k=0; k<gf_list_count(root->content); k++) {
+		GF_XMLNode *head = (GF_XMLNode*)gf_list_get(root->content, k);
+		if (head->type) continue;
+		if (strcmp(head->name, "head")) continue;
+		ttml_push_resources(ctx, NULL, head, NULL);
+		break;
+	}
+
 	root = gf_xml_dom_get_root(ctx->parser);
+	if (ctx->ttml_zero) {
+		if (ctx->ttml_zero[0]=='T')
+			ttml_zero_ms = ttml_get_timestamp(ctx, (char *) ctx->ttml_zero+1);
+		else
+			ttml_zero_ms = ttml_get_timestamp(ctx, (char *) ctx->ttml_zero);
+	}
 
-	for (k=0; k<ctx->nb_children; k++) {
-		u32 p_idx;
-		GF_XMLAttribute *p_att;
-		GF_XMLNode *p_node;
-		s64 begin=-1, end=-1;
-		GF_XMLNode *adiv_child = (GF_XMLNode*)gf_list_get(ctx->div_node->content, k);
-		if (adiv_child->type) continue;
-		e = gf_xml_get_element_check_namespace(adiv_child, "p", root->ns);
-		if (e) continue;
+	nb_divs = gf_list_count(ctx->div_nodes_list);
+	for (i=0; i<nb_divs; i++) {
+		u32 nb_children;
+		GF_XMLNode *div_node = gf_list_get(ctx->div_nodes_list, i);
+		nb_children = gf_list_count(div_node->content);
 
-		p_idx = 0;
-		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(adiv_child->attributes, &p_idx))) {
-			if (!strcmp(p_att->name, "begin")) {
-				begin = ttml_get_timestamp(p_att->value);
-			}
-			if (!strcmp(p_att->name, "end")) {
-				end = ttml_get_timestamp(p_att->value);
-			}
-		}
-		e = ttml_push_interval(ctx, begin, end);
-		if (e) return e;
-
-		p_idx = 0;
-		while ( (p_node = (GF_XMLNode*)gf_list_enum(adiv_child->content, &p_idx))) {
-			s64 s_begin=-1, s_end=-1;
-			e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+		for (k=0; k<nb_children; k++) {
+			TTMLInterval *ival=NULL;
+			u32 p_idx;
+			Bool drop = GF_FALSE;
+			GF_XMLAttribute *p_att;
+			GF_XMLNode *p_node;
+			s64 begin=-1, end=-1;
+			GF_XMLNode *adiv_child = (GF_XMLNode*)gf_list_get(div_node->content, k);
+			if (adiv_child->type) continue;
+			e = gf_xml_get_element_check_namespace(adiv_child, "p", root->ns);
 			if (e) continue;
 
-			u32 span_idx = 0;
-			GF_XMLAttribute *span_att;
-			while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
-				if (!strcmp(span_att->name, "begin")) {
-					s_begin = ttml_get_timestamp(span_att->value);
-				} else if (!strcmp(span_att->name, "end")) {
-					s_end = ttml_get_timestamp(span_att->value);
+			p_idx = 0;
+			while ( (p_att = (GF_XMLAttribute*)gf_list_enum(adiv_child->attributes, &p_idx))) {
+				if (!strcmp(p_att->name, "begin")) {
+					e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, p_att, &begin, &drop);
+					if (e) return e;
+				}
+				if (!strcmp(p_att->name, "end")) {
+					e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, p_att, &end, &drop);
+					if (e) return e;
 				}
 			}
-			e = ttml_push_interval(ctx, s_begin, s_end);
+			if (drop) {
+				gf_xml_dom_node_del(adiv_child);
+				gf_list_rem(div_node->content, k);
+				k--;
+				nb_children--;
+				continue;
+			}
+
+			e = ttml_push_interval(ctx, begin, end, &ival);
 			if (e) return e;
+
+			e = ttml_push_resources(ctx, ival, adiv_child, NULL);
+			if (e) return e;
+
+			p_idx = 0;
+			while ( (p_node = (GF_XMLNode*)gf_list_enum(adiv_child->content, &p_idx))) {
+				s64 s_begin=-1, s_end=-1;
+				e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+				if (e) continue;
+
+				u32 span_idx = 0;
+				GF_XMLAttribute *span_att;
+				while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+					if (!strcmp(span_att->name, "begin")) {
+						e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, span_att, &s_begin, &drop);
+						if (e) return e;
+					} else if (!strcmp(span_att->name, "end")) {
+						e = ttml_rewrite_timestamp(ctx, ttml_zero_ms, span_att, &s_end, &drop);
+						if (e) return e;
+					}
+				}
+				e = ttml_push_interval(ctx, s_begin, s_end, &ival);
+				if (e) return e;
+
+				e = ttml_push_resources(ctx, ival, p_node, NULL);
+				if (e) return e;
+			}
 		}
 	}
 
-	for (k=0; k<gf_list_count(ctx->intervals); k++) {
-		TTMLInterval *ival = gf_list_get(ctx->intervals, k);
-		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+	//empty doc
+	if (!gf_list_count(ctx->intervals)) {
+		TTMLInterval *interval;
+		GF_SAFEALLOC(interval, TTMLInterval);
+		interval->begin = interval->end = 0;
+		gf_list_add(ctx->intervals, interval);
 	}
 
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+		for (k=0; k<gf_list_count(ctx->intervals); k++) {
+			TTMLInterval *ival = gf_list_get(ctx->intervals, k);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] Interval %d: "LLU"-"LLU"\n", k+1, ival->begin, ival->end));
+		}
+	}
+#endif
 	return GF_OK;
 }
+
 static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
 	u32 i, nb_children, ID;
 	u64 file_size;
+	s32 sub_fps_num, sub_fps_den;
 	GF_XMLAttribute *att;
 	GF_XMLNode *root, *node, *body_node;
 	const char *lang = ctx->lang;
@@ -1343,9 +1712,16 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 
 	/*** root (including language) ***/
+	sub_fps_num = 0;
+	sub_fps_den = 0;
 	i=0;
 	while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
+		const char *att_name;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML] Found root attribute name %s, value %s\n", att->name, att->value));
+
+		att_name = strchr(att->name, ':');
+		if (att_name) att_name++;
+		else att_name = att->name;
 
 		if (!strcmp(att->name, "xmlns")) {
 			if (strcmp(att->value, TTML_NAMESPACE)) {
@@ -1353,9 +1729,38 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->non_compliant_ttml = GF_TRUE;
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-		} else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
+		}
+		else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
 			lang = att->value;
 		}
+		else if (!strcmp(att_name, "tickRate") && att->value) {
+			ctx->tick_rate = atoi(att->value);
+		}
+		else if (!strcmp(att_name, "frameRate") && att->value) {
+			ctx->ttml_fps_num = atoi(att->value);
+			ctx->ttml_fps_den = 1;
+		}
+		else if (!strcmp(att_name, "frameRateMultiplier") && att->value) {
+			char *sep = strchr(att->value, ' ');
+			if (!sep) sep = strchr(att->value, '\t');
+			if (sep) {
+				u8 c = sep[0];
+				sep[0] = 0;
+				sub_fps_num = atoi(sep);
+				sep[0] = c;
+				while ((sep[0]==' ') || (sep[0]=='\t'))
+					sep++;
+				sub_fps_den = atoi(sep);
+			}
+		}
+		else if (!strcmp(att_name, "subFrameRate") && att->value) {
+			ctx->ttml_sfps = atoi(att->value);
+		}
+	}
+
+	if (sub_fps_num && sub_fps_den && ctx->ttml_fps_num) {
+		ctx->ttml_fps_num *= sub_fps_num;
+		ctx->ttml_fps_den = sub_fps_den;
 	}
 
 	//locate body
@@ -1381,25 +1786,26 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 	}
 	if (!body_node) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] \"body\" element not found. Abort.\n"));
-		ctx->non_compliant_ttml = GF_TRUE;
-		return GF_NON_COMPLIANT_BITSTREAM;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML EBU-TTD] \"body\" element not found, assuming empty doc\n"));
 	}
 
-	i=0;
-	while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
-		if (node->type) {
-			nb_children--;
-			continue;
-		}
-		e = gf_xml_get_element_check_namespace(node, "div", root->ns);
-		if (e == GF_BAD_PARAM) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
-		} else if (e == GF_OK) {
-			if (ctx->div_node) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] several \"div\" found in document, only the first one will be imported - not supported but patch is welcome\n"));
+	if (!ctx->div_nodes_list) {
+		ctx->div_nodes_list = gf_list_new();
+		if (!ctx->div_nodes_list) return GF_OUT_OF_MEM;
+	} else {
+		gf_list_reset(ctx->div_nodes_list);
+	}
+
+	if (body_node) {
+		i=0;
+		while ( (node = (GF_XMLNode*)gf_list_enum(body_node->content, &i))) {
+			if (!node->type) {
+				e = gf_xml_get_element_check_namespace(node, "div", root->ns);
+				if (e == GF_BAD_PARAM) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
+				}
 			}
-			ctx->div_node = node;
+			gf_list_add(ctx->div_nodes_list, node);
 		}
 	}
 	file_size = ctx->end;
@@ -1426,13 +1832,16 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	ctx->root_working_copy = gf_xml_dom_get_root(ctx->parser_working_copy);
 	assert(ctx->root_working_copy);
 
-	/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
-	ebu_ttd_remove_samples(ctx->root_working_copy, &ctx->sample_list_node);
-	if (!ctx->sample_list_node) {
-		return GF_NON_COMPLIANT_BITSTREAM;
+	if (body_node) {
+		/*remove all the sample entries (instances in body) entries from the working copy, we will add each sample in this clone DOM  to create full XML of each sample*/
+		ebu_ttd_remove_samples(ctx->root_working_copy, &ctx->body_node);
+		if (!ctx->body_node) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+	} else {
+		ctx->body_node = NULL;
 	}
 
-	ctx->nb_children = gf_list_count(ctx->div_node->content);
 	ctx->current_tt_interval = 0;
 
 	ctx->last_sample_duration = 0;
@@ -1441,7 +1850,16 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	txtin_probe_duration(ctx);
 
-	return ttml_setup_intervals(ctx);
+	e = ttml_setup_intervals(ctx);
+	if (e) return e;
+
+	if (ctx->has_images) {
+		char *mime_cfg = "application/ttml+xml;codecs=im1i";
+		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", &PROP_STRING(mime_cfg) );
+	} else {
+		gf_filter_pid_set_property_str(ctx->opid, "meta:mime", NULL);
+	}
+	return GF_OK;
 }
 
 static Bool ttml_check_range(TTMLInterval *interval, s64 ts_begin, s64 ts_end)
@@ -1466,9 +1884,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
 	GF_XMLNode *root;
-	u32 i;
+	u32 i, nb_res_interval=0, k, nb_div_nodes;
 	char *samp_text=NULL;
+	GF_List *emb_resources = NULL;
 	TTMLInterval *interval;
+	Bool sample_empty = GF_TRUE;
 
 	if (!ctx->is_setup) return gf_text_ttml_setup(filter, ctx);
 	if (ctx->non_compliant_ttml || !ctx->opid) return GF_NOT_SUPPORTED;
@@ -1490,95 +1910,133 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 	}
 	ctx->current_tt_interval++;
 
+	emb_resources = interval->resources ? interval->resources : ctx->ttml_resources;
+	nb_res_interval = gf_list_count(emb_resources);
+
 	root = gf_xml_dom_get_root(ctx->parser);
 
-	for (i=0; i < ctx->nb_children; i++) {
-		GF_XMLNode *p_node;
-		GF_XMLAttribute *p_att;
-		u32 p_idx = 0;
-		s64 ts_begin = -1, ts_end = -1;
-		Bool in_range;
-		GF_XMLNode *div_child = (GF_XMLNode*)gf_list_get(ctx->div_node->content, i);
-		if (div_child->type) {
-			continue;
-		}
-		e = gf_xml_get_element_check_namespace(div_child, "p", root->ns);
-		if (e == GF_BAD_PARAM) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
-			continue;
-		}
+	nb_div_nodes = gf_list_count(ctx->div_nodes_list);
+	for (k=0; k<nb_div_nodes; k++) {
+		Bool has_content = GF_FALSE;
+		GF_XMLNode *div_node = gf_list_get(ctx->div_nodes_list, k);
+		u32 nb_children = gf_list_count(div_node->content);
 
+		GF_XMLNode *copy_div_node = gf_list_get(ctx->body_node->content, k);
 
-		//sample is either in the <p> ...
-		p_idx = 0;
-		while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_child->attributes, &p_idx))) {
-			if (!strcmp(p_att->name, "begin")) {
-				if (ts_begin != -1) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute. Abort.\n"));
-					e = GF_NON_COMPLIANT_BITSTREAM;
-					goto exit;
-				}
-				ts_begin = ttml_get_timestamp(p_att->value);
-			} else if (!strcmp(p_att->name, "end")) {
-				if (ts_end != -1) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute. Abort.\n"));
-					e = GF_NON_COMPLIANT_BITSTREAM;
-					goto exit;
-				}
-				ts_end = ttml_get_timestamp(p_att->value);
-			}
-		}
-
-		in_range = ttml_check_range(interval, ts_begin, ts_end);
-		if (in_range) {
-			e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
-			assert(e == GF_OK);
-		}
-
-		//or under a <span>
-		p_idx = 0;
-		while ( (p_node = (GF_XMLNode*)gf_list_enum(div_child->content, &p_idx))) {
-			u32 span_idx = 0;
-			GF_XMLAttribute *span_att;
-			e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
-			if (e == GF_BAD_PARAM) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", p_node->name));
-			}
-			else if (e)
+		for (i=0; i < nb_children; i++) {
+			GF_XMLNode *p_node;
+			GF_XMLAttribute *p_att;
+			u32 p_idx = 0;
+			s64 ts_begin = -1, ts_end = -1;
+			Bool in_range;
+			GF_XMLNode *div_child = (GF_XMLNode*)gf_list_get(div_node->content, i);
+			if (div_child->type) {
 				continue;
+			}
+			e = gf_xml_get_element_check_namespace(div_child, "p", root->ns);
+			if (e == GF_BAD_PARAM) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", div_child->name));
+				continue;
+			}
 
-			ts_begin = ts_end = -1;
-			while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
-				if (!strcmp(span_att->name, "begin")) {
+
+			//sample is either in the <p> ...
+			p_idx = 0;
+			while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_child->attributes, &p_idx))) {
+				if (!strcmp(p_att->name, "begin")) {
 					if (ts_begin != -1) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute under <span>. Abort.\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute. Abort.\n"));
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						goto exit;
 					}
-					ts_begin = ttml_get_timestamp(span_att->value);
-				} else if (!strcmp(span_att->name, "end")) {
+					ts_begin = ttml_get_timestamp(ctx, p_att->value);
+				} else if (!strcmp(p_att->name, "end")) {
 					if (ts_end != -1) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute under <span>. Abort.\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute. Abort.\n"));
 						e = GF_NON_COMPLIANT_BITSTREAM;
 						goto exit;
 					}
-					ts_end = ttml_get_timestamp(span_att->value);
+					ts_end = ttml_get_timestamp(ctx, p_att->value);
 				}
 			}
 
-			/*append the entire <p> and break (we cannot split the text content)*/
 			in_range = ttml_check_range(interval, ts_begin, ts_end);
 			if (in_range) {
-				e = gf_xml_dom_append_child(ctx->sample_list_node, div_child);
+				GF_XMLNode *prev_child = i ? (GF_XMLNode*) gf_list_get(div_node->content, i-1) : NULL;
+				if (prev_child && prev_child->type) {
+					gf_xml_dom_append_child(copy_div_node, prev_child);
+				}
+				e = gf_xml_dom_append_child(copy_div_node, div_child);
 				assert(e == GF_OK);
-				break;
+				has_content = GF_TRUE;
 			}
+
+			//or under a <span>
+			p_idx = 0;
+			while ( (p_node = (GF_XMLNode*)gf_list_enum(div_child->content, &p_idx))) {
+				u32 span_idx = 0;
+				GF_XMLAttribute *span_att;
+				e = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+				if (e == GF_BAD_PARAM) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", p_node->name));
+				}
+				else if (e)
+					continue;
+
+				ts_begin = ts_end = -1;
+				while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+					if (!strcmp(span_att->name, "begin")) {
+						if (ts_begin != -1) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"begin\" attribute under <span>. Abort.\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
+						ts_begin = ttml_get_timestamp(ctx, span_att->value);
+					} else if (!strcmp(span_att->name, "end")) {
+						if (ts_end != -1) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML EBU-TTD] duplicated \"end\" attribute under <span>. Abort.\n"));
+							e = GF_NON_COMPLIANT_BITSTREAM;
+							goto exit;
+						}
+						ts_end = ttml_get_timestamp(ctx, span_att->value);
+					}
+				}
+
+				/*append the entire <p> and break (we cannot split the text content)*/
+				in_range = ttml_check_range(interval, ts_begin, ts_end);
+				if (in_range) {
+					GF_XMLNode *prev_child = i ? (GF_XMLNode*) gf_list_get(div_node->content, i-1) : NULL;
+					if (prev_child && prev_child->type) {
+						gf_xml_dom_append_child(copy_div_node, prev_child);
+					}
+					e = gf_xml_dom_append_child(copy_div_node, div_child);
+					assert(e == GF_OK);
+					has_content = GF_TRUE;
+					break;
+				}
+			}
+		}
+		if (has_content) {
+			GF_XMLNode *last_child = (GF_XMLNode*) gf_list_last(div_node->content);
+			if (last_child && last_child->type) {
+				gf_xml_dom_append_child(copy_div_node, last_child);
+			}
+			sample_empty = GF_FALSE;
 		}
 	}
 
-	if (gf_list_count(ctx->sample_list_node->content)) {
-		samp_text = gf_xml_dom_serialize((GF_XMLNode*)ctx->root_working_copy, GF_FALSE);
-		gf_list_reset(ctx->sample_list_node->content);
+	//empty doc
+	if (!ctx->body_node)
+		sample_empty = GF_FALSE;
+
+	if (! sample_empty) {
+		samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
+
+		for (k=0; k<nb_div_nodes; k++) {
+			GF_XMLNode *copy_div_node = gf_list_get(ctx->body_node->content, k);
+			if (!copy_div_node->type)
+				gf_list_reset(copy_div_node->content);
+		}
 	}
 
 	if (samp_text) {
@@ -1586,6 +2044,7 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		u8 *pck_data;
 		Bool skip_pck = GF_FALSE;
 		u32 txt_len;
+		u32 res_len = 0;
 		char *txt_str;
 
 
@@ -1598,6 +2057,11 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		txt_str = ttxt_parse_string(samp_text, GF_TRUE);
 		if (!txt_str) txt_str = "";
 		txt_len = (u32) strlen(txt_str);
+
+		for (i=0; i<nb_res_interval; i++) {
+			TTMLRes *res = gf_list_get(emb_resources, i);
+			res_len += res->size;
+		}
 
 		if (ctx->first_samp) {
 			interval->begin = 0; /*in MP4 we must start at T=0*/
@@ -1617,10 +2081,53 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 
 		if (!skip_pck) {
-			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
+			if (!pck) {
+				gf_free(samp_text);
+				return GF_OUT_OF_MEM;
+			}
 			memcpy(pck_data, txt_str, txt_len);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
-			gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
+
+			if (ctx->ttml_dur>0) {
+				gf_filter_pck_set_cts(pck, 0);
+				gf_filter_pck_set_duration(pck, (u32) ctx->ttml_dur);
+				ctx->last_sample_duration = (u64) ctx->ttml_dur * 1000 / ctx->timescale;
+			} else {
+				gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
+				if (interval->end >= interval->begin) {
+					gf_filter_pck_set_duration(pck, (u32) ((ctx->timescale * (interval->end - interval->begin) )/1000) );
+				}
+			}
+
+			if (res_len) {
+				GF_BitStream *subs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				u8 *subs_data;
+				u32 subs_size;
+				//subs 0
+				gf_bs_write_u32(subs, 0);
+				gf_bs_write_u32(subs, txt_len);
+				gf_bs_write_u32(subs, 0);
+				gf_bs_write_u8(subs, 0);
+				gf_bs_write_u8(subs, 0);
+
+				pck_data += txt_len;
+				for (i=0; i<nb_res_interval; i++) {
+					TTMLRes *res = gf_list_get(emb_resources, i);
+					memcpy(pck_data, res->data, res->size);
+					pck_data += res->size;
+
+					//subs >0
+					gf_bs_write_u32(subs, 0);
+					gf_bs_write_u32(subs, res->size);
+					gf_bs_write_u32(subs, 0);
+					gf_bs_write_u8(subs, 0);
+					gf_bs_write_u8(subs, 0);
+				}
+				gf_bs_get_content(subs, &subs_data, &subs_size);
+				gf_bs_del(subs);
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_data, subs_size) );
+			}
 			gf_filter_pck_send(pck);
 		}
 
@@ -1657,12 +2164,14 @@ static GF_Err swf_svg_add_iso_sample(void *user, const u8 *data, u32 length, u64
 	}
 
 	pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
-	memcpy(pck_data, data, length);
-	gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
-	gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
+	if (pck) {
+		memcpy(pck_data, data, length);
+		gf_filter_pck_set_cts(pck, (u64) (ctx->timescale*timestamp/1000) );
+		gf_filter_pck_set_sap(pck, isRap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+		gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
 
-	gf_filter_pck_send(pck);
+		gf_filter_pck_send(pck);
+	}
 
 	if (gf_filter_pid_would_block(ctx->opid))
 		ctx->do_suspend = GF_TRUE;
@@ -1682,10 +2191,12 @@ static GF_Err swf_svg_add_iso_header(void *user, const u8 *data, u32 length, Boo
 		GF_FilterPacket *pck;
 		u8 *pck_data;
 		pck = gf_filter_pck_new_alloc(ctx->opid, length, &pck_data);
-		memcpy(pck_data, data, length);
-		gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
+		if (pck) {
+			memcpy(pck_data, data, length);
+			gf_filter_pck_set_framing(pck, GF_FALSE, GF_TRUE);
 
-		gf_filter_pck_send(pck);
+			gf_filter_pck_send(pck);
+		}
 	}
 	return GF_OK;
 }
@@ -1902,12 +2413,6 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 }
 
 
-#define CHECK_STR(__str)	\
-	if (!__str) { \
-		e = gf_import_message(import, GF_BAD_PARAM, "Invalid XML formatting (line %d)", parser.line);	\
-		goto exit;	\
-	}	\
- 
 
 static u32 ttxt_get_color(char *val)
 {
@@ -2893,7 +3398,7 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		fevt.base.on_pid = ctx->ipid;
 		fevt.play.full_file_only = GF_TRUE;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
-		ctx->file_name = src;
+		ctx->file_name = gf_strdup(src);
 	} else {
 		if (pid != ctx->ipid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -2902,7 +3407,8 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		ttxtin_reset(ctx);
 		ctx->is_setup = GF_FALSE;
-		ctx->file_name = src;
+		gf_free(ctx->file_name);
+		ctx->file_name = gf_strdup(src);
 	}
 	//guess type
 	e = gf_text_guess_format(ctx->file_name, &ctx->fmt);
@@ -2976,6 +3482,7 @@ GF_Err txtin_initialize(GF_Filter *filter)
 	char data[1];
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	ctx->bs_w = gf_bs_new(data, 1, GF_BITSTREAM_WRITE);
+
 	return GF_OK;
 }
 
@@ -3002,7 +3509,20 @@ void txtin_finalize(GF_Filter *filter)
 		ttml_reset_intervals(ctx);
 		gf_list_del(ctx->intervals);
 	}
+	if (ctx->ttml_resources) {
+		while (gf_list_count(ctx->ttml_resources)) {
+			TTMLRes *ires = gf_list_pop_back(ctx->ttml_resources);
+			gf_free(ires->data);
+			gf_free(ires);
+		}
+		gf_list_del(ctx->ttml_resources);
+	}
+	if (ctx->div_nodes_list)
+		gf_list_del(ctx->div_nodes_list);
+
+	if (ctx->file_name) gf_free(ctx->file_name);
 }
+
 
 static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
@@ -3080,14 +3600,53 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_dur), "force single sample mode - see filter help", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_embed), "force embedding TTML resources - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_zero), "set subtitle zero time for TTML - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
-	GF_FS_SET_HELP("This filter reads subtitle data (srt/webvtt/ttxt/sub) to produce media PIDs and frames.\n"
-	"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	GF_FS_SET_HELP("This filter reads subtitle data from input file PID to produce subtitle frames on a single PID.\n"
+	"The filter supports the following formats:\n"
+	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
+	"- WebVTT: https://www.w3.org/TR/webvtt1/\n"
+	"- TTXT: https://wiki.gpac.io/TTXT-Format-Documentation\n"
+	"- QT 3GPP Text XML (TexML): Apple QT6, likely deprecated\n"
+	"- TTML: https://www.w3.org/TR/ttml2/\n"
+	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
+	"\n"
+	"Input files must be in UTF-8 or UTF-16 format, with or without BOM.\n"
+	"The internal frame format is: \n"
+	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"
+	"- TTML: ISO/IEC 14496-30 XML subtitles\n"
+	"- Others: 3GPP/QT Timed Text\n"
+	"\n"
+	"# TTML Support\n"
+	"The [-ttml_dur]() option controls how TTML are split into packets:\n"
+	"- if negative (default), TTML document is split in independent time segments by inspecting all overlapping subtitles in the body\n"
+	"- if 0, the input document is not split, forwarded as a single frame with `CTS` matching the first active time in document and a duration equal to the document duration\n"
+	"- if >0, the input document is not split, forwarded as a single frame with `CTS=0` and the specified duration in `timescale` units.\n"
+	"\n"
+	"By default, media resources are kept as declared in TTML2 documents.\n"
+	"[-ttml_embed]() can be used to embed inside the TTML sample the resources in `<head>` or `<body>`.\n"
+	"- for `<source>`, `<image>`, `<audio>`, `<font>`, local URIs indicated in `src` will be loaded and `src` rewritten.\n"
+	"- for `<data>` with base64 coding, the data will be decoded, `<data>` element removed and parent <source> rewritten with `src` attribute inserted.\n"
+	"\nThe embedded data is added as a subsample to the TTML frame, and the referring elements will use `src=urn:mpeg:14496-30:N` with `N` the index of the subsample.\n"
+	"\n"
+	"A `subtitle zero` may be specified using [-ttml_zero](). This will remove all subtitles before the given time `T0`, and rewrite each subtitle begin/end `T` to `T-T0` using millisecond accuracy.\n"
+	"Warning: Original time formatting (tick, frames/subframe ...) will be lost when this option is used, converted to `HH:MM:SS.ms`.\n"
+	"\n"
+	"The subtitle zero time **must** be prefixed with `T` when the option is not set as a global argument:\n"
+	"EX gpac -i test.ttml:ttml_zero=T10:00:00 [...]\n"
+	"EX MP4Box -add test.ttml:sopt:ttml_zero=T10:00:00 [...]\n"
+	"EX gpac -i test.ttml --ttml_zero=10:00:00 [...]\n"
+	"EX MP4Box -add test.ttml --ttml_zero=10:00:00 [...]\n"
+
+
+
 	)
 
 	.private_size = sizeof(GF_TXTIn),

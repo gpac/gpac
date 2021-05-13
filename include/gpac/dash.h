@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012-2019
+ *			Copyright (c) Telecom ParisTech 2012-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
@@ -83,7 +83,7 @@ typedef enum
 	GF_DASH_EVENT_QUALITY_SWITCH,
 	/*! position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
+	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations dropped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 	/*! event send when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
@@ -362,10 +362,11 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 group_id
 This is used for full segment encryption modes of MPEG-2 TS segments. key_IV is optional
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param crypto_type set to 0 if no encryption in segments, 1 if full segment encryption, 2 if CENC/per-sample encryption is used -  may be NULL
 \param key_IV set to the IV used for the first media segment (can be NULL)
 \return the key URL of the first media segment
 */
-const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_idx, bin128 *key_IV);
+const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_idx, u32 *crypto_type, bin128 *key_IV);
 
 /*! returns the language of the group
 \param dash the target dash client
@@ -681,11 +682,12 @@ GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_
 */
 GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_after_ms);
 
-/*! only enables the given group - this shall be set before calling \ref gf_dash_open. If group_idx is <0 (default) no groups will be disabled
+/*! only enables the given groups - this shall be set before calling \ref gf_dash_open. If NULL, no groups will be disabled
 \param dash the target dash client
-\param group_idx the 0-based index of the target group
+\param groups_idx list of  0-based index of the target groups to enable,
+\param nb_groups number of group indexes in list
 */
-void gf_dash_debug_group(GF_DashClient *dash, s32 group_idx);
+void gf_dash_debug_groups(GF_DashClient *dash, const u32 *groups_idx, u32 nb_groups);
 
 /*! split all adatation sets so that they contain only one representation (quality)
 \param dash the target dash client
@@ -865,7 +867,7 @@ s32 gf_dash_group_get_active_quality(GF_DashClient *dash, u32 group_idx);
 void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp);
 
 /*! Tile adaptation mode
-This mode specifies how bitrate is allocated accross tiles of the same video
+This mode specifies how bitrate is allocated across tiles of the same video
 */
 typedef enum
 {
@@ -1084,6 +1086,12 @@ typedef s32 (*gf_dash_rate_adaptation)(void *udta, u32 group_idx, u32 base_group
 /*! Callback function for custom rate monitor, not final yet
 \param udta user data
 \param group_idx index of group to adapt
+\param bits_per_sec estimated download rate (not premultiplied by playback speed)
+\param total_bytes size of segment being downloaded, 0 if unknown
+\param bytes_done bytes received for segment
+\param us_since_start microseconds ellapse since segment was sheduled for download
+\param buffer_dur_ms current buffer duration in milliseconds
+\param current_seg_dur duration of segment being downloaded, 0 if unknown
 \return quality index (>=0) to switch to after abort, -1 to do nothing (no abort), -2 for internal algorithms having already setup the desired quality and requesting only abort
  */
 typedef s32 (*gf_dash_download_monitor)(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur);

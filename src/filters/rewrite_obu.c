@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 OBU rewrite filter
@@ -61,7 +61,10 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -260,6 +263,8 @@ GF_Err obumx_process(GF_Filter *filter)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr_size+size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, hdr_size+size, GF_BITSTREAM_WRITE);

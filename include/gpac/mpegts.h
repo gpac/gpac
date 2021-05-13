@@ -215,50 +215,58 @@ enum {
 /*! MPEG-2 TS Media types*/
 typedef enum
 {
-	GF_M2TS_VIDEO_MPEG1				= 0x01,
-	GF_M2TS_VIDEO_MPEG2				= 0x02,
-	GF_M2TS_AUDIO_MPEG1				= 0x03,
-	GF_M2TS_AUDIO_MPEG2				= 0x04,
-	GF_M2TS_PRIVATE_SECTION			= 0x05,
-	GF_M2TS_PRIVATE_DATA			= 0x06,
-	GF_M2TS_MHEG					= 0x07,
-	GF_M2TS_13818_1_DSMCC			= 0x08,
-	GF_M2TS_H222_1					= 0x09,
-	GF_M2TS_13818_6_ANNEX_A			= 0x0A,
-	GF_M2TS_13818_6_ANNEX_B			= 0x0B,
-	GF_M2TS_13818_6_ANNEX_C			= 0x0C,
-	GF_M2TS_13818_6_ANNEX_D			= 0x0D,
-	GF_M2TS_13818_1_AUXILIARY		= 0x0E,
-	GF_M2TS_AUDIO_AAC				= 0x0F,
-	GF_M2TS_VIDEO_MPEG4				= 0x10,
-	GF_M2TS_AUDIO_LATM_AAC			= 0x11,
-
-	GF_M2TS_SYSTEMS_MPEG4_PES		= 0x12,
-	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
-
-	GF_M2TS_METADATA_PES			= 0x15,
-
-	GF_M2TS_VIDEO_H264				= 0x1B,
-	GF_M2TS_VIDEO_SVC				= 0x1F,
-	GF_M2TS_VIDEO_HEVC				= 0x24,
-	GF_M2TS_VIDEO_HEVC_TEMPORAL		= 0x25,
-	GF_M2TS_VIDEO_MVCD				= 0x26,
-	GF_M2TS_TEMI					= 0x27,
-	GF_M2TS_VIDEO_SHVC				= 0x28,
-	GF_M2TS_VIDEO_SHVC_TEMPORAL		= 0x29,
-	GF_M2TS_VIDEO_MHVC				= 0x2A,
-	GF_M2TS_VIDEO_MHVC_TEMPORAL		= 0x2B,
-	GF_M2TS_GREEN					= 0x2C,
-	GF_M2TS_MHAS_MAIN				= 0x2D,
-	GF_M2TS_MHAS_AUX				= 0x2E,
-
-	GF_M2TS_VIDEO_VVC				= 0x32,
-	GF_M2TS_VIDEO_VVC_TEMPORAL		= 0x33,
-
-	GF_M2TS_QUALITY_SEC				= 0x2F,
-	GF_M2TS_MORE_SEC				= 0x30,
-
-	GF_M2TS_VIDEO_HEVC_MCTS			= 0x31,
+	GF_M2TS_VIDEO_MPEG1						= 0x01,
+	GF_M2TS_VIDEO_MPEG2						= 0x02,
+	GF_M2TS_AUDIO_MPEG1						= 0x03,
+	GF_M2TS_AUDIO_MPEG2						= 0x04,
+	GF_M2TS_PRIVATE_SECTION					= 0x05,
+	GF_M2TS_PRIVATE_DATA					= 0x06,
+	GF_M2TS_MHEG							= 0x07,
+	GF_M2TS_13818_1_DSMCC					= 0x08,
+	GF_M2TS_H222_1							= 0x09,
+	GF_M2TS_13818_6_ANNEX_A					= 0x0A,
+	GF_M2TS_13818_6_ANNEX_B					= 0x0B,
+	GF_M2TS_13818_6_ANNEX_C					= 0x0C,
+	GF_M2TS_13818_6_ANNEX_D					= 0x0D,
+	GF_M2TS_13818_1_AUXILIARY				= 0x0E,
+	GF_M2TS_AUDIO_AAC						= 0x0F,
+	GF_M2TS_VIDEO_MPEG4						= 0x10,
+	GF_M2TS_AUDIO_LATM_AAC					= 0x11,
+	GF_M2TS_SYSTEMS_MPEG4_PES				= 0x12,
+	GF_M2TS_SYSTEMS_MPEG4_SECTIONS			= 0x13,
+	GF_M2TS_SYNC_DOWNLOAD_PROTOCOL			= 0x14,
+	GF_M2TS_METADATA_PES					= 0x15,
+	GF_M2TS_METADATA_SECTION				= 0x16,
+	GF_M2TS_METADATA_DATA_CAROUSEL			= 0x17,
+	GF_M2TS_METADATA_OBJECT_CAROUSEL		= 0x18,
+	GF_M2TS_METADATA_SYNC_DOWNLOAD_PROTOCOL	= 0x19,
+	GF_M2TS_IPMP							= 0x1A,
+	GF_M2TS_VIDEO_H264						= 0x1B,
+	GF_M2TS_MPEG4_AUDIO_NO_SYNTAX			= 0x1C,
+	GF_M2TS_MPEG4_TEXT						= 0x1D,
+	GF_M2TS_AUX_VIDEO_23002_2				= 0x1E,
+	GF_M2TS_VIDEO_SVC						= 0x1F,
+	GF_M2TS_VIDEO_MVC						= 0x20,
+	GF_M2TS_VIDEO_15444_1					= 0x21,
+	GF_M2TS_VIDEO_MPEG2_ADD_STEREO			= 0x22,
+	GF_M2TS_VIDEO_H264_ADD_STEREO			= 0x23,
+	GF_M2TS_VIDEO_HEVC						= 0x24,
+	GF_M2TS_VIDEO_HEVC_TEMPORAL				= 0x25,
+	GF_M2TS_VIDEO_MVCD						= 0x26,
+	GF_M2TS_TEMI							= 0x27,
+	GF_M2TS_VIDEO_SHVC						= 0x28,
+	GF_M2TS_VIDEO_SHVC_TEMPORAL				= 0x29,
+	GF_M2TS_VIDEO_MHVC						= 0x2A,
+	GF_M2TS_VIDEO_MHVC_TEMPORAL				= 0x2B,
+	GF_M2TS_GREEN							= 0x2C,
+	GF_M2TS_MHAS_MAIN						= 0x2D,
+	GF_M2TS_MHAS_AUX						= 0x2E,
+	GF_M2TS_QUALITY_SEC 					= 0x2F,
+	GF_M2TS_MORE_SEC					 	= 0x30,
+	GF_M2TS_VIDEO_HEVC_MCTS					= 0x31,
+	GF_M2TS_JPEG_XS							= 0x32,
+	GF_M2TS_VIDEO_VVC						= 0x33,
+	GF_M2TS_VIDEO_VVC_TEMPORAL				= 0x34,
 
 	/*the rest is internal use*/
 
@@ -270,7 +278,8 @@ typedef enum
 	GF_M2TS_AUDIO_EC3				= 0x84,
 	GF_M2TS_MPE_SECTIONS            = 0x90,
 	GF_M2TS_SUBTITLE_DVB			= 0x100,
-
+	GF_M2TS_AUDIO_OPUS				= 0x101,
+	
 	GF_M2TS_DVB_TELETEXT			= 0x152,
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,
@@ -282,7 +291,14 @@ typedef enum
 enum
 {
 	GF_M2TS_RA_STREAM_AC3	= GF_4CC('A','C','-','3'),
+	GF_M2TS_RA_STREAM_EAC3	= GF_4CC('E','A','C','3'),
 	GF_M2TS_RA_STREAM_VC1	= GF_4CC('V','C','-','1'),
+	GF_M2TS_RA_STREAM_HEVC	= GF_4CC('H','E','V','C'),
+	GF_M2TS_RA_STREAM_DTS1	= GF_4CC('D','T','S','1'),
+	GF_M2TS_RA_STREAM_DTS2	= GF_4CC('D','T','S','2'),
+	GF_M2TS_RA_STREAM_DTS3	= GF_4CC('D','T','S','3'),
+	GF_M2TS_RA_STREAM_OPUS	= GF_4CC('O','p','u','s'),
+
 
 	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
 };
@@ -466,7 +482,9 @@ enum
 	/*! a TEMI locator has been found or repeated*/
 	GF_M2TS_EVT_TEMI_LOCATION,
 	/*! a TEMI timecode has been found*/
-	GF_M2TS_EVT_TEMI_TIMECODE
+	GF_M2TS_EVT_TEMI_TIMECODE,
+	/*! a stream is about to be removed -  - associated parameter: pointer to GF_M2TS_ES being removed*/
+	GF_M2TS_EVT_STREAM_REMOVED
 };
 
 /*! table parsing state*/
@@ -596,7 +614,7 @@ typedef struct
 	const char *external_URL;
 	Bool is_announce, is_splicing;
 	Bool reload_external;
-	Double activation_countdown;
+	GF_Fraction activation_countdown;
 } GF_M2TS_TemiLocationDescriptor;
 
 /*! MPEG-2 TS demuxer TEMI timecode*/
@@ -691,7 +709,9 @@ enum
 	/*! flag used to signal next discontinuity on stream should be ignored*/
 	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<17,
 	/*! flag used by importers/readers to mark streams that have been seen already in PMT process (update/found)*/
-	GF_M2TS_ES_ALREADY_DECLARED = 1<<18
+	GF_M2TS_ES_ALREADY_DECLARED = 1<<18,
+	/*! flag indicates TEMI info is declared on this stream*/
+	GF_M2TS_ES_TEMI_INFO = 1<<19
 };
 
 /*! macro for abstract Section/PES stream object, only used for type casting*/
@@ -1611,7 +1631,7 @@ enum {
 	GF_M2TS_MPEG4_SIGNALING_NONE = 0,
 	/*! Full MPEG-4 signaling*/
 	GF_M2TS_MPEG4_SIGNALING_FULL,
-	/*MPEG-4 over MPEG-2 profile where PES media streams may be refered to by the scene without SL-packetization*/
+	/*MPEG-4 over MPEG-2 profile where PES media streams may be referred to by the scene without SL-packetization*/
 	GF_M2TS_MPEG4_SIGNALING_SCENE
 };
 

@@ -23,7 +23,7 @@ void PrintUsage()
 	        "-logs log_args:	sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "-log-clock or -lc  logs time in micro sec since start time of GPAC before each log line.\n"
 	        "-log-utc or -lu    logs UTC time in ms before each log line.\n"
-	        "-ifce IP:			IP adress of network interface to use\n"
+	        "-ifce IP:			IP address of network interface to use\n"
 	        "-dir PATH:			local filesystem path to which the files are written. If not set, memory mode is used.\n"
 	        "                    NOTE: memory mode is not yet implemented ...\n"
 	        "-service ID:		ID of the service to play. If not set, all services are dumped. If 0, no services are dumped\n"

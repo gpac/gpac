@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2017
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenSVC Decoder filter
@@ -83,8 +83,10 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (is_remove) {
 		if (ctx->streams[0].ipid == pid) {
 			memset(ctx->streams, 0, SVC_MAX_STREAMS*sizeof(GF_SVCStream));
-			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-			ctx->opid = NULL;
+			if (ctx->opid) {
+				gf_filter_pid_remove(ctx->opid);
+				ctx->opid = NULL;
+			}
 			ctx->nb_streams = ctx->active_streams = 0;
 			if (ctx->codec) SVCDecoder_close(ctx->codec);
 			ctx->codec = NULL;
@@ -529,6 +531,8 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	memcpy(data, pic.pY[0], ctx->stride*ctx->height);
 	memcpy(data + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
 	memcpy(data + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);

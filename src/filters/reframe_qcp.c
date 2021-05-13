@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AMR&EVRC&SMV reframer filter
@@ -85,7 +85,10 @@ GF_Err qcpdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -444,6 +447,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 		}
 		if (! ctx->in_seek) {
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -616,6 +620,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(pck_data, start, size);
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);

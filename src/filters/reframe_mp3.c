@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 reframer filter
@@ -86,7 +86,10 @@ GF_Err mp3_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -299,9 +302,11 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 						gf_filter_pid_set_name(*video_pid_p, "CoverArt");
 						gf_filter_pid_set_property(*video_pid_p, GF_PROP_PID_COVER_ART, &PROP_BOOL(GF_TRUE));
 						dst_pck = gf_filter_pck_new_alloc(*video_pid_p, pic_size, &out_buffer);
-						gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-						memcpy(out_buffer, sep_desc+1, pic_size);
-						gf_filter_pck_send(dst_pck);
+						if (dst_pck) {
+							gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+							memcpy(out_buffer, sep_desc+1, pic_size);
+							gf_filter_pck_send(dst_pck);
+						}
 
 						gf_filter_pid_set_eos(*video_pid_p);
 					}
@@ -373,6 +378,10 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(gf_mp3_object_type_indication(ctx->hdr) ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(gf_mp3_window_size(ctx->hdr) ) );
+
+	if (!gf_sys_is_test_mode() ) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(gf_mp3_bit_rate(ctx->hdr) ) );
+	}
 
 	if (ctx->id3_buffer_size)
 		mp3_dmx_flush_id3(filter, ctx);
@@ -629,6 +638,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+			if (!dst_pck) break;
 			memcpy(output, sync, size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -704,6 +714,10 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	u32 nb_frames=0;
 	u32 pos=0;
 	u32 prev_pos=0;
+	s32 prev_sr_idx=-1;
+	s32 prev_ch=-1;
+	s32 prev_layer=-1;
+	s32 init_pos = -1;
 	Bool has_id3 = GF_FALSE;
 
 	/* Check for ID3 */
@@ -726,16 +740,45 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		u32 hdr = gf_mp3_get_next_header_mem(data, size, &pos);
 		if (!hdr) break;
 
+		if (init_pos<0) init_pos = pos;
+
 		if (gf_mp3_version(hdr) > 3)
 			break;
-		u8 sampleRateIndex = (hdr >> 10) & 0x3;
-		if (sampleRateIndex>2)
+		//check sample rate
+		u8 val = (hdr >> 10) & 0x3;
+		if (val>2)
 			break;
 		u32 fsize = gf_mp3_frame_size(hdr);
 		if (prev_pos && pos) {
 			nb_frames=0;
 			break;
 		}
+
+		if (prev_sr_idx>=0) {
+			if ((u8) prev_sr_idx != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_sr_idx = val;
+
+		val = gf_mp3_num_channels(hdr);
+		if (prev_ch>=0) {
+			if ((u8) prev_ch != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_ch = val;
+
+		val = gf_mp3_layer(hdr);
+		if (prev_layer>=0) {
+			if ((u8) prev_layer != val) {
+				nb_frames=0;
+				break;
+			}
+		}
+		prev_layer = val;
 
 		if (fsize + pos > size) {
 			nb_frames++;
@@ -751,7 +794,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	}
 
 	if (nb_frames>=2) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = (init_pos==0) ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
 		return "audio/mp3";
 	}
 	if (nb_frames && has_id3) {

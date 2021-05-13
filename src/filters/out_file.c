@@ -440,7 +440,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 				evt.seg_size.is_init = GF_FALSE;
 				evt.seg_size.media_range_start = ctx->offset_at_seg_start;
 				evt.seg_size.media_range_end = gf_ftell(ctx->file)-1;
-				ctx->offset_at_seg_start = evt.seg_size.media_range_end;
+				ctx->offset_at_seg_start = evt.seg_size.media_range_end+1;
 				gf_filter_pid_send_event(ctx->pid, &evt);
 			}
 			if ( gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME))
@@ -520,7 +520,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 						pos = cur_w;
 						block = gf_malloc(ctx->mvbk);
 						if (!block) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate blockof %d bytes\n", ctx->mvbk));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] unable to allocate block of %d bytes\n", ctx->mvbk));
 						} else {
 							while (cur_r > bo) {
 								u32 move_bytes = ctx->mvbk;
@@ -663,7 +663,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
@@ -692,6 +692,7 @@ GF_FilterRegister FileOutRegister = {
 	GF_FS_SET_HELP("The file output filter is used to write output to disk, and does not produce any output PID.\n"
 		"It can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"
 		"In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
+		"If the output file name is `std` or `stdout`, writes to stdout.\n"
 		"The ouput file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 	)

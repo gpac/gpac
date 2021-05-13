@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AC3 reframer filter
@@ -71,6 +71,7 @@ typedef struct
 
 	AC3Idx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 bitrate;
 } GF_AC3DmxCtx;
 
 
@@ -83,7 +84,10 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -122,7 +126,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	FILE *stream;
 	GF_BitStream *bs;
 	GF_AC3Config hdr;
-	u64 duration, cur_dur;
+	u64 duration, cur_dur, rate;
 	s32 sr = -1;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -172,6 +176,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 		gf_bs_skip_bytes(bs, hdr.framesize);
 	}
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
@@ -180,6 +185,12 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		ctx->duration.den = sr;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -226,6 +237,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	ctx->hdr.is_ec3 = ctx->is_eac3;
 	gf_odf_ac3_cfg_write(&ctx->hdr, &data, &size);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(data, size) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
@@ -431,6 +446,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->hdr.framesize, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+			
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, sync, ctx->hdr.framesize);

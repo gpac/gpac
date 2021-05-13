@@ -283,6 +283,7 @@ u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVC
 
 #ifndef GPAC_DISABLE_ISOM
 
+GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
 
 /*! VUI modification parameters*/
 typedef struct
@@ -597,6 +598,7 @@ enum
 	GF_VVC_SLICE_TYPE_B = 0,
 	GF_VVC_SLICE_TYPE_P = 1,
 	GF_VVC_SLICE_TYPE_I = 2,
+	GF_VVC_SLICE_TYPE_UNKNOWN = 10,
 };
 
 typedef struct
@@ -627,6 +629,8 @@ typedef struct
 	u8 ph_num_extra_bits, sh_num_extra_bits;
 	u8 log2_max_poc_lsb, poc_msb_cycle_flag;
 	u32 poc_msb_cycle_len;
+
+	u8 alf_enabled_flag;
 } VVC_SPS;
 
 typedef struct
@@ -728,7 +732,7 @@ s32 gf_media_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type
 
 
 
-GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *frame_rate, u32 *time_scale, u32 *num_frames);
+GF_Err gf_media_parse_ivf_file_header(GF_BitStream *bs, u32 *width, u32*height, u32 *codec_fourcc, u32 *timebase_num, u32 *timebase_den, u32 *num_frames);
 
 
 
@@ -801,6 +805,7 @@ typedef struct
 	Bool decoder_model_info_present_flag;
 	u16 OperatingPointIdc;
 	u32 width, height, UpscaledWidth;
+	u32 sequence_width, sequence_height;
 	u32 tb_num, tb_den;
 
 	Bool use_128x128_superblock;
@@ -854,14 +859,21 @@ typedef struct
 	AV1GMParams SavedGmParams[AV1_NUM_REF_FRAMES];
 	u8 RefFrameType[AV1_NUM_REF_FRAMES];
 
+	u32 RefUpscaledWidth[AV1_NUM_REF_FRAMES];
+	u32 RefFrameHeight[AV1_NUM_REF_FRAMES];
+
 	/*frame parsing state*/
 	AV1StateFrame frame_state;
+
+	/*layer sizes for AVIF a1lx*/
+	u32 layer_size[4];
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state);
 GF_Err aom_av1_parse_temporal_unit_from_ivf(GF_BitStream *bs, AV1State *state);
 
+/*may return GF_BUFFER_TOO_SMALL if not enough bytes*/
 GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *pts);
 
 Bool gf_media_probe_ivf(GF_BitStream *bs);

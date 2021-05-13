@@ -1,4 +1,3 @@
 LOCAL_PATH:= $(call my-dir)
-
-APP_ABI          	:= armeabi armeabi-v7a x86
+include $(LOCAL_PATH)/../common.mk
 APP_MODULES 		:= mp4box

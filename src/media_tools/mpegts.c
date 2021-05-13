@@ -334,6 +334,9 @@ static void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 {
 	gf_list_del_item(es->program->streams, es);
 
+	if (ts->on_event)
+		ts->on_event(ts, GF_M2TS_EVT_STREAM_REMOVED, es);
+
 	if (es->flags & GF_M2TS_ES_IS_SECTION) {
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
@@ -1323,6 +1326,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("stream_type :%d \n",stream_type));
+		if ((stream_type==GF_M2TS_JPEG_XS) && gf_opts_get_bool("core", "m2ts-vvc-old"))
+			stream_type = GF_M2TS_VIDEO_VVC;
+
 		switch (stream_type) {
 
 		/* PES */
@@ -1352,6 +1358,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_AUDIO_DTS:
+		case GF_M2TS_AUDIO_OPUS:
 		case GF_M2TS_MHAS_MAIN:
 		case GF_M2TS_MHAS_AUX:
 		case GF_M2TS_SUBTITLE_DVB:
@@ -1487,13 +1494,27 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_REGISTRATION_DESCRIPTOR:
 					if (len>=4) {
 						reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
-						/* cf http://www.smpte-ra.org/mpegreg/mpegreg.html */
+						/* cf https://smpte-ra.org/registered-mpeg-ts-ids */
 						switch (reg_desc_format) {
 						case GF_M2TS_RA_STREAM_AC3:
 							es->stream_type = GF_M2TS_AUDIO_AC3;
 							break;
+						case GF_M2TS_RA_STREAM_EAC3:
+							es->stream_type = GF_M2TS_AUDIO_EC3;
+							break;
 						case GF_M2TS_RA_STREAM_VC1:
 							es->stream_type = GF_M2TS_VIDEO_VC1;
+							break;
+						case GF_M2TS_RA_STREAM_HEVC:
+							es->stream_type = GF_M2TS_VIDEO_HEVC;
+							break;
+						case GF_M2TS_RA_STREAM_DTS1:
+						case GF_M2TS_RA_STREAM_DTS2:
+						case GF_M2TS_RA_STREAM_DTS3:
+							es->stream_type = GF_M2TS_AUDIO_DTS;
+							break;
+						case GF_M2TS_RA_STREAM_OPUS:
+							es->stream_type = GF_M2TS_AUDIO_OPUS;
 							break;
 						case GF_M2TS_RA_STREAM_GPAC:
 							if (len==8) {
@@ -2325,6 +2346,10 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					use_base_temi_url = gf_bs_read_int(bs, 1);
 					gf_bs_read_int(bs, 5); //reserved
 					temi_loc.timeline_id = gf_bs_read_int(bs, 7);
+					if (temi_loc.is_announce) {
+						temi_loc.activation_countdown.den = gf_bs_read_u32(bs);
+						temi_loc.activation_countdown.num = gf_bs_read_u32(bs);
+					}
 					if (!use_base_temi_url) {
 						char *_url = URL;
 						u8 scheme = gf_bs_read_int(bs, 8);
@@ -2639,16 +2664,24 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 	if (ts->buffer_size) {
 		//we are sync, copy remaining bytes
 		if ( (ts->buffer[0]==0x47) && (ts->buffer_size<200)) {
+			u32 copy_size;
 			pck_size = ts->prefix_present ? 192 : 188;
 
 			if (ts->alloc_size < 200) {
 				ts->alloc_size = 200;
 				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
 			}
-			memcpy(ts->buffer + ts->buffer_size, data, pck_size - ts->buffer_size);
+			copy_size = pck_size - ts->buffer_size;
+			if (copy_size > data_size) {
+				memcpy(ts->buffer + ts->buffer_size, data, data_size);
+				ts->buffer_size += data_size;
+				return GF_OK;
+			}
+			memcpy(ts->buffer + ts->buffer_size, data, copy_size);
 			e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer);
-			data += (pck_size - ts->buffer_size);
-			data_size = data_size - (pck_size - ts->buffer_size);
+			data += copy_size;
+			data_size = data_size - copy_size;
+			assert((s32)data_size >= 0);
 		}
 		//not sync, copy over the complete buffer
 		else {

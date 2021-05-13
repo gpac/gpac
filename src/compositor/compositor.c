@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -117,7 +117,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 - audio: since the audio compositor may not be threaded, it must be reconfigured by another thread otherwise
 we lock the audio module
 - video: this is typical to OpenGL&co: multithreaded is forbidden, so resizing/fullscreen MUST be done by the same
-thread accessing the HW ressources
+thread accessing the HW resources
 */
 static void gf_sc_reconfig_task(GF_Compositor *compositor)
 {
@@ -478,8 +478,10 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		vi->height = compositor->display_height;
 		gf_pixel_get_size_info(pfmt, compositor->display_width, compositor->display_height, NULL, &vi->pitch_y, NULL, NULL, NULL);
 		if (compositor->passthrough_txh && !compositor->passthrough_txh->frame_ifce && (pfmt == compositor->passthrough_txh->pixelformat)) {
-			if (!compositor->passthrough_pck)
+			if (!compositor->passthrough_pck) {
 				compositor->passthrough_pck = gf_filter_pck_new_clone(compositor->vout, compositor->passthrough_txh->stream->pck, &compositor->passthrough_data);
+				if (!compositor->passthrough_pck) return GF_OUT_OF_MEM;
+			}
 
 			vi->video_buffer = compositor->passthrough_data;
 			vi->pitch_y = compositor->passthrough_txh->stride;
@@ -1251,7 +1253,6 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	compositor->grab_use = NULL;
 	compositor->focus_node = NULL;
 	compositor->focus_text_type = 0;
-	compositor->frame_number = 0;
 	if (compositor->video_memory!=2)
 		compositor->video_memory = compositor->was_system_memory ? 0 : 1;
 	compositor->rotation = 0;
@@ -2873,10 +2874,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				emit_frame = GF_FALSE;
 				compositor->last_error = GF_OK;
 			}
-			else if (!scene_drawn) emit_frame = GF_FALSE;
-			else if (compositor->frame_draw_type) emit_frame = GF_FALSE;
-			else if (compositor->fonts_pending>0) emit_frame = GF_FALSE;
-			else emit_frame = GF_TRUE;
+			else if (!scene_drawn)
+				emit_frame = GF_FALSE;
+			else if (compositor->frame_draw_type)
+				emit_frame = GF_FALSE;
+			else if (compositor->fonts_pending>0)
+				emit_frame = GF_FALSE;
+			else
+				emit_frame = GF_TRUE;
 
 #ifdef GPAC_CONFIG_ANDROID
             if (!emit_frame && scene_drawn) {
@@ -2918,6 +2923,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
 					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
 				}
+
+				if (!pck) return;
 
 				if (compositor->passthrough_txh) {
 					gf_filter_pck_merge_properties(compositor->passthrough_txh->stream->pck, pck);
@@ -3052,6 +3059,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				assert(res >= compositor->scene_sampled_clock);
 				compositor->scene_sampled_clock = (u32) res;
 			}
+
+			if (compositor->check_eos_state && all_tx_done && !has_timed_nodes)
+				compositor->check_eos_state = 2;
 		}
 	}
 	compositor->reset_graphics = 0;
@@ -3099,7 +3109,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (compositor->no_regulation)
 		return;
 
-	/*we are in bench mode, just release for a moment the composition, oherwise we will constantly lock the compositor wich may have impact on scene decoding*/
+	/*we are in bench mode, just release for a moment the composition, oherwise we will constantly lock the compositor which may have impact on scene decoding*/
 	if (compositor->bench_mode) {
 		gf_sleep(0);
 		return;

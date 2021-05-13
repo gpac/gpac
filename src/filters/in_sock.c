@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2019
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / generic TCP/UDP input filter
@@ -336,8 +336,10 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 		pck = (char *) gf_rtp_reorderer_get(sock_c->rtp_reorder, &nb_read, GF_FALSE);
 		if (pck) {
 			dst_pck = gf_filter_pck_new_shared(sock_c->pid, pck+12, nb_read-12, sockin_rtp_destructor);
-			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-			gf_filter_pck_send(dst_pck);
+			if (dst_pck) {
+				gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+				gf_filter_pck_send(dst_pck);
+			}
 		}
 		return GF_OK;
 	}
@@ -349,6 +351,8 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 #endif
 
 	dst_pck = gf_filter_pck_new_alloc(sock_c->pid, nb_read, &out_data);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	memcpy(out_data, in_data, nb_read);
 
 	gf_filter_pck_set_framing(dst_pck, (sock_c->nb_bytes == nb_read)  ? GF_TRUE : GF_FALSE, GF_FALSE);
@@ -519,7 +523,7 @@ GF_FilterRegister SockInRegister = {
 		"\n"
 		"When ports are specified in the URL and the default option separators are used (see `gpac -h doc`), the URL must either:\n"
 		"- have a trailing '/', eg `udp://localhost:1234/[:opts]`\n"
-		"- use `gpac` separator, eg `udp://localhost:1234[:gpac:opts]\n"
+		"- use `gpac` separator, eg `udp://localhost:1234[:gpac:opts]`\n"
 #ifdef GPAC_CONFIG_DARWIN
 	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
 #endif

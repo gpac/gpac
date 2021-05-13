@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -208,7 +208,8 @@ GF_Err m2psdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->ipid = NULL;
 		while (gf_list_count(ctx->streams) ) {
 			M2PSStream *st = gf_list_pop_back(ctx->streams);
-			gf_filter_pid_remove(st->opid);
+			if (st->opid)
+				gf_filter_pid_remove(st->opid);
 			gf_free(st);
 		}
 		return GF_OK;
@@ -381,6 +382,8 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 
 			if ((buf[buf_len - 4] == 0) && (buf[buf_len - 3] == 0) && (buf[buf_len - 2] == 1)) buf_len -= 4;
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
+			if (!dst_pck) continue;
+
 			memcpy(pck_data, buf, buf_len);
 			if (ftype==1) gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
@@ -403,6 +406,8 @@ GF_Err m2psdmx_process(GF_Filter *filter)
 				continue;
 			}
 			dst_pck = gf_filter_pck_new_alloc(st->opid, buf_len, &pck_data);
+			if (!dst_pck) continue;
+			
 			memcpy(pck_data, buf, buf_len);
 			if (cts != GF_FILTER_NO_TS) {
 				cts -= ctx->first_dts;

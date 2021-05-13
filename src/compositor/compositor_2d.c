@@ -709,6 +709,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	video_src.height = txh->height;
 	video_src.width = txh->width;
 	video_src.pitch_x = 0;
+	if (!txh->stride)
+		gf_pixel_get_size_info(txh->pixelformat, txh->width, txh->height, NULL, &txh->stride, NULL, NULL, NULL);
 	video_src.pitch_y = txh->stride;
 	video_src.pixel_format = txh->pixelformat;
 #ifdef GF_SR_USE_DEPTH

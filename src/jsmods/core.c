@@ -728,7 +728,11 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 	case JS_SYS_OLD_ARCH:
 		return JS_NewBool(ctx, gf_sys_old_arch_compat() );
 	case JS_SYS_LOG_COLOR:
+#ifdef GPAC_DISABLE_LOG
+		return JS_NewBool(ctx, GF_FALSE );
+#else
 		return JS_NewBool(ctx, gf_log_use_color() );
+#endif
 	case JS_SYS_QUIET:
 		return JS_NewBool(ctx, gf_sys_is_quiet() );
 	case JS_SYS_USERNAME:
@@ -1143,6 +1147,28 @@ static JSValue js_sys_ntp_shift(JSContext *ctx, JSValueConst this_val, int argc,
 }
 
 
+static JSValue js_sys_sleep(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 sleep_for=0;
+	if (argc==1) {
+		if (JS_ToInt32(ctx, &sleep_for, argv[0]))
+			return JS_EXCEPTION;
+	}
+	gf_sleep(sleep_for);
+	return JS_UNDEFINED;
+}
+
+
+static JSValue js_sys_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 rval=0;
+	if (argc==1) {
+		if (JS_ToInt32(ctx, &rval, argv[0]))
+			return JS_EXCEPTION;
+	}
+	exit(rval);
+	return JS_UNDEFINED;
+}
 static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const u8 *data;
@@ -1541,6 +1567,8 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("enum_directory", 0, js_sys_enum_directory),
 	JS_CFUNC_DEF("clock_ms", 0, js_sys_clock),
 	JS_CFUNC_DEF("clock_us", 0, js_sys_clock_high_res),
+	JS_CFUNC_DEF("sleep", 0, js_sys_sleep),
+	JS_CFUNC_DEF("exit", 0, js_sys_exit),
 	JS_CFUNC_DEF("fcc_to_str", 0, js_sys_4cc_to_str),
 	JS_CFUNC_DEF("rand_init", 0, js_sys_rand_init),
 	JS_CFUNC_DEF("rand", 0, js_sys_rand),
@@ -1549,6 +1577,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("get_utc", 0, js_sys_get_utc),
 	JS_CFUNC_DEF("get_ntp", 0, js_sys_get_ntp),
 	JS_CFUNC_DEF("ntp_shift", 0, js_sys_ntp_shift),
+
 	JS_CFUNC_DEF("crc32", 0, js_sys_crc32),
 	JS_CFUNC_DEF("sha1", 0, js_sys_sha1),
 	JS_CFUNC_DEF("load_file", 0, js_sys_file_data),

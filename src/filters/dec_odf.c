@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder filter
@@ -65,7 +65,8 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		out_pid = gf_filter_pid_get_udta(pid);
 		if (out_pid==ctx->out_pid)
 			ctx->out_pid = NULL;
-		gf_filter_pid_remove(out_pid);
+		if (out_pid)
+			gf_filter_pid_remove(out_pid);
 		return GF_OK;
 	}
 
@@ -91,6 +92,20 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
+static void attach_desc_to_odm(GF_ObjectManager *odm, GF_ObjectDescriptor *od)
+{
+	if (odm->OD) {
+		gf_odf_desc_del((GF_Descriptor *)odm->OD);
+		odm->OD = NULL;
+	}
+	if (gf_list_count(od->OCIDescriptors)) {
+		char *url = od->URLString;
+		od->URLString = NULL;
+		gf_odf_desc_copy((GF_Descriptor *) od, (GF_Descriptor **) &odm->OD);
+		od->URLString = url;
+	}
+
+}
 void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 {
 	u32 i, j, count, nb_scene, nb_od, nb_esd;
@@ -103,8 +118,26 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm->parentscene = scene;
 		if (od->fake_remote)
 			odm->ignore_sys = GF_TRUE;
+
+		attach_desc_to_odm(odm, od);
+
 		gf_list_add(scene->resources, odm);
-		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
+		if (odm->ID != GF_MEDIA_EXTERNAL_ID) {
+			count = gf_list_count(scene->scene_objects);
+			for (i=0; i<count; i++) {
+				GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
+				if (mo->OD_ID != odm->ID) continue;
+				if (mo->type == GF_MEDIA_OBJECT_SCENE) {
+					odm->subscene = gf_scene_new(scene->compositor, scene);
+					odm->subscene->is_dynamic_scene = GF_TRUE;
+					odm->subscene->root_od = odm;
+					odm->mo = mo;
+					mo->odm = odm;
+					break;
+				}
+			}
+		}
+		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString, GF_FALSE);
 		return;
 	}
 
@@ -118,6 +151,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	}
 
 	for (j=0; j<nb_esd; j++) {
+		Bool skip_od = GF_FALSE;
 		GF_FilterPid *pid = NULL;
 		esd = gf_list_get(od->ESDescriptors, j);
 
@@ -126,8 +160,14 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			u32 k=0;
 			GF_ODMExtraPid *xpid;
 			odm = gf_list_get(scene->resources, i);
-			//can happen with interaction streams
+			//can happen with interaction and scene streams
 			if (!odm->pid) {
+				if (odm->mo && odm->mo->OD_ID == od->objectDescriptorID) {
+					odm->ServiceID = od->ServiceID;
+					attach_desc_to_odm(odm, od);
+					skip_od = GF_TRUE;
+					break;
+				}
 				odm = NULL;
 				continue;
 			}
@@ -145,6 +185,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			if (pid) break;
 			odm = NULL;
 		}
+		if (skip_od)
+			continue;
 
 		//OCR streams and input sensors don't have PIDs associated for now (only local sensors supported)
 		if ((esd->decoderConfig->streamType == GF_STREAM_INTERACT)
@@ -163,6 +205,8 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm->scene_ns->nb_odm_users++;
 				gf_list_add(scene->resources, odm);
 			}
+			attach_desc_to_odm(odm, od);
+
 			if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
 				gf_scene_setup_object(scene, odm);
 				gf_input_sensor_setup_object(odm, esd);
@@ -191,7 +235,12 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		}
 
 		odm->ID = od->objectDescriptorID;
+		if (odm->mo && (odm->mo->OD_ID != odm->ID)) {
+			odm->mo->OD_ID = odm->ID;
+
+		}
 		odm->ServiceID = od->ServiceID;
+		attach_desc_to_odm(odm, od);
 
 		/*setup PID for this object */
 		gf_odm_setup_object(odm, scene->root_od->scene_ns, pid);
@@ -228,7 +277,9 @@ static GF_Err ODS_RemoveOD(GF_Scene *scene, GF_ODRemove *odR)
 
 static GF_Err ODS_UpdateESD(GF_Scene *scene, GF_ESDUpdate *ESDs)
 {
-#if FILTER_FIXME
+	//no more support for ESD update in new arch (never used anyway)
+	//following is kept for the case we need to reintroduce it one day
+#if 0
 	GF_ObjectManager *odm;
 	u32 count, i;
 
@@ -430,6 +481,7 @@ static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	if (!com->attach_scene.on_pid) return GF_TRUE;
 
 	count = gf_filter_get_ipid_count(filter);
+	//attach inline scenes
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FilterPid *opid = gf_filter_pid_get_udta(ipid);

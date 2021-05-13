@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -112,17 +112,17 @@ enum
  */
 const char *gf_stream_type_name(u32 streamType);
 
+/*! Gets the stream type short name based on stream type (usually the lower case value of the stream name)
+\param streamType stream type GF_STREAM_XXX as defined in constants.h
+\return NULL if unknown, otherwise value
+ */
+const char *gf_stream_type_short_name(u32 streamType);
 
 /*! Gets the stream type by name
 \param name name of the stream type to query
 \return GF_STREAM_UNKNOWN if unknown, otherwise GF_STREAM_XXX value
  */
 u32 gf_stream_type_by_name(const char *name);
-
-/*! Gets the list of names of all stream types defined
-\return names of all stream types defined
- */
-const char *gf_stream_type_all_names();
 
 /*! Enumerates defined stream types
 \param idx index of the stream type, 0-based
@@ -438,6 +438,8 @@ typedef enum
 	GF_CODECID_AC3 = GF_4CC('a','c','-','3'),
 	/*! codecid for enhanced AC-3 audio streams*/
 	GF_CODECID_EAC3 = GF_4CC('e','c','-','3'),
+	/*! codecid for Dolby TrueHS audio streams*/
+	GF_CODECID_TRUEHD = GF_4CC('m','l','p','a'),
 	/*! codecid for DRA audio streams*/
 	GF_CODECID_DRA = GF_4CC('d','r','a','1'),
 	/*! codecid for ITU G719 audio streams*/
@@ -482,7 +484,7 @@ typedef enum
 		\brief OGG DecoderConfig
 
 	 The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
-	  and is formated as follows:\n
+	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
 			bit(16) packet_size;
@@ -781,6 +783,10 @@ typedef enum
 	GF_AUDIO_FMT_FLT,
 	/*! sample = 1 double, interleaved channels*/
 	GF_AUDIO_FMT_DBL,
+	/*! sample = signed integer, interleaved channels*/
+	GF_AUDIO_FMT_S24,
+	/*! not a format, indicates the value of last packed format*/
+	GF_AUDIO_FMT_LAST_PACKED,
 	/*! sample = unsigned byte, planar channels*/
 	GF_AUDIO_FMT_U8P,
 	/*! sample = signed short, planar channels*/
@@ -791,8 +797,6 @@ typedef enum
 	GF_AUDIO_FMT_FLTP,
 	/*! sample = 1 double, planar channels*/
 	GF_AUDIO_FMT_DBLP,
-	/*! sample = signed integer, interleaved channels*/
-	GF_AUDIO_FMT_S24,
 	/*! sample = signed integer, planar channels*/
 	GF_AUDIO_FMT_S24P,
 } GF_AudioFormat;
@@ -1252,11 +1256,13 @@ typedef enum {
 	GF_ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
 	GF_ID3V2_FRAME_TALB = GF_4CC('T','A','L','B'),
 	GF_ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
+	GF_ID3V2_FRAME_TCAT = GF_4CC('T','C','A','T'),
 	GF_ID3V2_FRAME_TCMP = GF_4CC('T','C','M','P'),
 	GF_ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
 	GF_ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
 	GF_ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
 	GF_ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
+	GF_ID3V2_FRAME_TDES = GF_4CC('T','D','E','S'),
 	GF_ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
 	GF_ID3V2_FRAME_TDRC = GF_4CC('T','D','R','C'),
 	GF_ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
@@ -1267,6 +1273,7 @@ typedef enum {
 	GF_ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
 	GF_ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
 	GF_ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
+	GF_ID3V2_FRAME_TKWD = GF_4CC('T','K','W','D'),
 	GF_ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
 	GF_ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
 	GF_ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
@@ -1287,6 +1294,11 @@ typedef enum {
 	GF_ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
 	GF_ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
 	GF_ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
+	GF_ID3V2_FRAME_TSO2 = GF_4CC('T','S','O','2'),
+	GF_ID3V2_FRAME_TSOA = GF_4CC('T','S','O','A'),
+	GF_ID3V2_FRAME_TSOC = GF_4CC('T','S','O','C'),
+	GF_ID3V2_FRAME_TSOT = GF_4CC('T','S','O','T'),
+	GF_ID3V2_FRAME_TSOP = GF_4CC('T','S','O','P'),
 	GF_ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
 	GF_ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
 	GF_ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
@@ -1310,14 +1322,24 @@ enum
 {
 	/*! tag is a string*/
 	GF_ITAG_STR=0,
-	/*! tag is an int*/
-	GF_ITAG_INT,
-	/*! tag is a fraction*/
-	GF_ITAG_FRAC,
-	/*! tag is a boolean*/
+	/*! tag is an 8 bit int*/
+	GF_ITAG_INT8,
+	/*! tag is a 16 bit int*/
+	GF_ITAG_INT16,
+	/*! tag is a 32 bit int*/
+	GF_ITAG_INT32,
+	/*! tag is an 64 bits int*/
+	GF_ITAG_INT64,
+	/*! tag is a boolean (8bit) */
 	GF_ITAG_BOOL,
-	/*! tag is a string but name is matched as substring*/
-	GF_ITAG_SUBSTR,
+	/*! tag is ID3 genre tag, either 32 bit int or string*/
+	GF_ITAG_ID3_GENRE,
+	/*! tag is an fraction on 6 bytes (first 2 unused)*/
+	GF_ITAG_FRAC6,
+	/*! tag is an fraction on 8 bytes (first 2 and last 2 unused)*/
+	GF_ITAG_FRAC8,
+	/*! tag is a file*/
+	GF_ITAG_FILE,
 };
 /*! finds a tag by its ID3 value
  \param id3tag ID3 tag value
@@ -1339,15 +1361,21 @@ s32 gf_itags_find_by_name(const char *tag_name);
 
 /*! gets tag associated type
  \param tag_idx tag index
- \return corresponding tag type, 0 if error
+ \return corresponding tag type, -1 if error
 */
-u32 gf_itags_get_type(u32 tag_idx);
+s32 gf_itags_get_type(u32 tag_idx);
 
 /*! gets tag associated name
  \param tag_idx tag index
  \return corresponding tag name, NULL if error
 */
 const char *gf_itags_get_name(u32 tag_idx);
+
+/*! gets tag associated alternative names
+ \param tag_idx tag index
+ \return corresponding tag name, NULL if none
+*/
+const char *gf_itags_get_alt_name(u32 tag_idx);
 
 /*! gets tag associated itunes tag
  \param tag_idx tag index
@@ -1529,6 +1557,38 @@ const char *gf_cicp_color_matrix_name(u32 cicp_mx);
 \return coma-separated list of GPAC names for CICP color matrix
 */
 const char *gf_cicp_color_matrix_all_names();
+
+
+/*! stereo frame packing types */
+enum
+{
+	/*! monoscopic video*/
+	GF_STEREO_NONE = 0,
+	/*! left eye in top half of video, right eye in bottom half of video*/
+	GF_STEREO_TOP_BOTTOM,
+	/*! left eye in left half of video, right eye in right half of video*/
+	GF_STEREO_LEFT_RIGHT,
+	/*! stereo mapped through mesh*/
+	GF_STEREO_CUSTOM,
+	/*! left eye in right half of video, right eye in left half of video*/
+	GF_STEREO_RIGHT_LEFT,
+	/*! left eye in bottom half of video, right eye in top half of video*/
+	GF_STEREO_BOTTOM_TOP,
+};
+
+/*! 360 projection types */
+enum
+{
+	/*! flat video*/
+	GF_PROJ360_NONE = 0,
+	/*! cube map projection video is upper half: right, left, up, lower half: down, front, back*/
+	GF_PROJ360_CUBE_MAP,
+	/*! Equirectangular projection / video*/
+	GF_PROJ360_EQR,
+	/*! Mesh projection (not supported yet)*/
+	GF_PROJ360_MESH
+};
+
 
 /*! @} */
 

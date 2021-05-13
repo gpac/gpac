@@ -46,7 +46,7 @@ A filter is responsible for deciding when to issue GL calls: this can be in a pr
 
 The WebGL API in GPAC work by default on offscreen framebuffer objects: 
 - the color attachment is always a texture object, RGBA 32 bits or RGB 24 bits (see WebGLContextAttributes)
-- the depth attachment is a renderbuffer by default and cannot be exported; this behaviour can be changed by setting the "depth" attribute of the WebGLContextAttributes object to "texture" before creation, thereby creating a depth texture attachment; the format is 24 bit precision integer (desktop) or 16 bit precision integer (iOS, Android). 
+- the depth attachment is a renderbuffer by default and cannot be exported; this behavior can be changed by setting the "depth" attribute of the WebGLContextAttributes object to "texture" before creation, thereby creating a depth texture attachment; the format is 24 bit precision integer (desktop) or 16 bit precision integer (iOS, Android). 
 
 The underlying framebuffer color texture attachment and if enabled, depth texture attachment, can be dispatched as a GPAC packet using \ref FilterPid.new_packet; this allows forwarding a framebuffer data to other filters without having to copy to system memory the framebuffer content.
 
@@ -417,7 +417,7 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 
 /*! Named texture object, see \ref webgl_grp*/
 interface NamedTexture {
-/*! number of underlying textures. This can be usefull when doing multi-texturing to get the next texture unit slot:
+/*! number of underlying textures. This can be useful when doing multi-texturing to get the next texture unit slot:
 \code
 nextActiveTexture = gl.TEXTURE0 + named_tx.nb_textures;
 \endcode

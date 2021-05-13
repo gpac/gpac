@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -38,7 +38,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool rcfg, delim;
+	Bool rcfg, delim, pps_inband;
 	u32 extract;
 
 	//only one input pid declared
@@ -49,25 +49,28 @@ typedef struct
 	u32 vtype;
 
 	u32 nal_hdr_size, crc, crc_enh;
-	u8 *dsi;
-	u32 dsi_size;
+	u8 *dsi, *dsi_non_rap;
+	u32 dsi_size, dsi_non_rap_size;
 
 	GF_BitStream *bs_w, *bs_r;
-	u32 nb_nalu, nb_nalu_in_hdr;
+	u32 nb_nalu, nb_nalu_in_hdr, nb_nalu_in_hdr_non_rap;
 	u32 width, height;
 } GF_NALUMxCtx;
 
 
 
 
-static void nalumx_write_ps_list(GF_NALUMxCtx *ctx, GF_BitStream *bs, GF_List *list)
+static void nalumx_write_ps_list(GF_NALUMxCtx *ctx, GF_BitStream *bs, GF_List *list, Bool for_non_rap)
 {
 	u32 i, count = list ? gf_list_count(list) : 0;
 	for (i=0; i<count; i++) {
 		GF_NALUFFParam *sl = gf_list_get(list, i);
 		gf_bs_write_u32(bs, 1);
 		gf_bs_write_data(bs, sl->data, sl->size);
-		ctx->nb_nalu_in_hdr++;
+		if (for_non_rap)
+			ctx->nb_nalu_in_hdr_non_rap++;
+		else
+			ctx->nb_nalu_in_hdr++;
 	}
 }
 
@@ -90,7 +93,7 @@ static GF_List *nalumx_get_vvc_ps(GF_VVCConfig *cfg, u8 type)
 	return NULL;
 }
 
-static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len)
+static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_len, char *dsi_enh, u32 dsi_enh_len, Bool for_non_rap)
 {
 	GF_BitStream *bs;
 	GF_AVCConfig *avcc = NULL;
@@ -118,53 +121,59 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (avcc || svcc) {
-		if (avcc) {
-			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSets);
+		if (avcc && !for_non_rap) {
+			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSets, for_non_rap);
 		}
 
-		if (svcc)
-			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSets);
+		if (svcc && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSets, for_non_rap);
 
-		if (avcc && avcc->sequenceParameterSetExtensions)
-			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSetExtensions);
+		if (avcc && avcc->sequenceParameterSetExtensions && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, avcc->sequenceParameterSetExtensions, for_non_rap);
 
-		if (svcc && svcc->sequenceParameterSetExtensions)
-			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSetExtensions);
+		if (svcc && svcc->sequenceParameterSetExtensions && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, svcc->sequenceParameterSetExtensions, for_non_rap);
 
 		if (avcc)
-			nalumx_write_ps_list(ctx, bs, avcc->pictureParameterSets);
+			nalumx_write_ps_list(ctx, bs, avcc->pictureParameterSets, for_non_rap);
 
 		if (svcc)
-			nalumx_write_ps_list(ctx, bs, svcc->pictureParameterSets);
+			nalumx_write_ps_list(ctx, bs, svcc->pictureParameterSets, for_non_rap);
 	}
 	if (hvcc || lvcc) {
+		if (hvcc && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_VID_PARAM), for_non_rap);
+		if (lvcc && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_VID_PARAM), for_non_rap);
+		if (hvcc && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_SEQ_PARAM), for_non_rap);
+		if (lvcc && !for_non_rap)
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_SEQ_PARAM), for_non_rap);
 		if (hvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_VID_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_PIC_PARAM), for_non_rap);
 		if (lvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_VID_PARAM));
-		if (hvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_SEQ_PARAM));
-		if (lvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_SEQ_PARAM));
-		if (hvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(hvcc, GF_HEVC_NALU_PIC_PARAM));
-		if (lvcc)
-			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_PIC_PARAM));
+			nalumx_write_ps_list(ctx, bs, nalumx_get_hevc_ps(lvcc, GF_HEVC_NALU_PIC_PARAM), for_non_rap);
 	}
 
 	if (vvcc || s_vvcc) {
 		u32 dump_types[] = {GF_VVC_NALU_VID_PARAM, GF_VVC_NALU_DEC_PARAM, GF_VVC_NALU_SEQ_PARAM, GF_VVC_NALU_PIC_PARAM, GF_VVC_NALU_APS_PREFIX, GF_VVC_NALU_SEI_PREFIX};
-		u32 i;
-		for (i=0; i< GF_ARRAY_LENGTH(dump_types); i++) {
+		u32 i = for_non_rap ? 3 : 0;
+
+		for (; i< GF_ARRAY_LENGTH(dump_types); i++) {
 			if (vvcc)
-				nalumx_write_ps_list(ctx, bs, nalumx_get_vvc_ps(vvcc, dump_types[i]));
+				nalumx_write_ps_list(ctx, bs, nalumx_get_vvc_ps(vvcc, dump_types[i]), for_non_rap);
 			if (s_vvcc)
-				nalumx_write_ps_list(ctx, bs, nalumx_get_vvc_ps(s_vvcc, dump_types[i]));
+				nalumx_write_ps_list(ctx, bs, nalumx_get_vvc_ps(s_vvcc, dump_types[i]), for_non_rap);
 		}
 	}
 
-	if (ctx->dsi) gf_free(ctx->dsi);
-	gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);
+	if (for_non_rap) {
+		if (ctx->dsi_non_rap) gf_free(ctx->dsi_non_rap);
+		gf_bs_get_content(bs, &ctx->dsi_non_rap, &ctx->dsi_non_rap_size);
+	} else {
+		if (ctx->dsi) gf_free(ctx->dsi);
+		gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);
+	}
 	gf_bs_del(bs);
 
 	if (avcc) gf_odf_avc_cfg_del(avcc);
@@ -182,13 +191,17 @@ static GF_Err nalumx_make_inband_header(GF_NALUMxCtx *ctx, char *dsi, u32 dsi_le
 
 GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	GF_Err e;
 	u32 crc, crc_enh, codecid;
 	const GF_PropertyValue *p, *dcd, *dcd_enh;
 	GF_NALUMxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -240,7 +253,11 @@ GF_Err nalumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (!dcd && !dcd_enh)
 		return GF_OK;
 
-	return nalumx_make_inband_header(ctx, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0);
+	e = nalumx_make_inband_header(ctx, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0, GF_FALSE);
+	if (e) return e;
+
+	if (!ctx->pps_inband || !ctx->rcfg) return GF_OK;
+	return nalumx_make_inband_header(ctx, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, dcd_enh ? dcd_enh->value.data.ptr : NULL, dcd_enh ? dcd_enh->value.data.size : 0, GF_TRUE);
 }
 
 
@@ -316,7 +333,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 	u8 *data, *output;
 	u32 pck_size, size, sap=0, temporal_id, layer_id;
 	u8 avc_hdr;
-	Bool insert_dsi = GF_FALSE;
+	u8 *dsi_buf = NULL;
+	u32 dsi_buf_size = 0, dsi_nb_nal = 0;
+
 	Bool has_nalu_delim = GF_FALSE;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -324,6 +343,8 @@ GF_Err nalumx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (!ctx->nb_nalu && ctx->dsi) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->dsi_size, &output);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				memcpy(output, ctx->dsi, ctx->dsi_size);
 				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 				gf_filter_pck_send(dst_pck);
@@ -389,6 +410,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 
 	if (ctx->dsi) {
+		Bool insert_dsi = GF_FALSE;
 		sap = gf_filter_pck_get_sap(pck);
 		if (sap && (sap <= GF_FILTER_SAP_3) ) {
 			insert_dsi = GF_TRUE;
@@ -404,11 +426,19 @@ GF_Err nalumx_process(GF_Filter *filter)
 		}
 
 		if (insert_dsi) {
-			size += ctx->dsi_size;
+			dsi_buf = ctx->dsi;
+			dsi_buf_size = ctx->dsi_size;
+			dsi_nb_nal = ctx->nb_nalu_in_hdr;
+		} else if (ctx->dsi_non_rap) {
+			dsi_buf = ctx->dsi_non_rap;
+			dsi_buf_size = ctx->dsi_non_rap_size;
+			dsi_nb_nal = ctx->nb_nalu_in_hdr_non_rap;
 		}
+		size += dsi_buf_size;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, output, size);
@@ -428,14 +458,14 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, temporal_id, 3);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
-			gf_bs_write_int(ctx->bs_w, 0, 5);
+			gf_bs_write_int(ctx->bs_w, 1, 1); //stop bit
+			gf_bs_write_int(ctx->bs_w, 0, 4); //4 bits to 0
 #endif
 		} else if (ctx->vtype==UFNAL_VVC) {
 			if (!layer_id)
 				layer_id=1;
 			if (!temporal_id)
 				temporal_id=1;
-#ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
@@ -444,8 +474,9 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, sap ? 1 : 0, 1);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
-			gf_bs_write_int(ctx->bs_w, 0, 4);
-#endif
+
+			gf_bs_write_int(ctx->bs_w, 1, 1); //stop bit
+			gf_bs_write_int(ctx->bs_w, 0, 3); //3 bits to 0
 		} else {
 			gf_bs_write_int(ctx->bs_w, (avc_hdr & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
 			gf_bs_write_int(ctx->bs_w, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
@@ -480,10 +511,10 @@ GF_Err nalumx_process(GF_Filter *filter)
 		}
 
 		//insert dsi only after NALUD if any
-		if (insert_dsi && !is_nalu_delim) {
-			insert_dsi = GF_FALSE;
-			gf_bs_write_data(ctx->bs_w, ctx->dsi, ctx->dsi_size);
-			ctx->nb_nalu += ctx->nb_nalu_in_hdr;
+		if (dsi_buf && !is_nalu_delim) {
+			gf_bs_write_data(ctx->bs_w, dsi_buf, dsi_buf_size);
+			ctx->nb_nalu += dsi_nb_nal;
+			dsi_buf = NULL;
 
 			if (!ctx->rcfg) {
 				gf_free(ctx->dsi);
@@ -522,6 +553,7 @@ static void nalumx_finalize(GF_Filter *filter)
 	if (ctx->bs_r) gf_bs_del(ctx->bs_r);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
 	if (ctx->dsi) gf_free(ctx->dsi);
+	if (ctx->dsi_non_rap) gf_free(ctx->dsi_non_rap);
 }
 
 static const GF_FilterCapability NALUMxCaps[] =
@@ -538,11 +570,13 @@ static const GF_FilterCapability NALUMxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT_OPT,GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT_OUTPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -556,6 +590,7 @@ static const GF_FilterArgs NALUMxArgs[] =
 	"- base: extract base layer only\n"
 	"- layer: extract non-base layer(s) only", GF_PROP_UINT, "all", "all|base|layer", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(delim), "insert AU Delimiter NAL", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pps_inband), "inject PPS at each non SAP frame, ignored if rcfg is not set", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2017
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 libmad decoder filter
@@ -66,7 +66,30 @@ typedef struct
 	struct mad_stream stream;
 	struct mad_synth synth;
 
+	Bool flush_done;
+	u32 last_pck_dur;
+	s64 delay;
+
 } GF_MADCtx;
+
+static void maddec_copy_props(GF_MADCtx *ctx)
+{
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
+
+	if (ctx->sample_rate)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
+
+	if (ctx->num_channels) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT((ctx->num_channels==1) ? GF_AUDIO_CH_FRONT_CENTER : GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT) );
+	}
+
+	if (!ctx->delay)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
+}
 
 static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -74,15 +97,31 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+
 	if (ctx->configured) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_PRIMING);
+		//no re-prime, skip if same config
+		if (p && p->value.boolean) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+			u32 sr = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+			u32 ch = p ? p->value.uint : 0;
+			if ((ctx->sample_rate==sr) && (ctx->num_channels==ch)) {
+				maddec_copy_props(ctx);
+				return GF_OK;
+			}
+		}
+
 		mad_stream_finish(&ctx->stream);
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
@@ -101,32 +140,24 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
 	if (p) ctx->sample_rate = p->value.uint;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
 	if (p) ctx->num_channels = p->value.uint;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
-
 	if (!ctx->buffer) {
 		ctx->buffer = (unsigned char*)gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
 	}
 
-	if (ctx->sample_rate)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
-
-	if (ctx->num_channels) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT((ctx->num_channels==1) ? GF_AUDIO_CH_FRONT_CENTER : GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT) );
-	}
-
 	gf_filter_set_name(filter, "dec_mad:MAD " MAD_VERSION);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	maddec_copy_props(ctx);
+
 	return GF_OK;
 }
 
@@ -158,32 +189,48 @@ static GF_Err maddec_process(GF_Filter *filter)
 	mad_fixed_t *left_ch, *right_ch, chan;
 	u8 *ptr;
 	u8 *data;
-	u32 num, in_size; //, outSize=0;
+	u32 num, samples_to_trash, in_size; //, outSize=0;
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->ipid))
-			gf_filter_pid_set_eos(ctx->opid);
-		return GF_OK;
-	}
-	data = (char *) gf_filter_pck_get_data(pck, &in_size);
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			if (ctx->flush_done) {
+				gf_filter_pid_set_eos(ctx->opid);
+				return GF_EOS;
+			}
+			ctx->flush_done = GF_TRUE;
+			memset(ctx->buffer + ctx->len, 0, MAD_BUFFER_GUARD);
+			ctx->len += MAD_BUFFER_GUARD;
+		} else {
+			return GF_OK;
+		}
+	} else {
+		data = (char *) gf_filter_pck_get_data(pck, &in_size);
 
-	if (ctx->len + in_size > 2*MAD_BUFFER_MDLEN) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[MAD] MAD buffer overflow, truncating\n"));
-		in_size = 2*MAD_BUFFER_MDLEN - ctx->len;
-	}
+		if (ctx->len + in_size > 2*MAD_BUFFER_MDLEN) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[MAD] MAD buffer overflow, truncating\n"));
+			in_size = 2*MAD_BUFFER_MDLEN - ctx->len;
+		}
 
-	memcpy(ctx->buffer + ctx->len, data, in_size);
-	ctx->len += in_size;
+		memcpy(ctx->buffer + ctx->len, data, in_size);
+		ctx->len += in_size;
+		ctx->last_pck_dur = gf_filter_pck_get_duration(pck);
+	}
 
 mad_resync:
 	mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
 
 	if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
+		if (!pck) return GF_OK;
+
 		if (ctx->stream.error==MAD_ERROR_BUFLEN) {
-			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			if (pck) {
+				ctx->last_cts = gf_filter_pck_get_cts(pck);
+				ctx->timescale = gf_filter_pck_get_timescale(pck);
+				gf_filter_pid_drop_packet(ctx->ipid);
+			}
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MAD] Decoding failed error %s (%d)\n", mad_stream_errorstr(&ctx->stream), ctx->stream.error ) );
@@ -215,10 +262,43 @@ mad_resync:
 	}
 
 	num = ctx->synth.pcm.length;
-	left_ch = ctx->synth.pcm.samples[0];
-	right_ch = ctx->synth.pcm.samples[1];
 
-	dst_pck = gf_filter_pck_new_alloc(ctx->opid, num*2*ctx->num_channels, &ptr);
+	samples_to_trash = 0;
+	if (ctx->delay<0) {
+		if ((s64) ctx->last_cts + ctx->delay < 0) {
+			s32 dur = num;
+			if (ctx->timescale != ctx->sample_rate) {
+				dur *= ctx->sample_rate;
+				dur /= ctx->timescale;
+			}
+			if (dur + ctx->delay < 0) {
+				num = 0;
+				ctx->delay += dur;
+			} else {
+				samples_to_trash = (u32) -ctx->delay;
+			}
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DELAY, NULL);
+		} else {
+			ctx->delay = 0;
+		}
+	}
+
+	if (!pck && ctx->last_pck_dur) {
+		u32 dur = ctx->last_pck_dur;
+		if (ctx->timescale != ctx->sample_rate) {
+			dur *= ctx->sample_rate;
+			dur /= ctx->timescale;
+		}
+		if (dur < num) {
+			num = dur;
+		}
+	}
+
+	left_ch = ctx->synth.pcm.samples[0] + samples_to_trash;
+	right_ch = ctx->synth.pcm.samples[1] + samples_to_trash;
+
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, (num - samples_to_trash) * 2 * ctx->num_channels, &ptr);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	if (pck) {
 		ctx->last_cts = gf_filter_pck_get_cts(pck);
@@ -239,7 +319,7 @@ mad_resync:
 	}
 
 
-	while (num--) {
+	while (num-- > samples_to_trash) {
 		s32 rs;
 		MAD_SCALE(rs, (*left_ch++) );
 

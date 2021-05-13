@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AMR&EVRC&SMV reframer filter
@@ -45,7 +45,7 @@ typedef struct
 	u32 start_offset;
 	u32 codecid, sample_rate, block_size;
 
-
+	u32 bitrate;
 	u64 file_pos, cts;
 
 	u16 amr_mode_set;
@@ -77,7 +77,10 @@ GF_Err amrdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -115,7 +118,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 {
 	FILE *stream;
 	u32 i;
-	u64 duration, cur_dur;
+	u64 duration, cur_dur, rate;
 	char magic[20];
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -211,6 +214,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		}
 		if (size) gf_fseek(stream, size, SEEK_CUR);
 	}
+	rate = gf_ftell(stream);
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->sample_rate != duration * ctx->duration.den)) {
@@ -218,6 +222,12 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 		ctx->duration.den = ctx->sample_rate;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -246,6 +256,10 @@ static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx, u16 amr_mode_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMR_MODE_SET, & PROP_UINT(ctx->amr_mode_set));
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
@@ -370,6 +384,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		}
 		if (! ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -433,7 +448,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 		toc = start[0];
 		if (!toc) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Could not find TOC word in packet, droping\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Could not find TOC word in packet, dropping\n"));
 			break;
 		}
 		switch (ctx->codecid) {
@@ -490,6 +505,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		}
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
 
 			memcpy(output, start, size);
 

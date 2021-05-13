@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *			All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1619,10 +1619,10 @@ struct _tag_dom_parser
 
 
 GF_EXPORT
-void gf_xml_dom_node_del(GF_XMLNode *node)
+void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_children)
 {
 	if (!node) return;
-	if (node->attributes) {
+	if (node->attributes && reset_attribs) {
 		while (gf_list_count(node->attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(node->attributes);
 			gf_list_rem_last(node->attributes);
@@ -1630,16 +1630,24 @@ void gf_xml_dom_node_del(GF_XMLNode *node)
 			if (att->value) gf_free(att->value);
 			gf_free(att);
 		}
-		gf_list_del(node->attributes);
 	}
-	if (node->content) {
+
+	if (reset_children && node->content) {
 		while (gf_list_count(node->content)) {
 			GF_XMLNode *child = (GF_XMLNode *)gf_list_last(node->content);
 			gf_list_rem_last(node->content);
 			gf_xml_dom_node_del(child);
 		}
-		gf_list_del(node->content);
 	}
+}
+
+GF_EXPORT
+void gf_xml_dom_node_del(GF_XMLNode *node)
+{
+	if (!node) return;
+	gf_xml_dom_node_reset(node, GF_TRUE, GF_TRUE);
+	if (node->attributes) gf_list_del(node->attributes);
+	if (node->content) gf_list_del(node->content);
 	if (node->ns) gf_free(node->ns);
 	if (node->name) gf_free(node->name);
 	gf_free(node);
@@ -1783,14 +1791,17 @@ void gf_xml_dom_del(GF_DOMParser *parser)
 	gf_free(parser);
 }
 
-#if 0 //unused
+GF_EXPORT
 GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
 {
-	GF_XMLNode *root = parser->root;
-	parser->root = NULL;
+	GF_XMLNode *root;
+	if (!parser)
+		return NULL;
+	root = parser->root;
+	gf_list_del_item(parser->root_nodes, root);
+	parser->root = gf_list_get(parser->root_nodes, 0);
 	return root;
 }
-#endif
 
 static void dom_on_progress(void *cbck, u64 done, u64 tot)
 {
@@ -1866,15 +1877,16 @@ GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 }
 
 
-static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char **str, u32 *alloc_size, u32 *size)
+static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape, char **str, u32 *alloc_size, u32 *size)
 {
 	u32 i, count, vlen;
 	char *name;
 
 #define SET_STRING(v)	\
 	vlen = (u32) strlen(v);	\
-	if (vlen+ (*size) >= (*alloc_size)) {	\
+	if (vlen + (*size) >= (*alloc_size)) {	\
 		(*alloc_size) += 1024;	\
+		if (vlen + (*size) >= (*alloc_size)) (*alloc_size) = vlen + (*size) + 1;\
 		(*str) = gf_realloc((*str), (*alloc_size));	\
 		(*str)[(*size)] = 0;	\
 	}	\
@@ -1891,7 +1903,39 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 		name = node->name;
 		if ((name[0]=='\r') && (name[1]=='\n'))
 			name++;
-		SET_STRING(name);
+
+		if (no_escape) {
+			SET_STRING(name);
+		} else {
+			u32 tlen;
+			char szChar[2];
+			szChar[1] = 0;
+			tlen = (u32) strlen(name);
+			for (i= 0; i<tlen; i++) {
+				switch (name[i]) {
+				case '&':
+					SET_STRING("&amp;");
+					break;
+				case '<':
+					SET_STRING("&lt;");
+					break;
+				case '>':
+					SET_STRING("&gt;");
+					break;
+				case '\'':
+					SET_STRING("&apos;");
+					break;
+				case '\"':
+					SET_STRING("&quot;");
+					break;
+
+				default:
+					szChar[0] = name[i];
+					SET_STRING(szChar);
+					break;
+				}
+			}
+		}
 		return;
 	}
 
@@ -1924,7 +1968,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
 		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
-		gf_xml_dom_node_serialize(child, GF_FALSE, str, alloc_size, size);
+		gf_xml_dom_node_serialize(child, GF_FALSE, GF_FALSE, str, alloc_size, size);
 	}
 	if (!content_only) {
 		SET_STRING("</");
@@ -1938,12 +1982,25 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 }
 
 GF_EXPORT
-char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only)
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape)
 {
 	u32 alloc_size = 0;
 	u32 size = 0;
 	char *str = NULL;
-	gf_xml_dom_node_serialize(node, content_only, &str, &alloc_size, &size);
+	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
+	return str;
+}
+
+GF_EXPORT
+char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_escape)
+{
+	u32 alloc_size, size;
+	char *str = NULL;
+	gf_dynstrcat(&str, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n", NULL);
+	if (!str) return NULL;
+
+	alloc_size = size = (u32) strlen(str) + 1;
+	gf_xml_dom_node_serialize(node, content_only, no_escape, &str, &alloc_size, &size);
 	return str;
 }
 
@@ -2000,6 +2057,17 @@ GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child) {
 	return gf_list_add(node->content, child);
 }
 
+#if 0
+/*!
+\brief Removes the node to the list of children of this node.
+
+Removes the node to the list of children of this node.
+\warning Doesn't free the memory of the removed children.
+
+\param node the GF_XMLNode node
+\param child the GF_XMLNode child to remove
+\return Error code if any, otherwise GF_OK
+ */
 GF_EXPORT
 GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	s32 idx;
@@ -2009,7 +2077,6 @@ GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
 	return gf_list_rem(node->content, idx);
 }
 
-#if 0
 GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	GF_XMLNode* node;
 	GF_SAFEALLOC(node, GF_XMLNode);

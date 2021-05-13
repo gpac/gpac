@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -107,7 +107,7 @@ static void init_reader(ISOMChannel *ch)
 		ch->disable_seek = GF_TRUE;
 		ch->au_seq_num = ch->sample_num;
 	} else {
-		//if seek is disabled, get the next closest sample for this time; otherwose, get the previous RAP sample for this time
+		//if seek is disabled, get the next closest sample for this time; otherwise, get the previous RAP sample for this time
 		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
 
 		/*take care of seeking out of the track range*/
@@ -117,7 +117,11 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 		} else {
 			ch->sample_num = 1;
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			if (ch->owner->nodata) {
+				ch->sample = gf_isom_get_sample_info_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, &ch->sample_data_offset, ch->static_sample);
+			} else {
+				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			}
 			if (!ch->sample) ch->last_state = GF_EOS;
 		}
 		if (ch->last_state) {
@@ -165,11 +169,16 @@ static void init_reader(ISOMChannel *ch)
 		ch->cts = ch->sample->DTS + ch->sample->CTS_Offset;
 		ch->start = 0;
 	} else {
+		s64 cts;
 		ch->dts = ch->start;
 		ch->cts = ch->start;
 
+		cts = ch->sample->DTS + ch->sample->CTS_Offset;
+		if (ch->ts_offset<0)
+			cts += ch->ts_offset;
+
 		//TODO - we need to notify scene decoder how many secs elapsed between RAP and seek point
-		if (ch->cts != ch->sample->DTS + ch->sample->CTS_Offset) {
+		if (ch->cts != cts) {
 			ch->seek_flag = 1;
 		}
 	}
@@ -236,6 +245,7 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 	}
 
 	ch->pck_encrypted = Is_Encrypted;
+	ch->cenc_ki = NULL;
 
 	/*notify change of IV/KID only when packet is encrypted
 	1- these info are ignored when packet is not encrypted
@@ -260,6 +270,8 @@ static void isor_update_cenc_info(ISOMChannel *ch, Bool for_item)
 
 		if (item_mkey)
 			key_info[0] = item_mkey;
+
+		ch->cenc_ki = gf_filter_pid_get_property(ch->pid, GF_PROP_PID_CENC_KEY_INFO);
 	}
 }
 
@@ -279,6 +291,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 
 	ch->sample = ch->static_sample;
 	ch->sample->IsRAP = RAP;
+	ch->au_duration = 1000;
 	ch->dts = ch->cts = 1000 * ch->au_seq_num;
 	gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, &ch->static_sample->alloc_size, NULL, GF_FALSE);
 
@@ -371,7 +384,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 							u32 time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
 							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 							if (e==GF_OK) {
-								ch->sample = ch->static_sample;
+								if (ch->sample_num == prev_sample) {
+									ch->sample_time += time_diff;
+									ch->sample = NULL;
+									return;
+								} else {
+									ch->sample = ch->static_sample;
+								}
 							}
 						}
 					}
@@ -422,7 +441,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 		if (do_fetch) {
-			ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			if (ch->owner->nodata) {
+				ch->sample = gf_isom_get_sample_info_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, &ch->sample_data_offset, ch->static_sample);
+			} else {
+				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
+			}
 			/*if sync shadow / carousel RAP skip*/
 			if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
 				ch->sample = NULL;
@@ -448,6 +471,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
+			if (ch->owner->mem_load_mode==2)
+				ch->owner->force_fetch = GF_TRUE;
+
 			if (!ch->owner->input_loaded) {
 				ch->last_state = GF_OK;
 				if (!ch->has_edit_list && ch->sample_num)
@@ -580,9 +606,10 @@ enum
 	RESET_STATE_SPS=1<<1,
 	RESET_STATE_PPS=1<<2,
 	RESET_STATE_SPS_EXT=1<<3,
+	RESET_STATE_DCI=1<<4,
 };
 
-static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
+static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConfig *vvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
 {
 	u32 i, count, state=0;
 	GF_NALUFFParam *sl;
@@ -598,7 +625,8 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			list = avcc->sequenceParameterSetExtensions;
 			state=RESET_STATE_SPS_EXT;
 		} else return;
-	} else if (hvcc) {
+	}
+	else if (hvcc) {
 		GF_NALUFFParamArray *hvca=NULL;
 		count = gf_list_count(hvcc->param_array);
 		for (i=0; i<count; i++) {
@@ -629,6 +657,40 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 			break;
 		}
 	}
+	else if (vvcc) {
+		GF_NALUFFParamArray *vvca=NULL;
+		count = gf_list_count(vvcc->param_array);
+		for (i=0; i<count; i++) {
+			vvca = gf_list_get(vvcc->param_array, i);
+			if (vvca->type==nal_type) {
+				list = vvca->nalus;
+				break;
+			}
+			vvca = NULL;
+		}
+		if (!vvca) {
+			GF_SAFEALLOC(vvca, GF_NALUFFParamArray);
+			if (vvca) {
+				list = vvca->nalus = gf_list_new();
+				vvca->type = nal_type;
+				gf_list_add(vvcc->param_array, vvca);
+			}
+		}
+		switch (nal_type) {
+		case GF_VVC_NALU_VID_PARAM:
+			state = RESET_STATE_VPS;
+			break;
+		case GF_VVC_NALU_SEQ_PARAM:
+			state = RESET_STATE_SPS;
+			break;
+		case GF_VVC_NALU_PIC_PARAM:
+			state = RESET_STATE_PPS;
+			break;
+		case GF_VVC_NALU_DEC_PARAM:
+			state = RESET_STATE_DCI;
+			break;
+		}
+	}
 
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
@@ -647,17 +709,92 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, u8 *data, 
 	gf_list_add(list, sl);
 }
 
+u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u32 idx, u8 *const_iv_size, const u8 **const_iv);
+
+void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
+{
+	u32 offset = 0;
+	u8 *sai;
+	u32 sai_size, cur_pos;
+	u32 sub_count_size = 0;
+	u32 i, subs_count = 0;
+
+	if (!ch->cenc_ki || !ch->sai_buffer) return;
+
+	sai = ch->sai_buffer;
+	sai_size = ch->sai_buffer_size;
+
+	//multikey
+	if (ch->cenc_ki->value.data.ptr[0]) {
+		u32 remain;
+		u32 j, nb_iv_init = sai[0];
+		nb_iv_init <<= 8;
+		nb_iv_init |= sai[1];
+		u8 *sai_p = sai + 2;
+		remain = sai_size-2;
+
+		for (j=0; j<nb_iv_init; j++) {
+			u32 mk_iv_size;
+			u32 idx = sai_p[0];
+			idx<<=8;
+			idx |= sai_p[1];
+
+			mk_iv_size = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, idx, NULL, NULL);
+			mk_iv_size += 2; //idx
+			if (mk_iv_size > remain) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
+				return;
+			}
+			sai_p += mk_iv_size;
+			remain -= mk_iv_size;
+		}
+		offset = (u32) (sai_p - sai);
+		sub_count_size = 4; //32bit sub count
+
+	} else {
+		offset = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
+		sub_count_size = 2; //16bit sub count
+	}
+
+	sai += offset;
+	if (sub_count_size==2) {
+		subs_count = ((u32) sai[0]) << 8 | sai[1];
+	} else {
+		subs_count = GF_4CC(sai[0], sai[1], sai[2], sai[3]);
+	}
+	sai += sub_count_size;
+	sai_size -= offset + sub_count_size;
+	cur_pos = 0;
+	for (i=0; i<subs_count; i++) {
+		if (sai_size<6)
+			return;
+		u32 clear = ((u32) sai[0]) << 8 | sai[1];
+		u32 crypt = GF_4CC(sai[2], sai[3], sai[4], sai[5]);
+		if (cur_pos + clear > pos) {
+			clear -= removed;
+			sai[0] = (clear>>8) & 0xFF;
+			sai[1] = (clear) & 0xFF;
+			return;
+		}
+		cur_pos += clear + crypt;
+		sai += 6;
+	}
+}
+
 void isor_reader_check_config(ISOMChannel *ch)
 {
 	u32 nalu_len, reset_state;
-	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_mhas_pl) return;
+	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
-	//we cannot touch the payload if encrypted !!
-	//TODO, in CENC try to remove non-encrypted NALUs and update saiz accordingly
-	if (ch->is_encrypted) return;
+
+	//we cannot touch the payload if encrypted but not CENC !!
+	if (ch->is_encrypted && !ch->is_cenc)
+		return;
 
 	if (ch->check_mhas_pl) {
+		//we cannot touch the payload if encrypted !!
+		if (ch->pck_encrypted) return;
 		u64 ch_layout = 0;
 		s32 PL = gf_mpegh_get_mhas_pl(ch->sample->data, ch->sample->dataLength, &ch_layout);
 		if (PL>0) {
@@ -668,10 +805,18 @@ void isor_reader_check_config(ISOMChannel *ch)
 		}
 		return;
 	}
-
+	//analyze mode, do not rewrite
 	if (ch->owner->analyze) return;
-	
-	nalu_len = ch->hvcc ? ch->hvcc->nal_unit_size : (ch->avcc ? ch->avcc->nal_unit_size : 4);
+
+	//we cannot touch the payload if encrypted but no SAI buffer
+	if (ch->pck_encrypted && !ch->sai_buffer)
+		return;
+
+	nalu_len = 4;
+	if (ch->avcc) nalu_len = ch->avcc->nal_unit_size;
+	else if (ch->hvcc) nalu_len = ch->hvcc->nal_unit_size;
+	else if (ch->vvcc) nalu_len = ch->vvcc->nal_unit_size;
+
 	reset_state = 0;
 
 	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
@@ -682,9 +827,11 @@ void isor_reader_check_config(ISOMChannel *ch)
 		u8 nal_type=0;
 		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
 		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
+		//this takes care of size + pos + nalu_len > 0 but (s32) size < 0 ...
+		if (ch->sample->dataLength < size) break;
 		if (ch->sample->dataLength < size + pos + nalu_len) break;
-		u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 		if (ch->check_avc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 			nal_type = hdr & 0x1F;
 			switch (nal_type) {
 			case GF_AVC_NALU_SEQ_PARAM:
@@ -694,7 +841,8 @@ void isor_reader_check_config(ISOMChannel *ch)
 				break;
 			}
 		}
-		if (ch->check_hevc_ps) {
+		else if (ch->check_hevc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 0);
 			nal_type = (hdr & 0x7E) >> 1;
 			switch (nal_type) {
 			case GF_HEVC_NALU_VID_PARAM:
@@ -704,17 +852,33 @@ void isor_reader_check_config(ISOMChannel *ch)
 				break;
 			}
 		}
+		else if (ch->check_vvc_ps) {
+			u8 hdr = gf_bs_peek_bits(ch->nal_bs, 8, 1);
+			nal_type = hdr >> 3;
+			switch (nal_type) {
+			case GF_VVC_NALU_VID_PARAM:
+			case GF_VVC_NALU_SEQ_PARAM:
+			case GF_VVC_NALU_PIC_PARAM:
+			case GF_VVC_NALU_DEC_PARAM:
+				replace_nal = GF_TRUE;
+				break;
+			}
+		}
 		gf_bs_skip_bytes(ch->nal_bs, size);
 
 		if (replace_nal) {
 			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
-			isor_replace_nal(ch->avcc, ch->hvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
+			isor_replace_nal(ch->avcc, ch->hvcc, ch->vvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
 			if (move_size)
 				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
 
 			ch->sample->dataLength -= size + nalu_len;
 			gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
 			gf_bs_seek(ch->nal_bs, pos);
+
+			//remove nal from clear subsample range
+			if (ch->pck_encrypted)
+				isor_sai_bytes_removed(ch, pos, nalu_len+size);
 		}
 	}
 
@@ -726,6 +890,9 @@ void isor_reader_check_config(ISOMChannel *ch)
 		}
 		else if (ch->check_hevc_ps) {
 			gf_odf_hevc_cfg_write(ch->hvcc, &dsi, &dsi_size);
+		}
+		else if (ch->check_vvc_ps) {
+			gf_odf_vvc_cfg_write(ch->vvcc, &dsi, &dsi_size);
 		}
 		if (dsi && dsi_size) {
 			u32 dsi_crc = gf_crc_32(dsi, dsi_size);
