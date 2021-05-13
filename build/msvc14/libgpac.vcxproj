@@ -306,6 +306,7 @@
     <ClCompile Include="..\..\src\filters\in_rtp_signaling.c" />
     <ClCompile Include="..\..\src\filters\in_rtp_stream.c" />
     <ClCompile Include="..\..\src\filters\in_sock.c" />
+    <ClCompile Include="..\..\src\filters\io_fcryp.c" />
     <ClCompile Include="..\..\src\filters\isoffin_load.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read.c" />
     <ClCompile Include="..\..\src\filters\isoffin_read_ch.c" />
@@ -343,6 +344,7 @@
     <ClCompile Include="..\..\src\filters\reframe_qcp.c" />
     <ClCompile Include="..\..\src\filters\reframe_rawpcm.c" />
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c" />
+    <ClCompile Include="..\..\src\filters\reframe_truehd.c" />
     <ClCompile Include="..\..\src\filters\resample_audio.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />

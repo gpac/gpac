@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *					Authors: Pierre Souchay - Jean Le Feuvre - Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2012, Romain Bouqueau
+ *			Copyright (c) Telecom ParisTech 2010-2021
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -55,7 +55,7 @@ typedef struct s_playList Playlist;
 
 typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_MEDIA, TYPE_UNKNOWN } PlaylistElementType;
 
-typedef enum e_playlistElementDRMMethod { DRM_NONE, DRM_AES_128 } PlaylistElementDRMMethod;
+typedef enum e_playlistElementDRMMethod { DRM_NONE, DRM_AES_128, DRM_CENC } PlaylistElementDRMMethod;
 
 typedef enum _e_MediaType {
 	MEDIA_TYPE_UNKNOWN         = 0,

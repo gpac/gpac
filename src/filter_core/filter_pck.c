@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -95,7 +95,7 @@ static Bool pck_queue_enum(void *udta, void *item)
 	return GF_FALSE;
 }
 
-static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, u8 **data, Bool no_block_check)
+static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, u8 **data)
 {
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacket *closest=NULL;
@@ -105,8 +105,6 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (!no_block_check && gf_filter_pid_would_block(pid))
-		return NULL;
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
 	if (count) {
@@ -128,6 +126,11 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 		assert(closest);
 		closest->alloc_size = data_size;
 		closest->data = gf_realloc(closest->data, closest->alloc_size);
+		if (!closest->data) {
+			gf_free(closest);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
+			return NULL;
+		}
 		pck = closest;
 #ifdef GPAC_MEMORY_TRACKING
 		pid->filter->session->nb_realloc_pck++;
@@ -136,9 +139,16 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
-		if (!pck)
+		if (!pck) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
 			return NULL;
+		}
 		pck->data = gf_malloc(sizeof(char)*data_size);
+		if (!pck->data) {
+			gf_free(pck);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new packet on PID %s of filter %s\n", pid->name, pid->filter->name));
+			return NULL;
+		}
 		pck->alloc_size = data_size;
 #ifdef GPAC_MEMORY_TRACKING
 		pid->filter->session->nb_alloc_pck+=2;
@@ -171,7 +181,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **data)
 {
-	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
+	return gf_filter_pck_new_alloc_internal(pid, data_size, data);
 }
 
 static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data)
@@ -179,8 +189,11 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 	u32 i, w, h, stride, stride_uv, pf, osize;
 	u32 nb_planes, uv_height;
 	GF_FilterPacket *dst, *ref;
+	u8 *pck_data;
 	GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *) pck_source;
 	const GF_PropertyValue *p;
+
+	if (data) *data = NULL;
 
 	ref = pcki->pck;
 
@@ -206,10 +219,10 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 		gf_filter_pid_set_property(pid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(stride_uv));
 	}
 
-	dst = gf_filter_pck_new_alloc(pid, osize, data);
+	dst = gf_filter_pck_new_alloc(pid, osize, &pck_data);
 	if (!dst) return NULL;
-	
-	u8 *out_ptr = *data;
+	if (data) *data = pck_data;
+
 	for (i=0; i<nb_planes; i++) {
 		u32 j, write_h, dst_stride;
 		const u8 *in_ptr;
@@ -227,9 +240,9 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 			dst_stride = stride;
 		}
 		for (j=0; j<write_h; j++) {
-			memcpy(out_ptr, in_ptr, dst_stride);
+			memcpy(pck_data, in_ptr, dst_stride);
 			in_ptr += src_stride;
-			out_ptr += dst_stride;
+			pck_data += dst_stride;
 		}
 	}
 	gf_filter_pck_merge_properties(pck_source, dst);
@@ -264,7 +277,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 	
 	if (max_ref>1) {
 		u8 *data_new;
-		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, &data_new, GF_TRUE);
+		dst = gf_filter_pck_new_alloc_internal(pid, pcki->pck->data_length, &data_new);
 		if (dst && data_new) {
 			memcpy(data_new, pcki->pck->data, sizeof(char)*pcki->pck->data_length);
 			if (data) *data = data_new;
@@ -296,7 +309,7 @@ GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *pid, GF_FilterPacket *pck_
 GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct)
 {
-	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
+	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data);
 	if (pck) pck->destructor = destruct;
 	return pck;
 }
@@ -550,7 +563,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	}
 }
 
-static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
+Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 {
 	u32 size=0, pos=0;
 	u64 byte_offset = 0;
@@ -754,8 +767,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 	//send from filter, update flags
 	if (from_filter) {
-		Bool is_cmd = (pck->info.flags & GF_PCK_CKTYPE_MASK) ? GF_TRUE : GF_FALSE;
-		if (! is_cmd ) {
+		Bool is_cmd = (pck->info.flags & GF_PCK_CMD_MASK) ? GF_TRUE : GF_FALSE;
+		//not a clock, flush any pending clock
+		if (!  (pck->info.flags & GF_PCK_CKTYPE_MASK) ) {
 			gf_filter_forward_clock(pck->pid->filter);
 		}
 		if ( (pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS) {
@@ -778,6 +792,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 		if (!pid->request_property_map && !is_cmd_pck && (pid->nb_pck_sent || pid->props_changed_since_connect) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
+
+			if (pid->filter->user_pid_props)
+				gf_filter_pid_set_args(pid->filter, pid);
 
 			pck->info.flags |= GF_PCKF_PROPS_CHANGED;
 		}
@@ -970,9 +987,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (!dst->filter || dst->filter->finalized || dst->filter->removed || !dst->filter->freg->process) continue;
+		if (!dst->filter || dst->filter->finalized || (dst->filter->removed==1) || !dst->filter->freg->process) continue;
 
-		if (dst->discard_inputs) {
+		if (dst->discard_inputs==1) {
 			//in discard input mode, we drop all input packets but trigger reconfigure as they happen
 			if ((pck->info.flags & GF_PCKF_PROPS_CHANGED) && (dst->props != pck->pid_props)) {
 				//unassign old property list and set the new one
@@ -994,11 +1011,14 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				//in which a previously blacklisted filter (failing (re)configure for previous state) could
 				//now work, eg moving from formatA to formatB then back to formatA
 				gf_list_reset(dst->filter->blacklisted);
+				dst->discard_inputs = 2;
 				//and post a reconfigure task
-				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task, dst->filter, dst->pid, "pidinst_reconfigure", NULL);
+				gf_fs_post_task(dst->filter->session, gf_filter_pid_reconfigure_task_discard, dst->filter, (GF_FilterPid *)dst, "pidinst_reconfigure", NULL);
+				//keep packets, they will be trashed if we are still in discard when executing gf_filter_pid_reconfigure_task_discard
+			} else {
+				nb_discard++;
+				continue;
 			}
-			nb_discard++;
-			continue;
 		}
 
 		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
@@ -1082,7 +1102,12 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				if (inst->pck->filter_owns_mem) {
 					u8 *data;
 					u32 alloc_size;
-					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data, GF_TRUE);
+					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data);
+					if (!inst->pck) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to allocate new packet\n", pid->filter->name));
+						continue;
+					}
+
 					alloc_size = inst->pck->alloc_size;
 					memcpy(inst->pck, pck, sizeof(GF_FilterPacket));
 					inst->pck->pck = inst->pck;

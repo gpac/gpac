@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -59,7 +59,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_TEXT_MPEG4, GF_CODECID_TEXT_MPEG4, GF_STREAM_TEXT, "MPEG-4 Streaming Text", "m4txt", "text", "application/x-mpeg4-text"},
 	{GF_CODECID_LASER, GF_CODECID_LASER, GF_STREAM_SCENE, "MPEG-4 LASeR", "laser", "lsr1", "application/x-laser"},
 	{GF_CODECID_SAF, GF_CODECID_SAF, GF_STREAM_SCENE, "MPEG-4 Simple Aggregation Format", "saf", "mp4s", "application/saf"},
-	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "cmp|m4vp2", "mp4v", "video/mp4v-es"},
+	{GF_CODECID_MPEG4_PART2, GF_CODECID_MPEG4_PART2, GF_STREAM_VISUAL, "MPEG-4 Visual part 2", "cmp|m4ve|m4v", "mp4v", "video/mp4v-es"},
 	{GF_CODECID_AVC, GF_CODECID_AVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video", "264|avc|h264", "avc1", "video/avc"},
 	{GF_CODECID_AVC_PS, GF_CODECID_AVC_PS, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Video Parameter Sets", "avcps", "avcp", "video/avc"},
 	{GF_CODECID_SVC, GF_CODECID_SVC, GF_STREAM_VISUAL, "MPEG-4 AVC|H264 Scalable Video Coding", "svc|avc|264|h264", "svc1", "video/svc"},
@@ -75,7 +75,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_MPEG1, GF_CODECID_MPEG1, GF_STREAM_VISUAL, "MPEG-1 Video", "m1v", "mp1v", "video/mp1v-es"},
 	{GF_CODECID_JPEG, GF_CODECID_JPEG, GF_STREAM_VISUAL, "JPEG Image", "jpg|jpeg", "jpeg", "image/jpeg"},
 	{GF_CODECID_PNG, GF_CODECID_PNG, GF_STREAM_VISUAL, "PNG Image", "png", "png ", "image/png"},
-	{GF_CODECID_J2K, 0x6E, GF_STREAM_VISUAL, "JPEG200 Image", "jp2|j2k", "mjp2", "image/jp2"},
+	{GF_CODECID_J2K, 0x6E, GF_STREAM_VISUAL, "JPEG2000 Image", "jp2|j2k", "mjp2", "image/jp2"},
 	{GF_CODECID_AAC_MPEG4, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "MPEG-4 AAC Audio", "aac", "mp4a", "audio/aac"},
 	{GF_CODECID_AAC_MPEG2_MP, GF_CODECID_AAC_MPEG2_MP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Main", "aac|aac2m", "mp4a", "audio/aac", GF_CODECID_AAC_MPEG4},
 	{GF_CODECID_AAC_MPEG2_LCP, GF_CODECID_AAC_MPEG2_LCP, GF_STREAM_AUDIO, "MPEG-2 AAC Audio Low Complexity", "aac|aac2l", "mp4a", "audio/aac", GF_CODECID_AAC_MPEG4},
@@ -96,6 +96,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_DIRAC, 0xA4, GF_STREAM_VISUAL, "Dirac Video", "dirac", NULL, "video/dirac"},
 	{GF_CODECID_AC3, 0xA5, GF_STREAM_AUDIO, "AC3 Audio", "ac3", "ac-3", "audio/ac3"},
 	{GF_CODECID_EAC3, 0xA6, GF_STREAM_AUDIO, "Enhanced AC3 Audio", "eac3", "ec-3", "audio/eac3"},
+	{GF_CODECID_TRUEHD, 0, GF_STREAM_AUDIO, "Dolby TrueHD", "mlp", "mlpa", "audio/truehd"},
 	{GF_CODECID_DRA, 0xA7, GF_STREAM_AUDIO, "DRA Audio", "dra", NULL, "audio/dra"},
 	{GF_CODECID_G719, 0xA8, GF_STREAM_AUDIO, "G719 Audio", "g719", NULL, "audio/g719"},
 	{GF_CODECID_DTS_CA, 0xA9, GF_STREAM_AUDIO, "DTS Coherent Acoustics Audio", "dstca", NULL, "audio/dts"},
@@ -135,7 +136,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_IBM_ALAW, 0, GF_STREAM_AUDIO, "IBM ALAW", "ialaw", NULL, "audio/pcm"},
 	{GF_CODECID_IBM_ADPCM, 0, GF_STREAM_AUDIO, "IBM ADPCL", "iadpcl", NULL, "audio/pcm"},
 	{GF_CODECID_FLASH, 0, GF_STREAM_SCENE, "Adobe Flash", "swf", NULL, "audio/pcm"},
-	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "audio/pcm"},
+	{GF_CODECID_RAW, 0, GF_STREAM_UNKNOWN, "Raw media", "raw", NULL, "*/*"},
 
 	{GF_CODECID_AV1, 0, GF_STREAM_VISUAL, "AOM AV1 Video", "av1|ivf|obu|av1b", NULL, "video/av1"},
 	{GF_CODECID_VP8, 0, GF_STREAM_VISUAL, "VP8 Video", "vp8|ivf", NULL, "video/vp8"},
@@ -165,14 +166,24 @@ CodecIDReg CodecRegistry [] = {
 GF_EXPORT
 GF_CodecID gf_codecid_parse(const char *cname)
 {
-	u32 len = (u32) strlen(cname);
+	u32 ilen = (u32) strlen(cname);
 	u32 i, count = sizeof(CodecRegistry) / sizeof(CodecIDReg);
 	for (i=0; i<count; i++) {
-		char *sep;
-		if (!strcmp(CodecRegistry[i].sname, cname)) return CodecRegistry[i].codecid;
-		if (!strchr(CodecRegistry[i].sname, '|') ) continue;
-		sep = strstr(CodecRegistry[i].sname, cname);
-		if (sep && (!sep[len] || (sep[len]=='|'))) return CodecRegistry[i].codecid;
+		const char *n = CodecRegistry[i].sname;
+		while (n) {
+			char *sep = strchr(n, '|');
+			u32 len;
+			if (sep)
+				len = (u32) (sep - n);
+			else
+				len = (u32) strlen(n);
+
+			//allow case insensitive names
+			if ((len==ilen) && !strnicmp(n, cname, len))
+				return CodecRegistry[i].codecid;
+			if (!sep) break;
+			n = sep+1;
+		}
 	}
 	return GF_CODECID_NONE;
 }
@@ -260,6 +271,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_RAW;
 	case GF_QT_SUBTYPE_IN32:
 		return GF_CODECID_RAW;
+	case GF_ISOM_SUBTYPE_MLPA:
+		return GF_CODECID_TRUEHD;
 	default:
 		break;
 	}
@@ -384,26 +397,27 @@ typedef struct
 	u32 st;
 	const char *name;
 	const char *desc;
+	const char *sname;
 	const char *alt_name;
 } GF_StreamTypeDesc;
 
 static const GF_StreamTypeDesc GF_StreamTypes[] =
 {
-	{GF_STREAM_VISUAL, "Visual", "Video or Image stream", "Video"},
-	{GF_STREAM_AUDIO, "Audio", "Audio stream"},
-	{GF_STREAM_SCENE, "SceneDescription", "Scene stream"},
-	{GF_STREAM_TEXT, "Text", "Text or subtitle stream"},
-	{GF_STREAM_METADATA, "Metadata", "Metadata stream"},
-	{GF_STREAM_FILE, "File", "Raw file stream"},
-	{GF_STREAM_ENCRYPTED, "Encrypted", "Encrypted media stream"},
-	{GF_STREAM_OD, "ObjectDescriptor", "MPEG-4 ObjectDescriptor stream"},
-	{GF_STREAM_OCR, "ClockReference", "MPEG-4 Clock Reference stream"},
-	{GF_STREAM_MPEG7, "MPEG7", "MPEG-7 description stream"},
-	{GF_STREAM_IPMP, "IPMP", "MPEG-4 IPMP/DRM stream"},
-	{GF_STREAM_OCI, "OCI", "MPEG-4 ObjectContentInformation stream"},
-	{GF_STREAM_MPEGJ, "MPEGJ", "MPEG-4 JAVA stream"},
-	{GF_STREAM_INTERACT, "Interaction", "MPEG-4 Interaction Sensor stream"},
-	{GF_STREAM_FONT, "Font", "MPEG-4 Font stream"}
+	{GF_STREAM_VISUAL, "Visual", "Video or Image stream", "video", "Video"},
+	{GF_STREAM_AUDIO, "Audio", "Audio stream", "audio"},
+	{GF_STREAM_SCENE, "SceneDescription", "Scene stream", "scene"},
+	{GF_STREAM_TEXT, "Text", "Text or subtitle stream", "text"},
+	{GF_STREAM_METADATA, "Metadata", "Metadata stream", "meta"},
+	{GF_STREAM_FILE, "File", "Raw file stream", "file"},
+	{GF_STREAM_ENCRYPTED, "Encrypted", "Encrypted media stream", "crypt"},
+	{GF_STREAM_OD, "ObjectDescriptor", "MPEG-4 ObjectDescriptor stream", "od"},
+	{GF_STREAM_OCR, "ClockReference", "MPEG-4 Clock Reference stream", "ocr"},
+	{GF_STREAM_MPEG7, "MPEG7", "MPEG-7 description stream", "mpeg7"},
+	{GF_STREAM_IPMP, "IPMP", "MPEG-4 IPMP/DRM stream", "ipmp"},
+	{GF_STREAM_OCI, "OCI", "MPEG-4 ObjectContentInformation stream", "oci"},
+	{GF_STREAM_MPEGJ, "MPEGJ", "MPEG-4 JAVA stream", "mpegj"},
+	{GF_STREAM_INTERACT, "Interaction", "MPEG-4 Interaction Sensor stream", "interact"},
+	{GF_STREAM_FONT, "Font", "MPEG-4 Font stream", "font"}
 };
 
 GF_EXPORT
@@ -415,6 +429,17 @@ const char *gf_stream_type_name(u32 streamType)
 			return GF_StreamTypes[i].name;
 	}
 	return "Unknown";
+}
+
+GF_EXPORT
+const char *gf_stream_type_short_name(u32 streamType)
+{
+	u32 i, nb_st = sizeof(GF_StreamTypes) / sizeof(GF_StreamTypeDesc);
+	for (i=0; i<nb_st; i++) {
+		if (GF_StreamTypes[i].st == streamType)
+			return GF_StreamTypes[i].sname;
+	}
+	return "unkn";
 }
 
 GF_EXPORT
@@ -431,9 +456,12 @@ u32 gf_stream_type_by_name(const char *val)
 	return GF_STREAM_UNKNOWN;
 }
 
+#if 0
 static char szAllStreamTypes[500] = {0};
 
-GF_EXPORT
+/*! Gets the list of names of all stream types defined
+\return names of all stream types defined
+ */
 const char *gf_stream_type_all_names()
 {
 	if (!szAllStreamTypes[0]) {
@@ -456,6 +484,8 @@ const char *gf_stream_type_all_names()
 	}
 	return szAllStreamTypes;
 }
+#endif
+
 
 GF_EXPORT
 u32 gf_stream_types_enum(u32 *idx, const char **name, const char **desc)
@@ -847,6 +877,7 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)
 	return nb_chan;
 }
 
+GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)
 {
 	u16 res = 0;
@@ -1485,30 +1516,78 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pix_fmt)
 
 static struct _itags {
 	const char *name;
+	const char *alt_name;
 	u32 itag;
 	u32 id3tag;
 	u32 type;
+	Bool match_substr;
 } itunes_tags[] = {
 
-	{"album", GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR},
-	{"artist", GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR},
-	{"comment", GF_ISOM_ITUNE_COMMENT, 0, GF_ITAG_SUBSTR},
-	{"complilation", GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL},
-	{"composer", GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR},
-	{"year", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TDRC, GF_ITAG_STR},
-	{"disk", GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_STR},
-	{"tool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR},
-	{"genre", GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_STR},
-	{"contentgroup", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR},
-	{"title", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR},
-	{"tempo", GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_STR},
-	{"track", GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR},
-	{"tracknum", GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_STR},
-	{"writer", GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR},
-	{"encoder", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TSSE, GF_ITAG_STR},
-	{"album_artist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_SUBSTR},
-	{"gapless", GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL},
-	{"conductor", GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR},
+	{"title", "name", GF_ISOM_ITUNE_NAME, GF_ID3V2_FRAME_TIT2, GF_ITAG_STR, 0},
+	{"artist", NULL, GF_ISOM_ITUNE_ARTIST, GF_ID3V2_FRAME_TPE1, GF_ITAG_STR, 0},
+	{"album_artist", "albumArtist", GF_ISOM_ITUNE_ALBUM_ARTIST, GF_ID3V2_FRAME_TPE2, GF_ITAG_STR, 1},
+	{"album", NULL, GF_ISOM_ITUNE_ALBUM, GF_ID3V2_FRAME_TALB, GF_ITAG_STR, 0},
+	{"group", "grouping", GF_ISOM_ITUNE_GROUP, GF_ID3V2_FRAME_TIT1, GF_ITAG_STR, 0},
+	{"composer", NULL, GF_ISOM_ITUNE_COMPOSER, GF_ID3V2_FRAME_TCOM, GF_ITAG_STR, 0},
+	{"writer", NULL, GF_ISOM_ITUNE_WRITER, GF_ID3V2_FRAME_TEXT, GF_ITAG_STR, 0},
+	{"conductor", NULL, GF_ISOM_ITUNE_CONDUCTOR, GF_ID3V2_FRAME_TPE3, GF_ITAG_STR, 0},
+	{"comment", "comments", GF_ISOM_ITUNE_COMMENT, GF_ID3V2_FRAME_COMM, GF_ITAG_STR, 1},
+	//mapped dynamically to GF_ISOM_ITUNE_GENRE or GF_ISOM_ITUNE_GENRE_USER
+	{"genre", NULL, GF_ISOM_ITUNE_GENRE, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE, 0},
+	{"created", "releaseDate", GF_ISOM_ITUNE_CREATED, GF_ID3V2_FRAME_TYER, GF_ITAG_STR, 1},
+	{"track", NULL, GF_ISOM_ITUNE_TRACK, 0, GF_ITAG_STR, 0},
+	{"tracknum", NULL, GF_ISOM_ITUNE_TRACKNUMBER, GF_ID3V2_FRAME_TRCK, GF_ITAG_FRAC8, 0},
+	{"disk", NULL, GF_ISOM_ITUNE_DISK, GF_ID3V2_FRAME_TPOS, GF_ITAG_FRAC6, 0},
+	{"tempo", NULL, GF_ISOM_ITUNE_TEMPO, GF_ID3V2_FRAME_TBPM, GF_ITAG_INT16, 0},
+	{"compilation", NULL, GF_ISOM_ITUNE_COMPILATION, GF_ID3V2_FRAME_TCMP, GF_ITAG_BOOL, 0},
+	{"show", "tvShow", GF_ISOM_ITUNE_TV_SHOW, 0, GF_ITAG_STR, 0},
+	{"episode_id", "tvEpisodeID", GF_ISOM_ITUNE_TV_EPISODE, 0, GF_ITAG_STR, 0},
+	{"season", "tvSeason", GF_ISOM_ITUNE_TV_SEASON, 0, GF_ITAG_INT32, 0},
+	{"episode", "tvEPisode", GF_ISOM_ITUNE_TV_EPISODE_NUM, 0, GF_ITAG_INT32, 0},
+	{"network", "tvNetwork", GF_ISOM_ITUNE_TV_NETWORK, 0, GF_ITAG_STR, 0},
+	{"sdesc", "description", GF_ISOM_ITUNE_DESCRIPTION, 0, GF_ITAG_STR, 0},
+	{"ldesc", "longDescription", GF_ISOM_ITUNE_LONG_DESCRIPTION, GF_ID3V2_FRAME_TDES, GF_ITAG_STR, 0},
+	{"lyrics", NULL, GF_ISOM_ITUNE_LYRICS, GF_ID3V2_FRAME_USLT, GF_ITAG_STR, 0},
+	{"sort_name", "sortName", GF_ISOM_ITUNE_SORT_NAME, GF_ID3V2_FRAME_TSOT, GF_ITAG_STR, 0},
+	{"sort_artist", "sortArtist", GF_ISOM_ITUNE_SORT_ARTIST, GF_ID3V2_FRAME_TSOP, GF_ITAG_STR, 0},
+	{"sort_album_artist", "sortAlbumArtist", GF_ISOM_ITUNE_SORT_ALB_ARTIST, GF_ID3V2_FRAME_TSO2, GF_ITAG_STR, 0},
+	{"sort_album", "sortAlbum", GF_ISOM_ITUNE_SORT_ALBUM, GF_ID3V2_FRAME_TSOA, GF_ITAG_STR, 0},
+	{"sort_composer", "sortComposer", GF_ISOM_ITUNE_SORT_COMPOSER, GF_ID3V2_FRAME_TSOC, GF_ITAG_STR, 0},
+	{"sort_show", "sortShow", GF_ISOM_ITUNE_SORT_SHOW, 0, GF_ITAG_STR, 0},
+	{"cover", "artwork", GF_ISOM_ITUNE_COVER_ART, 0, GF_ITAG_FILE, 0},
+	{"copyright", NULL, GF_ISOM_ITUNE_COPYRIGHT, GF_ID3V2_FRAME_TCOP, GF_ITAG_STR, 0},
+	{"tool", "encodingTool", GF_ISOM_ITUNE_TOOL, 0, GF_ITAG_STR, 0},
+	{"encoder", "encodedBy", GF_ISOM_ITUNE_ENCODER, GF_ID3V2_FRAME_TENC, GF_ITAG_STR, 0},
+	{"pdate", "purchaseDate", GF_ISOM_ITUNE_PURCHASE_DATE, 0, GF_ITAG_STR, 0},
+	{"podcast", NULL, GF_ISOM_ITUNE_PODCAST, 0, GF_ITAG_BOOL, 0},
+	{"url", "podcastURL", GF_ISOM_ITUNE_PODCAST_URL, 0, GF_ITAG_STR, 0},
+	{"keywords", NULL, GF_ISOM_ITUNE_KEYWORDS, GF_ID3V2_FRAME_TKWD, GF_ITAG_STR, 0},
+	{"category", NULL, GF_ISOM_ITUNE_CATEGORY, GF_ID3V2_FRAME_TCAT, GF_ITAG_STR, 0},
+	{"hdvideo", NULL, GF_ISOM_ITUNE_HD_VIDEO, 0, GF_ITAG_INT8, 0},
+	{"media", "mediaType", GF_ISOM_ITUNE_MEDIA_TYPE, 0, GF_ITAG_INT8, 0},
+	{"rating", "contentRating", GF_ISOM_ITUNE_RATING, 0, GF_ITAG_INT8, 0},
+	{"gapless", NULL, GF_ISOM_ITUNE_GAPLESS, 0, GF_ITAG_BOOL, 0},
+	{"art_director", NULL, GF_ISOM_ITUNE_ART_DIRECTOR, 0, GF_ITAG_STR, 0},
+	{"arranger", NULL, GF_ISOM_ITUNE_ARRANGER, 0, GF_ITAG_STR, 0},
+	{"lyricist", NULL, GF_ISOM_ITUNE_LYRICIST, 0, GF_ITAG_STR, 0},
+	{"acknowledgement", NULL, GF_ISOM_ITUNE_COPY_ACK, 0, GF_ITAG_STR, 0},
+	{"song_description", NULL, GF_ISOM_ITUNE_SONG_DESC, 0, GF_ITAG_STR, 0},
+	{"director", NULL, GF_ISOM_ITUNE_DIRECTOR, 0, GF_ITAG_STR, 0},
+	{"equalizer", NULL, GF_ISOM_ITUNE_EQ_PRESET, 0, GF_ITAG_STR, 0},
+	{"liner", NULL, GF_ISOM_ITUNE_LINER_NOTES, 0, GF_ITAG_STR, 0},
+	{"record_company", NULL, GF_ISOM_ITUNE_REC_COMPANY, 0, GF_ITAG_STR, 0},
+	{"original_artist", NULL, GF_ISOM_ITUNE_ORIG_ARTIST, 0, GF_ITAG_STR, 0},
+	{"phono_rights", NULL, GF_ISOM_ITUNE_PHONO_RIGHTS, 0, GF_ITAG_STR, 0},
+	{"producer", NULL, GF_ISOM_ITUNE_PRODUCER, 0, GF_ITAG_STR, 0},
+	{"performer", NULL, GF_ISOM_ITUNE_PERFORMER, 0, GF_ITAG_STR, 0},
+	{"publisher", NULL, GF_ISOM_ITUNE_PUBLISHER, 0, GF_ITAG_STR, 0},
+	{"sound_engineer", NULL, GF_ISOM_ITUNE_SOUND_ENG, 0, GF_ITAG_STR, 0},
+	{"soloist", NULL, GF_ISOM_ITUNE_SOLOIST, 0, GF_ITAG_STR, 0},
+	{"credits", NULL, GF_ISOM_ITUNE_CREDITS, 0, GF_ITAG_STR, 0},
+	{"thanks", NULL, GF_ISOM_ITUNE_THANKS, 0, GF_ITAG_STR, 0},
+	{"online_info", NULL, GF_ISOM_ITUNE_ONLINE, 0, GF_ITAG_STR, 0},
+	{"exec_producer", NULL, GF_ISOM_ITUNE_EXEC_PRODUCER, 0, GF_ITAG_STR, 0},
+
 };
 
 GF_EXPORT
@@ -1539,7 +1618,7 @@ s32 gf_itags_find_by_name(const char *tag_name)
 	for (i=0; i<count; i++) {
 		if (!strcmp(tag_name, itunes_tags[i].name)) {
 			return i;
-		} else if ((itunes_tags[i].type==GF_ITAG_SUBSTR) && !strnicmp(tag_name, itunes_tags[i].name, strlen(itunes_tags[i].name) )) {
+		} else if (itunes_tags[i].match_substr && !strnicmp(tag_name, itunes_tags[i].name, strlen(itunes_tags[i].name) )) {
 			return i;
 		}
 	}
@@ -1547,10 +1626,10 @@ s32 gf_itags_find_by_name(const char *tag_name)
 }
 
 GF_EXPORT
-u32 gf_itags_get_type(u32 tag_idx)
+s32 gf_itags_get_type(u32 tag_idx)
 {
 	u32 count = GF_ARRAY_LENGTH(itunes_tags);
-	if (tag_idx>=count) return 0;
+	if (tag_idx>=count) return -1;
 	return itunes_tags[tag_idx].type;
 }
 
@@ -1560,6 +1639,14 @@ const char *gf_itags_get_name(u32 tag_idx)
 	u32 count = GF_ARRAY_LENGTH(itunes_tags);
 	if (tag_idx>=count) return NULL;
 	return itunes_tags[tag_idx].name;
+}
+
+GF_EXPORT
+const char *gf_itags_get_alt_name(u32 tag_idx)
+{
+	u32 count = GF_ARRAY_LENGTH(itunes_tags);
+	if (tag_idx>=count) return NULL;
+	return itunes_tags[tag_idx].alt_name;
 }
 
 GF_EXPORT

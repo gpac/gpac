@@ -972,7 +972,7 @@ typedef struct
 		s32 send_event_y;
 	};
 	Bool aggregated;
-	/*some commands need to never be applied; for instance when building an aggregate carrousel*/
+	/*some commands need to never be applied; for instance when building an aggregate carousel*/
 	Bool never_apply;
 } GF_Command;
 

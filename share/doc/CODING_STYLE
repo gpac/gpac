@@ -32,8 +32,8 @@ For example, error code GF_BAD_PARAM.
 
 Enums names shall refer to the main module they are used in through a keyword right after the GF_ .
 For example, 
-  * enums refering to file format (isomedia) will be prefixed by GF_ISOM_
-  * enums refering to MPEG-4 OD tools (odf) will be prefixed by GF_ODF_
+  * enums referring to file format (isomedia) will be prefixed by GF_ISOM_
+  * enums referring to MPEG-4 OD tools (odf) will be prefixed by GF_ODF_
   
   1.3 functions
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -694,6 +694,8 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					if (oggpackB_read(&opb, 1) != 0) continue;
 
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					if (!dst_pck) return GF_OUT_OF_MEM;
+
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
 					gf_filter_pck_set_sap(dst_pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
@@ -712,7 +714,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!block_size) continue;
 
 						if (!st->recomputed_ts) {
-							//compat with old arch (keep same hashes), to remove once droping it
+							//compat with old arch (keep same hashes), to remove once dropping it
 							if (!gf_sys_old_arch_compat()) {
 								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -st->opus_parser->PreSkip));
 							}
@@ -720,7 +722,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					}
 
 					if (ogg_page_eos(&oggpage)) {
-						//compat with old arch (keep same hashes), to remove once droping it
+						//compat with old arch (keep same hashes), to remove once dropping it
 						if (!gf_sys_old_arch_compat()) {
 							/*4.4 End Trimming, cf https://tools.ietf.org/html/rfc7845 */
 							if (oggpacket.granulepos != -1 && granulepos_init != -1)
@@ -728,9 +730,11 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						}
 					}
 					dst_pck = gf_filter_pck_new_alloc(st->opid, oggpacket.bytes, &output);
+					if (!dst_pck) return GF_OUT_OF_MEM;
+					
 					memcpy(output, (char *) oggpacket.packet, oggpacket.bytes);
 					gf_filter_pck_set_cts(dst_pck, st->recomputed_ts);
-					//compat with old arch (keep same hashes), to remove once droping it
+					//compat with old arch (keep same hashes), to remove once dropping it
 					if (!gf_sys_old_arch_compat()) {
 						gf_filter_pck_set_duration(dst_pck, block_size);
 					}
@@ -738,7 +742,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					if (st->info.type == GF_CODECID_VORBIS) {
 						gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 					} else if (st->info.type == GF_CODECID_OPUS) {
-						//compat with old arch (keep same hashes), to remove once droping it
+						//compat with old arch (keep same hashes), to remove once dropping it
 						if (!gf_sys_old_arch_compat()) {
 							gf_filter_pck_set_roll_info(dst_pck, 3840);
 							gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_4);

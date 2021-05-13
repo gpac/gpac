@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -226,6 +226,7 @@ static void gsfmx_send_packets(GSFMxCtx *ctx, GSFStream *gst, GF_GSFPacketType p
 		osize = hdr_size + to_write;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, osize, &output);
+		if (!dst_pck) return;
 
 		//format header
 		gf_bs_reassign_buffer(ctx->bs_w, output, osize);
@@ -336,12 +337,10 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
-	case GF_PROP_PIXFMT:
-	case GF_PROP_PCMFMT:
-	case GF_PROP_CICP_COL_PRIM:
-	case GF_PROP_CICP_COL_TFC:
-	case GF_PROP_CICP_COL_MX:
 		gsfmx_write_vlen(ctx, p->value.uint);
+		break;
+	case GF_PROP_4CC:
+		gf_bs_write_u32(ctx->bs_w, p->value.uint);
 		break;
 	case GF_PROP_LSINT:
 	case GF_PROP_LUINT:
@@ -377,22 +376,11 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		gsfmx_write_vlen(ctx, p->value.vec3i.y);
 		gsfmx_write_vlen(ctx, p->value.vec3i.z);
 		break;
-	case GF_PROP_VEC3:
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.x);
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.y);
-		gf_bs_write_double(ctx->bs_w, p->value.vec3.z);
-		break;
 	case GF_PROP_VEC4I:
 		gsfmx_write_vlen(ctx, p->value.vec4i.x);
 		gsfmx_write_vlen(ctx, p->value.vec4i.y);
 		gsfmx_write_vlen(ctx, p->value.vec4i.z);
 		gsfmx_write_vlen(ctx, p->value.vec4i.w);
-		break;
-	case GF_PROP_VEC4:
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.x);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.y);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.z);
-		gf_bs_write_double(ctx->bs_w, p->value.vec4.w);
 		break;
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -430,6 +418,13 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 			gsfmx_write_vlen(ctx, p->value.uint_list.vals[i] );
 		}
 		break;
+	case GF_PROP_4CC_LIST:
+		len = p->value.uint_list.nb_items;
+		gsfmx_write_vlen(ctx, len);
+		for (i=0; i<len; i++) {
+			gf_bs_write_u32(ctx->bs_w, p->value.uint_list.vals[i] );
+		}
+		break;
 	case GF_PROP_VEC2I_LIST:
 		len = p->value.v2i_list.nb_items;
 		gsfmx_write_vlen(ctx, len);
@@ -442,6 +437,10 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
 		break;
 	default:
+		if (gf_props_type_is_enum(p->type)) {
+			gsfmx_write_vlen(ctx, p->value.uint);
+			break;
+		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize property of unknown type, ignoring !!\n"));
 		break;
 	}
@@ -635,7 +634,7 @@ static void gsfmx_send_header(GF_Filter *filter, GSFMxCtx *ctx, Bool is_carousel
 	//header:signature
 	gf_bs_write_u32(ctx->bs_w, GF_4CC('G','S','5','F') );
 	//header protocol version
-	gf_bs_write_u8(ctx->bs_w, 1);
+	gf_bs_write_u8(ctx->bs_w, GF_GSF_VERSION);
 
 	if (ctx->crypt) {
 		gf_bs_write_data(ctx->bs_w, ctx->crypt_IV, 16);
@@ -752,7 +751,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	//if durmode>0, dur on ts_diff_mode
 	//if sap==4, roll on signed 16 bits
 	//if (has sample deps) sample_deps_flags on 8 bits
-	//if has_carousel, carrousel version on 8 bits
+	//if has_carousel, carousel version on 8 bits
 	//if has_byteoffset, byte offset on 64 bits
 	//if (has builtin) vlen nb builtin_props then props[builtin_props]
 	//if (has props) vlen nb_str_props then props[nb_str_props]
@@ -981,7 +980,7 @@ GF_Err gsfmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gsfmx_send_pid_rem(ctx, gst);
 		gf_list_del_item(ctx->streams, gst);
 		gf_free(gst);
-		if (!gf_list_count(ctx->streams)) {
+		if (!gf_list_count(ctx->streams) && ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
 		}
@@ -1225,7 +1224,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 #ifndef GPAC_DISABLE_CRYPTO
 	{ OFFS(key), "encrypt packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(IV), "set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
-	{ OFFS(pattern), "set nb crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pattern), "set nb_crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
 #endif // GPAC_DISABLE_CRYPTO
 	{ OFFS(mpck), "set max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1250,7 +1249,7 @@ GF_FilterRegister GSFMxRegister = {
 			"This allows either saving to file a session, or forwarding the state/data of streams to another instance of GPAC "
 			"using either pipes or sockets. Upstream events are not serialized.\n"
 			"\n"
-			"The default behaviour does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
+			"The default behavior does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
 			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO
@@ -1266,16 +1265,16 @@ GF_FilterRegister GSFMxRegister = {
 #endif
 			"# Filtering properties\n"
 			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the [-minp]() option can be used: "
-			"this will remove all built-in properties marked as dropable (cf property help) as well as all non built-in properties.\n"
+			"this will remove all built-in properties marked as droppable (cf property help) as well as all non built-in properties.\n"
 			"The [-skp]() option may also be used to specify which property to drop:\n"
 			"EX skp=\"4CC1,Name2\n"\
 			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.\n"
 			"\n"
 			"# File mode\n"
-			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explictly loading the filter with [-ext]() or [-dst]() set.\n"
+			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explicitly loading the filter with [-ext]() or [-dst]() set.\n"
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd @ -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
-			"In order to demux such a file, the GSF demuxer will likely need to be explictly loaded:\n"
+			"In order to demux such a file, the GSF demuxer will likely need to be explicitly loaded:\n"
 			"EX gpac -i mux.gsf gsfdmx @ -o dump/$File$:dynext:clone\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"

@@ -1295,6 +1295,9 @@
     <ClCompile Include="..\..\src\filters\inspect.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\io_fcryp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\isoffin_load.c">
       <Filter>filters</Filter>
     </ClCompile>
@@ -1365,6 +1368,9 @@
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\reframe_truehd.c">
       <Filter>filters</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\filters\reframer.c">

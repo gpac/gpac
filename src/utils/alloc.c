@@ -483,7 +483,7 @@ size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsig
 typedef struct s_memory_element
 {
     void *ptr;
-    int size;
+    unsigned int size;
     struct s_memory_element *next;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     char *backtrace_stack;
@@ -513,7 +513,7 @@ static unsigned int gf_memory_hash(void *ptr)
 
 
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
-static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const char *filename, int line)
+static void gf_memory_add_stack(memory_element **p, void *ptr, unsigned int size, const char *filename, int line)
 {
 	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element));
 	if (!element) {
@@ -562,9 +562,9 @@ static int gf_memory_find_stack(memory_element *p, void *ptr)
 }
 
 /*returns the size of the deleted item*/
-static int gf_memory_del_item_stack(memory_element **p, void *ptr)
+static unsigned int gf_memory_del_item_stack(memory_element **p, void *ptr)
 {
-	int size;
+	unsigned int size;
 	memory_element *curr_element=*p, *prev_element=NULL;
 	while (curr_element) {
 		if (curr_element->ptr == ptr) {
@@ -586,7 +586,7 @@ static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 }
 
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
-static void gf_memory_add(memory_list *p, void *ptr, int size, const char *filename, int line)
+static void gf_memory_add(memory_list *p, void *ptr, unsigned int size, const char *filename, int line)
 {
 	unsigned int hash;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
@@ -606,10 +606,10 @@ static int gf_memory_find(memory_list p, void *ptr)
 	return gf_memory_find_stack(p[hash], ptr);
 }
 
-static int gf_memory_del_item(memory_list *p, void *ptr)
+static unsigned int gf_memory_del_item(memory_list *p, void *ptr)
 {
 	unsigned int hash;
-	int ret;
+	unsigned int ret;
 	memory_element **sub_list;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
 	assert(*p);
@@ -663,7 +663,7 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
 
-	gf_memory_add(&memory_add, ptr, (int)size, filename, line);
+	gf_memory_add(&memory_add, ptr, (unsigned int)size, filename, line);
 	gf_memory_del_item(&memory_rem, ptr); /*the same block can be reallocated, so remove it from the deallocation list*/
 
 	/*update stats*/
@@ -722,7 +722,7 @@ Bool gf_mem_check_address(void *ptr)
 /*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, const char *filename, int line)
 {
-	int size = 0; /*default: failure*/
+	unsigned int size = 0; /*default: failure*/
 
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
@@ -758,7 +758,6 @@ static int unregister_address(void *ptr, const char *filename, int line)
 			}
 		} else {
 			size = gf_memory_del_item(&memory_add, ptr);
-			assert(size>=0);
 
 			/*update stats*/
 			gpac_allocated_memory -= size;
@@ -947,3 +946,43 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 }
 
 #endif //unused
+
+/*
+ * FROM: https://github.com/freebsd/freebsd-src/blob/master/sys/libkern/strlcpy.c
+ *
+ * Copyright (c) 1998, 2015 Todd C. Miller <Todd.Miller@courtesan.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ */
+/*
+ * Copy string src to buffer dst of size dsize.  At most dsize-1
+ * chars will be copied.  Always NUL terminates (unless dsize == 0).
+ * Returns strlen(src); if retval >= dsize, truncation occurred.
+ */
+GF_EXPORT
+size_t gf_strlcpy(char * dst, const char * src, size_t dsize)
+{
+	const char *osrc = src;
+	size_t nleft = dsize;
+
+	/* Copy as many bytes as will fit. */
+	if (nleft != 0) {
+		while (--nleft != 0) {
+			if ((*dst++ = *src++) == '\0')
+				break;
+		}
+	}
+
+	/* Not enough room in dst, add NUL and traverse rest of src. */
+	if (nleft == 0) {
+		if (dsize != 0)
+			*dst = '\0';		/* NUL-terminate dst */
+		while (*src++)
+			;
+	}
+
+	return(src - osrc - 1);	/* count does not include NUL */
+}

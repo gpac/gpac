@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / QCP stream to file filter
@@ -70,7 +70,10 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -204,6 +207,8 @@ static void qcpmx_send_header(GF_QCPMxCtx *ctx, u32 data_size, u32 frame_count)
 	size += 8;
 	size -= data_size;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return;
+
 	bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 
 	gf_bs_write_data(bs, "RIFF", 4);
@@ -276,10 +281,12 @@ GF_Err qcpmx_process(GF_Filter *filter)
 			}
 			if (ctx->has_qcp_pad) {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, 1, &output);
-				output[0] = 0;
-				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-				ctx->has_qcp_pad = GF_FALSE;
-				gf_filter_pck_send(dst_pck);
+				if (dst_pck) {
+					output[0] = 0;
+					gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+					ctx->has_qcp_pad = GF_FALSE;
+					gf_filter_pck_send(dst_pck);
+				}
 			}
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -316,12 +323,15 @@ GF_Err qcpmx_process(GF_Filter *filter)
 		}
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-		output[0] = rate_found;
-		memcpy(output+1, data, pck_size);
+		if (dst_pck) {
+			output[0] = rate_found;
+			memcpy(output+1, data, pck_size);
+		}
 	} else {
 		//send the complete data
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, size, pck);
 	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);

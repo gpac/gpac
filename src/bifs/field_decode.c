@@ -413,7 +413,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 					if (gf_node_get_tag(new_node) == TAG_MPEG4_QuantizationParameter) {
 						qp_local = ((M_QuantizationParameter *)new_node)->isLocal;
 						/*we have a QP in the same scope, remove previous
-						NB: we assume this is the right behaviour, the spec doesn't say
+						NB: we assume this is the right behavior, the spec doesn't say
 						whether QP is cumulative or not*/
 						if (qp_on) gf_bifs_dec_qp_remove(codec, GF_FALSE);
 

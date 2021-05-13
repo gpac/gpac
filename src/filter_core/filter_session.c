@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -122,6 +122,15 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 	if (evt->type==GF_EVENT_QUIT) {
 		gf_fs_abort(fs, GF_FALSE);
 	}
+	if (evt->type==GF_EVENT_MESSAGE) {
+		if (evt->message.error) {
+			if (evt->message.service) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Service %s %s: %s\n", evt->message.service, evt->message.message, gf_error_to_string(evt->message.error) ))
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("%s: %s\n", evt->message.message, gf_error_to_string(evt->message.error) ))
+			}
+		}
+	}
 
 #ifdef GPAC_HAS_QJS
 	if (fs->on_evt_task)
@@ -129,6 +138,12 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 #endif
 	return 0;
 }
+
+
+#ifdef GF_FS_ENABLE_LOCALES
+static Bool fs_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path);
+#endif
+
 
 GF_EXPORT
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u32 flags, const char *blacklist)
@@ -333,15 +348,26 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if ((arg[1]!='-') && (arg[1]!='+')) continue;
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
-			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]!='-') ? 2 : 1);
+			gf_fs_push_arg(fsess, arg+2, 0, (arg[1]!='-') ? 2 : 1);
+
+			if (sep && !strcmp(arg+2, "template") && strstr(sep+1, "$Bandwidth$")) {
+				gf_opts_set_key("temp", "force_indexing", "true");
+			}
+
 			if (sep) sep[0] = '=';
 		}
 	}
 
+#ifdef GF_FS_ENABLE_LOCALES
+	fsess->uri_relocators = gf_list_new();
+	fsess->locales.relocate_uri = fs_check_locales;
+	fsess->locales.sess = fsess;
+	gf_list_add(fsess->uri_relocators, &fsess->locales);
+#endif
 	return fsess;
 }
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, u32 type)
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found, u32 type)
 {
 	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
 		return;
@@ -355,8 +381,8 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
 				afound = GF_TRUE;
-				if ((ai->type==2) && (type==2))
-					ai->found = GF_FALSE;
+				if ((ai->type==2) && (type==2) && (ai->found_type==1))
+					ai->found_type = 0;
 				break;
 			}
 		}
@@ -377,7 +403,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		for (k=0; k<acount; k++) {
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
-				ai->found = GF_TRUE;
+				ai->found_type = was_found;
 				found = GF_TRUE;
 				break;
 			}
@@ -388,7 +414,7 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 			if (ai) {
 				ai->argname = gf_strdup(szArg);
 				ai->type = type;
-				ai->found = GF_TRUE;
+				ai->found_type = was_found;
 				gf_list_add(session->parsed_args, ai );
 			}
 		}
@@ -441,6 +467,8 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 
 	if (gf_opts_get_bool("core", "no-probe"))
+		flags |= GF_FS_FLAG_NO_PROBE;
+	else if (inflags & GF_FS_FLAG_NO_PROBE)
 		flags |= GF_FS_FLAG_NO_PROBE;
 
 	if (gf_opts_get_bool("core", "no-argchk"))
@@ -546,7 +574,7 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argna
 	for (i=*idx; i<count; i++) {
 		GF_FSArgItem *ai = gf_list_get(fsess->parsed_args, i);
 		(*idx)++;
-		if (ai->found) continue;
+		if (ai->found_type) continue;
 		if (argname) *argname = ai->argname;
 		if (argtype) *argtype = ai->type;
 		return GF_TRUE;
@@ -719,6 +747,11 @@ void gf_fs_del(GF_FilterSession *fsess)
 		}
 		gf_list_del(fsess->auto_inc_nums);
 	}
+
+#ifdef GF_FS_ENABLE_LOCALES
+	if (fsess->uri_relocators) gf_list_del(fsess->uri_relocators);
+	if (fsess->locales.szAbsRelocatedPath) gf_free(fsess->locales.szAbsRelocatedPath);
+#endif
 
 	gf_free(fsess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Session destroyed\n"));
@@ -1024,6 +1057,7 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 
 static Bool locate_js_script(char *path, const char *file_name, const char *file_ext)
 {
+	u32 len = (u32) strlen(path);
 	strcat(path, file_name);
 	if (gf_file_exists(path))
 		return GF_TRUE;
@@ -1033,6 +1067,12 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 		if (gf_file_exists(path))
 			return GF_TRUE;
 	}
+	path[len] = 0;
+	strcat(path, file_name);
+	strcat(path, "/init.js");
+	if (gf_file_exists(path))
+		return GF_TRUE;
+
 	return GF_FALSE;
 }
 
@@ -1127,6 +1167,9 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	}
 	/*check JS file*/
 	file_ext = gf_file_ext_start(name);
+	if (file_ext && (file_ext > sep) )
+		file_ext = NULL;
+
 	if (!file_ext || strstr(name, ".js") || strstr(name, ".jsf") || strstr(name, ".mjs") ) {
 		Bool file_exists = GF_FALSE;
 		char szName[10+GF_MAX_PATH];
@@ -1161,7 +1204,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 }
 
 //in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
-//this defines the number of pending tasks above wich we limit sleep
+//this defines the number of pending tasks above which we limit sleep
 #define MONOTH_MIN_TASKS	2
 //this defines the sleep time for this case
 #define MONOTH_MIN_SLEEP	5
@@ -1834,7 +1877,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 {
 	u32 i, count;
 	Bool threaded;
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stoping sources\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Session abort from user, stopping sources\n"));
 	if (!fsess) return GF_BAD_PARAM;
 	threaded = (!fsess->filters_mx && (fsess->main_th.th_id==gf_th_id())) ? GF_FALSE : GF_TRUE;
 
@@ -1881,7 +1924,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 					for (l=0; l<pidi->filter->num_output_pids; l++) {
 						GF_FilterPid *opid = gf_list_get(pidi->filter->output_pids, l);
 						//We cannot directly call process_event as this would make concurrent access to the filter
-						//wich we guarantee we will never do
+						//which we guarantee we will never do
 						//but we don't want to send a regular stop event which will reset PID buffers, so:
 						//- if called in main thread of session in single-thread mode we can safely force a STOP event
 						//otherwise:
@@ -2228,6 +2271,39 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	gf_list_del(filters_done);
 }
 
+GF_EXPORT
+void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
+{
+	u32 idx = 0;
+	char *argname;
+	u32 argtype;
+
+	while (1) {
+		Bool found = GF_FALSE;
+		const char *loc_arg;
+		if (gf_fs_enum_unmapped_options(fsess, &idx, &argname, &argtype)==GF_FALSE)
+			break;
+
+		loc_arg = ignore_args;
+		while (loc_arg) {
+			u32 len;
+			char *sep;
+			char *match = strstr(loc_arg, argname);
+			if (!match) break;
+			len = (u32) strlen(argname);
+			if (!match[len] || (match[len]==',')) {
+				found = GF_TRUE;
+				break;
+			}
+			sep = strchr(loc_arg, ',');
+			if (!sep) break;
+			loc_arg = sep+1;
+		}
+		if (found) continue;;
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Arg %s set but not used\n", argname));
+	}
+}
 
 GF_EXPORT
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filter, const char *name, const char *val, GF_EventPropagateType propagate_mask)
@@ -2516,7 +2592,18 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 				if (try_js) {
 					if (!strncmp(url, "gpac://", 7)) url += 7;
-					return gf_fs_load_filter(fsess, url, err);
+					filter = gf_fs_load_filter(fsess, url, err);
+
+					if (filter) {
+						//for link resolution
+						if (dst_filter && for_source)	{
+							if (gf_list_find(filter->destination_links, dst_filter)<0)
+								gf_list_add(filter->destination_links, dst_filter);
+							//to remember our connection target
+							filter->target_filter = dst_filter;
+						}
+					}
+					return filter;
 				}
 
 				if (err) *err = GF_URL_ERROR;
@@ -2733,34 +2820,40 @@ GF_Err gf_filter_remove_event_listener(GF_Filter *filter, GF_FSEventListener *el
 }
 
 GF_EXPORT
-Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
+Bool gf_fs_forward_gf_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool skip_user)
 {
-	if (!filter || !filter->session || filter->session->in_final_flush) return GF_FALSE;
+	if (!fsess || fsess->in_final_flush) return GF_FALSE;
 
-	if (filter->session->event_listeners) {
+	if (fsess->event_listeners) {
 		GF_FSEventListener *el;
 		u32 i=0;
 
-		gf_mx_p(filter->session->evt_mx);
-		filter->session->in_event_listener ++;
-		gf_mx_v(filter->session->evt_mx);
-		while ((el = gf_list_enum(filter->session->event_listeners, &i))) {
+		gf_mx_p(fsess->evt_mx);
+		fsess->in_event_listener ++;
+		gf_mx_v(fsess->evt_mx);
+		while ((el = gf_list_enum(fsess->event_listeners, &i))) {
 			if (el->on_event(el->udta, evt, consumed)) {
-				filter->session->in_event_listener --;
+				fsess->in_event_listener --;
 				return GF_TRUE;
 			}
 		}
-		filter->session->in_event_listener --;
+		fsess->in_event_listener --;
 	}
 
-	if (!skip_user && !consumed && filter->session->ui_event_proc) {
+	if (!skip_user && !consumed && fsess->ui_event_proc) {
 		Bool res;
-//		term->nb_calls_in_event_proc++;
-		res = gf_fs_ui_event(filter->session, evt);
-//		term->nb_calls_in_event_proc--;
+		res = gf_fs_ui_event(fsess, evt);
 		return res;
 	}
 	return GF_FALSE;
+}
+
+GF_EXPORT
+Bool gf_filter_forward_gf_event(GF_Filter *filter, GF_Event *evt, Bool consumed, Bool skip_user)
+{
+	if (!filter) return GF_FALSE;
+	return gf_fs_forward_gf_event(filter->session, evt, consumed, skip_user);
+
 }
 
 GF_EXPORT
@@ -2770,10 +2863,9 @@ Bool gf_filter_send_gf_event(GF_Filter *filter, GF_Event *evt)
 }
 
 
-static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_name, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
+static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_name, GF_Filter *js_filter, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) )
 {
 	GF_CapsBundleStore capstore;
-	GF_Filter *js_filter;
 	const char *js_name = NULL;
 	GF_Err e=GF_OK;
 	u32 i, j, count, nb_js_caps;
@@ -2781,8 +2873,10 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 	GF_FilterRegister loaded_freg;
 	Bool has_output, has_input;
 
-	js_filter = gf_fs_load_filter(session, filter_name, &e);
-	if (!js_filter) return;
+	if (!js_filter) {
+		js_filter = gf_fs_load_filter(session, filter_name, &e);
+		if (!js_filter) return;
+	}
 
 	js_name = strrchr(filter_name, '/');
 	if (!js_name) js_name = strrchr(filter_name, '\\');
@@ -2891,7 +2985,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
 	//load JS to inspect its connections
 	if (filter_name && strstr(filter_name, ".js")) {
-		gf_fs_print_jsf_connection(session, filter_name, print_fn);
+		gf_fs_print_jsf_connection(session, filter_name, NULL, print_fn);
 		gf_log_set_tool_level(GF_LOG_FILTER, llev);
 		return;
 	}
@@ -2945,7 +3039,10 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 		count = gf_list_count(session->links);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegDesc *src = gf_list_get(session->links, i);
-			if (!strcmp(src->freg->name, filter_name)) continue;
+			if (!strcmp(src->freg->name, filter_name)) {
+				if (!(src->freg->flags & GF_FS_REG_EXPLICIT_ONLY) || !(src->freg->flags & GF_FS_REG_ALLOW_CYCLIC))
+					continue;
+			}
 
 			for (j=0; j<src->nb_edges; j++) {
 				if (strcmp(src->edges[j].src_reg->freg->name, filter_name)) continue;
@@ -2969,7 +3066,12 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 	}
 
 	if (!found && filter_name) {
-		if (print_fn)
+		GF_Err e;
+		GF_Filter *f = gf_fs_load_filter(session, filter_name, &e);
+		if (f) {
+			gf_fs_print_jsf_connection(session, filter_name, f, print_fn);
+		}
+		else if (print_fn)
 			print_fn(stderr, 1, "%s filter not found\n", filter_name);
 		else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s filter not found\n", filter_name));
@@ -3014,6 +3116,17 @@ u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
 	}
 }
 
+static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
+{
+	GF_Event evt;
+	GF_FilterSession *fsess = (GF_FilterSession *)usr_cbk;
+	evt.type = GF_EVENT_AUTHORIZATION;
+	evt.auth.site_url = site_url;
+	evt.auth.user = usr_name;
+	evt.auth.password = password;
+	return gf_fs_forward_gf_event(fsess, &evt, GF_FALSE, GF_FALSE);
+}
+
 GF_EXPORT
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 {
@@ -3023,6 +3136,9 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 
 	if (!fsess->download_manager) {
 		fsess->download_manager = gf_dm_new(fsess);
+
+		gf_dm_set_auth_callback(fsess->download_manager, gf_fsess_get_user_pass, fsess);
+
 	}
 	return fsess->download_manager;
 }
@@ -3557,11 +3673,9 @@ GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_fi
 }
 
 
+#ifdef GF_FS_ENABLE_LOCALES
 
-#ifdef FILTER_FIXME
-
-
-static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)
+static Bool fsess_find_res(GF_FSLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)
 {
 	FILE *f;
 
@@ -3583,12 +3697,12 @@ static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *r
    if this is the case, it returns the absolute localized path, otherwise it returns null.
    if the resource was localized, the last parameter is set to the localized relative path.
 */
-static Bool term_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
+static Bool fs_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
 {
 	char path[GF_MAX_PATH];
 	const char *opt;
 
-	GF_TermLocales *loc = (GF_TermLocales*)__self;
+	GF_FSLocales *loc = (GF_FSLocales*)__self;
 
 	/* Checks if the rel_path argument really contains a relative path (no ':', no '/' at the beginning) */
 	if (strstr(rel_path, "://") || (rel_path[0]=='/') || strstr(rel_path, ":\\") || !strncmp(rel_path, "\\\\", 2)) {
@@ -3630,7 +3744,7 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 		}
 
 		sprintf(path, "locales/%s/%s", lan, rel_path);
-		if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
+		if (fsess_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
 			return 1;
 
 		/*recursively remove region (sub)tags*/
@@ -3639,18 +3753,39 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 			if (!sep) break;
 			sep[0] = 0;
 			sprintf(path, "locales/%s/%s", lan, rel_path);
-			if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
+			if (fsess_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path))
 				return 1;
 		}
 	}
 
-	if (term_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path))
+	if (fsess_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path))
 		return 1;
 	/* if we did not find the localized file, both the relocated and localized strings are NULL */
 	strcpy(localized_rel_path, "");
 	strcpy(relocated_path, "");
 	return 0;
 }
-
 #endif
 
+static Bool gf_fs_relocate_url(GF_FilterSession *session, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
+{
+#ifdef GF_FS_ENABLE_LOCALES
+	u32 i, count;
+
+	count = gf_list_count(session->uri_relocators);
+	for (i=0; i<count; i++) {
+		Bool result;
+		GF_URIRelocator *uri_relocator = gf_list_get(session->uri_relocators, i);
+		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, out_relocated_url, out_localized_url);
+		if (result) return 1;
+	}
+#endif
+	return 0;
+}
+
+GF_EXPORT
+Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
+{
+	if (!filter) return 0;
+	return gf_fs_relocate_url(filter->session, service_url, parent_url, out_relocated_url, out_localized_url);
+}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML stream to file filter
@@ -115,6 +115,7 @@ GF_Err nhmldump_config_side_stream(GF_Filter *filter, GF_NHMLDumpCtx *ctx)
 
 	} else if (ctx->opid_info) {
 		gf_filter_pid_remove(ctx->opid_info);
+		ctx->opid_info = NULL;
 	}
 	if (ctx->info_file) gf_free(ctx->info_file);
 	ctx->info_file = NULL;
@@ -193,9 +194,18 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid_nhml);
-		gf_filter_pid_remove(ctx->opid_mdia);
-		if (ctx->opid_info) gf_filter_pid_remove(ctx->opid_info);
+		if (ctx->opid_nhml) {
+			gf_filter_pid_remove(ctx->opid_nhml);
+			ctx->opid_nhml = NULL;
+		}
+		if (ctx->opid_mdia) {
+			gf_filter_pid_remove(ctx->opid_mdia);
+			ctx->opid_mdia = NULL;
+		}
+		if (ctx->opid_info) {
+			gf_filter_pid_remove(ctx->opid_info);
+			ctx->opid_info = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -395,12 +405,11 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	else if (ctx->sr && ctx->chan) {
 		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
-		sprintf(nhml, "sampleRate=\"%d\" numChannels=\"%d\" ", ctx->sr, ctx->chan);
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_AUDIO_FORMAT);
-		if (p)
+		if (p) {
 			sprintf(nhml, "bitsPerSample=\"%d\" ", gf_audio_fmt_bit_depth(p->value.uint));
-		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+			gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
+		}
 	}
 
 	NHML_PRINT_4CC(0, "codec_vendor", "codecVendor")
@@ -454,11 +463,13 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 		gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 
 		dst_pck = gf_filter_pck_new_shared(ctx->opid_info, ctx->dcfg, ctx->dcfg_size, NULL);
-		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
-		gf_filter_pck_set_readonly(dst_pck);
-		gf_filter_pck_send(dst_pck);
+		if (dst_pck) {
+			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+			gf_filter_pck_set_readonly(dst_pck);
+			gf_filter_pck_send(dst_pck);
+		}
 	}
-
+	
 	NHML_PRINT_STRING(0, "meta:encoding", "encoding")
 	NHML_PRINT_STRING(0, "meta:contentEncoding", "content_encoding")
 	ctx->uncompress = GF_FALSE;
@@ -484,6 +495,8 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
+	if (!dst_pck) return;
+
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
@@ -605,6 +618,8 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
+	if (!dst_pck) return;
+
 	memcpy(output, ctx->nhml_buffer, size);
 	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 	gf_filter_pck_send(dst_pck);
@@ -802,15 +817,19 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-	memcpy(output, ctx->nhml_buffer, size);
-	gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
-	gf_filter_pck_send(dst_pck);
+	if (dst_pck) {
+		memcpy(output, ctx->nhml_buffer, size);
+		gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+		gf_filter_pck_send(dst_pck);
+	}
 
 	ctx->mdia_pos += data_size;
 
 	if (ctx->opid_mdia) {
 		//send the complete data packet
 		dst_pck = gf_filter_pck_new_ref(ctx->opid_mdia, 0, data_size, pck);
+		if (!dst_pck) return;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		//keep byte offset ?
 //		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
@@ -850,9 +869,11 @@ GF_Err nhmldump_process(GF_Filter *filter)
 					GF_FilterPacket *dst_pck;
 					u8 *output;
 					dst_pck = gf_filter_pck_new_alloc(ctx->opid_nhml, size, &output);
-					memcpy(output, ctx->nhml_buffer, size);
-					gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-					gf_filter_pck_send(dst_pck);
+					if (dst_pck) {
+						memcpy(output, ctx->nhml_buffer, size);
+						gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+						gf_filter_pck_send(dst_pck);
+					}
 				}
 				ctx->szRootName = NULL;
 			}
@@ -926,7 +947,7 @@ static const GF_FilterArgs NHMLDumpArgs[] =
 {
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dims), "use DIMS mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(name), "set output name of files produced (needed media/info files refered to from XML", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(name), "set output name of files produced (needed media/info files referred to from XML", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(nhmlonly), "only dump NHML info, not media", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pckp), "full NHML dump", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chksum), "insert frame checksum\n"

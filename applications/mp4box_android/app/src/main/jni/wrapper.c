@@ -26,8 +26,9 @@ extern "C" {
                         //CNativeWrapper* wr = (CNativeWrapper*) h;*/
 
 char ** ConvertCommandLine( const char* sCommand, int* iNbArg );
+int mp4boxMain(int argc, char **argv);
 
-JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
+JNIEXPORT void JNICALL Java_com_gpac_mp4box_mp4terminal_run(JNIEnv * env, jobject obj, jstring sCommand)
 {
 	//CAST_HANDLE(wr);
 	jniLOGV("mp4terminal::start");
@@ -40,7 +41,7 @@ JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 	const char * sOriginalCommand = (*env)->GetStringUTFChars(env, sCommand, &isCopy);
 
 	jniLOGV("mp4terminal::command get back ok");
-	jniLOGV(sOriginalCommand);
+	//jniLOGV(sOriginalCommand);
 
 	int i = 0;
 	char** sConvertedCommandLine;
@@ -55,8 +56,8 @@ JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 
 	(*env)->ReleaseStringUTFChars(env, sCommand, sOriginalCommand);
 	jniLOGV("mp4terminal::end");
-	gf_fclose(ferr);
-	gf_fclose(fout);
+	fclose(ferr);
+	fclose(fout);
 }
 
 char ** ConvertCommandLine( const char* sCommand, int* iNbArg )
@@ -99,4 +100,3 @@ char ** ConvertCommandLine( const char* sCommand, int* iNbArg )
 #ifdef __cplusplus
 }
 #endif
-

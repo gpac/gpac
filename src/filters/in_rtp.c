@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -34,7 +34,6 @@ static void rtpin_reset(GF_RTPIn *ctx, Bool is_finalized)
 		GF_RTPInStream *st = (GF_RTPInStream *)gf_list_get(ctx->streams, 0);
 		gf_list_rem(ctx->streams, 0);
 		if (!is_finalized && st->opid) gf_filter_pid_remove(st->opid);
-		st->opid = NULL;
 		rtpin_stream_del(st);
 	}
 
@@ -233,7 +232,7 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 }
 
 
-#ifdef FILTER_FIXME
+#if 0 //unused
 static void rtpin_send_data_base64(GF_RTPInStream *stream)
 {
 	u32 size;
@@ -252,6 +251,7 @@ static void rtpin_send_data_base64(GF_RTPInStream *stream)
 	size = gf_base64_decode(data, (u32) strlen(data), stream->buffer, stream->rtpin->block_size);
 
 	pck = gf_filter_pck_new_alloc(stream->opid, size, &pck_data);
+	if (!pck) return;
 	memcpy(pck_data, stream->buffer, size);
 	gf_filter_pck_set_cts(pck, (u64) (stream->current_start * stream->ts_res));
 	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
@@ -761,10 +761,10 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(interleave), "set RTP over RTSP", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(udp_timeout), "default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(rtsp_timeout), "default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, 0},
-	{ OFFS(rtcp_timeout), "default timeout for RTCP trafic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rtcp_timeout), "default timeout for RTCP traffic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(autortsp), "automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(first_packet_drop), "set number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(frequency_drop), "drop 1 out of N packet - 0 disable droping", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(frequency_drop), "drop 1 out of N packet - 0 disable dropping", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(languages), "user languages, by default solved from GPAC preferences", GF_PROP_STRING, "$GLANG", NULL, 0},
 	{ OFFS(stats), "update statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -211,7 +211,7 @@ GF_Err moov_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_MovieBox *p = (GF_MovieBox *) a;
 	gf_isom_box_dump_start(a, "MovieBox", trace);
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, "compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieBox", a, trace);
@@ -729,7 +729,19 @@ void base_audio_entry_dump(GF_AudioSampleEntryBox *p, FILE * trace)
 	gf_fprintf(trace, " DataReferenceIndex=\"%d\"", p->dataReferenceIndex);
 	if (p->version)
 		gf_fprintf(trace, " Version=\"%d\"", p->version);
-	gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
+
+	if (p->samplerate_lo) {
+		if (p->type==GF_ISOM_SUBTYPE_MLPA) {
+			u32 sr = p->samplerate_hi;
+			sr <<= 16;
+			sr |= p->samplerate_lo;
+			gf_fprintf(trace, " SampleRate=\"%d\"", sr);
+		} else {
+			gf_fprintf(trace, " SampleRate=\"%d.%d\"", p->samplerate_hi, p->samplerate_lo);
+		}
+	} else {
+		gf_fprintf(trace, " SampleRate=\"%d\"", p->samplerate_hi);
+	}
 	gf_fprintf(trace, " Channels=\"%d\" BitsPerSample=\"%d\"", p->channel_count, p->bitspersample);
 	if (p->qtff_mode) {
 		gf_fprintf(trace, " isQTFF=\"%d\"", p->qtff_mode);
@@ -800,6 +812,11 @@ GF_Err audio_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_BOX_TYPE_MHM1:
 	case GF_ISOM_BOX_TYPE_MHM2:
 		szName = "MHASampleEntry";
+		break;
+	case GF_ISOM_BOX_TYPE_MLPA:
+		if (!p->cfg_mlp)
+		 	error = "<!--INVALID TrueHD Audio Entry: DMLP config not present in Audio Sample Description -->";
+		szName = "TrueHDSampleEntry";
 		break;
 	default:
 		szName = "AudioSampleDescriptionBox";
@@ -2486,7 +2503,7 @@ GF_Err moof_box_dump(GF_Box *a, FILE * trace)
 	p = (GF_MovieFragmentBox *)a;
 	gf_isom_box_dump_start(a, "MovieFragmentBox", trace);
 	gf_fprintf(trace, "TrackFragments=\"%d\"", gf_list_count(p->TrackList));
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MovieFragmentBox", a, trace);
@@ -3819,116 +3836,67 @@ GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 S
 
 GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 {
-	u32 val;
+	u32 val, itype=0;
 	Bool no_dump = GF_FALSE;
-	char *name = "UnknownBox";
+	Bool unknown = GF_FALSE;
+	GF_DataBox *dbox = NULL;
+	const char *name = "UnknownBox";
 	GF_ListItemBox *itune = (GF_ListItemBox *)a;
-	switch (itune->type) {
-	case GF_ISOM_BOX_TYPE_0xA9NAM:
-		name = "NameBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9CMT:
-		name = "CommentBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9DAY:
-		name = "CreatedBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9ART:
-		name = "ArtistBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9TRK:
-		name = "TrackBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9ALB:
-		name = "AlbumBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9COM:
-		name = "CompositorBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9WRT:
-		name = "WriterBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9TOO:
-		name = "ToolBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9CPY:
-		name = "CopyrightBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9DES:
-		name = "DescriptionBox";
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9GEN:
-	case GF_ISOM_BOX_TYPE_GNRE:
-		name = "GenreBox";
-		break;
-	case GF_ISOM_BOX_TYPE_aART:
-		name = "AlbumArtistBox";
-		break;
-	case GF_ISOM_BOX_TYPE_PGAP:
-		name = "GapelessBox";
-		break;
-	case GF_ISOM_BOX_TYPE_DISK:
-		name = "DiskBox";
-		break;
-	case GF_ISOM_BOX_TYPE_TRKN:
-		name = "TrackNumberBox";
-		break;
-	case GF_ISOM_BOX_TYPE_TMPO:
-		name = "TempoBox";
-		break;
-	case GF_ISOM_BOX_TYPE_CPIL:
-		name = "CompilationBox";
-		break;
-	case GF_ISOM_BOX_TYPE_COVR:
-		name = "CoverArtBox";
-		no_dump = GF_TRUE;
-		break;
-	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
+
+
+	if (itune->type==GF_ISOM_BOX_TYPE_iTunesSpecificInfo) {
 		name = "iTunesSpecificBox";
 		no_dump = GF_TRUE;
-		break;
-	case GF_ISOM_BOX_TYPE_0xA9GRP:
-		name = "GroupBox";
-		break;
-	case GF_ISOM_ITUNE_ENCODER:
-		name = "EncoderBox";
-		break;
+		dbox = itune->data;
+	} else if (itune->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+		dbox = (GF_DataBox *) gf_isom_box_find_child(itune->child_boxes, GF_ISOM_BOX_TYPE_DATA);
+		unknown = GF_TRUE;
+	} else {
+		s32 idx = gf_itags_find_by_itag(itune->type);
+		if (idx>=0) {
+			name = gf_itags_get_name((u32) idx);
+			itype = gf_itags_get_type((u32) idx);
+			dbox = itune->data;
+		}
 	}
 	gf_isom_box_dump_start(a, name, trace);
 
-	if (!no_dump && itune->data) {
+	if (!no_dump && dbox) {
 		GF_BitStream *bs;
 		switch (itune->type) {
-		case GF_ISOM_BOX_TYPE_DISK:
-		case GF_ISOM_BOX_TYPE_TRKN:
-			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+		case GF_ISOM_ITUNE_DISK:
+		case GF_ISOM_ITUNE_TRACKNUMBER:
+			bs = gf_bs_new(dbox->data, dbox->dataSize, GF_BITSTREAM_READ);
 			gf_bs_read_int(bs, 16);
 			val = gf_bs_read_int(bs, 16);
-			if (itune->type==GF_ISOM_BOX_TYPE_DISK) {
+			if (itune->type==GF_ISOM_ITUNE_DISK) {
 				gf_fprintf(trace, " DiskNumber=\"%d\" NbDisks=\"%d\" ", val, gf_bs_read_int(bs, 16) );
 			} else {
 				gf_fprintf(trace, " TrackNumber=\"%d\" NbTracks=\"%d\" ", val, gf_bs_read_int(bs, 16) );
 			}
 			gf_bs_del(bs);
 			break;
-		case GF_ISOM_BOX_TYPE_TMPO:
-			bs = gf_bs_new(itune->data->data, itune->data->dataSize, GF_BITSTREAM_READ);
+		case GF_ISOM_ITUNE_TEMPO:
+			bs = gf_bs_new(dbox->data, dbox->dataSize, GF_BITSTREAM_READ);
 			gf_fprintf(trace, " BPM=\"%d\" ", gf_bs_read_int(bs, 16) );
 			gf_bs_del(bs);
 			break;
-		case GF_ISOM_BOX_TYPE_CPIL:
-			gf_fprintf(trace, " IsCompilation=\"%s\" ", (itune->data && itune->data->data && itune->data->data[0]) ? "yes" : "no");
+		case GF_ISOM_ITUNE_COMPILATION:
+			gf_fprintf(trace, " IsCompilation=\"%s\" ", (dbox && dbox->data && dbox->data[0]) ? "yes" : "no");
 			break;
-		case GF_ISOM_BOX_TYPE_PGAP:
-			gf_fprintf(trace, " IsGapeless=\"%s\" ", (itune->data && itune->data->data && itune->data->data[0]) ? "yes" : "no");
+		case GF_ISOM_ITUNE_GAPLESS:
+			gf_fprintf(trace, " IsGapeless=\"%s\" ", (dbox && dbox->data && itune->data->data[0]) ? "yes" : "no");
 			break;
 		default:
-			if (strcmp(name, "UnknownBox") && itune->data && itune->data->data) {
+			if (dbox && dbox->data) {
 				gf_fprintf(trace, " value=\"");
-				if (itune->data && itune->data->data[0]) {
-					dump_data_string(trace, itune->data->data, itune->data->dataSize);
+				if (!unknown && (itype==GF_ITAG_STR)) {
+					dump_data_string(trace, dbox->data, dbox->dataSize);
+				}
+				else if (!unknown && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
+					dump_data_string(trace, dbox->data, dbox->dataSize);
 				} else {
-					dump_data(trace, itune->data->data, itune->data->dataSize);
+					dump_data(trace, dbox->data, dbox->dataSize);
 				}
 				gf_fprintf(trace, "\" ");
 			}
@@ -4246,7 +4214,7 @@ GF_Err metx_box_dump(GF_Box *a, FILE * trace)
 GF_Err txtc_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)a;
-	const char *name = "TextConfigBox";
+	const char *name = (ptr->type==GF_ISOM_BOX_TYPE_TXTC) ?  "TextConfigBox" : "MIMEBox";
 
 	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, ">\n");
@@ -4332,6 +4300,17 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dmlp_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrueHDConfigBox *p = (GF_TrueHDConfigBox *)a;
+
+	gf_isom_box_dump_start(a, "TrueHDConfigBox", trace);
+	gf_fprintf(trace, "format_info=\"%u\" peak_data_rate=\"%u\">\n",
+			p->format_info, p->peak_data_rate);
+	gf_isom_box_dump_done("TrueHDConfigBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_DOVIConfigurationBox *p = (GF_DOVIConfigurationBox *)a;
@@ -4370,7 +4349,7 @@ GF_Err sidx_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SegmentIndexBox", trace);
 
 	gf_fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\"", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
-		if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 
@@ -4391,7 +4370,7 @@ GF_Err ssix_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SubsegmentIndexBox", trace);
 
 	gf_fprintf(trace, "subsegment_count=\"%d\"", p->subsegment_count);
-	if (p->compressed_diff)
+	if (p->internal_flags & GF_ISOM_BOX_COMPRESSED)
 		gf_fprintf(trace, " compressedSize=\""LLU"\"", p->size - p->compressed_diff);
 	gf_fprintf(trace, ">\n");
 
@@ -4817,17 +4796,18 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 
 				gf_fprintf(trace, ">\n");
 				for (k=0; k<nb_keys; k++) {
-					if (kpos + 17 >= seig->key_info_size)
+					if (kpos + 17 > seig->key_info_size)
 						break;
 					u8 iv_size = seig->key_info[kpos];
 					gf_fprintf(trace, "<CENCKey IV_size=\"%d\" KID=\"", iv_size);
 					dump_data_hex(trace, seig->key_info+kpos+1, 16);
 					kpos += 17;
+					gf_fprintf(trace, "\"");
 					if ((seig->IsProtected == 1) && !iv_size) {
 						if (kpos + 1 >= seig->key_info_size)
 							break;
 						u8 const_IV_size = seig->key_info[kpos];
-						gf_fprintf(trace, "\" constant_IV_size=\"%d\"  constant_IV=\"", const_IV_size);
+						gf_fprintf(trace, " constant_IV_size=\"%d\"  constant_IV=\"", const_IV_size);
 						if (kpos + 1 + const_IV_size >= seig->key_info_size)
 							break;
 						dump_data_hex(trace, (char *)seig->key_info + kpos + 1, const_IV_size);
@@ -5018,7 +4998,6 @@ GF_Err pssh_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 {
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*) a;
 	if (!a) return GF_BAD_PARAM;
 
@@ -5026,49 +5005,18 @@ GF_Err tenc_box_dump(GF_Box *a, FILE * trace)
 
 	gf_fprintf(trace, "isEncrypted=\"%d\"", ptr->isProtected);
 
-	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
-
-	if (is_mkey) {
-		u32 i, kpos=3, nb_keys;
-		nb_keys = ptr->key_info[1];
-		nb_keys <<= 8;
-		nb_keys |= ptr->key_info[2];
-
-		gf_fprintf(trace, ">\n");
-		for (i=0; i<nb_keys; i++) {
-			u8 IV_size = ptr->key_info[kpos];
-			gf_fprintf(trace, "<TENCKey");
-			if (IV_size)
-				gf_fprintf(trace, " IV_size=\"%d\"", IV_size);
-
-			gf_fprintf(trace, " KID=\"");
-			dump_data_hex(trace, (char *) ptr->key_info + kpos + 1, 16);
-			gf_fprintf(trace, "\"");
-			kpos += 17;
-
-			if (!IV_size) {
-				IV_size = ptr->key_info[kpos];
-				gf_fprintf(trace, " const_IV_size=\"%d\"", IV_size);
-				gf_fprintf(trace, " constIV=\"");
-				dump_data_hex(trace, (char *) ptr->key_info + kpos + 1, IV_size);
-				gf_fprintf(trace, "\"");
-				kpos += 1 + IV_size;
-			}
-			gf_fprintf(trace, "/>\n");
-		}
-	} else if (ptr->key_info) {
-		if (ptr->key_info[3])
-			gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);
-		else {
-			gf_fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->key_info[20]);
-			dump_data_hex(trace, (char *) ptr->key_info+21, ptr->key_info[20]);
-			gf_fprintf(trace, "\"  KID=\"");
-		}
-		dump_data_hex(trace, (char *) ptr->key_info+4, 16);
-		if (ptr->version)
-			gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
-		gf_fprintf(trace, "\">\n");
+	if (ptr->key_info[3])
+		gf_fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->key_info[3]);
+	else {
+		gf_fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->key_info[20]);
+		dump_data_hex(trace, (char *) ptr->key_info+21, ptr->key_info[20]);
+		gf_fprintf(trace, "\"  KID=\"");
 	}
+	dump_data_hex(trace, (char *) ptr->key_info+4, 16);
+	if (ptr->version)
+		gf_fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
+	gf_fprintf(trace, "\">\n");
+
 	if (!ptr->size) {
 		gf_fprintf(trace, " IV_size=\"\" KID=\"\" constant_IV_size=\"\" constant_IV=\"\" crypt_byte_block=\"\" skip_byte_block=\"\">\n");
 		gf_fprintf(trace, "<TENCKey IV_size=\"\" KID=\"\" const_IV_size=\"\" constIV=\"\"/>\n");
@@ -5109,7 +5057,7 @@ GF_Err piff_tenc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv);
+u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv);
 
 GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 {
@@ -5196,13 +5144,13 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			}
 			for (k=0; k<nb_ivs; k++) {
 				u32 pos;
-				u8 idx = gf_bs_read_u8(bs);
-				u8 iv_size = key_info_get_iv_size(sai->key_info, nb_keys, idx, NULL, NULL);
-				assert(iv_size);
+				u32 idx = gf_bs_read_u16(bs);
+				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
+				assert(mk_iv_size);
 				pos = (u32) gf_bs_get_position(bs);
-				gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, iv_size);
-				dump_data_hex(trace, (char *) sai->cenc_data+pos, iv_size);
-				gf_bs_skip_bytes(bs, iv_size);
+				gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
+				dump_data_hex(trace, (char *) sai->cenc_data+pos, mk_iv_size);
+				gf_bs_skip_bytes(bs, mk_iv_size);
 			}
 			if (nb_ivs) {
 				gf_fprintf(trace, "]\"");
@@ -5347,6 +5295,16 @@ GF_Err ispe_box_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "ImageSpatialExtentsPropertyBox", trace);
 	gf_fprintf(trace, "image_width=\"%d\" image_height=\"%d\">\n", ptr->image_width, ptr->image_height);
 	gf_isom_box_dump_done("ImageSpatialExtentsPropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
+{
+    GF_AV1LayeredImageIndexingPropertyBox *ptr = (GF_AV1LayeredImageIndexingPropertyBox*)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "AV1LayeredImageIndexingPropertyBox", trace);
+	gf_fprintf(trace, "large_size=\"%d\" layer_size0=\"%d\" layer_size1=\"%d\" layer_size2=\"%d\">\n", ptr->large_size, ptr->layer_size[0], ptr->layer_size[1], ptr->layer_size[2]);
+	gf_isom_box_dump_done("AV1LayeredImageIndexingPropertyBox", a, trace);
 	return GF_OK;
 }
 
@@ -5632,6 +5590,15 @@ GF_Err def_parent_box_dump(GF_Box *a, FILE *trace)
 		break;
 	case GF_ISOM_BOX_TYPE_STRD:
 		name = "SubTrackDefinitionBox";
+		break;
+	case GF_ISOM_BOX_TYPE_SV3D:
+		name = "SphericalVideoBox";
+		break;
+	case GF_ISOM_BOX_TYPE_PROJ:
+		name = "ProjectionBox";
+		break;
+	case GF_ISOM_BOX_TYPE_OTYP:
+		name = "OriginalFileTypeBox";
 		break;
 	}
 
@@ -6218,5 +6185,89 @@ GF_Err iaux_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#include <gpac/utf.h>
+
+GF_Err xtra_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_XtraBox *ptr = (GF_XtraBox *)a;
+	u32 i, count = gf_list_count(ptr->tags);
+
+	gf_isom_box_dump_start(a, "XtraBox", trace);
+	gf_fprintf(trace, ">\n");
+	for (i=0; i<count; i++) {
+		GF_XtraTag *tag = gf_list_get(ptr->tags, i);
+
+		gf_fprintf(trace, "<WMATag name=\"%s\" version=\"%d\" type=\"%d\"", tag->name, tag->flags, tag->prop_type);
+		if (!tag->prop_type) {
+			u16 *src_str = (u16 *) tag->prop_value;
+			u32 len = (u32) ( UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str) );
+			char *utf8str = (char *)gf_malloc(len + 1);
+			u32 res_len = (u32) gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+			utf8str[res_len] = 0;
+
+			gf_fprintf(trace, " value=\"%s\">\n", utf8str);
+			gf_free(utf8str);
+		} else {
+			gf_fprintf(trace, " value=\"");
+			dump_data_hex(trace, tag->prop_value, tag->prop_size);
+			gf_fprintf(trace, "\">\n");
+		}
+	}
+	gf_isom_box_dump_done("XtraBox", a, trace);
+	return GF_OK;
+}
+
+
+GF_Err st3d_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_Stereo3DBox  *ptr = (GF_Stereo3DBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "Stereo3DBox", trace);
+	gf_fprintf(trace, " stereo_type=\"%d\">\n", ptr->stereo_type);
+	gf_isom_box_dump_done("Stereo3DBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err svhd_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "SphericalVideoInfoBox", trace);
+	gf_fprintf(trace, " info=\"%s\">\n", ptr->string);
+	gf_isom_box_dump_done("SphericalVideoInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err prhd_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ProjectionHeaderBox *ptr = (GF_ProjectionHeaderBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ProjectionHeaderBox", trace);
+	gf_fprintf(trace, " yaw=\"%d\" pitch=\"%d\" roll=\"%d\">\n", ptr->yaw, ptr->pitch, ptr->roll);
+	gf_isom_box_dump_done("ProjectionHeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err proj_type_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_ProjectionTypeBox *ptr = (GF_ProjectionTypeBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	if (ptr->type == GF_ISOM_BOX_TYPE_CBMP) {
+		gf_isom_box_dump_start(a, "CubemapProjectionBox", trace);
+		gf_fprintf(trace, " layout=\"%d\" padding=\"%d\">\n", ptr->layout, ptr->padding);
+		gf_isom_box_dump_done("CubemapProjectionBox", a, trace);
+	}
+	else if (ptr->type == GF_ISOM_BOX_TYPE_EQUI) {
+		gf_isom_box_dump_start(a, "EquirectangularProjectionBox", trace);
+		gf_fprintf(trace, " top=\"%d\" bottom=\"%d\" left=\"%d\" right=\"%d\">\n", ptr->bounds_top, ptr->bounds_bottom, ptr->bounds_left, ptr->bounds_right);
+		gf_isom_box_dump_done("EquirectangularProjectionBox", a, trace);
+	}
+	else if (ptr->type == GF_ISOM_BOX_TYPE_MSHP) {
+		gf_isom_box_dump_start(a, "MeshProjectionBox", trace);
+		gf_fprintf(trace, " crc=\"%08X\" encoding=\"%s\" left=\"%d\" right=\"%d\">\n", ptr->crc, gf_4cc_to_str(ptr->encoding_4cc) );
+		gf_isom_box_dump_done("MeshProjectionBox", a, trace);
+	}
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

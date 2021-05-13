@@ -685,7 +685,7 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 	/*we need a grouping node*/
 	if (!read->cur_shape) {
 
-		/*empty shape - for fonts, not a mistake, that's likelly space char*/
+		/*empty shape - for fonts, not a mistake, that's likely space char*/
 		if (!shape) {
 			if (!parent_font)
 				return GF_OK;

@@ -18,7 +18,7 @@ ifeq ($(HAS_OPENSSL),yes)
 LINKLIBS+=$(SSL_LIBS)
 endif
 
-#3 - spidermonkey support
+#3 - QuickJS support
 ifeq ($(CONFIG_JS),no)
 else
 SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
@@ -53,6 +53,8 @@ MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
 FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
 endif
 endif
+
+
 
 
 ## libgpac compositor compilation options
@@ -101,7 +103,7 @@ MEDIATOOLS_CFLAGS+=-DGPAC_ENST_PRIVATE
 endif
 
 
-ifeq ($(MP4BOX_STATIC),yes)
+ifeq ($(STATIC_BINARY),yes)
 CFLAGS+= -DGPAC_MP4BOX_MINI
 endif
 
@@ -211,6 +213,6 @@ endif
 endif
 
 
-ifeq ($(CONFIG_DARWIN),yes)
+ifeq ($(CONFIG_VTB),yes)
 EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
 endif

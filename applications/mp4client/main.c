@@ -1250,7 +1250,7 @@ int mp4client_main(int argc, char **argv)
 
 			fprintf(helpout, ".SH EXAMPLES\n.TP\nBasic and advanced examples are available at https://wiki.gpac.io/mp4client\n");
 			fprintf(helpout, ".SH MORE\n.LP\nAuthors: GPAC developers, see git repo history (-log)\n"
-			".br\nFor bug reports, feature requests, more information and source code, visit http://github.com/gpac/gpac\n"
+			".br\nFor bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac\n"
 			".br\nbuild: %s\n"
 			".br\nCopyright: %s\n.br\n"
 			".SH SEE ALSO\n"
@@ -1494,26 +1494,12 @@ int mp4client_main(int argc, char **argv)
 			strcpy(the_url, url_arg);
 		}
 		ext = strrchr(the_url, '.');
-		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+		//only local playlist - maybe we could remove and control through flist ?
+		if (ext && !strncmp("http", the_url, 4) && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			e = GF_OK;
 			fprintf(stderr, "Opening Playlist %s\n", the_url);
 
 			strcpy(pl_path, the_url);
-			/*this is not clean, we need to have a plugin handle playlist for ourselves*/
-			if (!strncmp("http:", the_url, 5)) {
-#ifdef FILTER_FIXME
-				GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-				if (sess) {
-					e = gf_dm_sess_process(sess);
-					if (!e) {
-						strncpy(the_url, gf_dm_sess_get_cache_name(sess), sizeof(the_url) - 1);
-						the_url[sizeof(the_url) - 1] = 0;
-					}
-					gf_dm_sess_del(sess);
-				}
-#endif
-			}
-
 			playlist = e ? NULL : gf_fopen(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {
@@ -2610,7 +2596,7 @@ static void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f us %d max)\n\tTotal decoded frames %d\n",
 		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
-	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
+	if (odi.protection) fprintf(stderr, "Encrypted Media scheme %s\n", gf_4cc_to_str(odi.protection) );
 
 	fprintf(stderr, "\nStream ID %d - %s - Clock ID %d\n", odi.pid_id, gf_stream_type_name(odi.od_type), odi.ocr_id);
 //	if (esd->dependsOnESID) fprintf(stderr, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);

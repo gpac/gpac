@@ -1351,7 +1351,10 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_bs_write_int(bs, cfg.base_object_type-1, 2);
 			gf_bs_write_int(bs, cfg.base_sr_index, 4);
 			gf_bs_write_int(bs, 0, 1);
-			gf_bs_write_int(bs, cfg.nb_chan, 3);
+			if (cfg.program_config_element_present)
+				gf_bs_write_int(bs, 0, 3);
+			else
+				gf_bs_write_int(bs, cfg.chan_cfg, 3);
 #else
 			gf_bs_write_int(bs, GF_M4A_AAC_LC-1, 2);
 			gf_bs_write_int(bs, 1, 4); //FIXME
@@ -1362,15 +1365,27 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			gf_bs_write_int(bs, 0, 4);
 			gf_bs_write_int(bs, 7+stream->curr_pck.data_len, 13);
 			gf_bs_write_int(bs, 0x7FF, 11);
-			gf_bs_write_int(bs, 0, 2);
+
+			/*base reframe overhead*/
+			stream->reframe_overhead = 7;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+			if (cfg.program_config_element_present) {
+				gf_bs_write_int(bs, 2, 2);
+
+				u32 cpe_size = (u32) gf_bs_get_position(bs);
+				gf_m4a_write_program_config_element_bs(bs, &cfg);
+				stream->reframe_overhead += (u32) gf_bs_get_position(bs) - cpe_size;
+			} else
+#endif
+				gf_bs_write_int(bs, 0, 2);
+
 
 			gf_bs_write_data(bs, stream->curr_pck.data, stream->curr_pck.data_len);
 			gf_bs_align(bs);
 			gf_free(stream->curr_pck.data);
 			gf_bs_get_content(bs, &stream->curr_pck.data, &stream->curr_pck.data_len);
 			gf_bs_del(bs);
-			/*constant reframe overhead*/
-			stream->reframe_overhead = 7;
 		}
 		/*since we reallocated the packet data buffer, force a discard in pull mode*/
 		stream->discard_data = GF_TRUE;

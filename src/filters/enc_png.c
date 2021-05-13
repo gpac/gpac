@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / libpng encoder filter
@@ -58,7 +58,10 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
 		//one in one out, this is simple
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 		return GF_OK;
 	}
@@ -142,6 +145,7 @@ static void pngenc_write(png_structp png, png_bytep data, png_size_t size)
 	if (!ctx->dst_pck) {
 		while (ctx->alloc_size<size) ctx->alloc_size+=PNG_BLOCK_SIZE;
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->alloc_size, &ctx->output);
+		if (!ctx->dst_pck) return;
 	} else if (ctx->pos + size > ctx->alloc_size) {
 		u8 *new_data;
 		u32 new_size;
@@ -245,6 +249,10 @@ static GF_Err pngenc_process(GF_Filter *filter)
 	ctx->pos = 0;
 	if (ctx->max_size) {
 		ctx->dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->max_size, &ctx->output);
+		if (!ctx->dst_pck) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		ctx->alloc_size = ctx->max_size;
 	}
 	png_set_write_fn(png_ptr, ctx, pngenc_write, pngenc_flush);

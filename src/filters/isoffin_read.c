@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -154,6 +154,7 @@ static void isoffin_delete_channel(ISOMChannel *ch)
 	if (ch->nal_bs) gf_bs_del(ch->nal_bs);
 	if (ch->avcc) gf_odf_avc_cfg_del(ch->avcc);
 	if (ch->hvcc) gf_odf_hevc_cfg_del(ch->hvcc);
+	if (ch->vvcc) gf_odf_vvc_cfg_del(ch->vvcc);
 	gf_free(ch);
 }
 
@@ -163,7 +164,8 @@ static void isoffin_disconnect(ISOMReader *read)
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
 		gf_list_rem(read->channels, 0);
-		gf_filter_pid_remove(ch->pid);
+		if (ch->pid)
+			gf_filter_pid_remove(ch->pid);
 		isoffin_delete_channel(ch);
 	}
 
@@ -200,7 +202,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		gf_isom_reset_fragment_info(read->mov, GF_TRUE);
 
 		if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
-#ifdef FILTER_FIXME
+
+		//no longer used in filters
+#if 0
 		if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
 #endif
 		e = gf_isom_open_segment(read->mov, next_url, read->start_range, read->end_range, flags);
@@ -379,6 +383,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (!read->mem_load_mode)
 			read->mem_load_mode = 1;
 		if (!read->pid) read->pid = pid;
+		read->input_loaded = GF_FALSE;
 		return GF_OK;
 	}
 
@@ -427,6 +432,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	GF_Err e = GF_OK;
 	read->filter = filter;
 	read->channels = gf_list_new();
+
+	if (read->xps_check==MP4DMX_XPS_AUTO) {
+		read->xps_check = (read->smode==MP4DMX_SPLIT_EXTRACTORS) ? MP4DMX_XPS_KEEP : MP4DMX_XPS_REMOVE;
+	}
 
 	if (read->src) {
 		read->input_loaded = GF_TRUE;
@@ -583,7 +592,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ADOBE_CRYPT_META, &PROP_DATA((char *)metadata, (u32) strlen(metadata) ) );
 	}
 
-	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
 	if (scheme_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
 	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING((char*) kms_uri) );
@@ -605,7 +614,7 @@ void isor_set_crypt_config(ISOMChannel *ch)
 
 		gf_isom_cenc_get_default_info(ch->owner->mov, ch->track, stsd_idx, &container_type, &ch->pck_encrypted, &ch->crypt_byte_block, &ch->skip_byte_block, &key_info, &key_info_size);
 
-		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_UINT(container_type) );
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_STORE, &PROP_4CC(container_type) );
 
 		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ENCRYPTED, &PROP_BOOL(ch->pck_encrypted) );
 
@@ -892,6 +901,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_isom_reset_tables(read->mov, GF_TRUE);
 			gf_isom_reset_data_offset(read->mov, NULL);
 			read->refresh_fragmented = GF_TRUE;
+			read->mem_blob.size = 0;
 			//send play event
 			cancel_event = GF_FALSE;
 		} else if (!read->nb_playing && read->pid && !read->input_loaded) {
@@ -1042,6 +1052,10 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 	}
 	//refresh file
 	gf_isom_refresh_fragmented(read->mov, &bytes_missing, read->mem_url);
+
+	if ((read->mem_load_mode==2) && bytes_missing)
+		read->force_fetch = GF_TRUE;
+
 }
 
 static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
@@ -1088,16 +1102,18 @@ static void isoffin_purge_mem(ISOMReader *read, u64 min_offset)
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
 		u32 num_samples;
-#ifndef GPAC_DISABLE_LOG
 		u32 prev_samples = gf_isom_get_sample_count(read->mov, ch->track);
-#endif
 		//don't run this too often
 		if (ch->sample_num<=1+read->mstore_samples) continue;
 
-		if (gf_isom_purge_samples(read->mov, ch->track, ch->sample_num-1) == GF_OK)
+		num_samples = ch->sample_num-1;
+		if (num_samples>=prev_samples) continue;
+
+		if (gf_isom_purge_samples(read->mov, ch->track, num_samples) == GF_OK)
 			ch->sample_num = 1;
 
 		num_samples = gf_isom_get_sample_count(read->mov, ch->track);
+		assert(ch->sample_num<=num_samples);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[IsoMedia] mem mode %d samples now in track %d (prev %d)\n", num_samples, ch->track_id, prev_samples));
 	}
 }
@@ -1294,11 +1310,15 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				//strip param sets from payload, trigger reconfig if needed
 				isor_reader_check_config(ch);
 
-				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
-				assert(pck);
+				if (read->nodata) {
+					pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);
+					if (!pck) return GF_OUT_OF_MEM;
+				} else {
+					pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+					if (!pck) return GF_OUT_OF_MEM;
 
-				memcpy(data, ch->sample->data, ch->sample->dataLength);
-
+					memcpy(data, ch->sample->data, ch->sample->dataLength);
+				}
 				gf_filter_pck_set_dts(pck, ch->dts);
 				gf_filter_pck_set_cts(pck, ch->cts);
 				if (ch->sample->IsRAP==-1) {
@@ -1471,12 +1491,12 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
-	{ OFFS(tkid), "declare only track based on given param"
+	{ OFFS(tkid), "declare only track based on given param\n"
 	"- integer value: declares track with the given ID\n"
 	"- audio: declares first audio track\n"
 	"- video: declares first video track\n"
 	"- 4CC: declares first track with matching 4CC for handler type", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(stsd), "only extract sample mapped to the given sample desciption index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stsd), "only extract sample mapped to the given sample description index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
@@ -1485,7 +1505,12 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-
+	{ OFFS(xps_check), "parameter sets extraction mode from AVC/HEVC/VVC samples\n"
+	"- keep: do not inspect sample (assumes input file is compliant when generating DASH/HLS/CMAF)\n"
+	"- rem: removes all inband xPS and notify configuration changes accordingly\n"
+	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
+	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

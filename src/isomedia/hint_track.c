@@ -123,7 +123,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 	if (!trak->References) {
 		tref = (GF_TrackReferenceBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_TREF);
 		if (!tref) return GF_OUT_OF_MEM;
-		e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref);
+		e = trak_on_child_box((GF_Box*)trak, (GF_Box *)tref, GF_FALSE);
 		if (e) return e;
 	}
 	tref = trak->References;
@@ -146,13 +146,13 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, GF_ISOHintFo
 		//create one
 		udta = (GF_UserDataBox *) gf_isom_box_new_parent(&trak->child_boxes, GF_ISOM_BOX_TYPE_UDTA);
 		if (!udta) return GF_OUT_OF_MEM;
-		e = trak_on_child_box((GF_Box*)trak, (GF_Box *) udta);
+		e = trak_on_child_box((GF_Box*)trak, (GF_Box *) udta, GF_FALSE);
 		if (e) return e;
 	}
 	udta = trak->udta;
 
 	//HNTI
-	e = udta_on_child_box((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+	e = udta_on_child_box((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
 	if (e) return e;
 
 	/*
@@ -235,6 +235,8 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
+
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
@@ -266,6 +268,7 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
@@ -298,6 +301,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, HintDescriptionIndex - 1);
+	if (!hdesc) return GF_BAD_PARAM;
 	count = gf_list_count(hdesc->child_boxes);
 
 	for (i=0; i< count; i++) {
@@ -756,7 +760,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxes, 0);
 	if (!hnti->SDP) {
-		e = hnti_on_child_box((GF_Box*)hnti, gf_isom_box_new_parent(&hnti->child_boxes, GF_ISOM_BOX_TYPE_SDP));
+		e = hnti_on_child_box((GF_Box*)hnti, gf_isom_box_new_parent(&hnti->child_boxes, GF_ISOM_BOX_TYPE_SDP), GF_FALSE);
 		if (e) return e;
 	}
 	sdp = (GF_SDPBox *) hnti->SDP;
@@ -825,20 +829,20 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 
 	//check if we have a udta ...
 	if (!movie->moov->udta) {
-		e = moov_on_child_box((GF_Box*)movie->moov, gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_on_child_box((GF_Box*)movie->moov, gf_isom_box_new_parent(&movie->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 		if (e) return e;
 	}
 	//find a hnti in the udta
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) {
-		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
 		if (e) return e;
 		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	}
 
 	//there should be one and only one hnti
 	if (!gf_list_count(map->boxes) ) {
-		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		e = udta_on_child_box((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI), GF_FALSE);
 		if (e) return e;
 	}
 	else if (gf_list_count(map->boxes) < 1) return GF_ISOM_INVALID_FILE;
@@ -848,7 +852,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	if (!hnti->SDP) {
 		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI, 0, GF_FALSE);
 		if (!a) return GF_OUT_OF_MEM;
-		hnti_on_child_box((GF_Box*)hnti, a);
+		hnti_on_child_box((GF_Box*)hnti, a, GF_FALSE);
 		if (!hnti->child_boxes) hnti->child_boxes = gf_list_new();
 		gf_list_add(hnti->child_boxes, a);
 	}

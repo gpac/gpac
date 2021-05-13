@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -1185,6 +1185,7 @@ typedef struct _audiointerface
 	Bool forced_layout;
 	//updated at each frame, used if frame fetch returns NULL
 	Bool is_buffering;
+	Bool is_eos;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
@@ -1207,10 +1208,10 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am);
 /*retrieves mixer cfg*/
 void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outFMT, u64 *outChCfg);
 /*called by audio renderer in case the hardware used a different setup than requested*/
-void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 ch_cfg);
+GF_Err gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, u64 ch_cfg);
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce);
 u32 gf_mixer_get_src_count(GF_AudioMixer *am);
-void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
+GF_Err gf_mixer_force_channel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
@@ -1644,7 +1645,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 /*destroy service*/
 void gf_scene_ns_del(GF_SceneNamespace *ns, GF_Scene *scene);
 
-void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url, GF_SceneNamespace *parent_ns);
 
 
 
@@ -1667,7 +1668,7 @@ struct _gf_scene
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;
 
-	/*list of GF_MediaObject - these are the links betwwen scene nodes (URL, xlink:href) and media resources.
+	/*list of GF_MediaObject - these are the links between scene nodes (URL, xlink:href) and media resources.
 	We need this link because of MPEG-4 Systems, where an OD (media resource) can be removed or replaced by the server
 	without the scene being modified*/
 	GF_List *scene_objects;
@@ -1794,7 +1795,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 void gf_scene_buffering_info(GF_Scene *scene, Bool rebuffer_done);
 void gf_scene_attach_to_compositor(GF_Scene *scene);
 struct _mediaobj *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
-struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
+struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr, GF_Scene *original_parent_scene);
 void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*updates scene duration based on sub objects*/
 void gf_scene_set_duration(GF_Scene *scene);
@@ -1828,7 +1829,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 //If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
 Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_buffering);
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queuing);
 
 void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene);
@@ -1869,58 +1870,37 @@ const char *gf_scene_get_fragment_uri(GF_Node *node);
 void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
 
 
-#if FILTER_FIXME
-
-
-/*URI relocators are used for containers like zip or ISO FF with file items. The relocator
-is in charge of translating the URI, potentially extracting the associated resource and sending
-back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
-
-relocate a URI - if NULL is returned, this relocator is not concerned with the URI
-otherwise returns the translated URI
-*/
-
-#define GF_TERM_URI_RELOCATOR	\
-	Bool (*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char *out_relocated_uri, char *out_localized_uri);		\
-
-typedef struct __gf_uri_relocator GF_URIRelocator;
-
-struct __gf_uri_relocator
+/*GF_NET_ASSOCIATED_CONTENT_TIMING*/
+typedef struct
 {
-	GF_TERM_URI_RELOCATOR
-};
+	u32 timeline_id;
+	u32 media_timescale;
+	u64 media_timestamp;
+	//for now only used in MPEG-2, so media_pts is in 90khz scale
+	u64 media_pts;
+	Bool force_reload;
+	Bool is_paused;
+	Bool is_discontinuity;
+	u64 ntp;
+} GF_AssociatedContentTiming;
 
 typedef struct
 {
-	GF_TERM_URI_RELOCATOR
-	GF_Terminal *term;
-	char *szAbsRelocatedPath;
-} GF_TermLocales;
-
-#define	MAX_SHORTCUTS	200
-
-typedef struct
-{
-	u8 code;
-	u8 mods;
-	u8 action;
-} GF_Shortcut;
-
-typedef struct
-{
-	void *udta;
-	/*called when an event should be filtered
-	*/
-	Bool (*on_event)(void *udta, GF_Event *evt, Bool consumed_by_compositor);
-} GF_TermEventFilter;
-
-GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
-GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
+	//negative values mean "timeline is ready no need for timing message"
+	s32 timeline_id;
+	const char *external_URL;
+	Bool is_announce, is_splicing;
+	Bool reload_external;
+	Bool enable_if_defined;
+	Bool disable_if_defined;
+	GF_Fraction activation_countdown;
+	//start and end times of splicing if any
+	Double splice_start_time, splice_end_time;
+	Bool splice_time_pts;
+} GF_AssociatedContentLocation;
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
-
-#endif
 
 
 /*clock*/
@@ -2045,6 +2025,8 @@ enum
 	GF_ODM_PASSTHROUGH = (1<<15),
 	/*flag indicates the clock is shared between tiles and a play should not trigger a rebuffer*/
 	GF_ODM_TILED_SHARED_CLOCK = (1<<16),
+	/*flag indicates TEMI info is associated with PID*/
+	GF_ODM_HAS_TEMI = (1<<17),
 };
 
 enum
@@ -2096,6 +2078,9 @@ struct _od_manager
 	//object ID for linking with mediaobjects
 	u32 ID;
 	u32 pid_id; //esid for clock solving
+
+	//MPEG-4 OD descriptor
+	GF_ObjectDescriptor *OD;
 
 	//parent service ID as defined from input
 	u32 ServiceID;
@@ -2153,7 +2138,7 @@ struct _od_manager
 #ifndef GPAC_DISABLE_VRML
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;
-	/*the list of media control controling the object*/
+	/*the list of media control controlling the object*/
 	GF_List *mc_stack;
 	/*the media sensor(s) attached to this object*/
 	GF_List *ms_stack;
@@ -2163,8 +2148,6 @@ struct _od_manager
 	GF_AddonMedia *addon;
 	//set for objects splicing the main content, indicates the media type (usually in @codec but no codec created for splicing)
 	u32 splice_addon_mtype;
-	//set to true if this is a scalable addon for an existing object
-	Bool scalable_addon;
 
 	//for a regular ODM, this indicates that the current scalable_odm associated
 	struct _od_manager *upper_layer_odm;
@@ -2189,7 +2172,7 @@ void gf_odm_del(GF_ObjectManager *ODMan);
 /*setup OD*/
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid);
 
-void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url);
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon);
 
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
@@ -2239,6 +2222,8 @@ void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
 void gf_odm_check_clock_mediatime(GF_ObjectManager *odm);
+
+void gf_odm_addon_setup(GF_ObjectManager *odm);
 
 
 /*!
@@ -2367,8 +2352,8 @@ void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *messa
 
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
 Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u8 *timestamp_based);
-s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
-void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts_ms);
+
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
@@ -2437,8 +2422,8 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
 
 /*post extended user mouse interaction to terminal
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
-	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
-	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
+	@xxx_but_down: specify whether the mouse button is down(2) or up (1), 0 if unchanged
+	@wheel: specify current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
 */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *event);
@@ -2530,7 +2515,7 @@ typedef struct _media_control
 
 	/*stream object list (segments)*/
 	GF_List *seg;
-	/*current active segment index (ie, controling the PLAY range of the media)*/
+	/*current active segment index (ie, controlling the PLAY range of the media)*/
 	u32 current_seg;
 } MediaControlStack;
 void InitMediaControl(GF_Scene *scene, GF_Node *node);

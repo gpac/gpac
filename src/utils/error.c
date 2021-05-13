@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -24,6 +24,7 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/thread.h>
 
 
 //ugly patch, we have a concurrence issue with gf_4cc_to_str, for now fixed by rolling buffers
@@ -35,7 +36,6 @@ GF_EXPORT
 const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
-	Bool is_ok=GF_TRUE;
 	char *szTYPE = szTYPE_BUF[buf_4cc_idx];
 	char *name = (char *)szTYPE;
 	if (!type) return "00000000";
@@ -43,23 +43,27 @@ const char *gf_4cc_to_str(u32 type)
 	if (buf_4cc_idx==NB_4CC_BUF)
 		buf_4cc_idx=0;
 
-	for (i = 0; i < 4; i++, name++) {
+	for (i = 0; i < 4; i++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
 		if ( ch >= 0x20 && ch <= 0x7E ) {
 			*name = ch;
+			name++;
 		} else {
-			is_ok=GF_FALSE;
-			break;
+			sprintf(name, "%02X", ch);
+			name += 2;
 		}
 	}
-	if (is_ok) {
-		*name = 0;
-		return (const char *) szTYPE;
-	}
-	sprintf(szTYPE, "%02X%02X%02X%02X", (type>>24)&0xFF, (type>>16)&0xFF, (type>>8)&0xFF, (type)&0xFF);
+	*name = 0;
 	return (const char *) szTYPE;
 }
 
+GF_EXPORT
+u32 gf_4cc_parse(const char *val)
+{
+	if (val && strlen(val)==4) return GF_4CC(val[0], val[1], val[2], val[3]);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Value is not a properly defined 4CC", val));
+	return 0;
+}
 
 static const char *szProg[] =
 {
@@ -88,13 +92,21 @@ static const char *szProg[] =
 
 static u64 prev_pos = (u64) -1;
 static u64 prev_pc = (u64) -1;
+extern char gf_prog_lf;
+
 static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
 	u32 pos, pc;
 	const char *szT = _title ? (char *)_title : (char *) "";
-	prog = (double) done;
-	prog /= total;
+
+	if (total) {
+		prog = (double) done;
+		prog /= total;
+	} else {
+		prog = 0;
+	}
+
 	pos = MIN((u32) (20 * prog), 20);
 
 	if (pos>prev_pos) {
@@ -105,7 +117,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 	if ((pos!=prev_pos) || (pc!=prev_pc)) {
 		prev_pos = pos;
 		prev_pc = pc;
-		fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
+		fprintf(stderr, "%s: |%s| (%02d/100)%c", szT, szProg[pos], pc, gf_prog_lf);
 		fflush(stderr);
 	}
 	if (done==total) {
@@ -115,7 +127,7 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 				fprintf(stderr, " ");
 				len--;
 			};
-			fprintf(stderr, "\r");
+			fprintf(stderr, "%c", gf_prog_lf);
 		}
 		prev_pos = 0;
 	}
@@ -693,7 +705,6 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 
 
 
-#include <gpac/thread.h>
 static void *user_log_cbk = NULL;
 gf_log_cbk log_cbk = default_log_callback_color;
 static Bool log_exit_on_error = GF_FALSE;
@@ -1096,6 +1107,9 @@ static const char *gf_disabled_features()
 #endif
 #ifdef GPAC_USE_GLES2
 	                       "GPAC_USE_GLES2 "
+#endif
+#ifdef GPAC_DISABLE_ZLIB
+	                       "GPAC_DISABLE_ZLIB "
 #endif
 #ifdef GPAC_DISABLE_SVG
 	                       "GPAC_DISABLE_SVG "
@@ -1791,3 +1805,93 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep)
 	return GF_OK;
 }
 
+GF_EXPORT
+Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
+{
+	Float v;
+	u32 len, i;
+	Bool all_num=GF_TRUE;
+	char *sep;
+	if (!frac) return GF_FALSE;
+	frac->num = 0;
+	frac->den = 0;
+	if (!value) return GF_FALSE;
+
+	if (sscanf(value, LLD"/"LLU, &frac->num, &frac->den) == 2) {
+		return GF_TRUE;
+	}
+	if (sscanf(value, LLD"-"LLU, &frac->num, &frac->den) == 2) {
+		return GF_TRUE;
+	}
+	if (sscanf(value, "%g", &v) != 1) {
+		frac->num = 0;
+		frac->den = 0;
+		return GF_FALSE;
+	}
+	sep = strchr(value, '.');
+	if (!sep) sep = strchr(value, ',');
+	if (!sep) {
+		frac->num = atoi(value);
+		frac->den = 1;
+		return GF_TRUE;
+	}
+
+	len = (u32) strlen(sep+1);
+	for (i=1; i<=len; i++) {
+		if ((sep[i]<'0') || (sep[i]>'9')) {
+			all_num = GF_FALSE;
+			break;
+		}
+	}
+	if (all_num) {
+		u32 div_trail_zero = 1;
+		sscanf(value, LLD"."LLU, &frac->num, &frac->den);
+
+		i=0;
+		frac->den = 1;
+		while (i<len) {
+			i++;
+			frac->den *= 10;
+		}
+		//trash trailing zero
+		i=len;
+		while (i>0) {
+			if (sep[i] != '0') {
+				break;
+			}
+			div_trail_zero *= 10;
+			i--;
+		}
+
+
+		frac->num *= frac->den / div_trail_zero;
+		frac->num += atoi(sep+1) / div_trail_zero;
+		frac->den /= div_trail_zero;
+
+		return GF_TRUE;
+	}
+
+	sep += 1;
+	if (len <= 3) frac->den = 1000;
+	else if (len <= 6) frac->den = 1000000;
+	else frac->den = 1000000000;
+
+	frac->num = (u64)( (atof(value) * frac->den) + 0.5 );
+	return GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_parse_frac(const char *value, GF_Fraction *frac)
+{
+	GF_Fraction64 r;
+	Bool res;
+	if (!frac) return GF_FALSE;
+	res = gf_parse_lfrac(value, &r);
+	while ((r.num >= 0x80000000) && (r.den > 1000)) {
+		r.num /= 1000;
+		r.den /= 1000;
+	}
+	frac->num = (s32) r.num;
+	frac->den = (u32) r.den;
+	return res;
+}

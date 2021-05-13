@@ -106,7 +106,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 			gf_sc_texture_restart(txh);
 		}
 		/*if active deactivate*/
-		else if (txnode->isActive && gf_mo_should_deactivate(st->txh.stream) ) {
+		else if (txnode->isActive && (txnode->startTime<txnode->stopTime) && gf_mo_should_deactivate(st->txh.stream) ) {
 			movietexture_deactivate(st, txnode);
 		}
 	}
@@ -519,7 +519,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 
 
 	/*pixel texture doesn not use any media object but has data in the content.
-	However we still use the same texture object, just be carefull not to use media funtcions*/
+	However we still use the same texture object, just be careful not to use media funtcions*/
 	txh->transparent = 0;
 	stride = pt->image.width;
 	/*num_components are as in VRML (1->4) not as in BIFS bitstream (0->3)*/

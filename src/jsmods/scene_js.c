@@ -934,7 +934,10 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewBool(ctx, GF_FALSE );
 
 	case GJS_OM_PROP_SCALABLE_ENHANCEMENT:
-		return JS_NewBool(ctx, odm && (odm->lower_layer_odm || odm->scalable_addon));
+		if (odm->lower_layer_odm) return JS_TRUE;
+		if (odm->subscene && !odm->pid && odm->addon && !gf_list_count(odm->subscene->resources))
+			return JS_TRUE;
+		return JS_FALSE;
 
 	case GJS_OM_PROP_MAIN_ADDON_MEDIATIME:
 		scene = odm->subscene ? odm->subscene : odm->parentscene;
@@ -956,20 +959,16 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewFloat64(ctx, -1);
 
 	case GJS_OM_PROP_DEPENDENT_GROUPS:
-	{
-#if FILTER_FIXME
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-		com.base.on_channel = gf_list_get(odm->channels, 0);
-
-		gf_term_service_command(odm->net_service, &com);
-		if (com.quality_query.index) {
-			return JS_NewInt32(ctx, com.quality_query.dependent_group_index);
+		if (odm->pid) {
+			GF_PropertyEntry *pe=NULL;
+			const GF_PropertyValue *p = gf_filter_pid_get_info_str(odm->pid, "has:group_deps", &pe);
+			if (p) {
+				u32 v = p->value.uint;
+				gf_filter_release_property(pe);
+				return JS_NewInt32(ctx, v);
+			}
 		}
-#endif
 		return JS_NewInt32(ctx, 0);
-	}
 
 	case GJS_OM_PROP_IS_VR_SCENE:
 		return JS_NewBool(ctx, odm->subscene && odm->subscene->vr_type);
@@ -994,29 +993,34 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	Bool ilced=GF_FALSE, disabled=GF_FALSE, selected=GF_FALSE, automatic=GF_FALSE;
 	Double fps=30.0;
 	s32 idx;
-#if 0 //FILTER_FIXME
 	s32 dep_idx=0;
-#endif
 
 	if (!odm) return JS_EXCEPTION;
 	if (argc<1) return JS_EXCEPTION;
 	if (JS_ToInt32(ctx, &idx, argv[0]))
 		return JS_EXCEPTION;
 
-#if 0 //FILTER_FIXME
-	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
-#endif
+	if ((argc>=2) && JS_ToInt32(ctx, &dep_idx, argv[1]))
+		return JS_EXCEPTION;
 
 	if (!odm->pid) return JS_NULL;
 
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
+	if (dep_idx) {
+		char szName[100];
+		sprintf(szName, "has:deps_%d_qualities", dep_idx);
+		prop = gf_filter_pid_get_info_str(odm->pid, szName, &pe);
+	} else {
+		prop = gf_filter_pid_get_info_str(odm->pid, "has:qualities", &pe);
+	}
 	if (!prop || (prop->type!=GF_PROP_STRING_LIST)) {
 		gf_filter_release_property(pe);
 		return JS_NULL;
 	}
 	qdesc = NULL;
+
 	if (idx < (s32) prop->value.string_list.nb_items)
 		qdesc = prop->value.string_list.vals[idx];
+
 	if (!qdesc) {
 		gf_filter_release_property(pe);
 		return JS_NULL;
@@ -1046,6 +1050,7 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 		else if (!strncmp(qdesc, "ch=", 3)) ch = atoi(qdesc+3);
 		else if (!strcmp(qdesc, "interlaced")) ilced = GF_TRUE;
 		else if (!strcmp(qdesc, "disabled")) disabled = GF_TRUE;
+		else if (!strcmp(qdesc, "selected")) selected = GF_TRUE;
 		else if (!strncmp(qdesc, "fps=", 4)) {
 			u32 fd=25, fn=1;
 			if (sscanf(qdesc, "fps=%d/%d", &fn, &fd) != 2) {
@@ -1061,14 +1066,27 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 		sep[0]=':';
 		qdesc = sep+2;
 	}
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:selected", &pe);
-	if (prop && (prop->value.uint==idx))
-		selected = GF_TRUE;
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:auto", &pe);
-	if (prop && prop->value.boolean)
-		automatic = GF_TRUE;
-	prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode", &pe);
-	if (prop) tile_adaptation_mode = prop->value.uint;
+
+	if (!dep_idx) {
+		prop = gf_filter_pid_get_info_str(odm->pid, "has:selected", &pe);
+		if (prop && (prop->value.uint==idx))
+			selected = GF_TRUE;
+		prop = gf_filter_pid_get_info_str(odm->pid, "has:auto", &pe);
+		if (prop && prop->value.boolean)
+			automatic = GF_TRUE;
+		prop = gf_filter_pid_get_info_str(odm->pid, "has:tilemode", &pe);
+		if (prop) tile_adaptation_mode = prop->value.uint;
+	} else if (dep_idx>0) {
+		prop = gf_filter_pid_get_info_str(odm->pid, "has:deps_selected", &pe);
+		if (prop && (prop->type==GF_PROP_SINT_LIST)) {
+			if ((u32) dep_idx<=prop->value.sint_list.nb_items) {
+				s32 sel = prop->value.sint_list.vals[dep_idx-1];
+				if ((sel>=0) && (idx==sel)) {
+					selected = GF_TRUE;
+				}
+			}
+		}
+	}
 
 	gf_filter_release_property(pe);
 
@@ -1091,8 +1109,10 @@ static JSValue gjs_odm_get_quality(JSContext *ctx, JSValueConst this_val, int ar
 	JS_SetPropertyStr(ctx, a, "disabled", JS_NewBool(ctx, disabled));
 	JS_SetPropertyStr(ctx, a, "is_selected", JS_NewBool(ctx, selected));
 	JS_SetPropertyStr(ctx, a, "automatic", JS_NewBool(ctx, automatic));
-	JS_SetPropertyStr(ctx, a, "tile_mode", JS_NewInt32(ctx, tile_adaptation_mode));
-	JS_SetPropertyStr(ctx, a, "dependent_groups", JS_NewInt32(ctx, dependent_group_index));
+	if (!dep_idx) {
+		JS_SetPropertyStr(ctx, a, "tile_mode", JS_NewInt32(ctx, tile_adaptation_mode));
+		JS_SetPropertyStr(ctx, a, "dependent_groups", JS_NewInt32(ctx, dependent_group_index));
+	}
 
 	return a;
 }
@@ -1106,23 +1126,26 @@ static JSValue gjs_odm_get_srd(JSContext *ctx, JSValueConst this_val, int argc, 
 
 	x = y = w = h = 0;
 	if (argc) {
-#if 0 //FILTER_FIXME
+		u32 srdw, srdh;
+		const GF_PropertyValue *p;
+		GF_PropertyEntry *pe=NULL;
 	 	s32 dep_idx;
 	 	if (JS_ToInt32(ctx, &dep_idx, argv[0]) )
 	 		return JS_EXCEPTION;
-
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_CHAN_GET_SRD;
-		com.base.on_channel = gf_list_get(odm->channels, 0);
-		com.srd.dependent_group_index = dep_idx;
-
-		if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
-			x = com.srd.x;
-			y = com.srd.y;
-			w = com.srd.w;
-			h = com.srd.h;
+		if (dep_idx<=0)
+	 		return JS_EXCEPTION;
+		dep_idx--;
+		p = gf_filter_pid_get_info_str(odm->pid, "has:groups_srd", &pe);
+		if (p && (p->type==GF_PROP_STRING_LIST)) {
+			char *srd;
+			if ((u32) dep_idx>=p->value.string_list.nb_items) {
+				gf_filter_release_property(pe);
+				return JS_EXCEPTION;
+			}
+			srd = p->value.string_list.vals[dep_idx];
+			sscanf(srd, "%dx%dx%dx%d@%dx%d", &x, &y, &w, &h, &srdw, &srdh);
 		}
-#endif
+		gf_filter_release_property(pe);
 	} else if (odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) {
 		x = odm->mo->srd_x;
 		y = odm->mo->srd_y;
@@ -1284,7 +1307,6 @@ static JSValue gjs_odm_addon_layout(JSContext *ctx, JSValueConst this_val, int a
 static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_if_defined, Bool disable_if_defined )
 {
 	if (addon_url) {
-#ifdef FILTER_FIXME
 		GF_AssociatedContentLocation addon_info;
 		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 		addon_info.external_URL = addon_url;
@@ -1292,7 +1314,6 @@ static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_
 		addon_info.enable_if_defined = enable_if_defined;
 		addon_info.disable_if_defined = disable_if_defined;
 		gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
-#endif
 	}
 }
 

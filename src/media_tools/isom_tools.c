@@ -910,6 +910,124 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 	return GF_OK;
 }
 
+GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 stype = gf_isom_get_media_subtype(file, track, sampleDescriptionIndex);
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC2_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC3_H264)
+			|| (stype==GF_ISOM_SUBTYPE_AVC4_H264)
+	) {
+		AVCState avc;
+		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, sampleDescriptionIndex);
+		u32 i;
+		s32 idx;
+		GF_NALUFFParam *slc;
+
+		memset(&avc, 0, sizeof(AVCState));
+		avc.sps_active_idx = -1;
+
+		i=0;
+		while ((slc = (GF_NALUFFParam *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
+			idx = gf_avc_read_sps(slc->data, slc->size, &avc, 0, NULL);
+
+			if (idx<0) continue;
+			if (! avc.sps[idx].vui_parameters_present_flag )
+				continue;
+
+			*colour_type = avc.sps[idx].vui.video_format;
+			*colour_primaries = avc.sps[idx].vui.colour_primaries;
+			*transfer_characteristics = avc.sps[idx].vui.transfer_characteristics;
+			*matrix_coefficients = avc.sps[idx].vui.matrix_coefficients;
+			*full_range_flag = avc.sps[idx].vui.video_full_range_flag;
+			gf_odf_avc_cfg_del(avcc);
+			return GF_OK;
+		}
+		gf_odf_avc_cfg_del(avcc);
+		return GF_NOT_FOUND;
+	}
+	if ((stype==GF_ISOM_SUBTYPE_HEV1)
+			|| (stype==GF_ISOM_SUBTYPE_HEV2)
+			|| (stype==GF_ISOM_SUBTYPE_HVC1)
+			|| (stype==GF_ISOM_SUBTYPE_HVC2)
+			|| (stype==GF_ISOM_SUBTYPE_LHV1)
+			|| (stype==GF_ISOM_SUBTYPE_LHE1)
+	) {
+		HEVCState hvc;
+		GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(file, track, sampleDescriptionIndex);
+		u32 i;
+		GF_NALUFFParamArray *pa;
+
+		memset(&hvc, 0, sizeof(HEVCState));
+		hvc.sps_active_idx = -1;
+
+		i=0;
+		while ((pa = (GF_NALUFFParamArray *)gf_list_enum(hvcc->param_array, &i))) {
+			GF_NALUFFParam *slc;
+			u32 j;
+			s32 idx;
+			if (pa->type != GF_HEVC_NALU_SEQ_PARAM) continue;
+
+			j=0;
+			while ((slc = (GF_NALUFFParam *)gf_list_enum(pa->nalus, &j))) {
+				idx = gf_hevc_read_sps(slc->data, slc->size, &hvc);
+
+				if (idx<0) continue;
+				if (! hvc.sps[idx].vui_parameters_present_flag)
+					continue;
+
+				*colour_type = hvc.sps[idx].video_format;
+				*colour_primaries = hvc.sps[idx].colour_primaries;
+				*transfer_characteristics = hvc.sps[idx].transfer_characteristic;
+				*matrix_coefficients = hvc.sps[idx].matrix_coeffs;
+				*full_range_flag = hvc.sps[idx].video_full_range_flag;
+				gf_odf_hevc_cfg_del(hvcc);
+				return GF_OK;
+			}
+		}
+		gf_odf_hevc_cfg_del(hvcc);
+		return GF_NOT_FOUND;
+	}
+	if (stype==GF_ISOM_SUBTYPE_AV01) {
+		AV1State av1;
+
+		gf_av1_init_state(&av1);
+		av1.config = gf_isom_av1_config_get(file, track, sampleDescriptionIndex);
+		if (av1.config) {
+			u32 i;
+			for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+				GF_BitStream *bs;
+				ObuType obu_type;
+				u32 hdr_size;
+				u64 obu_size;
+				GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+				bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+				gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+				gf_bs_del(bs);
+
+				if (av1.color_description_present_flag) {
+					*colour_type = 0;
+					*colour_primaries = av1.color_primaries;
+					*transfer_characteristics = av1.transfer_characteristics;
+					*matrix_coefficients = av1.matrix_coefficients;
+					*full_range_flag = av1.color_range;
+					if (av1.config) gf_odf_av1_cfg_del(av1.config);
+					gf_av1_reset_state(&av1, GF_TRUE);
+					return GF_OK;
+				}
+			}
+		}
+		if (av1.config) gf_odf_av1_cfg_del(av1.config);
+		gf_av1_reset_state(&av1, GF_TRUE);
+		return GF_NOT_FOUND;
+	}
+
+#endif
+	return GF_NOT_SUPPORTED;
+}
+
+
 GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 {
@@ -961,9 +1079,10 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			u32 sr, nb_ch, bps;
 			gf_isom_get_audio_info(mp4, i+1, 1, &sr, &nb_ch, &bps);
 			gf_isom_set_audio_info(mp4, i+1, 1, sr, nb_ch, bps, GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF);
+
+			gf_isom_hint_max_chunk_duration(mp4, i+1, gf_isom_get_media_timescale(mp4, i+1) / 2);
 			continue;
 		}
-		if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
 	}
 	//make QT
 	gf_isom_remove_root_od(mp4);
@@ -1050,6 +1169,10 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 				gf_bs_del(bs);
 			}
 			gf_isom_sample_del(&s);
+		} else {
+			e = gf_media_get_color_info(mp4, video_tk, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+			if (e)
+				colour_primaries=0;
 		}
 		if (!colour_primaries) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
@@ -1057,7 +1180,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			transfer_characteristics = 1;
 			matrix_coefficients = 1;
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from first ProRes frame\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from %s\n", prores_type ? "first ProRes frame" : "sample description"));
 		}
 		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
 	} else if (e) {
@@ -1090,7 +1213,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 
 	if (target_ts != timescale) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
-		gf_isom_set_media_timescale(mp4, video_tk, target_ts, 0, GF_FALSE);
+		gf_isom_set_media_timescale(mp4, video_tk, target_ts, 0, 0);
 	}
 	gf_isom_set_timescale(mp4, target_ts);
 	if ((w<=720) && (h<=576)) chunk_size = 2000000;
@@ -1234,6 +1357,24 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
 		if (e == GF_OK && props.config) {
 			gf_odf_avc_cfg_write(((GF_AVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		}
+		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		esd->slConfig->useTimestampsFlag = 1;
+		esd->slConfig->timestampResolution = 1000;
+		return esd;
+	} else if (item_type == GF_ISOM_SUBTYPE_AV01) {
+		GF_ImageItemProperties props;
+		esd = gf_odf_desc_esd_new(0);
+		if (item_id > (1 << 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
+		}
+		esd->ESID = (u16)item_id;
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_AV1;
+		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
+		if (e == GF_OK && props.config) {
+			gf_odf_av1_cfg_write( ((GF_AV1ConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		}
 		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 		esd->slConfig->useTimestampsFlag = 1;
@@ -1588,6 +1729,13 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		gf_isom_set_track_enabled(file, svc_track, GF_TRUE);
 		gf_isom_set_track_reference(file, svc_track, GF_ISOM_REF_BASE, ref_trackID);
+		//copy over edit list
+		for (i=0; i<gf_isom_get_edits_count(file, track); i++) {
+			GF_ISOEditType emode;
+			u64 etime, edur, mtime;
+			gf_isom_get_edit(file, track, i+1, &etime, &edur, &mtime, &emode);
+			gf_isom_set_edit(file, svc_track, etime, edur, mtime, emode);
+		}
 		cfg = gf_odf_avc_cfg_new();
 		cfg->complete_representation = 1; //SVC
 		/*this layer depends on the base layer and the lower layers*/
@@ -3488,6 +3636,8 @@ typedef struct
 	GF_FilterSession *fsess;
 } FragCallback;
 
+extern char gf_prog_lf;
+
 static Bool on_frag_event(void *_udta, GF_Event *evt)
 {
 	u32 i, count;
@@ -3517,9 +3667,9 @@ static Bool on_frag_event(void *_udta, GF_Event *evt)
 	fc->last_prog = stats.percent / 100;
 
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Fragmenting: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf));
 #else
-	fprintf(stderr, "Fragmenting: % 2.2f %%\r", ((Double)stats.percent) / 100);
+	fprintf(stderr, "Fragmenting: % 2.2f %%%c", ((Double)stats.percent) / 100, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }
@@ -3737,7 +3887,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		}
 	}
 
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%u%c.%u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
 		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
 		av1_state.bit_depth, av1_state.config->monochrome,
 		av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
@@ -3745,7 +3895,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 
 	if (av1_state.color_description_present_flag) {
 		char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%01u.%01u.%01u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%02u.%02u.%02u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
 		strcat(szCodec, tmp);
 	} else {
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
@@ -3804,7 +3954,7 @@ GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_si
 
 GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 {
-	if (codec_id<GF_CODECID_LAST_MPEG4_MAPPING) {
+	if (codec_id && (codec_id<GF_CODECID_LAST_MPEG4_MAPPING)) {
 		u32 stype = gf_codecid_type(codec_id);
 		if (stype==GF_STREAM_VISUAL)
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", codec_id);
@@ -4026,6 +4176,74 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 	}
 	return GF_OK;
+}
+
+
+GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample_number, u32 layer_size[3])
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	u32 i;
+	AV1State av1;
+	ObuType obu_type;
+	u64 obu_size;
+	u32 hdr_size;
+	GF_BitStream *bs;
+	u32 sdidx;
+	GF_ISOSample *samp;
+	GF_Err e = GF_OK;
+
+	samp = gf_isom_get_sample(file, trackNumber, sample_number, &sdidx);
+	if (!samp) return GF_BAD_PARAM;
+
+	if (!sdidx) {
+		gf_isom_sample_del(&samp);
+		return GF_BAD_PARAM;
+	}
+	if (gf_isom_get_media_subtype(file, trackNumber, sdidx) != GF_ISOM_SUBTYPE_AV01) {
+		gf_isom_sample_del(&samp);
+		return GF_BAD_PARAM;
+	}
+
+	gf_av1_init_state(&av1);
+	av1.config = gf_isom_av1_config_get(file, trackNumber, sdidx);
+	if (!av1.config) {
+		gf_isom_sample_del(&samp);
+		return GF_ISOM_INVALID_FILE;
+	}
+
+	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
+		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
+		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
+		e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		gf_bs_del(bs);
+		if (e) break;
+	}
+
+	if (!e) {
+		bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+		while (gf_bs_available(bs)) {
+			e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			if (e) break;
+		}
+		gf_bs_del(bs);
+	}
+	gf_isom_sample_del(&samp);
+
+	for (i=0; i<3; i++) {
+		if (av1.layer_size[i+1]==av1.layer_size[i]) {
+			layer_size[i] = 0;
+		} else {
+			layer_size[i] = av1.layer_size[i];
+		}
+	}
+
+	if (av1.config) gf_odf_av1_cfg_del(av1.config);
+	gf_av1_reset_state(&av1, GF_TRUE);
+
+	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 #endif //GPAC_DISABLE_ISOM

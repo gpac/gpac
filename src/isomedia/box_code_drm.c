@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -39,21 +39,18 @@ void sinf_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err sinf_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err sinf_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_FRMA:
-		if (ptr->original_format) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->original_format = (GF_OriginalFormatBox*)a;
+		BOX_FIELD_ASSIGN(original_format, GF_OriginalFormatBox)
 		break;
 	case GF_ISOM_BOX_TYPE_SCHM:
-		if (ptr->scheme_type) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->scheme_type = (GF_SchemeTypeBox*)a;
+		BOX_FIELD_ASSIGN(scheme_type, GF_SchemeTypeBox)
 		break;
 	case GF_ISOM_BOX_TYPE_SCHI:
-		if (ptr->info) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->info = (GF_SchemeInformationBox*)a;
+		BOX_FIELD_ASSIGN(info, GF_SchemeInformationBox)
 		break;
 	}
 	return GF_OK;
@@ -61,7 +58,7 @@ GF_Err sinf_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err sinf_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, sinf_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -196,38 +193,31 @@ void schi_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err schi_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err schi_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_SchemeInformationBox *ptr = (GF_SchemeInformationBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_IKMS:
-		if (ptr->ikms) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->ikms = (GF_ISMAKMSBox*)a;
+		BOX_FIELD_ASSIGN(ikms, GF_ISMAKMSBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ISFM:
-		if (ptr->isfm) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->isfm = (GF_ISMASampleFormatBox*)a;
+		BOX_FIELD_ASSIGN(isfm, GF_ISMASampleFormatBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ISLT:
-		if (ptr->islt) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->islt = (GF_ISMACrypSaltBox*)a;
+		BOX_FIELD_ASSIGN(islt, GF_ISMACrypSaltBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ODKM:
-		if (ptr->odkm) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->odkm = (GF_OMADRMKMSBox*)a;
+		BOX_FIELD_ASSIGN(odkm, GF_OMADRMKMSBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TENC:
-		if (ptr->tenc) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->tenc = (GF_TrackEncryptionBox *)a;
+		BOX_FIELD_ASSIGN(tenc, GF_TrackEncryptionBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ADKM:
-		if (ptr->adkm) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->adkm = (GF_AdobeDRMKeyManagementSystemBox *)a;
+		BOX_FIELD_ASSIGN(adkm, GF_AdobeDRMKeyManagementSystemBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_UUID:
 		if (((GF_UUIDBox*)a)->internal_4cc==GF_ISOM_BOX_UUID_TENC) {
-			if (ptr->piff_tenc) return GF_ISOM_INVALID_FILE;
-			ptr->piff_tenc = (GF_PIFFTrackEncryptionBox *)a;
+			BOX_FIELD_ASSIGN(piff_tenc, GF_PIFFTrackEncryptionBox)
 			return GF_OK;
 		} else {
 			return GF_OK;
@@ -238,7 +228,7 @@ GF_Err schi_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err schi_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, schi_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -465,7 +455,7 @@ GF_Err ohdr_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (cid_len+ri_len+ptr->TextualHeadersLen) );
 
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -593,7 +583,7 @@ void mdri_box_del(GF_Box *s)
 
 GF_Err mdri_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -716,17 +706,15 @@ void odkm_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err odkm_Add(GF_Box *s, GF_Box *a)
+GF_Err odkm_Add(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_OHDR:
-		if (ptr->hdr) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->hdr = (GF_OMADRMCommonHeaderBox *)a;
+		BOX_FIELD_ASSIGN(hdr, GF_OMADRMCommonHeaderBox)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ODAF:
-		if (ptr->fmt) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->fmt = (GF_OMADRMAUFormatBox*)a;
+		BOX_FIELD_ASSIGN(fmt, GF_OMADRMAUFormatBox)
 		return GF_OK;
 	}
 	return GF_OK;
@@ -734,7 +722,7 @@ GF_Err odkm_Add(GF_Box *s, GF_Box *a)
 
 GF_Err odkm_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, odkm_Add);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -782,7 +770,7 @@ GF_Err pssh_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		if (ptr->KID_count) {
 			u32 i;
-			if (ptr->size < ptr->KID_count * sizeof(bin128))
+			if (ptr->size / sizeof(bin128) < ptr->KID_count)
 				return GF_ISOM_INVALID_FILE;
 			ptr->KIDs = gf_malloc(ptr->KID_count*sizeof(bin128));
 			if (!ptr->KIDs)
@@ -856,20 +844,17 @@ GF_Box *tenc_box_new()
 
 void tenc_box_del(GF_Box *s)
 {
-	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
-	if (ptr->key_info) gf_free(ptr->key_info);
 	gf_free(s);
 }
 
 GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	Bool is_mkey;
+	u8 iv_size;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
 	ISOM_DECREASE_SIZE(ptr, 3);
 
-	is_mkey = gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 7); //reserved
+	gf_bs_read_u8(bs); //reserved
 
 	if (!ptr->version) {
 		gf_bs_read_u8(bs); //reserved
@@ -878,46 +863,29 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
 	}
 	ptr->isProtected = gf_bs_read_u8(bs);
-	if (is_mkey) {
-		ISOM_DECREASE_SIZE(ptr, 2);
-		u32 num_keys = gf_bs_peek_bits(bs, 16, 0);
-		if (num_keys * 17 > ptr->size)
+
+
+	ISOM_DECREASE_SIZE(ptr, 17);
+
+	ptr->key_info[0] = 0;
+	ptr->key_info[1] = 0;
+	ptr->key_info[2] = 0;
+	ptr->key_info[3] = iv_size = gf_bs_read_u8(bs);
+	gf_bs_read_data(bs, ptr->key_info+4, 16);
+	if (!iv_size && ptr->isProtected) {
+		ISOM_DECREASE_SIZE(ptr, 1);
+		iv_size = ptr->key_info[20] = gf_bs_read_u8(bs);
+		ISOM_DECREASE_SIZE(ptr, ptr->key_info[20]);
+		if ((iv_size!=8) && (iv_size!=16)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid constant IV size %d, must be 8 or 16\n", (u32) iv_size));
+			ptr->key_info[20] = 16;
 			return GF_NON_COMPLIANT_BITSTREAM;
-		ptr->key_info_size = (u32) (1+ptr->size+2); //we just did a decrease_size(2) before the peek
-		ptr->key_info = gf_malloc(sizeof(char) * ptr->key_info_size);
-		if (!ptr->key_info) return GF_OUT_OF_MEM;
-		ptr->key_info[0] = 1;
-		gf_bs_read_data(bs, ptr->key_info+1, ptr->key_info_size-1);
-		ptr->size = 0;
-		if (!gf_cenc_validate_key_info(ptr->key_info, ptr->key_info_size))
-			return GF_ISOM_INVALID_FILE;
-	} else {
-		bin128 KID;
-		u8 iv_size, const_iv_size=0;
-		ISOM_DECREASE_SIZE(ptr, 17);
-
-		iv_size = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) KID, 16);
-		if (!iv_size && ptr->isProtected) {
-			ISOM_DECREASE_SIZE(ptr, 1);
-			const_iv_size = gf_bs_read_u8(bs);
 		}
-		ptr->key_info_size = 20;
-		if (! iv_size && ptr->isProtected)
-			ptr->key_info_size += 1 + const_iv_size;
-
-		ptr->key_info = gf_malloc(sizeof(char) * ptr->key_info_size);
-		if (!ptr->key_info) return GF_OUT_OF_MEM;
-		ptr->key_info[0] = 0;
-		ptr->key_info[1] = 0;
-		ptr->key_info[2] = 0;
-		ptr->key_info[3] = iv_size;
-		memcpy(ptr->key_info+4, KID, 16);
-		if (! iv_size && ptr->isProtected) {
-			ptr->key_info[20] = const_iv_size;
-			ISOM_DECREASE_SIZE(ptr, const_iv_size);
-			gf_bs_read_data(bs, ptr->key_info+21, const_iv_size);
-		}
+		gf_bs_read_data(bs, ptr->key_info+21, iv_size);
+	}
+	else if ((iv_size!=0) && (iv_size!=8) && (iv_size!=16)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid IV size %d, must be 0, 8 or 16\n", (u32) iv_size));
+		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
 }
@@ -927,62 +895,38 @@ GF_Err tenc_box_read(GF_Box *s, GF_BitStream *bs)
 GF_Err tenc_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	is_mkey = (ptr->key_info && ptr->key_info[0]) ? GF_TRUE : GF_FALSE;
-
-	gf_bs_write_int(bs, is_mkey, 1);
-	gf_bs_write_int(bs, 0, 7); //reserved
+	gf_bs_write_u8(bs, 0); //reserved
 
 	if (!ptr->version) {
-		gf_bs_write_u8(bs, 0x0); //reserved
+		gf_bs_write_u8(bs, 0); //reserved
 	} else {
 		gf_bs_write_int(bs, ptr->crypt_byte_block, 4);
 		gf_bs_write_int(bs, ptr->skip_byte_block, 4);
 	}
 	gf_bs_write_u8(bs, ptr->isProtected);
-	if (is_mkey) {
-		gf_bs_write_data(bs, ptr->key_info+1, ptr->key_info_size-1);
-	} else if (ptr->key_info) {
-		gf_bs_write_u8(bs, ptr->key_info[3]);
-		gf_bs_write_data(bs, ptr->key_info + 4, 16);
-		if ((ptr->isProtected == 1) && !ptr->key_info[3]) {
-			gf_bs_write_u8(bs, ptr->key_info[20]);
-			gf_bs_write_data(bs, ptr->key_info + 21, ptr->key_info[20]);
-		}
-	}
-	//for boxcov
-	else {
-		gf_bs_write_u8(bs, 8);
-		gf_bs_write_u64(bs, 0);
-		gf_bs_write_u64(bs, 0);
+
+	gf_bs_write_u8(bs, ptr->key_info[3]);
+	gf_bs_write_data(bs, ptr->key_info + 4, 16);
+	if ((ptr->isProtected == 1) && !ptr->key_info[3]) {
+		gf_bs_write_u8(bs, ptr->key_info[20]);
+		gf_bs_write_data(bs, ptr->key_info + 21, ptr->key_info[20]);
 	}
 	return GF_OK;
 }
 
 GF_Err tenc_box_size(GF_Box *s)
 {
-	Bool is_mkey;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 	ptr->size += 3;
-	//for boxcov
-	if (!ptr->key_info) {
-		ptr->size += 17;
-		return GF_OK;
-	}
 
-	is_mkey = ptr->key_info[0] ? GF_TRUE : GF_FALSE;
-	if (is_mkey) {
-		ptr->size += ptr->key_info_size - 1;
-	} else {
-		ptr->size += 17;
-		if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
-			ptr->size += 1 + ptr->key_info[20];
-		}
+	ptr->size += 17;
+	if ((ptr->isProtected == 1) && ! ptr->key_info[3]) {
+		ptr->size += 1 + ptr->key_info[20];
 	}
 	return GF_OK;
 }
@@ -1239,7 +1183,7 @@ GF_Err piff_pssh_box_read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
 
-	if (ptr->size < sizeof(char)*ptr->private_data_size)
+	if (ptr->size < ptr->private_data_size)
 	    return GF_ISOM_INVALID_FILE;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	if (!ptr->private_data)
@@ -1294,27 +1238,37 @@ void senc_box_del(GF_Box *s)
 }
 
 
-u8 key_info_get_iv_size(const u8 *key_info, u32 nb_keys, u8 idx, u8 *const_iv_size, const u8 **const_iv)
+u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *const_iv_size, const u8 **const_iv)
 {
-	u32 i, kpos=3;
+	u32 i=0, kpos=3;
 	if (const_iv_size) *const_iv_size = 0;
 	if (const_iv) *const_iv = NULL;
 
-	for (i=0; i<nb_keys; i++) {
+	while (1) {
 		u8 civ_size=0;
 		const u8 *civ = NULL;
 		u8 iv_size = key_info[kpos];
 		kpos += 17;
+
 		if (!iv_size) {
+			if (kpos>key_info_size)
+				break;
 			civ_size = key_info[kpos];
 			civ = key_info + kpos + 1;
-			kpos += 1 + iv_size;
+			kpos += 1 + civ_size;
 		}
+
+		if (kpos>key_info_size)
+			break;
+
 		if (i+1==idx) {
 			if (const_iv_size) *const_iv_size = civ_size;
 			if (const_iv) *const_iv = civ;
 			return iv_size;
 		}
+		i++;
+		if (kpos==key_info_size)
+			break;
 	}
 	return 0;
 }
@@ -1333,6 +1287,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	u64 pos = gf_bs_get_position(bs);
 	Bool do_warn = GF_TRUE;
 	Bool use_multikey = GF_FALSE;
+	Bool patch_subsamples_present = GF_FALSE;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (!traf)
@@ -1376,6 +1331,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	else if (senc_size >= count * (subs_size)) {
 		def_IV_size = 0;
 	}
+
+	if (gf_opts_get_bool("core", "piff-force-subsamples") && !(senc->flags & 0x00000002))
+		patch_subsamples_present = GF_TRUE;
 
 	if (!senc->samp_aux_info) senc->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
@@ -1444,8 +1402,8 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				u32 j;
 				u32 nb_iv_init = gf_bs_read_u16(bs);
 				for (j=0; j<nb_iv_init; j++) {
-					u8 idx = gf_bs_read_u8(bs);
-					IV_size = key_info_get_iv_size(key_info, nb_keys, idx, NULL, NULL);
+					u32 idx = gf_bs_read_u16(bs);
+					IV_size = key_info_get_iv_size(key_info, key_info_size, idx, NULL, NULL);
 					if (!IV_size) {
 						gf_isom_cenc_samp_aux_info_del(sai);
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] Failed to parse SENC box, invalid SAI multikey with IV size 0\n" ));
@@ -1488,6 +1446,10 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 			}
 			gf_bs_read_data(bs, sai->cenc_data, sai->cenc_data_size);
 			senc_size -= sai->cenc_data_size;
+
+			if (patch_subsamples_present) {
+				gf_bs_read_int(bs, nb_subs_bits);
+			}
 		} else {
 			i--;
 			sai->isNotProtected = 1;
@@ -1613,17 +1575,15 @@ void adkm_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err adkm_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err adkm_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_AHDR:
-		if (ptr->header) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->header = (GF_AdobeDRMHeaderBox *)a;
+		BOX_FIELD_ASSIGN(header, GF_AdobeDRMHeaderBox)
 		break;
 	case GF_ISOM_BOX_TYPE_ADAF:
-		if (ptr->au_format) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->au_format = (GF_AdobeDRMAUFormatBox *)a;
+		BOX_FIELD_ASSIGN(au_format, GF_AdobeDRMAUFormatBox)
 		break;
 	}
 	return GF_OK;
@@ -1631,7 +1591,7 @@ GF_Err adkm_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err adkm_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, adkm_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1664,13 +1624,12 @@ void ahdr_box_del(GF_Box *s)
 }
 
 
-GF_Err ahdr_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err ahdr_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_APRM:
-		if (ptr->std_enc_params) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)a;
+		BOX_FIELD_ASSIGN(std_enc_params, GF_AdobeStdEncryptionParamsBox)
 		break;
 	}
 	return GF_OK;
@@ -1678,7 +1637,7 @@ GF_Err ahdr_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err ahdr_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, ahdr_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1709,17 +1668,15 @@ void aprm_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err aprm_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err aprm_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_AEIB:
-		if (ptr->enc_info) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->enc_info = (GF_AdobeEncryptionInfoBox *)a;
+		BOX_FIELD_ASSIGN(enc_info, GF_AdobeEncryptionInfoBox)
 		break;
 	case GF_ISOM_BOX_TYPE_AKEY:
-		if (ptr->key_info) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->key_info = (GF_AdobeKeyInfoBox *)a;
+		BOX_FIELD_ASSIGN(key_info, GF_AdobeKeyInfoBox)
 		break;
 	}
 	return GF_OK;
@@ -1727,7 +1684,7 @@ GF_Err aprm_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err aprm_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, aprm_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1818,13 +1775,12 @@ void akey_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-GF_Err akey_on_child_box(GF_Box *s, GF_Box *a)
+GF_Err akey_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
 	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_FLXS:
-		if (ptr->params) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->params = (GF_AdobeFlashAccessParamsBox *)a;
+		BOX_FIELD_ASSIGN(params, GF_AdobeFlashAccessParamsBox)
 		break;
 	}
 	return GF_OK;
@@ -1832,7 +1788,7 @@ GF_Err akey_on_child_box(GF_Box *s, GF_Box *a)
 
 GF_Err akey_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, akey_on_child_box);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

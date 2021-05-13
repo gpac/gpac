@@ -58,8 +58,12 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	parent = (GF_Scene *)gf_sg_get_private(graph);
 	if (!parent) return GF_FALSE;
 
-	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
+	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root, NULL);
 	if (!mo) return GF_FALSE;
+	if (mo->connect_failure) {
+		gf_sg_vrml_mf_reset(&root->url, GF_SG_VRML_MFURL);
+		return GF_FALSE;
+	}
 	//invalidate as soon as we have an mo (eg something is attached to the scene)
 	gf_sc_invalidate(parent->compositor, NULL);
 
@@ -267,7 +271,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 				/*this is unspecified in the spec: whenever an inline not using the
 				OD framework is destroyed, destroy the associated resource*/
 				if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) {
-					/*get parent scene and remove MediaObject in case the ressource
+					/*get parent scene and remove MediaObject in case the resource
 					gets re-requested later on*/
 					GF_Scene *parent_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
 					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
@@ -292,6 +296,9 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	//if no private scene is associated	get the node parent graph, retrieve the IS and find the OD
 	if (!scene) {
 		M_Inline *inl = (M_Inline *)n;
+		if (!inl->url.count)
+			return;
+
 		gf_inline_set_scene(inl);
 		scene = (GF_Scene *)gf_node_get_private(n);
 		if (!scene) {
@@ -309,11 +316,14 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	/*if not attached return (attaching the graph cannot be done in render since render is not called while unattached :) */
 	if (!scene->graph_attached) {
-		/*just like protos, we must invalidate parent graph until attached*/
-		gf_node_dirty_set(n, 0, GF_TRUE);
-		//and request bew anim frame until attached
-		if (scene->object_attached)
-			gf_sc_invalidate(scene->compositor, NULL);
+		M_Inline *inl = (M_Inline *)n;
+		if (inl->url.count) {
+			/*just like protos, we must invalidate parent graph until attached*/
+			gf_node_dirty_set(n, 0, GF_TRUE);
+			//and request bew anim frame until attached
+			if (scene->object_attached)
+				gf_sc_invalidate(scene->compositor, NULL);
+		}
 		return;
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
@@ -433,7 +443,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 
 	if (!lib_url || !lib_url->count) return NULL;
 
-	/*internal, don't waste ressources*/
+	/*internal, don't waste resources*/
 	if (gf_inline_is_hardcoded_proto(scene->compositor, lib_url)) return NULL;
 
 	i=0;

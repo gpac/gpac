@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS reframer filter
@@ -72,6 +72,8 @@ typedef struct
 	u32 resume_from;
 
 	Bool prev_sap;
+	u32 bitrate;
+	GF_Err in_error;
 } GF_LATMDmxCtx;
 
 
@@ -195,7 +197,10 @@ GF_Err latm_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -219,7 +224,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	FILE *stream;
 	GF_BitStream *bs;
 	GF_M4ADecSpecInfo acfg;
-	u64 duration, cur_dur, cur_pos;
+	u64 duration, cur_dur, cur_pos, rate;
 	s32 sr_idx = -1;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
@@ -273,6 +278,7 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 
 		cur_pos = gf_bs_get_position(bs);
 	}
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
@@ -282,6 +288,12 @@ static void latm_dmx_check_dur(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 			ctx->duration.den = GF_M4ASampleRates[sr_idx];
 
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+			if (duration && !gf_sys_is_test_mode() ) {
+				rate *= 8 * ctx->duration.den;
+				rate /= ctx->duration.num;
+				ctx->bitrate = (u32) rate;
+			}
 		}
 	}
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -298,6 +310,11 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		latm_dmx_check_dur(filter, ctx);
+	}
+	if (!GF_M4ASampleRates[ctx->acfg.base_sr_index]) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[LATMDmx] Wrong sample rate in audio config, broken stream\n"));
+		ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
+		return;
 	}
 
 	if ((ctx->sr_idx == ctx->acfg.base_sr_index) && (ctx->nb_ch == ctx->acfg.nb_chan )
@@ -343,6 +360,9 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : timescale));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 }
 
 static Bool latm_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -428,9 +448,12 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 	GF_LATMDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u32 pos;
-	u8 *data, *output;
-	u32 pck_size, prev_pck_size;
+	u8 *data=NULL, *output;
+	u32 pck_size=0, prev_pck_size;
 	u64 cts = GF_FILTER_NO_TS;
+
+	if (ctx->in_error)
+		return ctx->in_error;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -452,9 +475,9 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 		} else {
 			return GF_OK;
 		}
+	} else {
+		data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	}
-
-	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale && pck) {
@@ -509,6 +532,8 @@ GF_Err latm_dmx_process(GF_Filter *filter)
 			GF_FilterSAPType sap = GF_FILTER_SAP_1;
 
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, latm_frame_size, &output);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 
 			memcpy(output, latm_buffer, latm_frame_size);
@@ -570,18 +595,29 @@ static void latm_dmx_finalize(GF_Filter *filter)
 static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
 	u32 nb_frames=0;
+	u32 nb_skip=0;
 	GF_M4ADecSpecInfo acfg;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (1) {
 		u32 nb_skipped = 0;
 		if (!latm_dmx_sync_frame_bs(bs, &acfg, 0, NULL, &nb_skipped)) break;
-		if (nb_skipped)
-			nb_frames=0;
+		if (! GF_M4ASampleRates[acfg.base_sr_index]) {
+			nb_frames = 0;
+			break;
+		}
+
+		if (nb_skipped) {
+			if (nb_skip) {
+				nb_frames = 0;
+				break;
+			}
+			nb_skip++;
+		}
 		nb_frames++;
 	}
 	gf_bs_del(bs);
 	if (nb_frames>=2) {
-		*score = GF_FPROBE_SUPPORTED;
+		*score = nb_skip ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/aac+latm";
 	}
 	return NULL;

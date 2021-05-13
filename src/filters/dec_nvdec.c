@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / NVidia Hardware decoder filter
@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/filters.h>
 
-#if (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) 
+#if (!defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))
 
 #include "dec_nvdec_sdk.h"
 
@@ -558,8 +558,10 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		ctx->ipid = NULL;
 
 		if (ctx->unload == 2) {
@@ -938,6 +940,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 	assert(ctx->out_size);
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	memset(&params, 0, sizeof(params));
 	params.progressive_frame = f->frame_info.progressive_frame;
@@ -1313,7 +1316,8 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
 		f->gframe.flags = GF_FRAME_IFCE_BLOCKING;
 
 	dst_pck = gf_filter_pck_new_frame_interface(ctx->opid, &f->gframe, nvframe_release);
-
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	nvdec_merge_pck_props(ctx, f, dst_pck);
 	if (gf_filter_pck_get_seek_flag(dst_pck)) {
 		gf_filter_pck_discard(dst_pck);
@@ -1485,6 +1489,11 @@ GF_FilterRegister NVDecRegister = {
 
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
+	//check if nvdec is not globally blacklisted - if so, do not try to load CUDA SDK which may be time consuming on some devices
+	const char *blacklist = gf_opts_get_key("core", "blacklist");
+	if (blacklist && strstr(blacklist, "nvdec"))
+		return NULL;
+
 	init_cuda_sdk();
 	//do not register if no SDK
 	if (cuvid_load_state != 2) {
@@ -1503,6 +1512,4 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
 	return NULL;
 }
-#endif // defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)
-
-
+#endif // (!defined(GPAC_STATIC_BUILD) && (defined(WIN32) || defined(GPAC_CONFIG_LINUX) || defined(GPAC_CONFIG_DARWIN)) && !defined(GPAC_DISABLE_NVDEC))

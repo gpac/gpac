@@ -706,7 +706,7 @@ construction of proto dictionaries in case of nested protos
 GF_SceneGraph *gf_sg_proto_get_graph(GF_Proto *proto);
 
 /*! adds node code - a proto is build of several nodes, the first node is used for rendering
-and the others are kept private. This set of nodes is refered to as the proto "node code"
+and the others are kept private. This set of nodes is referred to as the proto "node code"
 \param proto the target proto
 \param n the node to add to the proto code
 \return error if any

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2019
+ *			Copyright (c) Telecom ParisTech 2006-2021
  *				All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -144,7 +144,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 		u64 pos = gf_bs_get_position(bs);
 		u64 prev_size = s->size;
 		/*try parsing as generic box list*/
-		e = gf_isom_box_array_read(s, bs, NULL);
+		e = gf_isom_box_array_read(s, bs);
 		if (e==GF_OK) return GF_OK;
 		//reset content and retry - this deletes ptr->data !!
 		gf_isom_box_array_del(s->child_boxes);
@@ -171,7 +171,7 @@ GF_Err ilst_item_box_read(GF_Box *s,GF_BitStream *bs)
 
 GF_Box *ilst_item_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_BOX_TYPE_CPIL); //type will be overwrite
+	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, GF_ISOM_ITUNE_NAME); //type will be overwrite
 	return (GF_Box *)tmp;
 }
 
@@ -364,7 +364,7 @@ GF_Err wide_box_size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
+GF_Box *gf_isom_get_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 {
 	u32 i;
 	GF_UserDataMap *map;
@@ -372,57 +372,60 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) return NULL;
-	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
+	map = udta_getEntry(mov->moov->udta, for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
 	for(i = 0; i < gf_list_count(map->boxes); i++) {
 		GF_MetaBox *meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
+		if (for_xtra && (meta->type==GF_ISOM_BOX_TYPE_XTRA)) return (GF_Box *) meta;
 
-		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
+		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return (GF_Box *) meta;
 	}
-
 	return NULL;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
+GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra)
 {
 	GF_Err e;
 	u32 i;
 	GF_MetaBox *meta;
 	GF_UserDataMap *map;
+	u32 udta_subtype = for_xtra ? GF_ISOM_BOX_TYPE_XTRA : GF_ISOM_BOX_TYPE_META;
 
 	if (!mov || !mov->moov) return NULL;
 
 	if (!mov->moov->udta) {
-		e = moov_on_child_box((GF_Box*)mov->moov, gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA));
+		e = moov_on_child_box((GF_Box*)mov->moov, gf_isom_box_new_parent(&mov->moov->child_boxes, GF_ISOM_BOX_TYPE_UDTA), GF_FALSE);
 		if (e) return NULL;
 	}
 
-	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
+	map = udta_getEntry(mov->moov->udta, udta_subtype, NULL);
 	if (map) {
-		for(i = 0; i < gf_list_count(map->boxes); i++) {
+		for (i=0; i<gf_list_count(map->boxes); i++) {
 			meta = (GF_MetaBox*)gf_list_get(map->boxes, i);
+			if (for_xtra) return (GF_Box *) meta;
 
-			if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
+			if (meta && meta->handler && (meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR)) return (GF_Box *) meta;
 		}
 	}
 
 	//udta handles children boxes through maps
-	meta = (GF_MetaBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_META);
+	meta = (GF_MetaBox *)gf_isom_box_new(udta_subtype);
 
-	if(meta != NULL) {
-		meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
-		if(meta->handler == NULL) {
-			gf_isom_box_del((GF_Box *)meta);
-			return NULL;
+	if (meta) {
+		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta, GF_FALSE);
+		if (!for_xtra) {
+			meta->handler = (GF_HandlerBox *)gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_HDLR);
+			if(meta->handler == NULL) {
+				gf_isom_box_del((GF_Box *)meta);
+				return NULL;
+			}
+			meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
+			gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
 		}
-		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
-		gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
-		udta_on_child_box((GF_Box *)mov->moov->udta, (GF_Box *)meta);
 	}
-
-	return meta;
+	return (GF_Box *) meta;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -551,7 +554,7 @@ GF_Err tmcd_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->frames_per_counter_tick = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs); //reserved
 
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *tmcd_box_new()
@@ -841,7 +844,7 @@ GF_Err chan_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->bitmap = gf_bs_read_u32(bs);
 	ptr->num_audio_description = gf_bs_read_u32(bs);
 
-	if (ptr->size < ptr->num_audio_description*20)
+	if (ptr->size / 20 < ptr->num_audio_description)
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->audio_descs = gf_malloc(sizeof(GF_AudioChannelDescription) * ptr->num_audio_description);

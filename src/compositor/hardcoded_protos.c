@@ -1350,8 +1350,9 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		
 		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
 			Bool visible = GF_FALSE;
+#ifndef GPAC_DISABLE_LOG
 			const char *pid_name = gf_filter_pid_get_name(txh->stream->odm->pid);
-
+#endif
 			if (! tr_state->camera_was_dirty && !mesh_was_reset) {
 				visible = (stack->mesh->flags & MESH_WAS_VISIBLE) ? GF_TRUE : GF_FALSE;
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
@@ -1446,7 +1447,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					}
 				} else {
 					if (txh->is_open) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s playing on hidden partial sphere - stoping it\n", pid_name));
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s playing on hidden partial sphere - stopping it\n", pid_name));
 						gf_sc_texture_stop_no_unregister(txh);
 					}
 				}

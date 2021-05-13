@@ -958,7 +958,7 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 			return JS_EXCEPTION;
 		}
 	}
-
+	gf_fs_lock_filters(f->session, GF_TRUE);
 	if (!strncmp(fname, "src=", 4)) {
 		new_f = gf_fs_load_source(f->session, fname+4, NULL, NULL, &e);
 		is_source = GF_TRUE;
@@ -972,12 +972,16 @@ static JSValue jsff_insert_filter(JSContext *ctx, JSValueConst this_val, int arg
 		JSValue ret = js_throw_err_msg(ctx, e, "Cannot load filter %s: %s\n", fname, gf_error_to_string(e));
 		JS_FreeCString(ctx, fname);
 		if (link_args) JS_FreeCString(ctx, link_args);
+		gf_fs_lock_filters(f->session, GF_FALSE);
 		return ret;
 	}
 	if (is_source)
 		gf_filter_set_source_restricted(new_f, (GF_Filter *) f, link_args);
 	else
 		gf_filter_set_source(new_f, (GF_Filter *) f, link_args);
+
+	gf_fs_lock_filters(f->session, GF_FALSE);
+	
 	//reconnect outputs of source
 	gf_filter_reconnect_output((GF_Filter *) f);
 
@@ -1118,6 +1122,8 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 		}
 	}
 
+	gf_fs_lock_filters(fs, GF_TRUE);
+
 	if (!strncmp(fname, "src=", 4)) {
 		new_f = gf_fs_load_source(fs, fname+4, NULL, NULL, &e);
 		is_source = GF_TRUE;
@@ -1131,6 +1137,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 		JSValue ret = js_throw_err_msg(ctx, e, "Cannot load filter %s: %s\n", fname, gf_error_to_string(e));
 		JS_FreeCString(ctx, fname);
 		if (link_args) JS_FreeCString(ctx, link_args);
+		gf_fs_lock_filters(fs, GF_FALSE);
 		return ret;
 	}
 	JS_FreeCString(ctx, fname);
@@ -1142,6 +1149,7 @@ static JSValue jsfs_add_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 	}
 
 	if (link_args) JS_FreeCString(ctx, link_args);
+	gf_fs_lock_filters(fs, GF_FALSE);
 
 	return jsfs_new_filter_obj(ctx, new_f);
 }

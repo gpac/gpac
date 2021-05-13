@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-1/2/4(Part2) video reframer filter
@@ -85,6 +85,7 @@ typedef struct
 
 	MPGVidIdx *indexes;
 	u32 index_alloc_size, index_size;
+	u32 bitrate;
 } GF_MPGVidDmxCtx;
 
 
@@ -96,7 +97,10 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -168,7 +172,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	GF_M4VParser *vparser;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
-	u64 duration, cur_dur;
+	u64 duration, cur_dur, rate;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -229,6 +233,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 			cur_dur = 0;
 		}
 	}
+	rate = gf_bs_get_position(bs);
 	gf_m4v_parser_del(vparser);
 	gf_fclose(stream);
 
@@ -237,6 +242,12 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -264,7 +275,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 			gf_filter_pck_set_carousel_version(q_pck, 0);
 			cts = gf_filter_pck_get_cts(q_pck);
 			if (cts != GF_FILTER_NO_TS) {
-				//offset the cts of the ref frame to the number of B frames inbetween
+				//offset the cts of the ref frame to the number of B frames in-between
 				if (ctx->last_ref_cts == cts) {
 					cts += ctx->b_frames * ctx->cur_fps.den;
 					gf_filter_pck_set_cts(q_pck, cts);
@@ -338,6 +349,10 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_MPEG4_PART2));
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->dsi.VideoPL) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 
 	ctx->b_frames = 0;
 
@@ -641,6 +656,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			//no start code in stored buffer
 			if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 				gf_filter_pck_set_dts(dst_pck, GF_FILTER_NO_TS);
@@ -694,6 +711,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				}
 
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
+
 				if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 				memcpy(pck_data, start, (size_t) size);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
@@ -732,6 +751,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (current>0) {
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+
 			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 			gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 			gf_filter_pck_set_dts(dst_pck, GF_FILTER_NO_TS);
@@ -762,7 +783,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 		//parse headers
 
-		//we have a start code loaded, eg the data packet does not have a full start code at the begining
+		//we have a start code loaded, eg the data packet does not have a full start code at the beginning
 		if (sc_type_forced) {
 			gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);
 			sc_type = forced_sc_type;
@@ -832,6 +853,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
 					u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
+					if (vosh_start<0) vosh_start = 0;
 					vosh_end = start - (u8 *)data + obj_size;
 					vosh_end -= vosh_start;
 					mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
@@ -957,6 +979,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		ctx->nb_frames++;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 		//bytes come from both our store and the data packet
 		if (bytes_from_store) {
@@ -984,7 +1008,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ctx->input_is_au_start) {
 			ctx->input_is_au_start = GF_FALSE;
 		} else {
-			//we use the carrousel flag temporarly to indicate the cts must be recomputed
+			//we use the carousel flag temporarly to indicate the cts must be recomputed
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
 		}
 		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
@@ -1005,14 +1029,6 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		assert(remain>=size);
 		start += size;
 		remain -= (s32) size;
-
-
-		//don't demux too much of input, abort when we would block. This avoid dispatching
-		//a huge number of frames in a single call
-		if (!ctx->timescale && gf_filter_pid_would_block(ctx->opid)) {
-			ctx->resume_from = (u32) ((char *)start -  (char *)data);
-			return GF_OK;
-		}
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 
@@ -1073,7 +1089,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		//if start is more than 4 (start-code size), we have garbage at the beginning, do not parse
 		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;
@@ -1105,7 +1121,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		//if start is more than 4 (start-code size), we have garbage at the begining, do not parse
+		//if start is more than 4 (start-code size), we have garbage at the beginning, do not parse
 		if (!nb_frames && (start>4))
 			break;
 		if (is_coded) nb_frames++;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / unit test filters
@@ -278,9 +278,11 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		PIDCtx *pidctx=gf_list_get(stack->pids, i);
 
 		if (pidctx->nb_packets==stack->max_pck) {
-			if (stack->gsftest && pidctx->dst_pid) {
-				gf_filter_pid_remove(pidctx->dst_pid);
-				pidctx->dst_pid = NULL;
+			if (stack->gsftest) {
+				if (pidctx->dst_pid) {
+					gf_filter_pid_remove(pidctx->dst_pid);
+					pidctx->dst_pid = NULL;
+				}
 			}
 			nb_eos++;
 			continue;
@@ -341,12 +343,8 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','e'), &p);
 			p.type = GF_PROP_VEC2I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','f'), &p);
-			p.type = GF_PROP_VEC3;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','g'), &p);
 			p.type = GF_PROP_VEC3I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','h'), &p);
-			p.type = GF_PROP_VEC4;
-			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','i'), &p);
 			p.type = GF_PROP_VEC4I;
 			gf_filter_pck_set_property(pck, GF_4CC('c','u','s','j'), &p);
 			p.type = GF_PROP_STRING_LIST;
@@ -710,7 +708,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "1.001", NULL, 0);
-		if ((p.value.frac.den != 1000000) ) {
+		if (p.value.frac.num * 1000 != 1001 * p.value.frac.den) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction fp value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL, 0);
@@ -720,7 +718,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if (p.value.string) gf_free(p.value.string);
 
 		p = gf_props_parse_value(GF_PROP_FRACTION64, "prop", "1.001", NULL, 0);
-		if ((p.value.lfrac.den != 1000000) ) {
+		if (p.value.lfrac.num * 1000 != p.value.lfrac.den * 1001) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing fraction64 fp value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_VEC2I, "prop", "1x1", NULL, 0);
@@ -735,17 +733,9 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		if ((p.value.vec3i.x != 1) || (p.value.vec3i.y != 1) || (p.value.vec3i.z != 1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec3i value\n"));
 		}
-		p = gf_props_parse_value(GF_PROP_VEC3, "prop", "1x1x1", NULL, 0);
-		if ((p.value.vec3.x != 1.0) || (p.value.vec3.y != 1.0) || (p.value.vec3.z != 1.0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec3 value\n"));
-		}
 		p = gf_props_parse_value(GF_PROP_VEC4I, "prop", "1x1x1x1", NULL, 0);
 		if ((p.value.vec4i.x != 1) || (p.value.vec4i.y != 1) || (p.value.vec4i.z != 1) || (p.value.vec4i.w != 1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec4i value\n"));
-		}
-		p = gf_props_parse_value(GF_PROP_VEC4, "prop", "1x1x1x1", NULL, 0);
-		if ((p.value.vec4.x != 1.0) || (p.value.vec4.y != 1.0) || (p.value.vec4.z != 1.0) || (p.value.vec4.w != 1.0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[UTFilter] Error parsing vec4 value\n"));
 		}
 		p = gf_props_parse_value(GF_PROP_PIXFMT, "prop", "rgb", NULL, 0);
 		if (p.value.uint != GF_PIXEL_RGB) {
@@ -808,9 +798,7 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_parse_value(GF_PROP_VEC2I, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC2, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC3I, "prop", NULL, NULL, 0);
-		gf_props_parse_value(GF_PROP_VEC3, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_VEC4I, "prop", NULL, NULL, 0);
-		gf_props_parse_value(GF_PROP_VEC4, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL, 0);
 		gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL, 0);

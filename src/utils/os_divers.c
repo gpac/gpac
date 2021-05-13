@@ -80,7 +80,7 @@ static u64 sys_start_time_hr = 0;
 #include <gpac/revision.h>
 #define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_GIT_REVISION
 
-#define GPAC_COPYRIGHT "(c) 2000-2020 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
+#define GPAC_COPYRIGHT "(c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io"
 
 GF_EXPORT
 const char *gf_gpac_version()
@@ -893,6 +893,7 @@ Bool gf_sys_has_filter_global_meta_args()
 }
 
 static u32 gpac_quiet = 0;
+char gf_prog_lf = '\r';
 
 GF_EXPORT
 GF_Err gf_sys_set_args(s32 argc, const char **argv)
@@ -956,6 +957,8 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				gpac_quiet = 2;
 			} else if (!strcmp(arg, "-noprog")) {
 				if (!gpac_quiet) gpac_quiet = 1;
+			} else if (!strcmp(arg, "-proglf")) {
+				gf_prog_lf = '\n';
 			} else if (!stricmp(arg, "-for-test")) {
 				gpac_test_mode = bool_value;
 			} else if (!stricmp(arg, "-old-arch")) {
@@ -1055,6 +1058,32 @@ const char *gf_sys_get_arg(u32 arg)
 	if (arg>=gpac_argc) return NULL;
 	return gpac_argv[arg];
 }
+GF_EXPORT
+const char *gf_sys_find_global_arg(const char *arg)
+{
+	u32 i;
+	if (!gpac_argc || !gpac_argv) return NULL;
+	for (i=0; i<gpac_argc; i++) {
+		const char *sep;
+		u32 len;
+		const char *an_arg = gpac_argv[i];
+		if (an_arg[0]!='-') continue;
+		if ((an_arg[1]!='-') && (an_arg[1]!='+')) continue;
+		an_arg += 2;
+		sep = strchr(an_arg, '@');
+		if (sep) an_arg = sep+1;
+		sep = strchr(an_arg, '=');
+		if (sep) len = (u32) (sep - an_arg);
+		else len = (u32) strlen(an_arg);
+		if (len != (u32) strlen(arg)) continue;
+
+		if (strncmp(an_arg, arg, len)) continue;
+
+		if (!sep) return "";
+		return sep;
+	}
+	return NULL;
+}
 
 
 #ifndef GPAC_DISABLE_REMOTERY
@@ -1069,6 +1098,8 @@ const char *gf_log_level_name(GF_LOG_Level log_level);
 
 void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
+#ifndef GPAC_DISABLE_LOG
+
 #define RMT_LOG_SIZE	5000
 	char szMsg[RMT_LOG_SIZE];
 	u32 len;
@@ -1081,6 +1112,9 @@ void gpac_rmt_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, con
 	rmt_LogText(szMsg);
 
 #undef RMT_LOG_SIZE
+
+#endif
+
 }
 
 static void *rmt_udta = NULL;
@@ -1759,8 +1793,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		count = THREAD_BASIC_INFO_COUNT;
 		error = thread_info(thread_table[i], THREAD_BASIC_INFO, (thread_info_t)thi, &count);
 		if (error != KERN_SUCCESS) {
-			mach_error("[RTI] Unexpected thread_info() call return", error);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[RTI] Unexpected thread info for PID %d\n", the_rti.pid));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[RTI] Unexpected thread_info error for process %d: %s\n", the_rti.pid, mach_error_string(error) ));
 			break;
 		}
 		if ((thi->flags & TH_FLAGS_IDLE) == 0) {

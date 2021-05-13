@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS reframer filter
@@ -82,6 +82,7 @@ typedef struct
 	u32 nb_frames;
 
 	u32 nb_unknown_pck;
+	u32 bitrate;
 } GF_MHASDmxCtx;
 
 
@@ -94,8 +95,10 @@ GF_Err mhas_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		if (ctx->opid)
+		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -131,7 +134,7 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 	GF_BitStream *bs;
 	u32 frame_len, cur_dur;
 	Bool mhas_sap;
-	u64 mhas_last_cfg;
+	u64 mhas_last_cfg, rate;
 	const GF_PropertyValue *p;
 	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
@@ -232,12 +235,19 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 		}
 	}
 
+	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * duration.den != duration.num * ctx->duration.den)) {
 		ctx->duration = duration;
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		if (duration.num && !gf_sys_is_test_mode() ) {
+			rate *= 8 * ctx->duration.den;
+			rate /= ctx->duration.num;
+			ctx->bitrate = (u32) rate;
+		}
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
@@ -310,6 +320,10 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, & PROP_LONGUINT(chan_layout) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(nb_channels) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_len) );
+
+	if (ctx->bitrate) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
 }
 
 static Bool mhas_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -392,6 +406,7 @@ static GFINLINE void mhas_dmx_update_cts(GF_MHASDmxCtx *ctx)
 	}
 }
 
+#ifndef GPAC_DISABLE_LOG
 static const char *mhas_pck_name(u32 pck_type)
 {
 	switch (pck_type) {
@@ -419,6 +434,7 @@ static const char *mhas_pck_name(u32 pck_type)
 	}
 	return "error";
 }
+#endif
 
 GF_Err mhas_dmx_process(GF_Filter *filter)
 {
@@ -865,7 +881,7 @@ GF_FilterRegister MHASDmxRegister = {
 	GF_FS_SET_DESCRIPTION("MPEH-H Audio Stream reframer")
 	GF_FS_SET_HELP("This filter parses MHAS files/data and outputs corresponding audio PID and frames.\n"
 		"By default, the filter expects a MHAS stream with SYNC packets set, otherwise tune-in will fail. Using [-nosync]()=false can help parsing bitstreams with no SYNC packets.\n"
-		"The default behaviour is to dispatch a framed MHAS bitstream. To demultiplex into a raw MPEG-H Audio, use [-mpha]().\n"
+		"The default behavior is to dispatch a framed MHAS bitstream. To demultiplex into a raw MPEG-H Audio, use [-mpha]().\n"
 		)
 	.private_size = sizeof(GF_MHASDmxCtx),
 	.args = MHASDmxArgs,

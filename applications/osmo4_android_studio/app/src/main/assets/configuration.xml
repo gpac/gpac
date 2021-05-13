@@ -120,7 +120,7 @@ possible usages:
 			Specifies the user prefered language as expressed in ISO 639-1. This is used to select streams in case of alternate content in an audio object. 
 		</key>		
 		<key name="DrawLateFrames" type="" default="yes" usage="basic">
-			If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) untill the decoder output is back in sync. This is by default on to keep better testing heavy content or slow renderers, but should be set to off when needing a better sync or monitoring skipped frames. 
+			If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) until the decoder output is back in sync. This is by default on to keep better testing heavy content or slow renderers, but should be set to off when needing a better sync or monitoring skipped frames. 
 		</key>
 		<key name="ForceSingleClock" type="" default="no" usage="basic">
 			One big problem with MP4 files is that the notion of "duration" has been unclear for a long time, and most content available (audio-video files) specifiy a wrong BIFS duration. In such a case the movie cannot be controled/seeked into. Another problem with ISMA streaming is that BIFS/OD don't use the same clock as audio/video, thus seeking the main timeline does not seek AV media. Setting the ForceSingleClock will handle both cases by using a single timeline for all media streams and setting the duration to the one of the longest stream

@@ -499,7 +499,7 @@ typedef struct _proto_instance
 	/*Prototype interface for coding and field addressing*/
 	GF_Proto *proto_interface;
 
-	/*proto implementation at run-time (aka the state of the nodes may differ accross
+	/*proto implementation at run-time (aka the state of the nodes may differ across
 	different instances of the proto)*/
 	GF_List *fields;
 
@@ -680,7 +680,7 @@ struct _smil_timing_rti
 	SMIL_Interval *current_interval;
 	SMIL_Interval *next_interval;
 
-	/* Evaluation of animations is postponed untill tree traversal, so that inherit values can be computed
+	/* Evaluation of animations is postponed until tree traversal, so that inherit values can be computed
 	Other timed elements (audio, video, animation) are evaluated directly and do not require
 	scene tree traversal.*/
 	Bool postpone;

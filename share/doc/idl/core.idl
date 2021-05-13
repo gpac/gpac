@@ -93,6 +93,16 @@ unsigned long clock_ms();
 */
 unsigned long long clock_us();
 
+/*! sleep for a given time - see \ref gf_sleep
+\param sleep sleep value in milliseconds
+*/
+void sleep(optional unsigned long sleep = 0);
+
+/*! exit gpac process
+\param ret_code exit return code
+*/
+void exit(optional unsigned long ret_code = 0);
+
 /*! convert a 4CC code to its string representation - see \ref gf_4cc_to_str
 \param value the 4CC code to convert
 \return string representation

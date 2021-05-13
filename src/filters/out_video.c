@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -73,6 +73,17 @@ typedef enum
 	MODE_2D_SOFT,
 } GF_VideoOutMode;
 
+
+enum
+{
+	FLIP_NO,
+	FLIP_VERT,
+	FLIP_HORIZ,
+	FLIP_BOTH,
+	FLIP_BOTH2,
+};
+
+
 typedef struct
 {
 	//options
@@ -81,7 +92,7 @@ typedef struct
 	Bool vsync, linear, fullscreen, drop, hide, step;
 	GF_Fraction64 dur;
 	Double speed, hold;
-	u32 back;
+	u32 back, vflip, vrot;
 	GF_PropVec2i wsize, owsize;
 	GF_PropVec2i wpos;
 	Double start;
@@ -156,6 +167,8 @@ typedef struct
 	s32 cmx;
 
 	u64 rebuffer;
+
+	Bool force_reconfig_pid;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -395,12 +408,18 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
 
-	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) && (full_range==ctx->full_range) && (cmx==ctx->cmx) && !sar_changed) return GF_OK;
+	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) && (full_range==ctx->full_range) && (cmx==ctx->cmx) && !sar_changed && !ctx->force_reconfig_pid) return GF_OK;
 
 	ctx->full_range = full_range;
 	ctx->cmx = cmx;
 	dw = w;
 	dh = h;
+
+	if ((ctx->disp<MODE_2D) && (ctx->vrot % 2)) {
+		dw = h;
+		dh = w;
+	}
+
 	if (ctx->sar.den != ctx->sar.num) {
 		dw = dw * ctx->sar.num / ctx->sar.den;
 	}
@@ -941,6 +960,9 @@ static void vout_draw_overlay(GF_VideoOutCtx *ctx)
 static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 {
 	Float dw, dh;
+	Bool flip_h = GF_FALSE;
+	Bool flip_v = GF_FALSE;
+	u32 i;
 
 	gf_gl_txw_bind(&ctx->tx, "maintx", ctx->glsl_program, 0);
 
@@ -965,6 +987,45 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 	if (flip_texture) {
 		textureVertices[1] = textureVertices[7] = 1.0f;
 		textureVertices[3] = textureVertices[5] = 0.0f;
+	}
+
+	switch (ctx->vflip) {
+	case FLIP_VERT:
+		flip_v = GF_TRUE;
+		break;
+	case FLIP_HORIZ:
+		flip_h = GF_TRUE;
+		break;
+	case FLIP_BOTH:
+	case FLIP_BOTH2:
+		flip_v = GF_TRUE;
+		flip_h = GF_TRUE;
+		break;
+	}
+
+	if (flip_h) {
+		GLfloat v = textureVertices[0];
+		textureVertices[0] = textureVertices[2] = textureVertices[4];
+		textureVertices[4] = textureVertices[6] = v;
+	}
+	if (flip_v) {
+		GLfloat v = textureVertices[1];
+		textureVertices[1] = textureVertices[7] = textureVertices[3];
+		textureVertices[3] = textureVertices[5] = v;
+	}
+
+	for (i=0; i < ctx->vrot; i++)  {
+		GLfloat vx = textureVertices[0];
+		GLfloat vy = textureVertices[1];
+
+		textureVertices[0] = textureVertices[2];
+		textureVertices[1] = textureVertices[3];
+		textureVertices[2] = textureVertices[4];
+		textureVertices[3] = textureVertices[5];
+		textureVertices[4] = textureVertices[6];
+		textureVertices[5] = textureVertices[7];
+		textureVertices[6] = vx;
+		textureVertices[7] = vy;
 	}
 
 	int loc = glGetAttribLocation(ctx->glsl_program, "gfVertex");
@@ -1047,16 +1108,25 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	vout_make_gl_current(ctx);
 
 	if (ctx->display_changed) {
+		u32 v_w, v_h;
+		if (ctx->vrot % 2) {
+			v_h = ctx->width;
+			v_w = ctx->height;
+		} else {
+			v_w = ctx->width;
+			v_h = ctx->height;
+		}
+
 		//if we fill width to display width and height is outside
-		if (ctx->display_width * ctx->height / ctx->width > ctx->display_height) {
-			ctx->dw = (Float) (ctx->display_height * ctx->width / ctx->height);
+		if (ctx->display_width * v_h / v_w > ctx->display_height) {
+			ctx->dw = (Float) (ctx->display_height * v_w / v_h);
 			ctx->dw *= ctx->sar.num;
 			ctx->dw /= ctx->sar.den;
 			ctx->dh = (Float) ctx->display_height;
 			ctx->oh = (Float) 0;
 			ctx->ow = (Float) (ctx->display_width - ctx->dw ) / 2;
 		} else {
-			ctx->dh = (Float) (ctx->display_width * ctx->height / ctx->width);
+			ctx->dh = (Float) (ctx->display_width * v_h / v_w);
 			ctx->dh *= ctx->sar.den;
 			ctx->dh /= ctx->sar.num;
 			ctx->dw = (Float) ctx->display_width;
@@ -1144,10 +1214,10 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 exit:
 
 	//we don't lock since most of the time overlay is not set
-	if (ctx->oldata.ptr) {
+	if (ctx->oldata.ptr && (ctx->olsize.x>0) && (ctx->olsize.y>0)) {
 		// overlay is set, lock filter to make sure the data is still valid
 		gf_filter_lock(ctx->filter, GF_TRUE);
-		if (ctx->oldata.ptr) {
+		if (ctx->oldata.ptr && ((s32) ctx->oldata.size <= 4 * ctx->olsize.x * ctx->olsize.y) ) {
 			if (!ctx->overlay_tx) {
 				glGenTextures(1, &ctx->overlay_tx);
 
@@ -1349,10 +1419,14 @@ static GF_Err vout_process(GF_Filter *filter)
 	if (ctx->force_vout) {
 		ctx->force_vout = GF_FALSE;
 		ctx->width = ctx->display_width = ctx->olwnd.z;
-		ctx->height =ctx->display_height = ctx->olwnd.w;
+		ctx->height = ctx->display_height = ctx->olwnd.w;
 		resize_video_output(ctx, ctx->width, ctx->height);
 		ctx->owsize.x = ctx->display_width;
 		ctx->owsize.y = ctx->display_height;
+	}
+	if (ctx->force_reconfig_pid) {
+		vout_configure_pid(filter, ctx->pid, GF_FALSE);
+		ctx->force_reconfig_pid = GF_FALSE;
 	}
 	ctx->video_out->ProcessEvent(ctx->video_out, NULL);
 
@@ -1615,7 +1689,8 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff *= 1000;
 				diff /= ctx->timescale;
 				//diff less than 100ms (eg 10fps or more), init on the second frame
-				if (diff<100) {
+				//do not apply this if playing at speed lower than nominal speed
+				if ((diff<100) && (ABS(ctx->speed)>=1)) {
 					ctx->first_cts_plus_one = 1 + cts;
 					ctx->clock_at_first_cts = now;
 				}
@@ -1850,6 +1925,11 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		}
 		return GF_OK;
 	}
+	if (!strcmp(arg_name, "vrot")) {
+		if (ctx->disp<MODE_2D)
+			ctx->force_reconfig_pid = GF_TRUE;
+		return GF_OK;
+	}
 	if (!strcmp(arg_name, "step")) {
 		return GF_OK;
 	}
@@ -1888,13 +1968,13 @@ static const GF_FilterArgs VideoOutArgs[] =
 {
 	{ OFFS(drv), "video driver name", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(vsync), "enable video screen sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(drop), "enable droping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(drop), "enable dropping late frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(disp), "display mode\n"
 	"- gl: OpenGL\n"
 	"- pbo: OpenGL with PBO\n"
 	"- blit: 2D hardware blit\n"
 	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(hold), "number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
@@ -1904,7 +1984,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vdelay), "set delay in sec, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(fullscreen), "use fullcreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(fullscreen), "use fullscreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
@@ -1919,6 +1999,19 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
 
+	{ OFFS(vflip), "flip video (GL only)\n"
+		"- no: no flipping\n"
+		"- v: vertical flip\n"
+		"- h: horizontal flip\n"
+		"- vh: horizontal and vertical\n"
+		"- hv: same as vh"
+		, GF_PROP_UINT, "no", "no|v|h|vh|hv", GF_FS_ARG_UPDATE | GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(vrot), "rotate video by given angle\n"
+		"- 0: no rotation\n"
+		"- 90: rotate 90 degree counter clockwise\n"
+		"- 180: rotate 180 degree\n"
+		"- 270: rotate 90 degree clockwise"
+	, GF_PROP_UINT, "0","0|90|180|270", GF_FS_ARG_UPDATE | GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -1936,8 +2029,8 @@ GF_FilterRegister VideoOutRegister = {
 	"The window is created unless a window handle (HWND, xWindow, etc) is indicated in the config file ( [Temp]OSWnd=ptr).\n"\
 	"The output uses GPAC video output module indicated in [-drv]() option or in the config file (see GPAC core help).\n"\
 	"The video output module can be further configured (see GPAC core help).\n"\
-	"The filter can use openGL or 2D blitter of the graphics card, depending on the OS support.\n"\
-	"The filter can be used do dump frames as written on the grapics card.\n"\
+	"The filter can use OpenGL or 2D blit of the graphics card, depending on the OS support.\n"\
+	"The filter can be used do dump frames as written on the graphics card.\n"\
 	"In this case, the window is not visible and only the listed frames are drawn to the GPU.\n"\
 	"The pixel format of the dumped frame is always RGB in OpenGL and matches the video backbuffer format in 2D mode.\n"\
 	)

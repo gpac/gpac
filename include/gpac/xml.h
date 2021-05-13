@@ -51,7 +51,7 @@ This section documents the XML functions (full doc parsing and SAX parsing) of t
 \ingroup xml_grp
 \defgroup dom_grp DOM Parsing
 \ingroup xml_grp
-\defgroup xmlb_grp XML Binary Formating
+\defgroup xmlb_grp XML Binary Formatting
 \ingroup xml_grp
 */
 
@@ -297,13 +297,28 @@ u32 gf_xml_dom_get_root_nodes_count(GF_DOMParser *parser);
 */
 GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx);
 
+/*! Gets the root node of the document and assign the parser root to NULL.
+\param parser the DOM parser to use
+\return the root element at the given index, or NULL if error. The element must be freed by the caller
+*/
+GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser);
 
 /*! Serialize a node to a string
 \param node the node to flush
 \param content_only Whether to include or not the parent node
+\param no_escape if set, disable escape of XML reserved chars (<,>,",') in text nodes
 \return The resulting serialization. The string has to be freed with gf_free
  */
-char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
+char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only, Bool no_escape);
+
+
+/*! Serialize a root document node - same as \ref gf_xml_dom_serialize but insert \code <?xml version="1.0" encoding="UTF-8"?> \endcode at beginning
+\param node the node to flush
+\param content_only Whether to include or not the parent node
+\param no_escape if set, disable escape of XML reserved chars (<,>,",') in text nodes
+\return The resulting serialization. The string has to be freed with gf_free
+ */
+char *gf_xml_dom_serialize_root(GF_XMLNode *node, Bool content_only, Bool no_escape);
 
 /*! Get the root element -- the only top level element -- of the document.
 \param parser the DOM structure
@@ -326,23 +341,20 @@ GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value
  */
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child);
 
-/*!
-\brief Removes the node to the list of children of this node.
-
-Removes the node to the list of children of this node.
-\warning Doesn't free the memory of the removed children.
-
-\param node the GF_XMLNode node
-\param child the GF_XMLNode child to remove
-\return Error code if any, otherwise GF_OK
- */
-GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child);
 
 /*! Destroys a node, its attributes and its children
 
 \param node the node to free
  */
 void gf_xml_dom_node_del(GF_XMLNode *node);
+
+/*! Reset  a node
+
+\param node the node to reset
+\param reset_attribs if GF_TRUE, reset all node attributes
+\param reset_children if GF_TRUE, reset all node children
+ */
+void gf_xml_dom_node_reset(GF_XMLNode *node, Bool reset_attribs, Bool reset_children);
 
 
 /*! Gets the element and check that the namespace is known ('xmlns'-only supported for now)

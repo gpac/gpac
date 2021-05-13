@@ -128,7 +128,7 @@ u32 GetNextToken(char *token, char *sep)
 		if (*CurrentLine == '\n') return 0;
 	}
 
-	//copy token untill next blank
+	//copy token until next blank
 	i=0;
 	while (1) {
 		//bad line

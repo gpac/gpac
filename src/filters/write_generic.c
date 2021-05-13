@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2018
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -26,6 +26,8 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
+#include <gpac/xml.h>
+#include <gpac/base_coding.h>
 
 #include <gpac/internal/isomedia_dev.h>
 
@@ -40,7 +42,7 @@ enum
 typedef struct
 {
 	//opts
-	Bool exporter, frame, split;
+	Bool exporter, frame, split, merge_region;
 	u32 sstart, send;
 	u32 pfmt, afmt, decinfo;
 	GF_Fraction dur;
@@ -69,8 +71,12 @@ typedef struct
 	u32 w, h, stride;
 	u64 nb_bytes;
 	Bool dash_mode;
+	Bool trunc_audio;
 
 	u64 first_dts_plus_one;
+
+	Bool ttml_agg;
+	GF_XMLNode *ttml_root;
 } GF_GenDumpCtx;
 
 
@@ -84,8 +90,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
-		ctx->opid = NULL;
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -236,10 +244,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 
 		if (!ctx->frame) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Subtitles re-assembling is not supported yet\n"));
-			return GF_NOT_SUPPORTED;
+			ctx->ttml_agg = GF_TRUE;
+		} else {
+			ctx->split = GF_TRUE;
 		}
-		ctx->split = GF_TRUE;
 		if (ctx->decinfo == DECINFO_AUTO)
 			ctx->decinfo = DECINFO_FIRST;
 		break;
@@ -337,6 +345,8 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 					//make sure we reconfigure
 					ctx->codecid = 0;
 				}
+				if (ctx->dur.num && ctx->dur.den && !gf_audio_fmt_is_planar(ctx->target_afmt ? ctx->target_afmt : ctx->afmt))
+					ctx->trunc_audio = GF_TRUE;
 			}
 
 		} else {
@@ -424,6 +434,7 @@ static GF_FilterPacket *writegen_write_j2k(GF_GenDumpCtx *ctx, char *data, u32 d
 	size = data_size + 8*4 /*jP%20%20 + ftyp*/ + ctx->dcfg_size + 8;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return NULL;
 
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
@@ -490,6 +501,7 @@ static GF_FilterPacket *writegen_write_bmp(GF_GenDumpCtx *ctx, char *data, u32 d
 
 	size = ctx->w*ctx->h*3 + 54; //14 + 40 = size of BMP file header and BMP file info;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return NULL;
 
 	memset(&fh, 0, sizeof(fh));
 	fh.bfType = 19778;
@@ -553,6 +565,7 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 
 	size = 44;
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!dst_pck) return;
 
 	if (!ctx->bs) ctx->bs = gf_bs_new(output, size, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs, output, size);
@@ -579,10 +592,370 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 	gf_filter_pck_send(dst_pck);
 }
 
+
+static GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, char *name)
+{
+	u32 i=0;
+	GF_XMLAttribute *att;
+	while (node && (att = gf_list_enum(node->attributes, &i)) ) {
+		if (!strcmp(att->name, name)) return att;
+	}
+	return NULL;
+}
+static GF_XMLNode *ttml_locate_div(GF_XMLNode *body, const char *region_name, u32 div_idx)
+{
+	u32 i=0, loc_div_idx=0;
+	GF_XMLNode *div;
+	while ( (div = gf_list_enum(body->content, &i)) ) {
+		if (div->type) continue;
+		if (strcmp(div->name, "div")) continue;
+
+		if (!region_name) {
+			if (div_idx==loc_div_idx) return div;
+			loc_div_idx++;
+		} else {
+			GF_XMLAttribute *att = ttml_get_attr(div, "region");
+			if (att && att->value && !strcmp(att->value, region_name))
+				return div;
+		}
+	}
+	if (region_name) {
+		return ttml_locate_div(body, NULL, div_idx);
+	}
+	return NULL;
+}
+
+static GF_XMLNode *ttml_get_body(GF_XMLNode *root)
+{
+	u32 i=0;
+	GF_XMLNode *child;
+	while (root && (child = gf_list_enum(root->content, &i)) ) {
+		if (child->type) continue;
+		if (!strcmp(child->name, "body")) return child;
+	}
+	return NULL;
+}
+
+static Bool ttml_same_attr(GF_XMLNode *n1, GF_XMLNode *n2)
+{
+	u32 i=0;
+	GF_XMLAttribute *att1;
+	while ( (att1 = gf_list_enum(n1->attributes, &i))) {
+		Bool found = GF_FALSE;
+		u32 j=0;
+		GF_XMLAttribute *att2;
+		while ( (att2 = gf_list_enum(n2->attributes, &j))) {
+			if (!strcmp(att1->name, att2->name) && !strcmp(att1->value, att2->value)) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) return GF_FALSE;
+	}
+	return GF_TRUE;
+}
+
+static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size, u8 *subs_data, u32 subs_data_size)
+{
+	u32 i=0;
+	GF_XMLNode *child;
+	u32 subs_idx=0;
+	GF_XMLAttribute *att;
+	Bool is_source = GF_FALSE;
+	Bool has_src_att = GF_FALSE;
+	if (!node || node->type) return GF_BAD_PARAM;
+
+	if (!strcmp(node->name, "source")) {
+		is_source = GF_TRUE;
+	}
+
+	while ((att = gf_list_enum(node->attributes, &i))) {
+		char *sep, *fext;
+		if (strcmp(att->name, "src")) continue;
+		has_src_att = GF_TRUE;
+		if (strncmp(att->value, "urn:", 4)) continue;
+		sep = strrchr(att->value, ':');
+		if (!sep) continue;
+		sep++;
+		fext = gf_file_ext_start(sep);
+		if (fext) fext[0] = 0;
+		subs_idx = atoi(sep);
+		if (fext) fext[0] = '.';
+		if (!subs_idx || ((subs_idx-1) * 14 > subs_data_size)) {
+			subs_idx = 0;
+			continue;
+		}
+		break;
+	}
+	if (subs_idx) {
+		GF_XMLNode *data;
+		u32 subs_offset = 0;
+		u32 subs_size = 0;
+		u32 idx = 1;
+		//fetch subsample info
+		for (i=0; i<subs_data_size; i+=14) {
+			u32 a_subs_size = subs_data[i+4];
+			a_subs_size <<= 8;
+			a_subs_size |= subs_data[i+5];
+			a_subs_size <<= 8;
+			a_subs_size |= subs_data[i+6];
+			a_subs_size <<= 8;
+			a_subs_size |= subs_data[i+7];
+			if (idx==subs_idx) {
+				subs_size = a_subs_size;
+				break;
+			}
+			subs_offset += a_subs_size;
+			idx++;
+		}
+		if (!subs_size || (subs_offset + subs_size > aux_data_size)) {
+			if (!subs_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("No subsample with index %u in sample\n", subs_idx));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Corrupted subsample %u info, size %u offset %u but sample size %u\n", subs_idx, subs_size, subs_offset, aux_data_size));
+			}
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		//remove src attribute
+		gf_list_del_item(node->attributes, att);
+		if (att->name) gf_free(att->name);
+		if (att->value) gf_free(att->value);
+		gf_free(att);
+
+		//create a source node
+		if (!is_source) {
+			GF_XMLNode *s;
+			GF_SAFEALLOC(s, GF_XMLNode);
+			if (!s) return GF_OUT_OF_MEM;
+			s->attributes = gf_list_new();
+			s->content = gf_list_new();
+			s->name = gf_strdup("source");
+			gf_list_add(node->content, s);
+			if (!s->name || !s->content || !s->attributes) return GF_OUT_OF_MEM;
+			//move @type to source
+			att = ttml_get_attr(node, "type");
+			if (att) {
+				gf_list_del_item(node->attributes, att);
+				gf_list_add(s->attributes, att);
+			}
+			node = s;
+		}
+
+		//create a data node
+		GF_SAFEALLOC(data, GF_XMLNode);
+		if (!data) return GF_OUT_OF_MEM;
+		data->attributes = gf_list_new();
+		data->content = gf_list_new();
+		data->name = gf_strdup("data");
+		gf_list_add(node->content, data);
+		if (!data->name || !data->content || !data->attributes) return GF_OUT_OF_MEM;
+		//move @type to data
+		att = ttml_get_attr(node, "type");
+		if (att) {
+			gf_list_del_item(node->attributes, att);
+			gf_list_add(data->attributes, att);
+		}
+		//base64 encode in a child
+		GF_SAFEALLOC(node, GF_XMLNode)
+		if (!node) return GF_OUT_OF_MEM;
+		node->type = GF_XML_TEXT_TYPE;
+		node->name = gf_malloc(sizeof(u8) * subs_size * 2);
+		if (!node->name) {
+			gf_free(node);
+			return GF_OUT_OF_MEM;
+		}
+		subs_size = gf_base64_encode(aux_data + subs_offset, subs_size, (u8*) node->name, subs_size * 2);
+		node->name[subs_size] = 0;
+		return gf_list_add(data->content, node);
+	}
+	//src was present but not an embedded data, do not recurse
+	if (has_src_att) return GF_OK;
+
+	i=0;
+	while ((child = gf_list_enum(node->content, &i))) {
+		if (child->type) continue;
+		ttml_embed_data(child, aux_data, aux_data_size, subs_data, subs_data_size);
+	}
+	return GF_OK;
+}
+
+static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, GF_FilterPacket *in_pck)
+{
+	const GF_PropertyValue *subs = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SUBS);
+	char *ttml_text = NULL;
+	GF_Err e = GF_OK;
+	u32 ttml_text_size;
+	GF_DOMParser *dom;
+	u32 txt_size, nb_children;
+	u32 i, k, div_idx;
+	GF_XMLNode *root_pck, *p_global, *p_pck, *body_pck, *body_global;
+
+	if (subs) {
+		if (subs->value.data.size < 14)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		txt_size = subs->value.data.ptr[4];
+		txt_size <<= 8;
+		txt_size |= subs->value.data.ptr[5];
+		txt_size <<= 8;
+		txt_size |= subs->value.data.ptr[6];
+		txt_size <<= 8;
+		txt_size |= subs->value.data.ptr[7];
+		if (txt_size>data_size)
+			return GF_NON_COMPLIANT_BITSTREAM;
+	} else {
+		txt_size = data_size;
+	}
+	ttml_text_size = txt_size + 2;
+	ttml_text = gf_malloc(sizeof(char) * ttml_text_size);
+	if (!ttml_text) return GF_OUT_OF_MEM;
+
+	memcpy(ttml_text, data, txt_size);
+	ttml_text[txt_size] = 0;
+	ttml_text[txt_size+1] = 0;
+
+	dom = gf_xml_dom_new();
+	if (!dom) return GF_OUT_OF_MEM;
+	e = gf_xml_dom_parse_string(dom, ttml_text);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ttml_text));
+		goto exit;
+	}
+	root_pck = gf_xml_dom_get_root(dom);
+
+	//subsamples, replace all data embedded as subsample with base64 encoding
+	if (subs && root_pck) {
+		e = ttml_embed_data(root_pck, data+txt_size, data_size-txt_size, subs->value.data.ptr+14, subs->value.data.size-14);
+		if (e) goto exit;
+	}
+
+	if (!ctx->ttml_root) {
+		ctx->ttml_root = gf_xml_dom_detach_root(dom);
+		goto exit;
+	}
+
+
+	body_pck = ttml_get_body(root_pck);
+	body_global = ttml_get_body(ctx->ttml_root);
+	div_idx = 0;
+	nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
+	for (k=0; k<nb_children; k++) {
+		GF_XMLAttribute *div_reg = NULL;
+		GF_XMLNode *div_global, *div_pck;
+		div_pck = gf_list_get(body_pck->content, k);
+		if (div_pck->type) continue;
+		if (strcmp(div_pck->name, "div")) continue;
+
+		if (ctx->merge_region)
+			div_reg = ttml_get_attr(div_pck, "region");
+
+		//merge input doc
+		div_global = ttml_locate_div(body_global, div_reg ? div_reg->value : NULL, div_idx);
+
+		if (!div_global) {
+			gf_list_rem(body_pck->content, k);
+			gf_list_insert(body_global->content, div_pck, div_idx+1);
+			div_idx++;
+			continue;
+		}
+		div_idx++;
+
+		i=0;
+		while ( (p_pck = gf_list_enum(div_pck->content, &i)) ) {
+			s32 idx;
+			GF_XMLNode *txt;
+			u32 j=0;
+			Bool found = GF_FALSE;
+			if (p_pck->type) continue;
+			if (strcmp(p_pck->name, "p")) continue;
+			while ( (p_global = gf_list_enum(div_global->content, &j)) ) {
+				if (p_global->type) continue;
+				if (strcmp(p_global->name, "p")) continue;
+
+				if (ttml_same_attr(p_pck, p_global)) {
+					found = GF_TRUE;
+					break;
+				}
+			}
+			if (found) continue;
+
+			//insert this p - if last entry in global div is text, insert before
+			txt = gf_list_last(div_global->content);
+			if (txt && txt->type) {
+				idx = gf_list_count(div_global->content) - 1;
+			} else {
+				idx = gf_list_count(div_global->content);
+			}
+
+			i--;
+			gf_list_rem(div_pck->content, i);
+			if (i) {
+				txt = gf_list_get(div_pck->content, i-1);
+				if (txt->type) {
+					i--;
+					gf_list_rem(div_pck->content, i);
+					gf_list_insert(div_global->content, txt, idx);
+					idx++;
+				}
+			}
+			gf_list_insert(div_global->content, p_pck, idx);
+
+		}
+	}
+
+exit:
+	if (ttml_text) gf_free(ttml_text);
+	gf_xml_dom_del(dom);
+	return e;
+}
+
+static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
+{
+	char *data;
+	u8 *output;
+	u32 size;
+	GF_FilterPacket *pck;
+	if (!ctx->ttml_root) return GF_OK;
+
+	if (ctx->merge_region) {
+		u32 i, count;
+		GF_XMLNode *body_global = ttml_get_body(ctx->ttml_root);
+		count = body_global ? gf_list_count(body_global->content) : 0;
+		for (i=0; i<count; i++) {
+			GF_XMLNode *child;
+			GF_XMLNode *div = gf_list_get(body_global->content, i);
+			if (div->type) continue;
+			if (strcmp(div->name, "div")) continue;
+			if (gf_list_count(div->content) > 1) continue;;
+
+			child = gf_list_get(div->content, 0);
+			if (child && !child->type) continue;;
+
+			gf_list_rem(body_global->content, i);
+			i--;
+			count--;
+			gf_xml_dom_node_del(div);
+		}
+	}
+
+	data = gf_xml_dom_serialize_root(ctx->ttml_root, GF_FALSE, GF_FALSE);
+	if (!data) return GF_OK;
+	size = (u32) strlen(data);
+	pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	if (!pck) return GF_OUT_OF_MEM;
+
+	memcpy(output, data, size);
+	gf_free(data);
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+	gf_xml_dom_node_del(ctx->ttml_root);
+	ctx->ttml_root = NULL;
+	return gf_filter_pck_send(pck);
+}
+
 GF_Err writegen_process(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck, *dst_pck = NULL;
 	char *data;
 	u32 pck_size;
 	Bool do_abort = GF_FALSE;
@@ -593,6 +966,7 @@ GF_Err writegen_process(GF_Filter *filter)
 	if (!pck || !ctx->codecid) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			if (ctx->is_wav) writegen_write_wav_header(ctx);
+			else if (ctx->ttml_agg) writegen_flush_ttml(ctx);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
@@ -639,6 +1013,8 @@ GF_Err writegen_process(GF_Filter *filter)
 		split = GF_TRUE;
 	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
 		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
@@ -661,6 +1037,8 @@ GF_Err writegen_process(GF_Filter *filter)
 	} else if (ctx->is_wav && ctx->first) {
 		u8 * output;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
@@ -669,9 +1047,59 @@ GF_Err writegen_process(GF_Filter *filter)
 		gf_filter_pck_send(dst_pck);
 		ctx->nb_bytes += 44;
 		return GF_OK;
+	} else if (ctx->ttml_agg) {
+		GF_Err e = writegen_push_ttml(ctx, data, pck_size, pck);
+		ctx->first = GF_FALSE;
+		if (e) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return e;
+		}
+		goto no_output;
+	} else if (ctx->trunc_audio) {
+		u64 dts = gf_filter_pck_get_dts(pck);
+		if (dts==GF_FILTER_NO_TS)
+			dts = gf_filter_pck_get_cts(pck);
+
+		if (!ctx->first_dts_plus_one) {
+			ctx->first_dts_plus_one = dts+1;
+		} else {
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u32 dur = gf_filter_pck_get_duration(pck);
+			if (ctx->dur.den * (dts + dur + 1 - ctx->first_dts_plus_one) > ctx->dur.num * timescale) {
+				u32 bpp;
+				u8 *odata;
+				const GF_PropertyValue *p;
+				dur = ctx->dur.num * timescale / ctx->dur.den;
+				dur -= (u32) (dts + 1 - ctx->first_dts_plus_one);
+
+				bpp = gf_audio_fmt_bit_depth(ctx->target_afmt);
+				p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NUM_CHANNELS);
+				if (p) bpp *= p->value.uint;
+				bpp/= 8;
+
+				p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAMPLE_RATE);
+				if (p && (p->value.uint != timescale)) {
+					dur *= p->value.uint;
+					dur /= timescale;
+				}
+				assert(pck_size >= bpp * dur);
+				pck_size = bpp * dur;
+
+				dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size, &odata);
+				if (dst_pck)
+					memcpy(odata, data, pck_size);
+			}
+		}
+
+		if (!dst_pck) {
+			dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
+		}
+
 	} else {
 		dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
+	
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	//don't keep byte offset
 	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
@@ -684,10 +1112,11 @@ GF_Err writegen_process(GF_Filter *filter)
 		ctx->first = GF_FALSE;
 	}
 
-	gf_filter_pck_send(dst_pck);
 	gf_filter_pck_set_seek_flag(dst_pck, 0);
+	gf_filter_pck_send(dst_pck);
 	ctx->nb_bytes += pck_size;
 
+no_output:
 	if (ctx->exporter) {
 		u32 timescale = gf_filter_pck_get_timescale(pck);
 		u64 ts = gf_filter_pck_get_dts(pck);
@@ -778,7 +1207,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "cmp|m4ve"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "cmp|m4ve|m4v"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/mp4v-es"),
 	{0},
 
@@ -983,6 +1412,13 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/vvc|video/lvvc"),
 	{0},
 
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TRUEHD),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mlp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/truehd"),
+	{0},
+
 
 	//anything else: only for explicit dump (filter loaded on purpose), otherwise don't load for filter link resolution
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -1040,6 +1476,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dur), "duration of media to forward after first sample. If 0, all samples are forwarded", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(merge_region), "merge TTML regions with same ID while reassembling TTML doc", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
@@ -1049,6 +1486,8 @@ void writegen_finalize(GF_Filter *filter)
 {
 	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
+	if (ctx->ttml_root)
+		gf_xml_dom_node_del(ctx->ttml_root);
 }
 
 GF_FilterRegister GenDumpRegister = {

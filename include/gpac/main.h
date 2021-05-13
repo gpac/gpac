@@ -39,7 +39,7 @@ extern "C" {
 \addtogroup sysmain_grp
 @{
 
-Thiis section decribes functions useful when developping an application using libgpac such as:
+Thiis section decribes functions useful when developing an application using libgpac such as:
 - quick UTF8 conversion of arguments for main() on windows
 - setting, checking and printing libgpac arguments as given from command line
 */
@@ -90,23 +90,29 @@ int main(int argc, char **argv) {\
 
 #endif //win32
 
-/*! structure holding a gpac arg (not a filter arg)*/
+/*! macro defining fields of a libgpac arg (not a filter arg)*/
+#define GF_GPAC_ARG_BASE \
+	/*! name of arg*/ \
+	const char *name; \
+	/*! alternate name of arg*/ \
+	const char *altname; \
+	/*! description of arg*/ \
+	const char *description; \
+	/*! default value of arg*/ \
+	const char *val; \
+	/*! possible value of arg*/ \
+	const char *values; \
+	/*! argument type for UI construction - note that argument values are not parsed and shall be set as strings*/ \
+	u16 type; \
+	/*! argument flags*/ \
+	u16 flags; \
+
+
+/*! structure holding a libgpac arg (not a filter arg)*/
 typedef struct
 {
-	/*! name of arg*/
-	const char *name;
-	/*! alternate name of arg*/
-	const char *altname;
-	/*! description of arg*/
-	const char *description;
-	/*! default value of arg*/
-	const char *val;
-	/*! possible value of arg*/
-	const char *values;
-	/*! argument type for UI construction - note that argument values are not parsed and shall be set as strings*/
-	u16 type;
-	/*! argument flags*/
-	u16 flags;
+	/*! base structure, shall always be placed first if you extend args in your application*/
+	GF_GPAC_ARG_BASE
 } GF_GPACArg;
 
 //these 3 values match argument hints of filters
@@ -135,6 +141,8 @@ typedef struct
 #define GF_ARG_SUBSYS_TEXT 		(1<<11)
 /*! argument applies to the remotery subsystem*/
 #define GF_ARG_SUBSYS_RMT 		(1<<12)
+/*! argument belongs to hack tools, usually never used*/
+#define GF_ARG_SUBSYS_HACKS 		(1<<13)
 
 /*! argument is a boolean*/
 #define GF_ARG_BOOL		0
@@ -146,6 +154,12 @@ typedef struct
 #define GF_ARG_STRING	3
 /*! argument is a camma-separated list of strings*/
 #define GF_ARG_STRINGS	4
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_4CC		5
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_4CCS		6
+/*! argument is a custom arg, default value contains the syntax of the argument*/
+#define GF_ARG_CUSTOM	7
 
 /*! macros for defining a GF_GPACArg argument*/
 #define GF_DEF_ARG(_a, _b, _c, _d, _e, _f, _g) {_a, _b, _c, _d, _e, _f, _g}
@@ -160,7 +174,7 @@ const GF_GPACArg *gf_sys_get_options();
 u32 gf_sys_is_gpac_arg(const char *arg_name);
 
 /*! parses config string and update config accordingly
-\param opt_string section/key/val formatted as Section:Key (discard key), Section:Key=null (discard key), Section:Key=Val (set key) or Section:*=null (discard section)
+\param opt_string section/key/val formatted as Section:Key (discard key), Section:Key=null (discard key), Section:Key=Val (set key) or Section=null (discard section)
 \return GF_TRUE if update is OK, GF_FALSE otherwise*/
 Bool gf_sys_set_cfg_option(const char *opt_string);
 
@@ -188,7 +202,7 @@ typedef enum
 	GF_PRINTARG_OPT_DESC = 1<<2,
 	/*! the format string is an application string, not a gpac core one*/
 	GF_PRINTARG_IS_APP = 1<<3,
-	/*! insert an extra '-' at the begining*/
+	/*! insert an extra '-' at the beginning*/
 	GF_PRINTARG_ADD_DASH = 1<<4,
 	/*! do not insert '-' before arg name*/
 	GF_PRINTARG_NO_DASH = 1<<5,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI demuxer filter
@@ -327,11 +327,14 @@ GF_Err avidmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		if (ctx->v_opid) gf_filter_pid_remove(ctx->v_opid);
-		ctx->v_opid = NULL;
+		if (ctx->v_opid) {
+			gf_filter_pid_remove(ctx->v_opid);
+			ctx->v_opid = NULL;
+		}
 		while (gf_list_count(ctx->audios) ) {
 			AVIAstream *st = gf_list_pop_back(ctx->audios);
-			gf_filter_pid_remove(st->opid);
+			if (st->opid)
+				gf_filter_pid_remove(st->opid);
 			gf_free(st);
 		}
 		return GF_OK;
@@ -483,6 +486,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 
 			if (size > 4) {
 				GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->v_opid, size, &pck_data);
+				if (!dst_pck) return GF_OUT_OF_MEM;
 				AVI_read_frame(ctx->avi, pck_data, &key);
 				gf_filter_pck_set_byte_offset(dst_pck, file_offset);
 				gf_filter_pck_set_cts(dst_pck, cts);
@@ -539,7 +543,8 @@ GF_Err avidmx_process(GF_Filter *filter)
 			u8 *pck_data;
 			u64 file_offset;
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(st->opid, size, &pck_data);
-
+			if (!dst_pck) return GF_OUT_OF_MEM;
+			
 			file_offset = gf_ftell(ctx->avi->fdes);
 			AVI_read_audio(ctx->avi, pck_data, size, (int*)&continuous);
 

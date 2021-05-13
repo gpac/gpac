@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / compositor filter
@@ -197,6 +197,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *prop;
 	u32 mtype, codecid;
 	u32 i, count;
+	GF_Scene *def_scene = NULL;
 	GF_Scene *scene = NULL;
 	GF_Scene *top_scene = NULL;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
@@ -242,6 +243,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
+		Bool notify_quality = GF_FALSE;
 		if (mtype==GF_STREAM_SCENE) { }
 		else if (mtype==GF_STREAM_OD) { }
 		//change of stream type for a given object, no use case yet
@@ -257,8 +259,18 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			}
 			gf_odm_update_duration(odm, pid);
 			gf_odm_check_clock_mediatime(odm);
+			notify_quality = GF_TRUE;
 		}
 		merge_properties(ctx, pid, mtype, odm->parentscene);
+
+		if (notify_quality) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_QUALITY_SWITCHED;
+
+			gf_filter_forward_gf_event(filter, &evt, GF_FALSE, GF_FALSE);
+		}
+
 		return GF_OK;
 	}
 
@@ -298,19 +310,30 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	scene = ctx->root_scene;
 	top_scene = ctx->root_scene;
 
+	switch (mtype) {
+	case GF_STREAM_SCENE:
+	case GF_STREAM_OD:
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
+		if (prop && prop->value.boolean) {
+			in_iod = GF_TRUE;
+		}
+		break;
+	}
+
+
 	//browse all scene namespaces and figure out our parent scene
 	count = gf_list_count(top_scene->namespaces);
 	for (i=0; i<count; i++) {
 		GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
 		if (!sns->source_filter) {
-			if (sns->connect_ack && sns->owner) {
-				scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
-				break;
+			if (sns->connect_ack && sns->owner && !def_scene) {
+				def_scene = sns->owner->subscene ? sns->owner->subscene : sns->owner->parentscene;
 			}
 			continue;
 		}
 		assert(sns->owner);
 		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+			Bool scene_setup = GF_FALSE;
 			if (!sns->owner->subscene && sns->owner->parentscene && (mtype!=GF_STREAM_OD) && (mtype!=GF_STREAM_SCENE)) {
 				u32 j;
 				for (j=0; j<gf_list_count(sns->owner->parentscene->scene_objects); j++) {
@@ -329,10 +352,24 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					break;
 				}
 			}
+			//this is an animation stream
+			if (!in_iod && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+				scene_setup = GF_TRUE;
+			}
+			//otherwise if parent scene is setup and root object type is scene or OD, do not create an inline
+			//inline nodes using od:// must trigger subscene creation by using gf_scene_get_media_object with object type GF_MEDIA_OBJECT_SCENE
+			else if (sns->owner->parentscene
+				&& sns->owner->parentscene->root_od
+				&& sns->owner->parentscene->root_od->pid
+				&& ((sns->owner->parentscene->root_od->type==GF_STREAM_SCENE) || (sns->owner->parentscene->root_od->type==GF_STREAM_OD))
+			) {
+				scene_setup = GF_TRUE;
+			}
+
 			//we are attaching an inline, create the subscene if not done already
-			if (!sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE)) ) {
+			if (!scene_setup && !sns->owner->subscene && ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE))  ) {
 				//ignore system PIDs from subservice - this is typically the case when playing a bt/xmt file
-				//created from a container (mp4) and still refering to that container for the media streams
+				//created from a container (mp4) and still referring to that container for the media streams
 				if (sns->owner->ignore_sys) {
 					GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
 					gf_filter_pid_send_event(pid, &evt);
@@ -349,6 +386,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			break;
 		}
 	}
+	if (!scene) scene = def_scene;
 	assert(scene);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Configuring PID %s\n", gf_stream_type_name(mtype)));
@@ -362,24 +400,23 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	switch (mtype) {
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-		if (prop && scene->is_dynamic_scene) {
+		if (in_iod) {
 			scene->is_dynamic_scene = GF_FALSE;
-		}
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-		if (prop && prop->value.boolean) {
-			scene->is_dynamic_scene = GF_FALSE;
-			in_iod = GF_TRUE;
+		} else {
+			//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+			if (prop && scene->is_dynamic_scene) {
+				scene->is_dynamic_scene = GF_FALSE;
+			}
 		}
 		break;
 	}
 
 	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
 
-	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namesapce for
+	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namespace for
 	//the scene and reassign the old namespace to the previously created ODM
-	if (!scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
+	if ( !scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
 		GF_SceneNamespace *new_sns=NULL;
 		const char *service_url = "unknown";
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);
@@ -399,6 +436,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_sg_reset(scene->graph);
 		gf_sc_set_scene(ctx, scene->graph);
 		ctx->reload_scene_size = GF_TRUE;
+		//force clock to NULL, will resetup based on OCR_ES_IDs
+		scene->root_od->ck = NULL;
 	}
 
 	//setup object (clock) and playback requests
@@ -424,10 +463,18 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//scene is dynamic
 	if (scene->is_dynamic_scene) {
 		Bool reset = GF_FALSE;
+		u32 scene_vr_type = 0;
 		char *sep = scene->root_od->scene_ns->url_frag;
 		if (sep && ( !strnicmp(sep, "LIVE360", 7) || !strnicmp(sep, "360", 3) || !strnicmp(sep, "VR", 2) ) ) {
-			if (scene->vr_type != 1) reset = GF_TRUE;
-			scene->vr_type = 1;
+			scene_vr_type = 1;
+		}
+		if (!sep) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PROJECTION_TYPE);
+			if (prop && (prop->value.uint==GF_PROJ360_EQR)) scene_vr_type = 1;
+		}
+		if (scene_vr_type) {
+			if (scene->vr_type != scene_vr_type) reset = GF_TRUE;
+			scene->vr_type = scene_vr_type;
 		}
 		if (reset)
 			gf_sg_reset(scene->graph);
@@ -644,7 +691,12 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	if (ctx->rbuffer >= ctx->buffer)
 		ctx->rbuffer = 0;
 
+
     if (ctx->player) {
+		//explicit disable of openGL
+		if (ctx->drv==GF_SC_DRV_OFF)
+			ctx->ogl = GF_SC_GLMODE_OFF;
+
 		if (ctx->ogl == GF_SC_GLMODE_AUTO)
 			ctx->ogl = GF_SC_GLMODE_HYBRID;
 
@@ -768,7 +820,7 @@ static GF_FilterArgs CompositorArgs[] =
 		"- always: always render text to texture before drawing"\
 		"", GF_PROP_UINT, "default", "default|never|always", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(out8b), "convert 10-bit video to 8 bit texture before GPU upload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(drop), "drop late frame when drawing. By default frames are not droped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(drop), "drop late frame when drawing. By default frames are not dropped until a heavy desync of 1 sec is observed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(sclock), "force synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgaze), "simulate gaze events through mouse", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckey), "color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
@@ -810,11 +862,11 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(ntpsync), "ntp resync threshold in ms (drops frame if their NTP is more than the given threshold above local ntp), 0 disables ntp drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 
 	{ OFFS(nojs), "disable javascript", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(noback), "ignore background nodes and viewport fill (usefull when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noback), "ignore background nodes and viewport fill (useful when dumping to PNG)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_3D
 	{ OFFS(ogl), "specify 2D rendering mode\n"\
-				"- auto: automatically decides betwwen on, off and hybrid based on content\n"\
+				"- auto: automatically decides between on, off and hybrid based on content\n"\
 				"- off: disables OpenGL; 3D will not be rendered\n"\
 				"- on: uses OpenGL for all graphics; this will involve polygon tesselation and 2D graphics will not look as nice as 2D mode\n"\
 				"- hybrid: the compositor performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all 2D objects with textures and 3D objects"\
@@ -920,9 +972,9 @@ static GF_FilterArgs CompositorArgs[] =
 	"- gui: player mode with GUI auto-start", GF_PROP_UINT, "no", "no|base|gui", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(noaudio), "disable audio output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(opfmt), "pixel format to use for output. Ignored in [-player]() mode", GF_PROP_PIXFMT, "none", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(drv), "indicate if graphics driver should be used. Ignored in player mode\n"\
-				"- no: never loads a graphics driver (software blitting used, no 3D possible)\n"\
-				"- yes: always loads a graphics driver. Output pixel format will be RGB\n"\
+	{ OFFS(drv), "indicate if graphics driver should be used\n"\
+				"- no: never loads a graphics driver, software blitting is used, no 3D possible (in player mode, disables OpenGL)\n"\
+				"- yes: always loads a graphics driver, output pixel format will be RGB (in player mode, same to `auto`)\n"\
 				"- auto: decides based on the loaded content"\
 			, GF_PROP_UINT, "auto", "no|yes|auto", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(src), "URL of source content", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
@@ -973,7 +1025,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"If audio streams are loaded, an audio output pid is created.\n"
 	"\n"
 	"The default output pixel format in filter mode is:\n"
-	"- `rgb` when the filter is explictly loaded by the application\n"
+	"- `rgb` when the filter is explicitly loaded by the application\n"
 	"- `rgba` when the filter is loaded during a link resolution\n"
 	"This can be changed by assigning the [-opfmt]() option.\n"
 	"\n"
@@ -995,7 +1047,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"The compositor can act as a source filter when the [-src]() option is explicitly set, independently from the operating mode:\n"
 	"EX gpac compositor:src=source.mp4 vout\n"
 	"\n"
-	"The compositor can act as a source filter when the source url uses one of the compositor buildin protocol schemes:\n"
+	"The compositor can act as a source filter when the source url uses one of the compositor built-in protocol schemes:\n"
 	"EX gpac -i mosaic://URL1:URL2 vout\n"
 	"\n"
 	)

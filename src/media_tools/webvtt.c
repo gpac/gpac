@@ -2,7 +2,7 @@
  *          GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2000-2012
+ *          Copyright (c) Telecom ParisTech 2000-2021
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -106,12 +106,6 @@ GF_Box *vtte_box_new() {
 	return (GF_Box *)tmp;
 }
 
-GF_Box *wvtt_box_new()
-{
-	ISOM_DECL_BOX_ALLOC(GF_WebVTTSampleEntryBox, GF_ISOM_BOX_TYPE_WVTT);
-	return (GF_Box *)tmp;
-}
-
 void boxstring_box_del(GF_Box *s)
 {
 	GF_StringBox *box = (GF_StringBox *)s;
@@ -129,8 +123,16 @@ void vtte_box_del(GF_Box *s)
 	gf_free(s);
 }
 
+GF_Box *wvtt_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_WebVTTSampleEntryBox, GF_ISOM_BOX_TYPE_WVTT);
+	gf_isom_sample_entry_init((GF_SampleEntryBox *)tmp);
+	return (GF_Box *)tmp;
+}
+
 void wvtt_box_del(GF_Box *s)
 {
+	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 	gf_free(s);
 }
 
@@ -143,21 +145,22 @@ GF_Err boxstring_box_read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-static GF_Err vtcu_Add(GF_Box *s, GF_Box *box)
+
+GF_Err vtcu_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
-	switch(box->type) {
+	GF_VTTCueBox *ptr = (GF_VTTCueBox *)s;
+	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_CTIM:
-		cuebox->time = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(time, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_IDEN:
-		cuebox->id = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(id, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_STTG:
-		cuebox->settings = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(settings, GF_StringBox);
 		break;
 	case GF_ISOM_BOX_TYPE_PAYL:
-		cuebox->payload = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(payload, GF_StringBox);
 		break;
 	}
 	return GF_OK;
@@ -165,20 +168,20 @@ static GF_Err vtcu_Add(GF_Box *s, GF_Box *box)
 
 GF_Err vtcu_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, vtcu_Add);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Err vtte_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read(s, bs, NULL);
+	return gf_isom_box_array_read(s, bs);
 }
 
-static GF_Err wvtt_Add(GF_Box *s, GF_Box *box)
+GF_Err wvtt_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 {
-	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
-	switch(box->type) {
+	GF_WebVTTSampleEntryBox *ptr = (GF_WebVTTSampleEntryBox *)s;
+	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_VTTC_CONFIG:
-		wvtt->config = (GF_StringBox *)box;
+		BOX_FIELD_ASSIGN(config, GF_StringBox);
 		break;
 	}
 	return GF_OK;
@@ -192,7 +195,7 @@ GF_Err wvtt_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	wvtt->size -= 8;
-	return gf_isom_box_array_read(s, bs, wvtt_Add);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -362,10 +365,9 @@ GF_Err boxstring_box_dump(GF_Box *a, FILE * trace)
 		break;
 	}
 	gf_isom_box_dump_start(a, szName, trace);
-	gf_fprintf(trace, "><![CDATA[\n");
-	if (sbox->string)
-		gf_fprintf(trace, "%s", sbox->string);
-	gf_fprintf(trace, "\n]]>");
+	gf_fprintf(trace, ">");
+	if (sbox->string && strlen(sbox->string))
+		gf_fprintf(trace, "<![CDATA[\n%s\n]]>", sbox->string);
 	gf_isom_box_dump_done(szName, a, trace);
 	return GF_OK;
 }

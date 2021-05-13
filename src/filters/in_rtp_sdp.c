@@ -245,7 +245,7 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 
 	/*ISMACryp config*/
 	if (stream->depacketizer->flags & GF_RTP_HAS_ISMACRYP) {
-		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(GF_ISOM_ISMACRYP_SCHEME) );
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(GF_ISOM_ISMACRYP_SCHEME) );
 
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(1) );
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING(stream->depacketizer->key) );

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -36,6 +36,7 @@ typedef enum
 	GF_HTTPIN_STORE_MEM,
 	GF_HTTPIN_STORE_MEM_KEEP,
 	GF_HTTPIN_STORE_NONE,
+	GF_HTTPIN_STORE_NONE_KEEP,
 } GF_HTTPInStoreMode;
 
 enum
@@ -114,6 +115,10 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 	else if (ctx->cache==GF_HTTPIN_STORE_MEM_KEEP) {
 		flags |= GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
 		ctx->cache = GF_HTTPIN_STORE_MEM;
+	}
+	else if (ctx->cache==GF_HTTPIN_STORE_NONE_KEEP) {
+		flags |= GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
+		ctx->cache = GF_HTTPIN_STORE_NONE;
 	}
 
 	server = strstr(ctx->src, "://");
@@ -271,6 +276,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
 			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			if (!pck) return GF_TRUE;
 			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 
 			ctx->pck_out = GF_TRUE;
@@ -384,8 +390,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 			to_read = (u32) lto_read;
 
 		if (ctx->full_file_only) {
-			ctx->is_end = GF_TRUE;
 			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+			if (!pck) return GF_OUT_OF_MEM;
+			ctx->is_end = GF_TRUE;
 			gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
 
 			//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
@@ -439,15 +446,20 @@ static GF_Err httpin_process(GF_Filter *filter)
 				httpin_notify_error(filter, ctx, e);
 
 			ctx->is_end = GF_TRUE;
-			//no packet out, we can signal eos
-			if (ctx->pid) {
-				gf_filter_pid_set_eos(ctx->pid);
-			}
+
 			//do not return an error if first fetch after source switch fails with removed or 404, this happens in DASH dynamic
 			//and the error might be absorbed by the dash demux later
+			//also do not signal eos in that case, this could trigger the consuming filter (dashdmx, filein) to consider the stream is in regular EOS
+			//and not wait for notify failure
 			if (ctx->is_source_switch && !ctx->nb_read && ((e==GF_URL_REMOVED) || (e==GF_URL_ERROR)))
 				return GF_OK;
 
+			//no packet out, we can signal eos, except for source switch failures
+			if (ctx->pid) {
+				gf_filter_pid_set_eos(ctx->pid);
+			}
+
+			gf_dm_sess_abort(ctx->sess);
 			ctx->is_source_switch = GF_FALSE;
 			return e;
 		}
@@ -526,13 +538,14 @@ static GF_Err httpin_process(GF_Filter *filter)
 
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
-		ctx->is_end = GF_TRUE;
+		if (net_status!=GF_NETIO_DATA_EXCHANGE)
+			ctx->is_end = GF_TRUE;
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}
 
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, httpin_rel_pck);
-	if (!pck) return GF_OK;
+	if (!pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_set_cts(pck, 0);
 
@@ -577,7 +590,9 @@ static const GF_FilterArgs HTTPInArgs[] =
 	"- keep: cache to disk and keep\n"
 	"- mem: stores to memory, discard once session is no longer used\n"
 	"- mem_keep: stores to memory, keep after session is reassigned but move to `mem` after first download\n"
-	"- none: no cache", GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none", GF_FS_ARG_HINT_ADVANCED},
+	"- none: no cache\n"
+	"- none_keep: stores to memory, keep after session is reassigned but move to `none` after first download"
+	, GF_PROP_UINT, "disk", "disk|keep|mem|mem_keep|none|none_keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(range), "set byte range, as fraction", GF_PROP_FRACTION64, "0-0", NULL, 0},
 	{ OFFS(ext), "override file extension", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(mime), "set file mime type", GF_PROP_NAME, NULL, NULL, 0},

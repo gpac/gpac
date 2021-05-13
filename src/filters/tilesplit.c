@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
- *  This file is part of GPAC / tile spliting filter
+ *  This file is part of GPAC / tile splitting filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -110,8 +110,10 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	if (is_remove) {
 		if (ctx->ipid == pid) {
 			for (i=0; i<ctx->nb_tiles; i++) {
-				gf_filter_pid_remove(ctx->opids[i].opid);
-				ctx->opids[i].opid = NULL;
+				if (ctx->opids[i].opid) {
+					gf_filter_pid_remove(ctx->opids[i].opid);
+					ctx->opids[i].opid = NULL;
+				}
 			}
 			ctx->nb_tiles = 0;
 			ctx->ipid = NULL;
@@ -179,8 +181,10 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	while (nb_tiles < ctx->nb_tiles) {
 		ctx->nb_tiles--;
-		gf_filter_pid_remove(ctx->opids[ctx->nb_tiles].opid);
-		ctx->opids[ctx->nb_tiles].opid = NULL;
+		if (ctx->opids[ctx->nb_tiles].opid) {
+			gf_filter_pid_remove(ctx->opids[ctx->nb_tiles].opid);
+			ctx->opids[ctx->nb_tiles].opid = NULL;
+		}
 	}
 
 	if (nb_tiles>ctx->nb_alloc_tiles) {
@@ -313,14 +317,14 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	for (i=0; i<nb_tiles; i++) {
 		if (!ctx->opids[i].opid)
 			continue;
-		pval.type = GF_PROP_UINT_LIST;
+		pval.type = GF_PROP_4CC_LIST;
 		pval.value.uint_list.nb_items = 1;
 		pval.value.uint_list.vals = &ctx->base_id;
 		active_tiles ++;
 		gf_filter_pid_set_property_str(ctx->opids[i].opid, "isom:tbas", &pval);
 	}
 	//setup sabt track ref
-	pval.type = GF_PROP_UINT_LIST;
+	pval.type = GF_PROP_4CC_LIST;
 	pval.value.uint_list.nb_items = active_tiles;
 	pval.value.uint_list.vals = gf_malloc(sizeof(u32) * active_tiles);
 	active_tiles = 0;
@@ -562,7 +566,7 @@ static const GF_FilterArgs TileSplitArgs[] =
 GF_FilterRegister TileSplitRegister = {
 	.name = "tilesplit",
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
-	GF_FS_SET_DESCRIPTION("HEVC tile bitstream spliter")
+	GF_FS_SET_DESCRIPTION("HEVC tile bitstream splitter")
 	GF_FS_SET_HELP("This filter splits an HEVC tiled stream into tiled HEVC streams (`hvt1` or `hvt2` in isobmff)."
 	"\n"
 	"The filter will move to passthrough mode if the bitstream is not tiled.\n"

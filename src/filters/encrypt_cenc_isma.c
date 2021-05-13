@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -743,8 +743,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		}
 	}
 	if (cstr->multi_key && !cstr->mkey_indices.nb_items && cstr->tci->mkey_subs) {
-		GF_PropertyValue p = gf_props_parse_value(GF_PROP_UINT_LIST, "subs", cstr->tci->mkey_subs, NULL, ',');
-		cstr->mkey_indices = p.value.uint_list;
+		GF_PropertyValue pval = gf_props_parse_value(GF_PROP_UINT_LIST, "subs", cstr->tci->mkey_subs, NULL, ',');
+		cstr->mkey_indices = pval.value.uint_list;
 	}
 
 	if (is_reinit) {
@@ -836,7 +836,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	//if constantIV and not using CENC subsample, no CENC auxiliary info
 	if (!cstr->tci->keys[0].constant_IV_size || cstr->use_subsamples) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_UINT(cstr->tci->sai_saved_box_type) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_CENC_STORE, &PROP_4CC(cstr->tci->sai_saved_box_type) );
 	}
 
 	//parse pssh even if reinit since we need to reassign pssh property
@@ -879,7 +879,8 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cstr = gf_filter_pid_get_udta(pid);
 		if (cstr) {
 			gf_list_del_item(ctx->streams, cstr);
-			gf_filter_pid_remove(cstr->opid);
+			if (cstr->opid)
+				gf_filter_pid_remove(cstr->opid);
 
 			cenc_free_pid_context(cstr);
 		}
@@ -965,7 +966,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (prop) cstr->codec_id = prop->value.uint;
 
 	if (cstr->tci) {
-		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+		gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_4CC(scheme_type) );
 
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -1112,6 +1113,8 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		return GF_OK;
 	}
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, size+isma_hdr_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
+
 	memcpy(output+isma_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
@@ -1218,6 +1221,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 		len += padding_bytes;
 	}
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, len + adobe_hdr_size, &output);
+	if (!dst_pck) return GF_OUT_OF_MEM;
 	memcpy(output+adobe_hdr_size, data, sizeof(char)*size);
 	gf_filter_pck_merge_properties(pck, dst_pck);
 
@@ -1280,7 +1284,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 	gf_crypt_get_IV(mc, (u8 *) next_IV, &size);
 	/*
 		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
-		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample,
+		If this index is 0, this means that we are at the beginning of a new block and we can use it as IV for next sample,
 		otherwise we must discard unused bytes in the counter (next sample shall begin with counter at 0)
 		if less than 16 blocks were cyphered, we must force increasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered,
 		which is forbidden by CENC (unique IV per sample). In GPAC, we ALWAYS force counter increase
@@ -1403,11 +1407,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	//CENC can use inplace processing for decryption
 	dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
-	if (!dst_pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to allocated/clone packet for encrypting payload\n" ) );
-		gf_filter_pid_drop_packet(cstr->ipid);
-		return GF_SERVICE_ERROR;
-	}
+	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
 	gf_filter_pck_set_crypt_flags(dst_pck, GF_FILTER_PCK_CRYPT);
@@ -1420,8 +1420,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 	if (multi_key) {
 		gf_bs_write_u16(sai_bs, nb_iv_init);
 		for (i=0; i<nb_keys; i++) {
+			//for now we use all our keys in one sample
 			if (cstr->tci->keys[i].IV_size) {
-				gf_bs_write_u8(sai_bs, i+1);
+				gf_bs_write_u16(sai_bs, i+1);
 				gf_bs_write_data(sai_bs, cstr->keys[i].IV, cstr->tci->keys[i].IV_size);
 			}
 		}
@@ -1444,7 +1445,6 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
 			u64 obu_size;
 			u32 hdr_size;
-			u32 i;
 #else
 			struct {
 				int clear, encrypted;
@@ -1914,6 +1914,8 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		Bool signal_sai = GF_FALSE;
 		GF_FilterPacket *dst_pck;
 		dst_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, pck);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+		
 		gf_filter_pck_merge_properties(pck, dst_pck);
 
 		if (force_clear && !cstr->tci->force_clear_stsd_idx)
@@ -1992,7 +1994,6 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		if (cstr->tci->keyRoll) {
 			new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % cstr->tci->nb_keys;
 		} else if (cstr->rap_roll) {
-			u8 sap = gf_filter_pck_get_sap(pck);
 			if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2)) {
 				new_idx = (new_idx + 1) % cstr->tci->nb_keys;
 			}

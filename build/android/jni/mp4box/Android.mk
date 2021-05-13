@@ -1,20 +1,22 @@
 LOCAL_PATH			:= $(call my-dir)
-APP_ABI          	:= armeabi armeabi-v7a x86
 
+include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
 
 LOCAL_MODULE			:= mp4box
 LOCAL_MODULE_FILENAME	:= libmp4box
 
-LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)/../libgpac \
-						$(LOCAL_PATH)/../../../../include
+LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
+LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../libgpac/
 
-LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../libs/$(TARGET_ARCH_ABI)
-LOCAL_LDLIBS    += -lgpac -llog
+LOCAL_LDLIBS    += -L../libs/$(TARGET_ARCH_ABI)
+LOCAL_LDLIBS    += -llog -lgpac
 
+LOCAL_CFLAGS +=	-DDEBUG_MODE
 LOCAL_SRC_FILES :=  ../../../../applications/mp4box/filedump.c \
 					../../../../applications/mp4box/fileimport.c \
 					../../../../applications/mp4box/live.c \
 					../../../../applications/mp4box/main.c \
-					../../../../applications/mp4box/wrapper.c
+					../../../../applications/mp4box_android/app/src/main/jni/wrapper.c
 
 include $(BUILD_SHARED_LIBRARY)

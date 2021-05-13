@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2021
  *					All rights reserved
  *
- *  This file is part of GPAC / GPAC stream deserializer filter
+ *  This file is part of GPAC / GPAC stream format reader filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -269,13 +269,14 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 	switch (p->type) {
 	case GF_PROP_SINT:
 	case GF_PROP_UINT:
-	case GF_PROP_PIXFMT:
-	case GF_PROP_PCMFMT:
 		p->value.uint = gsfdmx_read_vlen(bs);
 		break;
 	case GF_PROP_LSINT:
 	case GF_PROP_LUINT:
 		p->value.longuint = gf_bs_read_u64(bs);
+		break;
+	case GF_PROP_4CC:
+		p->value.uint = gf_bs_read_u32(bs);
 		break;
 	case GF_PROP_BOOL:
 		p->value.boolean = gf_bs_read_u8(bs) ? 1 : 0;
@@ -307,22 +308,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		p->value.vec3i.y = gsfdmx_read_vlen(bs);
 		p->value.vec3i.z = gsfdmx_read_vlen(bs);
 		break;
-	case GF_PROP_VEC3:
-		p->value.vec3.x = gf_bs_read_double(bs);
-		p->value.vec3.y = gf_bs_read_double(bs);
-		p->value.vec3.z = gf_bs_read_double(bs);
-		break;
 	case GF_PROP_VEC4I:
 		p->value.vec4i.x = gsfdmx_read_vlen(bs);
 		p->value.vec4i.y = gsfdmx_read_vlen(bs);
 		p->value.vec4i.z = gsfdmx_read_vlen(bs);
 		p->value.vec4i.w = gsfdmx_read_vlen(bs);
-		break;
-	case GF_PROP_VEC4:
-		p->value.vec4.x = gf_bs_read_double(bs);
-		p->value.vec4.y = gf_bs_read_double(bs);
-		p->value.vec4.z = gf_bs_read_double(bs);
-		p->value.vec4.w = gf_bs_read_double(bs);
 		break;
 	case GF_PROP_STRING:
 	case GF_PROP_STRING_NO_COPY:
@@ -364,6 +354,13 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 			p->value.uint_list.vals[i] = gsfdmx_read_vlen(bs);
 		}
 		break;
+	case GF_PROP_4CC_LIST:
+		p->value.uint_list.nb_items = len = gsfdmx_read_vlen(bs);
+		p->value.uint_list.vals = gf_malloc(sizeof(u32)*len);
+		for (i=0; i<len; i++) {
+			p->value.uint_list.vals[i] = gf_bs_read_u32(bs);
+		}
+		break;
 	case GF_PROP_VEC2I_LIST:
 		p->value.v2i_list.nb_items = len = gsfdmx_read_vlen(bs);
 		p->value.v2i_list.vals = gf_malloc(sizeof(GF_PropVec2i)*len);
@@ -376,7 +373,11 @@ static GF_Err gsfdmx_read_prop(GF_BitStream *bs, GF_PropertyValue *p)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] pointer property found in serialized stream, illegal\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Cannot deserialize property of unknown type\n"));
+		if (gf_props_type_is_enum(p->type)) {
+			p->value.uint = gsfdmx_read_vlen(bs);
+			break;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Cannot read property of unknown type\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	return GF_OK;
@@ -521,7 +522,7 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 		return GF_NOT_SUPPORTED;
 	}
 	sig = gf_bs_read_u8(bs);
-	if (sig != 1) {
+	if (sig != GF_GSF_VERSION) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFDemux] Wrong GPAC serialized version %d\n", sig ));
 		ctx->tune_error = GF_TRUE;
 		return GF_NOT_SUPPORTED;
@@ -582,6 +583,16 @@ static GF_Err gsfdmx_tune(GF_Filter *filter, GSF_DemuxCtx *ctx, char *pck_data, 
 	return GF_OK;
 }
 
+
+static GFINLINE void gsfdmx_pck_reset(GSF_Packet *pck)
+{
+	u32 alloc_frags = pck->nb_alloc_frags;
+	GSF_PacketFragment *frags = pck->frags;
+	memset(pck, 0, sizeof(GSF_Packet));
+	pck->nb_alloc_frags = alloc_frags;
+	pck->frags = frags;
+}
+
 static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool pck_frag, s32 frame_sn, u8 pkt_type, u32 frame_size)
 {
 	u32 i=0, count;
@@ -611,6 +622,11 @@ static GFINLINE GSF_Packet *gsfdmx_get_packet(GSF_DemuxCtx *ctx, GSF_Stream *gst
 		gpck->pck_type = pkt_type;
 		gpck->full_block_size = frame_size;
 		gpck->pck = gf_filter_pck_new_alloc(gst->opid, frame_size, &gpck->output);
+		if (!gpck->pck) {
+			gsfdmx_pck_reset(gpck);
+			gf_list_add(ctx->pck_res, gpck);
+			return NULL;
+		}
 		memset(gpck->output, (u8) ctx->pad, sizeof(char) * gpck->full_block_size);
 
 		count = gf_list_count(gst->packets);
@@ -708,7 +724,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 	//if durmode>0, dur on ts_diff_mode
 	//if sap==4, roll on signed 16 bits
 	//if (has sample deps) sample_deps_flags on 8 bits
-	//if has_carousel, carrousel version on 8 bits
+	//if has_carousel, carousel version on 8 bits
 	//if has_byteoffset, byte offset on 64 bits
 	//if (has builtin) vlen nb builtin_props then props[builtin_props]
 	//if (has props) vlen nb_str_props then props[nb_str_props]
@@ -844,7 +860,7 @@ GF_Err gsfdmx_read_data_pck(GSF_DemuxCtx *ctx, GSF_Stream *gst, GSF_Packet *gpck
 			}
 			gf_filter_pck_set_property_dyn(gpck->pck, pname, &p);
 			gf_free(pname);
-			if ((p.type==GF_PROP_UINT_LIST) || (p.type==GF_PROP_SINT_LIST) || (p.type==GF_PROP_VEC2I_LIST) ) {
+			if ((p.type==GF_PROP_UINT_LIST) || (p.type==GF_PROP_4CC_LIST) || (p.type==GF_PROP_SINT_LIST) || (p.type==GF_PROP_VEC2I_LIST) ) {
 				if (p.value.uint_list.vals)
 					gf_free(p.value.uint_list.vals);
 			}
@@ -898,14 +914,6 @@ static const char *gsfdmx_pck_name(u32 pck_type)
 }
 #endif
 
-static GFINLINE void gsfdmx_pck_reset(GSF_Packet *pck)
-{
-	u32 alloc_frags = pck->nb_alloc_frags;
-	GSF_PacketFragment *frags = pck->frags;
-	memset(pck, 0, sizeof(GSF_Packet));
-	pck->nb_alloc_frags = alloc_frags;
-	pck->frags = frags;
-}
 
 static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush)
 {
@@ -923,7 +931,7 @@ static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush)
 		gsfdmx_pck_reset(gpck);
 		gf_list_add(ctx->pck_res, gpck);
 	}
-	if (is_flush)
+	if (is_flush && gst->opid)
 		gf_filter_pid_remove(gst->opid);
 
 	gf_list_del(gst->packets);
@@ -1228,8 +1236,8 @@ static const char *gsfdmx_probe_data(const u8 *data, u32 data_size, GF_FilterPro
 	while (buf) {
 		char *start_sig = memchr(buf, 'G', avail);
 		if (!start_sig) return NULL;
-		//signature found and version is 1
-		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == 1)) {
+		//signature found and version is 2
+		if (!strncmp(start_sig, "GS5F", 4) && (start_sig[4] == GF_GSF_VERSION)) {
 			*score = GF_FPROBE_SUPPORTED;
 			return "application/x-gpac-sf";
 		}
@@ -1321,7 +1329,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	GF_FS_SET_DESCRIPTION("GSF Demuxer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) demultiplexing.\n"
-			"It deserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
+			"It unserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO

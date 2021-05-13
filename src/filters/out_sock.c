@@ -406,7 +406,7 @@ static GF_Err sockout_process(GF_Filter *filter)
 
 		if (nb_pck == 1+ctx->nb_pck_processed) {
 			ctx->nb_pck_processed++;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockOut] Droping packet %d per user request\r", ctx->nb_pck_processed));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockOut] dropping packet %d per user request\r", ctx->nb_pck_processed));
 			gf_filter_pid_drop_packet(ctx->pid);
 			ctx->next_pckd_idx = 0;
 			ctx->nb_pckd_wnd ++;
@@ -522,7 +522,7 @@ static const GF_FilterArgs SockOutArgs[] =
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(rate), "set send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -546,8 +546,8 @@ GF_FilterRegister SockOutRegister = {
 	.help = "This filter handles generic output sockets (mono-directional) in blocking mode only.\n"
 		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream.\n"
-		"In server mode, the default behaviour is to keep input packets when no more clients are connected; "
-		"this can be adjusted though the [-kp]() option, however there is no realtime regulation of how fast packets are droped.\n"
+		"In server mode, the default behavior is to keep input packets when no more clients are connected; "
+		"this can be adjusted though the [-kp]() option, however there is no realtime regulation of how fast packets are dropped.\n"
 		"If your sources are not real time, consider adding a real-time scheduler in the chain (cf reframer filter), or set the send [-rate]() option.\n"
 		"\n"
 		"- UDP sockets are used for destinations URLs formatted as `udp://NAME`\n"
@@ -561,7 +561,7 @@ GF_FilterRegister SockOutRegister = {
 		"\n"
 		"When ports are specified in the URL and the default option separators are used (see `gpac -h doc`), the URL must either:\n"
 		"- have a trailing '/', eg `udp://localhost:1234/[:opts]`\n"
-		"- use `gpac` '/', eg `udp://localhost:1234[:gpac:opts]\n"
+		"- use `gpac` '/', eg `udp://localhost:1234[:gpac:opts]`\n"
 		"\n"
 		"The socket output can be configured to drop or revert packet order for test purposes.\n"
 		"For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/\n"

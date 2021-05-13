@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -154,13 +154,18 @@ typedef enum
 	/*!signal that the session has been deconnected*/
 	GF_NETIO_DISCONNECTED,
 	/*!downloader session failed (error code set) or done/destroyed (no error code)*/
-	GF_NETIO_STATE_ERROR
+	GF_NETIO_STATE_ERROR,
+	/*!signal that a new session is being requested on that same connection (h2, h3)
+	This is only used for server sessions*/
+	GF_NETIO_REQUEST_SESSION,
+	/*! stream has been canceled by remote peer*/
+	GF_NETIO_CANCEL_STREAM,
 } GF_NetIOStatus;
 
 /*!session download flags*/
 typedef enum
 {
-	/*!session is not threaded, the user must explicitely fetch the data , either with the function gf_dm_sess_fetch_data
+	/*!session is not threaded, the user must explicitly fetch the data , either with the function gf_dm_sess_fetch_data
 	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
 	GF_NETIO_SESSION_NOT_THREADED = 1,
 	/*! session data is cached or not */
@@ -386,7 +391,7 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
 #ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
 Downloads a file over the network using a download manager
-\param dm The download manager to use, function will use all associated cache ressources
+\param dm The download manager to use, function will use all associated cache resources
 \param url The url to download
 \param filename The filename to download
 \param start_range start position of a byte range

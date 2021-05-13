@@ -102,10 +102,6 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 
 	txh->last_frame_time = (u32) (-1);
 
-	//we need to rework the raw memory stuff to be transparent
-#ifdef FILTER_FIXME
-	txh->raw_memory = GF_FALSE;
-#endif
 	/*request play*/
 	return GF_OK;
 }
@@ -129,7 +125,7 @@ GF_EXPORT
 void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
-	/*release texture WITHOUT droping frame*/
+	/*release texture WITHOUT dropping frame*/
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 1);
 		txh->needs_release = 0;
@@ -147,7 +143,7 @@ GF_EXPORT
 void gf_sc_texture_stop(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
-	/*release texture WITHOUT droping frame*/
+	/*release texture WITHOUT dropping frame*/
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
 		txh->needs_release = 0;
@@ -157,6 +153,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	gf_mo_stop(&txh->stream);
 	if (!txh->stream) {
 		txh->data = NULL;
+		txh->frame_ifce = NULL;
 	}
 	txh->is_open = 0;
 
@@ -249,7 +246,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	} else if (txh->data && size && txh->size && (size != txh->size)) {
 		needs_reload = 1;
 	}
-	
+
 	if (needs_reload) {
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/

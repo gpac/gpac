@@ -946,7 +946,7 @@ static rmtError VirtualMirrorBuffer_Constructor(VirtualMirrorBuffer* buffer, rmt
         return RMT_ERROR_VIRTUAL_MEMORY_BUFFER_FAIL;
 
     // Set the file size to twice the buffer size
-    // TODO: this 2x behaviour can be avoided with similar solution to Win/Mac
+    // TODO: this 2x behavior can be avoided with similar solution to Win/Mac
     if (ftruncate (file_descriptor, size * 2))
         return RMT_ERROR_VIRTUAL_MEMORY_BUFFER_FAIL;
 

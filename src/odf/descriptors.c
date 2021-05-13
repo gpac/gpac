@@ -1153,7 +1153,7 @@ GF_Err gf_odf_vvc_cfg_write_bs(GF_VVCConfig *cfg, GF_BitStream *bs)
 				u8 val = cfg->ptl_sublayer_present_mask & (1<<idx);
 				gf_bs_write_int(bs, val, 1);
 			}
-			for (idx=cfg->numTemporalLayers; idx<8 && cfg->numTemporalLayers>1; idx++) {
+			for (idx=cfg->numTemporalLayers; idx<=8 && cfg->numTemporalLayers>1; idx++) {
 				gf_bs_write_int(bs, 0, 1);
 			}
 			for (idx=cfg->numTemporalLayers-2; idx>=0; idx--) {

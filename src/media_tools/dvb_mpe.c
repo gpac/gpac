@@ -706,7 +706,7 @@ void gf_m2ts_target_ip(GF_M2TS_IP_Stream* ip_str, u8 * data)
 }
 
 
-/*generate RS code and fullfill the RS table of MPE_FEC_FRAME*/
+/*generate RS code and fill the RS table of MPE_FEC_FRAME*/
 void encode_fec(MPE_FEC_FRAME * mff)
 {
 #if 0
@@ -890,7 +890,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	i_streams = gf_list_count(ip_platform->ip_streams);
 	for(i=0; i<i_streams; i++) {
 		GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, i);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("PID:%d - Target IP adress: \n", ip_stream_buff->PID));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("PID:%d - Target IP address: \n", ip_stream_buff->PID));
 		/*Print the target IP address  */
 		u32 i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0; j<i_targets; j++)

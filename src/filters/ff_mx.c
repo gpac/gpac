@@ -97,11 +97,16 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 	assert(ctx->status==FFMX_STATE_AVIO_OPEN);
 
 	ctx->status = FFMX_STATE_HDR_DONE;
-	res = avformat_init_output(ctx->muxer, &ctx->options);
+
+	AVDictionary *options = NULL;
+	av_dict_copy(&options, ctx->options, 0);
+
+	res = avformat_init_output(ctx->muxer, &options);
 
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to open %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
+		if (options) av_dict_free(&options);
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -118,14 +123,15 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 		}
 	}
 
-	res = avformat_write_header(ctx->muxer, &ctx->options);
+	res = avformat_write_header(ctx->muxer, &options);
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write header for %s - error %s\n", ctx->dst, av_err2str(res) ));
 		ctx->status = FFMX_STATE_ERROR;
+		if (options) av_dict_free(&options);
 		return GF_SERVICE_ERROR;
 	}
 
-	ffmpeg_report_unused_options(filter, ctx->options);
+	ffmpeg_report_options(filter, options, ctx->options);
 
 	return GF_OK;
 }
@@ -344,7 +350,7 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
         av_dict_copy(&options, ctx->options, 0);
         av_dict_set(&options, "fflags", "-autobsf", 0);
         res = avformat_write_header(ctx->muxer, &options);
-        av_dict_free(&options);
+		if (options) av_dict_free(&options);
         if (res < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to configure segment %s - error %s\n", seg_name, av_err2str(res) ));
 			return GF_IO_ERR;
@@ -987,9 +993,12 @@ GF_FilterRegister FFMuxRegister = {
 	.version = LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG muxer")
 
-	GF_FS_SET_HELP("Muxes files and open output protocols using FFMPEG.\n"
+	GF_FS_SET_HELP("Mulitiplexes files and open output protocols using FFMPEG.\n"
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
-		"To list all supported demuxers for your GPAC build, use `gpac -h ffmx:*`."
+		"To list all supported muxers for your GPAC build, use `gpac -h ffmx:*`."
+		"This will list both supported output formats and protocols.\n"
+		"Output protocols are listed with `Description: Output protocol`, and the subclass name identitfes the protocol scheme.\n"
+		"For example, if `ffmx:rtmp` is listed as output protocol, this means `rtmp://` destination URLs are supported.\n"
 		"\n"
 		"Some URL formats may not be sufficient to derive the multiplexing format, you must then use [-ffmt]() to specify the desired format.\n"
 		"\n"
@@ -1019,7 +1028,7 @@ GF_FilterRegister FFMuxRegister = {
 static const GF_FilterArgs FFMuxArgs[] =
 {
 	{ OFFS(dst), "location of destination file or remote URL", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

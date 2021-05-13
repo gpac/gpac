@@ -1153,7 +1153,7 @@ typedef struct
 GF_SDPInfo *gf_sdp_info_new();
 /*! destrucs an SDP info
   Memory Consideration: the destructors free all non-NULL string. You should therefore
-  be carefull while (de-)assigning the strings. The function gf_sdp_info_parse() performs a complete
+  be careful while (de-)assigning the strings. The function gf_sdp_info_parse() performs a complete
   reset of the GF_SDPInfo
 
 \param sdp the target SDP to destroy

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / MHAS write filter
@@ -64,7 +64,10 @@ GF_Err mhasmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		gf_filter_pid_remove(ctx->opid);
+		if (ctx->opid) {
+			gf_filter_pid_remove(ctx->opid);
+			ctx->opid = NULL;
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
@@ -151,6 +154,8 @@ GF_Err mhasmx_process(GF_Filter *filter)
 
 		size = pck_size + hdr_size;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+
 		gf_bs_reassign_buffer(ctx->bs_w, output, size);
 
 		//write MASH headers
@@ -190,13 +195,16 @@ GF_Err mhasmx_process(GF_Filter *filter)
 		if ((ctx->syncp && !has_sync) || (sap && !has_sync)) {
 			size += 3;
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
-			output[0] = 0xC0;
-			output[1] = 0x01;
-			output[2] = 0xA5;
-			memcpy(output+3, data, pck_size);
+			if (output) {
+				output[0] = 0xC0;
+				output[1] = 0x01;
+				output[2] = 0xA5;
+				memcpy(output+3, data, pck_size);
+			}
 		} else {
 			dst_pck = gf_filter_pck_new_ref(ctx->opid, 0, 0, pck);
 		}
+		if (!dst_pck) return GF_OUT_OF_MEM;
 	}
 
 	gf_filter_pck_merge_properties(pck, dst_pck);

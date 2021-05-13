@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -528,6 +528,8 @@ GF_CryptInfo *gf_crypt_info_load(const char *file, GF_Err *out_err)
 	return info;
 }
 
+extern char gf_prog_lf;
+
 static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
@@ -542,9 +544,9 @@ static Bool on_decrypt_event(void *_udta, GF_Event *evt)
 
 	*prev_progress = (u32) progress;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%\r", progress));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Decrypting: % 2.2f %%%c", progress, gf_prog_lf));
 #else
-	fprintf(stderr, "Decrypting: % 2.2f %%\r", progress);
+	fprintf(stderr, "Decrypting: % 2.2f %%%c", progress, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }
@@ -605,6 +607,8 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
+	gf_dynstrcat(&szArgs, ":xps_inband=auto", NULL);
+	
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
@@ -638,6 +642,7 @@ static GF_Err gf_decrypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const ch
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	if (!e) gf_fs_print_unused_args(fsess, NULL);
 	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);
@@ -670,9 +675,9 @@ static Bool on_crypt_event(void *_udta, GF_Event *evt)
 
 	*prev_progress = (u32) progress;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%\r", progress));
+	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Encrypting: % 2.2f %%%c", progress, gf_prog_lf));
 #else
-	fprintf(stderr, "Encrypting: % 2.2f %%\r", progress);
+	fprintf(stderr, "Encrypting: % 2.2f %%%c", progress, gf_prog_lf);
 #endif
 	return GF_FALSE;
 }
@@ -734,6 +739,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 			gf_dynstrcat(&szArgs, ":store=flat", NULL);
 		}
 	}
+	gf_dynstrcat(&szArgs, ":xps_inband=auto", NULL);
 
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
@@ -772,6 +778,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (!e) e = gf_fs_get_last_connect_error(fsess);
 	if (!e) e = gf_fs_get_last_process_error(fsess);
 
+	if (!e) gf_fs_print_unused_args(fsess, NULL);
 	gf_fs_print_non_connected(fsess);
 	if (fs_dump_flags & 1) gf_fs_print_stats(fsess);
 	if (fs_dump_flags & 2) gf_fs_print_connections(fsess);

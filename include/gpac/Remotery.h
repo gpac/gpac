@@ -286,7 +286,7 @@ typedef enum rmtError
 
 typedef enum rmtSampleFlags
 {
-    // Default behaviour
+    // Default behavior
     RMTSF_None = 0,
 
     // Search parent for same-named samples and merge timing instead of adding a new sample

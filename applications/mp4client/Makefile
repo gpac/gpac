@@ -58,6 +58,10 @@ endif
 
 SRCS := $(OBJS:.o=.c)
 
+ifeq ($(CONFIG_WIN32),yes)
+OBJS+=$(SRC_PATH)/manifest.o
+endif
+
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)

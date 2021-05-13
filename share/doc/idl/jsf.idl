@@ -136,7 +136,7 @@ readonly attribute unsigned long long connections_pending;
 attribute DOMString iname;
 
 
-/*! sets filter desciption as visible when checking filter info
+/*! sets filter description as visible when checking filter info
 \param description description of filter*/
 void set_desc(DOMString description);
 /*! sets filter author as visible when checking filter info
@@ -236,6 +236,16 @@ void hint_clock(unsigned long long time_in_microseconds, double media_time_sec);
 \param propagate_mask propagate mask
 */
 void send_update(DOMString filter_id, DOMString arg_name, DOMString arg_value, long propagate_mask);
+
+/*! locks filter session - see \ref gf_filter_lock_all
+\param do_lock if true locks filter
+*/
+void lock_all(boolean do_lock);
+
+/*! locks a filter - see \ref gf_filter_lock
+\param do_lock if true locks filter
+*/
+void lock(boolean do_lock);
 
 /*! adds a source filter in the media session - see \ref gf_filter_connect_source
 \param source URL of source to load
@@ -352,6 +362,8 @@ attribute DOMString name;
 attribute boolean eos;
 /*! end of stream pending state - see \ref gf_filter_pid_has_seen_eos*/
 readonly attribute boolean eos_seen;
+/*! end of stream pending state - see \ref gf_filter_pid_eos_received*/
+readonly attribute boolean eos_received;
 /*! blocking state - see \ref gf_filter_pid_would_block*/
 readonly attribute boolean would_block;
 /*! name of parent filter*/
@@ -932,12 +944,11 @@ interface JSCapDesc {
 
 GF_PROP_PID_CODECID: string containing the codec name\n
 GF_PROP_PID_STREAM_TYPE: string containing the stream type name\n
-GF_PROP_PID_AUDIO_FORMAT: string containing the audio format name\n
-GF_PROP_PID_PIXFMT: string containing the pixel format name\n
 \n
 Other properties are mapped by property type:\n
 GF_PROP_BOOL: boolean\n
 GF_PROP_UINT: integer\n
+GF_PROP_4CC: string\n
 GF_PROP_SINT: integer\n
 GF_PROP_LUINT: large integer\n
 GF_PROP_LSINT: large integer\n
@@ -947,14 +958,14 @@ GF_PROP_STRING: string\n
 GF_PROP_STRING_NO_COPY: string\n
 GF_PROP_VEC2: object with number properties "x" and "y"\n
 GF_PROP_VEC2I: object with integer properties "x" and "y"\n
-GF_PROP_VEC3: object with number properties "x", "y" and "z"\n
 GF_PROP_VEC3I: object with integer properties "x", "y" and "z"\n
-GF_PROP_VEC4: object with number properties "x", "y", "z" and "w"\n
 GF_PROP_VEC4I: object with integer properties "x", "y", "z" and "w"\n
 GF_PROP_FRACTION: object with integer properties "n" and "d", representing fraction n/d\n
 GF_PROP_FRACTION64: object with large integer properties "n" and "d", representing fraction n/d\n
 GF_PROP_UINT_LIST: array of integers\n
+GF_PROP_4CC_LIST: array of strings\n
 GF_PROP_STRING_LIST: array of strings\n
+All enumeration properties (pixel format, audio format, etc): string\n
 */
 typedef Object FilterProperty;
 

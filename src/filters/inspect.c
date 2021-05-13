@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -65,6 +65,7 @@ typedef struct
 	u32 tmcd_flags;
 	u32 tmcd_fpt;
 
+	u32 csize;
 	Bool buffer_done, no_analysis;
 } PidCtx;
 
@@ -119,6 +120,7 @@ typedef struct
 
 	Bool is_prober, probe_done, hdr_done, dump_pck;
 	Bool args_updated;
+	Bool has_seen_eos;
 } GF_InspectCtx;
 
 
@@ -155,10 +157,10 @@ GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const ch
 		gf_fprintf(dump, " %s 0x%08X", _name, _val);\
 	}
 
-#define DUMP_ATT_F(_name, _val)  if (ctx->xml) { \
-		gf_fprintf(dump, " %s=\"%f\"", _name, _val);\
+#define DUMP_ATT_FRAC(_name, _val)  if (ctx->xml) { \
+		gf_fprintf(dump, " %s=\"%d/%u\"", _name, _val.num, _val.den);\
 	} else {\
-		gf_fprintf(dump, " %s %f", _name, _val);\
+		gf_fprintf(dump, " %s %d/%u", _name, _val.num, _val.den);\
 	}
 
 
@@ -339,7 +341,7 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			i++;
 		}
 
-		gf_fprintf(dump, "<SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		gf_fprintf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>\n", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
@@ -719,7 +721,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			dump_sei(dump, bs, GF_TRUE);
 			if (!pctx) gf_bs_del(bs);
-			gf_fprintf(dump, "</NALU>\n");
+			gf_fprintf(dump, "   </NALU>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
 		}
@@ -935,7 +937,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			dump_sei(dump, bs, GF_TRUE);
 			if (!pctx) gf_bs_del(bs);
-			gf_fprintf(dump, "</NALU>\n");
+			gf_fprintf(dump, "   </NALU>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
 		}
@@ -1134,7 +1136,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		gf_fprintf(dump, ">\n");
 		gf_bs_set_logger(bs, NULL, NULL);
 		dump_sei(dump, bs, GF_FALSE);
-		gf_fprintf(dump, "</NALU>\n");
+		gf_fprintf(dump, "   </NALU>\n");
 	} else {
 		gf_fprintf(dump, "/>\n");
 	}
@@ -1199,8 +1201,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 		if (full_dump) break;
-		DUMP_OBU_INT(width)
-		DUMP_OBU_INT(height)
+		DUMP_OBU_INT(sequence_width)
+		DUMP_OBU_INT(sequence_height)
 		DUMP_OBU_INT(bit_depth)
 		DUMP_OBU_INT(still_picture)
 		DUMP_OBU_INT(OperatingPointIdc)
@@ -1231,6 +1233,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 
 				DUMP_OBU_INT2("show_frame", av1->frame_state.show_frame);
 				DUMP_OBU_INT2("show_existing_frame", av1->frame_state.show_existing_frame);
+				DUMP_OBU_INT(width);
+				DUMP_OBU_INT(height);
 			}
 			if (obu_type==OBU_FRAME_HEADER)
 				break;
@@ -1247,13 +1251,13 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		} else {
 			gf_fprintf(dump, "nb_tiles=\"unknown\">\n");
 		}
-		gf_fprintf(dump, "</OBU>\n");
+		gf_fprintf(dump, "   </OBU>\n");
 		break;
 	default:
 		break;
 
 	}
-	if (obu_type != OBU_TILE_GROUP)
+	if (obu_type != OBU_TILE_GROUP && obu_type != OBU_FRAME)
 		gf_fprintf(dump, "/>\n");
 
 	return obu_size;
@@ -1563,7 +1567,7 @@ static void finalize_dump(GF_InspectCtx *ctx, u32 streamtype, Bool concat)
 		}
 		gf_fclose(pctx->tmp);
 		if (ctx->xml)
-			gf_fprintf(ctx->dump, "</PIDInspect>");
+			gf_fprintf(ctx->dump, "</PIDInspect>\n");
 		pctx->tmp = NULL;
 	}
 }
@@ -1624,7 +1628,8 @@ static void inspect_finalize(GF_Filter *filter)
 static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
 {
 	u32 val;
-	Double dval;
+	Bool is_announce = GF_FALSE;
+
 	if (ctx->xml) {
 		gf_fprintf(dump, " <TEMILocation");
 	} else {
@@ -1646,6 +1651,7 @@ static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const ch
 	DUMP_ATT_STR("url", att->value.data.ptr)
 	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("announce", 1)
+		is_announce = GF_TRUE;
 	}
 	if (gf_bs_read_int(pctx->bs, 1)) {
 		DUMP_ATT_D("splicing", 1)
@@ -1654,14 +1660,14 @@ static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const ch
 		DUMP_ATT_D("reload", 1)
 	}
 	gf_bs_read_int(pctx->bs, 5);
-	dval =	gf_bs_read_double(pctx->bs);
-	if (dval) {
-		DUMP_ATT_F("splice_start", dval)
+	if (is_announce) {
+		GF_Fraction time;
+		time.den = gf_bs_read_u32(pctx->bs);
+		time.num = gf_bs_read_u32(pctx->bs);
+
+		DUMP_ATT_FRAC("splice_start", time)
 	}
-	dval =	gf_bs_read_double(pctx->bs);
-	if (dval) {
-		DUMP_ATT_F("splice_end", dval)
-	}
+
 	if (ctx->xml) {
 		gf_fprintf(dump, "/>\n");
 	} else {
@@ -1715,12 +1721,45 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 	}
 }
 
+static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
+{
+	u8 nibble;
+	u16 frame_size, timing;
+	u32 sync;
+	gf_fprintf(dump, " <TrueHDAudioFrame");
+	nibble = gf_bs_read_int(bs, 4);
+	frame_size = gf_bs_read_int(bs, 12);
+	timing = gf_bs_read_u16(bs);
+	sync = gf_bs_read_u32(bs);
+	gf_fprintf(dump, " nibble=\"%u\" size=\"%u\" timing=\"%u\"", nibble, frame_size, timing);
+	if (sync != 0xF8726FBA) {
+		gf_fprintf(dump, " major_sync=\"no\"/>\n");
+		return;
+	}
+	u32 fmt = gf_bs_read_u32(bs);
+	u32 sig = gf_bs_read_u16(bs);
+	u32 flags = gf_bs_read_u16(bs);
+	gf_bs_read_u16(bs);
+	Bool vrate = gf_bs_read_int(bs, 1);
+	u32 prate = gf_bs_read_int(bs, 15);
+	u32 nb_substreams = gf_bs_read_int(bs, 4);
+	gf_bs_read_int(bs, 2);
+	u32 ext_substream_info = gf_bs_read_int(bs, 2);
+	gf_fprintf(dump, " major_sync=\"yes\" format=\"%u\" signature=\"%u\" flags=\"0x%04X\" vrate=\"%u\" peak_data_rate=\"%u\" substreams=\"%u\" extended_substream_info=\"%u\" ", fmt, sig, flags, vrate, prate, nb_substreams, ext_substream_info);
+
+	gf_fprintf(dump, "/>\n");
+}
+
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att, PidCtx *pctx)
 {
 	char szDump[GF_PROP_DUMP_ARG_SIZE];
 
-	if (!pname) pname = gf_props_4cc_get_name(p4cc);
+	if (!pname)
+		pname = gf_props_4cc_get_name(p4cc);
 	else {
+		//all properties starting with __ are not dumped
+		if (!strncmp(pname, "__", 2))
+			return;
 		if (!strcmp(pname, "isom_force_ctts"))
 			return;
 	}
@@ -1835,26 +1874,22 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		if (ctx->dtype)
 			gf_fprintf(dump, " type=\"%s\"", gf_props_get_type_name(att->type) );
 			
-		if (pname && strchr(pname, ' ')) {
+		if (pname && (strchr(pname, ' ') || strchr(pname, ':'))) {
 			u32 i=0, k;
 			char *pname_no_space = gf_strdup(pname);
 			while (pname_no_space[i]) {
 				if (pname_no_space[i]==' ') pname_no_space[i]='_';
+				if (pname_no_space[i]==':') pname_no_space[i]='_';
 				i++;
 			}
 
-			if (att->type==GF_PROP_UINT_LIST) {
+			if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
 				for (k=0; k < att->value.uint_list.nb_items; k++) {
 					if (k) gf_fprintf(dump, ", ");
-					switch (p4cc) {
-					case GF_PROP_PID_ISOM_BRANDS:
-						if (! gf_sys_is_test_mode()) {
-							gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
-							break;
-						}
-					default:
+					if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+						gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
+					} else {
 						gf_fprintf(dump, "%d", att->value.uint_list.vals[k]);
-						break;
 					}
 				}
 			} else if (att->type==GF_PROP_STRING_LIST) {
@@ -1883,19 +1918,14 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 				gf_fprintf(dump, "\t%s: ", pname ? pname : gf_4cc_to_str(p4cc));
 		}
 
-		if (att->type==GF_PROP_UINT_LIST) {
+		if ((att->type==GF_PROP_UINT_LIST) || (att->type==GF_PROP_4CC_LIST)) {
 			u32 k;
 			for (k=0; k < att->value.uint_list.nb_items; k++) {
 				if (k) gf_fprintf(dump, ", ");
-				switch (p4cc) {
-				case GF_PROP_PID_ISOM_BRANDS:
-					if (! gf_sys_is_test_mode()) {
-						gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
-						break;
-					}
-				default:
+				if ((att->type==GF_PROP_4CC_LIST) && ! gf_sys_is_test_mode()) {
+					gf_fprintf(dump, "%s", gf_4cc_to_str(att->value.uint_list.vals[k]) );
+				} else {
 					gf_fprintf(dump, "%d", att->value.uint_list.vals[k]);
-					break;
 				}
 			}
 		} else if (att->type==GF_PROP_STRING_LIST) {
@@ -1920,8 +1950,10 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 	if (!dump) return;
 	assert(str);
 
-	if (pck)
+	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
+		pctx->csize += size;
+	}
 
 	while (str) {
 		char csep;
@@ -2029,6 +2061,7 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "crypt")) gf_fprintf(dump, "%d", gf_filter_pck_get_crypt_flags(pck) );
 		else if (!strcmp(key, "vers")) gf_fprintf(dump, "%d", gf_filter_pck_get_carousel_version(pck) );
 		else if (!strcmp(key, "size")) gf_fprintf(dump, "%d", size );
+		else if (!strcmp(key, "csize")) gf_fprintf(dump, "%d", pctx->csize);
 		else if (!strcmp(key, "crc")) gf_fprintf(dump, "0x%08X", gf_crc_32(data, size) );
 		else if (!strcmp(key, "lf")) gf_fprintf(dump, "\n" );
 		else if (!strcmp(key, "cr")) gf_fprintf(dump, "\r" );
@@ -2185,55 +2218,89 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 }
 #endif
 
-static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 size, FILE *dump)
+static void inspect_format_tmcd_internal(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100], GF_BitStream *bs, Bool force_ff, FILE *dump)
 {
-	u32 h, m, s, f;
+	u32 h, m, s, f, value;
 	Bool neg=GF_FALSE;
+	u32 parse_fmt = 1;
+	Bool is_drop = GF_FALSE;
+	GF_BitStream *loc_bs = NULL;
 
-	if (!pctx->tmcd_rate.den || !pctx->tmcd_rate.num)
+	if (szFmt)
+		szFmt[0] = 0;
+
+	if (!tc_num || !tc_den)
 		return;
-	gf_bs_reassign_buffer(pctx->bs, data, size);
 
-	u32 value = gf_bs_read_u32(pctx->bs);
-	gf_bs_seek(pctx->bs, 0);
-	gf_fprintf(dump, "<TimeCode");
+	if (!bs) {
+		loc_bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = loc_bs;
+	} else {
+		gf_bs_reassign_buffer(bs, data, size);
+	}
 
-	if (ctx->fftmcd || (pctx->tmcd_flags & 0x00000008)) {
+	value = gf_bs_read_u32(bs);
+	gf_bs_seek(bs, 0);
+
+	if (tmcd_flags & 0x00000001)
+		is_drop = GF_TRUE;
+
+	if (tmcd_flags & 0x00000004)
+		neg = GF_TRUE;
+
+	if (dump)
+		gf_fprintf(dump, "<TimeCode");
+
+	if (!force_ff && !(tmcd_flags & 0x00000008)) {
+		h = gf_bs_read_u8(bs);
+		neg = gf_bs_read_int(bs, 1);
+		m = gf_bs_read_int(bs, 7);
+		s = gf_bs_read_u8(bs);
+		f = gf_bs_read_u8(bs);
+
+		if (tmcd_fpt && (f > tmcd_fpt))
+			parse_fmt = 2;
+		else if ((m>=60) || (s>=60))
+			parse_fmt = 2;
+		else
+			parse_fmt = 0;
+	}
+
+	if (parse_fmt) {
 		u64 nb_secs, nb_frames = value;
-		Bool is_drop = GF_FALSE;
-		if (!ctx->fftmcd && pctx->tmcd_fpt)
-			nb_frames *= pctx->tmcd_fpt;
+		neg = GF_FALSE;
+		if (parse_fmt==2) force_ff = GF_TRUE;
 
-		if (ctx->fftmcd) {
-			u32 fps = pctx->tmcd_rate.num / pctx->tmcd_rate.den;
-			if (fps * pctx->tmcd_rate.den != pctx->tmcd_rate.num)
-				is_drop = GF_TRUE;
+		if (!force_ff && tmcd_fpt)
+			nb_frames *= tmcd_fpt;
+
+		if (is_drop && tc_num) {
+			u32 tc_drop_frames, min_10;
+
+			nb_secs = nb_frames;
+			nb_secs *= tc_den;
+			nb_secs /= tc_num;
+
+			m = (u32) (nb_secs/60);
+
+			min_10 = m / 10;
+			m-= min_10;
+
+			tc_drop_frames = m*2;
+			nb_frames += tc_drop_frames;
 		}
-		else if (pctx->tmcd_flags & 0x00000001) {
-			is_drop = GF_TRUE;
-		}
 
-		if (is_drop) {
-			u32 drop_frames, frame_base;
+		if (!tmcd_fpt) tmcd_fpt = 30;
 
-			frame_base = 100 * pctx->tmcd_rate.num;
-			frame_base /= pctx->tmcd_rate.den;
-
-			drop_frames = (u32) (nb_frames / frame_base);
-			nb_frames -= 3*drop_frames;
-		}
-
-		nb_secs = nb_frames * pctx->tmcd_rate.den / pctx->tmcd_rate.num;
-
-		gf_fprintf(dump, " counter=\"%d\"", value);
+		nb_secs = nb_frames / tmcd_fpt;
 		h = (u32) nb_secs/3600;
 		m = (u32) (nb_secs/60 - h*60);
 		s = (u32) (nb_secs - m*60 - h*3600);
 
-		nb_secs *= pctx->tmcd_rate.num;
-		nb_secs /= pctx->tmcd_rate.den;
+		nb_secs *= tmcd_fpt;
+
 		f = (u32) (nb_frames - nb_secs);
-		if (pctx->tmcd_fpt && (f==pctx->tmcd_fpt)) {
+		if (tmcd_fpt && (f==tmcd_fpt)) {
 			f = 0;
 			s++;
 			if (s==60) {
@@ -2245,14 +2312,25 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, char *data, u32 
 				}
 			}
 		}
-	} else {
-		h = gf_bs_read_u8(pctx->bs);
-		neg = gf_bs_read_int(pctx->bs, 1);
-		m = gf_bs_read_int(pctx->bs, 7);
-		s = gf_bs_read_u8(pctx->bs);
-		f = gf_bs_read_u8(pctx->bs);
 	}
-	gf_fprintf(dump, " time=\"%s%02d:%02d:%02d:%02d\"/>\n", neg ? "-" : "", h, m, s, f);
+	if (dump)
+		gf_fprintf(dump, " time=\"%s%02d:%02d:%02d%c%02d\"/>\n", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+	else if (szFmt)
+		sprintf(szFmt, "%s%02d:%02d:%02d%c%02d", neg ? "-" : "", h, m, s, is_drop ? ';' : ':', f);
+
+	if (loc_bs) gf_bs_del(loc_bs);
+}
+
+
+GF_EXPORT
+void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc_num, u32 tc_den, u32 tmcd_fpt, char szFmt[100])
+{
+	inspect_format_tmcd_internal(data, size, tmcd_flags, tc_num, tc_den, tmcd_fpt, szFmt, NULL, GF_FALSE, NULL);
+}
+
+static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
+{
+	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
@@ -2617,6 +2695,10 @@ props_done:
 			break;
 		case GF_CODECID_EAC3:
 			inspect_dump_ac3_eac3(ctx, dump, (char *) data, size, ctx->crc, pctx, 1);
+			break;
+		case GF_CODECID_TRUEHD:
+			gf_bs_reassign_buffer(pctx->bs, data, size);
+			gf_inspect_dump_truehd_frame(dump, pctx->bs);
 			break;
 		}
 	}
@@ -3102,7 +3184,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			InspectLogCbk lcbk;
 
 			gf_fprintf(dump, ">\n");
-			gf_fprintf(dump, "<MPEG4AudioConfiguration");
+			gf_fprintf(dump, "<MPEG4AudioConfiguration ");
 
 			if (!pctx->bs)
 				pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
@@ -3135,6 +3217,27 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_EAC3:
 		gf_fprintf(dump, "/>\n");
 		return;
+
+	case GF_CODECID_TRUEHD:
+		if (dsi) {
+			u16 fmt, prate;
+			gf_fprintf(dump, ">\n");
+			gf_fprintf(dump, "<TrueHDAudioConfiguration");
+
+			if (!pctx->bs)
+				pctx->bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
+			else
+				gf_bs_reassign_buffer(pctx->bs, dsi->value.data.ptr, dsi->value.data.size);
+
+			fmt = gf_bs_read_u32(pctx->bs);
+			prate = gf_bs_read_int(pctx->bs, 15);
+
+			gf_fprintf(dump, " format=\"%u\" peak_data_rate=\"%u\"/>\n", fmt, prate);
+		} else {
+			gf_fprintf(dump, "/>\n");
+			return;
+		}
+		break;
 
 	default:
 		if (!pctx->no_analysis) {
@@ -3184,18 +3287,23 @@ static GF_Err inspect_process(GF_Filter *filter)
 	count = gf_list_count(ctx->src_pids);
 	for (i=0; i<count; i++) {
 		PidCtx *pctx = gf_list_get(ctx->src_pids, i);
-		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
+		GF_FilterPacket *pck = NULL;
+		pck = pctx->src_pid ? gf_filter_pid_get_packet(pctx->src_pid) : NULL;
 
 		if (pctx->init_pid_config_done)
 			nb_hdr_done++;
 
-		if (!pck && !gf_filter_pid_is_eos(pctx->src_pid))
-			continue;
+		if (!pck) {
+			if (pctx->src_pid && !gf_filter_pid_is_eos(pctx->src_pid))
+				continue;
+			else
+				ctx->has_seen_eos = GF_TRUE;
+		}
 		if (pctx->aborted)
 			continue;
 
 		if (!pctx->buffer_done) {
-			if (pck) {
+			if (pck && !ctx->has_seen_eos) {
 				u64 dur = gf_filter_pid_query_buffer_duration(pctx->src_pid, GF_FALSE);
 				if ((dur < ctx->buffer * 1000) && !gf_filter_pid_has_seen_eos(pctx->src_pid)) {
 					continue;
@@ -3287,7 +3395,10 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
 		assert(pctx->src_pid == pid);
-		if (!ctx->is_prober) pctx->dump_pid = 1;
+		if (is_remove)
+			pctx->src_pid = NULL;
+		else if (!ctx->is_prober)
+			pctx->dump_pid = 1;
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
@@ -3377,7 +3488,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (! ctx->interleave && !pctx->tmp && ctx->dump) {
 		pctx->tmp = gf_file_temp(NULL);
 		if (ctx->xml)
-			gf_fprintf(ctx->dump, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
+			gf_fprintf(pctx->tmp, "<PIDInspect ID=\"%d\" name=\"%s\">\n", pctx->idx, gf_filter_pid_get_name(pid) );
 	}
 
 	switch (ctx->mode) {
@@ -3512,20 +3623,20 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(interleave), "dump packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(dump_data), "enable full data dump (__WARNING__ heavy!), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(dump_data), "enable full data dump (__heavy!__), ignored when [-fmt]() is set (see filter help)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(fmt), "set packet dump format (see filter help)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hdr), "print a header corresponding to fmt string without \'$ \'or \"pid.\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(allp), "analyse for the entire duration, rather than stoping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(hdr), "print a header corresponding to fmt string without '$' or \"pid\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(allp), "analyse for the entire duration, rather than stopping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media dur with -1 <=> dur", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(dur), "set inspect duration", GF_PROP_FRACTION, "0/0", NULL, 0},
-	{ OFFS(analyze), "analyze sample content (NALU, OBU)"
+	{ OFFS(analyze), "analyze sample content (NALU, OBU)\n"
 	"- off: no analyzing\n"
 	"- on: simple analyzing\n"
 	"- bs: log bitstream syntax (all elements read from bitstream)\n"
-	"- full: log bitstream syntax and bit sizes signaled as `(N)` after field value, except 1-bit fields (ommited)", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	"- full: log bitstream syntax and bit sizes signaled as `(N)` after field value, except 1-bit fields (omitted)", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(xml), "use xml formatting (implied if (-analyze]() is set) and disable [-fmt]()", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(crc), "dump crc of NALU/OBU/... when analyzing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fftmcd), "consider timecodes use ffmpeg-compatible signaling rather than QT compliant one", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
@@ -3567,9 +3678,9 @@ const GF_FilterRegister InspectRegister = {
 				"- frame: framing status\n"
 				"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
 				"  - frame_full: complete AU\n"
-				"  - frame_start: begining of frame\n"
+				"  - frame_start: beginning of frame\n"
 				"  - frame_end: end of frame\n"
-				"  - frame_cont: frame continuation (not begining, not end)\n"
+				"  - frame_cont: frame continuation (not beginning, not end)\n"
 				"- sap or rap: SAP type of the frame\n"\
 				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
 				"- corr: corrupted packet flag\n"\
@@ -3577,13 +3688,14 @@ const GF_FilterRegister InspectRegister = {
 				"- bo: byte offset in source, N/A if not available\n"\
 				"- roll: roll info\n"\
 				"- crypt: crypt flag\n"\
-				"- vers: carrousel version number\n"\
+				"- vers: carousel version number\n"\
 				"- size: size of packet\n"\
+				"- csize: cumulated size of packets\n"\
 				"- crc: 32 bit CRC of packet\n"\
 				"- lf: insert linefeed\n"\
 				"- cr: insert carriage return\n"\
 				"- t: insert tab\n"\
-				"- data: hex dump of packet (** WARNING, BIG OUTPUT !! **)\n"\
+				"- data: hex dump of packet (__big output!__)\n"\
 				"- lp: leading picture flag\n"\
 				"- depo: depends on other packet flag\n"\
 				"- depf: is depended on other packet flag\n"\
@@ -3597,7 +3709,7 @@ const GF_FilterRegister InspectRegister = {
 	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
 	 			"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"\
 	 			"  \n"\
-	 			"An unrecognized keywork or missing property will resolve to an empty string.\n"\
+	 			"An unrecognized keyword or missing property will resolve to an empty string.\n"\
 	 			"\n"\
 	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
 	.private_size = sizeof(GF_InspectCtx),
@@ -3637,11 +3749,10 @@ const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	GF_FS_SET_DESCRIPTION("Probe source")
 	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demuxed pids available in a source chain.\n"
-	"The filter does not produce any output nor feedback, it is up to the app developper to query input pids of the prober and take appropriated decisions.")
+	"The filter does not produce any output nor feedback, it is up to the app developer to query input pids of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
-	.args = InspectArgs,
 	.initialize = inspect_initialize,
 	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,
