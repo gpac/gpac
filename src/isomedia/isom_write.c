@@ -5928,9 +5928,11 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		if ((data_len>4) && (data[0] == 0x89) && (data[1] == 0x50) && (data[2] == 0x4E) && (data[3] == 0x47) ) {
 			info->data->flags = 14;
 		}
-		else if ((data_len>4) && (data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF) && (data[3] == 0xE0) ) {
+		//JPG and JFIF - do not check second tag type
+		else if ((data_len>4) && (data[0] == 0xFF) && (data[1] == 0xD8) && (data[2] == 0xFF) /*&& ((data[3] == 0xE0) || (data[3] == 0xDB))*/ ) {
 			info->data->flags = 13;
 		}
+		//GIF
 		else if ((data_len>3) && (data[0] == 'G') && (data[1] == 'I') && (data[2] == 'F') ) {
 			info->data->flags = 12;
 		}
