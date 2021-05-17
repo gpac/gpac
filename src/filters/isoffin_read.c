@@ -1341,7 +1341,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->seek_flag);
 
-				if (ch->xps_mask) {
+				//for now we only signal xPS mask for non-sap
+				if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );
 				}
 
