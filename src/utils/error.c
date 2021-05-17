@@ -1871,7 +1871,6 @@ Bool gf_parse_lfrac(const char *value, GF_Fraction64 *frac)
 		return GF_TRUE;
 	}
 
-	sep += 1;
 	if (len <= 3) frac->den = 1000;
 	else if (len <= 6) frac->den = 1000000;
 	else frac->den = 1000000000;

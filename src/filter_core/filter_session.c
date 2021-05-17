@@ -3066,7 +3066,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 	}
 
 	if (!found && filter_name) {
-		GF_Err e;
+		GF_Err e = GF_OK;
 		GF_Filter *f = gf_fs_load_filter(session, filter_name, &e);
 		if (f) {
 			gf_fs_print_jsf_connection(session, filter_name, f, print_fn);

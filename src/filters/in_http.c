@@ -354,7 +354,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_Err e=GF_OK;
 	u32 bytes_per_sec=0;
 	u64 bytes_done=0, total_size, byte_offset;
-	GF_NetIOStatus net_status;
+	GF_NetIOStatus net_status = GF_NETIO_DATA_EXCHANGE;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	//until packet is released we return EOS (no processing), and ask for processing again upon release
