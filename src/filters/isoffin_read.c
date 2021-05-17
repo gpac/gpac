@@ -1528,7 +1528,10 @@ static const GF_FilterCapability ISOFFInCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 
 	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	//we don't set output cap for streamtype FILE for now.
+	{0},
+	//also declare generic file output for embedded files (cover art & co), but explicit to skip this cap in chain resolution
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_OUTPUT | GF_CAPFLAG_LOADED_FILTER ,GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE)
 };
 
 GF_FilterRegister ISOFFInRegister = {
