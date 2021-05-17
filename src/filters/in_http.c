@@ -412,7 +412,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 		assert(cached);
 
 		gf_blob_get(cached, &b_data, &b_size, NULL);
-		assert(ctx->nb_read <= b_size);
+		if (!(ctx->nb_read <= b_size)) {
+			printf("%u <= %u\n", (u32)ctx->nb_read, b_size);
+			assert(ctx->nb_read <= b_size);
+		}
 		nb_read = b_size - (u32) ctx->nb_read;
 		if (nb_read>ctx->block_size)
 			nb_read = ctx->block_size;
