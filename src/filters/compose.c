@@ -416,7 +416,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	//we inserted a root scene (bt/svg/...) after a pid (passthrough mode), we need to create a new namespace for
 	//the scene and reassign the old namespace to the previously created ODM
-	if ( !scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
+	if (scene->root_od && !scene->root_od->parentscene && was_dyn_scene && (was_dyn_scene != scene->is_dynamic_scene)) {
 		GF_SceneNamespace *new_sns=NULL;
 		const char *service_url = "unknown";
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_URL);

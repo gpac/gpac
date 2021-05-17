@@ -3758,7 +3758,7 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 			gf_icy_skip_data(sess, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
-				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes, sess->dm->cache_mx);
+				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes, sess->dm ? sess->dm->cache_mx : NULL);
 
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;

@@ -1339,6 +1339,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			for (k=0; k<nb_q; k++) {
 				char *qdesc = NULL;
 				e = gf_dash_group_get_quality_info(ctx->dash, g_idx, k, &qinfo);
+				if (e) break;
 
 				dashdm_format_qinfo(&qdesc, &qinfo);
 				deps_q.value.string_list.vals[k] = qdesc;

@@ -614,21 +614,22 @@ static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 	ds->bitrate = (u32) rate;
 
-	if (ds->rep)
+	if (ds->rep) {
 		ds->rep->bandwidth = ds->bitrate;
 
-	if (ds->dep_id) {
-		ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
-	} else if (ds->nb_comp && !ds->muxed_base) {
-		u32 i, count = gf_list_count(ctx->current_period->streams);
-		for (i=0; i<count; i++) {
-			GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
-			if (ds == a_ds) continue;;
-			if (a_ds->muxed_base != ds) continue;
-			if (a_ds->dyn_bitrate) {
-				dasher_update_bitrate(ctx, a_ds);
+		if (ds->dep_id) {
+			ds->rep->bandwidth = dasher_get_dep_bitrate(ctx, ds);
+		} else if (ds->nb_comp && !ds->muxed_base) {
+			u32 i, count = gf_list_count(ctx->current_period->streams);
+			for (i=0; i<count; i++) {
+				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
+				if (ds == a_ds) continue;;
+				if (a_ds->muxed_base != ds) continue;
+				if (a_ds->dyn_bitrate) {
+					dasher_update_bitrate(ctx, a_ds);
+				}
+				ds->rep->bandwidth += a_ds->bitrate;
 			}
-			ds->rep->bandwidth += a_ds->bitrate;
 		}
 	}
 
