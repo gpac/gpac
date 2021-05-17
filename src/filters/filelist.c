@@ -610,10 +610,13 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
+	char *sep;
 	if (ctx->file_path) {
 		res_url = gf_url_concatenate(ctx->file_path, szURL);
 		szURL = res_url;
 	}
+	sep = gf_url_colon_suffix(szURL);
+	if (sep) sep[0] = 0;
 
 	switch (gf_isom_probe_file(szURL)) {
 	//this is a fragment
@@ -632,6 +635,7 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 		ctx->do_cat = GF_FALSE;
 		ctx->last_is_isom = GF_FALSE;
 	}
+	if (sep) sep[0] = ':';
 	if (res_url)
 		gf_free(res_url);
 }
