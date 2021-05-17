@@ -609,28 +609,28 @@ enum
 	RESET_STATE_DCI=1<<4,
 };
 
-static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConfig *vvcc, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
+static void isor_replace_nal(ISOMChannel *ch, u8 *data, u32 size, u8 nal_type, u32 *reset_state)
 {
 	u32 i, count, state=0;
 	GF_NALUFFParam *sl;
 	GF_List *list=NULL;
-	if (avcc) {
+	if (ch->avcc) {
 		if (nal_type==GF_AVC_NALU_PIC_PARAM) {
-			list = avcc->pictureParameterSets;
+			list = ch->avcc->pictureParameterSets;
 			state=RESET_STATE_PPS;
 		} else if (nal_type==GF_AVC_NALU_SEQ_PARAM) {
-			list = avcc->sequenceParameterSets;
+			list = ch->avcc->sequenceParameterSets;
 			state=RESET_STATE_SPS;
 		} else if (nal_type==GF_AVC_NALU_SEQ_PARAM_EXT) {
-			list = avcc->sequenceParameterSetExtensions;
+			list = ch->avcc->sequenceParameterSetExtensions;
 			state=RESET_STATE_SPS_EXT;
 		} else return;
 	}
-	else if (hvcc) {
+	else if (ch->hvcc) {
 		GF_NALUFFParamArray *hvca=NULL;
-		count = gf_list_count(hvcc->param_array);
+		count = gf_list_count(ch->hvcc->param_array);
 		for (i=0; i<count; i++) {
-			hvca = gf_list_get(hvcc->param_array, i);
+			hvca = gf_list_get(ch->hvcc->param_array, i);
 			if (hvca->type==nal_type) {
 				list = hvca->nalus;
 				break;
@@ -642,7 +642,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 			if (hvca) {
 				list = hvca->nalus = gf_list_new();
 				hvca->type = nal_type;
-				gf_list_add(hvcc->param_array, hvca);
+				gf_list_add(ch->hvcc->param_array, hvca);
 			}
 		}
 		switch (nal_type) {
@@ -657,11 +657,11 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 			break;
 		}
 	}
-	else if (vvcc) {
+	else if (ch->vvcc) {
 		GF_NALUFFParamArray *vvca=NULL;
-		count = gf_list_count(vvcc->param_array);
+		count = gf_list_count(ch->vvcc->param_array);
 		for (i=0; i<count; i++) {
-			vvca = gf_list_get(vvcc->param_array, i);
+			vvca = gf_list_get(ch->vvcc->param_array, i);
 			if (vvca->type==nal_type) {
 				list = vvca->nalus;
 				break;
@@ -673,7 +673,7 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 			if (vvca) {
 				list = vvca->nalus = gf_list_new();
 				vvca->type = nal_type;
-				gf_list_add(vvcc->param_array, vvca);
+				gf_list_add(ch->vvcc->param_array, vvca);
 			}
 		}
 		switch (nal_type) {
@@ -691,6 +691,8 @@ static void isor_replace_nal(GF_AVCConfig *avcc, GF_HEVCConfig *hvcc, GF_VVCConf
 			break;
 		}
 	}
+
+	ch->xps_mask |= state;
 
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
@@ -787,6 +789,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (!ch->check_hevc_ps && !ch->check_avc_ps && !ch->check_vvc_ps && !ch->check_mhas_pl) return;
 
 	if (!ch->sample) return;
+	ch->xps_mask = 0;
 
 	//we cannot touch the payload if encrypted but not CENC !!
 	if (ch->is_encrypted && !ch->is_cenc)
@@ -868,7 +871,7 @@ void isor_reader_check_config(ISOMChannel *ch)
 
 		if (replace_nal) {
 			u32 move_size = ch->sample->dataLength - size - pos - nalu_len;
-			isor_replace_nal(ch->avcc, ch->hvcc, ch->vvcc, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
+			isor_replace_nal(ch, ch->sample->data + pos + nalu_len, size, nal_type, &reset_state);
 			if (move_size)
 				memmove(ch->sample->data + pos, ch->sample->data + pos + size + nalu_len, ch->sample->dataLength - size - pos - nalu_len);
 

@@ -148,7 +148,8 @@ typedef struct
 	Bool sap_3;
 	GF_ISOSampleRollType sap_4_type;
 	s32 roll;
-
+	u32 xps_mask;
+	
 	Bool has_edit_list;
 	u32 sample_num;
 	s64 ts_offset;

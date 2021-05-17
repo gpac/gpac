@@ -1174,7 +1174,10 @@ enum
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 
 	//PID has temi information
-	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M')
+	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
+
+	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
