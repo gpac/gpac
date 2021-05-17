@@ -1341,6 +1341,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->seek_flag);
 
+				if (ch->xps_mask) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );
+				}
+
 				dep_flags = ch->isLeading;
 				dep_flags <<= 2;
 				dep_flags |= ch->dependsOn;
