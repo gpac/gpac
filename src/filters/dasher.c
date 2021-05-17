@@ -127,7 +127,7 @@ enum
 
 typedef struct
 {
-	u32 bs_switch, profile, cp, ntp;
+	u32 bs_switch, profile, spd, cp, ntp;
 	s32 subs_sidx;
 	s32 buf, timescale;
 	Bool sfile, sseg, no_sar, mix_codecs, stl, tpl, align, sap, no_frag_def, sidx, split, hlsc, strict_cues, force_flush, last_seg_merge;
@@ -1503,6 +1503,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 	if (ctx->dmode==GF_MPD_TYPE_DYNAMIC) {
 		ctx->mpd->time_shift_buffer_depth = (u32) -1;
 		if (ctx->tsb>=0) ctx->mpd->time_shift_buffer_depth = (u32) (1000*ctx->tsb);
+		if (ctx->spd>0) ctx->mpd->suggested_presentation_delay = ctx->spd;
 
 		if (ctx->refresh>=0) {
 			if (ctx->refresh) {
@@ -6387,7 +6388,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	char szSegmentName[GF_MAX_PATH], szSegmentFullPath[GF_MAX_PATH], szIndexName[GF_MAX_PATH];
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
-	if (ctx->forward_mode) {
+	if (ctx->forward_mode && pck /*NULL on init*/) {
 		const GF_PropertyValue *p_fname, *p_manifest;
 
 		p_fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
@@ -6442,8 +6443,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		//we need to move from segment name to output name
 		if (ctx->forward_mode==DASHER_FWD_ALL)
 			goto send_packet;
-
 	}
+
 	if (pck) {
 		if (ctx->ntp==DASHER_NTP_YES) {
 			u64 ntpts = gf_net_get_ntp_ts();
@@ -7636,7 +7637,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
 				//flush the segment at next segment start which could be after the segment AST => 404
-				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC)) {
+				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && ds->opid) {
 					GF_FilterPacket *eods_pck;
 					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
 					if (eods_pck) {
@@ -8600,6 +8601,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- mv: stores in mpd and movie\n"
 	"- n: discard pssh from mpd and segments", GF_PROP_UINT, "v", "v|f|mv|mf|m|n", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(buf), "min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)", GF_PROP_SINT, "-100", NULL, 0},
+	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(timescale), "set timescale for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(check_dur), "check duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(skip_seg), "increment segment number whenever an empty segment would be produced - NOT DASH COMPLIANT", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
