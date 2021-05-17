@@ -1434,7 +1434,7 @@ void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *md
 		vp9->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
 
-	if (vp9->vp_config) {
+	if (vp9->vp_config && vp9->vp_config->config) {
 		GF_VPConfig *vp9_cfg = VP_DuplicateConfig(vp9->vp_config->config);
 		if (vp9_cfg) {
 			gf_odf_vp_cfg_write(vp9_cfg, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->data, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
