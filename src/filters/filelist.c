@@ -610,10 +610,13 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
+	char *sep;
 	if (ctx->file_path) {
 		res_url = gf_url_concatenate(ctx->file_path, szURL);
 		szURL = res_url;
 	}
+	sep = gf_url_colon_suffix(szURL);
+	if (sep) sep[0] = 0;
 
 	switch (gf_isom_probe_file(szURL)) {
 	//this is a fragment
@@ -632,6 +635,7 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 		ctx->do_cat = GF_FALSE;
 		ctx->last_is_isom = GF_FALSE;
 	}
+	if (sep) sep[0] = ':';
 	if (res_url)
 		gf_free(res_url);
 }
@@ -846,7 +850,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 						filelist_override_caps(filter, ctx);
 					}
 				} else if (!strcmp(args, "floop")) {
-					ctx->floop = atoi(aval);
+					ctx->floop = aval ? atoi(aval) : 0;
 				} else if (!strcmp(args, "props")) {
 					if (ctx->pid_props) gf_free(ctx->pid_props);
 					ctx->pid_props = aval ? gf_strdup(aval) : NULL;
@@ -1540,7 +1544,6 @@ static void filelist_forward_splice_pck(FileListPid *iopid, GF_FilterPacket *pck
 		u32 pck_size, osize, offset=0;
 
 		cts = gf_filter_pck_get_cts(pck);
-		dur = gf_filter_pck_get_duration(pck);
 
 		data = gf_filter_pck_get_data(pck, &pck_size);
 		if (iopid->audio_samples_to_keep>0) {
@@ -2399,7 +2402,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				max_dts.den = iopid->timescale;
 			}
 		}
-		if (!ctx->cts_offset.num) {
+		if (!ctx->cts_offset.num || !ctx->cts_offset.den) {
 			ctx->cts_offset = max_dts;
 		} else if (ctx->cts_offset.den == max_dts.den) {
 			ctx->cts_offset.num += max_dts.num;
@@ -2412,11 +2415,11 @@ static GF_Err filelist_process(GF_Filter *filter)
 			ctx->cts_offset.num += max_dts.num * ctx->cts_offset.den / max_dts.den;
 		}
 
-		if (!ctx->dts_offset.num) {
+		if (!ctx->dts_offset.num || !ctx->dts_offset.den) {
 			ctx->dts_offset = max_dts;
 		} else if (ctx->dts_offset.den == max_dts.den) {
 			ctx->dts_offset.num += max_dts.num;
-		} else if (max_dts.den>ctx->dts_offset.den) {
+		} else if (max_dts.den > ctx->dts_offset.den) {
 			ctx->dts_offset.num *= max_dts.den;
 			ctx->dts_offset.num /= ctx->dts_offset.den;
 			ctx->dts_offset.num += max_dts.num;

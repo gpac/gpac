@@ -7091,14 +7091,19 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				if (filename) {
 					strcpy(szTemplateVal, filename);
 				} else {
-					char *ext;
-					char *sname = strrchr(str_val, '/');
-					if (!sname) sname = strrchr(str_val, '\\');
+					char *ext, *sname;
+					ext = strstr(str_val, "://");
+					sname = strrchr(ext ? ext+4 : str_val, '/');
+					if (!sname) sname = strrchr(ext ? ext+4 : str_val, '\\');
+					if (sname && ext)
+						str_val = sname+1;
+
 					if (!sname) sname = (char *) str_val;
 					else sname++;
+
 					ext = strrchr(str_val, '.');
 
-					if (ext) {
+					if (ext && (ext > sname) ) {
 						u32 len = (u32) (ext - sname);
 						strncpy(szTemplateVal, sname, ext - sname);
 						szTemplateVal[len] = 0;

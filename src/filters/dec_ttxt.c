@@ -522,7 +522,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 		if (!fontSize) {
 			if (ctx->cfg->text_height > 2000)
 				fontSize = 80;
-			if (ctx->cfg->text_height > 700)
+			else if (ctx->cfg->text_height > 700)
 				fontSize = 40;
 			else
 				fontSize = 20;
