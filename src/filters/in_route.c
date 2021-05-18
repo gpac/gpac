@@ -124,8 +124,7 @@ static void routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *fi
 static const char *top_codes[] = {"styp", "emsg", "prft", "moof", "mdat", "free", "sidx", "ssix"};
 static u32 nb_top_codes = GF_ARRAY_LENGTH(top_codes);
 
-
-u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, u32 *cur_pos, u32 *box_size)
+static u32 next_top_level_box(GF_ROUTEEventFileInfo *finfo, u8 *data, u32 size, u32 *cur_pos, u32 *box_size)
 {
     u32 pos = *cur_pos;
 	u32 cur_frag = 0;
