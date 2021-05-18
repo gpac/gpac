@@ -83,7 +83,8 @@ typedef struct
 	GF_LCTObjectStatus status;
 	u32 download_time_ms;
 	u32 last_gather_time;
-    Bool closed_flag;
+	u8 closed_flag;
+	u8 force_keep;
 
 	GF_ROUTELCTChannel *rlct;
 	GF_ROUTELCTFile *rlct_file;
@@ -93,7 +94,6 @@ typedef struct
     char solved_path[GF_MAX_PATH];
     
     GF_Blob blob;
-	
 	void *udta;
 } GF_LCTObject;
 
@@ -570,7 +570,7 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 		finfo.udta = obj->udta;
         routedmx->on_event(routedmx->udta, GF_ROUTE_EVT_FILE_DELETE, s->service_id, &finfo);
     }
-    
+
 	//remove other objects
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d : moving object tsi %u toi %u to reservoir (status %s)\n", s->service_id, obj->tsi, obj->toi, get_lct_obj_status_name(obj->status) ));
 
@@ -589,7 +589,8 @@ static void gf_route_obj_to_reservoir(GF_ROUTEDmx *routedmx, GF_ROUTEService *s,
 #endif
 
 	if (s->last_active_obj==obj) s->last_active_obj = NULL;
-    obj->closed_flag = GF_FALSE;
+	obj->closed_flag = 0;
+	obj->force_keep = 0;
 	obj->nb_bytes = 0;
 	obj->nb_frags = GF_FALSE;
 	obj->nb_recv_frags = 0;
@@ -985,7 +986,7 @@ check_done:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u closed flag found (object not yet completed)\n", s->service_id, tsi, toi ));
 		}
 	} else {
-		if (close_flag) obj->closed_flag = GF_TRUE;
+		if (close_flag) obj->closed_flag = 1;
 	}
 	if (!done) return GF_OK;
 
@@ -1832,8 +1833,8 @@ u32 gf_route_dmx_get_object_count(GF_ROUTEDmx *routedmx, u32 service_id)
 	return 0;
 }
 
-GF_EXPORT
-void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous)
+#if 0
+void gf_route_dmx_print_objects(GF_ROUTEDmx *routedmx, u32 service_id)
 {
 	u32 i=0;
 	GF_ROUTEService *s=NULL;
@@ -1845,41 +1846,87 @@ void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, c
 	if (!s) return;
 	i=0;
 	while ((obj = gf_list_enum(s->objects, &i))) {
+		fprintf(stderr, "#%d TSI %d TOI %d size %d (/%d) status %d\n", i, obj->tsi, obj->toi, obj->nb_bytes, obj->total_length, obj->status);
+	}
+}
+#endif
+
+
+static GF_Err gf_route_dmx_keep_or_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous, Bool is_remove)
+{
+	u32 i=0;
+	GF_ROUTEService *s=NULL;
+	GF_LCTObject *obj = NULL;
+	while ((s = gf_list_enum(routedmx->services, &i))) {
+		if (s->service_id == service_id) break;
+		s = NULL;
+	}
+	if (!s) return GF_BAD_PARAM;
+	i=0;
+	while ((obj = gf_list_enum(s->objects, &i))) {
 		u32 toi;
 		if (obj->rlct && (sscanf(fileName, obj->rlct->toi_template, &toi) == 1)) {
+			u32 tsi;
 			if (toi == obj->toi) {
 				GF_ROUTELCTChannel *rlct = obj->rlct;
+
+				if (!is_remove) {
+					obj->force_keep = 1;
+					return GF_OK;
+				}
+				obj->force_keep = 0;
+
 				//we likely have a loop here
 				if (obj == s->last_active_obj) break;
 				//obj being received do not destroy
 				if (obj->status == GF_LCT_OBJ_RECEPTION) break;
 
-
+				tsi = obj->tsi;
 				gf_route_obj_to_reservoir(routedmx, s, obj);
 				if (purge_previous) {
 					i=0;
 					while ((obj = gf_list_enum(s->objects, &i))) {
 						if (obj->rlct != rlct) continue;
 						if (obj->rlct_file) continue;
-						if (obj->toi<toi) {
+						if (obj->tsi != tsi) continue;
+						if (obj->toi < toi) {
 							i--;
 							//we likely have a loop here
-							if (obj == s->last_active_obj) return;
+							if (obj == s->last_active_obj) return GF_OK;
 							gf_route_obj_to_reservoir(routedmx, s, obj);
 						}
 					}
 				}
-				return;
+				return GF_OK;
 			}
 		}
 		else if (obj->rlct && obj->rlct_file && obj->rlct_file->filename && !strcmp(fileName, obj->rlct_file->filename)) {
-			gf_route_obj_to_reservoir(routedmx, s, obj);
-			return;
+			if (!is_remove) {
+				obj->force_keep = 1;
+			} else {
+				gf_route_obj_to_reservoir(routedmx, s, obj);
+			}
+			return GF_OK;
 		}
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Failed to remove object %s from service, object not found\n", fileName));
+	if (is_remove) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Failed to remove object %s from service, object not found\n", fileName));
+		return GF_NOT_FOUND;
+	}
+	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName)
+{
+	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, GF_FALSE, GF_FALSE);
+}
+
+GF_EXPORT
+GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous)
+{
+	return gf_route_dmx_keep_or_remove_object_by_name(routedmx, service_id, fileName, purge_previous, GF_TRUE);
+}
 
 GF_EXPORT
 Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id)
@@ -1898,6 +1945,10 @@ Bool gf_route_dmx_remove_first_object(GF_ROUTEDmx *routedmx, u32 service_id)
 		if (obj == s->last_active_obj) continue;
 		//object is active, abort
 		if (obj->status<=GF_LCT_OBJ_RECEPTION) break;
+
+		if (obj->force_keep)
+			return GF_FALSE;
+
 		//keep static files active
 		if (obj->rlct_file)
 			continue;

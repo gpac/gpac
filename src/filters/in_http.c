@@ -412,19 +412,32 @@ static GF_Err httpin_process(GF_Filter *filter)
 		assert(cached);
 
 		gf_blob_get(cached, &b_data, &b_size, NULL);
-		assert(ctx->nb_read <= b_size);
-		nb_read = b_size - (u32) ctx->nb_read;
-		if (nb_read>ctx->block_size)
-			nb_read = ctx->block_size;
 
-		if (nb_read) {
-			memcpy(ctx->block, b_data + ctx->nb_read, nb_read);
-			e = GF_OK;
+		//we should NEVER have this case (file size less than at last call), abort download
+		if (ctx->nb_read > b_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Error fetching %s, corrupted blob (URL %s prev size %d new size %d)\n", ctx->src, cached, ctx->blob_size, b_size ) );
+			nb_read = 0;
+			ctx->blob_size = ctx->nb_read = ctx->file_size = b_size;
+			net_status = GF_NETIO_DATA_TRANSFERED;
+			e = GF_EOS;
 		} else {
-			if (b_size == ctx->blob_size) {
-				e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
+			nb_read = b_size - (u32) ctx->nb_read;
+			if (nb_read>ctx->block_size)
+				nb_read = ctx->block_size;
+
+			if (nb_read) {
+				memcpy(ctx->block, b_data + ctx->nb_read, nb_read);
+				e = GF_OK;
+				gf_filter_ask_rt_reschedule(filter, 1);
 			} else {
-				ctx->blob_size = b_size;
+				if (b_size == ctx->blob_size) {
+					e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
+					if (e==GF_EOS) {
+						net_status = GF_NETIO_DATA_TRANSFERED;
+					}
+				} else {
+					ctx->blob_size = b_size;
+				}
 			}
 		}
         gf_blob_release(cached);
