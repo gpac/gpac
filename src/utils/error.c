@@ -1764,11 +1764,11 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_
 	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
 	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
 	if (!blob) return GF_BAD_PARAM;
+	if (blob->data && blob->mx)
+		gf_mx_p(blob->mx);
 	if (out_data) *out_data = blob->data;
 	if (out_size) *out_size = blob->size;
 	if (out_flags) *out_flags = blob->flags;
-	if (blob->data && blob->mx)
-		gf_mx_p(blob->mx);
 	return GF_OK;
 }
 

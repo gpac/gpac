@@ -1553,7 +1553,8 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 }
 
 GF_EXPORT
-void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url)
+{
 	if (sess && sess->dm && url) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[CACHE] Requesting deletion for %s\n", url));
 		gf_dm_delete_cached_file_entry(sess->dm, url);
