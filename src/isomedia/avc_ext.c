@@ -1434,7 +1434,7 @@ void VP9_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *vp9, GF_MediaBox *md
 		vp9->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
 
-	if (vp9->vp_config) {
+	if (vp9->vp_config && vp9->vp_config->config) {
 		GF_VPConfig *vp9_cfg = VP_DuplicateConfig(vp9->vp_config->config);
 		if (vp9_cfg) {
 			gf_odf_vp_cfg_write(vp9_cfg, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->data, &vp9->emul_esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
@@ -2420,7 +2420,7 @@ GF_VPConfig *gf_isom_vp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 De
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
-	if (!entry || !entry->vp_config) return NULL;
+	if (!entry || !entry->vp_config || !entry->vp_config->config) return NULL;
 	return VP_DuplicateConfig(entry->vp_config->config);
 }
 

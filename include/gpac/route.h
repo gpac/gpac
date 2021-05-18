@@ -211,8 +211,17 @@ u32 gf_route_dmx_get_object_count(GF_ROUTEDmx *routedmx, u32 service_id);
 \param service_id ID of the service to query
 \param fileName name of the file associated with the object
 \param purge_previous if set, indicates that all objects with the same TSI and a TOI less than TOI of the deleted object will be removed
+\return error if any, GF_NOT_FOUND if no such object
  */
-void gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous);
+GF_Err gf_route_dmx_remove_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName, Bool purge_previous);
+
+/*! Flags an object to be kept until \ref gf_route_dmx_remove_object_by_name is called
+\param routedmx the ROUTE demultiplexer
+\param service_id ID of the service to query
+\param fileName name of the file associated with the object
+\return error if any, GF_NOT_FOUND if no such object
+ */
+GF_Err gf_route_dmx_force_keep_object_by_name(GF_ROUTEDmx *routedmx, u32 service_id, char *fileName);
 
 /*! Removes the first object loaded in the service
 \param routedmx the ROUTE demultiplexer

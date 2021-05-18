@@ -1304,7 +1304,14 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_MPEG) { e |= gf_dynstrcat(&args, "ase=v1", ":"); }
 	else if (importer->asemode==GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF) { e |= gf_dynstrcat(&args, "ase=v1qt", ":"); }
 
-	if (source_is_isom && gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
+	if (source_is_isom) {
+		if (!gf_sys_find_global_arg("xps_inband")
+			&& (!importer->filter_dst_opts || !strstr(importer->filter_dst_opts, "xps_inband"))
+		) {
+			e |= gf_dynstrcat(&args, "xps_inband=auto", ":");
+		}
+		if (gf_isom_has_keep_utc_times(importer->dest) ) { e |= gf_dynstrcat(&args, "keep_utc", ":"); }
+	}
 
 	if (importer->start_time) {
 		sprintf(szSubArg, "start=%f", importer->start_time);

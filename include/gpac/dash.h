@@ -675,7 +675,7 @@ GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height, u8
 */
 GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_between_404);
 
-/*! sets time in ms after which 404 request for a segment will indicate segment lost. The clien always retries for segment availability time + segment duration. This allows extanding slightly the probe time (used when segment durations varies, or for VBR broadcast). The default value is 100 ms.
+/*! sets time in ms after which 404 request for a segment will indicate segment lost. The client always retries for segment availability time + segment duration. This allows extending slightly the probe time (used when segment durations varies, or for VBR broadcast). The default value is 100 ms.
 \param dash the target dash client
 \param expire_after_ms delay in milliseconds
 \return error if any

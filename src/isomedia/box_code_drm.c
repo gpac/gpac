@@ -1244,6 +1244,9 @@ u8 key_info_get_iv_size(const u8 *key_info, u32 key_info_size, u32 idx, u8 *cons
 	if (const_iv_size) *const_iv_size = 0;
 	if (const_iv) *const_iv = NULL;
 
+	if (!key_info || !key_info_size)
+		return 0;
+
 	while (1) {
 		u8 civ_size=0;
 		const u8 *civ = NULL;
@@ -1342,7 +1345,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		Bool is_encrypted;
 		GF_CENCSampleAuxInfo *sai;
 		u8 IV_size=0;
-		u32 nb_keys = 0;
+		//u32 nb_keys = 0;
 		u32 nb_bytes_subsample = 6;
 		u32 nb_subs_bits = 16;
 
@@ -1358,9 +1361,9 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 				use_multikey = GF_FALSE;
 				senc->piff_type = 2;
 			} else if (use_multikey) {
-				nb_keys = key_info[1];
-				nb_keys <<= 8;
-				nb_keys |= key_info[2];
+				//nb_keys = key_info[1];
+				//nb_keys <<= 8;
+				//nb_keys |= key_info[2];
 				nb_bytes_subsample = 8;
 				nb_subs_bits = 32;
 			} else {

@@ -1174,7 +1174,10 @@ enum
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 
 	//PID has temi information
-	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M')
+	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
+
+	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
+
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
@@ -2442,7 +2445,8 @@ void gf_filter_get_clock_hint(GF_Filter *filter, u64 *time_in_us, GF_Fraction64 
 /*! Explicitly assigns a source ID to a filter. This shall be called before connecting the link_from filter
 If no ID is assigned to the linked filter, a dynamic one in the form of _%08X_ (using the filter mem address) will be used
 
-\Warning In multithreaded sessions, the session must be locked before the filter creation step and unlocked after calling this function, otherwise graph resolution might happen before  gf_filter_set_source is called
+\warning In multithreaded sessions, the session must be locked before the filter creation step and unlocked after calling this function, otherwise graph resolution might happen before \ref gf_filter_set_source is called
+
 \param filter the target filter
 \param link_from the filter to link from
 \param link_ext any link extensions allowed in link syntax:

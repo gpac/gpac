@@ -1899,7 +1899,7 @@ sample_entry_setup:
 				tkw->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
-			if (ctx->pps_inband)
+			if (ctx->pps_inband || tkw->xps_inband)
 				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
@@ -1918,7 +1918,7 @@ sample_entry_setup:
 				tkw->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
-			if (ctx->pps_inband)
+			if (ctx->pps_inband || tkw->xps_inband)
 				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
@@ -1930,10 +1930,10 @@ sample_entry_setup:
 				if (ctx->init_movie_done) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] VVC config update after movie has been finalized, moving all SPS/PPS inband (file might not be compliant)\n"));
 				}
-				ctx->xps_inband = XPS_IB_BOTH;
+				tkw->xps_inband = XPS_IB_BOTH;
 			}
 			mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
-			if (ctx->pps_inband)
+			if (ctx->pps_inband || tkw->xps_inband)
 				mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 			return GF_OK;
 		}
@@ -3021,7 +3021,7 @@ sample_entry_done:
 		}
 	} else if (needs_sample_entry || make_inband_headers) {
 		mp4_mux_make_inband_header(ctx, tkw, GF_FALSE);
-		if (ctx->pps_inband)
+		if (ctx->pps_inband || tkw->xps_inband)
 			mp4_mux_make_inband_header(ctx, tkw, GF_TRUE);
 	}
 
@@ -3771,7 +3771,14 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
 		}
 	} else {
-		if ((tkw->sample.IsRAP || tkw->force_inband_inject || ctx->pps_inband) && tkw->xps_inband) {
+		Bool inject_pps = ctx->pps_inband;
+		if (ctx->xps_inband==XPS_IB_AUTO) {
+			const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_XPS_MASK);
+			if (p && (p->value.uint & (1<<2) ) )
+				inject_pps = GF_TRUE;
+		}
+
+		if ((tkw->sample.IsRAP || tkw->force_inband_inject || inject_pps) && tkw->xps_inband) {
 			u8 *inband_xps;
 			u32 inband_xps_size;
 			char *au_delim=NULL;

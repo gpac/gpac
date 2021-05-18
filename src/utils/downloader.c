@@ -1553,7 +1553,8 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 }
 
 GF_EXPORT
-void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url)
+{
 	if (sess && sess->dm && url) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[CACHE] Requesting deletion for %s\n", url));
 		gf_dm_delete_cached_file_entry(sess->dm, url);
@@ -3758,7 +3759,7 @@ static void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 paylo
 			gf_icy_skip_data(sess, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
-				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes, sess->dm->cache_mx);
+				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes, sess->dm ? sess->dm->cache_mx : NULL);
 
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;

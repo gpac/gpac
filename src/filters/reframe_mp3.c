@@ -265,10 +265,8 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 		buf = _buf+1;
 
 		tag_idx = gf_itags_find_by_id3tag(ftag);
-		if (tag_idx>=0) {
-			const char *tag_name = gf_itags_get_name((u32) tag_idx);
-			id3dmx_set_string(audio_pid, (char *) tag_name, buf+1, GF_FALSE);
-		} else if (ftag==GF_ID3V2_FRAME_TXXX) {
+
+		if (ftag==GF_ID3V2_FRAME_TXXX) {
 			sep = memchr(buf, 0, fsize);
 			if (sep) {
 				if (!stricmp(buf+1, "comment")) {
@@ -314,6 +312,9 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 					gf_filter_pid_set_property(audio_pid, GF_PROP_PID_COVER_ART, &PROP_DATA(sep_desc+1, pic_size) );
 				}
 			}
+		} else if (tag_idx>=0) {
+			const char *tag_name = gf_itags_get_name((u32) tag_idx);
+			id3dmx_set_string(audio_pid, (char *) tag_name, buf+1, GF_FALSE);
 		} else {
 			sprintf(szTag, "tag_%s", gf_4cc_to_str(ftag));
 			if ((ftag>>24) == 'T') {
@@ -321,7 +322,6 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			} else {
 				gf_filter_pid_set_property_dyn(audio_pid, szTag, &PROP_DATA(buf, fsize) );
 			}
-			break;
 		}
 		size -= fsize;
 	}
