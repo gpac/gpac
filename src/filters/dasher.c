@@ -6388,7 +6388,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	char szSegmentName[GF_MAX_PATH], szSegmentFullPath[GF_MAX_PATH], szIndexName[GF_MAX_PATH];
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 
-	if (ctx->forward_mode && pck /*NULL on init*/) {
+	if (ctx->forward_mode) {
 		const GF_PropertyValue *p_fname, *p_manifest;
 
 		p_fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
@@ -7637,7 +7637,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
 				//flush the segment at next segment start which could be after the segment AST => 404
-				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && ds->opid) {
+				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC)) {
 					GF_FilterPacket *eods_pck;
 					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
 					if (eods_pck) {
