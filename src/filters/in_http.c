@@ -417,7 +417,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		if (ctx->nb_read > b_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPIn] Error fetching %s, corrupted blob (URL %s prev size %d new size %d)\n", ctx->src, cached, ctx->blob_size, b_size ) );
 			nb_read = 0;
-			ctx->blob_size = ctx->nb_read = ctx->file_size = b_size;
+			ctx->blob_size = b_size;
+			ctx->nb_read = ctx->file_size = b_size;
 			net_status = GF_NETIO_DATA_TRANSFERED;
 			e = GF_EOS;
 		} else {
