@@ -4911,6 +4911,8 @@ pssh (enum, default: v):       storage mode for PSSH box
 .br
 buf (sint, default: -100):     min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)
 .br
+spd (sint, default: 0):        suggested presentation delay in ms
+.br
 timescale (sint, default: 0):  set timescale for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale
 .br
 check_dur (bool, default: true): check duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used
@@ -7660,7 +7662,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev845-g45fd47bd3-master
+build: 1.1.0-DEV-rev885-gb013d40f2-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

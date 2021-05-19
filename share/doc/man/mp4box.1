@@ -2369,7 +2369,7 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * split_tiles: for an HEVC tiled image, each tile is stored as a separate item
 .br
-* image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also
+* image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid, overlay and identity derived images also
 .br
 * rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise
 .br
@@ -2377,11 +2377,17 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap
 .br
+* image-pasp=axb: force the aspect ratio of the image
+.br
+* image-pixi=(a|a,b,c): force the bit depth (1 or 3 channels)
+.br
 * hidden: indicate that this image item should be hidden
 .br
 * icc_path: path to icc data to add as color info
 .br
 * alpha: indicate that the image is an alpha image (should use ref=auxl also)
+.br
+* depth: indicate that the image is a depth image (should use ref=auxl also)
 .br
 * tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file
 .br
@@ -2394,11 +2400,15 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 - any other options will be passed as options to the media importer, see .I add
 .br
 .TP
-.B \-add-image-grid (string)
+.B \-add-derived-image (string)
 .br
-create an image grid item, with parameter syntax grid[:opt1:optN]
+create an image grid, overlay or identity item, with parameter syntax :type=(grid|iovl|iden)[:opt1:optN]
 .br
 * image-grid-size=rxc: set the number of rows and columns of the grid
+.br
+* image-overlay-offsets=h,v[,h,v]*: set the horizontal and vertical offsets of the images in the overlay
+.br
+* image-overlay-color=r,g,b,a: set the canvas color of the overlay [0-65535]
 .br
 - any other options from .I add-image can be used
 .br
@@ -2760,7 +2770,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev845-g45fd47bd3-master
+build: 1.1.0-DEV-rev885-gb013d40f2-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
