@@ -6227,6 +6227,31 @@ Both certificate and key must be in PEM format.
 .br
 The server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.
 .br
+  
+.br
+.SH Multiple destinations on single server
+.LP
+.br
+When running in server mode, multiple HTTP outputs with same URL/port may be used:
+.br
+- the first loaded HTTP output filter with same URL/port will be reused
+.br
+- all httpout options of subsequent httpout filters, except .I dst will be ignored, other options will be inherited as usual
+.br
+
+.br
+Example
+.br
+-i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag
+.br
+
+.br
+This will:
+.br
+- load the HTTP server and forward (through D1) the dash session to this server using live.mpd as manifest name
+.br
+- reuse the HTTP server and regenerate the manifest (through D2 and sigfrag option), using live_rw.mpd as manifest name
+.br
 
 .br
 
@@ -7662,7 +7687,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev885-gb013d40f2-master
+build: 1.1.0-DEV-rev889-ge75abeebd-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
