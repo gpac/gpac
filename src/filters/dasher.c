@@ -6391,8 +6391,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	if (ctx->forward_mode) {
 		const GF_PropertyValue *p_fname, *p_manifest;
 
-		p_fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
-		p_manifest = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+		p_fname = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENAME);
+		p_manifest = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENUM);
 		if (!p_fname || !p_fname->value.string || !p_manifest) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Couldn't fetch source URL / idx of segment in forward mode, cannot forward\n"));
 			ctx->in_error = GF_TRUE;
@@ -6400,7 +6400,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		}
 		strcpy(szSegmentName, p_fname->value.string);
 		//remove filename property
-		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, NULL);
+		if (pck)
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, NULL);
 
 		//check for manifest update
 		p_manifest = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_DASH_MANIFEST);
@@ -6424,7 +6425,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					}
 				}
 			}
-			gf_filter_pck_set_property(pck, GF_PROP_PCK_DASH_MANIFEST, NULL);
+			if (pck)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_DASH_MANIFEST, NULL);
 		}
 
 		//check for HLS child playlist update
@@ -6435,10 +6437,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			for (i=0; i<count; i++)
 				dasher_forward_manifest_raw(ctx, ds, p_manifest->value.string_list.vals[i], p_fname->value.string_list.vals[i]);
 		}
-		if (p_manifest)
-			gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_VARIANT, NULL);
-		if (p_fname)
-			gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_VARIANT_NAME, NULL);
+		if (pck) {
+			if (p_manifest)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_VARIANT, NULL);
+			if (p_fname)
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_VARIANT_NAME, NULL);
+		}
 
 		//we need to move from segment name to output name
 		if (ctx->forward_mode==DASHER_FWD_ALL)
@@ -7637,7 +7641,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
 				//flush the segment at next segment start which could be after the segment AST => 404
-				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC)) {
+				//
+				//if subdur no need to do so as we will close the muxer right after
+				//if sigfrag no need to do so since we don't generate media packets
+				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && !ctx->sigfrag) {
 					GF_FilterPacket *eods_pck;
 					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
 					if (eods_pck) {
