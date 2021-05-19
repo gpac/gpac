@@ -89,6 +89,7 @@ typedef struct
 	u32 next_wake_us;
 	char *ip;
 	Bool done;
+	struct __httpout_input *dst_in;
 
 	GF_SockGroup *sg;
 	Bool no_etag;
@@ -107,7 +108,7 @@ typedef struct
 	Bool log_record;
 } GF_HTTPOutCtx;
 
-typedef struct
+typedef struct __httpout_input
 {
 	GF_HTTPOutCtx *ctx;
 	GF_FilterPid *ipid;
@@ -141,6 +142,7 @@ typedef struct
 	u32 tunein_data_size;
     
     Bool force_dst_name;
+    Bool in_error;
 
 
 } GF_HTTPOutInput;
@@ -2714,6 +2716,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		u32 pck_size, nb_write;
 		GF_FilterPacket *pck;
 		GF_HTTPOutInput *in = gf_list_get(ctx->inputs, i);
+		if (in->in_error) continue;
 
 		//not sending/writing anything, delete files
 		if (!in->is_open && in->file_deletes) {
@@ -2782,7 +2785,19 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 				Otherwise PID was directly connected to the main filter, use main filter destination*/
 				GF_HTTPOutCtx *orig_ctx = gf_filter_pid_get_alias_udta(in->ipid);
 				if (!orig_ctx) orig_ctx = ctx;
-				name = orig_ctx->dst;
+
+				if (orig_ctx->dst_in && (orig_ctx->dst_in != in) ) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Mutliple input PIDs with no file name set, broken graph, discarding input %s\n\tYou may retry by adding a new http output filter\n", gf_filter_pid_get_name(in->ipid) ));
+
+					gf_filter_pid_set_discard(in->ipid, GF_TRUE);
+					in->in_error = GF_TRUE;
+					continue;
+				} else {
+					name = orig_ctx->dst;
+					orig_ctx->dst_in = in;
+				}
+			} else if (in->force_dst_name && !ctx->dst_in) {
+				ctx->dst_in = in;
 			}
 
 			httpout_open_input(ctx, in, name, GF_FALSE);
@@ -3194,6 +3209,16 @@ GF_FilterRegister HTTPOutRegister = {
 		"The server can run over TLS (https) for all the server modes. TLS is enabled by specifying [-cert]() and [-pkey]() options.\n"
 		"Both certificate and key must be in PEM format.\n"
 		"The server currently only operates in either HTTPS or HTTP mode and cannot run both modes at the same time. You will need to use two httpout filters for this, one operating in HTTPS and one operating in HTTP.\n"
+		"  \n"
+		"# Multiple destinations on single server\n"
+		"When running in server mode, multiple HTTP outputs with same URL/port may be used:\n"
+		"- the first loaded HTTP output filter with same URL/port will be reused\n"
+		"- all httpout options of subsequent httpout filters, except [-dst]() will be ignored, other options will be inherited as usual\n"
+		"\n"
+		"EX -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag\n"
+		"This will:\n"
+		"- load the HTTP server and forward (through `D1`) the dash session to this server using `live.mpd` as manifest name\n"
+		"- reuse the HTTP server and regenerate the manifest (through `D2` and `sigfrag` option), using `live_rw.mpd` as manifest name\n"
 		)
 	.private_size = sizeof(GF_HTTPOutCtx),
 	.max_extra_pids = -1,
