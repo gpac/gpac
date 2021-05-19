@@ -731,13 +731,19 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			break;
 			case GF_ISOM_BOX_TYPE_PIXI:
 			{
+				u32 k;
 				GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)b;
 				if (pixi->num_channels > 3) {
 					return GF_BAD_PARAM;
 				}
 				prop->num_channels = pixi->num_channels;
-				memset(prop->bits_per_channel, 0, 3);
-				memcpy(prop->bits_per_channel, pixi->bits_per_channel, pixi->num_channels);
+				for(k = 0; k < 3; k++) {
+					if (k < pixi->num_channels) {
+						prop->bits_per_channel[k] = pixi->bits_per_channel[k];
+					} else {
+						prop->bits_per_channel[k] = 0;
+					}
+				}
 			}
 			break;
 			case GF_ISOM_BOX_TYPE_IROT:
@@ -1009,32 +1015,6 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.hSpacing = 0;
 		searchprop.vSpacing = 0;
 	}
-	if (image_props->angle) {
-		searchprop.angle = image_props->angle;
-		prop_index = meta_find_prop(ipco, &searchprop);
-		if (prop_index < 0) {
-			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IROT);
-			if (!irot) return GF_OUT_OF_MEM;
-			irot->angle = image_props->angle/90;
-			prop_index = gf_list_count(ipco->child_boxes) - 1;
-		}
-		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
-		if (e) return e;
-		searchprop.angle = 0;
-	}
-	if (image_props->mirror) {
-		searchprop.mirror = image_props->mirror;
-		prop_index = meta_find_prop(ipco, &searchprop);
-		if (prop_index < 0) {
-			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IMIR);
-			if (!imir) return GF_OUT_OF_MEM;
-			imir->axis = image_props->mirror-1;
-			prop_index = gf_list_count(ipco->child_boxes) - 1;
-		}
-		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
-		if (e) return e;
-		searchprop.mirror = 0;
-	}
 	if (image_props->clap_wnum || image_props->clap_wden || image_props->clap_hnum || image_props->clap_hden || image_props->clap_honum || image_props->clap_hoden || image_props->clap_vonum || image_props->clap_voden) {
 		searchprop.clap_wnum = image_props->clap_wnum;
 		searchprop.clap_wden = image_props->clap_wden;
@@ -1062,6 +1042,32 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (e) return e;
 		searchprop.clap_wnum = searchprop.clap_wden = searchprop.clap_hnum = searchprop.clap_hden = searchprop.clap_honum = searchprop.clap_hoden = searchprop.clap_vonum = searchprop.clap_voden = 0;
 	}
+	if (image_props->angle) {
+		searchprop.angle = image_props->angle;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IROT);
+			if (!irot) return GF_OUT_OF_MEM;
+			irot->angle = image_props->angle/90;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.angle = 0;
+	}
+	if (image_props->mirror) {
+		searchprop.mirror = image_props->mirror;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_ImageMirrorBox *imir = (GF_ImageMirrorBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_IMIR);
+			if (!imir) return GF_OUT_OF_MEM;
+			imir->axis = image_props->mirror-1;
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.mirror = 0;
+	}
 	if (image_props->config) {
 		searchprop.config = image_props->config;
 		prop_index = meta_find_prop(ipco, &searchprop);
@@ -1086,9 +1092,25 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (e) return e;
 		searchprop.alpha = GF_FALSE;
 	}
+	if (image_props->depth) {
+		searchprop.depth = image_props->depth;
+		prop_index = meta_find_prop(ipco, &searchprop);
+		if (prop_index < 0) {
+			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_AUXC);
+			if (!auxC) return GF_OUT_OF_MEM;
+			auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:depth");
+			prop_index = gf_list_count(ipco->child_boxes) - 1;
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+		searchprop.alpha = GF_FALSE;
+	}
 	if (image_props->num_channels) {
+		u32 k;
 		searchprop.num_channels = image_props->num_channels;
-		memcpy(searchprop.bits_per_channel, image_props->bits_per_channel, 3);
+		for (k=0; k<3; k++) {
+			searchprop.bits_per_channel[k] = image_props->bits_per_channel[k];
+		}
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
 			GF_PixelInformationPropertyBox *pixi = (GF_PixelInformationPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_PIXI);
@@ -1096,7 +1118,9 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 			pixi->num_channels = image_props->num_channels;
 			pixi->bits_per_channel = gf_malloc(pixi->num_channels);
 			if (!pixi->bits_per_channel) return GF_OUT_OF_MEM;
-			memcpy(pixi->bits_per_channel, image_props->bits_per_channel, image_props->num_channels);
+			for (k=0; k<pixi->num_channels; k++) {
+				pixi->bits_per_channel[k] = image_props->bits_per_channel[k];
+			}
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
@@ -1204,7 +1228,6 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	u32 lastItemID = 0;
 	u32 item_id = io_item_id ? *io_item_id : 0;
 
-	if (!self_reference && !resource_path && !data && !tk_id && !item_extent_refs) return GF_BAD_PARAM;
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -1451,7 +1474,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		}
 		meta->use_item_sample_sharing = GF_TRUE;
 	}
-	else {
+	else if (data || resource_path){
 		/*capture mode, write to disk*/
 		if ((file->openMode == GF_ISOM_OPEN_WRITE) && !location_entry->data_reference_index) {
 			FILE *src;
@@ -1507,7 +1530,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 				memcpy(infe->full_path, data, sizeof(char) * data_len);
 				infe->data_len = data_len;
 			}
-			else {
+			else if (resource_path) {
 				infe->full_path = gf_strdup(resource_path);
 				infe->data_len = 0;
 			}
@@ -1531,9 +1554,9 @@ GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, u32 tk_id, u32 sample_len)
+GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 *item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, u32 tk_id, u32 sample_num)
 {
-	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, NULL, 0, NULL, tk_id, sample_len);
+	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, NULL, 0, NULL, tk_id, sample_num);
 }
 
 GF_EXPORT
