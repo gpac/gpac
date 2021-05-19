@@ -88,7 +88,7 @@ typedef enum {
 	META_ACTION_DUMP_ITEM			= 7,
 	META_ACTION_DUMP_XML			= 8,
 	META_ACTION_ADD_IMAGE_ITEM		= 9,
-	META_ACTION_ADD_IMAGE_GRID		= 10,
+	META_ACTION_ADD_IMAGE_DERIVED	= 10,
 } MetaActionType;
 
 typedef struct {
@@ -1178,22 +1178,27 @@ MP4BoxArg m4b_meta_args[] =
 		" - If `e` is set (float, in sec), import all sync samples between `t` and `e`\n"
 		" - If `i` is set (float, in sec), sets time increment between samples to import\n"
 		"- split_tiles: for an HEVC tiled image, each tile is stored as a separate item\n"
-		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid images also\n"
+		"- image-size=wxh: force setting the image size and ignoring the bitstream info, used for grid, overlay and identity derived images also\n"
 		"- rotation=a: set the rotation angle for this image to 90*a degrees anti-clockwise\n"
 		"- mirror-axis=axis: set the mirror axis: vertical, horizontal\n"
 		"- clap=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd: see track clap\n"
+ 		"- image-pasp=axb: force the aspect ratio of the image\n"
+ 		"- image-pixi=(a|a,b,c): force the bit depth (1 or 3 channels)\n"
 		"- hidden: indicate that this image item should be hidden\n"
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
+		"- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
 		"- ref: do not copy the data but refer to the final sample location\n"
 		"- agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will **try to** have `AR` aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_ITEM, ARG_IS_FUN),
-	MP4BOX_ARG("add-image-grid", "create an image grid item, with parameter syntax `grid[:opt1:optN]`\n"
+	MP4BOX_ARG("add-derived-image", "create an image grid, overlay or identity item, with parameter syntax `:type=(grid|iovl|iden)[:opt1:optN]`\n"
 		"- image-grid-size=rxc: set the number of rows and columns of the grid\n"
-	    "- any other options from [-add-image]() can be used\n", GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_GRID, ARG_IS_FUN),
+ 		"- image-overlay-offsets=h,v[,h,v]*: set the horizontal and vertical offsets of the images in the overlay\n"
+ 		"- image-overlay-color=r,g,b,a: set the canvas color of the overlay [0-65535]\n"
+	    "- any other options from [-add-image]() can be used\n", GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_DERIVED, ARG_IS_FUN),
 	MP4BOX_ARG_S_ALT("rem-item", "rem-image", "item_ID[:tk=tkID]", "remove resource from meta", 0, parse_meta_args, META_ACTION_REM_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG_S("set-primary", "item_ID[:tk=tkID]", "set item as primary for meta", 0, parse_meta_args, META_ACTION_SET_PRIMARY_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG_S("set-xml", "xml_file_path[:tk=tkID][:binary]", "set meta XML data", 0, parse_meta_args, META_ACTION_SET_XML, ARG_IS_FUN),
@@ -1760,12 +1765,73 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			}
 			sscanf(szSlot+16, "%dx%d", &meta->image_props->num_grid_rows, &meta->image_props->num_grid_columns);
 		}
+		else if (!strnicmp(szSlot, "image-overlay-color=", 20)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+20, "%d,%d,%d,%d", &meta->image_props->overlay_canvas_fill_value_r,&meta->image_props->overlay_canvas_fill_value_g,&meta->image_props->overlay_canvas_fill_value_b,&meta->image_props->overlay_canvas_fill_value_a);
+		}
+		else if (!strnicmp(szSlot, "image-overlay-offsets=", 22)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			u32 position = 22;
+			u32 comma_count = 0;
+			u32 offset_index = 0;
+			char *prev = szSlot+position;
+			char *next = strchr(szSlot+position, ',');
+			while (next != NULL) {
+				comma_count++;
+				next++;
+				next = strchr(next, ',');
+			}
+			meta->image_props->overlay_count = comma_count/2+1;
+			meta->image_props->overlay_offsets = (GF_ImageItemOverlayOffset *)gf_malloc(meta->image_props->overlay_count*sizeof(GF_ImageItemOverlayOffset));
+			if (!meta->image_props->overlay_offsets) {
+				return 0;
+			}
+			next = strchr(szSlot+position, ',');
+			while (next != NULL) {
+				*next = 0;
+				meta->image_props->overlay_offsets[offset_index].horizontal = atoi(prev);
+				*next = ',';
+				next++;
+				prev = next;
+				if (next) {
+					next = strchr(next, ',');
+					if (next) *next = 0;
+					meta->image_props->overlay_offsets[offset_index].vertical = atoi(prev);
+					if (next) {
+						*next = ',';
+						next++;
+						prev = next;
+						next = strchr(next, ',');
+					}
+				} else {
+					meta->image_props->overlay_offsets[offset_index].vertical = 0;
+				}
+				offset_index++;
+			}
+		}
 		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 				if (!meta->image_props) return 2;
 			}
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hSpacing, &meta->image_props->vSpacing);
+		}
+		else if (!strnicmp(szSlot, "image-pixi=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 0;
+			}
+			if (strchr(szSlot+11, ',') == NULL) {
+				meta->image_props->num_channels = 1;
+				meta->image_props->bits_per_channel[0] = atoi(szSlot+11);
+			} else {
+				meta->image_props->num_channels = 3;
+				sscanf(szSlot+11, "%u,%u,%u", &(meta->image_props->bits_per_channel[0]), &(meta->image_props->bits_per_channel[1]), &(meta->image_props->bits_per_channel[2]));
+			}
 		}
 		else if (!strnicmp(szSlot, "image-rloc=", 11)) {
 			if (!meta->image_props) {
@@ -1812,6 +1878,13 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			}
 			meta->image_props->alpha = GF_TRUE;
 		}
+		else if (!stricmp(szSlot, "depth")) {
+ 			if (!meta->image_props) {
+ 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+ 				if (!meta->image_props) return 0;
+ 			}
+			meta->image_props->depth = GF_TRUE;
+ 		}
 		//"ref" (without '=') is for data reference, "ref=" is for item references
 		else if (!stricmp(szSlot, "ref")) {
 			if (!meta->image_props) {
@@ -4788,7 +4861,7 @@ static GF_Err do_meta_act()
 			do_save = GF_TRUE;
 		}
 			break;
-		case META_ACTION_ADD_IMAGE_GRID:
+		case META_ACTION_ADD_IMAGE_DERIVED:
 		{
 			u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 			e = GF_OK;
@@ -4804,11 +4877,25 @@ static GF_Err do_meta_act()
 				if (!meta->item_id) {
 					e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 				}
-				if (e == GF_OK) {
-					e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
-							meta->szName && strlen(meta->szName) ? meta->szName : NULL,
-							meta->item_id,
-							meta->image_props);
+				if (e == GF_OK && meta->item_type) {
+					if (meta->item_type == GF_4CC('g','r','i','d')) {
+						e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
+								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props);
+					} else if (meta->item_type == GF_4CC('i','o','v','l')) {
+						e = gf_isom_iff_create_image_overlay_item(file, meta->root_meta, tk,
+								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props);
+					} else if (meta->item_type == GF_4CC('i','d','e','n')) {
+						e = gf_isom_iff_create_image_identity_item(file, meta->root_meta, tk,
+								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props);
+					} else {
+						e = GF_NOT_SUPPORTED;
+					}
 					if (e == GF_OK && meta->primary) {
 						e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 					}
