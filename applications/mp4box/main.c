@@ -4961,10 +4961,7 @@ static GF_Err do_meta_act()
 			gf_list_del(meta->item_refs);
 			meta->item_refs = NULL;
 		}
-		if (meta->image_props) {
-			gf_free(meta->image_props);
-			meta->image_props = NULL;
-		}
+		// meta->image_props is freed in mp4box_cleanup
 		if (e) return e;
 	}
 	return GF_OK;
@@ -5439,6 +5436,11 @@ static u32 mp4box_cleanup(u32 ret_code) {
 			if (metas[i].mime_type) gf_free(metas[i].mime_type);
 			if (metas[i].szName) gf_free(metas[i].szName);
 			if (metas[i].szPath) gf_free(metas[i].szPath);
+			if (metas[i].image_props) {
+				GF_ImageItemProperties *iprops = metas[i].image_props;
+				if (iprops->overlay_offsets) gf_free(iprops->overlay_offsets);
+				gf_free(iprops);
+			}
 		}
 		gf_free(metas);
 		metas = NULL;
