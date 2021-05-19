@@ -288,7 +288,10 @@ struct __gf_fs_task
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool requires_main_thread, Bool force_direct_call);
+/* extended version of gf_fs_post_task
+force_direct_call shall only be true for gf_filter_process_task
+*/
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_direct_call);
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
 

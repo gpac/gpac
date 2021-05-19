@@ -2644,7 +2644,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 GF_EXPORT
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 {
-	if (!filter->in_process) {
+	if (!filter->in_process_callback) {
 		if (filter->session->direct_mode) return;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
 		return;
