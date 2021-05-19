@@ -1399,6 +1399,35 @@ GF_Err gf_isom_update_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 s
 	return GF_OK;
 }
 
+//for gf_isom_remove_sample and gf_isom_remove_track: check all items sharing their data with a sample being removed
+//and remove sharing flag
+// sample_number can be 0 for complete track removal
+static void gf_isom_meta_track_remove(GF_ISOFile *movie, GF_TrackBox *trak, u32 sample_number)
+{
+	u32 i, count;
+	if (!movie || !movie->meta || !movie->meta->use_item_sample_sharing)
+		return;
+
+	count = gf_list_count(movie->meta->item_locations->location_entries);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(movie->meta->item_locations->location_entries, i);
+		/*get item info*/
+		GF_ItemInfoEntryBox *iinf = NULL;
+		j=0;
+		while ((iinf = (GF_ItemInfoEntryBox *)gf_list_enum(movie->meta->item_infos->item_infos, &j))) {
+			if (iinf->item_ID==iloc->item_ID) break;
+		}
+		if (!iinf || !iinf->tk_id) continue;
+		if (iinf->tk_id != trak->Header->trackID) continue;
+
+		if (sample_number && (iinf->sample_num != sample_number)) continue;
+		iinf->tk_id = 0;
+		iinf->sample_num = 0;
+	}
+}
+
+
 
 //Remove a given sample
 GF_EXPORT
@@ -1460,6 +1489,8 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	if (e) return e;
 
 	gf_isom_disable_inplace_rewrite(movie);
+
+	gf_isom_meta_track_remove(movie, trak, sampleNumber);
 
 	return SetTrackDuration(trak);
 }
@@ -2774,6 +2805,8 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	}
 
 	gf_isom_disable_inplace_rewrite(movie);
+
+	gf_isom_meta_track_remove(movie, the_trak, 0);
 
 	//delete the track
 	gf_isom_box_del_parent(&movie->moov->child_boxes, (GF_Box *)the_trak);
