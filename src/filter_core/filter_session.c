@@ -783,7 +783,6 @@ static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 }
 #endif
 
-
 void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_direct_call)
 {
 	GF_FSTask *task;
@@ -793,8 +792,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	assert(fsess);
 	assert(task_fun);
 
-	//only flatten calls if in main thread (we still have some broken filters using threading
-	//that could trigger tasks
+	//only flatten calls if in main thread (we still have some broken filters using threading that could trigger tasks)
 	if ((force_direct_call || fsess->direct_mode)
 		&& (!filter || !filter->in_process)
 		&& fsess->tasks_in_process
@@ -822,6 +820,24 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 			return;
 		//asked to requeue the task, post it
 	}
+
+	/*this was a gf_filter_process_task request but direct call could not be done or requeue is requested.
+	process_task_queued was incremented by caller without checking for existing process task
+		- If the task was not treated, dec / inc will give the same state, undo process_task_queued increment
+		- If the task was requeued, dec will undo the increment done when requeing the task in gf_filter_check_pending_tasks
+
+	In both cases, inc will redo the same logic as in gf_filter_post_process_task_internal, not creating task if gf_filter_process_task is
+	already scheduled for the filter
+
+	We must use safe_int_dec/safe_int_inc here for multi thread cases - cf issue #1778
+	*/
+	if (force_direct_call) {
+		assert(filter);
+		safe_int_dec(&filter->process_task_queued);
+		if (safe_int_inc(&filter->process_task_queued) > 1) {
+			return;
+		}
+	}
 	task = gf_fq_pop(fsess->tasks_reservoir);
 
 	if (!task) {
@@ -844,6 +860,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 	if (filter) {
 		gf_mx_p(filter->tasks_mx);
+
 		//no tasks and not scheduled
 		if (! filter->scheduled_for_next_task && !gf_fq_count(filter->tasks)) {
 			notified = task->notified = GF_TRUE;
