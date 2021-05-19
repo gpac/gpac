@@ -1431,7 +1431,11 @@ import_next_sample:
 			}
 			// presence of OBU SH in config is not recommended and properties should be used instead of metadata OBUs
 			while (gf_list_count(((GF_AV1ConfigurationBox *)config_box)->config->obu_array)) {
-				gf_free(gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array));
+				GF_AV1_OBUArrayEntry *obu = gf_list_pop_back(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
+				if (obu) {
+					if (obu->obu) gf_free(obu->obu);
+					gf_free(obu);
+				}
 			}
 			gf_list_del(((GF_AV1ConfigurationBox *)config_box)->config->obu_array);
 			((GF_AV1ConfigurationBox *)config_box)->config->obu_array = NULL;
