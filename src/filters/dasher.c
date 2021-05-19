@@ -436,6 +436,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds);
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy);
 static void dasher_update_period_duration(GF_DasherCtx *ctx, Bool is_period_switch);
 static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *for_ds);
+static GF_Err dasher_setup_profile(GF_DasherCtx *ctx);
 
 static GF_DasherPeriod *dasher_new_period()
 {
@@ -1097,6 +1098,15 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		CHECK_PROP_STR(GF_PROP_PID_HLS_PLAYLIST, ds->hls_vp_name, GF_EOS)
 		CHECK_PROP_BOOL(GF_PROP_PID_SINGLE_SCALE, ds->sscale, GF_EOS)
 
+		//if manifest generation mode with template and no template at PID or filter level, switch to main profile
+		if (ctx->sigfrag && ctx->tpl && !ctx->template && !ds->template) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Warning, manifest generation only mode requested for live-based profile but no template provided, switching to main profile.\n"));
+			ctx->profile = GF_DASH_PROFILE_MAIN;
+			ctx->tpl = GF_FALSE;
+			dasher_setup_profile(ctx);
+			//we force single file in this mode, but we will replace byte ranges by source URL
+			ctx->sfile = GF_TRUE;
+		}
 
 		if (ds->rate_first_dts_plus_one)
 			dasher_update_bitrate(ctx, ds);
@@ -8426,17 +8436,8 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 	//we build manifest from input frag/seg, always use single frag
 	if (ctx->sigfrag) {
 		if (ctx->tpl) {
-			if (!ctx->template) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Warning, manifest generation only mode requested for live-based profile but no template provided, switching to main profile.\n"));
-				ctx->profile = GF_DASH_PROFILE_MAIN;
-				ctx->tpl = GF_FALSE;
-				dasher_setup_profile(ctx);
-				//we force single file in this mode, but we will replace byte ranges by source URL
-				ctx->sfile = GF_TRUE;
-			} else {
-				ctx->sseg = GF_FALSE;
-				ctx->sfile = GF_FALSE;
-			}
+			ctx->sseg = GF_FALSE;
+			ctx->sfile = GF_FALSE;
 		} else {
 			if (!ctx->sseg)
 				ctx->sfile = GF_TRUE;
