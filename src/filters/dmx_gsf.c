@@ -111,6 +111,7 @@ typedef struct
 
 	Bool corrupted;
 	Bool file_pids;
+	Bool stop_pending;
 } GSF_DemuxCtx;
 
 
@@ -174,12 +175,11 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		}
 		ctx->nb_playing++;
 		ctx->wait_for_play = GF_FALSE;
+		ctx->stop_pending = GF_FALSE;
 
 		if (! ctx->is_file) {
-			gf_filter_post_process_task(filter);
 			return GF_FALSE;
 		}
-//		safdmx_check_dur(ctx);
 
 		ctx->start_range = evt->play.start_range;
 		ctx->file_pos = 0;
@@ -207,8 +207,10 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
 		if (ctx->file_pids) return GF_TRUE;
-		//cancel
-		return ctx->nb_playing ? GF_TRUE : GF_FALSE;
+		ctx->stop_pending = GF_TRUE;
+		//always cancel, take the decision to stop source after demuxing some packets
+		//this avoids stoping (and reseting inputs) when some streams of the mux are not used while other are
+		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
 		//cancel event
@@ -1025,13 +1027,15 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 	if (!ctx->tuned)
 		ctx->buf_size = 0;
 
-	if (ctx->alloc_size < ctx->buf_size + data_size) {
-		ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*(ctx->buf_size + data_size) );
-		ctx->alloc_size = ctx->buf_size + data_size;
-	}
+	if (data && data_size) {
+		if (ctx->alloc_size < ctx->buf_size + data_size) {
+			ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*(ctx->buf_size + data_size) );
+			ctx->alloc_size = ctx->buf_size + data_size;
+		}
 
-	memcpy(ctx->buffer + ctx->buf_size, data, sizeof(char)*data_size);
-	ctx->buf_size += data_size;
+		memcpy(ctx->buffer + ctx->buf_size, data, sizeof(char)*data_size);
+		ctx->buf_size += data_size;
+	}
 
 	gf_bs_reassign_buffer(ctx->bs_r, ctx->buffer, ctx->buf_size);
 	while (gf_bs_available(ctx->bs_r) > 4) { //1 byte header + 3 vlen field at least 1 bytes
@@ -1175,6 +1179,13 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		assert(ctx->buf_size>=last_pck_end);
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
+
+		if (ctx->stop_pending) {
+			GF_FilterEvent evt;
+			ctx->stop_pending = GF_FALSE;
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
+			gf_filter_pid_send_event(ctx->ipid, &evt);
+		}
 	}
 	return GF_OK;
 }
@@ -1195,9 +1206,12 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
-		if (gf_filter_pid_is_eos(ctx->ipid)) is_eos = GF_TRUE;
+		if (ctx->buf_size) {
+			return gsfdmx_demux(filter, ctx, NULL, 0);
+		}
+		if (gf_filter_pid_is_eos(ctx->ipid))
+			is_eos = GF_TRUE;
 		else {
-			gf_filter_post_process_task(filter);
 			return GF_OK;
 		}
 	}
