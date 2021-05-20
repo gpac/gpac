@@ -1166,7 +1166,6 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 		if (first || (is_lvvc && first_lvvc) ) {
 			VVC_VPS *vps = &ctx->vvc_state->vps[sps->vps_id];
-			cfg->configurationVersion = 1;
 			cfg->avgFrameRate = 0;
 			cfg->constantFrameRate = 1;
 			cfg->numTemporalLayers = sps->max_sublayers;
@@ -1190,8 +1189,10 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 				cfg->num_sub_profiles = 0;
 				cfg->ols_idx = 0;
 			}
-			cfg->chromaformat_plus_one = 1 + sps->chroma_format_idc;
-			cfg->bit_depth_plus_one = 1 + sps->bitdepth;
+			cfg->chroma_format = sps->chroma_format_idc;
+			cfg->bit_depth = sps->bitdepth;
+			cfg->maxPictureWidth = sps->width;
+			cfg->maxPictureHeight = sps->height;
 
 			if (sps->aspect_ratio_info_present_flag && sps->sar_width && sps->sar_height) {
 				sar->num = sps->sar_width;

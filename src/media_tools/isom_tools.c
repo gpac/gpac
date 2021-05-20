@@ -3937,7 +3937,11 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 {
 	assert(vvcc);
 
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%d.%s%d", gf_4cc_to_str(subtype), vvcc->general_profile_idc, vvcc->general_tier_flag ? "H" : "L", vvcc->general_level_idc);
+	if ( (subtype==GF_4CC('v','v','c','N')) || (subtype==GF_4CC('v','v','s','1')) ) {
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
+	} else {
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%d.%s%d", gf_4cc_to_str(subtype), vvcc->general_profile_idc, vvcc->general_tier_flag ? "H" : "L", vvcc->general_level_idc);
+	}
 	return GF_OK;
 }
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl)

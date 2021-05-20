@@ -1022,7 +1022,6 @@ typedef struct
 /*! VVC config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
-	u8 configurationVersion;
 	u8 general_profile_idc;
 	u8 general_tier_flag;
 	u8 general_sub_profile_idc;
@@ -1033,11 +1032,12 @@ typedef struct
 	u8 ptl_sublayer_present_mask;
 	u8 sublayer_level_idc[8];
 
-	u8 chromaformat_plus_one;
-	u8 bit_depth_plus_one;
+	u8 chroma_format;
+	u8 bit_depth;
 	u16 avgFrameRate;
 	u8 constantFrameRate;
 	u8 numTemporalLayers;
+	u16 maxPictureWidth, maxPictureHeight;
 
 	Bool ptl_present, ptl_frame_only_constraint, ptl_multilayer_enabled;
 	u8 num_sub_profiles;
