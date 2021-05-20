@@ -1717,7 +1717,7 @@ GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
 		} else {
 			gf_fprintf(trace, "<VVCDecoderConfigurationRecord nal_unit_size=\"\" configurationVersion=\"\" ");
 			gf_fprintf(trace, "general_profile_idc=\"\" general_tier_flag=\"\" general_sub_profile_idc=\"\" general_constraint_info=\"\" general_level_idc=\"\" ");
-			gf_fprintf(trace, "chroma_format=\"\" luma_bit_depth=\"\" chroma_bit_depth=\"\" avgFrameRate=\"\" constantFrameRate=\"\" numTemporalLayers=\"\"");
+			gf_fprintf(trace, "chroma_format=\"\" luma_bit_depth=\"\" chroma_bit_depth=\"\" avgFrameRate=\"\" constantFrameRate=\"\" numTemporalLayers=\"\" maxWidth=\"\" maxHeight=\"\"");
 
 			gf_fprintf(trace, ">\n");
 			gf_fprintf(trace, "<ParameterSetArray nalu_type=\"\" complete_set=\"\">\n");
@@ -1730,21 +1730,22 @@ GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
 	}
 
 	gf_fprintf(trace, "<VVCDecoderConfigurationRecord nal_unit_size=\"%d\" ", p->config->nal_unit_size);
-	gf_fprintf(trace, "configurationVersion=\"%u\" ", p->config->configurationVersion);
-	gf_fprintf(trace, "general_profile_idc=\"%u\" ", p->config->general_profile_idc);
-	gf_fprintf(trace, "general_tier_flag=\"%u\" ", p->config->general_tier_flag);
-	gf_fprintf(trace, "general_sub_profile_idc=\"%u\" ", p->config->general_sub_profile_idc);
-	if (p->config->general_constraint_info) {
-		gf_fprintf(trace, "general_constraint_info=\"");
-		dump_data_hex(trace, p->config->general_constraint_info, p->config->num_constraint_info);
-		gf_fprintf(trace, "\" ");
+	if (p->config->ptl_present) {
+
+		gf_fprintf(trace, "chroma_format=\"%s\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" maxWidth=\"%u\" maxHeight=\"%u\" ",
+			gf_avc_hevc_get_chroma_format_name(p->config->chroma_format),
+			p->config->bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->maxPictureWidth, p->config->maxPictureHeight);
+
+		gf_fprintf(trace, "general_profile_idc=\"%u\" ", p->config->general_profile_idc);
+		gf_fprintf(trace, "general_tier_flag=\"%u\" ", p->config->general_tier_flag);
+		gf_fprintf(trace, "general_sub_profile_idc=\"%u\" ", p->config->general_sub_profile_idc);
+		if (p->config->general_constraint_info) {
+			gf_fprintf(trace, "general_constraint_info=\"");
+			dump_data_hex(trace, p->config->general_constraint_info, p->config->num_constraint_info);
+			gf_fprintf(trace, "\" ");
+		}
+		gf_fprintf(trace, "general_level_idc=\"%u\" ", p->config->general_level_idc);
 	}
-	gf_fprintf(trace, "general_level_idc=\"%u\" ", p->config->general_level_idc);
-
-	gf_fprintf(trace, "chroma_format=\"%s\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" ",
-			p->config->chromaformat_plus_one ? gf_avc_hevc_get_chroma_format_name(p->config->chromaformat_plus_one) : "n/a",
-			p->config->bit_depth_plus_one - 1, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers);
-
 	gf_fprintf(trace, ">\n");
 
 	count = gf_list_count(p->config->param_array);

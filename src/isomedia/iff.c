@@ -1453,7 +1453,7 @@ import_next_sample:
 
 		config_needed = 1;
 		num_channels = 3;
-		bits_per_channel[0] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth_plus_one - 1;
+		bits_per_channel[0] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth;
 		bits_per_channel[1] = bits_per_channel[2] = bits_per_channel[0];
 		//media_brand = GF_ISOM_BRAND_HEIC;
 		break;

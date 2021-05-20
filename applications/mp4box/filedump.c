@@ -2254,6 +2254,8 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 	}
 
 	count = gf_isom_get_meta_item_count(file, root_meta, tk_num);
+	if (!count && !meta_type) return;
+
 	primary_id = gf_isom_get_meta_primary_item_id(file, root_meta, tk_num);
 	fprintf(stderr, "%s type: \"%s\" - %d resource item(s)\n", name, meta_type ? gf_4cc_to_str(meta_type) : "undefined", (count+(primary_id>0)));
 	switch (gf_isom_has_meta_xml(file, root_meta, tk_num)) {
@@ -2340,8 +2342,8 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 		fprintf(stderr, "\n");
 		if (url) fprintf(stderr, "%sURL: %s\n", szInd, url);
 		if (urn) fprintf(stderr, "%sURN: %s\n", szInd, urn);
-
 	}
+	fprintf(stderr, "\n");
 }
 
 
@@ -2455,18 +2457,19 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	u32 idx;
 #endif
 	u32 k;
-	fprintf(stderr, "\tVVC Info:");
-
-	fprintf(stderr, " Profile %d @ Level %d - Chroma Format %s\n", vvccfg->general_profile_idc, vvccfg->general_level_idc, vvccfg->chromaformat_plus_one ? gf_avc_hevc_get_chroma_format_name(vvccfg->chromaformat_plus_one-1) : "n/a");
-	fprintf(stderr, "\n");
 	fprintf(stderr, "\tNAL Unit length bits: %d", 8*vvccfg->nal_unit_size);
-	if (vvccfg->general_constraint_info && vvccfg->num_constraint_info && vvccfg->general_constraint_info[0]) {
-		fprintf(stderr, " - general constraint info 0x");
-		for (idx=0; idx<vvccfg->num_constraint_info; idx++) {
-			fprintf(stderr, "%02X", vvccfg->general_constraint_info[idx]);
+	if (vvccfg->ptl_present) {
+		fprintf(stderr, " Profile %d @ Level %d - Chroma Format %s", vvccfg->general_profile_idc, vvccfg->general_level_idc, gf_avc_hevc_get_chroma_format_name(vvccfg->chroma_format));
+		if (vvccfg->general_constraint_info && vvccfg->num_constraint_info && vvccfg->general_constraint_info[0]) {
+			fprintf(stderr, " - general constraint info 0x");
+			for (idx=0; idx<vvccfg->num_constraint_info; idx++) {
+				fprintf(stderr, "%02X", vvccfg->general_constraint_info[idx]);
+			}
 		}
+		fprintf(stderr, "\n");
+		fprintf(stderr, "\tBit Depth %d - %d temporal layers\n", vvccfg->bit_depth, vvccfg->numTemporalLayers);
 	}
-	fprintf(stderr, "\n");
+
 	fprintf(stderr, "\tParameter Sets: ");
 	for (k=0; k<gf_list_count(vvccfg->param_array); k++) {
 		GF_NALUFFParamArray *ar=gf_list_get(vvccfg->param_array, k);
@@ -2519,7 +2522,6 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 		}
 	}
 #endif
-	fprintf(stderr, "\tBit Depth %d - %d temporal layers\n", vvccfg->bit_depth_plus_one-1, vvccfg->numTemporalLayers);
 
 	for (k=0; k<gf_list_count(vvccfg->param_array); k++) {
 		GF_NALUFFParamArray *ar=gf_list_get(vvccfg->param_array, k);
