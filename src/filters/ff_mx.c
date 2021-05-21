@@ -85,6 +85,12 @@ typedef struct
 	FILE *gfio;
 
 	u32 cur_file_idx_plus_one;
+
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	AVPacket pkt;
+#else
+	AVPacket *pkt;
+#endif
 } GF_FFMuxCtx;
 
 static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
@@ -159,7 +165,7 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 {
 	const char *dst;
 	Bool use_gfio=GF_FALSE;
-	AVOutputFormat *ofmt = ctx->muxer->oformat;
+	const AVOutputFormat *ofmt = ctx->muxer->oformat;
 
 	dst = final_name ? final_name : ctx->dst;
 	if (!strncmp(dst, "gfio://", 7)) {
@@ -201,10 +207,15 @@ static GF_Err ffmx_open_url(GF_FFMuxCtx *ctx, char *final_name)
 static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 {
 	const char *url, *sep;
-	AVOutputFormat *ofmt;
+	const AVOutputFormat *ofmt;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 
 	ffmpeg_setup_logs(GF_LOG_CONTAINER);
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	if (!ctx->pkt)
+		ctx->pkt = av_packet_alloc();
+#endif
 
 	ctx->muxer = avformat_alloc_context();
 	if (!ctx->muxer) return GF_OUT_OF_MEM;
@@ -243,7 +254,7 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 		}
 		return GF_SERVICE_ERROR;
 	}
-	ctx->muxer->oformat = ofmt;
+	ctx->muxer->oformat = FF_OFMT_CAST ofmt;
 
 	ctx->status = FFMX_STATE_ALLOC;
 	//templates are used, we need to postpone opening the url until we have a PID and a first packet
@@ -299,8 +310,10 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 			st->time_base = ctx->muxer->streams[i]->time_base;
 			st->avg_frame_rate = ctx->muxer->streams[i]->avg_frame_rate;
 
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
 			if (ctx->muxer->streams[i]->codecpar->codec_tag == MKTAG('t','m','c','d'))
 				st->codec->time_base = ctx->muxer->streams[i]->codec->time_base;
+#endif
 
 			av_dict_copy(&st->metadata, ctx->muxer->streams[i]->metadata, 0);
 
@@ -321,10 +334,13 @@ static GF_Err ffmx_start_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, const char *se
 		ctx->muxer->pb = NULL;
 	}
 
-//	av_freep(&ctx->muxer->url);
-//	ctx->muxer->url = av_strdup(seg_name);
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
 	strncpy(ctx->muxer->filename, seg_name, 1023);
 	ctx->muxer->filename[1023]=0;
+#else
+	av_freep(&ctx->muxer->url);
+	ctx->muxer->url = av_strdup(seg_name);
+#endif
 	ctx->offset_at_seg_start = 0;
 
 	if (!(ctx->muxer->oformat->flags & AVFMT_NOFILE)) {
@@ -375,13 +391,13 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 			if (ctx->status==FFMX_STATE_HDR_DONE) {
 				res = av_write_trailer(ctx->muxer);
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Invalid state %d for segment %s close\n", ctx->status, /*ctx->muxer->url*/ctx->muxer->filename));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Invalid state %d for segment %s close\n", ctx->status, AVFMT_URL(ctx->muxer) ));
 				return GF_SERVICE_ERROR;
 			}
 		}
 
 		if (res<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to flush segment %s - error %s\n", /*ctx->muxer->url*/ctx->muxer->filename, av_err2str(res) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to flush segment %s - error %s\n", AVFMT_URL(ctx->muxer), av_err2str(res) ));
 			return GF_SERVICE_ERROR;
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
@@ -470,7 +486,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			int res;
 			const GF_PropertyValue *p;
 			u32 sap;
-			AVPacket ffpck;
+			AVPacket *pkt;
 			GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
 			if (!ipck) {
 				if (gf_filter_pid_is_eos(ipid)) {
@@ -523,38 +539,40 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				}
 			}
 
-			av_init_packet(&ffpck);
-			ffpck.stream_index = st->stream->index;
-			ffpck.dts = gf_filter_pck_get_dts(ipck);
-			ffpck.pts = gf_filter_pck_get_cts(ipck);
-			if (st->cts_shift) ffpck.pts += st->cts_shift;
+			FF_INIT_PCK(ctx, pkt)
 
-			if (ffpck.dts > ffpck.pts) {
-				st->cts_shift = (u32) (ffpck.dts - ffpck.pts);
+			pkt->stream_index = st->stream->index;
+			pkt->dts = gf_filter_pck_get_dts(ipck);
+			pkt->pts = gf_filter_pck_get_cts(ipck);
+			if (st->cts_shift) pkt->pts += st->cts_shift;
+
+			if (pkt->dts > pkt->pts) {
+				st->cts_shift = (u32) (pkt->dts - pkt->pts);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMux] Negative CTS offset -%d found, adjusting offset\n", st->cts_shift));
-				ffpck.pts = ffpck.dts;
+				pkt->pts = pkt->dts;
 			}
-			ffpck.duration = gf_filter_pck_get_duration(ipck);
+			pkt->duration = gf_filter_pck_get_duration(ipck);
 			sap = gf_filter_pck_get_sap(ipck);
-			if (sap==GF_FILTER_SAP_1) ffpck.flags = AV_PKT_FLAG_KEY;
-			ffpck.data = (u8 *) gf_filter_pck_get_data(ipck, &ffpck.size);
+			if (sap==GF_FILTER_SAP_1) pkt->flags = AV_PKT_FLAG_KEY;
+			pkt->data = (u8 *) gf_filter_pck_get_data(ipck, &pkt->size);
 
 			if (st->ts_rescale) {
-				av_packet_rescale_ts(&ffpck, st->in_scale, st->stream->time_base);
+				av_packet_rescale_ts(pkt, st->in_scale, st->stream->time_base);
 			}
 
 			if (ctx->interleave) {
-				res = av_interleaved_write_frame(ctx->muxer, &ffpck);
+				res = av_interleaved_write_frame(ctx->muxer, pkt);
 			} else {
-				res = av_write_frame(ctx->muxer, &ffpck);
+				res = av_write_frame(ctx->muxer, pkt);
 			}
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet to %s - error %s\n", /*ctx->muxer->url*/ctx->muxer->filename, av_err2str(res) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet to %s - error %s\n", AVFMT_URL(ctx->muxer), av_err2str(res) ));
 				e = GF_IO_ERR;
 			}
 
 			gf_filter_pid_drop_packet(ipid);
 			ctx->nb_pck_in_seg++;
+			FF_RELEASE_PCK(pkt)
 		}
 	}
 
@@ -909,6 +927,10 @@ static void ffmx_finalize(GF_Filter *filter)
 		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
 	}
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	av_packet_free(&ctx->pkt);
+#endif
+
 	if (ctx->options) av_dict_free(&ctx->options);
 	if (ctx->muxer)	avformat_free_context(ctx->muxer);
 	while (gf_list_count(ctx->streams)) {
@@ -958,7 +980,7 @@ static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
 		return GF_FPROBE_NOT_SUPPORTED;
 
 
-	AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
+	const AVOutputFormat *ofmt = av_guess_format(NULL, url, mime);
 	if (!ofmt && mime) ofmt = av_guess_format(NULL, NULL, mime);
 	if (!ofmt && url) ofmt = av_guess_format(NULL, url, NULL);
 

@@ -1766,6 +1766,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 
 	if (p4cc==GF_PROP_PID_DOWNLOAD_SESSION)
 		return;
+	if (p4cc==GF_PROP_PCK_END_RANGE)
+		return;
 
 	if (p4cc==GF_PROP_PID_CENC_KEY_INFO) {
 		u32 i, nb_keys, kpos;

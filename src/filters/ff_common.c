@@ -472,7 +472,9 @@ void ffmpeg_setup_logs(u32 log_class)
 void ffmpeg_initialize()
 {
 	if (ffmpeg_init) return;
+#if (LIBAVFORMAT_VERSION_MAJOR < 59)
 	av_register_all();
+#endif
 	avformat_network_init();
 	ffmpeg_init = GF_TRUE;
 }
@@ -665,15 +667,15 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 #endif
 	const struct AVOption *opt;
 	GF_List *all_filters = gf_list_new();
-	AVInputFormat *fmt = NULL;
+	const AVInputFormat *fmt = NULL;
 	const AVOutputFormat *ofmt = NULL;
-	AVCodec *codec = NULL;
+	const AVCodec *codec = NULL;
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 	const AVFilter *avf = NULL;
 #endif
 
-#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6)
-	void *av_it;
+#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6) || (LIBAVFORMAT_VERSION_MAJOR >= 59)
+	void *av_it = NULL;
 #endif
 
 	const char *fname = "";
@@ -707,7 +709,7 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 second_pass:
 #endif
 
-#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6)
+#if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6) || (LIBAVFORMAT_VERSION_MAJOR >= 59)
 	av_it = NULL;
 #endif
 
@@ -731,8 +733,14 @@ second_pass:
 			} else
 #endif
 			{
+
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 				fmt = av_iformat_next(fmt);
+#else
+				fmt = av_demuxer_iterate(&av_it);
+#endif
 				if (!fmt) break;
+
 				av_class = fmt->priv_class;
 				subname = fmt->name;
 #ifndef GPAC_DISABLE_DOC
@@ -740,7 +748,11 @@ second_pass:
 #endif
 			}
 		} else if (type==FF_REG_TYPE_DECODE) {
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 			codec = av_codec_next(codec);
+#else
+			codec = av_codec_iterate(&av_it);
+#endif
 			if (!codec) break;
 			if (!av_codec_is_decoder(codec))
 				continue;
@@ -752,7 +764,7 @@ second_pass:
 #endif
 		} else if (type==FF_REG_TYPE_DEV_IN) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
-			fmt = av_input_video_device_next(fmt);
+			fmt = av_input_video_device_next(FF_IFMT_CAST fmt);
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
@@ -761,7 +773,12 @@ second_pass:
 #endif
     		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
 #else
+
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 			fmt = av_iformat_next(fmt);
+#else
+			fmt = av_demuxer_iterate(&av_it);
+#endif
 			if (!fmt) break;
 			av_class = fmt->priv_class;
 			subname = fmt->name;
@@ -790,7 +807,11 @@ second_pass:
 			else continue;
 #endif
 		} else if (type==FF_REG_TYPE_ENCODE) {
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 			codec = av_codec_next(codec);
+#else
+			codec = av_codec_iterate(&av_it);
+#endif
 			if (!codec) break;
 			if (!av_codec_is_encoder(codec))
 				continue;

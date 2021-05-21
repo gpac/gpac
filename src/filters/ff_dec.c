@@ -76,7 +76,9 @@ typedef struct _gf_ffdec_ctx
 	//audio state
 	u32 channels, sample_rate, sample_fmt, bytes_per_sample;
 	u64 channel_layout;
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
 	u32 frame_start;
+#endif
 	u32 nb_samples_already_in_frame;
 
 	//video state
@@ -93,6 +95,13 @@ typedef struct _gf_ffdec_ctx
 	s64 first_cts_plus_one;
 	s64 delay;
 	u32 ts_offset;
+
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	AVPacket pkt;
+#else
+	AVPacket *pkt;
+#endif
+
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -100,6 +109,10 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	ctx->pkt = av_packet_alloc();
+#endif
 
 	ffmpeg_setup_logs(GF_LOG_CODEC);
 	return GF_OK;
@@ -118,6 +131,10 @@ static void ffdec_finalize(GF_Filter *filter)
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	av_packet_free(&ctx->pkt);
+#endif
 
 	if (ctx->owns_context && ctx->decoder) {
 		avcodec_free_context(&ctx->decoder);
@@ -162,9 +179,11 @@ static void ffdec_check_pix_fmt_change(struct _gf_ffdec_ctx *ctx, u32 pix_fmt)
 
 static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
-	AVPacket pkt;
+	AVPacket *pkt;
 	AVFrame *frame;
-	AVPicture pict;
+	u32 dst_stride[5];
+	u8 *dst_planes[5];
+	u32 pix_out;
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
@@ -172,7 +191,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
 	u32 i, count, ff_pfmt;
-	u32 size=0, outsize, pix_out, stride, stride_uv, uv_height, nb_planes;
+	u32 size=0, outsize, stride, stride_uv, uv_height, nb_planes;
 	u8 *out_buffer;
 	GF_FilterPacket *pck_src;
 	GF_FilterPacket *dst_pck;
@@ -197,13 +216,14 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	frame = ctx->frame;
 
-	av_init_packet(&pkt);
+	FF_INIT_PCK(ctx, pkt)
 
 	if (pck) {
 		data = gf_filter_pck_get_data(pck, &size);
 
 		if (!size) {
 			gf_filter_pid_drop_packet(ctx->in_pid);
+			FF_RELEASE_PCK(pkt)
 			return GF_OK;
 		}
 
@@ -227,23 +247,59 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			ctx->flush_done = GF_FALSE;
 		}
 
-		pkt.dts = gf_filter_pck_get_dts(pck);
-		pkt.pts = gf_filter_pck_get_cts(pck);
-		pkt.duration = gf_filter_pck_get_duration(pck);
+		pkt->dts = gf_filter_pck_get_dts(pck);
+		pkt->pts = gf_filter_pck_get_cts(pck);
+		pkt->duration = gf_filter_pck_get_duration(pck);
 		if (gf_filter_pck_get_sap(pck)>0)
-			pkt.flags = AV_PKT_FLAG_KEY;
+			pkt->flags = AV_PKT_FLAG_KEY;
 	}
-	pkt.data = (uint8_t*)data;
-	pkt.size = size;
+	pkt->data = (uint8_t*)data;
+	pkt->size = size;
 
 	/*TOCHECK: for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
 	doesn't put back nalu size, we have to do it ourselves, but we can't modify input data...*/
 
 	gotpic=0;
-	res = avcodec_decode_video2(ctx->decoder, frame, &gotpic, &pkt);
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	res = avcodec_decode_video2(ctx->decoder, frame, &gotpic, pkt);
+#else
+	res = avcodec_send_packet(ctx->decoder, pkt);
+	switch (res) {
+	case AVERROR(EAGAIN):
+		if (pck_src) {
+			gf_list_del_item(ctx->src_packets, pck_src);
+			gf_filter_pck_unref(pck_src);
+		}
+		FF_RELEASE_PCK(pkt);
+		return GF_OK;
+	case 0:
+	case AVERROR_EOF:
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to send frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		break;
+	}
+	gotpic = 0;
+	res = avcodec_receive_frame(ctx->decoder, frame);
+	switch (res) {
+	case AVERROR(EAGAIN):
+		res = 0;
+		break;
+	case 0:
+		gotpic = 1;
+		break;
+	case AVERROR_EOF:
+		res = 0;
+		break;
+	}
+#endif
+
+
 	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 
+
 	if (!gotpic) {
+		FF_RELEASE_PCK(pkt);
 		if (is_eos) {
 			ctx->flush_done = GF_TRUE;
 			gf_filter_pid_set_eos(ctx->out_pid);
@@ -271,9 +327,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	}
 
 	if (res < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(res) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		FF_RELEASE_PCK(pkt);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	FF_RELEASE_PCK(pkt);
 	if (!gotpic) return GF_OK;
 
 	if (ctx->decoder->pix_fmt != ctx->o_ff_pfmt) {
@@ -304,8 +362,6 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ctx->sar ) );
 	}
 
-	memset(&pict, 0, sizeof(pict));
-
 	pck_src = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
@@ -314,8 +370,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		cts = gf_filter_pck_get_cts(pck_src);
 		if (cts == frame->pts)
 			break;
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
 		if (cts == frame->pkt_pts)
 			break;
+#endif
 		pck_src = NULL;
 	}
 
@@ -359,25 +417,28 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		}
 	}
 
+	memset(&dst_planes, 0, sizeof(u8 *)*5);
+	memset(&dst_stride, 0, sizeof(u32)*5);
+
 	//TODO: cleanup, we should not convert pixel format in the decoder but through filters !
 	switch (ctx->pixel_fmt) {
 	case GF_PIXEL_RGB:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.linesize[0] = 3*ctx->width;
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_stride[0] = 3*ctx->width;
 		pix_out = AV_PIX_FMT_RGB24;
 		break;
 	case GF_PIXEL_RGBA:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.linesize[0] = 4*ctx->width;
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_stride[0] = 4*ctx->width;
 		pix_out = AV_PIX_FMT_RGBA;
 		break;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YUV_10:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)pict.data[1] + ctx->stride_uv * uv_height;
-		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride_uv;
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_planes[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
+		dst_planes[2] =  (uint8_t *)dst_planes[1] + ctx->stride_uv * uv_height;
+		dst_stride[0] = ctx->stride;
+		dst_stride[1] = dst_stride[2] = ctx->stride_uv;
 		if (ctx->pixel_fmt == GF_PIXEL_YUV_10)
 			pix_out = AV_PIX_FMT_YUV420P10LE;
 		else
@@ -386,11 +447,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)pict.data[1] + ctx->stride_uv * ctx->height;
-		pict.linesize[0] = ctx->stride;
-		pict.linesize[1] = pict.linesize[2] = ctx->stride_uv;
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_planes[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
+		dst_planes[2] =  (uint8_t *)dst_planes[1] + ctx->stride_uv * ctx->height;
+		dst_stride[0] = ctx->stride;
+		dst_stride[1] = dst_stride[2] = ctx->stride_uv;
 		if (ctx->pixel_fmt == GF_PIXEL_YUV422_10)
 			pix_out = AV_PIX_FMT_YUV422P10LE;
 		else
@@ -399,10 +460,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
-		pict.data[0] =  (uint8_t *)out_buffer;
-		pict.data[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
-		pict.data[2] =  (uint8_t *)out_buffer + 2*ctx->stride * ctx->height;
-		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ctx->stride;
+		dst_planes[0] =  (uint8_t *)out_buffer;
+		dst_planes[1] =  (uint8_t *)out_buffer + ctx->stride * ctx->height;
+		dst_planes[2] =  (uint8_t *)out_buffer + 2*ctx->stride * ctx->height;
+		dst_stride[0] = dst_stride[1] = dst_stride[2] = ctx->stride;
 		if (ctx->pixel_fmt == GF_PIXEL_YUV444_10)
 			pix_out = AV_PIX_FMT_YUV444P10LE;
 		else
@@ -421,8 +482,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	                                   ctx->decoder->width, ctx->decoder->height, ff_pfmt,
 	                                   ctx->width, ctx->height, pix_out, SWS_BICUBIC, NULL, NULL, NULL);
 	if (ctx->sws_ctx) {
-		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+		sws_scale(ctx->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, dst_planes, dst_stride);
 	}
+
 
 	gf_filter_pck_set_seek_flag(dst_pck, GF_FALSE);
 
@@ -436,9 +498,12 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 
 static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
-	AVPacket pkt;
 	s32 gotpic;
-	s32 len, in_size, i;
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	s32 len;
+#endif
+	AVPacket *pkt;
+	s32 res, in_size, i;
 	u32 samples_to_trash;
 	u32 output_size, prev_afmt;
 	Bool is_eos=GF_FALSE;
@@ -458,51 +523,92 @@ decode_next:
 		if (!is_eos) return GF_OK;
 	}
 
-	av_init_packet(&pkt);
-	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
+	FF_INIT_PCK(ctx, pkt)
+
+	if (pck) pkt->data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (pck) {
 		src_pck = pck;
 		gf_filter_pck_ref_props(&src_pck);
 		if (src_pck) gf_list_add(ctx->src_packets, src_pck);
 
-		if (!pkt.data) {
+		if (!pkt->data) {
 			gf_filter_pid_drop_packet(ctx->in_pid);
 			return GF_OK;
 		}
 
-		pkt.pts = gf_filter_pck_get_cts(pck);
-		pkt.dts = gf_filter_pck_get_dts(pck);
+		pkt->pts = gf_filter_pck_get_cts(pck);
+		pkt->dts = gf_filter_pck_get_dts(pck);
 
-		pkt.size = in_size;
-		if ((s32) ctx->frame_start > pkt.size) ctx->frame_start = 0;
+		pkt->size = in_size;
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+		if ((s32) ctx->frame_start > pkt->size) ctx->frame_start = 0;
 		//seek to last byte consumed by the previous decode4()
 		else if (ctx->frame_start) {
-			pkt.data += ctx->frame_start;
-			pkt.size -= ctx->frame_start;
+			pkt->data += ctx->frame_start;
+			pkt->size -= ctx->frame_start;
 		}
-		pkt.duration = gf_filter_pck_get_duration(pck);
+#endif
+
+		pkt->duration = gf_filter_pck_get_duration(pck);
 		if (gf_filter_pck_get_sap(pck)>0)
-			pkt.flags = AV_PKT_FLAG_KEY;
+			pkt->flags = AV_PKT_FLAG_KEY;
 
 		if (!ctx->first_cts_plus_one)
-			ctx->first_cts_plus_one = pkt.pts + 1;
+			ctx->first_cts_plus_one = pkt->pts + 1;
 
 	} else {
-		pkt.size = 0;
+		pkt->size = 0;
 	}
 
 	prev_afmt = ctx->decoder->sample_fmt;
 	frame = ctx->frame;
-	len = avcodec_decode_audio4(ctx->decoder, frame, &gotpic, &pkt);
+
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	len = res = avcodec_decode_audio4(ctx->decoder, frame, &gotpic, pkt);
+#else
+	res = avcodec_send_packet(ctx->decoder, pkt);
+	switch (res) {
+	case AVERROR(EAGAIN):
+		if (src_pck) {
+			gf_list_del_item(ctx->src_packets, src_pck);
+			gf_filter_pck_unref(src_pck);
+		}
+		av_packet_unref(pkt);
+		return GF_OK;
+	case 0:
+	case AVERROR_EOF:
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+		break;
+	}
+
+	gotpic = 0;
+	res = avcodec_receive_frame(ctx->decoder, frame);
+	switch (res) {
+	case AVERROR(EAGAIN):
+		res = 0;
+		break;
+	case 0:
+		gotpic = 1;
+		break;
+	case AVERROR_EOF:
+		res = 0;
+		break;
+	default:
+		break;
+	}
+dispatch_next:
+#endif
 
 	samples_to_trash = 0;
 	if ( gotpic && (ctx->delay<0)) {
-		if (pkt.pts + 1 - ctx->first_cts_plus_one + ctx->delay < 0) {
-			if (pkt.duration + ctx->delay < 0) {
+		if (pkt->pts + 1 - ctx->first_cts_plus_one + ctx->delay < 0) {
+			if (pkt->duration + ctx->delay < 0) {
 				frame->nb_samples = 0;
 				samples_to_trash = 0;
-				ctx->delay += pkt.duration;
+				ctx->delay += pkt->duration;
 			} else {
 				samples_to_trash = (u32) -ctx->delay;
 			}
@@ -519,13 +625,17 @@ decode_next:
 	}
 
 	//this will handle eos as well
-	if ((len<0) || !gotpic) {
+	if ((res<0) || !gotpic) {
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
 		ctx->frame_start = 0;
+#endif
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
-		if (pkt.size && (len<0)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
+		if (pkt->size && (res<0)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+			FF_RELEASE_PCK(pkt);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		FF_RELEASE_PCK(pkt);
 		if (is_eos) {
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
@@ -545,6 +655,8 @@ decode_next:
 		}
 		return GF_OK;
 	}
+	FF_RELEASE_PCK(pkt);
+
 
 	FF_CHECK_PROP(channels, channels, GF_PROP_PID_NUM_CHANNELS)
 	FF_CHECK_PROPL(channel_layout, channel_layout, GF_PROP_PID_CHANNEL_LAYOUT)
@@ -556,18 +668,20 @@ decode_next:
 		ctx->bytes_per_sample = gf_audio_fmt_bit_depth(ctx->sample_fmt) / 8;
 	}
 
-	if (pck && gf_filter_pid_eos_received(ctx->in_pid)) {
-		u32 timescale = gf_filter_pck_get_timescale(pck);
-		u64 odur = gf_filter_pck_get_duration(pck);
-		if (timescale != ctx->sample_rate) {
-			odur *= ctx->sample_rate;
-			odur /= timescale;
-		}
-		if (odur < frame->nb_samples) {
-			frame->nb_samples = (int) odur;
+	if (pck) {
+		const GF_PropertyValue *er = gf_filter_pck_get_property(pck, GF_PROP_PCK_END_RANGE);
+		if (er && er->value.boolean) {
+			u32 timescale = gf_filter_pck_get_timescale(pck);
+			u64 odur = gf_filter_pck_get_duration(pck);
+			if (timescale != ctx->sample_rate) {
+				odur *= ctx->sample_rate;
+				odur /= timescale;
+			}
+			if (odur < frame->nb_samples) {
+				frame->nb_samples = (int) odur;
+			}
 		}
 	}
-
 
 	output_size = (frame->nb_samples - samples_to_trash) * ctx->channels * ctx->bytes_per_sample;
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, output_size, &data);
@@ -603,8 +717,8 @@ decode_next:
 	}
 
 	if (output_size) {
-		if (frame->pkt_pts != AV_NOPTS_VALUE) {
-			u64 pts = frame->pkt_pts;
+		if (frame->pts != AV_NOPTS_VALUE) {
+			u64 pts = frame->pts;
 			u32 timescale = gf_filter_pck_get_timescale(pck);
 			if (ctx->nb_samples_already_in_frame) {
 				if (ctx->sample_rate == timescale) {
@@ -621,6 +735,7 @@ decode_next:
 		gf_filter_pck_discard(dst_pck);
 	}
 
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
 	ctx->frame_start += len;
 	//done with this input packet
 	if (in_size <= (s32) ctx->frame_start) {
@@ -641,6 +756,16 @@ decode_next:
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was "LLU" - nb samples dec %d\n", frame->pkt_pts, frame->nb_samples));
 	ctx->nb_samples_already_in_frame += frame->nb_samples;
 	frame->nb_samples = 0;
+#else
+	//if multiple frames in packet, send them
+	gotpic = 0;
+	res = avcodec_receive_frame(ctx->decoder, frame);
+	if (res==0) {
+		gotpic = 1;
+		goto dispatch_next;
+	}
+	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
+#endif
 
 	//avoid recursion
 	goto decode_next;
@@ -651,7 +776,7 @@ decode_next:
 #ifdef FF_SUB_SUPPORT
 static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
-	AVPacket pkt;
+	AVPacket *pkt;
 	AVSubtitle subs;
 	s32 gotpic;
 	s32 len, in_size;
@@ -663,39 +788,34 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 		is_eos = gf_filter_pid_is_eos(ctx->in_pid);
 		if (!is_eos) return GF_OK;
 	}
-	av_init_packet(&pkt);
-	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
+	FF_INIT_PCK(ctx, pkt);
+
+	if (pck) pkt->data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (!is_eos) {
 		u64 dts;
-		pkt.pts = gf_filter_pck_get_cts(pck);
+		pkt->pts = gf_filter_pck_get_cts(pck);
 
 		//copy over SAP and duration in dts
 		dts = gf_filter_pck_get_sap(pck);
 		dts <<= 32;
 		dts |= gf_filter_pck_get_duration(pck);
-		pkt.dts = dts;
+		pkt->dts = dts;
 
-		pkt.size = in_size;
-		if (ctx->frame_start > pkt.size) ctx->frame_start = 0;
-		//seek to last byte consumed by the previous decode4()
-		else if (ctx->frame_start) {
-			pkt.data += ctx->frame_start;
-			pkt.size -= ctx->frame_start;
-		}
+		pkt->size = in_size;
 	} else {
-		pkt.size = 0;
+		pkt->size = 0;
 	}
 
 	memset(&subs, 0, sizeof(AVSubtitle));
-	len = avcodec_decode_subtitle2(ctx->decoder, &subs, &gotpic, &pkt);
+	len = avcodec_decode_subtitle2(ctx->decoder, &subs, &gotpic, pkt);
 
 	//this will handle eos as well
 	if ((len<0) || !gotpic) {
-		ctx->frame_start = 0;
+		FF_RELEASE_PCK(pkt)
 		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
 		if (len<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt.pts, av_err2str(len) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (is_eos) {
@@ -709,6 +829,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 
 	avsubtitle_free(&subs);
 	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
+	FF_RELEASE_PCK(pkt)
 	return GF_OK;
 }
 #endif
@@ -739,7 +860,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	u32 type=0, gpac_codecid=0;
 	AVDictionary *options = NULL;
 	const GF_PropertyValue *prop;
-	AVCodec *codec=NULL;
+	const AVCodec *codec=NULL;
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
 	//disconnect of src pid (not yet supported)
@@ -812,15 +933,26 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
-		if (!prop || !prop->value.ptr) {
+		if (prop && (prop->type==GF_PROP_POINTER)) {
+			ctx->decoder = prop->value.ptr;
+			if (!ctx->decoder) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
+				return GF_SERVICE_ERROR;
+			}
+			codec = avcodec_find_decoder(ctx->decoder->codec_id);
+			ctx->owns_context = GF_FALSE;
+		}
+		else if (prop && (prop->type==GF_PROP_UINT)) {
+			ctx->decoder = avcodec_alloc_context3(NULL);
+			if (! ctx->decoder) return GF_OUT_OF_MEM;
+			codec = avcodec_find_decoder(prop->value.uint);
+		}
+		else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 			return GF_SERVICE_ERROR;
 		}
-		ctx->decoder = prop->value.ptr;
-		codec = avcodec_find_decoder(ctx->decoder->codec_id);
-		if (!codec) return GF_NOT_SUPPORTED;
 
-        ctx->owns_context = GF_FALSE;
+		if (!codec) return GF_NOT_SUPPORTED;
 	}
 	//we reconfigure the stream
 	else {
