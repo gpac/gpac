@@ -190,7 +190,7 @@ enum
 	GF_JS_PCK_IS_REF = 1,
 	GF_JS_PCK_IS_SHARED = 1<<1,
 	GF_JS_PCK_IS_OUTPUT = 1<<2,
-	GF_JS_PCK_IS_DANDLING = 1<<3,
+	GF_JS_PCK_IS_DANGLING = 1<<3,
 };
 
 typedef struct _js_pck_ctx
@@ -305,8 +305,8 @@ static void jsf_pck_finalizer(JSRuntime *rt, JSValue val)
 		JS_FreeValueRT(rt, pckctx->data_ab);
 		pckctx->data_ab = JS_UNDEFINED;
 	}
-	//dandling packet
-	if (pckctx->flags & GF_JS_PCK_IS_DANDLING) {
+	//dangling packet
+	if (pckctx->flags & GF_JS_PCK_IS_DANGLING) {
 		//we don't keep a ref on jsobj
 		//we may need to destroy the underlying packet if GCed but .discard was never called
 		if (pckctx->pck) gf_filter_pck_discard(pckctx->pck);
@@ -334,7 +334,7 @@ static void jsf_filter_pck_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *ma
     GF_JSPckCtx *pckctx = JS_GetOpaque(val, jsf_pck_class_id);
     if (!pckctx) return;
 
-	if (!(pckctx->flags & (GF_JS_PCK_IS_OUTPUT|GF_JS_PCK_IS_DANDLING)))
+	if (!(pckctx->flags & (GF_JS_PCK_IS_OUTPUT|GF_JS_PCK_IS_DANGLING)))
 		JS_MarkValue(rt, pckctx->jsobj, mark_func);
 
     if (!JS_IsUndefined(pckctx->ref_val)) {
@@ -3889,7 +3889,7 @@ static JSValue jsf_pck_clone(JSContext *ctx, JSValueConst this_val, int argc, JS
 		if (pck_cached && !pck_cached->pck)
 			return JS_EXCEPTION;
     }
-	cloned = gf_filter_pck_dandling_copy(pck_src->pck, pck_cached ? pck_cached->pck : NULL);
+	cloned = gf_filter_pck_dangling_copy(pck_src->pck, pck_cached ? pck_cached->pck : NULL);
 	if (!cloned) return js_throw_err(ctx, GF_OUT_OF_MEM);
 
 	if (pck_cached) {
@@ -3908,7 +3908,7 @@ static JSValue jsf_pck_clone(JSContext *ctx, JSValueConst this_val, int argc, JS
 	pck_cached->jspid = NULL;
 	pck_cached->ref_val = JS_UNDEFINED;
 	pck_cached->data_ab = JS_UNDEFINED;
-	pck_cached->flags = GF_JS_PCK_IS_DANDLING;
+	pck_cached->flags = GF_JS_PCK_IS_DANGLING;
 	JS_SetOpaque(res, pck_cached);
     return res;
 }
