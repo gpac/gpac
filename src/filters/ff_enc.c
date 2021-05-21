@@ -119,13 +119,20 @@ typedef struct _gf_ffenc_ctx
 	u64 orig_ts;
 	u32 nb_forced;
 
-	AVCodec *force_codec;
+	const AVCodec *force_codec;
 
 	//we don't forward media delay, we directly offset CTS/DTS
 	s64 in_tk_delay;
 
 	Bool discontunity;
 	GF_FilterPacket *disc_pck_ref;
+
+#if (LIBAVCODEC_VERSION_MAJOR < 59)
+	AVPacket pkt;
+#else
+	AVPacket *pkt;
+#endif
+
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf);
@@ -166,6 +173,9 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 
 	ffmpeg_setup_logs(GF_LOG_CODEC);
 
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	ctx->pkt = av_packet_alloc();
+#endif
 
 	if (!ctx->c) return GF_OK;
 
@@ -199,6 +209,10 @@ static void ffenc_finalize(GF_Filter *filter)
 		gf_filter_pck_unref(pck);
 	}
 	gf_list_del(ctx->src_packets);
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 59)
+	av_packet_free(&ctx->pkt);
+#endif
 
 	if (ctx->encoder) {
 		avcodec_free_context(&ctx->encoder);
@@ -271,7 +285,11 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 	u32 sq_size;
+#else
+	size_t sq_size;
+#endif
 	u8 *side_q = av_packet_get_side_data(pkt, AV_PKT_DATA_QUALITY_STATS, &sq_size);
 	if (side_q) {
 		gf_bs_reassign_buffer(ctx->sdbs, side_q, sq_size);
@@ -323,7 +341,7 @@ static void ffenc_log_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx, AVPack
 
 static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 {
-	AVPacket pkt;
+	AVPacket *pkt;
 	s32 gotpck;
 	const char *data = NULL;
 	u32 size=0, i, count, offset, to_copy;
@@ -357,9 +375,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (pck) data = gf_filter_pck_get_data(pck, &size);
 
-	av_init_packet(&pkt);
-	pkt.data = (uint8_t*)ctx->enc_buffer;
-	pkt.size = ctx->enc_buffer_size;
+
+	FF_INIT_PCK(ctx, pkt)
+
+	pkt->data = (uint8_t*)ctx->enc_buffer;
+	pkt->size = ctx->enc_buffer_size;
 
 	ctx->frame->pict_type = 0;
 	ctx->frame->width = ctx->width;
@@ -484,11 +504,45 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			SCALE_TS(ctx->frame->pkt_duration);
 		}
 
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts;
-		res = avcodec_encode_video2(ctx->encoder, &pkt, ctx->frame, &gotpck);
+		res = avcodec_encode_video2(ctx->encoder, pkt, ctx->frame, &gotpck);
 		ctx->nb_frames_in++;
+#else
+		ctx->frame->pkt_dts = ctx->frame->pts;
+		res = avcodec_send_frame(ctx->encoder, ctx->frame);
+		switch (res) {
+		case AVERROR(EAGAIN):
+			return GF_OK;
+		case 0:
+			break;
+		case AVERROR_EOF:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to encode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+			break;
+		}
+		ctx->nb_frames_in++;
+		gotpck = 0;
+		res = avcodec_receive_packet(ctx->encoder, pkt);
+		switch (res) {
+		case AVERROR(EAGAIN):
+			gf_filter_pid_drop_packet(ctx->in_pid);
+			FF_RELEASE_PCK(pkt)
+			return GF_OK;
+		case 0:
+			gotpck = 1;
+			break;
+		case AVERROR_EOF:
+			res = 0;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to retrieve encoded packet PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+			break;
+		}
+#endif
 
-		//keep ref to ource properties
+		//keep ref to source properties
 		gf_filter_pck_ref_props(&pck);
 		gf_list_add(ctx->src_packets, pck);
 		if (ctx->discontunity) {
@@ -502,13 +556,23 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			UNSCALE_TS(ctx->frame->pts);
 			UNSCALE_TS(ctx->frame->pkt_duration);
 
-			UNSCALE_TS(pkt.dts);
-			UNSCALE_TS(pkt.pts);
-			UNSCALE_DUR(pkt.duration);
+			UNSCALE_TS(pkt->dts);
+			UNSCALE_TS(pkt->pts);
+			UNSCALE_DUR(pkt->duration);
 		}
 	} else {
-		res = avcodec_encode_video2(ctx->encoder, &pkt, NULL, &gotpck);
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
+		res = avcodec_encode_video2(ctx->encoder, pkt, NULL, &gotpck);
+#else
+		//flush by sending NULL frame
+		avcodec_send_frame(ctx->encoder, NULL);
+		gotpck = 0;
+		res = avcodec_receive_packet(ctx->encoder, pkt);
+		if (!res) gotpck = 1;
+#endif
+
 		if (!gotpck) {
+			FF_RELEASE_PCK(pkt)
 			//done flushing encoder while reconfiguring
 			if (ctx->reconfig_pending) {
 				GF_Err e;
@@ -527,34 +591,36 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			return GF_EOS;
 		}
 		if (ctx->remap_ts) {
-			UNSCALE_TS(pkt.dts);
-			UNSCALE_TS(pkt.pts);
-			UNSCALE_DUR(pkt.duration);
+			UNSCALE_TS(pkt->dts);
+			UNSCALE_TS(pkt->pts);
+			UNSCALE_DUR(pkt->duration);
 		}
 	}
 	now = gf_sys_clock_high_res() - now;
 	ctx->time_spent += now;
 
 	if (res<0) {
-		av_packet_free_side_data(&pkt);
+		av_packet_free_side_data(pkt);
 		ctx->nb_frames_out++;
+		FF_RELEASE_PCK(pkt)
 		return GF_SERVICE_ERROR;
 	}
 
 	if (!gotpck) {
-		av_packet_free_side_data(&pkt);
+		av_packet_free_side_data(pkt);
+		FF_RELEASE_PCK(pkt)
 		return GF_OK;
 	}
 
 	ctx->nb_frames_out++;
 	if (ctx->init_cts_setup) {
 		ctx->init_cts_setup = GF_FALSE;
-		if (ctx->frame->pts != pkt.pts) {
+		if (ctx->frame->pts != pkt->pts) {
 			//check shift in PTS - most of the time this is 0 (ffmpeg does not restamp video pts)
-			ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.pts;
+			ctx->ts_shift = (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->pts;
 
 			//check shift in DTS
-			ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt.dts;
+			ctx->ts_shift += (s64) ctx->cts_first_frame_plus_one - 1 - (s64) pkt->dts;
 		}
 
 		//if ts_shift>0, this means we have a skip
@@ -569,20 +635,20 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	count = gf_list_count(ctx->src_packets);
 	for (i=0; i<count; i++) {
 		src_pck = gf_list_get(ctx->src_packets, i);
-		if (ffenc_get_cts(ctx, src_pck) == pkt.pts) break;
+		if (ffenc_get_cts(ctx, src_pck) == pkt->pts) break;
 		src_pck = NULL;
 	}
 
 	offset = 0;
-	to_copy = size = pkt.size;
+	to_copy = size = pkt->size;
 
 	if (ctx->codecid == GF_CODECID_J2K) {
-		u32 b4cc = GF_4CC(pkt.data[4], pkt.data[5], pkt.data[6], pkt.data[7]);
+		u32 b4cc = GF_4CC(pkt->data[4], pkt->data[5], pkt->data[6], pkt->data[7]);
 		if (b4cc == GF_4CC('j','P',' ',' ')) {
 			u32 jp2h_offset = 0;
 			offset = 12;
-			while (offset+8 < (u32) pkt.size) {
-				b4cc = GF_4CC(pkt.data[offset+4], pkt.data[offset+5], pkt.data[offset+6], pkt.data[offset+7]);
+			while (offset+8 < (u32) pkt->size) {
+				b4cc = GF_4CC(pkt->data[offset+4], pkt->data[offset+5], pkt->data[offset+6], pkt->data[offset+7]);
 				if (b4cc == GF_4CC('j','p','2','c')) {
 					break;
 				}
@@ -592,18 +658,18 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				offset++;
 			}
 			if (jp2h_offset) {
-				u32 len = pkt.data[jp2h_offset];
+				u32 len = pkt->data[jp2h_offset];
 				len <<= 8;
-				len |= pkt.data[jp2h_offset+1];
+				len |= pkt->data[jp2h_offset+1];
 				len <<= 8;
-				len |= pkt.data[jp2h_offset+2];
+				len |= pkt->data[jp2h_offset+2];
 				len <<= 8;
-				len |= pkt.data[jp2h_offset+3];
+				len |= pkt->data[jp2h_offset+3];
 
-				u32 dsi_crc = gf_crc_32(pkt.data + jp2h_offset + 8, len-8);
+				u32 dsi_crc = gf_crc_32(pkt->data + jp2h_offset + 8, len-8);
 				if (dsi_crc != ctx->dsi_crc) {
 					ctx->dsi_crc = dsi_crc;
-					gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(pkt.data + jp2h_offset + 8, len-8) );
+					gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(pkt->data + jp2h_offset + 8, len-8) );
 				}
 			}
 			size -= offset;
@@ -633,10 +699,12 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, size, &output);
-	if (!dst_pck) return GF_OUT_OF_MEM;
-
+	if (!dst_pck) {
+		FF_RELEASE_PCK(pkt)
+		return GF_OUT_OF_MEM;
+	}
 	if (insert_jp2c) {
-		u32 bsize = pkt.size + 8;
+		u32 bsize = pkt->size + 8;
 		output[0] = (bsize >> 24) & 0xFF;
 		output[1] = (bsize >> 16) & 0xFF;
 		output[2] = (bsize >> 8) & 0xFF;
@@ -647,7 +715,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		output[7] = 'c';
 		output += 8;
 	}
-	memcpy(output, pkt.data + offset, to_copy);
+	memcpy(output, pkt->data + offset, to_copy);
 
 	if (src_pck) {
 		if (ctx->disc_pck_ref == src_pck) {
@@ -659,21 +727,21 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_list_del_item(ctx->src_packets, src_pck);
 		gf_filter_pck_unref(src_pck);
 	} else {
-		if (pkt.duration) {
-			gf_filter_pck_set_duration(dst_pck, (u32) pkt.duration);
+		if (pkt->duration) {
+			gf_filter_pck_set_duration(dst_pck, (u32) pkt->duration);
 		} else {
 			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->pkt_duration);
 		}
 	}
 
-	ffenc_log_video(filter, ctx, &pkt, gf_filter_reporting_enabled(filter));
+	ffenc_log_video(filter, ctx, pkt, gf_filter_reporting_enabled(filter));
 
-	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
-	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
+	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift);
+	gf_filter_pck_set_dts(dst_pck, pkt->dts + ctx->ts_shift);
 
 	//this is not 100% correct since we don't have any clue if this is SAP1/2/3/4 ...
 	//since we send the output to our reframers we should be fine
-	if (pkt.flags & AV_PKT_FLAG_KEY) {
+	if (pkt->flags & AV_PKT_FLAG_KEY) {
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] frame %d is SAP\n", ctx->nb_frames_out));
 	}
@@ -681,13 +749,14 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_set_sap(dst_pck, 0);
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-	if (pkt.flags & AV_PKT_FLAG_DISPOSABLE) {
+	if (pkt->flags & AV_PKT_FLAG_DISPOSABLE) {
 		gf_filter_pck_set_dependency_flags(dst_pck, 0x8);
 	}
 #endif
 	gf_filter_pck_send(dst_pck);
 
-	av_packet_free_side_data(&pkt);
+	av_packet_free_side_data(pkt);
+	FF_RELEASE_PCK(pkt)
 
 	//we're in final flush, request a process task until all frames flushe
 	//we could recursiveley call ourselves, same result
@@ -760,7 +829,7 @@ static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data
 
 static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 {
-	AVPacket pkt;
+	AVPacket *pkt;
 	s32 gotpck;
 	const char *data = NULL;
 	u32 size=0, nb_copy=0, i, count;
@@ -873,9 +942,10 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 
-	av_init_packet(&pkt);
-	pkt.data = (uint8_t*)ctx->enc_buffer;
-	pkt.size = ctx->enc_buffer_size;
+	FF_INIT_PCK(ctx, pkt)
+
+	pkt->data = (uint8_t*)ctx->enc_buffer;
+	pkt->size = ctx->enc_buffer_size;
 
 	if (pck)
 		ctx->frame->nb_samples = ctx->encoder->frame_size;
@@ -884,21 +954,64 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	ctx->frame->channel_layout = ctx->encoder->channel_layout;
 	gotpck = 0;
 	if (pck || ctx->samples_in_audio_buffer) {
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts = ctx->first_byte_cts;
-		res = avcodec_encode_audio2(ctx->encoder, &pkt, ctx->frame, &gotpck);
+		res = avcodec_encode_audio2(ctx->encoder, pkt, ctx->frame, &gotpck);
+#else
+		ctx->frame->pkt_dts = ctx->frame->pts = ctx->first_byte_cts;
+		res = avcodec_send_frame(ctx->encoder, ctx->frame);
+		switch (res) {
+		case AVERROR(EAGAIN):
+			return GF_OK;
+		case 0:
+			break;
+		case AVERROR_EOF:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to encode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(res) ));
+			break;
+		}
+		gotpck = 0;
+		res = avcodec_receive_packet(ctx->encoder, pkt);
+		switch (res) {
+		case AVERROR(EAGAIN):
+			res = 0;
+			break;
+		case 0:
+			gotpck = 1;
+			break;
+		case AVERROR_EOF:
+			ctx->flush_done = GF_TRUE;
+			gf_filter_pid_set_eos(ctx->out_pid);
+			return GF_EOS;
+		default:
+			break;
+		}
+#endif
+
+
 		if (!pck) {
 			if (! (ctx->encoder->codec->capabilities & AV_CODEC_CAP_DELAY)) {
-				pkt.duration = ctx->samples_in_audio_buffer;
+				pkt->duration = ctx->samples_in_audio_buffer;
 				if (ctx->timescale != ctx->sample_rate) {
-					pkt.duration *= ctx->timescale;
-					pkt.duration /= ctx->sample_rate;
+					pkt->duration *= ctx->timescale;
+					pkt->duration /= ctx->sample_rate;
 				}
 			}
 			ctx->samples_in_audio_buffer = 0;
 		}
 	} else {
-		res = avcodec_encode_audio2(ctx->encoder, &pkt, NULL, &gotpck);
+#if (LIBAVFORMAT_VERSION_MAJOR<59)
+		res = avcodec_encode_audio2(ctx->encoder, pkt, NULL, &gotpck);
+#else
+		//flush by sending NULL frame
+		avcodec_send_frame(ctx->encoder, NULL);
+		gotpck = 0;
+		res = avcodec_receive_packet(ctx->encoder, pkt);
+		if (!res) gotpck = 1;
+#endif
 		if (!gotpck) {
+			FF_RELEASE_PCK(pkt);
 			//done flushing encoder while reconfiguring
 			if (ctx->reconfig_pending) {
 				GF_Err e;
@@ -954,24 +1067,29 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 	if (res<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error encoding frame: %s\n", av_err2str(res) ));
-		av_packet_free_side_data(&pkt);
+		av_packet_free_side_data(pkt);
+		FF_RELEASE_PCK(pkt);
 		return GF_SERVICE_ERROR;
 	}
 	if (!gotpck) {
-		av_packet_free_side_data(&pkt);
+		av_packet_free_side_data(pkt);
+		FF_RELEASE_PCK(pkt);
 		return GF_OK;
 	}
-	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt.size, &output);
-	if (!dst_pck) return GF_OUT_OF_MEM;
-	memcpy(output, pkt.data, pkt.size);
+	dst_pck = gf_filter_pck_new_alloc(ctx->out_pid, pkt->size, &output);
+	if (!dst_pck) {
+		FF_RELEASE_PCK(pkt);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(output, pkt->data, pkt->size);
 
 	if (ctx->init_cts_setup) {
 		u64 octs;
 		ctx->init_cts_setup = GF_FALSE;
 		src_pck = gf_list_get(ctx->src_packets, 0);
 		octs = src_pck ? ffenc_get_cts(ctx, src_pck) : ctx->frame->pts;
-		if (octs != pkt.pts) {
-			ctx->ts_shift = (s64) octs - (s64) pkt.pts;
+		if (octs != pkt->pts) {
+			ctx->ts_shift = (s64) octs - (s64) pkt->pts;
 		}
 		if (ctx->ts_shift) {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( - ctx->ts_shift) );
@@ -992,11 +1110,11 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		acts = ffenc_get_cts(ctx, src_pck);
 		adur = gf_filter_pck_get_duration(src_pck);
 
-		if (((s64) acts >= pkt.pts) && ((s64) acts < pkt.pts + pkt.duration)) {
+		if (((s64) acts >= pkt->pts) && ((s64) acts < pkt->pts + pkt->duration)) {
 			break;
 		}
 
-		if (acts + adur <= (u64) ( pkt.pts + ctx->ts_shift) ) {
+		if (acts + adur <= (u64) ( pkt->pts + ctx->ts_shift) ) {
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
 			i--;
@@ -1015,19 +1133,21 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_unref(src_pck);
 	}
 
-	gf_filter_pck_set_cts(dst_pck, pkt.pts + ctx->ts_shift);
-	gf_filter_pck_set_dts(dst_pck, pkt.dts + ctx->ts_shift);
+	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift);
+	gf_filter_pck_set_dts(dst_pck, pkt->dts + ctx->ts_shift);
 	//this is not 100% correct since we don't have any clue if this is SAP1/4 (roll info missing)
-	if (pkt.flags & AV_PKT_FLAG_KEY)
+	if (pkt->flags & AV_PKT_FLAG_KEY)
 		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 	else
 		gf_filter_pck_set_sap(dst_pck, 0);
 
-	gf_filter_pck_set_duration(dst_pck, (u32) pkt.duration);
+	gf_filter_pck_set_duration(dst_pck, (u32) pkt->duration);
 
 	gf_filter_pck_send(dst_pck);
 
-	av_packet_free_side_data(&pkt);
+	av_packet_free_side_data(pkt);
+	FF_RELEASE_PCK(pkt);
+
 	//we're in final flush, request a process task until all frames flushe
 	//we could recursiveley call ourselves, same result
 	if (!pck) {
@@ -1273,13 +1393,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				i++;
 			}
 			if (!ctx->force_codec && (change_input_fmt == AV_PIX_FMT_NONE)) {
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#if ((LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)) || (LIBAVFORMAT_VERSION_MAJOR>=59)
 				void *ff_opaque=NULL;
 #else
 				AVCodec *codec_alt = NULL;
 #endif
 				while (1) {
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+#if ((LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)) || (LIBAVFORMAT_VERSION_MAJOR>=59)
 					const AVCodec *codec_alt = av_codec_iterate(&ff_opaque);
 #else
 					codec_alt = av_codec_next(codec_alt);

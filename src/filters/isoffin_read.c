@@ -1408,6 +1408,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					}
 				}
 				ch->eos_sent = GF_FALSE;
+
+				//this might not be the true end of stream
+				if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_END_RANGE, &PROP_BOOL(GF_TRUE));
+				}
+
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 
