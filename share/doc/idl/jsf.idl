@@ -570,17 +570,6 @@ void reset_props();
 */
 void copy_props(FilterPid from);
 
-/*! creates a new packet cloning a source packet - see \ref gf_filter_pck_dandling_copy.
-
-The resulting packet is in read/write mode and may have its own memory allocated.
-This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-The resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
-
-\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
-\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
-*/
-void clone(optional FilterPacket cached_pck = null);
-
 
 /*! ignore this pid in blocking computations - see gf_filter_pid_ignore_blocking*
 \param do_ignore if true, pid is not used in blocking mode evaluation
@@ -769,6 +758,17 @@ void truncate(unsigned long size);
 \param from the source packet to copy properties from
 */
 void copy_props(FilterPacket from);
+
+/*! creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
+
+The resulting packet is in read/write mode and may have its own memory allocated.
+This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
+The resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+
+\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
+\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
+*/
+void clone(optional FilterPacket cached_pck = null);
 
 };
 

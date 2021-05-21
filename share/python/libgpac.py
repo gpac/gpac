@@ -3691,8 +3691,8 @@ _libgpac.gf_filter_pck_set_property.argtypes = [_gf_filter_packet, c_uint, POINT
 _libgpac.gf_filter_pck_set_property_str.argtypes = [_gf_filter_packet, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pck_truncate.argtypes = [_gf_filter_packet, c_uint]
 
-_libgpac.gf_filter_pck_dandling_copy.argtypes = [_gf_filter_packet, _gf_filter_packet]
-_libgpac.gf_filter_pck_dandling_copy.restype = _gf_filter_packet
+_libgpac.gf_filter_pck_dangling_copy.argtypes = [_gf_filter_packet, _gf_filter_packet]
+_libgpac.gf_filter_pck_dangling_copy.restype = _gf_filter_packet
 
 ##\endcond private
 
@@ -3830,7 +3830,7 @@ class FilterPacket:
         self._pck = None
         ##\endcond private
 
-    ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dandling_copy.
+    ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
     #The resulting packet is read/write mode and may have its own memory allocated.
     #This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
     #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
@@ -3838,9 +3838,9 @@ class FilterPacket:
     #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
     def clone(self, cached_pck=False):
         if cached_pck:
-            _pck = _libgpac.gf_filter_pck_dandling_copy(self._pck, cached_pck._pck)
+            _pck = _libgpac.gf_filter_pck_dangling_copy(self._pck, cached_pck._pck)
         else:
-            _pck = _libgpac.gf_filter_pck_dandling_copy(self._pck, None)
+            _pck = _libgpac.gf_filter_pck_dangling_copy(self._pck, None)
 
         if _pck:
             pck = FilterPacket(_pck, False)
