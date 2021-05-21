@@ -47,9 +47,13 @@ typedef struct
 	const GF_PropertyValue *sabt;
 
 	Bool check_connections;
-
+	GF_Err in_error;
 } GF_TileAggCtx;
 
+#define TILEAGG_CFG_ERR(_msg) {\
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Error configuring pid %s: %s\n", gf_filter_pid_get_name(pid), _msg ));\
+		goto config_error;\
+	}
 
 static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -58,6 +62,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	GF_HEVCConfig *hvcc;
 
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
+	if (ctx->in_error) return GF_SERVICE_ERROR;
 
 	if (is_remove) {
 		if (ctx->base_ipid == pid) {
@@ -69,8 +74,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		return GF_OK;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
-	if (!p)
-		return GF_NOT_SUPPORTED;
+	if (!p) TILEAGG_CFG_ERR("missing CodecID")
 	codec_id = p->value.uint;
 
 	//a single HEVC base is allowed per instance
@@ -80,8 +84,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//a tile pid connected before our base, check we have the same base ID, otherwise we need a new instance
 	if ((codec_id==GF_CODECID_HEVC) && !ctx->base_ipid && ctx->base_id) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-		if (!p)
-			return GF_NOT_SUPPORTED;
+		if (!p) TILEAGG_CFG_ERR("missing PID ID")
 
 		if (ctx->base_id != p->value.uint)
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -94,7 +97,8 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//tile pid connecting after another tile pid,  we share the same base
 	if ((codec_id==GF_CODECID_HEVC_TILES) && ctx->base_id) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
-		if (!p) return GF_NOT_SUPPORTED;
+		if (!p) TILEAGG_CFG_ERR("missing PID DependencyID")
+
 		if (ctx->base_id != p->value.uint)
 			return GF_REQUIRES_NEW_INSTANCE;
 	}
@@ -123,20 +127,18 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-		if (!p)
-			return GF_NOT_SUPPORTED;
+		if (!p) TILEAGG_CFG_ERR("missing PID ID, base PID assigned")
 		ctx->base_id = p->value.uint;
 
 		ctx->sabt = gf_filter_pid_get_property_str(pid, "isom:sabt");
 	} else {
 		u32 base_id;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
-		if (!p) return GF_NOT_SUPPORTED;
+		if (!p) TILEAGG_CFG_ERR("missing PID DependencyID, base PID not assigned")
+
 		base_id = p->value.uint;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-		if (!p) return GF_NOT_SUPPORTED;
-		if (base_id == p->value.uint)
-			return GF_NOT_SUPPORTED;
+		if (!p || (base_id == p->value.uint)) TILEAGG_CFG_ERR("missing PID ID, base PID not assigned")
 
 		if (!ctx->base_ipid) {
 			ctx->base_id = base_id;
@@ -145,6 +147,12 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	return GF_OK;
+
+config_error:
+	if (ctx->opid) gf_filter_pid_set_eos(ctx->opid);
+	if (ctx->base_id) ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
+	return GF_SERVICE_ERROR;
+
 }
 
 static GF_Err tileagg_set_eos(GF_Filter *filter, GF_TileAggCtx *ctx)
@@ -171,6 +179,10 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	Bool has_sei_suffix = GF_FALSE;
 	const char *data;
 	u8 *output;
+
+	if (ctx->in_error) {
+		return ctx->in_error;
+	}
 	if (!ctx->base_ipid) return GF_EOS;
 
 	if (ctx->check_connections) {

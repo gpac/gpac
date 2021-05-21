@@ -2089,8 +2089,9 @@ struct __gf_filter_register
 	\return error if any.
 	a return error of GF_REQUIRES_NEW_INSTANCE indicates the PID cannot be processed in this instance but could be in a clone of the filter.
 	a return error of GF_FILTER_NOT_SUPPORTED indicates the PID cannot be processed and no alternate chain resolution would help
-	a return error of GF_BAD_PARAM indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
-	ano other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
+	a return error of GF_BAD_PARAM, GF_SERVICE_ERROR or GF_REMOTE_SERVICE_ERROR indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
+	any other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
+
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove);
 

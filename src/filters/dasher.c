@@ -3242,7 +3242,15 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		is_bs_switching = ds->tile_dep_id_merged ? GF_FALSE : set->bitstream_switching;
 		if (is_bs_switching) {
 			ctx->next_pid_id_in_period++;
-			ds->pid_id = ctx->next_pid_id_in_period;
+			//except for base tile track where we force using input PID ID
+			//to avoid messing up sabt/tbas references
+			if (ds->tile_base) {
+				ds->pid_id = ds->id;
+				if (ctx->next_pid_id_in_period <= ds->pid_id)
+					ctx->next_pid_id_in_period = ds->pid_id;
+			} else {
+				ds->pid_id = ctx->next_pid_id_in_period;
+			}
 
 			for (j=i+1; j<count; j++) {
 				GF_DashStream *a_ds;
@@ -3443,7 +3451,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//check we are not reusing an existing template from previous periods, if so append a suffix
 		//we check the final init name
 		if (!ds->skip_tpl_reuse) {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
+			//init will not work in tiling as the base track and the first rep could end up having the same
+			//segment template sine base uses "init" while tile tracks don't for the init template
+			if (ds->tile_base || (ds->codec_id==GF_CODECID_HEVC_TILES)) {
+				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, "mp4", 0, ds->bitrate, 0, ctx->stl);
+			} else {
+				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
+			}
 			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
 			if (reused_template_idx) {
 				char szExName[20];
