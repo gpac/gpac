@@ -492,17 +492,21 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 #define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts *= ctx->encoder->time_base.den; _ts /= ctx->timescale; }
 #define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
 #define UNSCALE_DUR(_ts) { _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }      
-        
-		//store first frame CTS before rescaling, we use it after rescaling the output packet timing to compute CTS-DTS
-		if (!ctx->cts_first_frame_plus_one) {
-			ctx->cts_first_frame_plus_one = 1 + ctx->frame->pts;
-		}
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
 
 			SCALE_TS(ctx->frame->pkt_duration);
 		}
+
+		//store first frame CTS as will be seen after rescaling (to cope with rounding errors
+		//we use it after rescaling the output packet timing to compute CTS-DTS
+		if (!ctx->cts_first_frame_plus_one) {
+			u64 ts = ctx->frame->pts;
+			UNSCALE_TS(ts)
+			ctx->cts_first_frame_plus_one = 1 + ts;
+		}
+
 
 #if (LIBAVFORMAT_VERSION_MAJOR<59)
 		ctx->frame->pkt_dts = ctx->frame->pkt_pts = ctx->frame->pts;
@@ -527,9 +531,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		res = avcodec_receive_packet(ctx->encoder, pkt);
 		switch (res) {
 		case AVERROR(EAGAIN):
-			gf_filter_pid_drop_packet(ctx->in_pid);
-			FF_RELEASE_PCK(pkt)
-			return GF_OK;
+			res = 0;
+			break;
 		case 0:
 			gotpck = 1;
 			break;
