@@ -452,7 +452,9 @@ u32 gf_stream_type_by_name(const char *val)
 		if (GF_StreamTypes[i].alt_name && !stricmp(GF_StreamTypes[i].alt_name, val))
 			return GF_StreamTypes[i].st;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknow stream type %s\n", val));
+	if (strnicmp(val, "unkn", 4) && strnicmp(val, "undef", 5)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknow stream type %s\n", val));
+	}
 	return GF_STREAM_UNKNOWN;
 }
 

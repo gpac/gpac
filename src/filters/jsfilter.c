@@ -189,7 +189,8 @@ enum
 {
 	GF_JS_PCK_IS_REF = 1,
 	GF_JS_PCK_IS_SHARED = 1<<1,
-	GF_JS_PCK_IS_OUTPUT = 1<<2
+	GF_JS_PCK_IS_OUTPUT = 1<<2,
+	GF_JS_PCK_IS_DANDLING = 1<<3,
 };
 
 typedef struct _js_pck_ctx
@@ -299,16 +300,28 @@ static void jsf_pck_finalizer(JSRuntime *rt, JSValue val)
 {
     GF_JSPckCtx *pckctx = JS_GetOpaque(val, jsf_pck_class_id);
     if (!pckctx) return;
-    pckctx->jspid->pck_head = NULL;
-
-	/*we only keep a ref for input packet(s)*/
-	if (pckctx->pck && !(pckctx->flags & GF_JS_PCK_IS_OUTPUT))
-		JS_FreeValueRT(rt, pckctx->jsobj);
 
 	if (!JS_IsUndefined(pckctx->data_ab)) {
 		JS_FreeValueRT(rt, pckctx->data_ab);
 		pckctx->data_ab = JS_UNDEFINED;
 	}
+	//dandling packet
+	if (pckctx->flags & GF_JS_PCK_IS_DANDLING) {
+		//we don't keep a ref on jsobj
+		//we may need to destroy the underlying packet if GCed but .discard was never called
+		if (pckctx->pck) gf_filter_pck_discard(pckctx->pck);
+		//we don't recycle the structure memory (no pid context attached
+		gf_free(pckctx);
+		return;
+	}
+
+    if (pckctx->jspid)
+		pckctx->jspid->pck_head = NULL;
+
+	/*we only keep a ref for input packet(s)*/
+	if (pckctx->pck && !(pckctx->flags & GF_JS_PCK_IS_OUTPUT))
+		JS_FreeValueRT(rt, pckctx->jsobj);
+
 
     if (JS_IsUndefined(pckctx->ref_val) && pckctx->jspid && pckctx->jspid->jsf) {
 		gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
@@ -321,7 +334,7 @@ static void jsf_filter_pck_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *ma
     GF_JSPckCtx *pckctx = JS_GetOpaque(val, jsf_pck_class_id);
     if (!pckctx) return;
 
-	if (!(pckctx->flags & GF_JS_PCK_IS_OUTPUT))
+	if (!(pckctx->flags & (GF_JS_PCK_IS_OUTPUT|GF_JS_PCK_IS_DANDLING)))
 		JS_MarkValue(rt, pckctx->jsobj, mark_func);
 
     if (!JS_IsUndefined(pckctx->ref_val)) {
@@ -3564,7 +3577,8 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		}
 		return JS_DupValue(ctx, pckctx->data_ab);
 	case JSF_PCK_FRAME_IFCE:
-		if (gf_filter_pck_get_frame_interface(pck) != NULL) return JS_NewBool(ctx, 1);
+		if (gf_filter_pck_get_frame_interface(pck) != NULL)
+			return JS_NewBool(ctx, 1);
 		else return JS_NewBool(ctx, 0);
 	}
     return JS_UNDEFINED;
@@ -3862,6 +3876,44 @@ static JSValue jsf_pck_copy_props(JSContext *ctx, JSValueConst this_val, int arg
     return JS_UNDEFINED;
 }
 
+static JSValue jsf_pck_clone(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSValue res;
+	GF_FilterPacket *cloned;
+	GF_JSPckCtx *pck_cached = NULL;
+	GF_JSPckCtx *pck_src = JS_GetOpaque(this_val, jsf_pck_class_id);
+	if (!pck_src || !pck_src->pck)
+		return JS_EXCEPTION;
+	if (argc) {
+		pck_cached = JS_GetOpaque(argv[0], jsf_pck_class_id);
+		if (pck_cached && !pck_cached->pck)
+			return JS_EXCEPTION;
+    }
+	cloned = gf_filter_pck_dandling_copy(pck_src->pck, pck_cached ? pck_cached->pck : NULL);
+	if (!cloned) return js_throw_err(ctx, GF_OUT_OF_MEM);
+
+	if (pck_cached) {
+		pck_cached->pck = cloned;
+		return JS_DupValue(ctx, pck_cached->jsobj);
+	}
+	res = JS_NewObjectClass(ctx, jsf_pck_class_id);
+	pck_cached = gf_list_pop_back(pck_src->jspid->jsf->pck_res);
+	if (!pck_cached) {
+		GF_SAFEALLOC(pck_cached, GF_JSPckCtx);
+		if (!pck_cached) return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
+	memset(pck_cached, 0, sizeof(GF_JSPckCtx));
+	pck_cached->pck = cloned;
+	pck_cached->jsobj = res;
+	pck_cached->jspid = NULL;
+	pck_cached->ref_val = JS_UNDEFINED;
+	pck_cached->data_ab = JS_UNDEFINED;
+	pck_cached->flags = GF_JS_PCK_IS_DANDLING;
+	JS_SetOpaque(res, pck_cached);
+    return res;
+}
+
+
 static const JSCFunctionListEntry jsf_pck_funcs[] =
 {
     JS_CGETSET_MAGIC_DEF("start", jsf_pck_get_prop, jsf_pck_set_prop, JSF_PCK_START),
@@ -3887,7 +3939,7 @@ static const JSCFunctionListEntry jsf_pck_funcs[] =
     JS_CGETSET_MAGIC_DEF("redundant", jsf_pck_get_prop, jsf_pck_set_prop, JSF_PCK_HAS_REDUNDANT),
     JS_CGETSET_MAGIC_DEF("size", jsf_pck_get_prop, NULL, JSF_PCK_SIZE),
     JS_CGETSET_MAGIC_DEF("data", jsf_pck_get_prop, NULL, JSF_PCK_DATA),
-    JS_CGETSET_MAGIC_DEF("frame_ifce", jsf_pck_get_prop, NULL, JSF_PCK_DATA),
+    JS_CGETSET_MAGIC_DEF("frame_ifce", jsf_pck_get_prop, NULL, JSF_PCK_FRAME_IFCE),
 
     JS_CFUNC_DEF("set_readonly", 0, jsf_pck_set_readonly),
     JS_CFUNC_DEF("enum_properties", 0, jsf_pck_enum_properties),
@@ -3900,6 +3952,7 @@ static const JSCFunctionListEntry jsf_pck_funcs[] =
     JS_CFUNC_DEF("append", 0, jsf_pck_append_data),
     JS_CFUNC_DEF("truncate", 0, jsf_pck_truncate),
     JS_CFUNC_DEF("copy_props", 0, jsf_pck_copy_props),
+    JS_CFUNC_DEF("clone", 0, jsf_pck_clone),
 };
 
 

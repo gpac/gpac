@@ -338,7 +338,7 @@ void gf_sys_close();
 
 Sets the user app arguments (used by GUI mode)
 \param argc Number of arguments
-\param argv Array of arguments
+\param argv Array of arguments - the first string is ignored (considered to be the executable name)
 \return error code if any, GF_OK otherwise
  */
 GF_Err gf_sys_set_args(s32 argc, const char **argv);

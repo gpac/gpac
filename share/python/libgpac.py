@@ -383,7 +383,7 @@ _libgpac._args=None
 ##\endcond private
 
 ## set libgpac arguments - see \ref gf_sys_set_args
-# \param args list of strings
+# \param args list of strings, the first string is ignored (considered to be the executable name)
 # \return
 def set_args(args):
     nb_args = len(args)
@@ -3131,7 +3131,6 @@ class FilterPid:
     def get_packet(self):
         ##\cond private
         if self._cur_pck:
-            print('SAME PACKET FETCHED !')
             return self._cur_pck
         pck = _libgpac.gf_filter_pid_get_packet(self._pid)
         if pck:
@@ -3297,7 +3296,7 @@ class FilterPid:
     ##sets loose connect mode - see \ref gf_filter_pid_set_loose_connect
     #\return
     def loose_connect(self):
-        _libgpac.gf_filter_pid_set_loose_connect(slef._pid)
+        _libgpac.gf_filter_pid_set_loose_connect(self._pid)
 
     ##sets framing mode - see \ref gf_filter_pid_set_framing_mode
     #\param framed if True, complete frames only will be delivered on the pid
@@ -3692,6 +3691,8 @@ _libgpac.gf_filter_pck_set_property.argtypes = [_gf_filter_packet, c_uint, POINT
 _libgpac.gf_filter_pck_set_property_str.argtypes = [_gf_filter_packet, c_char_p, POINTER(PropertyValue)]
 _libgpac.gf_filter_pck_truncate.argtypes = [_gf_filter_packet, c_uint]
 
+_libgpac.gf_filter_pck_dandling_copy.argtypes = [_gf_filter_packet, _gf_filter_packet]
+_libgpac.gf_filter_pck_dandling_copy.restype = _gf_filter_packet
 
 ##\endcond private
 
@@ -3764,7 +3765,9 @@ class FilterPacket:
             ##Dependency flags - see \ref gf_filter_pck_get_dependency_flags and \ref gf_filter_pck_set_dependency_flags
             #\hideinitializer
             self.deps=0
-
+            ##true if packet holds a GF_FrameInterface object and not a data packet
+            #\hideinitializer
+            frame_ifce=0
 
     ##enumerate an packet properties
     #\param callback_obj callback object to use, must have a 'on_prop_enum' method defined taking two parameters, prop_name(string) and propval
@@ -3826,6 +3829,25 @@ class FilterPacket:
         _libgpac.gf_filter_pck_discard(self._pck)
         self._pck = None
         ##\endcond private
+
+    ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dandling_copy.
+    #The resulting packet is read/write mode and may have its own memory allocated.
+    #This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
+    #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+    #\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
+    #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
+    def clone(self, cached_pck=False):
+        if cached_pck:
+            _pck = _libgpac.gf_filter_pck_dandling_copy(self._pck, cached_pck._pck)
+        else:
+            _pck = _libgpac.gf_filter_pck_dandling_copy(self._pck, None)
+
+        if _pck:
+            pck = FilterPacket(_pck, False)
+            pck._readonly = False
+            return pck
+        return None
+
 
     ##mark an output packet as readonly - see \ref gf_filter_pck_set_readonly
     #\return
@@ -3889,14 +3911,6 @@ class FilterPacket:
         if self._is_src:
             raise Exception('Cannot truncate on source packet')
         _libgpac.gf_filter_pck_truncate(self._pck, size)
-
-    ##true if packet holds a GF_FrameInterface object and not a data packet
-    #\return True if packet is a frame interface object
-    def is_frame_ifce(self):
-        p = _libgpac.gf_filter_pck_get_frame_interface(self._pck)
-        if p:
-            return True
-        return False
 
     ##Check if packet is a blocking reference - see \ref gf_filter_pck_is_blocking_ref
     #\return true if packet is a blocking reference
@@ -4099,6 +4113,13 @@ class FilterPacket:
         if self._is_src:
             raise Exception('Cannot set deps on source packet')
         return _libgpac.gf_filter_pck_set_dependency_flags(self._pck, value)
+
+    @property
+    def frame_ifce(self):
+        p = _libgpac.gf_filter_pck_get_frame_interface(self._pck)
+        if p:
+            return True
+        return False
 
     ##\endcond private
 

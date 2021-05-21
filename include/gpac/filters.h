@@ -3761,6 +3761,21 @@ GF_FilterPacket *gf_filter_pck_new_clone(GF_FilterPid *PID, GF_FilterPacket *pck
 */
 GF_FilterPacket *gf_filter_pck_new_copy(GF_FilterPid *PID, GF_FilterPacket *pck_source, u8 **data);
 
+/*! Creates a  read-only detached copy of a packet from a source packet and copy all source properties to output.
+
+If the source packet uses a frame interface object or has no associated data, returns a copy of the packet.
+If the source packet is referenced more than once (ie more than just the caller), a new packet on the output PID is allocated with source data copied.
+Otherwise, the source data is assigned to the output packet.
+
+This is typically called by filters requiring read access to data for packets using frame interfaces
+\warning The cloned packet will not have any dynamic properties set.
+
+\param pck_source the target source packet
+\param cached_pck if not NULL, will try to reuse this packet if possible (if not possible, this packet will be destroyed)
+\return new packet or NULL if allocation error or not an output PID
+*/
+GF_FilterPacket *gf_filter_pck_dandling_copy(GF_FilterPacket *pck_source, GF_FilterPacket *cached_pck);
+
 /*! Marks memory of a shared packet as non-writable. By default \ref gf_filter_pck_new_shared and \ref gf_filter_pck_new_ref allow
 write access to internal memory in case the packet can be cloned (single reference used). If your filter relies on the content of the shared
 memory for its internal state, packet must be marked as read-only to avoid later state corruption.

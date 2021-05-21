@@ -2553,6 +2553,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_is_blocking_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref_ex) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_readonly) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_dandling_copy) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_check_caps ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_copy_properties ) )
