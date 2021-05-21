@@ -312,14 +312,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		if (!done && ctx->clock && data && size) {
 			GF_Fraction64 timestamp;
 			timestamp.num = cts;
-			if (ctx->pck_offset)
-				timestamp.num += ctx->pck_offset/ctx->bytes_per_sample;
+			if (ctx->pck_offset) {
+				u32 nb_samp = ctx->pck_offset/ctx->bytes_per_sample;
+				if (ctx->timescale != ctx->sr) {
+					nb_samp *= ctx->timescale;
+					nb_samp /= ctx->sr;
+				}
+				timestamp.num += nb_samp;
+			}
 
 			timestamp.num -= (ctx->hwdelay_us*ctx->timescale)/1000000;
 			if (timestamp.num<0) timestamp.num = 0;
 			timestamp.den = ctx->timescale;
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s, HW delay "LLU" us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
 		}
 		
 		if (data && !ctx->wait_recfg) {

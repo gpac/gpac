@@ -1655,7 +1655,8 @@ static GF_Err vout_process(GF_Filter *filter)
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
-			ctx->first_cts_plus_one = cts + 1;
+			ctx->first_cts_plus_one = ref_ts + 1;
+			ctx->clock_at_first_cts = now;
 
 			//allow 10ms video advance
 			#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
