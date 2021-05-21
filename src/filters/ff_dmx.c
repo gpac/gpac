@@ -347,8 +347,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 		codec_framerate = codec->framerate;
 #endif
-		u32 codec_sample_fmt = codec->sample_fmt;
-		u32 codec_bitrate = codec->bit_rate;
+		s32 codec_sample_fmt = codec->sample_fmt;
+		u32 codec_bitrate = (u32) codec->bit_rate;
 
 #else
 		u32 codec_type = stream->codecpar->codec_type;
@@ -364,7 +364,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		u32 codec_field_order = stream->codecpar->field_order;
 		u32 codec_tag = stream->codecpar->codec_tag;
 		u32 codec_pixfmt = (codec_type==AVMEDIA_TYPE_VIDEO) ? stream->codecpar->format : 0;
-		u32 codec_sample_fmt = (codec_type==AVMEDIA_TYPE_AUDIO) ? stream->codecpar->format : 0;
+		s32 codec_sample_fmt = (codec_type==AVMEDIA_TYPE_AUDIO) ? stream->codecpar->format : 0;
 		u32 codec_bitrate = (u32) stream->codecpar->bit_rate;
 #endif
 

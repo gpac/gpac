@@ -5830,6 +5830,7 @@ typedef enum {
 	TILE_ITEM_SINGLE
 } GF_TileItemMode;
 
+/*! Image overlay offset properties*/
 typedef struct {
 	u32 horizontal;
 	u32 vertical;
@@ -6048,7 +6049,7 @@ GF_Err gf_isom_iff_create_image_grid_item(GF_ISOFile *isom_file, Bool root_meta,
 \param image_props image properties information for image items
 \return error if any
 */
-GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props);
+GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *isom_file, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props);
 
 /*! creates an image identity item
 \param isom_file the target ISO file
@@ -6059,7 +6060,7 @@ GF_Err gf_isom_iff_create_image_overlay_item(GF_ISOFile *movie, Bool root_meta, 
 \param image_props image properties information for image items
 \return error if any
 */
-GF_Err gf_isom_iff_create_image_identity_item(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props);
+GF_Err gf_isom_iff_create_image_identity_item(GF_ISOFile *isom_file, Bool root_meta, u32 meta_track_number, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props);
 
 /*! creates image item(s) from samples of a media track
 \param isom_file the target ISO file
