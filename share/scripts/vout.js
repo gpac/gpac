@@ -246,6 +246,7 @@ function do_seek(val, mods, absolute)
 	else if (last_ts>duration) last_ts = duration-10;
 	
 	vout.update('start', ''+last_ts);
+	if (aout) aout.update('start', '' + last_ts);
 }
 
 let init_wnd=false;
