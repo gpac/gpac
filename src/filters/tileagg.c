@@ -87,6 +87,9 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			return GF_REQUIRES_NEW_INSTANCE;
 
 		ctx->base_ipid = pid;
+		if (!ctx->opid) {
+			ctx->opid = gf_filter_pid_new(filter);
+		}
 	}
 	//tile pid connecting after another tile pid,  we share the same base
 	if ((codec_id==GF_CODECID_HEVC_TILES) && ctx->base_id) {
@@ -126,10 +129,17 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		ctx->sabt = gf_filter_pid_get_property_str(pid, "isom:sabt");
 	} else {
+		u32 base_id;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 		if (!p) return GF_NOT_SUPPORTED;
+		base_id = p->value.uint;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+		if (!p) return GF_NOT_SUPPORTED;
+		if (base_id == p->value.uint)
+			return GF_NOT_SUPPORTED;
+
 		if (!ctx->base_ipid) {
-			ctx->base_id = p->value.uint;
+			ctx->base_id = base_id;
 		}
 		//we already checked the same base ID is used
 	}
