@@ -197,12 +197,12 @@ static GF_FilterPacket *new_dandling_packet(GF_FilterPacket *cached_pck, u32 dat
 			cached_pck->alloc_size = data_length;
 			cached_pck->data = gf_realloc(cached_pck->data, cached_pck->alloc_size);
 			if (!cached_pck->data) {
-				gf_free(cached_pck->data);
+				gf_free(cached_pck);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to re-allocate dandling packet data\n"));
 				return NULL;
 			}
 		}
-		cached_pck->data_length = cached_pck->alloc_size;
+		cached_pck->data_length = data_length;
 		return cached_pck;
 	}
 
@@ -217,8 +217,7 @@ static GF_FilterPacket *new_dandling_packet(GF_FilterPacket *cached_pck, u32 dat
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate new dandling packet\n"));
 		return NULL;
 	}
-	dst->alloc_size = data_length;
-	dst->data_length = data_length;
+	dst->alloc_size = dst->data_length = data_length;
 	dst->filter_owns_mem = 0;
 	dst->pck = dst;
 	dst->dandling_packet = 1;
