@@ -36,9 +36,10 @@ For more information, visit [GPAC website](http://gpac.io)
 
 GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
 
-Please cite our work in your research:
-- GPAC Filters: https://doi.org/10.1145/3339825.3394929
-- GPAC: https://doi.org/10.1145/1291233.1291452
+! _Please cite_ ! our work in your research:
+- "GPAC Filters" (https://doi.org/10.1145/3339825.3394929) for recent versions (0.9 or above) 
+- "GPAC: open source multimedia framework" (https://doi.org/10.1145/1291233.1291452) for legacy versions (0.8 or below).
+
 
 # Features
 
@@ -97,17 +98,14 @@ For more details on the test suite, read [this page](https://github.com/gpac/gpa
 Per-commit [build](https://buildbot.gpac.io/) and [tests results](https://tests.gpac.io) are available.
 
 
-## Support 
+## Support, ongoing tasks and bugs
+
 Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as _feature-request_.	
 
 ## Contributing
 A complex project like GPAC wouldn’t exist and persist without the support of its community. Please contribute: a nice message, supporting us in our communication, reporting issues when you see them… any gesture, even the smallest ones, counts. 
 
-If you use GPAC in your published research, ! _please cite_ ! using
-- [this paper](https://dl.acm.org/doi/abs/10.1145/3339825.3394929) for recent versions (0.9 or above) 
-- [this paper](https://dl.acm.org/doi/abs/10.1145/1291233.1291452) for legacy versions (0.8 or below).
-
-If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for ‘good first issue’ on  [github](https://github.com/gpac/gpac/issues). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
+If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpac.wp.imt.fr/jobs/google-summer-of-code-ideas/) or look for a [good first issue](https://github.com/gpac/gpac/labels/good%20first%20issue). In any doubt please feel free to [contact us](mailto:contact@gpac.io).
 
 # Team
 GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 
@@ -122,12 +120,9 @@ Users are encouraged to use the latest tag or the master branch.
 
 The previous v0.8.X release (the last one using the legacy architecture) is LTS until 30/06/2021. Important bug fixes will be backported but new features won’t. API compatibility between both versions should make the migration easy. If not please [file a bug](https://github.com/gpac/gpac/issues).
 
-## Ongoing tasks and bugs
-Please use [github](https://github.com/gpac/gpac/issues) for feature requests and bug reports. When filing a request there, please tag it as feature-request.	
-
 ## V1.1.0
 Targets:
-- [ ] improve remotery support
+- [x] improve remotery support
 - [x] more JS filters
 - [x] Python bindings for libgpac
 - [ ] move input sensors to filter ?
