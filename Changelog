@@ -15,7 +15,7 @@
 - DASH period continuity support (from playlists or reframer)
 
 ## Image File Format (HEIF)
-- support for grid creation
+- support for grid creation and other derive images
 - support for encryption
 - support for time range in -add-image
 - support for item to sample data reference (no copy)
@@ -28,10 +28,12 @@
 - support for track extraction from non ISOBMF sources in MP4Box
 - most import options can now be applied on an existing ISOBMF file
 - support for multiple filter chains per source in MP4Box dash or add syntax
+- chunk interleaving dumper
 
 ## Filter core
 - Python bindings for filter session
 - support for custom HAS adaptation algorithms (JS and Python)
+- support for custom remotery callbacks (JS and Python)
 - splicing support in playlists: raw and compressed domain, vod and live splicing
 - tile splitting now available as a filter 
 - added avgen counter generation
@@ -41,6 +43,8 @@
 - improved colorspace support in rendering (OpenGL only)
 - improved round-trip audio decode
 - improved audio resampler
+- added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 
+- support for reading back frame interface data (GPU, decoder mem) in JS or Python sink filters
 
 ## Media Formats
 - improved support for MPEG-H audio mux/demux/dashing
@@ -61,7 +65,8 @@
 - improved HTTP rate limiter and chunk-transfer rate estimator
 - reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters
 - support for windows long path
-- moved to latest QuickJS (2020-11-08 rc2)
+- moved to latest QuickJS (2021-03-27)
+- support for FFmpeg 4.4
 - many bug fixes, improvements and security patches
 
 
