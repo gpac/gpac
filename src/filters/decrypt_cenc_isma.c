@@ -588,11 +588,18 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 			}
 		}
 		if (!found) {
+			char szKID[33];
+			szKID[0] = 0;
+			for (j=0; j<16; j++) {
+				char szV[3];
+				sprintf(szV, "%02X", KID[j]);
+				strcat(szKID, szV);
+			}
 			if (ctx->decrypt==DECRYPT_FULL) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID, abprting !\n\tUse '--decrypt=nokey' to force decrypting\n", i+1));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID 0x%s, aborting !\n\tUse '--decrypt=nokey' to force decrypting\n", i+1, szKID));
 				return cstr->key_error = GF_SERVICE_ERROR;
 			}
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID, will leave data encrypted\n", i+1));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannot locate key #%d for given KID 0x%s, will leave data encrypted\n", i+1, szKID));
 			cstr->crypts[i].key_valid = GF_FALSE;
 		}
 	}

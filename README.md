@@ -36,9 +36,9 @@ For more information, visit [GPAC website](http://gpac.io)
 
 GPAC is distributed under the LGPL v2.1 or later, and is also available, for most of it, under a [commercial license](https://www.gpac-licensing.com).
 
-! _Please cite_ ! our work in your research:
+Please ! _cite_ ! our work in your research:
 - "GPAC Filters" (https://doi.org/10.1145/3339825.3394929) for recent versions (0.9 or above) 
-- "GPAC: open source multimedia framework" (https://doi.org/10.1145/1291233.1291452) for legacy versions (0.8 or below).
+- "GPAC: open source multimedia framework" (https://doi.org/10.1145/1291233.1291452) for older versions.
 
 
 # Features
