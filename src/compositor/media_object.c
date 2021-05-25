@@ -231,13 +231,6 @@ void gf_mo_get_nb_views(GF_MediaObject *mo, u32 *nb_views)
 }
 
 GF_EXPORT
-
-void gf_mo_get_nb_layers(GF_MediaObject *mo, u32 *nb_layers)
-{
-	if (mo) *nb_layers = mo->nb_layers;
-}
-
-GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u64 *channel_config, Bool *forced_layout)
 {
 	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
@@ -343,6 +336,10 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 				mo->srd_full_h = v2->value.vec2i.y;
 			}
 		}
+
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_NUM_VIEWS);
+		mo->nb_views = v ? v->value.uint : 0;
+
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
 		UPDATE_CAP(GF_PROP_PID_SAMPLE_RATE, sample_rate)
 		UPDATE_CAP(GF_PROP_PID_NUM_CHANNELS, num_channels)

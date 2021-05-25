@@ -171,6 +171,8 @@ typedef struct
 	u32 au_duration;
 	u32 nb_iraps;
 	s32 ntp_diff;
+	//0 if mono, 2 or more otherwise
+	u32 nb_views;
 
 	/*4CC of original protection scheme used*/
 	u32 protection;

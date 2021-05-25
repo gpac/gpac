@@ -603,6 +603,8 @@ iod (flt, default: 6.4, updatable): inter-occular distance (eye separation) in c
 .br
 rview (bool, default: false, updatable): reverse view order
 .br
+dbgpack (bool, default: false, updatable): view packed stereo video as single image (show all)
+.br
 tvtn (uint, default: 30, updatable): number of point sampling for tile visibility algo
 .br
 tvtt (uint, default: 8, updatable): number of points above which the tile is considered visible
@@ -7531,7 +7533,7 @@ pack_hfr (bool, default: false): pack 4 consecutive frames in a single output
 .br
 seek_reset (bool, default: false): reset decoder when seeking
 .br
-force_stereo (bool, default: false): force stereo output for multiview (top-bottom only)
+force_stereo (bool, default: true): use stereo output for multiview (top-bottom only)
 .br
 reset_switch (bool, default: false): reset decoder at config change
 .br
@@ -7689,7 +7691,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev917-g8da57ad49-master
+build: 1.1.0-DEV-rev919-g2715401c9-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
