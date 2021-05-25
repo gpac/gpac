@@ -1271,7 +1271,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_flag) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_min_frame_dur) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_event_target_add_node) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_layers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_nb_views) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_is_started) )
 

@@ -1949,6 +1949,9 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
 		if (prop) info->lang_code = prop->value.string;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_VIEWS);
+		if (prop && (prop->value.uint>1)) info->nb_views = prop->value.uint;
 	}
 
 	if (!scalable_addon_par) {

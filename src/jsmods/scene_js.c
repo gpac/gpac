@@ -96,6 +96,7 @@ enum {
 	GJS_OM_PROP_MAX_RATE,
 	GJS_OM_PROP_SERVICE_HANDLER,
 	GJS_OM_PROP_CODEC,
+	GJS_OM_PROP_NB_VIEWS,
 	GJS_OM_PROP_NB_QUALITIES,
 	GJS_OM_PROP_MAX_BUFFER,
 	GJS_OM_PROP_MIN_BUFFER,
@@ -747,7 +748,10 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
             return JS_NewString(ctx, odi.service_handler ? odi.service_handler : "unloaded");
 	case GJS_OM_PROP_CODEC:
 		gf_odm_get_object_info(odm, &odi);
-            return JS_NewString(ctx, odi.codec_name ? odi.codec_name : "unloaded");
+		return JS_NewString(ctx, odi.codec_name ? odi.codec_name : "unloaded");
+	case GJS_OM_PROP_NB_VIEWS:
+		gf_odm_get_object_info(odm, &odi);
+		return JS_NewInt32(ctx, (odi.nb_views>1) ? odi.nb_views : 0);
 	case GJS_OM_PROP_NB_QUALITIES:
 		//use HAS qualities
 		if (odm->pid) {
@@ -1727,6 +1731,7 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("max_bitrate", odm_getProperty, NULL, GJS_OM_PROP_MAX_RATE),
 	JS_CGETSET_MAGIC_DEF("service_handler", odm_getProperty, NULL, GJS_OM_PROP_SERVICE_HANDLER),
 	JS_CGETSET_MAGIC_DEF("codec", odm_getProperty, NULL, GJS_OM_PROP_CODEC),
+	JS_CGETSET_MAGIC_DEF("nb_views", odm_getProperty, NULL, GJS_OM_PROP_NB_VIEWS),
 	JS_CGETSET_MAGIC_DEF("nb_qualities", odm_getProperty, NULL, GJS_OM_PROP_NB_QUALITIES),
 	JS_CGETSET_MAGIC_DEF("max_buffer", odm_getProperty, NULL, GJS_OM_PROP_MAX_BUFFER),
 	JS_CGETSET_MAGIC_DEF("min_buffer", odm_getProperty, NULL, GJS_OM_PROP_MIN_BUFFER),

@@ -1309,6 +1309,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by `SRDRef`", GF_PROP_UINT_LIST},
 
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
+	{ GF_PROP_PID_NUM_VIEWS, "NumViews", "Indicates the number of views packed in a frame (top-to-bottom only)", GF_PROP_UINT},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_TARGET_RATE, "TargetRate", "Target bitrate in bps, used to setup encoders", GF_PROP_UINT},

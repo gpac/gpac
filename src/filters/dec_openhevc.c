@@ -290,12 +290,15 @@ static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(2*ctx->width) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(2*ctx->stride) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_VIEWS, NULL);
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
-		if (ctx->force_stereo && ctx->is_multiview && ctx->cur_layer>1) {
+		if (ctx->force_stereo && ctx->is_multiview && (ctx->cur_layer==2)) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_VIEWS, &PROP_UINT(2) );
 		} else {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_VIEWS, NULL);
 		}
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
@@ -858,7 +861,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		//force top/bottom output of left and right frame, double height
 		if (ctx->pack_hfr) {
 			ctx->out_size *= 4;
-		} else if ((ctx->cur_layer==2) && (ctx->is_multiview || ctx->force_stereo) ){
+		} else if ((ctx->cur_layer==2) && ctx->is_multiview && ctx->force_stereo) {
 			ctx->out_size *= 2;
 		}
 
@@ -973,7 +976,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	
 	openHevcFrame_FL.data_y = (void*) data;
 
-	if (ctx->nb_layers==2 && ctx->is_multiview && !ctx->no_copy){
+	if ((ctx->cur_layer==2) && ctx->is_multiview && ctx->force_stereo && !ctx->no_copy){
 		int out1, out2;
 		if( chromat_format == OH_YUV420){
 			openHevcFrame_SL.data_y = (void*) (data +  ctx->stride * ctx->height);
@@ -1363,7 +1366,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 	{ OFFS(no_copy), "directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_hfr), "pack 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seek_reset), "reset decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(force_stereo), "force stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force_stereo), "use stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reset_switch), "reset decoder at config change", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };

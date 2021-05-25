@@ -936,6 +936,8 @@ static GF_FilterArgs CompositorArgs[] =
 	"", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(iod), "inter-occular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rview), "reverse view order", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dbgpack), "view packed stereo video as single image (show all)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+
 
 	{ OFFS(tvtn), "number of point sampling for tile visibility algo", GF_PROP_UINT, "30", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tvtt), "number of points above which the tile is considered visible", GF_PROP_UINT, "8", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},

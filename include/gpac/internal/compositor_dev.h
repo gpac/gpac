@@ -436,7 +436,7 @@ struct __tag_compositor
 
 	/*to copy!*/
 	u32 nbviews, stereo, camlay;
-	Bool rview;
+	Bool rview, dbgpack;
 	Fixed dispdist;
 	char *mvshader;
 
