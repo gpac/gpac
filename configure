@@ -3455,7 +3455,7 @@ generate_gpacdesktop () {
 	echo "Terminal=false"
 	echo "X-MultipleArgs=false"
 	echo "Type=Application"
-	echo "Icon=$prefix/share/pixmaps/gpac.png"
+	echo "Icon=gpac"
 	echo "Categories=AudioVideo"
 	echo "MimeType=text/text;text/xml;application/xhtml+xml;application/xml;image/jpeg;image/png;video/webm;video/mp4;video/mpeg;audio/mp4;audio/mpeg;x-scheme-handler/rtsp;x-scheme-handler/rtp;x-scheme-handler/route"
 	echo "StartupNotify=true"

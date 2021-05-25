@@ -6,7 +6,7 @@ debian/tmp/usr/share/gpac/res
 debian/tmp/usr/share/gpac/gui
 debian/tmp/usr/share/gpac/shaders
 debian/tmp/usr/share/gpac/scripts
-debian/tmp/usr/share/pixmaps
+debian/tmp/usr/share/icons
 debian/tmp/usr/share/applications
 
 
