@@ -402,6 +402,11 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 
 	if (esd) {
 		gf_isom_new_mpeg4_description(outfile, newTk, esd, NULL, NULL, &descIndex);
+	} else {
+		gf_isom_clone_sample_description(outfile, newTk, infile, inTrackNum, 1, NULL, NULL, &descIndex);
+	}
+
+	if (esd && esd->decoderConfig) {
 		if ((esd->decoderConfig->streamType == GF_STREAM_VISUAL) || (esd->decoderConfig->streamType == GF_STREAM_SCENE)) {
 			u32 w, h;
 			gf_isom_get_visual_info(infile, inTrackNum, 1, &w, &h);
@@ -425,8 +430,6 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 		}
 		esd->decoderConfig->avgBitrate = 0;
 		esd->decoderConfig->maxBitrate = 0;
-	} else {
-		gf_isom_clone_sample_description(outfile, newTk, infile, inTrackNum, 1, NULL, NULL, &descIndex);
 	}
 
 	pos = 0;
@@ -436,7 +439,7 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	for (i=0; i<count; i++) {
 		samp = gf_isom_get_sample(infile, inTrackNum, i+1, &di);
 		gf_isom_add_sample(outfile, newTk, descIndex, samp);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			rate += samp->dataLength;
 			esd->decoderConfig->avgBitrate += samp->dataLength;
 			if (esd->decoderConfig->bufferSizeDB<samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
@@ -460,8 +463,16 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	          ) {
 		return gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, 0x0F);
 	}
+
 	/*likely 3gp or any non-MPEG-4 isomedia file*/
-	else if (!esd) return gf_isom_remove_root_od(outfile);
+	if (!esd)
+		return gf_isom_remove_root_od(outfile);
+
+	//broken stream description, do not check for profiles & levels and remove from root
+	if (!esd->decoderConfig) {
+		gf_odf_desc_del((GF_Descriptor *)esd);
+		return gf_isom_remove_root_od(outfile);
+	}
 
 	dur = gf_isom_get_media_duration(outfile, newTk);
 	if (!dur) dur = ts;
