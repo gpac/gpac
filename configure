@@ -3444,31 +3444,6 @@ generate_pkgconfig () {
 generate_pkgconfig > gpac.pc
 
 
-generate_gpacdesktop () {
-	echo "[Desktop Entry]"
-	echo "Version=1.0"
-	echo "Name=MP4Client"
-	echo "Comment=GPAC Media Player"
-	echo "GenericName=Media Player"
-	echo "Keywords=Media Player"
-	echo "Exec=MP4Client -gui %u"
-	echo "Terminal=false"
-	echo "X-MultipleArgs=false"
-	echo "Type=Application"
-	echo "Icon=$prefix/share/pixmaps/gpac.png"
-	echo "Categories=AudioVideo"
-	echo "MimeType=text/text;text/xml;application/xhtml+xml;application/xml;image/jpeg;image/png;video/webm;video/mp4;video/mpeg;audio/mp4;audio/mpeg;x-scheme-handler/rtsp;x-scheme-handler/rtp;x-scheme-handler/route"
-	echo "StartupNotify=true"
-	echo "Actions=new-window"
-	echo ""
-	echo "[Desktop Action new-window]"
-	echo "Name=Open a New Window"
-	echo "Exec=MP4Client"
-	echo ""
-}
-
-generate_gpacdesktop > "$source_path/share/gpac.desktop"
-
 if test "$static_bin" = "yes"; then
  if test "$darwin" = "yes" ; then
   echo "\nWarning: static binaries on OSX cannot remove all dependendencies to system libraries\n"

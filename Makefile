@@ -156,10 +156,10 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/default.cfg $(DESTDIR)$(prefix)/share/gpac/
 
 ifneq ($(CONFIG_DARWIN),yes)
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/pixmaps"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/icons/hicolor/128x128/apps"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/applications"
 
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png "$(DESTDIR)$(prefix)/share/pixmaps/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/res/gpac.png "$(DESTDIR)$(prefix)/share/icons/hicolor/128x128/apps/"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/gpac.desktop "$(DESTDIR)$(prefix)/share/applications/"
 endif
 
@@ -213,7 +213,7 @@ else
 	ln -s $(BUILD_PATH)/bin/gcc/ $(DESTDIR)$(prefix)/$(lib_dir)/gpac
 
 	ln -s $(SRC_PATH)/share/ $(DESTDIR)$(prefix)/share/gpac
-	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/pixmaps/gpac.png
+	ln -sf $(DESTDIR)$(prefix)/share/gpac/res/gpac.png $(DESTDIR)/usr/share/icons/hicolor/128x128/apps/gpac.png
 	ln -sf $(SRC_PATH)/share/gpac.desktop $(DESTDIR)/usr/share/applications/
 
 ifeq ($(DESTDIR)$(prefix),$(prefix))
@@ -234,7 +234,7 @@ uninstall:
 	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/gpac.1
 	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
-	rm -rf $(DESTDIR)$(prefix)/share/pixmaps/gpac.png
+	rm -rf $(DESTDIR)$(prefix)/share/icons/hicolor/128x128/apps/gpac.png
 	rm -rf $(DESTDIR)$(prefix)/share/applications/gpac.desktop
 
 
