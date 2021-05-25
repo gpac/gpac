@@ -6,7 +6,6 @@ GenericName=Media Player
 Keywords=Media Player
 Exec=MP4Client -gui %u
 Terminal=false
-X-MultipleArgs=false
 Type=Application
 Icon=gpac
 Categories=AudioVideo
