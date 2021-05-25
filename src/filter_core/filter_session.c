@@ -2565,6 +2565,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	if (filter) {
 		sURL = (char *) url;
 	} else {
+		Bool is_local;
 		/*used by GUIs scripts to skip URL concatenation*/
 		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 		/*opera-style localhost URLs*/
@@ -2580,8 +2581,14 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			memmove(sURL, sURL+7, ulen);
 			sURL[ulen]=0;
 		}
+		//remove any filter arguments in URL before checking if it is local
+		//not doing so will lead wrong result if one argument is a URL (eg ":#BUrl=http://")
+		sep = (char *) gf_fs_path_escape_colon(fsess, sURL);
+		if (sep) sep[0] = 0;
+		is_local = gf_url_is_local(sURL);
+		if (sep) sep[0] = fsess->sep_args;
 
-		if (for_source && gf_url_is_local(sURL) && !strstr(sURL, "isobmff://")) {
+		if (for_source && is_local && !strstr(sURL, "isobmff://")) {
 			char *frag_par, *cgi, *ext_start;
 			char f_c=0;
 			gf_url_to_fs_path(sURL);
