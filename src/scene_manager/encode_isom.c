@@ -1062,7 +1062,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			is_in_iod = 0;
 			j=0;
 			while ((esd = (GF_ESD*)gf_list_enum(iod->ESDescriptors, &j))) {
-				if (esd->decoderConfig->streamType != GF_STREAM_OD) {
+				if (!esd->decoderConfig || (esd->decoderConfig->streamType != GF_STREAM_OD)) {
 					esd = NULL;
 					continue;
 				}
@@ -1073,17 +1073,32 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				}
 			}
 		}
-		if (!esd) esd = gf_sm_locate_esd(ctx, sc->ESID);
+		if (!esd)
+			esd = gf_sm_locate_esd(ctx, sc->ESID);
+
 		if (!esd) {
 			delete_desc = 1;
 			esd = gf_odf_desc_esd_new(2);
+			if (!esd) {
+				e = GF_OUT_OF_MEM;
+				goto err_exit;
+			}
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
 			esd->decoderConfig->streamType = GF_STREAM_OD;
+		} else if (!esd->decoderConfig) {
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto err_exit;
 		}
 
 		/*create OD track*/
-		if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+		if (!esd->slConfig) {
+			esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+			if (!esd->slConfig) {
+				e = GF_OUT_OF_MEM;
+				goto err_exit;
+			}
+		}
 		if (sc->timeScale) esd->slConfig->timestampResolution = sc->timeScale;
 		if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 		track = gf_isom_new_track(mp4, sc->ESID, GF_ISOM_MEDIA_OD, esd->slConfig->timestampResolution);
