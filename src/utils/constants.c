@@ -1633,7 +1633,7 @@ s32 gf_itags_find_by_name(const char *tag_name)
 {
 	u32 i, count = GF_ARRAY_LENGTH(itunes_tags);
 	for (i=0; i<count; i++) {
-		if (!strcmp(tag_name, itunes_tags[i].name)) {
+		if (!stricmp(tag_name, itunes_tags[i].name)) {
 			return i;
 		} else if (itunes_tags[i].match_substr && !strnicmp(tag_name, itunes_tags[i].name, strlen(itunes_tags[i].name) )) {
 			return i;

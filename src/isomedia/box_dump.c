@@ -3888,6 +3888,14 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_ITUNE_GAPLESS:
 			gf_fprintf(trace, " IsGapeless=\"%s\" ", (dbox && dbox->data && itune->data->data[0]) ? "yes" : "no");
 			break;
+		case GF_ISOM_ITUNE_GENRE:
+			if (dbox && dbox->data && itune->data->dataSize>=2) {
+				u32 genre = itune->data->data[0];
+				genre<<=8;
+				genre |= itune->data->data[1];
+				gf_fprintf(trace, " value=\"%s\" ", gf_id3_get_genre((u32) genre));
+			}
+			break;
 		default:
 			if (dbox && dbox->data) {
 				gf_fprintf(trace, " value=\"");

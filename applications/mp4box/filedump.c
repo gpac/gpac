@@ -3336,6 +3336,8 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			gf_isom_sample_del(&sample);
 			fprintf(stderr, "\tFirst timecode: %s\n", szTimecode);
 		}
+	} else if (msub_type==GF_ISOM_SUBTYPE_OPUS) {
+		fprintf(stderr, "\tOpus Audio - Sample Rate %d ch %d\n", sr, nb_ch);
 	} else {
 		GF_GenericSampleDescription *udesc;
 

@@ -4203,7 +4203,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		return GF_OK;
 	}
 
-	if ((tag_val == GF_ISOM_ITUNE_GENRE) && (dbox->flags == 0) && (dbox->dataSize>2)) {
+	if ((tag_val == GF_ISOM_ITUNE_GENRE) && (dbox->flags == 0) && (dbox->dataSize>=2)) {
 		u32 int_val = dbox->data[0];
 		int_val <<= 8;
 		int_val |= dbox->data[1];
