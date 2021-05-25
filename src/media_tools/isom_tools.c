@@ -730,7 +730,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 				/*both MPEG4-Video and H264/AVC/SVC are supported*/
-				if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
+				if (esd->decoderConfig && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC))) {
 					nb_vid++;
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
