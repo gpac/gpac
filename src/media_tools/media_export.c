@@ -400,7 +400,7 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 		gf_isom_set_track_creation_time(outfile, newTk, cdate, mdate);
 	}
 
-	if (esd) {
+	if (esd && esd->decoderConfig) {
 		gf_isom_new_mpeg4_description(outfile, newTk, esd, NULL, NULL, &descIndex);
 		if ((esd->decoderConfig->streamType == GF_STREAM_VISUAL) || (esd->decoderConfig->streamType == GF_STREAM_SCENE)) {
 			u32 w, h;
@@ -436,7 +436,7 @@ static GF_Err gf_export_isom_copy_track(GF_MediaExporter *dumper, GF_ISOFile *in
 	for (i=0; i<count; i++) {
 		samp = gf_isom_get_sample(infile, inTrackNum, i+1, &di);
 		gf_isom_add_sample(outfile, newTk, descIndex, samp);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			rate += samp->dataLength;
 			esd->decoderConfig->avgBitrate += samp->dataLength;
 			if (esd->decoderConfig->bufferSizeDB<samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
