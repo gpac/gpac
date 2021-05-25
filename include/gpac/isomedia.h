@@ -5919,6 +5919,7 @@ typedef struct
 	Double auto_grid_ratio;
 	/*AV1 specific data*/
 	u32 av1_layer_size[3];
+  u8 av1_op_index;
 } GF_ImageItemProperties;
 
 
