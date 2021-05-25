@@ -982,7 +982,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 		time_scale = gf_isom_get_media_timescale(dumper->file, i+1);
 		esd = gf_isom_get_esd(dumper->file, i+1, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			stream_id = gf_isom_find_od_id_for_track(dumper->file, i+1);
 			if (!stream_id) stream_id = esd->ESID;
 
