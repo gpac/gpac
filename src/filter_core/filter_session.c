@@ -2062,7 +2062,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	u32 i, count;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
-	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	gf_mx_p(fsess->filters_mx);
 
 	count=gf_list_count(fsess->filters);
 	for (i=0; i<count; i++) {
@@ -2129,7 +2129,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 
 		gf_mx_v(f->tasks_mx);
 	}
-	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 
 	count=gf_list_count(fsess->threads);
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Session stats - threads %d\n", 1+count));
@@ -2254,7 +2254,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 	Bool has_connected=GF_FALSE;
 	GF_List *filters_done;
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\n"));
-	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	gf_mx_p(fsess->filters_mx);
 
 	filters_done = gf_list_new();
 
@@ -2284,7 +2284,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL);
 	}
 
-	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 	gf_list_del(filters_done);
 }
 
@@ -2335,7 +2335,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 		fsess = filter->session;
 	}
 
-	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	gf_mx_p(fsess->filters_mx);
 
 	if (!filter) {
 		GF_Filter *reg_filter = NULL;
@@ -2360,7 +2360,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, GF_Filter *filt
 		filter = filter->multi_sink_target;
 
 	removed = (!filter || filter->removed || filter->finalized) ? GF_TRUE : GF_FALSE;
-	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 
 	if (removed) return;
 

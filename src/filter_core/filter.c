@@ -271,9 +271,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->bundle_idx_at_resolution = -1;
 	filter->cap_idx_at_resolution = -1;
 
-	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->filters, filter);
-	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 
 	filter->multi_sink_target = multi_sink_target;
 
@@ -2694,14 +2694,14 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
 	}
-	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
+	gf_mx_p(f->session->filters_mx);
 
 	res = gf_list_del_item(f->session->filters, f);
 	if (res < 0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s task failure callback on already removed filter!\n", f->name));
 	}
 
-	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
+	gf_mx_v(f->session->filters_mx);
 
 	gf_mx_p(f->tasks_mx);
 	//detach all input pids
@@ -2836,14 +2836,14 @@ void gf_filter_remove_task(GF_FSTask *task)
 		f->freg->finalize(f);
 	}
 
-	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
+	gf_mx_p(f->session->filters_mx);
 
 	res = gf_list_del_item(f->session->filters, f);
 	if (res<0) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s destruction task on already removed filter\n", f->name));
 	}
 
-	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
+	gf_mx_v(f->session->filters_mx);
 
 	gf_mx_p(f->tasks_mx);
 	//detach all input pids
@@ -3327,12 +3327,9 @@ u32 gf_filter_get_num_events_queued(GF_Filter *filter)
 	if (!filter) return 0;
 	fsess = filter->session;
 
-	if (fsess->filters_mx)
-		gf_mx_p(fsess->filters_mx);
-
+	gf_mx_p(fsess->filters_mx);
 	res = gf_filter_get_num_events_queued_internal(filter);
-	if (fsess->filters_mx)
-		gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 
 	return res;
 }
@@ -3980,9 +3977,9 @@ Bool gf_filter_has_pid_connection_pending(GF_Filter *filter, GF_Filter *stop_at_
 	if (!filter) return GF_FALSE;
 	//lock session, this is an unsafe call
 	fsess = filter->session;
-	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	gf_mx_p(fsess->filters_mx);
 	res = gf_filter_has_pid_connection_pending_internal(filter, stop_at_filter);
-	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+	gf_mx_v(fsess->filters_mx);
 	return res;
 }
 

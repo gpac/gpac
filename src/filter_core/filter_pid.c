@@ -3881,7 +3881,13 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 		filter_id = gf_filter_last_id_in_chain(filter->cloned_from, GF_FALSE);
 
 	//we lock the instantiated filter list for the entire resolution process
-	if (filter->session->filters_mx) gf_mx_p(filter->session->filters_mx);
+	//we must unlock this mutex before calling locking a filter mutex (->tasks_mx)
+	//either directly or in functions calling it (e.g. gf_filter_in_parent_chain)
+	//in case another thread is reconfiguring a filter fA:
+	//- fA would have tasks_mx locked, and could be waiting for session->filters_mx to insert a new filter (inserting a filter chain)
+	//- trying to lock fA->tasks_mx would then deadlock
+	//cf issue 1799
+	gf_mx_p(filter->session->filters_mx);
 
 	linked_dest_filters = gf_list_new();
 	force_link_resolutions = gf_list_new();
@@ -3900,11 +3906,12 @@ restart:
 	}
 
 	found_matching_sourceid = GF_FALSE;
+
 	//try to connect pid to all running filters
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
 		Bool needs_clone;
-		Bool cap_matched;
+		Bool cap_matched, in_parent_chain;
 		GF_Filter *filter_dst;
 
 single_retry:
@@ -3962,6 +3969,7 @@ single_retry:
 			pid->filter->dst_filter = NULL;
 		}
 
+		gf_mx_v(filter->session->filters_mx);
 		gf_mx_p(filter_dst->tasks_mx);
 		if (gf_list_count(filter_dst->source_filters)) {
 			u32 j, count2 = gf_list_count(filter_dst->source_filters);
@@ -3974,6 +3982,7 @@ single_retry:
 			}
 		}
 		gf_mx_v(filter_dst->tasks_mx);
+		gf_mx_p(filter->session->filters_mx);
 
 		//if destination accepts only one input and connected or connection pending
 		//note that if destination uses dynamic clone through source ids, we need to check this filter
@@ -4029,7 +4038,10 @@ single_retry:
 		}
 		//walk up through the parent graph and check if this filter is already in. If so don't connect
 		//since we don't allow re-entrant PIDs
-		if (gf_filter_in_parent_chain(filter, filter_dst) ) {
+		gf_mx_v(filter->session->filters_mx);
+		in_parent_chain = gf_filter_in_parent_chain(filter, filter_dst);
+		gf_mx_p(filter->session->filters_mx);
+		if (in_parent_chain) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has filter %s in its parent chain\n", pid->name, filter_dst->name));
 			continue;
 		}
@@ -4054,6 +4066,7 @@ single_retry:
 					cyclic_detected = GF_TRUE;
 			}
 
+			gf_mx_v(filter->session->filters_mx);
 			gf_mx_p(filter_dst->tasks_mx);
 			//check filters already connected on filter_dst
 			for (k=0; k<filter_dst->num_input_pids && !cyclic_detected; k++) {
@@ -4063,6 +4076,7 @@ single_retry:
 					cyclic_detected = GF_TRUE;
 			}
 			gf_mx_v(filter_dst->tasks_mx);
+			gf_mx_p(filter->session->filters_mx);
 
 			if (cyclic_detected) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s has input chain already connected to filter %s\n", pid->name, pid->filter->name, filter_dst->name));
@@ -4256,7 +4270,7 @@ single_retry:
 				}
 				if (pid->filter->session->run_status!=GF_OK) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s init canceled (session abort)\n", pid->filter->name, pid->name));
-					if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+					gf_mx_v(filter->session->filters_mx);
 					assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
@@ -4272,7 +4286,7 @@ single_retry:
 						can_reassign_filter = GF_TRUE;
 						continue;
 					}
-					if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+					gf_mx_v(filter->session->filters_mx);
 					assert(pid->init_task_pending);
 					safe_int_dec(&pid->init_task_pending);
 					if (loaded_filters) gf_list_del(loaded_filters);
@@ -4296,7 +4310,7 @@ single_retry:
 					new_f = gf_filter_pid_resolve_link(pid, new_dst, &reassigned);
 					if (!new_f) {
 						if (reassigned) {
-							if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+							gf_mx_v(filter->session->filters_mx);
 							assert(pid->init_task_pending);
 							safe_int_dec(&pid->init_task_pending);
 							if (loaded_filters) gf_list_del(loaded_filters);
@@ -4386,7 +4400,7 @@ single_retry:
 	if (found_dest) {
 		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
-		if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+		gf_mx_v(filter->session->filters_mx);
 		pid->filter->disabled = GF_FALSE;
 		gf_list_del(linked_dest_filters);
         gf_list_del(force_link_resolutions);
@@ -4431,7 +4445,7 @@ single_retry:
 	gf_list_del(linked_dest_filters);
     gf_list_del(force_link_resolutions);
     gf_list_del(possible_linked_resolutions);
-	if (filter->session->filters_mx) gf_mx_v(filter->session->filters_mx);
+	gf_mx_v(filter->session->filters_mx);
 
 
 	filter->num_out_pids_not_connected ++;

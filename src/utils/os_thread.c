@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -638,7 +638,7 @@ GF_EXPORT
 Bool gf_mx_try_lock(GF_Mutex *mx)
 {
 	u32 caller;
-	if (!mx) return GF_FALSE;
+	if (!mx) return GF_TRUE;
 	caller = gf_th_id();
 	if (caller == mx->Holder) {
 		mx->HolderCount += 1;
