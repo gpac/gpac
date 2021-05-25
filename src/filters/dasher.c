@@ -1825,6 +1825,16 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 			if (p) subtype = p->value.uint;
 		}
+		if (!subtype && (ds->codec_id==GF_CODECID_RAW)) {
+			if (ds->stream_type==GF_STREAM_VISUAL) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PIXFMT);
+				if (p) subtype = gf_pixel_fmt_to_qt_type(p->value.uint);
+			}
+			else if (ds->stream_type==GF_STREAM_AUDIO) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AUDIO_FORMAT);
+				if (p) subtype = gf_audio_fmt_to_isobmf(p->value.uint);
+			}
+		}
 		if (!subtype) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known, cannot set codec string\n" ));
 			strcpy(szCodec, "unkn");

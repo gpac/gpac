@@ -2973,9 +2973,11 @@ Note: The : and / characters are replaced by . in FileSuffix property.
 .br
 It is possible to modify PID properties per range using .I props. Each set of property must be specified using the active separator set.
 .br
+Warning: The option must be escaped using double separators in order to be parsed properly.
+.br
 Example
 .br
-gpac src=m.mp4 reframer:xs=0,30:props=#Period=P1,#Period=P2:#foo=bar
+gpac src=m.mp4 reframer:xs=0,30::props=#Period=P1,#Period=P2:#foo=bar
 .br
 
 .br
@@ -6658,7 +6660,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf58.78.100
+Version: Lavf59.2.101
 .br
 
 .br
@@ -6692,7 +6694,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc58.136.101
+Version: Lavc59.1.100
 .br
 
 .br
@@ -6724,7 +6726,7 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd58.14.100
+Version: Lavd59.0.100
 .br
 
 .br
@@ -6813,7 +6815,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS5.10.100
+Version: SwS6.0.100
 .br
 
 .br
@@ -6861,7 +6863,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc58.136.101
+Version: Lavc59.1.100
 .br
 
 .br
@@ -6925,7 +6927,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf58.78.100
+Version: Lavf59.2.101
 .br
 
 .br
@@ -6985,7 +6987,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf58.78.100
+Version: Lavf59.2.101
 .br
 
 .br
@@ -7687,7 +7689,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev889-ge75abeebd-master
+build: 1.1.0-DEV-rev917-g8da57ad49-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

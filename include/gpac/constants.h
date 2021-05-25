@@ -845,9 +845,15 @@ Bool gf_audio_fmt_is_planar(GF_AudioFormat afmt);
 
 /*! Returns audio format for raw audio ISOBMFF sample description type
 \param msubtype ISOBMFF sample description type
-\return the associated audio format of 0 if not known
+\return the associated audio format or 0 if not known
  */
 GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype);
+
+/*! Returns QTFF/ISOBMFF sample description 4CC of an audio format
+\param afmt audio format to query
+\return the associated 4CC or 0 if not known
+ */
+u32 gf_audio_fmt_to_isobmf(GF_AudioFormat afmt);
 
 /*! enumerates audio formats
 \param idx index of the audio format, 0-based

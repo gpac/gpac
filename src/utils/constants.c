@@ -729,22 +729,37 @@ Bool gf_audio_fmt_is_planar(GF_AudioFormat audio_fmt)
 	return GF_FALSE;
 }
 
+static struct pcmfmt_to_qt
+{
+	GF_AudioFormat afmt;
+	u32 qt4cc;
+} AudiosToQT[] = {
+	{GF_AUDIO_FMT_S16, GF_QT_SUBTYPE_SOWT},
+	{GF_AUDIO_FMT_FLT, GF_QT_SUBTYPE_FL32},
+	{GF_AUDIO_FMT_DBL, GF_QT_SUBTYPE_FL64},
+	{GF_AUDIO_FMT_S24, GF_QT_SUBTYPE_IN24},
+	{GF_AUDIO_FMT_S32, GF_QT_SUBTYPE_IN32},
+	{GF_AUDIO_FMT_S16, GF_QT_SUBTYPE_TWOS},
+};
+
 GF_EXPORT
 GF_AudioFormat gf_audio_fmt_from_isobmf(u32 msubtype)
 {
-	switch (msubtype) {
-	case GF_QT_SUBTYPE_TWOS:
-		return GF_AUDIO_FMT_S16;
-	case GF_QT_SUBTYPE_SOWT:
-		return GF_AUDIO_FMT_S16;
-	case GF_QT_SUBTYPE_FL32:
-		return GF_AUDIO_FMT_FLT;
-	case GF_QT_SUBTYPE_FL64:
-		return GF_AUDIO_FMT_DBL;
-	case GF_QT_SUBTYPE_IN24:
-		return GF_AUDIO_FMT_S24;
-	case GF_QT_SUBTYPE_IN32:
-		return GF_AUDIO_FMT_S32;
+	u32 i, count = GF_ARRAY_LENGTH(AudiosToQT);
+	for (i=0; i<count; i++) {
+		if (msubtype == AudiosToQT[i].qt4cc)
+			return AudiosToQT[i].afmt;
+	}
+	return 0;
+}
+
+GF_EXPORT
+u32 gf_audio_fmt_to_isobmf(GF_AudioFormat afmt)
+{
+	u32 i, count = GF_ARRAY_LENGTH(AudiosToQT);
+	for (i=0; i<count; i++) {
+		if (afmt == AudiosToQT[i].afmt)
+			return AudiosToQT[i].qt4cc;
 	}
 	return 0;
 }
