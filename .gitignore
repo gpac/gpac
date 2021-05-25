@@ -85,7 +85,6 @@ extra_lib/include/
 config.mak
 configure-stamp
 gpac.pc
-share/gpac.desktop
 tests/external_media/
 tests/results/
 tests/hash_refs/
