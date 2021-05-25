@@ -1160,7 +1160,7 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.av1_op_index = image_props->av1_op_index;
 		prop_index = meta_find_prop(ipco, &searchprop);
 		if (prop_index < 0) {
-			GF_AV1OperatingPointSelectorPropertyBox *a1op = (GF_AV1LayeredImageIndexingPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_A1OP);
+			GF_AV1OperatingPointSelectorPropertyBox *a1op = (GF_AV1OperatingPointSelectorPropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_A1OP);
 			if (!a1op) return GF_OUT_OF_MEM;
 			a1op->op_index = image_props->av1_op_index;
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
