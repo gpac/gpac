@@ -323,6 +323,8 @@ typedef struct _dash_stream
 	u64 first_dts;
 	s64 pts_minus_cts;
 	Bool is_encrypted;
+	//only used for SegmentTimeline
+	u64 presentation_time_offset;
 
 	//target MPD timescale
 	u32 mpd_timescale;
@@ -660,7 +662,7 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 			return GF_BAD_PARAM;
 		}
 		base_ds->nb_comp_done ++;
-		ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;;
+		ds->first_cts_in_next_seg = ds->est_first_cts_in_next_seg;
 
 		if (base_ds->nb_comp_done == base_ds->nb_comp) {
 			dasher_flush_segment(ctx, base_ds, GF_TRUE);
@@ -5963,7 +5965,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
 	GF_MPD_SegmentTimelineEntry *s;
-	u64 duration;
+	u64 duration, pto;
 	Bool is_first = GF_FALSE;
 	Bool seg_align = GF_FALSE;
 	GF_MPD_SegmentTimeline *tl=NULL;
@@ -5983,9 +5985,13 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (gf_list_find(ds->set->representations, ds->rep)==0) is_first = GF_TRUE;
 	assert(ds->first_cts_in_next_seg > ds->first_cts_in_seg);
 	duration = ds->first_cts_in_next_seg - ds->first_cts_in_seg;
+	pto = ds->presentation_time_offset;
 	if (ds->timescale != ds->mpd_timescale) {
 		duration *= ds->mpd_timescale;
 		duration /= ds->timescale;
+
+		pto *= ds->mpd_timescale;
+		pto /= ds->timescale;
 	}
 	seg_align = (ds->set->segment_alignment || ds->set->subsegment_alignment) ? GF_TRUE : GF_FALSE;
 	//not first and segment alignment, ignore
@@ -5997,7 +6003,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!seg_align) {
 		GF_MPD_SegmentTimeline **p_tl=NULL;
 		if (!ds->rep) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entru, no representation assigned !\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entry, no representation assigned !\n"));
 			return;
 		}
 
@@ -6017,7 +6023,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 		GF_MPD_SegmentTimeline **p_tl=NULL;
 
 		if (!ds->set) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entru, no AdpatationSet assigned !\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to store timeline entry, no AdpatationSet assigned !\n"));
 			return;
 		}
 		assert(ds->set);
@@ -6027,7 +6033,8 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 				GF_SAFEALLOC(ds->set->segment_template, GF_MPD_SegmentTemplate);
 				if (ds->set->segment_template) {
 					ds->set->segment_template->start_number = (u32) -1;
-					ds->set->segment_template->timescale = ds->timescale;
+					ds->set->segment_template->timescale = ds->mpd_timescale;
+					ds->set->segment_template->presentation_time_offset = pto;
 				}
 				new_tl = GF_TRUE;
 			}
@@ -6039,7 +6046,8 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 				GF_SAFEALLOC(ds->set->segment_list, GF_MPD_SegmentList);
 				if (ds->set->segment_list) {
 					ds->set->segment_list->start_number = (u32) -1;
-					ds->set->segment_list->timescale = ds->timescale;
+					ds->set->segment_list->timescale = ds->mpd_timescale;
+					ds->set->segment_list->presentation_time_offset = pto;
 				}
 				new_tl = GF_TRUE;
 			}
@@ -6063,14 +6071,14 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 
 	//append to previous entry if possible
 	s = gf_list_last(tl->entries);
-	if (s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time)) {
+	if (s && (s->duration == duration) && (s->start_time + (s->repeat_count+1) * s->duration == ds->seg_start_time + pto)) {
 		s->repeat_count++;
 		return;
 	}
 	//nope, allocate
 	GF_SAFEALLOC(s, GF_MPD_SegmentTimelineEntry);
 	if (!s) return;
-	s->start_time = ds->seg_start_time;
+	s->start_time = ds->seg_start_time + pto;
 	s->duration = (u32) duration;
 	gf_list_add(tl->entries, s);
 }
@@ -7288,17 +7296,27 @@ static GF_Err dasher_process(GF_Filter *filter)
 					else if (set_start_with_sap != sap_type) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", set_start_with_sap, sap_type));
 					}
-					//TODO setup proper PTO, the code below will break sync by realigning first AU of each stream
+					//The code below assumes that the first frame in the stream has a presentation time of 0
+					ds->presentation_time_offset = 0;
 					if ((s64) cts + ds->pts_minus_cts > 0) {
 						u64 pto = cts + ds->pts_minus_cts;
+						u64 pto_adj = pto;
+						if (ds->timescale != ds->mpd_timescale) {
+							pto_adj *= ds->mpd_timescale;
+							pto_adj /= ds->timescale;
+						}
 						if (ds->rep->segment_list)
-							ds->rep->segment_list->presentation_time_offset = pto;
+							ds->rep->segment_list->presentation_time_offset = pto_adj;
 						else if (ds->rep->segment_template)
-							ds->rep->segment_template->presentation_time_offset = pto;
+							ds->rep->segment_template->presentation_time_offset = pto_adj;
 						else if (ds->set->segment_template)
-							ds->set->segment_template->presentation_time_offset = pto;
+							ds->set->segment_template->presentation_time_offset = pto_adj;
+						else if (ds->set->segment_list)
+							ds->set->segment_list->presentation_time_offset = pto_adj;
 						else if (ds->rep->segment_base)
-							ds->rep->segment_base->presentation_time_offset = pto;
+							ds->rep->segment_base->presentation_time_offset = pto_adj;
+
+						ds->presentation_time_offset = pto;
 					}
 					//period continuity, skip priming in new periods
 					if (ds->period_continuity_id)
