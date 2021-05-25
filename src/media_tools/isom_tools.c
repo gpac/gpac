@@ -508,7 +508,10 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			if (!w || !h) {
 				gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if ((v_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+				if (v_esd->decoderConfig
+					&& (v_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)
+					&& (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)
+				) {
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (!is_image && (!w || !h)) {
@@ -550,7 +553,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (a_esd->decoderConfig->objectTypeIndication == GF_CODECID_AAC_MPEG4) {
+			if (a_esd->decoderConfig && (a_esd->decoderConfig->objectTypeIndication == GF_CODECID_AAC_MPEG4)) {
 				GF_M4ADecSpecInfo cfg;
 				gf_m4a_get_config(a_esd->decoderConfig->decoderSpecificInfo->data, a_esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 				audioPL = cfg.audioPL;
@@ -582,6 +585,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	if (!odT) return gf_isom_last_error(mp4file);
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
+	if (!_esd) return GF_OUT_OF_MEM;
+
 	_esd->decoderConfig->bufferSizeDB = samp->dataLength;
 	_esd->decoderConfig->objectTypeIndication = GF_CODECID_OD_V1;
 	_esd->decoderConfig->streamType = GF_STREAM_OD;
@@ -599,6 +604,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	if (!bifsT) return gf_isom_last_error(mp4file);
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
+	if (!_esd) return GF_OUT_OF_MEM;
+	
 	_esd->decoderConfig->bufferSizeDB = 20;
 	_esd->decoderConfig->objectTypeIndication = GF_CODECID_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
@@ -729,14 +736,20 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			case GF_ISOM_SUBTYPE_MPEG4:
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
+				u32 oti = (esd && esd->decoderConfig) ? esd->decoderConfig->objectTypeIndication : 0;
+				gf_odf_desc_del((GF_Descriptor *)esd);
 				/*both MPEG4-Video and H264/AVC/SVC are supported*/
-				if ((esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_AVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_SVC) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_MVC)) {
+				switch (oti) {
+				case GF_CODECID_MPEG4_PART2:
+				case GF_CODECID_AVC:
+				case GF_CODECID_SVC:
+				case GF_CODECID_MVC:
 					nb_vid++;
-				} else {
+					break;
+				default:
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 					goto remove_track;
 				}
-				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
 			break;
 			default:
@@ -761,7 +774,10 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			case GF_ISOM_SUBTYPE_MPEG4:
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
-				switch (esd->decoderConfig->objectTypeIndication) {
+				u32 oti = (esd && esd->decoderConfig) ? esd->decoderConfig->objectTypeIndication : 0;
+				gf_odf_desc_del((GF_Descriptor *)esd);
+
+				switch (oti) {
 				case GF_CODECID_QCELP:
 				case GF_CODECID_EVRC:
 				case GF_CODECID_SMV:
@@ -773,7 +789,6 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 					goto remove_track;
 				}
-				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
 			break;
 			default:
@@ -1269,7 +1284,10 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 	if (subtype == GF_ISOM_SUBTYPE_OPUS) {
 		esd = gf_isom_get_esd(mp4, track, 1);
 		if (!esd) return NULL;
-
+		if (!esd->decoderConfig) {
+			gf_odf_desc_del((GF_Descriptor *)esd);
+			return NULL;
+		}
 		esd->decoderConfig->objectTypeIndication = GF_CODECID_OPUS;
 		return esd;
 	}
@@ -1278,6 +1296,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track, u32 stsd_idx)
 		GF_BitStream *bs;
 		GF_DIMSDescription dims;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
 		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
@@ -1329,6 +1348,8 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	if (item_type == GF_ISOM_SUBTYPE_HVC1) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
 		if (item_id > (1 << 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
 		}
@@ -1347,6 +1368,8 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	} else if (item_type == GF_ISOM_SUBTYPE_AVC_H264) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
 		if (item_id > (1 << 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
 		}
@@ -1365,6 +1388,7 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	} else if (item_type == GF_ISOM_SUBTYPE_AV01) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
 		if (item_id > (1 << 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
 		}
@@ -1383,6 +1407,8 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	} else if ((item_type == GF_ISOM_SUBTYPE_JPEG) || (mime && !strcmp(mime, "image/jpeg")) ){
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
 		if (item_id > (1 << 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
 		}
@@ -1401,6 +1427,8 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 	} else if ((item_type == GF_ISOM_SUBTYPE_PNG) || (mime && !strcmp(mime, "image/png")) ){
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
 		if (item_id > (1 << 16)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
 		}
@@ -1416,10 +1444,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
-	} else {
-
-		return NULL;
 	}
+
+	return NULL;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
