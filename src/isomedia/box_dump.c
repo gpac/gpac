@@ -5309,6 +5309,16 @@ GF_Err a1lx_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err a1op_box_dump(GF_Box *a, FILE * trace)
+{
+    GF_AV1OperatingPointSelectorPropertyBox *ptr = (GF_AV1OperatingPointSelectorPropertyBox*)a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "AV1OperatingPointSelectorPropertyBox", trace);
+	gf_fprintf(trace, "op_index=\"%d\">\n", ptr->op_index);
+	gf_isom_box_dump_done("AV1OperatingPointSelectorPropertyBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err colr_box_dump(GF_Box *a, FILE * trace)
 {
 	u8 *prof_data_64=NULL;
