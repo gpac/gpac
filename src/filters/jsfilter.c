@@ -2318,6 +2318,9 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 {
 	u32 i, count;
 	GF_JSPidCtx *pctx = gf_filter_pid_get_udta(PID);
+
+	gf_js_lock(pctx->jsf->ctx, GF_TRUE);
+
 	count = gf_list_count(pctx->shared_pck);
 	for (i=0; i<count; i++) {
 		GF_JSPckCtx *pckc = gf_list_get(pctx->shared_pck, i);
@@ -2334,9 +2337,10 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 			memset(pckc, 0, sizeof(GF_JSPckCtx));
 			gf_list_add(pctx->jsf->pck_res, pckc);
 			gf_list_rem(pctx->shared_pck, i);
-			return;
+			break;
 		}
 	}
+	gf_js_lock(pctx->jsf->ctx, GF_FALSE);
 }
 
 
