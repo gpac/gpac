@@ -974,7 +974,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	mux = gf_saf_mux_new();
 	count = gf_isom_get_track_count(dumper->file);
 	for (i=0; i<count; i++) {
-		u32 time_scale, mtype, stream_id;
+		u32 time_scale, mtype, stream_id = 0;
 		GF_ESD *esd;
 		mtype = gf_isom_get_media_type(dumper->file, i+1);
 		if (mtype==GF_ISOM_MEDIA_OD) continue;
@@ -982,7 +982,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 		time_scale = gf_isom_get_media_timescale(dumper->file, i+1);
 		esd = gf_isom_get_esd(dumper->file, i+1, 1);
-		if (esd) {
+		if (esd && esd->decoderConfig) {
 			stream_id = gf_isom_find_od_id_for_track(dumper->file, i+1);
 			if (!stream_id) stream_id = esd->ESID;
 
@@ -992,8 +992,11 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 			} else {
 				gf_saf_mux_stream_add(mux, stream_id, time_scale, esd->decoderConfig->bufferSizeDB, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, NULL, NULL, 0, esd->URLString);
 			}
+		}
+		if (esd)
 			gf_odf_desc_del((GF_Descriptor *)esd);
-		} else {
+
+		if (!stream_id) {
 			char *mime = NULL;
 			switch (gf_isom_get_media_subtype(dumper->file, i+1, 1)) {
 			case GF_ISOM_SUBTYPE_3GP_H263:
