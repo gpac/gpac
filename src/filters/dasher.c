@@ -2610,6 +2610,8 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 				ds->rep = NULL;
 				//switch dependencyID of all reps depending on this one to the new base
 				rewrite_dep_ids(ctx, ds);
+				//and ignore this rep while flushing segments
+				base_ds->nb_rep--;
 			}
 		}
 		for (j=i+1; j<count; j++) {
@@ -3475,6 +3477,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				char szExName[20];
 				sprintf(szExName, "_r%d_", reused_template_idx);
 				strcat(szDASHTemplate, szExName);
+				//force template at representation level if more than one rep and templates have been reused
+				if (gf_list_count(ds->set->representations)>1)
+					single_template = GF_FALSE;
 			}
 		}
 		
@@ -6157,6 +6162,10 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 	u32 seg_dur_ms=0;
 	GF_DashStream *ds_log = NULL;
 	u64 first_cts_in_cur_seg=0;
+
+	//these are ignored
+	if (ds->merged_tile_dep)
+		return;
 
 	ctx->update_report = -1;
 
