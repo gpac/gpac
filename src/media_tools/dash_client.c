@@ -202,6 +202,7 @@ typedef struct
 	/*representation index in adaptation_set->representations*/
 	u32 representation_index;
 	u32 duration;
+	u32 dep_group_idx;
 	char *key_url;
 	bin128 key_IV;
 	u32 seg_number;
@@ -520,7 +521,7 @@ static Bool gf_dash_get_date(GF_DashClient *dash, char *scheme_id, char *url, u6
 
 GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group);
 
-static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
+static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
 {
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	GF_MPD_Representation *rep = NULL;
@@ -615,11 +616,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 
-	if (!fetch_time) {
-		//when we initialize the timeline without an explicit fetch time, use our local clock - this allows for better precision
-		//when trying to locate the live edge
-		fetch_time = gf_net_get_utc();
-	}
 	//if ROUTE and clock not setup, do it
 setup_route:
 	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route");
@@ -1248,7 +1244,24 @@ setup_route:
 	}
 }
 
+static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 fetch_time)
+{
+	u32 i;
 
+	if (!fetch_time) {
+		//when we initialize the timeline without an explicit fetch time, use our local clock - this allows for better precision
+		//when trying to locate the live edge
+		fetch_time = gf_net_get_utc();
+	}
+	gf_dash_group_timeline_setup_single(mpd, group, fetch_time);
+
+	//also init all dependend groups for the same time
+	for (i=0; i<gf_list_count(group->groups_depending_on); i++) {
+		GF_DASH_Group *d_grp = gf_list_get(group->groups_depending_on, i);
+		gf_dash_group_timeline_setup_single(mpd, d_grp, fetch_time);
+		d_grp->timeline_setup = GF_TRUE;
+	}
+}
 /*!
 * Returns true if mime type of a given URL is an M3U8 mime-type
 \param url The url to check
@@ -3074,6 +3087,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 		if (group->dash->reinit_period_index)
 			return GF_IP_NETWORK_EMPTY;
+
 		group->timeline_setup = GF_TRUE;
 		item_index = group->download_segment_index;
 	}
@@ -4573,7 +4587,7 @@ static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Re
 
 static void gf_dash_group_reset_cache_entry(segment_cache_entry *cached)
 {
-	gf_free(cached->url);
+	if (cached->url) gf_free(cached->url);
 	if (cached->key_url) gf_free(cached->key_url);
 	memset(cached, 0, sizeof(segment_cache_entry));
 }
@@ -6181,6 +6195,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 			gf_dash_mark_group_done(group);
 		}
+		group->current_dep_idx=0;
 		group->segment_in_valid_range=0;
     }
     //ROUTE case, the file was removed from cache by the route demuxer
@@ -6190,6 +6205,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
         } else if (group->download_segment_index) {
             group->download_segment_index--;
         }
+		group->current_dep_idx=0;
 	} else if (group->prev_segment_ok && !group->time_at_first_failure && !group->loop_detected) {
         group->time_at_first_failure = clock_time;
         GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms (delay between retry %d ms)\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration, min_wait));
@@ -6223,7 +6239,10 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 				dash->route_clock_state = 1;
 				while ((group = gf_list_enum(dash->groups, &i))) {
 					group->start_number_at_last_ast = 0;
-					gf_dash_group_timeline_setup(dash->mpd, group, 0);
+					if (!group->depend_on_group)
+						gf_dash_group_timeline_setup(dash->mpd, group, 0);
+
+					group->current_dep_idx=0;
 					group->loop_detected = is_loop;
 					group->time_at_first_failure = 0;
 					group->prev_segment_ok = GF_TRUE;
@@ -6243,7 +6262,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		group->nb_consecutive_segments_lost ++;
 
 		//we are lost ....
-		if (group->nb_consecutive_segments_lost == 20) {
+		if (group->nb_consecutive_segments_lost == 10) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
 			dash_set_min_wait(dash, 1000);
 			group->maybe_end_of_stream = 1;
@@ -6257,6 +6276,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 				gf_dash_mark_group_done(group);
 			}
+			group->current_dep_idx=0;
 		}
 	}
 	//if retry, do not reset dependency status
@@ -6619,6 +6639,7 @@ llhls_rety:
 	cache_entry->representation_index = representation_index;
 	cache_entry->duration = (u32) group->current_downloaded_segment_duration;
 	cache_entry->flags = group->loop_detected ? SEG_FLAG_LOOP_DETECTED : 0;
+	cache_entry->dep_group_idx = group->current_dep_idx;
 	if (has_dep_following) cache_entry->flags |= SEG_FLAG_DEP_FOLLOWING;
 	if (group->disabled)
 		cache_entry->flags |= SEG_FLAG_DISABLED;
@@ -9586,6 +9607,7 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, u32 cur_dep_
 {
 	GF_MPD_Representation *rep;
 	Bool has_dep_following;
+	u32 resume_from_dep_group;
 	char *key_url, *url;
 	GF_DASH_Group *base_group;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
@@ -9612,11 +9634,25 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 idx, u32 cur_dep_
 			break;
 	}
 	has_dep_following = (group->cached[0].flags & SEG_FLAG_DEP_FOLLOWING) ? GF_TRUE : GF_FALSE;
+
 	//detach URL and key URL, they will be freed in on_group_download_error below
 	key_url = group->cached[0].key_url;
 	url = group->cached[0].url;
-	group->nb_cached_segments--;
-	assert(!group->nb_cached_segments);
+	group->cached[0].url = NULL;
+	group->cached[0].key_url = NULL;
+	//remember for which dependent group we failed
+	resume_from_dep_group = group->cached[0].dep_group_idx;
+
+	//reset cache but do not reset timeline nor LLHLS live chunk
+	while (group->nb_cached_segments) {
+		group->nb_cached_segments--;
+		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
+	}
+
+	//restore current dependent group - if the error triggers moving to next segment, this will be reseted
+	if (group->groups_depending_on) {
+		group->current_dep_idx = resume_from_dep_group;
+	}
 
 	base_group = group;
 	while (base_group->depend_on_group) {
