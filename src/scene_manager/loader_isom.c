@@ -55,33 +55,35 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				}
 				if (esd->URLString) continue;
 
-				switch (esd->decoderConfig->streamType) {
-				case GF_STREAM_OD:
-					continue;
-
-				case GF_STREAM_SCENE:
-					if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
-					        (esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
-					   ) {
+				if (esd->decoderConfig) {
+					switch (esd->decoderConfig->streamType) {
+					case GF_STREAM_OD:
 						continue;
+
+					case GF_STREAM_SCENE:
+						if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
+								(esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
+						   ) {
+							continue;
+						}
+						break;
+					/*dump the OCR track duration in case the OCR is used by media controls & co*/
+					case GF_STREAM_OCR:
+					{
+						u32 track;
+						Double dur;
+						GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+						gf_list_add(esd->extensionDescriptors, mi);
+						track = gf_isom_get_track_by_id(mp4, esd->ESID);
+						dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
+						dur /= gf_isom_get_timescale(mp4);
+						mi->duration = (u32) (dur * 1000);
+						continue;;
 					}
-					break;
-				/*dump the OCR track duration in case the OCR is used by media controls & co*/
-				case GF_STREAM_OCR:
-				{
-					u32 track;
-					Double dur;
-					GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
-					gf_list_add(esd->extensionDescriptors, mi);
-					track = gf_isom_get_track_by_id(mp4, esd->ESID);
-					dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
-					dur /= gf_isom_get_timescale(mp4);
-					mi->duration = (u32) (dur * 1000);
-					continue;;
-				}
-				break;
-				default:
-					break;
+						break;
+					default:
+						break;
+					}
 				}
 
 				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
@@ -100,33 +102,35 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 		while ((esd = (GF_ESD *)gf_list_enum(esdU->ESDescriptors, &i))) {
 			Bool import = 1;
 			if (esd->URLString) continue;
-			switch (esd->decoderConfig->streamType) {
-			case GF_STREAM_OD:
-				import = 0;
-				break;
-			case GF_STREAM_SCENE:
-				if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
-				        (esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
-				   ) {
+			if (esd->decoderConfig) {
+				switch (esd->decoderConfig->streamType) {
+				case GF_STREAM_OD:
+					import = 0;
+					break;
+				case GF_STREAM_SCENE:
+					if ((esd->decoderConfig->objectTypeIndication != GF_CODECID_AFX) &&
+							(esd->decoderConfig->objectTypeIndication != GF_CODECID_SYNTHESIZED_TEXTURE)
+					   ) {
+						import = 0;
+					}
+					break;
+				/*dump the OCR track duration in case the OCR is used by media controls & co*/
+				case GF_STREAM_OCR:
+				{
+					u32 track;
+					Double dur;
+					GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
+					gf_list_add(esd->extensionDescriptors, mi);
+					track = gf_isom_get_track_by_id(mp4, esd->ESID);
+					dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
+					dur /= gf_isom_get_timescale(mp4);
+					mi->duration = (u32) (dur * 1000);
 					import = 0;
 				}
-				break;
-			/*dump the OCR track duration in case the OCR is used by media controls & co*/
-			case GF_STREAM_OCR:
-			{
-				u32 track;
-				Double dur;
-				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
-				gf_list_add(esd->extensionDescriptors, mi);
-				track = gf_isom_get_track_by_id(mp4, esd->ESID);
-				dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
-				dur /= gf_isom_get_timescale(mp4);
-				mi->duration = (u32) (dur * 1000);
-				import = 0;
-			}
-			break;
-			default:
-				break;
+					break;
+				default:
+					break;
+				}
 			}
 			if (import) {
 				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
@@ -215,14 +219,17 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			break;
 		}
 		esd = gf_isom_get_esd(load->isom, i+1, 1);
-		if (!esd || !esd->decoderConfig) continue;
-		if (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4)
+		if (!esd) continue;
+		if (!esd->decoderConfig || (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4)) {
+			gf_odf_desc_del((GF_Descriptor *) esd);
 			continue;
+		}
 
 		if ((esd->decoderConfig->objectTypeIndication == GF_CODECID_AFX) ||
 		        (esd->decoderConfig->objectTypeIndication == GF_CODECID_SYNTHESIZED_TEXTURE)
 		   ) {
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
+			gf_odf_desc_del((GF_Descriptor *) esd);
 			continue;
 		}
 		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
@@ -254,7 +261,12 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			if (esd->decoderConfig->objectTypeIndication==0x09) {
 				if (!esd->dependsOnESID && nbBifs && !i)
 					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
-				e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+
+				if (!esd->decoderConfig->decoderSpecificInfo)
+					e = GF_NON_COMPLIANT_BITSTREAM;
+				else
+					e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+
 				if (e) goto exit;
 				nbLaser++;
 			}
