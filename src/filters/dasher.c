@@ -4124,7 +4124,9 @@ static void dasher_forward_manifest_raw(GF_DasherCtx *ctx, GF_DashStream *ds, co
 }
 static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 {
-	u32 i, nb_periods, nb_streams;
+	u32 i, count, nb_periods, nb_streams;
+	GF_XMLAttribute *cenc_att = NULL;
+	GF_XMLAttribute *xlink_att = NULL;
 	FILE *tmp = NULL;
 	GF_MPD *mpd = gf_mpd_new();
 	GF_List *recompute_sets = NULL;
@@ -4179,11 +4181,27 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 				if (!recompute_sets) recompute_sets = gf_list_new();
 				if (gf_list_find(recompute_sets, set)<0)
 					gf_list_add(recompute_sets, set);
-
 			}
 		}
 	}
 	//update sets - TODO
+
+	//insert xmlns if needed
+	count = gf_list_count(mpd->x_attributes);
+	for (i=0; i<count; i++) {
+		GF_XMLAttribute * att = gf_list_get(mpd->x_attributes, i);
+		if (!strcmp(att->name, "xmlns:cenc")) cenc_att = att;
+		if (!strcmp(att->name, "xmlns:xlink")) xlink_att = att;
+
+	}
+	if (ctx->use_cenc && !cenc_att) {
+		cenc_att = gf_xml_dom_create_attribute("xmlns:cenc", "urn:mpeg:cenc:2013");
+		gf_list_add(mpd->x_attributes, cenc_att);
+	}
+	if (ctx->use_xlink && !xlink_att) {
+		xlink_att = gf_xml_dom_create_attribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+		gf_list_add(mpd->x_attributes, xlink_att);
+	}
 
 	//and send
 	tmp = gf_file_temp(NULL);
