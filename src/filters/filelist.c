@@ -1134,6 +1134,12 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		}
 	}
 
+	//lock all filters while loading up chain, to avoid PID init from other threads to resolve agains this filter
+	//while we setup sourceID
+	gf_filter_lock_all(filter, GF_TRUE);
+	//reset all our source_ids
+	gf_filter_reset_source(filter);
+
 	fsrc = NULL;
 	prev_filter = NULL;
 	s_idx = 0;
@@ -1149,6 +1155,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 		if (sep_f && ctx->do_cat) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Cannot use filter directives in cat mode\n"));
+			gf_filter_lock_all(filter, GF_FALSE);
 			return GF_BAD_PARAM;
 		}
 
@@ -1177,6 +1184,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				if (!prev_filter) { \
 					if (filters) gf_list_del(filters); \
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Invalid link directive, filter index %d does not point to a valid filter\n")); \
+					gf_filter_lock_all(filter, GF_FALSE);\
 					return GF_SERVICE_ERROR; \
 				} \
 			}\
@@ -1204,6 +1212,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				else if (sep_f) sep_f[0] = ' ';
 
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] More URL to cat than opened service!\n"));
+				gf_filter_lock_all(filter, GF_FALSE);
 				return GF_BAD_PARAM;
 			}
 			f_url = gf_url_concatenate(ctx->file_path, url);
@@ -1234,6 +1243,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				else if (sep_f) sep_f[0] = ' ';
 				if (!ctx->splice_srcs)
 					ctx->splice_state = FL_SPLICE_NONE;
+				gf_filter_lock_all(filter, GF_FALSE);
 				return GF_SERVICE_ERROR;
 			}
 			if (is_filter_chain) {
@@ -1250,7 +1260,12 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				gf_list_add(ctx->filter_srcs, fsrc);
 			}
 		}
-		if (!sep && !sep_f) break;
+		if (!sep && !sep_f) {
+			//if prev filter was not set (simple entry), use fsrc
+			if (!prev_filter) prev_filter = fsrc;
+			break;
+		}
+
 		if (sep) {
 			sep[0] = c;
 			url = (sep[0]==' ') ? sep+4 : sep+2;
@@ -1303,6 +1318,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				if (!fsrc) {
 					if (filters) gf_list_del(filters);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Missing source declaration before filter directive\n"));
+					gf_filter_lock_all(filter, GF_FALSE);
 					return GF_BAD_PARAM;
 				}
 				prev_filter = fsrc;
@@ -1315,11 +1331,16 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			}
 		}
 	}
+	//assign last defined filter as source for ourselves
 	if (prev_filter) {
 		gf_filter_set_source(filter, prev_filter, NULL);
 		prev_filter = NULL;
 	}
+
+	gf_filter_lock_all(filter, GF_FALSE);
+
 	if (filters) gf_list_del(filters);
+
 	//wait for PIDs to connect
 	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
 
