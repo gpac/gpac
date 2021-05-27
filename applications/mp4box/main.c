@@ -1189,6 +1189,7 @@ MP4BoxArg m4b_meta_args[] =
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
 		"- it=ID: indicate the item ID of the source item to import\n"
+		"- itp=ID: same as `it=` but copy over all properties of the source item\n"
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
 		"- ref: do not copy the data but refer to the final sample/item location, ignored if `filepath` is set\n"
@@ -1707,6 +1708,12 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 	if (act_type == META_ACTION_ADD_IMAGE_ITEM)
 		has_add_image = GF_TRUE;
 
+#define CHECK_IMGPROP\
+			if (!meta->image_props) {\
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);\
+				if (!meta->image_props) return 2;\
+			}\
+
 	while (1) {
 		char *next;
 		char *szSlot;
@@ -1756,28 +1763,19 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			meta->enc_type = gf_strdup(szSlot+9);
 		}
 		else if (!strnicmp(szSlot, "image-size=", 11)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->width, &meta->image_props->height);
 		}
 		else if (!strnicmp(szSlot, "image-grid-size=", 16)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot+16, "%dx%d", &meta->image_props->num_grid_rows, &meta->image_props->num_grid_columns);
 		}
 		else if (!strnicmp(szSlot, "image-overlay-color=", 20)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot+20, "%d,%d,%d,%d", &meta->image_props->overlay_canvas_fill_value_r,&meta->image_props->overlay_canvas_fill_value_g,&meta->image_props->overlay_canvas_fill_value_b,&meta->image_props->overlay_canvas_fill_value_a);
 		}
 		else if (!strnicmp(szSlot, "image-overlay-offsets=", 22)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-			}
+			CHECK_IMGPROP
 			u32 position = 22;
 			u32 comma_count = 0;
 			u32 offset_index = 0;
@@ -1817,17 +1815,11 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			}
 		}
 		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hSpacing, &meta->image_props->vSpacing);
 		}
 		else if (!strnicmp(szSlot, "image-pixi=", 11)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 0;
-			}
+			CHECK_IMGPROP
 			if (strchr(szSlot+11, ',') == NULL) {
 				meta->image_props->num_channels = 1;
 				meta->image_props->bits_per_channel[0] = atoi(szSlot+11);
@@ -1837,78 +1829,53 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			}
 		}
 		else if (!strnicmp(szSlot, "image-rloc=", 11)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hOffset, &meta->image_props->vOffset);
 		}
 		else if (!strnicmp(szSlot, "rotation=", 9)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->angle = atoi(szSlot+9);
 		}
 		else if (!strnicmp(szSlot, "mirror-axis=", 12)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->mirror = (!strnicmp(szSlot+12, "vertical", 8) ? 1 : 2);
 		}
 		else if (!strnicmp(szSlot, "clap=", 5)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			sscanf(szSlot + 5, "%d,%d,%d,%d,%d,%d,%d,%d", &meta->image_props->clap_wnum, &meta->image_props->clap_wden,
 					   &meta->image_props->clap_hnum, &meta->image_props->clap_hden,
 					   &meta->image_props->clap_honum, &meta->image_props->clap_hoden,
 					   &meta->image_props->clap_vonum, &meta->image_props->clap_voden);
 		}
 		else if (!stricmp(szSlot, "hidden")) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->hidden = GF_TRUE;
 		}
 		else if (!stricmp(szSlot, "alpha")) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->alpha = GF_TRUE;
 		}
 		else if (!stricmp(szSlot, "depth")) {
- 			if (!meta->image_props) {
- 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
- 				if (!meta->image_props) return 0;
- 			}
+			CHECK_IMGPROP
 			meta->image_props->depth = GF_TRUE;
  		}
 		//"ref" (without '=') is for data reference, "ref=" is for item references
 		else if (!stricmp(szSlot, "ref")) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->use_reference = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "it=", 3)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->item_ref_id = atoi(szSlot+3);
+		}
+		else if (!strnicmp(szSlot, "itp=", 4)) {
+			CHECK_IMGPROP
+			meta->image_props->item_ref_id = atoi(szSlot+4);
+			meta->image_props->copy_props = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
 			Float s=0, e=0, step=0;
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			if (sscanf(szSlot+5, "%f-%f/%f", &s, &e, &step)==3) {
 				meta->image_props->time = s;
 				meta->image_props->end_time = e;
@@ -1924,10 +1891,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			}
 		}
 		else if (!strnicmp(szSlot, "samp=", 5)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->sample_num = atoi(szSlot+5);
 			meta->root_meta = 1;
 		}
@@ -1937,10 +1901,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			meta->group_type = GF_4CC(type[0], type[1], type[2], type[3]);
 		}
 		else if (!stricmp(szSlot, "split_tiles")) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
 		}
 		else if (!stricmp(szSlot, "dref")) {
@@ -1953,26 +1914,17 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			if (meta->act_type==META_ACTION_SET_XML) meta->act_type=META_ACTION_SET_BINARY_XML;
 		}
 		else if (!strnicmp(szSlot, "icc_path=", 9)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			strcpy(meta->image_props->iccPath, szSlot+9);
 		}
 		else if (!stricmp(szSlot, "agrid") || !strnicmp(szSlot, "agrid=", 6)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->auto_grid = GF_TRUE;
 			if (!strnicmp(szSlot, "agrid=", 6))
 				meta->image_props->auto_grid_ratio = atof(szSlot+6);
 		}
 		else if (!strnicmp(szSlot, "av1_op_index=", 13)) {
-			if (!meta->image_props) {
-				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
-				if (!meta->image_props) return 2;
-			}
+			CHECK_IMGPROP
 			meta->image_props->av1_op_index = atoi(szSlot+13);
 		}
 		else if (!strchr(szSlot, '=')) {
