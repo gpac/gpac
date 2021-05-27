@@ -5934,6 +5934,8 @@ typedef struct
 	Bool use_reference;
 	/*ID of item to use as source*/
 	u32 item_ref_id;
+	/*if set, copy all properties of source item*/
+	Bool copy_props;
 	/*only set when importing non-ref from ISOBMF*/
 	GF_ISOFile *src_file;
 	Bool auto_grid;

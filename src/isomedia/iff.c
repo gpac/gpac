@@ -1341,17 +1341,38 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		if (ref_id != image_props->item_ref_id) return GF_ISOM_INVALID_FILE;
 
 		gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props);
-		if (image_props) {
-			image_props->config = src_props.config;
-			image_props->width = src_props.width;
-			image_props->height = src_props.height;
-			image_props->num_channels = src_props.num_channels;
-			memcpy(image_props->av1_layer_size, src_props.av1_layer_size, sizeof(u32)*3);
-			memcpy(image_props->bits_per_channel, src_props.bits_per_channel, sizeof(u8)*3);
-			if (!image_props->hSpacing && !image_props->vSpacing) {
-				image_props->hSpacing = src_props.hSpacing;
-				image_props->vSpacing = src_props.vSpacing;
+
+		image_props->config = src_props.config;
+		image_props->width = src_props.width;
+		image_props->height = src_props.height;
+		image_props->num_channels = src_props.num_channels;
+		memcpy(image_props->av1_layer_size, src_props.av1_layer_size, sizeof(u32)*3);
+		memcpy(image_props->bits_per_channel, src_props.bits_per_channel, sizeof(u32)*3);
+		if (!image_props->hSpacing && !image_props->vSpacing) {
+			image_props->hSpacing = src_props.hSpacing;
+			image_props->vSpacing = src_props.vSpacing;
+		}
+		if (image_props->copy_props) {
+			if (!image_props->hOffset && !image_props->vOffset) {
+				image_props->hOffset = src_props.hOffset;
+				image_props->vOffset = src_props.vOffset;
 			}
+			if (!image_props->clap_wden) {
+				image_props->clap_wnum = src_props.clap_wnum;
+				image_props->clap_wden = src_props.clap_wden;
+				image_props->clap_hnum = src_props.clap_hnum;
+				image_props->clap_hden = src_props.clap_hden;
+				image_props->clap_honum = src_props.clap_honum;
+				image_props->clap_hoden = src_props.clap_hoden;
+				image_props->clap_vonum = src_props.clap_vonum;
+				image_props->clap_voden = src_props.clap_voden;
+			}
+			if (!image_props->alpha) image_props->alpha = src_props.alpha;
+			if (!image_props->depth) image_props->depth = src_props.depth;
+			if (!image_props->hidden) image_props->hidden = src_props.hidden;
+			if (!image_props->angle) image_props->angle = src_props.angle;
+			if (!image_props->mirror) image_props->mirror = src_props.mirror;
+			if (!image_props->av1_op_index) image_props->av1_op_index = src_props.av1_op_index;
 		}
 		if (!item_name) item_name = orig_item_name;
 
