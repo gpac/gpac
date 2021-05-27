@@ -2365,7 +2365,7 @@ typedef struct
 	// if not 0, full_path is actually the data to write.
 	u32 data_len;
 
-	u32 tk_id, sample_num;
+	u32 tk_id, sample_num, ref_it_id;
 } GF_ItemInfoEntryBox;
 
 typedef struct
@@ -2489,7 +2489,7 @@ typedef struct __tag_meta_box
 	GF_ItemReferenceBox *item_refs;
 	GF_GroupListBox *groups_list;
 
-	Bool use_item_sample_sharing;
+	u8 use_item_sample_sharing, use_item_item_sharing;
 } GF_MetaBox;
 
 typedef struct

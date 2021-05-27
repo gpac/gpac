@@ -19,6 +19,7 @@
 - support for encryption
 - support for time range in -add-image
 - support for item to sample data reference (no copy)
+- support for item to item data reference (no copy)
 - AVIF support
 
 ## MP4Box
