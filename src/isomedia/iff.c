@@ -1317,6 +1317,58 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 		image_props->cenc_info = NULL;
 	}
 
+	if (!imported_track) {
+		GF_ImageItemProperties src_props;
+		u32 item_idx, ref_id;
+		u32 scheme_type=0, scheme_version=0;
+		const char *orig_item_name, *orig_item_mime_type, *orig_item_encoding;
+		if (!image_props->item_ref_id) return GF_BAD_PARAM;
+
+		if (gf_isom_meta_get_item_ref_count(fsrc, GF_TRUE, 0, image_props->item_ref_id, GF_4CC('d','i','m','g')) > 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Cannnot import derived image, only native image import is supported\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
+		item_idx = gf_isom_get_meta_item_by_id(fsrc, GF_TRUE, 0, image_props->item_ref_id);
+		if (!item_idx) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d, cannnot import\n", image_props->item_ref_id));
+			return GF_BAD_PARAM;
+		}
+		orig_item_name = orig_item_mime_type = orig_item_encoding = NULL;
+		gf_isom_get_meta_item_info(fsrc, GF_TRUE, 0, item_idx, &ref_id, &item_type, &scheme_type, &scheme_version, NULL, NULL, NULL, &orig_item_name, &orig_item_mime_type, &orig_item_encoding);
+
+		if (!ref_id) return GF_BAD_PARAM;
+		if (ref_id != image_props->item_ref_id) return GF_ISOM_INVALID_FILE;
+
+		gf_isom_get_meta_image_props(fsrc, GF_TRUE, 0, ref_id, &src_props);
+		if (image_props) {
+			image_props->config = src_props.config;
+			image_props->width = src_props.width;
+			image_props->height = src_props.height;
+			image_props->num_channels = src_props.num_channels;
+			memcpy(image_props->av1_layer_size, src_props.av1_layer_size, sizeof(u32)*3);
+			memcpy(image_props->bits_per_channel, src_props.bits_per_channel, sizeof(u8)*3);
+			if (!image_props->hSpacing && !image_props->vSpacing) {
+				image_props->hSpacing = src_props.hSpacing;
+				image_props->vSpacing = src_props.vSpacing;
+			}
+		}
+		if (!item_name) item_name = orig_item_name;
+
+		if (!image_props->use_reference || (fsrc == image_props->src_file)) {
+			u8 *data = NULL;
+			u32 size=0;
+			e = gf_isom_extract_meta_item_mem(fsrc, GF_TRUE, 0, ref_id, &data, &size, &size, NULL, GF_FALSE);
+			if (e) return GF_BAD_PARAM;
+
+			e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
+			if (data) gf_free(data);
+		} else {
+			e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
+		}
+		return e;
+	}
+
 import_next_sample:
 
 	timescale = gf_isom_get_media_timescale(fsrc, imported_track);

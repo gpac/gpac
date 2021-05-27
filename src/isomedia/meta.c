@@ -1302,6 +1302,13 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	
 	if (tk_id && sample_num) {
 		data_len = gf_isom_get_sample_size(file, tk_id, sample_num);
+		if (item_name)
+			infe->item_name = gf_strdup(item_name);
+	}
+	else if (!tk_id && sample_num) {
+		data_len = 0;
+		if (item_name)
+			infe->item_name = gf_strdup(item_name);
 	}
 	/*get relative name*/
 	else if (item_name) {
@@ -1498,7 +1505,18 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			infe->data_len = data_len;
 			file->no_inplace_rewrite = GF_TRUE;
 		}
-		meta->use_item_sample_sharing = GF_TRUE;
+		meta->use_item_sample_sharing = 1;
+	}
+	else if (!tk_id && sample_num) {
+		GF_ItemExtentEntry *entry;
+		GF_SAFEALLOC(entry, GF_ItemExtentEntry);
+		if (!entry) return GF_OUT_OF_MEM;
+
+		entry->extent_length = data_len;
+		gf_list_add(location_entry->extent_entries, entry);
+		infe->ref_it_id = sample_num;
+		infe->data_len = data_len;
+		meta->use_item_item_sharing = 1;
 	}
 	else if (data || resource_path){
 		/*capture mode, write to disk*/
@@ -1595,7 +1613,10 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
-	if (!item_num) return GF_BAD_PARAM;
+	if (!item_num) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: No item with ID %d in file, cannnot remove\n"));
+		return GF_NOT_FOUND;
+	}
 	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 	gf_list_rem(meta->item_infos->item_infos, item_num-1);
 
@@ -1611,6 +1632,43 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 			break;
 		}
 	}
+
+	if (meta->item_props->property_association) {
+		GF_ItemPropertyAssociationBox *ipma = meta->item_props->property_association;
+		count = gf_list_count(ipma->entries);
+		for (i=0; i<count; i++) {
+			GF_ItemPropertyAssociationEntry *pa_ent = gf_list_get(ipma->entries, i);
+			if (pa_ent->item_id == iinf->item_ID) {
+				gf_free(pa_ent->associations);
+				gf_free(pa_ent);
+				gf_list_rem(ipma->entries, i);
+				break;
+			}
+		}
+	}
+
+	//rewrite item sharing ids
+	if (meta->use_item_item_sharing) {
+		u32 new_ref_id = 0;
+		count = gf_list_count(meta->item_infos->item_infos);
+		for (i=0; i<count; i++) {
+			GF_ItemInfoEntryBox *iinf2 = (GF_ItemInfoEntryBox *) gf_list_get(meta->item_infos->item_infos, i);
+			if (iinf2->ref_it_id != iinf->item_ID) continue;
+
+			if (new_ref_id) {
+				iinf2->ref_it_id = new_ref_id;
+			} else {
+				new_ref_id = iinf2->item_ID;
+				iinf2->ref_it_id = 0;
+				if (iinf->tk_id) {
+					iinf2->tk_id = iinf->tk_id;
+					iinf2->sample_num = iinf->sample_num;
+					iinf2->data_len = iinf->data_len;
+				}
+			}
+		}
+	}
+
 	gf_isom_box_del_parent(&meta->item_infos->child_boxes, (GF_Box *)iinf);
 	return GF_OK;
 }
@@ -1683,7 +1741,7 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 {
 	u32 i, nb_items, nb_tracks;
 	if (!meta->item_locations || !meta->item_infos) return;
-	nb_tracks = gf_list_count(movie->moov->trackList);
+	nb_tracks = movie->moov ? gf_list_count(movie->moov->trackList) : 0;
 	nb_items = gf_list_count(meta->item_locations->location_entries);
 	for (i=0; i<nb_items; i++) {
 		u32 j;
@@ -1698,6 +1756,8 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 			iinf = NULL;
 		}
 		if (!iinf) continue;
+		if (iinf->ref_it_id) continue;
+
 		if (gf_list_count(iloc->extent_entries) != 1) continue;
 		entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 		if (!entry) continue;
@@ -1712,13 +1772,13 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 				continue;
 
 			stsz = trak->Media->information->sampleTable->SampleSize;
-			if (stsz->sampleSize) continue;
 			if (!stsz->sampleCount) continue;
 			for (k=0; k<stsz->sampleCount; k++) {
 				GF_Err e;
-				u32 chunk, di;
+				u32 chunk, di, samp_size;
 				u64 samp_offset;
-				if (stsz->sizes[k] != entry->extent_length)
+				samp_size = stsz->sampleSize ? stsz->sampleSize : stsz->sizes[k];
+				if (samp_size != entry->extent_length)
 					continue;
 
 				e = stbl_GetSampleInfos(trak->Media->information->sampleTable, k+1, &samp_offset, &chunk, &di, NULL);
@@ -1727,14 +1787,38 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 					iinf->tk_id = trak->Header->trackID;
 					iinf->sample_num = k+1;
 					iinf->data_len = (u32) entry->extent_length;
-					meta->use_item_sample_sharing = GF_TRUE;
+					meta->use_item_sample_sharing = 1;
 					break;
 				}
 			}
 			if (iinf->tk_id) break;
 		}
-	}
 
+		//restore all item refs
+		for (j=i+1;j<nb_items; j++) {
+			u32 k;
+			u64 item_offset2;
+			GF_ItemExtentEntry *entry2;
+			GF_ItemLocationEntry *iloc2 = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, j);
+			/*get item info*/
+			GF_ItemInfoEntryBox *iinf2 = NULL;
+			k=0;
+			while ((iinf2 = (GF_ItemInfoEntryBox *)gf_list_enum(meta->item_infos->item_infos, &k))) {
+				if (iinf2->item_ID==iloc2->item_ID) break;
+				iinf2 = NULL;
+			}
+			if (!iinf2) continue;
+			if (gf_list_count(iloc2->extent_entries) != 1) continue;
+			entry2 = (GF_ItemExtentEntry *)gf_list_get(iloc2->extent_entries, 0);
+			if (!entry2) continue;
+			item_offset2 = iloc2->base_offset + entry2->extent_offset;
+
+			if (item_offset == item_offset2) {
+				iinf2->ref_it_id = iinf->item_ID;
+				meta->use_item_item_sharing = 1;
+			}
+		}
+	}
 }
 
 GF_EXPORT
@@ -1781,6 +1865,45 @@ GF_Err gf_isom_meta_add_item_group(GF_ISOFile *file, Bool root_meta, u32 track_n
 	group->entity_id_count++;
 
 	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 from_id, u32 type)
+{
+	u32 i, count;
+	GF_ItemReferenceTypeBox *ref;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta || !type || !from_id) return 0;
+	if (!meta->item_refs) return 0;
+
+	count = gf_list_count(meta->item_refs->references);
+	for (i = 0; i < count; i++) {
+		ref = (GF_ItemReferenceTypeBox *)gf_list_get(meta->item_refs->references, i);
+		if (ref->from_item_id == from_id && ref->reference_type == type) {
+			return ref->reference_count;
+		}
+	}
+	return 0;
+}
+
+GF_EXPORT
+u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 from_id, u32 type, u32 ref_idx)
+{
+	u32 i, count;
+	GF_ItemReferenceTypeBox *ref;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta || !type || !from_id || !ref_idx) return 0;
+	if (!meta->item_refs) return 0;
+
+	count = gf_list_count(meta->item_refs->references);
+	for (i = 0; i < count; i++) {
+		ref = (GF_ItemReferenceTypeBox *)gf_list_get(meta->item_refs->references, i);
+		if (ref->from_item_id == from_id && ref->reference_type == type) {
+			if (ref_idx>ref->reference_count) return 0;
+			return ref->to_item_IDs[ref_idx-1];
+		}
+	}
+	return 0;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

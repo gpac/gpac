@@ -2389,11 +2389,13 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 .br
 * depth: indicate that the image is a depth image (should use ref=auxl also)
 .br
+* it=ID: indicate the item ID of the source item to import
+.br
 * tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file
 .br
 * samp=N: indicate the sample number of the source sample
 .br
-* ref: do not copy the data but refer to the final sample location
+* ref: do not copy the data but refer to the final sample/item location, ignored if filepath is set
 .br
 * agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will try to have AR aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden
 .br
@@ -2772,7 +2774,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev919-g2715401c9-master
+build: 1.1.0-DEV-rev933-g4b501c165-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

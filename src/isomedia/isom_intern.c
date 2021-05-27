@@ -411,9 +411,7 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				return e;
 			}
 			totSize += a->size;
-            if (mov->moov) {
-				gf_isom_meta_restore_items_ref(mov, mov->meta);
-			}
+			gf_isom_meta_restore_items_ref(mov, mov->meta);
 			break;
 
 		/*we only keep the MDAT in READ for dump purposes*/

@@ -1188,9 +1188,10 @@ MP4BoxArg m4b_meta_args[] =
 		"- icc_path: path to icc data to add as color info\n"
 		"- alpha: indicate that the image is an alpha image (should use ref=auxl also)\n"
 		"- depth: indicate that the image is a depth image (should use ref=auxl also)\n"
+		"- it=ID: indicate the item ID of the source item to import\n"
 		"- tk=tkID: indicate the track ID of the source sample. If 0, uses the first video track in the file\n"
 		"- samp=N: indicate the sample number of the source sample\n"
-		"- ref: do not copy the data but refer to the final sample location\n"
+		"- ref: do not copy the data but refer to the final sample/item location, ignored if `filepath` is set\n"
 		"- agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will **try to** have `AR` aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden\n"
 		"- av1_op_index: select the AV1 operating point to use via a1op box\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
@@ -1718,7 +1719,8 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
 			sscanf(szSlot, "tk=%u", &meta->trackID);
-			meta->root_meta = 0;
+			if (act_type == META_ACTION_ADD_ITEM)
+				meta->root_meta = 0;
 		}
 		else if (!strnicmp(szSlot, "id=", 3)) {
 			meta->item_id = atoi(szSlot+3);
@@ -1893,6 +1895,13 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 				if (!meta->image_props) return 2;
 			}
 			meta->image_props->use_reference = GF_TRUE;
+		}
+		else if (!strnicmp(szSlot, "it=", 3)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+				if (!meta->image_props) return 2;
+			}
+			meta->image_props->item_ref_id = atoi(szSlot+3);
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
 			Float s=0, e=0, step=0;
@@ -4801,6 +4810,8 @@ static GF_Err do_meta_act()
 					meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
 					e = gf_isom_last_error(meta->image_props->src_file);
 					fsrc = meta->image_props->src_file;
+					if (meta->image_props->item_ref_id)
+						src_tk_id = 0;
 				} else {
 					e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
 				}
@@ -4823,7 +4834,7 @@ static GF_Err do_meta_act()
 						e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 					}
 					if (e == GF_OK) {
-						if (!src_tk_id) {
+						if (!src_tk_id && (!meta->image_props || !meta->image_props->item_ref_id) ) {
 							u32 j;
 							for (j=0; j<gf_isom_get_track_count(fsrc); j++) {
 								if (gf_isom_is_video_handler_type (gf_isom_get_media_type(fsrc, j+1))) {

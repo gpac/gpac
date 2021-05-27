@@ -5816,6 +5816,25 @@ GF_Err gf_isom_extract_meta_item_get_cenc_info(GF_ISOFile *isom_file, Bool root_
 \return primary item ID, 0 if none found (primary can also be stored through meta XML)*/
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *isom_file, Bool root_meta, u32 track_num);
 
+/*! gets number of references of a given type from a given item ID
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param from_id item ID to check
+\param type reference type to check
+\return number of referenced items*/
+u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 from_id, u32 type);
+
+/*! gets ID  of reference of a given type and index from a given item ID
+\param isom_file the target ISO file
+\param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
+\param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
+\param from_id item ID to check
+\param type reference type to check
+\param ref_idx 1-based index of reference to check
+\return ID if the refered item*/
+u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 from_id, u32 type, u32 ref_idx);
+
 /*! item tile mode*/
 typedef enum {
 	/*! not a tile item*/
@@ -5913,13 +5932,16 @@ typedef struct
 	GF_ImageItemProtection *cenc_info;
 	/*! If set, reference image from sample sample_num (same file data used for sample and item)*/
 	Bool use_reference;
+	/*ID of item to use as source*/
+	u32 item_ref_id;
 	/*only set when importing non-ref from ISOBMF*/
 	GF_ISOFile *src_file;
 	Bool auto_grid;
 	Double auto_grid_ratio;
-	/*AV1 specific data*/
+	/*AV1 layer sizes except last layer - set during import*/
 	u32 av1_layer_size[3];
-  u8 av1_op_index;
+	/*AV1 operation point index*/
+	u8 av1_op_index;
 } GF_ImageItemProperties;
 
 
@@ -6120,7 +6142,7 @@ GF_Err gf_isom_meta_add_item_group(GF_ISOFile *isom_file, Bool root_meta, u32 tr
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-/*!
+/*! gets image item properties
 \param isom_file the target ISO file
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
