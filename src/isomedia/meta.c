@@ -1633,7 +1633,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 		}
 	}
 
-	if (meta->item_props->property_association) {
+	if (meta->item_props && meta->item_props->property_association) {
 		GF_ItemPropertyAssociationBox *ipma = meta->item_props->property_association;
 		count = gf_list_count(ipma->entries);
 		for (i=0; i<count; i++) {
