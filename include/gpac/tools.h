@@ -670,9 +670,9 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
  \cond DUMMY_DOXY_SECTION
 */
 #ifndef GPAC_DISABLE_LOG
-/*note:
-		to turn log on, change to GPAC_ENABLE_LOG
-		to turn log off, change to GPAC_DISABLE_LOG
+/*\note
+	- to turn log on, change to GPAC_ENABLE_LOG
+	- to turn log off, change to GPAC_DISABLE_LOG
 	this is needed by configure+sed to modify this file directly
 */
 #define GPAC_ENABLE_LOG

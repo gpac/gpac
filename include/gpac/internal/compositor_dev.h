@@ -2326,6 +2326,7 @@ struct _mediaobj
 	u32 view_min_x, view_max_x, view_min_y, view_max_y;
 	GF_FilterFrameInterface *frame_ifce;
 
+	Float c_x, c_y, c_w, c_h;
 	Bool connect_failure;
 };
 

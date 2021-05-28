@@ -54,13 +54,19 @@
 
 
 static char *default_glsl_vertex = "\
-	attribute vec4 gfVertex;\
-	attribute vec2 gfTexCoord;\
-	varying vec2 TexCoord;\
-	void main(void)\
-	{\
-		gl_Position = gl_ModelViewProjectionMatrix * gfVertex;\
-		TexCoord = gfTexCoord;\
+	attribute vec4 gfVertex;\n\
+	attribute vec4 gfTexCoord;\n\
+	uniform mat4 gfTextureMatrix;\n\
+	uniform bool hasTextureMatrix;\n\
+	varying vec2 TexCoord;\n\
+	void main(void)\n\
+	{\n\
+		gl_Position = gl_ModelViewProjectionMatrix * gfVertex;\n\
+		if (hasTextureMatrix) {\n\
+			TexCoord = vec2(gfTextureMatrix * gfTexCoord);\n\
+		} else {\n\
+			TexCoord = vec2(gfTexCoord);\n\
+		}\n\
 	}";
 
 #endif
@@ -123,6 +129,8 @@ typedef struct
 	u32 nb_frames;
 
 	u32 key_states;
+
+	Float c_w, c_h, c_x, c_y;
 
 	//if source is raw live grab (webcam/etc), we don't trust cts and always draw the frame
 	//this is needed for cases where we have a sudden jump in timestamps as is the case with ffmpeg: not doing so would
@@ -297,6 +305,39 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 	return GF_OK;
 }
 
+static void load_gl_tx_matrix(GF_VideoOutCtx *ctx)
+{
+	s32 loc;
+
+	glUseProgram(ctx->glsl_program);
+	if (ctx->c_w && ctx->c_h) {
+		Float c_x, c_y;
+		GF_Matrix mx;
+		gf_mx_init(mx);
+		//clean aperture center in pixel coords
+		c_x = ctx->width / 2 + ctx->c_x;
+		c_y = ctx->height / 2 + ctx->c_y;
+		//left/top of clean aperture zone, in pixel coordinates
+		c_x -= ctx->c_w / 2;
+		c_y -= ctx->c_h / 2;
+
+		gf_mx_add_translation(&mx, c_x / ctx->width, c_y / ctx->height, 0);
+		gf_mx_add_scale(&mx, ctx->c_w / ctx->width, ctx->c_h / ctx->height, 1);
+		loc = glGetUniformLocation(ctx->glsl_program, "gfTextureMatrix");
+		if (loc>=0) {
+			glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
+			loc = glGetUniformLocation(ctx->glsl_program, "hasTextureMatrix");
+			if (loc>=0)
+				glUniform1i(loc, 1);
+			glUseProgram(0);
+			return;
+		}
+	}
+	loc = glGetUniformLocation(ctx->glsl_program, "hasTextureMatrix");
+	if (loc>=0) glUniform1i(loc, 0);
+	glUseProgram(0);
+}
+
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Event evt;
@@ -367,6 +408,23 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
 	cmx = p ? (s32) p->value.uint : GF_CICP_MX_UNSPECIFIED;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROTATE);
+	ctx->vrot = p ? (s32) p->value.uint : 0;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIRROR);
+	ctx->vflip = p ? (s32) (p->value.uint+1) : 0;
+
+	ctx->c_w = ctx->c_h = ctx->c_x = ctx->c_y = 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_W);
+	if (p && p->value.frac.den) { ctx->c_w = p->value.frac.num; ctx->c_w /= p->value.frac.den; }
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_H);
+	if (p && p->value.frac.den) { ctx->c_h = p->value.frac.num; ctx->c_h /= p->value.frac.den; }
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_X);
+	if (p && p->value.frac.den) { ctx->c_x = p->value.frac.num; ctx->c_x /= p->value.frac.den; }
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_Y);
+	if (p && p->value.frac.den) { ctx->c_y = p->value.frac.num; ctx->c_y /= p->value.frac.den; }
+
+
 
 	if (!ctx->pid) {
 		GF_FilterEvent fevt;
@@ -408,12 +466,22 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//pid not yet ready
 	if (!pfmt || !w || !h) return GF_OK;
 
-	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt) && (full_range==ctx->full_range) && (cmx==ctx->cmx) && !sar_changed && !ctx->force_reconfig_pid) return GF_OK;
-
+	if ((ctx->width==w) && (ctx->height == h) && (ctx->pfmt == pfmt)
+		&& (full_range==ctx->full_range) && (cmx==ctx->cmx)
+		&& !sar_changed && !ctx->force_reconfig_pid
+	) {
+		load_gl_tx_matrix(ctx);
+		return GF_OK;
+	}
 	ctx->full_range = full_range;
 	ctx->cmx = cmx;
-	dw = w;
-	dh = h;
+	if (ctx->c_w && ctx->c_h) {
+		dw = ctx->c_w;
+		dh = ctx->c_h;
+	} else {
+		dw = w;
+		dh = h;
+	}
 
 	if ((ctx->disp<MODE_2D) && (ctx->vrot % 2)) {
 		dw = h;
@@ -437,6 +505,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			dw = dw * ctx->sar.num / ctx->sar.den;
 		}
 	}
+
 
 	if ((dw != ctx->display_width) || (dh != ctx->display_height) ) {
 		resize_video_output(ctx, dw, dh);
@@ -670,6 +739,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		} else {
 			glDisable(GL_BLEND);
 		}
+
+		load_gl_tx_matrix(ctx);
+
 	} else
 #endif //VOUT_USE_OPENGL
 	{
@@ -938,6 +1010,10 @@ static void vout_draw_overlay(GF_VideoOutCtx *ctx)
 
 	u16 indices[4] = {0, 1, 2, 3};
 
+	glMatrixMode(GL_TEXTURE);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBindTexture(GL_TEXTURE_2D, ctx->overlay_tx);
@@ -1087,8 +1163,6 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 	ctx->tx.frame_ifce = hwf;
 	gf_gl_txw_bind(&ctx->tx, "maintx", ctx->glsl_program, 0);
 
-	glMatrixMode(GL_TEXTURE);
-	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -1109,12 +1183,19 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	if (ctx->display_changed) {
 		u32 v_w, v_h;
+		u32 w = ctx->width;
+		u32 h = ctx->height;
+		if (ctx->c_w && ctx->c_h) {
+			w = ctx->c_w;
+			h = ctx->c_h;
+		}
+
 		if (ctx->vrot % 2) {
-			v_h = ctx->width;
-			v_w = ctx->height;
+			v_h = w;
+			v_w = h;
 		} else {
-			v_w = ctx->width;
-			v_h = ctx->height;
+			v_w = w;
+			v_h = h;
 		}
 
 		//if we fill width to display width and height is outside
@@ -1149,9 +1230,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 10, -5);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(mx.m);
-
-	glMatrixMode(GL_TEXTURE);
-	glLoadIdentity();
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();

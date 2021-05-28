@@ -1370,7 +1370,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 			if (has_clap) {
 				e = gf_isom_set_clean_aperture(dest, track, 1, clap_wn, clap_wd, clap_hn, clap_hd, clap_hon, clap_hod, clap_von, clap_vod);
-				GOTO_EXIT("changing clean apperture")
+				GOTO_EXIT("changing clean aperture")
 			}
 			if (bitdepth) {
 				e = gf_isom_set_visual_bit_depth(dest, track, 1, bitdepth);

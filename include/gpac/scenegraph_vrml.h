@@ -200,7 +200,7 @@ typedef struct {
 } SFCommandBuffer;
 
 /*! Script
- 	Note: the javascript or vrml script is handled in its decompressed (textual) format
+ 	\note The javascript or vrml script is handled in its decompressed (textual) format
 since most JS interpreter work with text*/
 typedef struct {
 	char* script_text;

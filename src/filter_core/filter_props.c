@@ -1309,6 +1309,12 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by `SRDRef`", GF_PROP_UINT_LIST},
 
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
+	{ GF_PROP_PID_MIRROR, "Mirror", "Indicates a mirror mode (0: along Y-axis, 1: along X-axis)", GF_PROP_UINT},
+	{ GF_PROP_PID_ROTATE, "Rotate", "Indicates the video rotation as value*90 degree anti-clockwise", GF_PROP_UINT},
+	{ GF_PROP_PID_CLAP_W, "ClapW", "Width of clean aperture in luma pixels", GF_PROP_FRACTION},
+	{ GF_PROP_PID_CLAP_H, "ClapH", "Height of clean aperture in luma pixels", GF_PROP_FRACTION},
+	{ GF_PROP_PID_CLAP_X, "ClapX", "Horizontal offset of clean aperture center in luma pixels, 0 at image center", GF_PROP_FRACTION},
+	{ GF_PROP_PID_CLAP_Y, "ClapY", "Vertical offset of clean aperture center in luma pixels, 0 at image center", GF_PROP_FRACTION},
 	{ GF_PROP_PID_NUM_VIEWS, "NumViews", "Indicates the number of views packed in a frame (top-to-bottom only)", GF_PROP_UINT},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "Bitrate in bps", GF_PROP_UINT},
 	{ GF_PROP_PID_MAXRATE, "Maxrate", "Max bitrate in bps", GF_PROP_UINT},

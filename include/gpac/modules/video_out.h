@@ -125,7 +125,7 @@ typedef struct _video_out
 
 	/*flush video: the video shall be presented to screen
 	the destination area to update is in client display coordinates (0,0) being top-left, (w,h) bottom-right
-	Note: dest is always NULL in 3D mode (buffer flip only)*/
+	\note dest is always NULL in 3D mode (buffer flip only)*/
 	GF_Err (*Flush) (struct _video_out *vout, GF_Window *dest);
 
 	GF_Err (*SetFullScreen) (struct _video_out *vout, Bool fs_on, u32 *new_disp_width, u32 *new_disp_height);

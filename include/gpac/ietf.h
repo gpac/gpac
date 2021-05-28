@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -139,7 +139,7 @@ typedef struct {
 } GF_RTSPRange;
 
 /*! parses a Range line and returns range header structure. This can be used for RTSP extension of SDP
-Note: Only support for npt for now
+\note Only support for npt for now
 \param range_buf the range string
 \return a newly allocated RTSP range
 */
@@ -454,7 +454,7 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize);
 
 
 /*! resets state machine, invalidate SessionID
-NOTE: RFC2326 requires that the session is reseted when all RTP streams
+\note RFC2326 requires that the session is reseted when all RTP streams
 are closed. As this lib doesn't maintain the number of valid streams
 you MUST call reset when all your streams are shutdown (either requested through
 TEARDOWN or signaled through RTCP BYE packets for RTP, or any other signaling means
@@ -715,7 +715,7 @@ void gf_rtp_enable_nat_keepalive(GF_RTPChannel *ch, u32 nat_timeout);
 /*! initializes the RTP channel.
 \param ch the target RTP channel
 \param UDPBufferSize UDP stack buffer size if configurable by OS/ISP - ignored otherwise
-NOTE: on WinCE devices, this is not configurable on an app bases but for the whole OS
+\note On WinCE devices, this is not configurable on an app bases but for the whole OS
 you must update the device registry with:
 \code
 	[HKEY_LOCAL_MACHINE\Comm\Afd]
@@ -826,7 +826,8 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 
 /*! computes and send Receiver report.
 If the channel is a TCP channel, you must specify
-the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...
+the callback function.
+\note Many RTP implementation do NOT process RTCP info received on TCP...
 the lib will decide whether the report shall be sent or not, therefore you should call
 this function at regular times
 \param ch the target RTP channel
@@ -925,7 +926,7 @@ void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port);
 
 					SDP LIBRARY EXPORTS
 
-		  Note: SDP is mainly a text protocol with
+		  SDP is mainly a text protocol with
 	well defined containers. The following structures are used to write / read
 	SDP informations, and the library also provides consistency checking
 
@@ -1053,7 +1054,7 @@ typedef struct
 	u32 PortNumber;
 	/*number of ports described. If >= 2, the next media(s) in the SDP will be configured
 	to use the next tuple (for RTP). If 0 or 1, ignored
-	Note: this is used for scalable media: PortNumber indicates the port of the base
+	\note This is used for scalable media: PortNumber indicates the port of the base
 	media and NumPorts the ports||total number of the upper layers*/
 	u32 NumPorts;
 	/*currently ony "RTP/AVP" and "udp" defined*/

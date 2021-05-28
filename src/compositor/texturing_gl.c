@@ -1042,6 +1042,21 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	gf_mx_init(*mx);
 
 #ifndef GPAC_DISABLE_3D
+
+	if (txh->stream && txh->stream->c_w && txh->stream->c_h) {
+		Float c_x, c_y;
+		//clean aperture center in pixel coords
+		c_x = txh->width / 2 + txh->stream->c_x;
+		c_y = txh->height / 2 + txh->stream->c_y;
+		//left/top of clean aperture zone, in pixel coordinates
+		c_x -= txh->stream->c_w / 2;
+		c_y -= txh->stream->c_h / 2;
+
+		gf_mx_add_translation(mx, c_x / txh->width, c_y / txh->height, 0);
+		gf_mx_add_scale(mx, txh->stream->c_w / txh->width, txh->stream->c_h / txh->height, 1);
+		ret = 1;
+	}
+
 	if (!txh->compositor->dbgpack)
 		gf_mo_get_nb_views(txh->stream, &nb_views);
 
