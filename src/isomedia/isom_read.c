@@ -5668,14 +5668,14 @@ GF_Err gf_isom_get_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 Stream
 
 	GF_CleanApertureBox *clap = (GF_CleanApertureBox *)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_CLAP);
 
-	if (cleanApertureWidthN) *cleanApertureWidthN = clap->cleanApertureWidthN;
-	if (cleanApertureWidthD) *cleanApertureWidthD = clap->cleanApertureWidthD;
-	if (cleanApertureHeightN) *cleanApertureHeightN = clap->cleanApertureHeightN;
-	if (cleanApertureHeightD) *cleanApertureHeightD = clap->cleanApertureHeightD;
-	if (horizOffN) *horizOffN = clap->horizOffN;
-	if (horizOffD) *horizOffD = clap->horizOffD;
-	if (vertOffN) *vertOffN = clap->vertOffN;
-	if (vertOffD) *vertOffD = clap->vertOffD;
+	if (cleanApertureWidthN) *cleanApertureWidthN = clap ? clap->cleanApertureWidthN : 0;
+	if (cleanApertureWidthD) *cleanApertureWidthD = clap ? clap->cleanApertureWidthD : 0;
+	if (cleanApertureHeightN) *cleanApertureHeightN = clap ? clap->cleanApertureHeightN : 0;
+	if (cleanApertureHeightD) *cleanApertureHeightD = clap ? clap->cleanApertureHeightD : 0;
+	if (horizOffN) *horizOffN = clap ? clap->horizOffN : 0;
+	if (horizOffD) *horizOffD = clap ? clap->horizOffD : 0;
+	if (vertOffN) *vertOffN = clap ? clap->vertOffN : 0;
+	if (vertOffD) *vertOffD = clap ? clap->vertOffD : 0;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM*/
