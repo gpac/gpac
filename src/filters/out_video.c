@@ -307,8 +307,8 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 
 static void load_gl_tx_matrix(GF_VideoOutCtx *ctx)
 {
+#ifdef VOUT_USE_OPENGL
 	s32 loc;
-
 	glUseProgram(ctx->glsl_program);
 	if (ctx->c_w && ctx->c_h) {
 		Float c_x, c_y;
@@ -336,6 +336,8 @@ static void load_gl_tx_matrix(GF_VideoOutCtx *ctx)
 	loc = glGetUniformLocation(ctx->glsl_program, "hasTextureMatrix");
 	if (loc>=0) glUniform1i(loc, 0);
 	glUseProgram(0);
+#endif
+
 }
 
 static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
