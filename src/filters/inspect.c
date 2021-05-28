@@ -341,7 +341,35 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			i++;
 		}
 
-		gf_fprintf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"/>\n", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		gf_fprintf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
+		if (sei_type == 144) {
+			u16 max_content_light_level = gf_bs_read_int(bs, 16);
+			u16 max_pic_average_light_level = gf_bs_read_int(bs, 16);
+			gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"/>\n", max_content_light_level, max_pic_average_light_level);
+		} else if (sei_type == 137) {
+			u8 c;
+			u16 display_primaries_x[3];
+			u16 display_primaries_y[3];
+			u16 white_point_x;
+			u16 white_point_y;
+			u32 max_display_mastering_luminance;
+			u32 min_display_mastering_luminance;
+			for(c=0;c<3;c++) {
+				display_primaries_x[c] = gf_bs_read_int(bs, 16);
+				display_primaries_y[c] = gf_bs_read_int(bs, 16);
+			}
+			white_point_x = gf_bs_read_int(bs, 16);
+			white_point_y = gf_bs_read_int(bs, 16);
+			max_display_mastering_luminance = gf_bs_read_int(bs, 32);
+			min_display_mastering_luminance = gf_bs_read_int(bs, 32);
+			gf_fprintf(dump, " display_primaries_x=\"%u %u %u\" display_primaries_y=\"%u %u %u\" white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\"/>\n",
+					   display_primaries_x[0], display_primaries_x[1], display_primaries_x[2],
+					   display_primaries_y[0], display_primaries_y[1], display_primaries_y[2],
+					   white_point_x, white_point_y,
+					   max_display_mastering_luminance, min_display_mastering_luminance);
+		} else {
+			gf_fprintf(dump, "/>\n");
+		}
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
