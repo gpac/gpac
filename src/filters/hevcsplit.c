@@ -805,6 +805,10 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	GF_FilterPacket *pck_src = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck_src) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			for (i=0; i < ctx->num_tiles; i++) {
+				opid = gf_filter_get_opid(filter, i);
+				gf_filter_pid_set_eos(opid);
+			}
 			return GF_EOS;
 		}
 		return GF_OK;
@@ -925,6 +929,7 @@ static const GF_FilterCapability HEVCSplitCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_TILE_BASE, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC)
 };
