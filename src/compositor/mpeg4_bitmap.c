@@ -46,6 +46,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 {
 	GF_TextureHandler *txh;
 	Fixed sx, sy;
+	u32 w, h;
 	SFVec2f size;
 
 	M_Bitmap *bmp = (M_Bitmap *)node;
@@ -62,15 +63,23 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		if (notify_changes) gf_node_dirty_set(node, 0, 1);
 		return;
 	}
+
+	w = txh->width;
+	h = txh->height;
+	if (txh->stream && txh->stream->c_w && txh->stream->c_h) {
+		w = txh->stream->c_w;
+		h = txh->stream->c_h;
+	}
+
 	/*no change in scale and same texture size*/
-	if ((st->scale.x==bmp->scale.x) && (st->scale.y==bmp->scale.y) && (st->prev_tx_w == txh->width) && (st->prev_tx_h == txh->height)) {
+	if ((st->scale.x==bmp->scale.x) && (st->scale.y==bmp->scale.y) && (st->prev_tx_w == w) && (st->prev_tx_h == h)) {
 		*out_rc = st->rc;
 		gf_node_dirty_clear(node, 0);
 		return;
 	}
 
-	st->prev_tx_w = txh->width;
-	st->prev_tx_h = txh->height;
+	st->prev_tx_w = w;
+	st->prev_tx_h = h;
 
 	sx = bmp->scale.x;
 	if (sx<0) sx = FIX_ONE;
@@ -81,13 +90,13 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	compositor_adjust_scale(txh->owner, &sx, &sy);
 
 	/*check size change*/
-	size.x = gf_mulfix(INT2FIX(txh->width),sx);
-	size.y =  gf_mulfix(INT2FIX(txh->height),sy);
+	size.x = gf_mulfix(INT2FIX(w),sx);
+	size.y =  gf_mulfix(INT2FIX(h),sy);
 	/*if we have a PAR update it!!*/
 	if (txh->pixel_ar) {
 		u32 n = (txh->pixel_ar>>16) & 0xFFFF;
 		u32 d = (txh->pixel_ar) & 0xFFFF;
-		size.x = gf_mulfix(INT2FIX( (txh->width * n) / d),sx);
+		size.x = gf_mulfix(INT2FIX( (w * n) / d),sx);
 	}
 
 

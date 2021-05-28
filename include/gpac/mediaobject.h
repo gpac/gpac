@@ -55,7 +55,7 @@ This section documents the API between the compositor of GPAC and the decoding e
 
   opaque handler for all natural media objects (audio, video, image) so that compositor and systems engine
 are not too tied up.
-	NOTE: the media object location relies on the node parent graph (this is to deal with namespaces in OD framework)
+	\note The media object location relies on the node parent graph (this is to deal with namespaces in OD framework)
 therefore it is the task of the media management app to setup clear links between the scene graph and its resources
 (but this is not mandatory, cf URLs in VRML )
 */
@@ -112,7 +112,7 @@ you must use the gf_mo_get_speed and gf_mo_get_loop in order to know whether the
 */
 
 /*! sets speed of media - speed is not always applied, depending on media control settings.
-NOTE: audio pitching is the responsability of the rendering app
+\note audio pitching is the responsability of the rendering app
 \param mo the target media object
 \param speed the playback speed to set
 */

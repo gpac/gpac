@@ -4226,6 +4226,20 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_HIDDEN);
 	if (p) image_props.hidden = p->value.boolean;
 
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MIRROR);
+	if (p) image_props.mirror = p->value.uint;
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ROTATE);
+	if (p) image_props.angle = p->value.uint;
+
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CLAP_W);
+	if (p) { image_props.clap_wnum = p->value.frac.num; image_props.clap_wden = p->value.frac.den; }
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CLAP_H);
+	if (p) { image_props.clap_hnum = p->value.frac.num; image_props.clap_hden = p->value.frac.den; }
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CLAP_X);
+	if (p) { image_props.clap_honum = p->value.frac.num; image_props.clap_hoden = p->value.frac.den; }
+	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CLAP_Y);
+	if (p) { image_props.clap_vonum = p->value.frac.num; image_props.clap_voden = p->value.frac.den; }
+
 	//setup crypto
 	if (tkw->is_encrypted && gf_filter_pck_get_crypt_flags(pck)) {
 		memset(&cenc_info, 0, sizeof(GF_ImageItemProtection));

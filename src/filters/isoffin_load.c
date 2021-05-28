@@ -1177,6 +1177,23 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 	else if (ch->check_vvc_ps) {
 		ch->vvcc = gf_isom_vvc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
 	}
+
+	if (streamtype==GF_STREAM_VISUAL) {
+		u32 cwn, cwd, chn, chd, cxn, cxd, cyn, cyd;
+		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
+
+		if (cwd && chd && cxd && cyd) {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT(cwn, cwd) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT(chn, chd) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, &PROP_FRAC_INT(cxn, cxd) );
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_Y, &PROP_FRAC_INT(cyn, cyd) );
+		} else {
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, NULL);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_H, NULL);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, NULL);;
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_Y, NULL);
+		}
+	}
 }
 
 void isor_update_channel_config(ISOMChannel *ch)
@@ -1439,8 +1456,22 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 		gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(props.width));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
 	}
-	if (props.hidden) {
-		gf_filter_pid_set_property(pid, GF_PROP_PID_HIDDEN, &PROP_BOOL(props.hidden));
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_HIDDEN, props.hidden ? &PROP_BOOL(GF_TRUE) : NULL);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_ALPHA, props.alpha ? &PROP_BOOL(GF_TRUE) : NULL);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_MIRROR, props.mirror ? &PROP_UINT(props.mirror) : NULL);
+	gf_filter_pid_set_property(pid, GF_PROP_PID_ROTATE, props.alpha ? &PROP_UINT(props.angle) : NULL);
+
+	if (props.clap_wden) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT(props.clap_wnum,props.clap_wden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, &PROP_FRAC_INT(props.clap_hnum,props.clap_hden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, &PROP_FRAC_INT(props.clap_honum,props.clap_hoden) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_Y, &PROP_FRAC_INT(props.clap_vonum,props.clap_voden) );
+	} else {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_W, NULL);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_H, NULL);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_X, NULL);;
+		gf_filter_pid_set_property(pid, GF_PROP_PID_CLAP_Y, NULL);
 	}
 
 	if (gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0) == item_id) {

@@ -5647,4 +5647,35 @@ GF_Err gf_isom_get_chunk_info(GF_ISOFile *movie, u32 trackNumber, u32 chunk_num,
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_clean_aperture(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *cleanApertureWidthN, u32 *cleanApertureWidthD, u32 *cleanApertureHeightN, u32 *cleanApertureHeightD, u32 *horizOffN, u32 *horizOffD, u32 *vertOffN, u32 *vertOffD)
+{
+	GF_TrackBox *trak;
+	GF_SampleEntryBox *entry;
+	GF_SampleDescriptionBox *stsd;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	stsd = trak->Media->information->sampleTable->SampleDescription;
+	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
+	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) {
+		return movie->LastError = GF_BAD_PARAM;
+	}
+	entry = (GF_SampleEntryBox *)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+	if (entry == NULL) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+
+	GF_CleanApertureBox *clap = (GF_CleanApertureBox *)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_CLAP);
+
+	if (cleanApertureWidthN) *cleanApertureWidthN = clap->cleanApertureWidthN;
+	if (cleanApertureWidthD) *cleanApertureWidthD = clap->cleanApertureWidthD;
+	if (cleanApertureHeightN) *cleanApertureHeightN = clap->cleanApertureHeightN;
+	if (cleanApertureHeightD) *cleanApertureHeightD = clap->cleanApertureHeightD;
+	if (horizOffN) *horizOffN = clap->horizOffN;
+	if (horizOffD) *horizOffD = clap->horizOffD;
+	if (vertOffN) *vertOffN = clap->vertOffN;
+	if (vertOffD) *vertOffD = clap->vertOffD;
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM*/

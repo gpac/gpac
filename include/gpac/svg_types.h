@@ -378,7 +378,7 @@ typedef struct __xml_ri {
 } XMLRI;
 
 /*! XML IDREF object
-	Note: the same structure is used to watch for IDREF changes (LASeR node replace)
+	\note the same structure is used to watch for IDREF changes (LASeR node replace)
 */
 typedef struct __xml_ri XML_IDREF;
 

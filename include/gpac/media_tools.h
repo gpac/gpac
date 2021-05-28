@@ -177,7 +177,7 @@ Default import FPS for video when no VUI/timing information is found
 	otherwise it is added with the requested ESID if non-0, otherwise the new trackID is stored in ESID
 	if use_data_ref is set, data is only referenced in the file
 	if duration is not 0, only the first duration seconds are imported
-	NOTE: if an ESD is specified, its decoderSpecificInfo is also updated
+	\note If an ESD is specified, its decoderSpecificInfo is also updated
 
 */
 

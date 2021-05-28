@@ -155,7 +155,7 @@ typedef struct
 
 
 /*!	default descriptor.
-	NOTE: The decoderSpecificInfo is used as a default desc with tag 0x05 */
+	\note The decoderSpecificInfo is used as a default desc with tag 0x05 */
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -855,7 +855,7 @@ typedef struct {
 } GF_ContentCreatorInfo;
 
 /*! Content Creator Name GF_Descriptor
-NOTE: the desctructor will delete all the items in the list
+\note The desctructor will delete all the items in the list
 (GF_ContentCreatorInfo items) */
 typedef struct {
 	BASE_DESCRIPTOR

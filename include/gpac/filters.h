@@ -55,40 +55,40 @@ This file contains all exported functions for filter management of the GPAC fram
 API Documentation of the filter managment system of GPAC.
 
 The filter management in GPAC is built using the following core objects:
-- \ref GF_FilterSession in charge of
- loading filters from register, managing argument parsing and co
- resolving filter graphs to handle PID connection(s)
- tracking data packets and properties exchanged on PIDs
- scheduling tasks between filters
- ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitly asked not to), but only by a single thread at any time.
+- \ref GF_FilterSession in charge of:
+ - loading filters from register, managing argument parsing and co
+ - resolving filter graphs to handle PID connection(s)
+ - tracking data packets and properties exchanged on PIDs
+ - scheduling tasks between filters
+ - ensuring thread-safe filter state: a filter may be called from any thread in the session (unless explicitly asked not to), but only by a single thread at any time.
 - \ref __gf_filter_register static structure describing possible entry points of the filter, possible arguments and input output PID capabilities.
 	Each filter share the same API (register definition) regardless of its type: source/sink, mux/demux, encode/decode, raw media processing, encoded media processing, ...
 - \ref GF_Filter is an instance of the filter register. A filter implementation typical tasks are:
- accepting new input PIDs (for non source filters)
- defining new output PIDs (for non sink filters), applying any property change due to filter processing
- consuming packets on the input PIDs
- dispatching packets on the output PIDs
+ - accepting new input PIDs (for non source filters)
+ - defining new output PIDs (for non sink filters), applying any property change due to filter processing
+ - consuming packets on the input PIDs
+ - dispatching packets on the output PIDs
 - \ref GF_FilterPid handling the connections between two filters.
-	PID natively supports fan-out (one filter PID connecting to multiple destinations).
-	A PID is in charge of dispatching packets to possible destinations and storing PID properties in sync with dispatched packets.
-	Whenever PID properties change, the next packet sent on that PID is associated with the new state, and the destination filter(s) will be called
+	- PID natively supports fan-out (one filter PID connecting to multiple destinations).
+	- A PID is in charge of dispatching packets to possible destinations and storing PID properties in sync with dispatched packets.
+	- Whenever PID properties change, the next packet sent on that PID is associated with the new state, and the destination filter(s) will be called
 	upon fetching the new packet. This is the one of the two reentrant code of a filter, the other one being the \ref GF_FEVT_INFO_UPDATE event.
-	When blocking mode is not disabled at the session filter, a PID is also in charge of managing its occupancy through either a number of packets or the
+	- When blocking mode is not disabled at the session filter, a PID is also in charge of managing its occupancy through either a number of packets or the
 	cumulated duration of the packets it is holding.
-	Whenever a PID holds too much data, it enters a blocking state. A filter with ALL its output PIDs in a blocked state won't be scheduled
+	- Whenever a PID holds too much data, it enters a blocking state. A filter with ALL its output PIDs in a blocked state won't be scheduled
 	for processing. This is a semi-blocking design, which imply that if a filter has one of its PIDs in a non blocking state, it will be scheduled for processing. If a PID has multiple destinations and one of the destination consumes faster than the other one, the filter is currently not blocking (this might change in the near future).
-	A PID is in charge of managing the packet references across filters, by performing memory management of allocated data packets
+	- A PID is in charge of managing the packet references across filters, by performing memory management of allocated data packets
 	 (avoid alloc/free at each packet but rather recycle the memory) and tracking shared packets references.
 - \ref GF_FilterPacket holding data to dispatch from a filter on a given PID.
-	Packets are always associated to a single output PID, ie it is not possible for a filter to send one packet to multiple PIDs, the data has to be cloned.
-	Packets have default attributes such as timestamps, size, random access status, start/end frame, etc, as well as optional properties.
-	All packets are reference counted.
-	A packet can hold allocated block on the output PID, a pointer to some filter internal data, a data reference to a single input packet, or a frame interface object used for accessing data or OpenGL textures of the emitting filter.
+	- Packets are always associated to a single output PID, ie it is not possible for a filter to send one packet to multiple PIDs, the data has to be cloned.
+	- Packets have default attributes such as timestamps, size, random access status, start/end frame, etc, as well as optional properties.
+	- All packets are reference counted.
+	- A packet can hold allocated block on the output PID, a pointer to some filter internal data, a data reference to a single input packet, or a frame interface object used for accessing data or OpenGL textures of the emitting filter.
 	Packets holding data references rather than copy are notified back to their creators upon destruction.
 - \ref __gf_prop_val holding various properties for a PID or a packet
-	Properties can be copied/merged between input and output PIDs, or input and output packets. These properties are reference counted.
-	Two kinds of properties are defined, built-in ones which use a 32 bit identifier (usually a four character code), and user properties identified by a string.
-	PID properties are defined by the filter creating the PID. They can be overridden/added after being set by the filter by specifying fragment properties
+	- Properties can be copied/merged between input and output PIDs, or input and output packets. These properties are reference counted.
+	- Two kinds of properties are defined, built-in ones which use a 32 bit identifier (usually a four character code), and user properties identified by a string.
+	- PID properties are defined by the filter creating the PID. They can be overridden/added after being set by the filter by specifying fragment properties
 	in the filter arguments. For example \code fin=src=myfile.foo:#FEXT=bar \endcode will override the file extension property (FEXT) foo to bar AFTER the PID is being defined.
 - \ref __gf_filter_event used to pass various events (play/stop/buffer requirements/...) up and down the filter chain.
 	This part of the API will likely change in the future, being merged with the global GF_Event of GPAC.
@@ -98,9 +98,10 @@ GPAC comes with a set of built-in filters in libgpac. It is also possible to def
  in default module folder and  folders listed in GPAC config file section core, key mod-dirs. The files SHALL be named gf_* and export a function called RegisterFilter
  with the following prototype:
 
+
 \param fsess is set to NULL unless meta filters are listed, in which case the filter register should list all possible meta filters it supports
 \return a GF_FilterRegister structure used for instantiating the filter.
-const GF_FilterRegister *RegisterFilter(GF_FilterSession *fsess);
+\code const GF_FilterRegister *RegisterFilter(GF_FilterSession *fsess);\endcode
 
 */
 
@@ -443,7 +444,7 @@ void gf_fs_print_non_connected(GF_FilterSession *session);
 void gf_fs_print_non_connected_ex(GF_FilterSession *session, Bool ignore_sinks);
 
 /*! Prints the list of arguments specified but not used by the filter session using \code LOG_APP@LOG_WARNING \endcode
- Note: this is simply a wrapper to \ref gf_fs_enum_unmapped_options
+ \note This is simply a wrapper to \ref gf_fs_enum_unmapped_options
 \param session filter session
 \param ignore_args ignore unused arguments if present in this comma-seperated list - may be NULL
 */
@@ -1003,6 +1004,12 @@ enum
 	GF_PROP_PID_SRD_REF = GF_4CC('S','R','D','R'),
 	GF_PROP_PID_SRD_MAP = GF_4CC('S','R','D','M'),
 	GF_PROP_PID_ALPHA = GF_4CC('V','A','L','P'),
+	GF_PROP_PID_MIRROR = GF_4CC('V','M','I','R'),
+	GF_PROP_PID_ROTATE = GF_4CC('V','R','O','T'),
+	GF_PROP_PID_CLAP_W = GF_4CC('C','L','P','W'),
+	GF_PROP_PID_CLAP_H = GF_4CC('C','L','P','H'),
+	GF_PROP_PID_CLAP_X = GF_4CC('C','L','P','X'),
+	GF_PROP_PID_CLAP_Y = GF_4CC('C','L','P','Y'),
 	GF_PROP_PID_NUM_VIEWS = GF_4CC('P','N','B','V'),
 	GF_PROP_PID_DOLBY_VISION = GF_4CC('D','O','V','I'),
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
@@ -1655,11 +1662,11 @@ typedef struct
 	/*! indicates the max buffer to set on PID - the buffer is only activated on PIDs connected to decoders*/
 	u32 max_buffer_us;
 	/*! indicates the max playout buffer to set on PID (buffer level triggering playback)
-		Note: this is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
+		\note This is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
 	*/
 	u32 max_playout_us;
 	/*! indicates the min playout buffer to set on PID (buffer level triggering rebuffering)
-		Note: this is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
+		\note This is not used internally by the blocking mechanisms, but may be needed by other filters to take decisions
 	*/
 	u32 min_playout_us;
 	/*! if set, only the PID target of the event will have the buffer req set; otherwise, the buffer requirement event is passed down the chain until a raw media PID is found or a decoder is found. Used for muxers*/
@@ -2068,7 +2075,8 @@ struct __gf_filter_register
 	const GF_FilterArgs *args;
 
 	/*! mandatory - callback for filter processing
-		This function is called whenever packets are available on the input PID and buffer space is available on the output.
+
+	This function is called whenever packets are available on the input PID and buffer space is available on the output.
 	The session will by default monitor a filter for errors, and throw en error if a filter is not consuming nor producing packets for a given amount of process calls.
 	In some cases, it might be needed to not consume nor produce a packet for a given time (for example, waiting for a packet drop before reconfiguring a filter).
 	A filter must signal this using \ref gf_filter_ask_rt_reschedule, possibly with no timeout.
@@ -2088,10 +2096,10 @@ struct __gf_filter_register
 	\param PID the input PID to configure
 	\param is_remove indicates the input PID is removed
 	\return error if any.
-	a return error of GF_REQUIRES_NEW_INSTANCE indicates the PID cannot be processed in this instance but could be in a clone of the filter.
-	a return error of GF_FILTER_NOT_SUPPORTED indicates the PID cannot be processed and no alternate chain resolution would help
-	a return error of GF_BAD_PARAM, GF_SERVICE_ERROR or GF_REMOTE_SERVICE_ERROR indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
-	any other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
+	- a return error of GF_REQUIRES_NEW_INSTANCE indicates the PID cannot be processed in this instance but could be in a clone of the filter.
+	- a return error of GF_FILTER_NOT_SUPPORTED indicates the PID cannot be processed and no alternate chain resolution would help
+	- a return error of GF_BAD_PARAM, GF_SERVICE_ERROR or GF_REMOTE_SERVICE_ERROR indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
+	- any other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
 
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove);
@@ -2109,7 +2117,7 @@ struct __gf_filter_register
 
 	/*! optional - callback for arguments update. If GF_OK is returned, the filter private stack is updated accordingly.
 	If function is NULL, all updatable arguments will be changed in the filter private stack without the filter being notified.
-	If argument is a meta argument, it is the filter responsability to handle the update, as meta arguments do not live on the filter provate stack.
+	If argument is a meta argument, it is the filter responsability to handle the update, as meta arguments do not live on the filter private stack.
 	If the filter is a meta filter and argument is not declared in the argument list, the function is always called.
 
 	\param filter the target filter
@@ -2120,8 +2128,8 @@ struct __gf_filter_register
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
 	/*! optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
-		If a downstream (towards source)  event is not canceled, it will be forwarded to each input PID of the filter.
-		If you need to forward the event only to one input pid, send a copy of the event to the desired input and cancel the event.
+		- If a downstream (towards source)  event is not canceled, it will be forwarded to each input PID of the filter.
+		- If you need to forward the event only to one input pid, send a copy of the event to the desired input and cancel the event.
 	\param filter the target filter
 	\param evt the event to process
 	\return GF_TRUE if the event should be canceled, GF_FALSE otherwise
@@ -2148,7 +2156,7 @@ struct __gf_filter_register
 	/*! optional, usually set by demuxers. This function probes the mime type of a data chunk, usually located at the start of the file.
 	This function is called once the source is open, but is never called on an instanciated filter. The returned mime type (if any) is then used instead of the file extension
 	for solving filter graph.
-	Note: demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
+	\note Demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
 	\param data data to probe
 	\param size size of the data to probe
 	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED. If the format cannot be probed (bad design), set it to \ref GF_FPROBE_EXT_MATCH
@@ -2157,7 +2165,7 @@ struct __gf_filter_register
 	const char * (*probe_data)(const u8 *data, u32 size, GF_FilterProbeScore *score);
 
 	/*! for filters having the same match of input capabilities for a PID, the filter with priority at the lowest value will be used
-	scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
+	\note Scalable decoders should use high values, so that they are only selected when enhancement layers are present*/
 	u8 priority;
 
 	/*! optional for dynamic filter registries. Dynamic registries may declare any number of registries. The register_free function will be called to cleanup any allocated memory
@@ -2193,7 +2201,7 @@ struct __gf_filter_register
 
 
 	/*! version of the filter, usually only for external libs
-		Note: If this strings starts with "! " it indicates an error message at load time of the registry. This should only be set when \code gf_opts_get_bool("temp", "gendoc"); \endcode returns true, indicating the filter session is only loaded for documentation purposes (man/md generation and command line help).
+		\note If this strings starts with "! " it indicates an error message at load time of the registry. This should only be set when \code gf_opts_get_bool("temp", "gendoc"); \endcode returns true, indicating the filter session is only loaded for documentation purposes (man/md generation and command line help).
 	*/
 	const char *version;
 #ifndef GPAC_DISABLE_DOC
@@ -2219,6 +2227,7 @@ struct __gf_filter_register
 		- mardown bullet lists shall use "- ", " - " etc...
 		- notes shall be identifed as a line starting with "Note: "
 		- warnings shall be identifed as a line starting with "Warning: "
+		- examples shall be identifed as a line starting with "EX "
 		- the sequence "[-" is reserved for option links. It is formatted as:
 		 		- "[-OPT]()": link to self page for option OPT
 		 		- "[-OPT](LINK)": link to other page for option OPT.
@@ -2360,8 +2369,7 @@ void gf_filter_block_eos(GF_Filter *filter, Bool do_block);
 
 
 /*! Connects a source to this filter.
-Note:
-Any filter loaded between the source and the calling filter will not use argument inheritance from the caller.
+\note Any filter loaded between the source and the calling filter will not use argument inheritance from the caller.
 
 \param filter the target filter
 \param url url of source to connect to, with optional arguments.
@@ -2771,7 +2779,7 @@ void gf_filter_disable_inputs(GF_Filter *filter);
 
 /*! Checks if some PIDs are still not connected in the graph originating at filter. This is typically used by filters dynamically loading source filters to make sure all PIDs from the source are connected.
 
-NOTE: this does not guarantee that no other PID remove or configure will happen later on, this depends on the source type and is unknown by GPAC's filter architecture.
+\note This does not guarantee that no other PID remove or configure will happen later on, this depends on the source type and is unknown by GPAC's filter architecture.
 \param filter target filter
 \param stop_at_filter check connections until this filter. If NULL, connections are checked until upper (sink) end of graph
 \return GF_TRUE if any filter in the path has pending PID connections
@@ -3467,7 +3475,7 @@ Bool gf_filter_pid_check_caps(GF_FilterPid *PID);
 /*! Checks if the PID would enter a blocking state if a new packet is sent.
 This function should be called by eg demuxers to regulate the rate at which they send packets
 
-Note: PIDs are never fully blocking in GPAC, a filter requesting an output packet should usually get one unless something goes wrong
+\note PIDs are never fully blocking in GPAC, a filter requesting an output packet should usually get one unless something goes wrong
 \param PID the target filter PID
 \return GF_TRUE if PID would enter blocking state , GF_FALSE otherwise
 */
@@ -3480,7 +3488,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *PID);
 u32 gf_filter_pid_get_timescale(GF_FilterPid *PID);
 
 /*! Clears the end of stream flag on a PID.
-Note: the end of stream is automatically cleared when a new packet is dispatched; This function is used to clear it asap, before next packet dispacth (period switch in dash for example).
+\note The end of stream is automatically cleared when a new packet is dispatched; This function is used to clear it asap, before next packet dispacth (period switch in dash for example).
 \param PID the target filter PID
 \param all_pids if sets, clear end oof stream for all PIDs coming from the same filter as the target PID
 */

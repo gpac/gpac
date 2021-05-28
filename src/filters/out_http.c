@@ -1720,7 +1720,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 			return GF_IO_ERR;
 		}
 		if (!gf_file_exists(ctx->pkey)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Provate key file %s not found\n", ctx->pkey));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Private key file %s not found\n", ctx->pkey));
 			return GF_IO_ERR;
 		}
 		if (gf_ssl_init_lib()) {

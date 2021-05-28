@@ -566,9 +566,8 @@ typedef struct
 \return the newly allocated ISO sample*/
 GF_ISOSample *gf_isom_sample_new();
 
-/*! delete a sample. NOTE:the buffer content will be destroyed by default.
-if you wish to keep the buffer, set dataLength to 0 in the sample
-before deleting it
+/*! delete a sample.
+\note The buffer content will be destroyed by default. If you wish to keep the buffer, set dataLength to 0 in the sample before deleting it
 the pointer is set to NULL after deletion
 \param samp pointer to the target ISO sample
 */
@@ -650,7 +649,7 @@ void gf_isom_delete(GF_ISOFile *isom_file);
 
 /*! gets the last fatal error that occured in the file
 ANY FUNCTION OF THIS API WON'T BE PROCESSED IF THE FILE HAS AN ERROR
-Note: some function may return an error while the movie has no error
+\note Some function may return an error while the movie has no error
 the last error is a FatalError, and is not always set if a bad
 param is specified...
 \param isom_file the target ISO file
@@ -992,7 +991,7 @@ u64 gf_isom_get_media_data_size(GF_ISOFile *isom_file, u32 trackNumber);
 /*! sets sample padding bytes when reading a sample
 It may be desired to fetch samples with a bigger allocated buffer than their real size, in case the decoder
 reads more data than available. This sets the amount of extra bytes to allocate when reading samples from this track
-NOTE: the dataLength of the sample does NOT include padding
+\note The dataLength of the sample does NOT include padding
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param padding_bytes the amount of bytes to add at the end of a sample data buffer
@@ -1030,7 +1029,7 @@ GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *isom_file, u32 trackNumber, u32 
 \param sampleNumber the desired sample number (1-based index)
 \param sampleDescriptionIndex set to the sample description index corresponding to this sample (optional, can be NULL)
 \param data_offset set to the sample start offset in file (optional, can be NULL)
-\note: when both sampleDescriptionIndex and data_offset are NULL, only DTS, CTS_Offset and RAP indications are retrieved (faster)
+\note When both sampleDescriptionIndex and data_offset are NULL, only DTS, CTS_Offset and RAP indications are retrieved (faster)
 \return the ISO sample without data or NULL if not found or end of stream  or incomplete file. Use \ref gf_isom_last_error to check the error code
 */
 GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset);
@@ -1041,7 +1040,7 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *isom_file, u32 trackNumber, u3
 \param sampleNumber the desired sample number (1-based index)
 \param sampleDescriptionIndex set to the sample description index corresponding to this sample (optional, can be NULL)
 \param data_offset set to the sample start offset in file (optional, can be NULL)
-\note: when both sampleDescriptionIndex and data_offset are NULL, only DTS, CTS_Offset and RAP indications are retrieved (faster)
+\note When both sampleDescriptionIndex and data_offset are NULL, only DTS, CTS_Offset and RAP indications are retrieved (faster)
 \param static_sample a caller-allocated ISO sample to use as the returned sample
 \return the ISO sample without data or NULL if not found or end of stream  or incomplete file. Use \ref gf_isom_last_error to check the error code
 \note If the function returns NULL, the static_sample and its associated data if any are NOT destroyed
@@ -1193,7 +1192,7 @@ if no sample is playing, the closest sample in the edit time-line is returned wh
 
 \warning The sample may not be sync even though the sync was requested (depends on the media and the editList)
 
-Note: this function will handle re-timestamping the sample according to the mapping  of the media time-line
+\note This function will handle re-timestamping the sample according to the mapping  of the media time-line
 on the track time-line. The sample TSs (DTS / CTS offset) are expressed in MEDIA TIME SCALE
 (to match the media stream TS resolution as indicated in media header / SLConfig)
 
@@ -1474,6 +1473,23 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u3
 \param full_range_flag set to the colour primaries for nclc as defined in ISO/IEC 23001-8
 \return error if any*/
 GF_Err gf_isom_get_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *colour_type, u16 *colour_primaries, u16 *transfer_characteristics, u16 *matrix_coefficients, Bool *full_range_flag);
+
+
+/*! gets clean aperture (crop window, see ISO/IEC 14496-12) for a sample description
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\param cleanApertureWidthN set to nominator of clean aperture horizontal size, may be NULL
+\param cleanApertureWidthD set to denominator of clean aperture horizontal size, may be NULL
+\param cleanApertureHeightN set to nominator of clean aperture vertical size, may be NULL
+\param cleanApertureHeightD set to denominator of clean aperture vertical size, may be NULL
+\param horizOffN set to nominator of horizontal offset of clean aperture center minus (width-1)/2 (eg 0 sets center to center of video), may be NULL
+\param horizOffD set to denominator of horizontal offset of clean aperture center minus (width-1)/2 (eg 0 sets center to center of video), may be NULL
+\param vertOffN set to nominator of vertical offset of clean aperture center minus (height-1)/2 (eg 0 sets center to center of video), may be NULL
+\param vertOffD set to denominator of vertical offset of clean aperture center minus (height-1)/2 (eg 0 sets center to center of video), may be NULL
+\return error if any
+*/
+GF_Err gf_isom_get_clean_aperture(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *cleanApertureWidthN, u32 *cleanApertureWidthD, u32 *cleanApertureHeightN, u32 *cleanApertureHeightD, u32 *horizOffN, u32 *horizOffD, u32 *vertOffN, u32 *vertOffD);
 
 /*! gets the media language code of a track
 \param isom_file the target ISO file
@@ -2328,18 +2344,18 @@ GF_Err gf_isom_set_track_matrix(GF_ISOFile *isom_file, u32 trackNumber, s32 matr
 */
 GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, s32 hSpacing, s32 vSpacing, Bool force_par);
 
-/*! sets clean apperture (crop window, see ISO/IEC 14496-12) for a sample description
+/*! sets clean aperture (crop window, see ISO/IEC 14496-12) for a sample description
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
-\param cleanApertureWidthN nominator of clean apperture horizontal size
-\param cleanApertureWidthD denominator of clean apperture horizontal size
-\param cleanApertureHeightN nominator of clean apperture vertical size
-\param cleanApertureHeightD denominator of clean apperture vertical size
-\param horizOffN nominator of horizontal offset of clean apperture center minus (width-1)/2 (eg 0 sets center to center of video)
-\param horizOffD denominator of horizontal offset of clean apperture center minus (width-1)/2 (eg 0 sets center to center of video)
-\param vertOffN nominator of vertical offset of clean apperture center minus (height-1)/2 (eg 0 sets center to center of video)
-\param vertOffD denominator of vertical offset of clean apperture center minus (height-1)/2 (eg 0 sets center to center of video)
+\param cleanApertureWidthN nominator of clean aperture horizontal size
+\param cleanApertureWidthD denominator of clean aperture horizontal size
+\param cleanApertureHeightN nominator of clean aperture vertical size
+\param cleanApertureHeightD denominator of clean aperture vertical size
+\param horizOffN nominator of horizontal offset of clean aperture center minus (width-1)/2 (eg 0 sets center to center of video)
+\param horizOffD denominator of horizontal offset of clean aperture center minus (width-1)/2 (eg 0 sets center to center of video)
+\param vertOffN nominator of vertical offset of clean aperture center minus (height-1)/2 (eg 0 sets center to center of video)
+\param vertOffD denominator of vertical offset of clean aperture center minus (height-1)/2 (eg 0 sets center to center of video)
 \return error if any
 */
 GF_Err gf_isom_set_clean_aperture(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 cleanApertureWidthN, u32 cleanApertureWidthD, u32 cleanApertureHeightN, u32 cleanApertureHeightD, u32 horizOffN, u32 horizOffD, u32 vertOffN, u32 vertOffD);
@@ -4641,7 +4657,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *isom_file, u32 trackNumber, u8 IsRand
 GF_Err gf_isom_hint_blank_data(GF_ISOFile *isom_file, u32 trackNumber, u8 AtBegin);
 
 /*! adds a chunk of data in the packet that is directly copied while streaming
-NOTE: dataLength MUST BE <= 14 bytes, and you should only use this function
+\note DataLength MUST BE <= 14 bytes, and you should only use this function
 to add small blocks of data (encrypted parts, specific headers, ...)
 \param isom_file the target ISO file
 \param trackNumber the target hint track
@@ -4772,7 +4788,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *isom_file, u32 trackNumber, const 
 GF_Err gf_isom_sdp_clean_track(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! adds an SDP line to the SDP container at the movie level (presentation SDP info)
-NOTE: the CRLF end of line for SDP is automatically inserted
+\note The CRLF end of line for SDP is automatically inserted
 \param isom_file the target ISO file
 \param text the SDP text to add the target hint track
 \return error if any

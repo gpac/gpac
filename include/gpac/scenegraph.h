@@ -343,7 +343,7 @@ enum
 	/*flag set whenever a field of the node has been modified*/
 	GF_SG_NODE_DIRTY = 1,
 	/*flag set whenever a child node of this node has been modified
-	NOTE: unloaded extern protos always invalidate their parent subgraph to get a chance
+	\note Unloaded extern protos always invalidate their parent subgraph to get a chance
 	of being loaded. It is the user responsability to clear the CHILD_DIRTY flag before traversing
 	if relying on this flag for sub-tree discarding (eg, culling or similar)*/
 	GF_SG_CHILD_DIRTY = 1<<1,
@@ -426,8 +426,7 @@ typedef struct _route GF_Route;
 
 
 /*! Node Field/attribute information for VRML/BIFS/SVG
-Note:
-all scene graph implementations should answer node field query with this interface.
+\note all scene graph implementations should answer node field query with this interface.
 In case an implementation does not use this:
 	- the implementation shall handle the parent node dirty flag itself most of the time
 	- the implementation shall NOT allow referencing of a graph node in a parent graph node (when inlining
@@ -488,7 +487,7 @@ GF_SceneGraph *gf_sg_new();
 /*! creates a sub scene graph (typically used with Inline node): independent graph with same private stack,
 and user callbacks as parent. All routes triggered in this subgraph are executed in the parent graph (this
 means you only have to activate routes on the main graph)
-NOTE: the resulting graph is not destroyed when the parent graph is
+\note The resulting graph is not destroyed when the parent graph is
 \param scene the parent scene graph
 \return a new scene graph
 */
