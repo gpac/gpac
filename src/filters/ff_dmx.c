@@ -63,6 +63,7 @@ typedef struct
 	GF_FilterPid **pids;
 
 	Bool raw_pck_out;
+	u32 nb_streams;
 	u32 nb_playing;
 	Bool stop_seen;
 	u64 first_sample_clock, last_frame_ts;
@@ -149,16 +150,21 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	if (av_read_frame(ctx->demuxer, pkt) <0) {
 		FF_FREE_PCK(pkt);
 		if (!ctx->raw_data) {
-			for (i=0; i<ctx->demuxer->nb_streams; i++) {
+			for (i=0; i<ctx->nb_streams; i++) {
 				if (ctx->pids[i]) gf_filter_pid_set_eos(ctx->pids[i]);
 			}
 			return GF_EOS;
 		}
 		return GF_OK;
 	}
-
 	assert(pkt->stream_index>=0);
 	assert(pkt->stream_index < (s32) ctx->demuxer->nb_streams);
+
+	if (pkt->stream_index >= ctx->nb_streams) {
+		GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] More streams (%d) than initialy declared (%d), buggy source demux or not supported, ignoring packet in stream %d\n", ctx->fname, ctx->demuxer->nb_streams, ctx->nb_streams, pkt->stream_index+1 ));
+		FF_FREE_PCK(pkt);
+		return GF_OK;
+	}
 
 	if (pkt->pts == AV_NOPTS_VALUE) {
 		if (pkt->dts == AV_NOPTS_VALUE) {
@@ -321,6 +327,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 
 	ctx->pids = gf_malloc(sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
 	memset(ctx->pids, 0, sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
+	ctx->nb_streams = ctx->demuxer->nb_streams;
 
 	nb_a = nb_v = 0;
 	for (i = 0; i < ctx->demuxer->nb_streams; i++) {

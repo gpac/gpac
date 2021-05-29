@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -3293,6 +3293,8 @@ static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture
 	char data[11];
 	u32 di, data_size=7;
 	GF_BitStream *bs;
+	//avoid gcc warnings
+	memset(data, 0, 11);
 	//write TRIF sample group description
 	bs = gf_bs_new((const char*)data, 11, GF_BITSTREAM_WRITE);
 	gf_bs_write_u16(bs, id);	//groupID

@@ -705,10 +705,12 @@ void AVI_set_audio(avi_t *AVI, int channels, int rate, int bits, int format, int
 }
 
 #define OUT4CC(s) \
-   if(nhb<=HEADERBYTES-4) memcpy(AVI_header+nhb,s,4); nhb += 4
+   if(nhb<=HEADERBYTES-4) memcpy(AVI_header+nhb,s,4); \
+   nhb += 4
 
 #define OUTLONG(n) \
-   if(nhb<=HEADERBYTES-4) long2str(AVI_header+nhb, (s32)(n)); nhb += 4
+   if(nhb<=HEADERBYTES-4) long2str(AVI_header+nhb, (s32)(n)); \
+   nhb += 4
 
 #define OUTSHRT(n) \
    if(nhb<=HEADERBYTES-2) { \
