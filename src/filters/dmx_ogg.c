@@ -580,9 +580,9 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b64)
 {
 	u32 skip=0;
-	u32 osize = strlen(data_b64);
+	u32 osize = (u32) strlen(data_b64);
 	u8 *output = gf_malloc(sizeof(u8) * osize);
-	osize = gf_base64_decode(data_b64, strlen(data_b64), output, osize);
+	osize = gf_base64_decode(data_b64, (u32) strlen(data_b64), output, osize);
 	if ((s32) osize == -1) goto exit;
 
 	u32 type = GF_4CC(output[0], output[1], output[2], output[3]);
