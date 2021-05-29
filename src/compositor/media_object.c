@@ -342,13 +342,13 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 
 		mo->c_w = mo->c_h = mo->c_x = mo->c_y = 0;
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CLAP_W);
-		if (v && v->value.frac.den) { mo->c_w = v->value.frac.num; mo->c_w /= v->value.frac.den; }
+		if (v && v->value.frac.den) { mo->c_w = (Float) v->value.frac.num; mo->c_w /= v->value.frac.den; }
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CLAP_H);
-		if (v && v->value.frac.den) { mo->c_h = v->value.frac.num; mo->c_h /= v->value.frac.den; }
+		if (v && v->value.frac.den) { mo->c_h = (Float) v->value.frac.num; mo->c_h /= v->value.frac.den; }
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CLAP_X);
-		if (v && v->value.frac.den) { mo->c_x = v->value.frac.num; mo->c_x /= v->value.frac.den; }
+		if (v && v->value.frac.den) { mo->c_x = (Float) v->value.frac.num; mo->c_x /= v->value.frac.den; }
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_CLAP_Y);
-		if (v && v->value.frac.den) { mo->c_y = v->value.frac.num; mo->c_y /= v->value.frac.den; }
+		if (v && v->value.frac.den) { mo->c_y = (Float) v->value.frac.num; mo->c_y /= v->value.frac.den; }
 
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
 		UPDATE_CAP(GF_PROP_PID_SAMPLE_RATE, sample_rate)

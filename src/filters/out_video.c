@@ -418,13 +418,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	ctx->c_w = ctx->c_h = ctx->c_x = ctx->c_y = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_W);
-	if (p && p->value.frac.den) { ctx->c_w = p->value.frac.num; ctx->c_w /= p->value.frac.den; }
+	if (p && p->value.frac.den) { ctx->c_w = (Float) p->value.frac.num; ctx->c_w /= p->value.frac.den; }
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_H);
-	if (p && p->value.frac.den) { ctx->c_h = p->value.frac.num; ctx->c_h /= p->value.frac.den; }
+	if (p && p->value.frac.den) { ctx->c_h = (Float) p->value.frac.num; ctx->c_h /= p->value.frac.den; }
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_X);
-	if (p && p->value.frac.den) { ctx->c_x = p->value.frac.num; ctx->c_x /= p->value.frac.den; }
+	if (p && p->value.frac.den) { ctx->c_x = (Float) p->value.frac.num; ctx->c_x /= p->value.frac.den; }
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_Y);
-	if (p && p->value.frac.den) { ctx->c_y = p->value.frac.num; ctx->c_y /= p->value.frac.den; }
+	if (p && p->value.frac.den) { ctx->c_y = (Float) p->value.frac.num; ctx->c_y /= p->value.frac.den; }
 
 
 
@@ -478,8 +478,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->full_range = full_range;
 	ctx->cmx = cmx;
 	if (ctx->c_w && ctx->c_h) {
-		dw = ctx->c_w;
-		dh = ctx->c_h;
+		dw = (u32) ctx->c_w;
+		dh = (u32) ctx->c_h;
 	} else {
 		dw = w;
 		dh = h;
@@ -1188,8 +1188,8 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		u32 w = ctx->width;
 		u32 h = ctx->height;
 		if (ctx->c_w && ctx->c_h) {
-			w = ctx->c_w;
-			h = ctx->c_h;
+			w = (u32) ctx->c_w;
+			h = (u32) ctx->c_h;
 		}
 
 		if (ctx->vrot % 2) {
