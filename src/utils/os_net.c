@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -481,8 +481,10 @@ void gf_sk_del(GF_Socket *sock)
 GF_EXPORT
 void gf_sk_reset(GF_Socket *sock)
 {
-	u32 clear;
-	if (sock) setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
+	if (sock) {
+		u32 clear=0;
+		setsockopt(sock->socket, SOL_SOCKET, SO_ERROR, (char *) &clear, sizeof(u32) );
+	}
 }
 
 GF_EXPORT

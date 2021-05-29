@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -343,9 +343,7 @@ GF_SDPInfo *gf_sdp_info_new()
 	return sdp;
 }
 
-#define SDP_DESTROY(p) if (sdp->p)	\
-					gf_free(sdp->p);	\
-					sdp->p = NULL;
+#define SDP_DESTROY(p) if (sdp->p) { gf_free(sdp->p); sdp->p = NULL; }
 
 
 GF_EXPORT

@@ -4058,7 +4058,8 @@ static Bool dasher_merge_rep(GF_DashStream *ds, GF_MPD_Representation *rep)
 #define CHECK_STR(_name) if (rep->_name && n_rep->_name && !strcmp(rep->_name, n_rep->_name)) {} \
 	else if (!rep->_name && !n_rep->_name) {}\
 	else { \
-		if (rep->_name) gf_free(rep->_name); rep->_name = n_rep->_name ? gf_strdup(n_rep->_name) : NULL; \
+		if (rep->_name) gf_free(rep->_name); \
+		rep->_name = n_rep->_name ? gf_strdup(n_rep->_name) : NULL; \
 		transcode_detected = GF_TRUE; \
 	}
 
