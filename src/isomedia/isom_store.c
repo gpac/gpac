@@ -1404,7 +1404,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	s64 res;
 	u32 descIndex, sampSize, chunkNumber;
 	u16 curGroupID, curTrackPriority;
-	Bool forceNewChunk, writeGroup;
+	Bool forceNewChunk=0, writeGroup;
 	GF_StscEntry *stsc_ent;
 	//this is used to emulate the write ...
 	u64 offset, totSize, sampOffset;

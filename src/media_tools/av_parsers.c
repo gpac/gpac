@@ -4099,7 +4099,7 @@ GF_EXPORT
 GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
 	GF_Err e = GF_OK;
-	u32 hdr_size;
+	u32 i, hdr_size;
 	u64 pos = gf_bs_get_position(bs);
 
 	if (!bs || !obu_type || !state)
@@ -4151,7 +4151,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	e = GF_OK;
 
 	/* for AVIF a1lx */
-	for (int i = state->spatial_id; i < 4; i++) {
+	for (i = state->spatial_id; i < 4; i++) {
 		state->layer_size[i] = (u32) (pos + *obu_size);
 	}
 
