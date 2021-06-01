@@ -1131,8 +1131,8 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("noprog", NULL, "disable progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("quiet", NULL, "disable all messages, including errors", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
- GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
- GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line except for `app` tool", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
+ GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line except for `app` tool", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"\
 			"  \n"\
 			"You can independently log different tools involved in a session.  \n"\
