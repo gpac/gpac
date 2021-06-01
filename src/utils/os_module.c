@@ -156,7 +156,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 	if (!inst->filterreg_func && (!inst->load_func || !inst->query_func || !inst->destroy_func) ) {
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Invalid module file %s, missing %s function\n", inst->name, !inst->query_func ? "QueryInterface" :  !inst->load_func ? "LoadInterface" : "ShutdownInterface"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Invalid module file %s, missing %s or RegisterFilter function\n", inst->name, !inst->query_func ? "QueryInterface" :  !inst->load_func ? "LoadInterface" : "ShutdownInterface"));
 		return GF_TRUE;
 	}
 
