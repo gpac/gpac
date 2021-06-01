@@ -594,6 +594,7 @@ struct __gf_filter
 	volatile u32 in_pid_connection_pending;
 	volatile u32 out_pid_connection_pending;
 	volatile u32 pending_packets;
+	volatile u32 nb_ref_packets;
 
 	volatile u32 stream_reset_pending;
 	volatile u32 num_events_queued;

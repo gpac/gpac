@@ -2444,7 +2444,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		for (i=0; i<filter->num_input_pids; i++) {
 			GF_FilterPidInst *a_pidinst = gf_list_get(filter->input_pids, i);
 
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Not supported profile for filter %s - blacklisting as output from %s and retrying connections\n", filter->name, a_pidinst->pid->filter->name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Codec/Profile not supported for filter %s - blacklisting as output from %s and retrying connections\n", filter->name, a_pidinst->pid->filter->name));
 
 			gf_list_add(a_pidinst->pid->filter->blacklisted, (void *) filter->freg);
 
@@ -2809,7 +2809,8 @@ void gf_filter_remove_task(GF_FSTask *task)
 	GF_Filter *f = task->filter;
 	u32 count = gf_fq_count(f->tasks);
 
-	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending) {
+	//do not destroy filters if tasks for this filter are pending or some ref packets are still present
+	if (f->out_pid_connection_pending || f->detach_pid_tasks_pending || f->nb_ref_packets) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
