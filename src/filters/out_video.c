@@ -309,6 +309,7 @@ static void load_gl_tx_matrix(GF_VideoOutCtx *ctx)
 {
 #ifdef VOUT_USE_OPENGL
 	s32 loc;
+	if (ctx->disp >= MODE_2D) return;
 	glUseProgram(ctx->glsl_program);
 	if (ctx->c_w && ctx->c_h) {
 		Float c_x, c_y;
