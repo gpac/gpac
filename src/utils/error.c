@@ -663,7 +663,8 @@ int gf_fileio_printf(GF_FileIO *gfio, const char *format, va_list args);
 void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
 	FILE *logs = gpac_log_file ? gpac_log_file : stderr;
-	do_log_time(logs);
+	if (tool != GF_LOG_APP)
+		do_log_time(logs);
 
 	if (gf_fileio_check(logs)) {
 		gf_fileio_printf((GF_FileIO *)logs, fmt, vlist);
@@ -696,7 +697,8 @@ void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool
 		gf_sys_set_console_code(stderr, GF_CONSOLE_WHITE);
 		break;
 	}
-	do_log_time(stderr);
+	if (tool != GF_LOG_APP)
+		do_log_time(stderr);
 
 	vfprintf(stderr, fmt, vlist);
 	gf_sys_set_console_code(stderr, GF_CONSOLE_RESET);
