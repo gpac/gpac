@@ -306,6 +306,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			return GF_EOS;
 		}
 		if (ctx->reconfig_pending) {
+			GF_Err e;
 			avcodec_free_context(&ctx->decoder);
 			ctx->decoder = NULL;
 			ctx->reconfig_pending = GF_FALSE;
@@ -322,7 +323,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 				gf_filter_pck_unref(ref_pck);
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
-			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
+			e = ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
+			if (e==GF_NOT_SUPPORTED)
+				return GF_PROFILE_NOT_SUPPORTED;
+			return e;
 		}
 	}
 
@@ -641,6 +645,7 @@ dispatch_next:
 			return GF_EOS;
 		}
 		if (ctx->reconfig_pending) {
+			GF_Err e;
 			avcodec_free_context(&ctx->decoder);
 			ctx->decoder = NULL;
 			ctx->reconfig_pending = GF_FALSE;
@@ -651,7 +656,10 @@ dispatch_next:
 			ctx->channels = 0;
 			ctx->channel_layout = 0;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
-			return ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
+			e = ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
+			if (e==GF_NOT_SUPPORTED)
+				return GF_PROFILE_NOT_SUPPORTED;
+			return e;
 		}
 		return GF_OK;
 	}
@@ -952,7 +960,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			return GF_SERVICE_ERROR;
 		}
 
-		if (!codec) return GF_NOT_SUPPORTED;
+		if (!codec) {
+			gf_filter_set_name(filter, "ffdec");
+			return GF_NOT_SUPPORTED;
+		}
 	}
 	//we reconfigure the stream
 	else {
@@ -995,6 +1006,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] No decoder found for codec %s\n", gf_codecid_name(gpac_codecid) ));
+			gf_filter_set_name(filter, "ffdec");
 			return GF_NOT_SUPPORTED;
 		}
 

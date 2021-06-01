@@ -998,7 +998,7 @@ GF_EXPORT
 GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name)
 {
 	u32 i=0;
-	if (!pf_name || !strcmp(pf_name, "none")) return 0;
+	if (!pf_name || !strcmp(pf_name, "none") || !strcmp(pf_name, "0")) return 0;
 	while (GF_PixelFormats[i].pixfmt) {
 		if (!strcmp(GF_PixelFormats[i].name, pf_name))
 			return GF_PixelFormats[i].pixfmt;

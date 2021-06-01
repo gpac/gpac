@@ -1202,6 +1202,15 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		} else {
 			strcpy(szName, szPath);
 			file_exists = gf_fs_solve_js_script(szPath, szName, file_ext);
+			if (!file_exists && !file_ext) {
+				strcat(szName, ".js");
+				if (gf_file_exists(szName)) {
+					strncpy(szPath, name, len);
+					szPath[len]=0;
+					strcat(szPath, ".js");
+					file_exists = GF_TRUE;
+				}
+			}
 		}
 
 		if (file_exists) {
