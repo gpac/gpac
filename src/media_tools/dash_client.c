@@ -3480,11 +3480,12 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
+		GF_DASH_Group *bgroup = group->depend_on_group ? group->depend_on_group : group;
 		if (cur_dep_idx_plus_one) {
 			u32 i=0;
-			while (i<group->nb_cached_segments) {
-				full_url =  group->cached[i].url;
-				if (group->cached[i].representation_index==cur_dep_idx_plus_one-1)
+			while (i<bgroup->nb_cached_segments) {
+				full_url = bgroup->cached[i].url;
+				if (bgroup->cached[i].representation_index==cur_dep_idx_plus_one-1)
 					break;
 				i++;
 			}
@@ -6639,7 +6640,7 @@ llhls_rety:
 	cache_entry->representation_index = representation_index;
 	cache_entry->duration = (u32) group->current_downloaded_segment_duration;
 	cache_entry->flags = group->loop_detected ? SEG_FLAG_LOOP_DETECTED : 0;
-	cache_entry->dep_group_idx = group->current_dep_idx;
+	cache_entry->dep_group_idx = group->depend_on_group ? group->depend_on_group->current_dep_idx : group->current_dep_idx;
 	if (has_dep_following) cache_entry->flags |= SEG_FLAG_DEP_FOLLOWING;
 	if (group->disabled)
 		cache_entry->flags |= SEG_FLAG_DISABLED;
@@ -6751,16 +6752,16 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 	Bool local_file_mode = GF_FALSE;
 	Bool use_custom_algo = GF_FALSE;
 	GF_MPD_Representation *rep, *rep_new;
-	u32 total_rate, max_fsize, bandwidths[20], groups_per_quality[20], max_level;
+	u32 total_rate, bandwidths[20], groups_per_quality[20], max_level;
 	u32 q_idx, nb_qualities = 0;
 	u32 i, count = gf_list_count(dash->groups), local_files = 0;
+	u64 cumulated_rate=0, cumulated_size=0;
 
 	//initialize min/max bandwidth
 	min_bandwidth = 0;
 	max_level = 0;
 	total_rate = (u32) -1;
 	nb_qualities = 1;
-	max_fsize = 0;
 
 	//get max qualities due to SRD descriptions
 	//for now, consider all non-SRDs group to run in max quality
@@ -6801,19 +6802,20 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 				rep = gf_list_get(group->adaptation_set->representations, j);
 				//this rep is not in broadcast, add bandwidth
 				if (gf_list_count(rep->base_URLs)) {
-					total_rate = group->bytes_per_sec;
+					cumulated_rate += ((u64) group->bytes_per_sec) * group->total_size;
+					cumulated_size += group->total_size;
 				}
 			}
 		} else {
-			//use rate of largest downloaded file to perform rate adaptation
-			//TODO: we should split rate adaptation per baseURL
-			if (!max_fsize || (max_fsize<group->total_size)) {
-				if (total_rate > group->bytes_per_sec) {
-					total_rate = group->bytes_per_sec;
-					max_fsize = group->total_size;
-				}
-			}
+			//weighted everage of download rates vs file size - using the min will not work for very small files
+			//for which the rate estimation may be low due to round-trip request time
+			//TODO we should do the weighted average per base URL for finer results
+			cumulated_rate += ((u64) group->bytes_per_sec) * group->total_size;
+			cumulated_size += group->total_size;
 		}
+	}
+	if (cumulated_size) {
+		total_rate = (u32) (cumulated_rate / cumulated_size);
 	}
 
 	if (total_rate == (u32) -1) {
@@ -6864,13 +6866,14 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 					rep_target = (nb_qualities - quality_rank) * nb_reps / nb_qualities;
 
 				rep = gf_list_get(group->adaptation_set->representations, rep_target);
+				//in bits per sec!
 				total_rate += rep->bandwidth;
 			}
 		}
 		min_bandwidth += bandwidths[q_idx];
 	}
 	if (local_file_mode) {
-		//total rate is in bytes per second, and add a safety of 10 bytes to ensure selection
+		//total rate is in bytes per second, and add a safety of 10 bytes/s to ensure selection
 		total_rate = 10 + total_rate / 8;
 	}
 
