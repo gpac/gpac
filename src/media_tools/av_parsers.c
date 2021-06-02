@@ -9435,7 +9435,7 @@ static s32 gf_media_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bo
 		if (!vps_default_ptl_dpb_hrd_max_tid_flag)
 			vps->ptl[i].ptl_max_tid = gf_bs_read_int_log_idx(bs, 3, "ptl_max_tid", i);
 		else
-			vps->ptl[i].ptl_max_tid = vps->max_sub_layers - 1;;
+			vps->ptl[i].ptl_max_tid = vps->max_sub_layers - 1;
 	}
 	//align
 	gf_bs_align(bs);

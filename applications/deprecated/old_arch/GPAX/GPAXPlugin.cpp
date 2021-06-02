@@ -156,7 +156,7 @@ Bool CGPAXPlugin::EventProc(GF_Event *evt)
 			}
 			sz_ptr = & evt->navigate.to_url;
 			gf_utf8_mbstowcs(w_szURL, 1024, (const char **)sz_ptr);
-			m_pBrowser->Navigate((BSTR) w_szURL, &flags, &target, NULL, NULL);;
+			m_pBrowser->Navigate((BSTR) w_szURL, &flags, &target, NULL, NULL);
 			return GF_TRUE;
 		}
 #endif

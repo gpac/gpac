@@ -557,7 +557,7 @@ void setAttributeType(SVGGenAttribute *att)
 				*tmp='_';
 				tmp++;
 			}
-			tmp = att->impl_type;;
+			tmp = att->impl_type;
 			if ( (tmp = strstr(tmp, "datatype")) ) {
 				tmp--;
 				*tmp = 0;

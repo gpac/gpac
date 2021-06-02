@@ -5392,7 +5392,7 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 
 GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 {
-	u32 i, nb_periods, next_as_id=0;;
+	u32 i, nb_periods, next_as_id=0;
 	if (!mpd) return GF_BAD_PARAM;
 
 	nb_periods = gf_list_count(mpd->periods);

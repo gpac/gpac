@@ -1484,7 +1484,7 @@ typedef enum
 	GF_FEVT_USER,
 	/*! PLAY hint event, used to signal if block dispatch is needed or not for the source*/
 	GF_FEVT_PLAY_HINT,
-	/*! file delete event, sent upstream by dahser to notify file deletion, downstream by flist to ask for file deletion. The associated file processing (reading, writing) MUST be done when firing this event*/
+	/*! file delete event, sent upstream by dasher to notify file deletion, downstream by flist to ask for file deletion. The associated file processing (reading, writing) MUST be done when firing this event*/
 	GF_FEVT_FILE_DELETE,
 
 	/*! DASH fragment (cmaf chunk) size info, sent down from muxers to manifest generators*/

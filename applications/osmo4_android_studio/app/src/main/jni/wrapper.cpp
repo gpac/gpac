@@ -609,7 +609,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 			break;
 		case GF_EVENT_PROGRESS:
 		{
-			const char * szTitle;;
+			const char * szTitle;
 			if (evt->progress.progress_type==0)
 				szTitle = "Buffering";
 			else if (evt->progress.progress_type==1)

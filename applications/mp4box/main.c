@@ -5247,7 +5247,7 @@ static GF_Err do_itunes_tag()
 	if (gf_file_exists(itunes_tags)) {
 		u32 len;
 		e = gf_file_load_data(itunes_tags, (u8 **) &itunes_data, &len);
-		if (e) return e;;
+		if (e) return e;
 		tags = itunes_data;
 	}
 

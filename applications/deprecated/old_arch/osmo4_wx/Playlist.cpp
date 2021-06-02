@@ -33,7 +33,7 @@
 PLEntry::PLEntry(wxString url)
 {
 	m_url = gf_strdup(url.mb_str(wxConvUTF8));
-	Bool is_remote = 0;;
+	Bool is_remote = 0;
 	wxCharBuffer the_url = (const char *) url.mb_str(wxConvUTF8);
 	const char *_url = strstr(the_url, "://");
 	if (_url) {

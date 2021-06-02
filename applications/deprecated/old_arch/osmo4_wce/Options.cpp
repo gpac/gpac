@@ -937,7 +937,7 @@ BOOL COptStream::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Streaming", "DefaultPort");
 	u32 port = 554;
-	Bool force_rtsp = 0;;
+	Bool force_rtsp = 0;
 	if (sOpt) port = atoi(sOpt);
 	switch (port) {
 	case 8080:
