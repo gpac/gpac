@@ -814,7 +814,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 
 static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
-	RAWCTX;;
+	RAWCTX;
 
 	*outWidth = dr->max_screen_width;
 	*outHeight = dr->max_screen_height;

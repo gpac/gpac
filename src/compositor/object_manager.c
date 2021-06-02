@@ -1855,7 +1855,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			GF_ObjectManager *par_odm = gf_list_get(odm->parentscene->resources, i);
 			if (!par_odm->pid) continue;
 			pid = gf_filter_pid_first_pid_for_source(par_odm->pid, odm->addon->root_od->scene_ns->source_filter);
-			if (!pid) continue;;
+			if (!pid) continue;
 			if (!odm->ID) {
 				info->ServiceID = odm->ServiceID = par_odm->ServiceID;
 				prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);

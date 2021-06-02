@@ -488,7 +488,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 			ptr += linesize;
 #else
 			for (j=0; j<linesize/4; j++) {
-				*d++ = *s++;;
+				*d++ = *s++;
 			}
 			s+= (p_stride-linesize)/4;
 #endif
@@ -523,7 +523,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 			ptr += linesize;
 #else
 			for (j=0; j<linesize/4; j++) {
-				*d++ = *s++;;
+				*d++ = *s++;
 			}
 			s+= (p_stride-linesize)/4;
 #endif
@@ -554,7 +554,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 			ptr += linesize;
 #else
 			for (j=0; j<linesize/4; j++) {
-				*d++ = *s++;;
+				*d++ = *s++;
 			}
 			s+= (p_stride-linesize)/4;
 #endif

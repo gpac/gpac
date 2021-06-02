@@ -626,7 +626,7 @@ static void dasher_update_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
 			u32 i, count = gf_list_count(ctx->current_period->streams);
 			for (i=0; i<count; i++) {
 				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, i);
-				if (ds == a_ds) continue;;
+				if (ds == a_ds) continue;
 				if (a_ds->muxed_base != ds) continue;
 				if (a_ds->dyn_bitrate) {
 					dasher_update_bitrate(ctx, a_ds);
@@ -3739,7 +3739,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 }
 
-static void dahser_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx)
+static void dasher_purge_segment_timeline(GF_DashStream *ds, GF_MPD_SegmentTimeline *stl, GF_DASH_SegmentContext *sctx)
 {
 	GF_MPD_SegmentTimelineEntry *stl_e = gf_list_get(stl->entries, 0);
 	if (!stl_e) return;
@@ -3841,13 +3841,13 @@ static void dasher_purge_segments(GF_DasherCtx *ctx, u64 *period_dur)
 
 			if (ds->rep->segment_template) {
 				if (ds->rep->segment_template->segment_timeline) {
-					dahser_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
+					dasher_purge_segment_timeline(ds, ds->rep->segment_template->segment_timeline, sctx);
 				}
 			}
 			//not an else due to inheritance
 			if (ds->owns_set && ds->set->segment_template) {
 				if (ds->set->segment_template->segment_timeline) {
-					dahser_purge_segment_timeline(ds, ds->set->segment_template->segment_timeline, sctx);
+					dasher_purge_segment_timeline(ds, ds->set->segment_template->segment_timeline, sctx);
 				}
 			}
 
@@ -6487,7 +6487,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					}
 				} else {
 					if (ctx->do_mpd) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Manifest forward mode got M3U6 but output is DASH MPD, cannot operate - change formats or dasher forward mode\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Manifest forward mode got M3U8 but output is DASH MPD, cannot operate - change formats or dasher forward mode\n"));
 						ctx->in_error = GF_TRUE;
 						return;
 					} else {

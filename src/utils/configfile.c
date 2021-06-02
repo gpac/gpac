@@ -100,7 +100,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	Bool line_done = GF_FALSE;
 	u32 nb_empty_lines=0;
 	Bool is_opts_probe = GF_FALSE;
-	Bool in_multiline = GF_FALSE;;
+	Bool in_multiline = GF_FALSE;
 	gf_cfg_clear(tmp);
 
 	if (strstr(file_name, "/all_opts.txt")) {

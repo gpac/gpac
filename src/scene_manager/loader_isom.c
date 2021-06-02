@@ -78,7 +78,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 						dur = (Double) (s64) gf_isom_get_track_duration(mp4, track);
 						dur /= gf_isom_get_timescale(mp4);
 						mi->duration = (u32) (dur * 1000);
-						continue;;
+						continue;
 					}
 						break;
 					default:

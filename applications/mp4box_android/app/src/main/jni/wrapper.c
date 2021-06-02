@@ -77,7 +77,7 @@ char ** ConvertCommandLine( const char* sCommand, int* iNbArg )
 			iArgNumber++;
 		}
 	}
-	iArgNumber++;; // last argument will not be detected as it is not followed by a space character
+	iArgNumber++; // last argument will not be detected as it is not followed by a space character
 	pReturn = (char**)malloc(sizeof(char*)*iArgNumber);
 	pReturn[0] = (char*)malloc(sizeof( char) * ( 7 ));
 	strcpy( pReturn[0], "MP4Box" );//just a place holder , will never be read.

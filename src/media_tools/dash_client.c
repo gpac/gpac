@@ -1971,7 +1971,7 @@ static GF_Err gf_dash_solve_m3u8_representation_xlink(GF_DASH_Group *group, GF_M
 		return gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration, signature);
 	}
 
-	xlink_copy = gf_strdup(rep->segment_list->xlink_href);;
+	xlink_copy = gf_strdup(rep->segment_list->xlink_href);
 	e = gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration, signature);
 	//do not notify m3u8 update if same as last one
 	if (e==GF_EOS) {

@@ -2325,7 +2325,7 @@ void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 			if (!sep) break;
 			loc_arg = sep+1;
 		}
-		if (found) continue;;
+		if (found) continue;
 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Arg %s set but not used\n", argname));
 	}
