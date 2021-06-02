@@ -6773,8 +6773,15 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	if (!ctx->forward_mode) {
-		//get final segment template - output file name is NULL, we already have solved this in source_setup
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
+		/*get final segment template - output file name is NULL, we already have solved this in source_setup
+		segment time must be PTO-adjusted !*/
+		u64 pto = ds->presentation_time_offset;
+		if (base_ds->timescale != base_ds->mpd_timescale) {
+			pto *= base_ds->mpd_timescale;
+			pto /= base_ds->timescale;
+		}
+
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
 	}
 
 
