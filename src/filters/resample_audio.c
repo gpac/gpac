@@ -213,7 +213,7 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->nb_ch = ctx->och ? ctx->och : nb_ch;
 		ctx->ch_cfg = ch_cfg;
 
-		e = gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, afmt, ctx->ch_cfg);
+		e = gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->afmt, ctx->ch_cfg);
 		if (e) return e;
 	}
 	//input reconfig
