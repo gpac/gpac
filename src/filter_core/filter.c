@@ -2248,7 +2248,9 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 			kill_filter = GF_TRUE;
 		}
 	} else {
-		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) ) || for_reconnection) {
+		if ((!filter->nb_pck_io && filter->pending_packets && (filter->nb_pids_playing>0) && !gf_filter_connections_pending(filter)) || for_reconnection) {
+			if (!filter->nb_consecutive_errors)
+				filter->time_at_first_error = gf_sys_clock_high_res();
 			filter->nb_consecutive_errors++;
 
 			out_e = GF_SERVICE_ERROR;
