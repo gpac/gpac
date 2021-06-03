@@ -48,6 +48,10 @@ typedef struct
 
 	Bool check_connections;
 	GF_Err in_error;
+	u32 wait_start;
+	Bool is_playing;
+	GF_FEVT_Play play_evt;
+
 } GF_TileAggCtx;
 
 #define TILEAGG_CFG_ERR(_msg) {\
@@ -146,6 +150,15 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		//we already checked the same base ID is used
 	}
 
+	//it may happen that we are already running when we get this pid connection, typically with very large number of tiles
+	//post a play event on pid in this case
+	if (ctx->is_playing) {
+		GF_FilterEvent fevt;
+		fevt.play = ctx->play_evt;
+		fevt.base.on_pid = pid;
+		gf_filter_pid_send_event(pid, &fevt);
+	}
+
 	return GF_OK;
 
 config_error:
@@ -186,8 +199,9 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	if (!ctx->base_ipid) return GF_EOS;
 
 	if (ctx->check_connections) {
-		if (gf_filter_connections_pending(filter))
+		if (gf_filter_connections_pending(filter)) {
 			return GF_OK;
+		}
 		ctx->check_connections = GF_FALSE;
 	}
 
@@ -217,8 +231,17 @@ static GF_Err tileagg_process(GF_Filter *filter)
 				}
 				//if we are flushing a segment, consider the PID discarded if no packet
 				//otherwise wait for packet
-				if (! ctx->flush_packets)
-					return GF_OK;
+				if (! ctx->flush_packets) {
+					if (!ctx->wait_start) {
+						ctx->wait_start = gf_sys_clock();
+					} else if (gf_sys_clock() - ctx->wait_start < 10000) {
+						gf_filter_ask_rt_reschedule(filter, 0);
+						return GF_OK;
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] No frames on tiled pid %s after %d ms, reaggregating with lost tiles\n", gf_filter_pid_get_name(pid), gf_sys_clock() - ctx->wait_start ));
+						break;
+					}
+				}
 				break;
 			}
 
@@ -250,8 +273,9 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
-	if (ctx->flush_packets)
+	if (ctx->flush_packets) {
 		ctx->flush_packets--;
+	}
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
@@ -366,17 +390,31 @@ static void tileagg_finalize(GF_Filter *filter)
 static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
-	if (evt->base.type != GF_FEVT_PLAY_HINT) return GF_FALSE;
-	if (evt->play.forced_dash_segment_switch) {
-		//this assumes the dashin module performs regulation of output in case of losses
-		//otherwise it may dispatch more than one segment in the input buffer
-		if (!ctx->flush_packets)
-			gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
-		else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
+
+	switch (evt->base.type) {
+	case GF_FEVT_PLAY:
+		ctx->is_playing = GF_TRUE;
+		ctx->play_evt = evt->play;
+		return GF_FALSE;
+	case GF_FEVT_STOP:
+		ctx->is_playing = GF_FALSE;
+		return GF_FALSE;
+	case GF_FEVT_PLAY_HINT:
+		if (evt->play.forced_dash_segment_switch) {
+			//this assumes the dashin module performs regulation of output in case of losses
+			//otherwise it may dispatch more than one segment in the input buffer
+			if (!ctx->flush_packets)
+				gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
+			}
+			ctx->wait_start = 0;
 		}
+		return GF_TRUE;
+	default:
+		break;
 	}
-	return GF_TRUE;
+	return GF_FALSE;
 }
 
 static const GF_FilterCapability TileAggCaps[] =
