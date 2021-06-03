@@ -985,13 +985,17 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 			assert(filter->in_pid_connection_pending);
 			safe_int_dec(&filter->in_pid_connection_pending);
 			if (task->pid->pid) {
+				gf_mx_p(filter->tasks_mx);
 				gf_list_del_item(filter->temp_input_pids, task->pid->pid);
+				gf_mx_v(filter->tasks_mx);
 			}
 			return;
 		}
 	}
 	if (task->pid->pid) {
+		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->temp_input_pids, task->pid->pid);
+		gf_mx_v(filter->tasks_mx);
 		gf_filter_pid_configure(filter, task->pid->pid, GF_PID_CONF_CONNECT);
 		//once connected, any set_property before the first packet dispatch will have to trigger a reconfigure
 		if (!task->pid->pid->nb_pck_sent) {
@@ -4058,6 +4062,7 @@ single_retry:
 		if (filter->dynamic_filter)  {
 			Bool cyclic_detected = GF_FALSE;
 			u32 k;
+			gf_mx_p(filter_dst->tasks_mx);
 			//check filters pending a configure on filter_dst
 			for (k=0; k<gf_list_count(filter_dst->temp_input_pids); k++) {
 				GF_FilterPid *a_src_pid = gf_list_get(filter_dst->temp_input_pids, k);
@@ -4065,6 +4070,7 @@ single_retry:
 				if (gf_pid_in_parent_chain(pid, a_src_pid))
 					cyclic_detected = GF_TRUE;
 			}
+			gf_mx_v(filter_dst->tasks_mx);
 
 			gf_mx_v(filter->session->filters_mx);
 			gf_mx_p(filter_dst->tasks_mx);
@@ -4337,7 +4343,9 @@ single_retry:
 		}
 
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
+		gf_mx_p(filter_dst->tasks_mx);
 		gf_list_add(filter_dst->temp_input_pids, pid);
+		gf_mx_v(filter_dst->tasks_mx);
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
 		found_dest = GF_TRUE;
