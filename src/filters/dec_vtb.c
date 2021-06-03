@@ -1046,6 +1046,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	ctx->nalu_size_length = 0;
 	ctx->is_annex_b = GF_FALSE;
+	ctx->is_avc = ctx->is_hevc = GF_FALSE;
 
 	//check AVC config
 	if (codecid==GF_CODECID_AVC) {
