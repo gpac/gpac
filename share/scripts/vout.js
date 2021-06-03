@@ -427,7 +427,7 @@ function update_play()
 
 function build_graph(f, str, str_list, fdone)
 {
-	let i, j;
+	let i, j, num_tiles=0;
 	if (!f.nb_opid) {
 		str += '->' + f.name;
 		str_list.push(str);
@@ -453,6 +453,17 @@ function build_graph(f, str, str_list, fdone)
 		let sub_len=0;
 		let sub_str;
 
+		let p = f.opid_props(i, 'CodecID');
+		if (p == 'hvt1') {
+			if (num_tiles) continue;
+			num_tiles++;
+			for (j=i+1; j<f.nb_opid; j++) {
+				let p = f.opid_props(j, 'CodecID');
+				if (p == 'hvt1')
+					num_tiles++;
+			}
+		}
+
 		if (i) {
 			str=' ';
 			let k=0;
@@ -464,7 +475,13 @@ function build_graph(f, str, str_list, fdone)
 			}
 		}
 		sub_str = str;
-		if (f.nb_opid>1) sub_str += '#' + f.opid_props(i, 'name');
+		if (f.nb_opid>1) {
+			if (num_tiles>1) {
+				sub_str += '#tilePIDs[' + num_tiles + ']';
+			} else {
+				sub_str += '#' + f.opid_props(i, 'name');
+			}
+		}
 
 		if (!sinks.length) {
 			str_list.push(sub_str + ': Not connected');
