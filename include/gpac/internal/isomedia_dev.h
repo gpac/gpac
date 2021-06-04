@@ -902,6 +902,7 @@ typedef struct
 
 	u64 magic;
 	u32 index;
+	u32 nb_base_refs;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	u64 first_dts_chunk;

@@ -3658,9 +3658,18 @@ GF_Err moov_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 			gf_list_del_item(ptr->trackList, a);
 			return GF_OK;
 		}
-		//set our pointer to this obj
-		((GF_TrackBox *)a)->moov = ptr;
-		((GF_TrackBox *)a)->index = gf_list_count(ptr->trackList);
+		{
+			GF_TrackBox *tk = (GF_TrackBox *)a;
+			//set our pointer to this obj
+			tk->moov = ptr;
+			tk->index = gf_list_count(ptr->trackList);
+			if (tk->References) {
+				GF_TrackReferenceTypeBox *dpnd=NULL;
+				Track_FindRef(tk, GF_ISOM_REF_BASE, &dpnd);
+				if (dpnd)
+					tk->nb_base_refs = dpnd->trackIDCount;
+			}
+		}
 		return gf_list_add(ptr->trackList, a);
 	}
 	return GF_OK;
