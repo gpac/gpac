@@ -5342,7 +5342,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 				return NULL;
 		}
 	}
-	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) /* && !pcki->pid_info_change_done*/) {
+	if ( (pcki->pck->info.flags & GF_PCKF_INFO_CHANGED) && !pcki->pid_info_change_done) {
 		Bool res=GF_FALSE;
 
 		//it may happen that this filter pid is pulled from another thread than ours (eg audio callback), in which case
@@ -5828,6 +5828,15 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 			if (!buffer_full)
 				return 0;
 		}
+
+		//this is a very costly recursive call until each source, and is likely to be an overkill
+		//if many PIDs (large tiling configurations for example)
+		//we cache the last computed value and only update every 10ms
+		if (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000) {
+			return pidinst->last_buf_query_dur;
+		}
+		pidinst->last_buf_query_clock = pidinst->filter->last_schedule_task_time;
+
 		gf_mx_p(filter->tasks_mx);
 		count = filter->num_input_pids;
 		for (i=0; i<count; i++) {
@@ -5837,6 +5846,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 		}
 		gf_mx_v(filter->tasks_mx);
 		duration += pidinst->buffer_duration;
+		pidinst->last_buf_query_dur = duration;
 		return duration;
 	} else {
 		u32 count2;

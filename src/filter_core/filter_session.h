@@ -756,6 +756,8 @@ struct __gf_filter
 
 	Bool event_target;
 
+	u64 last_schedule_task_time;
+
 #ifdef GPAC_HAS_QJS
 	char *iname;
 	JSValue jsval;
@@ -861,6 +863,9 @@ struct __gf_filter_pid_inst
 	GF_Filter *alias_orig;
 
 	GF_Fraction64 last_ts_drop;
+
+	u64 last_buf_query_clock;
+	u64 last_buf_query_dur;
 };
 
 struct __gf_filter_pid
