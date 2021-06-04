@@ -2750,6 +2750,11 @@ process_m3u8_manifest:
 
 						gf_list_rem(segments, 0);
 						gf_mpd_segment_url_free(old_seg);
+						//rewind the current download index for non low-latency cases
+						//it is recomputed below for low-latency cases
+						if (group->download_segment_index) {
+							group->download_segment_index--;
+						}
 					}
 				} else {
 					//todo for MPD with rep update on xlink (no existing profile use this)
