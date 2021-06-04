@@ -146,7 +146,7 @@ typedef struct
 	char *template;
 } GF_DASHGroup;
 
-static void dashdmw_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
+static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
 
 static void dashdmx_set_string_list_prop(GF_FilterPacket *ref, u32 prop_name, GF_List **str_list)
 {
@@ -1400,7 +1400,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	//in forward mode, always send the event to setup dash templates
 	if (!gf_sys_is_test_mode() || ctx->forward) {
 		group->notify_quality_change = GF_TRUE;
-		dashdmw_notify_group_quality(ctx, group);
+		dashdmx_notify_group_quality(ctx, group);
 	}
 
 	//if MPD file pid is defined, merge its properties. This will allow forwarding user-defined properties,
@@ -2256,7 +2256,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 }
 
 
-static void dashdmw_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
+static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 {
 	u32 i;
 	if (!group->notify_quality_change) return;
@@ -2412,7 +2412,7 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 
 	group->init_ok = GF_TRUE;
 
-	dashdmw_notify_group_quality(ctx, group);
+	dashdmx_notify_group_quality(ctx, group);
 
 fetch_next:
 	assert(group->nb_eos || group->seg_was_not_ready || group->in_error);
