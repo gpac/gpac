@@ -352,8 +352,6 @@ extension = {
         this.movie.children[0].on_media_progress = function (evt) {
             if (evt.buffering) {
                 this.extension.show_buffer(evt.bufferLevel);
-                this.extension.controler.layout();
-
             }
             if (evt.total) {
                 var percent_dload = 100 * evt.loaded / evt.total;
