@@ -975,7 +975,7 @@ typedef struct
 #define CAP_MATCH_LOADED_INPUT_ONLY		1
 #define CAP_MATCH_LOADED_OUTPUT_ONLY	1<<1
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore);
 Bool gf_filter_has_out_caps(const GF_FilterCapability *caps, u32 nb_caps);
 Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps);
 

@@ -1978,7 +1978,7 @@ Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps)
 	return gf_filter_has_in_out_caps(caps, nb_caps, GF_TRUE);
 }
 
-u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, s32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
+u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
 {
 	u32 i=0;
 	u32 cur_bundle_start = 0;
@@ -2121,8 +2121,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				const GF_FilterCapability *in_cap = &dst_caps[j];
 
 				if (! (in_cap->flags & GF_CAPFLAG_IN_BUNDLE)) {
-					if (!matched && !nb_caps_tested && (out_cap->flags & GF_CAPFLAG_EXCLUDED))
-						matched = GF_TRUE;
+					if (((cur_dst_bundle >= for_dst_bundle) || (in_cap->flags & GF_CAPFLAG_STATIC))) {
+						if (!matched && !nb_caps_tested && (out_cap->flags & GF_CAPFLAG_EXCLUDED)) {
+							matched = GF_TRUE;
+						}
+					}
 
 					//we found a prop, excluded but with != value hence acceptable, default matching to true
 					if (!matched && prop_found) matched = GF_TRUE;
@@ -2140,7 +2143,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					prop_found = GF_FALSE;
 					nb_caps_tested = 0;
 					cur_dst_bundle++;
-					if ((for_dst_bundle>=0) && (cur_dst_bundle > (u32) for_dst_bundle))
+					if (cur_dst_bundle > for_dst_bundle)
 						break;
 
 					continue;
@@ -2153,7 +2156,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				if (in_cap->flags & GF_CAPFLAG_OPTIONAL)
 					continue;
 
-				if ((for_dst_bundle>=0) && (cur_dst_bundle < (u32)for_dst_bundle) && !(in_cap->flags & GF_CAPFLAG_STATIC))
+				if ((cur_dst_bundle < for_dst_bundle) && !(in_cap->flags & GF_CAPFLAG_STATIC))
 					continue;
 
 				//prop was excluded, cannot match in bundle
@@ -2263,7 +2266,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					*loaded_filter_flags = (bundles_in_ok[i]>>1);
 				}
 			}
-			if ((for_dst_bundle>=0) && (for_dst_bundle==i)) {
+			if (for_dst_bundle==i) {
 				*dst_bundle_idx = i;
 				if (loaded_filter_flags) {
 					*loaded_filter_flags = (bundles_in_ok[i]>>1);
