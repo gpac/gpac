@@ -1630,6 +1630,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		safe_int_inc(& fsess->tasks_in_process );
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
+		//remember the last time we scheduled this filter
+		if (task->filter)
+			task->filter->last_schedule_task_time = task_time;
 
 		task->can_swap = GF_FALSE;
 		task->requeue_request = GF_FALSE;
