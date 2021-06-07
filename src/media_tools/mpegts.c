@@ -1989,7 +1989,7 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	pes->temi_pending = 1;
 }
 
-void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool force_flush)
 {
 	GF_M2TS_PESHeader pesh;
 	if (!ts) return;
@@ -2035,27 +2035,29 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			if (pesh.PTS) {
 				if (pesh.PTS == pes->PTS) {
 					same_pts = GF_TRUE;
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
+					if (!pes->is_resume) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
+					}
 				}
-	#ifndef GPAC_DISABLE_LOG
+#ifndef GPAC_DISABLE_LOG
 				/*FIXME - this test should only be done for non bi-directionally coded media
 				else if (pesh.PTS < pes->PTS) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - PTS "LLU" less than previous packet PTS "LLU"\n", pes->pid, pesh.PTS, pes->PTS) );
 				}
 				*/
-	#endif
+#endif
 
 				pes->PTS = pesh.PTS;
-	#ifndef GPAC_DISABLE_LOG
+#ifndef GPAC_DISABLE_LOG
 				{
-					if (pes->DTS && (pesh.DTS == pes->DTS)) {
+					if (!pes->is_resume && pes->DTS && (pesh.DTS == pes->DTS)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
 					}
 					if (pesh.DTS < pes->DTS) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));
 					}
 				}
-	#endif
+#endif
 				pes->DTS = pesh.DTS;
 			}
 			/*no PTSs were coded, same time*/
@@ -2063,6 +2065,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 				same_pts = GF_TRUE;
 			}
 
+			pes->is_resume = GF_FALSE;
 
 			/*3-byte start-code + 6 bytes header + hdr extensions*/
 			len = 9 + pesh.hdr_data_len;
@@ -2091,6 +2094,11 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			u32 offset = len;
 
 			if (pesh.pck_len && (pesh.pck_len-3-pesh.hdr_data_len != pes->pck_data_len-len)) {
+				if (!force_flush) {
+					pes->is_resume = GF_TRUE;
+					return;
+				}
+
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES payload size %d but received %d bytes\n", pes->pid, (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->pck_data_len-len));
 			}
 			//copy over the remaining of previous PES payload before start of this PES payload
@@ -2204,7 +2212,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	/*PES first fragment: flush previous packet*/
 	if (flush_pes && pes->pck_data_len) {
-		gf_m2ts_flush_pes(ts, pes);
+		gf_m2ts_flush_pes(ts, pes, GF_TRUE);
 		if (!data_size) return;
 	}
 	/*we need to wait for first packet of PES*/
@@ -2226,7 +2234,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Got PES packet len %d\n", pes->pid, pes->pes_len));
 
 		if (pes->pes_len + 6 == pes->pck_data_len) {
-			gf_m2ts_flush_pes(ts, pes);
+			gf_m2ts_flush_pes(ts, pes, GF_TRUE);
 		}
 	}
 }
@@ -2237,7 +2245,7 @@ void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts)
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		GF_M2TS_ES *stream = ts->ess[i];
 		if (stream && (stream->flags & GF_M2TS_ES_IS_PES)) {
-			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream);
+			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream, GF_FALSE);
 		}
 	}
 }
