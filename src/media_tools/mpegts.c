@@ -2239,13 +2239,13 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	}
 }
 
-void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts)
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts, Bool no_force_flush)
 {
 	u32 i;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		GF_M2TS_ES *stream = ts->ess[i];
 		if (stream && (stream->flags & GF_M2TS_ES_IS_PES)) {
-			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream, GF_FALSE);
+			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream, no_force_flush ? GF_FALSE : GF_TRUE);
 		}
 	}
 }

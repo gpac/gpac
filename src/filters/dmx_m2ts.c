@@ -85,6 +85,8 @@ typedef struct
 
 	u32 mux_tune_state;
 	u32 wait_for_progs;
+
+	Bool is_dash;
 } GF_M2TSDmxCtx;
 
 
@@ -1006,6 +1008,8 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			}
 			return GF_FALSE;
 		}
+		if (com->play.no_byterange_forward)
+			ctx->is_dash = GF_TRUE;
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
@@ -1113,7 +1117,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			u32 i, nb_streams = gf_filter_get_opid_count(filter);
 
-			gf_m2ts_flush_all(ctx->ts);
+			gf_m2ts_flush_all(ctx->ts, ctx->is_dash);
 			for (i=0; i<nb_streams; i++) {
 				GF_FilterPid *opid = gf_filter_get_opid(filter, i);
 				gf_filter_pid_set_eos(opid);
