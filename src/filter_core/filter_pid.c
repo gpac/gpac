@@ -410,6 +410,8 @@ static void gf_filter_pid_inst_swap_delete(GF_Filter *filter, GF_FilterPid *pid,
 	gf_mx_p(filter->tasks_mx);
 	gf_list_del_item(filter->input_pids, pidinst);
 	filter->num_input_pids = gf_list_count(filter->input_pids);
+	if (!filter->num_input_pids)
+		filter->single_source = NULL;
 	gf_mx_v(filter->tasks_mx);
 
 	gf_mx_p(pid->filter->tasks_mx);
@@ -497,6 +499,12 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		if (gf_list_find(dst->filter->input_pids, dst)<0) {
 			gf_list_add(dst->filter->input_pids, dst);
 			dst->filter->num_input_pids = gf_list_count(dst->filter->input_pids);
+
+			if (dst->filter->num_input_pids==1) {
+				dst->filter->single_source = dst->pid->filter;
+			} else if (dst->filter->single_source != dst->pid->filter) {
+				dst->filter->single_source = NULL;
+			}
 		}
 		gf_mx_v(dst->pid->filter->tasks_mx);
 	}
@@ -572,6 +580,8 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			gf_mx_p(src_filter->tasks_mx);
 			gf_list_del_item(src_filter->input_pids, src);
 			src_filter->num_input_pids = gf_list_count(src_filter->input_pids);
+			if (!src_filter->num_input_pids)
+				src_filter->single_source = NULL;
 			gf_mx_v(src_filter->tasks_mx);
 
 			gf_list_del_item(src->pid->destinations, src);
@@ -686,6 +696,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		if (!filter->input_pids) filter->input_pids = gf_list_new();
 		gf_list_add(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
+		if (filter->num_input_pids==1) {
+			filter->single_source = pidinst->pid->filter;
+		} else if (filter->single_source != pidinst->pid->filter) {
+			filter->single_source = NULL;
+		}
 		gf_mx_v(filter->tasks_mx);
 
 		//new connection, update caps in case we have events using caps (buffer req) being sent
@@ -753,6 +768,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
+		if (!filter->num_input_pids)
+			filter->single_source = NULL;
 		filter->freg->configure_pid(filter, (GF_FilterPid *) pidinst, GF_TRUE);
 		gf_mx_v(filter->tasks_mx);
 
@@ -837,6 +854,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 					unload_filter = GF_FALSE;
 				}
 				filter->num_input_pids = 0;
+				filter->single_source = NULL;
 				filter->removed = GF_TRUE;
 				filter->has_pending_pids = GF_FALSE;
 				gf_mx_v(filter->tasks_mx);
@@ -925,6 +943,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_mx_p(filter->tasks_mx);
 		gf_list_del_item(filter->input_pids, pidinst);
 		filter->num_input_pids = gf_list_count(filter->input_pids);
+		if (!filter->num_input_pids)
+			filter->single_source = NULL;
 		gf_mx_v(filter->tasks_mx);
 
 		//PID instance is no longer in graph, we must remove it from pid destination to avoid propagating events
@@ -1131,6 +1151,8 @@ void gf_filter_pid_detach_task(GF_FSTask *task)
 	pid->num_destinations = gf_list_count(pid->destinations);
 	gf_list_del_item(filter->input_pids, pidinst);
 	filter->num_input_pids = gf_list_count(filter->input_pids);
+	if (!filter->num_input_pids)
+		filter->single_source = NULL;
 	gf_mx_v(filter->tasks_mx);
 
 	if (!filter->detached_pid_inst) {
@@ -1671,11 +1693,19 @@ Bool gf_filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 {
 	u32 i;
 	if (parent == filter) return GF_TRUE;
-	//browse all parent PIDs
+
+	//browse all parent PIDs - we must lock the parent filter
+	//as some pid init tasks may be in process in other threads
 	gf_mx_p(parent->tasks_mx);
 	if (!parent->num_input_pids) {
 		gf_mx_v(parent->tasks_mx);
 		return GF_FALSE;
+	}
+	//single source filter, do not browse pids
+	if (parent->single_source) {
+		Bool res = gf_filter_in_parent_chain(parent->single_source, filter);
+		gf_mx_v(parent->tasks_mx);
+		return res;
 	}
 	for (i=0; i<parent->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(parent->input_pids, i);
@@ -3698,6 +3728,9 @@ static const char *gf_filter_last_id_in_chain(GF_Filter *filter, Bool ignore_fir
 			gf_mx_v(filter->tasks_mx);
 			return id;
 		}
+		//single source filter, no need to browse remaining pids
+		if (pidi->pid->filter->single_source)
+			break;
 	}
 	gf_mx_v(filter->tasks_mx);
 	return NULL;
@@ -3819,6 +3852,9 @@ static Bool gf_pid_in_parent_chain(GF_FilterPid *pid, GF_FilterPid *look_for_pid
 			ret = GF_TRUE;
 			break;
 		}
+		//single source filter, no need to look further
+		if (pidi->pid->filter->single_source)
+			break;
 	}
 	gf_mx_v(pid->filter->tasks_mx);
 	return ret;
@@ -4348,6 +4384,8 @@ single_retry:
 		safe_int_inc(&pid->filter->out_pid_connection_pending);
 		gf_mx_p(filter_dst->tasks_mx);
 		gf_list_add(filter_dst->temp_input_pids, pid);
+		if (pid->filter != filter_dst->single_source)
+			filter_dst->single_source = NULL;
 		gf_mx_v(filter_dst->tasks_mx);
 		gf_filter_pid_post_connect_task(filter_dst, pid);
 
