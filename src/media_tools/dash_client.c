@@ -255,6 +255,8 @@ struct __dash_group
 	u32 min_representation_bitrate;
 
 	u32 nb_segments_in_rep;
+	//cached index of this group in dash->groups to avoid using gf_list_find
+	u32 groups_idx;
 
 	/* Segment duration as advertised in the MPD
 	   for the real duration of the segment being downloaded see current_downloaded_segment_duration */
@@ -1303,7 +1305,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx, u32 bit
 
 	if (res==-1) return GF_OK;
 
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_ABORT_DOWNLOAD, gf_list_find(dash->groups, group), GF_OK);
+	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_ABORT_DOWNLOAD, group->groups_idx, GF_OK);
 
 	//internal return value, switching has already been setup
 	if (res<0) return GF_OK;
@@ -1332,7 +1334,7 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
 	if (group) {
-		group_idx = gf_list_find(group->dash->groups, group);
+		group_idx = group->groups_idx;
 	}
 
 	if (! *sess) {
@@ -1942,7 +1944,7 @@ static void dash_purge_xlink(GF_MPD *new_mpd)
 
 static void gf_dash_mark_group_done(GF_DASH_Group *group)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d group is done\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d group is done\n", 1+group->groups_idx ));
 	group->done = GF_TRUE;
 }
 
@@ -1985,7 +1987,7 @@ static GF_Err gf_dash_solve_m3u8_representation_xlink(GF_DASH_Group *group, GF_M
 		local_url = dash->getter.get_cache_name(&dash->getter);
 	}
 	name = dash_strip_base_url(xlink_copy, dash->base_url);
-	dash->dash_io->manifest_updated(dash->dash_io, name, local_url, gf_list_find(dash->groups, group));
+	dash->dash_io->manifest_updated(dash->dash_io, name, local_url, group->groups_idx);
 	gf_free(xlink_copy);
 	return e;
 }
@@ -3359,13 +3361,13 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			if (framerate->den) den = framerate->den;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - Width %d Height %d FPS %d/%d (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1000, width, height, num, den, group->dash->speed));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - Width %d Height %d FPS %d/%d (playback speed %g)\n", 1+group->groups_idx, rep->bandwidth/1000, width, height, num, den, group->dash->speed));
 	}
 	else if (samplerate) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - sample rate %u (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1000, samplerate, group->dash->speed));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - sample rate %u (playback speed %g)\n", 1+group->groups_idx, rep->bandwidth/1000, samplerate, group->dash->speed));
 	}
 	else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1000, group->dash->speed));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps (playback speed %g)\n", 1+group->groups_idx, rep->bandwidth/1000, group->dash->speed));
 	}
 #endif
 
@@ -3382,7 +3384,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (timeshift == -1) timeshift = (s32) group->dash->mpd->time_shift_buffer_depth;
 	group->time_shift_buffer_depth = (u32) timeshift;
 
-	group->dash->dash_io->on_dash_event(group->dash->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, gf_list_find(group->dash->groups, group), GF_OK);
+	group->dash->dash_io->on_dash_event(group->dash->dash_io, GF_DASH_EVENT_QUALITY_SWITCH, group->groups_idx, GF_OK);
 }
 
 static void gf_dash_switch_group_representation(GF_DashClient *mpd, GF_DASH_Group *group)
@@ -3577,7 +3579,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 		u32 i, buffer_ms = 0;
 		Double bitrate, time_sec;
 		//force a call go query buffer
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, gf_list_find(dash->groups, group), GF_OK);
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, group->groups_idx, GF_OK);
 		buffer_ms = group->buffer_occupancy_ms;
 		for (i=0; i < group->nb_cached_segments; i++) {
 			buffer_ms += group->cached[i].duration;
@@ -3600,7 +3602,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 			time_sec /= 1000000;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d got %s stats: %d bytes in %.03g sec at %d kbps - dur %g sec - bitrate: %d (avg %d) kbps - buffer %d ms\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), url, group->total_size, time_sec, 8*bytes_per_sec/1000, group->current_downloaded_segment_duration/1000.0, (u32) bitrate, rep->bandwidth/1000, buffer_ms));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d got %s stats: %d bytes in %.03g sec at %d kbps - dur %g sec - bitrate: %d (avg %d) kbps - buffer %d ms\n", 1+group->groups_idx, url, group->total_size, time_sec, 8*bytes_per_sec/1000, group->current_downloaded_segment_duration/1000.0, (u32) bitrate, rep->bandwidth/1000, buffer_ms));
 	}
 #endif
 }
@@ -3608,24 +3610,22 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 static s32 dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
 {
 	Bool default_switch_mode;
-	u32 set_idx, time_until_end;
+	u32 time_until_end;
 
 	//do not abort if we are downloading faster than current rate
 	if (bits_per_sec > group->active_bitrate) {
 		return -1;
 	}
 
-	set_idx = gf_list_find(group->period->adaptation_sets, group->adaptation_set)+1;
-
 	if (group->min_bandwidth_selected) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is"
-				" %d kbps - no lower bitrate available ...\n", set_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
+				" %d kbps - no lower bitrate available ...\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
 		return -1;
 	}
 
 	//we start checking after 100ms
 	if (us_since_start < 100000) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps (media bitrate %d kbps) but 100ms only ellapsed, waiting\n", set_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps (media bitrate %d kbps) but 100ms only ellapsed, waiting\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
 		return -1;
 	}
 
@@ -3638,11 +3638,11 @@ static s32 dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *grou
 
 	//we have enough cache data to go until end of this download, perform rate switching at next segment
 	if (time_until_end < buffer_dur_ms) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps (media bitrate %d kbps) - %d ms until end of download and %d ms in buffer, not aborting\n", set_idx, bits_per_sec/1000, group->active_bitrate/1000, time_until_end, buffer_dur_ms));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps (media bitrate %d kbps) - %d ms until end of download and %d ms in buffer, not aborting\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000, time_until_end, buffer_dur_ms));
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - %d ms until end of download but %d ms in buffer - aborting segment download\n", set_idx, bits_per_sec/1000, group->active_bitrate/1000, buffer_dur_ms));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - %d ms until end of download but %d ms in buffer - aborting segment download\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000, buffer_dur_ms));
 
 	//in live we just abort current download and go to next. In onDemand, we may want to rebuffer
 	default_switch_mode = (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_FALSE : GF_TRUE;
@@ -3780,7 +3780,7 @@ static s32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Grou
 	}
 
 	if (!new_rep || (new_rep == rep)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d no better match for requested bandwidth %d - not switching (AS bitrate %d)!\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), dl_rate, rep->bandwidth));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d no better match for requested bandwidth %d - not switching (AS bitrate %d)!\n", 1 + group->groups_idx, dl_rate, rep->bandwidth));
 		do_switch = GF_FALSE;
 	}
 
@@ -3850,17 +3850,17 @@ static s32 dash_do_rate_adaptation_legacy_buffer(GF_DashClient *dash, GF_DASH_Gr
 				dl_rate = (rep->bandwidth > 10) ? rep->bandwidth - 10 : 1;
 			}
 			go_up_bitrate = GF_FALSE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running low, switching down, target rate %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running low, switching down, target rate %d\n", 1 + group->groups_idx, rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
 		}
 		//switch up if above max threshold and buffer refill is fast enough
 		else if ((occ>0) && (group->buffer_occupancy_ms > buf_high_threshold)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running high, will try to switch up, target rate %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running high, will try to switch up, target rate %d\n", 1 + group->groups_idx, rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
 			go_up_bitrate = GF_TRUE;
 		}
 		//don't do anything in the middle range of the buffer or if refill not fast enough
 		else {
 			do_switch = GF_FALSE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - steady\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - steady\n", 1 + group->groups_idx, rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ));
 		}
 	}
 
@@ -4237,7 +4237,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	group->codec_reset = 0;
 	/* the DASH Client asks the player for its buffer level
 	  (uses a function pointer to avoid depenencies on the player code, to reuse the DASH client in different situations)*/
-	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, gf_list_find(group->dash->groups, group), GF_OK);
+	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, group->groups_idx, GF_OK);
 
 	/* If the playback for the current representation was waiting for a codec reset and it happened,
 	   indicate that this representation does not need a reset anymore */
@@ -4254,7 +4254,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 		if (rep->playback.broadcast_flag && (dl_rate < rep->bandwidth)) {
 			dl_rate = rep->bandwidth+1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d representation %d segment sent over broadcast, forcing bandwidth to %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->active_rep_index, dl_rate));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d representation %d segment sent over broadcast, forcing bandwidth to %d\n", 1 + group->groups_idx, group->active_rep_index, dl_rate));
 		}
 	}
 
@@ -4308,7 +4308,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 			return;
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d switching after playing %d segments, from rep %d to rep %d\n", 1 + gf_list_find(group->period->adaptation_sets, group->adaptation_set),
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] AS#%d switching after playing %d segments, from rep %d to rep %d\n", 1 + group->groups_idx,
 				group->nb_segments_since_switch, group->active_rep_index, new_index));
 		group->nb_segments_since_switch = 0;
 
@@ -4696,7 +4696,7 @@ s32 gf_dash_group_get_dependency_group(GF_DashClient *dash, u32 idx)
 		rep = gf_dash_find_rep(dash, rep->dependency_id, &group);
 		if (sep) sep[0] = ' ';
 	}
-	return gf_list_find(dash->groups, group);
+	return group->groups_idx;
 }
 
 GF_EXPORT
@@ -4704,7 +4704,7 @@ s32 gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_FALSE;
-	return group->depend_on_group ? gf_list_find(dash->groups, group->depend_on_group) : -1;
+	return group->depend_on_group ? group->depend_on_group->groups_idx : -1;
 }
 
 GF_EXPORT
@@ -4723,7 +4723,7 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 idx, u32 group_de
 	if (!group || !group->groups_depending_on) return -1;
 	group_depending_on = gf_list_get(group->groups_depending_on, group_depending_on_dep_idx);
 	if (!group_depending_on) return -1;
-	return gf_list_find(dash->groups, group_depending_on);
+	return group_depending_on->groups_idx;
 }
 
 /* create groups (implementation of adaptations set) */
@@ -4918,6 +4918,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			gf_free(group);
 			return GF_OUT_OF_MEM;
 		}
+		group->groups_idx = gf_list_count(dash->groups);
 		e = gf_list_add(dash->groups, group);
 		if (e) {
 			gf_free(group->cached);
@@ -6020,6 +6021,7 @@ select_active_rep:
 			if (dg1_weight > dg2_weight) {
 				gf_list_rem(dash->groups, j);
 				gf_list_insert(dash->groups, dg2, j-1);
+				dg2->groups_idx = j-1;
 				j=0;
 			}
 		}
@@ -6459,8 +6461,9 @@ llhls_rety:
 				/* if not, we are really at the end of the playlist, we can quit */
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of period reached for group\n"));
 				gf_dash_mark_group_done(group);
-				if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following)
-					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
+				if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following) {
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, base_group->groups_idx, GF_OK);
+				}
 				return GF_DASH_DownloadCancel;
 			}
 		}
@@ -6497,7 +6500,7 @@ llhls_rety:
 
 		if (group->force_early_fetch) {
 			if (to_wait>1) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+gf_list_find(dash->groups, group), group->download_segment_index + start_number, to_wait));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d demux empty but wait time for segment %d is still %d ms, forcing scheduling\n", 1+group->groups_idx, group->download_segment_index + start_number, to_wait));
 				to_wait = 0;
 			} else {
 				//we officially reached segment AST
@@ -6507,7 +6510,7 @@ llhls_rety:
 
 		/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
 		if (to_wait > 1) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) is not yet available on server - requesting later in %d ms\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, to_wait));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) is not yet available on server - requesting later in %d ms\n", 1+group->groups_idx, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, to_wait));
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 			}
@@ -6516,7 +6519,7 @@ llhls_rety:
 
 			return GF_DASH_DownloadCancel;
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) should now be available on server since %d ms - requesting it\n", 1+gf_list_find(dash->groups, group), gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, -to_wait));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) should now be available on server since %d ms - requesting it\n", 1+group->groups_idx, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init + group->ast_offset)/1000.0, -to_wait));
 
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
@@ -6704,8 +6707,9 @@ llhls_rety:
 
 	//do not notify segments if there is a pending period switch - since these are decided by the user, we don't
 	//want to notify old segments
-	if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following)
-		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
+	if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following) {
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, base_group->groups_idx, GF_OK);
+	}
 
 	//do NOT free new_base_seg_url, it is now in cache_entry->url
 	if (key_url) gf_free(key_url);
@@ -7884,8 +7888,8 @@ static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *gr
 										  	  GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
 	GF_DASHCustomAlgoInfo stats;
-	u32 g_idx = gf_list_find(dash->groups, group);
-	u32 b_idx = gf_list_find(dash->groups, base_group);
+	u32 g_idx = group->groups_idx;
+	u32 b_idx = base_group->groups_idx;
 
 	stats.download_rate = dl_rate;
 	stats.file_size = group->total_size;
@@ -7906,7 +7910,7 @@ static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *gr
 
 static s32 dash_do_rate_monitor_custom(GF_DashClient *dash, GF_DASH_Group *group, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
 {
-	u32 g_idx = gf_list_find(dash->groups, group);
+	u32 g_idx = group->groups_idx;
 	return dash->rate_adaptation_download_monitor_custom(dash->udta_custom_algo, g_idx, bits_per_sec, total_bytes, bytes_done, us_since_start, buffer_dur_ms, current_seg_dur);
 }
 
@@ -8467,7 +8471,7 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 	if (dash->speed == speed) return;
 
 	for (i=0; i<gf_list_count(dash->groups); i++) {
-		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
+		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		GF_MPD_Representation *active_rep;
 		Double max_available_speed;
 		if (!group || (group->selection != GF_DASH_GROUP_SELECTED)) continue;
@@ -9421,7 +9425,7 @@ Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
 GF_EXPORT
 void gf_dash_group_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset, Bool decode_only_rap)
 {
-	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return;
 	group->avg_dec_time = avg_dec_time;
 	group->max_dec_time = max_dec_time;
@@ -9434,7 +9438,7 @@ void gf_dash_group_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time
 GF_EXPORT
 void gf_dash_group_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms)
 {
-	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return;
 	group->buffer_min_ms = buffer_min_ms;
 	group->buffer_max_ms = buffer_max_ms;
@@ -9483,7 +9487,7 @@ void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptation
 	dash->tile_adapt_mode = mode;
 	dash->tile_rate_decrease = (tile_rate_decrease<100) ? tile_rate_decrease : 100;
 	for (i=0; i<gf_list_count(dash->groups); i++) {
-		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
+		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->srd_desc) gf_dash_set_tiles_quality(dash, group->srd_desc, GF_TRUE);
 	}
 }
