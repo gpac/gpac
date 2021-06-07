@@ -142,6 +142,7 @@ typedef struct
 	Bool notify_quality_change;
 
 	u32 seg_discard_state;
+	u32 nb_pending;
 
 	char *template;
 } GF_DASHGroup;
@@ -1079,7 +1080,7 @@ static GF_FilterPid *dashdmx_opid_from_group(GF_DASHDmxCtx *ctx, GF_DASHGroup *g
 	return NULL;
 }
 
-static GF_FilterPid *dashdmx_create_output_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *input, u32 *run_status)
+static GF_FilterPid *dashdmx_create_output_pid(GF_DASHDmxCtx *ctx, GF_FilterPid *input, u32 *run_status, GF_DASHGroup *for_group)
 {
 	u32 global_score=0;
 	GF_FilterPid *output_pid = NULL;
@@ -1133,7 +1134,8 @@ static GF_FilterPid *dashdmx_create_output_pid(GF_DASHDmxCtx *ctx, GF_FilterPid 
 		*run_status = gf_filter_pid_is_playing(output_pid) ? 1 : 2;
 		return output_pid;
 	}
-	//none found create a new PID
+	//none found create a new PID - mark pid as pending so we don't process it until we get play
+	for_group->nb_pending++;
 	return gf_filter_pid_new(ctx->filter);
 }
 
@@ -1565,7 +1567,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		group = gf_dash_get_group_udta(ctx->dash, group_idx);
 		assert(group);
 		//for now we declare every component from the input source
-		opid = dashdmx_create_output_pid(ctx, pid, &run_status);
+		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
 		group->nb_pids ++;
@@ -2205,6 +2207,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		dashdmx_setup_buffer(ctx, group);
 
 		gf_filter_prevent_blocking(filter, GF_TRUE);
+		if (group->nb_pending)
+			group->nb_pending--;
 
 		ctx->nb_playing++;
 		//forward new event to source pid
@@ -2216,6 +2220,11 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
+		//there is still pending PIDs for this group, don't stop the group until we get a final stop
+		//this happens when source is muxed content and one or more pids are not used by the chain
+		if (group->nb_pending)
+			return GF_TRUE;
+
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
 		group->is_playing = GF_FALSE;
@@ -2677,7 +2686,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		opid = gf_filter_pid_get_udta(ipid);
 		group = gf_filter_pid_get_udta(opid);
 
-		if (!group)
+		if (!group || group->nb_pending)
 			continue;
 
 		while (1) {
