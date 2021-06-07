@@ -1188,8 +1188,9 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes, Bool force_flus
 
 /*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer
+\param no_force_flush do not force a flush of incomplete PES (used for HLS)
 */
-void gf_m2ts_flush_all(GF_M2TS_Demuxer *demux);
+void gf_m2ts_flush_all(GF_M2TS_Demuxer *demux, Bool no_force_flush);
 
 
 /*! MPEG-2 TS packet header*/
