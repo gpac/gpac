@@ -3329,12 +3329,18 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		}
 
 
-		j = 0;
-		while ((a = (GF_Box *)gf_list_enum(movie->moov->child_boxes, &j))) {
-			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
-				gf_isom_box_del_parent(&movie->moov->child_boxes, a);
-				j--;
+		if (movie->has_pssh_moof) {
+			j = 0;
+			while ((a = (GF_Box *)gf_list_enum(movie->moov->child_boxes, &j))) {
+				if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
+					GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)a;
+					if (pssh->moof_defined) {
+						gf_isom_box_del_parent(&movie->moov->child_boxes, a);
+						j--;
+					}
+				}
 			}
+			movie->has_pssh_moof = GF_FALSE;
 		}
 	}
 

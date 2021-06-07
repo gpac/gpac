@@ -1438,8 +1438,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);
 					if (tfrf) {
 						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", &PROP_POINTER(tfrf) );
-					} else {
-						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL );
+						ch->last_has_tfrf = GF_TRUE;
+					} else if (ch->last_has_tfrf) {
+						gf_filter_pid_set_info_str(ch->pid, "smooth_tfrf", NULL);
+						ch->last_has_tfrf = GF_FALSE;
 					}
 
 					gf_filter_pid_set_eos(ch->pid);

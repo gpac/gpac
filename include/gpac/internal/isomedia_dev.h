@@ -3436,6 +3436,7 @@ typedef struct
 	bin128 *KIDs;
 	u32 private_data_size;
 	u8 *private_data;
+	u8 moof_defined;
 } GF_ProtectionSystemHeaderBox;
 
 typedef struct __cenc_tenc_box
@@ -4038,6 +4039,7 @@ struct __tag_isom {
 	GF_SegmentIndexBox *main_sidx;
 	u64 main_sidx_end_pos;
 
+	Bool has_pssh_moof;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
 
