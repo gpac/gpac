@@ -3190,20 +3190,21 @@ static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *us
 	return gf_fs_forward_gf_event(fsess, &evt, GF_FALSE, GF_FALSE);
 }
 
+static GF_DownloadManager *gf_fs_get_download_manager(GF_FilterSession *fs)
+{
+	if (!fs->download_manager) {
+		fs->download_manager = gf_dm_new(fs);
+
+		gf_dm_set_auth_callback(fs->download_manager, gf_fsess_get_user_pass, fs);
+	}
+	return fs->download_manager;
+}
+
 GF_EXPORT
 GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 {
-	GF_FilterSession *fsess;
 	if (!filter) return NULL;
-	fsess = filter->session;
-
-	if (!fsess->download_manager) {
-		fsess->download_manager = gf_dm_new(fsess);
-
-		gf_dm_set_auth_callback(fsess->download_manager, gf_fsess_get_user_pass, fsess);
-
-	}
-	return fsess->download_manager;
+	return gf_fs_get_download_manager(filter->session);
 }
 
 GF_EXPORT
@@ -3649,14 +3650,21 @@ Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, void *vout)
 GF_EXPORT
 u32 gf_fs_get_http_max_rate(GF_FilterSession *fs)
 {
-	if (!fs->download_manager) return 0;
+	if (!fs->download_manager) {
+		gf_fs_get_download_manager(fs);
+		if (!fs->download_manager) return 0;
+	}
 	return gf_dm_get_data_rate(fs->download_manager);
 }
 
 GF_EXPORT
 GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
 {
-	if (!fs || !fs->download_manager) return GF_OK;
+	if (!fs) return GF_OK;
+	if (!fs->download_manager) {
+		gf_fs_get_download_manager(fs);
+		if (!fs->download_manager) return GF_OUT_OF_MEM;
+	}
 	gf_dm_set_data_rate(fs->download_manager, rate);
 	return GF_OK;
 }
@@ -3664,7 +3672,10 @@ GF_Err gf_fs_set_http_max_rate(GF_FilterSession *fs, u32 rate)
 GF_EXPORT
 u32 gf_fs_get_http_rate(GF_FilterSession *fs)
 {
-	if (!fs->download_manager) return 0;
+	if (!fs->download_manager) {
+		gf_fs_get_download_manager(fs);
+		if (!fs->download_manager) return 0;
+	}
 	return gf_dm_get_global_rate(fs->download_manager);
 }
 
