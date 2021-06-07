@@ -94,6 +94,8 @@ static GF_Err sockout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SockOut] Block patching is not supported by socket output\n"));
 		return GF_NOT_SUPPORTED;
 	}
+	if (!ctx->pid_started)
+		gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
@@ -365,6 +367,9 @@ static GF_Err sockout_process(GF_Filter *filter)
 			sc->pck_pending = ctx->pck_pending;
 			if (!ctx->nb_pck_processed)
 				sc->is_tuned = GF_TRUE;
+		}
+		if (!ctx->pid_started) {
+			gf_filter_ask_rt_reschedule(filter, 50000);
 		}
 	}
 	if (!ctx->pid) {
