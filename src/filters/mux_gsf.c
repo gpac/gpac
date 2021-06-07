@@ -317,8 +317,16 @@ static void gsfmx_send_pid_eos(GSFMxCtx *ctx, GSFStream *gst, Bool is_eos)
 	gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PID_EOS, is_eos, GF_FALSE, 0, 0);
 }
 
-static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p)
+static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p, u32 prop_4cc)
 {
+	if (prop_4cc) {
+		u32 prop_type = gf_props_4cc_get_type(prop_4cc);
+		if (prop_type != p->type) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Mismatch between property advertised type and built-in type for %s, not serializing !\n", gf_props_4cc_get_name(prop_4cc)));
+			return GF_FALSE;
+		}
+	}
+
 	switch (p->type) {
 	case GF_PROP_POINTER:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Cannot serialize pointer property, ignoring !!\n"));
@@ -489,7 +497,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
 			continue;
 		if (prop_4cc) {
@@ -570,7 +578,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 
 		if (prop_name) continue;
 		if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
@@ -588,6 +596,13 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		gf_bs_write_u32(ctx->bs_w, prop_4cc);
 
 		gsfmx_write_prop(ctx, p);
+
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+			char dump[GF_PROP_DUMP_ARG_SIZE];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+		}
+#endif
 	}
 
 	idx=0;
@@ -596,7 +611,7 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		const char *prop_name;
 		const GF_PropertyValue *p = gf_filter_pid_enum_properties(gst->pid, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 		if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
 
 		if ( gsfmx_is_prop_skip(ctx, prop_4cc, prop_name, sep_l) )
@@ -610,6 +625,13 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 
 		gf_bs_write_u8(ctx->bs_w, p->type);
 		gsfmx_write_prop(ctx, p);
+
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+			char dump[GF_PROP_DUMP_ARG_SIZE];
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+		}
+#endif
 	}
 }
 
@@ -695,7 +717,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 		const char *prop_name;
 		p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 		if (!p) break;
-		if (!gsfmx_can_serialize_prop(p)) continue;
+		if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 		if (prop_4cc) {
 			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN)
 				nb_str_props++;
@@ -891,7 +913,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			const char *prop_name;
 			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
-			if (!gsfmx_can_serialize_prop(p)) continue;
+			if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 			if (prop_name) continue;
 			if (gf_props_4cc_get_type(prop_4cc) == GF_PROP_FORBIDEN) continue;
 
@@ -908,7 +930,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			const char *prop_name;
 			p = gf_filter_pck_enum_properties(pck, &idx, &prop_4cc, &prop_name);
 			if (!p) break;
-			if (!gsfmx_can_serialize_prop(p)) continue;
+			if (!gsfmx_can_serialize_prop(p, prop_4cc)) continue;
 			if (prop_4cc && (gf_props_4cc_get_type(prop_4cc) != GF_PROP_FORBIDEN)) continue;
 			if (!prop_name) prop_name = gf_4cc_to_str(prop_4cc);
 			len = (u32) strlen(prop_name);
