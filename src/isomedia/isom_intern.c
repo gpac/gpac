@@ -119,6 +119,8 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 				pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
 				if (!pssh->private_data) return GF_OUT_OF_MEM;
 				memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
+				pssh->moof_defined = 1;
+				mov->has_pssh_moof = GF_TRUE;
 			}
 		}
 	}

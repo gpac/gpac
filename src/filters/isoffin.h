@@ -139,6 +139,7 @@ typedef struct
 	GF_FilterPid *pid;
 	ISOMReader *owner;
 	u64 duration;
+	Bool last_has_tfrf;
 
 	/*current sample*/
 	GF_ISOSample *static_sample;
