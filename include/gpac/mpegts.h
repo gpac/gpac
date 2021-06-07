@@ -866,6 +866,8 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_TemiTimecodeDescriptor temi_tc;
 	/*! flag set to indicate a TEMI descriptor should be flushed with next packet*/
 	Bool temi_pending;
+	/*! flag set to indicate the last PES packet was not flushed (HLS) to avoid warning on same PTS/DTS used*/
+	Bool is_resume;
 } GF_M2TS_PES;
 
 /*! reserved streamID for PES headers*/
@@ -1180,8 +1182,9 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *demux, u32 program_id);
 /*! flushes a given stream. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer
 \param pes the target stream to flush
+\param force_flush if GF_TRUE, flushes all streams, otherwise do not flush stream with known PES length and not yet completed (for HLS)
 */
-void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes);
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *demux, GF_M2TS_PES *pes, Bool force_flush);
 
 /*! flushes all streams in the mux. This is used to flush internal demultiplexer buffers on end of stream
 \param demux the target MPEG-2 demultiplexer

@@ -822,7 +822,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] truncated ADTS frame!\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] truncated ADTS frame %d bytes but only %d left!\n", bytes_to_drop, remain));
 			bytes_to_drop=remain;
 		}
 

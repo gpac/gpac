@@ -157,6 +157,7 @@ typedef struct
 
 	u32 sid;
 	u32 codec_id;
+	u32 dsi_crc;
 	u32 pmt_pid;
 	u32 nb_pck;
 	Bool is_repeat;
@@ -681,6 +682,7 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *tspid, u32 stream_type)
 {
 	const GF_PropertyValue *p;
+	GF_ESInterface bckp = tspid->esi;
 
 	memset(&tspid->esi, 0, sizeof(GF_ESInterface));
 	tspid->esi.stream_type = stream_type;
@@ -692,6 +694,7 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	if (p) {
 		tspid->esi.decoder_config = p->value.data.ptr;
 		tspid->esi.decoder_config_size = p->value.data.size;
+		tspid->dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 	}
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ID);
 	if (p) tspid->esi.stream_id = p->value.uint;
@@ -745,6 +748,9 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	tspid->esi.input_ctrl = tsmux_esi_ctrl;
 	tspid->esi.input_udta = tspid;
 	tspid->prog = prog;
+
+	tspid->esi.output_ctrl = bckp.output_ctrl;
+	tspid->esi.output_udta = bckp.output_udta;
 }
 
 static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
@@ -1028,8 +1034,15 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
 	//no changes in codec ID or stream type
-	if ((tspid->codec_id == codec_id) && (tspid->esi.stream_type == streamtype))
-		return GF_OK;
+	if ((tspid->codec_id == codec_id) && (tspid->esi.stream_type == streamtype)) {
+		u32 crc = 0;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (p && p->value.data.ptr) {
+			crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+		}
+		if (crc == tspid->dsi_crc) return GF_OK;
+		tspid->dsi_crc = crc;
+	}
 
 	if (!tspid->codec_id) {
 		Bool is_pcr=GF_FALSE;
