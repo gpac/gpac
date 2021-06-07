@@ -729,6 +729,10 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (e) break;
 			idx++;
 
+			//do not expose tool
+			if (!gf_sys_is_test_mode() && (itag == GF_ISOM_ITUNE_TOOL))
+				continue;
+
 			tag_idx = gf_itags_find_by_itag(itag);
 			if (tag_idx>=0)
 				itype = gf_itags_get_type(tag_idx);

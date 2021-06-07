@@ -613,9 +613,17 @@ static void mp4mux_reorder_tracks(GF_MP4MuxCtx *ctx)
 	ctx->tracks = new_tracks;
 }
 
+#include <gpac/revision.h>
 static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 {
 	u32 idx=0;
+
+	if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat() ) {
+		const char *tool = "GPAC-"GPAC_VERSION"-rev"GPAC_GIT_REVISION;
+		u32 len = (u32) strlen(tool);
+		gf_isom_apple_set_tag(ctx->file, GF_ISOM_ITUNE_TOOL, tool, len, 0, 0);
+	}
+
 	if (ctx->itags==TAG_NONE) return;
 
 	while (1) {
@@ -6023,8 +6031,8 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		if (ctx->store==MP4MX_MODE_FASTSTART) {
 			gf_isom_set_storage_mode(ctx->file, GF_ISOM_STORE_FASTSTART);
 		}
-
 	}
+
 	if (!ctx->moovts)
 		ctx->moovts=600;
 	if (!ctx->cdur.den) {
