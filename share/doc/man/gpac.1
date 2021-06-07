@@ -2348,7 +2348,7 @@ Maximum width (video / text / graphics) of all enhancement layers
 Maximum height (video / text / graphics) of all enhancement layers
 .br
 .TP
-.B ZOrder (VZIX,uint,  )
+.B ZOrder (VZIX,sint,  )
 .br
 Z-order of the video, from 0 (first) to max int (last)
 .br
@@ -2532,7 +2532,7 @@ indicates that some blocks in file need patching (replace or insertion) upon clo
 indicates ISOBMFF brands associated with PID/file
 .br
 .TP
-.B IsoBrand (MBRD,uint,D )
+.B IsoBrand (MBRD,4cc,D )
 .br
 indicates ISOBMFF major brand associated with PID/file
 .br
@@ -3173,6 +3173,41 @@ Amount of media to skip from begining of packet in PID timescale
 .B SkipPres (PCKD,bool, P)
 .br
 Indicate the packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)
+.br
+.TP
+.B HLSRef (HPLR,luint,DP)
+.br
+HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
+.br
+.TP
+.B LLHLS (HLSL,uint,D )
+.br
+HLS low latency mode
+.br
+.TP
+.B LLHLSFragNum (HLSN,uint, P)
+.br
+LLHLS fragment number
+.br
+.TP
+.B DownloadSession (GHTT,ptr,D )
+.br
+Pointer to download session
+.br
+.TP
+.B HasTemi (PTEM,bool,D )
+.br
+TEMI present flag
+.br
+.TP
+.B XPSMask (PXPM,uint,DP)
+.br
+Parameter set mask
+.br
+.TP
+.B RangeEnd (PCER,bool, P)
+.br
+Signal packet is the last in the desired play range
 .br
 .SH Pixel formats
 .LP
@@ -4096,7 +4131,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev945-g09a12f6ec-master
+build: 1.1.0-DEV-rev974-g0ef0a0e99-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
