@@ -1501,6 +1501,15 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from begining of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_SKIP_PRES, "SkipPres", "Indicate the packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
+
+
+	{ GF_PROP_PCK_HLS_REF, "HLSRef", "HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists", GF_PROP_LUINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_LLHLS, "LLHLS", "HLS low latency mode", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_HLS_FRAG_NUM, "LLHLSFragNum", "LLHLS fragment number", GF_PROP_UINT, GF_PROP_FLAG_PCK},
+	{ GF_PROP_PID_DOWNLOAD_SESSION, "DownloadSession", "Pointer to download session", GF_PROP_POINTER, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_HAS_TEMI, "HasTemi", "TEMI present flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_XPS_MASK, "XPSMask", "Parameter set mask", GF_PROP_UINT, GF_PROP_FLAG_PCK|GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_END_RANGE, "RangeEnd", "Signal packet is the last in the desired play range", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 };
 
 static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);

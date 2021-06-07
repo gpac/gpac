@@ -1161,7 +1161,6 @@ enum
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
 
-	/* All properties below are internal to GPAC*/
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
