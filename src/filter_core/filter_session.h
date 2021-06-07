@@ -758,6 +758,12 @@ struct __gf_filter
 
 	u64 last_schedule_task_time;
 
+	//set to NULL, or to the only source filter for this filter
+	//this is a helper for the graph resolver to avoid browing all input pids when checking
+	//for cycles or fetching last defined ID.
+	//typically helps for tiling case with hundreds of tiles
+	GF_Filter *single_source;
+
 #ifdef GPAC_HAS_QJS
 	char *iname;
 	JSValue jsval;

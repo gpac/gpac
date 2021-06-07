@@ -2779,6 +2779,8 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			gf_list_del_item(filter->input_pids, pidinst);
 			pidinst->filter = NULL;
 			filter->num_input_pids = gf_list_count(filter->input_pids);
+			if (!filter->num_input_pids)
+				filter->single_source = NULL;
 
 			//post a pid_delete task to also trigger removal of the filter if needed
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);

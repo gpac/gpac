@@ -1482,14 +1482,26 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_SKIP_PRES, "SkipPres", "Indicate the packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 };
 
+static u32 gf_num_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
+
 GF_EXPORT
 u32 gf_props_get_id(const char *name)
 {
-	u32 i, nb_props;
+	u32 i, len;
 	if (!name) return 0;
-	nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	for (i=0; i<nb_props; i++) {
-		if (GF_BuiltInProps[i].name && !strcmp(GF_BuiltInProps[i].name, name)) return GF_BuiltInProps[i].type;
+	len = (u32) strlen(name);
+	for (i=0; i<gf_num_props; i++) {
+		if (GF_BuiltInProps[i].name) {
+			u32 j;
+			for (j=0; j<=len; j++) {
+				char c = GF_BuiltInProps[i].name[j];
+				if (!c) break;
+				if (c != name[j])
+					break;
+			}
+			if (j==len)
+				return GF_BuiltInProps[i].type;
+		}
 	}
 	return 0;
 }
@@ -1497,16 +1509,15 @@ u32 gf_props_get_id(const char *name)
 GF_EXPORT
 const GF_BuiltInProperty *gf_props_get_description(u32 prop_idx)
 {
-	u32 nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	if (prop_idx>=nb_props) return NULL;
+	if (prop_idx>=gf_num_props) return NULL;
 	return &GF_BuiltInProps[prop_idx];
 }
 
 GF_EXPORT
 const char *gf_props_4cc_get_name(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	for (i=0; i<nb_props; i++) {
+	u32 i;
+	for (i=0; i<gf_num_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].name;
 	}
 	return NULL;
@@ -1515,8 +1526,8 @@ const char *gf_props_4cc_get_name(u32 prop_4cc)
 GF_EXPORT
 u8 gf_props_4cc_get_flags(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	for (i=0; i<nb_props; i++) {
+	u32 i;
+	for (i=0; i<gf_num_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].flags;
 	}
 	return 0;
@@ -1525,8 +1536,8 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc)
 GF_EXPORT
 u32 gf_props_4cc_get_type(u32 prop_4cc)
 {
-	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	for (i=0; i<nb_props; i++) {
+	u32 i;
+	for (i=0; i<gf_num_props; i++) {
 		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].data_type;
 	}
 	return GF_PROP_FORBIDEN;
@@ -1535,9 +1546,9 @@ u32 gf_props_4cc_get_type(u32 prop_4cc)
 Bool gf_props_4cc_check_props()
 {
 	Bool res = GF_TRUE;
-	u32 i, j, nb_props = sizeof(GF_BuiltInProps) / sizeof(GF_BuiltInProperty);
-	for (i=0; i<nb_props; i++) {
-		for (j=i+1; j<nb_props; j++) {
+	u32 i, j;
+	for (i=0; i<gf_num_props; i++) {
+		for (j=i+1; j<gf_num_props; j++) {
 			if (GF_BuiltInProps[i].type==GF_BuiltInProps[j].type) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same code type %s\n", GF_BuiltInProps[i].name, GF_BuiltInProps[j].name, gf_4cc_to_str(GF_BuiltInProps[i].type) ));
 				res = GF_FALSE;
