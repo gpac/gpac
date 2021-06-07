@@ -1316,7 +1316,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Maximum width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Maximum height (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
-	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_UINT},
+	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_SINT},
 	{ GF_PROP_PID_TRANS_X, "TransX", "Horizontal translation of the video", GF_PROP_SINT},
 	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video", GF_PROP_SINT},
 	{ GF_PROP_PID_HIDDEN, "Hidden", "Indicates the PID is hidden in visual/audio rendering", GF_PROP_BOOL},
@@ -1356,7 +1356,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "Byte range of resource", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DISABLE_PROGRESSIVE, "DisableProgressive", "indicates that some blocks in file need patching (replace or insertion) upon closing, potentially disabling progressive upload", GF_PROP_UINT, 0},
 	{ GF_PROP_PID_ISOM_BRANDS, "IsoAltBrands", "indicates ISOBMFF brands associated with PID/file", GF_PROP_4CC_LIST, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_ISOM_MBRAND, "IsoBrand", "indicates ISOBMFF major brand associated with PID/file", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_MBRAND, "IsoBrand", "indicates ISOBMFF major brand associated with PID/file", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_MOVIE_TIME, "MovieTime", "indicates ISOBMFF movie header duration and timescale", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_HAS_SYNC, "HasSync", "indicates ISOBMFF track has sync points", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 
