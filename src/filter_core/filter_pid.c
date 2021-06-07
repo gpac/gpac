@@ -5881,6 +5881,11 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 			u64 dur = gf_filter_pid_query_buffer_duration( gf_list_get(filter->input_pids, i), 0);
 			if (dur > duration)
 				duration = dur;
+
+			//only probe for first pid when this is a mux or a reassembly filter
+			//this is not as precise but avoids spending too much time here for very large number of input pids (tiling)
+			if ((count>1) && (filter->num_output_pids==1))
+				break;
 		}
 		gf_mx_v(filter->tasks_mx);
 		duration += pidinst->buffer_duration;
