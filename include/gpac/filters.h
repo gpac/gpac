@@ -2044,8 +2044,6 @@ typedef enum
 
 	/*! flag dynamically set at runtime for custom filters*/
 	GF_FS_REG_CUSTOM = 0x40000000,
-	/*! flag dynamically set at runtime for registries loaded through shared libraries*/
-	GF_FS_REG_DYNLIB = 0x80000000
 } GF_FSRegisterFlags;
 
 /*! The filter register. Registries are loaded once at the start of the session and shall never be modified after that.
