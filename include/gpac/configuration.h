@@ -139,6 +139,7 @@ This section documents the base data types of GPAC.
 #endif
 
 #define GPAC_HAS_QJS
+//#define GPAC_DISABLE_QJS_LIBC
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 #define GPAC_HAS_GLU

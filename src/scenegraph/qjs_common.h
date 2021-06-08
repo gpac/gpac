@@ -56,8 +56,10 @@ JSValue js_throw_err(JSContext *ctx, s32 err);
 /* throws an error with integer property 'code' set to err and string property 'message' set to the formatted string*/
 JSValue js_throw_err_msg(JSContext *ctx, s32 err, const char *fmt, ...);
 
-void js_do_loop(JSContext *ctx);
+void js_std_loop(JSContext *ctx);
 void js_dump_error(JSContext *ctx);
+void js_dump_error_exc(JSContext *ctx, const JSValue exception_val);
+
 JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 void js_load_constants(JSContext *ctx, JSValue global_obj);
@@ -237,15 +239,13 @@ Bool jsf_is_packet(JSContext *c, JSValue obj);
 const char *jsf_get_script_filename(JSContext *c);
 
 
-/*definitions of C modules in gpac, potentially used by both SceneGraph and JSFilter*/
-void qjs_module_init_scenejs(JSContext *ctx);
-void qjs_module_init_storage(JSContext *ctx);
+/*special init of XHR as builtin of DOM rather than standalone module*/
 void qjs_module_init_xhr_global(JSContext *c, JSValue global);
-void qjs_module_init_xhr(JSContext *c);
-void qjs_module_init_evg(JSContext *c);
-void qjs_module_init_webgl(JSContext *c);
-void qjs_module_init_gpaccore(JSContext *c);
 
+void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml);
+
+Bool gs_js_context_is_valid(JSContext *ctx);
+JSRuntime *gf_js_get_rt();
 
 #ifdef __cplusplus
 }

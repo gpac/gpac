@@ -157,6 +157,7 @@
     <ClInclude Include="..\..\src\quickjs\quickjs-atom.h" />
     <ClInclude Include="..\..\src\quickjs\quickjs-opcode.h" />
     <ClInclude Include="..\..\src\quickjs\quickjs.h" />
+    <ClInclude Include="..\..\src\quickjs\quickjs-libc.h" />
     <ClInclude Include="..\..\src\scenegraph\qjs_common.h" />
     <ClInclude Include="..\..\src\utils\module_wrap.h" />
   </ItemGroup>
@@ -494,6 +495,17 @@
     </ClCompile>
     <ClCompile Include="..\..\src\quickjs\libunicode.c" />
     <ClCompile Include="..\..\src\quickjs\quickjs.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release - MP4Box_only|x64'">Level1</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level1</WarningLevel>
+      <InlineFunctionExpansion Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Disabled</InlineFunctionExpansion>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\quickjs-libc.c">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|Win32'">Level1</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Level1</WarningLevel>
