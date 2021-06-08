@@ -33,19 +33,26 @@
 #include <inttypes.h>
 #include <string.h>
 #include <assert.h>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#include <sys/time.h>
+#include <dirent.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <time.h>
 #include <signal.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #if defined(_WIN32)
 #include <windows.h>
 #include <conio.h>
+#if !defined(_MSC_VER)
 #include <utime.h>
+#else
+#include <sys/utime.h>
+#include <sys/timeb.h>
+#endif
 #else
 #include <dlfcn.h>
 #include <termios.h>
@@ -59,6 +66,31 @@ typedef sig_t sighandler_t;
 #define environ (*_NSGetEnviron())
 #endif
 #endif /* __APPLE__ */
+
+#endif
+
+
+#if defined(_WIN32) && defined(_MSC_VER)
+#ifndef PATH_MAX
+#define PATH_MAX GF_MAX_PATH
+#endif
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#define popen _popen
+#define pclose _pclose
+
+#if !defined(S_IFIFO)
+#define S_IFIFO _S_IFIFO                     /* Pipe */
+#endif
+#if !defined(S_IFBLK)
+#define S_IFBLK   0                          /* Block device */
+#endif
+#if !defined(S_ISDIR)
+#define	S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
+#endif
 
 #endif
 
@@ -1982,6 +2014,17 @@ static int64_t get_time_ms(void)
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
 }
+#elif defined(_WIN32) && defined(_MSC_VER)
+/* more portable, but does not work if the date is updated */
+static int64_t get_time_ms(void)
+{
+	struct _timeb tb;
+
+	_ftime(&tb);
+	return (int64_t)tb.time * 1000 + (tb.millitm);
+
+}
+
 #else
 /* more portable, but does not work if the date is updated */
 static int64_t get_time_ms(void)
@@ -2451,7 +2494,10 @@ static JSValue js_os_mkdir(JSContext *ctx, JSValueConst this_val,
 static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
                              int argc, JSValueConst *argv)
 {
-    const char *path;
+#if defined(_WIN32) && defined(_MSC_VER)
+	return JS_EXCEPTION;
+#else
+	const char *path;
     DIR *f;
     struct dirent *d;
     JSValue obj;
@@ -2489,6 +2535,7 @@ static JSValue js_os_readdir(JSContext *ctx, JSValueConst this_val,
     closedir(f);
  done:
     return make_obj_error(ctx, obj, err);
+#endif
 }
 
 #if !defined(_WIN32)

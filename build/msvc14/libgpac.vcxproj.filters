@@ -441,6 +441,9 @@
     <ClInclude Include="..\..\src\scenegraph\qjs_common.h">
       <Filter>scenegraph</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\quickjs\quickjs-libc.h">
+      <Filter>quickjs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -1582,6 +1585,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_mediacodec.c">
       <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\quickjs\quickjs-libc.c">
+      <Filter>quickjs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
