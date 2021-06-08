@@ -15,7 +15,6 @@
 		0496F09B16DE35C9009D9D8D /* libgpac_static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 71CCF1311277037A00339E12 /* libgpac_static.a */; };
 		0496F09C16DE36BC009D9D8D /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 71847813127860F000917298 /* libz.dylib */; };
 		04EFB63516E51E4200D1D44A /* libglues.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 04EFB63416E51E4200D1D44A /* libglues.a */; };
-		285DBB49170F17D700AF2B9B /* ffmpeg_in.h in Headers */ = {isa = PBXBuildFile; fileRef = 285DBB48170F17D700AF2B9B /* ffmpeg_in.h */; };
 		285DBBA01712C80E00AF2B9B /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9B1712C80E00AF2B9B /* libavcodec.a */; };
 		285DBBA11712C80E00AF2B9B /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9C1712C80E00AF2B9B /* libavformat.a */; };
 		285DBBA21712C80E00AF2B9B /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9D1712C80E00AF2B9B /* libavutil.a */; };
@@ -374,6 +373,7 @@
 		9281B63021C92D00006B0FD5 /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62E21C92D00006B0FD5 /* gui */; };
 		9281B63121C92D00006B0FD5 /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 9281B62F21C92D00006B0FD5 /* shaders */; };
 		92852443237ACC2700165130 /* raster3d.c in Sources */ = {isa = PBXBuildFile; fileRef = 92852442237ACC2700165130 /* raster3d.c */; };
+		9285D1C0266FB8D3008FCD14 /* quickjs-libc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9285D1BF266FB8D3008FCD14 /* quickjs-libc.c */; };
 		928607092386C2A000FDA1ED /* reframe_prores.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607082386C2A000FDA1ED /* reframe_prores.c */; };
 		9286070D238BC43D00FDA1ED /* ff_mx.c in Sources */ = {isa = PBXBuildFile; fileRef = 9286070C238BC43D00FDA1ED /* ff_mx.c */; };
 		928607112395C0DE00FDA1ED /* tssplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 928607102395C0DE00FDA1ED /* tssplit.c */; };
@@ -595,7 +595,6 @@
 
 /* Begin PBXFileReference section */
 		04EFB63416E51E4200D1D44A /* libglues.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libglues.a; path = ../../extra_lib/lib/iOS/libglues.a; sourceTree = "<group>"; };
-		285DBB48170F17D700AF2B9B /* ffmpeg_in.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffmpeg_in.h; path = ../../modules/ffmpeg_in/ffmpeg_in.h; sourceTree = "<group>"; };
 		285DBB9B1712C80E00AF2B9B /* libavcodec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavcodec.a; path = ../../extra_lib/lib/iOS/libavcodec.a; sourceTree = "<group>"; };
 		285DBB9C1712C80E00AF2B9B /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../../extra_lib/lib/iOS/libavformat.a; sourceTree = "<group>"; };
 		285DBB9D1712C80E00AF2B9B /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../../extra_lib/lib/iOS/libavutil.a; sourceTree = "<group>"; };
@@ -972,6 +971,7 @@
 		9281B62E21C92D00006B0FD5 /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../share/gui; sourceTree = "<group>"; };
 		9281B62F21C92D00006B0FD5 /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../share/shaders; sourceTree = "<group>"; };
 		92852442237ACC2700165130 /* raster3d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster3d.c; path = ../../src/evg/raster3d.c; sourceTree = "<group>"; };
+		9285D1BF266FB8D3008FCD14 /* quickjs-libc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "quickjs-libc.c"; path = "../../src/quickjs/quickjs-libc.c"; sourceTree = "<group>"; };
 		928607082386C2A000FDA1ED /* reframe_prores.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_prores.c; path = ../../src/filters/reframe_prores.c; sourceTree = "<group>"; };
 		9286070C238BC43D00FDA1ED /* ff_mx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_mx.c; path = ../../src/filters/ff_mx.c; sourceTree = "<group>"; };
 		928607102395C0DE00FDA1ED /* tssplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tssplit.c; path = ../../src/filters/tssplit.c; sourceTree = "<group>"; };
@@ -1818,6 +1818,7 @@
 		92334CBB2333AB8200DA6051 /* quickjs */ = {
 			isa = PBXGroup;
 			children = (
+				9285D1BF266FB8D3008FCD14 /* quickjs-libc.c */,
 				923EB53323D1B87E00E1FFA1 /* libbf.c */,
 				92334CC92333AB9900DA6051 /* cutils.c */,
 				92334CCA2333AB9A00DA6051 /* libregexp.c */,
@@ -2024,7 +2025,6 @@
 		92EB6E3920E4E62200A97A49 /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				285DBB48170F17D700AF2B9B /* ffmpeg_in.h */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -2162,7 +2162,6 @@
 				9747B6F014864C6400280D95 /* dsmcc.h in Headers */,
 				922EB5841AAE13C500DF46D0 /* maths.h in Headers */,
 				9747B6F114864C6400280D95 /* events_constants.h in Headers */,
-				285DBB49170F17D700AF2B9B /* ffmpeg_in.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2314,6 +2313,7 @@
 				92EB6DE120E4E19700A97A49 /* reframe_adts.c in Sources */,
 				92EB6E1120E4E19700A97A49 /* dec_theora.c in Sources */,
 				92EB6E0020E4E19700A97A49 /* dec_mad.c in Sources */,
+				9285D1C0266FB8D3008FCD14 /* quickjs-libc.c in Sources */,
 				92EB6E1420E4E19700A97A49 /* vcrop.c in Sources */,
 				92EB6E1E20E4E19700A97A49 /* unit_test_filter.c in Sources */,
 				92EB6DE220E4E19700A97A49 /* dmx_dash.c in Sources */,

@@ -4647,7 +4647,7 @@ static JSValue texture_getProperty(JSContext *c, JSValueConst obj, int magic)
 		return JS_NewInt32(c, tx->nb_comp);
 	case TX_DATA:
 		if (tx->owns_data)
-			return JS_NewArrayBuffer(c, (u8 *) tx->data, tx->data_size, NULL, NULL, GF_TRUE);
+			return JS_NewArrayBuffer(c, (u8 *) tx->data, tx->data_size, NULL, NULL, 0/*1*/);
 		return JS_NULL;
 	}
 	return JS_UNDEFINED;

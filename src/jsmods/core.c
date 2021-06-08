@@ -31,11 +31,275 @@
 #include <gpac/setup.h>
 
 #ifdef GPAC_HAS_QJS
+#include <gpac/main.h>
+#include <gpac/thread.h>
 #include <gpac/bitstream.h>
 #include <gpac/network.h>
 #include <gpac/base_coding.h>
 
 #include "../scenegraph/qjs_common.h"
+
+
+static void qjs_init_runtime_libc(JSRuntime *rt);
+static void qjs_uninit_runtime_libc(JSRuntime *rt);
+
+typedef struct
+{
+	JSRuntime *js_runtime;
+	u32 nb_inst;
+	JSContext *ctx;
+
+	GF_Mutex *mx;
+	GF_List *allocated_contexts;
+} GF_JSRuntime;
+
+static GF_JSRuntime *js_rt = NULL;
+
+JSContext *gf_js_create_context()
+{
+	JSContext *ctx;
+	if (!js_rt) {
+		JSRuntime *js_runtime = JS_NewRuntime();
+		if (!js_runtime) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[ECMAScript] Cannot allocate ECMAScript runtime\n"));
+			return NULL;
+		}
+		GF_SAFEALLOC(js_rt, GF_JSRuntime);
+		if (!js_rt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[JS] Failed to create script runtime\n"));
+			return NULL;
+		}
+		js_rt->js_runtime = js_runtime;
+		js_rt->allocated_contexts = gf_list_new();
+		js_rt->mx = gf_mx_new("JavaScript");
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
+
+		qjs_init_runtime_libc(js_rt->js_runtime);
+	}
+	js_rt->nb_inst++;
+
+	gf_mx_p(js_rt->mx);
+
+	ctx = JS_NewContext(js_rt->js_runtime);
+
+	gf_list_add(js_rt->allocated_contexts, ctx);
+	gf_mx_v(js_rt->mx);
+
+	return ctx;
+}
+
+void gf_js_delete_context(JSContext *ctx)
+{
+	if (!js_rt) return;
+
+	gf_js_call_gc(ctx);
+
+	gf_mx_p(js_rt->mx);
+	gf_list_del_item(js_rt->allocated_contexts, ctx);
+	JS_FreeContext(ctx);
+	gf_mx_v(js_rt->mx);
+
+	js_rt->nb_inst --;
+	if (js_rt->nb_inst == 0) {
+		//persistent context, do not delete runtime but perform GC
+		if (gf_opts_get_bool("temp", "peristent-jsrt")) {
+			JS_RunGC(js_rt->js_runtime);
+			return;
+		}
+
+		qjs_uninit_runtime_libc(js_rt->js_runtime);
+		JS_FreeRuntime(js_rt->js_runtime);
+		gf_list_del(js_rt->allocated_contexts);
+		gf_mx_del(js_rt->mx);
+		gf_free(js_rt);
+		js_rt = NULL;
+	}
+}
+GF_EXPORT
+void gf_js_delete_runtime()
+{
+	if (js_rt) {
+		JS_FreeRuntime(js_rt->js_runtime);
+		gf_list_del(js_rt->allocated_contexts);
+		gf_mx_del(js_rt->mx);
+		gf_free(js_rt);
+		js_rt = NULL;
+	}
+}
+
+void gf_js_call_gc(JSContext *c)
+{
+	gf_js_lock(c, 1);
+	JS_RunGC(js_rt->js_runtime);
+	gf_js_lock(c, 0);
+}
+
+Bool gs_js_context_is_valid(JSContext *ctx)
+{
+	if (gf_list_find(js_rt->allocated_contexts, ctx) < 0)
+		return GF_FALSE;
+	return GF_TRUE;
+}
+
+/*
+ * locking/try-locking the JS context
+ *
+ * */
+GF_EXPORT
+void gf_js_lock(struct JSContext *cx, Bool LockIt)
+{
+	if (!js_rt) return;
+
+	if (LockIt) {
+		gf_mx_p(js_rt->mx);
+	} else {
+		gf_mx_v(js_rt->mx);
+	}
+}
+
+GF_EXPORT
+Bool gf_js_try_lock(struct JSContext *cx)
+{
+	assert(cx);
+	if (gf_mx_try_lock(js_rt->mx)) {
+		return 1;
+	}
+	return 0;
+}
+
+JSRuntime *gf_js_get_rt()
+{
+	if (!js_rt) return NULL;
+	return js_rt->js_runtime;
+}
+
+
+
+static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
+{
+    int i=0;
+    Bool first=GF_TRUE;
+    s32 logl = GF_LOG_INFO;
+    JSValue v, g;
+    const char *c_logname=NULL;
+    const char *log_name = "JS";
+
+    if ((argc>1) && JS_IsNumber(argv[0])) {
+		JS_ToInt32(ctx, &logl, argv[0]);
+		i=1;
+	}
+	if (error_type)
+		logl = GF_LOG_ERROR;
+	g = JS_GetGlobalObject(ctx);
+	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
+	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
+		c_logname = JS_ToCString(ctx, v);
+		JS_FreeValue(ctx, v);
+		if (c_logname) {
+			log_name = c_logname;
+			if (!strlen(log_name))
+				log_name = NULL;
+		}
+	}
+	JS_FreeValue(ctx, g);
+
+	if (log_name) {
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(logl, ltool, ("[%s] ", log_name));
+#else
+		fprintf(stderr, "[%s] ", log_name);
+#endif
+	}
+	if (error_type==2) {
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(logl, ltool, ("Throw "));
+#else
+		fprintf(stderr, "Throw ");
+#endif
+	}
+
+    for (; i < argc; i++) {
+		const char *str = JS_ToCString(ctx, argv[i]);
+        if (!str) return JS_EXCEPTION;
+
+        if (logl==-1) {
+			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
+		} else if (logl==-2) {
+			gf_sys_format_help(stderr, 0, "%s\n", str);
+		} else if (logl<0) {
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+		} else {
+#ifndef GPAC_DISABLE_LOG
+			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
+#else
+			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
+#endif
+		}
+        JS_FreeCString(ctx, str);
+        first=GF_FALSE;
+    }
+#ifndef GPAC_DISABLE_LOG
+ 	GF_LOG(logl, ltool, ("\n"));
+#else
+	fprintf(stderr, "\n");
+#endif
+	if (c_logname) JS_FreeCString(ctx, c_logname);
+	return JS_UNDEFINED;
+}
+JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return js_print_ex(ctx, this_val, argc, argv, GF_LOG_CONSOLE, GF_FALSE);
+}
+
+void js_dump_error_exc(JSContext *ctx, const JSValue exception_val)
+{
+    Bool is_error;
+	u32 err_type = 1;
+    is_error = JS_IsError(ctx, exception_val);
+    if (!is_error) err_type = 2;
+
+    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, err_type);
+
+    if (is_error) {
+        JSValue val = JS_GetPropertyStr(ctx, exception_val, "stack");
+        if (!JS_IsUndefined(val)) {
+			const char *stack = JS_ToCString(ctx, val);
+#ifndef GPAC_DISABLE_LOG
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("%s\n", stack) );
+#else
+			fprintf(stderr, "%s\n", stack);
+#endif
+            JS_FreeCString(ctx, stack);
+        }
+        JS_FreeValue(ctx, val);
+    }
+}
+
+void js_dump_error(JSContext *ctx)
+{
+    JSValue exception_val = JS_GetException(ctx);
+	js_dump_error_exc(ctx, exception_val);
+    JS_FreeValue(ctx, exception_val);
+}
+
+#ifdef GPAC_DISABLE_QJS_LIBC
+void js_std_loop(JSContext *ctx)
+{
+	while (1) {
+		JSContext *ctx1;
+		int err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
+		if (err <= 0) {
+			if (err < 0) {
+				js_dump_error(ctx1);
+			}
+			break;
+		}
+	}
+}
+#endif
+
+
+
 
 #define JS_CGETSET_MAGIC_DEF_ENUM(name, fgetter, fsetter, magic) { name, JS_PROP_CONFIGURABLE|JS_PROP_ENUMERABLE, JS_DEF_CGETSET_MAGIC, magic, .u = { .getset = { .get = { .getter_magic = fgetter }, .set = { .setter_magic = fsetter } } } }
 
@@ -2003,6 +2267,269 @@ void qjs_module_init_gpaccore(JSContext *ctx)
 	return;
 }
 
+void qjs_module_init_scenejs(JSContext *ctx);
+void qjs_module_init_storage(JSContext *ctx);
+void qjs_module_init_xhr(JSContext *c);
+void qjs_module_init_evg(JSContext *c);
+void qjs_module_init_webgl(JSContext *c);
+void qjs_module_init_gpaccore(JSContext *c);
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+#include "../quickjs/quickjs-libc.h"
+void qjs_module_init_qjs_libc(JSContext *ctx)
+{
+#ifdef CONFIG_BIGNUM
+    if (bignum_ext) {
+        JS_AddIntrinsicBigFloat(ctx);
+        JS_AddIntrinsicBigDecimal(ctx);
+        JS_AddIntrinsicOperators(ctx);
+        JS_EnableBignumExt(ctx, TRUE);
+    }
+#endif
+    /* system modules */
+    js_init_module_std(ctx, "std");
+    js_init_module_os(ctx, "os");
+}
+#endif // GPAC_DISABLE_QJS_LIBC
+
+
+void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
+{
+	//init modules
+	qjs_module_init_gpaccore(ctx);
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+	qjs_module_init_qjs_libc(ctx);
+#endif
+
+	//vrml, init scene JS but do not init xhr (defined in DOM JS)
+	if (for_vrml) {
+		qjs_module_init_scenejs(ctx);
+	} else {
+		qjs_module_init_xhr(ctx);
+	}
+	qjs_module_init_evg(ctx);
+	qjs_module_init_storage(ctx);
+
+	if (!no_webgl && !for_vrml)
+		qjs_module_init_webgl(ctx);
+}
+
+
+int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
+{
+	JSModuleDef *m;
+	JSValue meta_obj;
+	JSAtom module_name_atom;
+	const char *module_name, *src_file;
+
+	assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
+	m = JS_VALUE_GET_PTR(func_val);
+
+	module_name_atom = JS_GetModuleName(ctx, m);
+	module_name = JS_AtomToCString(ctx, module_name_atom);
+	JS_FreeAtom(ctx, module_name_atom);
+	if (!module_name)
+		return -1;
+	src_file = module_name;
+	if (!strchr(module_name, ':')) {
+		char buf[GF_MAX_PATH + 16];
+		strcpy(buf, "file://");
+#if !defined(_WIN32)
+		/* realpath() cannot be used with modules compiled with qjsc
+		because the corresponding module source code is not
+		necessarily present */
+		if (use_realpath) {
+			char *res = realpath(module_name, buf + strlen(buf));
+			if (!res) {
+				JS_ThrowTypeError(ctx, "realpath failure");
+				JS_FreeCString(ctx, module_name);
+				return -1;
+			}
+			src_file = res;
+		}
+#endif
+	}
+
+	meta_obj = JS_GetImportMeta(ctx, m);
+	if (JS_IsException(meta_obj)) {
+		JS_FreeCString(ctx, module_name);
+		return -1;
+	}
+	JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
+	JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
+	JS_FreeCString(ctx, module_name);
+	JS_FreeValue(ctx, meta_obj);
+    return 0;
+}
+
+
+#ifndef GPAC_STATIC_BUILD
+
+#if defined(WIN32) || defined(_WIN32_WCE)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx, const char *module_name);
+
+static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
+                                        const char *module_name)
+{
+	JSModuleDef *m=NULL;
+	void *hd;
+	JSInitModuleFunc *init;
+	char *filename;
+
+	if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
+		/* must add a '/' so that the DLL is not searched in the system library paths */
+		filename = gf_malloc(strlen(module_name) + 2 + 1);
+		if (!filename) return NULL;
+		strcpy(filename, "./");
+		strcpy(filename + 2, module_name);
+	} else {
+		filename = (char *)module_name;
+	}
+
+	/* load dynamic lib */
+#ifdef WIN32
+	hd = LoadLibrary(filename);
+#else
+	hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+#endif
+
+	if (filename != module_name)
+		gf_free(filename);
+
+	if (!hd) {
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
+		return NULL;
+	}
+
+#ifdef WIN32
+	init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
+#else
+	init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
+#endif
+
+	if (!init) {
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s': js_init_module not found", module_name);
+	} else {
+		m = init(ctx, module_name);
+		if (!m) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error", module_name);
+		}
+	}
+#ifdef WIN32
+	FreeLibrary(hd);
+#else
+	dlclose(hd);
+#endif
+
+	return m;
+}
+
+#endif // GPAC_STATIC_BUILD
+
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
+{
+	JSModuleDef *m;
+	const char *fext = gf_file_ext_start(module_name);
+
+	if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
+#ifndef GPAC_STATIC_BUILD
+		m = qjs_module_loader_dyn_lib(ctx, module_name);
+#else
+		JS_ThrowReferenceError(ctx, "could not load module filename '%s', dynamic library loading disabled in build", module_name);
+		m = NULL;
+#endif
+	} else {
+		u32 buf_len;
+		u8 *buf;
+		JSValue func_val;
+		GF_Err e = gf_file_load_data(module_name, &buf, &buf_len);
+
+		if (e != GF_OK) {
+			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
+			return NULL;
+		}
+		/* compile the module */
+		func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+		js_free(ctx, buf);
+		if (JS_IsException(func_val))
+			return NULL;
+		/* XXX: could propagate the exception */
+		qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+		/* the module is already referenced, so we must free it */
+		m = JS_VALUE_GET_PTR(func_val);
+		JS_FreeValue(ctx, func_val);
+	}
+	return m;
+}
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+
+#if !defined(_WIN32)
+//not exposed in quickjs-libc.h
+#define USE_WORKER
+#endif
+
+#ifdef USE_WORKER
+static JSContext *JS_NewWorkerContext(JSRuntime *rt)
+{
+    JSContext *ctx;
+    ctx = JS_NewContext(rt);
+    if (!ctx)
+        return NULL;
+
+	qjs_module_init_qjs_libc(ctx);
+    return ctx;
+}
+#endif
+
+void js_promise_rejection_tracker(JSContext *ctx, JSValueConst promise, JSValueConst reason, JS_BOOL is_handled, void *opaque)
+{
+    if (!is_handled) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CONSOLE, ("Possibly unhandled promise rejection: "));
+        js_dump_error_exc(ctx, reason);
+    }
+}
+#endif
+
+static void qjs_init_runtime_libc(JSRuntime *rt)
+{
+ 	if (gf_opts_get_bool("core", "no-js-mods"))
+		return;
+
+    /* module loader */
+	JS_SetModuleLoaderFunc(rt, NULL, qjs_module_loader, NULL);
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+
+#ifdef USE_WORKER
+    js_std_set_worker_new_context_func(JS_NewWorkerContext);
+#endif
+    js_std_init_handlers(rt);
+
+
+    if (gf_opts_get_bool("core", "unhandled-rejection")) {
+        JS_SetHostPromiseRejectionTracker(rt, js_promise_rejection_tracker, NULL);
+    }
+#endif
+
+}
+
+static void qjs_uninit_runtime_libc(JSRuntime *rt)
+{
+ 	if (gf_opts_get_bool("core", "no-js-mods"))
+		return;
+
+#ifndef GPAC_DISABLE_QJS_LIBC
+	js_std_free_handlers(rt);
+#endif
+
+}
 
 #endif
 

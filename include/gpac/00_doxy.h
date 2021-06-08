@@ -80,7 +80,7 @@
 \defgroup jsapi_grp JavaScript APIs
 \brief JavaScript API available in GPAC
 
-Parts of the GPAC code can be scriptable using JavaScript. This part of the documentation describes the various APIs used in GPAC.
+Parts of the GPAC code can be modified at run-time using JavaScript. This part of the documentation describes the various APIs used in GPAC.
 
 For SVG and DOM scenegraph API, see https://www.w3.org/TR/SVGTiny12/svgudom.html.
 
@@ -101,6 +101,10 @@ This means that JS C modules as defined in QuickJS could also be used (https://b
 \warning support for C modules is still not fully tested
 
 There is currently no support for non-local modules (http, https ...).
+
+The default GPAC compilation includes the following modules from QuickJS:
+- 'std': documentation https://bellard.org/quickjs/quickjs.html#std-module
+- 'os': documentation https://bellard.org/quickjs/quickjs.html#os-module
 
 GPAC constants used in the API (error code, property types, specific flags for functions) are exported:
 - using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...

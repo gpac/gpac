@@ -40,6 +40,8 @@ LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
 LOCAL_CFLAGS += -DGPAC_CONFIG_ANDROID
 LOCAL_CFLAGS += -DGPAC_DISABLE_REMOTERY
+#for now QJS libc is disabled on android
+LOCAL_CFLAGS += -DGPAC_DISABLE_QJS_LIBC
 
 #LOCAL_CFLAGS += -DGPAC_FIXED_POINT
 
@@ -353,6 +355,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/quickjs/libregexp.c \
 	../../../../src/quickjs/libunicode.c \
 	../../../../src/quickjs/quickjs.c \
+	../../../../src/quickjs/quickjs-libc.c \
 	../../../../src/scenegraph/base_scenegraph.c \
 	../../../../src/scenegraph/commands.c \
 	../../../../src/scenegraph/dom_events.c \

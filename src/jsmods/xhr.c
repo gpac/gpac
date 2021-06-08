@@ -457,7 +457,7 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 		JS_FreeValue(ctx->c, ret);
 	}
 
-	js_do_loop(ctx->c);
+	js_std_loop(ctx->c);
 	gf_js_lock(ctx->c, GF_FALSE);
 
 	if (! ctx->owning_graph) return;
@@ -807,7 +807,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				JS_SetPropertyStr(ctx->c, prog_evt, "total", JS_NewInt64(ctx->c, tot_size));
 				JS_SetPropertyStr(ctx->c, prog_evt, "bps", JS_NewInt64(ctx->c, bps*8));
 				if (ctx->responseType==XHR_RESPONSETYPE_PUSH) {
-					buffer_ab = JS_NewArrayBuffer(ctx->c, (u8 *) parameter->data, parameter->size, NULL, ctx, 1);
+					buffer_ab = JS_NewArrayBuffer(ctx->c, (u8 *) parameter->data, parameter->size, NULL, ctx, 0/*1*/);
 					JS_SetPropertyStr(ctx->c, prog_evt, "buffer", buffer_ab);
 				}
 
@@ -1174,7 +1174,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 			case XHR_RESPONSETYPE_ARRAYBUFFER:
 				if (JS_IsUndefined(ctx->arraybuffer)) {
-					ctx->arraybuffer = JS_NewArrayBuffer(c, ctx->data, ctx->size, NULL, ctx, 1);
+					ctx->arraybuffer = JS_NewArrayBuffer(c, ctx->data, ctx->size, NULL, ctx, 0/*1*/);
 				}
 				return JS_DupValue(c, ctx->arraybuffer);
 				break;

@@ -123,7 +123,7 @@ static void jsfs_exec_task_custom(JSFS_Task *task, const char *text, GF_Filter *
 		js_dump_error(task->ctx);
 	}
 	JS_FreeValue(task->ctx, ret);
-	js_do_loop(task->ctx);
+	js_std_loop(task->ctx);
 	gf_js_lock(task->ctx, GF_FALSE);
 }
 
@@ -210,7 +210,7 @@ static Bool jsfs_task_exec(GF_FilterSession *fs, void *udta, u32 *timeout_ms)
 	}
 
 	JS_FreeValue(task->ctx, ret);
-	js_do_loop(task->ctx);
+	js_std_loop(task->ctx);
 	gf_js_lock(task->ctx, GF_FALSE);
 
 	if (do_free) {
@@ -344,7 +344,7 @@ Bool jsfs_on_event(GF_FilterSession *fs, GF_Event *evt)
 		evt->clipboard.text = NULL;
 	}
 	JS_FreeValue(fs->on_evt_task->ctx, ret);
-	js_do_loop(fs->on_evt_task->ctx);
+	js_std_loop(fs->on_evt_task->ctx);
 	gf_js_lock(fs->on_evt_task->ctx, GF_FALSE);
 	return res;
 }
@@ -1337,12 +1337,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 	}
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
- 		//init modules
-		qjs_module_init_gpaccore(fs->js_ctx);
-		qjs_module_init_xhr(fs->js_ctx);
-		qjs_module_init_evg(fs->js_ctx);
-		qjs_module_init_storage(fs->js_ctx);
-		qjs_module_init_webgl(fs->js_ctx);
+		qjs_init_all_modules(fs->js_ctx, GF_FALSE, GF_FALSE);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 

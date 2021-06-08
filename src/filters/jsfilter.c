@@ -1435,7 +1435,7 @@ Bool jsf_task_exec(GF_Filter *filter, void *callback, u32 *reschedule_ms)
 	JS_FreeValue(task->jsf->ctx, ret);
 
 	gf_js_lock(task->jsf->ctx, GF_FALSE);
-	js_do_loop(task->jsf->ctx);
+	js_std_loop(task->jsf->ctx);
 
 	if (fun_result>=0) {
 		*reschedule_ms = (u32) fun_result;
@@ -1814,7 +1814,7 @@ static void jsf_on_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e
 	JS_FreeValue(f_inst->jsf->ctx, argv[0]);
 	JS_FreeValue(f_inst->jsf->ctx, ret);
 	gf_js_lock(f_inst->jsf->ctx, GF_FALSE);
-	js_do_loop(f_inst->jsf->ctx);
+	js_std_loop(f_inst->jsf->ctx);
 }
 
 static JSValue jsf_filter_inst_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
@@ -3577,7 +3577,7 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		if (JS_IsUndefined(pckctx->data_ab)) {
 			const u8 *data = gf_filter_pck_get_data(pck, &ival);
 			if (!data) return JS_NULL;
-			pckctx->data_ab = JS_NewArrayBuffer(ctx, (u8 *) data, ival, NULL, NULL, GF_TRUE);
+			pckctx->data_ab = JS_NewArrayBuffer(ctx, (u8 *) data, ival, NULL, NULL, 0/*1*/);
 		}
 		return JS_DupValue(ctx, pckctx->data_ab);
 	case JSF_PCK_FRAME_IFCE:
@@ -3828,7 +3828,7 @@ static JSValue jsf_pck_append_data(JSContext *ctx, JSValueConst this_val, int ar
 		}
 
 		jsf_pck_detach_ab(ctx, pckctx);
-		return JS_NewArrayBuffer(ctx, (u8 *) new_start, len, NULL, NULL, GF_TRUE);
+		return JS_NewArrayBuffer(ctx, (u8 *) new_start, len, NULL, NULL, 0/*1*/);
 	}
 
 	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
@@ -3846,7 +3846,7 @@ static JSValue jsf_pck_append_data(JSContext *ctx, JSValueConst this_val, int ar
 
 	jsf_pck_detach_ab(ctx, pckctx);
 
-	return JS_NewArrayBuffer(ctx, (u8 *) new_start, ab_size, NULL, NULL, GF_TRUE);
+	return JS_NewArrayBuffer(ctx, (u8 *) new_start, ab_size, NULL, NULL, 0/*1*/);
 }
 
 static JSValue jsf_pck_truncate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -3980,7 +3980,7 @@ static GF_Err jsfilter_process(GF_Filter *filter)
 	JS_FreeValue(jsf->ctx, ret);
 	gf_js_lock(jsf->ctx, GF_FALSE);
 
-	js_do_loop(jsf->ctx);
+	js_std_loop(jsf->ctx);
 	return e;
 }
 
@@ -4014,7 +4014,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_set_udta(pid, NULL);
 		gf_free(pctx);
 		gf_js_lock(jsf->ctx, GF_FALSE);
-		js_do_loop(jsf->ctx);
+		js_std_loop(jsf->ctx);
 		return e;
 	}
 
@@ -4043,7 +4043,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	JS_FreeValue(jsf->ctx, ret);
 
 	gf_js_lock(jsf->ctx, GF_FALSE);
-	js_do_loop(jsf->ctx);
+	js_std_loop(jsf->ctx);
 	return e;
 }
 
@@ -4550,12 +4550,7 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
- 		//init modules
-		qjs_module_init_gpaccore(jsf->ctx);
-		qjs_module_init_xhr(jsf->ctx);
-		qjs_module_init_evg(jsf->ctx);
-		qjs_module_init_storage(jsf->ctx);
-		qjs_module_init_webgl(jsf->ctx);
+		qjs_init_all_modules(jsf->ctx, GF_FALSE, GF_FALSE);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 	jsf->disable_filter = GF_TRUE;
@@ -4775,7 +4770,7 @@ static Bool jsfilter_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	JS_FreeValue(jsf->ctx, argv[1]);
 	gf_js_lock(jsf->ctx, GF_FALSE);
 
-	js_do_loop(jsf->ctx);
+	js_std_loop(jsf->ctx);
 	return canceled;
 }
 

@@ -159,241 +159,6 @@ GF_JSClass MFNodeClass;
 GF_JSClass AnyClass;
 #endif
 
-typedef struct
-{
-	JSRuntime *js_runtime;
-	u32 nb_inst;
-	JSContext *ctx;
-
-	GF_Mutex *mx;
-	GF_List *allocated_contexts;
-} GF_JSRuntime;
-
-static GF_JSRuntime *js_rt = NULL;
-
-int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
-{
-	JSModuleDef *m;
-	JSValue meta_obj;
-	JSAtom module_name_atom;
-	const char *module_name, *src_file;
-
-	assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
-	m = JS_VALUE_GET_PTR(func_val);
-
-	module_name_atom = JS_GetModuleName(ctx, m);
-	module_name = JS_AtomToCString(ctx, module_name_atom);
-	JS_FreeAtom(ctx, module_name_atom);
-	if (!module_name)
-		return -1;
-	src_file = module_name;
-	if (!strchr(module_name, ':')) {
-		char buf[GF_MAX_PATH + 16];
-		strcpy(buf, "file://");
-#if !defined(_WIN32)
-		/* realpath() cannot be used with modules compiled with qjsc
-		because the corresponding module source code is not
-		necessarily present */
-		if (use_realpath) {
-			char *res = realpath(module_name, buf + strlen(buf));
-			if (!res) {
-				JS_ThrowTypeError(ctx, "realpath failure");
-				JS_FreeCString(ctx, module_name);
-				return -1;
-			}
-			src_file = res;
-		} 
-#endif
-	}
-
-	meta_obj = JS_GetImportMeta(ctx, m);
-	if (JS_IsException(meta_obj)) {
-		JS_FreeCString(ctx, module_name);
-		return -1;
-	}
-	JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
-	JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
-	JS_FreeCString(ctx, module_name);
-	JS_FreeValue(ctx, meta_obj);
-    return 0;
-}
-
-
-#ifndef GPAC_STATIC_BUILD
-
-#if defined(WIN32) || defined(_WIN32_WCE)
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
-typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx, const char *module_name);
-
-static JSModuleDef *qjs_module_loader_dyn_lib(JSContext *ctx,
-                                        const char *module_name)
-{
-	JSModuleDef *m=NULL;
-	void *hd;
-	JSInitModuleFunc *init;
-	char *filename;
-
-	if (!strchr(module_name, '/') || !strchr(module_name, '\\')) {
-		/* must add a '/' so that the DLL is not searched in the system library paths */
-		filename = gf_malloc(strlen(module_name) + 2 + 1);
-		if (!filename) return NULL;
-		strcpy(filename, "./");
-		strcpy(filename + 2, module_name);
-	} else {
-		filename = (char *)module_name;
-	}
-
-	/* load dynamic lib */
-#ifdef WIN32
-	hd = LoadLibrary(filename);
-#else
-	hd = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
-#endif
-
-	if (filename != module_name)
-		gf_free(filename);
-
-	if (!hd) {
-		JS_ThrowReferenceError(ctx, "could not load module filename '%s' as shared library", module_name);
-		return NULL;
-	}
-
-#ifdef WIN32
-	init = (JSInitModuleFunc *) GetProcAddress(hd, "js_init_module");
-#else
-	init = (JSInitModuleFunc *) dlsym(hd, "js_init_module");
-#endif
-
-	if (!init) {
-		JS_ThrowReferenceError(ctx, "could not load module filename '%s': js_init_module not found", module_name);
-	} else {
-		m = init(ctx, module_name);
-		if (!m) {
-			JS_ThrowReferenceError(ctx, "could not load module filename '%s': initialization error", module_name);
-		}
-	}
-#ifdef WIN32
-	FreeLibrary(hd);
-#else
-	dlclose(hd);
-#endif
-
-	return m;
-}
-
-#endif // GPAC_STATIC_BUILD
-
-JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque)
-{
-	JSModuleDef *m;
-	const char *fext = gf_file_ext_start(module_name);
-
-	if (fext && (!strcmp(fext, ".so") || !strcmp(fext, ".dll") || !strcmp(fext, ".dylib")) )  {
-#ifndef GPAC_STATIC_BUILD
-		m = qjs_module_loader_dyn_lib(ctx, module_name);
-#else
-		JS_ThrowReferenceError(ctx, "could not load module filename '%s', dynamic library loading disabled in build", module_name);
-		m = NULL;
-#endif
-	} else {
-		u32 buf_len;
-		u8 *buf;
-		JSValue func_val;
-		GF_Err e = gf_file_load_data(module_name, &buf, &buf_len);
-
-		if (e != GF_OK) {
-			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
-			return NULL;
-		}
-		/* compile the module */
-		func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-		js_free(ctx, buf);
-		if (JS_IsException(func_val))
-			return NULL;
-		/* XXX: could propagate the exception */
-		qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
-		/* the module is already referenced, so we must free it */
-		m = JS_VALUE_GET_PTR(func_val);
-		JS_FreeValue(ctx, func_val);
-	}
-	return m;
-}
-
-JSContext *gf_js_create_context()
-{
-	JSContext *ctx;
-	if (!js_rt) {
-		JSRuntime *js_runtime = JS_NewRuntime();
-		if (!js_runtime) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[ECMAScript] Cannot allocate ECMAScript runtime\n"));
-			return NULL;
-		}
-		GF_SAFEALLOC(js_rt, GF_JSRuntime);
-		if (!js_rt) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[JS] Failed to create script runtime\n"));
-			return NULL;
-		}
-		js_rt->js_runtime = js_runtime;
-		js_rt->allocated_contexts = gf_list_new();
-		js_rt->mx = gf_mx_new("JavaScript");
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
-
-    	JS_SetModuleLoaderFunc(js_rt->js_runtime, NULL, qjs_module_loader, NULL);
-	}
-	js_rt->nb_inst++;
-
-	gf_mx_p(js_rt->mx);
-
-	ctx = JS_NewContext(js_rt->js_runtime);
-
-	gf_list_add(js_rt->allocated_contexts, ctx);
-	gf_mx_v(js_rt->mx);
-
-	return ctx;
-}
-
-void gf_js_delete_context(JSContext *ctx)
-{
-	if (!js_rt) return;
-
-	gf_js_call_gc(ctx);
-
-	gf_mx_p(js_rt->mx);
-	gf_list_del_item(js_rt->allocated_contexts, ctx);
-	JS_FreeContext(ctx);
-	gf_mx_v(js_rt->mx);
-
-	js_rt->nb_inst --;
-	if (js_rt->nb_inst == 0) {
-		//persistent context, do not delete runtime but perform GC
-		if (gf_opts_get_bool("temp", "peristent-jsrt")) {
-			JS_RunGC(js_rt->js_runtime);
-			return;
-		}
-
-		JS_FreeRuntime(js_rt->js_runtime);
-		gf_list_del(js_rt->allocated_contexts);
-		gf_mx_del(js_rt->mx);
-		gf_free(js_rt);
-		js_rt = NULL;
-	}
-}
-GF_EXPORT
-void gf_js_delete_runtime()
-{
-	if (js_rt) {
-		JS_FreeRuntime(js_rt->js_runtime);
-		gf_list_del(js_rt->allocated_contexts);
-		gf_mx_del(js_rt->mx);
-		gf_free(js_rt);
-		js_rt = NULL;
-	}
-}
-
 
 #ifndef GPAC_DISABLE_SVG
 /*SVG tags for script handling*/
@@ -418,13 +183,6 @@ static JSValue vrml_event_add_listener(JSContext *c, JSValueConst this_val, int 
 static JSValue vrml_event_remove_listener(JSContext *c, JSValueConst this_val, int argc, JSValueConst *argv);
 #endif // GPAC_DISABLE_SVG
 
-void gf_js_call_gc(JSContext *c)
-{
-	gf_js_lock(c, 1);
-	JS_RunGC(js_rt->js_runtime);
-	gf_js_lock(c, 0);
-}
-
 void do_js_gc(JSContext *c, GF_Node *node)
 {
 #ifdef FORCE_GC
@@ -434,126 +192,6 @@ void do_js_gc(JSContext *c, GF_Node *node)
 	if (node->sgprivate->scenegraph->trigger_gc) {
 		node->sgprivate->scenegraph->trigger_gc = GF_FALSE;
 		gf_js_call_gc(c);
-	}
-}
-
-
-static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 ltool, u32 error_type)
-{
-    int i=0;
-    Bool first=GF_TRUE;
-    s32 logl = GF_LOG_INFO;
-    JSValue v, g;
-    const char *c_logname=NULL;
-    const char *log_name = "JS";
-
-    if ((argc>1) && JS_IsNumber(argv[0])) {
-		JS_ToInt32(ctx, &logl, argv[0]);
-		i=1;
-	}
-	if (error_type)
-		logl = GF_LOG_ERROR;
-	g = JS_GetGlobalObject(ctx);
-	v = JS_GetPropertyStr(ctx, g, "_gpac_log_name");
-	if (!JS_IsUndefined(v) && !JS_IsNull(v)) {
-		c_logname = JS_ToCString(ctx, v);
-		JS_FreeValue(ctx, v);
-		if (c_logname) {
-			log_name = c_logname;
-			if (!strlen(log_name))
-				log_name = NULL;
-		}
-	}
-	JS_FreeValue(ctx, g);
-
-	if (log_name) {
-#ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("[%s] ", log_name));
-#else
-		fprintf(stderr, "[%s] ", log_name);
-#endif
-	}
-	if (error_type==2) {
-#ifndef GPAC_DISABLE_LOG
-		GF_LOG(logl, ltool, ("Throw "));
-#else
-		fprintf(stderr, "Throw ");
-#endif
-	}
-
-    for (; i < argc; i++) {
-		const char *str = JS_ToCString(ctx, argv[i]);
-        if (!str) return JS_EXCEPTION;
-
-        if (logl==-1) {
-			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
-		} else if (logl==-2) {
-			gf_sys_format_help(stderr, 0, "%s\n", str);
-		} else if (logl<0) {
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
-		} else {
-#ifndef GPAC_DISABLE_LOG
-			GF_LOG(logl, ltool, ("%s%s", (first) ? "" : " ", str));
-#else
-			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
-#endif
-		}
-        JS_FreeCString(ctx, str);
-        first=GF_FALSE;
-    }
-#ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("\n"));
-#else
-	fprintf(stderr, "\n");
-#endif
-	if (c_logname) JS_FreeCString(ctx, c_logname);
-	return JS_UNDEFINED;
-}
-JSValue js_print(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return js_print_ex(ctx, this_val, argc, argv, GF_LOG_CONSOLE, GF_FALSE);
-
-}
-
-void js_dump_error(JSContext *ctx)
-{
-    JSValue exception_val;
-    Bool is_error;
-	u32 err_type = 1;
-    exception_val = JS_GetException(ctx);
-    is_error = JS_IsError(ctx, exception_val);
-    if (!is_error) err_type = 2;
-
-
-    js_print_ex(ctx, JS_NULL, 1, (JSValueConst *)&exception_val, GF_LOG_SCRIPT, err_type);
-
-    if (is_error) {
-        JSValue val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) {
-			const char *stack = JS_ToCString(ctx, val);
-#ifndef GPAC_DISABLE_LOG
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("%s\n", stack) );
-#else
-			fprintf(stderr, "%s\n", stack);
-#endif
-            JS_FreeCString(ctx, stack);
-        }
-        JS_FreeValue(ctx, val);
-    }
-    JS_FreeValue(ctx, exception_val);
-}
-
-void js_do_loop(JSContext *ctx)
-{
-	while (1) {
-		JSContext *ctx1;
-		int err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
-		if (err <= 0) {
-			if (err < 0) {
-				js_dump_error(ctx1);
-			}
-			break;
-		}
 	}
 }
 
@@ -886,7 +524,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	JS_FreeValue(priv->js_ctx, argv[1]);
 	JS_FreeValue(priv->js_ctx, rval);
 
-	js_do_loop(priv->js_ctx);
+	js_std_loop(priv->js_ctx);
 	gf_js_lock(priv->js_ctx, 0);
 
 	do_js_gc(priv->js_ctx, node);
@@ -1359,7 +997,7 @@ static void JS_ObjectDestroyed(JSRuntime *rt, JSValue obj, GF_JSField *ptr, Bool
 	if (!JS_IsUndefined(ptr->obj) && is_js_call) {
 		if (ptr->js_ctx) {
 			GF_ScriptPriv *priv;
-			if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0)
+			if (!gs_js_context_is_valid(ptr->js_ctx))
 				return;
 			priv = JS_GetScriptStack(ptr->js_ctx);
 			gf_list_del_item(priv->jsf_cache, ptr);
@@ -3206,7 +2844,7 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 	if (!_class.class_id) {\
 		JS_NewClassID(&(_class.class_id)); \
 		_class.class.class_name = _name; \
-		JS_NewClass(js_rt->js_runtime, _class.class_id, &(_class.class));\
+		JS_NewClass(js_runtime, _class.class_id, &(_class.class));\
 	}\
 
 #define SETUP_JSCLASS(_class, _name, _proto_funcs, _construct, _finalize, _exotic) \
@@ -3217,7 +2855,7 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 		_class.class.finalizer = _finalize;\
 		_class.class.exotic = _exotic;\
 		_class.class.gc_mark = field_gc_mark;\
-		JS_NewClass(js_rt->js_runtime, _class.class_id, &(_class.class));\
+		JS_NewClass(js_runtime, _class.class_id, &(_class.class));\
 	}\
 	{ \
 	JSValue _proto_obj = JS_NewObjectClass(sc->js_ctx, _class.class_id);\
@@ -3230,7 +2868,7 @@ static void field_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_fun
 static void vrml_js_init_api(GF_ScriptPriv *sc, GF_Node *script)
 {
 	sc->js_obj = JS_GetGlobalObject(sc->js_ctx);
-
+	JSRuntime *js_runtime = JS_GetRuntime(sc->js_ctx);
 	//init all our classes
 	SETUP_JSCLASS_BASIC(globalClass, "global");
 	SETUP_JSCLASS_BASIC(AnyClass, "AnyClass");
@@ -4059,6 +3697,8 @@ JSValue gf_sg_script_to_qjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_N
 
 static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 {
+	JSRuntime *js_runtime = gf_js_get_rt();
+
 	/*pop the list rather than walk through it since unprotecting an element could trigger GC which in turn could modify this list content*/
 	while (gf_list_count(priv->jsf_cache)) {
 		JSValue obj;
@@ -4074,10 +3714,10 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 		obj = jsf->obj;
 		jsf->obj = JS_UNDEFINED;
-		if (jsf->mfvals)
-			array_finalize_ex(js_rt->js_runtime, obj, 0);
-		else if (jsf->node)
-			node_finalize_ex(js_rt->js_runtime, obj, 0);
+		if (jsf->mfvals && js_runtime)
+			array_finalize_ex(js_runtime, obj, 0);
+		else if (jsf->node && js_runtime)
+			node_finalize_ex(js_runtime, obj, 0);
 		else
 			jsf->js_ctx=NULL;
 
@@ -4256,7 +3896,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	JS_FreeValue(priv->js_ctx, argv[0]);
 	JS_FreeValue(priv->js_ctx, argv[1]);
 
-	js_do_loop(priv->js_ctx);
+	js_std_loop(priv->js_ctx);
 	gf_js_lock(priv->js_ctx, 0);
 
 	gf_js_vrml_flush_event_out(node, priv);
@@ -4317,7 +3957,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	}
 	gf_free(jsscript);
 	if (success)
-		js_do_loop(priv->js_ctx);
+		js_std_loop(priv->js_ctx);
 	return success;
 }
 
@@ -4431,9 +4071,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	JS_SetContextOpaque(priv->js_ctx, node);
 	vrml_js_init_api(priv, node);
 
-	qjs_module_init_gpaccore(priv->js_ctx);
-	qjs_module_init_scenejs(priv->js_ctx);
-	qjs_module_init_storage(priv->js_ctx);
+	qjs_init_all_modules(priv->js_ctx, GF_TRUE, GF_TRUE);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
 #ifndef GPAC_DISABLE_SVG
@@ -4488,7 +4126,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 
 	JS_FreeValue(priv->js_ctx, ret);
-	js_do_loop(priv->js_ctx);
+	js_std_loop(priv->js_ctx);
 
 	gf_js_lock(priv->js_ctx, 0);
 
@@ -4706,7 +4344,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	event->is_vrml = prev_type;
 	JS_SetOpaque(priv->the_event, prev_event);
 
-	js_do_loop(priv->js_ctx);
+	js_std_loop(priv->js_ctx);
 	gf_js_lock(priv->js_ctx, 0);
 
 #endif
@@ -4738,11 +4376,9 @@ GF_EXPORT
 GF_Node *gf_sg_js_get_node(JSContext *c, JSValue obj)
 {
 #ifndef GPAC_DISABLE_VRML
-	if (js_rt) {
-		GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
-		if (ptr && (ptr->field.fieldType==GF_SG_VRML_SFNODE))
-			return * ((GF_Node **)ptr->field.far_ptr);
-	}
+	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
+	if (ptr && (ptr->field.fieldType==GF_SG_VRML_SFNODE))
+		return * ((GF_Node **)ptr->field.far_ptr);
 #endif
 
 #ifndef GPAC_DISABLE_SVG
@@ -4769,42 +4405,6 @@ Bool gf_sg_has_scripting()
 #endif
 }
 
-
-#ifdef GPAC_HAS_QJS
-
-/*
- * locking/try-locking the JS context
- *
- * */
-GF_EXPORT
-void gf_js_lock(struct JSContext *cx, Bool LockIt)
-{
-	if (!js_rt) return;
-
-	if (LockIt) {
-		gf_mx_p(js_rt->mx);
-	} else {
-		gf_mx_v(js_rt->mx);
-	}
-}
-
-GF_EXPORT
-Bool gf_js_try_lock(struct JSContext *cx)
-{
-	assert(cx);
-	if (gf_mx_try_lock(js_rt->mx)) {
-		return 1;
-	}
-	return 0;
-}
-
-JSRuntime *gf_js_get_rt()
-{
-	if (!js_rt) return NULL;
-	return js_rt->js_runtime;
-}
-
-#endif /* GPAC_HAS_QJS */
 
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com)
 {

@@ -1757,10 +1757,7 @@ static GF_Err dashdmx_initialize_js(GF_DASHDmxCtx *dashctx, char *jsfile)
 
  	if (!gf_opts_get_bool("core", "no-js-mods") && JS_DetectModule((char *)buf, buf_len)) {
  		//init modules, except webgl
-		qjs_module_init_gpaccore(dashctx->js_ctx);
-		qjs_module_init_xhr(dashctx->js_ctx);
-		qjs_module_init_evg(dashctx->js_ctx);
-		qjs_module_init_storage(dashctx->js_ctx);
+		qjs_init_all_modules(dashctx->js_ctx, GF_TRUE, GF_FALSE);
 		flags = JS_EVAL_TYPE_MODULE;
 	}
 

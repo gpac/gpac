@@ -168,6 +168,7 @@ disable_crypto="no"
 disable_log="no"
 disable_nvdec="no"
 enable_qjs="yes"
+enable_qjs_libc="yes"
 enable_depth_compositor="no"
 enable_sanitizer="no"
 has_opensvc="no"
@@ -2075,6 +2076,10 @@ for opt do
             ;;
         --enable-qjs) enable_qjs="yes"
             ;;
+        --disable-qjs-libc) enable_qjs_libc="no"
+            ;;
+        --enable-qjs-libc) enable_qjs_libc="yes"
+            ;;
         --disable-log) disable_log="yes"
             ;;
         --enable-log) disable_log="no"
@@ -2494,7 +2499,7 @@ echo "Memory tracking enabled: $use_memory_tracking"
 echo "Sanitizer enabled: $enable_sanitizer"
 echo "Fixed-Point Version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
-echo "QuickJS Support: $enable_qjs"
+echo "QuickJS Support: $enable_qjs (qjslibc $enable_qjs_libc)"
 
 if test "$disable_player" = "yes" ; then
     echo "Player disabled"
@@ -3005,6 +3010,10 @@ echo "INSTFLAGS=$INSTFLAGS" >> config.mak
 echo "CONFIG_JS=$enable_qjs" >> config.mak
 if test "$enable_qjs" = "yes" ; then
 echo "#define GPAC_HAS_QJS" >> $TMPH
+if test "$enable_qjs_libc" = "no" ; then
+echo "#define GPAC_DISABLE_QJS_LIBC" >> $TMPH
+fi
+
 fi
 
 if test "$has_zlib" = "no" -o "$has_zlib" = "force-no" ; then

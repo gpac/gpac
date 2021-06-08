@@ -249,6 +249,7 @@
 		92754D60207D24F600170383 /* filelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 92754D5F207D24F600170383 /* filelist.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		927DB14C21A3C7100032D205 /* reframe_latm.c in Sources */ = {isa = PBXBuildFile; fileRef = 927DB14B21A3C7100032D205 /* reframe_latm.c */; };
+		9285D1A7266F671F008FCD14 /* quickjs-libc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9285D1A6266F671F008FCD14 /* quickjs-libc.c */; };
 		92860707238690D700FDA1ED /* reframe_prores.c in Sources */ = {isa = PBXBuildFile; fileRef = 92860706238690D700FDA1ED /* reframe_prores.c */; };
 		9286070B23884A6B00FDA1ED /* ff_mx.c in Sources */ = {isa = PBXBuildFile; fileRef = 9286070A23884A6B00FDA1ED /* ff_mx.c */; };
 		9286070F239576D900FDA1ED /* tssplit.c in Sources */ = {isa = PBXBuildFile; fileRef = 9286070E239576D900FDA1ED /* tssplit.c */; };
@@ -908,6 +909,7 @@
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		927DB14B21A3C7100032D205 /* reframe_latm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_latm.c; path = filters/reframe_latm.c; sourceTree = "<group>"; };
+		9285D1A6266F671F008FCD14 /* quickjs-libc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "quickjs-libc.c"; path = "quickjs/quickjs-libc.c"; sourceTree = "<group>"; };
 		92860706238690D700FDA1ED /* reframe_prores.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_prores.c; path = filters/reframe_prores.c; sourceTree = "<group>"; };
 		9286070A23884A6B00FDA1ED /* ff_mx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_mx.c; path = filters/ff_mx.c; sourceTree = "<group>"; };
 		9286070E239576D900FDA1ED /* tssplit.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tssplit.c; path = filters/tssplit.c; sourceTree = "<group>"; };
@@ -1658,6 +1660,7 @@
 		92334C8E2333A8B800DA6051 /* quickjs */ = {
 			isa = PBXGroup;
 			children = (
+				9285D1A6266F671F008FCD14 /* quickjs-libc.c */,
 				923EB53123D1B78D00E1FFA1 /* libbf.c */,
 				92910FA7233536620052365D /* cutils.c */,
 				92910FA52335363F0052365D /* libregexp.c */,
@@ -2513,6 +2516,7 @@
 				92B9A5A41F8660D700A24FE4 /* scene.c in Sources */,
 				922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */,
 				925730802056948D009DB328 /* rewrite_nalu.c in Sources */,
+				9285D1A7266F671F008FCD14 /* quickjs-libc.c in Sources */,
 				920100B018D5A444003D1ACA /* arith_decoder.c in Sources */,
 				92B9A5A11F8660D700A24FE4 /* mpeg4_textures.c in Sources */,
 				92B9A58B1F8660D700A24FE4 /* mpeg4_path_layout.c in Sources */,
