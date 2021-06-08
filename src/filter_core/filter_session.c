@@ -298,7 +298,6 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	for (i=0; i<count; i++) {
 		GF_FilterRegister *freg = (GF_FilterRegister *) gf_modules_load_filter(i, a_sess);
 		if (freg) {
-			freg->flags |= 0x80000000;
 			gf_fs_add_filter_register(fsess, freg);
 		}
 	}
