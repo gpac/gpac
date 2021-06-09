@@ -53,7 +53,6 @@
 #include <sys/utime.h>
 #include <sys/timeb.h>
 #include <gpac/tools.h>
-#include <gpac/thread.h>
 #include <io.h>
 #include <direct.h>
 #endif
@@ -99,14 +98,17 @@ typedef SSIZE_T ssize_t;
 
 #endif
 
-#if !defined(_WIN32)
-/* enable the os.Worker API. IT relies on POSIX threads */
+/* enable the os.Worker API. We rely on GF_Thread */
 #define USE_WORKER
-#endif
 
 #ifdef USE_WORKER
-#include <pthread.h>
+#include <gpac/thread.h>
+#if defined(WIN32) && !defined(__GNUC__)
+
+#else
 #include <stdatomic.h>
+#endif
+
 #endif
 
 #include "cutils.h"
@@ -155,7 +157,7 @@ typedef struct {
 typedef struct {
     int ref_count;
 #ifdef USE_WORKER
-    pthread_mutex_t mutex;
+    GF_Mutex *mutex;
 #endif
     struct list_head msg_queue; /* list of JSWorkerMessage.link */
     int read_fd;
@@ -176,6 +178,7 @@ typedef struct JSThreadState {
     int eval_script_recurse; /* only used in the main thread */
     /* not used in the main thread */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
+	int terminated;
 } JSThreadState;
 
 static uint64_t os_pending_signals;
@@ -2139,6 +2142,86 @@ static void call_handler(JSContext *ctx, JSValueConst func)
     JS_FreeValue(ctx, ret);
 }
 
+
+#ifdef USE_WORKER
+
+static void js_free_message(JSWorkerMessage *msg);
+
+/* return 1 if a message was handled, 0 if no message */
+static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
+	JSWorkerMessageHandler *port)
+{
+	JSWorkerMessagePipe *ps = port->recv_pipe;
+	int ret;
+	struct list_head *el;
+	JSWorkerMessage *msg;
+	JSValue obj, data_obj, func, retval;
+
+	gf_mx_p(ps->mutex);
+	if (!list_empty(&ps->msg_queue)) {
+		el = ps->msg_queue.next;
+		msg = list_entry(el, JSWorkerMessage, link);
+
+		/* remove the message from the queue */
+		list_del(&msg->link);
+
+		if (list_empty(&ps->msg_queue)) {
+			uint8_t buf[16];
+			int ret;
+			for (;;) {
+				ret = read(ps->read_fd, buf, sizeof(buf));
+				if (ret >= 0)
+					break;
+				if (errno != EAGAIN && errno != EINTR)
+					break;
+			}
+		}
+
+		gf_mx_v(ps->mutex);
+
+		data_obj = JS_ReadObject(ctx, msg->data, msg->data_len,
+			JS_READ_OBJ_SAB | JS_READ_OBJ_REFERENCE);
+
+		js_free_message(msg);
+
+		if (JS_IsException(data_obj))
+			goto fail;
+		obj = JS_NewObject(ctx);
+		if (JS_IsException(obj)) {
+			JS_FreeValue(ctx, data_obj);
+			goto fail;
+		}
+		JS_DefinePropertyValueStr(ctx, obj, "data", data_obj, JS_PROP_C_W_E);
+
+		/* 'func' might be destroyed when calling itself (if it frees the
+		handler), so must take extra care */
+		func = JS_DupValue(ctx, port->on_message_func);
+		retval = JS_Call(ctx, func, JS_UNDEFINED, 1, (JSValueConst *)&obj);
+		JS_FreeValue(ctx, obj);
+		JS_FreeValue(ctx, func);
+		if (JS_IsException(retval)) {
+		fail:
+			js_std_dump_error(ctx);
+		}
+		else {
+			JS_FreeValue(ctx, retval);
+		}
+		ret = 1;
+	}
+	else {
+		gf_mx_v(ps->mutex);
+		ret = 0;
+	}
+	return ret;
+}
+#else
+static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
+	JSWorkerMessageHandler *port)
+{
+	return 0;
+}
+#endif
+
 #if defined(_WIN32)
 
 static int js_os_poll(JSContext *ctx)
@@ -2152,8 +2235,8 @@ static int js_os_poll(JSContext *ctx)
     
     /* XXX: handle signals if useful */
 
-    if (list_empty(&ts->os_rw_handlers) && list_empty(&ts->os_timers))
-        return -1; /* no more events */
+    if (list_empty(&ts->os_rw_handlers) && list_empty(&ts->os_timers) && list_empty(&ts->port_list))
+		return -1; /* no more events */
     
     /* XXX: only timers and basic console input are supported */
     if (!list_empty(&ts->os_timers)) {
@@ -2190,6 +2273,20 @@ static int js_os_poll(JSContext *ctx)
         }
     }
 
+	list_for_each(el, &ts->port_list) {
+		JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
+		if (!JS_IsNull(port->on_message_func)) {
+			JSWorkerMessagePipe *ps = port->recv_pipe;
+			gf_mx_p(ps->mutex);
+			if (!list_empty(&ps->msg_queue)) {
+				console_fd = ps->read_fd;
+				gf_mx_v(ps->mutex);
+				break;
+			}
+			gf_mx_v(ps->mutex);
+		}
+	}
+
     if (console_fd >= 0) {
         DWORD ti, ret;
         HANDLE handle;
@@ -2208,90 +2305,27 @@ static int js_os_poll(JSContext *ctx)
                     break;
                 }
             }
-        }
-    } else {
-        Sleep(min_delay);
+
+			list_for_each(el, &ts->port_list) {
+				JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
+				if (!JS_IsNull(port->on_message_func)) {
+					JSWorkerMessagePipe *ps = port->recv_pipe;
+					if (ps->read_fd == console_fd) {
+						if (handle_posted_message(rt, ctx, port))
+							break;
+					}
+				}
+			}
+		}
+	}
+	//do not block if main thread !
+	else if (!ts->recv_pipe || ts->terminated) {
+		return -1;
     }
     return 0;
 }
 #else
 
-#ifdef USE_WORKER
-
-static void js_free_message(JSWorkerMessage *msg);
-
-/* return 1 if a message was handled, 0 if no message */
-static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
-                                 JSWorkerMessageHandler *port)
-{
-    JSWorkerMessagePipe *ps = port->recv_pipe;
-    int ret;
-    struct list_head *el;
-    JSWorkerMessage *msg;
-    JSValue obj, data_obj, func, retval;
-    
-    pthread_mutex_lock(&ps->mutex);
-    if (!list_empty(&ps->msg_queue)) {
-        el = ps->msg_queue.next;
-        msg = list_entry(el, JSWorkerMessage, link);
-
-        /* remove the message from the queue */
-        list_del(&msg->link);
-
-        if (list_empty(&ps->msg_queue)) {
-            uint8_t buf[16];
-            int ret;
-            for(;;) {
-                ret = read(ps->read_fd, buf, sizeof(buf));
-                if (ret >= 0)
-                    break;
-                if (errno != EAGAIN && errno != EINTR)
-                    break;
-            }
-        }
-
-        pthread_mutex_unlock(&ps->mutex);
-
-        data_obj = JS_ReadObject(ctx, msg->data, msg->data_len,
-                                 JS_READ_OBJ_SAB | JS_READ_OBJ_REFERENCE);
-
-        js_free_message(msg);
-        
-        if (JS_IsException(data_obj))
-            goto fail;
-        obj = JS_NewObject(ctx);
-        if (JS_IsException(obj)) {
-            JS_FreeValue(ctx, data_obj);
-            goto fail;
-        }
-        JS_DefinePropertyValueStr(ctx, obj, "data", data_obj, JS_PROP_C_W_E);
-
-        /* 'func' might be destroyed when calling itself (if it frees the
-           handler), so must take extra care */
-        func = JS_DupValue(ctx, port->on_message_func);
-        retval = JS_Call(ctx, func, JS_UNDEFINED, 1, (JSValueConst *)&obj);
-        JS_FreeValue(ctx, obj);
-        JS_FreeValue(ctx, func);
-        if (JS_IsException(retval)) {
-        fail:
-            js_std_dump_error(ctx);
-        } else {
-            JS_FreeValue(ctx, retval);
-        }
-        ret = 1;
-    } else {
-        pthread_mutex_unlock(&ps->mutex);
-        ret = 0;
-    }
-    return ret;
-}
-#else
-static int handle_posted_message(JSRuntime *rt, JSContext *ctx,
-                                 JSWorkerMessageHandler *port)
-{
-    return 0;
-}
-#endif
 
 static int js_os_poll(JSContext *ctx)
 {
@@ -3483,12 +3517,15 @@ typedef struct {
     JSWorkerMessagePipe *recv_pipe;
     JSWorkerMessagePipe *send_pipe;
     JSWorkerMessageHandler *msg_handler;
+	JSThreadState *ts;
+	GF_Thread *th;
 } JSWorkerData;
 
 typedef struct {
     char *filename; /* module filename */
     char *basename; /* module base name */
     JSWorkerMessagePipe *recv_pipe, *send_pipe;
+	JSWorkerData *worker;
 } WorkerFuncArgs;
 
 typedef struct {
@@ -3501,7 +3538,11 @@ static JSContext *(*js_worker_new_context_func)(JSRuntime *rt);
 
 static int atomic_add_int(int *ptr, int v)
 {
-    return atomic_fetch_add((_Atomic(uint32_t) *)ptr, v) + v;
+#if defined(WIN32) && !defined(__GNUC__)
+	return _InterlockedExchangeAdd((long volatile*)ptr, (long)v) + v;
+#else
+	return atomic_fetch_add((_Atomic(uint32_t) *)ptr, v) + v;
+#endif
 }
 
 /* shared array buffer allocator */
@@ -3538,6 +3579,7 @@ static JSWorkerMessagePipe *js_new_message_pipe(void)
 {
     JSWorkerMessagePipe *ps;
     int pipe_fds[2];
+	char mxName[200];
     
     if (pipe(pipe_fds) < 0)
         return NULL;
@@ -3550,7 +3592,8 @@ static JSWorkerMessagePipe *js_new_message_pipe(void)
     }
     ps->ref_count = 1;
     init_list_head(&ps->msg_queue);
-    pthread_mutex_init(&ps->mutex, NULL);
+	sprintf(mxName, "Worker%pMx", ps);
+	ps->mutex = gf_mx_new(mxName);
     ps->read_fd = pipe_fds[0];
     ps->write_fd = pipe_fds[1];
     return ps;
@@ -3590,7 +3633,7 @@ static void js_free_message_pipe(JSWorkerMessagePipe *ps)
             msg = list_entry(el, JSWorkerMessage, link);
             js_free_message(msg);
         }
-        pthread_mutex_destroy(&ps->mutex);
+        gf_mx_del(ps->mutex);
         close(ps->read_fd);
         close(ps->write_fd);
         free(ps);
@@ -3611,9 +3654,12 @@ static void js_worker_finalizer(JSRuntime *rt, JSValue val)
 {
     JSWorkerData *worker = JS_GetOpaque(val, js_worker_class_id);
     if (worker) {
-        js_free_message_pipe(worker->recv_pipe);
+		js_free_message_pipe(worker->recv_pipe);
         js_free_message_pipe(worker->send_pipe);
         js_free_port(rt, worker->msg_handler);
+		if (worker->ts) worker->ts->terminated = 1; 
+		if (worker->th)
+			gf_th_del(worker->th);
         js_free_rt(rt, worker);
     }
 }
@@ -3623,10 +3669,11 @@ static JSClassDef js_worker_class = {
     .finalizer = js_worker_finalizer,
 }; 
 
-static void *worker_func(void *opaque)
+static unsigned int worker_func(void *opaque)
 {
     WorkerFuncArgs *args = opaque;
     JSRuntime *rt;
+	JSWorkerData *worker;
     JSThreadState *ts;
     JSContext *ctx;
     
@@ -3643,13 +3690,18 @@ static void *worker_func(void *opaque)
     ts = JS_GetRuntimeOpaque(rt);
     ts->recv_pipe = args->recv_pipe;
     ts->send_pipe = args->send_pipe;
-    
+	worker = args->worker;
+	worker->ts = ts;
+
     /* function pointer to avoid linking the whole JS_NewContext() if
        not needed */
     ctx = js_worker_new_context_func ? js_worker_new_context_func(rt) : NULL;
     if (ctx == NULL) {
         fprintf(stderr, "JS_NewContext failure");
-    }
+		js_std_free_handlers(rt);
+		JS_FreeRuntime(rt);
+		return 1;
+	}
 
     JS_SetCanBlock(rt, TRUE);
 
@@ -3664,12 +3716,14 @@ static void *worker_func(void *opaque)
     free(args->basename);
     free(args);
 
-    js_std_loop(ctx);
+	js_std_loop(ctx);
+	worker->ts = NULL;
+	worker->msg_handler = NULL;
 
     JS_FreeContext(ctx);
-    js_std_free_handlers(rt);
-    JS_FreeRuntime(rt);
-    return NULL;
+    js_std_free_handlers(rt);	
+	JS_FreeRuntime(rt);
+    return 0;
 }
 
 static JSValue js_worker_ctor_internal(JSContext *ctx, JSValueConst new_target,
@@ -3709,9 +3763,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
 {
     JSRuntime *rt = JS_GetRuntime(ctx);
     WorkerFuncArgs *args = NULL;
-    pthread_t tid;
-    pthread_attr_t attr;
-    JSValue obj = JS_UNDEFINED;
+	JSValue obj = JS_UNDEFINED;
     int ret;
     const char *filename = NULL, *basename;
     JSAtom basename_atom;
@@ -3742,7 +3794,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         goto oom_fail;
     memset(args, 0, sizeof(*args));
     args->filename = strdup(filename);
-    args->basename = strdup(basename);
+	args->basename = strdup(basename);
 
     /* ports */
     args->recv_pipe = js_new_message_pipe();
@@ -3757,11 +3809,13 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     if (JS_IsException(obj))
         goto fail;
     
-    pthread_attr_init(&attr);
-    /* no join at the end */
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    ret = pthread_create(&tid, &attr, worker_func, args);
-    pthread_attr_destroy(&attr);
+	args->worker = JS_GetOpaque(obj, js_worker_class_id);
+	args->worker->th = gf_th_new(NULL);
+	if (!args->worker->th) {
+		goto oom_fail;
+	}
+
+	ret = gf_th_run(args->worker->th, worker_func, args);
     if (ret != 0) {
         JS_ThrowTypeError(ctx, "could not create worker");
         goto fail;
@@ -3832,7 +3886,7 @@ static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
     }
 
     ps = worker->send_pipe;
-    pthread_mutex_lock(&ps->mutex);
+    gf_mx_p(ps->mutex);
     /* indicate that data is present */
     if (list_empty(&ps->msg_queue)) {
         uint8_t ch = '\0';
@@ -3846,7 +3900,7 @@ static JSValue js_worker_postMessage(JSContext *ctx, JSValueConst this_val,
         }
     }
     list_add_tail(&msg->link, &ps->msg_queue);
-    pthread_mutex_unlock(&ps->mutex);
+    gf_mx_v(ps->mutex);
     return JS_UNDEFINED;
  fail:
     if (msg) {
@@ -4178,8 +4232,12 @@ void js_std_free_handlers(JSRuntime *rt)
     }
 
 #ifdef USE_WORKER
-    /* XXX: free port_list ? */
-    js_free_message_pipe(ts->recv_pipe);
+
+	list_for_each_safe(el, el1, &ts->port_list) {
+		JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
+		js_free_port(rt, port);
+	}	
+	js_free_message_pipe(ts->recv_pipe);
     js_free_message_pipe(ts->send_pipe);
 #endif
 
