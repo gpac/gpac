@@ -581,6 +581,11 @@ static JSModuleDef *js_module_loader_so(JSContext *ctx,
 
 #endif //GPAC_DISABLE_QJS_LIBC
 
+#ifdef GPAC_DISABLE_QJS_LIBC
+#include "cutils.h"
+#include "quickjs-libc.h"
+#endif
+
 int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
                               JS_BOOL use_realpath, JS_BOOL is_main)
 {
