@@ -2470,23 +2470,20 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 
 #ifndef GPAC_DISABLE_QJS_LIBC
 
-#if !defined(_WIN32)
-//not exposed in quickjs-libc.h
-#define USE_WORKER
-#endif
-
-#ifdef USE_WORKER
 static JSContext *JS_NewWorkerContext(JSRuntime *rt)
 {
-    JSContext *ctx;
-    ctx = JS_NewContext(rt);
+	JSContext *ctx = JS_NewContext(rt);
     if (!ctx)
         return NULL;
 
-	qjs_module_init_qjs_libc(ctx);
-    return ctx;
+	JSValue global_obj = JS_GetGlobalObject(ctx);
+	js_load_constants(ctx, global_obj);
+	JS_FreeValue(ctx, global_obj);
+
+	//disable WebGL and scene.js modules for workers
+	qjs_init_all_modules(ctx, GF_TRUE, GF_FALSE);
+	return ctx;
 }
-#endif
 
 void js_promise_rejection_tracker(JSContext *ctx, JSValueConst promise, JSValueConst reason, JS_BOOL is_handled, void *opaque)
 {
@@ -2507,9 +2504,7 @@ static void qjs_init_runtime_libc(JSRuntime *rt)
 
 #ifndef GPAC_DISABLE_QJS_LIBC
 
-#ifdef USE_WORKER
     js_std_set_worker_new_context_func(JS_NewWorkerContext);
-#endif
     js_std_init_handlers(rt);
 
 

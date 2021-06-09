@@ -101,7 +101,7 @@
 /* dump objects freed by the garbage collector */
 //#define DUMP_GC_FREE
 /* dump objects leaking when freeing the runtime */
-//#define DUMP_LEAKS  1
+#define DUMP_LEAKS  1
 /* dump memory usage before running the garbage collector */
 //#define DUMP_MEM
 //#define DUMP_OBJECTS    /* dump objects in JS_FreeContext */
