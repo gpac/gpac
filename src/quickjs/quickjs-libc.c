@@ -56,19 +56,22 @@
 #include <io.h>
 #include <direct.h>
 #endif
-#else
+#else //_WIN32
 #include <dlfcn.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 
 #if defined(__APPLE__)
-typedef sig_t sighandler_t;
+typedef sig_t mysighandler_t;
 #if !defined(environ)
 #include <crt_externs.h>
 #define environ (*_NSGetEnviron())
 #endif
-#endif /* __APPLE__ */
+#else /* __APPLE__ */
+extern char **environ;
+typedef void (*mysighandler_t)(int sig_num);
+#endif
 
 #endif
 
@@ -1146,7 +1149,7 @@ static JSValue js_std_file_seek(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (JS_ToInt32(ctx, &whence, argv[1]))
         return JS_EXCEPTION;
-	ret = gf_fseek(f, pos, whence);
+    ret = gf_fseek(f, pos, whence);
     if (ret < 0)
         ret = -errno;
     return JS_NewInt32(ctx, ret);
@@ -1969,7 +1972,7 @@ static void os_signal_handler(int sig_num)
 }
 
 #if defined(_WIN32)
-typedef void (*sighandler_t)(int sig_num);
+typedef void (*mysighandler_t)(int sig_num);
 #endif
 
 static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
@@ -1980,7 +1983,7 @@ static JSValue js_os_signal(JSContext *ctx, JSValueConst this_val,
     JSOSSignalHandler *sh;
     uint32_t sig_num;
     JSValueConst func;
-    sighandler_t handler;
+    mysighandler_t handler;
 
     if (!is_main_thread(rt))
         return JS_ThrowTypeError(ctx, "signal handler can only be set in the main thread");
@@ -3815,11 +3818,11 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
     if (JS_IsException(obj))
         goto fail;
     
-	args->worker = JS_GetOpaque(obj, js_worker_class_id);
-	args->worker->th = gf_th_new(NULL);
-	if (!args->worker->th) {
-		goto oom_fail;
-	}
+    args->worker = JS_GetOpaque(obj, js_worker_class_id);
+    args->worker->th = gf_th_new(NULL);
+    if (!args->worker->th) {
+        goto oom_fail;
+    }
 
 	ret = gf_th_run(args->worker->th, worker_func, args);
     if (ret != 0) {
