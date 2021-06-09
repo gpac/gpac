@@ -13,6 +13,8 @@ Base version is quickjs-2021-03-27 :
 - moved from pthread to GF_Thread in 'os' module
 - Worker support for windows (patched js_os_poll)
 - cleanup worker thread exit to avoid leaks
-- pacth js_std_loop to not run forever for main thread
+- patch js_std_loop to not run forever for main thread
 - added MSVC support for most 'os' functions (most importantly exec, waitpid and kill)
+- use gpac module loader
+- pacthes for sighandler_t and environ
 

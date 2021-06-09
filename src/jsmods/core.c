@@ -2316,55 +2316,7 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 }
 
 
-int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_realpath, Bool is_main)
-{
-	JSModuleDef *m;
-	JSValue meta_obj;
-	JSAtom module_name_atom;
-	const char *module_name, *src_file;
-#if !defined(_WIN32)
-	char buf[GF_MAX_PATH + 16];
-	char *rpath = NULL;
-#endif
-
-	assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
-	m = JS_VALUE_GET_PTR(func_val);
-
-	module_name_atom = JS_GetModuleName(ctx, m);
-	module_name = JS_AtomToCString(ctx, module_name_atom);
-	JS_FreeAtom(ctx, module_name_atom);
-	if (!module_name)
-		return -1;
-	src_file = module_name;
-	if (!strchr(module_name, ':')) {
-		strcpy(buf, "file://");
-#if !defined(_WIN32)
-		/* realpath() cannot be used with modules compiled with qjsc
-		because the corresponding module source code is not
-		necessarily present */
-		if (use_realpath) {
-			rpath = realpath(module_name, buf + strlen(buf));
-			if (!rpath) {
-				JS_ThrowTypeError(ctx, "realpath failure");
-				JS_FreeCString(ctx, module_name);
-				return -1;
-			}
-			src_file = rpath;
-		}
-#endif
-	}
-
-	meta_obj = JS_GetImportMeta(ctx, m);
-	if (JS_IsException(meta_obj)) {
-		JS_FreeCString(ctx, module_name);
-		return -1;
-	}
-	JS_DefinePropertyValueStr(ctx, meta_obj, "url", JS_NewString(ctx, src_file), JS_PROP_C_W_E);
-	JS_DefinePropertyValueStr(ctx, meta_obj, "main", JS_NewBool(ctx, is_main), JS_PROP_C_W_E);
-	JS_FreeCString(ctx, module_name);
-	JS_FreeValue(ctx, meta_obj);
-    return 0;
-}
+int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val, JS_BOOL use_realpath, JS_BOOL is_main);
 
 
 #ifndef GPAC_STATIC_BUILD
@@ -2463,7 +2415,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		if (JS_IsException(func_val))
 			return NULL;
 		/* XXX: could propagate the exception */
-		qjs_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
+		js_module_set_import_meta(ctx, func_val, GF_TRUE, GF_FALSE);
 		/* the module is already referenced, so we must free it */
 		m = JS_VALUE_GET_PTR(func_val);
 		JS_FreeValue(ctx, func_val);
