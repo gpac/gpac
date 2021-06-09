@@ -2442,12 +2442,10 @@ static int js_os_poll(JSContext *ctx)
                 }
             }
         }
-#ifdef GPAC_HAS_QJS
     }
     //do not block if main thread !
-    else if (!ts->recv_pipe) {
+    else if (!ts->recv_pipe || ts->terminated) {
 		return -1;
-#endif
 	}
 done:
     return 0;
@@ -3657,8 +3655,11 @@ static void js_worker_finalizer(JSRuntime *rt, JSValue val)
 		js_free_message_pipe(worker->recv_pipe);
         js_free_message_pipe(worker->send_pipe);
         js_free_port(rt, worker->msg_handler);
-		if (worker->ts) worker->ts->terminated = 1; 
-		if (worker->th)
+        //worker obj from parent script, indicate the worker can be terminated
+		if (worker->ts)
+			worker->ts->terminated = 1;
+        //worker obj from parent script, wait for thread exit
+        if (worker->th)
 			gf_th_del(worker->th);
         js_free_rt(rt, worker);
     }
@@ -3668,6 +3669,8 @@ static JSClassDef js_worker_class = {
     "Worker",
     .finalizer = js_worker_finalizer,
 }; 
+
+static void js_std_free_handlers_ex(JSRuntime *rt, int no_free_ts);
 
 static unsigned int worker_func(void *opaque)
 {
@@ -3721,8 +3724,11 @@ static unsigned int worker_func(void *opaque)
 	worker->msg_handler = NULL;
 
     JS_FreeContext(ctx);
-    js_std_free_handlers(rt);	
+    //do not free JSThreadState yet, it is used to unlink ports in worker finalizer
+    js_std_free_handlers_ex(rt, 1);
 	JS_FreeRuntime(rt);
+
+    free(ts);
     return 0;
 }
 
@@ -4209,7 +4215,7 @@ void js_std_init_handlers(JSRuntime *rt)
 #endif
 }
 
-void js_std_free_handlers(JSRuntime *rt)
+static void js_std_free_handlers_ex(JSRuntime *rt, int no_free_ts)
 {
     JSThreadState *ts = JS_GetRuntimeOpaque(rt);
     struct list_head *el, *el1;
@@ -4233,18 +4239,29 @@ void js_std_free_handlers(JSRuntime *rt)
 
 #ifdef USE_WORKER
 
-	list_for_each_safe(el, el1, &ts->port_list) {
+	//detach all ports (not doint so would result in leaks)
+	list_for_each(el, &ts->port_list) {
 		JSWorkerMessageHandler *port = list_entry(el, JSWorkerMessageHandler, link);
-		js_free_port(rt, port);
-	}	
+		if (port && !JS_IsUndefined(port->on_message_func)) {
+			JS_FreeValueRT(rt, port->on_message_func);
+			port->on_message_func = JS_UNDEFINED;
+		}
+	}
 	js_free_message_pipe(ts->recv_pipe);
     js_free_message_pipe(ts->send_pipe);
 #endif
 
-    free(ts);
+    if (!no_free_ts)
+        free(ts);
     JS_SetRuntimeOpaque(rt, NULL); /* fail safe */
 }
 
+void js_std_free_handlers(JSRuntime *rt)
+{
+	js_std_free_handlers_ex(rt, 0);
+
+}
+//unused
 #ifndef GPAC_HAS_QJS
 static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
 {
