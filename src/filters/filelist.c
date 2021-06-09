@@ -136,6 +136,7 @@ typedef struct
 	s32 floop;
 	u32 fsort;
 	u32 ka;
+	u64 timeout;
 	GF_PropStringList srcs;
 	GF_Fraction fdur;
 	u32 timescale;
@@ -724,8 +725,8 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		u64 last_modif_time = gf_file_modification_time(ctx->file_path);
 		if (ctx->last_file_modif_time >= last_modif_time) {
 			if (!is_splice_update) {
-				u32 diff = gf_sys_clock() - ctx->wait_update_start;
-				if (diff > 60 * ctx->ka) {
+				u64 diff = gf_sys_clock() - ctx->wait_update_start;
+				if (diff > ctx->timeout) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] Timeout refreshing playlist after %d ms, triggering eos\n", diff));
 					ctx->ka = 0;
 				}
@@ -2728,7 +2729,8 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	{ OFFS(fdur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
 	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ka), "keep playlist alive (disable loop), waiting the for a new input to be added or `#end` to end playlist. The value specify the refresh rate in ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ka), "keep playlist alive (disable loop), waiting the for a new input to be added or `#end` to end playlist. The value specifies the refresh rate in ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in ms after which the playlist is considered dead. `-1` means indefinitely", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(fsort), "sort list of files\n"
 		"- no: no sorting, use default directory enumeration of OS\n"
@@ -2793,7 +2795,7 @@ GF_FilterRegister FileListRegister = {
 		"When [-ka]() is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.\n"
 		"Playlist refreshing will abort:\n"
 		"- if the input playlist has a line not ending with a LF `(\\n)` character, in order to avoid asynchronous issues when reading the playlist.\n"
-		"- if the input playlist has not been modified for 60 times the refresh rate (based on file system modification time info).\n"
+		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
 		"- repeat=N: repeats N times the content (hence played N+1).\n"
