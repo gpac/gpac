@@ -2473,7 +2473,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 static JSContext *JS_NewWorkerContext(JSRuntime *rt)
 {
 	JSContext *ctx = JS_NewContext(rt);
-    if (!ctx)
+	if (!ctx)
         return NULL;
 
 	JSValue global_obj = JS_GetGlobalObject(ctx);
