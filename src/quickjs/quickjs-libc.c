@@ -128,6 +128,11 @@ void js_dump_error(JSContext *ctx);
 void js_dump_error_exc(JSContext *ctx, const JSValue exception_val);
 #define js_std_dump_error js_dump_error
 #define js_std_dump_error1 js_dump_error_exc
+
+//use our own loader
+JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *opaque);
+#define js_module_loader qjs_module_loader
+
 #endif //GPAC_HAS_QJS
 
 /* TODO:
@@ -512,6 +517,7 @@ static JSValue js_std_loadFile(JSContext *ctx, JSValueConst this_val,
 typedef JSModuleDef *(JSInitModuleFunc)(JSContext *ctx,
                                         const char *module_name);
 
+#ifndef GPAC_HAS_QJS
 
 #if defined(_WIN32)
 static JSModuleDef *js_module_loader_so(JSContext *ctx,
@@ -657,6 +663,7 @@ JSModuleDef *js_module_loader(JSContext *ctx,
     }
     return m;
 }
+#endif
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
                            int argc, JSValueConst *argv)
