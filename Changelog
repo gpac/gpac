@@ -67,6 +67,7 @@
 - reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters
 - support for windows long path
 - moved to latest QuickJS (2021-03-27)
+- added QJS-libc modules, support for exec/waitpid/kill and Workers on most platforms
 - support for FFmpeg 4.4
 - many bug fixes, improvements and security patches
 
