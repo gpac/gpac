@@ -2804,7 +2804,7 @@ GF_FilterRegister FileListRegister = {
 		"- srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
 		"- props=STR: assigns properties described in `STR` to all pids coming from the listed sources on next line. `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
-		"- del: specifies that the source file(s) must be deleted once processed, true by default is [-fdel]() is set.\n"
+		"- del: specifies that the source file(s) must be deleted once processed, true by default if [-fdel]() is set.\n"
 		"- out=V: specifies splicing start time (cf below).\n"
 		"- in=V: specifies splicing end time (cf below).\n"
 		"- nosync: prevents timestamp adjustments when joining sources (implied if `cat` is set).\n"
