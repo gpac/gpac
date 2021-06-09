@@ -2322,6 +2322,10 @@ int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_r
 	JSValue meta_obj;
 	JSAtom module_name_atom;
 	const char *module_name, *src_file;
+#if !defined(_WIN32)
+	char buf[GF_MAX_PATH + 16];
+	char *rpath = NULL;
+#endif
 
 	assert(JS_VALUE_GET_TAG(func_val) == JS_TAG_MODULE);
 	m = JS_VALUE_GET_PTR(func_val);
@@ -2333,20 +2337,19 @@ int qjs_module_set_import_meta(JSContext *ctx, JSValueConst func_val, Bool use_r
 		return -1;
 	src_file = module_name;
 	if (!strchr(module_name, ':')) {
-		char buf[GF_MAX_PATH + 16];
 		strcpy(buf, "file://");
 #if !defined(_WIN32)
 		/* realpath() cannot be used with modules compiled with qjsc
 		because the corresponding module source code is not
 		necessarily present */
 		if (use_realpath) {
-			char *res = realpath(module_name, buf + strlen(buf));
-			if (!res) {
+			rpath = realpath(module_name, buf + strlen(buf));
+			if (!rpath) {
 				JS_ThrowTypeError(ctx, "realpath failure");
 				JS_FreeCString(ctx, module_name);
 				return -1;
 			}
-			src_file = res;
+			src_file = rpath;
 		}
 #endif
 	}
@@ -2456,7 +2459,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		}
 		/* compile the module */
 		func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-		js_free(ctx, buf);
+		gf_free(buf);
 		if (JS_IsException(func_val))
 			return NULL;
 		/* XXX: could propagate the exception */
