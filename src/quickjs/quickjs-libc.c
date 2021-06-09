@@ -65,9 +65,14 @@
 #if defined(__APPLE__)
 typedef sig_t mysighandler_t;
 #if !defined(environ)
+#ifdef GPAC_CONFIG_IOS
+char *environ[1] = {NULL};
+#else
 #include <crt_externs.h>
 #define environ (*_NSGetEnviron())
 #endif
+#endif
+
 #else /* __APPLE__ */
 extern char **environ;
 typedef void (*mysighandler_t)(int sig_num);
