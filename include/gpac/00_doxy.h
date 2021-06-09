@@ -104,7 +104,7 @@ There is currently no support for non-local modules (http, https ...).
 
 The default GPAC compilation includes the following modules from QuickJS:
 - 'std': documentation https://bellard.org/quickjs/quickjs.html#std-module
-- 'os': documentation https://bellard.org/quickjs/quickjs.html#os-module
+- 'os': documentation https://bellard.org/quickjs/quickjs.html#os-module (see below)
 
 GPAC constants used in the API (error code, property types, specific flags for functions) are exported:
 - using the same name as native code, e.g. GF_STATS_LOCAL, GF_FILTER_SAP_1, etc...
@@ -115,6 +115,12 @@ Unless indicated otherwise, all errors are handled through exceptions. An except
 
 Types and interfaces are described using WebIDL, see https://heycam.github.io/webidl/, with some slight modifications.
 \warning These IDL files are only intended to document the APIs, and are likely useless for other purposes.
+
+
+Notes on QuickJS 'os' module support:
+- Workers are supported on OSX, Windows, iOS and Linux; final dereference of the worker object will end the worker thread.
+- On Windows, the `exec` function retuns an array rather than an int when run in asynchronous mode. The `waitpid` function will return an array where the first item is this pid object  when the process is over, to keep the same behavious as under non Windows systems.
+- On Windows, the `exec` function ignores `uid`, `gid` and user-specified stdin/stderr/stdout.
 
 
 \defgroup pyapi_grp Python APIs
