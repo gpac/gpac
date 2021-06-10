@@ -80,19 +80,16 @@ typedef void (*mysighandler_t)(int sig_num);
 
 #endif
 
-
-#if defined(_WIN32) && defined(_MSC_VER)
+//patch pipe and some unistd things for windows
+#if defined(_WIN32)
+//MSVC only
+#if defined(_MSC_VER) && !defined(__GNUC__)
 #ifndef PATH_MAX
 #define PATH_MAX GF_MAX_PATH
 #endif
 
-#if defined(_MSC_VER)
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
-#endif
-#define popen _popen
-#define pclose _pclose
-#define pipe(_a)  _pipe(_a, 1024, 0)
 
 #if !defined(S_IFIFO)
 #define S_IFIFO _S_IFIFO                     /* Pipe */
@@ -103,6 +100,13 @@ typedef SSIZE_T ssize_t;
 #if !defined(S_ISDIR)
 #define	S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
 #endif
+
+#endif
+
+//MSVC and mingw
+#define popen _popen
+#define pclose _pclose
+#define pipe(_a)  _pipe(_a, 1024, 0)
 
 #endif
 
