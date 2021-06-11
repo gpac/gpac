@@ -424,6 +424,8 @@ static Bool resample_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			anevt.buffer_req.max_buffer_us = FIX2INT( ctx->speed * 100000 );
 			gf_filter_pid_send_event(ctx->ipid, &anevt);
 		}
+		//reset output ts
+		ctx->out_cts_plus_one = 0;
 	}
 	return GF_FALSE;
 }
