@@ -1227,6 +1227,17 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	glViewport(0, 0, ctx->display_width, ctx->display_height);
 
+	if (!pck)
+		goto exit;
+
+	if (!ctx->glsl_program) return;
+
+	frame_ifce = gf_filter_pck_get_frame_interface(pck);
+	//main framebuffer, just display
+	if (frame_ifce && (frame_ifce->flags & GF_FRAME_IFCE_MAIN_GLFB)) {
+		goto exit;
+	}
+
 	gf_mx_init(mx);
 	hw = ((Float)ctx->display_width)/2;
 	hh = ((Float)ctx->display_height)/2;
@@ -1265,16 +1276,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		b = GF_COL_B(ctx->back); b /= 255;
 		glClearColor(r, g, b, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
-	}
-
-	if (!pck)
-		goto exit;
-
-	if (!ctx->glsl_program) return;
-
-	frame_ifce = gf_filter_pck_get_frame_interface(pck);
-	if (frame_ifce && (frame_ifce->flags & GF_FRAME_IFCE_MAIN_GLFB)) {
-		goto exit;
 	}
 
 	glUseProgram(ctx->glsl_program);
