@@ -1402,6 +1402,7 @@ static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc
 		if (!named_tx) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
 		named_tx->par_ctx = glc;
 		named_tx->tx_name = gf_strdup(tx_name);
+		named_tx->tx.mx_cicp = -1;
 		JS_FreeCString(ctx, tx_name);
 		ret_val_js = JS_NewObjectClass(ctx, NamedTexture_class_id);
 		JS_SetOpaque(ret_val_js, named_tx);
