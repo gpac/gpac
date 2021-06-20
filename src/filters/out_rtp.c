@@ -421,7 +421,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	case GF_CODECID_AAC_MPEG2_SSRP:
 		//we cannot disable mpeg4 payload type, compute default values !!
 		if (!const_dur || !average_size || !max_tsdelta || !max_size) {
-			const_dur = gf_timestamp_rescale(1024, samplerate, stream->timescale);
+			const_dur = (u32) gf_timestamp_rescale(1024, samplerate, stream->timescale);
 			max_tsdelta = const_dur;
 			average_size = 500;
 			max_size = 1000;

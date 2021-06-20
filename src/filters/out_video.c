@@ -1724,7 +1724,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (clock_us && media_ts.den) {
 			u32 safety;
 			//ref frame TS in video stream timescale
-			s64 ref_ts = gf_timestamp_rescale(media_ts.num, media_ts.den, ctx->timescale);
+			u64 ref_ts = gf_timestamp_rescale(media_ts.num, media_ts.den, ctx->timescale);
 
 			//compute time ellapsed since last clock ref in timescale
 			s64 diff = now;
@@ -1743,7 +1743,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			//allow 10ms video advance
 			#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
 			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
-			if (!ctx->step && !ctx->raw_grab && ((s64) cts > ref_ts + safety)) {
+			if (!ctx->step && !ctx->raw_grab && (cts > ref_ts + safety)) {
 				u32 resched_time = (u32) gf_timestamp_rescale(cts-ref_ts - safety, ctx->timescale, 1000000);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
@@ -1827,7 +1827,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			else
 				ref_clock = diff + cts;
 
-			ctx->last_pck_dur_us = gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000000);
+			ctx->last_pck_dur_us = (u32) gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000000);
 		}
 		//detach packet from pid, so that we can query next cts
 		gf_filter_pck_ref(&pck);

@@ -807,7 +807,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		if (cts_offset || dur) {
 			if (st->abps && (st->timescale!=st->sample_rate)) {
-				cts_offset = gf_timestamp_rescale(cts_offset, st->sample_rate, st->timescale);
+				cts_offset = (u32) gf_timestamp_rescale(cts_offset, st->sample_rate, st->timescale);
 				dur *= st->timescale;
 				dur /= st->sample_rate;
 			}
@@ -885,7 +885,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				if (st->stream_type!=GF_STREAM_VISUAL) {
 					u32 dur = gf_filter_pck_get_duration(new_pck);
 					if (gf_timestamp_greater(ts + ts_adj + dur - st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
-						u32 ts_diff = (u32) gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale) - (ts + ts_adj - st->ts_sub);
+						u32 ts_diff = (u32) ( gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale) - (ts + ts_adj - st->ts_sub));
 						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(ts_diff));
 						gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
 					}
@@ -1839,7 +1839,7 @@ GF_Err reframer_process(GF_Filter *filter)
 							if (is_start==2) {
 								st->split_start = (u32) (min_ts - ts);
 								if (min_timescale != st->timescale) {
-									st->split_start = gf_timestamp_rescale(st->split_start, min_timescale, st->timescale);
+									st->split_start = (u32) gf_timestamp_rescale(st->split_start, min_timescale, st->timescale);
 								}
 							}
 
