@@ -5418,6 +5418,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, j);
 			GF_List *reps = set->representations;
 			u32 nb_reps = gf_list_count(set->representations);
+			set->group = -1;
 
 			gf_list_add(new_as, set);
 			if (nb_reps<=1) {

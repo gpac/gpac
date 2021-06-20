@@ -540,7 +540,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		/*seek*/
 		if (!sc->last_au_time) {
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-				u32 au_time = (u32) (au->timing*1000/sc->timeScale);
+				u32 au_time = (u32) gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
 
 				if (au_time > stream_time)
 					break;
@@ -550,7 +550,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-			u32 au_time = (u32) (au->timing*1000/sc->timeScale);
+			u32 au_time = (u32) gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
 
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/

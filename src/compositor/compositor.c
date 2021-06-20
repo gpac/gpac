@@ -2941,9 +2941,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				}
 			}
 			if (pck_frame_ts) {
-				u64 ts = pck_frame_ts;
-				ts *= 1000;
-				ts /= compositor->passthrough_timescale;
+				u64 ts = gf_timestamp_rescale(pck_frame_ts, compositor->passthrough_timescale, 1000);
 				frame_ts = (u32) ts;
 			}
 			gf_filter_pck_send(pck);

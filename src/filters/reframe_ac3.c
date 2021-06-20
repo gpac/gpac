@@ -222,8 +222,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	if (!ctx->timescale) {
 		//we change sample rate, change cts
 		if (ctx->cts && (ctx->sample_rate != ctx->hdr.sample_rate)) {
-			ctx->cts *= ctx->hdr.sample_rate;
-			ctx->cts /= ctx->sample_rate;
+			ctx->cts = gf_timestamp_rescale(ctx->cts, ctx->sample_rate, ctx->hdr.sample_rate);
 		}
 	}
 	ctx->sample_rate = ctx->hdr.sample_rate;

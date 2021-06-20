@@ -236,11 +236,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 						//hack to avoid using a property, we set the carousel version on the packet to signal the duration applies to the entire segment, not the packet
 						gf_filter_pck_set_carousel_version(ref, 1);
 						if (seg_time.den) {
-							ts = seg_time.num;
-							if (seg_time.den != 1000) {
-								ts *= 1000;
-								ts /= seg_time.den;
-							}
+							ts = gf_timestamp_rescale(seg_time.num, seg_time.den, 1000);
 						} else {
 							ts = GF_FILTER_NO_TS;
 						}
@@ -291,8 +287,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			group->pto_setup = 1;
 
 			if (group->timescale && (group->timescale != ts)) {
-				group->pto *= ts;
-				group->pto /= group->timescale;
+				group->pto = gf_timestamp_rescale(group->pto, group->timescale, ts);
 			}
 			scale = ts;
 			scale /= 1000;

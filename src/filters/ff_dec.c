@@ -682,8 +682,7 @@ dispatch_next:
 			u32 timescale = gf_filter_pck_get_timescale(pck);
 			u64 odur = gf_filter_pck_get_duration(pck);
 			if (timescale != ctx->sample_rate) {
-				odur *= ctx->sample_rate;
-				odur /= timescale;
+				odur = gf_timestamp_rescale(odur, timescale, ctx->sample_rate);
 			}
 			if (odur < frame->nb_samples) {
 				frame->nb_samples = (int) odur;

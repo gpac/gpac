@@ -259,8 +259,7 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	gf_filter_pck_set_cts(dst_pck, ctx->last_cts);
 
 	if (ctx->timescale != ctx->sample_rate) {
-		u64 dur = total_samples * ctx->timescale;
-		dur /= ctx->sample_rate;
+		u64 dur = gf_timestamp_rescale(total_samples, ctx->sample_rate, ctx->timescale);
 		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {

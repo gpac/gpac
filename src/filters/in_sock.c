@@ -44,7 +44,7 @@ typedef struct
 #endif
 	char address[GF_MAX_IP_NAME_LEN];
 
-	u64 start_time;
+	u64 start_time, last_stats_time;
 	u64 nb_bytes;
 	Bool done;
 
@@ -54,7 +54,7 @@ typedef struct
 {
 	//options
 	const char *src;
-	u32 block_size, sockbuf;
+	u32 block_size;
 	u32 port, maxc;
 	char *ifce;
 	const char *ext;
@@ -163,14 +163,19 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		return e;
 	}
 
-	gf_sk_set_buffer_size(ctx->sock_c.socket, 0, ctx->sockbuf);
-	gf_sk_set_block_mode(ctx->sock_c.socket, !ctx->block);
-
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] opening %s%s\n", ctx->src, ctx->listen ? " in server mode" : ""));
 
 	if (ctx->block_size<2000)
 		ctx->block_size = 2000;
+
+	if (ctx->is_udp) {
+		ctx->block_size = (ctx->block_size / 188) * 188;
+
+		gf_filter_prevent_blocking(filter, GF_TRUE);
+	}
+	gf_sk_set_buffer_size(ctx->sock_c.socket, 0, ctx->block_size);
+	gf_sk_set_block_mode(ctx->sock_c.socket, (!ctx->is_udp && ctx->block) ? GF_FALSE : GF_TRUE);
+
 	ctx->buffer = gf_malloc(ctx->block_size + 1);
 	if (!ctx->buffer) return GF_OUT_OF_MEM;
 	//ext/mime given and not mpeg2, disable probe
@@ -249,8 +254,8 @@ static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockInClient *sock_c)
 {
-	u32 nb_read;
-	u64 bitrate;
+	u32 nb_read, pos;
+	u64 now;
 	GF_Err e;
 	GF_FilterPacket *dst_pck;
 	u8 *out_data, *in_data;
@@ -260,26 +265,38 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	if (sock_c->pck_out)
 		return GF_OK;
 
-	if (sock_c->pid && gf_filter_pid_would_block(sock_c->pid)) {
+	if (sock_c->pid && !ctx->is_udp && gf_filter_pid_would_block(sock_c->pid)) {
 		return GF_OK;
 	}
 
 	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
 
-	e = gf_sk_receive_no_select(sock_c->socket, ctx->buffer, ctx->block_size, &nb_read);
-	switch (e) {
-	case GF_IP_NETWORK_EMPTY:
-		return GF_OK;
-	case GF_OK:
-		break;
-	case GF_IP_CONNECTION_CLOSED:
-		if (!sock_c->done) {
-			sock_c->done = GF_TRUE;
-			gf_filter_pid_set_eos(sock_c->pid);
+	pos = 0;
+	nb_read=0;
+	while (pos < ctx->block_size) {
+		u32 read=0;
+		e = gf_sk_receive_no_select(sock_c->socket, ctx->buffer+pos, ctx->block_size - pos, &read);
+		if (e) {
+			if (nb_read) break;
+			switch (e) {
+			case GF_IP_NETWORK_EMPTY:
+				return GF_OK;
+			case GF_OK:
+				break;
+			case GF_IP_CONNECTION_CLOSED:
+				if (!sock_c->done) {
+					sock_c->done = GF_TRUE;
+					gf_filter_pid_set_eos(sock_c->pid);
+				}
+				return GF_EOS;
+			default:
+				return e;
+			}
 		}
-		return GF_EOS;
-	default:
-		return e;
+		nb_read+=read;
+		if (!ctx->is_udp || sock_c->rtp_reorder)
+			break;
+		pos += read;
 	}
 	if (!nb_read) return GF_OK;
 	sock_c->nb_bytes += nb_read;
@@ -359,11 +376,15 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	gf_filter_pck_send(dst_pck);
 
 	//send bitrate
-	bitrate = ( gf_sys_clock_high_res() - sock_c->start_time );
-	if (bitrate) {
-		bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
-		gf_filter_pid_set_property(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->address, (u32) (bitrate/10)));
+	now = gf_sys_clock_high_res();
+	if (now > sock_c->last_stats_time + 100000) {
+		sock_c->last_stats_time = now;
+		u64 bitrate = (now - sock_c->start_time );
+		if (bitrate) {
+			bitrate = (sock_c->nb_bytes * 8 * 1000000) / bitrate;
+			gf_filter_pid_set_info(sock_c->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT((u32) bitrate) );
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Receiving from %s at %d kbps\r", sock_c->address, (u32) (bitrate/10)));
+		}
 	}
 
 	return GF_OK;
@@ -393,7 +414,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 	u32 i, count;
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
-	e = gf_sk_group_select(ctx->active_sockets, 10, GF_SK_SELECT_READ);
+	e = gf_sk_group_select(ctx->active_sockets, 1, GF_SK_SELECT_READ);
 	if (e==GF_IP_NETWORK_EMPTY) {
 		if (ctx->is_udp) {
 			if (sockin_check_eos(ctx) )
@@ -403,14 +424,19 @@ static GF_Err sockin_process(GF_Filter *filter)
 			return GF_OK;
 		}
 
-		gf_filter_ask_rt_reschedule(filter, 1000);
+		gf_filter_ask_rt_reschedule(filter, 10);
 		return GF_OK;
 	}
-	else if (e) return e;
+	else if (e) {
+		return e;
+	}
 
+	ctx->last_rcv_time = 0;
 	if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket, GF_SK_SELECT_READ)) {
 		if (!ctx->listen) {
-			return sockin_read_client(filter, ctx, &ctx->sock_c);
+			e = sockin_read_client(filter, ctx, &ctx->sock_c);
+			gf_filter_ask_rt_reschedule(filter, 1);
+			return e;
 		}
 
 		if (gf_sk_group_sock_is_set(ctx->active_sockets, ctx->sock_c.socket, GF_SK_SELECT_READ)) {
@@ -483,8 +509,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 static const GF_FilterArgs SockInArgs[] =
 {
 	{ OFFS(src), "address of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sockbuf), "socket max buffer size", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "0x60000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
 	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(listen), "indicate the input socket works in server mode", GF_PROP_BOOL, "false", NULL, 0},

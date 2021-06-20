@@ -246,14 +246,14 @@ GF_Err vttmx_process(GF_Filter *filter)
 	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	else gf_bs_reassign_buffer(ctx->bs_w, ctx->cues_buffer, ctx->cues_buffer_size);
 
-	start_ts = gf_filter_pck_get_cts(pck);
-	end_ts = start_ts + gf_filter_pck_get_duration(pck);
-	start_ts *= 1000;
-	end_ts *= 1000;
 	timescale = gf_filter_pck_get_timescale(pck);
 	if (!timescale) timescale=1000;
-	start_ts /= timescale;
-	end_ts /= timescale;
+
+	start_ts = gf_filter_pck_get_cts(pck);
+	end_ts = start_ts + gf_filter_pck_get_duration(pck);
+
+	start_ts = gf_timestamp_rescale(start_ts, timescale, 1000);
+	end_ts = gf_timestamp_rescale(end_ts, timescale, 1000);
 
 	cues = gf_webvtt_parse_cues_from_data(data, pck_size, start_ts, end_ts);
 	if (ctx->parser) {

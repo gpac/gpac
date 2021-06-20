@@ -1109,10 +1109,13 @@ static void m2tsdmx_finalize(GF_Filter *filter)
 static GF_Err m2tsdmx_process(GF_Filter *filter)
 {
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
+	GF_FilterPacket *pck;
+	Bool check_block = GF_TRUE;
 	const char *data;
 	u32 size;
 
+restart:
+	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			u32 i, nb_streams = gf_filter_get_opid_count(filter);
@@ -1138,7 +1141,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	if (ctx->in_seek) {
 		gf_m2ts_reset_parsers(ctx->ts);
 		ctx->in_seek = GF_FALSE;
-	} else {
+	} else if (check_block) {
 		u32 i, nb_streams, would_block = 0;
 		nb_streams = gf_filter_get_opid_count(filter);
 		for (i=0; i<nb_streams; i++) {
@@ -1149,6 +1152,8 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		}
 		if (would_block && (would_block==nb_streams))
 			return GF_OK;
+
+		check_block = GF_FALSE;
 	}
 
 	data = gf_filter_pck_get_data(pck, &size);
@@ -1163,6 +1168,8 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		ctx->mux_tune_state = DMX_TUNE_DONE;
 		gf_m2ts_reset_parsers(ctx->ts);
+	} else {
+		goto restart;
 	}
 	return GF_OK;
 }

@@ -905,9 +905,8 @@ static GF_Err mcdec_process(GF_Filter *filter)
 				return GF_OK;
 			}
 		}
-		dts = gf_filter_pck_get_dts(pck);
-		dts *= 1000;
-		dts /= gf_filter_pck_get_timescale(pck);
+		dts = gf_timestamp_rescale(gf_filter_pck_get_dts(pck), gf_filter_pck_get_timescale(pck), 1000);
+
 		if (!min_dts || (min_dts>dts)) {
 			min_dts = dts;
 			ref_pid = pid;

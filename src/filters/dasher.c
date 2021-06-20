@@ -6014,8 +6014,7 @@ static void dasher_insert_timeline_entry(GF_DasherCtx *ctx, GF_DashStream *ds)
 		duration *= ds->mpd_timescale;
 		duration /= ds->timescale;
 
-		pto *= ds->mpd_timescale;
-		pto /= ds->timescale;
+		pto = gf_timestamp_rescale(pto, ds->timescale, ds->mpd_timescale);
 	}
 	seg_align = (ds->set->segment_alignment || ds->set->subsegment_alignment) ? GF_TRUE : GF_FALSE;
 	//not first and segment alignment, ignore
@@ -6350,7 +6349,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				s64 ast_diff;
 				u64 seg_ast = ctx->mpd->availabilityStartTime;
 				seg_ast += ctx->current_period->period->start;
-				seg_ast += (base_ds->adjusted_next_seg_start*1000) / base_ds->timescale;
+				seg_ast += gf_timestamp_rescale(base_ds->adjusted_next_seg_start, base_ds->timescale, 1000);
 
 				//if theoretical AST of the segment is less than the current UTC, we are producing the segment too late.
 				ast_diff = (s64) dasher_get_utc(ctx);
@@ -6408,7 +6407,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				if (ds->set->udta == set_ds)
 					set_ds->nb_rep_done++;
 			} else if (ctx->check_dur && !ds->force_rep_end) {
-				ds->force_rep_end = ds_done->first_cts_in_next_seg * ds->timescale / ds_done->timescale;
+				ds->force_rep_end = gf_timestamp_rescale(ds_done->first_cts_in_next_seg, ds_done->timescale, ds->timescale );
 			}
 		}
 	}
@@ -6535,8 +6534,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 
 	ds->seg_start_time = ds->first_cts_in_seg;
 	if (ds->timescale != ds->mpd_timescale) {
-		ds->seg_start_time *= ds->mpd_timescale;
-		ds->seg_start_time /= ds->timescale;
+		ds->seg_start_time = gf_timestamp_rescale(ds->seg_start_time, ds->timescale, ds->mpd_timescale);
 	}
 
 	if (ctx->store_seg_states) {
@@ -6777,8 +6775,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		segment time must be PTO-adjusted !*/
 		u64 pto = ds->presentation_time_offset;
 		if (base_ds->timescale != base_ds->mpd_timescale) {
-			pto *= base_ds->mpd_timescale;
-			pto /= base_ds->timescale;
+			pto = gf_timestamp_rescale(pto, base_ds->timescale, base_ds->mpd_timescale);
 		}
 
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, ds->set->bitstream_switching, szSegmentName, base_ds->rep_id, NULL, base_ds->seg_template, NULL, base_ds->seg_start_time + pto, base_ds->rep->bandwidth, base_ds->seg_number, ctx->stl);
@@ -6877,7 +6874,7 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 		//get max duration
 		ts_offset = a_ds->est_next_dts;
 
-		if (max_ts_offset * a_ds->timescale < ts_offset * max_ts_scale) {
+		if (gf_timestamp_less(max_ts_offset, max_ts_scale, ts_offset, a_ds->timescale)) {
 			max_ts_offset = ts_offset;
 			max_ts_scale = a_ds->timescale;
 		}
@@ -6890,9 +6887,7 @@ static Bool dasher_check_loop(GF_DasherCtx *ctx, GF_DashStream *ds)
 		if (a_ds->subdur_done)
 			continue;
 
-		ts_offset = max_ts_offset;
-		ts_offset *= a_ds->timescale;
-		ts_offset /= max_ts_scale;
+		ts_offset = gf_timestamp_rescale(max_ts_offset, max_ts_scale, a_ds->timescale);
 
 		a_ds->ts_offset = ts_offset;
 		if (a_ds->done) continue;
@@ -7337,8 +7332,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						u64 pto = cts + ds->pts_minus_cts;
 						u64 pto_adj = pto;
 						if (ds->timescale != ds->mpd_timescale) {
-							pto_adj *= ds->mpd_timescale;
-							pto_adj /= ds->timescale;
+							pto_adj = gf_timestamp_rescale(pto_adj, ds->timescale, ds->mpd_timescale);
 						}
 						if (ds->rep->segment_list)
 							ds->rep->segment_list->presentation_time_offset = pto_adj;
@@ -7380,7 +7374,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			cts = dasher_translate_cts(ds, cts);
 			dts -= ds->first_dts;
 
-			if (ctx->sreg && ctx->mpd->gpac_mpd_time && (dts * 1000 > ctx->mpd->gpac_mpd_time * ds->timescale)) {
+			if (ctx->sreg && ctx->mpd->gpac_mpd_time && gf_timestamp_greater(dts, ds->timescale, ctx->mpd->gpac_mpd_time, 1000)) {
 				nb_reg_done++;
 				break;
 			}
@@ -7413,16 +7407,16 @@ static GF_Err dasher_process(GF_Filter *filter)
 				Bool do_split = GF_FALSE;
 				//adding this sample would exceed the segment duration
 				if (gf_sys_old_arch_compat()) {
-					if ( (cts + dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale )
+					if (gf_timestamp_greater_or_equal(cts + dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale))
 						do_split = GF_TRUE;
 				} else {
-					if ( (cts + dur) * base_ds->timescale > base_ds->adjusted_next_seg_start * ds->timescale )
+					if ( gf_timestamp_greater(cts + dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale))
 						do_split = GF_TRUE;
 				}
 				if (do_split) {
 					//this sample starts in the current segment - split it
-					if (cts * base_ds->timescale < base_ds->adjusted_next_seg_start * ds->timescale ) {
-						split_dur = (u32) (base_ds->adjusted_next_seg_start * ds->timescale / base_ds->timescale - ds->last_cts);
+					if (gf_timestamp_less(cts, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale) ) {
+						split_dur = (u32) (gf_timestamp_rescale(base_ds->adjusted_next_seg_start, base_ds->timescale, ds->timescale) - ds->last_cts);
 
 						if (gf_sys_old_arch_compat() && (split_dur==dur))
 							split_dur=0;
@@ -7434,7 +7428,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 
 			//mux rep, wait for a CTS more than our base if base not yet over
-			if ((base_ds != ds) && !base_ds->seg_done && (cts * base_ds->timescale > base_ds->last_cts * ds->timescale ) )
+			if ((base_ds != ds) && !base_ds->seg_done && gf_timestamp_greater(cts, ds->timescale, base_ds->last_cts, base_ds->timescale) )
 				break;
 
 			if (ds->seek_to_pck) {
@@ -7571,7 +7565,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//forcing max time
 			else if (
-				(base_ds->force_rep_end && (cts * base_ds->timescale >= base_ds->force_rep_end * ds->timescale) )
+				(base_ds->force_rep_end && gf_timestamp_greater_or_equal(cts, ds->timescale, base_ds->force_rep_end, base_ds->timescale) )
 				|| (base_ds->clamped_dur.num && (cts + o_dur > ds->ts_offset + base_ds->clamped_dur.num * ds->timescale / base_ds->clamped_dur.den))
 			) {
 				if (!base_ds->period->period->duration && base_ds->force_rep_end) {
@@ -7612,13 +7606,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 
 					//same rule as above
-					if ((cts_next + next_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) {
+					if (gf_timestamp_greater_or_equal(cts_next + next_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale)) {
 						Bool force_seg_flush = GF_FALSE;
-						s64 diff_next = cts_next * base_ds->timescale / ds->timescale;
+						s64 diff_next = gf_timestamp_rescale(cts_next, ds->timescale, base_ds->timescale);
 						diff_next -= base_ds->adjusted_next_seg_start;
 						//bounds at closest: if this SAP is closer to the target next segment start than the next SAP, split at this packet
 						if (ds->sbound==DASHER_BOUNDS_CLOSEST) {
-							s64 diff = cts * base_ds->timescale / ds->timescale;
+							s64 diff = gf_timestamp_rescale(cts, ds->timescale, base_ds->timescale);
 							diff -= base_ds->adjusted_next_seg_start;
 							//this one may be negative, but we always want diff_next positive (next SAP in next segment)
 							if (diff<0)
@@ -7651,13 +7645,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			}
 			//we exceed segment duration - if segment was started, check if we need to stop segment
 			//if segment was not started we insert the packet anyway
-			else if (!ds->sbound && ds->segment_started && ((cts + check_dur) * base_ds->timescale >= base_ds->adjusted_next_seg_start * ds->timescale ) ) {
+			else if (!ds->sbound && ds->segment_started && gf_timestamp_greater_or_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale) ) {
 				//no sap, segment is over
 				if (! ctx->sap) {
 					seg_over = GF_TRUE;
 				}
 				else if ((ds->stream_type==GF_STREAM_AUDIO)
-					&& ((cts + check_dur) * base_ds->timescale == base_ds->adjusted_next_seg_start * ds->timescale)
+					&& gf_timestamp_equal(cts + check_dur, ds->timescale, base_ds->adjusted_next_seg_start, base_ds->timescale)
 				) {
 
 				}
@@ -7764,8 +7758,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ncts>ds->est_first_cts_in_next_seg)
 					ds->est_first_cts_in_next_seg = ncts;
 
-				ncts *= 1000;
-				ncts /= ds->timescale;
+				ncts = gf_timestamp_rescale(ncts, ds->timescale, 1000);
 				if (ncts>base_ds->max_period_dur)
 					base_ds->max_period_dur = ncts;
 
@@ -7871,20 +7864,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 				u64 ats;
 				ats = gf_filter_pck_get_dts(dst);
 				if (ats!=GF_FILTER_NO_TS) {
-					ats *= ds->force_timescale;
-					ats /= ds->timescale;
+					ats = gf_timestamp_rescale(ats, ds->timescale, ds->force_timescale);
 					gf_filter_pck_set_dts(dst, ats);
 				}
 				ats = gf_filter_pck_get_cts(dst);
 				if (ats!=GF_FILTER_NO_TS) {
-					ats *= ds->force_timescale;
-					ats /= ds->timescale;
+					ats = gf_timestamp_rescale(ats, ds->timescale, ds->force_timescale);
 					gf_filter_pck_set_cts(dst, ats);
 				}
 				ats = (u64) gf_filter_pck_get_duration(dst);
 				if (ats) {
-					ats *= ds->force_timescale;
-					ats /= ds->timescale;
+					ats = gf_timestamp_rescale(ats, ds->timescale, ds->force_timescale);
 					gf_filter_pck_set_duration(dst, (u32) ats);
 				}
 			}

@@ -367,8 +367,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	if (!ctx->timescale) {
 		//we change sample rate, change cts
 		if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
-			ctx->cts *= sr;
-			ctx->cts /= ctx->sr;
+			ctx->cts = gf_timestamp_rescale(ctx->cts, ctx->sr, sr);
 		}
 	}
 	ctx->sr = sr;

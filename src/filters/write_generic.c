@@ -990,7 +990,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		if (!ctx->first_dts_plus_one) {
 			ctx->first_dts_plus_one = dts+1;
 		} else {
-			if (ctx->dur.den * (dts + 1 - ctx->first_dts_plus_one) > ctx->dur.num * gf_filter_pck_get_timescale(pck)) {
+			if (gf_timestamp_greater(dts + 1 - ctx->first_dts_plus_one, gf_filter_pck_get_timescale(pck), ctx->dur.num, ctx->dur.den)) {
 				do_abort = GF_TRUE;
 			}
 		}
@@ -1065,7 +1065,7 @@ GF_Err writegen_process(GF_Filter *filter)
 		} else {
 			u32 timescale = gf_filter_pck_get_timescale(pck);
 			u32 dur = gf_filter_pck_get_duration(pck);
-			if (ctx->dur.den * (dts + dur + 1 - ctx->first_dts_plus_one) > ctx->dur.num * timescale) {
+			if (gf_timestamp_greater(dts + dur + 1 - ctx->first_dts_plus_one, timescale, ctx->dur.num, ctx->dur.den)) {
 				u32 bpp;
 				u8 *odata;
 				const GF_PropertyValue *p;
@@ -1124,8 +1124,7 @@ no_output:
 			ts = gf_filter_pck_get_cts(pck);
 		if (ts!=GF_FILTER_NO_TS) {
 			ts += gf_filter_pck_get_duration(pck);
-			ts *= ctx->duration.den;
-			ts /= timescale;
+			ts = gf_timestamp_rescale(ts, timescale, ctx->duration.den);
 			gf_set_progress("Exporting", ts, ctx->duration.num);
 		}
 	}

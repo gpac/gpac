@@ -584,7 +584,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 static int ffavio_read_packet(void *opaque, uint8_t *buf, int buf_size)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *)opaque;
-	return (int) gf_fread(buf, buf_size, ctx->gfio);
+	int res = (int) gf_fread(buf, buf_size, ctx->gfio);
+	if (!res && gf_feof(ctx->gfio)) {
+		return AVERROR_EOF;
+	}
+	return res;
 }
 
 static int64_t ffavio_seek(void *opaque, int64_t offset, int whence)

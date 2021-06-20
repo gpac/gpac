@@ -308,8 +308,7 @@ static void truehd_check_pid(GF_Filter *filter, GF_TrueHDDmxCtx *ctx, TrueHDHdr 
 	if (!ctx->timescale) {
 		//we change sample rate, change cts
 		if (ctx->cts && (ctx->sample_rate != hdr->sample_rate)) {
-			ctx->cts *= hdr->sample_rate;
-			ctx->cts /= ctx->sample_rate;
+			ctx->cts = gf_timestamp_rescale(ctx->cts, ctx->sample_rate, hdr->sample_rate);
 		}
 	}
 	ctx->sample_rate = hdr->sample_rate;

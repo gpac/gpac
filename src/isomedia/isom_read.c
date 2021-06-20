@@ -2263,7 +2263,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//only check duration if initially set - do not check duration as updated after fragment merge since that duration does not take
 	//into account tfdt
 	if (trak->Header->initial_duration
-		&& (movieTime * trak->moov->mvhd->timeScale > trak->Header->initial_duration * trak->Media->mediaHeader->timeScale)
+		&& gf_timestamp_greater(movieTime, trak->Media->mediaHeader->timeScale, trak->Header->initial_duration, trak->moov->mvhd->timeScale)
 	) {
 		if (sampleNumber) *sampleNumber = 0;
 		*StreamDescriptionIndex = 0;

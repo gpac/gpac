@@ -366,8 +366,7 @@ static GF_Err avimux_process(GF_Filter *filter)
 			if (cts==GF_FILTER_NO_TS) {
 
 			} else {
-				cts *= 1000;
-				cts /= st->timescale;
+				cts = gf_timestamp_rescale(cts, st->timescale, 1000);
 				if (!ctx->video_is_eos && (cts > ctx->last_video_time_ms))
 				 	break;
 			}
@@ -467,8 +466,8 @@ static GF_Err avimux_process(GF_Filter *filter)
 		if (cts!=GF_FILTER_NO_TS) {
 			u32 dur = gf_filter_pck_get_duration(pck);
 			cts += dur;
-			cts *= 1000;
-			cts /= video_st->timescale;
+
+			cts = gf_timestamp_rescale(cts, video_st->timescale, 1000);
 			ctx->last_video_time_ms = cts + 1;
 		} else {
 			ctx->last_video_time_ms ++;

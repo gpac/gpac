@@ -421,9 +421,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	case GF_CODECID_AAC_MPEG2_SSRP:
 		//we cannot disable mpeg4 payload type, compute default values !!
 		if (!const_dur || !average_size || !max_tsdelta || !max_size) {
-			const_dur = 1024;
-			const_dur *= stream->timescale;
-			const_dur /= samplerate;
+			const_dur = gf_timestamp_rescale(1024, samplerate, stream->timescale);
 			max_tsdelta = const_dur;
 			average_size = 500;
 			max_size = 1000;
@@ -752,15 +750,12 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 
 		if (dts==GF_FILTER_NO_TS) dts=0;
 
-		dts *= 1000000;
-		dts /= stream->timescale;
+		dts = gf_timestamp_rescale(dts, stream->timescale, 1000000);
 		if (min_dts > dts)
 			min_dts = dts;
 
 		if (ctx->tso>0) {
-			u64 offset = ctx->tso;
-			offset *= stream->timescale;
-			offset /= 1000000;
+			u64 offset = gf_timestamp_rescale(ctx->tso, 1000000, stream->timescale);
 			stream->rtp_ts_offset = (u32) offset;
 		}
 	}
@@ -880,8 +875,7 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					stream = gf_list_get(streams, i);
 					u64 dur = stream->current_dts + stream->current_duration - stream->min_dts;
 
-					dur *= 1000000;
-					dur /= stream->timescale;
+					dur = gf_timestamp_rescale(dur, stream->timescale, 1000000);
 
 					if (max_dur < dur) {
 						max_dur = dur;
@@ -898,12 +892,9 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 					stream = gf_list_get(streams, i);
 					p = gf_filter_pid_get_property(stream->pid, GF_PROP_NO_TS_LOOP);
 					if (!p || !p->value.boolean) {
-						u64 new_ts;
-						new_ts = max_dur;
-						new_ts *= stream->timescale;
-						new_ts /= 1000000;
+						u64 new_ts = gf_timestamp_rescale(max_dur, 1000000, stream->timescale);
 						stream->ts_offset += new_ts;
-						stream->microsec_ts_offset = (u64) (stream->ts_offset*(1000000.0/stream->timescale) + sys_clock_at_init);
+						stream->microsec_ts_offset = (u64) gf_timestamp_rescale(stream->ts_offset, stream->timescale, 1000000) + sys_clock_at_init;
 					}
 
 					//loop pid: stop and play

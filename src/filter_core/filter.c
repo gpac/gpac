@@ -3162,8 +3162,7 @@ void gf_filter_forward_clock(GF_Filter *filter)
 
 		clock_val = filter->next_clock_dispatch;
 		if (map->timescale != filter->next_clock_dispatch_timescale) {
-			clock_val *= map->timescale;
-			clock_val /= filter->next_clock_dispatch_timescale;
+			clock_val = gf_timestamp_rescale(clock_val, filter->next_clock_dispatch_timescale, map->timescale);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s internal forward of clock reference\n", pid->filter->name, pid->name));
 		pck = gf_filter_pck_new_shared((GF_FilterPid *)pid, NULL, 0, NULL);

@@ -504,8 +504,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 					tc = (cts - (temi->cts_at_init_val_plus_one-1));
 					if (timescale != ifce->timescale) {
-						tc *= temi->timescale;
-						tc /= ifce->timescale;
+						tc = gf_timestamp_rescale(tc, ifce->timescale, temi->timescale);
 					}
 					tc += temi->init_val;
 				} else {
@@ -516,14 +515,13 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 						tc = 0;
 
 					if (timescale != ifce->timescale) {
-						tc *= temi->timescale;
-						tc /= ifce->timescale;
+						tc = gf_timestamp_rescale(tc, ifce->timescale, temi->timescale);
 					}
 				}
 
 				if (temi->offset) {
 					if (timescale != ifce->timescale)
-						tc += ((u64) temi->offset) * ifce->timescale / 1000;
+						tc += (u64) gf_timestamp_rescale(temi->offset, 1000, ifce->timescale);
 					else
 						tc += temi->offset;
 				}
@@ -548,9 +546,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		cts_diff = 0;
 		if (tspid->prog->cts_offset) {
-			cts_diff = tspid->prog->cts_offset;
-			cts_diff *= tspid->esi.timescale;
-			cts_diff /= 1000000;
+			cts_diff = gf_timestamp_rescale(tspid->prog->cts_offset, 1000000, tspid->esi.timescale);
 
 			es_pck.cts += cts_diff;
 		}
@@ -565,8 +561,7 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				u64 diff;
 				//we don't have reliable dts - double the diff should make sure we don't try to adjust too often
 				diff = cts_diff = 2*(es_pck.dts - es_pck.cts);
-				diff *= 1000000;
-				diff /= tspid->esi.timescale;
+				diff = gf_timestamp_rescale(diff, tspid->esi.timescale, 1000000);
 				assert(tspid->prog->cts_offset <= diff);
 				tspid->prog->cts_offset += (u32) diff;
 
@@ -611,10 +606,8 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			GF_List *cues;
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-			start_ts = es_pck.cts * 1000;
-			start_ts /= tspid->esi.timescale;
-			end_ts = (es_pck.cts + es_pck.duration) * 1000;
-			end_ts /= tspid->esi.timescale;
+			start_ts = gf_timestamp_rescale(es_pck.cts, tspid->esi.timescale, 1000);
+			end_ts = gf_timestamp_rescale(es_pck.cts + es_pck.duration, tspid->esi.timescale, 1000);
 
 			cues = gf_webvtt_parse_cues_from_data(es_pck.data, es_pck.data_len, start_ts, end_ts);
 			for (i = 0; i < gf_list_count(cues); i++) {
@@ -1093,7 +1086,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 
 			media_skip = -atspid->media_delay;
-			if (!max_media_skip || (media_skip * max_skip_ts > max_media_skip * atspid->esi.timescale) ) {
+			if (!max_media_skip || gf_timestamp_greater(media_skip, atspid->esi.timescale, max_media_skip, max_skip_ts) ) {
 				max_media_skip = media_skip ;
 				max_skip_ts = atspid->esi.timescale;
 			}
@@ -1113,9 +1106,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
 	if (p) {
-		u64 diff = p->value.uint;
-		diff *= 1000000;
-		diff /= tspid->esi.timescale;
+		u64 diff = gf_timestamp_rescale(p->value.uint, tspid->esi.timescale, 1000000);
 		if (diff > tspid->prog->cts_offset)
 			tspid->prog->cts_offset = (u32) diff;
 	}
@@ -1181,9 +1172,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		u8 *output;
 		Bool large_sidx = GF_FALSE;
 		u32 segidx_size=0;
-		u64 last_pck_dur = tspid->pck_duration;
-		last_pck_dur *= 90000;
-		last_pck_dur /= tspid->esi.timescale;
+		u64 last_pck_dur = gf_timestamp_rescale(tspid->pck_duration, tspid->esi.timescale, 90000);
 
 		if (ctx->sidx_entries[ctx->nb_sidx_entries-1].sap_time > 0xFFFFFFFFUL)
 			large_sidx = GF_TRUE;
@@ -1517,6 +1506,9 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			gf_filter_ask_rt_reschedule(filter, 1000);
 #endif
 		}
+	} else if (!nb_pck_in_call) {
+		//not in end of stream and we did not emit packets, force reschedule to signal we're still active
+		gf_filter_ask_rt_reschedule(filter, 0);
 	}
 	//PMT update management is still under progress...
 	ctx->pmt_update_pending = 0;

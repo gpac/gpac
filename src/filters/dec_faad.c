@@ -381,8 +381,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	if (ctx->timescale && pck && gf_filter_pid_eos_received(ctx->ipid)) {
 		u64 odur = gf_filter_pck_get_duration(pck);
 		if (ctx->timescale != ctx->sample_rate) {
-			odur *= ctx->sample_rate;
-			odur /= ctx->timescale;
+			odur = gf_timestamp_rescale(odur, ctx->timescale, ctx->sample_rate);
 		}
 		if (odur * ctx->info.channels < ctx->info.samples) {
 			ctx->info.samples = (unsigned long) (odur * ctx->info.channels);

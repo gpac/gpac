@@ -156,6 +156,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_lz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_lz_decompress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_handles_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_rescale) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_rescale_signed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_less) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_less_or_equal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_greater) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_greater_or_equal) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_timestamp_equal) )
 
 /* Memory */
 #ifdef GPAC_MEMORY_TRACKING

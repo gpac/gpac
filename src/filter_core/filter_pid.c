@@ -4404,10 +4404,12 @@ single_retry:
     }
 
 	if (!num_pass) {
-		//cleanup forced link resolution
+		u32 k;
+		gf_mx_v(filter->session->filters_mx);
+		//cleanup forced filter list:
+		//remove any forced filter which is a destination of a filter we already linked to
 		for (i=0; i< gf_list_count(linked_dest_filters); i++) {
 			GF_Filter *filter_dst = gf_list_get(linked_dest_filters, i);
-			u32 k=0;
 			for (k=0; k<gf_list_count(force_link_resolutions); k++) {
 				GF_Filter *dst_link = gf_list_get(force_link_resolutions, k);
 				if (//if forced filter is in parent chain (already connected filters), don't force a link
@@ -4427,6 +4429,28 @@ single_retry:
 				}
 			}
 		}
+
+		//cleanup forced link resolution list: remove any forced filter which is a destination of another forced filter
+		//this is needed when multiple pids link to a single dynamically loaded mux, where we could end up
+		//with both the  destination link and the mux (in this order) in this list, creating a new mux if the destination has a pending link
+		for (i=0; i<gf_list_count(force_link_resolutions); i++) {
+			GF_Filter *forced_dst = gf_list_get(force_link_resolutions, i);
+			for (k=i+1; k<gf_list_count(force_link_resolutions); k++) {
+				GF_Filter *forced_inserted = gf_list_get(force_link_resolutions, k);
+
+				if (gf_filter_in_parent_chain(forced_inserted, forced_dst)
+					|| filter_match_target_dst(forced_inserted->destination_filters, forced_dst)
+					|| filter_match_target_dst(forced_inserted->destination_links, forced_dst)
+				) {
+					gf_list_rem(force_link_resolutions, i);
+					//prevent linking to this filter
+					gf_list_add(linked_dest_filters, forced_dst);
+					i--;
+					break;
+				}
+			}
+		}
+		gf_mx_p(filter->session->filters_mx);
 	}
 
 	if (loaded_filters) {
@@ -5491,8 +5515,7 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 		Bool has_ts = GF_TRUE;
 		u64 ts = (pck->info.dts != GF_FILTER_NO_TS) ? pck->info.dts : pck->info.cts;
 		if ((ts != GF_FILTER_NO_TS) && pck->pid_props && pck->pid_props->timescale) {
-			ts *= 1000000;
-			ts /= pck->pid_props->timescale;
+			ts = gf_timestamp_rescale(ts, pck->pid_props->timescale, 1000000);
 		} else {
 			has_ts = GF_FALSE;
 		}
@@ -5610,8 +5633,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (!nb_pck) {
 		safe_int64_sub(&pidinst->buffer_duration, pidinst->buffer_duration);
 	} else if (pck->info.duration && (pck->info.flags & GF_PCKF_BLOCK_START) && timescale) {
-		s64 d = ((u64)pck->info.duration) * 1000000;
-		d /= timescale;
+		s64 d = gf_timestamp_rescale(pck->info.duration, timescale, 1000000);
 		if (d > pidinst->buffer_duration) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Corrupted buffer level in PID instance %s (%s -> %s), dropping packet duration "LLD" us greater than buffer duration "LLU" us\n", pid->name, pid->filter->name, pidinst->filter ? pidinst->filter->name : "disconnected", d, pidinst->buffer_duration));
 			d = pidinst->buffer_duration;

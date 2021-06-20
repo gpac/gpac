@@ -469,15 +469,12 @@ static Bool rtspout_init_clock(GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess)
 
 		if (dts==GF_FILTER_NO_TS) dts=0;
 
-		dts *= 1000000;
-		dts /= stream->timescale;
+		dts = gf_timestamp_rescale(dts, stream->timescale, 1000000);
 		if (min_dts > dts)
 			min_dts = dts;
 
 		if (ctx->tso>0) {
-			u64 offset = ctx->tso;
-			offset *= stream->timescale;
-			offset /= 1000000;
+			u64 offset = gf_timestamp_rescale(ctx->tso, 1000000, stream->timescale);
 			stream->rtp_ts_offset = (u32) offset;
 		}
 		stream->current_cts = gf_filter_pck_get_cts(pck);

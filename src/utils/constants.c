@@ -1940,3 +1940,118 @@ const char *gf_cicp_color_matrix_all_names()
 	}
 	return szCICPMXAllNames;
 }
+
+
+GF_EXPORT
+u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
+{
+	if (!timescale || !new_timescale)
+		return 0;
+	//no timestamp
+	if (value==0xFFFFFFFFFFFFFFFFUL)
+		return value;
+
+	if (new_timescale == timescale)
+		return value;
+		
+	if (! (new_timescale % timescale)) {
+		u32 div = new_timescale / timescale;
+		return value * div;
+	}
+	if (! (timescale % new_timescale)) {
+		u32 div = timescale / new_timescale;
+		return value / div;
+	}
+
+	if (value <= GF_INT_MAX) {
+		return (value * new_timescale) / timescale;
+	}
+
+	u64 int_part = value / timescale;
+	u64 frac_part = (value % timescale * new_timescale) / timescale;
+	if (int_part >= GF_INT_MAX) {
+		Double res = value;
+		res *= new_timescale;
+		res /= timescale;
+		return (u64) res;
+	}
+	return int_part * new_timescale + frac_part;
+}
+
+GF_EXPORT
+s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
+{
+	if (!timescale || !new_timescale)
+		return 0;
+
+	if (! (new_timescale % timescale)) {
+		u32 div = new_timescale / timescale;
+		return value * div;
+	}
+	if (! (timescale % new_timescale)) {
+		u32 div = timescale / new_timescale;
+		return value / div;
+	}
+
+	if (value <= GF_INT_MAX) {
+		return (value * new_timescale) / timescale;
+	}
+
+	s64 int_part = value / timescale;
+	u64 frac_part = ((value % timescale) * new_timescale) / timescale;
+	if ((int_part >= GF_INT_MAX) || (int_part <= GF_INT_MIN)) {
+		Double res = value;
+		res *= new_timescale;
+		res /= timescale;
+		return (s64) res;
+	}
+	return int_part * new_timescale + frac_part;
+}
+
+#define TIMESTAMP_COMPARE(_op) \
+	if (timescale1==timescale2) { \
+		return (value1 _op value2); \
+	} \
+	\
+	if ((value1 <= GF_INT_MAX) && (value2 <= GF_INT_MAX)) { \
+		return (value1 * timescale2 _op value2 * timescale1); \
+	} \
+	\
+	if ((value1==0xFFFFFFFFFFFFFFFFUL) || (value2==0xFFFFFFFFFFFFFFFFUL)) \
+		return GF_FALSE; \
+	\
+	if (!timescale1 || !timescale2) return GF_FALSE; \
+	\
+	u64 v1_rescale = gf_timestamp_rescale(value1, timescale1, timescale2); \
+	return (v1_rescale _op value2); \
+
+
+GF_EXPORT
+Bool gf_timestamp_less(u64 value1, u64 timescale1, u64 value2, u64 timescale2)
+{
+	TIMESTAMP_COMPARE(<)
+}
+
+GF_EXPORT
+Bool gf_timestamp_less_or_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2)
+{
+	TIMESTAMP_COMPARE(<=)
+}
+
+GF_EXPORT
+Bool gf_timestamp_greater(u64 value1, u64 timescale1, u64 value2, u64 timescale2)
+{
+	TIMESTAMP_COMPARE(>)
+}
+
+GF_EXPORT
+Bool gf_timestamp_greater_or_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2)
+{
+	TIMESTAMP_COMPARE(>=)
+}
+
+GF_EXPORT
+Bool gf_timestamp_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2)
+{
+	TIMESTAMP_COMPARE(==)
+}

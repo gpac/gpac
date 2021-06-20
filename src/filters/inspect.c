@@ -3381,7 +3381,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
 
 			if (!pctx->init_ts) pctx->init_ts = ts+1;
-			else if ((ts + dur - pctx->init_ts + 1) * (u64)ctx->dur.den >= timescale * (u64) ctx->dur.num) {
+			else if (gf_timestamp_greater_or_equal(ts + dur - pctx->init_ts + 1, timescale, ctx->dur.num, ctx->dur.den)) {
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 

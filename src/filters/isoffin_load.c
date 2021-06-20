@@ -535,7 +535,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			u32 ts;
 			u64 dur;
 			if (gf_isom_get_sidx_duration(read->mov, &dur, &ts)==GF_OK) {
-				dur *= read->time_scale;
+				dur *= read->timescale;
 				dur /= ts;
 				ch->duration = dur;
 				use_sidx_dur = GF_TRUE;
@@ -549,15 +549,15 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				//no specific edit list type but edit present, use the duration in the edit
 				if (gf_isom_get_edits_count(read->mov, ch->track)) {
 					u64 dur = gf_isom_get_track_duration(read->mov, ch->track);
-					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, read->time_scale));
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, read->timescale));
 				} else {
 					u64 dur = gf_isom_get_media_duration(read->mov, ch->track);
-					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->time_scale));
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(dur, ch->timescale));
 				}
 			}
 			//otherwise trust track duration
 			else {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->time_scale));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ch->duration, read->timescale));
 			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_NB_FRAMES, &PROP_UINT(sample_count));
 		}
@@ -565,13 +565,13 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (sample_count && (streamtype==GF_STREAM_VISUAL)) {
 			u64 mdur = gf_isom_get_media_duration(read->mov, track);
 			mdur /= sample_count;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->time_scale, (u32) mdur));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->timescale, (u32) mdur));
 		}
 
 		track_dur = (Double) (s64) ch->duration;
-		track_dur /= read->time_scale;
+		track_dur /= read->timescale;
 		//move channel duration in media timescale
-		ch->duration = (u64) (track_dur * ch->time_scale);
+		ch->duration = (u64) (track_dur * ch->timescale);
 
 
 		//set stream subtype
@@ -1026,7 +1026,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			d2 = gf_isom_get_sample_duration(read->mov, ch->track, 2);
 			if (d1 && d2 && (d1==d2)) {
 				d1 *= sr;
-				d1 /= ch->time_scale;
+				d1 /= ch->timescale;
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(d1));
 			}
 		}
