@@ -315,7 +315,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			if (ctx->pck_offset) {
 				u32 nb_samp = ctx->pck_offset/ctx->bytes_per_sample;
 				if (ctx->timescale != ctx->sr) {
-					nb_samp = gf_timestamp_rescale(nb_samp, ctx->sr, ctx->timescale);
+					nb_samp = (u32) gf_timestamp_rescale(nb_samp, ctx->sr, ctx->timescale);
 				}
 				timestamp.num += nb_samp;
 			}

@@ -6297,7 +6297,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 			if (tkw->src_timescale != tkw->tk_timescale) {
 				min_ts = gf_timestamp_rescale(min_ts, tkw->src_timescale, tkw->tk_timescale);
-				delay = gf_timestamp_rescale(delay, tkw->src_timescale, tkw->tk_timescale);
+				delay = (u32) gf_timestamp_rescale(delay, tkw->src_timescale, tkw->tk_timescale);
 			}
 			mdur += delay;
 
@@ -6364,7 +6364,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			gf_isom_refresh_size_info(ctx->file, tkw->track_num);
 
 		if ((tkw->nb_samples == 1) && (ctx->idur.num>0) && ctx->idur.den) {
-			u32 dur = gf_timestamp_rescale(ctx->idur.num, ctx->idur.den, tkw->tk_timescale);
+			u32 dur = (u32) gf_timestamp_rescale(ctx->idur.num, ctx->idur.den, tkw->tk_timescale);
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
 		}
 

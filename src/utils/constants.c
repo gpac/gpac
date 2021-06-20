@@ -1955,11 +1955,11 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 		return value;
 		
 	if (! (new_timescale % timescale)) {
-		u32 div = new_timescale / timescale;
+		u32 div = (u32) (new_timescale / timescale);
 		return value * div;
 	}
 	if (! (timescale % new_timescale)) {
-		u32 div = timescale / new_timescale;
+		u32 div = (u32) (timescale / new_timescale);
 		return value / div;
 	}
 
@@ -1970,7 +1970,7 @@ u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale)
 	u64 int_part = value / timescale;
 	u64 frac_part = (value % timescale * new_timescale) / timescale;
 	if (int_part >= GF_INT_MAX) {
-		Double res = value;
+		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
 		return (u64) res;
@@ -1985,11 +1985,11 @@ s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
 		return 0;
 
 	if (! (new_timescale % timescale)) {
-		u32 div = new_timescale / timescale;
+		u32 div = (u32) (new_timescale / timescale);
 		return value * div;
 	}
 	if (! (timescale % new_timescale)) {
-		u32 div = timescale / new_timescale;
+		u32 div = (u32) (timescale / new_timescale);
 		return value / div;
 	}
 
@@ -2000,7 +2000,7 @@ s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
 	s64 int_part = value / timescale;
 	u64 frac_part = ((value % timescale) * new_timescale) / timescale;
 	if ((int_part >= GF_INT_MAX) || (int_part <= GF_INT_MIN)) {
-		Double res = value;
+		Double res = (Double) value;
 		res *= new_timescale;
 		res /= timescale;
 		return (s64) res;
