@@ -268,8 +268,7 @@ mad_resync:
 		if ((s64) ctx->last_cts + ctx->delay < 0) {
 			s32 dur = num;
 			if (ctx->timescale != ctx->sample_rate) {
-				dur *= ctx->sample_rate;
-				dur /= ctx->timescale;
+				dur = gf_timestamp_rescale(dur, ctx->timescale, ctx->sample_rate);
 			}
 			if (dur + ctx->delay < 0) {
 				num = 0;
@@ -286,8 +285,7 @@ mad_resync:
 	if (!pck && ctx->last_pck_dur) {
 		u32 dur = ctx->last_pck_dur;
 		if (ctx->timescale != ctx->sample_rate) {
-			dur *= ctx->sample_rate;
-			dur /= ctx->timescale;
+			dur = gf_timestamp_rescale(dur, ctx->timescale, ctx->sample_rate);
 		}
 		if (dur < num) {
 			num = dur;
@@ -309,8 +307,7 @@ mad_resync:
 	}
 	gf_filter_pck_set_cts(dst_pck, ctx->last_cts);
 	if (ctx->timescale != ctx->sample_rate) {
-		u64 dur = num * ctx->timescale;
-		dur /= ctx->sample_rate;
+		u64 dur = gf_timestamp_rescale(num, ctx->sample_rate, ctx->timescale);
 		gf_filter_pck_set_duration(dst_pck, (u32) dur);
 		ctx->last_cts += dur;
 	} else {

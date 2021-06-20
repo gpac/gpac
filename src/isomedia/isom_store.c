@@ -1654,9 +1654,9 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 					stbl_GetSampleDTS_and_Duration(tmp->stbl->TimeToSample, tmp->sampleNumber, &DTS, &sample_dur);
 
 					//can this sample fit in our chunk ?
-					if ( ( (DTS - tmp->DTSprev) + tmp->chunkDur) * moov_timescale > movie->interleavingTime * tmp->timeScale
+					if (gf_timestamp_greater((DTS - tmp->DTSprev) + tmp->chunkDur, tmp->timeScale, movie->interleavingTime, moov_timescale)
 					        /*drift check: reject sample if outside our check window*/
-					        || (drift_inter && chunkLastDTS && ( ((u64)tmp->DTSprev*chunkLastScale) > ((u64)chunkLastDTS*tmp->timeScale)) )
+					        || (drift_inter && chunkLastDTS && gf_timestamp_greater(tmp->DTSprev, tmp->timeScale, chunkLastDTS, chunkLastScale) )
 					   ) {
 						//in case the sample is longer than InterleaveTime
 						if (!tmp->chunkDur) {

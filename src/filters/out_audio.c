@@ -279,7 +279,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 
 		delay = ctx->pid_delay;
 		if (ctx->adelay.den)
-			delay += ctx->adelay.num * (s32)ctx->timescale / (s32)ctx->adelay.den;
+			delay += gf_timestamp_rescale(ctx->adelay.num, ctx->adelay.den, ctx->timescale);
 
 		cts = gf_filter_pck_get_cts(pck);
 		if (delay >= 0) {
@@ -294,7 +294,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		if (ctx->dur.num>0) {
 			if (!ctx->first_cts) ctx->first_cts = cts+1;
 
-			if ((cts - ctx->first_cts + 1) * ctx->dur.den > (u64) ctx->dur.num*ctx->timescale) {
+			if (gf_timestamp_greater(cts - ctx->first_cts + 1, ctx->timescale, ctx->dur.num, ctx->dur.den)) {
 				gf_filter_pid_drop_packet(ctx->pid);
 				if (!ctx->aborted) {
 					GF_FilterEvent evt;
@@ -315,13 +315,12 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			if (ctx->pck_offset) {
 				u32 nb_samp = ctx->pck_offset/ctx->bytes_per_sample;
 				if (ctx->timescale != ctx->sr) {
-					nb_samp *= ctx->timescale;
-					nb_samp /= ctx->sr;
+					nb_samp = gf_timestamp_rescale(nb_samp, ctx->sr, ctx->timescale);
 				}
 				timestamp.num += nb_samp;
 			}
 
-			timestamp.num -= (ctx->hwdelay_us*ctx->timescale)/1000000;
+			timestamp.num -= gf_timestamp_rescale(ctx->hwdelay_us, 1000000, ctx->timescale);
 			if (timestamp.num<0) timestamp.num = 0;
 			timestamp.den = ctx->timescale;
 			gf_filter_hint_single_clock(ctx->filter, gf_sys_clock_high_res(), timestamp);
@@ -414,8 +413,7 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (ctx->first_cts && (ctx->timescale != timescale)) {
 		ctx->first_cts-=1;
-		ctx->first_cts *= timescale;
-		ctx->first_cts /= ctx->timescale;
+		gf_timestamp_rescale(ctx->first_cts, ctx->timescale, timescale);
 		ctx->first_cts+=1;
 	}
 	ctx->timescale = timescale;
@@ -555,6 +553,7 @@ static void aout_finalize(GF_Filter *filter)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] audio thread stopped\n"));
 			gf_th_del(ctx->th);
 		} else {
+			ctx->aborted = GF_TRUE;
 			ctx->audio_out->Shutdown(ctx->audio_out);
 		}
 		gf_modules_close_interface((GF_BaseInterface *)ctx->audio_out);

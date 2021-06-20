@@ -274,9 +274,7 @@ static GF_Err resample_process(GF_Filter *filter)
 				}
 			} else {
 				ctx->data = gf_filter_pck_get_data(ctx->in_pck, &ctx->size);
-				u64 cts = gf_filter_pck_get_cts(ctx->in_pck);
-				cts *= ctx->freq;
-				cts /= FIX2INT(ctx->speed * ctx->timescale);
+				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(ctx->in_pck), FIX2INT(ctx->speed * ctx->timescale), ctx->freq);
 				if (!ctx->out_cts_plus_one) {
 					ctx->out_cts_plus_one = cts + 1;
 				} else if (ctx->freq != ctx->input_ai.samplerate) {
@@ -322,15 +320,17 @@ static GF_Err resample_process(GF_Filter *filter)
 		if (!written) {
 			gf_filter_pck_discard(dstpck);
 		} else {
+			u32 dur = written / bytes_per_samp;
 			if (written != osize) {
 				gf_filter_pck_truncate(dstpck, written);
 			}
 			gf_filter_pck_set_dts(dstpck, ctx->out_cts_plus_one - 1);
 			gf_filter_pck_set_cts(dstpck, ctx->out_cts_plus_one - 1);
+			gf_filter_pck_set_duration(dstpck, dur);
 			gf_filter_pck_send(dstpck);
 
 			//out_cts is in output time scale ( = freq), increase by the amount of bytes/bps
-			ctx->out_cts_plus_one += written / bytes_per_samp;
+			ctx->out_cts_plus_one += dur;
 		}
 
 		//still some bytes to use from packet, do not discard

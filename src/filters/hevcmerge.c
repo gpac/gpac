@@ -1408,7 +1408,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		}
 		dts = gf_filter_pck_get_dts(pck_src);
 
-		if (dts * min_dts_timescale < min_dts * tile_pid->timescale) {
+		if (!min_dts_timescale || gf_timestamp_less(dts, tile_pid->timescale, min_dts, min_dts_timescale)) {
 			min_dts = dts;
 			min_dts_timescale = tile_pid->timescale;
 		}

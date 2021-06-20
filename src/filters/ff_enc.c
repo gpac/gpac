@@ -489,9 +489,10 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->frame->pts = ffenc_get_cts(ctx, pck);
 		ctx->frame->pkt_duration = gf_filter_pck_get_duration(pck);
 
-#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts *= ctx->encoder->time_base.den; _ts /= ctx->timescale; }
-#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }
-#define UNSCALE_DUR(_ts) { _ts *= ctx->timescale; _ts /= ctx->encoder->time_base.den; }      
+//use signed version of timestamp rescale since we may have negative dts
+#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->timescale, ctx->encoder->time_base.den); }
+#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->timescale); }
+#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->timescale); }      
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
@@ -502,7 +503,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		//store first frame CTS as will be seen after rescaling (to cope with rounding errors
 		//we use it after rescaling the output packet timing to compute CTS-DTS
 		if (!ctx->cts_first_frame_plus_one) {
-			u64 ts = ctx->frame->pts;
+			s64 ts = ctx->frame->pts;
 			UNSCALE_TS(ts)
 			ctx->cts_first_frame_plus_one = 1 + ts;
 		}
@@ -558,10 +559,11 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->remap_ts) {
 			UNSCALE_TS(ctx->frame->pts);
 			UNSCALE_TS(ctx->frame->pkt_duration);
-
-			UNSCALE_TS(pkt->dts);
-			UNSCALE_TS(pkt->pts);
-			UNSCALE_DUR(pkt->duration);
+			if (gotpck) {
+				UNSCALE_TS(pkt->dts);
+				UNSCALE_TS(pkt->pts);
+				UNSCALE_DUR(pkt->duration);
+			}
 		}
 	} else {
 #if (LIBAVFORMAT_VERSION_MAJOR<59)
@@ -914,9 +916,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ctx->samples_in_audio_buffer = 0;
 			if (data && (nb_samples > nb_copy)) {
 				ffenc_audio_append_samples(ctx, data, size, nb_copy, nb_samples - nb_copy);
-				ts_diff = nb_copy;
-				ts_diff *= ctx->timescale;
-				ts_diff /= ctx->sample_rate;
+				ts_diff = gf_timestamp_rescale(nb_copy, ctx->sample_rate,  ctx->timescale);
 				ctx->first_byte_cts = ffenc_get_cts(ctx, pck) + ts_diff;
 			}
 			gf_filter_pid_drop_packet(ctx->in_pid);
@@ -997,8 +997,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			if (! (ctx->encoder->codec->capabilities & AV_CODEC_CAP_DELAY)) {
 				pkt->duration = ctx->samples_in_audio_buffer;
 				if (ctx->timescale != ctx->sample_rate) {
-					pkt->duration *= ctx->timescale;
-					pkt->duration /= ctx->sample_rate;
+					pkt->duration = gf_timestamp_rescale(pkt->duration, ctx->sample_rate, ctx->timescale);
 				}
 			}
 			ctx->samples_in_audio_buffer = 0;
@@ -1055,8 +1054,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	//increase timestamp
 	ts_diff = ctx->frame->nb_samples;
 	if (ctx->timescale!=ctx->sample_rate) {
-		ts_diff *= ctx->timescale;
-		ts_diff /= ctx->sample_rate;
+		ts_diff = gf_timestamp_rescale(ts_diff, ctx->sample_rate, ctx->timescale);
 	}
 	ctx->first_byte_cts += ts_diff;
 

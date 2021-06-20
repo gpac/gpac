@@ -1659,8 +1659,8 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 					return idx;
 				}
 			} else {
-				if (start_time*start_timescale == segment_start * timescale) return idx;
-				if (start_time*start_timescale > segment_start * timescale) {
+				if (gf_timestamp_equal(start_time, timescale, segment_start, start_timescale)) return idx;
+				if (gf_timestamp_greater(start_time, timescale, segment_start, start_timescale)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Warning: segment timeline entry start "LLU" greater than segment start "LLU", using current entry\n", start_time, segment_start));
 					return idx;
 				}
@@ -7172,6 +7172,7 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated MPD in %d ms\n", gf_sys_clock() - now));
 		}
+		(*cache_is_full) = GF_FALSE;
 	} else {
 		Bool all_groups_done = GF_TRUE;
 		Bool cache_full = GF_TRUE;

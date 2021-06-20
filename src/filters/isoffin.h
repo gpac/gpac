@@ -83,7 +83,7 @@ typedef struct
 	/*input file*/
 	GF_ISOFile *mov;
 	Bool extern_mov;
-	u32 time_scale;
+	u32 timescale;
 	u32 nb_playing;
 	//source data is completely available
 	Bool input_loaded;
@@ -164,7 +164,7 @@ typedef struct
 	u64 sample_time, last_rap_sample_time, start, end;
 	Double speed;
 
-	u32 time_scale;
+	u32 timescale;
 	Bool to_init, has_rap;
 	//0: not playing, 1: playing 2: playing but end of range reached
 	u32 playing;

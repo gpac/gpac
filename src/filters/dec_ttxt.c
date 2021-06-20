@@ -1247,7 +1247,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
-	if (cts * 1000 > obj_time * timescale) {
+	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
 		Double ts_offset = (Double) cts;
 		ts_offset /= timescale;
 

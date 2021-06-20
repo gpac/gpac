@@ -336,8 +336,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	if (!ctx->timescale) {
 		//we change sample rate, change cts
 		if (ctx->cts && (ctx->sr_idx != ctx->hdr.sr_idx)) {
-			ctx->cts *= sr;
-			ctx->cts /= GF_M4ASampleRates[ctx->sr_idx];
+			ctx->cts = gf_timestamp_rescale(ctx->cts, GF_M4ASampleRates[ctx->sr_idx], sr);
 		}
 	}
 	ctx->sr_idx = ctx->hdr.sr_idx;
@@ -746,8 +745,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			ctx->hdr.nb_ch = 8;
 
 
-		//ready to send packet
-		if (ctx->hdr.frame_size + 1 < remain) {
+		//ready to send packet, check what we have in frame_size is a sync word
+		//if not enough bytes, store and wait
+		if (ctx->hdr.frame_size + sync_pos + 1 < remain) {
 			u32 next_frame = ctx->hdr.frame_size;
 			//make sure we are sync!
 			if ((sync[next_frame] !=0xFF) || ((sync[next_frame+1] & 0xF0) !=0xF0) ) {

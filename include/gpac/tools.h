@@ -279,6 +279,88 @@ Parse a 32 bit fraction from string
  */
 Bool gf_parse_frac(const char *str, GF_Fraction *frac);
 
+/*!
+\brief safe timestamp rescale
+
+Rescale a 64 bit timestamp value to new timescale, i.e. performs value * new_timescale / timescale
+\param value value to rescale. A value of -1 means no timestamp defined and is returned unmodified
+\param timescale timescale of value. Assumed to be less than 0xFFFFFFFF
+\param new_timescale new timescale? Assumed to be less than 0xFFFFFFFF
+\return new value
+ */
+u64 gf_timestamp_rescale(u64 value, u64 timescale, u64 new_timescale);
+
+/*!
+\brief safe signed timestamp rescale
+
+Rescale a 64 bit timestamp value to new timescale, i.e. performs value * new_timescale / timescale
+\param value value to rescale
+\param timescale timescale of value. Assumed to be less than 0xFFFFFFFF
+\param new_timescale new timescale. Assumed to be less than 0xFFFFFFFF
+\return new value
+ */
+s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale);
+
+/*!
+\brief compare timestamps
+
+Compares two timestamps
+\param value1 value to rescale
+\param timescale1 timescale of value. Assumed to be less than 0xFFFFFFFF
+\param value2 value to rescale
+\param timescale2 timescale of value. Assumed to be less than 0xFFFFFFFF
+\return GF_TRUE if (value1 / timescale1) is stricly less than (value2 / timescale2)
+ */
+Bool gf_timestamp_less(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
+
+/*!
+\brief compare timestamps
+
+Compares two timestamps
+\param value1 value to rescale
+\param timescale1 timescale of value. Assumed to be less than 0xFFFFFFFF
+\param value2 value to rescale
+\param timescale2 timescale of value. Assumed to be less than 0xFFFFFFFF
+\return GF_TRUE if (value1 / timescale1) is stricly less than or equal to (value2 / timescale2)
+ */
+Bool gf_timestamp_less_or_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
+
+/*!
+\brief compare timestamps
+
+Compares two timestamps
+\param value1 value to rescale
+\param timescale1 timescale of value. Assumed to be less than 0xFFFFFFFF
+\param value2 value to rescale
+\param timescale2 timescale of value. Assumed to be less than 0xFFFFFFFF
+\return GF_TRUE if (value1 / timescale1) is stricly greater than (value2 / timescale2)
+ */
+Bool gf_timestamp_greater(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
+
+/*!
+\brief compare timestamps
+
+Compares two timestamps
+\param value1 value to rescale
+\param timescale1 timescale of value. Assumed to be less than 0xFFFFFFFF
+\param value2 value to rescale
+\param timescale2 timescale of value. Assumed to be less than 0xFFFFFFFF
+\return GF_TRUE if (value1 / timescale1) is stricly greater than or equal to (value2 / timescale2)
+ */
+Bool gf_timestamp_greater_or_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
+
+/*!
+\brief compare timestamps
+
+Compares two timestamps
+\param value1 value to rescale
+\param timescale1 timescale of value. Assumed to be less than 0xFFFFFFFF
+\param value2 value to rescale
+\param timescale2 timescale of value. Assumed to be less than 0xFFFFFFFF
+\return GF_TRUE if (value1 / timescale1) is equal to (value2 / timescale2)
+ */
+Bool gf_timestamp_equal(u64 value1, u64 timescale1, u64 value2, u64 timescale2);
+
 /*! @} */
 
 /*!

@@ -657,8 +657,7 @@ static void rtpin_adjust_sync(GF_RTPIn *ctx)
 
 		ntp_diff_us = max_ntp_us;
 		ntp_diff_us -= stream->init_ntp_us;
-		ntp_diff_us *= stream->rtp_ch->TimeScale;
-		ntp_diff_us /= 1000000;
+		ntp_diff_us = gf_timestamp_rescale(ntp_diff_us, 1000000, stream->rtp_ch->TimeScale);
 		stream->ts_adjust = ntp_diff_us;
 	}
 }
@@ -687,8 +686,7 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 
 		//ntp time at origin: ntp(now) - ntp(first_pck) = rtpts(now) - rtpts(orig) -> ntp_first = ntp - rtp_diff
 		rtp_diff_us = stream->rtp_ch->last_SR_rtp_time - (stream->first_rtp_ts - 1);
-		rtp_diff_us *= 1000000;
-		rtp_diff_us /= stream->rtp_ch->TimeScale;
+		rtp_diff_us = gf_timestamp_rescale(rtp_diff_us, stream->rtp_ch->TimeScale, 1000000);
 
 		stream->init_ntp_us = ntp_clock_us - rtp_diff_us;
 

@@ -256,7 +256,7 @@ GF_Err adtsmx_process(GF_Filter *filter)
 			if (ctx->fdsi.num && ctx->fdsi.den) {
 				u64 ts = gf_filter_pck_get_cts(pck);
 				if (ts != GF_FILTER_NO_TS) {
-					if ((ts - ctx->last_cts) * ctx->fdsi.den >= ctx->timescale * ctx->fdsi.num) {
+					if (gf_timestamp_greater_or_equal(ts - ctx->last_cts, ctx->timescale, ctx->fdsi.num, ctx->fdsi.den)) {
 						ctx->last_cts = ts;
 						ctx->update_dsi = GF_TRUE;
 					}

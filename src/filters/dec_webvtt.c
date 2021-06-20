@@ -401,7 +401,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
-	if (cts * 1000 > obj_time * timescale) {
+	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
 		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / timescale), obj_time, filter);
 		return GF_OK;
 	}

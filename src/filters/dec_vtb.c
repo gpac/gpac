@@ -262,7 +262,7 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 			}
 		} else {
 			diff = (s64) (acts * timescale) - (s64) (cts * atimescale);
-			if ((diff>0) && (ctx->last_timescale_out * cts > timescale * ctx->last_cts_out) ) {
+			if ((diff>0) && gf_timestamp_greater(cts, timescale, ctx->last_cts_out, ctx->last_timescale_out) ) {
 				insert = GF_TRUE;
 			}
 		}
@@ -1529,9 +1529,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 				return GF_OK;
 			}
 		}
-		dts = gf_filter_pck_get_dts(pck);
-		dts *= 1000;
-		dts /= gf_filter_pck_get_timescale(pck);
+		dts = gf_timestamp_rescale(gf_filter_pck_get_dts(pck), gf_filter_pck_get_timescale(pck), 1000);
 		if (!min_dts || (min_dts>dts)) {
 			min_dts = dts;
 			ref_pid = pid;

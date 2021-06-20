@@ -663,8 +663,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 			u64 clock = ctx->clock_val;
 			cts_us += st->tk_delay;
 
-			cts_us *= 1000000;
-			cts_us /= st->timescale;
+			cts_us = gf_timestamp_rescale(cts_us, st->timescale, 1000000);
 			if (ctx->rt==REFRAME_RT_SYNC) {
 				if (!ctx->clock) ctx->clock = st;
 
@@ -808,8 +807,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 
 		if (cts_offset || dur) {
 			if (st->abps && (st->timescale!=st->sample_rate)) {
-				cts_offset *= st->timescale;
-				cts_offset /= st->sample_rate;
+				cts_offset = gf_timestamp_rescale(cts_offset, st->sample_rate, st->timescale);
 				dur *= st->timescale;
 				dur /= st->sample_rate;
 			}
@@ -880,14 +878,14 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (ts != GF_FILTER_NO_TS) {
 			if (ctx->is_range_extraction
 				&& st->seek_mode
-				&& ((ts + ts_adj - st->ts_sub) * ctx->cur_start.den < ctx->cur_start.num * (u64) st->timescale)
+				&& gf_timestamp_less(ts + ts_adj - st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)
 			) {
 				gf_filter_pck_set_seek_flag(new_pck, GF_TRUE);
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, NULL);
 				if (st->stream_type!=GF_STREAM_VISUAL) {
 					u32 dur = gf_filter_pck_get_duration(new_pck);
-					if ((ts + ts_adj + dur - st->ts_sub) * ctx->cur_start.den > ctx->cur_start.num * (u64) st->timescale) {
-						u32 ts_diff = (u32) (ctx->cur_start.num * st->timescale / ctx->cur_start.den - (ts + ts_adj - st->ts_sub) );
+					if (gf_timestamp_greater(ts + ts_adj + dur - st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
+						u32 ts_diff = (u32) gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale) - (ts + ts_adj - st->ts_sub);
 						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(ts_diff));
 						gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
 					}
@@ -994,36 +992,34 @@ static u32 reframer_check_pck_range(GF_ReframerCtx *ctx, RTStream *st, u64 ts, u
 		//if round_seek mode, check TS+dur is less than or equal to desired start, and we will notify the duration of data to skip from the packet
 		//otherwise, check TS is strictly less than desired start
 		if (st->seek_mode) {
-			if ((s64) ((ts+dur) * ctx->cur_start.den) <= ctx->cur_start.num * st->timescale) {
+			if (gf_timestamp_less_or_equal(ts+dur, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
 				before = GF_TRUE;
 				if ((st->stream_type==GF_STREAM_AUDIO) && st->ts_sub) {
-					if ((s64) ((ts+st->ts_sub) * ctx->cur_start.den) > ctx->cur_start.num * st->timescale) {
+					if (gf_timestamp_greater(ts+st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
 						before = GF_FALSE;
 					}
 				}
 			}
 		}
-		else if ((s64) (ts * ctx->cur_start.den) < ctx->cur_start.num * st->timescale) {
+		else if (gf_timestamp_less(ts, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
 			before = GF_TRUE;
-			if (st->abps && ( (s64) (ts+dur) * (s64) ctx->cur_start.den > ctx->cur_start.num * (s64) st->timescale)) {
-				u64 nb_samp = ctx->cur_start.num * st->timescale / ctx->cur_start.den - ts;
+			if (st->abps && gf_timestamp_greater(ts+dur, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
+				u64 nb_samp = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale) - ts;
 				if (st->timescale != st->sample_rate) {
-					nb_samp *= st->sample_rate;
-					nb_samp /= st->timescale;
+					nb_samp = gf_timestamp_rescale(nb_samp, st->timescale, st->sample_rate);
 				}
 				*nb_audio_samples_to_keep = (u32) nb_samp;
 				before = GF_FALSE;
 			}
 		}
 		//consider after if time+duration is STRICTLY greater than cut point
-		if ((ctx->range_type!=RANGE_OPEN) && ((s64) ((ts+dur) * ctx->cur_end.den) > ctx->cur_end.num * st->timescale)) {
+		if ((ctx->range_type!=RANGE_OPEN) && gf_timestamp_greater(ts+dur, st->timescale, ctx->cur_end.num, ctx->cur_end.den)) {
 			if ((st->abps || st->seek_mode )
-				&& ( (s64) ts * (s64) ctx->cur_end.den < ctx->cur_end.num * (s64) st->timescale)
+				&& gf_timestamp_less(ts, st->timescale, ctx->cur_end.num, ctx->cur_end.den)
 			) {
-				u64 nb_samp = ctx->cur_end.num * st->timescale / ctx->cur_end.den - ts;
+				u64 nb_samp = gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, st->timescale) - ts;
 				if (st->abps && (st->timescale != st->sample_rate)) {
-					nb_samp *= st->sample_rate;
-					nb_samp /= st->timescale;
+					nb_samp = gf_timestamp_rescale(nb_samp, st->timescale, st->sample_rate);
 				}
 				*nb_audio_samples_to_keep = (u32)nb_samp;
 			}
@@ -1128,12 +1124,12 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			}
 
 			if (st->all_saps) {
-				if (!min_ts_a || (last_sap_ts * min_timescale_a < min_ts_a * st->timescale) ) {
+				if (!min_ts_a || gf_timestamp_less(last_sap_ts, st->timescale, min_ts_a, min_timescale_a) ) {
 					min_ts_a = last_sap_ts;
 					min_timescale_a = st->timescale;
 				}
 			} else {
-				if (!min_ts || (last_sap_ts * min_timescale < min_ts * st->timescale) ) {
+				if (!min_ts || gf_timestamp_less(last_sap_ts, st->timescale, min_ts, min_timescale) ) {
 					min_ts = last_sap_ts;
 					min_timescale = st->timescale;
 				}
@@ -1163,7 +1159,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 					ts = gf_filter_pck_get_cts(pck);
 				ts += st->tk_delay;
 				ts += dur;
-				if (!min_ts || (ts * min_timescale > min_ts * st->timescale) ) {
+				if (!min_ts || gf_timestamp_greater(ts, st->timescale, min_ts, min_timescale) ) {
 					min_ts = ts;
 					min_timescale = st->timescale;
 				}
@@ -1201,7 +1197,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				ts = gf_filter_pck_get_cts(pck);
 			ts += st->tk_delay;
 
-			if (ts * ctx->min_ts_scale < ctx->min_ts_computed * st->timescale) {
+			if (gf_timestamp_less(ts, st->timescale, ctx->min_ts_computed, ctx->min_ts_scale)) {
 				return;
 			}
 		}
@@ -1231,7 +1227,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 					ts = gf_filter_pck_get_cts(pck);
 				ts += st->tk_delay;
 
-				if (ts * ctx->min_ts_scale >= ctx->min_ts_computed * st->timescale) {
+				if (gf_timestamp_greater_or_equal(ts, st->timescale, ctx->min_ts_computed, ctx->min_ts_scale)) {
 					nb_stop_at_min_ts ++;
 					found = GF_TRUE;
 					break;
@@ -1557,9 +1553,7 @@ GF_Err reframer_process(GF_Filter *filter)
 								if (ABS(diff_cur) < ABS(diff_prev)) cur_closer = GF_TRUE;
 							} else {
 								s64 diff_prev, diff_cur;
-								u64 start_range_ts = ctx->cur_start.num;
-								start_range_ts *= st->timescale;
-								start_range_ts /= ctx->cur_start.den;
+								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
 
 								diff_prev = diff_cur = start_range_ts;
 								diff_prev -= st->prev_sap_ts;
@@ -1576,9 +1570,7 @@ GF_Err reframer_process(GF_Filter *filter)
 							st->sap_ts_plus_one = st->prev_sap_ts+1;
 
 							if ((ctx->extract_mode==EXTRACT_RANGE) && !ctx->start_frame_idx_plus_one) {
-								u64 start_range_ts = ctx->cur_start.num;
-								start_range_ts *= st->timescale;
-								start_range_ts /= ctx->cur_start.den;
+								u64 start_range_ts = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
 								if (ts + ts_adj == start_range_ts) {
 									st->sap_ts_plus_one = ts+ts_adj+1;
 									st->nb_frames_until_start = 0;
@@ -1641,7 +1633,7 @@ GF_Err reframer_process(GF_Filter *filter)
 
 					//time-based extraction or dur split, try to clone packet
 					if (st->can_split && !ctx->start_frame_idx_plus_one) {
-						if ((s64) (ts * ctx->cur_end.den) < ctx->cur_end.num * st->timescale) {
+						if (gf_timestamp_less(ts, st->timescale, ctx->cur_end.num, ctx->cur_end.den)) {
 							//force enqueing this packet
 							enqueue = GF_TRUE;
 							st->split_end = (u32) ( (ctx->cur_end.num * st->timescale) / ctx->cur_end.den - ts);
@@ -1731,18 +1723,18 @@ GF_Err reframer_process(GF_Filter *filter)
 					continue;
 
 				if (st->can_split) {
-					if (!min_ts_split || ((st->sap_ts_plus_one-1) * min_timescale_split < min_ts_split * st->timescale) ) {
+					if (!min_ts_split || gf_timestamp_less(st->sap_ts_plus_one-1, st->timescale, min_ts_split, min_timescale_split) ) {
 						min_ts_split = st->sap_ts_plus_one;
 						min_timescale_split = st->timescale;
 					}
 				}
 				else if (st->all_saps) {
-					if (!min_ts_a || ((st->sap_ts_plus_one-1) * min_timescale_a < min_ts_a * st->timescale) ) {
+					if (!min_ts_a || gf_timestamp_less(st->sap_ts_plus_one-1, st->timescale, min_ts_a, min_timescale_a) ) {
 						min_ts_a = st->sap_ts_plus_one;
 						min_timescale_a = st->timescale;
 					}
 				} else {
-					if (!min_ts || ((st->sap_ts_plus_one-1) * min_timescale < min_ts * st->timescale) ) {
+					if (!min_ts || gf_timestamp_less(st->sap_ts_plus_one-1, st->timescale, min_ts, min_timescale) ) {
 						min_ts = st->sap_ts_plus_one;
 						min_timescale = st->timescale;
 					}
@@ -1803,14 +1795,11 @@ GF_Err reframer_process(GF_Filter *filter)
 						}
 
 						if (min_timescale != st->timescale) {
-							ts *= min_timescale;
-							ts /= st->timescale;
+							ts = gf_timestamp_rescale(ts, st->timescale, min_timescale);
 							if (check_priming) {
-								check_ts *= min_timescale;
-								check_ts /= st->timescale;
+								check_ts = gf_timestamp_rescale(check_ts, st->timescale, min_timescale);
 							}
-							dur *= min_timescale;
-							dur /= st->timescale;
+							dur = gf_timestamp_rescale(dur, st->timescale, min_timescale);
 						}
 
 						if (ts >= min_ts) {
@@ -1824,13 +1813,11 @@ GF_Err reframer_process(GF_Filter *filter)
 						}
 						else if ((st->abps || st->seek_mode) && (ts+dur >= min_ts) && (st->stream_type==GF_STREAM_AUDIO)) {
 							u64 diff;
-							diff = min_ts*st->timescale;
-							diff /= min_timescale;
+							diff = gf_timestamp_rescale(min_ts, min_timescale, st->timescale);
 							diff -= ots;
 							if (st->abps) {
 								if (st->sample_rate != st->timescale) {
-									diff *= st->sample_rate;
-									diff /= st->timescale;
+									diff = gf_timestamp_rescale(diff, st->timescale, st->sample_rate);
 								}
 							}
 							if (diff < odur) {
@@ -1846,15 +1833,13 @@ GF_Err reframer_process(GF_Filter *filter)
 							//remember TS at range start
 							s64 orig = min_ts;
 							if (st->timescale != min_timescale) {
-								orig *= st->timescale;
-								orig /= min_timescale;
+								orig = gf_timestamp_rescale(orig, min_timescale, st->timescale);
 							}
 							st->split_start = 0;
 							if (is_start==2) {
 								st->split_start = (u32) (min_ts - ts);
 								if (min_timescale != st->timescale) {
-									st->split_start *= st->timescale;
-									st->split_start /= min_timescale;
+									st->split_start = gf_timestamp_rescale(st->split_start, min_timescale, st->timescale);
 								}
 							}
 
@@ -2035,14 +2020,10 @@ load_next_range:
 			//we reinsert the same PCK, so the ts_at_range_start_plus is always the packet cts
 			//we therefore need to compute the ts at and as the target end time minus the target start time
 			if (st->reinsert_single_pck && ctx->cur_start.den) {
-				u64 start = ctx->cur_start.num;
-				start *= st->timescale;
-				start /= ctx->cur_start.den;
+				u64 start = gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale);
 				//closed range, compute TS at range end
 				if (ctx->cur_end.num && ctx->cur_end.den) {
-					st->ts_at_range_end = ctx->cur_end.num;
-					st->ts_at_range_end *= st->timescale;
-					st->ts_at_range_end /= ctx->cur_end.den;
+					st->ts_at_range_end = gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, st->timescale);
 					st->ts_at_range_end -= start;
 				}
 			} else {

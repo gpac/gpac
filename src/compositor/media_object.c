@@ -398,10 +398,8 @@ static u64 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *dis
 		}
 	}
 
-
-	ts *= 1000;
-	ts /= timescale;
-
+	ts = gf_timestamp_rescale(ts, timescale, 1000);
+	
 	//if addon, translate back into main content timing
 	if (mo->odm->parentscene && mo->odm->parentscene->root_od->addon) {
 		if (!mo->odm->parentscene->root_od->addon->timeline_ready) {

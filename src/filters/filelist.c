@@ -270,16 +270,12 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 
 	//and convert back cts/dts offsets to output timescale
 	if (ctx->dts_offset.num && ctx->dts_offset.den) {
-		iopid->dts_o = ctx->dts_offset.num;
-		iopid->dts_o *= iopid->o_timescale;
-		iopid->dts_o /= ctx->dts_offset.den;
+		iopid->dts_o = gf_timestamp_rescale(ctx->dts_offset.num, ctx->dts_offset.den, iopid->o_timescale);
 	} else {
 		iopid->dts_o = 0;
 	}
 	if (ctx->cts_offset.num && ctx->cts_offset.den) {
-		iopid->cts_o = ctx->cts_offset.num;
-		iopid->cts_o *= iopid->o_timescale;
-		iopid->cts_o /= ctx->cts_offset.den;
+		iopid->cts_o = gf_timestamp_rescale(ctx->cts_offset.num, ctx->cts_offset.den, iopid->o_timescale);
 	} else {
 		iopid->cts_o = 0;
 	}
@@ -292,11 +288,8 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 		cts = iopid->max_cts - iopid->dts_sub;
 		//convert to output timescale
 		if (prev_timescale != iopid->o_timescale) {
-			dts *= iopid->o_timescale;
-			dts /= prev_timescale;
-
-			cts *= iopid->o_timescale;
-			cts /= prev_timescale;
+			dts = gf_timestamp_rescale(dts, prev_timescale, iopid->o_timescale);
+			cts = gf_timestamp_rescale(cts, prev_timescale, iopid->o_timescale);
 		}
 		if (
 			//skip sync mode, do not adjust timestamps
@@ -1352,8 +1345,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 static s64 filelist_translate_splice_cts(FileListPid *iopid, u64 cts)
 {
 	if (iopid->timescale_splice != iopid->o_timescale) {
-		cts *= iopid->o_timescale;
-		cts /= iopid->timescale_splice;
+		cts = gf_timestamp_rescale(cts, iopid->timescale_splice, iopid->o_timescale);
 	}
 	return iopid->cts_o_splice + cts - iopid->dts_sub_splice;
 }
@@ -1432,20 +1424,19 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 
 			//we're entering the splice period
 			if ((ctx->splice_start.num >= 0)
-				&& ( (s64) check_ts * (s64) ctx->splice_start.den >= ctx->splice_start.num * (s64) ctx->splice_ctrl->timescale_splice)
+				&& gf_timestamp_greater_or_equal(check_ts, ctx->splice_ctrl->timescale_splice, ctx->splice_start.num, ctx->splice_start.den)
 			) {
 				//cts larger than splice end, move directly to splice_in state
 				if ((ctx->splice_end.num >= 0)
 					&& !ctx->flags_splice_end
-					&& ((s64) cts * (s64) ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
+					&& gf_timestamp_greater_or_equal(cts, ctx->splice_ctrl->timescale_splice, ctx->splice_end.num, ctx->splice_end.den)
 				) {
 					ctx->splice_state = FL_SPLICE_AFTER;
 					ctx->splice_end_cts = filelist_translate_splice_cts(ctx->splice_ctrl, cts);
 					return GF_TRUE;
 				}
 				if (is_raw_audio) {
-					u64 ts_diff = ctx->splice_start.num * ctx->splice_ctrl->timescale_splice;
-					ts_diff /= ctx->splice_start.den;
+					u64 ts_diff = gf_timestamp_rescale(ctx->splice_ctrl->timescale_splice, ctx->splice_start.den, ctx->splice_start.num);
 					if (ts_diff >= cts) {
 						ts_diff -= cts;
 						cts += ts_diff;
@@ -1509,13 +1500,12 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 
 		if (sap && (sap <= GF_FILTER_SAP_3)
 			&& (ctx->splice_end.num >= 0)
-			&& ((s64) check_ts * (s64) ctx->splice_end.den >= ctx->splice_end.num * ctx->splice_ctrl->timescale_splice)
+			&& gf_timestamp_greater_or_equal(check_ts, ctx->splice_ctrl->timescale_splice, ctx->splice_end.num, ctx->splice_end.den)
 		) {
 			ctx->splice_state = FL_SPLICE_AFTER;
 
 			if (is_raw_audio) {
-				u64 ts_diff = ctx->splice_end.num * ctx->splice_ctrl->timescale_splice;
-				ts_diff /= ctx->splice_end.den;
+				u64 ts_diff = gf_timestamp_rescale(ctx->splice_ctrl->timescale_splice, ctx->splice_end.den, ctx->splice_end.num);
 				if (ts_diff >= cts) {
 					ts_diff -= cts;
 					cts += ts_diff;
@@ -1584,10 +1574,8 @@ static void filelist_forward_splice_pck(FileListPid *iopid, GF_FilterPacket *pck
 
 		dur = nb_samp;
 		if (iopid->timescale_splice != iopid->splice_ra_info.sample_rate) {
-			dur *= iopid->timescale_splice;
-			dur /= iopid->splice_ra_info.sample_rate;
-			offset *= iopid->timescale_splice;
-			offset /= iopid->splice_ra_info.sample_rate;
+			dur = gf_timestamp_rescale(dur, iopid->splice_ra_info.sample_rate, iopid->timescale_splice);
+			offset = gf_timestamp_rescale(offset, iopid->splice_ra_info.sample_rate, iopid->timescale_splice);
 		}
 		cts += offset;
 		gf_filter_pck_set_cts(dst_pck, cts);
@@ -1623,7 +1611,7 @@ static void filelist_purge_slice(GF_FileListCtx *ctx)
 			if (cts==GF_FILTER_NO_TS) cts=0;
 
 			cts = filelist_translate_splice_cts(iopid, cts);
-			if (cts * ctx->splice_ctrl->o_timescale > ctx->spliced_current_cts * iopid->o_timescale)
+			if (gf_timestamp_greater(cts, iopid->o_timescale, ctx->spliced_current_cts, ctx->splice_ctrl->o_timescale))
 				break;
 
 			if (ctx->keep_splice) {
@@ -1704,8 +1692,7 @@ void filein_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPacket
 			iopid->audio_samples_to_keep = 0;
 		}
 		if (iopid->timescale != ra->sample_rate) {
-			dur *= iopid->timescale;
-			dur /= ra->sample_rate;
+			dur = gf_timestamp_rescale(dur, ra->sample_rate, iopid->timescale);
 		}
 	} else {
 		dur = gf_filter_pck_get_duration(pck);
@@ -1716,18 +1703,13 @@ void filein_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPacket
 		gf_filter_pck_set_cts(dst_pck, iopid->cts_o + cts - iopid->dts_sub);
 		gf_filter_pck_set_duration(dst_pck, dur);
 	} else {
-		u64 ts = dts;
-		ts *= iopid->o_timescale;
-		ts /= iopid->timescale;
+		u64 ts = gf_timestamp_rescale(dts, iopid->timescale, iopid->o_timescale);
 		gf_filter_pck_set_dts(dst_pck, iopid->dts_o + ts - iopid->dts_sub);
-		ts = cts;
-		ts *= iopid->o_timescale;
-		ts /= iopid->timescale;
+
+		ts = gf_timestamp_rescale(cts, iopid->timescale, iopid->o_timescale);
 		gf_filter_pck_set_cts(dst_pck, iopid->cts_o + ts - iopid->dts_sub);
 
-		ts = dur;
-		ts *= iopid->o_timescale;
-		ts /= iopid->timescale;
+		ts = gf_timestamp_rescale(dur, iopid->timescale, iopid->o_timescale);
 		gf_filter_pck_set_duration(dst_pck, (u32) ts);
 	}
 	dts += dur;
@@ -1877,7 +1859,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (!pck) {
 				iopid->wait_rap = GF_TRUE;
 				if (!ctx->wait_dts_plus_one.num
-					|| ((dts + 1) * ctx->wait_dts_plus_one.den > ctx->wait_dts_plus_one.num * (u64) iopid->timescale)
+					|| gf_timestamp_greater(dts + 1, iopid->timescale, ctx->wait_dts_plus_one.num, ctx->wait_dts_plus_one.den)
 				) {
 					ctx->wait_dts_plus_one.num = dts + 1;
 					ctx->wait_dts_plus_one.den = iopid->timescale;
@@ -1885,7 +1867,9 @@ static GF_Err filelist_process(GF_Filter *filter)
 				ctx->dts_sub_plus_one.num = 0;
 				return GF_OK;
 			}
-			if (ctx->wait_dts_plus_one.num && (dts * ctx->wait_dts_plus_one.den < (ctx->wait_dts_plus_one.num - 1) * (u64) iopid->timescale) ) {
+			if (ctx->wait_dts_plus_one.num
+				&& gf_timestamp_less(dts, iopid->timescale, (ctx->wait_dts_plus_one.num - 1), ctx->wait_dts_plus_one.den)
+			) {
 				gf_filter_pid_drop_packet(iopid->ipid);
 				iopid->wait_rap = GF_TRUE;
 				ctx->dts_sub_plus_one.num = 0;
@@ -1897,7 +1881,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			if (!ctx->dts_sub_plus_one.num
-				|| (dts * ctx->dts_sub_plus_one.den < (ctx->dts_sub_plus_one.num - 1) *(u64)  iopid->timescale)
+				|| gf_timestamp_less(dts, iopid->timescale, (ctx->dts_sub_plus_one.num - 1), ctx->dts_sub_plus_one.den)
 			) {
 				ctx->dts_sub_plus_one.num = dts + 1;
 				ctx->dts_sub_plus_one.den = iopid->timescale;
@@ -1926,9 +1910,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 
 		for (i=0; i<count; i++) {
 			iopid = gf_list_get(ctx->io_pids, i);
-			iopid->dts_sub = ctx->dts_sub_plus_one.num - 1;
-			iopid->dts_sub *= iopid->o_timescale;
-			iopid->dts_sub /= ctx->dts_sub_plus_one.den;
+			iopid->dts_sub = gf_timestamp_rescale(ctx->dts_sub_plus_one.num - 1, ctx->dts_sub_plus_one.den, iopid->o_timescale);
 		}
 		ctx->wait_dts_plus_one.num = 0;
 	}
@@ -2011,10 +1993,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 
 				//translate cts in output timescale, and compare with splice
 				if (iopid->timescale != iopid->o_timescale) {
-					cts *= iopid->o_timescale;
-					cts /= iopid->timescale;
-					dur *= iopid->o_timescale;
-					dur /= iopid->timescale;
+					cts = gf_timestamp_rescale(cts, iopid->timescale, iopid->o_timescale);
+					dur = gf_timestamp_rescale(dur, iopid->timescale, iopid->o_timescale);
 				}
 				if (iopid->cts_o + cts >= iopid->dts_sub)
 					cts = iopid->cts_o + cts - iopid->dts_sub;
@@ -2024,7 +2004,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				//about to enter the splice period
 				if (ctx->splice_state==FL_SPLICE_BEFORE) {
 					//do not dispatch yet if cts is greater than last CTS seen on splice control pid
-					if (cts * ctx->splice_ctrl->o_timescale > ctx->spliced_current_cts * iopid->o_timescale)
+					if (gf_timestamp_greater(cts, iopid->o_timescale, ctx->spliced_current_cts, ctx->splice_ctrl->o_timescale))
 						break;
 				}
 				//in the splice period
@@ -2037,19 +2017,17 @@ static GF_Err filelist_process(GF_Filter *filter)
 					}
 
 					//packet in splice range
-					if (check_ts * ctx->splice_ctrl->o_timescale >= ctx->splice_start_cts * iopid->o_timescale) {
+					if (gf_timestamp_greater_or_equal(check_ts, iopid->o_timescale, ctx->splice_start_cts, ctx->splice_ctrl->o_timescale)) {
 						Bool keep_pck = GF_FALSE;
 						//waiting for all streams to reach splice out point (packet is from main content)
 						//don't drop packet yet in case splice content is not ready
 						if (ctx->wait_splice_start) {
 							if (iopid->ra_info.is_raw && iopid->ra_info.sample_rate && !iopid->audio_samples_to_keep) {
-								u64 ts_diff = ctx->splice_start_cts * iopid->o_timescale;
-								ts_diff /= ctx->splice_ctrl->o_timescale;
+								u64 ts_diff = gf_timestamp_rescale(ctx->splice_start_cts, ctx->splice_ctrl->o_timescale, iopid->o_timescale);
 								if (ts_diff >= cts) {
 									ts_diff -= cts;
 									if (iopid->ra_info.sample_rate != iopid->o_timescale) {
-										ts_diff *= iopid->ra_info.sample_rate;
-										ts_diff /= iopid->o_timescale;
+										ts_diff = gf_timestamp_rescale(ts_diff,  iopid->o_timescale, iopid->ra_info.sample_rate);
 									}
 									iopid->audio_samples_to_keep = (s32) ts_diff;
 									if (ts_diff) keep_pck = GF_TRUE;
@@ -2064,7 +2042,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 							purge_splice = GF_TRUE;
 
 						//do not dispatch yet if cts is greater than last CTS seen on splice control pid
-						if (cts * ctx->splice_ctrl->o_timescale > ctx->spliced_current_cts * iopid->o_timescale)
+						if (gf_timestamp_greater(cts, iopid->o_timescale, ctx->spliced_current_cts, ctx->splice_ctrl->o_timescale))
 							break;
 
 					}
@@ -2086,19 +2064,17 @@ static GF_Err filelist_process(GF_Filter *filter)
 
 						if (
 							//packet is after splice end, drop
-							(check_ts * ctx->splice_ctrl->o_timescale >= ctx->splice_end_cts * iopid->o_timescale)
+							gf_timestamp_greater_or_equal(check_ts, iopid->o_timescale, ctx->splice_end_cts, ctx->splice_ctrl->o_timescale)
 							//packet is before splice end but a previous packet was dropped because after splice end (i.e. we dropped a ref), drop
 							|| iopid->splice_ready
 						) {
 							Bool do_break = GF_TRUE;
 							if (iopid->ra_info.is_raw && !iopid->audio_samples_to_keep) {
-								u64 ts_diff = ctx->splice_end_cts * iopid->o_timescale;
-								ts_diff /= ctx->splice_ctrl->o_timescale;
+								u64 ts_diff = gf_timestamp_rescale(ctx->splice_end_cts, ctx->splice_ctrl->o_timescale, iopid->o_timescale);
 								if (ts_diff >= cts) {
 									ts_diff -= cts;
 									if (iopid->ra_info.sample_rate != iopid->o_timescale) {
-										ts_diff *= iopid->ra_info.sample_rate;
-										ts_diff /= iopid->o_timescale;
+										ts_diff = gf_timestamp_rescale(ts_diff, iopid->o_timescale, iopid->ra_info.sample_rate);
 									}
 									iopid->audio_samples_to_keep = (s32) ts_diff;
 									if (ts_diff)
@@ -2120,7 +2096,9 @@ static GF_Err filelist_process(GF_Filter *filter)
 							check_ts += dur;
 							check_ts -= 1;
 						}
-						if (!iopid->audio_samples_to_keep && (check_ts * ctx->splice_ctrl->o_timescale < ctx->splice_end_cts * iopid->o_timescale)) {
+						if (!iopid->audio_samples_to_keep
+							&& gf_timestamp_less(check_ts, iopid->o_timescale, ctx->splice_end_cts, ctx->splice_ctrl->o_timescale)
+						) {
 							//do not drop if not raw audio and we were in keep/mark mode
 							if (iopid->ra_info.is_raw || !ctx->was_kept) {
 								gf_filter_pid_drop_packet(iopid->ipid);
@@ -2222,14 +2200,13 @@ static GF_Err filelist_process(GF_Filter *filter)
 					u64 cts = gf_filter_pck_get_cts(pck);
 					u64 check_ts = cts + gf_filter_pck_get_duration(pck) - 1;
 
-					if (cts * ctx->splice_ctrl->timescale < ctx->splice_end_cts * iopid->timescale) {
-						if (check_ts * ctx->splice_ctrl->timescale > ctx->splice_end_cts * iopid->timescale) {
-							u64 diff_ts = ctx->splice_end_cts * iopid->timescale / ctx->splice_ctrl->timescale;
+					if (gf_timestamp_less(cts, iopid->timescale, ctx->splice_end_cts, ctx->splice_ctrl->timescale)) {
+						if (gf_timestamp_greater(check_ts, iopid->timescale, ctx->splice_end_cts, ctx->splice_ctrl->timescale)) {
+							u64 diff_ts = gf_timestamp_rescale(ctx->splice_end_cts, ctx->splice_ctrl->timescale, iopid->timescale);
 							diff_ts -= cts;
 
 							if (iopid->timescale != iopid->ra_info.sample_rate) {
-								diff_ts *= iopid->ra_info.sample_rate;
-								diff_ts /= iopid->timescale;
+								diff_ts = gf_timestamp_rescale(diff_ts, iopid->timescale, iopid->ra_info.sample_rate);
 							}
 							iopid->audio_samples_to_keep = (s32) diff_ts;
 							if (ctx->keep_splice) {
@@ -2413,13 +2390,13 @@ static GF_Err filelist_process(GF_Filter *filter)
 			if (!iopid->ipid) continue;
 
 			ts = iopid->max_cts - iopid->dts_sub;
-			if (max_cts.num * (u64) iopid->timescale < ts * max_cts.den) {
+			if (gf_timestamp_less(max_cts.num, max_cts.den, ts, iopid->timescale)) {
 				max_cts.num = ts;
 				max_cts.den = iopid->timescale;
 			}
 
 			ts = iopid->max_dts - iopid->dts_sub;
-			if (max_dts.num * (u64) iopid->timescale < ts * max_dts.den) {
+			if (gf_timestamp_less(max_dts.num, max_dts.den, ts, iopid->timescale)) {
 				max_dts.num = ts;
 				max_dts.den = iopid->timescale;
 			}
@@ -2429,12 +2406,11 @@ static GF_Err filelist_process(GF_Filter *filter)
 		} else if (ctx->cts_offset.den == max_dts.den) {
 			ctx->cts_offset.num += max_dts.num;
 		} else if (max_dts.den>ctx->cts_offset.den) {
-			ctx->cts_offset.num *= max_dts.den;
-			ctx->cts_offset.num /= ctx->cts_offset.den;
+			ctx->cts_offset.num = gf_timestamp_rescale_signed(ctx->cts_offset.num, ctx->cts_offset.den, max_dts.den);
 			ctx->cts_offset.num += max_dts.num;
 			ctx->cts_offset.den = max_dts.den;
 		} else {
-			ctx->cts_offset.num += max_dts.num * ctx->cts_offset.den / max_dts.den;
+			ctx->cts_offset.num += gf_timestamp_rescale_signed(max_dts.num, max_dts.den, ctx->cts_offset.den);
 		}
 
 		if (!ctx->dts_offset.num || !ctx->dts_offset.den) {
@@ -2442,12 +2418,11 @@ static GF_Err filelist_process(GF_Filter *filter)
 		} else if (ctx->dts_offset.den == max_dts.den) {
 			ctx->dts_offset.num += max_dts.num;
 		} else if (max_dts.den > ctx->dts_offset.den) {
-			ctx->dts_offset.num *= max_dts.den;
-			ctx->dts_offset.num /= ctx->dts_offset.den;
+			ctx->dts_offset.num = gf_timestamp_rescale_signed(ctx->dts_offset.num, ctx->dts_offset.den, max_dts.den);
 			ctx->dts_offset.num += max_dts.num;
 			ctx->dts_offset.den = max_dts.den;
 		} else {
-			ctx->dts_offset.num += max_dts.num * ctx->dts_offset.den / max_dts.den;
+			ctx->dts_offset.num += gf_timestamp_rescale_signed(max_dts.num, max_dts.den, ctx->dts_offset.den);
 		}
 
 		if (ctx->nb_repeat) {

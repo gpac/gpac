@@ -1555,9 +1555,7 @@ retry:
 			rpid->pck_dur_at_frame_start = (u32) pck_dur;
 		}
 		//compute estimated file size based on segment duration and rate, use 10% overhead
-		tot_est_size = rpid->bitrate;
-		tot_est_size *= rpid->pck_dur_at_frame_start;
-		tot_est_size /= rpid->timescale;
+		tot_est_size = gf_timestamp_rescale(rpid->bitrate, rpid->timescale, rpid->pck_dur_at_frame_start);
 		tot_est_size /= 8;
 
 		//our estimate was too small...
@@ -1584,9 +1582,7 @@ retry:
 			rpid->cts_first_pck = ts;
 		}
 		//move to microsecs
-		diff = ts - rpid->cts_first_pck;
-		diff *= 1000000;
-		diff /= rpid->timescale;
+		diff = gf_timestamp_rescale(ts - rpid->cts_first_pck, rpid->timescale, 1000000);
 
 		rpid->current_cts_us = rpid->clock_at_first_pck + diff;
 		rpid->clock_at_pck = ctx->clock;
@@ -1602,8 +1598,7 @@ retry:
 			rpid->current_dur_us = rpid->timescale;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing duration on segment %s, something is wrong in demux chain, will not be able to regulate correctly\n", rpid->seg_name));
 		}
-		rpid->current_dur_us *= 1000000;
-		rpid->current_dur_us /= rpid->timescale;
+		rpid->current_dur_us = gf_timestamp_rescale(rpid->current_dur_us, rpid->timescale, 1000000);
 	} else if (start && end) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_ROUTE, ("[ROUTE] Missing timing on segment %s, using previous fragment timing CTS "LLU" duration "LLU" us\nSomething could be wrong in demux chain, will not be able to regulate correctly\n", rpid->seg_name, rpid->current_cts_us-rpid->clock_at_first_pck, rpid->current_dur_us));
 	} else {
@@ -1772,9 +1767,7 @@ next_packet:
 				u64 seg_clock, target_push_dur;
 
 				if (rpid->pck_dur_at_frame_start) {
-					target_push_dur = rpid->pck_dur_at_frame_start;
-					target_push_dur *= 1000000;
-					target_push_dur /= rpid->timescale;
+					target_push_dur = gf_timestamp_rescale(rpid->pck_dur_at_frame_start, rpid->timescale, 1000000);
 				} else {
 					target_push_dur = rpid->current_dur_us + rpid->current_cts_us - rpid->cts_us_at_frame_start;
 				}
@@ -1807,9 +1800,7 @@ next_packet:
 					}
 
 					if (rpid->pck_dur_at_frame_start && ctx->llmode) {
-						u64 seg_rate = rpid->full_frame_size * 8;
-						seg_rate *= rpid->timescale;
-						seg_rate /= rpid->pck_dur_at_frame_start;
+						u64 seg_rate = gf_timestamp_rescale(rpid->full_frame_size * 8, rpid->pck_dur_at_frame_start, rpid->timescale);
 
 						if (seg_rate > rpid->bitrate) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Segment %s rate "LLU" but stream rate "LLU", updating bitrate\n", rpid->seg_name, seg_rate, rpid->bitrate));

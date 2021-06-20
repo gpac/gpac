@@ -337,10 +337,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			ctx->ivf_hdr = 0;
 		}
 		if (ctx->mode==2) {
-			u64 cts = gf_filter_pck_get_cts(pck);
-			cts *= ctx->fps.den;
-			cts /= ctx->fps.num;
-			cts /= gf_filter_pck_get_timescale(pck);
+			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.num * gf_filter_pck_get_timescale(pck), ctx->fps.den);
 			gf_bs_write_u32_le(ctx->bs_w, size);
 			gf_bs_write_u64(ctx->bs_w, cts);
 		}

@@ -2270,7 +2270,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	for (i=0; i<gf_isom_get_track_count(dest); i++) {
 		u64 track_dur = gf_isom_get_media_duration(dest, i+1);
 		u32 track_ts = gf_isom_get_media_timescale(dest, i+1);
-		if ((u64)aligned_to_DTS_frac.num * track_ts < track_dur * aligned_to_DTS_frac.den) {
+		if (gf_timestamp_less(aligned_to_DTS_frac.num, aligned_to_DTS_frac.den, track_dur, track_ts)) {
 			aligned_to_DTS_frac.num = track_dur;
 			aligned_to_DTS_frac.den = track_ts;
 		}

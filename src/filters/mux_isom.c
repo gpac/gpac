@@ -3622,9 +3622,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			u32 min_pck_dur = gf_filter_pid_get_min_pck_duration(tkw->ipid);
 			if (min_pck_dur) {
 				tkw->sample.DTS = prev_dts;
+
 				if (timescale != tkw->tk_timescale) {
-					tkw->sample.DTS *= timescale;
-					tkw->sample.DTS /= tkw->tk_timescale;
+					tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, tkw->tk_timescale, timescale);
 				}
 				tkw->sample.DTS += min_pck_dur;
 			} else {
@@ -3674,8 +3674,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	duration = gf_filter_pck_get_duration(pck);
 	if (timescale != tkw->tk_timescale) {
 		s64 ctso;
-		tkw->sample.DTS *= tkw->tk_timescale;
-		tkw->sample.DTS /= timescale;
+		tkw->sample.DTS = gf_timestamp_rescale(tkw->sample.DTS, timescale, tkw->tk_timescale);
+
 		ctso = (s64) tkw->sample.CTS_Offset;
 		ctso *= tkw->tk_timescale;
 		ctso /= timescale;
@@ -4013,10 +4013,10 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 			/*patch to align to old arch */
 			if (gf_sys_old_arch_compat()) {
-				if (mdur * (u64) ctx->idur.den > tkw->tk_timescale * (u64) ctx->idur.num)
+				if (gf_timestamp_greater(mdur, tkw->tk_timescale, ctx->idur.num, ctx->idur.den))
 					abort = GF_TRUE;
 			} else {
-				if (mdur * (u64) ctx->idur.den >= tkw->tk_timescale * (u64) ctx->idur.num)
+				if (gf_timestamp_greater_or_equal(mdur, tkw->tk_timescale, ctx->idur.num, ctx->idur.den))
 					abort = GF_TRUE;
 			}
 		} else {
@@ -4542,7 +4542,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 					dts = gf_filter_pck_get_cts(pck);
 				tscale = gf_filter_pck_get_timescale(pck);
 
-				if (!min_dts || min_dts * tscale > dts * min_dts_scale) {
+				if (!min_dts || gf_timestamp_greater(min_dts, min_dts_scale, dts, tscale)) {
 					min_dts = dts;
 					min_dts_scale = tscale;
 				}
@@ -4619,8 +4619,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 
 		if (ctx->tfdt.den && ctx->tfdt.num) {
-			tkw->offset_dts = ctx->tfdt.num * tkw->tk_timescale;
-			tkw->offset_dts /= ctx->tfdt.den;
+			tkw->offset_dts = gf_timestamp_rescale(ctx->tfdt.num, ctx->tfdt.den, tkw->tk_timescale);
 		}
 
 		if (tkw->fake_track) {
@@ -4737,9 +4736,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	ctx->init_movie_done = GF_TRUE;
 
 	if (min_dts_scale) {
-		u64 rs_dts = min_dts;
-		rs_dts *= ctx->cdur.den;
-		rs_dts /= min_dts_scale;
+		u64 rs_dts = gf_timestamp_rescale(min_dts, min_dts_scale, ctx->cdur.den);
 		ctx->next_frag_start = rs_dts;
 	}
 	ctx->next_frag_start += ctx->cdur.num;
@@ -5234,10 +5231,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			} else if (ctx->fragdur && (!ctx->dash_mode || !tkw->fragment_done) ) {
 				Bool frag_done = GF_FALSE;
 				u32 dur = gf_filter_pck_get_duration(pck);
-				if (tkw->dur_in_frag && (tkw->dur_in_frag * ctx->cdur.den >= ((u64)ctx->cdur.num) * tkw->src_timescale)) {
+				if (tkw->dur_in_frag && gf_timestamp_greater_or_equal(tkw->dur_in_frag, tkw->src_timescale, ctx->cdur.num, ctx->cdur.den)) {
 					frag_done = GF_TRUE;
 				} else if ((ctx->store==MP4MX_MODE_SFRAG)
-					&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale / ctx->cdur.den) + tkw->ts_delay)
+					&& gf_timestamp_greater_or_equal(cts - tkw->ts_delay, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
 				) {
 					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 					if ((sap && sap<GF_FILTER_SAP_3)) {
@@ -5245,9 +5242,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					}
 				}
 				if (frag_done) {
-					ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
-					ctx->adjusted_next_frag_start *= ctx->cdur.den;
-					ctx->adjusted_next_frag_start /= tkw->src_timescale;
+					ctx->adjusted_next_frag_start = gf_timestamp_rescale(cts - tkw->ts_delay, tkw->src_timescale, ctx->cdur.den);
 //
 					tkw->fragment_done = GF_TRUE;
 					nb_done ++;
@@ -5261,7 +5256,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					ctx->frag_timescale = tkw->src_timescale;
 				}
 			} else if (!ctx->flush_seg && !ctx->dash_mode
-				&& (cts >= (u64) (ctx->adjusted_next_frag_start * tkw->src_timescale  / ctx->cdur.den) + tkw->ts_delay)
+				&& gf_timestamp_greater_or_equal(cts - tkw->ts_delay, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
 			 ) {
 				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				if ((ctx->store==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {
@@ -5269,9 +5264,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->samples_in_frag = 0;
 					nb_done ++;
 					if (ctx->store==MP4MX_MODE_SFRAG) {
-						ctx->adjusted_next_frag_start = (cts - tkw->ts_delay);
-						ctx->adjusted_next_frag_start *= ctx->cdur.den;
-						ctx->adjusted_next_frag_start /= tkw->src_timescale;
+						ctx->adjusted_next_frag_start = gf_timestamp_rescale(cts - tkw->ts_delay, tkw->src_timescale, ctx->cdur.den);
 					}
 					break;
 				}
@@ -5317,8 +5310,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			//discard
 			gf_filter_pid_drop_packet(tkw->ipid);
 
-			cts *= 1000;
-			cts /= tkw->src_timescale;
+			cts = gf_timestamp_rescale(cts, tkw->src_timescale, 1000);
 			if (!ctx->min_cts_plus_one) ctx->min_cts_plus_one = cts + 1;
 			else if (ctx->min_cts_plus_one-1 > cts) ctx->min_cts_plus_one = cts + 1;
 
@@ -5359,8 +5351,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 		ref_timescale = ctx->ref_tkw->src_timescale;
 		//both in ms
-		ctx->next_seg_start = (u64) (next_ref_ts) * 1000 / ref_timescale;
-		ctx->min_cts_next_frag = (u64) (ctx->next_frag_start) * 1000 / ctx->cdur.den;
+		ctx->next_seg_start = (u64) gf_timestamp_rescale(next_ref_ts, ref_timescale, 1000);
+		ctx->min_cts_next_frag = (u64) gf_timestamp_rescale(ctx->next_frag_start, ctx->cdur.den, 1000);
 
 		ctx->next_frag_start += ctx->cdur.num;
 		while (ctx->next_frag_start <= ctx->adjusted_next_frag_start) {
@@ -5508,8 +5500,7 @@ static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {
-			dts_min = tkw->ts_shift * 1000000;
-			dts_min /= tkw->src_timescale;
+			dts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, 1000000);
 
 			if (first_ts_min > dts_min) {
 				first_ts_min = (u64) dts_min;
@@ -5552,7 +5543,7 @@ retry_pck:
 				if (ts==GF_FILTER_NO_TS)
 					ts=0;
 
-				if (ts * ctx->wait_dts_timescale < (ctx->wait_dts_plus_one-1) * tkw->src_timescale) {
+				if (gf_timestamp_less(ts, tkw->src_timescale, (ctx->wait_dts_plus_one-1), ctx->wait_dts_timescale)) {
 					gf_filter_pid_drop_packet(tkw->ipid);
 					goto retry_pck;
 				}
@@ -5585,8 +5576,7 @@ retry_pck:
 		if (ts==GF_FILTER_NO_TS)
 			ts=0;
 
-		dts_min = ts * 1000000;
-		dts_min /= tkw->src_timescale;
+		dts_min = gf_timestamp_rescale(ts, tkw->src_timescale, 1000000);
 
 		if (first_ts_min > dts_min) {
 			first_ts_min = (u64) dts_min;
@@ -5602,18 +5592,14 @@ retry_pck:
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
 		//compute offsets
-		dts_diff = first_ts_min;
-		dts_diff *= tkw->src_timescale;
-		dts_diff /= 1000000;
+		dts_diff = gf_timestamp_rescale(first_ts_min, 1000000, tkw->src_timescale);
 		dts_diff = (s64) tkw->ts_shift - dts_diff;
 		if (ctx->is_rewind) dts_diff = -dts_diff;
 		//negative could happen due to rounding, ignore them
 		if (dts_diff<=0) continue;
 
 		// dts_diff > 0, we need to delay the track
-		dur = dts_diff;
-		dur *= (u32) ctx->moovts;
-		dur /= tkw->src_timescale;
+		dur = gf_timestamp_rescale(dts_diff, tkw->src_timescale, ctx->moovts);
 		if (dur) {
 			gf_isom_remove_edits(ctx->file, tkw->track_num);
 
@@ -5818,7 +5804,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 				ctx->faststart_ts_regulate = ctx->cdur;
 			}
 			//ahead of our interleaving window, don't write yet
-			else if (cts * ctx->faststart_ts_regulate.den > ((u64) ctx->faststart_ts_regulate.num) * tkw->src_timescale) {
+			else if (gf_timestamp_greater(cts, tkw->src_timescale, ctx->faststart_ts_regulate.num, ctx->faststart_ts_regulate.den)) {
 				nb_skip++;
 				continue;
 			}
@@ -6155,8 +6141,8 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 		u32 count = gf_isom_get_sample_count(ctx->file, tkw->track_num);
 		max_cts += gf_isom_get_sample_duration(ctx->file, tkw->track_num, count);
 
-		max_cts *= ctx->moovts;
-		max_cts /= tkw->tk_timescale;
+		max_cts = gf_timestamp_rescale(max_cts, tkw->tk_timescale, ctx->moovts);
+
 		if (tkw->empty_init_dur) {
 
 			gf_isom_set_edit(ctx->file, tkw->track_num, 0, tkw->empty_init_dur, 0, GF_ISOM_EDIT_EMPTY);
@@ -6167,8 +6153,8 @@ static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter 
 		//we tolerate a diff of 100ms
 		else if (gf_sys_old_arch_compat() && tkw->imported_edit_sdur && (tkw->imported_edit_offset==min_cts)) {
 			s32 diff;
-			u64 old_dur_ms = tkw->imported_edit_sdur * 1000 / tkw->src_timescale;
-			u64 new_dur_ms = max_cts * 1000 / tkw->tk_timescale;
+			u64 old_dur_ms = gf_timestamp_rescale(tkw->imported_edit_sdur, tkw->src_timescale, 1000);
+			u64 new_dur_ms = gf_timestamp_rescale(max_cts, tkw->tk_timescale, 1000);
 			diff = (s32) new_dur_ms - (s32) old_dur_ms;
 			if (ABS(diff)<100)
 				max_cts = tkw->imported_edit_sdur;
@@ -6310,16 +6296,13 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			}
 
 			if (tkw->src_timescale != tkw->tk_timescale) {
-				min_ts *= tkw->tk_timescale;
-				min_ts /= tkw->src_timescale;
-				delay *= tkw->tk_timescale;
-				delay /= tkw->src_timescale;
+				min_ts = gf_timestamp_rescale(min_ts, tkw->src_timescale, tkw->tk_timescale);
+				delay = gf_timestamp_rescale(delay, tkw->src_timescale, tkw->tk_timescale);
 			}
 			mdur += delay;
 
 			if (ctx->moovts != tkw->tk_timescale) {
-				mdur *= ctx->moovts;
-				mdur /= tkw->tk_timescale;
+				mdur = gf_timestamp_rescale(mdur, tkw->tk_timescale, ctx->moovts);
 			}
 			gf_isom_remove_edits(ctx->file, tkw->track_num);
 			if (tkw->empty_init_dur)
@@ -6381,8 +6364,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			gf_isom_refresh_size_info(ctx->file, tkw->track_num);
 
 		if ((tkw->nb_samples == 1) && (ctx->idur.num>0) && ctx->idur.den) {
-			u32 dur = tkw->tk_timescale * ctx->idur.num;
-			dur /= ctx->idur.den;
+			u32 dur = gf_timestamp_rescale(ctx->idur.num, ctx->idur.den, tkw->tk_timescale);
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
 		}
 
@@ -6403,8 +6385,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 		if (p) {
 			u64 val = p->value.uint;
 			if (tkw->src_timescale != tkw->tk_timescale) {
-				val *= tkw->tk_timescale;
-				val /= tkw->src_timescale;
+				val = gf_timestamp_rescale(val, tkw->src_timescale, tkw->tk_timescale);
 			}
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, (u32) val);
 		}

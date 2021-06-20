@@ -344,7 +344,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (cts * 1000 > obj_time * timescale) {
+	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
 		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / timescale), obj_time, filter);
 		return GF_OK;
 	}

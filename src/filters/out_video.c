@@ -459,8 +459,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (ctx->first_cts_plus_one && ctx->timescale && (ctx->timescale != timescale) ) {
 		ctx->first_cts_plus_one-=1;
-		ctx->first_cts_plus_one *= timescale;
-		ctx->first_cts_plus_one /= ctx->timescale;
+		ctx->first_cts_plus_one = gf_timestamp_rescale(ctx->first_cts_plus_one, ctx->timescale, timescale);
 		ctx->first_cts_plus_one+=1;
 	}
 	if (!timescale) timescale = 1;
@@ -1683,7 +1682,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		s64 delay;
 
 		if (ctx->dur.num && ctx->clock_at_first_cts && ctx->first_cts_plus_one) {
-			if ((cts - ctx->first_cts_plus_one + 1) * ctx->dur.den > (u64) (ctx->dur.num * ctx->timescale)) {
+			if (gf_timestamp_greater(cts - ctx->first_cts_plus_one + 1, ctx->timescale, ctx->dur.num, ctx->dur.den)) {
 				GF_FilterEvent evt;
 				if (ctx->last_pck) {
 					gf_filter_pck_unref(ctx->last_pck);
@@ -1701,7 +1700,7 @@ static GF_Err vout_process(GF_Filter *filter)
 
 		delay = ctx->pid_delay;
 		if (ctx->vdelay.den)
-			delay += ctx->vdelay.num * (s32)ctx->timescale / (s32)ctx->vdelay.den;
+			delay += gf_timestamp_rescale(ctx->vdelay.num, ctx->vdelay.den, ctx->timescale);
 
 		if (delay>=0) {
 			cts += delay;
@@ -1725,14 +1724,13 @@ static GF_Err vout_process(GF_Filter *filter)
 		if (clock_us && media_ts.den) {
 			u32 safety;
 			//ref frame TS in video stream timescale
-			s64 ref_ts = (s64) (media_ts.num * ctx->timescale);
-			ref_ts /= media_ts.den;
+			s64 ref_ts = gf_timestamp_rescale(media_ts.num, media_ts.den, ctx->timescale);
+
 			//compute time ellapsed since last clock ref in timescale
 			s64 diff = now;
 			diff -= (s64) clock_us;
 			if (ctx->timescale!=1000000) {
-				diff *= ctx->timescale;
-				diff /= 1000000;
+				diff = gf_timestamp_rescale(diff, 1000000, ctx->timescale);
 			}
 			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
@@ -1746,7 +1744,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			#define DEF_VIDEO_AUDIO_ADVANCE_MS	15
 			safety = DEF_VIDEO_AUDIO_ADVANCE_MS * ctx->timescale / 1000;
 			if (!ctx->step && !ctx->raw_grab && ((s64) cts > ref_ts + safety)) {
-				u32 resched_time = (u32) ((cts-ref_ts - safety) * 1000000 / ctx->timescale);
+				u32 resched_time = (u32) gf_timestamp_rescale(cts-ref_ts - safety, ctx->timescale, 1000000);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms display frame CTS "LLU" CTS greater than reference clock CTS "LLU" (%g sec), waiting\n", gf_sys_clock(), cts, ref_ts, ((Double)media_ts.num)/media_ts.den));
 				//the clock is not updated continuously, only when audio sound card writes. We therefore
 				//cannot know if the sampling was recent or old, so ask for a short reschedule time
@@ -1770,9 +1768,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				ctx->clock_at_first_cts = 1 + cts;
 			} else {
 				//comute CTS diff in ms
-				u64 diff = cts - ctx->clock_at_first_cts + 1;
-				diff *= 1000;
-				diff /= ctx->timescale;
+				u64 diff = gf_timestamp_rescale(cts - ctx->clock_at_first_cts + 1, ctx->timescale, 1000);
 				//diff less than 100ms (eg 10fps or more), init on the second frame
 				//do not apply this if playing at speed lower than nominal speed
 				if ((diff<100) && (ABS(ctx->speed)>=1)) {
@@ -1798,7 +1794,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff = (s64) ((now - ctx->clock_at_first_cts) * ctx->speed);
 
 				if (ctx->timescale != 1000000)
-					diff -= (s64) ( (cts - ctx->first_cts_plus_one + 1) * 1000000  / ctx->timescale);
+					diff -= (s64) gf_timestamp_rescale(cts - ctx->first_cts_plus_one + 1, ctx->timescale, 1000000);
 				else
 					diff -= (s64) (cts - ctx->first_cts_plus_one + 1);
 
@@ -1806,7 +1802,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				diff = (s64) ((now - ctx->clock_at_first_cts) * -ctx->speed);
 
 				if (ctx->timescale != 1000000)
-					diff -= (s64) ( (ctx->first_cts_plus_one-1 - cts) * 1000000  / ctx->timescale);
+					diff -= (s64) gf_timestamp_rescale(ctx->first_cts_plus_one-1 - cts, ctx->timescale, 1000000);
 				else
 					diff -= (s64) (ctx->first_cts_plus_one-1 - cts);
 			}
@@ -1827,13 +1823,11 @@ static GF_Err vout_process(GF_Filter *filter)
 			}
 
 			if (ctx->timescale != 1000000)
-				ref_clock = diff * ctx->timescale / 1000000 + cts;
+				ref_clock = gf_timestamp_rescale(diff, 1000000, ctx->timescale) + cts;
 			else
 				ref_clock = diff + cts;
 
-			ctx->last_pck_dur_us = gf_filter_pck_get_duration(pck);
-			ctx->last_pck_dur_us *= 1000000;
-			ctx->last_pck_dur_us /= ctx->timescale;
+			ctx->last_pck_dur_us = gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000000);
 		}
 		//detach packet from pid, so that we can query next cts
 		gf_filter_pck_ref(&pck);

@@ -569,7 +569,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			}
 
 			samp->DTS -= dts_offset;
-			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+			if (duration && !gf_sys_old_arch_compat() && gf_timestamp_greater_or_equal(samp->DTS, mtimescale, import->duration.num, import->duration.den)) {
 				gf_isom_sample_del(&samp);
 				break;
 			}
@@ -603,7 +603,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				samp->DTS = sampDTS + 1;
 			}
 
-			if (duration && !gf_sys_old_arch_compat() && ((u64) samp->DTS * import->duration.den >= mtimescale * import->duration.num)) {
+			if (duration && !gf_sys_old_arch_compat() && gf_timestamp_greater_or_equal(samp->DTS, mtimescale, import->duration.num, import->duration.den)) {
 				gf_isom_sample_del(&samp);
 				break;
 			}
@@ -893,9 +893,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		if (!strnicmp(sL, "AddChapter(", 11)) {
 			u32 nb_fr;
 			sscanf(sL, "AddChapter(%u,%1023s)", &nb_fr, szTitle);
-			ts = nb_fr;
-			ts *= 1000;
-			ts = (u64) (((s64) ts )  *import->video_fps.den / import->video_fps.num);
+			ts = gf_timestamp_rescale(nb_fr, 1000 * import->video_fps.den, import->video_fps.num);
 			sL = strchr(sL, ',');
 			strcpy(szTitle, sL+1);
 			sL = strrchr(szTitle, ')');
