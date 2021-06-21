@@ -45,6 +45,7 @@
 /*set to 1 if you want MPD to use SegmentTimeline*/
 #define M3U8_TO_MPD_USE_SEGTIMELINE	0
 
+
 typedef enum {
 	GF_DASH_STATE_STOPPED = 0,
 	/*period setup and playback chain creation*/
@@ -183,6 +184,10 @@ struct __dash_client
 	gf_dash_rate_adaptation rate_adaptation_algo_custom;
 	gf_dash_download_monitor rate_adaptation_download_monitor_custom;
 	void *udta_custom_algo;
+
+	/*if set, enables group selection at dash client level, otherwise leave the decision to the user app*/
+	Bool enable_group_selection;
+
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -8008,6 +8013,12 @@ void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable)
 }
 
 GF_EXPORT
+void gf_dash_enable_group_selection(GF_DashClient *dash, Bool enable)
+{
+	dash->enable_group_selection = enable;
+}
+
+GF_EXPORT
 void gf_dash_set_agressive_adaptation(GF_DashClient *dash, Bool agressive_switch)
 {
 	dash->agressive_switching = agressive_switch;
@@ -8299,6 +8310,14 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, u3
 }
 
 GF_EXPORT
+s32 gf_dash_group_get_id(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return -1;
+	return group->adaptation_set->group;
+}
+
+GF_EXPORT
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 {
 	Bool needs_resetup = GF_FALSE;
@@ -8310,8 +8329,9 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 	if ((group->selection==GF_DASH_GROUP_NOT_SELECTED) && select) needs_resetup = 1;
 
 	group->selection = select ? GF_DASH_GROUP_SELECTED : GF_DASH_GROUP_NOT_SELECTED;
+
 	/*this set is part of a group, make sure no all other sets from the indicated group are unselected*/
-	if (select && (group->adaptation_set->group>=0)) {
+	if (dash->enable_group_selection && select && (group->adaptation_set->group>=0)) {
 		u32 i;
 		for (i=0; i<gf_dash_get_group_count(dash); i++) {
 			GF_DASH_Group *agroup = gf_list_get(dash->groups, i);
@@ -8326,6 +8346,7 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 			}
 		}
 	}
+
 	//TODO: recompute group download index based on current playback ...
 	if (needs_resetup) {
 
@@ -8371,7 +8392,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 			if (gf_list_find(groups_selected, group) >= 0) continue;
 
 			//check we didn't select one AS in this group in the previous pass or in this pass
-			if (group->adaptation_set->group>=0) {
+			if (dash->enable_group_selection && group->adaptation_set->group>=0) {
 				u32 k;
 				Bool found = GF_FALSE;
 				for (k=0; k<gf_list_count(groups_selected); k++) {
@@ -8384,6 +8405,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 				}
 				if (found) continue;
 			}
+
 			//get the 2 or 3 land code
 			sep = strchr(group->adaptation_set->lang, '-');
 			if (sep) {
