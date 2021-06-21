@@ -231,7 +231,7 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
     *pInstance = LoadLibrary(__CudaLibName);
     if (*pInstance == NULL) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CudaLibName));
-        return CUDA_ERROR_UNKNOWN;
+        return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
     }
     return CUDA_SUCCESS;
 }
