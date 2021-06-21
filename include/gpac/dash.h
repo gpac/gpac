@@ -329,12 +329,25 @@ s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 group_idx, u32 gr
 */
 Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 group_idx);
 
-/*! selects a group for playback. If other groups are alternate to this group (through the group attribute), they are automatically deselected
+/*! selects a group for playback. If group selection is enabled,  other groups are alternate to this group (through the group attribute), they are automatically deselected
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
 \param select if GF_TRUE, will select this group and disable any alternate group. If GF_FALSE, only deselects the group
 */
 void gf_dash_group_select(GF_DashClient *dash, u32 group_idx, Bool select);
+
+/*! gets group ID (through the group attribute), -1 if undefined
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return ID of the group
+*/
+s32 gf_dash_group_get_id(GF_DashClient *dash, u32 group_idx);
+
+/*! enables group selection  through the group attribute
+\param dash the target dash client
+\param enable if GF_TRUE, group selection will be done whenever selecting a new group
+*/
+void gf_dash_enable_group_selection(GF_DashClient *dash, Bool enable);
 
 /*! performs selection of representations based on language code
 \param dash the target dash client
