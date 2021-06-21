@@ -136,6 +136,9 @@ typedef struct
 	u32 nb_suspended, cur_file_idx_plus_one;
 	char *cur_file_suffix;
 	Bool notify_filename;
+
+	Bool is_playing;
+	Double start_range;
 } GF_TSMuxCtx;
 
 typedef struct
@@ -980,6 +983,12 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			evt.buffer_req.pid_only = GF_TRUE;
 			gf_filter_pid_send_event(pid, &evt);
 		}
+		if (ctx->is_playing) {
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+			evt.play.start_range = ctx->start_range;
+			gf_filter_pid_send_event(pid, &evt);
+		}
 	}
 
 	//do we need a new program
@@ -1306,7 +1315,10 @@ static GF_Err tsmux_process(GF_Filter *filter)
 		tsmux_assign_pcr(ctx);
 	}
 
-	if (ctx->init_buffering && !tsmux_init_buffering(filter, ctx)) return GF_OK;
+	if (ctx->init_buffering && !tsmux_init_buffering(filter, ctx)) {
+		gf_filter_ask_rt_reschedule(filter, 1000);
+		return GF_OK;
+	}
 
 	if (ctx->init_dash) {
 		u32 i, count = gf_list_count(ctx->pids);
@@ -1590,6 +1602,12 @@ static Bool tsmux_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				tspid->esi.caps |= GF_ESI_STREAM_IS_OVER;
 			else
 				tspid->esi.caps &= ~GF_ESI_STREAM_IS_OVER;
+		}
+		if (evt->base.type==GF_FEVT_PLAY) {
+			ctx->is_playing = GF_TRUE;
+			ctx->start_range = evt->play.start_range;
+		} else {
+			ctx->is_playing = GF_FALSE;
 		}
 	}
 	return GF_FALSE;
