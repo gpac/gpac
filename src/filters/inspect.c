@@ -3644,7 +3644,7 @@ static Bool inspect_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 #define OFFS(_n)	#_n, offsetof(GF_InspectCtx, _n)
 static const GF_FilterArgs InspectArgs[] =
 {
-	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stderr", "fileName, stderr, stdout or null", 0},
+	{ OFFS(log), "set inspect log filename", GF_PROP_STRING, "stdout", "fileName, stderr, stdout or null", 0},
 	{ OFFS(mode), "dump mode\n"
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
