@@ -3962,15 +3962,58 @@ GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecode
 	return GF_OK;
 }
 
+static char base32_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
 GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 {
 	assert(vvcc);
+	u32 i, pos, len;
 
 	if ( (subtype==GF_4CC('v','v','c','N')) || (subtype==GF_4CC('v','v','s','1')) ) {
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 	} else {
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%d.%s%d", gf_4cc_to_str(subtype), vvcc->general_profile_idc, vvcc->general_tier_flag ? "H" : "L", vvcc->general_level_idc);
 	}
+
+	u8 buf[256];
+	GF_BitStream *bs = gf_bs_new(buf, 256, GF_BITSTREAM_WRITE);
+	gf_bs_write_int(bs, vvcc->ptl_frame_only_constraint, 1);
+	gf_bs_write_int(bs, vvcc->ptl_multilayer_enabled, 1);
+	for (i=0; i<vvcc->num_constraint_info; i++) {
+		gf_bs_write_int(bs, vvcc->general_constraint_info[i], 8);
+	}
+	gf_bs_align(bs);
+	pos = gf_bs_get_position(bs);
+	gf_bs_del(bs);
+	while (pos && (buf[pos-1]==0)) {
+		pos--;
+	}
+	if (!pos) {
+		strcat(szCodec, ".CA");
+		return GF_OK;
+	}
+	strcat(szCodec, ".C");
+	len = (u32) strlen(szCodec);
+	bs = gf_bs_new(buf, pos, GF_BITSTREAM_READ);
+	while (1) {
+		u32 nb_bits = 8*gf_bs_available(bs) + gf_bs_bits_available(bs);
+		if (!nb_bits) break;
+		if (nb_bits>5) nb_bits = 5;
+		u32 c = gf_bs_read_int(bs, nb_bits);
+		while (nb_bits<5) {
+			c <<= 1;
+			nb_bits++;
+		}
+		char b32_char = base32_chars[c];
+		//should not happen, we use 100 bytes by default and max general_constraint_info is 63 bytes
+		if (len >= RFC6381_CODEC_NAME_SIZE_MAX) {
+			return GF_OUT_OF_MEM;
+		}
+		szCodec[len] = b32_char;
+		len++;
+		szCodec[len] = 0;
+	}
+
 	return GF_OK;
 }
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl)
