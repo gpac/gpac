@@ -69,7 +69,7 @@ typedef struct _nv_dec_ctx
 	u32 num_surfaces;
 
 	GF_FilterPid *ipid, *opid;
-	u32 codec_id;
+	u32 codec_id, cfg_crc;
 	Bool use_gl_texture;
 	u32 width, height, bpp_luma, bpp_chroma;
 	cudaVideoCodec codec_type;
@@ -80,7 +80,7 @@ typedef struct _nv_dec_ctx
 	Bool skip_next_frame;
 	CUresult decode_error, dec_create_error;
 	Bool frame_size_changed;
-	Bool needs_resetup;
+	u32 needs_resetup;
 	unsigned long prefer_dec_mode;
 
 	NVDecInstance *dec_inst;
@@ -88,9 +88,6 @@ typedef struct _nv_dec_ctx
 	GF_List *frames;
 	GF_List *frames_res;
 	GF_List *src_packets;
-
-	struct __nv_frame *pending_frame;
-
 
 	u8 *xps_buf;
 	u32 xps_buf_size;
@@ -106,7 +103,10 @@ typedef struct _nv_dec_ctx
 	Bool gl_provider_requested;
 	GLint y_tx_id, uv_tx_id;
 	GLint y_pbo_id, uv_pbo_id;
+	Bool reset_pbo;
 #endif
+	u32 nb_out_frames_pending;
+
 } NVDecCtx;
 
 
@@ -144,6 +144,8 @@ static CUcontext cuda_ctx = NULL;
 static Bool cuda_ctx_gl = GF_FALSE;
 static CUdevice  cuda_dev = -1;
 #endif
+
+static GF_Err nvdec_flush_frame(NVDecCtx *ctx, NVDecFrame *f);
 
 //#define ENABLE_10BIT_OUTPUT
 
@@ -242,6 +244,15 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 	return GF_FALSE;
 }
 
+static void nvdec_copy_props(NVDecCtx *ctx)
+{
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+}
+
 static void nvdec_destroy_decoder(NVDecInstance *inst)
 {
 	if (inst->cu_decoder) {
@@ -268,6 +279,7 @@ static void update_pix_fmt(NVDecCtx *ctx, Bool use_10bits)
 		ctx->pix_fmt = 0;
 		return;
 	}
+	ctx->stride_uv = 0;
 	gf_pixel_get_size_info(ctx->pix_fmt, ctx->width, ctx->height, &ctx->out_size, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 }
 
@@ -277,8 +289,8 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	Bool skip_output_resize=GF_FALSE;
 	NVDecInstance *inst= (NVDecInstance *)pUserData;
 	NVDecCtx *ctx = inst->ctx;
-
 	u32 w, h;
+
 	w = pFormat->coded_width;
 	h = pFormat->coded_height;
 
@@ -298,6 +310,16 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 			return 1;
 		skip_output_resize = GF_TRUE;
 	}
+	ctx->needs_resetup = 1;
+	while (gf_list_count(ctx->frames)) {
+		NVDecFrame *f = gf_list_pop_front(ctx->frames);
+		nvdec_flush_frame(ctx, f);
+	}
+	ctx->needs_resetup = 0;
+
+	if (ctx->nb_out_frames_pending) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Decoder must reset and pending frames not yet drawn: multiple SPS in single config, not supported!\n Try disabling GPU frame dispatch (--fmode=copy)\n"));
+	}
 
 	//commented out since this falls back to soft decoding !
 #ifdef ENABLE_10BIT_OUTPUT
@@ -312,7 +334,11 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->chroma_fmt = pFormat->chroma_format;
 	ctx->stride = pFormat->coded_width;
 
-	//if load_inatcive returns TRUE, we are reusing an existing decoder with the same config, no need to recreate one
+#ifndef GPAC_DISABLE_3D
+	ctx->reset_pbo = GF_TRUE;
+#endif
+
+	//if load_inactive returns TRUE, we are reusing an existing decoder with the same config, no need to recreate one
 	if (load_inactive_dec(ctx)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders) );
 		ctx->stride = ctx->dec_inst->stride;
@@ -320,7 +346,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 		if (!ctx->out_size) ctx->reload_decoder_state = 1;
 
 		update_pix_fmt(ctx, use_10bits);
-		return GF_OK;
+		return 1;
 	}
 	if (!ctx->dec_inst) return GF_OUT_OF_MEM;
 	//if we have an existing decoder but with a different config, let's reload
@@ -333,13 +359,15 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->dec_inst->codec_type = ctx->codec_type;
 	ctx->dec_inst->chroma_fmt = ctx->chroma_fmt;
 	ctx->dec_inst->ctx = ctx;
-	ctx->stride = use_10bits ? 2*ctx->width : ctx->width;
+	ctx->stride = use_10bits ? 2 * ctx->width : ctx->width;
 
 	update_pix_fmt(ctx, use_10bits);
 
+	nvdec_copy_props(ctx);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_Y, &PROP_UINT(use_10bits ? ctx->bpp_luma : 8));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BIT_DEPTH_UV, &PROP_UINT(use_10bits ? ctx->bpp_chroma : 8));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt));
@@ -482,7 +510,7 @@ static GF_Err nvdec_configure_stream(GF_Filter *filter, NVDecCtx *ctx)
 
 	//create a video parser and a video decoder
     memset(&oVideoParserParameters, 0, sizeof(CUVIDPARSERPARAMS));
-	ctx->needs_resetup = GF_FALSE;
+	ctx->needs_resetup = 0;
 	ctx->nal_size_length = 0;
 
 	//this destroys avc_cfg / hevc_cfg
@@ -598,6 +626,9 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (!prop) return GF_NOT_SUPPORTED;
+	if (ctx->codec_id != prop->value.uint) {
+		ctx->cfg_crc = 0;
+	}
 	ctx->codec_id = prop->value.uint;
 
 	switch (ctx->codec_id) {
@@ -616,14 +647,10 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (!ctx->opid)
+	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-
-	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, NULL);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		nvdec_copy_props(ctx);
+	}
 
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 
@@ -633,6 +660,11 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		//not ready yet
 		if (!prop) return GF_OK;
+		if (prop->value.data.ptr) {
+			u32 crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
+			if (crc == ctx->cfg_crc) return GF_OK;
+			ctx->cfg_crc = crc;
+		}
 		break;
 	}
 
@@ -709,7 +741,7 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 
-	ctx->needs_resetup = GF_TRUE;
+	ctx->needs_resetup = 1;
 
 	return GF_OK;
 }
@@ -749,20 +781,20 @@ static Bool nvdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				ctx->dec_inst = NULL;
 				gf_mx_v(global_inst_mutex);
 			}
-			ctx->needs_resetup = GF_TRUE;
+			ctx->needs_resetup = 1;
 			ctx->dec_create_error = CUDA_SUCCESS;
 		} else if (ctx->unload == 1) {
 			if (ctx->dec_inst) {
 				nvdec_destroy_decoder(ctx->dec_inst);
 			}
-			ctx->needs_resetup = GF_TRUE;
+			ctx->needs_resetup = 1;
 			ctx->dec_create_error = CUDA_SUCCESS;
 		}
 		return GF_OK;
 	}
 #endif
 
-static GF_Err nvdec_send_hw_frame(NVDecCtx *ctx);
+static GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f);
 
 static void nvdec_reset_pcks(NVDecCtx *ctx)
 {
@@ -796,25 +828,44 @@ static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket
 static GF_Err nvdec_process(GF_Filter *filter)
 {
 	NVDecFrame *f;
-    CUdeviceptr map_mem = 0;
-	CUVIDPROCPARAMS params;
-	unsigned int pitch = 0;
 	GF_Err e;
 	u32 pck_size;
 	const u8 *data;
-	u8 *output;
-	GF_FilterPacket *ipck, *dst_pck;
-    CUVIDSOURCEDATAPACKET cu_pkt;
+	GF_FilterPacket *ipck;
+	CUVIDSOURCEDATAPACKET cu_pkt;
 	CUresult res;
-	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
+	NVDecCtx *ctx = (NVDecCtx *)gf_filter_get_udta(filter);
 
 	ipck = gf_filter_pid_get_packet(ctx->ipid);
 
 	if (ctx->needs_resetup) {
-		e = nvdec_configure_stream(filter, ctx);
-		if (e<0) return e;
-		//not ready
-		if (e==GF_EOS) return GF_OK;
+		if (gf_list_count(ctx->frames)) {
+#ifndef EMUL_NV_DLL
+			res = cuCtxPushCurrent(cuda_ctx);
+			if (res != CUDA_SUCCESS) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res)));
+			}
+#endif
+			f = gf_list_pop_front(ctx->frames);
+			e = nvdec_flush_frame(ctx, f);
+			cuCtxPopCurrent(NULL);
+			return e;
+		}
+		//send end of sequence
+		if (ctx->dec_inst && (ctx->needs_resetup == 1)) {
+			ctx->needs_resetup = 2;
+			ipck = NULL;
+		}
+		else {
+			if (ctx->nb_out_frames_pending) {
+				gf_filter_ask_rt_reschedule(filter, 1);
+				return GF_OK;
+			}
+			e = nvdec_configure_stream(filter, ctx);
+			if (e < 0) return e;
+			//not ready
+			if (e == GF_EOS) return GF_OK;
+		}
 	}
 
 	memset(&cu_pkt, 0, sizeof(CUVIDSOURCEDATAPACKET));
@@ -822,12 +873,13 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	pck_size = 0;
 	data = NULL;
 	if (!ipck) {
-		if (!gf_filter_pid_is_eos(ctx->ipid))
+		if (!ctx->needs_resetup && !gf_filter_pid_is_eos(ctx->ipid))
 			return GF_OK;
 
 		cu_pkt.flags |= CUVID_PKT_ENDOFSTREAM;
 		ctx->skip_next_frame = GF_FALSE;
-	} else {
+	}
+	else {
 		data = gf_filter_pck_get_data(ipck, &pck_size);
 	}
 
@@ -853,7 +905,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 
 		while (pck_size) {
 			u32 i, nal_size = 0;
-			for (i = 0; i<ctx->nal_size_length; i++) {
+			for (i = 0; i < ctx->nal_size_length; i++) {
 				nal_size = (nal_size << 8) + ((u8)data[i]);
 			}
 			data += ctx->nal_size_length;
@@ -876,16 +928,17 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	if (ipck) cu_pkt.timestamp = gf_filter_pck_get_cts(ipck);
 
 #ifndef EMUL_NV_DLL
-    res = cuCtxPushCurrent(cuda_ctx);
+	res = cuCtxPushCurrent(cuda_ctx);
 	if (res != CUDA_SUCCESS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res)));
 	}
 	if (ctx->skip_next_frame) {
 		ctx->skip_next_frame = GF_FALSE;
-	} else {
+	}
+	else {
 		res = cuvidParseVideoData(ctx->dec_inst->cu_parser, &cu_pkt);
 		if (res != CUDA_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] decoder instance %d failed to parse data %s\n", ctx->dec_inst->id, cudaGetErrorEnum(res) ) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] decoder instance %d failed to parse data %s\n", ctx->dec_inst->id, cudaGetErrorEnum(res)));
 		}
 	}
 #endif //EMUL_NV_DLL
@@ -897,9 +950,10 @@ static GF_Err nvdec_process(GF_Filter *filter)
 	}
 
 	if (ctx->reload_decoder_state) {
-		if (ctx->reload_decoder_state==2) {
+		if (ctx->reload_decoder_state == 2) {
 			nvdec_destroy_decoder(ctx->dec_inst);
-		} else {
+		}
+		else {
 			ctx->skip_next_frame = GF_TRUE;
 		}
 
@@ -910,7 +964,7 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		}
 
 		//need to setup decoder
-		if (! ctx->dec_inst->cu_decoder) {
+		if (!ctx->dec_inst->cu_decoder) {
 			nvdec_init_decoder(ctx);
 		}
 		cuCtxPopCurrent(NULL);
@@ -932,10 +986,22 @@ static GF_Err nvdec_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	if (ctx->use_gl_texture || (ctx->fmode==NVDEC_SINGLE) ) {
-		assert(!ctx->pending_frame);
-		ctx->pending_frame = f;
-		return nvdec_send_hw_frame(ctx);
+	e = nvdec_flush_frame(ctx, f);
+	cuCtxPopCurrent(NULL);
+	return e;
+}
+
+static GF_Err nvdec_flush_frame(NVDecCtx *ctx, NVDecFrame *f)
+{
+	GF_FilterPacket *dst_pck;
+	CUdeviceptr map_mem = 0;
+	CUVIDPROCPARAMS params;
+	unsigned int pitch = 0;
+	u8 *output;
+	CUresult res;
+	GF_Err e;
+	if (ctx->use_gl_texture || (ctx->fmode==NVDEC_SINGLE))  {
+		return nvdec_send_hw_frame(ctx, f);
 	}
 
 	assert(ctx->out_size);
@@ -993,11 +1059,8 @@ static GF_Err nvdec_process(GF_Filter *filter)
 			gf_filter_pck_discard(dst_pck);
 		}
 	}
-	cuCtxPopCurrent(NULL);
-
 	memset(f, 0, sizeof(NVDecFrame));
 	gf_list_add(ctx->frames_res, f);
-
 	return e;
 }
 
@@ -1006,7 +1069,7 @@ void nvframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 	GF_FilterFrameInterface *frame = gf_filter_pck_get_frame_interface(pck);
 	NVDecFrame *f = (NVDecFrame*) frame->user_data;
 	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
-
+	ctx->nb_out_frames_pending--;
 	memset(f, 0, sizeof(NVDecFrame));
 	gf_list_add(ctx->frames_res, f);
 }
@@ -1036,14 +1099,30 @@ GF_Err nvframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
 	}
 
+	if (ctx->reset_pbo) {
+		ctx->reset_pbo = GF_FALSE;
+		cuGLUnregisterBufferObject(ctx->y_pbo_id);
+		cuGLUnregisterBufferObject(ctx->uv_pbo_id);
+		glDeleteBuffers(1, &ctx->y_pbo_id);
+		glDeleteBuffers(1, &ctx->uv_pbo_id);
+		ctx->y_pbo_id = ctx->uv_pbo_id = 0;
+		glDeleteTextures(1, &ctx->y_tx_id);
+		glDeleteTextures(1, &ctx->uv_tx_id);
+		ctx->y_tx_id = ctx->uv_tx_id = 0;
+	}
+
 	if (! *gl_tex_id && ! plane_idx && ctx->y_tx_id ) {
 		cuGLUnregisterBufferObject(ctx->y_pbo_id);
+		glDeleteBuffers(1, &ctx->y_pbo_id);
 		ctx->y_pbo_id = 0;
+		glDeleteTextures(1, &ctx->y_tx_id);
 		ctx->y_tx_id = 0;
 	}
 	if (! *gl_tex_id && plane_idx && ctx->uv_tx_id ) {
 		cuGLUnregisterBufferObject(ctx->uv_pbo_id);
+		glDeleteBuffers(1, &ctx->uv_pbo_id);
 		ctx->uv_pbo_id = 0;
+		glDeleteTextures(1, &ctx->uv_tx_id);
 		ctx->uv_tx_id = 0;
 	}
 
@@ -1288,20 +1367,17 @@ GF_Err nvframe_get_frame(GF_FilterFrameInterface *frame, u32 plane_idx, const u8
 }
 
 
-GF_Err nvdec_send_hw_frame(NVDecCtx *ctx)
+GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f)
 {
 	GF_FilterPacket *dst_pck;
-	NVDecFrame *f;
-
-	if (!ctx->pending_frame) return GF_BAD_PARAM;
-	f = ctx->pending_frame;
-	ctx->pending_frame = NULL;
 
 	f->gframe.user_data = f;
 	f->gframe.get_plane = nvframe_get_frame;
 #ifndef GPAC_DISABLE_3D
 	f->gframe.get_gl_texture = nvframe_get_gl_texture;
 #endif
+
+	ctx->nb_out_frames_pending++;
 
 	if (ctx->frame_size_changed) {
 		ctx->frame_size_changed = GF_FALSE;
