@@ -64,7 +64,7 @@ static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audi
  */
 static const char * const GF_DASH_SMOOTH_MIME_TYPES[] = { "application/vnd.ms-sstr+xml", NULL};
 
-/*! DASH Event type. The DASH client communitcaes with the user through a callback mechanism using events*/
+/*! DASH Event type. The DASH client communicates with the user through a callback mechanism using events*/
 typedef enum
 {
 	/*! event sent if an error occurs when setting up manifest*/
