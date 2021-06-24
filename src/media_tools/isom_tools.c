@@ -3983,7 +3983,7 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 		gf_bs_write_int(bs, vvcc->general_constraint_info[i], 8);
 	}
 	gf_bs_align(bs);
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	while (pos && (buf[pos-1]==0)) {
 		pos--;
@@ -3996,7 +3996,7 @@ GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc)
 	len = (u32) strlen(szCodec);
 	bs = gf_bs_new(buf, pos, GF_BITSTREAM_READ);
 	while (1) {
-		u32 nb_bits = 8*gf_bs_available(bs) + gf_bs_bits_available(bs);
+		u32 nb_bits = (u32) 8*gf_bs_available(bs) + gf_bs_bits_available(bs);
 		if (!nb_bits) break;
 		if (nb_bits>5) nb_bits = 5;
 		u32 c = gf_bs_read_int(bs, nb_bits);
