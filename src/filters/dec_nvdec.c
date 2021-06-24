@@ -318,7 +318,8 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->needs_resetup = 0;
 
 	if (ctx->nb_out_frames_pending) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Decoder must reset and pending frames not yet drawn: multiple SPS in single config, not supported!\n Try disabling GPU frame dispatch (--fmode=copy)\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Decoder must reset and pending frames not yet drawn: multiple SPS in single config, not supported!\nDisabling GPU frame dispatch\n"));
+		ctx->fmode = NVDEC_COPY;
 	}
 
 	//commented out since this falls back to soft decoding !
