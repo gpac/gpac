@@ -87,6 +87,184 @@ static u32 avi_write (FILE *fd, char *buf, u32 len)
 	return r;
 }
 
+static int avi_write_bytes(avi_t *AVI, void *data, u32 length)
+{
+	u32 ret;
+	s64 origPos = AVI->pos;
+
+	ret = avi_write(AVI->fdes, (char *)data, length);
+	if (ret != length)
+		goto on_error;
+
+	AVI->pos += length;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u8(avi_t *AVI, u8 value)
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, (char *)&value, 1);
+	if (writtenByteCount != 1)
+		goto on_error;
+
+	AVI->pos += sizeof(value);
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s8(avi_t *AVI, s8 value)
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, (char *)&value, 1);
+	if (writtenByteCount != 1)
+		goto on_error;
+
+	AVI->pos += 1;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u16(avi_t *AVI, u16 value)
+{
+	int ret;
+	u8 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x00ff) >> 0;
+	valueHigh = (value & 0xff00) >> 8;
+	ret = avi_write_u8(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s16(avi_t *AVI, s16 value)
+{
+	int ret;
+	s8 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x00ff) >> 0;
+	valueHigh = (value & 0xff00) >> 8;
+	ret = avi_write_s8(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_s8(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_u32(avi_t *AVI, u32 value)
+{
+	int ret;
+	u16 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x0000ffff) >> 0;
+	valueHigh = (value & 0xffff0000) >> 16;
+	ret = avi_write_u16(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u16(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_s32(avi_t *AVI, s32 value)
+{
+	int ret;
+	s16 valueLow, valueHigh;
+	s64 origPos = AVI->pos;
+
+	valueLow = (value & 0x0000ffff) >> 0;
+	valueHigh = (value & 0xffff0000) >> 16;
+	ret = avi_write_s16(AVI, valueLow);
+	if (ret)
+		goto on_error;
+	ret = avi_write_s16(AVI, valueHigh);
+	if (ret)
+		goto on_error;
+
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_fcc(avi_t *AVI, char value[4])
+{
+	u32 writtenByteCount;
+	s64 origPos = AVI->pos;
+
+	writtenByteCount = avi_write(AVI->fdes, value, 4);
+	if (writtenByteCount != 4)
+		goto on_error;
+
+	AVI->pos += 4;
+	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
+}
+
+static int avi_write_4cc(avi_t *AVI, const char *value)
+{
+	char fcc[4] = { value[0], value[1] , value[2] , value[3] };
+	return avi_write_fcc(AVI, fcc);
+}
+
 /* HEADERBYTES: The number of bytes to reserve for the header */
 
 #define HEADERBYTES 2048
@@ -204,60 +382,80 @@ static int avi_add_chunk(avi_t *AVI, unsigned char *tag, unsigned char *data, u3
 	return 0;
 }
 
-#define OUTD(n) long2str((unsigned char*) (ix00+bl),(s32)n); bl+=4
-#define OUTW(n) ix00[bl] = (n)&0xff; ix00[bl+1] = (n>>8)&0xff; bl+=2
-#define OUTC(n) ix00[bl] = (n)&0xff; bl+=1
-#define OUTS(s) memcpy(ix00+bl,s,4); bl+=4
-
 // this does the physical writeout of the ix## structure
 static int avi_ixnn_entry(avi_t *AVI, avistdindex_chunk *ch, avisuperindex_entry *en)
 {
-	int bl;
+	int ret;
 	u32 k;
-	unsigned int max = ch->nEntriesInUse * sizeof (u32) * ch->wLongsPerEntry + 24; // header
-	char *ix00 = (char *)gf_malloc (max);
-	char dfcc[5];
-	memcpy (dfcc, ch->fcc, 4);
-	dfcc[4] = 0;
-
-	bl = 0;
+	u32 headerSize = 24;
+	u32 chunkSize = headerSize + ch->nEntriesInUse * 4 * ch->wLongsPerEntry;
+	s64 origPos = AVI->pos;
 
 	if (en) {
 		en->qwOffset = AVI->pos;
-		en->dwSize = max;
+		en->dwSize = chunkSize;
 		//en->dwDuration = ch->nEntriesInUse -1; // NUMBER OF stream ticks == frames for video/samples for audio
 	}
 
 #ifdef DEBUG_ODML
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML Write %s: Entries %ld size %d \n", dfcc, ch->nEntriesInUse, max));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML Write %.4s: Entries %ld size %d \n", ch->fcc, ch->nEntriesInUse, chunkSize));
 #endif
 
-	//OUTS(ch->fcc);
-	//OUTD(max);
-	OUTW(ch->wLongsPerEntry);
-	OUTC(ch->bIndexSubType);
-	OUTC(ch->bIndexType);
-	OUTD(ch->nEntriesInUse);
-	OUTS(ch->dwChunkId);
-	OUTD(ch->qwBaseOffset&0xffffffff);
-	OUTD((ch->qwBaseOffset>>32)&0xffffffff);
-	OUTD(ch->dwReserved3);
+	ret = avi_write_fcc(AVI, ch->fcc);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, chunkSize);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u16(AVI, ch->wLongsPerEntry);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, ch->bIndexSubType);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u8(AVI, ch->bIndexType);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->nEntriesInUse);
+	if (ret)
+		goto on_error;
+	ret = avi_write_fcc(AVI, ch->dwChunkId);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->qwBaseOffset&0xffffffff);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, (ch->qwBaseOffset>>32)&0xffffffff);
+	if (ret)
+		goto on_error;
+	ret = avi_write_u32(AVI, ch->dwReserved3);
+	if (ret)
+		goto on_error;
 
 	for (k = 0; k < ch->nEntriesInUse; k++) {
-		OUTD(ch->aIndex[k].dwOffset);
-		OUTD(ch->aIndex[k].dwSize);
-
+		ret = avi_write_u32(AVI, ch->aIndex[k].dwOffset);
+		if (ret)
+			goto on_error;
+		ret = avi_write_u32(AVI, ch->aIndex[k].dwSize);
+		if (ret)
+			goto on_error;
 	}
-	avi_add_chunk (AVI, (unsigned char*)ch->fcc, (unsigned char*)ix00, max);
 
-	gf_free(ix00);
+	// if len is uneven, write a pad byte
+	if (chunkSize % 2) {
+		ret = avi_write_u8(AVI, 0);
+		if (ret)
+			goto on_error;
+	}
 
 	return 0;
+
+on_error:
+	AVI->pos = origPos;
+	gf_fseek(AVI->fdes, AVI->pos, SEEK_SET);
+	AVI_errno = AVI_ERR_WRITE;
+	return -1;
 }
-#undef OUTS
-#undef OUTW
-#undef OUTD
-#undef OUTC
 
 // inits a super index structure including its enclosed stdindex
 static int avi_init_super_index(avi_t *AVI, unsigned char *idxtag, avisuperindex_chunk **si)
