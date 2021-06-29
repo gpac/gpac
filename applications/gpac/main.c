@@ -1164,8 +1164,8 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
-static Bool sigint_catched=GF_FALSE;
-static Bool sigint_processed=GF_FALSE;
+static Bool signal_catched=GF_FALSE;
+static Bool signal_processed=GF_FALSE;
 #ifdef WIN32
 #include <windows.h>
 static BOOL WINAPI gpac_sig_handler(DWORD sig)
@@ -1175,35 +1175,40 @@ static BOOL WINAPI gpac_sig_handler(DWORD sig)
 #include <signal.h>
 static void gpac_sig_handler(int sig)
 {
-	if (sig == SIGINT) {
+	if (sig == SIGINT || sig == SIGTERM) {
 #endif
 		nb_loops = 0;
 		if (session) {
 			char input=0;
 			int res;
-			if (sigint_catched) {
-				if (sigint_processed) {
-					fprintf(stderr, "catched SIGINT twice and session not responding, forcing exit.\n");
+			if (signal_catched) {
+				if (signal_processed) {
+					fprintf(stderr, "catched SIGINT|SIGTERM twice and session not responding, forcing exit.\n");
 				}
 				exit(1);
 			}
-			sigint_catched = GF_TRUE;
-			fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
-			res = scanf("%c", &input);
-			if (res!=1) input=0;
-			switch (input) {
-			case 'Y':
-			case 'y':
-			case '\n':
-				sigint_processed = GF_TRUE;
-				gf_fs_abort(session, GF_TRUE);
-				break;
-			case 0:
-				break;
-			default:
-				sigint_processed = GF_TRUE;
+			signal_catched = GF_TRUE;
+			if (sig == SIGINT) {
+				fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
+				res = scanf("%c", &input);
+				if (res!=1) input=0;
+				switch (input) {
+				case 'Y':
+				case 'y':
+				case '\n':
+					signal_processed = GF_TRUE;
+					gf_fs_abort(session, GF_TRUE);
+					break;
+				case 0:
+					break;
+				default:
+					signal_processed = GF_TRUE;
+					gf_fs_abort(session, GF_FALSE);
+					break;
+				}
+			} else {
+				signal_processed = GF_TRUE;
 				gf_fs_abort(session, GF_FALSE);
-				break;
 			}
 		}
 	}
@@ -2163,6 +2168,7 @@ restart:
 		SetConsoleCtrlHandler((PHANDLER_ROUTINE)gpac_sig_handler, TRUE);
 #else
 		signal(SIGINT, gpac_sig_handler);
+		signal(SIGTERM, gpac_sig_handler);
 #endif
 	}
 
@@ -3799,12 +3805,13 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_sys_is_quiet();
 	gf_sys_get_argv();
 	gf_mx_get_num_locks(NULL);
-	sigint_catched = GF_TRUE;
+	signal_catched = GF_TRUE;
 
 #ifdef WIN32
 	gpac_sig_handler(CTRL_C_EVENT);
 #else
 	gpac_sig_handler(SIGINT);
+	gpac_sig_handler(SIGTERM);
 #endif
 
 	gf_mkdir("testdir");
