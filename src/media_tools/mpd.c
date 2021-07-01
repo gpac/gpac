@@ -367,6 +367,7 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XMLNode *root)
 {
 	u32 i, j;
+	u64 curr_start_time = 0;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
 	GF_MPD_SegmentTimeline *seg;
@@ -381,6 +382,7 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 			GF_MPD_SegmentTimelineEntry *seg_tl_ent;
 			GF_SAFEALLOC(seg_tl_ent, GF_MPD_SegmentTimelineEntry);
 			if (!seg_tl_ent) continue;
+			seg_tl_ent->start_time = curr_start_time;
 			gf_list_add(seg->entries, seg_tl_ent);
 
 			j = 0;
@@ -395,6 +397,8 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 						seg_tl_ent->repeat_count--;
 				}
 			}
+
+			curr_start_time = curr_start_time + seg_tl_ent->duration * (seg_tl_ent->repeat_count+1);
 		}
 	}
 	return seg;
