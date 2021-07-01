@@ -515,7 +515,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->nb_frames_in++;
 #else
 		ctx->frame->pkt_dts = ctx->frame->pts;
-		fprintf(stderr, "PTS is "LLU" (pck was "LLU")\n", ctx->frame->pts, gf_filter_pck_get_cts(pck) );
 		res = avcodec_send_frame(ctx->encoder, ctx->frame);
 		switch (res) {
 		case AVERROR(EAGAIN):
