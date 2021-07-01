@@ -515,6 +515,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->nb_frames_in++;
 #else
 		ctx->frame->pkt_dts = ctx->frame->pts;
+		fprintf(stderr, "PTS is "LLU" (pck was "LLU")\n", ctx->frame->pts, gf_filter_pck_get_cts(pck) );
 		res = avcodec_send_frame(ctx->encoder, ctx->frame);
 		switch (res) {
 		case AVERROR(EAGAIN):
@@ -1531,6 +1532,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 
 		gf_media_get_reduced_frame_rate(&ctx->encoder->time_base.den, &ctx->encoder->time_base.num);
+
+		//make sure we don't use too low timescale in case we have changes of timescales/FPS, this avoids reconfiguring the encoder
+		if (ctx->encoder->time_base.den<100) {
+			ctx->encoder->time_base.num *= 100;
+			ctx->encoder->time_base.den *= 100;
+		}
 
 		if (ctx->low_delay) {
 			av_dict_set(&ctx->options, "profile", "baseline", 0);
