@@ -6863,7 +6863,11 @@ GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, u32 ctts_shift)
 	if (!trak) return GF_BAD_PARAM;
 
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
-	shift = ctts->version ? ctts_shift : ctts->entries[0].decodingOffset;
+	if (ctts->version) {
+		shift = ctts_shift;
+	} else {
+		shift = ctts->nb_entries ? ctts->entries[0].decodingOffset : 0;
+	}
 	leastCTTS = GF_INT_MAX;
 	greatestCTTS = 0;
 	for (i=0; i<ctts->nb_entries; i++) {
