@@ -3520,7 +3520,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			dur = samp->DTS+samp->CTS_Offset;
 			size += samp->dataLength;
 			rate += samp->dataLength;
-			if (samp->DTS - time_slice > ts) {
+			if ((samp->DTS - time_slice > ts) || (j+1==count) ) {
 				Double max_tmp = rate * ts / (samp->DTS - time_slice);
 				if (max_rate < max_tmp )
 					max_rate = max_tmp;
