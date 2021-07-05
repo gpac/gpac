@@ -1727,11 +1727,11 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 			}
 			res = av_dict_set(&ctx->options, arg_name, arg_val_str, 0);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val_str ));
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s, unrecognized type %d\n", arg_name, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
