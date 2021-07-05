@@ -1994,7 +1994,7 @@ s64 gf_timestamp_rescale_signed(s64 value, u64 timescale, u64 new_timescale)
 	}
 
 	if (value <= GF_INT_MAX) {
-		return (value * new_timescale) / timescale;
+		return (value * (s32) new_timescale) / (s32) timescale;
 	}
 
 	s64 int_part = value / timescale;
