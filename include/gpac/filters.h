@@ -767,7 +767,6 @@ typedef enum
 	GF_PROP_CICP_COL_TFC	=	GF_PROP_FIRST_ENUM+3,
 	/*! CICP Color Matrix*/
 	GF_PROP_CICP_COL_MX		=	GF_PROP_FIRST_ENUM+4,
-
 	/*! not allowed*/
 	GF_PROP_LAST_DEFINED
 } GF_PropType;

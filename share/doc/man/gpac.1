@@ -165,6 +165,8 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * colors: print the builtin color names and their values
 .br
+* layouts: print the builtin CICP audio channel layout names and their values
+.br
 * links: print possible connections between each supported filters
 .br
 * links FNAME: print sources and sinks for filter FNAME (either builtin or JS filter)
@@ -629,6 +631,11 @@ cache size for bitstream read and write from file (0 disable cache, slower IOs)
 .B \-no-check
 .br
 disable compliancy tests for inputs (ISOBMFF for now). This will likely result in random crashes
+.br
+.TP
+.B \-unhandled-rejection
+.br
+dump unhandled promise rejections
 .br
 .TP
 .B \-cache (string)
@@ -4122,6 +4129,109 @@ xHEAAC / USAC Audio
 .br
 v210 YUV 422 10 bits
 .br
+.SH Stream types
+.LP
+.br
+.TP
+.B mono (int 1)
+.br
+Layout 0x0000000000000004
+.br
+.TP
+.B stereo (int 2)
+.br
+Layout 0x0000000000000003
+.br
+.TP
+.B 3/0.0 (int 3)
+.br
+Layout 0x0000000000000007
+.br
+.TP
+.B 3/1.0 (int 4)
+.br
+Layout 0x0000000000000407
+.br
+.TP
+.B 3/2.0 (int 5)
+.br
+Layout 0x0000000000000307
+.br
+.TP
+.B 3/2.1 (int 6)
+.br
+Layout 0x000000000000030f
+.br
+.TP
+.B 5/2.1 (int 7)
+.br
+Layout 0x000000000000030f
+.br
+.TP
+.B 1+1 (int 8)
+.br
+Layout 0x0000000000000003
+.br
+.TP
+.B 2/1.0 (int 9)
+.br
+Layout 0x0000000000000403
+.br
+.TP
+.B 2/2.0 (int 10)
+.br
+Layout 0x0000000000000033
+.br
+.TP
+.B 3/3.1 (int 11)
+.br
+Layout 0x000000000000043f
+.br
+.TP
+.B 3/4.1 (int 12)
+.br
+Layout 0x000000000000033f
+.br
+.TP
+.B 11/11.2 (int 13)
+.br
+Layout 0x000000003ffe67cf
+.br
+.TP
+.B 5/2.1 (int 14)
+.br
+Layout 0x000000000006030f
+.br
+.TP
+.B 5/5.2 (int 15)
+.br
+Layout 0x000000000606630f
+.br
+.TP
+.B 5/4.1 (int 16)
+.br
+Layout 0x000000000036003f
+.br
+.TP
+.B 6/5.1 (int 17)
+.br
+Layout 0x00000000023e003f
+.br
+.TP
+.B 6/7.1 (int 18)
+.br
+Layout 0x00000600023e003f
+.br
+.TP
+.B 5/6.1 (int 19)
+.br
+Layout 0x000000000036630f
+.br
+.TP
+.B 7/6.1 (int 20)
+.br
+Layout 0x000000600036630f
+.br
 .SH EXAMPLES
 .TP
 Basic and advanced examples are available at https://wiki.gpac.io/Filters
@@ -4131,7 +4241,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev974-g0ef0a0e99-master
+build: 1.1.0-DEV-rev1025-g13442ec1c-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
