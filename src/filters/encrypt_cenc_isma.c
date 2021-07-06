@@ -669,7 +669,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 
 	cstr->use_subsamples = GF_FALSE;
-	if (cstr->cenc_codec != CENC_FULL_SAMPLE) cstr->use_subsamples = GF_TRUE;
+	if (cstr->cenc_codec != CENC_FULL_SAMPLE)
+		cstr->use_subsamples = GF_TRUE;
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
 		if (cstr->tci->skip_byte_block) {
@@ -1589,7 +1590,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 				break;
 			default:
-				assert(0);
+				//used by cbcs
+				clear_bytes = 0;
+				break;
 			}
 #else
 			clear_bytes = nalu_size;
