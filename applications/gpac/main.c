@@ -1173,11 +1173,13 @@ static Bool signal_processed=GF_FALSE;
 static BOOL WINAPI gpac_sig_handler(DWORD sig)
 {
 	if (sig == CTRL_C_EVENT) {
+		Bool is_inter = GF_TRUE;
 #else
 #include <signal.h>
 static void gpac_sig_handler(int sig)
 {
 	if (sig == SIGINT || sig == SIGTERM) {
+		Bool is_inter = (sig == SIGINT) ? GF_TRUE : GF_FALSE;
 #endif
 		nb_loops = 0;
 		if (session) {
@@ -1190,7 +1192,7 @@ static void gpac_sig_handler(int sig)
 				exit(1);
 			}
 			signal_catched = GF_TRUE;
-			if (sig == SIGINT) {
+			if (is_inter) {
 				fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
 				res = scanf("%c", &input);
 				if (res!=1) input=0;
