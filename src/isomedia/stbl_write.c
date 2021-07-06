@@ -1742,10 +1742,11 @@ GF_Err stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samp
 	}
 	//ok we need a new entry - this assumes this function is called AFTER AppendChunk
 	ent = &stsc->entries[stsc->nb_entries];
+	memset(ent, 0, sizeof(GF_StscEntry));
 	ent->firstChunk = nextChunk;
 	ent->sampleDescriptionIndex = DescIndex;
 	ent->samplesPerChunk = samplesInChunk;
-	ent->isEdited = 0;
+
 	stsc->nb_entries++;
 	return GF_OK;
 }
