@@ -388,6 +388,8 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 		}
 		return GF_OK;
 	}
+	if (data_size<2) return GF_NON_COMPLIANT_BITSTREAM;
+
 	/*cfg packet*/
 	txt_size = data[0];
 	txt_size <<= 8;
@@ -395,6 +397,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 	/*remove BOM*/
 	pay_start = 2;
 	if (txt_size>2) {
+		if (data_size<4) return GF_NON_COMPLIANT_BITSTREAM;
 		/*seems 3GP only accepts BE UTF-16 (no LE, no UTF32)*/
 		if (((u8) data[2]==(u8) 0xFE) && ((u8) data[3]==(u8) 0xFF)) {
 			is_utf_16 = GF_TRUE;
