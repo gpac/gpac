@@ -7960,9 +7960,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 		dasher_send_manifest(filter, ctx, GF_FALSE);
 	}
 
-	//still some running streams in period
+	//still some running streams in period - do not ask for reschedule, wait for input packets to be available
 	if (count && (nb_init<count)) {
-		gf_filter_post_process_task(filter);
 		return GF_OK;
 	}
 
