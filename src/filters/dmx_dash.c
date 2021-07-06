@@ -2612,6 +2612,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
 	Bool check_eos = ctx->check_eos;
 	Bool has_pck = GF_FALSE;
+	Bool switch_pending = GF_FALSE;
 
 	//reset group states and update stats
 	count = gf_dash_get_group_count(ctx->dash);
@@ -2716,6 +2717,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						}
 						if (nb_block == group->nb_pids) {
 							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", group->idx, nb_block));
+							switch_pending = GF_TRUE;
 							break;
 						}
 
@@ -2770,6 +2772,12 @@ GF_Err dashdmx_process(GF_Filter *filter)
 			dashdmx_update_group_stats(ctx, group);
 		}
 	}
+
+	if (switch_pending) {
+		gf_filter_ask_rt_reschedule(filter, 1000);
+		return GF_OK;
+	}
+	if (has_pck) check_eos = GF_FALSE;
 
 	if (check_eos) {
 		Bool all_groups_done = GF_TRUE;
