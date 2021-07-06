@@ -5994,9 +5994,13 @@ const char *gf_filter_event_name(GF_FEventType type)
 	case GF_FEVT_BUFFER_REQ: return "BUFFER_REQ";
 	case GF_FEVT_USER: return "USER";
 	case GF_FEVT_SEGMENT_SIZE: return "SEGMENT_SIZE";
+	case GF_FEVT_FRAGMENT_SIZE: return "FRAGMENT_SIZE";
 	case GF_FEVT_CAPS_CHANGE: return "CAPS_CHANGED";
 	case GF_FEVT_CONNECT_FAIL: return "CONNECT_FAIL";
+	case GF_FEVT_FILE_DELETE: return "FILE_DELETE";
 	case GF_FEVT_PLAY_HINT: return "PLAY_HINT";
+	case GF_FEVT_ENCODE_HINTS: return "ENCODE_HINTS";
+	case GF_FEVT_NTP_REF: return "NTP_REF";
 	default:
 		return "UNKNOWN";
 	}
