@@ -1661,6 +1661,8 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (res < 0) {
 		if (options) av_dict_free(&options);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+		avcodec_free_context(&ctx->encoder);
+		ctx->encoder = NULL;
 		return GF_BAD_PARAM;
 	}
 	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->timescale)) ? GF_TRUE : GF_FALSE;

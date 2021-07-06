@@ -74,6 +74,7 @@ static char separator_set[7] = GF_FS_DEFAULT_SEPS;
 static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode);
 static void dump_all_props(void);
 static void dump_all_colors(void);
+static void dump_all_audio_cicp(void);
 static void dump_all_codec(GF_FilterSession *session);
 static void write_filters_options(GF_FilterSession *fsess);
 static void write_core_options();
@@ -605,6 +606,7 @@ static GF_GPACArg gpac_args[] =
 			"- codecs: print the supported builtin codecs\n"\
 			"- props: print the supported builtin PID and packet properties\n"\
 			"- colors: print the builtin color names and their values\n"\
+			"- layouts: print the builtin CICP audio channel layout names and their values\n"\
 			"- links: print possible connections between each supported filters\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
@@ -1411,7 +1413,7 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 	}
 	if (!found && is_help) {
 		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "colors", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
+			"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
 		};
 		i=0;
 		while (doc_helps[i]) {
@@ -1685,6 +1687,9 @@ static int gpac_main(int argc, char **argv)
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "colors")) {
 				dump_all_colors();
+				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "layouts")) {
+				dump_all_audio_cicp();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "cfg")) {
 				gpac_config_help();
@@ -3074,6 +3079,8 @@ static void dump_all_props(void)
 	}
 	if (gen_doc==1) {
 		u32 idx=0;
+		u32 cicp;
+		u64 layout;
 		GF_PixelFormat pfmt;
 		const char *name, *fileext, *desc;
 		gf_sys_format_help(helpout, help_flags, "# Pixel formats\n");
@@ -3115,8 +3122,19 @@ static void dump_all_props(void)
 			idx++;
 		}
 
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# CICP code points for audio channel layout\n");
+		gf_sys_format_help(helpout, help_flags, " Name | Integer value | ChannelMask  \n");
+		gf_sys_format_help(helpout, help_flags, " --- | ---  | ---  \n");
+		while ( (cicp = gf_audio_fmt_cicp_enum(idx, &name, &layout)) ) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %d | 0x%016"LLX_SUF"  \n", name, cicp, layout);
+			idx++;
+		}
+
 	} else if (gen_doc==2) {
-		u32 idx=0;
+		u32 idx=0, cicp;
+		u64 layout;
 		const char *name, *fileext, *desc;
 		gf_sys_format_help(helpout, help_flags, "# Pixel formats\n");
 		while ( gf_pixel_fmt_enum(&idx, &name, &fileext, &desc)) {
@@ -3141,6 +3159,13 @@ static void dump_all_props(void)
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s\n%s\n", name, desc);
 			idx++;
 		}
+
+		idx=0;
+		gf_sys_format_help(helpout, help_flags, "# Stream types\n");
+		while ( (cicp = gf_audio_fmt_cicp_enum(idx, &name, &layout)) ) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, ".TP\n.B %s (int %d)\nLayout 0x%016"LLX_SUF"\n", name, cicp, layout);
+			idx++;
+		}
 	}
 }
 #include <gpac/color.h>
@@ -3151,6 +3176,18 @@ static void dump_all_colors(void)
 	const char *name;
 	while (gf_color_enum(&i, &color, &name)) {
 		gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s: 0x%08X\n", name, color);
+	}
+}
+
+static void dump_all_audio_cicp(void)
+{
+	u32 i=0, cicp;
+	const char *name;
+	u64 layout;
+
+	while ((cicp = gf_audio_fmt_cicp_enum(i, &name, &layout)) ) {
+		gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s (%d): 0x%016"LLX_SUF"\n", name, cicp, layout);
+		i++;
 	}
 }
 

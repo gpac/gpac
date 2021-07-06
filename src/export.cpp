@@ -2364,6 +2364,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codec_id_from_isobmf) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_from_oti) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_cicp_enum) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_props_get_type_desc) )

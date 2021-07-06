@@ -41,7 +41,7 @@ static struct {
 	{GF_PROP_PCMFMT, (cst_parse_proto) gf_audio_fmt_parse, (cst_name_proto) gf_audio_fmt_name, gf_audio_fmt_all_names},
 	{GF_PROP_CICP_COL_PRIM, gf_cicp_parse_color_primaries, gf_cicp_color_primaries_name, gf_cicp_color_primaries_all_names},
 	{GF_PROP_CICP_COL_TFC, gf_cicp_parse_color_transfer, gf_cicp_color_transfer_name, gf_cicp_color_transfer_all_names},
-	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names},
+	{GF_PROP_CICP_COL_MX, gf_cicp_parse_color_matrix, gf_cicp_color_matrix_name, gf_cicp_color_matrix_all_names}
 };
 
 GF_EXPORT

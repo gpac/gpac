@@ -862,15 +862,34 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 GF_EXPORT
 u64 gf_audio_fmt_get_layout_from_name(const char *name)
 {
-	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	u32 i, iname, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
 	if (!name) return 0;
+	iname = atoi(name);
 	for (i = 0; i < nb_cicp; i++) {
 		if (!strcmp(GF_CICPLayouts[i].name, name))
+			return GF_CICPLayouts[i].channel_mask;
+		if (GF_CICPLayouts[i].cicp ==  iname)
 			return GF_CICPLayouts[i].channel_mask;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
 	return 0;
 }
+GF_EXPORT
+u32 gf_audio_fmt_get_cicp_from_name(const char *name)
+{
+	u32 i, iname, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	if (!name) return 0;
+	iname = atoi(name);
+	for (i = 0; i < nb_cicp; i++) {
+		if (!strcmp(GF_CICPLayouts[i].name, name))
+			return GF_CICPLayouts[i].cicp;
+		if (GF_CICPLayouts[i].cicp == iname)
+			return GF_CICPLayouts[i].cicp;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
+	return 0;
+}
+
 
 GF_EXPORT
 u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
@@ -884,6 +903,17 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
 }
 
 GF_EXPORT
+const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].cicp == cicp_code) return GF_CICPLayouts[i].name;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
+	return NULL;
+}
+
+GF_EXPORT
 u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)
 {
 	u32 i, nb_chan = 0;
@@ -893,6 +923,31 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)
 	}
 	return nb_chan;
 }
+
+static char szCICPLayoutAllNames[1024];
+const char *gf_audio_fmt_cicp_all_names()
+{
+	if (szCICPLayoutAllNames[0] == 0) {
+		u32 i, count = GF_ARRAY_LENGTH(GF_CICPLayouts);
+		for (i=0; i<count; i++) {
+			if (i) strcat(szCICPLayoutAllNames, ",");
+			strcat(szCICPLayoutAllNames, GF_CICPLayouts[i].name);
+		}
+	}
+	return szCICPLayoutAllNames;
+}
+
+
+GF_EXPORT
+u32 gf_audio_fmt_cicp_enum(u32 idx, const char **short_name, u64 *ch_mask)
+{
+	u32 count = GF_ARRAY_LENGTH(GF_CICPLayouts);
+	if (idx >= count) return 0;
+	if (short_name) *short_name = GF_CICPLayouts[idx].name;
+	if (ch_mask) *ch_mask = GF_CICPLayouts[idx].channel_mask;
+	return GF_CICPLayouts[idx].cicp;
+}
+
 
 GF_EXPORT
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp)

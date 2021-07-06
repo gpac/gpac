@@ -915,6 +915,25 @@ u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout);
 */
 u16 gf_audio_fmt_get_dolby_chanmap(u32 cicp_layout);
 
+/*! get channel CICP code  from name
+\param name channel layout name
+\return channel CICP code
+*/
+u32 gf_audio_fmt_get_cicp_from_name(const char *name);
+
+/*! get channel CICP code  from name
+\param cicp_code channel cicp code
+\return channel CICP name
+*/
+const char *gf_audio_fmt_get_cicp_name(u32 cicp_code);
+
+/*! enumerates CICP channel layout
+\param idx index of cicp layout value to query
+\param short_name set t o CICP name as used in GPAC - may be NULL
+\param ch_mask set t o audio channel mask, as used in GPAC - may be NULL
+\return CICP code point, or 0 if no more to enumerate*/
+u32 gf_audio_fmt_cicp_enum(u32 idx, const char **short_name, u64 *ch_mask);
+
 /*! Color primaries as defined by ISO/IEC 23001-8 / 23091-2
   */
 typedef enum

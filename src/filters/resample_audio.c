@@ -43,6 +43,8 @@ typedef struct
 	u32 freq, nb_ch, afmt;
 	u64 ch_cfg;
 	u64 out_cts_plus_one;
+	char *olayout;
+
 	//source is planar
 	Bool src_is_planar;
 	GF_AudioInterface input_ai;
@@ -211,7 +213,22 @@ static GF_Err resample_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->afmt = ctx->ofmt ? ctx->ofmt : afmt;
 		ctx->freq = ctx->osr ? ctx->osr : sr;
 		ctx->nb_ch = ctx->och ? ctx->och : nb_ch;
+
+		if (ctx->olayout) {
+			ch_cfg = gf_audio_fmt_get_layout_from_name(ctx->olayout);
+			if (!ch_cfg) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Resampler] Unrecognized CICP layout %s, will infer layout from channel numbers (%d)", ctx->olayout, ctx->nb_ch));
+			} else {
+				ctx->nb_ch = nb_ch = gf_audio_fmt_get_num_channels_from_layout(ch_cfg);
+			}
+		}
 		ctx->ch_cfg = ch_cfg;
+
+		if (ctx->nb_ch != nb_ch) {
+			//TODO, find LFE and surround
+			u32 cicp = gf_audio_fmt_get_cicp_layout(ctx->nb_ch, 0, 0);
+			ctx->ch_cfg = gf_audio_fmt_get_layout_from_cicp(cicp);
+		}
 
 		e = gf_mixer_set_config(ctx->mixer, ctx->freq, ctx->nb_ch, ctx->afmt, ctx->ch_cfg);
 		if (e) return e;
@@ -439,11 +456,12 @@ static const GF_FilterCapability ResamplerCaps[] =
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)
-static const GF_FilterArgs ResamplerArgs[] =
+static GF_FilterArgs ResamplerArgs[] =
 {
 	{ OFFS(och), "desired number of output audio channels - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(osr), "desired sample rate of output audio - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(ofmt), "desired format of output audio - none for auto", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(olayout), "desired CICP layout of output audio - null for auto", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 
@@ -463,9 +481,11 @@ GF_FilterRegister ResamplerRegister = {
 	.process_event = resample_process_event,
 };
 
+const char *gf_audio_fmt_cicp_all_names();
 
 const GF_FilterRegister *resample_register(GF_FilterSession *session)
 {
+	ResamplerArgs[3].min_max_enum = gf_audio_fmt_cicp_all_names();
 	return &ResamplerRegister;
 }
 #else
