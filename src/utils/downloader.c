@@ -535,6 +535,10 @@ static int h2_frame_recv_callback(nghttp2_session *session, const nghttp2_frame 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] All headers received for stream ID %d\n", sess->h2_stream_id));
 			}
 		}
+		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d (%s) data done\n", frame->hd.stream_id, sess->remote_path ? sess->remote_path : sess->orig_url));
+			sess->h2_data_done = 1;
+		}
 		break;
 	case NGHTTP2_DATA:
 		if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
@@ -580,7 +584,7 @@ static int h2_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags, 
 	}
 	memcpy(sess->h2_buf.data + sess->h2_buf.size, data, len);
 	sess->h2_buf.size += (u32) len;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes - flags %d\n", sess->h2_stream_id, len, flags));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTP/2] stream_id %d received %d bytes (%d/%d total) - flags %d\n", sess->h2_stream_id, len, sess->bytes_done, sess->total_size, flags));
 	return 0;
 }
 
