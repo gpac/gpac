@@ -9245,6 +9245,9 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 	GF_BitStream *bs;
 	u32 i;
 	s32 sync_pos=-1;
+
+	if (!ptr || !size) return 0;
+	
 	for (i=0; i<size-3; i++) {
 		if ((ptr[i]==0xC0) && (ptr[i+1]== 0x01) && (ptr[i+2]==0xA5)) {
 			sync_pos = i;
