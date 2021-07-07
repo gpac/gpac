@@ -1173,7 +1173,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	u32 i=0;
 	AVDictionary *options = NULL;
 	u32 change_input_fmt = 0;
-	AVRational timebase = {};
+	AVRational timebase;
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
 	const AVCodec *desired_codec=NULL;
@@ -1308,6 +1308,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	}\
 	_a = prop->value.uint;
 
+	timebase.num = timebase.den = 0;
 	pfmt = afmt = 0;
 	if (type==GF_STREAM_VISUAL) {
 		GET_PROP(ctx->width, GF_PROP_PID_WIDTH, "width")
