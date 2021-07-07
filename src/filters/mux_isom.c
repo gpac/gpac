@@ -6490,6 +6490,9 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->owns_mov && (ctx->file || (ctx->store>=MP4MX_MODE_FRAG))) {
+		if (ctx->store < MP4MX_MODE_FRAG) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[MP4Mux] Session aborted before writing to file, use fragmented storage mode to record session\n"));
+		}
 		gf_isom_delete(ctx->file);
 	}
 
