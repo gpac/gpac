@@ -4017,8 +4017,12 @@ single_retry:
 		if (gf_list_count(filter_dst->source_filters)) {
 			u32 j, count2 = gf_list_count(filter_dst->source_filters);
 			for (j=0; j<count2; j++) {
+				Bool in_par;
 				GF_Filter *srcf = gf_list_get(filter_dst->source_filters, j);
-				if (gf_filter_in_parent_chain(pid->filter, srcf)) {
+				gf_mx_v(filter_dst->tasks_mx);
+				in_par = gf_filter_in_parent_chain(pid->filter, srcf);
+				gf_mx_p(filter_dst->tasks_mx);
+				if (in_par) {
 					ignore_source_ids = GF_TRUE;
 					break;
 				}

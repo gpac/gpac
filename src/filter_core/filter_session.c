@@ -271,13 +271,15 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	}
 
 	for (i=0; i<(u32) nb_threads; i++) {
+		char szName[30];
 		GF_SessionThread *sess_thread;
 		GF_SAFEALLOC(sess_thread, GF_SessionThread);
 		if (!sess_thread) continue;
 #ifndef GPAC_DISABLE_REMOTERY
 		sprintf(sess_thread->rmt_name, "FSThread%d", i+1);
 #endif
-		sess_thread->th = gf_th_new("MediaSessionThread");
+		sprintf(szName, "MediaSessionThread_%d", i+1);
+		sess_thread->th = gf_th_new(szName);
 		if (!sess_thread->th) {
 			gf_free(sess_thread);
 			continue;

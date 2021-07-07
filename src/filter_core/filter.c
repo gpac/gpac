@@ -4163,6 +4163,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		u32 j;
 		GF_Filter *f = gf_list_get(filter->session->filters, i);
+		if (f->removed || f->finalized) continue;
 
 		gf_mx_p(f->tasks_mx);
 		for (j=0; j<f->num_output_pids; j++) {
