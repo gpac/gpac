@@ -1534,7 +1534,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 		//make sure we don't use too low timescale in case we have changes of timescales/FPS, this avoids reconfiguring the encoder
 		if (ctx->encoder->time_base.den<100) {
-			ctx->encoder->time_base.num *= 100;
+			ctx->encoder->ticks_per_frame *= 100;
 			ctx->encoder->time_base.den *= 100;
 		}
 
