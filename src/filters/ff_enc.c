@@ -1526,7 +1526,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
 			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
-			ctx->encoder->time_base.num = prop->value.frac.den;
+			ctx->encoder->ticks_per_frame = prop->value.frac.den;
 			ctx->encoder->time_base.den = prop->value.frac.num;
 		}
 
