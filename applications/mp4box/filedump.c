@@ -3011,11 +3011,15 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 			else if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 				if (esd->decoderConfig->objectTypeIndication<=4) {
 					GF_BIFSConfig *b_cfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
-					fprintf(stderr, "BIFS Scene description - %s stream\n", b_cfg->elementaryMasks ? "Animation" : "Command");
-					if (full_dump && !b_cfg->elementaryMasks) {
-						fprintf(stderr, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no");
+					if (b_cfg) {
+						fprintf(stderr, "BIFS Scene description - %s stream\n", b_cfg->elementaryMasks ? "Animation" : "Command");
+						if (full_dump && !b_cfg->elementaryMasks) {
+							fprintf(stderr, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no");
+						}
+						gf_odf_desc_del((GF_Descriptor *)b_cfg);
+					} else {
+						fprintf(stderr, "! Invalid BIFS configuration !\n");
 					}
-					gf_odf_desc_del((GF_Descriptor *)b_cfg);
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AFX) {
 					u8 tag = (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
 					const char *afxtype = gf_stream_type_afx_name(tag);
