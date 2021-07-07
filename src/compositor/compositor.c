@@ -2800,7 +2800,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	if (!compositor->player) {
 		if (compositor->check_eos_state<=1) {
-			compositor->check_eos_state = 0;
 			/*check if we have to force a frame dispatch */
 
 			//no passthrough texture
@@ -2834,6 +2833,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					compositor->check_eos_state = 2;
 				}
 			}
+			if (compositor->frame_draw_type==GF_SC_DRAW_FRAME)
+				compositor->check_eos_state = 0;
 		}
 
 	}
