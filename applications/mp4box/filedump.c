@@ -2885,8 +2885,13 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					char *szName;
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stderr, "\t");
-					if (!strnicmp((char *) &esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)) szName = "Theora";
-					else szName = "Unknown";
+					szName = "Unknown";
+					if (esd->decoderConfig->decoderSpecificInfo
+						&& (esd->decoderConfig->decoderSpecificInfo->dataLength>=10)
+						&& !strnicmp((char *) &esd->decoderConfig->decoderSpecificInfo->data[3], "theora", 6)
+					)
+						szName = "Theora";
+
 					fprintf(stderr, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
 				else {
@@ -2959,14 +2964,16 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 #ifndef GPAC_DISABLE_AV_PARSERS
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
 						if (samp) {
-							u32 mhdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
-							if (full_dump) fprintf(stderr, "\t");
-							fprintf(stderr, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
-							        gf_mp3_version_name(mhdr),
-							        gf_mp3_num_channels(mhdr),
-							        gf_mp3_sampling_rate(mhdr),
-							        gf_mp3_layer(mhdr)
-							       );
+							if (samp->data && (samp->dataLength>4)) {
+								u32 mhdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+								if (full_dump) fprintf(stderr, "\t");
+								fprintf(stderr, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
+										gf_mp3_version_name(mhdr),
+										gf_mp3_num_channels(mhdr),
+										gf_mp3_sampling_rate(mhdr),
+										gf_mp3_layer(mhdr)
+									   );
+							}
 							gf_isom_sample_del(&samp);
 						} else {
 							M4_LOG(GF_LOG_ERROR, ("Error fetching sample: %s\n", gf_error_to_string(gf_isom_last_error(file)) ));
@@ -3010,7 +3017,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					}
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AFX) {
-					u8 tag = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
+					u8 tag = (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
 					const char *afxtype = gf_stream_type_afx_name(tag);
 					fprintf(stderr, "AFX Stream - type %s (%d)\n", afxtype, tag);
 				} else if (esd->decoderConfig->objectTypeIndication==GF_CODECID_FONT) {
@@ -3326,15 +3333,15 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		GF_ISOSample *sample = gf_isom_get_sample(file, trackNum, 1, &stsd_idx);
 		fprintf(stderr, "Time Code stream\n");
 		if (sample) {
-			char szTimecode[100];
 			u32 tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt;
 
 			gf_isom_get_tmcd_config(file, trackNum, stsd_idx, &tmcd_flags, &tmcd_num, &tmcd_den, &tmcd_fpt);
-
-			gf_inspect_format_timecode(sample->data, sample->dataLength, tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt, szTimecode);
-
+			if (sample->data) {
+				char szTimecode[100];
+				gf_inspect_format_timecode(sample->data, sample->dataLength, tmcd_flags, tmcd_num, tmcd_den, tmcd_fpt, szTimecode);
+				fprintf(stderr, "\tFirst timecode: %s\n", szTimecode);
+			}
 			gf_isom_sample_del(&sample);
-			fprintf(stderr, "\tFirst timecode: %s\n", szTimecode);
 		}
 	} else if (msub_type==GF_ISOM_SUBTYPE_OPUS) {
 		fprintf(stderr, "\tOpus Audio - Sample Rate %d ch %d\n", sr, nb_ch);
