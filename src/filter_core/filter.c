@@ -4408,3 +4408,9 @@ void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
 		filter->nb_forced_caps = dst_filter->nb_forced_caps;
 	}
 }
+
+GF_EXPORT
+void gf_filter_require_source_id(GF_Filter *filter)
+{
+	if (filter) filter->require_source_id = GF_TRUE;
+}

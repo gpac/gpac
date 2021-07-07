@@ -4627,7 +4627,8 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	gf_mx_v(filter->tasks_mx);
 	pid->pid = pid;
 	pid->playback_speed_scaler = GF_FILTER_SPEED_SCALER;
-	
+	pid->require_source_id = filter->require_source_id;
+
 	sprintf(szName, "PID%d", filter->num_output_pids);
 	pid->name = gf_strdup(szName);
 

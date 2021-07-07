@@ -475,6 +475,8 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 			end_date = ctx->xe.vals[ctx->cur_range_idx];
 		else if (ctx->cur_range_idx + 1 < ctx->xs.nb_items)
 			end_date = ctx->xs.vals[ctx->cur_range_idx+1];
+
+		if (end_date && !end_date[0]) end_date = NULL;
 	}
 	if (!start_date)
 		goto range_done;

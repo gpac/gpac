@@ -720,7 +720,7 @@ struct __gf_filter
 	u32 encoder_stream_type;
 
 	Bool act_as_sink;
-	
+	Bool require_source_id;
 #ifndef GPAC_DISABLE_REMOTERY
 	rmtU32 rmt_hash;
 #endif

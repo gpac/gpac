@@ -105,7 +105,8 @@ enum
 	JSF_FILTER_CLOCK_HINT_TIME,
 	JSF_FILTER_CLOCK_HINT_MEDIATIME,
 	JSF_FILTER_CONNECTIONS_PENDING,
-	JSF_FILTER_INAME
+	JSF_FILTER_INAME,
+	JSF_FILTER_REQUIRE_SOURCEID
 };
 
 enum
@@ -925,6 +926,10 @@ static JSValue jsf_filter_prop_set(JSContext *ctx, JSValueConst this_val, JSValu
 		JS_FreeCString(ctx, val);
 	}
 		break;
+	case JSF_FILTER_REQUIRE_SOURCEID:
+		if (JS_ToBool(ctx, value))
+			gf_filter_require_source_id(jsf->filter);
+		break;
 	}
     return JS_UNDEFINED;
 }
@@ -1696,6 +1701,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("clock_hint_mediatime", jsf_filter_prop_get, NULL, JSF_FILTER_CLOCK_HINT_MEDIATIME),
     JS_CGETSET_MAGIC_DEF("connections_pending", jsf_filter_prop_get, NULL, JSF_FILTER_CONNECTIONS_PENDING),
 	JS_CGETSET_MAGIC_DEF("iname", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_INAME),
+    JS_CGETSET_MAGIC_DEF("require_source_id", NULL, jsf_filter_prop_set, JSF_FILTER_REQUIRE_SOURCEID),
 
 
     JS_CFUNC_DEF("set_desc", 0, jsf_filter_set_desc),
