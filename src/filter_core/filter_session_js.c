@@ -1361,17 +1361,23 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 {
 	u32 i, count=gf_list_count(fs->jstasks);
+
 	for (i=0; i<count; i++) {
 		JSFS_Task *task = gf_list_get(fs->jstasks, i);
 		if (js_ctx && (task->ctx != js_ctx))
 			continue;
+
+		gf_js_lock(js_ctx, GF_TRUE);
 		JS_FreeValue(task->ctx, task->fun);
 		JS_FreeValue(task->ctx, task->_obj);
+		gf_js_lock(js_ctx, GF_FALSE);
+
 		gf_free(task);
 		gf_list_rem(fs->jstasks, i);
 		i--;
 		count--;
 	}
+
 	if (fs->js_ctx) {
 		gf_js_delete_context(fs->js_ctx);
 		fs->js_ctx = NULL;

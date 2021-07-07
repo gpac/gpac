@@ -4579,6 +4579,8 @@ static void jsfilter_finalize(GF_Filter *filter)
 	GF_JSFilterCtx *jsf = gf_filter_get_udta(filter);
 	if (!jsf->ctx) return;
 
+	gf_js_lock(jsf->ctx, GF_TRUE);
+
 	//reset references but do not destroy PIDs yet
 	count = gf_list_count(jsf->pids);
 	for (i=0; i<count; i++) {
@@ -4604,6 +4606,8 @@ static void jsfilter_finalize(GF_Filter *filter)
 
 	if (jsf->is_custom)
 		JS_FreeValue(jsf->ctx, jsf->filter_obj);
+
+	gf_js_lock(jsf->ctx, GF_FALSE);
 
 	if (jsf->unload_session_api)
 		gf_fs_unload_script(filter->session, jsf->ctx);
