@@ -133,6 +133,7 @@ typedef struct _gf_ffenc_ctx
 	AVPacket *pkt;
 #endif
 
+	u32 premul_timescale;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf);
@@ -490,9 +491,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		ctx->frame->pkt_duration = gf_filter_pck_get_duration(pck);
 
 //use signed version of timestamp rescale since we may have negative dts
-#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->timescale, ctx->encoder->time_base.den); }
-#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->timescale); }
-#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->timescale); }      
+#define SCALE_TS(_ts) if (_ts != GF_FILTER_NO_TS) { _ts = gf_timestamp_rescale_signed(_ts, ctx->premul_timescale, ctx->encoder->time_base.den); }
+#define UNSCALE_TS(_ts) if (_ts != AV_NOPTS_VALUE)  { _ts = gf_timestamp_rescale_signed(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
+#define UNSCALE_DUR(_ts) { _ts = gf_timestamp_rescale(_ts, ctx->encoder->time_base.den, ctx->premul_timescale); }
 
 		if (ctx->remap_ts) {
 			SCALE_TS(ctx->frame->pts);
@@ -1172,6 +1173,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	u32 i=0;
 	AVDictionary *options = NULL;
 	u32 change_input_fmt = 0;
+	AVRational timebase = {};
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
 	const AVCodec *desired_codec=NULL;
@@ -1317,6 +1319,19 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (prop) ctx->stride = prop->value.uint;
 		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_STRIDE_UV);
 		if (prop) ctx->stride_uv = prop->value.uint;
+
+		//compute new timebase
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		if (prop) {
+			timebase.num = 1;
+			timebase.den = prop->value.uint;
+		}
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (prop) {
+			timebase.num = prop->value.frac.den;
+			timebase.den = prop->value.frac.num;
+		}
+		gf_media_get_reduced_frame_rate(&timebase.den, &timebase.num);
 	} else {
 		GET_PROP(ctx->sample_rate, GF_PROP_PID_SAMPLE_RATE, "sample rate")
 		GET_PROP(ctx->channels, GF_PROP_PID_NUM_CHANNELS, "nb channels")
@@ -1336,6 +1351,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		} else if ((ctx->encoder->codec->id==codec_id)
 			&& (ctx->encoder->width==ctx->width) && (ctx->encoder->height==ctx->height)
 			&& (ctx->gpac_pixel_fmt == pfmt)
+			//check if we run at the same framerate
+			&& (ctx->encoder->time_base.num * timebase.den == ctx->encoder->time_base.den * timebase.num)
+			//check we have the same number of ticks per frame, otherwise rate control will likely break
+			&& (ctx->encoder->ticks_per_frame == timebase.num)
 		) {
 			reuse = GF_TRUE;
 		}
@@ -1526,17 +1545,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
 			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
-			ctx->encoder->ticks_per_frame = prop->value.frac.den;
+			ctx->encoder->time_base.num = prop->value.frac.den;
 			ctx->encoder->time_base.den = prop->value.frac.num;
 		}
 
 		gf_media_get_reduced_frame_rate(&ctx->encoder->time_base.den, &ctx->encoder->time_base.num);
-
-		//make sure we don't use too low timescale in case we have changes of timescales/FPS, this avoids reconfiguring the encoder
-		if (ctx->encoder->time_base.den<100) {
-			ctx->encoder->ticks_per_frame *= 100;
-			ctx->encoder->time_base.den *= 100;
-		}
+		ctx->encoder->ticks_per_frame = ctx->encoder->time_base.num;
 
 		if (ctx->low_delay) {
 			av_dict_set(&ctx->options, "profile", "baseline", 0);
@@ -1665,7 +1679,12 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->encoder = NULL;
 		return GF_BAD_PARAM;
 	}
-	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->timescale)) ? GF_TRUE : GF_FALSE;
+	//precompute gpac_timescale * encoder->time_base.num for rescale operations
+	//do that AFTER opeing the codec, since some codecs may touch this field ...
+	ctx->premul_timescale = ctx->timescale;
+	ctx->premul_timescale *= ctx->encoder->time_base.num;
+
+	ctx->remap_ts = (ctx->encoder->time_base.den && (ctx->encoder->time_base.den != ctx->premul_timescale)) ? GF_TRUE : GF_FALSE;
 	if (!ctx->target_rate)
 		ctx->target_rate = (u32)ctx->encoder->bit_rate;
 
