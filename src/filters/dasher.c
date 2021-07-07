@@ -677,6 +677,7 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 		if (ds->opid)
 			gf_filter_pid_set_eos(ds->opid);
 		ds->rep_init = GF_FALSE;
+		ds->presentation_time_offset = 0;
 		gf_list_rem(ctx->current_period->streams, res);
 	}
 	ds->request_period_switch = 0;
@@ -1395,6 +1396,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_filter_pid_discard_block(ctx->opid_alt);
 		}
 		ds->rep_init = GF_FALSE;
+		ds->presentation_time_offset = 0;
 		ds->rep = NULL;
 		ds->set = NULL;
 		ds->period = NULL;
@@ -5953,6 +5955,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			continue;
 		//setup segmentation
 		ds->rep_init = GF_FALSE;
+		ds->presentation_time_offset = 0;
 		ds->seg_done = GF_FALSE;
 		ds->next_seg_start = (u32) ( ((u64) ds->dash_dur.num * ds->timescale) / ds->dash_dur.den);
 		ds->adjusted_next_seg_start = ds->next_seg_start;
@@ -7292,13 +7295,24 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (!ds->rep_init) {
 				u32 set_start_with_sap;
+				//for video, resync on sap 1 or 2 if not full profile
+				if ((ds->stream_type==GF_STREAM_VISUAL) && (ctx->profile != GF_DASH_PROFILE_FULL)) {
+					if ((sap_type!=GF_FILTER_SAP_1) && (sap_type!=GF_FILTER_SAP_2))
+						sap_type = 0;
+				}
 				if (!sap_type) {
+					//remember our timing
+					if (!ds->presentation_time_offset)
+						ds->presentation_time_offset = cts + 1;
+
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, droping non-SAP1/2 packet CTS "LLU"/%d\n", cts, ds->timescale));
 					dasher_drop_input(ctx, ds, GF_FALSE);
 					break;
 				}
 
 				set_start_with_sap = ctx->sseg ? base_ds->set->subsegment_starts_with_sap : base_ds->set->starts_with_sap;
 				if (!ds->muxed_base) {
+					u64 check_ts;
 					//force sap type to 1 for non-visual streams if strict_sap is set to off
 					if ((ds->stream_type!=GF_STREAM_VISUAL) && (ctx->strict_sap==DASHER_SAP_OFF) ) {
 						switch (ds->codec_id) {
@@ -7326,10 +7340,15 @@ static GF_Err dasher_process(GF_Filter *filter)
 					else if (set_start_with_sap != sap_type) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Segments do not start with the same SAP types: set initialized with %d but first packet got %d - bitstream will not be compliant\n", set_start_with_sap, sap_type));
 					}
+
+					check_ts = cts;
+					//in case we droped frames
+					if (ds->presentation_time_offset)
+						check_ts = ds->presentation_time_offset - 1;
 					//The code below assumes that the first frame in the stream has a presentation time of 0
 					ds->presentation_time_offset = 0;
-					if ((s64) cts + ds->pts_minus_cts > 0) {
-						u64 pto = cts + ds->pts_minus_cts;
+					if ((s64) check_ts + ds->pts_minus_cts > 0) {
+						u64 pto = check_ts + ds->pts_minus_cts;
 						u64 pto_adj = pto;
 						if (ds->timescale != ds->mpd_timescale) {
 							pto_adj = gf_timestamp_rescale(pto_adj, ds->timescale, ds->mpd_timescale);
