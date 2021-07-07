@@ -314,10 +314,12 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return NULL;
 		if (! ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_3gpp) return NULL;
 		config = & ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_3gpp->cfg;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
 		if (! ((GF_MPEGVisualSampleEntryBox*)entry)->cfg_3gpp) return NULL;
 		config = & ((GF_MPEGVisualSampleEntryBox*)entry)->cfg_3gpp->cfg;
 		break;
@@ -342,8 +344,9 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	if (!trak || !StreamDescriptionIndex) return NULL;
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
-	if (!entry || !entry->cfg_ac3) return NULL;
+	if (!entry) return NULL;
 	if (!entry->cfg_ac3) return NULL;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return NULL;
 	if ( (entry->cfg_ac3->type!=GF_ISOM_BOX_TYPE_DAC3) && (entry->cfg_ac3->type!=GF_ISOM_BOX_TYPE_DEC3) ) return NULL;
 
 	res = (GF_AC3Config*)gf_malloc(sizeof(GF_AC3Config));
@@ -364,6 +367,8 @@ GF_Err gf_isom_flac_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (!entry) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 
 	type = entry->type;
 	if (type==GF_ISOM_BOX_TYPE_ENCA) {
@@ -390,6 +395,7 @@ GF_Err gf_isom_truehd_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stre
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 	if (entry->type != GF_ISOM_SUBTYPE_MLPA) return GF_BAD_PARAM;
 
 	if (!entry->cfg_mlp) return GF_ISOM_INVALID_FILE;
@@ -492,6 +498,8 @@ GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
+	if (!entry) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 
 	type = entry->type;
 	if (type==GF_ISOM_BOX_TYPE_ENCA) {
@@ -634,9 +642,11 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
+		if (a_entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_ISOM_INVALID_FILE;
 		cfg = &a_entry->cfg_3gpp->cfg;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
+		if (v_entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_ISOM_INVALID_FILE;
 		cfg = & v_entry->cfg_3gpp->cfg;
 		break;
 	default:
