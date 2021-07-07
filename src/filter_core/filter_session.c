@@ -120,7 +120,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	GF_FilterSession *fs = (GF_FilterSession *)ptr;
 	if (evt->type==GF_EVENT_QUIT) {
-		gf_fs_abort(fs, GF_FALSE);
+		gf_fs_abort(fs, GF_FS_FLUSH_FAST);
 	}
 	if (evt->type==GF_EVENT_MESSAGE) {
 		if (evt->message.error) {
@@ -1901,7 +1901,7 @@ static void filter_abort(GF_FSTask *task)
 }
 
 GF_EXPORT
-GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
+GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 {
 	u32 i, count;
 	Bool threaded;
@@ -1909,7 +1909,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 	if (!fsess) return GF_BAD_PARAM;
 	threaded = (!fsess->filters_mx && (fsess->main_th.th_id==gf_th_id())) ? GF_FALSE : GF_TRUE;
 
-	if (!do_flush) {
+	if (flush_type==GF_FS_FLUSH_NONE) {
 		fsess->in_final_flush = GF_TRUE;
 		fsess->run_status = GF_EOS;
 		return GF_OK;
@@ -1984,6 +1984,23 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, Bool do_flush)
 				}
 			}
 		}
+		//fast flush and this is a sink: send a stop from all filters connected to the sink
+		//we keep the last connections to the sink active so that muxers can still dispatch pending packets
+		if ((flush_type==GF_FS_FLUSH_FAST) && !filter->num_output_pids) {
+			u32 j, k;
+			for (j=0; j<filter->num_input_pids; j++) {
+				GF_FilterEvent evt;
+				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
+				gf_mx_p(pidi->pid->filter->tasks_mx);
+				for (k=0; k<pidi->pid->filter->num_input_pids; k++) {
+					GF_FilterPid *pid = gf_list_get(pidi->pid->filter->input_pids, k);
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+					gf_filter_pid_send_event(pid, &evt);
+				}
+				gf_mx_v(pidi->pid->filter->tasks_mx);
+			}
+		}
+
 		gf_mx_v(filter->tasks_mx);
 	}
 	gf_mx_v(fsess->filters_mx);

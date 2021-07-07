@@ -5752,7 +5752,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	if (pcki)
 		gf_filter_pid_filter_internal_packet(pidi, pcki);
 
-	if (pidi->discard_packets) return GF_FALSE;
+	if (pidi->discard_packets && !pid->pid->filter->session->in_final_flush) return GF_FALSE;
 	if (!pidi->is_end_of_stream) return GF_FALSE;
 	if (!pidi->filter->eos_probe_state)
 		pidi->filter->eos_probe_state = 1;
@@ -6137,11 +6137,16 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
-	u32 i, count;
+	u32 i, count, nb_playing=0, nb_paused=0;
 	Bool canceled = GF_FALSE;
 	GF_FilterEvent *evt = task->udta;
 	GF_Filter *f = task->filter;
 	GF_List *dispatched_filters = NULL;
+	GF_FilterPidInst *for_pidi = (GF_FilterPidInst *)task->pid;
+
+	if (for_pidi && (for_pidi->pid == task->pid)) {
+		for_pidi = NULL;
+	}
 
 	//if stream reset task is posted, wait for it before processing this event
 	if (f->stream_reset_pending) {
@@ -6163,6 +6168,45 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		free_evt(evt);
 		return;
 	}
+
+	if (for_pidi) {
+		//update pid instance status
+		switch (evt->base.type) {
+		case GF_FEVT_PLAY:
+		case GF_FEVT_SOURCE_SEEK:
+			for_pidi->is_playing = GF_TRUE;
+			break;
+		case GF_FEVT_STOP:
+			for_pidi->is_playing = GF_FALSE;
+			break;
+		case GF_FEVT_PAUSE:
+			for_pidi->is_paused = GF_TRUE;
+			break;
+		case GF_FEVT_RESUME:
+			for_pidi->is_paused = GF_FALSE;
+			break;
+		default:
+			break;
+		}
+	}
+	if (evt->base.on_pid) {
+		GF_FilterPid *pid = (GF_FilterPid *) evt->base.on_pid->pid;
+		//we have destination for this pid but this is an event not targeting a dedicated pid instance, this
+		//means this was a connect fail, do not process event as other parts of the graphs are using this filter
+		if (pid->num_destinations && !for_pidi
+			&& ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_STOP) || (evt->base.type==GF_FEVT_CONNECT_FAIL))
+		) {
+			free_evt(evt);
+			return;
+		}
+		//update number of playing/paused pids
+		for (i=0; i<pid->num_destinations; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			if (pidi->is_playing) nb_playing++;
+			if (pidi->is_paused) nb_paused++;
+		}
+	}
+
 	if (evt->base.type == GF_FEVT_BUFFER_REQ) {
 		if (!evt->base.on_pid) {
 			free_evt(evt);
@@ -6188,9 +6232,21 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 		free_evt(evt);
 		return;
-	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP) && !evt->base.on_pid->pid->is_playing) {
+	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_STOP)
+		&& (
+			//stop request on pid already stop
+			!evt->base.on_pid->pid->is_playing
+			//fan out but some instances are still playing
+			|| nb_playing
+		)
+	) {
 		GF_FilterPid *pid = (GF_FilterPid *) evt->base.on_pid->pid;
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+
+		if (!evt->base.on_pid->pid->is_playing) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is not playing, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID has playing destinations, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		}
 
 		gf_mx_p(f->tasks_mx);
 		for (i=0; i<pid->num_destinations; i++) {
@@ -6204,13 +6260,26 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			}
 		}
 
-		free_evt(evt);
-		if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
-			gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
+		if (!evt->base.on_pid->pid->is_playing) {
+			if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
+				gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
+			}
+			if (pid->not_connected)
+				pid->not_connected = 2;
 		}
 		gf_mx_v(f->tasks_mx);
-		if (pid->not_connected)
-			pid->not_connected = 2;
+		free_evt(evt);
+		return;
+	}
+	//do not allow pause/resume if already paused
+	else if (nb_paused && ((evt->base.type == GF_FEVT_PAUSE) || (evt->base.type == GF_FEVT_RESUME)) ) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s event %s but PID is already paused, discarding\n", f->name, evt->base.on_pid->name, gf_filter_event_name(evt->base.type)));
+		free_evt(evt);
+		return;
+	}
+	//cancel connect failure if some destinations are successfully connected
+	else if ((evt->base.type==GF_FEVT_CONNECT_FAIL) && evt->base.on_pid->is_playing) {
+		free_evt(evt);
 		return;
 	}
 	//otherwise process
@@ -6350,7 +6419,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, i);
 		GF_FilterPid *pid = pid_inst->pid;
 		if (!pid) continue;
-		
+
 		if (dispatched_filters) {
 			if (gf_list_find(dispatched_filters, pid_inst->pid->filter) >=0 )
 				continue;
@@ -6363,12 +6432,13 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			pid_inst->discard_packets = GF_TRUE;
 			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
+
 		an_evt = dup_evt(evt);
 		an_evt->base.on_pid = task->pid ? pid : NULL;
 
 		safe_int_inc(&pid->filter->num_events_queued);
 		
-		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? pid : NULL, "downstream_event", an_evt);
+		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? (GF_FilterPid *) pid_inst : NULL, "downstream_event", an_evt);
 	}
 	gf_mx_v(f->tasks_mx);
 	if (dispatched_filters) gf_list_del(dispatched_filters);
@@ -6447,7 +6517,10 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 	}
 
 
-	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type == GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
+	if ((evt->base.type == GF_FEVT_STOP)
+		|| (evt->base.type == GF_FEVT_PLAY)
+		|| (evt->base.type==GF_FEVT_SOURCE_SEEK)
+	) {
 		u32 i;
 		gf_mx_p(pid->pid->filter->tasks_mx);
 		for (i=0; i<pid->pid->num_destinations; i++) {
@@ -6466,9 +6539,9 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 
 	an_evt = init_evt(evt);
 	if (evt->base.on_pid) {
-		target_pid = evt->base.on_pid->pid;
-		an_evt->base.on_pid = target_pid;
-		safe_int_inc(&target_pid->filter->num_events_queued);
+		target_pid = evt->base.on_pid;
+		an_evt->base.on_pid = evt->base.on_pid->pid;
+		safe_int_inc(&target_pid->pid->filter->num_events_queued);
 	}
 	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", an_evt);
 }

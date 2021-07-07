@@ -395,12 +395,23 @@ immediately or after reschedule_ms.
 */
 GF_Err gf_fs_post_user_task(GF_FilterSession *session, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name);
 
+/*! Session flush types*/
+typedef enum
+{
+	/*! Do not flush session: everything is discarded, potentially breaking output files*/
+	GF_FS_FLUSH_NONE=0,
+	/*! Flush all pending data before closing sessions:  sources will be forced into end of stream and all emitted packets will be processed*/
+	GF_FS_FLUSH_ALL,
+	/*! Stop session (reseting buffers) and flush pipeline*/
+	GF_FS_FLUSH_FAST
+} GF_FSFlushType;
+
 /*! Aborts the session. This can be called within a callback task to stop the session. Do NOT use \ref gf_fs_stop from within a user task callback, this will deadlock the session
 \param session filter session
-\param do_flush if set to true, sources will be forced into end of stream and all emitted packets will be processed. Otherwise everything is discarded, potentially breaking output files
+\param flush_type flush method to use
 \return the error code if any
 */
-GF_Err gf_fs_abort(GF_FilterSession *session, Bool do_flush);
+GF_Err gf_fs_abort(GF_FilterSession *session, GF_FSFlushType flush_type);
 /*! Checks if the session is processing its last task. This can be called within a callback task to check if this is the last task, in order to avoid rescheduling the task
 \param session filter session
 \return GF_TRUE if no more task, GF_FALSE otherwise

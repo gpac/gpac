@@ -251,13 +251,13 @@ static JSValue jsfs_post_task(JSContext *ctx, JSValueConst this_val, int argc, J
 
 static JSValue jsfs_abort(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-	Bool do_flush = GF_FALSE;
+	u32 flush_type = GF_FS_FLUSH_NONE;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
     if (!fs) return JS_EXCEPTION;
-	if (argc && JS_IsBool(argv[0]) && JS_ToBool(ctx, argv[0])) {
-		do_flush = GF_FALSE;
+	if (argc) {
+		JS_ToInt32(ctx, &flush_type, argv[0]);
 	}
-	gf_fs_abort(fs, do_flush);
+	gf_fs_abort(fs, flush_type);
 	return JS_UNDEFINED;
 }
 static JSValue jsfs_lock_filters(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)

@@ -1260,6 +1260,14 @@ GF_NOTIF_ERROR=1
 ##notification is an error and disconnect the filter chain
 GF_NOTIF_ERROR_AND_DISCONNECT=2
 
+
+##Do not flush session: everything is discarded, potentially breaking output files
+GF_FS_FLUSH_NONE=0,
+##Flush all pending data before closing sessions:  sources will be forced into end of stream and all emitted packets will be processed
+GF_FS_FLUSH_ALL=1
+##Stop session (reseting buffers) and flush pipeline
+GF_FS_FLUSH_FAST=2
+
 ## @}
 
 ##\cond private
@@ -1304,7 +1312,7 @@ _libgpac.gf_fs_get_filters_count.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_get_filter.argtypes = [_gf_filter_session, c_int]
 _libgpac.gf_fs_get_filter.restype = _gf_filter
 
-_libgpac.gf_fs_abort.argtypes = [_gf_filter_session, gf_bool]
+_libgpac.gf_fs_abort.argtypes = [_gf_filter_session, c_int]
 
 _libgpac.gf_fs_get_http_max_rate.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_get_http_rate.argtypes = [_gf_filter_session]
@@ -1520,7 +1528,7 @@ class FilterSession:
     ##abort the session - see \ref gf_fs_abort
     #\param flush flush pipeline before abort
     #\return
-    def abort(self, flush=False):
+    def abort(self, flush=0):
         _libgpac.gf_fs_abort(self._sess, flush)
         
     ##get a filter by index - see \ref gf_fs_get_filter
