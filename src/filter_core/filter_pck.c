@@ -853,8 +853,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		return GF_OK;
 	}
 
+	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
+
 	//special case for source filters (no input pids), mark as playing once we have a packet sent
-	if (!pid->filter->num_input_pids && !pid->initial_play_done && !pid->is_playing) {
+	if (!is_cmd_pck && !pid->filter->num_input_pids && !pid->initial_play_done && !pid->is_playing) {
 		pid->initial_play_done = GF_TRUE;
 		pid->is_playing = GF_TRUE;
 		pid->filter->nb_pids_playing++;
@@ -867,7 +869,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
-	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 	//send from filter, update flags
 	if (from_filter) {
 		Bool is_cmd = (pck->info.flags & GF_PCK_CMD_MASK) ? GF_TRUE : GF_FALSE;

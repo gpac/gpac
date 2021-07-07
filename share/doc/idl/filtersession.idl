@@ -50,7 +50,7 @@ void post_task(function task_callback, optional DOMString task_name=null);
 /*! aborts the filter session - see \ref gf_fs_abort
 \param do_flush if true, wait for all packets currently pending to be processed before closing the session
 */
-void abort(optional boolean do_flush=false);
+void abort(optional unsigned long flush_type=0);
 
 /*! locks the filter session - see \ref gf_fs_lock_filters. When the session is locked, tasks are suspended and filters cannot be destroyed.
 The session only needs to be locked when enumerating filters

@@ -934,7 +934,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 		}
 	}
 	else if (event->type==GF_EVENT_QUIT) {
-		gf_fs_abort(fsess, GF_TRUE);
+		gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
 	}
 	return GF_FALSE;
 }
@@ -1009,11 +1009,11 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		GPAC_Command c = get_cmd(gf_prompt_get_char());
 		switch (c) {
 		case GPAC_QUIT:
-			gf_fs_abort(fsess, GF_TRUE);
+			gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
 			nb_loops = 0;
 			return GF_FALSE;
 		case GPAC_EXIT:
-			gf_fs_abort(fsess, GF_FALSE);
+			gf_fs_abort(fsess, GF_FS_FLUSH_NONE);
 			nb_loops = 0;
 			return GF_FALSE;
 		case GPAC_PRINT_STATS:
@@ -1148,12 +1148,12 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		if (!run_start_time) run_start_time = now;
 		else if (now - run_start_time > runfor) {
 			if (nb_loops || loops_done) {
-				gf_fs_abort(fsess, runfor_exit ? GF_FALSE : GF_TRUE);
+				gf_fs_abort(fsess, runfor_exit ? GF_FS_FLUSH_NONE : GF_FS_FLUSH_ALL);
 				run_start_time = 0;
 			} else {
 				if (runfor_exit)
 					exit(0);
-				gf_fs_abort(fsess, GF_TRUE);
+				gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
 			}
 			return GF_FALSE;
 		}
@@ -1193,7 +1193,7 @@ static void gpac_sig_handler(int sig)
 			}
 			signal_catched = GF_TRUE;
 			if (is_inter) {
-				fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/n):\n");
+				fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/f/n):\n");
 				res = scanf("%c", &input);
 				if (res!=1) input=0;
 				switch (input) {
@@ -1201,18 +1201,23 @@ static void gpac_sig_handler(int sig)
 				case 'y':
 				case '\n':
 					signal_processed = GF_TRUE;
-					gf_fs_abort(session, GF_TRUE);
+					gf_fs_abort(session, GF_FS_FLUSH_FAST);
+					break;
+				case 'F':
+				case 'f':
+					signal_processed = GF_TRUE;
+					gf_fs_abort(session, GF_FS_FLUSH_ALL);
 					break;
 				case 0:
 					break;
 				default:
 					signal_processed = GF_TRUE;
-					gf_fs_abort(session, GF_FALSE);
+					gf_fs_abort(session, GF_FS_FLUSH_NONE);
 					break;
 				}
 			} else {
 				signal_processed = GF_TRUE;
-				gf_fs_abort(session, GF_FALSE);
+				gf_fs_abort(session, GF_FS_FLUSH_NONE);
 			}
 		}
 	}
