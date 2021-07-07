@@ -1980,6 +1980,16 @@ void gf_filter_lock(GF_Filter *filter, Bool do_lock);
 */
 void gf_filter_lock_all(GF_Filter *filter, Bool do_lock);
 
+/*! Force all output pids created for this filter to require a source ID for linking.
+
+ This is used by filters loading subchains to enforce that filters from these subchain only connect to each other or the target filter but not other filters outside this chain.
+ Filters using this function must setup source IDs on filters of the sunchain(s) they load.
+
+\param filter target filter
+*/
+void gf_filter_require_source_id(GF_Filter *filter);
+
+
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
 typedef enum
 {

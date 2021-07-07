@@ -828,8 +828,9 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (do_cat && !strcmp(args, "send")) {
 					if (aval)
 						sscanf(aval, LLU, &end_range);
-				} else if (ctx->ka && !strcmp(args, "end")) {
-					is_end = GF_TRUE;
+				} else if (!strcmp(args, "end")) {
+					if (ctx->ka)
+						is_end = GF_TRUE;
 				} else if (!strcmp(args, "ka")) {
 					sscanf(aval, "%u", &ctx->ka);
 				} else if (!strcmp(args, "raw")) {
@@ -1222,11 +1223,14 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			GF_Filter *f = NULL;
 			if (is_filter_chain) {
 				f = gf_filter_load_filter(filter, url, &e);
+				if (f) gf_filter_require_source_id(f);
 			} else {
 				fsrc = gf_filter_connect_source(filter, url, ctx->file_path, GF_FALSE, &e);
 
-				if (fsrc)
+				if (fsrc) {
 					gf_filter_set_setup_failure_callback(filter, fsrc, filelist_on_filter_setup_error, filter);
+					gf_filter_require_source_id(fsrc);
+				}
 			}
 
 			if (e) {

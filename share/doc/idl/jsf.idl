@@ -134,6 +134,8 @@ readonly attribute unsigned long long clock_hint_mediatime;
 readonly attribute unsigned long long connections_pending;
 /*! internal name - this can only be set and modified by JS API and allows for filter identification from JS*/
 attribute DOMString iname;
+/*! requires source ID for the filter - see \ref gf_filter_require_source_id*/
+writeonly unsigned boolean require_source_id;
 
 
 /*! sets filter description as visible when checking filter info

@@ -1694,6 +1694,7 @@ _libgpac.gf_filter_get_info.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_get_info_str.argtypes = [_gf_filter, c_char_p, POINTER(POINTER(_gf_property_entry))]
 _libgpac.gf_filter_get_info_str.restype = POINTER(PropertyValue)
 
+_libgpac.gf_filter_require_source_id.argtypes = [_gf_filter]
 
 _libgpac.gf_filter_bind_dash_algo_callbacks.argtypes = [_gf_filter, py_object, c_void_p, c_void_p, c_void_p, c_void_p]
 @CFUNCTYPE(c_int, c_void_p, c_uint)
@@ -2360,6 +2361,13 @@ class Filter:
         if err<0: 
             raise Exception('Failed to fetch filter stats: ' + e2s(err))
         return stats
+
+    ##enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id
+    def require_source_id(self):
+        err = _libgpac.gf_filter_require_source_id(self._filter)
+        if err<0:
+            raise Exception('Failed to require sourceID for filter: ' + e2s(err))
+        return None
 
     ##\cond private
     def _bind_dash_algo(self, object):
@@ -3324,10 +3332,12 @@ class FilterPid:
     def set_discard(self, do_discard):
         _libgpac.gf_filter_pid_set_discard(self._pid, do_discard)
 
-    ##checks if sourceID is required - see \ref require_source_id
-    #\return True if required
+    ##enforces sourceID to be present for output pids of this filter - see \ref gf_filter_pid_require_source_id
     def require_source_id(self):
-        return _libgpac.gf_filter_pid_require_source_id(self._pid)
+        err = _libgpac.gf_filter_pid_require_source_id(self._pid)
+        if err<0:
+            raise Exception('Failed to require sourceID for pid: ' + e2s(err))
+        return None
 
     ##sets DTS recomputing mode - see \ref gf_filter_pid_recompute_dts
     #\param do_compute if True, DTS are recomputed

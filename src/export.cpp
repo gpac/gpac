@@ -2501,6 +2501,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_event_name ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_event ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_post_process_task ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_require_source_id ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )
