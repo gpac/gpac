@@ -2039,10 +2039,10 @@ static GF_Vec4 gf_evg_stencil_get_pixel_f_intern(EVG_Texture *_this, Float x, Fl
 	} else {
 		if (want_yuv) col = gf_evg_argb_to_ayuv(NULL, col);
 	}
-	res.x = GF_COL_R(col) / 255.0;
-	res.y = GF_COL_G(col) / 255.0;
-	res.z = GF_COL_B(col) / 255.0;
-	res.q = GF_COL_A(col) / 255.0;
+	res.x = (Float) ( GF_COL_R(col) / 255.0 );
+	res.y = (Float)( GF_COL_G(col) / 255.0 );
+	res.z = (Float)( GF_COL_B(col) / 255.0 );
+	res.q = (Float)( GF_COL_A(col) / 255.0 );
 	return res;
 }
 
@@ -2086,8 +2086,8 @@ void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
 	if (rctx->surf->is_shader) {
 		rctx->frag_param.coverage = span->coverage;
 		rctx->frag_param.odd_flag = span->odd_flag;
-		rctx->frag_param.screen_x = span->x;
-		rctx->frag_param.screen_y = y;
+		rctx->frag_param.screen_x = (Float) span->x;
+		rctx->frag_param.screen_y = (Float) y;
 	}
 	if (rctx->surf->odd_fill) {
 		if (!span->odd_flag && rctx->surf->sten2) {
@@ -2442,7 +2442,7 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 		if (!sten2 || !params) return GF_BAD_PARAM;
 		surf->sten2 = sten2;
 		if (surf->not_8bits) {
-			surf->mix_val = params[0] * 0xFFFF;
+			surf->mix_val = (u32) (params[0] * 0xFFFF);
 			surf->update_run = mix_run_wide;
 			if (!surf->mix_val) surf->sten2 = NULL;
 			else if (surf->mix_val==0xFFFF) {
@@ -2450,7 +2450,7 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 				surf->sten = sten2;
 			}
 		} else {
-			surf->mix_val = params[0] * 255;
+			surf->mix_val = (u32) (params[0] * 255);
 			surf->update_run = mix_run;
 			if (!surf->mix_val) surf->sten2 = NULL;
 			else if (surf->mix_val==0xFF) {
@@ -2463,7 +2463,7 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 		if (!sten2 || !params) return GF_BAD_PARAM;
 		surf->sten2 = sten2;
 		if (surf->not_8bits) {
-			surf->mix_val = params[0] * 0xFFFF;
+			surf->mix_val = (u32) (params[0] * 0xFFFF);
 			surf->update_run = mixa_run_wide;
 			if (!surf->mix_val) surf->sten2 = NULL;
 			else if (surf->mix_val==0xFFFF) {
@@ -2471,7 +2471,7 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 				surf->sten = sten2;
 			}
 		} else {
-			surf->mix_val = params[0] * 255;
+			surf->mix_val = (u32) (params[0] * 255);
 			surf->update_run = mixa_run;
 			if (!surf->mix_val) surf->sten2 = NULL;
 			else if (surf->mix_val==0xFF) {
