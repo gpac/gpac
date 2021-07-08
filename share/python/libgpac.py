@@ -2363,11 +2363,12 @@ class Filter:
         return stats
 
     ##enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id
+    #\return
     def require_source_id(self):
         err = _libgpac.gf_filter_require_source_id(self._filter)
         if err<0:
             raise Exception('Failed to require sourceID for filter: ' + e2s(err))
-        return None
+        return
 
     ##\cond private
     def _bind_dash_algo(self, object):
@@ -3333,11 +3334,12 @@ class FilterPid:
         _libgpac.gf_filter_pid_set_discard(self._pid, do_discard)
 
     ##enforces sourceID to be present for output pids of this filter - see \ref gf_filter_pid_require_source_id
+    #\return
     def require_source_id(self):
         err = _libgpac.gf_filter_pid_require_source_id(self._pid)
         if err<0:
             raise Exception('Failed to require sourceID for pid: ' + e2s(err))
-        return None
+        return
 
     ##sets DTS recomputing mode - see \ref gf_filter_pid_recompute_dts
     #\param do_compute if True, DTS are recomputed

@@ -30,12 +30,15 @@
 
 #include <gpac/evg.h>
 
+typedef struct _traster_ctx EVGRasterCtx;
+
 /*base stencil stack*/
 #define EVGBASESTENCIL	\
 	u32 type;	\
-	void (*fill_run)(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count);	\
+	void (*fill_run)(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 x, s32 y, u32 count);	\
 	GF_Matrix2D pmat;					\
 	GF_Matrix2D smat;					\
+	GF_Matrix2D smat_bck;					\
 	GF_Rect frame;					\
 	GF_ColorMatrix cmat;
 
@@ -58,23 +61,20 @@ typedef struct
 	s32 flags; /*same as path flags*/
 } EVG_Outline;
 
-typedef struct TRaster_ *EVG_Raster;
-
 typedef struct EVG_Span_
 {
 	unsigned short x;
 	unsigned short len;
 	unsigned char coverage;
+	unsigned char odd_flag;
 	u32 idx1, idx2;
 } EVG_Span;
 
-typedef void (*EVG_SpanFunc)(int y, int count, EVG_Span *spans, void *user);
-#define EVG_Raster_Span_Func  EVG_SpanFunc
+typedef void (*EVG_SpanFunc)(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 
+GF_Err evg_sweep_lines(GF_EVGSurface *surf, int size_y, Bool zero_non_zero_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam);
 
-EVG_Raster evg_raster_new();
-void evg_raster_del(EVG_Raster raster);
-int evg_raster_render(GF_EVGSurface *surf);
+GF_Err evg_raster_render(GF_EVGSurface *surf);
 
 GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf);
 GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float *vertices, u32 nb_vertices, u32 nb_comp, GF_EVGPrimitiveType prim_type);
@@ -86,8 +86,6 @@ typedef struct
 	//depth buffer
 	Float *depth_buffer;
 
-	gf_evg_fragment_shader frag_shader;
-	void *frag_shader_udta;
 	gf_evg_vertex_shader vert_shader;
 	void *vert_shader_udta;
 	/*render state*/
@@ -117,8 +115,6 @@ typedef struct
 	GF_Vec v1v2, v1v3, v2v3;
 
 	struct _gf_evg_base_stencil yuv_sten;
-
-	u32 *pix_vals;
 } EVG_Surface3DExt;
 
 typedef enum
@@ -128,80 +124,15 @@ typedef enum
 	EVG_YUV
 } EVG_YUVType;
 
-/*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
-struct _gf_evg_surface
-{
-	/*surface info*/
-	char *pixels;
-	u32 pixelFormat, BPP;
-	u32 width, height;
-	s32 pitch_x, pitch_y;
-	Bool center_coords;
-	Bool is_transparent;
 
-	/*color buffer for variable stencils - size of width * 32 bit for 8 bit surface or width * 64 otherwise*/
-	void *stencil_pix_run;
-
-	/*default texture filter level*/
-	u32 texture_filter;
-
-	u32 useClipper;
-	GF_IRect clipper;
-
-	GF_Rect path_bounds;
-
-	/*complete path transform (including page flipping/recenter)*/
-	GF_Matrix2D mat;
-
-	/*stencil currently used*/
-	GF_EVGStencil *sten;
-
-	void (*yuv_flush_uv)(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-
-	GF_EVGCompositeMode comp_mode;
-
-	/*in solid color mode to speed things*/
-	u32 fill_col;
-	u64 fill_col_wide;
-	u32 grey_type;
-
-	/*FreeType raster*/
-	EVG_Raster raster;
-
-	/*FreeType outline (path converted to ft)*/
-	EVG_Outline ftoutline;
-
-	GF_Matrix2D *mx;
-	EVG_SpanFunc gray_spans;
-
-	void (*fill_single)(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
-	void (*fill_single_a)(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
-
-	s32 clip_xMin, clip_yMin, clip_xMax, clip_yMax;
-
-
-	u8 *uv_alpha;
-	u32 uv_alpha_alloc;
-
-	Bool swap_uv, not_8bits, is_422;
-	EVG_YUVType yuv_type;
-	u32 yuv_prof;
-
-	u32 idx_y1, idx_u, idx_v, idx_a, idx_g, idx_r, idx_b;
-
-	u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y);
-	void *get_alpha_udta;
-
-	Bool is_3d_matrix;
-	GF_Matrix mx3d;
-	EVG_Surface3DExt *ext3d;
-};
 
 /*solid color brush*/
 typedef struct
 {
 	EVGBASESTENCIL
 	GF_Color color;
+	u32 fill_col;
+	u64 fill_col_wide;
 } EVG_Brush;
 
 /*max number of interpolation points*/
@@ -265,29 +196,26 @@ typedef struct __evg_texture
 	Fixed cur_y, inc_x, inc_y;
 
 	u32 mod, filter;
-	u32 replace_col;
-	Bool cmat_is_replace;
 
+	u8 is_yuv;
 	u8 alpha;
-	Bool is_yuv;
-
-	Bool owns_texture;
+	u8 owns_texture;
+	u8 is_wide;
 
 	GF_ColorMatrix yuv_cmat;
 
-	u32 (*tx_get_pixel)(struct __evg_texture *_this, u32 x, u32 y);
-	u64 (*tx_get_pixel_wide)(struct __evg_texture *_this, u32 x, u32 y);
+	u32 (*tx_get_pixel)(struct __evg_texture *_this, u32 x, u32 y, EVGRasterCtx *rctx);
+	u64 (*tx_get_pixel_wide)(struct __evg_texture *_this, u32 x, u32 y, EVGRasterCtx *rctx);
 
 	gf_evg_texture_callback tx_callback;
 	void *tx_callback_udta;
 	Bool tx_callback_screen_coords;
 } EVG_Texture;
 
-#define GF_TEXTURE_FILTER_DEFAULT	GF_TEXTURE_FILTER_HIGH_SPEED
+/*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/
+void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
 
-void evg_fill_run(GF_EVGStencil *p, GF_EVGSurface *surf, s32 x, s32 y, u32 count);
-
-#define evg_make_col_wide(_a, _r, _g, _b)\
+#define GF_COLW_ARGB(_a, _r, _g, _b)\
 	((u64)(_a)) << 48 | ((u64)(_r))<<32 | ((u64)(_g))<<16 | ((u64)(_b))
 
 u64 evg_col_to_wide( u32 col);
@@ -296,99 +224,99 @@ void evg_gradient_precompute(EVG_BaseGradient *grad, GF_EVGSurface *surf);
 void evg_radial_init(EVG_RadialGradient *_this);
 void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf);
 
-void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_argb_fill_erase(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_argb_fill_erase(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_argb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_rgbx(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_rgb(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_grey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_grey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_grey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_grey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_alphagrey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_alphagrey_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_alphagrey_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_alphagrey_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_alphagrey(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
 void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat);
 
-void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv420p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
 GF_Err evg_surface_clear_nv12(GF_EVGSurface *surf, GF_IRect rc, GF_Color col, Bool swap_uv);
-void evg_nv12_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_nv12_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_nv12_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_nv12_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
 GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-void evg_yuv422p_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv422p_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv422p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
-void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_yuv444p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv444p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_565_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_565_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_565(GF_EVGSurface *_this, GF_IRect rc, GF_Color col);
 
 
-void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_444_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_444_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_444(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_555_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_555_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_555(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
-void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 
 
-void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuyv_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_yuyv_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuyv_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuyv_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_yuyv(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col);
 
-void evg_yuv420p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv420p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_yuv420p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv420p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_yuv420p_10(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-void evg_yuv420p_10_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv420p_10_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv420p_10_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
 GF_Err evg_surface_clear_nv12_10(GF_EVGSurface *surf, GF_IRect rc, GF_Color col, Bool swap_uv);
-void evg_nv12_10_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_nv12_10_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_nv12_10_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_nv12_10_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
 
 GF_Err evg_surface_clear_yuv422p_10(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
-void evg_yuv422p_10_flush_uv_const(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
-void evg_yuv422p_10_flush_uv_var(GF_EVGSurface *surf, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv422p_10_flush_uv_const(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+void evg_yuv422p_10_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
 
-void evg_yuv444p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv444p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
-void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf);
+void evg_yuv444p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv444p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
+void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 GF_Err evg_surface_clear_yuv444p_10(GF_EVGSurface *surf, GF_IRect rc, GF_Color col);
 
 
@@ -456,7 +384,7 @@ typedef int  TArea;
 
 
 /* maximal number of gray spans in a call to the span callback */
-#define FT_MAX_GRAY_SPANS  64
+#define FT_MAX_GRAY_SPANS  128
 
 #define AA_CELL_STEP_ALLOC	8
 
@@ -492,8 +420,118 @@ typedef struct
 } AAScanline;
 
 
-typedef struct  TRaster_
+void gray_record_cell(GF_EVGSurface *surf);
+void gray_set_cell(GF_EVGSurface *surf, TCoord ex, TCoord ey);
+void gray_render_line(GF_EVGSurface *surf, TPos to_x, TPos to_y);
+
+#include <gpac/thread.h>
+
+struct _traster_ctx
 {
+	GF_Thread *th;
+	GF_EVGSurface *surf;
+	u32 first_line, last_line;
+
+	EVG_Span *gray_spans;
+	int num_gray_spans;
+	u32 max_gray_spans, alloc_gray_spans;
+
+	/*color buffer for variable stencils - size of surface->width * 32 bit for 8 bit surface or surface->width * 64 otherwise
+	in 3D we will store a complete line here*/
+	void *stencil_pix_run;
+
+	void *stencil_pix_run2;
+	void *stencil_pix_run3;
+
+	u8 *uv_alpha;
+
+	//for 3D
+	GF_EVGFragmentParam frag_param;
+	u32 fill_col;
+	u64 fill_col_wide;
+
+	//for 2D
+	u8 fill_rule;
+	//for 3D
+	u8 is_tri_raster;
+
+	u8 th_state;
+};
+
+void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transparent);
+
+/*the surface object - currently only ARGB/RGB32, RGB/BGR and RGB555/RGB565 supported*/
+struct _gf_evg_surface
+{
+	/*surface info*/
+	char *pixels;
+	u32 pixelFormat, BPP;
+	u32 width, height;
+	s32 pitch_x, pitch_y;
+	Bool center_coords;
+	Bool is_transparent;
+
+	u32 aa_level;
+	GF_RasterQuality qlevel;
+
+	u32 useClipper;
+	GF_IRect clipper;
+
+	GF_Rect path_bounds;
+
+	/*complete path transform (including page flipping/recenter)*/
+	GF_Matrix2D mat;
+
+	/*stencil currently used*/
+	GF_EVGStencil *sten;
+
+	GF_EVGStencil *sten2, *sten3;
+
+	void (*yuv_flush_uv)(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_uv_alpha, s32 cu, s32 cv, s32 y);
+	u32 uv_alpha_alloc;
+
+	GF_EVGCompositeMode comp_mode;
+
+	/*in solid color mode to speed things*/
+	u32 fill_col;
+	u64 fill_col_wide;
+	u32 grey_type;
+
+	/*FreeType outline (path converted to ft)*/
+	EVG_Outline ftoutline;
+
+	GF_Matrix2D *mx;
+	//raw video pixel write callback
+	EVG_SpanFunc fill_spans;
+
+	void (*fill_single)(s32 y, s32 x, u32 col, GF_EVGSurface *surf);
+	void (*fill_single_a)(s32 y, s32 x, u8 coverage, u32 col, GF_EVGSurface *surf);
+
+	s32 clip_xMin, clip_yMin, clip_xMax, clip_yMax;
+
+	Bool swap_uv, not_8bits, is_422;
+	EVG_YUVType yuv_type;
+	u32 yuv_prof;
+
+	u32 idx_y1, idx_u, idx_v, idx_a, idx_g, idx_r, idx_b;
+
+	u8 (*get_alpha)(void *udta, u8 src_alpha, s32 x, s32 y);
+	void *get_alpha_udta;
+
+	Bool is_3d_matrix;
+	GF_Matrix mx3d;
+	EVG_Surface3DExt *ext3d;
+
+	EVGRasterCtx raster_ctx;
+	EVGRasterCtx *th_raster_ctx;
+	u32 nb_threads;
+	GF_Mutex *raster_mutex;
+	GF_Semaphore *raster_sem;
+	u32 last_dispatch_line;
+	u32 pending_threads;
+	u32 max_line_y;
+
+	/*FreeType raster state*/
 	AAScanline *scanlines;
 	u32 max_lines;
 	TPos min_ex, max_ex, min_ey, max_ey;
@@ -503,22 +541,37 @@ typedef struct  TRaster_
 	int cover;
 	u32 idx1, idx2;
 
-	EVG_Span *gray_spans;
-	int num_gray_spans;
-	u32 max_gray_spans, alloc_gray_spans;
-	EVG_Raster_Span_Func  render_span;
-	void *render_span_data;
-
 	u32 first_scanline;
 
-	GF_Matrix2D *mx;
-} TRaster;
+	u32 max_gray_spans;
 
-void gray_record_cell( TRaster *raster );
-void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey );
-void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y);
-void gray_quick_sort( AACell *cells, int count);
-void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule);
+	Bool direct_yuv_3d;
+	Bool is_shader;
+	//for 2D set to fill_spans, for 3D set to EVG3D_SpanFunc
+	EVG_SpanFunc render_span;
+	u32 first_patch, last_patch;
+
+
+	gf_evg_fragment_shader frag_shader;
+	gf_evg_fragment_shader_init frag_shader_init;
+	void *frag_shader_udta;
+
+	struct __evg_texture shader_sten;
+	GF_Matrix2D shader_mx;
+
+
+	void (*update_run)(EVGRasterCtx *rctx, u32 count);
+
+	u32 odd_fill;
+	u32 mix_val;
+	u32 run_size;
+};
+
+
+u32 th_sweep_lines(void *par);
+
+GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode operand, GF_EVGStencil *sten2, GF_EVGStencil *sten3, Float *params);
+
 
 #endif
 

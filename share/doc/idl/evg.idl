@@ -36,6 +36,30 @@ Whenever pixel coordinates are indicated, 0,0 indicates:
 Whenever using an object as a parameter to a function, only the parameter names as listed in the corresponding interface object are checked. The name of the interface is not, and it usually does not define any constructor.
 
 \note Although 10-bit raster is supported for YUV formats (framebuffer and textures), colors are internally handled as 8-bits for solid brush and gradients. This will be updated in the near future.
+
+
+
+
+The 3D extension of Canvas object can be used to draw vectorial 3D meshes and 2D paths.
+
+\warning The 3D rasterizer is much much slower than WebGL as it is only software and not realy optimized, do not use it for complex 3D scenes.
+
+\warning The 3D rasterizer is still an experimental project: it might not be completely stable and its API may change a lot in the near future.
+
+
+The 3D rasterizer can however be useful when drawing simple 3D objects over an existing video, as it avoids GPU transfers of the frame data.
+
+The rasterizer supports:
+- points, lines, triangles, quads, strips and fans
+- 2D texturing using RGBA or YUVA colorspace
+- perspective correct interpolation
+- simple antialiasing
+- depth buffer (float only)
+- rasterizing in YUVA or RGBA space
+- a simple shading language for both vertex and fragment processing
+
+The rasterizer does not claim compliancy to any GPU specification, and will likely produce different results than WebGL.
+
 @{
 
 
@@ -75,6 +99,11 @@ writeonly IRect clipper;
 
 /*! composite operation for alpha surfaces - see \ref gf_evg_surface_set_composite_mode*/
 attribute unsigned long compositeOperation;
+
+
+/*! AA level of canvas - see \ref gf_evg_surface_get_raster_level and \ref gf_evg_surface_set_raster_level
+\note This is always equal to GF_RASTER_HIGH_QUALITY when the path drawn is a text object*/
+attribute unsigned long level;
 
 /*! alpha custom callback composite operation for alpha surfaces - see \ref gf_evg_surface_set_alpha_callback
 Default is undefined at creation time*/
@@ -123,10 +152,26 @@ void fill(Stencil stencil);
 \param texture the texture to use*/
 void fill(Texture texture);
 
+/*! fills the path with the given texture(s) - see \ref gf_evg_surface_multi_fill
+\param operand multitexture operand to use
+\param param float or float array used to control multitexture effect
+\param texture1 the texture or stencil to use as main texture
+\param texture2 the texture or stencil to use as secondary texture
+\param texture3 the texture or stencil to use as third texture
+*/
+void fill(GF_EVGMultiTextureMode operand, optional float param=0, Texture texture1, optional Texture texture2=null, optional Texture texture3=null);
+
 /*! reassign internal data (typically at each new packet)
 \warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
 \param data the buffer to use*/
 void reassign(ArrayBuffer data);
+
+/*! enables threading in rasterizer - see \ref gf_evg_enable_threading
+\param nb_threads the number of extra threads to use, negative values means all cores*/
+void enable_threading(optional int nb_threads=-1);
+
+/*! enables 3D extensions in rasterizer - see \ref gf_evg_surface_enable_3d*/
+void enable_3d();
 
 /*! converts YUV color to RGB
 \param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
@@ -161,6 +206,87 @@ Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional F
 \return the converted value
 */
 Object toYUV(optional bool as_array=false, Vec4f color);
+
+
+
+/*! fragment shader to use, set to NULL to disable pixel writing.*/
+Shader fragment;
+/*! vertex shader to use, set to NULL to disable vertex shading, in which case the currently defined projection and modelview matrices will be used*/
+Shader vertex;
+/*! set face orientation to counter-clockwise or clockwise (see \ref gf_evg_surface_set_ccw)*/
+writeonly boolean ccw;
+/*! backface culling enabled (see \ref gf_evg_surface_set_backcull), default is true*/
+writeonly boolean backcull;
+/*! antialiased enabled (see \ref gf_evg_surface_set_antialias), default is true*/
+writeonly boolean antialias;
+/*! min depth (see \ref gf_evg_surface_set_min_depth), default is 0*/
+writeonly float min_depth;
+/*! max depth (see \ref gf_evg_surface_set_max_depth), default is 1.0*/
+writeonly float max_depth;
+/*! point size (see \ref gf_evg_surface_set_point_size), default is 1.0*/
+writeonly float point_size;
+/*! point smoothing enabled (see \ref gf_evg_surface_set_point_smooth), default is false*/
+writeonly boolean point_smooth;
+/*! line size (see \ref gf_evg_surface_set_line_size), default is 1.0*/
+writeonly float line_size;
+/*! clip zero enabled (see \ref gf_evg_surface_set_clip_zero), default is false*/
+writeonly boolean clip_zero;
+/*! depth test mode (see \ref gf_evg_set_depth_test), default is GF_EVGDEPTH_LESS*/
+writeonly GF_EVGDepthTest depth_test;
+/*! write depth buffer enabled (see \ref gf_evg_surface_write_depth), default is true*/
+writeonly boolean write_depth;
+/*! depth buffer (see \ref gf_evg_surface_set_depth_buffer). \warning Default is null*/
+Float32Buffer depth_buffer;
+
+/*! sets current projection matrix to use
+\param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void projection(Float32Buffer projection_matrix);
+/*! sets current modelview matrix to use
+\param modelview_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
+*/
+void modelview(Float32Buffer modelview_matrix);
+
+/*! draws a set of primitives (see \ref gf_evg_surface_draw_array)
+\param indices array of indices in the vertex buffer for the primitives to draw
+\param vertices the vertices to use
+\param primitive_type the type of primitive to draw
+\param nb_components the number of components per vertex (eg, 2, 3)
+*/
+void draw_array(Int32Buffer indices, Float32Buffer vertices, optional GF_EVGPrimitiveType primitive_type=GF_EVG_TRIANGLES, optional long nb_components=3);
+
+/*! draws a path (see \ref gf_evg_surface_draw_path)
+\param path the path to draw
+\param z the z value to assign to points in the path
+*/
+void draw_path(Path path, optional float z=0);
+/*! draws a text (see \ref gf_evg_surface_draw_path)
+\param text the text to draw
+\param z the z value to assign to points in the text's path
+*/
+void draw_path(Text text, optional float z=0);
+
+/*! clears the depth buffer (see \ref gf_evg_surface_clear_depth)
+\param depth the depth value to set
+*/
+void clear_depth(float depth);
+
+/*! sets the viewport (see \ref gf_evg_surface_viewport)
+\param x the horizontal coordinate of the top-left corner of the viewport
+\param y the vertical coordinate of the top-left corner of the viewport
+\param width the width of the viewport
+\param height the height of the viewport
+
+*/
+void viewport(long x, long y, long width, long height);
+
+/*! sets the viewport to full canvas {0,0,width,height} (see \ref gf_evg_surface_viewport)*/
+void viewport();
+
+/*! creats a new shader
+\return the new shader
+\param shader_type the desired shader type*/
+Shader new_shader(ShaderType shader_type);
 
 };
 
@@ -228,6 +354,10 @@ interface Path {
 	readonly attribute boolean empty;
 	/*! if true, path will use zero_non_zero fill rule otherwise odd/even rule*/
 	readonly attribute boolean zero_fill;
+
+	/*! if true, path will use odd/even rule but fill only even parts*/
+	readonly attribute boolean even_fill;
+
 	/*! bounds of path - see \ref gf_path_get_bounds*/
 	readonly attribute Rect bounds;
 	/*! control bounds of path - see \ref gf_path_get_control_bounds*/
@@ -252,8 +382,9 @@ interface Path {
 
 	/*! adds a path to the path - see \ref gf_path_add_subpath
 	\param subpath path to add
+	\param mx matrix to apply to path
 	\return the path*/
-	Path add_path(Path subpath);
+	Path add_path(Path subpath, optional Matrix2D mx=null);
 
 	/*! adds an arc to the path - see \ref gf_path_add_arc
 	\param radius radius of the arc
@@ -380,6 +511,11 @@ interface Path {
 	\return the outline path*/
 	*/
 	Path outline(PenSettings ps);
+
+	/*! transforms a path - see \ref gf_path_add_subpath
+	\param mx matrix to apply to path
+	\return the path*/
+	Path transform(Matrix2D mx);
 
 };
 
@@ -778,7 +914,9 @@ interface Texture {
 	*/
 	Texture(ArrayBuffer img_data);
 
-	/*! parametric texture constructor. A parametric texture gets its pixel values from a javascript callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders. 
+	/*! parametric texture constructor. A parametric texture gets its pixel values from a javascript callback function, the resulting value being blended according to the antialiasing level of the pixel. This allows creating rather complex custom textures, in a fashion similar to fragment shaders.
+	\warning Parametric textures in JS cannot use multithreaded canvas, use 2D shaders for that.
+	
 	\param width width of the texture
 	\param height height of the texture
 	\param pixfmt pixel format of the texture
@@ -874,6 +1012,11 @@ interface Texture {
 	\param idx the component index. 0 is red or greyscale, 1 is alpha (alhpagrey formats) or green, 2 is green and 4 is alpha
 	\return new texture*/
 	Texture split(unsigned long idx);
+
+	/*! updates pixel data of texture using source packet
+	\param packet the new packet to use for the texture
+	*/
+	void update(FilterPacket packet);
 
 
 	/*! gets RGB pixel value in a texture
@@ -1199,203 +1342,6 @@ interface Vec4f {
 };
 
 
-/*! The Canvas3D object is used to draw vectorial 3D meshes and 2D paths. 
-
-\warning The 3D rasterizer is much much slower than WebGL as it is only software and not realy optimized, do not use it for complex 3D scenes.
-
-
-\warning The 3D rasterizer is still an experimental project: it might not be completely stable and its API may change a lot in the near future.
-
-
-The 3D rasterizer can however be useful when drawing simple 3D objects over an existing video, as it avoids GPU transfers of the frame data.
-
-The rasterizer supports:
-- points, lines, triangles, quads, strips and fans
-- 2D texturing using RGBA or YUVA colorspace
-- perspective correct interpolation
-- simple antialiasing
-- depth buffer (float only)
-- rasterizing in YUVA or RGBA space
-- a simple shading language for both vertex and fragment processing
-
-The rasterizer does not claim compliancy to any GPU specification, and will likely produce different results than WebGL.
-
- */
-interface Canvas3D {
-	/*! Canvas3D constructor. The canvas memory is owned by the canvas object
-	\param width the width in pixels of the canvas
-	\param height the height in pixels of the canvas
-	\param pixfmt the pixel fomat of the canvas
-	 */
-	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt);
-	/*! Canvas constructor
-	\param width the width in pixels of the canvas
-	\param height the height in pixels of the canvas
-	\param pixfmt the pixel fomat of the canvas
-	\param data the data buffer on which to write. The size shall be greater than the size required for the given size and pixel format.
-	\param stride horizontal stride in pixel of the data
-	\param stride_uv horizontal stride in pixel of the data for the U and V planes
-	 */
-	Canvas3D(unsigned long width, unsigned long height, DOMString pixfmt, ArrayBuffer data, optional unsigned long stride=0, optional unsigned long stride_uv=0);
-
-/*! clipper in pixel coordinates - see \ref gf_evg_surface_set_clipper
-\note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
-writeonly IRect clipper;
-/*! fragment shader to use, set to NULL to disable pixel writing.*/
-Shader fragment;
-/*! vertex shader to use, set to NULL to disable vertex shading, in which case the currently defined projection and modelview matrices will be used*/
-Shader vertex;
-/*! set face orientation to counter-clockwise or clockwise (see \ref gf_evg_surface_set_ccw)*/
-writeonly boolean ccw;
-/*! backface culling enabled (see \ref gf_evg_surface_set_backcull), default is true*/
-writeonly boolean backcull;
-/*! antialiased enabled (see \ref gf_evg_surface_set_antialias), default is true*/
-writeonly boolean antialias;
-/*! min depth (see \ref gf_evg_surface_set_min_depth), default is 0*/
-writeonly float min_depth;
-/*! max depth (see \ref gf_evg_surface_set_max_depth), default is 1.0*/
-writeonly float max_depth;
-/*! point size (see \ref gf_evg_surface_set_point_size), default is 1.0*/
-writeonly float point_size;
-/*! point smoothing enabled (see \ref gf_evg_surface_set_point_smooth), default is false*/
-writeonly boolean point_smooth;
-/*! line size (see \ref gf_evg_surface_set_line_size), default is 1.0*/
-writeonly float line_size;
-/*! clip zero enabled (see \ref gf_evg_surface_set_clip_zero), default is false*/
-writeonly boolean clip_zero;
-/*! depth test mode (see \ref gf_evg_set_depth_test), default is GF_EVGDEPTH_LESS*/
-writeonly GF_EVGDepthTest depth_test;
-/*! write depth buffer enabled (see \ref gf_evg_surface_write_depth), default is true*/
-writeonly boolean write_depth;
-/*! depth buffer (see \ref gf_evg_surface_set_depth_buffer). \warning Default is null*/
-Float32Buffer depth_buffer;
-
-/*! clears the canvas with the given color - see \ref gf_evg_surface_clear
-\note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
-\param rc the rectangle to clear, in pixel coordinates
-\param r red value, between 0 and 255
-\param g green value, between 0 and 255
-\param b blue value, between 0 and 255
-\param a alpha value, between 0 and 255
-*/
-void clear(IRect rc, unsigned long r, unsigned long g, unsigned long b, unsigned long a);
-
-/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
-\param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
-void clear(IRect rc, DOMString color);
-
-/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
-\param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
-void clear(IRect rc, DOMString color);
-
-/*! clears the canvas with the given color
-\note Omitting the last values will assume 1.0 for alpha, and 0.0 for other values. See \ref gf_evg_surface_clear
-\param rc the rectangle to clear, in pixel coordinates
-\param r red value, between 0.0 and 1.0
-\param g green value, between 0.0 and 1.0
-\param b blue value, between 0.0 and 1.0
-\param a alpha value, between 0.0 and 1.0
-*/
-void clearf(IRect rc, double r, double g, double b, double a);
-
-/*! clears the canvas with the given color. See \ref gf_evg_surface_clear
-\param rc the rectangle to clear, in pixel coordinates
-\param color an HTML/SVG color name or an HTML color value formatted as \$RRGGBB, \#RRGGBB or 0xRRGGBB*/
-void clearf(IRect rc, DOMString color);
-
-/*! reassign internal data (typically at each new packet)
-\warning This assumes the data layout has not changed (width, height, pixel format, strides). If these are modified, create a new canvas.
-\param data the buffer to use*/
-void reassign(ArrayBuffer data);
-
-/*! converts YUV color to RGB
-\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
-\param y Y component value
-\param u Cb/U component value
-\param v Cr/V component value
-\param a alpha value, not modified
-\return the converted value
-*/
-Object toRGB(optional bool as_array=false, Float y, Float u, Float v, optional Float a=1.0);
-
-/*! converts YUV color to RGB
-\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
-\param color the YUV value to convert
-\return the converted value
-*/
-Object toRGB(optional bool as_array=false, Vec4f color);
-
-/*! converts RGB color to YUV
-\param as_array if true, the return object is an array of 4 components, otherwise it is Vec4f object
-\param r red component value
-\param g green component value
-\param b blue component value
-\param a alpha value, not modified
-\return the converted value
-*/
-Object toYUV(optional bool as_array=false, Float r, Float g, Float b, optional Float a=1.0);
-
-/*! converts RGB color to YUV
-\param as_array if true, the return object is an array of 4 components, otherwise it is a Vec4f object
-\param color the RGB value to convert
-\return the converted value
-*/
-Object toYUV(optional bool as_array=false, Vec4f color);
-
-
-/*! sets current projection matrix to use
-\param projection_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
-*/
-void projection(Float32Buffer projection_matrix);
-/*! sets current modelview matrix to use
-\param modelview_matrix the 16 float coeficients of the matrix, column-first. When using Matrix object, you can pass Matrix.m
-*/
-void modelview(Float32Buffer modelview_matrix);
-
-/*! draws a set of primitives (see \ref gf_evg_surface_draw_array)
-\param indices array of indices in the vertex buffer for the primitives to draw
-\param vertices the vertices to use
-\param primitive_type the type of primitive to draw
-\param nb_components the number of components per vertex (eg, 2, 3)
-*/
-void draw_array(Int32Buffer indices, Float32Buffer vertices, optional GF_EVGPrimitiveType primitive_type=GF_EVG_TRIANGLES, optional long nb_components=3);
-
-/*! draws a path (see \ref gf_evg_surface_draw_path)
-\param path the path to draw
-\param z the z value to assign to points in the path
-*/
-void draw_path(Path path, optional float z=0);
-/*! draws a text (see \ref gf_evg_surface_draw_path)
-\param text the text to draw
-\param z the z value to assign to points in the text's path
-*/
-void draw_path(Text text, optional float z=0);
-
-/*! clears the depth buffer (see \ref gf_evg_surface_clear_depth)
-\param depth the depth value to set
-*/
-void clear_depth(float depth);
-
-/*! sets the viewport (see \ref gf_evg_surface_viewport)
-\param x the horizontal coordinate of the top-left corner of the viewport
-\param y the vertical coordinate of the top-left corner of the viewport
-\param width the width of the viewport
-\param height the height of the viewport
-
-*/
-void viewport(long x, long y, long width, long height);
-
-/*! sets the viewport to full canvas {0,0,width,height} (see \ref gf_evg_surface_viewport)*/
-void viewport();
-
-/*! creats a new shader
-\return the new shader
-\param shader_type the desired shader type*/
-Shader new_shader(ShaderType shader_type);
-};
-
 /*! defined shader types*/
 typedef enum
 {
@@ -1506,7 +1452,13 @@ fragY | float | the fragment Y coordinate
 fragDepth | float | the fragment depth value - can be overwritten by shader 
 fragZ | float | the fragment Z coordinate
 fragW | float | the fragment W coordinate
+txCoord | float  | the texture coordinates for 2D shaders
+txCoordi | ints | the integer texture coordinates for 2D shaders
+fragOdd | boolean | the odd/even flag of 2D path for 2D shaders
 
+
+\note
+`txCoordi` is used to fetch the pixel value as int. This is quite experimental, and should only be used to assign fragRGBA or fragYUVA.
 
 # Vertex shader reserved variables 
 
