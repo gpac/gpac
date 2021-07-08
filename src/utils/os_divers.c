@@ -2775,7 +2775,7 @@ GF_Err gf_file_load_data_filep(FILE *file, u8 **out_data, u32 *out_size)
 
 	*out_size = (u32) fsize;
 	if (fsize == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] file is empty\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] file is empty\n"));
 		return GF_OK;
 	}
 

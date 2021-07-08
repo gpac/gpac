@@ -1384,6 +1384,26 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 }
 
 GF_EXPORT
+u32 gf_pixel_is_wide_depth(GF_PixelFormat pixfmt)
+{
+	switch (pixfmt) {
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444_10:
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+	case GF_PIXEL_YUV444_10_PACK:
+		return 10;
+	default:
+		return 8;
+	}
+}
+
+GF_EXPORT
 u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 {
 	switch (pixfmt) {
