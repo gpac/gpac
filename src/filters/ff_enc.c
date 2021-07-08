@@ -1352,10 +1352,6 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		} else if ((ctx->encoder->codec->id==codec_id)
 			&& (ctx->encoder->width==ctx->width) && (ctx->encoder->height==ctx->height)
 			&& (ctx->gpac_pixel_fmt == pfmt)
-			//check if we run at the same framerate
-			&& (ctx->encoder->time_base.num * timebase.den == ctx->encoder->time_base.den * timebase.num)
-			//check we have the same number of ticks per frame, otherwise rate control will likely break
-			&& (ctx->encoder->ticks_per_frame == timebase.num)
 		) {
 			reuse = GF_TRUE;
 		}
@@ -1551,7 +1547,6 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 
 		gf_media_get_reduced_frame_rate(&ctx->encoder->time_base.den, &ctx->encoder->time_base.num);
-		ctx->encoder->ticks_per_frame = ctx->encoder->time_base.num;
 
 		if (ctx->low_delay) {
 			av_dict_set(&ctx->options, "profile", "baseline", 0);
