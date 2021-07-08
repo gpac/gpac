@@ -29,6 +29,7 @@
 
 #include "ff_common.h"
 #include <gpac/network.h>
+#include <gpac/bitstream.h>
 
 #if (LIBAVFORMAT_VERSION_MAJOR <= 56)
 #undef GPAC_HAS_FFMPEG
@@ -47,6 +48,7 @@ typedef struct
 	u32 cts_shift;
 
 	Bool suspended;
+	Bool reconfig_stream;
 } GF_FFMuxStream;
 
 enum{
@@ -56,6 +58,13 @@ enum{
 	FFMX_STATE_TRAILER_DONE,
 	FFMX_STATE_EOS,
 	FFMX_STATE_ERROR
+};
+
+enum
+{
+	FFMX_INJECT_DSI = 1,
+	FFMX_INJECT_VID_INFO = 1<<1,
+	FFMX_INJECT_AUD_INFO = 1<<2
 };
 
 typedef struct
@@ -423,6 +432,66 @@ static GF_Err ffmx_close_seg(GF_Filter *filter, GF_FFMuxCtx *ctx, Bool send_evt_
 	return GF_OK;
 }
 
+void ffmx_inject_config(GF_FilterPid *pid, GF_FFMuxStream *st, AVPacket *pkt)
+{
+	const GF_PropertyValue *p;
+	u8 *data;
+	if (st->reconfig_stream & FFMX_INJECT_DSI) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr) {
+			data = av_packet_new_side_data(pkt, AV_PKT_DATA_NEW_EXTRADATA, p->value.data.size);
+			if (data)
+				memcpy(data, p->value.data.ptr, p->value.data.size);
+		}
+	}
+	if (st->reconfig_stream & FFMX_INJECT_VID_INFO) {
+		u32 w, h;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+		w = p ? p->value.uint : st->stream->codecpar->width;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+		h = p ? p->value.uint : st->stream->codecpar->height;
+
+		data = av_packet_new_side_data(pkt, AV_PKT_DATA_PARAM_CHANGE, 12);
+		if (data) {
+			GF_BitStream *bs = gf_bs_new(data, 12, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32_le(bs, AV_SIDE_DATA_PARAM_CHANGE_DIMENSIONS);
+			gf_bs_write_u32_le(bs, w);
+			gf_bs_write_u32_le(bs, h);
+			gf_bs_del(bs);
+		}
+	}
+	if (st->reconfig_stream & FFMX_INJECT_AUD_INFO) {
+		u32 sr, ch, size=12;
+		u64 ch_layout;
+		u32 flags = AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT | AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+		sr = p ? p->value.uint : st->stream->codecpar->sample_rate;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+		ch = p ? p->value.uint : st->stream->codecpar->channels;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+		if (p) {
+			ch_layout = ffmpeg_channel_layout_from_gpac(p->value.uint);
+		} else {
+			ch_layout = st->stream->codecpar->channel_layout;
+		}
+		if (ch_layout) {
+			size += 8;
+			flags |= AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_LAYOUT;
+		}
+
+		data = av_packet_new_side_data(pkt, AV_PKT_DATA_PARAM_CHANGE, size);
+		if (data) {
+			GF_BitStream *bs = gf_bs_new(data, 12, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32_le(bs, flags);
+			gf_bs_write_u32_le(bs, ch);
+			if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_LAYOUT)
+				gf_bs_write_u64_le(bs, ch_layout);
+			gf_bs_write_u32_le(bs, sr);
+			gf_bs_del(bs);
+		}
+	}
+}
+
 static GF_Err ffmx_process(GF_Filter *filter)
 {
 	GF_Err e = GF_OK;
@@ -560,14 +629,22 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				av_packet_rescale_ts(pkt, st->in_scale, st->stream->time_base);
 			}
 
+			if (st->reconfig_stream) {
+				ffmx_inject_config(ipid, st, pkt);
+			}
+
 			if (ctx->interleave) {
 				res = av_interleaved_write_frame(ctx->muxer, pkt);
 			} else {
 				res = av_write_frame(ctx->muxer, pkt);
 			}
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet to %s - error %s\n", AVFMT_URL(ctx->muxer), av_err2str(res) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet %sto %s - error %s\n", st->reconfig_stream ? "with reconfig side data " : "", AVFMT_URL(ctx->muxer), av_err2str(res) ));
 				e = GF_IO_ERR;
+			}
+			if (st->reconfig_stream) {
+				av_packet_free_side_data(pkt);
+				st->reconfig_stream = 0;
 			}
 
 			gf_filter_pid_drop_packet(ipid);
@@ -639,7 +716,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	st = gf_filter_pid_get_udta(pid);
 	if (st) {
-		if (ctx->status>FFMX_STATE_HDR_DONE)
+		if (ctx->status >= FFMX_STATE_HDR_DONE)
 			check_disc = GF_TRUE;
 	} else {
 		if (ctx->status>FFMX_STATE_HDR_DONE) {
@@ -759,19 +836,47 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (check_disc) {
 		u32 dsi_crc, old_dsi_crc;
-		Bool is_ok = GF_TRUE;
-		if (avst->codecpar->codec_id != ff_codec_id) is_ok = GF_FALSE;
-		else if (avst->codecpar->codec_type != ff_st) is_ok = GF_FALSE;
+		if ((avst->codecpar->codec_id != ff_codec_id) || (avst->codecpar->codec_type != ff_st)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Dynamic stream update in mux %s not supported\n", ctx->dst));
+			return GF_NOT_SUPPORTED;
+		}
 
 		dsi_crc = old_dsi_crc = 0;
 		if (avst->codecpar->extradata) old_dsi_crc = gf_crc_32(avst->codecpar->extradata, avst->codecpar->extradata_size);
 		if (dsi) dsi_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 
-		if (dsi_crc != old_dsi_crc) is_ok = GF_FALSE;
-		if (!is_ok) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Dynamic stream update in mux %s not supported\n", ctx->dst));
-			return GF_NOT_SUPPORTED;
+		st->reconfig_stream = 0;
+		if (dsi_crc != old_dsi_crc)
+			st->reconfig_stream |= FFMX_INJECT_DSI;
+		if (streamtype==GF_STREAM_VISUAL) {
+			u32 w, h;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+			w = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+			h = p ? p->value.uint : 0;
+			if ((w != avst->codecpar->width) || (h != avst->codecpar->height))
+				st->reconfig_stream |= FFMX_INJECT_VID_INFO;
+		} else if (streamtype==GF_STREAM_AUDIO) {
+			u32 sr, ch;
+			u64 ch_layout;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+			sr = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+			ch = p ? p->value.uint : 0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+			ch_layout = p ? p->value.uint : 0;
+			if (ch_layout)
+				ch_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
+			if ((sr != avst->codecpar->sample_rate) || (ch != avst->codecpar->channels) || (ch_layout!=avst->codecpar->channel_layout))
+				st->reconfig_stream |= FFMX_INJECT_AUD_INFO;
 		}
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		if (p) {
+			st->in_scale.den = p->value.uint;
+			st->in_scale.num = 1;
+		}
+		return GF_OK;
 	}
 
 	avst->codecpar->codec_id = ff_codec_id;
