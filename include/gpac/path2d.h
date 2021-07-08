@@ -461,12 +461,14 @@ enum
 {
 	/*! Path is filled using the zero-nonzero rule. If not set, filling uses odd/even rule*/
 	GF_PATH_FILL_ZERO_NONZERO = 1,
+	/*! Path is filled using the odd-even rule but only even surface is filled*/
+	GF_PATH_FILL_EVEN = 1<<1,
 	/*! When set bbox must be recomputed.
 	\note Read only, used to avoid wasting time on bounds calculation*/
-	GF_PATH_BBOX_DIRTY = 2,
+	GF_PATH_BBOX_DIRTY = 1<<2,
 	/*! Indicates the path is flattened flattened
 	\note Read only, used to avoid wasting time on flattening*/
-	GF_PATH_FLATTENED = 4,
+	GF_PATH_FLATTENED = 1<<3,
 };
 
 /*!

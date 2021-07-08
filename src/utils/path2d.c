@@ -998,6 +998,7 @@ GF_EXPORT
 void gf_path_flatten(GF_Path *gp)
 {
 	GF_Path *res;
+	u32 flags = gp->flags;
 	if (gp->flags & GF_PATH_FLATTENED) return;
 	if (!gp->n_points) return;
 	res = gf_path_get_flatten(gp);
@@ -1005,6 +1006,7 @@ void gf_path_flatten(GF_Path *gp)
 	if (gp->points) gf_free(gp->points);
 	if (gp->tags) gf_free(gp->tags);
 	memcpy(gp, res, sizeof(GF_Path));
+	gp->flags |= (flags & (GF_PATH_FILL_ZERO_NONZERO|GF_PATH_FILL_EVEN));
 	gf_free(res);
 }
 
