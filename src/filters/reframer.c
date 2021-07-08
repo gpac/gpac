@@ -2267,7 +2267,7 @@ GF_FilterRegister ReframerRegister = {
 		"- packet filtering based on SAP types or frame numbers\n"
 		"- time-range extraction and splitting\n"
 		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit).\n"
-		"It is typcially needed to force remultiplexing in file to file operations when source and destination files use the same format.\n"
+		"It is typically needed to force remultiplexing in file to file operations when source and destination files use the same format.\n"
 		"  \n"
 		"# SAP filtering\n"
 		"The filter can remove packets based on their SAP types using [-saps]() option.\n"

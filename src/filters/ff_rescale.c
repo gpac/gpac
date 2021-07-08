@@ -95,7 +95,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 
 	data = gf_filter_pck_get_data(pck, &osize);
 	frame_ifce = gf_filter_pck_get_frame_interface(pck);
-	//we may have biffer input (padding) but shall not have smaller
+	//we may have buffer input (padding) but shall not have smaller
 	if (osize && (ctx->out_src_size > osize) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source osize, expected %d got %d - stride issue ?\n", ctx->out_src_size, osize));
 		gf_filter_pid_drop_packet(ctx->ipid);

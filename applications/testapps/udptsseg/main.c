@@ -1,7 +1,7 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
- *			Authors: Cyril COncolato, Romain Bouqueau
+ *			Authors: Cyril Concolato, Romain Bouqueau
  *			Copyright (c) Telecom ParisTech 2008-2012
 *					All rights reserved
 *

@@ -853,8 +853,8 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(avol), "audio volume in percent", GF_PROP_UINT, "100", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(apan), "audio pan in percent, 50 is no pan", GF_PROP_UINT, "50", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(async), "audio resynchronization; if disabled, audio data is never dropped but may get out of sync", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(max_aspeed), "silence audio if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "2.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(max_vspeed), "move to i-frame only decoding if playback speed is greater than sepcified value", GF_PROP_DOUBLE, "4.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_aspeed), "silence audio if playback speed is greater than specified value", GF_PROP_DOUBLE, "2.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_vspeed), "move to i-frame only decoding if playback speed is greater than specified value", GF_PROP_DOUBLE, "4.0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(buffer), "playout buffer in ms. overridden by BufferLenth property of input pid", GF_PROP_UINT, "3000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rbuffer), "rebuffer trigger in ms. overridden by RebufferLenth property of input pid", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_UPDATE},
