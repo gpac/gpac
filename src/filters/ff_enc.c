@@ -261,12 +261,12 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 {
-	u64 ts = gf_filter_pck_get_cts(pck);
-	if ((ctx->in_tk_delay<0) && (ts < (u64) -ctx->in_tk_delay)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Negative input TS \n"));
+	u64 cts = gf_filter_pck_get_cts(pck);
+	if ((ctx->in_tk_delay<0) && (cts < (u64) -ctx->in_tk_delay)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Negative input timestamp (cts="LLU" media delay="LLD")\n", cts, ctx->in_tk_delay));
 		return 0;
 	}
-	return ts + ctx->in_tk_delay;
+	return cts + ctx->in_tk_delay;
 }
 
 //TODO add more feedback
@@ -1681,7 +1681,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		return GF_BAD_PARAM;
 	}
 	//precompute gpac_timescale * encoder->time_base.num for rescale operations
-	//do that AFTER opeing the codec, since some codecs may touch this field ...
+	//do that AFTER opening the codec, since some codecs may touch this field ...
 	ctx->premul_timescale = ctx->timescale;
 	ctx->premul_timescale *= ctx->encoder->time_base.num;
 

@@ -1129,7 +1129,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		}
 	}
 
-	//lock all filters while loading up chain, to avoid PID init from other threads to resolve agains this filter
+	//lock all filters while loading up chain, to avoid PID init from other threads to resolve again this filter
 	//while we setup sourceID
 	gf_filter_lock_all(filter, GF_TRUE);
 	//reset all our source_ids
@@ -2125,7 +2125,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 
 			//if we have an end range, compute max_dts (includes dur) - first_dts
 			if (ctx->stop > ctx->start) {
-				if ( (ctx->stop-ctx->start) * iopid->timescale <= (iopid->max_dts - iopid->first_dts_plus_one + 1)) {
+				if ( (ctx->stop - ctx->start) * iopid->timescale <= (iopid->max_dts - iopid->first_dts_plus_one + 1)) {
 					GF_FilterEvent evt;
 					GF_FEVT_INIT(evt, GF_FEVT_STOP, iopid->ipid)
 					gf_filter_pid_send_event(iopid->ipid, &evt);

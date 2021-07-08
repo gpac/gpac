@@ -322,7 +322,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 				GF_FilterPacket *ref_pck = gf_list_pop_back(ctx->src_packets);
 				gf_filter_pck_unref(ref_pck);
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfiguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
 			e = ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			if (e==GF_NOT_SUPPORTED)
 				return GF_PROFILE_NOT_SUPPORTED;
@@ -655,7 +655,7 @@ dispatch_next:
 			ctx->sample_rate = 0;
 			ctx->channels = 0;
 			ctx->channel_layout = 0;
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFDec] PID %s reconfigure pending and all frames flushed, reconfiguring\n", gf_filter_pid_get_name(ctx->in_pid) ));
 			e = ffdec_configure_pid(filter, ctx->in_pid, GF_FALSE);
 			if (e==GF_NOT_SUPPORTED)
 				return GF_PROFILE_NOT_SUPPORTED;

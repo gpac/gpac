@@ -1334,7 +1334,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u32 codecid);
 \return error if any
  */
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
-/*! sepcial function for authoring - convert DSI to TextConfig
+/*! special function for authoring - convert DSI to TextConfig
 \param data TEXT decoder config block
 \param data_len TEXT decoder config block size
 \param codecid TEXT codecid/object type indication
