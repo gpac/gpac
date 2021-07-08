@@ -447,27 +447,102 @@ u32 ffmpeg_stream_type_to_gpac(u32 streamtype)
 	return GF_STREAM_METADATA;
 }
 
-//static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl) { }
+#ifndef GPAC_DISABLE_LOG
+
+static GF_LOG_Level ffmpeg_to_gpac_log_level(int level)
+{
+	switch (level) {
+	case AV_LOG_DEBUG: return GF_LOG_DEBUG;
+	case AV_LOG_TRACE: return GF_LOG_DEBUG;
+	case AV_LOG_VERBOSE: return GF_LOG_DEBUG;
+	case AV_LOG_INFO: return GF_LOG_INFO;
+	case AV_LOG_WARNING: return GF_LOG_WARNING;
+	case AV_LOG_ERROR: return GF_LOG_ERROR;
+	case AV_LOG_FATAL: return GF_LOG_ERROR;
+	case AV_LOG_PANIC: return GF_LOG_ERROR;
+	default: return GF_LOG_QUIET;
+	}
+}
+
+static int gpac_to_ffmpeg_log_level(GF_LOG_Level level)
+{
+	switch (level) {
+	case GF_LOG_QUIET: return AV_LOG_QUIET;
+	case GF_LOG_DEBUG: return AV_LOG_DEBUG;
+	case GF_LOG_INFO: return AV_LOG_INFO;
+	case GF_LOG_WARNING: return AV_LOG_WARNING;
+	case GF_LOG_ERROR: return AV_LOG_ERROR;
+	default: return AV_LOG_QUIET;
+	}
+}
+
+static GF_LOG_Tool gpac_to_ffmpeg_log_tool(AVClass* avc)
+{
+	if (!avc) return GF_LOG_CORE;
+	switch (avc->category) {
+	case AV_CLASS_CATEGORY_INPUT:
+	case AV_CLASS_CATEGORY_OUTPUT:
+	case AV_CLASS_CATEGORY_MUXER:
+	case AV_CLASS_CATEGORY_DEMUXER:
+		return GF_LOG_CONTAINER;
+	case AV_CLASS_CATEGORY_ENCODER:
+	case AV_CLASS_CATEGORY_DECODER:
+		return GF_LOG_CODEC;
+	case AV_CLASS_CATEGORY_FILTER:
+		return GF_LOG_AUTHOR;
+	case AV_CLASS_CATEGORY_BITSTREAM_FILTER:
+		return GF_LOG_PARSER;
+	case AV_CLASS_CATEGORY_SWSCALER:
+	case AV_CLASS_CATEGORY_SWRESAMPLER:
+		return GF_LOG_MEDIA;
+	case AV_CLASS_CATEGORY_DEVICE_VIDEO_OUTPUT:
+	case AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT:
+	case AV_CLASS_CATEGORY_DEVICE_AUDIO_OUTPUT:
+	case AV_CLASS_CATEGORY_DEVICE_AUDIO_INPUT:
+	case AV_CLASS_CATEGORY_DEVICE_OUTPUT:
+	case AV_CLASS_CATEGORY_DEVICE_INPUT:
+		return GF_LOG_MMIO;
+	default:
+		return GF_LOG_CORE;
+	}
+}
+
+#define FF_LOG_SIZE 2000
+static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl)
+{
+	AVClass* avc = avcl ? *(AVClass**)avcl : NULL;
+	GF_LOG_Level glevel = ffmpeg_to_gpac_log_level(level);
+	GF_LOG_Tool gtool = gpac_to_ffmpeg_log_tool(avc);
+
+	if (!gf_log_tool_level_on(gtool, glevel))
+		return;
+	gf_log_lt(glevel, gtool);
+
+	if (avc) {
+		char buffer[FF_LOG_SIZE+1];
+		buffer[FF_LOG_SIZE] = 0;
+		vsnprintf(buffer, FF_LOG_SIZE, fmt, vl);
+//		gf_log( "[%s@%p] %s", avc->item_name(avcl), avcl, buffer);
+		gf_log( "[%s] %s", avc->item_name(avcl), buffer);
+	} else {
+		gf_log_va_list(glevel, gtool, fmt, vl);
+	}
+}
 
 void ffmpeg_setup_logs(u32 log_class)
 {
 	u32 level = gf_log_get_tool_level(log_class);
-	switch (level) {
-	case GF_LOG_DEBUG:
-		av_log_set_level(AV_LOG_DEBUG);
-		break;
-	case GF_LOG_INFO:
-		av_log_set_level(AV_LOG_INFO);
-		break;
-	case GF_LOG_WARNING:
-		av_log_set_level(AV_LOG_WARNING);
-		break;
-	default:
-		av_log_set_level(AV_LOG_ERROR);
-		break;
-	}
-//	av_log_set_callback(ff_log_callback);
+	u32 av_level = gpac_to_ffmpeg_log_level(level);
+	//only set if more verbose
+	if (av_level > av_log_get_level())
+		av_log_set_level(av_level);
 }
+#else
+void ffmpeg_setup_logs(u32 log_class)
+{
+
+}
+#endif
 
 void ffmpeg_initialize()
 {
@@ -477,6 +552,11 @@ void ffmpeg_initialize()
 #endif
 	avformat_network_init();
 	ffmpeg_init = GF_TRUE;
+
+#ifndef GPAC_DISABLE_LOG
+	av_log_set_callback(&ff_log_callback);
+#endif
+
 }
 
 static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg)
