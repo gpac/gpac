@@ -1987,19 +1987,28 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 			}
 		}
 		//fast flush and this is a sink: send a stop from all filters connected to the sink
-		//we keep the last connections to the sink active so that muxers can still dispatch pending packets
 		if ((flush_type==GF_FS_FLUSH_FAST) && !filter->num_output_pids) {
-			u32 j, k;
+			u32 j;
 			for (j=0; j<filter->num_input_pids; j++) {
 				GF_FilterEvent evt;
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, j);
-				gf_mx_p(pidi->pid->filter->tasks_mx);
-				for (k=0; k<pidi->pid->filter->num_input_pids; k++) {
-					GF_FilterPid *pid = gf_list_get(pidi->pid->filter->input_pids, k);
-					GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
-					gf_filter_pid_send_event(pid, &evt);
+				const GF_PropertyValue *p = gf_filter_pid_get_property((GF_FilterPid *) pidi, GF_PROP_PID_STREAM_TYPE);
+				//if pid is of type FILE, we keep the last connections to the sink active so that muxers can still dispatch pending packets
+				if (p && (p->value.uint==GF_STREAM_FILE)) {
+					u32 k;
+					gf_mx_p(pidi->pid->filter->tasks_mx);
+					for (k=0; k<pidi->pid->filter->num_input_pids; k++) {
+						GF_FilterPid *pid = gf_list_get(pidi->pid->filter->input_pids, k);
+						GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+						gf_filter_pid_send_event(pid, &evt);
+					}
+					gf_mx_v(pidi->pid->filter->tasks_mx);
 				}
-				gf_mx_v(pidi->pid->filter->tasks_mx);
+				//otherwise send STOP right away
+				else {
+					GF_FEVT_INIT(evt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
+					gf_filter_pid_send_event((GF_FilterPid *) pidi, &evt);
+				}
 			}
 		}
 
@@ -3016,7 +3025,7 @@ static void gf_fs_print_jsf_connection(GF_FilterSession *session, char *filter_n
 
 	for (i=0; i<2; i++) {
 		GF_List *from = i ? sinks : sources;
-		char *type = i ? "sources" : "sinks";
+		char *type = i ? "sinks" : "sources";
 
 		count = gf_list_count(from);
 		if (!count) {
