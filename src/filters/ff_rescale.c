@@ -386,6 +386,11 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	return GF_OK;
 }
 
+static GF_Err ffsws_initialize(GF_Filter *filter)
+{
+	ffmpeg_setup_logs(GF_LOG_AUTHOR);
+	return GF_OK;
+}
 static void ffsws_finalize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
@@ -450,6 +455,7 @@ GF_FilterRegister FFSWSRegister = {
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
 	SETCAPS(FFSWSCaps),
+	.initialize = ffsws_initialize,
 	.finalize = ffsws_finalize,
 	.process = ffsws_process,
 	.reconfigure_output = ffsws_reconfigure_output,
