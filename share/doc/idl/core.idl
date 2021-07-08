@@ -186,9 +186,10 @@ ArrayBuffer sha1(ArrayBuffer abuf);
 
 /*! loads file content into an array buffer - see \ref gf_file_load_data
 \param fname name of file to load
-\return ArrayBuffer containing data of the file
+\param as_utf8 load as UTF8 string
+\return ArrayBuffer containing data of the file or UTF8 string
 */
-ArrayBuffer load_file(DOMString fname);
+ArrayBuffer load_file(DOMString fname, optional boolean as_utf8=false);
 
 /*! compress using deflate() an array buffer
 \param in_data input data to compress
@@ -320,6 +321,22 @@ unsigned long ntohl(unsigned long value);
 \return converted value
 */
 unsigned long ntohs(unsigned long value);
+
+/*! gets size in bytes of an image of given size and pixel format
+\param pix_fmt pixel format name
+\param width image width in pixels
+\param height image height in pixels
+\return size in bytes
+*/
+unsigned long pixfmt_size(DOMString pix_fmt, unsigned long width, unsigned long height);
+
+/*! gets size in bytes of an audio sample in the given format
+\param pcm_fmt PCM format name
+\return size in bytes
+*/
+unsigned long pcmfmt_depth(DOMString pcm_fmt);
+
+
 
 /*! number of cores */
 attribute readonly unsigned long nb_cores;

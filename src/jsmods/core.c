@@ -36,6 +36,7 @@
 #include <gpac/bitstream.h>
 #include <gpac/network.h>
 #include <gpac/base_coding.h>
+#include <gpac/filters.h>
 
 #include "../scenegraph/qjs_common.h"
 
@@ -98,6 +99,7 @@ void gf_js_delete_context(JSContext *ctx)
 	gf_list_del_item(js_rt->allocated_contexts, ctx);
 	JS_FreeContext(ctx);
 	gf_mx_v(js_rt->mx);
+	gf_js_call_gc(NULL);
 
 	js_rt->nb_inst --;
 	if (js_rt->nb_inst == 0) {
@@ -1473,18 +1475,75 @@ static JSValue js_sys_file_data(JSContext *ctx, JSValueConst this_val, int argc,
 	const char *filename;
 	u8 *data;
 	u32 data_size;
+	Bool as_utf8 = GF_FALSE;
 	GF_Err e;
 	JSValue res;
 	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
 	filename = JS_ToCString(ctx, argv[0]);
 	if (!filename) return JS_EXCEPTION;
+	if ((argc>1) && JS_ToBool(ctx, argv[1]))
+		as_utf8 = GF_TRUE;
 
 	e = gf_file_load_data(filename, &data, &data_size);
-	if (!data) res = js_throw_err_msg(ctx, e, "Failed to load file %s", filename);
-	else res = JS_NewArrayBuffer(ctx, data, data_size, js_gpac_free, NULL, 0);
+	if (e) {
+		res = js_throw_err_msg(ctx, e, "Failed to load file %s", filename);
+	} else if (as_utf8) {
+		if (!data || gf_utf8_is_legal(data, data_size)) {
+			res = JS_NewString(ctx, data ? (const char *) data : "");
+		} else {
+			res = js_throw_err_msg(ctx, GF_NON_COMPLIANT_BITSTREAM, "Invalid UTF8 data in file %s", filename);
+		}
+		if (data)
+			gf_free(data);
+	} else {
+		res = JS_NewArrayBuffer(ctx, data, data_size, js_gpac_free, NULL, 0);
+	}
 	JS_FreeCString(ctx, filename);
 	return res;
 }
+
+/* load and evaluate a file */
+static JSValue js_sys_load_script(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    const char *filename;
+    u8 *data;
+    u32 data_size;
+    JSValue res;
+    GF_Err e;
+	char *full_url = NULL;
+
+	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+    filename = JS_ToCString(ctx, argv[0]);
+    if (!filename) return JS_EXCEPTION;
+
+	if ((argc>1) && JS_ToBool(ctx, argv[1]) ) {
+		const char *par_url = jsf_get_script_filename(ctx);
+		full_url = gf_url_concatenate(par_url, filename);
+		JS_FreeCString(ctx, filename);
+		filename = full_url;
+	}
+
+	e = gf_file_load_data(filename, &data, &data_size);
+	if (e) {
+		res = js_throw_err_msg(ctx, e, "Failed to load file %s", filename);
+	} else if (data) {
+		if (!gf_utf8_is_legal(data, data_size)) {
+			res = js_throw_err_msg(ctx, e, "Script file %s is not UTF-8", filename);
+		} else {
+			res = JS_Eval(ctx, (char *)data, data_size, filename, JS_EVAL_TYPE_GLOBAL);
+		}
+	} else {
+		res = JS_UNDEFINED;
+	}
+    if (data) gf_free(data);
+
+    if (full_url)
+		gf_free(full_url);
+    else
+		JS_FreeCString(ctx, filename);
+    return res;
+}
+
 
 static JSValue js_sys_compress_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool is_decomp)
 {
@@ -1775,6 +1834,34 @@ static JSValue js_sys_htons(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	return JS_NewInt32(ctx, gf_htons((u16) val));
 }
 
+GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc, GF_PropertyValue *prop, u32 prop_type);
+
+static JSValue js_pixfmt_size(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 w, h, osize;
+	GF_PropertyValue prop;
+	if (argc<3) return JS_EXCEPTION;
+	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PIXFMT);
+	if (e) return JS_EXCEPTION;
+	if (JS_ToInt32(ctx, &w, argv[1])) return JS_EXCEPTION;
+	if (JS_ToInt32(ctx, &h, argv[2])) return JS_EXCEPTION;
+
+	if (!gf_pixel_get_size_info(prop.value.uint, w, h, &osize, NULL, NULL, NULL, NULL))
+		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Unknown pixel format %d\n", prop.value.uint);
+	return JS_NewInt32(ctx, osize);
+}
+
+static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_PropertyValue prop;
+	if (argc!=1) return JS_EXCEPTION;
+	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PCMFMT);
+	if (e) return JS_EXCEPTION;
+	return JS_NewInt32(ctx, gf_audio_fmt_bit_depth(prop.value.uint)/8 );
+}
+
+
+
 static const JSCFunctionListEntry sys_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_cores", js_sys_prop_get, NULL, JS_SYS_NB_CORES),
     JS_CGETSET_MAGIC_DEF_ENUM("sampling_period_duration", js_sys_prop_get, NULL, JS_SYS_SAMPLE_DUR),
@@ -1845,6 +1932,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("crc32", 0, js_sys_crc32),
 	JS_CFUNC_DEF("sha1", 0, js_sys_sha1),
 	JS_CFUNC_DEF("load_file", 0, js_sys_file_data),
+	JS_CFUNC_DEF("load_script", 0, js_sys_load_script),
 	JS_CFUNC_DEF("compress", 0, js_sys_compress),
 	JS_CFUNC_DEF("decompress", 0, js_sys_decompress),
 	JS_CFUNC_DEF("rmdir", 0, js_sys_rmdir),
@@ -1870,6 +1958,9 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("ntohs", 0, js_sys_ntohs),
 	JS_CFUNC_DEF("htonl", 0, js_sys_htonl),
 	JS_CFUNC_DEF("htons", 0, js_sys_htons),
+
+	JS_CFUNC_DEF("pixfmt_size", 0, js_pixfmt_size),
+	JS_CFUNC_DEF("pcmfmt_depth", 0, js_pcmfmt_depth),
 
 };
 
@@ -2410,7 +2501,7 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 			return NULL;
 		}
 		/* compile the module */
-		func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+		func_val = JS_Eval(ctx, buf ? (char *) buf : "", buf_len, module_name, JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
 		gf_free(buf);
 		if (JS_IsException(func_val))
 			return NULL;
