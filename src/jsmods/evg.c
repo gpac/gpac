@@ -1309,7 +1309,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 	Bool frag_valid = GF_FALSE;
 	GF_Vec4 tmpl, tmpr;
 	GF_Vec4 *left_val, *right_val, *right2_val;
-	GF_IVec4 *left_vali, *right_vali;
+	GF_IVec4 *right_vali;
 	register u32 if_level=0;
 	register u32 nif_level=0;
 	register Bool cond_res;
@@ -1323,7 +1323,6 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 
 	left_val = &tmpl;
 	right_val = &tmpr;
-	left_vali = (GF_IVec4 *) &tmpl;
 	right_vali = (GF_IVec4 *) &tmpr;
 
 	while ((++op)->op_type) {
