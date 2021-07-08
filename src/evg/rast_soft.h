@@ -72,7 +72,7 @@ typedef struct EVG_Span_
 
 typedef void (*EVG_SpanFunc)(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 
-GF_Err evg_sweep_lines(GF_EVGSurface *surf, int size_y, Bool zero_non_zero_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam);
+GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, Bool zero_non_zero_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam);
 
 GF_Err evg_raster_render(GF_EVGSurface *surf);
 
@@ -471,7 +471,7 @@ struct _gf_evg_surface
 	Bool center_coords;
 	Bool is_transparent;
 
-	u32 aa_level;
+	int aa_level;
 	GF_RasterQuality qlevel;
 
 	u32 useClipper;

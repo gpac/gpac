@@ -558,7 +558,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 			coverage = 255;
 	}
 
-	if ((coverage < 0xFF) && (coverage>raster->surf->aa_level))
+	if ((coverage < 0xFF) && (coverage > raster->surf->aa_level))
 		return;
 		
 	if (!coverage)
@@ -721,7 +721,7 @@ u32 th_sweep_lines(void *par)
 
 
 /* sort each scanline and render it*/
-GF_Err evg_sweep_lines(GF_EVGSurface *surf, int size_y, u32 fill_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam)
+GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam)
 {
 	u32 i;
 

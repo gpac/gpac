@@ -532,7 +532,7 @@ static void ff_log_callback(void *avcl, int level, const char *fmt, va_list vl)
 void ffmpeg_setup_logs(u32 log_class)
 {
 	u32 level = gf_log_get_tool_level(log_class);
-	u32 av_level = gpac_to_ffmpeg_log_level(level);
+	int av_level = gpac_to_ffmpeg_log_level(level);
 	//only set if more verbose
 	if (av_level > av_log_get_level())
 		av_log_set_level(av_level);

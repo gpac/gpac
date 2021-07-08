@@ -905,7 +905,7 @@ static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	u32 sten_idx=1;
 	u32 operand = 0;
 	GF_Err e;
-	Float op_params[4] = {};
+	Float op_params[4] = {0};
 	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
 	if (!canvas) return JS_EXCEPTION;
 
@@ -937,9 +937,9 @@ static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	}
 	sten1 = get_stencil(c, argv[sten_idx]);
 	if (!sten1) return JS_EXCEPTION;
-	if (argc>sten_idx+1)
+	if ((u32) argc>sten_idx+1)
 		sten2 = get_stencil(c, argv[sten_idx+1]);
-	if (argc>sten_idx+2)
+	if ((u32) argc>sten_idx+2)
 		sten3 = get_stencil(c, argv[sten_idx+2]);
 	e = gf_evg_surface_multi_fill(canvas->surface, operand, sten1, sten2, sten3, op_params);
 	return e ? JS_EXCEPTION : JS_UNDEFINED;
