@@ -56,7 +56,7 @@ typedef struct
 	char *ext;
 	char *mime;
 	u32 block_size;
-	Bool blk, ka, mkp;
+	Bool blk, ka, mkp, sigeos;
 
 	//only one output pid declared
 	GF_FilterPid *pid;
@@ -342,6 +342,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 			if (!ctx->ka) {
 				gf_filter_pid_set_eos(ctx->pid);
 				return GF_EOS;
+			} else if (ctx->sigeos) {
+				gf_filter_pid_set_eos(ctx->pid);
 			}
 		} else {
 			nb_read = (s32) fread(ctx->buffer, 1, to_read, stdin);
@@ -376,6 +378,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 						return GF_EOS;
 					}
 					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
+					if (ctx->sigeos)
+						gf_filter_pid_set_eos(ctx->pid);
 					return pipein_initialize(filter);
 				}
 			}
@@ -402,6 +406,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
 				CloseHandle(ctx->pipe);
 				ctx->pipe = INVALID_HANDLE_VALUE;
+				if (ctx->sigeos)
+					gf_filter_pid_set_eos(ctx->pid);
 				return pipein_initialize(filter);
 			}
 			return GF_OK;
@@ -422,6 +428,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 				ctx->fd=-1;
 				ctx->is_end = GF_TRUE;
 				return GF_EOS;
+			} else if (ctx->sigeos) {
+				gf_filter_pid_set_eos(ctx->pid);
 			}
 			return GF_OK;
 		}
@@ -475,6 +483,7 @@ static const GF_FilterArgs PipeInArgs[] =
 	{ OFFS(blk), "open pipe in block mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep-alive pipe when end of input is detected - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(sigeos), "signal end of stream whenever a pipe breaks in keep-alive mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -508,7 +517,10 @@ GF_FilterRegister PipeInRegister = {
 		"The filter can create the pipe if not found using [-mkp](). On windows hosts, this will create a pipe server.\n"
 		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction.\n"
 		"\n"
-		"Input pipes can be setup to run forever using [-ka](). In this case, any potential pipe close on the writing side and end of stream will only be triggered upon session close.\n"
+		"Input pipes can be setup to run forever using [-ka](). In this case:\n"
+		"- any potential pipe close on the writing side will be ignored\n"
+		"- end of stream will be triggered upon pipe close if [-sigeos]() is set\n"
+		"- final end of stream will be triggered upon session close.\n"
 		"This can be useful to pipe raw streams from different process into gpac:\n"
 		"Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
 		"Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
