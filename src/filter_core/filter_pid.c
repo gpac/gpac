@@ -4262,7 +4262,7 @@ single_retry:
 				//Not doing so could results in broken link resolution:
 				//PID1(AVC) -> decoder1 -> compositor
 				//PID2(PNG) -> decoder2 -> compositor
-				//However this algo would force a connection of PID2 to decoder1 if decoder1 accepts multiple input, regardless of PID2 caps
+				//However this algo would force a connection of PID2 to decoder1 if decoder1 accepts multiple inputs, regardless of PID2 caps
 				if (! (adest->freg->flags & GF_FS_REG_DYNAMIC_REDIRECT))
 					continue;
 				if ((gf_list_find(adest->destination_filters, filter_dst)>=0) || (gf_list_find(adest->destination_links, filter_dst)>=0) ) {
@@ -4444,7 +4444,7 @@ single_retry:
 					|| gf_filter_in_parent_chain(dst_link, filter_dst)
 					//if forced filter is in destination of filter (connection pending), don't force a link
 					//we need to walk up the destination chain, not just check the first level since the filter_dst might be connected
-					//and  no longer have dst_link in its destination filter list
+					//and no longer have dst_link in its destination filter list
 					//typical case is multithreaded mode with mux or tileagg filter
 					|| filter_match_target_dst(filter_dst->destination_filters, dst_link)
 					|| filter_match_target_dst(filter_dst->destination_links, dst_link)
@@ -5256,7 +5256,7 @@ static GF_Err gf_filter_pid_merge_properties_internal(GF_FilterPid *dst_pid, GF_
 	//this is a copy props on output pid
 	if (!src_props) {
 		//our list is not thread-safe, so we must lock the filter when destroying the props
-		//otherwise gf_list_last() (this caller) might use the last entry while another threads sets this last entry to NULL
+		//otherwise gf_list_last() (this caller) might use the last entry while another thread sets this last entry to NULL
 		gf_mx_p(src_pid->filter->tasks_mx);
 		src_props = gf_list_last(src_pid->properties);
 		gf_mx_v(src_pid->filter->tasks_mx);
