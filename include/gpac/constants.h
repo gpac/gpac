@@ -304,6 +304,12 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 */
 u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt);
 
+/*! Gets the number of bits per component
+\param pixfmt  pixel format code
+\return number of bits per component
+*/
+u32 gf_pixel_is_wide_depth(GF_PixelFormat pixfmt);
+
 /*! Gets the number of component per pixel
 \param pixfmt  pixel format code
 \return number of bytes per pixel
