@@ -218,7 +218,11 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		/*the compositor sends empty packets after its reconfiguration to check when the config is active
 		we therefore probe the first packet before probing the buffer fullness*/
 		pck = gf_filter_pid_get_packet(ctx->pid);
-		if (!pck) return 0;
+		if (!pck) {
+			if (gf_filter_pid_is_eos(ctx->pid))
+				ctx->is_eos = GF_TRUE;
+			return 0;
+		}
 
 		if (! gf_filter_pck_is_blocking_ref(pck)) {
 			if ((dur < ctx->buffer * 1000) && !gf_filter_pid_is_eos(ctx->pid))
