@@ -3877,7 +3877,7 @@ static Bool filter_match_target_dst(GF_List *flist, GF_Filter *dst)
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
-	u32 i, count;
+	u32 f_idx, count;
 	Bool found_dest=GF_FALSE;
 	Bool found_matching_sourceid;
 	Bool can_reassign_filter = GF_FALSE;
@@ -3950,16 +3950,34 @@ restart:
 
 	found_matching_sourceid = GF_FALSE;
 
+	//relock the filter list.
+	//If the filter_dst we were checking is no longer present, rewind and go on
+	//otherwise update its index (might be less if some filters were removed)
+#define RELOCK_FILTER_LIST\
+		gf_mx_p(filter->session->filters_mx); \
+		count = gf_list_count(filter->session->filters); \
+		f_dst_idx = gf_list_find(filter->session->filters, filter_dst); \
+		if (f_dst_idx < 0) {\
+			f_idx--;\
+		} else {\
+			f_idx = f_dst_idx;\
+		}
+
+
 	//try to connect pid to all running filters
 	count = gf_list_count(filter->session->filters);
-	for (i=0; i<count; i++) {
+	for (f_idx=0; f_idx<count; f_idx++) {
+		s32 f_dst_idx;
 		Bool needs_clone;
 		Bool cap_matched, in_parent_chain;
 		GF_Filter *filter_dst;
 
 single_retry:
 
-		filter_dst = gf_list_get(filter->session->filters, i);
+		filter_dst = gf_list_get(filter->session->filters, f_idx);
+		//this can happen in multithreaded cases with filters being removed while we check for links
+		if (!filter_dst)
+			break;
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed || filter_dst->disabled || filter_dst->marked_for_removal || filter_dst->no_inputs) continue;
@@ -4011,7 +4029,7 @@ single_retry:
 			}
 			pid->filter->dst_filter = NULL;
 		}
-
+		//we must unlock the filters list at this point, otherwise we may end up in deadlock when checking gf_filter_in_parent_chain
 		gf_mx_v(filter->session->filters_mx);
 		gf_mx_p(filter_dst->tasks_mx);
 		if (gf_list_count(filter_dst->source_filters)) {
@@ -4029,7 +4047,7 @@ single_retry:
 			}
 		}
 		gf_mx_v(filter_dst->tasks_mx);
-		gf_mx_p(filter->session->filters_mx);
+		RELOCK_FILTER_LIST
 
 		//if destination accepts only one input and connected or connection pending
 		//note that if destination uses dynamic clone through source ids, we need to check this filter
@@ -4085,9 +4103,12 @@ single_retry:
 		}
 		//walk up through the parent graph and check if this filter is already in. If so don't connect
 		//since we don't allow re-entrant PIDs
+		//we must unlock the filters list at this point, otherwise we may end up in deadlock when checking gf_filter_in_parent_chain
 		gf_mx_v(filter->session->filters_mx);
 		in_parent_chain = gf_filter_in_parent_chain(filter, filter_dst);
-		gf_mx_p(filter->session->filters_mx);
+
+		RELOCK_FILTER_LIST
+
 		if (in_parent_chain) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has filter %s in its parent chain\n", pid->name, filter_dst->name));
 			continue;
@@ -4115,6 +4136,7 @@ single_retry:
 			}
 			gf_mx_v(filter_dst->tasks_mx);
 
+			//we must unlock the filters list at this point, otherwise we may end up in deadlock when checking gf_filter_in_parent_chain
 			gf_mx_v(filter->session->filters_mx);
 			gf_mx_p(filter_dst->tasks_mx);
 			//check filters already connected on filter_dst
@@ -4125,7 +4147,8 @@ single_retry:
 					cyclic_detected = GF_TRUE;
 			}
 			gf_mx_v(filter_dst->tasks_mx);
-			gf_mx_p(filter->session->filters_mx);
+
+			RELOCK_FILTER_LIST
 
 			if (cyclic_detected) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s has input chain already connected to filter %s\n", pid->name, pid->filter->name, filter_dst->name));
@@ -4408,7 +4431,7 @@ single_retry:
     }
 
 	if (!num_pass) {
-		u32 k;
+		u32 i, k;
 		gf_mx_v(filter->session->filters_mx);
 		//cleanup forced filter list:
 		//remove any forced filter which is a destination of a filter we already linked to
@@ -4496,7 +4519,7 @@ single_retry:
 			clone->cloned_from = NULL;
 			count = gf_list_count(filter->session->filters);
 			gf_list_add(pid->filter->destination_links, clone);
-			i = count-1;
+			f_idx = count-1;
 			num_pass = 1;
 			goto single_retry;
 		}
