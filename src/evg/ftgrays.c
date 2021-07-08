@@ -68,13 +68,13 @@
 #include "rast_soft.h"
 
 
-void gray_record_cell( TRaster *raster )
+void gray_record_cell(GF_EVGSurface *surf)
 {
-	if (( raster->area | raster->cover) && (raster->ey<raster->max_ey)) {
-		long y = raster->ey - raster->min_ey;
+	if (( surf->area | surf->cover) && (surf->ey<surf->max_ey)) {
+		long y = surf->ey - surf->min_ey;
 		if (y>=0) {
 			AACell *cell;
-			AAScanline *sl = &raster->scanlines[y];
+			AAScanline *sl = &surf->scanlines[y];
 
 			if (sl->num >= sl->alloc) {
 				sl->cells = (AACell*)gf_realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
@@ -83,28 +83,28 @@ void gray_record_cell( TRaster *raster )
 			cell = &sl->cells[sl->num];
 			sl->num++;
 			/*clip cell */
-			if (raster->ex<raster->min_ex) cell->x = (TCoord) -1;
-			else if (raster->ex>raster->max_ex) cell->x = (TCoord) (raster->max_ex - raster->min_ex);
-			else cell->x = (TCoord)(raster->ex - raster->min_ex);
-			cell->area = raster->area;
-			cell->cover = raster->cover;
-			cell->idx1 = raster->idx1;
-			cell->idx2 = raster->idx2;
+			if (surf->ex<surf->min_ex) cell->x = (TCoord) -1;
+			else if (surf->ex>surf->max_ex) cell->x = (TCoord) (surf->max_ex - surf->min_ex);
+			else cell->x = (TCoord)(surf->ex - surf->min_ex);
+			cell->area = surf->area;
+			cell->cover = surf->cover;
+			cell->idx1 = surf->idx1;
+			cell->idx2 = surf->idx2;
 
-			if (raster->first_scanline > (u32) y)
-				raster->first_scanline = y;
+			if (surf->first_scanline > (u32) y)
+				surf->first_scanline = y;
 		}
 	}
 }
 
-void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
+void gray_set_cell(GF_EVGSurface *surf, TCoord  ex, TCoord  ey )
 {
-	if ((raster->ex != ex) || (raster->ey != ey)) {
-		gray_record_cell(raster);
-		raster->ex = ex;
-		raster->ey = ey;
-		raster->area = 0;
-		raster->cover = 0;
+	if ((surf->ex != ex) || (surf->ey != ey)) {
+		gray_record_cell(surf);
+		surf->ex = ex;
+		surf->ey = ey;
+		surf->area = 0;
+		surf->cover = 0;
 	}
 }
 
@@ -124,27 +124,27 @@ static GFINLINE void evg_translate_point(GF_Matrix2D *mx, EVG_Vector *pt, TPos *
 #endif
 }
 
-static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
+static GFINLINE int gray_move_to(EVG_Vector *to, GF_EVGSurface *surf)
 {
 	TPos  x, y;
 	TCoord  ex, ey;
 
 	/* record current cell, if any */
-	gray_record_cell(raster);
+	gray_record_cell(surf);
 
-	evg_translate_point(raster->mx, to, &x, &y);
+	evg_translate_point(surf->mx, to, &x, &y);
 
 	ex = TRUNC(x);
 	ey = TRUNC(y);
-	if ( ex < raster->min_ex ) ex = (TCoord)(raster->min_ex - 1);
-	raster->area    = 0;
-	raster->cover   = 0;
-	gray_set_cell( raster, ex, ey );
+	if ( ex < surf->min_ex ) ex = (TCoord)(surf->min_ex - 1);
+	surf->area    = 0;
+	surf->cover   = 0;
+	gray_set_cell(surf, ex, ey );
 	if (ey<0) ey=0;
-	raster->last_ey = SUBPIXELS( ey );
+	surf->last_ey = SUBPIXELS( ey );
 
-	raster->x = x;
-	raster->y = y;
+	surf->x = x;
+	surf->y = y;
 	return 0;
 }
 
@@ -152,7 +152,7 @@ static GFINLINE int gray_move_to( EVG_Vector*  to, EVG_Raster   raster)
 /*                                                                       */
 /* Render a scanline as one or more cells.                               */
 /*                                                                       */
-static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord y1, TPos x2, TCoord y2)
+static void gray_render_scanline(GF_EVGSurface *surf, TCoord ey, TPos x1, TCoord y1, TPos x2, TCoord y2)
 {
 	TCoord  ex1, ex2, fx1, fx2, delta;
 	long    p, first;
@@ -160,8 +160,8 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	int     incr, mod;
 
 	dx = x2 - x1;
-	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
-	ex2 = TRUNC( x2 ); /* if (ex2 >= raster->max_ex) ex2 = raster->max_ex-1; */
+	ex1 = TRUNC( x1 ); /* if (ex1 >= surf->max_ex) ex1 = surf->max_ex-1; */
+	ex2 = TRUNC( x2 ); /* if (ex2 >= surf->max_ex) ex2 = surf->max_ex-1; */
 	if (ex1<0) {
 		ex1=0;
 		fx1 = (TCoord) 0;
@@ -176,15 +176,15 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	}
 	/* trivial case.  Happens often */
 	if ( y1 == y2 ) {
-		gray_set_cell( raster, ex2, ey );
+		gray_set_cell(surf, ex2, ey );
 		return;
 	}
 
 	/* everything is located in a single cell.  That is easy! */
 	if ( ex1 == ex2 ) {
 		delta      = y2 - y1;
-		raster->area  += (TArea)( fx1 + fx2 ) * delta;
-		raster->cover += delta;
+		surf->area  += (TArea)( fx1 + fx2 ) * delta;
+		surf->cover += delta;
 		return;
 	}
 
@@ -206,11 +206,11 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 		delta--;
 		mod += (TCoord)dx;
 	}
-	raster->area  += (TArea)( fx1 + first ) * delta;
-	raster->cover += delta;
+	surf->area  += (TArea)( fx1 + first ) * delta;
+	surf->cover += delta;
 
 	ex1 += incr;
-	gray_set_cell( raster, ex1, ey );
+	gray_set_cell(surf, ex1, ey );
 	y1  += delta;
 
 	if ( ex1 != ex2 ) {
@@ -232,23 +232,23 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 				delta++;
 			}
 
-			raster->area  += (TArea)ONE_PIXEL * delta;
-			raster->cover += delta;
+			surf->area  += (TArea)ONE_PIXEL * delta;
+			surf->cover += delta;
 			y1        += delta;
 			ex1       += incr;
-			gray_set_cell( raster, ex1, ey );
+			gray_set_cell(surf, ex1, ey );
 		}
 	}
 	delta      = y2 - y1;
-	raster->area  += (TArea)( fx2 + ONE_PIXEL - first ) * delta;
-	raster->cover += delta;
+	surf->area  += (TArea)( fx2 + ONE_PIXEL - first ) * delta;
+	surf->cover += delta;
 }
 
 
 /*************************************************************************/
 /*                                                                       */
 /* Render a given line as a series of scanlines.                         */
-void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
+void gray_render_line(GF_EVGSurface *surf, TPos to_x, TPos to_y)
 {
 	TCoord  min, max;
 	TCoord  ey1, ey2, fy1, fy2;
@@ -258,14 +258,14 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 	int     delta, rem, mod, lift, incr;
 
 
-	ey1 = TRUNC( raster->last_ey );
-	ey2 = TRUNC( to_y ); /* if (ey2 >= raster->max_ey) ey2 = raster->max_ey-1; */
+	ey1 = TRUNC( surf->last_ey );
+	ey2 = TRUNC( to_y ); /* if (ey2 >= surf->max_ey) ey2 = surf->max_ey-1; */
 	if (ey2<0) ey2=0;
-	fy1 = (TCoord)( raster->y - raster->last_ey );
+	fy1 = (TCoord)( surf->y - surf->last_ey );
 	fy2 = (TCoord)( to_y - SUBPIXELS( ey2 ) );
 
-	dx = to_x - raster->x;
-	dy = to_y - raster->y;
+	dx = to_x - surf->x;
+	dy = to_y - surf->y;
 
 	/* perform vertical clipping */
 	min = ey1;
@@ -274,23 +274,23 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 		min = ey2;
 		max = ey1;
 	}
-	if ( min >= raster->max_ey || max < raster->min_ey ) goto End;
+	if ( min >= surf->max_ey || max < surf->min_ey ) goto End;
 
 	/* everything is on a single scanline */
 	if ( ey1 == ey2 ) {
-		gray_render_scanline( raster, ey1, raster->x, fy1, to_x, fy2 );
+		gray_render_scanline(surf, ey1, surf->x, fy1, to_x, fy2 );
 		goto End;
 	}
 	/* vertical line - avoid calling gray_render_scanline */
 	incr = 1;
 	if (dx == 0 ) {
-		TCoord  ex     = TRUNC( raster->x );
+		TCoord  ex     = TRUNC( surf->x );
 		TCoord tdiff;
 		if (ex<0) {
 			ex = 0;
 			tdiff=0;
 		} else {
-			tdiff = raster->x - SUBPIXELS( ex );
+			tdiff = surf->x - SUBPIXELS( ex );
 		}
 		TCoord  two_fx = (TCoord)( ( tdiff ) << 1 );
 		TPos    area;
@@ -302,23 +302,23 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 		}
 
 		delta      = (int)( first - fy1 );
-		raster->area  += (TArea)two_fx * delta;
-		raster->cover += delta;
+		surf->area  += (TArea)two_fx * delta;
+		surf->cover += delta;
 		ey1       += incr;
 
-		gray_set_cell( raster, ex, ey1 );
+		gray_set_cell(surf, ex, ey1 );
 
 		delta = (int)( first + first - ONE_PIXEL );
 		area  = (TArea)two_fx * delta;
 		while ( ey1 != ey2 ) {
-			raster->area  += area;
-			raster->cover += delta;
+			surf->area  += area;
+			surf->cover += delta;
 			ey1       += incr;
-			gray_set_cell( raster, ex, ey1 );
+			gray_set_cell(surf, ex, ey1 );
 		}
 		delta      = (int)( fy2 - ONE_PIXEL + first );
-		raster->area  += (TArea)two_fx * delta;
-		raster->cover += delta;
+		surf->area  += (TArea)two_fx * delta;
+		surf->cover += delta;
 		goto End;
 	}
 	/* ok, we have to render several scanlines */
@@ -339,11 +339,11 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 		delta--;
 		mod += (TCoord)dy;
 	}
-	x = raster->x + delta;
-	gray_render_scanline( raster, ey1, raster->x, fy1, x, (TCoord)first );
+	x = surf->x + delta;
+	gray_render_scanline(surf, ey1, surf->x, fy1, x, (TCoord)first );
 
 	ey1 += incr;
-	gray_set_cell( raster, TRUNC( x ), ey1 );
+	gray_set_cell(surf, TRUNC( x ), ey1 );
 
 	if ( ey1 != ey2 ) {
 		p     = ONE_PIXEL * dx;
@@ -364,25 +364,25 @@ void gray_render_line(TRaster *raster, TPos  to_x, TPos  to_y)
 			}
 
 			x2 = x + delta;
-			gray_render_scanline( raster, ey1, x, (TCoord)( ONE_PIXEL - first ), x2, (TCoord)first );
+			gray_render_scanline(surf, ey1, x, (TCoord)( ONE_PIXEL - first ), x2, (TCoord)first );
 			x = x2;
 
 			ey1 += incr;
-			gray_set_cell( raster, TRUNC( x ), ey1 );
+			gray_set_cell(surf, TRUNC( x ), ey1 );
 		}
 	}
 
-	gray_render_scanline( raster, ey1, x, (TCoord)( ONE_PIXEL - first ), to_x, fy2 );
+	gray_render_scanline(surf, ey1, x, (TCoord)( ONE_PIXEL - first ), to_x, fy2 );
 
 End:
-	raster->x       = to_x;
-	raster->y       = to_y;
-	raster->last_ey = SUBPIXELS( ey2 );
+	surf->x       = to_x;
+	surf->y       = to_y;
+	surf->last_ey = SUBPIXELS( ey2 );
 }
 
 
 
-static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
+static int EVG_Outline_Decompose(EVG_Outline *outline, GF_EVGSurface *surf)
 {
 	EVG_Vector   v_start;
 	int   n;         /* index of contour in outline     */
@@ -398,15 +398,15 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 		limit = outline->points + last;
 		v_start = outline->points[first];
 		point = outline->points + first;
-		gray_move_to(&v_start, user);
+		gray_move_to(&v_start, surf);
 		while ( point < limit ) {
 			point++;
-			evg_translate_point(user->mx, point, &_x, &_y);
-			gray_render_line(user, _x, _y);
+			evg_translate_point(surf->mx, point, &_x, &_y);
+			gray_render_line(surf, _x, _y);
 		}
 		/* close the contour with a line segment */
-		evg_translate_point(user->mx, &v_start, &_x, &_y);
-		gray_render_line(user, _x, _y);
+		evg_translate_point(surf->mx, &v_start, &_x, &_y);
+		gray_render_line(surf, _x, _y);
 		first = last + 1;
 	}
 	return 0;
@@ -509,15 +509,16 @@ void gray_quick_sort( AACell *cells, int    count )
 	}
 }
 
-static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int acount, Bool zero_non_zero_rule, u32 idx1, u32 idx2)
+static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, int acount, u32 fill_rule, u32 idx1, u32 idx2)
 {
 	int        coverage;
 	EVG_Span*   span;
 	int        count;
+	int        odd_flag = 1;
 
-	x += (TCoord)raster->min_ex;
-	if (x>=raster->max_ex) return;
-	y += (TCoord)raster->min_ey;
+	x += (TCoord)raster->surf->min_ex;
+	if (x>=raster->surf->max_ex) return;
+	y += (TCoord)raster->surf->min_ey;
 
 	/* compute the coverage line's coverage, depending on the    */
 	/* outline fill rule                                         */
@@ -529,10 +530,25 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int ac
 	if ( coverage < 0 )
 		coverage = -coverage;
 
-	if (zero_non_zero_rule) {
-		/* normal non-zero winding rule */
-		if ( coverage >= 256 )
-			coverage = 255;
+	if (fill_rule) {
+		/* non-zero winding rule */
+		if ( coverage >= 256 ) {
+			coverage &= 511;
+
+			if ( coverage > 256 )
+				coverage = 512 - coverage;
+			else if ( coverage == 256 )
+				coverage = 255;
+
+			if (coverage!=255)
+				odd_flag = 0;
+
+			if (fill_rule==2) {
+				coverage = odd_flag ? (255-coverage) : 0;
+			} else {
+				coverage = 255;
+			}
+		}
 	} else {
 		coverage &= 511;
 
@@ -542,22 +558,26 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int ac
 			coverage = 255;
 	}
 
+	if ((coverage < 0xFF) && (coverage>raster->surf->aa_level))
+		return;
+		
 	if (!coverage)
 		return;
 
 	/* see if we can add this span to the current list */
 	count = raster->num_gray_spans;
 	span  = raster->gray_spans + count - 1;
-	if ( count > 0                          &&
-			(int)span->x + span->len == (int)x &&
-			span->coverage == coverage )
-	{
+	if ( (count > 0)
+		&& ((int)span->x + span->len == (int)x)
+		&& (span->coverage == coverage )
+		&& (span->odd_flag == odd_flag )
+	) {
 		span->len = (unsigned short)( span->len + acount );
 		return;
 	}
 
 	if ((u32) count >= raster->max_gray_spans) {
-		raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
+		raster->surf->render_span(y, count, raster->gray_spans, raster->surf, raster);
 		raster->num_gray_spans = 0;
 
 		span = raster->gray_spans;
@@ -574,12 +594,13 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos area, int ac
 	span->x        = (short)x;
 	span->len      = (unsigned short)acount;
 	span->coverage = (unsigned char)coverage;
+	span->odd_flag = (unsigned char)odd_flag;
 	span->idx1 = idx1;
 	span->idx2 = idx2;
 	raster->num_gray_spans++;
 }
 
-void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero_rule)
+void gray_sweep_line(EVGRasterCtx *raster, AAScanline *sl, int y, u32 fill_rule)
 {
 	TCoord  cover;
 	AACell *start, *cur;
@@ -608,101 +629,241 @@ void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_non_zero
 		/* if the start cell has a non-null area, we must draw an */
 		/* individual gray pixel there                            */
 		if ( area && x >= 0 ) {
-			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ) - area, 1, zero_non_zero_rule, start->idx1, start->idx2);
+			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ) - area, 1, fill_rule, start->idx1, start->idx2);
 			x++;
 		}
 		if ( x < 0 ) x = 0;
 
 		/* draw a gray span between the start cell and the current one */
 		if ( cur->x > x )
-			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ), cur->x - x, zero_non_zero_rule, cur->idx1, cur->idx2);
+			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ), cur->x - x, fill_rule, cur->idx1, cur->idx2);
 	}
-	raster->render_span((int) (y + raster->min_ey), raster->num_gray_spans, raster->gray_spans, raster->render_span_data );
+	raster->surf->render_span((int) (y + raster->surf->min_ey), raster->num_gray_spans, raster->gray_spans, raster->surf, raster );
 }
 
-
-int evg_raster_render(GF_EVGSurface *surf)
+#define LINES_PER_THREAD	6
+static Bool th_fetch_lines(EVGRasterCtx *rctx)
 {
-	Bool zero_non_zero_rule;
-	u32 i, size_y;
-	EVG_Raster raster = surf->raster;
-	EVG_Outline*  outline = (EVG_Outline*)&surf->ftoutline;
-
-	/* return immediately if the outline is empty */
-	if ( outline->n_points == 0 || outline->n_contours <= 0 ) return 0;
-
-	raster->render_span  = (EVG_Raster_Span_Func) surf->gray_spans;
-	raster->render_span_data = surf;
-
-	/* Set up state in the raster object */
-	raster->min_ex = surf->clip_xMin;
-	raster->min_ey = surf->clip_yMin;
-	raster->max_ex = surf->clip_xMax;
-	raster->max_ey = surf->clip_yMax;
-
-	raster->mx = surf->mx;
-
-	size_y = (u32) (raster->max_ey - raster->min_ey);
-	if (raster->max_lines < size_y) {
-		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
-		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
-		raster->max_lines = size_y;
+	gf_mx_p(rctx->surf->raster_mutex);
+	if (!rctx->surf->last_dispatch_line) {
+		gf_mx_v(rctx->surf->raster_mutex);
+		return GF_FALSE;
 	}
+	rctx->first_line = rctx->surf->last_dispatch_line;
+	rctx->surf->last_dispatch_line += LINES_PER_THREAD;
+	if (rctx->surf->last_dispatch_line >= rctx->surf->max_line_y) {
+		rctx->surf->last_dispatch_line = 0;
+		rctx->last_line = rctx->surf->max_line_y;
+	} else {
+		rctx->last_line = rctx->surf->last_dispatch_line;
+	}
+	assert(rctx->last_line <= 1080);
+	gf_mx_v(rctx->surf->raster_mutex);
+	return GF_TRUE;
+}
 
-	raster->ex = (int) (raster->max_ex+1);
-	raster->ey = (int) (raster->max_ey+1);
-	raster->cover = 0;
-	raster->area = 0;
-	raster->first_scanline = raster->max_ey;
+u32 th_sweep_lines(void *par)
+{
+	EVGRasterCtx *rctx = par;
 
-	EVG_Outline_Decompose(outline, raster);
-	gray_record_cell( raster );
+	while (rctx->th_state == 1) {
+		u32 i, nb_lines=0;
+		u32 first_patch, last_patch;
 
-	/*store odd/even rule*/
-	zero_non_zero_rule = (outline->flags & GF_PATH_FILL_ZERO_NONZERO) ? GF_TRUE : GF_FALSE;
-
-	/* sort each scanline and render it*/
-	for (i=raster->first_scanline; i<size_y; i++) {
-		AAScanline *sl = &raster->scanlines[i];
-		if (sl->num) {
-			if (sl->num>1) gray_quick_sort(sl->cells, sl->num);
-			gray_sweep_line(raster, sl, i, zero_non_zero_rule);
-			sl->num = 0;
+		//only for threads, wait for start raster event
+		if (rctx->th) {
+			gf_sema_wait(rctx->surf->raster_sem);
+			if (!rctx->th_state) break;
 		}
-	}
 
+		first_patch = 0xFFFFFFFF;
+		last_patch = 0;
+
+		while (1) {
+
+			/* sort each scanline and render it*/
+			for (i=rctx->first_line; i<rctx->last_line; i++) {
+				AAScanline *sl = &rctx->surf->scanlines[i];
+				if (sl->num) {
+					if (sl->num>1) gray_quick_sort(sl->cells, sl->num);
+					gray_sweep_line(rctx, sl, i, rctx->fill_rule);
+					sl->num = 0;
+				} else if (rctx->is_tri_raster) {
+					//if nothing on this line, we are done for this quad/triangle
+					break;
+				}
+				//only true if rctx->is_tri_raster is true
+				if (sl->pnum) {
+					if (first_patch > i) first_patch = i;
+					if (last_patch < i) last_patch = i;
+				}
+				nb_lines++;
+			}
+			if (!th_fetch_lines(rctx))
+				break;
+		}
+		gf_mx_p(rctx->surf->raster_mutex);
+		if (rctx->is_tri_raster) {
+			if (first_patch<rctx->surf->first_patch)
+				rctx->surf->first_patch = first_patch;
+			if (last_patch>rctx->surf->last_patch)
+				rctx->surf->last_patch = last_patch;
+		}
+		rctx->surf->pending_threads--;
+		gf_mx_v(rctx->surf->raster_mutex);
+
+		if (!rctx->th) break;
+	}
+	//we are done
+	rctx->th_state = 2;
 	return 0;
 }
 
 
-
-
-EVG_Raster evg_raster_new()
-{
-	TRaster *raster;
-	GF_SAFEALLOC(raster , TRaster);
-	if (!raster) return NULL;
-	raster->max_gray_spans = raster->alloc_gray_spans = FT_MAX_GRAY_SPANS;
-	raster->gray_spans = gf_malloc(sizeof(EVG_Span)* raster->max_gray_spans);
-	if (!raster->gray_spans) {
-		gf_free(raster);
-		return NULL;
-	}
-	return raster;
-}
-
-void evg_raster_del(EVG_Raster raster)
+/* sort each scanline and render it*/
+GF_Err evg_sweep_lines(GF_EVGSurface *surf, int size_y, u32 fill_rule, Bool is_tri_raster, GF_EVGFragmentParam *fparam)
 {
 	u32 i;
-	for (i=0; i<raster->max_lines; i++) {
-		gf_free(raster->scanlines[i].cells);
-		if (raster->scanlines[i].pixels)
-			gf_free(raster->scanlines[i].pixels);
-	}
-	gf_free(raster->gray_spans);
 
-	gf_free(raster->scanlines);
-	gf_free(raster);
+	if (fparam) {
+		surf->raster_ctx.frag_param = *fparam;
+		if (surf->frag_shader_init)
+			surf->frag_shader_init(surf->frag_shader_udta, &surf->raster_ctx.frag_param, 0, GF_FALSE);
+
+		//shaders are not thread-safe yet
+		for (i=0; i<surf->nb_threads; i++) {
+			surf->th_raster_ctx[i].frag_param = *fparam;
+			if (surf->frag_shader_init)
+				surf->frag_shader_init(surf->frag_shader_udta, &surf->th_raster_ctx[i].frag_param, i+1, GF_FALSE);
+		}
+	}
+
+	if (!surf->nb_threads) {
+		for (i=surf->first_scanline; i<size_y; i++) {
+			AAScanline *sl = &surf->scanlines[i];
+			if (sl->num) {
+				if (sl->num>1) gray_quick_sort(sl->cells, sl->num);
+				gray_sweep_line(&surf->raster_ctx, sl, i, fill_rule);
+				sl->num = 0;
+			} else if (is_tri_raster) {
+				//if nothing on this line, we are done for this quad/triangle
+				break;
+			}
+			if (sl->pnum) {
+				if (surf->first_patch > i) surf->first_patch = i;
+				if (surf->last_patch < i) surf->last_patch = i;
+			}
+		}
+		return GF_OK;
+	}
+
+	surf->raster_ctx.fill_rule = fill_rule;
+	surf->raster_ctx.is_tri_raster = is_tri_raster ? 1 : 0;
+	surf->raster_ctx.first_line = surf->first_scanline;
+	surf->raster_ctx.last_line = surf->raster_ctx.first_line + LINES_PER_THREAD;
+	if (surf->raster_ctx.first_line%2) surf->raster_ctx.last_line++;
+
+	if (surf->raster_ctx.last_line >= size_y) {
+		surf->raster_ctx.last_line = size_y;
+		surf->last_dispatch_line = 0;
+	}
+	assert(surf->raster_ctx.last_line <= 1080);
+
+	surf->pending_threads = 1;
+	surf->max_line_y = size_y;
+
+	surf->last_dispatch_line = surf->raster_ctx.last_line;
+	for (i=0; i<surf->nb_threads; i++) {
+		EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
+		surf->pending_threads++;
+		rctx->first_line = surf->last_dispatch_line;
+		if (!surf->last_dispatch_line) {
+			rctx->first_line = 0;
+			continue;
+		}
+		rctx->last_line = surf->last_dispatch_line + LINES_PER_THREAD;
+		if (rctx->last_line >= size_y) {
+			rctx->last_line = size_y;
+			surf->last_dispatch_line = 0;
+		} else {
+			surf->last_dispatch_line += LINES_PER_THREAD;
+		}
+		assert(rctx->last_line <= 1080);
+		rctx->fill_rule = fill_rule;
+		rctx->is_tri_raster = is_tri_raster ? 1 : 0;
+	}
+
+	//notify semaphore
+	gf_sema_notify(surf->raster_sem, surf->nb_threads);
+
+	//run using caller process
+	surf->raster_ctx.th_state = 1;
+	th_sweep_lines(&surf->raster_ctx);
+
+	while (surf->pending_threads) {
+		gf_sleep(0);
+	}
+
+	if (fparam && surf->frag_shader_init) {
+		surf->frag_shader_init(surf->frag_shader_udta, &surf->raster_ctx.frag_param, 0, GF_TRUE);
+		for (i=0; i<surf->nb_threads; i++) {
+			surf->frag_shader_init(surf->frag_shader_udta, &surf->th_raster_ctx[i].frag_param, i+1, GF_TRUE);
+		}
+	}
+
+	return GF_OK;
 }
+
+
+GF_Err evg_raster_render(GF_EVGSurface *surf)
+{
+	u32 fill_rule = 0;
+	u32 size_y;
+	EVG_Outline*  outline = (EVG_Outline*)&surf->ftoutline;
+
+	/* return immediately if the outline is empty */
+	if ( outline->n_points == 0 || outline->n_contours <= 0 ) return GF_OK;
+
+	/* Set up state in the raster object */
+	surf->min_ex = surf->clip_xMin;
+	surf->min_ey = surf->clip_yMin;
+	surf->max_ex = surf->clip_xMax;
+	surf->max_ey = surf->clip_yMax;
+	size_y = (u32) (surf->max_ey - surf->min_ey);
+	if (surf->max_lines < size_y) {
+		surf->scanlines = (AAScanline*)gf_realloc(surf->scanlines, sizeof(AAScanline)*size_y);
+		if (!surf->scanlines) return GF_OUT_OF_MEM;
+		memset(&surf->scanlines[surf->max_lines], 0, sizeof(AAScanline)*(size_y-surf->max_lines) );
+		surf->max_lines = size_y;
+	}
+
+	surf->ex = (int) (surf->max_ex+1);
+	surf->ey = (int) (surf->max_ey+1);
+	surf->cover = 0;
+	surf->area = 0;
+	surf->first_scanline = surf->max_ey;
+
+	EVG_Outline_Decompose(outline, surf);
+	gray_record_cell(surf);
+
+	/*store odd/even rule*/
+	if (outline->flags & GF_PATH_FILL_ZERO_NONZERO) fill_rule = 1;
+	else if (outline->flags & GF_PATH_FILL_EVEN) fill_rule = 2;
+
+	surf->render_span  = (EVG_SpanFunc) surf->fill_spans;
+
+	if ((void *) surf->sten == (void *) &surf->shader_sten) {
+		GF_EVGFragmentParam fparam;
+		memset(&fparam, 0, sizeof(GF_EVGFragmentParam));
+		fparam.tx_width = surf->shader_sten.width;
+		fparam.tx_height = surf->shader_sten.height;
+		return evg_sweep_lines(surf, size_y, fill_rule, GF_FALSE, &fparam);
+	}
+
+	return evg_sweep_lines(surf, size_y, fill_rule, GF_FALSE, NULL);
+
+}
+
+
 
 /* END */

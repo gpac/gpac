@@ -132,7 +132,7 @@ typedef enum
 	GF_RASTER_HIGH_SPEED,
 	/*! raster should use fast mode and good quality if possible*/
 	GF_RASTER_MID,
-	/*! raster should use full antialiasing*/
+	/*! raster should use full antialiasing - this is the default for all new surfaces*/
 	GF_RASTER_HIGH_QUALITY
 } GF_RasterQuality;
 
@@ -302,7 +302,7 @@ GF_Err gf_evg_stencil_set_filter(GF_EVGStencil *stencil, GF_TextureFilter filter
  */
 GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *cmat);
 
-/*! gets pixel at given position (still experimental)
+/*! gets pixel at given position in ARGB format
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
@@ -310,31 +310,47 @@ GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *c
  */
 u32 gf_evg_stencil_get_pixel(GF_EVGStencil *stencil, s32 x, s32 y);
 
+/*! gets pixel at given position in AYUV format
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\return pixel value
+ */
+u32 gf_evg_stencil_get_pixel_yuv(GF_EVGStencil *stencil, s32 x, s32 y);
+
+/*! gets pixel at given position in ARGB format for more than 8 bits textures
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\return pixel value
+ */
+u64 gf_evg_stencil_get_pixel_wide(GF_EVGStencil *stencil, s32 x, s32 y);
+
+/*! gets pixel at given position in AYUV format for more than 8 bits textures
+\param stencil the target stencil
+\param x horizontal coord
+\param y vertical coord
+\return pixel value
+ */
+u64 gf_evg_stencil_get_pixel_yuv_wide(GF_EVGStencil *stencil, s32 x, s32 y);
+
 /*! gets ARGB pixel at a given position
  The position is given as normalize coordinates (between 0.0 and 1.0), {0.0,0.0} is top-left, {1.0,1.0} is bottom-right
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
-\param r output r component
-\param g output g component
-\param b output b component
-\param a output a component
-\return error if any
+\return output r, r, g, a components
  */
-GF_Err gf_evg_stencil_get_pixel_f(GF_EVGStencil *stencil, Float x, Float y, Float *r, Float *g, Float *b, Float *a);
+GF_Vec4 gf_evg_stencil_get_pixel_f(GF_EVGStencil *stencil, Float x, Float y);
 
 /*! gets AYUV pixel at a given position
   The position is given as normalize coordinates (between 0.0 and 1.0), {0.0,0.0} is top-left, {1.0,1.0} is bottom-right
 \param stencil the target stencil
 \param x horizontal coord
 \param y vertical coord
-\param Y output y component
-\param U output u component
-\param V output v component
-\param A output a component
-\return error if any
+\return output y, u, v, a components
  */
-GF_Err gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *stencil, Float x, Float y, Float *Y, Float *U, Float *V, Float *A);
+GF_Vec4 gf_evg_stencil_get_pixel_yuv_f(GF_EVGStencil *stencil, Float x, Float y);
 
 /*! creates a canvas surface object
 \param center_coords if GF_TRUE, indicates mathematical-like coord system (0,0) at the center of the canvas, otherwise indicates computer-like coord system (0,0) top-left corner
@@ -345,6 +361,12 @@ GF_EVGSurface *gf_evg_surface_new(Bool center_coords);
 \param surf the surface object
 */
 void gf_evg_surface_delete(GF_EVGSurface *surf);
+
+/*! enables threading on a canvas surface object (can only be called once per surface)
+\param surf the target surface
+\param nb_threads number of additional threads to use for rendering. -1 use all availables core
+\return error if any, GF_BAD_PARAM  if threading was already allocated, GF_IO_ERR if only one core available and nb_threads not assigned to a positive value*/
+GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads);
 
 /*! attaches a surface object to a texture stencil object
 \param surf the surface object
@@ -372,6 +394,18 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 */
 GF_Err gf_evg_surface_set_raster_level(GF_EVGSurface *surf, GF_RasterQuality level);
 
+/*! gets rasterizer precision
+\param surf the surface object
+\return the raster quality level
+*/
+GF_RasterQuality gf_evg_surface_get_raster_level(GF_EVGSurface *surf);
+
+/*! Force next path fill to use antialias, reset at each  \ref gf_evg_surface_set_path
+\param surf the surface object
+\return error if any
+*/
+GF_Err gf_evg_surface_force_aa(GF_EVGSurface *surf);
+
 /*! sets the given matrix as the current transformations for all drawn paths
 \note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
@@ -382,6 +416,7 @@ GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat);
 
 /*! sets the given matrix as the current transformations for all drawn paths. The matrix shall be a projection matrix (ortho or perspective)
 with normalized coordinates in [-1,1]. It may also contain a modelview part.
+\warning 2D rasterizer does not work with texture coordinates, and perspective correct texture mapping is not supported for 2D rasterizer. Use this only for objects with plain colors for predictable results.
 \note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param mat the matrix to set; if NULL, resets the current transformation
@@ -413,10 +448,62 @@ If the stencil is a solid brush and its alpha value is 0, the surface is cleared
 \note this can be called several times with the same current path
 \note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
-\param stencil the stencil to use to fill a path
+\param stencil the stencil to use to fill a path, if NULL uses 2D shader if setup
 \return error if any
 */
 GF_Err gf_evg_surface_fill(GF_EVGSurface *surf, GF_EVGStencil *stencil);
+
+
+/*! Operands for multitexture operations*/
+typedef enum {
+	/*! no multitexture*/
+	GF_EVG_OPERAND_NONE = 0,
+	/*! mix texture 1 and texure 2 using coefficient in first param, returning tx1*coef + tx2*(1-coef) but forcing alpha to full opacity*/
+	GF_EVG_OPERAND_MIX,
+	/*! mix texture 1 and texure 2 using coefficient in first param, returning tx1*coef + tx2*(1-coef), including alpha channel */
+	GF_EVG_OPERAND_MIX_ALPHA,
+	/*! replace alpha of texture 1 with alpha of texture 2, no parameters used
+		if first param is 0 or not set, use alpha channel from texture 3
+		if first param is 1, use red channel from texture 3
+		if first param is 2, use green/Cb/U channel from texture 3
+		if first param is 3, use blue/Cr/V channel from texture 3
+	*/
+	GF_EVG_OPERAND_REPLACE_ALPHA,
+	/*! replace alpha of texture 1 with (1-alpha) of texture 2, no parameters used
+		if first param is 0 or not set, use alpha channel from texture 3
+		if first param is 1, use red/Y channel from texture 3
+		if first param is 2, use green/Cb/U channel from texture 3
+		if first param is 3, use blue/Cr/V channel from texture 3
+	*/
+	GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA,
+	/*! mix texture 1 and texure 2 using alpha coef of texture 3 but forcing alpha to full opacity
+		if first param is 0 or not set, use alpha channel from texture 3
+		if first param is 1, use red channel from texture 3
+		if first param is 2, use green/Cb/U channel from texture 3
+		if first param is 3, use blue/Cr/V channel from texture 3
+	*/
+	GF_EVG_OPERAND_MIX_DYN,
+	/*! mix texture 1 and texure 2 using alpha coef of texture 3, includingalpha channel.
+		if first param is 0 or not set, use alpha channel from texture 3
+		if first param is 1, use red channel from texture 3
+		if first param is 2, use green/Cb/U channel from texture 3
+		if first param is 3, use blue/Cr/V channel from texture 3
+	*/
+	GF_EVG_OPERAND_MIX_DYN_ALPHA,
+	/*! use texture 1 for odd fill and texture 2 for even fill*/
+	GF_EVG_OPERAND_ODD_FILL,
+} GF_EVGMultiTextureMode;
+
+/*! draw (filling) the current path on a surface using a compinaison of  stencils and current clipper if any.
+\param surf the surface object
+\param operand stencil combine effect
+\param sten1 the first stencil to use, if NULL assumes shader and ignores operand
+\param sten2 the second stencil to use, may be NULL depending on operand
+\param sten3 the third stencil to use, may be NULL depending on operand
+\param params the parameters to control the operand
+\return error if any
+*/
+GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode operand, GF_EVGStencil *sten1, GF_EVGStencil *sten2, GF_EVGStencil *sten3, Float params[4]);
 
 /*! clears given pixel rectangle on a surface with the given color
 \warning this ignores any clipper set on the surface
@@ -510,10 +597,11 @@ typedef enum
 	GF_EVG_QUAD_STRIP,
 } GF_EVGPrimitiveType;
 
-/*! creates a new 3D software rasterizer
- \note use \ref gf_evg_surface_delete for destruction
- \return NULL if error*/
-GF_EVGSurface *gf_evg_surface3d_new();
+/*! enables  3D software rasterizer for surface
+ \param surf the target 3D surface
+ \return error if any*/
+GF_Err gf_evg_surface_enable_3d(GF_EVGSurface *surf);
+
 /*! sets projection matrix
  \note this is only used for 3D rasterizer, and fails 2D mode
  \param surf the target 3D surface
@@ -609,10 +697,12 @@ typedef enum
 {
 	/*! fragment is invalid (discarded or error) */
 	GF_EVG_FRAG_INVALID = 0,
-	/*! fragment is RGB */
+	/*! fragment is RGB float*/
 	GF_EVG_FRAG_RGB,
+	GF_EVG_FRAG_RGB_PACK,
 	/*! fragment is YUV */
 	GF_EVG_FRAG_YUV,
+	GF_EVG_FRAG_YUV_PACK,
 } GF_EVGFragmentType;
 
 /*! Parameters for the fragment callback */
@@ -624,22 +714,26 @@ typedef struct
 	Float screen_y;
 	/*! screen z in NDC - input param*/
 	Float screen_z;
-	/*! depth - input and output param*/
+	/*! depth - input and output param - 3D shaders only*/
 	Float depth;
-	/*! primitive index in the current \ref gf_evg_surface_draw_array call, 0 being the first primitive  - input param*/
+	/*! primitive index in the current \ref gf_evg_surface_draw_array call, 0 being the first primitive  - input param - 3D shaders only*/
 	u32 prim_index;
-	/*! index of first vertex in the current primitive  - input param*/
+	/*! index of first vertex in the current primitive  - input param - 3D shaders only*/
 	u32 idx1;
-	/*! index of second vertex in the current primitive (for lines or triangles/quads)  - input param*/
+	/*! index of second vertex in the current primitive (for lines or triangles/quads)  - input param - 3D shaders only*/
 	u32 idx2;
-	/*! index of third vertex in the current primitive (for triangles/quads)  - input param*/
+	/*! index of third vertex in the current primitive (for triangles/quads)  - input param - 3D shaders only*/
 	u32 idx3;
 
-	/*! primitive type  - input param*/
+	/*! primitive type  - input param - 3D shaders only*/
 	GF_EVGPrimitiveType ptype;
 
 	/*! fragment color, must be written if fragment is not discarded - output value*/
 	GF_Vec4 color;
+	/*! fragment color in pack 32 bit ARGB/AYUV*/
+	u32 color_pack;
+	/*! fragment color in pack 64 bit ARGB/AYUV*/
+	u64 color_pack_wide;
 	/*! fragment valid state - output value*/
 	GF_EVGFragmentType frag_valid;
 
@@ -647,13 +741,29 @@ typedef struct
 	/*perspective correct interpolation is done according to openGL eq 14.9
 		f = (a*fa/wa + b*fb/wb + c*fc/wc) / (a/w_a + b/w_b + c/w_c)
 	*/
-	/*! perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3
-		these are constant throughout the fragment*/
+	/*! perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3  - 3D shaders only*/
 	Float pbc1, pbc2, pbc3;
-	/*! perspective divider
+	/*! perspective divider - 3D shaders only
 	\note this is also 1/W of the fragment, eg opengl gl_fragCoord.w
 	*/
 	Float persp_denum;
+	/* private for shader, valid between \ref gf_evg_fragment_shader_init (init, cleanup) calls */
+	void *shader_udta;
+
+	/*! horizontal texture coordinate, 0 is left of image -   2D shaders only */
+	u32 tx_x;
+	/*! vertical texture coordinate, 0 is top of image -   2D shaders only */
+	u32 tx_y;
+	/*! texture width -  2D shaders only */
+	u32 tx_width;
+	/*! texture height -  2D shaders only */
+	u32 tx_height;
+
+	/*! coverage value between 0 and 0xFF -  2D shaders only */
+	u8 coverage;
+	/*! odd / even flag for path drawn with zero/non-zero fill rule -  2D shaders only */
+	u8 odd_flag;
+
 } GF_EVGFragmentParam;
 
 
@@ -680,14 +790,26 @@ typedef struct
  \param fragp fragment paramters
  \return GF_TRUE if success; GF_FALSE if error*/
 typedef Bool (*gf_evg_fragment_shader)(void *udta, GF_EVGFragmentParam *fragp);
-/*! assigns fragment shader to the rasterizer
-\note this is only used for 3D rasterizer, and fails 2D mode
+
+/*! callback type for fragment shader init, called once before each primitive - may be NULL
+ \param udta opaque data passed back to caller
+ \param fragp fragment paramters
+ \param th_id index of thread context
+ \param is_cleanup if TRUE indicates and of primitive rendering, otherwise begin
+ \return GF_TRUE if success; GF_FALSE if error*/
+typedef Bool (*gf_evg_fragment_shader_init)(void *udta, GF_EVGFragmentParam *fragp, u32 th_id, Bool is_cleanup);
+
+
+/*! assigns fragment shader to the rasterizer.
+\warning If multithread is enabled, the shader must be thread-safe
+This can be used for 3D and 2D modes. In 2D mode, texture coordinates are derived from path bounds
 \param surf the target 3D surface
 \param shader the fragment shader callback to use
+\param shader_init the fragment shader init callback to use
 \param shader_udta opaque data to pass to the callback function
 \return error if any
  */
-GF_Err gf_evg_surface_set_fragment_shader(GF_EVGSurface *surf, gf_evg_fragment_shader shader, void *shader_udta);
+GF_Err gf_evg_surface_set_fragment_shader(GF_EVGSurface *surf, gf_evg_fragment_shader shader, gf_evg_fragment_shader_init shader_init, void *shader_udta);
 
 /*! callback type for vertex shader
 \param udta opaque data passed back to caller

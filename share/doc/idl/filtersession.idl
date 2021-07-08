@@ -48,7 +48,7 @@ interface JSFilterSession {
 void post_task(function task_callback, optional DOMString task_name=null);
 
 /*! aborts the filter session - see \ref gf_fs_abort
-\param do_flush if true, wait for all packets currently pending to be processed before closing the session
+\param flush_type if true, wait for all packets currently pending to be processed before closing the session
 */
 void abort(optional unsigned long flush_type=0);
 
