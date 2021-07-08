@@ -1503,11 +1503,16 @@ static JSValue wgl_getUniformLocation(JSContext *ctx, JSValueConst this_val, int
 				break;
 			}
 		}
-		if (uni_loc==-1)
+		if (uni_loc==-1) {
+			JS_FreeCString(ctx, name);
 			return JS_NULL;
+		}
 	}
 	GF_SAFEALLOC(wglo, GF_WebGLObject);
-	if (!wglo) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
+	if (!wglo) {
+		JS_FreeCString(ctx, name);
+		return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
+	}
 	wglo->par_ctx = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	wglo->gl_id = uni_loc;
 
