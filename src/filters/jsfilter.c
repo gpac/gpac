@@ -106,7 +106,8 @@ enum
 	JSF_FILTER_CLOCK_HINT_MEDIATIME,
 	JSF_FILTER_CONNECTIONS_PENDING,
 	JSF_FILTER_INAME,
-	JSF_FILTER_REQUIRE_SOURCEID
+	JSF_FILTER_REQUIRE_SOURCEID,
+	JSF_FILTER_PATH
 };
 
 enum
@@ -614,6 +615,15 @@ JSValue jsf_NewPropTranslate(JSContext *ctx, const GF_PropertyValue *prop, u32 p
 	case GF_PROP_PID_CHANNEL_LAYOUT:
 		res = JS_NewString(ctx, gf_audio_fmt_get_layout_name(prop->value.longuint));
 		break;
+	//PCM format and pixel format are usually notified as UINT types
+	case GF_PROP_PID_AUDIO_FORMAT:
+		res = JS_NewString(ctx, gf_props_enum_name(GF_PROP_PCMFMT, prop->value.uint));
+		break;
+	case GF_PROP_PID_PIXFMT:
+	case GF_PROP_PID_PIXFMT_WRAPPED:
+		res = JS_NewString(ctx, gf_props_enum_name(GF_PROP_PIXFMT, prop->value.uint));
+		break;
+
 	default:
 		res = jsf_NewProp(ctx, prop);
 		break;
@@ -642,7 +652,7 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 			prop->type = GF_PROP_LUINT;
 			prop->value.longuint = gf_audio_fmt_get_layout_from_name(val_str);
 		} else {
-			*prop = gf_props_parse_value(type, NULL, val_str, NULL, gf_filter_get_sep(filter, GF_FS_SEP_LIST));
+			*prop = gf_props_parse_value(type, NULL, val_str, NULL, filter ? gf_filter_get_sep(filter, GF_FS_SEP_LIST) : ',');
 		}
 		JS_FreeCString(ctx, val_str);
 		if (prop->type==GF_PROP_FORBIDEN) return GF_BAD_PARAM;
@@ -654,7 +664,7 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 	}
 	else if (JS_IsInteger(value)) {
 		if (!JS_ToInt32(ctx, &prop->value.sint, value)) {
-			prop->type = GF_PROP_SINT;
+			prop->type = (p4cc && type) ? type : GF_PROP_SINT;
 		} else if (!JS_ToInt64(ctx, &prop->value.longsint, value)) {
 			prop->type = GF_PROP_LSINT;
 		}
@@ -1031,6 +1041,23 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 	case JSF_FILTER_INAME:
 		if (jsf->filter->iname) return JS_NewString(ctx, jsf->filter->iname);
 		return JS_NULL;
+	case JSF_FILTER_PATH:
+	{
+		JSValue res;
+		char c=0;
+		char *path = (char *) jsf_get_script_filename(ctx);
+		if (!path) return JS_NULL;
+		char *sep = strrchr(path, '/');
+		if (!sep) sep = strrchr(path, '\\');
+		if (!sep)
+			return JS_NewString(ctx, "./");
+
+		c = sep[1];
+		sep[1] = 0;
+		res = JS_NewString(ctx, jsf_get_script_filename(ctx) );
+		sep[1] = c;
+		return res;
+	}
 	}
 
     return JS_UNDEFINED;
@@ -1666,6 +1693,59 @@ static JSValue jsf_filter_abort(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_UNDEFINED;
 }
 
+
+
+static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool use_restricted)
+{
+	GF_Err e=GF_OK;
+	const char *source_id=NULL;
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
+    if (!jsf && !jsfi) return JS_EXCEPTION;
+
+	GF_JSFilterCtx *f_from = JS_GetOpaque(argv[0], jsf_filter_class_id);
+	GF_JSFilterInstanceCtx *fi_from = JS_GetOpaque(argv[0], jsf_filter_inst_class_id);
+    if (!f_from && !fi_from)  return JS_EXCEPTION;
+
+    source_id = NULL;
+    if (argc>1) {
+		source_id = JS_ToCString(ctx, argv[1]);
+		if (!source_id) return JS_EXCEPTION;
+		if (!source_id[0]) {
+			JS_FreeCString(ctx, source_id);
+			source_id = NULL;
+		}
+	}
+
+	if (use_restricted)
+		e = gf_filter_set_source_restricted(jsfi ? jsfi->filter : jsf->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+	else
+		e = gf_filter_set_source(jsfi ? jsfi->filter : jsf->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
+
+	JS_FreeCString(ctx, source_id);
+	if (e) return js_throw_err(ctx, e);
+	return JS_UNDEFINED;
+}
+
+static JSValue jsf_filter_set_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_FALSE);
+}
+
+static JSValue jsf_filter_set_source_restricted(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_TRUE);
+}
+
+static JSValue jsf_filter_reset_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
+	if (!jsf && !jsfi) return JS_EXCEPTION;
+	gf_filter_reset_source(jsfi ? jsfi->jsf->filter : jsf->filter);
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1702,7 +1782,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("connections_pending", jsf_filter_prop_get, NULL, JSF_FILTER_CONNECTIONS_PENDING),
 	JS_CGETSET_MAGIC_DEF("iname", jsf_filter_prop_get, jsf_filter_prop_set, JSF_FILTER_INAME),
     JS_CGETSET_MAGIC_DEF("require_source_id", NULL, jsf_filter_prop_set, JSF_FILTER_REQUIRE_SOURCEID),
-
+	JS_CGETSET_MAGIC_DEF("jspath", jsf_filter_prop_get, NULL, JSF_FILTER_PATH),
 
     JS_CFUNC_DEF("set_desc", 0, jsf_filter_set_desc),
     JS_CFUNC_DEF("set_version", 0, jsf_filter_set_version),
@@ -1731,54 +1811,12 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
 	JS_CFUNC_DEF("prevent_blocking", 1, jsf_filter_prevent_blocking),
 	JS_CFUNC_DEF("block_eos", 1, jsf_filter_block_eos),
     JS_CFUNC_DEF("abort", 0, jsf_filter_abort),
+    JS_CFUNC_DEF("set_source", 0, jsf_filter_set_source),
+    JS_CFUNC_DEF("set_source_restricted", 0, jsf_filter_set_source_restricted),
+    JS_CFUNC_DEF("reset_source", 0, jsf_filter_reset_source),
 };
 
 
-
-static JSValue jsf_filter_set_source_internal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool use_restricted)
-{
-	GF_Err e=GF_OK;
-	const char *source_id=NULL;
-	GF_JSFilterInstanceCtx *f_inst = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
-    if (!f_inst || (argc<1))  return JS_EXCEPTION;
-
-	GF_JSFilterCtx *f_from = JS_GetOpaque(argv[0], jsf_filter_class_id);
-	GF_JSFilterInstanceCtx *fi_from = JS_GetOpaque(argv[0], jsf_filter_inst_class_id);
-    if (!f_from && !fi_from)  return JS_EXCEPTION;
-
-    source_id = NULL;
-    if (argc>1) {
-    	source_id = JS_ToCString(ctx, argv[2]);
-		if (!source_id) return JS_EXCEPTION;
-	}
-
-	if (use_restricted)
-		e = gf_filter_set_source_restricted(f_inst->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
-	else
-		e = gf_filter_set_source(f_inst->filter, fi_from ? fi_from->filter : f_from->filter, source_id);
-
-	JS_FreeCString(ctx, source_id);
-	if (e) return js_throw_err(ctx, e);
-	return JS_UNDEFINED;
-}
-
-static JSValue jsf_filter_set_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_FALSE);
-}
-
-static JSValue jsf_filter_set_source_restricted(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	return jsf_filter_set_source_internal(ctx, this_val, argc, argv, GF_TRUE);
-}
-
-static JSValue jsf_filter_reset_source(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	GF_JSFilterInstanceCtx *jsfi = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
-	if (!jsfi) return JS_EXCEPTION;
-	gf_filter_reset_source(jsfi->jsf->filter);
-	return JS_UNDEFINED;
-}
 
 static JSValue jsf_filter_remove(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -1823,12 +1861,38 @@ static void jsf_on_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e
 	js_std_loop(f_inst->jsf->ctx);
 }
 
-static JSValue jsf_filter_inst_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
+enum
+{
+	JSFI_SETUP_FAILURE = 0,
+	JSFI_NAME,
+	JSFI_TYPE,
+	JSFI_INAME,
+};
+
+static JSValue jsf_filter_inst_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	GF_JSFilterInstanceCtx *f_inst = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
     if (!f_inst) return JS_EXCEPTION;
 
-	if (magic==0) {
+	switch (magic) {
+	case JSFI_NAME:
+		return JS_NewString(ctx, gf_filter_get_name(f_inst->filter));
+	case JSFI_TYPE:
+		return JS_NewString(ctx, f_inst->filter->freg->name);
+	case JSFI_INAME:
+		return f_inst->filter->iname ? JS_NewString(ctx, f_inst->filter->iname) : JS_NULL;
+	}
+	return JS_UNDEFINED;
+}
+
+static JSValue jsf_filter_inst_prop_set(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
+{
+	const char *str;
+	GF_JSFilterInstanceCtx *f_inst = JS_GetOpaque(this_val, jsf_filter_inst_class_id);
+    if (!f_inst) return JS_EXCEPTION;
+
+	switch (magic) {
+	case JSFI_SETUP_FAILURE:
 		if (JS_IsFunction(ctx, value) || JS_IsUndefined(value) || JS_IsNull(value)) {
 			if (JS_IsUndefined(f_inst->setup_failure_fun) && !JS_IsUndefined(value)) {
 
@@ -1838,6 +1902,13 @@ static JSValue jsf_filter_inst_prop_set(JSContext *ctx, JSValueConst this_val, J
 			f_inst->setup_failure_fun = JS_DupValue(ctx, value);
 		}
     	return JS_UNDEFINED;
+
+	case JSFI_INAME:
+		str = JS_ToCString(ctx, value);
+		if (f_inst->filter->iname) gf_free(f_inst->filter->iname);
+		f_inst->filter->iname = str ? gf_strdup(str) : NULL;
+		JS_FreeCString(ctx, str);
+		break;
 	}
 	return JS_UNDEFINED;
 }
@@ -1882,7 +1953,10 @@ static JSValue jsf_filter_inst_disable_inputs(JSContext *ctx, JSValueConst this_
 }
 
 static const JSCFunctionListEntry jsf_filter_inst_funcs[] = {
-    JS_CGETSET_MAGIC_DEF("on_setup_failure", NULL, jsf_filter_inst_prop_set, 0),
+	JS_CGETSET_MAGIC_DEF("on_setup_failure", NULL, jsf_filter_inst_prop_set, JSFI_SETUP_FAILURE),
+	JS_CGETSET_MAGIC_DEF("name", jsf_filter_inst_prop_get, NULL, JSFI_NAME),
+	JS_CGETSET_MAGIC_DEF("type", jsf_filter_inst_prop_get, NULL, JSFI_TYPE),
+	JS_CGETSET_MAGIC_DEF("iname", jsf_filter_inst_prop_get, jsf_filter_inst_prop_set, JSFI_INAME),
     JS_CFUNC_DEF("send_event", 0, jsf_filter_send_event),
     JS_CFUNC_DEF("get_info", 0, jsf_filter_get_info),
     JS_CFUNC_DEF("send_update", 0, jsf_filter_send_update),
@@ -3693,6 +3767,7 @@ static JSValue jsf_pck_ref(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
 static JSValue jsf_pck_unref(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	GF_JSPidCtx *jspid;
 	GF_JSPckCtx *pckctx = JS_GetOpaque(this_val, jsf_pck_class_id);
     if (!pckctx || !pckctx->pck) return JS_EXCEPTION;
  	if (!(pckctx->flags & GF_JS_PCK_IS_REF))
@@ -3701,9 +3776,11 @@ static JSValue jsf_pck_unref(JSContext *ctx, JSValueConst this_val, int argc, JS
 	gf_filter_pck_unref(pckctx->pck);
 	pckctx->pck = NULL;
 	JS_FreeValue(ctx, pckctx->jsobj);
+	JS_FreeValue(ctx, pckctx->data_ab);
 	JS_SetOpaque(this_val, NULL);
-	gf_list_add(pckctx->jspid->jsf->pck_res, pckctx);
+	jspid = pckctx->jspid;
 	memset(pckctx, 0, sizeof(GF_JSPckCtx));
+	gf_list_add(jspid->jsf->pck_res, pckctx);
 	return JS_UNDEFINED;
 }
 
@@ -4014,7 +4091,20 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		else if (JS_IsInteger(ret))
 			JS_ToInt32(jsf->ctx, (int*)&e, ret);
+
+		//reset first packet obj if set
+		if (pctx->pck_head) {
+			JS_FreeValue(jsf->ctx, pctx->pck_head->jsobj);
+			//might be set to NULL while freeing above obj
+			if (pctx->pck_head) {
+				pctx->pck_head->jsobj = JS_UNDEFINED;
+				pctx->pck_head->jspid = NULL;
+			}
+		}
 		JS_FreeValue(jsf->ctx, ret);
+		//force cleanup of all refs
+		gf_js_call_gc(jsf->ctx);
+
 		JS_FreeValue(jsf->ctx, pctx->jsobj);
 		gf_list_del_item(jsf->pids, pctx);
 		gf_filter_pid_set_udta(pid, NULL);
@@ -4620,6 +4710,8 @@ static void jsfilter_finalize(GF_Filter *filter)
 
 	if (!jsf->is_custom)
 		gf_js_delete_context(jsf->ctx);
+	else
+		gf_js_call_gc(jsf->ctx);
 
 	while (gf_list_count(jsf->pids)) {
 		GF_JSPidCtx *pctx = gf_list_pop_back(jsf->pids);

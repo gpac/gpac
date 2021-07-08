@@ -136,6 +136,8 @@ readonly attribute unsigned long long connections_pending;
 attribute DOMString iname;
 /*! requires source ID for the filter - see \ref gf_filter_require_source_id*/
 writeonly unsigned boolean require_source_id;
+/*! gets JS path*/
+readonly attribute DOMString jspath;
 
 
 /*! sets filter description as visible when checking filter info
@@ -286,6 +288,22 @@ void block_eos(boolean do_block);
 /*! aborts the filter - see \ref gf_filter_abort*/
 void abort();
 
+
+/*! assigns source name to a filter - see \ref gf_filter_set_source
+\param from a Filter or a FilterInstance object to set a a source for this filter
+\param source_id the source ID to assign
+*/
+void set_source(Filter from, optional DOMString source_id=null);
+
+/*! assigns restricted source name to a filter - see \ref gf_filter_set_source_restricted
+\param from a Filter or a FilterInstance object to set a a source for this filter
+\param source_id the source ID to assign
+*/
+void set_source_restricted(Filter from, optional DOMString source_id=null);
+
+/*! reset source identifier for the filter - see \ref gf_filter_reset_source*/
+void reset_source();
+
 };
 
 /*! FilterInstance wraps the set of functions available for filters loaded by the script*/
@@ -353,6 +371,16 @@ void disable_inputs();
 
 /*! reset source identifier for the filter - see \ref gf_filter_reset_source*/
 void reset_source();
+
+/*! filter name*/
+attribute readonly DOMString name;
+
+/*! filter type (registry name)*/
+attribute readonly DOMString type;
+
+/*! internal name - this can only be set and modified by JS API and allows for filter identification from JS*/
+attribute DOMString iname;
+
 };
 
 /*! The FilterPid object is a binding for \ref GF_FilterPid*/
