@@ -510,6 +510,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	case GF_PROP_FORBIDEN:
 	default:
 		if (gf_props_type_is_enum(type)) {
+			p.type = type;
 			p.value.uint = gf_props_parse_enum(type, value);
 			break;
 		}
