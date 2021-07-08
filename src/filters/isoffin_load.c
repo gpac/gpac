@@ -306,7 +306,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id) {
  				pix_fmt = gf_pixel_fmt_from_qt_type(m_subtype);
- 				if (!pix_fmt && (gf_pixel_fmt_sname(m_subtype)!= NULL))
+ 				if (!pix_fmt && (gf_pixel_fmt_sname(m_subtype)!= NULL) && (streamtype==GF_STREAM_VISUAL))
 					pix_fmt = m_subtype;
 
  				if (pix_fmt) {
