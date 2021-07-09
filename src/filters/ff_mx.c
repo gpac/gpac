@@ -616,7 +616,7 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			if (st->cts_shift) pkt->pts += st->cts_shift;
 
 			if (pkt->dts > pkt->pts) {
-				st->cts_shift = (u32) (pkt->dts - pkt->pts);
+				st->cts_shift += (u32) (pkt->dts - pkt->pts);
 				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMux] Negative CTS offset -%d found, adjusting offset\n", st->cts_shift));
 				pkt->pts = pkt->dts;
 			}
