@@ -823,7 +823,7 @@ struct __gf_filter_pid_inst
 	Bool last_block_ended;
 	Bool first_block_started;
 	//set during play/stop/reset phases
-	Bool discard_packets;
+	volatile u32 discard_packets;
 
 	Bool force_reconfig;
 

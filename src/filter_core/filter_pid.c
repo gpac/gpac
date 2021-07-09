@@ -3342,6 +3342,8 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 				//remember our target cap on that filter
 				af->cap_idx_at_resolution = cap_idx;
 			}
+			if (pid->require_source_id)
+				af->require_source_id = GF_TRUE;
 			
 			//copy source IDs for all filters in the chain
 			//we cannot figure out the destination sourceID when initializing PID connection tasks
@@ -3874,6 +3876,21 @@ static Bool filter_match_target_dst(GF_List *flist, GF_Filter *dst)
 	return GF_FALSE;
 }
 
+static Bool parent_chain_has_dyn_pids(GF_Filter *filter)
+{
+	u32 i;
+	if (filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS) return GF_TRUE;
+	gf_mx_p(filter->tasks_mx);
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		if (parent_chain_has_dyn_pids(pidi->pid->filter)) {
+			gf_mx_v(filter->tasks_mx);
+			return GF_TRUE;
+		}
+	}
+	gf_mx_v(filter->tasks_mx);
+	return GF_FALSE;
+}
 
 static void gf_filter_pid_init_task(GF_FSTask *task)
 {
@@ -4568,6 +4585,7 @@ single_retry:
 		}
 
 		GF_LOG(pid->not_connected_ok ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("No filter chain found for PID %s in filter %s to any loaded filters - NOT CONNECTED\n", pid->name, pid->filter->name));
+
 		if (pid->filter->freg->process_event) {
 			GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 			pid->filter->freg->process_event(filter, &evt);
@@ -4581,7 +4599,10 @@ single_retry:
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	gf_filter_pid_set_eos(pid);
-	if (!pid->not_connected_ok && !(pid->filter->freg->flags & GF_FS_REG_DYNAMIC_PIDS ) && (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)) {
+	if (!pid->not_connected_ok
+		&& !parent_chain_has_dyn_pids(pid->filter)
+		&& (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)
+	) {
 		pid->filter->disabled = GF_TRUE;
 
 		if (can_reassign_filter) {
@@ -6056,7 +6077,9 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	}
 	gf_filter_pidinst_reset_stats(pidi);
 
-	pidi->discard_packets = GF_FALSE;
+	assert(pidi->discard_packets);
+	safe_int_dec(&pidi->discard_packets);
+
 	pidi->last_block_ended = GF_TRUE;
 	pidi->first_block_started = GF_FALSE;
 	pidi->is_end_of_stream = GF_FALSE;
@@ -6282,9 +6305,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			//don't forget we pre-processed stop by incrementing the discard counter and setting discard_packets on pid instances
 			//undo this
 			if (pidi->discard_packets) {
+				safe_int_dec(&pidi->discard_packets);
 				assert(pidi->pid->discard_input_packets);
 				safe_int_dec(& pidi->pid->discard_input_packets );
-				pidi->discard_packets = GF_FALSE;
 			}
 		}
 
@@ -6336,7 +6359,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 	if (evt->base.on_pid && ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK) || (evt->base.type==GF_FEVT_PLAY)) ) {
 		Bool do_reset = GF_TRUE;
-		Bool is_play_reset = GF_FALSE;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
 		GF_FilterPid *pid = p->pid;
 		//we need to force a PID reset when the first PLAY is > 0, since some filters may have dispatched packets during the initialization
@@ -6348,7 +6370,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 				do_reset = GF_FALSE;
 			} else {
 				pid->initial_play_done = GF_TRUE;
-				is_play_reset = GF_TRUE;
 				if (evt->play.start_range < 0.1)
 					do_reset = GF_FALSE;
 			}
@@ -6364,10 +6385,11 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 		for (i=0; i<pid->num_destinations && do_reset; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
-			pidi->discard_packets = GF_TRUE;
-			//if not play reset, the request was set only once so we need to do it if more than one destination
-			if (is_play_reset || i)
+
+			if (!pidi->discard_packets) {
+				safe_int_inc(&pidi->discard_packets);
 				safe_int_inc(& pid->discard_input_packets );
+			}
 
 			safe_int_inc(& pid->filter->stream_reset_pending );
 
@@ -6457,7 +6479,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		//mark pid instance as about to be reset to avoid processing PID destroy task before
 		if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
-			pid_inst->discard_packets = GF_TRUE;
+			safe_int_inc(&pid_inst->discard_packets);
 			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
 
@@ -6558,7 +6580,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 //				gf_filter_pid_clear_eos(pid, GF_FALSE);
 			} else {
 				//flag pid instance to discard all packets (cf above note)
-				pidi->discard_packets = GF_TRUE;
+				safe_int_inc(&pidi->discard_packets);
 				safe_int_inc(& pidi->pid->discard_input_packets );
 			}
 		}
