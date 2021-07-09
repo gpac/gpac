@@ -2522,22 +2522,27 @@ static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 		}
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts != GF_FILTER_NO_TS) {
-			GF_FilterClockType ck_type = gf_filter_pid_get_clock_info(ctx->ipid, NULL, NULL);
-			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+			if (ctx->full_au_source) {
+				ctx->prev_dts = ctx->dts;
 				ctx->dts = ts;
-			else if (ctx->dts<ts)
-				ctx->dts=ts;
+			} else {
+				GF_FilterClockType ck_type = gf_filter_pid_get_clock_info(ctx->ipid, NULL, NULL);
+				if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+					ctx->dts = ts;
+				else if (ctx->dts<ts)
+					ctx->dts=ts;
 
-			if (!ctx->prev_dts) ctx->prev_dts = ts;
-			else if (ctx->prev_dts != ts) {
-				u64 diff = ts;
-				diff -= ctx->prev_dts;
-				if (!ctx->cur_fps.den)
-					ctx->cur_fps.den = (u32) diff;
-				else if (ctx->cur_fps.den > diff)
-					ctx->cur_fps.den = (u32) diff;
+				if (!ctx->prev_dts) ctx->prev_dts = ts;
+				else if (ctx->prev_dts != ts) {
+					u64 diff = ts;
+					diff -= ctx->prev_dts;
+					if (!ctx->cur_fps.den)
+						ctx->cur_fps.den = (u32) diff;
+					else if (ctx->cur_fps.den > diff)
+						ctx->cur_fps.den = (u32) diff;
 
-				ctx->prev_dts = ts;
+					ctx->prev_dts = ts;
+				}
 			}
 		}
 		ctx->pck_duration = gf_filter_pck_get_duration(pck);
