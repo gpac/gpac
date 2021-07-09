@@ -541,6 +541,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		gf_filter_pck_unref(src_pck);
 	}
+	gf_filter_pck_set_dts(dst_pck, gf_filter_pck_get_cts(dst_pck));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS "LLU"\n", gf_filter_pck_get_cts(dst_pck) ));
 	gf_filter_pck_send(dst_pck);

@@ -814,6 +814,7 @@ static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket
 		src_pck = gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == f->frame_info.timestamp) {
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
+			gf_filter_pck_set_dts(dst_pck, f->frame_info.timestamp);
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);
 			return;
@@ -821,6 +822,7 @@ static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket
 	}
 	//not found !
 	gf_filter_pck_set_cts(dst_pck, f->frame_info.timestamp);
+	gf_filter_pck_set_dts(dst_pck, f->frame_info.timestamp);
 	if (!gf_filter_pck_get_interlaced(dst_pck) && !f->frame_info.progressive_frame) {
 		gf_filter_pck_set_interlaced(dst_pck, f->frame_info.top_field_first ? 1 : 2);
 	}
