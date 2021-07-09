@@ -528,7 +528,12 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (first_config) {
 		iopid->initial_delay = iopid->delay;
 	} else {
-		gf_filter_pid_set_property(opid, GF_PROP_PID_DELAY, iopid->initial_delay ? &PROP_LONGSINT(iopid->initial_delay) : NULL);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+		if (p && (p->value.uint==GF_CODECID_RAW) && (iopid->delay<0)) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DELAY, NULL);
+		} else {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DELAY, iopid->initial_delay ? &PROP_LONGSINT(iopid->initial_delay) : NULL);
+		}
 	}
 
 	if (ctx->splice_state==FL_SPLICE_BEFORE) {
