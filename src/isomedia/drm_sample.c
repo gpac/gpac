@@ -1174,16 +1174,21 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 }
 
-GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len)
+GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 sample_number, u64 offset, u32 len)
 {
-	u32  i;
+	u32 i;
+	Bool is_first_saiz = GF_FALSE;
 	assert(stbl);
+
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SAIZ);
 		if (!senc->cenc_saiz) return GF_OUT_OF_MEM;
 		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
 		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz, GF_FALSE);
+		if (!sample_number) return GF_BAD_PARAM;
+		senc->cenc_saiz->sample_count = sample_number - 1;
+		is_first_saiz = GF_TRUE;
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_SAIO);
@@ -1195,13 +1200,22 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 		stbl_on_child_box((GF_Box*)stbl, (GF_Box *)senc->cenc_saio, GF_FALSE);
 	}
 
+	if (sample_number <= senc->cenc_saiz->sample_count)
+		return GF_BAD_PARAM;
+	if (sample_number <= senc->cenc_saio->entry_count)
+		return GF_BAD_PARAM;
+
 	if (!senc->cenc_saiz->sample_count || (!senc->cenc_saiz->sample_alloc && (senc->cenc_saiz->default_sample_info_size==len))) {
 		senc->cenc_saiz->sample_count ++;
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
-		if (senc->cenc_saiz->sample_count + 1 > senc->cenc_saiz->sample_alloc) {
-			if (!senc->cenc_saiz->sample_alloc) senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count + 1;
-			else senc->cenc_saiz->sample_alloc *= 2;
+		u32 sample_diff = sample_number - senc->cenc_saiz->sample_count;
+
+		if (senc->cenc_saiz->sample_count + sample_diff > senc->cenc_saiz->sample_alloc) {
+			senc->cenc_saiz->sample_alloc *= 2;
+			if (senc->cenc_saiz->sample_alloc < senc->cenc_saiz->sample_count + sample_diff) {
+				senc->cenc_saiz->sample_alloc = senc->cenc_saiz->sample_count + sample_diff;
+			}
 			senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 			if (!senc->cenc_saiz->sample_info_size) return GF_OUT_OF_MEM;
 		}
@@ -1210,24 +1224,41 @@ GF_Err gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTable
 			for (i=0; i<senc->cenc_saiz->sample_count; i++)
 				senc->cenc_saiz->sample_info_size[i] = senc->cenc_saiz->default_sample_info_size;
 			senc->cenc_saiz->default_sample_info_size = 0;
+		} else if (is_first_saiz) {
+			memset(senc->cenc_saiz->sample_info_size, 0, sizeof(u8)*(senc->cenc_saiz->sample_alloc));
 		}
-		senc->cenc_saiz->sample_info_size[senc->cenc_saiz->sample_count] = len;
-		senc->cenc_saiz->sample_count++;
+		for (i=0; i<sample_diff-1; i++) {
+			senc->cenc_saiz->sample_info_size[senc->cenc_saiz->sample_count + i] = 0;
+		}
+		senc->cenc_saiz->sample_info_size[senc->cenc_saiz->sample_count + sample_diff-1] = len;
+		senc->cenc_saiz->sample_count += sample_diff;
 	}
 
-	if (!senc->cenc_saio->entry_count) {
+	if (!senc->cenc_saio->entry_count && !is_first_saiz) {
 		senc->cenc_saio->offsets = (u64 *)gf_malloc(sizeof(u64));
 		if (!senc->cenc_saio->offsets) return GF_OUT_OF_MEM;
 		senc->cenc_saio->offsets[0] = offset;
 		senc->cenc_saio->entry_count ++;
 		senc->cenc_saio->entry_alloc = 1;
 	} else {
-		if (senc->cenc_saio->entry_count >= senc->cenc_saio->entry_alloc) {
-			senc->cenc_saio->entry_alloc += 50;
+		u32 sample_diff;
+
+		if (is_first_saiz)
+			senc->cenc_saio->entry_count = senc->cenc_saio->entry_alloc = sample_number - 1;
+
+		sample_diff = sample_number - senc->cenc_saio->entry_count;
+		if (senc->cenc_saio->entry_count + sample_diff > senc->cenc_saio->entry_alloc) {
+			senc->cenc_saio->entry_alloc += MAX(50, sample_diff);
 			senc->cenc_saio->offsets = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_alloc));
 			if (!senc->cenc_saio->offsets) return GF_OUT_OF_MEM;
 		}
-		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
+		if (is_first_saiz) {
+			memset(senc->cenc_saio->offsets, 0, sizeof(u64)*(senc->cenc_saio->entry_alloc));
+		}
+		for (i=0; i<sample_diff-1; i++) {
+			senc->cenc_saio->offsets[senc->cenc_saio->entry_count + i] = 0;
+		}
+		senc->cenc_saio->offsets[senc->cenc_saio->entry_count + sample_diff-1] = offset;
 		senc->cenc_saio->entry_count++;
 	}
 	if (offset > 0xFFFFFFFFUL)
@@ -1454,10 +1485,13 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			continue;
 		}
 
-		if (saio->entry_count == 1)
+		if (saio->entry_count == 1) {
 			offset = saio->offsets[0];
-		else
+		} else if (sampleNumber>saio->entry_count) {
+			return GF_ISOM_INVALID_FILE;
+		} else {
 			offset = saio->offsets[sampleNumber-1];
+		}
 		nb_saio = saio->entry_count;
 		saio_cenc = saio;
 		break;
@@ -1480,7 +1514,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			continue;
 		}
 		if (sampleNumber>saiz->sample_count) {
-			return GF_NON_COMPLIANT_BITSTREAM;
+			return GF_ISOM_INVALID_FILE;
 		}
 		if ((nb_saio==1) && !saio_cenc->total_size) {
 			for (j = 0; j < saiz->sample_count; j++) {
@@ -1490,10 +1524,19 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		if (saiz->cached_sample_num+1== sampleNumber) {
 			prev_sai_size = saiz->cached_prev_size;
 		} else {
+			if (sampleNumber > saiz->sample_count)
+				return GF_ISOM_INVALID_FILE;
+
 			for (j = 0; j < sampleNumber-1; j++)
 				prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 		}
-		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];
+		if (saiz->default_sample_info_size) {
+			size = saiz->default_sample_info_size;
+		} else if (sampleNumber > saiz->sample_count) {
+			return GF_ISOM_INVALID_FILE;
+		} else {
+			size = saiz->sample_info_size[sampleNumber-1];
+		}
 		saiz_cenc=saiz;
 		break;
 	}
