@@ -814,9 +814,12 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		return GF_OK;
 	}
 
-	if (ctx->decrypt!=DECRYPT_FULL) return GF_OK;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No supported system ID, no key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
-	return GF_NOT_SUPPORTED;
+	if (ctx->decrypt!=DECRYPT_FULL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No keys found but playback forced\n"));
+		return GF_OK;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] No key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
+	return GF_FILTER_NOT_SUPPORTED;
 }
 
 static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
@@ -1097,7 +1100,9 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				e = GF_OK;
 				goto send_packet;
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+			if (gf_filter_pck_get_crypt_flags(in_pck)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+			}
 			return GF_SERVICE_ERROR;
 		}
 
