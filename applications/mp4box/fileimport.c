@@ -1953,6 +1953,23 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	} else {
 		strcpy(szFile, outName);
 	}
+	if (gf_dir_exists(szFile)) {
+		char c = szFile[strlen(szFile)-1];
+		if ((c!='/') && (c!='\\'))
+			strcat(szFile, "/");
+
+		strcat(szFile, szName);
+		strcat(szFile, "_$num%03d$.mp4");
+		M4_LOG(GF_LOG_WARNING, ("Split output is a directory, will use template %s\n", szFile));
+	}
+	else if (split_size_kb || split_dur) {
+		if (!strchr(szFile, '$')) {
+			char *sep = gf_file_ext_start(szFile);
+			sep[0] = 0;
+			strcat(szFile, "_$num$.mp4");
+			M4_LOG(GF_LOG_WARNING, ("Split by %s but output not a template, using %s as output\n", split_size_kb ? "size" : "duration", szFile));
+		}
+	}
 	if (do_frag) {
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
 		strcat(szFile, ":store=frag");
