@@ -1144,8 +1144,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/* chapter */
 	else if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || (fmt && !stricmp(fmt, "CHAP")) ) {
 		e =  gf_media_import_chapters_file(importer);
-		if (!strnicmp(ext, ".txt", 4) && (e==GF_NOT_FOUND)) {
-
+		if (e==GF_NOT_FOUND) {
+			fmt = NULL;
 		} else {
 			return e;
 		}
