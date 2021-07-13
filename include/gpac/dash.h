@@ -242,9 +242,8 @@ void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **sour
 /*! switches quality up or down
 \param dash the target dash client
 \param switch_up indicates if the quality should be increased (GF_TRUE) or decreased (GF_FALSE)
-\param force_immediate_switch if GF_TRUE, aborts all current downloads, remove downloaded segments not yet played and switch. Otherwise, existing switching will only happen once the existing downloaded segments have been played
 */
-void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool force_immediate_switch);
+void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up);
 
 /*! indicates whether the DASH client is running or not
 \param dash the target dash client

@@ -56,7 +56,7 @@ typedef struct
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	char *algo;
-	Bool max_res, immediate, abort, use_bmin;
+	Bool max_res, abort, use_bmin;
 	char *query;
 	Bool noxlink, split_as, noseek, groupsel;
 	u32 lowlat;
@@ -784,7 +784,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		if (gf_sys_is_cov_mode()) {
 			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
 			//these are not used in the test suite (require JS)
-			gf_dash_switch_quality(ctx->dash, GF_TRUE, GF_TRUE);
+			gf_dash_switch_quality(ctx->dash, GF_TRUE);
 		}
 #endif
 		if (ctx->groupsel)
@@ -2046,7 +2046,7 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			gf_dash_set_automatic_switching(ctx->dash, 0);
 			gf_dash_group_select_quality(ctx->dash, idx, NULL, fevt->quality_switch.q_idx);
 		} else {
-			gf_dash_switch_quality(ctx->dash, fevt->quality_switch.up, ctx->immediate);
+			gf_dash_switch_quality(ctx->dash, fevt->quality_switch.up);
 		}
 		return GF_TRUE;
 
@@ -2914,7 +2914,6 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		, GF_PROP_UINT, "max_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
 
 	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(immediate), "when interactive switching is requested and immediate is set, the buffer segments are trashed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(abort), "allow abort during a segment download", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(use_bmin), "use the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, 0},
 
