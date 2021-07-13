@@ -2168,6 +2168,14 @@ restart:
 
 		gf_fs_enable_reporting(session, GF_TRUE);
 	}
+	if (gf_list_count(links_directive)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Link separators specified but no following filter, ignoring links "));
+		while (gf_list_count(links_directive)) {
+			const char *ld = gf_list_pop_front(links_directive);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\"%s\"", ld));
+		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\n"));
+	}
 
 	if (enable_prompt || (runfor>0)) {
 		if (enable_prompt && !loops_done) {
