@@ -132,7 +132,7 @@ void dump_isom_timed_text(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName,
 
 
 void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool is_track_num, Bool dump_m4sys);
-void DumpMovieInfo(GF_ISOFile *file);
+void DumpMovieInfo(GF_ISOFile *file, Bool full_dump);
 u32 PrintLanguages(char *argv, u32 opt);
 
 #ifndef GPAC_DISABLE_MPEG2TS

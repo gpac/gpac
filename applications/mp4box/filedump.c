@@ -3587,7 +3587,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 	}
 }
 
-void DumpMovieInfo(GF_ISOFile *file)
+void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 {
 	GF_InitialObjectDescriptor *iod;
 	Bool dump_m4sys = GF_FALSE;
@@ -3785,7 +3785,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0, has_itags);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, i+1, 0, GF_TRUE, dump_m4sys);
+		DumpTrackInfo(file, i+1, full_dump, GF_TRUE, dump_m4sys);
 	}
 }
 
