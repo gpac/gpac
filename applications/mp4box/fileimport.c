@@ -916,9 +916,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!strnicmp(ext+1, "rate=", 5)) {
 			force_rate = atoi(ext+6);
 		}
-		else if (!stricmp(ext+1, "fstat"))
+		else if (!stricmp(ext+1, "stats") || !stricmp(ext+1, "fstat"))
 			print_stats_graph |= 1;
-		else if (!stricmp(ext+1, "fgraph"))
+		else if (!stricmp(ext+1, "graph") || !stricmp(ext+1, "graph"))
 			print_stats_graph |= 2;
 		else if (!strncmp(ext+1, "sopt", 4) || !strncmp(ext+1, "dopt", 4) || !strncmp(ext+1, "@", 1)) {
 			if (ext2) ext2[0] = ':';
@@ -1963,9 +1963,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		M4_LOG(GF_LOG_WARNING, ("Split output is a directory, will use template %s\n", szFile));
 	}
 	else if (split_size_kb || split_dur) {
-		if (!strchr(szFile, '$')) {
+		if (!strchr(szFile, '$') && (stricmp(szFile, "null") || !strcmp(szFile, "/dev/null")) ) {
 			char *sep = gf_file_ext_start(szFile);
-			sep[0] = 0;
+			if (sep) sep[0] = 0;
 			strcat(szFile, "_$num$.mp4");
 			M4_LOG(GF_LOG_WARNING, ("Split by %s but output not a template, using %s as output\n", split_size_kb ? "size" : "duration", szFile));
 		}
