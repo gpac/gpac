@@ -119,6 +119,7 @@ typedef struct
 	Bool seek_mode;
 	u64 probe_ref_frame_ts;
 
+	Bool fetch_done;
 } RTStream;
 
 typedef struct
@@ -170,7 +171,6 @@ typedef struct
 	u64 est_file_size;
 	u64 prev_min_ts_computed;
 	u32 prev_min_ts_scale;
-	u32 gop_depth;
 
 	u32 wait_video_range_adjust;
 	Bool has_seen_eos;
@@ -179,6 +179,14 @@ typedef struct
 
 	u32 nb_video_frames_since_start_at_range_start;
 	u32 nb_video_frames_since_start;
+
+	Bool flush_samples;
+	u64 cumulated_size;
+	u64 last_ts;
+
+	u64 flush_max_ts;
+	u32 flush_max_ts_scale;
+
 } GF_ReframerCtx;
 
 static void reframer_reset_stream(GF_ReframerCtx *ctx, RTStream *st)
@@ -363,7 +371,9 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 		u32 h=0, m=0, s=0, ms=0;
 		if (strchr(date, '.')) {
 			if (sscanf(date, "T%u:%u:%u.%u", &h, &m, &s, &ms) != 4) {
+				h = 0;
 				if (sscanf(date, "T%u:%u.%u", &m, &s, &ms) != 3) {
+					m = 0;
 					if (sscanf(date, "T%u.%u", &s, &ms) != 2) {
 						goto exit;
 					}
@@ -372,6 +382,7 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 			if (ms>=1000) ms=0;
 		} else {
 			if (sscanf(date, "T%u:%u:%u", &h, &m, &s) != 3) {
+				h = 0;
 				if (sscanf(date, "T%u:%u", &m, &s) != 2) {
 					goto exit;
 				}
@@ -423,7 +434,7 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 	}
 
 exit:
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Unrecognized date format %s, expecting TXX:XX:XX[.XX], INT or FRAC\n", date));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Unrecognized date format %s, expecting THH:MM:SS[.ms], TMM:SS[.ms], TSS[.ms], INT or FRAC\n", date));
 	if (extract_mode)
 		*extract_mode = EXTRACT_NONE;
 	return GF_FALSE;
@@ -550,6 +561,10 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (end_date) {
 		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
+			ctx->range_type = RANGE_OPEN;
+		}
+		else if (gf_timestamp_greater_or_equal(ctx->cur_start.num, ctx->cur_start.den, ctx->cur_end.num, ctx->cur_end.den) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] End range before start range, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
 		}
 	}
@@ -863,14 +878,28 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING_NO_COPY(file_suf_name) );
 				}
 			} else {
+				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->file_idx) );
+
 				start_t = ctx->cur_start.num * 1000;
 				start_t /= ctx->cur_start.den;
-				end_t = ctx->cur_end.num * 1000;
-				end_t /= ctx->cur_end.den;
-
-				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILENUM, &PROP_UINT(ctx->file_idx) );
-				sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
+				if (ctx->cur_end.den) {
+					end_t = ctx->cur_end.num * 1000;
+					end_t /= ctx->cur_end.den;
+					sprintf(szFileSuf, LLU"-"LLU, start_t, end_t);
+				} else {
+					sprintf(szFileSuf, LLU, start_t);
+				}
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_FILESUF, &PROP_STRING(szFileSuf) );
+			}
+			if (st->nb_frames) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(st->ipid, GF_PROP_PID_NB_FRAMES);
+				if (p) {
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_FRAME_OFFSET, &PROP_UINT(st->nb_frames) );
+				}
+			}
+
+			if (ctx->file_idx>1) {
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, NULL);
 			}
 		}
 
@@ -1070,6 +1099,36 @@ void reframer_purge_queues(GF_ReframerCtx *ctx, u64 ts, u32 timescale)
 	}
 }
 
+//#define DEBUG_RF_MEM_USAGE
+
+#ifdef DEBUG_RF_MEM_USAGE
+static void reframer_dump_mem(GF_ReframerCtx *ctx, char *status)
+{
+	u32 i, count = gf_list_count(ctx->streams);
+	u32 mem_pck = 0;
+	u64 mem_size = 0;
+	u32 mem_saps = 0;
+
+	//check all streams have reached min ts
+	for (i=0; i<count; i++) {
+		u32 j, nb_pck;
+		RTStream *st = gf_list_get(ctx->streams, i);
+		nb_pck = gf_list_count(st->pck_queue);
+
+		for (j=0; j<nb_pck; j++) {
+			u32 size;
+			GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
+			gf_filter_pck_get_data(pck, &size);
+			mem_size += size;
+			if (gf_filter_pck_get_sap(pck)) mem_saps++;
+			mem_pck++;
+		}
+	}
+	fprintf(stderr, "%s, mem state: %d pck "LLU" KB %d saps\n", status, mem_pck, mem_size/1000, mem_saps);
+}
+#endif
+
+
 static void check_gop_split(GF_ReframerCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->streams);
@@ -1083,9 +1142,13 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		u32 nb_eos = 0;
 		Bool has_empty_streams = GF_FALSE;
 		Bool wait_for_sap = GF_FALSE;
+		Bool size_split = (ctx->extract_mode==EXTRACT_SIZE) ? GF_TRUE : GF_FALSE;
+
+		ctx->flush_max_ts = 0;
 		for (i=0; i<count; i++) {
 			u32 j, nb_pck, nb_sap;
 			u64 last_sap_ts=0;
+			u64 before_last_sap_ts=0;
 			RTStream *st = gf_list_get(ctx->streams, i);
 			nb_pck = gf_list_count(st->pck_queue);
 			nb_sap = 0;
@@ -1099,7 +1162,13 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 
 			for (j=0; j<nb_pck; j++) {
 				u64 ts;
-				GF_FilterPacket *pck = gf_list_get(st->pck_queue, j);
+				GF_FilterPacket *pck;
+				//size split, reverse walk the packet list
+				if (size_split) {
+					pck = gf_list_get(st->pck_queue, nb_pck - j - 1);
+				} else {
+					pck = gf_list_get(st->pck_queue, j);
+				}
 				if (!st->is_raw && !gf_filter_pck_get_sap(pck) ) {
 					continue;
 				}
@@ -1109,19 +1178,42 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				ts += st->tk_delay;
 
 				nb_sap++;
-				if (nb_sap <= 1 + ctx->gop_depth) {
-					continue;
+				//size split, get the last and before last SAP times
+				if (size_split) {
+					if (nb_sap == 1) {
+						last_sap_ts = ts;
+					}
+					else if (nb_sap == 2) {
+						before_last_sap_ts = ts;
+						break;
+					}
 				}
-
-				last_sap_ts = ts;
-				break;
+				//regular split, get the second SAP time
+				else {
+					if (nb_sap <= 1) {
+						continue;
+					}
+					last_sap_ts = ts;
+					break;
+				}
 			}
+			//size split, if only one SAP in queue, don't take any decision yet
+			if (size_split && !before_last_sap_ts)
+				last_sap_ts = 0;
+
 			//in SAP split, flush as soon as we no longer have 2 consecutive saps
 			if (!last_sap_ts) {
 				if (st->in_eos && !flush_all && !st->reinsert_single_pck) {
 					flush_all = GF_TRUE;
 				} else if (!st->all_saps) {
 					wait_for_sap = GF_TRUE;
+				}
+			}
+
+			if (before_last_sap_ts) {
+				if (!ctx->flush_max_ts || gf_timestamp_less(before_last_sap_ts, st->timescale, ctx->flush_max_ts, ctx->flush_max_ts_scale)) {
+					ctx->flush_max_ts = before_last_sap_ts;
+					ctx->flush_max_ts_scale = st->timescale;
 				}
 			}
 
@@ -1168,6 +1260,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			}
 		}
 
+		ctx->flush_samples = GF_FALSE;
 		if (!min_ts) {
 			//video not ready, need more input
 			if (wait_for_sap)
@@ -1193,7 +1286,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			if (st->range_start_computed==2) continue;
 			if (st->reinsert_single_pck) continue;
 			pck = gf_list_last(st->pck_queue);
-			assert(pck);
+			if (!pck) continue;
 			ts = gf_filter_pck_get_dts(pck);
 			if (ts==GF_FILTER_NO_TS)
 				ts = gf_filter_pck_get_cts(pck);
@@ -1208,7 +1301,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 	//check condition
 	if (ctx->extract_mode==EXTRACT_SIZE) {
 		u32 nb_stop_at_min_ts = 0;
-		u64 cumulated_size = 0;
+		u64 cumulated_size = ctx->cumulated_size;
 		Bool use_prev = GF_FALSE;
 		u32 nb_eos = 0;
 
@@ -1229,7 +1322,9 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 					ts = gf_filter_pck_get_cts(pck);
 				ts += st->tk_delay;
 
-				if (gf_timestamp_greater_or_equal(ts, st->timescale, ctx->min_ts_computed, ctx->min_ts_scale)) {
+				if ((ctx->prev_min_ts_computed < ctx->min_ts_computed)
+					&& gf_timestamp_greater_or_equal(ts, st->timescale, ctx->min_ts_computed, ctx->min_ts_scale)
+				) {
 					nb_stop_at_min_ts ++;
 					found = GF_TRUE;
 					break;
@@ -1237,10 +1332,16 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				gf_filter_pck_get_data(pck, &size);
 				cumulated_size += size;
 			}
+
 			if ((j==nb_pck) && st->in_eos && !found) {
 				nb_eos++;
 			}
 		}
+
+		if ((nb_stop_at_min_ts + nb_eos) < count) {
+			ctx->flush_samples = GF_FALSE;
+		}
+
 		//not done yet (estimated size less than target split)
 		if (
 			(cumulated_size < ctx->split_size)
@@ -1250,13 +1351,55 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		) {
 			if ((nb_stop_at_min_ts + nb_eos) == count) {
 				ctx->est_file_size = cumulated_size;
+				//flush everything until prev_min_ts_computed
+				if (ctx->flush_max_ts) {
+#ifdef DEBUG_RF_MEM_USAGE
+					reframer_dump_mem(ctx, "Requesting sample flush");
+#endif
+					ctx->flush_samples = GF_TRUE;
+					//if first flush, setup streams
+					if (!ctx->cumulated_size) {
+						for (i=0; i<count; i++) {
+							u64 ts;
+							RTStream *st = gf_list_get(ctx->streams, i);
+							GF_FilterPacket *pck = gf_list_get(st->pck_queue, 0);
+							st->range_end_reached_ts = 0;
+							st->first_pck_sent = GF_FALSE;
+
+							if (pck) {
+								ts = gf_filter_pck_get_dts(pck);
+								if (ts==GF_FILTER_NO_TS)
+									ts = gf_filter_pck_get_cts(pck);
+								ts += st->tk_delay;
+								st->ts_at_range_start_plus_one = ts + 1;
+							}
+						}
+					}
+				}
 				ctx->prev_min_ts_computed = ctx->min_ts_computed;
 				ctx->prev_min_ts_scale = ctx->min_ts_scale;
 				ctx->min_ts_computed = 0;
 				ctx->min_ts_scale = 0;
-				ctx->gop_depth++;
 			}
 			return;
+		}
+
+		if (ctx->min_ts_computed && (ctx->prev_min_ts_computed == ctx->min_ts_computed)) {
+			//not end of stream, if size still not reached continue
+			if (!nb_eos) {
+				if (cumulated_size < ctx->split_size) {
+					ctx->min_ts_computed = 0;
+					ctx->min_ts_scale = 0;
+					return;
+				}
+			} else if (nb_eos == count) {
+				//end of stream, force final flush
+				ctx->in_range = GF_TRUE;
+				return;
+			} else if (nb_eos && (ctx->min_ts_computed == ctx->prev_min_ts_computed)) {
+				ctx->in_range = GF_TRUE;
+				return;
+			}
 		}
 
 		//decide which split size we use
@@ -1287,11 +1430,11 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Reframer] split computed using %s estimation of file size ("LLU")\n", use_prev ? "previous" : "current", ctx->est_file_size));
 		ctx->prev_min_ts_computed = 0;
 		ctx->prev_min_ts_scale = 0;
+		ctx->flush_samples = GF_FALSE;
 	}
 
 	//good to go
 	ctx->in_range = GF_TRUE;
-	ctx->gop_depth = 0;
 	for (i=0; i<count; i++) {
 		u64 ts;
 		RTStream *st = gf_list_get(ctx->streams, i);
@@ -1301,6 +1444,10 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 			st->range_end_reached_ts /= ctx->min_ts_scale;
 
 		st->range_end_reached_ts += 1;
+
+		if ((ctx->extract_mode==EXTRACT_SIZE) && ctx->cumulated_size)
+			continue;
+
 		st->first_pck_sent = GF_FALSE;
 		if (pck) {
 			ts = gf_filter_pck_get_dts(pck);
@@ -1316,8 +1463,9 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 	}
 	ctx->cur_end.num = ctx->min_ts_computed;
 	ctx->cur_end.den = ctx->min_ts_scale;
-
+	ctx->cumulated_size = 0;
 }
+
 
 
 GF_Err reframer_process(GF_Filter *filter)
@@ -1367,7 +1515,16 @@ GF_Err reframer_process(GF_Filter *filter)
 		u32 nb_start_range_reached = 0;
 		u32 nb_not_playing = 0;
 		Bool check_split = GF_FALSE;
+		Bool check_sync = GF_TRUE;
+		u32 nb_streams_fetched=0;
 
+		for (i=0; i<count; i++) {
+			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+			RTStream *st = gf_filter_pid_get_udta(ipid);
+			st->fetch_done = GF_FALSE;
+		}
+
+refetch_streams:
 		//fetch input packets
 		for (i=0; i<count; i++) {
 			u64 ts, check_ts;
@@ -1379,19 +1536,25 @@ GF_Err reframer_process(GF_Filter *filter)
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 			RTStream *st = gf_filter_pid_get_udta(ipid);
 
+			if (st->fetch_done) continue;
+
 			if (!st->is_playing) {
 				nb_start_range_reached++;
 				nb_not_playing++;
+				st->fetch_done = GF_TRUE;
 				continue;
 			}
 
 			if (st->range_start_computed && !ctx->wait_video_range_adjust) {
 				nb_start_range_reached++;
+				st->fetch_done = GF_TRUE;
 				continue;
 			}
 			//if eos is marked we are flushing so don't check range_end
-			if (!ctx->has_seen_eos && st->range_end_reached_ts)
+			if (!ctx->has_seen_eos && st->range_end_reached_ts) {
+				st->fetch_done = GF_TRUE;
 				continue;
+			}
 
 			if (st->split_pck) {
 				pck = st->split_pck;
@@ -1431,6 +1594,7 @@ GF_Err reframer_process(GF_Filter *filter)
 						st->range_start_computed = 2;
 						if (ctx->wait_video_range_adjust && ctx->xadjust && st->needs_adjust) {
 							ctx->wait_video_range_adjust = GF_FALSE;
+							ctx->flush_max_ts_scale = 0;
 						}
 					}
 					if (st->range_start_computed) {
@@ -1441,15 +1605,27 @@ GF_Err reframer_process(GF_Filter *filter)
 						ctx->has_seen_eos = GF_TRUE;
 					}
 				}
+				st->fetch_done = GF_TRUE;
 				continue;
 			}
-			st->nb_frames_range++;
 
 			ts = gf_filter_pck_get_dts(pck);
 			if (ts==GF_FILTER_NO_TS)
 				ts = gf_filter_pck_get_cts(pck);
 			ts += st->tk_delay;
 
+			if (gf_timestamp_greater(ts, st->timescale, ctx->last_ts, 1000)) {
+				if (check_sync) {
+					if (st->range_start_computed) nb_start_range_reached++;
+					continue;
+				} else {
+					ctx->last_ts = gf_timestamp_rescale(ts, st->timescale, 1000);
+				}
+			} else {
+				st->fetch_done = GF_TRUE;
+			}
+
+			st->nb_frames_range++;
 			//in range extraction we target the presentation time, use CTS and apply delay
 			if (ctx->is_range_extraction) {
 				check_ts = gf_filter_pck_get_cts(pck) + st->tk_delay;
@@ -1513,13 +1689,20 @@ GF_Err reframer_process(GF_Filter *filter)
 					gf_filter_pck_unref(st->reinsert_single_pck);
 					st->reinsert_single_pck = NULL;
 				}
+				nb_streams_fetched++;
 				continue;
 			}
 			dur = gf_filter_pck_get_duration(pck);
 
 			//dur split or range extraction but we wait for video end range to be adjusted, don't enqueue packet
-			if (ctx->wait_video_range_adjust && !st->needs_adjust)
-				continue;
+			if (ctx->wait_video_range_adjust && !st->needs_adjust) {
+				if (!ctx->flush_max_ts_scale
+					|| gf_timestamp_greater_or_equal(ts, st->timescale, ctx->flush_max_ts, ctx->flush_max_ts_scale)
+				) {
+					if (st->range_start_computed) nb_start_range_reached++;
+					continue;
+				}
+			}
 
 			//check if packet is in our range
 			pck_in_range = reframer_check_pck_range(ctx, st, check_ts, dur, st->nb_frames_range, &nb_audio_samples_to_keep);
@@ -1587,17 +1770,26 @@ GF_Err reframer_process(GF_Filter *filter)
 					nb_start_range_reached++;
 				}
 				//remember prev sap time
+				ctx->flush_max_ts_scale = 0;
 				if (pck_in_range!=2) {
+					u64 before_prev_sap_ts = st->prev_sap_ts;
 					st->prev_sap_ts = ts;
 					st->prev_sap_frame_idx = st->nb_frames_range;
 					if (!st->range_start_computed && (ctx->xround==REFRAME_ROUND_SEEK) )
 						st->nb_frames_until_start = 1;
+
+					if (ctx->wait_video_range_adjust && before_prev_sap_ts && !st->all_saps) {
+						ctx->flush_max_ts = before_prev_sap_ts;
+						ctx->flush_max_ts_scale = st->timescale;
+					}
 				}
 				//video stream start and xadjust set, prevent all other streams from being processed until we determine the end of the video range
 				//and re-enable other streams processing
 				if (!ctx->wait_video_range_adjust && ctx->xadjust && st->needs_adjust && !st->all_saps) {
 					ctx->wait_video_range_adjust = GF_TRUE;
 				}
+			} else if (st->range_start_computed) {
+				nb_start_range_reached++;
 			}
 
 			if ((ctx->extract_mode==EXTRACT_DUR) && ctx->has_seen_eos && (pck_in_range==2))
@@ -1658,6 +1850,7 @@ GF_Err reframer_process(GF_Filter *filter)
 						ctx->cur_end.num = st->range_end_reached_ts-1;
 						ctx->cur_end.den = st->timescale;
 						ctx->wait_video_range_adjust = GF_FALSE;
+						ctx->flush_max_ts_scale = 0;
 					}
 
 					//do NOT enqueue packet
@@ -1665,6 +1858,7 @@ GF_Err reframer_process(GF_Filter *filter)
 						break;
 				}
 			}
+			nb_streams_fetched++;
 
 			//add packet unless blocking ref
 			if (gf_filter_pck_is_blocking_ref(pck) && !pck_in_range) {
@@ -1693,6 +1887,13 @@ GF_Err reframer_process(GF_Filter *filter)
 				st->split_pck = NULL;
 			}
 		}
+
+		if (check_sync && !nb_streams_fetched && (!nb_start_range_reached || (nb_start_range_reached<count))) {
+			check_sync = GF_FALSE;
+			nb_start_range_reached=0;
+			goto refetch_streams;
+		}
+
 
 		if (check_split) {
 			check_gop_split(ctx);
@@ -1910,10 +2111,17 @@ GF_Err reframer_process(GF_Filter *filter)
 
 			//we are in the range
 			ctx->in_range = GF_TRUE;
+#ifdef DEBUG_RF_MEM_USAGE
+			reframer_dump_mem(ctx, "Starting new range");
+#endif
 		}
-		if (!ctx->in_range)
+		if (!ctx->in_range && !ctx->flush_samples)
 			return GF_OK;
 	}
+
+#ifdef DEBUG_RF_MEM_USAGE
+	reframer_dump_mem(ctx, "Processing range");
+#endif
 
 	nb_eos = 0;
 	nb_end_of_range = 0;
@@ -1965,6 +2173,23 @@ GF_Err reframer_process(GF_Filter *filter)
 					}
 				}
 				break;
+			}
+			//size split, flushing
+			if (ctx->flush_samples) {
+				u32 size;
+				u64 cts;
+
+
+				cts = gf_filter_pck_get_dts(pck);
+				if (cts==GF_FILTER_NO_TS)
+					cts = gf_filter_pck_get_cts(pck);
+				cts += st->tk_delay;
+
+				if (gf_timestamp_greater_or_equal(cts, st->timescale, ctx->flush_max_ts, ctx->flush_max_ts_scale)) {
+					break;
+				}
+				gf_filter_pck_get_data(pck, &size);
+				ctx->cumulated_size += size;
 			}
 
 			if (ctx->refs) {
@@ -2055,7 +2280,7 @@ load_next_range:
 	if (nb_eos==count) return GF_EOS;
 
 	if (ctx->rt) {
-		//while technically correct this increases the CPU load by shuffing the task around and querying gf_sys_clock_high_res too often
+		//while technically correct this increases the CPU load by shuffling the task around and querying gf_sys_clock_high_res too often
 		//needs more investigation
 		//using a simple callback every RT_PRECISION_US is a good workaround
 #if 0

@@ -1755,25 +1755,42 @@ exit:
 	return e;
 }
 
+typedef struct
+{
+	Double progress;
+	u32 file_idx;
+} SplitInfo;
 
 static Bool on_split_event(void *_udta, GF_Event *evt)
 {
 	Double progress;
-	u32 *prev_progress = (u32 *)_udta;
+	SplitInfo *sinfo = (SplitInfo *)_udta;
 	if (!_udta) return GF_FALSE;
 	if (evt->type != GF_EVENT_PROGRESS) return GF_FALSE;
 	if (!evt->progress.total) return GF_FALSE;
 
 	progress = (Double) (100*evt->progress.done) / evt->progress.total;
-	if ((u32) progress==*prev_progress)
+	if (progress <= sinfo->progress)
 		return GF_FALSE;
 
-	*prev_progress = (u32) progress;
+	if (evt->progress.done == evt->progress.total) {
+		if (sinfo->progress <= 0)
+			return GF_FALSE;
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("splitting: % 2.2f %%\r", progress));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("splitting: file %d done\n", sinfo->file_idx));
 #else
-	fprintf(stderr, "splitting: % 2.2f %%\r", progress);
+		fprintf(stderr, "splitting: file %d done\n", sinfo->file_idx);
 #endif
+		sinfo->file_idx++;
+		sinfo->progress = -1;
+	} else {
+		sinfo->progress = progress;
+#ifndef GPAC_DISABLE_LOG
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("splitting: % 2.2f %%\r", progress));
+#else
+		fprintf(stderr, "splitting: % 2.2f %%\r", progress);
+#endif
+	}
 	return GF_FALSE;
 }
 
@@ -1790,7 +1807,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	char *filter_args = NULL;
 	GF_FilterSession *fs;
 	GF_Filter *src, *reframe, *dst;
-	u32 progress = (u32) -1;
+	SplitInfo sinfo;
+
+	sinfo.progress = -1;
+	sinfo.file_idx = 1;
 
 	chunk_extraction = (chunk_start>=0) ? GF_TRUE : GF_FALSE;
 	if (split_range_str)
@@ -1867,6 +1887,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 				//if another `:` assume time format
 				if (end && strchr(end+1, ':'))
 					is_time = GF_TRUE;
+			} else if (strchr(split_range_str, ':')) {
+				is_time = GF_TRUE;
 			}
 			if (!end) {
 				gf_free(filter_args);
@@ -1963,7 +1985,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		&& !gf_sys_is_quiet()
 	) {
 		gf_fs_enable_reporting(fs, GF_TRUE);
-		gf_fs_set_ui_callback(fs, on_split_event, &progress);
+		gf_fs_set_ui_callback(fs, on_split_event, &sinfo);
 	}
 #ifdef GPAC_ENABLE_COVERAGE
 	else if (gf_sys_is_cov_mode()) {

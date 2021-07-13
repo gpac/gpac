@@ -991,14 +991,18 @@ MP4Box splitting runs a filter session using the reframer filter as follows:
 .br
   
 .br
-The output file(s) storage mode can be specified using -flat, -newfs, -inter and -frag
+The default output storage mode is to full interleave and will require a temp file for each output. This behaviour can be modified using -flat, -newfs, -inter and -frag
 .br
   
 .br
 .TP
 .B \-split (string)
 .br
-split in files of given max duration
+split in files of given max duration (float number) in seconds. A trailing unit can be specified:
+.br
+* `M`, `m`: duration is in minutes
+.br
+* `H`, `h`: size is in hours
 .br
 .TP
 .B \-split-rap,-splitr (string)
@@ -1008,7 +1012,11 @@ split in files at each new RAP
 .TP
 .B \-split-size,-splits (string)
 .br
-split in files of given max size (in kb)
+split in files of given max size (integer number) in kilobytes. A trailing unit can be specified:
+.br
+* `M`, `m`: size is in megabytes
+.br
+* `G`, `g`: size is in gigabytes
 .br
 .TP
 .B \-split-chunk,-splitx (string)
@@ -2776,7 +2784,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1054-gaccd5db42-master
+build: 1.1.0-DEV-rev1077-g4f3ca79de-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

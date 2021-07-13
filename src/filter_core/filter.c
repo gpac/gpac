@@ -1343,12 +1343,39 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 
 skip_date:
 					if (prev_date) {
+						u32 char_idx=1;
+						u32 nb_date_seps=0;
+						Bool last_non_num=GF_FALSE;
 						char *search_after = NULL;
-						//assume date Th:m:s or Th:mm:s or Thh:m:s or Thh:mm:s
-						if ((prev_date[2] == ':') && (prev_date[4] == ':')) search_after = prev_date+5;
-						else if ((prev_date[2] == ':') && (prev_date[5] == ':')) search_after = prev_date+6;
-						else if ((prev_date[3] == ':') && (prev_date[5] == ':')) search_after = prev_date+6;
-						else if ((prev_date[3] == ':') && (prev_date[6] == ':')) search_after = prev_date+7;
+						while (1) {
+							char dc = prev_date[char_idx];
+
+							if ((dc>='0') && (dc<='9')) {
+								search_after = prev_date+char_idx;
+								char_idx++;
+								continue;
+							}
+							if (dc == ':') {
+								search_after = prev_date+char_idx;
+								if (nb_date_seps>=3)
+									break;
+								char_idx++;
+								nb_date_seps++;
+								continue;
+							}
+							if ((dc == '.') || (dc == ';')) {
+								if (last_non_num || !nb_date_seps) {
+									search_after = NULL;
+									break;
+								}
+								last_non_num = GF_TRUE;
+								search_after = prev_date+char_idx;
+								char_idx++;
+								continue;
+							}
+							//not a valid char in date, stop
+							break;
+						}
 
 						if (search_after) {
 							//take care of lists

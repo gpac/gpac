@@ -479,9 +479,13 @@ void PrintGeneralUsage()
 
 MP4BoxArg m4b_split_args[] =
 {
- 	MP4BOX_ARG("split", "split in files of given max duration", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
+ 	MP4BOX_ARG("split", "split in files of given max duration (float number) in seconds. A trailing unit can be specified:\n"
+	"- `M`, `m`: duration is in minutes\n"
+	"- `H`, `h`: size is in hours", GF_ARG_STRING, 0, parse_split, 0, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-rap", "splitr", "split in files at each new RAP", GF_ARG_STRING, 0, parse_split, 1, ARG_IS_FUN),
-	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (in kb)", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
+	MP4BOX_ARG_ALT("split-size", "splits", "split in files of given max size (integer number) in kilobytes. A trailing unit can be specified:\n"
+	"- `M`, `m`: size is in megabytes\n"
+	"- `G`, `g`: size is in gigabytes", GF_ARG_STRING, 0, parse_split, 2, ARG_IS_FUN),
 	MP4BOX_ARG_ALT("split-chunk", "splitx", "extract the specified time range as follows:\n"
 	"- the start time is moved to the RAP sample closest to the specified start time\n"
 	"- the end time is kept as requested"
@@ -524,7 +528,7 @@ static void PrintSplitUsage()
 		"- for `-splitf`, option `xround=seek` is enforced and `propbe_ref`set if not specified at prompt\n"
 		"- for `-splitx`, option `xround=closest` and `propbe_ref` are enforced if not specified at prompt\n"
 		"  \n"
-		"The output file(s) storage mode can be specified using -flat, -newfs, -inter and -frag\n"
+		"The default output storage mode is to full interleave and will require a temp file for each output. This behaviour can be modified using -flat, -newfs, -inter and -frag\n"
 		"  \n"
 	);
 
@@ -2664,9 +2668,21 @@ u32 parse_fps(char *arg_val, u32 opt)
 
 u32 parse_split(char *arg_val, u32 opt)
 {
+	u32 scale=1;
+	char *unit;
 	switch (opt) {
 	case 0://-split
-		split_duration = atof(arg_val);
+		unit = arg_val + (u32) (strlen(arg_val) - 1);
+		if (strchr("Mm", unit[0])) scale = 60;
+		else if (strchr("Hh", unit[0])) scale = 3600;
+		if (scale > 1) {
+			char c = unit[0];
+			unit[0] = 0;
+			split_duration = scale * atof(arg_val);
+			unit[0] = c;
+		} else {
+			split_duration = atof(arg_val);
+		}
 		if (split_duration < 0) split_duration = 0;
 		split_size = 0;
 		break;
@@ -2675,7 +2691,17 @@ u32 parse_split(char *arg_val, u32 opt)
 		split_size = -1;
 		break;
 	case 2: //-split-size, -splits
-		split_size = (u32)atoi(arg_val);
+		unit = arg_val + (u32) (strlen(arg_val) - 1);
+		if (strchr("Mm", unit[0])) scale = 1000;
+		else if (strchr("Gg", unit[0])) scale = 1000000;
+		if (scale > 1) {
+			char c = unit[0];
+			unit[0] = 0;
+			split_size = scale * (u32)atoi(arg_val);
+			unit[0] = c;
+		} else {
+			split_size = (u32)atoi(arg_val);
+		}
 		split_duration = 0;
 		break;
 	case 3: //-split-chunk, -splitx
