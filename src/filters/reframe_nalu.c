@@ -3197,9 +3197,12 @@ naldmx_flush:
 			/*ref slice, reset poc*/
 			if (slice_is_ref) {
 				if (first_in_au) {
+					Bool temp_poc_diff = GF_FALSE;
 					//two consecutive IDRs, force poc_diff to 1 if 0 (when we have intra-only) to force frame dispatch
-					if (ctx->last_frame_is_idr && !ctx->poc_diff)
-						ctx->poc_diff=1;
+					if (ctx->last_frame_is_idr && !ctx->poc_diff) {
+						temp_poc_diff = GF_TRUE;
+						ctx->poc_diff = 1;
+					}
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
@@ -3208,6 +3211,8 @@ naldmx_flush:
 					//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
 					ctx->poc_probe_done = 0;
 					ctx->last_frame_is_idr = GF_TRUE;
+					if (temp_poc_diff)
+						ctx->poc_diff = 0;
 				}
 			}
 			/*forced ref slice*/
