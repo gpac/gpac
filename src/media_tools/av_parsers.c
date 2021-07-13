@@ -648,12 +648,12 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 	firstObj = 1;
 	hasVOP = 0;
 	*is_coded = GF_FALSE;
-	m4v->current_object_type = (u32)-1;
 	*frame_type = 0;
 
 	if (!m4v->step_mode)
 		M4V_Reset(m4v, m4v->current_object_start);
 
+	m4v->current_object_type = (u32)-1;
 	go = 1;
 	while (go) {
 		o_type = M4V_LoadObject(m4v);
