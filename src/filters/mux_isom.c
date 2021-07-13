@@ -157,7 +157,7 @@ typedef struct
 	char status_type;
 	u32 last_import_pc;
 
-	u32 nb_frames;
+	u32 nb_frames, frame_offset;
 	u64 down_bytes, down_size;
 	GF_Fraction64 pid_dur;
 	//for import message
@@ -1399,8 +1399,10 @@ sample_entry_setup:
 
 	if (is_true_pid) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
-		if (p) tkw->nb_frames = p->value.uint;
-		else tkw->nb_frames = 0;
+		tkw->nb_frames = p ? p->value.uint : 0;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FRAME_OFFSET);
+		tkw->frame_offset = p ? p->value.uint : 0;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
 	if (p) m_subtype_src = p->value.uint;
@@ -4033,7 +4035,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	} else if (ctx->importer) {
 		if (tkw->nb_frames) {
-			tkw->prog_done = tkw->nb_samples;
+			tkw->prog_done = tkw->nb_samples + tkw->frame_offset;
 			tkw->prog_total = tkw->nb_frames;
 		} else {
 			u64 data_offset = gf_filter_pck_get_byte_offset(pck);
@@ -5672,11 +5674,11 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 					u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
 					pc = (u32) ((tk_done*10000)/tk_total);
 				} else {
-					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / (-ctx->idur.num) );
+					pc = (u32) ( (10000 * (u64) (tkw->nb_samples + tkw->frame_offset) ) / (-ctx->idur.num) );
 				}
 			} else {
 				if (tkw->nb_frames) {
-					pc = (u32) ( (10000 * (u64) tkw->nb_samples) / tkw->nb_frames);
+					pc = (u32) ( (10000 * (u64) (tkw->nb_samples + tkw->frame_offset)) / tkw->nb_frames);
 				} else {
 					if (tkw->pid_dur.num && tkw->pid_dur.den) {
 						pc = (u32) ((tkw->sample.DTS*10000 * tkw->pid_dur.den) / (tkw->pid_dur.num * tkw->tk_timescale));
