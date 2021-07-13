@@ -350,13 +350,18 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 8);
 	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
 	if (e) return e;
+
+	ptr->textJustification = 1;
+
 	//some weird text entries are not QT text nor 3gpp, cf issue #1030
 	if (!ptr->size) {
-		ptr->textJustification = 1;
+		return GF_OK;
+	}
+	if (ptr->size < 43) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box (%d bytes but min 43 required), skiping parsing.\n", ptr->size));
 		return GF_OK;
 	}
 	ISOM_DECREASE_SIZE(ptr, 43);
-
 
 	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
 	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
@@ -418,6 +423,13 @@ GF_Err text_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->textName[pSize] = '\0';				/*Font name*/
 	}
 	ISOM_DECREASE_SIZE(ptr, pSize);
+
+	u32 next_size = gf_bs_peek_bits(bs, 32, 0);
+	if (next_size > ptr->size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Broken text box detected, skiping parsing.\n"));
+		ptr->textJustification = 1;
+		return GF_OK;
+	}
 	return gf_isom_box_array_read(s, bs);
 }
 
