@@ -1088,8 +1088,9 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("std", "dump/write to stdout and assume stdout is opened in binary mode", GF_ARG_BOOL, 0, &dump_std, 2, 0),
  	MP4BOX_ARG("stdb", "dump/write to stdout and try to reopen stdout in binary mode", GF_ARG_BOOL, 0, &dump_std, 1, 0),
  	MP4BOX_ARG("tracks", "print the number of tracks on stdout", GF_ARG_BOOL, 0, &get_nb_tracks, 0, 0),
- 	MP4BOX_ARG("info", "print movie info (no parameter) or track info with specified ID", GF_ARG_STRING, 0, parse_file_info, 0, ARG_IS_FUN|ARG_EMPTY),
+ 	MP4BOX_ARG("info", "print movie info (no parameter) or track extended info with specified ID", GF_ARG_STRING, 0, parse_file_info, 0, ARG_IS_FUN|ARG_EMPTY),
  	MP4BOX_ARG("infon", "print track info for given track number, 1 being the first track in the file", GF_ARG_STRING, 0, parse_file_info, 1, ARG_IS_FUN|ARG_EMPTY),
+ 	MP4BOX_ARG("infox", "print movie and track extended info (same as -info N` for each track)", GF_ARG_BOOL, 0, parse_file_info, 2, ARG_IS_FUN|ARG_EMPTY),
  	MP4BOX_ARG_ALT("diso", "dmp4", "dump IsoMedia file boxes in XML output", GF_ARG_BOOL, 0, &dump_isom, 1, 0),
  	MP4BOX_ARG("dxml", "dump IsoMedia file boxes and known track samples in XML output", GF_ARG_BOOL, 0, &dump_isom, 2, 0),
  	MP4BOX_ARG("disox", "dump IsoMedia file boxes except sample tables in XML output", GF_ARG_BOOL, 0, &dump_isom, 3, 0),
@@ -2770,6 +2771,11 @@ u32 parse_mpegu(char *arg_val, u32 opt)
 u32 parse_file_info(char *arg_val, u32 opt)
 {
 	print_info = opt ? 2 : 1;
+	if (opt==2) {
+		print_info = 2;
+		if (arg_val) return 3;
+		return 0;
+	}
 	if (arg_val) {
 		if (sscanf(arg_val, "%u", &info_track_id) == 1) {
 			char szTk[20];
@@ -6014,7 +6020,7 @@ int mp4boxMain(int argc, char **argv)
 			M4_LOG(GF_LOG_ERROR, ("Cannot print info on a non ISOM file (%s)\n", inName));
 		} else {
 			if (info_track_id) DumpTrackInfo(file, info_track_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE, GF_FALSE);
-			else DumpMovieInfo(file);
+			else DumpMovieInfo(file, (print_info==2) ? GF_TRUE : GF_FALSE);
 		}
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
