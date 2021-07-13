@@ -793,7 +793,7 @@ static const char *mp3_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 	}
 
 	if (nb_frames>=2) {
-		*score = (init_pos==0) ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_SUPPORTED;
+		*score = (init_pos==0) ? GF_FPROBE_SUPPORTED : GF_FPROBE_MAYBE_NOT_SUPPORTED;
 		return "audio/mp3";
 	}
 	if (nb_frames && has_id3) {

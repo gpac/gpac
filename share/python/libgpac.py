@@ -2662,7 +2662,7 @@ def filter_cbk_probe_data(_data, _size, _probe):
     if res==None:
         _probe.contents=0
         return None
-    _probe.contents=1; #GF_FPROBE_MAYBE_SUPPORTED
+    _probe.contents=2; #GF_FPROBE_MAYBE_SUPPORTED
     return res.encode('utf-8')
 
 

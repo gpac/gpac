@@ -609,6 +609,14 @@ void avidmx_finalize(GF_Filter *filter)
 
 }
 
+static const char * avidmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (size<12) return NULL;
+	if (strncmp(data, "RIFF", 4)) return NULL;
+	if (strncmp(data+8, "AVI ", 4)) return NULL;
+	*score = GF_FPROBE_SUPPORTED;
+	return "video/avi";
+}
 
 static const GF_FilterCapability AVIDmxCaps[] =
 {
@@ -641,6 +649,7 @@ GF_FilterRegister AVIDmxRegister = {
 	.configure_pid = avidmx_configure_pid,
 	.process = avidmx_process,
 	.process_event = avidmx_process_event,
+	.probe_data = avidmx_probe_data,
 };
 
 #endif // GPAC_DISABLE_AVILIB
