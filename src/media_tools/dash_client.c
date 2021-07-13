@@ -8075,7 +8075,7 @@ void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **sour
 
 
 GF_EXPORT
-void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_switch)
+void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up)
 {
 	u32 i;
 	for (i=0; i<gf_list_count(dash->groups); i++) {
@@ -8124,6 +8124,9 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 				group->max_complementary_rep_index = switch_to_rep_idx-1;
 
 
+			//deprecated code from old arch, dasher no longer downloads segments and cannot do immediate switch
+			//cf https://github.com/gpac/gpac/issues/1852
+#if 0
 			if (group->local_files || immediate_switch) {
 				u32 keep_seg_index = 0;
 				//keep all scalable enhancements of the first segment
@@ -8203,6 +8206,8 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 					}
 				}
 			}
+#endif
+
 			/*resize max cached segment*/
 			group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
 
