@@ -616,7 +616,7 @@ static const char *latm_dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	}
 	gf_bs_del(bs);
 	if (nb_frames>=2) {
-		*score = nb_skip ? GF_FPROBE_MAYBE_SUPPORTED : GF_FPROBE_SUPPORTED;
+		*score = nb_skip ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/aac+latm";
 	}
 	return NULL;

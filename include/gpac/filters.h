@@ -1996,7 +1996,14 @@ typedef enum
 {
 	/*! (de)mux format is not supported*/
 	GF_FPROBE_NOT_SUPPORTED = 0,
-	/*! (de)mux format is supported with potentially missing features*/
+	/*!
+		For demux only: format is maybe a match but garbage data was found at the start
+	*/
+	GF_FPROBE_MAYBE_NOT_SUPPORTED,
+	/*!
+		- for demux: format is maybe a match and can maybe be demuxed
+		- for mux:  format is supported with potentially missing features
+	*/
 	GF_FPROBE_MAYBE_SUPPORTED,
 	/*! (de)mux format is supported*/
 	GF_FPROBE_SUPPORTED,

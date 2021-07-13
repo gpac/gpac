@@ -692,7 +692,7 @@ static const char * h263dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		//returning a score GF_FPROBE_SUPPORTED conflicting with naludmx_probe_data which also returns GF_FPROBE_SUPPORTED
 		//TODO Change the following code line in order that only naludmx_probe_data is GF_FPROBE_SUPPORTED:
 		//Tips: "nb_frames of naludmx is larger than the one of h263" may be considered.
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		*score = GF_FPROBE_MAYBE_NOT_SUPPORTED;
 		return "video/h263";
 	}
 	return NULL;
