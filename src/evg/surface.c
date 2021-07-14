@@ -1049,7 +1049,6 @@ GF_Err gf_evg_surface_set_path(GF_EVGSurface *surf, GF_Path *gp)
 	return GF_OK;
 }
 
-/* static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx){} */
 static u32 shader_get_pix(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 {
 	rctx->frag_param.tx_x = x;
@@ -1059,7 +1058,7 @@ static u32 shader_get_pix(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 	rctx->frag_param.screen_x += 1;
 	return rctx->fill_col;
 }
-/* static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx){} */
+
 static u64 shader_get_pix_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 {
 	rctx->frag_param.tx_x = x;
@@ -1123,6 +1122,11 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 			gf_mx2d_inverse(&sten->smat);
 
 			evg_texture_init(sten, surf);
+			if (surf->is_shader) {
+				EVG_Texture *_tx = (EVG_Texture *)sten;
+				_tx->tx_get_pixel = shader_get_pix;
+				_tx->tx_get_pixel_wide = shader_get_pix_wide;
+			}
 			break;
 		case GF_STENCIL_LINEAR_GRADIENT:
 		{
@@ -1199,6 +1203,7 @@ GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode ope
 		sten1->type = GF_STENCIL_TEXTURE;
 		surf->is_shader = GF_TRUE;
 		surf->sten = sten1;
+		operand = GF_EVG_OPERAND_NONE;
 	}
 
 	e = gf_evg_setup_stencil(surf, sten1, &mat);

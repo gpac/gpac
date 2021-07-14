@@ -206,6 +206,7 @@ u64 gf_evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col)
 	return GF_COLW_ARGB(a, r, g, b);
 }
 
+#if 0 //unused
 void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat)
 {
 	GF_ColorMatrix cmx_y2r, cmx_r2y;
@@ -252,7 +253,7 @@ void evg_make_ayuv_color_mx(GF_ColorMatrix *cmat, GF_ColorMatrix *yuv_cmat)
 	gf_cmx_multiply(yuv_cmat, cmat);
 	gf_cmx_multiply(yuv_cmat, &cmx_y2r);
 }
-
+#endif
 
 /*
 			YUV420p part
