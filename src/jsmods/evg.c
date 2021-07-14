@@ -1868,7 +1868,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			if (left_val_type_ptr) {
 				*left_val_type_ptr = COMP_V4;
 			}
-			if ((right_val_type==(COMP_V2_XY|COMP_FLAG_INT)) && (op->left_value == VAR_FRAG_YUV)) {
+			if ((right_val_type==(COMP_V2_XY|COMP_FLAG_INT)) && (op->left_value == VAR_FRAG_ARGB)) {
 				u32 tx = ((GF_IVec4 *)right_val)->x * op->tx->width / frag->tx_width;
 				u32 ty = ((GF_IVec4 *)right_val)->y * op->tx->height / frag->tx_height;
 				if (op->tx->wide) {
