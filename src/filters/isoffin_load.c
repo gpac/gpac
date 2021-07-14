@@ -281,6 +281,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			if (ac3cfg) {
 				gf_odf_ac3_cfg_write(ac3cfg, &dsi, &dsi_size);
 				gf_free(ac3cfg);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing AC3/EC3 configuration !\n", track));
 			}
 		}
 			break;
@@ -297,6 +299,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_bs_get_content(bs, &dsi, &dsi_size);
 				gf_bs_del(bs);
 				codec_id = GF_CODECID_TRUEHD;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track %d missing TrueHD configuration !\n", track));
 			}
 			break;
 		}
