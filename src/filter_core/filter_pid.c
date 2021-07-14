@@ -3962,7 +3962,18 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 restart:
 
 	if (num_pass) {
-		loaded_filters = gf_list_new();
+
+		//we're about to load filters to solve the link, use the already linked destination filters as list of loaded filters.
+		//Not doing so may lead to loading several instances of the same filter for cases like:
+		//-i encrypted aout vout
+		//the first pid init (src->aout/vout) will load a demux, registering aout and vout as destination of demux
+		//the second pid init (demux.Audio -> aout) will load cdcrypt, remove aout from demux destinations
+		//the third pid init (demux.video) will
+		//- match cdcrypt and link to it, but will not remove vout from demux destinations, resulting in further linking (this pass)
+		//- create a new cdcrypt to solve demux.video -> vout
+		
+//		loaded_filters = gf_list_new();
+		loaded_filters = gf_list_clone(linked_dest_filters);
 	}
 
 	found_matching_sourceid = GF_FALSE;
