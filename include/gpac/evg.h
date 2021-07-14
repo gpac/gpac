@@ -483,7 +483,7 @@ typedef enum {
 		if first param is 3, use blue/Cr/V channel from texture 3
 	*/
 	GF_EVG_OPERAND_MIX_DYN,
-	/*! mix texture 1 and texure 2 using alpha coef of texture 3, includingalpha channel.
+	/*! mix texture 1 and texure 2 using alpha coef of texture 3, including alpha channel.
 		if first param is 0 or not set, use alpha channel from texture 3
 		if first param is 1, use red channel from texture 3
 		if first param is 2, use green/Cb/U channel from texture 3

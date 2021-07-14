@@ -2495,13 +2495,13 @@ GF_Err gf_evg_setup_multi_texture(GF_EVGSurface *surf, GF_EVGMultiTextureMode op
 	case GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA:
 		if (!sten2) return GF_BAD_PARAM;
 		if (param1>=3)
-			surf->update_run = surf->not_8bits ? replace_alpha_m1_run_a_wide : replace_alpha_m1_run_a;
-		else if (param1>=2)
 			surf->update_run = surf->not_8bits ? replace_alpha_m1_run_b_wide : replace_alpha_m1_run_b;
-		else if (param1>=1)
+		else if (param1>=2)
 			surf->update_run = surf->not_8bits ? replace_alpha_m1_run_g_wide : replace_alpha_m1_run_g;
-		else
+		else if (param1>=1)
 			surf->update_run = surf->not_8bits ? replace_alpha_m1_run_r_wide : replace_alpha_m1_run_r;
+		else
+			surf->update_run = surf->not_8bits ? replace_alpha_m1_run_a_wide : replace_alpha_m1_run_a;
 		surf->sten2 = sten2;
 		break;
 	case GF_EVG_OPERAND_MIX_DYN:
