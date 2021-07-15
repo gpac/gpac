@@ -122,6 +122,7 @@ static void _name##_finalize(JSRuntime *rt, JSValue obj)\
 	GF_WebGLObject *glo = JS_GetOpaque(obj, _name##_class_id);\
 	if (!glo) return;\
 	if (glo->gl_id) _destr(1, &glo->gl_id);\
+	if (glo->par_ctx) gf_list_del_item(glo->par_ctx->all_objects, glo);\
 	gf_free(glo);\
 }\
 JSClassDef _name##_class =\
@@ -135,6 +136,7 @@ static void _name##_finalize(JSRuntime *rt, JSValue obj)\
 {\
 	GF_WebGLObject *glo = JS_GetOpaque(obj, _name##_class_id);\
 	if (!glo) return;\
+	if (glo->par_ctx) gf_list_del_item(glo->par_ctx->all_objects, glo);\
 	gf_free(glo);\
 }\
 JSClassDef _name##_class =\
@@ -181,12 +183,17 @@ Bool WGL_LOAD_INT32_VEC(JSContext *ctx, JSValue val, s32 **values, u32 *v_size, 
 	JSValue v;
 	int res;
 	u32 i, len;
-	if (!JS_IsArray(ctx, val)) return GF_FALSE;
-	v = JS_GetPropertyStr(ctx, val, "length");
-	res = JS_ToInt32(ctx, &len, v);
-	JS_FreeValue(ctx, v);
-	if (res) return GF_FALSE;
-
+	if (JS_IsArray(ctx, val) || JS_IsObject(val) ) {
+		v = JS_GetPropertyStr(ctx, val, "length");
+		if (JS_IsException(v))
+			res = 1;
+		else
+			res = JS_ToInt32(ctx, &len, v);
+		JS_FreeValue(ctx, v);
+		if (res) return GF_FALSE;
+	} else {
+		return GF_FALSE;
+	}
 	if (! *values) {
 		*values = gf_malloc(sizeof(s32) * len);
 		*v_size = len;
@@ -208,11 +215,19 @@ Bool WGL_LOAD_FLOAT_VEC(JSContext *ctx, JSValue val, Float **values, u32 *v_size
 	JSValue v;
 	int res;
 	u32 i, len;
-	if (!JS_IsArray(ctx, val)) return GF_FALSE;
-	v = JS_GetPropertyStr(ctx, val, "length");
-	res = JS_ToInt32(ctx, &len, v);
-	JS_FreeValue(ctx, v);
-	if (res) return GF_FALSE;
+
+	if (JS_IsArray(ctx, val) || JS_IsObject(val) ) {
+		v = JS_GetPropertyStr(ctx, val, "length");
+		if (JS_IsException(v))
+			res = 1;
+		else
+			res = JS_ToInt32(ctx, &len, v);
+
+		JS_FreeValue(ctx, v);
+		if (res) return GF_FALSE;
+	} else {
+		return GF_FALSE;
+	}
 
 	if (! *values) {
 		*values = gf_malloc(sizeof(Float) * len);
@@ -239,10 +254,15 @@ uint8_t *wgl_GetArrayBuffer(JSContext *ctx, u32 *size, JSValueConst obj)
 	JSValue v;
 	/*ArrayBuffer*/
 	size_t psize;
-	uint8_t *res = JS_GetArrayBuffer(ctx, &psize, obj);
-	if (res) {
-		*size = (u32) psize;
-		return res;
+	uint8_t *res;
+	if (JS_IsArrayBuffer(ctx, obj)) {
+		res = JS_GetArrayBuffer(ctx, &psize, obj);
+		if (res) {
+			*size = (u32) psize;
+			return res;
+		}
+		*size = 0;
+		return NULL;
 	}
 	/*ArrayView*/
 	v = JS_GetPropertyStr(ctx, obj, "buffer");
@@ -377,6 +397,7 @@ static JSValue wgl_getSupportedExtensions(JSContext *ctx, JSValueConst this_val,
 
 static JSValue wgl_getExtension(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+#if 0
 	const char *gl_exts, *ext;
 	Bool found = GF_FALSE;
 	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
@@ -392,6 +413,8 @@ static JSValue wgl_getExtension(JSContext *ctx, JSValueConst this_val, int argc,
 
 	JS_FreeCString(ctx, ext);
 	if (!found) return JS_NULL;
+#endif
+
 	return JS_NULL;
 }
 
@@ -702,7 +725,7 @@ static JSValue wgl_getShaderPrecisionFormat(JSContext *ctx, JSValueConst this_va
 #else
 	range[0] = 0;
 	range[1] = 128;
-	precision = 128;
+	precision = 1;
 #endif
 	ret = JS_NewObject(ctx);
 	JS_SetPropertyStr(ctx, ret, "rangeMin", JS_NewInt32(ctx, range[0]));
@@ -996,7 +1019,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 {
 	GLint shader=0;
 	Bool has_gptx=GF_FALSE;
-	char *source, *gf_source=NULL;
+	char *source, *gf_source=NULL, *patch_precision = NULL;
 	const char *final_source;
 	u32 len = 0;
 	u32 count, i;
@@ -1138,13 +1161,26 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 		return js_throw_err_msg(ctx, WGL_INVALID_VALUE, "Failed to rewrite shader");
 	}
 
-	len = (u32) strlen(final_source);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONSOLE, ("[WebGL] Shader rewritten as\n%s", final_source));
+	if (strstr(final_source, "highp") || strstr(final_source, "mediump") || strstr(final_source, "lowp")) {
+		while (1) {
+			char *next = strstr(final_source, "precision ");
+			if (!next) break;
+			final_source = strchr(next, '\n');
+		}
+		patch_precision = NULL;
+		gf_dynstrcat(&patch_precision, "#define highp\n#define mediump\n#define lowp\n", NULL);
+		gf_dynstrcat(&patch_precision, final_source, NULL);
+		final_source = patch_precision;
+	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONSOLE, ("[WebGL] Shader source is\n%s", final_source));
+
+	len = (u32) strlen(final_source);
 	glShaderSource(shader, 1, &final_source, &len);
 
 	JS_FreeCString(ctx, source);
 	if (gf_source) gf_free(gf_source);
+	if (patch_precision) gf_free(patch_precision);
 	return JS_UNDEFINED;
 }
 
@@ -1278,6 +1314,8 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 			type = GL_UNSIGNED_BYTE;
 			break;
 		default:
+			//not set yet
+			if (!width && !height && !pixfmt) return JS_UNDEFINED;
 			return js_throw_err_msg(ctx, WGL_INVALID_ENUM, "[WebGL] Pixel format %s not yet mapped to texImage2D", gf_pixel_fmt_name(pixfmt) );
 		}
 		internalformat = GL_RGBA;
