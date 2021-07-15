@@ -937,6 +937,10 @@ interface Texture {
 	*/
 	Texture(FilterPacket packet);
 
+	/*! Empty texture constructor. This is usually needed async texture load.
+	*/
+	Texture();
+
 	/*! filtering mode - see \ref gf_evg_stencil_set_filter*/
 	writeonly unsigned long filtering;
 	/*! color matrix - see \ref gf_evg_stencil_set_color_matrix. Setting to null resets the color matrix*/
@@ -1018,6 +1022,16 @@ interface Texture {
 	*/
 	void update(FilterPacket packet);
 
+	/*! load local file into texture. Only JPEG and PNG local files are supported.
+	\param filename file name on local drive
+	\param is_rel_script if true, indicates the file path is relative to the script location. Otherwise it is relative to the current directory
+	*/
+	load(DOMString filename, optional boolean is_rel_script=false);
+
+	/*! load file data into texture. Only JPEG and PNG data are supported.
+	\param img_data image file data
+	*/
+	load(ArrayBuffer img_data);
 
 	/*! gets RGB pixel value in a texture
 	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)

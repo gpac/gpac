@@ -5664,6 +5664,42 @@ static GF_Err texture_load_file(JSContext *c, GF_JSTexture *tx, const char *file
 	return e;
 }
 
+static JSValue texture_load(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_Err e;
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil || (argc<1) ) return JS_EXCEPTION;
+
+	if (JS_IsString(argv[0])) {
+		JSValue ret = JS_UNDEFINED;
+		Bool rel_to_script = GF_FALSE;
+		const char *str = JS_ToCString(c, argv[0]);
+		if (argc>1) rel_to_script = JS_ToBool(c, argv[1]);
+		e = texture_load_file(c, tx, str, rel_to_script);
+		if (e) {
+			ret = js_throw_err_msg(c, e, "Failed to load texture file %s: %s", str, gf_error_to_string(e));
+		}
+		JS_FreeCString(c, str);
+		return ret;
+	}
+	if (JS_IsArrayBuffer(c, argv[0])) {
+		size_t data_size;
+		u8 *data = JS_GetArrayBuffer(c, &data_size, argv[0]);
+		if (!data) {
+			e = GF_BAD_PARAM;
+		} else {
+			e = texture_load_data(c, tx, data, (u32) data_size);
+		}
+		if (e) {
+			return js_throw_err_msg(c, e, "Failed to load texture: %s", gf_error_to_string(e));
+		}
+		return JS_UNDEFINED;
+	}
+	
+	return JS_EXCEPTION;
+}
+
+
 static const JSCFunctionListEntry texture_funcs[] =
 {
 	JS_CGETSET_MAGIC_DEF("filtering", NULL, texture_setProperty, TX_FILTER),
@@ -5690,6 +5726,7 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("update", 0, texture_update),
 	JS_CFUNC_DEF("get_pixelf", 0, texture_get_pixelf),
 	JS_CFUNC_DEF("get_pixel", 0, texture_get_pixel),
+	JS_CFUNC_DEF("load", 0, texture_load),
 
 };
 
