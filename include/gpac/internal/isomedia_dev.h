@@ -196,6 +196,8 @@ enum
 	GF_ISOM_BOX_TYPE_VVC1	= GF_4CC( 'v', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_VVI1	= GF_4CC( 'v', 'v', 'i', '1' ),
 	GF_ISOM_BOX_TYPE_VVCC	= GF_4CC( 'v', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_VVS1	= GF_4CC( 'v', 'v', 's', '1' ),
+	GF_ISOM_BOX_TYPE_VVNC	= GF_4CC( 'v', 'v', 'n', 'C' ),
 
 	GF_ISOM_BOX_TYPE_AV1C = GF_4CC('a', 'v', '1', 'C'),
 	GF_ISOM_BOX_TYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
@@ -1418,9 +1420,15 @@ typedef struct
 
 typedef struct
 {
-	GF_ISOM_BOX
+	GF_ISOM_FULL_BOX
 	GF_VVCConfig *config;
 } GF_VVCConfigurationBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8 nal_unit_size;
+} GF_VVCNaluConfigurationBox;
 
 
 typedef struct

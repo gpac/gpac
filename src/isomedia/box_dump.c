@@ -1769,6 +1769,18 @@ GF_Err vvcc_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+
+GF_Err vvnc_box_dump(GF_Box *a, FILE * trace)
+{
+	GF_VVCNaluConfigurationBox *p = (GF_VVCNaluConfigurationBox *) a;
+
+	gf_isom_box_dump_start(a, "VVCNaluConfigurationBox", trace);
+	gf_fprintf(trace, " nal_unit_size=\"%d\">\n", p->nal_unit_size);
+	gf_isom_box_dump_done("VVCNaluConfigurationBox", a, trace);
+	return GF_OK;
+}
+
+
 GF_Err av1c_box_dump(GF_Box *a, FILE *trace) {
 	GF_AV1ConfigurationBox *ptr = (GF_AV1ConfigurationBox*)a;
 	gf_fprintf(trace, "<AV1ConfigurationBox>\n");
