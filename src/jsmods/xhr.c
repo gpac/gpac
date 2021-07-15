@@ -542,7 +542,10 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
 		ctx->url = par.uri.url;
 	} else {
-		ctx->url = gf_strdup(val);
+		const char *par_url = jsf_get_script_filename(c);
+		ctx->url = gf_url_concatenate(par_url, val);
+		if (!ctx->url)
+			ctx->url = gf_strdup(val);
 	}
 	JS_FreeCString(c, val);
 

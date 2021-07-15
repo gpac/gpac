@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *				Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -23,8 +23,8 @@
  *
  */
 
-#ifndef SG_QJS_COMMONE
-#define SG_QJS_COMMONE
+#ifndef _SG_QJS_COMMON_
+#define _SG_QJS_COMMON_
 
 #include <gpac/list.h>
 #include <gpac/scenegraph.h>
@@ -247,8 +247,10 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml);
 Bool gs_js_context_is_valid(JSContext *ctx);
 JSRuntime *gf_js_get_rt();
 
+const char *jsf_get_script_filename(JSContext *c);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif //SG_QJS_COMMONE
+#endif //_SG_QJS_COMMON_

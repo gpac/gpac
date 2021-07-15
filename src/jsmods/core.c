@@ -2494,7 +2494,12 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		u32 buf_len;
 		u8 *buf;
 		JSValue func_val;
-		GF_Err e = gf_file_load_data(module_name, &buf, &buf_len);
+		char *url;
+		const char *par_url = jsf_get_script_filename(ctx);
+		url = gf_url_concatenate(par_url, module_name);
+
+		GF_Err e = gf_file_load_data(url ? url : module_name, &buf, &buf_len);
+		if (url) gf_free(url);
 
 		if (e != GF_OK) {
 			JS_ThrowReferenceError(ctx, "could not load module filename '%s': %s", module_name, gf_error_to_string(e) );
