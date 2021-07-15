@@ -2524,7 +2524,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 		JS_FreeValue(ctx, obj);
 		return JS_EXCEPTION;
 	}
-	ab_data = JS_GetArrayBuffer(ctx, &ab_size, argv[0]);
+	ab_data = JS_IsArrayBuffer(ctx, argv[0]) ? JS_GetArrayBuffer(ctx, &ab_size, argv[0]) : NULL;
 	//this is an array buffer
 	if (ab_data) {
 		if (use_shared) {
