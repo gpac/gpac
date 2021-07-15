@@ -1083,6 +1083,9 @@ int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
 int JS_AtomIsArrayIndex(JSContext *ctx, uint32_t *pval, JSAtom atom);
 int JS_IsArrayBuffer(JSContext *ctx, JSValueConst val);
 
+/* return -1 if exception (proxy case) or TRUE/FALSE */
+int JS_SwitchClassID(JSValue obj, JSClassID class_id);
+
 void *JS_GetOpaque_Nocheck(JSValueConst obj);
 /*end GPAC patched*/
 

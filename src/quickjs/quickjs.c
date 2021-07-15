@@ -54255,3 +54255,14 @@ int JS_IsArrayBuffer(JSContext *ctx, JSValueConst val)
     }
 	return FALSE;
 }
+
+/* return -1 if exception (proxy case) or TRUE/FALSE */
+int JS_SwitchClassID(JSValue obj, JSClassID class_id)
+{
+    JSObject *p;
+    if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
+        return FALSE;
+    p = JS_VALUE_GET_OBJ(obj);
+    p->class_id = class_id;
+	return TRUE;
+}

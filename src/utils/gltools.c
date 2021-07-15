@@ -1598,6 +1598,9 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		for (i=0; i<tx->nb_textures; i++) {
 			sprintf(szName, "_gf_%s_%d", tx_name, i+1);
 			loc = glGetUniformLocation(gl_program, szName);
+			if (!i && (loc == -1))
+				loc = glGetUniformLocation(gl_program, tx_name);
+
 			GL_CHECK_ERR()
 			if (loc == -1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to locate texture %s in shader\n", szName));

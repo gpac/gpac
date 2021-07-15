@@ -1033,6 +1033,18 @@ interface Texture {
 	*/
 	load(ArrayBuffer img_data);
 
+	/*! Makes the texture a named texture for WebGL.
+
+	If a texImage2D is done with a named EVG texture:
+		- the associated WebGL texture becomes a named texture
+		- any update() on the EVG texture will update the WebGL texture.
+
+	\warning The shaders must be (re)compiled after the first update() on the texture.
+
+	\param name the named texture to use.
+	*/
+	set_named(DOMString name);
+
 	/*! gets RGB pixel value in a texture
 	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)
 	\param t vertical normalized texture coordinate of pixel, between 0 (top) and 1.0 (bottom)

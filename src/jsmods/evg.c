@@ -70,6 +70,11 @@ typedef struct
 	GF_EVGStencil *stencil;
 	JSValue param_fun, obj;
 	JSContext *ctx;
+
+#ifndef GPAC_DISABLE_3D
+	char *named_tx;
+	void *gl_named_tx;
+#endif //GPAC_DISABLE_3D
 } GF_JSTexture;
 
 #define MAX_ATTR_DIM	4
@@ -4988,6 +4993,11 @@ static void texture_finalize(JSRuntime *rt, JSValue obj)
 	if (tx->stencil)
 		gf_evg_stencil_delete(tx->stencil);
 	JS_FreeValueRT(rt, tx->param_fun);
+#ifndef GPAC_DISABLE_3D
+	if (tx->named_tx) {
+		gf_free(tx->named_tx);
+	}
+#endif
 	gf_free(tx);
 }
 
@@ -5474,7 +5484,6 @@ static JSValue texture_convolution(JSContext *c, JSValueConst obj, int argc, JSV
 	return nobj;
 }
 
-
 static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_Err e;
@@ -5502,6 +5511,19 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 		else if (jsf_is_packet(c, argv[0])) {
 			e = jsf_get_filter_packet_planes(c, argv[0], &width, &height, &pf, &stride, &stride_uv, (const u8 **)&data, (const u8 **)&p_u, (const u8 **)&p_v, (const u8 **)&p_a);
 			if (e) return js_throw_err(c, e);
+#ifndef GPAC_DISABLE_3D
+			if (tx->gl_named_tx) {
+				JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *named_tx, Bool force_resetup);
+
+				Bool force_resetup = GF_FALSE;
+				if (pf != tx->pf) {
+					tx->pf = pf;
+					force_resetup = GF_TRUE;
+				}
+				JSValue res = wgl_named_texture_upload(c, argv[0], tx->gl_named_tx, force_resetup);
+				if (JS_IsException(res)) return res;
+			}
+#endif //GPAC_DISABLE_3D
 		} else {
 			return js_throw_err(c, GF_BAD_PARAM);
 		}
@@ -5699,6 +5721,20 @@ static JSValue texture_load(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	return JS_EXCEPTION;
 }
 
+static JSValue texture_set_named(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil || (argc<1) ) return JS_EXCEPTION;
+
+#ifndef GPAC_DISABLE_3D
+	const char *str = JS_ToCString(c, argv[0]);
+	if (tx->named_tx) gf_free(tx->named_tx);
+	tx->named_tx = str ? gf_strdup(str) : NULL;
+	JS_FreeCString(c, str);
+#endif
+	return JS_UNDEFINED;
+}
+
 
 static const JSCFunctionListEntry texture_funcs[] =
 {
@@ -5727,7 +5763,7 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("get_pixelf", 0, texture_get_pixelf),
 	JS_CFUNC_DEF("get_pixel", 0, texture_get_pixel),
 	JS_CFUNC_DEF("load", 0, texture_load),
-
+	JS_CFUNC_DEF("set_named", 0, texture_set_named),
 };
 
 
@@ -5932,6 +5968,23 @@ Bool js_evg_get_texture_info(JSContext *ctx, JSValue this_obj, u32 *width, u32 *
 	if (p_a) *p_a = NULL;
 	return GF_TRUE;
 }
+
+#ifndef GPAC_DISABLE_3D
+const char *js_evg_get_texture_named(JSContext *ctx, JSValue this_obj)
+{
+	GF_JSTexture *tx = JS_GetOpaque(this_obj, texture_class_id);
+	if (!tx) return NULL;
+	return tx->named_tx;
+}
+
+void js_evg_set_named_texture_gl(JSContext *ctx, JSValue this_obj, void *gl_named_tx)
+{
+	GF_JSTexture *tx = JS_GetOpaque(this_obj, texture_class_id);
+	if (!tx) return;
+	tx->gl_named_tx = gl_named_tx;
+}
+#endif
+
 
 static void text_reset(GF_JSText *txt)
 {
