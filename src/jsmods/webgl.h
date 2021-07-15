@@ -79,9 +79,11 @@ typedef struct
 	GLint active_texture;
 
 	struct _wgl_named_texture *bound_named_texture;
+	struct __wgl_object *bound_texture;
+	u32 bound_texture_target;
 } GF_WebGLContext;
 
-typedef struct
+typedef struct __wgl_object
 {
 	GLuint gl_id;
 	GF_WebGLContext *par_ctx;
@@ -92,7 +94,7 @@ typedef struct
 
 typedef struct _wgl_named_texture
 {
-	Bool shader_attached;
+	u32 shader_attached;
 	GF_WebGLContext *par_ctx;
 	char *tx_name;
 
