@@ -156,6 +156,8 @@ struct __xhr_context
 
 	/* dom graph in which the XHR is created */
 	GF_SceneGraph *owning_graph;
+	Bool local_graph;
+
 #ifndef GPAC_DISABLE_SVG
 	/* dom graph used to parse XML into */
 	GF_SceneGraph *document;
@@ -268,14 +270,14 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 static void xml_http_del_data(XMLHTTPContext *ctx)
 {
 	if (!JS_IsUndefined(ctx->arraybuffer)) {
-		JS_DetachArrayBuffer(ctx->c, ctx->arraybuffer);
 		JS_FreeValue(ctx->c, ctx->arraybuffer);
 		ctx->arraybuffer = JS_UNDEFINED;
 	}
-	if (ctx->data) {
+	//only free data if no arraybuffer was used to fetch it
+	else if (ctx->data) {
 		gf_free(ctx->data);
-		ctx->data = NULL;
 	}
+	ctx->data = NULL;
 	ctx->size = 0;
 }
 
@@ -363,10 +365,23 @@ static void xml_http_finalize(JSRuntime *rt, JSValue obj)
 	JS_FreeValueRT(rt, ctx->onreadystatechange);
 	JS_FreeValueRT(rt, ctx->ontimeout);
 	xml_http_reset(ctx);
+
 #ifndef GPAC_DISABLE_SVG
-	if (ctx->event_target)
+	if (ctx->event_target) {
+		if (ctx->local_graph) {
+			while (gf_list_count(ctx->event_target->listeners)) {
+				GF_Node *listener = gf_list_get(ctx->event_target->listeners, 0);
+				gf_dom_listener_del(listener, ctx->event_target);
+			}
+		}
 		gf_dom_event_target_del(ctx->event_target);
+	}
 #endif
+
+	if (ctx->local_graph) {
+		dom_js_unload();
+		gf_sg_del(ctx->owning_graph);
+	}
 
 	gf_free(ctx);
 }
@@ -388,7 +403,10 @@ void xhr_get_event_target(JSContext *c, JSValue obj, GF_SceneGraph **sg, GF_DOME
 		XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
 		if (!ctx) return;
 
-		*sg = xml_get_scenegraph(c);
+		if (ctx->local_graph)
+			*sg = ctx->owning_graph;
+		else
+			*sg = xml_get_scenegraph(c);
 		*target = ctx->event_target;
 	}
 }
@@ -408,6 +426,12 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 	p->c = c;
 	p->_this = obj;
 	p->owning_graph = xml_get_scenegraph(c);
+	if (!p->owning_graph) {
+		p->local_graph = GF_TRUE;
+		p->owning_graph = gf_sg_new();
+		dom_js_load(p->owning_graph, c);
+	}
+
 #ifndef GPAC_DISABLE_SVG
 	if (p->owning_graph)
 		p->event_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_XHR, p);
@@ -461,6 +485,7 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	gf_js_lock(ctx->c, GF_FALSE);
 
 	if (! ctx->owning_graph) return;
+	if (ctx->local_graph) return;
 
 	/*Flush BIFS eventOut events*/
 #ifndef GPAC_DISABLE_VRML
@@ -784,7 +809,6 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 			/*detach arraybuffer if any*/
 			if (!JS_IsUndefined(ctx->arraybuffer)) {
-				JS_DetachArrayBuffer(ctx->c, ctx->arraybuffer);
 				JS_FreeValue(ctx->c, ctx->arraybuffer);
 				ctx->arraybuffer = JS_UNDEFINED;
 			}
@@ -1117,6 +1141,13 @@ static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int arg
 	return JS_TRUE;
 }
 
+static void xml_http_array_buffer_free(JSRuntime *rt, void *opaque, void *ptr)
+{
+	//might already been destroyed !
+//	XMLHTTPContext *ctx = (XMLHTTPContext *)opaque;
+	gf_free(ptr);
+}
+
 static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
@@ -1174,10 +1205,10 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 			case XHR_RESPONSETYPE_ARRAYBUFFER:
 				if (JS_IsUndefined(ctx->arraybuffer)) {
-					ctx->arraybuffer = JS_NewArrayBuffer(c, ctx->data, ctx->size, NULL, ctx, 0/*1*/);
+					ctx->arraybuffer = JS_NewArrayBuffer(c, ctx->data, ctx->size, xml_http_array_buffer_free, ctx, 0/*1*/);
 				}
 				return JS_DupValue(c, ctx->arraybuffer);
-				break;
+
 			case XHR_RESPONSETYPE_DOCUMENT:
 #ifndef GPAC_DISABLE_SVG
 				if (ctx->data) {

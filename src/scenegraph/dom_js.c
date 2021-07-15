@@ -720,6 +720,7 @@ err_exit:
 	return GF_BAD_PARAM;
 }
 
+void svg_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer);
 
 static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node *n, GF_Node *vrml_node,
                                 JSContext *c, char *callback, JSValue funval, JSValue evt_handler)
@@ -748,6 +749,7 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 				handler->js_data->fun_val = JS_DupValue(c, funval);
 				handler->sgprivate->UserCallback = dom_handler_remove;
 				gf_list_add(dom_rt->handlers, handler);
+				handler->handle_event = svg_execute_handler;
 			}
 			handler->js_data->evt_listen_obj = evt_handler;
 		}
