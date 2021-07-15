@@ -3005,10 +3005,7 @@ GF_Err vvcc_box_read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *vvcc_box_new()
 {
-	GF_VVCConfigurationBox *tmp = (GF_VVCConfigurationBox *) gf_malloc(sizeof(GF_VVCConfigurationBox));
-	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_VVCConfigurationBox));
-	tmp->type = GF_ISOM_BOX_TYPE_HVCC;
+	ISOM_DECL_BOX_ALLOC(GF_VVCNaluConfigurationBox, GF_ISOM_BOX_TYPE_VVCC);
 	return (GF_Box *)tmp;
 }
 
@@ -3019,7 +3016,8 @@ GF_Err vvcc_box_write(GF_Box *s, GF_BitStream *bs)
 	GF_VVCConfigurationBox *ptr = (GF_VVCConfigurationBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	if (!ptr->config) return GF_OK;
-	e = gf_isom_box_write_header(s, bs);
+
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
 	return gf_odf_vvc_cfg_write_bs(ptr->config, bs);
@@ -3070,6 +3068,50 @@ GF_Err vvcc_box_size(GF_Box *s)
 			ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ar->nalus, j))->size;
 		}
 	}
+	return GF_OK;
+}
+#endif
+
+
+void vvnc_box_del(GF_Box *s)
+{
+	GF_VVCNaluConfigurationBox *ptr = (GF_VVCNaluConfigurationBox*)s;
+	gf_free(ptr);
+}
+
+GF_Err vvnc_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_VVCNaluConfigurationBox *ptr = (GF_VVCNaluConfigurationBox *)s;
+
+	ISOM_DECREASE_SIZE(ptr, 1)
+	gf_bs_read_int(bs, 6);
+	ptr->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
+	return GF_OK;
+}
+
+GF_Box *vvnc_box_new()
+{
+	ISOM_DECL_BOX_ALLOC(GF_VVCNaluConfigurationBox, GF_ISOM_BOX_TYPE_VVNC);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err vvnc_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_VVCNaluConfigurationBox *ptr = (GF_VVCNaluConfigurationBox *) s;
+	if (!s) return GF_BAD_PARAM;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, 0, 6);
+	gf_bs_write_int(bs, ptr->nal_unit_size-1, 2);
+	return GF_OK;
+}
+
+GF_Err vvnc_box_size(GF_Box *s)
+{
+	s->size += 1;
 	return GF_OK;
 }
 #endif
