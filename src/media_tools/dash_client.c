@@ -6302,7 +6302,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			if (!group->dash->route_clock_state) {
 				group->prev_segment_ok = GF_FALSE;
 
-				if ((dash->mpd->type==GF_DASH_STATIC) && (dash->chaining_mode==2) && dash->chain_fallback) {
+				if ((dash->mpd->type==GF_MPD_TYPE_STATIC) && (dash->chaining_mode==2) && dash->chain_fallback) {
 					dash->dash_state = GF_DASH_STATE_CHAIN_FALLBACK;
 				}
 			}
