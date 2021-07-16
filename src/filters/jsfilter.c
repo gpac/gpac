@@ -4529,7 +4529,6 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 
 	JSValue evt_ctor = JS_NewCFunction2(ctx, jsf_event_constructor, "FilterEvent", 1, JS_CFUNC_constructor, 0);
     JS_SetPropertyStr(ctx, global_obj, "FilterEvent", evt_ctor);
-
 }
 
 static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)

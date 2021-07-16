@@ -476,7 +476,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 			gf_dynstrcat(&final_src, shader_src, NULL);
 
 			//add texture code
-			gf_gl_txw_insert_fragment_shader(pixfmt, "maintx", &final_src);
+			gf_gl_txw_insert_fragment_shader(pixfmt, "maintx", &final_src, GF_FALSE);
 
 			//append the rest
 			if (sep) {

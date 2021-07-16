@@ -733,7 +733,7 @@ static char *gl_shader_vars_externalOES = \
 ";
 
 
-Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source)
+Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source, Bool y_flip)
 {
 	char szCode[4000];
 	const char *shader_vars = NULL;
@@ -859,6 +859,9 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 	gf_dynstrcat(f_source, "\nvec4 ", NULL);
 	gf_dynstrcat(f_source, tx_name, NULL);
 	gf_dynstrcat(f_source, "_sample(vec2 _gpacTexCoord) {\n", NULL);
+	if (y_flip) {
+		gf_dynstrcat(f_source, "_gpacTexCoord.t = 1.0 - _gpacTexCoord.t;\n", NULL);
+	}
 	/*format with max 4 tx_name (for yuva) + matrix for yuv*/
 	sprintf(szCode, shader_fun, tx_name, tx_name, tx_name, tx_name, tx_name);
 
@@ -1090,6 +1093,7 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glmode);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glmode);
 #endif
+			GL_CHECK_ERR()
 		}
 
 
@@ -1742,7 +1746,7 @@ void gf_opengl_init()
 {
 }
 
-Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source)
+Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source, Bool y_flip)
 {
 	return GF_FALSE;
 }

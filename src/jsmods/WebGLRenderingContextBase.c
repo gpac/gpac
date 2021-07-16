@@ -1005,18 +1005,7 @@ static JSValue wgl_linkProgram(JSContext *ctx, JSValueConst this_val, int argc, 
 	return ret_val_js;
 }
 
-static JSValue wgl_pixelStorei(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
-	JSValue ret_val_js = JS_UNDEFINED;
-	u32 pname = 0;
-	s32 param = 0;
-	WGL_CHECK_CONTEXT
-	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
-	WGL_GET_U32(pname, argv[0]);
-	WGL_GET_S32(param, argv[1]);
-	glPixelStorei(pname, param);
-	return ret_val_js;
-}
+JSValue wgl_pixelStorei(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 
 static JSValue wgl_polygonOffset(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
