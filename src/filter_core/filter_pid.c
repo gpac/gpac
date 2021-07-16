@@ -6911,7 +6911,14 @@ GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_ti
 GF_EXPORT
 u32 gf_filter_pid_get_timescale(GF_FilterPid *pid)
 {
-	GF_PropertyMap *map = pid ? gf_list_get(pid->pid->properties, 0) : 0;
+	GF_PropertyMap *map;
+	if (!pid) return 0;
+	//if input pid, the active PID config is the first one
+	if (PID_IS_INPUT(pid))
+		map = gf_list_get(pid->pid->properties, 0);
+	//if output pid, the active PID config is the last one one
+	else
+		map = gf_list_last(pid->pid->properties);
 	return map ? map->timescale : 0;
 }
 
