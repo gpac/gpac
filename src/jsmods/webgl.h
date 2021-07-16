@@ -89,16 +89,19 @@ typedef struct __wgl_object
 	GF_WebGLContext *par_ctx;
 	JSValue obj; //object reference
 	JSClassID class_id; //object class
+	u32 tx_height; //for textures
+	u8 flip_y; //for textures
 } GF_WebGLObject;
 
 
 typedef struct _wgl_named_texture
 {
-	u32 shader_attached;
 	GF_WebGLContext *par_ctx;
 	char *tx_name;
-
 	GF_GLTextureWrapper tx;
+
+	u8 shader_attached;
+	u8 flip_y;
 } GF_WebGLNamedTexture;
 
 Bool js_evg_get_texture_info(JSContext *ctx, JSValue this_obj, u32 *width, u32 *height, u32 *pixfmt, u8 **p_data, u32 *stride, u8 **p_u, u8 **p_v, u32 *stride_uv, u8 **p_a);
@@ -120,6 +123,8 @@ typedef GF_WebGLObject *WebGLUniformLocation;
 #define WGL_INVALID_VALUE 0x0501
 #define WGL_INVALID_OPERATION 0x0502
 #define WGL_OUT_OF_MEMORY 0x0505
+
+#define GL_UNPACK_FLIP_Y_WEBGL	0x9240
 
 
 enum

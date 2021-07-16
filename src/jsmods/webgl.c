@@ -562,11 +562,14 @@ static JSValue wgl_getParameter(JSContext *ctx, JSValueConst this_val, int argc,
 	case GL_SCISSOR_TEST:
 	case GL_STENCIL_TEST:
 #if 0
-	case GL_UNPACK_FLIP_Y_WEBGL:
 	case GL_UNPACK_PREMULTIPLY_ALPHA_WEBGL:
 #endif
 		glGetBooleanv(pname, bools);
 		return bools[0] ? JS_TRUE : JS_FALSE;
+	case GL_UNPACK_FLIP_Y_WEBGL:
+		if (glc->bound_texture && glc->bound_texture->flip_y) return JS_TRUE;
+		if (glc->bound_named_texture && glc->bound_named_texture->flip_y) return JS_TRUE;
+		return JS_FALSE;
 
 	//floats
 	case GL_DEPTH_CLEAR_VALUE:
@@ -790,6 +793,30 @@ static JSValue wgl_getTexParameter(JSContext *ctx, JSValueConst this_val, int ar
 	glGetTexParameteriv(target, pname, &params);
 	return JS_NewInt32(ctx, params);
 }
+
+JSValue wgl_pixelStorei(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSValue ret_val_js = JS_UNDEFINED;
+	u32 pname = 0;
+	s32 param = 0;
+	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	if (!glc) return js_throw_err(ctx, WGL_INVALID_OPERATION);
+
+	if (argc<2) return js_throw_err(ctx, WGL_INVALID_VALUE);
+	WGL_GET_U32(pname, argv[0]);
+	WGL_GET_S32(param, argv[1]);
+	if (pname==GL_UNPACK_FLIP_Y_WEBGL) {
+		if (glc->bound_named_texture)
+			glc->bound_named_texture->flip_y = param ? GF_TRUE : GF_FALSE;
+		else if (glc->bound_texture)
+			glc->bound_texture->flip_y = param ? GF_TRUE : GF_FALSE;
+		return ret_val_js;
+	}
+	glPixelStorei(pname, param);
+	return ret_val_js;
+}
+
+
 static JSValue wgl_getUniform(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GLint program_shader=0;
@@ -1093,7 +1120,7 @@ static JSValue wgl_shaderSource(JSContext *ctx, JSValueConst this_val, int argc,
 					return ret;
 				}
 				//insert our uniform declaration and code
-				if (gf_gl_txw_insert_fragment_shader(named_tx->tx.pix_fmt, named_tx->tx_name, &gf_source_pass1))
+				if (gf_gl_txw_insert_fragment_shader(named_tx->tx.pix_fmt, named_tx->tx_name, &gf_source_pass1, named_tx->flip_y))
 					named_tx->shader_attached = 1;
 				continue;
 			}
@@ -1244,6 +1271,42 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 const char *js_evg_get_texture_named(JSContext *ctx, JSValue this_obj);
 void js_evg_set_named_texture_gl(JSContext *ctx, JSValue this_obj, void *gl_named_tx);
 
+static void wgl_tex_image_2d(GF_WebGLContext *glc, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const u8 *pixels)
+{
+	u32 bpp=3;
+	u32 i;
+	if (!glc->bound_texture) return;
+
+	glc->bound_texture->tx_height = height;
+
+	if (!glc->bound_texture->flip_y) {
+		glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+		return;
+	}
+
+	switch (format) {
+	case GF_PIXEL_GREYSCALE:
+		bpp = 1;
+		break;
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
+		bpp = 2;
+		break;
+	case GF_PIXEL_RGB:
+		bpp = 3;
+		break;
+	case GF_PIXEL_RGBA:
+		bpp = 4;
+		break;
+	}
+	glTexImage2D(target, level, internalformat, width, height, border, format, type, NULL);
+
+	for (i=0; i<height; i++) {
+		const u8 *pix_buf = pixels + bpp * width * (height-i-1);
+		glTexSubImage2D(target, level, 0, i, width, 1, format, type, pix_buf);
+	}
+}
+
 static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 target = 0;
@@ -1290,7 +1353,7 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 		WGL_GET_U32(type, argv[7]);
 		pix_buf = wgl_GetArrayBuffer(ctx, &pix_buf_size, argv[8]);
 
-		glTexImage2D(target, level, internalformat, width, height, border, format, type, pix_buf);
+		wgl_tex_image_2d(glc, target, level, internalformat, width, height, border, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
 
@@ -1305,6 +1368,7 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 			named_tx->tx_name = gf_strdup(tx_named);
 			named_tx->tx.mx_cicp = -1;
 			named_tx->shader_attached = 0;
+			named_tx->flip_y = glc->bound_texture->flip_y;
 			js_evg_set_named_texture_gl(ctx, argv[5], named_tx);
 
 			JS_SwitchClassID(glc->bound_texture->obj, NamedTexture_class_id);
@@ -1333,20 +1397,24 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 		switch (pixfmt) {
 		case GF_PIXEL_GREYSCALE:
 			format = GL_LUMINANCE;
+			internalformat = GL_RGB;
 			type = GL_TEXTURE_2D;
 			break;
 		case GF_PIXEL_ALPHAGREY:
 		case GF_PIXEL_GREYALPHA:
 			format = GL_LUMINANCE_ALPHA;
 			type = GL_UNSIGNED_BYTE;
+			internalformat = GL_RGBA;
 			break;
 		case GF_PIXEL_RGB:
 			format = GL_RGB;
 			type = GL_UNSIGNED_BYTE;
+			internalformat = GL_RGB;
 			break;
 		case GF_PIXEL_RGBA:
 			format = GL_RGBA;
 			type = GL_UNSIGNED_BYTE;
+			internalformat = GL_RGBA;
 			break;
 		default:
 			//not set yet
@@ -1355,11 +1423,44 @@ static JSValue wgl_texImage2D(JSContext *ctx, JSValueConst this_val, int argc, J
 		}
 		internalformat = GL_RGBA;
 		target = GL_TEXTURE_2D;
-		glTexImage2D(target, level, internalformat, width, height, border, format, type, pix_buf);
+		wgl_tex_image_2d(glc, target, level, internalformat, width, height, border, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
 	/*otherwise not supported*/
 	return js_throw_err(ctx, WGL_INVALID_OPERATION);
+}
+
+void wgl_tex_sub_image_2d(GF_WebGLContext *glc, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, u8 *pixels)
+{
+	u32 i, bpp=3;
+	if (!glc->bound_texture) return;
+	if (!glc->bound_texture->flip_y) {
+		glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+		return;
+	}
+	if (!glc->bound_texture->tx_height) return;
+	if ((yoffset<0) || (yoffset+height > glc->bound_texture->tx_height)) return;
+
+	switch (format) {
+	case GF_PIXEL_GREYSCALE:
+		bpp = 1;
+		break;
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
+		bpp = 2;
+		break;
+	case GF_PIXEL_RGB:
+		bpp = 3;
+		break;
+	case GF_PIXEL_RGBA:
+		bpp = 4;
+		break;
+	}
+
+	for (i=0; i<height; i++) {
+		const u8 *pix_buf = pixels + bpp * width * (height - (i+yoffset) - 1) + xoffset*bpp;
+		glTexSubImage2D(target, level, xoffset, i+yoffset, width, 1, format, type, pix_buf);
+	}
 }
 
 static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1375,7 +1476,10 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 	u32 pixfmt, stride, stride_uv;
 	u8 *pix_buf, *p_u, *p_v, *p_a;
 	u32 pix_buf_size=0;
-	WGL_CHECK_CONTEXT
+
+	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	if (!glc) return js_throw_err(ctx, WGL_INVALID_OPERATION);
+
 	if (argc<7) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
 	WGL_GET_U32(target, argv[0]);
@@ -1401,7 +1505,7 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 		pix_buf = wgl_GetArrayBuffer(ctx, &pix_buf_size, argv[8]);
 		if (!pix_buf) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
-		glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pix_buf);
+		wgl_tex_sub_image_2d(glc, target, level, xoffset, yoffset, width, height, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
 
@@ -1428,7 +1532,7 @@ static JSValue wgl_texSubImage2D(JSContext *ctx, JSValueConst this_val, int argc
 		default:
 			return js_throw_err_msg(ctx, WGL_INVALID_ENUM, "[WebGL] Pixel format %s not yet mapped to texImage2D", gf_pixel_fmt_name(pixfmt) );
 		}
-		glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pix_buf);
+		wgl_tex_sub_image_2d(glc, target, level, xoffset, yoffset, width, height, format, type, pix_buf);
 		return JS_UNDEFINED;
 	}
 	return js_throw_err(ctx, WGL_INVALID_OPERATION);

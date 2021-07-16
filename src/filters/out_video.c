@@ -177,6 +177,7 @@ typedef struct
 	u64 rebuffer;
 
 	Bool force_reconfig_pid;
+	u32 pid_vflip, pid_vrot;
 } GF_VideoOutCtx;
 
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
@@ -412,10 +413,10 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	cmx = p ? (s32) p->value.uint : GF_CICP_MX_UNSPECIFIED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROTATE);
-	ctx->vrot = p ? (s32) p->value.uint : 0;
+	ctx->pid_vrot = p ? (s32) p->value.uint : ctx->vrot;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIRROR);
-	ctx->vflip = p ? (s32) (p->value.uint+1) : 0;
+	ctx->pid_vflip = p ? (s32) (p->value.uint+1) : ctx->vflip;
 
 	ctx->c_w = ctx->c_h = ctx->c_x = ctx->c_y = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_W);
@@ -485,7 +486,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		dh = h;
 	}
 
-	if ((ctx->disp<MODE_2D) && (ctx->vrot % 2)) {
+	if ((ctx->disp<MODE_2D) && (ctx->pid_vrot % 2)) {
 		dw = h;
 		dh = w;
 	}
@@ -690,7 +691,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		gf_dynstrcat(&frag_shader_src, "#version 120\n", NULL);
 
-		gf_gl_txw_insert_fragment_shader(ctx->tx.pix_fmt, "maintx", &frag_shader_src);
+		gf_gl_txw_insert_fragment_shader(ctx->tx.pix_fmt, "maintx", &frag_shader_src, GF_FALSE);
 		gf_dynstrcat(&frag_shader_src, "varying vec2 TexCoord;\n"
 										"void main(void) {\n"
 										"gl_FragColor = maintx_sample(TexCoord.st);\n"
@@ -1067,7 +1068,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		textureVertices[3] = textureVertices[5] = 0.0f;
 	}
 
-	switch (ctx->vflip) {
+	switch (ctx->pid_vflip) {
 	case FLIP_VERT:
 		flip_v = GF_TRUE;
 		break;
@@ -1092,7 +1093,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		textureVertices[3] = textureVertices[5] = v;
 	}
 
-	for (i=0; i < ctx->vrot; i++)  {
+	for (i=0; i < ctx->pid_vrot; i++)  {
 		GLfloat vx = textureVertices[0];
 		GLfloat vy = textureVertices[1];
 
@@ -1192,7 +1193,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			h = (u32) ctx->c_h;
 		}
 
-		if (ctx->vrot % 2) {
+		if (ctx->pid_vrot % 2) {
 			v_h = w;
 			v_w = h;
 		} else {

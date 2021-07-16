@@ -68,12 +68,13 @@ typedef struct
 	u8 wide;
 	u32 flags;
 	GF_EVGStencil *stencil;
-	JSValue param_fun, obj;
+	JSValue param_fun, obj, par_obj;
 	JSContext *ctx;
 
 #ifndef GPAC_DISABLE_3D
 	char *named_tx;
 	void *gl_named_tx;
+	u8 force_resetup;
 #endif //GPAC_DISABLE_3D
 } GF_JSTexture;
 
@@ -4993,6 +4994,8 @@ static void texture_finalize(JSRuntime *rt, JSValue obj)
 	if (tx->stencil)
 		gf_evg_stencil_delete(tx->stencil);
 	JS_FreeValueRT(rt, tx->param_fun);
+	JS_FreeValueRT(rt, tx->par_obj);
+
 #ifndef GPAC_DISABLE_3D
 	if (tx->named_tx) {
 		gf_free(tx->named_tx);
@@ -5006,6 +5009,7 @@ static void texture_gc_mark(JSRuntime *rt, JSValueConst obj, JS_MarkFunc *mark_f
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
 	if (!tx) return;
 	JS_MarkValue(rt, tx->param_fun, mark_func);
+	JS_MarkValue(rt, tx->par_obj, mark_func);
 }
 
 JSClassDef texture_class = {
@@ -5496,6 +5500,9 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
 	if (!tx || !tx->stencil || !argc) return JS_EXCEPTION;
 
+	JS_FreeValue(c, tx->par_obj);
+	tx->par_obj = JS_UNDEFINED;
+
 	if (JS_IsObject(argv[0])) {
 		//create from canvas object
 		GF_JSCanvas *canvas = JS_GetOpaque(argv[0], canvas_class_id);
@@ -5506,6 +5513,7 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 			stride_uv = canvas->stride_uv;
 			data = canvas->data;
 			pf = canvas->pf;
+			tx->par_obj = JS_DupValue(c, argv[0]);
 		}
 		//create from filter packet
 		else if (jsf_is_packet(c, argv[0])) {
@@ -5515,12 +5523,12 @@ static JSValue texture_update(JSContext *c, JSValueConst obj, int argc, JSValueC
 			if (tx->gl_named_tx) {
 				JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *named_tx, Bool force_resetup);
 
-				Bool force_resetup = GF_FALSE;
 				if (pf != tx->pf) {
 					tx->pf = pf;
-					force_resetup = GF_TRUE;
+					tx->force_resetup = GF_TRUE;
 				}
-				JSValue res = wgl_named_texture_upload(c, argv[0], tx->gl_named_tx, force_resetup);
+				JSValue res = wgl_named_texture_upload(c, argv[0], tx->gl_named_tx, tx->force_resetup);
+				tx->force_resetup = GF_FALSE;
 				if (JS_IsException(res)) return res;
 			}
 #endif //GPAC_DISABLE_3D
@@ -5825,6 +5833,9 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		gf_free(tx);
 		return JS_EXCEPTION;
 	}
+	tx->param_fun = JS_UNDEFINED;
+	tx->obj = JS_UNDEFINED;
+	tx->par_obj = JS_UNDEFINED;
 	if (!argc) goto done;
 
 	if (JS_IsString(argv[0])) {
@@ -5852,6 +5863,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 			stride_uv = canvas->stride_uv;
 			data = canvas->data;
 			pf = canvas->pf;
+			tx->par_obj = JS_DupValue(c, argv[0]);
 		}
 		//create from filter packet
 		else if (jsf_is_packet(c, argv[0])) {
@@ -5870,6 +5882,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 					gf_free(tx);
 					return js_throw_err_msg(c, e, "Failed to load texture: %s", gf_error_to_string(e));
 				}
+				tx->par_obj = JS_DupValue(c, argv[0]);
 				goto done;
 			}
 			goto error;
@@ -5877,6 +5890,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 	}
 	//arraybuffer
 	else {
+		Bool is_ab = GF_FALSE;
 		if (argc<4) goto error;
 		if (JS_ToInt32(c, &width, argv[0])) goto error;
 		if (JS_ToInt32(c, &height, argv[1])) goto error;
@@ -5892,6 +5906,7 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 		}
 		else if (JS_IsObject(argv[3])) {
 			data = JS_GetArrayBuffer(c, &data_size, argv[3]);
+			is_ab = GF_TRUE;
 		}
 		if (!width || !height || !pf || (!data && JS_IsUndefined(tx_fun)))
 			goto error;
@@ -5903,6 +5918,9 @@ static JSValue texture_constructor(JSContext *c, JSValueConst new_target, int ar
 				if (JS_ToInt32(c, &stride_uv, argv[5]))
 					goto error;
 			}
+		}
+		if (is_ab) {
+			tx->par_obj = JS_DupValue(c, argv[3]);
 		}
 	}
 
@@ -5982,6 +6000,7 @@ void js_evg_set_named_texture_gl(JSContext *ctx, JSValue this_obj, void *gl_name
 	GF_JSTexture *tx = JS_GetOpaque(this_obj, texture_class_id);
 	if (!tx) return;
 	tx->gl_named_tx = gl_named_tx;
+	tx->force_resetup = GF_TRUE;
 }
 #endif
 

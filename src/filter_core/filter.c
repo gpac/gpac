@@ -2675,7 +2675,10 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 {
 	if (!filter->in_process_callback) {
 		if (filter->session->direct_mode) return;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
+		if (filter->session->in_final_flush) return;
+		//allow reschedule if not called from process
+		filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
+		gf_filter_post_process_task(filter);
 		return;
 	}
 	if (filter->session->in_final_flush)
