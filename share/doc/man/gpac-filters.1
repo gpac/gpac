@@ -1750,6 +1750,16 @@ llhls_merge (bool, default: yes): merge LL-HLS byte range parts into a single op
 .br
 groupsel (bool, default: no):  select groups based on language (by default all playable groups are exposed)
 .br
+chain_mode (enum, default: on): MPD chaining mode
+.br
+* off: do not use MPD chaining
+.br
+* on: use MPD chaining once over, fallback if MPD load failure
+.br
+* error: use MPD chaining once over or if error (MPD or segment download)
+.br
+
+.br
 
 .br
 .SH cdcrypt
@@ -5041,6 +5051,10 @@ cmaf (enum, default: no):      use cmaf guidelines
 .br
 
 .br
+chain (str):                   URL of next MPD for regular chaining
+.br
+chain_fbk (str):               URL of fallback MPD
+.br
 
 .br
 .SH tileagg
@@ -7701,7 +7715,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1087-g4533ee0cc-master
+build: 1.1.0-DEV-rev1103-gc9b19a6f5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

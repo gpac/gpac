@@ -925,7 +925,7 @@ struct __gf_filter_pid
 
 	Bool duration_init;
 	u64 last_pck_dts, last_pck_cts, min_pck_cts, max_pck_cts;
-	u32 min_pck_duration, nb_unreliable_dts;
+	u32 min_pck_duration, nb_unreliable_dts, last_pck_dur;
 	Bool recompute_dts;
 	Bool ignore_blocking;
 

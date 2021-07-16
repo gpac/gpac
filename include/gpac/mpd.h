@@ -845,6 +845,10 @@ typedef struct {
 
 	/*! UTC timing desc if any */
 	GF_List *utc_timings;
+	/*! Essential properties */
+	GF_List *essential_properties;
+	/*! Supplemental properties */
+	GF_List *supplemental_properties;
 
 	/* internal variables for dasher*/
 	Bool inject_service_desc;
@@ -1198,6 +1202,12 @@ typedef struct
 */
 GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescale, Bool *use_edit_list, s32 *ts_offset, GF_DASHCueInfo **out_cues, u32 *nb_cues);
 
+/*! gets first MPD descriptor from descriptor list for a given scheme_id
+\param desclist list of MPD Descriptors
+\param scheme_id scheme ID to look for
+\return descriptor if found, NUL otherwise
+*/
+GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
 
 /*! @} */
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

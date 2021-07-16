@@ -440,6 +440,8 @@ writeonly unsigned boolean recompute_dts;
 readonly attribute unsigned long min_pck_dur;
 /*! playing state - see \ref gf_filter_pid_is_playing*/
 readonly attribute unsigned long playing;
+/*! next estimated timestamp, or null if not computable - see \ref gf_filter_pid_get_next_ts*/
+readonly attribute boolean next_ts;
 
 /*! sends an event on the pid - see \ref gf_filter_pid_send_event
 \param evt the event to send*/
@@ -710,6 +712,7 @@ readonly attribute unsigned long size;
 readonly attribute ArrayBuffer data;
 /*! set to true if data of the packet is available through a GF_FilterFrameInterface object*/
 readonly attribute boolean frame_ifce;
+
 
 /*! sets packet readonly - see gf_filter_pck_set_readonly*/
 void set_readonly();

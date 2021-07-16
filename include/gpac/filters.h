@@ -3680,6 +3680,13 @@ This is typically used when a filter consumes N pids, with some at very low freq
 */
 GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *PID, Bool do_ignore);
 
+/*! Gets next estimated time on  this PID, ie last_pck(DTS+dur) or last_pck(CTS+dur)
+
+\param PID the target filter PID
+\return GF_FILTER_NO_TS or estimated time
+*/
+u64 gf_filter_pid_get_next_ts(GF_FilterPid *PID);
+
 /*! @} */
 
 

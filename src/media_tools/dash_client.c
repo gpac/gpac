@@ -53,6 +53,9 @@ typedef enum {
 	/*request to start playback chain*/
 	GF_DASH_STATE_CONNECTING,
 	GF_DASH_STATE_RUNNING,
+
+	GF_DASH_STATE_CHAIN_NEXT,
+	GF_DASH_STATE_CHAIN_FALLBACK,
 } GF_DASH_STATE;
 
 
@@ -167,6 +170,7 @@ struct __dash_client
 	u32 tile_rate_decrease;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
 	Bool disable_low_quality_tiles;
+	u32 chaining_mode;
 
 	GF_List *SRDs;
 
@@ -188,6 +192,8 @@ struct __dash_client
 	/*if set, enables group selection at dash client level, otherwise leave the decision to the user app*/
 	Bool enable_group_selection;
 
+
+	char *chain_next, *chain_fallback;
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -2054,6 +2060,25 @@ static u32 ls_hls_purge_segments(s32 live_edge_idx, GF_List *l)
 	return nb_removed_before_live;
 }
 
+static void dash_check_chaining(GF_DashClient *dash, char *scheme_id, char **chain_ptr)
+{
+	GF_MPD_Descriptor *chaining = gf_mpd_get_descriptor(dash->mpd->essential_properties, scheme_id);
+	if (!chaining)
+		chaining = gf_mpd_get_descriptor(dash->mpd->supplemental_properties, scheme_id);
+
+	if (chaining) {
+		char *sep;
+		if (*chain_ptr) gf_free(*chain_ptr);
+		sep = strchr(chaining->value, ' ');
+		if (sep) sep[0] = 0;
+		*chain_ptr = gf_url_concatenate(dash->base_url, chaining->value);
+		if (!*chain_ptr)
+			*chain_ptr = gf_strdup(chaining->value);
+		if (sep) sep[0] = ' ';
+	}
+}
+
+
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
 	GF_Err e;
@@ -3023,6 +3048,11 @@ exit:
 			gf_mpd_del(dash->mpd);
 		}
 		dash->mpd = new_mpd;
+
+		if (dash->chaining_mode) {
+			dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next);
+			dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback);
+		}
 	}
 	dash->last_update_time = gf_sys_clock();
 	dash->mpd_fetch_time = fetch_time;
@@ -6269,8 +6299,13 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment %s: %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 			group->time_at_first_failure = 0;
 			//for route we still consider the previous segment valid and don't attempt to resync the timeline
-			if (!group->dash->route_clock_state)
+			if (!group->dash->route_clock_state) {
 				group->prev_segment_ok = GF_FALSE;
+
+				if ((dash->mpd->type==GF_DASH_STATIC) && (dash->chaining_mode==2) && dash->chain_fallback) {
+					dash->dash_state = GF_DASH_STATE_CHAIN_FALLBACK;
+				}
+			}
 		}
 		group->nb_consecutive_segments_lost ++;
 
@@ -7253,6 +7288,7 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 				dash->next_period_checked = 1;
 			}
 			if (all_groups_done && dash->request_period_switch) {
+				Bool is_chain = GF_FALSE;
 				gf_dash_reset_groups(dash);
 				if (dash->request_period_switch == 1) {
 					if (dash->speed<0) {
@@ -7270,11 +7306,16 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Switching to period #%d\n", dash->active_period_index+1));
 				dash->dash_state = GF_DASH_STATE_SETUP;
 
-				if (!dash->all_groups_done_notified) {
-					dash->all_groups_done_notified = GF_TRUE;
-					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_END_OF_PERIOD, 0, GF_OK);
+				if (dash->active_period_index >= gf_list_count(dash->mpd->periods)) {
+					assert(dash->chain_next);
+					dash->dash_state = GF_DASH_STATE_CHAIN_NEXT;
+					is_chain = GF_TRUE;
 				}
 
+				if (!dash->all_groups_done_notified) {
+					dash->all_groups_done_notified = GF_TRUE;
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_END_OF_PERIOD, is_chain, GF_OK);
+				}
 			} else {
 				(*cache_is_full) = GF_TRUE;
 				return GF_OK;
@@ -7293,6 +7334,7 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 	GF_Err e;
 	Bool cache_is_full;
 
+retry:
 	if (dash->in_error) return GF_SERVICE_ERROR;
 
 	if (dash->force_period_reload) {
@@ -7302,6 +7344,40 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 	}
 
 	switch (dash->dash_state) {
+	case GF_DASH_STATE_CHAIN_FALLBACK:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in playback, loading fallback MPD\n"));
+		gf_dash_reset_groups(dash);
+		dash->request_period_switch = 0;
+		dash->active_period_index = gf_list_count(dash->mpd->periods);
+		dash->period_groups_setup = GF_FALSE;
+		if (dash->chain_next) gf_free(dash->chain_next);
+		dash->chain_next = dash->chain_fallback;
+		dash->chain_fallback = NULL;
+
+		dash->dash_state = GF_DASH_STATE_CHAIN_NEXT;
+		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_END_OF_PERIOD, GF_TRUE, GF_OK);
+		//fallthrough
+
+	case GF_DASH_STATE_CHAIN_NEXT:
+	{
+		char *next_mpd = dash->chain_next;
+		dash->chain_next = NULL;
+		char *fallback_mpd = dash->chain_fallback;
+		dash->chain_fallback = NULL;
+		e = gf_dash_open(dash, next_mpd);
+
+		if (e) {
+			if (fallback_mpd) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Failed to open DASH MPD %s in chain: %s - using fallback %s\n", next_mpd, gf_error_to_string(e), fallback_mpd));
+				e = gf_dash_open(dash, fallback_mpd);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to open DASH MPD %s in chain: %s\n", next_mpd, gf_error_to_string(e) ));
+			}
+		}
+		gf_free(next_mpd);
+		if (fallback_mpd) gf_free(fallback_mpd);
+		return e;
+	}
 	case GF_DASH_STATE_SETUP:
 		dash->in_period_setup = 1;
 		e = dash_setup_period_and_groups(dash);
@@ -7330,8 +7406,9 @@ static GF_Err gf_dash_process_internal(GF_DashClient *dash)
 		if (e || cache_is_full) {
 			return GF_OK;
 		}
-		if (dash->dash_state == GF_DASH_STATE_SETUP)
-			return GF_OK;
+
+		if ((dash->dash_state == GF_DASH_STATE_SETUP) || (dash->dash_state==GF_DASH_STATE_CHAIN_NEXT))
+			goto retry;
 
 		dash->initial_period_tunein = GF_FALSE;
 		dash_do_groups(dash);
@@ -7818,6 +7895,11 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		goto exit;
 	}
 
+	if (dash->chaining_mode) {
+		dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next);
+		dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback);
+	}
+
 	dash->dash_state = GF_DASH_STATE_SETUP;
 	return GF_OK;
 
@@ -7852,6 +7934,14 @@ void gf_dash_close(GF_DashClient *dash)
 	if (dash->mpd) {
 		gf_mpd_del(dash->mpd);
 		dash->mpd = NULL;
+	}
+	if (dash->chain_next) {
+		gf_free(dash->chain_next);
+		dash->chain_next = NULL;
+	}
+	if (dash->chain_fallback) {
+		gf_free(dash->chain_fallback);
+		dash->chain_fallback = NULL;
 	}
 
 	if (dash->dash_state != GF_DASH_STATE_CONNECTING)
@@ -8463,8 +8553,6 @@ void gf_dash_request_period_switch(GF_DashClient *dash)
 GF_EXPORT
 Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 {
-	Bool res;
-
 	switch (dash->dash_state) {
 	case GF_DASH_STATE_SETUP:
 	case GF_DASH_STATE_CONNECTING:
@@ -8473,16 +8561,13 @@ Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 		break;
 	}
 	
-	res = (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
-	//this code seems buggy, commented for now
-#if 0
-	if (res && dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
-		GF_MPD_Period*period = gf_list_last(dash->mpd->periods);
-		//consider we are
-		if (!period->duration || dash->mpd->media_presentation_duration) res = GF_FALSE;
-	}
-#endif
-	return res;
+	if (dash->active_period_index+1 < gf_list_count(dash->mpd->periods))
+		return GF_FALSE;
+
+	//check chaining
+	if (dash->chain_next) return GF_FALSE;
+
+	return GF_TRUE;
 }
 GF_EXPORT
 Bool gf_dash_in_period_setup(GF_DashClient *dash)
@@ -9525,6 +9610,13 @@ void gf_dash_disable_low_quality_tiles(GF_DashClient *dash, Bool disable_tiles)
 {
 	dash->disable_low_quality_tiles = disable_tiles;
 }
+
+GF_EXPORT
+void gf_dash_set_chaining_mode(GF_DashClient *dash, u32 chaining_mode)
+{
+	dash->chaining_mode = chaining_mode;
+}
+
 
 GF_EXPORT
 Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height)

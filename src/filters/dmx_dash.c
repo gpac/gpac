@@ -50,7 +50,7 @@ typedef struct
 	s32 shift_utc, route_shift;
 	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 init_timeshift;
-	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode;
+	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, chain_mode;
 	u32 forward;
 	GF_PropUIntList debug_as;
 	GF_DASHInitialSelectionMode start_with;
@@ -92,6 +92,8 @@ typedef struct
 	char *manifest_payload;
 	GF_List *hls_variants, *hls_variants_names;
 
+	GF_Fraction64 chain_time;
+
 	Bool is_dash;
 	Bool manifest_stop_sent;
 #ifdef GPAC_HAS_QJS
@@ -126,7 +128,7 @@ typedef struct
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
 	u32 timescale;
-	s64 pto;
+	s64 pto, chain_ts_offset;
 	s64 max_cts_in_period;
 	bin128 key_IV;
 
@@ -301,6 +303,10 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
 			group->pto -= start;
+
+			if (ctx->chain_time.den) {
+				group->chain_ts_offset = gf_timestamp_rescale(ctx->chain_time.num, ctx->chain_time.den, ts);
+			}
 		}
 
 		if (group->max_cts_in_period && (s64) cts > group->max_cts_in_period) {
@@ -332,6 +338,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				seek_flag = 1;
 			}
 		}
+		dts += group->chain_ts_offset;
+		cts += group->chain_ts_offset;
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
@@ -1010,6 +1018,27 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			}
 		}
 	}
+
+	//chaining, recompute timeline anchor at end of pres
+	//in foraward mode, we don't touch timestamps for now
+	if ((dash_evt==GF_DASH_EVENT_END_OF_PERIOD) && group_idx && !ctx->forward) {
+		ctx->chain_time.num = 0;
+		ctx->chain_time.den = 0;
+
+		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+
+			u32 timescale = gf_filter_pid_get_timescale(opid);
+			u64 ts = gf_filter_pid_get_next_ts(opid);
+			if (ts==GF_FILTER_NO_TS) continue;
+
+			if (!ctx->chain_time.den || gf_timestamp_greater(ts, timescale, ctx->chain_time.num, ctx->chain_time.den)) {
+				ctx->chain_time.num = ts;
+				ctx->chain_time.den = timescale;
+			}
+		}
+	}
+
 	return GF_OK;
 }
 
@@ -1944,6 +1973,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	if (ctx->split_as)
 		gf_dash_split_adaptation_sets(ctx->dash);
 	gf_dash_disable_low_quality_tiles(ctx->dash, ctx->skip_lqt);
+	gf_dash_set_chaining_mode(ctx->dash, ctx->chain_mode);
 
 	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
 	//at each run, possibly breaking all tests
@@ -2961,6 +2991,10 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(llhls_merge), "merge LL-HLS byte range parts into a single open byte range request", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(filemode), "alias for forward=file", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(groupsel), "select groups based on language (by default all playable groups are exposed)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(chain_mode), "MPD chaining mode\n"
+	"- off: do not use MPD chaining\n"
+	"- on: use MPD chaining once over, fallback if MPD load failure\n"
+	"- error: use MPD chaining once over or if error (MPD or segment download)", GF_PROP_UINT, "on", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
