@@ -7637,6 +7637,7 @@ GF_Filter *gf_filter_pid_enum_destinations(GF_FilterPid *pid, u32 idx)
 	return dst_pid->filter;
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *pid, Bool do_ignore)
 {
 	GF_FilterPidInst *pidi;
@@ -7649,6 +7650,7 @@ GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *pid, Bool do_ignore)
 	return GF_OK;
 }
 
+GF_EXPORT
 u64 gf_filter_pid_get_next_ts(GF_FilterPid *pid)
 {
 	if (!pid) return GF_FILTER_NO_TS;
