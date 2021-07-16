@@ -1255,8 +1255,8 @@ typedef struct _audio_render
 
 	u32 audio_delay, volume, pan, mute;
 
-	//set when output is not realtime
-	Bool non_rt_output;
+	//set when output is not realtime - set to 2 will indicate end of session
+	u32 non_rt_output;
 
 	Fixed yaw, pitch, roll;
 

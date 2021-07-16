@@ -940,6 +940,7 @@ do_mix:
 		if (in->buffer_size < nb_samples) {
 			for (j=0; j<GF_AUDIO_MIXER_MAX_CHANNELS; j++) {
 				in->ch_buf[j] = (s32 *) gf_realloc(in->ch_buf[j], sizeof(s32) * nb_samples);
+				memset(in->ch_buf[j], 0, sizeof(s32) * nb_samples);
 			}
 			in->buffer_size = nb_samples;
 		}

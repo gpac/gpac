@@ -150,7 +150,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags)
 	ar->compositor = compositor;
 
 	ar->mixer = gf_mixer_new(ar);
-	ar->non_rt_output = GF_TRUE;
+	ar->non_rt_output = 1;
 	ar->volume = MIN(100, compositor->avol);
 	ar->pan = MIN(100, compositor->apan);
 	if (! (init_flags & GF_TERM_NO_AUDIO) ) {
@@ -345,10 +345,19 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 
 		if (!written) {
 			if (!ar->non_rt_output) written = ar->buffer_size;
-			else if (ar->scene_ready && ar->nb_audio_objects && !gf_mixer_buffering(ar->mixer) ) written = ar->buffer_size;
+			else if ((ar->non_rt_output==1) && ar->scene_ready && ar->nb_audio_objects && !gf_mixer_buffering(ar->mixer) ) written = ar->buffer_size;
 			else {
 				gf_filter_pck_truncate(pck, 0);
 				gf_filter_pck_discard(pck);
+
+				if (ar->non_rt_output==2) {
+					//stop sending packets
+					gf_filter_pid_set_eos(ar->aout);
+					//and update clock based on wall clock to flush video
+					if (ar->compositor->player) {
+						ar->current_time = (u32) ( (now - ar->start_time)/1000);
+					}
+				}
 				break;
 			}
 		}
