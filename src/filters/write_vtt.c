@@ -52,6 +52,7 @@ typedef struct
 
 	GF_WebVTTParser *parser;
 
+	Bool dash_mode;
 } GF_WebVTTMxCtx;
 
 static void vttmx_write_cue(void *ctx, GF_WebVTTCue *cue);
@@ -111,6 +112,10 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_webvtt_parser_cue_callback(ctx->parser, vttmx_write_cue, ctx);
 	}
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
+	ctx->dash_mode = (p && p->value.uint) ? GF_TRUE : GF_FALSE;
+
 	return GF_OK;
 }
 
@@ -226,6 +231,11 @@ GF_Err vttmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
+	if (ctx->dash_mode && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
+		ctx->first = GF_TRUE;
+	}
+
+
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
 	if (ctx->first && ctx->dcd) {
@@ -275,7 +285,11 @@ GF_Err vttmx_process(GF_Filter *filter)
 		memcpy(output, ctx->cues_buffer, size);
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
-
+		if (ctx->dash_mode) {
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENUM, NULL);
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENAME, NULL);
+		}
+		
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
 

@@ -77,6 +77,8 @@ typedef struct
 
 	Bool ttml_agg;
 	GF_XMLNode *ttml_root;
+
+	GF_FilterPacket *ttml_dash_pck;
 } GF_GenDumpCtx;
 
 
@@ -243,7 +245,10 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		if (!gf_filter_pid_get_property(pid, GF_PROP_PID_MIME))
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING(mimetype) );
 
-		if (!ctx->frame) {
+		if (ctx->dash_mode) {
+			ctx->ttml_agg = GF_TRUE;
+		}
+		else if (!ctx->frame) {
 			ctx->ttml_agg = GF_TRUE;
 		} else {
 			ctx->split = GF_TRUE;
@@ -946,6 +951,14 @@ static GF_Err writegen_flush_ttml(GF_GenDumpCtx *ctx)
 
 	memcpy(output, data, size);
 	gf_free(data);
+
+	if (ctx->ttml_dash_pck) {
+		gf_filter_pck_merge_properties(ctx->ttml_dash_pck, pck);
+		gf_filter_pck_set_byte_offset(pck, GF_FILTER_NO_BO);
+		gf_filter_pck_set_dependency_flags(pck, 0);
+		gf_filter_pck_unref(ctx->ttml_dash_pck);
+		ctx->ttml_dash_pck = NULL;
+	}
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_xml_dom_node_del(ctx->ttml_root);
 	ctx->ttml_root = NULL;
@@ -973,6 +986,19 @@ GF_Err writegen_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	ctx->sample_num++;
+
+	if (ctx->dash_mode && ctx->ttml_agg && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
+		if (ctx->ttml_dash_pck)
+			writegen_flush_ttml(ctx);
+
+		if (ctx->ttml_dash_pck) {
+			gf_filter_pck_unref(ctx->ttml_dash_pck);
+			ctx->ttml_dash_pck = NULL;
+		}
+
+		ctx->ttml_dash_pck = pck;
+		gf_filter_pck_ref_props(&ctx->ttml_dash_pck);
+	}
 
 	if (ctx->sstart) {
 		if (ctx->sstart > ctx->sample_num) {
@@ -1487,6 +1513,11 @@ void writegen_finalize(GF_Filter *filter)
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->ttml_root)
 		gf_xml_dom_node_del(ctx->ttml_root);
+
+	if (ctx->ttml_dash_pck) {
+		gf_filter_pck_unref(ctx->ttml_dash_pck);
+		ctx->ttml_dash_pck = NULL;
+	}
 }
 
 GF_FilterRegister GenDumpRegister = {

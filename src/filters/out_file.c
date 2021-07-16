@@ -40,7 +40,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool append, dynext, ow, redund;
+	Bool append, dynext, ow, redund, noinit;
 	u32 cat;
 	u32 mvbk;
 
@@ -177,6 +177,7 @@ static void fileout_setup_file(GF_FileOutCtx *ctx, Bool explicit_overwrite)
 {
 	const char *dst = ctx->dst;
 	const GF_PropertyValue *p, *ext;
+
 	p = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_OUTPATH);
 	ext = gf_filter_pid_get_property(ctx->pid, GF_PROP_PID_FILE_EXT);
 
@@ -382,7 +383,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 	}
 
 	gf_filter_pck_get_framing(pck, &start, &end);
-	if (!ctx->redund) {
+	if (!ctx->redund && !ctx->dash_mode) {
 		u32 dep_flags = gf_filter_pck_get_dependency_flags(pck);
 		//redundant packet, do not store
 		if ((dep_flags & 0x3) == 1) {
@@ -469,7 +470,7 @@ static GF_Err fileout_process(GF_Filter *filter)
 
 		if (name) {
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
-		} else if (!ctx->file) {
+		} else if (!ctx->file && !ctx->noinit) {
 			fileout_setup_file(ctx, explicit_overwrite);
 		}
 	}
@@ -671,6 +672,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(ow), "overwrite output if existing", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
 	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(noinit), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 
 	{0}
 };
