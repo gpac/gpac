@@ -2066,6 +2066,9 @@ static void dash_check_chaining(GF_DashClient *dash, char *scheme_id, char **cha
 	if (!chaining)
 		chaining = gf_mpd_get_descriptor(dash->mpd->supplemental_properties, scheme_id);
 
+	if (*chain_ptr) gf_free(*chain_ptr);
+	*chain_ptr = NULL;
+
 	if (chaining) {
 		char *sep;
 		if (*chain_ptr) gf_free(*chain_ptr);
@@ -2075,6 +2078,14 @@ static void dash_check_chaining(GF_DashClient *dash, char *scheme_id, char **cha
 		if (!*chain_ptr)
 			*chain_ptr = gf_strdup(chaining->value);
 		if (sep) sep[0] = ' ';
+
+		if (*chain_ptr && (chain_ptr == &dash->chain_fallback)) {
+			if (!strcmp(dash->chain_fallback, dash->base_url)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Chain fallback URL is same as manifest, disabling fallback\n"));
+				gf_free(dash->chain_fallback);
+				dash->chain_fallback = NULL;
+			}
+		}
 	}
 }
 
