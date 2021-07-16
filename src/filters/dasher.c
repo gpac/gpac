@@ -141,6 +141,7 @@ typedef struct
 	char *segext;
 	char *initext;
 	u32 muxtype;
+	Bool rawsub;
 	char *profX;
 	Double asto;
 	char *ast;
@@ -256,7 +257,7 @@ typedef struct _dash_stream
 	u32 width, height;
 	u32 sr, nb_ch;
 	char *lang;
-	Bool interlaced;
+	Bool interlaced, rawmux;
 	const GF_PropertyValue *p_role;
 	const GF_PropertyValue *p_period_desc;
 	const GF_PropertyValue *p_as_desc;
@@ -2785,14 +2786,14 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	//patch for old arch: make sure we don't have any extra free box before the sidx
 	//we could also use vodcache=insert but this might break http outputs
 	if (gf_sys_old_arch_compat() && !has_vodcache && ctx->sseg) {
-		sprintf(szSRC, "%cvodcache=on", sep_args );
+		sprintf(szSRC, "%cvodcache%con", sep_args, sep_name );
 		if (!strstr(szDST, szSRC))
 			gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 
 	//we don't append mime in case of raw streams, raw format (writegen doesn't use mime types for raw media, only file ext)
-	if ((ctx->muxtype!=DASHER_MUX_RAW) || (ds->codec_id != GF_CODECID_RAW)) {
-		sprintf(szSRC, "%cmime=%s", sep_args, rep->mime_type);
+	if (!ds->rawmux && ((ctx->muxtype!=DASHER_MUX_RAW) || (ds->codec_id != GF_CODECID_RAW)) ) {
+		sprintf(szSRC, "%cmime%c%s", sep_args, sep_name, rep->mime_type);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 
@@ -3435,6 +3436,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			strcat(szDASHTemplate, szStrName);
 		}
 
+		ds->rawmux = GF_FALSE;
 		idx_ext = NULL;
 		if (ctx->m2ts) {
 			seg_ext = init_ext = "ts";
@@ -3467,6 +3469,22 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				ext = strchr(szRawExt, '|');
 				if (ext) ext[0] = 0;
 				def_ext = szRawExt;
+			}
+
+			if (!ds->muxed_base && ctx->rawsub && (ds->stream_type==GF_STREAM_TEXT) ) {
+				char *ext_sub = (char *) gf_codecid_file_ext(ds->codec_id);
+				if (ext_sub) {
+					if (!strcmp(ext_sub, "subx"))
+						ext_sub = "ttml";
+
+					strncpy(szRawExt, ext_sub, 19);
+					szRawExt[19] = 0;
+					ext_sub = strchr(szRawExt, '|');
+					if (ext_sub) ext_sub[0] = 0;
+					def_ext = szRawExt;
+					skip_init = GF_TRUE;
+					ds->rawmux = GF_TRUE;
+				}
 			}
 
 			if (ctx->segext && !stricmp(ctx->segext, "null")) {
@@ -8698,6 +8716,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- ogg: uses OGG format\n"
 		"- raw: uses raw media format (disables muxed representations)\n"
 		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
+	{ OFFS(rawsub), "use raw subtitle format instead of encapsulating in container", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(profile), "target DASH profile. This will set default option values to ensure conformance to the desired profile. For MPEG-2 TS, only main and live are used, others default to main\n"
 		"- auto: turns profile to live for dynamic and full for non-dynamic\n"
