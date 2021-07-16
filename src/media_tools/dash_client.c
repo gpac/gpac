@@ -7418,7 +7418,10 @@ retry:
 			return GF_OK;
 		}
 
-		if ((dash->dash_state == GF_DASH_STATE_SETUP) || (dash->dash_state==GF_DASH_STATE_CHAIN_NEXT))
+		if (dash->dash_state == GF_DASH_STATE_SETUP)
+			return GF_OK;
+		//we rerun here, otherwise the user might think we are done...
+		if ((dash->dash_state==GF_DASH_STATE_CHAIN_NEXT) || (dash->dash_state==GF_DASH_STATE_CHAIN_FALLBACK))
 			goto retry;
 
 		dash->initial_period_tunein = GF_FALSE;
