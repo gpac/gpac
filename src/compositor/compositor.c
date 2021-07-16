@@ -3527,6 +3527,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			event->clipboard.text = NULL;
 		}
 		break;
+	case GF_EVENT_QUIT:
+		if (compositor->audio_renderer)
+			compositor->audio_renderer->non_rt_output = 2;
+		compositor->check_eos_state = 1;
+		return gf_sc_send_event(compositor, event);
 	/*when we process events we don't forward them to the user*/
 	default:
 		return gf_sc_send_event(compositor, event);

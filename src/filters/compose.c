@@ -162,6 +162,13 @@ static GF_Err compose_process(GF_Filter *filter)
 		return ctx->last_error;
 	}
 
+	//player mode
+	
+	//quit seen do not reschedule
+	if (ctx->check_eos_state) {
+		return ctx->last_error;
+	}
+
 
 	//to clean up,depending on whether we use a thread to poll user inputs, etc...
 	if ((u32) ms_until_next > 100)
@@ -573,7 +580,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	{
 		GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 		if (ctx->audio_renderer && (evt->base.on_pid == ctx->audio_renderer->aout))
-			ctx->audio_renderer->non_rt_output = GF_FALSE;
+			ctx->audio_renderer->non_rt_output = 0;
 	}
 		return GF_FALSE;
 	case GF_FEVT_BUFFER_REQ:
@@ -723,7 +730,7 @@ static GF_Err compose_initialize(GF_Filter *filter)
 		//load audio filter chain, declaring audio output pid first
 		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
 			GF_Filter *audio_out = gf_filter_load_filter(filter, "aout", &e);
-			ctx->audio_renderer->non_rt_output = GF_FALSE;
+			ctx->audio_renderer->non_rt_output = 0;
 			if (!audio_out) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
 			}
