@@ -177,6 +177,7 @@ enum
 	JSF_PID_RECOMPUTE_DTS,
 	JSF_PID_MIN_PCK_DUR,
 	JSF_PID_IS_PLAYING,
+	JSF_PID_NEXT_TS,
 };
 typedef struct
 {
@@ -2085,6 +2086,10 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		return JS_NewInt32(ctx, gf_filter_pid_get_min_pck_duration(pctx->pid) );
 	case JSF_PID_IS_PLAYING:
 		return JS_NewBool(ctx, gf_filter_pid_is_playing(pctx->pid) );
+	case JSF_PID_NEXT_TS:
+		dur = gf_filter_pid_get_next_ts(pctx->pid);
+		if (dur==GF_FILTER_NO_TS) return JS_NULL;
+		return JS_NewInt64(ctx, dur);
 	}
     return JS_UNDEFINED;
 }
@@ -2743,6 +2748,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("recompute_dts", NULL, jsf_pid_set_prop, JSF_PID_RECOMPUTE_DTS),
     JS_CGETSET_MAGIC_DEF("min_pck_dur", jsf_pid_get_prop, NULL, JSF_PID_MIN_PCK_DUR),
     JS_CGETSET_MAGIC_DEF("playing", jsf_pid_get_prop, NULL, JSF_PID_IS_PLAYING),
+    JS_CGETSET_MAGIC_DEF("next_ts", jsf_pid_get_prop, NULL, JSF_PID_NEXT_TS),
     JS_CFUNC_DEF("send_event", 0, jsf_pid_send_event),
     JS_CFUNC_DEF("enum_properties", 0, jsf_pid_enum_properties),
     JS_CFUNC_DEF("get_prop", 0, jsf_pid_get_property),

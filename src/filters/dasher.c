@@ -147,6 +147,7 @@ typedef struct
 	char *state;
 	char *cues;
 	char *title, *source, *info, *cprt, *lang;
+	char *chain, *chain_fbk;
 	GF_PropStringList location, base;
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps;
 	Double refresh, tsb, subdur;
@@ -1440,6 +1441,27 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return dasher_stream_period_changed(filter, ctx, ds, new_period_request);
 }
 
+static void	dasher_check_chaining(GF_DasherCtx *ctx, char *scheme_id, char *url)
+{
+	GF_MPD_Descriptor *d = gf_mpd_get_descriptor(ctx->mpd->supplemental_properties, scheme_id);
+	if (!d && !url) return;
+	if (!url) {
+		gf_list_del_item(ctx->mpd->supplemental_properties, d);
+		gf_mpd_descriptor_free(d);
+		return;
+	}
+	if (d) {
+		gf_free(d->value);
+		d->value = gf_strdup(url);
+		return;
+	}
+	d = gf_mpd_descriptor_new(NULL, scheme_id, url);
+	if (!ctx->mpd->supplemental_properties)
+		ctx->mpd->supplemental_properties = gf_list_new();
+
+	gf_list_add(ctx->mpd->supplemental_properties, d);
+}
+
 
 static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 {
@@ -1530,6 +1552,8 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 			ctx->mpd->minimum_update_period = 0;
 		}
 	}
+	dasher_check_chaining(ctx, "urn:mpeg:dash:mpd-chaining:2016", ctx->chain);
+	dasher_check_chaining(ctx, "urn:mpeg:dash:fallback:2016", ctx->chain_fbk);
 	return GF_OK;
 }
 static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
@@ -4123,8 +4147,9 @@ static void dasher_forward_manifest_raw(GF_DasherCtx *ctx, GF_DashStream *ds, co
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 	}
 	gf_filter_pck_send(pck);
-
 }
+
+
 static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 {
 	u32 i, count, nb_periods, nb_streams;
@@ -4205,6 +4230,10 @@ static void dasher_forward_mpd(GF_DasherCtx *ctx, const char *manifest)
 		xlink_att = gf_xml_dom_create_attribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
 		gf_list_add(mpd->x_attributes, xlink_att);
 	}
+
+	dasher_check_chaining(ctx, "urn:mpeg:dash:mpd-chaining:2016", ctx->chain);
+	dasher_check_chaining(ctx, "urn:mpeg:dash:fallback:2016", ctx->chain_fbk);
+
 
 	//and send
 	tmp = gf_file_temp(NULL);
@@ -4335,6 +4364,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 			d->value = gf_strdup(szTime);
 		}
 	}
+
 	dasher_update_mpd(ctx);
 	ctx->mpd->write_context = GF_FALSE;
 	ctx->mpd->was_dynamic = GF_FALSE;
@@ -8758,6 +8788,8 @@ static const GF_FilterArgs DasherArgs[] =
 		"- cmf2: use CMAF `cmf2` guidelines"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pswitch), "force period switch instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

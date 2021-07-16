@@ -1326,6 +1326,8 @@ void gf_mpd_del(GF_MPD *mpd)
 	if (mpd->profiles) gf_free(mpd->profiles);
 	if (mpd->ID) gf_free(mpd->ID);
 	gf_mpd_del_list(mpd->utc_timings, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(mpd->essential_properties, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(mpd->supplemental_properties, gf_mpd_descriptor_free, 0);
 	MPD_FREE_EXTENSION_NODE(mpd);
 	gf_free(mpd);
 }
@@ -1432,6 +1434,11 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 			if (e) return e;
 		} else if (!strcmp(child->name, "UTCTiming")) {
 			gf_mpd_parse_descriptor(mpd->utc_timings, child);
+		} else if (!strcmp(child->name, "EssentialProperty")) {
+			gf_mpd_parse_descriptor(mpd->essential_properties, child);
+		}
+		else if (!strcmp(child->name, "SupplementalProperty")) {
+			gf_mpd_parse_descriptor(mpd->supplemental_properties, child);
 		} else {
 			MPD_STORE_EXTENSION_NODE(mpd)
 		}
@@ -1450,6 +1457,8 @@ static void gf_mpd_init_struct(GF_MPD *mpd)
 	mpd->locations = gf_list_new();
 	mpd->metrics = gf_list_new();
 	mpd->utc_timings = gf_list_new();
+	mpd->essential_properties = gf_list_new();
+	mpd->supplemental_properties = gf_list_new();
 }
 
 GF_EXPORT
@@ -3980,6 +3989,14 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 		gf_mpd_extensible_print_nodes(out, mpd->x_children, indent, &child_idx, GF_FALSE);
 		gf_mpd_print_descriptors(out, mpd->utc_timings, "UTCTiming", indent+1, mpd->x_children, &child_idx);
 	}
+	if (gf_list_count(mpd->essential_properties)) {
+		gf_mpd_extensible_print_nodes(out, mpd->x_children, indent, &child_idx, GF_FALSE);
+		gf_mpd_print_descriptors(out, mpd->essential_properties, "EssentialProperty", indent+1, mpd->x_children, &child_idx);
+	}
+	if (gf_list_count(mpd->supplemental_properties)) {
+		gf_mpd_extensible_print_nodes(out, mpd->x_children, indent, &child_idx, GF_FALSE);
+		gf_mpd_print_descriptors(out, mpd->supplemental_properties, "SupplementalProperty", indent+1, mpd->x_children, &child_idx);
+	}
 	gf_mpd_extensible_print_nodes(out, mpd->x_children, indent, &child_idx, GF_TRUE);
 
 	gf_fprintf(out, "</MPD>");
@@ -5480,6 +5497,16 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 		period->adaptation_sets = new_as;
 	}
 	return GF_OK;
+}
+
+GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
+{
+	u32 i, count = gf_list_count(desclist);
+	for (i=0; i<count; i++) {
+		GF_MPD_Descriptor *desc = gf_list_get(desclist, i);
+		if (desc->scheme_id_uri && !strcmp(desc->scheme_id_uri, scheme_id)) return desc;
+	}
+	return NULL;
 }
 
 

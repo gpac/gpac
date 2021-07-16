@@ -91,7 +91,7 @@ typedef enum
 	GF_DASH_EVENT_ABORT_DOWNLOAD,
 	/*! event send whenever cache is full, to allow client to dispatch any segment*/
 	GF_DASH_EVENT_CACHE_FULL,
-	/*! event send when all groups are done in a period*/
+	/*! event send when all groups are done in a period - if group_idx is 1, this announces a chaining*/
 	GF_DASH_EVENT_END_OF_PERIOD,
 } GF_DASHEventType;
 
@@ -982,6 +982,13 @@ Bool gf_dash_all_groups_done(GF_DashClient *dash);
 \param query_string the query string to append to xlinks on periods
 */
 void gf_dash_set_period_xlink_query_string(GF_DashClient *dash, const char *query_string);
+
+/*! sets MPD chaining mode
+\param dash the target dash client
+\param chaining_mode if 0, no chaining. If 1, chain at end. If 2 chain on error or at end
+*/
+void gf_dash_set_chaining_mode(GF_DashClient *dash, u32 chaining_mode);
+
 
 /*! DASH client adaptation algorithm*/
 typedef enum {

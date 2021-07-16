@@ -7641,3 +7641,15 @@ GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *pid, Bool do_ignore)
 	pidi->pid->ignore_blocking = do_ignore;
 	return GF_OK;
 }
+
+u64 gf_filter_pid_get_next_ts(GF_FilterPid *pid)
+{
+	if (!pid) return GF_FILTER_NO_TS;
+	u64 dts = pid->pid->last_pck_dts;
+	if (dts == GF_FILTER_NO_TS)
+		dts = pid->pid->last_pck_cts;
+	if (dts == GF_FILTER_NO_TS)
+		return dts;
+	dts += pid->pid->last_pck_dur;
+	return dts;
+}

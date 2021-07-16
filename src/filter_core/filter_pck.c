@@ -1044,6 +1044,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			if (!pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 			else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 		}
+
 		if (!pck->info.duration && pid->min_pck_duration)
 			pck->info.duration = (u32) duration;
 
@@ -1051,6 +1052,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		if ((s32) pck->info.duration < 0) {
 			pck->info.duration = 0;
 		}
+		pid->last_pck_dur = pck->info.duration;
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {

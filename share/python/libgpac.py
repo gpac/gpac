@@ -2995,7 +2995,10 @@ _libgpac.gf_filter_pid_is_playing.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_is_playing.restype = gf_bool
 
 _libgpac.gf_filter_pid_get_filter_name.argtypes = [_gf_filter_pid]
-_libgpac.gf_filter_pid_is_playing.restype = c_char_p
+_libgpac.gf_filter_pid_get_filter_name.restype = c_char_p
+
+_libgpac.gf_filter_pid_get_next_ts.argtypes = [_gf_filter_pid]
+_libgpac.gf_filter_pid_get_next_ts.restype = c_longlong
 
 
 _libgpac.gf_filter_pid_caps_query.argtypes = [_gf_filter_pid, c_uint]
@@ -3107,7 +3110,9 @@ class FilterPid:
             ##True if PID is playing, readonly  - see \ref gf_filter_pid_is_playing
             #\hideinitializer
             self.playing=0
-
+            ##Next estimated timestamp on pid, readonly  - see \ref gf_filter_pid_get_next_ts
+            #\hideinitializer
+            self.next_ts=0
 
 
     ##send an event on the pid - see \ref gf_filter_pid_send_event
@@ -3602,6 +3607,11 @@ class FilterPid:
     @property
     def playing(self):
         return _libgpac.gf_filter_pid_is_playing(self._pid)
+
+    #\return
+    @property
+    def next_ts(self):
+        return _libgpac.gf_filter_pid_get_next_ts(self._pid)
 
     ##\endcond
 
