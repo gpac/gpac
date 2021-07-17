@@ -2739,7 +2739,10 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 
 	if (trash_init) {
-		sprintf(szSRC, "%cnoinit", sep_args);
+		if (ds->rawmux)
+			sprintf(szSRC, "%cnoinitraw", sep_args);
+		else
+			sprintf(szSRC, "%cnoinit", sep_args);
 		gf_dynstrcat(&szDST, szSRC, NULL);
 	}
 	if (!has_frag) {
