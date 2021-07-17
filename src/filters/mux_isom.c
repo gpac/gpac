@@ -1302,6 +1302,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			p = gf_filter_pid_get_property_str(pid, "isom_force_ctts");
 			if (p && p->value.boolean) tkw->force_ctts = GF_TRUE;
 		}
+	} else {
+
+		u32 old_timescale = tkw->src_timescale;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		if (p) tkw->src_timescale = p->value.uint;
+		if (old_timescale && (tkw->src_timescale != old_timescale)) {
+			if (tkw->ts_shift)
+				tkw->ts_shift = gf_timestamp_rescale(tkw->ts_shift, old_timescale, tkw->src_timescale);
+		}
 	}
 
 	if (!tkw->has_brands) {
