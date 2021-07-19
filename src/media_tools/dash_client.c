@@ -59,6 +59,14 @@ typedef enum {
 } GF_DASH_STATE;
 
 
+enum
+{
+	GF_DASH_CHAIN_REG=0,
+	GF_DASH_CHAIN_PUSH,
+	GF_DASH_CHAIN_POP
+};
+
+
 //shifts AST in the past(>0) or future (<0)  so that client starts request in the future or in the past
 //#define FORCE_DESYNC	4000
 
@@ -170,7 +178,7 @@ struct __dash_client
 	u32 tile_rate_decrease;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
 	Bool disable_low_quality_tiles;
-	u32 chaining_mode;
+	u32 chaining_mode, chain_stack_state;
 
 	GF_List *SRDs;
 
@@ -194,6 +202,7 @@ struct __dash_client
 
 
 	char *chain_next, *chain_fallback;
+	GF_List *chain_stack;
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -2060,31 +2069,39 @@ static u32 ls_hls_purge_segments(s32 live_edge_idx, GF_List *l)
 	return nb_removed_before_live;
 }
 
-static void dash_check_chaining(GF_DashClient *dash, char *scheme_id, char **chain_ptr)
+static void dash_check_chaining(GF_DashClient *dash, char *scheme_id, char **chain_ptr, u32 stack_state)
 {
+	char *sep;
 	GF_MPD_Descriptor *chaining = gf_mpd_get_descriptor(dash->mpd->essential_properties, scheme_id);
 	if (!chaining)
 		chaining = gf_mpd_get_descriptor(dash->mpd->supplemental_properties, scheme_id);
 
-	if (*chain_ptr) gf_free(*chain_ptr);
-	*chain_ptr = NULL;
-
-	if (chaining) {
-		char *sep;
+	if (chain_ptr) {
 		if (*chain_ptr) gf_free(*chain_ptr);
-		sep = strchr(chaining->value, ' ');
-		if (sep) sep[0] = 0;
-		*chain_ptr = gf_url_concatenate(dash->base_url, chaining->value);
-		if (!*chain_ptr)
-			*chain_ptr = gf_strdup(chaining->value);
-		if (sep) sep[0] = ' ';
+		*chain_ptr = NULL;
+	}
 
-		if (*chain_ptr && (chain_ptr == &dash->chain_fallback)) {
-			if (!strcmp(dash->chain_fallback, dash->base_url)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Chain fallback URL is same as manifest, disabling fallback\n"));
-				gf_free(dash->chain_fallback);
-				dash->chain_fallback = NULL;
-			}
+	if (!chaining) return;
+
+	dash->chain_stack_state = stack_state;
+	if ((stack_state==GF_DASH_CHAIN_POP) && !gf_list_count(dash->chain_stack))
+		dash->chain_stack_state = GF_DASH_CHAIN_REG;
+
+	if (!chain_ptr) return;
+
+	if (*chain_ptr) gf_free(*chain_ptr);
+	sep = strchr(chaining->value, ' ');
+	if (sep) sep[0] = 0;
+	*chain_ptr = gf_url_concatenate(dash->base_url, chaining->value);
+	if (!*chain_ptr)
+		*chain_ptr = gf_strdup(chaining->value);
+	if (sep) sep[0] = ' ';
+
+	if (*chain_ptr && (chain_ptr == &dash->chain_fallback)) {
+		if (!strcmp(dash->chain_fallback, dash->base_url)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Chain fallback URL is same as manifest, disabling fallback\n"));
+			gf_free(dash->chain_fallback);
+			dash->chain_fallback = NULL;
 		}
 	}
 }
@@ -3061,8 +3078,10 @@ exit:
 		dash->mpd = new_mpd;
 
 		if (dash->chaining_mode) {
-			dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next);
-			dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback);
+			dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next, 0);
+			dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback, 0);
+			dash_check_chaining(dash, "urn:mpeg:dash:origin-set:2019", NULL, GF_DASH_CHAIN_PUSH);
+			dash_check_chaining(dash, "urn:mpeg:dash:origin-back:2019", NULL, GF_DASH_CHAIN_POP);
 		}
 	}
 	dash->last_update_time = gf_sys_clock();
@@ -7318,7 +7337,16 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 				dash->dash_state = GF_DASH_STATE_SETUP;
 
 				if (dash->active_period_index >= gf_list_count(dash->mpd->periods)) {
+					if (dash->chain_next) {
+						if (dash->chain_stack_state==GF_DASH_CHAIN_PUSH) {
+							if (!dash->chain_stack) dash->chain_stack = gf_list_new();
+							gf_list_add(dash->chain_stack, gf_strdup(dash->base_url));
+						}
+					} else if (dash->chain_stack_state==GF_DASH_CHAIN_POP) {
+						dash->chain_next = gf_list_pop_back(dash->chain_stack);
+					}
 					assert(dash->chain_next);
+					dash->chain_stack_state = 0;
 					dash->dash_state = GF_DASH_STATE_CHAIN_NEXT;
 					is_chain = GF_TRUE;
 				}
@@ -7704,6 +7732,12 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	memset( dash->lastMPDSignature, 0, GF_SHA1_DIGEST_SIZE);
 	dash->reload_count = 0;
 
+	dash->initial_period_tunein = GF_TRUE;
+	dash->route_clock_state = dash->reload_count = dash->last_update_time = 0;
+	memset(dash->lastMPDSignature, 0, sizeof(char)*GF_SHA1_DIGEST_SIZE);
+	dash->utc_drift_estimate = 0;
+	dash->time_in_tsb = dash->prev_time_in_tsb = 0;
+
 	if (dash->base_url) gf_free(dash->base_url);
 	sep_cgi = strrchr(manifest_url, '?');
 	if (sep_cgi) sep_cgi[0] = 0;
@@ -7910,8 +7944,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	}
 
 	if (dash->chaining_mode) {
-		dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next);
-		dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback);
+		dash_check_chaining(dash, "urn:mpeg:dash:mpd-chaining:2016", &dash->chain_next, 0);
+		dash_check_chaining(dash, "urn:mpeg:dash:fallback:2016", &dash->chain_fallback, 0);
+		dash_check_chaining(dash, "urn:mpeg:dash:origin-set:2019", NULL, GF_DASH_CHAIN_PUSH);
+		dash_check_chaining(dash, "urn:mpeg:dash:origin-back:2019", NULL, GF_DASH_CHAIN_POP);
 	}
 
 	dash->dash_state = GF_DASH_STATE_SETUP;
@@ -7957,6 +7993,7 @@ void gf_dash_close(GF_DashClient *dash)
 		gf_free(dash->chain_fallback);
 		dash->chain_fallback = NULL;
 	}
+	dash->chain_stack_state = 0;
 
 	if (dash->dash_state != GF_DASH_STATE_CONNECTING)
 		gf_dash_reset_groups(dash);
@@ -8091,6 +8128,12 @@ void gf_dash_del(GF_DashClient *dash)
 	//force group cleanup
 	dash->dash_state = GF_DASH_STATE_STOPPED;
 	gf_dash_close(dash);
+
+	while (gf_list_count(dash->chain_stack)) {
+		char *url = gf_list_pop_back(dash->chain_stack);
+		gf_free(url);
+	}
+	gf_list_del(dash->chain_stack);
 
 	if (dash->mimeTypeForM3U8Segments) gf_free(dash->mimeTypeForM3U8Segments);
 	if (dash->base_url) gf_free(dash->base_url);
@@ -8580,6 +8623,8 @@ Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 
 	//check chaining
 	if (dash->chain_next) return GF_FALSE;
+	if ((dash->chain_stack_state==GF_DASH_CHAIN_POP) && gf_list_count(dash->chain_stack))
+		return GF_FALSE;
 
 	return GF_TRUE;
 }
