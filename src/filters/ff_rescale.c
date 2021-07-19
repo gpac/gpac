@@ -276,7 +276,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		//nothing to reconfigure
 	}
 	//passthrough mode
-	else if ((ctx->ow == w) && (ctx->oh == h) && (ctx->s_pfmt == ofmt) && (ofmt==ctx->ofmt) && (ctx->ofr == fullrange)
+	else if ((ctx->ow == w) && (ctx->oh == h) && (ofmt==ctx->ofmt) && (ctx->ofr == fullrange)
 		&& !ctx->brightness && !ctx->saturation && !ctx->contrast && (ctx->otable.nb_items!=4) && (ctx->itable.nb_items!=4)
 	) {
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
