@@ -345,6 +345,8 @@ enum
 	GF_EVG_CLIPPER,
 	GF_EVG_COMPOSITE_OP,
 	GF_EVG_ALPHA_FUN,
+	GF_EVG_IS_YUV,
+	GF_EVG_BIT_DEPTH,
 	GF_EVG_FRAG_SHADER,
 	GF_EVG_VERT_SHADER,
 	GF_EVG_CCW,
@@ -513,6 +515,11 @@ static JSValue canvas_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case GF_EVG_VERT_SHADER: return JS_DupValue(c, canvas->vert_shader);
 	case GF_EVG_DEPTH_BUFFER: return JS_DupValue(c, canvas->depth_buffer);
 	case GF_EVG_RASTER_LEVEL: return JS_NewInt32(c, gf_evg_surface_get_raster_level(canvas->surface));
+	case GF_EVG_IS_YUV:
+		if (gf_pixel_fmt_is_yuv(canvas->pf)) return JS_TRUE;
+		return JS_FALSE;
+	case GF_EVG_BIT_DEPTH:
+		return JS_NewInt32(c, gf_pixel_is_wide_depth(canvas->pf));
 	}
 	return JS_UNDEFINED;
 }
@@ -2977,6 +2984,8 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CGETSET_MAGIC_DEF("compositeOperation", canvas_getProperty, canvas_setProperty, GF_EVG_COMPOSITE_OP),
 	JS_CGETSET_MAGIC_DEF("level", canvas_getProperty, canvas_setProperty, GF_EVG_RASTER_LEVEL),
 	JS_CGETSET_MAGIC_DEF("on_alpha", canvas_getProperty, canvas_setProperty, GF_EVG_ALPHA_FUN),
+	JS_CGETSET_MAGIC_DEF("is_yuv", canvas_getProperty, NULL, GF_EVG_IS_YUV),
+	JS_CGETSET_MAGIC_DEF("depth", canvas_getProperty, NULL, GF_EVG_BIT_DEPTH),
 	JS_CFUNC_DEF("enable_threading", 0, canvas_enable_threading),
 	JS_CFUNC_DEF("enable_3d", 0, canvas_enable_3d),
 	JS_CFUNC_DEF("clear", 0, canvas_clear),
@@ -5193,9 +5202,10 @@ enum
 static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 conv_type)
 {
 	JSValue nobj;
+	GF_Err e;
 	u32 i, j, dst_pf, nb_comp;
 	GF_JSCanvas *canvas=NULL;
-	GF_JSTexture *tx_hsv;
+	GF_JSTexture *tx_conv;
 	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
 	if (!tx || !tx->stencil) return JS_EXCEPTION;
 	if (argc) {
@@ -5212,29 +5222,37 @@ static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValue
 	case GF_PIXEL_ABGR:
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_GREYALPHA:
-		dst_pf = GF_PIXEL_RGBA;
+		if (conv_type == EVG_CONV_RGB_TO_YUV ) {
+			dst_pf = GF_PIXEL_YUVA444_PACK;
+		} else {
+			dst_pf = GF_PIXEL_RGBA;
+		}
 		nb_comp = 4;
 		break;
 	default:
-		dst_pf = GF_PIXEL_RGB;
+		if (conv_type == EVG_CONV_RGB_TO_YUV ) {
+			dst_pf = GF_PIXEL_YUV444_PACK;
+		} else {
+			dst_pf = GF_PIXEL_RGB;
+		}
 		nb_comp = 3;
 		break;
 	}
 
-	GF_SAFEALLOC(tx_hsv, GF_JSTexture);
-	if (!tx_hsv)
+	GF_SAFEALLOC(tx_conv, GF_JSTexture);
+	if (!tx_conv)
 		return js_throw_err(c, GF_OUT_OF_MEM);
-	tx_hsv->width = tx->width;
-	tx_hsv->height = tx->height;
-	tx_hsv->pf = dst_pf;
-	tx_hsv->nb_comp = nb_comp;
-	gf_pixel_get_size_info(tx_hsv->pf, tx_hsv->width, tx_hsv->height, &tx_hsv->data_size, &tx_hsv->stride, &tx_hsv->stride_uv, NULL, NULL);
-	tx_hsv->data = gf_malloc(sizeof(char)*tx_hsv->data_size);
-	tx_hsv->owns_data = GF_TRUE;
+	tx_conv->width = tx->width;
+	tx_conv->height = tx->height;
+	tx_conv->pf = dst_pf;
+	tx_conv->nb_comp = nb_comp;
+	gf_pixel_get_size_info(tx_conv->pf, tx_conv->width, tx_conv->height, &tx_conv->data_size, &tx_conv->stride, &tx_conv->stride_uv, NULL, NULL);
+	tx_conv->data = gf_malloc(sizeof(char)*tx_conv->data_size);
+	tx_conv->owns_data = GF_TRUE;
 
-	for (j=0; j<tx_hsv->height; j++) {
-		u8 *dst = tx_hsv->data + j*tx_hsv->stride;
-		for (i=0; i<tx_hsv->width; i++) {
+	for (j=0; j<tx_conv->height; j++) {
+		u8 *dst = tx_conv->data + j*tx_conv->stride;
+		for (i=0; i<tx_conv->width; i++) {
 			u8 a, r, g, b;
 			u32 col = gf_evg_stencil_get_pixel(tx->stencil, i, j);
 
@@ -5274,10 +5292,21 @@ static JSValue texture_convert(JSContext *c, JSValueConst obj, int argc, JSValue
 			}
 		}
 	}
-	tx_hsv->stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
-	gf_evg_stencil_set_texture(tx_hsv->stencil, tx_hsv->data, tx_hsv->width, tx_hsv->height, tx_hsv->stride, tx_hsv->pf);
+	tx_conv->stencil = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
+	if (!tx_conv->stencil) {
+		e = GF_OUT_OF_MEM;
+	} else {
+		e = gf_evg_stencil_set_texture(tx_conv->stencil, tx_conv->data, tx_conv->width, tx_conv->height, tx_conv->stride, tx_conv->pf);
+	}
+	if (e) {
+		gf_evg_stencil_delete(tx_conv->stencil);
+		gf_free(tx_conv->data);
+		gf_free(tx_conv);
+		return js_throw_err_msg(c, e, "Failed to convert image: %s", gf_error_to_string(e));
+	}
+
 	nobj = JS_NewObjectClass(c, texture_class_id);
-	JS_SetOpaque(nobj, tx_hsv);
+	JS_SetOpaque(nobj, tx_conv);
 	return nobj;
 }
 static JSValue texture_rgb2hsv(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)

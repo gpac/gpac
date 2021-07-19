@@ -109,6 +109,15 @@ attribute unsigned long level;
 Default is undefined at creation time*/
 attribute AlphaCallback on_alpha;
 
+
+/*! set to true of canvas is a YUV-based format, false if RGB-based format*/
+readonly attribute boolean is_yuv;
+
+/*! number of bits per component (8, 10, etc)*/
+readonly attribute unsigned long depth;
+
+
+
 /*! clears the canvas with the given color - see \ref gf_evg_surface_clear
 \note Omitting the last values will assume 0xFF for alpha, and 0 for other values. 
 \param rc the rectangle to clear, in pixel coordinates
@@ -975,6 +984,7 @@ interface Texture {
 	void set_alpha(double alpha);
 
 	/*! converts texture from RGB/YUV to new HSV texture
+	\warning the texture format will still be RGB (or RGBA if the source has alpha), in packed format
 	\warning experimental, slow
 	\return new texture*/
 	Texture rgb2hsv();
@@ -984,23 +994,17 @@ interface Texture {
 	\return new texture*/
 	Texture hsv2rgb();
 
-	/*! converts texture from HSV to new RGB texture
-	\warning experimental, slow
-	\return new texture*/
-	Texture hsv2rgb();
-
 	/*! converts texture from RGB to new YUV texture
 	\warning experimental, slow
 	This function can be used to convert an RGB texture to a YUV one, typically for rasterizing an RGB static texture over a YUV video (avoids performing the RGB to YUV conversion at each frame)
-	\warning the texture format will still be RGB (or RGBA if the source has alpha), in packed format
-	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\param surf the target Canvas
 	\return new texture*/
 	Texture rgb2yuv(Canvas surf);
 
 	/*! converts texture from YUV to new RGB texture
 	\warning experimental, slow
 	This function can be used to convert a YUV texture to an RGB one, typically for rasterizing a YUV static texture over an RGB video (avoids performing the TYV to RGB conversion at each frame)
-	\param surf the target surface, can be a Canvas or a Canvas3D object 
+	\param surf the target Canvas
 	\return new texture*/
 	Texture yuv2rgb(Canvas surf);
 
