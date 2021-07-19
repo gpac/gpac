@@ -657,7 +657,6 @@ static Bool th_fetch_lines(EVGRasterCtx *rctx)
 	} else {
 		rctx->last_line = rctx->surf->last_dispatch_line;
 	}
-	assert(rctx->last_line <= 1080);
 	gf_mx_v(rctx->surf->raster_mutex);
 	return GF_TRUE;
 }
@@ -788,7 +787,6 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 		} else {
 			surf->last_dispatch_line += LINES_PER_THREAD;
 		}
-		assert(rctx->last_line <= 1080);
 		rctx->fill_rule = fill_rule;
 		rctx->is_tri_raster = is_tri_raster ? 1 : 0;
 	}
