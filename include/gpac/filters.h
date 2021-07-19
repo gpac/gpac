@@ -3123,6 +3123,19 @@ void gf_filter_pid_set_udta(GF_FilterPid *PID, void *udta);
 */
 void *gf_filter_pid_get_udta(GF_FilterPid *PID);
 
+/*! get user 32-bits flags
+\param PID the target filter PID
+\return flags
+*/
+u64 gf_filter_pid_get_udta_flags(GF_FilterPid *PID);
+
+/*! set user 32-bits flags
+\param PID the target filter PID
+\param flags the flags (replaces the entire flags))
+\return error if any
+*/
+GF_Err gf_filter_pid_set_udta_flags(GF_FilterPid *PID, u32 flags);
+
 /*! Gets PID name. Mostly used for logging purposes
 \param PID the target filter PID
 \param name the new PID name. function ignored if NULL.
@@ -3686,6 +3699,7 @@ GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *PID, Bool do_ignore);
 \return GF_FILTER_NO_TS or estimated time
 */
 u64 gf_filter_pid_get_next_ts(GF_FilterPid *PID);
+
 
 /*! @} */
 

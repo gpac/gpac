@@ -2576,6 +2576,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_buffer_occupancy ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_udta ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_udta ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_udta_flags ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_udta_flags ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_packet_count ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_packet ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_first_packet_cts ) )

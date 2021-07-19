@@ -5735,7 +5735,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
 		u8 sap_type = (pck->info.flags & GF_PCK_SAP_MASK) >> GF_PCK_SAP_POS;
-		Bool seek_flag = pck->info.flags & GF_PCKF_SEEK;
+		Bool seek_flag = (pck->info.flags & GF_PCKF_SEEK) ? 1 : 0;
 
 		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining buffer "LLU" us\n", pidinst->filter ? pidinst->filter->name : "disconnected", pid->name, pid->filter->name, pck->info.dts, pck->info.cts, sap_type, seek_flag, nb_pck, pidinst->buffer_duration));
@@ -7661,4 +7661,26 @@ u64 gf_filter_pid_get_next_ts(GF_FilterPid *pid)
 		return dts;
 	dts += pid->pid->last_pck_dur;
 	return dts;
+}
+
+GF_EXPORT
+u64 gf_filter_pid_get_udta_flags(GF_FilterPid *pid)
+{
+	if (!pid) return 0;
+	if (PID_IS_OUTPUT(pid)) {
+		return pid->udta_flags;
+	}
+	return ((GF_FilterPidInst *)pid)->udta_flags;
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_udta_flags(GF_FilterPid *pid, u32 flags)
+{
+	if (!pid) return GF_BAD_PARAM;
+	if (PID_IS_OUTPUT(pid)) {
+		pid->udta_flags = flags;
+	} else {
+		((GF_FilterPidInst *)pid)->udta_flags = flags;
+	}
+	return GF_OK;
 }

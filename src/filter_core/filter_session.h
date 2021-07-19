@@ -836,6 +836,7 @@ struct __gf_filter_pid_inst
 	volatile s32 detach_pending;
 
 	void *udta;
+	u32 udta_flags;
 
 	//statistics per pid instance
 	u64 last_pck_fetch_time;
@@ -938,6 +939,7 @@ struct __gf_filter_pid
 	Bool initial_play_done;
 	Bool is_playing;
 	void *udta;
+	u32 udta_flags;
 
 	GF_PropertyMap *caps_negociate;
 	Bool caps_negociate_direct;
