@@ -65,8 +65,10 @@ static void webgl_finalize(JSRuntime *rt, JSValue obj)
 	glDeleteTextures(1, &glctx->tex_id);
 	glDeleteRenderbuffers(1, &glctx->depth_id);
 	glDeleteFramebuffers(1, &glctx->fbo_id);
+	if (glctx->pix_data) gf_free(glctx->pix_data);
 	gf_free(glctx);
 }
+
 static void webgl_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
 	u32 i, count;
@@ -1743,6 +1745,8 @@ void webgl_pck_tex_depth_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPack
 	GF_WebGLContext *glc = (GF_WebGLContext *)f_ifce->user_data;
 	if (!glc) return;
 
+	gf_js_lock(glc->ctx, GF_TRUE);
+
 	if (is_depth)
 		fun = &glc->depth_frame_flush;
 	else
@@ -1755,6 +1759,7 @@ void webgl_pck_tex_depth_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPack
 		JS_FreeValue(glc->ctx, *fun);
 		*fun = JS_UNDEFINED;
 	}
+	gf_js_lock(glc->ctx, GF_FALSE);
 }
 void webgl_pck_tex_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
 {
@@ -1766,7 +1771,7 @@ void webgl_pck_depth_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *
 	webgl_pck_tex_depth_del(filter, PID, pck, GF_TRUE);
 }
 
-JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, gf_fsess_packet_destructor *pck_del, GF_FilterFrameInterface **f_ifce)
+JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, GF_FilterPid *for_pid, gf_fsess_packet_destructor *pck_del, GF_FilterFrameInterface **f_ifce)
 {
 	JSValue *frame_flush_fun = NULL;
 	GF_WebGLContext *glc;
@@ -1787,6 +1792,17 @@ JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, 
 		*pck_del = webgl_pck_tex_del;
 		frame_flush_fun = &glc->tex_frame_flush;
 		*f_ifce = &glc->tex_f_ifce;
+
+		const GF_PropertyValue *p = gf_filter_pid_get_property(for_pid, GF_PROP_PID_PIXFMT);
+		if (p && (p->value.uint == GF_PIXEL_RGB)) {
+			glc->fetch_required_pfmt = 1;
+		}
+		else if (p && (p->value.uint == GF_PIXEL_RGBA)) {
+			glc->fetch_required_pfmt = 2;
+		}
+		else {
+			return js_throw_err_msg(ctx, GF_BAD_PARAM, "Only RGB and RGBA output format supported for WebGL output\n");
+		}
 	}
 	if (!JS_IsUndefined(*frame_flush_fun))
 		return js_throw_err(ctx, WGL_INVALID_OPERATION);
@@ -1821,6 +1837,76 @@ static GF_Err webgl_get_depth(GF_FilterFrameInterface *ifce, u32 plane_idx, u32 
 		gf_mx_add_scale(texcoordmatrix, FIX_ONE, -FIX_ONE, FIX_ONE);
 	return GF_OK;
 }
+
+GF_Err webgl_get_plane(GF_FilterFrameInterface *ifce, u32 plane_idx, const u8 **outPlane, u32 *outStride)
+{
+	GF_WebGLContext *glc = ifce->user_data;
+	if (!glc) return GF_BAD_PARAM;
+	if (plane_idx) return GF_BAD_PARAM;
+
+	gf_js_lock(glc->ctx, GF_TRUE);
+
+	if (glc->fetch_required_pfmt) {
+		u32 i, hy;
+		jsf_set_gl_active(glc->ctx);
+
+		if (glc->creation_attrs.primary) {
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		} else {
+			glBindFramebuffer(GL_FRAMEBUFFER, glc->fbo_id);
+
+			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			switch (status) {
+			case GL_FRAMEBUFFER_COMPLETE:
+				break;
+			default:
+				gf_js_lock(glc->ctx, GF_FALSE);
+				return GF_IO_ERR;
+			}
+		}
+		if (!glc->pix_data || !glc->pix_line) {
+			u32 bpp = (glc->fetch_required_pfmt==2) ? 4 : 3;
+			bpp *= glc->width;
+			if (!glc->pix_data) {
+				//we aloocate one extra line at the end, workaround for ffsws sometimes trying to access one extra line
+				glc->pix_data = gf_malloc(sizeof(u8) * bpp * (glc->height+1) );
+				if (!glc->pix_data) {
+					gf_js_lock(glc->ctx, GF_FALSE);
+					return GF_OUT_OF_MEM;
+				}
+			}
+			if (!glc->pix_line) {
+				glc->pix_line = gf_malloc(sizeof(u8) * bpp);
+				if (!glc->pix_line) {
+					gf_js_lock(glc->ctx, GF_FALSE);
+					return GF_OUT_OF_MEM;
+				}
+			}
+		}
+
+		glReadPixels(0, 0, glc->width, glc->height, (glc->fetch_required_pfmt==2) ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, glc->pix_data);
+
+		glc->fetch_required_pfmt = 0;
+
+		hy = glc->height/2;
+		glc->pix_stride = (glc->fetch_required_pfmt==2) ? 4 : 3;
+		glc->pix_stride *= glc->width;
+
+		for (i=0; i<hy; i++) {
+			memcpy(glc->pix_line, glc->pix_data + i * glc->pix_stride, glc->pix_stride);
+			memcpy(glc->pix_data + i * glc->pix_stride, glc->pix_data + (glc->height - 1 - i) * glc->pix_stride, glc->pix_stride);
+			memcpy(glc->pix_data + (glc->height - 1 - i) * glc->pix_stride, glc->pix_line, glc->pix_stride);
+		}
+	}
+
+	*outPlane = glc->pix_data;
+	*outStride = glc->pix_stride;
+
+	gf_js_lock(glc->ctx, GF_FALSE);
+	return GF_OK;
+}
+
+
 static JSValue webgl_setup_fbo(JSContext *ctx, GF_WebGLContext *glc, u32 width, u32 height)
 {
 	glc->width = width;
@@ -1902,6 +1988,12 @@ static JSValue webgl_setup_fbo(JSContext *ctx, GF_WebGLContext *glc, u32 width, 
    }
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+	if (glc->pix_data) {
+		gf_free(glc->pix_data);
+		glc->pix_data = NULL;
+	}
 	return JS_UNDEFINED;
 }
 static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
@@ -2003,6 +2095,7 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 	if (glc->creation_attrs.primary)
 		glc->tex_f_ifce.flags |= GF_FRAME_IFCE_MAIN_GLFB;
 	glc->tex_f_ifce.get_gl_texture = webgl_get_texture;
+	glc->tex_f_ifce.get_plane = webgl_get_plane;
 	glc->tex_f_ifce.user_data = glc;
 	glc->tex_frame_flush = JS_UNDEFINED;
 

@@ -81,6 +81,9 @@ typedef struct
 	struct _wgl_named_texture *bound_named_texture;
 	struct __wgl_object *bound_texture;
 	u32 bound_texture_target;
+
+	u32 fetch_required_pfmt, pix_stride;
+	u8 *pix_data, *pix_line;
 } GF_WebGLContext;
 
 typedef struct __wgl_object
