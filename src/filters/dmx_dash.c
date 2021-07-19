@@ -93,6 +93,8 @@ typedef struct
 	GF_List *hls_variants, *hls_variants_names;
 
 	GF_Fraction64 chain_time;
+	Bool compute_min_dts;
+	u64 chain_next_min_ts;
 
 	Bool is_dash;
 	Bool manifest_stop_sent;
@@ -128,8 +130,7 @@ typedef struct
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
 	u32 timescale;
-	s64 pto, chain_ts_offset;
-	s64 max_cts_in_period;
+	u64 pto, max_cts_in_period, chain_ts_offset;
 	bin128 key_IV;
 
 	Bool seg_was_not_ready;
@@ -279,18 +280,21 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
+		u64 scale_max_cts, scale_pto, scale_chain_tso;
+		u32 ts = gf_filter_pck_get_timescale(in_pck);
+
 		if (!group->pto_setup) {
 			Double scale;
 			s64 start, dur;
-			u64 pto;
-			u32 ts = gf_filter_pck_get_timescale(in_pck);
-			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &group->timescale);
-			group->pto = (s64) pto;
+			u32 mpd_timescale;
+			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &group->pto, &mpd_timescale);
+			group->pto_setup = 1;
 			group->pto_setup = 1;
 
-			if (group->timescale && (group->timescale != ts)) {
-				group->pto = gf_timestamp_rescale(group->pto, group->timescale, ts);
+			if (mpd_timescale && (mpd_timescale != ts)) {
+				group->pto = gf_timestamp_rescale(group->pto, mpd_timescale, ts);
 			}
+			group->timescale = ts;
 			scale = ts;
 			scale /= 1000;
 
@@ -301,45 +305,75 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				group->max_cts_in_period = 0;
 			}
 
-			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
-			group->pto -= start;
-
 			if (ctx->chain_time.den) {
+				group->pto += gf_timestamp_rescale(ctx->chain_next_min_ts, ctx->chain_time.den, ts);
 				group->chain_ts_offset = gf_timestamp_rescale(ctx->chain_time.num, ctx->chain_time.den, ts);
 			}
+
+			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
+			if (group->pto >= start)
+				group->pto -= start;
+			else
+				group->pto = 0;
 		}
 
-		if (group->max_cts_in_period && (s64) cts > group->max_cts_in_period) {
+		if (ts == group->timescale) {
+			scale_max_cts = group->max_cts_in_period;
+			scale_pto = group->pto;
+			scale_chain_tso = group->chain_ts_offset;
+		} else {
+			scale_max_cts = gf_timestamp_rescale(group->max_cts_in_period, group->timescale, ts);
+			scale_pto = gf_timestamp_rescale(group->pto, group->timescale, ts);
+			scale_chain_tso = gf_timestamp_rescale(group->chain_ts_offset, group->timescale, ts);
+		}
+
+
+		if (scale_max_cts && (cts > scale_max_cts)) {
 			u64 adj_cts = cts;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(in_pid, GF_PROP_PID_DELAY);
 			if (p) adj_cts += p->value.longsint;
-			if ( (s64) adj_cts > group->max_cts_in_period) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", adj_cts, group->max_cts_in_period));
+			if ( (s64) adj_cts > scale_max_cts) {
+				u32 flags;
+				u64 _dts = (dts==GF_FILTER_NO_TS) ? dts : adj_cts;
+
+				//if DTS larger than max TS, drop packet
+				if ( (s64) _dts > scale_max_cts) {
+					flags = gf_filter_pid_get_udta_flags(out_pid);
+					if (!flags) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - droping all further packets\n", adj_cts, scale_max_cts));
+						gf_filter_pid_set_udta_flags(out_pid, 1);
+					}
+					gf_filter_pid_drop_packet(in_pid);
+					return;
+				}
+				//otherwise, packet may be required for decoding future frames, mark as drop
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Packet timestamp "LLU" larger than max CTS in period "LLU" - forcing seek flag\n", adj_cts, scale_max_cts));
+
 				seek_flag = 1;
 			}
 		}
 
 		//remap timestamps to our timeline
 		if (dts != GF_FILTER_NO_TS) {
-			if ((s64) dts >= group->pto)
-				dts -= group->pto;
+			if (dts >= scale_pto)
+				dts -= scale_pto;
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", dts, group->pto));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", dts, scale_pto));
 				dts = 0;
 				seek_flag = 1;
 			}
 		}
 		if (cts!=GF_FILTER_NO_TS) {
-			if ((s64) cts >= group->pto)
-				cts -= group->pto;
+			if (cts >= scale_pto)
+				cts -= scale_pto;
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", cts, group->pto));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", cts, scale_pto));
 				cts = 0;
 				seek_flag = 1;
 			}
 		}
-		dts += group->chain_ts_offset;
-		cts += group->chain_ts_offset;
+		dts += scale_chain_tso;
+		cts += scale_chain_tso;
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
@@ -1037,6 +1071,10 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				ctx->chain_time.den = timescale;
 			}
 		}
+		if (ctx->chain_time.num && ctx->chain_time.den) {
+			gf_filter_post_process_task(ctx->filter);
+			ctx->compute_min_dts = GF_TRUE;
+		}
 	}
 
 	return GF_OK;
@@ -1594,6 +1632,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
+		gf_filter_pid_set_udta_flags(opid, 0);
 		group->nb_pids ++;
 
 		if (run_status) {
@@ -2638,6 +2677,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	u32 i, count;
 	GF_FilterPacket *pck;
 	GF_Err e;
+	u32 inputs_fetched = 1;
 	u32 next_time_ms = 0;
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) gf_filter_get_udta(filter);
 	Bool check_eos = ctx->check_eos;
@@ -2699,8 +2739,12 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	if (next_time_ms>1000)
 		next_time_ms=1000;
 
-	//flush all media input
 	count = gf_filter_get_ipid_count(filter);
+
+	if (ctx->compute_min_dts)
+		ctx->chain_next_min_ts = 0;
+
+	//flush all media input
 	for (i=0; i<count; i++) {
 		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
 		GF_FilterPid *opid;
@@ -2709,8 +2753,10 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		opid = gf_filter_pid_get_udta(ipid);
 		group = gf_filter_pid_get_udta(opid);
 
-		if (!group || group->nb_pending)
+		if (!group || group->nb_pending) {
+			inputs_fetched = 0;
 			continue;
+		}
 
 		while (1) {
 			pck = gf_filter_pid_get_packet(ipid);
@@ -2722,10 +2768,12 @@ GF_Err dashdmx_process(GF_Filter *filter)
 						continue;
 					}
 				}
+//				inputs_fetched = 0;
 				break;
 			}
 
 			if (!pck) {
+				inputs_fetched = 0;
 				if (gf_filter_pid_is_eos(ipid) || !gf_filter_pid_is_playing(opid) || group->force_seg_switch) {
 					group->nb_eos++;
 
@@ -2787,6 +2835,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					if (ctx->abort)
 						dashdmx_update_group_stats(ctx, group);
 					//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
+
 				}
 				if (group->in_error || group->seg_was_not_ready) {
 					dashdmx_switch_segment(ctx, group);
@@ -2795,11 +2844,32 @@ GF_Err dashdmx_process(GF_Filter *filter)
 				}
 				break;
 			}
+
+			if (ctx->compute_min_dts) {
+				if (inputs_fetched) inputs_fetched++;
+				u32 timescale = gf_filter_pid_get_timescale(ipid);
+				u64 dts = gf_filter_pck_get_dts(pck);
+				if (dts==GF_FILTER_NO_TS)
+					dts = gf_filter_pck_get_cts(pck);
+				if (dts==GF_FILTER_NO_TS)
+					continue;
+				dts = gf_timestamp_rescale(dts, timescale, ctx->chain_time.den);
+				if (!ctx->chain_next_min_ts || (ctx->chain_next_min_ts > dts)) ctx->chain_next_min_ts = dts;
+				break;
+			}
 			has_pck = GF_TRUE;
 			check_eos = GF_FALSE;
 			dashdmx_forward_packet(ctx, pck, ipid, opid, group);
 			group->wait_for_pck = GF_FALSE;
 			dashdmx_update_group_stats(ctx, group);
+		}
+	}
+	if (ctx->compute_min_dts) {
+		if (inputs_fetched>1) {
+			ctx->compute_min_dts = GF_FALSE;
+		} else {
+			gf_filter_ask_rt_reschedule(filter, 1000);
+			return GF_OK;
 		}
 	}
 
