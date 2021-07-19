@@ -161,6 +161,7 @@ struct __dash_client
     Bool route_low_latency;
 
 	Bool initial_period_tunein;
+	u32 preroll_state;
 
 	Bool llhls_single_range;
 	Bool m3u8_reload_master;
@@ -638,6 +639,17 @@ static void gf_dash_group_timeline_setup_single(GF_MPD *mpd, GF_DASH_Group *grou
 		return;
 	}
 
+	if ((group->dash->preroll_state<2) && group->dash->initial_period_tunein && gf_list_count(group->dash->mpd->periods)) {
+		GF_MPD_Period *ap = gf_list_get(group->dash->mpd->periods, 0);
+		if (ap->is_preroll) {
+			group->dash->preroll_state = 1;
+		}
+	}
+	if (group->dash->preroll_state == 1) {
+		group->broken_timing = GF_TRUE;
+		return;
+	}
+
 	//if ROUTE and clock not setup, do it
 setup_route:
 	val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route");
@@ -946,6 +958,8 @@ setup_route:
 		u64 start = 0;
 		for (i=0; i<gf_list_count(group->dash->mpd->periods); i++) {
 			GF_MPD_Period *ap = gf_list_get(group->dash->mpd->periods, i);
+			if (ap->is_preroll) continue;
+
 			if (ap->start) start = ap->start;
 
 			if (group->dash->initial_period_tunein
@@ -2376,7 +2390,7 @@ restart_period_check:
 
 			//assume the old period is no longer valid
 			dash->active_period_index = 0;
-			dash->request_period_switch = GF_TRUE;
+			dash->request_period_switch = 1;
 			for (i=0; i<gf_list_count(dash->groups); i++) {
 				GF_DASH_Group *group = gf_list_get(dash->groups, i);
 				gf_dash_mark_group_done(group);
@@ -7349,6 +7363,10 @@ static GF_Err dash_check_mpd_update_and_cache(GF_DashClient *dash, Bool *cache_i
 					dash->chain_stack_state = 0;
 					dash->dash_state = GF_DASH_STATE_CHAIN_NEXT;
 					is_chain = GF_TRUE;
+				} else if (dash->preroll_state==1) {
+					is_chain = GF_TRUE;
+					dash->preroll_state = 2;
+					dash->initial_period_tunein = GF_TRUE;
 				}
 
 				if (!dash->all_groups_done_notified) {
@@ -7614,7 +7632,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		group->download_segment_index = segment_idx;
 	} else {
 		group->start_number_at_last_ast = 0;
-		/*remember to adjust time in timeline steup*/
+		/*remember to adjust time in timeline setup*/
 		group->start_playback_range = seek_to;
 		group->timeline_setup = GF_FALSE;
 	}
@@ -7737,6 +7755,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	memset(dash->lastMPDSignature, 0, sizeof(char)*GF_SHA1_DIGEST_SIZE);
 	dash->utc_drift_estimate = 0;
 	dash->time_in_tsb = dash->prev_time_in_tsb = 0;
+	dash->reinit_period_index = 0;
 
 	if (dash->base_url) gf_free(dash->base_url);
 	sep_cgi = strrchr(manifest_url, '?');
@@ -8926,7 +8945,11 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Seek request - playing from %g\n", start_range));
 
 	//are we live ? if so adjust start range
-	if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+	if (dash->preroll_state == 1) {
+		dash->initial_period_tunein = GF_TRUE;
+		start_range = 0;
+	}
+	else if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 		u64 now, availabilityStartTime;
 		availabilityStartTime = dash->mpd->availabilityStartTime + dash->utc_shift;
 		availabilityStartTime += dash->utc_drift_estimate;
@@ -8942,7 +8965,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 		start_range = (Double) now;
 		start_range /= 1000;
 
-		is_dynamic = 1;
+		is_dynamic = GF_TRUE;
 		dash->initial_period_tunein = GF_TRUE;
 	}
 
@@ -9254,9 +9277,12 @@ u64 gf_dash_get_period_start(GF_DashClient *dash)
 	GF_MPD_Period *period;
 	if (!dash || !dash->mpd) return 0;
 
+	if (dash->preroll_state==1) return 0;
+
 	start = 0;
 	for (i=0; i<=dash->active_period_index; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
+		if (period->is_preroll) continue;
 		if (period->start) start = period->start;
 
 		if (i<dash->active_period_index) start += period->duration;

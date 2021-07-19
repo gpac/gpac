@@ -991,8 +991,20 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 	GF_XMLNode *child;
 	GF_Err e;
 
+	Bool is_preperiod = !strcmp(root->name, "PrePeriod") ? GF_TRUE : GF_FALSE;
+
+	if (is_preperiod) {
+		period = gf_list_get(mpd->periods, 0);
+		if (period) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] At most one PrePeriod allowed, and it shall be the first period\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+	}
+
 	period = gf_mpd_period_new();
 	if (!period) return GF_OUT_OF_MEM;
+	period->is_preroll = is_preperiod;
+
 	e = gf_list_add(mpd->periods, period);
 	if (e) return e;
 
@@ -1001,7 +1013,13 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 		if (strstr(att->name, "href")) period->xlink_href = gf_mpd_parse_string(att->value);
 		else if (strstr(att->name, "actuate")) period->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
 		else if (!strcmp(att->name, "id")) period->ID = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "start")) period->start = gf_mpd_parse_duration(att->value);
+		else if (!strcmp(att->name, "start")) {
+			if (is_preperiod) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] PrePeriod with @start not allowed, ignoring attribute\n"));
+			} else {
+				period->start = gf_mpd_parse_duration(att->value);
+			}
+		}
 		else if (!strcmp(att->name, "duration")) period->duration = gf_mpd_parse_duration(att->value);
 		else if (!strcmp(att->name, "bitstreamSwitching")) period->bitstream_switching = gf_mpd_parse_bool(att->value);
 		else {
@@ -1364,7 +1382,7 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Wrong namespace found for DASH MPD - cannot parse\n"));
 	}
 
-	if (!strcmp(root->name, "Period")) {
+	if (!strcmp(root->name, "PrePeriod") || !strcmp(root->name, "Period")) {
 		return gf_mpd_parse_period(mpd, root);
 	}
 
@@ -1424,7 +1442,7 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 		} else if (!strcmp(child->name, "Location")) {
 			char *str = gf_mpd_parse_text_content(child);
 			if (str) gf_list_add(mpd->locations, str);
-		} else if (!strcmp(child->name, "Period")) {
+		} else if (!strcmp(child->name, "PrePeriod") || !strcmp(child->name, "Period")) {
 			e = gf_mpd_parse_period(mpd, child);
 			if (e) return e;
 		} else if (!strcmp(child->name, "Metrics")) {

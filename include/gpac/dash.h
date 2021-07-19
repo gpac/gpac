@@ -91,7 +91,7 @@ typedef enum
 	GF_DASH_EVENT_ABORT_DOWNLOAD,
 	/*! event send whenever cache is full, to allow client to dispatch any segment*/
 	GF_DASH_EVENT_CACHE_FULL,
-	/*! event send when all groups are done in a period - if group_idx is 1, this announces a chaining*/
+	/*! event send when all groups are done in a period - if group_idx is 1, this announces a time discontinuity for next period*/
 	GF_DASH_EVENT_END_OF_PERIOD,
 } GF_DASHEventType;
 

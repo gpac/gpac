@@ -777,6 +777,9 @@ typedef struct
 	char *broken_xlink;
 	/*! type of the period - GPAC internal*/
 	GF_MPD_Type type;
+
+	/*! period is preroll - test only, GPAC internal*/
+	Bool is_preroll;
 } GF_MPD_Period;
 
 /*! Program info*/
