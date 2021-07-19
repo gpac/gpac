@@ -92,9 +92,9 @@ typedef struct
 	char *manifest_payload;
 	GF_List *hls_variants, *hls_variants_names;
 
-	GF_Fraction64 chain_time;
+	GF_Fraction64 time_discontinuity;
 	Bool compute_min_dts;
-	u64 chain_next_min_ts;
+	u64 timedisc_next_min_ts;
 
 	Bool is_dash;
 	Bool manifest_stop_sent;
@@ -129,8 +129,9 @@ typedef struct
 	GF_DownloadSession *sess;
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
+	//media timescale for which the pto, max_cts_in_period and timedisc_ts_offset were computed
 	u32 timescale;
-	u64 pto, max_cts_in_period, chain_ts_offset;
+	u64 pto, max_cts_in_period, timedisc_ts_offset;
 	bin128 key_IV;
 
 	Bool seg_was_not_ready;
@@ -280,7 +281,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
-		u64 scale_max_cts, scale_pto, scale_chain_tso;
+		u64 scale_max_cts, scale_pto, scale_timesdisc_offset;
 		u32 ts = gf_filter_pck_get_timescale(in_pck);
 
 		if (!group->pto_setup) {
@@ -305,9 +306,9 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				group->max_cts_in_period = 0;
 			}
 
-			if (ctx->chain_time.den) {
-				group->pto += gf_timestamp_rescale(ctx->chain_next_min_ts, ctx->chain_time.den, ts);
-				group->chain_ts_offset = gf_timestamp_rescale(ctx->chain_time.num, ctx->chain_time.den, ts);
+			if (ctx->time_discontinuity.den) {
+				group->pto += gf_timestamp_rescale(ctx->timedisc_next_min_ts, ctx->time_discontinuity.den, ts);
+				group->timedisc_ts_offset = gf_timestamp_rescale(ctx->time_discontinuity.num, ctx->time_discontinuity.den, ts);
 			}
 
 			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
@@ -320,11 +321,11 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		if (ts == group->timescale) {
 			scale_max_cts = group->max_cts_in_period;
 			scale_pto = group->pto;
-			scale_chain_tso = group->chain_ts_offset;
+			scale_timesdisc_offset = group->timedisc_ts_offset;
 		} else {
 			scale_max_cts = gf_timestamp_rescale(group->max_cts_in_period, group->timescale, ts);
 			scale_pto = gf_timestamp_rescale(group->pto, group->timescale, ts);
-			scale_chain_tso = gf_timestamp_rescale(group->chain_ts_offset, group->timescale, ts);
+			scale_timesdisc_offset = gf_timestamp_rescale(group->timedisc_ts_offset, group->timescale, ts);
 		}
 
 
@@ -372,8 +373,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				seek_flag = 1;
 			}
 		}
-		dts += scale_chain_tso;
-		cts += scale_chain_tso;
+		dts += scale_timesdisc_offset;
+		cts += scale_timesdisc_offset;
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
@@ -1053,11 +1054,11 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		}
 	}
 
-	//chaining, recompute timeline anchor at end of pres
+	//discontinuity at next period, recompute timeline anchor at end of pres
 	//in foraward mode, we don't touch timestamps for now
 	if ((dash_evt==GF_DASH_EVENT_END_OF_PERIOD) && group_idx && !ctx->forward) {
-		ctx->chain_time.num = 0;
-		ctx->chain_time.den = 0;
+		ctx->time_discontinuity.num = 0;
+		ctx->time_discontinuity.den = 0;
 
 		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
@@ -1066,12 +1067,12 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			u64 ts = gf_filter_pid_get_next_ts(opid);
 			if (ts==GF_FILTER_NO_TS) continue;
 
-			if (!ctx->chain_time.den || gf_timestamp_greater(ts, timescale, ctx->chain_time.num, ctx->chain_time.den)) {
-				ctx->chain_time.num = ts;
-				ctx->chain_time.den = timescale;
+			if (!ctx->time_discontinuity.den || gf_timestamp_greater(ts, timescale, ctx->time_discontinuity.num, ctx->time_discontinuity.den)) {
+				ctx->time_discontinuity.num = ts;
+				ctx->time_discontinuity.den = timescale;
 			}
 		}
-		if (ctx->chain_time.num && ctx->chain_time.den) {
+		if (ctx->time_discontinuity.num && ctx->time_discontinuity.den) {
 			gf_filter_post_process_task(ctx->filter);
 			ctx->compute_min_dts = GF_TRUE;
 		}
@@ -2742,7 +2743,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 	count = gf_filter_get_ipid_count(filter);
 
 	if (ctx->compute_min_dts)
-		ctx->chain_next_min_ts = 0;
+		ctx->timedisc_next_min_ts = 0;
 
 	//flush all media input
 	for (i=0; i<count; i++) {
@@ -2853,8 +2854,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					dts = gf_filter_pck_get_cts(pck);
 				if (dts==GF_FILTER_NO_TS)
 					continue;
-				dts = gf_timestamp_rescale(dts, timescale, ctx->chain_time.den);
-				if (!ctx->chain_next_min_ts || (ctx->chain_next_min_ts > dts)) ctx->chain_next_min_ts = dts;
+				dts = gf_timestamp_rescale(dts, timescale, ctx->time_discontinuity.den);
+				if (!ctx->timedisc_next_min_ts || (ctx->timedisc_next_min_ts > dts)) ctx->timedisc_next_min_ts = dts;
 				break;
 			}
 			has_pck = GF_TRUE;
