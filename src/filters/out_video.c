@@ -1733,7 +1733,6 @@ static GF_Err vout_process(GF_Filter *filter)
 			if (ctx->timescale!=1000000) {
 				diff = gf_timestamp_rescale(diff, 1000000, ctx->timescale);
 			}
-			assert(diff>=0);
 			//ref stream hypothetical timestamp at now
 			ref_ts += diff;
 			if (!ctx->first_cts_plus_one || (cts >= ref_ts)) {
