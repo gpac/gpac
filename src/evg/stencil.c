@@ -1620,6 +1620,12 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		_this->tx_get_pixel_wide = get_pix_yuv_nv21_10_wide;
 		_this->is_wide = 1;
 		break;
+	case GF_PIXEL_YUVA444_PACK:
+		_this->tx_get_pixel = get_pix_rgba;
+		break;
+	case GF_PIXEL_YUV444_PACK:
+		_this->tx_get_pixel = get_pix_rgb_24;
+		break;
 	default:
 		return;
 	}
@@ -1735,6 +1741,14 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 		_this->Bpp = 1;
 		if (!stride)
 			stride = 4 * width;
+		break;
+	case GF_PIXEL_YUVA444_PACK:
+		_this->Bpp = 4;
+		_this->is_yuv = GF_TRUE;
+		break;
+	case GF_PIXEL_YUV444_PACK:
+		_this->Bpp = 3;
+		_this->is_yuv = GF_TRUE;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

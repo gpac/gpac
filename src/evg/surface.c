@@ -1105,13 +1105,11 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 		switch (sten->type) {
 		case GF_STENCIL_TEXTURE:
 			if (!surf->is_shader) {
-				if ( ((EVG_Texture *)sten)->tx_callback) {
+				EVG_Texture *texture = (EVG_Texture *) sten;
+				if (!texture->tx_callback && ! texture->pixels)
+					return GF_BAD_PARAM;
 
-				} else {
-					if (! ((EVG_Texture *)sten)->pixels) return GF_BAD_PARAM;
-				}
-
-				if (((EVG_Texture *)sten)->mod & GF_TEXTURE_FLIP_Y) {
+				if (texture->mod & GF_TEXTURE_FLIP_Y) {
 					if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
 				} else {
 					if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
