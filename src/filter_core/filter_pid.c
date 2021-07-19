@@ -5923,8 +5923,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	return would_block;
 }
 
-GF_EXPORT
-u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
+static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update)
 {
 	u32 count, i, j;
 	u64 duration=0;
@@ -5952,15 +5951,16 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 		//this is a very costly recursive call until each source, and is likely to be an overkill
 		//if many PIDs (large tiling configurations for example)
 		//we cache the last computed value and only update every 10ms
-		if (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000) {
+		if (!force_update && (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000)) {
 			return pidinst->last_buf_query_dur;
 		}
 		pidinst->last_buf_query_clock = pidinst->filter->last_schedule_task_time;
+		force_update = GF_TRUE;
 
 		gf_mx_p(filter->tasks_mx);
 		count = filter->num_input_pids;
 		for (i=0; i<count; i++) {
-			u64 dur = gf_filter_pid_query_buffer_duration( gf_list_get(filter->input_pids, i), 0);
+			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), 0, force_update);
 			if (dur > duration)
 				duration = dur;
 
@@ -5991,7 +5991,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 			count2 = pidinst->filter->num_output_pids;
 			for (j=0; j<count2; j++) {
 				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
-				u64 dur = gf_filter_pid_query_buffer_duration(pid_n, 0);
+				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, 0, GF_FALSE);
 				if (dur > max_dur ) max_dur = dur;
 			}
 		}
@@ -6000,7 +6000,12 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
 	return duration;
 }
 
+GF_EXPORT
+u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid, Bool check_pid_full)
+{
+	return gf_filter_pid_query_buffer_duration_internal(pid, check_pid_full, GF_FALSE);
 
+}
 GF_EXPORT
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 {
