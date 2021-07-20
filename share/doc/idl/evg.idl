@@ -846,7 +846,7 @@ interface Stencil {
 
 	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0.0 and 1.0*/
-	void set_alpha(double alpha);
+	void set_alphaf(double alpha);
 
 	/*! sets linear gradient start and end point. If end point is omitted, sets gradient line betwee {0,0} and start. Coordinates are given in surface coordinates, not object coordinates. See \ref gf_evg_stencil_set_linear_gradient
 	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:
@@ -996,7 +996,7 @@ interface Texture {
 
 	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0.0 and 1.0*/
-	void set_alpha(double alpha);
+	void set_alphaf(double alpha);
 
 	/*! converts texture from RGB/YUV to new HSV texture
 	\warning the texture format will still be RGB (or RGBA if the source has alpha), in packed format

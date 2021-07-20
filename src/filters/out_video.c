@@ -586,6 +586,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->bit_depth = 10;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVU:
+	case GF_PIXEL_YUVA:
 		ctx->uv_w = ctx->width/2;
 		if (ctx->width % 2) ctx->uv_w++;
 		ctx->uv_h = ctx->height/2;
@@ -595,6 +596,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (ctx->stride%2) ctx->uv_stride ++;
 		}
 		ctx->is_yuv = GF_TRUE;
+		if (ctx->pfmt==GF_PIXEL_YUVA)
+			ctx->has_alpha = GF_TRUE;
 		break;
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_NV21_10:

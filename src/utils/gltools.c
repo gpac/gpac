@@ -923,6 +923,7 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 		tx->bit_depth = 10;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVU:
+	case GF_PIXEL_YUVA:
 		tx->uv_w = tx->width/2;
 		if (tx->width % 2) tx->uv_w++;
 		tx->uv_h = tx->height/2;
@@ -933,6 +934,10 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 		}
 		tx->is_yuv = GF_TRUE;
 		tx->nb_textures = 3;
+		if (tx->pix_fmt==GF_PIXEL_YUVA) {
+			tx->nb_textures = 4;
+			tx->has_alpha = GF_TRUE;
+		}
 		break;
 	case GF_PIXEL_NV12_10:
 	case GF_PIXEL_NV21_10:
