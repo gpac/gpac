@@ -518,6 +518,9 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (ctx->file_size && (ctx->file_pos + nb_read == ctx->file_size)) {
 		ctx->is_end = GF_TRUE;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->file_size) );
+	} else if (ctx->end_pos && (ctx->file_pos + nb_read == ctx->end_pos)) {
+		ctx->is_end = GF_TRUE;
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT(ctx->range.den - ctx->range.num) );
 	} else {
 		if (nb_read < to_read) {
 			Bool is_eof;
