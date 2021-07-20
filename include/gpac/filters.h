@@ -3127,7 +3127,7 @@ void *gf_filter_pid_get_udta(GF_FilterPid *PID);
 \param PID the target filter PID
 \return flags
 */
-u64 gf_filter_pid_get_udta_flags(GF_FilterPid *PID);
+u32 gf_filter_pid_get_udta_flags(GF_FilterPid *PID);
 
 /*! set user 32-bits flags
 \param PID the target filter PID

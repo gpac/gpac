@@ -1093,7 +1093,7 @@ static const char * mpgvdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 		ftype = 0;
 		is_coded = GF_FALSE;
 		e = gf_m4v_parse_frame(parser, &dsi, &ftype, &tinc, &fsize, &start, &is_coded);
-		if (!nb_frames && start) o_start = start;
+		if (!nb_frames && start) o_start = (u32) start;
 
 		otype = gf_m4v_parser_get_obj_type(parser);
 		switch (otype) {

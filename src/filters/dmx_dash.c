@@ -313,7 +313,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				group->max_cts_in_period = 0;
 			} else if (!group->pto && group->max_cts_in_period && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
 				u32 seg_number=0;
-				if ((dts > group->pto)
+				if (((s64) dts > group->pto)
 					&& (gf_dash_group_next_seg_info(ctx->dash, group->idx, 0, NULL, &seg_number, NULL, NULL, NULL) == GF_OK)
 					&& (seg_number<=1)
 				) {
@@ -365,7 +365,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				u64 _dts = (dts==GF_FILTER_NO_TS) ? dts : adj_cts;
 
 				//if DTS larger than max TS, drop packet
-				if ( (s64) _dts > scale_max_cts) {
+				if ( (s64) _dts > (s64) scale_max_cts) {
 					flags = gf_filter_pid_get_udta_flags(out_pid);
 					if (!flags) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - droping all further packets\n", adj_cts, scale_max_cts));
