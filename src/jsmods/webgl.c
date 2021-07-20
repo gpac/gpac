@@ -66,6 +66,7 @@ static void webgl_finalize(JSRuntime *rt, JSValue obj)
 	glDeleteRenderbuffers(1, &glctx->depth_id);
 	glDeleteFramebuffers(1, &glctx->fbo_id);
 	if (glctx->pix_data) gf_free(glctx->pix_data);
+	if (glctx->pix_line) gf_free(glctx->pix_line);
 	gf_free(glctx);
 }
 
