@@ -2362,7 +2362,7 @@ static void print_filter_arg(const GF_FilterArgs *a, u32 gen_doc)
 	if (a->flags & GF_FS_ARG_UPDATE) gf_sys_format_help(helpout, help_flags, ", updatable");
 //		if (a->flags & GF_FS_ARG_META) gf_sys_format_help(helpout, help_flags, ", meta");
 
-	if (is_enum && !strchr(a->arg_desc, '\n')) {
+	if (is_enum && a->arg_desc && !strchr(a->arg_desc, '\n')) {
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s (%s)\n", a->arg_desc, a->min_max_enum);
 	} else {
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_OPT_DESC, "): %s\n", a->arg_desc);
