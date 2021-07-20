@@ -655,7 +655,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			if (!pck) return GF_OUT_OF_MEM;
 
 			for (j=0; j<opid->height; j++) {
-				memcpy(buffer + j*opid->stride, frame->data[0] + j*frame->linesize[0], opid->stride);
+				memcpy(buffer + j*opid->stride, frame->data[0] + j*frame->linesize[0], opid->width);
 			}
 			if (frame->linesize[1]) {
 				buffer += opid->height*opid->stride;
@@ -667,6 +667,12 @@ static GF_Err ffavf_process(GF_Filter *filter)
 				buffer += opid->uv_height*opid->stride_uv;
 				for (j=0; j<opid->uv_height; j++) {
 					memcpy(buffer + j*opid->stride_uv, frame->data[2] + j*frame->linesize[2], opid->uv_width);
+				}
+			}
+			if (frame->linesize[3]) {
+				buffer += opid->uv_height*opid->stride_uv;
+				for (j=0; j<opid->height; j++) {
+					memcpy(buffer + j*opid->stride, frame->data[3] + j*frame->linesize[3], opid->width);
 				}
 			}
 			if (frame->interlaced_frame)
