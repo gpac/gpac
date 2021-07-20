@@ -175,6 +175,21 @@ void fill(GF_EVGMultiTextureMode operand, optional float param=0, Texture textur
 \param data the buffer to use*/
 void reassign(ArrayBuffer data);
 
+
+/*! blits a texture pixel data onto the surface
+\warning All texture properties (matrix, color matrix, ...) and canvas properties (path, matrix...) are ignored.
+\warning This does not perform alpha blending.
+
+The blit operations are usually faster than path fill operations, but only operate on axis-aligned rectangles.
+
+\param texture the texture to use for pixel source
+\param dst_wnd the destination rectangle in canvas, must be completely included in canvas. Point{0,0} is top-left and {width,height} is bottom right
+\param src_wnd the source rectangle from the texture, must be completely included in texture. Point{0,0} is top-left and {width,height} is bottom right
+\param params the blit operation parameters. If null, let FFMPEG decide
+*/
+void blit(Texture texture, optional IRect dst_wnd=null, optional IRect src_wnd=null, optional BlitParameters params=null);
+
+
 /*! enables threading in rasterizer - see \ref gf_evg_enable_threading
 \param nb_threads the number of extra threads to use, negative values means all cores*/
 void enable_threading(optional int nb_threads=-1);
@@ -1806,5 +1821,16 @@ void update();
 */
 long PixelSize(DOMString pixel_format);
 
+
+/*! Parameter object for canvas texture blit */
+interface BlitParameters
+{
+	/*! name of the scale mode - see `gpac -hx ffsws`. If undefined, let FFMPEG decide*/
+	DOMString mode;
+	/*! first parameter of scale mode, if any*/
+	double p1;
+	/*! second parameter of scale mode, if any*/
+	double p2;
+};
 
 /*! @} */

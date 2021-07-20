@@ -50,6 +50,9 @@
 #include <gpac/avparse.h>
 #include <gpac/network.h>
 
+#ifdef GPAC_HAS_FFMPEG
+#include "../filters/ff_common.h"
+#endif
 
 #define EVG_GET_FLOAT(_name, _jsval) { Double _v; if (JS_ToFloat64(ctx, &_v, _jsval)) return js_throw_err(ctx, GF_BAD_PARAM); _name = (Float) _v; }
 #define CLAMPCOLF(_name) if (_name<0) _name=0; else if (_name>1.0) _name=1.0;
@@ -76,6 +79,11 @@ typedef struct
 	void *gl_named_tx;
 	u8 force_resetup;
 #endif //GPAC_DISABLE_3D
+
+
+#ifdef GPAC_HAS_FFMPEG
+	struct SwsContext *swscaler;
+#endif
 } GF_JSTexture;
 
 #define MAX_ATTR_DIM	4
@@ -524,23 +532,35 @@ static JSValue canvas_getProperty(JSContext *c, JSValueConst obj, int magic)
 	return JS_UNDEFINED;
 }
 
-Bool canvas_get_irect(JSContext *c, JSValueConst obj, GF_IRect *rc)
+Bool canvas_get_irect(JSContext *c, JSValueConst obj, GF_IRect *rc, Bool reset)
 {
 	JSValue v;
+	Double fval;
 	int res;
-	memset(rc, 0, sizeof(GF_IRect));
+	if (reset)
+		memset(rc, 0, sizeof(GF_IRect));
 
-#define GET_PROP( _n, _f)\
+#define GET_PROP( _n, _f, _mandat)\
 	v = JS_GetPropertyStr(c, obj, _n);\
-	res = JS_ToInt32(c, &(rc->_f), v);\
-	JS_FreeValue(c, v);\
-	if (res) return GF_FALSE;\
+	if (JS_IsUndefined(v)) {\
+		if (_mandat) return GF_FALSE;\
+	} else {\
+		if (JS_IsInteger(v)) \
+			res = JS_ToInt32(c, &(rc->_f), v);\
+		else {\
+			res = JS_ToFloat64(c, &fval, v);\
+			rc->_f = (s32) fval;\
+		}\
+		JS_FreeValue(c, v);\
+		if (res) return GF_FALSE;\
+	}\
 
-	GET_PROP("x", x)
-	GET_PROP("y", y)
-	GET_PROP("w", width)
-	GET_PROP("h", height)
+	GET_PROP("x", x, 0)
+	GET_PROP("y", y, 0)
+	GET_PROP("w", width, 1)
+	GET_PROP("h", height, 1)
 #undef GET_PROP
+
 	return GF_TRUE;
 }
 
@@ -604,7 +624,7 @@ static JSValue canvas_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst
 			gf_evg_surface_set_clipper(canvas->surface, NULL);
 		} else {
 			GF_IRect rc;
-			canvas_get_irect(ctx, value, &rc);
+			canvas_get_irect(ctx, value, &rc, GF_TRUE);
 			gf_evg_surface_set_clipper(canvas->surface, &rc);
 		}
 		return JS_UNDEFINED;
@@ -768,7 +788,7 @@ static JSValue canvas_clear_ex(JSContext *c, JSValueConst obj, int argc, JSValue
 	if (argc && JS_IsObject(argv[0])) {
 		irc = &rc;
 		idx=1;
-		if (!canvas_get_irect(c, argv[0], &rc))
+		if (!canvas_get_irect(c, argv[0], &rc, GF_TRUE))
 			return JS_EXCEPTION;
 	}
 	if ((argc>idx) && JS_IsString(argv[idx])) {
@@ -957,6 +977,198 @@ static JSValue canvas_fill(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	e = gf_evg_surface_multi_fill(canvas->surface, operand, sten1, sten2, sten3, op_params);
 	return e ? JS_EXCEPTION : JS_UNDEFINED;
 }
+
+static JSValue canvas_blit(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+#ifdef GPAC_HAS_FFMPEG
+	GF_JSTexture *tx;
+	GF_IRect dst_rc, src_rc;
+	enum AVPixelFormat pf_src, pf_dst;
+	double par_p[2];
+	u8 *src_data[5];
+	u8 *dst_data[5];
+	u32 src_stride[5];
+	u32 dst_stride[5];
+	u32 swsmode = 0;
+	u32 bpp, arg_idx=0;
+
+	GF_Err gf_evg_stencil_get_texture_planes(GF_EVGStencil *stencil, u8 **pY_or_RGB, u8 **pU, u8 **pV, u8 **pA, u32 *stride, u32 *stride_uv);
+
+	GF_JSCanvas *canvas = JS_GetOpaque(obj, canvas_class_id);
+	if (!canvas || !argc) return JS_EXCEPTION;
+
+	if (!JS_IsObject(argv[0]))
+		return JS_EXCEPTION;
+
+	tx = JS_GetOpaque(argv[0], texture_class_id);
+	if (!tx) return JS_EXCEPTION;
+
+	pf_src = ffmpeg_pixfmt_from_gpac(tx->pf);
+	pf_dst = ffmpeg_pixfmt_from_gpac(canvas->pf);
+	if ((pf_src==AV_PIX_FMT_NONE) || (pf_dst==AV_PIX_FMT_NONE))
+		return js_throw_err(c, GF_NOT_SUPPORTED);
+
+	dst_rc.x = dst_rc.y = 0;
+	dst_rc.width = canvas->width;
+	dst_rc.height = canvas->height;
+
+	src_rc.x = src_rc.y = 0;
+	src_rc.width = tx->width;
+	src_rc.height = tx->height;
+
+	//get dst and src rectangles
+	if ((1+arg_idx < argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &dst_rc, GF_FALSE))) {
+		arg_idx++;
+		if ((1+arg_idx < argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &src_rc, GF_FALSE))) {
+			arg_idx++;
+		}
+	}
+
+	if (!dst_rc.width || !dst_rc.height) return JS_UNDEFINED;
+	if (!src_rc.width || !src_rc.height) return JS_UNDEFINED;
+
+
+	if ((1+arg_idx < argc) && JS_IsObject(argv[1+arg_idx])) {
+		u32 nb_params=0;
+		JSValue v = JS_GetPropertyStr(c, argv[1+arg_idx], "mode");
+		if (JS_IsString(v)) {
+			const char *smode = JS_ToCString(c, v);
+			if (!strcmp(smode, "fastbilinear")) swsmode = SWS_FAST_BILINEAR;
+			else if (!strcmp(smode, "bilinear")) swsmode = SWS_BILINEAR;
+			else if (!strcmp(smode, "bicubic")) { swsmode = SWS_BICUBIC; nb_params=2; }
+			else if (!strcmp(smode, "X")) swsmode = SWS_X;
+			else if (!strcmp(smode, "point")) swsmode = SWS_POINT;
+			else if (!strcmp(smode, "area")) swsmode = SWS_AREA;
+			else if (!strcmp(smode, "bicublin")) swsmode = SWS_BICUBLIN;
+			else if (!strcmp(smode, "gauss")) { swsmode = SWS_GAUSS; nb_params=1; }
+			else if (!strcmp(smode, "sinc")) swsmode = SWS_SINC;
+			else if (!strcmp(smode, "lanzcos")) { swsmode = SWS_LANCZOS;  nb_params=1; }
+			else if (!strcmp(smode, "spline")) swsmode = SWS_SPLINE;
+
+			JS_FreeCString(c, smode);
+		}
+		JS_FreeValue(c, v);
+		if (nb_params) {
+			v = JS_GetPropertyStr(c, argv[1+arg_idx], "p1");
+			JS_ToFloat64(c, &par_p[0], v);
+			JS_FreeValue(c, v);
+			if (nb_params>1) {
+				v = JS_GetPropertyStr(c, argv[1+arg_idx], "p2");
+				JS_ToFloat64(c, &par_p[0], v);
+				JS_FreeValue(c, v);
+			}
+		}
+	}
+
+	if ((dst_rc.x<0) || (dst_rc.x+dst_rc.width> canvas->width)
+		|| (dst_rc.y<0) || (dst_rc.y+dst_rc.height> canvas->height)
+	) {
+		return js_throw_err(c, GF_BAD_PARAM);
+	}
+
+	if ((src_rc.x<0) || (src_rc.x+src_rc.width> tx->width)
+		|| (src_rc.y<0) || (src_rc.y+src_rc.height> tx->height)
+	) {
+		return js_throw_err(c, GF_BAD_PARAM);
+	}
+
+	par_p[0] = par_p[1] = 0;
+	tx->swscaler = sws_getCachedContext(tx->swscaler, src_rc.width, src_rc.height, pf_src, dst_rc.width, dst_rc.height, pf_dst, swsmode, NULL, NULL, par_p);
+
+	if (!tx->swscaler) {
+		return js_throw_err(c, GF_BAD_PARAM);
+	}
+	memset(src_data, 0, sizeof(u8*) * 5);
+	memset(dst_data, 0, sizeof(u8*) * 5);
+	memset(src_stride, 0, sizeof(u32) * 5);
+	memset(dst_stride, 0, sizeof(u32) * 5);
+
+	bpp = gf_pixel_get_bytes_per_pixel(canvas->pf);
+	dst_data[0] = canvas->data + dst_rc.x*bpp + dst_rc.y * canvas->stride;
+	dst_stride[0] = canvas->stride;
+
+	if (gf_pixel_fmt_is_yuv(canvas->pf)) {
+		u32 nb_planes, uv_height, off_x, off_y;
+
+		gf_pixel_get_size_info(canvas->pf, canvas->width, canvas->height, NULL, &dst_stride[0], &dst_stride[1], &nb_planes, &uv_height);
+
+		off_x = dst_rc.x * dst_stride[1] / dst_stride[0];
+		off_y = dst_rc.y * uv_height / canvas->height;
+
+		if (nb_planes==1) {
+		} else if (nb_planes==2) {
+			dst_data[1] = canvas->data + dst_stride[0] * canvas->height;
+			dst_data[1] += off_x * bpp + off_y * dst_stride[1];
+
+		} else if (nb_planes==3) {
+			dst_stride[2] = dst_stride[1];
+			dst_data[1] = canvas->data + dst_stride[0] * canvas->height;
+			dst_data[2] = dst_data[1] + dst_stride[1] * uv_height;
+
+			dst_data[1] += off_x * bpp + off_y * dst_stride[1];
+			dst_data[2] += off_x * bpp + off_y * dst_stride[2];
+		} else if (nb_planes==4) {
+			dst_stride[2] = dst_stride[1];
+			dst_stride[3] = dst_stride[0];
+			dst_data[1] = canvas->data + dst_stride[0] * canvas->height;
+			dst_data[2] = dst_data[1] + dst_stride[1] * uv_height;
+			dst_data[3] = dst_data[2] + dst_stride[2] * uv_height;
+
+			dst_data[1] += off_x * bpp + off_y * dst_stride[1];
+			dst_data[2] += off_x * bpp + off_y * dst_stride[2];
+			dst_data[3] += dst_rc.x * bpp + dst_rc.y * dst_stride[3];
+		}
+	}
+
+	gf_evg_stencil_get_texture_planes((GF_EVGStencil *) tx->stencil, &src_data[0], &src_data[1], &src_data[2], &src_data[3], &src_stride[0], &src_stride[1]);
+
+	if (src_data[3])
+		src_stride[3] = src_stride[0];
+	if (src_data[2])
+		src_stride[2] = src_stride[1];
+
+	bpp = gf_pixel_get_bytes_per_pixel(tx->pf);
+	src_data[0] += src_rc.x*bpp + src_rc.y * tx->stride;
+
+	if (gf_pixel_fmt_is_yuv(tx->pf)) {
+		u32 nb_planes, uv_height, off_x, off_y;
+
+		gf_pixel_get_size_info(tx->pf, tx->width, tx->height, NULL, &src_stride[0], &src_stride[1], &nb_planes, &uv_height);
+
+		off_x = src_rc.x * src_stride[1] / src_stride[0];
+		off_y = src_rc.y * uv_height / tx->height;
+		if (off_y != src_rc.y) {
+			while (off_y % 2)
+				off_y--;
+		}
+
+		if (nb_planes==1) {
+		} else if (nb_planes==2) {
+			src_data[1] += (off_x/2) * 2*bpp + off_y * src_stride[1];
+			src_data[2] = NULL;
+			src_stride[2] = 0;
+
+		} else if (nb_planes==3) {
+			src_data[1] += off_x * bpp + off_y * src_stride[1];
+			src_data[2] += off_x * bpp + off_y * src_stride[2];
+		} else if (nb_planes==4) {
+			src_data[1] += off_x * bpp + off_y * src_stride[1];
+			src_data[2] += off_x * bpp + off_y * src_stride[2];
+			src_data[3] += src_rc.x * bpp + src_rc.y * src_stride[3];
+		}
+	}
+
+
+	int res = sws_scale(tx->swscaler, (const u8**) src_data, src_stride, 0, src_rc.height, dst_data, dst_stride);
+	if (res != dst_rc.height)
+		return js_throw_err(c, GF_BAD_PARAM);
+
+	return JS_UNDEFINED;
+#else
+	return js_throw_err(c, GF_NOT_SUPPORTED);
+#endif
+}
+
 
 static JSValue canvas_enable_threading(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
@@ -2994,6 +3206,7 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CFUNC_DEF("reassign", 0, canvas_reassign),
 	JS_CFUNC_DEF("toYUV", 0, canvas_toYUV),
 	JS_CFUNC_DEF("toRGB", 0, canvas_toRGB),
+	JS_CFUNC_DEF("blit", 0, canvas_blit),
 
 	//3D extensions
 	JS_CGETSET_MAGIC_DEF("fragment", canvas_getProperty, canvas_setProperty, GF_EVG_FRAG_SHADER),
@@ -5010,6 +5223,12 @@ static void texture_finalize(JSRuntime *rt, JSValue obj)
 		gf_free(tx->named_tx);
 	}
 #endif
+
+#ifdef GPAC_HAS_FFMPEG
+	if (tx->swscaler)
+		sws_freeContext(tx->swscaler);
+#endif
+
 	gf_free(tx);
 }
 
