@@ -544,10 +544,13 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 				odd_flag = 0;
 
 			if (fill_rule==2) {
-				coverage = odd_flag ? (255-coverage) : 0;
+				coverage = odd_flag ? 0 : (255-coverage);
 			} else {
 				coverage = 255;
 			}
+		}
+		else if (fill_rule==2) {
+			coverage = 255-coverage;
 		}
 	} else {
 		coverage &= 511;
