@@ -85,13 +85,13 @@ typedef enum
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
 	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations dropped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
-	/*! event send when we need the decoding statistics*/
+	/*! event sent when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
-	/*! event send when no threading to trigger segment download abort*/
+	/*! event sent when no threading to trigger segment download abort*/
 	GF_DASH_EVENT_ABORT_DOWNLOAD,
-	/*! event send whenever cache is full, to allow client to dispatch any segment*/
+	/*! event sent whenever cache is full, to allow client to dispatch any segment*/
 	GF_DASH_EVENT_CACHE_FULL,
-	/*! event send when all groups are done in a period - if group_idx is 1, this announces a time discontinuity for next period*/
+	/*! event sent when all groups are done in a period - if group_idx is 1, this announces a time discontinuity for next period*/
 	GF_DASH_EVENT_END_OF_PERIOD,
 } GF_DASHEventType;
 

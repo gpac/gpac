@@ -589,7 +589,7 @@ FILE *gf_file_temp(char ** const fileName)
 			gf_dynstrcat(&opath, "/", NULL);
 		if (!opath) return NULL;
 
-		sprintf(szFName, "_libgpac_%d_%p_"LLU"_%d", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
+		sprintf(szFName, "_libgpac_%d_%p_" LLU "_%d", gf_sys_get_process_id(), opath, gf_sys_clock_high_res(), gf_rand() );
 		gf_dynstrcat(&opath, szFName, NULL);
 		if (fileName) {
 			sprintf(szFName, "%p", fileName);
@@ -861,7 +861,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			file_info.last_modified = mktime(&_t);
 		}
 		file = the_file->d_name;
-		if (file && file[0]=='.') file_info.hidden = 1;
+		if (file && file[0]=='.') file_info.hidden = GF_TRUE;
 
 		if (file_info.directory) {
 			char * parent_name = strrchr(item_path, '/');
@@ -1313,7 +1313,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			return NULL;
 		new_gfio = gf_fileio_from_blob(file_name);
 		if (new_gfio)
-			gf_register_file_handle((char *)file_name, (FILE *) new_gfio, GF_FALSE);
+			gf_register_file_handle((char*)file_name, (FILE *) new_gfio, GF_FALSE);
 		return (FILE *) new_gfio;
 
 	}
@@ -1348,7 +1348,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s open in mode %s failed: %s\n", file_name, mode, gf_error_to_string(e)));
 			return NULL;
 		}
-		gf_register_file_handle((char *)file_name, (FILE *) new_gfio, GF_FALSE);
+		gf_register_file_handle((char*)file_name, (FILE *) new_gfio, GF_FALSE);
 		return (FILE *) new_gfio;
 	}
 
@@ -1406,7 +1406,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 
 	if (res) {
 		if (!parent_name || strcmp(parent_name, "__temp_file"))
-			gf_register_file_handle((char *)file_name, res, GF_FALSE);
+			gf_register_file_handle((char*)file_name, res, GF_FALSE);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file \"%s\" opened in mode \"%s\" - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
