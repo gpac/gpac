@@ -131,7 +131,8 @@ typedef struct
 	Bool prev_is_init_segment;
 	//media timescale for which the pto, max_cts_in_period and timedisc_ts_offset were computed
 	u32 timescale;
-	u64 pto, max_cts_in_period, timedisc_ts_offset;
+	s64 pto;
+	u64 max_cts_in_period, timedisc_ts_offset;
 	bin128 key_IV;
 
 	Bool seg_was_not_ready;
@@ -281,20 +282,22 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
-		u64 scale_max_cts, scale_pto, scale_timesdisc_offset;
+		u64 scale_max_cts, scale_timesdisc_offset;
+		s64 scale_pto;
 		u32 ts = gf_filter_pck_get_timescale(in_pck);
 
 		if (!group->pto_setup) {
 			Double scale;
 			s64 start, dur;
+			u64 pto;
 			u32 mpd_timescale;
-			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &group->pto, &mpd_timescale);
-			group->pto_setup = 1;
+			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &mpd_timescale);
 			group->pto_setup = 1;
 
 			if (mpd_timescale && (mpd_timescale != ts)) {
-				group->pto = gf_timestamp_rescale(group->pto, mpd_timescale, ts);
+				pto = gf_timestamp_rescale(pto, mpd_timescale, ts);
 			}
+			group->pto = (s64) pto;
 			group->timescale = ts;
 			scale = ts;
 			scale /= 1000;
@@ -306,16 +309,27 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				group->max_cts_in_period = 0;
 			}
 
+			if (gf_dash_is_m3u8(ctx->dash)) {
+				group->max_cts_in_period = 0;
+			} else if (!group->pto && group->max_cts_in_period && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
+				u32 seg_number=0;
+				if ((dts > group->pto)
+					&& (gf_dash_group_next_seg_info(ctx->dash, group->idx, 0, NULL, &seg_number, NULL, NULL, NULL) == GF_OK)
+					&& (seg_number<=1)
+				) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] First packet decode timestamp "LLU" but PTO is 0 - broken period timing, will not clamp\n", dts));
+					group->max_cts_in_period = 0;
+				}
+			}
+
+
 			if (ctx->time_discontinuity.den) {
 				group->pto += gf_timestamp_rescale(ctx->timedisc_next_min_ts, ctx->time_discontinuity.den, ts);
 				group->timedisc_ts_offset = gf_timestamp_rescale(ctx->time_discontinuity.num, ctx->time_discontinuity.den, ts);
 			}
 
 			start = (u64) (scale * gf_dash_get_period_start(ctx->dash));
-			if (group->pto >= start)
-				group->pto -= start;
-			else
-				group->pto = 0;
+			group->pto -= start;
 		}
 
 		if (ts == group->timescale) {
@@ -324,16 +338,29 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			scale_timesdisc_offset = group->timedisc_ts_offset;
 		} else {
 			scale_max_cts = gf_timestamp_rescale(group->max_cts_in_period, group->timescale, ts);
-			scale_pto = gf_timestamp_rescale(group->pto, group->timescale, ts);
+			scale_pto = gf_timestamp_rescale_signed(group->pto, group->timescale, ts);
 			scale_timesdisc_offset = gf_timestamp_rescale(group->timedisc_ts_offset, group->timescale, ts);
 		}
 
 
 		if (scale_max_cts && (cts > scale_max_cts)) {
 			u64 adj_cts = cts;
+			s64 diff;
 			const GF_PropertyValue *p = gf_filter_pid_get_property(in_pid, GF_PROP_PID_DELAY);
 			if (p) adj_cts += p->value.longsint;
-			if ( (s64) adj_cts > scale_max_cts) {
+			diff = (s64)adj_cts;
+			diff -= scale_max_cts;
+			//move back to ms and then back to timescale to checko rounding issues
+			if (diff>0) {
+				diff *= 1000;
+				diff /= ts;
+				if (diff<=1) diff=0;
+				
+				diff *= ts;
+				diff /= 1000;
+			}
+
+			if (diff>0) {
 				u32 flags;
 				u64 _dts = (dts==GF_FILTER_NO_TS) ? dts : adj_cts;
 
@@ -356,7 +383,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 
 		//remap timestamps to our timeline
 		if (dts != GF_FILTER_NO_TS) {
-			if (dts >= scale_pto)
+			if ((s64) dts >= scale_pto)
 				dts -= scale_pto;
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", dts, scale_pto));
@@ -365,7 +392,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			}
 		}
 		if (cts!=GF_FILTER_NO_TS) {
-			if (cts >= scale_pto)
+			if ((s64) cts >= scale_pto)
 				cts -= scale_pto;
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", cts, scale_pto));
