@@ -1017,9 +1017,9 @@ static JSValue canvas_blit(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	src_rc.height = tx->height;
 
 	//get dst and src rectangles
-	if ((1+arg_idx < argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &dst_rc, GF_FALSE))) {
+	if ((1+arg_idx < (u32) argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &dst_rc, GF_FALSE))) {
 		arg_idx++;
-		if ((1+arg_idx < argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &src_rc, GF_FALSE))) {
+		if ((1+arg_idx < (u32) argc) && (JS_IsNull(argv[1+arg_idx]) || canvas_get_irect(c, argv[1+arg_idx], &src_rc, GF_FALSE))) {
 			arg_idx++;
 		}
 	}
@@ -1028,7 +1028,7 @@ static JSValue canvas_blit(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	if (!src_rc.width || !src_rc.height) return JS_UNDEFINED;
 
 
-	if ((1+arg_idx < argc) && JS_IsObject(argv[1+arg_idx])) {
+	if ((1+arg_idx < (u32) argc) && JS_IsObject(argv[1+arg_idx])) {
 		u32 nb_params=0;
 		JSValue v = JS_GetPropertyStr(c, argv[1+arg_idx], "mode");
 		if (JS_IsString(v)) {
@@ -1060,14 +1060,14 @@ static JSValue canvas_blit(JSContext *c, JSValueConst obj, int argc, JSValueCons
 		}
 	}
 
-	if ((dst_rc.x<0) || (dst_rc.x+dst_rc.width> canvas->width)
-		|| (dst_rc.y<0) || (dst_rc.y+dst_rc.height> canvas->height)
+	if ((dst_rc.x<0) || (dst_rc.x+dst_rc.width > (s32) canvas->width)
+		|| (dst_rc.y<0) || (dst_rc.y+dst_rc.height > (s32) canvas->height)
 	) {
 		return js_throw_err(c, GF_BAD_PARAM);
 	}
 
-	if ((src_rc.x<0) || (src_rc.x+src_rc.width> tx->width)
-		|| (src_rc.y<0) || (src_rc.y+src_rc.height> tx->height)
+	if ((src_rc.x<0) || (src_rc.x+src_rc.width > (s32) tx->width)
+		|| (src_rc.y<0) || (src_rc.y+src_rc.height > (s32) tx->height)
 	) {
 		return js_throw_err(c, GF_BAD_PARAM);
 	}

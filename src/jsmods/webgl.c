@@ -1304,7 +1304,7 @@ static void wgl_tex_image_2d(GF_WebGLContext *glc, GLenum target, GLint level, G
 	}
 	glTexImage2D(target, level, internalformat, width, height, border, format, type, NULL);
 
-	for (i=0; i<height; i++) {
+	for (i=0; i<(u32) height; i++) {
 		const u8 *pix_buf = pixels + bpp * width * (height-i-1);
 		glTexSubImage2D(target, level, 0, i, width, 1, format, type, pix_buf);
 	}
@@ -1442,7 +1442,7 @@ void wgl_tex_sub_image_2d(GF_WebGLContext *glc, GLenum target, GLint level, GLin
 		return;
 	}
 	if (!glc->bound_texture->tx_height) return;
-	if ((yoffset<0) || (yoffset+height > glc->bound_texture->tx_height)) return;
+	if ((yoffset<0) || (yoffset+height > (s32) glc->bound_texture->tx_height)) return;
 
 	switch (format) {
 	case GF_PIXEL_GREYSCALE:
@@ -1460,7 +1460,7 @@ void wgl_tex_sub_image_2d(GF_WebGLContext *glc, GLenum target, GLint level, GLin
 		break;
 	}
 
-	for (i=0; i<height; i++) {
+	for (i=0; i<(u32) height; i++) {
 		const u8 *pix_buf = pixels + bpp * width * (height - (i+yoffset) - 1) + xoffset*bpp;
 		glTexSubImage2D(target, level, xoffset, i+yoffset, width, 1, format, type, pix_buf);
 	}

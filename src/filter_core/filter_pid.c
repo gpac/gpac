@@ -7669,7 +7669,7 @@ u64 gf_filter_pid_get_next_ts(GF_FilterPid *pid)
 }
 
 GF_EXPORT
-u64 gf_filter_pid_get_udta_flags(GF_FilterPid *pid)
+u32 gf_filter_pid_get_udta_flags(GF_FilterPid *pid)
 {
 	if (!pid) return 0;
 	if (PID_IS_OUTPUT(pid)) {
