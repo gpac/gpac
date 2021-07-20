@@ -1781,6 +1781,25 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width,
 }
 
 GF_EXPORT
+GF_Err gf_evg_stencil_get_texture_planes(GF_EVGStencil *stencil, u8 **pY_or_RGB, u8 **pU, u8 **pV, u8 **pA, u32 *stride, u32 *stride_uv)
+{
+	EVG_Texture *_this = (EVG_Texture *) stencil;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE) )
+		return GF_BAD_PARAM;
+
+
+	if (pY_or_RGB) *pY_or_RGB = _this->pixels;
+	if (pU) *pU = _this->pix_u;
+	if (pV) *pV = _this->pix_v;
+	if (pA) *pA = _this->pix_a;
+	if (stride) *stride = _this->stride;
+	if (stride_uv) *stride_uv = _this->stride_uv;
+
+	return GF_OK;
+}
+
+
+GF_EXPORT
 GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, gf_evg_texture_callback callback, void *cbk_data, Bool use_screen_coords)
 {
 	EVG_Texture *_this = (EVG_Texture *) stencil;

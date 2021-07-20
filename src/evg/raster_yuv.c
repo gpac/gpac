@@ -590,6 +590,13 @@ GF_Err evg_surface_clear_yuv420p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
+	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+		memset(pY, cy, _surf->pitch_y * _surf->height);
+		memset(pU, cb, _surf->pitch_y/2 * _surf->height/2);
+		memset(pV, cr, _surf->pitch_y/2 * _surf->height/2);
+		return GF_OK;
+	}
+
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
 		pY += surf->pitch_y;
@@ -880,6 +887,14 @@ GF_Err evg_surface_clear_yuv422p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
 
+	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+		memset(pY, cy, _surf->pitch_y * _surf->height);
+		memset(pU, cb, _surf->pitch_y/2 * _surf->height);
+		memset(pV, cr, _surf->pitch_y/2 * _surf->height);
+		return GF_OK;
+	}
+
+
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
 		pY += surf->pitch_y;
@@ -1054,6 +1069,13 @@ GF_Err evg_surface_clear_yuv444p(GF_EVGSurface *_surf, GF_IRect rc, GF_Color col
 	pV += rc.x;
 
 	gf_evg_rgb_to_yuv(surf, col, &cy, &cb, &cr);
+
+	if (!rc.x && !rc.y && (rc.width==_surf->width) && (rc.height==_surf->height)) {
+		memset(pY, cy, _surf->pitch_y * _surf->height);
+		memset(pU, cb, _surf->pitch_y * _surf->height);
+		memset(pV, cr, _surf->pitch_y * _surf->height);
+		return GF_OK;
+	}
 
 	for (i = 0; i < rc.height; i++) {
 		memset(pY, cy, rc.width);
