@@ -2886,7 +2886,7 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
 
-	muxer->sap_inserted = GF_FALSE;
+	muxer->sap_inserted = 0;
 	muxer->last_pid = 0;
 
 	now_us = gf_sys_clock_high_res();
@@ -3093,13 +3093,15 @@ send_pck:
 			gf_m2ts_mux_table_get_next_packet(muxer, stream_to_process, muxer->dst_pck);
 		} else {
 			gf_m2ts_mux_pes_get_next_packet(stream_to_process, muxer->dst_pck);
-			if (stream_to_process->pck_sap_type) {
-				muxer->sap_inserted = GF_TRUE;
-				muxer->sap_type = stream_to_process->pck_sap_type;
-				muxer->sap_time = stream_to_process->pck_sap_time;
+			if (stream_to_process->pid == muxer->ref_pid) {
+				if (stream_to_process->pck_sap_type) {
+					muxer->sap_inserted = GF_TRUE;
+					muxer->sap_type = stream_to_process->pck_sap_type;
+					muxer->sap_time = stream_to_process->pck_sap_time;
+				}
+				muxer->last_pts = stream_to_process->curr_pck.cts;
+				muxer->last_pid = stream_to_process->pid;
 			}
-			muxer->last_pts = stream_to_process->curr_pck.cts;
-			muxer->last_pid = stream_to_process->pid;
 		}
 
 		ret = muxer->dst_pck;
