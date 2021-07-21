@@ -130,7 +130,7 @@ typedef struct
 	u32 nb_sidx_entries, nb_sidx_alloc;
 	TS_SIDX *sidx_entries;
 	GF_BitStream *idx_bs;
-	u32 nb_pck_in_file, nb_pck_first_sidx, ref_pid;
+	u32 nb_pck_in_file, nb_pck_first_sidx;
 	u64 total_bytes_in;
 
 	u32 nb_suspended, cur_file_idx_plus_one;
@@ -1070,6 +1070,10 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);
 		tspid->mstream = gf_m2ts_program_stream_add(prog, &tspid->esi, pes_pid, is_pcr, force_pes, GF_FALSE);
 		tsmux_setup_temi(ctx, tspid);
+
+		if (!ctx->mux->ref_pid || (streamtype==GF_STREAM_VISUAL))
+			ctx->mux->ref_pid = pes_pid;
+
 	} else {
 		tspid->codec_id = codec_id;
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);
@@ -1168,10 +1172,9 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 	u32 i;
 	M2Pid *tspid = NULL;
 
-	for (i=0; i<gf_list_count(ctx->pids); i++) {
+		for (i=0; i<gf_list_count(ctx->pids); i++) {
 		tspid = gf_list_get(ctx->pids, i);
-		if (ctx->nb_sidx_entries) break;
-		if (ctx->ref_pid == tspid->mstream->pid) break;
+		if (ctx->mux->ref_pid == tspid->mstream->pid) break;
 		tspid = NULL;
 	}
 	if (!tspid) tspid = gf_list_get(ctx->pids, 0);
@@ -1224,7 +1227,7 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 		gf_bs_write_u8(ctx->idx_bs, large_sidx ? 1 : 0);
 		gf_bs_write_int(ctx->idx_bs, 0, 24);
 		//reference id
-		gf_bs_write_u32(ctx->idx_bs, ctx->ref_pid);
+		gf_bs_write_u32(ctx->idx_bs, ctx->mux->ref_pid);
 		//timescale
 		gf_bs_write_u32(ctx->idx_bs, 90000);
 		if (large_sidx) {
@@ -1265,41 +1268,43 @@ static void tsmux_send_seg_event(GF_Filter *filter, GF_TSMuxCtx *ctx)
 
 static void tsmux_insert_sidx(GF_TSMuxCtx *ctx, Bool final_flush)
 {
+	TS_SIDX *tsidx = NULL;
 	if (ctx->subs_sidx<0) return;
 
-	if (!ctx->ref_pid && ctx->mux->sap_inserted)
-		ctx->ref_pid = ctx->mux->last_pid;
-	if (!ctx->ref_pid) return;
+	if (!ctx->mux->ref_pid) return;
 
 	if (ctx->nb_sidx_entries) {
-		TS_SIDX *tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries-1];
+		tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries-1];
 
-		if (ctx->ref_pid == ctx->mux->last_pid) {
-			if (!tsidx->min_pts_plus_one) tsidx->min_pts_plus_one = ctx->mux->last_pts + 1;
-			else if (tsidx->min_pts_plus_one-1 > ctx->mux->last_pts) tsidx->min_pts_plus_one = ctx->mux->last_pts + 1;
+		if (!tsidx->min_pts_plus_one) tsidx->min_pts_plus_one = ctx->mux->last_pts + 1;
+		else if (tsidx->min_pts_plus_one-1 > ctx->mux->last_pts) tsidx->min_pts_plus_one = ctx->mux->last_pts + 1;
 
-			if (tsidx->max_pts < ctx->mux->last_pts) tsidx->max_pts = ctx->mux->last_pts;
-		}
+		if (tsidx->max_pts < ctx->mux->last_pts) tsidx->max_pts = ctx->mux->last_pts;
 
 		if (!final_flush && !ctx->mux->sap_inserted) return;
 
 		tsidx->nb_pck = ctx->nb_pck_in_seg - tsidx->nb_pck;
+		if (tsidx->nb_pck)
+			tsidx = NULL;
 	}
 
 	if (final_flush) return;
 	if (!ctx->mux->sap_inserted) return;
 
-	if (ctx->nb_sidx_entries == ctx->nb_sidx_alloc) {
-		ctx->nb_sidx_alloc += 10;
-		ctx->sidx_entries = gf_realloc(ctx->sidx_entries, sizeof(TS_SIDX)*ctx->nb_sidx_alloc);
+	if (!tsidx) {
+		if (ctx->nb_sidx_entries == ctx->nb_sidx_alloc) {
+			ctx->nb_sidx_alloc += 10;
+			ctx->sidx_entries = gf_realloc(ctx->sidx_entries, sizeof(TS_SIDX)*ctx->nb_sidx_alloc);
+		}
+		tsidx = &ctx->sidx_entries[ctx->nb_sidx_entries];
+		ctx->nb_sidx_entries ++;
 	}
-	ctx->sidx_entries[ctx->nb_sidx_entries].sap_time = ctx->mux->sap_time;
-	ctx->sidx_entries[ctx->nb_sidx_entries].sap_type = ctx->mux->sap_type;
-	ctx->sidx_entries[ctx->nb_sidx_entries].min_pts_plus_one  = ctx->mux->sap_time + 1;
-	ctx->sidx_entries[ctx->nb_sidx_entries].max_pts  = ctx->mux->sap_time;
-	ctx->sidx_entries[ctx->nb_sidx_entries].nb_pck = ctx->nb_sidx_entries ? ctx->nb_pck_in_seg : 0;
-	ctx->sidx_entries[ctx->nb_sidx_entries].offset = ctx->nb_sidx_entries ? 0 : ctx->nb_pck_first_sidx;
-	ctx->nb_sidx_entries ++;
+	tsidx->sap_time = ctx->mux->sap_time;
+	tsidx->sap_type = ctx->mux->sap_type;
+	tsidx->min_pts_plus_one  = ctx->mux->sap_time + 1;
+	tsidx->max_pts = ctx->mux->sap_time;
+	tsidx->nb_pck = (ctx->nb_sidx_entries>1) ? ctx->nb_pck_in_seg : 0;
+	tsidx->offset = (ctx->nb_sidx_entries>1) ? 0 : ctx->nb_pck_first_sidx;
 }
 
 static GF_Err tsmux_process(GF_Filter *filter)

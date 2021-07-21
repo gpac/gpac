@@ -1786,7 +1786,9 @@ struct __m2ts_mux {
 
 	/*! static write bitstream object for formatting packets*/
 	GF_BitStream *pck_bs;
-	/*set to TRUE if the packet output is the first packet of a SAP AU (used when dashing)*/
+	/*! PID to watch for SAP insertions*/
+	u32 ref_pid;
+	/* if the packet output starts (first PES) with the first packet of a SAP AU (used when dashing), set to TRUE*/
 	Bool sap_inserted;
 	/*! SAP time (used when dashing)*/
 	u64 sap_time;
