@@ -704,6 +704,63 @@ static void mp4_mux_set_tags(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 	}
 }
 
+static void mp4_mux_set_udta(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+{
+	u32 idx=0;
+	while (1) {
+		GF_Err e;
+		u32 prop_4cc=0;
+		const char *udta_name=NULL;
+		const GF_PropertyValue *udta = gf_filter_pid_enum_properties(tkw->ipid, &idx, &prop_4cc, &udta_name);
+		if (!udta) break;
+		if (!udta_name)
+			continue;
+		if (!strncmp(udta_name, "udta_", 5) || !strncmp(udta_name, "mudta_", 6) ) {
+			u32 udta_type;
+			u8 *data=NULL;
+			u32 size=0;
+			u32 track_num = 0;
+
+			if (!strncmp(udta_name, "udta_", 5)) {
+				udta_name += 5;
+				track_num = tkw->track_num;
+			} else {
+				udta_name += 6;
+			}
+
+			if (strlen(udta_name) != 4) continue;
+			udta_type = GF_4CC(udta_name[0], udta_name[1], udta_name[2], udta_name[3]);
+
+			if (udta->type==GF_PROP_DATA) {
+				data = (u8 *) udta->value.data.ptr;
+				size = udta->value.data.size;
+			} else if ((udta->type == GF_PROP_STRING) && udta->value.string) {
+				data = (u8 *) udta->value.string;
+				size = (u32) strlen(udta->value.string)+1;
+			}
+			if (!data) {
+				e = GF_BAD_PARAM;
+			} else {
+				e = gf_isom_add_user_data(ctx->file, track_num, udta_type, NULL, data, size);
+			}
+		}
+		else if (!strcmp(udta_name, "udtab") || !strcmp(udta_name, "mudtab")) {
+			u32 track_num = (!strcmp(udta_name, "mudtab")) ? 0 : tkw->track_num;
+			if (udta->type == GF_PROP_DATA) {
+				e = gf_isom_add_user_data_boxes(ctx->file, track_num, udta->value.data.ptr, udta->value.data.size);
+			} else {
+				e = GF_BAD_PARAM;
+			}
+		} else {
+			continue;
+		}
+
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set udta %s: %s\n", udta_name, gf_error_to_string(e)));
+		}
+	}
+}
+
 
 static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_true_pid)
 {
@@ -1226,6 +1283,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		} else {
 			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_TRUE);
 		}
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DISABLED);
+		if (p && p->value.boolean)
+			gf_isom_set_track_enabled(ctx->file, tkw->track_num, GF_FALSE);
 
 		//if we have a subtype set for the pid, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
@@ -1234,6 +1294,10 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER);
 		if (p && p->value.string) {
 			gf_isom_set_handler_name(ctx->file, tkw->track_num, p->value.string);
+		}
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_ALT_GROUP);
+		if (p && p->value.uint) {
+			gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, p->value.uint);
 		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_MATRIX);
@@ -3128,6 +3192,7 @@ sample_entry_done:
 		}
 
 		mp4_mux_set_tags(ctx, tkw);
+		mp4_mux_set_udta(ctx, tkw);
 	}
 	return GF_OK;
 }
@@ -6710,6 +6775,16 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
 	"- `NAME` as a box 4CC if `NAME` is 3 characters long, and will be prefixed by 0xA9\n"
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
+	"  \n"
+	"# User data\n"
+	"The muxer will look for the following PID properties to create user data entries:\n"
+	"- `udtab`: set the track user-data box to the property value which __must__ be a serialized box array blob\n"
+	"- `mudtab`: set the movie user-data box to the property value which __must__ be a serialized box array blob\n"
+	"- `udta_U4CC`: set track user-data box entry of type `U4CC` to property value\n"
+	"- `mudta_U4CC`: set movie user-data box entry of type `U4CC` to property value\n"
+	"  \n"
+	"EX -i src.mp4:#udta_tagc='My Awsome Tag'\n"
+	"EX -i src.mp4:#mudtab=data@box.bin\n"
 	"  \n"
 	"# Notes\n"
 	"The filter watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"

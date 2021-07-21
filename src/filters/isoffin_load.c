@@ -793,13 +793,20 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		}
 
 		if (!gf_sys_is_test_mode()) {
-			u32 nb_udta;
+			u32 nb_udta, alt_grp=0;
 			const char *hdlr = NULL;
 			gf_isom_get_handler_name(read->mov, ch->track, &hdlr);
 			if (hdlr)
 				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_HANDLER, &PROP_STRING(hdlr));
 
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_FLAGS, &PROP_UINT( gf_isom_get_track_flags(read->mov, ch->track) ));
+
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_TRACK_FLAGS, &PROP_UINT( gf_isom_get_track_flags(read->mov, ch->track) ));
+
+			gf_isom_get_track_switch_group_count(read->mov, ch->track, &alt_grp, NULL);
+			if (alt_grp)
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_ALT_GROUP, &PROP_UINT( alt_grp ));
+
 
 			if (streamtype==GF_STREAM_VISUAL) {
 				GF_PropertyValue p;
