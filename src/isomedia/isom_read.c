@@ -4351,9 +4351,9 @@ GF_Err gf_isom_get_track_switch_group_count(GF_ISOFile *movie, u32 trackNumber, 
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Header) return GF_BAD_PARAM;
-	*alternateGroupID = trak->Header->alternate_group;
-	*nb_groups = 0;
-	if (!trak->udta) return GF_OK;
+	if (alternateGroupID) *alternateGroupID = trak->Header->alternate_group;
+	if (nb_groups) *nb_groups = 0;
+	if (!trak->udta || !nb_groups) return GF_OK;
 
 	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
 	if (!map) return GF_OK;
