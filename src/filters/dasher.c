@@ -238,6 +238,8 @@ typedef struct
 
 	Bool use_cues;
 	Bool dyn_rate;
+
+	u64 min_segment_start_time, last_min_segment_start_time;
 } GF_DasherCtx;
 
 typedef enum
@@ -433,6 +435,8 @@ typedef struct _dash_stream
 	u64 rate_media_size;
 
 	u64 period_continuity_next_cts;
+
+	u64 last_min_segment_start_time;
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
@@ -5319,6 +5323,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	ctx->current_period = ctx->next_period;
 	ctx->next_period = p;
 	ctx->on_demand_done = GF_FALSE;
+	ctx->min_segment_start_time = ctx->last_min_segment_start_time = 0;
 
 	//reset input pids and detach output pids
 	count = gf_list_count(ctx->current_period->streams);
@@ -6428,10 +6433,10 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 			while (base_ds->next_seg_start <= base_ds->adjusted_next_seg_start) {
 				base_ds->next_seg_start += (u64) (base_ds->dash_dur.num) * base_ds->timescale / base_ds->dash_dur.den;
 				if (ctx->skip_seg)
-					base_ds->seg_number++;
+					base_ds->seg_number ++;
 			}
 			base_ds->adjusted_next_seg_start = base_ds->next_seg_start;
-			base_ds->seg_number++;
+			base_ds->seg_number ++;
 		}
 	}
 
@@ -6590,6 +6595,12 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	if (ds->timescale != ds->mpd_timescale) {
 		ds->seg_start_time = gf_timestamp_rescale(ds->seg_start_time, ds->timescale, ds->mpd_timescale);
 	}
+	ds->last_min_segment_start_time = ds->first_cts_in_seg;
+	ds->last_min_segment_start_time *= 1000;
+	ds->last_min_segment_start_time /= ds->timescale;
+
+	if (ds->last_min_segment_start_time > ctx->min_segment_start_time)
+		ctx->min_segment_start_time = ds->last_min_segment_start_time;
 
 	if (ctx->store_seg_states) {
 		char *kms_uri;
@@ -7116,6 +7127,80 @@ static void dasher_drop_input(GF_DasherCtx *ctx, GF_DashStream *ds, Bool discard
 	}
 }
 
+static void dasher_inject_eods(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
+	//flush the segment at next segment start which could be after the segment AST => 404
+	//
+	//if subdur no need to do so as we will close the muxer right after
+	//if sigfrag no need to do so since we don't generate media packets
+	if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && !ctx->sigfrag) {
+		GF_FilterPacket *eods_pck;
+		eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
+		if (eods_pck) {
+			gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
+			gf_filter_pck_send(eods_pck);
+		}
+	}
+}
+
+static const char *empty_ttml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<tt xmlns=\"http://www.w3.org/ns/ttml\" xml:lang=\"en\">\n<head/>\n<body/>\n</tt>";
+
+static void dasher_send_empty_segment(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	GF_FilterPacket *pck;
+	u8 *data;
+
+	if (ds->segment_started) {
+		u64 next_cts = ds->first_cts_in_seg + gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+		ds->first_cts_in_next_seg = next_cts;
+		ds->nb_comp_done ++;
+		ds->split_dur_next = 0;
+		ds->seg_done = GF_TRUE;
+
+		dasher_inject_eods(ctx, ds);
+
+		dasher_flush_segment(ctx, ds, GF_FALSE);
+
+		ds->first_cts_in_seg = next_cts;
+		ds->nb_comp_done = 0;
+		ds->split_dur_next = 0;
+	}
+
+	if (ds->codec_id == GF_CODECID_SUBS_XML) {
+		//write empty TTML doc
+		u32 len = (u32) strlen(empty_ttml);
+		pck = gf_filter_pck_new_alloc(ds->opid, len+1, &data);
+		memcpy(data, empty_ttml, len);
+		data[len] = 0;
+	} else if (ds->codec_id == GF_CODECID_WEBVTT) {
+		//write empty cue box, 8 byte size of type vtte
+		pck = gf_filter_pck_new_alloc(ds->opid, 8, &data);
+		data[0] = data[1] = data[2] = 0; data[3] = 8;
+		data[4] = 'v'; data[5] = 't'; data[6] = 't'; data[7] = 'e';
+	} else if (ds->codec_id == GF_CODECID_TX3G) {
+		//write empty tx3g sample, 2 bytes text len=0
+		pck = gf_filter_pck_new_alloc(ds->opid, 2, &data);
+		data[0] = data[1] = 0;
+	} else {
+		pck = gf_filter_pck_new_alloc(ds->opid, 0, &data);
+	}
+
+	gf_filter_pck_set_dts(pck, ds->first_cts_in_seg);
+	gf_filter_pck_set_cts(pck, ds->first_cts_in_seg);
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+	//we don't assign a duration
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Sending empty text packet CTS "LLU"/%d\n", ds->first_cts_in_seg, ds->timescale));
+
+	dasher_mark_segment_start(ctx, ds, pck, NULL);
+	ds->segment_started = GF_TRUE;
+	gf_filter_pck_send(pck);
+
+	ds->first_cts_in_next_seg = ds->first_cts_in_seg + gf_timestamp_rescale(ds->dash_dur.num, ds->dash_dur.den, ds->timescale);
+	ds->est_first_cts_in_next_seg = ds->first_cts_in_next_seg;
+}
+
 
 
 static GF_Err dasher_process(GF_Filter *filter)
@@ -7124,6 +7209,8 @@ static GF_Err dasher_process(GF_Filter *filter)
 	GF_DasherCtx *ctx = gf_filter_get_udta(filter);
 	GF_Err e;
 	Bool seg_done = GF_FALSE;
+	u32 nb_seg_waiting = 0;
+	u32 nb_seg_active = 0;
 
 	if (ctx->in_error) {
 		gf_filter_abort(filter);
@@ -7206,6 +7293,20 @@ static GF_Err dasher_process(GF_Filter *filter)
 					}
 					is_queue_flush = GF_TRUE;
 				}
+
+				//text streams, insert an empty segment if we are one segment behind last produced segment on other pids
+				//we don't generate if behing this last time in case a packet comes in
+				//
+				//TODO: extend this to send empty segments for other streams (audio, video) in case of signal loss ??
+				if (!pck
+					&& (ds->stream_type==GF_STREAM_TEXT)
+					&& !ds->muxed_base
+				) {
+					u64 ddur_ms = (1000*ds->dash_dur.num)/ds->dash_dur.den;
+					while (ds->last_min_segment_start_time + ddur_ms < ctx->last_min_segment_start_time) {
+						dasher_send_empty_segment(ctx, ds);
+					}
+				}
 			} else {
 				is_queue_flush = GF_TRUE;
 			}
@@ -7266,6 +7367,30 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				if (gf_filter_pid_is_eos(ds->ipid) || ds->clamp_done) {
 					u32 ds_done = 1;
+
+					if (!ds->clamp_done && !ds->muxed_base && (ds->stream_type==GF_STREAM_TEXT)) {
+						u32 s_idx;
+						u64 ddur_ms;
+						Bool over = GF_TRUE;
+						for (s_idx=0; s_idx<count; s_idx++) {
+							GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, s_idx);
+							if (a_ds == ds) continue;
+							if (!a_ds->done) {
+								over = GF_FALSE;
+								break;
+							}
+						}
+						if (!over)
+							break;
+
+						//text streams, insert empty segments if we are one segment behind (and including) last produced segment on other pids
+						ddur_ms = (1000*ds->dash_dur.num)/ds->dash_dur.den;
+						while (ds->last_min_segment_start_time + ddur_ms <= ctx->min_segment_start_time) {
+							dasher_send_empty_segment(ctx, ds);
+						}
+					}
+
+
 					if (ctx->loop && dasher_check_loop(ctx, ds)) {
 						if (ctx->subdur)
 							break;
@@ -7461,6 +7586,21 @@ static GF_Err dasher_process(GF_Filter *filter)
 			check_dur = 0;
 			if (ds->stream_type==GF_STREAM_AUDIO)
 				check_dur = dur;
+
+			//perform regulation of inputs to avoid dashing one stream faster than the others
+			//this is needed when inputs are not realtime and we have text streams for which we must decide
+			//if we insert empty segments
+			if (!base_ds->segment_started && ctx->min_segment_start_time) {
+				orig_cts = cts;
+				if (ds->split_dur_next)
+					cts += ds->split_dur_next;
+
+				if (gf_timestamp_greater(cts, ds->timescale, ctx->min_segment_start_time, 1000)) {
+					nb_seg_waiting++;
+					break;
+				}
+			}
+			nb_seg_active++;
 
 			//adjust duration and cts
 			orig_cts = cts;
@@ -7790,19 +7930,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 				ds->seg_done = GF_TRUE;
 
-				//in dynamic mode, send end of dash segment marker to flush segment right away, otherwise we will
-				//flush the segment at next segment start which could be after the segment AST => 404
-				//
-				//if subdur no need to do so as we will close the muxer right after
-				//if sigfrag no need to do so since we don't generate media packets
-				if (!ctx->subdur && (ctx->dmode>=GF_DASH_DYNAMIC) && !ctx->sigfrag) {
-					GF_FilterPacket *eods_pck;
-					eods_pck = gf_filter_pck_new_alloc(ds->opid, 0, NULL);
-					if (eods_pck) {
-						gf_filter_pck_set_property(eods_pck, GF_PROP_PCK_EODS, &PROP_BOOL(GF_TRUE) );
-						gf_filter_pck_send(eods_pck);
-					}
-				}
+				dasher_inject_eods(ctx, ds);
 
 				ds->first_cts_in_next_seg = cts;
 				assert(base_ds->nb_comp_done < base_ds->nb_comp);
@@ -7977,7 +8105,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 		}
 	}
-	nb_init  = 0;
+
+	if (nb_seg_waiting && !nb_seg_active) {
+		ctx->last_min_segment_start_time = ctx->min_segment_start_time;
+		ctx->min_segment_start_time = 0;
+		return GF_OK;
+	}
+
+	nb_init = 0;
 	for (i=0; i<count; i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		//if (ds->muxed_base) ds = ds->muxed_base;
