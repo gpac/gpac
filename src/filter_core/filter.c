@@ -2516,6 +2516,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 				GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
 				gf_filter_pid_get_packet((GF_FilterPid *)pidi);
 			}
+			if (!filter->num_input_pids)
+				filter->pending_packets = 0;
 		}
 		task->requeue_request = GF_TRUE;
 		assert(filter->process_task_queued);
