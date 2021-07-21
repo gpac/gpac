@@ -115,28 +115,28 @@ typedef struct
 
 
 typedef enum {
-	TRAC_ACTION_REM_TRACK= 0,
-	TRAC_ACTION_SET_LANGUAGE,
-	TRAC_ACTION_SET_DELAY,
-	TRAC_ACTION_SET_KMS_URI,
-	TRAC_ACTION_SET_PAR,
-	TRAC_ACTION_SET_HANDLER_NAME,
-	TRAC_ACTION_ENABLE,
-	TRAC_ACTION_DISABLE,
-	TRAC_ACTION_REFERENCE,
-	TRAC_ACTION_RAW_EXTRACT,
-	TRAC_ACTION_REM_NON_RAP,
-	TRAC_ACTION_SET_KIND,
-	TRAC_ACTION_REM_KIND,
-	TRAC_ACTION_SET_ID,
-	TRAC_ACTION_SET_UDTA,
-	TRAC_ACTION_SWAP_ID,
-	TRAC_ACTION_REM_NON_REFS,
-	TRAC_ACTION_SET_CLAP,
-	TRAC_ACTION_SET_MX,
-	TRAC_ACTION_SET_EDITS,
-	TRAC_ACTION_SET_TIME,
-	TRAC_ACTION_SET_MEDIA_TIME,
+	TRACK_ACTION_REM_TRACK= 0,
+	TRACK_ACTION_SET_LANGUAGE,
+	TRACK_ACTION_SET_DELAY,
+	TRACK_ACTION_SET_KMS_URI,
+	TRACK_ACTION_SET_PAR,
+	TRACK_ACTION_SET_HANDLER_NAME,
+	TRACK_ACTION_ENABLE,
+	TRACK_ACTION_DISABLE,
+	TRACK_ACTION_REFERENCE,
+	TRACK_ACTION_RAW_EXTRACT,
+	TRACK_ACTION_REM_NON_RAP,
+	TRACK_ACTION_SET_KIND,
+	TRACK_ACTION_REM_KIND,
+	TRACK_ACTION_SET_ID,
+	TRACK_ACTION_SET_UDTA,
+	TRACK_ACTION_SWAP_ID,
+	TRACK_ACTION_REM_NON_REFS,
+	TRACK_ACTION_SET_CLAP,
+	TRACK_ACTION_SET_MX,
+	TRACK_ACTION_SET_EDITS,
+	TRACK_ACTION_SET_TIME,
+	TRACK_ACTION_SET_MEDIA_TIME,
 } TrackActionType;
 
 typedef struct
@@ -376,32 +376,32 @@ MP4BoxArg m4b_gen_args[] =
 		"  - SMPTE codes: `h:m:s;nb_f/fps chapter_name` and `h:m:s;nb_f chapter_name` with `nb_f` the number of frames and `fps` the framerate with 1 chapter per line\n"
 		"  - Common syntax: `CHAPTERX=h:m:s[:ms or .ms]` on first line and `CHAPTERXNAME=name` on next line (reverse order accepted)", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &chap_file, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("chapqt", "set chapter information from given file, using QT signaling for text tracks", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &chap_file_qt, 0, ARG_OPEN_EDIT),
- 	MP4BOX_ARG_S("set-track-id", "id1:id2", "change id of track with id1 to id2", 0, parse_track_action, TRAC_ACTION_SET_ID, ARG_IS_FUN),
- 	MP4BOX_ARG_S("swap-track-id", "id1:id2", "swap the id between tracks with id1 to id2", 0, parse_track_action, TRAC_ACTION_SWAP_ID, ARG_IS_FUN),
- 	MP4BOX_ARG("rem", "remove given track from file", GF_ARG_INT, 0, parse_track_action, TRAC_ACTION_REM_TRACK, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("set-track-id", "id1:id2", "change id of track with id1 to id2", 0, parse_track_action, TRACK_ACTION_SET_ID, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("swap-track-id", "id1:id2", "swap the id between tracks with id1 to id2", 0, parse_track_action, TRACK_ACTION_SWAP_ID, ARG_IS_FUN),
+ 	MP4BOX_ARG("rem", "remove given track from file", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_REM_TRACK, ARG_IS_FUN),
  	MP4BOX_ARG("rap", "remove all non-RAP samples from given track", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_rap_ref, 0, ARG_IS_FUN | ARG_EMPTY),
  	MP4BOX_ARG("refonly", "remove all non-reference pictures from given track", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_rap_ref, 1, ARG_IS_FUN | ARG_EMPTY),
- 	MP4BOX_ARG("enable", "enable given track", GF_ARG_INT, 0, parse_track_action, TRAC_ACTION_ENABLE, ARG_IS_FUN),
- 	MP4BOX_ARG("disable", "disable given track", GF_ARG_INT, 0, parse_track_action, TRAC_ACTION_DISABLE, ARG_IS_FUN),
+ 	MP4BOX_ARG("enable", "enable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_ENABLE, ARG_IS_FUN),
+ 	MP4BOX_ARG("disable", "disable given track", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_DISABLE, ARG_IS_FUN),
  	{"timescale", NULL, "set movie timescale to given value (ticks per second)", "600", NULL, GF_ARG_INT, 0, &timescale, 0, ARG_OPEN_EDIT},
- 	MP4BOX_ARG_S("lang", "[tkID=]LAN", "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", 0, parse_track_action, TRAC_ACTION_SET_LANGUAGE, ARG_IS_FUN),
- 	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRAC_ACTION_SET_DELAY, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("lang", "[tkID=]LAN", "set language. LAN is the BCP-47 code (eng, en-UK, ...). If no track ID is given, sets language to all tracks", 0, parse_track_action, TRACK_ACTION_SET_LANGUAGE, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("delay", "tkID=TIME", "set track start delay (>0) or initial skip (<0) in ms or in fractional seconds (`N/D`)", 0, parse_track_action, TRACK_ACTION_SET_DELAY, ARG_IS_FUN),
  	MP4BOX_ARG_S("par", "tkID=PAR", "set visual track pixel aspect ratio. PAR is:\n"
 					"  - N:D: set PAR to N:D in track, do not modify the bitstream\n"
 					"  - wN:D: set PAR to N:D in track and try to modify the bitstream\n"
 					"  - none: remove PAR info from track, do not modify the bitstream\n"
 					"  - auto: retrieve PAR info from bitstream and set it in track\n"
-					"  - force: force 1:1 PAR in track, do not modify the bitstream", GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_SET_PAR, ARG_IS_FUN
+					"  - force: force 1:1 PAR in track, do not modify the bitstream", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_PAR, ARG_IS_FUN
 					),
  	MP4BOX_ARG_S("clap", "tkID=CLAP", "set visual track clean aperture. CLAP is `Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd` or `none`\n"
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
- 			, GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_SET_CLAP, ARG_IS_FUN),
+ 			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_CLAP, ARG_IS_FUN),
  	MP4BOX_ARG_S("mx", "tkID=MX", "set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa"
- 			, GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_SET_MX, ARG_IS_FUN),
-	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRAC_ACTION_SET_KIND, ARG_IS_FUN),
-	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRAC_ACTION_REM_KIND, ARG_IS_FUN),
- 	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
+ 			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_MX, ARG_IS_FUN),
+	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_SET_KIND, ARG_IS_FUN),
+	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_REM_KIND, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
  	MP4BOX_ARG("itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-add", "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
 	        "- refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the "
@@ -416,7 +416,7 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG("group-rem-track", "remove given track from its group", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_tsel_args, TSEL_ACTION_REMOVE_TSEL, ARG_IS_FUN),
 	MP4BOX_ARG("group-rem", "remove the track's group", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_tsel_args, TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP, ARG_IS_FUN),
 	MP4BOX_ARG("group-clean", "remove all group information from all tracks", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &clean_groups, 0, ARG_OPEN_EDIT),
-	MP4BOX_ARG_S("ref", "id:XXXX:refID", "add a reference of type 4CC from track ID to track refID", GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_REFERENCE, ARG_IS_FUN),
+	MP4BOX_ARG_S("ref", "id:XXXX:refID", "add a reference of type 4CC from track ID to track refID", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_REFERENCE, ARG_IS_FUN),
 	MP4BOX_ARG("keep-utc", "keep UTC timing in the file after edit", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &keep_utc, 0, 0),
 	MP4BOX_ARG_S("udta", "tkID:[OPTS]", "set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:\n"
 	        "- type=CODE: 4CC code of the UDTA (not needed for `box=` option)\n"
@@ -425,7 +425,7 @@ MP4BoxArg m4b_gen_args[] =
 	        "- src=FILE: location of the udta data (will be stored in a single box of type CODE)\n"
 	        "- src=base64,DATA: base64 encoded udta data (will be stored in a single box of type CODE)\n"
 	        "- str=STRING: use the given string as payload for the udta box\n"
-	        "Note: If no source is set, UDTA of type CODE will be removed\n", GF_ARG_HINT_ADVANCED, parse_track_action, TRAC_ACTION_SET_UDTA, ARG_IS_FUN|ARG_OPEN_EDIT),
+	        "Note: If no source is set, UDTA of type CODE will be removed\n", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_UDTA, ARG_IS_FUN|ARG_OPEN_EDIT),
 	MP4BOX_ARG_S("patch", "[tkID=]FILE", "apply box patch described in FILE, for given trackID if set", GF_ARG_HINT_ADVANCED, parse_boxpatch, 0, ARG_IS_FUN),
 	MP4BOX_ARG("bo", "freeze the order of boxes in input file", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &freeze_box_order, 0, 0),
 	MP4BOX_ARG("init-seg", "use the given file as an init segment for dumping or for encryption", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &use_init_seg, 0, 0),
@@ -440,12 +440,12 @@ MP4BoxArg m4b_gen_args[] =
 			" - Examples: \n"
 			"   - `re0-5e5-3,4`: remove edits, add empty edit at 0s for 5s, then add regular edit at 5s for 3s starting at 4s in media track\n"
 			"   - `re0-4,0,0.5`: remove edits, add single edit at 0s for 4s starting at 0s in media track and playing at speed 0.5\n"
-				, 0, parse_track_action, TRAC_ACTION_SET_EDITS, ARG_IS_FUN),
+				, 0, parse_track_action, TRACK_ACTION_SET_EDITS, ARG_IS_FUN),
  	MP4BOX_ARG("moovpad", "specify amount of padding to keep after moov box for later inplace editing - if 0, moov padding is disabled", GF_ARG_INT, GF_ARG_HINT_EXPERT, &moov_pading, 0, ARG_NEED_SAVE),
  	MP4BOX_ARG("no-inplace", "disable inplace rewrite", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &no_inplace, 0, 0),
  	MP4BOX_ARG("hdr", "update HDR information based on given XML", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &high_dynamc_range_filename, 0, ARG_OPEN_EDIT),
- 	MP4BOX_ARG_S("time", "[tkID=]DAY/MONTH/YEAR-H:M:S", "set movie or track creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRAC_ACTION_SET_TIME, ARG_IS_FUN),
- 	MP4BOX_ARG_S("mtime", "tkID=DAY/MONTH/YEAR-H:M:S", "set media creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRAC_ACTION_SET_MEDIA_TIME, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("time", "[tkID=]DAY/MONTH/YEAR-H:M:S", "set movie or track creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRACK_ACTION_SET_TIME, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("mtime", "tkID=DAY/MONTH/YEAR-H:M:S", "set media creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRACK_ACTION_SET_MEDIA_TIME, ARG_IS_FUN),
 	{0}
 };
 
@@ -986,7 +986,7 @@ MP4BoxArg m4b_crypt_args[] =
 {
  	MP4BOX_ARG("crypt", "encrypt the input file using the given `CryptFile`", GF_ARG_STRING, 0, parse_cryp, 0, ARG_IS_FUN),
  	MP4BOX_ARG("decrypt", "decrypt the input file, potentially using the given `CryptFile`. If `CryptFile` is not given, will fail if the key management system is not supported", GF_ARG_STRING, 0, parse_cryp, 1, ARG_IS_FUN | ARG_EMPTY),
- 	MP4BOX_ARG_S("set-kms", "tkID=kms_uri", "change ISMA/OMA KMS location for a given track or for all tracks if `all=` is used", 0, parse_track_action, TRAC_ACTION_SET_KMS_URI, ARG_IS_FUN),
+ 	MP4BOX_ARG_S("set-kms", "tkID=kms_uri", "change ISMA/OMA KMS location for a given track or for all tracks if `all=` is used", 0, parse_track_action, TRACK_ACTION_SET_KMS_URI, ARG_IS_FUN),
  	{0}
 };
 
@@ -2168,19 +2168,19 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	memset(tka, 0, sizeof(TrackAction) );
 	tka->act_type = act_type;
 	tka->dump_type = dump_type;
-	if (act_type != TRAC_ACTION_RAW_EXTRACT) {
+	if (act_type != TRACK_ACTION_RAW_EXTRACT) {
 		open_edit = GF_TRUE;
 		do_save = GF_TRUE;
 	}
 
-	if ((act_type==TRAC_ACTION_SET_ID) || (act_type==TRAC_ACTION_SWAP_ID)) {
+	if ((act_type==TRACK_ACTION_SET_ID) || (act_type==TRACK_ACTION_SWAP_ID)) {
 		if (sscanf(param, "%d:%u", &tka->trackID, &tka->newTrackID) != 2) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", param));
 			return GF_FALSE;
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_PAR) {
+	if (act_type==TRACK_ACTION_SET_PAR) {
 		char *ext;
 		ext = strchr(param, '=');
 		if (!ext) {
@@ -2213,7 +2213,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_CLAP) {
+	if (act_type==TRACK_ACTION_SET_CLAP) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for track clap - expecting tkID=none or tkID=Wn,Wd,Hn,Hd,HOn,HOd,VOn,VOd got %s\n", param));
@@ -2232,7 +2232,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		return GF_TRUE;
 	}
 
-	if (act_type==TRAC_ACTION_SET_MX) {
+	if (act_type==TRACK_ACTION_SET_MX) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for track matrix - expecting ID=none or ID=M1:M2:M3:M4:M5:M6:M7:M8:M9 got %s\n", param));
@@ -2258,7 +2258,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_EDITS) {
+	if (act_type==TRACK_ACTION_SET_EDITS) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for track edits - expecting ID=EDITS got %s\n", param));
@@ -2270,7 +2270,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		tka->string = gf_strdup(ext+1);
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_LANGUAGE) {
+	if (act_type==TRACK_ACTION_SET_LANGUAGE) {
 		char *ext = strchr(param, '=');
 		if (!strnicmp(param, "all=", 4)) {
 			strncpy(tka->lang, param + 4, 10-1);
@@ -2285,7 +2285,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if ((act_type==TRAC_ACTION_SET_KIND) || (act_type==TRAC_ACTION_REM_KIND)) {
+	if ((act_type==TRACK_ACTION_SET_KIND) || (act_type==TRACK_ACTION_REM_KIND)) {
 		char *ext;
 		char *scheme_start = NULL;
 
@@ -2324,7 +2324,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_DELAY) {
+	if (act_type==TRACK_ACTION_SET_DELAY) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for track delay - expecting tkID=DLAY got %s\n", param));
@@ -2339,7 +2339,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_REFERENCE) {
+	if (act_type==TRACK_ACTION_REFERENCE) {
 		char *ext = strchr(param, '=');
 		if (!ext) ext = strchr(param, ':');
 		if (!ext) {
@@ -2361,7 +2361,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		tka->newTrackID = (s32) atoi(ext2 + 1);
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_HANDLER_NAME) {
+	if (act_type==TRACK_ACTION_SET_HANDLER_NAME) {
 		char *ext = strchr(param, '=');
 		if (!ext) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for track name - expecting tkID=name got %s\n", param));
@@ -2373,7 +2373,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		tka->hdl_name = ext + 1;
 		return GF_TRUE;
 	}
-	if (act_type==TRAC_ACTION_SET_KMS_URI) {
+	if (act_type==TRACK_ACTION_SET_KMS_URI) {
 		char *ext = strchr(param, '=');
 
 		if (!strnicmp(param, "all=", 4)) {
@@ -2388,7 +2388,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 		return GF_TRUE;
 	}
-	if ((act_type==TRAC_ACTION_SET_TIME) || (act_type==TRAC_ACTION_SET_MEDIA_TIME)) {
+	if ((act_type==TRACK_ACTION_SET_TIME) || (act_type==TRACK_ACTION_SET_MEDIA_TIME)) {
 		struct tm time;
 		char *ext = strchr(arg_val, '=');
 		if (ext) {
@@ -2442,7 +2442,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		if (!strcmp(arg_val, "*")) {
 			tka->trackID = (u32) -1;
 		} else {
-			if (act_type==TRAC_ACTION_RAW_EXTRACT) {
+			if (act_type==TRACK_ACTION_RAW_EXTRACT) {
 				if (!strncmp(arg_val, "video", 5)) {
 					arg_val += 5;
 					tka->dump_track_type = 1;
@@ -2461,7 +2461,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 
 u32 parse_track_dump(char *arg, u32 dump_type)
 {
-	if (!create_new_track_action(arg, TRAC_ACTION_RAW_EXTRACT, dump_type))
+	if (!create_new_track_action(arg, TRACK_ACTION_RAW_EXTRACT, dump_type))
 		return 2;
 	track_dump_type = dump_type;
 	return 0;
@@ -2541,7 +2541,7 @@ u32 parse_rap_ref(char *arg_val, u32 opt)
 {
 	if (arg_val) {
 		if (sscanf(arg_val, "%d", &trackID) == 1) {
-			parse_track_action(arg_val, opt ? TRAC_ACTION_REM_NON_REFS : TRAC_ACTION_REM_NON_RAP);
+			parse_track_action(arg_val, opt ? TRACK_ACTION_REM_NON_REFS : TRACK_ACTION_REM_NON_RAP);
 		}
 	}
 	hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
@@ -4625,7 +4625,7 @@ static GF_Err do_export_tracks_non_isobmf()
 	for (i=0; i<nb_track_act; i++) {
 		GF_Err e;
 		TrackAction *tka = &tracks[i];
-		if (tka->act_type != TRAC_ACTION_RAW_EXTRACT) continue;
+		if (tka->act_type != TRACK_ACTION_RAW_EXTRACT) continue;
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.in_name = inName;
 		mdump.flags = tka->dump_type;
@@ -4695,7 +4695,7 @@ static GF_Err do_export_tracks()
 	for (i=0; i<nb_track_act; i++) {
 		u32 j;
 		TrackAction *tka = &tracks[i];
-		if (tka->act_type != TRAC_ACTION_RAW_EXTRACT) continue;
+		if (tka->act_type != TRACK_ACTION_RAW_EXTRACT) continue;
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.file = file;
 		mdump.flags = tka->dump_type;
@@ -5073,7 +5073,7 @@ static GF_Err do_track_act()
 
 		timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {
-		case TRAC_ACTION_REM_TRACK:
+		case TRACK_ACTION_REM_TRACK:
 			e = gf_isom_remove_track(file, track);
 			if (e) {
 				M4_LOG(GF_LOG_ERROR, ("Error Removing track ID %d: %s\n", tka->trackID, gf_error_to_string(e)));
@@ -5082,7 +5082,7 @@ static GF_Err do_track_act()
 			}
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_LANGUAGE:
+		case TRACK_ACTION_SET_LANGUAGE:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_set_media_language(file, i+1, tka->lang);
@@ -5091,7 +5091,7 @@ static GF_Err do_track_act()
 			}
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_KIND:
+		case TRACK_ACTION_SET_KIND:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_add_track_kind(file, i+1, tka->kind_scheme, tka->kind_value);
@@ -5100,7 +5100,7 @@ static GF_Err do_track_act()
 			}
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_REM_KIND:
+		case TRACK_ACTION_REM_KIND:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_remove_track_kind(file, i+1, tka->kind_scheme, tka->kind_value);
@@ -5109,7 +5109,7 @@ static GF_Err do_track_act()
 			}
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_DELAY:
+		case TRACK_ACTION_SET_DELAY:
 			if (tka->delay.num && tka->delay.den) {
 				u64 tk_dur;
 
@@ -5144,7 +5144,7 @@ static GF_Err do_track_act()
 				do_save = GF_TRUE;
 			}
 			break;
-		case TRAC_ACTION_SET_KMS_URI:
+		case TRACK_ACTION_SET_KMS_URI:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				if (!gf_isom_is_media_encrypted(file, i+1, 1)) continue;
@@ -5154,7 +5154,7 @@ static GF_Err do_track_act()
 				do_save = GF_TRUE;
 			}
 			break;
-		case TRAC_ACTION_SET_ID:
+		case TRACK_ACTION_SET_ID:
 			if (!tka->trackID && (gf_isom_get_track_count(file) == 1)) {
 				M4_LOG(GF_LOG_WARNING, ("Warning: track id is not specified, but file has only one track - assume that you want to change id for this track\n"));
 				track = 1;
@@ -5173,7 +5173,7 @@ static GF_Err do_track_act()
 				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID));
 			}
 			break;
-		case TRAC_ACTION_SWAP_ID:
+		case TRACK_ACTION_SWAP_ID:
 			if (track) {
 				u32 tk1, tk2;
 				tk1 = gf_isom_get_track_by_id(file, tka->trackID);
@@ -5193,55 +5193,55 @@ static GF_Err do_track_act()
 				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID));
 			}
 			break;
-		case TRAC_ACTION_SET_PAR:
+		case TRACK_ACTION_SET_PAR:
 			e = gf_media_change_par(file, track, tka->par_num, tka->par_den, tka->force_par, tka->rewrite_bs);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_CLAP:
+		case TRACK_ACTION_SET_CLAP:
 			e = gf_isom_set_clean_aperture(file, track, 1, tka->clap_wnum, tka->clap_wden, tka->clap_hnum, tka->clap_hden, tka->clap_honum, tka->clap_hoden, tka->clap_vonum, tka->clap_voden);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_MX:
+		case TRACK_ACTION_SET_MX:
 			e = gf_isom_set_track_matrix(file, track, tka->mx);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_HANDLER_NAME:
+		case TRACK_ACTION_SET_HANDLER_NAME:
 			e = gf_isom_set_handler_name(file, track, tka->hdl_name);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_ENABLE:
+		case TRACK_ACTION_ENABLE:
 			if (!gf_isom_is_track_enabled(file, track)) {
 				e = gf_isom_set_track_enabled(file, track, GF_TRUE);
 				do_save = GF_TRUE;
 			}
 			break;
-		case TRAC_ACTION_DISABLE:
+		case TRACK_ACTION_DISABLE:
 			if (gf_isom_is_track_enabled(file, track)) {
 				e = gf_isom_set_track_enabled(file, track, GF_FALSE);
 				do_save = GF_TRUE;
 			}
 			break;
-		case TRAC_ACTION_REFERENCE:
+		case TRACK_ACTION_REFERENCE:
 			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), tka->newTrackID);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_REM_NON_RAP:
+		case TRACK_ACTION_REM_NON_RAP:
 			e = gf_media_remove_non_rap(file, track, GF_FALSE);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_REM_NON_REFS:
+		case TRACK_ACTION_REM_NON_REFS:
 			e = gf_media_remove_non_rap(file, track, GF_TRUE);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_UDTA:
+		case TRACK_ACTION_SET_UDTA:
 			e = set_file_udta(file, track, tka->udta_type, tka->string ? tka->string : tka->src_name , tka->sample_num ? GF_TRUE : GF_FALSE, tka->string ? GF_TRUE : GF_FALSE);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_EDITS:
+		case TRACK_ACTION_SET_EDITS:
 			e = apply_edits(file, track, tka->string);
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_TIME:
+		case TRACK_ACTION_SET_TIME:
 			if (!tka->trackID) {
 				e = gf_isom_set_creation_time(file, tka->time, tka->time);
 				if (e) return e;
@@ -5254,7 +5254,7 @@ static GF_Err do_track_act()
 			}
 			do_save = GF_TRUE;
 			break;
-		case TRAC_ACTION_SET_MEDIA_TIME:
+		case TRACK_ACTION_SET_MEDIA_TIME:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_set_media_creation_time(file, i+1, tka->time, tka->time);
