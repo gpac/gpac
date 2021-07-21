@@ -1935,6 +1935,31 @@ Other tag class may be specified using tag_NAME property names, and will be adde
 .br
   
 .br
+.SH User data
+.LP
+.br
+The muxer will look for the following PID properties to create user data entries:
+.br
+* `udtab`: set the track user-data box to the property value which must be a serialized box array blob
+.br
+* `mudtab`: set the movie user-data box to the property value which must be a serialized box array blob
+.br
+* `udta_U4CC`: set track user-data box entry of type U4CC to property value
+.br
+* `mudta_U4CC`: set movie user-data box entry of type U4CC to property value
+.br
+  
+.br
+Example
+.br
+-i src.mp4:#udta_tagc='My Awsome Tag'
+.br
+-i src.mp4:#mudtab=data@box.bin
+.br
+
+.br
+  
+.br
 .SH Notes
 .LP
 .br
@@ -6677,7 +6702,7 @@ gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
 .br
 rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264 and HEVC
 .br
-vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC
+vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC (component|pal|ntsc|secam|mac|undef)
 .br
 
 .br
@@ -6864,7 +6889,7 @@ osize (v2di):                  osize of output video. When not set, input osize 
 .br
 ofmt (pfmt, default: none, minmax: none,yuv420,yvu420,yuv420_10,yuv422,yuv422_10,yuv444,yuv444_10,uyvy,vyuy,yuyv,yvyu,uyvl,vyul,yuyl,yvyl,nv12,nv21,nv1l,nv2l,yuva,yuvd,yuv444a,yuv444p,yuv444ap,yuv444p_10,grey,algr,gral,rgb4,rgb5,rgb6,rgba,argb,bgra,abgr,rgb,bgr,xrgb,rgbx,xbgr,bgrx,rgbd,rgbds,rgbs,rgbas): pixel format for output video. When not set, input format is used
 .br
-scale (enum, default: bicubic): scaling mode - see filter info
+scale (enum, default: bicubic): scaling mode - see filter info (fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline)
 .br
 
 .br
@@ -7717,7 +7742,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1110-g042dd0966-master
+build: 1.1.0-DEV-rev1135-gcaec5a132-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 //for binxml parsing
 #include <gpac/xml.h>
+//for base64 decode
+#include <gpac/base_coding.h>
 
 typedef u32(*cst_parse_proto)(const char *val);
 typedef const char *(*cst_name_proto)(u32 val);
@@ -384,6 +386,22 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot load data from file %s\n", value+5));
 				p.value.data.ptr=NULL;
 				p.value.data.size=0;
+			}
+		} else if (!strnicmp(value, "b64@", 4) ) {
+			u8 *b64 = (u8 *)value + 5;
+			u32 size = (u32) strlen(b64);
+			p.value.data.ptr = gf_malloc(sizeof(char) * size);
+			if (p.value.data.ptr) {
+				p.value.data.size = gf_base64_decode((u8 *)b64, size, p.value.data.ptr, size);
+				if (!p.value.data.size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to decode base64 value %s\n", value, name));
+					p.type=GF_PROP_FORBIDEN;
+				}
+				p.value.data.ptr[p.value.data.size] = 0;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate memory for decoding base64 value %s\n", value, name));
+				p.value.data.size = 0;
+				p.type=GF_PROP_FORBIDEN;
 			}
 		} else {
 			p.value.data.size = (u32) strlen(value);
@@ -1274,7 +1292,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "Media stream type", GF_PROP_UINT},
-	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_SUBTYPE, "StreamSubtype", "Media subtype 4CC (auxiliary, pic sequence, etc ..), matches ISOM handler type", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_SUBTYPE, "ISOMSubtype", "ISOM media subtype 4CC (avc1 avc2...)", GF_PROP_4CC, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ORIG_STREAM_TYPE, "OrigStreamType", "Original stream type before encryption", GF_PROP_UINT},
 	{ GF_PROP_PID_CODECID, "CodecID", "Codec ID (MPEG-4 OTI or ISOBMFF 4CC)", GF_PROP_UINT},
@@ -1416,10 +1434,11 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ISOM_STSD_TEMPLATE, "STSDTemplate", "ISOBMFF serialized sample description box (stsd entry) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF track", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF moov", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_ISOM_HANDLER, "TrackHandler", "ISOBMFF track handler name", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_HANDLER, "HandlerName", "ISOBMFF track handler name", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_TRACK_FLAGS, "TrackFlags", "ISOBMFF track header flags", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_TRACK_MATRIX, "TrackMatrix", "ISOBMFF track header matrix", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
-
+	{ GF_PROP_PID_ISOM_ALT_GROUP, "AltGroup", "ISOBMFF alt group ID", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_DISABLED, "Disable", "ISOBMFF disable flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_DUR, "PDur", "DASH Period duration - cf dasher help", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},
@@ -1531,7 +1550,7 @@ u32 gf_props_get_id(const char *name)
 				if (c != name[j])
 					break;
 			}
-			if (j==len)
+			if ((j==len) && !GF_BuiltInProps[i].name[j])
 				return GF_BuiltInProps[i].type;
 		}
 	}

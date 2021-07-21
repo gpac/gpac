@@ -1160,21 +1160,23 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
 * string: formatted as:
 .br
- * `value`: copies value to string.
+  * `value`: copies value to string.
 .br
- * `file@FILE`: load string from local FILE (opened in binary mode).
+  * `file@FILE`: load string from local FILE (opened in binary mode).
 .br
- * `bxml@FILE`: binarize XML from local FILE and set property type to data - see https://wiki.gpac.io/NHML-Format.
+  * `bxml@FILE`: binarize XML from local FILE and set property type to data - see https://wiki.gpac.io/NHML-Format.
 .br
 * data: formatted as:
 .br
- * `size@address`: constant data block, not internally copied; size gives the size of the block, address the data pointer.
+  * `size@address`: constant data block, not internally copied; size gives the size of the block, address the data pointer.
 .br
- * `0xBYTESTRING`: data block specified in hexadecimal, internally copied.
+  * `0xBYTESTRING`: data block specified in hexadecimal, internally copied.
 .br
- * `file@FILE`: load data from local FILE (opened in binary mode).
+  * `file@FILE`: load data from local FILE (opened in binary mode).
 .br
- * `bxml@FILE`: binarize XML from local FILE - see https://wiki.gpac.io/NHML-Format.
+  * `bxml@FILE`: binarize XML from local FILE - see https://wiki.gpac.io/NHML-Format.
+.br
+  * `b64@DATA`: load data from base-64 encoded DATA.
 .br
 * pointer: are formatted as address giving the pointer address (32 or 64 bit depending on platforms).
 .br
@@ -2142,7 +2144,7 @@ Media stream type
 .TP
 .B StreamSubtype (PSST,4cc,D )
 .br
-Media subtype 4CC (auxiliary, pic sequence, etc ..)
+Media subtype 4CC (auxiliary, pic sequence, etc ..), matches ISOM handler type
 .br
 .TP
 .B ISOMSubtype (PIST,4cc,D )
@@ -2832,7 +2834,7 @@ ISOBMFF serialized sample description box (stsd entry) for this PID - used by is
 ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF moov
 .br
 .TP
-.B TrackHandler (IHDL,str,D )
+.B HandlerName (IHDL,str,D )
 .br
 ISOBMFF track handler name
 .br
@@ -2845,6 +2847,16 @@ ISOBMFF track header flags
 .B TrackMatrix (ITKM,uintl,D )
 .br
 ISOBMFF track header matrix
+.br
+.TP
+.B AltGroup (IALG,uint,D )
+.br
+ISOBMFF alt group ID
+.br
+.TP
+.B Disable (ITKD,bool,D )
+.br
+ISOBMFF disable flag
 .br
 .TP
 .B Period (PEID,str,D )
@@ -4246,7 +4258,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1110-g042dd0966-master
+build: 1.1.0-DEV-rev1135-gcaec5a132-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
