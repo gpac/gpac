@@ -1245,12 +1245,16 @@ static void parse_sep_set(const char *arg, Bool *override_seps)
 static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 {
 	u32 i;
-	for (i=1; i<gf_sys_get_argc(); i++) {
-		if (!gf_sys_is_arg_used(i)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: argument %s set but not used\n", gf_sys_get_arg(i) ));
+	if (code>=0) {
+		for (i=1; i<gf_sys_get_argc(); i++) {
+			if (!gf_sys_is_arg_used(i)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Warning: argument %s set but not used\n", gf_sys_get_arg(i) ));
+			}
 		}
+	} else {
+		//negative code is unrecognized option, don't print unused arguments
+		code = 1;
 	}
-
 
 	if (alias_argv) {
 		while (gf_list_count(args_alloc)) {
@@ -1397,6 +1401,19 @@ static void gpac_suggest_arg(char *aname)
 			}
 		}
 	}
+	//look in alias
+	u32 nb_alias = gf_opts_get_key_count("gpac.alias");
+	for (k=0; k<nb_alias; k++) {
+		const char *key = gf_opts_get_key_name("gpac.alias", k);
+		if (gf_sys_word_match(aname, key)) {
+			if (!found) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", did you mean:\n", aname));
+				found = GF_TRUE;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("\t%s (see gpac -h)\n", key));
+		}
+	}
+
 	if (!found) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unrecognized option \"%s\", check usage \"gpac -h\"\n", aname));
 	}
@@ -1934,7 +1951,7 @@ static int gpac_main(int argc, char **argv)
 			} else if (!gf_sys_is_gpac_arg(arg) ) {
 				if (!has_xopt) {
 					gpac_suggest_arg(arg);
-					gpac_exit(1);
+					gpac_exit(-1);
 				} else {
 					gf_sys_mark_arg_used(i, GF_FALSE);
 				}
