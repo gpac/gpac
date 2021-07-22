@@ -705,6 +705,7 @@ typedef struct
 	u8 recovery_point_valid;
 
 	u8 prev_layer_id_plus1;
+	u8 compute_poc_defer;
 } VVCSliceInfo;
 
 /*TODO once we add HLS parsing (FDIS) */
