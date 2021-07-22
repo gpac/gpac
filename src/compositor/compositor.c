@@ -1410,10 +1410,16 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			if (!compositor->os_wnd) {
 				/*only notify user if we are attached to a window*/
 				//do_notif = 0;
-				if (compositor->video_out->max_screen_width && (width > compositor->video_out->max_screen_width))
+				if (compositor->video_out->max_screen_width && (width > compositor->video_out->max_screen_width)) {
+					height *= compositor->video_out->max_screen_width;
+					height /= width;
 					width = compositor->video_out->max_screen_width;
-				if (compositor->video_out->max_screen_height && (height > compositor->video_out->max_screen_height))
+				}
+				if (compositor->video_out->max_screen_height && (height > compositor->video_out->max_screen_height)) {
+					width *= compositor->video_out->max_screen_height;
+					width /= height;
 					height = compositor->video_out->max_screen_height;
+				}
 
 				gf_sc_set_size(compositor,width, height);
 			}

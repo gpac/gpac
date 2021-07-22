@@ -708,24 +708,70 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAng
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);
 }
 
-void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
+void mesh_new_rectangle_ex(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, u32 flip, u32 rotate)
 {
-	Fixed tmin, tmax;
 	Fixed x = - size.x / 2;
 	Fixed y = size.y / 2;
+	u32 i;
+	Bool flip_h = GF_FALSE;
+	Bool flip_v = GF_FALSE;
+
+	Fixed textureCoords[] = {
+		0, 0,
+		FIX_ONE, 0,
+		FIX_ONE, FIX_ONE,
+		0, FIX_ONE
+	};
+
 	if (orig) {
 		x = orig->x;
 		y = orig->y;
 	}
 	mesh_reset(mesh);
 
-	tmin = flip ? FIX_ONE : 0;
-	tmax = flip ? 0 : FIX_ONE;
+	switch (flip) {
+	case 2:
+		flip_v = GF_TRUE;
+		break;
+	case 1:
+		flip_h = GF_TRUE;
+		break;
+	case 3:
+		flip_v = GF_TRUE;
+		flip_h = GF_TRUE;
+		break;
+	}
 
-	mesh_set_vertex(mesh, x, y-size.y,  0,  0,  0,  FIX_ONE, 0, tmin);
-	mesh_set_vertex(mesh, x+size.x, y-size.y,  0,  0,  0,  FIX_ONE, FIX_ONE, tmin);
-	mesh_set_vertex(mesh, x+size.x, y,  0,  0,  0,  FIX_ONE, FIX_ONE, tmax);
-	mesh_set_vertex(mesh, x,  y,  0,  0,  0,  FIX_ONE, 0, tmax);
+	if (flip_h) {
+		Fixed v = textureCoords[0];
+		textureCoords[0] = textureCoords[2] = textureCoords[4];
+		textureCoords[4] = textureCoords[6] = v;
+	}
+	if (flip_v) {
+		Fixed v = textureCoords[1];
+		textureCoords[1] = textureCoords[3] = textureCoords[5];
+		textureCoords[5] = textureCoords[7] = v;
+	}
+
+	for (i=0; i < rotate; i++)  {
+		Fixed vx = textureCoords[4];
+		Fixed vy = textureCoords[5];
+
+		textureCoords[4] = textureCoords[2];
+		textureCoords[5] = textureCoords[3];
+		textureCoords[2] = textureCoords[0];
+		textureCoords[3] = textureCoords[1];
+		textureCoords[0] = textureCoords[6];
+		textureCoords[1] = textureCoords[7];
+		textureCoords[6] = vx;
+		textureCoords[7] = vy;
+	}
+
+
+	mesh_set_vertex(mesh, x, y-size.y,  0,  0,  0,  FIX_ONE, textureCoords[0], textureCoords[1]);
+	mesh_set_vertex(mesh, x+size.x, y-size.y,  0,  0,  0,  FIX_ONE, textureCoords[2], textureCoords[3]);
+	mesh_set_vertex(mesh, x+size.x, y,  0,  0,  0,  FIX_ONE, textureCoords[4], textureCoords[5]);
+	mesh_set_vertex(mesh, x,  y,  0,  0,  0,  FIX_ONE, textureCoords[6], textureCoords[7]);
 
 	mesh_set_triangle(mesh, 0, 1, 2);
 	mesh_set_triangle(mesh, 0, 2, 3);
@@ -741,6 +787,11 @@ void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 	gf_bbox_refresh(&mesh->bounds);
 }
 
+void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
+{
+	mesh_new_rectangle_ex(mesh, size, orig, flip ? 2 : 0, 0);
+
+}
 #define ELLIPSE_SUBDIV		32
 void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res)
 {

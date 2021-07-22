@@ -304,11 +304,22 @@ extension = {
                 w = evt.width;
                 h = evt.height;
 
-                if (w > scene.screen_width) w = scene.screen_width;
-                if (h > scene.screen_height) h = scene.screen_height;
+                if (w > scene.screen_width) {
+					h *= scene.screen_width;
+					h /= w;
+					w = scene.screen_width;
+                }
+                if (h > scene.screen_height) {
+					w *= scene.screen_height;
+					w /= h;
+					h = scene.screen_height;
+				}
 
-				if (w<this.extension.def_width)
+				if (w<this.extension.def_width) {
+                    h *= this.extension.def_width;
+                    h /= w;
                     w = this.extension.def_width;
+				}
 
                 gwlog(l_deb, 'set output size to ' + w + 'x' + h);
                 scene.set_size(w, h);

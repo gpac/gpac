@@ -1350,7 +1350,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by `SRDRef`", GF_PROP_UINT_LIST},
 
 	{ GF_PROP_PID_ALPHA, "Alpha", "Indicates the video in this pid is an alpha map", GF_PROP_BOOL},
-	{ GF_PROP_PID_MIRROR, "Mirror", "Indicates a mirror mode (0: along Y-axis, 1: along X-axis)", GF_PROP_UINT},
+	{ GF_PROP_PID_MIRROR, "Mirror", "Indicates a mirror mode (0: no mirror, 1: along Y-axis, 2: along X-axis)", GF_PROP_UINT},
 	{ GF_PROP_PID_ROTATE, "Rotate", "Indicates the video rotation as value*90 degree anti-clockwise", GF_PROP_UINT},
 	{ GF_PROP_PID_CLAP_W, "ClapW", "Width of clean aperture in luma pixels", GF_PROP_FRACTION},
 	{ GF_PROP_PID_CLAP_H, "ClapH", "Height of clean aperture in luma pixels", GF_PROP_FRACTION},
@@ -1436,7 +1436,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ISOM_UDTA, "MovieUserData", "ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF moov", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_HANDLER, "HandlerName", "ISOBMFF track handler name", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_TRACK_FLAGS, "TrackFlags", "ISOBMFF track header flags", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_ISOM_TRACK_MATRIX, "TrackMatrix", "ISOBMFF track header matrix", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_TRACK_MATRIX, "TrackMatrix", "ISOBMFF track header matrix", GF_PROP_SINT_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_ALT_GROUP, "AltGroup", "ISOBMFF alt group ID", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DISABLED, "Disable", "ISOBMFF disable flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
@@ -1817,5 +1817,46 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		return gf_props_dump_val(att, dump, dump_data_mode, NULL);
 	}
 	return "";
+}
+
+
+GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode)
+{
+	GF_Point2D scale, translate;
+	Fixed rotate;
+	GF_Matrix2D mx;
+	if (!p || (p->type!=GF_PROP_SINT_LIST) || (p->value.sint_list.nb_items!=9))
+		return GF_BAD_PARAM;
+
+	mx.m[0] = INT2FIX(p->value.sint_list.vals[0])/65536;
+	mx.m[1] = INT2FIX(p->value.sint_list.vals[1])/65536;
+	mx.m[2] = INT2FIX(p->value.sint_list.vals[2])/65536;
+	mx.m[3] = INT2FIX(p->value.sint_list.vals[3])/65536;
+	mx.m[4] = INT2FIX(p->value.sint_list.vals[4])/65536;
+	mx.m[5] = INT2FIX(p->value.sint_list.vals[5])/65536;
+	gf_mx2d_decompose(&mx, &scale, &rotate, &translate);
+
+	if (flip_mode) {
+		*flip_mode = 0;
+		if (ABSDIFF(scale.x, -1) < 0.05) {
+			*flip_mode = (ABSDIFF(scale.y, -1) < 0.05) ? 3 : 2;
+		}
+		else if (ABSDIFF(scale.x, -1) < 0.05) {
+			*flip_mode = 1;
+		}
+	}
+	if (rot_mode) {
+		*rot_mode = 0;
+		if (ABSDIFF(rotate, GF_PI2)<0.05) {
+			*rot_mode = 1;
+		}
+		else if (ABSDIFF(rotate, GF_PI/2)<0.05) {
+			*rot_mode = 2;
+		}
+		if (ABSDIFF(-rotate, GF_PI2)<0.05) {
+			*rot_mode = 3;
+		}
+	}
+	return GF_OK;
 }
 

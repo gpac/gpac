@@ -70,6 +70,11 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		w = (u32) txh->stream->c_w;
 		h = (u32) txh->stream->c_h;
 	}
+	if (txh->stream && ((txh->stream->rotate==1) || (txh->stream->rotate==3))) {
+		u32 t = w;
+		w = h;
+		h = t;
+	}
 
 	/*no change in scale and same texture size*/
 	if ((st->scale.x==bmp->scale.x) && (st->scale.y==bmp->scale.y) && (st->prev_tx_w == w) && (st->prev_tx_h == h)) {

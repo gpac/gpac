@@ -2319,6 +2319,7 @@ struct _mediaobj
 	u64 channel_config;
 	Bool planar_audio;
 	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
+	u32 flip, rotate;
 
 	u32 quality_degradation_hint;
 	u32 nb_views;
