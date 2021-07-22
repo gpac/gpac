@@ -442,7 +442,9 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_sc_set_scene(ctx, NULL);
 		gf_sg_reset(scene->graph);
 		gf_sc_set_scene(ctx, scene->graph);
-		ctx->reload_scene_size = GF_TRUE;
+		//do not reload scene size in GUI mode, let the gui decide
+		if (ctx->player<2)
+			ctx->reload_scene_size = GF_TRUE;
 		//force clock to NULL, will resetup based on OCR_ES_IDs
 		scene->root_od->ck = NULL;
 	}

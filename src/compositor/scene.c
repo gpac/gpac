@@ -1078,6 +1078,12 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 		d = (pixel_ar) & 0x0000FFFF;
 		*w = (*w * n) / d;
 	}
+	if ((mo->rotate==1) || (mo->rotate==3)) {
+		u32 t = *w;
+		*w = *h;
+		*h = t;
+	}
+
 #ifndef GPAC_DISABLE_3D
 	if (mo->odm) {
 		if (mo->odm->parentscene->compositor->fpack==GF_3D_STEREO_TOP) *h /= 2;

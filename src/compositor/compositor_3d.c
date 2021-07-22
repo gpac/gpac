@@ -227,7 +227,11 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 				size.y = height;
 
 				stack->mesh = new_mesh();
-				mesh_new_rectangle(stack->mesh, size, NULL, GF_FALSE);
+				if (txh->stream) {
+					mesh_new_rectangle_ex(stack->mesh, size, NULL, txh->stream->flip, txh->stream->rotate);
+				} else {
+					mesh_new_rectangle(stack->mesh, size, NULL, GF_FALSE);
+				}
 			}
 		}
 		if (stack->mesh) {

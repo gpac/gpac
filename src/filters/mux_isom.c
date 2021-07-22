@@ -1301,8 +1301,8 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_MATRIX);
-		if (p && (p->value.uint_list.nb_items==9)) {
-			gf_isom_set_track_matrix(ctx->file, tkw->track_num, (s32 *) p->value.uint_list.vals);
+		if (p && (p->value.sint_list.nb_items==9)) {
+			gf_isom_set_track_matrix(ctx->file, tkw->track_num, (s32 *) p->value.sint_list.vals);
 		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SRC_MAGIC);
@@ -4311,7 +4311,7 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 	if (p) image_props.hidden = p->value.boolean;
 
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MIRROR);
-	if (p) image_props.mirror = p->value.uint;
+	if (p && p->value.uint) image_props.mirror = p->value.uint;
 	p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ROTATE);
 	if (p) image_props.angle = p->value.uint;
 

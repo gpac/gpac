@@ -309,14 +309,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id) {
- 				pix_fmt = gf_pixel_fmt_from_qt_type(m_subtype);
- 				if (!pix_fmt && (gf_pixel_fmt_sname(m_subtype)!= NULL) && (streamtype==GF_STREAM_VISUAL))
-					pix_fmt = m_subtype;
+				pix_fmt=0;
+				if (streamtype==GF_STREAM_VISUAL) {
+					pix_fmt = gf_pixel_fmt_from_qt_type(m_subtype);
+					if (!pix_fmt && (gf_pixel_fmt_sname(m_subtype)!= NULL))
+						pix_fmt = m_subtype;
+				}
 
  				if (pix_fmt) {
 					codec_id = GF_CODECID_RAW;
 				} else {
-
 					load_default = GF_TRUE;
 				}
 			}
@@ -813,7 +815,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				u32 vals[9];
 				memset(vals, 0, sizeof(u32)*9);
 				memset(&p, 0, sizeof(GF_PropertyValue));
-				p.type = GF_PROP_UINT_LIST;
+				p.type = GF_PROP_SINT_LIST;
 				p.value.uint_list.nb_items = 9;
 				p.value.uint_list.vals = vals;
 				gf_isom_get_track_matrix(read->mov, ch->track, vals);

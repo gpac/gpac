@@ -276,15 +276,48 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		if (v) {\
 			if (mo->_field && (mo->_field != v->value.uint)) changed=GF_TRUE;\
 			mo->_field = v->value.uint;\
+		} else if (mo->_field) {\
+			changed=GF_TRUE;\
+			mo->_field=0;\
 		}\
 
 	if (mo->odm->type==GF_STREAM_VISUAL) {
+		Bool check_mx = GF_TRUE;
 
 		UPDATE_CAP(GF_PROP_PID_WIDTH, width)
 		UPDATE_CAP(GF_PROP_PID_HEIGHT, height)
 		UPDATE_CAP(GF_PROP_PID_STRIDE, stride)
 		UPDATE_CAP(GF_PROP_PID_PIXFMT, pixelformat)
 		UPDATE_CAP(GF_PROP_PID_BITRATE, bitrate)
+
+		UPDATE_CAP(GF_PROP_PID_ROTATE, rotate)
+		if (v) check_mx = GF_FALSE;
+
+		UPDATE_CAP(GF_PROP_PID_MIRROR, flip)
+		if (v) check_mx = GF_FALSE;
+
+		if (check_mx) {
+			v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
+			if (v) {
+				GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode);
+				u32 flip, rotate;
+
+				if (gf_prop_matrix_decompose(v, &flip, &rotate)==GF_OK) {
+					if (flip != mo->flip) {
+						mo->flip = flip;
+						changed = GF_TRUE;
+					}
+					if (rotate != mo->rotate) {
+						mo->rotate = rotate;
+						changed = GF_TRUE;
+					}
+				}
+			} else {
+				if (mo->flip || mo->rotate) changed = GF_TRUE;
+				mo->flip = 0;
+				mo->rotate = 0;
+			}
+		}
 
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAR);
 		if (v) {

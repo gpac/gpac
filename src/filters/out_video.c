@@ -347,7 +347,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	GF_Event evt;
 	const GF_PropertyValue *p;
 	u32 w, h, pfmt, stride, stride_uv, timescale, dw, dh, hw, hh;
-	Bool full_range;
+	Bool full_range, check_mx = GF_TRUE;
 	Bool sar_changed = GF_FALSE;
 	s32 cmx;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) gf_filter_get_udta(filter);
@@ -414,9 +414,11 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ROTATE);
 	ctx->pid_vrot = p ? (s32) p->value.uint : ctx->vrot;
+	if (p) check_mx = GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIRROR);
-	ctx->pid_vflip = p ? (s32) (p->value.uint+1) : ctx->vflip;
+	ctx->pid_vflip = p ? (s32) (p->value.uint) : ctx->vflip;
+	if (p) check_mx = GF_FALSE;
 
 	ctx->c_w = ctx->c_h = ctx->c_x = ctx->c_y = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_W);
@@ -428,6 +430,13 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_Y);
 	if (p && p->value.frac.den) { ctx->c_y = (Float) p->value.frac.num; ctx->c_y /= p->value.frac.den; }
 
+	if (check_mx) {
+		GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
+		if (p)
+			gf_prop_matrix_decompose(p, &ctx->pid_vflip, &ctx->pid_vrot);
+	}
 
 
 	if (!ctx->pid) {
