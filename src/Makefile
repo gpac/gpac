@@ -138,10 +138,16 @@ LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 LIBGPAC_FILTERS=filter_core/filter_pck.o filter_core/filter_pid.o filter_core/filter_props.o filter_core/filter_queue.o filter_core/filter_session.o filter_core/filter_register.o filter_core/filter.o filter_core/filter_session_js.o
 
 LIBGPAC_QUICKJS=
+LIBGPAC_JSMODS=
+JSMODS_CFLAGS=
 ifeq ($(CONFIG_JS),yes)
 LIBGPAC_QUICKJS=quickjs/cutils.o quickjs/libbf.o quickjs/libregexp.o quickjs/libunicode.o quickjs/quickjs.o quickjs/quickjs-libc.o
-LIBGPAC_QUICKJS+=jsmods/core.o jsmods/evg.o jsmods/scene_js.o jsmods/storage.o jsmods/webgl.o jsmods/xhr.o
+LIBGPAC_JSMODS+=jsmods/core.o jsmods/evg.o jsmods/scene_js.o jsmods/storage.o jsmods/webgl.o jsmods/xhr.o
+ifneq ($(CONFIG_FFMPEG),no)
+JSMODS_CFLAGS+=$(ffmpeg_cflags)
 endif
+endif
+
 
 
 ## libgpac objects gathering: src/scene_manager
@@ -207,7 +213,7 @@ LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
 ## libgpac objects gathering:
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_SVC) $(LIBGPAC_FILTERS_OHEVC)  $(LIBGPAC_QUICKJS)
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_SVC) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=$(JS_FLAGS)
@@ -365,8 +371,13 @@ filters_svc: CFLAGS += $(FILTERS_SVC_CFLAGS)
 filters_svc: $(LIBGPAC_FILTERS_SVC)
 .deps/filters/dec_opensvc.dep: CFLAGS += $(FILTERS_SVC_CFLAGS)
 
+jsmods: CFLAGS += $(JSMODS_CFLAGS)
+jsmods: $(LIBGPAC_JSMODS)
+.deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
+.deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto filters filters_ohevc filters_svc $(OBJS)
+
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools crypto filters filters_ohevc filters_svc jsmods $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
 
