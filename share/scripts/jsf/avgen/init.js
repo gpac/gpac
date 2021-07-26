@@ -457,7 +457,7 @@ function process_audio()
 	audio_cts += filter.flen;
 
 	if (filter.dur.d) {
-		if (audio_cts * filter.dur.d > filter.sr * filter.dur.n) {
+		if (audio_cts * filter.dur.d >= filter.sr * filter.dur.n) {
 			audio_playing = false;
 			audio_pid.eos = true;
 		}
