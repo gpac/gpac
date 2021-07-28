@@ -75,6 +75,7 @@ filter.set_arg({ name: "alter", desc: "beep alternatively on each channel", type
 filter.set_arg({ name: "blen", desc: "length of beep in milliseconds", type: GF_PROP_UINT, def: "50"} );
 filter.set_arg({ name: "fps", desc: "video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "sizes", desc: "video size in pixels", type: GF_PROP_VEC2I_LIST, def: "1280x720"} );
+filter.set_arg({ name: "pfmt", desc: "output pixel format", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "lock", desc: "lock timing to video generation", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dyn", desc: "move bottom banner", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "ntp", desc: "send NTP along with packets", type: GF_PROP_BOOL, def: "true"} );
@@ -192,14 +193,13 @@ filter.initialize = function() {
 				}
 			}
 			videos.push(vsrc);
-
 			for (let view=0; view<filter.views; view++) {
 				let vpid = this.new_pid();
 				vpid.set_prop('StreamType', 'Video');
 				vpid.set_prop('CodecID', 'raw');
 				vpid.set_prop('FPS', filter.fps);
 				vpid.set_prop('Timescale', filter.fps.n);
-				vpid.set_prop('PixelFormat', 'yuv');
+				vpid.set_prop('PixelFormat', filter.pfmt);
 				vpid.set_prop('Width', vsrc.w);
 				vpid.set_prop('Stride', vsrc.w);
 				vpid.set_prop('Height', vsrc.h);
@@ -226,8 +226,9 @@ filter.initialize = function() {
 
 			if (vsrc.is_forward) continue;
 
-			vsrc.video_buffer = new ArrayBuffer(vsrc.w * vsrc.h * 3 / 2);
-			vsrc.canvas = new evg.Canvas(vsrc.w, vsrc.h, 'yuv', vsrc.video_buffer);
+			let osize = sys.pixfmt_size(filter.pfmt, vsrc.w, vsrc.h);
+			vsrc.video_buffer = new ArrayBuffer(osize);
+			vsrc.canvas = new evg.Canvas(vsrc.w, vsrc.h, filter.pfmt, vsrc.video_buffer);
 			vsrc.canvas.centered = true;
 			//clear to black and write our static content
 			vsrc.canvas.clearf('black');
