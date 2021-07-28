@@ -1055,7 +1055,7 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 
 		c = sep[1];
 		sep[1] = 0;
-		res = JS_NewString(ctx, jsf_get_script_filename(ctx) );
+		res = JS_NewString(ctx, path);
 		sep[1] = c;
 		return res;
 	}
@@ -2165,7 +2165,21 @@ static JSValue jsf_pid_get_property_ex(JSContext *ctx, JSValueConst this_val, in
 		} else {
 			prop = gf_filter_pid_get_property(pctx->pid, p4cc);
 		}
-		if (!prop) return JS_NULL;
+		if (!prop && !is_info) {
+			if ((p4cc==GF_PROP_PID_MIRROR) || (p4cc==GF_PROP_PID_ROTATE)) {
+				prop = gf_filter_pid_get_property(pctx->pid, GF_PROP_PID_ISOM_TRACK_MATRIX);
+				if (prop) {
+					GF_Err gf_prop_matrix_decompose(const GF_PropertyValue *p, u32 *flip_mode, u32 *rot_mode);
+					u32 flip_mode, rot_mode;
+					if (gf_prop_matrix_decompose(prop, &flip_mode, &rot_mode)==GF_OK) {
+						if (p4cc==GF_PROP_PID_MIRROR) return JS_NewInt32(ctx, flip_mode);
+						else return JS_NewInt32(ctx, rot_mode);
+					}
+				}
+			}
+			return JS_NULL;
+		}
+
 		res = jsf_NewPropTranslate(ctx, prop, p4cc);
 	}
 	gf_filter_release_property(pe);
@@ -4784,6 +4798,10 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 		if (gf_opts_get_bool("temp", "helponly"))
 			jsf->disable_filter = GF_TRUE;
 
+		if (gf_opts_get_bool("temp", "gpac-help")) {
+			js_std_loop(jsf->ctx);
+			jsf->disable_filter = GF_FALSE;
+		}
 		//filter object not used (no new_pid, post_task or set_cap), disable it
 		if (jsf->disable_filter) {
 			JSAtom prop;
