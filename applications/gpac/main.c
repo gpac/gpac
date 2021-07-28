@@ -1686,6 +1686,8 @@ static int gpac_main(int argc, char **argv)
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
 			else if (!strcmp(arg, "-hh")) argmode = GF_ARGMODE_ALL;
 
+			gf_opts_set_key("temp", "gpac-help", "yes");
+
 			if (i+1<argc)
 				gf_sys_mark_arg_used(i+1, GF_TRUE);
 
