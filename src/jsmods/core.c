@@ -1190,7 +1190,7 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 	}
 #endif
 
-	err = gf_enum_directory(url ? url : dir, 1, js_enum_dir_fct, &cbk, NULL);
+	err = gf_enum_directory(url ? url : dir, 1, js_enum_dir_fct, &cbk, filter);
 	if (err) return JS_EXCEPTION;
 
 	if (!dir_only) {
@@ -1702,7 +1702,7 @@ static JSValue js_sys_get_opt(JSContext *ctx, JSValueConst this_val, int argc, J
 		JS_FreeCString(ctx, sec);
 		return JS_EXCEPTION;
 	}
-	val = gf_opts_get_key_restricted(sec, key);
+	val = gf_opts_get_key(sec, key);
 	res = val ? JS_NewString(ctx, val) : JS_NULL;
 	JS_FreeCString(ctx, sec);
 	JS_FreeCString(ctx, key);
@@ -1860,7 +1860,79 @@ static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, 
 	return JS_NewInt32(ctx, gf_audio_fmt_bit_depth(prop.value.uint)/8 );
 }
 
+#include <gpac/color.h>
 
+static JSValue js_color_lerp(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *str;
+	u32 col1, col2;
+	char szCol[12];
+	Double interp, minterp, a1, r1, g1, b1, a2, r2, g2, b2;
+	u8 r, g, b, a;
+
+	if (argc!=3)
+		return JS_EXCEPTION;
+	if (JS_ToFloat64(ctx, &interp, argv[0]))
+		return JS_EXCEPTION;
+
+	if (interp<0) interp=0;
+	else if (interp>1) interp=1;
+	minterp = 1-interp;
+
+	str = JS_ToCString(ctx, argv[1]);
+	if (!str) return JS_EXCEPTION;
+	col1 = gf_color_parse(str);
+	JS_FreeCString(ctx, str);
+
+	str = JS_ToCString(ctx, argv[2]);
+	if (!str) return JS_EXCEPTION;
+	col2 = gf_color_parse(str);
+	JS_FreeCString(ctx, str);
+
+	a1 = GF_COL_A(col1) / 255.0;
+	a2 = GF_COL_A(col2) / 255.0;
+	r1 = GF_COL_R(col1) / 255.0;
+	r2 = GF_COL_R(col2) / 255.0;
+	g1 = GF_COL_G(col1) / 255.0;
+	g2 = GF_COL_G(col2) / 255.0;
+	b1 = GF_COL_B(col1) / 255.0;
+	b2 = GF_COL_B(col2) / 255.0;
+
+	a = (u8) ((a1 * minterp + a2 * interp) * 255);
+	r = (u8) ((r1 * minterp + r2 * interp) * 255);
+	g = (u8) ((g1 * minterp + g2 * interp) * 255);
+	b = (u8) ((b1 * minterp + b2 * interp) * 255);
+
+	sprintf(szCol, "0x%02X%02X%02X%02X", a, r, g, b);
+	return JS_NewString(ctx, szCol);
+}
+
+static JSValue js_color_get_component(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *str;
+	u32 comp_idx, color;
+	Double comp;
+	if (argc!=2)
+		return JS_EXCEPTION;
+
+	str = JS_ToCString(ctx, argv[0]);
+	if (!str) return JS_EXCEPTION;
+	color = gf_color_parse(str);
+	JS_FreeCString(ctx, str);
+
+	if (JS_ToInt32(ctx, &comp_idx, argv[1]))
+		return JS_EXCEPTION;
+
+	switch (comp_idx) {
+	case 0: comp = GF_COL_A(color); break;
+	case 1: comp = GF_COL_R(color); break;
+	case 2: comp = GF_COL_G(color); break;
+	case 3: comp = GF_COL_B(color); break;
+	default: return JS_EXCEPTION;
+	}
+	comp /= 255.0;
+	return JS_NewFloat64(ctx, comp);
+}
 
 static const JSCFunctionListEntry sys_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_cores", js_sys_prop_get, NULL, JS_SYS_NB_CORES),
@@ -1961,6 +2033,8 @@ static const JSCFunctionListEntry sys_funcs[] = {
 
 	JS_CFUNC_DEF("pixfmt_size", 0, js_pixfmt_size),
 	JS_CFUNC_DEF("pcmfmt_depth", 0, js_pcmfmt_depth),
+	JS_CFUNC_DEF("color_lerp", 0, js_color_lerp),
+	JS_CFUNC_DEF("color_component", 0, js_color_get_component),
 
 };
 
