@@ -36,6 +36,8 @@
 
 #include "webgl.h"
 
+#include <gpac/internal/mesh.h>
+
 JSClassID WebGLRenderingContextBase_class_id;
 
 static void webgl_finalize(JSRuntime *rt, JSValue obj)
@@ -2214,8 +2216,6 @@ static JSValue wgl_resize(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 	return wgl_activate_gl(ctx, glc, GF_TRUE);
 }
 
-
-
 static JSValue wgl_named_tx_upload(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_WebGLNamedTexture *named_tx = JS_GetOpaque(this_val, NamedTexture_class_id);
@@ -2232,7 +2232,6 @@ static JSValue wgl_named_tx_reconfigure(JSContext *ctx, JSValueConst this_val, i
 	named_tx->shader_attached = 0;
 	return JS_UNDEFINED;
 }
-
 
 /*GPAC extensions*/
 static const JSCFunctionListEntry webgl_funcs[] =
@@ -2290,6 +2289,121 @@ static const JSCFunctionListEntry webgl_named_tx_funcs[] =
 	JS_CFUNC_DEF("upload", 0, wgl_named_tx_upload),
 };
 
+/*GL-sepcifc code for mesh*/
+Bool mesh_gl_update_buffers(GF_Mesh *mesh)
+{
+	if (!mesh->vbo) {
+		glGenBuffers(1, &mesh->vbo);
+		if (!mesh->vbo) return GF_FALSE;
+	}
+	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+	glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+
+	if (!mesh->vbo_idx) {
+		glGenBuffers(1, &mesh->vbo_idx);
+		if (!mesh->vbo_idx) return GF_FALSE;
+	}
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->i_count*sizeof(IDX_TYPE), mesh->indices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+
+	return GF_TRUE;
+}
+
+JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv)
+{
+	JSValue ret_val_js = JS_UNDEFINED;
+	s32 vx_index = -1;
+	s32 norm_index = -1;
+	s32 color_index = -1;
+	s32 tx_index = -1;
+	void *idx_addr = NULL;
+	u32 prim_type;
+
+	if (argc<2) return JS_EXCEPTION;
+	GF_WebGLContext *glctx = JS_GetOpaque(argv[0], WebGLRenderingContextBase_class_id);
+	if (!glctx) return JS_EXCEPTION;
+
+	if (!mesh->vbo) return JS_EXCEPTION;
+	if (!mesh->vbo_idx) return JS_EXCEPTION;
+
+	WGL_GET_U32(vx_index, argv[1]);
+	if (argc==3) {
+		WGL_GET_U32(tx_index, argv[2]);
+	} else if (argc==4) {
+		WGL_GET_U32(norm_index, argv[2]);
+		WGL_GET_U32(tx_index, argv[3]);
+	} else if (argc>=5) {
+		WGL_GET_U32(norm_index, argv[2]);
+		WGL_GET_U32(color_index, argv[3]);
+		WGL_GET_U32(tx_index, argv[4]);
+	}
+
+	if (vx_index<0) return JS_EXCEPTION;
+
+	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+	glEnableVertexAttribArray(vx_index);
+#if defined(GPAC_FIXED_POINT)
+	glVertexAttribPointer(vx_index, 3, GL_FIXED, GL_TRUE, sizeof(GF_Vertex), NULL);
+#else
+	glVertexAttribPointer(vx_index, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), NULL);
+#endif
+	GL_CHECK_ERR()
+
+	if (norm_index>=0) {
+#ifdef MESH_USE_FIXED_NORMAL
+		glVertexAttribPointer(norm_index, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_NORMAL_OFFSET);
+#else
+		glVertexAttribPointer(norm_index, 3, GL_BYTE, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_NORMAL_OFFSET);
+#endif
+		glEnableVertexAttribArray(norm_index);
+		GL_CHECK_ERR()
+	}
+
+	if (color_index>=0) {
+		//for now colors are 8bit/comp RGB(A), so used GL_UNSIGNED_BYTE and GL_TRUE for normalizing values
+		if (mesh->flags & MESH_HAS_ALPHA) {
+			glEnable(GL_BLEND);
+			glVertexAttribPointer(color_index, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), (void *) MESH_COLOR_OFFSET);
+		} else {
+			glVertexAttribPointer(color_index, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), (void *) MESH_COLOR_OFFSET);
+		}
+		glEnableVertexAttribArray(color_index);
+		GL_CHECK_ERR()
+	}
+
+	if (tx_index>=0) {
+		glVertexAttribPointer(tx_index, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), (void *) MESH_TEX_OFFSET);
+		glEnableVertexAttribArray(tx_index);
+		GL_CHECK_ERR()
+	}
+
+	switch (mesh->mesh_type) {
+	case MESH_LINESET:
+		prim_type = GL_LINES;
+		break;
+	case MESH_POINTSET:
+		prim_type = GL_POINTS;
+		break;
+	default:
+		prim_type = GL_TRIANGLES;
+		break;
+	}
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+	glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, idx_addr);
+#else
+	glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, idx_addr);
+#endif
+
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	return ret_val_js;
+
+
+}
 
 static int js_webgl_load_module(JSContext *c, JSModuleDef *m)
 {

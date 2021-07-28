@@ -629,6 +629,12 @@ GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf , GF_IRect *rc)
 	return GF_OK;
 }
 
+GF_EXPORT
+Bool gf_evg_surface_use_clipper(GF_EVGSurface *surf)
+{
+	if (!surf) return 0;
+	return surf->useClipper ? GF_TRUE : GF_FALSE;
+}
 
 static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_sten)
 {
@@ -641,7 +647,13 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		use_const = GF_TRUE;
 	}
 	else if (!multi_sten && surf->sten && (surf->sten->type == GF_STENCIL_SOLID)) {
-		surf->fill_col = ((EVG_Brush *)surf->sten)->color;
+		EVG_Brush *sc = (EVG_Brush *)surf->sten;
+		u32 col = sc->color;
+		if (sc->alpha < 0xFF) {
+			u32 ca = ((u32) (GF_COL_A(col) + 1) * sc->alpha) >> 8;
+			col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+		}
+		surf->fill_col = col;
 		a = GF_COL_A(surf->fill_col);
 	} else {
 		a = 0;
@@ -1160,10 +1172,15 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 		}
 	} else {
 		EVG_Brush *sc = (EVG_Brush *) sten;
+		u32 col = sc->color;
+		if (sc->alpha < 0xFF) {
+			u32 ca = ((u32) (GF_COL_A(col) + 1) * sc->alpha) >> 8;
+			col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+		}
 		if (surf->yuv_type) {
-			sc->fill_col = gf_evg_argb_to_ayuv(surf, sc->color);
+			sc->fill_col = gf_evg_argb_to_ayuv(surf, col);
 		} else {
-			sc->fill_col = sc->color;
+			sc->fill_col = col;
 		}
 		if (surf->not_8bits)
 			sc->fill_col_wide = evg_col_to_wide(sc->fill_col);

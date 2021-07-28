@@ -154,6 +154,13 @@ void gf_evg_stencil_delete(GF_EVGStencil *stencil);
 */
 GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 
+/*! gets stencil transformation matrix
+\param stencil the target stencil
+\param mat the 2D matrix to fetch
+\return TRUE if resulting matrix is fetched, false otherwise (matrix is identity or does not apply to this stencil class)
+*/
+Bool gf_evg_stencil_get_matrix(GF_EVGStencil * stencil, GF_Matrix2D *mat);
+
 /*! gets stencil type
 \param stencil the target stencil
 \return stencil type
@@ -286,6 +293,14 @@ GF_Err gf_evg_stencil_set_texture_parametric(GF_EVGStencil *stencil, u32 width, 
 \return error if any
 */
 GF_Err gf_evg_stencil_set_mapping(GF_EVGStencil *stencil, GF_TextureMapFlags map_mode);
+
+/*! sets padding color in RGBA
+ If texture repeat is disabled and pad color is set, this color is used when outside of image, otherwise pixel is fetch from image border
+\param stencil the target stencil
+\param pad_color color to use , 0 disables color padding
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_pad_color(GF_EVGStencil * stencil, GF_Color pad_color);
 
 /*! sets filtering mode for a texture stencil
 \param stencil the target stencil
@@ -432,6 +447,12 @@ When a clipper is enabled, nothing is drawn outside of the clipper. The clipper 
 */
 GF_Err gf_evg_surface_set_clipper(GF_EVGSurface *surf, GF_IRect *rc);
 
+/*! checks if clipper is active
+\param surf the surface object
+\return GF_TRUE if clipper is active, GF_FALSE otherwise
+*/
+Bool gf_evg_surface_use_clipper(GF_EVGSurface *surf);
+
 /*! sets the given path as the current one for drawing
 \warning This will internally copy the path after transformation with the current transfom. Changing the surface transform will have no effect unless calling this function again.
 The clipper and stencil mode may be changed at will
@@ -462,18 +483,18 @@ typedef enum {
 	GF_EVG_OPERAND_MIX,
 	/*! mix texture 1 and texure 2 using coefficient in first param, returning tx1*coef + tx2*(1-coef), including alpha channel */
 	GF_EVG_OPERAND_MIX_ALPHA,
-	/*! replace alpha of texture 1 with alpha of texture 2, no parameters used
-		if first param is 0 or not set, use alpha channel from texture 3
-		if first param is 1, use red channel from texture 3
-		if first param is 2, use green/Cb/U channel from texture 3
-		if first param is 3, use blue/Cr/V channel from texture 3
+	/*! replace alpha of texture 1 with alpha of texture 2
+		if first param is 0 or not set, use alpha channel from texture 2
+		if first param is 1, use red channel from texture 2
+		if first param is 2, use green/Cb/U channel from texture 2
+		if first param is 3, use blue/Cr/V channel from texture 2
 	*/
 	GF_EVG_OPERAND_REPLACE_ALPHA,
-	/*! replace alpha of texture 1 with (1-alpha) of texture 2, no parameters used
-		if first param is 0 or not set, use alpha channel from texture 3
-		if first param is 1, use red/Y channel from texture 3
-		if first param is 2, use green/Cb/U channel from texture 3
-		if first param is 3, use blue/Cr/V channel from texture 3
+	/*! replace alpha of texture 1 with (1-alpha) of texture 2
+		if first param is 0 or not set, use alpha channel from texture 2
+		if first param is 1, use red/Y channel from texture 2
+		if first param is 2, use green/Cb/U channel from texture 2
+		if first param is 3, use blue/Cr/V channel from texture 2
 	*/
 	GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA,
 	/*! mix texture 1 and texure 2 using alpha coef of texture 3 but forcing alpha to full opacity
