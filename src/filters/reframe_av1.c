@@ -1110,6 +1110,11 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 						if (e==GF_BUFFER_TOO_SMALL)
 							nb_units++;
 					} else {
+						//we got one frame without errors, assume maybe supported
+						if (nb_units) {
+							res = GF_TRUE;
+							*score = GF_FPROBE_MAYBE_SUPPORTED;
+						}
 						break;
 					}
 				} else {
