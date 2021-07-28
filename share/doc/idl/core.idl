@@ -80,7 +80,7 @@ WinRect prompt_size();
 \param filter the filter for file extensions. If "dir", only enumerate directories
 \param go_up if true, enumerate parent directory or root (/).
 \return array of FileInformation interface*/
-Array enum_directory(DOMString dir, optional DOMString filter=null, optional DOMString filter=null, optional bool go_up=false);
+Array enum_directory(DOMString dir, optional DOMString filter=null, optional bool go_up=false);
 
 
 /*! get system clock in milliseconds - see \ref gf_sys_clock
@@ -336,6 +336,21 @@ unsigned long pixfmt_size(DOMString pix_fmt, unsigned long width, unsigned long 
 */
 unsigned long pcmfmt_depth(DOMString pcm_fmt);
 
+
+/*! interpolates colors
+\param interp interpolation fraction between 0 and 1
+\param color1 first color to use
+\param color2 second color to use
+\return component-wise interpolated color, i.e. \code color1.COMP * (1-interp) + color2.comp * interp \endcode
+*/
+DOMString color_lerp(double interp, DOMString color1, DOMString color2);
+
+/*! gets color component
+\param color color to use
+\param comp_idx component idx, 0 for alpha, 1 for red, 2 for green 3 for blue
+\return the component value normalized between 0 and 1
+*/
+double color_component(DOMString color, unsigned long comp_idx);
 
 
 /*! number of cores */
