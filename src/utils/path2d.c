@@ -304,14 +304,16 @@ GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *src, GF_Matrix2D *mx)
 	if (!gp->points) return GF_OUT_OF_MEM;
 	gp->tags = (u8*)gf_realloc(gp->tags, sizeof(u8)*gp->n_alloc_points);
 	if (!gp->tags) return GF_OUT_OF_MEM;
-	memcpy(gp->points + gp->n_points, src->points, sizeof(GF_Point2D)*src->n_points);
-	if (mx) {
-		for (i=0; i<src->n_points; i++) {
-			gf_mx2d_apply_coords(mx, &gp->points[i+gp->n_points].x, &gp->points[i+gp->n_points].y);
+	if (src->n_points) {
+		memcpy(gp->points + gp->n_points, src->points, sizeof(GF_Point2D)*src->n_points);
+		if (mx) {
+			for (i=0; i<src->n_points; i++) {
+				gf_mx2d_apply_coords(mx, &gp->points[i+gp->n_points].x, &gp->points[i+gp->n_points].y);
+			}
 		}
+		memcpy(gp->tags + gp->n_points, src->tags, sizeof(u8)*src->n_points);
+		gp->n_points += src->n_points;
 	}
-	memcpy(gp->tags + gp->n_points, src->tags, sizeof(u8)*src->n_points);
-	gp->n_points += src->n_points;
 	gf_rect_union(&gp->bbox, &src->bbox);
 	if (!(src->flags & GF_PATH_FLATTENED)) gp->flags &= ~GF_PATH_FLATTENED;
 	if (src->flags & GF_PATH_BBOX_DIRTY) gp->flags |= GF_PATH_BBOX_DIRTY;
