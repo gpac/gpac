@@ -4327,10 +4327,12 @@ GF_Color gf_color_parse(const char *name)
 	u32 res;
 	if ((name[0]=='$') || (name[0]=='#')) {
 		sscanf(name+1, "%x", &res);
+		if (strlen(name+1) == 8) return res;
 		return res | 0xFF000000;
 	}
 	if (!strnicmp(name, "0x", 2) ) {
 		sscanf(name+2, "%x", &res);
+		if (strlen(name+2) == 8) return res;
 		return res | 0xFF000000;
 	}
 
