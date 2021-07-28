@@ -619,6 +619,7 @@ void gray_sweep_line(EVGRasterCtx *raster, AAScanline *sl, int y, u32 fill_rule)
 		x      = start->x;
 		area   = start->area;
 		cover += start->cover;
+		assert(sl->num);
 		/* accumulate all start cells */
 		while(--sl->num) {
 			++cur ;
@@ -769,7 +770,6 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 		surf->raster_ctx.last_line = size_y;
 		surf->last_dispatch_line = 0;
 	}
-	assert(surf->raster_ctx.last_line <= 1080);
 
 	surf->pending_threads = 1;
 	surf->max_line_y = size_y;
@@ -778,11 +778,13 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 	for (i=0; i<surf->nb_threads; i++) {
 		EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
 		surf->pending_threads++;
-		rctx->first_line = surf->last_dispatch_line;
+
 		if (!surf->last_dispatch_line) {
 			rctx->first_line = 0;
+			rctx->last_line = 0;
 			continue;
 		}
+		rctx->first_line = surf->last_dispatch_line;
 		rctx->last_line = surf->last_dispatch_line + LINES_PER_THREAD;
 		if (rctx->last_line >= size_y) {
 			rctx->last_line = size_y;

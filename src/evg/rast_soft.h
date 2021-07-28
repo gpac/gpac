@@ -133,6 +133,7 @@ typedef struct
 	GF_Color color;
 	u32 fill_col;
 	u64 fill_col_wide;
+	u8 alpha;
 } EVG_Brush;
 
 /*max number of interpolation points*/
@@ -201,6 +202,7 @@ typedef struct __evg_texture
 	u8 alpha;
 	u8 owns_texture;
 	u8 is_wide;
+	u8 is_transparent;
 
 	GF_ColorMatrix yuv_cmat;
 
@@ -210,6 +212,9 @@ typedef struct __evg_texture
 	gf_evg_texture_callback tx_callback;
 	void *tx_callback_udta;
 	Bool tx_callback_screen_coords;
+
+	u32 pad_rbg, fill_pad_color;
+	u64 fill_pad_color_wide;
 } EVG_Texture;
 
 /*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/

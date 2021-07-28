@@ -97,6 +97,9 @@ writeonly Matrix2D matrix;
 \note A same path can be drawn several times with different clipper, null means no clipper. Clipper applies to both fill and clear functions*/
 writeonly IRect clipper;
 
+/*! true if cliper is active on canvas*/
+readonly boolean has_clipper;
+
 /*! composite operation for alpha surfaces - see \ref gf_evg_surface_set_composite_mode*/
 attribute unsigned long compositeOperation;
 
@@ -386,6 +389,9 @@ interface Path {
 	readonly attribute Rect bounds;
 	/*! control bounds of path - see \ref gf_path_get_control_bounds*/
 	readonly attribute Rect ctrl_bounds;
+	/*! set to true if path is a rectangle/square*/
+	readonly attribute boolean is_rectangle;
+
 
 	/*! checks if point is over a path - see \ref gf_path_point_over
 	\param pt point to test
@@ -634,12 +640,12 @@ interface Matrix2D {
 	\param premultiply if true, performs \code mx * this \endcode, otherwise \code this * mx \endcode 
 	\return the matrix*/
 	Matrix2D add(Matrix2D mx, optional boolean premultiply=false);
-	/*! add a translation - see \ref gf_mx2d_add_rotation
+	/*! add a translation - see \ref gf_mx2d_add_translation
 	\param x horizontal translation
 	\param y vertical translation
 	\return the matrix*/	
 	Matrix2D translate(double x, double y);
-	/*! add a translation - see \ref gf_mx2d_add_rotation
+	/*! add a translation - see \ref gf_mx2d_add_translation
 	\param vec translation vector
 	\return the matrix*/	
 	Matrix2D translate(Point2D vec);
@@ -807,8 +813,11 @@ interface Stencil {
 	writeonly unsigned long pad;
 	/*! color matrix for gradient stencils. Setting to null resets the matrix*/
 	writeonly unsigned long cmx;
-	/*! matrix for gradient stencils. Setting to null resets the matrix*/
-	writeonly unsigned long mx;
+	/*! matrix for gradient stencils. Setting to null resets the matrix
+	\warning this is a copy of the associated matrix, not a live object*/
+	attribute Matrix2D mx;
+	/*! true if stencil is a solid color brush, false for gradient stencils*/
+	attribute readonly boolean solid_color;
 
 	/*! set color for solid brush stencil
 	\param color the color to set*/
@@ -969,8 +978,9 @@ interface Texture {
 	writeonly unsigned long filtering;
 	/*! color matrix - see \ref gf_evg_stencil_set_color_matrix. Setting to null resets the color matrix*/
 	writeonly ColorMatrix cmx;
-	/*! matrix - see \ref gf_evg_stencil_set_matrix. Setting to null resets the matrix*/
-	writeonly Matrix2D mx;
+	/*! matrix - see \ref gf_evg_stencil_set_matrix. Setting to null resets the matrix
+	\warning: this is a copy of the associated matrix, not a live object*/
+	attribute Matrix2D mx;
 	/*! horizontal repeat flag*/
 	attribute boolean repeat_s;
 	/*! vertical repeat flag*/
@@ -1064,6 +1074,13 @@ interface Texture {
 	*/
 	set_named(DOMString name);
 
+	/*! Sets padding color for texture - see \ref gf_evg_stencil_set_pad_color
+
+	The parameters can also be 4 doubles, an array of 4 doubles or an object with 'r', 'g', 'b', 'a' properties. In these cases, the component values must be between 0 and 1
+	\param color the color to use.
+	*/
+	set_pad_color(DOMString color);
+
 	/*! gets RGB pixel value in a texture
 	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)
 	\param t vertical normalized texture coordinate of pixel, between 0 (top) and 1.0 (bottom)
@@ -1096,11 +1113,12 @@ interface ConvolutionKernel
 
 /*! Text object*/
 interface Text {
-	/*! constructor. The default text is created with a font size of 12, horizontal drawing, start alignment and alphabetic baseline.
-	\param font font name to use*/
-	Text(optional DOMString font=null);
-	/*! font name*/
-	attribute DOMString font;
+	/*! constructor. The default text is created with a font size of 12, horizontal drawing, start alignment and alphabetic baseline.*/
+	Text();
+	/*! font name - array or single string value. If array, fonts in array will be checked until one is found
+		The text must be set again whenever the font is changing !
+	*/
+	attribute Array font;
 	/*! font name*/
 	attribute double fontsize;
 	/*! align flag for horizontal positioning (see Canvas2D). Alignment is computed on maximum text line width after application of maxWidth if any/needed
@@ -1142,7 +1160,7 @@ interface Text {
 	Each element is treated as follows:
 	 - transformed to string, whether it is a string, number, object / array
 	 - split in one or several text lines, scanning new line character 'CR'
-	 - each line of text is then transformed into a graphicsl path with the current text settings.
+	 - each line of text is then transformed into a graphics path with the current text settings.
 	*/
 	void set_text(...);
 
@@ -1179,6 +1197,8 @@ interface TextMeasure
 	unsigned long max_advance_h;
 	/*! max vertical advance of any glyphs in font*/
 	unsigned long max_advance_v;
+	/*! set to true if text is right to left, false otherwise*/
+	boolean right_to_left;
 };
 
 
@@ -1831,6 +1851,46 @@ interface BlitParameters
 	double p1;
 	/*! second parameter of scale mode, if any*/
 	double p2;
+};
+
+
+/*! Mesh object to describe 3D graphics.
+\warning This is a work in progress, API will likely change soon
+*/
+interface Mesh {
+	/*! Constructs an empty mesh*/
+	Mesh();
+
+	/*! Constructs a mesh from a path
+	\param path 2D path to use as source
+	*/
+	Mesh(Path path);
+
+	/*! Updates underlying openGL vertex buffer objects*/
+	void update_gl();
+	/*! Draw mesh using current program
+	\param vertex_attrib_location uniform location of vertex buffer attribute in program
+	*/
+	void draw(unsigned long vertex_attrib_location);
+	/*! Draw mesh using current program
+	\param vertex_attrib_location uniform location of vertex buffer attribute in program
+	\param texture_attrib_location uniform location of texture coordinate buffer attribute in program
+	*/
+	void draw(unsigned long vertex_attrib_location, unsigned long texture_attrib_location);
+	/*! Draw mesh using current program
+	\param vertex_attrib_location uniform location of vertex buffer attribute in program
+	\param normal_attrib_location uniform location of normal buffer attribute in program
+	\param texture_attrib_location uniform location of texture coordinate buffer attribute in program
+	*/
+	void draw(unsigned long vertex_attrib_location, unsigned long normal_attrib_location, unsigned long texture_attrib_location);
+	/*! Draw mesh using current program
+	\param vertex_attrib_location uniform location of vertex buffer attribute in program
+	\param normal_attrib_location uniform location of normal buffer attribute in program
+	\param color_attrib_location uniform location of color buffer attribute in program
+	\param texture_attrib_location uniform location of texture coordinate buffer attribute in program
+	*/
+	void draw(unsigned long vertex_attrib_location, unsigned long normal_attrib_location, unsigned long color_attrib_location, unsigned long texture_attrib_location);
+
 };
 
 /*! @} */

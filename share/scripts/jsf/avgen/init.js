@@ -333,7 +333,7 @@ function put_image(vsrc, tx, is_testcard, is_first)
 			grad.set_stopf(0.65, 1.0, ch, ch, 1.0);
 			grad.set_stopf(0.8, ch, ch, ch, 1.0);
 			grad.set_stopf(1.0, 0.0, 0.0, 0.0, 0.0);
-			grad.mode = GF_GRADIENT_MODE_STREAD;
+			grad.mode = GF_GRADIENT_MODE_SPREAD;
 			vsrc.canvas.fill(grad);
 		}
 	}

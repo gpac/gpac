@@ -54,6 +54,11 @@
 #include "../filters/ff_common.h"
 #endif
 
+#ifndef GPAC_DISABLE_3D
+#include <gpac/internal/mesh.h>
+#endif
+
+
 #define EVG_GET_FLOAT(_name, _jsval) { Double _v; if (JS_ToFloat64(ctx, &_v, _jsval)) return js_throw_err(ctx, GF_BAD_PARAM); _name = (Float) _v; }
 #define CLAMPCOLF(_name) if (_name<0) _name=0; else if (_name>1.0) _name=1.0;
 
@@ -263,7 +268,9 @@ typedef struct
 {
 	GF_FontManager *fm;
 	GF_Path *path;
-	char *fontname;
+	char **fontnames;
+	u32 nb_fonts;
+
 	Double font_size;
 	u32 align;
 	u32 baseline;
@@ -276,6 +283,7 @@ typedef struct
 	Fixed min_x, min_y, max_x, max_y, max_w, max_h;
 	GF_Font *font;
 	Bool path_for_centered;
+	Bool right_to_left;
 } GF_JSText;
 
 
@@ -287,6 +295,7 @@ JSClassID stencil_class_id;
 JSClassID texture_class_id;
 JSClassID text_class_id;
 JSClassID matrix_class_id;
+JSClassID mesh_class_id;
 #ifdef EVG_USE_JS_SHADER
 JSClassID fragment_class_id;
 JSClassID vertex_class_id;
@@ -528,6 +537,8 @@ static JSValue canvas_getProperty(JSContext *c, JSValueConst obj, int magic)
 		return JS_FALSE;
 	case GF_EVG_BIT_DEPTH:
 		return JS_NewInt32(c, gf_pixel_is_wide_depth(canvas->pf));
+	case GF_EVG_CLIPPER:
+		return gf_evg_surface_use_clipper(canvas->surface) ? JS_TRUE : JS_FALSE;
 	}
 	return JS_UNDEFINED;
 }
@@ -3191,6 +3202,7 @@ static const JSCFunctionListEntry canvas_funcs[] =
 	JS_CGETSET_MAGIC_DEF("centered", canvas_getProperty, canvas_setProperty, GF_EVG_CENTERED),
 	JS_CGETSET_MAGIC_DEF("path", NULL, canvas_setProperty, GF_EVG_PATH),
 	JS_CGETSET_MAGIC_DEF("clipper", NULL, canvas_setProperty, GF_EVG_CLIPPER),
+	JS_CGETSET_MAGIC_DEF("has_clipper", canvas_getProperty, NULL, GF_EVG_CLIPPER),
 	JS_CGETSET_MAGIC_DEF("matrix", NULL, canvas_setProperty, GF_EVG_MATRIX),
 	JS_CGETSET_MAGIC_DEF("matrix3d", NULL, canvas_setProperty, GF_EVG_MATRIX_3D),
 	JS_CGETSET_MAGIC_DEF("compositeOperation", canvas_getProperty, canvas_setProperty, GF_EVG_COMPOSITE_OP),
@@ -4104,6 +4116,21 @@ static JSValue colmx_constructor(JSContext *c, JSValueConst new_target, int argc
 	if ((argc==1) && JS_IsObject(argv[0])) {
 		GF_ColorMatrix *acmx = JS_GetOpaque(argv[0], colmx_class_id);
 		if (acmx) gf_cmx_copy(cmx, acmx);
+		else if (JS_IsArray(c, argv[0])) {
+			u32 i;
+			Double d;
+			for (i=0; i<20; i++) {
+				JSValue v = JS_GetPropertyUint32(c, argv[0], i);
+				if (JS_IsException(v)) return JS_EXCEPTION;
+				if (JS_ToFloat64(c, &d, v)) {
+					JS_FreeValue(c, v);
+					return JS_EXCEPTION;
+				}
+				cmx->m[i] = FLT2FIX(d);
+				JS_FreeValue(c, v);
+			}
+			cmx->identity = 0;
+		}
 	}
 	else if (argc==20) {
 		u32 i;
@@ -4353,7 +4380,6 @@ static JSValue path_close_reset(JSContext *c, JSValueConst obj, int argc, JSValu
 		JSValue nobj = JS_NewObjectClass(c, path_class_id);
 		if (JS_IsException(nobj)) return nobj;
 		JS_SetOpaque(nobj, gf_path_clone(gp));
-		gf_path_reset(gp);
 		return nobj;
 	}
 	return JS_EXCEPTION;
@@ -4468,6 +4494,7 @@ static JSValue path_ellipse(JSContext *c, JSValueConst obj, int argc, JSValueCon
 {
 	Double cx=0, cy=0, a_axis=0, b_axis=0;
 	GF_Err e;
+	Bool valid = GF_TRUE;
 	u32 idx=0;
 	GF_Path *gp = JS_GetOpaque(obj, path_class_id);
 	if (!gp) return JS_EXCEPTION;
@@ -4476,7 +4503,7 @@ static JSValue path_ellipse(JSContext *c, JSValueConst obj, int argc, JSValueCon
 #define GETD(_arg, _name, _res)\
 		if (! JS_IsObject(_arg)) return JS_EXCEPTION;\
 		v = JS_GetPropertyStr(c, _arg, _name);\
-		JS_ToFloat64(c, &_res, v);\
+		if (JS_ToFloat64(c, &_res, v)) valid = GF_FALSE;\
 		JS_FreeValue(c, v);\
 
 		GETD(argv[0], "x", cx);
@@ -4491,6 +4518,8 @@ static JSValue path_ellipse(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	} else {
 		return JS_EXCEPTION;
 	}
+	if (!valid) return JS_EXCEPTION;
+
 	if (JS_ToFloat64(c, &a_axis, argv[idx])) return JS_EXCEPTION;
 	if (JS_ToFloat64(c, &b_axis, argv[idx+1])) return JS_EXCEPTION;
 	e = gf_path_add_ellipse(gp, FLT2FIX(cx), FLT2FIX(cy), FLT2FIX(a_axis), FLT2FIX(b_axis));
@@ -4703,13 +4732,17 @@ static JSValue path_outline(JSContext *c, JSValueConst obj, int argc, JSValueCon
 		v = JS_GetPropertyStr(c, dashes, "length");
 		JS_ToInt32(c, &dash.num_dash, v);
 		JS_FreeValue(c, v);
-		pen.dash_set = &dash;
-		dash.dashes = gf_malloc(sizeof(Fixed)*dash.num_dash);
-		for (i=0; i<(int) dash.num_dash; i++) {
-			v = JS_GetPropertyUint32(c, dashes, i);
-			JS_ToFloat64(c, &d, v);
-			dash.dashes[i] = FLT2FIX(d);
-			JS_FreeValue(c, v);
+		if (dash.num_dash) {
+			pen.dash_set = &dash;
+			dash.dashes = gf_malloc(sizeof(Fixed)*dash.num_dash);
+			for (i=0; i<(int) dash.num_dash; i++) {
+				v = JS_GetPropertyUint32(c, dashes, i);
+				JS_ToFloat64(c, &d, v);
+				dash.dashes[i] = FLT2FIX(d);
+				JS_FreeValue(c, v);
+			}
+			if (!pen.dash)
+				pen.dash = GF_DASH_STYLE_CUSTOM;
 		}
 	}
 	JS_FreeValue(c, dashes);
@@ -4753,6 +4786,7 @@ enum
 	PATH_FILL_EVEN,
 	PATH_BOUNDS,
 	PATH_CONTROL_BOUNDS,
+	PATH_IS_RECTANGLE
 };
 
 
@@ -4773,6 +4807,19 @@ static JSValue path_bounds_ex(JSContext *c, GF_Path *gp, Bool is_ctrl)
 	JS_SetPropertyStr(c, nobj, "h", JS_NewFloat64(c, rc.height));
 	return nobj;
 }
+static Bool path_check_rect(GF_Path *gp)
+{
+	u32 i;
+	if (gp->n_contours != 1) return GF_FALSE;
+	if (gp->contours[0] != 4) return GF_FALSE;
+
+	for (i=0; i<4; i++) {
+		if ((gp->points[i].x != gp->points[0].x) && (gp->points[i].x != gp->points[2].x)) return GF_FALSE;
+		if ((gp->points[i].y != gp->points[0].y) && (gp->points[i].y != gp->points[2].y)) return GF_FALSE;
+	}
+	return GF_TRUE;
+}
+
 static JSValue path_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_Path *gp = JS_GetOpaque(obj, path_class_id);
@@ -4783,6 +4830,7 @@ static JSValue path_getProperty(JSContext *c, JSValueConst obj, int magic)
 	case PATH_FILL_EVEN: return JS_NewBool(c, gp->flags & GF_PATH_FILL_EVEN);
 	case PATH_BOUNDS: return path_bounds_ex(c, gp, GF_FALSE);
 	case PATH_CONTROL_BOUNDS: return path_bounds_ex(c, gp, GF_TRUE);
+	case PATH_IS_RECTANGLE: return path_check_rect(gp) ? JS_TRUE : JS_FALSE;
 	}
 	return JS_UNDEFINED;
 }
@@ -4823,6 +4871,7 @@ static const JSCFunctionListEntry path_funcs[] =
 	JS_CGETSET_MAGIC_DEF("even_fill", path_getProperty, path_setProperty, PATH_FILL_EVEN),
 	JS_CGETSET_MAGIC_DEF("bounds", path_getProperty, NULL, PATH_BOUNDS),
 	JS_CGETSET_MAGIC_DEF("ctrl_bounds", path_getProperty, NULL, PATH_CONTROL_BOUNDS),
+	JS_CGETSET_MAGIC_DEF("is_rectangle", path_getProperty, NULL, PATH_IS_RECTANGLE),
 
 	JS_CFUNC_DEF("point_over", 0, path_point_over),
 	JS_CFUNC_DEF("get_flatten", 0, path_get_flat),
@@ -4860,6 +4909,7 @@ JSClassDef stencil_class = {
 
 enum
 {
+	STENCIL_SOLID,
 	STENCIL_CMX,
 	STENCIL_MAT,
 	STENCIL_GRADMOD,
@@ -5129,6 +5179,29 @@ static JSValue stencil_set_alphaf(JSContext *c, JSValueConst obj, int argc, JSVa
 	return stencil_set_alpha_ex(c, obj, argc, argv, GF_FALSE);
 }
 
+static JSValue stencil_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	GF_EVGStencil *stencil = JS_GetOpaque(obj, stencil_class_id);
+	if (!stencil) return JS_EXCEPTION;
+	switch (magic) {
+	case STENCIL_SOLID:
+		if (gf_evg_stencil_type(stencil) == GF_STENCIL_SOLID) return JS_TRUE;
+		return JS_FALSE;
+	case STENCIL_MAT:
+	{
+		GF_Matrix2D mx, *mxp;
+		if (! gf_evg_stencil_get_matrix(stencil, &mx)) return JS_NULL;
+		GF_SAFEALLOC(mxp, GF_Matrix2D);
+		if (!mxp) return js_throw_err(c, GF_OUT_OF_MEM);
+		gf_mx2d_copy(*mxp, mx);
+		JSValue res = JS_NewObjectClass(c, mx2d_class_id);
+		JS_SetOpaque(res, mxp);
+		return res;
+	}
+		break;
+	}
+	return JS_UNDEFINED;
+}
 static JSValue stencil_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
 {
 	u32 v;
@@ -5162,9 +5235,10 @@ static JSValue stencil_setProperty(JSContext *c, JSValueConst obj, JSValueConst 
 
 static const JSCFunctionListEntry stencil_funcs[] =
 {
+	JS_CGETSET_MAGIC_DEF("solid_brush", stencil_getProperty, NULL, STENCIL_SOLID),
 	JS_CGETSET_MAGIC_DEF("pad", NULL, stencil_setProperty, STENCIL_GRADMOD),
 	JS_CGETSET_MAGIC_DEF("cmx", NULL, stencil_setProperty, STENCIL_CMX),
-	JS_CGETSET_MAGIC_DEF("mx", NULL, stencil_setProperty, STENCIL_MAT),
+	JS_CGETSET_MAGIC_DEF("mx", stencil_getProperty, stencil_setProperty, STENCIL_MAT),
 	JS_CFUNC_DEF("set_color", 0, stencil_set_color),
 	JS_CFUNC_DEF("set_colorf", 0, stencil_set_colorf),
 	JS_CFUNC_DEF("set_alpha", 0, stencil_set_alpha),
@@ -5288,6 +5362,19 @@ static JSValue texture_getProperty(JSContext *c, JSValueConst obj, int magic)
 		if (tx->owns_data)
 			return JS_NewArrayBuffer(c, (u8 *) tx->data, tx->data_size, NULL, NULL, 0/*1*/);
 		return JS_NULL;
+
+	case TX_MAT:
+	{
+		GF_Matrix2D mx, *mxp;
+		if (! gf_evg_stencil_get_matrix(tx->stencil, &mx)) return JS_NULL;
+		GF_SAFEALLOC(mxp, GF_Matrix2D);
+		if (!mxp) return js_throw_err(c, GF_OUT_OF_MEM);
+		gf_mx2d_copy(*mxp, mx);
+		JSValue res = JS_NewObjectClass(c, mx2d_class_id);
+		JS_SetOpaque(res, mxp);
+		return res;
+	}
+
 	}
 	return JS_UNDEFINED;
 }
@@ -5991,12 +6078,32 @@ static JSValue texture_set_named(JSContext *c, JSValueConst obj, int argc, JSVal
 	return JS_UNDEFINED;
 }
 
+static JSValue texture_set_pad_color(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	u32 color = 0;
+	GF_Err e;
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil) return JS_EXCEPTION;
+	if (argc) {
+		Double a, r, g, b;
+		if (!get_color_from_args(c, argc, argv, 0, &a, &r, &g, &b))
+			return JS_EXCEPTION;
+
+		color = GF_COL_ARGB(a*255, r*255, g*255, b*255);
+	}
+	e = gf_evg_stencil_set_pad_color(tx->stencil, color);
+	if (e) {
+		return js_throw_err_msg(c, e, "Failed to set texture pad color: %s", gf_error_to_string(e));
+	}
+	return JS_UNDEFINED;
+}
+
 
 static const JSCFunctionListEntry texture_funcs[] =
 {
 	JS_CGETSET_MAGIC_DEF("filtering", NULL, texture_setProperty, TX_FILTER),
 	JS_CGETSET_MAGIC_DEF("cmx", NULL, texture_setProperty, TX_CMX),
-	JS_CGETSET_MAGIC_DEF("mx", NULL, texture_setProperty, TX_MAT),
+	JS_CGETSET_MAGIC_DEF("mx", texture_getProperty, texture_setProperty, TX_MAT),
 	JS_CGETSET_MAGIC_DEF("repeat_s", texture_getProperty, texture_setProperty, TX_REPEAT_S),
 	JS_CGETSET_MAGIC_DEF("repeat_t", texture_getProperty, texture_setProperty, TX_REPEAT_T),
 	JS_CGETSET_MAGIC_DEF("flip_h", texture_getProperty, texture_setProperty, TX_FLIP_X),
@@ -6020,6 +6127,7 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("get_pixel", 0, texture_get_pixel),
 	JS_CFUNC_DEF("load", 0, texture_load),
 	JS_CFUNC_DEF("set_named", 0, texture_set_named),
+	JS_CFUNC_DEF("set_pad_color", 0, texture_set_pad_color),
 };
 
 
@@ -6263,12 +6371,26 @@ static void text_reset(GF_JSText *txt)
 	}
 	txt->min_x = txt->min_y = txt->max_x = txt->max_y = txt->max_w = txt->max_h = 0;
 }
+
+static void text_reset_fonts(GF_JSText *txt)
+{
+	if (txt->fontnames) {
+		u32 i;
+		for (i=0; i<txt->nb_fonts; i++) {
+			gf_free(txt->fontnames[i]);
+		}
+		gf_free(txt->fontnames);
+		txt->fontnames = NULL;
+		txt->nb_fonts = 0;
+	}
+}
+
 static void text_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return;
 	text_reset(txt);
-	if (txt->fontname) gf_free(txt->fontname);
+	text_reset_fonts(txt);
 	gf_list_del(txt->spans);
 	gf_free(txt);
 }
@@ -6312,7 +6434,16 @@ static JSValue text_getProperty(JSContext *c, JSValueConst obj, int magic)
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return JS_EXCEPTION;
 	switch (magic) {
-	case TXT_FONT: return JS_NewString(c, txt->fontname);
+	case TXT_FONT:
+	{
+		u32 i;
+		JSValue res = JS_NewArray(c);
+		JS_SetPropertyStr(c, res, "length", JS_NewInt32(c, txt->nb_fonts) );
+		for (i=0; i<txt->nb_fonts; i++) {
+			JS_SetPropertyUint32(c, res, i, JS_NewString(c, txt->fontnames[i]) );
+		}
+		return res;
+	}
 	case TXT_BASELINE: return JS_NewInt32(c, txt->baseline);
 	case TXT_ALIGN: return JS_NewInt32(c, txt->align);
 	case TXT_FONTSIZE: return JS_NewFloat64(c, txt->font_size);
@@ -6331,7 +6462,7 @@ static JSValue text_getProperty(JSContext *c, JSValueConst obj, int magic)
 
 static void text_update_path(GF_JSText *txt, Bool for_centered)
 {
-	Fixed cy, ascent, descent, scale_x, ls;
+	Fixed cy, off_x, ascent, descent, scale_x, ls;
 	u32 i, nb_lines;
 
 	if ((txt->path_for_centered == for_centered) && txt->path) {
@@ -6365,7 +6496,9 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 		Fixed mid = (ascent + descent)/2;
 		cy = mid;
 	}
+	off_x = 0;
 
+	txt->right_to_left = GF_FALSE;
 	txt->path = gf_path_new();
 	nb_lines = gf_list_count(txt->spans);
 	for (i=0; i<nb_lines; i++) {
@@ -6374,6 +6507,10 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 		GF_Path *path;
 		GF_Matrix2D mx;
 		GF_TextSpan *span = gf_list_get(txt->spans, i);
+
+		if (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT)
+			txt->right_to_left = GF_TRUE;
+
 		if ((txt->align == TXT_AL_LEFT)
 		|| ((txt->align == TXT_AL_START) && !(span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT))
 		|| ((txt->align == TXT_AL_END) && (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT))
@@ -6390,7 +6527,7 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 		}
 		gf_mx2d_init(mx);
 
-		gf_mx2d_add_translation(&mx, cx, cy);
+		gf_mx2d_add_translation(&mx, off_x+cx, cy);
 		if (scale_x)
 			gf_mx2d_add_scale(&mx, scale_x, FIX_ONE);
 
@@ -6408,10 +6545,14 @@ static void text_update_path(GF_JSText *txt, Bool for_centered)
 		gf_path_del(path);
 		span->flags = flags;
 
-		if (txt->path_for_centered)
-			cy -= ls;
-		else
-			cy += ls;
+		if (!txt->horizontal) {
+			off_x += ls;
+		} else {
+			if (txt->path_for_centered)
+				cy -= ls;
+			else
+				cy += ls;
+		}
 	}
 }
 static void text_set_path(GF_JSCanvas *canvas, GF_JSText *txt)
@@ -6466,10 +6607,10 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	text_reset(txt);
 	if (!argc) return JS_UNDEFINED;
 
-	txt->font = gf_font_manager_set_font(txt->fm, &txt->fontname, 1, txt->styles);
+	txt->font = gf_font_manager_set_font(txt->fm, txt->fontnames, txt->nb_fonts, txt->styles);
 	if (!txt->font)
-		return js_throw_err_msg(c, GF_NOT_FOUND, "Font %s not found and no default font available!\n"
-			"Check your GPAC configuration, or use `-rescan-fonts` to refresh font directory.\n", txt->fontname);
+		return js_throw_err_msg(c, GF_NOT_FOUND, "Fonts not found (first was %s) and no default font available!\n"
+			"Check your GPAC configuration, or use `-rescan-fonts` to refresh font directory.\n", txt->fontnames ? txt->fontnames[0] : "none");
 
 	for (i=0; i<argc; i++) {
 		if (JS_IsArray(c, argv[i])) {
@@ -6499,7 +6640,7 @@ static JSValue text_set_text(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			txt->min_x = span->bounds.x;
 			txt->min_y = span->bounds.y;
 			txt->max_x = txt->min_x + span->bounds.width;
-			txt->max_y = txt->min_y + span->bounds.x;
+			txt->max_y = txt->min_y + span->bounds.height;
 		} else {
 			if (txt->min_x > span->bounds.x)
 				txt->min_x = span->bounds.x;
@@ -6527,10 +6668,33 @@ static JSValue text_setProperty(JSContext *c, JSValueConst obj, JSValueConst val
 
 	switch (magic) {
 	case TXT_FONT:
-		str = JS_ToCString(c, value);
-		if (txt->fontname) gf_free(txt->fontname);
-		txt->fontname = str ? gf_strdup(str) : NULL;
-		JS_FreeCString(c, str);
+	{
+		text_reset_fonts(txt);
+		if (JS_IsArray(c, value)) {
+			u32 i, nb_fonts;
+			JSValue res = JS_GetPropertyStr(c, value, "length");
+			if (JS_ToInt32(c, &nb_fonts, res)) {
+				JS_FreeValue(c, res);
+				return JS_EXCEPTION;
+			}
+			JS_FreeValue(c, res);
+			txt->nb_fonts = nb_fonts;
+			txt->fontnames = gf_malloc(sizeof(char *) * nb_fonts);
+			for (i=0; i<nb_fonts; i++) {
+				res = JS_GetPropertyUint32(c, value, i);
+				str = JS_ToCString(c, res);
+				txt->fontnames[i] = gf_strdup(str ? str : "SANS");
+				JS_FreeCString(c, str);
+				JS_FreeValue(c, res);
+			}
+		} else {
+			txt->nb_fonts = 1;
+			txt->fontnames = gf_malloc(sizeof(char *));
+			str = JS_ToCString(c, value);
+			txt->fontnames[0] = gf_strdup(str ? str : "SANS");
+			JS_FreeCString(c, str);
+		}
+	}
 		break;
 	case TXT_BASELINE:
 		if (JS_ToInt32(c, &txt->baseline, value)) return JS_EXCEPTION;
@@ -6587,8 +6751,23 @@ static JSValue text_measure(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	GF_JSText *txt = JS_GetOpaque(obj, text_class_id);
 	if (!txt) return JS_EXCEPTION;
 	res = JS_NewObject(c);
-	JS_SetPropertyStr(c, res, "width", JS_NewFloat64(c, txt->max_w) );
-	JS_SetPropertyStr(c, res, "height", JS_NewFloat64(c, txt->max_y-txt->min_y) );
+
+	if (txt->horizontal) {
+		JS_SetPropertyStr(c, res, "width", JS_NewFloat64(c, txt->max_w) );
+		JS_SetPropertyStr(c, res, "height", JS_NewFloat64(c, txt->max_y-txt->min_y) );
+	} else {
+		GF_Rect rc;
+		if (txt->path) gf_path_del(txt->path);
+		txt->path = NULL;
+		text_update_path(txt, GF_TRUE);
+		gf_path_get_bounds(txt->path, &rc);
+		if (txt->path) gf_path_del(txt->path);
+		txt->path = NULL;
+		JS_SetPropertyStr(c, res, "width", JS_NewFloat64(c, rc.width) );
+		JS_SetPropertyStr(c, res, "height", JS_NewFloat64(c, rc.height) );
+	}
+
+	JS_SetPropertyStr(c, res, "right_to_left", JS_NewBool(c, txt->right_to_left) );
 	if (txt->font) {
 		JS_SetPropertyStr(c, res, "em_size", JS_NewInt32(c, txt->font->em_size) );
 		JS_SetPropertyStr(c, res, "ascent", JS_NewInt32(c, txt->font->ascent) );
@@ -6642,11 +6821,7 @@ static JSValue text_constructor(JSContext *c, JSValueConst new_target, int argc,
 		gf_free(txt);
 		return JS_EXCEPTION;
 	}
-	if (argc) {
-		const char *str = JS_ToCString(c, argv[0]);
-		if (str) txt->fontname = gf_strdup(str);
-		JS_FreeCString(c, str);
-	}
+
 	txt->font_size = 12.0;
 	txt->horizontal = GF_TRUE;
 	txt->align = TXT_AL_START;
@@ -7093,8 +7268,11 @@ static JSValue mx_constructor(JSContext *ctx, JSValueConst new_target, int argc,
 	JS_SetOpaque(res, mx);
 	if (argc) {
 		GF_Matrix *from = JS_GetOpaque(argv[0], matrix_class_id);
+		GF_Matrix2D *from2D = JS_GetOpaque(argv[0], mx2d_class_id);
 		if (from) {
 			gf_mx_copy(*mx, *from);
+		} else if (from2D) {
+			gf_mx_from_mx2d(mx, from2D);
 		} else if (argc>=3) {
 			GF_Vec x_axis, y_axis, z_axis;
 			WGL_GET_VEC3F(x_axis, argv[0])
@@ -7105,6 +7283,93 @@ static JSValue mx_constructor(JSContext *ctx, JSValueConst new_target, int argc,
 	}
 	return res;
 }
+
+
+#ifndef GPAC_DISABLE_3D
+static void mesh_finalize(JSRuntime *rt, JSValue obj)
+{
+	GF_Mesh *mesh = JS_GetOpaque(obj, mesh_class_id);
+	if (mesh) mesh_free(mesh);
+}
+
+JSClassDef mesh_class = {
+	.class_name = "Mesh",
+	.finalizer = mesh_finalize
+};
+
+enum
+{
+	MESH_PROP_VERTICES=0,
+	MESH_PROP_INDICES
+};
+
+static JSValue mesh_getProperty(JSContext *c, JSValueConst obj, int magic)
+{
+	GF_Mesh *mesh = JS_GetOpaque(obj, mesh_class_id);
+	if (!mesh) return JS_EXCEPTION;
+	if (magic== MESH_PROP_VERTICES) {
+		return JS_UNDEFINED;
+	}
+	if (magic== MESH_PROP_INDICES) {
+		return JS_UNDEFINED;
+	}
+	return JS_UNDEFINED;
+}
+
+Bool mesh_gl_update_buffers(GF_Mesh *mesh);
+
+static JSValue mesh_update_gl(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Mesh *mesh = JS_GetOpaque(this_val, mesh_class_id);
+	if (!mesh) return JS_EXCEPTION;
+	Bool res = mesh_gl_update_buffers(mesh);
+	if (!res) return JS_EXCEPTION;
+	return JS_UNDEFINED;
+}
+
+JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv);
+
+static JSValue mesh_draw(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_Mesh *mesh = JS_GetOpaque(this_val, mesh_class_id);
+	if (!mesh) return JS_EXCEPTION;
+	return mesh_gl_draw(ctx, mesh, argc, argv);
+}
+
+static const JSCFunctionListEntry mesh_funcs[] =
+{
+	JS_CGETSET_MAGIC_DEF("vertices", mesh_getProperty, NULL, MESH_PROP_VERTICES),
+	JS_CGETSET_MAGIC_DEF("indices", mesh_getProperty, NULL, MESH_PROP_INDICES),
+	JS_CFUNC_DEF("update_gl", 0, mesh_update_gl),
+	JS_CFUNC_DEF("draw", 0, mesh_draw),
+};
+
+static JSValue mesh_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	JSValue res;
+	GF_Mesh *mesh;
+	GF_Path *gp = NULL;
+
+	if (argc==1) {
+		gp = JS_GetOpaque(argv[0], path_class_id);
+		if (!gp) return JS_EXCEPTION;
+	}
+
+	mesh = new_mesh();
+	if (!mesh)
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+
+	res = JS_NewObjectClass(ctx, mesh_class_id);
+	JS_SetOpaque(res, mesh);
+
+	if (gp)
+		mesh_from_path(mesh, gp);
+
+	return res;
+}
+
+
+#endif //GPAC_DISABLE_3D
 
 
 static JSValue evg_pixel_size(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -7157,6 +7422,11 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 
 		JS_NewClassID(&matrix_class_id);
 		JS_NewClass(rt, matrix_class_id, &matrix_class);
+
+#ifndef GPAC_DISABLE_3D
+		JS_NewClassID(&mesh_class_id);
+		JS_NewClass(rt, mesh_class_id, &mesh_class);
+#endif
 
 		JS_NewClassID(&shader_class_id);
 		JS_NewClass(rt, shader_class_id, &shader_class);
@@ -7237,10 +7507,15 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
     JS_SetPropertyFunctionList(c, proto, va_funcs, countof(va_funcs));
     JS_SetClassProto(c, va_class_id, proto);
 
+#ifndef GPAC_DISABLE_3D
+	proto = JS_NewObject(c);
+    JS_SetPropertyFunctionList(c, proto, mesh_funcs, countof(mesh_funcs));
+    JS_SetClassProto(c, mesh_class_id, proto);
+#endif
 
 	global = JS_GetGlobalObject(c);
 	JS_SetPropertyStr(c, global, "GF_GRADIENT_MODE_PAD", JS_NewInt32(c, GF_GRADIENT_MODE_PAD));
-	JS_SetPropertyStr(c, global, "GF_GRADIENT_MODE_STREAD", JS_NewInt32(c, GF_GRADIENT_MODE_SPREAD));
+	JS_SetPropertyStr(c, global, "GF_GRADIENT_MODE_SPREAD", JS_NewInt32(c, GF_GRADIENT_MODE_SPREAD));
 	JS_SetPropertyStr(c, global, "GF_GRADIENT_MODE_REPEAT", JS_NewInt32(c, GF_GRADIENT_MODE_REPEAT));
 
 	JS_SetPropertyStr(c, global, "GF_TEXTURE_FILTER_HIGH_SPEED", JS_NewInt32(c, GF_TEXTURE_FILTER_HIGH_SPEED));
@@ -7373,9 +7648,19 @@ static int js_evg_load_module(JSContext *c, JSModuleDef *m)
 	ctor = JS_NewCFunction2(c, va_constructor, "VertexAttrib", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(c, m, "VertexAttrib", ctor);
 
+#ifndef GPAC_DISABLE_3D
+	ctor = JS_NewCFunction2(c, mesh_constructor, "Mesh", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(c, m, "Mesh", ctor);
+#endif
+
 	ctor = JS_NewCFunction2(c, evg_pixel_size, "PixelSize", 1, JS_CFUNC_generic, 0);
     JS_SetModuleExport(c, m, "PixelSize", ctor);
 
+#ifdef GPAC_HAS_FFMPEG
+    JS_SetModuleExport(c, m, "BlitEnabled", JS_TRUE);
+#else
+    JS_SetModuleExport(c, m, "BlitEnabled", JS_FALSE);
+#endif
 	return 0;
 }
 
@@ -7395,10 +7680,11 @@ void qjs_module_init_evg(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Texture");
 	JS_AddModuleExport(ctx, m, "Text");
 	JS_AddModuleExport(ctx, m, "Matrix");
-	JS_AddModuleExport(ctx, m, "Canvas3D");
+	JS_AddModuleExport(ctx, m, "Mesh");
     JS_AddModuleExport(ctx, m, "VertexAttribInterpolator");
     JS_AddModuleExport(ctx, m, "VertexAttrib");
     JS_AddModuleExport(ctx, m, "PixelSize");
+    JS_AddModuleExport(ctx, m, "BlitEnabled");
     return;
 }
 
