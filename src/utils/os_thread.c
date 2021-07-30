@@ -172,6 +172,18 @@ void * RunThread(void *ptr)
 #endif
 	GF_Thread *t = (GF_Thread *)ptr;
 
+
+
+#ifndef GPAC_DISABLE_LOG
+	if (t->log_name) {
+#ifdef WIN32
+#else
+		pthread_setname_np(t->log_name);
+#endif
+	}
+#endif
+
+
 	/* Signal the caller */
 	if (! t->_signal) goto exit;
 #ifdef GPAC_CONFIG_ANDROID
@@ -269,6 +281,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 		t->status = GF_THREAD_STATUS_DEAD;
 		return GF_IO_ERR;
 	}
+
 
 	/*wait for the child function to call us - do NOT return before, otherwise the thread status would
 	be unknown*/

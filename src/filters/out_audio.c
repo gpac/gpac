@@ -532,7 +532,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	}
 	if (ctx->audio_out->SelfThreaded) {
 	} else if (ctx->threaded) {
-		ctx->th = gf_th_new("AudioOutput");
+		ctx->th = gf_th_new("gf_aout");
 		gf_th_run(ctx->th, aout_th_proc, ctx);
 	}
 
