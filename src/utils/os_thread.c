@@ -173,12 +173,14 @@ void * RunThread(void *ptr)
 	GF_Thread *t = (GF_Thread *)ptr;
 
 
-
-#ifndef GPAC_DISABLE_LOG
+//not activated by default, not portable
+#if 0 && !defined(GPAC_DISABLE_LOG)
 	if (t->log_name) {
 #ifdef WIN32
-#else
+#elif defined(__DARWIN__) || defined(__APPLE__)
 		pthread_setname_np(t->log_name);
+#else
+		pthread_setname_np(t->threadH, t->log_name);
 #endif
 	}
 #endif
