@@ -42,6 +42,12 @@ enum
 
 typedef struct
 {
+	GF_FilterPid *pid;
+	u64 ts_offset;
+} PidCtx;
+
+typedef struct
+{
 	//options
 	const char *src;
 	u32 block_size;
@@ -60,7 +66,7 @@ typedef struct
 	//demux options
 	AVDictionary *options;
 
-	GF_FilterPid **pids;
+	PidCtx *pids_ctx;
 
 	Bool raw_pck_out;
 	u32 nb_streams;
@@ -91,8 +97,8 @@ typedef struct
 static void ffdmx_finalize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
-	if (ctx->pids)
-		gf_free(ctx->pids);
+	if (ctx->pids_ctx)
+		gf_free(ctx->pids_ctx);
 	if (ctx->options)
 		av_dict_free(&ctx->options);
 	if (ctx->probe_times)
@@ -132,6 +138,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	Bool copy = GF_TRUE;
 	GF_FilterPacket *pck_dst;
 	AVPacket *pkt;
+	PidCtx *pctx;
 	GF_FFDemuxCtx *ctx = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
 
 	if (!ctx->nb_playing)
@@ -151,7 +158,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		FF_FREE_PCK(pkt);
 		if (!ctx->raw_data) {
 			for (i=0; i<ctx->nb_streams; i++) {
-				if (ctx->pids[i]) gf_filter_pid_set_eos(ctx->pids[i]);
+				if (ctx->pids_ctx[i].pid) gf_filter_pid_set_eos(ctx->pids_ctx[i].pid);
 			}
 			return GF_EOS;
 		}
@@ -174,12 +181,13 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		}
 	}
 
-	if (! ctx->pids[pkt->stream_index] ) {
+	pctx = &ctx->pids_ctx[pkt->stream_index];
+	if (! pctx->pid ) {
 		GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] No PID defined for given stream %d\n", ctx->fname, pkt->stream_index ));
 		FF_FREE_PCK(pkt);
 		return GF_OK;
 	}
-    if (ctx->stop_seen && ! gf_filter_pid_is_playing( ctx->pids[pkt->stream_index] ) ) {
+    if (ctx->stop_seen && ! gf_filter_pid_is_playing( pctx->pid ) ) {
 		FF_FREE_PCK(pkt);
         return GF_OK;
     }
@@ -223,12 +231,12 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	if (ctx->raw_data && !copy) {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
-		pck_dst = gf_filter_pck_new_shared(ctx->pids[pkt->stream_index], pkt->data, pkt->size, ffdmx_shared_pck_release);
+		pck_dst = gf_filter_pck_new_shared(pctx->pid, pkt->data, pkt->size, ffdmx_shared_pck_release);
 		if (!pck_dst) return GF_OUT_OF_MEM;
 		ctx->raw_pck_out = GF_TRUE;
 	} else {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
-		pck_dst = gf_filter_pck_new_alloc(ctx->pids[pkt->stream_index] , pkt->size, &data_dst);
+		pck_dst = gf_filter_pck_new_alloc(pctx->pid , pkt->size, &data_dst);
 		if (!pck_dst) return GF_OUT_OF_MEM;
 		assert(pck_dst);
 		memcpy(data_dst, pkt->data, pkt->size);
@@ -246,19 +254,26 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	} else if (pkt->pts != AV_NOPTS_VALUE) {
 		AVStream *stream = ctx->demuxer->streams[pkt->stream_index];
 		u64 ts;
-		if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
-			ts = (pkt->pts - stream->first_dts) * stream->time_base.num;
-		else
-			ts = pkt->pts * stream->time_base.num;
 
+		//initial delay setup - we only dispatch dts or cts >=0
+		if (!pctx->ts_offset) {
+			//if first dts is <0, offset timeline and set offset
+			if ((pkt->dts != AV_NOPTS_VALUE) && (pkt->dts<0) && pctx->ts_offset) {
+				pctx->ts_offset = -pkt->dts + 1;
+				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( pkt->dts) );
+			}
+			//otherwise reset any potential delay set previously
+			else {
+				pctx->ts_offset = 1;
+				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DELAY, NULL);
+			}
+		}
+
+		ts = (pkt->pts + pctx->ts_offset-1) * stream->time_base.num;
 		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (pkt->dts != AV_NOPTS_VALUE) {
-			if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
-				ts = (pkt->dts - stream->first_dts) * stream->time_base.num;
-			else
-				ts = pkt->dts * stream->time_base.num;
-
+			ts = (pkt->dts + pctx->ts_offset-1) * stream->time_base.num;
 			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 
@@ -325,8 +340,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 	ctx->pkt = av_packet_alloc();
 #endif
 
-	ctx->pids = gf_malloc(sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
-	memset(ctx->pids, 0, sizeof(GF_FilterPid *)*ctx->demuxer->nb_streams);
+	ctx->pids_ctx = gf_malloc(sizeof(PidCtx)*ctx->demuxer->nb_streams);
+	memset(ctx->pids_ctx, 0, sizeof(PidCtx)*ctx->demuxer->nb_streams);
 	ctx->nb_streams = ctx->demuxer->nb_streams;
 
 	nb_a = nb_v = 0;
@@ -409,7 +424,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			break;
 		}
 		if (!pid) continue;
-		ctx->pids[i] = pid;
+		ctx->pids_ctx[i].pid = pid;
+		ctx->pids_ctx[i].ts_offset = 0;
 		gf_filter_pid_set_udta(pid, stream);
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id ? stream->id : i+1) );
@@ -426,9 +442,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(stream->duration, stream->time_base.den) );
 			else if (ctx->demuxer->duration>=0)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC64_INT(ctx->demuxer->duration, AV_TIME_BASE) );
-
-			if ((stream->first_dts!=AV_NOPTS_VALUE) && (stream->first_dts<0))
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, &PROP_LONGSINT( stream->first_dts) );
 		}
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
@@ -714,9 +727,14 @@ static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_PLAY:
 		//change in play range
 		if (!ctx->raw_data && (ctx->last_play_start_range != evt->play.start_range)) {
+			u32 i;
 			int res = av_seek_frame(ctx->demuxer, -1, (s64) (AV_TIME_BASE*evt->play.start_range), AVSEEK_FLAG_BACKWARD);
 			if (res<0) {
 				GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Fail to seek %s to %g - error %s\n", ctx->fname, ctx->src, evt->play.start_range, av_err2str(res) ));
+			}
+			//reset initial delay compute
+			for (i=0; i<ctx->demuxer->nb_streams; i++) {
+				ctx->pids_ctx[i].ts_offset = 0;
 			}
 			ctx->last_play_start_range = evt->play.start_range;
 		}

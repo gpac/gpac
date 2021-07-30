@@ -34,6 +34,7 @@
 #include <libavutil/dict.h>
 #include <libavdevice/avdevice.h>
 #include <libswscale/swscale.h>
+#include <libavutil/channel_layout.h>
 
 //can be pointer or uint
 #define GF_FFMPEG_DECODER_CONFIG GF_4CC('f','f','D','C')
