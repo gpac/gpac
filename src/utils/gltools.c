@@ -1599,11 +1599,12 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		texture_unit = GL_TEXTURE0;
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-	if (!tx->uniform_setup && gl_program) {
+	if ((!tx->uniform_setup || (tx->init_active_texture != texture_unit)) && gl_program) {
 		char szName[100];
 		u32 i;
 		u32 start_idx = texture_unit - GL_TEXTURE0;
 		s32 loc;
+		tx->init_active_texture = texture_unit;
 		for (i=0; i<tx->nb_textures; i++) {
 			sprintf(szName, "_gf_%s_%d", tx_name, i+1);
 			loc = glGetUniformLocation(gl_program, szName);
@@ -1619,7 +1620,10 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 			GL_CHECK_ERR()
 		}
 		GL_CHECK_ERR()
-
+	}
+	if (!tx->uniform_setup && gl_program) {
+		s32 loc;
+		char szName[100];
 		if (tx->is_yuv) {
 			GF_Matrix mx;
 			get_yuv_color_matrix(tx, &mx);

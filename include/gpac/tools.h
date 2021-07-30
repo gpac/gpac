@@ -2091,6 +2091,7 @@ typedef struct _gl_texture_wrap
 	Bool is_yuv;
 	u32 bit_depth, uv_w, uv_h;
 	u32 scale_10bit;
+	u32 init_active_texture;
 
 	u32 gl_format;
 	u32 bytes_per_pix;
