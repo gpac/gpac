@@ -1097,6 +1097,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			*score = GF_FPROBE_SUPPORTED;
 		} else {
 			AV1State state;
+			Bool has_seq_header = GF_FALSE;
 			GF_Err e;
 			u32 nb_units = 0;
 
@@ -1106,12 +1107,15 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				e = aom_av1_parse_temporal_unit_from_section5(bs, &state);
 				if ((e==GF_OK) || (nb_units && (e==GF_BUFFER_TOO_SMALL) ) ) {
 					if (!nb_units || gf_list_count(state.frame_state.header_obus) || gf_list_count(state.frame_state.frame_obus)) {
+						if (gf_list_count(state.frame_state.header_obus)) {
+							has_seq_header = GF_TRUE;
+						}
 						nb_units++;
 						if (e==GF_BUFFER_TOO_SMALL)
 							nb_units++;
 					} else {
-						//we got one frame without errors, assume maybe supported
-						if (nb_units) {
+						//we got one frame + seq header without errors, assume maybe supported
+						if (nb_units && has_seq_header) {
 							res = GF_TRUE;
 							*score = GF_FPROBE_MAYBE_SUPPORTED;
 						}
