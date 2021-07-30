@@ -3185,7 +3185,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTP] Session already started - ignoring start\n"));
 			return GF_OK;
 		}
-		sess->th = gf_th_new(sess->orig_url);
+		sess->th = gf_th_new( gf_file_basename(sess->orig_url) );
 		if (!sess->th) return GF_OUT_OF_MEM;
 		gf_th_run(sess->th, gf_dm_session_thread, sess);
 		return GF_OK;

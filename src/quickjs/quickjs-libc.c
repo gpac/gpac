@@ -3848,7 +3848,7 @@ static JSValue js_worker_ctor(JSContext *ctx, JSValueConst new_target,
         goto fail;
     
     args->worker = JS_GetOpaque(obj, js_worker_class_id);
-    args->worker->th = gf_th_new(NULL);
+    args->worker->th = gf_th_new("gf_js_worker");
     if (!args->worker->th) {
         goto oom_fail;
     }

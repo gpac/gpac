@@ -116,7 +116,7 @@ GF_Err gf_evg_enable_threading(GF_EVGSurface *surf, s32 nb_threads)
 	memset(surf->th_raster_ctx, 0, sizeof(EVGRasterCtx) * surf->nb_threads);
 	for (i=0; i<surf->nb_threads; i++) {
 		EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
-		sprintf(szName, "EVGMX%p_TH%d", surf, i+1);
+		sprintf(szName, "gf_evg_%d", i+1);
 		rctx->th = gf_th_new(szName);
 		if (!rctx->th) {
 			surf->nb_threads = i;

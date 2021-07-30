@@ -278,7 +278,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 #ifndef GPAC_DISABLE_REMOTERY
 		sprintf(sess_thread->rmt_name, "FSThread%d", i+1);
 #endif
-		sprintf(szName, "MediaSessionThread_%d", i+1);
+		sprintf(szName, "gf_fs_th_%d", i+1);
 		sess_thread->th = gf_th_new(szName);
 		if (!sess_thread->th) {
 			gf_free(sess_thread);
