@@ -168,8 +168,11 @@ static void NamedTexture_finalize(JSRuntime *rt, JSValue obj)
 {
 	GF_WebGLNamedTexture *named_tx = JS_GetOpaque(obj, NamedTexture_class_id);
 	if (!named_tx) return;
-	if (named_tx->par_ctx)
+	if (named_tx->par_ctx) {
 		gf_list_del_item(named_tx->par_ctx->named_textures, named_tx);
+		if (named_tx->par_ctx->bound_named_texture == named_tx)
+			named_tx->par_ctx->bound_named_texture = NULL;
+	}
 
 	if (named_tx->tx.nb_textures) glDeleteTextures(named_tx->tx.nb_textures, named_tx->tx.textures);
 	if (named_tx->tx_name) gf_free(named_tx->tx_name);
@@ -1565,16 +1568,6 @@ static JSValue wgl_activeTexture(JSContext *ctx, JSValueConst this_val, int argc
 	WGL_GET_U32(texture, argv[0]);
 	glActiveTexture(texture);
 	glc->active_texture = texture;
-
-	//hack for scripts not calling bind at each frame (eg,  three.js): we must rebind textures
-	if (glc->bound_named_texture && glc->bound_named_texture->shader_attached) {
-		if (!gf_gl_txw_bind(&glc->bound_named_texture->tx, glc->bound_named_texture->tx_name, glc->active_program, glc->active_texture)) {
-			return js_throw_err(ctx, WGL_INVALID_OPERATION);
-		}
-	}
-	else if (glc->bound_texture) {
-		glBindTexture(glc->bound_texture_target, glc->bound_texture->gl_id);
-	}
 	return ret_val_js;
 }
 
@@ -1871,7 +1864,7 @@ GF_Err webgl_get_plane(GF_FilterFrameInterface *ifce, u32 plane_idx, const u8 **
 			u32 bpp = (glc->fetch_required_pfmt==2) ? 4 : 3;
 			bpp *= glc->width;
 			if (!glc->pix_data) {
-				//we aloocate one extra line at the end, workaround for ffsws sometimes trying to access one extra line
+				//we allocate one extra line at the end, workaround for ffsws sometimes trying to access one extra line
 				glc->pix_data = gf_malloc(sizeof(u8) * bpp * (glc->height+1) );
 				if (!glc->pix_data) {
 					gf_js_lock(glc->ctx, GF_FALSE);
@@ -1889,11 +1882,10 @@ GF_Err webgl_get_plane(GF_FilterFrameInterface *ifce, u32 plane_idx, const u8 **
 
 		glReadPixels(0, 0, glc->width, glc->height, (glc->fetch_required_pfmt==2) ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, glc->pix_data);
 
-		glc->fetch_required_pfmt = 0;
-
 		hy = glc->height/2;
 		glc->pix_stride = (glc->fetch_required_pfmt==2) ? 4 : 3;
 		glc->pix_stride *= glc->width;
+		glc->fetch_required_pfmt = 0;
 
 		for (i=0; i<hy; i++) {
 			memcpy(glc->pix_line, glc->pix_data + i * glc->pix_stride, glc->pix_stride);
