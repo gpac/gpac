@@ -42,6 +42,7 @@ static Bool enable_prompt = GF_FALSE;
 static u32 enable_reports = 0;
 static char *report_filter = NULL;
 static Bool do_unit_tests = GF_FALSE;
+static Bool use_step_mode = GF_FALSE;
 static int alias_argc = 0;
 static char **alias_argv = NULL;
 static GF_List *args_used = NULL;
@@ -593,6 +594,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("step", NULL, "test step mode in non-blocking session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.  \nNote: The `@` character can be used in place of the `*` character. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
 			"- doc: print the general filter info\n"\
@@ -1942,6 +1944,9 @@ static int gpac_main(int argc, char **argv)
 			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
+		} else if (!strcmp(arg, "-step")) {
+			use_step_mode = GF_TRUE;
+			sflags |= GF_FS_FLAG_NO_MAIN_THREAD;
 		} else if (!strcmp(arg, "-xopt")) {
 			has_xopt = GF_TRUE;
 		} else if (arg[0]=='-') {
@@ -2240,10 +2245,15 @@ restart:
 		}
 	}
 
+	if (use_step_mode) {
+		do {
+			gf_fs_run_step(session);
+		} while (!gf_fs_is_last_task(session));
 
-
-	e = gf_fs_run(session);
-	if (e>0) e = GF_OK;
+	} else {
+		e = gf_fs_run(session);
+		if (e>0) e = GF_OK;
+	}
 
 	if (e) {
 		fprintf(stderr, "session error %s\n", gf_error_to_string(e) );

@@ -2162,9 +2162,16 @@ void gf_filter_renegociate_output_task(GF_FSTask *task)
 		gf_filter_renegociate_output(task->filter, GF_TRUE);
 }
 
+static Bool session_should_abort(GF_FilterSession *fs)
+{
+	if (fs->run_status<GF_OK) return GF_TRUE;
+	if (!fs->run_status) return GF_FALSE;
+	return fs->in_final_flush;
+}
+
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 {
-	if (filter->session->run_status!=GF_OK) {
+	if (session_should_abort(filter->session)) {
 		return;
 	}
 
@@ -2445,7 +2452,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		}
 	}
 	//no requeue if end of session
-	if (filter->session->run_status != GF_OK) {
+	if (session_should_abort(filter->session)) {
 		return;
 	}
 	//if eos but we still have pending packets or process tasks queued, move to GF_OK so that
@@ -2574,7 +2581,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 		}
 	}
 	//no requeue if end of session
-	if (filter->session->run_status != GF_OK) {
+	if (session_should_abort(filter->session)) {
 		return;
 	}
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
@@ -3832,7 +3839,7 @@ Bool gf_filter_all_sinks_done(GF_Filter *filter)
 {
 	u32 i, count;
 	Bool res = GF_TRUE;
-	if (!filter || filter->session->in_final_flush || (filter->session->run_status==GF_EOS) )
+	if (!filter || filter->session->in_final_flush || (filter->session->run_status==GF_EOS)	)
 		return GF_TRUE;
 
 	gf_mx_p(filter->session->filters_mx);
