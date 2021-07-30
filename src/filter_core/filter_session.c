@@ -2028,8 +2028,10 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 		return GF_OK;
 	}
 
-	if (!fsess->run_status)
+	if (!fsess->run_status) {
+		fsess->in_final_flush = GF_TRUE;
 		fsess->run_status = GF_EOS;
+	}
 
 	for (i=0; i < count; i++) {
 		gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
@@ -3312,6 +3314,8 @@ static void gf_fs_user_task(GF_FSTask *task)
 	if (!task->requeue_request || utask->fsess->in_final_flush) {
 		gf_free(utask);
 		task->udta = NULL;
+		//we duplicated the name for user tasks
+		gf_free((char *) task->log_name);
 		task->requeue_request = GF_FALSE;
 	} else {
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
@@ -3322,13 +3326,16 @@ GF_EXPORT
 GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
 {
 	GF_UserTask *utask;
+	char *_log_name;
 	if (!fsess || !task_execute) return GF_BAD_PARAM;
 	GF_SAFEALLOC(utask, GF_UserTask);
 	if (!utask) return GF_OUT_OF_MEM;
 	utask->fsess = fsess;
 	utask->callback = udta_callback;
 	utask->task_execute = task_execute;
-	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, log_name ? log_name : "user_task", utask);
+	//dup mem for user task
+	_log_name = gf_strdup(log_name ? log_name : "user_task");
+	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, _log_name, utask);
 	return GF_OK;
 }
 
