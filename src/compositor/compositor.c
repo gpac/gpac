@@ -2655,7 +2655,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
 
-		if (!txh->stream_finished) {
+		if (!txh->stream_finished && txh->is_open) {
 			u32 d = gf_mo_get_min_frame_dur(txh->stream);
 			if (d && (d < frame_duration)) frame_duration = d;
 			//if the texture needs update (new frame), compute its timestamp in system timebase
