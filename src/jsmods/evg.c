@@ -6098,6 +6098,19 @@ static JSValue texture_set_pad_color(JSContext *c, JSValueConst obj, int argc, J
 	return JS_UNDEFINED;
 }
 
+static JSValue texture_get_pad_color(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	char szCol[12];
+	u32 color = 0;
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil) return JS_EXCEPTION;
+
+	color = gf_evg_stencil_get_pad_color(tx->stencil);
+	if (!color) return JS_NULL;
+	sprintf(szCol, "0x%02X%02X%02X%02X", GF_COL_A(color), GF_COL_R(color), GF_COL_G(color), GF_COL_B(color) );
+	return JS_NewString(c, szCol);
+}
+
 
 static const JSCFunctionListEntry texture_funcs[] =
 {
@@ -6128,6 +6141,7 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("load", 0, texture_load),
 	JS_CFUNC_DEF("set_named", 0, texture_set_named),
 	JS_CFUNC_DEF("set_pad_color", 0, texture_set_pad_color),
+	JS_CFUNC_DEF("get_pad_color", 0, texture_get_pad_color),
 };
 
 

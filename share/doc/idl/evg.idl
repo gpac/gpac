@@ -1081,6 +1081,12 @@ interface Texture {
 	*/
 	set_pad_color(DOMString color);
 
+	/*! gets padding color associated for texture
+	\return the color used to pad or null if none.
+	*/
+	DOMString get_pad_color();
+
+
 	/*! gets RGB pixel value in a texture
 	\param s horizontal normalized texture coordinate of pixel, between 0 (left) and 1.0 (right)
 	\param t vertical normalized texture coordinate of pixel, between 0 (top) and 1.0 (bottom)
