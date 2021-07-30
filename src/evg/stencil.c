@@ -1947,6 +1947,14 @@ GF_Err gf_evg_stencil_set_pad_color(GF_EVGStencil * st, GF_Color pad_color)
 }
 
 GF_EXPORT
+u32 gf_evg_stencil_get_pad_color(GF_EVGStencil * st)
+{
+	EVG_Texture *_this = (EVG_Texture *) st;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE)) return 0;
+	return _this->pad_rbg;
+}
+
+GF_EXPORT
 GF_Err gf_evg_stencil_set_mapping(GF_EVGStencil * st, GF_TextureMapFlags mode)
 {
 	EVG_Texture *_this = (EVG_Texture *) st;

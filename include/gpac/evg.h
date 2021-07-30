@@ -302,6 +302,12 @@ GF_Err gf_evg_stencil_set_mapping(GF_EVGStencil *stencil, GF_TextureMapFlags map
 */
 GF_Err gf_evg_stencil_set_pad_color(GF_EVGStencil * stencil, GF_Color pad_color);
 
+/*! gets padding color in RGBA
+\param stencil the target stencil
+\return color  used , 0 if error
+*/
+u32 gf_evg_stencil_get_pad_color(GF_EVGStencil * stencil);
+
 /*! sets filtering mode for a texture stencil
 \param stencil the target stencil
 \param filter_mode texture filtering mode to set
