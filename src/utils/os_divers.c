@@ -2553,12 +2553,12 @@ u64 gf_net_parse_date(const char *val)
 	oh = om = 0;
 	secs = 0;
 
-	if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
-	}
-	else if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
+	if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 		neg_time_zone = GF_TRUE;
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
+	}
+	else if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
 	}
 	else if (sscanf(val, "%3s, %d %3s %d %d:%d:%d", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
@@ -2636,7 +2636,7 @@ u64 gf_net_parse_date(const char *val)
 
 	if (om || oh) {
 		s32 diff = (60*oh + om)*60;
-		if (neg_time_zone) diff = -diff;
+		if (!neg_time_zone) diff = -diff;
 		current_time = current_time + diff;
 	}
 	current_time *= 1000;
