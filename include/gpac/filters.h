@@ -1584,8 +1584,6 @@ typedef struct
 	FILTER_EVENT_BASE
 	/*! URL of segment this info is for, or NULL if single file*/
 	const char *seg_url;
-	/*! global sidx is signaled using is_init=1 and range in idx range*/
-	Bool is_init;
 	/*! media start range in segment file*/
 	u64 media_range_start;
 	/*! media end range in segment file*/
@@ -1594,6 +1592,10 @@ typedef struct
 	u64 idx_range_start;
 	/*! index end range in segment file*/
 	u64 idx_range_end;
+	/*! global sidx is signaled using is_init=1 and range in idx range*/
+	u8 is_init;
+	/*! if global sidx, indicates if this is is an insertion and that byte range previously received should be shifted*/
+	u8 is_shift;
 } GF_FEVT_SegmentSize;
 
 /*! Event structure for  GF_FEVT_FRAGMENT_SIZE*/

@@ -1348,13 +1348,13 @@ retry:
 				evt.seg_size.seg_url = NULL;
 
 				if (rpid->route->dash_mode==1) {
-					evt.seg_size.is_init = GF_TRUE;
+					evt.seg_size.is_init = 1;
 					rpid->route->dash_mode = 2;
 					evt.seg_size.media_range_start = 0;
 					evt.seg_size.media_range_end = 0;
 					gf_filter_pid_send_event(rpid->pid, &evt);
 				} else {
-					evt.seg_size.is_init = GF_FALSE;
+					evt.seg_size.is_init = 0;
 					evt.seg_size.media_range_start = rpid->offset_at_seg_start;
 					evt.seg_size.media_range_end = rpid->res_size - 1;
 					gf_filter_pid_send_event(rpid->pid, &evt);
@@ -1441,13 +1441,13 @@ retry:
 			evt.seg_size.seg_url = NULL;
 
 			if (rpid->route->dash_mode==1) {
-				evt.seg_size.is_init = GF_TRUE;
+				evt.seg_size.is_init = 1;
 				rpid->route->dash_mode = 2;
 				evt.seg_size.media_range_start = 0;
 				evt.seg_size.media_range_end = 0;
 				gf_filter_pid_send_event(rpid->pid, &evt);
 			} else {
-				evt.seg_size.is_init = GF_FALSE;
+				evt.seg_size.is_init = 0;
 				evt.seg_size.media_range_start = rpid->offset_at_seg_start;
 				evt.seg_size.media_range_end = rpid->res_size - 1;
 				rpid->offset_at_seg_start = evt.seg_size.media_range_end;

@@ -2692,13 +2692,13 @@ static void httpin_send_seg_info(GF_HTTPOutInput *in)
 	evt.seg_size.seg_url = NULL;
 
 	if (in->dash_mode==1) {
-		evt.seg_size.is_init = GF_TRUE;
+		evt.seg_size.is_init = 1;
 		in->dash_mode = 2;
 		evt.seg_size.media_range_start = 0;
 		evt.seg_size.media_range_end = 0;
 		gf_filter_pid_send_event(in->ipid, &evt);
 	} else {
-		evt.seg_size.is_init = GF_FALSE;
+		evt.seg_size.is_init = 0;
 		evt.seg_size.media_range_start = in->offset_at_seg_start;
 		evt.seg_size.media_range_end = in->nb_write-1;
 		in->offset_at_seg_start = 1+evt.seg_size.media_range_end;

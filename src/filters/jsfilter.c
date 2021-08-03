@@ -3095,7 +3095,7 @@ static JSValue jsf_event_set_prop(JSContext *ctx, JSValueConst this_val, JSValue
 		evt->seg_size.seg_url = JS_ToCString(ctx, value);
 		return JS_UNDEFINED;
 	case JSF_EVENT_SEG_IS_INIT:
-		evt->seg_size.is_init = JS_ToBool(ctx, value);
+		evt->seg_size.is_init = JS_ToBool(ctx, value) ? 1 : 0;
 		return JS_UNDEFINED;
 	case JSF_EVENT_MEDIA_START_RANGE:
 		return JS_ToInt64(ctx, &evt->seg_size.media_range_start, value) ? JS_EXCEPTION : JS_UNDEFINED;
