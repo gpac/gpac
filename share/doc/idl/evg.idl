@@ -849,11 +849,11 @@ interface Stencil {
 	*/
 	void set_colorf(double r, double g, double b, double a);
 
-	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0 and 255*/
 	void set_alpha(unsigned long alpha);
 
-	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0.0 and 1.0*/
 	void set_alphaf(double alpha);
 
@@ -1000,11 +1000,11 @@ interface Texture {
 	readonly attribute ArrayBuffet data;
 
 
-	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0 and 255*/
 	void set_alpha(unsigned long alpha);
 
-	/*! sets alpha value for stencil. The alpha is is multiplied with the alpha component of the solid brush or gradient color
+	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0.0 and 1.0*/
 	void set_alphaf(double alpha);
 

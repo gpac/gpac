@@ -368,7 +368,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				if ( (s64) _dts > (s64) scale_max_cts) {
 					flags = gf_filter_pid_get_udta_flags(out_pid);
 					if (!flags) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - droping all further packets\n", adj_cts, scale_max_cts));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - dropping all further packets\n", adj_cts, scale_max_cts));
 						gf_filter_pid_set_udta_flags(out_pid, 1);
 					}
 					gf_filter_pid_drop_packet(in_pid);
