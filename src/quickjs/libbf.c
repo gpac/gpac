@@ -5821,7 +5821,7 @@ static __maybe_unused void mp_print_str_h_dec(const char *str,
    must be != zero. na must be >= nb. 's' can be NULL if tabb1[nb - 1]
    >= B / 2.
 
-   The remainder is is returned in taba and contains nb libms. tabq
+   The remainder is returned in taba and contains nb libms. tabq
    contains na - nb + 1 limbs. No overlap is permitted.
 
    Running time of the standard method: (na - nb + 1) * nb

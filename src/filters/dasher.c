@@ -7481,7 +7481,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					if (!ds->presentation_time_offset)
 						ds->presentation_time_offset = cts + 1;
 
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, droping non-SAP1/2 packet CTS "LLU"/%d\n", cts, ds->timescale));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Representation not initialized, dropping non-SAP1/2 packet CTS "LLU"/%d\n", cts, ds->timescale));
 					dasher_drop_input(ctx, ds, GF_FALSE);
 					break;
 				}
