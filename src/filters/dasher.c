@@ -8449,6 +8449,18 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if ((ctx->sfile || ctx->sseg) && (evt->seg_size.is_init==1))  {
 			GF_MPD_URL *url, **s_url;
 
+			if (evt->seg_size.is_shift) {
+				u32 j, nb_segs = gf_list_count(ds->rep->state_seg_list);
+				//we assume the shifted index start range is the previous init segment end range
+				//which is always the case for isobmf muxer (the only one using is_shift)
+				u64 diff = 1 + (u32) (evt->seg_size.idx_range_end - evt->seg_size.idx_range_start);
+
+				for (j=0; j<nb_segs; j++) {
+					GF_DASH_SegmentContext *sctx = gf_list_get(ds->rep->state_seg_list, j);
+					sctx->file_offset += diff;
+				}
+			}
+
 			if (ds->rep->segment_list) {
 				if (!evt->seg_size.media_range_start && !evt->seg_size.media_range_end) {
 					if (ds->rep->segment_list->initialization_segment) {

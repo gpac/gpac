@@ -4484,11 +4484,14 @@ static void mp4_mux_flush_seg(GF_MP4MuxCtx *ctx, Bool is_init, u64 idx_start_ran
 		tkw = gf_list_get(ctx->tracks, 0);
 		GF_FEVT_INIT(evt, GF_FEVT_SEGMENT_SIZE, tkw->ipid);
 		evt.seg_size.seg_url = NULL;
-		evt.seg_size.is_init = is_init ? GF_TRUE : GF_FALSE;
+		evt.seg_size.is_init = is_init ? 1 : 0;
 		if (!is_init || !idx_end_range) {
 			evt.seg_size.media_range_start = ctx->current_offset;
 			evt.seg_size.media_range_end = ctx->current_offset + ctx->current_size - 1;
 		}
+		if (idx_end_range && (ctx->vodcache==MP4MX_VODCACHE_INSERT))
+			evt.seg_size.is_shift = 1;
+
 		evt.seg_size.idx_range_start = idx_start_range;
 		evt.seg_size.idx_range_end = idx_end_range;
 		gf_filter_pid_send_event(tkw->ipid, &evt);
@@ -4897,6 +4900,8 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 			gf_bs_write_data(bs, msg, len );
 			gf_bs_del(bs);
 			gf_filter_pck_send(pck);
+
+			ctx->current_offset += ctx->sidx_max_size;
 		} else if (ctx->vodcache==MP4MX_VODCACHE_ON) {
 			ctx->store_output = GF_TRUE;
 		} else {
@@ -5476,6 +5481,9 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				ctx->seg_sizes[ctx->nb_seg_sizes] = (u32) segment_size_in_bytes;
 				ctx->nb_seg_sizes++;
 			}
+			//we still need to send seg size info for for HLS !
+			if (ctx->vodcache==MP4MX_VODCACHE_INSERT)
+				mp4_mux_flush_seg(ctx, GF_FALSE, 0, 0);
 		}
 		//cannot flush in DASH mode if using sidx (vod single sidx or live 1 sidx/seg)
 		else if (!ctx->dash_mode || ((ctx->subs_sidx<0) && (ctx->dash_mode<MP4MX_DASH_VOD) && !ctx->cloned_sidx) ) {
