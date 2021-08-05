@@ -815,7 +815,7 @@ setup_route:
 	else if (val) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] ROUTE clock already setup - UTC diff of ROUTE broadcast "LLD" ms\n", group->dash->utc_drift_estimate));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] No ROUTE entity on HTPP request\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] No ROUTE entity on HTTP request\n"));
 	}
 
 	if (!group->dash->route_clock_state || (group->dash->route_clock_state>2)) {
