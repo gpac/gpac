@@ -46,7 +46,7 @@ GF_Err co64_box_read(GF_Box *s,GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4)
 
-	if (ptr->nb_entries > ptr->size / 8) {
+	if ((u64)ptr->nb_entries > ptr->size / 8 || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(u64)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in co64\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -392,7 +392,7 @@ GF_Err ctts_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
 
-	if (ptr->nb_entries > ptr->size / 8) {
+	if (ptr->nb_entries > ptr->size / 8 || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(GF_DttsEntry) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in ctts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -3199,6 +3199,10 @@ GF_Err tfra_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->nb_entries) {
+		if ((u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(GF_RandomAccessEntry)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in traf\n", ptr->nb_entries));
+			return GF_ISOM_INVALID_FILE;
+		}
 		p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
 		if (!p) return GF_OUT_OF_MEM;
 	}
@@ -5104,7 +5108,7 @@ GF_Err stco_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->nb_entries > ptr->size / 4) {
+	if (ptr->nb_entries > ptr->size / 4 || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(u32)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stco\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5236,7 +5240,7 @@ GF_Err stsc_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
 
-	if (ptr->nb_entries > ptr->size / 12) {
+	if (ptr->nb_entries > ptr->size / 12 || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(GF_StscEntry)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stsc\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5575,6 +5579,10 @@ GF_Err stsz_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 		}
 	}
+	if (ptr->sampleCount && (u64)ptr->sampleCount > (u64)SIZE_MAX/sizeof(u32)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stsz\n", ptr->sampleCount));
+		return GF_ISOM_INVALID_FILE;
+	}
 	if (s->type == GF_ISOM_BOX_TYPE_STSZ) {
 		if (! ptr->sampleSize && ptr->sampleCount) {
 			if (ptr->sampleCount > ptr->size / 4) {
@@ -5779,7 +5787,7 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->size / 8 < ptr->nb_entries) {
+	if (ptr->size / 8 < ptr->nb_entries || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(GF_SttsEntry)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stts\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -7384,6 +7392,10 @@ GF_Err trun_box_read(GF_Box *s, GF_BitStream *bs)
 		if (ptr->sample_count * 4 > ptr->size) {
 			ISOM_DECREASE_SIZE(ptr, ptr->sample_count*4);
 		}
+		if ((u64)ptr->sample_count > (u64)SIZE_MAX/sizeof(GF_TrunEntry)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of samples %d in trun\n", ptr->sample_count));
+			return GF_ISOM_INVALID_FILE;
+		}
 		ptr->samples = gf_malloc(sizeof(GF_TrunEntry) * ptr->sample_count);
 		if (!ptr->samples) return GF_OUT_OF_MEM;
 		ptr->sample_alloc = ptr->nb_samples = ptr->sample_count;
@@ -8868,7 +8880,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->subsegment_count = gf_bs_read_u32(bs);
 	//each subseg has at least one range_count (4 bytes), abort if not enough bytes (broken box)
-	if (ptr->size / 4 < ptr->subsegment_count)
+	if (ptr->size / 4 < ptr->subsegment_count || (u64)ptr->subsegment_count > (u64)SIZE_MAX/sizeof(GF_SubsegmentInfo))
 		return GF_ISOM_INVALID_FILE;
 
 	ptr->subsegment_alloc = ptr->subsegment_count;
@@ -8880,7 +8892,7 @@ GF_Err ssix_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4)
 		subseg->range_count = gf_bs_read_u32(bs);
 		//each range is 4 bytes, abort if not enough bytes
-		if (ptr->size / 4 < subseg->range_count)
+		if (ptr->size / 4 < subseg->range_count || (u64)subseg->range_count > (u64)SIZE_MAX/sizeof(GF_SubsegmentRangeInfo))
 			return GF_ISOM_INVALID_FILE;
 		subseg->ranges = (GF_SubsegmentRangeInfo*) gf_malloc(sizeof(GF_SubsegmentRangeInfo) * subseg->range_count);
 		if (!subseg->ranges) return GF_OUT_OF_MEM;
@@ -9061,6 +9073,11 @@ GF_Err pcrb_box_read(GF_Box *s,GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->subsegment_count = gf_bs_read_u32(bs);
+
+	if ((u64)ptr->subsegment_count > ptr->size / 8 || (u64)ptr->subsegment_count > (u64)SIZE_MAX/sizeof(u64)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of subsegment %d in pcrb\n", ptr->subsegment_count));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	ptr->pcr_values = gf_malloc(sizeof(u64)*ptr->subsegment_count);
 	if (!ptr->pcr_values) return GF_OUT_OF_MEM;
@@ -9386,7 +9403,7 @@ GF_Err sbgp_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 	ptr->entry_count = gf_bs_read_u32(bs);
 
-	if (ptr->size < sizeof(GF_SampleGroupEntry)*ptr->entry_count)
+	if (ptr->size < sizeof(GF_SampleGroupEntry)*ptr->entry_count || (u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(GF_SampleGroupEntry))
 	    return GF_ISOM_INVALID_FILE;
 
 	ptr->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry)*ptr->entry_count);
@@ -10041,7 +10058,7 @@ GF_Err saio_box_read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->entry_count) {
 		u32 i;
-		if (ptr->size / (ptr->version == 0 ? 4 : 8) < ptr->entry_count)
+		if (ptr->size / (ptr->version == 0 ? 4 : 8) < ptr->entry_count || (u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(u64))
 			return GF_ISOM_INVALID_FILE;
 		ptr->offsets = gf_malloc(sizeof(u64)*ptr->entry_count);
 		if (!ptr->offsets)
@@ -10551,7 +10568,7 @@ GF_Err fpar_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
-	if (ptr->nb_entries > ptr->size / 6)
+	if (ptr->nb_entries > ptr->size / 6 || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(FilePartitionEntry))
 		return GF_ISOM_INVALID_FILE;
 
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * 6 );
@@ -10636,6 +10653,11 @@ GF_Err fecr_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
+
+	if (ptr->nb_entries > ptr->size / (ptr->version ? 8 : 6) || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(FECReservoirEntry) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in fecr\n", ptr->nb_entries));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * (ptr->version ? 8 : 6) );
 	GF_SAFE_ALLOC_N(ptr->entries, ptr->nb_entries, FECReservoirEntry);
@@ -12251,8 +12273,10 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->pattern_count = gf_bs_read_u32(bs);
 
 
-	if (ptr->size / ( (pattern_size + scount_size) / 8 ) < ptr->pattern_count )
-	    return GF_ISOM_INVALID_FILE;
+	if ( (ptr->size / ( (pattern_size + scount_size) / 8 ) < ptr->pattern_count) || (u64)ptr->pattern_count > (u64)SIZE_MAX/sizeof(GF_CompactSampleGroupPattern) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern_count value (%lu) invalid\n", ptr->pattern_count));
+		return GF_ISOM_INVALID_FILE;
+	}
 
 	ptr->patterns = gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
 	if (!ptr->patterns) return GF_OUT_OF_MEM;
@@ -12266,6 +12290,11 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 			bits/=8;
 			ISOM_DECREASE_SIZE(ptr, bits);
 			bits=0;
+		}
+		if ( (u64)ptr->patterns[i].length > (u64)SIZE_MAX/sizeof(u32) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern #%d value (%lu) invalid\n", i, ptr->patterns[i].length));
+			ptr->patterns[i].sample_group_description_indices = NULL;
+			return GF_ISOM_INVALID_FILE;
 		}
 		ptr->patterns[i].sample_group_description_indices = gf_malloc(sizeof(u32) * ptr->patterns[i].length);
 		if (!ptr->patterns[i].sample_group_description_indices) return GF_OUT_OF_MEM;
