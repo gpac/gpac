@@ -577,10 +577,15 @@ GF_Err url_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_DataEntryURLBox *ptr = (GF_DataEntryURLBox *)s;
 
 	if (ptr->size) {
-		ptr->location = (char*)gf_malloc((u32) ptr->size);
+		u32 location_size = (u32) ptr->size;
+		if (location_size < 1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
+			return GF_ISOM_INVALID_FILE;
+		}
+		ptr->location = (char*)gf_malloc(location_size);
 		if (! ptr->location) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->location, (u32)ptr->size);
-		if (ptr->location[ptr->size-1]) {
+		gf_bs_read_data(bs, ptr->location, location_size);
+		if (ptr->location[location_size-1]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] url box location is not 0-terminated\n" ));
 			return GF_ISOM_INVALID_FILE;
 		}
@@ -1896,6 +1901,12 @@ GF_Err sdp_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr == NULL) return GF_BAD_PARAM;
 
 	length = (u32) (ptr->size);
+
+	if (length >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid length %lu in sdp box\n", length));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	//sdp text has no delimiter !!!
 	ptr->sdpText = (char*)gf_malloc(sizeof(char) * (length+1));
 	if (!ptr->sdpText) return GF_OUT_OF_MEM;
@@ -1953,6 +1964,12 @@ GF_Err rtp_hnti_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->subType = gf_bs_read_u32(bs);
 
 	length = (u32) (ptr->size);
+
+	if (length >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid length %lu in rtp_hnti box\n", length));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	//sdp text has no delimiter !!!
 	ptr->sdpText = (char*)gf_malloc(sizeof(char) * (length+1));
 	if (!ptr->sdpText) return GF_OUT_OF_MEM;
@@ -2616,6 +2633,12 @@ GF_Err name_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_NameBox *ptr = (GF_NameBox *)s;
 
 	length = (u32) (ptr->size);
+
+	if (length >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid length %lu in name box\n", length));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	ptr->string = (char*)gf_malloc(sizeof(char) * (length+1));
 	if (! ptr->string) return GF_OUT_OF_MEM;
 
@@ -8549,6 +8572,10 @@ void txtc_box_del(GF_Box *s)
 GF_Err txtc_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
+	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in txtc box\n", ptr->size));
+		return GF_ISOM_INVALID_FILE;
+	}
 	ptr->config = (char *)gf_malloc(sizeof(char)*((u32) ptr->size+1));
 	if (!ptr->config) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->config, (u32) ptr->size);
@@ -12634,6 +12661,10 @@ void svhd_box_del(GF_Box *s)
 GF_Err svhd_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SphericalVideoInfoBox *ptr = (GF_SphericalVideoInfoBox *)s;
+	if ((u32)ptr->size >= (u32)0xFFFFFFFF) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in svhd box\n", ptr->size));
+		return GF_ISOM_INVALID_FILE;
+	}
 	ptr->string = gf_malloc(sizeof(char) * ((u32) ptr->size+1));
 	if (!ptr->string) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->string, (u32) ptr->size);
