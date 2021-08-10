@@ -1655,17 +1655,23 @@ GF_Err hdlr_box_read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_set_cookie(bs, cookie);
 
 	if (ptr->size) {
-		ptr->nameUTF8 = (char*)gf_malloc((u32) ptr->size);
+		u32 name_size = (u32) ptr->size;
+		if (name_size < 1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in hdlr\n", ptr->size));
+			return GF_ISOM_INVALID_FILE;
+		}
+		ptr->nameUTF8 = (char*)gf_malloc(name_size);
 		if (!ptr->nameUTF8) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
+		gf_bs_read_data(bs, ptr->nameUTF8, name_size);
 
 		//patch for old QT files - we cannot rely on checking if str[0]==len(str+1) since we may have
 		//cases where the first character of the string decimal value is indeed the same as the string length!!
 		//we had this issue with encryption_import test
 		//we therefore only check if last char is null, and if not so assume old QT style
-		if (ptr->nameUTF8[ptr->size-1]) {
-			memmove(ptr->nameUTF8, ptr->nameUTF8+1, sizeof(char) * (u32) (ptr->size-1) );
-			ptr->nameUTF8[ptr->size-1] = 0;
+		if (ptr->nameUTF8[name_size-1]) {
+			if (name_size > 1)
+				memmove(ptr->nameUTF8, ptr->nameUTF8+1, sizeof(char) * (u32) (name_size-1) );
+			ptr->nameUTF8[name_size-1] = 0;
 			ptr->store_counted_string = GF_TRUE;
 		}
 	}
@@ -6795,6 +6801,10 @@ GF_Err stri_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->alternate_group = gf_bs_read_u16(bs);
 	ptr->sub_track_id = gf_bs_read_u32(bs);
 	ptr->attribute_count = ptr->size / 4;
+	if ((u64)ptr->attribute_count > (u64)SIZE_MAX/sizeof(u32)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in stri\n", ptr->size));
+		return GF_ISOM_INVALID_FILE;
+	}
 	GF_SAFE_ALLOC_N(ptr->attribute_list, (size_t)ptr->attribute_count, u32);
 	if (!ptr->attribute_list) return GF_OUT_OF_MEM;
 	for (i = 0; i < ptr->attribute_count; i++) {
@@ -11154,6 +11164,10 @@ GF_Err trik_box_read(GF_Box *s,GF_BitStream *bs)
 	u32 i;
 	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
 	ptr->entry_count = (u32) ptr->size;
+	if ((u64)ptr->entry_count > (u64)SIZE_MAX/sizeof(GF_TrickPlayBoxEntry)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size %llu in trik\n", ptr->size));
+		return GF_ISOM_INVALID_FILE;
+	}
 	ptr->entries = (GF_TrickPlayBoxEntry *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
 	if (!ptr->entries) return GF_OUT_OF_MEM;
 
@@ -12473,6 +12487,11 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		s32 tag_size = gf_bs_read_u32(bs);
 		u32 name_size = gf_bs_read_u32(bs);
 		tag_size -= 8;
+
+		if (name_size >= (u32)0xFFFFFFFF) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid name_size %lu in xtra\n", name_size));
+			return GF_ISOM_INVALID_FILE;
+		}
 
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
 		data = gf_malloc(sizeof(char) * (name_size+1));
