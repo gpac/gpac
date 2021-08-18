@@ -5509,7 +5509,7 @@ GF_Err stss_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 4);
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->size / 4 <  ptr->nb_entries) {
+	if (ptr->size / 4 <  ptr->nb_entries || (u64)ptr->nb_entries > (u64)SIZE_MAX/sizeof(u32)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stss\n", ptr->nb_entries));
 		return GF_ISOM_INVALID_FILE;
 	}
