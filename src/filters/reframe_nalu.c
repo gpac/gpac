@@ -369,7 +369,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		ctx->ps_modified = GF_TRUE;
 		ctx->crc_cfg = ctx->crc_cfg_enh = 0;
 	}
-	
+
 	return GF_OK;
 }
 
@@ -769,7 +769,7 @@ GF_Err naludmx_set_hevc_oinf(GF_NALUDmxCtx *ctx, u8 *max_temporal_id)
 	if (!vps_sl) return GF_SERVICE_ERROR;
 
 	vps = &ctx->hevc_state->vps[vps_sl->id];
-	
+
 	if (!vps->vps_extension_found) return GF_OK;
 	if (vps->max_layers<2) return GF_OK;
 
@@ -911,7 +911,7 @@ static void naludmx_set_hevc_linf(GF_NALUDmxCtx *ctx)
 		return;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	
+
 	gf_bs_write_int(bs, 0, 2);
 	gf_bs_write_int(bs, nb_layers, 6);
 	for (i=0; i<nb_layers; i++) {
@@ -2353,7 +2353,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		*skip_nal = GF_TRUE;
 	}
 	ctx->nb_nalus++;
-	
+
 	switch (nal_type) {
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 	case GF_AVC_NALU_SEQ_PARAM:
@@ -2471,7 +2471,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 			u32 i;
 			for (i = 0; i < gf_list_count(ctx->pps); i ++) {
 				GF_NALUFFParam *slc = (GF_NALUFFParam*)gf_list_get(ctx->pps, i);
-				if (ctx->avc_state->s_info.pps->id == slc->id) {
+				if (ctx->avc_state->s_info.pps && ctx->avc_state->s_info.pps->id == slc->id) {
 					/* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
 					gf_list_rem(ctx->pps, i);
 					i--;
@@ -2757,7 +2757,7 @@ naldmx_flush:
 		if (!ctx->opid && current) {
 			assert(remain>=current);
             assert((s32) current >= 0);
-            
+
 			start += current;
 			remain -= current;
 			current = 0;
