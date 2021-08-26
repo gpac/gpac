@@ -437,6 +437,10 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				e = GF_OK;
 			}
 			if (e) goto error;
+		} else {
+			e = GF_BAD_PARAM;
+			fprintf(stderr, "Wrong edit format %s, should start with 'e' or 'r'\n", edits);
+			goto error;
 		}
 error:
 		if (sep) sep[0] = c;
