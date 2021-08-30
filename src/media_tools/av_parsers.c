@@ -3980,10 +3980,8 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 		gf_list_del(l1);
 		gf_list_del(l2);
 		if (state->bs) {
-			if (gf_bs_get_position(state->bs)) {
-				u32 size;
-				gf_bs_get_content_no_truncate(state->bs, &state->frame_obus, &size, &state->frame_obus_alloc);
-			}
+			u32 size;
+			gf_bs_get_content_no_truncate(state->bs, &state->frame_obus, &size, &state->frame_obus_alloc);
 			gf_bs_del(state->bs);
 		}
 		state->bs = NULL;
