@@ -181,7 +181,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	/*decode DSI*/
 	e = gf_m4v_get_config(p->value.data.ptr, p->value.data.size, &dsi);
 	if (e) return e;
-	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!dsi.width || (dsi.width%2) || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
 	memset(&par, 0, sizeof(par));
 	par.width = dsi.width;
