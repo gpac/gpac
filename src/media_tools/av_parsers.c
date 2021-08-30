@@ -4690,18 +4690,21 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 	u32 bits = 0;
 	for (code=0; !code; nb_lead++) {
 		if (nb_lead>=32) {
-			//gf_bs_read_int keeps returning 0 on EOS, so if no more bits available, rbsp was truncated otherwise code is broken in rbsp)
-			//we only test once nb_lead>=32 to avoid testing at each bit read
-			if (!gf_bs_available(bs)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] exp-golomb read failed, not enough bits in bitstream !\n"));
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] corrupted exp-golomb code, %d leading zeros, max 31 allowed !\n", nb_lead));
-			}
-			return 0;
+			break;
 		}
-
 		code = gf_bs_read_int(bs, 1);
 		bits++;
+	}
+
+	if (nb_lead>=32) {
+		//gf_bs_read_int keeps returning 0 on EOS, so if no more bits available, rbsp was truncated otherwise code is broken in rbsp)
+		//we only test once nb_lead>=32 to avoid testing at each bit read
+		if (!gf_bs_available(bs)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] exp-golomb read failed, not enough bits in bitstream !\n"));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] corrupted exp-golomb code, %d leading zeros, max 31 allowed !\n", nb_lead));
+		}
+		return 0;
 	}
 
 	if (nb_lead) {
@@ -5785,7 +5788,7 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 	if (si->slice_type > 9) return -1;
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
-	if (pps_id > 255)
+	if ((pps_id<0) || (pps_id > 255))
 		return -1;
 	si->pps = &avc->pps[pps_id];
 	si->pps->id = pps_id;
