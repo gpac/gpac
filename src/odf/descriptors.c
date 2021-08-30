@@ -1613,6 +1613,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		size -= (u32) obu_size;
 	}
 	gf_av1_reset_state(& state, GF_TRUE);
+	gf_bs_align(bs);
 	return cfg;
 #else
 	return NULL;
