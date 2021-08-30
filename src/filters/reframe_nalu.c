@@ -1680,8 +1680,10 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 {
 	GF_List *list = NULL, *alt_list = NULL;
 	GF_NALUFFParam *sl;
-	u32 i, count;
-	u32 crc = gf_crc_32(data, size);
+	u32 i, count, crc;
+
+	if (!size) return;
+	crc = gf_crc_32(data, size);
 
 	if (ctx->codecid==GF_CODECID_HEVC) {
 		switch (ps_type) {
