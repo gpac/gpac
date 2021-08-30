@@ -805,12 +805,17 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				//not enough data, accumulate until we can parse the full header
 				if (e==GF_EOS) {
 					if (vosh_start<0) vosh_start = 0;
-					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
-						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
-						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					if (data == ctx->hdr_store) {
+						memmove(ctx->hdr_store, start, remain);
+						ctx->hdr_store_size = remain;
+					} else {
+						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
+							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);
+							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+						}
+						memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
+						ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					}
-					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
-					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
 				} else if (e != GF_OK) {
@@ -844,12 +849,17 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				//not enough data, accumulate until we can parse the full header
 				if (e==GF_EOS) {
 					if (vosh_start<0) vosh_start = 0;
-					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
-						ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
-						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					if (data == ctx->hdr_store) {
+						memmove(ctx->hdr_store, start, remain);
+						ctx->hdr_store_size = remain;
+					} else {
+						if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
+							ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);
+							ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+						}
+						memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
+						ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					}
-					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );
-					ctx->hdr_store_size += pck_size - (u32) vosh_start;
 					gf_filter_pid_drop_packet(ctx->ipid);
 					return GF_OK;
 				} else if (e != GF_OK) {
