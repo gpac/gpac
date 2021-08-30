@@ -4705,8 +4705,12 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 	}
 
 	if (nb_lead) {
+		u32 leads=1;
 		val = gf_bs_read_int(bs, nb_lead);
-		val += (1 << nb_lead) - 1;
+		leads <<= nb_lead;
+		leads -= 1;
+		val += leads;
+//		val += (1 << nb_lead) - 1;
 		bits += nb_lead;
 	}
 
@@ -5671,7 +5675,7 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	if (si->slice_type > 9) return -1;
 
 	pps_id = gf_bs_read_ue_log(bs, "pps_id");
-	if (pps_id > 255) return -1;
+	if ((pps_id<0) || (pps_id > 255)) return -1;
 	si->pps = &avc->pps[pps_id];
 	if (!si->pps->slice_group_count) return -2;
 	si->sps = &avc->sps[si->pps->sps_id];
