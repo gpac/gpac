@@ -949,9 +949,14 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		strcat(sdpLine, "; tx3g=");
 		for (i=0; i<gf_isom_get_sample_description_count(tkHint->file, tkHint->TrackNum); i++) {
 			u8 *tx3g;
+			GF_Err e;
 			char buffer[2000];
 			u32 tx3g_len, len;
-			gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
+			e = gf_isom_text_get_encoded_tx3g(tkHint->file, tkHint->TrackNum, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
+			if (e) {
+				if (i) continue;
+				return GF_ISOM_INVALID_FILE;
+			}
 			len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
 			gf_free(tx3g);
 			buffer[len] = 0;
