@@ -282,7 +282,8 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	for (i = 0; i < item_count; i++) {
-		GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));
+		GF_ItemLocationEntry *location_entry;
+		GF_SAFEALLOC(location_entry, GF_ItemLocationEntry);
 		if (!location_entry) return GF_OUT_OF_MEM;
 
 		gf_list_add(ptr->location_entries, location_entry);
@@ -311,7 +312,8 @@ GF_Err iloc_box_read(GF_Box *s, GF_BitStream *bs)
 		extent_count = gf_bs_read_u16(bs);
 		location_entry->extent_entries = gf_list_new();
 		for (j = 0; j < extent_count; j++) {
-			GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));
+			GF_ItemExtentEntry *extent_entry;
+			GF_SAFEALLOC(extent_entry, GF_ItemExtentEntry);
 			if (!extent_entry) return GF_OUT_OF_MEM;
 			
 			gf_list_add(location_entry->extent_entries, extent_entry);
