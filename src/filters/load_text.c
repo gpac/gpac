@@ -255,7 +255,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 {
 	u32 i, j, len;
 	char *sOK;
-	char szLineConv[1024];
+	char szLineConv[2048];
 	unsigned short *sptr;
 
 	memset(szLine, 0, sizeof(char)*lineSize);
@@ -328,7 +328,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 		}
 	}
 	sptr = (u16 *)szLine;
-	i = (u32) gf_utf8_wcstombs(szLineConv, 1024, (const unsigned short **) &sptr);
+	i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the gf_fgets never reads the \0 after a \n*/
@@ -2338,6 +2338,8 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 		while (szLine[i+1] && szLine[i+1]!='}') {
 			szTime[i] = szLine[i+1];
 			i++;
+			if (i>=19)
+				break;
 		}
 		szTime[i] = 0;
 		ctx->start = atoi(szTime);
