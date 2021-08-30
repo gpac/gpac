@@ -1453,6 +1453,13 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pid_set_eos(ch->pid);
 				}
 				break;
+			} else if (ch->last_state==GF_ISOM_INVALID_FILE) {
+				if (!ch->eos_sent) {
+					ch->eos_sent = GF_TRUE;
+					read->eos_signaled = GF_TRUE;
+					gf_filter_pid_set_eos(ch->pid);
+				}
+				return ch->last_state;
 			} else {
 				read->force_fetch = GF_TRUE;
 				break;

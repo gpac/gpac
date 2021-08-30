@@ -479,6 +479,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				if (!ch->has_edit_list && ch->sample_num)
 					ch->sample_num--;
 			} else {
+				if (ch->to_init && ch->sample_num) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to fetch initial sample %d for track %d\n"));
+					ch->last_state = GF_ISOM_INVALID_FILE;
+				}
 				if (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)) {
 					ch->last_state = GF_EOS;
 				}
