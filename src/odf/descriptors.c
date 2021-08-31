@@ -1051,7 +1051,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if (size>gf_bs_available(bs)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[HEVC] Wrong param set size %d\n", size));
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
@@ -1261,7 +1261,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			cfg->general_constraint_info = gf_malloc(sizeof(u8)*cfg->num_constraint_info);
 			if (!cfg->general_constraint_info) {
 				gf_free(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 			gf_bs_read_data(bs, cfg->general_constraint_info, cfg->num_constraint_info - 1);
@@ -1290,7 +1290,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			if (!cfg->sub_profiles_idc) {
 				gf_free(cfg->general_constraint_info);
 				gf_free(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 		}
@@ -1312,7 +1312,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 		GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 		if (!ar) {
 			gf_odf_vvc_cfg_del(cfg);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
 			return NULL;
 		}
 		ar->nalus = gf_list_new();
@@ -1331,14 +1331,14 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if (size>gf_bs_available(bs)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] Wrong param set size %d\n", size));
 				gf_odf_vvc_cfg_del(cfg);
 				return NULL;
 			}
 			GF_SAFEALLOC(sl, GF_NALUFFParam );
 			if (!sl) {
 				gf_odf_vvc_cfg_del(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 
@@ -1347,7 +1347,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			if (!sl->data) {
 				gf_free(sl);
 				gf_odf_vvc_cfg_del(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 			gf_bs_read_data(bs, sl->data, sl->size);
