@@ -251,11 +251,11 @@ static const GF_FilterCapability FileListCapsSrc_RAW_V[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
-static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 prev_timescale)
+static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 prev_timescale, Bool is_reassign)
 {
 	iopid->is_eos = GF_FALSE;
 
-	if (!ctx->do_cat) {
+	if (is_reassign && !ctx->do_cat) {
 		GF_FilterEvent evt;
 		//if we reattached the input, we must send a play request
 		gf_filter_pid_init_play_event(iopid->ipid, &evt, ctx->start, 1.0, "FileList");
@@ -280,7 +280,7 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 		iopid->cts_o = 0;
 	}
 	
-	if (prev_timescale) {
+	if (is_reassign && prev_timescale) {
 		u64 dts, cts;
 
 		//in input timescale
@@ -566,9 +566,12 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	//if we reattached the input, we must send a play request
 	if (reassign) {
-		filelist_start_ipid(ctx, iopid, prev_timescale);
+		filelist_start_ipid(ctx, iopid, prev_timescale, GF_TRUE);
 	}
-
+	//new pid and no a splicing operation, we must adjust dts and cts offset
+	else if (ctx->splice_state == FL_SPLICE_NONE) {
+		filelist_start_ipid(ctx, iopid, prev_timescale, GF_FALSE);
+	}
 	return GF_OK;
 }
 
@@ -1120,7 +1123,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		FileListPid *an_iopid = gf_list_get(ctx->io_pids, i);
 		if (ctx->do_cat) {
 			gf_filter_pid_clear_eos(an_iopid->ipid, GF_TRUE);
-			filelist_start_ipid(ctx, an_iopid, an_iopid->timescale);
+			filelist_start_ipid(ctx, an_iopid, an_iopid->timescale, GF_TRUE);
 		} else {
 			if (ctx->wait_splice_start && !an_iopid->splice_ipid) {
 				an_iopid->splice_ipid = an_iopid->ipid;
@@ -2468,7 +2471,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				gf_filter_pid_send_event(iopid->ipid, &evt);
 
 				iopid->is_eos = GF_FALSE;
-				filelist_start_ipid(ctx, iopid, iopid->timescale);
+				filelist_start_ipid(ctx, iopid, iopid->timescale, GF_TRUE);
 				if (is_splice_resume) {
 					iopid->dts_o_splice = iopid->cts_o;
 					iopid->cts_o_splice = iopid->dts_o;
