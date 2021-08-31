@@ -7290,8 +7290,9 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 		GF_EditListBox *elst = trak->editBox->editList;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
-			if (ent->segmentDuration > trackDuration)
+			if ((ent->mediaTime>=0) && (ent->mediaRate==1) && (ent->segmentDuration > trackDuration))
 				ent->segmentDuration = trackDuration;
+
 			if (!ent->segmentDuration) {
 				u64 diff;
 				ent->segmentDuration = trackDuration;
