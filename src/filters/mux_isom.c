@@ -981,21 +981,25 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (dsi) {
 		u32 cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
-		if (cfg_crc!=tkw->cfg_crc) needs_sample_entry = 2;
+		if ((cfg_crc!=tkw->cfg_crc) && !needs_sample_entry)
+			needs_sample_entry = 2;
 		tkw->cfg_crc = cfg_crc;
 	} else if (tkw->cfg_crc) {
 		tkw->cfg_crc = 0;
-		needs_sample_entry = 2;
+		if (!needs_sample_entry)
+			needs_sample_entry = 2;
 	}
 
 	enh_dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 	if (enh_dsi && (enh_dsi->type==GF_PROP_DATA) ) {
 		u32 cfg_crc = gf_crc_32(enh_dsi->value.data.ptr, enh_dsi->value.data.size);
-		if (cfg_crc!=tkw->enh_cfg_crc) needs_sample_entry = 2;
+		if ((cfg_crc!=tkw->enh_cfg_crc) && !needs_sample_entry)
+			needs_sample_entry = 2;
 		tkw->enh_cfg_crc = cfg_crc;
 	} else if (tkw->enh_cfg_crc) {
 		tkw->enh_cfg_crc = 0;
-		needs_sample_entry = 2;
+		if (!needs_sample_entry)
+			needs_sample_entry = 2;
 	}
 
 	//TODO: try to merge PPS/SPS for AVC and HEVC rather than creating a new sample description
@@ -1551,7 +1555,8 @@ sample_entry_setup:
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p && (p->value.uint!=tkw->amr_mode_set)) {
 			tkw->amr_mode_set = p->value.uint;
-			needs_sample_entry = 2;
+			if (!needs_sample_entry)
+				needs_sample_entry = 2;
 		}
 		break;
 	case GF_CODECID_AMR_WB:
@@ -1561,7 +1566,8 @@ sample_entry_setup:
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p && (p->value.uint!=tkw->amr_mode_set)) {
 			tkw->amr_mode_set = p->value.uint;
-			needs_sample_entry = 2;
+			if (!needs_sample_entry)
+				needs_sample_entry = 2;
 		}
 		break;
 	case GF_CODECID_EVRC:
@@ -1865,7 +1871,8 @@ sample_entry_setup:
 			if ((sr == tkw->w_or_sr) && (nb_chan==tkw->h_or_ch) && (afmt==tkw->pf_or_af)) {
 
 			} else {
-				needs_sample_entry = GF_TRUE;
+				if (!needs_sample_entry)
+					needs_sample_entry = 2;
 				tkw->w_or_sr = sr;
 				tkw->h_or_ch = nb_chan;
 				tkw->pf_or_af = afmt;
@@ -1892,7 +1899,8 @@ sample_entry_setup:
 			if ((width == tkw->w_or_sr) && (height==tkw->h_or_ch) && (pfmt==tkw->pf_or_af)) {
 
 			} else {
-				needs_sample_entry = GF_TRUE;
+				if (!needs_sample_entry)
+					needs_sample_entry = 2;
 				tkw->w_or_sr = width;
 				tkw->h_or_ch = height;
 				tkw->pf_or_af = pfmt;
