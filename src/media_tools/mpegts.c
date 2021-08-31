@@ -1225,6 +1225,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				        metapd->format_identifier == GF_M2TS_META_ID3 &&
 				        metapd->carriage_flag == METADATA_CARRIAGE_SAME_TS) {
 					/*HLS ID3 Metadata */
+					if (pmt->program->metadata_pointer_descriptor)
+						gf_m2ts_metadata_pointer_descriptor_del(pmt->program->metadata_pointer_descriptor);
 					pmt->program->metadata_pointer_descriptor = metapd;
 				} else {
 					/* don't know what to do with it for now, delete */
@@ -1595,6 +1597,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					        metad->format_identifier == GF_M2TS_META_ID3) {
 						/*HLS ID3 Metadata */
 						if (pes) {
+							if (pes->metadata_descriptor)
+								gf_m2ts_metadata_descriptor_del(pes->metadata_descriptor);
 							pes->metadata_descriptor = metad;
 							pes->stream_type = GF_M2TS_METADATA_ID3_HLS;
 						}

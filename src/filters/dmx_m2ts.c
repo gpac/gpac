@@ -340,7 +340,18 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		}
 	}
 
-	opid = gf_filter_pid_new(ctx->filter);
+	opid = NULL;
+	for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+		opid = gf_filter_get_opid(ctx->filter, i);
+		const GF_PropertyValue *p = gf_filter_pid_get_property(opid, GF_PROP_PID_ID);
+		if (p && (p->value.uint == stream->pid))
+			break;
+		opid = NULL;
+	}
+
+	if (!opid)
+		opid = gf_filter_pid_new(ctx->filter);
+
 	stream->user = opid;
 	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
 

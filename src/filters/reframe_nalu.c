@@ -221,11 +221,13 @@ typedef struct
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
 static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx);
+static void naludmx_reset_param_sets(GF_NALUDmxCtx *ctx, Bool do_free);
 
 
 GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
+	u32 old_codecid;
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -253,6 +255,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 	}
 
+	old_codecid = ctx->codecid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
 		switch (p->value.uint) {
@@ -309,25 +312,30 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 				ctx->codecid = GF_CODECID_AVC;
 		}
 	}
+
+	if (old_codecid && (old_codecid != ctx->codecid)) {
+		naludmx_reset_param_sets(ctx, GF_FALSE);
+	}
+
 	if (ctx->codecid==GF_CODECID_HEVC) {
 #ifdef GPAC_DISABLE_HEVC
 		return GF_NOT_SUPPORTED;
 #else
 		ctx->log_name = "HEVC";
-		if (ctx->avc_state) gf_free(ctx->avc_state);
-		if (ctx->vvc_state) gf_free(ctx->vvc_state);
+		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
+		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
 		if (!ctx->hevc_state) GF_SAFEALLOC(ctx->hevc_state, HEVCState);
 		ctx->min_layer_id = 0xFF;
 #endif
 	} else if (ctx->codecid==GF_CODECID_VVC) {
 		ctx->log_name = "VVC";
-		if (ctx->hevc_state) gf_free(ctx->hevc_state);
-		if (ctx->avc_state) gf_free(ctx->avc_state);
+		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
+		if (ctx->avc_state) { gf_free(ctx->avc_state); ctx->avc_state = NULL; }
 		if (!ctx->vvc_state) GF_SAFEALLOC(ctx->vvc_state, VVCState);
 	} else {
 		ctx->log_name = "AVC|H264";
-		if (ctx->hevc_state) gf_free(ctx->hevc_state);
-		if (ctx->vvc_state) gf_free(ctx->vvc_state);
+		if (ctx->hevc_state) { gf_free(ctx->hevc_state); ctx->hevc_state = NULL; }
+		if (ctx->vvc_state) { gf_free(ctx->vvc_state); ctx->vvc_state = NULL; }
 		if (!ctx->avc_state) GF_SAFEALLOC(ctx->avc_state, AVCState);
 	}
 	if (ctx->timescale && !ctx->opid) {
@@ -357,6 +365,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 			naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 		}
+		ctx->nal_store_size = 0;
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
@@ -1441,6 +1450,8 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (ctx->opid && !ctx->ps_modified) return;
 	} else {
 		if (!ctx->ps_modified) return;
+		if (ctx->opid && (!gf_list_count(ctx->sps) || !gf_list_count(ctx->pps)))
+			return;
 	}
 	ctx->ps_modified = GF_FALSE;
 
@@ -3385,7 +3396,7 @@ static GF_Err naludmx_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-static void naludmx_del_param_list(GF_List *ps)
+static void naludmx_del_param_list(GF_List *ps, Bool do_free)
 {
 	if (!ps) return;
 	while (gf_list_count(ps)) {
@@ -3393,7 +3404,9 @@ static void naludmx_del_param_list(GF_List *ps)
 		if (sl->data) gf_free(sl->data);
 		gf_free(sl);
 	}
-	gf_list_del(ps);
+
+	if (do_free)
+		gf_list_del(ps);
 }
 
 static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
@@ -3448,6 +3461,17 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 	}
 }
 
+static void naludmx_reset_param_sets(GF_NALUDmxCtx *ctx, Bool do_free)
+{
+	naludmx_del_param_list(ctx->sps, do_free);
+	naludmx_del_param_list(ctx->pps, do_free);
+	naludmx_del_param_list(ctx->vps, do_free);
+	naludmx_del_param_list(ctx->sps_ext, do_free);
+	naludmx_del_param_list(ctx->pps_svc, do_free);
+	naludmx_del_param_list(ctx->vvc_aps_pre, do_free);
+	naludmx_del_param_list(ctx->vvc_dci, do_free);
+
+}
 static void naludmx_finalize(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -3472,13 +3496,7 @@ static void naludmx_finalize(GF_Filter *filter)
 	if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 	ctx->src_pck = NULL;
 
-	naludmx_del_param_list(ctx->sps);
-	naludmx_del_param_list(ctx->pps);
-	naludmx_del_param_list(ctx->vps);
-	naludmx_del_param_list(ctx->sps_ext);
-	naludmx_del_param_list(ctx->pps_svc);
-	naludmx_del_param_list(ctx->vvc_aps_pre);
-	naludmx_del_param_list(ctx->vvc_dci);
+	naludmx_reset_param_sets(ctx, GF_TRUE);
 
 	if (ctx->avc_state) gf_free(ctx->avc_state);
 	if (ctx->hevc_state) gf_free(ctx->hevc_state);

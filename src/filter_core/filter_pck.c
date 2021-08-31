@@ -869,6 +869,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	gf_rmt_begin(pck_send, GF_RMT_AGGREGATE);
 
+	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
+
 	//send from filter, update flags
 	if (from_filter) {
 		Bool is_cmd = (pck->info.flags & GF_PCK_CMD_MASK) ? GF_TRUE : GF_FALSE;
@@ -903,7 +905,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			pck->info.flags |= GF_PCKF_PROPS_CHANGED;
 		}
 		//any new pid_set_property after this packet will trigger a new property map
-		if (! is_cmd_pck) {
+		//note we don't reset if packet is a clock info so that next non-clock packet still has the discontinuity marker
+		if (! is_cmd_pck && !cktype) {
 			pid->request_property_map = GF_TRUE;
 			pid->props_changed_since_connect = GF_FALSE;
 		}
@@ -956,8 +959,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			pid->last_ts_sent.den = timescale;
 		}
 	}
-
-	cktype = ( pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
 
 	if (cktype == GF_FILTER_CLOCK_PCR_DISC) {
 		pid->duration_init = GF_FALSE;

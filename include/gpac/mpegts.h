@@ -1522,8 +1522,6 @@ typedef struct __m2ts_mux_stream {
 	Bool pcr_only_mode;
 	/*! tables for section PIDs*/
 	GF_M2TS_Mux_Table *tables;
-	/*! init verision of table*/
-	u8 initial_version_number;
 	/*! total table sizes for bitrate estimation (PMT/PAT/...)*/
 	u32 total_table_size;
 	/*! current table - used for on-the-fly packetization of sections */
@@ -1534,6 +1532,10 @@ typedef struct __m2ts_mux_stream {
 	u32 current_section_offset;
 	/*! carousel rate in ms*/
 	u32 refresh_rate_ms;
+	/*! init verision of table*/
+	u8 initial_version_number;
+	/*! PES version of transport for this codec type is forced*/
+	u8 force_pes;
 	/*! table needs updating*/
 	Bool table_needs_update;
 	/*! table needs send*/
