@@ -6251,6 +6251,7 @@ u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVC
 		if (start + psize >= nal_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), keeping full SEI untouched\n", ptype, psize, nal_size - start));
 			if (bs_dest) gf_bs_del(bs_dest);
+			gf_bs_del(bs);
 			return nal_size;
 		}
 		switch (ptype) {
