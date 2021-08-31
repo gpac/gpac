@@ -716,6 +716,8 @@ u32 gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 	return 0;
 }
 
+static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream);
+
 u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	if (stream->table_needs_update) { /* generate table payload */
@@ -728,6 +730,12 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 
 		if (!stream->program->pcr)
 			abort();
+
+		es = stream->program->streams;
+		while (es) {
+			gf_m2ts_program_stream_format_updated(es);
+			es = es->next;
+		}
 
 		bs = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs,	0x7, 3); // reserved
@@ -797,7 +805,6 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_data(bs, desc->data, desc->data_len);
 			}
 		}
-
 		es = stream->program->streams;
 		while (es) {
 			Bool has_lang = GF_FALSE;
@@ -2315,37 +2322,10 @@ u32 gf_m2ts_mux_program_get_stream_count(GF_M2TS_Mux_Program *prog)
 	return count;
 }
 
-GF_EXPORT
-GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes, Bool needs_mutex)
+static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 {
-	GF_M2TS_Mux_Stream *stream, *st;
-
-	stream = gf_m2ts_stream_new(pid);
-	stream->ifce = ifce;
-	stream->pid = pid;
-	stream->program = program;
-	if (is_pcr) program->pcr = stream;
-	stream->loop_descriptors = gf_list_new();
-	stream->set_initial_disc = program->initial_disc_set;
-
-	if (program->streams) {
-		/*if PCR keep stream at the beginning*/
-		if (is_pcr) {
-			stream->next = program->streams;
-			program->streams = stream;
-		} else {
-			st = program->streams;
-			while (st->next) st = st->next;
-			st->next = stream;
-		}
-	} else {
-		program->streams = stream;
-	}
-	if (program->pmt) program->pmt->table_needs_update = GF_TRUE;
-	stream->bit_rate = ifce->bit_rate;
-	stream->scheduling_priority = 1;
-
-	stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_ALL) ? GF_FALSE : GF_TRUE;
+	struct __elementary_stream_ifce *ifce = stream->ifce;
+	Bool force_pes = stream->force_pes ? GF_TRUE : GF_FALSE;
 
 	switch (ifce->stream_type) {
 	case GF_STREAM_VISUAL:
@@ -2380,7 +2360,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 				stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC_TEMPORAL;
 				gf_m2ts_stream_add_hierarchy_descriptor(stream);
 				stream->force_single_au = GF_TRUE;
-				gf_m2ts_find_stream(program, 0, ifce->depends_on_stream, &base_st);
+				gf_m2ts_find_stream(stream->program, 0, ifce->depends_on_stream, &base_st);
 				if (base_st) base_st->force_single_au = GF_TRUE;
 			}
 
@@ -2509,6 +2489,42 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
 		break;
 	}
+}
+
+GF_EXPORT
+GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes, Bool needs_mutex)
+{
+	GF_M2TS_Mux_Stream *stream, *st;
+
+	stream = gf_m2ts_stream_new(pid);
+	stream->ifce = ifce;
+	stream->pid = pid;
+	stream->program = program;
+	if (is_pcr) program->pcr = stream;
+	stream->loop_descriptors = gf_list_new();
+	stream->set_initial_disc = program->initial_disc_set;
+
+	if (program->streams) {
+		/*if PCR keep stream at the beginning*/
+		if (is_pcr) {
+			stream->next = program->streams;
+			program->streams = stream;
+		} else {
+			st = program->streams;
+			while (st->next) st = st->next;
+			st->next = stream;
+		}
+	} else {
+		program->streams = stream;
+	}
+	if (program->pmt) program->pmt->table_needs_update = GF_TRUE;
+	stream->bit_rate = ifce->bit_rate;
+	stream->scheduling_priority = 1;
+	stream->force_pes = force_pes ? 1 : 0;
+
+	stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_ALL) ? GF_FALSE : GF_TRUE;
+
+	gf_m2ts_program_stream_format_updated(stream);
 
 	if (! (ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
 		/*override signaling for all streams except BIFS/OD, to use MPEG-4 PES*/
@@ -2952,7 +2968,10 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 
 		/*PAT*/
 		res = muxer->pat->process(muxer, muxer->pat);
-		if ((res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time)) || muxer->force_pat) {
+		if ((res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time))
+			|| muxer->pat->table_needs_send
+			|| muxer->force_pat
+		) {
 			time = muxer->pat->time;
 			stream_to_process = muxer->pat;
 			if (muxer->force_pat) {
@@ -2977,7 +2996,10 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 		program = muxer->programs;
 		while (program) {
 			res = program->pmt->process(muxer, program->pmt);
-			if ((res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time)) || (muxer->force_pat_pmt_state==GF_SEG_BOUNDARY_FORCE_PMT)) {
+			if ((res && gf_m2ts_time_less_or_equal(&program->pmt->time, &time))
+				|| program->pmt->table_needs_send
+				|| (muxer->force_pat_pmt_state==GF_SEG_BOUNDARY_FORCE_PMT)
+			) {
 				time = program->pmt->time;
 				stream_to_process = program->pmt;
 				if (muxer->force_pat_pmt_state==GF_SEG_BOUNDARY_FORCE_PMT)
