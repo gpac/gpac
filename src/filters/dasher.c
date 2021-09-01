@@ -6705,7 +6705,18 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 						}
 					}
 					ds->rep->segment_base->initialization_segment = url;
+
+					//first seg, remove sidx if present
+					//our frag_range includes sidx
+					const GF_PropertyValue *sidx_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SIDX_RANGE);
+					if (sidx_range) {
+						u64 sidx_size = (u64)sidx_range->value.lfrac.den;
+						sidx_size -= (u64) sidx_range->value.lfrac.num;
+						seg_state->file_offset += sidx_size;
+						seg_state->file_size -= sidx_size;
+					}
 				}
+
 			} else {
 				gf_list_del_item(ds->rep->state_seg_list, seg_state);
 				gf_free(seg_state);
@@ -6743,7 +6754,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 					GF_SAFEALLOC(ds->rep->segment_base->index_range, GF_MPD_ByteRange);
 					if (ds->rep->segment_base->index_range) {
 						ds->rep->segment_base->index_range->start_range = p->value.lfrac.num;
-						ds->rep->segment_base->index_range->end_range = p->value.lfrac.den;
+						ds->rep->segment_base->index_range->end_range = p->value.lfrac.den-1;
 						ds->rep->segment_base->index_range_exact = GF_TRUE;
 					}
 
