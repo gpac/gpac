@@ -1018,10 +1018,12 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					) )
 						period_switch = GF_TRUE;
 
-					ds->srd.x = p->value.vec4i.x;
-					ds->srd.y = p->value.vec4i.y;
-					ds->srd.z = p->value.vec4i.z;
-					ds->srd.w = p->value.vec4i.w;
+					if (p) {
+						ds->srd.x = p->value.vec4i.x;
+						ds->srd.y = p->value.vec4i.y;
+						ds->srd.z = p->value.vec4i.z;
+						ds->srd.w = p->value.vec4i.w;
+					}
 				}
 			}
 		} else if (ds->stream_type==GF_STREAM_AUDIO) {
