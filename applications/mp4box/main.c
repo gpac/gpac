@@ -528,7 +528,8 @@ static void PrintSplitUsage()
 		"- for `-splitf`, option `xround=seek` is enforced and `propbe_ref`set if not specified at prompt\n"
 		"- for `-splitx`, option `xround=closest` and `propbe_ref` are enforced if not specified at prompt\n"
 		"  \n"
-		"The default output storage mode is to full interleave and will require a temp file for each output. This behaviour can be modified using -flat, -newfs, -inter and -frag\n"
+		"The default output storage mode is to full interleave and will require a temp file for each output. This behaviour can be modified using `-flat`, `-newfs`, `-inter` and `-frag`.\n"
+		"The output file name(s) can be specified using `-out` and templates (e.g. `-out split$num%%04d$.mp4` produces split0001.mp4, split0002.mp4, ...).\n"
 		"  \n"
 	);
 
