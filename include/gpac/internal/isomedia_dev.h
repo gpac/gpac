@@ -3420,7 +3420,31 @@ typedef struct
 	u8 dimension_identifier[16];
 } LHEVC_DependentLayer;
 
+typedef struct
+{
+	u8 subpic_id_len_minus1;
+	u16 subpic_id_bit_pos;
+	u8 start_code_emul_flag;
+	u8 pps_sps_subpic_id_flag;
+	u8 xps_id;
+} GF_VVCSubpicIDRewritingInfo;
 
+/*SubpictureOrder - 'spor' type*/
+typedef struct
+{
+	Bool subpic_id_info_flag;
+	u16 num_subpic_ref_idx;
+	u16 *subp_track_ref_idx;
+	GF_VVCSubpicIDRewritingInfo spinfo;
+} GF_SubpictureOrderEntry;
+
+/*SubpictureLayoutMap - 'sulm' type*/
+typedef struct
+{
+	u32 groupID_info_4cc;
+	u32 nb_entries;
+	u16 *groupIDs;
+} GF_SubpictureLayoutMapEntry;
 
 /*
 		CENC stuff
