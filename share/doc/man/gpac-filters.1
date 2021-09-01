@@ -4453,6 +4453,12 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * IntraOnly: indicates input pid follows HLS EXT-X-I-FRAMES-ONLY guidelines
 .br
+* CropOrigin: indicates x and y coordinates of video for SRD (size is video size)
+.br
+* SRD: indicates SRD position and size of video for SRD, ignored if CropOrigin is set
+.br
+* SRDRef: indicates global width and height of SRD, ignored if CropOrigin is set
+.br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
   
@@ -4540,6 +4546,14 @@ src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4
 
 .br
 This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.
+.br
+Example
+.br
+src=v1:#SRD=0x0x1280x360:#SRDRef=1280x720 src=vid2:#SRD=0x360x1280x360
+.br
+
+.br
+This will layout the v2 below v1 using a global SRD size of 1280x720.
 .br
 
 .br
@@ -7744,7 +7758,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1202-g44fdc3d97-master
+build: 1.1.0-DEV-rev1205-gafa4488f8-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
