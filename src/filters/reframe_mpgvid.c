@@ -784,8 +784,14 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 		}
 
-		//parse headers
+		//not enough bytes to parse start code
+		if (remain<5) {
+			memcpy(ctx->hdr_store, start, remain);
+			ctx->bytes_in_header = remain;
+			break;
+		}
 
+		//parse headers
 		//we have a start code loaded, eg the data packet does not have a full start code at the beginning
 		if (sc_type_forced) {
 			gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);
