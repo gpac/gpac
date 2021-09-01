@@ -1176,9 +1176,21 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 			filter = gf_filter_new(fsess, f_reg, args, NULL, argtype, err_code, NULL, GF_FALSE);
 			if (!filter) return NULL;
 			if (!filter->num_output_pids) {
+				//check we have a src specified for the filter
 				const char *src_url = strstr(name, "src");
-				if (src_url && (src_url[3]==fsess->sep_name))
-					gf_filter_post_process_task(filter);
+				if (src_url && (src_url[3]==fsess->sep_name)) {
+					const GF_FilterArgs *args = filter->instance_args ? filter->instance_args : f_reg->args;
+					//check the filter has an src argument
+					//we don't want to call process on a filter not acting as source until at least one input is connected
+					i=0;
+					while (args && args[i].arg_name) {
+						if (!strcmp(args[i].arg_name, "src")) {
+							gf_filter_post_process_task(filter);
+							break;
+						}
+						i++;
+					}
+				}
 			}
 			return filter;
 		}
