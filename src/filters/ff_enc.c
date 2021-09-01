@@ -1544,6 +1544,14 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
 			ctx->encoder->time_base.num = prop->value.frac.den;
 			ctx->encoder->time_base.den = prop->value.frac.num;
+
+			ctx->encoder->framerate.num = prop->value.frac.num;
+			ctx->encoder->framerate.den = prop->value.frac.den;
+			gf_media_get_reduced_frame_rate(&ctx->encoder->framerate.num, &ctx->encoder->framerate.den);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Unknown frame rate for PID %s, will use 25 fps - use `:#FPS=VAL` on input to force frame rate\n", gf_filter_pid_get_name(pid) ));
+			ctx->encoder->framerate.num = 25;
+			ctx->encoder->framerate.den = 1;
 		}
 
 		gf_media_get_reduced_frame_rate(&ctx->encoder->time_base.den, &ctx->encoder->time_base.num);

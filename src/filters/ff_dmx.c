@@ -382,12 +382,14 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		u32 codec_channels = stream->codecpar->channels;
 		u32 codec_width = stream->codecpar->width;
 		u32 codec_height = stream->codecpar->height;
-		AVRational codec_framerate = stream->avg_frame_rate;
 		u32 codec_field_order = stream->codecpar->field_order;
 		u32 codec_tag = stream->codecpar->codec_tag;
 		u32 codec_pixfmt = (codec_type==AVMEDIA_TYPE_VIDEO) ? stream->codecpar->format : 0;
 		s32 codec_sample_fmt = (codec_type==AVMEDIA_TYPE_AUDIO) ? stream->codecpar->format : 0;
 		u32 codec_bitrate = (u32) stream->codecpar->bit_rate;
+		AVRational codec_framerate = stream->r_frame_rate;
+		if (!stream->r_frame_rate.num || !stream->r_frame_rate.den)
+			codec_framerate = stream->avg_frame_rate;
 #endif
 
 		switch(codec_type) {
@@ -532,6 +534,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 
 		if (codec_framerate.num && codec_framerate.den)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec_framerate.num, codec_framerate.den ) );
+		else {
+			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] Unknown frame rate, will use 25 fps - use `:#FPS=VAL` to force frame rate signaling\n", ctx->fname));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( 25, 1 ) );
+		}
 
 		if (codec_field_order>AV_FIELD_PROGRESSIVE)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_INTERLACED, &PROP_BOOL(GF_TRUE) );
