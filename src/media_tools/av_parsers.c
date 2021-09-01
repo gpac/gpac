@@ -6348,7 +6348,15 @@ u32 gf_media_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVC
 		u8 *dst_no_epb = NULL;
 		u32 dst_no_epb_size = 0;
 		gf_bs_get_content(bs_dest, &dst_no_epb, &dst_no_epb_size);
-		nal_size = gf_media_nalu_add_emulation_bytes(buffer, dst_no_epb, dst_no_epb_size);
+		if (dst_no_epb) {
+			u32 nb_bytes_add = gf_media_nalu_emulation_bytes_add_count(dst_no_epb, dst_no_epb_size);
+			//if result fits into source buffer, reformat
+			//otherwise ignore and return source (happens in some fuzzing cases, cf issue 1903)
+			if (dst_no_epb_size + nb_bytes_add <= nal_size)
+				nal_size = gf_media_nalu_add_emulation_bytes(buffer, dst_no_epb, dst_no_epb_size);
+
+			gf_free(dst_no_epb);
+		}
 	}
 	if (bs_dest) gf_bs_del(bs_dest);
 	return nal_size;
