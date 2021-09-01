@@ -9710,6 +9710,59 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, s32 bytes_in_
 	case GF_ISOM_SAMPLE_GROUP_LBLI:
 		entry_size = 2;
 		break;
+	case GF_ISOM_SAMPLE_GROUP_SPOR:
+	{
+		u32 i;
+		GF_SubpictureOrderEntry *ptr;
+		GF_SAFEALLOC(ptr, GF_SubpictureOrderEntry);
+		if (!ptr) return NULL;
+		ptr->subpic_id_info_flag = gf_bs_read_int(bs, 1);
+		ptr->num_subpic_ref_idx = gf_bs_read_int(bs, 15);
+		*total_bytes = 2;
+		ptr->subp_track_ref_idx = gf_malloc(sizeof(u16) * ptr->num_subpic_ref_idx);
+		if (!ptr->subp_track_ref_idx) {
+			gf_free(ptr);
+			return NULL;
+		}
+		for (i=0; i<ptr->num_subpic_ref_idx; i++) {
+			ptr->subp_track_ref_idx[i] = gf_bs_read_u16(bs);
+			*total_bytes += 2;
+		}
+		if (ptr->subpic_id_info_flag) {
+			ptr->spinfo.subpic_id_len_minus1 = gf_bs_read_int(bs, 4);
+			ptr->spinfo.subpic_id_bit_pos = gf_bs_read_int(bs, 12);
+			ptr->spinfo.start_code_emul_flag = gf_bs_read_int(bs, 1);
+			ptr->spinfo.pps_sps_subpic_id_flag = gf_bs_read_int(bs, 1);
+			if (ptr->spinfo.pps_sps_subpic_id_flag) {
+				ptr->spinfo.xps_id = gf_bs_read_int(bs, 6);
+			} else {
+				ptr->spinfo.xps_id = gf_bs_read_int(bs, 4);
+				gf_bs_read_int(bs, 2);
+			}
+			*total_bytes += 3;
+		}
+		return ptr;
+	}
+	case GF_ISOM_SAMPLE_GROUP_SULM:
+	{
+		u32 i;
+		GF_SubpictureLayoutMapEntry *ptr;
+		GF_SAFEALLOC(ptr, GF_SubpictureLayoutMapEntry);
+		if (!ptr) return NULL;
+		ptr->groupID_info_4cc = gf_bs_read_u32(bs);
+		ptr->nb_entries = 1 + gf_bs_read_u16(bs);
+		*total_bytes = 6;
+		ptr->groupIDs = gf_malloc(sizeof(u16) * ptr->nb_entries);
+		if (!ptr->groupIDs) {
+			gf_free(ptr);
+			return NULL;
+		}
+		for (i=0; i<ptr->nb_entries; i++) {
+			ptr->groupIDs[i] = gf_bs_read_u16(bs);
+			*total_bytes += 2;
+		}
+		return ptr;
+	}
 	default:
 		break;
 	}
@@ -9757,6 +9810,22 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_ISOM_SAMPLE_GROUP_LINF:
 		gf_isom_linf_del_entry(entry);
 		return;
+	case GF_ISOM_SAMPLE_GROUP_SPOR:
+	{
+		GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *)entry;
+		if (spor->subp_track_ref_idx) gf_free(spor->subp_track_ref_idx);
+		gf_free(spor);
+	}
+		return;
+
+	case GF_ISOM_SAMPLE_GROUP_SULM:
+	{
+		GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
+		if (sulm->groupIDs) gf_free(sulm->groupIDs);
+		gf_free(sulm);
+		return;
+	}
+
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
@@ -9818,6 +9887,43 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	case GF_ISOM_SAMPLE_GROUP_LINF:
 		gf_isom_linf_write_entry(entry, bs);
 		return;
+
+	case GF_ISOM_SAMPLE_GROUP_SPOR:
+	{
+		u32 i;
+		GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *) entry;
+		gf_bs_write_int(bs, spor->subpic_id_info_flag, 1);
+		gf_bs_write_int(bs, spor->num_subpic_ref_idx, 15);
+		for (i=0; i<spor->num_subpic_ref_idx; i++) {
+			gf_bs_write_u16(bs, spor->subp_track_ref_idx[i]);
+		}
+		if (spor->subpic_id_info_flag) {
+			gf_bs_write_int(bs, spor->spinfo.subpic_id_len_minus1, 4);
+			gf_bs_write_int(bs, spor->spinfo.subpic_id_bit_pos, 12);
+			gf_bs_write_int(bs, spor->spinfo.start_code_emul_flag, 1);
+			gf_bs_write_int(bs, spor->spinfo.pps_sps_subpic_id_flag, 1);
+			if (spor->spinfo.pps_sps_subpic_id_flag) {
+				gf_bs_write_int(bs, spor->spinfo.xps_id, 6);
+			} else {
+				gf_bs_write_int(bs, spor->spinfo.xps_id, 4);
+				gf_bs_write_int(bs, 0, 2);
+			}
+		}
+		return;
+	}
+
+	case GF_ISOM_SAMPLE_GROUP_SULM:
+	{
+		u32 i;
+		GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
+		gf_bs_write_u32(bs, sulm->groupID_info_4cc);
+		gf_bs_write_u16(bs, sulm->nb_entries - 1);
+		for (i=0; i<sulm->nb_entries; i++) {
+			gf_bs_write_u16(bs, sulm->groupIDs[i]);
+		}
+		return;
+	}
+
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
@@ -9859,6 +9965,21 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return gf_isom_oinf_size_entry(entry);
 	case GF_ISOM_SAMPLE_GROUP_LINF:
 		return gf_isom_linf_size_entry(entry);
+	case GF_ISOM_SAMPLE_GROUP_SPOR:
+	{
+		GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *)entry;
+		u32 s = 2 + 2*spor->num_subpic_ref_idx;
+		if (spor->subpic_id_info_flag) {
+			s += 3;
+		}
+		return s;
+	}
+	case GF_ISOM_SAMPLE_GROUP_SULM:
+	{
+		GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
+		return 6 + 2*sulm->nb_entries;
+	}
+
 	default:
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}

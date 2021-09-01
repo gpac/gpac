@@ -4865,6 +4865,35 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_SAP:
 			gf_fprintf(trace, "<SAPEntry dependent_flag=\"%d\" SAP_type=\"%d\" />\n", ((GF_SAPEntry*)entry)->dependent_flag, ((GF_SAPEntry*)entry)->SAP_type);
 			break;
+		case GF_ISOM_SAMPLE_GROUP_SPOR:
+		{
+			GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *) entry;
+			u32 i;
+			gf_fprintf(trace, "<SubPictureOrderEntry subpic_id_info_flag=\"%d\" refs=\"", spor->subpic_id_info_flag);
+			for (i=0; i<spor->num_subpic_ref_idx; i++) {
+				if (i) gf_fprintf(trace, " ");
+				gf_fprintf(trace, "%d", spor->subp_track_ref_idx[i]);
+			}
+			gf_fprintf(trace, "\"");
+			if (spor->subpic_id_info_flag) {
+				gf_fprintf(trace, " subpic_id_len_minus1=\"%d\" subpic_id_bit_pos=\"%d\" start_code_emul_flag=\"%d\"", spor->spinfo.subpic_id_len_minus1, spor->spinfo.subpic_id_bit_pos, spor->spinfo.start_code_emul_flag);
+				gf_fprintf(trace, " %s=\"%d\"", spor->spinfo.pps_sps_subpic_id_flag ? "pps_id" : "sps_id", spor->spinfo.xps_id);
+			}
+			gf_fprintf(trace, "/>\n");
+		}
+			break;
+		case GF_ISOM_SAMPLE_GROUP_SULM:
+		{
+			GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
+			u32 i;
+			gf_fprintf(trace, "<SubPictureLayoutMapEntry groupID_info_4cc=\"%s\" groupIDs=\"", gf_4cc_to_str(sulm->groupID_info_4cc) );
+			for (i=0; i<sulm->nb_entries; i++) {
+				if (i) gf_fprintf(trace, " ");
+				gf_fprintf(trace, "%d", sulm->groupIDs[i]);
+			}
+			gf_fprintf(trace, "\"/>\n");
+		}
+			break;
 		default:
 			gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
@@ -4906,6 +4935,13 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_SAP:
 			gf_fprintf(trace, "<SAPEntry dependent_flag=\"\" SAP_type=\"\" />\n");
 			break;
+		case GF_ISOM_SAMPLE_GROUP_SPOR:
+			gf_fprintf(trace, "<SubPictureOrderEntry subpic_id_info_flag=\"\" refs=\"\" subpic_id_len_minus1=\"\" subpic_id_bit_pos=\"\" start_code_emul_flag=\"\" pps_id=\"\" sps_id=\"\" />\n");
+			break;
+		case GF_ISOM_SAMPLE_GROUP_SULM:
+			gf_fprintf(trace, "<SubPictureLayoutMapEntry groupID_info_4cc=\"\" groupIDs=\"\" />\n");
+			break;
+
 		default:
 			gf_fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"\" data=\"\"/>\n");
 		}
