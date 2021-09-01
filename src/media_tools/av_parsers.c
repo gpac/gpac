@@ -3980,13 +3980,19 @@ void gf_av1_reset_state(AV1State *state, Bool is_destroy)
 		gf_list_del(l1);
 		gf_list_del(l2);
 		if (state->bs) {
-			u32 size;
-			if (!gf_bs_get_position(state->bs) && state->frame_obus) {
+			u32 size, asize=0;
+			u8 *ptr=NULL;
+			//detach BS internal buffer
+			gf_bs_get_content_no_truncate(state->bs, &ptr, &size, &asize);
+			//avoid double free, cf issue 1893
+			if (ptr != state->frame_obus) {
+				gf_free(ptr);
+			}
+			if (state->frame_obus) {
 				gf_free(state->frame_obus);
 				state->frame_obus = NULL;
 				state->frame_obus_alloc = 0;
 			}
-			gf_bs_get_content_no_truncate(state->bs, &state->frame_obus, &size, &state->frame_obus_alloc);
 			gf_bs_del(state->bs);
 		}
 		state->bs = NULL;
