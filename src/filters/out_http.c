@@ -658,15 +658,18 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	char *full_path=NULL;
 	char szFmt[100];
 	char szDate[200];
+	char szRange[200];
 	char szETag[100];
 	u64 modif_time=0;
 	u32 body_size=0;
 	const char *etag=NULL, *range=NULL;
 	const char *mime = NULL;
+	char *cors_origin = NULL;
 	char *response_body = NULL;
 	GF_Err e=GF_OK;
 	Bool not_modified = GF_FALSE;
 	Bool is_upload = GF_FALSE;
+	Bool is_options = GF_FALSE;
 	Bool is_head = GF_FALSE;
 	Bool no_body = GF_FALSE;
 	Bool send_cors;
@@ -700,6 +703,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_HTTP_POST:
 	case GF_HTTP_DELETE:
 		is_upload = GF_TRUE;
+		break;
+	case GF_HTTP_OPTIONS:
+		is_options = GF_TRUE;
 		break;
 	default:
 		sess->reply_code = 501;
@@ -876,18 +882,23 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 	}
 
+	cors_origin = (char *) gf_dm_sess_get_header(sess->http_sess, "Origin");
 	switch (sess->ctx->cors) {
 	case CORS_ON:
 		send_cors = GF_TRUE;
 		break;
 	case CORS_AUTO:
-		if (gf_dm_sess_get_header(sess->http_sess, "Origin") != NULL) {
+		if (cors_origin != NULL) {
 			send_cors = GF_TRUE;
 			break;
 		}
 	default:
 		send_cors = GF_FALSE;
 		break;
+	}
+	if (is_options && (!url || !strcmp(url, "*"))) {
+		sess->reply_code = 204;
+		goto exit;
 	}
 
 	if (!full_path && !source_pid) {
@@ -898,6 +909,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			gf_dynstrcat(&response_body, " cannot be resolved", NULL);
 			goto exit;
 		}
+	}
+
+	if (is_options) {
+		sess->reply_code = 200;
+		goto exit;
 	}
 
 	//check if request is HEAD or GET on a file being uploaded
@@ -1100,6 +1116,17 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->reply_code = 200;
 	}
 
+	//copy range for logs before reseting session headers
+	if (sess->do_log && range) {
+		strncpy(szRange, range, 199);
+		szRange[199] = 0;
+	} else {
+		szRange[0] = 0;
+	}
+	//copy cors origin
+	if (cors_origin)
+		cors_origin = gf_strdup(cors_origin);
+
 	gf_dm_sess_clear_headers(sess->http_sess);
 
 	gf_dm_sess_set_header(sess->http_sess, "Server", sess->ctx->user_agent);
@@ -1108,9 +1135,11 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	gf_dm_sess_set_header(sess->http_sess, "Date", szDate);
 
 	if (send_cors) {
-		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
+		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", cors_origin ? cors_origin : "*");
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Expose-Headers", "*");
 	}
+	if (cors_origin) gf_free(cors_origin);
+
 	if (sess->ctx->sutc) {
 		sprintf(szFmt, LLU, gf_net_get_utc() );
 		gf_dm_sess_set_header(sess->http_sess, "Server-UTC", szFmt);
@@ -1244,8 +1273,8 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->req_start_time = gf_sys_clock_high_res();
 		if (not_modified) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s: reply %d\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->reply_code));
-		} else if (range) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s [range: %s] start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, range, sess->use_chunk_transfer ? " chunk-transfer" : ""));
+		} else if (szRange[0]) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s [range: %s] start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, szRange, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s start%s\n", sess->req_id, sess->peer_address, get_method_name(sess->method_type), url+1, sess->use_chunk_transfer ? " chunk-transfer" : ""));
 		}
@@ -1295,6 +1324,9 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 exit:
 
+	if (cors_origin && (sess->reply_code==200))
+		send_cors = GF_TRUE;
+
 	gf_dm_sess_clear_headers(sess->http_sess);
 
 	gf_dm_sess_set_header(sess->http_sess, "Server", sess->ctx->user_agent);
@@ -1309,10 +1341,25 @@ exit:
 		sess->last_active_time = gf_sys_clock_high_res();
 	}
 
+	if (is_options) {
+		if (sess->ctx->hmode==MODE_SOURCE) {
+			gf_dm_sess_set_header(sess->http_sess, "Allow", "POST,PUT,OPTIONS");
+		} else if (sess->ctx->wdir) {
+			gf_dm_sess_set_header(sess->http_sess, "Allow", "GET,POST,PUT,DELETE,HEAD,OPTIONS");
+		} else {
+			gf_dm_sess_set_header(sess->http_sess, "Allow", "GET,HEAD,OPTIONS");
+		}
+	}
 	if (send_cors) {
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Origin", "*");
 		gf_dm_sess_set_header(sess->http_sess, "Access-Control-Expose-Headers", "*");
+
+		if (is_options) {
+			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Methods", "*");
+			gf_dm_sess_set_header(sess->http_sess, "Access-Control-Allow-Headers", "*");
+		}
 	}
+
 	if (response_body) {
 		body_size = (u32) strlen(response_body);
 		gf_dm_sess_set_header(sess->http_sess, "Content-Type", "text/plain");
@@ -1328,7 +1375,11 @@ exit:
 
 	if (sess->do_log) {
 		sess->req_id = ++sess->ctx->req_id;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s error %d\n", sess->req_id, sess->peer_address, get_method_name(parameter->reply), url+1, sess->reply_code));
+		if (sess->reply_code<204) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s OK\n", sess->req_id, sess->peer_address, get_method_name(parameter->reply), url ? (url+1) : ""));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("[HTTPOut] REQ#"LLU" %s %s %s error %d\n", sess->req_id, sess->peer_address, get_method_name(parameter->reply), url ? (url+1) : "", sess->reply_code));
+		}
 	}
 
 	if (url) gf_free(url);
@@ -3137,7 +3188,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"- an HTTP __client__ sink\n"
 		"- an HTTP server __source__\n"
 		"  \n"
-		"The server currently handles GET, HEAD, PUT, POST, DELETE methods.\n"
+		"The server currently handles GET, HEAD, PUT, POST, DELETE methods, and basic OPTIONS support.\n"
 		"Single or multiple byte ranges are supported for both GET and PUT/POST methods, in all server modes.\n"
 		"- for GET, the resulting body is a single-part body formed by the concatenated byte ranges as requested (no overlap checking).\n"
 		"- for PUT/POST, the received data is pushed to the target file according to the byte ranges specified in the client request.\n"
