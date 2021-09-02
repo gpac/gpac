@@ -2863,9 +2863,21 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					if (ctx->abort)
 						dashdmx_update_group_stats(ctx, group);
 					//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));
-
 				}
 				if (group->in_error || group->seg_was_not_ready) {
+					//reset EOS state on all input if we were in error
+					u32 j;
+					for (j=0; j<count && group->in_error; j++) {
+						GF_FilterPid *an_ipid = gf_filter_get_ipid(filter, j);
+						GF_FilterPid *an_opid = gf_filter_pid_get_udta(an_ipid);
+						GF_DASHGroup *agroup;
+						if (an_ipid == ctx->mpd_pid) continue;
+						agroup = gf_filter_pid_get_udta(an_opid);
+						if (!agroup || (agroup != group)) continue;
+
+						gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Clearing EOS on pids from group %d\n", group->idx));
+					}
 					dashdmx_switch_segment(ctx, group);
 					gf_filter_prevent_blocking(filter, GF_FALSE);
 					if (group->eos_detected && !has_pck) check_eos = GF_TRUE;
