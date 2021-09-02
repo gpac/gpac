@@ -6931,14 +6931,12 @@ GF_EXPORT
 void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 {
 	u32 i, j;
-	Bool was_blocking;
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Clearing EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
 	pid = pid->pid;
-	was_blocking = pid->filter->would_block;
 	for (i=0; i<pid->filter->num_output_pids; i++) {
 		GF_FilterPid *apid = gf_list_get(pid->filter->output_pids, i);
 		if (!clear_all && (pid != apid)) continue;
@@ -6966,15 +6964,17 @@ void gf_filter_pid_clear_eos(GF_FilterPid *pid, Bool clear_all)
 			}
 		}
 	}
-	if (!clear_all || (was_blocking == pid->filter->would_block)) return;
 
-	//unblock parent
-	gf_mx_p(pid->filter->tasks_mx);
-	for (i=0; i<pid->filter->num_input_pids; i++) {
-		GF_FilterPidInst *apidi = gf_list_get(pid->filter->input_pids, i);
-		gf_filter_pid_clear_eos((GF_FilterPid *) apidi, GF_TRUE);
+	//if filter is blocking we cannot clear EOS down the chain
+	if (clear_all && !pid->filter->would_block) {
+		//block parent
+		gf_mx_p(pid->filter->tasks_mx);
+		for (i=0; i<pid->filter->num_input_pids; i++) {
+			GF_FilterPidInst *apidi = gf_list_get(pid->filter->input_pids, i);
+			gf_filter_pid_clear_eos((GF_FilterPid *) apidi, GF_TRUE);
+		}
+		gf_mx_v(pid->filter->tasks_mx);
 	}
-	gf_mx_v(pid->filter->tasks_mx);
 }
 
 GF_EXPORT
