@@ -519,7 +519,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(ext), "indicate file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicate mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "set timeout in ms for UDP socket(s)", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "set timeout in ms for UDP socket(s)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
