@@ -150,6 +150,9 @@ typedef struct
 	u32 nb_pending;
 
 	char *template;
+
+	const char *hls_key_uri;
+	bin128 hls_key_IV;
 } GF_DASHGroup;
 
 static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
@@ -539,13 +542,27 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 
+	if (gf_dash_group_init_segment_is_media(ctx->dash, group_index))
+		group->prev_is_init_segment = GF_FALSE;
+	else {
+		group->prev_is_init_segment = GF_TRUE;
+		//consider init is always in clear if AES-128, might need further checks
+		if (crypto_type==1) {
+			key_uri = NULL;
+		}
+	}
+
 	//if HLS AES-CBC, set key BEFORE discarding segment URL (if TS, discarding the segment will discard the key uri)
-	if (key_uri && (crypto_type==1)) {
-		gf_cryptfin_set_kms(group->seg_filter_src, key_uri, key_IV);
+	if (key_uri) {
+		if (crypto_type==1) {
+			gf_cryptfin_set_kms(group->seg_filter_src, key_uri, key_IV);
+		} else {
+			group->hls_key_uri = key_uri;
+			memcpy(group->hls_key_IV, key_IV, sizeof(bin128));
+		}
 	}
 
 	gf_dash_group_discard_segment(ctx->dash, group->idx);
-	group->prev_is_init_segment = GF_TRUE;
 	group->nb_group_deps = gf_dash_group_get_num_groups_depending_on(ctx->dash, group_index);
 	group->current_group_dep = 0;
 	gf_free(sURL);
@@ -1521,6 +1538,12 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		}
 		gf_filter_pid_set_property(opid, GF_PROP_PID_NO_PRIMING, is_cont ? &PROP_BOOL(GF_TRUE) : NULL);
 	}
+
+	if (group->hls_key_uri) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_HLS_KMS, &PROP_STRING(group->hls_key_uri));
+		gf_filter_pid_set_property(opid, GF_PROP_PID_HLS_IV, &PROP_DATA(group->hls_key_IV, sizeof(bin128) ));
+	}
+
 	if (ctx->forward > DFWD_FILE) {
 		u64 pstart;
 		u32 timescale;
@@ -2822,13 +2845,13 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							}
 						}
 						if (nb_block == group->nb_pids) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", group->idx, nb_block));
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d but %d output pid(s) would block, postponing\n", group->idx, nb_block));
 							switch_pending = GF_TRUE;
 							break;
 						}
 
 						//good to switch, cancel all end of stream signals on pids from this group and switch
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] End of segment for group %d, updating stats and switching segment\n", group->idx));
 						for (j=0; j<count; j++) {
 							const GF_PropertyValue *p;
 							GF_PropertyEntry *pe=NULL;

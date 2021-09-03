@@ -1886,9 +1886,12 @@ retry_import:
 				rep->width = width;
 				rep->height = height;
 			}
-			if (elt && elt->drm_method==DRM_AES_128)
-				rep->crypto_type = 1;
-
+			if (elt) {
+				if (elt->drm_method==DRM_AES_128)
+					rep->crypto_type = 1;
+				else if (elt->drm_method==DRM_CENC)
+					rep->crypto_type = 2;
+			}
 			if (samplerate) {
 				rep->samplerate = samplerate;
 			}
@@ -2396,6 +2399,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		}
 		if (elt->drm_method==DRM_AES_128)
 			rep->crypto_type = 1;
+		else if (elt->drm_method==DRM_CENC)
+			rep->crypto_type = 2;
 
 		if (elt->low_lat_chunk && !has_full_seg_following) {
 			u32 j;

@@ -29,6 +29,7 @@
 #include <gpac/crypt.h>
 #include <gpac/base_coding.h>
 #include <gpac/download.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_CRYPTO
 
@@ -36,7 +37,7 @@
 
 enum
 {
-	DECRYPT_STATE_ERROR,
+	DECRYPT_STATE_ERROR=1,
 	DECRYPT_STATE_SETUP,
 	DECRYPT_STATE_PLAY,
 };
@@ -92,7 +93,9 @@ typedef struct
 	/*adobe and CENC*/
 	Bool crypt_init;
 
-
+	Bool is_hls;
+	bin128 hls_IV;
+	char *hls_key_url;
 } GF_CENCDecStream;
 
 typedef struct
@@ -104,6 +107,7 @@ typedef struct
 	GF_PropStringList keys;
 	GF_CryptInfo *cinfo;
 	
+	GF_Filter *filter;
 	GF_List *streams;
 	GF_BitStream *bs_r;
 
@@ -576,7 +580,15 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 		if (found) continue;
 
 		for (j=0; j<cstr->KID_count; j++) {
-			if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
+			Bool match = GF_FALSE;
+			if (cstr->is_hls) {
+				match = GF_TRUE;
+			} else if (cstr->KIDs[j]) {
+				if (!memcmp(KID, cstr->KIDs[j], 16) || !memcmp(blank_KID, cstr->KIDs[j], 16) ) {
+					match = GF_TRUE;
+				}
+			}
+			if (match) {
 				memcpy(cstr->crypts[i].key, cstr->keys[j], 16);
 				found = GF_TRUE;
 				if (ctx->decrypt==DECRYPT_SKIP) {
@@ -606,6 +618,113 @@ static GF_Err cenc_dec_load_keys(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr)
 
 	cstr->key_error = GF_OK;
 	cstr->crypt_init = GF_FALSE;
+	return GF_OK;
+}
+
+static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, char *key_url, u8 *key_IV)
+{
+	GF_Err e;
+
+	cstr->is_hls = GF_TRUE;
+
+	//copy IV
+	memcpy(cstr->hls_IV, key_IV, sizeof(bin128));
+	//switch key if needed IV
+	if (cstr->hls_key_url && key_url && !strcmp(cstr->hls_key_url, key_url)) {
+		gf_crypt_set_IV(cstr->crypts[0].crypt, cstr->hls_IV, 16);
+		return GF_OK;
+	}
+
+	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
+
+	if (!key_url) {
+		cstr->hls_key_url = NULL;
+		return GF_OK;
+	}
+	cstr->hls_key_url = gf_strdup(key_url);
+	if (!cstr->hls_key_url) {
+		return GF_OUT_OF_MEM;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[CENC/HLS] Switching key to %s\n", key_url))
+
+	cstr->KID_count = 1;
+	cstr->keys = (bin128 *)gf_realloc(cstr->keys, cstr->KID_count*sizeof(bin128));
+
+	if (!strncmp(key_url, "urn:gpac:keys:value:", 20)) {
+		u32 i;
+		u8 *key_data = (u8 *) cstr->keys[0];
+		key_url += 20;
+		if (!strncmp(key_url, "0x", 2)) key_url += 2;
+		i = (u32) strlen(key_url);
+		if (i != 32) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s not found\n", key_url))
+			return GF_BAD_PARAM;
+		}
+		for (i=0; i<16; i++) {
+			char szV[3];
+			u32 v;
+			szV[0] = key_url[2*i];
+			szV[1] = key_url[2*i + 1];
+			szV[2] = 0;
+			sscanf(szV, "%X", &v);
+			key_data[i] = v;
+		}
+	}
+	//key is local, activate right away
+	else if (gf_url_is_local(key_url)) {
+		FILE *fkey = gf_fopen(key_url, "r");
+		if (!fkey) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s not found\n", key_url))
+			return GF_URL_ERROR;
+		} else {
+			u32 read = (u32) gf_fread(cstr->keys[0], 16, fkey);
+			if (read != 16) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s too short, expecting 16 bytes got %d\n", key_url, read))
+				return GF_BAD_PARAM;
+			}
+			gf_fclose(fkey);
+		}
+	}
+	//load key
+	else {
+		u32 nb_read=0;
+		u8 key_data[100];
+		GF_DownloadManager *dm = gf_filter_get_download_manager(ctx->filter);
+		GF_DownloadSession *sess = gf_dm_sess_new(dm, key_url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, NULL, NULL, &e);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to setup download session for key %s: %s\n", key_url, gf_error_to_string(e)))
+			return e;
+		}
+		while (1) {
+			u32 nread=0;
+			e = gf_dm_sess_fetch_data(sess, key_data + nb_read, 100-nb_read, &nread);
+			nb_read += nread;
+			if (nb_read > 16) break;
+
+			if ((e<0) && (e != GF_IP_NETWORK_EMPTY)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Failed to download key %s: %s\n", key_url, gf_error_to_string(e)))
+				return e;
+			}
+			if (e == GF_EOS) {
+				break;
+			}
+		}
+		//first 16 bytes is the key, in some case we have IV repeated after the key (to do ?)
+		if (nb_read <= 32) {
+			memcpy(cstr->keys[0], key_data, sizeof(bin128));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] Invalid key size, greater than 16 bytes\n"))
+			return GF_SERVICE_ERROR;
+		}
+	}
+
+	if (!cstr->crypts) {
+		cstr->crypts = gf_malloc(sizeof(CENCDecKey));
+		memset(cstr->crypts, 0, sizeof(CENCDecKey));
+	}
+	memcpy(cstr->crypts[0].key, cstr->keys[0], sizeof(bin128));
+	cstr->crypts[0].key_valid = 1;
+
 	return GF_OK;
 }
 
@@ -667,6 +786,8 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		cstr->cenc_ki = NULL;
 	}
 
+	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
+
 	if ((cstr->scheme_type==scheme_type) && (cstr->scheme_version==scheme_version) && (cstr->pssh_crc==pssh_crc) )
 		return GF_OK;
 
@@ -678,9 +799,6 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		cstr->is_cenc = GF_TRUE;
 	else
 		cstr->is_cbc = GF_TRUE;
-
-	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
-	//ctx->nb_allow_play = 1;
 
 	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
 	if (!cinfo_prop) cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
@@ -812,6 +930,14 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 
 	if (ctx->keys.nb_items) {
 		return GF_OK;
+	}
+
+	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_HLS_KMS);
+	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_HLS_IV);
+
+	if (cinfo_prop && prop) {
+		e = cenc_dec_set_hls_key(ctx, cstr, cinfo_prop->value.string, prop->value.data.ptr);
+		if (!e) return GF_OK;
 	}
 
 	if (ctx->decrypt!=DECRYPT_FULL) {
@@ -946,7 +1072,7 @@ static GF_Err cenc_dec_access_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 	return GF_BAD_PARAM;
 }
 
-static GF_Err denc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 iv_size, u32 const_iv_size, const u8 *const_iv)
+static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 iv_size, u32 const_iv_size, const u8 *const_iv)
 {
 	GF_Err e;
 
@@ -1065,7 +1191,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			memset(IV, 0, sizeof(u8)*17);
 			gf_bs_read_data(ctx->bs_r, IV, IV_size);
 
-			e = denc_dec_push_iv(cstr, kidx-1, IV, IV_size, 0, NULL);
+			e = cenc_dec_push_iv(cstr, kidx-1, IV, IV_size, 0, NULL);
 			if (e) goto exit;
 		}
 		if (nb_iv_init < cstr->multikey) {
@@ -1076,7 +1202,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				u8 IV_size = key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, k+1, &const_iv_size, &const_iv);
 				if (IV_size) continue;
 				memset(IV, 0, sizeof(char)*17);
-				e = denc_dec_push_iv(cstr, k, IV, 0, const_iv_size, const_iv);
+				e = cenc_dec_push_iv(cstr, k, IV, 0, const_iv_size, const_iv);
 				if (e) goto exit;
 			}
 		}
@@ -1116,7 +1242,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 		if (skey_const_iv_size)
 			skey_const_iv = cstr->cenc_ki->value.data.ptr+21;
 
-		e = denc_dec_push_iv(cstr, 0, IV, iv_size, skey_const_iv_size, skey_const_iv);
+		e = cenc_dec_push_iv(cstr, 0, IV, iv_size, skey_const_iv_size, skey_const_iv);
 		if (e) goto exit;
 	}
 	cstr->crypt_init = GF_TRUE;
@@ -1340,6 +1466,7 @@ static void cenc_dec_stream_del(GF_CENCDecStream *cstr)
 	}
 	if (cstr->KIDs) gf_free(cstr->KIDs);
 	if (cstr->keys) gf_free(cstr->keys);
+	if (cstr->hls_key_url) gf_free(cstr->hls_key_url);
 
 
 	gf_free(cstr);
@@ -1563,6 +1690,11 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 			continue;
 		}
 
+		if (cstr->state != DECRYPT_STATE_PLAY) {
+			gf_filter_pid_drop_packet(cstr->ipid);
+			continue;
+		}
+
 		if (cstr->is_cenc || cstr->is_cbc) {
 			e = cenc_dec_process_cenc(ctx, cstr, pck);
 		} else if (cstr->is_oma) {
@@ -1582,6 +1714,7 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 static GF_Err cenc_dec_initialize(GF_Filter *filter)
 {
 	GF_CENCDecCtx *ctx = (GF_CENCDecCtx *)gf_filter_get_udta(filter);
+	ctx->filter = filter;
 
 	if (ctx->keys.nb_items) {
 		if (ctx->keys.nb_items != ctx->kids.nb_items) {

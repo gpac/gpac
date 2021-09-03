@@ -62,6 +62,7 @@ typedef struct _s_accumulated_attributes {
 	char *init_url;
 	char *key_url;
 	bin128 key_iv;
+	Bool has_iv;
 	Bool independent_segments;
 	Bool low_latency, independent_part;
 	u32 discontinuity;
@@ -158,8 +159,18 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->init_segment_url = attribs->init_url ? gf_strdup(attribs->init_url) : NULL;
 	e->init_byte_range_start = attribs->init_byte_range_start;
 	e->init_byte_range_end = attribs->init_byte_range_end;
-	e->key_uri = (attribs->key_url ? gf_strdup(attribs->key_url) : NULL);
-	memcpy(e->key_iv, attribs->key_iv, sizeof(bin128));
+
+	if (e->drm_method) {
+		e->key_uri = (attribs->key_url ? gf_strdup(attribs->key_url) : NULL);
+
+		if (attribs->has_iv) {
+			memcpy(e->key_iv, attribs->key_iv, sizeof(bin128));
+		} else {
+			u32 iv = gf_htonl(attribs->current_media_seq);
+			memset(e->key_iv, 0, sizeof(bin128) );
+			memcpy(e->key_iv + 12, (const void *) &iv, sizeof(iv));
+		}
+	}
 
 	e->utc_start_time = attribs->playlist_utc_timestamp;
 	e->discontinuity = attribs->discontinuity;
@@ -432,6 +443,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		if (safe_start_equals(method, ret[0])) {
 			if (!strncmp(ret[0]+method_len, "NONE", 4)) {
 				attributes->key_method = DRM_NONE;
+				if (attributes->key_url) {
+					gf_free(attributes->key_url);
+					attributes->key_url = NULL;
+				}
 			} else if (!strncmp(ret[0]+method_len, "AES-128", 7)) {
 				attributes->key_method = DRM_AES_128;
 			} else if (!strncmp(ret[0]+method_len, "SAMPLE-AES", 10)) {
@@ -450,6 +465,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					}
 				}
 			}
+			attributes->has_iv = GF_FALSE;
 			if (ret[2] != NULL && safe_start_equals("IV=", ret[2])) {
 				char *IV = ret[2] + 3;
 				if (!strncmp(IV, "0x", 2)) IV+=2;
@@ -466,10 +482,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 						attributes->key_iv[i] = v;
 					}
 				}
-			} else {
-				u32 iv = gf_htonl(attributes->current_media_seq);
-				memset(attributes->key_iv, 0, sizeof(bin128) );
-				memcpy(attributes->key_iv + 12, (const void *) &iv, sizeof(iv));
+				attributes->has_iv = GF_TRUE;
 			}
 		}
 		M3U8_COMPATIBILITY_VERSION(1);
@@ -1031,7 +1044,7 @@ typedef struct
 	Double duration;
 } HLS_LLChunk;
 
-static void reset_attribs(s_accumulated_attributes *attribs)
+static void reset_attribs(s_accumulated_attributes *attribs, Bool is_cleanup)
 {
 	attribs->width = attribs->height = 0;
 #define RST_ATTR(_name) if (attribs->_name) { gf_free(attribs->_name); attribs->_name = NULL; }
@@ -1040,7 +1053,9 @@ static void reset_attribs(s_accumulated_attributes *attribs)
 	RST_ATTR(group.audio)
 	RST_ATTR(language)
 	RST_ATTR(title)
-	RST_ATTR(key_url)
+	if (is_cleanup)
+		RST_ATTR(key_url)
+
 	RST_ATTR(init_url)
 	RST_ATTR(mediaURL)
 }
@@ -1075,7 +1090,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 	memset(&attribs, 0, sizeof(s_accumulated_attributes));
 
 #define _CLEANUP \
-	reset_attribs(&attribs);\
+	reset_attribs(&attribs, GF_TRUE);\
 	if (f) gf_fclose(f); \
 	else if (release_blob) gf_blob_release(m3u8_file);
 
@@ -1238,7 +1253,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 			//do not reset all attributes but at least set width/height/codecs to NULL, otherwise we may miss detection
 			//of audio-only playlists in av sequences
 
-			reset_attribs(&attribs);
+			reset_attribs(&attribs, GF_FALSE);
 		}
 	}
 

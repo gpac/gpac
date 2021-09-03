@@ -1474,7 +1474,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_HLS_VARIANT, "DFVariant", "Value of variant playlist in forward mode", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PCK_HLS_VARIANT_NAME, "DFVariantName", "Value of variant playlist name in forward mode", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DASH_PERIOD_START, "DFPStart", "Value of active period start time in forward mode", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_HLS_KMS, "HLSKey", "URI, KEYFORMAT and KEYFORMATVERSIONS for HLS", GF_PROP_STRING},
+	{ GF_PROP_PID_HLS_KMS, "HLSKey", "URI, KEYFORMAT and KEYFORMATVERSIONS for HLS creation, Key URI for decoding", GF_PROP_STRING},
+	{ GF_PROP_PID_HLS_IV, "HLSIV", "Init Vector for HLS decode", GF_PROP_DATA},
 
 	{ GF_PROP_PID_COLR_PRIMARIES, "ColorPrimaries", "Indicate color primaries for a visual pid", GF_PROP_CICP_COL_PRIM, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_TRANSFER, "ColorTransfer", "Indicate color transfer characteristics for a visual pid", GF_PROP_CICP_COL_TFC, GF_PROP_FLAG_GSF_REM},
