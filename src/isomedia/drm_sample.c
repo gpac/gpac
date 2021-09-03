@@ -1534,6 +1534,9 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 			size = saiz->default_sample_info_size;
 		} else if (sampleNumber > saiz->sample_count) {
 			return GF_ISOM_INVALID_FILE;
+		} else if (!saiz->sample_info_size) {
+			//CBCS
+			size = 0;
 		} else {
 			size = saiz->sample_info_size[sampleNumber-1];
 		}
