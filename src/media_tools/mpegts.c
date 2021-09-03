@@ -1352,6 +1352,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_VVC:
 		case GF_M2TS_VIDEO_VVC_TEMPORAL:
 		case GF_M2TS_VIDEO_VC1:
+		case GF_M2TS_HLS_AVC_CRYPT:
 			inherit_pcr = 1;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
@@ -1365,6 +1366,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_MHAS_AUX:
 		case GF_M2TS_SUBTITLE_DVB:
 		case GF_M2TS_METADATA_PES:
+		case GF_M2TS_HLS_AAC_CRYPT:
+		case GF_M2TS_HLS_AC3_CRYPT:
+		case GF_M2TS_HLS_EC3_CRYPT:
 		case 0xA1:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			if (!pes) {
@@ -1454,7 +1458,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
-			//GF_LOG(/*GF_LOG_WARNING*/GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 			break;
 		}
 

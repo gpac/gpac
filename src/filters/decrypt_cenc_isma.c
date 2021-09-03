@@ -30,6 +30,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/download.h>
 #include <gpac/network.h>
+#include <gpac/internal/media_dev.h>
 
 #ifndef GPAC_DISABLE_CRYPTO
 
@@ -96,6 +97,8 @@ typedef struct
 	Bool is_hls;
 	bin128 hls_IV;
 	char *hls_key_url;
+	Bool is_hls_saes;
+	u32 codec_id;
 } GF_CENCDecStream;
 
 typedef struct
@@ -631,7 +634,8 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	memcpy(cstr->hls_IV, key_IV, sizeof(bin128));
 	//switch key if needed IV
 	if (cstr->hls_key_url && key_url && !strcmp(cstr->hls_key_url, key_url)) {
-		gf_crypt_set_IV(cstr->crypts[0].crypt, cstr->hls_IV, 16);
+		if (cstr->crypt_init)
+			gf_crypt_set_IV(cstr->crypts[0].crypt, cstr->hls_IV, 16);
 		return GF_OK;
 	}
 
@@ -947,6 +951,43 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 	GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] No key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
 	return GF_FILTER_NOT_SUPPORTED;
 }
+
+static GF_Err cenc_dec_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
+{
+	GF_Err e;
+	const GF_PropertyValue *prop, *cinfo_prop;
+	GF_FilterPid *pid = cstr->ipid;
+	Bool is_playing = (cstr->state == DECRYPT_STATE_PLAY) ? GF_TRUE : GF_FALSE;
+
+	cstr->state = DECRYPT_STATE_ERROR;
+
+	cstr->cenc_pattern = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PATTERN);
+	if (cstr->cenc_pattern && (!cstr->cenc_pattern->value.frac.num || !cstr->cenc_pattern->value.frac.den))
+		cstr->cenc_pattern = NULL;
+
+	cstr->state = is_playing ? DECRYPT_STATE_PLAY : DECRYPT_STATE_SETUP;
+	cstr->is_cbc = GF_TRUE;
+	cstr->is_hls_saes = GF_TRUE;
+	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CODECID);
+	if (!prop) return GF_NON_COMPLIANT_BITSTREAM;
+	cstr->codec_id = prop->value.uint;
+
+	cinfo_prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_HLS_KMS);
+	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_HLS_IV);
+
+	if (cinfo_prop && prop) {
+		e = cenc_dec_set_hls_key(ctx, cstr, cinfo_prop->value.string, prop->value.data.ptr);
+		if (!e) return GF_OK;
+	}
+
+	if (ctx->decrypt!=DECRYPT_FULL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] No keys found but playback forced\n"));
+		return GF_OK;
+	}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] No key found, aborting!\n\tUse '--decrypt=nokey' to force decrypting\n"));
+	return GF_FILTER_NOT_SUPPORTED;
+}
+
 
 static GF_Err cenc_dec_setup_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
@@ -1392,6 +1433,169 @@ exit:
 	return e;
 }
 
+static GF_Err cenc_dec_process_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
+{
+	GF_Err e = GF_OK;
+	u32 data_size;
+	u8 *out_data;
+	GF_FilterPacket *out_pck;
+
+	gf_filter_pck_get_data(in_pck, &data_size);
+
+	if (!data_size) {
+		out_pck = gf_filter_pck_new_ref(cstr->opid, 0, 0, in_pck);
+		if (!out_pck) return GF_OUT_OF_MEM;
+		gf_filter_pck_merge_properties(in_pck, out_pck);
+		gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
+		gf_filter_pck_set_crypt_flags(out_pck, 0);
+		gf_filter_pck_send(out_pck);
+		return GF_OK;
+	}
+
+	//we can use inplace processing for decryption
+	out_pck = gf_filter_pck_new_clone(cstr->opid, in_pck, &out_data);
+	if (!out_pck) return GF_OUT_OF_MEM;
+
+	//packet has been fetched, we now MUST have a key info
+	if (!cstr->hls_key_url) {
+		if (ctx->decrypt == DECRYPT_SKIP) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+			e = GF_OK;
+			goto send_packet;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HLS_SAES] Packet encrypted but no KEY info\n" ) );
+		return GF_SERVICE_ERROR;
+	}
+
+	e = cenc_dec_push_iv(cstr, 0, cstr->hls_IV, 16, 0, NULL);
+	if (e) goto exit;
+
+	cstr->crypt_init = GF_TRUE;
+
+	if (cstr->key_error) {
+		e = cstr->key_error;
+		goto exit;
+	}
+
+	if (cstr->codec_id==GF_CODECID_AVC) {
+		u32 cur_pos = 0;
+		u32 o_data_size = data_size;
+		u8 *data = out_data;
+
+		while (cur_pos + 4 < data_size) {
+			u32 i;
+			u32 nal_size=0;
+			u32 bk_idx = 0;
+			u8 *nal_start, *nal_hdr_ptr;
+			u32 nal_size_o;
+			for (i=0; i<4; i++) {
+				nal_size <<= 8;
+				nal_size |= data[i];
+			}
+			if (cur_pos+4+nal_size > data_size) {
+				break;
+			}
+			nal_hdr_ptr = data;
+			cur_pos += 4;
+			data += 4;
+
+			u8 nal_hdr = data[0];
+			u8 nal_type = nal_hdr & 0x1F;
+
+			if ((nal_size<=48) || ((nal_type != 1) && (nal_type != 5))) {
+				data += nal_size;
+				cur_pos += nal_size;
+				continue;
+			}
+			nal_start = data;
+			nal_size_o = nal_size;
+			//remove EPB
+			u32 nb_epb = gf_media_nalu_emulation_bytes_remove_count(data, nal_size);
+			if (nb_epb) {
+				nal_size = gf_media_nalu_remove_emulation_bytes(data, data, nal_size);
+			}
+
+			//unencrypted header
+			data += 32;
+			cur_pos += 32;
+			nal_size -= 32;
+
+			//const IV is applied at each subsample
+			gf_crypt_set_IV(cstr->crypts[0].crypt, cstr->hls_IV, 16);
+
+			while (nal_size) {
+				Bool is_crypted = GF_FALSE;
+				if (! (bk_idx % 10)) is_crypted = GF_TRUE;
+
+				if (is_crypted && cstr->crypts[0].key_valid) {
+					//decrypt
+					gf_crypt_decrypt(cstr->crypts[0].crypt, data, 16);
+				}
+
+				bk_idx++;
+				nal_size -= 16;
+				data += 16;
+				cur_pos += 16;
+				if (nal_size < 16) break;
+			}
+			//unencrypted trailer
+			data += nal_size;
+			cur_pos += nal_size;
+
+			if (nb_epb) {
+				u32 remain = data_size - (cur_pos+nb_epb);
+				//move all remainging bytes
+				memmove(nal_start + nal_size_o - nb_epb, nal_start + nal_size_o, remain);
+				//rewrite NALU length field
+				nal_size_o -= nb_epb;
+				nal_hdr_ptr[0] = ((nal_size_o>>24) & 0xFF);
+				nal_hdr_ptr[1] = ((nal_size_o>>16) & 0xFF);
+				nal_hdr_ptr[2] = ((nal_size_o>>8) & 0xFF);
+				nal_hdr_ptr[3] = ((nal_size_o) & 0xFF);
+
+				data_size -= nb_epb;
+			}
+		}
+		if (o_data_size > data_size)
+			gf_filter_pck_truncate(out_pck, data_size);
+	}
+	//otherwise audio, same scheme for all
+	else {
+		u8 *data = out_data;
+		//clear 16 bytes header
+		data += 16;
+		if (data_size>16) {
+			data_size-=16;
+
+			//const IV is applied at each sample
+			gf_crypt_set_IV(cstr->crypts[0].crypt, cstr->hls_IV, 16);
+		} else {
+			data_size=0;
+		}
+
+		while (data_size>0) {
+			gf_crypt_decrypt(cstr->crypts[0].crypt, data, 16);
+			data += 16;
+			data_size -= 16;
+			if (data_size<16)
+				break;
+		}
+	}
+
+
+send_packet:
+	gf_filter_pck_merge_properties(in_pck, out_pck);
+	gf_filter_pck_set_property(out_pck, GF_PROP_PCK_CENC_SAI, NULL);
+	gf_filter_pck_set_crypt_flags(out_pck, 0);
+
+	gf_filter_pck_send(out_pck);
+
+exit:
+	if (e && out_pck) {
+		gf_filter_pck_discard(out_pck);
+	}
+	return e;
+}
 
 static GF_Err cenc_dec_process_adobe(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, GF_FilterPacket *in_pck)
 {
@@ -1590,6 +1794,9 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	case GF_ISOM_ADOBE_SCHEME:
 		e = cenc_dec_setup_adobe(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
 		break;
+	case GF_HLS_SAMPLE_AES_SCHEME:
+		e = cenc_dec_hls_saes(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Protection scheme type %s not supported\n", gf_4cc_to_str(scheme_type) ) );
 		return GF_SERVICE_ERROR;
@@ -1695,7 +1902,9 @@ static GF_Err cenc_dec_process(GF_Filter *filter)
 			continue;
 		}
 
-		if (cstr->is_cenc || cstr->is_cbc) {
+		if (cstr->is_hls_saes) {
+			e = cenc_dec_process_hls_saes(ctx, cstr, pck);
+		} else if (cstr->is_cenc || cstr->is_cbc) {
 			e = cenc_dec_process_cenc(ctx, cstr, pck);
 		} else if (cstr->is_oma) {
 			e = GF_NOT_SUPPORTED;
@@ -1764,6 +1973,7 @@ static const GF_FilterCapability CENCDecCaps[] =
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CBCS_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_PIFF_SCHEME),
+	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_HLS_SAMPLE_AES_SCHEME),
 
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -1791,7 +2001,10 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 GF_FilterRegister CENCDecRegister = {
 	.name = "cdcrypt",
 	GF_FS_SET_DESCRIPTION("CENC decryptor")
-	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.\n"
+	GF_FS_SET_HELP("The CENC decryptor supports decrypting CENC, ISMA, HLS Sample-AES (MPEG2 ts) and Adobe streams.\n"
+	"\n"
+	"For HLS, key is retrieved according to the key URI in the manifest.\n"
+	"Otherwise, the filter uses a configuration file.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
 	"The file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"

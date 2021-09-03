@@ -4627,10 +4627,13 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		rep->playback.owned_gmem = data_url_processed;
 		rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
 		if (key_url) {
-			rep->playback.key_url = gf_strdup(key_url);
+			rep->playback.key_url = key_url;
 			memcpy(rep->playback.key_IV, key_iv, sizeof(bin128) );
+			key_url = NULL;
 		}
 	}
+	if (key_url) gf_free(key_url);
+	
 	group->nb_cached_segments = 1;
 	group->download_segment_index += nb_segment_read;
 

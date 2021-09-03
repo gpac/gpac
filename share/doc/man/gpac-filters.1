@@ -1769,7 +1769,13 @@ Description: CENC decryptor
 .br
 
 .br
-The CENC decryptor supports decrypting CENC, ISMA and Adobe streams. It uses a configuration file for retrieving keys.
+The CENC decryptor supports decrypting CENC, ISMA, HLS Sample-AES (MPEG2 ts) and Adobe streams.
+.br
+
+.br
+For HLS, key is retrieved according to the key URI in the manifest.
+.br
+Otherwise, the filter uses a configuration file.
 .br
 The syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
@@ -7758,7 +7764,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1214-g867f626f7-master
+build: 1.1.0-DEV-rev1215-g82867510a-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
