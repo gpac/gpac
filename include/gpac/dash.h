@@ -348,6 +348,13 @@ s32 gf_dash_group_get_id(GF_DashClient *dash, u32 group_idx);
 */
 void gf_dash_enable_group_selection(GF_DashClient *dash, Bool enable);
 
+/*! checks if first segment (used to initialize) was an init segment or the first in a sequence (aka M2TS)
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return GF_TRUE if first segment was a media segment
+*/
+Bool gf_dash_group_init_segment_is_media(GF_DashClient *dash, u32 group_idx);
+
 /*! performs selection of representations based on language code
 \param dash the target dash client
 \param lang_code_rfc_5646 the language code used by the default group selection

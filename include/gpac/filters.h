@@ -1190,6 +1190,7 @@ enum
 	GF_PROP_PID_DASH_PERIOD_START = GF_4CC('D','P','S','T'),
 	GF_PROP_PCK_HLS_VARIANT_NAME = GF_4CC('D','H','L','N'),
 	GF_PROP_PID_HLS_KMS = GF_4CC('H','L','S','K'),
+	GF_PROP_PID_HLS_IV = GF_4CC('H','L','S','I'),
 	//internal property indicating pointer to associated GF_DownloadSession
 	GF_PROP_PID_DOWNLOAD_SESSION = GF_4CC('G','H','T','T'),
 

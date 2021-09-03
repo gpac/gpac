@@ -300,6 +300,8 @@ struct __dash_group
 	u64 ast_at_init;
 	u32 ast_offset;
 
+	Bool init_segment_is_media;
+
 	u32 max_cached_segments, nb_cached_segments;
 	segment_cache_entry *cached;
 
@@ -4491,10 +4493,18 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			return e;
 		}
 		nb_segment_read = 1;
+	} else if (dash->is_m3u8) {
+		char *tmp_url=NULL;
+		u64 dur, sr, er;
+		u32 startnum;
+		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &tmp_url, &sr, &er, &dur, NULL, &key_url, &key_iv, NULL, &startnum);
+		if (tmp_url) gf_free(tmp_url);
 	}
 
 	base_url = base_url_orig;
 	base_init_url = gf_dash_get_fileio_url(base_url, base_init_url);
+
+	if (nb_segment_read) group->init_segment_is_media = GF_TRUE;
 
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7)
 		|| !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "mosaic://", 9)
@@ -4616,6 +4626,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		rep->playback.init_end_range = end_range;
 		rep->playback.owned_gmem = data_url_processed;
 		rep->playback.init_seg_name_start = dash_strip_base_url(rep->playback.cached_init_segment_url, base_url);
+		if (key_url) {
+			rep->playback.key_url = gf_strdup(key_url);
+			memcpy(rep->playback.key_IV, key_iv, sizeof(bin128) );
+		}
 	}
 	group->nb_cached_segments = 1;
 	group->download_segment_index += nb_segment_read;
@@ -8478,6 +8492,13 @@ const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, u3
 	}
 	if (key_IV) memcpy(*key_IV, rep->playback.key_IV, sizeof(bin128));
 	return rep->playback.key_url;
+}
+
+Bool gf_dash_group_init_segment_is_media(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_FALSE;
+	return group->init_segment_is_media;
 }
 
 GF_EXPORT
