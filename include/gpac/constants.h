@@ -1118,6 +1118,10 @@ enum
 	GF_AVC_TYPE2_SI = 9
 };
 
+/*! Scheme Type only used internally to signal HLS sample AES in TS */
+#define GF_HLS_SAMPLE_AES_SCHEME	GF_4CC('H','S','A','E')
+
+
 /*! HEVC NAL unit types */
 enum
 {

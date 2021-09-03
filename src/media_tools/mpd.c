@@ -1750,7 +1750,7 @@ try_next_segment:
 				sep[1] = 0;
 			/* if no path separator then base_url is just a filename */
 			else {
-				free(base_url);
+				gf_free(base_url);
 				base_url = gf_strdup("./");
 			}
 

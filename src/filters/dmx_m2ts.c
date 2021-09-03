@@ -189,7 +189,7 @@ static void m2tsdmx_update_sdt(GF_M2TS_Demuxer *ts, void *for_pid)
 
 static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD *esd)
 {
-	u32 i, count, codecid=0, stype=0;
+	u32 i, count, codecid=0, stype=0, orig_stype=0;
 	GF_FilterPid *opid;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
@@ -232,6 +232,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			unframed = GF_TRUE;
 			if (stream->program->is_scalable)
 				has_scal_layer = GF_TRUE;
+			break;
+		case GF_M2TS_HLS_AVC_CRYPT:
+			stype = GF_STREAM_ENCRYPTED;
+			orig_stype = GF_STREAM_VISUAL;
+			codecid = GF_CODECID_AVC;
+			unframed = GF_TRUE;
 			break;
 		case GF_M2TS_VIDEO_SVC:
 			stype = GF_STREAM_VISUAL;
@@ -334,6 +340,24 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_EAC3;
 			break;
+
+		case GF_M2TS_HLS_AAC_CRYPT:
+			stype = GF_STREAM_ENCRYPTED;
+			orig_stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AAC_MPEG4;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_HLS_AC3_CRYPT:
+			stype = GF_STREAM_ENCRYPTED;
+			orig_stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AC3;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_HLS_EC3_CRYPT:
+			stype = GF_STREAM_ENCRYPTED;
+			orig_stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_EAC3;
+			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -386,6 +410,11 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 		if (unframed)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+
+		if (orig_stype) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(orig_stype) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(GF_HLS_SAMPLE_AES_SCHEME) );
+		}
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
@@ -1196,14 +1225,22 @@ static const char *m2tsdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 static const GF_FilterCapability M2TSDmxCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
+	CAP_UINT(GF_CAPS_INPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT_STATIC, GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
+	CAP_STRING(GF_CAPS_INPUT_STATIC, GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_ORIG_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_ORIG_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };
 
