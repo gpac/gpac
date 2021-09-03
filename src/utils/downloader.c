@@ -260,6 +260,8 @@ struct __gf_download_session
 	//in bytes per seconds
 	Double cumulated_chunk_rate;
 
+	u32 connection_timeout_ms;
+
 #ifdef GPAC_HAS_HTTP2
 	//HTTP/2 session used by this download session. f not NULL, the mutex, socket and ssl context are moved along sessions
 	GF_H2_Session *h2_sess;
@@ -2160,6 +2162,14 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 		socket_changed = GF_TRUE;
 	else if (sess->status>GF_NETIO_DISCONNECTED)
 		socket_changed = GF_TRUE;
+
+	else if (sess->connection_timeout_ms) {
+		u32 diff = (u32) ( gf_sys_clock_high_res() - sess->last_fetch_time) / 1000;
+		if (diff >= sess->connection_timeout_ms) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTP] Timeout reached (%d ms since last vs %d ms timeout), reconnecting\n", diff, sess->connection_timeout_ms));
+			socket_changed = GF_TRUE;
+		}
+	}
 
 	assert(sess->status != GF_NETIO_WAIT_FOR_REPLY);
 	assert(sess->status != GF_NETIO_DATA_EXCHANGE);
@@ -4746,6 +4756,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	u32 method=0;
 	u32 rsp_code=0, ContentLength, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = GF_FALSE;
+	Bool connection_keep_alive = GF_FALSE;
+	u32 connection_timeout=0;
 	char buf[1025];
 	char comp[400];
 	GF_Err e;
@@ -5098,6 +5110,23 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			else if (!stricmp(hdr->name, "Connection") ) {
 				if (strstr(hdr->value, "close"))
 					connection_closed = GF_TRUE;
+				else if (strstr(hdr->value, "Keep-Alive"))
+					connection_keep_alive = GF_TRUE;
+			}
+			else if (!stricmp(hdr->name, "Keep-Alive") ) {
+				char *tout = strstr(hdr->value, "timeout=");
+				if (tout) {
+					char c=0;
+					s32 end = gf_token_find(tout, 0, (u32) strlen(tout), ", ");
+					if (end) {
+						c = tout[end];
+						tout[end] = 0;
+					}
+					connection_timeout = atoi(tout+8);
+					if (end) tout[end] = c;
+				}
+				if (strstr(hdr->value, "close"))
+					connection_closed = GF_TRUE;
 			}
 #ifdef GPAC_HAS_HTTP2
 			else if (!stricmp(hdr->name, "Upgrade") ) {
@@ -5126,6 +5155,16 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 
 		gf_cache_set_headers_processed(sess->cache_entry);
+
+		if (connection_keep_alive
+			&& !gf_opts_get_bool("core", "no-timeout")
+			&& !sess->server_mode
+#ifdef GPAC_HAS_HTTP2
+			&& !sess->h2_sess
+#endif
+		) {
+			sess->connection_timeout_ms = connection_timeout*1000;
+		}
 	}
 
 	par.msg_type = GF_NETIO_PARSE_REPLY;
