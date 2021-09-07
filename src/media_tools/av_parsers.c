@@ -4189,7 +4189,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		else if (metadata_type == METADATA_TYPE_TIMECODE) {
 		}
 #endif
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[AV1] parsing for metadata is not implemented. Forwarding.\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsing for metadata is not implemented. Forwarding.\n"));
 
 		if (gf_bs_get_position(bs) > pos + *obu_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Metadata parsing consumed too many bytes !\n"));
