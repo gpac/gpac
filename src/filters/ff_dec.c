@@ -271,7 +271,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 			gf_filter_pck_unref(pck_src);
 		}
 		FF_RELEASE_PCK(pkt);
-		return GF_OK;
+		//input full but output available, go on but don't discard input
+		pck = NULL;
+		break;
 	case 0:
 	case AVERROR_EOF:
 		break;
