@@ -521,6 +521,12 @@ GF_Err gf_dash_group_next_seg_info(GF_DashClient *dash, u32 group_idx, u32 depen
 */
 Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 group_idx);
 
+/*! checks if group is using low latency delivery.
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return GF_TRUE if low latency is used, GF_FALSE otherwise
+*/
+Bool gf_dash_is_low_latency(GF_DashClient *dash, u32 group_idx);
 
 /*! gets average duration of segments for the current rep.
 \param dash the target dash client
@@ -665,6 +671,12 @@ Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash);
 \return minimum buffer time in ms
 */
 u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
+
+/*! gets the maximum segment duration in session
+\param dash the target dash client
+\return the maximum segment duration in ms
+*/
+u32 gf_dash_get_max_segment_duration(GF_DashClient *dash);
 
 /*! gets the difference between the local UTC clock and the one reported by the server
 \param dash the target dash client

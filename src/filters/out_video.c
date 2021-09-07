@@ -404,11 +404,15 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->pid_delay = p ? p->value.longsint : 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
-	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
+	ctx->no_buffering = (p && !p->value.uint) ? GF_TRUE : GF_FALSE;
 	if (ctx->no_buffering) {
 		ctx->buffer_done = GF_TRUE;
 		ctx->rebuffer = 0;
 	}
+	if (p && p->value.uint) {
+		if (ctx->buffer < p->value.uint) ctx->buffer = p->value.uint;
+	}
+	
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
 	ctx->raw_grab = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
 
