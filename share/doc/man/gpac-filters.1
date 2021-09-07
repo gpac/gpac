@@ -1662,7 +1662,15 @@ max_res (bool, default: true): use max media resolution to configure display
 .br
 abort (bool, default: false):  allow abort during a segment download
 .br
-use_bmin (bool, default: false): use the indicated min buffer time of the MPD if true, otherwise uses default player settings
+use_bmin (enum, default: auto): playout buffer handling
+.br
+* no: use default player settings
+.br
+* auto: notify player of segment duration if not low latency
+.br
+* mpd: use the indicated min buffer time of the MPD
+.br
+
 .br
 shift_utc (sint, default: 0):  shift DASH UTC clock in ms
 .br
@@ -7764,7 +7772,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1215-g82867510a-master
+build: 1.1.0-DEV-rev1220-gbebee4dd5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

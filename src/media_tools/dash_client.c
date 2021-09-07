@@ -9105,6 +9105,18 @@ u32 gf_dash_get_min_buffer_time(GF_DashClient *dash)
 	return dash ? dash->mpd->min_buffer_time : 0;
 }
 
+Bool gf_dash_is_low_latency(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_FALSE;
+	return group->is_low_latency;
+}
+u32 gf_dash_get_max_segment_duration(GF_DashClient *dash)
+{
+	return dash ? dash->mpd->max_segment_duration : 0;
+}
+
+
 #if 0 //unused
 GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment_name, const char *earliest_segment_name)
 {

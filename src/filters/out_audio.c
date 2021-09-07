@@ -423,8 +423,11 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	ctx->timescale = timescale;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
-	ctx->no_buffering = (p && !p->value.sint) ? GF_TRUE : GF_FALSE;
+	ctx->no_buffering = (p && !p->value.uint) ? GF_TRUE : GF_FALSE;
 	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
+	if (p && p->value.uint) {
+		if (ctx->buffer < p->value.uint) ctx->buffer = p->value.uint;
+	}
 
 	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
 		ctx->needs_recfg = GF_FALSE;

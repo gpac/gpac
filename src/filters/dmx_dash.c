@@ -44,6 +44,14 @@ enum
 	DFWD_SBOUND_MANIFEST,
 };
 
+
+enum
+{
+	BMIN_NO = 0,
+	BMIN_AUTO,
+	BMIN_MPD,
+};
+
 typedef struct
 {
 	//opts
@@ -56,7 +64,8 @@ typedef struct
 	GF_DASHInitialSelectionMode start_with;
 	GF_DASHTileAdaptationMode tile_mode;
 	char *algo;
-	Bool max_res, abort, use_bmin;
+	Bool max_res, abort;
+	u32 use_bmin;
 	char *query;
 	Bool noxlink, split_as, noseek, groupsel;
 	u32 lowlat;
@@ -1140,7 +1149,7 @@ static void dashdmx_setup_buffer(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	play_buf_ms /= 1000;
 
 	//use min buffer from MPD
-	if (ctx->use_bmin) {
+	if (ctx->use_bmin==BMIN_MPD) {
 		u64 mpd_buffer_ms = gf_dash_get_min_buffer_time(ctx->dash);
 		if (mpd_buffer_ms > buffer_ms)
 			buffer_ms = (u32) mpd_buffer_ms;
@@ -1378,9 +1387,28 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(dur, 1000) );
 
 
-	if (ctx->use_bmin) {
+	if (ctx->use_bmin==BMIN_MPD) {
 		u32 max = gf_dash_get_min_buffer_time(ctx->dash);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
+	}
+	else if (ctx->use_bmin==BMIN_AUTO) {
+		Bool do_set = GF_FALSE;
+		//low latency not enabled or not active
+		if (!ctx->lowlat || !gf_dash_is_low_latency(ctx->dash, group_idx)) {
+			do_set = GF_TRUE;
+		}
+		//or we have dependent groups, no low latency possible for now
+		else if (group->nb_group_deps) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Low-Latency dependent group (tiling & co) not supported, using regular download\n"));
+			do_set = GF_TRUE;
+			ctx->lowlat = 0;
+			gf_dash_set_low_latency_mode(ctx->dash, ctx->lowlat);
+		}
+		if (do_set) {
+			u32 max = gf_dash_get_max_segment_duration(ctx->dash);
+			if (max)
+				gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
+		}
 	}
 
 	memset(&qualities, 0, sizeof(GF_PropertyValue));
@@ -3085,7 +3113,10 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(abort), "allow abort during a segment download", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(use_bmin), "use the indicated min buffer time of the MPD if true, otherwise uses default player settings", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(use_bmin), "playout buffer handling\n"
+		"- no: use default player settings\n"
+		"- auto: notify player of segment duration if not low latency\n"
+		"- mpd: use the indicated min buffer time of the MPD", GF_PROP_UINT, "auto", "no|auto|mpd", 0},
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
