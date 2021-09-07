@@ -183,16 +183,6 @@ typedef struct
 static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 
 
-static void vout_reset_overlay(GF_VideoOutCtx *ctx)
-{
-#ifdef VOUT_USE_OPENGL
-	if (ctx->overlay_tx) {
-		glDeleteTextures(1, &ctx->overlay_tx);
-		ctx->overlay_tx = 0;
-	}
-#endif
-}
-
 #ifdef VOUT_USE_OPENGL
 
 static void vout_make_gl_current(GF_VideoOutCtx *ctx)
@@ -230,6 +220,21 @@ static Bool vout_compile_shader(GF_SHADERID shader_id, const char *name, const c
 }
 #endif // VOUT_USE_OPENGL
 
+static void vout_reset_overlay(GF_Filter *filter, GF_VideoOutCtx *ctx)
+{
+#ifdef VOUT_USE_OPENGL
+	if (ctx->overlay_tx) {
+		if (filter) {
+			gf_filter_lock(filter, GF_TRUE);
+			vout_make_gl_current(ctx);
+		}
+		glDeleteTextures(1, &ctx->overlay_tx);
+		ctx->overlay_tx = 0;
+		if (filter)
+			gf_filter_lock(filter, GF_FALSE);
+	}
+#endif
+}
 
 static void vout_set_caption(GF_VideoOutCtx *ctx)
 {
@@ -801,7 +806,7 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 			ctx->display_changed = GF_TRUE;
 			ctx->owsize.x = ctx->display_width;
 			ctx->owsize.y = ctx->display_height;
-			vout_reset_overlay(ctx);
+			vout_reset_overlay(NULL, ctx);
 
 			if (ctx->pid) {
 				GF_FEVT_INIT(fevt, GF_FEVT_VISIBILITY_HINT, ctx->pid);
@@ -1986,7 +1991,7 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		if (new_val->value.data.ptr) {
 			ctx->update_oldata = GF_TRUE;
 		} else {
-			vout_reset_overlay(ctx);
+			vout_reset_overlay(filter, ctx);
 		}
 		if (!ctx->pid) {
 			if (!ctx->height)
@@ -1996,7 +2001,7 @@ GF_Err vout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 		}
 		return GF_OK;
 	} else if (!strcmp(arg_name, "olsize")) {
-		vout_reset_overlay(ctx);
+		vout_reset_overlay(filter, ctx);
 		return GF_OK;
 	}
 
