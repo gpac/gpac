@@ -469,7 +469,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool keep_audelim = GF_FALSE;
 	u32 print_stats_graph=fs_dump_flags;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
+	char *ext, *final_name=NULL, *handler_name, *rvc_config, *chapter_name;
 	GF_List *kinds;
 	GF_TextFlagsMode txt_mode = GF_ISOM_TEXT_FLAGS_OVERWRITE;
 	u8 max_layer_id_plus_one, max_temporal_id_plus_one;
@@ -530,13 +530,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
-	strcpy(szName, inName);
+	final_name = gf_strdup(inName);
 #ifdef WIN32
 	/*dirty hack for msys&mingw: when we use import options, the ':' separator used prevents msys from translating the path
 	we do this for regular cases where the path starts with the drive letter. If the path start with anything else (/home , /opt, ...) we're screwed :( */
-	if ( (szName[0]=='/') && (szName[2]=='/')) {
-		szName[0] = szName[1];
-		szName[1] = ':';
+	if ( (final_name[0]=='/') && (final_name[2]=='/')) {
+		final_name[0] = final_name[1];
+		final_name[1] = ':';
 	}
 #endif
 
@@ -566,20 +566,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	force_par = rewrite_bs = GF_FALSE;
 
 
-	ext_start = gf_file_ext_start(szName);
-	ext = strrchr(ext_start ? ext_start : szName, '#');
-	if (!ext) ext = gf_url_colon_suffix(szName);
+	ext_start = gf_file_ext_start(final_name);
+	ext = strrchr(ext_start ? ext_start : final_name, '#');
+	if (!ext) ext = gf_url_colon_suffix(final_name);
 	char c_sep = ext ? ext[0] : 0;
 	if (ext) ext[0] = 0;
- 	if (!strlen(szName) || !strcmp(szName, "self")) {
+ 	if (!strlen(final_name) || !strcmp(final_name, "self")) {
 		fake_import = 2;
 	}
-	if (gf_isom_probe_file(szName))
+	if (gf_isom_probe_file(final_name))
 		src_is_isom = GF_TRUE;
 
 	if (ext) ext[0] = c_sep;
 
-	ext = gf_url_colon_suffix(szName);
+	ext = gf_url_colon_suffix(final_name);
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
 
@@ -1120,7 +1120,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	}
 
 	/*check duration import (old syntax)*/
-	ext = strrchr(szName, '%');
+	ext = strrchr(final_name, '%');
 	if (ext) {
 		gf_parse_frac(ext+1, &import.duration);
 		ext[0] = 0;
@@ -1131,8 +1131,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	track_id = prog_id = 0;
 	do_all = 1;
 
-	ext_start = gf_file_ext_start(szName);
-	ext = strrchr(ext_start ? ext_start : szName, '#');
+	ext_start = gf_file_ext_start(final_name);
+	ext = strrchr(ext_start ? ext_start : final_name, '#');
 	if (ext) ext[0] = 0;
 
 	if (fake_import && ext) {
@@ -1150,7 +1150,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (sep) sep[0] = 0;
 
 		//we have a fragment, we need to check if the track or the program is present in source
-		import.in_name = szName;
+		import.in_name = final_name;
 		import.flags = GF_IMPORT_PROBE_ONLY;
 		e = gf_media_import(&import);
 		GOTO_EXIT("importing import");
@@ -1258,7 +1258,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	source_magic = (u64) gf_crc_32((u8 *)inName, (u32) strlen(inName));
 	if (!fake_import && (!fsess || mux_args_if_first_pass)) {
-		import.in_name = szName;
+		import.in_name = final_name;
 		import.dest = dest;
 		import.video_fps = force_fps;
 		import.frames_per_sample = frames_per_sample;
@@ -1751,6 +1751,7 @@ exit:
 	if (edits) gf_free(edits);
 	if (szLan) gf_free((char *)szLan);
 	if (icc_data) gf_free(icc_data);
+	if (final_name) gf_free(final_name);
 
 	if (!e) return GF_OK;
 	if (fail_msg) {

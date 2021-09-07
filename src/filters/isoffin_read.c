@@ -55,7 +55,7 @@ static GFINLINE Bool isor_is_local(const char *url)
 
 static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 {
-	char szURL[2048];
+	char *url;
 	char *tmp, *src;
 	GF_Err e;
 	const GF_PropertyValue *prop;
@@ -72,8 +72,9 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 
 	read->src_crc = gf_crc_32(src, (u32) strlen(src));
 
-	strcpy(szURL, src);
-	tmp = gf_file_ext_start(szURL);
+	url = gf_strdup(src);
+	if (!url) return GF_OUT_OF_MEM;
+	tmp = gf_file_ext_start(url);
 	if (tmp) {
 		Bool truncate = GF_TRUE;
 		tmp = strchr(tmp, '#');
@@ -107,7 +108,8 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 		}
 	}
 
-	if (! isor_is_local(szURL)) {
+	if (! isor_is_local(url)) {
+		gf_free(url);
 		return GF_NOT_SUPPORTED;
 	}
 	read->start_range = read->end_range = 0;
@@ -118,9 +120,10 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	}
 
 	read->missing_bytes = 0;
-	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
+	e = gf_isom_open_progressive(url, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
 
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
+		gf_free(url);
 		read->moov_not_loaded = 1;
 		return GF_OK;
 	}
@@ -135,17 +138,19 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	}
 
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error while opening %s, error=%s\n", szURL,gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error while opening %s, error=%s\n", url,gf_error_to_string(e)));
 		gf_filter_setup_failure(filter, e);
+		gf_free(url);
 		return e;
 	}
 	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-    if (!read->frag_type && read->sigfrag) {
-        e = GF_BAD_PARAM;
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] sigfrag requested but file %s is not fragmented\n", szURL));
-        gf_filter_setup_failure(filter, e);
-        return e;
-    }
+	if (!read->frag_type && read->sigfrag) {
+		e = GF_BAD_PARAM;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] sigfrag requested but file %s is not fragmented\n", url));
+		gf_filter_setup_failure(filter, e);
+		gf_free(url);
+		return e;
+	}
     
 	read->timescale = gf_isom_get_timescale(read->mov);
 	if (!read->input_loaded && read->frag_type)
@@ -154,6 +159,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	if (read->strtxt)
 		gf_isom_text_set_streaming_mode(read->mov, GF_TRUE);
 
+	gf_free(url);
 	return isor_declare_objects(read);
 }
 

@@ -1448,7 +1448,7 @@ skip_date:
 
 		if (len>=alloc_len) {
 			alloc_len = len+1;
-			szArg = gf_realloc(szArg, sizeof(char)*len);
+			szArg = gf_realloc(szArg, sizeof(char)*alloc_len);
 		}
 		strncpy(szArg, args, len);
 		szArg[len]=0;
