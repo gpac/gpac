@@ -1391,7 +1391,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		u32 max = gf_dash_get_min_buffer_time(ctx->dash);
 		gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
 	}
-	else if (ctx->use_bmin==BMIN_AUTO) {
+	//check if low latency is on, if not notify max segment duration as target min buffer
+	//we don't do this in test mode, it breaks all inspect hashes
+	else if ((ctx->use_bmin==BMIN_AUTO) && !gf_sys_is_test_mode()) {
 		Bool do_set = GF_FALSE;
 		//low latency not enabled or not active
 		if (!ctx->lowlat || !gf_dash_is_low_latency(ctx->dash, group_idx)) {
