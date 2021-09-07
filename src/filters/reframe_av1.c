@@ -483,8 +483,10 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	dsi = NULL;
 	dsi_size = 0;
 
+	crc = 0;
 	if (ctx->vp_cfg) {
 		gf_odf_vp_cfg_write(ctx->vp_cfg, &dsi, &dsi_size, ctx->vp_cfg->codec_initdata_size ? GF_TRUE : GF_FALSE);
+		crc = gf_crc_32(dsi, dsi_size);
 	} else if (ctx->is_av1) {
 		//first or config changed, compute dsi
 		while (gf_list_count(ctx->state.config->obu_array)) {
@@ -498,6 +500,9 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			GF_AV1_OBUArrayEntry *a = (GF_AV1_OBUArrayEntry*) gf_list_get(ctx->state.frame_state.header_obus, 0);
 			gf_list_add(ctx->state.config->obu_array, a);
 			gf_list_rem(ctx->state.frame_state.header_obus, 0);
+			if (a->obu_type == OBU_SEQUENCE_HEADER) {
+				crc = gf_crc_32(a->obu, a->obu_length);
+			}
 		}
 		gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
 
@@ -505,9 +510,11 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->cur_fps.num = ctx->state.tb_num;
 			ctx->cur_fps.den = ctx->state.tb_den;
 		}
-
+		if (!crc) {
+			gf_free(dsi);
+			return;
+		}
 	}
-	crc = gf_crc_32(dsi, dsi_size);
 
 	if (crc == ctx->dsi_crc) {
 		gf_free(dsi);
