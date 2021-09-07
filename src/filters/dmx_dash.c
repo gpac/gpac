@@ -445,6 +445,13 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 			group->eos_detected = GF_TRUE;
 		} else {
 			group->in_error = GF_TRUE;
+
+			if (group->nb_group_deps) {
+				if (group->current_group_dep) group->current_group_dep--;
+			} else if (group->next_dependent_rep_idx) {
+				group->next_dependent_rep_idx--;
+			}
+
 			//failure at init, abort group
 			if (!group->init_ok)
 				group->seg_filter_src = NULL;
