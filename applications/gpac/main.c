@@ -3560,7 +3560,7 @@ static Bool check_param_extension(char *szArg, int arg_idx, int argc, char **arg
 
 static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int arg_idx, int argc, char **argv)
 {
-	char szArg[1024];
+	char *alias_arg=NULL;
 	char szSepList[2];
 	char *oparam = param;
 	szSepList[0] = separator_set[SEP_LIST];
@@ -3570,7 +3570,8 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 	Bool is_expand = param[0]=='+';
 
 	if (is_list || is_expand) param++;
-	strcpy(szArg, prefix);
+
+	gf_dynstrcat(&alias_arg, prefix, NULL);
 	while (param) {
 		u32 idx=0;
 		u32 last_idx=0;
@@ -3584,6 +3585,7 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 				if (diff>=idx) {
 					if (sep) sep[0]=',';
 					fprintf(stderr, "Bad usage for alias parameter %s: not enough parameters\n", oparam);
+					gf_free(alias_arg);
 					return GF_FALSE;
 				}
 				idx -= diff;
@@ -3605,6 +3607,7 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 						u32 diff = atoi(lsep+3);
 						if (diff>=last_idx) {
 							fprintf(stderr, "Bad usage for alias parameter %s: not enough parameters\n", oparam);
+							gf_free(alias_arg);
 							return GF_FALSE;
 						}
 						last_idx -= diff;
@@ -3619,11 +3622,13 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 		if (!idx) {
 			if (sep) sep[0]=',';
 			fprintf(stderr, "Bad format for alias parameter %s: cannot extract argument index\n", oparam);
+			gf_free(alias_arg);
 			return GF_FALSE;
 		}
 		if ((int) idx + arg_idx >= argc) {
 			if (sep) sep[0]=',';
 			fprintf(stderr, "Bad format for alias parameter %s: argment out of bounds (not enough paramteters?)\n", oparam);
+			gf_free(alias_arg);
 			return GF_FALSE;
 		}
 
@@ -3635,19 +3640,22 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 			gf_list_add(args_used, an_arg);
 
 			if (is_expand) {
-				strcpy(szArg, prefix);
-				strcat(szArg, an_arg);
-				strcat(szArg, suffix);
+				gf_free(alias_arg);
+				alias_arg = NULL;
+				gf_dynstrcat(&alias_arg, prefix, NULL);
+				gf_dynstrcat(&alias_arg, an_arg, NULL);
+				gf_dynstrcat(&alias_arg, suffix, NULL);
 
-				Bool ok = check_param_extension(szArg, arg_idx, argc, argv);
+				Bool ok = check_param_extension(alias_arg, arg_idx, argc, argv);
 				if (!ok) {
 					if (sep) sep[0]=',';
+					gf_free(alias_arg);
 					return GF_FALSE;
 				}
 			} else {
-				strcat(szArg, an_arg);
+				gf_dynstrcat(&alias_arg, an_arg, NULL);
 				if (is_list && (idx<last_idx)) {
-					strcat(szArg, szSepList);
+					gf_dynstrcat(&alias_arg, szSepList, NULL);
 				}
 			}
 		}
@@ -3656,16 +3664,20 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 		sep[0]=',';
 		param = sep+1;
 		if (is_list) {
-			strcat(szArg, szSepList);
+			gf_dynstrcat(&alias_arg, szSepList, NULL);
 		}
 	}
 
-	if (is_expand)
+	if (is_expand) {
+		gf_free(alias_arg);
 		return GF_TRUE;
+	}
 
-	strcat(szArg, suffix);
+	gf_dynstrcat(&alias_arg, suffix, NULL);
 
-	return check_param_extension(szArg, arg_idx, argc, argv);
+	Bool res = check_param_extension(alias_arg, arg_idx, argc, argv);
+	gf_free(alias_arg);
+	return res;
 }
 
 static Bool gpac_expand_alias(int argc, char **argv)

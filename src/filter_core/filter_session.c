@@ -1076,21 +1076,33 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 static Bool locate_js_script(char *path, const char *file_name, const char *file_ext)
 {
 	u32 len = (u32) strlen(path);
-	strcat(path, file_name);
-	if (gf_file_exists(path))
+	u32 flen = 20 + (u32) strlen(file_name);
+
+	char *apath = gf_malloc(sizeof(char) * (len+flen) );
+	if (!apath) return GF_FALSE;
+	strcpy(apath, path);
+
+	strcat(apath, file_name);
+	if (gf_file_exists(apath)) {
+		gf_free(apath);
 		return GF_TRUE;
+	}
 
 	if (!file_ext) {
-		strcat(path, ".js");
-		if (gf_file_exists(path))
+		strcat(apath, ".js");
+		if (gf_file_exists(apath)) {
+			gf_free(apath);
 			return GF_TRUE;
+		}
 	}
-	path[len] = 0;
-	strcat(path, file_name);
-	strcat(path, "/init.js");
-	if (gf_file_exists(path))
+	apath[len] = 0;
+	strcat(apath, file_name);
+	strcat(apath, "/init.js");
+	if (gf_file_exists(apath)) {
+		gf_free(apath);
 		return GF_TRUE;
-
+	}
+	gf_free(apath);
 	return GF_FALSE;
 }
 
