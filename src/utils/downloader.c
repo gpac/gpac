@@ -5118,12 +5118,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				if (tout) {
 					char c=0;
 					s32 end = gf_token_find(tout, 0, (u32) strlen(tout), ", ");
-					if (end) {
+					if (end>=0) {
 						c = tout[end];
 						tout[end] = 0;
 					}
 					connection_timeout = atoi(tout+8);
-					if (end) tout[end] = c;
+					if (end>=0) tout[end] = c;
 				}
 				if (strstr(hdr->value, "close"))
 					connection_closed = GF_TRUE;
