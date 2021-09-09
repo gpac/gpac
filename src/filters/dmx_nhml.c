@@ -999,10 +999,17 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					} else {
 						base_data = att->value;
 					}
+				} else if (!strnicmp(att->value, "gmem://", 7)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Invalid url %s for NHML import\n", att->value));
 				} else {
 					char *url = gf_url_concatenate(ctx->src_url, att->value);
-					strcpy(szMediaTemp, url ? url : att->value);
-					if (url) gf_free(url);
+					if (!url) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to get full url for %s\n", att->value));
+					} else {
+						strncpy(szMediaTemp, url, GF_MAX_PATH-1);
+						szMediaTemp[GF_MAX_PATH-1] = 0;
+						gf_free(url);
+					}
 				}
 			}
 			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
