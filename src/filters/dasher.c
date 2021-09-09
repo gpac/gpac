@@ -685,6 +685,17 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 		ds->rep_init = GF_FALSE;
 		ds->presentation_time_offset = 0;
 		gf_list_rem(ctx->current_period->streams, res);
+	} else {
+		//stream is not in current period, and this is not an explicit new period request
+		//if the period was not ready (not yet setup), add to current streams
+		//this is needed for cases such as HEVC tiling where secondary pids are added after the main pid is configured
+		//see issue 1849
+		if (!is_new_period_request && ctx->period_not_ready && !ds->rep) {
+			gf_list_add(ctx->current_period->streams, ds);
+			ds->period = ctx->current_period;
+			ds->request_period_switch = 0;
+			return GF_OK;
+		}
 	}
 	ds->request_period_switch = 0;
 
@@ -7267,7 +7278,12 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 	//streams in period are not all ready, wait for them
 	if (ctx->period_not_ready) {
-		Bool is_eos = gf_filter_end_of_session(filter);
+		Bool is_eos;
+		//potpone until no pending connections, otherwise we may add input streams in the wrong period
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+
+		is_eos = gf_filter_end_of_session(filter);
 		if (! dasher_check_period_ready(ctx, is_eos)) {
 			return is_eos ? GF_SERVICE_ERROR : GF_OK;
 		}
