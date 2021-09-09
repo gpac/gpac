@@ -1021,8 +1021,14 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 					}
 				}
 			}
-			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
-			else if (!stricmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
+			else if (!stricmp(att->name, "xmlFrom")) {
+				strncpy(szXmlFrom, att->value, 999);
+				szXmlFrom[999]=0;
+			}
+			else if (!stricmp(att->name, "xmlTo")) {
+				strncpy(szXmlTo, att->value, 999);
+				szXmlTo[999]=0;
+			}
 			/*DIMS flags*/
 			else if (!stricmp(att->name, "is-Scene") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_S;
