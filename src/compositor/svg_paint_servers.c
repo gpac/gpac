@@ -555,7 +555,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		end.y = 0;
 	}
 
-	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) (all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0) );
 
 
 	if (bounds && (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) ) {
@@ -660,7 +660,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		center.y = FIX_ONE/2;
 	}
 
-	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0);
+	gf_evg_stencil_set_gradient_mode(stencil, (GF_GradientMode) (all_atts.spreadMethod ? *(SVG_SpreadMethod*)all_atts.spreadMethod : 0));
 
 	if (all_atts.fx) {
 		focal.x = all_atts.fx->value;
