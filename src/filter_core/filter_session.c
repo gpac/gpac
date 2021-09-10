@@ -3317,7 +3317,7 @@ typedef struct
 #endif
 } GF_UserTask;
 
-static void gf_fs_user_task(GF_FSTask *task)
+static void do_fs_user_task(GF_FSTask *task, Bool free_log_name)
 {
 	u32 reschedule_ms=0;
 	GF_UserTask *utask = (GF_UserTask *)task->udta;
@@ -3339,12 +3339,22 @@ static void gf_fs_user_task(GF_FSTask *task)
 		gf_free(utask);
 		task->udta = NULL;
 		//we duplicated the name for user tasks
-		gf_free((char *) task->log_name);
+		if (free_log_name)
+			gf_free((char *) task->log_name);
 		task->requeue_request = GF_FALSE;
 	} else {
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
 	}
 }
+static void gf_fs_user_task(GF_FSTask *task)
+{
+	do_fs_user_task(task, GF_FALSE);
+}
+static void gf_fs_user_task_free_log(GF_FSTask *task)
+{
+	do_fs_user_task(task, GF_TRUE);
+}
+
 
 GF_EXPORT
 GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
@@ -3359,7 +3369,7 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	utask->task_execute = task_execute;
 	//dup mem for user task
 	_log_name = gf_strdup(log_name ? log_name : "user_task");
-	gf_fs_post_task(fsess, gf_fs_user_task, NULL, NULL, _log_name, utask);
+	gf_fs_post_task(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask);
 	return GF_OK;
 }
 
