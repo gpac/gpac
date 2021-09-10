@@ -989,7 +989,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		} else {
 			if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
 			data = JS_ToCString(c, argv[0]);
-			data_size = (u32) strlen(ctx->data);
+			data_size = (u32) strlen(data);
 		}
 	}
 
