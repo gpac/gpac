@@ -2466,7 +2466,6 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
 	if (!size && !ck_type) {
 		fifce = gf_filter_pck_get_frame_interface(pck);
-		if (!fifce) return;
 	}
 
 	if (ctx->xml) {
@@ -2600,7 +2599,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 
 
 props_done:
-	if (!ctx->analyze) {
+	if (!ctx->analyze || !size) {
 		if (ctx->xml) {
 			gf_fprintf(dump, "/>\n");
 		}
