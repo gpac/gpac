@@ -243,11 +243,13 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 
 	if (maxExtent<0) {
 		trim_tspan = gf_font_manager_create_span(ft_mgr, font, "...", fontSize, GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, styles, (GF_Node*)txt);
-		for (i=0; i<trim_tspan->nb_glyphs; i++) {
-			if (horizontal) {
-				trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->horiz_advance : trim_tspan->font->max_advance_h;
-			} else {
-				trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->vert_advance : trim_tspan->font->max_advance_v;
+		if (trim_tspan) {
+			for (i=0; i<trim_tspan->nb_glyphs; i++) {
+				if (horizontal) {
+					trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->horiz_advance : trim_tspan->font->max_advance_h;
+				} else {
+					trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->vert_advance : trim_tspan->font->max_advance_v;
+				}
 			}
 		}
 	}
