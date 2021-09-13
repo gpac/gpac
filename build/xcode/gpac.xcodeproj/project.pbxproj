@@ -3186,6 +3186,7 @@
 					"-lvmaf",
 					"-lvvdec",
 					"-lc++",
+					"-lxml2",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
@@ -3298,6 +3299,7 @@
 					"-lvmaf",
 					"-lvvdec",
 					"-lc++",
+					"-lxml2",
 					"-lvpx",
 				);
 				PRODUCT_NAME = gpac;
