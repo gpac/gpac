@@ -1078,7 +1078,7 @@ second_pass:
 
 		idx=0;
 		i=0;
-		while (av_class) {
+		while (av_class && av_class->option) {
 			opt = &av_class->option[idx];
 			if (!opt || !opt->name) break;
 			if (!flags || (opt->flags & flags) ) {
