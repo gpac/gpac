@@ -397,8 +397,10 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 						seg_tl_ent->repeat_count--;
 				}
 			}
+			if (seg_tl_ent->start_time)
+				curr_start_time = seg_tl_ent->start_time;
 
-			curr_start_time = curr_start_time + seg_tl_ent->duration * (seg_tl_ent->repeat_count+1);
+			curr_start_time += (u64) (seg_tl_ent->duration * (seg_tl_ent->repeat_count+1));
 		}
 	}
 	return seg;
@@ -4450,7 +4452,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 						if (ent->start_time)
 							start_time = ent->start_time;
 						if (k<nb_seg-1) {
-							start_time += ent->duration * (1 + ent->repeat_count);
+							start_time +=  (u64) (ent->duration * (1 + ent->repeat_count));
 							continue;
 						} else {
 							gf_free(url);

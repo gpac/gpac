@@ -1143,8 +1143,8 @@ setup_route:
 		}
 		//check if we're ahead of time but "reasonnably" ahead (max 1 min) - otherwise consider the timing is broken
 		if ((current_time_rescale + last_s_dur >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime));
-			group->download_segment_index = seg_idx-1;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" by %g sec - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime, (Double) (current_time_rescale - segtime)/timescale ));
+			group->download_segment_index = (seg_idx > 2) ? (seg_idx-2) : 0;
 			group->nb_segments_in_rep = seg_idx;
 			//we can't trust our UTC check, play from last segment with start_range=0 (eg from start of first segment)
 			group->start_playback_range = 0;
