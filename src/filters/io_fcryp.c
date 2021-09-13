@@ -93,6 +93,11 @@ static GF_Err cryptfile_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_CACHED, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, NULL);
 
+	//if no mime assume M2TS
+	if (gf_filter_pid_get_property(pid, GF_PROP_PID_MIME) == NULL) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_NAME("video/mpeg-2"));
+	}
+
 	if (ctx->fullfile)
 		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
