@@ -99,6 +99,8 @@ typedef struct
 	char *hls_key_url;
 	Bool is_hls_saes;
 	u32 codec_id;
+
+	Bool force_hls_iv;
 } GF_CENCDecStream;
 
 typedef struct
@@ -109,7 +111,8 @@ typedef struct
 	GF_PropStringList kids;
 	GF_PropStringList keys;
 	GF_CryptInfo *cinfo;
-	
+	Bool hls_cenc_patch_iv;
+
 	GF_Filter *filter;
 	GF_List *streams;
 	GF_BitStream *bs_r;
@@ -651,6 +654,9 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[CENC/HLS] Switching key to %s\n", key_url))
 
+	if (ctx->hls_cenc_patch_iv)
+		cstr->force_hls_iv = GF_TRUE;
+
 	cstr->KID_count = 1;
 	cstr->keys = (bin128 *)gf_realloc(cstr->keys, cstr->KID_count*sizeof(bin128));
 
@@ -1137,7 +1143,11 @@ static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 
 			e = gf_crypt_set_IV(cstr->crypts[key_idx].crypt, IV, 17);
 		} else {
 			if (const_iv) {
-				memcpy(IV, const_iv, const_iv_size);
+				if (cstr->force_hls_iv) {
+					memcpy(IV, cstr->hls_IV, sizeof(bin128));
+				} else {
+					memcpy(IV, const_iv, const_iv_size);
+				}
 			}
 			e = gf_crypt_set_IV(cstr->crypts[key_idx].crypt, IV, 16);
 		}
@@ -1362,6 +1372,10 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 				memcpy(IV, const_iv, const_iv_size);
 				if (const_iv_size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
+
+				if (cstr->force_hls_iv)
+					memcpy(IV, cstr->hls_IV, sizeof(bin128));
+
 				gf_crypt_set_IV(cstr->crypts[kidx].crypt, IV, 16);
 			}
 			if (cur_pos + bytes_clear_data + bytes_encrypted_data > data_size) {
@@ -1995,6 +2009,7 @@ static const GF_FilterArgs GF_CENCDecArgs[] =
 	{ OFFS(drop_keys), "consider keys with given 1-based indexes as not available (multi-key debug)", GF_PROP_UINT_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(kids), "define KIDs. If `keys` is empty, consider keys with given KID (as hex string) as not available (debug)", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(keys), "define key values for each of the specified KID", GF_PROP_STRING_LIST, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(hls_cenc_patch_iv), "ignore IV updates in some broken HLS+CENC streams", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 

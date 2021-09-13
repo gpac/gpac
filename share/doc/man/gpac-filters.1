@@ -1814,6 +1814,8 @@ kids (strl):                   define KIDs. If keys is empty, consider keys with
 .br
 keys (strl):                   define key values for each of the specified KID
 .br
+hls_cenc_patch_iv (bool, default: false): ignore IV updates in some broken HLS+CENC streams
+.br
 
 .br
 .SH cecrypt
@@ -6741,7 +6743,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC (compo
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf59.4.101
+Version: Lavf59.5.100
 .br
 
 .br
@@ -6775,7 +6777,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc59.3.102
+Version: Lavc59.7.103
 .br
 
 .br
@@ -6807,7 +6809,7 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd59.0.100
+Version: Lavd59.0.101
 .br
 
 .br
@@ -6896,7 +6898,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS6.0.100
+Version: SwS6.1.100
 .br
 
 .br
@@ -6944,7 +6946,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc59.3.102
+Version: Lavc59.7.103
 .br
 
 .br
@@ -7008,7 +7010,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf59.4.101
+Version: Lavf59.5.100
 .br
 
 .br
@@ -7068,7 +7070,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf59.4.101
+Version: Lavf59.5.100
 .br
 
 .br
@@ -7772,7 +7774,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1220-gbebee4dd5-master
+build: 1.1.0-DEV-rev1237-g1ae1922f5-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
