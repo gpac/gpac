@@ -12,6 +12,7 @@
 #define GPAC_HAS_FAAD 1
 #define GPAC_HAS_MAD 1
 #define GPAC_HAS_HTTP2
+#define GPAC_HAS_SSL
 
 #define GPAC_USE_GLES2 1
 //#define GPAC_FIXED_POINT 1

@@ -17,17 +17,18 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/ffmpeg_android/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/openjpeg
++LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/openssl_android/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -lGLESv2 -ldl
-LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz
+LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz -lssl -lcrypto
 
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
 
 #mediacodec - removed  ljavaenv from original settings
-LOCAL_LDLIBS    += -llog -ldl -lOpenMAXAL -lmediandk -landroid -lGLESv2
+LOCAL_LDLIBS    += -llog -lOpenMAXAL -lmediandk -landroid
 
 #LOCAL_SHARED_LIBRARIES    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
 #LOCAL_SHARED_LIBRARIES    += -lGLESv2 -ldl
