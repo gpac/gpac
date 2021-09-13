@@ -1057,6 +1057,8 @@ setup_route:
 		if (rep->segment_template->start_number) start_number = rep->segment_template->start_number;
 		if (rep->segment_template->availability_time_offset) ast_offset = rep->segment_template->availability_time_offset;
 	}
+	if (start_number==(u32) -1)
+		start_number = 1;
 
 	group->is_low_latency = GF_FALSE;
 	if (group->dash->low_latency_mode==GF_DASH_LL_DISABLE) {
