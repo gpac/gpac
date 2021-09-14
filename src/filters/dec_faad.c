@@ -406,6 +406,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		ctx->last_cts -= ctx->ts_offset;
 		ctx->timescale = gf_filter_pck_get_timescale(pck);
 		gf_filter_pck_merge_properties(pck, dst_pck);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 	}
 	gf_filter_pck_set_cts(dst_pck, ctx->last_cts);
 	if (ctx->timescale != ctx->sample_rate) {

@@ -381,6 +381,7 @@ packed_frame :
 
 	if (src_pck) {
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 		is_seek = gf_filter_pck_get_seek_flag(src_pck);
 		ctx->next_cts = gf_filter_pck_get_cts(src_pck);
 		gf_filter_pck_set_dts(dst_pck, ctx->next_cts);

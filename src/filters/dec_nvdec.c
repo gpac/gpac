@@ -814,6 +814,7 @@ static void nvdec_merge_pck_props(NVDecCtx *ctx, NVDecFrame *f,  GF_FilterPacket
 		src_pck = gf_list_get(ctx->src_packets, i);
 		if (gf_filter_pck_get_cts(src_pck) == f->frame_info.timestamp) {
 			gf_filter_pck_merge_properties(src_pck, dst_pck);
+			gf_filter_pck_set_dependency_flags(dst_pck, 0);
 			gf_filter_pck_set_dts(dst_pck, f->frame_info.timestamp);
 			gf_list_rem(ctx->src_packets, i);
 			gf_filter_pck_unref(src_pck);

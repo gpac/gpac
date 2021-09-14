@@ -567,6 +567,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 		gf_filter_pck_discard(pck_dst);
 	} else {
 		gf_filter_pck_merge_properties(pck, pck_dst);
+		gf_filter_pck_set_dependency_flags(pck_dst, 0);
 		gf_filter_pck_send(pck_dst);
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);

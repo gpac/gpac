@@ -248,6 +248,7 @@ static GF_Err theoradec_process(GF_Filter *filter)
 		gf_filter_pck_set_dts(dst_pck, ctx->next_cts);
 		ctx->next_cts += gf_filter_pck_get_duration(src_pck);
 		gf_filter_pck_unref(src_pck);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 	} else {
 		is_seek = 0;
 		gf_filter_pck_set_cts(dst_pck, ctx->next_cts);
