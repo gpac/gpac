@@ -303,6 +303,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_BITRATE, bitrate ? &PROP_UINT(bitrate) : NULL);
 
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_ID, &PROP_UINT(ctx->base_id + i + 1 ) );
+		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_ESID, NULL);
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_TILE_ID, &PROP_UINT(i + 1 ) );
 		gf_filter_pid_set_property(tinfo->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ctx->base_id) );
 		tilesplit_update_pid_props(ctx, tinfo);
