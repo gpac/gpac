@@ -1395,6 +1395,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	//we don't do this in test mode, it breaks all inspect hashes
 	else if ((ctx->use_bmin==BMIN_AUTO) && !gf_sys_is_test_mode()) {
 		Bool do_set = GF_FALSE;
+		u32 min_buf = gf_dash_get_max_segment_duration(ctx->dash);
 		//low latency not enabled or not active
 		if (!ctx->lowlat || !gf_dash_is_low_latency(ctx->dash, group_idx)) {
 			do_set = GF_TRUE;
@@ -1406,10 +1407,12 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 			ctx->lowlat = 0;
 			gf_dash_set_low_latency_mode(ctx->dash, ctx->lowlat);
 		}
-		if (do_set) {
-			u32 max = gf_dash_get_max_segment_duration(ctx->dash);
-			if (max)
-				gf_filter_pid_set_property(opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(max));
+		//set play buffer for all output pids
+		if (do_set && min_buf) {
+			for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
+				GF_FilterPid *a_opid = gf_filter_get_opid(ctx->filter, i);
+				gf_filter_pid_set_property(a_opid, GF_PROP_PID_PLAY_BUFFER, &PROP_UINT(min_buf));
+			}
 		}
 	}
 
@@ -2920,6 +2923,8 @@ GF_Err dashdmx_process(GF_Filter *filter)
 					}
 				}
 				else {
+					//still waiting for input packets, do not reschedule (let filter session do it)
+					next_time_ms = 0;
 					if (ctx->abort)
 						dashdmx_update_group_stats(ctx, group);
 					//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] No source packet group %d and not in end of stream\n", group->idx));

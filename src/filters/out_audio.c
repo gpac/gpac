@@ -425,24 +425,22 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PLAY_BUFFER);
 	ctx->no_buffering = (p && !p->value.uint) ? GF_TRUE : GF_FALSE;
 	if (ctx->no_buffering) ctx->buffer_done = GF_TRUE;
+	Bool buffer_req_changed = GF_FALSE;
 	if (p && p->value.uint) {
-		if (ctx->buffer < p->value.uint) ctx->buffer = p->value.uint;
+		if (ctx->buffer < p->value.uint) {
+			ctx->buffer = p->value.uint;
+			buffer_req_changed = GF_TRUE;
+		}
 	}
 
-	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
-		ctx->needs_recfg = GF_FALSE;
-		ctx->wait_recfg = GF_FALSE;
-		return GF_OK;
-	}
-
-	//whenever change of sample rate / format / channel, force buffer requirements and speed setup
 	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
+		buffer_req_changed = GF_TRUE;
+	}
+	if (buffer_req_changed) {
 		GF_FilterEvent evt;
-		ctx->speed_set = 0;
-
 		//set buffer reqs to bdur or 100 ms - we don't "buffer" in the filter, but this will allow dispatching
 		//several input frames in the buffer (default being 1 pck / 1000 us max in buffers). Not doing so could cause
-		//the session to end because input is blocked (no tasks posted) and output still holds a packet 
+		//the session to end because input is blocked (no tasks posted) and output still holds a packet
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
 		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
 		if (ctx->bdur) {
@@ -456,12 +454,27 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			evt.buffer_req.max_playout_us = evt.buffer_req.max_buffer_us;
 			evt.buffer_req.max_buffer_us = ctx->mbuffer * 1000;
 		}
+		//more than 200ms, use regular buffer
+		else if (ctx->buffer>200) {
+			evt.buffer_req.max_playout_us = evt.buffer_req.max_buffer_us;
+		}
 		//we don't have a max buffer, set buffer requirements to PID only
 		else {
 			evt.buffer_req.pid_only = GF_TRUE;
 		}
-
 		gf_filter_pid_send_event(pid, &evt);
+	}
+
+	if ((ctx->sr==sr) && (ctx->afmt == afmt) && (ctx->nb_ch == nb_ch) && (ctx->ch_cfg == ch_cfg)) {
+		ctx->needs_recfg = GF_FALSE;
+		ctx->wait_recfg = GF_FALSE;
+		return GF_OK;
+	}
+
+	//whenever change of sample rate / format / channel, force speed setup
+	if ((ctx->sr!=sr) || (ctx->afmt != afmt) || (ctx->nb_ch != nb_ch)) {
+		GF_FilterEvent evt;
+		ctx->speed_set = 0;
 
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "AudioOut");
 		gf_filter_pid_send_event(pid, &evt);

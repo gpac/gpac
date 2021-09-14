@@ -453,9 +453,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		GF_FEVT_INIT(fevt, GF_FEVT_BUFFER_REQ, pid);
 		fevt.buffer_req.max_buffer_us = ctx->buffer * 1000;
-		//we have a max buffer, move our computed max to playout and setup max buffer
+		fevt.buffer_req.max_playout_us = fevt.buffer_req.max_buffer_us;
+		//we have a max buffer
 		if (ctx->mbuffer > ctx->buffer) {
-			fevt.buffer_req.max_playout_us = fevt.buffer_req.max_buffer_us;
 			fevt.buffer_req.max_buffer_us = ctx->mbuffer * 1000;
 		}
 
