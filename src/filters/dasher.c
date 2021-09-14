@@ -240,6 +240,8 @@ typedef struct
 	Bool dyn_rate;
 
 	u64 min_segment_start_time, last_min_segment_start_time;
+
+	u32 def_max_seg_dur;
 } GF_DasherCtx;
 
 typedef enum
@@ -4487,6 +4489,8 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 		ctx->mpd->max_segment_duration = (u32) max_seg_dur;
 		ctx->mpd->max_subsegment_duration = 0;
 	}
+	if (ctx->def_max_seg_dur)
+		ctx->mpd->max_segment_duration = (u32) ctx->def_max_seg_dur;
 
 	if (ctx->do_m3u8) {
 		Bool m3u8_second_pass = GF_FALSE;
@@ -4574,8 +4578,10 @@ resend:
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] failed to write MPD file: %s\n", gf_error_to_string(e) ));
 		}
-		return e;
 	}
+
+	if (ctx->def_max_seg_dur)
+		ctx->mpd->max_segment_duration = 0;
 	return GF_OK;
 }
 
@@ -5770,6 +5776,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				}
 			}
 		}
+
+		if (ds->dash_dur.num * 1000 > ctx->def_max_seg_dur * ds->dash_dur.den )
+			ctx->def_max_seg_dur = (u32) ((ds->dash_dur.num * 1000) / ds->dash_dur.den);
 	}
 
 
@@ -6295,6 +6304,7 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 		first_cts_in_cur_seg = ds->first_cts_in_seg;
 		if (ctx->mpd->max_segment_duration < seg_dur_ms)
 			ctx->mpd->max_segment_duration = seg_dur_ms;
+		ctx->def_max_seg_dur = 0;
 
 		seg_duration = (Double) base_ds->first_cts_in_next_seg - ds->first_cts_in_seg;
 		seg_duration /= base_ds->timescale;
