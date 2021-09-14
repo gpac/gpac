@@ -137,6 +137,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 			gf_filter_pck_discard(dst_pck);
 		} else {
 			gf_filter_pck_merge_properties(pck, dst_pck);
+			gf_filter_pck_set_dependency_flags(dst_pck, 0);
 			gf_filter_pck_send(dst_pck);
 		}
 		gf_filter_pid_drop_packet(ctx->ipid);

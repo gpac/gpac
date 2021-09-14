@@ -540,6 +540,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	if (src_pck) {
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		gf_filter_pck_unref(src_pck);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 	}
 	gf_filter_pck_set_dts(dst_pck, gf_filter_pck_get_cts(dst_pck));
 

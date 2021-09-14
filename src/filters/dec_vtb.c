@@ -1487,6 +1487,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
 
 		gf_filter_pck_merge_properties(vtbframe->pck_src, dst_pck);
+		gf_filter_pck_set_dependency_flags(dst_pck, 0);
 		ctx->last_cts_out = gf_filter_pck_get_cts(vtbframe->pck_src);
 		gf_filter_pck_set_dts(dst_pck, ctx->last_cts_out);
 		ctx->last_timescale_out = gf_filter_pck_get_timescale(vtbframe->pck_src);
@@ -1908,6 +1909,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(vtb_frame->pck_src, dst_pck);
+	gf_filter_pck_set_dependency_flags(dst_pck, 0);
 
 	ctx->last_cts_out = gf_filter_pck_get_cts(vtb_frame->pck_src);
 	gf_filter_pck_set_dts(dst_pck, ctx->last_cts_out);
