@@ -2710,7 +2710,7 @@ GF_Err gf_filter_remove_event_listener(GF_Filter *filter, GF_FSEventListener *el
 /*! Forwards an event to the filter session
 \param filter filter object
 \param evt the event forwarded
-\param consumed if set, indicates the event was already consummed/processed before forwarding
+\param consumed if set, indicates the event was already consumed/processed before forwarding
 \param skip_user if set, indicates the event should only be dispatched to event listeners.
 Otherwise, if a user is assigned to the session, the event is forwarded to the user
 \return the error code if any

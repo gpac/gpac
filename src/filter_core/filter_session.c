@@ -1085,6 +1085,8 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 	strcat(apath, file_name);
 	if (gf_file_exists(apath)) {
 		gf_free(apath);
+		strncpy(path, apath, GF_MAX_PATH-1);
+		path[GF_MAX_PATH-1] = 0;
 		return GF_TRUE;
 	}
 
@@ -1092,6 +1094,8 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 		strcat(apath, ".js");
 		if (gf_file_exists(apath)) {
 			gf_free(apath);
+			strncpy(path, apath, GF_MAX_PATH-1);
+			path[GF_MAX_PATH-1] = 0;
 			return GF_TRUE;
 		}
 	}
@@ -1100,6 +1104,8 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 	strcat(apath, "/init.js");
 	if (gf_file_exists(apath)) {
 		gf_free(apath);
+		strncpy(path, apath, GF_MAX_PATH-1);
+		path[GF_MAX_PATH-1] = 0;
 		return GF_TRUE;
 	}
 	gf_free(apath);
