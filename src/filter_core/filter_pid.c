@@ -6202,6 +6202,33 @@ static GF_FilterEvent *init_evt(GF_FilterEvent *evt)
 	return an_evt;
 }
 
+
+static Bool filter_pid_is_raw_source(GF_FilterPid *pid)
+{
+	u32 i;
+	Bool res = GF_TRUE;
+	if (!pid->raw_media) {
+		if (pid->stream_type!=GF_STREAM_FILE)
+			return GF_FALSE;
+	}
+
+	gf_mx_p(pid->filter->tasks_mx);
+
+	for (i=0; i<pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
+		if (pidi->pid->nb_decoder_inputs) {
+			res = GF_FALSE;
+			break;
+		}
+		if (! filter_pid_is_raw_source(pidi->pid)) {
+			res = GF_FALSE;
+			break;
+		}
+	}
+	gf_mx_v(pid->filter->tasks_mx);
+	return res;
+}
+
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
 	u32 i, count, nb_playing=0, nb_paused=0;
@@ -6279,7 +6306,15 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			free_evt(evt);
 			return;
 		}
-		if (evt->base.on_pid->nb_decoder_inputs /*|| evt->base.on_pid->raw_media*/ || evt->buffer_req.pid_only) {
+		//, set buffering at this level if:
+		if (
+			//- pid is a decoder input
+			evt->base.on_pid->nb_decoder_inputs
+			//- buffer req event explicitly requested for this pid
+			|| evt->buffer_req.pid_only
+			//- pid is a raw media source
+			|| filter_pid_is_raw_source(evt->base.on_pid)
+		) {
 			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			evt->base.on_pid->user_min_playout_time = evt->buffer_req.min_playout_us;

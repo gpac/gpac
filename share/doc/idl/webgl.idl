@@ -49,7 +49,7 @@ The WebGL API in GPAC work by default on offscreen framebuffer objects:
 
 The underlying framebuffer color texture attachment and if enabled, depth texture attachment, can be dispatched as a GPAC packet using \ref FilterPid.new_packet; this allows forwarding a framebuffer data to other filters without having to copy to system memory the framebuffer content.
 
-When forwarding a framebuffer, it is recommended not to draw anything nor activate GL context until all references of the packet holding the framebuffer are consummed. A callback function is used for that, see example below.
+When forwarding a framebuffer, it is recommended not to draw anything nor activate GL context until all references of the packet holding the framebuffer are consumed. A callback function is used for that, see example below.
 
 \note you can always use glReadPixels to read back the framebuffer and send packets using the usual FilterPacket tools.
 
@@ -457,7 +457,7 @@ interface FilterPid {
 /*! creates a new output packet using the underlying texture attachement of the context as a texture source (see GF_FilterFrameInterface).
 \warning This will throw an error if called more than once on a given context but the associated packet has not been consumed yet!
 \param gl the WebGL context used to create the packet.  
-\param on_frame_consumed a callback function notified when the associated packet has been consummed
+\param on_frame_consumed a callback function notified when the associated packet has been consumed
 \param use_depth if set, uses the depth framebuffer attachment if enabled rather than the texture. See \ref WebGLContext
 \return new packet or null with exception*/
 FilterPacket new_packet(WebGLContext gl, function on_frame_consumed, optional boolean use_depth);
