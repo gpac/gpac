@@ -1823,7 +1823,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		return;
 	if (ctx->au_sap) {
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, ctx->au_sap);
-		if (ctx->au_sap == GF_FILTER_SAP_1) {
+		if (ctx->au_sap == GF_FILTER_SAP_1 || ctx->au_sap == GF_FILTER_SAP_2) {
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
 			if (ctx->is_paff)
 				ctx->dts_last_IDR *= 2;
@@ -3034,8 +3034,11 @@ naldmx_flush:
 					slice_is_idr = 0;
 					break;
 				case GF_VVC_NALU_SLICE_IDR_N_LP:
-				case GF_VVC_NALU_SLICE_IDR_W_RADL:
 					au_sap_type = GF_FILTER_SAP_1;
+					break;
+				case GF_VVC_NALU_SLICE_IDR_W_RADL:
+					au_sap_type = GF_FILTER_SAP_2;
+					slice_is_idr = 0;
 					break;
 				}
 			} else {
