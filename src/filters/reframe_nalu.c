@@ -2732,7 +2732,7 @@ naldmx_flush:
 		s32 next=0;
 		u32 next_sc_size=0;
 		s32 nal_parse_result;
-		Bool slice_is_ref, slice_force_ref;
+		Bool slice_is_idr, slice_force_ref;
 		Bool is_slice = GF_FALSE;
 		Bool is_islice = GF_FALSE;
 		Bool bottom_field_flag = GF_FALSE;
@@ -2980,7 +2980,7 @@ naldmx_flush:
 		//store all variables needed to compute POC/CTS and sample SAP and recovery info
 		if (ctx->codecid==GF_CODECID_HEVC) {
 #ifndef GPAC_DISABLE_HEVC
-			slice_is_ref = gf_hevc_slice_is_IDR(ctx->hevc_state);
+			slice_is_idr = gf_hevc_slice_is_IDR(ctx->hevc_state);
 
 			recovery_point_valid = ctx->hevc_state->sei.recovery_point.valid;
 			recovery_point_frame_cnt = ctx->hevc_state->sei.recovery_point.frame_cnt;
@@ -3016,7 +3016,7 @@ naldmx_flush:
 			}
 #endif // GPAC_DISABLE_HEVC
 		} else if (ctx->codecid==GF_CODECID_VVC) {
-			slice_is_ref = gf_media_vvc_slice_is_ref(ctx->vvc_state);
+			slice_is_idr = gf_media_vvc_slice_is_ref(ctx->vvc_state);
 			recovery_point_valid = ctx->vvc_state->s_info.recovery_point_valid;
 			recovery_point_frame_cnt = ctx->vvc_state->s_info.gdr_recovery_count;
 
@@ -3026,14 +3026,23 @@ naldmx_flush:
 
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (ctx->vvc_state->s_info.irap_or_gdr_pic && !ctx->vvc_state->s_info.gdr_pic) {
-				au_sap_type = GF_FILTER_SAP_1;
 				bIntraSlice = GF_TRUE;
-				slice_is_ref = 1;
+
+				switch (ctx->vvc_state->s_info.nal_unit_type) {
+				case GF_VVC_NALU_SLICE_CRA:
+					au_sap_type = GF_FILTER_SAP_3;
+					slice_is_idr = 0;
+					break;
+				case GF_VVC_NALU_SLICE_IDR_N_LP:
+				case GF_VVC_NALU_SLICE_IDR_W_RADL:
+					au_sap_type = GF_FILTER_SAP_1;
+					break;
+				}
 			} else {
 				switch (ctx->vvc_state->s_info.nal_unit_type) {
 				case GF_VVC_NALU_SLICE_IDR_N_LP:
 					au_sap_type = GF_FILTER_SAP_1;
-					slice_is_ref = 1;
+					slice_is_idr = 1;
 					bIntraSlice = GF_TRUE;
 					break;
 				case GF_VVC_NALU_SLICE_CRA:
@@ -3046,7 +3055,7 @@ naldmx_flush:
 						au_sap_type = GF_FILTER_SAP_3;
 					} else {
 						au_sap_type = GF_FILTER_SAP_1;
-						slice_is_ref = 1;
+						slice_is_idr = 1;
 					}
 					break;
 				}
@@ -3120,7 +3129,7 @@ naldmx_flush:
 				bottom_field_flag = ctx->avc_state->s_info.bottom_field_flag;
 			}
 
-			slice_is_ref = (ctx->avc_state->s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE) ? GF_TRUE : GF_FALSE;
+			slice_is_idr = (ctx->avc_state->s_info.nal_unit_type==GF_AVC_NALU_IDR_SLICE) ? GF_TRUE : GF_FALSE;
 
 			recovery_point_valid = ctx->avc_state->sei.recovery_point.valid;
 			recovery_point_frame_cnt = ctx->avc_state->sei.recovery_point.frame_cnt;
@@ -3143,7 +3152,7 @@ naldmx_flush:
 		if (is_slice) {
 			Bool first_in_au = ctx->first_slice_in_au;
 
-			if (slice_is_ref)
+			if (slice_is_idr)
 				ctx->nb_idr++;
 			slice_force_ref = GF_FALSE;
 
@@ -3210,10 +3219,10 @@ naldmx_flush:
 				}
 				ctx->last_poc = slice_poc;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is ref %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_ref));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is IDR %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_idr));
 
 			/*ref slice, reset poc*/
-			if (slice_is_ref) {
+			if (slice_is_idr) {
 				if (first_in_au) {
 					Bool temp_poc_diff = GF_FALSE;
 					//two consecutive IDRs, force poc_diff to 1 if 0 (when we have intra-only) to force frame dispatch
