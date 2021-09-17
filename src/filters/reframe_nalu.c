@@ -3038,7 +3038,7 @@ naldmx_flush:
 					break;
 				case GF_VVC_NALU_SLICE_IDR_W_RADL:
 					au_sap_type = GF_FILTER_SAP_2;
-					slice_is_idr = 0;
+					slice_is_idr = 1;
 					break;
 				}
 			} else {
@@ -3236,10 +3236,16 @@ naldmx_flush:
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
-					ctx->max_last_poc = ctx->last_poc = ctx->max_last_b_poc = 0;
-					ctx->poc_shift = 0;
-					//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
-					ctx->poc_probe_done = 0;
+					if( au_sap_type == GF_FILTER_SAP_2 && ctx->max_last_poc < ctx->last_poc){
+						ctx->max_last_b_poc = 0;
+						ctx->max_last_poc = ctx->last_poc;
+					}
+					else {
+						ctx->max_last_poc = ctx->last_poc = ctx->max_last_b_poc = 0;
+						ctx->poc_shift = 0;
+						//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
+						ctx->poc_probe_done = 0;
+					}
 					ctx->last_frame_is_idr = GF_TRUE;
 					if (temp_poc_diff)
 						ctx->poc_diff = 0;
