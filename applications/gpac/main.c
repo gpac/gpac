@@ -38,6 +38,7 @@ static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
 static Bool runfor_exit = GF_FALSE;
+static u32 exit_mode = 0;
 static Bool enable_prompt = GF_FALSE;
 static u32 enable_reports = 0;
 static char *report_filter = NULL;
@@ -573,6 +574,8 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
  	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("runfors", NULL, "run for the given amount of milliseconds and exit with segfault (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+ 	GF_DEF_ARG("runforl", NULL, "run for the given amount of milliseconds and wait forever at end (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution", NULL, NULL, GF_ARG_BOOL, 0),
@@ -1148,8 +1151,21 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	}
 	if (runfor>0) {
 		u64 now = gf_sys_clock_high_res();
-		if (!run_start_time) run_start_time = now;
-		else if (now - run_start_time > runfor) {
+		if (!run_start_time) {
+			run_start_time = now;
+		} else if (now - run_start_time > runfor) {
+			//segfault requested
+			if (exit_mode==1) {
+				u8 *buf = gf_malloc(10);
+				gf_free(buf);
+				gf_free(buf);
+			}
+			//deadlock requested
+			else if (exit_mode==2) {
+				while(1) {
+					gf_sleep(1);
+				}
+			}
 			if (nb_loops || loops_done) {
 				gf_fs_abort(fsess, runfor_exit ? GF_FS_FLUSH_NONE : GF_FS_FLUSH_ALL);
 				run_start_time = 0;
@@ -1894,6 +1910,12 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-runforx")) {
 			if (arg_val) runfor = 1000*atoi(arg_val);
 			runfor_exit = GF_TRUE;
+		} else if (!strcmp(arg, "-runfors")) {
+			if (arg_val) runfor = 1000*atoi(arg_val);
+			exit_mode = 1;
+		} else if (!strcmp(arg, "-runforl")) {
+			if (arg_val) runfor = 1000*atoi(arg_val);
+			exit_mode = 2;
 		} else if (!strcmp(arg, "-uncache")) {
 			const char *cache_dir = gf_opts_get_key("core", "cache");
 			gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, ".txt");
