@@ -691,6 +691,7 @@ typedef struct
 	u32 frame_num, poc_lsb, slice_type;
 
 	u8 poc_msb_cycle_present_flag;
+	u8 poc_msb_reset;
 	s32 poc;
 	u32 poc_msb, poc_msb_cycle, poc_msb_prev, poc_lsb_prev, frame_num_prev;
 

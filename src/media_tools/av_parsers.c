@@ -9825,7 +9825,10 @@ static void vvc_compute_poc(VVCSliceInfo *si)
 	u32 max_poc_lsb = 1 << (si->sps->log2_max_poc_lsb);
 
 	if (si->poc_msb_cycle_present_flag) {
-		si->poc_msb = si->poc_msb_cycle;
+		si->poc_msb = si->poc_msb_cycle * max_poc_lsb;
+	}
+	else if (si->poc_msb_reset) {
+		si->poc_msb = 0;
 	} else {
 		if ((si->poc_lsb < si->poc_lsb_prev) && (si->poc_lsb_prev - si->poc_lsb >= max_poc_lsb / 2))
 			si->poc_msb = si->poc_msb_prev + max_poc_lsb;
@@ -9879,8 +9882,10 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 			is_slice = GF_TRUE;
 			n_state.compute_poc_defer = 0;
 			if (poc_reset) {
-				n_state.poc_lsb_prev = 0;
-				n_state.poc_msb_prev = 0;
+				n_state.poc_msb_reset = 1;
+			}
+			else{
+				n_state.poc_msb_reset = 0;
 			}
 
 			vvc_compute_poc(&n_state);
