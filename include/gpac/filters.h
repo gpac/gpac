@@ -2120,7 +2120,8 @@ struct __gf_filter_register
 	/*! optional for sources, mandatory for filters and sinks - callback for PID update may be called several times
 	on the same PID if PID config is changed.
 	Since discontinuities may happen at any time, and a filter may fetch packets in burst,
-	this function may be called while the filter is calling \ref gf_filter_pid_get_packet (this is the only reentrant call for filters)
+	this function may be called while the filter is calling \ref gf_filter_pid_get_packet (this is the only reentrant call for filters).
+	If an error is returned, the PID object shall no longer be used by the filter.
 
 	\param filter the target filter
 	\param PID the input PID to configure
@@ -2128,6 +2129,7 @@ struct __gf_filter_register
 	\return error if any.
 	- a return error of GF_REQUIRES_NEW_INSTANCE indicates the PID cannot be processed in this instance but could be in a clone of the filter.
 	- a return error of GF_FILTER_NOT_SUPPORTED indicates the PID cannot be processed and no alternate chain resolution would help
+	- a return error of GF_EOS silently discard the input pid (same as GF_FILTER_NOT_SUPPORTED but does not throw error)
 	- a return error of GF_BAD_PARAM, GF_SERVICE_ERROR or GF_REMOTE_SERVICE_ERROR indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
 	- any other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
 
@@ -2316,6 +2318,9 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
 struct _gf_ft_mgr *gf_filter_get_font_manager(GF_Filter *filter);
 
 /*! Asks task reschedule for a given delay. There is no guarantee that the task will be recalled at exactly the desired delay
+
+ The function can be called several times while in process, the smallest reschedule time will be kept.
+ 
 \param filter target filter
 \param us_until_next number of microseconds to wait before recalling this task
 */

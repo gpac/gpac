@@ -1817,7 +1817,7 @@ void gf_filter_relink_task(GF_FSTask *task)
 	//good do go, unprotect pid
 	assert(cur_pidinst->detach_pending);
 	safe_int_dec(&cur_pidinst->detach_pending);
-	task->filter->removed = GF_FALSE;
+	task->filter->removed = 0;
 
  	gf_filter_relink_dst(cur_pidinst);
 }
@@ -2682,11 +2682,14 @@ void gf_filter_post_process_task(GF_Filter *filter)
 GF_EXPORT
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 {
+	u64 next_time;
 	if (!filter->in_process_callback) {
 		if (filter->session->direct_mode) return;
 		if (filter->session->in_final_flush) return;
 		//allow reschedule if not called from process
-		filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
+		next_time = 1+us_until_next + gf_sys_clock_high_res();
+		if (!filter->schedule_next_time || (filter->schedule_next_time > next_time))
+			filter->schedule_next_time = next_time;
 		gf_filter_post_process_task(filter);
 		return;
 	}
@@ -2698,7 +2701,10 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	if (!us_until_next) {
 		return;
 	}
-	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
+	next_time = 1+us_until_next + gf_sys_clock_high_res();
+	if (!filter->schedule_next_time || (filter->schedule_next_time > next_time))
+		filter->schedule_next_time = next_time;
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }
 
@@ -2789,7 +2795,7 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 	stack->filter = filter;
 	stack->do_disconnect = force_disconnect;
 	if (force_disconnect) {
-		filter->removed = GF_TRUE;
+		filter->removed = 1;
 	}
 	if (filter->on_setup_error_filter) {
 		gf_fs_post_task(filter->session, gf_filter_setup_failure_notify_task, filter->on_setup_error_filter, NULL, "setup_failure_notify", stack);
@@ -2810,7 +2816,7 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	//filter was already connected, trigger removal of all pid instances
 	if (filter->num_input_pids) {
 		gf_filter_reset_pending_packets(filter);
-		filter->removed = GF_TRUE;
+		filter->removed = 1;
 		gf_mx_p(filter->tasks_mx);
 		while (filter->num_input_pids) {
 			GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, 0);
@@ -2941,7 +2947,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	}
 	//filter will be removed, propagate on all output pids
 	if (!mark_only)
-		filter->removed = GF_TRUE;
+		filter->removed = 1;
 
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
@@ -2985,7 +2991,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter, Bool 
 	}
 	//get all dest pids, post disconnect and mark filters as removed
 	assert(!filter->removed);
-	filter->removed = GF_TRUE;
+	filter->removed = 1;
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		count = pid->num_destinations;
@@ -3066,10 +3072,10 @@ GF_EXPORT
 void gf_filter_remove_dst(GF_Filter *filter, GF_Filter *dst_filter)
 {
 	u32 i, j;
-	Bool removed;
+	u32 removed;
 	if (!filter) return;
 	removed = filter->removed;
-	filter->removed = GF_TRUE;
+	filter->removed = 1;
 	gf_filter_remove_internal(dst_filter, filter, GF_FALSE);
 	filter->removed = removed;
 
@@ -3170,7 +3176,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s\n", src_url));
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to find any filter for URL %s, disabling destination filter %s\n", src_url, af->name));
-			af->removed = GF_TRUE;
+			af->removed = 1;
 		}
 	}
 	if (e==GF_NOT_SUPPORTED)
@@ -4417,6 +4423,7 @@ void gf_filter_abort(GF_Filter *filter)
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		gf_filter_pid_set_eos(pid);
 	}
+	filter->disabled = 1;
 	gf_mx_v(filter->tasks_mx);
 }
 
