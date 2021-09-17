@@ -807,18 +807,23 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to disconnect filter %s PID %s from filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 		}
 		else if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
+			if (e!= GF_EOS) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
+			}
 
 			if ((e==GF_BAD_PARAM)
 				|| (e==GF_SERVICE_ERROR)
 				|| (e==GF_REMOTE_SERVICE_ERROR)
 				|| (e==GF_FILTER_NOT_SUPPORTED)
+				|| (e==GF_EOS)
 				|| (filter->session->flags & GF_FS_FLAG_NO_REASSIGN)
 			) {
 				if (filter->session->flags & GF_FS_FLAG_NO_REASSIGN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter reassignment disabled, skippping chain reload for filter %s PID %s\n", pid->filter->name, pid->name ));
 				}
-				filter->session->last_connect_error = e;
+				if (e!= GF_EOS) {
+					filter->session->last_connect_error = e;
+				}
 
 				if (ctype==GF_PID_CONF_CONNECT) {
 					GF_FilterEvent evt;
@@ -855,7 +860,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				}
 				filter->num_input_pids = 0;
 				filter->single_source = NULL;
-				filter->removed = GF_TRUE;
+				filter->removed = 1;
 				filter->has_pending_pids = GF_FALSE;
 				gf_mx_v(filter->tasks_mx);
 
@@ -963,7 +968,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		//disconnected the last input, flag as removed
 		if (!filter->num_input_pids && !filter->sticky) {
 			gf_filter_reset_pending_packets(filter);
-			filter->removed = GF_TRUE;
+			filter->removed = 1;
 		}
 		//post a pid_delete task to also trigger removal of the filter if needed
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
