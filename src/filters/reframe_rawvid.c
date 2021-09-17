@@ -179,12 +179,19 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		} else {
 			nb_frames = (u32) (ctx->cts / ctx->fps.den);
 		}
-		if (nb_frames>=ctx->total_frames)
+		if (ctx->total_frames && (nb_frames>=ctx->total_frames))
 			nb_frames = (u32) ctx->total_frames-1;
 
 		ctx->cts = nb_frames * ctx->fps.den;
 		ctx->filepos = nb_frames * ctx->frame_size;
 		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
+
+		if (!ctx->initial_play_done) {
+			ctx->initial_play_done = GF_TRUE;
+			//seek will not change the current source state, don't send a seek
+			if (!ctx->filepos)
+				return GF_TRUE;
+		}
 
 		//post a seek even for the beginning, to try to load frame by frame
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
