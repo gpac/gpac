@@ -171,6 +171,7 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (ctx->nb_playing && (ctx->start_range == evt->play.start_range)) {
+			ctx->nb_playing++;
 			return GF_TRUE;
 		}
 		ctx->nb_playing++;
@@ -207,7 +208,8 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
 		if (ctx->file_pids) return GF_TRUE;
-		ctx->stop_pending = GF_TRUE;
+		if (!ctx->nb_playing)
+			ctx->stop_pending = GF_TRUE;
 		//always cancel, take the decision to stop source after demuxing some packets
 		//this avoids stoping (and reseting inputs) when some streams of the mux are not used while other are
 		return GF_TRUE;
@@ -993,23 +995,31 @@ static GF_Err gsfdmx_process_packets(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_S
 			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
 			break;
 		case GFS_PCKTYPE_PID_REMOVE:
-			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+			if (gpck->pck) {
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck = NULL;
+			}
 			gsfdmx_stream_del(ctx, gst, GF_TRUE);
 			return GF_OK;
 
 		case GFS_PCKTYPE_PID_EOS:
-			if (gpck->pck) gf_filter_pck_discard(gpck->pck);
+			if (gpck->pck) {
+				gf_filter_pck_discard(gpck->pck);
+				gpck->pck = NULL;
+			}
 			gf_filter_pid_set_eos(gst->opid);
 			e = GF_EOS;
 			break;
 		case GFS_PCKTYPE_PCK:
 			if (gpck->corrupted) gf_filter_pck_set_corrupted(gpck->pck, GF_TRUE);
 			e = gf_filter_pck_send(gpck->pck);
+			gpck->pck = NULL;
 			break;
 		default:
 			e = GF_OK;
 			break;
 		}
+
 		gf_list_rem(gst->packets, 0);
 		gsfdmx_pck_reset(gpck);
 		gf_list_add(ctx->pck_res, gpck);
@@ -1207,7 +1217,8 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (ctx->buf_size) {
-			return gsfdmx_demux(filter, ctx, NULL, 0);
+			e = gsfdmx_demux(filter, ctx, NULL, 0);
+			if (e) return e;
 		}
 		if (gf_filter_pid_is_eos(ctx->ipid))
 			is_eos = GF_TRUE;
