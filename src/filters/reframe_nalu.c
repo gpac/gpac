@@ -3239,6 +3239,7 @@ naldmx_flush:
 					if( au_sap_type == GF_FILTER_SAP_2 && ctx->max_last_poc < ctx->last_poc){
 						ctx->max_last_b_poc = 0;
 						ctx->max_last_poc = ctx->last_poc;
+						ctx->poc_shift = ctx->last_poc;
 					}
 					else {
 						ctx->max_last_poc = ctx->last_poc = ctx->max_last_b_poc = 0;
