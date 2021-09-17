@@ -249,6 +249,11 @@ JSRuntime *gf_js_get_rt();
 
 const char *jsf_get_script_filename(JSContext *c);
 
+
+#define GF_JS_EXCEPTION(_ctx) \
+	js_throw_err_msg(_ctx, GF_BAD_PARAM, "Invalid value in function %s (%s@%d)", __func__, strrchr(__FILE__, GF_PATH_SEPARATOR)+1, __LINE__)
+
+
 #ifdef __cplusplus
 }
 #endif

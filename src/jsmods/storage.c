@@ -65,11 +65,11 @@ static JSValue js_storage_get_option(JSContext *ctx, JSValueConst this_val, int 
 	const char *sec_name, *key_name;
 	s32 idx = -1;
 	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
-	if (argc < 2) return JS_EXCEPTION;
+	if (!config) return GF_JS_EXCEPTION(ctx);
+	if (argc < 2) return GF_JS_EXCEPTION(ctx);
 
-	if (!JS_IsString(argv[0])) return JS_EXCEPTION;
-	if (!JS_IsString(argv[1]) && !JS_IsInteger(argv[1])) return JS_EXCEPTION;
+	if (!JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (!JS_IsString(argv[1]) && !JS_IsInteger(argv[1])) return GF_JS_EXCEPTION(ctx);
 
 	sec_name = JS_ToCString(ctx, argv[0]);
 	if (!strcmp(sec_name, "GPAC")) {
@@ -105,11 +105,11 @@ static JSValue js_storage_set_option(JSContext *ctx, JSValueConst this_val, int 
 {
 	const char *sec_name, *key_name, *key_val;
 	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
-	if (argc < 3) return JS_EXCEPTION;
+	if (!config) return GF_JS_EXCEPTION(ctx);
+	if (argc < 3) return GF_JS_EXCEPTION(ctx);
 
-	if (!JS_IsString(argv[0])) return JS_EXCEPTION;
-	if (!JS_IsString(argv[1])) return JS_EXCEPTION;
+	if (!JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (!JS_IsString(argv[1])) return GF_JS_EXCEPTION(ctx);
 
 	sec_name = JS_ToCString(ctx, argv[0]);
 	if (!strcmp(sec_name, "GPAC")) {
@@ -132,7 +132,7 @@ static JSValue js_storage_set_option(JSContext *ctx, JSValueConst this_val, int 
 static JSValue js_storage_save(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_Config *config = JS_GetOpaque(this_val, storage_class_id);
-	if (!config) return JS_EXCEPTION;
+	if (!config) return GF_JS_EXCEPTION(ctx);
 	gf_cfg_save(config);
 	return JS_UNDEFINED;
 }
@@ -154,7 +154,7 @@ static JSValue storage_constructor(JSContext *ctx, JSValueConst new_target, int 
 	char temp[3];
 
 	if (!JS_IsString(argv[0]) )
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 
 	storage_url = JS_ToCString(ctx, argv[0]);
 	if (!storage_url) return JS_NULL;
