@@ -222,7 +222,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 
     for (; i < argc; i++) {
 		const char *str = JS_ToCString(ctx, argv[i]);
-        if (!str) return JS_EXCEPTION;
+        if (!str) return GF_JS_EXCEPTION(ctx);
 
         if (logl==-1) {
 			gf_sys_format_help(stderr, GF_PRINTARG_HIGHLIGHT_FIRST, "%s\n", str);
@@ -351,101 +351,101 @@ JSClassDef bitstreamClass = {
 static JSValue js_bs_get_u8(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u8(bs) );
 }
 static JSValue js_bs_get_s8(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s8 v;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	v = (s8) gf_bs_read_u8(bs);
 	return JS_NewInt32(ctx, v );
 }
 static JSValue js_bs_get_u16(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u16(bs) );
 }
 static JSValue js_bs_get_u16_le(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u16_le(bs) );
 }
 static JSValue js_bs_get_s16(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s16 v;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	v = (s16) gf_bs_read_u16(bs);
 	return JS_NewInt32(ctx, v );
 }
 static JSValue js_bs_get_u24(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u24(bs) );
 }
 static JSValue js_bs_get_s32(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s32 v;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	v = (s32) gf_bs_read_u32(bs);
 	return JS_NewInt32(ctx, v);
 }
 static JSValue js_bs_get_u32(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u32(bs) );
 }
 static JSValue js_bs_get_u32_le(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_bs_read_u32_le(bs) );
 }
 static JSValue js_bs_get_u64(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt64(ctx, gf_bs_read_u64(bs) );
 }
 static JSValue js_bs_get_u64_le(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt64(ctx, gf_bs_read_u64_le(bs) );
 }
 static JSValue js_bs_get_s64(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 v;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	v = (s64) gf_bs_read_u64(bs);
 	return JS_NewInt64(ctx, v );
 }
 static JSValue js_bs_get_float(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewFloat64(ctx, gf_bs_read_float(bs) );
 }
 static JSValue js_bs_get_double(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	return JS_NewFloat64(ctx, gf_bs_read_double(bs) );
 }
 static JSValue js_bs_get_bits(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s32 nb_bits;
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &nb_bits, argv[0])) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &nb_bits, argv[0])) return GF_JS_EXCEPTION(ctx);
 	if (nb_bits<=32)
 		return JS_NewInt32(ctx, gf_bs_read_int(bs, nb_bits) );
 	return JS_NewInt64(ctx, gf_bs_read_long_int(bs, nb_bits) );
@@ -458,20 +458,20 @@ static JSValue js_bs_data_io(JSContext *ctx, JSValueConst this_val, int argc, JS
 	size_t data_size;
 	u8 *data=NULL;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
-	if (argc<1) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
+	if (argc<1) return GF_JS_EXCEPTION(ctx);
 
 	if (JS_IsObject(argv[0])) {
 		data = JS_GetArrayBuffer(ctx, &data_size, argv[0]);
 		if (argc>1) {
-			if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return JS_EXCEPTION;
+			if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return GF_JS_EXCEPTION(ctx);
 			if ((mode==2) && (argc>2)) {
-				if (JS_ToInt64(ctx, &offset, argv[2])) return JS_EXCEPTION;
+				if (JS_ToInt64(ctx, &offset, argv[2])) return GF_JS_EXCEPTION(ctx);
 
 			}
 		}
 	}
-	if (!data) return JS_EXCEPTION;
+	if (!data) return GF_JS_EXCEPTION(ctx);
 
 	if (nb_bytes> (s32) data_size) nb_bytes = (s32) data_size;
 	else if (!nb_bytes) nb_bytes = (s32) data_size;
@@ -496,43 +496,43 @@ static JSValue js_bs_skip_bytes(JSContext *ctx, JSValueConst this_val, int argc,
 {
 	s32 nb_bytes;
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &nb_bytes, argv[0])) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &nb_bytes, argv[0])) return GF_JS_EXCEPTION(ctx);
 	gf_bs_skip_bytes(bs, nb_bytes);
 	return JS_UNDEFINED;
 }
 static JSValue js_bs_is_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	if (gf_bs_is_align(bs)) return JS_TRUE;
 	return JS_FALSE;
 }
 static JSValue js_bs_align(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	gf_bs_align(bs);
 	return JS_UNDEFINED;
 }
 static JSValue js_bs_truncate(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	gf_bs_truncate(bs);
 	return JS_UNDEFINED;
 }
 static JSValue js_bs_flush(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	gf_bs_flush(bs);
 	return JS_UNDEFINED;
 }
 static JSValue js_bs_epb_mode(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
 	gf_bs_enable_emulation_byte_removal(bs, (JS_ToBool(ctx, argv[0])) ? GF_TRUE : GF_FALSE);
 	return JS_UNDEFINED;
 }
@@ -542,10 +542,10 @@ static JSValue js_bs_peek(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 	u64 byte_offset=0;
 	s32 nb_bits;
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &nb_bits, argv[0])) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &nb_bits, argv[0])) return GF_JS_EXCEPTION(ctx);
 	if (argc>1) {
-		if (JS_ToInt64(ctx, &byte_offset, argv[1])) return JS_EXCEPTION;
+		if (JS_ToInt64(ctx, &byte_offset, argv[1])) return GF_JS_EXCEPTION(ctx);
 	}
 	return JS_NewInt32(ctx, gf_bs_peek_bits(bs, nb_bits, byte_offset));
 }
@@ -554,8 +554,8 @@ static JSValue js_bs_put_val(JSContext *ctx, JSValueConst this_val, int argc, JS
 {
 	s64 val;
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	switch (mode) {
 	case 0: gf_bs_write_u8(bs, (u32) val); break;
 	case 1: gf_bs_write_u8(bs, (u32) val); break;
@@ -625,9 +625,9 @@ static JSValue js_bs_put_bits(JSContext *ctx, JSValueConst this_val, int argc, J
 	s64 val;
 	s32 nb_bits;
 	GET_JSBS
-	if (!bs || (argc!=2)) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &nb_bits, argv[1])) return JS_EXCEPTION;
+	if (!bs || (argc!=2)) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &nb_bits, argv[1])) return GF_JS_EXCEPTION(ctx);
 	if (nb_bits<=32)
 		gf_bs_write_int(bs, (u32) val, nb_bits);
 	else
@@ -638,8 +638,8 @@ static JSValue js_bs_put_float(JSContext *ctx, JSValueConst this_val, int argc, 
 {
 	Double val;
 	GET_JSBS
-	if (!bs || (argc!=1)) return JS_EXCEPTION;
-	if (JS_ToFloat64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!bs || (argc!=1)) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToFloat64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	gf_bs_write_float(bs, (Float) val);
 	return JS_UNDEFINED;
 }
@@ -647,8 +647,8 @@ static JSValue js_bs_put_double(JSContext *ctx, JSValueConst this_val, int argc,
 {
 	Double val;
 	GET_JSBS
-	if (!bs || (argc!=1)) return JS_EXCEPTION;
-	if (JS_ToFloat64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!bs || (argc!=1)) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToFloat64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	gf_bs_write_double(bs, val);
 	return JS_UNDEFINED;
 }
@@ -667,7 +667,7 @@ static JSValue js_bs_get_content(JSContext *ctx, JSValueConst this_val, int argc
 	u32 size;
 	JSValue res;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	gf_bs_get_content(bs, &data, &size);
 
 	if (data) {
@@ -684,10 +684,10 @@ static JSValue js_bs_transfer(JSContext *ctx, JSValueConst this_val, int argc, J
 	GF_Err e;
 	JSBitstream *jssrcbs;
 	GET_JSBS
-	if (!bs || !argc) return JS_EXCEPTION;
+	if (!bs || !argc) return GF_JS_EXCEPTION(ctx);
 
 	jssrcbs = JS_GetOpaque(argv[0], bitstream_class_id);
-	if (!jssrcbs || !jssrcbs->bs) return JS_EXCEPTION;
+	if (!jssrcbs || !jssrcbs->bs) return GF_JS_EXCEPTION(ctx);
 	if (argc>1) {
 		keep_src = JS_ToBool(ctx, argv[1]);
 	}
@@ -710,7 +710,7 @@ enum
 static JSValue js_bs_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 	switch (magic) {
 	case JS_BS_POS:
 		return JS_NewInt64(ctx, gf_bs_get_position(bs));
@@ -734,11 +734,11 @@ static JSValue js_bs_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCons
 {
 	s64 ival;
 	GET_JSBS
-	if (!bs) return JS_EXCEPTION;
+	if (!bs) return GF_JS_EXCEPTION(ctx);
 
 	switch (magic) {
 	case JS_BS_POS:
-		if (JS_ToInt64(ctx, &ival, value)) return JS_EXCEPTION;
+		if (JS_ToInt64(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
 		gf_bs_seek(bs, ival);
 		break;
 	}
@@ -820,7 +820,7 @@ static JSValue bitstream_constructor(JSContext *ctx, JSValueConst new_target, in
 			size_t data_size;
 
 			data = JS_GetArrayBuffer(ctx, &data_size, argv[0]);
-			if (!data) return JS_EXCEPTION;
+			if (!data) return GF_JS_EXCEPTION(ctx);
 			if ((argc>1) && JS_ToBool(ctx, argv[1])) {
 				bs = gf_bs_new(data, data_size, GF_BITSTREAM_WRITE);
 			} else {
@@ -828,7 +828,7 @@ static JSValue bitstream_constructor(JSContext *ctx, JSValueConst new_target, in
 			}
 		}
 	} else {
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	}
 	GF_SAFEALLOC(jbs, JSBitstream);
 	if (!jbs) {
@@ -1048,7 +1048,7 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 	const char *prop_val;
 	switch (magic) {
 	case JS_SYS_LAST_WORK_DIR:
-		if (!JS_IsString(value)) return JS_EXCEPTION;
+		if (!JS_IsString(value)) return GF_JS_EXCEPTION(ctx);
 		prop_val = JS_ToCString(ctx, value);
 		gf_opts_set_key("General", "LastWorkingDir", prop_val);
 		JS_FreeCString(ctx, prop_val);
@@ -1061,10 +1061,10 @@ static JSValue js_sys_set_arg_used(JSContext *ctx, JSValueConst this_val, int ar
 {
 	u32 idx;
 	Bool used;
-	if (argc < 2) return JS_EXCEPTION;
+	if (argc < 2) return GF_JS_EXCEPTION(ctx);
 
 	if (JS_ToInt32(ctx, &idx, argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	used = JS_ToBool(ctx, argv[1]);
 
 	gf_sys_mark_arg_used(idx, used);
@@ -1191,12 +1191,12 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 #endif
 
 	err = gf_enum_directory(url ? url : dir, 1, js_enum_dir_fct, &cbk, filter);
-	if (err) return JS_EXCEPTION;
+	if (err) return GF_JS_EXCEPTION(ctx);
 
 	if (!dir_only) {
 		cbk.is_dir = 0;
 		err = gf_enum_directory(url ? url : dir, 0, js_enum_dir_fct, &cbk, filter);
-		if (err) return JS_EXCEPTION;
+		if (err) return GF_JS_EXCEPTION(ctx);
 	}
 
 	if (url) gf_free(url);
@@ -1209,9 +1209,9 @@ static JSValue js_sys_enum_directory(JSContext *ctx, JSValueConst this_val, int 
 static JSValue js_sys_error_string(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_Err e;
-	if (argc < 1) return JS_EXCEPTION;
+	if (argc < 1) return GF_JS_EXCEPTION(ctx);
 	if (JS_ToInt32(ctx, (int32_t *) &e, argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	return JS_NewString(ctx, gf_error_to_string(e) );
 }
 
@@ -1251,7 +1251,7 @@ static JSValue js_sys_prompt_string(JSContext *ctx, JSValueConst this_val, int a
 static JSValue js_sys_prompt_echo_off(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	Bool echo_off;
-	if (!argc) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 	echo_off = JS_ToBool(ctx, argv[0]);
 	if (argc<2)
 		gf_prompt_set_echo_off(echo_off);
@@ -1260,8 +1260,8 @@ static JSValue js_sys_prompt_echo_off(JSContext *ctx, JSValueConst this_val, int
 static JSValue js_sys_prompt_code(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s32 code;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &code, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &code, argv[0])) return GF_JS_EXCEPTION(ctx);
 
 	gf_sys_set_console_code(stderr, code);
 	return JS_UNDEFINED;
@@ -1283,7 +1283,7 @@ const char *gf_dom_get_friendly_name(u32 key_identifier);
 static JSValue js_sys_keyname(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 code;
-	if (JS_ToInt32(ctx, &code, argv[0])) return JS_EXCEPTION;
+	if (JS_ToInt32(ctx, &code, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewString(ctx, gf_dom_get_friendly_name(code));
 }
 
@@ -1305,8 +1305,8 @@ static JSValue js_sys_clock_high_res(JSContext *ctx, JSValueConst this_val, int 
 static JSValue js_sys_4cc_to_str(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u64 val;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewString(ctx, gf_4cc_to_str((u32) val) );
 }
 
@@ -1332,9 +1332,9 @@ static JSValue js_sys_rand64(JSContext *ctx, JSValueConst this_val, int argc, JS
 static JSValue js_sys_getenv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *str, *val;
-	if (!argc) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 	str = JS_ToCString(ctx, argv[0]);
-	if (!str) return JS_EXCEPTION;
+	if (!str) return GF_JS_EXCEPTION(ctx);
 	val = getenv(str);
 	JS_FreeCString(ctx, str);
 	return val ? JS_NewString(ctx, val) : JS_NULL;
@@ -1347,19 +1347,19 @@ static JSValue js_sys_get_utc(JSContext *ctx, JSValueConst this_val, int argc, J
 	if (argc==1) {
 		u64 time;
 		const char *date = JS_ToCString(ctx, argv[0]);
-		if (!date) return JS_EXCEPTION;
+		if (!date) return GF_JS_EXCEPTION(ctx);
 		time = gf_net_parse_date(date);
 		JS_FreeCString(ctx, date);
 		return JS_NewInt64(ctx, time);
 	}
 
-	if (argc != 6) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &y, argv[0])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &mo, argv[1])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &d, argv[2])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &h, argv[3])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &m, argv[4])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &s, argv[5])) return JS_EXCEPTION;
+	if (argc != 6) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &y, argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &mo, argv[1])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &d, argv[2])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &h, argv[3])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &m, argv[4])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &s, argv[5])) return GF_JS_EXCEPTION(ctx);
 
 	return JS_NewInt64(ctx, gf_net_get_utc_ts(y, mo, d, h, m, s) );
 }
@@ -1381,15 +1381,15 @@ static JSValue js_sys_ntp_shift(JSContext *ctx, JSValueConst this_val, int argc,
 	u64 sec, frac, shift;
 	s64 frac_usec;
 	if ((argc<2) || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 
 	v = JS_GetPropertyStr(ctx, argv[0], "n");
-	if (JS_IsNull(v)) return JS_EXCEPTION;
+	if (JS_IsNull(v)) return GF_JS_EXCEPTION(ctx);
 	JS_ToInt64(ctx, &sec, v);
 	JS_FreeValue(ctx, v);
 
 	v = JS_GetPropertyStr(ctx, argv[0], "d");
-	if (JS_IsNull(v)) return JS_EXCEPTION;
+	if (JS_IsNull(v)) return GF_JS_EXCEPTION(ctx);
 	JS_ToInt64(ctx, &frac, v);
 	JS_FreeValue(ctx, v);
 
@@ -1418,7 +1418,7 @@ static JSValue js_sys_sleep(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	u32 sleep_for=0;
 	if (argc==1) {
 		if (JS_ToInt32(ctx, &sleep_for, argv[0]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(ctx);
 	}
 	gf_sleep(sleep_for);
 	return JS_UNDEFINED;
@@ -1430,7 +1430,7 @@ static JSValue js_sys_exit(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	u32 rval=0;
 	if (argc==1) {
 		if (JS_ToInt32(ctx, &rval, argv[0]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(ctx);
 	}
 	exit(rval);
 	return JS_UNDEFINED;
@@ -1440,9 +1440,9 @@ static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	const u8 *data;
 	size_t data_size;
 
-	if (!argc || !JS_IsObject(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsObject(argv[0])) return GF_JS_EXCEPTION(ctx);
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-	if (!data) return JS_EXCEPTION;
+	if (!data) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
 }
 
@@ -1452,21 +1452,21 @@ static JSValue js_sys_sha1(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	const u8 *data;
 	size_t data_size;
 
-	if (!argc) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 	if (JS_IsString(argv[0])) {
 		const char *filename = JS_ToCString(ctx, argv[0]);
-		if (!filename) return JS_EXCEPTION;
+		if (!filename) return GF_JS_EXCEPTION(ctx);
 		gf_sha1_file(filename, csum);
 		JS_FreeCString(ctx, filename);
 		return JS_NewArrayBufferCopy(ctx, csum, GF_SHA1_DIGEST_SIZE);
 	} else if (JS_IsObject(argv[0])) {
 		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-		if (!data) return JS_EXCEPTION;
+		if (!data) return GF_JS_EXCEPTION(ctx);
 
 		gf_sha1_csum((u8 *) data, (u32) data_size, csum);
 		return JS_NewArrayBufferCopy(ctx, csum, GF_SHA1_DIGEST_SIZE);
 	}
-	return JS_EXCEPTION;
+	return GF_JS_EXCEPTION(ctx);
 }
 
 
@@ -1478,9 +1478,9 @@ static JSValue js_sys_file_data(JSContext *ctx, JSValueConst this_val, int argc,
 	Bool as_utf8 = GF_FALSE;
 	GF_Err e;
 	JSValue res;
-	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
 	filename = JS_ToCString(ctx, argv[0]);
-	if (!filename) return JS_EXCEPTION;
+	if (!filename) return GF_JS_EXCEPTION(ctx);
 	if ((argc>1) && JS_ToBool(ctx, argv[1]))
 		as_utf8 = GF_TRUE;
 
@@ -1512,9 +1512,9 @@ static JSValue js_sys_load_script(JSContext *ctx, JSValueConst this_val, int arg
     GF_Err e;
 	char *full_url = NULL;
 
-	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
     filename = JS_ToCString(ctx, argv[0]);
-    if (!filename) return JS_EXCEPTION;
+    if (!filename) return GF_JS_EXCEPTION(ctx);
 
 	if ((argc>1) && JS_ToBool(ctx, argv[1]) ) {
 		const char *par_url = jsf_get_script_filename(ctx);
@@ -1553,9 +1553,9 @@ static JSValue js_sys_compress_ex(JSContext *ctx, JSValueConst this_val, int arg
 	u8 *out_ptr = NULL;
 	JSValue res;
 	GF_Err e;
-	if (!argc || !JS_IsObject(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsObject(argv[0])) return GF_JS_EXCEPTION(ctx);
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-	if (!data) return JS_EXCEPTION;
+	if (!data) return GF_JS_EXCEPTION(ctx);
 	if (is_decomp) {
 		e = gf_gz_decompress_payload((u8*) data, (u32) data_size, &out_ptr, &out_size);
 	} else {
@@ -1595,9 +1595,9 @@ static JSValue js_sys_file_opt(JSContext *ctx, JSValueConst this_val, int argc, 
 	char *ext;
 	GF_Err e;
 	JSValue res;
-	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
 	dirname = JS_ToCString(ctx, argv[0]);
-	if (!dirname) return JS_EXCEPTION;
+	if (!dirname) return GF_JS_EXCEPTION(ctx);
 
 	res = JS_UNDEFINED;
 	switch (file_opt) {
@@ -1694,13 +1694,13 @@ static JSValue js_sys_get_opt(JSContext *ctx, JSValueConst this_val, int argc, J
 {
 	const char *sec, *key, *val;
 	JSValue res;
-	if (argc!=2) return JS_EXCEPTION;
+	if (argc!=2) return GF_JS_EXCEPTION(ctx);
 	sec = JS_ToCString(ctx, argv[0]);
-	if (!sec) return JS_EXCEPTION;
+	if (!sec) return GF_JS_EXCEPTION(ctx);
 	key = JS_ToCString(ctx, argv[1]);
 	if (!key) {
 		JS_FreeCString(ctx, sec);
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	}
 	val = gf_opts_get_key(sec, key);
 	res = val ? JS_NewString(ctx, val) : JS_NULL;
@@ -1712,13 +1712,13 @@ static JSValue js_sys_get_opt(JSContext *ctx, JSValueConst this_val, int argc, J
 static JSValue js_sys_set_opt(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *sec, *key, *val;
-	if (argc<2) return JS_EXCEPTION;
+	if (argc<2) return GF_JS_EXCEPTION(ctx);
 	sec = JS_ToCString(ctx, argv[0]);
-	if (!sec) return JS_EXCEPTION;
+	if (!sec) return GF_JS_EXCEPTION(ctx);
 	key = JS_ToCString(ctx, argv[1]);
 	if (!key) {
 		JS_FreeCString(ctx, sec);
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	}
 	val = NULL;
 	if (argc>2)
@@ -1744,12 +1744,12 @@ static JSValue js_sys_basecode_ex(JSContext *ctx, JSValueConst this_val, int arg
 	u8 *out_ptr = NULL;
 	JSValue res;
 	GF_Err e;
-	if (!argc) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 
 	if (is_dec) {
 		u32 len;
 		const char *str = JS_ToCString(ctx, argv[0]);
-		if (!str) return JS_EXCEPTION;
+		if (!str) return GF_JS_EXCEPTION(ctx);
 		len = (u32) strlen(str);
 		out_ptr = gf_malloc(sizeof(u8) * len);
 		if (!out_ptr) {
@@ -1766,7 +1766,7 @@ static JSValue js_sys_basecode_ex(JSContext *ctx, JSValueConst this_val, int arg
 		const u8 *data;
 		size_t data_size;
 		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-		if (!data) return JS_EXCEPTION;
+		if (!data) return GF_JS_EXCEPTION(ctx);
 		out_ptr = gf_malloc(sizeof(u8) * (1 + data_size * 2) );
 		if (!out_ptr) {
 			e = GF_OUT_OF_MEM;
@@ -1808,29 +1808,29 @@ static JSValue js_sys_base16dec(JSContext *ctx, JSValueConst this_val, int argc,
 static JSValue js_sys_ntohl(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 val;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_ntohl((u32) val));
 }
 static JSValue js_sys_ntohs(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 val;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_ntohs((u16) val));
 }
 static JSValue js_sys_htonl(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 val;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_htonl((u32) val));
 }
 static JSValue js_sys_htons(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s64 val;
-	if (!argc) return JS_EXCEPTION;
-	if (JS_ToInt64(ctx, &val, argv[0])) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_htons((u16) val));
 }
 
@@ -1840,11 +1840,11 @@ static JSValue js_pixfmt_size(JSContext *ctx, JSValueConst this_val, int argc, J
 {
 	u32 w, h, osize;
 	GF_PropertyValue prop;
-	if (argc<3) return JS_EXCEPTION;
+	if (argc<3) return GF_JS_EXCEPTION(ctx);
 	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PIXFMT);
-	if (e) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &w, argv[1])) return JS_EXCEPTION;
-	if (JS_ToInt32(ctx, &h, argv[2])) return JS_EXCEPTION;
+	if (e) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &w, argv[1])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &h, argv[2])) return GF_JS_EXCEPTION(ctx);
 
 	if (!gf_pixel_get_size_info(prop.value.uint, w, h, &osize, NULL, NULL, NULL, NULL))
 		return js_throw_err_msg(ctx, GF_BAD_PARAM, "Unknown pixel format %d\n", prop.value.uint);
@@ -1854,9 +1854,9 @@ static JSValue js_pixfmt_size(JSContext *ctx, JSValueConst this_val, int argc, J
 static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_PropertyValue prop;
-	if (argc!=1) return JS_EXCEPTION;
+	if (argc!=1) return GF_JS_EXCEPTION(ctx);
 	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PCMFMT);
-	if (e) return JS_EXCEPTION;
+	if (e) return GF_JS_EXCEPTION(ctx);
 	return JS_NewInt32(ctx, gf_audio_fmt_bit_depth(prop.value.uint)/8 );
 }
 
@@ -1871,21 +1871,21 @@ static JSValue js_color_lerp(JSContext *ctx, JSValueConst this_val, int argc, JS
 	u8 r, g, b, a;
 
 	if (argc!=3)
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 	if (JS_ToFloat64(ctx, &interp, argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 
 	if (interp<0) interp=0;
 	else if (interp>1) interp=1;
 	minterp = 1-interp;
 
 	str = JS_ToCString(ctx, argv[1]);
-	if (!str) return JS_EXCEPTION;
+	if (!str) return GF_JS_EXCEPTION(ctx);
 	col1 = gf_color_parse(str);
 	JS_FreeCString(ctx, str);
 
 	str = JS_ToCString(ctx, argv[2]);
-	if (!str) return JS_EXCEPTION;
+	if (!str) return GF_JS_EXCEPTION(ctx);
 	col2 = gf_color_parse(str);
 	JS_FreeCString(ctx, str);
 
@@ -1913,22 +1913,22 @@ static JSValue js_color_get_component(JSContext *ctx, JSValueConst this_val, int
 	u32 comp_idx, color;
 	Double comp;
 	if (argc!=2)
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 
 	str = JS_ToCString(ctx, argv[0]);
-	if (!str) return JS_EXCEPTION;
+	if (!str) return GF_JS_EXCEPTION(ctx);
 	color = gf_color_parse(str);
 	JS_FreeCString(ctx, str);
 
 	if (JS_ToInt32(ctx, &comp_idx, argv[1]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(ctx);
 
 	switch (comp_idx) {
 	case 0: comp = GF_COL_A(color); break;
 	case 1: comp = GF_COL_R(color); break;
 	case 2: comp = GF_COL_G(color); break;
 	case 3: comp = GF_COL_B(color); break;
-	default: return JS_EXCEPTION;
+	default: return GF_JS_EXCEPTION(ctx);
 	}
 	comp /= 255.0;
 	return JS_NewFloat64(ctx, comp);
@@ -2063,7 +2063,7 @@ static JSValue js_sha1_push(JSContext *ctx, JSValueConst this_val, int argc, JSV
 		}
 		JS_SetOpaque(this_val, sha1);
 	}
-	if (!argc) return JS_EXCEPTION;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 	data = JS_GetArrayBuffer(ctx, &data_size, argv[0]);
 	gf_sha1_update(sha1, (u8 *) data, (u32) data_size);
 
@@ -2073,7 +2073,7 @@ static JSValue js_sha1_get(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 {
 	u8 output[GF_SHA1_DIGEST_SIZE];
 	GF_SHA1Context *sha1 = JS_GetOpaque(this_val, sha1_class_id);
-	if (!sha1) return JS_EXCEPTION;
+	if (!sha1) return GF_JS_EXCEPTION(ctx);
 	gf_sha1_finish(sha1, output);
 	JS_SetOpaque(this_val, NULL);
 	return JS_NewArrayBufferCopy(ctx, output, GF_SHA1_DIGEST_SIZE);
@@ -2127,7 +2127,7 @@ enum
 static JSValue js_file_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 {
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 
 	switch (magic) {
 	case JS_FILE_POS:
@@ -2148,11 +2148,11 @@ static JSValue js_file_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCo
 {
 	s64 lival;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 
 	switch (magic) {
 	case JS_FILE_POS:
-		if (JS_ToInt64(ctx, &lival, value)) return JS_EXCEPTION;
+		if (JS_ToInt64(ctx, &lival, value)) return GF_JS_EXCEPTION(ctx);
 		gf_fseek(f, lival, SEEK_SET);
 		break;
 	}
@@ -2161,14 +2161,14 @@ static JSValue js_file_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCo
 static JSValue js_file_flush(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 	gf_fflush(f);
 	return JS_UNDEFINED;
 }
 static JSValue js_file_close(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 	gf_fclose(f);
 	JS_SetOpaque(this_val, NULL);
 	return JS_UNDEFINED;
@@ -2180,13 +2180,13 @@ static JSValue js_file_read(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	u32 read;
 	s32 nb_bytes=0;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
-	if (!argc) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 
 	data = JS_GetArrayBuffer(ctx, &size, argv[0]);
-	if (!data) return JS_EXCEPTION;
+	if (!data) return GF_JS_EXCEPTION(ctx);
 	if (argc>1) {
-		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return JS_EXCEPTION;
+		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return GF_JS_EXCEPTION(ctx);
 	}
 	if (!nb_bytes) nb_bytes = (s32) size;
 	else if (nb_bytes > (s32) size) nb_bytes = (s32) size;
@@ -2200,7 +2200,7 @@ static JSValue js_file_gets(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	char temp[1025];
 	JSValue res;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 
 	temp[1024] = 0;
 	while (1) {
@@ -2225,7 +2225,7 @@ static JSValue js_file_getc(JSContext *ctx, JSValueConst this_val, int argc, JSV
 {
 	char res[2];
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
 
 	res[0] = gf_fgetc(f);
 	res[1] = 0;
@@ -2239,13 +2239,13 @@ static JSValue js_file_write(JSContext *ctx, JSValueConst this_val, int argc, JS
 	u32 read;
 	s32 nb_bytes=0;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f) return JS_EXCEPTION;
-	if (!argc) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(ctx);
+	if (!argc) return GF_JS_EXCEPTION(ctx);
 
 	data = JS_GetArrayBuffer(ctx, &size, argv[0]);
-	if (!data) return JS_EXCEPTION;
+	if (!data) return GF_JS_EXCEPTION(ctx);
 	if (argc>1) {
-		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return JS_EXCEPTION;
+		if (JS_ToInt32(ctx, &nb_bytes, argv[1])) return GF_JS_EXCEPTION(ctx);
 	}
 	if (!nb_bytes) nb_bytes = (u32) size;
 	else if (nb_bytes > (s32) size) nb_bytes = (u32) size;
@@ -2257,10 +2257,10 @@ static JSValue js_file_puts(JSContext *ctx, JSValueConst this_val, int argc, JSV
 {
 	const char *string;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f || !argc) return JS_EXCEPTION;
+	if (!f || !argc) return GF_JS_EXCEPTION(ctx);
 
 	string = JS_ToCString(ctx, argv[0]);
-	if (!string) return JS_EXCEPTION;
+	if (!string) return GF_JS_EXCEPTION(ctx);
 	gf_fputs(string, f);
 	JS_FreeCString(ctx, string);
 	return JS_UNDEFINED;
@@ -2270,15 +2270,15 @@ static JSValue js_file_putc(JSContext *ctx, JSValueConst this_val, int argc, JSV
 {
 	int val=0;
 	FILE *f = JS_GetOpaque(this_val, file_class_id);
-	if (!f || !argc) return JS_EXCEPTION;
+	if (!f || !argc) return GF_JS_EXCEPTION(ctx);
 
 	if (JS_IsString(argv[0])) {
 		const char *string = JS_ToCString(ctx, argv[0]);
-		if (!string) return JS_EXCEPTION;
+		if (!string) return GF_JS_EXCEPTION(ctx);
 		val = string[0];
 		JS_FreeCString(ctx, string);
 	} else {
-		if (JS_ToInt32(ctx, &val, argv[0])) return JS_EXCEPTION;
+		if (JS_ToInt32(ctx, &val, argv[0])) return GF_JS_EXCEPTION(ctx);
 	}
 	gf_fputc(val, f);
 	return JS_UNDEFINED;

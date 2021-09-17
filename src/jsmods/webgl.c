@@ -2311,12 +2311,12 @@ JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv
 	void *idx_addr = NULL;
 	u32 prim_type;
 
-	if (argc<2) return JS_EXCEPTION;
+	if (argc<2) return GF_JS_EXCEPTION(ctx);
 	GF_WebGLContext *glctx = JS_GetOpaque(argv[0], WebGLRenderingContextBase_class_id);
-	if (!glctx) return JS_EXCEPTION;
+	if (!glctx) return GF_JS_EXCEPTION(ctx);
 
-	if (!mesh->vbo) return JS_EXCEPTION;
-	if (!mesh->vbo_idx) return JS_EXCEPTION;
+	if (!mesh->vbo) return GF_JS_EXCEPTION(ctx);
+	if (!mesh->vbo_idx) return GF_JS_EXCEPTION(ctx);
 
 	WGL_GET_U32(vx_index, argv[1]);
 	if (argc==3) {
@@ -2330,7 +2330,7 @@ JSValue mesh_gl_draw(JSContext *ctx, GF_Mesh *mesh, int argc, JSValueConst *argv
 		WGL_GET_U32(tx_index, argv[4]);
 	}
 
-	if (vx_index<0) return JS_EXCEPTION;
+	if (vx_index<0) return GF_JS_EXCEPTION(ctx);
 
 	glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 	glEnableVertexAttribArray(vx_index);

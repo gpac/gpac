@@ -323,7 +323,7 @@ JSValue dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 	JSClassID __class=0;
 	JSValue new_obj;
 	GF_SceneGraph *par_sg = sg;
-	if (!dom_rt) return JS_EXCEPTION;
+	if (!dom_rt) return GF_JS_EXCEPTION(c);
 	if (sg->js_data) return JS_DupValue(c, sg->js_data->document);
 
 	if (sg->reference_count)
@@ -516,7 +516,7 @@ static JSValue dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 	JSValue new_obj;
 	if (!n) return JS_NULL;
 	GF_SAFEALLOC(nl, DOMNodeList);
-	if (!nl) return JS_EXCEPTION;
+	if (!nl) return GF_JS_EXCEPTION(c);
 	
 	nl->owner = n;
 	if (n->sgprivate->scenegraph->reference_count)
@@ -556,7 +556,7 @@ static JSValue dom_nodelist_item(JSContext *c, JSValueConst obj, int argc, JSVal
 
 	nl = (DOMNodeList *) JS_GetOpaque(obj, domNodeListClass.class_id);
 	if (!nl || (argc!=1) || JS_ToInt32(c, &idx, argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
 	if ((idx<0) || ((u32) idx>=count)) {
@@ -571,7 +571,7 @@ static JSValue dom_nodelist_getProperty(JSContext *c, JSValueConst obj, int magi
 	DOMNodeList *nl;
 	u32 count;
 	nl = (DOMNodeList *) JS_GetOpaque(obj, domNodeListClass.class_id);
-	if (!nl) return JS_EXCEPTION;
+	if (!nl) return GF_JS_EXCEPTION(c);
 	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
 
 	switch (magic) {
@@ -989,7 +989,7 @@ static JSValue xml_node_insert_before(JSContext *c, JSValueConst obj, int argc, 
 	GF_ParentNode *par;
 
 	if (!argc || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	n = dom_get_node(obj);
 	if (!n) {
@@ -1029,7 +1029,7 @@ static JSValue xml_node_append_child(JSContext *c, JSValueConst obj, int argc, J
 	GF_Node *n, *new_node;
 
 	if (!argc || !JS_IsObject(argv[0])) {
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	}
 	n = dom_get_node(obj);
 	if (!n) {
@@ -1062,7 +1062,7 @@ static JSValue xml_node_replace_child(JSContext *c, JSValueConst obj, int argc, 
 	GF_Node *n, *new_node, *old_node;
 	GF_ParentNode *par;
 
-	if ((argc!=2) || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1])) return JS_EXCEPTION;
+	if ((argc!=2) || !JS_IsObject(argv[0]) || !JS_IsObject(argv[1])) return GF_JS_EXCEPTION(c);
 	n = dom_get_node(obj);
 	if (!n) return js_throw_err(c, GF_DOM_EXC_HIERARCHY_REQUEST_ERR);
 
@@ -1236,7 +1236,7 @@ static JSValue dom_node_getProperty(JSContext *c, JSValueConst obj, int magic)
 	n = dom_get_node(obj);
 	if (!n) {
 		sg = dom_get_doc(c, obj);
-		if (!sg) return JS_EXCEPTION;
+		if (!sg) return GF_JS_EXCEPTION(c);
 	}
 	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
@@ -1399,7 +1399,7 @@ static JSValue dom_node_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 
 	n = dom_get_node(obj);
 	/*note an element - we don't support property setting on document yet*/
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
 	tag = n ? gf_node_get_tag(n) : 0;
 	switch (magic) {
@@ -1464,7 +1464,7 @@ void dom_document_finalize(JSRuntime *rt, JSValue obj)
 static JSValue dom_document_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_EXCEPTION;
+	if (!sg) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case DOCUMENT_JSPROPERTY_IMPLEMENTATION:
@@ -1499,7 +1499,7 @@ static JSValue dom_document_getProperty(JSContext *c, JSValueConst obj, int magi
 static JSValue dom_document_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
 {
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_EXCEPTION;
+	if (!sg) return GF_JS_EXCEPTION(c);
 	return js_throw_err(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
 }
 
@@ -1512,14 +1512,14 @@ static JSValue xml_document_create_element(JSContext *c, JSValueConst obj, int a
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
 	if (!sg || !argc || !JS_CHECK_STRING(argv[0]) )
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	name = NULL;
 	/*NS version*/
 	ns = 0;
 	xmlns = NULL;
 	if (argc==2) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		xmlns = JS_ToCString(c, argv[0]);
 		if (xmlns) ns = gf_sg_get_namespace_code_from_name(sg, (char *) xmlns);
 		name = JS_ToCString(c, argv[1]);
@@ -1552,7 +1552,7 @@ static JSValue xml_document_create_text(JSContext *c, JSValueConst obj, int argc
 {
 	GF_Node *n;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_EXCEPTION;
+	if (!sg) return GF_JS_EXCEPTION(c);
 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
@@ -1593,20 +1593,20 @@ static JSValue xml_document_elements_by_tag(JSContext *c, JSValueConst obj, int 
 	JSValue new_obj;
 	const char *name;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_EXCEPTION;
+	if (!sg) return GF_JS_EXCEPTION(c);
 
-	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 
 	/*NS version - TODO*/
 	if (argc==2) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		name = JS_ToCString(c, argv[1]);
 	} else {
 		name = JS_ToCString(c, argv[0]);
 	}
 
 	GF_SAFEALLOC(nl, DOMNodeList);
-	if (!nl) return JS_EXCEPTION;
+	if (!nl) return GF_JS_EXCEPTION(c);
 
 	if (name && !strcmp(name, "*"))
 		xml_doc_gather_nodes((GF_ParentNode*)sg->RootNode, NULL, nl);
@@ -1627,8 +1627,8 @@ static JSValue xml_document_element_by_id(JSContext *c, JSValueConst obj, int ar
 	JSValue ret;
 
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_EXCEPTION;
-	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!sg) return GF_JS_EXCEPTION(c);
+	if (!argc || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	id = JS_ToCString(c, argv[0]);
 
 	/*we don't use the regular gf_sg_find_node_by_name because we may have nodes defined with the
@@ -1678,7 +1678,7 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 	JSValue ret = JS_NULL;
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
 	if (!argc || !JS_CHECK_STRING(argv[0]))
 		return JS_TRUE;
@@ -1748,13 +1748,13 @@ static JSValue xml_element_has_attribute(JSContext *c, JSValueConst obj, int arg
 	JSValue ret = JS_NULL;
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
-	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		ns = JS_ToCString(c, argv[0]);
 		name = JS_ToCString(c, argv[1]);
 	} else {
@@ -1803,13 +1803,13 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 	const char *name, *ns;
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
-	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		ns = JS_ToCString(c, argv[0]);
 		name = JS_ToCString(c, argv[1]);
 	} else {
@@ -2042,11 +2042,11 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 	char szVal[100];
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
-	if ((argc < 2)) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
+	if ((argc < 2)) return GF_JS_EXCEPTION(c);
 
 	if (!JS_CHECK_STRING(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	idx = 1;
 	name = _val = val = NULL;
@@ -2055,7 +2055,7 @@ static JSValue xml_element_set_attribute(JSContext *c, JSValueConst obj, int arg
 	if (argc==3) {
 		char *sep;
 		if (!JS_CHECK_STRING(argv[1]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(c);
 		ns = JS_ToCString(c, argv[0]);
 		gf_sg_add_namespace(n->sgprivate->scenegraph, (char *) ns, NULL);
 		name = JS_ToCString(c, argv[1]);
@@ -2127,19 +2127,19 @@ static JSValue xml_element_elements_by_tag(JSContext *c, JSValueConst obj, int a
 	const char *name;
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
-	if (!argc || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 
 	/*NS version*/
 	if (argc==2) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		name = JS_ToCString(c, argv[1]);
 	} else {
 		name = JS_ToCString(c, argv[0]);
 	}
 	GF_SAFEALLOC(nl, DOMNodeList);
-	if (!nl) return JS_EXCEPTION;
+	if (!nl) return GF_JS_EXCEPTION(c);
 
 	if (name && !strcmp(name, "*")) {
 		JS_FreeCString(c, name);
@@ -2159,13 +2159,13 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	Bool is_id;
 
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
-	if ((argc<2) || !JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if ((argc<2) || !JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 
 	/*NS version*/
 	if (argc==3) {
-		if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+		if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 		name = JS_ToCString(c, argv[1]);
 		is_id = JS_ToBool(c, argv[2]) ? GF_TRUE : GF_FALSE;
 	} else {
@@ -2176,10 +2176,10 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	if (node_id && is_id) {
 		/*we only support ONE ID per node*/
 		JS_FreeCString(c, name);
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	}
 	if (is_id) {
-		if (!name) return JS_EXCEPTION;
+		if (!name) return GF_JS_EXCEPTION(c);
 		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, gf_strdup(name) );
 	} else if (node_id) {
 		gf_node_remove_id(n);
@@ -2205,7 +2205,7 @@ static JSValue xml_element_to_string(JSContext *c, JSValueConst obj, int argc, J
 	JSValue ret;
 	char *out_str = NULL;
 	GF_Node *n = dom_get_node(obj);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
 	GF_ChildNodeItem *child;
 	child = ((GF_ParentNode *) n)->children;
@@ -2228,7 +2228,7 @@ static JSValue xml_element_to_string(JSContext *c, JSValueConst obj, int argc, J
 static JSValue dom_text_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(obj);
-	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_EXCEPTION;
+	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case TEXT_JSPROPERTY_DATA:
@@ -2252,7 +2252,7 @@ static JSValue dom_text_getProperty(JSContext *c, JSValueConst obj, int magic)
 static JSValue dom_text_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
 {
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(obj);
-	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_EXCEPTION;
+	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case TEXT_JSPROPERTY_DATA:
@@ -2273,21 +2273,21 @@ static JSValue dom_text_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 static JSValue event_stop_propagation(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
-	if (!evt) return JS_EXCEPTION;
+	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
 	return JS_TRUE;
 }
 static JSValue event_stop_immediate_propagation(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
-	if (!evt) return JS_EXCEPTION;
+	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL_ALL;
 	return JS_TRUE;
 }
 static JSValue event_prevent_default(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
 {
 	GF_DOM_Event *evt = JS_GetOpaque(obj, domEventClass.class_id);
-	if (!evt) return JS_EXCEPTION;
+	if (!evt) return GF_JS_EXCEPTION(c);
 	evt->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
 	return JS_TRUE;
 }

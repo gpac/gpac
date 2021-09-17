@@ -420,7 +420,7 @@ static JSValue xml_http_constructor(JSContext *c, JSValueConst new_target, int a
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	if (!p) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[WHR] Failed to allocate XHR object\n"));
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	}
 	obj = JS_NewObjectClass(c, xhrClass.class_id);
 	p->c = c;
@@ -506,23 +506,23 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	GF_SceneGraph *scene;
 
 	ctx = (XMLHTTPContext *) JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	/*reset*/
 	if (ctx->readyState) xml_http_reset(ctx);
 
-	if (argc<2) return JS_EXCEPTION;
+	if (argc<2) return GF_JS_EXCEPTION(c);
 	/*method is a string*/
-	if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	/*url is a string*/
-	if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+	if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 
 	xml_http_reset(ctx);
 	val = JS_ToCString(c, argv[0]);
 	if (strcmp(val, "GET") && strcmp(val, "POST") && strcmp(val, "HEAD")
 	        && strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") ) {
 		JS_FreeCString(c, val);
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	}
 
 	ctx->method = gf_strdup(val);
@@ -555,10 +555,10 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 		val = NULL;
 		ctx->async = JS_ToBool(c, argv[2]) ? GF_TRUE : GF_FALSE;
 		if (argc>3) {
-			if (!JS_CHECK_STRING(argv[3])) return JS_EXCEPTION;
+			if (!JS_CHECK_STRING(argv[3])) return GF_JS_EXCEPTION(c);
 			/*TODO*/
 			if (argc>4) {
-				if (!JS_CHECK_STRING(argv[4])) return JS_EXCEPTION;
+				if (!JS_CHECK_STRING(argv[4])) return GF_JS_EXCEPTION(c);
 				val = JS_ToCString(c, argv[4]);
 				/*TODO*/
 			} else {
@@ -581,12 +581,12 @@ static JSValue xml_http_set_header(JSContext *c, JSValueConst obj, int argc, JSV
 {
 	const char *hdr, *val;
 	XMLHTTPContext *ctx = (XMLHTTPContext *) JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
-	if (ctx->readyState!=XHR_READYSTATE_OPENED) return JS_EXCEPTION;
-	if (argc!=2) return JS_EXCEPTION;
-	if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
-	if (!JS_CHECK_STRING(argv[1])) return JS_EXCEPTION;
+	if (ctx->readyState!=XHR_READYSTATE_OPENED) return GF_JS_EXCEPTION(c);
+	if (argc!=2) return GF_JS_EXCEPTION(c);
+	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
+	if (!JS_CHECK_STRING(argv[1])) return GF_JS_EXCEPTION(c);
 
 	hdr = JS_ToCString(c, argv[0]);
 	val = JS_ToCString(c, argv[1]);
@@ -962,10 +962,10 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	const char *data = NULL;
 	u32 data_size = 0;
 	XMLHTTPContext *ctx = (XMLHTTPContext *) JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
-	if (ctx->readyState!=XHR_READYSTATE_OPENED) return JS_EXCEPTION;
-	if (ctx->sess) return JS_EXCEPTION;
+	if (ctx->readyState!=XHR_READYSTATE_OPENED) return GF_JS_EXCEPTION(c);
+	if (ctx->sess) return GF_JS_EXCEPTION(c);
 
 	scene = xml_get_scenegraph(c);
 	if (scene) {
@@ -975,7 +975,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	} else {
 		par.dnld_man = jsf_get_download_manager(c);
 	}
-	if (!par.dnld_man) return JS_EXCEPTION;
+	if (!par.dnld_man) return GF_JS_EXCEPTION(c);
 
 	if (argc) {
 		if (JS_IsNull(argv[0])) {
@@ -985,9 +985,9 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			if (data) data_size = (u32) asize;
 		} else if (JS_IsObject(argv[0])) {
 			/*NOT SUPPORTED YET, we must serialize the sg*/
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(c);
 		} else {
-			if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+			if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 			data = JS_ToCString(c, argv[0]);
 			data_size = (u32) strlen(data);
 		}
@@ -1014,7 +1014,7 @@ static JSValue xml_http_send(JSContext *c, JSValueConst obj, int argc, JSValueCo
 			}
 		}
 		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);
-		if (!ctx->sess) return JS_EXCEPTION;
+		if (!ctx->sess) return GF_JS_EXCEPTION(c);
 
 		/*start our download (whether the session is threaded or not)*/
 		e = gf_dm_sess_process(ctx->sess);
@@ -1038,7 +1038,7 @@ static JSValue xml_http_abort(JSContext *c, JSValueConst obj, int argc, JSValueC
 {
 	GF_DownloadSession *sess;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	sess = ctx->sess;
 	ctx->sess = NULL;
@@ -1062,10 +1062,10 @@ static JSValue xml_http_get_all_headers(JSContext *c, JSValueConst obj, int argc
 	char *szVal = NULL;
 	JSValue res;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	/*must be received or loaded*/
-	if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_EXCEPTION;
+	if (ctx->readyState<XHR_READYSTATE_LOADING) return GF_JS_EXCEPTION(c);
 	nb_hdr = 0;
 	if (ctx->recv_headers) {
 		while (ctx->recv_headers[nb_hdr]) {
@@ -1090,11 +1090,11 @@ static JSValue xml_http_get_header(JSContext *c, JSValueConst obj, int argc, JSV
 	const char *hdr;
 	char *szVal = NULL;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
-	if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	/*must be received or loaded*/
-	if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_EXCEPTION;
+	if (ctx->readyState<XHR_READYSTATE_LOADING) return GF_JS_EXCEPTION(c);
 	hdr = JS_ToCString(c, argv[0]);
 
 	nb_hdr = 0;
@@ -1134,9 +1134,9 @@ static JSValue xml_http_overrideMimeType(JSContext *c, JSValueConst obj, int arg
 {
 	const char *mime;
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx || !argc) return JS_EXCEPTION;
+	if (!ctx || !argc) return GF_JS_EXCEPTION(c);
 
-	if (!JS_CHECK_STRING(argv[0])) return JS_EXCEPTION;
+	if (!JS_CHECK_STRING(argv[0])) return GF_JS_EXCEPTION(c);
 	mime = JS_ToCString(c, argv[0]);
 	if (ctx->mime) gf_free(ctx->mime);
 	ctx->mime = gf_strdup(mime);
@@ -1154,7 +1154,7 @@ static void xml_http_array_buffer_free(JSRuntime *rt, void *opaque, void *ptr)
 static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case XHR_ONABORT: return JS_DupValue(c, ctx->onabort);
@@ -1234,7 +1234,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 			case XHR_RESPONSETYPE_JSON:
 				return JS_ParseJSON(c, ctx->data, ctx->size, "responseJSON");
 			case XHR_RESPONSETYPE_PUSH:
-				return JS_EXCEPTION;
+				return GF_JS_EXCEPTION(c);
 			default:
 				/*other	types not supported	*/
 				break;
@@ -1256,7 +1256,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 		return ctx->withCredentials ? JS_TRUE : JS_FALSE;
 	case XHR_UPLOAD:
 		/* TODO */
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	case XHR_RESPONSETYPE:
 		switch (ctx->responseType) {
 		case XHR_RESPONSETYPE_NONE: return JS_NewString(c, "");
@@ -1295,7 +1295,7 @@ static JSValue xml_http_getProperty(JSContext *c, JSValueConst obj, int magic)
 static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
 {
 	XMLHTTPContext *ctx = JS_GetOpaque(obj, xhrClass.class_id);
-	if (!ctx) return JS_EXCEPTION;
+	if (!ctx) return GF_JS_EXCEPTION(c);
 
 #define SET_CBK(_sym) \
 		if (JS_IsFunction(c, value) || JS_IsUndefined(value) || JS_IsNull(value)) {\
@@ -1303,7 +1303,7 @@ static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 			ctx->_sym = JS_DupValue(c, value);\
 			return JS_TRUE;\
 		}\
-		return JS_EXCEPTION;\
+		return GF_JS_EXCEPTION(c);\
 
 	switch (magic) {
 	case XHR_ONERROR:
@@ -1331,7 +1331,7 @@ static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 		SET_CBK(ontimeout)
 
 	case XHR_TIMEOUT:
-		if (JS_ToInt32(c, &ctx->timeout, value)) return JS_EXCEPTION;
+		if (JS_ToInt32(c, &ctx->timeout, value)) return GF_JS_EXCEPTION(c);
 		return JS_TRUE;
 
 	case XHR_WITHCREDENTIALS:
@@ -1363,7 +1363,7 @@ static JSValue xml_http_setProperty(JSContext *c, JSValueConst obj, JSValueConst
 	case XHR_CACHE:
 	{
 		const char *str = JS_ToCString(c, value);
-		if (!str) return JS_EXCEPTION;
+		if (!str) return GF_JS_EXCEPTION(c);
 		if (!strcmp(str, "normal")) {
 			ctx->cache = XHR_CACHETYPE_NORMAL;
 		} else if (!strcmp(str, "none")) {

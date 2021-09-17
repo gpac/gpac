@@ -372,14 +372,14 @@ static JSValue node_get_binding(GF_ScriptPriv *priv, GF_Node *node)
 		GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 		if (!node->sgprivate->interact) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(priv->js_ctx);
 		}
 	}
 	if (!node->sgprivate->interact->js_binding) {
 		GF_SAFEALLOC(node->sgprivate->interact->js_binding, struct _node_js_binding);
 		if (!node->sgprivate->interact->js_binding) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(priv->js_ctx);
 		}
 		node->sgprivate->interact->js_binding->fields = gf_list_new();
 	}
@@ -401,7 +401,7 @@ static JSValue loadScript(JSContext *c, JSValueConst this_val, int argc, JSValue
 	const char *url;
 	GF_Node *node = JS_GetContextOpaque(c);
 	JSValue aval = JS_UNDEFINED;
-	if (!node || !argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!node || !argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(c);
 
 	if ((argc>1) && JS_IsBool(argv[1])) no_complain = (JS_ToBool(c,argv[1])) ? 1 : 0;
 
@@ -446,7 +446,7 @@ static JSValue vrml_parse_xml(JSContext *c, JSValueConst this_val, int argc, JSV
 	JS_FreeCString(c, str);
 	return dom_element_construct(c, node);
 #else
-	return JS_EXCEPTION;
+	return GF_JS_EXCEPTION(c);
 #endif
 }
 
@@ -461,9 +461,9 @@ static JSValue getElementById(JSContext *c, JSValueConst this_val, int argc, JSV
 	if (JS_IsString(argv[0])) name = JS_ToCString(c, argv[0]);
 	else if (JS_IsInteger(argv[0])) {
 		if (JS_ToInt32(c, &ID, argv[0]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(c);
 	}
-	if (!ID && !name) return JS_EXCEPTION;
+	if (!ID && !name) return GF_JS_EXCEPTION(c);
 
 	elt = NULL;
 	if (ID) elt = gf_sg_find_node(sc->sgprivate->scenegraph, ID);
@@ -538,16 +538,16 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 	GF_FieldInfo info;
 	u32 f_id1, f_id2;
 	GF_Err e;
-	if (argc!=4) return JS_EXCEPTION;
+	if (argc!=4) return GF_JS_EXCEPTION(c);
 	ptr = (GF_JSField *) JS_GetOpaque(argv[0], SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n1 = * ((GF_Node **)ptr->field.far_ptr);
-	if (!n1) return JS_EXCEPTION;
+	if (!n1) return GF_JS_EXCEPTION(c);
 	n2 = NULL;
 
-	if (!JS_IsString(argv[1])) return JS_EXCEPTION;
+	if (!JS_IsString(argv[1])) return GF_JS_EXCEPTION(c);
 	f1 = JS_ToCString(c, argv[1]);
 	if (!f1) return JS_FALSE;
 	if (!strnicmp(f1, "_field", 6)) {
@@ -558,10 +558,10 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 		f_id1 = info.fieldIndex;
 	}
 	JS_FreeCString(c, f1);
-	if (e != GF_OK) return JS_EXCEPTION;
+	if (e != GF_OK) return GF_JS_EXCEPTION(c);
 
 
-	if (!JS_IsObject(argv[2])) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[2])) return GF_JS_EXCEPTION(c);
 
 	ptr = (GF_JSField *) JS_GetOpaque(argv[2], SFNodeClass.class_id);
 
@@ -571,10 +571,10 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 		GF_Route *r;
 		assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 		n2 = * ((GF_Node **)ptr->field.far_ptr);
-		if (!n2) return JS_EXCEPTION;
+		if (!n2) return GF_JS_EXCEPTION(c);
 
 		f2 = JS_ToCString(c, argv[3]);
-		if (!f2) return JS_EXCEPTION;
+		if (!f2) return GF_JS_EXCEPTION(c);
 
 		if (!strnicmp(f2, "_field", 6)) {
 			f_id2 = atoi(f2+6);
@@ -594,10 +594,10 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 			f_id2 = info.fieldIndex;
 		}
 		JS_FreeCString(c, f2);
-		if (e != GF_OK) return JS_EXCEPTION;
+		if (e != GF_OK) return GF_JS_EXCEPTION(c);
 
 		r = gf_sg_route_new(n1->sgprivate->scenegraph, n1, f_id1, n2, f_id2);
-		if (!r) return JS_EXCEPTION;
+		if (!r) return GF_JS_EXCEPTION(c);
 	}
 	/*route to object*/
 	else {
@@ -605,7 +605,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 		const char *fun_name;
 		JSAtom atom;
 		GF_RouteToScript *r = NULL;
-		if (!JS_IsFunction(c, argv[3]) ) return JS_EXCEPTION;
+		if (!JS_IsFunction(c, argv[3]) ) return GF_JS_EXCEPTION(c);
 
 		atom = JS_ValueToAtom(c, argv[3]);
 		fun_name = JS_AtomToCString(c, atom);
@@ -647,7 +647,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 				GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
 				if (!n1->sgprivate->interact) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
-					return JS_EXCEPTION;
+					return GF_JS_EXCEPTION(c);
 				}
 			}
 			if (!n1->sgprivate->interact->routes) n1->sgprivate->interact->routes = gf_list_new();
@@ -671,10 +671,10 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 	if (argc!=4) return JS_FALSE;
 
 	if (!JS_IsObject(argv[0]) || JS_IsNull(argv[0]))
-	 	return JS_EXCEPTION;
+	 	return GF_JS_EXCEPTION(c);
 
 	ptr = JS_GetOpaque(argv[0], SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 
 	if (JS_IsString(argv[1]) && JS_IsNull(argv[2]) && JS_IsNull(argv[3])) {
@@ -689,16 +689,16 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 		JS_FreeCString(c, f1);
 		return JS_UNDEFINED;
 	}
-	if (!JS_IsString(argv[1]) || !JS_IsString(argv[3])) return JS_EXCEPTION;
+	if (!JS_IsString(argv[1]) || !JS_IsString(argv[3])) return GF_JS_EXCEPTION(c);
 
 	n1 = * ((GF_Node **)ptr->field.far_ptr);
 
 	ptr = JS_GetOpaque(argv[2], SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n2 = * ((GF_Node **)ptr->field.far_ptr);
 
-	if (!n1 || !n2) return JS_EXCEPTION;
+	if (!n1 || !n2) return GF_JS_EXCEPTION(c);
 	if (!n1->sgprivate->interact) return JS_UNDEFINED;
 
 	f1 = JS_ToCString(c, argv[1]);
@@ -706,7 +706,7 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 	if (!f1 || !f2) {
 		JS_FreeCString(c, f1);
 		JS_FreeCString(c, f2);
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	}
 
 	if (!strnicmp(f1, "_field", 6)) {
@@ -717,7 +717,7 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 		f_id1 = info.fieldIndex;
 	}
 	JS_FreeCString(c, f1);
-	if (e != GF_OK) return JS_EXCEPTION;
+	if (e != GF_OK) return GF_JS_EXCEPTION(c);
 
 	if (!strnicmp(f2, "_field", 6)) {
 		f_id2 = atoi(f2+6);
@@ -727,7 +727,7 @@ static JSValue deleteRoute(JSContext *c, JSValueConst this_val, int argc, JSValu
 		f_id2 = info.fieldIndex;
 	}
 	JS_FreeCString(c, f2);
-	if (e != GF_OK) return JS_EXCEPTION;
+	if (e != GF_OK) return GF_JS_EXCEPTION(c);
 
 	i=0;
 	while ((rts = gf_list_enum(n1->sgprivate->interact->routes, &i))) {
@@ -749,7 +749,7 @@ static JSValue loadURL(JSContext *c, JSValueConst this_val, int argc, JSValueCon
 	GF_JSField *f;
 	M_Script *script = (M_Script *) JS_GetContextOpaque(c);
 
-	if (argc < 1) return JS_EXCEPTION;
+	if (argc < 1) return GF_JS_EXCEPTION(c);
 
 	if (JS_IsString(argv[0])) {
 		Bool res;
@@ -760,10 +760,10 @@ static JSValue loadURL(JSContext *c, JSValueConst this_val, int argc, JSValueCon
 		JS_FreeCString(c, par.uri.url);
 		return res ? JS_TRUE : JS_FALSE;
 	}
-	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
+	if (!JS_IsObject(argv[0])) return GF_JS_EXCEPTION(c);
 
 	f = (GF_JSField *) JS_GetOpaque_Nocheck(argv[0]);
-	if (!f || !f->mfvals) return JS_EXCEPTION;
+	if (!f || !f->mfvals) return GF_JS_EXCEPTION(c);
 
 	for (i=0; i<f->mfvals_count; i++) {
 		Bool res=GF_FALSE;
@@ -785,7 +785,7 @@ static JSValue setDescription(JSContext *c, JSValueConst this_val, int argc, JSV
 {
 	GF_JSAPIParam par;
 	GF_Node *node = JS_GetContextOpaque(c);
-	if (!argc || !JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!argc || !JS_IsString(argv[0])) return GF_JS_EXCEPTION(c);
 	par.uri.url = (char *) JS_ToCString(c, argv[0]);
 	ScriptAction(c, NULL, GF_JSAPI_OP_SET_TITLE, node->sgprivate->scenegraph->RootNode, &par);
 	JS_FreeCString(c, par.uri.url);
@@ -803,13 +803,13 @@ static JSValue createVrmlFromString(JSContext *c, JSValueConst this_val, int arg
 	const char *str;
 	GF_List *nlist;
 	GF_Node *sc_node = JS_GetContextOpaque(c);
-	if (!sc_node || (argc < 1)) return JS_EXCEPTION;
+	if (!sc_node || (argc < 1)) return GF_JS_EXCEPTION(c);
 
-	if (!JS_IsString(argv[0])) return JS_EXCEPTION;
+	if (!JS_IsString(argv[0])) return GF_JS_EXCEPTION(c);
 	str = JS_ToCString(c, argv[0]);
 	nlist = gf_sm_load_bt_from_string(sc_node->sgprivate->scenegraph, (char *)str, 1);
 	JS_FreeCString(c, str);
-	if (!nlist) return JS_EXCEPTION;
+	if (!nlist) return GF_JS_EXCEPTION(c);
 
 	priv = JS_GetScriptStack(c);
 	memset(&field, 0, sizeof(GF_FieldInfo));
@@ -826,7 +826,7 @@ static JSValue createVrmlFromString(JSContext *c, JSValueConst this_val, int arg
 	gf_list_del(nlist);
 	return res;
 #else
-	return JS_EXCEPTION;
+	return GF_JS_EXCEPTION(c);
 #endif
 }
 
@@ -902,9 +902,9 @@ static JSValue gf_sg_script_eventout_set_prop(JSContext *c, JSValueConst this_va
 	GF_ScriptField *sf;
 
 	script = JS_GetScriptStack(c);
-	if (!script) return JS_EXCEPTION;
+	if (!script) return GF_JS_EXCEPTION(c);
 	n = (GF_Node *) JS_GetScript(c);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
 	i=0;
 	while ((sf = gf_list_enum(script->fields, &i))) {
@@ -916,7 +916,7 @@ static JSValue gf_sg_script_eventout_set_prop(JSContext *c, JSValueConst this_va
 			return JS_UNDEFINED;
 		}
 	}
-	return JS_EXCEPTION;
+	return GF_JS_EXCEPTION(c);
 }
 
 
@@ -1079,7 +1079,7 @@ static JSValue SFNodeConstructor(JSContext *c, JSValueConst new_target, int argc
 	M_Script *sc = JS_GetScript(c);
 
 	if (argc && !JS_IsString(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	tag = 0;
 	if (!argc) {
@@ -1095,7 +1095,7 @@ static JSValue SFNodeConstructor(JSContext *c, JSValueConst new_target, int argc
 
 	ID = 0;
 	node_name = (char *) JS_ToCString(c, argv[0]);
-	if (!node_name) return JS_EXCEPTION;
+	if (!node_name) return GF_JS_EXCEPTION(c);
 
 	if (!strnicmp(node_name, "_proto", 6)) {
 		ID = atoi(node_name+6);
@@ -1185,11 +1185,11 @@ static JSValue node_toString(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	const char *name;
 
 	f = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(c);
 
 	str[0] = 0;
 	n = * ((GF_Node **)f->field.far_ptr);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 
 	name = gf_node_get_name_and_id(n, &id);
 	if (id) {
@@ -1208,9 +1208,9 @@ static JSValue node_getTime(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	GF_Node *n;
 	GF_JSField *f;
 	f = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(c);
 	n = * ((GF_Node **)f->field.far_ptr);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 	return JS_NewFloat64(c, gf_node_get_scene_time(n));
 }
 
@@ -1225,14 +1225,14 @@ static JSValue node_getProperty(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 	GF_ScriptPriv *priv;
 
 	ptr = (GF_JSField *) JS_GetOpaque(obj, SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n = * ((GF_Node **)ptr->field.far_ptr);
-	if (!n) return JS_EXCEPTION;
+	if (!n) return GF_JS_EXCEPTION(c);
 	priv = JS_GetScriptStack(c);
 
 	fieldName = JS_AtomToCString(c, atom);
-	if (!fieldName) return JS_EXCEPTION;
+	if (!fieldName) return GF_JS_EXCEPTION(c);
 
 	if (!strcmp(fieldName, "toString")) {
 		JS_FreeCString(c, fieldName);
@@ -1379,12 +1379,12 @@ static JSValue SFImageConstructor(JSContext *c, JSValueConst new_target, int arg
 	u32 w, h, nbComp;
 	MFInt32 *pixels;
 	JSValue obj;
-	if (argc<4) return JS_EXCEPTION;
+	if (argc<4) return GF_JS_EXCEPTION(c);
 	if (!JS_IsInteger(argv[0]) || !JS_IsInteger(argv[1]) || !JS_IsInteger(argv[2]) || !JS_IsObject(argv[3]) )
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	pixels = JS_GetOpaque(argv[3], MFInt32Class.class_id);
-	if (!pixels) return JS_EXCEPTION;
+	if (!pixels) return GF_JS_EXCEPTION(c);
 
 	obj = JS_NewObjectClass(c, SFImageClass.class_id);
 	if (JS_IsException(obj)) return obj;
@@ -1400,7 +1400,7 @@ static JSValue image_getProperty(JSContext *c, JSValueConst this_val, int magic)
 	SFImage *sfi;
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	GF_JSField *val = (GF_JSField *) JS_GetOpaque(this_val, SFImageClass.class_id);
-	if (!val) return JS_EXCEPTION;
+	if (!val) return GF_JS_EXCEPTION(c);
 	sfi = (SFImage*)val->field.far_ptr;
 
 	switch (magic) {
@@ -1429,7 +1429,7 @@ static JSValue image_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 	Bool changed = 0;
 	SFImage *sfi;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFImageClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	sfi = (SFImage*)ptr->field.far_ptr;
 	switch (magic) {
@@ -1466,7 +1466,7 @@ static JSValue image_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 		GF_JSField *sf;
 		u32 len, i;
 		sf = JS_GetOpaque(value, MFInt32Class.class_id);
-		if (!sf) return JS_EXCEPTION;
+		if (!sf) return GF_JS_EXCEPTION(c);
 		pixels = (MFInt32 *) sf->field.far_ptr;
 		if (sfi->pixels) gf_free(sfi->pixels);
 		len = sfi->width*sfi->height*sfi->numComponents;
@@ -1512,7 +1512,7 @@ static JSValue SFVec2fConstructor(JSContext *c, JSValueConst new_target, int arg
 static JSValue vec2f_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_JSField *val = (GF_JSField *) JS_GetOpaque(obj, SFVec2fClass.class_id);
-	if (!val) return JS_EXCEPTION;
+	if (!val) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case 0:
@@ -1531,7 +1531,7 @@ static JSValue vec2f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFVec2fClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	if (JS_ToFloat64(c, &d, value)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec2f\n"));
@@ -1562,14 +1562,14 @@ static JSValue vec2f_operand(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	JSValue pNew;
 	Fixed v;
 	GF_JSField *p1 = (GF_JSField *) JS_GetOpaque(obj, SFVec2fClass.class_id);
-	if (!p1) return JS_EXCEPTION;
+	if (!p1) return GF_JS_EXCEPTION(c);
 	GF_JSField *p2 = NULL;
 
 	if (argc) {
 		if (JS_IsObject(argv[0])) {
 			p2 = (GF_JSField *) JS_GetOpaque(argv[0], SFVec2fClass.class_id);
 		} else if (JS_ToFloat64(c, &d, argv[0]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(c);
 	}
 
 	v1 = ((GF_JSField *) p1)->field.far_ptr;
@@ -1580,11 +1580,11 @@ static JSValue vec2f_operand(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	case 5:
 		return JS_NewFloat64(c, FIX2FLT(gf_v2d_len(v1)) );
 	case 7:
-		if (!p2) return JS_EXCEPTION;
+		if (!p2) return GF_JS_EXCEPTION(c);
 		return JS_NewFloat64(c, FIX2FLT( gf_mulfix(v1->x, v2->x) + gf_mulfix(v1->y, v2->y) ) );
 	case 0:
 	case 1:
-		if (!p2) return JS_EXCEPTION;
+		if (!p2) return GF_JS_EXCEPTION(c);
 	}
 
 	pNew = JS_NewObjectClass(c, SFVec2fClass.class_id);
@@ -1679,7 +1679,7 @@ static JSValue SFVec3fConstructor(JSContext *c, JSValueConst new_target, int arg
 static JSValue vec3f_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_JSField *val = (GF_JSField *) JS_GetOpaque(obj, SFVec3fClass.class_id);
-	if (!val) return JS_EXCEPTION;
+	if (!val) return GF_JS_EXCEPTION(c);
 
 	switch (magic) {
 	case 0:
@@ -1698,7 +1698,7 @@ static JSValue vec3f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFVec3fClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	if (JS_ToFloat64(c, &d, value)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec3f\n"));
@@ -1736,14 +1736,14 @@ static JSValue vec3f_operand(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	JSValue pNew;
 	Fixed v;
 	GF_JSField *p1 = (GF_JSField *) JS_GetOpaque(obj, SFVec3fClass.class_id);
-	if (!p1) return JS_EXCEPTION;
+	if (!p1) return GF_JS_EXCEPTION(c);
 	GF_JSField *p2 = NULL;
 
 	if (argc) {
 		if (JS_IsObject(argv[0])) {
 			p2 = (GF_JSField *) JS_GetOpaque(argv[0], SFVec3fClass.class_id);
 		} else if (JS_ToFloat64(c, &d, argv[0]))
-			return JS_EXCEPTION;
+			return GF_JS_EXCEPTION(c);
 	}
 
 	v1 = ((GF_JSField *) p1)->field.far_ptr;
@@ -1754,12 +1754,12 @@ static JSValue vec3f_operand(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	case 0:
 	case 1:
 	case 8:
-		if (!p2) return JS_EXCEPTION;
+		if (!p2) return GF_JS_EXCEPTION(c);
 	case 5:
 		return JS_NewFloat64(c, FIX2FLT(gf_vec_len(*v1)) );
 	case 7:
 		vec = *v1;
-		if (!p2) return JS_EXCEPTION;
+		if (!p2) return GF_JS_EXCEPTION(c);
 		wvec = *v2;
 		return JS_NewFloat64(c, FIX2FLT(gf_vec_dot(vec, wvec)) );
 	}
@@ -1873,10 +1873,10 @@ static JSValue SFRotationConstructor(JSContext *c, JSValueConst new_target, int 
 	}
 
 
-	if (argc!=2) return JS_EXCEPTION;
-	if (!JS_IsObject(argv[0])) return JS_EXCEPTION;
+	if (argc!=2) return GF_JS_EXCEPTION(c);
+	if (!JS_IsObject(argv[0])) return GF_JS_EXCEPTION(c);
 	f = JS_GetOpaque(argv[0], SFVec3fClass.class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(c);
 
 	v1 = * (SFVec3f *) (f)->field.far_ptr;
 	if (JS_IsNumber(argv[1])) {
@@ -1887,7 +1887,7 @@ static JSValue SFRotationConstructor(JSContext *c, JSValueConst new_target, int 
 
 	if (!JS_IsObject(argv[1])) return JS_FALSE;
 	f = JS_GetOpaque(argv[1], SFVec3fClass.class_id);
-	if (!f) return JS_EXCEPTION;
+	if (!f) return GF_JS_EXCEPTION(c);
 	v2 = * (SFVec3f *) (f)->field.far_ptr;
 	l1 = gf_vec_len(v1);
 	l2 = gf_vec_len(v2);
@@ -1903,7 +1903,7 @@ static JSValue SFRotationConstructor(JSContext *c, JSValueConst new_target, int 
 static JSValue rot_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_JSField *val = (GF_JSField *) JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!val) return JS_EXCEPTION;
+	if (!val) return GF_JS_EXCEPTION(c);
 	switch (magic) {
 	case 0:
 		return JS_NewFloat64(c, FIX2FLT( ((SFRotation*)val->field.far_ptr)->x));
@@ -1923,7 +1923,7 @@ static JSValue rot_setProperty(JSContext *c, JSValueConst obj, JSValueConst valu
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	if (JS_ToFloat64(c, &d, value)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFRotation\n"));
@@ -1963,7 +1963,7 @@ static JSValue rot_getAxis(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	SFRotation r;
 	JSValue pNew;
 	GF_JSField *p = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	r = * (SFRotation *) (p)->field.far_ptr;
 	pNew = JS_NewObjectClass(c, SFVec3fClass.class_id);
 	SFVec3f_Create(c, pNew, r.x, r.y, r.z);
@@ -1974,7 +1974,7 @@ static JSValue rot_inverse(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	SFRotation r;
 	JSValue pNew;
 	GF_JSField *p = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	r = * (SFRotation *) (p)->field.far_ptr;
 	pNew = JS_NewObjectClass(c, SFRotationClass.class_id);
 	SFRotation_Create(c, pNew, r.x, r.y, r.z, r.q-GF_PI);
@@ -1988,12 +1988,12 @@ static JSValue rot_multiply(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	JSValue pNew;
 
 	if (argc<=0 || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	GF_JSField *p = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	r1 = * (SFRotation *) (p)->field.far_ptr;
 	p = JS_GetOpaque(argv[0], SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	r2 = * (SFRotation *) (p)->field.far_ptr;
 
 	q1 = gf_quat_from_rotation(r1);
@@ -2013,14 +2013,14 @@ static JSValue rot_multVec(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	GF_Matrix mx;
 	JSValue pNew;
 	if (argc<=0 || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 
 	GF_JSField *p = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	r = * (SFRotation *) (p)->field.far_ptr;
 
 	p = JS_GetOpaque(argv[0], SFVec3fClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	v = * (SFVec3f *) (p)->field.far_ptr;
 
 	gf_mx_init(mx);
@@ -2036,13 +2036,13 @@ static JSValue rot_setAxis(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	SFRotation *r;
 	GF_JSField *ptr;
 	if (argc<=0 || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	ptr = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	r = (SFRotation *) (ptr)->field.far_ptr;
 
 	GF_JSField *p = JS_GetOpaque(argv[0], SFVec3fClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	v = * (SFVec3f *) (p)->field.far_ptr;
 
 	r->x = v.x;
@@ -2060,16 +2060,16 @@ static JSValue rot_slerp(JSContext *c, JSValueConst obj, int argc, JSValueConst 
 	GF_JSField *p;
 
 	if (argc<=0 || !JS_IsObject(argv[0]))
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	p = JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	v1 = * (SFRotation *) (p)->field.far_ptr;
 
 	p = JS_GetOpaque(argv[0], SFRotationClass.class_id);
-	if (!p) return JS_EXCEPTION;
+	if (!p) return GF_JS_EXCEPTION(c);
 	v2 = * (SFRotation *) (p)->field.far_ptr;
 
-	if (JS_ToFloat64(c, &d, argv[1])) return JS_EXCEPTION;
+	if (JS_ToFloat64(c, &d, argv[1])) return GF_JS_EXCEPTION(c);
 
 	q1 = gf_quat_from_rotation(v1);
 	q2 = gf_quat_from_rotation(v2);
@@ -2109,7 +2109,7 @@ static JSValue SFColorConstructor(JSContext *c, JSValueConst new_target, int arg
 static JSValue color_getProperty(JSContext *c, JSValueConst obj, int magic)
 {
 	GF_JSField *val = (GF_JSField *) JS_GetOpaque(obj, SFColorClass.class_id);
-	if (!val) return JS_EXCEPTION;
+	if (!val) return GF_JS_EXCEPTION(c);
 	switch (magic) {
 	case 0:
 		return JS_NewFloat64(c, FIX2FLT( ((SFColor*)val->field.far_ptr)->red));
@@ -2131,7 +2131,7 @@ static JSValue color_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 	Fixed v;
 	Bool changed = 0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFColorClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 
 	if (JS_ToFloat64(c, &d, value)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFColor\n"));
@@ -2166,13 +2166,13 @@ static JSValue color_setHSV(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	SFColor *v1, hsv;
 	Double h=0, s=0, v=0;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	if (argc != 3) return JS_FALSE;
 
 	v1 = (ptr)->field.far_ptr;
-	if (JS_ToFloat64(c, &h, argv[0])) return JS_EXCEPTION;
-	if (JS_ToFloat64(c, &s, argv[1])) return JS_EXCEPTION;
-	if (JS_ToFloat64(c, &v, argv[2])) return JS_EXCEPTION;
+	if (JS_ToFloat64(c, &h, argv[0])) return GF_JS_EXCEPTION(c);
+	if (JS_ToFloat64(c, &s, argv[1])) return GF_JS_EXCEPTION(c);
+	if (JS_ToFloat64(c, &v, argv[2])) return GF_JS_EXCEPTION(c);
 
 	hsv.red = FLT2FIX( h);
 	hsv.green = FLT2FIX( s);
@@ -2189,7 +2189,7 @@ static JSValue color_getHSV(JSContext *c, JSValueConst obj, int argc, JSValueCon
 	JSValue arr;
 
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(obj, SFRotationClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	if (argc != 3) return JS_FALSE;
 
 	v1 = (ptr)->field.far_ptr;
@@ -2306,7 +2306,7 @@ static JSValue array_getElement(JSContext *c, JSValueConst obj, JSAtom atom, JSV
 		if (!strcmp(str, "length")) {
 			GF_JSField *f_ptr = JS_GetOpaque_Nocheck(obj);
 			if (!f_ptr) {
-				ret = JS_EXCEPTION;
+				ret = GF_JS_EXCEPTION(c);
 			} else if (f_ptr->field.fieldType==GF_SG_VRML_MFNODE) {
 				ret = JS_NewInt32(c, gf_node_list_get_count(*(GF_ChildNodeItem **)f_ptr->field.far_ptr) );
 			} else {
@@ -2685,7 +2685,7 @@ static JSValue vrml_event_add_listener(JSContext *c, JSValueConst this_val, int 
 	GF_Node *node;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(this_val, SFNodeClass.class_id);
 	if (!ptr)
-		return JS_EXCEPTION;
+		return GF_JS_EXCEPTION(c);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	node = * ((GF_Node **)ptr->field.far_ptr);
 	return gf_sg_js_event_add_listener(c, this_val, argc, argv, node);
@@ -2695,7 +2695,7 @@ static JSValue vrml_event_remove_listener(JSContext *c, JSValueConst this_val, i
 {
 	GF_Node *node;
 	GF_JSField *ptr = (GF_JSField *) JS_GetOpaque(this_val, SFNodeClass.class_id);
-	if (!ptr) return JS_EXCEPTION;
+	if (!ptr) return GF_JS_EXCEPTION(c);
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	node = * ((GF_Node **)ptr->field.far_ptr);
 	return gf_sg_js_event_remove_listener(c, this_val, argc, argv, node);
