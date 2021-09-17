@@ -4058,6 +4058,7 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     OS_FLAG(SIGILL),
     OS_FLAG(SIGSEGV),
     OS_FLAG(SIGTERM),
+    OS_FLAG(SIGKILL),
 #if !defined(_WIN32)
     OS_FLAG(SIGQUIT),
     OS_FLAG(SIGPIPE),
