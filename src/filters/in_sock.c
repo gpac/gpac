@@ -392,7 +392,10 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 static Bool sockin_check_eos(GF_SockInCtx *ctx)
 {
-	u64 now = gf_sys_clock_high_res();
+	u64 now;
+	if (!ctx->timeout) return GF_FALSE;
+
+	now = gf_sys_clock_high_res();
 	if (!ctx->last_rcv_time) {
 		ctx->last_rcv_time = now;
 		return GF_FALSE;
@@ -424,7 +427,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 			return GF_OK;
 		}
 
-		gf_filter_ask_rt_reschedule(filter, 10);
+		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
 	else if (e) {
@@ -519,7 +522,7 @@ static const GF_FilterArgs SockInArgs[] =
 	{ OFFS(ext), "indicate file extension of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicate mime type of udp data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block), "set blocking mode for socket(s)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "set timeout in ms for UDP socket(s)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "set timeout in ms for UDP socket(s), 0 to disable timeout", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 #ifndef GPAC_DISABLE_STREAMING
 	{ OFFS(reorder_pck), "number of packets delay for RTP reordering (M2TS over RTP) ", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
