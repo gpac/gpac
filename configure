@@ -176,6 +176,7 @@ has_openhevc="no"
 has_vtb="no"
 has_strlcpy="no"
 disable_codecs="no"
+enable_qjs_stack_check="no"
 
 win32="no"
 mingw32="no"
@@ -271,6 +272,7 @@ GPAC configuration options:
   --static-bin             enable static linking of MP4Box and gpac only (enable --static-build), disable MP4Client and all libraries not linkable statically.
   --static-mp4box          old name for --static-bin, deprecated
   --enable-depth           enables depth handling in the compositor
+  --enable-qjs-stack       enables stack depth checking in QuickJS (WILL CRASH in multithreaded modes)
 
 Configuration options for libgpac - all options can be enabled with --enable-optname
   --disable-all            disables all features in libgpac
@@ -1792,6 +1794,8 @@ for opt do
             ;;
         --enable-depth) enable_depth_compositor="yes"
             ;;
+        --enable-qjs-stack) enable_qjs_stack_check="yes"
+            ;;
         --static-bin) static_bin="yes"
             ;;
         --static-mp4box)
@@ -2699,6 +2703,10 @@ fi
 if test "$enable_depth_compositor" = "yes" ; then
     echo "Depth Compositor enabled"
     echo "#define GF_SR_USE_DEPTH" >> $TMPH
+fi
+
+if test "$enable_qjs_stack_check" = "yes" ; then
+    echo "#define GPAC_QJS_STACK_CHECK" >> $TMPH
 fi
 
 if test "$disable_mpd" = "yes" ; then
