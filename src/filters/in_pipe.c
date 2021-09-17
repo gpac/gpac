@@ -58,6 +58,7 @@ typedef struct
 	u32 block_size;
 	Bool blk, ka, mkp, sigeos;
 
+	u32 read_block_size;
 	//only one output pid declared
 	GF_FilterPid *pid;
 
@@ -111,7 +112,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (ctx->mkp) ctx->blk = GF_TRUE;
+//	if (ctx->mkp) ctx->blk = GF_TRUE;
 
 	//strip any fragment identifer
 	frag_par = strchr(ctx->src, '#');
@@ -122,6 +123,8 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	src = (char *) ctx->src;
 	if (!strnicmp(ctx->src, "pipe://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "pipe:", 5)) src += 5;
+
+	ctx->read_block_size = MIN(8192, ctx->block_size);
 
 	if (ctx->is_stdin) {
 		e = GF_OK;
@@ -164,7 +167,7 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 			}
 			ctx->overlap.hEvent = ctx->event;
 		}
-		ctx->pipe = CreateNamedPipe(szNamedPipe, pflags, flags, 10, ctx->block_size, ctx->block_size, 0, NULL);
+		ctx->pipe = CreateNamedPipe(szNamedPipe, pflags, flags, 10, ctx->read_block_size, ctx->read_block_size, 0, NULL);
 
 		if (ctx->pipe == INVALID_HANDLE_VALUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to create named pipe %s: %d\n", szNamedPipe, GetLastError()));
@@ -317,7 +320,7 @@ static void pipein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 static GF_Err pipein_process(GF_Filter *filter)
 {
 	GF_Err e;
-	u32 to_read;
+	u32 total_read;
 	s32 nb_read;
 	GF_FilterPacket *pck;
 	GF_PipeInCtx *ctx = (GF_PipeInCtx *) gf_filter_get_udta(filter);
@@ -334,7 +337,9 @@ static GF_Err pipein_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	to_read = ctx->block_size;
+	total_read = 0;
+
+refill:
 
 	if (ctx->is_stdin) {
 		nb_read = 0;
@@ -346,8 +351,8 @@ static GF_Err pipein_process(GF_Filter *filter)
 				gf_filter_pid_set_eos(ctx->pid);
 			}
 		} else {
-			nb_read = (s32) fread(ctx->buffer, 1, to_read, stdin);
-			if (nb_read<0) {
+			nb_read = (s32) fread(ctx->buffer + total_read, 1, ctx->read_block_size, stdin);
+			if (!total_read && (nb_read<0)) {
 				if (!ctx->ka) {
 					gf_filter_pid_set_eos(ctx->pid);
 					return GF_EOS;
@@ -384,61 +389,79 @@ static GF_Err pipein_process(GF_Filter *filter)
 				}
 			}
 		}
-		if (! ReadFile(ctx->pipe, ctx->buffer, to_read, (LPDWORD) &nb_read, ctx->blk ? NULL : &ctx->overlap) ) {
-			s32 error = GetLastError();
-			if (error == ERROR_PIPE_LISTENING) return GF_OK;
-			else if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
-				//non blocking pipe with writers active
-			}
-			else if (nb_read<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %d\n", error));
-				return GF_IO_ERR;
-			}
-			else if (!ctx->ka) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
-				gf_filter_pid_set_eos(ctx->pid);
-				CloseHandle(ctx->pipe);
-				ctx->pipe = INVALID_HANDLE_VALUE;
-				ctx->is_end = GF_TRUE;
-				return GF_EOS;
-			}
-			else if (error == ERROR_BROKEN_PIPE) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
-				CloseHandle(ctx->pipe);
-				ctx->pipe = INVALID_HANDLE_VALUE;
-				if (ctx->sigeos)
+		if (! ReadFile(ctx->pipe, ctx->buffer + total_read, ctx->read_block_size, (LPDWORD) &nb_read, ctx->blk ? NULL : &ctx->overlap)) {
+			if (total_read) {
+				nb_read = 0;
+			} else {
+				s32 error = GetLastError();
+				if (error == ERROR_PIPE_LISTENING) return GF_OK;
+				else if ((error == ERROR_IO_PENDING) || (error== ERROR_MORE_DATA)) {
+					//non blocking pipe with writers active
+				}
+				else if (nb_read<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %d\n", error));
+					return GF_IO_ERR;
+				}
+				else if (!ctx->ka) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 					gf_filter_pid_set_eos(ctx->pid);
-				return pipein_initialize(filter);
+					CloseHandle(ctx->pipe);
+					ctx->pipe = INVALID_HANDLE_VALUE;
+					ctx->is_end = GF_TRUE;
+					return GF_EOS;
+				}
+				else if (error == ERROR_BROKEN_PIPE) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
+					CloseHandle(ctx->pipe);
+					ctx->pipe = INVALID_HANDLE_VALUE;
+					if (ctx->sigeos)
+						gf_filter_pid_set_eos(ctx->pid);
+					return pipein_initialize(filter);
+				}
+				return GF_OK;
 			}
-			return GF_OK;
 		}
 #else
-		nb_read = (s32) read(ctx->fd, ctx->buffer, to_read);
+		nb_read = (s32) read(ctx->fd, ctx->buffer + total_read, ctx->read_block_size);
 		if (nb_read <= 0) {
-			s32 res = errno;
-			if (res == EAGAIN) {
-				//non blocking pipe with writers active
-			} else if (nb_read<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
-				return GF_IO_ERR;
-			} else if (!ctx->ka) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
-				if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
-				close(ctx->fd);
-				ctx->fd=-1;
-				ctx->is_end = GF_TRUE;
-				return GF_EOS;
-			} else if (ctx->sigeos) {
-				gf_filter_pid_set_eos(ctx->pid);
+			if (total_read) {
+				nb_read = 0;
+			} else {
+				s32 res = errno;
+				if (res == EAGAIN) {
+					//non blocking pipe with writers active
+				} else if (nb_read < 0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %s\n", gf_errno_str(res) ));
+					return GF_IO_ERR;
+				} else if (!ctx->ka && ctx->bytes_read) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[PipeIn] end of stream detected after %d bytes\n", ctx->bytes_read));
+					if (ctx->pid) gf_filter_pid_set_eos(ctx->pid);
+					close(ctx->fd);
+					ctx->fd=-1;
+					ctx->is_end = GF_TRUE;
+					return GF_EOS;
+				} else if (ctx->sigeos && ctx->pid) {
+					gf_filter_pid_set_eos(ctx->pid);
+				}
+				return GF_OK;
 			}
-			return GF_OK;
 		}
 #endif
 	}
 
-	if (!nb_read)
+	if (nb_read) {
+		total_read += nb_read;
+		if (total_read + ctx->read_block_size < ctx->block_size) {
+			nb_read = 0;
+			goto refill;
+		}
+	}
+	nb_read = total_read;
+
+	if (!nb_read) {
 		return GF_OK;
-	
+	}
+
 	ctx->buffer[nb_read] = 0;
 	if (!ctx->pid || ctx->do_reconfigure) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] configuring stream %d probe bytes\n", nb_read));
@@ -525,7 +548,7 @@ GF_FilterRegister PipeInRegister = {
 		"Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
 		"Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
 		"\n"
-		"The pipe input can be created in blocking mode or non-blocking mode. If the filter creates the pipe, blocking mode is always enabled.\n"
+		"The pipe input can be created in blocking mode or non-blocking mode.\n"
 	"")
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
