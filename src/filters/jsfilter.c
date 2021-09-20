@@ -4798,7 +4798,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 		if (gf_opts_get_bool("temp", "helponly"))
 			jsf->disable_filter = GF_TRUE;
 
-		if (gf_opts_get_bool("temp", "gpac-help")) {
+		if (gf_opts_get_bool("temp", "gpac-help") || gf_opts_get_bool("temp", "gendoc")) {
 			js_std_loop(jsf->ctx);
 			jsf->disable_filter = GF_FALSE;
 		}
