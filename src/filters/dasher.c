@@ -3460,8 +3460,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			use_dash_suffix = GF_TRUE;
 		}
 		//we need dash suffix in template, but the template may be user-provided without dash suffix. If so add it
-		if (use_dash_suffix && !strstr(szTemplate, "$FS$"))
+		//we don't add suffic if we have $RepresentationID or $Path set, we assume the user knows what he's doing
+		if (use_dash_suffix && !strstr(szTemplate, "$FS$") && !strstr(szTemplate, "$RepresentationID$") && !strstr(szTemplate, "$Path=")) {
 			strcat(szTemplate, "$FS$");
+		}
 
 		//resolve segment template
 		e = gf_filter_pid_resolve_file_template(ds->ipid, szTemplate, szDASHTemplate, 0, use_dash_suffix ? szDASHSuffix : NULL);
