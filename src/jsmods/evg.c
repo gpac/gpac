@@ -6582,9 +6582,9 @@ static void text_set_text_from_value(GF_JSText *txt, GF_Font *font, JSContext *c
 	char *start = (char *) str;
 	while (start) {
 		GF_TextSpan *span;
-		char *nline = strchr(str, '\n');
+		char *nline = strchr(start, '\n');
 		if (nline) nline[0] = 0;
-		span = gf_font_manager_create_span(txt->fm, font, (char *) str, FLT2FIX(txt->font_size), GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, 0, NULL);
+		span = gf_font_manager_create_span(txt->fm, font, (char *) start, FLT2FIX(txt->font_size), GF_FALSE, GF_FALSE, GF_FALSE, NULL, GF_FALSE, 0, NULL);
 		if (span) {
 			if (txt->horizontal)
 				span->flags |= GF_TEXT_SPAN_HORIZONTAL;
