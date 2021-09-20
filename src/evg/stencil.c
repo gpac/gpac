@@ -855,7 +855,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 			pad_y = _this->fill_pad_color;
 		else
 			y0 = 0;
-	} else if (y0>=_this->height) {
+	} else if (y0>=(s32) _this->height) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T)
 			y0 = y0 % _this->height;
 		else if (_this->fill_pad_color)
@@ -1142,7 +1142,7 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32
 			pad_y = _this->fill_pad_color_wide;
 		else
 			y0 = 0;
-	} else if (y0>=_this->height) {
+	} else if (y0>=(s32) _this->height) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T)
 			y0 = y0 % _this->height;
 		else if (_this->fill_pad_color_wide)
