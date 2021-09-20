@@ -4460,3 +4460,8 @@ void gf_filter_require_source_id(GF_Filter *filter)
 {
 	if (filter) filter->require_source_id = GF_TRUE;
 }
+
+void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking)
+{
+	if (filter) filter->is_blocking_source = is_blocking;
+}

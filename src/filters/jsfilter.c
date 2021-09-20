@@ -1747,6 +1747,15 @@ static JSValue jsf_filter_reset_source(JSContext *ctx, JSValueConst this_val, in
 	return JS_UNDEFINED;
 }
 
+static JSValue jsf_filter_set_blocking(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
+	if (!jsf) return GF_JS_EXCEPTION(ctx);
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	gf_filter_set_blocking(jsf->filter, JS_ToBool(ctx, argv[0] ));
+	return JS_UNDEFINED;
+}
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1815,6 +1824,7 @@ static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CFUNC_DEF("set_source", 0, jsf_filter_set_source),
     JS_CFUNC_DEF("set_source_restricted", 0, jsf_filter_set_source_restricted),
     JS_CFUNC_DEF("reset_source", 0, jsf_filter_reset_source),
+    JS_CFUNC_DEF("set_blocking", 0, jsf_filter_set_blocking),
 };
 
 

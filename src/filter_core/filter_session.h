@@ -561,7 +561,8 @@ struct __gf_filter
 	Bool in_process_callback;
 	Bool no_probe;
 	Bool no_inputs;
-	
+	Bool is_blocking_source;
+
 	s32 nb_pids_playing;
 
 	//list of pids connected to this filter

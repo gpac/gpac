@@ -626,7 +626,6 @@ GF_FilterRegister HTTPInRegister = {
 	"Content format can be forced through [-mime]() and file extension can be changed through [-ext]().\n"
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.")
 	.private_size = sizeof(GF_HTTPInCtx),
-	.flags = GF_FS_REG_BLOCKING,
 	.args = HTTPInArgs,
 	SETCAPS(HTTPInCaps),
 	.initialize = httpin_initialize,
