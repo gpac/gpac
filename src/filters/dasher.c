@@ -5782,7 +5782,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			}
 		}
 
-		if (ds->dash_dur.num * 1000 > ctx->def_max_seg_dur * ds->dash_dur.den )
+		if ((u32) ds->dash_dur.num * 1000 > ctx->def_max_seg_dur * ds->dash_dur.den )
 			ctx->def_max_seg_dur = (u32) ((ds->dash_dur.num * 1000) / ds->dash_dur.den);
 	}
 
@@ -6764,7 +6764,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 						u64 sidx_size = (u64)sidx_range->value.lfrac.den;
 						sidx_size -= (u64) sidx_range->value.lfrac.num;
 						seg_state->file_offset += sidx_size;
-						seg_state->file_size -= sidx_size;
+						seg_state->file_size -= (u32) sidx_size;
 					}
 				}
 

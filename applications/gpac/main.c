@@ -1197,7 +1197,7 @@ static BOOL WINAPI gpac_sig_handler(DWORD sig)
 #include <signal.h>
 static void gpac_sig_handler(int sig)
 {
-	if (sig == SIGINT || sig == SIGTERM) {
+	if ((sig == SIGINT) || (sig == SIGTERM) || (sig == SIGABRT)) {
 		Bool is_inter = (sig == SIGINT) ? GF_TRUE : GF_FALSE;
 #endif
 		nb_loops = 0;

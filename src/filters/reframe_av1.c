@@ -501,7 +501,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			gf_list_add(ctx->state.config->obu_array, a);
 			gf_list_rem(ctx->state.frame_state.header_obus, 0);
 			if (a->obu_type == OBU_SEQUENCE_HEADER) {
-				crc = gf_crc_32(a->obu, a->obu_length);
+				crc = gf_crc_32(a->obu, (u32) a->obu_length);
 			}
 		}
 		gf_odf_av1_cfg_write(ctx->state.config, &dsi, &dsi_size);
