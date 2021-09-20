@@ -1589,7 +1589,7 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			else if (gf_file_exists(szArg)) {
+			else if (!value && gf_file_exists(szArg)) {
 				if (!for_script && (argfile_level<5) ) {
 					char szLine[2001];
 					FILE *arg_file = gf_fopen(szArg, "rt");

@@ -2695,8 +2695,9 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			u32 j=0;
 			char szArg[100];
 			sprintf(szArg, " %s ", a->arg_name);
-			if (reg_help && strstr(reg_help, szArg)) {
-				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link\n", reg_name, a->arg_name);
+			char *quoted = reg_help ? strstr(reg_help, szArg) : NULL;
+			if (quoted) {
+				fprintf(stderr, "\nWARNING: filter %s bad help, uses arg %s without link: \"... %s\"\n", reg_name, a->arg_name, quoted);
 				exit(1);
 			}
 			while (1) {
