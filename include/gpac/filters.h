@@ -2053,10 +2053,8 @@ typedef enum
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
 	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
 	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
-	/*! Indicates the filter is likely to block for a long time (typically, network IO).
-	In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
-	Ignored in single thread mode.*/
-	GF_FS_REG_BLOCKING = 1<<6,
+	/*! Deprecated, do not use */
+	GF_FS_REG_DEPRECATED = 1<<6,
 	/*! Indicates the filter PIDs may be dynamically added during process (e.g.M2TS, GSF, etc).
 	This will prevent deactivating a filter when none of its output PIDs are connected*/
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
@@ -2538,6 +2536,14 @@ GF_Err gf_filter_assign_id(GF_Filter *filter, const char *filter_id);
 */
 const char *gf_filter_get_id(GF_Filter *filter);
 
+/*! Indicates the filter is a likely to block for a long time (typically, network IO).
+In multithread mode, this prevents the filter to be scheduled on the main thread, blocking video or audio output.
+By default, all filters are created as non-blocking.
+
+\param filter the target filter
+\param is_blocking if GF_TRUE, indicates the filter is likely to block
+*/
+void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking);
 
 /*! Overrides the filter caps with new caps for this instance. Typically used when an option of the filter changes the capabilities
 

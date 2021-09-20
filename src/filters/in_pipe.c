@@ -112,8 +112,6 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-//	if (ctx->mkp) ctx->blk = GF_TRUE;
-
 	//strip any fragment identifer
 	frag_par = strchr(ctx->src, '#');
 	if (frag_par) frag_par[0] = 0;
@@ -129,6 +127,10 @@ static GF_Err pipein_initialize(GF_Filter *filter)
 	if (ctx->is_stdin) {
 		e = GF_OK;
 		goto setup_done;
+	}
+
+	if (ctx->blk) {
+		gf_filter_set_blocking(filter, GF_TRUE);
 	}
 
 #ifdef WIN32
@@ -552,7 +554,6 @@ GF_FilterRegister PipeInRegister = {
 	"")
 	.private_size = sizeof(GF_PipeInCtx),
 	.args = PipeInArgs,
-	.flags = GF_FS_REG_BLOCKING,
 	SETCAPS(PipeInCaps),
 	.initialize = pipein_initialize,
 	.finalize = pipein_finalize,

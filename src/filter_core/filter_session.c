@@ -875,7 +875,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 			}
 		}
 		if (!force_main_thread)
-			task->blocking = (filter->freg->flags & GF_FS_REG_BLOCKING) ? GF_TRUE : GF_FALSE;
+			task->blocking = (filter->is_blocking_source) ? GF_TRUE : GF_FALSE;
 
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
@@ -1084,18 +1084,18 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 
 	strcat(apath, file_name);
 	if (gf_file_exists(apath)) {
-		gf_free(apath);
 		strncpy(path, apath, GF_MAX_PATH-1);
 		path[GF_MAX_PATH-1] = 0;
+		gf_free(apath);
 		return GF_TRUE;
 	}
 
 	if (!file_ext) {
 		strcat(apath, ".js");
 		if (gf_file_exists(apath)) {
-			gf_free(apath);
 			strncpy(path, apath, GF_MAX_PATH-1);
 			path[GF_MAX_PATH-1] = 0;
+			gf_free(apath);
 			return GF_TRUE;
 		}
 	}
@@ -1103,9 +1103,9 @@ static Bool locate_js_script(char *path, const char *file_name, const char *file
 	strcat(apath, file_name);
 	strcat(apath, "/init.js");
 	if (gf_file_exists(apath)) {
-		gf_free(apath);
 		strncpy(path, apath, GF_MAX_PATH-1);
 		path[GF_MAX_PATH-1] = 0;
+		gf_free(apath);
 		return GF_TRUE;
 	}
 	gf_free(apath);
@@ -1534,9 +1534,13 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					//little optim here: if this is the main thread and we have other tasks pending
 					//check the timing of tasks in the secondary list. If a task is present with smaller time than
 					//the head of the main task, force a temporary swap to the secondary task list
-					if (!thid && task->notified && diff>10) {
-						next = gf_fq_head(fsess->tasks);
-						if (next && !next->blocking) {
+					if (!thid && task->notified && (diff > MONOTH_MIN_SLEEP) ) {
+						u32 idx=0;
+						while (1) {
+							next = gf_fq_get(fsess->tasks, idx);
+							if (!next || next->blocking) break;
+							idx++;
+
 							u64 next_time_main = task->schedule_next_time;
 							u64 next_time_secondary = next->schedule_next_time;
 							//if we have several threads, also check the next task on the main task list
@@ -1546,11 +1550,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 								if (next_main && (next_time_main > next_main->schedule_next_time))
 									next_time_main = next_main->schedule_next_time;
 							}
-							
+
 							if (next_time_secondary<next_time_main) {
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %u: forcing secondary task list on main - current task schedule time "LLU" (diff to now %d) vs next time secondary "LLU" (%s::%s)\n", sys_thid, task->schedule_next_time, (s32) diff, next_time_secondary, next->filter->freg->name, next->log_name));
 								diff = 0;
 								force_secondary_tasks = GF_TRUE;
+								break;
 							}
 						}
 					}
