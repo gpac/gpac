@@ -1156,9 +1156,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 		} else if (now - run_start_time > runfor) {
 			//segfault requested
 			if (exit_mode==1) {
-				u8 *buf = gf_malloc(10);
-				gf_free(buf);
-				gf_free(buf);
+				exit(127);
 			}
 			//deadlock requested
 			else if (exit_mode==2) {
