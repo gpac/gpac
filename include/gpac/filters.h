@@ -2053,8 +2053,9 @@ typedef enum
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
 	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
 	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
-	/*! Deprecated, do not use */
-	GF_FS_REG_DEPRECATED = 1<<6,
+	/*! Indicates the filter can connect to another instance of the same class (avoids cyclic detection in linker graph)
+	Filters of the same class can only connect directly to each other if the destination filter is explictly loaded */
+	GF_FS_REG_ALLOW_CYCLIC = 1<<6,
 	/*! Indicates the filter PIDs may be dynamically added during process (e.g.M2TS, GSF, etc).
 	This will prevent deactivating a filter when none of its output PIDs are connected*/
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
@@ -2068,9 +2069,6 @@ typedef enum
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
 	/*! Indicates the filter requires graph resolver (typically because it creates new destinations/sinks at run time)*/
 	GF_FS_REG_REQUIRES_RESOLVER = 1<<11,
-	/*! Indicates the filter can connect to another instance of the same class (avoids cyclic detection in linker graph)
-	Filters of the same class can only connect directly to each other if the destination filter is explictly loaded */
-	GF_FS_REG_ALLOW_CYCLIC = 1<<12,
 
 
 	/*! flag dynamically set at runtime for custom filters*/

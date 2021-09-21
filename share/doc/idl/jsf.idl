@@ -372,7 +372,8 @@ void disable_inputs();
 /*! reset source identifier for the filter - see \ref gf_filter_reset_source*/
 void reset_source();
 
-/*! indicates if filter is likely blocking or note - see \ref gf_filter_set_blocking*/
+/*! indicates if filter is likely blocking or not - see \ref gf_filter_set_blocking
+\param is_blocking if true, indicates the filter is likely to block upon process*/
 void set_blocking(boolean is_blocking);
 
 /*! filter name*/

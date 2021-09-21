@@ -352,6 +352,12 @@ DOMString color_lerp(double interp, DOMString color1, DOMString color2);
 */
 double color_component(DOMString color, unsigned long comp_idx);
 
+/*! concatenates URLs
+\param parent parent URL
+\param URL URL to concatenate
+\return the resolved URL
+*/
+DOMString url_cat(DOMString parent, DOMString URL);
 
 /*! number of cores */
 attribute readonly unsigned long nb_cores;
