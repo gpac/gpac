@@ -2685,11 +2685,19 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	u64 next_time;
 	if (!filter->in_process_callback) {
 		if (filter->session->direct_mode) return;
-		if (filter->session->in_final_flush) return;
+		if (filter->session->in_final_flush) {
+			filter->schedule_next_time = 0;
+			return;
+		}
 		//allow reschedule if not called from process
-		next_time = 1+us_until_next + gf_sys_clock_high_res();
-		if (!filter->schedule_next_time || (filter->schedule_next_time > next_time))
-			filter->schedule_next_time = next_time;
+		if (us_until_next) {
+			next_time = 1+us_until_next + gf_sys_clock_high_res();
+			if (!filter->schedule_next_time || (filter->schedule_next_time > next_time))
+				filter->schedule_next_time = next_time;
+		} else {
+			filter->schedule_next_time = 0;
+		}
+
 		gf_filter_post_process_task(filter);
 		return;
 	}
@@ -2699,6 +2707,7 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	//if the filter requests rescheduling, consider it is in a valid state and increment pck IOs to avoid flagging it as broken
 	filter->nb_pck_io++;
 	if (!us_until_next) {
+		filter->schedule_next_time = 0;
 		return;
 	}
 	next_time = 1+us_until_next + gf_sys_clock_high_res();
