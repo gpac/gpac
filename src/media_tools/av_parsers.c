@@ -1933,9 +1933,10 @@ GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *
 	*superframe_index_size = 2 + bytes_per_framesize * *num_frames_in_superframe;
 	gf_bs_seek(bs, pos + ivf_frame_size - *superframe_index_size);
 	byte = gf_bs_read_u8(bs);
-	if ((byte & 0xe0) != 0xc0)
+	if ((byte & 0xe0) != 0xc0) {
+		*num_frames_in_superframe = 0; // force failure
 		goto exit; /*no superframe*/
-
+	}
 	frame_sizes[0] = 0;
 	for (i = 0; i < *num_frames_in_superframe; ++i) {
 		gf_bs_read_data(bs, (char*)(frame_sizes + i), bytes_per_framesize);
