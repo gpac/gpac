@@ -2094,9 +2094,19 @@ static void vp9_loop_filter_params(GF_BitStream *bs)
 	}
 }
 
+static void vp9_delta_q(GF_BitStream *bs) {
+	Bool delta_coded = gf_bs_read_int_log(bs, 1, "delta_coded");
+	if (delta_coded) {
+		gf_bs_read_int_log(bs, 4, "delta_q");
+	}
+}
+
 static void vp9_quantization_params(GF_BitStream *bs)
 {
 	/*base_q_idx = */gf_bs_read_int_log(bs, 8, "base_q_idx");
+	vp9_delta_q(bs); // delta_q_y_dc
+	vp9_delta_q(bs); // delta_q_uv_dc
+	vp9_delta_q(bs); // delta_q_uv_ac
 }
 
 #define VP9_MAX_SEGMENTS 8
@@ -2107,6 +2117,14 @@ static const int segmentation_feature_signed[VP9_SEG_LVL_MAX] = { 1, 1, 0, 0 };
 #define VP9_MIN_TILE_WIDTH_B64 4
 #define VP9_MAX_TILE_WIDTH_B64 64
 
+static void vp9_read_prob(GF_BitStream *bs)
+{
+	Bool prob_coded = gf_bs_read_int_log(bs, 1, "prob_coded");
+	if (prob_coded) {
+		gf_bs_read_int_log(bs, 8, "prob");
+	}
+}
+
 static void vp9_segmentation_params(GF_BitStream *bs)
 {
 	Bool segmentation_enabled = gf_bs_read_int_log(bs, 1, "segmentation_enabled");
@@ -2114,11 +2132,15 @@ static void vp9_segmentation_params(GF_BitStream *bs)
 		int i;
 		Bool segmentation_update_map = gf_bs_read_int_log(bs, 1, "segmentation_update_map");
 		if (segmentation_update_map) {
-			for (i = 0; i < 7; i++)
-				/*segmentation_tree_probs[i] = read_prob()*/
-				/*segmentation_temporal_update = */gf_bs_read_int_log(bs, 1, "segmentation_temporal_update");
-			/*for (i = 0; i < 3; i++)
-				segmentation_pred_prob[i] = segmentation_temporal_update ? read_prob() : 255*/
+			for (i = 0; i < 7; i++) {
+				vp9_read_prob(bs);
+			}
+			Bool segmentation_temporal_update = gf_bs_read_int_log(bs, 1, "segmentation_temporal_update");
+			for (i = 0; i < 3; i++) {
+				if (segmentation_temporal_update) {
+					vp9_read_prob(bs);
+				}
+			}
 		}
 		Bool segmentation_update_data = gf_bs_read_int_log(bs, 1, "segmentation_update_data");
 		if (segmentation_update_data == 1) {
