@@ -1071,6 +1071,7 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	const char *name=NULL;
 	const char *def = NULL;
 	const char *min_enum = NULL;
+	u32 arg_flags=0;
 	u32 type = 0;
 	Bool is_wildcard=GF_FALSE;
 	GF_JSFilterCtx *jsf = JS_GetOpaque(this_val, jsf_filter_class_id);
@@ -1117,6 +1118,17 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	if (!JS_IsUndefined(v)) min_enum = JS_ToCString(ctx, v);
 	JS_FreeValue(ctx, v);
 
+	v = JS_GetPropertyStr(ctx, argv[0], "hint");
+	if (!JS_IsUndefined(v)) {
+		const char *hint = JS_ToCString(ctx, v);
+		if (hint && !strcmp(hint, "expert")) arg_flags = GF_FS_ARG_HINT_EXPERT;
+		else if (hint && !strcmp(hint, "advanced")) arg_flags = GF_FS_ARG_HINT_ADVANCED;
+		else if (hint && !strcmp(hint, "hide")) arg_flags = GF_FS_ARG_HINT_HIDE;
+
+		JS_FreeCString(ctx, hint);
+	}
+	JS_FreeValue(ctx, v);
+
 	jsf->args = gf_realloc(jsf->args, sizeof(GF_FilterArgs)*(jsf->nb_args+2));
 	memset(&jsf->args[jsf->nb_args], 0, 2*sizeof(GF_FilterArgs));
 	jsf->args[jsf->nb_args].arg_name = gf_strdup(name);
@@ -1125,6 +1137,7 @@ static JSValue jsf_filter_set_arg(JSContext *ctx, JSValueConst this_val, int arg
 	jsf->args[jsf->nb_args].min_max_enum = min_enum ? gf_strdup(min_enum) : NULL;
 	jsf->args[jsf->nb_args].arg_type = type;
 	jsf->args[jsf->nb_args].offset_in_private = -1;
+	jsf->args[jsf->nb_args].flags = arg_flags;
 
 	jsf->nb_args ++;
 
@@ -4808,7 +4821,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 		if (gf_opts_get_bool("temp", "helponly"))
 			jsf->disable_filter = GF_TRUE;
 
-		if (gf_opts_get_bool("temp", "gpac-help") || gf_opts_get_bool("temp", "gendoc")) {
+		if (gf_opts_get_key("temp", "gpac-help") || gf_opts_get_bool("temp", "gendoc")) {
 			js_std_loop(jsf->ctx);
 			jsf->disable_filter = GF_FALSE;
 		}

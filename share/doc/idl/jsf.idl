@@ -967,6 +967,8 @@ interface JSArgDesc {
     optional attribute DOMString def=null;
     /*! min/max or enum values of the argument*/
     optional attribute DOMString minmax_enum=null;
+    /*! argument hint type: "advanced", "expert", "hide" or null*/
+    optional attribute DOMString hint=null;
 };
 
 /*! interface used to describe filter capability*/

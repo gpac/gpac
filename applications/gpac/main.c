@@ -1702,7 +1702,7 @@ static int gpac_main(int argc, char **argv)
 			else if (!strcmp(arg, "-hx")) argmode = GF_ARGMODE_EXPERT;
 			else if (!strcmp(arg, "-hh")) argmode = GF_ARGMODE_ALL;
 
-			gf_opts_set_key("temp", "gpac-help", "yes");
+			gf_opts_set_key("temp", "gpac-help", arg+1);
 
 			if (i+1<argc)
 				gf_sys_mark_arg_used(i+1, GF_TRUE);
@@ -2483,6 +2483,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 #ifndef GPAC_DISABLE_DOC
 	const char *reg_help;
 #endif
+	Bool jsmod_help = (argmode>GF_ARGMODE_ALL) ? GF_TRUE : GF_FALSE;
 
 	if (filter_inst) {
 		reg_name = inst_name;
@@ -2573,7 +2574,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 				gf_sys_format_help(helpout, help_flags, "Filters of this class can connect to each-other.\n");
 			}
 		}
-	} else {
+	} else if (!jsmod_help) {
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_name);
 		gf_sys_format_help(helpout, help_flags, "Description: %s\n", reg_desc );
 
@@ -2594,13 +2595,16 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	}
 
 	if (filter_inst) {
-		const char *str = gf_filter_get_author(filter_inst);
-		if (str)
-			gf_sys_format_help(helpout, help_flags, "%s: %s\n", (str[0]=='-') ? "Configuration" : "Author", str );
+		const char *str;
+		if (!jsmod_help) {
+			str = gf_filter_get_author(filter_inst);
+			if (str)
+				gf_sys_format_help(helpout, help_flags, "%s: %s\n", (str[0]=='-') ? "Configuration" : "Author", str );
+		}
 		str = gf_filter_get_help(filter_inst);
 		if (str)
 			gf_sys_format_help(helpout, help_flags, "\n%s\n\n", str);
-	} else {
+	} else if (reg) {
 #ifndef GPAC_DISABLE_DOC
 		if (reg->author) {
 			if (reg->author[0]=='-') {
@@ -2644,7 +2648,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (filter_inst) args = gf_filter_get_args(filter_inst);
 	else args = reg->args;
 
-	if (args) {
+	if (args && !jsmod_help) {
 		u32 idx=0;
 		if (gen_doc==1) {
 			gf_sys_format_help(helpout, help_flags, "# Options  \n");
@@ -2775,7 +2779,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 			}
 #endif
 		}
-	} else {
+	} else if (!args) {
 		gf_sys_format_help(helpout, help_flags, "No options\n");
 	}
 
@@ -2942,7 +2946,14 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			}
 			if (found_freg) {
 				found = GF_TRUE;
-			} else if (!strchr(arg, ':')) {
+			} else /*if (!strchr(arg, ':')) */ {
+				GF_SysArgMode _argmode = argmode;
+				char *js_opt = strchr(arg, ':');
+				if (js_opt) {
+					js_opt[0] = 0;
+					gf_opts_set_key("temp", "gpac-js-help", js_opt+1);
+					_argmode = GF_ARGMODE_ALL+1;
+				}
 				//try to load the filter (JS)
 				GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
 				if (f) {
@@ -2954,9 +2965,13 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 					if (optname) {
 						print_filter_single_opt(NULL, optname, f);
 					} else {
-						print_filter(NULL, argmode, f, szPath);
+						print_filter(NULL, _argmode, f, szPath);
 					}
 					found = GF_TRUE;
+				}
+				if (js_opt) {
+					js_opt[0] = ':';
+					gf_opts_set_key("temp", "gpac-js-help", NULL);
 				}
 			}
 			if (sepe) sepe[0] = '.';
