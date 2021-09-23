@@ -1317,9 +1317,9 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_STRIDE);
 		//keep stride and stride_uv to 0 i fnot set, and recompute from pixel format
-		if (prop) ctx->stride = prop->value.uint;
+		ctx->stride = prop ? prop->value.uint : 0;
 		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_STRIDE_UV);
-		if (prop) ctx->stride_uv = prop->value.uint;
+		ctx->stride_uv = prop ? prop->value.uint : 0;
 
 		//compute new timebase
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
