@@ -140,6 +140,7 @@ typedef enum
 } GSF_PacketType;
 
 
+static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush);
 
 GF_Err gsfdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -152,7 +153,7 @@ GF_Err gsfdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			GSF_Stream *st = gf_list_pop_back(ctx->streams);
 			if (st->opid)
 				gf_filter_pid_remove(st->opid);
-			gf_free(st);
+			gsfdmx_stream_del(ctx, st, GF_FALSE);
 		}
 		return GF_OK;
 	}
