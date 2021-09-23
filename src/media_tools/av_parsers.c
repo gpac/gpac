@@ -1934,7 +1934,7 @@ GF_Err gf_media_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *
 	gf_bs_seek(bs, pos + ivf_frame_size - *superframe_index_size);
 	byte = gf_bs_read_u8(bs);
 	if ((byte & 0xe0) != 0xc0) {
-		*num_frames_in_superframe = 0; // force failure
+		e = GF_NON_COMPLIANT_BITSTREAM;
 		goto exit; /*no superframe*/
 	}
 	frame_sizes[0] = 0;

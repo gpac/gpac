@@ -1533,7 +1533,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 				pos = gf_bs_get_position(ctx->bs_r);
 				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
-				if (e || !num_frames_in_superframe) return e;
+				if (e) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
 				nb_ranges = num_frames_in_superframe;
