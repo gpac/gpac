@@ -172,6 +172,12 @@ Fraction ntp_shift(Fraction ntp, long microseconds);
 */
 unsigned long crc32(ArrayBuffer abuf);
 
+/*! gets CRC32 of a string - see \ref gf_crc_32
+\param str string buffer
+\return CRC32 of the string
+*/
+unsigned long crc32(DOMString str);
+
 /*! gets SHA1 digest of an arraybuffer - see \ref gf_sha1_file
 \param fname name of file to hash
 \return ArrayBuffer containing SHA1 of the file data

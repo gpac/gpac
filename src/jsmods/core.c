@@ -1441,10 +1441,21 @@ static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	const u8 *data;
 	size_t data_size;
 
-	if (!argc || !JS_IsObject(argv[0])) return GF_JS_EXCEPTION(ctx);
-	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-	if (!data) return GF_JS_EXCEPTION(ctx);
-	return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_IsString(argv[0])) {
+		u32 crc=0;
+		const char *str = JS_ToCString(ctx, argv[0]);
+		if (str) {
+			crc = gf_crc_32(str, (u32) strlen(str) );
+			JS_FreeCString(ctx, str);
+		}
+		return JS_NewInt32(ctx, crc );
+	} else {
+		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
+		if (!data) return GF_JS_EXCEPTION(ctx);
+		return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
+	}
+	return GF_JS_EXCEPTION(ctx);
 }
 
 static JSValue js_sys_sha1(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -2089,6 +2100,7 @@ static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSV
 
 		for (j=0; j<nb_src; j++) {
 			PidMix *pid = &pids[j];
+
 			//for the time being, as soon as we start writing audio we no longer check sync
 			if (!pid->last_sample_time) {
 				if (pid->frame_ts + pid->samples_used  > audio_time + i) {
@@ -2174,7 +2186,7 @@ static Double amix_get_s16(u8 *data)
 	u16 val = data[1];
 	val <<= 8;
 	val |= data[0];
-	return ((Double) val) / 65535;
+	return ((Double) (s16) val) / 65535;
 
 }
 static void amix_set_s16(u8 *data, Double val)
@@ -2193,7 +2205,7 @@ static Double amix_get_s32(u8 *data)
 	val |= data[1];
 	val <<= 8;
 	val |= data[0];
-	return ((Double) val) / 0xFFFFFFFF;
+	return ((Double) (s32) val) / 0xFFFFFFFF;
 
 }
 static void amix_set_s32(u8 *data, Double val)
