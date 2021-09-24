@@ -112,6 +112,7 @@ typedef struct
 	HEVCState hevc;
 #endif
 	AV1State av1;
+	GF_VPConfig *vp9_cfg;
 #endif
 	Bool slice_header_clear;
 
@@ -646,6 +647,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (p) {
 				cstr->cenc_codec = CENC_VPX;
 				cstr->bytes_in_nal_hdr = 2;
+				cstr->vp9_cfg = gf_odf_vp_cfg_new();
 			}
 			break;
 		}
@@ -855,6 +857,7 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (cstr->av1.config) gf_odf_av1_cfg_del(cstr->av1.config);
 #endif
+	if (cstr->vp9_cfg) gf_odf_vp_cfg_del(cstr->vp9_cfg);
 
 	if (cstr->mkey_indices.vals) gf_free(cstr->mkey_indices.vals);
 	gf_free(cstr);
@@ -1530,7 +1533,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 				pos = gf_bs_get_position(ctx->bs_r);
 				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
-				if (e || !num_frames_in_superframe) return e;
+				if (e) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
 				nb_ranges = num_frames_in_superframe;
@@ -1538,10 +1541,8 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				for (i = 0; i < num_frames_in_superframe; ++i) {
 					Bool key_frame;
 					u32 width = 0, height = 0, renderWidth = 0, renderHeight = 0;
-					GF_VPConfig *vp9_cfg = gf_odf_vp_cfg_new();
 					u64 pos2 = gf_bs_get_position(ctx->bs_r);
-					e = gf_media_vp9_parse_sample(ctx->bs_r, vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
-					gf_odf_vp_cfg_del(vp9_cfg);
+					e = gf_media_vp9_parse_sample(ctx->bs_r, cstr->vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
 					if (e) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
 						return e;
