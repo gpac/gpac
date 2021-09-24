@@ -10,7 +10,7 @@ const UPDATE_SIZE = 1<<1;
 const UPDATE_POS = 1<<2;
 
 /*
-	globals modules imported for our imported modules
+	global modules imported for our imported modules
 */
 globalThis.sys = sys;
 globalThis.evg = evg;
@@ -18,7 +18,7 @@ globalThis.os = os;
 
 
 /*
-	globals variables for our imported modules
+	global variables for our imported modules
 */
 
 //video playing state
@@ -57,7 +57,7 @@ globalThis.use_gpu = false;
 globalThis.blit_enabled = evg.BlitEnabled;
 
 /*
-	globals functions for our imported modules
+	global functions for our imported modules
 */
 /*gets media time of output (no args) or of source of given id. Return
  -4 if not found
@@ -72,7 +72,7 @@ globalThis.resolve_url = resolve_url;
 
 
 /*
-	globals functions for canvas access
+	global functions for canvas access
 
 Each scene module is associated an array of PidLink objects.
 Each transition module is passed an array of PidLink objects.
@@ -291,7 +291,7 @@ function build_help(obj, playlist_only)
 		filter._help += '# More info\n';
 		filter._help += 'For playlist syntax, use `gpac -h avmix:playlist`\n';
 		filter._help += 'For module `NAME`, use `gpac -h avmix:NAME`\n';
-		filter._help += 'For global variables available to modules, use `gpac -h avmix:globals`\n';
+		filter._help += 'For global variables available to modules, use `gpac -h avmix:global`\n';
 		filter._help += '# Available modules\n';
 	} else {
 		filter._help = obj.help_playlist + '\n';
@@ -323,7 +323,7 @@ filter.initialize = function()
 			let	script = path+'scenes/'+help_mod+'.js';
 			filter._help = '';
 			single_mod_help = true;
-			if (help_mod == 'globals') {
+			if (help_mod == 'global') {
 				filter._help = 'Global JS properties available:\n';
 				for (var propertyName in globalThis) {
 					//skip GPAC constants

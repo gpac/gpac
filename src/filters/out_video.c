@@ -1748,7 +1748,7 @@ static GF_Err vout_process(GF_Filter *filter)
 			//ref frame TS in video stream timescale
 			u64 ref_ts = gf_timestamp_rescale(media_ts.num, media_ts.den, ctx->timescale);
 
-			//compute time ellapsed since last clock ref in timescale
+			//compute time elapsed since last clock ref in timescale
 			s64 diff = now;
 			diff -= (s64) clock_us;
 			if (ctx->timescale!=1000000) {

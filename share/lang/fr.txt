@@ -1789,7 +1789,7 @@ The following directives (separated with space or comma) are supported:
 		This works on any source (implemented independetly from seek support)
 
 The source lines follow the usual source syntax, see main help
-		Additionnal pid properties can be added per source, but are valid only for the current source, and reset at next source
+		additional pid properties can be added per source, but are valid only for the current source, and reset at next source
 The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist
 If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded
 @
@@ -1903,7 +1903,7 @@ Standard DASH replacement strings
 	$Time$ is replaced by segment start time
 	$Bandwidth$ is replaced by representation bandwidth.
 
-Additionnal replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
+additional replacement strings (not DASH, not generic GPAC replacements but may occur multiple times in template):
 	$Init=NAME$ is replaced by NAME for init segment, ignored otherwise
 	$Index=NAME$ is replaced by NAME for index segments, ignored otherwise
 	$Path=PATH$ is replaced by PATH when creating segments, ignored otherwise

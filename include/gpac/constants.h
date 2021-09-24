@@ -336,7 +336,7 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pixfmt);
 /*!
 \brief Codec IDs
 
-Codec ID identifies the stream coding type. The enum is devided into values less than 255, which are equivalent to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
+Codec ID identifies the stream coding type. The enum is divided into values less than 255, which are equivalent to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
 typedef enum
 {
 	/*!Never used by PID declarations, but used by filters caps*/

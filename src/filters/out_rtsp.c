@@ -1139,10 +1139,10 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 				sess->loop = GF_TRUE;
 
 			if ((sess->play_state==2) && !sess->command->Range) {
-				u64 ellapsed_us = gf_sys_clock_high_res() - sess->pause_sys_clock;
+				u64 elapsed_us = gf_sys_clock_high_res() - sess->pause_sys_clock;
 				sess->pause_sys_clock = 0;
 				sess->play_state = 1;
-				sess->sys_clock_at_init += ellapsed_us;
+				sess->sys_clock_at_init += elapsed_us;
 
 				gf_rtsp_response_reset(sess->response);
 				sess->response->ResponseCode = NC_RTSP_OK;

@@ -888,7 +888,7 @@ function removeAllChildren(o) {
 }
 
 //
-// create the home page icon with all its behaviours
+// create the home page icon with all its behaviors
 //
 function createIconSVGdecoration(previousIcon, widget, x, y, fatherId, iconUrl, name, widIndex) {
     var g, g2;

@@ -1580,7 +1580,7 @@ typedef struct __gf_file_io GF_FileIO;
 /*! open proc for memory file IO
 \param fileio_ref reference file_io. A file can be opened multiple times for the same reference, your code must handle this
 \param url target file name.
-\param mode opening mode of file, same as fopen mode. The following additionnal modes are defined:
+\param mode opening mode of file, same as fopen mode. The following additional modes are defined:
 	- "ref": indicates this FileIO object is used by some part of the code and must not be destroyed upon closing of the file. Associated URL is null
 	- "unref": indicates this FileIO object is not used by some part of the code and may be destroyed if no more references to this object are set. Associated URL is null
 	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case its is never used by the callers
@@ -1711,7 +1711,7 @@ GF_FileIO *gf_fileio_open_url(GF_FileIO *fileio, const char *url, const char *mo
 GF_FileIO *gf_fileio_from_url(const char *url);
 
 /*! Constructs a new GF_FileIO object from a URL
- The url can be absolute or relative to the parent GF_FileIO. This is typcically needed by filters (dash input, dasher, NHML/NHNT writers...) generating or consuming additionnal files associated with the main file IO object but being written or read by other filters.
+ The url can be absolute or relative to the parent GF_FileIO. This is typcically needed by filters (dash input, dasher, NHML/NHNT writers...) generating or consuming additional files associated with the main file IO object but being written or read by other filters.
  The function will not open the associated resource, only create the file IO wrapper for later usage
  If you need to create a new fileIO to be opened immediately, use \ref gf_fopen_ex.
 

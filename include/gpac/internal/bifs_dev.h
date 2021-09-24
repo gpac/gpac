@@ -44,8 +44,8 @@ typedef struct {
 	GF_Node *node;
 	/*in case node is not defined yet*/
 	u32 node_id;
-	/*the rest is not needed at the current time, we only support simple sugnaling for FDP, BDP and IFS2D
-	which are using pre-defs masks*/
+	/*the rest is not needed at the current time, we only support simple signaling for FDP, BDP and IFS2D
+	which are using predefined masks*/
 } BIFSElementaryMask;
 
 typedef struct

@@ -7720,9 +7720,9 @@ Properties for source objects:
 .br
 * keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after rtimeout
 .br
-* seek (false): if true and keep_alive is active, adjust start according to ellapsed duration since source start when relaunching process(es)
+* seek (false): if true and keep_alive is active, adjust start according to the time elapsed since source start when relaunching process(es)
 .br
-* prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
+* prefetch (500): pre-fetch duration in ms (play before start time of source), 0 for no pre-fetch
 .br
 
 .br
@@ -7738,7 +7738,7 @@ Properties for sourceURL objects:
 .br
   * other: use value as input filter declaration and launch 'in' as dedicated process (e.g., in="ffmpeg ..." port="pipe://..."). Any relative URL used in in' must be relative to the current working directory.
 .br
-* in (null): filter chain to load as string. Words starting with - are ignored. The first entry must specifies a source URL, and additionnal filters and links can be specified using @N[#LINKOPT] and @@N[#LINKOPT] syntax, as in gpac
+* in (null): filter chain to load as string. Words starting with - are ignored. The first entry must specifies a source URL, and additional filters and links can be specified using @N[#LINKOPT] and @@N[#LINKOPT] syntax, as in gpac
 .br
 * opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 .br
@@ -7800,7 +7800,7 @@ Properties for timer objects:
 .br
 * dur (0): duration of the timer in seconds
 .br
-* loop (false): loops timer when stopTime is not set
+* loop (false): loops timer when stop_time is not set
 .br
 * start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
 .br
@@ -7818,7 +7818,7 @@ Properties for animation objects:
 .br
 * color (false): indicate the values are color (as strings)
 .br
-* angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and devided by 180) before interpolation
+* angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and divided by 180) before interpolation
 .br
 * mode ('linear') : interpolation mode:
 .br
@@ -7830,7 +7830,7 @@ Properties for animation objects:
 .br
 * postfun (null): JS code modifying the interpolation result res, eg "res = res*res;"
 .br
-* end ('freeze'): behaviour at end of animation:
+* end ('freeze'): behavior at end of animation:
 .br
   * freeze: keep last animated values
 .br
@@ -7860,7 +7860,7 @@ The playlist may specify configuration options of the filter, using a root objec
 .br
 
 .br
-A configuration object in the playlist is only parsed when intially loading the playlist, and ignored when reloading it.
+A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
 .br
 
 .br
@@ -7874,7 +7874,7 @@ Playlist modification
 .br
 The playlist file can be modified at any time.
 .br
-Objects are identified across playlist reloads throught their id property.
+Objects are identified across playlist reloads through their id property.
 .br
 Root objects that are not present after reloading a playlist are removed from the mixer.
 .br
@@ -8041,7 +8041,7 @@ Text loaded from file will be refreshed whenever the file is modified.
 .br
 
 .br
-Pre-defined keywords can be used in input text, identified as $KEYWORD$. The following keywords (case insensitive) are defined:
+Predefined keywords can be used in input text, identified as $KEYWORD$. The following keywords (case insensitive) are defined:
 .br
 * time: replaced by UTC date
 .br
@@ -8071,7 +8071,7 @@ Custom paths
 .br
 
 .br
-Custom paths (shapes) can be created through JS code indicated in 'shape', either inlined or through a file.
+Custom paths (shapes) can be created through JS code indicated in 'shape', either inline or through a file.
 .br
 The following GPAC JS modules are imported:
 .br
@@ -8097,11 +8097,11 @@ Example
 .br
 
 .br
-The following globals can be used:
+The following global can be used:
 .br
- * get_media_time(): return  media time in seconds (float) of output
+ * get_media_time(): return media time in seconds (float) of output
 .br
- * get_media_time(SRC): get time of source with id SRC, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
+ * get_media_time(SRC): get time of source with id SRC, return -4 if not found, -3 if not playing, -2 if in pre-fetch, -1 if timing not yet known, media time in seconds (float) otherwise
 .br
  * current_utc_clock: current UTC time in ms
 .br
@@ -8115,7 +8115,7 @@ The following globals can be used:
 .br
 
 .br
-If your path needs to be reevaluated on regular basis, set the value this.reload to the timeout to next realod, in milliseconds. 
+If your path needs to be reevaluated on regular basis, set the value this.reload to the timeout to next reload, in milliseconds.
 .br
 
 .br
@@ -8211,7 +8211,7 @@ Options:
 .br
 * shape ('rect'): shape type. Possible values are:
 .br
-  * rect: rounded rect
+  * rect: rounded rectangle
 .br
   * square: square using smaller width/height value
 .br
@@ -8219,11 +8219,11 @@ Options:
 .br
   * circle: circle using smaller width/height value
 .br
-  * losange: axis-aligned losange
+  * rhombus: axis-aligned rhombus
 .br
   * text: force text mode even if text field is empty
 .br
-  * rects: same as rounded rect but use straight lines for corners
+  * rects: same as rounded rectangle but use straight lines for corners
 .br
   * other value: JS code for custom path creation, either string or local file name (dynamic reload possible)
 .br
@@ -8261,7 +8261,7 @@ Options:
 .br
   * middle: baseline at middle of EM Box
 .br
-  * ideographic: reserved, not implemented
+  * ideograph: reserved, not implemented
 .br
   * bottom: baseline at bottom of EM Box
 .br
@@ -8567,7 +8567,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1278-g5fd6f1fad-master
+build: 1.1.0-DEV-rev1279-g1316f8b5c-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

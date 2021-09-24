@@ -62,7 +62,7 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, u8 *data, u32 size, u64 t
 \param inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
 \param load_type is the preferred loader type for the content (e.g. SVG vs DIMS)
 \param dump_path is the path where scenes are dumped
-\param embed_resources indicates if images and scripts should be encoded inlined with the content
+\param embed_resources indicates if images and scripts should be encoded inline with the content
 \return e scene engine object
 */
 GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path, Bool embed_resources);
