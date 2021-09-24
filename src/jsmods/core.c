@@ -2010,7 +2010,7 @@ static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	if (JS_ToInt64(ctx, &audio_time, argv[0])) return GF_JS_EXCEPTION(ctx);
 	mix_ab = JS_GetArrayBuffer(ctx, &ab_size, argv[1]);
 	if (!mix_ab) return GF_JS_EXCEPTION(ctx);
-	nb_samples = ab_size / mix->channels / mix->sample_size;
+	nb_samples = (u32) (ab_size / mix->channels / mix->sample_size);
 
 	v = JS_GetPropertyStr(ctx, argv[2], "length");
 	if (JS_IsException(v)) return GF_JS_EXCEPTION(ctx);
@@ -2067,7 +2067,7 @@ static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSV
 		JS_FreeValue(ctx, v);
 		//if not set, derive from data size
 		if (res) {
-			pid->nb_samples = pid->data_size / pid->channels / mix->sample_size;
+			pid->nb_samples = (u32) (pid->data_size / pid->channels / mix->sample_size);
 		}
 		v = JS_GetPropertyStr(ctx, pid->jspid, "fade");
 		res = JS_ToInt32(ctx, &pid->fade, v);
