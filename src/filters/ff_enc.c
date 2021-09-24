@@ -1321,6 +1321,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_caps_query(pid, GF_PROP_PID_STRIDE_UV);
 		ctx->stride_uv = prop ? prop->value.uint : 0;
 
+		if (!ctx->stride || !ctx->stride_uv) {
+			gf_pixel_get_size_info(pfmt, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, NULL, NULL);
+		}
+
 		//compute new timebase
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 		if (prop) {
