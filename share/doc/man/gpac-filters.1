@@ -7651,7 +7651,7 @@ All input streams are decoded prior to entering the mixer.
 .br
 
 .br
-OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with our without GPU.
+OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with or without GPU.
 .br
 
 .br
@@ -7781,7 +7781,7 @@ Properties for source objects:
 .br
 * seek (false): if true and keep_alive is active, adjust start according to the time elapsed since source start when relaunching process(es)
 .br
-* prefetch (500): pre-fetch duration in ms (play before start time of source), 0 for no pre-fetch
+* prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
 .br
 
 .br
@@ -8160,7 +8160,7 @@ The following global can be used:
 .br
  * get_media_time(): return media time in seconds (float) of output
 .br
- * get_media_time(SRC): get time of source with id SRC, return -4 if not found, -3 if not playing, -2 if in pre-fetch, -1 if timing not yet known, media time in seconds (float) otherwise
+ * get_media_time(SRC): get time of source with id SRC, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
 .br
  * current_utc_clock: current UTC time in ms
 .br
@@ -8626,7 +8626,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1280-g308776f37-master
+build: 1.1.0-DEV-rev1281-g36f10c8be-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

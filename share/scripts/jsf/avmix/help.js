@@ -10,7 +10,7 @@ All input streams are decoded prior to entering the mixer.
 - video streams are composed according to the \`gpu\` option
 - other stream types are not yet supported
 
-OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with our without GPU.
+OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with or without GPU.
 
 In software mode, the mixer will detect wether any of the currently active video sources can be used as a base canvas for the output to save processing time.
 The default behavior is to do this detection only at the first generated frame, use \`dynpfmt\` to modify this.
@@ -74,7 +74,7 @@ Properties for \`source\` objects:
   - other: no audio fade
 - keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after \`rtimeout\`
 - seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to the time elapsed since source start when relaunching process(es)
-- prefetch (500): pre-fetch duration in ms (play before start time of source), 0 for no pre-fetch
+- prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
 
 Properties for \`sourceURL\` objects:
 - port (null): input port for source. Possible values are:
