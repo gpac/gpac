@@ -31,13 +31,14 @@
 - support for multiple filter chains per source in MP4Box dash or add syntax
 - chunk interleaving dumper
 
-## Filter core
+## Filters
+- added avmix audio video mixer
 - Python bindings for filter session
 - support for custom HAS adaptation algorithms (JS and Python)
 - support for custom remotery callbacks (JS and Python)
+- added avgen counter generation
 - splicing support in playlists: raw and compressed domain, vod and live splicing
 - tile splitting now available as a filter 
-- added avgen counter generation
 - raw options for flist and reframer
 - flip and rotate in vout
 - simple UI for vout to test seeking and speed modes
@@ -46,6 +47,8 @@
 - improved audio resampler
 - added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 
 - support for reading back frame interface data (GPU, decoder mem) in JS or Python sink filters
+
+## Filters
 
 ## Media Formats
 - improved support for MPEG-H audio mux/demux/dashing
