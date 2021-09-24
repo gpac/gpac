@@ -7629,6 +7629,65 @@ Author: GPAC team
 .br
 
 .br
+AVMix is a simple audio video mixer controlled by an updatable JSON playlist format. The filter can be used to:
+.br
+- schedule video sequence(s) over time
+.br
+- mix videos together
+.br
+- layout of multiple videos
+.br
+- overlay images, text and graphics over source videos
+.br
+
+.br
+All input streams are decoded prior to entering the mixer.
+.br
+- audio streams are mixed in software
+.br
+- video streams are composed according to the gpu option
+.br
+- other stream types are not yet supported
+.br
+
+.br
+OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with our without GPU.
+.br
+
+.br
+In software mode, the mixer will detect wether any of the currently active video sources can be used as a base canvas for the output to save processing time.
+.br
+The default behavior is to do this detection only at the first generated frame, use dynpfmt to modify this.
+.br
+
+.br
+The filter can be extended through JavaScript modules. Currently only scenes and transition effects use this feature.
+.br
+
+.br
+.SH Live vs offline
+.LP
+.br
+
+.br
+When operating offline, the mixer will wait for video frames to be ready for 10 times lwait. After this timeout, the filter will abort if no input is available.
+.br
+This implies that there shall always be a media to compose, i.e. no "holes" in the timeline.
+.br
+Note: The playlist is still refreshed in offline mode.
+.br
+
+.br
+
+.br
+When operating live, the mixer will initially wait for video frames to be ready for lwait seconds. After this initial timeout, the output frames will indicate:
+.br
+- 'No signal' if no input is available (no source frames)
+.br
+- 'Signal lost' if no new input data has been received for lwait on a source
+.br
+
+.br
 
 .br
 .SH Playlist Format
@@ -8567,7 +8626,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1279-g1316f8b5c-master
+build: 1.1.0-DEV-rev1280-g308776f37-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

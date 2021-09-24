@@ -294,7 +294,7 @@ function build_help(obj, playlist_only)
 		filter._help += 'For global variables available to modules, use `gpac -h avmix:global`\n';
 		filter._help += '# Available modules\n';
 	} else {
-		filter._help = obj.help_playlist + '\n';
+		filter._help += obj.help_playlist + '\n';
 	}
 
 	let	scripts = sys.enum_directory(path+'scenes/', "*.js");
@@ -313,9 +313,10 @@ function build_help(obj, playlist_only)
 filter.initialize = function() 
 {
 	let gpac_help = sys.get_opt("temp", "gpac-help");
-	if (gpac_help || (sys.get_opt("temp", "gendoc") == "yes")) {
+	let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
+	if (gpac_help || gpac_doc) {
 		let args = sys.args;
-		let help_mod = sys.get_opt("temp", "gpac-js-help");
+		let help_mod = gpac_doc ? null : sys.get_opt("temp", "gpac-js-help");
 
 		if (help_mod) {
 			let name;
@@ -355,8 +356,7 @@ filter.initialize = function()
 			return GF_OK;
 		}
 		if ((gpac_help == "h") || (gpac_help == "ha"))
-			mod_help_short = true;
-
+			mod_help_short = !gpac_doc;
 		import("./help.js").then(obj => { build_help(obj, false); }).catch(err => {});
 		return GF_OK;
 	}
