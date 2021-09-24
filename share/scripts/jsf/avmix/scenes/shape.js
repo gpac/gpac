@@ -32,7 +32,7 @@ By default all lines are loaded. The number of loaded lines can be specified usi
 
 Text loaded from file will be refreshed whenever the file is modified.
 
-Pre-defined keywords can be used in input text, identified as \`$KEYWORD$\`. The following keywords (case insensitive) are defined:
+Predefined keywords can be used in input text, identified as \`$KEYWORD$\`. The following keywords (case insensitive) are defined:
 - time: replaced by UTC date
 - ltime: replaced by locale date
 - date: replaced by date (Y/M/D)
@@ -46,7 +46,7 @@ Pre-defined keywords can be used in input text, identified as \`$KEYWORD$\`. The
 
 ## Custom paths
 
-Custom paths (shapes) can be created through JS code indicated in \'shape\', either inlined or through a file.
+Custom paths (shapes) can be created through JS code indicated in \'shape\', either inline or through a file.
 The following GPAC JS modules are imported:
  - \`Sys\` as \`sys\`
  - All EVG as \`evg\`
@@ -57,16 +57,16 @@ See [https://doxygen.gpac.io]() for more information on EVG and Sys JS APIs.
 The code is exposed the scene as \`this\`. The variable \`this.path\` is created, representing an empty path.
 EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
 
-The following globals can be used:
- - get_media_time(): return  media time in seconds (float) of output
- - get_media_time(SRC): get time of source with id \`SRC\`, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
+The following global can be used:
+ - get_media_time(): return media time in seconds (float) of output
+ - get_media_time(SRC): get time of source with id \`SRC\`, return -4 if not found, -3 if not playing, -2 if in pre-fetch, -1 if timing not yet known, media time in seconds (float) otherwise
  - current_utc_clock: current UTC time in ms
  - video_time: output video time
  - video_timescale: output video timescale
  - video_width: output video width
  - video_height: output video height
 
-If your path needs to be reevaluated on regular basis, set the value \`this.reload\` to the timeout to next realod, in milliseconds. 
+If your path needs to be reevaluated on regular basis, set the value \`this.reload\` to the timeout to next reload, in milliseconds.
 `;
 
 const UPDATE_LINE = 1<<3;
@@ -118,13 +118,13 @@ export const options = [
  {name:"alpha", value: 1, desc: "global texture transparency", dirty: UPDATE_COLOR},
  {name:"replace", value: "", desc: `if \`img\` or \`fill\` is set and shape is using source, replace source component by \`img\` component (\`a\`, \`r\`, \`g\` or \`b\`). If prefix \`-\` is set, replace by one minus the source component`, dirty: UPDATE_SIZE},
  {name:"shape", value: "rect", desc: `shape type. Possible values are:
-  - rect: rounded rect
+  - rect: rounded rectangle
   - square: square using smaller width/height value
   - ellipse: ellipse
   - circle: circle using smaller width/height value
-  - losange: axis-aligned losange
+  - rhombus: axis-aligned rhombus
   - text: force text mode even if text field is empty
-  - rects: same as rounded rect but use straight lines for corners
+  - rects: same as rounded rectangle but use straight lines for corners
   - other value: JS code for custom path creation, either string or local file name (dynamic reload possible)`, dirty: UPDATE_SIZE},
  {name:"grad_p", value: [], desc: "gradient positions between 0 and 1", dirty: UPDATE_COLOR},
  {name:"grad_c", value: [], desc: "gradient colors for each position, as strings", dirty: UPDATE_COLOR},
@@ -143,7 +143,7 @@ export const options = [
   - top: baseline at top of EM Box
   - hanging: reserved, __not implemented__
   - middle: baseline at middle of EM Box
-  - ideographic: reserved, __not implemented__
+  - ideograph: reserved, __not implemented__
   - bottom: baseline at bottom of EM Box`, dirty: UPDATE_SIZE},
  {name:"align", value: 'center', desc: `horizontal text alignment. Possible values are:
   - center: center of shape
@@ -503,7 +503,7 @@ function set_text(txt)
         } else if (time==-2) {
           item = 'initializing';
         } else if (time==-1) {
-          item = 'in prefetch';
+          item = 'pre-fetching';
         } else {
           time *= 1000;
           let time_s = Math.floor(time/1000);
@@ -729,7 +729,7 @@ update: function() {
       } else if (this.shape == 'ellipse') {
         this.path.ellipse(0, 0, this.sw, this.sh);
         path_loaded = true;
-      } else if (this.shape == 'losange') {
+      } else if (this.shape == 'rhombus') {
         let hsw = this.sw/2;
         let hsh = this.sh/2;
         this.path.move_to(this.sw, 0);

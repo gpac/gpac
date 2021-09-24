@@ -261,7 +261,7 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Ter
 
 /*! retrieves world info of the scene of an object.
 \param term the target terminal
-\param scene_od the object manager to query. If this is an inlined OD, the world info of the inlined content is retrieved. If NULL, the world info of the main scene is retrieved
+\param scene_od the object manager to query. If this is an inline OD, the world info of the inline content is retrieved. If NULL, the world info of the main scene is retrieved
 \param descriptions any textual descriptions is stored here (const strings not allocated, do NOT modify)
 \return NULL if no WorldInfo available or world title if available
 */
@@ -273,7 +273,7 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 \param filename sets to the complete filename (rad + ext) and shall be destroyed by caller (optional can be NULL)
 \param xml_dump if GF_TRUE, duimps using XML format (XMT-A, X3D) for scene graphs having both XML and simple text representations
 \param skip_proto is GF_TRUE, proto declarations are not dumped
-\param odm if this is an inlined OD, the inlined scene is dumped; if this is NULL, the main scene is dumped; otherwise the parent scene is dumped
+\param odm if this is an inline OD, the inline scene is dumped; if this is NULL, the main scene is dumped; otherwise the parent scene is dumped
 \return error if any
 */
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);

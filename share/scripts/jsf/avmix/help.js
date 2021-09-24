@@ -13,7 +13,7 @@ All input streams are decoded prior to entering the mixer.
 OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with our without GPU.
 
 In software mode, the mixer will detect wether any of the currently active video sources can be used as a base canvas for the output to save processing time.
-The default behaviour is to do this detection only at the first generated frame, use \`dynpfmt\` to modify this.
+The default behavior is to do this detection only at the first generated frame, use \`dynpfmt\` to modify this.
 
 The filter can be extended through JavaScript modules. Currently only scenes and transition effects use this feature.
 
@@ -73,8 +73,8 @@ Properties for \`source\` objects:
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
 - keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after \`rtimeout\`
-- seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to ellapsed duration since source start when relaunching process(es)
-- prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
+- seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to the time elapsed since source start when relaunching process(es)
+- prefetch (500): pre-fetch duration in ms (play before start time of source), 0 for no pre-fetch
 
 Properties for \`sourceURL\` objects:
 - port (null): input port for source. Possible values are:
@@ -82,7 +82,7 @@ Properties for \`sourceURL\` objects:
   - tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (\`tcp\`) or unix domain TCP socket (\`tcpu\`)
   - not specified or empty string: loads source using the current process
   - other: use value as input filter declaration and launch \'in\' as dedicated process (e.g., in="ffmpeg ..." port="pipe://..."). Any relative URL used in \`in\`' must be relative to the current working directory.
-- in (null): filter chain to load as string. Words starting with \`-\` are ignored. The first entry must specifies a source URL, and additionnal filters and links can be specified using \`@N[#LINKOPT]\` and \`@@N[#LINKOPT]\` syntax, as in gpac
+- in (null): filter chain to load as string. Words starting with \`-\` are ignored. The first entry must specifies a source URL, and additional filters and links can be specified using \`@N[#LINKOPT]\` and \`@@N[#LINKOPT]\` syntax, as in gpac
 - opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
 - raw (true): indicate if input port is decoded AV (true)) or compressed AV (false) when using dedicated gpac process, ignored otherwise
@@ -113,7 +113,7 @@ Properties for \`transition\` objects:
 Properties for \`timer\` objects:
 - id (null): id of the timer
 - dur (0): duration of the timer in seconds
-- loop (false): loops timer when stopTime is not set
+- loop (false): loops timer when \`stop_time\` is not set
 - start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or \`now\`
 - stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`
 - keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
@@ -122,13 +122,13 @@ Properties for \`timer\` objects:
 Properties for \`animation\` objects:
 - values ([]): list of values to interpolate, there must be as many values as there are keys
 - color (false): indicate the values are color (as strings)
-- angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and devided by 180) before interpolation
+- angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and divided by 180) before interpolation
 - mode ('linear') : interpolation mode:
   - linear: linear interpolation between the values
   - discrete: do not interpolate
   - other: JS code modifying the interpolation ratio called \`interp\`, eg \`"interp = interp*interp;"\`
 - postfun (null): JS code modifying the interpolation result \`res\`, eg \`"res = res*res;"\`
-- end ('freeze'): behaviour at end of animation:
+- end ('freeze'): behavior at end of animation:
   - freeze: keep last animated values
   - restore: restore targets to their initial values
 - targets ([]): list of strings indicating targets properties to modify. Syntax is:
@@ -142,13 +142,13 @@ The playlist may specify configuration options of the filter, using a root objec
 - property values are given in the native type, or as strings (fractions, vectors, enums)
 - each declared property overrides the filter option of the same name (whether default or set at filter creation)
 
-A configuration object in the playlist is only parsed when intially loading the playlist, and ignored when reloading it.
+A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
 
 
 ## Playlist modification
 
 The playlist file can be modified at any time.
-Objects are identified across playlist reloads throught their \`id\` property.
+Objects are identified across playlist reloads through their \`id\` property.
 Root objects that are not present after reloading a playlist are removed from the mixer.
 
 A \`sequence\` object modified between two reloads is refreshed, except for its \`start\` field if sequence active.

@@ -1907,7 +1907,7 @@ typedef enum
 \return packet produced or NULL if error or idle
 */
 const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *usec_till_next);
-/*! gets the system clock of the multiplexer (time ellapsed since start)
+/*! gets the system clock of the multiplexer (time elapsed since start)
 \param muxer the target MPEG-2 TS multiplexer
 \return system clock of the multiplexer in milliseconds
 */

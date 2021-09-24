@@ -846,11 +846,11 @@ static GF_Err gf_route_service_gather_object(GF_ROUTEDmx *routedmx, GF_ROUTEServ
 				if (o->status>=GF_LCT_OBJ_DONE_ERR) continue;
 
 				if (!in_order) {
-					u32 ellapsed = gf_sys_clock() - o->last_gather_time;
-					if (ellapsed < routedmx->reorder_timeout)
+					u32 elapsed = gf_sys_clock() - o->last_gather_time;
+					if (elapsed < routedmx->reorder_timeout)
 						continue;
 
-					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u timeout after %d ms - forcing dispatch\n", s->service_id, o->tsi, o->toi, ellapsed ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u timeout after %d ms - forcing dispatch\n", s->service_id, o->tsi, o->toi, elapsed ));
 				} else if (o->rlct && !o->rlct->tsi_init) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] Service %d object TSI %u TOI %u incomplete (tune-in) - forcing dispatch\n", s->service_id, o->tsi, o->toi, toi ));
 				} else {

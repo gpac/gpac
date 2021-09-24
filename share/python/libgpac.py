@@ -1934,7 +1934,7 @@ class DASHGroupDownloadStatistics(Structure):
         self.total_bytes = 0
         ##number of downloaded bytes from segment (starting from first byte)
         self.bytes_done = 0
-        ##number of microseconds ellapsed since segment was scheduled for download
+        ##number of microseconds elapsed since segment was scheduled for download
         self.time_since_start = 0
         ##current buffer length in milliseconds
         self.buffer_dur = 0
