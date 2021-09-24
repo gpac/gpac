@@ -374,7 +374,8 @@ refill:
 				return GF_IO_ERR;
 			}
 			if (GetOverlappedResult(ctx->pipe, &ctx->overlap, &res, FALSE) == 0) {
-				if (GetLastError() == ERROR_IO_INCOMPLETE) {
+				s32 error = GetLastError();
+				if (error == ERROR_IO_INCOMPLETE) {
 				}
 				else {
 					CloseHandle(ctx->pipe);
@@ -404,7 +405,7 @@ refill:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeIn] Failed to read, error %d\n", error));
 					return GF_IO_ERR;
 				}
-				else if (!ctx->ka) {
+				else if (!ctx->ka && ctx->blk) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[PipeIn] end of stream detected\n"));
 					gf_filter_pid_set_eos(ctx->pid);
 					CloseHandle(ctx->pipe);
@@ -413,12 +414,17 @@ refill:
 					return GF_EOS;
 				}
 				else if (error == ERROR_BROKEN_PIPE) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
-					CloseHandle(ctx->pipe);
-					ctx->pipe = INVALID_HANDLE_VALUE;
-					if (ctx->sigeos)
+					if (ctx->ka) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[PipeIn] Pipe closed by remote side, reopening!\n"));
+						CloseHandle(ctx->pipe);
+						ctx->pipe = INVALID_HANDLE_VALUE;
+						if (ctx->sigeos)
+							gf_filter_pid_set_eos(ctx->pid);
+						return pipein_initialize(filter);
+					} else {
 						gf_filter_pid_set_eos(ctx->pid);
-					return pipein_initialize(filter);
+						return GF_EOS;
+					}
 				}
 				return GF_OK;
 			}
