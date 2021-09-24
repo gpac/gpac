@@ -59,7 +59,7 @@ EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = ne
 
 The following global can be used:
  - get_media_time(): return media time in seconds (float) of output
- - get_media_time(SRC): get time of source with id \`SRC\`, return -4 if not found, -3 if not playing, -2 if in pre-fetch, -1 if timing not yet known, media time in seconds (float) otherwise
+ - get_media_time(SRC): get time of source with id \`SRC\`, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
  - current_utc_clock: current UTC time in ms
  - video_time: output video time
  - video_timescale: output video timescale
@@ -503,7 +503,7 @@ function set_text(txt)
         } else if (time==-2) {
           item = 'initializing';
         } else if (time==-1) {
-          item = 'pre-fetching';
+          item = 'prefetching';
         } else {
           time *= 1000;
           let time_s = Math.floor(time/1000);
