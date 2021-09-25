@@ -9843,12 +9843,14 @@ static s32 vvc_parse_slice(GF_BitStream *bs, VVCState *vvc, VVCSliceInfo *si)
 	return 0;
 }
 
-static void vvc_compute_poc(VVCSliceInfo *si)
+static void vvc_compute_poc(VVCSliceInfo *si, Bool poc_reset)
 {
 	u32 max_poc_lsb = 1 << (si->sps->log2_max_poc_lsb);
 
 	if (si->poc_msb_cycle_present_flag) {
-		si->poc_msb = si->poc_msb_cycle;
+		si->poc_msb = si->poc_msb_cycle * max_poc_lsb;
+	} else if (poc_reset) {
+		si->poc_msb = 0;
 	} else {
 		if ((si->poc_lsb < si->poc_lsb_prev) && (si->poc_lsb_prev - si->poc_lsb >= max_poc_lsb / 2))
 			si->poc_msb = si->poc_msb_prev + max_poc_lsb;
@@ -9859,6 +9861,8 @@ static void vvc_compute_poc(VVCSliceInfo *si)
 	}
 
 	si->poc = si->poc_msb + si->poc_lsb;
+	if (si->poc<0)
+		si->poc = si->poc;
 }
 
 
@@ -9901,12 +9905,8 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 		if (n_state.compute_poc_defer || n_state.picture_header_in_slice_header_flag) {
 			is_slice = GF_TRUE;
 			n_state.compute_poc_defer = 0;
-			if (poc_reset) {
-				n_state.poc_lsb_prev = 0;
-				n_state.poc_msb_prev = 0;
-			}
 
-			vvc_compute_poc(&n_state);
+			vvc_compute_poc(&n_state, poc_reset);
 			if (vvc->s_info.poc != n_state.poc) {
 				ret = 1;
 				break;
@@ -9927,9 +9927,7 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 
 		/*POC reset for IDR frames, NOT for CRA*/
 		if (n_state.irap_or_gdr_pic && !n_state.gdr_pic) {
-			n_state.poc_lsb_prev = 0;
-			n_state.poc_msb_prev = 0;
-			vvc_compute_poc(&n_state);
+			vvc_compute_poc(&n_state, GF_TRUE);
 		} else {
 			//we cannot compute poc until we know the first picture unit type, since IDR will reset poc count
 			//and irap_or_gdr_pic=0 does not prevent IDR from following
@@ -9965,13 +9963,10 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 		break;
 	}
 
-	/* save _prev values */
+	/* save current POC lsb/msb to prev values */
 	if ((ret>0) && vvc->s_info.sps) {
-//		n_state.frame_num_offset_prev = vvc->s_info.frame_num_offset;
-//		n_state.frame_num_prev = vvc->s_info.frame_num;
-
-		n_state.poc_lsb_prev = vvc->s_info.poc_lsb;
-		n_state.poc_msb_prev = vvc->s_info.poc_msb;
+		n_state.poc_lsb_prev = n_state.poc_lsb;
+		n_state.poc_msb_prev = n_state.poc_msb;
 		if (is_slice)
 			n_state.prev_layer_id_plus1 = *layer_id + 1;
 	}
