@@ -155,6 +155,8 @@ typedef struct
 	GF_FilterSAPType au_sap;
 	//frame first slice
 	Bool first_slice_in_au;
+	//frame first slice
+	Bool au_sap2_poc_reset;
 	//paff used - NEED FURTHER CHECKING
 	Bool is_paff;
 	Bool bottom_field_flag;
@@ -1823,7 +1825,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		return;
 	if (ctx->au_sap) {
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, ctx->au_sap);
-		if (ctx->au_sap == GF_FILTER_SAP_1) {
+		if ((ctx->au_sap == GF_FILTER_SAP_1) || ctx->au_sap2_poc_reset) {
 			ctx->dts_last_IDR = gf_filter_pck_get_dts(ctx->first_pck_in_au);
 			if (ctx->is_paff)
 				ctx->dts_last_IDR *= 2;
@@ -2907,6 +2909,7 @@ naldmx_flush:
 			ctx->first_slice_in_au = GF_TRUE;
 			ctx->sei_recovery_frame_count = -1;
 			ctx->au_sap = GF_FILTER_SAP_NONE;
+			ctx->au_sap2_poc_reset = GF_FALSE;
 			ctx->bottom_field_flag = GF_FALSE;
 		}
 
@@ -3031,18 +3034,21 @@ naldmx_flush:
 				switch (ctx->vvc_state->s_info.nal_unit_type) {
 				case GF_VVC_NALU_SLICE_CRA:
 					au_sap_type = GF_FILTER_SAP_3;
-					slice_is_idr = 0;
+					slice_is_idr = GF_FALSE;
 					break;
 				case GF_VVC_NALU_SLICE_IDR_N_LP:
-				case GF_VVC_NALU_SLICE_IDR_W_RADL:
 					au_sap_type = GF_FILTER_SAP_1;
+					break;
+				case GF_VVC_NALU_SLICE_IDR_W_RADL:
+					au_sap_type = GF_FILTER_SAP_2;
+					slice_is_idr = GF_TRUE;
 					break;
 				}
 			} else {
 				switch (ctx->vvc_state->s_info.nal_unit_type) {
 				case GF_VVC_NALU_SLICE_IDR_N_LP:
 					au_sap_type = GF_FILTER_SAP_1;
-					slice_is_idr = 1;
+					slice_is_idr = GF_TRUE;
 					bIntraSlice = GF_TRUE;
 					break;
 				case GF_VVC_NALU_SLICE_CRA:
@@ -3055,7 +3061,7 @@ naldmx_flush:
 						au_sap_type = GF_FILTER_SAP_3;
 					} else {
 						au_sap_type = GF_FILTER_SAP_1;
-						slice_is_idr = 1;
+						slice_is_idr = GF_TRUE;
 					}
 					break;
 				}
@@ -3209,6 +3215,10 @@ naldmx_flush:
 
 				if ((slice_poc < 0) && !ctx->last_poc)
 					ctx->poc_diff = 0;
+				else if ((slice_poc < 0) && (-slice_poc < ctx->poc_diff)) {
+					pdiff = -slice_poc;
+					ctx->poc_diff = 0;
+				}
 
 				if (!ctx->poc_diff || (ctx->poc_diff > (s32) pdiff ) ) {
 					ctx->poc_diff = pdiff;
@@ -3219,7 +3229,7 @@ naldmx_flush:
 				}
 				ctx->last_poc = slice_poc;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is IDR %d\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_idr));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is IDR %d (SAP %d)\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_idr, au_sap_type));
 
 			/*ref slice, reset poc*/
 			if (slice_is_idr) {
@@ -3233,10 +3243,22 @@ naldmx_flush:
 					//new ref frame, dispatch all pending packets
 					naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
-					ctx->max_last_poc = ctx->last_poc = ctx->max_last_b_poc = 0;
-					ctx->poc_shift = 0;
-					//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
-					ctx->poc_probe_done = 0;
+					//if IDR with DLP (sap2), only reset poc probing if the poc is below current max poc
+					//otherwise assume no diff in poc
+					if ((au_sap_type == GF_FILTER_SAP_2) && (ctx->max_last_poc >= ctx->last_poc) ){
+						ctx->au_sap2_poc_reset = GF_TRUE;
+					}
+
+					if ((au_sap_type == GF_FILTER_SAP_1) || ctx->au_sap2_poc_reset) {
+						if (!ctx->au_sap2_poc_reset)
+							ctx->last_poc = 0;
+
+						ctx->max_last_poc = ctx->last_poc;
+						ctx->max_last_b_poc = ctx->last_poc;
+						ctx->poc_shift = 0;
+						//force probing of POC diff, this will prevent dispatching frames with wrong CTS until we have a clue of min poc_diff used
+						ctx->poc_probe_done = 0;
+					}
 					ctx->last_frame_is_idr = GF_TRUE;
 					if (temp_poc_diff)
 						ctx->poc_diff = 0;
