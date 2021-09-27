@@ -120,11 +120,17 @@ static GF_Err compose_process(GF_Filter *filter)
 			ctx->check_eos_state = 1;
 		}
 		if (ctx->check_eos_state == 1) {
-			ctx->last_check_pass++;
-			if (ctx->last_check_pass > 10000) {
+			u32 now = gf_sys_clock();
+			if (!ctx->last_check_pass)
+				ctx->last_check_pass = now;
+
+			if (now - ctx->last_check_pass > 1000) {
 				ctx->check_eos_state = 2;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in %d render pass, aborting\n", ctx->last_check_pass));
-				forced_eos = GF_TRUE;
+				if (!gf_filter_end_of_session(filter)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in the last second, aborting\n", ctx->last_check_pass));
+					forced_eos = GF_TRUE;
+				}
+				gf_filter_abort(filter);
 			}
 		} else {
 			ctx->last_check_pass = 0;
