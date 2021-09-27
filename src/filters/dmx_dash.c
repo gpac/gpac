@@ -2379,6 +2379,13 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 
 		gf_dash_set_group_done(ctx->dash, (u32) group->idx, 1);
 		gf_dash_group_select(ctx->dash, (u32) group->idx, GF_FALSE);
+		//group was playing, force stop on source filter (to discard any non-processed data)
+		//we need this because SOURCE_SWITCH event is sent directly on source filter
+		if (group->is_playing) {
+			src_evt = *fevt;
+			src_evt.base.on_pid = NULL;
+			gf_filter_send_event(group->seg_filter_src, &src_evt, GF_FALSE);
+		}
 		group->is_playing = GF_FALSE;
 		group->prev_is_init_segment = GF_FALSE;
 		if (ctx->nb_playing) {
@@ -2390,6 +2397,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 		//forward new event to source pid
 		src_evt = *fevt;
 		src_evt.base.on_pid = ipid;
+		//send a stop but indicate source should not receive it
+		src_evt.play.forced_dash_segment_switch = GF_TRUE;
 		gf_filter_pid_send_event(ipid, &src_evt);
 
 		//cancel the event
