@@ -1077,6 +1077,10 @@ void gf_mo_restart(GF_MediaObject *mo)
 		}
 	}
 	/*all other cases, call restart to take into account clock references*/
+	mo->first_frame_fetched = GF_FALSE;
+	mo->is_eos = GF_FALSE;
+	mo->ms_until_next = 0;
+	mo->ms_until_pres = 0;
 	mediacontrol_restart(mo->odm);
 }
 

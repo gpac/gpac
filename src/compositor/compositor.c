@@ -2663,6 +2663,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				u32 ts = gf_mo_map_timestamp_to_sys_clock(txh->stream, txh->stream->timestamp);
 				if (ts<frame_ts) frame_ts = ts;
 			}
+			//VFR and one frame is pending
+			else if (compositor->vfr && (compositor->ms_until_next_frame>0) && (compositor->ms_until_next_frame!=GF_INT_MAX)) {
+				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			}
 			all_tx_done=0;
 		}
 	}
