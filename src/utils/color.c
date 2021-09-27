@@ -4325,6 +4325,8 @@ GF_Color gf_color_parse(const char *name)
 {
 	u32 i, count;
 	u32 res;
+	if (!strcmp(name, "none") )
+		return 0;
 	if ((name[0]=='$') || (name[0]=='#')) {
 		sscanf(name+1, "%x", &res);
 		if (strlen(name+1) == 8) return res;
@@ -4343,7 +4345,7 @@ GF_Color gf_color_parse(const char *name)
 			return res;
 		}
 	}
-
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown color code %s, using 0x00000000\n", name));
 	return 0;
 
 }
