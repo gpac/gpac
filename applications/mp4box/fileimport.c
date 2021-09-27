@@ -619,7 +619,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!strnicmp(ext+1, "delay=", 6)) {
 			if (sscanf(ext+7, "%d/%u", &delay.num, &delay.den)!=2) {
 				delay.num = atoi(ext+7);
-				delay.den = 0;
+				delay.den = 1000; //in ms
 			}
 		}
 		else if (!strnicmp(ext+1, "par=", 4)) {
