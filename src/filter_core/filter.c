@@ -3588,6 +3588,8 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 
 
 	if (url) {
+		//force reconfigure
+		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, NULL);
 		gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING(url));
 
 		if (!strnicmp(url, "isobmff://", 10)) {
