@@ -54,6 +54,7 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 	if (done != ai->stream_finished) {
 		gf_sc_invalidate(ai->compositor, NULL);
 	}
+	ai->input_ifce.is_eos = ai->stream_finished;
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
@@ -61,7 +62,10 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
 		}
 		gf_mo_adjust_clock(ai->stream, 0);
-		ai->input_ifce.is_buffering = gf_mo_is_buffering(ai->stream);
+		if (!ai->stream_finished && !ai->compositor->player)
+			ai->input_ifce.is_buffering = GF_TRUE;
+		else
+			ai->input_ifce.is_buffering = gf_mo_is_buffering(ai->stream);
 		*size = 0;
 		return NULL;
 	}

@@ -279,6 +279,8 @@ struct __tag_compositor
 	Bool bench_mode;
 	//0: no frame pending, 1: frame pending, needs clock increase, 2: frames are pending but one frame has been decoded, do not increase clock
 	u32 force_bench_frame;
+	//number of audio frames sent in call to send_frame
+	u32 audio_frames_sent;
 
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 frame_dur[GF_SR_FPS_COMPUTE_SIZE];
@@ -367,6 +369,8 @@ struct __tag_compositor
 	/*count number of initialized sensors*/
 	u32 interaction_sensors;
 
+	//in player mode, exit if set
+	//in non player mode, check for eos
 	u32 check_eos_state;
 	u32 last_check_pass;
 
@@ -1216,6 +1220,7 @@ u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
 Bool gf_mixer_buffering(GF_AudioMixer *am);
+Bool gf_mixer_is_eos(GF_AudioMixer *am);
 
 //#define ENABLE_AOUT
 
