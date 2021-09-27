@@ -116,7 +116,7 @@ static GF_Err compose_process(GF_Filter *filter)
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
-		} else if (!ret && !ctx->frame_was_produced && !ctx->check_eos_state && !nb_sys_streams_active) {
+		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
 		if (ctx->check_eos_state == 1) {
@@ -170,9 +170,10 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	//player mode
 	
-	//quit seen do not reschedule
+	//quit event seen, do not flush, just abort and return last error
 	if (ctx->check_eos_state) {
-		return ctx->last_error;
+		gf_filter_abort(filter);
+		return ctx->last_error ? ctx->last_error : GF_EOS;
 	}
 
 
@@ -731,9 +732,10 @@ static GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_set_session_caps(filter, &sess_caps);
 
+	//make filter sticky (no shutdown if all inputs removed)
+	gf_filter_make_sticky(filter);
+
 	if (ctx->player) {
-		//make filter sticky (no shutdown at eos)
-		gf_filter_make_sticky(filter);
 
 		//load audio filter chain, declaring audio output pid first
 		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
