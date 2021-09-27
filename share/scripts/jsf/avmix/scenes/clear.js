@@ -2,7 +2,12 @@ import * as evg from 'evg'
 
 export const description = "Screen clear";
 
-export const help = "This scene clears the canvas according to the current clipper with a given color. The default clear color of the mixer is `black`.";
+export const help = `This scene clears the canvas area covered by the scene with a given color. 
+
+The default clear color of the mixer is \`black\`.
+
+The color \`none\` is \`0x00000000\`.
+`;
 
 
 export const options = [

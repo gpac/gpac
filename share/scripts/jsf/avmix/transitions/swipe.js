@@ -5,21 +5,21 @@ export const help = "This transition performs simple 2D affine transformations f
 
 export const options = [
  {name:"from", value: "left", desc: `direction of video 2 entry. Possible values are:
- - left: from left to right edges
- - right: from right to left edges
- - top: from top to bottom edges
- - bottom: from bottom to top edges
- - topleft: from top-left to bottom-right corners
- - topright: from top-right to bottom-left corners
- - bottomleft: from bottom-left to top-right corners
- - bottomright: from bottom-right to top-left corners
+  - left: from left to right edges
+  - right: from right to left edges
+  - top: from top to bottom edges
+  - bottom: from bottom to top edges
+  - topleft: from top-left to bottom-right corners
+  - topright: from top-right to bottom-left corners
+  - bottomleft: from bottom-left to top-right corners
+  - bottomright: from bottom-right to top-left corners
 `},
  {name:"mode", value: "slide", desc: `how video 2 entry impacts video 1. Possible values are:
- - slide: video 1 position is not modified
- - push: video 2 pushes video 1 away
- - squeeze: video 2 squeezes video 1 along opposite edge
- - grow: video 2 size increases, video 1 not modified
- - swap: video 2 size increases, video 1 size decreases
+  - slide: video 1 position is not modified
+  - push: video 2 pushes video 1 away
+  - squeeze: video 2 squeezes video 1 along opposite edge
+  - grow: video 2 size increases, video 1 not modified
+  - swap: video 2 size increases, video 1 size decreases
 `},
  {}
 ];
