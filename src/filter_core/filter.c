@@ -2557,9 +2557,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 		gf_list_del(filter->postponed_packets);
 		filter->postponed_packets = NULL;
 		if (filter->process_task_queued==1) {
-			gf_mx_p(filter->tasks_mx);
-			filter->process_task_queued = 0;
-			gf_mx_v(filter->tasks_mx);
+			//do not touch process_task_queued, we are outside regular fs task calls
 			return;
 		}
 	}
@@ -2585,9 +2583,7 @@ void gf_filter_process_inline(GF_Filter *filter)
 		return;
 	}
 	if ((e==GF_EOS) || filter->removed || filter->finalized) {
-		gf_mx_p(filter->tasks_mx);
-		filter->process_task_queued = 0;
-		gf_mx_v(filter->tasks_mx);
+		//do not touch process_task_queued, we are outside regular fs task calls
 		return;
 	}
 	check_filter_error(filter, e, GF_FALSE);
