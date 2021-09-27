@@ -3,7 +3,7 @@ import * as evg from 'evg'
 
 export const description = "Screen clip";
 
-export const help = "This scene sets the clipper or reset the clipper on the canvas.";
+export const help = "This scene resets the canvas clipper or sets the canvas clipper to the scene area.";
 
 export const options = [
  {name:"reset", value: false, desc: "if set, reset clipper otherwise set it to scene position and size", dirty: UPDATE_SIZE},

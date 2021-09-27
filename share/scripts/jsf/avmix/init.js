@@ -212,13 +212,13 @@ function build_help_mod(obj, name, mod_type, index)
 	let rad = '';
 	if (mod_type==0) {
 		if (!index) {
-			filter._help += (mod_help_short ? '\n' : '# ' ) + '`scene` modules\n';
+			filter._help += (mod_help_short ? '\n' : '# ' ) + 'Scene modules\n';
 		}
 		rad = 'Scene';
 	}
 	else if (mod_type==1) {
 		if (!index) {
-			filter._help += (mod_help_short ? '\n' : '# ' ) + '`transition` modules\n';
+			filter._help += (mod_help_short ? '\n' : '# ' ) + 'Transition modules\n';
 		}
 		rad = 'Transition';
 	}

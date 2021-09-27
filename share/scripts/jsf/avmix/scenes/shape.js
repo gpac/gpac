@@ -18,6 +18,8 @@ The default scene is optimized to fallback to fast blit when no transformations 
 
 All options can be updated at run time.
 
+The module accepts 0, 1 or 2 sequences as input.
+
 Color replacement operations can be specified for base scenes using source videos by specifying the \`replace\` option. The replacement source is:
 - the image data if \`img\` is set, potentially altered using \`keep_ar_rep\`, \`txmx_rep\` and \`cmx_rep\` options
 - otherwise a linear gradient if \`fill=linear\` or a radial gradient if \`fill=radial\`

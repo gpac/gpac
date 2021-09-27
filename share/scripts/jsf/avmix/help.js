@@ -55,13 +55,19 @@ Any unrecognized property not starting with \`_\` will be reported as warning.
 Properties for \`sequence\` objects:
  - id (null): sequence identifier
  - loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
- - start (0): sequence start time. If number, offset in seconds from current clock. Otherwise date or \`now\`.
- - stop (0): sequence stop time. If number, offset in seconds from current clock. Otherwise date or \`now\`.
+ - start (0): sequence start time:
+   - if positive number, offset in seconds from current clock
+   - if negative number, sequence is not active
+   - otherwise date or \`now\`.
+ - stop (0): sequence stop time:
+   - if positive number greater than \`start\`, offset in seconds from current clock
+   - if negative number or less than \`start\`, sequence will stop only when over
+   - otherwise, date or \`now\`.
  - transition (null): a \`transition\` object to apply between sources of the sequence
  - seq ([]): array of one or more \`source\ objects
 
 Properties for \`source\` objects:
-- id (null): source identifier
+- id (null): source identifier, used when reloading the playlist
 - src ([]): list of \`sourceURL\` describing the URLs to play. Multiple sources will be played in parallel
 - start (0.0): media start time in source
 - stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to \`start\`
@@ -77,28 +83,31 @@ Properties for \`source\` objects:
 - prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
 
 Properties for \`sourceURL\` objects:
+- id (null): source URL identifier, used when reloading the playlist
+- in (null): input URL or filter chain to load as string. Words starting with \`-\` are ignored. The first entry must specify a source URL, and additional filters and links can be specified using \`@N[#LINKOPT]\` and \`@@N[#LINKOPT]\` syntax, as in gpac
 - port (null): input port for source. Possible values are:
   - pipe: launch a gpac process to play the source using GSF format over pipe
   - tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (\`tcp\`) or unix domain TCP socket (\`tcpu\`)
   - not specified or empty string: loads source using the current process
-  - other: use value as input filter declaration and launch \'in\' as dedicated process (e.g., in="ffmpeg ..." port="pipe://..."). Any relative URL used in \`in\`' must be relative to the current working directory.
-- in (null): filter chain to load as string. Words starting with \`-\` are ignored. The first entry must specifies a source URL, and additional filters and links can be specified using \`@N[#LINKOPT]\` and \`@@N[#LINKOPT]\` syntax, as in gpac
+  - other: use value as input filter declaration and launch \'in\' as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
 - opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
 - raw (true): indicate if input port is decoded AV (true)) or compressed AV (false) when using dedicated gpac process, ignored otherwise
 
 Note: when launching child process, the input filter is created first and the child process launched afterwards.
 
+Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
+
 Properties for \`scene\` objects:
 - id (null): scene identifier
-- js ('base'): scene type, either builtin (see below) or path to a JS module
-- sources ([]): list of sequence IDs this scene is using. Currently only 0, 1 and 2 values are supported.
+- js ('shape'): scene type, either builtin (see below) or path to a JS module
+- sources ([]): list of identifiers of sequences used by this scene
 - x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
 - x (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
-- width (100): width of the scene, in percent of the output width. Special value \`height\` indicates to use scene height (\`width='height'\` must then be declared after \`height\`)
-- height (100): height of the scene, in percent of the output height. Special value \`width\` indicates to use scene width (\`height='width'\` must then be declared after \`width\`)
+- width (100): width of the scene, in percent of the output width. Special value \`height\` indicates to use scene height
+- height (100): height of the scene, in percent of the output height. Special value \`width\` indicates to use scene width
 - zorder (0): display order of the scene
-- active (true): indicates if the scene is active or not. An inactive scene will not be rendered nor checked for updates
+- active (true): indicate if the scene is active or not. An inactive scene will not be refreshed nor rendered
 - rotation (0): rotation angle of the scene in degrees (the rotation is counter-clockwise, around the scene center)
 - hskew (0): horizontal skewing factor to apply to the scene
 - vskew (0): vertical skewing factor to apply to the scene
@@ -115,7 +124,7 @@ Properties for \`timer\` objects:
 - dur (0): duration of the timer in seconds
 - loop (false): loops timer when \`stop_time\` is not set
 - start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or \`now\`
-- stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`
+- stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`, ignored if less than \`start_time\`
 - keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 - anims ([]): list of \`animation\` objects
 
@@ -133,8 +142,15 @@ Properties for \`animation\` objects:
   - restore: restore targets to their initial values
 - targets ([]): list of strings indicating targets properties to modify. Syntax is:
   - sceneID@option: modifies property \`option\` of given scene
-  - sceneID@option[IDX]: modifies value at index \`IDX\ of array property \`option\` of given scene
+  - sceneID@option[IDX]: modifies value at index \`IDX\` of array property \`option\` of given scene
 
+
+__Note on colors__
+Colors are handled as strings, formatted as:
+- the DOM color name (see gpac -h colors)
+- HTML codes \`$RRGGBB\` or \`#RRGGBB\`
+- RGB hex vales \`0xRRGGBB\`
+- RGBA hex values \`0xAARRGGBB\`
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
@@ -168,22 +184,22 @@ A \`transition\` object may change between two reloads, but any modification on 
 
 The following is an example playlist using a sequence of two videos with a mix transition and an animated video area:
 
-[
-{"id": "seq1", "loop": -1, "start": 0,  "seq":
- [
-  { "id": "V1", "src": [{"in": "s1.mp4"}], "start": 60, "stop": 80},
-  { "id": "V2", "src": [{"in": "s2.mp4"}], "stop": 100}
- ],
- "transition": { "dur": 1, "type": "mix"}
-},
-{"id": "scene1", "sources": ["seq1"]},
-{"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
- [
-  {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
-  {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
- ]
- }
-]
+EX [
+EX  {"id": "seq1", "loop": -1, "start": 0,  "seq":
+EX   [
+EX    { "id": "V1", "src": [{"in": "s1.mp4"}], "start": 60, "stop": 80},
+EX    { "id": "V2", "src": [{"in": "s2.mp4"}], "stop": 100}
+EX   ],
+EX   "transition": { "dur": 1, "type": "mix"}
+EX  },
+EX  {"id": "scene1", "sources": ["seq1"]},
+EX  {"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
+EX   [
+EX    {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
+EX    {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
+EX   ]
+EX  }
+EX ]
 
 `;
 
