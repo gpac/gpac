@@ -904,7 +904,8 @@ retry:
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = mo->frame_ifce;
-	if (planar_size) *planar_size = mo->framesize / mo->num_channels;
+	//planar size is computed based on original size, not framesize (= size - renderedLength)
+	if (planar_size) *planar_size = mo->size / mo->num_channels;
 
 //	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
