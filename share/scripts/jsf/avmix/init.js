@@ -1342,7 +1342,7 @@ function process_audio()
 	let empty=false;
 
 	if (!nb_samples) {
-		//todo - check if we need to move forward after some time (and drop input) ??
+		//todo - check if we need to move forward after some time (and drop input), to allow holes in timeline
 		if (nb_active_audio) {
 			if (!filter.live) {
 				print(GF_LOG_DEBUG, 'waiting for audio frame');
@@ -1781,8 +1781,8 @@ function fetch_source(s)
 				}
 			}
 		}
-
-		if (s.media_stop>0) {
+		//except for video, check this packet is not out of play range
+		if ((s.media_stop>0) && (pid.type != TYPE_VIDEO)) {
 			if ((pck.cts - pid.init_ts) > (s.transition_offset + s.media_stop - s.media_start) * pid.timescale) {
 				pid.drop_packet();
 				pid.done = true;
@@ -1893,6 +1893,17 @@ function fetch_source(s)
 			pid.drop_packet();
 			pid.frame_ts = next_ts;
 		}
+		//if current frame is out of play range (>=), consider source done
+		if (s.media_stop>0) {
+			if ((pid.pck.cts - pid.init_ts) >= (s.transition_offset + s.media_stop - s.media_start) * pid.timescale) {
+				pid.drop_packet();
+				pid.done = true;
+				pid.send_event( new FilterEvent(GF_FEVT_STOP) );
+				nb_over++;
+				return;
+			}
+		}
+
 		print(GF_LOG_DEBUG, 'Video from ' + s.logname + ' will draw pck CTS ' + pid.pck.cts + ' translated ' + pid.frame_ts + ' video time ' + video_time);
 		return;
 	}
@@ -2706,14 +2717,16 @@ function parse_config(pl)
 			else print(GF_LOG_WARNING, "Wrong syntax for option \`vsize\` in playlist config, ignoring");
 		}
 		else if (propertyName == 'fps') {
-			if (typeof pl.fps == string) {
+			if (typeof pl.fps == 'string') {
 				var fps = pl.fps.split('/');
-				filter.fps.num = parseInt(fps[0]);
-				filter.fps.den = (fps.length>2) ? parseInt(fps[1]) : 1;
-			} else {
-				filter.fps.num = pl.fps;
-				filter.fps.den = 1;
+				print('fps is ' + fps);
+				filter.fps.n = parseInt(fps[0]);
+				filter.fps.d = (fps.length>2) ? parseInt(fps[1]) : 1;
+			} else if (typeof pl.fps == 'number') {
+				filter.fps.n = pl.fps;
+				filter.fps.d = 1;
 			}	
+			else print(GF_LOG_WARNING, "Wrong syntax for option \`fps\` in playlist config, ignoring");
 		}
 		else if (propertyName == 'dynpfmt') {
 			if (pl.dynpfmt=='off') filter.dynpfmt=0;
