@@ -836,7 +836,7 @@ filter.process = function()
 
 	if (inactive_sources == sources.length) {
 		if (filter.live) {
-			//incative, reschedule in 2 ms. A better way would be to compute next activation time
+			//inavtive, reschedule in 2 ms. A better way would be to compute next activation time
 			filter.reschedule(2000);
 			//but do generate frame
 		} else {
@@ -1519,7 +1519,7 @@ function sequence_over(s)
 			}
 		});
 		s.sequence.sources.forEach(src => { src.next_in_transition = false;});
-		print(GF_LOG_INFO, 'Stoping source ' + s.logname);
+		print(GF_LOG_INFO, 'stopping source ' + s.logname);
   	s.video_time_at_init = 0;
 		stop_source(s);
 		return;
@@ -1562,7 +1562,7 @@ function sequence_over(s)
 	let next_src = next_source(s, false);
 	if (next_src) {
 		if (next_src.in_prefetch) {
-			print(GF_LOG_INFO, 'End of prefecth for ' + next_src.logname);
+			print(GF_LOG_INFO, 'End of prefetch for ' + next_src.logname);
 			next_src.in_prefetch = 0;
 			next_src.pids.forEach(pid => {
 				if (pid.type==TYPE_VIDEO) {
@@ -1574,7 +1574,7 @@ function sequence_over(s)
 			scenes.forEach(scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 						scene.resetup_pids = true;
-						print(GF_LOG_DEBUG, 'end of prefecth, scene PID resetup');
+						print(GF_LOG_DEBUG, 'end of prefetch, scene PID resetup');
 				}
 			});
 
@@ -1644,7 +1644,7 @@ function fetch_source(s)
 	if (s.in_prefetch) {
 		if ((s.in_prefetch==2) && (s.sequence.start_time>0) && (s.sequence.start_time <= current_utc_clock)) {
 			s.in_prefetch = 0;
-			print(GF_LOG_DEBUG, 'end of prefecth for ' + s.logname + ' , scene PID resetup');
+			print(GF_LOG_DEBUG, 'end of prefetch for ' + s.logname + ' , scene PID resetup');
 			scenes.forEach(scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 						scene.resetup_pids = true;
@@ -2037,7 +2037,7 @@ function get_source(id, src)
 		if (src && (elem.src.length == src.length)) {
 			let diff = false;
 			elem.src.forEach( (v, index) => {
-				if (!(v.in === src[index].in)) diff = true;
+				if (!(v.in === src[index].in)) diff = true; // Romain: if sources have the same input name they are discarded!!
 				let id1 = v.id || 0;
 				let id2 = src[index].id || 0;
 				if (id1 && id2 && !(id1 === id2)) diff = true;
@@ -2130,7 +2130,7 @@ function stop_source(s)
 		}
 		pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
 	});
-	print(GF_LOG_DEBUG, 'Stoping source ' + s.logname);
+	print(GF_LOG_DEBUG, 'stopping source ' + s.logname);
 
 	s.fsrc.forEach( f => {
 		f.remove();

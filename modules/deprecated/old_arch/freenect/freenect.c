@@ -202,7 +202,7 @@ u32 FreenectRun(void *par)
 	freenect_stop_depth(vcap->f_dev);
 	freenect_stop_video(vcap->f_dev);
 	vcap->done = 1;
-	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] Stoping device thread\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Freenect] stopping device thread\n"));
 	return 0;
 }
 
