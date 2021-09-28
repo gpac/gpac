@@ -650,6 +650,7 @@ static Bool th_fetch_lines(EVGRasterCtx *rctx)
 {
 	gf_mx_p(rctx->surf->raster_mutex);
 	if (!rctx->surf->last_dispatch_line) {
+		rctx->first_line = rctx->last_line = 0;
 		gf_mx_v(rctx->surf->raster_mutex);
 		return GF_FALSE;
 	}
@@ -675,15 +676,20 @@ u32 th_sweep_lines(void *par)
 
 		//only for threads, wait for start raster event
 		if (rctx->th) {
+			//we are active, don't grab sema (final flush of sweep)
+			if (rctx->active) {
+				gf_sleep(0);
+				continue;
+			}
 			gf_sema_wait(rctx->surf->raster_sem);
 			if (!rctx->th_state) break;
+			rctx->active = GF_TRUE;
 		}
 
 		first_patch = 0xFFFFFFFF;
 		last_patch = 0;
 
 		while (1) {
-
 			/* sort each scanline and render it*/
 			for (i=rctx->first_line; i<rctx->last_line; i++) {
 				AAScanline *sl = &rctx->surf->scanlines[i];
@@ -805,6 +811,12 @@ GF_Err evg_sweep_lines(GF_EVGSurface *surf, u32 size_y, u32 fill_rule, Bool is_t
 
 	while (surf->pending_threads) {
 		gf_sleep(0);
+	}
+
+	//move all threads to inactive so that they grab the sema
+	for (i=0; i<surf->nb_threads; i++) {
+		EVGRasterCtx *rctx = &surf->th_raster_ctx[i];
+		rctx->active = GF_FALSE;
 	}
 
 	if (fparam && surf->frag_shader_init) {
