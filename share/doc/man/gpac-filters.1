@@ -7665,6 +7665,8 @@ The filter can be extended through JavaScript modules. Currently only scenes and
 .br
 
 .br
+
+.br
 .SH Live vs offline
 .LP
 .br
@@ -7682,7 +7684,7 @@ Note: The playlist is still refreshed in offline mode.
 .br
 When operating live, the mixer will initially wait for video frames to be ready for lwait seconds. After this initial timeout, the output frames will indicate:
 .br
-- 'No signal' if no input is available (no source frames)
+- 'No signal' if no input is available (no source frames) or no scene is defined
 .br
 - 'Signal lost' if no new input data has been received for lwait on a source
 .br
@@ -7731,6 +7733,18 @@ Any unrecognized property not starting with _ will be reported as warning.
 .br
 
 .br
+A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+.br
+
+.br
+Media source timing does not depend on the media being used by a scene or not, it is only governed by the sequence parameters.
+.br
+This means that a sequence not used by any active scene will not be rendered (video nor audio).
+.br
+
+.br
+
+.br
 .P
 .B
 JSON syntax
@@ -7743,9 +7757,21 @@ Properties for sequence objects:
 .br
  * loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
 .br
- * start (0): sequence start time. If number, offset in seconds from current clock. Otherwise date or now.
+ * start (0): sequence start time:
 .br
- * stop (0): sequence stop time. If number, offset in seconds from current clock. Otherwise date or now.
+   - if positive number, offset in seconds from current clock
+.br
+   - if negative number, sequence is not active
+.br
+   - otherwise date or now.
+.br
+ * stop (0): sequence stop time:
+.br
+   - if positive number greater than start, offset in seconds from current clock
+.br
+   - if negative number or less than start, sequence will stop only when over
+.br
+   - otherwise, date or now.
 .br
  * transition (null): a transition object to apply between sources of the sequence
 .br
@@ -7755,7 +7781,7 @@ Properties for sequence objects:
 .br
 Properties for source objects:
 .br
-* id (null): source identifier
+* id (null): source identifier, used when reloading the playlist
 .br
 * src ([]): list of sourceURL describing the URLs to play. Multiple sources will be played in parallel
 .br
@@ -7763,11 +7789,9 @@ Properties for source objects:
 .br
 * stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to start
 .br
-* volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
-.br
 * mix (true): if true, apply sequence transition or mix effect ratio as audio volume. Otherwise volume is not modified by transitions.
 .br
-* fade ('inout'): indicate how audio should be faded:
+* fade ('inout'): indicate how audio should be faded at stream start/end:
 .br
   * in: audio fade-in when playing first frame
 .br
@@ -7787,6 +7811,10 @@ Properties for source objects:
 .br
 Properties for sourceURL objects:
 .br
+* id (null): source URL identifier, used when reloading the playlist
+.br
+* in (null): input URL or filter chain to load as string. Words starting with - are ignored. The first entry must specify a source URL, and additional filters and links can be specified using @N[#LINKOPT] and @@N[#LINKOPT] syntax, as in gpac
+.br
 * port (null): input port for source. Possible values are:
 .br
   * pipe: launch a gpac process to play the source using GSF format over pipe
@@ -7795,9 +7823,7 @@ Properties for sourceURL objects:
 .br
   * not specified or empty string: loads source using the current process
 .br
-  * other: use value as input filter declaration and launch 'in' as dedicated process (e.g., in="ffmpeg ..." port="pipe://..."). Any relative URL used in in' must be relative to the current working directory.
-.br
-* in (null): filter chain to load as string. Words starting with - are ignored. The first entry must specifies a source URL, and additional filters and links can be specified using @N[#LINKOPT] and @@N[#LINKOPT] syntax, as in gpac
+  * other: use value as input filter declaration and launch 'in' as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
 .br
 * opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 .br
@@ -7811,25 +7837,29 @@ Note: when launching child process, the input filter is created first and the ch
 .br
 
 .br
+Warning: when launching child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
+.br
+
+.br
 Properties for scene objects:
 .br
 * id (null): scene identifier
 .br
-* js ('base'): scene type, either builtin (see below) or path to a JS module
+* js ('shape'): scene type, either builtin (see below) or path to a JS module
 .br
-* sources ([]): list of sequence IDs this scene is using. Currently only 0, 1 and 2 values are supported.
+* sources ([]): list of identifiers of sequences used by this scene
 .br
 * x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
 .br
 * x (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
 .br
-* width (100): width of the scene, in percent of the output width. Special value height indicates to use scene height (width='height' must then be declared after height)
+* width (100): width of the scene, in percent of the output width. Special value height indicates to use scene height
 .br
-* height (100): height of the scene, in percent of the output height. Special value width indicates to use scene width (height='width' must then be declared after width)
+* height (100): height of the scene, in percent of the output height. Special value width indicates to use scene width
 .br
 * zorder (0): display order of the scene
 .br
-* active (true): indicates if the scene is active or not. An inactive scene will not be rendered nor checked for updates
+* active (true): indicate if the scene is active or not. An inactive scene will not be refreshed nor rendered
 .br
 * rotation (0): rotation angle of the scene in degrees (the rotation is counter-clockwise, around the scene center)
 .br
@@ -7840,6 +7870,18 @@ Properties for scene objects:
 * mix (null): a transition object to apply if more than one source is set, ignored otherwise
 .br
 * mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
+.br
+* volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
+.br
+* fade ('inout'): indicate how audio should be faded at scene activate/deactivate:
+.br
+  * in: audio fade-in when playing first frame after scene activation
+.br
+  * out: audio fade-out when playing last frame at scene activation
+.br
+  * inout: both fade-in and fade-out are enabled
+.br
+  * other: no audio fade
 .br
 
 .br
@@ -7863,7 +7905,7 @@ Properties for timer objects:
 .br
 * start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
 .br
-* stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now
+* stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now, ignored if less than start_time
 .br
 * keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 .br
@@ -7905,6 +7947,20 @@ Properties for animation objects:
 .br
 
 .br
+Note on colors
+.br
+Colors are handled as strings, formatted as:
+.br
+- the DOM color name (see gpac -h colors)
+.br
+- HTML codes $RRGGBB or #RRGGBB
+.br
+- RGB hex vales 0xRRGGBB
+.br
+- RGBA hex values 0xAARRGGBB
+.br
+
+.br
 .P
 .B
 Filter configuration
@@ -7920,6 +7976,16 @@ The playlist may specify configuration options of the filter, using a root objec
 
 .br
 A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
+.br
+
+.br
+The following additional properties are defined for testing:
+.br
+* reload_tests([]): list of playlists to reload
+.br
+* reload_timeout(1.0): timeout in seconds before playlist reload
+.br
+* reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
 .br
 
 .br
@@ -7975,33 +8041,35 @@ The following is an example playlist using a sequence of two videos with a mix t
 .br
 
 .br
+Example
+.br
 [
 .br
-{"id": "seq1", "loop": -1, "start": 0,  "seq":
+ {"id": "seq1", "loop": -1, "start": 0,  "seq":
 .br
- [
+  [
 .br
-  { "id": "V1", "src": [{"in": "s1.mp4"}], "start": 60, "stop": 80},
+   { "id": "V1", "src": [{"in": "s1.mp4"}], "start": 60, "stop": 80},
 .br
-  { "id": "V2", "src": [{"in": "s2.mp4"}], "stop": 100}
+   { "id": "V2", "src": [{"in": "s2.mp4"}], "stop": 100}
 .br
- ],
+  ],
 .br
- "transition": { "dur": 1, "type": "mix"}
+  "transition": { "dur": 1, "type": "mix"}
 .br
-},
+ },
 .br
-{"id": "scene1", "sources": ["seq1"]},
+ {"id": "scene1", "sources": ["seq1"]},
 .br
-{"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
+ {"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
 .br
- [
+  [
 .br
-  {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
+   {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
 .br
-  {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
+   {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
 .br
- ]
+  ]
 .br
  }
 .br
@@ -8011,14 +8079,26 @@ The following is an example playlist using a sequence of two videos with a mix t
 .br
 
 .br
-.SH scene modules
+
+.br
+.SH Scene modules
 .LP
 .br
 .P
 .B
 Scene clear
 .br
-This scene clears the canvas according to the current clipper with a given color. The default clear color of the mixer is black.
+This scene clears the canvas area covered by the scene with a given color. 
+.br
+
+.br
+The default clear color of the mixer is black.
+.br
+
+.br
+The color none is 0x00000000.
+.br
+
 .br
 Options:
 .br
@@ -8028,7 +8108,7 @@ Options:
 .B
 Scene clip
 .br
-This scene sets the clipper or reset the clipper on the canvas.
+This scene resets the canvas clipper or sets the canvas clipper to the scene area.
 .br
 Options:
 .br
@@ -8067,6 +8147,10 @@ The default scene is optimized to fallback to fast blit when no transformations 
 
 .br
 All options can be updated at run time.
+.br
+
+.br
+The module accepts 0, 1 or 2 sequences as input.
 .br
 
 .br
@@ -8356,7 +8440,7 @@ Options:
 .br
 * cmx_rep ([]): same as cmx, applies to local image in replace mode
 .br
-.SH transition modules
+.SH Transition modules
 .LP
 .br
 .P
@@ -8369,35 +8453,35 @@ Options:
 .br
 * from ('left'): direction of video 2 entry. Possible values are:
 .br
- * left: from left to right edges
+  * left: from left to right edges
 .br
- * right: from right to left edges
+  * right: from right to left edges
 .br
- * top: from top to bottom edges
+  * top: from top to bottom edges
 .br
- * bottom: from bottom to top edges
+  * bottom: from bottom to top edges
 .br
- * topleft: from top-left to bottom-right corners
+  * topleft: from top-left to bottom-right corners
 .br
- * topright: from top-right to bottom-left corners
+  * topright: from top-right to bottom-left corners
 .br
- * bottomleft: from bottom-left to top-right corners
+  * bottomleft: from bottom-left to top-right corners
 .br
- * bottomright: from bottom-right to top-left corners
+  * bottomright: from bottom-right to top-left corners
 .br
 
 .br
 * mode ('slide'): how video 2 entry impacts video 1. Possible values are:
 .br
- * slide: video 1 position is not modified
+  * slide: video 1 position is not modified
 .br
- * push: video 2 pushes video 1 away
+  * push: video 2 pushes video 1 away
 .br
- * squeeze: video 2 squeezes video 1 along opposite edge
+  * squeeze: video 2 squeezes video 1 along opposite edge
 .br
- * grow: video 2 size increases, video 1 not modified
+  * grow: video 2 size increases, video 1 not modified
 .br
- * swap: video 2 size increases, video 1 size decreases
+  * swap: video 2 size increases, video 1 size decreases
 .br
 
 .br
@@ -8626,7 +8710,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1281-g36f10c8be-master
+build: 1.1.0-DEV-rev1294-g7a54b9bec-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -17,6 +17,7 @@ The default behavior is to do this detection only at the first generated frame, 
 
 The filter can be extended through JavaScript modules. Currently only scenes and transition effects use this feature.
 
+
 # Live vs offline
 
 When operating offline, the mixer will wait for video frames to be ready for 10 times \`lwait\`. After this timeout, the filter will abort if no input is available.
@@ -25,7 +26,7 @@ Note: The playlist is still refreshed in offline mode.
 
 
 When operating live, the mixer will initially wait for video frames to be ready for \`lwait\` seconds. After this initial timeout, the output frames will indicate:
-- 'No signal' if no input is available (no source frames)
+- 'No signal' if no input is available (no source frames) or no scene is defined
 - 'Signal lost' if no new input data has been received for \`lwait\` on a source
 `;
 
@@ -50,6 +51,12 @@ The \`type\` property of root objects is usually not needed as the parser guesse
 A root object with a property \`skip\` set to anything but \`0\` or \`false\` is ignored.
 Any unrecognized property not starting with \`_\` will be reported as warning.
 
+A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+
+Media source timing does not depend on the media being used by a scene or not, it is only governed by the \`sequence\` parameters.
+This means that a \`sequence\` not used by any active scene will not be rendered (video nor audio).
+
+
 ## JSON syntax
 
 Properties for \`sequence\` objects:
@@ -71,9 +78,8 @@ Properties for \`source\` objects:
 - src ([]): list of \`sourceURL\` describing the URLs to play. Multiple sources will be played in parallel
 - start (0.0): media start time in source
 - stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to \`start\`
-- volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
 - mix (true): if true, apply sequence transition or mix effect ratio as audio volume. Otherwise volume is not modified by transitions.
-- fade ('inout'): indicate how audio should be faded:
+- fade ('inout'): indicate how audio should be faded at stream start/end:
   - in: audio fade-in when playing first frame
   - out: audio fade-out when playing last frame
   - inout: both fade-in and fade-out are enabled
@@ -113,6 +119,12 @@ Properties for \`scene\` objects:
 - vskew (0): vertical skewing factor to apply to the scene
 - mix (null): a \`transition\` object to apply if more than one source is set, ignored otherwise
 - mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
+- volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
+- fade ('inout'): indicate how audio should be faded at scene activate/deactivate:
+  - in: audio fade-in when playing first frame after scene activation
+  - out: audio fade-out when playing last frame at scene activation
+  - inout: both fade-in and fade-out are enabled
+  - other: no audio fade
 
 Properties for \`transition\` objects:
 - type: transition type, either builtin (see below) or path to a JS module
@@ -159,6 +171,11 @@ The playlist may specify configuration options of the filter, using a root objec
 - each declared property overrides the filter option of the same name (whether default or set at filter creation)
 
 A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
+
+The following additional properties are defined for testing:
+- reload_tests([]): list of playlists to reload
+- reload_timeout(1.0): timeout in seconds before playlist reload
+- reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
 
 
 ## Playlist modification
