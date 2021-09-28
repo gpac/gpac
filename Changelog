@@ -594,7 +594,7 @@ It also adds several small features:
   - misc fixes in ffmpeg decoder and MP4Box ISMA for PAR - this is disabled by default due to some unsolved crashes, cf gpac/doc/configuration.html or man gpac.s
   - misc updates in MP4Box meta handling for item extraction.
   - fixed MPEG-2 aac importing and info dumping
-  - fixed 3GPP text display bug when stoping and changing an animationStream using a 3GPP text object.
+  - fixed 3GPP text display bug when stopping and changing an animationStream using a 3GPP text object.
   - fixed AVC/H264 HP parsing
   - added BIFS track visual size info at BT/XMT encoding stage
   - MOVED FFMPEG INCLUDE FILES TO LATEST CVS VERSION to support AVC/H264 HP decoding

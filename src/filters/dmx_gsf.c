@@ -212,7 +212,7 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->nb_playing)
 			ctx->stop_pending = GF_TRUE;
 		//always cancel, take the decision to stop source after demuxing some packets
-		//this avoids stoping (and reseting inputs) when some streams of the mux are not used while other are
+		//this avoids stopping (and reseting inputs) when some streams of the mux are not used while other are
 		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:

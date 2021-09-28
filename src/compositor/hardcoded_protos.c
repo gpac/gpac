@@ -1425,7 +1425,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			if (vrinfo.has_full_coverage) {
 				if (visible) {
 					if (!txh->is_open) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s stoped on visible partial sphere - starting it\n", pid_name));
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %s stopped on visible partial sphere - starting it\n", pid_name));
 						assert(txh->stream && txh->stream->odm);
 						txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
 						txh->stream->odm->flags |= GF_ODM_TILED_SHARED_CLOCK;
