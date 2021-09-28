@@ -171,6 +171,9 @@ filter.maxdur=0;
 
 let sources = [];
 let reload_tests=null;
+let reload_timeout=1.0;
+let reload_loop=false;
+let reload_idx=0;
 
 let last_modification = 0;
 let init_utc = 0;
@@ -372,7 +375,8 @@ filter.initialize = function()
 
 	playlist_url = filter.pl.slice();
 
-	load_playlist(); 
+	if (!load_playlist())
+		return GF_BAD_PARAM;
 	playlist_loaded = true;
 
 	if (filter.live) {
@@ -444,6 +448,7 @@ let use_canvas_3d = false;
 let defaultOrthoProjectionMatrix = null;
 
 let audio_mix = null;
+let generate_default_scene = true;
 
 
 
@@ -567,6 +572,8 @@ filter.configure_pid = function(pid)
 			pid.is_blocking = false;
 			pid.done = false;
 			pid.fade = 0;
+			pid.active = false;
+			pid.audio_fade = null;
 			pid.last_pck_time = /*	current_utc_clock =*/ Date.now();
 		} else {
 			if (!pid.skipped) {
@@ -609,7 +616,6 @@ filter.configure_pid = function(pid)
 	} else {
 		pid.type = TYPE_UNHANDLED;
 	}
-
 
 	if (pid.timescale != ts) {
 		pid.translate_timestamp = function(value) {
@@ -660,7 +666,14 @@ filter.remove_pid = function(pid)
 			if (pid_link.pid === pid) {
 				scene.mod.pids.splice(i, 1);
 				scene.resetup_pids = true;
-				return;
+				break;
+			}
+		}
+		for (let i=0; i<scene.apids.length; i++) {
+			let pid_link = scene.apids[i];
+			if (pid_link.pid === pid) {
+				scene.resetup_pids = true;
+				break;
 			}
 		} 
 	});
@@ -774,11 +787,19 @@ filter.process = function()
 
 	current_utc_clock = Date.now();
 
-	if (reload_tests && reload_tests.length) {
-		if (last_pl_test_switch + video_timescale < video_time) {
+	if (reload_tests && (reload_idx<reload_tests.length) ) {
+		if (last_pl_test_switch + reload_timeout*video_timescale < video_time) {
 			last_pl_test_switch = video_time;
-			filter.pl = sys.url_cat(filter.pl, reload_tests[0]);
-			reload_tests = reload_tests.splice(1);
+			filter.pl = sys.url_cat(filter.pl, reload_tests[reload_idx]);
+			last_modification = 0;
+			reload_idx++;
+			if (reload_idx>=reload_tests.length) {
+				if (reload_loop>=0) {
+					reload_loop --;
+					if (reload_loop<0) reload_loop=0;
+				}
+				if (reload_loop) reload_idx=0;
+			}
 		}
 	}
 	load_playlist();
@@ -862,6 +883,7 @@ function scene_resetup_pids(scene)
 {
 	//purge pid links
 	scene.mod.pids.length = 0;
+	scene.apids.length = 0;
 
 	let prefetching = [];
 	//check all pids from sources
@@ -869,15 +891,18 @@ function scene_resetup_pids(scene)
 		seq.sources.forEach(src => {
 			if (src.in_prefetch) return;
 			src.pids.forEach(pid => {	
+
+				//check audio pids
+		    if (pid.type == TYPE_AUDIO) {
+					scene.apids.push(pid);
+					return;
+		    }
+
 				//only check for video pids
 		    if (pid.type != TYPE_VIDEO)
 					return;
 
-				if (scene.mod.pids.indexOf(pid)>=0) {
-					return;
-				}
 				//add pid link
-
 				let pid_link = {};
 				pid_link.pid = pid;
 				pid_link.texture = null;
@@ -981,8 +1006,6 @@ function process_video()
 			return;
 		}
 	}
-
-  if (!scenes.length) return;
 
 	let has_opaque = false;
 	let pid_background = null;
@@ -1150,14 +1173,20 @@ function process_video()
 		  webgl.clear(webgl.COLOR_BUFFER_BIT);
 		}
 
-		display_list.forEach(scene => {
-			active_scene = scene;
-			if (scene.gl_type == SCENE_GL_NONE) {
-				scene.mod.draw(); 
-			} else {
-				scene.mod.draw_gl(webgl); 
-			}
-		});
+	  if (!display_list.length) {
+			active_scene = null;
+			draw_scene_no_signal(null);
+		} else {
+			display_list.forEach(scene => {
+				active_scene = scene;
+				if (scene.gl_type == SCENE_GL_NONE) {
+					scene.mod.draw();
+				} else {
+					scene.mod.draw_gl(webgl);
+				}
+			});
+		}
+
 
 		canvas_offscreen_deactivate();
 
@@ -1197,19 +1226,26 @@ function process_video()
 				canvas.reassign(frame.data);
 			}
 
+			//reset clipper
+			canvas.clipper = null;
+
 			if (!has_opaque) {
 				print(GF_LOG_DEBUG, 'canvas clear to ' + back_color);
 				canvas.clear(back_color);
 			}
-			//reset clipper
-			canvas.clipper = null;
-			display_list.forEach(scene => {
-					active_scene = scene;
-					scene.mod.draw(canvas);
-				  canvas.matrix = null;
-				  canvas.path = null;
-				  //do not reset clipper
-			});
+
+		  if (!display_list.length) {
+				active_scene = null;
+				draw_scene_no_signal(null);
+			} else {
+				display_list.forEach(scene => {
+						active_scene = scene;
+						scene.mod.draw(canvas);
+					  canvas.matrix = null;
+					  canvas.path = null;
+					  //do not reset clipper
+				});
+			}
 		}
   }
 
@@ -1285,10 +1321,9 @@ function process_audio()
 		if (!pid.data) {
 			pid.data = pid.pck.data;
 		}
-		if (pid.source.mix)
-			pid.volume = pid.source.volume * pid.source.mix_volume;
-		else
-			pid.volume = pid.source.volume;
+		//default is mute
+		pid.volume = 0;
+		pid.detached = true;
 	});
 
 	if (nb_samples > filter.alen)
@@ -1321,6 +1356,51 @@ function process_audio()
 		empty=true;
 		nb_samples = filter.alen;
 	} else {
+
+		//apply volume per scene
+		scenes.forEach(scene => {
+			scene.apids.forEach(pid => {
+				pid.detached = false;
+				if (pid.source.mix)
+					pid.volume = scene.mod.volume * pid.source.mix_volume;
+				else
+					pid.volume = scene.mod.volume;
+
+				//scene inactive
+				if (!scene.mod.active) {
+					//pid was active, either mute or fade to 0
+					if (pid.active) {
+						if ((scene.mod.fade=='out') || (scene.mod.fade=='inout')) {
+							pid.fade = 2; //fade to 0
+						} else {
+							pid.volume = 0;
+						}
+						pid.active = false;
+					} else {
+						pid.volume = 0;
+					}
+				}
+				//scene active, pid was inactive: use full volume and fade from to 0
+				else if (!pid.active) {
+					if ((scene.mod.fade=='in') || (scene.mod.fade=='inout')) {
+						pid.fade = 1; //fade from 0
+					}
+					pid.active = true;
+					//remember audio fade type
+					pid.audio_fade = scene.mod.fade;
+				}
+			});
+		});
+
+		//also do a fadeout for pids no longer active
+		mix_pids.forEach(pid => {
+			if (!pid.detached || !pid.active) return;
+			if ((pid.audio_fade=='out') || (pid.audio_fade=='inout')) {
+				pid.fade = 2; //fade to 0
+			}
+			pid.active = false;
+		});
+
 
 		aframe = aout.new_packet(nb_samples * channels * sample_size);
 
@@ -1759,8 +1839,9 @@ function fetch_source(s)
 				}
 				if (diff_samples>0) {
 					pid.nb_samples = diff_samples;
-					if ((pid.source.audio_fade=='out') || (pid.source.audio_fade=='inout'))
+					if ((pid.source.audio_fade=='out') || (pid.source.audio_fade=='inout')) {
 						pid.fade = 2; //fade to 0
+					}
 					print(GF_LOG_DEBUG, 'End of playback pending for ' + pid.source.logname + ' - samples left ' + diff_samples);
 				} else {
 					//we are done
@@ -1892,8 +1973,9 @@ function fetch_source(s)
 				pid.init_clock = video_time;
 			} else {
 				pid.init_clock = audio_time;
-				if ((pid.source.audio_fade=='in') || (pid.source.audio_fade=='inout'))
+				if ((pid.source.audio_fade=='in') || (pid.source.audio_fade=='inout')) {
 					pid.fade = 1; //fade from 0
+				}
 			}
 			print(GF_LOG_DEBUG, 'PID ' + s.logname + '.' + pid.name + ' clock init TS ' + pid.init_ts + ' clock value ' + pid.init_clock);
 		});
@@ -2332,10 +2414,6 @@ function parse_source_opts(src, pl_el)
 	src.media_start = pl_el.start || 0;
 	src.media_stop = pl_el.stop || 0;
 	src.audio_fade = pl_el.fade || "inout";
-	if (typeof pl_el.volume == 'number')
-		src.volume = pl_el.volume;
-	else
-		src.volume = 1.0;
 	if (typeof pl_el.mix == 'boolean')
 		src.mix = pl_el.mix;
 	else
@@ -2363,7 +2441,6 @@ function push_source(el, id, seq)
 	s.next_in_transition = false;
 	s.transition_offset = 0;
 	s.removed = 0;
-	s.volume = 1.0;
 	s.mix_volume = 1.0;
 	s.keep_alive = el.keep_alive || false;
 	s.video_time_at_init = 0;
@@ -2638,10 +2715,14 @@ function parse_config(pl)
 		}
 		else if (propertyName == 'pfmt') filter.pfmt = pl.pfmt;
 		else if (propertyName == 'afmt') filter.afmt = pl.afmt;
-		else if ((propertyName == 'live') || (propertyName == 'thread') || (propertyName == 'lwait') || (propertyName == 'ltimeout')
+		else if ( (propertyName == 'thread') || (propertyName == 'lwait') || (propertyName == 'ltimeout')
 			 || (propertyName == 'sr') || (propertyName == 'ch') || (propertyName == 'alen') || (propertyName == 'maxdur')
 		) {
 			if (typeof pl[propertyName]  != 'number') print(GF_LOG_WARNING, "Expecting number for option \`" + propertyName + "\` in playlist config, ignoring");
+			else filter[propertyName] = pl[propertyName];
+		}
+		else if (propertyName == 'live') {
+			if ((typeof pl[propertyName]  != 'number') && (typeof pl[propertyName]  != 'boolean')) print(GF_LOG_WARNING, "Expecting boolean for option \`" + propertyName + "\` in playlist config, ignoring");
 			else filter[propertyName] = pl[propertyName];
 		}
 		else if ((propertyName == 'pfmt') || (propertyName == 'afmt')) {
@@ -2658,6 +2739,11 @@ function parse_config(pl)
 			} else {
 				print(GF_LOG_WARNING, 'Expecting string or string array for option ' + propertyName + ' in playlist config, ignoring');
 			}
+		}
+		else if ((propertyName == 'reload_timeout') || (propertyName == 'reload_loop')) {
+			if (typeof pl[propertyName]  != 'number') print(GF_LOG_WARNING, "Expecting number for option \`" + propertyName + "\` in playlist config, ignoring");
+			else if (propertyName == 'reload_timeout') reload_timeout = pl.reload_timeout;
+			else if (propertyName == 'reload_loop') reload_loop = pl.reload_loop;
 		}
 		else if (propertyName == 'type' ) {}
 		else if (propertyName.charAt(0) != '_') {
@@ -2761,6 +2847,10 @@ function load_playlist()
 		parse_pl_elem(pl);
 	}
 
+	if (scenes.length) {
+		generate_default_scene = false;
+	}
+
 	//cleanup sources no longer in use
 	for (let i=0; i<sources.length; i++) {
 		let s = sources[i];
@@ -2783,9 +2873,8 @@ function load_playlist()
 		i--;
 	}
 
-
 	//create default scene if needed
-	if (!scenes.length && sources.length) {
+	if (!scenes.length && sources.length && generate_default_scene) {
 		print(GF_LOG_INFO, 'No scenes defined, generating default one');
 		create_scene(null, { "js": "shape"});
 	}
@@ -2834,6 +2923,8 @@ function set_scene_options(scene, params)
 	parse_val(params, "rotation", 0, scene.mod, 0, UPDATE_POS);
 	parse_val(params, "hskew", 0, scene.mod, 0, UPDATE_POS);
 	parse_val(params, "vskew", 0, scene.mod, 0, UPDATE_POS);
+	parse_val(params, "volume", 0, scene.mod, 1.0, 0);
+	scene.mod.fade = params.fade || "inout";
 
 	if (scene.options) {
 		scene.options.forEach( o => {
@@ -2902,6 +2993,8 @@ function set_scene_options(scene, params)
 		if (propertyName == 'js') continue;
 		if (propertyName == 'skip') continue;
 		if (propertyName == 'sources') continue;
+		if (propertyName == 'volume') continue;
+		if (propertyName == 'fade') continue;
 		if (propertyName == 'mix') continue;
 		if (propertyName == 'mix_ratio') continue;
 
@@ -2947,6 +3040,7 @@ function setup_scene(scene, seq_ids, params)
 	scene.sequences = [];
 	scene.resetup_pids = true;
 	scene.mod.pids = [];
+	scene.apids = [];
 	scene.transition_effect = null;
 	scene.mod.mix_ratio = -1;
 	scene.transition = null;
@@ -3239,7 +3333,7 @@ function parse_timer(pl)
 			else tar.atype = 0;
 
 			tar.update_type = UPDATE_SIZE;
-			if ((tar.field=="width") || (tar.field=="height"))
+			if ((tar.field=="width") || (tar.field=="height") || (tar.field=="volume") || (tar.field=="fade"))
 					tar.update_type = UPDATE_SIZE; 
 			else if ((tar.field=="x") || (tar.field=="y") || (tar.field=="rotation") || (tar.field=="hskew") || (tar.field=="vskew"))
 					tar.update_type = UPDATE_POS; 
@@ -3251,7 +3345,7 @@ function parse_timer(pl)
 				return;
 			}
 
-			if (tar.field=="mix_ratio")
+			if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade"))
 				tar.update_type = 0; 
 
 			//indexed anim
@@ -3576,12 +3670,14 @@ function draw_scene_no_signal(matrix)
 	if (!no_signal_path) no_signal_path = new evg.Text();
 
 	let text = no_signal_path;
-	text.fontsize = active_scene.mod.height / 20;  
+	let h = active_scene ? active_scene.mod.height : video_height;
+	let w = active_scene ? active_scene.mod.width : video_width;
+	text.fontsize = h / 20;
   text.font = ['SANS'];
   text.align = GF_TEXT_ALIGN_LEFT;
 	text.baseline = GF_TEXT_BASELINE_TOP;
 
-	text.maxWidth = active_scene.mod.width;
+	text.maxWidth = w;
 	let d = new Date();
 	if (no_signal_text==null) {
 		//let version = 'GPAC '+sys.version + ' API '+sys.version_major+'.'+sys.version_minor+'.'+sys.version_micro;
@@ -3589,7 +3685,7 @@ function draw_scene_no_signal(matrix)
 		no_signal_text = ['No input', '', version, '(c) 2000-2021 Telecom Paris'];
 	}
 	let s1 = null;
-	if (active_scene.mod.pids.length) {
+	if (active_scene && active_scene.mod.pids.length) {
 		if (sys.test_mode) 
 			s1 = 'Signal lost';
 		else
@@ -3606,7 +3702,7 @@ function draw_scene_no_signal(matrix)
 	}
 
   let mx = new evg.Matrix2D(matrix);
-  mx.translate(-active_scene.mod.width/2, 0);
+  mx.translate(-w/2, 0);
 
   if (!no_signal_outline) {
   	no_signal_outline = text.get_path().outline( { width: 6, align: GF_PATH_LINE_CENTER, cap: GF_LINE_CAP_ROUND, join: GF_LINE_JOIN_ROUND } );

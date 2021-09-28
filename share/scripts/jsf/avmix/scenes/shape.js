@@ -846,7 +846,6 @@ update: function() {
 
     //setup textures
     if (this.is_texture) {
-
       if (this.pids.length) {
         this.pids.forEach(p => {
            setup_texture.apply(this, [p]);
@@ -883,6 +882,9 @@ update: function() {
       this.can_reuse = false;
       this.use_blit = false;
       this.local_stencil = create_brush.apply(this, [this.fill]);
+      //no fill specified, no input pids, consider this is no signal but we need to clear canvas
+      if (!this.local_stencil)
+          this.opaque = false;
     }
   }
 
