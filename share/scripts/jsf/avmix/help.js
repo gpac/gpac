@@ -192,7 +192,7 @@ A \`sourceURL\` object is not tracked for modification, only evaluated when acti
 
 A \`scene\` object modified between two reloads is notified of each changed value.
 
-A \`timer\` object modified between two reloads is shut down and restarted. Consequently,  \`animation\` objects are not tracked between updates.
+A \`timer\` object modified between two reloads is shut down and restarted. Consequently, \`animation\` objects are not tracked between updates.
 
 A \`transition\` object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
 

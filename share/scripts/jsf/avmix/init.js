@@ -755,8 +755,8 @@ filter.process = function()
 		return GF_EOS;
 
 	if (filter.maxdur) {
-		if ((video_time > filter.maxdur*video_timescale) || (audio_time > filter.maxdur*audio_timescale)) {
-			print(GF_LOG_INFO, 'maxdur reached, quit');
+		if ((video_time >= filter.maxdur*video_timescale) && (audio_time >= filter.maxdur*audio_timescale)) {
+			print(GF_LOG_INFO, 'maxdur reached, quit ' + video_time + '/' + video_timescale + ' - ' + audio_time + '/' + audio_timescale);
 			do_terminate();
 			return;
 		}
@@ -850,6 +850,10 @@ filter.process = function()
 
 	timers.forEach(update_timer);
 
+	if (filter.maxdur && (video_time >= filter.maxdur*video_timescale)) {
+		do_video = false;
+	}
+
 	do_audio = (aout && audio_playing) ? true : false;
 	if (vout && video_playing) {
 		if (do_video) {
@@ -859,6 +863,10 @@ filter.process = function()
 		if (audio_playing && (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale)) {
 			return;
 		}
+	}
+
+	if (filter.maxdur && (audio_time >= filter.maxdur*audio_timescale)) {
+		do_audio = false;
 	}
 
 	if (do_audio) {
@@ -3081,7 +3089,7 @@ function create_scene(seq_ids, params)
 	scene.id = params.id || "_gpac_scene_default";
 	scene.pl_update = true;
 	scene.mod = null;
-	scene.sequences = null;
+	scene.sequences = [];
 	scenes.push(scene);
 	scene.gl_type = SCENE_GL_NONE;
 
