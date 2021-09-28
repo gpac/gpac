@@ -205,6 +205,10 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
+		if (ctx->out_pck) {
+			gf_filter_pck_discard(ctx->out_pck);
+			ctx->out_pck = NULL;
+		}
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -310,7 +314,11 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-
+static void rawvidreframe_finalize(GF_Filter *filter)
+{
+	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
+}
 static GF_FilterCapability RawVidReframeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -346,6 +354,7 @@ GF_FilterRegister RawVidReframeRegister = {
 	.private_size = sizeof(GF_RawVidReframeCtx),
 	.args = RawVidReframeArgs,
 	SETCAPS(RawVidReframeCaps),
+	.finalize = rawvidreframe_finalize,
 	.configure_pid = rawvidreframe_configure_pid,
 	.process = rawvidreframe_process,
 	.process_event = rawvidreframe_process_event
