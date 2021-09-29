@@ -5699,7 +5699,15 @@ GF_Err gf_isom_set_media_subtype(GF_ISOFile *movie, u32 trackNumber, u32 sampleD
 
 	entry = (GF_SampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex - 1);
 	if (!entry) return GF_BAD_PARAM;
-	entry->type = new_type;
+	if (entry->type==GF_ISOM_BOX_TYPE_GNRV) {
+		((GF_GenericVisualSampleEntryBox *)entry)->EntryType = new_type;
+	} else if (entry->type==GF_ISOM_BOX_TYPE_GNRA) {
+		((GF_GenericAudioSampleEntryBox *)entry)->EntryType = new_type;
+	} else if (entry->type==GF_ISOM_BOX_TYPE_GNRM) {
+		((GF_GenericSampleEntryBox *)entry)->EntryType = new_type;
+	} else {
+		entry->type = new_type;
+	}
 	return GF_OK;
 }
 
