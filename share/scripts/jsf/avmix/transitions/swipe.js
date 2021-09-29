@@ -33,7 +33,6 @@ mod: 0,
 
 setup: function()
 {
-
     if (this.mode == "push") this.mod = 1;
     else if (this.mode == "squeeze") this.mod = 2;
     else if (this.mode == "grow") this.mod = 3;
@@ -66,6 +65,10 @@ setup: function()
 
 apply: function(canvas, ratio, path, matrix, pids)
 {
+  if (use_gpu) {
+    this.apply_gl(canvas, ratio, path, matrix, pids);
+    return;
+  }
 
   let rc = path.bounds;
   if (typeof rc == 'undefined') return;
@@ -92,7 +95,7 @@ apply: function(canvas, ratio, path, matrix, pids)
     new_h = rc.h*ratio;
   }
   //bottom
-  else if (this.v_mode==1) {
+  else if (this.v_mode==2) {
     new_y = -rc.h/2 + rc.h*ratio/2;
     new_h = rc.h*ratio;
   }
@@ -145,6 +148,7 @@ apply: function(canvas, ratio, path, matrix, pids)
     t_y1 = rc.h*ratio;
     t_y2 = rc.h*(ratio-1);
   }
+
   mx1.translate(t_x1, t_y1);
   mx2.translate(t_x2, t_y2);
 
@@ -156,6 +160,7 @@ apply: function(canvas, ratio, path, matrix, pids)
     mx1.scale(1-ratio, 1-ratio);
     mx2.scale(ratio, ratio);
   }
+
 
 
   let pad1_bck = pids[0].texture.get_pad_color();
@@ -171,11 +176,353 @@ apply: function(canvas, ratio, path, matrix, pids)
   canvas.matrix = matrix;
   canvas.fill(GF_EVG_OPERAND_ODD_FILL, ratio, pids[0].texture, pids[1].texture);
 
+
   pids[0].texture.set_pad_color(pad1_bck);
   pids[1].texture.set_pad_color(pad2_bck);
 
   pids[0].texture.mx = mx1_bck;
   pids[1].texture.mx = mx2_bck;
+},
+
+pad_col_uni: null,
+pad_col: null,
+
+setup_gl: function(webgl, program, first_available_texture_unit)
+{
+  this.pad_col_uni = webgl.getUniformLocation(program, 'pad_color');
+  this.pad_col = null;
+},
+
+apply_gl: function(webgl, ratio, path, matrix, pids)
+{
+   if (!this.pad_col_uni) return;
+  let pad1_bck = pids[0].texture.get_pad_color() || 'black';
+  if (this.pad_col !== pad1_bck) {
+    let a = sys.color_component(pad1_bck, 0);
+    let r = sys.color_component(pad1_bck, 1);
+    let g = sys.color_component(pad1_bck, 2);
+    let b = sys.color_component(pad1_bck, 3);
+
+    webgl.uniform4f(this.pad_col_uni, r, g, b, a);
+    this.pad_col = pad1_bck;
+  } 
+},
+
+get_shader_src: function()
+{
+  this.setup();
+
+
+
+  let frag_src = `void main() {
+     vec2 p = txcoord_from.xy;
+     `;
+  
+  if (this.mod==0) {
+    frag_src += `
+      vec2 txcf = p;
+      vec2 txct = p;
+    `;
+  }
+  let use_pad = false;
+
+  if (this.h_mode == 1) {
+    //topleft
+    if (this.v_mode == 1) {
+      frag_src += 'float myratio = step(0.0 + p.x, ratio) * step(0.0 + p.y, ratio);';
+
+      if (this.mod) {
+        use_pad = true;
+        frag_src += `
+vec2 txcf = vec2(p.x - ratio, p.y - ratio);
+vec2 txct = vec2(1.0 + p.x - ratio, 1.0 + p.y - ratio);
+float is_in = (myratio==0.0) ? step(1.0, txct.x) * step(1.0, txct.y) : 1.0;
+`;
+      }
+      if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf /= (1.0-ratio);
+is_in *= (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if ((this.mod==3) || (this.mod==4)) {
+        frag_src += `
+txct.x -= 1.0;
+txct.y -= 1.0;
+txct /= ratio;
+txct.x += 1.0;
+txct.y += 1.0;
+is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+    //bottomleft
+    else if (this.v_mode == 2) {
+      frag_src += 'float myratio = step(0.0 + p.x, ratio) * step(1.0 - p.y, ratio);';
+
+      if (this.mod) {
+        use_pad = true;
+        frag_src += `
+vec2 txcf = vec2(p.x - ratio, p.y + ratio);
+vec2 txct = vec2(1.0 + p.x - ratio, p.y + ratio - 1.0);
+float is_in = (myratio==0.0) ? step(1.0, txct.x) * step(txct.y, 0.0) : 1.0;
+`;
+      }
+      if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.y -= 1.0;
+txcf /= (1.0-ratio);
+txcf.y += 1.0;
+is_in *= (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if ((this.mod==3) || (this.mod==4)) {
+        frag_src += `
+txct.x -= 1.0;
+txct /= ratio;
+txct.x += 1.0;
+is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+    //left
+    else {
+      frag_src += 'float myratio = step(0.0 + p.x, ratio);';
+      if (this.mod) {
+        frag_src += `
+vec2 txcf = vec2(p.x - ratio, p.y);
+vec2 txct = vec2(1.0 + p.x - ratio, p.y);
+`;
+      }
+      if (this.mod>1) {
+        frag_src += `
+float is_in;
+`;
+        use_pad = true;
+      }
+      if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.y -= 0.5;
+txcf /= (1.0-ratio);
+txcf.y += 0.5;
+is_in = (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if ((this.mod==3) || (this.mod==4)) {
+        let op = (this.mod==4) ? '*=' : '='; 
+        frag_src += `
+txct.x -= 1.0;
+txct.y -= 0.5;
+txct /= ratio;
+txct.x += 1.0;
+txct.y += 0.5;
+is_in `+ op + ` (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+  }
+  else if (this.h_mode == 2) {
+    //topright
+    if (this.v_mode == 1) {
+      frag_src += 'float myratio = step(1.0 - p.x, ratio) * step(0.0 + p.y, ratio);';
+      if (this.mod) {
+        use_pad = true;
+        frag_src += `
+vec2 txcf = vec2(p.x + ratio, p.y - ratio);
+vec2 txct = vec2(p.x + ratio - 1.0, 1.0 + p.y - ratio);
+float is_in = (myratio==0.0) ? step(txct.x, 0.0) * step(1.0, txct.y) : 1.0;
+`;
+      }
+      if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.x -= 1.0;
+txcf /= (1.0-ratio);
+txcf.x += 1.0;
+is_in *= (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if ((this.mod==3) || (this.mod==4)) {
+        frag_src += `
+txct.y -= 1.0;
+txct /= ratio;
+txct.y += 1.0;
+is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+    //bottomright
+    else if (this.v_mode == 2) {
+      frag_src += 'float myratio = step(1.0 - p.x, ratio) * step(1.0 - p.y, ratio);';
+      if (this.mod) {
+        use_pad = true;
+        frag_src += `
+vec2 txcf = vec2(p.x + ratio, p.y + ratio);
+vec2 txct = vec2(p.x + ratio - 1.0, p.y + ratio - 1.0);
+float is_in = (myratio==0.0) ? step(txct.x, 0.0) * step(txct.y, 0.0) : 1.0;
+`;
+      }
+      if (this.mod==2) {
+        frag_src += `
+txcf.x -= 1.0;
+txcf.y -= 1.0;
+txcf /= (1.0-ratio);
+txcf.x += 1.0;
+txcf.y += 1.0;
+is_in *= (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if (this.mod==3) {
+        frag_src += `
+txct /= ratio;
+is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+      if (this.mod==4) {
+        frag_src += `
+txcf.x -= 1.0;
+txcf.y -= 1.0;
+txcf /= (1.0-ratio);
+txcf.x += 1.0;
+txcf.y += 1.0;
+is_in *= (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+txct /= ratio;
+is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+    //right
+    else {
+      frag_src += 'float myratio = step(1.0 - p.x, ratio);';
+      if (this.mod) {
+        frag_src += `
+vec2 txcf = vec2(p.x + ratio, p.y);
+vec2 txct = vec2(p.x + ratio - 1.0, p.y);
+`;
+      }
+      if (this.mod>1) {
+        frag_src += `
+float is_in;
+`;
+        use_pad = true;
+      }
+      if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.x -= 1.0;
+txcf.y -= 0.5;
+txcf /= (1.0-ratio);
+txcf.x += 1.0;
+txcf.y += 0.5;
+is_in = (myratio==0.0) ? step(txcf.y, 1.0) * step(0.0, txcf.y) : 1.0;
+`;
+      }
+      if ((this.mod==3) || (this.mod==4)) {
+        let op = (this.mod==4) ? '*=' : '='; 
+        frag_src += `
+txct.y -= 0.5;
+txct /= ratio;
+txct.y += 0.5;
+is_in `+ op + ` (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
+`;
+      }
+    }
+  }
+  //top
+  else if (this.v_mode == 1) {
+    frag_src += 'float myratio = step(0.0 + p.y, ratio);';
+    if (this.mod) {
+      frag_src += `
+vec2 txcf = vec2(p.x, p.y - ratio);
+vec2 txct = vec2(p.x, 1.0 + p.y - ratio);
+`;
+    }
+    if (this.mod>1) {
+        frag_src += `
+float is_in;
+`;
+      use_pad = true;
+    }
+
+    if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.x -= 0.5;
+txcf /= (1.0-ratio);
+txcf.x += 0.5;
+is_in = (myratio==0.0) ? step(0.0, txcf.x) * step(txcf.x, 1.0) : 1.0;
+`;
+    }
+    if ((this.mod==3) || (this.mod==4)) {
+      let op = (this.mod==4) ? '*=' : '=';
+      frag_src += `
+txct.x -= 0.5;
+txct.y -= 1.0;
+txct /= ratio;
+txct.x += 0.5;
+txct.y += 1.0;
+is_in ` + op +` (myratio>0.0) ? step( 0.0, txct.x) * step(txct.x, 1.0) : 1.0;
+`;
+    }
+  }
+  //bottom
+  else if (this.v_mode == 2) {
+    frag_src += 'float myratio = step(1.0 - p.y, ratio);';
+    if (this.mod) {
+      frag_src += `
+vec2 txcf = vec2(p.x, p.y + ratio);
+vec2 txct = vec2(p.x, p.y + ratio - 1.0);
+`;
+    }
+    if (this.mod>1) {
+      frag_src += `
+float is_in;
+`;
+      use_pad = true;
+    }
+    if ((this.mod==2) || (this.mod==4)) {
+        frag_src += `
+txcf.x -= 0.5;
+txcf.y -= 1.0;
+txcf /= (1.0-ratio);
+txcf.x += 0.5;
+txcf.y += 1.0;
+is_in = (myratio==0.0) ? step(0.0, txcf.x) * step(txcf.x, 1.0) : 1.0;
+`;
+    }
+    if ((this.mod==3) || (this.mod==4)) {
+      let op = (this.mod==4) ? '*=' : '=';
+      frag_src += `
+txct.x -= 0.5;
+txct /= ratio;
+txct.x += 0.5;
+is_in `+ op + `(myratio>0.0) ? step( 0.0, txct.x) * step(txct.x, 1.0) : 1.0;
+`;
+    }
+  } else {
+    frag_src += 'float myratio = ratio;';      
+  }
+  frag_src += `
+    vec4 col_from = get_pixel_from(txcf.xy);
+    vec4 col_to = get_pixel_to(txct.xy);`;
+
+  if (use_pad) {
+    frag_src += `
+      is_in = (is_in==0.0) ? 0.0 : 1.0;
+      gl_FragColor = mix(pad_color, mix(col_from, col_to, myratio), is_in);
+    }`;
+  } else {
+    frag_src += `
+      gl_FragColor = mix(col_from, col_to, myratio);
+    }`;
+
+  }
+
+  if (use_pad) {
+    frag_src = 'uniform vec4 pad_color;\n' + frag_src;
+  }
+
+
+  return frag_src;
 }
+
+
 
 }; }

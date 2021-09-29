@@ -7889,7 +7889,7 @@ Properties for transition objects:
 .br
 * type: transition type, either builtin (see below) or path to a JS module
 .br
-* dur: transition duration (transitions always end at source stop time)
+* dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene mix.
 .br
 * fun (null): JS code modifying the ratio effect called ratio, eg fun="ratio = ratio*ratio;"
 .br
@@ -8021,7 +8021,7 @@ A scene object modified between two reloads is notified of each changed value.
 .br
 
 .br
-A timer object modified between two reloads is shut down and restarted. Consequently,  animation objects are not tracked between updates.
+A timer object modified between two reloads is shut down and restarted. Consequently, animation objects are not tracked between updates.
 .br
 
 .br
@@ -8109,6 +8109,12 @@ Options:
 Scene clip
 .br
 This scene resets the canvas clipper or sets the canvas clipper to the scene area.
+.br
+
+.br
+The clipper is always axis-aligned (rotation and skew are ignored).
+.br
+
 .br
 Options:
 .br
@@ -8445,7 +8451,7 @@ Options:
 .br
 .P
 .B
-Transition swipe - software only
+Transition swipe - software/GPU
 .br
 This transition performs simple 2D affine transformations for source videos transitions, with configurable effect origin
 .br
@@ -8500,6 +8506,12 @@ This transition performs fade to color of source videos
 Options:
 .br
 * color ('black'): color to fade to
+.br
+.P
+.B
+Transition wipe - software/GPU
+.br
+This transition performs cross-fade of source videos
 .br
 
 .br
@@ -8710,7 +8722,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1294-g7a54b9bec-master
+build: 1.1.0-DEV-rev1300-g1b61f2619-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
