@@ -3906,7 +3906,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
 		bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 		if (!av1_is_obu_header(a->obu_type))
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
 		e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
 		gf_bs_del(bs);
@@ -3916,21 +3916,22 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		}
 	}
 
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
-		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
-		av1_state.bit_depth, av1_state.config->monochrome,
-		av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
-		av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0);
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u", gf_4cc_to_str(subtype),
+		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M', av1_state.bit_depth);
 
 	if (av1_state.color_description_present_flag) {
 		char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%02u.%02u.%02u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, ".%01u.%01u%01u%01u.%02u.%02u.%02u.%01u",
+			av1_state.config->monochrome, av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
+			av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0,
+			av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
 		strcat(szCodec, tmp);
 	} else {
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
 
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
+				av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
 		}
 	}
 	gf_av1_reset_state(&av1_state, GF_TRUE);
