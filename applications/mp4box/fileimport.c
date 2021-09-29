@@ -677,6 +677,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext+1, "hdlr=", 5)) handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
+		else if (!strnicmp(ext+1, "stype=", 6)) stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		else if (!strnicmp(ext+1, "tkhd", 4)) {
 			char *flags = ext+6;
 			if (flags[0]=='+') { track_flags_mode = GF_ISOM_TKFLAGS_ADD; flags += 1; }
@@ -787,9 +788,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) {
 			neg_ctts_mode = !strnicmp(ext+1, "negctts=no", 10) ? 2 : 1;
-		}
-		else if (!strnicmp(ext+1, "stype=", 6)) {
-			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
 		else if (!strnicmp(ext+1, "chapter=", 8)) {
