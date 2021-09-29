@@ -738,7 +738,7 @@ function do_terminate()
 		pid.discard = true;
 	});
 	scenes.length = 0;
-	sources.forEach(stop_source);
+	sources.forEach(stop_source, true);
 	filter.abort();
 }
 
@@ -770,7 +770,7 @@ filter.process = function()
 			}
 		}
 		//audio ahead of next video frame, don't do audio - if not generating video, do nothing 
-		if (!do_video && audio_playing && (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale)) {
+		if (!do_video && (!audio_playing || (audio_time * video_timescale > (video_time+video_time_inc) * audio_timescale))) {
 			//notfiy we are still alive
 			filter.reschedule(0);
 			if (filter.live) {
@@ -1181,6 +1181,8 @@ function process_video()
 		  webgl.clear(webgl.COLOR_BUFFER_BIT);
 		}
 
+	  wgl_clipper = null;
+
 	  if (!display_list.length) {
 			active_scene = null;
 			draw_scene_no_signal(null);
@@ -1197,6 +1199,8 @@ function process_video()
 
 
 		canvas_offscreen_deactivate();
+
+	  webgl.disable(webgl.SCISSOR_TEST);
 
 		webgl.flush();
 		webgl.activate(false);
@@ -1521,7 +1525,7 @@ function sequence_over(s)
 		s.sequence.sources.forEach(src => { src.next_in_transition = false;});
 		print(GF_LOG_INFO, 'stopping source ' + s.logname);
   	s.video_time_at_init = 0;
-		stop_source(s);
+		stop_source(s, true);
 		return;
 	}
 
@@ -1542,9 +1546,13 @@ function sequence_over(s)
 		}
 	}
 
+	let next_src = next_source(s, false);
+	let is_same_source = (next_src === s) ? true : false;
+
 	if (!is_transition_start) {
 		print(GF_LOG_DEBUG, 'source ' + s.logname + ' is over, sequence start offset ' + s.sequence.start_offset);
-		stop_source(s);
+		if (!is_same_source)
+			stop_source(s, true);
 
 		//transition has been started so next source is loaded, only reset scene pids
 		if (s.sequence.transition_state==3) {
@@ -1559,7 +1567,6 @@ function sequence_over(s)
 		}
 	}
 
-	let next_src = next_source(s, false);
 	if (next_src) {
 		if (next_src.in_prefetch) {
 			print(GF_LOG_INFO, 'End of prefetch for ' + next_src.logname);
@@ -1588,7 +1595,12 @@ function sequence_over(s)
 				s = next_src;
 				continue;	
 			}
-			open_source(next_src);
+
+			if (!is_same_source) {
+				open_source(next_src);
+			} else {
+				stop_source(next_src, false);
+			}
 			play_source(next_src);
 		}
 	} else if (! is_transition_start) {
@@ -1659,7 +1671,7 @@ function fetch_source(s)
 	//done with sequence
 	if (s.sequence.active && (s.sequence.stop_time>0) && (s.sequence.stop_time <= current_utc_clock)) {
 	  	s.video_time_at_init = 0;
-			stop_source(s);
+			stop_source(s, true);
 			s.sequence.transition_state = 0;
 			scenes.forEach(scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
@@ -1957,9 +1969,10 @@ function fetch_source(s)
 	if (!nb_active && source_restart) {
 		nb_over=0;
 		s.timeline_init=0;
-		stop_source(s);
+		stop_source(s, true);
 		open_source(s);
 		play_source(s);
+		video_inputs_ready = false;
 	}
 
 	//source is playing but no packets, we need to force reschedule to probe for no signal, we do that every second
@@ -2020,6 +2033,7 @@ function fetch_source(s)
 	}
 
 	sequence_over(s);
+	video_inputs_ready = false;
 
 	//we are done
 	if (s.removed) {
@@ -2098,12 +2112,14 @@ function play_source(s)
 	s.pids.forEach(pid => { play_pid(pid, s); });
 }
 
-function stop_source(s)
+function stop_source(s, is_remove)
 {
 	if (!s.playing) return;
 	s.playing = false;
 	s.sequence.prefetch_check = false;
+	s.timeline_init=0;
 
+	print(GF_LOG_DEBUG, 'Stoping source ' + s.logname);
   s.src.forEach(src => {
 		if (src.process_id) {
 			let res = os.waitpid(src.process_id, os.WNOHANG);
@@ -2130,15 +2146,16 @@ function stop_source(s)
 		}
 		pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
 	});
-	print(GF_LOG_DEBUG, 'stopping source ' + s.logname);
 
+	if (!is_remove) return;
+
+	print(GF_LOG_DEBUG, 'Removing source ' + s.logname);
 	s.fsrc.forEach( f => {
 		f.remove();
 	});
 	s.fsrc.length = 0;
 	s.pids.length = 0;
 	s.opened = false;
-
 }
 
 function disable_source(s)
@@ -2719,7 +2736,6 @@ function parse_config(pl)
 		else if (propertyName == 'fps') {
 			if (typeof pl.fps == 'string') {
 				var fps = pl.fps.split('/');
-				print('fps is ' + fps);
 				filter.fps.n = parseInt(fps[0]);
 				filter.fps.d = (fps.length>2) ? parseInt(fps[1]) : 1;
 			} else if (typeof pl.fps == 'number') {
@@ -3550,6 +3566,7 @@ function update_timer(timer)
 					scene[target.field] = final;
 					if ((target.atype==1) || (target.atype==2)) check_scene_coords(target.scene)
 					print(GF_LOG_DEBUG, 'update ' + target.scene.id + '.' + target.field + ' to ' + final);
+
 				}
 				return;
 			}
@@ -3593,13 +3610,11 @@ function canvas_clear(color, clip)
 		canvas.clipper = null;
 }
 
+let wgl_clipper = null;
 function canvas_set_clipper(clip)
 {
 		if (webgl) {
-			if (clip)
-			  webgl.viewport(clip.x, clip.y, clip.w, clip.h);
-			else
-			  webgl.viewport(0, 0, video_width, video_height);
+			wgl_clipper = clip;
 		  return;
 		}
 		canvas.clipper = clip;
@@ -3607,7 +3622,6 @@ function canvas_set_clipper(clip)
 
 
 let canvas_offscreen_active = false;
-let last_named_tx_id = 0;
 
 function flush_offscreen_canvas()
 {
@@ -3638,11 +3652,10 @@ function canvas_offscreen_activate()
 		canvas_offscreen._evg_texture = new evg.Texture(canvas_offscreen);
 		if (!canvas_offscreen._evg_texture) return false;
 
-		canvas_offscreen._gl_tx_id = '_gf_internal_sampler' + last_named_tx_id;
-		last_named_tx_id++;
-
 		canvas_offscreen._gl_texture = webgl.createTexture(canvas_offscreen._gl_tx_id);
 		if (!canvas_offscreen._gl_texture) return false;
+		canvas_offscreen._gl_tx_id = webgl.textureName(canvas_offscreen._gl_texture);
+
 
 	 	canvas_offscreen._gl_texture.upload(canvas_offscreen._evg_texture);
 
@@ -3793,10 +3806,15 @@ function canvas_draw(path, matrix, stencil)
 			if (is_texture) {
 				let texture = stencil._gl_texture || null;
 				if (!texture) {
-					stencil._gl_tx_id = 'internal_sampler' + last_named_tx_id;
-					last_named_tx_id++;
-					stencil._gl_texture = webgl.createTexture(stencil._gl_tx_id);
+					stencil._gl_texture = webgl.createTexture(null);
 					if (!stencil._gl_texture) return;
+					stencil._gl_tx_id = webgl.textureName(stencil._gl_texture);
+
+					if (stencil._gl_program) {
+						stencil._gl_program = null;
+						print(GF_LOG_INGO, 'texture format change, reloading GLSL shader');
+						return;
+					}
 				}
 				webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
 		    stencil._gl_texture.upload(stencil);
@@ -3807,7 +3825,10 @@ function canvas_draw(path, matrix, stencil)
 	    		if (is_texture) {
 	    			let fs_src = (stencil._gl_cmx==null) ? fs_source : fs_source_cmx; 
 	  	      prog_info = stencil._gl_program = setup_webgl_program(vs_source, fs_src, stencil._gl_tx_id);
-	  	      if (!stencil._gl_program) return;
+	  	      if (!stencil._gl_program) {
+	  	      	filter.abort();
+	  	      	return;
+	  	      }
 
 	  	      if (stencil._gl_cmx) {
 	  	      	prog_info.uniformLocations.cmx_mul = webgl.getUniformLocation(prog_info.program, 'cmx_mul');
@@ -3818,8 +3839,10 @@ function canvas_draw(path, matrix, stencil)
 	  	      }
 	    		} else {
 	  	      prog_info = stencil._gl_program = setup_webgl_program(vs_const_col, fs_const_col, null);
-	  	      if (!stencil._gl_program) return;
-
+	  	      if (!stencil._gl_program) {
+	  	      	filter.abort();
+	  	      	return;
+	  	      }
 				  	let color = stencil._gl_color || "0xFFFFFFFF";
 				  	let alpha = stencil._gl_alpha || 1;
 				    let a = sys.color_component(color, 0) * alpha;
@@ -3834,6 +3857,13 @@ function canvas_draw(path, matrix, stencil)
 		  webgl.useProgram(prog_info.program);
 
 		  webgl.viewport(0, 0, video_width, video_height);
+
+		  if (wgl_clipper) {
+				webgl.enable(webgl.SCISSOR_TEST);
+				webgl.scissor(wgl_clipper.x+video_width/2, wgl_clipper.y+video_height/2 - wgl_clipper.h, wgl_clipper.w, wgl_clipper.h);
+		  } else {
+				webgl.disable(webgl.SCISSOR_TEST);
+		  }
 
 		  //set transform
 	  	const modelViewMatrix = new evg.Matrix(matrix);
@@ -3862,6 +3892,7 @@ function canvas_draw(path, matrix, stencil)
 				mesh.draw(webgl, prog_info.attribLocations.vertexPosition);
 		  }
 		  webgl.useProgram(null);
+			webgl.disable(webgl.SCISSOR_TEST);
 			return;
 	}
   canvas.path = path;
@@ -3986,6 +4017,7 @@ function canvas_draw_sources(path, matrix)
 		//as fraction
 		ratio = time / seq.transition_dur;
 	} else if (scene.transition) {
+		let skip_tansition = !use_gpu;
 		transition = scene.transition;
 		ratio = scene.mod.mix_ratio;
 		if (ratio<0) ratio = 0;
@@ -3996,15 +4028,19 @@ function canvas_draw_sources(path, matrix)
 		if (scene.transition_state==4) {
 			if (ratio>0.5) ratio = 1;
 			else ratio = 0;
+			skip_tansition = true;
 		}
 
-		if (ratio==0) {
-			canvas_draw(path, matrix, pids[0].texture);
-			return;
-		}
-		if (ratio==1) {
-			canvas_draw(path, matrix, pids[1].texture);
-			return;
+		//for gpu we must setup the program and use it
+		if (skip_tansition) {
+			if (ratio==0) {
+				canvas_draw(path, matrix, pids[0].texture);
+				return;
+			}
+			if (ratio==1) {
+				canvas_draw(path, matrix, pids[1].texture);
+				return;
+			}
 		}
 	}
 
@@ -4039,10 +4075,14 @@ function canvas_draw_sources(path, matrix)
 		  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 
 			if (!texture) {
-				pid.texture._gl_tx_id = 'internal_sampler' + last_named_tx_id;
-				last_named_tx_id++;
-				pid.texture._gl_texture = webgl.createTexture(pid.texture._gl_tx_id);
+				pid.texture._gl_texture = webgl.createTexture(null);
 				if (!pid.texture._gl_texture) return;
+				pid.texture._gl_tx_id = webgl.textureName(pid.texture._gl_texture);
+				
+				if (transition.gl_program) {
+					print(GF_LOG_INFO, 'texture format changed, reloading GLSL program');
+					transition.gl_program = null;
+				}
 			}
 			//bind and update
 			webgl.bindTexture(webgl.TEXTURE_2D, pid.texture._gl_texture);
@@ -4052,14 +4092,16 @@ function canvas_draw_sources(path, matrix)
 
 		//create program
 		let prog_info = transition.gl_program || null;
-	    if (!prog_info) {
+	  if (!prog_info) {
 	  		let frag_source = fs_trans_source_prefix;
-	  		let tx_source = transition.mod.get_shader_src();
+	  		let tx_source = transition.mod.get_shader_src( pids[0].texture );
 	  		if (typeof tx_source != 'string') {
 			    print(GF_LOG_ERROR, 'invalid shader source ' + tx_source);
 			  	print(GF_LOG_ERROR, 'aborting transition');
 			  	if (seq)
 			  		seq.transition_state = 4;
+			  	else
+			  		scene.transition_state = 4;
 	  			return;
 	  		}
 	  		frag_source += tx_source;
@@ -4107,6 +4149,8 @@ col = clamp(col, 0.0, 1.0);
 		  		print(GF_LOG_ERROR, 'shader creation failed, aborting transition');
 		  		if (seq) 
 		  			seq.transition_state = 4;
+			  	else
+			  		scene.transition_state = 4;
 		  		return;
 		 	}
 			prog_info = {
@@ -4158,6 +4202,13 @@ col = clamp(col, 0.0, 1.0);
 		webgl.useProgram(prog_info.program);
 		webgl.viewport(0, 0, video_width, video_height);
 
+	  if (wgl_clipper) {
+			webgl.enable(webgl.SCISSOR_TEST);
+			webgl.scissor(wgl_clipper.x+video_width/2, wgl_clipper.y+video_height/2 - wgl_clipper.h, wgl_clipper.w, wgl_clipper.h);
+	  } else {
+			webgl.disable(webgl.SCISSOR_TEST);
+	  }
+
 	 	//set transform
   		const modelViewMatrix = new evg.Matrix(matrix);
 		webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
@@ -4167,18 +4218,18 @@ col = clamp(col, 0.0, 1.0);
 		tx_slot = 0;
 		//set alpha and texture transforms per pid - 2 max
 		for (let i=0; i<2; i++) {
-	  		let pid = pids[i];
+	  	let pid = pids[i];
 
 		 	let mx2d = pid.texture._gl_mx || null;
-	  		const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
+	  	const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
 			webgl.uniformMatrix4fv(prog_info.textures[i].matrix, false, txmx.m);
 
-	    	let alpha = pid.texture._gl_alpha || 1;
+	    let alpha = pid.texture._gl_alpha || 1;
 		 	webgl.uniform1f(prog_info.textures[i].alpha, alpha);
 
-      		if (pid.texture._gl_cmx) {
+      if (pid.texture._gl_cmx) {
 				gl_set_color_matric(pid.texture._gl_cmx, prog_info.textures[i].cmx_mul, prog_info.textures[i].cmx_add);
-      		}
+      }
 
 			webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 			//and bind our named texture (this will setup active texture slots)
@@ -4187,11 +4238,14 @@ col = clamp(col, 0.0, 1.0);
 			tx_slot += pid.texture._gl_texture.nb_textures;
 		}
 
-	  	//apply transition, ie set uniforms
+
+  	//apply transition, ie set uniforms
 		transition.mod.apply(webgl, ratio, path, matrix, pids);
 
 		mesh.draw(webgl, prog_info.vertexPosition, prog_info.textureCoord);
 	  	webgl.useProgram(null);
+	  	active_scene.mod.mix_ratio += 0.1;
+	  	if (active_scene.mod.mix_ratio>=1) active_scene.mod.mix_ratio = 0.01;
 	  	return;
 	}
 
@@ -4216,8 +4270,9 @@ attribute vec4 aVertexPosition;
 attribute vec2 aTextureCoord;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
-varying vec2 vTextureCoord;
 uniform mat4 textureMatrix;
+varying vec2 vTextureCoord;
+
 void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
 	vTextureCoord = vec2(textureMatrix * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
@@ -4228,6 +4283,7 @@ const vs_const_col = `
 attribute vec4 aVertexPosition;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
+
 void main() {
   gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
 }
@@ -4239,6 +4295,7 @@ varying vec2 vTextureCoord;
 uniform sampler2D maintx;
 uniform float alpha;
 void main(void) {
+
 	vec4 col = texture2D(maintx, vTextureCoord);
 	col.a *= alpha;
   gl_FragColor = col;
@@ -4253,6 +4310,7 @@ uniform float alpha;
 uniform mat4 cmx_mul;
 uniform vec4 cmx_add;
 void main(void) {
+
 	vec4 col = texture2D(maintx, vTextureCoord);
 	col = cmx_mul * col;
 	col += cmx_add;
@@ -4265,6 +4323,7 @@ void main(void) {
 const fs_const_col = `
 uniform vec4 color;
 void main(void) {
+
   gl_FragColor = color;
 }
 `;
@@ -4280,6 +4339,7 @@ function webgl_load_shader(type, source, tx_name) {
   webgl.compileShader(shader);
   if (!webgl.getShaderParameter(shader, webgl.COMPILE_STATUS)) {
     print(GF_LOG_ERROR, 'An error occurred compiling the shaders ' + type + ' : ' + webgl.getShaderInfoLog(shader));
+    print(GF_LOG_WARNING, 'Shader was \n' + source);
     webgl.deleteShader(shader);
     return null;
   }
@@ -4289,6 +4349,8 @@ function webgl_load_shader(type, source, tx_name) {
 function webgl_init_shaders(vsSource, fsSource, tx_name) {
   const vertexShader = webgl_load_shader(webgl.VERTEX_SHADER, vsSource, null);
   const fragmentShader = webgl_load_shader(webgl.FRAGMENT_SHADER, fsSource, tx_name);
+
+  if (!vertexShader || !fragmentShader) return null;
 
   const shaderProgram = webgl.createProgram();
   webgl.attachShader(shaderProgram, vertexShader);

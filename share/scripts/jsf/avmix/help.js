@@ -128,7 +128,7 @@ Properties for \`scene\` objects:
 
 Properties for \`transition\` objects:
 - type: transition type, either builtin (see below) or path to a JS module
-- dur: transition duration (transitions always end at source stop time)
+- dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene \`mix\`.
 - fun (null): JS code modifying the ratio effect called \`ratio\`, eg \`fun="ratio = ratio*ratio;"\`
 
 Properties for \`timer\` objects:
