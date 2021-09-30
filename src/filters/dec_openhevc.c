@@ -864,7 +864,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ctx->height = a_h;
 		ctx->monochrome = monochrome;
 
-		if (monochrome == OH_YUV420 ) {
+		if (monochrome) {
 			ctx->out_size = ctx->stride * ctx->height;
 		} else if (chromat_format == OH_YUV420 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
