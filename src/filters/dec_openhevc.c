@@ -1057,16 +1057,16 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 static u64 translate_ts_temi(GF_OHEVCDecCtx *ctx, GF_HEVCStream *stream, s64 ts)
 {
 	if (stream->timescale != ctx->temi_media_timescale) {
-		ts = gf_timestamp_rescale(ts, stream->timescale, ctx->temi_media_timescale);
+		ts = gf_timestamp_rescale_signed(ts, stream->timescale, ctx->temi_media_timescale);
 	}
 	ts -= ctx->temi_media_timestamp;
 
 	//translate to output timescale
 	if (ctx->temi_media_timescale != ctx->streams[0].timescale) {
-		ts = gf_timestamp_rescale(ts, ctx->temi_media_timescale, ctx->streams[0].timescale);
+		ts = gf_timestamp_rescale_signed(ts, ctx->temi_media_timescale, ctx->streams[0].timescale);
 	}
 	if (ctx->streams[0].timescale != 90000) {
-		u64 diff = gf_timestamp_rescale(ctx->temi_media_pts, 90000, ctx->streams[0].timescale);
+		u64 diff = gf_timestamp_rescale_signed(ctx->temi_media_pts, 90000, ctx->streams[0].timescale);
  		ts += diff;
 	} else {
 		ts += ctx->temi_media_pts;
