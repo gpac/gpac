@@ -319,7 +319,7 @@ filter.initialize = function()
 	let gpac_doc = (sys.get_opt("temp", "gendoc") == "yes") ? true : false;
 	if (gpac_help || gpac_doc) {
 		let args = sys.args;
-		let help_mod = gpac_doc ? null : sys.get_opt("temp", "gpac-js-help");
+		globalThis.help_mod = gpac_doc ? null : sys.get_opt("temp", "gpac-js-help");
 
 		if (help_mod) {
 			let name;
@@ -2701,6 +2701,35 @@ function get_scene(scene_id, js_name)
 	return null;
 }
 
+function check_transition(fx_id)
+{
+	for (let i=0; i<scenes.length; i++) {
+		let scene = scenes[i];
+		if (!scene.transition_effect) continue;
+
+		let a_fx_id = scene.transition_effect.id || null;
+		if (a_fx_id && (fx_id==a_fx_id)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function get_transition(fx_id)
+{
+	for (let i=0; i<scenes.length; i++) {
+		let scene = scenes[i];
+		if (!scene.transition_effect) continue;
+
+		let a_fx_id = scene.transition_effect.id || null;
+		if (a_fx_id && (fx_id==a_fx_id)) {
+			return scene.transition;
+		}
+	}
+	return null;
+}
+
+
 function parse_scene(pl)
 {
 	let scene_id = pl.id || null;	
@@ -3119,6 +3148,7 @@ function create_scene(seq_ids, params)
 	scene.pl_update = true;
 	scene.mod = null;
 	scene.sequences = [];
+	scene.transition_effect = params.mix || null;
 	scenes.push(scene);
 	scene.gl_type = SCENE_GL_NONE;
 
@@ -3363,27 +3393,43 @@ function parse_timer(pl)
 		anim.targets.forEach( t => {
 			let vals = t.split("@");
 			let tar = {};
+			tar.id = vals[0];
 			tar.scene = get_scene(vals[0]);
-			tar.field = vals[1];
-			if ((tar.field=="x") || (tar.field=="width")) tar.atype = 1; 
-			else if ((tar.field=="y") || (tar.field=="height")) tar.atype = 2; 
-			else tar.atype = 0;
+			tar.fx = null;
+			tar.fx_obj = null;
+			if (!tar.scene && check_transition(vals[0]))
+				tar.fx = vals[0];
 
-			tar.update_type = UPDATE_SIZE;
-			if ((tar.field=="width") || (tar.field=="height") || (tar.field=="volume") || (tar.field=="fade"))
-					tar.update_type = UPDATE_SIZE; 
-			else if ((tar.field=="x") || (tar.field=="y") || (tar.field=="rotation") || (tar.field=="hskew") || (tar.field=="vskew"))
-					tar.update_type = UPDATE_POS; 
-			else if (tar.scene && tar.scene.options && (typeof tar.scene.options[tar.field] != 'undefined'))
-				tar.update_type = tar.scene.options[tar.field].dirty || UPDATE_SIZE;
-
-			if (!tar.update_type) {
-				print(GF_LOG_ERROR, 'Field ' + tar.field + ' of scene ' + tar.scene.id + ' is not updatable, ignoring target');
+			if (!tar.scene && !tar.fx) {
+				print(GF_LOG_ERROR, 'No scene or transition with ID ' + vals[0] + ' found, ignoring target');
 				return;
 			}
 
-			if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade"))
-				tar.update_type = 0; 
+			tar.field = vals[1];
+			if (tar.scene) {
+				if ((tar.field=="x") || (tar.field=="width")) tar.atype = 1;
+				else if ((tar.field=="y") || (tar.field=="height")) tar.atype = 2;
+				else tar.atype = 0;
+
+				tar.update_type = UPDATE_SIZE;
+				if ((tar.field=="width") || (tar.field=="height") || (tar.field=="volume") || (tar.field=="fade"))
+						tar.update_type = UPDATE_SIZE;
+				else if ((tar.field=="x") || (tar.field=="y") || (tar.field=="rotation") || (tar.field=="hskew") || (tar.field=="vskew"))
+						tar.update_type = UPDATE_POS;
+				else if (tar.scene && tar.scene.options && (typeof tar.scene.options[tar.field] != 'undefined'))
+					tar.update_type = tar.scene.options[tar.field].dirty || UPDATE_SIZE;
+
+				if (!tar.update_type) {
+					print(GF_LOG_ERROR, 'Field ' + tar.field + ' of scene ' + tar.scene.id + ' is not updatable, ignoring target');
+					return;
+				}
+
+				if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade"))
+					tar.update_type = 0;
+			} else {
+				tar.update_type = UPDATE_SIZE;
+				tar.atype = 0;
+			}
 
 			//indexed anim
 			if (tar.field.indexOf('[')>0) {
@@ -3520,71 +3566,96 @@ function update_timer(timer)
 			}
 		}
 
-		anim.targets.forEach(target => {
-			if (!target.scene) return;
-			let scene = target.scene.mod;
+		for (let i=0; i<anim.targets.length; i++) {
+			let target = anim.targets[i];
 
-			if (typeof scene[target.field] == 'undefined' ) return;
+			let anim_obj = null;
+
+			if (target.scene)
+				anim_obj = target.scene.mod;
+			else if (target.fx) {
+				if (!target.fx_obj) {
+					target.fx_obj = get_transition(target.fx);
+					if (!target.fx_obj) {
+						print(GF_LOG_WARNING, 'No transition with target ' + target.field + ' found, removing target');
+						anim.targets.splice(i, 1);
+						i--;
+						continue;
+					}
+				}
+				anim_obj = target.fx_obj.mod;
+			}
+
+			if (!anim_obj) {
+				print(GF_LOG_WARNING, 'Animation target ' + target.field + ' not found, removing target');
+				anim.targets.splice(i, 1);
+				i--;
+				continue;
+			}
+			if (typeof anim_obj[target.field] == 'undefined') {
+				print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
+				anim.targets.splice(i, 1);
+				i--;
+				continue;
+			}
 			let update_type = target.update_type;
 
 			let final = res;
 			if (target.atype==1) {
-				if (res == 'height') res = scene.height;
+				if (res == 'height') res = anim_obj.height;
 				else {
 					final = res * video_width / 100; 
 				}
 			}
 			else if (target.atype==2) {
-				if (res == 'width') res = scene.width;
+				if (res == 'width') res = anim_obj.width;
 				else {
 					final = res * video_height / 100; 
 				}
 			}
 
 			if (target.idx>=0) {
-				if (Array.isArray(scene[target.field])
-					&& (target.idx<scene[target.field].length)
-					&& (typeof scene[target.field][target.idx] == typeof final)
+				if (Array.isArray(anim_obj[target.field])
+					&& (target.idx<anim_obj[target.field].length)
+					&& (typeof anim_obj[target.field][target.idx] == typeof final)
 				) {
 					if (do_store) {
-						target.orig_value = scene[target.field][target.idx];
+						target.orig_value = anim_obj[target.field][target.idx];
 					}
-					if ((scene[target.field][target.idx] != final)) {
-						scene.update_flag |= update_type;
-						scene[target.field][target.idx] = final;
+					if ((anim_obj[target.field][target.idx] != final)) {
+						anim_obj.update_flag |= update_type;
+						anim_obj[target.field][target.idx] = final;
 					}
 				}
-				return;
 			}
-
-			if ( (typeof scene[target.field] == typeof final) ) {
+			else if ( (typeof anim_obj[target.field] == typeof final) ) {
 				if (do_store) {
-					target.orig_value = scene[target.field];
+					target.orig_value = anim_obj[target.field];
 				}
-				if ((scene[target.field] != final)) {
-					scene.update_flag |= update_type;
-					scene[target.field] = final;
+				if ((anim_obj[target.field] != final)) {
+					anim_obj.update_flag |= update_type;
+					anim_obj[target.field] = final;
 					if ((target.atype==1) || (target.atype==2)) check_scene_coords(target.scene)
-					print(GF_LOG_DEBUG, 'update ' + target.scene.id + '.' + target.field + ' to ' + final);
+					print(GF_LOG_DEBUG, 'update ' + target.id + '.' + target.field + ' to ' + final);
 
 				}
-				return;
 			}
-			else if ((typeof res == 'string') && (typeof scene[target.field] == 'number') ) {
+			else if ((typeof res == 'string') && (typeof anim_obj[target.field] == 'number') ) {
 				 let val = globalThis[res];
-				 if (typeof val == typeof scene[target.field]) {
+				 if (typeof val == typeof anim_obj[target.field]) {
 					if (do_store) {
-						target.orig_value = scene[target.field];
+						target.orig_value = anim_obj[target.field];
 					}
-					if (scene[target.field] != val) {
-						scene.update_flag |= update_type;
- 						scene[target.field] = val;
+					if (anim_obj[target.field] != val) {
+						anim_obj.update_flag |= update_type;
+						anim_obj[target.field] = val;
 					}
 					return;
 				 }
+			} else {
+				print(GF_LOG_WARNING, 'Anim type mismatch for ' + target.field + ' got ' + typeof final + ' expecting ' + typeof anim_obj[target.field] + ', ignoring');
 			}
-			print(GF_LOG_WARNING, 'Anim type mismatch for ' + target.field + ' got ' + typeof final + ' expecting ' + typeof scene[target.field] + ', ignoring');
-		});
+		};
 
 	});
 }
@@ -3926,6 +3997,7 @@ replace_uni_cmx1
 uniform sampler2D maintx2;
 uniform float _alpha_to;
 uniform float ratio;
+uniform float video_ar;
 replace_uni_cmx2
 
 vec4 get_pixel_from(vec2 tx_coord)
@@ -4093,7 +4165,7 @@ function canvas_draw_sources(path, matrix)
 		//create program
 		let prog_info = transition.gl_program || null;
 	  if (!prog_info) {
-	  		let frag_source = fs_trans_source_prefix;
+				let frag_source;
 	  		let tx_source = transition.mod.get_shader_src( pids[0].texture );
 	  		if (typeof tx_source != 'string') {
 			    print(GF_LOG_ERROR, 'invalid shader source ' + tx_source);
@@ -4104,12 +4176,20 @@ function canvas_draw_sources(path, matrix)
 			  		scene.transition_state = 4;
 	  			return;
 	  		}
-	  		frag_source += tx_source;
 
-	  		//replace maintx1 by first texture name
+			let first_uni = tx_source.indexOf('uniform');
+			if (first_uni>0) {
+				let head = tx_source.slice(0, first_uni);
+				let tail = tx_source.slice(first_uni);
+				frag_source = head + fs_trans_source_prefix + tail;
+			} else {
+				frag_source = fs_trans_source_prefix + tx_source;
+			}
+
+			//replace maintx1 by first texture name
 			frag_source = frag_source.replaceAll('maintx1', pids[0].texture._gl_tx_id);
-  			//replace maintx2 by second texture name
-		  	frag_source = frag_source.replaceAll('maintx2', pids[1].texture._gl_tx_id);
+			//replace maintx2 by second texture name
+			frag_source = frag_source.replaceAll('maintx2', pids[1].texture._gl_tx_id);
 
 			if (pids[0].texture._gl_cmx) {
 				frag_source = frag_source.replaceAll('replace_uni_cmx1', `
@@ -4153,22 +4233,24 @@ col = clamp(col, 0.0, 1.0);
 			  		scene.transition_state = 4;
 		  		return;
 		 	}
+
 			prog_info = {
 				program: shaderProgram,
-  				vertexPosition: webgl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+				vertexPosition: webgl.getAttribLocation(shaderProgram, 'aVertexPosition'),
 				textureCoord: webgl.getAttribLocation(shaderProgram, 'aTextureCoord'),
-	      		projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-  				modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-  				ratio: webgl.getUniformLocation(shaderProgram, 'ratio'),
-  				textures: [
-  					{
+				projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+				modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+				ratio: webgl.getUniformLocation(shaderProgram, 'ratio'),
+				video_ar: webgl.getUniformLocation(shaderProgram, 'video_ar'),
+				textures: [
+					{
 				    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixFrom'),
 				    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_from'),
 						sampler: webgl.getUniformLocation(shaderProgram, pids[0].texture._gl_tx_id),
 						cmx_mul: null,
 						cmx_add: null
-  					},
-  					{
+					},
+					{
 				    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixTo'),
 				    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_to'),
 						sampler: webgl.getUniformLocation(shaderProgram, pids[1].texture._gl_tx_id),
@@ -4180,7 +4262,7 @@ col = clamp(col, 0.0, 1.0);
 			transition.gl_program = prog_info;
 
 			webgl.useProgram(prog_info.program);
-		  	webgl.uniformMatrix4fv(prog_info.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
+			webgl.uniformMatrix4fv(prog_info.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
 
 		 	if (pids[0].texture._gl_cmx) {
 		  		prog_info.textures[0].cmx_mul = webgl.getUniformLocation(shaderProgram, 'cmx1_mul');
@@ -4193,11 +4275,11 @@ col = clamp(col, 0.0, 1.0);
 
 			tx_slot = 0;
 		 	for (let i=0; i<2; i++) {
-	  			let pid = pids[i];
-			 	tx_slot += pid.texture._gl_texture.nb_textures;
-	  		}
+				let pid = pids[i];
+				tx_slot += pid.texture._gl_texture.nb_textures;
+			}
 			transition.mod.setup_gl(webgl, shaderProgram, prog_info.ratio, tx_slot);
-  		}
+		}
 
 		webgl.useProgram(prog_info.program);
 		webgl.viewport(0, 0, video_width, video_height);
@@ -4210,10 +4292,13 @@ col = clamp(col, 0.0, 1.0);
 	  }
 
 	 	//set transform
-  		const modelViewMatrix = new evg.Matrix(matrix);
+		const modelViewMatrix = new evg.Matrix(matrix);
 		webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
 
 		webgl.uniform1f(prog_info.ratio, ratio);
+
+		if (prog_info.video_ar)
+			webgl.uniform1f(prog_info.video_ar, scene.mod.width / scene.mod.height);
 
 		tx_slot = 0;
 		//set alpha and texture transforms per pid - 2 max
@@ -4403,29 +4488,50 @@ function setup_webgl_program(vsSource, fsSource, tx_name)
 }
 
 
-function setup_transition(seq)
+function apply_transition_options(seq, opts, strict)
 {
-	/*builtin parameters*/
-	seq.transition.fun = (typeof seq.transition_effect.fun == 'string') ? seq.transition_effect.fun : null;
-
 	//parse all params
-	seq.transition.options.forEach(o => {
+	opts.forEach(o => {
 		seq.transition.mod[o.name] = o.value;
 		let typ = typeof seq.transition_effect[o.name];
 		if (typ != 'undefined') {
 			if (typ == typeof o.value) {
-				seq.transition.mod[o.name] = seq.transition_effect[o.name];
+				if (strict && Array.isArray(o.value) ) {
+					if (o.value.length == seq.transition_effect[o.name].length) {
+						seq.transition.mod[o.name] = seq.transition_effect[o.name];
+					} else {
+						print(GF_LOG_WARNING, 'Array length mismatch for transition ' + seq.transition.type + '.' + o.name + ': got ' + seq.transition_effect[o.name].length + ', expecting ' + o.value.length + ', ignoring');
+					}
+				} else {
+					seq.transition.mod[o.name] = seq.transition_effect[o.name];
+				}
 			} else {
 				print(GF_LOG_WARNING, 'Type mismatch for transition ' + seq.transition.type + '.' + o.name + ': got ' + typ + ', expecting ' + typeof o.value + ', ignoring');
 			}
 		}
 	});
+}
 
+function setup_transition(seq)
+{
+	/*builtin parameters*/
+	seq.transition.fun = (typeof seq.transition_effect.fun == 'string') ? seq.transition_effect.fun : null;
+	seq.transition.id = (typeof seq.transition_effect.id == 'string') ? seq.transition_effect.id : null;
+
+	seq.transition.mod.update_flag = 0;
+	//parse all params
+	apply_transition_options(seq, seq.transition.options, false);
+
+	//parse all per-instance params
+	if (Array.isArray(seq.transition.mod.options)) {
+		apply_transition_options(seq, seq.transition.mod.options, true);
+	}
 
 	for (var propertyName in seq.transition_effect) {
 		if (propertyName == 'type') continue;
 		if (propertyName == 'dur') continue;
 		if (propertyName == 'fun') continue;
+		if (propertyName == 'id') continue;
 		if (propertyName.charAt(0) == '_') continue;
 		if (typeof seq.transition.mod[propertyName] != 'undefined') continue;
 
@@ -4470,7 +4576,7 @@ function load_transition(seq)
 		  .then(obj => {
 		  		modules_pending--;
 		  		print(GF_LOG_DEBUG, 'Module ' + script_src + ' loaded');
-		  		seq.transition.mod = obj.load();
+					seq.transition.mod = obj.load(seq.transition_effect);
 
 		  		let has_gl = 0;
 

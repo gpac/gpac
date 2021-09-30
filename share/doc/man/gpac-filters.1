@@ -7887,6 +7887,8 @@ Properties for scene objects:
 .br
 Properties for transition objects:
 .br
+* id (null): transition identifier
+.br
 * type: transition type, either builtin (see below) or path to a JS module
 .br
 * dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene mix.
@@ -7939,11 +7941,13 @@ Properties for animation objects:
 .br
 * targets ([]): list of strings indicating targets properties to modify. Syntax is:
 .br
-  * sceneID@option: modifies property option of given scene
+  * ID@option: modifies property option of object with given ID
 .br
-  * sceneID@option[IDX]: modifies value at index IDX of array property option of given scene
+  * ID@option[IDX]: modifies value at index IDX of array property option of object with given ID
 .br
 
+.br
+Currently, only scene and transition objects can be modified through timers.
 .br
 
 .br
@@ -8451,6 +8455,16 @@ Options:
 .br
 .P
 .B
+Transition gltrans - GPU only
+.br
+This transition module wraps gl-transitions, see https://gl-transitions.com/
+.br
+Options:
+.br
+* fx: effect name for built-in effects, or path to gl-transition GLSL file
+.br
+.P
+.B
 Transition swipe - software/GPU
 .br
 This transition performs simple 2D affine transformations for source videos transitions, with configurable effect origin
@@ -8722,7 +8736,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1300-g1b61f2619-master
+build: 1.1.0-DEV-rev1306-gf97d1561f-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
