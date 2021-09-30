@@ -9386,8 +9386,8 @@ static void vvc_profile_tier_level(GF_BitStream *bs, VVC_ProfileTierLevel *ptl, 
 			u8 res;
 			ptl->gci[0] = 0x80;
 			ptl->gci[0] |= gf_bs_read_int(bs, 7);
-			//81-7 = 74 bits till reserved
-			gf_bs_read_data(bs, ptl->gci+1, 9);
+			//71 buts till reserved, so 71-7 = 64bits = 8 bytes till reserved
+			gf_bs_read_data(bs, ptl->gci+1, 8);
 			ptl->gci[10] = gf_bs_read_int(bs, 2)<<6;
 			//skip extensions
 			ptl->gci[11] = 0;
