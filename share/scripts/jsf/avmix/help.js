@@ -127,6 +127,7 @@ Properties for \`scene\` objects:
   - other: no audio fade
 
 Properties for \`transition\` objects:
+- id (null): transition identifier
 - type: transition type, either builtin (see below) or path to a JS module
 - dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene \`mix\`.
 - fun (null): JS code modifying the ratio effect called \`ratio\`, eg \`fun="ratio = ratio*ratio;"\`
@@ -153,9 +154,10 @@ Properties for \`animation\` objects:
   - freeze: keep last animated values
   - restore: restore targets to their initial values
 - targets ([]): list of strings indicating targets properties to modify. Syntax is:
-  - sceneID@option: modifies property \`option\` of given scene
-  - sceneID@option[IDX]: modifies value at index \`IDX\` of array property \`option\` of given scene
+  - ID@option: modifies property \`option\` of object with given ID
+  - ID@option[IDX]: modifies value at index \`IDX\` of array property \`option\` of object with given ID
 
+Currently, only \`scene\` and \`transition\` objects can be modified through timers.
 
 __Note on colors__
 Colors are handled as strings, formatted as:
