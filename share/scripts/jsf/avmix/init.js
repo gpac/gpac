@@ -738,7 +738,7 @@ function do_terminate()
 		pid.discard = true;
 	});
 	scenes.length = 0;
-	sources.forEach(stop_source, true);
+	sources.forEach(s => { stop_source(s, true); });
 	filter.abort();
 }
 
@@ -754,9 +754,14 @@ filter.process = function()
 	if (terminated)
 		return GF_EOS;
 
+
 	if (filter.maxdur) {
-		if ((video_time >= filter.maxdur*video_timescale) && (audio_time >= filter.maxdur*audio_timescale)) {
-			print(GF_LOG_INFO, 'maxdur reached, quit ' + video_time + '/' + video_timescale + ' - ' + audio_time + '/' + audio_timescale);
+		let abort = true;
+		if (video_playing && (video_time < filter.maxdur*video_timescale)) abort = false;
+		if (audio_playing && (audio_time < filter.maxdur*audio_timescale)) abort = false;
+		if (wait_for_pids) abort = false;
+		if (abort) {
+			print(GF_LOG_INFO, 'maxdur reached, quit - video time ' + video_time + '/' + video_timescale + ' - audio time ' + audio_time + '/' + audio_timescale);
 			do_terminate();
 			return;
 		}
@@ -836,7 +841,7 @@ filter.process = function()
 
 	if (inactive_sources == sources.length) {
 		if (filter.live) {
-			//inavtive, reschedule in 2 ms. A better way would be to compute next activation time
+			//inactive, reschedule in 2 ms. A better way would be to compute next activation time
 			filter.reschedule(2000);
 			//but do generate frame
 		} else {
@@ -851,7 +856,11 @@ filter.process = function()
 	timers.forEach(update_timer);
 
 	if (filter.maxdur && (video_time >= filter.maxdur*video_timescale)) {
-		do_video = false;
+		if (do_video) {
+			//no longer generating video, increase time for audio generation
+			video_time += video_time_inc;
+			do_video = false;
+		}
 	}
 
 	do_audio = (aout && audio_playing) ? true : false;
@@ -1009,6 +1018,9 @@ function process_video()
 		} else if (vtime - now > video_frame_dur_us) {
 			let next = vtime - now;
 			if (next > video_max_resched_dur_us) next = video_max_resched_dur_us;
+			//first reset any timeout set previously (due do source not being ready)
+			filter.reschedule(0);
+			//then set our real timeout
 			filter.reschedule(next);
 			print(GF_LOG_DEBUG, 'video output frame due in ' + (vtime - now) + ' us, waiting ' + next);
 			return;
@@ -1500,7 +1512,7 @@ function next_source(s, prefetch_check)
 	return next_src;
 }
 
-function sequence_over(s)
+function sequence_over(s, force_seq_reload)
 {
 	let is_transition_start = false;
 	if (s.sequence.transition_state == 2) {
@@ -1548,6 +1560,8 @@ function sequence_over(s)
 
 	let next_src = next_source(s, false);
 	let is_same_source = (next_src === s) ? true : false;
+	if (force_seq_reload)
+		is_same_source = false;
 
 	if (!is_transition_start) {
 		print(GF_LOG_DEBUG, 'source ' + s.logname + ' is over, sequence start offset ' + s.sequence.start_offset);
@@ -1637,7 +1651,7 @@ function fetch_source(s)
 					print(GF_LOG_DEBUG, 'source ' + s.logname + ' will end before sequence start_offset, skipping source ');
 					s.sequence.start_offset -= s.media_start + s.media_stop;
 					inactive_sources++;
-					sequence_over(s);
+					sequence_over(s, false);
 					return;
 			} else {
 				open_source(s);
@@ -2022,7 +2036,7 @@ function fetch_source(s)
 	if (!force_seq_over && (!s.pids.length || !nb_over)) {
 		if (s.sequence.transition_state == 2) {
 			print(GF_LOG_DEBUG, 'activating next source for transition in sequence ' + s.sequence.id);
-			sequence_over(s);
+			sequence_over(s, false);
 		}
 		//active sources and waiting for inputs
 		else if (s.pids.length) {
@@ -2032,7 +2046,8 @@ function fetch_source(s)
 		return;
 	}
 
-	sequence_over(s);
+	sequence_over(s, force_seq_over);
+	//try at least one cycle before generating the frame
 	video_inputs_ready = false;
 
 	//we are done
@@ -2114,38 +2129,39 @@ function play_source(s)
 
 function stop_source(s, is_remove)
 {
-	if (!s.playing) return;
-	s.playing = false;
-	s.sequence.prefetch_check = false;
-	s.timeline_init=0;
+	if (s.playing) {
+		s.playing = false;
+		s.sequence.prefetch_check = false;
+		s.timeline_init=0;
 
-	print(GF_LOG_DEBUG, 'Stoping source ' + s.logname);
-  s.src.forEach(src => {
-		if (src.process_id) {
-			let res = os.waitpid(src.process_id, os.WNOHANG);
-			if (res[0] != src.process_id) {
-				print(GF_LOG_DEBUG, 'killing process for source ' + src.in);
-				os.kill(src.process_id, os.SIGABRT);
-			}
-			if (src.local_pipe) {
-				try {
-					sys.del(src.local_pipe);
-				} catch (e) {
-
+		print(GF_LOG_DEBUG, 'Stoping source ' + s.logname);
+	  s.src.forEach(src => {
+			if (src.process_id) {
+				let res = os.waitpid(src.process_id, os.WNOHANG);
+				if (res[0] != src.process_id) {
+					print(GF_LOG_DEBUG, 'killing process for source ' + src.in);
+					os.kill(src.process_id, os.SIGABRT);
 				}
-				src.local_pipe = null;
-			}
-		}
-		src.process_id = null;
-  });
+				if (src.local_pipe) {
+					try {
+						sys.del(src.local_pipe);
+					} catch (e) {
 
-	s.pids.forEach(pid => {
-		if (pid.pck) {
-				pid.pck.unref();
-				pid.pck = null;
-		}
-		pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
-	});
+					}
+					src.local_pipe = null;
+				}
+			}
+			src.process_id = null;
+	  });
+
+		s.pids.forEach(pid => {
+			if (pid.pck) {
+					pid.pck.unref();
+					pid.pck = null;
+			}
+			pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
+		});
+	}
 
 	if (!is_remove) return;
 
@@ -3883,7 +3899,7 @@ function canvas_draw(path, matrix, stencil)
 
 					if (stencil._gl_program) {
 						stencil._gl_program = null;
-						print(GF_LOG_INGO, 'texture format change, reloading GLSL shader');
+						print(GF_LOG_INFO, 'texture format change, reloading GLSL shader');
 						return;
 					}
 				}
@@ -4328,10 +4344,8 @@ col = clamp(col, 0.0, 1.0);
 		transition.mod.apply(webgl, ratio, path, matrix, pids);
 
 		mesh.draw(webgl, prog_info.vertexPosition, prog_info.textureCoord);
-	  	webgl.useProgram(null);
-	  	active_scene.mod.mix_ratio += 0.1;
-	  	if (active_scene.mod.mix_ratio>=1) active_scene.mod.mix_ratio = 0.01;
-	  	return;
+		webgl.useProgram(null);
+		return;
 	}
 
 	return;
