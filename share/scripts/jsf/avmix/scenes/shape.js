@@ -59,7 +59,7 @@ See [https://doxygen.gpac.io]() for more information on EVG and Sys JS APIs.
 The code is exposed the scene as \`this\`. The variable \`this.path\` is created, representing an empty path.
 EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
 
-The following global can be used:
+The global variables and functions are available (c.f. \`gpac -h avmix:global\`):
  - get_media_time(): return media time in seconds (float) of output
  - get_media_time(SRC): get time of source with id \`SRC\`, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
  - current_utc_clock: current UTC time in ms
@@ -75,8 +75,8 @@ const UPDATE_LINE = 1<<3;
 const UPDATE_COLOR = 1<<4;
 
 export const options = [
- {name:"rx", value: 0, desc: "horizontal radius for rounded rect in percent of width", dirty: UPDATE_SIZE},
- {name:"ry", value: 0, desc: "vertical radius for rounded rect in percent of height", dirty: UPDATE_SIZE},
+ {name:"rx", value: 0, desc: "horizontal radius for rounded rect in percent of width, negative value will use `ry`", dirty: UPDATE_SIZE},
+ {name:"ry", value: 0, desc: "vertical radius for rounded rect in percent of height, negative value will use `rx`", dirty: UPDATE_SIZE},
  {name:"tl", value: true, desc: "top-left corner rounded", dirty: UPDATE_SIZE},
  {name:"bl", value: true, desc: "bottom-left corner rounded", dirty: UPDATE_SIZE},
  {name:"tr", value: true, desc: "top-right corner rounded", dirty: UPDATE_SIZE},
@@ -179,6 +179,15 @@ function make_rounded_rect(is_straight)
   /*compute default rx/ry*/
   rx = this.rx * this.width / 100;
   ry = this.ry * this.height / 100;
+  if ((rx<0) && (ry<0)) {
+    rx = ry = 0;
+  }
+  else if (rx<0) {
+    rx = ry;
+  }
+  else if (ry<0) {
+    ry = rx;
+  }
 
   if (rx >= hw) rx = hw;
   if (ry >= hh) ry = hh;
@@ -294,6 +303,11 @@ function setup_texture(pid_link)
   let txmx_pid = (pid_link || !this.replace_op) ? this.txmx : this.txmx_rep;
   let keep_ar_pid = (pid_link || !this.replace_op) ? this.keep_ar : this.keep_ar_rep;
   let cmx_pid = (pid_link || !this.replace_op) ? this.cmx : this.cmx_rep;
+
+  if (!texture) {
+    print(GF_LOG_ERROR, 'Scene ' + this.id + ' missing texture !');
+    return;
+  }
 
   let txmx;
   if (txmx_pid && Array.isArray(txmx_pid) && (txmx_pid.length==6)) {
@@ -622,6 +636,8 @@ update: function() {
           this.is_texture = false;
         }
       }
+    } else {
+      reset_local_stencil = false;
     }
   }
   if (this.replace_op && !this.img.length) {
@@ -632,6 +648,7 @@ update: function() {
   if (this.update_flag & UPDATE_COLOR) {
     if (!this.local_stencil || !this.local_stencil.solid_brush)
       this.update_flag |= UPDATE_POS;
+      this.update_flag &= UPDATE_COLOR;
   }
 
   //update our objects
@@ -708,6 +725,8 @@ update: function() {
               var n = txt.length + nb_items;
               txt.splice(-nb_items, txt.length + nb_items);
             }
+          } else {
+            txt = [txt];
           }
           set_text.apply(this, [txt]);
           this.last_text_time = sys.mod_time(this.dyn_text);
@@ -777,6 +796,8 @@ update: function() {
 
       //force loading of matrix below
       this.mx = null;
+      //force loading of outline
+      this.outline = null;
   }
 
   if (this.path.is_rectangle)

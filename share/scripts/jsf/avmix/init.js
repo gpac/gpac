@@ -149,6 +149,7 @@ filter.set_arg({ name: "thread", desc: "use threads for software rasterizer (-1 
 filter.set_arg({ name: "lwait", desc: "timeout in ms before considering no signal is present", type: GF_PROP_UINT, def: "1000", hint:"expert"} );
 filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes (see filter help)", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
 filter.set_arg({ name: "maxdur", desc: "run for given seconds and exit, will not abort if 0 (used for live mode tests)", type: GF_PROP_DOUBLE, def: "0", hint:"expert"} );
+filter.set_arg({ name: "updates", desc: "local JSON files for playlist updates", type: GF_PROP_STRING, hint:"advanced"} );
 
 //video output options
 filter.set_arg({ name: "vsize", desc: "output video size", type: GF_PROP_VEC2, def: "1920x1080"} );
@@ -176,6 +177,7 @@ let reload_loop=false;
 let reload_idx=0;
 
 let last_modification = 0;
+let last_updates_modification = 0;
 let init_utc = 0;
 let init_clock_us = 0;
 
@@ -378,6 +380,10 @@ filter.initialize = function()
 	if (!load_playlist())
 		return GF_BAD_PARAM;
 	playlist_loaded = true;
+
+	if (filter.updates) {
+		last_updates_modification = sys.mod_time(filter.updates);
+	}
 
 	if (filter.live) {
 		init_utc = sys.get_utc();
@@ -808,6 +814,7 @@ filter.process = function()
 		}
 	}
 	load_playlist();
+	load_updates();
 	//modules are pending, wait for fail/success - async cannot wait here because QuickJS will only try to load the modules once out of JS functions
 	if (modules_pending)
 		return GF_OK;
@@ -1506,7 +1513,7 @@ function next_source(s, prefetch_check)
 		}
 		if (!next_src) {
 			print(GF_LOG_INFO, 'All sources in sequence disabled !');
-			s.sequence.active = false;
+			s.sequence.active_state = 2;
 		}
 	}
 	return next_src;
@@ -1639,12 +1646,11 @@ function fetch_source(s)
 	}
 
 	//check if source must be started
-
 	if (!s.playing) {
-		if (!s.sequence.active && (s.sequence.start_time>0) && (s.sequence.start_time <= current_utc_clock + s.prefetch_ms)) {
+		if (!s.sequence.active_state && (s.sequence.start_time>0) && (s.sequence.start_time <= current_utc_clock + s.prefetch_ms)) {
 			s.sequence.start_offset = (current_utc_clock + s.prefetch_ms - s.sequence.start_time ) / 1000.0;
 			if (s.sequence.start_offset<0.1) s.sequence.start_offset = 0;
-			s.sequence.active = true;
+			s.sequence.active_state = 1;
 			print(GF_LOG_DEBUG, 'Starting sequence start offset ' + s.sequence.start_offset + ' - ' + s.sequence.start_time + ' - UTC ' + current_utc_clock);
 
 			if (s.media_start + s.media_stop < s.sequence.start_offset) {
@@ -1683,7 +1689,7 @@ function fetch_source(s)
 	}
 
 	//done with sequence
-	if (s.sequence.active && (s.sequence.stop_time>0) && (s.sequence.stop_time <= current_utc_clock)) {
+	if ((s.sequence.active_state==1) && (s.sequence.stop_time>0) && (s.sequence.stop_time <= current_utc_clock)) {
 	  	s.video_time_at_init = 0;
 			stop_source(s, true);
 			s.sequence.transition_state = 0;
@@ -1695,6 +1701,7 @@ function fetch_source(s)
 			s.sequence.sources.forEach(src => { src.next_in_transition = false;});
 			inactive_sources++;
 			print(GF_LOG_INFO, 'End of sequence ' + s.sequence.id + ' at ' + (current_utc_clock-s.sequence.stop_time));
+			s.sequence.active_state = 2;
 			return;
 	}
 
@@ -2121,7 +2128,7 @@ function play_source(s)
 		return;
 	}
 	print(GF_LOG_DEBUG, 'Playing source ' + s.logname);
-	s.sequence.active = true;
+	s.sequence.active_state = 1;
 	s.playing = true;
 	s.timeline_init = false;
 	s.pids.forEach(pid => { play_pid(pid, s); });
@@ -2177,7 +2184,7 @@ function stop_source(s, is_remove)
 function disable_source(s)
 {
 	s.disabled = true;
-	s.sequence.active = false;
+	s.sequence.active_state = 0;
 	s.fsrc.forEach( f => {
 		f.remove();
 	});
@@ -2443,7 +2450,7 @@ function get_sequence(seq_pl)
 	let seq = {};
 	seq.id = id;
 	seq.pl_update = true;
-	seq.active = false;
+	seq.active_state = 0;
 	seq.start_time = 0;
 	seq.stop_time = 0;
 	seq.duration = 0;
@@ -2731,16 +2738,26 @@ function check_transition(fx_id)
 	return false;
 }
 
-function get_transition(fx_id)
+function get_a_trans(obj, fx_id, get_json)
+{
+	if (!obj.transition_effect) return null;
+
+	let a_fx_id = obj.transition_effect.id || null;
+	if (a_fx_id && (fx_id==a_fx_id)) {
+		return get_json ? obj.transition_effect : obj.transition;
+	}
+	return null;
+}
+
+function get_transition(fx_id, get_json)
 {
 	for (let i=0; i<scenes.length; i++) {
-		let scene = scenes[i];
-		if (!scene.transition_effect) continue;
-
-		let a_fx_id = scene.transition_effect.id || null;
-		if (a_fx_id && (fx_id==a_fx_id)) {
-			return scene.transition;
-		}
+		let tr = get_a_trans(scenes[i], fx_id, get_json);
+		if (tr) return tr;
+	}
+	for (let i=0; i<sequences.length; i++) {
+		let tr = get_a_trans(sequences[i], fx_id, get_json);
+		if (tr) return tr;
 	}
 	return null;
 }
@@ -2835,13 +2852,14 @@ function parse_config(pl)
 }
 
 
-function parse_pl_elem(pl, array)
+function parse_pl_elem(pl)
 {
-	let type = pl.type || 'url';
+	let type = pl.type || null;
 
 	if (pl.skip || false)
 		return;
 
+	//guess type of root elements
 	if (Array.isArray(pl.src))
 		type = 'url';
 
@@ -2857,11 +2875,26 @@ function parse_pl_elem(pl, array)
 	)
 		type = 'scene';
 
-	if (Array.isArray(pl.keys)
-		|| (typeof pl.start_time != 'undefined')
-		|| (typeof pl.dur == 'number')
-	)
+	if (Array.isArray(pl.keys) || Array.isArray(pl.anims))
 		type = 'timer';
+
+
+
+	//try config last
+	if ((typeof pl.reload_timeout != 'undefined') || (typeof pl.reload_loop != 'undefined'))
+		type = 'config';
+
+	if (!type) {
+		let nb_props = 0;
+		for (var propertyName in pl) {
+			if (typeof filter[propertyName] != 'undefined') {
+				nb_props++;
+			}
+		}
+		if (nb_props)
+			type = 'config';
+	}
+
 
 	if (type==='url') {
 		if (validate_source(pl)) {
@@ -3007,6 +3040,18 @@ function set_scene_options(scene, params)
 	parse_val(params, "vskew", 0, scene.mod, 0, UPDATE_POS);
 	parse_val(params, "volume", 0, scene.mod, 1.0, 0);
 	scene.mod.fade = params.fade || "inout";
+
+	if ((typeof params.width == 'string') && (params.width == "height")) scene.mod.width = scene.mod.height;
+	if ((typeof params.height == 'string') && (params.height == "width")) scene.mod.height = scene.mod.width;
+	if (typeof params.x == 'string') {
+		if (params.x == "y") scene.mod.x = scene.mod.y;
+		else if (params.x == "-y") scene.mod.x = video_height - scene.mod.y - scene.mod.height;
+	}
+	if (typeof params.y == 'string') {
+		if (params.y == "x") scene.mod.y = scene.mod.x;
+		else if (params.y == "-x") scene.mod.y = video_width - scene.mod.x - scene.mod.width;
+	}
+
 
 	if (scene.options) {
 		scene.options.forEach( o => {
@@ -3265,7 +3310,7 @@ function validate_timer(pl)
 			return;
 		}
 		anim.values.forEach(val => {
-			if (typeof val != 'string' && typeof val != 'number' ) {
+			if (typeof val != 'string' && typeof val != 'number' && typeof val != 'boolean') {
 				print(GF_LOG_ERROR, 'Timer anims values must be string or numbers, ignoring ' + JSON.stringify(pl) );
 				valid = false;
 				return;
@@ -3440,7 +3485,8 @@ function parse_timer(pl)
 					return;
 				}
 
-				if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade"))
+				//no scene invalidate for these types
+				if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade") || (tar.field=="active") || (tar.field=="zorder"))
 					tar.update_type = 0;
 			} else {
 				tar.update_type = UPDATE_SIZE;
@@ -3463,16 +3509,16 @@ function parse_timer(pl)
 
 	timer.loop = pl.loop || false;
 
-	if (!timer.active_state || (timer.active_state==2)) {
+	if (timer.active_state!=1) {
 		eval_start_time = true;
 	}
 
 	if (eval_start_time) {
 		timer.duration = pl.dur || 0;
-		timer.start_time = parse_date_time(pl.start_time, false);
+		timer.start_time = parse_date_time(pl.start, false);
 	}
 
-	timer.stop_time = parse_date_time(pl.stop_time, false);
+	timer.stop_time = parse_date_time(pl.stop, false);
 	if (timer.stop_time<=timer.start_time)
 		timer.stop_time = -1;
 
@@ -3591,7 +3637,7 @@ function update_timer(timer)
 				anim_obj = target.scene.mod;
 			else if (target.fx) {
 				if (!target.fx_obj) {
-					target.fx_obj = get_transition(target.fx);
+					target.fx_obj = get_transition(target.fx, false);
 					if (!target.fx_obj) {
 						print(GF_LOG_WARNING, 'No transition with target ' + target.field + ' found, removing target');
 						anim.targets.splice(i, 1);
@@ -4533,6 +4579,7 @@ function setup_transition(seq)
 	seq.transition.id = (typeof seq.transition_effect.id == 'string') ? seq.transition_effect.id : null;
 
 	seq.transition.mod.update_flag = 0;
+	print(GF_LOG_ERROR, 'updating transition');
 	//parse all params
 	apply_transition_options(seq, seq.transition.options, false);
 
@@ -4659,5 +4706,260 @@ function get_media_time()
 function resolve_url(url)
 {
 	return sys.url_cat(playlist_url, url);
+}
+
+function apply_transition_update(transition, prop_name, value)
+{
+	if ((prop_name=='dur')) {
+		if (typeof value == 'number') {
+			transition.dur = value;
+		} else {
+			print(GF_LOG_ERROR, 'Wrong type for transition.dur');
+		}
+	}
+	else if ((prop_name=='type')) {
+		if (typeof value == 'string') {
+			transition.type = value;
+		} else {
+			print(GF_LOG_ERROR, 'Wrong type for transition.type');
+		}
+	} else {
+		//blindly updat the transition
+		transition[prop_name] = value;
+	}
+}
+
+
+function parse_update_elem(pl, array)
+{
+	if (pl.skip || false)
+		return;
+
+	if (typeof pl.replace != 'string') {
+		print(GF_LOG_WARNING, "Invalid replace command " + JSON.stringify(pl));
+		return;
+	}
+	if (typeof pl.with == 'undefined') {
+		print(GF_LOG_WARNING, "Invalid replace command " + JSON.stringify(pl));
+		return;
+	}
+	let src = pl.replace.split('@');
+	if (src.length != 2) {
+		print(GF_LOG_WARNING, "Invalid replace syntax " + src + ', expecting \`ID@name\`');
+		return;
+	}
+	let prop_name = src[1];
+	src = src[0];
+	let field_idx=-1;
+
+	if (prop_name.indexOf('[')>0) {
+		let vals = prop_name.split('[');
+		prop_name = vals[0];
+		let idx = vals[1].split(']');
+		field_idx = parseInt(idx[0]);
+	}
+
+	//locate scene
+	let scene = get_scene(src);
+	let transition = scene ? null : get_transition(src, false);
+	if (scene || transition) {
+		let mod = scene ? scene.mod : transition.mod;
+
+		//if transition we must modify the source (transition effect) since this is the object being reloaded
+		//do this even when the transition is active
+		if (transition) {
+			apply_transition_update(get_transition(src, true), prop_name, pl.with);
+		}
+
+		let prop_type = typeof mod[prop_name];
+		if (prop_type == 'undefined') {
+			if (!transition) {
+				print(GF_LOG_WARNING, 'No property ' + prop_name + ' in scene ' + src);
+			}
+			return;
+		}
+
+		let res = pl.with;
+
+		let check_coords = false;
+		if (scene) {
+			//translate x/y/width/height
+			if ((prop_name=='x') || (prop_name=='width')) {
+					if (res == 'height')
+						res = mod.height;
+					else if (typeof res == 'number')
+						res = res * video_width / 100;
+					check_coords = true;
+			}
+			else if ((prop_name=='y') || (prop_name=='height')) {
+					if (res == 'width')
+						res = mod.width;
+					else if (typeof res == 'number')
+						res = res * video_height / 100;
+					check_coords = true;
+			}
+		}
+
+		let update_type = 0;
+		if (scene) {
+			scene.options.forEach(o => {
+				if (o.name == prop_name) update_type = o.dirty || UPDATE_SIZE;
+			});
+			if (!update_type) {
+				if ((prop_name=="width") || (prop_name=="height"))
+						update_type = UPDATE_SIZE;
+				else  if ((prop_name=="mix_ratio") || (prop_name=="volume") || (prop_name=="fade") || (prop_name=="active") || (prop_name=="zorder"))
+					update_type = 0;
+				else
+					update_type = UPDATE_POS;
+			}
+		}
+		//transition updates use a single invalidate flag
+		else {
+			update_type = UPDATE_SIZE;
+		}
+
+
+		if (Array.isArray(mod[prop_name]) && (field_idx>=0)) {
+			if (field_idx >= mod[prop_name].length) {
+				print(GF_LOG_WARNING, 'Field index ' + field_idx + ' greater than number of elements ' + mod[prop_name].length + ' in property ' + prop_name);
+				return;
+			} else if (typeof res == typeof mod[prop_name][0]) {
+				if (mod[prop_name][field_idx] != res) {
+					mod.update_flag |= update_type;
+					mod[prop_name][field_idx] = res;
+				}
+			} else {
+				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + (typeof mod[prop_name][0]) + ' but replacement value type is ' + rep_type);
+				return;
+			}
+		} else {
+			if (prop_type != typeof res) {
+				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + prop_type + ' but replacement value type is ' + typeof res);
+				return;
+			}
+
+			if (mod[prop_name] != res) {
+				mod.update_flag |= update_type;
+				mod[prop_name] = res;
+
+				if (check_coords) check_scene_coords(scene)
+			}
+		}
+		return;
+	}
+
+	//locate timer
+	let timer = null;
+	timers.forEach(t => { if (t.id == src) { timer = t;} });
+	if (timer) {
+		if (prop_name == 'start') {
+			if (timer.active_state == 1) {
+				print(GF_LOG_WARNING, 'Cannot modify start time of active timer');
+			} else {
+				timer.start_time = parse_date_time(pl.with, false);
+				timer.active_state = 0;
+				timer.stop_time = 0;
+			}
+		}
+		else if (prop_name == 'stop') {
+			timer.stop_time = parse_date_time(pl.with, false);
+		} else if (prop_name == 'loop') {
+			if (typeof pl.with == 'boolean') {
+				timer.loop = pl.with ? -1 : 0;
+			} else if (typeof pl.with == 'number') {
+				timer.loop = pl.with;
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for timer.loop');
+			}
+		} else if (prop_name == 'dur') {
+			if (typeof pl.with == 'number') {
+				timer.duration = pl.with;
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for timer.dur');
+			}
+		} else if (typeof timer[prop_name] != 'undefined') {
+			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of timer not updatable');
+		} else {
+			print(GF_LOG_WARNING, 'Unknown timer property ' + prop_name);
+		}
+		return;
+	}
+
+	//locate sequence
+	let seq = get_sequence_by_id(src);
+	if (seq) {
+		if (prop_name == 'start') {
+			if (seq.active_state==1) {
+				print(GF_LOG_WARNING, 'Cannot modify start of active sequence');
+			} else {
+				seq.start_time = parse_date_time(pl.with, true);
+				seq.active_state = 0;
+				seq.stop_time = 0;
+			}
+		}
+		else if (prop_name == 'stop') {
+			seq.stop_time = parse_date_time(pl.with, false);
+			if ((seq.stop_time<0) || (seq.stop_time<=seq.start_time))
+				seq.stop_time = -1;
+		} else if (prop_name == 'loop') {
+			if (typeof pl.with == 'boolean') {
+				seq.loop = pl.with ? -1 : 0;
+			} else if (typeof pl.with == 'number') {
+				seq.loop = pl.with;
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for sequence.loop');
+			}
+		} else if (prop_name == 'transition') {
+			if (typeof pl.with == 'object') {
+				seq.transition_effect = pl.with;
+				print(GF_LOG_WARNING, 'assigning transition');
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for sequence.transition');
+			}
+		} else if (typeof seq[prop_name] != 'undefined') {
+			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of sequence not updatable');
+		} else {
+			print(GF_LOG_WARNING, 'Unknown sequence property ' + prop_name);
+		}
+		return;
+	}
+	//try inactive transition
+	transition = get_transition(src, true);
+	if (transition) {
+		apply_transition_update(transition, prop_name, pl.with);
+		return;
+	}
+	print(GF_LOG_WARNING, "No updatable element with id " + src + ' found');
+}
+
+function load_updates()
+{
+	if (!filter.updates) return;
+
+	let last_mtime = sys.mod_time(filter.updates);
+	if (!last_mtime || (last_mtime == last_updates_modification))
+		return;
+
+	last_updates_modification = last_mtime;
+
+	let f = sys.load_file(filter.updates, true);
+	if (!f) return;
+
+	let pl;
+	try {
+		pl = JSON.parse(f);
+	} catch (e) {
+		print(GF_LOG_WARNING, "Invalid JSON update playlist specified: " + e);
+		return false;
+	}
+
+	print(GF_LOG_DEBUG, 'Playlist update is ' + JSON.stringify(pl) );
+
+	if (Array.isArray(pl) ) {
+		pl.forEach(parse_update_elem);
+	} else {
+		parse_update_elem(pl);
+	}
 }
 
