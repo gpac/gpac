@@ -203,6 +203,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_264B:
 	case GF_ISOM_BOX_TYPE_265B:
 	case GF_ISOM_BOX_TYPE_DVHE:
+	case GF_ISOM_BOX_TYPE_DVH1:
+	case GF_ISOM_BOX_TYPE_DVA1:
+	case GF_ISOM_BOX_TYPE_DVAV:
 	case GF_ISOM_BOX_TYPE_VVC1:
 	case GF_ISOM_BOX_TYPE_VVI1:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
@@ -229,6 +232,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			HEVC_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*) entry, NULL);
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
+	case GF_ISOM_BOX_TYPE_DAV1:
 	case GF_ISOM_BOX_TYPE_AV01:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
