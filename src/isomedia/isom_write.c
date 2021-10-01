@@ -1860,6 +1860,27 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_OK;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HEV2:
+		entry->type = GF_ISOM_BOX_TYPE_DVHE;
+		break;
+	case GF_ISOM_BOX_TYPE_HVC1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+		entry->type = GF_ISOM_BOX_TYPE_DVH1;
+		break;
+	case GF_ISOM_BOX_TYPE_AVC1:
+		entry->type = GF_ISOM_BOX_TYPE_DVA1;
+		break;
+	case GF_ISOM_BOX_TYPE_AVC3:
+		entry->type = GF_ISOM_BOX_TYPE_DVAV;
+		break;
+	case GF_ISOM_BOX_TYPE_AV01:
+		entry->type = GF_ISOM_BOX_TYPE_DAV1;
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
 
 	dovi = ((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config;
 	if (!dv_profile) {
@@ -1872,8 +1893,8 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		if (!dovi) return GF_OUT_OF_MEM;
 		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = dovi;
 	}
-	entry->type = GF_ISOM_BOX_TYPE_DVHE;
 	dovi->DOVIConfig.dv_profile = dv_profile;
+	if (dv_profile>7) dovi->type = GF_ISOM_BOX_TYPE_DVVC;
 	return GF_OK;
 }
 
@@ -5120,6 +5141,11 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_AV01:
 		case GF_ISOM_BOX_TYPE_VVC1:
 		case GF_ISOM_BOX_TYPE_VVI1:
+		case GF_ISOM_BOX_TYPE_DVHE:
+		case GF_ISOM_BOX_TYPE_DVH1:
+		case GF_ISOM_BOX_TYPE_DVA1:
+		case GF_ISOM_BOX_TYPE_DVAV:
+		case GF_ISOM_BOX_TYPE_DAV1:
 		{
 			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
 			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;

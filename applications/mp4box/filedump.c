@@ -2667,6 +2667,13 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
 		fprintf(stderr, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);
+
+		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(file, trackNum, 1);
+		if (dovi) {
+			fprintf(stderr, "DolbyVision version %d.%d profile %d level %d (RPU: %d Base Layer: %d Enhancement Layer: %d)\n",
+				dovi->dv_version_major, dovi->dv_version_minor, dovi->dv_profile, dovi->dv_level,
+				dovi->rpu_present_flag, dovi->bl_present_flag, dovi->el_present_flag);
+		}
 	}
 
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
