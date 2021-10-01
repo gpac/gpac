@@ -220,6 +220,10 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		gf_bs_seek(bs, 0);
 		e = aom_av1_parse_temporal_unit_from_section5(bs, &ctx->state);
 		if (e && !gf_list_count(ctx->state.frame_state.frame_obus) ) {
+			if (e==GF_BUFFER_TOO_SMALL) {
+				gf_av1_reset_state(&ctx->state, GF_FALSE);
+				return GF_BUFFER_TOO_SMALL;
+			}
 			gf_filter_setup_failure(filter, e);
 			ctx->bsmode = UNSUPPORTED;
 			return e;
@@ -918,7 +922,8 @@ GF_Err av1dmx_process_buffer(GF_Filter *filter, GF_AV1DmxCtx *ctx, const char *d
 
 	//check ivf vs obu vs annexB
 	e = av1dmx_check_format(filter, ctx, ctx->bs, &last_obu_end);
-	if (e) return e;
+	if (e==GF_BUFFER_TOO_SMALL) return GF_OK;
+	else if (e) return e;
 
 	while (gf_bs_available(ctx->bs)) {
 
@@ -1128,6 +1133,14 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 						}
 						break;
 					}
+				}
+				//very large frame
+				else if (!nb_units && (e==GF_BUFFER_TOO_SMALL)) {
+					if (gf_list_count(state.frame_state.header_obus) && state.width && state.height) {
+						res = GF_TRUE;
+						*score = GF_FPROBE_MAYBE_SUPPORTED;
+					}
+					break;
 				} else {
 					break;
 				}
