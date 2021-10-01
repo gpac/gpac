@@ -45,6 +45,7 @@ Root objects types can be indicated through a \`type\` property:
 - url: a \`source\` object (if used as root, a default \`sequence\` object will be created)
 - scene: a \`scene\` object
 - timer: a \`timer\` object
+- config: a \`config\` object
 
 The \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
 
@@ -71,7 +72,7 @@ Properties for \`sequence\` objects:
    - if negative number or less than \`start\`, sequence will stop only when over
    - otherwise, date or \`now\`.
  - transition (null): a \`transition\` object to apply between sources of the sequence
- - seq ([]): array of one or more \`source\ objects
+ - seq ([]): array of one or more \`source\` objects
 
 Properties for \`source\` objects:
 - id (null): source identifier, used when reloading the playlist
@@ -109,9 +110,15 @@ Properties for \`scene\` objects:
 - js ('shape'): scene type, either builtin (see below) or path to a JS module
 - sources ([]): list of identifiers of sequences used by this scene
 - x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
-- x (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
-- width (100): width of the scene, in percent of the output width. Special value \`height\` indicates to use scene height
-- height (100): height of the scene, in percent of the output height. Special value \`width\` indicates to use scene width
+  - special value \`y\` indicates scene \`scene.y\`
+  - special value \`-y\` indicates \`output_height - scene.y - scene.height\`
+- y (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
+  - special value \`x\` indicates scene \`scene.x\`
+  - special value \`-x\` indicates \`output_width - scene.w - scene.width\`
+- width (100): width of the scene, in percent of the output width.
+  - special value \`height\` indicates to use scene height
+- height (100): height of the scene, in percent of the output height
+  - special value \`width\` indicates to use scene width
 - zorder (0): display order of the scene
 - active (true): indicate if the scene is active or not. An inactive scene will not be refreshed nor rendered
 - rotation (0): rotation angle of the scene in degrees (the rotation is counter-clockwise, around the scene center)
@@ -135,9 +142,9 @@ Properties for \`transition\` objects:
 Properties for \`timer\` objects:
 - id (null): id of the timer
 - dur (0): duration of the timer in seconds
-- loop (false): loops timer when \`stop_time\` is not set
-- start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or \`now\`
-- stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`, ignored if less than \`start_time\`
+- loop (false): loops timer when \`stop\` is not set
+- start (-1): start time, as offset in seconds from current video time (number) or as date (string) or \`now\`
+- stop (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`, ignored if less than \`start\`
 - keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 - anims ([]): list of \`animation\` objects
 
@@ -194,7 +201,7 @@ A \`sourceURL\` object is not tracked for modification, only evaluated when acti
 
 A \`scene\` object modified between two reloads is notified of each changed value.
 
-A \`timer\` object modified between two reloads is shut down and restarted. Consequently, \`animation\` objects are not tracked between updates.
+A \`timer\` object modified between two reloads is shut down and restarted. Consequently, \`animation\` objects are not tracked between reloads.
 
 A \`transition\` object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
 
@@ -212,11 +219,47 @@ EX   ],
 EX   "transition": { "dur": 1, "type": "mix"}
 EX  },
 EX  {"id": "scene1", "sources": ["seq1"]},
-EX  {"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
+EX  {"start": 0, "dur": 10, "keys": [0, 1], "anims":
 EX   [
 EX    {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
 EX    {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
 EX   ]
+EX  }
+EX ]
+
+
+# Updates Format
+
+Updates can be sent to modify the playlist, rather than reloading the entire playlist.
+Updates are read from a separate file specified in \`updates\`, inactive by default.
+
+Warning: The \`updates\` file is only read when modified __AFTER__ the initialization of the filter.
+
+
+The \`updates\` file content shall be either a single JSON object or an array of JSON objects.
+The properties of these objects are:
+- skip: if true or 1, ignores the update, otherwise apply it
+- replace: string identifying the target replacement. Syntax is:
+  - ID@name: indicate property name of element with given ID to replace
+  - ID@name[idx]: indicate the index in the property name of element with given ID to replace
+- with: replacement value, must be of the same type as the target value.
+
+
+The following playlist elements of a playlist can be updated:
+- scene: all properties except \`js\` and \`sources\`
+- sequence: \`start\`, \`stop\`, \`loop\` and \`transition\` properties
+- timer: \`start\`, \`stop\`, \`loop\` and \`dur\` properties
+- transition: all properties
+  - for sequence transitions, most of these properties will only be updated at next reload
+  - for active scene transitions, whether these changes are applied right away depend on the transition module
+
+
+IDs cannot be updated.
+
+
+EX [
+EX  {"replace": "scene1@x", "with": 20},
+EX  {"replace": "seq1@start", "with": "now"}
 EX  }
 EX ]
 

@@ -7721,6 +7721,8 @@ Root objects types can be indicated through a type property:
 .br
 * timer: a timer object
 .br
+* config: a config object
+.br
 
 .br
 The type property of root objects is usually not needed as the parser guesses the object types from its properties.
@@ -7851,11 +7853,23 @@ Properties for scene objects:
 .br
 * x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
 .br
-* x (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
+  - special value y indicates scene scene.y
 .br
-* width (100): width of the scene, in percent of the output width. Special value height indicates to use scene height
+  - special value -y indicates output_height - scene.y - scene.height
 .br
-* height (100): height of the scene, in percent of the output height. Special value width indicates to use scene width
+* y (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
+.br
+  - special value x indicates scene scene.x
+.br
+  - special value -x indicates output_width - scene.w - scene.width
+.br
+* width (100): width of the scene, in percent of the output width.
+.br
+  - special value height indicates to use scene height
+.br
+* height (100): height of the scene, in percent of the output height
+.br
+  - special value width indicates to use scene width
 .br
 * zorder (0): display order of the scene
 .br
@@ -7903,11 +7917,11 @@ Properties for timer objects:
 .br
 * dur (0): duration of the timer in seconds
 .br
-* loop (false): loops timer when stop_time is not set
+* loop (false): loops timer when stop is not set
 .br
-* start_time (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
+* start (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
 .br
-* stop_time (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now, ignored if less than start_time
+* stop (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now, ignored if less than start
 .br
 * keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 .br
@@ -8025,7 +8039,7 @@ A scene object modified between two reloads is notified of each changed value.
 .br
 
 .br
-A timer object modified between two reloads is shut down and restarted. Consequently, animation objects are not tracked between updates.
+A timer object modified between two reloads is shut down and restarted. Consequently, animation objects are not tracked between reloads.
 .br
 
 .br
@@ -8065,7 +8079,7 @@ Example
 .br
  {"id": "scene1", "sources": ["seq1"]},
 .br
- {"start_time": 0, "dur": 10, "keys": [0, 1], "anims":
+ {"start": 0, "dur": 10, "keys": [0, 1], "anims":
 .br
   [
 .br
@@ -8074,6 +8088,83 @@ Example
    {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
 .br
   ]
+.br
+ }
+.br
+]
+.br
+
+.br
+
+.br
+
+.br
+.SH Updates Format
+.LP
+.br
+
+.br
+Updates can be sent to modify the playlist, rather than reloading the entire playlist.
+.br
+Updates are read from a separate file specified in updates, inactive by default.
+.br
+
+.br
+Warning: The updates file is only read when modified AFTER the initialization of the filter.
+.br
+
+.br
+
+.br
+The updates file content shall be either a single JSON object or an array of JSON objects.
+.br
+The properties of these objects are:
+.br
+* skip: if true or 1, ignores the update, otherwise apply it
+.br
+* replace: string identifying the target replacement. Syntax is:
+.br
+  * ID@name: indicate property name of element with given ID to replace
+.br
+  * ID@name[idx]: indicate the index in the property name of element with given ID to replace
+.br
+* with: replacement value, must be of the same type as the target value.
+.br
+
+.br
+
+.br
+The following playlist elements of a playlist can be updated:
+.br
+* scene: all properties except js and sources
+.br
+* sequence: start, stop, loop and transition properties
+.br
+* timer: start, stop, loop and dur properties
+.br
+* transition: all properties
+.br
+  - for sequence transitions, most of these properties will only be updated at next reload
+.br
+  - for active scene transitions, whether these changes are applied right away depend on the transition module
+.br
+
+.br
+
+.br
+IDs cannot be updated.
+.br
+
+.br
+
+.br
+Example
+.br
+[
+.br
+ {"replace": "scene1@x", "with": 20},
+.br
+ {"replace": "seq1@start", "with": "now"}
 .br
  }
 .br
@@ -8250,7 +8341,7 @@ Example
 .br
 
 .br
-The following global can be used:
+The global variables and functions are available (c.f. gpac -h avmix:global):
 .br
  * get_media_time(): return media time in seconds (float) of output
 .br
@@ -8274,9 +8365,9 @@ If your path needs to be reevaluated on regular basis, set the value this.reload
 .br
 Options:
 .br
-* rx (0): horizontal radius for rounded rect in percent of width
+* rx (0): horizontal radius for rounded rect in percent of width, negative value will use ry
 .br
-* ry (0): vertical radius for rounded rect in percent of height
+* ry (0): vertical radius for rounded rect in percent of height, negative value will use rx
 .br
 * tl (true): top-left corner rounded
 .br
@@ -8556,6 +8647,8 @@ ltimeout (uint, default: 4000): timeout in ms before restarting child processes 
 .br
 maxdur (dbl, default: 0):      run for given seconds and exit, will not abort if 0 (used for live mode tests)
 .br
+updates (str):                 local JSON files for playlist updates
+.br
 vsize (v2d, default: 1920x1080): output video size
 .br
 fps (frac, default: 25):       output video frame rate
@@ -8736,7 +8829,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1306-gf97d1561f-master
+build: 1.1.0-DEV-rev1316-g61cbd01f8-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
