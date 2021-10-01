@@ -2294,8 +2294,10 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 
 			gf_bs_write_u32(bs, free_size+8);
 			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
-			while (free_size)
+			while (free_size) {
 				gf_bs_write_u8(bs, 0);
+				free_size--;
+			}
 		}
 		return GF_OK;
 	}
