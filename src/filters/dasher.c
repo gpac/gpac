@@ -1661,8 +1661,8 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
 GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
 GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
-GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c);
-GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc);
+GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, u32 colr_primaries, u32 colr_transfer, u32 colr_matrix_coefficients, Bool colr_full_range_flag);
+GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, u32 colr_primaries, u32 colr_transfer, u32 colr_matrix_coefficients, Bool colr_full_range_flag);
 GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi);
 GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc);
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl);
@@ -1674,12 +1674,26 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	u32 subtype=0, subtype_src=0;
 	s32 mha_pl=-1;
 	const GF_PropertyValue *dcd, *dcd_enh, *dovi, *codec;
+	u32 colr_primaries = 0, colr_transfer = 0, colr_matrix_coefficients = 0;
+	Bool colr_full_range_flag = GF_FALSE;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 	if (dcd) subtype_src = dcd->value.uint;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	// If colour information is supplied in [the colr] box, and also in the video bitstream, [the] box takes precedence
+	{
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_PRIMARIES);
+		if (p) colr_primaries = p->value.uint;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_TRANSFER);
+		if (p) colr_transfer = p->value.uint;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_MX);
+		if (p) colr_matrix_coefficients = p->value.uint;
+		p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_RANGE);
+		if (p) colr_full_range_flag = p->value.boolean;
+	}
 
 	if (!force_inband) {
 		force_inband = ds->inband_params;
@@ -1829,7 +1843,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		if (dcd) {
 			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 			if (av1c) {
-				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c);
+				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colr_primaries, colr_transfer, colr_matrix_coefficients, colr_full_range_flag);
 				gf_odf_av1_cfg_del(av1c);
 				return e;
 			}
@@ -1851,7 +1865,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			if (vpcc) {
-				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc);
+				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr_primaries, colr_transfer, colr_matrix_coefficients, colr_full_range_flag);
 				gf_odf_vp_cfg_del(vpcc);
 				return e;
 			}
@@ -1863,7 +1877,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		return GF_OK;
 
 	case GF_CODECID_MHAS:
-		subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHM1;
+		subtype = subtype_src ?: GF_ISOM_SUBTYPE_MH3D_MHM1;
 		if (!dcd) {
 			const GF_PropertyValue *pl = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_PROFILE_LEVEL);
 			if (pl) mha_pl = (s32) pl->value.uint;
@@ -1871,7 +1885,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		//fallthrough
 	case GF_CODECID_MPHA:
 		if (!subtype)
-			subtype = subtype_src ? subtype_src : GF_ISOM_SUBTYPE_MH3D_MHA1;
+			subtype = subtype_src ?: GF_ISOM_SUBTYPE_MH3D_MHA1;
 
 		return rfc_6381_get_codec_mpegha(szCodec, subtype, dcd ? dcd->value.data.ptr : NULL, dcd ? dcd->value.data.size : 0, mha_pl);
 
@@ -2434,8 +2448,8 @@ static Bool dasher_same_adaptation_set(GF_DasherCtx *ctx, GF_DashStream *ds, GF_
 	//if (ds->interlaced != ds_test->interlaced) return GF_FALSE;
 	if (ds->nb_ch != ds_test->nb_ch) return GF_FALSE;
 
-	lang1 = ds->lang ? ds->lang : "und";
-	lang2 = ds_test->lang ? ds_test->lang : "und";
+	lang1 = ds->lang ?: "und";
+	lang2 = ds_test->lang ?: "und";
 	if (strcmp(lang1, lang2)) return GF_FALSE;
 
 	if (ds->stream_type==GF_STREAM_VISUAL) {
@@ -2917,7 +2931,7 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 	u32 i, j, count, base_id;
 	GF_PropertyValue *p = (GF_PropertyValue *) gf_filter_pid_get_property_str(ds->opid, ref_type);
 	if (!p) return;
-	base_id = ds->dep_id ? ds->dep_id : ds->id;
+	base_id = ds->dep_id ?: ds->id;
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<p->value.uint_list.nb_items; i++) {
 		for (j=0; j<count; j++) {
@@ -2932,7 +2946,7 @@ static void dasher_update_dep_list(GF_DasherCtx *ctx, GF_DashStream *ds, const c
 
 static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream *ds, GF_List *multi_pids, Bool init_trashed)
 {
-	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
+	GF_DashStream *base_ds = ds->muxed_base ?: ds;
 	char szSRC[1024];
 
 	if (ctx->sigfrag || ctx->in_error)
@@ -3091,7 +3105,7 @@ static Bool dasher_template_use_source_url(const char *template)
 static void dasher_set_content_components(GF_DashStream *ds)
 {
 	GF_MPD_ContentComponent *component;
-	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
+	GF_DashStream *base_ds = ds->muxed_base ?: ds;
 
 	GF_SAFEALLOC(component, GF_MPD_ContentComponent);
 	if (!component) return;
@@ -3237,7 +3251,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	}
 
 	if (set->lang) gf_free(set->lang);
-	set->lang = gf_strdup(ds->lang ? ds->lang : "und");
+	set->lang = gf_strdup(ds->lang ?: "und");
 
 	//check all streams in active period not in this set
 	force_ds_id = ds->id;
@@ -3449,7 +3463,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			continue;
 		}
 		if (ds->template) strcpy(szTemplate, ds->template);
-		else strcpy(szTemplate, ctx->template ? ctx->template : "");
+		else strcpy(szTemplate, ctx->template ?: "");
 
 		if (use_inband)
 			ds->inband_params = GF_TRUE;
@@ -3528,7 +3542,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 						if (p) ext = (char *) gf_audio_fmt_sname(p->value.uint);
 					}
 				}
-				strncpy(szRawExt, ext ? ext : "raw", 19);
+				strncpy(szRawExt, ext ?: "raw", 19);
 				szRawExt[19] = 0;
 				ext = strchr(szRawExt, '|');
 				if (ext) ext[0] = 0;
@@ -3555,13 +3569,13 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				seg_ext = NULL;
 			} else {
 				seg_ext = ctx->segext;
-				if (!seg_ext) seg_ext = def_ext ? def_ext : "m4s";
+				if (!seg_ext) seg_ext = def_ext ?: "m4s";
 			}
 			if (ctx->initext && !stricmp(ctx->initext, "null")) {
 				init_ext = NULL;
 			} else {
 				init_ext = ctx->initext;
-				if (!init_ext) init_ext = def_ext ? def_ext : "mp4";
+				if (!init_ext) init_ext = def_ext ?: "mp4";
 			}
 		}
 
@@ -3706,7 +3720,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//we use segment template
 		if (ctx->tpl) {
 			GF_MPD_SegmentTemplate *seg_template;
-			u32 start_number = ds->startNumber ? ds->startNumber : 1;
+			u32 start_number = ds->startNumber ?: 1;
 			u64 seg_duration = (u64)(ds->dash_dur.num) * ds->mpd_timescale / ds->dash_dur.den;
 
 			//first rep in set and bs switching or single template, create segment template at set level
@@ -7340,7 +7354,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
 		assert(ds);
 		if (ds->done) continue;
-		base_ds = ds->muxed_base ? ds->muxed_base : ds;
+		base_ds = ds->muxed_base ?: ds;
 		//subdur mode abort, don't process
 		if (ds->subdur_done) {
 			continue;
@@ -8036,7 +8050,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				cts = ds->last_cts;
 				dts = ds->last_dts;
 			} else {
-				u64 ncts = cts + (split_dur ? split_dur : dur);
+				u64 ncts = cts + (split_dur ?: dur);
 				if (ncts>ds->est_first_cts_in_next_seg)
 					ds->est_first_cts_in_next_seg = ncts;
 
@@ -8044,7 +8058,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ncts>base_ds->max_period_dur)
 					base_ds->max_period_dur = ncts;
 
-				ds->last_cts = cts + (split_dur ? split_dur : dur);
+				ds->last_cts = cts + (split_dur ?: dur);
 				ds->last_dts = dts;
 				ds->est_next_dts = dts + o_dur;
 			}

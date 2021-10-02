@@ -990,6 +990,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (hspace != vspace)
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_SAR, &PROP_FRAC_INT(hspace, vspace) );
 
+		{
+			u32 colour_type;
+			u16 colour_primaries, transfer_characteristics, matrix_coefficients;
+			Bool full_range_flag;
+			if (GF_OK == gf_isom_get_color_info(read->mov, track, stsd_idx,
+				&colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag)) {
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(colour_primaries));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(transfer_characteristics));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_MX, &PROP_UINT(matrix_coefficients));
+				gf_filter_pid_set_property(ch->pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range_flag));
+			}
+		}
 
 		e = gf_isom_get_y3d_info(ch->owner->mov, ch->track, stsd_idx, &yt3d);
 		if (e==GF_OK) {
@@ -1198,18 +1210,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
 
 	if (ch->check_avc_ps) {
-		ch->avcc = gf_isom_avc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+		ch->avcc = gf_isom_avc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ?: 1);
 	}
 	else if (ch->check_hevc_ps) {
-		ch->hvcc = gf_isom_hevc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+		ch->hvcc = gf_isom_hevc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ?: 1);
 	}
 	else if (ch->check_vvc_ps) {
-		ch->vvcc = gf_isom_vvc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+		ch->vvcc = gf_isom_vvc_config_get(ch->owner->mov, ch->track, ch->last_sample_desc_index ?: 1);
 	}
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		u32 cwn, cwd, chn, chd, cxn, cxd, cyn, cyd;
-		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ? ch->last_sample_desc_index : 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
+		gf_isom_get_clean_aperture(ch->owner->mov, ch->track, ch->last_sample_desc_index ?: 1, &cwn, &cwd, &chn, &chd, &cxn, &cxd, &cyn, &cyd);
 
 		if (cwd && chd && cxd && cyd) {
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_W, &PROP_FRAC_INT(cwn, cwd) );
