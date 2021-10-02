@@ -392,7 +392,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		isoffin_disconnect(read);
 		return GF_OK;
 	}
-	//check if we  have a file path; if not, this is a pure stream of boxes (no local file cache)
+	//check if we have a file path; if not, this is a pure stream of boxes (no local file cache)
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || !prop->value.string) {
 		if (!read->mem_load_mode)
