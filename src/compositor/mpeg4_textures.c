@@ -305,9 +305,9 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				ct->data = NULL;
 				ct->data_len = 0;
 
-				e = gf_file_load_data(src_url ? src_url : ct->image.buffer, &ct->data, &ct->data_len);
+				e = gf_file_load_data(src_url ?: ct->image.buffer, &ct->data, &ct->data_len);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: %s\n", src_url ? src_url : ct->image.buffer, gf_error_to_string(e) ) );
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: %s\n", src_url ?: ct->image.buffer, gf_error_to_string(e) ) );
 				}
 				if (ct->image.buffer) gf_free(ct->image.buffer);
 				ct->image.buffer = NULL;

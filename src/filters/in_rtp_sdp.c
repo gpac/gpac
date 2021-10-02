@@ -179,7 +179,7 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SCALABLE, &PROP_BOOL( GF_TRUE) );
 
 	//TOCHECK: do we need to map ODID ?
-	//od->objectDescriptorID = stream->OD_ID ? stream->OD_ID : stream->ES_ID;
+	//od->objectDescriptorID = stream->OD_ID ?: stream->ES_ID;
 
 	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
 	if (stream->rtpin->is_scalable) {

@@ -1015,7 +1015,7 @@ second_pass:
 		 	caps[1].code = fmt->extensions ? GF_PROP_PID_FILE_EXT : GF_PROP_PID_MIME;
 		 	caps[1].val.type = GF_PROP_NAME;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-			caps[1].val.value.string = (char *) ( fmt->extensions ? fmt->extensions : fmt->mime_type );
+			caps[1].val.value.string = (char *) ( fmt->extensions ?: fmt->mime_type );
 #else
 			caps[1].val.value.string = (char *) fmt->extensions;
 #endif
@@ -1057,7 +1057,7 @@ second_pass:
 			caps[1].code = ofmt->extensions ? GF_PROP_PID_FILE_EXT : GF_PROP_PID_MIME;
 			caps[1].val.type = GF_PROP_NAME;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-			caps[1].val.value.string = (char *) ( ofmt->extensions ? ofmt->extensions : ofmt->mime_type );
+			caps[1].val.value.string = (char *) ( ofmt->extensions ?: ofmt->mime_type );
 #else
 			caps[1].val.value.string = (char *) ofmt->extensions;
 #endif
@@ -1298,7 +1298,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 					GF_FilterArgs an_arg = ffmpeg_arg_translate(opt);
 					if (!(par_arg->flags & GF_FS_ARG_META_ALLOC)) {
 						//move from const to allocated memory
-						par_arg->arg_desc = gf_strdup(par_arg->arg_desc ? par_arg->arg_desc : " ");
+						par_arg->arg_desc = gf_strdup(par_arg->arg_desc ?: " ");
 						par_arg->flags |= GF_FS_ARG_META_ALLOC;
 						/*trash default values and min_max_enum for flags*/
 						if (par_arg->arg_default_val) {
@@ -1311,7 +1311,7 @@ void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_re
 						}
 					}
 					gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_name, "\n- ");
-					gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc ? an_arg.arg_desc : "", ": ");
+					gf_dynstrcat((char **) &par_arg->arg_desc, an_arg.arg_desc ?: "", ": ");
 
 					if (an_arg.arg_default_val)
 						gf_free((void *) an_arg.arg_default_val);

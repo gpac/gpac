@@ -1722,7 +1722,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			video_ref_dur /= gf_isom_get_media_timescale(dest, video_ref);
 			e = gf_isom_set_last_sample_duration(dest, tmcd_tk, (u32) video_ref_dur);
 		} else {
-			e = gf_isom_set_last_sample_duration(dest, tmcd_tk, tc_fps_den ? tc_fps_den : 1);
+			e = gf_isom_set_last_sample_duration(dest, tmcd_tk, tc_fps_den ?: 1);
 		}
 		GOTO_EXIT("setting TMCD sample dur")
 	}

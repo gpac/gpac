@@ -411,7 +411,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 
 	if (changed) {
 		GF_Event evt;
-		GF_Scene *scene = mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene;
+		GF_Scene *scene = mo->odm->subscene ?: mo->odm->parentscene;
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_QUALITY_SWITCHED;
 		gf_sc_send_event(scene->compositor, &evt);

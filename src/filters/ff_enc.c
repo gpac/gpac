@@ -245,7 +245,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	}
 	//if target rate is not known yet (encoder default and we setup an adaptation chain for the PID), signal a default 100k
 	//this prevents a warning in the dasher complaining that no rate is set, unaware that we will reconfigure the PID before sending data
-	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->target_rate ? ctx->target_rate : 100000));
+	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->target_rate ?: 100000));
 
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TARGET_RATE, NULL);
 
@@ -1272,7 +1272,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		ctx->out_pid = gf_filter_pid_new(filter);
 
 		//to change once we implement on-the-fly codec change
-		sprintf(szCodecName, "ffenc:%s", codec->name ? codec->name : "unknown");
+		sprintf(szCodecName, "ffenc:%s", codec->name ?: "unknown");
 		gf_filter_set_name(filter, szCodecName);
 		gf_filter_pid_set_framing_mode(ctx->in_pid, GF_TRUE);
 	}

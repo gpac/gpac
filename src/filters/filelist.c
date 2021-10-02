@@ -1221,7 +1221,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			f_url = gf_url_concatenate(ctx->file_path, url);
 			memset(&evt, 0, sizeof(GF_FilterEvent));
 			evt.base.type = GF_FEVT_SOURCE_SWITCH;
-			evt.seek.source_switch = f_url ? f_url : url;
+			evt.seek.source_switch = f_url ?: url;
 			evt.seek.start_offset = ctx->start_range;
 			evt.seek.end_offset = ctx->end_range;
 			gf_filter_send_event(fsrc, &evt, GF_FALSE);
@@ -1373,7 +1373,7 @@ static Bool filelist_check_splice(GF_FileListCtx *ctx)
 	assert(ctx->splice_ctrl);
 	assert(ctx->splice_state);
 
-	ipid = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ipid : ctx->splice_ctrl->ipid;
+	ipid = ctx->splice_ctrl->splice_ipid ?: ctx->splice_ctrl->ipid;
 	is_raw_audio = ctx->splice_ctrl->splice_ipid ? ctx->splice_ctrl->splice_ra_info.is_raw : ctx->splice_ctrl->ra_info.is_raw;
 
 	pck = gf_filter_pid_get_packet(ipid);
@@ -2248,7 +2248,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (!iopid->ipid) continue;
 				gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
-				gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+				gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ?: "") );
 				gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
 				gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
 			}
@@ -2285,7 +2285,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (iopid->ipid) {
 					filelist_configure_pid(filter, iopid->ipid, GF_FALSE);
-					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ?: "") );
 				}
 			}
 
@@ -2354,7 +2354,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				iopid = gf_list_get(ctx->io_pids, i);
 				if (iopid->ipid) {
 					gf_filter_pid_set_property_str(iopid->opid, "period_resume", NULL);
-					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ? ctx->dyn_period_id : "") );
+					gf_filter_pid_set_property_str(iopid->opid, "period_resume", &PROP_STRING(ctx->dyn_period_id ?: "") );
 					gf_filter_pid_set_property_str(iopid->opid, "period_switch", NULL);
 					gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE) );
 				}
