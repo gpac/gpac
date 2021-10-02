@@ -270,8 +270,8 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	ctx->passthrough = GF_FALSE;
 
-	ctx->ow = ctx->osize.x ? ctx->osize.x : w;
-	ctx->oh = ctx->osize.y ? ctx->osize.y : h;
+	ctx->ow = ctx->osize.x ?: w;
+	ctx->oh = ctx->osize.y ?: h;
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == ofmt) && (ctx->stride == stride) && (ctx->fullrange==fullrange)) {
 		//nothing to reconfigure
 	}

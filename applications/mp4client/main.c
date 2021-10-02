@@ -931,8 +931,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 		if ((forced_width && forced_height) || scale) {
 			GF_Event size;
-			u32 nw = forced_width ? forced_width : evt->size.width;
-			u32 nh = forced_height ? forced_height : evt->size.height;
+			u32 nw = forced_width ?: evt->size.width;
+			u32 nh = forced_height ?: evt->size.height;
 
 			if (scale != 1) {
 				nw  = (u32)(nw * scale);
@@ -978,7 +978,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 	case GF_EVENT_QUIT:
 		if (evt->message.error<0)  {
-			fprintf(stderr, "A fatal error was encoutered: %s (%s) - exiting ...\n", evt->message.message ? evt->message.message : "no details", gf_error_to_string(evt->message.error) );
+			fprintf(stderr, "A fatal error was encoutered: %s (%s) - exiting ...\n", evt->message.message ?: "no details", gf_error_to_string(evt->message.error) );
 		} else {
 			ret_val = evt->message.error;
 		}
@@ -2424,7 +2424,7 @@ static void PrintWorldInfo(GF_Terminal *term)
 	if (!title && !gf_list_count(descs)) {
 		fprintf(stderr, "No World Info available\n");
 	} else {
-		fprintf(stderr, "\t%s\n", title ? title : "No title available");
+		fprintf(stderr, "\t%s\n", title ?: "No title available");
 		for (i=0; i<gf_list_count(descs); i++) {
 			char *str = gf_list_get(descs, i);
 			fprintf(stderr, "%s\n", str);

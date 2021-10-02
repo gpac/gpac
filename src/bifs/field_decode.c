@@ -440,7 +440,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 					if (e) return e;
 				}
 			} else {
-				return codec->LastError ? codec->LastError : GF_NON_COMPLIANT_BITSTREAM;
+				return codec->LastError ?: GF_NON_COMPLIANT_BITSTREAM;
 			}
 		}
 		/*according to the spec, the QP applies to the current node itself, not just children.
