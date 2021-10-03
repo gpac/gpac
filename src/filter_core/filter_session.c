@@ -86,6 +86,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 	}
 }
 
+GF_EXPORT
 void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
 	if (!freg) return;
@@ -539,6 +540,7 @@ u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session)
 	return session->max_resolve_chain_len;
 }
 
+GF_EXPORT
 void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *freg)
 {
 	gf_list_del_item(session->registry, freg);
