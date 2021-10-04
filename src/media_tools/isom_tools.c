@@ -3924,10 +3924,10 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, u3
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, ".%01u.%01u%01u%01u.%02u.%02u.%02u.%01u",
 			av1_state.config->monochrome, av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
 			av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0,
-			colr_primaries ?: av1_state.color_primaries,
-			colr_transfer ?: av1_state.transfer_characteristics,
-			colr_matrix_coefficients ?: av1_state.matrix_coefficients,
-			colr_full_range_flag ?: av1_state.color_range);
+			colr_primaries ? colr_primaries : av1_state.color_primaries,
+			colr_transfer ? colr_transfer : av1_state.transfer_characteristics,
+			colr_matrix_coefficients ? colr_matrix_coefficients : av1_state.matrix_coefficients,
+			colr_full_range_flag ? colr_full_range_flag : av1_state.color_range);
 		strcat(szCodec, tmp);
 	} else {
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
@@ -3952,10 +3952,10 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, u32
 		vpcc->level,
 		vpcc->bit_depth,
 		vpcc->chroma_subsampling,
-		colr_primaries ?: vpcc->colour_primaries,
-		colr_transfer ?: vpcc->transfer_characteristics,
-		colr_matrix_coefficients ?: vpcc->matrix_coefficients,
-		colr_full_range_flag ?: vpcc->video_fullRange_flag);
+		colr_primaries ? colr_primaries : vpcc->colour_primaries,
+		colr_transfer ? colr_transfer : vpcc->transfer_characteristics,
+		colr_matrix_coefficients ? colr_matrix_coefficients : vpcc->matrix_coefficients,
+		colr_full_range_flag ? colr_full_range_flag : vpcc->video_fullRange_flag);
 	return GF_OK;
 }
 
