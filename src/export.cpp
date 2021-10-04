@@ -2416,6 +2416,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_check_filter_register_cap ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_max_resolution_chain_length ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_max_resolution_chain_length ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_add_filter_register ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_remove_filter_register ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_connect_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_last_process_error ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_filter_exists ) )
