@@ -2755,7 +2755,7 @@ reparse:
 		gf_isom_set_cts_packing(file, track, GF_TRUE);
 	}
 
-	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
+	//CLARIFY whether this is correct: we duplicate all VPS in the enhancement layer ...
 	//we do this because if we split the tracks some info for setting up the enhancement layer
 	//is in the VPS
 	if (extractor_mode != GF_LHVC_EXTRACTORS_ON) {
@@ -3957,7 +3957,6 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc)
 
 GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi)
 {
-	assert(dovi);
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02u", gf_4cc_to_str(subtype), dovi->dv_profile, dovi->dv_level);
 	return GF_OK;
 }
@@ -4203,6 +4202,10 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	}
 
 	case GF_ISOM_SUBTYPE_DVHE:
+	case GF_ISOM_SUBTYPE_DVH1:
+	case GF_ISOM_SUBTYPE_DVA1:
+	case GF_ISOM_SUBTYPE_DVAV:
+	case GF_ISOM_SUBTYPE_DAV1:
 	{
 		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(movie, track, 1);
 		if (!dovi) {

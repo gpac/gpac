@@ -196,7 +196,13 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 {
 	switch (isobmftype) {
 	case GF_ISOM_SUBTYPE_DVHE:
+	case GF_ISOM_SUBTYPE_DVH1:
 		return GF_CODECID_HEVC;
+	case GF_ISOM_SUBTYPE_DVA1:
+	case GF_ISOM_SUBTYPE_DVAV:
+		return GF_CODECID_AVC;
+	case GF_ISOM_SUBTYPE_DAV1:
+		return GF_CODECID_AV1;
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 		return GF_CODECID_AMR;
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:

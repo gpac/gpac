@@ -309,6 +309,7 @@ void js_std_loop(JSContext *ctx)
 static JSClassID bitstream_class_id = 0;
 static JSClassID sha1_class_id = 0;
 static JSClassID file_class_id = 0;
+static JSClassID amix_class_id = 0;
 
 typedef struct
 {
@@ -1440,10 +1441,21 @@ static JSValue js_sys_crc32(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	const u8 *data;
 	size_t data_size;
 
-	if (!argc || !JS_IsObject(argv[0])) return GF_JS_EXCEPTION(ctx);
-	data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
-	if (!data) return GF_JS_EXCEPTION(ctx);
-	return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	if (JS_IsString(argv[0])) {
+		u32 crc=0;
+		const char *str = JS_ToCString(ctx, argv[0]);
+		if (str) {
+			crc = gf_crc_32(str, (u32) strlen(str) );
+			JS_FreeCString(ctx, str);
+		}
+		return JS_NewInt32(ctx, crc );
+	} else {
+		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
+		if (!data) return GF_JS_EXCEPTION(ctx);
+		return JS_NewInt32(ctx, gf_crc_32(data, (u32) data_size) );
+	}
+	return GF_JS_EXCEPTION(ctx);
 }
 
 static JSValue js_sys_sha1(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1573,6 +1585,27 @@ static JSValue js_sys_compress(JSContext *ctx, JSValueConst this_val, int argc, 
 static JSValue js_sys_decompress(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return js_sys_compress_ex(ctx, this_val, argc, argv, GF_TRUE);
+}
+
+static JSValue js_sys_url_cat(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	const char *parent;
+	const char *src;
+	char *url;
+	JSValue res;
+	if (argc<2) return GF_JS_EXCEPTION(ctx);
+	parent = JS_ToCString(ctx, argv[0]);
+	src = JS_ToCString(ctx, argv[1]);
+	url = gf_url_concatenate(parent, src);
+	if (url) {
+		res = JS_NewString(ctx, url);
+		gf_free(url);
+	} else {
+		res = JS_NewString(ctx, src);
+	}
+	JS_FreeCString(ctx, parent);
+	JS_FreeCString(ctx, src);
+	return res;
 }
 
 enum
@@ -1934,6 +1967,360 @@ static JSValue js_color_get_component(JSContext *ctx, JSValueConst this_val, int
 	return JS_NewFloat64(ctx, comp);
 }
 
+typedef struct
+{
+	u64 last_sample_time, frame_ts;
+	u32 samples_used, consumed, nb_samples, channels;
+	u32 fade;
+	JSValue jspid;
+	Double volume;
+	u8 *data;
+	size_t data_size;
+} PidMix;
+
+typedef struct
+{
+	u32 channels, samples_gap, fade_len;
+	Double *chan_buf;
+	u32 max_pid_channels;
+	Double *in_chan_buf;
+	u32 nb_inputs;
+	PidMix *inputs;
+
+	u32 sample_size;
+	Double (*get_sample)(u8 *data);
+	void (*set_sample)(u8 *data, Double val);
+} AMixCtx;
+
+static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 nb_samples, i, j, k, nb_src, fade_length=0;
+	u64 audio_time;
+	JSValue v;
+	s32 res;
+	size_t ab_size;
+	u8 *mix_ab;
+	u32 max_chan = 0;
+	PidMix *pids;
+	AMixCtx *mix = JS_GetOpaque(this_val, amix_class_id);
+	if (!mix) return GF_JS_EXCEPTION(ctx);
+
+	if (argc != 3) return GF_JS_EXCEPTION(ctx);
+
+	if (JS_ToInt64(ctx, &audio_time, argv[0])) return GF_JS_EXCEPTION(ctx);
+	mix_ab = JS_GetArrayBuffer(ctx, &ab_size, argv[1]);
+	if (!mix_ab) return GF_JS_EXCEPTION(ctx);
+	nb_samples = (u32) (ab_size / mix->channels / mix->sample_size);
+
+	v = JS_GetPropertyStr(ctx, argv[2], "length");
+	if (JS_IsException(v)) return GF_JS_EXCEPTION(ctx);
+
+	if (JS_ToInt32(ctx, &nb_src, v)) {
+		JS_FreeValue(ctx, v);
+		return GF_JS_EXCEPTION(ctx);
+	}
+	JS_FreeValue(ctx, v);
+
+	if (mix->nb_inputs < nb_src) {
+		mix->inputs = gf_realloc(mix->inputs, sizeof(PidMix) * nb_src);
+		if (!mix->inputs) return js_throw_err(ctx, GF_OUT_OF_MEM);
+		mix->nb_inputs = nb_src;
+	}
+	pids = mix->inputs;
+
+	//update current input states
+	for (i=0; i<nb_src; i++) {
+		PidMix *pid = &pids[i];
+		pid->jspid = JS_GetPropertyUint32(ctx, argv[2], i);
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "last_sample_time");
+		res = JS_ToInt64(ctx, &pid->last_sample_time, v);
+		JS_FreeValue(ctx, v);
+		//assume first sample if not set
+		if (res) pid->last_sample_time = 0;
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "frame_ts");
+		res = JS_ToInt64(ctx, &pid->frame_ts, v);
+		JS_FreeValue(ctx, v);
+		//we must have a frame timestamp in audio timescale
+		if (res) return GF_JS_EXCEPTION(ctx);
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "samples_used");
+		res = JS_ToInt32(ctx, &pid->samples_used, v);
+		JS_FreeValue(ctx, v);
+		//if not set, assume first sample
+		if (res) pid->samples_used = 0;
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "channels");
+		res = JS_ToInt32(ctx, &pid->channels, v);
+		JS_FreeValue(ctx, v);
+		//we must have the number of channels for this source
+		if (res || !pid->channels) return GF_JS_EXCEPTION(ctx);
+
+		//we must have the audio data
+		v = JS_GetPropertyStr(ctx, pid->jspid, "data");
+		pid->data = JS_GetArrayBuffer(ctx, &pid->data_size, v);
+		JS_FreeValue(ctx, v);
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "nb_samples");
+		res = JS_ToInt32(ctx, &pid->nb_samples, v);
+		JS_FreeValue(ctx, v);
+		//if not set, derive from data size
+		if (res) {
+			pid->nb_samples = (u32) (pid->data_size / pid->channels / mix->sample_size);
+		}
+		v = JS_GetPropertyStr(ctx, pid->jspid, "fade");
+		res = JS_ToInt32(ctx, &pid->fade, v);
+		JS_FreeValue(ctx, v);
+		if (res) pid->fade = 0;
+		if (pid->fade) fade_length++;
+
+		v = JS_GetPropertyStr(ctx, pid->jspid, "volume");
+		res = JS_ToFloat64(ctx, &pid->volume, v);
+		JS_FreeValue(ctx, v);
+		if (res) pid->volume = 1.0;
+
+		if (pid->channels>max_chan)
+			max_chan = pid->channels;
+
+		pid->consumed = 0;
+	}
+	if (max_chan > mix->max_pid_channels) {
+		mix->in_chan_buf = gf_realloc(mix->in_chan_buf, sizeof(Double) * max_chan);
+		if (!mix->in_chan_buf) return js_throw_err(ctx, GF_OUT_OF_MEM);
+		mix->max_pid_channels = max_chan;
+	}
+	if (fade_length) {
+		fade_length = MIN(mix->fade_len, nb_samples);
+	}
+
+	for (i=0; i<nb_samples; i++) {
+		u32 active=0;
+		memset(mix->chan_buf, 0, sizeof(Double) * mix->channels);
+
+		for (j=0; j<nb_src; j++) {
+			PidMix *pid = &pids[j];
+
+			//for the time being, as soon as we start writing audio we no longer check sync
+			if (!pid->last_sample_time) {
+				if (pid->frame_ts + pid->samples_used  > audio_time + i) {
+					continue;
+				}
+				pid->last_sample_time = 1; //pid.frame_ts + pid.sample_used;
+				JS_SetPropertyStr(ctx, pid->jspid, "last_sample_time", JS_NewInt64(ctx, pid->last_sample_time) );
+			} else {
+				//audio discontinuity
+				if (pid->frame_ts + pid->samples_used  > audio_time + i + mix->samples_gap) {
+					continue;
+				}
+			}
+
+			u32 s_pos = pid->samples_used + pid->consumed;
+			if (s_pos >= pid->nb_samples) {
+				assert(0);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[AVMix] error mixing\n"));
+			}
+			u32 pos = s_pos * pid->channels;
+			u8 *buf = pid->data + mix->sample_size * pos;
+			for (k=0; k<pid->channels; k++) {
+				mix->in_chan_buf[k] = mix->get_sample(buf);
+				buf += mix->sample_size;
+			}
+
+			active += 1;
+
+			Double fade_scale = 1;
+			if (pid->fade) {
+				//fade from 0 to 1 starting at pos=0 up to fade_length
+				if (pid->fade==1) {
+					if (s_pos<fade_length) {
+						fade_scale = s_pos/fade_length;
+					} else {
+						pid->fade = 0;
+						JS_SetPropertyStr(ctx, pid->jspid, "fade", JS_NewInt32(ctx, pid->fade) );
+					}
+				}
+				//fade from 1 to 0 starting at pos=nb_samples-fade_length up to nb_samples
+				else if (pid->fade==2) {
+					if (s_pos>nb_samples-fade_length ) {
+						fade_scale = (nb_samples - s_pos)/fade_length;
+					}
+				}
+			}
+			fade_scale *= pid->volume;
+
+			//todo , proper down/up mix ...
+			for (k=0; k<mix->channels; k++) {
+				Double s_val;
+				if (pid->channels < k )
+					s_val = mix->in_chan_buf[0];
+				else
+				s_val = mix->in_chan_buf[k];
+
+				mix->chan_buf[k] += s_val * fade_scale;
+			}
+			pid->consumed ++;
+		}
+
+		u8 *dst = mix_ab + mix->sample_size * (i * mix->channels);
+		for (j=0; j< mix->channels; j++) {
+			Double sval = active ? (mix->chan_buf[j] / active) : 0;
+			mix->set_sample(dst, sval);
+			dst += mix->sample_size;
+		}
+	}
+
+	//update pid values
+	for (i=0; i<nb_src; i++) {
+		PidMix *pid = &pids[i];
+		pid->samples_used += pid->consumed;
+		JS_SetPropertyStr(ctx, pid->jspid, "samples_used", JS_NewInt32(ctx, pid->samples_used));
+
+		JS_FreeValue(ctx, pid->jspid);
+	}
+	return JS_UNDEFINED;
+}
+
+static Double amix_get_s16(u8 *data)
+{
+	u16 val = data[1];
+	val <<= 8;
+	val |= data[0];
+	return ((Double) (s16) val) / 65535;
+
+}
+static void amix_set_s16(u8 *data, Double val)
+{
+	val *= 65535;
+	u16 res = (u16) val;
+	data[0] = res & 0xFF;
+	data[1] = (res>>8) & 0xFF;
+}
+static Double amix_get_s32(u8 *data)
+{
+	u32 val = data[3];
+	val <<= 8;
+	val |= data[2];
+	val <<= 8;
+	val |= data[1];
+	val <<= 8;
+	val |= data[0];
+	return ((Double) (s32) val) / 0xFFFFFFFF;
+
+}
+static void amix_set_s32(u8 *data, Double val)
+{
+	val *= 0xFFFFFFFF;
+	u32 res = (u32) val;
+	data[0] = res & 0xFF;
+	data[1] = (res>>8) & 0xFF;
+	data[2] = (res>>16) & 0xFF;
+	data[3] = (res>>24) & 0xFF;
+}
+static Double amix_get_flt(u8 *data)
+{
+	return (Double) *(Float *)data;
+}
+static void amix_set_flt(u8 *data, Double val)
+{
+	*(Float *)data = (Float) val;
+}
+static Double amix_get_dbl(u8 *data)
+{
+	return *(Double *)data;
+}
+static void amix_set_dbl(u8 *data, Double val)
+{
+	*(Double *)data = val;
+}
+
+
+static void js_amix_finalize(JSRuntime *rt, JSValue obj)
+{
+	AMixCtx *mix = JS_GetOpaque(obj, amix_class_id);
+	if (!mix) return;
+
+	if (mix->chan_buf) gf_free(mix->chan_buf);
+	if (mix->inputs) gf_free(mix->inputs);
+	if (mix->in_chan_buf) gf_free(mix->in_chan_buf);
+	gf_free(mix);
+}
+
+JSClassDef amixClass = {
+    "FILE",
+    .finalizer = js_amix_finalize,
+};
+
+static const JSCFunctionListEntry amix_funcs[] = {
+	JS_CFUNC_DEF("mix", 0, js_audio_mix),
+};
+
+static JSValue amix_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	u32 a_fmt=0;
+	u32 channels, samples_gap, fade_len;
+	AMixCtx *mix;
+	JSValue anobj;
+
+	if (argc != 4) return js_throw_err(ctx, GF_BAD_PARAM);
+
+	const char *fmt = JS_ToCString(ctx, argv[0]);
+	if (!fmt) return GF_JS_EXCEPTION(ctx);
+	//we only support these formats for the time being, all in packed mode
+	if (!strcmp(fmt, "s16")) a_fmt = 1;
+	else if (!strcmp(fmt, "s32")) a_fmt = 2;
+	else if (!strcmp(fmt, "flt")) a_fmt = 3;
+	else if (!strcmp(fmt, "dbl")) a_fmt = 4;
+	JS_FreeCString(ctx, fmt);
+	if (!a_fmt) return GF_JS_EXCEPTION(ctx);
+
+	if (JS_ToInt32(ctx, &channels, argv[1])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &samples_gap, argv[2])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &fade_len, argv[3])) return GF_JS_EXCEPTION(ctx);
+	if (!channels) return js_throw_err(ctx, GF_BAD_PARAM);
+
+	GF_SAFEALLOC(mix, AMixCtx);
+	mix->channels = channels;
+	mix->samples_gap = samples_gap;
+	mix->fade_len = fade_len;
+	mix->chan_buf = gf_malloc(sizeof(Double) * channels);
+	if (!mix->chan_buf) {
+		gf_free(mix);
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
+
+	switch (a_fmt) {
+	case 1:
+		mix->sample_size = 2;
+		mix->get_sample = amix_get_s16;
+		mix->set_sample = amix_set_s16;
+		break;
+	case 2:
+		mix->sample_size = 4;
+		mix->get_sample = amix_get_s32;
+		mix->set_sample = amix_set_s32;
+		break;
+	case 3:
+		mix->sample_size = 4;
+		mix->get_sample = amix_get_flt;
+		mix->set_sample = amix_set_flt;
+		break;
+	case 4:
+		mix->sample_size = 8;
+		mix->get_sample = amix_get_dbl;
+		mix->set_sample = amix_set_dbl;
+		break;
+	}
+
+	anobj = JS_NewObjectClass(ctx, amix_class_id);
+	if (JS_IsException(anobj)) {
+		gf_free(mix);
+		return anobj;
+	}
+	JS_SetOpaque(anobj, mix);
+	return anobj;
+}
+
 static const JSCFunctionListEntry sys_funcs[] = {
     JS_CGETSET_MAGIC_DEF_ENUM("nb_cores", js_sys_prop_get, NULL, JS_SYS_NB_CORES),
     JS_CGETSET_MAGIC_DEF_ENUM("sampling_period_duration", js_sys_prop_get, NULL, JS_SYS_SAMPLE_DUR),
@@ -2035,7 +2422,9 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("pcmfmt_depth", 0, js_pcmfmt_depth),
 	JS_CFUNC_DEF("color_lerp", 0, js_color_lerp),
 	JS_CFUNC_DEF("color_component", 0, js_color_get_component),
+	JS_CFUNC_DEF("url_cat", 0, js_sys_url_cat),
 
+	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 };
 
 
@@ -2359,6 +2748,9 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 
 		JS_NewClassID(&file_class_id);
 		JS_NewClass(JS_GetRuntime(ctx), file_class_id, &fileClass);
+
+		JS_NewClassID(&amix_class_id);
+		JS_NewClass(JS_GetRuntime(ctx), amix_class_id, &amixClass);
 	}
 
 	JSValue core_o = JS_NewObject(ctx);
@@ -2415,6 +2807,13 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 	ctor = JS_NewCFunction2(ctx, file_constructor, "File", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(ctx, m, "File", ctor);
 
+	//amix constructor
+	proto = JS_NewObjectClass(ctx, amix_class_id);
+	JS_SetPropertyFunctionList(ctx, proto, amix_funcs, countof(amix_funcs));
+	JS_SetClassProto(ctx, amix_class_id, proto);
+	ctor = JS_NewCFunction2(ctx, amix_constructor, "AudioMixer", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(ctx, m, "AudioMixer", ctor);
+
 	return 0;
 }
 
@@ -2429,6 +2828,7 @@ void qjs_module_init_gpaccore(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Bitstream");
 	JS_AddModuleExport(ctx, m, "SHA1");
 	JS_AddModuleExport(ctx, m, "File");
+	JS_AddModuleExport(ctx, m, "AudioMixer");
 	return;
 }
 

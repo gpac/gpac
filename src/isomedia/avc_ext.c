@@ -2479,6 +2479,8 @@ GF_ISOMAVCType gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u
 	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_MVC1:
+	case GF_ISOM_BOX_TYPE_DVA1:
+	case GF_ISOM_BOX_TYPE_DVAV:
 		break;
 	default:
 		return GF_ISOM_AVCTYPE_NONE;
@@ -2514,10 +2516,6 @@ GF_ISOMHEVCType gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber
 		if (entry->rinf && entry->rinf->original_format) type = entry->rinf->original_format->data_format;
 	}
 
-	if (type == GF_ISOM_BOX_TYPE_DVHE) {
-		type = GF_ISOM_BOX_TYPE_HEV1;
-	}
-
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
@@ -2526,6 +2524,8 @@ GF_ISOMHEVCType gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber
 	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_HVT1:
+	case GF_ISOM_BOX_TYPE_DVHE:
+	case GF_ISOM_BOX_TYPE_DVH1:
 		break;
 	default:
 		return GF_ISOM_HEVCTYPE_NONE;

@@ -1577,18 +1577,27 @@ static JSValue wgl_createTexture(JSContext *ctx, JSValueConst this_val, int argc
 	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
 	if (!glc) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
-	if (argc && JS_IsString(argv[0])) {
+	if (argc && (JS_IsString(argv[0]) || JS_IsNull(argv[0]))) {
 		GF_WebGLNamedTexture *named_tx;
-		const char *tx_name;
-		tx_name = JS_ToCString(ctx, argv[0]);
-		if (!tx_name) return js_throw_err(ctx, WGL_INVALID_VALUE);
+		const char *tx_name = NULL;
+
+		if (!JS_IsNull(argv[0])) {
+			tx_name = JS_ToCString(ctx, argv[0]);
+			if (!tx_name) return js_throw_err(ctx, WGL_INVALID_VALUE);
+		}
 
 		GF_SAFEALLOC(named_tx, GF_WebGLNamedTexture);
 		if (!named_tx) return js_throw_err(ctx, WGL_OUT_OF_MEMORY);
+		if (!tx_name) {
+			char szName[100];
+			sprintf(szName, "_gfnt_%p", named_tx);
+			named_tx->tx_name = gf_strdup(szName);
+		} else {
+			named_tx->tx_name = gf_strdup(tx_name);
+			JS_FreeCString(ctx, tx_name);
+		}
 		named_tx->par_ctx = glc;
-		named_tx->tx_name = gf_strdup(tx_name);
 		named_tx->tx.mx_cicp = -1;
-		JS_FreeCString(ctx, tx_name);
 		ret_val_js = JS_NewObjectClass(ctx, NamedTexture_class_id);
 		JS_SetOpaque(ret_val_js, named_tx);
 		gf_list_add(glc->named_textures, named_tx);
@@ -2114,6 +2123,16 @@ static JSValue webgl_constructor(JSContext *ctx, JSValueConst new_target, int ar
 
 	return v;
 }
+static JSValue wgl_texture_name(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_WebGLNamedTexture *named_tx = NULL;
+	GF_WebGLContext *glc = JS_GetOpaque(this_val, WebGLRenderingContextBase_class_id);
+	if (!glc || !argc) return js_throw_err(ctx, WGL_INVALID_VALUE);
+
+	named_tx = JS_GetOpaque(argv[0], NamedTexture_class_id);
+	if (!named_tx) return GF_JS_EXCEPTION(ctx);
+	return JS_NewString(ctx, named_tx->tx_name);
+}
 
 static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activate)
 {
@@ -2230,6 +2249,7 @@ static const JSCFunctionListEntry webgl_funcs[] =
 {
 	JS_CFUNC_DEF("activate", 0, wgl_activate),
 	JS_CFUNC_DEF("resize", 0, wgl_resize),
+	JS_CFUNC_DEF("textureName", 0, wgl_texture_name),
 };
 
 enum

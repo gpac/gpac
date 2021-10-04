@@ -237,7 +237,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
 GF_ABI_MAJOR=10
-GF_ABI_MINOR=8
+GF_ABI_MINOR=9
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -1934,7 +1934,7 @@ class DASHGroupDownloadStatistics(Structure):
         self.total_bytes = 0
         ##number of downloaded bytes from segment (starting from first byte)
         self.bytes_done = 0
-        ##number of microseconds ellapsed since segment was scheduled for download
+        ##number of microseconds elapsed since segment was scheduled for download
         self.time_since_start = 0
         ##current buffer length in milliseconds
         self.buffer_dur = 0

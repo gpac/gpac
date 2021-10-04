@@ -6409,6 +6409,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			FSESS_CHECK_THREAD(f)
 			canceled = f->freg->process_event(f, evt);
 		}
+		if (!canceled && (evt->base.type==GF_FEVT_STOP) && evt->play.forced_dash_segment_switch) {
+			GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, 0);
+			//input is source filter, cancel
+			if (pid_inst && ((pid_inst->pid->filter->num_input_pids==0) || (pid_inst->pid->filter->freg->flags & GF_FS_REG_ACT_AS_SOURCE)))
+				canceled = GF_TRUE;
+		}
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", gf_filter_event_name(evt->base.type), canceled ? "yes" : "no" ));
@@ -6453,7 +6459,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 			//post task on destination filter
 			if (evt->base.type==GF_FEVT_STOP)
-				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_pid", pidi);
+				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_stop_pid", pidi);
 			else
 				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
 		}

@@ -31,13 +31,14 @@
 - support for multiple filter chains per source in MP4Box dash or add syntax
 - chunk interleaving dumper
 
-## Filter core
+## Filters
+- added avmix audio video mixer
 - Python bindings for filter session
 - support for custom HAS adaptation algorithms (JS and Python)
 - support for custom remotery callbacks (JS and Python)
+- added avgen counter generation
 - splicing support in playlists: raw and compressed domain, vod and live splicing
 - tile splitting now available as a filter 
-- added avgen counter generation
 - raw options for flist and reframer
 - flip and rotate in vout
 - simple UI for vout to test seeking and speed modes
@@ -46,6 +47,8 @@
 - improved audio resampler
 - added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 
 - support for reading back frame interface data (GPU, decoder mem) in JS or Python sink filters
+
+## Filters
 
 ## Media Formats
 - improved support for MPEG-H audio mux/demux/dashing
@@ -591,7 +594,7 @@ It also adds several small features:
   - misc fixes in ffmpeg decoder and MP4Box ISMA for PAR - this is disabled by default due to some unsolved crashes, cf gpac/doc/configuration.html or man gpac.s
   - misc updates in MP4Box meta handling for item extraction.
   - fixed MPEG-2 aac importing and info dumping
-  - fixed 3GPP text display bug when stoping and changing an animationStream using a 3GPP text object.
+  - fixed 3GPP text display bug when stopping and changing an animationStream using a 3GPP text object.
   - fixed AVC/H264 HP parsing
   - added BIFS track visual size info at BT/XMT encoding stage
   - MOVED FFMPEG INCLUDE FILES TO LATEST CVS VERSION to support AVC/H264 HP decoding

@@ -528,7 +528,7 @@ static void PrintSplitUsage()
 		"- for `-splitf`, option `xround=seek` is enforced and `propbe_ref`set if not specified at prompt\n"
 		"- for `-splitx`, option `xround=closest` and `propbe_ref` are enforced if not specified at prompt\n"
 		"  \n"
-		"The default output storage mode is to full interleave and will require a temp file for each output. This behaviour can be modified using `-flat`, `-newfs`, `-inter` and `-frag`.\n"
+		"The default output storage mode is to full interleave and will require a temp file for each output. This behavior can be modified using `-flat`, `-newfs`, `-inter` and `-frag`.\n"
 		"The output file name(s) can be specified using `-out` and templates (e.g. `-out split$num%%04d$.mp4` produces split0001.mp4, split0002.mp4, ...).\n"
 		"  \n"
 	);
@@ -726,6 +726,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("name", NULL, "`S` set track handler name", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ext", NULL, "override file extension when importing", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("hdlr", NULL, "`S` set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("stype", NULL, "`S` force sample description type to given code point (4CC), may likely break the file", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer. Use `tkhd+=FLAGS` to add flags and `tkhd-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("disable", NULL, "`S` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("group", NULL, "`S` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),

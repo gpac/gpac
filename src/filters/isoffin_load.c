@@ -466,8 +466,14 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TRACK_NUM, &PROP_UINT(track) );
 
 		//Dolby Vision
-		if (m_subtype == GF_ISOM_SUBTYPE_DVHE) {
-			GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, 1);
+		switch (m_subtype) {
+		case GF_ISOM_SUBTYPE_DVHE:
+		case GF_ISOM_SUBTYPE_DVH1:
+		case GF_ISOM_SUBTYPE_DVA1:
+		case GF_ISOM_SUBTYPE_DVAV:
+		case GF_ISOM_SUBTYPE_DAV1:
+		{
+			GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, stsd_idx);
 			if (dovi) {
 				u8 *data = NULL;
 				u32 size = 0;
@@ -478,6 +484,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				gf_bs_del(bs);
 				gf_odf_dovi_cfg_del(dovi);
 			}
+		}
+			break;
 		}
 
 		//create our channel

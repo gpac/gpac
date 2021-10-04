@@ -372,7 +372,8 @@ void disable_inputs();
 /*! reset source identifier for the filter - see \ref gf_filter_reset_source*/
 void reset_source();
 
-/*! indicates if filter is likely blocking or note - see \ref gf_filter_set_blocking*/
+/*! indicates if filter is likely blocking or not - see \ref gf_filter_set_blocking
+\param is_blocking if true, indicates the filter is likely to block upon process*/
 void set_blocking(boolean is_blocking);
 
 /*! filter name*/
@@ -966,6 +967,8 @@ interface JSArgDesc {
     optional attribute DOMString def=null;
     /*! min/max or enum values of the argument*/
     optional attribute DOMString minmax_enum=null;
+    /*! argument hint type: "advanced", "expert", "hide" or null*/
+    optional attribute DOMString hint=null;
 };
 
 /*! interface used to describe filter capability*/

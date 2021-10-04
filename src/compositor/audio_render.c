@@ -49,6 +49,12 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	a_fmt = ar->compositor->afmt;
 	nb_chan = ar->compositor->ach;
 	ch_cfg = ar->compositor->alayout;
+
+	if (nb_chan && !ch_cfg) {
+		u32 cicp = gf_audio_fmt_get_cicp_layout(nb_chan, 0, 0);
+		ch_cfg = gf_audio_fmt_get_layout_from_cicp(cicp);
+	}
+
 	bsize = ar->compositor->asize;
 	if (!bsize) bsize = 1024;
 
@@ -106,6 +112,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		ar->wait_for_rcfg ++;
 		gf_filter_pck_set_readonly(pck);
 		gf_filter_pck_send(pck);
+		ar->compositor->audio_frames_sent++;
 	}
 	return GF_OK;
 }
@@ -284,6 +291,8 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 	u32 written, max_send=100;
 	u64 now = gf_sys_clock_high_res();
 
+	ar->compositor->audio_frames_sent = 0;
+
 	if (!ar->aout) {
 		if (ar->compositor->player) {
 			ar->current_time = (u32) ( (now - ar->start_time)/1000);
@@ -344,9 +353,15 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 
 		if (!written) {
-			if (!ar->non_rt_output) written = ar->buffer_size;
-			else if ((ar->non_rt_output==1) && ar->scene_ready && ar->nb_audio_objects && !gf_mixer_buffering(ar->mixer) ) written = ar->buffer_size;
-			else {
+			if (!ar->non_rt_output) {
+				written = ar->buffer_size;
+			} else if ((ar->non_rt_output==1) && ar->scene_ready
+				&& ar->nb_audio_objects
+				&& !gf_mixer_buffering(ar->mixer)
+				&& !gf_mixer_is_eos(ar->mixer)
+			) {
+				written = ar->buffer_size;
+			} else {
 				gf_filter_pck_truncate(pck, 0);
 				gf_filter_pck_discard(pck);
 
@@ -358,8 +373,13 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 						ar->current_time = (u32) ( (now - ar->start_time)/1000);
 					}
 				}
+				if (gf_mixer_buffering(ar->mixer))
+					ar->compositor->audio_frames_sent++;
+
 				break;
 			}
+		} else {
+			ar->compositor->audio_frames_sent++;
 		}
 
 		if (written<ar->buffer_size) {

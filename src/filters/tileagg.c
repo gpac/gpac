@@ -428,6 +428,13 @@ static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->play_evt = evt->play;
 		return GF_FALSE;
 	case GF_FEVT_STOP:
+	{
+		u32 i, count = gf_filter_get_ipid_count(filter);
+		for (i=0; i<count; i++) {
+			GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
+			gf_filter_pid_set_discard(pid, GF_FALSE);
+		}
+	}
 		ctx->is_playing = GF_FALSE;
 		return GF_FALSE;
 	case GF_FEVT_PLAY_HINT:

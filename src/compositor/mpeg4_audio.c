@@ -46,6 +46,7 @@ static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 static void audioclip_deactivate(AudioClipStack *st, M_AudioClip *ac)
 {
 	gf_sc_audio_stop(&st->input);
+	gf_sc_audio_unregister(&st->input);
 	ac->isActive = 0;
 	gf_node_event_out((GF_Node *)ac, 7/*"isActive"*/);
 

@@ -203,6 +203,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	case GF_ISOM_BOX_TYPE_264B:
 	case GF_ISOM_BOX_TYPE_265B:
 	case GF_ISOM_BOX_TYPE_DVHE:
+	case GF_ISOM_BOX_TYPE_DVH1:
+	case GF_ISOM_BOX_TYPE_DVA1:
+	case GF_ISOM_BOX_TYPE_DVAV:
 	case GF_ISOM_BOX_TYPE_VVC1:
 	case GF_ISOM_BOX_TYPE_VVI1:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
@@ -229,6 +232,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			HEVC_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*) entry, NULL);
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
+	case GF_ISOM_BOX_TYPE_DAV1:
 	case GF_ISOM_BOX_TYPE_AV01:
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO)
 			return GF_ISOM_INVALID_MEDIA;
@@ -1047,7 +1051,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	//The first non sync sample we see must create a syncTable
 	if (sample->IsRAP) {
 		//insert it only if we have a sync table and if we have an IDR slice
-		if (stbl->SyncSample && (sample->IsRAP == RAP)) {
+		if (stbl->SyncSample && ((sample->IsRAP == RAP) || (sample->IsRAP == SAP_TYPE_2))) {
 			e = stbl_AddRAP(stbl->SyncSample, sampleNumber);
 			if (e) return e;
 		}

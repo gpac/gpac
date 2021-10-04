@@ -31,7 +31,7 @@ extension = {
     time_in_tsb: 0,
     muted: 0,
     file_open_dlg: false,
-    stoped_url: null,
+    stopped_url: null,
     initial_service_id: 0,
     default_addon: null,
     history: [],
@@ -1313,7 +1313,7 @@ extension = {
 
         if (state == this.GF_STATE_STOP) {
             if (this.stats_wnd) this.stats_wnd.close_all();
-            this.stoped_url = '' + this.current_url;
+            this.stopped_url = '' + this.current_url;
             if (this.controlled_renderer) this.controlled_renderer.Stop();
             else {
                 this.set_movie_url('');
@@ -1351,13 +1351,13 @@ extension = {
 			return;
         }
         //we are playing, resume from stop if needed
-        if (this.stoped_url) {
+        if (this.stopped_url) {
             if (this.controlled_renderer) {
                 this.controlled_renderer.Play();
             } else {
-                this.set_movie_url(this.stoped_url, true);
+                this.set_movie_url(this.stopped_url, true);
             }
-            this.stoped_url = null;
+            this.stopped_url = null;
             //not in trick mode, next pause/play will restart from current time
             if (state != this.GF_STATE_TRICK)
                 this.movie_control.mediaStartTime = -1;
@@ -1441,7 +1441,7 @@ extension = {
 
             this.default_addon = null;
             this.root_odm = null;
-            this.stoped_url = null;
+            this.stopped_url = null;
 
             /*create a temp inline holding the previous scene, use it as the main movie and use the old inline to test the resource. 
             This avoids messing up with event targets already setup*/

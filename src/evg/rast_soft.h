@@ -434,6 +434,7 @@ void gray_render_line(GF_EVGSurface *surf, TPos to_x, TPos to_y);
 struct _traster_ctx
 {
 	GF_Thread *th;
+	Bool active;
 	GF_EVGSurface *surf;
 	u32 first_line, last_line;
 

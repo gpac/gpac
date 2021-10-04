@@ -116,15 +116,21 @@ static GF_Err compose_process(GF_Filter *filter)
 				if (!ctx->validator_mode)
 					ctx->force_next_frame_redraw = GF_TRUE;
 			}
-		} else if (!ret && !ctx->frame_was_produced && !ctx->check_eos_state && !nb_sys_streams_active) {
+		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
 		if (ctx->check_eos_state == 1) {
-			ctx->last_check_pass++;
-			if (ctx->last_check_pass > 10000) {
+			u32 now = gf_sys_clock();
+			if (!ctx->last_check_pass)
+				ctx->last_check_pass = now;
+
+			if (now - ctx->last_check_pass > 1000) {
 				ctx->check_eos_state = 2;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in %d render pass, aborting\n", ctx->last_check_pass));
-				forced_eos = GF_TRUE;
+				if (!gf_filter_end_of_session(filter)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in the last second, aborting\n", ctx->last_check_pass));
+					forced_eos = GF_TRUE;
+				}
+				gf_filter_abort(filter);
 			}
 		} else {
 			ctx->last_check_pass = 0;
@@ -164,9 +170,10 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	//player mode
 	
-	//quit seen do not reschedule
+	//quit event seen, do not flush, just abort and return last error
 	if (ctx->check_eos_state) {
-		return ctx->last_error;
+		gf_filter_abort(filter);
+		return ctx->last_error ? ctx->last_error : GF_EOS;
 	}
 
 
@@ -725,9 +732,10 @@ static GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_set_session_caps(filter, &sess_caps);
 
+	//make filter sticky (no shutdown if all inputs removed)
+	gf_filter_make_sticky(filter);
+
 	if (ctx->player) {
-		//make filter sticky (no shutdown at eos)
-		gf_filter_make_sticky(filter);
 
 		//load audio filter chain, declaring audio output pid first
 		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
