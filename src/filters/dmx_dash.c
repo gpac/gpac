@@ -3268,7 +3268,8 @@ GF_FilterRegister DASHDmxRegister = {
 	.finalize = dashdmx_finalize,
 	.args = DASHDmxArgs,
 	SETCAPS(DASHDmxCaps),
-	.flags = GF_FS_REG_REQUIRES_RESOLVER,
+	//we need the resolver, and pids are declared dynamically
+	.flags = GF_FS_REG_REQUIRES_RESOLVER | GF_FS_REG_DYNAMIC_PIDS,
 	.configure_pid = dashdmx_configure_pid,
 	.process = dashdmx_process,
 	.process_event = dashdmx_process_event,
