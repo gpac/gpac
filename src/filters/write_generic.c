@@ -67,6 +67,7 @@ typedef struct
 
 	u32 target_pfmt, target_afmt;
 	Bool is_bmp;
+	u32 is_y4m;
 	u32 is_wav;
 	u32 w, h, stride;
 	u64 nb_bytes;
@@ -286,6 +287,9 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 					//request BGR
 					ctx->target_pfmt = GF_PIXEL_BGR;
 					ctx->split = GF_TRUE;
+				} else if (!strcmp(szExt, "y4m")) {
+					ctx->is_y4m = GF_TRUE;
+					ctx->target_pfmt = GF_PIXEL_YUV;
 				} else {
 					ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
 					if (!ctx->target_pfmt) {
@@ -358,6 +362,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 			strcpy(szExt, gf_4cc_to_str(cid));
 		}
 		if (ctx->is_bmp) strcpy(szExt, "bmp");
+		else if (ctx->is_y4m) strcpy(szExt, "y4m");
 		else if (ctx->is_wav) {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DISABLE_PROGRESSIVE, &PROP_UINT(GF_PID_FILE_PATCH_REPLACE) );
 			strcpy(szExt, "wav");
@@ -1060,6 +1065,59 @@ GF_Err writegen_process(GF_Filter *filter)
 		dst_pck = writegen_write_j2k(ctx, data, pck_size, pck);
 	} else if (ctx->is_bmp) {
 		dst_pck = writegen_write_bmp(ctx, data, pck_size);
+	} else if (ctx->is_y4m) {
+		char *y4m_hdr = NULL;
+		if (ctx->is_y4m==1) {
+			char szInfo[100];
+			const GF_PropertyValue *p;
+			gf_dynstrcat(&y4m_hdr, "YUV4MPEG2", NULL);
+			sprintf(szInfo, " W%d", ctx->w);
+			gf_dynstrcat(&y4m_hdr, szInfo, NULL);
+			sprintf(szInfo, " H%d", ctx->h);
+			gf_dynstrcat(&y4m_hdr, szInfo, NULL);
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FPS);
+			if (p) {
+				sprintf(szInfo, " F%d:%d", p->value.frac.num, p->value.frac.den);
+				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
+			}
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_SAR);
+			if (p) {
+				sprintf(szInfo, " A%d:%d", p->value.frac.num, p->value.frac.den);
+				gf_dynstrcat(&y4m_hdr, szInfo, NULL);
+			}
+			u32 ilce = gf_filter_pck_get_interlaced(pck);
+			sprintf(szInfo, " I%c", (ilce==0) ? 'p' : ((ilce==1) ? 't' : 'b'));
+			gf_dynstrcat(&y4m_hdr, szInfo, NULL);
+
+			switch (ctx->target_pfmt) {
+			case GF_PIXEL_YUV: gf_dynstrcat(&y4m_hdr, " C420mpeg2", NULL); break;
+			case GF_PIXEL_YUV444: gf_dynstrcat(&y4m_hdr, " C444", NULL); break;
+			case GF_PIXEL_YUV422: gf_dynstrcat(&y4m_hdr, " C422", NULL); break;
+			case GF_PIXEL_GREYSCALE: gf_dynstrcat(&y4m_hdr, " Cmono", NULL); break;
+			case GF_PIXEL_YUVA444: gf_dynstrcat(&y4m_hdr, " C444alpha", NULL); break;
+			}
+			p = gf_filter_pid_get_property_str(ctx->ipid, "yuv4meg_meta");
+			if (p) {
+				gf_dynstrcat(&y4m_hdr, p->value.string, " X");
+			}
+			gf_dynstrcat(&y4m_hdr, "\n", NULL);
+			ctx->is_y4m=2;
+		}
+		if (ctx->is_y4m==2) {
+			gf_dynstrcat(&y4m_hdr, "FRAME\n", NULL);
+		}
+		u8 * output;
+		u32 len = (u32) strlen(y4m_hdr);
+		dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size + len, &output);
+		if (!dst_pck) return GF_OUT_OF_MEM;
+		memcpy(output, y4m_hdr, len);
+		memcpy(output+len, data, pck_size);
+		if (ctx->split)
+			ctx->is_y4m=1;
+
+		if (y4m_hdr)
+			gf_free(y4m_hdr);
+
 	} else if (ctx->is_wav && ctx->first) {
 		u8 * output;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, 44, &output);
@@ -1444,6 +1502,14 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/truehd"),
 	{0},
 
+	//raw color dump YUV and RGB - keep it as first for field extension assignment
+	//cf below
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "y4m"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/x-yuv4mpeg"),
+	{0},
 
 	//anything else: only for explicit dump (filter loaded on purpose), otherwise don't load for filter link resolution
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
