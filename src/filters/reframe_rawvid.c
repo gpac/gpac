@@ -40,14 +40,15 @@ typedef struct
 	//only one output pid declared
 	GF_FilterPid *opid;
 
-	Bool file_loaded, is_playing, initial_play_done;
-	u64 cts;
+	Bool file_loaded, is_playing, initial_play_done, is_yuv4mpeg;
+	u64 cts, seek_ts;
 	u32 frame_size, nb_bytes_in_frame;
 	u64 filepos, total_frames;
 	GF_FilterPacket *out_pck;
 	u8 *out_data;
 	Bool reverse_play, done;
 	Bool is_v210;
+	u32 ilace;
 } GF_RawVidReframeCtx;
 
 
@@ -71,8 +72,24 @@ GF_Err rawvidreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
+	ctx->is_yuv4mpeg = GF_FALSE;
 	ctx->is_v210 = GF_FALSE;
-	if (!ctx->spfmt) {
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MIME);
+	if (p && p->value.string && !strcmp(p->value.string, "video/x-yuv4mpeg")) {
+		if (!ctx->opid)
+			ctx->opid = gf_filter_pid_new(filter);
+
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_framing_mode(ctx->ipid, GF_FALSE);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+		//in yuv4mpeg we don't support rewind playback
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_SEEK));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, &PROP_BOOL(GF_TRUE));
+		ctx->is_yuv4mpeg = GF_TRUE;
+		return GF_OK;
+	}
+	else if (!ctx->spfmt) {
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
 		if (p && p->value.string) {
 			if (!strcmp(p->value.string, "v210")) {
@@ -183,9 +200,15 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 			nb_frames = (u32) ctx->total_frames-1;
 
 		ctx->cts = nb_frames * ctx->fps.den;
-		ctx->filepos = nb_frames * ctx->frame_size;
-		ctx->reverse_play =  (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
-
+		if (ctx->is_yuv4mpeg) {
+			ctx->seek_ts = ctx->cts;
+			ctx->cts = 0;
+			ctx->filepos = 0;
+			ctx->reverse_play = GF_FALSE;
+		} else {
+			ctx->filepos = nb_frames * ctx->frame_size;
+			ctx->reverse_play = (evt->play.speed<0) ? GF_TRUE : GF_FALSE;
+		}
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
@@ -196,7 +219,7 @@ static Bool rawvidreframe_process_event(GF_Filter *filter, const GF_FilterEvent 
 		//post a seek even for the beginning, to try to load frame by frame
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->filepos;
-		fevt.seek.hint_block_size = ctx->frame_size;
+		fevt.seek.hint_block_size = ctx->is_yuv4mpeg ? 0 : ctx->frame_size;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 
 		//cancel event
@@ -252,6 +275,93 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 	offset_in_pck = 0;
 
 	while (pck_size) {
+
+		if (ctx->is_yuv4mpeg && (!ctx->frame_size || !ctx->nb_bytes_in_frame) ) {
+			Bool is_seq_header = GF_FALSE;
+			GF_Fraction old_fps = ctx->fps;
+			while (pck_size && (data[0] != '\n')) {
+				char sep_val;
+				char *sep = strchr(data, ' ');
+				char *sep2 = strchr(data, '\n');
+				if (!sep || (sep > sep2)) sep = sep2;
+				if (!sep) break;
+				sep_val = sep[0];
+				sep[0] = 0;
+				u32 len = (u32) strlen(data);
+				//we allow multiple stream headers
+				if (!strncmp(data, "YUV4MPEG2", len)) {
+					is_seq_header = GF_TRUE;
+				}
+				else if (!strncmp(data, "FRAME", len)) {
+				}
+				else if (data[0] == 'W') ctx->size.x = atoi(data+1);
+				else if (data[0] == 'H') ctx->size.y = atoi(data+1);
+				else if (data[0] == 'F') sscanf(data+1, "%d:%d", &ctx->fps.num, &ctx->fps.den);
+				else if (data[0] == 'A') {
+					GF_Fraction sar;
+					sscanf(data+1, "%d:%d", &sar.num, &sar.den);
+					gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar));
+				}
+				else if (data[0] == 'C') {
+					if (!strcmp(data+1, "420jpeg")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(data+1, "420mpeg2")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(data+1, "420paldv")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(data+1, "420")) ctx->spfmt = GF_PIXEL_YUV;
+					else if (!strcmp(data+1, "422")) ctx->spfmt = GF_PIXEL_YUV422;
+					else if (!strcmp(data+1, "444")) ctx->spfmt = GF_PIXEL_YUV444;
+					else if (!strcmp(data+1, "444alpha")) ctx->spfmt = GF_PIXEL_YUVA444;
+					else if (!strcmp(data+1, "mono")) ctx->spfmt = GF_PIXEL_GREYSCALE;
+					else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported pixel format %s\n", data+1));
+						sep[0] = sep_val;
+						return GF_NOT_SUPPORTED;
+					}
+				}
+				else if (data[0] == 'I') {
+					if (!strcmp(data+1, "t")) ctx->ilace = 1;
+					else if (!strcmp(data+1, "b")) ctx->ilace = 2;
+					else if (!strcmp(data+1, "?") || !strcmp(data+1, "p")) ctx->ilace = 0;
+					else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[RawVidReframe] Unsupported interlace mode %s\n", data+1));
+						sep[0] = sep_val;
+						return GF_NOT_SUPPORTED;
+					}
+				}
+				else if (data[0] == 'X') {
+					gf_filter_pid_set_property_str(ctx->opid, "yuv4meg_meta", &PROP_STRING(data+1));
+				}
+				sep[0] = sep_val;
+				data += len;
+				pck_size -= len;
+				byte_offset += len;
+				if (data[0] == ' ') {
+					data++;
+					pck_size--;
+					byte_offset ++;
+				}
+			}
+			byte_offset ++;
+			data++;
+			pck_size--;
+			if (is_seq_header) {
+				//send configure
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->size.x));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->size.y));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->spfmt));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num));
+
+				gf_pixel_get_size_info(ctx->spfmt, ctx->size.x, ctx->size.y, &ctx->frame_size, NULL, NULL, NULL, NULL);
+				if (ctx->seek_ts) {
+					ctx->seek_ts *= ctx->fps.den;
+					ctx->seek_ts /= old_fps.den;
+
+				}
+				//process frame header
+				continue;
+			}
+		}
+
 		Bool use_ref = GF_FALSE;
 		if (!ctx->out_pck) {
 			assert(! ctx->nb_bytes_in_frame);
@@ -278,7 +388,15 @@ GF_Err rawvidreframe_process(GF_Filter *filter)
 			if (!use_ref) {
 				memcpy(ctx->out_data + ctx->nb_bytes_in_frame, data, remain);
 			}
-			gf_filter_pck_send(ctx->out_pck);
+			if (ctx->ilace) {
+				gf_filter_pck_set_interlaced(pck, ctx->ilace);
+			}
+			if (ctx->seek_ts && (ctx->seek_ts > ctx->cts)) {
+				gf_filter_pck_discard(ctx->out_pck);
+			} else {
+				ctx->seek_ts = 0;
+				gf_filter_pck_send(ctx->out_pck);
+			}
 
 			pck_size -= remain;
 			data += remain;
@@ -319,6 +437,16 @@ static void rawvidreframe_finalize(GF_Filter *filter)
 	GF_RawVidReframeCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
 }
+
+static const char *rawvidreframe_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if ((size>10) && !strncmp(data, "YUV4MPEG2 ", 10)) {
+		*score = GF_FPROBE_MAYBE_SUPPORTED;
+		return "video/x-yuv4mpeg";
+	}
+	return NULL;
+}
+
 static GF_FilterCapability RawVidReframeCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
@@ -333,6 +461,13 @@ static GF_FilterCapability RawVidReframeCaps[] =
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-raw-v210"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_V210),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "y4m"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "video/x-yuv4mpeg"),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -350,12 +485,16 @@ static GF_FilterArgs RawVidReframeArgs[] =
 GF_FilterRegister RawVidReframeRegister = {
 	.name = "rfrawvid",
 	GF_FS_SET_DESCRIPTION("RAW video reframer")
-	GF_FS_SET_HELP("This filter parses raw YUV and RGB files/data and outputs corresponding raw video PID and frames.")
+	GF_FS_SET_HELP("This filter parses raw YUV and RGB files/data and outputs corresponding raw video PID and frames.\n"
+	"\n"
+	"The filter also parses YUV4MPEG format.\n"
+	)
 	.private_size = sizeof(GF_RawVidReframeCtx),
 	.args = RawVidReframeArgs,
 	SETCAPS(RawVidReframeCaps),
 	.finalize = rawvidreframe_finalize,
 	.configure_pid = rawvidreframe_configure_pid,
+	.probe_data = rawvidreframe_probe_data,
 	.process = rawvidreframe_process,
 	.process_event = rawvidreframe_process_event
 };
