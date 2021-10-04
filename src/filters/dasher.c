@@ -3573,13 +3573,16 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		//check we are not reusing an existing template from previous periods, if so append a suffix
 		//we check the final init name
 		if (!ds->skip_tpl_reuse) {
-			//init will not work in tiling as the base track and the first rep could end up having the same
-			//segment template sine base uses "init" while tile tracks don't for the init template
-			if (ds->tile_base || (ds->codec_id==GF_CODECID_HEVC_TILES)) {
-				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, "mp4", 0, ds->bitrate, 0, ctx->stl);
-			} else {
-				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, init_ext, 0, ds->bitrate, 0, ctx->stl);
-			}
+			//1- init will not work in tiling as the base track and the first rep could end up having the same
+			//segment template since base uses "init" while tile tracks don't for the init template
+			//2- because of that, all evaluated templates must be the segment ones, otherwise we may check the audio init template
+			//against a tile segment template, which will not match even though they use the same base template...
+			//ex: template: seg_ => seg_trackN_init.mp4 for non-tiled vs seg_trackN_$number$.m4s for tiled, resulting in same N
+			//being used for 2 track
+			//cf issue 1849
+
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, "mp4", 0, ds->bitrate, 0, ctx->stl);
+
 			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
 			if (reused_template_idx) {
 				char szExName[20];
