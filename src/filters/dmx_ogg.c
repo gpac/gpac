@@ -217,7 +217,7 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->info.streamType) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(st->info.type) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
-	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ?: st->info.frame_rate.den) );
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
 
 	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header

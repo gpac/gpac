@@ -38,7 +38,7 @@ static Bool log_utc_time = GF_FALSE;
 static u64 last_log_time=0;
 static void on_atscd_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk ?: stderr;
+	FILE *logs = cbk ? cbk : stderr;
 	if (log_time_start) {
 		u64 now = gf_sys_clock_high_res();
 		fprintf(logs, "At "LLD" (diff %d) - ", now - log_time_start, (u32) (now - last_log_time) );

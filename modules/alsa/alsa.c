@@ -61,8 +61,8 @@ static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u3
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot open audio device %s: %s\n", ctx->dev_name, snd_strerror (err)) );
 		return GF_IO_ERR;
 	}
-	ctx->num_buffers = num_buffers ?: 2;
-	ctx->total_duration = total_duration ?: 100;
+	ctx->num_buffers = num_buffers ? num_buffers : 2;
+	ctx->total_duration = total_duration ? total_duration : 100;
 	return GF_OK;
 }
 

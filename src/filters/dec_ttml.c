@@ -225,7 +225,7 @@ static Bool ttmldec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	if (ctx->opid != com->attach_scene.on_pid) return GF_TRUE;
 
 	ctx->odm = com->attach_scene.object_manager;
-	ctx->scene = ctx->odm->subscene ?: ctx->odm->parentscene;
+	ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 	/*timedtext cannot be a root scene object*/
 	if (ctx->odm->subscene) {
