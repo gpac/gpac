@@ -12,7 +12,7 @@ All input streams are decoded prior to entering the mixer.
 
 OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with or without GPU.
 
-In software mode, the mixer will detect wether any of the currently active video sources can be used as a base canvas for the output to save processing time.
+In software mode, the mixer will detect whether any of the currently active video sources can be used as a base canvas for the output to save processing time.
 The default behavior is to do this detection only at the first generated frame, use \`dynpfmt\` to modify this.
 
 The filter can be extended through JavaScript modules. Currently only scenes and transition effects use this feature.
@@ -99,7 +99,7 @@ Properties for \`sourceURL\` objects:
   - other: use value as input filter declaration and launch \'in\' as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
 - opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
-- raw (true): indicate if input port is decoded AV (true)) or compressed AV (false) when using dedicated gpac process, ignored otherwise
+- raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using dedicated gpac process, ignored otherwise
 
 Note: when launching child process, the input filter is created first and the child process launched afterwards.
 
@@ -168,10 +168,11 @@ Currently, only \`scene\` and \`transition\` objects can be modified through tim
 
 __Note on colors__
 Colors are handled as strings, formatted as:
-- the DOM color name (see gpac -h colors)
+- the DOM color name (see \`gpac -h colors\`)
 - HTML codes \`$RRGGBB\` or \`#RRGGBB\`
 - RGB hex vales \`0xRRGGBB\`
 - RGBA hex values \`0xAARRGGBB\`
+- the color \`none\` is \`0x00000000\`
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
