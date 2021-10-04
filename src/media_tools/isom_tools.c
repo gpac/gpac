@@ -4187,7 +4187,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			u16 colour_primaries, transfer_characteristics, matrix_coefficients;
 			Bool full_range_flag;
 			gf_isom_get_color_info(movie, track, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
-			e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE);
+			e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag);
 			gf_odf_av1_cfg_del(av1c);
 			return e;
 		}
