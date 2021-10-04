@@ -365,7 +365,7 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs)
 		u32 terminal_provider_oriented_code = gf_bs_read_u16(bs);
 		u32 application_identifier = gf_bs_read_u8(bs);
 		u32 application_mode = gf_bs_read_u8(bs);
-		read_bytes+=10;
+		read_bytes+=6;
 		gf_fprintf(dump, " terminal_provider_code=\"0x%x\" terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
 				   terminal_provider_code, terminal_provider_oriented_code,
 				   application_identifier, application_mode);
