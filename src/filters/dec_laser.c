@@ -133,7 +133,7 @@ static Bool lsrdec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (opid == com->attach_scene.on_pid) {
 			if (!ctx->odm) {
 				ctx->odm = com->attach_scene.object_manager;
-				ctx->scene = ctx->odm->subscene ?: ctx->odm->parentscene;
+				ctx->scene = ctx->odm->subscene ? ctx->odm->subscene : ctx->odm->parentscene;
 
 				ctx->codec = gf_laser_decoder_new(ctx->scene->graph);
 				/*attach the clock*/

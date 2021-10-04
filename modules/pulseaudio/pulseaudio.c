@@ -71,7 +71,7 @@ PulseAudio_Setup (GF_AudioOutput * dr, void *os_handle,
 	ctx->output_name = opt ? ctx->output_name : "GPAC";
 
 	opt = gf_opts_get_key("PulseAudio", "Description");
-	ctx->output_description = opt ?: "GPAC Output";
+	ctx->output_description = opt  ? opt  : "GPAC Output";
 	return GF_OK;
 }
 

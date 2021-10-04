@@ -100,9 +100,9 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			FILE *f;
 			if (codec->src_url) res_src = gf_url_concatenate(codec->src_url, src);
 
-			f = gf_fopen(res_src ?: src, "rb");
+			f = gf_fopen(res_src ? res_src : src, "rb");
 			if (!f) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot open source file %s for encoding CacheTexture\n", res_src ?: src));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot open source file %s for encoding CacheTexture\n", res_src ? res_src : src));
 				return GF_URL_ERROR;
 			}
 			if (res_src) gf_free(res_src);
