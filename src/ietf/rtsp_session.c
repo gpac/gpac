@@ -367,7 +367,7 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 		/*this may be NULL (data fetched after a teardown) - resync and return*/
 		ch = GetTCPChannel(sess, InterID, InterID, GF_FALSE);
 
-		/*then check wether this is a full packet or a split*/
+		/*then check whether this is a full packet or a split*/
 		if (paySize <= Size-4) {
 			if (ch) {
 				IsRTCP = (ch->rtcpID == InterID) ? GF_TRUE : GF_FALSE;

@@ -2755,7 +2755,7 @@ reparse:
 		gf_isom_set_cts_packing(file, track, GF_TRUE);
 	}
 
-	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
+	//CLARIFY whether this is correct: we duplicate all VPS in the enhancement layer ...
 	//we do this because if we split the tracks some info for setting up the enhancement layer
 	//is in the VPS
 	if (extractor_mode != GF_LHVC_EXTRACTORS_ON) {
