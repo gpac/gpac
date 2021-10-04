@@ -86,9 +86,10 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool ma
 	}
 }
 
+GF_EXPORT
 void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
-	if (!freg) return;
+	if (!freg || !fsess) return;
 
 	if (!freg->name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
@@ -107,7 +108,10 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 			}
 		}
 	}
+
+	gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->registry, (void *) freg);
+	gf_mx_v(fsess->filters_mx);
 
 	if (fsess->init_done && fsess->links && gf_list_count( fsess->links)) {
 		gf_filter_sess_build_graph(fsess, freg);
@@ -539,9 +543,14 @@ u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session)
 	return session->max_resolve_chain_len;
 }
 
+GF_EXPORT
 void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *freg)
 {
+	if (!session || !freg) return;
+
+	gf_mx_p(session->filters_mx);
 	gf_list_del_item(session->registry, freg);
+	gf_mx_v(session->filters_mx);
 	gf_filter_sess_reset_graph(session, freg);
 }
 
