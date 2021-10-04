@@ -4182,13 +4182,17 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AV01:
 	{
 		GF_AV1Config *av1c = gf_isom_av1_config_get(movie, track, 1);
-		if (!av1c) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
-			return GF_BAD_PARAM;
+		if (av1c) {
+			u32 colour_type;
+			u16 colour_primaries, transfer_characteristics, matrix_coefficients;
+			Bool full_range_flag;
+			gf_isom_get_color_info(movie, track, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+			e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE);
+			gf_odf_av1_cfg_del(av1c);
+			return e;
 		}
-		e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, 0, 0, 0, GF_FALSE);
-		gf_odf_av1_cfg_del(av1c);
-		return e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		return GF_BAD_PARAM;
 	}
 #endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
@@ -4197,7 +4201,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	{
 		GF_VPConfig *vpcc = gf_isom_vp_config_get(movie, track, 1);
 		if (vpcc) {
-			e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, 0, 0, 0, GF_FALSE);
+			u32 colour_type;
+			u16 colour_primaries, transfer_characteristics, matrix_coefficients;
+			Bool full_range_flag;
+			gf_isom_get_color_info(movie, track, 1, &colour_type, &colour_primaries, &transfer_characteristics, &matrix_coefficients, &full_range_flag);
+			e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE);
 			gf_odf_vp_cfg_del(vpcc);
 			return e;
 		}
