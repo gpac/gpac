@@ -453,6 +453,8 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_MVC1:
+	case GF_ISOM_BOX_TYPE_DVA1:
+	case GF_ISOM_BOX_TYPE_DVAV:
 		if (is_isma)
 			original_format = GF_ISOM_BOX_TYPE_264B;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
@@ -464,6 +466,8 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
+	case GF_ISOM_BOX_TYPE_DVHE:
+	case GF_ISOM_BOX_TYPE_DVH1:
 		if (is_isma)
 			original_format = GF_ISOM_BOX_TYPE_265B;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
@@ -476,6 +480,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_AV01:
+	case GF_ISOM_BOX_TYPE_DAV1:
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:

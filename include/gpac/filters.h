@@ -1526,36 +1526,42 @@ typedef struct
 	FILTER_EVENT_BASE
 } GF_FEVT_Base;
 
-/*! Event structure for GF_FEVT_PLAY, GF_FEVT_SET_SPEED*/
+/*! Event structure for GF_FEVT_PLAY, GF_FEVT_SET_SPEED, GF_FEVT_PLAY_HINT, GF_FEVT_STOP*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 
-	/*! params for : ranges in sec - if range is <0, it means end of file (eg [2, -1] with speed>0 means 2 +oo) */
-	Double start_range, end_range;
-	/*! params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
+	/*!GF_FEVT_PLAY only, play range in sec - if range is <0, it means end of file (eg [2, -1] with speed>0 means 2 +oo) */
+	Double start_range;
+	/*!GF_FEVT_PLAY only, send range in sec - if range is less than start, ignored*/
+	Double end_range;
+	/*! params for GF_FEVT_PLAY and GF_FEVT_SET_SPEED*/
 	Double speed;
 
-	/*! indicates playback should start from given packet number - used by dasher when reloading sources*/
+	/*! GF_FEVT_PLAY only, indicates playback should start from given packet number - used by dasher when reloading sources*/
 	u32 from_pck;
 
-	/*! set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
+	/*! GF_FEVT_PLAY only, set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
 	u8 hw_buffer_reset;
-	/*! params for GF_FEVT_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
+	/*! GF_FEVT_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
 	u8 initial_broadcast_play;
-	/*! params for GF_NET_CHAN_PLAY only
+	/*! params for GF_FEVT_PLAY only
 		0: range is in media time
 		1: range is in timesatmps
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
-	/*! indicates the consumer only cares for the full file, not packets*/
+	/*! GF_FEVT_PLAY only, indicates the consumer only cares for the full file, not packets*/
 	u8 full_file_only;
-	/*! indicates any current download should be aborted*/
+	/*!
+	 for GF_FEVT_PLAY: indicates any current download should be aborted
+	 for GF_FEVT_PLAY_HINT if upstream event: indicates a HAS segment switch has occured (used by tileagg to flush reassembly buffers)
+	 for GF_FEVT_STOP: indicates the source filter has already received stop/play events and cancel event just before source
+	*/
 	u8 forced_dash_segment_switch;
-	/*! indicates non ref frames should be drawn for faster processing*/
+	/*! GF_FEVT_PLAY only, indicates non ref frames should be drawn for faster processing*/
 	u8 drop_non_ref;
-	/*! indicates  that a demuxer must not forward this event as a source seek because seek has already been done
+	/*! GF_FEVT_PLAY only, indicates  that a demuxer must not forward this event as a source seek because seek has already been done
 	(typically this play request is a segment play and byte range access within the file has already been performed by DASH client)*/
 	u8 no_byterange_forward;
 } GF_FEVT_Play;
@@ -2053,8 +2059,9 @@ typedef enum
 	GF_FS_REG_HIDE_WEIGHT = 1<<4,
 	/*! Usually set for filters acting as sources but without exposing an src argument. This prevents throwing warnings on arguments not handled by the filter*/
 	GF_FS_REG_ACT_AS_SOURCE = 1<<5,
-	/*! Deprecated, do not use */
-	GF_FS_REG_DEPRECATED = 1<<6,
+	/*! Indicates the filter can connect to another instance of the same class (avoids cyclic detection in linker graph)
+	Filters of the same class can only connect directly to each other if the destination filter is explictly loaded */
+	GF_FS_REG_ALLOW_CYCLIC = 1<<6,
 	/*! Indicates the filter PIDs may be dynamically added during process (e.g.M2TS, GSF, etc).
 	This will prevent deactivating a filter when none of its output PIDs are connected*/
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
@@ -2068,9 +2075,6 @@ typedef enum
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
 	/*! Indicates the filter requires graph resolver (typically because it creates new destinations/sinks at run time)*/
 	GF_FS_REG_REQUIRES_RESOLVER = 1<<11,
-	/*! Indicates the filter can connect to another instance of the same class (avoids cyclic detection in linker graph)
-	Filters of the same class can only connect directly to each other if the destination filter is explictly loaded */
-	GF_FS_REG_ALLOW_CYCLIC = 1<<12,
 
 
 	/*! flag dynamically set at runtime for custom filters*/

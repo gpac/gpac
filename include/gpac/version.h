@@ -48,7 +48,7 @@
 /*! ABI Major number of libgpac */
 #define GPAC_VERSION_MAJOR 10
 /*! ABI Minor number of libgpac */
-#define GPAC_VERSION_MINOR 8
+#define GPAC_VERSION_MINOR 9
 /*! ABI Micro number of libgpac */
 #define GPAC_VERSION_MICRO 0
 

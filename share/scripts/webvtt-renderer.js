@@ -252,6 +252,10 @@ function parseCue(cueText) {
 						if (tmpObject.token === "v") {
 							tmpObject.voice = currentToken.match(/^<v\s*([^>]+)>/i)[1];
 						} else if (tmpObject.token === "c") {
+							var hasRealTextContent = function(textInput) {
+								return !!textInput.replace(/[^a-z0-9]+/ig,"").length;
+							};
+
 							tmpObject.classes = currentToken
 													.replace(/[<\/>\s]+/ig,"")
 													.split(/[\.]+/ig)

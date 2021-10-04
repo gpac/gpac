@@ -649,7 +649,7 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed);
 \param bits_per_sec current download rate in bits per seconds
 \param total_bytes total size of segment being downloaded
 \param bytes_done number of bytes already downloaded in current segment
-\param us_since_start time ellapsed in microseconds since  segment has been scheduled for download
+\param us_since_start time elapsed in microseconds since  segment has been scheduled for download
 \return error if any
 */
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start);

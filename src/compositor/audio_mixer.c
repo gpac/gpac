@@ -74,6 +74,7 @@ struct __audiomix
 	Bool must_reconfig;
 	Bool isEmpty;
 	Bool source_buffering;
+	u32 nb_eos;
 	/*set to non null if this outputs directly to the driver, in which case audio formats have to be checked*/
 	struct _audio_render *ar;
 
@@ -198,6 +199,12 @@ Bool gf_mixer_buffering(GF_AudioMixer *am)
 }
 
 GF_EXPORT
+Bool gf_mixer_is_eos(GF_AudioMixer *am)
+{
+	return am->nb_eos == gf_list_count(am->sources) ? GF_TRUE : GF_FALSE;
+}
+
+GF_EXPORT
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
 	MixerInput *in;
@@ -280,7 +287,7 @@ GF_Err gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outFMT, 
 		am->sample_rate = outSR;
 		if (outCH>2) am->channel_layout = outChCfg;
 		else if (outCH==2) am->channel_layout = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
-		else am->channel_layout = GF_AUDIO_CH_FRONT_LEFT;
+		else am->channel_layout = GF_AUDIO_CH_FRONT_CENTER;
 	}
 	/*if main mixer recfg output*/
 	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
@@ -687,6 +694,10 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 	in_data = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, &planar_stride, audio_delay);
 	if (!in_data || !src_size) {
+		if (in->src->is_eos)
+			am->nb_eos++;
+		else if (in->src->is_buffering)
+			am->source_buffering = GF_TRUE;
 		//end of stream, flush if needed
 		if (in->src->is_eos && use_prev) {
 
@@ -835,6 +846,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	char *data, *ptr;
 
 	am->source_buffering = GF_FALSE;
+	am->nb_eos = 0;
 	//reset buffer whatever the state of the mixer is
 	memset(buffer, 0, buffer_size);
 
@@ -890,7 +902,10 @@ single_source_mix:
 		size = 0;
 		data = single_source->src->FetchFrame(single_source->src->callback, &size, &planar_stride, delay);
 		if (!data || !size) {
-			am->source_buffering = single_source->src->is_buffering;
+			if (single_source->src->is_eos)
+				am->nb_eos++;
+			else
+				am->source_buffering = single_source->src->is_buffering;
 			break;
 		}
 		/*don't copy more than possible*/

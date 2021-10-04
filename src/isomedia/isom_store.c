@@ -2252,7 +2252,7 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 		case GF_ISOM_BOX_TYPE_MDAT:
 			break;
 		default:
-			if (((s32) i < moov_meta_pos) && ((s32)i < mdat_pos)) {
+			if (((s32) (i-1) < moov_meta_pos) && ((s32)(i-1) < mdat_pos)) {
 				e = gf_isom_box_write(a, bs);
 				if (e) return e;
 			}
@@ -2284,6 +2284,21 @@ static GF_Err WriteInplace(MovieWriter *mw, GF_BitStream *bs)
 			if (e) return e;
 		}
 		//trash all boxes after moov/meta
+		size = gf_bs_get_size(bs);
+		offset = gf_bs_get_position(bs);
+		//size has reduced, pad at end with a free box
+		if (offset < size) {
+			u32 free_size = 0;
+			if (size - offset > 8)
+				free_size = (u32) (size - offset - 8);
+
+			gf_bs_write_u32(bs, free_size+8);
+			gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FREE);
+			while (free_size) {
+				gf_bs_write_u8(bs, 0);
+				free_size--;
+			}
+		}
 		return GF_OK;
 	}
 

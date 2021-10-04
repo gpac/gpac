@@ -758,7 +758,7 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	if (!compositor->player)
 		compositor->init_flags = GF_TERM_INIT_HIDE;
 
-	if (gf_opts_get_bool("temp", "gpac-help")) {
+	if (gf_opts_get_key("temp", "gpac-help")) {
 		compositor->init_flags |= GF_TERM_NO_VIDEO | GF_TERM_NO_AUDIO;
 	}
 
@@ -2663,6 +2663,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				u32 ts = gf_mo_map_timestamp_to_sys_clock(txh->stream, txh->stream->timestamp);
 				if (ts<frame_ts) frame_ts = ts;
 			}
+			//VFR and one frame is pending
+			else if (compositor->vfr && (compositor->ms_until_next_frame>0) && (compositor->ms_until_next_frame!=GF_INT_MAX)) {
+				compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+			}
 			all_tx_done=0;
 		}
 	}
@@ -3232,7 +3236,7 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 #endif
 		}
 #if !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_3D)
-		/*if the inlined root node is a 3D one except Layer3D and we are not in a 3D context, insert
+		/*if the inline root node is a 3D one except Layer3D and we are not in a 3D context, insert
 		a Layer3D at the root*/
 		else if (!tr_state->visual->type_3d && ((tag==TAG_MPEG4_Group) || (tag==TAG_X3D_Group))) {
 			new_tag = TAG_MPEG4_Layer3D;

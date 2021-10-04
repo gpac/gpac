@@ -371,7 +371,12 @@ enum
 	GF_ISOM_BOX_TYPE_EC3	= GF_4CC( 'e', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DEC3	= GF_4CC( 'd', 'e', 'c', '3' ),
 	GF_ISOM_BOX_TYPE_DVCC	= GF_4CC( 'd', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_DVVC	= GF_4CC( 'd', 'v', 'v', 'C' ),
+	GF_ISOM_BOX_TYPE_DVH1	= GF_4CC( 'd', 'v', 'h', '1' ),
 	GF_ISOM_BOX_TYPE_DVHE	= GF_4CC( 'd', 'v', 'h', 'e' ),
+	GF_ISOM_BOX_TYPE_DVA1	= GF_4CC( 'd', 'v', 'a', '1' ),
+	GF_ISOM_BOX_TYPE_DVAV	= GF_4CC( 'd', 'v', 'a', 'v' ),
+	GF_ISOM_BOX_TYPE_DAV1	= GF_4CC( 'd', 'a', 'v', '1' ),
 	GF_ISOM_BOX_TYPE_MLPA	= GF_4CC( 'm', 'l', 'p', 'a' ),
 	GF_ISOM_BOX_TYPE_DMLP	= GF_4CC( 'd', 'm', 'l', 'p' ),
 

@@ -4236,6 +4236,7 @@ GF_Err video_sample_entry_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 		BOX_FIELD_ASSIGN(vp_config, GF_VPConfigurationBox)
 		break;
 	case GF_ISOM_BOX_TYPE_DVCC:
+	case GF_ISOM_BOX_TYPE_DVVC:
 		BOX_FIELD_ASSIGN(dovi_config, GF_DOVIConfigurationBox)
 		break;
 	case GF_ISOM_BOX_TYPE_UUID:
@@ -6582,6 +6583,11 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_QT_SUBTYPE_YVYU:
 		case GF_QT_SUBTYPE_RGBA:
 		case GF_QT_SUBTYPE_ABGR:
+		case GF_ISOM_BOX_TYPE_DVHE:
+		case GF_ISOM_BOX_TYPE_DVH1:
+		case GF_ISOM_BOX_TYPE_DVA1:
+		case GF_ISOM_BOX_TYPE_DVAV:
+		case GF_ISOM_BOX_TYPE_DAV1:
 			continue;
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:

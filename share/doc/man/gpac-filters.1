@@ -7620,6 +7620,1061 @@ reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
+.SH avmix
+.LP
+.br
+Description: Audio Video Mixer
+.br
+Author: GPAC team
+.br
+
+.br
+AVMix is a simple audio video mixer controlled by an updatable JSON playlist format. The filter can be used to:
+.br
+- schedule video sequence(s) over time
+.br
+- mix videos together
+.br
+- layout of multiple videos
+.br
+- overlay images, text and graphics over source videos
+.br
+
+.br
+All input streams are decoded prior to entering the mixer.
+.br
+- audio streams are mixed in software
+.br
+- video streams are composed according to the gpu option
+.br
+- other stream types are not yet supported
+.br
+
+.br
+OpenGL hardware acceleration can be used, but the supported feature set is currently not the same with or without GPU.
+.br
+
+.br
+In software mode, the mixer will detect whether any of the currently active video sources can be used as a base canvas for the output to save processing time.
+.br
+The default behavior is to do this detection only at the first generated frame, use dynpfmt to modify this.
+.br
+
+.br
+The filter can be extended through JavaScript modules. Currently only scenes and transition effects use this feature.
+.br
+
+.br
+
+.br
+.SH Live vs offline
+.LP
+.br
+
+.br
+When operating offline, the mixer will wait for video frames to be ready for 10 times lwait. After this timeout, the filter will abort if no input is available.
+.br
+This implies that there shall always be a media to compose, i.e. no "holes" in the timeline.
+.br
+Note: The playlist is still refreshed in offline mode.
+.br
+
+.br
+
+.br
+When operating live, the mixer will initially wait for video frames to be ready for lwait seconds. After this initial timeout, the output frames will indicate:
+.br
+- 'No signal' if no input is available (no source frames) or no scene is defined
+.br
+- 'Signal lost' if no new input data has been received for lwait on a source
+.br
+
+.br
+
+.br
+.SH Playlist Format
+.LP
+.br
+
+.br
+The playlist describes:
+.br
+* Media sequences: each sequence is a set of sources to be played continuously
+.br
+* Transitions: sources in a sequence can be combined using transitions
+.br
+* Scenes: a scene describes one graphical object to put on screen and if and how input video are mapped on objects
+.br
+* Timers: a timer can be used to animate scene parameters in various fashions
+.br
+
+.br
+The playlist content shall be either a single JSON object or an array of JSON objects, hereafter called root objects.
+.br
+Root objects types can be indicated through a type property:
+.br
+* seq: a sequence object
+.br
+* url: a source object (if used as root, a default sequence object will be created)
+.br
+* scene: a scene object
+.br
+* timer: a timer object
+.br
+* config: a config object
+.br
+
+.br
+The type property of root objects is usually not needed as the parser guesses the object types from its properties.
+.br
+
+.br
+A root object with a property skip set to anything but 0 or false is ignored.
+.br
+Any unrecognized property not starting with _ will be reported as warning.
+.br
+
+.br
+A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+.br
+
+.br
+Media source timing does not depend on the media being used by a scene or not, it is only governed by the sequence parameters.
+.br
+This means that a sequence not used by any active scene will not be rendered (video nor audio).
+.br
+
+.br
+
+.br
+.P
+.B
+JSON syntax
+.br
+
+.br
+Properties for sequence objects:
+.br
+ * id (null): sequence identifier
+.br
+ * loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
+.br
+ * start (0): sequence start time:
+.br
+   - if positive number, offset in seconds from current clock
+.br
+   - if negative number, sequence is not active
+.br
+   - otherwise date or now.
+.br
+ * stop (0): sequence stop time:
+.br
+   - if positive number greater than start, offset in seconds from current clock
+.br
+   - if negative number or less than start, sequence will stop only when over
+.br
+   - otherwise, date or now.
+.br
+ * transition (null): a transition object to apply between sources of the sequence
+.br
+ * seq ([]): array of one or more source objects
+.br
+
+.br
+Properties for source objects:
+.br
+* id (null): source identifier, used when reloading the playlist
+.br
+* src ([]): list of sourceURL describing the URLs to play. Multiple sources will be played in parallel
+.br
+* start (0.0): media start time in source
+.br
+* stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to start
+.br
+* mix (true): if true, apply sequence transition or mix effect ratio as audio volume. Otherwise volume is not modified by transitions.
+.br
+* fade ('inout'): indicate how audio should be faded at stream start/end:
+.br
+  * in: audio fade-in when playing first frame
+.br
+  * out: audio fade-out when playing last frame
+.br
+  * inout: both fade-in and fade-out are enabled
+.br
+  * other: no audio fade
+.br
+* keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after rtimeout
+.br
+* seek (false): if true and keep_alive is active, adjust start according to the time elapsed since source start when relaunching process(es)
+.br
+* prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
+.br
+
+.br
+Properties for sourceURL objects:
+.br
+* id (null): source URL identifier, used when reloading the playlist
+.br
+* in (null): input URL or filter chain to load as string. Words starting with - are ignored. The first entry must specify a source URL, and additional filters and links can be specified using @N[#LINKOPT] and @@N[#LINKOPT] syntax, as in gpac
+.br
+* port (null): input port for source. Possible values are:
+.br
+  * pipe: launch a gpac process to play the source using GSF format over pipe
+.br
+  * tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (tcp) or unix domain TCP socket (tcpu)
+.br
+  * not specified or empty string: loads source using the current process
+.br
+  * other: use value as input filter declaration and launch 'in' as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
+.br
+* opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
+.br
+* media ('all'): filter input media by type, a for audio, v for video, t for text (several characters allowed, e.g. av or va), all accept all input media
+.br
+* raw (true): indicate if input port is decoded AV (true)) or compressed AV (false) when using dedicated gpac process, ignored otherwise
+.br
+
+.br
+Note: when launching child process, the input filter is created first and the child process launched afterwards.
+.br
+
+.br
+Warning: when launching child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
+.br
+
+.br
+Properties for scene objects:
+.br
+* id (null): scene identifier
+.br
+* js ('shape'): scene type, either builtin (see below) or path to a JS module
+.br
+* sources ([]): list of identifiers of sequences used by this scene
+.br
+* x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
+.br
+  - special value y indicates scene scene.y
+.br
+  - special value -y indicates output_height - scene.y - scene.height
+.br
+* y (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
+.br
+  - special value x indicates scene scene.x
+.br
+  - special value -x indicates output_width - scene.w - scene.width
+.br
+* width (100): width of the scene, in percent of the output width.
+.br
+  - special value height indicates to use scene height
+.br
+* height (100): height of the scene, in percent of the output height
+.br
+  - special value width indicates to use scene width
+.br
+* zorder (0): display order of the scene
+.br
+* active (true): indicate if the scene is active or not. An inactive scene will not be refreshed nor rendered
+.br
+* rotation (0): rotation angle of the scene in degrees (the rotation is counter-clockwise, around the scene center)
+.br
+* hskew (0): horizontal skewing factor to apply to the scene
+.br
+* vskew (0): vertical skewing factor to apply to the scene
+.br
+* mix (null): a transition object to apply if more than one source is set, ignored otherwise
+.br
+* mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
+.br
+* volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
+.br
+* fade ('inout'): indicate how audio should be faded at scene activate/deactivate:
+.br
+  * in: audio fade-in when playing first frame after scene activation
+.br
+  * out: audio fade-out when playing last frame at scene activation
+.br
+  * inout: both fade-in and fade-out are enabled
+.br
+  * other: no audio fade
+.br
+
+.br
+Properties for transition objects:
+.br
+* id (null): transition identifier
+.br
+* type: transition type, either builtin (see below) or path to a JS module
+.br
+* dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene mix.
+.br
+* fun (null): JS code modifying the ratio effect called ratio, eg fun="ratio = ratio*ratio;"
+.br
+
+.br
+Properties for timer objects:
+.br
+* id (null): id of the timer
+.br
+* dur (0): duration of the timer in seconds
+.br
+* loop (false): loops timer when stop is not set
+.br
+* start (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
+.br
+* stop (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now, ignored if less than start
+.br
+* keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
+.br
+* anims ([]): list of animation objects
+.br
+
+.br
+Properties for animation objects:
+.br
+* values ([]): list of values to interpolate, there must be as many values as there are keys
+.br
+* color (false): indicate the values are color (as strings)
+.br
+* angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and divided by 180) before interpolation
+.br
+* mode ('linear') : interpolation mode:
+.br
+  * linear: linear interpolation between the values
+.br
+  * discrete: do not interpolate
+.br
+  * other: JS code modifying the interpolation ratio called interp, eg "interp = interp*interp;"
+.br
+* postfun (null): JS code modifying the interpolation result res, eg "res = res*res;"
+.br
+* end ('freeze'): behavior at end of animation:
+.br
+  * freeze: keep last animated values
+.br
+  * restore: restore targets to their initial values
+.br
+* targets ([]): list of strings indicating targets properties to modify. Syntax is:
+.br
+  * ID@option: modifies property option of object with given ID
+.br
+  * ID@option[IDX]: modifies value at index IDX of array property option of object with given ID
+.br
+
+.br
+Currently, only scene and transition objects can be modified through timers.
+.br
+
+.br
+Note on colors
+.br
+Colors are handled as strings, formatted as:
+.br
+- the DOM color name (see gpac -h colors)
+.br
+- HTML codes $RRGGBB or #RRGGBB
+.br
+- RGB hex vales 0xRRGGBB
+.br
+- RGBA hex values 0xAARRGGBB
+.br
+
+.br
+.P
+.B
+Filter configuration
+.br
+The playlist may specify configuration options of the filter, using a root object of type 'config':
+.br
+- property names are the same as the filter options
+.br
+- property values are given in the native type, or as strings (fractions, vectors, enums)
+.br
+- each declared property overrides the filter option of the same name (whether default or set at filter creation)
+.br
+
+.br
+A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
+.br
+
+.br
+The following additional properties are defined for testing:
+.br
+* reload_tests([]): list of playlists to reload
+.br
+* reload_timeout(1.0): timeout in seconds before playlist reload
+.br
+* reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
+.br
+
+.br
+
+.br
+.P
+.B
+Playlist modification
+.br
+
+.br
+The playlist file can be modified at any time.
+.br
+Objects are identified across playlist reloads through their id property.
+.br
+Root objects that are not present after reloading a playlist are removed from the mixer.
+.br
+
+.br
+A sequence object modified between two reloads is refreshed, except for its start field if sequence active.
+.br
+
+.br
+A source object shall have the same parent sequence between two reloads. Any modification on the object will only be taken into consideration when (re)loading the source.
+.br
+
+.br
+A sourceURL object is not tracked for modification, only evaluated when activating the parent source object.
+.br
+
+.br
+A scene object modified between two reloads is notified of each changed value.
+.br
+
+.br
+A timer object modified between two reloads is shut down and restarted. Consequently, animation objects are not tracked between reloads.
+.br
+
+.br
+A transition object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
+.br
+
+.br
+
+.br
+.P
+.B
+Playlist example
+.br
+
+.br
+The following is an example playlist using a sequence of two videos with a mix transition and an animated video area:
+.br
+
+.br
+Example
+.br
+[
+.br
+ {"id": "seq1", "loop": -1, "start": 0,  "seq":
+.br
+  [
+.br
+   { "id": "V1", "src": [{"in": "s1.mp4"}], "start": 60, "stop": 80},
+.br
+   { "id": "V2", "src": [{"in": "s2.mp4"}], "stop": 100}
+.br
+  ],
+.br
+  "transition": { "dur": 1, "type": "mix"}
+.br
+ },
+.br
+ {"id": "scene1", "sources": ["seq1"]},
+.br
+ {"start": 0, "dur": 10, "keys": [0, 1], "anims":
+.br
+  [
+.br
+   {"values": [50, 0],  "targets": ["scene1@x", "scene1@y"]},
+.br
+   {"values": [0, 100],  "targets": ["scene1@width", "scene1@height"]}
+.br
+  ]
+.br
+ }
+.br
+]
+.br
+
+.br
+
+.br
+
+.br
+.SH Updates Format
+.LP
+.br
+
+.br
+Updates can be sent to modify the playlist, rather than reloading the entire playlist.
+.br
+Updates are read from a separate file specified in updates, inactive by default.
+.br
+
+.br
+Warning: The updates file is only read when modified AFTER the initialization of the filter.
+.br
+
+.br
+
+.br
+The updates file content shall be either a single JSON object or an array of JSON objects.
+.br
+The properties of these objects are:
+.br
+* skip: if true or 1, ignores the update, otherwise apply it
+.br
+* replace: string identifying the target replacement. Syntax is:
+.br
+  * ID@name: indicate property name of element with given ID to replace
+.br
+  * ID@name[idx]: indicate the index in the property name of element with given ID to replace
+.br
+* with: replacement value, must be of the same type as the target value.
+.br
+
+.br
+
+.br
+The following playlist elements of a playlist can be updated:
+.br
+* scene: all properties except js and sources
+.br
+* sequence: start, stop, loop and transition properties
+.br
+* timer: start, stop, loop and dur properties
+.br
+* transition: all properties
+.br
+  - for sequence transitions, most of these properties will only be updated at next reload
+.br
+  - for active scene transitions, whether these changes are applied right away depend on the transition module
+.br
+
+.br
+
+.br
+IDs cannot be updated.
+.br
+
+.br
+
+.br
+Example
+.br
+[
+.br
+ {"replace": "scene1@x", "with": 20},
+.br
+ {"replace": "seq1@start", "with": "now"}
+.br
+ }
+.br
+]
+.br
+
+.br
+
+.br
+
+.br
+.SH Scene modules
+.LP
+.br
+.P
+.B
+Scene clear
+.br
+This scene clears the canvas area covered by the scene with a given color. 
+.br
+
+.br
+The default clear color of the mixer is black.
+.br
+
+.br
+The color none is 0x00000000.
+.br
+
+.br
+Options:
+.br
+* color ('none'): clear color
+.br
+.P
+.B
+Scene clip
+.br
+This scene resets the canvas clipper or sets the canvas clipper to the scene area.
+.br
+
+.br
+The clipper is always axis-aligned (rotation and skew are ignored).
+.br
+
+.br
+Options:
+.br
+* reset (false): if set, reset clipper otherwise set it to scene position and size
+.br
+.P
+.B
+Scene shape
+.br
+The default scene handler can be used to setup a shape, its outline and specify the fill and strike modes.
+.br
+Supported shapes include:
+.br
+- a variety of rectangles, ellipse and other polygons
+.br
+- custom paths specified from JS
+.br
+- text
+.br
+
+.br
+The color modes for shapes and outlines include:
+.br
+- texturing using data from input media streams (shape fill only)
+.br
+- texturing using local JPEG and PNG files (shape fill only)
+.br
+- solid color
+.br
+- linear and radial gradients
+.br
+
+.br
+The default scene is optimized to fallback to fast blit when no transformations are used on a straight rectangle shape.
+.br
+
+.br
+All options can be updated at run time.
+.br
+
+.br
+The module accepts 0, 1 or 2 sequences as input.
+.br
+
+.br
+Color replacement operations can be specified for base scenes using source videos by specifying the replace option. The replacement source is:
+.br
+- the image data if img is set, potentially altered using keep_ar_rep, txmx_rep and cmx_rep options
+.br
+- otherwise a linear gradient if fill=linear or a radial gradient if fill=radial
+.br
+
+.br
+.P
+.B
+Text options 
+.br
+
+.br
+Text can be loaded from file if text[0] is an existing local file.
+.br
+By default all lines are loaded. The number of loaded lines can be specified using text[1] as follows:
+.br
+* 0 or not present: all lines are loaded
+.br
+* N > 0: only keep the last N lines
+.br
+* N < 0: only keep the first N lines
+.br
+
+.br
+Text loaded from file will be refreshed whenever the file is modified.
+.br
+
+.br
+Predefined keywords can be used in input text, identified as $KEYWORD$. The following keywords (case insensitive) are defined:
+.br
+* time: replaced by UTC date
+.br
+* ltime: replaced by locale date
+.br
+* date: replaced by date (Y/M/D)
+.br
+* ldate: replaced by locale date (Y/M/D)
+.br
+* mtime: replaced by output media time 
+.br
+* mtime_SRC: replaced by media time of input source SRC 
+.br
+* cpu: replaced by current CPU usage of process
+.br
+* mem: replaced by current memory usage of process
+.br
+* version: replaced by GPAC version
+.br
+* fversion: replaced by GPAC full version
+.br
+
+.br
+.P
+.B
+Custom paths
+.br
+
+.br
+Custom paths (shapes) can be created through JS code indicated in 'shape', either inline or through a file.
+.br
+The following GPAC JS modules are imported:
+.br
+ - Sys as sys
+.br
+ - All EVG as evg
+.br
+ - os form QuickJS
+.br
+
+.br
+See https://doxygen.gpac.io for more information on EVG and Sys JS APIs.
+.br
+
+.br
+The code is exposed the scene as this. The variable this.path is created, representing an empty path.
+.br
+Example
+.br
+"shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
+.br
+
+.br
+
+.br
+The global variables and functions are available (c.f. gpac -h avmix:global):
+.br
+ * get_media_time(): return media time in seconds (float) of output
+.br
+ * get_media_time(SRC): get time of source with id SRC, return -4 if not found, -3 if not playing, -2 if in prefetch, -1 if timing not yet known, media time in seconds (float) otherwise
+.br
+ * current_utc_clock: current UTC time in ms
+.br
+ * video_time: output video time
+.br
+ * video_timescale: output video timescale
+.br
+ * video_width: output video width
+.br
+ * video_height: output video height
+.br
+
+.br
+If your path needs to be reevaluated on regular basis, set the value this.reload to the timeout to next reload, in milliseconds.
+.br
+
+.br
+Options:
+.br
+* rx (0): horizontal radius for rounded rect in percent of width, negative value will use ry
+.br
+* ry (0): vertical radius for rounded rect in percent of height, negative value will use rx
+.br
+* tl (true): top-left corner rounded
+.br
+* bl (true): bottom-left corner rounded
+.br
+* tr (true): top-right corner rounded
+.br
+* br (true): bottom-right corner rounded
+.br
+* rs (false): repeat texture horizontally
+.br
+* rt (false): repeat texture vertically
+.br
+* keep_ar (true): keep aspect ratio
+.br
+* pad_color ('black'): color to use for texture padding, use 'none' for transparent (always enforced if source is transparent). Warning: Not supported in GPU mode
+.br
+* txmx ([]): texture matrix
+.br
+* cmx ([]): color transform - all 20 coefficients must be set in order, i.e [Mrr, Mrg, Mrb, Mra, Tr, Mgr, Mgg ...]
+.br
+* line_width (0): line width in percent of width if positive, or absolute value if negative
+.br
+* line_color ('white'): line color, linear for linear gradient and radial for radial gradient
+.br
+* line_pos ('center'): line/shape positioning. Possible values are:
+.br
+  * center: line is centered around shape
+.br
+  * outside: line is outside the shape
+.br
+  * inside: line is inside the shape
+.br
+* line_dash ('plain'): line dashing mode. Possible values are:
+.br
+  * plain: no dash
+.br
+  * dash: predefined dash pattern is used
+.br
+  * dot:  predefined dot pattern is used
+.br
+  * dashdot:  predefined dash-dot pattern is used
+.br
+  * dashdashdot:  predefined dash-dash-dot pattern is used
+.br
+  * dashdotdot:  predefined dash-dot-dot pattern is used
+.br
+* dashes ([]): dash/dot pattern lengths for custom dashes (these will be multiplied by line size)
+.br
+* cap ('flat'): line end style. Possible values are:
+.br
+  * flat: flat end
+.br
+  * round: round end
+.br
+  * square: square end (extends limit compared to flat)
+.br
+  * triangle: triangle end
+.br
+* join ('miter'): line joint style. Possible values are:
+.br
+  * miter: miter join (straight lines)
+.br
+  * round: round join
+.br
+  * bevel: bevel join
+.br
+  * bevelmiter: bevel+miter join
+.br
+* miter_limit (2): miter limit for joint styles
+.br
+* dash_length (-1): length of path to outline, negative values mean full path
+.br
+* dash_offset (0): offset in path at which the outline starts
+.br
+* blit (true): use blit if possible, otherwise EVG texturing. If disabled, always use texturing
+.br
+* fill ('none'): fill color if used without sources, linear for linear gradient and radial for radial gradient
+.br
+* img: path to local image (JPG or PNG) to use as texture if without sources
+.br
+* alpha (1): global texture transparency
+.br
+* replace: if img or fill is set and shape is using source, replace source component by img component (a, r, g or b). If prefix - is set, replace by one minus the source component
+.br
+* shape ('rect'): shape type. Possible values are:
+.br
+  * rect: rounded rectangle
+.br
+  * square: square using smaller width/height value
+.br
+  * ellipse: ellipse
+.br
+  * circle: circle using smaller width/height value
+.br
+  * rhombus: axis-aligned rhombus
+.br
+  * text: force text mode even if text field is empty
+.br
+  * rects: same as rounded rectangle but use straight lines for corners
+.br
+  * other value: JS code for custom path creation, either string or local file name (dynamic reload possible)
+.br
+* grad_p ([]): gradient positions between 0 and 1
+.br
+* grad_c ([]): gradient colors for each position, as strings
+.br
+* grad_start ([]): start point for linear gradient or center point for radial gradient
+.br
+* grad_end ([]): end point for linear gradient or radius value for radial gradient
+.br
+* grad_focal ([]): focal point for radial gradient
+.br
+* grad_mode ('pad'): gradient mode. Possible values are:
+.br
+  * pad: color padding outside of gradient bounds
+.br
+  * spread: mirror gradient outside of bounds
+.br
+  * repeat: repeat gradient outside of bounds
+.br
+* text ([]): text lines (UTF-8 only). If not empty, force shape=text
+.br
+* font ([]): font name(s)
+.br
+* size (20): font size in percent of height (horizontal text), width (vertical text) or absolute value if negative
+.br
+* baseline ('alphabetic'): baseline position. Possible values are:
+.br
+  * alphabetic: alphabetic position of baseline
+.br
+  * top: baseline at top of EM Box
+.br
+  * hanging: reserved, not implemented
+.br
+  * middle: baseline at middle of EM Box
+.br
+  * ideograph: reserved, not implemented
+.br
+  * bottom: baseline at bottom of EM Box
+.br
+* align ('center'): horizontal text alignment. Possible values are:
+.br
+  * center: center of shape
+.br
+  * start: start of shape (left or right depending on text direction)
+.br
+  * end: end of shape (right or left depending on text direction)
+.br
+  * left: left of shape
+.br
+  * right: right of shape
+.br
+* spacing (0): line spacing in percent of height (horizontal text), width (vertical text) or absolute value if negative
+.br
+* bold (false): use bold version of font
+.br
+* italic (false): use italic version of font
+.br
+* underline (false): underline text
+.br
+* vertical (false): draw text vertically
+.br
+* flip (false): flip text vertically
+.br
+* extend (0): maximum text width in percent of width (for horizontal) or height (for vertical)
+.br
+* keep_ar_rep (true): same as keep_ar, applies to local image in replace mode
+.br
+* txmx_rep ([]): same as txmx, applies to local image in replace mode
+.br
+* cmx_rep ([]): same as cmx, applies to local image in replace mode
+.br
+.SH Transition modules
+.LP
+.br
+.P
+.B
+Transition gltrans - GPU only
+.br
+This transition module wraps gl-transitions, see https://gl-transitions.com/
+.br
+Options:
+.br
+* fx: effect name for built-in effects, or path to gl-transition GLSL file
+.br
+.P
+.B
+Transition swipe - software/GPU
+.br
+This transition performs simple 2D affine transformations for source videos transitions, with configurable effect origin
+.br
+Options:
+.br
+* from ('left'): direction of video 2 entry. Possible values are:
+.br
+  * left: from left to right edges
+.br
+  * right: from right to left edges
+.br
+  * top: from top to bottom edges
+.br
+  * bottom: from bottom to top edges
+.br
+  * topleft: from top-left to bottom-right corners
+.br
+  * topright: from top-right to bottom-left corners
+.br
+  * bottomleft: from bottom-left to top-right corners
+.br
+  * bottomright: from bottom-right to top-left corners
+.br
+
+.br
+* mode ('slide'): how video 2 entry impacts video 1. Possible values are:
+.br
+  * slide: video 1 position is not modified
+.br
+  * push: video 2 pushes video 1 away
+.br
+  * squeeze: video 2 squeezes video 1 along opposite edge
+.br
+  * grow: video 2 size increases, video 1 not modified
+.br
+  * swap: video 2 size increases, video 1 size decreases
+.br
+
+.br
+.P
+.B
+Transition mix - software/GPU
+.br
+This transition performs cross-fade of source videos
+.br
+.P
+.B
+Transition fade - software/GPU
+.br
+This transition performs fade to color of source videos
+.br
+Options:
+.br
+* color ('black'): color to fade to
+.br
+.P
+.B
+Transition wipe - software/GPU
+.br
+This transition performs cross-fade of source videos
+.br
+
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+pl (str, default: avmix.json): local playlist file to load
+.br
+live (bool, default: true):    live mode (see filter help)
+.br
+gpu (enum, default: off):      enable GPU usage
+.br
+  * off: no GPU
+.br
+  * mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
+.br
+  * all: try to use GPU for everything
+.br
+
+.br
+thread (sint, default: -1):    use threads for software rasterizer (-1 for all available cores)
+.br
+lwait (uint, default: 1000):   timeout in ms before considering no signal is present
+.br
+ltimeout (uint, default: 4000): timeout in ms before restarting child processes (see filter help)
+.br
+maxdur (dbl, default: 0):      run for given seconds and exit, will not abort if 0 (used for live mode tests)
+.br
+updates (str):                 local JSON files for playlist updates
+.br
+vsize (v2d, default: 1920x1080): output video size
+.br
+fps (frac, default: 25):       output video frame rate
+.br
+pfmt (pfmt, default: yuv):     output pixel format. Use rgba in GPU mode to force alpha channel
+.br
+dynpfmt (enum, default: init): allow dynamic change of output pixel format in software mode
+.br
+  * off: pixel format is forced to desired value
+.br
+  * init: pixel format is forced to format of fullscreen input in first generated frame
+.br
+  * all: pixel format changes each time a full-screen input pid at same resolution is used
+.br
+
+.br
+sr (uint, default: 44100):     output audio sample rate
+.br
+ch (uint, default: 2):         number of output audio channels
+.br
+afmt (afmt, default: s16):     output audio format (only s16, s32, flt and dbl are supported)
+.br
+alen (uint, default: 1024):    default number of samples per frame
+.br
+
+.br
 .SH avgen
 .LP
 .br
@@ -7774,7 +8829,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1257-g37afe8641-master
+build: 1.1.0-DEV-rev1316-g61cbd01f8-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

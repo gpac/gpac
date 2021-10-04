@@ -88,6 +88,7 @@ typedef struct _gf_ffdec_ctx
 
 	GF_List *src_packets;
 
+	//only used to check decoder output change
 	u32 o_ff_pfmt;
 	Bool force_full_range;
 	Bool drop_non_refs;
@@ -345,7 +346,6 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 		ctx->o_ff_pfmt = ctx->decoder->pix_fmt;
 		if (!pix_fmt) {
 			pix_fmt = GF_PIXEL_RGB;
-			ctx->o_ff_pfmt = AV_PIX_FMT_RGB24;
 		}
 		ffdec_check_pix_fmt_change(ctx, pix_fmt);
 	}
@@ -1101,7 +1101,6 @@ reuse_codec_context:
 			if (!pix_fmt) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", ctx->decoder->pix_fmt));
 				pix_fmt = GF_PIXEL_RGB;
-				ctx->o_ff_pfmt = AV_PIX_FMT_RGB24;
 			}
 		} else {
 			pix_fmt = GF_PIXEL_YUV;

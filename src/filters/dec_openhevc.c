@@ -78,6 +78,7 @@ typedef struct
 	GF_Fraction sar;
 	GF_FilterPacket *packed_pck;
 	u8 *packed_data;
+	Bool monochrome;
 
 	u32 hevc_nalu_size_length;
 	Bool has_pic;
@@ -262,15 +263,18 @@ static void ohevcdec_set_codec_name(GF_Filter *filter)
 #endif
 }
 
-static u32 ohevcdec_get_pixel_format( u32 luma_bpp, u8 chroma_format_idc)
+static u32 ohevcdec_get_pixel_format(GF_OHEVCDecCtx *ctx)
 {
-	switch (chroma_format_idc) {
+	if (ctx->monochrome)
+		return GF_PIXEL_GREYSCALE;
+
+	switch (ctx->chroma_format_idc) {
 	case 1:
-		return (luma_bpp==10) ? GF_PIXEL_YUV_10 : GF_PIXEL_YUV;
+		return (ctx->luma_bpp==10) ? GF_PIXEL_YUV_10 : GF_PIXEL_YUV;
 	case 2:
-		return (luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
+		return (ctx->luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
 	case 3:
-		return (luma_bpp==10) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+		return (ctx->luma_bpp==10) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
 	default:
 		return 0;
 	}
@@ -303,7 +307,7 @@ static void ohevc_set_out_props(GF_OHEVCDecCtx *ctx)
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 	}
-	pixfmt = ohevcdec_get_pixel_format(ctx->luma_bpp, ctx->chroma_format_idc);
+	pixfmt = ohevcdec_get_pixel_format(ctx);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(pixfmt) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 }
@@ -811,7 +815,9 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	u8 *data;
 	u32 a_w, a_h, a_stride, bit_depth, i, count;
 	u64 cts;
+	Bool monochrome=GF_FALSE;
 	OHFrame_cpy openHevcFrame_FL, openHevcFrame_SL;
+	OHFrame openHFrame;
 	int chromat_format;
 
 	if (ctx->no_copy && !ctx->pack_hfr) {
@@ -819,6 +825,10 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	} else {
 		oh_cropped_frameinfo(ctx->codec, &openHevcFrame_FL.frame_par);
 		if (ctx->nb_layers == 2) oh_cropped_frameinfo_from_layer(ctx->codec, &openHevcFrame_SL.frame_par, 1);
+	}
+	if (oh_output_update(ctx->codec, 1, &openHFrame)) {
+		if (!openHFrame.data_cb_p && !openHFrame.data_cr_p)
+			monochrome = GF_TRUE;
 	}
 
 	a_w = openHevcFrame_FL.frame_par.width;
@@ -829,7 +839,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	cts = (u32) openHevcFrame_FL.frame_par.pts;
 	if (!openHevcFrame_FL.frame_par.sample_aspect_ratio.den || !openHevcFrame_FL.frame_par.sample_aspect_ratio.num)
 		openHevcFrame_FL.frame_par.sample_aspect_ratio.den = openHevcFrame_FL.frame_par.sample_aspect_ratio.num = 1;
-		
+
 	src_pck = NULL;
 	count = gf_list_count(ctx->src_packets);
 	for (i=0;i<count; i++) {
@@ -847,15 +857,20 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	if (ctx->force_stereo_reset || !ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)
 		|| (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1))
 		|| (ctx->sar.num*openHevcFrame_FL.frame_par.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frame_par.sample_aspect_ratio.num)
+		|| (ctx->monochrome != monochrome)
 	 ) {
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
-		if( chromat_format == OH_YUV420 ) {
+		ctx->monochrome = monochrome;
+
+		if (monochrome) {
+			ctx->out_size = ctx->stride * ctx->height;
+		} else if (chromat_format == OH_YUV420 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-		} else if  ( chromat_format == OH_YUV422 ) {
+		} else if (chromat_format == OH_YUV422 ) {
 			ctx->out_size = ctx->stride * ctx->height * 2;
-		} else if ( chromat_format == OH_YUV444 ) {
+		} else if (chromat_format == OH_YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
 		//force top/bottom output of left and right frame, double height
@@ -881,7 +896,6 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	}
 
 	if (ctx->pack_hfr) {
-		OHFrame openHFrame;
 		u8 *pY, *pU, *pV;
 		u32 idx_w, idx_h;
 
@@ -996,16 +1010,30 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			gf_filter_pck_discard(pck);
 		}
 	} else {
-		openHevcFrame_FL.data_cb = (void*) (data + ctx->stride * ctx->height);
-		if( chromat_format == OH_YUV420) {
-			openHevcFrame_FL.data_cr = (void*) (data + 5*ctx->stride * ctx->height/4);
-		} else if (chromat_format == OH_YUV422) {
-			openHevcFrame_FL.data_cr = (void*) (data + 3*ctx->stride * ctx->height/2);
-		} else if ( chromat_format == OH_YUV444) {
-			openHevcFrame_FL.data_cr = (void*) (data + 2*ctx->stride * ctx->height);
+		int res;
+		openHevcFrame_FL.data_cb = openHevcFrame_FL.data_cr = NULL;
+		if (!ctx->monochrome) {
+			openHevcFrame_FL.data_cb = (void*) (data + ctx->stride * ctx->height);
+			if (chromat_format == OH_YUV420) {
+				openHevcFrame_FL.data_cr = (void*) (data + 5*ctx->stride * ctx->height/4);
+			} else if (chromat_format == OH_YUV422) {
+				openHevcFrame_FL.data_cr = (void*) (data + 3*ctx->stride * ctx->height/2);
+			} else if ( chromat_format == OH_YUV444) {
+				openHevcFrame_FL.data_cr = (void*) (data + 2*ctx->stride * ctx->height);
+			}
+		} else {
+			openHevcFrame_FL.frame_par.linesize_cb = openHevcFrame_FL.frame_par.linesize_cr = 0;
+		}
+		if (ctx->monochrome) {
+			res = oh_output_update(ctx->codec, 1, &openHFrame);
+			if (src_pck) {
+				memcpy(data, openHFrame.data_y_p, ctx->out_size);
+			}
+		} else {
+			res = oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL);
 		}
 
-		if (oh_output_cropped_cpy(ctx->codec, &openHevcFrame_FL)) {
+		if (res) {
 			if (src_pck) {
 				u8 car_v = gf_filter_pck_get_carousel_version(src_pck);
 				gf_filter_pck_set_carousel_version(src_pck, 0);
@@ -1029,16 +1057,16 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 static u64 translate_ts_temi(GF_OHEVCDecCtx *ctx, GF_HEVCStream *stream, s64 ts)
 {
 	if (stream->timescale != ctx->temi_media_timescale) {
-		ts = gf_timestamp_rescale(ts, stream->timescale, ctx->temi_media_timescale);
+		ts = gf_timestamp_rescale_signed(ts, stream->timescale, ctx->temi_media_timescale);
 	}
 	ts -= ctx->temi_media_timestamp;
 
 	//translate to output timescale
 	if (ctx->temi_media_timescale != ctx->streams[0].timescale) {
-		ts = gf_timestamp_rescale(ts, ctx->temi_media_timescale, ctx->streams[0].timescale);
+		ts = gf_timestamp_rescale_signed(ts, ctx->temi_media_timescale, ctx->streams[0].timescale);
 	}
 	if (ctx->streams[0].timescale != 90000) {
-		u64 diff = gf_timestamp_rescale(ctx->temi_media_pts, 90000, ctx->streams[0].timescale);
+		u64 diff = gf_timestamp_rescale_signed(ctx->temi_media_pts, 90000, ctx->streams[0].timescale);
  		ts += diff;
 	} else {
 		ts += ctx->temi_media_pts;

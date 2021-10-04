@@ -139,7 +139,7 @@ struct mpeg2ps_ {
 };
 
 /*************************************************************************
- * File access routines.  Could all be inlined
+ * File access routines.  Could all be inline
  *************************************************************************/
 static FILE *file_open (const char *name)
 {

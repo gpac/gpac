@@ -140,6 +140,7 @@ typedef enum
 } GSF_PacketType;
 
 
+static void gsfdmx_stream_del(GSF_DemuxCtx *ctx, GSF_Stream *gst, Bool is_flush);
 
 GF_Err gsfdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
@@ -152,7 +153,7 @@ GF_Err gsfdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			GSF_Stream *st = gf_list_pop_back(ctx->streams);
 			if (st->opid)
 				gf_filter_pid_remove(st->opid);
-			gf_free(st);
+			gsfdmx_stream_del(ctx, st, GF_FALSE);
 		}
 		return GF_OK;
 	}
@@ -208,10 +209,13 @@ static Bool gsfdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		ctx->nb_playing--;
 		if (ctx->file_pids) return GF_TRUE;
-		if (!ctx->nb_playing)
+		if (!ctx->nb_playing) {
 			ctx->stop_pending = GF_TRUE;
+			//force a process to evaluate eos
+			gf_filter_post_process_task(filter);
+		}
 		//always cancel, take the decision to stop source after demuxing some packets
-		//this avoids stoping (and reseting inputs) when some streams of the mux are not used while other are
+		//this avoids stopping (and reseting inputs) when some streams of the mux are not used while other are
 		return GF_TRUE;
 
 	case GF_FEVT_SET_SPEED:
@@ -1238,8 +1242,15 @@ GF_Err gsfdmx_process(GF_Filter *filter)
 			}
 		}
 	}
-	if (is_eos)
+	if (is_eos) {
+		if (ctx->stop_pending) {
+			GF_FilterEvent evt;
+			ctx->stop_pending = GF_FALSE;
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
+			gf_filter_pid_send_event(ctx->ipid, &evt);
+		}
 		return GF_EOS;
+	}
 
 	if (would_block && (would_block+1==i))
 		return GF_OK;

@@ -123,7 +123,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term);
 
 /*! gets elapsed time since loading of the scene - may be different from scene time when seeking or live content
 \param term the target terminal
-\return time ellapsed in milliseconds
+\return time elapsed in milliseconds
 */
 u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term);
 

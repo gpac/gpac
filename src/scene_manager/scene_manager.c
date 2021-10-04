@@ -457,7 +457,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					if (base_stream_found || !sc->aggregate_on_esid) {
 						store = 0;
 					}
-					/*otherwise, check wether the command should be kept in this stream as is, or can be aggregated on this stream*/
+					/*otherwise, check whether the command should be kept in this stream as is, or can be aggregated on this stream*/
 					else {
 						switch (com->tag) {
 						/*the following commands do not impact a sub-tree (eg do not deal with nodes), we cannot

@@ -1206,10 +1206,10 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ESDS, esds, "mp4a mp4s mp4v encv enca encs resv wave", 0, "p14"),
 
 	//part 15 boxes
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AVCC, avcc, "avc1 avc2 avc3 avc4 encv resv ipco", "p15"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AVCC, avcc, "avc1 avc2 avc3 avc4 encv resv ipco dva1 dvav", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_SVCC, avcc, "avc1 avc2 avc3 avc4 svc1 svc2 encv resv", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MVCC, avcc, "avc1 avc2 avc3 avc4 mvc1 mvc2 encv resv", "p15"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVCC, hvcc, "hvc1 hev1 hvc2 hev2 encv resv ipco dvhe", "p15"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVCC, hvcc, "hvc1 hev1 hvc2 hev2 encv resv ipco dvh1 dvhe", "p15"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_LHVC, hvcc, "hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv ipco", "p15"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_VVCC, vvcc, "vvc1 vvi1 encv resv ipco dvhe", 0, "p15"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_VVNC, vvnc, "vvs1 encv resv ipco dvhe", 0, "p15"),
@@ -1247,7 +1247,7 @@ static struct box_registry_entry {
 
 	//AV1 in ISOBMFF boxes
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_AV01, video_sample_entry, "stsd", "av1"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv ipco", "av1"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_AV1C, av1c, "av01 encv resv ipco dav1", "av1"),
 
 	// VP8-9 boxes
 	FBOX_DEFINE_FLAGS_S( GF_ISOM_BOX_TYPE_VPCC, vpcc, "vp08 vp09 encv resv", 1, 0, "vp"),
@@ -1492,8 +1492,13 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3 wave enca", "dolby"),
 	{GF_ISOM_BOX_TYPE_DEC3, dec3_box_new, dac3_box_del, dac3_box_read, dac3_box_write, dac3_box_size, dac3_box_dump, 0, 0, 0, "ec-3 wave enca", "dolby" },
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvhe dvav dva1 dvh1 avc1 avc2 avc3 avc4 hev1 encv resv", "DolbyVision"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVCC, dvcC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 av01 encv resv", "DolbyVision"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_DVVC, dvcC, "dvav dva1 dvhe dvh1 dav1 avc1 avc2 avc3 avc4 hev1 av01 encv resv", "DolbyVision"),
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVHE, video_sample_entry, "stsd", "DolbyVision"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVH1, video_sample_entry, "stsd", "DolbyVision"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVA1, video_sample_entry, "stsd", "DolbyVision"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DVAV, video_sample_entry, "stsd", "DolbyVision"),
+	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DAV1, video_sample_entry, "stsd", "DolbyVision"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_MLPA, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DMLP, dmlp, "mlpa enca", "dolby"),
 
@@ -2033,10 +2038,9 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 		gf_fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ((GF_FullBox*)a)->version,((GF_FullBox*)a)->flags);
 	}
 	gf_fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
-	//we don't want to rewrite our hashes
-	if (gf_sys_is_test_mode() && (a->type==GF_ISOM_BOX_TYPE_FTYP)) {
-		gf_fprintf(trace, "Container=\"file\" ");
-	} else {
+
+	//don't write containers in test mode, that would require rewriting hashes whenever spec changes
+	if (!gf_sys_is_test_mode()) {
 		gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
 	}
 	return GF_OK;

@@ -249,6 +249,10 @@ enum
 
 	/* Dolby Vision */
 	GF_ISOM_SUBTYPE_DVHE = GF_4CC('d', 'v', 'h', 'e'),
+	GF_ISOM_SUBTYPE_DVH1 = GF_4CC('d', 'v', 'h', '1'),
+	GF_ISOM_SUBTYPE_DVA1 = GF_4CC('d', 'v', 'a', '1'),
+	GF_ISOM_SUBTYPE_DVAV = GF_4CC('d', 'v', 'a', 'v'),
+	GF_ISOM_SUBTYPE_DAV1 = GF_4CC('d', 'a', 'v', '1'),
 
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),

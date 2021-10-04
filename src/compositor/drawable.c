@@ -693,7 +693,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 			if (!ctx->aspect.fill_texture->transparent && (alpha==0xFF) && !ctx->aspect.fill_texture->compute_gradient_matrix && (drawable->flags & DRAWABLE_HYBGL_INIT)) {
 				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
 			}
-			//otherwise, we need to redraw all object below, wether they changed ot not, because we have erased this part of the canvas
+			//otherwise, we need to redraw all object below, whether they changed ot not, because we have erased this part of the canvas
 			else {
 				ctx->flags |= CTX_TEXTURE_DIRTY;
 			}
@@ -715,7 +715,7 @@ void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_T
 			u8 alpha = GF_COL_A(ctx->aspect.line_color);
 			if (!ctx->aspect.line_texture->transparent && (alpha==0xFF) && !ctx->aspect.line_texture->compute_gradient_matrix && (drawable->flags & DRAWABLE_HYBGL_INIT))
 				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
-			//otherwise, we need to redraw all object below, wether they changed ot not, bacause we have erased this part of the canvas
+			//otherwise, we need to redraw all object below, whether they changed ot not, bacause we have erased this part of the canvas
 			else
 				ctx->flags |= CTX_TEXTURE_DIRTY;
 

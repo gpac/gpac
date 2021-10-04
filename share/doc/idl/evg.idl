@@ -1652,8 +1652,8 @@ Example
 # Conditions
 
 Conditions are expressed with the following keywords:
-- 'if' : takes 3 additionnal parameters `left`, `operand`and `right` and evaluates the condition
-- 'elseif' : takes 3 additionnal parameters `left`, `operand` and `right` and evaluates the condition
+- 'if' : takes 3 additional parameters `left`, `operand`and `right` and evaluates the condition
+- 'elseif' : takes 3 additional parameters `left`, `operand` and `right` and evaluates the condition
 - 'else': no additional parameters
 - 'end': no additional parameters
 

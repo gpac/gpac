@@ -800,7 +800,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 			if (!map->payload_name || !map->ClockRate) return GF_REMOTE_SERVICE_ERROR;
 		}
 	}
-	//Encryption: nothing tells wether the scope of the global key is eclusive or not.
+	//Encryption: nothing tells whether the scope of the global key is eclusive or not.
 	//we accept a global key + keys per media entry, assuming that the media key primes
 	//on the global key
 

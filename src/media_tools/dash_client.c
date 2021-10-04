@@ -3713,7 +3713,7 @@ static s32 dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *grou
 
 	//we start checking after 100ms
 	if (us_since_start < 100000) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps (media bitrate %d kbps) but 100ms only ellapsed, waiting\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps (media bitrate %d kbps) but 100ms only elapsed, waiting\n", 1+group->groups_idx, bits_per_sec/1000, group->active_bitrate/1000 ));
 		return -1;
 	}
 
@@ -9989,8 +9989,8 @@ void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 dep_rep_idx, u3
 u32 gf_dash_get_min_wait_ms(GF_DashClient *dash)
 {
 	if (dash && dash->min_wait_ms_before_next_request) {
-		u32 ellapsed = gf_sys_clock() - dash->min_wait_sys_clock;
-		if (ellapsed < dash->min_wait_ms_before_next_request) dash->min_wait_ms_before_next_request -= ellapsed;
+		u32 elapsed = gf_sys_clock() - dash->min_wait_sys_clock;
+		if (elapsed < dash->min_wait_ms_before_next_request) dash->min_wait_ms_before_next_request -= elapsed;
 		else dash->min_wait_ms_before_next_request = 0;
 		return dash->min_wait_ms_before_next_request;
 	}
