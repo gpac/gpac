@@ -780,7 +780,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			if (!file_name) {
 				snprintf(szLocManfest, 100, "manifest.%s", (serv->manifest_type==2) ? "m3u8" : "mpd");
 				file_name = szLocManfest;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Cannot guess manifest name, assuming %s\n", file_name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_ROUTE, ("[ROUTE] No manifest name assigned, will use %s\n", file_name));
 			}
 
 			//child subplaylist
@@ -1114,7 +1114,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 					max_size *= 2;
 				}
 
-				snprintf(temp, 1000, " Expires=\"4294967295\" afdt:maxTransportSize=\"%d\">\n", max_size);
+				snprintf(temp, 1000, " Expires=\"4000000000\" afdt:maxTransportSize=\"%d\">\n", max_size);
 				gf_dynstrcat(&payload_text, temp, NULL);
 			}
 
@@ -1909,6 +1909,9 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			ROUTEService *serv = gf_list_get(ctx->services, i);
 			u32 sid = serv->service_id;
 			if (!sid) sid = 1;
+			u32 minor = sid % 1000;
+			if (!minor) minor = 1;
+			u32 major = GF_4CC('G', 'P', 'A', 'C')  % 1000;
 
 			rpid = gf_list_get(serv->pids, 0);
 			p = gf_filter_pid_get_property_str(rpid->pid, "ShortServiceName");
@@ -1921,7 +1924,7 @@ static void routeout_send_lls(GF_ROUTEOutCtx *ctx)
 			szIP[len] = 0;
 
 			snprintf(tmp, 2000,
-				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0 \" serviceCategory=\"1\" globalServiceId=\"urn:gpac:atsc:serviceid:%d.%d\" majorChannelNo=\"666\" minorChannelNo=\"666\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, szIP);
+				" <Service serviceId=\"%d\" sltSvcSeqNum=\"0 \" serviceCategory=\"1\" globalServiceID=\"urn:atsc:gpac:%d:%d\" majorChannelNo=\"%d\" minorChannelNo=\"%d\" shortServiceName=\"%s\">\n", sid, ctx->bsid, sid, major, minor, szIP);
 			gf_dynstrcat(&payload_text, tmp, NULL);
 
 			src_ip = ctx->ifce;
