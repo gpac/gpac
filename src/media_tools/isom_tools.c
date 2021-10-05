@@ -4066,7 +4066,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
 			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unkown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
 			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
 		}
 		if (e) {

@@ -797,7 +797,7 @@ u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
 	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
 	else if ((nb_chan==7) && (nb_surr==6) && (nb_lfe==1)) return 20;
 
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unkown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unknown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
 	return 0;
 }
 
