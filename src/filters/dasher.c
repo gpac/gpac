@@ -3122,6 +3122,7 @@ static void dasher_set_content_components(GF_DashStream *ds)
 
 typedef struct
 {
+	//this is not the template string, this is the resolved segment name for first segment, startNumber=0 and time=0
 	char *tpl;
 	u32 nb_reused;
 } DashTemplateRecord;
@@ -3580,8 +3581,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			//ex: template: seg_ => seg_trackN_init.mp4 for non-tiled vs seg_trackN_$number$.m4s for tiled, resulting in same N
 			//being used for 2 track
 			//cf issue 1849
+			//we however don't want to change templates if they are indeed reused but resolve to something different due to representationID
+			//we therefore resolve the segment template with startNumber 0 time 0, use this resolved name as base check.
 
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, "mp4", 0, ds->bitrate, 0, ctx->stl);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switch, szInitSegmentFilename, ds->rep_id, NULL, szDASHTemplate, "mp4", 0, ds->bitrate, 0, ctx->stl);
 
 			reused_template_idx = dasher_check_template_reuse(ctx, szInitSegmentFilename);
 			if (reused_template_idx) {
