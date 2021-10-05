@@ -39,6 +39,7 @@ enum {
 	TAG_SVG_animateTransform,
 	TAG_SVG_animation,
 	TAG_SVG_audio,
+	TAG_SVG_clip_path,
 	TAG_SVG_circle,
 	TAG_SVG_defs,
 	TAG_SVG_desc,
@@ -321,6 +322,7 @@ struct _all_atts {
 	SVG_Overlay *overlay;
 	SVG_Boolean *fullscreen;
 	SVG_Motion *motionTransform;
+	SVG_ClipPath *clip_path;
 
 	SVG_Boolean *gpac_useAsPrimary;
 	SVG_Number *gpac_depthOffset;

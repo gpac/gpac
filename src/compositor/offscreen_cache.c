@@ -199,7 +199,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		} else {
 #ifndef GPAC_DISABLE_SVG
-			group_ctx = drawable_init_context_svg(cache->drawable, tr_state);
+			group_ctx = drawable_init_context_svg(cache->drawable, tr_state, NULL);
 #endif
 		}
 		if (!group_ctx) return 0;
@@ -353,7 +353,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		} else {
 #ifndef GPAC_DISABLE_SVG
-			group_ctx = drawable_init_context_svg(cache->drawable, tr_state);
+			group_ctx = drawable_init_context_svg(cache->drawable, tr_state, NULL);
 #endif
 		}
 	}

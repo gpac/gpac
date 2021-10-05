@@ -827,12 +827,7 @@ skip_background:
 
 		/*if overlay we cannot remove the context and cannot draw directly*/
 		if (! visual_2d_overlaps_overlay(tr_state->visual, ctx, tr_state)) {
-
-			if (ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
-				gf_node_traverse(ctx->drawable->node, tr_state);
-			} else {
-				drawable_draw(ctx->drawable, tr_state);
-			}
+			call_drawable_draw(ctx, tr_state, GF_FALSE);
 		}
 		ctx = ctx->next;
 	}

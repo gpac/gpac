@@ -392,7 +392,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 					gf_path_add_rect(stack->vp_fill->path, 0, 0, width, -height);
 				}
 
-				ctx = drawable_init_context_svg(stack->vp_fill, tr_state);
+				ctx = drawable_init_context_svg(stack->vp_fill, tr_state, NULL);
 				if (ctx) {
 					ctx->flags &= ~CTX_IS_TRANSPARENT;
 					ctx->aspect.pen_props.width = 0;
@@ -519,6 +519,7 @@ typedef struct
 	struct _group_cache *cache;
 #endif
 
+	Drawable *clip_drawable;
 } SVGgStack;
 
 static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
@@ -540,6 +541,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #else
 		if (group->cache) group_cache_del(group->cache);
 #endif
+		drawable_del(group->clip_drawable);
 		gf_free(group);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
@@ -549,8 +551,21 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	         || tr_state->traversing_mode == TRAVERSE_DRAW_3D
 #endif
-	        ) {
+	) {
 		SVGgStack *group = gf_node_get_private(node);
+
+		//clip path on group
+		if (tr_state->ctx->appear) {
+			//draw clip
+			if (tr_state->ctx->aspect.fill_color) {
+				gf_node_traverse(tr_state->ctx->appear, tr_state);
+			}
+			//reset clip
+			else {
+				gf_evg_surface_set_mask_mode(tr_state->visual->raster_surface, GF_EVGMASK_NONE);
+			}
+			return;
+		}
 		group_cache_draw(group->cache, tr_state);
 		return;
 	}
@@ -664,7 +679,34 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 				}
 			}
 #else
-			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+
+			SVG_ClipPath *cp = all_atts.clip_path;
+			if (cp && !cp->target.target) {
+				cp->target.target = cp->target.string ? gf_sg_find_node_by_name(tr_state->visual->compositor->scene, cp->target.string+1) : NULL;
+				if (!cp->target.target) cp = NULL;
+			}
+
+			//we handle group clip by faking a drawable the size of the viewport
+			//we insert one drawable doing the clipping, and one disabling it
+			if (cp && (tr_state->traversing_mode==TRAVERSE_SORT)) {
+				SVGgStack *group = gf_node_get_private(node);
+				DrawableContext *ctx;
+				gf_path_reset(group->clip_drawable->path);
+				gf_path_add_rect(group->clip_drawable->path, tr_state->visual->top_clipper.x, tr_state->visual->top_clipper.y, tr_state->visual->top_clipper.width, tr_state->visual->top_clipper.height);
+				ctx = drawable_init_context_svg(group->clip_drawable, tr_state, NULL);
+				ctx->appear = (GF_Node *) cp->target.target;
+				ctx->aspect.fill_color = 0xFFFFFFFF;
+				drawable_finalize_sort(ctx, tr_state, NULL);
+
+				compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+
+				ctx = drawable_init_context_svg(group->clip_drawable, tr_state, NULL);
+				ctx->appear = (GF_Node *) cp->target.target;
+				ctx->aspect.fill_color = 0;
+				drawable_finalize_sort(ctx, tr_state, NULL);
+			} else {
+				compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+			}
 #endif
 		}
 		if (clear) gf_node_dirty_clear(node, 0);
@@ -690,6 +732,9 @@ void compositor_init_svg_g(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(stack, SVGgStack);
 	if (!stack) return;
 	gf_node_set_private(node, stack);
+	stack->clip_drawable = drawable_new();
+	stack->clip_drawable->node = node;
+	stack->clip_drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 
 	gf_node_set_callback_function(node, svg_traverse_g);
 }
@@ -730,7 +775,6 @@ void compositor_init_svg_defs(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_defs);
 }
 #endif
-
 
 
 

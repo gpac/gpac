@@ -219,6 +219,7 @@ typedef struct __evg_texture
 
 /*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/
 void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
+void *evg_fill_run_mask(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
 
 #define GF_COLW_ARGB(_a, _r, _g, _b)\
 	((u64)(_a)) << 48 | ((u64)(_r))<<32 | ((u64)(_g))<<16 | ((u64)(_b))
@@ -571,6 +572,11 @@ struct _gf_evg_surface
 	u32 odd_fill;
 	u32 mix_val;
 	u32 run_size;
+
+	void *(*fill_run)(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
+
+	u8 *internal_mask;
+	u32 mask_mode;
 };
 
 

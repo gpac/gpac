@@ -734,6 +734,7 @@ static JSValue svg_udom_get_trait(JSContext *c, JSValueConst obj, int argc, JSVa
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
 	case SVG_Focus_datatype:
+	case SVG_ClipPath_datatype:
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 		/*end of DOM string traits*/

@@ -2265,6 +2265,28 @@ void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
 	}
 	return rctx->stencil_pix_run;
 }
+void *evg_fill_run_mask(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
+{
+	void *res = evg_fill_run(p, rctx, span, y);
+	u8 *mask = rctx->surf->internal_mask + y*rctx->surf->width + span->x;
+	u32 i;
+	if (rctx->surf->not_8bits) {
+		u64 *wcols = res;
+		for (i=0; i<span->len; i++) {
+			*wcols = (*wcols & 0x0000FFFFFFFFFFFFUL) | (((u64) *mask)*256)<<48;
+			wcols++;
+			mask++;
+		}
+	} else {
+		u32 * cols = res;
+		for (i=0; i<span->len; i++) {
+			*cols = (*cols & 0x00FFFFFF) | ((u32)*mask)<<24;
+			cols++;
+			mask++;
+		}
+	}
+	return res;
+}
 
 #define mix_run_func(_type, _val, _shift, _R, _G, _B, _ARGB) \
 	u32 r1, g1, b1, r2, g2, b2; \

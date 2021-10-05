@@ -230,7 +230,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	}
 
 	/*create a context */
-	ctx = drawable_init_context_svg(st->drawable, tr_state);
+	ctx = drawable_init_context_svg(st->drawable, tr_state, NULL);
 	if (!ctx) return;
 
 	/*setup texture */

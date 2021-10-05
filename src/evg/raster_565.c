@@ -202,7 +202,7 @@ void evg_565_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EV
 		register u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		col = evg_fill_run(surf->sten, rctx, &spans[i], y);
+		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {
 			col_a = GF_COL_A(*col);
@@ -411,7 +411,7 @@ void evg_555_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EV
 		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		col = evg_fill_run(surf->sten, rctx, &spans[i], y);
+		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {
 			col_a = GF_COL_A(*col);
@@ -608,7 +608,7 @@ void evg_444_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, EV
 		u32 *col;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
-		col = evg_fill_run(surf->sten, rctx, &spans[i], y);
+		col = surf->fill_run(surf->sten, rctx, &spans[i], y);
 		x = spans[i].x * surf->pitch_x;
 		while (len--) {
 			col_a = GF_COL_A(*col);

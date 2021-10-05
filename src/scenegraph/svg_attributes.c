@@ -3047,6 +3047,19 @@ static void svg_parse_focus(GF_Node *e,  SVG_Focus *o, char *attribute_content)
 	}
 }
 
+static void svg_parse_clippath(GF_Node *e, SVG_ClipPath *o, char *attribute_content)
+{
+	if (o->target.string) gf_free(o->target.string);
+	o->target.string = NULL;
+	o->target.target = NULL;
+
+	if (!strnicmp(attribute_content, "url(", 4)) {
+		char *sep = strrchr(attribute_content, ')');
+		if (sep) sep[0] = 0;
+		svg_parse_iri(e, &o->target, attribute_content+4);
+		if (sep) sep[0] = ')';
+	}
+}
 /* end of Basic SVG datatype parsing functions */
 
 void svg_parse_one_anim_value(GF_Node *n, SMIL_AnimateValue *anim_value, char *attribute_content, u8 anim_value_type)
@@ -3258,7 +3271,6 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Focusable_datatype:
 		svg_parse_focusable((SVG_Focusable*)info->far_ptr, attribute_content);
 		break;
-
 	case SVG_InitialVisibility_datatype:
 		svg_parse_initialvisibility((SVG_InitialVisibility*)info->far_ptr, attribute_content);
 		break;
@@ -3442,6 +3454,10 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Focus_datatype:
 		svg_parse_focus(n, (SVG_Focus*)info->far_ptr, attribute_content);
 		break;
+	case SVG_ClipPath_datatype:
+		svg_parse_clippath(n, (SVG_ClipPath*)info->far_ptr, attribute_content);
+		break;
+
 	case LASeR_Choice_datatype:
 		laser_parse_choice((LASeR_Choice*)info->far_ptr, attribute_content);
 		break;
@@ -3737,6 +3753,12 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 		SVG_Focus *foc;
 		GF_SAFEALLOC(foc, SVG_Focus)
 		return foc;
+	}
+	case SVG_ClipPath_datatype:
+	{
+		SVG_ClipPath *cp;
+		GF_SAFEALLOC(cp, SVG_ClipPath)
+		return cp;
 	}
 	case SMIL_AttributeName_datatype:
 	{
@@ -4604,6 +4626,12 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			return gf_strdup(tmp);
 		}
 	}
+	case SVG_ClipPath_datatype:
+	{
+		SVG_ClipPath *cp = (SVG_ClipPath *)info->far_ptr;
+		sprintf(tmp, "url(#%s)", cp->target.string);
+		return gf_strdup(tmp);
+	}
 	break;
 	case SVG_Focusable_datatype:
 	{
@@ -5302,6 +5330,14 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		if (foc1->type!=foc2->type) return 0;
 		if (foc1->type != SVG_FOCUS_IRI) return 1;
 		return (foc1->target.string && foc2->target.string && !strcmp(foc1->target.string, foc2->target.string)) ? 1 : 0;
+	}
+	break;
+
+	case SVG_ClipPath_datatype:
+	{
+		SVG_ClipPath *cp1 = (SVG_ClipPath *) f1->far_ptr;
+		SVG_ClipPath *cp2 = (SVG_ClipPath *)f2->far_ptr;
+		return (cp1->target.string && cp2->target.string && !strcmp(cp1->target.string, cp2->target.string)) ? 1 : 0;
 	}
 	break;
 
@@ -6006,6 +6042,7 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	case SMIL_Times_datatype:
 	case SMIL_Duration_datatype:
 	case SMIL_RepeatCount_datatype:
+	case SVG_ClipPath_datatype:
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] addition for attributes %s of type %s not supported\n", a->name, gf_svg_attribute_type_to_string(a->fieldType)));
 		return GF_NOT_SUPPORTED;
@@ -6182,7 +6219,15 @@ GF_Err gf_svg_attributes_copy(GF_FieldInfo *a, GF_FieldInfo *b, Bool clamp)
 		if ( ((SVG_Focus *)b->far_ptr)->target.string)
 			((SVG_Focus *)a->far_ptr)->target.string = gf_strdup( ((SVG_Focus *)b->far_ptr)->target.string);
 	}
-	return GF_OK;
+		return GF_OK;
+
+	case SVG_ClipPath_datatype:
+		if ( ((SVG_ClipPath *)b->far_ptr)->target.string) {
+			if (((SVG_ClipPath *)a->far_ptr)->target.string)
+				gf_free(((SVG_ClipPath *)a->far_ptr)->target.string);
+			((SVG_ClipPath *)a->far_ptr)->target.string = gf_strdup( ((SVG_ClipPath *)b->far_ptr)->target.string);
+		}
+		return GF_OK;
 
 	case SMIL_Times_datatype:
 	{
@@ -6552,6 +6597,8 @@ const char *gf_svg_attribute_type_to_string(u32 att_type)
 		return "GradientOffset";
 	case SVG_Focus_datatype	:
 		return "Focus";
+	case SVG_ClipPath_datatype	:
+		return "ClipPath";
 	case SVG_Clock_datatype	:
 		return "Clock";
 	case DOM_String_datatype	:

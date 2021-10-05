@@ -263,6 +263,8 @@ struct _drawable_context
 	*/
 	GF_Node *appear;
 
+	GF_Node *cliper;
+
 #ifdef GF_SR_USE_DEPTH
 	//local gain and offset
 	Fixed depth_gain, depth_offset;
@@ -281,12 +283,14 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *node, GF_TraverseState *t
 #endif
 
 /*inits context for SVG - may return NULL if the node doesn't have to be drawn*/
-DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state);
+DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state, SVG_ClipPath *clip_path);
 
 /*base draw function for 2D objects (texturing, fill and strike)
 	in 2D, the current context is passed in the traversing state
 */
 void drawable_draw(Drawable *drawable, GF_TraverseState *tr_state);
+
+void call_drawable_draw(DrawableContext *ctx, GF_TraverseState *tr_state, Bool set_cyclic);
 
 /*picking function for VRML-based scene graphs*/
 void vrml_drawable_pick(Drawable *drawable, GF_TraverseState *tr_state);

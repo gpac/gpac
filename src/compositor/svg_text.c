@@ -1011,10 +1011,11 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 			tr_state->bounds = st->bounds;
 
 	} else if ((tr_state->traversing_mode == TRAVERSE_SORT)
-	           && !compositor_svg_is_display_off(tr_state->svg_props)
-	           && (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
-	          ) {
-		ctx = drawable_init_context_svg(st->drawable, tr_state);
+		&& !compositor_svg_is_display_off(tr_state->svg_props)
+		&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
+	  ) {
+		ctx = drawable_init_context_svg(st->drawable, tr_state, atts.clip_path);
+
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
 		/*and browse children*/
@@ -1206,7 +1207,8 @@ skip_changes:
 	) {
 		child = ((GF_ParentNode *) tspan)->children;
 
-		ctx = drawable_init_context_svg(st->drawable, tr_state);
+		ctx = drawable_init_context_svg(st->drawable, tr_state, atts.clip_path);
+
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
 		while (child) {
@@ -1449,7 +1451,8 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 	            && (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
 	          ) {
 
-		ctx = drawable_init_context_svg(st->drawable, tr_state);
+		ctx = drawable_init_context_svg(st->drawable, tr_state, atts.clip_path);
+
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
 		child = ((GF_ParentNode *) text)->children;

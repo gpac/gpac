@@ -305,6 +305,7 @@ void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node);
 #ifndef GPAC_DISABLE_SVG
 void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_g(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_svg_defs(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_switch(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_rect(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_circle(GF_Compositor *compositor, GF_Node *node);
@@ -319,6 +320,7 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 void compositor_init_svg_solidColor(GF_Compositor *compositor, GF_Node *node);
 Bool compositor_svg_solid_color_dirty(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_stop(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_svg_clip_path(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node);

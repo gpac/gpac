@@ -421,7 +421,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
-			ctx = drawable_init_context_svg(drawable, tr_state);
+			ctx = drawable_init_context_svg(drawable, tr_state, all_atts.clip_path);
 			if (ctx) {
 				if (is_svg_rect) {
 					if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->transparent) {}

@@ -110,6 +110,7 @@ enum {
 	SMIL_Accumulate_datatype,
 	SMIL_Restart_datatype,
 	SMIL_Fill_datatype,
+	SVG_ClipPath_datatype,
 
 	SVG_LAST_U8_PROPERTY,
 
@@ -1025,6 +1026,12 @@ enum {
 };
 /*! SVG spread method*/
 typedef u8 SVG_SpreadMethod;
+
+/*! SVG clip-path attribute*/
+typedef struct
+{
+	XMLRI target;
+} SVG_ClipPath;
 
 /*! LASeR choice types */
 enum {
