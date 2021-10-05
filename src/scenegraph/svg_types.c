@@ -401,6 +401,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_svg_reset_iri(sg, & ((SVG_Focus*)value)->target);
 		gf_free(value);
 		break;
+	case SVG_ClipPath_datatype:
+		gf_svg_reset_iri(sg, & ((SVG_ClipPath*)value)->target);
+		gf_free(value);
+		break;
 	case SVG_PathData_datatype:
 #if USE_GF_PATH
 		gf_path_del((GF_Path *)value);

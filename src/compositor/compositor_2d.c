@@ -1414,11 +1414,8 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 					gf_irect_intersect(&ctx->bi->clip, &the_clip);
 					tr_state->ctx = ctx;
 
-					if (ctx->drawable->flags & DRAWABLE_USE_TRAVERSE_DRAW) {
-						gf_node_traverse(ctx->drawable->node, tr_state);
-					} else {
-						drawable_draw(ctx->drawable, tr_state);
-					}
+					call_drawable_draw(ctx, tr_state, GF_FALSE);
+
 					ctx->bi->clip = prev_clip;
 				}
 				ctx = ctx->next;

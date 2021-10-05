@@ -327,7 +327,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
-			ctx = drawable_init_context_svg(stack->drawable, tr_state);
+			ctx = drawable_init_context_svg(stack->drawable, tr_state, NULL);
 			if (!ctx || !ctx->aspect.fill_texture ) return;
 
 			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {

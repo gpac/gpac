@@ -274,6 +274,9 @@ static const struct xml_att_def {
 	{ "overlay", TAG_SVG_ATT_overlay, SVG_Overlay_datatype, 0, GF_XMLNS_SVG },
 	{ "fullscreen", TAG_SVG_ATT_fullscreen, SVG_Boolean_datatype, 0, GF_XMLNS_SVG },
 	{ "motionTransform", TAG_SVG_ATT_motionTransform, SVG_Motion_datatype, 0, GF_XMLNS_SVG },
+	{ "clip-path", TAG_SVG_ATT_clip_path, SVG_ClipPath_datatype, 0, GF_XMLNS_SVG },
+
+
 	/*SMIL anim fill*/
 	{ "fill", TAG_SVG_ATT_smil_fill, SMIL_Fill_datatype, GF_SVG_ATTOPT_SMIL, GF_XMLNS_SVG },
 	/*regular paint fill*/
@@ -552,6 +555,7 @@ static const struct xml_elt_def {
 	{ "animateTransform", TAG_SVG_animateTransform, GF_XMLNS_SVG },
 	{ "animation", TAG_SVG_animation, GF_XMLNS_SVG },
 	{ "audio", TAG_SVG_audio, GF_XMLNS_SVG },
+	{ "clipPath", TAG_SVG_clip_path, GF_XMLNS_SVG },
 	{ "circle", TAG_SVG_circle, GF_XMLNS_SVG },
 	{ "defs", TAG_SVG_defs, GF_XMLNS_SVG },
 	{ "desc", TAG_SVG_desc, GF_XMLNS_SVG },

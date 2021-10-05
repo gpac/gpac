@@ -802,6 +802,74 @@ GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node)
 }
 
 
+static void svg_traverse_clip_path(GF_Node *node, void *rs, Bool is_destroy)
+{
+	u32 tr_mode_bck;
+	Bool immediate_bck;
+	DrawableContext *ctx_bck;
+	SVGPropertiesPointers *props_bck;
+	GF_Matrix2D mx_bck;
+	Bool is_first = GF_FALSE;
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+	SVGPropertiesPointers *svg_props = gf_node_get_private(node);
+
+	if (is_destroy) {
+		gf_free(svg_props);
+		return;
+	}
+	if (tr_state->traversing_mode!=TRAVERSE_DRAW_2D) {
+		return;
+	}
+	if (tr_state->visual->type_3d && !tr_state->visual->compositor->hybrid_opengl) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] clipPath not supported in 3D mode, try using `--ogl=hybrid`\n"));
+		return;
+	}
+	if (! tr_state->visual->CheckAttached(tr_state->visual) ) return;
+	if (!tr_state->ctx) return;
+
+	tr_mode_bck = tr_state->traversing_mode;
+	immediate_bck = tr_state->immediate_draw;
+	ctx_bck = tr_state->ctx;
+	props_bck = tr_state->svg_props;
+	gf_mx2d_copy(mx_bck, tr_state->transform);
+
+	//force immediate mode draw
+	tr_state->traversing_mode = TRAVERSE_SORT;
+	tr_state->immediate_draw = GF_TRUE;
+	gf_mx2d_copy(tr_state->transform, tr_state->ctx->transform);
+	tr_state->ctx = NULL;
+
+	if (gf_evg_surface_get_mask_mode(tr_state->visual->raster_surface)==GF_EVGMASK_NONE) {
+		is_first = GF_TRUE;
+		gf_evg_surface_set_mask_mode(tr_state->visual->raster_surface, GF_EVGMASK_DRAW);
+	}
+
+	tr_state->svg_props = svg_props;
+	gf_svg_properties_init_pointers(tr_state->svg_props);
+
+	compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
+
+	gf_svg_properties_reset_pointers(tr_state->svg_props);
+
+	if (is_first) {
+		gf_evg_surface_set_mask_mode(tr_state->visual->raster_surface, GF_EVGMASK_USE);
+	}
+
+	tr_state->traversing_mode = tr_mode_bck;
+	tr_state->immediate_draw = immediate_bck;
+	tr_state->ctx = ctx_bck;
+	tr_state->svg_props = props_bck;
+	gf_mx2d_copy(tr_state->transform, mx_bck);
+}
+
+void compositor_init_svg_clip_path(GF_Compositor *compositor, GF_Node *node)
+{
+	SVGPropertiesPointers *svg_props;
+	GF_SAFEALLOC(svg_props, SVGPropertiesPointers);
+	if (!svg_props) return;
+	gf_node_set_private(node, svg_props);
+	gf_node_set_callback_function(node, svg_traverse_clip_path);
+}
 #endif
 
 

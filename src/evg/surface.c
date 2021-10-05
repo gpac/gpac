@@ -169,6 +169,8 @@ void gf_evg_surface_delete(GF_EVGSurface *surf)
 	}
 	gf_free(surf->scanlines);
 
+	if (surf->internal_mask) gf_free(surf->internal_mask);
+
 	evg_raster_ctx_uninit(&surf->raster_ctx);
 
 	if (surf->ext3d) {
@@ -430,6 +432,10 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	evg_surface_set_components_idx(surf);
 	gf_evg_surface_set_matrix(surf, NULL);
 
+	if (size_changed && surf->internal_mask) {
+		gf_free(surf->internal_mask);
+		surf->internal_mask = NULL;
+	}
 	if (surf->ext3d && size_changed) {
 		surf->ext3d->depth_buffer = NULL;
 
@@ -641,6 +647,21 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 	u32 a, uv_alpha_size=0;
 	Bool use_const = GF_TRUE;
 
+	//default fill_run callback
+	surf->fill_run = evg_fill_run;
+
+	//mask mode draw,
+	if (surf->mask_mode == GF_EVGMASK_DRAW) {
+		surf->fill_col = 0xFFFFFFFF;
+		surf->fill_col_wide = evg_col_to_wide(surf->fill_col);
+		surf->fill_spans = (EVG_SpanFunc) evg_grey_fill_const;
+		if (surf->ext3d) {
+			surf->fill_single = evg_grey_fill_single;
+			surf->fill_single_a = evg_grey_fill_single_a;
+		}
+		return GF_TRUE;
+	}
+
 	//in 3D mode, we only write one pixel at a time except in YUV modes
 	if (for_3d) {
 		a = 1;
@@ -658,6 +679,12 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 	} else {
 		a = 0;
 		use_const = GF_FALSE;
+	}
+	//mask is used, force fill with variable alpha (xxx_fill_var) and use masking callback for fill_run
+	if (surf->mask_mode == GF_EVGMASK_USE) {
+		a = 0;
+		use_const = GF_FALSE;
+		surf->fill_run = evg_fill_run_mask;
 	}
 
 	if (use_const && !a && !surf->is_transparent) return GF_FALSE;
@@ -1264,11 +1291,31 @@ GF_Err gf_evg_surface_multi_fill(GF_EVGSurface *surf, GF_EVGMultiTextureMode ope
 		surf->clip_yMax = (surf->height);
 	}
 
-	/*and call the raster*/
-	if (surf->is_3d_matrix)
-		e = evg_raster_render_path_3d(surf);
-	else
-		e = evg_raster_render(surf);
+	if (surf->mask_mode == GF_EVGMASK_DRAW) {
+		u32 old_pitch_x = surf->pitch_x;
+		u32 old_pitch_y = surf->pitch_y;
+		u8 *old_pixels = surf->pixels;
+
+		surf->pixels = surf->internal_mask;
+		surf->pitch_x = 1;
+		surf->pitch_y = surf->width;
+
+		/*and call the raster*/
+		if (surf->is_3d_matrix)
+			e = evg_raster_render_path_3d(surf);
+		else
+			e = evg_raster_render(surf);
+
+		surf->pitch_x = old_pitch_x;
+		surf->pitch_y = old_pitch_y;
+		surf->pixels = old_pixels;
+	} else {
+		/*and call the raster*/
+		if (surf->is_3d_matrix)
+			e = evg_raster_render_path_3d(surf);
+		else
+			e = evg_raster_render(surf);
+	}
 
 	if (reset_aa) surf->aa_level = 0;
 
@@ -1381,4 +1428,34 @@ GF_Err gf_evg_surface_draw_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 	e = evg_raster_render3d_path(surf, path, z);
 	surf->max_gray_spans =  max_gray;
 	return e;
+}
+
+
+GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mode)
+{
+	if (!surf) return GF_BAD_PARAM;
+
+	if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_DRAW_NO_CLEAR)) {
+		Bool clear_mask = GF_FALSE;
+		if (!surf->internal_mask) {
+			surf->internal_mask = gf_malloc(sizeof(u8) * surf->width * surf->height);
+			if (!surf->internal_mask) return GF_OUT_OF_MEM;
+			clear_mask = GF_TRUE;
+		}
+		if ((mask_mode==GF_EVGMASK_DRAW) && (surf->mask_mode != GF_EVGMASK_DRAW))
+			clear_mask = GF_TRUE;
+
+		if (clear_mask)
+			memset(surf->internal_mask, 0, sizeof(u8) * surf->width * surf->height);
+
+		mask_mode = GF_EVGMASK_DRAW;
+	}
+	surf->mask_mode = mask_mode;
+	return GF_OK;
+}
+
+GF_EVGMaskMode gf_evg_surface_get_mask_mode(GF_EVGSurface *surf)
+{
+	if (!surf) return GF_EVGMASK_NONE;
+	return surf->mask_mode;
 }

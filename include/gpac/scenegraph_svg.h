@@ -288,6 +288,7 @@ enum
 	TAG_SVG_ATT_overlay,
 	TAG_SVG_ATT_fullscreen,
 	TAG_SVG_ATT_motionTransform,
+	TAG_SVG_ATT_clip_path,
 
 	TAG_SVG_ATT_filter_transfer_type,
 	TAG_SVG_ATT_filter_table_values,

@@ -1424,6 +1424,9 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_motionTransform:
 			all_atts->motionTransform = (SVG_Motion *)att->data;
 			break;
+		case TAG_SVG_ATT_clip_path:
+			all_atts->clip_path = (SVG_ClipPath *)att->data;
+			break;
 
 		case TAG_GSVG_ATT_useAsPrimary:
 			all_atts->gpac_useAsPrimary = (SVG_Boolean *)att->data;

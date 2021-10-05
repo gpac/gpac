@@ -1005,6 +1005,36 @@ u64 gf_evg_argb_to_ayuv_wide(GF_EVGSurface *surf, u64 col);
 */
 u64 gf_evg_ayuv_to_argb_wide(GF_EVGSurface *surf, u64 col);
 
+/*! global alpha mask values */
+typedef enum
+{
+	/*! global alpha mask not used */
+	GF_EVGMASK_NONE = 0,
+	/*! subsequent draw operations will target the global alpha mask */
+	GF_EVGMASK_DRAW,
+	/*! subsequent draw operations will target the global alpha mask, but alpha mask is not cleared */
+	GF_EVGMASK_DRAW_NO_CLEAR,
+	/*! subsequent draw operations will be filtered with the global alpha mask */
+	GF_EVGMASK_USE,
+} GF_EVGMaskMode;
+
+/*! sets global alpha mask mode
+
+The global alpha mask is an 8-bit alpha channel the size of the surface. Any resize operation on the surface will reset the alpha mask
+Typcial usage for the alpha mask is to setup the surface, use GF_EVGMASK_DRAW to draw your mask then GF_EVGMASK_USE to apply the mask on your draw calls
+
+Whenever the mask mode is changed to GF_EVGMASK_DRAW, the alpha masked is cleared
+\param surf the target surface
+\param mask_mode the current mask mode
+\return error if any
+*/
+GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mode);
+
+/*! gets global alpha mask mode
+\param surf the target surface
+\return the current mask mode
+*/
+GF_EVGMaskMode gf_evg_surface_get_mask_mode(GF_EVGSurface *surf);
 
 /*! @} */
 

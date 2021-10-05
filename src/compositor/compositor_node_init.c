@@ -470,6 +470,14 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_g:
 		compositor_init_svg_g(compositor, node);
 		break;
+
+	//defs not traversed
+#if 0
+	case TAG_SVG_defs:
+		compositor_init_svg_defs(compositor, node);
+		break;
+#endif
+
 	case TAG_SVG_switch:
 		compositor_init_svg_switch(compositor, node);
 		break;
@@ -496,6 +504,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 		break;
 	case TAG_SVG_a:
 		compositor_init_svg_a(compositor, node);
+		break;
+	case TAG_SVG_clip_path:
+		compositor_init_svg_clip_path(compositor, node);
 		break;
 
 	case TAG_SVG_linearGradient:
