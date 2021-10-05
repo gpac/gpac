@@ -145,13 +145,13 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 				}
 
 				if (!chan_cfg) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unkown channel config, will not be able to signal it in ADTS\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
 				}
 			}
 		}
 
 		if (chan_cfg>7) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unkown channel config, will not be able to signal it in ADTS\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[RFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
 			chan_cfg = 0;
 		}
 	} else {
