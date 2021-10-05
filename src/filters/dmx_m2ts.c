@@ -195,6 +195,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	Bool m4sys_iod_stream = GF_FALSE;
 	Bool has_scal_layer = GF_FALSE;
 	Bool unframed = GF_FALSE;
+	Bool unframed_latm = GF_FALSE;
 	char szName[20];
 	const char *stname;
 	if (stream->user) return;
@@ -282,7 +283,6 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_MPEG2_PART3;
 			unframed = GF_TRUE;
 			break;
-		case GF_M2TS_AUDIO_LATM_AAC:
 		case GF_M2TS_AUDIO_AAC:
 		case GF_CODECID_AAC_MPEG2_MP:
 		case GF_CODECID_AAC_MPEG2_LCP:
@@ -291,6 +291,13 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			codecid = GF_CODECID_AAC_MPEG4;
 			unframed = GF_TRUE;
 			break;
+		case GF_M2TS_AUDIO_LATM_AAC:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_AAC_MPEG4;
+			unframed = GF_TRUE;
+			unframed_latm = GF_TRUE;
+			break;
+
 		case GF_M2TS_MHAS_MAIN:
 		case GF_M2TS_MHAS_AUX:
 			stype = GF_STREAM_AUDIO;
@@ -410,6 +417,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 		if (unframed)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+
+		if (unframed_latm)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_LATM, &PROP_BOOL(GF_TRUE) );
 
 		if (orig_stype) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(orig_stype) );
