@@ -159,6 +159,7 @@ struct __dash_client
 	u32 route_ast_shift;
 	u32 route_skip_segments_ms;
     Bool route_low_latency;
+	u32 route_last_retune;
 
 	Bool initial_period_tunein;
 	u32 preroll_state;
@@ -3611,6 +3612,8 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 	group->nb_segments_since_switch ++;
 
 	group->prev_segment_ok = GF_TRUE;
+	dash->route_last_retune = 0;
+
 	if (group->time_at_first_failure) {
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
@@ -6257,7 +6260,10 @@ static GFINLINE void dash_set_min_wait(GF_DashClient *dash, u32 min_wait)
 	}
 }
 
-/*TODO decide what is the best, fetch from another representation or ignore ...*/
+/*
+Called when error in download
+WARNING: group->download_segment_index already points to the NEXT segment, not the current one
+*/
 static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group, GF_Err e, GF_MPD_Representation *rep, char *new_base_seg_url, char *key_url, Bool has_dep_following)
 {
 	u32 clock_time;
@@ -6298,11 +6304,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		group->maybe_end_of_stream++;
 	} else if (group->segment_in_valid_range) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
-		if (dash->speed >= 0) {
-			group->download_segment_index++;
-		} else if (group->download_segment_index) {
-			group->download_segment_index--;
-		} else {
+
+		if ((dash->speed < 0) && !group->download_segment_index) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 			gf_dash_mark_group_done(group);
 		}
@@ -6311,11 +6314,6 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
     }
     //ROUTE case, the file was removed from cache by the route demuxer
     else if (e==GF_URL_REMOVED) {
-        if (dash->speed >= 0) {
-            group->download_segment_index++;
-        } else if (group->download_segment_index) {
-            group->download_segment_index--;
-        }
 		group->current_dep_idx=0;
 	} else if (group->prev_segment_ok && !group->time_at_first_failure && !group->loop_detected) {
         group->time_at_first_failure = clock_time;
@@ -6329,6 +6327,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		if (new_base_seg_url) gf_free(new_base_seg_url);
 		if (key_url) gf_free(key_url);
 
+		//we are retrying with a different base URL, rewind segment index
 		if (dash->speed>=0) {
 			group->download_segment_index--;
 		} else {
@@ -6343,8 +6342,15 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		if ((group->dash->route_clock_state==2) && (e==GF_URL_ERROR)) {
 			const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "x-route-loop");
 			Bool is_loop = (val && !strcmp(val, "yes")) ? GF_TRUE : GF_FALSE;
+			if (!is_loop && dash->route_last_retune && (gf_sys_clock() - dash->route_last_retune > 10000)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ROUTE lost signal for 10s, aborting\n"));
+				gf_dash_mark_group_done(group);
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
+				return GF_DASH_DownloadCancel;
+			}
 			//if explicit loop or more than 5 consecutive seg lost restart synchro
-			if ((group->nb_consecutive_segments_lost >= 5) || is_loop) {
+			else if ((group->nb_consecutive_segments_lost >= 5) || is_loop) {
 				u32 i=0;
 				if (is_loop) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] ROUTE loop detected, reseting timeline\n"));
@@ -6354,6 +6360,8 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 				dash->utc_drift_estimate = 0;
 				dash->initial_period_tunein = GF_TRUE;
 				dash->route_clock_state = 1;
+				dash->route_last_retune = gf_sys_clock();
+
 				while ((group = gf_list_enum(dash->groups, &i))) {
 					group->start_number_at_last_ast = 0;
 					if (!group->depend_on_group)
@@ -6363,6 +6371,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 					group->loop_detected = is_loop;
 					group->time_at_first_failure = 0;
 					group->prev_segment_ok = GF_TRUE;
+					group->nb_consecutive_segments_lost = 0;
 				}
 				if (new_base_seg_url) gf_free(new_base_seg_url);
 				if (key_url) gf_free(key_url);
@@ -6384,17 +6393,13 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 		group->nb_consecutive_segments_lost ++;
 
 		//we are lost ....
-		if (group->nb_consecutive_segments_lost == 10) {
+		if (group->nb_consecutive_segments_lost >= 10) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
 			dash_set_min_wait(dash, 1000);
 			group->maybe_end_of_stream = 1;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment %s: %s\n", new_base_seg_url, gf_error_to_string(e)));
-			if (dash->speed >= 0) {
-				group->download_segment_index++;
-			} else if (group->download_segment_index) {
-				group->download_segment_index--;
-			} else {
+			if ((dash->speed < 0) && !group->download_segment_index) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 				gf_dash_mark_group_done(group);
 			}
@@ -6413,6 +6418,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 			group->has_pending_enhancement = GF_FALSE;
 		}
 	} else {
+		//we are retrying, rewind segment index
 		if (dash->speed>=0) {
 			group->download_segment_index--;
 		} else {
