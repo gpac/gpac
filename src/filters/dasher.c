@@ -8065,7 +8065,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 				if (ncts>base_ds->max_period_dur)
 					base_ds->max_period_dur = ncts;
 
-				ds->last_cts = cts + (split_dur ?split_dur : dur);
+				ds->last_cts = cts + (split_dur ? split_dur : dur);
 				ds->last_dts = dts;
 				ds->est_next_dts = dts + o_dur;
 			}
