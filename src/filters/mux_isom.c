@@ -65,6 +65,7 @@ enum{
 enum
 {
 	XPS_IB_NO = 0,
+	XPS_IB_PPS,
 	XPS_IB_ALL,
 	XPS_IB_BOTH,
 	XPS_IB_MIX,
@@ -508,15 +509,21 @@ static void mp4_mux_make_inband_header(GF_MP4MuxCtx *ctx, TrackWriter *tkw, Bool
 	}
 
 	if (tkw->vvcc) {
-		if (!for_non_rap)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
-		if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
+		if (tkw->xps_inband==XPS_IB_PPS) {
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);
+		} else {
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_VID_PARAM), tkw->vvcc->nal_unit_size);
+			if (!tkw->nal_unit_size) tkw->nal_unit_size = tkw->vvcc->nal_unit_size;
 
-		if (!for_non_rap)
-			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
+			if (!for_non_rap)
+				mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_SEQ_PARAM), tkw->vvcc->nal_unit_size);
 
-		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
-		mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_PIC_PARAM), tkw->vvcc->nal_unit_size);
+			mp4_mux_write_ps_list(bs, mp4_mux_get_nalus_ps(tkw->vvcc->param_array, GF_VVC_NALU_APS_PREFIX), tkw->vvcc->nal_unit_size);
+		}
 	}
 
 	if (for_non_rap) {
@@ -1697,7 +1704,7 @@ sample_entry_setup:
 			}
 		} else {
 			xps_inband = ctx->xps_inband;
-			m_subtype = ((xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
+			m_subtype = ((xps_inband==XPS_IB_PPS) || (xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
 		}
 		use_vvc = GF_TRUE;
 		comp_name = "HEVC";
@@ -2251,6 +2258,14 @@ sample_entry_setup:
 		tkw->is_nalu = NALU_VVC;
 
 		if (needs_sample_entry) {
+			if (tkw->xps_inband == XPS_IB_PPS) {
+				u32 k; count=gf_list_count(tkw->vvcc->param_array);
+				for (k=0;k<count;k++) {
+					GF_NALUFFParamArray *pa = gf_list_get(tkw->vvcc->param_array, k);
+					if (pa->type==GF_VVC_NALU_PIC_PARAM)
+						pa->array_completeness = GF_FALSE;
+				}
+			}
 			e = gf_isom_vvc_config_new(ctx->file, tkw->track_num, tkw->vvcc, NULL, NULL, &tkw->stsd_idx);
 
 			if (!tkw->has_brands) {
@@ -2280,7 +2295,7 @@ sample_entry_setup:
 
 		if (tkw->xps_inband) {
 			//this will cleanup all PS in vvcC
-			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, (tkw->xps_inband==XPS_IB_BOTH) ? GF_TRUE : GF_FALSE);
+			gf_isom_vvc_set_inband_config(ctx->file, tkw->track_num, tkw->stsd_idx, ((tkw->xps_inband==XPS_IB_PPS) || (tkw->xps_inband==XPS_IB_BOTH)) ? GF_TRUE : GF_FALSE);
 		} else {
 			gf_odf_vvc_cfg_del(tkw->vvcc);
 			tkw->vvcc = NULL;
@@ -3774,6 +3789,10 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		sap_type = GF_FILTER_SAP_1;
 	} else {
 		sap_type = mp4_mux_get_sap(ctx, pck);
+
+		//if pps inband mode is used, turn sap3 into sap1
+		if ((tkw->xps_inband==XPS_IB_PPS) && sap_type==GF_FILTER_SAP_3)
+			sap_type=GF_FILTER_SAP_1;
 	}
 	if (sap_type==GF_FILTER_SAP_1)
 		tkw->sample.IsRAP = SAP_TYPE_1;
@@ -6641,10 +6660,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_inband), "use inband (in sample data) parameter set for NALU-based video (AVC/HEVC/...)\n"
 	"- no: parameter sets are not inband, several sample descriptions might be created\n"
+	"- pps: pciture parameter sets are inband, all other parameter sets are in sample description\n"
 	"- all: parameter sets are inband, no parameter sets in sample description\n"
 	"- both: parameter sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband\n"
-	"- auto: keep source config, or defaults to no if qource is not isobmff", GF_PROP_UINT, "no", "no|all|both|mix|auto", 0},
+	"- auto: keep source config, or defaults to no if qource is not isobmff", GF_PROP_UINT, "no", "no|pps|all|both|mix|auto", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
 	"- flat: write samples as they arrive and moov at end (fastest mode)\n"

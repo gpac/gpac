@@ -707,6 +707,8 @@ typedef enum
 	GF_DASH_BSMODE_NONE,
 	/*! always inband parameter sets */
 	GF_DASH_BSMODE_INBAND,
+	/*! out of band parameter sets except PPS and APS, used for VVC */
+	GF_DASH_BSMODE_INBAND_PPS,
 	/*! attempts to merge parameter sets in a single sample entry */
 	GF_DASH_BSMODE_MERGED,
 	/*! parameter sets are in different sample entries */
