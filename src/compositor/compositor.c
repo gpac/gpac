@@ -1484,7 +1484,6 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	/*EXTRA CARE HERE: the caller (user app) is likely a different thread than the compositor one, and depending on window
 	manager we may get called here as a result of a message sent to user but not yet returned */
 	lock_ok = gf_mx_try_lock(compositor->mx);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("line %d lock_ok %d\n", __LINE__, lock_ok));
 
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;
@@ -2703,6 +2702,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
+		//release textures !
+		compositor_release_textures(compositor, GF_FALSE);
 		gf_sc_lock(compositor, 0);
 		return;
 	}
@@ -2758,6 +2759,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	gf_sc_recompute_ar(compositor, gf_sg_get_root_node(compositor->scene) );
 
 	if (compositor->video_setup_failed)	{
+		compositor_release_textures(compositor, GF_FALSE);
 		gf_sc_lock(compositor, 0);
 		return;
 	}
@@ -2788,6 +2790,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (compositor->msg_type) {
 		//reset AR recompute flag, it will be reset when msg is handled
 		compositor->recompute_ar = 0;
+		compositor_release_textures(compositor, GF_FALSE);
 		gf_sc_lock(compositor, 0);
 		return;
 	}
@@ -2935,8 +2938,12 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
 				}
 
-				if (!pck) return;
-
+				if (!pck) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate output video packet\n"));
+					compositor_release_textures(compositor, frame_drawn);
+					gf_sc_lock(compositor, 0);
+					return;
+				}
 				if (compositor->passthrough_txh) {
 					gf_filter_pck_merge_properties(compositor->passthrough_txh->stream->pck, pck);
 					pck_frame_ts = gf_filter_pck_get_cts(compositor->passthrough_txh->stream->pck);

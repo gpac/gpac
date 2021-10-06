@@ -913,14 +913,9 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp)
 	asp->line_scale = MAX(gf_divfix(tr_state->visual->compositor->scale_x, rc.width), gf_divfix(tr_state->visual->compositor->scale_y, rc.height));
 }
 
-//enabled for clipPath
-#define REMOVE_UNUSED_CTX
-
 void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds, Bool skip_focus)
 {
-#ifdef REMOVE_UNUSED_CTX
 	Bool can_remove = 0;
-#endif
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 	GF_Node *appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
@@ -981,19 +976,13 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 		ctx->bi->clip.width = 0;
 	}
 
-#ifdef REMOVE_UNUSED_CTX
 	can_remove = drawable_finalize_end(ctx, tr_state);
-#else
-	drawable_finalize_end(ctx, tr_state);
-#endif
 	if (ctx->drawable && !skip_focus)
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &store_orig_bounds);
 
 	/*remove if this is the last context*/
-#ifdef REMOVE_UNUSED_CTX
 	if (can_remove && (tr_state->visual->cur_context == ctx))
 		tr_state->visual->cur_context->drawable = NULL;
-#endif
 }
 
 void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Rect *orig_bounds)
