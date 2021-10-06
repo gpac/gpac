@@ -820,10 +820,12 @@ static void svg_traverse_clip_path(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode!=TRAVERSE_DRAW_2D) {
 		return;
 	}
+#ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d && !tr_state->visual->compositor->hybrid_opengl) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] clipPath not supported in 3D mode, try using `--ogl=hybrid`\n"));
 		return;
 	}
+#endif
 	if (! tr_state->visual->CheckAttached(tr_state->visual) ) return;
 	if (!tr_state->ctx) return;
 
