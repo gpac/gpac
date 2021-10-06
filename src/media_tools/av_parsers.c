@@ -9885,8 +9885,9 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 	case GF_VVC_NALU_ACCESS_UNIT:
 	case GF_VVC_NALU_END_OF_SEQ:
 	case GF_VVC_NALU_END_OF_STREAM:
-		ret = 1;
-		break;
+		//don't restore slice info, we don't have any change and n_state.poc_lsb / n_state.poc_msb is not valid
+		vvc->s_info.nal_unit_type = n_state.nal_unit_type;
+		return 1;
 
 	case GF_VVC_NALU_SLICE_IDR_W_RADL:
 	case GF_VVC_NALU_SLICE_IDR_N_LP:
@@ -9925,14 +9926,9 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 		}
 		is_slice = GF_TRUE;
 
-		/*POC reset for IDR frames, NOT for CRA*/
-		if (n_state.irap_or_gdr_pic && !n_state.gdr_pic) {
-			vvc_compute_poc(&n_state, GF_TRUE);
-		} else {
-			//we cannot compute poc until we know the first picture unit type, since IDR will reset poc count
-			//and irap_or_gdr_pic=0 does not prevent IDR from following
-			n_state.compute_poc_defer = 1;
-		}
+		//we cannot compute poc until we know the first picture unit type, since IDR will reset poc count
+		//and irap_or_gdr_pic=0 does not prevent IDR from following
+		n_state.compute_poc_defer = 1;
 
 		if (!(*layer_id) || (n_state.prev_layer_id_plus1 && ((*layer_id) <= n_state.prev_layer_id_plus1 - 1))) {
 			ret = 1;
@@ -9965,8 +9961,10 @@ s32 gf_media_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_typ
 
 	/* save current POC lsb/msb to prev values */
 	if ((ret>0) && vvc->s_info.sps) {
-		n_state.poc_lsb_prev = n_state.poc_lsb;
-		n_state.poc_msb_prev = n_state.poc_msb;
+		if (!n_state.compute_poc_defer) {
+			n_state.poc_lsb_prev = n_state.poc_lsb;
+			n_state.poc_msb_prev = n_state.poc_msb;
+		}
 		if (is_slice)
 			n_state.prev_layer_id_plus1 = *layer_id + 1;
 	}
