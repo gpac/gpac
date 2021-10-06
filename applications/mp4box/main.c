@@ -616,6 +616,7 @@ MP4BoxArg m4b_dash_args[] =
 	"- merge: try to merge param sets in a single sample description, fallback to `no`\n"
 	"- multi: use several sample description, one per quality\n"
 	"- no: use one init segment per quality\n"
+	"- pps: use out of band VPS,SPS,DCI, inband for PPS,APS and a single init segment\n"
 	"- single: to test with single input", "inband", "inband|merge|multi|no|single", GF_ARG_STRING, GF_ARG_HINT_EXPERT, parse_bs_switch, 0, ARG_IS_FUN},
 	MP4BOX_ARG("moof-sn", "set sequence number of first moof to given value", GF_ARG_INT, GF_ARG_HINT_EXPERT, &initial_moof_sn, 0, 0),
 	MP4BOX_ARG("tfdt", "set TFDT of first traf to given value in SCALE units (cf -dash-scale)", GF_ARG_INT, GF_ARG_HINT_EXPERT, &initial_tfdt, 0, ARG_64BITS),
@@ -2502,6 +2503,7 @@ u32 parse_bs_switch(char *arg_val, u32 opt)
 	else if (!stricmp(arg_val, "multi"))  bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
 	else if (!stricmp(arg_val, "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
 	else if (!stricmp(arg_val, "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+	else if (!stricmp(arg_val, "pps"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND_PPS;
 	else {
 		M4_LOG(GF_LOG_ERROR, ("Unrecognized bitstream switching mode \"%s\" - please check usage\n", arg_val));
 		return 2;

@@ -48,6 +48,7 @@ enum
 	DASHER_BS_SWITCH_OFF,
 	DASHER_BS_SWITCH_ON,
 	DASHER_BS_SWITCH_INBAND,
+	DASHER_BS_SWITCH_INBAND_PPS,
 	DASHER_BS_SWITCH_FORCE,
 	DASHER_BS_SWITCH_MULTI,
 };
@@ -315,8 +316,8 @@ typedef struct _dash_stream
 	//the parent adaptation set
 	GF_MPD_AdaptationSet *set;
 	Bool owns_set;
-	//set to true to use inband params
-	Bool inband_params;
+	//set to 1 if full inband params, 2 if pps/aps only, 0 otherwise
+	u32 inband_params;
 	GF_List *multi_pids;
 	GF_List *multi_tracks;
 	//in case we share the same init segment, we MUST use the same timescale
@@ -1693,8 +1694,11 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			case GF_ISOM_SUBTYPE_AVC4_H264:
 			case GF_ISOM_SUBTYPE_LHE1:
 			case GF_ISOM_SUBTYPE_HEV1:
+			case GF_ISOM_SUBTYPE_VVI1:
+			case GF_ISOM_SUBTYPE_DVAV:
+			case GF_ISOM_SUBTYPE_DVHE:
 				force_inband = GF_TRUE;
-				ds->inband_params = GF_TRUE;
+				ds->inband_params = 1;
 				break;
 			}
 		}
@@ -2264,7 +2268,7 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 	} else {
 	}
 
-	dasher_get_rfc_6381_codec_name(ctx, ds, szCodec, (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE, GF_TRUE);
+	dasher_get_rfc_6381_codec_name(ctx, ds, szCodec, ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE, GF_TRUE);
 	if (ds->rep->codecs) gf_free(ds->rep->codecs);
 	ds->rep->codecs = gf_strdup(szCodec);
 
@@ -2629,7 +2633,7 @@ static void rewrite_dep_ids(GF_DasherCtx *ctx, GF_DashStream *base_ds)
 static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, j, count;
-	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
+	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE;
 	Bool use_multi = (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) ? GF_TRUE : GF_FALSE;
 	GF_MPD_Representation *base_rep = gf_list_get(set->representations, 0);
 	GF_DashStream *base_ds;
@@ -2645,8 +2649,12 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 	count = gf_list_count(set->representations);
 	if (count==1) {
 		if (ctx->bs_switch==DASHER_BS_SWITCH_FORCE) set->bitstream_switching=GF_TRUE;
-		else if (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) {
-			base_ds->inband_params = GF_TRUE;
+		else if (use_inband) {
+			if (base_ds->codec_id==GF_CODECID_VVC) {
+				base_ds->inband_params = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS) ? 2 : 1;
+			} else {
+				base_ds->inband_params = 1;
+			}
 		}
 		return;
 	}
@@ -2821,7 +2829,8 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 
 	//override xps inband declaration in args
-	sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name, ds->inband_params ? "all" : "no");
+	sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name,
+		(ds->inband_params==2) ? "pps" : (ds->inband_params ? "all" : "no") );
 	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	if (ctx->no_fragments_defaults) {
@@ -3160,7 +3169,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	GF_List *multi_pids = NULL;
 	u32 set_timescale = 0;
 	Bool init_template_done=GF_FALSE;
-	Bool use_inband = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND) ? GF_TRUE : GF_FALSE;
+	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE;
 	Bool template_use_source = GF_FALSE;
 	Bool split_rep_names = GF_FALSE;
 	Bool split_set_names = GF_FALSE;
@@ -3452,8 +3461,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		if (ds->template) strcpy(szTemplate, ds->template);
 		else strcpy(szTemplate, ctx->template ? ctx->template : "");
 
-		if (use_inband)
-			ds->inband_params = GF_TRUE;
+		if (use_inband) {
+			ds->inband_params = 1;
+			if ((ds->codec_id==GF_CODECID_VVC) && (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS))
+				ds->inband_params = 2;
+		}
 
 		//if bitstream switching and templating, only set for the first one
 		if (i && set->bitstream_switching && ctx->stl && single_template) continue;
@@ -3708,12 +3720,20 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		//we use segment template
 		if (ctx->tpl) {
+			Bool use_single_init;
 			GF_MPD_SegmentTemplate *seg_template;
 			u32 start_number = ds->startNumber ? ds->startNumber : 1;
 			u64 seg_duration = (u64)(ds->dash_dur.num) * ds->mpd_timescale / ds->dash_dur.den;
 
+			if (ds->inband_params && (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) {
+				use_single_init = GF_FALSE;
+				single_template = GF_FALSE;
+			} else {
+				use_single_init = (set->bitstream_switching || single_template) ? GF_TRUE : GF_FALSE;
+			}
+
 			//first rep in set and bs switching or single template, create segment template at set level
-			if (!i && (set->bitstream_switching || single_template) ) {
+			if (!i && use_single_init ) {
 				init_template_done = GF_TRUE;
 				seg_template = NULL;
 				if (!skip_init || force_init_seg_tpl || single_template) {
@@ -4660,7 +4680,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 	ds->muxed_base = NULL;
 	ds->nb_comp = ds->nb_comp_done = 0;
 	gf_list_reset(ds->complementary_streams);
-	ds->inband_params = GF_FALSE;
+	ds->inband_params = 0;
 	ds->seg_start_time = 0;
 	ds->seg_number = ds->startNumber;
 	ds->nb_segments_purged = 0;
@@ -7967,8 +7987,17 @@ static GF_Err dasher_process(GF_Filter *filter)
 						for now we only complain for video*/
 						&& ((ds->stream_type==GF_STREAM_VISUAL) || (ctx->strict_sap==DASHER_SAP_ON) )
 					) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
-						ctx->profile = GF_DASH_PROFILE_FULL;
+						if ((sap_type == GF_FILTER_SAP_3)
+							&& (ds->codec_id==GF_CODECID_VVC)
+							&& (ds->inband_params==2)
+						) {
+							if (ds->set->starts_with_sap<3) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Using VVC with SAP type 3 and inband PPS, profile not yet defined\n", ds->nb_sap_4 ? 4 : 3));
+							}
+						} else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] WARNING! Max SAP type %d detected - switching to FULL profile\n", ds->nb_sap_4 ? 4 : 3));
+							ctx->profile = GF_DASH_PROFILE_FULL;
+						}
 						if (ctx->sseg)
 							ds->set->subsegment_starts_with_sap = sap_type;
 						else
@@ -8940,8 +8969,9 @@ static const GF_FilterArgs DasherArgs[] =
 	"- off: disables BS switching\n"
 	"- on: enables it if same decoder configuration is possible\n"
 	"- inband: moves decoder config inband if possible\n"
+	"- pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)\n"
 	"- force: enables it even if only one representation\n"
-	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|force|multi", GF_FS_ARG_HINT_ADVANCED},
+	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|pps|force|multi", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, NULL, NULL, 0},

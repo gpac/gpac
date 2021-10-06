@@ -2014,6 +2014,8 @@ xps_inband (enum, default: no): use inband (in sample data) parameter set for NA
 .br
 * no: parameter sets are not inband, several sample descriptions might be created
 .br
+* pps: pciture parameter sets are inband, all other parameter sets are in sample description
+.br
 * all: parameter sets are inband, no parameter sets in sample description
 .br
 * both: parameter sets are inband, signaled as inband, and also first set is kept in sample description
@@ -3671,6 +3673,12 @@ This filter parses raw YUV and RGB files/data and outputs corresponding raw vide
 .br
 
 .br
+The filter also parses YUV4MPEG format.
+.br
+
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -4897,6 +4905,8 @@ bs_switch (enum, default: def): bitstream switching mode (single init segment)
 * on: enables it if same decoder configuration is possible
 .br
 * inband: moves decoder config inband if possible
+.br
+* pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)
 .br
 * force: enables it even if only one representation
 .br
@@ -6743,7 +6753,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC (compo
 .br
 Description: FFMPEG demuxer
 .br
-Version: Lavf59.5.100
+Version: Lavf58.77.100
 .br
 
 .br
@@ -6777,7 +6787,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc59.7.103
+Version: Lavc58.135.100
 .br
 
 .br
@@ -6809,7 +6819,7 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 Description: FFMPEG AV Capture
 .br
-Version: Lavd59.0.101
+Version: Lavd58.14.100
 .br
 
 .br
@@ -6898,7 +6908,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG video rescaler
 .br
-Version: SwS6.1.100
+Version: SwS5.10.100
 .br
 
 .br
@@ -6946,7 +6956,7 @@ itable (sintl):                the yuv2rgb coefficients describing the input yuv
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc59.7.103
+Version: Lavc58.135.100
 .br
 
 .br
@@ -7010,7 +7020,7 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .br
 Description: FFMPEG muxer
 .br
-Version: Lavf59.5.100
+Version: Lavf58.77.100
 .br
 
 .br
@@ -7070,7 +7080,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf59.5.100
+Version: Lavf58.77.100
 .br
 
 .br
@@ -7831,7 +7841,7 @@ Properties for sourceURL objects:
 .br
 * media ('all'): filter input media by type, a for audio, v for video, t for text (several characters allowed, e.g. av or va), all accept all input media
 .br
-* raw (true): indicate if input port is decoded AV (true)) or compressed AV (false) when using dedicated gpac process, ignored otherwise
+* raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using dedicated gpac process, ignored otherwise
 .br
 
 .br
@@ -7976,6 +7986,8 @@ Colors are handled as strings, formatted as:
 - RGB hex vales 0xRRGGBB
 .br
 - RGBA hex values 0xAARRGGBB
+.br
+- the color none is 0x00000000
 .br
 
 .br
@@ -8188,10 +8200,6 @@ This scene clears the canvas area covered by the scene with a given color.
 
 .br
 The default clear color of the mixer is black.
-.br
-
-.br
-The color none is 0x00000000.
 .br
 
 .br
@@ -8829,7 +8837,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1316-g61cbd01f8-master
+build: 1.1.0-DEV-rev1335-g808875ce8-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
