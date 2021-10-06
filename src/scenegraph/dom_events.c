@@ -375,7 +375,6 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 			for (i=0; i<count; i++) {
 				XMLEV_Event *listened_event;
 				GF_Node *listen = (GF_Node *)gf_list_get(et->listeners, i);
-assert(listen);
 
 				switch (listen->sgprivate->tag) {
 				case TAG_SVG_listener:
