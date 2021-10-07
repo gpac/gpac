@@ -3634,6 +3634,9 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 		case GF_VVC_NALU_VID_PARAM:
 			nb_vps_vvc++;
 			break;
+		case GF_VVC_NALU_ACCESS_UNIT:
+			nb_vps_vvc++;
+			break;
 		case 0:
 			nb_vvc_zero++;
 			break;
