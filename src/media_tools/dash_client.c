@@ -87,7 +87,7 @@ struct __dash_client
 
 	u32 max_cache_duration, max_width, max_height;
 	u8 max_bit_per_pixel;
-	u32 auto_switch_count;
+	s32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update, estimate_utc_drift, ntp_forced;
 	Bool is_m3u8, is_smooth;
 	Bool split_adaptation_set;
@@ -4680,8 +4680,13 @@ static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Re
 
 	rep_idx = orig_idx = gf_list_find(group->adaptation_set->representations, rep);
 	while (1) {
-		rep_idx++;
-		if (rep_idx==gf_list_count(group->adaptation_set->representations)) rep_idx = 0;
+		if (for_autoswitch && (group->dash->auto_switch_count<0)) {
+			if (rep_idx) rep_idx--;
+			else rep_idx = gf_list_count(group->adaptation_set->representations) - 1;
+		} else {
+			rep_idx++;
+			if (rep_idx==gf_list_count(group->adaptation_set->representations)) rep_idx = 0;
+		}
 		//none other than current one
 		if (orig_idx==rep_idx) return;
 
@@ -6832,7 +6837,7 @@ llhls_rety:
 		} else {
 			group->nb_segments_done++;
 		}
-		if (group->nb_segments_done==dash->auto_switch_count) {
+		if (group->nb_segments_done==ABS(dash->auto_switch_count) ) {
 			group->nb_segments_done=0;
 			gf_dash_skip_disabled_representation(group, rep, GF_TRUE);
 		}
@@ -8145,7 +8150,7 @@ void gf_dash_set_algo_custom(GF_DashClient *dash, void *udta,
 }
 
 GF_EXPORT
-GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode, u32 initial_time_shift_percent)
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, s32 auto_switch_count, Bool keep_files, Bool disable_switching, GF_DASHInitialSelectionMode first_select_mode, u32 initial_time_shift_percent)
 {
 	GF_DashClient *dash;
 	if (!dash_io) {

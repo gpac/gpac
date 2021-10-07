@@ -56,7 +56,8 @@ typedef struct
 {
 	//opts
 	s32 shift_utc, route_shift;
-	u32 max_buffer, auto_switch, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
+	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
+	s32 auto_switch;
 	s32 init_timeshift;
 	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, chain_mode;
 	u32 forward;
@@ -3102,7 +3103,10 @@ static const char *dashdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 #define OFFS(_n)	#_n, offsetof(GF_DASHDmxCtx, _n)
 static const GF_FilterArgs DASHDmxArgs[] =
 {
-	{ OFFS(auto_switch), "switch quality every N segments, disabled if 0", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(auto_switch), "switch quality every N segments\n"
+		"- positive: go to higher quality or loop to lowest\n"
+		"- negative: go to lower quality or loop to highest\n"
+		"- 0: disabled", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(segstore), "enable file caching\n"
 		"- mem: all files are stored in memory, no disk IO\n"
 		"- disk: files are stored to disk but discarded once played\n"
