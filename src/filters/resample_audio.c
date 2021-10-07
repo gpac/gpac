@@ -294,7 +294,9 @@ static GF_Err resample_process(GF_Filter *filter)
 				u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(ctx->in_pck), FIX2INT(ctx->speed * ctx->timescale), ctx->freq);
 				if (!ctx->out_cts_plus_one) {
 					ctx->out_cts_plus_one = cts + 1;
-				} else if (ctx->freq != ctx->input_ai.samplerate) {
+				}
+				//if we drift by more than 200ms, resync to input cts
+				else {
 					s64 diff = cts;
 					diff -= ctx->out_cts_plus_one-1;
 					//200ms max
