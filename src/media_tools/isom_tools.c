@@ -107,6 +107,30 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 			return GF_NOT_SUPPORTED;
 		}
 #endif
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+		else if ((stype==GF_ISOM_SUBTYPE_VVC1) || (stype==GF_ISOM_SUBTYPE_VVI1)
+		) {
+			GF_VVCConfig *vvcc = gf_isom_vvc_config_get(file, track, 1);
+			if (rewrite_bs) {
+				gf_vvc_change_par(vvcc, ar_num, ar_den);
+				e = gf_isom_vvc_config_update(file, track, 1, vvcc);
+			} else {
+				u32 i=0;
+				GF_NALUFFParamArray *ar;
+				ar_num = ar_den = 0;
+				while ( (ar = gf_list_enum(vvcc->param_array, &i))) {
+					if (ar->type==GF_VVC_NALU_SEQ_PARAM) {
+						GF_NALUFFParam *sl = gf_list_get(ar->nalus, 0);
+						if (sl)
+							gf_vvc_get_sps_info(sl->data, sl->size, NULL, NULL, NULL, &ar_num, &ar_den);
+						break;
+					}
+				}
+			}
+			gf_odf_vvc_cfg_del(vvcc);
+			if (e) return e;
+		}
+#endif
 		else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 			GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 			if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {
@@ -193,6 +217,15 @@ GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 vid
 		gf_hevc_change_color(hvcc, fullrange, vidformat, colorprim, transfer, colmatrix);
 		e = gf_isom_hevc_config_update(file, track, 1, hvcc);
 		gf_odf_hevc_cfg_del(hvcc);
+		if (e) return e;
+		//remove any colr box
+		return gf_isom_set_visual_color_info(file, track, 1, 0, 0, 0, 0, 0, NULL, 0);
+	}
+	if ((stype==GF_ISOM_SUBTYPE_VVC1) || (stype==GF_ISOM_SUBTYPE_VVI1) ) {
+		GF_VVCConfig *vvcc = gf_isom_vvc_config_get(file, track, 1);
+		gf_vvc_change_color(vvcc, fullrange, vidformat, colorprim, transfer, colmatrix);
+		e = gf_isom_vvc_config_update(file, track, 1, vvcc);
+		gf_odf_vvc_cfg_del(vvcc);
 		if (e) return e;
 		//remove any colr box
 		return gf_isom_set_visual_color_info(file, track, 1, 0, 0, 0, 0, 0, NULL, 0);

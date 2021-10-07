@@ -320,11 +320,15 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 GF_Err gf_media_avc_change_color(GF_AVCConfig *avcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix);
 
 GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui);
-//shortcu for the above for API compatibility
+//shortcut for the above for API compatibility
 GF_Err gf_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d);
 GF_Err gf_hevc_change_color(GF_HEVCConfig *hvcc, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix);
 #endif
 
+GF_Err gf_vvc_change_vui(GF_VVCConfig *cfg, GF_VUIInfo *vui);
+//shortcut for the above for API compatibility
+GF_Err gf_vvc_change_par(GF_VVCConfig *cfg, s32 ar_n, s32 ar_d);
+GF_Err gf_vvc_change_color(GF_VVCConfig *cfg, s32 fullrange, s32 vidformat, s32 colorprim, s32 transfer, s32 colmatrix);
 
 
 typedef struct
@@ -617,9 +621,6 @@ typedef struct
 	u32 nb_subpics; //up to 600
 	u32 subpicid_len;
 
-	Bool aspect_ratio_info_present_flag;
-	u8 sar_idc;
-	u16 sar_width, sar_height;
 	Bool has_timing_info;
 	u32 num_units_in_tick, time_scale;
 	u32 width, height;
@@ -630,7 +631,23 @@ typedef struct
 	u8 log2_max_poc_lsb, poc_msb_cycle_flag;
 	u32 poc_msb_cycle_len;
 
-	u8 alf_enabled_flag;
+	u8 alf_enabled_flag, long_term_ref_pics_flag, inter_layer_prediction_enabled_flag, weighted_pred_flag, weighted_bipred_flag;
+	u32 num_ref_pic_lists[2];
+
+	u8 aspect_ratio_info_present_flag;
+	u8 sar_idc;
+	u16 sar_width, sar_height;
+
+	u8 overscan_info_present_flag;
+	u8 video_signal_type_present_flag;
+	u8 video_format;
+	u8 video_full_range_flag;
+
+	u8 colour_description_present_flag;
+	u8 colour_primaries;
+	u8 transfer_characteristics;
+	u8 matrix_coefficients;
+
 } VVC_SPS;
 
 typedef struct

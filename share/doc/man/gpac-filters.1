@@ -6681,7 +6681,7 @@ The filter can currently modify the following properties in video bitstreams:
 .br
   - profile and level
 .br
-- AVC|H264 and HEVC:
+- AVC|H264, HEVC and VVC:
 .br
   - sample aspect ratio
 .br
@@ -6709,6 +6709,8 @@ The filter can currently modify the following properties in the stream configura
 .br
 * HEVC: profile IDC, profile space, general compatibility flags
 .br
+* VVC: profile IDC, general profile and level indication
+.br
   
 .br
 The filter will work in passthrough mode for all other codecs and media types.
@@ -6730,25 +6732,25 @@ sar (frac, default: -1/-1, updatable): aspect ratio to rewrite - see filter help
 .br
 m4vpl (sint, default: -1, updatable): set ProfileLevel for MPEG-4 video part two
 .br
-fullrange (bool, default: false, updatable): video full range for AVC|H264 and HEVC
+fullrange (bool, default: false, updatable): video full range flag
 .br
 novsi (bool, default: false, updatable): remove video_signal_type from VUI in AVC|H264 and HEVC
 .br
 prof (sint, default: -1, updatable): profile indication for AVC|H264
 .br
-lev (sint, default: -1, updatable): level indication for AVC|H264
+lev (sint, default: -1, updatable): level indication for AVC|H264, level_idc for VVC
 .br
 pcomp (sint, default: -1, updatable): profile compatibility for AVC|H264
 .br
-pidc (sint, default: -1, updatable): profile IDC for HEVC
+pidc (sint, default: -1, updatable): profile IDC for HEVC and VVC
 .br
 pspace (sint, default: -1, updatable): profile space for HEVC
 .br
 gpcflags (sint, default: -1, updatable): general compatibility flags for HEVC
 .br
-rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264 and HEVC
+rmsei (bool, default: false, updatable): remove SEI messages from bitstream for AVC|H264, HEVC and VVC
 .br
-vidfmt (enum, default: -1, updatable): video format for AVC|H264 and HEVC (component|pal|ntsc|secam|mac|undef)
+vidfmt (enum, default: -1, updatable): video format for AVC|H264, HEVC and VVC (component|pal|ntsc|secam|mac|undef)
 .br
 
 .br
@@ -8843,7 +8845,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1338-g36ebcc1c3-master
+build: 1.1.0-DEV-rev1340-g9e14ae6a1-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
