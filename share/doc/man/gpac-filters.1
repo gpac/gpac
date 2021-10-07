@@ -1610,7 +1610,13 @@ It is therefore not recommended for sessions stored/generated on local storage t
 .SH Options (expert):
 .LP
 .br
-auto_switch (uint, default: 0): switch quality every N segments, disabled if 0
+auto_switch (sint, default: 0): switch quality every N segments
+.br
+* positive: go to higher quality or loop to lowest
+.br
+* negative: go to lower quality or loop to highest
+.br
+* 0: disabled
 .br
 segstore (enum, default: mem): enable file caching
 .br
@@ -8837,7 +8843,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1335-g808875ce8-master
+build: 1.1.0-DEV-rev1338-g36ebcc1c3-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
