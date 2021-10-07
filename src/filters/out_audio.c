@@ -301,7 +301,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			u64 now = gf_sys_clock_high_res();
 			u64 diff = cts - ctx->last_cts;
 			//diff too high and no discontinuity, wait
-			if ((diff > ctx->timescale/5) && !gf_filter_pid_get_clock_info(ctx->pid, NULL, NULL)) {
+			if ((diff > ctx->timescale/5) && (gf_filter_pid_get_clock_info(ctx->pid, NULL, NULL) != GF_FILTER_CLOCK_PCR_DISC) ) {
 				diff = gf_timestamp_rescale(diff, ctx->timescale, 1000000);
 				if (now < ctx->last_clock + diff) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by "LLU" us\n", ctx->last_clock + diff - now));
