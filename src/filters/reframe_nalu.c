@@ -147,7 +147,7 @@ typedef struct
 	Bool ps_modified;
 
 	//stats
-	u32 nb_idr, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_nalus, nb_aud;
+	u32 nb_idr, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_nalus, nb_aud, nb_cra;
 
 	//frame has intra slice
 	Bool has_islice;
@@ -1628,7 +1628,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->in_seek = GF_TRUE;
 
 		if (ctx->start_range) {
-			ctx->nb_nalus = ctx->nb_i = ctx->nb_p = ctx->nb_b = ctx->nb_sp = ctx->nb_si = ctx->nb_sei = ctx->nb_idr = 0;
+			ctx->nb_nalus = ctx->nb_i = ctx->nb_p = ctx->nb_b = ctx->nb_sp = ctx->nb_si = ctx->nb_sei = ctx->nb_idr = ctx->nb_cra = 0;
 			for (i=1; i<ctx->index_size; i++) {
 				if (ctx->indexes[i].duration>ctx->start_range) {
 					ctx->cts = ctx->dts = (u64) (ctx->indexes[i-1].duration * ctx->cur_fps.num);
@@ -2004,6 +2004,29 @@ void naludmx_add_subsample(GF_NALUDmxCtx *ctx, u32 subs_size, u8 subs_priority, 
 	ctx->subs_mapped_bytes += subs_size + ctx->nal_length;
 }
 
+static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc_sei_rewrite)
+{
+	if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
+		ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
+		ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
+	}
+
+	if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
+	else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
+	gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
+	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
+
+	if (avc_sei_rewrite) {
+		u32 rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
+		if (rw_sei_size < size) {
+			gf_bs_seek(ctx->bs_w, 0);
+			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
+			size = rw_sei_size;
+		}
+	}
+	ctx->sei_buffer_size += size + ctx->nal_length;
+}
+
 static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool *skip_nal, Bool *is_slice, Bool *is_islice)
 {
 #ifdef GPAC_DISABLE_HEVC
@@ -2068,16 +2091,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 
-			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
-				ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
-				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
-			}
-
-			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
-			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
-			gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
-			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
-			ctx->sei_buffer_size += size + ctx->nal_length;
+			naludmx_push_prefix(ctx, data, size, GF_FALSE);
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -2249,6 +2263,10 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 			naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_APS_PREFIX, ps_idx);
 		}
 		*skip_nal = GF_TRUE;
+#else
+		//same logic as SEI
+		naludmx_push_prefix(ctx, data, size, GF_FALSE);
+		*skip_nal = GF_TRUE;
 #endif
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
@@ -2256,16 +2274,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 
-			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + size + ctx->nal_length) {
-				ctx->sei_buffer_alloc = ctx->sei_buffer_size + size + ctx->nal_length;
-				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
-			}
-
-			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size, GF_BITSTREAM_WRITE);
-			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + size);
-			gf_bs_write_int(ctx->bs_w, size, 8*ctx->nal_length);
-			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
-			ctx->sei_buffer_size += size + ctx->nal_length;
+			naludmx_push_prefix(ctx, data, size, GF_FALSE);
 		} else {
 			ctx->nb_nalus--;
 		}
@@ -2410,25 +2419,9 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 
 	case GF_AVC_NALU_SEI:
 		if (ctx->avc_state->sps_active_idx != -1) {
-			u32 rw_sei_size, sei_size = size;
-			if (ctx->sei_buffer_alloc < ctx->sei_buffer_size + sei_size + ctx->nal_length) {
-				ctx->sei_buffer_alloc = ctx->sei_buffer_size + sei_size + ctx->nal_length;
-				ctx->sei_buffer = gf_realloc(ctx->sei_buffer, ctx->sei_buffer_alloc);
-			}
-
-			if (!ctx->bs_w) ctx->bs_w = gf_bs_new(ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size, GF_BITSTREAM_WRITE);
-			else gf_bs_reassign_buffer(ctx->bs_w, ctx->sei_buffer + ctx->sei_buffer_size, ctx->nal_length + sei_size);
-			gf_bs_write_int(ctx->bs_w, sei_size, 8*ctx->nal_length);
-
-			memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, sei_size);
-			rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, sei_size, ctx->seirw, ctx->avc_state);
-			if (rw_sei_size < sei_size) {
-				gf_bs_seek(ctx->bs_w, 0);
-				gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
-			}
+			naludmx_push_prefix(ctx, data, size, GF_TRUE);
 
 			*skip_nal = GF_TRUE;
-			ctx->sei_buffer_size += rw_sei_size + ctx->nal_length;
 
 			if (ctx->nosei) {
 				ctx->sei_buffer_size = 0;
@@ -3160,6 +3153,10 @@ naldmx_flush:
 
 			if (slice_is_idr)
 				ctx->nb_idr++;
+
+			if (au_sap_type==GF_FILTER_SAP_3)
+				ctx->nb_cra++;
+
 			slice_force_ref = GF_FALSE;
 
 			/*we only indicate TRUE IDRs for sync samples (cf AVC file format spec).
@@ -3463,11 +3460,11 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 	if (ctx->nb_si || ctx->nb_sp) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
 	} else if (ctx->vvc_no_stats) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - %d SEI - %d IDR\n",
-			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_sei, ctx->nb_idr));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - %d SEI - %d IDR - %d CRA\n",
+			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_sei, ctx->nb_idr, ctx->nb_cra));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR\n",
-			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR - %d CRA\n",
+			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr, ctx->nb_cra));
 	}
 
 	if (ctx->codecid==GF_CODECID_AVC) {
