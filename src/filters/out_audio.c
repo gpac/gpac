@@ -51,6 +51,7 @@ typedef struct
 
 	u32 pck_offset;
 	u64 first_cts;
+	u64 last_cts;
 	Bool aborted;
 	u32 speed_set;
 	GF_Filter *filter;
@@ -64,6 +65,7 @@ typedef struct
 
 	u64 rebuffer;
 	Bool do_seek;
+	u64 last_clock;
 } GF_AudioOutCtx;
 
 
@@ -295,6 +297,20 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			cts -= (u64) -delay;
 		}
 
+		if (ctx->last_cts && (cts>ctx->last_cts)) {
+			u64 now = gf_sys_clock_high_res();
+			u64 diff = cts - ctx->last_cts;
+			//diff too high and no discontinuity, wait
+			if ((diff > ctx->timescale/5) && !gf_filter_pid_get_clock_info(ctx->pid, NULL, NULL)) {
+				diff = gf_timestamp_rescale(diff, ctx->timescale, 1000000);
+				if (now < ctx->last_clock + diff) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] Frame too early by "LLU" us\n", ctx->last_clock + diff - now));
+					return 0;
+				}
+			}
+		}
+
+
 		if (ctx->dur.num>0) {
 			if (!ctx->first_cts) ctx->first_cts = cts+1;
 
@@ -346,6 +362,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				gf_filter_update_status(ctx->filter, -1, szStatus);
 			}
 
+			ctx->last_cts = cts;
+			ctx->last_clock = gf_sys_clock_high_res();
 
 			done += nb_copy;
 			ctx->first_write_done = GF_TRUE;
@@ -419,6 +437,8 @@ static GF_Err aout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->first_cts-=1;
 		gf_timestamp_rescale(ctx->first_cts, ctx->timescale, timescale);
 		ctx->first_cts+=1;
+
+		gf_timestamp_rescale(ctx->last_cts, ctx->timescale, timescale);
 	}
 	ctx->timescale = timescale;
 
