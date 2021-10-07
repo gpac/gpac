@@ -947,7 +947,7 @@ static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 	if (!src_cfg || !dst_cfg) return;
 	cfg = AVC_DuplicateConfig(src_cfg);
 	if (!cfg) return;
-	
+
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_NALUFFParam *p = (GF_NALUFFParam*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
@@ -1261,7 +1261,7 @@ void gf_hevc_parse_ps(GF_HEVCConfig* hevccfg, HEVCState* hevc, u32 nal_type)
 {
 	u32 i, j;
 	if (!hevccfg) return;
-	
+
 	for (i = 0; i < gf_list_count(hevccfg->param_array); i++) {
 		GF_NALUFFParamArray* ar = gf_list_get(hevccfg->param_array, i);
 		if (ar->type != nal_type) continue;
@@ -1890,7 +1890,7 @@ GF_Err gf_isom_vp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_VPConfig 
 	//create a new entry
 	entry = (GF_MPEGVisualSampleEntryBox *)gf_isom_box_new_parent(&stsd->child_boxes, vpx_type);
 	if (!entry) return GF_OUT_OF_MEM;
-	
+
 	entry->vp_config = (GF_VPConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_VPCC);
 	if (!entry->vp_config) return GF_OUT_OF_MEM;
 	entry->vp_config->config = VP_DuplicateConfig(cfg);
@@ -2093,7 +2093,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 					entry->lhvc_config->config = HEVC_DuplicateConfig(cfg);
 					if (!entry->lhvc_config->config) return GF_OUT_OF_MEM;
 				}
-				
+
 				if (operand_type==GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD) {
 					if (entry->type==GF_ISOM_BOX_TYPE_HEV2) entry->type = GF_ISOM_BOX_TYPE_HEV1;
 					else entry->type = GF_ISOM_BOX_TYPE_HVC1;
@@ -2443,7 +2443,7 @@ GF_DOVIDecoderConfigurationRecord *gf_isom_dovi_config_get(GF_ISOFile* the_file,
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry) return NULL;
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
-	if (!entry->dovi_config) return NULL;
+	if (!entry->size || !entry->dovi_config) return NULL;
 	return DOVI_DuplicateConfig(&entry->dovi_config->DOVIConfig);
 }
 
