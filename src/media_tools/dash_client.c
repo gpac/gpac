@@ -6297,7 +6297,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 	}
 	//failure on last segment in non dynamic mode: likely due to rounding in dash segment duration, assume no error
 	//in dynamic mode, we need to check if this is a download schedule issue
-	else if (!is_live && group->period->duration && (group->download_segment_index + 1 >= (s32) group->nb_segments_in_rep) ) {
+	else if (!is_live && group->period->duration && (group->download_segment_index >= (s32) group->nb_segments_in_rep) ) {
 		gf_dash_mark_group_done(group);
 	}
 	else if (group->maybe_end_of_stream) {
@@ -6762,7 +6762,7 @@ llhls_rety:
 				} else if (group->download_segment_index) {
 					group->download_segment_index--;
 				}
-				return on_group_download_error(dash, group, base_group, GF_NOT_FOUND, rep, new_base_seg_url, key_url, has_dep_following);
+				return on_group_download_error(dash, group, base_group, GF_URL_REMOVED, rep, new_base_seg_url, key_url, has_dep_following);
 			}
 		}
 		group->current_base_url_idx = 0;
