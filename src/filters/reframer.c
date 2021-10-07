@@ -677,28 +677,28 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		if (cts_us==GF_FILTER_NO_TS) {
 			do_send = GF_TRUE;
 		} else {
+			RTStream *st_clock = st;
 			u64 clock = ctx->clock_val;
 			cts_us += st->tk_delay;
 
 			cts_us = gf_timestamp_rescale(cts_us, st->timescale, 1000000);
 			if (ctx->rt==REFRAME_RT_SYNC) {
 				if (!ctx->clock) ctx->clock = st;
-
-				st = ctx->clock;
+				st_clock = ctx->clock;
 			}
-			if (!st->sys_clock_at_init) {
-				st->cts_us_at_init = cts_us;
-				st->sys_clock_at_init = clock;
+			if (!st_clock->sys_clock_at_init) {
+				st_clock->cts_us_at_init = cts_us;
+				st_clock->sys_clock_at_init = clock;
 				do_send = GF_TRUE;
-			} else if (cts_us < st->cts_us_at_init) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] CTS less than CTS used to initialize clock, not delaying\n"));
+			} else if (cts_us < st_clock->cts_us_at_init) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] CTS less than CTS used to initialize clock by %d ms, not delaying\n", (u32) (st_clock->cts_us_at_init - cts_us)/1000));
 				do_send = GF_TRUE;
 			} else {
-				u64 diff = cts_us - st->cts_us_at_init;
+				u64 diff = cts_us - st_clock->cts_us_at_init;
 				if (ctx->speed>0) diff = (u64) ( diff / ctx->speed);
 				else if (ctx->speed<0) diff = (u64) ( diff / -ctx->speed);
 
-				clock -= st->sys_clock_at_init;
+				clock -= st_clock->sys_clock_at_init;
 				if (clock + RT_PRECISION_US >= diff) {
 					do_send = GF_TRUE;
 					if (clock > diff) {
@@ -2316,7 +2316,7 @@ static const GF_FilterCapability ReframerCaps_RAW_AV[] =
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
@@ -2332,7 +2332,7 @@ static const GF_FilterCapability ReframerCaps_RAW_A[] =
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
@@ -2348,7 +2348,7 @@ static const GF_FilterCapability ReframerCaps_RAW_V[] =
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_IN_OUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT_LOADED_FILTER, GF_PROP_PID_CODECID, GF_CODECID_RAW)
 };
@@ -2437,7 +2437,7 @@ static const GF_FilterCapability ReframerCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//we do accept everything, including raw streams 
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	//we don't accept files as input so don't output them
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	//we don't produce RAW streams during dynamic chain resolution - this will avoid loading the filter for compositor/other raw access

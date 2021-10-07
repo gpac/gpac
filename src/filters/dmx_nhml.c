@@ -752,7 +752,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	if (ctx->reframe)
-	   gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_UINT(GF_TRUE) );
+	   gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (!width && !height && specInfo && (codecid==GF_CODECID_MPEG4_PART2)) {
