@@ -2209,7 +2209,7 @@ GF_Err gf_isom_vvc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 D
 
 
 	if (operand_type <= GF_ISOM_VVCC_SET_INBAND) {
-		if ((operand_type != GF_ISOM_VVCC_SET_INBAND) && !entry->hevc_config) {
+		if ((operand_type != GF_ISOM_VVCC_SET_INBAND) && !entry->vvc_config) {
 			entry->vvc_config = (GF_VVCConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_VVCC);
 			if (!entry->vvc_config) return GF_OUT_OF_MEM;
 		}
@@ -2220,6 +2220,10 @@ GF_Err gf_isom_vvc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 D
 		} else {
 			operand_type = GF_ISOM_VVCC_SET_INBAND;
 		}
+		if (operand_type == GF_ISOM_VVCC_UPDATE) {
+			return GF_OK;
+		}
+
 		array_incomplete = (operand_type==GF_ISOM_VVCC_SET_INBAND) ? 1 : 0;
 		if (entry->vvc_config && nalu_cleanup_config(entry->vvc_config->config ? entry->vvc_config->config->param_array : NULL,
 			(operand_type==GF_ISOM_VVCC_SET_INBAND),
@@ -2241,6 +2245,12 @@ GF_EXPORT
 GF_Err gf_isom_vvc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, Bool keep_xps)
 {
 	return gf_isom_vvc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_VVCC_SET_INBAND, keep_xps);
+}
+
+GF_EXPORT
+GF_Err gf_isom_vvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_VVCConfig *cfg)
+{
+	return gf_isom_vvc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_VVCC_UPDATE, GF_FALSE);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

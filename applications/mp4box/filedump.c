@@ -2495,7 +2495,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 	}
 
 	fprintf(stderr, "\n");
-#if !defined(GPAC_DISABLE_AV_PARSERS) && 0 //TODO
+#if !defined(GPAC_DISABLE_AV_PARSERS)
 	for (k=0; k<gf_list_count(vvccfg->param_array); k++) {
 		GF_NALUFFParamArray *ar=gf_list_get(vvccfg->param_array, k);
 		u32 width, height;
@@ -2506,7 +2506,7 @@ void dump_vvc_track_info(GF_ISOFile *file, u32 trackNum, GF_VVCConfig *vvccfg
 			GF_Err e;
 			GF_NALUFFParam *sps = gf_list_get(ar->nalus, idx);
 			par_n = par_d = -1;
-			e = gf_vvc_get_sps_info_with_state(vvc_state, sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
+			e = gf_vvc_get_sps_info(sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
 			if (e==GF_OK) {
 				fprintf(stderr, "\tSPS resolution %dx%d", width, height);
 				if ((par_n>0) && (par_d>0)) {

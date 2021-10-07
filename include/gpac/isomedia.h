@@ -3529,6 +3529,15 @@ GF_Err gf_isom_vvc_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_VVCConf
 */
 GF_Err gf_isom_vvc_set_inband_config(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, Bool keep_xps);
 
+/*! updates vvcC configuration
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param cfg new config to set
+\return error if any
+*/
+GF_Err gf_isom_vvc_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_VVCConfig *cfg);
+
 /*! creates new VPx config
 \param isom_file the target ISO file
 \param trackNumber the target track

@@ -719,6 +719,18 @@ GF_Err gf_avc_get_pps_info(u8 *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 */
 GF_Err gf_hevc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
+/*! gets basic information from a VVC Sequence Parameter Set
+\param sps_data SPS NAL buffer
+\param sps_size size of buffer
+\param sps_id set to the ID
+\param width set to the width
+\param height set to the height
+\param par_n set to the pixel aspect ratio numerator
+\param par_d set to the pixel aspect ratio denominator
+\return error code if any
+*/
+GF_Err gf_vvc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 /*! gets chroma format name from MPEG chroma format

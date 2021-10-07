@@ -75,11 +75,14 @@ struct __tag_bitstream
 
 	void (*on_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3);
 	void *log_udta;
+
+	u32 total_bits_read;
 };
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 {
 	if (!bs) return GF_BAD_PARAM;
+	bs->total_bits_read = 0;
 	if (bs->bsmode == GF_BITSTREAM_READ) {
 		bs->original = (char*)buffer;
 		bs->size = BufferSize;
@@ -440,6 +443,7 @@ GF_EXPORT
 u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits)
 {
 	u32 ret;
+	bs->total_bits_read+= nBits;
 
 #ifndef NO_OPTS
 	if (nBits + bs->nbBits <= 8) {
