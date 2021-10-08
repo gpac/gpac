@@ -1058,6 +1058,8 @@ static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_
 	return 1;
 }
 
+
+
 static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
 	u64 time_inc;
@@ -1153,6 +1155,18 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 			} else {
 				while (!stream->program->pcr_init_time)
 					stream->program->pcr_init_time = gf_rand();
+			}
+
+			if (stream->program->pcr_offset==(u64)-1) {
+				stream->program->pcr_offset = 0;
+				if (muxer->fixed_rate) {
+					//estimate frame send time in 90khz
+					u64 r = (stream->curr_pck.data_len * 8);
+					r *= 90000;
+					r /= muxer->bit_rate;
+					r *= 5; //assume 5 frames of offset
+					stream->program->pcr_offset = r;
+				}
 			}
 
 			if (stream->program->force_first_pts) {
@@ -1419,6 +1433,17 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	/*compute next interesting time in TS unit: this will be DTS of next packet*/
 	stream->time = stream->program->ts_time_at_pcr_init;
 	time_inc = stream->curr_pck.dts - stream->program->pcr_init_time/300;
+
+	/* CBR, estimate number of packets required to send => time in mux rate, and offset send time*/
+	if (muxer->fixed_rate) {
+		u64 clock_diff = (stream->curr_pck.data_len * 188 / 184 + 188) * 8;
+		clock_diff *= 90000;
+		clock_diff /= muxer->bit_rate;
+		if (time_inc > clock_diff)
+			time_inc -= clock_diff;
+		else
+			time_inc = 0;
+	}
 
 	gf_m2ts_time_inc(&stream->time, time_inc, 90000);
 
@@ -1991,8 +2016,12 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	assert(stream->pes_data_remain >= payload_to_copy);
 	stream->pes_data_remain -= payload_to_copy;
 
-	/*update stream time, including headers*/
-	gf_m2ts_time_inc(&stream->time, 1504/*188*8*/, stream->program->mux->bit_rate);
+	/*update stream time, including headers
+	Note that we don't do that if mux is not operating in fixed rate because the rate can be wrong (way too low)
+	causing time to increase too fast on IDRs
+	*/
+	if (stream->program->mux->fixed_rate)
+		gf_m2ts_time_inc(&stream->time, 1504/*188*8*/, stream->program->mux->bit_rate);
 
 	if (stream->pck_offset == stream->curr_pck.data_len) {
 		u64 pcr = gf_m2ts_get_pcr(stream)/300;
@@ -2885,6 +2914,67 @@ GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_force
 	return GF_OK;
 }
 
+/*
+The algo in gf_m2ts_mux_process ellects the first stream with lowest time but uses +INF as initial time
+when no realtime nor fixed rate. Regulation is then needed because input may arrive at any time,
+so one stream S1 with input TS1 may be ellected to be sent
+while other streams are still waiting for inputs with TSX < TS1. Not regulating would send S1 way too fast.
+This only applies for non real time VBR
+
+We therefore need to check if the stream time is not too ahead of the current mux time.
+However, since the mux time in this mode is set to the stream time of the last stream sent,
+we also need to check the PCR stream:
+- if over, flush everything
+- otherwise, if all non-PCR streams are done or have a stream time >= PCR stream time, the PCR stream can be sent
+- otherwise, the PCR will wait until all non-PCR streams clocks have reached the PCR stream clock
+
+*/
+static Bool gf_m2ts_stream_too_early(GF_M2TS_Mux_Stream *stream, GF_M2TS_Mux *muxer)
+{
+	GF_M2TS_Time t;
+	if (muxer->fixed_rate || muxer->real_time) return GF_FALSE;
+
+	//any stream behind the PCR is not too early
+	if (gf_m2ts_time_less(&stream->time, &stream->program->pcr->time))
+		return GF_FALSE;
+
+	//we consider sending a stream 100ms ahead of current mux time is too early
+	//this is independent of the mux type (realtime, fixed rate)
+	t = stream->time;
+	gf_m2ts_time_inc(&t, 100, 1000);
+	if (!gf_m2ts_time_less(&muxer->time, &t)) {
+		return GF_FALSE;
+	}
+	//if PCR stream is over, flush
+	if (stream->program->pcr->ifce) {
+		if (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER))
+			return GF_FALSE;
+	}
+	//PCR is in pure pcr mode (no associated data), check is any stream is less than PCR
+	if (stream->program->pcr->pcr_only_mode)
+		stream = stream->program->pcr;
+	//if this is the PCR, wait only if some streams in program are behind us
+	if (stream->program->pcr == stream) {
+		GF_M2TS_Mux_Stream *a_stream = stream->program->streams;
+		while (a_stream) {
+			//a_stream time less than stream time, we must wait on stream to process a_stream
+			if ((a_stream != stream)
+				&& a_stream->ifce && !(a_stream->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER))
+				&& gf_m2ts_time_less(&a_stream->time, &stream->time)
+			) {
+				return GF_TRUE;
+			}
+			a_stream = a_stream->next;
+		}
+		return GF_FALSE;
+	}
+	//PCR done or flush, we're not too early
+	else if (stream->program->pcr->ifce && (stream->program->pcr->ifce->caps & (GF_ESI_STREAM_FLUSH|GF_ESI_STREAM_IS_OVER)))
+		return GF_FALSE;
+
+	//not PCR, we're too early
+	return GF_TRUE;
+}
 
 GF_EXPORT
 const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *usec_till_next)
@@ -3063,7 +3153,10 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 
 				if (res) {
 					/*always schedule the earliest data*/
-					if (gf_m2ts_time_less(&stream->time, &time)) {
+					if (gf_m2ts_time_less(&stream->time, &time)
+						//we must regulate as input may arrive in burst
+						&& (flush_all_pes || !gf_m2ts_stream_too_early(stream, muxer))
+					) {
 						highest_priority = res;
 						time = stream->time;
 						stream_to_process = stream;
@@ -3145,7 +3238,7 @@ send_pck:
 			muxer->time = muxer->init_ts_time;
 			gf_m2ts_time_inc(&muxer->time, us_diff, 1000000);
 		}
-		/*if a stream was found, use it*/
+		/*if a stream was found, use it - regulation is done by gf_m2ts_stream_too_early*/
 		else if (stream_to_process) {
 			if (gf_m2ts_time_less_or_equal(&muxer->time, &time))
 				muxer->time = time;

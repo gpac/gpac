@@ -389,8 +389,11 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
 		if (tspid->ctx->dash_mode) {
 
-			if (tspid->has_seen_eods)
+			if (tspid->has_seen_eods) {
+				ifce->caps |= GF_ESI_STREAM_FLUSH;
 				return GF_OK;
+			}
+			ifce->caps &= ~GF_ESI_STREAM_FLUSH;
 
 			//detect segment change
 			if (p && tspid->ctx->dash_seg_num && (tspid->ctx->dash_seg_num < p->value.uint)) {
@@ -1021,6 +1024,8 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 				//add 10% of safety to cover TS signaling and other potential table update while sending the largest PES
 				r *= 1.1;
 				pcr_offset = (u64) r;
+			} else {
+				pcr_offset = -1;
 			}
 		} else {
 			pcr_offset = ctx->pcr_offset;
