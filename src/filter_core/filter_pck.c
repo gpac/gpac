@@ -883,7 +883,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 				pid->has_seen_eos = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s EOS detected\n", pck->pid->filter->name, pck->pid->name));
 			}
-		} else if (pid->has_seen_eos && !is_cmd) {
+		}
+		//reset eos only if not a command and not a clock signaling
+		else if (pid->has_seen_eos && !is_cmd && !cktype) {
 			pid->has_seen_eos = GF_FALSE;
 		}
 
