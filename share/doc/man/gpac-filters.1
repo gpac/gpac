@@ -94,6 +94,12 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * ck: clock type used for PCR discontinuities
 .br
+* pcr: MPEG-2 TS last PCR, n/a if not available
+.br
+* pcrd: difference between last PCR and decoding time, n/a if no PCR available
+.br
+* pcrc: difference between last PCR and composition time, n/a if no PCR available
+.br
 * P4CC: 4CC of packet property
 .br
 * PropName: Name of packet property
@@ -8845,7 +8851,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1340-g9e14ae6a1-master
+build: 1.1.0-DEV-rev1347-g29ce24a54-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

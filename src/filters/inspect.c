@@ -67,6 +67,9 @@ typedef struct
 
 	u32 csize;
 	Bool buffer_done, no_analysis;
+
+	u64 last_pcr;
+	GF_FilterClockType last_clock_type;
 } PidCtx;
 
 enum
@@ -2124,7 +2127,48 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			flags &= 0x3;
 			gf_fprintf(dump, "%u", flags);
 		}
-		else if (!strcmp(key, "ck")) gf_fprintf(dump, "%d", gf_filter_pck_get_clock_type(pck) );
+		else if (!strcmp(key, "ck")) {
+			GF_FilterClockType ck_type = gf_filter_pck_get_clock_type(pck);
+			gf_fprintf(dump, "%d", ck_type );
+		} else if (!strcmp(key, "pcr") || !strcmp(key, "pcrd") || !strcmp(key, "pcrc")) {
+			u64 clock_val;
+			u32 ck_timescale;
+			GF_FilterClockType ck_type;
+			ck_type = gf_filter_pid_get_clock_info(pctx->src_pid, &clock_val, &ck_timescale);
+			if (ck_type) {
+				u32 timescale = gf_filter_pck_get_timescale(pck);
+				pctx->last_pcr = gf_timestamp_rescale(clock_val, ck_timescale, timescale);
+				pctx->last_clock_type = ck_type;
+			} else {
+				ck_type = pctx->last_clock_type;
+			}
+			clock_val = pctx->last_pcr;
+
+			if (ck_type) {
+				u64 ts = GF_FILTER_NO_TS;
+				Bool dump_diff=GF_FALSE;
+				u32 timescale = gf_filter_pck_get_timescale(pck);
+				clock_val = gf_timestamp_rescale(clock_val, ck_timescale, timescale);
+				if (!strcmp(key, "pcrd")) {
+					ts = gf_filter_pck_get_dts(pck);
+					dump_diff = GF_TRUE;
+				}
+				else if (!strcmp(key, "pcrc")) {
+					ts = gf_filter_pck_get_cts(pck);
+					dump_diff = GF_TRUE;
+				}
+				if (dump_diff) {
+					if (ts>clock_val)
+						gf_fprintf(dump, "-"LLU, ts - clock_val);
+					else
+						gf_fprintf(dump, LLU, clock_val - ts);
+				} else {
+					gf_fprintf(dump, LLU, clock_val);
+				}
+			} else {
+				gf_fprintf(dump, "N/A");
+			}
+		}
 		else if (!strncmp(key, "pid.", 4)) {
 			const GF_PropertyValue *prop = NULL;
 			u32 prop_4cc=0;
@@ -3730,6 +3774,9 @@ const GF_FilterRegister InspectRegister = {
 				"- depf: is depended on other packet flag\n"\
 				"- red: redundant coding flag\n"\
 				"- ck: clock type used for PCR discontinuities\n"\
+				"- pcr: MPEG-2 TS last PCR, n/a if not available\n"\
+				"- pcrd: difference between last PCR and decoding time, n/a if no PCR available\n"\
+				"- pcrc: difference between last PCR and composition time, n/a if no PCR available\n"\
 	 			"- P4CC: 4CC of packet property\n"\
 	 			"- PropName: Name of packet property\n"\
 	 			"- pid.P4CC: 4CC of PID property\n"\
