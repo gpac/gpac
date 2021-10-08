@@ -1384,6 +1384,8 @@ enum
 	GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS =	1<<3,
 	/*! stream is not signaled through MPEG-4 Systems (OD stream) */
 	GF_ESI_AAC_USE_LATM =	1<<4,
+	/*! temporrary end of stream (flush of segment)*/
+	GF_ESI_STREAM_FLUSH	=	1<<5,
 };
 
 /*! elementary stream information*/
