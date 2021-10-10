@@ -65,7 +65,7 @@ Features are encapsulated in processing modules called filters:
 # Tools
 
 ## MP4Box
-MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box-Introduction).
+MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media importing and extracting, file inspection, DASH segmentation, RTP hinting, ... See `MP4Box -h`, `man MP4Box` or [our wiki](https://wiki.gpac.io/MP4Box).
 
 
 ## gpac 
