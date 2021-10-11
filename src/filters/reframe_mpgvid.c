@@ -258,7 +258,9 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 
 static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref, Bool is_eos)
 {
-	//TODO: we are dispatching frames in "negctts mode", ie we may have DTS>CTS
+	if (!is_eos && (!ctx->width || !ctx->height))
+		flush_ref = GF_FALSE;
+
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue) {
 		//send all reference packet queued
@@ -303,6 +305,7 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 
 static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vosh_size, u8 *data)
 {
+	Bool flush_after = GF_FALSE;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
@@ -319,10 +322,14 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
-	mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
-
+	if (ctx->width && ctx->height) {
+		mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
+	} else {
+		flush_after = GF_TRUE;
+	}
 	ctx->width = ctx->dsi.width;
 	ctx->height = ctx->dsi.height;
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT( ctx->dsi.width));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT( ctx->dsi.height));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(ctx->dsi.par_num, ctx->dsi.par_den));
@@ -385,6 +392,10 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
+
+	if (flush_after)
+		mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
+
 }
 
 static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -827,7 +838,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				} else if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
-					mpgviddmx_check_pid(filter, ctx, 0, NULL);
+					u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
+					if (vosh_start<0) vosh_start = 0;
+					vosh_end = start - (u8 *)data + obj_size;
+					vosh_end -= vosh_start;
+					mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
 				}
 				break;
 			case M2V_PIC_START_CODE:
