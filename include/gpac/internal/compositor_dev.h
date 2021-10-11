@@ -1869,6 +1869,7 @@ void gf_inline_restart(GF_Scene *scene);
 Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, u32 obj_hint_type);
 
 void gf_mo_update_caps(GF_MediaObject *mo);
+void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged);
 
 
 const char *gf_scene_get_fragment_uri(GF_Node *node);

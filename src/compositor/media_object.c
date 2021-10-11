@@ -263,7 +263,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 }
 
 
-void gf_mo_update_caps(GF_MediaObject *mo)
+void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 {
 	Bool changed = GF_FALSE;
 	const GF_PropertyValue *v, *v2;
@@ -415,12 +415,16 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_QUALITY_SWITCHED;
 		gf_sc_send_event(scene->compositor, &evt);
-	} else {
+	} else if (check_unchanged) {
 		//reset config changed if nothing changed, this avoid reseting up texture or mixer input
 		mo->config_changed = GF_FALSE;
 	}
 }
+void gf_mo_update_caps(GF_MediaObject *mo)
+{
+	gf_mo_update_caps_ex(mo, GF_FALSE);
 
+}
 static u64 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *discard)
 {
 	if (mo->odm->timestamp_offset) {
