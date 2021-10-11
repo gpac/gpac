@@ -5122,6 +5122,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			if (!esd1->decoderConfig->decoderSpecificInfo && esd2->decoderConfig->decoderSpecificInfo) return GF_FALSE;
 			if (esd1->decoderConfig->decoderSpecificInfo && !esd2->decoderConfig->decoderSpecificInfo) return GF_FALSE;
 			if (!esd1->decoderConfig->decoderSpecificInfo || !esd2->decoderConfig->decoderSpecificInfo) continue;
+			if (esd1->decoderConfig->decoderSpecificInfo->dataLength != esd2->decoderConfig->decoderSpecificInfo->dataLength)
+				return GF_FALSE;
 			if (memcmp(esd1->decoderConfig->decoderSpecificInfo->data, esd2->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd1->decoderConfig->decoderSpecificInfo->dataLength)!=0) return GF_FALSE;
 			break;
 		case GF_ISOM_BOX_TYPE_HVT1:
