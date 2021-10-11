@@ -2966,6 +2966,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
 
 			if (!compositor->player) {
+				//in regular mode don't change fps once we sent one frame
+				compositor->autofps = GF_FALSE;
 				if (compositor->passthrough_txh) {
 					// update clock if not buffering
 					if (!gf_mo_is_buffering(compositor->passthrough_txh->stream))
