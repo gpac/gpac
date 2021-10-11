@@ -2989,6 +2989,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 					break;
 				case GF_CODECID_MPEG2_PART3:
 				case GF_CODECID_MPEG_AUDIO:
+				case GF_CODECID_MPEG_AUDIO_L1:
 					if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 						fprintf(stderr, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {

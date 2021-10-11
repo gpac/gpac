@@ -268,6 +268,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	/*MPEG1/2 audio*/
 	case GF_CODECID_MPEG2_PART3:
 	case GF_CODECID_MPEG_AUDIO:
+	case GF_CODECID_MPEG_AUDIO_L1:
 		if (!is_crypted) {
 			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
 			/*use official RTP/AVP payload type*/

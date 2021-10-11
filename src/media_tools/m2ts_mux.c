@@ -2451,6 +2451,7 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 		stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_NONE) ? GF_TRUE : GF_FALSE;
 		switch (ifce->codecid) {
 		case GF_CODECID_MPEG_AUDIO:
+		case GF_CODECID_MPEG_AUDIO_L1:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG1;
 			break;
 		case GF_CODECID_MPEG2_PART3:

@@ -1496,6 +1496,7 @@ sample_entry_setup:
 	switch (codec_id) {
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
+	case GF_CODECID_MPEG_AUDIO_L1:
 		m_subtype = GF_ISOM_SUBTYPE_MP3;
 		comp_name = "MP3";
 		//if source had a DSI, this was mpeg4 systems signaling, reuse that

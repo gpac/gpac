@@ -404,7 +404,7 @@ typedef enum
 	GF_CODECID_MPEG2_PART3 = 0x69,
 	/*! codecid for MPEG-1 Video streams*/
 	GF_CODECID_MPEG1 = 0x6A,
-	/*! codecid for MPEG-1 Audio streams*/
+	/*! codecid for MPEG-1 Audio streams, layer 3*/
 	GF_CODECID_MPEG_AUDIO = 0x6B,
 	/*! codecid for JPEG streams*/
 	GF_CODECID_JPEG = 0x6C,
@@ -573,6 +573,10 @@ typedef enum
 	GF_CODECID_USAC = GF_4CC('u','s','a','c'),
 
 	GF_CODECID_V210 = GF_4CC('v','2','1','0'),
+
+
+	/*! codecid for MPEG-1 Audio streams, layer 1*/
+	GF_CODECID_MPEG_AUDIO_L1 = GF_4CC('m','p','a','1'),
 
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
