@@ -2915,9 +2915,9 @@ GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_force
 }
 
 /*
-The algo in gf_m2ts_mux_process ellects the first stream with lowest time but uses +INF as initial time
+The algo in gf_m2ts_mux_process elects the first stream with lowest time but uses +INF as initial time
 when no realtime nor fixed rate. Regulation is then needed because input may arrive at any time,
-so one stream S1 with input TS1 may be ellected to be sent
+so one stream S1 with input TS1 may be elected to be sent
 while other streams are still waiting for inputs with TSX < TS1. Not regulating would send S1 way too fast.
 This only applies for non real time VBR
 
