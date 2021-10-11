@@ -274,7 +274,7 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 #define UPDATE_CAP(_code, _field) \
 		v = gf_filter_pid_get_property(mo->odm->pid, _code);\
 		if (v) {\
-			if (mo->_field && (mo->_field != v->value.uint)) changed=GF_TRUE;\
+			if (mo->_field != v->value.uint) changed=GF_TRUE;\
 			mo->_field = v->value.uint;\
 		} else if (mo->_field) {\
 			changed=GF_TRUE;\
