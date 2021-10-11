@@ -1245,9 +1245,50 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 	} else {
 		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
-		skip_write_filter = GF_TRUE;
-		if (!export_ext)
+		if (!export_ext) {
 			use_dynext = GF_TRUE;
+			if (dumper->in_name) {
+				GF_MediaImporter import;
+				memset(&import, 0, sizeof(GF_MediaImporter));
+				import.flags = GF_IMPORT_PROBE_ONLY;
+				import.in_name = dumper->in_name;
+				e = gf_media_import(&import);
+				if (e) return e;
+				Bool found = GF_FALSE;
+				u32 i;
+				for (i=0; i<import.nb_tracks; i++) {
+					struct __track_import_info *tki = &import.tk_info[i];
+					if (!tki->codecid) continue;
+					if (dumper->trackID) {
+						if (dumper->trackID != tki->track_num) continue;
+					} else if (dumper->track_type) {
+						if ((dumper->track_type==1) && (tki->stream_type!=GF_STREAM_VISUAL)) continue;
+						if ((dumper->track_type==2) && (tki->stream_type!=GF_STREAM_AUDIO)) continue;
+					}
+
+					found = GF_TRUE;
+					skip_write_filter = GF_TRUE;
+
+					const char *sname = gf_codecid_file_ext(tki->codecid);
+					if (export_ext && strstr(sname, export_ext+1)) {
+						szExt[0]=0;
+					} else {
+						char *sep;
+						strncpy(szExt, sname, 29);
+						szExt[29]=0;
+						sep = strchr(szExt, '|');
+						if (sep) sep[0] = 0;
+						use_dynext = GF_FALSE;
+					}
+					dumper->trackID = tki->track_num;
+					dumper->track_type = 0;
+					break;
+				}
+				if (!found) return GF_NOT_FOUND;
+			}
+		} else {
+			skip_write_filter = GF_TRUE;
+		}
 	}
 
 	fsess = gf_fs_new_defaults(0);
