@@ -60,27 +60,28 @@ GF_Err m4vmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+	}
+	ctx->ipid = pid;
+
+	//copy properties at init or reconfig
+	gf_filter_pid_copy_properties(ctx->opid, pid);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+
 	dcd = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dcd) return GF_NON_COMPLIANT_BITSTREAM;
+	//not ready yet
+	if (!dcd) return GF_OK;
 
 	crc = gf_crc_32(dcd->value.data.ptr, dcd->value.data.size);
 	if (ctx->crc == crc) return GF_OK;
 	ctx->crc = crc;
 
-	if (!ctx->opid) {
-		ctx->opid = gf_filter_pid_new(filter);
-	}
-	//copy properties at init or reconfig
-	gf_filter_pid_copy_properties(ctx->opid, pid);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
-
-	ctx->ipid = pid;
-
 	ctx->dsi = dcd->value.data.ptr;
 	ctx->dsi_size = dcd->value.data.size;
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-	gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
 	return GF_OK;
 }
 

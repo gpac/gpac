@@ -504,7 +504,6 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			break;
 		}
 	}
-	M4V_Reset(m4v, 0);
 	return GF_OK;
 }
 
