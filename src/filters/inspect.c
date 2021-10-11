@@ -2713,6 +2713,7 @@ props_done:
 			break;
 		case GF_CODECID_MPEG_AUDIO:
 		case GF_CODECID_MPEG2_PART3:
+		case GF_CODECID_MPEG_AUDIO_L1:
 			pos = 0;
 			while (size) {
 				hdr = gf_mp3_get_next_header_mem(data, size, &pos);
@@ -3150,6 +3151,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		break;
 	case GF_CODECID_MPEG_AUDIO:
 	case GF_CODECID_MPEG2_PART3:
+	case GF_CODECID_MPEG_AUDIO_L1:
 	case GF_CODECID_TMCD:
 		gf_fprintf(dump, "/>\n");
 		return;

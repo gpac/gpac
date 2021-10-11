@@ -333,7 +333,9 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					required_rate = sample_rate;
 				}
 				/*MPEG1/2 audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((codecid==GF_CODECID_MPEG2_PART3) || (codecid==GF_CODECID_MPEG_AUDIO))) {
+				else if ((streamType==GF_STREAM_AUDIO)
+					&& ((codecid==GF_CODECID_MPEG2_PART3) || (codecid==GF_CODECID_MPEG_AUDIO) || (codecid==GF_CODECID_MPEG_AUDIO_L1))
+				) {
 					GF_ISOSample *samp = NULL;
 					if (!is_crypted)
 						 samp = gf_isom_get_sample(file, TrackNum, 1, NULL);

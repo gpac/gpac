@@ -4050,6 +4050,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 						break;
 					case GF_CODECID_MPEG2_PART3:
 					case GF_CODECID_MPEG_AUDIO:
+					case GF_CODECID_MPEG_AUDIO_L1:
 						nb_mp3++;
 						break;
 					case GF_CODECID_EVRC:
