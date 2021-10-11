@@ -266,7 +266,8 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				return GF_NOT_SUPPORTED;
 			if (odm->mo) {
 				odm->mo->config_changed = GF_TRUE;
-				gf_mo_update_caps(odm->mo);
+				gf_mo_update_caps_ex(odm->mo, GF_TRUE);
+				odm->mo->config_changed = GF_TRUE;
 				if (odm->mo->config_changed && (odm->type == GF_STREAM_VISUAL) && odm->parentscene && odm->parentscene->is_dynamic_scene) {
 					gf_scene_force_size_to_video(odm->parentscene, odm->mo);
 				}
