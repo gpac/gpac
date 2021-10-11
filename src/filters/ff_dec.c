@@ -905,6 +905,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (gpac_codecid==GF_CODECID_RAW)
 		return GF_NOT_SUPPORTED;
 
+	if (gf_sys_is_test_mode() && (gpac_codecid == GF_CODECID_MPEG_AUDIO))
+		gpac_codecid = GF_CODECID_MPEG2_PART3;
 
 	//initial config or update
 	if (!ctx->in_pid || (ctx->in_pid==pid)) {
