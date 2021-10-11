@@ -271,6 +271,17 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			if (!sync_id) sync_id = 2 + st->stream_num;
 			st->audio_done = GF_FALSE;
 
+			if (codecid==GF_CODECID_MPEG_AUDIO) {
+				u32 cid;
+				char data[8];
+				AVI_set_audio_track(ctx->avi, i);
+				AVI_read_audio(ctx->avi, data, 8, (int*)&cid);
+				u32 hdr = GF_4CC(data[0], data[1], data[2], data[3]);
+				cid = gf_mp3_object_type_indication(hdr);
+				AVI_set_audio_position(ctx->avi, 0);
+				if (cid) codecid = cid;
+			}
+
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
 			gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT( codecid) );
 			st->freq = AVI_audio_rate(ctx->avi);
@@ -289,7 +300,7 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 			st->audio_bps = 0;
 			if (unframed) {
 				gf_filter_pid_set_property(st->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL( GF_TRUE ) );
-				//we don't set timescale, let the reframer handle it
+				gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->freq) );
 			} else {
 				if (afmt) {
 					gf_filter_pid_set_property(st->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(afmt) );
@@ -522,6 +533,7 @@ GF_Err avidmx_process(GF_Filter *filter)
 			nb_done++;
 			continue;
 		}
+		if (!ctx->v_playing) video_done = GF_TRUE;
 		if (!st->playing || gf_filter_pid_would_block(st->opid) )
 			continue;
 		AVI_set_audio_track(ctx->avi, st->stream_num);
