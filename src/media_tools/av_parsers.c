@@ -4197,26 +4197,6 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		break;
 
 	case OBU_METADATA:
-#if 0
-		//TODO + sample groups
-		const ObuMetadataType metadata_type = (u32)read_leb128(bs, NULL); we should check for 16 bits limit(AV1MetadataSampleGroupEntry) for ISOBMFF bindings, see https ://github.com/AOMediaCodec/av1-isobmff/pull/86#issuecomment-416659538
-		if (metadata_type == OBU_METADATA_TYPE_ITUT_T35) {
-		}
-		else if (metadata_type == OBU_METADATA_TYPE_HDR_CLL) {
-		}
-		else if (metadata_type == OBU_METADATA_TYPE_HDR_MDCV) {
-		}
-		else if (metadata_type == OBU_METADATA_TYPE_SCALABILITY) {
-		}
-		else if (metadata_type == METADATA_TYPE_TIMECODE) {
-		}
-#endif
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsing for metadata is not implemented. Forwarding.\n"));
-
-		if (gf_bs_get_position(bs) > pos + *obu_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Metadata parsing consumed too many bytes !\n"));
-			e = GF_NON_COMPLIANT_BITSTREAM;
-		}
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 
