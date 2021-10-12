@@ -3635,6 +3635,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 			nb_vps_vvc++;
 			break;
 		case GF_VVC_NALU_ACCESS_UNIT:
+			//to detect files without VPS correctly
 			nb_vps_vvc++;
 			break;
 		case 0:
