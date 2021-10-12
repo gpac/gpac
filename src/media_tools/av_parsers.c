@@ -9644,7 +9644,7 @@ static s32 gf_media_vvc_read_vps_bs_internal(GF_BitStream *bs, VVCState *vvc, Bo
 
 static void vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 listIdx, u32 rplsIdx)
 {
-	u32 i, j, num_ref_entries = gf_bs_read_ue_log_idx2(bs, "num_ref_entries", listIdx, rplsIdx);
+	u32 i, num_ref_entries = gf_bs_read_ue_log_idx2(bs, "num_ref_entries", listIdx, rplsIdx);
 	Bool ltrp_in_header_flag=1;
 	if (sps->long_term_ref_pics_flag
 		&& rplsIdx < sps->num_ref_pic_lists[listIdx]
@@ -9652,7 +9652,7 @@ static void vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 li
 	) {
 		ltrp_in_header_flag = gf_bs_read_int_log_idx2(bs, 1, "ltrp_in_header_flag", listIdx, rplsIdx);
 	}
-	for (i=0, j=0; i < num_ref_entries; i++) {
+	for (i=0; i < num_ref_entries; i++) {
 		Bool inter_layer_ref_pic_flag = 0;
 		if (sps->inter_layer_prediction_enabled_flag) {
 			inter_layer_ref_pic_flag = gf_bs_read_int_log_idx3(bs, 1, "inter_layer_ref_pic_flag", listIdx, rplsIdx, i);

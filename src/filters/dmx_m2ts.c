@@ -1065,7 +1065,7 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] Setting default reframing for PID %d\n", pes->pid));
 
-		/*this is a multplex, only trigger the play command for the first stream activated*/
+		/*this is a multiplex, only trigger the play command for the first activated stream*/
 		ctx->nb_playing++;
 		if (ctx->nb_playing>1) return GF_TRUE;
 
