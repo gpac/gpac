@@ -1662,8 +1662,8 @@ GF_Err rfc_6381_get_codec_aac(char *szCodec, u32 codec_id,  u8 *dsi, u32 dsi_siz
 GF_Err rfc_6381_get_codec_m4v(char *szCodec, u32 codec_id, u8 *dsi, u32 dsi_size);
 GF_Err rfc_6381_get_codec_avc(char *szCodec, u32 subtype, GF_AVCConfig *avcc);
 GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc);
-GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c);
-GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc);
+GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, COLR colr);
+GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COLR colr);
 GF_Err rfc_6381_get_codec_dolby_vision(char *szCodec, u32 subtype, GF_DOVIDecoderConfigurationRecord *dovi);
 GF_Err rfc_6381_get_codec_vvc(char *szCodec, u32 subtype, GF_VVCConfig *vvcc);
 GF_Err rfc_6381_get_codec_mpegha(char *szCodec, u32 subtype, u8 *dsi, u32 dsi_size, s32 pl);
@@ -1675,12 +1675,33 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 	u32 subtype=0, subtype_src=0;
 	s32 mha_pl=-1;
 	const GF_PropertyValue *dcd, *dcd_enh, *dovi, *codec;
+	COLR colr;
+
+	memset(&colr, 0, sizeof(colr));
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 	if (dcd) subtype_src = dcd->value.uint;
 
 	dcd = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG);
 	dcd_enh = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+
+	// If colour information is supplied in [the colr] box, and also in the video bitstream, [the] box takes precedence
+	{
+		const GF_PropertyValue *p1 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_PRIMARIES),
+		                       *p2 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_TRANSFER),
+		                       *p3 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_MX),
+		                       *p4 = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_COLR_RANGE);
+		if (p1 && p2 && p3 && p4) {
+			colr.override = GF_TRUE;
+			colr.colour_primaries = p1->value.uint;
+			colr.transfer_characteristics = p2->value.uint;
+			colr.matrix_coefficients = p3->value.uint;
+			colr.full_range = p4->value.boolean;
+		} else if (!p1 && !p2 && !p3 && !p4) {
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Incomplete upstream-filter 'colr' information when computing RFC6381. Ignoring.\n"));
+		}
+	}
 
 	if (!force_inband) {
 		force_inband = ds->inband_params;
@@ -1833,7 +1854,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		if (dcd) {
 			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 			if (av1c) {
-				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c);
+				GF_Err e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colr);
 				gf_odf_av1_cfg_del(av1c);
 				return e;
 			}
@@ -1855,7 +1876,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			GF_VPConfig *vpcc = gf_odf_vp_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 
 			if (vpcc) {
-				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc);
+				GF_Err e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr);
 				gf_odf_vp_cfg_del(vpcc);
 				return e;
 			}

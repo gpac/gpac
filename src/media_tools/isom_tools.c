@@ -3923,7 +3923,7 @@ GF_Err rfc_6381_get_codec_hevc(char *szCodec, u32 subtype, GF_HEVCConfig *hvcc)
 	return GF_OK;
 }
 
-GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
+GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, COLR colr)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
@@ -3939,7 +3939,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
 		bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 		if (!av1_is_obu_header(a->obu_type))
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. PArsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
 		e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
 		gf_bs_del(bs);
@@ -3949,21 +3949,25 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 		}
 	}
 
-	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u.%01u.%01u%01u%01u", gf_4cc_to_str(subtype),
-		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M',
-		av1_state.bit_depth, av1_state.config->monochrome,
-		av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
-		av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0);
+	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%01u.%02u%c.%02u", gf_4cc_to_str(subtype),
+		av1_state.config->seq_profile, av1_state.config->seq_level_idx_0, av1_state.config->seq_tier_0 ? 'H' : 'M', av1_state.bit_depth);
 
 	if (av1_state.color_description_present_flag) {
 		char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, "%02u.%02u.%02u.%01u", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range);
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, ".%01u.%01u%01u%01u.%02u.%02u.%02u.%01u",
+			av1_state.config->monochrome, av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
+			av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0,
+			colr.override == GF_TRUE ? colr.colour_primaries : av1_state.color_primaries,
+			colr.override == GF_TRUE ? colr.transfer_characteristics : av1_state.transfer_characteristics,
+			colr.override == GF_TRUE ? colr.matrix_coefficients : av1_state.matrix_coefficients,
+			colr.override == GF_TRUE ? colr.full_range : av1_state.color_range);
 		strcat(szCodec, tmp);
 	} else {
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
 
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n", av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
+				av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
 		}
 	}
 	gf_av1_reset_state(&av1_state, GF_TRUE);
@@ -3973,7 +3977,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c)
 #endif
 }
 
-GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc)
+GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc, COLR colr)
 {
 	assert(vpcc);
 	snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02u.%02x.%02u.%02u.%02u.%02u.%02u.%02u", gf_4cc_to_str(subtype),
@@ -3981,10 +3985,10 @@ GF_Err rfc_6381_get_codec_vpx(char *szCodec, u32 subtype, GF_VPConfig *vpcc)
 		vpcc->level,
 		vpcc->bit_depth,
 		vpcc->chroma_subsampling,
-		vpcc->colour_primaries,
-		vpcc->transfer_characteristics,
-		vpcc->matrix_coefficients,
-		vpcc->video_fullRange_flag);
+		colr.override == GF_TRUE ? colr.colour_primaries : vpcc->colour_primaries,
+		colr.override == GF_TRUE ? colr.transfer_characteristics : vpcc->transfer_characteristics,
+		colr.override == GF_TRUE ? colr.matrix_coefficients : vpcc->matrix_coefficients,
+		colr.override == GF_TRUE ? colr.full_range : vpcc->video_fullRange_flag);
 	return GF_OK;
 }
 
@@ -4211,13 +4215,19 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AV01:
 	{
 		GF_AV1Config *av1c = gf_isom_av1_config_get(movie, track, 1);
-		if (!av1c) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
-			return GF_BAD_PARAM;
+		if (av1c) {
+			u32 colour_type;
+			COLR colr;
+			memset(&colr, 0, sizeof(colr));
+			if (GF_OK == gf_isom_get_color_info(movie, track, 1, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
+				colr.override = GF_TRUE;
+			}
+			e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colr);
+			gf_odf_av1_cfg_del(av1c);
+			return e;
 		}
-		e = rfc_6381_get_codec_av1(szCodec, subtype, av1c);
-		gf_odf_av1_cfg_del(av1c);
-		return e;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		return GF_BAD_PARAM;
 	}
 #endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
@@ -4226,7 +4236,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	{
 		GF_VPConfig *vpcc = gf_isom_vp_config_get(movie, track, 1);
 		if (vpcc) {
-			e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc);
+			u32 colour_type;
+			COLR colr;
+			memset(&colr, 0, sizeof(colr));
+			if (GF_OK == gf_isom_get_color_info(movie, track, 1, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
+				colr.override = GF_TRUE;
+			}
+			e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr);
 			gf_odf_vp_cfg_del(vpcc);
 			return e;
 		}
