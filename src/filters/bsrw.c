@@ -224,7 +224,7 @@ static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
 		if (vui->color_tfc>=0)
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_TRANSFER, &PROP_UINT(vui->color_tfc) );
 		if (vui->color_matrix>=0)
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_PRIMARIES, &PROP_UINT(vui->color_matrix) );
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(vui->color_matrix) );
 	}
 }
 

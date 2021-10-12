@@ -68,6 +68,15 @@ s32 gf_bs_read_se(GF_BitStream *bs);
 void gf_bs_write_ue(GF_BitStream *bs, u32 num);
 void gf_bs_write_se(GF_BitStream *bs, s32 num);
 
+
+
+typedef struct
+{
+	Bool override;
+	u16 colour_primaries, transfer_characteristics, matrix_coefficients;
+	Bool full_range;
+} COLR;
+
 enum
 {
 	/*SPS has been parsed*/
