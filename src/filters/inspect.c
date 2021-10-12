@@ -316,6 +316,66 @@ static void regular_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 
 	inspect_log_bs(GF_FALSE, udta, field_name, nb_bits, field_val, idx1, idx2, idx3);
 }
 
+static void dump_clli(FILE *dump, GF_BitStream *bs)
+{
+	u16 max_content_light_level = gf_bs_read_int(bs, 16);
+	u16 max_pic_average_light_level = gf_bs_read_int(bs, 16);
+	gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"/>\n", max_content_light_level, max_pic_average_light_level);
+}
+
+static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
+{
+	u8 c;
+	u16 display_primaries_x[3];
+	u16 display_primaries_y[3];
+	u16 white_point_x;
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	u32 min_display_mastering_luminance;
+	for(c=0;c<3;c++) {
+		display_primaries_x[c] = gf_bs_read_int(bs, 16);
+		display_primaries_y[c] = gf_bs_read_int(bs, 16);
+	}
+	white_point_x = gf_bs_read_int(bs, 16);
+	white_point_y = gf_bs_read_int(bs, 16);
+	max_display_mastering_luminance = gf_bs_read_int(bs, 32);
+	min_display_mastering_luminance = gf_bs_read_int(bs, 32);
+	gf_fprintf(dump, " display_primaries_x=\"%.04f %.04f %.04f\" display_primaries_y=\"%.04f %.04f %.04f\" white_point_x=\"%.04f\" white_point_y=\"%.04f\" max_display_mastering_luminance=\"%.04f\" min_display_mastering_luminance=\"%.04f\"/>\n",
+			   display_primaries_x[0]*1.0/(isMPEG?50000:65536),
+			   display_primaries_x[1]*1.0/(isMPEG?50000:65536),
+			   display_primaries_x[2]*1.0/(isMPEG?50000:65536),
+			   display_primaries_y[0]*1.0/(isMPEG?50000:65536),
+			   display_primaries_y[1]*1.0/(isMPEG?50000:65536),
+			   display_primaries_y[2]*1.0/(isMPEG?50000:65536),
+			   white_point_x*1.0/(isMPEG?50000:65536),
+			   white_point_y*1.0/(isMPEG?50000:65536),
+			   max_display_mastering_luminance*1.0/(isMPEG?10000:256),
+			   min_display_mastering_luminance*1.0/(isMPEG?50000:(1<<14)));
+}
+
+static u32 dump_t35(FILE *dump, GF_BitStream *bs)
+{
+	u32 read_bytes = 1;
+	u32 country_code = gf_bs_read_u8(bs);
+	gf_fprintf(dump, " country_code=\"0x%x\"", country_code);
+	if (country_code == 0xFF) {
+		u32 country_code_extension = gf_bs_read_u8(bs);
+		read_bytes++;
+		gf_fprintf(dump, " country_code_extension=\"0x%x\"", country_code_extension);
+	}
+	if (country_code == 0xB5) { // USA
+		u32 terminal_provider_code = gf_bs_read_u16(bs);
+		u32 terminal_provider_oriented_code = gf_bs_read_u16(bs);
+		u32 application_identifier = gf_bs_read_u8(bs);
+		u32 application_mode = gf_bs_read_u8(bs);
+		read_bytes+=6;
+		gf_fprintf(dump, " terminal_provider_code=\"0x%x\" terminal_provider_oriented_code=\"0x%x\" application_identifier=\"%u\" application_mode=\"%u\"",
+				   terminal_provider_code, terminal_provider_oriented_code,
+				   application_identifier, application_mode);
+	}
+	gf_fprintf(dump, "/>\n");
+	return read_bytes;
+}
 
 static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 {
@@ -338,39 +398,24 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 			gf_bs_read_int(bs, 8);
 		}
 		sei_size += gf_bs_read_int(bs, 8);
-		i=0;
-		while (i < sei_size) {
-			gf_bs_read_u8(bs);
-			i++;
-		}
 
 		gf_fprintf(dump, "    <SEIMessage ptype=\"%u\" psize=\"%u\" type=\"%s\"", sei_type, sei_size, get_sei_name(sei_type, is_hevc) );
 		if (sei_type == 144) {
-			u16 max_content_light_level = gf_bs_read_int(bs, 16);
-			u16 max_pic_average_light_level = gf_bs_read_int(bs, 16);
-			gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"/>\n", max_content_light_level, max_pic_average_light_level);
+			dump_clli(dump, bs);
 		} else if (sei_type == 137) {
-			u8 c;
-			u16 display_primaries_x[3];
-			u16 display_primaries_y[3];
-			u16 white_point_x;
-			u16 white_point_y;
-			u32 max_display_mastering_luminance;
-			u32 min_display_mastering_luminance;
-			for(c=0;c<3;c++) {
-				display_primaries_x[c] = gf_bs_read_int(bs, 16);
-				display_primaries_y[c] = gf_bs_read_int(bs, 16);
+			dump_mdcv(dump, bs, GF_TRUE);
+		} else if (sei_type == 4) {
+			i = dump_t35(dump, bs);
+			while (i < sei_size) {
+				gf_bs_read_u8(bs);
+				i++;
 			}
-			white_point_x = gf_bs_read_int(bs, 16);
-			white_point_y = gf_bs_read_int(bs, 16);
-			max_display_mastering_luminance = gf_bs_read_int(bs, 32);
-			min_display_mastering_luminance = gf_bs_read_int(bs, 32);
-			gf_fprintf(dump, " display_primaries_x=\"%u %u %u\" display_primaries_y=\"%u %u %u\" white_point_x=\"%u\" white_point_y=\"%u\" max_display_mastering_luminance=\"%u\" min_display_mastering_luminance=\"%u\"/>\n",
-					   display_primaries_x[0], display_primaries_x[1], display_primaries_x[2],
-					   display_primaries_y[0], display_primaries_y[1], display_primaries_y[2],
-					   white_point_x, white_point_y,
-					   max_display_mastering_luminance, min_display_mastering_luminance);
 		} else {
+			i=0;
+			while (i < sei_size) {
+				gf_bs_read_u8(bs);
+				i++;
+			}
 			gf_fprintf(dump, "/>\n");
 		}
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
@@ -1284,11 +1329,42 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		}
 		gf_fprintf(dump, "   </OBU>\n");
 		break;
+	case OBU_METADATA:
+		{
+			GF_BitStream *bs = NULL;
+			if (pctx)
+			{
+				if (!pctx->bs)
+					pctx->bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
+				else
+					gf_bs_reassign_buffer(pctx->bs, obu+hdr_size, obu_length-hdr_size);
+				bs = pctx->bs;
+			} else {
+				bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
+			}
+			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+			DUMP_OBU_INT2("metadata_type", metadata_type);
+			switch (metadata_type) {
+				case OBU_METADATA_TYPE_ITUT_T35:
+					dump_t35(dump, bs);
+					break;
+				case OBU_METADATA_TYPE_HDR_CLL:
+					dump_clli(dump, bs);
+					break;
+				case OBU_METADATA_TYPE_HDR_MDCV:
+					dump_mdcv(dump, bs, GF_FALSE);
+					break;
+				default:
+					break;
+			}
+			if (!pctx) gf_bs_del(bs);
+		}
+		break;
 	default:
 		break;
 
 	}
-	if (obu_type != OBU_TILE_GROUP && obu_type != OBU_FRAME)
+	if (obu_type != OBU_TILE_GROUP && obu_type != OBU_FRAME && obu_type != OBU_METADATA)
 		gf_fprintf(dump, "/>\n");
 
 	return obu_size;
