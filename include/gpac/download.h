@@ -522,7 +522,7 @@ Adds a local entry in the cache
 \param download_time_ms indicates the download time of the associated resource, if known, 0 otherwise.
 \return a cache entry structure
  */
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
+DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range,  const char *mime, Bool clone_memory, u32 download_time_ms);
 
 /*!
 Forces HTTP headers for a given cache entry

@@ -6181,7 +6181,7 @@ GF_Err gf_dm_set_localcache_provider(GF_DownloadManager *dm, Bool (*local_cache_
 }
 
 GF_EXPORT
-const DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range, const char *mime, Bool clone_memory, u32 download_time_ms)
+DownloadedCacheEntry gf_dm_add_cache_entry(GF_DownloadManager *dm, const char *szURL, GF_Blob *blob, u64 start_range, u64 end_range, const char *mime, Bool clone_memory, u32 download_time_ms)
 {
 	u32 i, count;
 	DownloadedCacheEntry the_entry = NULL;
