@@ -116,7 +116,9 @@ install:
 	$(MAKE) install-lib
 
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/gpac$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/gpac$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
+	fi
 ifeq ($(DISABLE_ISOFF),no)
 	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
