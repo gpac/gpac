@@ -4343,6 +4343,11 @@ GF_Err dvcC_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err dvvC_box_dump(GF_Box *a, FILE * trace)
+{
+	return dvcC_box_dump(a, trace);
+}
+
 GF_Err lsrc_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_LASERConfigurationBox *p = (GF_LASERConfigurationBox *)a;
