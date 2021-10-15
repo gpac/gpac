@@ -11706,7 +11706,7 @@ void dvcC_box_del(GF_Box *s)
 GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	u32 data[5];
+	u8 data[19/*3+4*4*/];
 	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
 
 	//GF_DOVIDecoderConfigurationRecord
@@ -11718,12 +11718,15 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->DOVIConfig.rpu_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
+	ptr->DOVIConfig.dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
+	if (gf_bs_read_int(bs, 4) != 0)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero (1)\n"));
 
-	memset(data, 0, sizeof(u32)*5);
-	gf_bs_read_data(bs, (char*)data, 20);
-	for (i = 0; i < 5; ++i) {
+	memset(data, 0, 3+4*4);
+	gf_bs_read_data(bs, (char*)data, 3+4*4);
+	for (i = 0; i < 3+4*4; ++i) {
 		if (data[i] != 0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero (2)\n"));
 			//return GF_ISOM_INVALID_FILE;
 		}
 	}
@@ -11748,11 +11751,12 @@ GF_Err dvcC_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_int(bs, ptr->DOVIConfig.rpu_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.el_present_flag, 1);
 	gf_bs_write_int(bs, ptr->DOVIConfig.bl_present_flag, 1);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
-    gf_bs_write_u32(bs, 0);
+	gf_bs_write_int(bs, ptr->DOVIConfig.dv_bl_signal_compatibility_id, 4);
+	gf_bs_write_int(bs, 0, 28);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
+	gf_bs_write_u32(bs, 0);
 
 	return GF_OK;
 }
@@ -11764,7 +11768,38 @@ GF_Err dvcC_box_size(GF_Box *s)
 	ptr->size += 24;
 	return GF_OK;
 }
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *dvvC_box_new()
+{
+	GF_DOVIConfigurationBox *tmp = (GF_DOVIConfigurationBox *)gf_malloc(sizeof(GF_DOVIConfigurationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_DOVIConfigurationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_DVVC;
+	return (GF_Box *)tmp;
+}
+
+void dvvC_box_del(GF_Box *s)
+{
+	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox*)s;
+	gf_free(ptr);
+}
+
+GF_Err dvvC_box_read(GF_Box *s, GF_BitStream *bs)
+{
+	return dvcC_box_read(s, bs);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err dvvC_box_write(GF_Box *s, GF_BitStream *bs)
+{
+	return dvcC_box_write(s, bs);
+}
+
+GF_Err dvvC_box_size(GF_Box *s)
+{
+	return dvcC_box_size(s);
+}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

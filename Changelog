@@ -55,6 +55,7 @@
 - VVC parsing, inspecting, mux and demux support (ISOBMFF and M2TS)
 - VUI color info rewrite for AVC and HEVC (mp4box and bsrw filter)
 - support for Dolby TrueHD 
+- DolbyVision 'dvvC'
 - improved multichannel AAC (>=8) support 
 - improved raw video in ISOBMFF support
 - improved bitstream dumping for inspect analyze mode
