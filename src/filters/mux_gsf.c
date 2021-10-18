@@ -322,7 +322,10 @@ static Bool gsfmx_can_serialize_prop(const GF_PropertyValue *p, u32 prop_4cc)
 	if (prop_4cc) {
 		u32 prop_type = gf_props_4cc_get_type(prop_4cc);
 		//prop_type can be 0 for unit test filters !!
-		if (prop_type && !gf_props_type_is_enum(prop_type) && (prop_type != p->type)) {
+		if (prop_type
+			&& !gf_props_type_is_enum(prop_type)
+			&& (gf_props_get_base_type(prop_type) != gf_props_get_base_type(p->type))
+		) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Mismatch between property advertised type (%s) and built-in type (%s) for %s, not serializing !\n\tPlease contact GPAC team or the developers of third-party filters used if any (run with -graph)\n", gf_props_get_type_name(p->type), gf_props_get_type_name(prop_type), gf_props_4cc_get_name(prop_4cc)));
 			return GF_FALSE;
 		}

@@ -1282,6 +1282,12 @@ const char *gf_props_enum_name(u32 type, u32 value);
 */
 const char *gf_props_enum_all_names(u32 type);
 
+/*! Get the base type of a property type. Properties with same base type can be safely type-casted
+\param type  property type
+\return base property type
+*/
+u32 gf_props_get_base_type(u32 type);
+
 
 /*! Parses a property value from string
 \param type property type to parse

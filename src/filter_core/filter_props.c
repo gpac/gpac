@@ -541,7 +541,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	return p;
 }
 
-static u32 get_prop_base_type(u32 type)
+u32 gf_props_get_base_type(u32 type)
 {
 	switch (type) {
 	case GF_PROP_STRING:
@@ -569,8 +569,8 @@ static u32 get_prop_base_type(u32 type)
 Bool gf_props_equal_internal(const GF_PropertyValue *p1, const GF_PropertyValue *p2, Bool strict_compare)
 {
 	if (p1->type!=p2->type) {
-		u32 p1_base = get_prop_base_type(p1->type);
-		u32 p2_base = get_prop_base_type(p2->type);
+		u32 p1_base = gf_props_get_base_type(p1->type);
+		u32 p2_base = gf_props_get_base_type(p2->type);
 
 		if (p1_base != p2_base)
 			return GF_FALSE;
