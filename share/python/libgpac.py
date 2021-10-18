@@ -1371,7 +1371,7 @@ def on_filter_new_del(cbk, _filter, is_del):
 
 ## Task object for user callbacks from libgpac scheduler 
 class FilterTask:
-    ##constructor for tasks
+    ## constructor for tasks
     #\param name name of the task (used for logging)
     def __init__(self, name):
         ##Task name
@@ -1388,7 +1388,7 @@ class FilterTask:
 
 ## filter session object - see \ref GF_FilterSession
 class FilterSession:
-    ## constructor for  filter session - see \ref gf_fs_new
+    ## constructor for filter session - see \ref gf_fs_new
     #\param flags session flags (int)
     #\param blacklist list of blacklisted filters
     #\param nb_threads number of threads to use (int)
@@ -1433,7 +1433,7 @@ class FilterSession:
     ## called whenever a new filter is added, typically used by classes deriving from FilterSession
     #\param filter Filter object being added
     #\return
-    def on_filter_del(self, filter):
+    def on_filter_new(self, filter):
         pass
 
     ## called whenever a filter is destroyed, typically used by classes deriving from FilterSession
@@ -1961,7 +1961,7 @@ class DASHGroupDownloadStatistics(Structure):
 
 
 ## DASH custom algo
-# Upon successfull binding to the dashin filter, the object will be assigned a list member called `groups`, containing the declared group for the active period
+# Upon successful binding to the dashin filter, the object will be assigned a list member called `groups`, containing the declared group for the active period
 class DASHCustomAlgorithm:
 
     ##Callback (optional) called upon a period reset.
