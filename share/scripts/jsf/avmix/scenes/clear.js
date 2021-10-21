@@ -5,6 +5,8 @@ export const description = "Screen clear";
 export const help = `This scene clears the canvas area covered by the scene with a given color. 
 
 The default clear color of the mixer is \`black\`.
+
+The clear area is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the scene area will be cleared.
 `;
 
 
@@ -20,8 +22,8 @@ update: function() {
   if (!this.update_flag) return 1;
 
   this.clip = {};
-  this.clip.x = this.x - this.width/2;
-  this.clip.y = this.height/2 - this.y;
+  this.clip.x = 0;
+  this.clip.y = 0;
   this.clip.w = this.width;
   this.clip.h = this.height;
 

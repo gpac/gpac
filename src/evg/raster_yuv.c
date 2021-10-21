@@ -442,8 +442,8 @@ void evg_yuv420p_flush_uv_var(GF_EVGSurface *surf, EVGRasterCtx *rctx, u8 *surf_
 
 	for (i=0; i<surf->width; i+=2) {
 		u32 a, a11, a12, a21, a22;
-		u32 idx1=3*i;
-		u32 idx2=3*i + 3;
+		u32 idx1 = 3*i;
+		u32 idx2 = idx1 + 3;
 		//get alpha
 		a11 = (u32)rctx->uv_alpha[idx1];
 		a12 = (u32)rctx->uv_alpha[idx2];
@@ -532,8 +532,8 @@ void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 		u32 *p_col;
 		u32 len;
 		len = spans[i].len;
-		spanalpha = spans[i].coverage;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
 
 		s_pY = pY + spans[i].x;
 		x = spans[i].x;
@@ -1017,8 +1017,8 @@ void evg_yuv444p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 		u32 *p_col;
 		char *s_pY, *s_pU, *s_pV;
 		len = spans[i].len;
-		spanalpha = spans[i].coverage;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
 
 		s_pY = pY + spans[i].x;
 		s_pU = pU + spans[i].x;
@@ -1219,8 +1219,8 @@ void evg_yuyv_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf, E
 		s_pY = pY + (spans[i].x/2) * 4;
 		if (spans[i].x%2) s_pY += 2;
 
-		spanalpha = spans[i].coverage;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
 
 		x = spans[i].x;
 
@@ -1637,8 +1637,8 @@ void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *s
 		u16 *s_pY;
 		short x;
 		len = spans[i].len;
-		spanalpha = spans[i].coverage;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
 
 		s_pY = pY + spans[i].x;
 		x = spans[i].x;
@@ -2173,8 +2173,8 @@ void evg_yuv444p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *s
 		u64 *p_col;
 		u16 *s_pY, *s_pU, *s_pV;
 		len = spans[i].len;
-		spanalpha = spans[i].coverage;
 		p_col = surf->fill_run(surf->sten, rctx, &spans[i], y);
+		spanalpha = spans[i].coverage;
 
 		s_pY = pY + spans[i].x;
 		s_pU = pU + spans[i].x;

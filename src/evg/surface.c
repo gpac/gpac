@@ -269,6 +269,7 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 		surf->idx_b=3;
 		break;
 	case GF_PIXEL_RGBA:
+	case GF_PIXEL_YUVA444_PACK:
 		surf->idx_a=3;
 		surf->idx_r=0;
 		surf->idx_g=1;
@@ -381,6 +382,10 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 		BPP = 2;
 		surf->not_8bits = GF_TRUE;
 		break;
+	case GF_PIXEL_YUVA444_PACK:
+		surf->is_transparent = GF_TRUE;
+		BPP = 4;
+		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -458,6 +463,7 @@ GF_Err gf_evg_surface_attach_to_texture(GF_EVGSurface *surf, GF_EVGStencil * ste
 
 	return gf_evg_surface_attach_to_buffer(surf, tx->pixels, tx->width, tx->height, 0, tx->stride, tx->pixel_format);
 }
+
 
 
 GF_EXPORT
@@ -570,6 +576,9 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 		return evg_surface_clear_yuv422p_10(surf, clear, color);
 	case GF_PIXEL_YUV444_10:
 		return evg_surface_clear_yuv444p_10(surf, clear, color);
+
+	case GF_PIXEL_YUVA444_PACK:
+		return evg_surface_clear_argb(surf, clear, gf_evg_argb_to_ayuv(surf, color) );
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -652,9 +661,22 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 
 	//mask mode draw,
 	if (surf->mask_mode == GF_EVGMASK_DRAW) {
-		surf->fill_col = 0xFFFFFFFF;
-		surf->fill_col_wide = evg_col_to_wide(surf->fill_col);
-		surf->fill_spans = (EVG_SpanFunc) evg_grey_fill_const;
+		if (surf->sten && (surf->sten->type == GF_STENCIL_SOLID)) {
+			EVG_Brush *sc = (EVG_Brush *)surf->sten;
+			u32 col = sc->color;
+			if (sc->alpha < 0xFF) {
+				u32 ca = ((u32) (GF_COL_A(col) + 1) * sc->alpha) >> 8;
+				col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
+			}
+			surf->fill_col = col;
+			surf->fill_col_wide = evg_col_to_wide(surf->fill_col);
+			if (GF_COL_A(col)<0xFF)
+				surf->fill_spans = (EVG_SpanFunc) evg_grey_fill_const_a;
+			else
+				surf->fill_spans = (EVG_SpanFunc) evg_grey_fill_const;
+		} else {
+			surf->fill_spans = (EVG_SpanFunc) evg_grey_fill_var;
+		}
 		if (surf->ext3d) {
 			surf->fill_single = evg_grey_fill_single;
 			surf->fill_single_a = evg_grey_fill_single_a;
@@ -681,10 +703,15 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		use_const = GF_FALSE;
 	}
 	//mask is used, force fill with variable alpha (xxx_fill_var) and use masking callback for fill_run
-	if (surf->mask_mode == GF_EVGMASK_USE) {
+	if ((surf->mask_mode == GF_EVGMASK_USE) || (surf->mask_mode == GF_EVGMASK_RECORD) ){
 		a = 0;
 		use_const = GF_FALSE;
-		surf->fill_run = evg_fill_run_mask;
+		if (surf->mask_mode == GF_EVGMASK_USE)
+			surf->fill_run = evg_fill_run_mask;
+	} else if (surf->mask_mode == GF_EVGMASK_USE_INV) {
+		a = 0;
+		use_const = GF_FALSE;
+		surf->fill_run = evg_fill_run_mask_inv;
 	}
 
 	if (use_const && !a && !surf->is_transparent) return GF_FALSE;
@@ -732,6 +759,8 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 			surf->fill_single_a = evg_alphagrey_fill_single_a;
 		}
 		break;
+	case GF_PIXEL_YUVA444_PACK:
+		surf->yuv_type = EVG_YUV;
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_BGRA:
@@ -1155,6 +1184,9 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 				}
 			}
 			gf_mx2d_add_matrix(&sten->smat, &sten->smat_bck);
+			if (sten->auto_mx)
+				gf_mx2d_add_matrix(&sten->smat, &surf->shader_mx);
+
 			gf_mx2d_add_matrix(&sten->smat, mat);
 			gf_mx2d_inverse(&sten->smat);
 
@@ -1435,7 +1467,11 @@ GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mod
 {
 	if (!surf) return GF_BAD_PARAM;
 
-	if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_DRAW_NO_CLEAR)) {
+	if ((mask_mode==GF_EVGMASK_DRAW)
+		|| (mask_mode==GF_EVGMASK_DRAW_NO_CLEAR)
+		|| (mask_mode==GF_EVGMASK_RECORD)
+	) {
+		u8 clear_val = 0;
 		Bool clear_mask = GF_FALSE;
 		if (!surf->internal_mask) {
 			surf->internal_mask = gf_malloc(sizeof(u8) * surf->width * surf->height);
@@ -1445,10 +1481,16 @@ GF_Err gf_evg_surface_set_mask_mode(GF_EVGSurface *surf, GF_EVGMaskMode mask_mod
 		if ((mask_mode==GF_EVGMASK_DRAW) && (surf->mask_mode != GF_EVGMASK_DRAW))
 			clear_mask = GF_TRUE;
 
-		if (clear_mask)
-			memset(surf->internal_mask, 0, sizeof(u8) * surf->width * surf->height);
+		if (mask_mode==GF_EVGMASK_RECORD) {
+			clear_mask = GF_TRUE;
+			clear_val = 0xFF;
+		} else {
+			mask_mode = GF_EVGMASK_DRAW;
+		}
 
-		mask_mode = GF_EVGMASK_DRAW;
+		if (clear_mask) {
+			memset(surf->internal_mask, clear_val, sizeof(u8) * surf->width * surf->height);
+		}
 	}
 	surf->mask_mode = mask_mode;
 	return GF_OK;

@@ -34,13 +34,14 @@ typedef struct _traster_ctx EVGRasterCtx;
 
 /*base stencil stack*/
 #define EVGBASESTENCIL	\
-	u32 type;	\
 	void (*fill_run)(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 x, s32 y, u32 count);	\
 	GF_Matrix2D pmat;					\
 	GF_Matrix2D smat;					\
 	GF_Matrix2D smat_bck;					\
 	GF_Rect frame;					\
-	GF_ColorMatrix cmat;
+	GF_ColorMatrix cmat;\
+	u8 type;	\
+	u8 auto_mx;	\
 
 
 
@@ -220,6 +221,9 @@ typedef struct __evg_texture
 /*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/
 void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
 void *evg_fill_run_mask(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
+void *evg_fill_run_mask_inv(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y);
+
+void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx);
 
 #define GF_COLW_ARGB(_a, _r, _g, _b)\
 	((u64)(_a)) << 48 | ((u64)(_r))<<32 | ((u64)(_g))<<16 | ((u64)(_b))

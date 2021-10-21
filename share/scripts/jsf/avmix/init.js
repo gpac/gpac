@@ -8,6 +8,9 @@ import * as os from 'os'
 const UPDATE_PID = 1;
 const UPDATE_SIZE = 1<<1;
 const UPDATE_POS = 1<<2;
+const UPDATE_CHILD = 1<<3;
+const UPDATE_ALLOW_STRING = 1<<4;
+const UPDATE_FX = 1<<5;
 
 /*
 	global modules imported for our imported modules
@@ -15,7 +18,6 @@ const UPDATE_POS = 1<<2;
 globalThis.sys = sys;
 globalThis.evg = evg;
 globalThis.os = os;
-
 
 /*
 	global variables for our imported modules
@@ -49,8 +51,12 @@ globalThis.canvas_yuv = false;
 globalThis.UPDATE_PID = UPDATE_PID;
 //scene update flag indicating the scene size has changed
 globalThis.UPDATE_SIZE = UPDATE_SIZE;
-//scene update flag indicating the scene size position has
+//scene update flag indicating the scene properties other than size have changed
 globalThis.UPDATE_POS = UPDATE_POS;
+//scene update allows string for number
+globalThis.UPDATE_ALLOW_STRING = UPDATE_ALLOW_STRING;
+//scene update flag indicating that if a property with this flag is changed, mix and transition effects must be recomputed (used for openGL shader setup)
+globalThis.UPDATE_FX = UPDATE_FX;
 //indicates if GPU (WebGL) is used
 globalThis.use_gpu = false;
 //indicates if EVG blit is enabled
@@ -78,7 +84,7 @@ Each scene module is associated an array of PidLink objects.
 Each transition module is passed an array of PidLink objects.
 
 A PidLink object has the following properties:
-- pid: associated input visual pid
+- pid: associated input visual pid, null if source is an offscreen group
 - texture: associated input visual texture (constructed by avmix, but customized by each module)
 
 The pid of a PidLink shall not be modified. The following variables can be checked for a pid:
@@ -92,45 +98,67 @@ Each scene must implement:
 - fullscreen(): return index of pidlink from inputs which is fullscreen (occupies the entire scene area), or -1 if none
 - identity(): return true if scene is identity: scene shows exactly the video witout any change in aspect ratio
 - is_opaque(): return true if scene is opaque (entire scene area covered and not transparent), false otherwise
-- draw(canvas): draw scene on canvas. The canvas can be EVG canvas or WebGL.
+- draw(canvas): draw scene on canvas. The canvas can be EVG canvas or WebGL. All texture parameters modification (repeat flags, alpha, matrix, etc) must be done in this call, as the same texture may be used by different scenes
 
 Note: scenes setup to skip drawing and forward input (fullscreen, opaque, identity) must check this.force_draw is not set to true, indicating
 that the scene shall be drawn (due to canvas pixel format change for example)
 
+Note: scenes using canvas.blit must use the provided variable this.screen_rect corresponding to the blit area on canvas, {x,y}={0,0} at top-left. If null, this means blit cannot be used (rotations & co)
+
 
 */
 
-/*clears cnavas
+/*clears cnavas - function shall only be used inside scene.draw()
 \param color: color to use
 \param clip clipper to use (type IRect) , or null/not specified
 */
 globalThis.canvas_clear = canvas_clear;
-/*sets axis-aligned clipper on canvas
+/*sets axis-aligned clipper on canvas - function shall only be used inside scene.draw()
 \param clip clipper to use (type IRect), or null to reset
+\param use_stack if true, push and intersect the stack if clipper set or pop if clipper not set, otherwise change clipper directly without checking the clipper stack
 */
 globalThis.canvas_set_clipper = canvas_set_clipper;
-/*draw path on canvas
+/*draw path on canvas - function shall only be used inside scene.draw()
 \param path path (type Path) to draw
-\param matrix matrix (type Matrix2D) to use
 \param stencil stencil to use (type Texture or Stencil)
 */
 globalThis.canvas_draw = canvas_draw;
-/*blits image on canvas
+/*blits image on canvas - function shall only be used inside scene.draw()
 \param texture texture to blit (type Texture)
 \param dst_rc destination window (type IRect)
 */
 globalThis.canvas_blit = canvas_blit;
-/* texture path on canvas cf  canvas.fill
+/* texture path on canvas  - function shall only be used inside scene.draw()
 The input textures are fteched from the sequences associated with the scene 
 \param path path (type Path) to draw
-\param matrix matrix (type Matrix2D) to use
 \param op_type (=0) multitexture operand type
 \param op_param (=0) multitexture operand param
 \param op_param (=null) multitexture second texture
 */
 globalThis.canvas_draw_sources = canvas_draw_sources;
 
+/*sets mask mode on canvas (2D or 3D) - function shall only be used inside scene.draw()
+\param mode EVG mask mode
+*/
+globalThis.canvas_set_mask_mode = canvas_set_mask_mode;
 
+/*gets texture associated with an offscreen group, typically used in scene.update()
+\param group_id ID of offscreen group
+\return associated texture or null if not found ot not offscreen
+*/
+globalThis.get_group_texture = get_group_texture;
+
+/*gets texture associated with a sequence, typically used in scene.update() and scene.draw()
+\param group_id ID of offscreen group
+\return associated texture or null if not found ot not offscreen
+*/
+globalThis.get_sequence_texture = get_sequence_texture;
+
+/*gets screen rectangle (axis-aligned bounds) in pixels for a given path. Shall only be used inside scene.draw()
+\param path the path to check
+\return rectangle object or null if error
+*/
+globalThis.get_screen_rect = get_screen_rect;
 
 
 //metadata
@@ -150,6 +178,7 @@ filter.set_arg({ name: "lwait", desc: "timeout in ms before considering no signa
 filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes (see filter help)", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
 filter.set_arg({ name: "maxdur", desc: "run for given seconds and exit, will not abort if 0 (used for live mode tests)", type: GF_PROP_DOUBLE, def: "0", hint:"expert"} );
 filter.set_arg({ name: "updates", desc: "local JSON files for playlist updates", type: GF_PROP_STRING, hint:"advanced"} );
+filter.set_arg({ name: "maxdepth", desc: "maximum depth of a branch in the scene graph", type: GF_PROP_UINT, def: "100", hint:"expert"} );
 
 //video output options
 filter.set_arg({ name: "vsize", desc: "output video size", type: GF_PROP_VEC2, def: "1920x1080"} );
@@ -211,6 +240,15 @@ filter.frame_pending=false;
 let single_mod_help=false;
 let mod_help_short=false;
 
+const GROUP_OST_NONE = 0;
+const GROUP_OST_DUAL = 1;
+const GROUP_OST_MASK = 2;
+const GROUP_OST_COLOR = 3;
+
+const UNIT_RELATIVE = 0;
+const UNIT_PIXEL = 1;
+
+
 function build_help_mod(obj, name, mod_type, index)
 {
 	name = name.split('.')[0];
@@ -263,12 +301,12 @@ function build_help_mod(obj, name, mod_type, index)
 				opts+='[]';
 			} else if (typeof opt.value!='string') {
 				opts+=opt.value;
-			} else if (opt.value.length) {
+			} else /*if (opt.value.length)*/ {
 				opts+='\''+opt.value+'\'';
 			}
 		}
 		if (mod_type==0) {
-			if ((typeof opt.dirty == 'undefined') || !opt.dirty) {
+			if ((typeof opt.dirty == 'undefined') || (opt.dirty==-1)) {
 				opts+=', not updatable';
 			}
 		}
@@ -389,7 +427,8 @@ filter.initialize = function()
 		init_utc = sys.get_utc();
 		init_clock_us = sys.clock_us();
 	}
-
+	if (filter.maxdepth<=0)
+		filter.maxdepth = 100;
 
 	if (this.gpu) {
 		video_width = filter.vsize.x;
@@ -405,7 +444,7 @@ filter.initialize = function()
 				print(GF_LOG_ERROR, "Failed to initialize WebGL, disabling GPU support");
 				this.gpu = 0;
 				globalThis.use_gpu = false;
-				globalThis.blit_enabled = false;
+				globalThis.blit_enabled = evg.BlitEnabled;
 			}
 	}
 
@@ -443,7 +482,12 @@ const sample_per_frame=1024;
 let chan_buffer = null;
 
 let sequences = [];
-let scenes = [];
+
+//static top-level group
+let root_scene = {};
+root_scene.scenes = [];
+root_scene.parent = null;
+root_scene.update_flag = 0;
 
 let wait_for_pids = 0;
 let wait_pid_play = 0;
@@ -466,7 +510,7 @@ function configure_vout()
 		return;
 	}
 	if (filter.gpu) {
-		print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Video output ' + filter.vsize.x + 'x' + filter.vsize.y + ' FPS ' + filter.fps.n + '/' + filter.fps.d + ' OpenGL output');
+		print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Video output ' + filter.vsize.x + 'x' + filter.vsize.y + ' FPS ' + filter.fps.n + '/' + filter.fps.d + ' OpenGL pixfmt ' + filter.pfmt);
 	} else {
 		print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Video output ' + filter.vsize.x + 'x' + filter.vsize.y + ' FPS ' + filter.fps.n + '/' + filter.fps.d + ' pixfmt ' + filter.pfmt);
 	}
@@ -496,6 +540,13 @@ function configure_vout()
 	//do not buffer output, this would trigger block on vout and break sync
 	vout.set_prop('BufferLength', 0);
 
+	if (sys.pixfmt_transparent(video_pfmt)) {
+		print(GF_LOG_INFO, 'Enabling alpha on video output');
+		back_color = 'none';
+	}
+
+	if (!webgl)
+		set_canvas_yuv(video_pfmt);
 
 	vout_size = sys.pixfmt_size(filter.pfmt, filter.vsize.x, filter.vsize.y);
 	canvas_reconfig = true;
@@ -579,7 +630,9 @@ filter.configure_pid = function(pid)
 			pid.done = false;
 			pid.fade = 0;
 			pid.active = false;
+			pid.texture = null;
 			pid.audio_fade = null;
+			s.timeline_init = false;
 			pid.last_pck_time = /*	current_utc_clock =*/ Date.now();
 		} else {
 			if (!pid.skipped) {
@@ -647,8 +700,11 @@ filter.configure_pid = function(pid)
 		//todo
 		pid.old_timescale = pid.timescale;
 	}
-	scenes.forEach(scene => {
+	do_traverse(root_scene, scene => {
 		scene.sequences.forEach(seq => {
+			//this is an offscreen group
+			if (typeof seq.offscreen != 'undefined') return;
+
 			seq.sources.forEach(src => {
 				if (pid.source === src) scene.resetup_pids = true;
 			}); 
@@ -666,7 +722,7 @@ filter.remove_pid = function(pid)
   if (index < 0) return;
   pids.splice(index, 1);
 
-	scenes.forEach(scene => {
+	do_traverse(root_scene, scene => {
 		for (let i=0; i<scene.mod.pids.length; i++) {
 			let pid_link = scene.mod.pids[i];
 			if (pid_link.pid === pid) {
@@ -732,6 +788,50 @@ let video_inputs_ready, audio_inputs_ready;
 let blocking_ref_pids = [];
 let purge_sources = [];
 
+
+function do_traverse(elm, fun)
+{
+	if (Array.isArray(elm.scenes)) {
+		for (let i=0; i<elm.scenes.length; i++) {
+			let scene = elm.scenes[i];
+			let res = do_traverse(scene, fun);
+			if (res == true) {
+				return;
+			}
+		}
+	} else {
+		fun(elm);
+	}
+}
+
+
+function do_traverse_all(elm, fun)
+{
+	let ret = fun(elm) || false;
+	if (ret == true) return;
+
+	if (Array.isArray(elm.scenes)) {
+		elm.scenes.forEach(scene => {
+			do_traverse_all(scene, fun);
+		});
+	}
+}
+
+let indent=0;
+function do_traverse_all_indent(elm, fun)
+{
+	let ret = fun(elm) || false;
+	if (ret == true) return;
+
+	if (Array.isArray(elm.scenes)) {
+		indent++;
+		elm.scenes.forEach(scene => {
+			do_traverse_all_indent(scene, fun);
+		});
+		indent--;
+	}
+}
+
 function do_terminate()
 {
 	terminated = true;
@@ -743,7 +843,7 @@ function do_terminate()
 		pid.send_event( new FilterEvent(GF_FEVT_STOP) ); 
 		pid.discard = true;
 	});
-	scenes.length = 0;
+	root_scene.scenes.length = 0;
 	sources.forEach(s => { stop_source(s, true); });
 	filter.abort();
 }
@@ -912,6 +1012,16 @@ function scene_resetup_pids(scene)
 	let prefetching = [];
 	//check all pids from sources
 	scene.sequences.forEach(seq => {
+		//this is an offscreen group
+		if (typeof seq.offscreen != 'undefined') {
+			let pid_link = {};
+			pid_link.pid = null;
+			pid_link.sequence = null;
+			pid_link.texture = seq.texture;
+			scene.mod.pids.push(pid_link);
+			return;
+		}
+
 		seq.sources.forEach(src => {
 			if (src.in_prefetch) return;
 			src.pids.forEach(pid => {	
@@ -945,15 +1055,26 @@ function scene_resetup_pids(scene)
 	});
 
 	scene.mod.pids.forEach(pid_link => {
-		print(GF_LOG_DEBUG, 'created PID link for ' + pid_link.pid.source.logname + '.' + pid_link.pid.name);
+		if (pid_link.pid)
+			print(GF_LOG_DEBUG, 'created PID link for ' + pid_link.pid.source.logname + '.' + pid_link.pid.name);
 	});
 
+}
+
+function create_pid_texture(pid)
+{
+	pid.texture = new evg.Texture(pid.pck);
+	pid.texture._gl_modified = true;
+	pid.texture.last_frame_ts = pid.frame_ts;
 }
 
 function scene_update_visual_pids(scene)
 {
 	let ready = true;
 	scene.mod.pids.forEach(pidlink => {
+		//offscreen group
+		if (!pidlink.pid) return;
+
 		if (!pidlink.pid.pck) {
 			if (pidlink.pid.source.in_prefetch) {
 				return;			
@@ -964,41 +1085,616 @@ function scene_update_visual_pids(scene)
 			ready = false;
 			return;
 		}
-		if (!pidlink.texture) {
+
+		//create texture object at PID level, so we don't end up uploading twice the same data to gpu
+		if (!pidlink.pid.texture) {
 			if (!pidlink.pid.pck) {
 				ready = false;
 				return;				
 			}
-			pidlink.texture = new evg.Texture(pidlink.pid.pck);
+			create_pid_texture(pidlink.pid);
+		}
+
+		if (!pidlink.texture) {
+			pidlink.texture = pidlink.pid.texture;
 			scene.mod.update_flag |= UPDATE_SIZE;
-		} else {
+		} else if (pidlink.pid.frame_ts != pidlink.texture.last_frame_ts) {
 			pidlink.texture.update(pidlink.pid.pck);
+		  pidlink.texture._gl_modified = true;
+		  pidlink.texture.last_frame_ts = pidlink.pid.frame_ts;
 		}
 	});
 	return ready;
 }
 
 
-let round_scene_size = false;
+let round_scene_size = 0;
+
+let global_transform = new evg.Matrix2D();
+let global_branch_depth = 0;
+
+function update_scene_matrix(scene, do_reset)
+{
+	let x=scene.x, y=scene.y, cx=scene.cx, cy=scene.cy;
+	let rotation = scene.rotation;
+	let hskew = scene.hskew;
+	let vskew = scene.vskew;
+	let hscale = scene.hscale;
+	let vscale = scene.vscale;
+
+	scene.mx_untransform = scene.untransform || false;
+
+	//compute absolute values
+	if (scene.units == UNIT_RELATIVE) {
+		if (typeof x == 'number')
+			x = x * video_width/100;
+		if (typeof y == 'number')
+			y = y * video_height/100;
+		cx = cx * video_width/100;
+		cy = cy * video_height/100;
+	}
+	//apply specia values
+	if (x == "y") x = y;
+	else if (x == "-y") x = -y;
+
+	if (y == "x") y = x;
+	else if (y == "-x") y = -x;
+
+	if (do_reset)
+		scene.mx.identity = true;
+
+	try {
+		if (scene.mxjs.length) {
+			let mx_set = false;
+			let untransform = false;
+			let update = false;
+			let mx = scene.mx;
+			eval(scene.mxjs);
+			scene.mx_untransform = untransform;
+			if (update) scene.update_flag = UPDATE_CHILD;
+			if (mx_set) {
+				scene.mx = mx;
+				return;
+			}
+		}
+	} catch (e) {
+		print(GF_LOG_ERROR, 'Error processing mxjs ' + scene.mxjs + ': ' + e);
+		scene.mxjs = '';
+	}
+
+	scene.mx.rotate(cx, cy, rotation * Math.PI / 180);
+	if (hskew) scene.mx.skew_x(hskew);
+	if (vskew) scene.mx.skew_y(vskew);
+	scene.mx.scale(hscale, vscale);
+	scene.mx.translate(x, y);
+}
+
+function get_dim(scene, is_width)
+{
+	let val;
+	if (is_width) {
+		val = scene.width;
+		if (val == -1) return reference_width;
+		if (val == "height") {
+			if (scene.height == "width") return 0;
+			return get_dim(scene, false);
+		}
+		if (scene.units == UNIT_RELATIVE)
+			return val * reference_width / 100;
+		return val;
+	}
+
+	val = scene.height;
+	if (val == -1) return reference_height;
+	if (val == "width") {
+		if (scene.width == "height") return 0;
+		return get_dim(scene, true);
+	}
+	if (scene.units == UNIT_RELATIVE)
+		return val * reference_height / 100;
+	return val;
+}
+
+let group_bounds = null;
+
+let reference_width = 0;
+let reference_height = 0;
+
+function group_draw_offscreen(group)
+{
+
+	//store display list and canvas state
+  let	has_opaque_bck = has_opaque;
+  let	display_list_bck = display_list;
+	let global_transform_copy = global_transform.copy();
+	let use_gpu_bck = globalThis.use_gpu;
+	let canvas_bck = canvas;
+	let webgl_bck = webgl;
+	let round_scene_bck = round_scene_size;
+	let group_bounds_bck = group_bounds;
+	//reset state
+	globalThis.use_gpu = false;
+	globalThis.blit_enabled = false;
+	global_transform.identity = true;
+  display_list = [];
+	webgl = null;
+	round_scene_size = 0;
+
+  //traverse while collecting bounds
+	group_bounds = {x: 0,x: 0,w: 0,h: 0,}
+
+
+	let ref_width_bck = reference_width;
+	let ref_height_bck = reference_height;
+	if (group.reference && (group.width>=0) && (group.height>=0)) {
+		let rw = get_dim(group, true);
+		let rh = get_dim(group, false);
+		reference_width = rw;
+		reference_height = rh;
+	}
+
+	group.scenes.forEach(scene => do_traverse_all(scene, update_scene));
+
+	reference_width = ref_width_bck;
+	reference_height = ref_height_bck;
+
+	group.skip_draw = false;
+	if ((group_bounds.w <= 0) || (group_bounds.h <= 0) || (group.width==0) || (group.height==0)) {
+		group.skip_draw = true;
+	}
+
+	let old_w, old_h;
+	if (group.canvas_offscreen) {
+		old_w = group.canvas_offscreen.width;
+		old_h = group.canvas_offscreen.height;
+	} else {
+		old_w = 0;
+		old_h = 0;
+	}
+
+	let scaler = group.scaler;
+	if (scaler<1) scaler = 1;
+	let inv_scaler = 1.0 / scaler;
+
+	let new_w = group_bounds.w;
+	let new_h = group_bounds.h;
+
+	if ((group.width>=0) && (group.height>=0)) {
+		new_w = get_dim(group, true);
+		new_h = get_dim(group, false);
+	}
+	if (new_w>video_width) new_w = video_width;
+	if (new_h>video_height) new_h = video_height;
+
+	new_w = Math.ceil(new_w / scaler);
+	new_h = Math.ceil(new_h / scaler);
+
+	if ((new_w != old_w) || (new_h != old_h)) {
+		let pf;
+		let alpha=true;
+		if (group.offscreen==GROUP_OST_MASK) {
+			pf = 'algr';
+		} else {
+	    let a = sys.color_component(group.back_color, 0);
+			if (a == 1.0) {
+				pf = canvas_yuv ? 'yuv4' : 'rgb';
+				alpha = false;
+			}
+			else
+				pf = canvas_yuv ? 'y4ap' : 'rgba';
+		}
+
+		print(GF_LOG_DEBUG, 'Offscreen group ' + group.id + ' creating offscreen canvas ' + new_w + 'x' + new_h + ' pfmt ' + pf + ' scaler ' + scaler);
+
+		group.canvas_offscreen = new evg.Canvas(new_w, new_h, pf);
+		if (!group.canvas_offscreen) return;
+
+		//don't delete texure once created, it might be used by some scenes
+		if (!group.texture)
+			group.texture = new evg.Texture(group.canvas_offscreen);
+		else
+			group.texture.update(group.canvas_offscreen);
+
+		if (!group.texture) return;
+	  group.texture.set_pad_color(group.back_color);
+
+	  if (scaler>1)
+			group.texture.filtering = (scaler>1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
+
+	  let mx = new evg.Matrix2D();
+	  mx.translate(-new_w/2, new_h/2);
+	  mx.scale(scaler, scaler);
+	  group.texture_mx = mx;
+
+	  group.path = new evg.Path().rectangle(0, 0, scaler*new_w, scaler*new_h, true);
+	}
+
+	print(GF_LOG_DEBUG, 'Redrawing offscreen group ' + group.id);
+	group.tr_x = group_bounds.x + group_bounds.w/2;
+	group.tr_y = group_bounds.y - group_bounds.h/2;
+
+	global_transform.translate(-group.tr_x, -group.tr_y);
+	global_transform.scale(inv_scaler, inv_scaler);
+	display_list.forEach(scene => {
+		scene.mx.add(global_transform, true);
+	});
+
+	canvas = group.canvas_offscreen;
+	canvas.clipper = null;
+	canvas.clear(group.back_color);
+
+	draw_display_list_2d();
+
+
+	//restore state
+	global_transform.copy(global_transform_copy);
+  has_opaque = has_opaque_bck;
+  display_list = display_list_bck;
+
+	globalThis.use_gpu = use_gpu_bck;
+	globalThis.blit_enabled = use_gpu_bck ? false : evg.BlitEnabled;
+	canvas = canvas_bck;
+	webgl = webgl_bck;
+	round_scene_size = round_scene_bck;
+	group_bounds = group_bounds_bck;
+
+  group.texture._gl_modified = true;
+}
+
+function update_group(group)
+{
+	let invalidate_offscreen = false;
+	let draw_regular = true;
+
+	if (group.update_flag) {
+		if (group.update_flag & UPDATE_CHILD)
+				invalidate_offscreen = true;
+
+		group.update_flag = 0;
+
+		update_scene_matrix(group, true);
+	} else if (group.use && group.mxjs.length) {
+		update_scene_matrix(group, true);
+	}
+
+	if ((group.opacity<1) || (group.offscreen>GROUP_OST_NONE)) {
+		if (invalidate_offscreen) {
+			group_draw_offscreen(group);
+		}
+		if (group.offscreen > GROUP_OST_DUAL) return;
+
+		//we fail at setting up group opacity, use regular draw
+		if (group.canvas_offscreen) draw_regular = false;
+	}
+
+	//regular traversal
+	if (draw_regular) {
+		if (global_branch_depth > filter.maxdepth) {
+			print(GF_LOG_ERROR, 'Maximum depth ' + filter.maxdepth + ' reached, aborting scene traversal - try increasing using --maxdepth=N');
+			return;
+		}
+
+		//we need a copy at each level
+		let global_transform_copy = global_transform.copy();
+		if (!group.mx_untransform)
+			global_transform.add(group.mx, true);
+		else
+			global_transform.copy(group.mx);
+
+		global_branch_depth ++;
+
+		let first_obj = display_list.length;
+
+		let ref_width_bck = reference_width;
+		let ref_height_bck = reference_height;
+		if (group.reference && (group.width>=0) && (group.height>=0)) {
+			let rw = get_dim(group, true);
+			let rh = get_dim(group, false);
+			reference_width = rw;
+			reference_height = rh;
+		}
+
+		if (group.use) {
+			let target = get_scene(group.use);
+			if (!target) target = get_group(group.use);
+			if (target) {
+				if ((group.use_depth<0) || (group.use_depth>group.current_depth)) {
+					group.current_depth++;
+					do_traverse_all(target, update_scene);
+					group.current_depth--;
+				}
+			}
+		} else {
+			group.scenes.forEach(scene => do_traverse_all(scene, update_scene));
+		}
+		global_transform.copy(global_transform_copy);
+		global_branch_depth --;
+		reference_width = ref_width_bck;
+		reference_height = ref_height_bck;
+
+		let last_obj = display_list.length;
+		if (group.reverse && (last_obj>first_obj)) {
+			let trunc_display_list = display_list.splice(first_obj, last_obj-first_obj);
+			trunc_display_list.reverse.apply(trunc_display_list);
+			display_list.push.apply(display_list, trunc_display_list);
+		}
+
+		return;
+	}
+
+	if (group.skip_draw) return;
+
+  //update matrix, opacity and push group to display list
+  group.mx.identity = 1;
+	group.mx.translate(group.tr_x, group.tr_y);
+	update_scene_matrix(group, false);
+	if (!group.mx_untransform)
+		group.mx.add(global_transform);
+
+  let draw_ctx = {};
+  draw_ctx.mx = group.mx.copy();
+  draw_ctx.screen_rect = null; //TODO
+  draw_ctx.scene = null;
+  draw_ctx.group = group;
+	draw_ctx.opaque_pid = null;
+	draw_ctx.is_opaque = false;
+	draw_ctx.zorder = group.zorder;
+
+	display_list.push(draw_ctx);
+
+}
+
+function update_scene(scene)
+{
+	//this is a group
+	if (Array.isArray(scene.scenes)) {
+		if (scene.active)
+			update_group(scene);
+		//abort traversing, it is done in update_group
+		return true;
+	}
+
+	if (!scene.active) {
+		return;
+	}
+
+	//recreate our set of inputs for the scene if any
+	if (scene.resetup_pids) {
+		scene_resetup_pids(scene);
+		scene.resetup_pids = false;
+		scene.mod.update_flag |= UPDATE_PID;
+	}
+	//not ready
+	if (!scene_update_visual_pids(scene)) return;
+
+	//compute scene size in pixels
+	let sw = get_dim(scene, true);
+	let sh = get_dim(scene, false);
+	if ((scene.mod.width != sw) || (scene.mod.height != sh)) {
+		scene.mod.width = sw;
+		scene.mod.height = sh;
+		scene.mod.update_flag |= UPDATE_SIZE;
+	}
+
+	scene.gl_uniforms_reload = scene.mod.update_flag ? true : false;
+	if (scene.mod.update_flag & UPDATE_FX) {
+		scene.transition = null;
+		scene.gl_program = null;
+	}
+
+	//update the scene
+	scene.mod.force_draw = false;
+	let res = scene.mod.update();
+	if (!res) return;
+	if (res==2) has_clip_mask = true;
+
+	update_scene_matrix(scene, true);
+	if (!scene.mx_untransform)
+		scene.mx.add(global_transform);
+
+	let cover_type = 0;
+	let use_rotation = false;
+	if (!scene.mx.xx || !scene.mx.yy) return;
+	if ((scene.mx.xx<0) || (scene.mx.yy<0) || (scene.mx.xy) || (scene.mx.yx)) use_rotation = true;
+
+	scene.mod.screen_rect = null;
+
+	let rc = {x: - scene.mod.width/2, y : scene.mod.height/2, w: scene.mod.width, h: scene.mod.height};
+	rc = scene.mx.apply(rc);
+
+	if (group_bounds) {
+			group_bounds = sys.rect_union(group_bounds, rc);
+	}
+
+	//if final matrix has rotation
+	if (use_rotation) {
+			cover_type = 0;
+	} else {
+		let can_blit = false;
+
+		if ((rc.w == video_width)
+				&& (rc.h == video_height)
+				&& (rc.x == -video_width/2)
+				&& (rc.y == video_height/2)
+		) {
+			can_blit = true;
+			cover_type = 1;
+		}
+		else if ((rc.w > video_width)
+				&& (rc.h > video_height)
+				&& (rc.x <= -video_width/2)
+				&& (rc.y >= video_height/2)
+				&& (rc.x+rc.w >= video_width/2)
+				&& (rc.y - rc.h <= -video_height/2)
+		) {
+			cover_type = 2;
+		}
+
+		if ((rc.x >= -video_width/2)
+			&& (rc.y <= video_height/2)
+			&& (rc.x+rc.w <= video_width/2)
+			&& (rc.y - rc.h >= -video_height/2)
+		) {
+			can_blit = true;
+		}
+
+		if (can_blit) {
+			rc.x += video_width/2;
+			rc.y = video_height/2 - rc.y;
+
+			rc.x = Math.floor(rc.x);
+			rc.y = Math.floor(rc.y);
+			rc.w = Math.floor(rc.w);
+			rc.h = Math.floor(rc.h);
+			scene.mod.screen_rect = rc;
+		}
+	}
+
+	let opaque_pid = null;
+	let is_opaque = false;
+
+	if (!has_clip_mask && cover_type) {
+		let opaque_pid_idx = scene.mod.fullscreen();
+		if (scene.sequences.length && !scene.mod.pids.length) {
+
+		} else {
+			if ((opaque_pid_idx>=0) && (opaque_pid_idx<scene.mod.pids.length)) {
+				opaque_pid = scene.mod.pids[opaque_pid_idx].pid;
+			}
+
+			if (!opaque_pid) {
+				is_opaque = scene.mod.is_opaque() || false;
+			}
+		}
+	}
+
+	if (opaque_pid) {
+		has_opaque = true;
+		if (pids.indexOf(opaque_pid) < 0) {
+			print(GF_LOG_WARNING, 'Broken scene ' + scene.id + ' returned fullscreen pid not in PID list');
+			scene.active = false;
+			return;
+		}
+	} else if (!use_rotation && is_opaque) {
+		has_opaque = true;
+	} else {
+		is_opaque = false;
+	}
+
+  let draw_ctx = {};
+  draw_ctx.mx = scene.mx.copy();
+  draw_ctx.screen_rect = scene.mod.screen_rect;
+  draw_ctx.scene = scene;
+  draw_ctx.group = null;
+	draw_ctx.opaque_pid = opaque_pid;
+	draw_ctx.is_opaque = is_opaque;
+	draw_ctx.zorder = scene.zorder;
+
+	display_list.push(draw_ctx);
+}
 
 function set_canvas_yuv(pfmt)
 {
-	globalThis.canvas_yuv = canvas.is_yuv;
-	round_scene_size = false;
+	globalThis.canvas_yuv = sys.pixfmt_yuv(pfmt);
+	round_scene_size = 0;
 	if (canvas_yuv) {
-		if (video_pfmt == 'yuv4') {}
-		else if (video_pfmt =='yp4l') {}
-		else if (video_pfmt =='yp4a') {}
-		else if (video_pfmt =='yv4p') {}
-		else if (video_pfmt =='y4ap') {}
-		else if (video_pfmt =='y4lp') {}
+		if (pfmt == 'yuv4') {}
+		else if (pfmt =='yp4l') {}
+		else if (pfmt =='yp4a') {}
+		else if (pfmt =='yv4p') {}
+		else if (pfmt =='y4ap') {}
+		else if (pfmt =='y4lp') {}
+		else if ((pfmt == 'yuv2')
+			|| (pfmt == 'yp2l')
+			|| (pfmt == 'uyvy')
+			|| (pfmt == 'vyuy')
+			|| (pfmt == 'yuyv')
+			|| (pfmt == 'yvyu')
+			|| (pfmt == 'uyvl')
+			|| (pfmt == 'vyul')
+			|| (pfmt == 'yuyl')
+			|| (pfmt == 'yvyl')
+		) {
+			round_scene_size = 1;
+		}
 		else {
-			round_scene_size = true;
+			round_scene_size = 2;
 		}
 	}
 
 }
 let display_list = [];
+let has_clip_mask = false;
+let has_opaque = false;
+
+function set_active_scene(ctx)
+{
+	if (ctx.group) {
+		ctx.group.mx.copy(ctx.mx);
+		active_scene = null;
+		return true;
+	}
+	if (ctx.scene) {
+		ctx.scene.mx.copy(ctx.mx);
+		ctx.scene.mod.screen_rect = ctx.screen_rect;
+		active_scene = ctx.scene;
+		return true;
+	}
+	return false;
+}
+
+function round_rect(rc_in)
+{
+	let rc = rc_in;
+	if (rc.x % 2) { rc.x--; rc.w++; }
+	if (rc.w % 2) rc.w--;
+	//only round y for 420 & co
+	if (round_scene_size==2) {
+		if (rc.y % 2) { rc.y--; rc.h++; }
+		if (rc.h % 2) rc.h--;
+	}
+	return rc;
+}
+
+let mask_mode = 0;
+
+function draw_display_list_2d()
+{
+	display_list.forEach(ctx => {
+			if (!set_active_scene(ctx)) return;
+
+			//offscreen group
+			if (ctx.group) {
+				ctx.group.texture.mx = ctx.group.texture_mx;
+				ctx.group.texture.set_alphaf(ctx.group.opacity);
+				canvas_draw(ctx.group.path, ctx.group.texture, true);
+				return;
+			}
+			let scene = ctx.scene;
+
+			if (mask_mode) {
+				scene.mod.screen_rect = null;
+			} else if (round_scene_size && scene.sequences.length && scene.mod.screen_rect) {
+				scene.mod.screen_rect = round_rect(scene.mod.screen_rect);
+			}
+
+			if (1) {
+					scene.mod.draw(canvas);
+			} else {
+				try {
+					scene.mod.draw(canvas);
+				} catch (e) {
+					print(GF_LOG_ERROR, 'Error during scene ' + scene.id + ' draw, disabling scene - error was ');
+					scene.active = false;
+				}
+			}
+
+		  canvas.matrix = null;
+		  canvas.path = null;
+		  //do not reset clipper
+	});
+}
+
 
 function process_video()
 {
@@ -1034,88 +1730,46 @@ function process_video()
 		}
 	}
 
-	let has_opaque = false;
+  display_list.length = 0;
+  has_clip_mask = false;
+	has_opaque = false;
+	reference_width = video_width;
+	reference_height = video_height;
+
+	global_transform.identity = true;
+	root_scene.scenes.forEach(elm => do_traverse_all(elm, update_scene) );
+
+  //sort display list - BROKEN if multiple scene instances
+  display_list.sort( (e1, e2) => { return e1.zorder - e2.zorder ; } );
+
 	let pid_background = null;
 	let pid_background_forward = false;
-
-  display_list.length = 0;
-  let has_clip = false;
-  scenes.forEach(scene => {
-  	if (!scene.mod.active) return;
-
-  	//recreate our set of inputs for the scene if any
-  	if (scene.resetup_pids) {
-  		scene_resetup_pids(scene);
-  		scene.resetup_pids = false;
-  		scene.mod.update_flag |= UPDATE_PID;
-  	}
-  	//not ready
-  	if (!scene_update_visual_pids(scene)) return;
-
-  	//update the scene
-			scene.mod.force_draw = false;
-  	let res = scene.mod.update();
-  	if (!res) return;
-  	if (res==2) has_clip = true;
-
-  	scene.opaque_pid = null;
-  	scene.is_opaque = false;
-  	if (has_clip || (scene.mod.rotation != 0) || (scene.mod.x > 0) || (scene.mod.x+scene.mod.width < video_width)
-  		|| (scene.mod.y > 0) || (scene.mod.y+scene.mod.height < video_height)
-  	) {
-  	} else {
-  		let opaque_pid_idx = scene.mod.fullscreen();
-  		if (scene.sequences.length && !scene.mod.pids.length) {
-
-  		} else {
-	  		if ((opaque_pid_idx>=0) && (opaque_pid_idx<scene.mod.pids.length)) {
-		  		scene.opaque_pid = scene.mod.pids[opaque_pid_idx].pid;
-	  		}
-
-	  		if (!scene.opaque_pid) {
-		  		scene.is_opaque = scene.mod.is_opaque() || false;
-	  		}
-  		}
-  	}
-
-  	if (scene.opaque_pid) {
-	  	has_opaque = true;
-	  	if (pids.indexOf(scene.opaque_pid) < 0) {
-	  		print(GF_LOG_WARNING, 'Broken scene ' + scene.id + ' returned fullscreen pid not in PID list');
-	  		scene.active = false;
-	  		return;
-	  	}
-	  } else if (scene.is_opaque) {
-	  	has_opaque = true;
-	  }
-  	display_list.push(scene);
-  });
-  //sort display list
-  display_list.sort( (e1, e2) => { return e1.mod.zorder - e2.mod.zorder ; } );
 
 	let frame = null;
 	let pfmt = video_pfmt;
 	let restore_pfmt = false;
-
   //reverse browse
 	if (has_opaque) {
 		for (let i=display_list.length; i>0; i--) {
-			let scene = display_list[i-1];
-			if (scene.opaque_pid) {
+			let ctx = display_list[i-1];
+
+			if (ctx.opaque_pid || ctx.is_opaque) {
 				display_list = display_list.splice(i-1);
-				pid_background = scene.opaque_pid;
-				pid_background_forward = scene.mod.identity() || false;
+			}
+
+			if (ctx.opaque_pid) {
+				pid_background = ctx.opaque_pid;
+				pid_background_forward = (ctx.scene && ctx.scene.mod.identity()) || false;
 
 				if (!pid_background.pck) {
 					pid_background_forward = false;
 					pid_background = null;
 					has_opaque = false;
-					scene.mod.force_draw = true;
+					if (ctx.scene) ctx.scene.mod.force_draw = true;
 				}
 				break;
 			}
-			if (scene.is_opaque) {
-				display_list = display_list.splice(i-1);
+			if (ctx.is_opaque) {
 				break;
 			}
 		}
@@ -1131,7 +1785,7 @@ function process_video()
 			//mismatch in pixel format cannot reuse packet
 			if (!filter.dynpfmt && (pid_background.pfmt != video_pfmt)) {
 				pid_background_forward = false;
-				display_list[0].mod.force_draw = true;
+				display_list[0].scene.mod.force_draw = true;
 			} else {
 		  	if (last_forward_pixfmt != pid_background.pfmt) {
 					last_forward_pixfmt = pid_background.pfmt;
@@ -1178,6 +1832,8 @@ function process_video()
 		canvas_reconfig = true;
 	}			
 
+	clip_stack.length = 0;
+	global_branch_depth = 0;
   if (filter.gpu) {
 
 		webgl.activate(true);
@@ -1206,12 +1862,21 @@ function process_video()
 			active_scene = null;
 			draw_scene_no_signal(null);
 		} else {
-			display_list.forEach(scene => {
-				active_scene = scene;
-				if (scene.gl_type == SCENE_GL_NONE) {
-					scene.mod.draw();
+			display_list.forEach(ctx => {
+				if (!set_active_scene(ctx)) return;
+
+				//offscreen group
+				if (ctx.group) {
+					ctx.group.texture.mx = ctx.group.texture_mx;
+					ctx.group.texture.set_alphaf(ctx.group.opacity);
+					canvas_draw(ctx.group.path, ctx.group.texture, true);
+					return;
+				}
+
+				if (ctx.scene.gl_type == SCENE_GL_NONE) {
+					ctx.scene.mod.draw();
 				} else {
-					scene.mod.draw_gl(webgl);
+					ctx.scene.mod.draw_gl(webgl);
 				}
 			});
 		}
@@ -1234,7 +1899,14 @@ function process_video()
 
 		if (!pid_background_forward) {
 			if (!canvas) {
-				canvas = new evg.Canvas(video_width, video_height, pfmt, frame.data);
+				try {
+					canvas = new evg.Canvas(video_width, video_height, pfmt, frame.data);
+				} catch (e) {
+					print(GF_LOG_ERROR, 'Failed to create canvas: ' + e);
+					do_terminate();
+					return;
+				}
+
 				if (filter.thread) {
 					canvas.enable_threading(filter.thread);
 				}
@@ -1244,13 +1916,20 @@ function process_video()
 				if (typeof canvas.blit != 'function')
 					globalThis.blit_enabled = false;
 				else if (!globalThis.use_gpu)
-					globalThis.blit_enabled = true;
+					globalThis.blit_enabled = evg.BlitEnabled;
 
 				canvas.pix_fmt = pfmt;
 				set_canvas_yuv(pfmt);
 			} else if (canvas_reconfig) {
 				canvas_reconfig = false;	
-				canvas.reassign(video_width, video_height, pfmt, frame.data);
+				try {
+					canvas.reassign(video_width, video_height, pfmt, frame.data);
+				} catch (e) {
+					print(GF_LOG_ERROR, 'Failed to reassign canvas: ' + e);
+					do_terminate();
+					return;
+				}
+
 				canvas.pix_fmt = pfmt;
 				set_canvas_yuv(pfmt);
 			} else {		
@@ -1269,13 +1948,7 @@ function process_video()
 				active_scene = null;
 				draw_scene_no_signal(null);
 			} else {
-				display_list.forEach(scene => {
-						active_scene = scene;
-						scene.mod.draw(canvas);
-					  canvas.matrix = null;
-					  canvas.path = null;
-					  //do not reset clipper
-				});
+				draw_display_list_2d();
 			}
 		}
   }
@@ -1389,7 +2062,7 @@ function process_audio()
 	} else {
 
 		//apply volume per scene
-		scenes.forEach(scene => {
+		do_traverse(root_scene, scene => {
 			scene.apids.forEach(pid => {
 				pid.detached = false;
 				if (pid.source.mix)
@@ -1398,7 +2071,7 @@ function process_audio()
 					pid.volume = scene.mod.volume;
 
 				//scene inactive
-				if (!scene.mod.active) {
+				if (!scene.active) {
 					//pid was active, either mute or fade to 0
 					if (pid.active) {
 						if ((scene.mod.fade=='out') || (scene.mod.fade=='inout')) {
@@ -1431,7 +2104,6 @@ function process_audio()
 			}
 			pid.active = false;
 		});
-
 
 		aframe = aout.new_packet(nb_samples * channels * sample_size);
 
@@ -1536,7 +2208,7 @@ function sequence_over(s, force_seq_reload)
 	else if (s.sequence.transition_state == 3) {
 		s.sequence.transition_state = 0;
 		print(GF_LOG_INFO, 'End of transition for sequence ' + s.sequence.id);
-		scenes.forEach(scene => {
+		do_traverse(root_scene, scene => {
 			if (scene.sequences.indexOf(s.sequence) >= 0) {
 				scene.resetup_pids = true;
 			}
@@ -1577,7 +2249,7 @@ function sequence_over(s, force_seq_reload)
 
 		//transition has been started so next source is loaded, only reset scene pids
 		if (s.sequence.transition_state==3) {
-			scenes.forEach(scene => {
+			do_traverse(root_scene, scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 						scene.resetup_pids = true;
 						print(GF_LOG_DEBUG, 'end of transition, scene PID resetup');
@@ -1599,7 +2271,7 @@ function sequence_over(s, force_seq_reload)
 				}
 			});
 
-			scenes.forEach(scene => {
+			do_traverse(root_scene, scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 						scene.resetup_pids = true;
 						print(GF_LOG_DEBUG, 'end of prefetch, scene PID resetup');
@@ -1677,7 +2349,7 @@ function fetch_source(s)
 		if ((s.in_prefetch==2) && (s.sequence.start_time>0) && (s.sequence.start_time <= current_utc_clock)) {
 			s.in_prefetch = 0;
 			print(GF_LOG_DEBUG, 'end of prefetch for ' + s.logname + ' , scene PID resetup');
-			scenes.forEach(scene => {
+			do_traverse(root_scene, scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 						scene.resetup_pids = true;
 				}
@@ -1693,7 +2365,7 @@ function fetch_source(s)
 	  	s.video_time_at_init = 0;
 			stop_source(s, true);
 			s.sequence.transition_state = 0;
-			scenes.forEach(scene => {
+			do_traverse(root_scene, scene => {
 				if (scene.sequences.indexOf(s.sequence) >= 0) {
 					scene.resetup_pids = true;
 				}
@@ -1769,7 +2441,7 @@ function fetch_source(s)
 
 		//we got a packet, if first one init clock
 		if (!s.timeline_init) {
-			if (!min_timescale || (min_cts * pid.timescale < pid.cts * min_timescale)) {
+			if (!min_timescale || (min_cts * pid.timescale > pck.cts * min_timescale)) {
 				min_cts = pck.cts;
 				min_timescale = pid.timescale;
 			}
@@ -1783,7 +2455,7 @@ function fetch_source(s)
 			let check_end = s.duration;
 			if (s.media_stop>0 && s.media_stop<s.duration) check_end = s.media_stop;
 
-			if ((!s.sequence.transition_state<=1) && s.sequence.transition_effect) {
+			if ((s.sequence.transition_state<=1) && s.sequence.transition_effect && next_source(s, true) ) {
 				let dur = s.sequence.transition_effect.dur || 0;
 				if (dur) {
 					s.sequence.transition_state = 1;
@@ -2684,7 +3356,12 @@ function validate_scene(pl)
 				print(GF_LOG_WARNING, 'Invalid scene.sources element ' + s_id + ', expecting string - ignoring element ' + JSON.stringify(pl) );
 				return false;
 			}
-			if (!get_sequence_by_id(s_id)) {
+			let src = get_sequence_by_id(s_id);
+			if (!src) {
+				src = get_group(s_id);
+				if (src && (src.offscreen==GROUP_OST_NONE)) src = null;
+			}
+			if (!src) {
 				print(GF_LOG_WARNING, 'Invalid scene.sources element ' + s_id + ', source sequence not found - ignoring element ' + JSON.stringify(pl) );
 				return false;
 			}
@@ -2696,7 +3373,7 @@ function validate_scene(pl)
 	let scene_id = pl.id || null;
 	if (scene_id) {
 		let nb_scenes=0;
-		scenes.forEach(s => {
+		do_traverse(root_scene, s => {
 			if (s.id === scene_id) nb_scenes++;
 		});
 		if (nb_scenes>1) {
@@ -2707,34 +3384,35 @@ function validate_scene(pl)
 	return true;
 }
 
-function get_scene(scene_id, js_name)
+let ID_scenes = [];
+
+function get_scene(scene_id)
 {
-	for (let i=0; i<scenes.length; i++) {
-		let scene = scenes[i];
-		let a_scene_id = scene.id || null;
-		if (scene_id && a_scene_id && (scene_id==a_scene_id)) {
-			return scene;
-		}
-		if ((scene_id && !a_scene_id) || (!scene_id && a_scene_id)) {
-			continue;
-		}
-		if (!js_name) continue;
-		if (scene.js == js_name) return scene;
+	if (!scene_id) return null;
+
+	for (let i=0; i<ID_scenes.length; i++) {
+		let scene = ID_scenes[i];
+		if (scene_id==scene.id)
+				return scene;
+
+		continue;
 	}
 	return null;
 }
 
 function check_transition(fx_id)
 {
-	for (let i=0; i<scenes.length; i++) {
-		let scene = scenes[i];
-		if (!scene.transition_effect) continue;
+	let fx = null;
+
+	do_traverse(root_scene, scene => {
+		if (fx || !scene.transition_effect) return;
 
 		let a_fx_id = scene.transition_effect.id || null;
 		if (a_fx_id && (fx_id==a_fx_id)) {
-			return true;
+			fx = scene.transition_effect;
 		}
-	}
+	});
+	if (fx != null) return true;
 	return false;
 }
 
@@ -2751,30 +3429,39 @@ function get_a_trans(obj, fx_id, get_json)
 
 function get_transition(fx_id, get_json)
 {
-	for (let i=0; i<scenes.length; i++) {
-		let tr = get_a_trans(scenes[i], fx_id, get_json);
-		if (tr) return tr;
-	}
+	let tr = null;
+	do_traverse(root_scene, scene => {
+		if (tr) return;
+		tr = get_a_trans(scene, fx_id, get_json);
+	});
+	if (tr) return tr;
+
 	for (let i=0; i<sequences.length; i++) {
-		let tr = get_a_trans(sequences[i], fx_id, get_json);
+		tr = get_a_trans(sequences[i], fx_id, get_json);
 		if (tr) return tr;
 	}
 	return null;
 }
 
 
-function parse_scene(pl)
+function parse_scene(pl, parent)
 {
-	let scene_id = pl.id || null;	
-	let scene = get_scene(scene_id, pl.js);
+	if (pl.skip || false)
+		return;
+
+	let scene_id = pl.id || null;
+	let scene = get_scene(scene_id);
 	if (!scene) {
 		if (typeof pl.sources == 'undefined') pl.sources = [];
 
-		create_scene(pl.sources, pl);
+		create_scene(pl.sources, pl, parent);
+	} else if (scene.pl_update) {
+		print(GF_LOG_WARNING, "Multiple scenes with id `" + scene_id + "` defined, ignoring subsequent declarations");
 	} else {
 		scene.pl_update = true;
+		if (parent) parent.scenes.push(scene);
+		else root_scene.scenes.push(scene);
 		set_scene_options(scene, pl);
-		check_scene_coords(scene);
 	}
 }
 
@@ -2851,6 +3538,207 @@ function parse_config(pl)
 	}
 }
 
+function is_scene_pl(pl)
+{
+		if (Array.isArray(pl.sources)
+		|| (typeof pl.js == 'string')
+		|| (typeof pl.x == 'number')
+		|| (typeof pl.y == 'number')
+		|| (typeof pl.width == 'number')
+		|| (typeof pl.height == 'number')
+	)
+		return true;
+
+	return false;
+}
+
+function validate_group(pl)
+{
+	let valid=true;
+
+	if (Array.isArray(pl.scenes)) {
+		pl.scenes.forEach(s => {
+			if (Array.isArray(s.scenes)) {
+				if (!validate_group(s))
+					valid = false;
+			}
+			else if (is_scene_pl(s)) {
+				if (!validate_scene(s))
+					valid = false;
+			}
+		});
+	}
+
+	if (!valid) return false;
+
+	for (var propertyName in pl) {
+		if (propertyName == 'id') continue;
+		if (propertyName == 'skip') continue;
+		if (group_get_update_type(propertyName, false) >= -1) continue;
+		if (propertyName.charAt(0) == '_') continue;
+
+		print(GF_LOG_WARNING, 'Unrecognized option ' + propertyName + ' in group ' + JSON.stringify(pl) );
+	}
+
+	return true;
+}
+
+let ID_groups = [];
+
+function get_group(group_id)
+{
+	if (!group_id) return null;
+	for (let i=0; i<ID_groups.length; i++) {
+		let group = ID_groups[i];
+		if (group_id==group.id )
+				return group;
+
+		continue;
+	}
+	return null;
+}
+
+
+const group_transform_props = [
+	{ name: "active", def_val: true, update_flag: 0},
+	{ name: "zorder", def_val: 0, update_flag: 0},
+	{ name: "x", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "y", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "rotation", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "cx", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "cy", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "hskew", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "vskew", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "vscale", def_val: 1, update_flag: UPDATE_POS},
+	{ name: "hscale", def_val: 1, update_flag: UPDATE_POS},
+	{ name: "untransform", def_val: false, update_flag: UPDATE_POS},
+	{ name: "units", def_val: null, update_flag: -1},
+	{ name: "mxjs", def_val: "", update_flag: -1},
+];
+
+
+const group_props = [
+  //first three are not updatable and no default value
+	{ name: "scenes", def_val: null, update_flag: -1},
+	{ name: "offscreen", def_val: null, update_flag: -1},
+	{ name: "use", def_val: null, update_flag: -1},
+
+	{ name: "opacity", def_val: 1, update_flag: UPDATE_CHILD},
+	{ name: "scaler", def_val: 1, update_flag: UPDATE_CHILD},
+	{ name: "back_color", def_val: 'none', update_flag: UPDATE_CHILD},
+	{ name: "width", def_val: -1, update_flag: UPDATE_CHILD},
+	{ name: "height", def_val: -1, update_flag: UPDATE_CHILD},
+	{ name: "use_depth", def_val: -1, update_flag: UPDATE_CHILD},
+	{ name: "reverse", def_val: false, update_flag: UPDATE_CHILD},
+	{ name: "reference", def_val: false, update_flag: UPDATE_CHILD},
+];
+
+
+function parse_group_transform(scene, params)
+{
+	group_transform_props.forEach(o => {
+		if (o.def_val != null)
+			parse_val(params, o.name, scene, o.def_val, o.update_flag);
+	});
+	scene.units = UNIT_RELATIVE;
+	if (typeof params.units == 'string') {
+		if (params.units == 'pix') scene.units = UNIT_PIXEL;
+		else if (params.units == 'rel') scene.units = UNIT_RELATIVE;
+		else {
+			print(GF_LOG_WARNING, 'Invalid unit type ' + params.units + ', using relative');
+		}
+	}
+}
+
+function group_get_update_type(prop_name, transform_only)
+{
+	let i;
+
+	for (i=0; i<group_transform_props.length; i++) {
+		if (group_transform_props[i].name == prop_name) return group_transform_props[i].update_flag;
+	}
+	if (transform_only) return -2;
+
+	for (i=0; i<group_props.length; i++) {
+		if (group_props[i].name == prop_name) return group_props[i].update_flag;
+	}
+	return -2;
+}
+
+function parse_group(pl, parent)
+{
+	if (pl.skip || false)
+		return;
+
+	let group_id = pl.id || null;
+	let group = get_group(group_id);
+	if (!group) {
+		group = {};
+		group.id = group_id;
+		group.scenes = [];
+		group.parent = parent;
+		group.current_depth = 0;
+
+		if (group_id) ID_groups.push(group);
+		group.mx = new evg.Matrix2D();
+		group.offscreen_canvas = null;
+		group.update_flag = UPDATE_CHILD;
+
+	} else if (group.pl_update) {
+		print(GF_LOG_WARNING, "Multiple groups with id `" + group_id + "` defined, ignoring subsequent declarations");
+		return;
+	}
+	group.pl_update = true;
+
+	group.update_flag |= UPDATE_POS;
+
+	group_props.forEach(o => {
+		if (o.def_val == null)  return;
+			parse_val(pl, o.name, group, o.def_val, o.update_flag);
+	});
+	parse_group_transform(group, pl);
+
+	//ad-hoc parsing for offscreen
+	group.offscreen = GROUP_OST_NONE;
+	if (typeof pl.offscreen == 'string') {
+		if (pl.offscreen == 'mask') group.offscreen = GROUP_OST_MASK;
+		else if (pl.offscreen == 'color') group.offscreen = GROUP_OST_COLOR;
+		else if (pl.offscreen == 'dual') group.offscreen = GROUP_OST_DUAL;
+		else if (pl.offscreen == 'none') group.offscreen = GROUP_OST_NONE;
+		else {
+			print(GF_LOG_WARNING, "Unknown group offscreen mode `" + pl.offscreen + "`, ignoring");
+		}
+	}
+	//ad-hoc parsing for use
+	group.use = (typeof pl.use == 'string') ? pl.use : null;
+
+	//tag all scenes with ID as not present
+	group.scenes.forEach(scene => {
+		scene.pl_update = false;
+	});
+
+	group.scenes.length = 0;
+
+	//parse
+	if (! group.use) {
+		pl.scenes.forEach(s => {
+			if (Array.isArray(s.scenes) || (typeof s.use == 'string')) {
+				if (validate_group(s))
+					parse_group(s, group);
+			}
+			else if (is_scene_pl(s)) {
+				if (validate_scene(s))
+					parse_scene(s, group);
+			}
+		});
+	}
+
+	if (parent) {
+		parent.scenes.push(group);
+	} else {
+		root_scene.scenes.push(group);
+	}
+}
 
 function parse_pl_elem(pl)
 {
@@ -2866,14 +3754,11 @@ function parse_pl_elem(pl)
 	if (Array.isArray(pl.seq))
 		type = 'seq';
 
-	if (Array.isArray(pl.sources) 
-		|| (typeof pl.js == 'string')
-		|| (typeof pl.x == 'number')
-		|| (typeof pl.y == 'number')
-		|| (typeof pl.width == 'number')
-		|| (typeof pl.height == 'number')
-	)
+	if (is_scene_pl(pl))
 		type = 'scene';
+
+	if (Array.isArray(pl.scenes) || (typeof pl.use == 'string'))
+		type = 'group';
 
 	if (Array.isArray(pl.keys) || Array.isArray(pl.anims))
 		type = 'timer';
@@ -2906,7 +3791,11 @@ function parse_pl_elem(pl)
 		}	
 	} else if (type==='scene') {
 		if (validate_scene(pl)) {
-			parse_scene(pl);
+			parse_scene(pl, null);
+		}
+	} else if (type==='group') {
+		if (validate_group(pl)) {
+			parse_group(pl, null);
 		}	
 	} else if (type==='timer') {
 		if (validate_timer(pl)) {
@@ -2920,6 +3809,30 @@ function parse_pl_elem(pl)
 		print(GF_LOG_WARNING, 'type ' + type + ' not defined, ignoring element ' + JSON.stringify(pl) );
 	}
 }
+
+function cleanup_list_id(is_group)
+{
+	let ID_list = is_group ? ID_groups : ID_scenes;
+
+	for (let i=0; i<ID_list.length; i++) {
+		let s = ID_list[i];
+		if (s.pl_update) continue;
+
+		print(GF_LOG_INFO, (is_group ? 'Group ' : 'Scene ') + s.id + ' removed');
+		ID_list.splice(i, 1);
+		i--;
+
+		if (is_group) {
+			let len_before = ID_list.length;
+			remove_scene_or_group(s);
+			//cleanup of subtree removed a group with ID, restart
+			if (len_before != ID_list.length) {
+				i=-1;
+			}
+		}
+	}
+}
+
 
 function load_playlist()
 {
@@ -2952,9 +3865,18 @@ function load_playlist()
 			src.pl_update = false;
 		});
 	});
-	scenes.forEach(scene => {
+
+	//mark all scenes with ID as not updated
+	ID_scenes.forEach(scene => {
 		scene.pl_update = false;
 	});
+
+	//mark all groups with ID as not updated
+	ID_groups.forEach(group => {
+		group.pl_update = false;
+	});
+	//reset root
+	root_scene.scenes.length = 0;
 
 	if (Array.isArray(pl) ) {
 		pl.forEach(parse_pl_elem);
@@ -2962,7 +3884,7 @@ function load_playlist()
 		parse_pl_elem(pl);
 	}
 
-	if (scenes.length) {
+	if (root_scene.scenes.length) {
 		generate_default_scene = false;
 	}
 
@@ -2979,24 +3901,19 @@ function load_playlist()
 	}
 
 	//cleanup scenes no longer in use
-	for (let i=0; i<scenes.length; i++) {
-		let s = scenes[i];
-		if (s.pl_update) continue;
-
-		print(GF_LOG_INFO, 'Scene ' + s.id + ' removed');
-		scenes.splice(i, 1);
-		i--;
-	}
+	cleanup_list_id(false);
+	//cleanup groups no longer in use
+	cleanup_list_id(true);
 
 	//create default scene if needed
-	if (!scenes.length && sources.length && generate_default_scene) {
+	if (!root_scene.scenes.length && sources.length && generate_default_scene) {
 		print(GF_LOG_INFO, 'No scenes defined, generating default one');
-		create_scene(null, { "js": "shape"});
+		create_scene(null, {"id": "_gpac_scene_default", "js": "shape"}, null);
 	}
 	return true;
 }
 
-function parse_val(params, name, scaler, scene_obj, def_val, update_type)
+function parse_val(params, name, scene_obj, def_val, update_type)
 {
 	let new_val;
 	let prop_set = (typeof scene_obj[name] == 'undefined') ? false : true;
@@ -3006,60 +3923,85 @@ function parse_val(params, name, scaler, scene_obj, def_val, update_type)
 		if (! prop_set)
 			new_val = def_val;
 		else
-			new_val = scene_obj[name];
-	}
-	else if (typeof params[name] == 'string') {
-			if (params[name] == "width") new_val = scene_obj.width;
-			else if (params[name] == "height") new_val = scene_obj.height;
-			else new_val =  parseInt(params[name]);
-	} else if (typeof params[name] == 'object') {
 			return;
-	} else if (scaler) {
-		new_val = (params[name] * scaler / 100);
+	} else if (typeof params[name] == 'object') {
+		return;
 	} else {		
 		new_val = params[name];
 	}
+
 	//any change to these properties will require a PID reconfig of the scene
 	if (prop_set && (new_val != scene_obj[name])) {
-		scene_obj.update_flag |= update_type;
+		//scene obj
+		if (typeof scene_obj.mod == 'object')
+			scene_obj.mod.update_flag |= update_type;
+		else
+			scene_obj.update_flag |= update_type;
 	}
 	scene_obj[name] = new_val;
 }
 
+
+
+
+const scene_props = [
+	{ name: "js", def_val: null, update_flag: -1, is_mod: false},
+	{ name: "sources", def_val: null, update_flag: -1, is_mod: false},
+	{ name: "mix", def_val: null, update_flag: -1, is_mod: false},
+
+	{ name: "width", def_val: -1, update_flag: UPDATE_SIZE, is_mod: false},
+	{ name: "height", def_val: -1, update_flag: UPDATE_SIZE, is_mod: false},
+	{ name: "volume", def_val: 1, update_flag: 0, is_mod: true},
+	{ name: "fade", def_val: "inout", update_flag: 0, is_mod: true},
+	{ name: "mix_ratio", def_val: 0, update_flag: 0, is_mod: true},
+];
+
+function scene_get_update_type(prop_name)
+{
+	let i;
+	for (i=0; i<scene_props.length; i++) {
+		if (scene_props[i].name == prop_name) return scene_props[i].update_flag;
+	}
+	return -2;
+}
+
+function scene_is_mod_option(prop_name)
+{
+	let i;
+	for (i=0; i<scene_props.length; i++) {
+		if (scene_props[i].name == prop_name) return scene_props[i].is_mod;
+	}
+	return -2;
+}
+
 function set_scene_options(scene, params)
 {
-	//setup defaults
-	parse_val(params, "x", video_width, scene.mod, 0, UPDATE_POS);
-	parse_val(params, "y", video_height, scene.mod, 0, UPDATE_POS);
-	parse_val(params, "width", video_width, scene.mod, video_width, UPDATE_SIZE);
-	parse_val(params, "height", video_height, scene.mod, video_height, UPDATE_SIZE);
-	parse_val(params, "zorder", 0, scene.mod, 0, 0);
-	parse_val(params, "active", 0, scene.mod, true, 0);
-	parse_val(params, "rotation", 0, scene.mod, 0, UPDATE_POS);
-	parse_val(params, "hskew", 0, scene.mod, 0, UPDATE_POS);
-	parse_val(params, "vskew", 0, scene.mod, 0, UPDATE_POS);
-	parse_val(params, "volume", 0, scene.mod, 1.0, 0);
-	scene.mod.fade = params.fade || "inout";
+	//scene has been removed (duplicated ids)
+	if (!scene.mod) return;
 
-	if ((typeof params.width == 'string') && (params.width == "height")) scene.mod.width = scene.mod.height;
-	if ((typeof params.height == 'string') && (params.height == "width")) scene.mod.height = scene.mod.width;
-	if (typeof params.x == 'string') {
-		if (params.x == "y") scene.mod.x = scene.mod.y;
-		else if (params.x == "-y") scene.mod.x = video_height - scene.mod.y - scene.mod.height;
-	}
-	if (typeof params.y == 'string') {
-		if (params.y == "x") scene.mod.y = scene.mod.x;
-		else if (params.y == "-x") scene.mod.y = video_width - scene.mod.x - scene.mod.width;
-	}
+	scene_props.forEach(o => {
+		if (o.def_val != null) {
+			if (o.is_mod)
+				parse_val(params, o.name, scene.mod, o.def_val, o.update_flag);
+			else {
+				parse_val(params, o.name, scene, o.def_val, o.update_flag);
+			}
+		}
+	});
 
+	//common with group
+	parse_group_transform(scene, params);
 
+	//parse module options
 	if (scene.options) {
 		scene.options.forEach( o => {
 				if (typeof o.name == 'undefined') return;
 				if (typeof o.value == 'undefined') return;
 				let prop_set = (typeof scene.mod[o.name] == 'undefined') ? false : true;
+				let mix_strings = o.dirty || 0;
+				mix_strings = mix_strings & UPDATE_ALLOW_STRING;
 
-				if (params && (typeof params[o.name] == typeof o.value) ) {
+				if (params && check_prop_type(typeof params[o.name], typeof o.value, mix_strings) ) {
 					if (prop_set && (scene.mod[o.name] != params[o.name])) {
 						let modif = true;
 						if (Array.isArray(o.value) && (scene.mod[o.name].length == params[o.name].length)) {
@@ -3107,25 +4049,15 @@ function set_scene_options(scene, params)
 	}
 
 	for (var propertyName in params) {
-		if (propertyName == 'x') continue;
-		if (propertyName == 'y') continue;
-		if (propertyName == 'width') continue;
-		if (propertyName == 'height') continue;
-		if (propertyName == 'zorder') continue;
-		if (propertyName == 'active') continue;
-		if (propertyName == 'rotation') continue;
-		if (propertyName == 'hskew') continue;
-		if (propertyName == 'vskew') continue;
+		//defined ones at module level
+		if (typeof scene.mod[propertyName] != 'undefined') continue;
+		//defined ones at scene level
+		if (scene_get_update_type(propertyName) > -2) continue;
+		if (group_get_update_type(propertyName, true) > -2) continue;
 		if (propertyName == 'id') continue;
-		if (propertyName == 'js') continue;
 		if (propertyName == 'skip') continue;
-		if (propertyName == 'sources') continue;
-		if (propertyName == 'volume') continue;
-		if (propertyName == 'fade') continue;
-		if (propertyName == 'mix') continue;
-		if (propertyName == 'mix_ratio') continue;
-
 		if (propertyName.charAt(0) == '_') continue;
+
 		if (scene.options && (typeof scene.mod[propertyName] != 'undefined')) continue;
 
 		print(GF_LOG_WARNING, 'Unrecognized scene option ' + propertyName + ' for ' + scene.id + ' ');
@@ -3134,30 +4066,19 @@ function set_scene_options(scene, params)
 	//check if we have a mix instruction
 	if (!scene.sequences || (scene.sequences.length<=1)) {
 		scene.transition_effect = null;
-		scene.mod.mix_ratio = -1;
 		scene.transition = null;
 	} else {
 		let old_fx = scene.transition_effect;
 		scene.transition_effect = params.mix || null;
-		scene.mod.mix_ratio = params.mix_ratio || 0;
 
-		if (old_fx && scene.transition_effect && (scene.transition_effect.type != old_fx.type))
+		if (old_fx && scene.transition_effect && (scene.transition_effect.type != old_fx.type)) {
 			scene.transition = null;
+		}
 
-		if (!scene.transition) {
+		if (!scene.transition && scene.transition_effect) {
 			scene.transition_state = 0;
 			load_transition(scene);
 		}
-	}
-}
-
-function check_scene_coords(scene)
-{
-	if (round_scene_size && scene.sequences.length && canvas_yuv) {
-		if (scene.mod.x % 2) scene.mod.x--; 
-		if (scene.mod.y % 2) scene.mod.y--;
-		if (scene.mod.width % 2) scene.mod.width--;
-		if (scene.mod.height % 2) scene.mod.height--;
 	}
 }
 
@@ -3169,7 +4090,7 @@ function setup_scene(scene, seq_ids, params)
 	scene.mod.pids = [];
 	scene.apids = [];
 	scene.transition_effect = null;
-	scene.mod.mix_ratio = -1;
+	scene.mod.mix_ratio = 0;
 	scene.transition = null;
 
 	//default scene
@@ -3178,18 +4099,37 @@ function setup_scene(scene, seq_ids, params)
 	} else if (typeof seq_ids != 'undefined') {
 		seq_ids.forEach(sid =>{
 			let s = get_sequence_by_id(sid);
-			scene.sequences.push(s);
+			if (!s) {
+				s = get_group(sid);
+				if (s && (s.offscreen == GROUP_OST_NONE)) s = null;
+			}
+			if (s)
+				scene.sequences.push(s);
 		}); 
 	}
 
 	scene.mod.update_flag = UPDATE_PID;
 	set_scene_options(scene, params);
-
-	check_scene_coords(scene);
-
 }
 
-function create_scene(seq_ids, params)
+function remove_scene_or_group(elmt)
+{
+	let par = elmt.parent ? elmt.parent : root_scene;
+  let index = par.scenes.indexOf(elmt);
+  if (index > -1) par.scenes.splice(index, 1);
+
+  if (elmt.id) {
+		//traverse down tree, remove all elements with ID
+		do_traverse_all(elmt, e => {
+			if (!e.id) return;
+			let id_list = Array.isArray(e.scenes) ? ID_groups : ID_scenes;
+			let index = id_list.indexOf(e);
+			if (index > -1) id_list.splice(index, 1);
+		});
+  }
+}
+
+function create_scene(seq_ids, params, parent)
 {
 	let script_src = sys.url_cat(playlist_url, params.js);
 
@@ -3205,20 +4145,29 @@ function create_scene(seq_ids, params)
 
 	modules_pending ++;
 	let scene = {};
-	scene.id = params.id || "_gpac_scene_default";
+	scene.id = params.id || null;
 	scene.pl_update = true;
 	scene.mod = null;
 	scene.sequences = [];
 	scene.transition_effect = params.mix || null;
-	scenes.push(scene);
 	scene.gl_type = SCENE_GL_NONE;
+	scene.parent = parent;
+	scene.mx = new evg.Matrix2D();
+
+	if (parent)
+		parent.scenes.push(scene);
+	else
+		root_scene.scenes.push(scene);
+
+	if (scene.id)
+		ID_scenes.push(scene);
 
 	import(script_src)
 		  .then(obj => {
 		  		modules_pending--;
 		  		print(GF_LOG_DEBUG, 'Module ' + script_src + ' loaded');
 		  		scene.mod = obj.load();
-		  		scene.mod.id = scene.id;
+					scene.mod.id = scene.id || "unknown";
 
 		  		if (typeof scene.mod.fullscreen != 'function')
 		  				scene.mod.fullscreen = function () { return -1; };
@@ -3241,8 +4190,7 @@ function create_scene(seq_ids, params)
 		  				scene.mod.draw = function (canvas) {};
 		  				if (!filter.gpu) {
 								print(GF_LOG_ERROR, 'GPU not enabled but required for scene ' + params.js + ' - disabling scene');
-								let idx = scenes.indexOf(scene);
-								scenes.splice(idx, 1);
+								remove_scene_or_group(scene);
 								return;
 		  				}
 		  			} else {
@@ -3255,10 +4203,8 @@ function create_scene(seq_ids, params)
 		  })
 		  .catch(err => {
 		  		modules_pending--;
-		  		print(GF_LOG_ERROR, "Failed to load scene '" + params.js + "': " + err);
-			    let index = scenes.indexOf(scene);
-			    if (index > -1) scenes.splice(index, 1);
-
+					print(GF_LOG_ERROR, "Failed to load scene '" + params.js);
+					remove_scene_or_group(scene);
 		  });
 }
 
@@ -3335,8 +4281,8 @@ function validate_timer(pl)
 		if (propertyName == 'id') continue;
 		if (propertyName == 'dur') continue;
 		if (propertyName == 'loop') continue;
-		if (propertyName == 'start_time') continue;
-		if (propertyName == 'stop_time') continue;
+		if (propertyName == 'start') continue;
+		if (propertyName == 'stop') continue;
 		if (propertyName == 'keys') continue;
 		if (propertyName == 'anims') continue;
 		if (propertyName.charAt(0) == '_') continue;
@@ -3456,42 +4402,66 @@ function parse_timer(pl)
 			let tar = {};
 			tar.id = vals[0];
 			tar.scene = get_scene(vals[0]);
+			tar.group = get_group(vals[0]);
 			tar.fx = null;
 			tar.fx_obj = null;
-			if (!tar.scene && check_transition(vals[0]))
+			if (!tar.scene && !tar.group && check_transition(vals[0]))
 				tar.fx = vals[0];
 
-			if (!tar.scene && !tar.fx) {
+			if (!tar.scene && !tar.group && !tar.fx) {
 				print(GF_LOG_ERROR, 'No scene or transition with ID ' + vals[0] + ' found, ignoring target');
 				return;
 			}
 
 			tar.field = vals[1];
+
+			if (tar.field=="id") {
+				print(GF_LOG_ERROR, 'ID cannot be animated, ignoring target');
+				return;
+			}
+
+			tar.scene_obj = false;
+
 			if (tar.scene) {
-				if ((tar.field=="x") || (tar.field=="width")) tar.atype = 1;
-				else if ((tar.field=="y") || (tar.field=="height")) tar.atype = 2;
-				else tar.atype = 0;
+				//check transform props
+				tar.update_type = group_get_update_type(tar.field, true);
+				if (tar.update_type>=0)
+						tar.scene_obj = true;
 
-				tar.update_type = UPDATE_SIZE;
-				if ((tar.field=="width") || (tar.field=="height") || (tar.field=="volume") || (tar.field=="fade"))
-						tar.update_type = UPDATE_SIZE;
-				else if ((tar.field=="x") || (tar.field=="y") || (tar.field=="rotation") || (tar.field=="hskew") || (tar.field=="vskew"))
-						tar.update_type = UPDATE_POS;
-				else if (tar.scene && tar.scene.options && (typeof tar.scene.options[tar.field] != 'undefined'))
-					tar.update_type = tar.scene.options[tar.field].dirty || UPDATE_SIZE;
-
-				if (!tar.update_type) {
-					print(GF_LOG_ERROR, 'Field ' + tar.field + ' of scene ' + tar.scene.id + ' is not updatable, ignoring target');
-					return;
+				//check scene (not module) props
+				if (tar.update_type == -2) {
+					tar.update_type = scene_get_update_type(tar.field);
+					if ((tar.update_type>=0) && !scene_is_mod_option(tar.field))
+						tar.scene_obj = true;
 				}
-
-				//no scene invalidate for these types
-				if ((tar.field=="mix_ratio") || (tar.field=="volume") || (tar.field=="fade") || (tar.field=="active") || (tar.field=="zorder"))
-					tar.update_type = 0;
+				if ((tar.update_type == -2) && tar.scene && !tar.scene.mod) {
+					//scene module not loaded, defer
+					tar.update_type = -3;
+				}
+				else if ((tar.update_type == -2) && tar.scene && tar.scene.options) {
+					tar.scene.options.forEach(o=> {
+						if (o.name != tar.field) return;
+						if (typeof o.dirty == 'number')
+							tar.update_type = o.dirty;
+					  else
+							tar.update_type=-1;
+					});
+				}
+			} else if (tar.group) {
+				tar.update_type = group_get_update_type(tar.field, false);
 			} else {
 				tar.update_type = UPDATE_SIZE;
-				tar.atype = 0;
 			}
+
+			if (tar.update_type == -2) {
+				print(GF_LOG_ERROR, 'No field ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ', ignoring target');
+				return;
+			}
+			if (tar.update_type == -1) {
+				print(GF_LOG_ERROR, 'Field ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ' cannot be updated, ignoring target');
+				return;
+			}
+
 
 			//indexed anim
 			if (tar.field.indexOf('[')>0) {
@@ -3546,6 +4516,14 @@ function timer_restore(timer)
 			}
 		});
 	});
+}
+
+function invalidate_parent(elm)
+{
+	while (elm.parent) {
+		elm.parent.update_flag |= UPDATE_CHILD;
+		elm = elm.parent;
+	}
 }
 
 function update_timer(timer)
@@ -3604,7 +4582,12 @@ function update_timer(timer)
 		if (anim.angle) { interp *= Math.PI; interp /= 180; }
 
 		else if (anim.fun != null) {
-				eval(anim.fun);
+				try {
+					eval(anim.fun);
+				} catch (e) {
+					print(GF_LOG_ERROR, "Error processing anim fun " + anim.fun + ': ' + e);
+					anim.fun = null;
+				}
 				if (interp<0) interp=0;
 				else if (interp>1) interp=1;
 		}
@@ -3612,7 +4595,12 @@ function update_timer(timer)
 		if (anim.mode==1) {
 			res = value1;
 			if (anim.postfun) {
-				eval(anim.postfun);
+				try {
+					eval(anim.postfun);
+				} catch (e) {
+					print(GF_LOG_ERROR, "Error processing anim postfun " + anim.postfun + ': ' + e);
+					anim.postfun = null;
+				}
 			}
 		}
 		else if (anim.color) {
@@ -3624,7 +4612,12 @@ function update_timer(timer)
 			res = interp * value2 + (1-interp) * value1;
 
 			if (anim.postfun) {
-				eval(anim.postfun);
+				try {
+					eval(anim.postfun);
+				} catch (e) {
+					print(GF_LOG_ERROR, "Error processing anim postfun " + anim.postfun + ': ' + e);
+					anim.postfun = null;
+				}
 			}
 		}
 
@@ -3635,6 +4628,8 @@ function update_timer(timer)
 
 			if (target.scene)
 				anim_obj = target.scene.mod;
+			else if (target.group)
+				anim_obj = target.group;
 			else if (target.fx) {
 				if (!target.fx_obj) {
 					target.fx_obj = get_transition(target.fx, false);
@@ -3654,27 +4649,49 @@ function update_timer(timer)
 				i--;
 				continue;
 			}
+
+			if (target.scene_obj) {
+				anim_obj = target.scene;
+			}
+
 			if (typeof anim_obj[target.field] == 'undefined') {
-				print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
-				anim.targets.splice(i, 1);
-				i--;
-				continue;
+				//special case for scene, some options are not in the scene module
+				if (target.scene &&  (typeof target.scene[target.field] != 'undefined')) {
+					anim_obj = target.scene;
+				} else {
+					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
+					anim.targets.splice(i, 1);
+					i--;
+					continue;
+				}
 			}
 			let update_type = target.update_type;
 
+			//update type was defered (scene nnot loaded)
+			if ((update_type == -3) && target.scene) {
+				if (typeof target.scene.mod[target.field] != 'undefined') {
+					target.scene.options.forEach(o => {
+						if (o.name != target.field) return;
+						if (typeof o.dirty == 'number')
+							update_type = o.dirty;
+					  else
+							update_type=-1;
+					});
+				}
+				if (update_type<0) {
+					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
+					anim.targets.splice(i, 1);
+					i--;
+					continue;
+				}
+				target.update_type = update_type;
+			}
+
+
+			let allow_string = (update_type & UPDATE_ALLOW_STRING) ? true : false;
+			update_type &= ~UPDATE_ALLOW_STRING;
+
 			let final = res;
-			if (target.atype==1) {
-				if (res == 'height') res = anim_obj.height;
-				else {
-					final = res * video_width / 100; 
-				}
-			}
-			else if (target.atype==2) {
-				if (res == 'width') res = anim_obj.width;
-				else {
-					final = res * video_height / 100; 
-				}
-			}
 
 			if (target.idx>=0) {
 				if (Array.isArray(anim_obj[target.field])
@@ -3687,33 +4704,23 @@ function update_timer(timer)
 					if ((anim_obj[target.field][target.idx] != final)) {
 						anim_obj.update_flag |= update_type;
 						anim_obj[target.field][target.idx] = final;
+						if (update_type)
+							invalidate_parent(target.scene);
 					}
 				}
-			}
-			else if ( (typeof anim_obj[target.field] == typeof final) ) {
+			} else if (check_prop_type(typeof anim_obj[target.field], typeof final, allow_string)) {
 				if (do_store) {
 					target.orig_value = anim_obj[target.field];
 				}
 				if ((anim_obj[target.field] != final)) {
 					anim_obj.update_flag |= update_type;
 					anim_obj[target.field] = final;
-					if ((target.atype==1) || (target.atype==2)) check_scene_coords(target.scene)
+
 					print(GF_LOG_DEBUG, 'update ' + target.id + '.' + target.field + ' to ' + final);
 
+					if (update_type)
+						invalidate_parent(target.group || target.scene);
 				}
-			}
-			else if ((typeof res == 'string') && (typeof anim_obj[target.field] == 'number') ) {
-				 let val = globalThis[res];
-				 if (typeof val == typeof anim_obj[target.field]) {
-					if (do_store) {
-						target.orig_value = anim_obj[target.field];
-					}
-					if (anim_obj[target.field] != val) {
-						anim_obj.update_flag |= update_type;
-						anim_obj[target.field] = val;
-					}
-					return;
-				 }
 			} else {
 				print(GF_LOG_WARNING, 'Anim type mismatch for ' + target.field + ' got ' + typeof final + ' expecting ' + typeof anim_obj[target.field] + ', ignoring');
 			}
@@ -3723,34 +4730,113 @@ function update_timer(timer)
 }
 
 
+function clip_to_output(clip)
+{
+	let rc = {};
+	rc.x = clip.x - clip.w/2;
+	rc.y = clip.y + clip.h/2;
+	rc.w = clip.w;
+	rc.h = clip.h;
+	rc = active_scene.mx.apply(rc);
+
+	rc.x = Math.floor(rc.x);
+	rc.y = Math.floor(rc.y);
+	rc.w = Math.floor(rc.w);
+	rc.h = Math.floor(rc.h);
+	if (!webgl) return round_rect(rc);
+	return rc;
+}
 
 function canvas_clear(color, clip)
 {
-		if (webgl) {
-	    let a = sys.color_component(color, 0);
-    	let r = sys.color_component(color, 1);
-    	let g = sys.color_component(color, 2);
-    	let b = sys.color_component(color, 3);
+	if (!active_scene) return;
+	clip = clip_to_output(clip);
 
-		  webgl.viewport(clip.x, clip.y, clip.w, clip.h);
-		  webgl.clearColor(r, g, b, a);
-  		webgl.clear(webgl.COLOR_BUFFER_BIT);
-		  webgl.viewport(0, 0, video_width, video_height);
-		  return;
-		}
-		canvas.clipper = clip;
-		canvas.clear(color);
-		canvas.clipper = null;
+	if (webgl) {
+		let a = sys.color_component(color, 0);
+		let r = sys.color_component(color, 1);
+		let g = sys.color_component(color, 2);
+		let b = sys.color_component(color, 3);
+
+		webgl.clearColor(r, g, b, a);
+
+		webgl.enable(webgl.SCISSOR_TEST);
+		webgl.scissor(video_width/2 + clip.x, clip.y - clip.h + video_height/2, clip.w, clip.h);
+		webgl.clear(webgl.COLOR_BUFFER_BIT);
+		webgl.disable(webgl.SCISSOR_TEST);
+
+	} else {
+		canvas.clear(clip, color);
+	}
 }
 
 let wgl_clipper = null;
-function canvas_set_clipper(clip)
+
+let clip_stack = [];
+function canvas_set_clipper(clip, use_stack)
 {
-		if (webgl) {
-			wgl_clipper = clip;
-		  return;
+	if (!active_scene) return;
+
+	if (use_stack) {
+		if (!clip) {
+			clip_stack.pop();
+			clip = clip_stack.length ? clip_stack[clip_stack.length - 1] : null;
+		} else {
+			clip = clip_to_output(clip);
+
+			if (clip_stack.length) {
+				let prev_clip = clip_stack[clip_stack.length - 1];
+				clip = sys.rect_intersect(prev_clip, clip);
+			}
+			clip_stack.push(clip);
 		}
+	} else {
+		if (clip)
+			clip = clip_to_output(clip);
+	}
+	if (webgl) {
+		wgl_clipper = clip;
+	} else {
 		canvas.clipper = clip;
+	}
+}
+
+let mask_canvas = null;
+let mask_canvas_data = null;
+let mask_texture = null;
+let mask_texture_stencil = null;
+
+function canvas_set_mask_mode(mode)
+{
+		if (use_gpu) {
+			if (mode) {
+				if (!mask_canvas_data) {
+					mask_canvas_data = new ArrayBuffer(video_width * video_height);
+					mask_canvas = new evg.Canvas(video_width, video_height, "grey", mask_canvas_data);
+					//create our webgl texture and associated EVG
+					mask_texture = webgl.createTexture(null);
+					mask_texture_stencil = new evg.Texture(mask_canvas);
+				}
+				let clear = null;
+				if (mode == GF_EVGMASK_DRAW) {
+					clear = 'black';
+				}
+				else if (mode == GF_EVGMASK_RECORD) {
+					clear = 'white';
+				}
+				else if (mode == GF_EVGMASK_DRAW_NO_CLEAR) {
+					mode = GF_EVGMASK_DRAW;
+				}
+
+				if (clear) {
+					mask_canvas.clear(clear);
+				}
+			}
+		} else {
+			canvas.mask_mode = mode;
+		}
+
+		mask_mode = mode;
 }
 
 
@@ -3768,7 +4854,7 @@ function flush_offscreen_canvas()
   //set video texture
   webgl.activeTexture(webgl.TEXTURE0);
   webgl.bindTexture(webgl.TEXTURE_2D, canvas_offscreen._gl_texture);
-	webgl.uniform1i(glprog.uniformLocations.mainTx, 0);
+	webgl.uniform1i(glprog.textures[0].sampler, 0);
 
 	canvas_offscreen._mesh.draw(webgl, glprog.attribLocations.vertexPosition, glprog.attribLocations.textureCoord);
 
@@ -3785,7 +4871,7 @@ function canvas_offscreen_activate()
 		canvas_offscreen._evg_texture = new evg.Texture(canvas_offscreen);
 		if (!canvas_offscreen._evg_texture) return false;
 
-		canvas_offscreen._gl_texture = webgl.createTexture(canvas_offscreen._gl_tx_id);
+		canvas_offscreen._gl_texture = webgl.createTexture(null);
 		if (!canvas_offscreen._gl_texture) return false;
 		canvas_offscreen._gl_tx_id = webgl.textureName(canvas_offscreen._gl_texture);
 
@@ -3812,27 +4898,14 @@ function canvas_offscreen_deactivate()
 	flush_offscreen_canvas();
 }
 
-function gl_set_color_matric(cmx_val, cmx_mul_uni, cmx_add_uni)
-{
-	if (!cmx_mul_uni) return;
-
-	let cmx_mul = [];
-	for (let i=0; i<4; i++) {
-  	for (let j=0; j<4; j++) {
-			cmx_mul.push(cmx_val[i*5 + j]);
-		}
-	}
-  webgl.uniformMatrix4fv(cmx_mul_uni, false, cmx_mul);
-  webgl.uniform4f(cmx_add_uni, cmx_val[4], cmx_val[9], cmx_val[14], cmx_val[19]);
-
-}
-
 let no_signal_text = null;
 let no_signal_brush = new evg.SolidBrush();
 let no_signal_path = null;
 let no_signal_outline = null;
 
-function draw_scene_no_signal(matrix)
+let no_signal_transform = new evg.Matrix2D();
+
+function draw_scene_no_signal()
 {
 	if (!no_signal_path) no_signal_path = new evg.Text();
 
@@ -3868,44 +4941,100 @@ function draw_scene_no_signal(matrix)
 	  no_signal_outline = null;
 	}
 
-  let mx = new evg.Matrix2D(matrix);
-  mx.translate(-w/2, 0);
+	if (active_scene)
+		no_signal_transform.copy(global_transform)
+	else
+		no_signal_transform.identity = true;
+
+  no_signal_transform.translate(-w/2, 0);
 
   if (!no_signal_outline) {
   	no_signal_outline = text.get_path().outline( { width: 6, align: GF_PATH_LINE_CENTER, cap: GF_LINE_CAP_ROUND, join: GF_LINE_JOIN_ROUND } );
   }
   no_signal_brush.set_color('black');
-  no_signal_brush._gl_color = 'black';
-	canvas_draw(no_signal_outline, mx, no_signal_brush, true);
+
+  let scene = active_scene;
+  active_scene = null;
+	canvas_draw(no_signal_outline, no_signal_brush, true);
 
 /*  no_signal_brush.set_color('black');
-  no_signal_brush._gl_color = 'black';
 	canvas_draw(text, mx, no_signal_brush, true);
   mx.translate(-2, 2);
 */
   no_signal_brush.set_color('white');
-  no_signal_brush._gl_alpha = 1;
-  no_signal_brush._gl_color = 'white';
-	canvas_draw(text, mx, no_signal_brush, true);
+	canvas_draw(text, no_signal_brush, true);
+
+  active_scene = scene;
 }
 
-function canvas_draw(path, matrix, stencil)
+
+function push_texture_uniforms(tx, prog_tx_uni)
 {
-	if (arguments.length==3) {
+	let mx2d = tx._gl_mx || null;
+	const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
+	webgl.uniformMatrix4fv(prog_tx_uni.matrix, false, txmx.m);
+
+	webgl.uniform1f(prog_tx_uni.alpha, tx.get_alphaf() );
+
+	let cmx_val = tx.cmx;
+	if (cmx_val.identity) {
+		  webgl.uniform1i(prog_tx_uni.cmx_use, 0);
+	} else {
+		let cmx_mul = [];
+		cmx_mul.length = 16;
+
+		cmx_mul[0] = cmx_val.rr; cmx_mul[1] = cmx_val.rg; cmx_mul[2] = cmx_val.rb; cmx_mul[3] = cmx_val.ra;
+		cmx_mul[4] = cmx_val.gr; cmx_mul[5] = cmx_val.gg; cmx_mul[6] = cmx_val.gb; cmx_mul[7] = cmx_val.ga;
+		cmx_mul[8] = cmx_val.br; cmx_mul[9] = cmx_val.bg; cmx_mul[10] = cmx_val.bb; cmx_mul[11] = cmx_val.ba;
+		cmx_mul[12] = cmx_val.ar; cmx_mul[13] = cmx_val.ag; cmx_mul[14] = cmx_val.ab; cmx_mul[15] = cmx_val.aa;
+
+		webgl.uniformMatrix4fv(prog_tx_uni.cmx_mul, false, cmx_mul);
+		webgl.uniform4f(prog_tx_uni.cmx_add, cmx_val.tr, cmx_val.tg, cmx_val.tb, cmx_val.ta);
+		webgl.uniform1i(prog_tx_uni.cmx_use, 1);
+	}
+
+	if (prog_tx_uni.r_s) {
+	  webgl.uniform1i(prog_tx_uni.r_s, tx.repeat_s);
+	  webgl.uniform1i(prog_tx_uni.r_t, tx.repeat_t);
+
+
+		let color = tx.get_pad_color();
+		let a = sys.color_component(color, 0);
+		let r = sys.color_component(color, 1);
+		let g = sys.color_component(color, 2);
+		let b = sys.color_component(color, 3);
+		webgl.uniform4f(prog_tx_uni.pad_color, r, g, b, a);
+	}
+}
+
+function canvas_draw(path, stencil)
+{
+	let uniform_reload = false;
+	//regular call
+	if (arguments.length==2) {
 		if (!path)
 			return;
 		if (!stencil) {
 			//this only happens if no more input pids for scene
-			draw_scene_no_signal(matrix);
+			draw_scene_no_signal();
 			return;
 		}
-		if (active_scene.mod.pids.length && active_scene.mod.pids[0].pid.source.no_signal) {
-			draw_scene_no_signal(matrix);
+		if (active_scene.mod.pids.length && active_scene.mod.pids[0].pid && active_scene.mod.pids[0].pid.source.no_signal) {
+			draw_scene_no_signal();
 			return;		
 		}
+		uniform_reload = active_scene.gl_uniforms_reload;
+	} else {
+		//group or no signal, always reload uniforms
+		uniform_reload = true;
 	}
 
+	let matrix = active_scene ? active_scene.mx : no_signal_transform;
+
+	stencil.auto_mx = true;
+
 	if (webgl) {
+
 			let is_texture = stencil.width || 0;
 			let is_text = path.fontsize || 0;
 			let use_soft_raster = false;
@@ -3919,8 +5048,15 @@ function canvas_draw(path, matrix, stencil)
 			//we only draw text through software rasterizer
 			else if (is_text) use_soft_raster = true;
 
+			if (mask_mode) {
+				use_soft_raster = false;
+			}
+
 			if (use_soft_raster) {
 				canvas_offscreen_activate();
+				if (canvas_offscreen.mask_mode != mask_mode) {
+					canvas_offscreen.mask_mode = mask_mode;
+				}
 			  canvas_offscreen.path = path;
 			  canvas_offscreen.matrix = matrix;
 			  canvas_offscreen.fill(stencil);
@@ -3946,46 +5082,55 @@ function canvas_draw(path, matrix, stencil)
 					if (stencil._gl_program) {
 						stencil._gl_program = null;
 						print(GF_LOG_INFO, 'texture format change, reloading GLSL shader');
-						return;
 					}
+					stencil._gl_modified = true;
 				}
-				webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
-		    stencil._gl_texture.upload(stencil);
+
+				if (stencil._gl_modified == true) {
+					webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
+			    stencil._gl_texture.upload(stencil);
+					stencil._gl_modified = false;
+				}
 			}
 
 			let prog_info = stencil._gl_program || null;
 	    if (!stencil._gl_program) {
-	    		if (is_texture) {
-	    			let fs_src = (stencil._gl_cmx==null) ? fs_source : fs_source_cmx; 
-	  	      prog_info = stencil._gl_program = setup_webgl_program(vs_source, fs_src, stencil._gl_tx_id);
-	  	      if (!stencil._gl_program) {
-	  	      	filter.abort();
-	  	      	return;
-	  	      }
+				if (is_texture) {
+					let color_mx = stencil.cmx;
+					if (color_mx.identity) color_mx = null;
 
-	  	      if (stencil._gl_cmx) {
-	  	      	prog_info.uniformLocations.cmx_mul = webgl.getUniformLocation(prog_info.program, 'cmx_mul');
-	  	      	prog_info.uniformLocations.cmx_add = webgl.getUniformLocation(prog_info.program, 'cmx_add');
-	  	      } else {
-							prog_info.uniformLocations.cmx_mul = null;	  	      	
-							prog_info.uniformLocations.cmx_add = null;	  	      	
-	  	      }
-	    		} else {
-	  	      prog_info = stencil._gl_program = setup_webgl_program(vs_const_col, fs_const_col, null);
-	  	      if (!stencil._gl_program) {
-	  	      	filter.abort();
-	  	      	return;
-	  	      }
-				  	let color = stencil._gl_color || "0xFFFFFFFF";
-				  	let alpha = stencil._gl_alpha || 1;
-				    let a = sys.color_component(color, 0) * alpha;
-			    	let r = sys.color_component(color, 1);
-			    	let g = sys.color_component(color, 2);
-			    	let b = sys.color_component(color, 3);
-					  webgl.useProgram(prog_info.program);
-					  webgl.uniform4f(prog_info.uniformLocations.color, r, g, b, a);
-	    		}
+					let fs_src = fs_source; 
+
+					prog_info = stencil._gl_program = setup_webgl_program(vs_source, fs_src, stencil._gl_tx_id);
+					if (!stencil._gl_program) {
+						filter.abort();
+						return;
+					}
+				} else {
+					prog_info = stencil._gl_program = setup_webgl_program(vs_const_col, fs_const_col, null);
+					if (!stencil._gl_program) {
+						filter.abort();
+						return;
+					}
+				}
+				webgl.useProgram(prog_info.program);
+				webgl.uniform1f(prog_info.mask_w, video_width);
+				webgl.uniform1f(prog_info.mask_h, video_height);
     	}
+
+			let use_mask = 0;
+			if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_RECORD)) {
+			  mask_canvas.path = path;
+			  mask_canvas.matrix = matrix;
+			  mask_canvas.fill(stencil);
+			  if (mask_mode==GF_EVGMASK_DRAW) return;
+			  use_mask = 1;
+			}
+			else if (mask_mode==GF_EVGMASK_USE) {
+			  use_mask = 1;
+			} else if (mask_mode==GF_EVGMASK_USE_INV) {
+			  use_mask = 2;
+			}
 
 		  webgl.useProgram(prog_info.program);
 
@@ -3993,44 +5138,58 @@ function canvas_draw(path, matrix, stencil)
 
 		  if (wgl_clipper) {
 				webgl.enable(webgl.SCISSOR_TEST);
-				webgl.scissor(wgl_clipper.x+video_width/2, wgl_clipper.y+video_height/2 - wgl_clipper.h, wgl_clipper.w, wgl_clipper.h);
+
+				webgl.scissor(video_width/2 + wgl_clipper.x, wgl_clipper.y - wgl_clipper.h + video_height/2, wgl_clipper.w, wgl_clipper.h);
 		  } else {
 				webgl.disable(webgl.SCISSOR_TEST);
 		  }
 
 		  //set transform
 	  	const modelViewMatrix = new evg.Matrix(matrix);
-		  webgl.uniformMatrix4fv(prog_info.uniformLocations.modelViewMatrix, false, modelViewMatrix.m);
+		  webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
+
+		  //set mask
+		  webgl.uniform1i(prog_info.mask_mode, use_mask);
+
+			if (use_mask) {
+				let tx_slot = is_texture ? stencil._gl_texture.nb_textures : 0;
+			  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+				webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
+		    mask_texture.upload(mask_texture_stencil);
+				webgl.uniform1i(prog_info.mask_tx, tx_slot);
+			}
 
 		  if (is_texture) {
-			  let mx2d = stencil._gl_mx || null;
-		  	const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
-			  webgl.uniformMatrix4fv(prog_info.uniformLocations.txMatrix, false, txmx.m);
-
-	      let alpha = stencil._gl_alpha || 1;
-			  webgl.uniform1f(prog_info.uniformLocations.alpha, alpha);
-
-	      if (stencil._gl_cmx) {
-					gl_set_color_matric(stencil._gl_cmx, prog_info.uniformLocations.cmx_mul, prog_info.uniformLocations.cmx_add);
-	      }
-
+				if (uniform_reload) {
+					push_texture_uniforms(stencil, prog_info.textures[0]);
+				}
 
 			  //set video texture
 			  webgl.activeTexture(webgl.TEXTURE0);
 			  webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
-				webgl.uniform1i(prog_info.uniformLocations.mainTx, 0);
+				webgl.uniform1i(prog_info.textures[0].sampler, 0);
 
 				mesh.draw(webgl, prog_info.attribLocations.vertexPosition, prog_info.attribLocations.textureCoord);
 		  } else {
+				if (uniform_reload) {
+					let color = stencil.get_color();
+					let alpha = stencil.get_alphaf();
+					let a = sys.color_component(color, 0) * alpha;
+					let r = sys.color_component(color, 1);
+					let g = sys.color_component(color, 2);
+					let b = sys.color_component(color, 3);
+					webgl.uniform4f(prog_info.color, r, g, b, a);
+				}
+
 				mesh.draw(webgl, prog_info.attribLocations.vertexPosition);
 		  }
 		  webgl.useProgram(null);
 			webgl.disable(webgl.SCISSOR_TEST);
-			return;
+	} else {
+	  canvas.path = path;
+	  canvas.matrix = matrix;
+	  canvas.fill(stencil);
 	}
-  canvas.path = path;
-  canvas.matrix = matrix;
-  canvas.fill(stencil);      
 }
 
 const transition_vs_source = `
@@ -4049,38 +5208,163 @@ void main() {
 }
 `;
 
+const single_in_op_vs_source = `
+attribute vec4 aVertexPosition;
+attribute vec2 aTextureCoord;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec2 txcoord_from;
+varying vec2 txcoord_op;
+uniform mat4 textureMatrixFrom;
+uniform mat4 textureMatrixOp;
+void main() {
+  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+	txcoord_from = vec2(textureMatrixFrom * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
+	txcoord_op = vec2(textureMatrixOp * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
+}
+`;
+
+
+const dual_in_op_vs_source = `
+attribute vec4 aVertexPosition;
+attribute vec2 aTextureCoord;
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec2 txcoord_from;
+varying vec2 txcoord_to;
+varying vec2 txcoord_op;
+uniform mat4 textureMatrixFrom;
+uniform mat4 textureMatrixTo;
+uniform mat4 textureMatrixOp;
+void main() {
+  gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+	txcoord_from = vec2(textureMatrixFrom * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
+	txcoord_to = vec2(textureMatrixTo * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
+	txcoord_op = vec2(textureMatrixOp * vec4(aTextureCoord.x, aTextureCoord.y, 0, 1) );
+}
+`;
+
 const fs_trans_source_prefix = `
+uniform sampler2D mask_tx;
+uniform int mask_mode;
+uniform float mask_w, mask_h;
+
+uniform vec4 pad_color;
+uniform bool r_s, r_t;
+uniform float ratio;
+uniform float video_ar;
+
 varying vec2 txcoord_from;
 uniform sampler2D maintx1;
 uniform float _alpha_from;
-varying vec2 txcoord_to;
-replace_uni_cmx1
+uniform bool cmx1_use;
+uniform mat4 cmx1_mul;
+uniform vec4 cmx1_add;
 
+varying vec2 txcoord_to;
 uniform sampler2D maintx2;
 uniform float _alpha_to;
-uniform float ratio;
-uniform float video_ar;
-replace_uni_cmx2
+uniform bool cmx2_use;
+uniform mat4 cmx2_mul;
+uniform vec4 cmx2_add;
 
 vec4 get_pixel_from(vec2 tx_coord)
 {
-	vec4 col = texture2D(maintx1, tx_coord);
-	replace_cmx1
+	vec4 col;
+	if (!r_s && ((tx_coord.s<0.0) || (tx_coord.s>1.0))) {
+		col = pad_color;
+	} else if (!r_t && ((tx_coord.t<0.0) || (tx_coord.t>1.0))) {
+		col = pad_color;
+	} else {
+		vec2 tx = tx_coord;
+		while (tx.s<0.0) tx.s+= 1.0;
+		tx.s = mod(tx.s, 1.0);
+		while (tx.t<0.0) tx.t+= 1.0;
+		tx.t = mod(tx.t, 1.0);
+
+		col = texture2D(maintx1, tx);
+	}
+	if (cmx1_use) {
+		col = cmx1_mul * col;
+		col += cmx1_add;
+		col = clamp(col, 0.0, 1.0);
+	}
 	col.a *= _alpha_from;
 	return col;
 }
 
 vec4 get_pixel_to(vec2 tx_coord)
 {
-	vec4 col = texture2D(maintx2, tx_coord);
-	replace_cmx2
+	vec4 col;
+	if (!r_s && ((tx_coord.s<0.0) || (tx_coord.s>1.0))) {
+		col = pad_color;
+	} else if (!r_t && ((tx_coord.t<0.0) || (tx_coord.t>1.0))) {
+		col = pad_color;
+	} else {
+		vec2 tx = tx_coord;
+		while (tx.s<0.0) tx.s+= 1.0;
+		tx.s = mod(tx.s, 1.0);
+		while (tx.t<0.0) tx.t+= 1.0;
+		tx.t = mod(tx.t, 1.0);
+
+		col = texture2D(maintx2, tx);
+	}
+	if (cmx2_use) {
+		col = cmx2_mul * col;
+		col += cmx2_add;
+		col = clamp(col, 0.0, 1.0);
+	}
 	col.a *= _alpha_to;
 	return col;
 }
 
 `;
 
-function canvas_draw_sources(path, matrix)
+const fs_single_in_op_source_prefix = `
+uniform sampler2D mask_tx;
+uniform int mask_mode;
+uniform float mask_w, mask_h;
+
+varying vec2 txcoord_from;
+uniform sampler2D maintx1;
+uniform float _alpha_from;
+uniform bool cmx1_use;
+uniform mat4 cmx1_mul;
+uniform vec4 cmx1_add;
+
+uniform vec4 pad_color;
+uniform bool r_s, r_t;
+uniform float ratio;
+
+vec4 get_pixel_from(vec2 tx_coord)
+{
+	vec4 col;
+	if (!r_s && ((tx_coord.s<0.0) || (tx_coord.s>1.0))) {
+		col = pad_color;
+	} else if (!r_t && ((tx_coord.t<0.0) || (tx_coord.t>1.0))) {
+		col = pad_color;
+	} else {
+		vec2 tx = tx_coord;
+		while (tx.s<0.0) tx.s+= 1.0;
+		tx.s = mod(tx.s, 1.0);
+		while (tx.t<0.0) tx.t+= 1.0;
+		tx.t = mod(tx.t, 1.0);
+
+		col = texture2D(maintx1, tx);
+	}
+	if (cmx1_use) {
+		col = cmx1_mul * col;
+		col += cmx1_add;
+		col = clamp(col, 0.0, 1.0);
+	}
+	col.a *= _alpha_from;
+	return col;
+}
+
+`;
+
+
+function canvas_draw_sources(path)
 {
 	let scene = active_scene;
 	let pids = scene.mod.pids;
@@ -4088,11 +5372,12 @@ function canvas_draw_sources(path, matrix)
 	let op_type = 0;
 	let op_param = 0;
 	let op_tx = null;
-	if (arguments.length == 5) {
-		op_type = arguments[2];
-		op_param = arguments[3];
-		op_tx = arguments[4];
+	if (arguments.length == 4) {
+		op_type = arguments[1];
+		op_param = arguments[2];
+		op_tx = arguments[3];
 	}
+
 
 	if (pids.length==0) {
 		print(GF_LOG_ERROR, 'Broken scene ' + scene.id + ': call to draw_sources without any source pid !');
@@ -4104,35 +5389,50 @@ function canvas_draw_sources(path, matrix)
 		//should not happen
 		if (!tx) return;
 
-		canvas_draw(path, matrix, tx);
+		canvas_draw(path, tx);
 	  return;  
 	}
 
 	if (pids[0].pid.source.no_signal) {
-		draw_scene_no_signal(matrix);
+		draw_scene_no_signal();
 		return;
 	}
 
 	if (op_type) {
-		if (use_gpu) {
-			print(GF_LOG_WARNING, 'Multitexture canvas fill without transitions not implemented for GPU, disabling multitexture !');
-			canvas_draw(path, matrix, pids[0].texture);
+		pids[0].texture.auto_mx = true;
+
+	  if ((op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)) {
+			if (pids.length<=1) {
+				print(GF_LOG_WARNING, 'Canvas multitexture fill with 3 textures but only 2 textures provided');
+				canvas_draw(path, pids[0].texture);
+				return;
+			}
+		}
+
+		if (!use_gpu) {
+			let mx = op_tx.mx;
+
+			op_tx.auto_mx = true;
+			canvas.matrix = active_scene.mx;
+		  canvas.path = path;
+		  if ((op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)) {
+				pids[1].texture.auto_mx = true;
+			  canvas.fill(op_type, [op_param], pids[0].texture, pids[1].texture, op_tx);
+		  } else {
+			  canvas.fill(op_type, [op_param], pids[0].texture, op_tx);
+		  }
 			return;
 		}
-	  canvas.path = path;
-	  canvas.matrix = matrix;
-	  canvas.fill(op_type, [op_param], pids[0].texture, op_tx);
-		return;		
 	}
 
-	if (pids[0].pid.source.sequence.transition_state==4) {
+	if (pids[0].pid && pids[0].pid.source.sequence.transition_state==4) {
 		print(GF_LOG_DEBUG, 'transition in error, using simple draw');
-		canvas_draw(path, matrix, pids[0].texture);
+		canvas_draw(path, pids[0].texture);
 		return;
 	}
 
-	if (pids[1].pid.source.no_signal) {
-		draw_scene_no_signal(matrix);
+	if (!op_type && pids[1].pid && pids[1].pid.source.no_signal) {
+		draw_scene_no_signal();
 		return;
 	}
 
@@ -4156,8 +5456,9 @@ function canvas_draw_sources(path, matrix)
 		ratio = scene.mod.mix_ratio;
 		if (ratio<0) ratio = 0;
 		else if (ratio>1) ratio = 1;
-		pids[0].pid.source.mix_volume = 1-ratio;
-		pids[1].pid.source.mix_volume = ratio;
+
+		if (pids[0].pid) pids[0].pid.source.mix_volume = 1-ratio;
+		if (pids[1].pid) pids[1].pid.source.mix_volume = ratio;
 
 		if (scene.transition_state==4) {
 			if (ratio>0.5) ratio = 1;
@@ -4168,76 +5469,137 @@ function canvas_draw_sources(path, matrix)
 		//for gpu we must setup the program and use it
 		if (skip_tansition) {
 			if (ratio==0) {
-				canvas_draw(path, matrix, pids[0].texture);
+				canvas_draw(path, pids[0].texture);
 				return;
 			}
 			if (ratio==1) {
-				canvas_draw(path, matrix, pids[1].texture);
+				canvas_draw(path, pids[1].texture);
 				return;
 			}
 		}
 	}
 
-	if (transition) {
-		if (typeof transition.fun == 'string') {
-			let old_ratio = ratio;
+	if (!op_type && !transition) {
+		canvas_draw(path, pids[0].texture);
+		return;
+	}
+
+	if (transition && (typeof transition.fun == 'string')) {
+		let old_ratio = ratio;
+		try {
 			eval(transition.fun);
-			if (!old_ratio) ratio = 0; 
-			else if (!old_ratio==1) ratio = 1; 
+		} catch (e) {
+			print(GF_LOG_WARNING, 'Error processing transition fun ' + transition.fun + ': ' + e);
+			transition.fun = null;
 		}
-		if (!use_gpu) {
-			transition.mod.apply(canvas, ratio, path, matrix, pids);
+		if (!old_ratio) ratio = 0;
+		else if (!old_ratio==1) ratio = 1;
+	}
+
+	if (!use_gpu) {
+		if (!pids[0].texture || !pids[1].texture) {
+			canvas_draw(path, pids[0].texture);
 			return;
 		}
+		pids[0].texture.auto_mx = true;
+		pids[1].texture.auto_mx = true;
+		canvas.matrix = active_scene.mx;
 
-		//gpu: create mesh, bind textures, call apply and draw mesh
+		transition.mod.apply(canvas, ratio, path, pids);
+		return;
+	}
 
-		canvas_offscreen_deactivate();
+	//gpu: create mesh, bind textures, call apply and draw mesh
 
-		let mesh = path.mesh || null;
-		if (!mesh) {
-			mesh = path.mesh = new evg.Mesh(path);
-			if (!path.mesh) return;
-			path.mesh.update_gl();
+	let use_mask = 0;
+	if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_RECORD)) {
+	  mask_canvas.path = path;
+	  mask_canvas.matrix = matrix;
+	  mask_canvas.fill(pids[0].texture);
+	  if (mask_mode==GF_EVGMASK_DRAW) return;
+	  use_mask = 1;
+	}
+	else if (mask_mode==GF_EVGMASK_USE) {
+	  use_mask = 1;
+	} else if (mask_mode==GF_EVGMASK_USE_INV) {
+	  use_mask = 2;
+	}
+
+	canvas_offscreen_deactivate();
+
+	let mesh = path.mesh || null;
+	if (!mesh) {
+		mesh = path.mesh = new evg.Mesh(path);
+		if (!path.mesh) return;
+		path.mesh.update_gl();
+	}
+
+	//setup all textures
+	let tx_slot = 0;
+	let all_textures = [];
+	pids.forEach (pid => {
+			all_textures.push(pid.texture);
+	});
+	if (op_tx)
+		all_textures.push(op_tx);
+
+	all_textures.forEach (tx => {
+		let texture = tx._gl_texture || null;
+
+		webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+
+		if (!texture) {
+			tx._gl_texture = webgl.createTexture(null);
+			if (!tx._gl_texture) return;
+			tx._gl_tx_id = webgl.textureName(tx._gl_texture);
+
+			if (transition && transition.gl_program) {
+				print(GF_LOG_INFO, 'texture format changed, reloading GLSL program');
+				transition.gl_program = null;
+			}
+			if (active_scene && active_scene.gl_program) {
+				print(GF_LOG_INFO, 'texture format changed, reloading GLSL program');
+				active_scene.gl_program = null;
+			}
+			tx._gl_modified = true;
+		}
+		//upload data if modified
+		if (tx._gl_modified == true) {
+			webgl.bindTexture(webgl.TEXTURE_2D, tx._gl_texture);
+			tx._gl_texture.upload(tx);
+			tx._gl_modified = false;
 		}
 
-		//setup all textures
-		let tx_slot = 0;
-		pids.forEach (pid => {
-			let texture = pid.texture._gl_texture || null;
+		tx_slot += tx._gl_texture.nb_textures;
+	});
 
-		  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 
-			if (!texture) {
-				pid.texture._gl_texture = webgl.createTexture(null);
-				if (!pid.texture._gl_texture) return;
-				pid.texture._gl_tx_id = webgl.textureName(pid.texture._gl_texture);
-				
-				if (transition.gl_program) {
-					print(GF_LOG_INFO, 'texture format changed, reloading GLSL program');
-					transition.gl_program = null;
-				}
+	//check program is still OK
+	let prog_info;
+	if (transition) {
+		prog_info = transition.gl_program || null;
+	} else {
+		prog_info = active_scene.gl_program || null;
+	}
+
+	//create program
+	if (!prog_info) {
+		let frag_source;
+		let has_dual_in = false;
+		let op_tx_reuse = 0;
+		let tx_source = '';
+		let vertex_src;
+
+		if (transition) {
+			tx_source = transition.mod.get_shader_src( pids[0].texture );
+			if (typeof tx_source != 'string') {
+				print(GF_LOG_ERROR, 'Aborting transition, invalid shader source ' + tx_source);
+				if (seq)
+					seq.transition_state = 4;
+				else
+					scene.transition_state = 4;
+				return;
 			}
-			//bind and update
-			webgl.bindTexture(webgl.TEXTURE_2D, pid.texture._gl_texture);
-		    pid.texture._gl_texture.upload(pid.texture);
-			tx_slot += pid.texture._gl_texture.nb_textures;
-		});
-
-		//create program
-		let prog_info = transition.gl_program || null;
-	  if (!prog_info) {
-				let frag_source;
-	  		let tx_source = transition.mod.get_shader_src( pids[0].texture );
-	  		if (typeof tx_source != 'string') {
-			    print(GF_LOG_ERROR, 'invalid shader source ' + tx_source);
-			  	print(GF_LOG_ERROR, 'aborting transition');
-			  	if (seq)
-			  		seq.transition_state = 4;
-			  	else
-			  		scene.transition_state = 4;
-	  			return;
-	  		}
 
 			let first_uni = tx_source.indexOf('uniform');
 			if (first_uni>0) {
@@ -4247,154 +5609,314 @@ function canvas_draw_sources(path, matrix)
 			} else {
 				frag_source = fs_trans_source_prefix + tx_source;
 			}
+			has_dual_in = true;
 
-			//replace maintx1 by first texture name
-			frag_source = frag_source.replaceAll('maintx1', pids[0].texture._gl_tx_id);
-			//replace maintx2 by second texture name
+			vertex_src = transition_vs_source;
+		} else {
+			  if ((op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)) {
+					has_dual_in = true;
+					frag_source = fs_trans_source_prefix;
+					vertex_src = dual_in_op_vs_source;
+				} else {
+					frag_source = fs_single_in_op_source_prefix;
+					vertex_src = single_in_op_vs_source;
+				}
+		}
+
+		//replace maintx1 by first texture name
+		frag_source = frag_source.replaceAll('maintx1', pids[0].texture._gl_tx_id);
+
+		//replace maintx2 by second texture name
+		if (has_dual_in)
 			frag_source = frag_source.replaceAll('maintx2', pids[1].texture._gl_tx_id);
 
-			if (pids[0].texture._gl_cmx) {
-				frag_source = frag_source.replaceAll('replace_uni_cmx1', `
-uniform mat4 cmx1_mul;
-uniform vec4 cmx1_add;
-`);
 
-				frag_source = frag_source.replaceAll('replace_cmx1', `
-col = cmx1_mul * col;
-col += cmx1_add;
-col = clamp(col, 0.0, 1.0);
-`);
-		  	} else {
-				frag_source = frag_source.replaceAll('replace_uni_cmx1', '');
-				frag_source = frag_source.replaceAll('replace_cmx1', '');
-		  	}
+		//replace op
+		if (!transition) {
+			if (op_tx._gl_tx_id == pids[0].texture._gl_tx_id) {
+				op_tx_reuse = 1;
+				frag_source += `
+vec4 gf_apply_effect()
+{
+	vec4 col_1 = get_pixel_from(txcoord_from);
+	vec4 col_op = col_1;
+`;
 
-		  	if (pids[1].texture._gl_cmx) {
-				frag_source = frag_source.replaceAll('replace_uni_cmx2', `
-uniform mat4 cmx2_mul;
-uniform vec4 cmx2_add;
-`);
+			} else if (has_dual_in && (op_tx._gl_tx_id == pids[1].texture._gl_tx_id)) {
+				op_tx_reuse = 2;
+				frag_source += `
+vec4 gf_apply_effect()
+{
+	vec4 col_1 = get_pixel_from(txcoord_from);
+`;
 
-				frag_source = frag_source.replaceAll('replace_cmx2', `
-col = cmx2_mul * col;
-col += cmx2_add;
-col = clamp(col, 0.0, 1.0);
-`);
-		  	} else {
-				frag_source = frag_source.replaceAll('replace_uni_cmx2', '');
-				frag_source = frag_source.replaceAll('replace_cmx2', '');
-		  	}
+			} else {
+				frag_source += `
+varying vec2 txcoord_op;
+uniform sampler2D optx;
+uniform float _alpha_op;
+uniform bool r_s_op, r_t_op;
+uniform vec4 pad_color_op;
+
+uniform bool cmx_op_use;
+uniform mat4 cmx_op_mul;
+uniform vec4 cmx_op_add;
+
+vec4 get_pixel_op(vec2 tx_coord)
+{
+	vec4 col;
+	if (!r_s_op && ((tx_coord.s<0.0) || (tx_coord.s>1.0))) {
+		col = pad_color_op;
+	} else if (!r_t_op && ((tx_coord.t<0.0) || (tx_coord.t>1.0))) {
+		col = pad_color_op;
+	} else {
+		vec2 tx = tx_coord;
+		while (tx.s<0.0) tx.s+= 1.0;
+		tx.s = mod(tx.s, 1.0);
+		while (tx.t<0.0) tx.t+= 1.0;
+		tx.t = mod(tx.t, 1.0);
+
+		col = texture2D(optx, tx);
+	}
+	if (cmx_op_use) {
+		col = cmx_op_mul * col;
+		col += cmx_op_add;
+		col = clamp(col, 0.0, 1.0);
+	}
+	col.a *= _alpha_op;
+	return col;
+}
+
+vec4 gf_apply_effect()
+{
+	vec4 col_1 = get_pixel_from(txcoord_from);
+	vec4 col_op = get_pixel_op(txcoord_op);
+`;
+				frag_source = frag_source.replaceAll('optx', op_tx._gl_tx_id);
+			}
+
+			if (has_dual_in) {
+				frag_source += `	vec4 col_2 = get_pixel_to(txcoord_to);
+`;
+				if (op_tx_reuse == 2) {
+					frag_source += `	vec4 col_op = col_2;
+`;
+				}
+			}
+
+			if ((op_type == GF_EVG_OPERAND_REPLACE_ALPHA) || (op_type == GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA)
+				|| (op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)
+			) {
+				let rep = 'a';
+				if (op_param >= 3) rep = 'b';
+				else if (op_param >= 2) rep = 'g';
+				else if (op_param >= 1) rep = 'r';
+
+				if (op_type == GF_EVG_OPERAND_REPLACE_ALPHA)
+					frag_source += `	col_1.a = col_op.`+rep+`;`;
+				else if (op_type == GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA)
+					frag_source += `	col_1.a = 1.0 - col_op.`+rep+`;`;
+				else if (op_type == GF_EVG_OPERAND_MIX_DYN)
+					frag_source += `	col_1 = mix(col_1, col_2, col_op.`+rep+`); col_1.a = 1.0;`;
+				else //(op_type == GF_EVG_OPERAND_MIX_DYN)
+					frag_source += `	col_1 = mix(col_1, col_2, col_op.`+rep+`);`;
+			} else if (op_type == GF_EVG_OPERAND_MIX) {
+				frag_source += `	col_1 = mix(col_1, col_op, ratio); col_1.a = 1.0;`;
+			} else if (op_type == GF_EVG_OPERAND_MIX_ALPHA) {
+				frag_source += `	col_1 = mix(col_1, col_op, ratio);`;
+			}
+
+			frag_source += `
+	return col_1;
+}
+`;
+		}
+
+		frag_source += `
+void main() {
+	if (mask_mode>0) {
+		vec2 mask_uv = vec2(gl_FragCoord.x/mask_w, 1.0 - gl_FragCoord.t/mask_h);
+		vec4 mask = texture2D(mask_tx, mask_uv);
+		vec4 col = gf_apply_effect();
+
+		if (mask_mode>1)
+			col.a *= (1.0-mask.r);
+		else
+			col.a *= mask.r;
+
+	  gl_FragColor = col;
+	} else {
+		gl_FragColor = gf_apply_effect();
+	}
+}
+`
+
+		const shaderProgram = webgl_init_shaders(vertex_src, frag_source, null);
+		if (!shaderProgram) {
+			print(GF_LOG_ERROR, 'shader creation failed, aborting transition');
+			if (seq)
+				seq.transition_state = 4;
+			else
+				scene.transition_state = 4;
+			return;
+		}
+
+		prog_info = {
+			program: shaderProgram,
+			vertexPosition: webgl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+			textureCoord: webgl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+			projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+			modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+			mask_mode: webgl.getUniformLocation(shaderProgram, 'mask_mode'),
+			mask_tx: webgl.getUniformLocation(shaderProgram, 'mask_tx'),
+			mask_w: webgl.getUniformLocation(shaderProgram, 'mask_w'),
+			mask_h: webgl.getUniformLocation(shaderProgram, 'mask_h'),
+			ratio: webgl.getUniformLocation(shaderProgram, 'ratio'),
+			//used by gl-transitions
+			video_ar: webgl.getUniformLocation(shaderProgram, 'video_ar'),
+			textures: [
+				{
+					sampler: webgl.getUniformLocation(shaderProgram, pids[0].texture._gl_tx_id),
+			    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixFrom'),
+			    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_from'),
+					cmx_use: webgl.getUniformLocation(shaderProgram, 'cmx1_use'),
+					cmx_mul: webgl.getUniformLocation(shaderProgram, 'cmx1_mul'),
+					cmx_add: webgl.getUniformLocation(shaderProgram, 'cmx1_add'),
+					r_s: webgl.getUniformLocation(shaderProgram, 'r_s'),
+					r_t: webgl.getUniformLocation(shaderProgram, 'r_t'),
+					pad_color: webgl.getUniformLocation(shaderProgram, 'pad_color'),
+				}
+				]
+		};
+
+		if (has_dual_in) {
+			prog_info.textures.push(
+				{
+					sampler: webgl.getUniformLocation(shaderProgram, pids[1].texture._gl_tx_id),
+			    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixTo'),
+			    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_to'),
+					cmx_use: webgl.getUniformLocation(shaderProgram, 'cmx2_use'),
+					cmx_mul: webgl.getUniformLocation(shaderProgram, 'cmx2_mul'),
+					cmx_add: webgl.getUniformLocation(shaderProgram, 'cmx2_add'),
+					r_s: null,
+					r_t: null,
+					pad_color: null,
+				} );
+		}
+
+		prog_info.op_texture = null;
+		if (!transition && op_tx) {
+				if (op_tx_reuse) {
+					prog_info.op_texture = null;
+				} else {
+					prog_info.op_texture = {
+						sampler: webgl.getUniformLocation(shaderProgram, op_tx._gl_tx_id),
+				    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixOp'),
+				    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_op'),
+						cmx_use: webgl.getUniformLocation(shaderProgram, 'cmx_op_use'),
+						cmx_mul: webgl.getUniformLocation(shaderProgram, 'cmx_op_mul'),
+						cmx_add: webgl.getUniformLocation(shaderProgram, 'cmx_op_add'),
+				    r_s: webgl.getUniformLocation(shaderProgram, 'r_s_op'),
+				    r_t: webgl.getUniformLocation(shaderProgram, 'r_t_op'),
+				    pad_color: webgl.getUniformLocation(shaderProgram, 'pad_color_op'),
+					};
+				}
+		}
 
 
-		 	const shaderProgram = webgl_init_shaders(transition_vs_source, frag_source, null);
-		 	if (!shaderProgram) {
-		  		print(GF_LOG_ERROR, 'shader creation failed, aborting transition');
-		  		if (seq) 
-		  			seq.transition_state = 4;
-			  	else
-			  		scene.transition_state = 4;
-		  		return;
-		 	}
-
-			prog_info = {
-				program: shaderProgram,
-				vertexPosition: webgl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-				textureCoord: webgl.getAttribLocation(shaderProgram, 'aTextureCoord'),
-				projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-				modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-				ratio: webgl.getUniformLocation(shaderProgram, 'ratio'),
-				video_ar: webgl.getUniformLocation(shaderProgram, 'video_ar'),
-				textures: [
-					{
-				    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixFrom'),
-				    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_from'),
-						sampler: webgl.getUniformLocation(shaderProgram, pids[0].texture._gl_tx_id),
-						cmx_mul: null,
-						cmx_add: null
-					},
-					{
-				    matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrixTo'),
-				    alpha: webgl.getUniformLocation(shaderProgram, '_alpha_to'),
-						sampler: webgl.getUniformLocation(shaderProgram, pids[1].texture._gl_tx_id),
-						cmx_mul: null,
-						cmx_add: null
-  					}
-  				]
-			};
+		if (transition)
 			transition.gl_program = prog_info;
+		else
+			active_scene.gl_program = prog_info;
 
-			webgl.useProgram(prog_info.program);
-			webgl.uniformMatrix4fv(prog_info.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
+		webgl.useProgram(prog_info.program);
+		webgl.uniformMatrix4fv(prog_info.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
+	  webgl.uniform1f(prog_info.mask_w, video_width);
+	  webgl.uniform1f(prog_info.mask_h, video_height);
 
-		 	if (pids[0].texture._gl_cmx) {
-		  		prog_info.textures[0].cmx_mul = webgl.getUniformLocation(shaderProgram, 'cmx1_mul');
-		  		prog_info.textures[0].cmx_add = webgl.getUniformLocation(shaderProgram, 'cmx1_add');
-		 	}
-		 	if (pids[1].texture._gl_cmx) {
-		  		prog_info.textures[1].cmx_mul = webgl.getUniformLocation(shaderProgram, 'cmx2_mul');
-		  		prog_info.textures[1].cmx_add = webgl.getUniformLocation(shaderProgram, 'cmx2_add');
-		 	}
-
+		if (transition) {
+			let nb_in_tx = has_dual_in ? 2 : 1;
 			tx_slot = 0;
-		 	for (let i=0; i<2; i++) {
+			for (let i=0; i<nb_in_tx; i++) {
 				let pid = pids[i];
 				tx_slot += pid.texture._gl_texture.nb_textures;
 			}
 			transition.mod.setup_gl(webgl, shaderProgram, prog_info.ratio, tx_slot);
 		}
 
-		webgl.useProgram(prog_info.program);
-		webgl.viewport(0, 0, video_width, video_height);
-
-	  if (wgl_clipper) {
-			webgl.enable(webgl.SCISSOR_TEST);
-			webgl.scissor(wgl_clipper.x+video_width/2, wgl_clipper.y+video_height/2 - wgl_clipper.h, wgl_clipper.w, wgl_clipper.h);
-	  } else {
-			webgl.disable(webgl.SCISSOR_TEST);
-	  }
-
-	 	//set transform
-		const modelViewMatrix = new evg.Matrix(matrix);
-		webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
-
-		webgl.uniform1f(prog_info.ratio, ratio);
-
 		if (prog_info.video_ar)
-			webgl.uniform1f(prog_info.video_ar, scene.mod.width / scene.mod.height);
+			webgl.uniform1f(prog_info.video_ar, pids[0].texture.width / pids[0].texture.height);
 
-		tx_slot = 0;
-		//set alpha and texture transforms per pid - 2 max
-		for (let i=0; i<2; i++) {
-	  	let pid = pids[i];
-
-		 	let mx2d = pid.texture._gl_mx || null;
-	  	const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
-			webgl.uniformMatrix4fv(prog_info.textures[i].matrix, false, txmx.m);
-
-	    let alpha = pid.texture._gl_alpha || 1;
-		 	webgl.uniform1f(prog_info.textures[i].alpha, alpha);
-
-      if (pid.texture._gl_cmx) {
-				gl_set_color_matric(pid.texture._gl_cmx, prog_info.textures[i].cmx_mul, prog_info.textures[i].cmx_add);
-      }
-
-			webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
-			//and bind our named texture (this will setup active texture slots)
-			webgl.bindTexture(webgl.TEXTURE_2D, pid.texture._gl_texture);
-
-			tx_slot += pid.texture._gl_texture.nb_textures;
-		}
-
-
-  	//apply transition, ie set uniforms
-		transition.mod.apply(webgl, ratio, path, matrix, pids);
-
-		mesh.draw(webgl, prog_info.vertexPosition, prog_info.textureCoord);
-		webgl.useProgram(null);
-		return;
+		active_scene.gl_uniforms_reload = true;
 	}
 
-	return;
+	webgl.useProgram(prog_info.program);
+	webgl.viewport(0, 0, video_width, video_height);
+
+	let nb_in_tx = (transition || (prog_info.textures.length==2)) ? 2 : 1;
+
+  if (wgl_clipper) {
+		webgl.enable(webgl.SCISSOR_TEST);
+		webgl.scissor(video_width/2 + wgl_clipper.x, wgl_clipper.y - wgl_clipper.h + video_height/2, wgl_clipper.w, wgl_clipper.h);
+  } else {
+		webgl.disable(webgl.SCISSOR_TEST);
+  }
+
+	//set transform
+	const modelViewMatrix = new evg.Matrix(active_scene.mx);
+	webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
+
+	if (!transition) ratio = active_scene.mod.mix_ratio;
+
+	webgl.uniform1f(prog_info.ratio, ratio);
+
+	tx_slot = 0;
+	//set alpha and texture transforms per pid - 2 max
+	for (let i=0; i<nb_in_tx; i++) {
+		let pid = pids[i];
+
+		if (active_scene.gl_uniforms_reload) {
+			push_texture_uniforms(pid.texture, prog_info.textures[i]);
+	  }
+
+		webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+		//and bind our named texture (this will setup active texture slots)
+		webgl.bindTexture(webgl.TEXTURE_2D, pid.texture._gl_texture);
+		webgl.uniform1i(prog_info.textures[i].sampler, tx_slot);
+
+		tx_slot += pid.texture._gl_texture.nb_textures;
+	}
+
+	//set op texture
+	if (op_tx && prog_info.op_texture) {
+		if (active_scene.gl_uniforms_reload) {
+			push_texture_uniforms(op_tx, prog_info.op_texture);
+		}
+
+		webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+		//and bind our named texture (this will setup active texture slots)
+		webgl.bindTexture(webgl.TEXTURE_2D, op_tx._gl_texture);
+		webgl.uniform1i(prog_info.op_textures.sampler, tx_slot);
+
+		tx_slot += op_tx._gl_texture.nb_textures;
+	}
+
+  //set mask
+  webgl.uniform1i(prog_info.mask_mode, use_mask);
+	if (use_mask) {
+	  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+		webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
+    mask_texture.upload(mask_texture_stencil);
+		webgl.uniform1i(prog_info.mask_tx, tx_slot);
+	}
+
+	//apply transition, ie set uniforms
+	if (transition) {
+		transition.mod.apply(webgl, ratio, path, pids);
+	}
+
+	mesh.draw(webgl, prog_info.vertexPosition, prog_info.textureCoord);
+	webgl.useProgram(null);
 }
 
 
@@ -4424,6 +5946,55 @@ void main() {
 }
 `;
 
+const fs_source = `
+uniform sampler2D mask_tx;
+uniform int mask_mode;
+uniform float mask_w, mask_h;
+
+uniform bool r_s, r_t;
+uniform vec4 pad_color;
+varying vec2 vTextureCoord;
+uniform sampler2D maintx;
+uniform float alpha;
+uniform bool cmx_use;
+uniform mat4 cmx_mul;
+uniform vec4 cmx_add;
+void main(void) {
+
+	vec4 col;
+	if (!r_s && ((vTextureCoord.s<0.0) || (vTextureCoord.s>1.0))) {
+		col = pad_color;
+	} else if (!r_t && ((vTextureCoord.t<0.0) || (vTextureCoord.t>1.0))) {
+		col = pad_color;
+	} else {
+		vec2 tx = vTextureCoord;
+		while (tx.s<0.0) tx.s+= 1.0;
+		tx.s = mod(tx.s, 1.0);
+		while (tx.t<0.0) tx.t+= 1.0;
+		tx.t = mod(tx.t, 1.0);
+
+		col = texture2D(maintx, tx);
+	}
+	if (cmx_use) {
+		col = cmx_mul * col;
+		col += cmx_add;
+	}
+	col = clamp(col, 0.0, 1.0);
+	col.a *= alpha;
+
+	if (mask_mode>0) {
+		vec2 mask_uv = vec2(gl_FragCoord.x/mask_w, 1.0 - gl_FragCoord.t/mask_h);
+		vec4 mask = texture2D(mask_tx, mask_uv);
+		if (mask_mode>1)
+			col.a *= (1.0-mask.r);
+		else
+			col.a *= mask.r;
+	}
+  gl_FragColor = col;
+}
+`;
+
+
 const vs_const_col = `
 attribute vec4 aVertexPosition;
 uniform mat4 uModelViewMatrix;
@@ -4435,41 +6006,27 @@ void main() {
 `;
 
 
-const fs_source = `
-varying vec2 vTextureCoord;
-uniform sampler2D maintx;
-uniform float alpha;
-void main(void) {
-
-	vec4 col = texture2D(maintx, vTextureCoord);
-	col.a *= alpha;
-  gl_FragColor = col;
-}
-`;
-
-
-const fs_source_cmx = `
-varying vec2 vTextureCoord;
-uniform sampler2D maintx;
-uniform float alpha;
-uniform mat4 cmx_mul;
-uniform vec4 cmx_add;
-void main(void) {
-
-	vec4 col = texture2D(maintx, vTextureCoord);
-	col = cmx_mul * col;
-	col += cmx_add;
-	col = clamp(col, 0.0, 1.0);
-	col.a *= alpha;
-  gl_FragColor = col;
-}
-`;
-
 const fs_const_col = `
+uniform sampler2D mask_tx;
+uniform int mask_mode;
+uniform float mask_w, mask_h;
+
 uniform vec4 color;
 void main(void) {
 
-  gl_FragColor = color;
+	if (mask_mode>0) {
+		vec4 col = color;
+		vec2 mask_uv = vec2(gl_FragCoord.x/mask_w, 1.0 - gl_FragCoord.t/mask_h);
+		vec4 mask = texture2D(mask_tx, mask_uv);
+		if (mask_mode>1)
+			col.a *= (1.0-mask.r);
+		else
+			col.a *= mask.r;
+
+	  gl_FragColor = col;
+	} else {
+	  gl_FragColor = color;
+	}
 }
 `;
 
@@ -4518,29 +6075,43 @@ function setup_webgl_program(vsSource, fsSource, tx_name)
     attribLocations: {
       vertexPosition: webgl.getAttribLocation(shaderProgram, 'aVertexPosition'),
     },
-    uniformLocations: {
-      projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-      modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-    },
+    projectionMatrix: webgl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+    modelViewMatrix: webgl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+    mask_mode: webgl.getUniformLocation(shaderProgram, 'mask_mode'),
+    mask_w: webgl.getUniformLocation(shaderProgram, 'mask_w'),
+    mask_h: webgl.getUniformLocation(shaderProgram, 'mask_h'),
+		mask_tx: webgl.getUniformLocation(shaderProgram, "mask_tx")
   };
 
   if (tx_name) {
   	prog.attribLocations.textureCoord = webgl.getAttribLocation(shaderProgram, 'aTextureCoord');
-  	prog.uniformLocations.mainTx = webgl.getUniformLocation(shaderProgram, tx_name);
-    prog.uniformLocations.txMatrix = webgl.getUniformLocation(shaderProgram, 'textureMatrix');
-    prog.uniformLocations.alpha = webgl.getUniformLocation(shaderProgram, 'alpha');
+  	prog.textures = [
+			{
+				sampler: webgl.getUniformLocation(shaderProgram, tx_name),
+				matrix: webgl.getUniformLocation(shaderProgram, 'textureMatrix'),
+				alpha: webgl.getUniformLocation(shaderProgram, 'alpha'),
+				r_s: webgl.getUniformLocation(shaderProgram, 'r_s'),
+				r_t: webgl.getUniformLocation(shaderProgram, 'r_t'),
+				pad_color: webgl.getUniformLocation(shaderProgram, 'pad_color'),
+				cmx_use: webgl.getUniformLocation(shaderProgram, 'cmx_use'),
+				cmx_mul: webgl.getUniformLocation(shaderProgram, 'cmx_mul'),
+				cmx_add: webgl.getUniformLocation(shaderProgram, 'cmx_add'),
+			}
+		];
   } else {
-    prog.uniformLocations.color = webgl.getUniformLocation(shaderProgram, 'color');
+    prog.color = webgl.getUniformLocation(shaderProgram, 'color');
   }
 
   //load default texture matrix (identity)
   webgl.useProgram(shaderProgram);
 	let ident = new evg.Matrix();
-	webgl.uniformMatrix4fv(prog.uniformLocations.modelViewMatrix, false, ident.m);
-  webgl.uniformMatrix4fv(prog.uniformLocations.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
+	webgl.uniformMatrix4fv(prog.modelViewMatrix, false, ident.m);
+  webgl.uniformMatrix4fv(prog.projectionMatrix, false, defaultOrthoProjectionMatrix.m);
+  webgl.uniform1i(prog.mask_mode, 0);
   if (tx_name) {
-	  webgl.uniformMatrix4fv(prog.uniformLocations.txMatrix, false, ident.m);
-	  webgl.uniform1f(prog.uniformLocations.alpha, 1.0);
+	  webgl.uniformMatrix4fv(prog.textures[0].matrix, false, ident.m);
+	  webgl.uniform1f(prog.textures[0].alpha, 1.0);
+	  webgl.uniform1i(prog.textures[0].cmx_use, 0);
 	}
   webgl.useProgram(null);
 
@@ -4579,7 +6150,6 @@ function setup_transition(seq)
 	seq.transition.id = (typeof seq.transition_effect.id == 'string') ? seq.transition_effect.id : null;
 
 	seq.transition.mod.update_flag = 0;
-	print(GF_LOG_ERROR, 'updating transition');
 	//parse all params
 	apply_transition_options(seq, seq.transition.options, false);
 
@@ -4603,9 +6173,9 @@ function setup_transition(seq)
 		seq.transition.mod.setup();
 }
 
-function default_transition(canvas, ratio, path, matrix, pids)
+function default_transition(canvas, ratio, path, pids)
 {
-		canvas_draw(path, matrix, pids[0].texture);
+		canvas_draw(path, pids[0].texture);
 }
 
 function load_transition(seq)
@@ -4729,6 +6299,14 @@ function apply_transition_update(transition, prop_name, value)
 	}
 }
 
+function check_prop_type(orig, final, allow_string)
+{
+	if (orig == final) return true;
+	if (! allow_string) return false;
+	if ((final != 'number') && (final != 'string')) return false;
+	if ((orig != 'number') && (orig != 'string')) return false;
+	return true;
+}
 
 function parse_update_elem(pl, array)
 {
@@ -4759,16 +6337,62 @@ function parse_update_elem(pl, array)
 		field_idx = parseInt(idx[0]);
 	}
 
-	//locate scene
+	if (prop_name=='id') {
+		print(GF_LOG_WARNING, "ID property cannot be updated");
+		return;
+	}
+
+	//locate scene, transition or group
 	let scene = get_scene(src);
 	let transition = scene ? null : get_transition(src, false);
-	if (scene || transition) {
-		let mod = scene ? scene.mod : transition.mod;
+	let group = (scene || transition) ? null : get_group(src);
+	if (scene || transition || group) {
+		let mod = scene ? scene.mod : (transition ? transition.mod : group);
 
 		//if transition we must modify the source (transition effect) since this is the object being reloaded
 		//do this even when the transition is active
 		if (transition) {
 			apply_transition_update(get_transition(src, true), prop_name, pl.with);
+		}
+
+		let update_type = -2;
+
+		let logname='';
+		if (scene) {
+			scene.options.forEach(o => {
+				if ((o.name == prop_name) && (typeof o.dirty == 'number'))
+						update_type = o.dirty;
+			});
+
+			if (update_type==-2)
+				update_type = group_get_update_type(prop_name, true);
+
+			if (update_type==-2) {
+				update_type = scene_get_update_type(prop_name);
+				if (update_type>=0) {
+					if (!scene_is_mod_option(prop_name))
+						mod = scene;
+				}
+			}
+			logname = 'scene ' + src;
+		} else if (group) {
+			update_type = group_get_update_type(prop_name, false);
+			logname = 'group ' + src;
+		}
+		//transition updates use a single invalidate flag
+		else {
+			//for now we allow all modifications (they are evaluated when reloading the transition)
+			update_type = UPDATE_SIZE;
+			logname = 'transition ' + src;
+		}
+
+		if (update_type==-2) {
+			print(GF_LOG_ERROR, 'No property ' + prop_name + ' in ' + logname + ', ignoring');
+			return;
+		}
+		if (update_type==-2) {
+			print(GF_LOG_ERROR, 'Property ' + prop_name + ' in ' + logname + ' cannot be updated');
+			return;
 		}
 
 		let prop_type = typeof mod[prop_name];
@@ -4780,45 +6404,8 @@ function parse_update_elem(pl, array)
 		}
 
 		let res = pl.with;
-
-		let check_coords = false;
-		if (scene) {
-			//translate x/y/width/height
-			if ((prop_name=='x') || (prop_name=='width')) {
-					if (res == 'height')
-						res = mod.height;
-					else if (typeof res == 'number')
-						res = res * video_width / 100;
-					check_coords = true;
-			}
-			else if ((prop_name=='y') || (prop_name=='height')) {
-					if (res == 'width')
-						res = mod.width;
-					else if (typeof res == 'number')
-						res = res * video_height / 100;
-					check_coords = true;
-			}
-		}
-
-		let update_type = 0;
-		if (scene) {
-			scene.options.forEach(o => {
-				if (o.name == prop_name) update_type = o.dirty || UPDATE_SIZE;
-			});
-			if (!update_type) {
-				if ((prop_name=="width") || (prop_name=="height"))
-						update_type = UPDATE_SIZE;
-				else  if ((prop_name=="mix_ratio") || (prop_name=="volume") || (prop_name=="fade") || (prop_name=="active") || (prop_name=="zorder"))
-					update_type = 0;
-				else
-					update_type = UPDATE_POS;
-			}
-		}
-		//transition updates use a single invalidate flag
-		else {
-			update_type = UPDATE_SIZE;
-		}
-
+		let allow_string = (update_flag & UPDATE_ALLOW_STRING) ? true : false;
+		update_flag &= ~UPDATE_ALLOW_STRING;
 
 		if (Array.isArray(mod[prop_name]) && (field_idx>=0)) {
 			if (field_idx >= mod[prop_name].length) {
@@ -4834,20 +6421,22 @@ function parse_update_elem(pl, array)
 				return;
 			}
 		} else {
-			if (prop_type != typeof res) {
-				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + prop_type + ' but replacement value type is ' + typeof res);
+			let res_type = typeof res;
+			if (!check_prop_type(prop_type, res_type, allow_string)) {
+				print(GF_LOG_ERROR, 'Property ' + prop_name + ' type is ' + prop_type + ' but replacement value type is ' + res_type + ', ignoring');
 				return;
 			}
 
 			if (mod[prop_name] != res) {
 				mod.update_flag |= update_type;
 				mod[prop_name] = res;
-
-				if (check_coords) check_scene_coords(scene)
+				if (update_type && (scene||group))
+					invalidate_parent(scene || group);
 			}
 		}
 		return;
 	}
+
 
 	//locate timer
 	let timer = null;
@@ -4961,5 +6550,57 @@ function load_updates()
 	} else {
 		parse_update_elem(pl);
 	}
+}
+
+
+function get_sequence_texture(seq_id)
+{
+	let seq = get_sequence_by_id(seq_id);
+	if (!seq) return null;
+	let active_src = null;
+	seq.sources.forEach(s => {
+			if (s.playing) active_src = s;
+	});
+	if (!active_src) return null;
+	let active_pid = null;
+	active_src.pids.forEach(p => {
+		if ((p.type == TYPE_VIDEO) && p.pck) active_pid = p;
+	});
+	if (!active_pid) return null;
+
+	if (!active_pid.texture) {
+		create_pid_texture(active_pid);
+	} else if (active_pid.frame_ts != active_pid.texture.last_frame_ts) {
+		active_pid.texture.update(active_pid.pck);
+	  active_pid.texture._gl_modified = true;
+	  active_pid.texture.last_frame_ts = active_pid.frame_ts;
+	 }
+	return active_pid.texture;
+}
+
+function get_group_texture(group_id)
+{
+	let group = get_group(group_id);
+	if (!group || (group.offscreen==GROUP_OST_NONE)) return null;
+	if (!group.canvas_offscreen) {
+		group_draw_offscreen(group);
+	}
+	return group.texture;
+}
+
+function get_screen_rect(path)
+{
+	if (!active_scene || !path) return null;
+	let rc = active_scene.mx.apply(path.bounds);
+
+	rc.x += video_width/2;
+	rc.y = video_height/2 - rc.y;
+
+	rc.x = Math.floor(rc.x);
+	rc.y = Math.floor(rc.y);
+	rc.w = Math.floor(rc.w);
+	rc.h = Math.floor(rc.h);
+
+	return round_rect(rc);
 }
 

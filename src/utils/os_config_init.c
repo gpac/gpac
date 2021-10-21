@@ -1826,6 +1826,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	Bool escape_xml = GF_FALSE;
 	Bool escape_pipe = GF_FALSE;
 	Bool prev_was_example = GF_FALSE;
+	Bool prev_has_line_after = GF_FALSE;
 	u32 gen_doc = 0;
 	u32 is_app_opts = 0;
 	if (flags & GF_PRINTARG_MD) {
@@ -1873,6 +1874,12 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 
 		if (next_line) next_line[0]=0;
 
+		if (prev_has_line_after && !strlen(line)) {
+			if (!next_line) break;
+			line = next_line+1;
+			line_pos=0;
+			continue;
+		}
 
 		if ((line[0]=='#') && (line[1]==' ')) {
 			if (!gen_doc)
@@ -1890,11 +1897,22 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 				line+=3;
 			else if (gen_doc==2) {
 				line+=3;
+				header_string = ".SS ";
 				header_string = ".P\n.B\n";
 			}
 
 			console_code = GF_CONSOLE_MAGENTA;
 			line_before = GF_TRUE;
+		} else if ((line[0]=='#') && (line[1]=='#') && (line[2]=='#') && (line[3]==' ')) {
+			if (!gen_doc)
+				line+=4;
+			else if (gen_doc==2) {
+				line+=4;
+				header_string = ".P\n.B\n";
+			}
+
+			console_code = GF_CONSOLE_CYAN;
+			line_after = GF_TRUE;
 		} else if ((line[0]=='E') && (line[1]=='X') && (line[2]==' ')) {
 			line+=3;
 			console_code = GF_CONSOLE_YELLOW;
@@ -1988,6 +2006,12 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		if (gen_doc==2) {
 			line_before = line_after = GF_FALSE;
 		}
+
+		if (prev_has_line_after) line_before = GF_FALSE;
+		prev_has_line_after = GF_FALSE;
+		if (!strlen(line))
+			prev_has_line_after = GF_TRUE;
+
 		if (line_before) {
 			fprintf(helpout, "\n");
 			line_pos=0;
@@ -2244,6 +2268,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 			if (gen_doc==1) fprintf(helpout, "  ");
 			fprintf(helpout, (flags & GF_PRINTARG_NL_TO_BR) ? "<br/>" : "\n");
 			line_pos=0;
+			prev_has_line_after = GF_TRUE;
 		}
 
 		if (!next_line) break;

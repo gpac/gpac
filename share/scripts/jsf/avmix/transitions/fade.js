@@ -35,7 +35,7 @@ setup_gl: function(webgl, program, ratio_uniform, first_available_texture_unit)
 
 },
 
-apply: function(canvas, ratio, path, matrix, pids)
+apply: function(canvas, ratio, path, pids)
 {
   let tx;
   let use_from = true;
@@ -57,7 +57,6 @@ apply: function(canvas, ratio, path, matrix, pids)
 
   } else {
     canvas.path = path;
-    canvas.matrix = matrix;
     canvas.fill(GF_EVG_OPERAND_MIX, ratio, tx, this.stencil);
   }
 },
@@ -69,12 +68,12 @@ get_shader_src: function()
   return `
   uniform vec4 color;
   uniform bool use_from;
-  void main() {
+  vec4 gf_apply_effect() {
       vec4 col_src;
       if (use_from) col_src = get_pixel_from(txcoord_from);
       else col_src = get_pixel_to(txcoord_to);
 
-      gl_FragColor = mix(col_src, color, ratio);
+      return mix(col_src, color, ratio);
   }
   `;
 }

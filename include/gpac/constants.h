@@ -316,6 +316,12 @@ u32 gf_pixel_is_wide_depth(GF_PixelFormat pixfmt);
 */
 u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt);
 
+/*! Checks if  pixel format is transparent
+\param pixfmt  pixel format code
+\return GF_TRUE if alpha channel is present, GF_FALSE otherwise
+*/
+Bool gf_pixel_fmt_is_transparent(GF_PixelFormat pixfmt);
+
 /*! Checks if format is YUV
 \param pixfmt  pixel format code
 \return GF_TRUE is YUV format, GF_FALSE otherwise (greyscale or RGB)

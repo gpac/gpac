@@ -22,7 +22,9 @@ The module accepts 0, 1 or 2 sequences as input.
 
 Color replacement operations can be specified for base scenes using source videos by specifying the \`replace\` option. The replacement source is:
 - the image data if \`img\` is set, potentially altered using \`keep_ar_rep\`, \`txmx_rep\` and \`cmx_rep\` options
-- otherwise a linear gradient if \`fill=linear\` or a radial gradient if \`fill=radial\`
+- otherwise a linear gradient if \`fill=linear\` or a radial gradient if \`fill=radial\` (NOT supported in GPU mode, use an offscreen group for this).
+
+Warning: Color replacement operations cannot be used with transition or mix effects.
 
 ## Text options 
 
@@ -71,12 +73,13 @@ The global variables and functions are available (c.f. \`gpac -h avmix:global\`)
 If your path needs to be reevaluated on regular basis, set the value \`this.reload\` to the timeout to next reload, in milliseconds.
 `;
 
-const UPDATE_LINE = 1<<3;
-const UPDATE_COLOR = 1<<4;
+//first 6 flags are defined by avmix
+const UPDATE_LINE = 1<<6;
+const UPDATE_COLOR = 1<<7;
 
 export const options = [
- {name:"rx", value: 0, desc: "horizontal radius for rounded rect in percent of width, negative value will use `ry`", dirty: UPDATE_SIZE},
- {name:"ry", value: 0, desc: "vertical radius for rounded rect in percent of height, negative value will use `rx`", dirty: UPDATE_SIZE},
+ {name:"rx", value: 0, desc: "horizontal radius for rounded rect in percent of object width if positive, in absolute value if negative, value `y` means use `ry`", dirty: UPDATE_SIZE|UPDATE_ALLOW_STRING},
+ {name:"ry", value: 0, desc: "vertical radius for rounded rect in percent of object height if positive, in absolute value if negative, value `x` means use `rx`", dirty: UPDATE_SIZE|UPDATE_ALLOW_STRING},
  {name:"tl", value: true, desc: "top-left corner rounded", dirty: UPDATE_SIZE},
  {name:"bl", value: true, desc: "bottom-left corner rounded", dirty: UPDATE_SIZE},
  {name:"tr", value: true, desc: "top-right corner rounded", dirty: UPDATE_SIZE},
@@ -84,9 +87,9 @@ export const options = [
  {name:"rs", value: false, desc: "repeat texture horizontally", dirty: UPDATE_SIZE},
  {name:"rt", value: false, desc: "repeat texture vertically", dirty: UPDATE_SIZE},
  {name:"keep_ar", value: true, desc: "keep aspect ratio", dirty: UPDATE_POS},
- {name:"pad_color", value: "black", desc: "color to use for texture padding, use 'none' for transparent (always enforced if source is transparent). Warning: Not supported in GPU mode", dirty: UPDATE_POS},
- {name:"txmx", value: [], desc: "texture matrix", dirty: UPDATE_POS},
- {name:"cmx", value: [], desc: "color transform - all 20 coefficients must be set in order, i.e [Mrr, Mrg, Mrb, Mra, Tr, Mgr, Mgg ...]", dirty: UPDATE_POS},
+ {name:"pad_color", value: "none", desc: `color to use for texture padding if \`rs\` or \`rt\` are false. Use \`none\` to use texture edge, \`0x00FFFFFF\` for transparent (always enforced if source is transparent)`, dirty: UPDATE_POS},
+ {name:"txmx", value: [], desc: "texture matrix - all 6 coefficients must be set, i.e. [xx xy tx yx yy ty]", dirty: UPDATE_POS},
+ {name:"cmx", value: [], desc: "color transform - all 20 coefficients must be set in order, i.e. [Mrr, Mrg, Mrb, Mra, Tr, Mgr, Mgg ...]", dirty: UPDATE_POS},
  {name:"line_width", value: 0, desc: "line width in percent of width if positive, or absolute value if negative", dirty: UPDATE_LINE},
  {name:"line_color", value: "white", desc: "line color, `linear` for linear gradient and `radial` for radial gradient", dirty: UPDATE_LINE},
  {name:"line_pos", value: 'center', desc: `line/shape positioning. Possible values are:
@@ -116,9 +119,15 @@ export const options = [
  {name:"dash_offset", value: 0.0, desc: "offset in path at which the outline starts", dirty: UPDATE_LINE},
  {name:"blit", value: true, desc: "use blit if possible, otherwise EVG texturing. If disabled, always use texturing", dirty: UPDATE_SIZE},
  {name:"fill", value: "none", desc: "fill color if used without sources, `linear` for linear gradient and `radial` for radial gradient", dirty: UPDATE_COLOR},
- {name:"img", value: "", desc: "path to local image (JPG or PNG) to use as texture if without sources", dirty: UPDATE_SIZE},
+ {name:"img", value: "", desc: `image for scene without sources or when \`replace\` is set. Accepts either a path to a local image (JPG or PNG), the ID of an offscreen group or the ID of a sequence`, dirty: UPDATE_POS|UPDATE_FX},
  {name:"alpha", value: 1, desc: "global texture transparency", dirty: UPDATE_COLOR},
- {name:"replace", value: "", desc: `if \`img\` or \`fill\` is set and shape is using source, replace source component by \`img\` component (\`a\`, \`r\`, \`g\` or \`b\`). If prefix \`-\` is set, replace by one minus the source component`, dirty: UPDATE_SIZE},
+ {name:"replace", value: "", desc: `if \`img\` or \`fill\` is set and shape is using source, set multi texture option. Possible modes are:
+ - a, r, g or b: replace alpha source component by indicated component from \`img\` . If prefix \`-\` is set, replace by one minus the indicated component
+ - m: mix using \`mix_ratio\` the color components of source and \`img\` and set alpha to full opacity
+ - M: mix using \`mix_ratio\` all components of source and \`img\`, including alpha
+ - xC: mix source 1 and source 2 using \`img\` component \`C\` (\`a\`, \`r\`, \`g\` or \`b\`) and force alpha to full opacity
+ - XC: mix source 1 and source 2 using \`img\` component \`C\` (\`a\`, \`r\`, \`g\` or \`b\`), including alpha
+`, dirty: UPDATE_SIZE},
  {name:"shape", value: "rect", desc: `shape type. Possible values are:
   - rect: rounded rectangle
   - square: square using smaller width/height value
@@ -139,7 +148,7 @@ export const options = [
   - repeat: repeat gradient outside of bounds`, dirty: UPDATE_COLOR},
  {name:"text", value: [], desc: "text lines (UTF-8 only). If not empty, force \`shape=text\`", dirty: UPDATE_SIZE},
  {name:"font", value: ["SANS"], desc: "font name(s)", dirty: UPDATE_SIZE},
- {name:"size", value: 20, desc: "font size in percent of height (horizontal text), width (vertical text) or absolute value if negative", dirty: UPDATE_SIZE},
+ {name:"size", value: 20, desc: "font size in percent of height (horizontal text) or width (vertical text), or absolute value if negative", dirty: UPDATE_SIZE},
  {name:"baseline", value: 'alphabetic', desc: `baseline position. Possible values are:
   - alphabetic: alphabetic position of baseline
   - top: baseline at top of EM Box
@@ -153,17 +162,20 @@ export const options = [
   - end: end of shape (right or left depending on text direction)
   - left: left of shape
   - right: right of shape`, dirty: UPDATE_SIZE},
- {name:"spacing", value: 0, desc: "line spacing in percent of height (horizontal text), width (vertical text) or absolute value if negative", dirty: UPDATE_SIZE},
+ {name:"spacing", value: 0, desc: "line spacing in percent of height (horizontal text) or width (vertical text), or absolute value if negative", dirty: UPDATE_SIZE},
  {name:"bold", value: false, desc: "use bold version of font", dirty: UPDATE_SIZE},
  {name:"italic", value: false, desc: "use italic version of font", dirty: UPDATE_SIZE},
  {name:"underline", value: false, desc: "underline text", dirty: UPDATE_SIZE},
  {name:"vertical", value: false, desc: "draw text vertically", dirty: UPDATE_SIZE},
  {name:"flip", value: false, desc: "flip text vertically", dirty: UPDATE_SIZE},
- {name:"extend", value: 0, desc: "maximum text width in percent of width (for horizontal) or height (for vertical)", dirty: UPDATE_SIZE},
+ {name:"extend", value: 0, desc: "maximum text width in percent of width (for horizontal) or height (for vertical), or absolute value if negative", dirty: UPDATE_SIZE},
 
- {name:"keep_ar_rep", value: true, desc: "same as `keep_ar`, applies to local image in replace mode", dirty: UPDATE_POS},
- {name:"txmx_rep", value: [], desc: "same as `txmx`, applies to local image in replace mode", dirty: UPDATE_POS},
- {name:"cmx_rep", value: [], desc: "same as `cmx`, applies to local image in replace mode", dirty: UPDATE_POS},
+ {name:"keep_ar_rep", value: true, desc: "same as `keep_ar` for local image in replace mode", dirty: UPDATE_POS},
+ {name:"txmx_rep", value: [], desc: "same as `txmx` for  local image in replace mode", dirty: UPDATE_POS},
+ {name:"cmx_rep", value: [], desc: "same as `cmx` for local image in replace mode", dirty: UPDATE_POS},
+ {name:"pad_color_rep", value: "none", desc: "same as `pad_color` for local image in replace mode", dirty: UPDATE_POS},
+ {name:"rs_rep", value: false, desc: "same as `rs` for local image in replace mode", dirty: UPDATE_POS},
+ {name:"rt_rep", value: false, desc: "same as `rt` for local image in replace mode", dirty: UPDATE_POS},
 
  {}
 ];
@@ -177,17 +189,22 @@ function make_rounded_rect(is_straight)
   hh = this.height / 2;
 
   /*compute default rx/ry*/
-  rx = this.rx * this.width / 100;
-  ry = this.ry * this.height / 100;
-  if ((rx<0) && (ry<0)) {
-    rx = ry = 0;
+  rx = ry = 0;
+  if (typeof this.rx == 'number') {
+    if (this.rx >=0 )
+      rx = this.rx * this.width / 100;
+    else
+      rx = this.rx;
   }
-  else if (rx<0) {
-    rx = ry;
+  if (typeof this.ry == 'number') {
+    if (this.ry>=0) {
+      ry = this.ry * this.height / 100;
+    } else {
+      ry = this.ry;
+    }
   }
-  else if (ry<0) {
-    ry = rx;
-  }
+  if (this.rx == 'y') rx = ry;
+  if (this.ry == 'x') ry = rx;
 
   if (rx >= hw) rx = hw;
   if (ry >= hh) ry = hh;
@@ -267,7 +284,6 @@ function create_brush(color)
         stencil.set_stop(this.grad_p[i], this.grad_c[i]);
       }
       stencil.set_alphaf(this.alpha);
-      stencil._gl_alpha = this.alpha;
 
       if (this.grad_mode == 'pad') stencil.pad = GF_GRADIENT_MODE_PAD;
       else if (this.grad_mode == 'spread') stencil.pad = GF_GRADIENT_MODE_SPREAD;
@@ -283,15 +299,12 @@ function create_brush(color)
       mmx.add(txmx);
       mmx.scale(this.width, this.height);
       mmx.translate(-this.width/2, -this.height/2);
-      mmx.add(this.mx);
       stencil.mx = mmx;
 
     } else {
       stencil = new evg.SolidBrush();
       stencil.set_color(color);
       stencil.set_alphaf(this.alpha);
-      stencil._gl_alpha = this.alpha;
-      stencil._gl_color = this.fill;
     }
     return stencil;
 }
@@ -303,19 +316,20 @@ function setup_texture(pid_link)
   let txmx_pid = (pid_link || !this.replace_op) ? this.txmx : this.txmx_rep;
   let keep_ar_pid = (pid_link || !this.replace_op) ? this.keep_ar : this.keep_ar_rep;
   let cmx_pid = (pid_link || !this.replace_op) ? this.cmx : this.cmx_rep;
+  let pad_color_pid = (pid_link || !this.replace_op) ? this.pad_color : this.pad_color_rep;
+  let rs_pid = (pid_link || !this.replace_op) ? this.rs : this.rs_rep;
+  let rt_pid = (pid_link || !this.replace_op) ? this.rt : this.rt_rep;
 
   if (!texture) {
     print(GF_LOG_ERROR, 'Scene ' + this.id + ' missing texture !');
     return;
   }
-
   let txmx;
   if (txmx_pid && Array.isArray(txmx_pid) && (txmx_pid.length==6)) {
     txmx = new evg.Matrix2D(txmx_pid[0], txmx_pid[1], txmx_pid[2], txmx_pid[3], txmx_pid[4], txmx_pid[5]);
   } else {
     txmx = new evg.Matrix2D();        
   }
-
   let mmx = new evg.Matrix2D();
 
   let scale_gl_sw = 1;
@@ -331,14 +345,22 @@ function setup_texture(pid_link)
   let rotated = 0;
   let mirrored = 0;
 
+  let tx_info = {};
+  if (pid_link) {
+    pid_link.tx_info = tx_info;
+  } else {
+    this.replace_tx_info = tx_info;
+  }
+
   if (!txmx.identity && !pid_link && this.replace_op) {    
-    texture.repeat_s = true;
-    texture.repeat_t = true;
+    tx_info.repeat_s = true;
+    tx_info.repeat_t = true;
     keep_ar_pid = false;
   } else {
-    texture.repeat_s = !txmx.identity ? true : this.rs;
-    texture.repeat_t = !txmx.identity ? true : this.rt;
+    tx_info.repeat_s = !txmx.identity ? true : rs_pid;
+    tx_info.repeat_t = !txmx.identity ? true : rt_pid;
   }
+  tx_info.pad_color = null;
 
   let mxflip = new evg.Matrix2D();
 
@@ -372,19 +394,32 @@ function setup_texture(pid_link)
         sw = sh * tx_w / tx_h;
       }
   }
+  this.blit_path = null;
   if ((sw != sw_o) || (sh != sh_o)) {
       this.can_reuse = false;
       scale_gl_sw = sw_o / sw;
-      trans_gl_x = (sw_o - sw)/sw_o / 2;
+      trans_gl_x = (sw - sw_o)/sw/2;
       scale_gl_sh = sh_o / sh;
-      trans_gl_y = (sh - sh_o)/sh_o / 2;
+      trans_gl_y = (sh - sh_o)/sh/2;
 
-      if (!this.rs || !this.rt) {
-        if (this.pad_color == "none") {
-          texture.set_pad_color();
-        } else {
-          texture.set_pad_color(this.pad_color);
+      if (!rs_pid || !rt_pid) {
+        if (pid_link || !this.use_mix) {
+          if (pad_color_pid == "none") {
+            tx_info.pad_color = "none";
+            //no padding asked, no repeat s/t or transform and path is a rectangle, define a new path with the new coords to blit
+            if ((this.pids.length<=1) && (this.path.is_rectangle) && txmx.identity) {
+              this.blit_path = new evg.Path().rectangle(0, 0, sw, sh, true);
+            } else {
+              this.use_blit = false;
+            }
+          } else {
+            this.use_blit = false;
+            tx_info.pad_color = pad_color_pid;
+            let a = sys.color_component(pad_color_pid, 0);
+            if (a < 1.0) this.opaque = false;
+          }
         }
+      } else {
         this.use_blit = false;
       }
   }
@@ -401,38 +436,63 @@ function setup_texture(pid_link)
   let ty = sh/2;
 
   if (rotated==1) {
-    if (mirrored==1) mmx.translate(tx, ty);
-    else if (mirrored==2) mmx.translate(-tx, -ty);
-    else if (mirrored==3) mmx.translate(-tx, ty);
-    else mmx.translate(tx, -ty);
+    if (mirrored==1) {}
+    else if (mirrored==2) { tx=-tx; ty = -ty; }
+    else if (mirrored==3) { tx = -tx; }
+    else { ty = -ty; }
   }
   else if (rotated==2) {
-    if (mirrored==1) mmx.translate(tx, -ty);
-    else if (mirrored==2) mmx.translate(-tx, ty);
-    else if (mirrored==3) mmx.translate(tx, ty);
-    else mmx.translate(-tx, -ty);
+    if (mirrored==1) { ty = -ty; } 
+    else if (mirrored==2) { tx = -tx; }
+    else if (mirrored==3) {}
+    else { tx = -tx; ty = -ty; }
   }
   else if (rotated==3) {
-    if (mirrored==1) mmx.translate(-tx, -ty);
-    else if (mirrored==2) mmx.translate(tx, ty);
-    else if (mirrored==3) mmx.translate(tx, -ty);
-    else mmx.translate(-tx, ty);
+    if (mirrored==1) { tx = -tx; ty = -ty; }
+    else if (mirrored==2) {}
+    else if (mirrored==3) { ty = -ty; }
+    else { tx = -tx; }
   }
   else {
-    if (mirrored==1) mmx.translate(-tx, ty);
-    else if (mirrored==2) mmx.translate(tx, -ty);
-    else if (mirrored==3) mmx.translate(-tx, -ty);
-    else mmx.translate(tx, ty);
+    if (mirrored==1) { tx = -tx; }
+    else if (mirrored==2) { ty = -ty; }
+    else if (mirrored==3) { tx = -tx; ty = -ty; }
+    else {}
   }
 
-  mmx.add(this.mx);
-  texture.mx = mmx;
+  mmx.translate(tx, ty);
+  tx_info.mx = mmx;
 
+  //set gl matrix
+  tx_info._gl_mx = new evg.Matrix2D();
+  tx_info._gl_mx.scale(scale_gl_sw, scale_gl_sh);
+  tx_info._gl_mx.translate(trans_gl_x, trans_gl_y);
+  tx_info._gl_mx.add(txmx);
 
-  texture._gl_mx = new evg.Matrix2D();
-  texture._gl_mx.add(txmx);
-  texture._gl_mx.scale(scale_gl_sw, scale_gl_sh);
-  texture._gl_mx.translate(trans_gl_x, trans_gl_y);
+  if (rotated==0) {
+    if (mirrored==2) tx_info._gl_mx.translate(0, 1);
+    else if (mirrored==3) tx_info._gl_mx.translate(1, 1);
+    else if (mirrored==1) tx_info._gl_mx.translate(1, 0);
+    else tx_info._gl_mx.translate(0, 0);
+  }
+  else if (rotated==1) {
+    if (mirrored==2) tx_info._gl_mx.translate(0, 0);
+    else if (mirrored==3) tx_info._gl_mx.translate(0, 1);
+    else if (mirrored==1) tx_info._gl_mx.translate(1, 1);
+    else tx_info._gl_mx.translate(1, 0);
+  }
+  else if (rotated==2) {
+    if (mirrored==2) tx_info._gl_mx.translate(1, 0);
+    else if (mirrored==3) tx_info._gl_mx.translate(0, 0);
+    else if (mirrored==1) tx_info._gl_mx.translate(0, 1);
+    else tx_info._gl_mx.translate(1, 1);
+  }
+  else { // (rotated==3) 
+    if (mirrored==2) tx_info._gl_mx.translate(1, 1);
+    else if (mirrored==3) tx_info._gl_mx.translate(1, 0);
+    else if (mirrored==1) tx_info._gl_mx.translate(0, 0);
+    else tx_info._gl_mx.translate(0, 1);
+  }
 
   if (pid) {
     if ((tx_w != this.sw) || (tx_h != this.sh)) {
@@ -442,24 +502,20 @@ function setup_texture(pid_link)
   if (this.alpha < 1) {
     this.use_blit = false;
     this.opaque = false;
-    texture.set_alphaf(this.alpha);
+    tx_info.alpha = this.alpha;
   } else {
-    texture.set_alphaf(1);
+    tx_info.alpha = 1;
   }
-  texture._gl_alpha = this.alpha;
 
-  texture._gl_cmx = null;
+  tx_info.cmx = null;
   if (cmx_pid && (cmx_pid.length==20)) {
     let cmx = new evg.ColorMatrix(cmx_pid);
-    texture.cmx = cmx;
     if (!cmx.identity) {
       this.can_reuse = false;
       this.use_blit = false;
-      texture._gl_cmx = cmx_pid;
+      tx_info.cmx = cmx;
     }
   }
-  else
-    texture.cmx = null;
 }
 
 function set_text(txt)
@@ -561,10 +617,22 @@ function set_text(txt)
   this.path.set_text(final_text);
 }
 
+function set_texture_params(texture, tx_info)
+{
+  texture.repeat_s = tx_info.repeat_s;
+  texture.repeat_t = tx_info.repeat_t;
+  texture.set_alphaf(tx_info.alpha);
+  texture.set_pad_color(tx_info.pad_color);
+  texture.mx = tx_info.mx;
+  texture.cmx = tx_info.cmx;
+  texture._gl_mx = tx_info._gl_mx;
+}
 
-export function load() { return {
+export function load() {
+ return {
 
 local_stencil: null,
+local_stencil_type: 0,
 path: null,
 mx: null,
 last_img: null,
@@ -600,14 +668,28 @@ update: function() {
   this.replace_op = 0;
   this.replace_op_img = false;
   this.replace_par = 0;
+  this.use_mix = false;
+  this.replace_tx_info = null;
+
   let rep = this.replace;
   let op = GF_EVG_OPERAND_REPLACE_ALPHA;
+
   if (rep[0]=='-') {
     op = GF_EVG_OPERAND_REPLACE_ONE_MINUS_ALPHA;
     rep = rep.substring(1);
   }
+  else if (rep[0]=='x') {
+    op = GF_EVG_OPERAND_MIX_DYN;
+    rep = rep.substring(1);
+  }
+  else if (rep[0]=='X') {
+    op = GF_EVG_OPERAND_MIX_DYN_ALPHA;
+    rep = rep.substring(1);
+  }
 
-  if (rep=="a") { this.replace_op = op; }
+  if (rep=="m") { this.replace_op = GF_EVG_OPERAND_MIX; this.use_mix = true; }
+  else if (rep=="M") { this.replace_op = GF_EVG_OPERAND_MIX_ALPHA; this.use_mix = true; }
+  else if (rep=="a") { this.replace_op = op; }
   else if (rep=="r") { this.replace_op = op; this.replace_par = 1; }
   else if (rep=="g") { this.replace_op = op; this.replace_par = 2; }
   else if (rep=="b") { this.replace_op = op; this.replace_par = 3; }
@@ -618,22 +700,36 @@ update: function() {
     if (this.img != this.last_img) this.local_stencil = null;
     this.last_img = this.img;
 
+
     if (!this.local_stencil) {
+      this.local_stencil_type = 0;
       try {
-        let url = resolve_url(this.img);
-        this.local_stencil = new evg.Texture(url, false);
-        this.local_stencil.filtering = GF_TEXTURE_FILTER_HIGH_QUALITY;
+        this.local_stencil = get_group_texture(this.img);
+        if (this.local_stencil) {
+          this.local_stencil_type = 1;
+        } else {
+          this.local_stencil = get_sequence_texture(this.img);
+          if (this.local_stencil) {
+            this.local_stencil_type = 2;
+          } else {
+            let url = resolve_url(this.img);
+            this.local_stencil = new evg.Texture(url, false);
+            //when using mask from main scene, let the mask decide
+            this.local_stencil.filtering = GF_TEXTURE_FILTER_HIGH_QUALITY;
+          }
+        }
         this.is_texture = true;
         if (this.replace_op) this.replace_op_img = true;
         reset_local_stencil = false;
       } catch (e) {
         if (this.replace_op) {
           print(GF_LOG_WARNING, 'Failed to load image ' + this.img + ': ' + e + ' - ignoring component replacement');
-          this.is_texture = false;
-          this.replace_op = false;
+          if (!this.pids.length) this.is_texture = false;
+          this.replace_op = 0;
+          this.replace_op_img = false;
         } else {
           print(GF_LOG_WARNING, 'Failed to load image ' + this.img + ': ' + e + ' - will use color fill');
-          this.is_texture = false;
+          if (!this.pids.length) this.is_texture = false;
         }
       }
     } else {
@@ -654,6 +750,7 @@ update: function() {
   //update our objects
 
   this.opaque = false;
+  this.use_blit = false;
   this.can_reuse = this.pids.length ? true : false;
   this.sw = this.width;
   this.sh = this.height;
@@ -710,7 +807,10 @@ update: function() {
         this.path.flip = this.flip;
         this.path.maxWidth = 0;
         if (this.extend) {
-          this.path.maxWidth = this.extend * (this.vertical ? this.height : this.width);
+          if (this.extend>0)
+            this.path.maxWidth = this.extend * (this.vertical ? this.height : this.width) / 100;
+          else
+            this.path.maxWidth = this.extend;
         }
 
         if (this.dyn_text) {
@@ -733,6 +833,46 @@ update: function() {
         } else {
           set_text.apply(this, [this.text]);
         }
+
+        //trash text, keep path only
+        this.path = this.path.get_path();
+
+        //apply alignment
+        let tsize = this.path.measure();
+        let text_mx = new evg.Matrix2D();
+        if (this.vertical) {
+            let align_type = 0; //0: top, 1: center, 2: bottom
+            if ((this.align == 'end') || (this.align == 'right')) align_type = 2;
+            else if (this.align == 'center') align_type = 1;
+
+            if (align_type==0) {
+              text_mx.translate(0, this.sh/2 - this._font_size);
+            }
+            else if (align_type==1) {
+              text_mx.translate(0, tsize.height/2);
+            }
+            else if (align_type==2) {
+              text_mx.translate(0, -this.sh/2 + tsize.height);
+            }
+        } else {
+            let align_type = 0; //0: left, 1: center, 2: right
+            if ((this.align == 'start') && tsize.right_to_left) align_type = 2;
+            else if ((this.align == 'end')  && !tsize.right_to_left) align_type = 2;
+            else if (this.align == 'right') align_type = 2;
+            else if (this.align == 'center') align_type = 1;
+
+            if (align_type==0) {
+              text_mx.translate(-this.sw/2, 0);
+            }
+            else if (align_type==1) {
+              text_mx.translate(-tsize.width/2, 0);
+            }
+            else if (align_type==2) {
+              text_mx.translate(this.sw/2 - tsize.width, 0);
+            }
+        }
+        this.path.transform(text_mx);
+
 
         path_loaded = true;
       } else if (this.shape == 'rect') {
@@ -794,77 +934,21 @@ update: function() {
         this.reload += current_utc_clock;
       }
 
-      //force loading of matrix below
-      this.mx = null;
+      //force setup of textures of outline
+      this.update_flag = UPDATE_POS;
       //force loading of outline
       this.outline = null;
   }
 
-  if (this.path.is_rectangle)
+  if (this.path.is_rectangle) {
     this.opaque = true;
-
-  this.use_blit = blit_enabled ? this.blit : null;
-
-  if ((this.x<0) || (this.y<0) || (this.x + this.sw > video_width) || (this.y + this.sh > video_height) || !this.path.is_rectangle) {
-    this.use_blit = false;
-    this.can_reuse = false;
+    this.use_blit = blit_enabled ? this.blit : null;
   }
 
-  if (!this.mx || (this.update_flag & UPDATE_POS)) {
-    if (reset_local_stencil)
-      this.local_stencil = null;
-    this.mx = new evg.Matrix2D();
-    if (this.rotation) {
-      this.mx.rotate(0, 0, this.rotation * Math.PI / 180);
-      this.use_blit = false;
-      this.can_reuse = false;
-    }
-    if (this.hskew || this.vskew) {
-      this.mx.skew_x(this.hskew);
-      this.mx.skew_y(this.vskew);
-      this.use_blit = false;
-      this.can_reuse = false;
-    }
-    this.mx.translate(-video_width/2 + this.sw/2 + this.x, video_height/2 - this.sh/2 - this.y);
+  if (reset_local_stencil)
+    this.local_stencil = null;
 
-
-    if (this.is_text) {
-        let tsize = this.path.measure();
-
-        if (this.vertical) {
-            let align_type = 0; //0: top, 1: center, 2: bottom
-            if ((this.align == 'end') || (this.align == 'right')) align_type = 2;
-            else if (this.align == 'center') align_type = 1;
-
-            if (align_type==0) {
-              this.mx.translate(0, this.sh/2 - this._font_size);
-            }
-            else if (align_type==1) {
-              this.mx.translate(0, tsize.height/2);
-            }
-            else if (align_type==2) {
-              this.mx.translate(0, -this.sh/2 + tsize.height);
-            }
-        } else {
-            let align_type = 0; //0: left, 1: center, 2: right
-            if ((this.align == 'start') && tsize.right_to_left) align_type = 2;
-            else if ((this.align == 'end')  && !tsize.right_to_left) align_type = 2;
-            else if (this.align == 'right') align_type = 2;
-            else if (this.align == 'center') align_type = 1;
-
-            if (align_type==0) {
-              this.mx.translate(-this.sw/2, 0);
-            }
-            else if (align_type==1) {
-              this.mx.translate(-tsize.width/2, 0);
-            }
-            else if (align_type==2) {
-              this.mx.translate(this.sw/2 - tsize.width, 0);
-            }
-        }
-    }
-
-
+  if (this.update_flag & UPDATE_POS) {
     //setup textures
     if (this.is_texture) {
       if (this.pids.length) {
@@ -877,16 +961,7 @@ update: function() {
 
       //image case
       if (!this.pids.length || this.replace_op_img) {
-         setup_texture.apply(this, [null]);
-        if (this.yuv_cache_texture) {
-          this.yuv_cache_texture.set_alphaf(this.alpha);
-          this.yuv_cache_texture.mx = this.local_stencil.mx;
-
-          if (this.cmx && (this.cmx.length==20))
-            this.yuv_cache_texture.cmx = new evg.ColorMatrix(this.cmx);
-          else
-            this.yuv_cache_texture.cmx = null;
-        }
+        setup_texture.apply(this, [null]);
         if (this.replace_op) {
           this.can_reuse = false;
           this.use_blit = false;
@@ -911,7 +986,6 @@ update: function() {
 
   if (!this.outline || (this.update_flag & UPDATE_LINE)) {
     if (this.line_width) {
-      let path = this.is_text ? this.path.get_path() : this.path;
       let lwidth = (this.line_width<0) ? (-this.line_width) : (this.line_width*this.sw / 100);
       let pen_settings = {
           width: lwidth,
@@ -942,7 +1016,7 @@ update: function() {
       else if (this.join=='bevelmiter') pen_settings.join = GF_LINE_JOIN_MITER_SVG;
       else pen_settings.join = GF_LINE_JOIN_MITER;
 
-      this.outline = path.outline(pen_settings);
+      this.outline = this.path.outline(pen_settings);
       this.outline_brush = create_brush.apply(this, [this.line_color]);
     } else {
       this.outline=null;
@@ -957,12 +1031,6 @@ update: function() {
 
   this.update_flag = 0;
 
-  if (this.use_blit ) {
-    this.dst_rc = {x:this.x, y: this.y, w: this.sw, h: this.sh};
-  } else {
-    this.dst_rc = null;
-  }
-
   if (this.pids.length>1) {
       //todo, get info from transition to check if we can blit / reuse source
       if (this.mix_ratio < 0) {
@@ -970,25 +1038,36 @@ update: function() {
         this.use_blit = false;
       }
   }
+  if (this.replace_op) {
+      this.can_reuse = false;
+      this.use_blit = false;
+      this.opaque = false;
+  }
+
   if (this.pids.length) {
     if (this.can_reuse) {
-      print(GF_LOG_DEBUG, 'Scene ' + this.id + ' setup done: may reuse src as vout framebuffer');
+      print(GF_LOG_DEBUG, 'Shape ' + this.id + ' setup done: may reuse src as vout framebuffer');
     } else {
-      print(GF_LOG_DEBUG, 'Scene ' + this.id + ' setup done: draw using ' + (this.use_blit ? 'blit' : 'texture') + (this.opaque ? ', opaque' : ', transparent' ) );
+      print(GF_LOG_DEBUG, 'Shape ' + this.id + ' setup done: draw using texture' + (this.use_blit ? ' or blit ' : '') + (this.opaque ? ', opaque' : ', transparent' ) );
     }
   } else {
-      print(GF_LOG_DEBUG, 'Scene ' + this.id + ' setup done: ' + (this.is_texture ? 'image fill' : 'solid color fill') );
+      this.can_reuse = false;
+      this.use_blit = false;
+      print(GF_LOG_DEBUG, 'Shape ' + this.id + ' setup done: ' + (this.is_texture ? 'image fill' : 'solid color fill') );
+      if (this.is_texture && sys.pixfmt_transparent(this.local_stencil.pixfmt)) {
+        this.opaque = false;
+      }
   }
-  this.tmp_blit = false;
+  if (!this.use_blit) {
+//    this.blit_path = null;
+  }
+  this.no_draw = false;
   return 1;
 },
-
-tmp_blit: false,
 
 fullscreen: function()
 {
   this.no_draw = false;
-  this.tmp_blit = this.use_blit;
 
   if (this.opaque && this.can_reuse) {
     if (this.pids.length>1) {
@@ -999,25 +1078,14 @@ fullscreen: function()
       else if (this.mix_ratio == 1) {
         this.no_draw = true;
         return 1;
-      } else {
-        this.tmp_blit = false;        
       }
       return -1;
     } else {
       this.no_draw = true;
-      this.tmp_blit = false;        
       return 0;
     }
   }
 
-  if (this.pids.length>1) {
-    if (this.mix_ratio == 0) {
-    }
-    else if (this.mix_ratio == 1) {
-    } else {
-      this.tmp_blit = false;        
-    }
-  }
   return -1;
 },
 
@@ -1027,60 +1095,98 @@ identity: function() {
  return false;
 },
 is_opaque: function() {
-  return this.opaque; 
+  return this.blit_path ? false : this.opaque;
 },
 
 
 draw: function(canvas)
 {
   if (!this.no_draw || this.force_draw) {
-    if (this.tmp_blit && !canvas.has_clipper) {
-        if ((this.mix_ratio == 1) && (this.pids.length>1)) {
-          canvas_blit(this.pids[1].texture, this.dst_rc);
-        } else {
-          canvas_blit(this.pids[0].texture, this.dst_rc);
-        }
-    } else {
-      let tx = null;
+    let blit_rect = this.screen_rect;
+    let blit_tx = this.pids.length ? this.pids[0].texture : null;
+    let do_blit = (blit_rect && this.use_blit && !use_gpu) ? true : false;;
 
+    if (do_blit) {
+      //if 2 inputs, only blit if one or the other
+      if ((this.pids.length==2)) {
+        if (this.mix_ratio == 0) {
+        } else if (this.mix_ratio == 1) {
+          blit_tx = this.pids[1].texture;
+        } else {
+          do_blit = false;
+        }
+      }
+      //if more than 2 inputs, cannot blit
+      else if (this.pids.length>2) {
+        do_blit = false;
+      }
+      if (do_blit && sys.test_mode) {
+        if (this.screen_rect.w != blit_tx.width) do_blit = false;
+        if (this.screen_rect.h != blit_tx.height) do_blit = false;
+      }
+    }
+    if (do_blit && this.blit_path) {
+      blit_rect = get_screen_rect(this.blit_path);
+      if (!blit_rect) do_blit = false;
+    }
+
+    if (do_blit) {
+      try {
+        canvas_blit(blit_tx, blit_rect);
+      } catch (e) {
+        this.use_blit = false;
+        do_blit = false;
+      }
+    }
+
+    if (!do_blit) {
+      let tx = null;
       if (!this.pids.length || this.replace_op_img) {
         tx = this.local_stencil;
+        //img points to a seq, update texture (since sequence might have multiple sources)
+        if (this.local_stencil_type==2) {
+          tx = get_sequence_texture(this.img);
+        }
 
-        if (canvas_yuv && this.is_texture && !use_gpu) {
+        if (canvas_yuv && this.is_texture && !use_gpu && !this.local_stencil_type) {
           if (this.yuv_cache_texture == null) {
             this.yuv_cache_texture = this.local_stencil.rgb2yuv(canvas);
-            this.yuv_cache_texture.set_alphaf(this.alpha);
-            this.yuv_cache_texture.mx = this.local_stencil.mx;
-            this.yuv_cache_texture.repeat_s = this.local_stencil.repeat_s;
-            this.yuv_cache_texture.repeat_t = this.local_stencil.repeat_t;
-
-            let cmx = (this.replace_op) ? this.cmx_rep : this.cmx;
-            if (cmx && (cmx.length==20))
-              this.yuv_cache_texture.cmx = new evg.ColorMatrix(cmx);
-            else
-              this.yuv_cache_texture.cmx = null;
           }
           tx = this.yuv_cache_texture;
         }
       }
-
       if (this.replace_op && !this.replace_op_img) {
         tx = this.local_stencil;
       }
 
+      let skip_op = false;
+      //update texture params
+      this.pids.forEach( pid_link => {
+        set_texture_params(pid_link.texture, pid_link.tx_info);
+        if (pid_link.texture == tx) skip_op = true;
+      });
+
+      if (tx && this.replace_tx_info && !skip_op) {
+        set_texture_params(tx, this.replace_tx_info);
+      }
+
       if (!this.pids.length) {
-        canvas_draw(this.path, this.mx, tx);
+        if (tx)
+          canvas_draw(this.path, tx);
       } else if (this.replace_op && tx) {
-        canvas_draw_sources(this.path, this.mx, this.replace_op, this.replace_par, tx);
+        let replace_par = this.replace_par;
+        if (this.use_mix)
+          replace_par = this.mix_ratio;
+        canvas_draw_sources(this.path, this.replace_op, replace_par, tx);
       } else {
-        canvas_draw_sources(this.path, this.mx);      
+        canvas_draw_sources(this.path);
       }
     }
   }
 
   this.no_draw = false;
   if (this.outline) {
-    canvas_draw(this.outline, this.mx, this.outline_brush);      
+    canvas_draw(this.outline, this.outline_brush);
   }
 
 }

@@ -182,7 +182,7 @@ GF_EVGStencil * gf_evg_stencil_new(GF_StencilType type)
 		st = evg_texture_brush();
 		break;
 	default:
-		return 0L;
+		return NULL;
 	}
 	if (st) {
 		gf_mx2d_init(st->pmat);
@@ -195,33 +195,45 @@ GF_EVGStencil * gf_evg_stencil_new(GF_StencilType type)
 GF_EXPORT
 void gf_evg_stencil_delete(GF_EVGStencil * st)
 {
-	GF_EVGStencil *_this = (GF_EVGStencil *) st;
-	switch(_this->type) {
+	switch(st->type) {
 	case GF_STENCIL_SOLID:
 	case GF_STENCIL_LINEAR_GRADIENT:
 	case GF_STENCIL_RADIAL_GRADIENT:
-		gf_free(_this);
+		gf_free(st);
 		return;
 	case GF_STENCIL_TEXTURE:
 	{
-		EVG_Texture *tx = (EVG_Texture *)_this;
+		EVG_Texture *tx = (EVG_Texture *)st;
 		/*destroy local texture iof any*/
 		if (tx->owns_texture && tx->pixels) gf_free(tx->pixels);
-		gf_free(_this);
+		gf_free(st);
 	}
 	return;
 	}
 }
 
 GF_EXPORT
+GF_Err gf_evg_stencil_set_auto_matrix(GF_EVGStencil * st, Bool auto_on)
+{
+	if (!st) return GF_BAD_PARAM;
+	st->auto_mx = auto_on ? 1 : 0;
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_evg_stencil_get_auto_matrix(GF_EVGStencil * st)
+{
+	return st ? st->auto_mx : GF_FALSE;
+}
+
+GF_EXPORT
 GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 {
-	GF_EVGStencil *_this = (GF_EVGStencil *)st;
-	if (!_this || _this->type>GF_STENCIL_TEXTURE) return GF_BAD_PARAM;
+	if (!st || (st->type>GF_STENCIL_TEXTURE)) return GF_BAD_PARAM;
 	if (mx) {
-		gf_mx2d_copy(_this->smat, *mx);
+		gf_mx2d_copy(st->smat, *mx);
 	} else {
-		gf_mx2d_init(_this->smat);
+		gf_mx2d_init(st->smat);
 	}
 	return GF_OK;
 }
@@ -229,10 +241,9 @@ GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 GF_EXPORT
 Bool gf_evg_stencil_get_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 {
-	GF_EVGStencil *_this = (GF_EVGStencil *)st;
-	if (!_this || _this->type>GF_STENCIL_TEXTURE) return GF_FALSE;
-	if (gf_mx2d_is_identity(_this->smat)) return GF_FALSE;
-	gf_mx2d_copy(*mx, _this->smat);
+	if (!st || !mx || (st->type>GF_STENCIL_TEXTURE)) return GF_FALSE;
+	if (gf_mx2d_is_identity(st->smat)) return GF_FALSE;
+	gf_mx2d_copy(*mx, st->smat);
 	return GF_TRUE;
 }
 
@@ -278,6 +289,14 @@ GF_Err gf_evg_stencil_set_brush_color(GF_EVGStencil * st, GF_Color c)
 	if (!_this  || (_this ->type != GF_STENCIL_SOLID) ) return GF_BAD_PARAM;
 	_this->color = c;
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * st)
+{
+	EVG_Brush *_this = (EVG_Brush *) st;
+	if (!_this  || (_this ->type != GF_STENCIL_SOLID) ) return 0;
+	return _this->color;
 }
 
 
@@ -560,6 +579,9 @@ static u64 EVG_LERP_WIDE(u64 c0, u64 c1, u8 t)
 	return GF_COLW_ARGB(a2, r2, g2, b2);
 }
 
+//slightly more precise but way too expensive as it uses mx2d apply
+//#define EXACT_TX_COORDS
+
 static void tex_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *outx, Fixed *outy)
 {
 	Fixed x, y;
@@ -569,7 +591,7 @@ static void tex_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *out
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
-#if 1
+#ifdef EXACT_TX_COORDS
 	u32 checkx = 0;
 	u32 checky = 0;
 	if (ABS(x)< FIX_ONE/20) checkx = 1;
@@ -597,6 +619,19 @@ static void tex_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *out
 	*outy=y;
 }
 
+#ifdef EXACT_TX_COORDS
+
+#define TEX_UNTRANSFORM_COORDS \
+	_x++; \
+	tex_untransform_coord(_this, _x, _y, &x, &y);
+
+#else
+
+#define TEX_UNTRANSFORM_COORDS \
+		x += _this->inc_x; \
+		y += _this->inc_y; \
+
+#endif
 
 static u32 evg_paramtx_get_pixel(struct __evg_texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 {
@@ -682,8 +717,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				x0 = (x0) % _this->width;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				x0 = m_width;
@@ -694,8 +728,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				while (x0<0) x0 += _this->width;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				x0 = 0;
@@ -708,8 +741,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				y0 = (y0) % _this->height;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				y0 = m_height;
@@ -720,8 +752,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				while (y0<0) y0 += _this->height;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				y0 = 0;
@@ -730,8 +761,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 
 		pix = _this->tx_get_pixel(_this, x0, y0, rctx);
 
-		_x++;
-		tex_untransform_coord(_this, _x, _y, &x, &y);
+		TEX_UNTRANSFORM_COORDS
 
 		/*bilinear filtering*/
 #if USE_BILINEAR
@@ -964,8 +994,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				x0 = (x0) % _this->width;
 			} else if (_this->fill_pad_color_wide) {
 				pix = _this->fill_pad_color_wide;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				x0 = m_width;
@@ -976,8 +1005,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				while (x0<0) x0 += _this->width;
 			} else if (_this->fill_pad_color_wide) {
 				pix = _this->fill_pad_color_wide;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				x0 = 0;
@@ -990,8 +1018,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				y0 = (y0) % _this->height;
 			} else if (_this->fill_pad_color_wide) {
 				pix = _this->fill_pad_color_wide;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				y0 = m_height;
@@ -1002,8 +1029,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				while (y0<0) y0 += _this->height;
 			} else if (_this->fill_pad_color_wide) {
 				pix = _this->fill_pad_color_wide;
-				_x++;
-				tex_untransform_coord(_this, _x, _y, &x, &y);
+				TEX_UNTRANSFORM_COORDS
 				goto write_pix;
 			} else {
 				y0 = 0;
@@ -1012,8 +1038,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 
 		pix = _this->tx_get_pixel_wide(_this, x0, y0, rctx);
 
-		_x++;
-		tex_untransform_coord(_this, _x, _y, &x, &y);
+		TEX_UNTRANSFORM_COORDS
 
 		/*bilinear filtering*/
 #if USE_BILINEAR
@@ -1976,23 +2001,31 @@ GF_EXPORT
 GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
 {
 	Bool is_grad;
-	GF_EVGStencil *_this = (GF_EVGStencil *)st;
+	EVG_BaseGradient *_this = (EVG_BaseGradient *)st;
 	if (!_this) return GF_BAD_PARAM;
 	is_grad = ((_this->type==GF_STENCIL_LINEAR_GRADIENT) || (_this->type==GF_STENCIL_RADIAL_GRADIENT)) ? GF_TRUE : GF_FALSE;
 
 
 	if (!cmat) {
 		if (is_grad && !_this->cmat.identity)
-			((EVG_BaseGradient *) _this)->updated = 1;
+			_this->updated = 1;
 		gf_cmx_init(&_this->cmat);
 	} else {
 		if (is_grad && memcmp(&_this->cmat.m, &cmat->m, sizeof(Fixed)*20))
-			((EVG_BaseGradient *) _this)->updated = 1;
+			_this->updated = 1;
 		gf_cmx_copy(&_this->cmat, cmat);
 	}
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_evg_stencil_get_color_matrix(GF_EVGStencil * st, GF_ColorMatrix *cmat)
+{
+	EVG_BaseGradient *_this = (EVG_BaseGradient *)st;
+	if (!_this || !cmat) return GF_BAD_PARAM;
+	gf_cmx_copy(cmat, &_this->cmat);
+	return GF_OK;
+}
 static u32 gf_evg_stencil_get_pixel_intern(EVG_Texture *_this, s32 x, s32 y, Bool want_yuv)
 {
 	u32 col;
@@ -2201,6 +2234,19 @@ GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil * st, u8 alpha)
 	return GF_OK;
 }
 
+GF_EXPORT
+u8 gf_evg_stencil_get_alpha(GF_EVGStencil * st)
+{
+	EVG_Texture *_this = (EVG_Texture *)st;
+	if (!_this) return 0;
+	if (_this->type==GF_STENCIL_SOLID) {
+		return ((EVG_Brush *)st)->alpha;
+	}
+	if (_this->type==GF_STENCIL_TEXTURE)
+		return _this->alpha;
+
+	return ((EVG_BaseGradient*)st)->alpha;
+}
 
 void *evg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
 {
@@ -2287,6 +2333,74 @@ void *evg_fill_run_mask(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s3
 	}
 	return res;
 }
+void *evg_fill_run_mask_inv(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span, s32 y)
+{
+	void *res = evg_fill_run(p, rctx, span, y);
+	u8 *mask = rctx->surf->internal_mask + y*rctx->surf->width + span->x;
+	u32 i;
+	if (rctx->surf->not_8bits) {
+		u64 *wcols = res;
+		for (i=0; i<span->len; i++) {
+			*wcols = (*wcols & 0x0000FFFFFFFFFFFFUL) | (((u64) (0xFF- *mask))*256)<<48;
+			wcols++;
+			mask++;
+		}
+	} else {
+		u32 * cols = res;
+		for (i=0; i<span->len; i++) {
+			*cols = (*cols & 0x00FFFFFF) | ((u32) (0xFF- *mask) )<<24;
+			cols++;
+			mask++;
+		}
+	}
+	return res;
+}
+
+void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
+{
+	EVG_Span aspan, *ospan;
+	u32 i;
+	aspan.idx1 = aspan.idx2 = 0;
+
+	for (i=0; i<count; i++) {
+		u32 len, o_x;
+		ospan = &spans[i];
+
+		o_x = ospan->x;
+		len = ospan->len;
+		aspan.len = 0;
+		u8 *mask = surf->internal_mask + surf->width * y + o_x;
+		while (len) {
+			u32 mv = *mask;
+
+			if (mv) {
+				if (!aspan.len) {
+					aspan.x = o_x;
+					aspan.coverage = ospan->coverage;
+					aspan.odd_flag = ospan->odd_flag;
+				}
+				aspan.len++;
+				if (mv == 0xFF)
+					*mask = 0xFF - aspan.coverage;
+				else {
+					*mask = 0;
+					aspan.coverage = 0xFF;
+				}
+			} else if (aspan.len) {
+				surf->fill_spans(y, 1, &aspan, surf, rctx);
+				aspan.len = 0;
+			}
+			mask++;
+			o_x++;
+			len--;
+		}
+		//flush
+		if (aspan.len) {
+			surf->fill_spans(y, 1, &aspan, surf, rctx);
+		}
+	}
+}
+
 
 #define mix_run_func(_type, _val, _shift, _R, _G, _B, _ARGB) \
 	u32 r1, g1, b1, r2, g2, b2; \
@@ -2540,7 +2654,7 @@ static void mix_dyn_run_b_wide(EVGRasterCtx *rctx, u32 count)
 		r1 = (r1 * imix + r2 * mix) >> _shift; \
 		g1 = (g1 * imix + g2 * mix) >> _shift; \
 		b1 = (b1 * imix + b2 * mix) >> _shift; \
-		col1p[i] = _ARGB(_val, r1, g1, b1); \
+		col1p[i] = _ARGB(a1, r1, g1, b1); \
 		i++; \
 	} \
 
