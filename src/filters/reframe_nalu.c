@@ -219,6 +219,8 @@ typedef struct
 
 	u32 bitrate;
 	u32 nb_frames;
+
+	u8 last_layer_id, last_temporal_id;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -2053,6 +2055,9 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		return 0;
 	}
 
+	ctx->last_layer_id = layer_id;
+	ctx->last_temporal_id = temporal_id;
+
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_VID_PARAM:
 		if (ctx->novpsext) {
@@ -2213,6 +2218,8 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		*skip_nal = GF_TRUE;
 		return 0;
 	}
+	ctx->last_layer_id = layer_id;
+	ctx->last_temporal_id = temporal_id;
 
 	switch (nal_unit_type) {
 	case GF_VVC_NALU_VID_PARAM:
@@ -2740,6 +2747,7 @@ naldmx_flush:
 		GF_FilterSAPType au_sap_type = GF_FILTER_SAP_NONE;
 		Bool slice_is_b = GF_FALSE;
 		Bool check_dep = GF_FALSE;
+		Bool check_flush_au = GF_FALSE;
 		s32 slice_poc = 0;
 
 		//not enough bytes to parse start code + nal hdr
@@ -2810,6 +2818,7 @@ naldmx_flush:
 			case GF_HEVC_NALU_VID_PARAM:
 			case GF_HEVC_NALU_SEQ_PARAM:
 			case GF_HEVC_NALU_PIC_PARAM:
+				check_flush_au = GF_TRUE;
 			case GF_HEVC_NALU_SEI_PREFIX:
 			case GF_HEVC_NALU_SEI_SUFFIX:
 				break;
@@ -2828,6 +2837,26 @@ naldmx_flush:
 					nal_ref_idc = GF_TRUE;
 				break;
 			}
+			//check if VPS/SPS/PPS lid/tid are greater than last seen. If not, force a picture flush
+			//not doing so could lead in dispatching the config changed before the current AU is send
+			if (check_flush_au) {
+				if (!ctx->first_pck_in_au) {
+					check_flush_au = GF_FALSE;
+				} else {
+					u8 layer_id = nal_data[0] & 1;
+					layer_id<<=5;
+					layer_id |= (nal_data[1] & 0xF8) >> 3;
+					u8 temporal_id = nal_data[2] & 0x7;
+					if (ctx->last_layer_id < layer_id)
+						check_flush_au = GF_FALSE;
+					else if (ctx->last_layer_id == layer_id) {
+						if (ctx->last_temporal_id < temporal_id)
+							check_flush_au = GF_FALSE;
+					}
+					ctx->last_layer_id = layer_id;
+					ctx->last_temporal_id = temporal_id;
+				}
+			}
 		} else if (ctx->codecid==GF_CODECID_VVC) {
 			nal_type = nal_data[1]>>3;
 			switch (nal_type) {
@@ -2836,6 +2865,7 @@ naldmx_flush:
 			case GF_VVC_NALU_VID_PARAM:
 			case GF_VVC_NALU_SEQ_PARAM:
 			case GF_VVC_NALU_PIC_PARAM:
+				check_flush_au = GF_TRUE;
 			case GF_VVC_NALU_SEI_PREFIX:
 			case GF_VVC_NALU_SEI_SUFFIX:
 			case GF_VVC_NALU_APS_PREFIX:
@@ -2859,6 +2889,25 @@ naldmx_flush:
 				if (nal_type<GF_HEVC_NALU_VID_PARAM)
 					nal_ref_idc = GF_TRUE;
 				break;
+			}
+
+			//check if VPS/SPS/PPS/OPI/DEC	 lid/tid are greater than last seen. If not, force a picture flush
+			//not doing so could lead in dispatching the config changed before the current AU is send
+			if (check_flush_au) {
+				if (!ctx->first_pck_in_au) {
+					check_flush_au = GF_FALSE;
+				} else {
+					u8 layer_id = nal_data[0] & 0x3f;
+					u8 temporal_id = (nal_data[1] & 0x7);
+					if (ctx->last_layer_id < layer_id)
+						check_flush_au = GF_FALSE;
+					else if (ctx->last_layer_id == layer_id) {
+						if (ctx->last_temporal_id < temporal_id)
+							check_flush_au = GF_FALSE;
+					}
+					ctx->last_layer_id = layer_id;
+					ctx->last_temporal_id = temporal_id;
+				}
 			}
 		} else {
 			nal_type = nal_data[0] & 0x1F;
@@ -2894,7 +2943,7 @@ naldmx_flush:
 		}
 
 		//new frame - if no slices, we detected the new frame on AU delimiter, don't flush new frame !
-		if ((nal_parse_result>0) && !ctx->first_slice_in_au) {
+		if ((check_flush_au || (nal_parse_result>0)) && !ctx->first_slice_in_au) {
 			//new frame - we flush later on
 			naludmx_finalize_au_flags(ctx);
 
