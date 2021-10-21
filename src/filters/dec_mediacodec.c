@@ -1219,6 +1219,10 @@ void mcdec_finalize(GF_Filter *filter)
 }
 
 #else
+static GF_Err mcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	return GF_EOS;
+}
 static GF_Err mcdec_process(GF_Filter *filter)
 {
 	return GF_EOS;
@@ -1262,8 +1266,8 @@ GF_FilterRegister GF_MCDecCtxRegister = {
 	.private_size = sizeof(GF_MCDecCtx),
 	.initialize = mcdec_initialize,
 	.finalize = mcdec_finalize,
-	.configure_pid = mcdec_configure_pid,
 #endif
+	.configure_pid = mcdec_configure_pid,
 	.process = mcdec_process,
 };
 
@@ -1276,6 +1280,7 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 	GF_MCDecCtxRegister.version = "! Warning: MediaCodec SDK NOT AVAILABLE IN THIS BUILD !";
 
 #ifdef GPAC_ENABLE_COVERAGE
+	mcdec_configure_pid(NULL, NULL, GF_FALSE);
 	mcdec_process(NULL);
 #endif
 

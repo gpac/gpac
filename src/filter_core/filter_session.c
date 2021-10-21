@@ -108,6 +108,16 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 			}
 		}
 	}
+	//except for meta filters, don't accept a filter with input caps but no output caps
+	//meta filters do follow the same rule, however when expanding them for help we may have weird cases
+	//where no config is set but inputs are listed to expose mime types or extensions (cf ffdmx)
+	if (!(freg->flags & GF_FS_REG_META)
+		&& !freg->configure_pid
+		&& gf_filter_has_in_caps(freg->caps, freg->nb_caps)
+	) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing configure_pid function but has input capabilities - ignoring\n", freg->name));
+		return;
+	}
 
 	gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->registry, (void *) freg);
