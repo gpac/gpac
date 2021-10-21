@@ -6016,7 +6016,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 \param sess The session
 \param flags The new flags for the session - if flags is 0xFFFFFFFF, existing flags are not modified
 \param user_io The new callback function
-\param cbk The new user data to ba used in the callback function
+\param cbk The new user data to be used in the callback function
 \param GF_OK or error
  */
 GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
