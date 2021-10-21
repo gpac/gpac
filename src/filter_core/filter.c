@@ -1304,9 +1304,16 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 						}
 
 					} else {
-						//loog for '::' vs ':gfopt' and ':gpac:' - if '::' appears before these, jump to '::'
+						//look for '::' vs ':gfopt' and ':gpac:' - if '::' appears before these, jump to '::'
 						char *sep2 = strstr(sep+3, ":gfopt:");
-						char *sep3 = strstr(sep+3, szEscape);
+						char *sep3 = strstr(sep+3, ":gfloc:");
+						if (sep2 && sep3 && sep2>sep3)
+							sep2 = sep3;
+						else if (!sep2)
+							sep2 = sep3;
+
+						//keep first of :gfopt:, :gfloc: or :gpac: in sep3
+						sep3 = strstr(sep+3, szEscape);
 						if (sep2 && sep3 && sep2<sep3)
 							sep3 = sep2;
 						else if (!sep3)
@@ -1317,6 +1324,10 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 							sep2 = sep3;
 						else if (sep2)
 							opaque_arg = GF_TRUE; //skip an extra ':' at the end of the arg parsing
+						else {
+							//first occurence of our internal separator if any
+							sep2 = sep3;
+						}
 
 						//escape sequence present after this argument, use it
 						if (sep2) {
