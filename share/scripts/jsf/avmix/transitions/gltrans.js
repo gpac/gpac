@@ -125,8 +125,8 @@ function load_fx(fx_name, local_dist)
 
   source += `
 
-void main() {
-  gl_FragColor = transition(txcoord_from);
+vec4 gf_apply_effect() {
+  return transition(txcoord_from);
 }
 `;
 
@@ -231,7 +231,7 @@ setup_gl: function(webgl, program, first_available_texture_unit)
   });
 },
 
-apply: function(webgl, ratio, path, matrix, pids)
+apply: function(webgl, ratio, path, pids)
 {
   if (!this.update_flag) return;
   this.update_flag = 0;

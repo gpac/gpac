@@ -865,7 +865,11 @@ GF_Err evg_raster_render(GF_EVGSurface *surf)
 	if (outline->flags & GF_PATH_FILL_ZERO_NONZERO) fill_rule = 1;
 	else if (outline->flags & GF_PATH_FILL_EVEN) fill_rule = 2;
 
-	surf->render_span  = (EVG_SpanFunc) surf->fill_spans;
+	if (surf->mask_mode == GF_EVGMASK_RECORD) {
+		surf->render_span = evg_fill_span_mask;
+	} else {
+		surf->render_span = (EVG_SpanFunc) surf->fill_spans;
+	}
 
 	if ((void *) surf->sten == (void *) &surf->shader_sten) {
 		GF_EVGFragmentParam fparam;

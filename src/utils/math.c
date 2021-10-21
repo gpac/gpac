@@ -1028,6 +1028,31 @@ Bool gf_rect_equal(GF_Rect *rc1, GF_Rect *rc2)
 	return GF_FALSE;
 }
 
+GF_EXPORT
+void gf_rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
+{
+	if (! gf_rect_overlaps(*rc1, *rc2)) {
+		rc1->width = rc1->height = 0;
+		return;
+	}
+	if (rc2->x > rc1->x) {
+		rc1->width -= rc2->x - rc1->x;
+		rc1->x = rc2->x;
+	}
+	if (rc2->x + rc2->width < rc1->x + rc1->width) {
+		rc1->width = rc2->width + rc2->x - rc1->x;
+	}
+	if (rc2->y < rc1->y) {
+		rc1->height -= rc1->y - rc2->y;
+		rc1->y = rc2->y;
+	}
+	if (rc2->y - rc2->height > rc1->y - rc1->height) {
+		rc1->height = rc1->y - rc2->y + rc2->height;
+	}
+}
+
+
+
 #ifdef GPAC_FIXED_POINT
 
 /* check if dimension is larger than FIX_ONE*/

@@ -1,5 +1,5 @@
 
-export const help = `AVMix is a simple audio video mixer controlled by an updatable JSON playlist format. The filter can be used to:
+export const help = `AVMix is an audio video mixer controlled by an updatable JSON playlist format. The filter can be used to:
 - schedule video sequence(s) over time
 - mix videos together
 - layout of multiple videos
@@ -32,11 +32,12 @@ When operating live, the mixer will initially wait for video frames to be ready 
 
 export const help_playlist = `
 # Playlist Format
-
+## Overview
 The playlist describes:
 - Media sequences: each sequence is a set of sources to be played continuously
 - Transitions: sources in a sequence can be combined using transitions
 - Scenes: a scene describes one graphical object to put on screen and if and how input video are mapped on objects
+- Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements.
 - Timers: a timer can be used to animate scene parameters in various fashions
 
 The playlist content shall be either a single JSON object or an array of JSON objects, hereafter called root objects.
@@ -44,37 +45,46 @@ Root objects types can be indicated through a \`type\` property:
 - seq: a \`sequence\` object
 - url: a \`source\` object (if used as root, a default \`sequence\` object will be created)
 - scene: a \`scene\` object
+- group: a \`group\` object
 - timer: a \`timer\` object
 - config: a \`config\` object
 
 The \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
 
 A root object with a property \`skip\` set to anything but \`0\` or \`false\` is ignored.
+Within a \`group\` hierarchy, any \`scene\` or \`group\` object with a property \`skip\` set to anything but \`0\` or \`false\` is ignored.
+
 Any unrecognized property not starting with \`_\` will be reported as warning.
 
-A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+## Colors
+Colors are handled as strings, formatted as:
+- the DOM color name (see \`gpac -h colors\`)
+- HTML codes \`$RRGGBB\` or \`#RRGGBB\`
+- RGB hex vales \`0xRRGGBB\`
+- RGBA hex values \`0xAARRGGBB\`
+- the color \`none\` is \`0x00000000\`, its signification depends on the object using it.
 
-Media source timing does not depend on the media being used by a scene or not, it is only governed by the \`sequence\` parameters.
-This means that a \`sequence\` not used by any active scene will not be rendered (video nor audio).
-
-
-## JSON syntax
-
-Properties for \`sequence\` objects:
+## Sequences
+### Properties for \`sequence\` objects:
  - id (null): sequence identifier
  - loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
  - start (0): sequence start time:
-   - if positive number, offset in seconds from current clock
-   - if negative number, sequence is not active
-   - otherwise date or \`now\`.
+  - positive number: offset in seconds from current clock
+  - negative number: sequence is not active
+  - otherwise date or \`now\`.
  - stop (0): sequence stop time:
-   - if positive number greater than \`start\`, offset in seconds from current clock
-   - if negative number or less than \`start\`, sequence will stop only when over
-   - otherwise, date or \`now\`.
+  - positive number greater than \`start\`: offset in seconds from current clock
+  - negative number or less than \`start\`: sequence will stop only when over
+  - otherwise: date or \`now\`.
  - transition (null): a \`transition\` object to apply between sources of the sequence
  - seq ([]): array of one or more \`source\` objects
 
-Properties for \`source\` objects:
+### Notes
+Media source timing does not depend on the media being used by a scene or not, it is only governed by the \`sequence\` parameters.
+This means that a \`sequence\` not used by any active scene will not be rendered (video nor audio).
+
+## Sources
+### Properties for \`source\` objects
 - id (null): source identifier, used when reloading the playlist
 - src ([]): list of \`sourceURL\` describing the URLs to play. Multiple sources will be played in parallel
 - start (0.0): media start time in source
@@ -89,41 +99,121 @@ Properties for \`source\` objects:
 - seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to the time elapsed since source start when relaunching process(es)
 - prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
 
-Properties for \`sourceURL\` objects:
+## Source Locations
+### Properties for \`sourceURL\` objects
 - id (null): source URL identifier, used when reloading the playlist
 - in (null): input URL or filter chain to load as string. Words starting with \`-\` are ignored. The first entry must specify a source URL, and additional filters and links can be specified using \`@N[#LINKOPT]\` and \`@@N[#LINKOPT]\` syntax, as in gpac
 - port (null): input port for source. Possible values are:
   - pipe: launch a gpac process to play the source using GSF format over pipe
   - tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (\`tcp\`) or unix domain TCP socket (\`tcpu\`)
   - not specified or empty string: loads source using the current process
-  - other: use value as input filter declaration and launch \'in\' as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
+  - other: use value as input filter declaration and launch \`in \ as dedicated process (e.g., \`in="ffmpeg ..." port="pipe://..."\`)
 - opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
 - raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using dedicated gpac process, ignored otherwise
 
-Note: when launching child process, the input filter is created first and the child process launched afterwards.
+### Notes
+When launching child process, the input filter is created first and the child process launched afterwards.
 
 Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
 
-Properties for \`scene\` objects:
-- id (null): scene identifier
-- js ('shape'): scene type, either builtin (see below) or path to a JS module
-- sources ([]): list of identifiers of sequences used by this scene
-- x (0): horizontal coordinate of the scene top-left corner, in percent of the output width (0 means left edge, 100 means right edge)
-  - special value \`y\` indicates scene \`scene.y\`
-  - special value \`-y\` indicates \`output_height - scene.y - scene.height\`
-- y (0): vertical coordinate of the scene top-left corner, in percent of the output height (0 means top edge, 100 means bottom edge)
-  - special value \`x\` indicates scene \`scene.x\`
-  - special value \`-x\` indicates \`output_width - scene.w - scene.width\`
-- width (100): width of the scene, in percent of the output width.
-  - special value \`height\` indicates to use scene height
-- height (100): height of the scene, in percent of the output height
-  - special value \`width\` indicates to use scene width
-- zorder (0): display order of the scene
-- active (true): indicate if the scene is active or not. An inactive scene will not be refreshed nor rendered
-- rotation (0): rotation angle of the scene in degrees (the rotation is counter-clockwise, around the scene center)
+## 2D transformation
+### Common properties for \`group\` and \`group\` objects
+- active (true): indicate if the object is active or not. An inactive object will not be refreshed nor rendered
+- x (0): horizontal translation
+- y (0): vertical translation
+- cx (0): horizontal coordinate of rotation center
+- cy (0): vertical coordinate of rotation center
+- units ('rel'): unit type for \`x\`, \`y\`, \`cx\`, \`cy\`, \`width\` and \`height\`. Possible values are:
+  - rel: units are expressed in percent of current reference (see below)
+  - pix: units are expressed in pixels
+- rotation (0): rotation angle of the scene in degrees
+- hscale (1): horizontal scaling factor to apply to the group
+- vscale (1): vertical skewing factor to apply to the scene
 - hskew (0): horizontal skewing factor to apply to the scene
 - vskew (0): vertical skewing factor to apply to the scene
+- zorder (0): display order of the scene or of the offscreen group (ignored for regular groups)
+- untransform (false): if true, reset current matrix to identity before computing matrix
+- mxjs (null): JS code for matrix evaluation
+
+### Coordinate System
+Each group or scene is specified in a local coordinate system for which {0,0} represents the center.
+The local transformation matrix is computed as \`rotate(cx, cy, rotation)\` * \`hskew\` * \`vskew\` * \`scale(hscale, vscale)\` * \`translate(x, y)\`.
+
+The default unit system (\`rel\`) is relative to the current established reference:
+- by default, the reference is \`{output_width, output_height}\`, the origin {0,0} being the center of the output frame 
+- any group with \`reference=true\`, \`width>0\` and \`height>0\` espablishes a new reference \`{group.width, group.height}\`
+
+A reference \`R\`, relative coordinates are interpreted as follows:
+- For horizontal coordinates, 0 means center, -50 means left edge (\`-R.width/2\`), 50 means right edge (\`+R.width/2\`).
+- For vertical coordinates, 0 means center, -50 means bottom edge (\`-R.height/2\`), 50 means top edge (\`+R.height/2\`).
+- For \`width\`, 100 means \`R.width\`.
+- For \`height\`, 100 means \`R.height\`.
+
+If \`width=height\`, the width is set to the computed height of the object.
+If \`height=width\`, the height is set to the computed width of the object.
+For \`x\` property, the following special values are defined:
+- \`y\` will set the value to the computed \`y\`  of the object.
+- \`-y\` will set the value to the computed \`-y\` of the object.
+For \`y\` property, the following special values are defined:
+- \`x\` will set the value to the computed \`x\` of the object.
+- \`-x\` will set the value to the computed \`-x\` of the object.
+
+
+Changing reference is typically needed when creating offscreen groups, so that children relative coordinates are resolved against the offscreen canvas size.
+
+### z-ordering
+\`zorder\` specifies the display order of the element in the offscreen canvas of the enclosing offscreen group, or on the output frame if no offscreen group in parent tree.
+This order is independent of the parent group z-ordering. This allows moving objects of a group up and down the display stack without modifying the groups.
+
+### Coordinate modifications through JS
+The code specified in \`mxjs\` can modify the following variables:
+- x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in pixel units
+- mx: 2D matrix of the scene for custom config. If this variable is modified:
+  - if the variable \`mx_set\` is set to true by the code, the other operations are ignored
+  - otherwise, other matrix operations are added after
+- update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if \`use\` is set)
+
+The current scene object is exposed with the name \`scene\`. Results are undefined if  \`mxjs\` code modifies this object.
+All scene and group properties are available. Additional variables:
+- scene.current_depth: for groups with use, indicate the recursion level of the use
+
+## Grouping
+### Properties for \`group\` objects
+- id (null): group identifier
+- scenes ([]): zero or more \`group\` or \`scene\` objects, cannot be animated or updated
+- opacity (1): group opacity
+- offscreen ('none'): set group in offscreen mode, cannot be animated or updated. An offscreen mode is not directly visible but can be used in some texture operations. Possible values are:
+  - none: regular group
+  - mask: offscreen surface is alpha+grey
+  - color: offscreen surface is alpha+colors or colors if \`back_color\` is set
+  - dual: same as \`color\` but allows group to be displayed
+- scaler (1): when opacity or offscreen rendering is used, offscreen canvas size is divided by this factor (>=1)
+- back_color ('none'): when opacity or offscreen rendering is used, fill offscreen canvas with the given color.
+- width (-1): when opacity or offscreen rendering is used, limit offscreen width to given value
+- height (-1): when opacity or offscreen rendering is used, limit offscreen height to given value
+- use (null): id of group or scene to re-use
+- use_depth (-1): number of recursion allowed for the used element, negative means global max branch depth as indicated by \`maxdepth\`
+- reverse (false): reverse scenes order before draw
+- reference (false): group acts as reference for relative coordinate of children nodes 
+
+### Notes
+The maximum depth of a branch in the scene graph is \`maxdepth\` (traversing aborts after this limit).
+
+In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless \`width\` and  \`height\` are both greater or equal to 0.
+Enforcing offscreen size is usefull when generating textures for later effects.
+
+Offscreen rendering is always done in software.
+
+When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the display may be truncated if children objects are out of the offscreen canvas bounds.
+
+## Scenes
+### Properties for \`scene\` objects
+- id (null): scene identifier
+- js ('shape'): scene type, either builtin (see below) or path to a JS module, cannot be animated or updated
+- sources ([]): list of identifiers of sequences or offscreen groups used by this scene, cannot be animated or updated
+- width (-1): width of the scene, -1 means output video width (regardless of \`units\` value)
+- height (-1): height of the scene, -1 means output video height (regardless of \`units\` value)
 - mix (null): a \`transition\` object to apply if more than one source is set, ignored otherwise
 - mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
 - volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
@@ -132,14 +222,27 @@ Properties for \`scene\` objects:
   - out: audio fade-out when playing last frame at scene activation
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
+- any other property exposed by the underlying scene JS module.
 
+### Notes
+Inputs to a scene, whether \`sequence\` or offscreen \`group\`, must be declared prior to the scene itself.
+
+A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+
+## Transitions and Mixing effects
+### JSON syntax
 Properties for \`transition\` objects:
 - id (null): transition identifier
 - type: transition type, either builtin (see below) or path to a JS module
 - dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene \`mix\`.
 - fun (null): JS code modifying the ratio effect called \`ratio\`, eg \`fun="ratio = ratio*ratio;"\`
+- any other property exposed by the underlying transition module.
 
-Properties for \`timer\` objects:
+### Notes
+A \`sequence\` of two media with playback duration (as indicated in \`source\`) of D1 and D2 using a transition of duration DT will result in a sequence lasting \`D1 + D2 - DT\`.
+
+## Timers and animations
+### Properties for \`timer\` objects
 - id (null): id of the timer
 - dur (0): duration of the timer in seconds
 - loop (false): loops timer when \`stop\` is not set
@@ -148,7 +251,7 @@ Properties for \`timer\` objects:
 - keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 - anims ([]): list of \`animation\` objects
 
-Properties for \`animation\` objects:
+### Properties for \`animation\` objects
 - values ([]): list of values to interpolate, there must be as many values as there are keys
 - color (false): indicate the values are color (as strings)
 - angle (false): indicate the interpolation factor is an angle in degree, to convert to radians (interpolation ratio multiplied by PI and divided by 180) before interpolation
@@ -164,15 +267,8 @@ Properties for \`animation\` objects:
   - ID@option: modifies property \`option\` of object with given ID
   - ID@option[IDX]: modifies value at index \`IDX\` of array property \`option\` of object with given ID
 
-Currently, only \`scene\` and \`transition\` objects can be modified through timers.
-
-__Note on colors__
-Colors are handled as strings, formatted as:
-- the DOM color name (see \`gpac -h colors\`)
-- HTML codes \`$RRGGBB\` or \`#RRGGBB\`
-- RGB hex vales \`0xRRGGBB\`
-- RGBA hex values \`0xAARRGGBB\`
-- the color \`none\` is \`0x00000000\`
+### Notes
+Currently, only \`scene\`, \`group\` and \`transition\` objects can be modified through timers (see playlist updates).
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
@@ -187,12 +283,10 @@ The following additional properties are defined for testing:
 - reload_timeout(1.0): timeout in seconds before playlist reload
 - reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
 
-
 ## Playlist modification
-
 The playlist file can be modified at any time.
 Objects are identified across playlist reloads through their \`id\` property.
-Root objects that are not present after reloading a playlist are removed from the mixer.
+Objects that are not present after reloading a playlist are removed from the mixer. This implies that reloading a playlist will recreate most objects with no ID associated.
 
 A \`sequence\` object modified between two reloads is refreshed, except for its \`start\` field if sequence active.
 
@@ -200,12 +294,11 @@ A \`source\` object shall have the same parent sequence between two reloads. Any
 
 A \`sourceURL\` object is not tracked for modification, only evaluated when activating the parent \`source\` object.
 
-A \`scene\` object modified between two reloads is notified of each changed value.
+A \`scene\` or \`group\` object modified between two reloads is notified of each changed value.
 
 A \`timer\` object modified between two reloads is shut down and restarted. Consequently, \`animation\` objects are not tracked between reloads.
 
 A \`transition\` object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
-
 
 ## Playlist example
 
@@ -236,7 +329,6 @@ Updates are read from a separate file specified in \`updates\`, inactive by defa
 
 Warning: The \`updates\` file is only read when modified __AFTER__ the initialization of the filter.
 
-
 The \`updates\` file content shall be either a single JSON object or an array of JSON objects.
 The properties of these objects are:
 - skip: if true or 1, ignores the update, otherwise apply it
@@ -245,18 +337,16 @@ The properties of these objects are:
   - ID@name[idx]: indicate the index in the property name of element with given ID to replace
 - with: replacement value, must be of the same type as the target value.
 
+An \`id\` property cannot be updated.
 
 The following playlist elements of a playlist can be updated:
-- scene: all properties except \`js\` and \`sources\`
+- scene: all properties except \`js\`, \`sources\` and read-only module properties
+- group: all properties except \`scenes\` and  \`offscreen\`
 - sequence: \`start\`, \`stop\`, \`loop\` and \`transition\` properties
 - timer: \`start\`, \`stop\`, \`loop\` and \`dur\` properties
 - transition: all properties
-  - for sequence transitions, most of these properties will only be updated at next reload
-  - for active scene transitions, whether these changes are applied right away depend on the transition module
-
-
-IDs cannot be updated.
-
+  - for sequence transitions: most of these properties will only be updated at next reload
+  - for active scene transitions: whether these changes are applied right away depend on the transition module
 
 EX [
 EX  {"replace": "scene1@x", "with": 20},

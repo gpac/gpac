@@ -63,10 +63,10 @@ setup: function()
     }
 },
 
-apply: function(canvas, ratio, path, matrix, pids)
+apply: function(canvas, ratio, path, pids)
 {
   if (use_gpu) {
-    this.apply_gl(canvas, ratio, path, matrix, pids);
+    this.apply_gl(canvas, ratio, path, pids);
     return;
   }
 
@@ -110,7 +110,6 @@ apply: function(canvas, ratio, path, matrix, pids)
 
   if (! this.mod) {
     canvas.path = new_path;
-    canvas.matrix = matrix;
     canvas.fill(GF_EVG_OPERAND_ODD_FILL, ratio, pids[0].texture, pids[1].texture);
     return;
 
@@ -165,15 +164,16 @@ apply: function(canvas, ratio, path, matrix, pids)
 
   let pad1_bck = pids[0].texture.get_pad_color();
   let pad2_bck = pids[1].texture.get_pad_color();
+  let pad_col = pad1_bck || pad2_bck || 'black';
+
   //pad with the same color !
-  pids[0].texture.set_pad_color(pad1_bck ? pad1_bck : 'black');
-  pids[1].texture.set_pad_color(pad1_bck ? pad1_bck : 'black');
+  pids[0].texture.set_pad_color(pad_col);
+  pids[1].texture.set_pad_color(pad_col);
 
   pids[0].texture.mx = mx1;
   pids[1].texture.mx = mx2;
 
   canvas.path = new_path;
-  canvas.matrix = matrix;
   canvas.fill(GF_EVG_OPERAND_ODD_FILL, ratio, pids[0].texture, pids[1].texture);
 
 
@@ -189,11 +189,11 @@ pad_col: null,
 
 setup_gl: function(webgl, program, first_available_texture_unit)
 {
-  this.pad_col_uni = webgl.getUniformLocation(program, 'pad_color');
+  this.pad_col_uni = webgl.getUniformLocation(program, 'swipe_pad_color');
   this.pad_col = null;
 },
 
-apply_gl: function(webgl, ratio, path, matrix, pids)
+apply_gl: function(webgl, ratio, path,  pids)
 {
    if (!this.pad_col_uni) return;
   let pad1_bck = pids[0].texture.get_pad_color() || 'black';
@@ -214,14 +214,15 @@ get_shader_src: function()
 
 
 
-  let frag_src = `void main() {
+  let frag_src = `vec4 gf_apply_effect() {
      vec2 p = txcoord_from.xy;
+     vec2 p_to = txcoord_to.xy;
      `;
   
   if (this.mod==0) {
     frag_src += `
       vec2 txcf = p;
-      vec2 txct = p;
+      vec2 txct = p_to;
     `;
   }
   let use_pad = false;
@@ -235,7 +236,7 @@ get_shader_src: function()
         use_pad = true;
         frag_src += `
 vec2 txcf = vec2(p.x - ratio, p.y - ratio);
-vec2 txct = vec2(1.0 + p.x - ratio, 1.0 + p.y - ratio);
+vec2 txct = vec2(1.0 + p_to.x - ratio, 1.0 + p_to.y - ratio);
 float is_in = (myratio==0.0) ? step(1.0, txct.x) * step(1.0, txct.y) : 1.0;
 `;
       }
@@ -264,7 +265,7 @@ is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
         use_pad = true;
         frag_src += `
 vec2 txcf = vec2(p.x - ratio, p.y + ratio);
-vec2 txct = vec2(1.0 + p.x - ratio, p.y + ratio - 1.0);
+vec2 txct = vec2(1.0 + p_to.x - ratio, p_to.y + ratio - 1.0);
 float is_in = (myratio==0.0) ? step(1.0, txct.x) * step(txct.y, 0.0) : 1.0;
 `;
       }
@@ -291,7 +292,7 @@ is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
       if (this.mod) {
         frag_src += `
 vec2 txcf = vec2(p.x - ratio, p.y);
-vec2 txct = vec2(1.0 + p.x - ratio, p.y);
+vec2 txct = vec2(1.0 + p_to.x - ratio, p_to.y);
 `;
       }
       if (this.mod>1) {
@@ -329,7 +330,7 @@ is_in `+ op + ` (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
         use_pad = true;
         frag_src += `
 vec2 txcf = vec2(p.x + ratio, p.y - ratio);
-vec2 txct = vec2(p.x + ratio - 1.0, 1.0 + p.y - ratio);
+vec2 txct = vec2(p_to.x + ratio - 1.0, 1.0 + p_to.y - ratio);
 float is_in = (myratio==0.0) ? step(txct.x, 0.0) * step(1.0, txct.y) : 1.0;
 `;
       }
@@ -357,7 +358,7 @@ is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
         use_pad = true;
         frag_src += `
 vec2 txcf = vec2(p.x + ratio, p.y + ratio);
-vec2 txct = vec2(p.x + ratio - 1.0, p.y + ratio - 1.0);
+vec2 txct = vec2(p_to.x + ratio - 1.0, p_to.y + ratio - 1.0);
 float is_in = (myratio==0.0) ? step(txct.x, 0.0) * step(txct.y, 0.0) : 1.0;
 `;
       }
@@ -396,7 +397,7 @@ is_in *= (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
       if (this.mod) {
         frag_src += `
 vec2 txcf = vec2(p.x + ratio, p.y);
-vec2 txct = vec2(p.x + ratio - 1.0, p.y);
+vec2 txct = vec2(p_to.x + ratio - 1.0, p_to.y);
 `;
       }
       if (this.mod>1) {
@@ -432,7 +433,7 @@ is_in `+ op + ` (myratio>0.0) ? step(0.0, txct.y) * step(txct.y, 1.0) : 1.0;
     if (this.mod) {
       frag_src += `
 vec2 txcf = vec2(p.x, p.y - ratio);
-vec2 txct = vec2(p.x, 1.0 + p.y - ratio);
+vec2 txct = vec2(p_to.x, 1.0 + p_to.y - ratio);
 `;
     }
     if (this.mod>1) {
@@ -468,7 +469,7 @@ is_in ` + op +` (myratio>0.0) ? step( 0.0, txct.x) * step(txct.x, 1.0) : 1.0;
     if (this.mod) {
       frag_src += `
 vec2 txcf = vec2(p.x, p.y + ratio);
-vec2 txct = vec2(p.x, p.y + ratio - 1.0);
+vec2 txct = vec2(p_to.x, p_to.y + ratio - 1.0);
 `;
     }
     if (this.mod>1) {
@@ -506,17 +507,17 @@ is_in `+ op + `(myratio>0.0) ? step( 0.0, txct.x) * step(txct.x, 1.0) : 1.0;
   if (use_pad) {
     frag_src += `
       is_in = (is_in==0.0) ? 0.0 : 1.0;
-      gl_FragColor = mix(pad_color, mix(col_from, col_to, myratio), is_in);
+      return mix(swipe_pad_color, mix(col_from, col_to, myratio), is_in);
     }`;
   } else {
     frag_src += `
-      gl_FragColor = mix(col_from, col_to, myratio);
+      return mix(col_from, col_to, myratio);
     }`;
 
   }
 
   if (use_pad) {
-    frag_src = 'uniform vec4 pad_color;\n' + frag_src;
+    frag_src = 'uniform vec4 swipe_pad_color;\n' + frag_src;
   }
 
 

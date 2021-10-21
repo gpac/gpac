@@ -1391,6 +1391,27 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 }
 
 GF_EXPORT
+Bool gf_pixel_fmt_is_transparent(GF_PixelFormat pixfmt)
+{
+	switch (pixfmt) {
+	case GF_PIXEL_ALPHAGREY:
+	case GF_PIXEL_GREYALPHA:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_ABGR:
+	case GF_PIXEL_BGRA:
+	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVA444:
+	case GF_PIXEL_YUVA444_PACK:
+		return GF_TRUE;
+	default:
+		break;
+	}
+	return GF_FALSE;
+}
+
+GF_EXPORT
 u32 gf_pixel_is_wide_depth(GF_PixelFormat pixfmt)
 {
 	switch (pixfmt) {

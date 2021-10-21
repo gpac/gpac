@@ -2108,6 +2108,8 @@ typedef struct _gl_texture_wrap
 	//YUV is full video range
 	Bool fullrange;
 	s32 mx_cicp;
+
+	u32 last_program;
 } GF_GLTextureWrapper;
 
 Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f_source, Bool y_flip);

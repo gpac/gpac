@@ -1598,6 +1598,11 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 	if (!texture_unit)
 		texture_unit = GL_TEXTURE0;
 
+	if (gl_program && (gl_program != tx->last_program)) {
+		tx->last_program = gl_program;
+		tx->uniform_setup = GF_FALSE;
+	}
+
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if ((!tx->uniform_setup || (tx->init_active_texture != texture_unit)) && gl_program) {
 		char szName[100];

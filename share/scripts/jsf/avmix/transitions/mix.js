@@ -20,13 +20,12 @@ setup_gl: function(webgl, program, first_available_texture_unit)
 {
 },
 
-apply: function(canvas, ratio, path, matrix, pids)
+apply: function(canvas, ratio, path, pids)
 {
     if (use_gpu) {
       //nothing to do
     } else {
       canvas.path = path;
-      canvas.matrix = matrix;
       canvas.fill(GF_EVG_OPERAND_MIX, ratio, pids[0].texture, pids[1].texture);
     }
 },
@@ -34,10 +33,10 @@ apply: function(canvas, ratio, path, matrix, pids)
 get_shader_src: function()
 {
 
-  return `void main() {
+  return `vec4 gf_apply_effect() {
       vec4 col_from = get_pixel_from(txcoord_from);
       vec4 col_to = get_pixel_to(txcoord_to);
-      gl_FragColor = mix(col_from, col_to, ratio);
+      return mix(col_from, col_to, ratio);
   }
   `;
 }

@@ -327,6 +327,15 @@ Tests if two rectangles are identical.
 Bool gf_rect_equal(GF_Rect *rc1, GF_Rect *rc2);
 
 /*!
+\brief rectangle intersection
+
+Intersects two rectangle.
+\param rc1 rectangle to use, updated to intersection result
+\param rc2 second rectangle to use
+*/
+void gf_rect_intersect(GF_Rect *rc1, GF_Rect *rc2);
+
+/*!
 \brief pixel-aligned rectangle
 
 Pixel-aligned rectangle used in the GPAC framework. This is usually needed for 2D drawing algorithms.

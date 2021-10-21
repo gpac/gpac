@@ -190,6 +190,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 		JS_ToInt32(ctx, &logl, argv[0]);
 		i=1;
 	}
+
 	if (error_type)
 		logl = GF_LOG_ERROR;
 	g = JS_GetGlobalObject(ctx);
@@ -236,6 +237,9 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 #else
 			fprintf(stderr, "%s%s", (first) ? "" : " ", str);
 #endif
+			if (JS_IsException(argv[i])) {
+				js_dump_error_exc(ctx, argv[i]);
+			}
 		}
         JS_FreeCString(ctx, str);
         first=GF_FALSE;
@@ -1608,6 +1612,54 @@ static JSValue js_sys_url_cat(JSContext *ctx, JSValueConst this_val, int argc, J
 	return res;
 }
 
+
+static JSValue js_sys_rect_union_ex(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool is_inter)
+{
+	GF_Rect rc1, rc2;
+	Double fval;
+	JSValue v;
+	int res;
+	if (argc<2) return GF_JS_EXCEPTION(ctx);
+
+#define GET_PROP(_obj, _n, _f)\
+	_f = 0;\
+	v = JS_GetPropertyStr(ctx, _obj, _n);\
+	res = JS_ToFloat64(ctx, &fval, v);\
+	if (!res) _f = FLT2FIX(fval);\
+	JS_FreeValue(ctx, v);\
+
+	GET_PROP(argv[0], "x", rc1.x)
+	GET_PROP(argv[0], "y", rc1.y)
+	GET_PROP(argv[0], "w", rc1.width)
+	GET_PROP(argv[0], "h", rc1.height)
+	GET_PROP(argv[1], "x", rc2.x)
+	GET_PROP(argv[1], "y", rc2.y)
+	GET_PROP(argv[1], "w", rc2.width)
+	GET_PROP(argv[1], "h", rc2.height)
+
+#undef GET_PROP
+
+	if (is_inter) {
+		gf_rect_intersect(&rc1, &rc2);
+	} else {
+		gf_rect_union(&rc1, &rc2);
+	}
+	v = JS_NewObject(ctx);
+	JS_SetPropertyStr(ctx, v, "x", JS_NewFloat64(ctx, FIX2FLT(rc1.x) ));
+	JS_SetPropertyStr(ctx, v, "y", JS_NewFloat64(ctx, FIX2FLT(rc1.y) ));
+	JS_SetPropertyStr(ctx, v, "w", JS_NewFloat64(ctx, FIX2FLT(rc1.width) ));
+	JS_SetPropertyStr(ctx, v, "h", JS_NewFloat64(ctx, FIX2FLT(rc1.height) ));
+	return v;
+}
+static JSValue js_sys_rect_union(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return js_sys_rect_union_ex(ctx, this_val, argc, argv, GF_FALSE);
+}
+static JSValue js_sys_rect_intersect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return js_sys_rect_union_ex(ctx, this_val, argc, argv, GF_TRUE);
+}
+
 enum
 {
 	OPT_RMDIR,
@@ -1884,6 +1936,26 @@ static JSValue js_pixfmt_size(JSContext *ctx, JSValueConst this_val, int argc, J
 	return JS_NewInt32(ctx, osize);
 }
 
+static JSValue js_pixfmt_transparent(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_PropertyValue prop;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PIXFMT);
+	if (e) return GF_JS_EXCEPTION(ctx);
+
+	return JS_NewBool(ctx, 	gf_pixel_fmt_is_transparent(prop.value.uint) );
+}
+
+static JSValue js_pixfmt_yuv(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_PropertyValue prop;
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PIXFMT);
+	if (e) return GF_JS_EXCEPTION(ctx);
+
+	return JS_NewBool(ctx, gf_pixel_fmt_is_yuv(prop.value.uint) );
+}
+
 static JSValue js_pcmfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_PropertyValue prop;
@@ -1935,6 +2007,9 @@ static JSValue js_color_lerp(JSContext *ctx, JSValueConst this_val, int argc, JS
 	r = (u8) ((r1 * minterp + r2 * interp) * 255);
 	g = (u8) ((g1 * minterp + g2 * interp) * 255);
 	b = (u8) ((b1 * minterp + b2 * interp) * 255);
+
+	if (!a && !r && !g && !b)
+		return JS_NewString(ctx, "none");
 
 	sprintf(szCol, "0x%02X%02X%02X%02X", a, r, g, b);
 	return JS_NewString(ctx, szCol);
@@ -2419,10 +2494,14 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("htons", 0, js_sys_htons),
 
 	JS_CFUNC_DEF("pixfmt_size", 0, js_pixfmt_size),
+	JS_CFUNC_DEF("pixfmt_transparent", 0, js_pixfmt_transparent),
+	JS_CFUNC_DEF("pixfmt_yuv", 0, js_pixfmt_yuv),
 	JS_CFUNC_DEF("pcmfmt_depth", 0, js_pcmfmt_depth),
 	JS_CFUNC_DEF("color_lerp", 0, js_color_lerp),
 	JS_CFUNC_DEF("color_component", 0, js_color_get_component),
 	JS_CFUNC_DEF("url_cat", 0, js_sys_url_cat),
+	JS_CFUNC_DEF("rect_union", 0, js_sys_rect_union),
+	JS_CFUNC_DEF("rect_intersect", 0, js_sys_rect_intersect),
 
 	JS_CFUNC_DEF("_avmix_audio", 0, js_audio_mix),
 };

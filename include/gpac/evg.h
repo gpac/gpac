@@ -161,6 +161,19 @@ GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 */
 Bool gf_evg_stencil_get_matrix(GF_EVGStencil * stencil, GF_Matrix2D *mat);
 
+/*! sets stencil transformation matrix auto mode.
+\param stencil the target stencil
+\param auto_on  If true,  the surface current matrix will be added to the stencil matrix when drawing, otherwise the stencil matrix is in final surface coordinates
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_auto_matrix(GF_EVGStencil * stencil, Bool auto_on);
+
+/*! sets stencil transformation matrix auto mode.
+\param stencil the target stencil
+\return true if auto mode is enabled, false otherwise
+*/
+Bool gf_evg_stencil_get_auto_matrix(GF_EVGStencil * stencil);
+
 /*! gets stencil type
 \param stencil the target stencil
 \return stencil type
@@ -173,6 +186,12 @@ GF_StencilType gf_evg_stencil_type(GF_EVGStencil *stencil);
 \return error if any
 */
 GF_Err gf_evg_stencil_set_brush_color(GF_EVGStencil *stencil, GF_Color color);
+
+/*! gets color for solid brush stencil
+\param stencil the target stencil
+\return the stencil color
+*/
+GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * stencil);
 
 /*! sets gradient repeat mode for a gradient stencil
 \note this may be called before the gradient is setup
@@ -226,7 +245,7 @@ GF_Err gf_evg_stencil_set_gradient_interpolation(GF_EVGStencil *stencil, Fixed *
 */
 GF_Err gf_evg_stencil_push_gradient_interpolation(GF_EVGStencil *stencil, Fixed pos, GF_Color col);
 
-/*! sets global alpha blending level for a texture or gradient stencil
+/*! sets global alpha blending level for a stencil
 The alpha channel will be combined with the color matrix if any
 \warning do not use with solid brush stencil
 \param stencil the target stencil
@@ -234,6 +253,12 @@ The alpha channel will be combined with the color matrix if any
 \return error if any
 */
 GF_Err gf_evg_stencil_set_alpha(GF_EVGStencil *stencil, u8 alpha);
+
+/*! gets global alpha blending level of a stencil
+\param stencil the target stencil
+\return the alpha value between 0 (full transparency) and 255 (full opacityy)
+*/
+u8 gf_evg_stencil_get_alpha(GF_EVGStencil *stencil);
 
 /*! sets pixel data for a texture stencil
 \param stencil the target stencil
@@ -316,12 +341,18 @@ u32 gf_evg_stencil_get_pad_color(GF_EVGStencil * stencil);
 GF_Err gf_evg_stencil_set_filter(GF_EVGStencil *stencil, GF_TextureFilter filter_mode);
 
 /*! sets color matrix of a stencil
-\warning ignored for solid brush stencil
 \param stencil the target stencil
 \param cmat the color matrix to use. If NULL, resets current color matrix
 \return error if any
  */
 GF_Err gf_evg_stencil_set_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *cmat);
+
+/*! gets color matrix of a stencil
+\param stencil the target stencil
+\param cmat filled with current color matrix of stencil
+\return error if any
+ */
+GF_Err gf_evg_stencil_get_color_matrix(GF_EVGStencil *stencil, GF_ColorMatrix *cmat);
 
 /*! gets pixel at given position in ARGB format
 \param stencil the target stencil
@@ -1016,6 +1047,10 @@ typedef enum
 	GF_EVGMASK_DRAW_NO_CLEAR,
 	/*! subsequent draw operations will be filtered with the global alpha mask */
 	GF_EVGMASK_USE,
+	/*! subsequent draw operations will be filtered with 1 minus the global alpha mask */
+	GF_EVGMASK_USE_INV,
+	/*! combine draw and use: the mask is set to 0xFF, each pixel drawn turns the mask value to 0 */
+	GF_EVGMASK_RECORD,
 } GF_EVGMaskMode;
 
 /*! sets global alpha mask mode

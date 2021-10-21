@@ -632,9 +632,12 @@ interface Matrix2D {
 	/*! inverse matrix - see \ref gf_mx2d_inverse
 	\return the matrix*/
 	Matrix2D inverse();
-	/*! copies the matrix 
+	/*! copies the matrix
 	\return the new copy matrix*/
 	Matrix2D copy();
+	/*! copies from a matrix
+	\param from the matrix to copy from*/
+	void copy(Matrix2D from);
 	/*! adds a matrix - see \ref gf_mx2d_add_matrix and \ref gf_mx2d_pre_multiply
 	\param mx the matrix to multiply 
 	\param premultiply if true, performs \code mx * this \endcode, otherwise \code this * mx \endcode 
@@ -817,7 +820,9 @@ interface Stencil {
 	\warning this is a copy of the associated matrix, not a live object*/
 	attribute Matrix2D mx;
 	/*! true if stencil is a solid color brush, false for gradient stencils*/
-	attribute readonly boolean solid_color;
+	attribute readonly boolean solid_brush;
+	/*! automatic matrix mode, see \ref gf_evg_stencil_set_auto_matrix*/
+	attribute boolean auto_mx;
 
 	/*! set color for solid brush stencil
 	\param color the color to set*/
@@ -849,6 +854,10 @@ interface Stencil {
 	*/
 	void set_colorf(double r, double g, double b, double a);
 
+	/*! get color for solid brush stencil
+	\return color string*/
+	DOMString get_color();
+
 	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0 and 255*/
 	void set_alpha(unsigned long alpha);
@@ -856,6 +865,10 @@ interface Stencil {
 	/*! sets alpha value for stencil. The alpha is multiplied with the alpha component of the solid brush or gradient color
 	\param alpha the alpha to set, between 0.0 and 1.0*/
 	void set_alphaf(double alpha);
+
+	/*! gets alpha value for stencil
+	\return alpha value, between 0.0 and 1.0*/
+	double get_alphaf();
 
 	/*! sets linear gradient start and end point. If end point is omitted, sets gradient line betwee {0,0} and start. Coordinates are given in surface coordinates, not object coordinates. See \ref gf_evg_stencil_set_linear_gradient
 	\note Point2D can be replaced with 2 number x, y, i.e. these syntaxes are all equivalent:

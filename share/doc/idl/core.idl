@@ -336,6 +336,12 @@ unsigned long ntohs(unsigned long value);
 */
 unsigned long pixfmt_size(DOMString pix_fmt, unsigned long width, unsigned long height);
 
+/*! checks if pixel format is potentially transparent (uses alpha)
+\param pcm_fmt PCM format name
+\return true if transparent, false otherwise
+*/
+unsigned long pixfmt_transparent(DOMString pcm_fmt);
+
 /*! gets size in bytes of an audio sample in the given format
 \param pcm_fmt PCM format name
 \return size in bytes
@@ -364,6 +370,21 @@ double color_component(DOMString color, unsigned long comp_idx);
 \return the resolved URL
 */
 DOMString url_cat(DOMString parent, DOMString URL);
+
+/*! gets union of two rectangles
+\param r1 first rectangle
+\param r2 second rectangle
+\return union rectangle
+*/
+Rect rect_union(Rect r1, Rect r2);
+
+/*! gets intersection of two rectangles
+\param r1 first rectangle
+\param r2 second rectangle
+\return intersection rectangle
+*/
+Rect rect_intersect(Rect r1, Rect r2);
+
 
 /*! number of cores */
 attribute readonly unsigned long nb_cores;
