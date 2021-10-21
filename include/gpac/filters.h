@@ -2125,7 +2125,7 @@ struct __gf_filter_register
 	*/
 	GF_Err (*process)(GF_Filter *filter);
 
-	/*! optional for sources, mandatory for filters and sinks - callback for PID update may be called several times
+	/*! optional for sources, mandatory for filters and sinks (any filter with an input cap set) - callback for PID update may be called several times
 	on the same PID if PID config is changed.
 	Since discontinuities may happen at any time, and a filter may fetch packets in burst,
 	this function may be called while the filter is calling \ref gf_filter_pid_get_packet (this is the only reentrant call for filters).
