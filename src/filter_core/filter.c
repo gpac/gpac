@@ -3561,7 +3561,7 @@ Bool gf_filter_block_enabled(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid)
 {
 	char tmp_ext[50];
 	u32 ext_len=0;

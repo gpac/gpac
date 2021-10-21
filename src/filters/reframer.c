@@ -290,7 +290,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 
 	//if non SAP1 detected and xadjust, move directly to needs_adjust=TRUE
-	//otherwise consider we don't need to probe for nect sap, this will be updated
+	//otherwise consider we don't need to probe for next sap, this will be updated
 	//if one packet is not sap
 	st->needs_adjust = (ctx->xadjust && !st->all_saps) ? GF_TRUE : GF_FALSE;
 

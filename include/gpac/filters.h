@@ -226,7 +226,7 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
 /*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
 #define GF_FS_FLAG_NO_RESERVOIR (1<<10)
-/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is tu run the session even when some PIDs are not connected*/
+/*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
 #define GF_FS_FLAG_FULL_LINK (1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
@@ -353,7 +353,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *session, const char *url, const c
 
 /*! Loads a destination filter from a URL and arguments
 \param session filter session
-\param url URL of the source to load. Can ba a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
+\param url URL of the source to load. Can be a local file name, a full path (/.., \\...) or a full URL with scheme (eg http://, tcp://)
 \param args arguments for the filter, see \ref gf_fs_load_filter
 \param parent_url parent URL of the source, or NULL if none
 \param err if not NULL, is set to error code if any
@@ -3070,7 +3070,7 @@ void gf_filter_pid_remove(GF_FilterPid *PID);
 \param out_pid the output PID to create or update. If no referer PID, a new PID will be created otherwise the PID will be updated
 \return error code if any
 */
-GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
+GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, const char *fext, const u8 *probe_data, u32 probe_size, Bool trust_mime, GF_FilterPid **out_pid);
 
 /*! Sets a new property on an output PID for built-in property names.
 Setting a new property will trigger a PID reconfigure at the consumption point of the next dispatched packet.
@@ -3107,7 +3107,7 @@ GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *PID, char *name, const GF_Pr
 /*! Sets a new info property on an output PID for built-in property names.
 Similar to \ref gf_filter_pid_set_property, but infos are not copied up the chain and to not trigger PID reconfiguration.
 First packet dispatched after calling this function will be marked, and its fetching by the consuming filter will trigger a process_event notification.
-If the consumming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
+If the consuming filter copies properties from source packet to output packet, the flag will be passed to such new output packet.
 
 If an info property with same type/name exists and has the same value, assignment will be skipped. In that case, if the property contains memory to be passed to the filter session, this memory will be destroyed (eg GF_PROP_STRING_NO_COPY, GF_PROP_DATA_NO_COPY, GF_PROP_STRING_LIST).
 
@@ -4312,7 +4312,7 @@ GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *PID, GF_FilterF
 
 /*! Gets a frame interface associated with a packet if any.
 
-Consummers will typically first check if the packet has associated data using \ref gf_filter_pck_get_data.
+Consumers will typically first check if the packet has associated data using \ref gf_filter_pck_get_data.
 
 \param pck the target packet
 \return the associated frame interface object if any, or NULL otherwise
