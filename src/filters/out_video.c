@@ -1134,15 +1134,17 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		glEnableVertexAttribArray(loc);
 
 		//setup texcoord location
-		loc = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
-		if (loc >= 0) {
-			glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, textureVertices);
-			glEnableVertexAttribArray(loc);
+		int loc2 = glGetAttribLocation(ctx->glsl_program, "gfTexCoord");
+		if (loc2 >= 0) {
+			glVertexAttribPointer(loc2, 2, GL_FLOAT, 0, 0, textureVertices);
+			glEnableVertexAttribArray(loc2);
 
 			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+			glDisableVertexAttribArray(loc2);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfTexCoord uniform in shader\n"));
 		}
+		glDisableVertexAttribArray(loc);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[VideoOut] Failed to gfVertex uniform in shader\n"));
 	}
@@ -1301,7 +1303,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 
 	glUseProgram(ctx->glsl_program);
 
-
 	if (frame_ifce && frame_ifce->get_gl_texture) {
 		vout_draw_gl_hw_textures(ctx, frame_ifce);
 	} else {
@@ -1313,6 +1314,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		//and draw
 		vout_draw_gl_quad(ctx, GF_FALSE);
 	}
+	glUseProgram(0);
 
 exit:
 
