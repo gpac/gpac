@@ -204,6 +204,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 		ctx->buffer_done = GF_FALSE;
 		ctx->do_seek = GF_FALSE;
 		ctx->pck_offset = 0;
+		ctx->last_cts = 0;
 		return 0;
 	}
 
