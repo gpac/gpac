@@ -1557,7 +1557,7 @@ static JSValue vec2f_setProperty(JSContext *c, JSValueConst obj, JSValueConst va
 
 static JSValue vec2f_operand(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv, u32 op)
 {
-	SFVec2f *v1, *v2;
+	SFVec2f *v1, *v2=NULL;
 	Double d = 0.0;
 	JSValue pNew;
 	Fixed v;

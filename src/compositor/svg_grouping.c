@@ -692,7 +692,10 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 				SVGgStack *group = gf_node_get_private(node);
 				DrawableContext *ctx;
 				gf_path_reset(group->clip_drawable->path);
-				gf_path_add_rect(group->clip_drawable->path, tr_state->visual->top_clipper.x, tr_state->visual->top_clipper.y, tr_state->visual->top_clipper.width, tr_state->visual->top_clipper.height);
+				gf_path_add_rect(group->clip_drawable->path,
+					INT2FIX(tr_state->visual->top_clipper.x), INT2FIX(tr_state->visual->top_clipper.y),
+					INT2FIX(tr_state->visual->top_clipper.width), INT2FIX(tr_state->visual->top_clipper.height)
+				);
 				ctx = drawable_init_context_svg(group->clip_drawable, tr_state, NULL);
 				ctx->appear = (GF_Node *) cp->target.target;
 				ctx->aspect.fill_color = 0xFFFFFFFF;

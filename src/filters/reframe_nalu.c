@@ -220,6 +220,7 @@ typedef struct
 	u32 bitrate;
 	u32 nb_frames;
 
+	//layer and temporal ID of last VCL nal
 	u8 last_layer_id, last_temporal_id;
 } GF_NALUDmxCtx;
 
@@ -1442,7 +1443,20 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 	*max_enh_height = max_eh;
 }
 
-static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
+static void naludmx_end_access_unit(GF_NALUDmxCtx *ctx)
+{
+	//finalize current fram flags - we will flush(send) later on
+	naludmx_finalize_au_flags(ctx);
+
+	ctx->has_islice = GF_FALSE;
+	ctx->first_slice_in_au = GF_TRUE;
+	ctx->sei_recovery_frame_count = -1;
+	ctx->au_sap = GF_FILTER_SAP_NONE;
+	ctx->au_sap2_poc_reset = GF_FALSE;
+	ctx->bottom_field_flag = GF_FALSE;
+}
+
+static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_au_flush)
 {
 	u32 w, h, ew, eh;
 	u8 *dsi, *dsi_enh;
@@ -1498,6 +1512,10 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		return;
 	}
 
+	if (force_au_flush) {
+		naludmx_end_access_unit(ctx);
+	}
+	
 	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
 		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
@@ -2055,9 +2073,6 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		return 0;
 	}
 
-	ctx->last_layer_id = layer_id;
-	ctx->last_temporal_id = temporal_id;
-
 	switch (nal_unit_type) {
 	case GF_HEVC_NALU_VID_PARAM:
 		if (ctx->novpsext) {
@@ -2131,6 +2146,8 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SLICE_CRA:
 		if (! ctx->is_playing) return 0;
 		*is_slice = GF_TRUE;
+		ctx->last_layer_id = layer_id;
+		ctx->last_temporal_id = temporal_id;
 		if (! *skip_nal) {
 			switch (ctx->hevc_state->s_info.slice_type) {
 			case GF_HEVC_SLICE_TYPE_P:
@@ -2218,8 +2235,6 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		*skip_nal = GF_TRUE;
 		return 0;
 	}
-	ctx->last_layer_id = layer_id;
-	ctx->last_temporal_id = temporal_id;
 
 	switch (nal_unit_type) {
 	case GF_VVC_NALU_VID_PARAM:
@@ -2312,6 +2327,8 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_SLICE_GDR:
 		if (! ctx->is_playing) return 0;
 		*is_slice = GF_TRUE;
+		ctx->last_layer_id = layer_id;
+		ctx->last_temporal_id = temporal_id;
 		if (! *skip_nal) {
 			switch (ctx->vvc_state->s_info.slice_type) {
 			case GF_VVC_SLICE_TYPE_P:
@@ -2612,6 +2629,7 @@ static void naldmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 f
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("\" "));
 }
 
+
 GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -2747,7 +2765,7 @@ naldmx_flush:
 		GF_FilterSAPType au_sap_type = GF_FILTER_SAP_NONE;
 		Bool slice_is_b = GF_FALSE;
 		Bool check_dep = GF_FALSE;
-		Bool check_flush_au = GF_FALSE;
+		Bool force_au_flush = GF_FALSE;
 		s32 slice_poc = 0;
 
 		//not enough bytes to parse start code + nal hdr
@@ -2818,7 +2836,7 @@ naldmx_flush:
 			case GF_HEVC_NALU_VID_PARAM:
 			case GF_HEVC_NALU_SEQ_PARAM:
 			case GF_HEVC_NALU_PIC_PARAM:
-				check_flush_au = GF_TRUE;
+				force_au_flush = GF_TRUE;
 			case GF_HEVC_NALU_SEI_PREFIX:
 			case GF_HEVC_NALU_SEI_SUFFIX:
 				break;
@@ -2837,24 +2855,22 @@ naldmx_flush:
 					nal_ref_idc = GF_TRUE;
 				break;
 			}
-			//check if VPS/SPS/PPS lid/tid are greater than last seen. If not, force a picture flush
+			//check if VPS/SPS/PPS lid/tid are greater than last seen VCL. If not, force a picture flush
 			//not doing so could lead in dispatching the config changed before the current AU is send
-			if (check_flush_au) {
+			if (force_au_flush) {
 				if (!ctx->first_pck_in_au) {
-					check_flush_au = GF_FALSE;
+					force_au_flush = GF_FALSE;
 				} else {
 					u8 layer_id = nal_data[0] & 1;
 					layer_id<<=5;
 					layer_id |= (nal_data[1] & 0xF8) >> 3;
 					u8 temporal_id = nal_data[2] & 0x7;
 					if (ctx->last_layer_id < layer_id)
-						check_flush_au = GF_FALSE;
+						force_au_flush = GF_FALSE;
 					else if (ctx->last_layer_id == layer_id) {
 						if (ctx->last_temporal_id < temporal_id)
-							check_flush_au = GF_FALSE;
+							force_au_flush = GF_FALSE;
 					}
-					ctx->last_layer_id = layer_id;
-					ctx->last_temporal_id = temporal_id;
 				}
 			}
 		} else if (ctx->codecid==GF_CODECID_VVC) {
@@ -2865,7 +2881,7 @@ naldmx_flush:
 			case GF_VVC_NALU_VID_PARAM:
 			case GF_VVC_NALU_SEQ_PARAM:
 			case GF_VVC_NALU_PIC_PARAM:
-				check_flush_au = GF_TRUE;
+				force_au_flush = GF_TRUE;
 			case GF_VVC_NALU_SEI_PREFIX:
 			case GF_VVC_NALU_SEI_SUFFIX:
 			case GF_VVC_NALU_APS_PREFIX:
@@ -2891,22 +2907,20 @@ naldmx_flush:
 				break;
 			}
 
-			//check if VPS/SPS/PPS/OPI/DEC	 lid/tid are greater than last seen. If not, force a picture flush
+			//check if VPS/SPS/PPS/OPI/DEC lid/tid are greater than last seen VCL. If not, force a picture flush
 			//not doing so could lead in dispatching the config changed before the current AU is send
-			if (check_flush_au) {
+			if (force_au_flush) {
 				if (!ctx->first_pck_in_au) {
-					check_flush_au = GF_FALSE;
+					force_au_flush = GF_FALSE;
 				} else {
 					u8 layer_id = nal_data[0] & 0x3f;
 					u8 temporal_id = (nal_data[1] & 0x7);
 					if (ctx->last_layer_id < layer_id)
-						check_flush_au = GF_FALSE;
+						force_au_flush = GF_FALSE;
 					else if (ctx->last_layer_id == layer_id) {
 						if (ctx->last_temporal_id < temporal_id)
-							check_flush_au = GF_FALSE;
+							force_au_flush = GF_FALSE;
 					}
-					ctx->last_layer_id = layer_id;
-					ctx->last_temporal_id = temporal_id;
 				}
 			}
 		} else {
@@ -2943,19 +2957,11 @@ naldmx_flush:
 		}
 
 		//new frame - if no slices, we detected the new frame on AU delimiter, don't flush new frame !
-		if ((check_flush_au || (nal_parse_result>0)) && !ctx->first_slice_in_au) {
-			//new frame - we flush later on
-			naludmx_finalize_au_flags(ctx);
-
-			ctx->has_islice = GF_FALSE;
-			ctx->first_slice_in_au = GF_TRUE;
-			ctx->sei_recovery_frame_count = -1;
-			ctx->au_sap = GF_FILTER_SAP_NONE;
-			ctx->au_sap2_poc_reset = GF_FALSE;
-			ctx->bottom_field_flag = GF_FALSE;
+		if ((nal_parse_result>0) && !ctx->first_slice_in_au) {
+			naludmx_end_access_unit(ctx);
 		}
 
-		naludmx_check_pid(filter, ctx);
+		naludmx_check_pid(filter, ctx, force_au_flush);
 		if (!ctx->opid) skip_nal = GF_TRUE;
 
 		if (skip_nal) {
