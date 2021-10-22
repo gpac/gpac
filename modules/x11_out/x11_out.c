@@ -1027,6 +1027,13 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		XSetInputFocus(xWindow->display, xWindow->full_wnd, RevertToNone, CurrentTime);
 		XRaiseWindow(xWindow->display, xWindow->full_wnd);
 		XGrabKeyboard(xWindow->display, xWindow->full_wnd, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+
+		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_SIZE;
+		evt.size.width = xWindow->w_width;
+		evt.size.height = xWindow->w_height;
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 	} else {
 		*screen_width = xWindow->store_width;
 		*screen_height = xWindow->store_height;
@@ -1037,6 +1044,13 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		XUngrabKeyboard(xWindow->display, CurrentTime);
 		/*looks like this makes osmozilla crash*/
 		//if (xWindow->par_wnd) XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
+
+		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_SIZE;
+		evt.size.width = xWindow->w_width;
+		evt.size.height = xWindow->w_height;
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 
 		/*backbuffer resize will be done right after this is called */
 	}
