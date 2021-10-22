@@ -2359,7 +2359,7 @@ void *evg_fill_run_mask_inv(GF_EVGStencil *p, EVGRasterCtx *rctx, EVG_Span *span
 void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGRasterCtx *rctx)
 {
 	EVG_Span aspan, *ospan;
-	u32 i;
+	int i;
 	aspan.idx1 = aspan.idx2 = 0;
 
 	for (i=0; i<count; i++) {
