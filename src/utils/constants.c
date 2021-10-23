@@ -780,8 +780,10 @@ u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
 	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;
 	else if ((nb_chan==3) && (nb_surr==1) && !nb_lfe) return 4;
 	else if ((nb_chan==3) && (nb_surr==2) && !nb_lfe) return 5;
+
 	else if ((nb_chan==3) && (nb_surr==2) && (nb_lfe==1)) return 6;
 	else if ((nb_chan==5) && (nb_surr==0) && (nb_lfe==1)) return 6;
+	else if ((nb_chan==6) && (nb_surr==0) && (nb_lfe==0)) return 6; //mis-signalled 5.1
 
 	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 7;
 	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
@@ -792,7 +794,10 @@ u32 gf_audio_fmt_get_cicp_layout(u32 nb_chan, u32 nb_surr, u32 nb_lfe)
 	//we miss left / right front center vs left / right front vertical to signal this one
 //	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 14;
 	else if ((nb_chan==5) && (nb_surr==5) && (nb_lfe==2)) return 15;
+
 	else if ((nb_chan==5) && (nb_surr==4) && (nb_lfe==1)) return 16;
+	else if ((nb_chan==10) && (nb_surr==0) && (nb_lfe==0)) return 16; //mis-signalled 5.1.4
+
 	else if ((nb_surr==5) && (nb_lfe==1) && (nb_chan==6)) return 17;
 	else if ((nb_surr==7) && (nb_lfe==1) && (nb_chan==6)) return 18;
 	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
