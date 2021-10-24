@@ -2471,7 +2471,7 @@ soname_version="${version_major}.${version_minor}.${version_micro}"
 
 #check revision.h
 cd $source_path
-source ./check_revision.sh
+. ./check_revision.sh
 cd $build_path
 
 echo ""
