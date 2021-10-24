@@ -399,8 +399,10 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
 	sg->RootNode = NULL;
 
+#ifndef GPAC_DISABLE_VRML
 	if (!sg->pOwningProto && gf_list_count(sg->protos) && sg->GetExternProtoLib)
 		sg->GetExternProtoLib(sg->userpriv, NULL);
+#endif
 
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
@@ -1872,10 +1874,12 @@ void gf_node_del(GF_Node *node)
 		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
 		if (up->data) gf_free(up->data);
 		count = gf_list_count(up->updates);
+#ifndef GPAC_DISABLE_VRML
 		for (i=0; i<count; i++) {
 			GF_Command *com = gf_list_get(up->updates, i);
 			gf_sg_command_del(com);
 		}
+#endif
 		gf_list_del(up->updates);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
@@ -2437,6 +2441,7 @@ GF_SceneGraph *gf_sg_get_parent(GF_SceneGraph *scene)
 
 static GF_Err gf_sg_load_dom_node(GF_SceneGraph *document, GF_XMLNode *n, GF_DOMFullNode *par)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 i, count;
 	GF_DOMFullAttribute *prev = NULL;
 	GF_DOMFullNode *node;
@@ -2503,6 +2508,9 @@ static GF_Err gf_sg_load_dom_node(GF_SceneGraph *document, GF_XMLNode *n, GF_DOM
 		if (e) return e;
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node)

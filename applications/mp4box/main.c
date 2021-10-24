@@ -194,7 +194,10 @@ GF_FileType get_file_type_by_ext(char *inName);
 
 
 char outfile[GF_MAX_PATH];
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 GF_SMEncodeOptions smenc_opts;
+u32 swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
+#endif
 GF_Fraction import_fps;
 
 //things to free upon cleanup
@@ -212,8 +215,6 @@ u32 nb_dash_inputs = 0;
 
 
 //all other options values - keep options with assignment other than 0 on a single line
-
-u32 swf_flags = GF_SM_SWF_SPLIT_TIMELINE;
 
 FILE *helpout = NULL;
 u32 help_flags = 0;
@@ -940,6 +941,7 @@ Bool mp4box_check_isom_fileopt(char *opt)
 
 MP4BoxArg m4b_senc_args[] =
 {
+#ifndef GPAC_DISABLE_SCENE_ENCODER
  	MP4BOX_ARG("mp4", "specify input file is for BIFS/LASeR encoding", GF_ARG_BOOL, 0, &encode, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("def", "encode DEF names in BIFS", GF_ARG_BOOL, 0, &smenc_opts.flags, GF_SM_ENCODE_USE_NAMES, ARG_BIT_MASK),
  	MP4BOX_ARG("sync", "force BIFS sync sample generation every given time in ms (cannot be used with [-shadow]() or [-carousel]() )", GF_ARG_INT, 0, parse_senc_param, 0, ARG_IS_FUN),
@@ -955,6 +957,7 @@ MP4BoxArg m4b_senc_args[] =
  	MP4BOX_ARG("scale-bits", "extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.scale_bits, 0, 0),
  	MP4BOX_ARG("auto-quant", "resolution is given as if using [-resolution]() but coord-bits and scale-bits are infered (LASeR encoding)", GF_ARG_INT, 0, parse_senc_param, 3, ARG_IS_FUN),
  	MP4BOX_ARG("global-quant", "resolution is given as if using [-resolution]() but the res is inferred (BIFS encoding)", GF_ARG_INT, 0, parse_senc_param, 4, ARG_IS_FUN),
+#endif
  	{0}
 };
 
@@ -1012,6 +1015,7 @@ void PrintEncryptUsage()
 
 MP4BoxArg m4b_hint_args[] =
 {
+#ifndef GPAC_DISABLE_STREAMING
  	MP4BOX_ARG("hint", "hint the file for RTP/RTSP", GF_ARG_BOOL, 0, &do_hint, 0, ARG_OPEN_EDIT),
  	{"mtu", NULL, "specify RTP MTU (max size) in bytes (this includes 12 bytes RTP header)", "1450", NULL, GF_ARG_INT, 0, &MTUSize, 0, 0},
  	MP4BOX_ARG("copy", "copy media data to hint track rather than reference (speeds up server but takes much more space)", GF_ARG_BOOL, 0, &HintCopy, 0, 0),
@@ -1030,6 +1034,7 @@ MP4BoxArg m4b_hint_args[] =
 	MP4BOX_ARG("size", "signal AU size in RTP packets (MPEG-4 Systems)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_SIGNAL_SIZE, ARG_BIT_MASK),
  	MP4BOX_ARG("idx", "signal AU sequence numbers in RTP packets (MPEG-4 Systems)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_SIGNAL_AU_IDX, ARG_BIT_MASK),
  	MP4BOX_ARG("iod", "prevent systems tracks embedding in IOD (MPEG-4 Systems), not compatible with [-isma]()", GF_ARG_BOOL, 0, &regular_iod, 0, 0),
+#endif
  	{0}
 };
 
@@ -1098,6 +1103,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("dxml", "dump IsoMedia file boxes and known track samples in XML output", GF_ARG_BOOL, 0, &dump_isom, 2, 0),
  	MP4BOX_ARG("disox", "dump IsoMedia file boxes except sample tables in XML output", GF_ARG_BOOL, 0, &dump_isom, 3, 0),
  	MP4BOX_ARG("keep-ods", "do not translate ISOM ODs and ESDs tags (debug purpose only)", GF_ARG_BOOL, 0, &no_odf_conf, 0, 0),
+#ifndef GPAC_DISABLE_SCENE_DUMP
  	MP4BOX_ARG("bt", "dump scene to BT format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_BT, ARG_HAS_VALUE),
  	MP4BOX_ARG("xmt", "dump scene to XMT format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_XMTA, 0),
  	MP4BOX_ARG("wrl", "dump scene to VRML format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_VRML, 0),
@@ -1105,6 +1111,7 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("x3dv", "dump scene to X3D VRML format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_X3D_VRML, 0),
  	MP4BOX_ARG("lsr", "dump scene to LASeR XML (XSR) format", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_LASER, 0),
  	MP4BOX_ARG("svg", "dump scene to SVG", GF_ARG_BOOL, 0, &dump_mode, GF_SM_DUMP_SVG, 0),
+#endif
  	MP4BOX_ARG("drtp", "dump rtp hint samples structure to XML output", GF_ARG_BOOL, 0, &dump_rtp, 0, 0),
  	MP4BOX_ARG("dts", "print sample timing, size and position in file to text output", GF_ARG_BOOL, 0, parse_dump_ts, 0, ARG_IS_FUN),
  	MP4BOX_ARG("dtsx", "same as [-dts]() but does not print offset", GF_ARG_BOOL, 0, &dump_timestamps, 2, 0),
@@ -1238,6 +1245,7 @@ void PrintMetaUsage()
 
 MP4BoxArg m4b_swf_args[] =
 {
+#ifndef GPAC_DISABLE_SCENE_ENCODER
  	MP4BOX_ARG("global", "all SWF defines are placed in first scene replace rather than when needed", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_STATIC_DICT, ARG_BIT_MASK),
  	MP4BOX_ARG("no-ctrl", "use a single stream for movie control and dictionary (this will disable ActionScript)", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_SPLIT_TIMELINE, ARG_BIT_MASK_REM),
  	MP4BOX_ARG("no-text", "remove all SWF text", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_NO_TEXT, ARG_BIT_MASK),
@@ -1249,6 +1257,7 @@ MP4BoxArg m4b_swf_args[] =
 	MP4BOX_ARG("ic2d", "use indexed curve 2D hardcoded proto", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_USE_IC2D, ARG_BIT_MASK),
 	MP4BOX_ARG("same-app", "appearance nodes are reused", GF_ARG_BOOL, 0, &swf_flags, GF_SM_SWF_REUSE_APPEARANCE, ARG_BIT_MASK),
  	MP4BOX_ARG("flatten", "complementary angle below which 2 lines are merged, value `0` means no flattening", GF_ARG_DOUBLE, 0, &swf_flatten_angle, 0, 0),
+#endif
 	{0}
 };
 
@@ -2548,7 +2557,9 @@ u32 parse_rap_ref(char *arg_val, u32 opt)
 			parse_track_action(arg_val, opt ? TRACK_ACTION_REM_NON_REFS : TRACK_ACTION_REM_NON_RAP);
 		}
 	}
+#ifndef GPAC_DISABLE_STREAMING
 	hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
+#endif
 	seg_at_rap = 1;
 	return 0;
 }
@@ -2581,7 +2592,9 @@ u32 parse_base_url(char *arg_val, u32 opt)
 }
 u32 parse_multi_rtp(char *arg_val, u32 opt)
 {
+#ifndef GPAC_DISABLE_STREAMING
 	hint_flags |= GP_RTP_PCK_USE_MULTI;
+#endif
 	if (arg_val)
 		max_ptime = atoi(arg_val);
 	return 0;
@@ -2590,6 +2603,7 @@ u32 parse_multi_rtp(char *arg_val, u32 opt)
 
 u32 parse_senc_param(char *arg_val, u32 opt)
 {
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 	switch (opt) {
 	case 0: //-sync
 		smenc_opts.flags |= GF_SM_ENCODE_RAP_INBAND;
@@ -2616,6 +2630,7 @@ u32 parse_senc_param(char *arg_val, u32 opt)
 		chunk_mode = GF_TRUE;
 		input_ctx = arg_val;
 	}
+#endif
 	return 0;
 }
 u32 parse_cryp(char *arg_val, u32 opt)
@@ -5612,8 +5627,10 @@ int mp4boxMain(int argc, char **argv)
 
 	if (do_mpd_conv) inName = do_mpd_conv;
 
+#ifndef GPAC_DISABLE_STREAMING
 	if (import_flags & GF_IMPORT_FORCE_MPEG4)
 		hint_flags |= GP_RTP_PCK_FORCE_MPEG4;
+#endif
 
 	if (!inName && dump_std)
 		inName = "std";
