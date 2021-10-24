@@ -294,7 +294,13 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 			}
 		}
 		nb_read+=read;
-		if (!ctx->is_udp || sock_c->rtp_reorder)
+		if (!ctx->is_udp
+#ifndef GPAC_DISABLE_STREAMING
+		 || sock_c->rtp_reorder
+#else
+		 || sock_c->is_rtp
+#endif
+		 )
 			break;
 		pos += read;
 	}

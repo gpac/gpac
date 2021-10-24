@@ -1287,9 +1287,14 @@ const char *gf_dom_get_friendly_name(u32 key_identifier);
 
 static JSValue js_sys_keyname(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+#ifndef GPAC_DISABLE_SVG
 	u32 code;
 	if (JS_ToInt32(ctx, &code, argv[0])) return GF_JS_EXCEPTION(ctx);
 	return JS_NewString(ctx, gf_dom_get_friendly_name(code));
+#else
+	return js_throw_err(ctx, GF_NOT_SUPPORTED);
+#endif
+
 }
 
 
@@ -2948,7 +2953,9 @@ void qjs_init_all_modules(JSContext *ctx, Bool no_webgl, Bool for_vrml)
 
 	//vrml, init scene JS but do not init xhr (defined in DOM JS)
 	if (for_vrml) {
+#if !defined(GPAC_DISABLE_PLAYER)
 		qjs_module_init_scenejs(ctx);
+#endif
 	} else {
 		qjs_module_init_xhr(ctx);
 	}
