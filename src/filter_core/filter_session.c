@@ -1004,7 +1004,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	GF_Err e;
 	char szCodec[3];
 	char *cid, *sep;
-	const GF_FilterRegister *candidate = NULL;
+	const GF_FilterRegister *candidate;
 	u32 codecid=0;
 	GF_Filter *filter;
 	u32 i, count;
@@ -1044,10 +1044,11 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	}
 
 retry:
+	candidate = NULL;
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
-		if (blacklist && gf_list_find(blacklist, (void *) f_reg))
+		if (blacklist && (gf_list_find(blacklist, (void *) f_reg)>=0) )
 			continue;
 
 		if ( gf_fs_check_filter_register_cap_ex(f_reg, GF_PROP_PID_CODECID, &cap_in, GF_PROP_PID_CODECID, &cap_out, GF_FALSE, ocap_excluded)) {
