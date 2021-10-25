@@ -4483,3 +4483,9 @@ void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking)
 {
 	if (filter) filter->is_blocking_source = is_blocking;
 }
+
+GF_EXPORT
+const GF_FilterRegister *gf_filter_get_register(GF_Filter *filter)
+{
+	return filter ? filter->freg : NULL;
+}

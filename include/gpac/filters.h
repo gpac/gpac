@@ -3015,6 +3015,12 @@ const GF_FilterArgs *gf_filter_enumerate_args(GF_Filter *filter, u32 idx);
 Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url);
 
 
+/*! Returns the register of a given filter
+\param filter target filter
+\return the register object, or NULL if error
+*/
+const GF_FilterRegister *gf_filter_get_register(GF_Filter *filter);
+
 /*! @} */
 
 

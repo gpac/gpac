@@ -2961,6 +2961,10 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				}
 				//try to load the filter (JS)
 				GF_Filter *f = gf_fs_load_filter(session, arg, NULL);
+				const GF_FilterRegister *reg = f ? gf_filter_get_register(f) : NULL;
+				if (!reg || !(reg->flags & GF_FS_REG_SCRIPT))
+					f = NULL;
+
 				if (f) {
 					char *ext;
 					char szPath[GF_MAX_PATH];
