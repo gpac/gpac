@@ -6,7 +6,7 @@ export const help = `This scene clears the canvas area covered by the scene with
 
 The default clear color of the mixer is \`black\`.
 
-The clear area is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the scene area will be cleared.
+The clear area is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the transformed scene area will be cleared.
 `;
 
 

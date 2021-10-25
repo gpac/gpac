@@ -331,7 +331,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	NodeIDedItem *reg_node;
 	if (!sg) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Reseting scene graph\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] resetting scene graph\n"));
 #if 0
 	/*inline graph, remove any of this graph nodes from the parent graph*/
 	if (!sg->pOwningProto && sg->parent_scene) {

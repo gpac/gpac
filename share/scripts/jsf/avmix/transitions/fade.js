@@ -1,9 +1,9 @@
 
 export const description = "Color fading";
-export const help = "This transition performs fade to color of source videos";
+export const help = "This transition performs fade to/from color of source videos";
 
 export const options = [
- {name:"color", value: "black", desc: "color to fade to"},
+ {name:"color", value: "black", desc: "fade color"},
  {}
 ];
 

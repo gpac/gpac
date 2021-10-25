@@ -1116,7 +1116,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->reply_code = 200;
 	}
 
-	//copy range for logs before reseting session headers
+	//copy range for logs before resetting session headers
 	if (sess->do_log && range) {
 		strncpy(szRange, range, 199);
 		szRange[199] = 0;

@@ -1032,7 +1032,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF
 	if ((tr_state->camera->anim_len && !tr_state->camera->jumping) || !tr_state->visual->compositor->collide_mode || (tr_state->camera->navigate_mode>=GF_NAVIGATE_EXAMINE)) {
 		/*reset ground flag*/
 		tr_state->camera->last_had_ground = 0;
-		/*and avoid reseting move at next collision change*/
+		/*and avoid resetting move at next collision change*/
 		tr_state->camera->last_pos = tr_state->camera->position;
 		return;
 	}

@@ -2,7 +2,7 @@ import * as evg from 'evg'
 
 export const description = `Draw video, shape, text, shape outline...`;
 
-export const help = `The default scene handler can be used to setup a shape, its outline and specify the fill and strike modes.
+export const help = `This scene can be used to setup a shape, its outline and specify the fill and strike modes.
 Supported shapes include:
 - a variety of rectangles, ellipse and other polygons
 - custom paths specified from JS
@@ -21,7 +21,7 @@ All options can be updated at run time.
 The module accepts 0, 1 or 2 sequences as input.
 
 Color replacement operations can be specified for base scenes using source videos by specifying the \`replace\` option. The replacement source is:
-- the image data if \`img\` is set, potentially altered using \`keep_ar_rep\`, \`txmx_rep\` and \`cmx_rep\` options
+- the image data if \`img\` is set, potentially altered using \`*_rep\` options
 - otherwise a linear gradient if \`fill=linear\` or a radial gradient if \`fill=radial\` (NOT supported in GPU mode, use an offscreen group for this).
 
 Warning: Color replacement operations cannot be used with transition or mix effects.
@@ -60,6 +60,15 @@ See [https://doxygen.gpac.io]() for more information on EVG and Sys JS APIs.
 
 The code is exposed the scene as \`this\`. The variable \`this.path\` is created, representing an empty path.
 EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
+
+The default behaviour is to use the shape width and height as reference size for texture mapping.
+If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable \`tx_adjust\` to true.
+
+In the previous example, the texture mapping will not be impacted by the custom path size.
+
+EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); tx_adjust = true;"
+In this example, the texture mapping will be adjusted to the desired size.
+
 
 The global variables and functions are available (c.f. \`gpac -h avmix:global\`):
  - get_media_time(): return media time in seconds (float) of output
@@ -834,9 +843,6 @@ update: function() {
           set_text.apply(this, [this.text]);
         }
 
-        //trash text, keep path only
-        this.path = this.path.get_path();
-
         //apply alignment
         let tsize = this.path.measure();
         let text_mx = new evg.Matrix2D();
@@ -871,8 +877,10 @@ update: function() {
               text_mx.translate(this.sw/2 - tsize.width, 0);
             }
         }
-        this.path.transform(text_mx);
+        //trash text, keep path only
+        this.path = this.path.get_path();
 
+        this.path.transform(text_mx);
 
         path_loaded = true;
       } else if (this.shape == 'rect') {
@@ -904,6 +912,7 @@ update: function() {
       } else {
         try {
           let url = resolve_url(this.shape);
+          let tx_adjust=false;
           if (sys.file_exists(url)) {
             let f = sys.load_file(url, true);
             eval(f);
@@ -914,6 +923,11 @@ update: function() {
             eval(this.shape);
             path_loaded = true;
             this.dyn_path = null;
+          }
+          if (tx_adjust) {
+            let rc = this.path.bounds;
+            this.sw = rc.w;
+            this.sh = rc.h;
           }
         } catch (e) {
           print(GF_LOG_ERROR, "Failed to load path: " + e + " - using default");

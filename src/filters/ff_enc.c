@@ -412,7 +412,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			force_intra = 1;
 			ctx->nb_forced=1;
 		} else if (cts < ctx->orig_ts) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] timestamps not increasing monotonuously, reseting forced intra state !\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] timestamps not increasing monotonuously, resetting forced intra state !\n"));
 			ctx->orig_ts = cts;
 			force_intra = 1;
 			ctx->nb_forced=1;

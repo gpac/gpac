@@ -1286,11 +1286,11 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	}
 
 	if (compositor->audio_renderer && (compositor->scene != scene_graph)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting audio compositor\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] resetting audio compositor\n"));
 		gf_sc_ar_reset(compositor->audio_renderer);
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting event queue\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] resetting event queue\n"));
 	gf_mx_p(compositor->evq_mx);
 	while (gf_list_count(compositor->event_queue)) {
 		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, 0);
@@ -1299,7 +1299,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	}
 	gf_mx_v(compositor->evq_mx);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting compositor module\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] resetting compositor module\n"));
 	/*reset main surface*/
 	gf_sc_reset(compositor, scene_graph ? 1 : 0);
 

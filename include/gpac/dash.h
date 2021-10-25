@@ -75,7 +75,7 @@ typedef enum
 	GF_DASH_EVENT_PERIOD_SETUP_ERROR,
 	/*! event sent once the first segment of each selected group is fetched - user should load playback chain(s) at this point*/
 	GF_DASH_EVENT_CREATE_PLAYBACK,
-	/*! event sent when reseting groups at period switch or at exit - user should unload playback chain(s) at this point*/
+	/*! event sent when resetting groups at period switch or at exit - user should unload playback chain(s) at this point*/
 	GF_DASH_EVENT_DESTROY_PLAYBACK,
 	/*! event sent once a new segment becomes available*/
 	GF_DASH_EVENT_SEGMENT_AVAILABLE,

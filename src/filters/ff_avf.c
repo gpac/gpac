@@ -888,13 +888,13 @@ static void ffavf_finalize(GF_Filter *filter)
 	ffavf_reset_graph(ctx);
 	while (gf_list_count(ctx->ipids)) {
 		GF_FFAVPid *ipid = gf_list_pop_back(ctx->ipids);
-		//io_filter_ctx is destroyed while reseting the graph
+		//io_filter_ctx is destroyed while resetting the graph
 		gf_free(ipid);
 	}
 	gf_list_del(ctx->ipids);
 	while (gf_list_count(ctx->opids)) {
 		GF_FFAVPid *opid = gf_list_pop_back(ctx->opids);
-		//io_filter_ctx is destroyed while reseting the graph
+		//io_filter_ctx is destroyed while resetting the graph
 		gf_free(opid);
 	}
 	gf_list_del(ctx->opids);

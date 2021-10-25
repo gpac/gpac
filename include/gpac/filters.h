@@ -402,7 +402,7 @@ typedef enum
 	GF_FS_FLUSH_NONE=0,
 	/*! Flush all pending data before closing sessions:  sources will be forced into end of stream and all emitted packets will be processed*/
 	GF_FS_FLUSH_ALL,
-	/*! Stop session (reseting buffers) and flush pipeline*/
+	/*! Stop session (resetting buffers) and flush pipeline*/
 	GF_FS_FLUSH_FAST
 } GF_FSFlushType;
 
