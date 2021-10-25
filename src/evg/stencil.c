@@ -766,6 +766,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 		/*bilinear filtering*/
 #if USE_BILINEAR
 		if (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) {
+			Bool do_lerp=GF_TRUE;
 			u32 p00, p01, p10, p11;
 			s32 x1, y1;
 			u8 tx, ty;
@@ -775,16 +776,31 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 
 			x1 = (x0+incx);
 			if (x1<0) {
-				while (x1<0) x1 += _this->width;
+				if (!repeat_s)
+					do_lerp=GF_FALSE;
+				else
+					while (x1<0) x1 += _this->width;
 			} else {
-				x1 = x1 % _this->width;
+				if (!repeat_s && (x1 > _this->width))
+					do_lerp=GF_FALSE;
+				else
+					x1 = x1 % _this->width;
 			}
 			y1 = (y0+incy);
 			if (y1<0) {
-				while (y1<0) y1+=_this->height;
+				if (!repeat_t)
+					do_lerp=GF_FALSE;
+				else
+					while (y1<0) y1+=_this->height;
 			} else {
-				y1 = y1 % _this->height;
+				if (!repeat_t && (y1 > _this->height))
+					do_lerp=GF_FALSE;
+				else
+					y1 = y1 % _this->height;
 			}
+
+			if (!do_lerp) goto write_pix;
+
 			if (incx>0) {
 				if (x1<x0) tx = 255-tx;
 			} else {
@@ -1046,44 +1062,59 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 			u64 p00, p01, p10, p11;
 			s32 x1, y1;
 			u8 tx, ty;
+			Bool do_lerp=GF_TRUE;
 
 			tx = FIX2INT(gf_muldiv(x, 255, _this->width) );
 			ty = FIX2INT(gf_muldiv(y, 255, _this->height) );
 
-			if (tx>120 || ty>120) {
-				x1 = (x0+incx);
-				if (x1<0) {
+			x1 = (x0+incx);
+			if (x1<0) {
+				if (!repeat_s)
+					do_lerp=GF_FALSE;
+				else
 					while (x1<0) x1 += _this->width;
-				} else {
+			} else {
+				if (!repeat_s && (x1 > _this->width))
+					do_lerp=GF_FALSE;
+				else
 					x1 = x1 % _this->width;
-				}
-				y1 = (y0+incy);
-				if (y1<0) {
-					while (y1<0) y1+=_this->height;
-				} else {
-					y1 = y1 % _this->height;
-				}
-				if (incx>0) {
-					if (x1<x0) tx = 255-tx;
-				} else {
-					if (x1>x0) tx = 255-tx;
-				}
-				if (incy>0) {
-					if (y1<y0) ty = 255-ty;
-				} else {
-					if (y1>y0) ty = 255-ty;
-				}
-
-				p00 = pix;
-
-				p01 = _this->tx_get_pixel_wide(_this, x1, y0, rctx);
-				p10 = _this->tx_get_pixel_wide(_this, x0, y1, rctx);
-				p11 = _this->tx_get_pixel_wide(_this, x1, y1, rctx);
-
-				p00 = EVG_LERP_WIDE(p00, p01, tx);
-				p10 = EVG_LERP_WIDE(p10, p11, tx);
-				pix = EVG_LERP_WIDE(p00, p10, ty);
 			}
+			y1 = (y0+incy);
+			if (y1<0) {
+				if (!repeat_t)
+					do_lerp=GF_FALSE;
+				else
+					while (y1<0) y1+=_this->height;
+			} else {
+				if (!repeat_t && (y1 > _this->height))
+					do_lerp=GF_FALSE;
+				else
+					y1 = y1 % _this->height;
+			}
+
+			if (!do_lerp) goto write_pix;
+
+
+			if (incx>0) {
+				if (x1<x0) tx = 255-tx;
+			} else {
+				if (x1>x0) tx = 255-tx;
+			}
+			if (incy>0) {
+				if (y1<y0) ty = 255-ty;
+			} else {
+				if (y1>y0) ty = 255-ty;
+			}
+
+			p00 = pix;
+
+			p01 = _this->tx_get_pixel_wide(_this, x1, y0, rctx);
+			p10 = _this->tx_get_pixel_wide(_this, x0, y1, rctx);
+			p11 = _this->tx_get_pixel_wide(_this, x1, y1, rctx);
+
+			p00 = EVG_LERP_WIDE(p00, p01, tx);
+			p10 = EVG_LERP_WIDE(p10, p11, tx);
+			pix = EVG_LERP_WIDE(p00, p10, ty);
 		}
 #endif
 
