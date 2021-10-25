@@ -395,7 +395,7 @@ sgaze (bool, default: false, updatable): simulate gaze events through mouse
 .br
 ckey (uint, default: 0, updatable): color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported
 .br
-timeout (uint, default: 10000, updatable): timeout in ms after which a source is considered dead
+timeout (uint, default: 10000, updatable): timeout in ms after which a source is considered dead (0 disable timeout)
 .br
 fps (frac, default: 30/1, updatable): simulation frame rate when animation-only sources are played (ignored when video is present)
 .br
@@ -5106,6 +5106,8 @@ This filter reaggregates a set of split tiled HEVC streams (hvt1 or hvt2 in isob
 .br
 tiledrop (uintl, default: , updatable): specify indexes of tiles to drop
 .br
+ttimeout (uint, default: 10000, updatable): number of milliseconds to wait until considering a tile packet lost, 0 waits forever
+.br
 
 .br
 .SH tilesplit
@@ -9039,7 +9041,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1387-g36800cd3c-master
+build: 1.1.0-DEV-rev1401-gb25e2d812-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -2260,6 +2260,17 @@ enum
 /*! All Media Objects inserted through URLs and not MPEG-4 OD Framework use this ODID*/
 #define GF_MEDIA_EXTERNAL_ID		1050
 
+enum
+{
+	//no connection error, no frames seen in input pipeline
+	MO_CONNECT_OK=0,
+	//no connection error, frames seen in input pipeline but no frame yet available for object
+	MO_CONNECT_BUFFERING,
+	//explicit source setup failure
+	MO_CONNECT_FAILED,
+	//timeout of input pipeline (no frames seen after compositor->timeout ms)
+	MO_CONNECT_TIMEOUT
+};
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy
@@ -2334,7 +2345,7 @@ struct _mediaobj
 	GF_FilterFrameInterface *frame_ifce;
 
 	Float c_x, c_y, c_w, c_h;
-	Bool connect_failure;
+	u32 connect_state;
 };
 
 GF_MediaObject *gf_mo_new();

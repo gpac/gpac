@@ -260,15 +260,24 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	/*if no frame or muted don't draw*/
 	if (!txh->data && !txh->frame_ifce) {
-		GF_LOG(txh->stream->connect_failure ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
+		GF_LOG(txh->stream->connect_state ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_COMPOSE, ("[Texture %p] No output frame available \n", txh));
 
 		if (txh->compositor->use_step_mode || !txh->compositor->player) {
-			if (!txh->stream->connect_failure && ((s32)txh->last_frame_time<0) ) {
-				if (!txh->probe_time_ms) txh->probe_time_ms = gf_sys_clock();
-				else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout / 2) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Texture %p] No output frame in %d ms, considering stream not available\n", txh, txh->compositor->timeout / 2));
-					txh->stream->connect_failure = GF_TRUE;
-					gf_sc_texture_stop_no_unregister(txh);
+			if (!txh->stream->connect_state && ((s32)txh->last_frame_time<0) ) {
+				//if we have anything bending in the source graph, reset timeout
+				//typical use case: a filter aggregates packets for a long time before dispatching
+				//example: tileagg+dash (cf issue #1934)
+				u64 buffered = gf_filter_pid_query_buffer_duration(txh->stream->odm->pid, GF_FALSE);
+				if (buffered) txh->stream->connect_state = MO_CONNECT_BUFFERING;
+
+				if (txh->compositor->timeout) {
+					if (buffered || !txh->probe_time_ms) {
+						txh->probe_time_ms = gf_sys_clock();
+					} else if (gf_sys_clock() - txh->probe_time_ms > txh->compositor->timeout) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Texture %p] No output frame in %d ms, considering stream not available\n", txh, txh->compositor->timeout));
+						txh->stream->connect_state = MO_CONNECT_TIMEOUT;
+						gf_sc_texture_stop_no_unregister(txh);
+					}
 				}
 				txh->compositor->ms_until_next_frame = -1;
 			}

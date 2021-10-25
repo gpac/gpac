@@ -412,7 +412,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			stack->changed = 0;
 			return;
 		}
-		if (stack->stream->connect_failure) {
+		if (stack->stream->connect_state > MO_CONNECT_BUFFERING) {
 			gf_sg_vrml_mf_reset(&stack->control->url, GF_SG_VRML_MFURL);
 			stack->enabled = GF_FALSE;
 			stack->stream = NULL;

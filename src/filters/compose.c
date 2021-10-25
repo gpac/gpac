@@ -119,15 +119,15 @@ static GF_Err compose_process(GF_Filter *filter)
 		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
 		}
-		if (ctx->check_eos_state == 1) {
+		if (ctx->timeout && (ctx->check_eos_state == 1) && !gf_filter_connections_pending(filter)) {
 			u32 now = gf_sys_clock();
 			if (!ctx->last_check_pass)
 				ctx->last_check_pass = now;
 
-			if (now - ctx->last_check_pass > 1000) {
+			if (now - ctx->last_check_pass > ctx->timeout) {
 				ctx->check_eos_state = 2;
 				if (!gf_filter_end_of_session(filter)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in the last second, aborting\n", ctx->last_check_pass));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Could not detect end of stream(s) in the %d ms, aborting\n", ctx->timeout));
 					forced_eos = GF_TRUE;
 				}
 				gf_filter_abort(filter);
@@ -841,7 +841,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(sclock), "force synchronizing all streams on a single clock", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sgaze), "simulate gaze events through mouse", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ckey), "color key to use in windowless mode (0xFFRRGGBB). GPAC currently does not support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of the output, if supported", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(timeout), "timeout in ms after which a source is considered dead", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(timeout), "timeout in ms after which a source is considered dead (0 disable timeout)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fps), "simulation frame rate when animation-only sources are played (ignored when video is present)", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(timescale), "timescale used for output packets when no input video pid. A value of 0 means fps numerator", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(autofps), "use video input fps for output. If no video or not set, uses [-fps](). Ignored in player mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
