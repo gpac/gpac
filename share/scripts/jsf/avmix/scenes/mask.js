@@ -3,7 +3,7 @@ import * as evg from 'evg'
 
 export const description = "Screen mask";
 
-export const help = `This scene sets the canvas alpa mask mode.
+export const help = `This scene sets the canvas alpha mask mode.
 
 The canvas alpha mask is always full screen.
 
@@ -16,7 +16,7 @@ export const options = [
   - on: mask is enabled, further draw operations will take place on mask
   - use: mask is enabled, further draw operations will be filtered by mask
   - use_inv: mask is enabled, further draw operations will be filtered by 1-mask
-  - rec: mask is in record mode, further draw operations will be drawn on output and will set mask avlue to 0 
+  - rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
  `, dirty: UPDATE_SIZE},
  {}
 ];

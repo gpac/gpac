@@ -187,7 +187,7 @@ effects.forEach( fx_file => {
 
 } else {
 
-help = "This transition module wraps gl-transitions, see https://gl-transitions.com/";
+help = "This transition module wraps gl-transitions, see https://gl-transitions.com/ and `gpac -h avmix:gltrans` for builtin transitions";
 
 }
 

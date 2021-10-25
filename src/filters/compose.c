@@ -852,7 +852,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(mode2d), "specify whether immediate drawing should be used or not\n"\
 	"- immediate: the screen is completely redrawn at each frame (always on if passthrough mode is detected)\n"\
 	"- defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer\n"\
-	"- debug: only renders changed areas, reseting other areas\n"\
+	"- debug: only renders changed areas, resetting other areas\n"\
 	 "Whether the setting is applied or not depends on the graphics module and player mode", GF_PROP_UINT, "defer", "defer|immediate|debug", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(amc), "audio multichannel support; if disabled always downmix to stereo. Useful if the multichannel output does not work properly", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(asr), "force output sample rate - 0 for auto", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},

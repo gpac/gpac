@@ -69,13 +69,13 @@ Colors are handled as strings, formatted as:
  - id (null): sequence identifier
  - loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
  - start (0): sequence start time:
-  - positive number: offset in seconds from current clock
-  - negative number: sequence is not active
-  - otherwise date or \`now\`.
+   - positive number: offset in seconds from current clock
+   - negative number: sequence is not active
+   - otherwise: date or \`now\`
  - stop (0): sequence stop time:
-  - positive number greater than \`start\`: offset in seconds from current clock
-  - negative number or less than \`start\`: sequence will stop only when over
-  - otherwise: date or \`now\`.
+   - positive number greater than \`start\`: offset in seconds from current clock
+   - negative number or less than \`start\`: sequence will stop only when over
+   - otherwise: date or \`now\`
  - transition (null): a \`transition\` object to apply between sources of the sequence
  - seq ([]): array of one or more \`source\` objects
 
@@ -88,7 +88,7 @@ This means that a \`sequence\` not used by any active scene will not be rendered
 - id (null): source identifier, used when reloading the playlist
 - src ([]): list of \`sourceURL\` describing the URLs to play. Multiple sources will be played in parallel
 - start (0.0): media start time in source
-- stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to \`start\`
+- stop (0.0): media stop time in source, ignored if less than or equal to \`start\`
 - mix (true): if true, apply sequence transition or mix effect ratio as audio volume. Otherwise volume is not modified by transitions.
 - fade ('inout'): indicate how audio should be faded at stream start/end:
   - in: audio fade-in when playing first frame
@@ -118,7 +118,7 @@ When launching child process, the input filter is created first and the child pr
 Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
 
 ## 2D transformation
-### Common properties for \`group\` and \`group\` objects
+### Common properties for \`group\` and \`scene\` objects
 - active (true): indicate if the object is active or not. An inactive object will not be refreshed nor rendered
 - x (0): horizontal translation
 - y (0): vertical translation
@@ -133,18 +133,18 @@ Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any r
 - hskew (0): horizontal skewing factor to apply to the scene
 - vskew (0): vertical skewing factor to apply to the scene
 - zorder (0): display order of the scene or of the offscreen group (ignored for regular groups)
-- untransform (false): if true, reset current matrix to identity before computing matrix
+- untransform (false): if true, reset parent tree matrix to identity before computing matrix
 - mxjs (null): JS code for matrix evaluation
 
 ### Coordinate System
 Each group or scene is specified in a local coordinate system for which {0,0} represents the center.
 The local transformation matrix is computed as \`rotate(cx, cy, rotation)\` * \`hskew\` * \`vskew\` * \`scale(hscale, vscale)\` * \`translate(x, y)\`.
 
-The default unit system (\`rel\`) is relative to the current established reference:
-- by default, the reference is \`{output_width, output_height}\`, the origin {0,0} being the center of the output frame 
-- any group with \`reference=true\`, \`width>0\` and \`height>0\` espablishes a new reference \`{group.width, group.height}\`
+The default unit system (\`rel\`) is relative to the current established reference space:
+- by default, the reference space is \`{output_width, output_height}\`, the origin {0,0} being the center of the output frame 
+- any group with \`reference=true\`, \`width>0\` and \`height>0\` establishes a new reference space \`{group.width, group.height}\`
 
-A reference \`R\`, relative coordinates are interpreted as follows:
+Inside a reference space \`R\`, relative coordinates are interpreted as follows:
 - For horizontal coordinates, 0 means center, -50 means left edge (\`-R.width/2\`), 50 means right edge (\`+R.width/2\`).
 - For vertical coordinates, 0 means center, -50 means bottom edge (\`-R.height/2\`), 50 means top edge (\`+R.height/2\`).
 - For \`width\`, 100 means \`R.width\`.
@@ -176,7 +176,7 @@ The code specified in \`mxjs\` can modify the following variables:
 
 The current scene object is exposed with the name \`scene\`. Results are undefined if  \`mxjs\` code modifies this object.
 All scene and group properties are available. Additional variables:
-- scene.current_depth: for groups with use, indicate the recursion level of the use
+- scene.current_depth: for groups with \`use\`, indicate the recursion level of the used element. A value of 0 inidcates this is a direct render of the element, otheriwse it is a render through \`use\`
 
 ## Grouping
 ### Properties for \`group\` objects
@@ -190,20 +190,22 @@ All scene and group properties are available. Additional variables:
   - dual: same as \`color\` but allows group to be displayed
 - scaler (1): when opacity or offscreen rendering is used, offscreen canvas size is divided by this factor (>=1)
 - back_color ('none'): when opacity or offscreen rendering is used, fill offscreen canvas with the given color.
-- width (-1): when opacity or offscreen rendering is used, limit offscreen width to given value
-- height (-1): when opacity or offscreen rendering is used, limit offscreen height to given value
+- width (-1): when opacity or offscreen rendering is used, limit offscreen width to given value (see below)
+- height (-1): when opacity or offscreen rendering is used, limit offscreen height to given value (see below)
 - use (null): id of group or scene to re-use
 - use_depth (-1): number of recursion allowed for the used element, negative means global max branch depth as indicated by \`maxdepth\`
 - reverse (false): reverse scenes order before draw
-- reference (false): group acts as reference for relative coordinate of children nodes 
+- reference (false): group is a reference space for relative coordinate of children nodes 
 
 ### Notes
 The maximum depth of a branch in the scene graph is \`maxdepth\` (traversing aborts after this limit).
 
 In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless \`width\` and  \`height\` are both greater or equal to 0.
-Enforcing offscreen size is usefull when generating textures for later effects.
+Enforcing offscreen size is useful when generating textures for later effects.
 
 Offscreen rendering is always done in software.
+
+When enforcing \`scaler>1\` on a group with \`opacity==1\`, offscreen rendering will be used and the scaler applied.
 
 When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the display may be truncated if children objects are out of the offscreen canvas bounds.
 
@@ -212,11 +214,11 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
 - id (null): scene identifier
 - js ('shape'): scene type, either builtin (see below) or path to a JS module, cannot be animated or updated
 - sources ([]): list of identifiers of sequences or offscreen groups used by this scene, cannot be animated or updated
-- width (-1): width of the scene, -1 means output video width (regardless of \`units\` value)
-- height (-1): height of the scene, -1 means output video height (regardless of \`units\` value)
+- width (-1): width of the scene, -1 means reference space width
+- height (-1): height of the scene, -1 means reference space height
 - mix (null): a \`transition\` object to apply if more than one source is set, ignored otherwise
 - mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
-- volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
+- volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped by the mixer.
 - fade ('inout'): indicate how audio should be faded at scene activate/deactivate:
   - in: audio fade-in when playing first frame after scene activation
   - out: audio fade-out when playing last frame at scene activation
@@ -235,7 +237,7 @@ Properties for \`transition\` objects:
 - id (null): transition identifier
 - type: transition type, either builtin (see below) or path to a JS module
 - dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene \`mix\`.
-- fun (null): JS code modifying the ratio effect called \`ratio\`, eg \`fun="ratio = ratio*ratio;"\`
+- fun (null): JS code modifying the ratio effect called \`ratio\` (e.g. \`fun="ratio = ratio*ratio;"\`)
 - any other property exposed by the underlying transition module.
 
 ### Notes
@@ -273,7 +275,7 @@ Currently, only \`scene\`, \`group\` and \`transition\` objects can be modified 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
 - property names are the same as the filter options
-- property values are given in the native type, or as strings (fractions, vectors, enums)
+- property values are given in the native type, or as strings for fractions (format \`N/D\`), vectors (format \`WxH\`) or enums
 - each declared property overrides the filter option of the same name (whether default or set at filter creation)
 
 A configuration object in the playlist is only parsed when initially loading the playlist, and ignored when reloading it.
@@ -281,7 +283,7 @@ A configuration object in the playlist is only parsed when initially loading the
 The following additional properties are defined for testing:
 - reload_tests([]): list of playlists to reload
 - reload_timeout(1.0): timeout in seconds before playlist reload
-- reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
+- reload_loop (0): number of times to repeat the reload tests (not including original playlist which is not reloaded)
 
 ## Playlist modification
 The playlist file can be modified at any time.

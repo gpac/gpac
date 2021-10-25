@@ -1268,9 +1268,12 @@ function group_draw_offscreen(group)
 
 	new_w = Math.ceil(new_w / scaler);
 	new_h = Math.ceil(new_h / scaler);
+	while (new_w % 2) new_w++;
+	while (new_h % 2) new_h++;
 
 	if ((new_w != old_w) || (new_h != old_h)) {
 		let pf;
+		let old_pf = group.prev_pixfmt || '';
 		let alpha=true;
 		if (group.offscreen==GROUP_OST_MASK) {
 			pf = 'algr';
@@ -1298,15 +1301,22 @@ function group_draw_offscreen(group)
 		if (!group.texture) return;
 	  group.texture.set_pad_color(group.back_color);
 
-	  if (scaler>1)
-			group.texture.filtering = (scaler>1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
+		group.texture.filtering = (scaler>1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
 
 	  let mx = new evg.Matrix2D();
 	  mx.translate(-new_w/2, new_h/2);
 	  mx.scale(scaler, scaler);
 	  group.texture_mx = mx;
 
-	  group.path = new evg.Path().rectangle(0, 0, scaler*new_w, scaler*new_h, true);
+	  group.texture.repeat_s = false;
+	  group.texture.repeat_t = false;
+
+	  group.path = new evg.Path().rectangle(0, 0, new_w*scaler, new_h*scaler, true);
+
+		group.prev_pixfmt = pf;
+	  //texture size changed but not pix format, keep opengl shader otherwise reset it
+	  if (pf != old_pf) 
+			group.texture._gl_texture = null;
 	}
 
 	print(GF_LOG_DEBUG, 'Redrawing offscreen group ' + group.id);
@@ -1314,9 +1324,9 @@ function group_draw_offscreen(group)
 	group.tr_y = group_bounds.y - group_bounds.h/2;
 
 	global_transform.translate(-group.tr_x, -group.tr_y);
-	global_transform.scale(inv_scaler, inv_scaler);
 	display_list.forEach(scene => {
 		scene.mx.add(global_transform, true);
+		scene.mx.scale(inv_scaler, inv_scaler);
 	});
 
 	canvas = group.canvas_offscreen;
@@ -1357,7 +1367,7 @@ function update_group(group)
 		update_scene_matrix(group, true);
 	}
 
-	if ((group.opacity<1) || (group.offscreen>GROUP_OST_NONE)) {
+	if ( (group.opacity<1) || (group.scaler>1) || (group.offscreen>GROUP_OST_NONE)) {
 		if (invalidate_offscreen) {
 			group_draw_offscreen(group);
 		}
@@ -1665,6 +1675,8 @@ function draw_display_list_2d()
 
 			//offscreen group
 			if (ctx.group) {
+				//only used to get the matrix
+				active_scene = ctx;
 				ctx.group.texture.mx = ctx.group.texture_mx;
 				ctx.group.texture.set_alphaf(ctx.group.opacity);
 				canvas_draw(ctx.group.path, ctx.group.texture, true);
@@ -1867,6 +1879,8 @@ function process_video()
 
 				//offscreen group
 				if (ctx.group) {
+					//only used to get the matrix
+					active_scene = ctx;
 					ctx.group.texture.mx = ctx.group.texture_mx;
 					ctx.group.texture.set_alphaf(ctx.group.opacity);
 					canvas_draw(ctx.group.path, ctx.group.texture, true);
@@ -2453,7 +2467,7 @@ function fetch_source(s)
 
 		if (!s.sequence.prefetch_check) {
 			let check_end = s.duration;
-			if (s.media_stop>0 && s.media_stop<s.duration) check_end = s.media_stop;
+			if ((s.media_stop>s.media_start) && (s.media_stop<s.duration)) check_end = s.media_stop;
 
 			if ((s.sequence.transition_state<=1) && s.sequence.transition_effect && next_source(s, true) ) {
 				let dur = s.sequence.transition_effect.dur || 0;
@@ -2487,7 +2501,7 @@ function fetch_source(s)
 			}
 		}
 		//except for video, check this packet is not out of play range
-		if ((s.media_stop>0) && (pid.type != TYPE_VIDEO)) {
+		if ((s.media_stop>s.media_start) && (pid.type != TYPE_VIDEO)) {
 			if ((pck.cts - pid.init_ts) > (s.transition_offset + s.media_stop - s.media_start) * pid.timescale) {
 				pid.drop_packet();
 				pid.done = true;
@@ -2499,7 +2513,7 @@ function fetch_source(s)
 
 		if (s.sequence.transition_state==1) {
 			let check_end = s.duration;
-			if (s.media_stop>0 && s.media_stop<s.duration) check_end = s.media_stop;
+			if ((s.media_stop>s.media_start) && (s.media_stop<s.duration)) check_end = s.media_stop;
 
 			if (check_end > s.sequence.transition_dur)
 				check_end -= s.sequence.transition_dur;
@@ -2543,7 +2557,7 @@ function fetch_source(s)
 				}
 			}
 
-			if ( (s.media_stop>0) && ((pid.pck.cts + pid.pck.dur) >= s.media_stop * pid.timescale)) {
+			if ( (s.media_stop>s.media_start) && ((pid.pck.cts + pid.pck.dur) >= s.media_stop * pid.timescale)) {
 				let diff_samples = Math.floor(s.media_stop * audio_timescale);
 				if (audio_timescale == pid.timescale) {
 					diff_samples -= Math.floor(pid.pck.cts);
@@ -2599,7 +2613,7 @@ function fetch_source(s)
 			pid.frame_ts = next_ts;
 		}
 		//if current frame is out of play range (>=), consider source done
-		if (s.media_stop>0) {
+		if (s.media_stop>s.media_start) {
 			if ((pid.pck.cts - pid.init_ts) >= (s.transition_offset + s.media_stop - s.media_start) * pid.timescale) {
 				pid.drop_packet();
 				pid.done = true;

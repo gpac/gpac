@@ -415,7 +415,7 @@ mode2d (enum, default: defer, updatable): specify whether immediate drawing shou
 .br
 * defer: object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer
 .br
-* debug: only renders changed areas, reseting other areas
+* debug: only renders changed areas, resetting other areas
 .br
 Whether the setting is applied or not depends on the graphics module and player mode
 .br
@@ -7705,19 +7705,19 @@ Properties for sequence objects:
 .br
  * start (0): sequence start time:
 .br
-  * positive number: offset in seconds from current clock
+   - positive number: offset in seconds from current clock
 .br
-  * negative number: sequence is not active
+   - negative number: sequence is not active
 .br
-  - otherwise date or now.
+   - otherwise: date or now
 .br
  * stop (0): sequence stop time:
 .br
-  * positive number greater than `start`: offset in seconds from current clock
+   - positive number greater than start: offset in seconds from current clock
 .br
-  * negative number or less than `start`: sequence will stop only when over
+   - negative number or less than start: sequence will stop only when over
 .br
-  * otherwise: date or now.
+   - otherwise: date or now
 .br
  * transition (null): a transition object to apply between sources of the sequence
 .br
@@ -7749,7 +7749,7 @@ Properties for source objects
 .br
 * start (0.0): media start time in source
 .br
-* stop (0.0): media stop time in source, <=0 means until the end. Ignored if less than equal to start
+* stop (0.0): media stop time in source, ignored if less than or equal to start
 .br
 * mix (true): if true, apply sequence transition or mix effect ratio as audio volume. Otherwise volume is not modified by transitions.
 .br
@@ -7819,7 +7819,7 @@ Warning: when launching child process directly (e.g. in="ffmpeg ..."), any relat
 .br
 .P
 .B
-Common properties for group and group objects
+Common properties for group and scene objects
 .br
 * active (true): indicate if the object is active or not. An inactive object will not be refreshed nor rendered
 .br
@@ -7849,7 +7849,7 @@ Common properties for group and group objects
 .br
 * zorder (0): display order of the scene or of the offscreen group (ignored for regular groups)
 .br
-* untransform (false): if true, reset current matrix to identity before computing matrix
+* untransform (false): if true, reset parent tree matrix to identity before computing matrix
 .br
 * mxjs (null): JS code for matrix evaluation
 .br
@@ -7865,15 +7865,15 @@ The local transformation matrix is computed as rotate(cx, cy, rotation) * hskew 
 .br
 
 .br
-The default unit system (rel) is relative to the current established reference:
+The default unit system (rel) is relative to the current established reference space:
 .br
-- by default, the reference is {output_width, output_height}, the origin {0,0} being the center of the output frame 
+- by default, the reference space is {output_width, output_height}, the origin {0,0} being the center of the output frame 
 .br
-- any group with reference=true, width>0 and height>0 espablishes a new reference {group.width, group.height}
+- any group with reference=true, width>0 and height>0 establishes a new reference space {group.width, group.height}
 .br
 
 .br
-A reference R, relative coordinates are interpreted as follows:
+Inside a reference space R, relative coordinates are interpreted as follows:
 .br
 - For horizontal coordinates, 0 means center, -50 means left edge (-R.width/2), 50 means right edge (+R.width/2).
 .br
@@ -7939,7 +7939,7 @@ The current scene object is exposed with the name scene. Results are undefined i
 .br
 All scene and group properties are available. Additional variables:
 .br
-* scene.current_depth: for groups with use, indicate the recursion level of the use
+* scene.current_depth: for groups with use, indicate the recursion level of the used element. A value of 0 inidcates this is a direct render of the element, otheriwse it is a render through use
 .br
 
 .br
@@ -7971,9 +7971,9 @@ Properties for group objects
 .br
 * back_color ('none'): when opacity or offscreen rendering is used, fill offscreen canvas with the given color.
 .br
-* width (-1): when opacity or offscreen rendering is used, limit offscreen width to given value
+* width (-1): when opacity or offscreen rendering is used, limit offscreen width to given value (see below)
 .br
-* height (-1): when opacity or offscreen rendering is used, limit offscreen height to given value
+* height (-1): when opacity or offscreen rendering is used, limit offscreen height to given value (see below)
 .br
 * use (null): id of group or scene to re-use
 .br
@@ -7981,7 +7981,7 @@ Properties for group objects
 .br
 * reverse (false): reverse scenes order before draw
 .br
-* reference (false): group acts as reference for relative coordinate of children nodes 
+* reference (false): group is a reference space for relative coordinate of children nodes 
 .br
 
 .br
@@ -7995,11 +7995,15 @@ The maximum depth of a branch in the scene graph is maxdepth (traversing aborts 
 .br
 In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless width and  height are both greater or equal to 0.
 .br
-Enforcing offscreen size is usefull when generating textures for later effects.
+Enforcing offscreen size is useful when generating textures for later effects.
 .br
 
 .br
 Offscreen rendering is always done in software.
+.br
+
+.br
+When enforcing scaler>1 on a group with opacity==1, offscreen rendering will be used and the scaler applied.
 .br
 
 .br
@@ -8021,15 +8025,15 @@ Properties for scene objects
 .br
 * sources ([]): list of identifiers of sequences or offscreen groups used by this scene, cannot be animated or updated
 .br
-* width (-1): width of the scene, -1 means output video width (regardless of units value)
+* width (-1): width of the scene, -1 means reference space width
 .br
-* height (-1): height of the scene, -1 means output video height (regardless of units value)
+* height (-1): height of the scene, -1 means reference space height
 .br
 * mix (null): a transition object to apply if more than one source is set, ignored otherwise
 .br
 * mix_ratio (-1): mix ratio for transition effect, <=0 means first source only, >=1 means second source only
 .br
-* volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped.
+* volume (1.0): audio volume (0: silence, 1: input volume), this value is not clamped by the mixer.
 .br
 * fade ('inout'): indicate how audio should be faded at scene activate/deactivate:
 .br
@@ -8073,7 +8077,7 @@ Properties for transition objects:
 .br
 * dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene mix.
 .br
-* fun (null): JS code modifying the ratio effect called ratio, eg fun="ratio = ratio*ratio;"
+* fun (null): JS code modifying the ratio effect called ratio (e.g. fun="ratio = ratio*ratio;")
 .br
 - any other property exposed by the underlying transition module.
 .br
@@ -8161,7 +8165,7 @@ The playlist may specify configuration options of the filter, using a root objec
 .br
 - property names are the same as the filter options
 .br
-- property values are given in the native type, or as strings (fractions, vectors, enums)
+- property values are given in the native type, or as strings for fractions (format N/D), vectors (format WxH) or enums
 .br
 - each declared property overrides the filter option of the same name (whether default or set at filter creation)
 .br
@@ -8177,7 +8181,7 @@ The following additional properties are defined for testing:
 .br
 * reload_timeout(1.0): timeout in seconds before playlist reload
 .br
-* reload_loop (0): number of times to repeat the reload tests (not including orignal playlist which is not reloaded)
+* reload_loop (0): number of times to repeat the reload tests (not including original playlist which is not reloaded)
 .br
 
 .br
@@ -8341,7 +8345,7 @@ Example
 .B
 Scene mask
 .br
-This scene sets the canvas alpa mask mode.
+This scene sets the canvas alpha mask mode.
 .br
 
 .br
@@ -8365,7 +8369,7 @@ Options:
 .br
   * use_inv: mask is enabled, further draw operations will be filtered by 1-mask
 .br
-  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask avlue to 0 
+  * rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
 .br
  
 .br
@@ -8381,7 +8385,7 @@ The default clear color of the mixer is black.
 .br
 
 .br
-The clear area is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the scene area will be cleared.
+The clear area is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the transformed scene area will be cleared.
 .br
 
 .br
@@ -8397,11 +8401,11 @@ This scene resets the canvas clipper or sets the canvas clipper to the scene are
 .br
 
 .br
-The clipper is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the clipper will be used.
+The clipper is always axis-aligned in output frame, so when skew/rotation are present, the axis-aligned bounding box of the transformed clipper will be used.
 .br
 
 .br
-Clippers are handled through a stack, reseting the cliper pops the stack and restores previous clipper.
+Clippers are handled through a stack, resetting the clipper pops the stack and restores previous clipper.
 .br
 If a clipper is already defined when setting the clipper, the clipper set is the intersection of the two clippers.
 .br
@@ -8411,13 +8415,13 @@ Options:
 .br
 * reset (false): if set, reset clipper otherwise set it to scene position and size
 .br
-* stack (true): if false, clipper is set/reset independently of the clipper stack (no itersection, no push/pop of the stack)
+* stack (true): if false, clipper is set/reset independently of the clipper stack (no intersection, no push/pop of the stack)
 .br
 .P
 .B
 Scene shape
 .br
-The default scene handler can be used to setup a shape, its outline and specify the fill and strike modes.
+This scene can be used to setup a shape, its outline and specify the fill and strike modes.
 .br
 Supported shapes include:
 .br
@@ -8455,7 +8459,7 @@ The module accepts 0, 1 or 2 sequences as input.
 .br
 Color replacement operations can be specified for base scenes using source videos by specifying the replace option. The replacement source is:
 .br
-- the image data if img is set, potentially altered using keep_ar_rep, txmx_rep and cmx_rep options
+- the image data if img is set, potentially altered using *_rep options
 .br
 - otherwise a linear gradient if fill=linear or a radial gradient if fill=radial (NOT supported in GPU mode, use an offscreen group for this).
 .br
@@ -8540,6 +8544,26 @@ Example
 "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
 .br
 
+.br
+
+.br
+The default behaviour is to use the shape width and height as reference size for texture mapping.
+.br
+If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable tx_adjust to true.
+.br
+
+.br
+In the previous example, the texture mapping will not be impacted by the custom path size.
+.br
+
+.br
+Example
+.br
+"shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); tx_adjust = true;"
+.br
+
+.br
+In this example, the texture mapping will be adjusted to the desired size.
 .br
 
 .br
@@ -8768,7 +8792,7 @@ Options:
 .B
 Transition gltrans - GPU only
 .br
-This transition module wraps gl-transitions, see https://gl-transitions.com/
+This transition module wraps gl-transitions, see https://gl-transitions.com/ and gpac -h avmix:gltrans for builtin transitions
 .br
 Options:
 .br
@@ -8826,11 +8850,11 @@ This transition performs cross-fade of source videos
 .B
 Transition fade - software/GPU
 .br
-This transition performs fade to color of source videos
+This transition performs fade to/from color of source videos
 .br
 Options:
 .br
-* color ('black'): color to fade to
+* color ('black'): fade color
 .br
 
 .br
@@ -9041,7 +9065,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1401-gb25e2d812-master
+build: 1.1.0-DEV-rev1408-g1c827a17b-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -416,7 +416,7 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 		evt.type = GF_EVENT_QUALITY_SWITCHED;
 		gf_sc_send_event(scene->compositor, &evt);
 	} else if (check_unchanged) {
-		//reset config changed if nothing changed, this avoid reseting up texture or mixer input
+		//reset config changed if nothing changed, this avoid resetting up texture or mixer input
 		mo->config_changed = GF_FALSE;
 	}
 }
