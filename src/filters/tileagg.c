@@ -40,6 +40,7 @@ typedef struct
 {
 	//options
 	GF_PropUIntList tiledrop;
+	u32 ttimeout;
 
 	//internal
 	GF_FilterPid *opid;
@@ -262,7 +263,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 						ctx->wait_start = gf_sys_clock();
 						ctx->wait_pid = pctx->id;
 						return GF_OK;
-					} else if (gf_sys_clock() - ctx->wait_start < 10000) {
+					} else if (!ctx->ttimeout || (gf_sys_clock() - ctx->wait_start < ctx->ttimeout)) {
 						gf_filter_ask_rt_reschedule(filter, 0);
 						return GF_OK;
 					} else {
@@ -304,6 +305,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 	if (ctx->flush_packets) {
 		ctx->flush_packets--;
 	}
+	ctx->wait_pid = 0;
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
 	if (!dst_pck) return GF_OUT_OF_MEM;
@@ -475,6 +477,7 @@ static const GF_FilterCapability TileAggCaps[] =
 static const GF_FilterArgs TileAggArgs[] =
 {
 	{ OFFS(tiledrop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(ttimeout), "number of milliseconds to wait until considering a tile packet lost, 0 waits forever", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
 
