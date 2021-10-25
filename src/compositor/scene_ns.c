@@ -53,7 +53,7 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 		snprintf(msg, sizeof(msg), "Cannot open %s", scene_ns->url);
 		gf_scene_message(scene, scene_ns->url, msg, err);
 
-		if (root->mo) root->mo->connect_failure = GF_TRUE;
+		if (root->mo) root->mo->connect_state = MO_CONNECT_FAILED;
 		gf_odm_service_media_event(root, GF_EVENT_ERROR);
 
 		/*destroy service only if attached*/
@@ -548,7 +548,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 				}
 			}
 		}
-		if (odm->mo) odm->mo->connect_failure = GF_TRUE;
+		if (odm->mo) odm->mo->connect_state = MO_CONNECT_FAILED;
 		odm->skip_disconnect_state = 1;
 		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
 		if (target_scene) target_scene->root_od->skip_disconnect_state = 1;
