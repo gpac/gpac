@@ -1532,26 +1532,29 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 		if (prop) {
 			ctx->encoder->sample_aspect_ratio.num = prop->value.frac.num;
-			ctx->timescale = ctx->encoder->sample_aspect_ratio.den = prop->value.frac.den;
+			ctx->encoder->sample_aspect_ratio.den = prop->value.frac.den;
 		} else {
 			ctx->encoder->sample_aspect_ratio.num = 1;
 			ctx->encoder->sample_aspect_ratio.den = 1;
 		}
-		//CHECKME: do we need to use 1/FPS ?
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-		if (prop) {
-			ctx->encoder->time_base.num = 1;
-			ctx->timescale = ctx->encoder->time_base.den = prop->value.uint;
-		}
+		ctx->encoder->time_base.num = 1;
+		ctx->timescale = ctx->encoder->time_base.den = prop ? prop->value.uint : 1000;
+
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
 			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
-			ctx->encoder->time_base.num = prop->value.frac.den;
-			ctx->encoder->time_base.den = prop->value.frac.num;
 
 			ctx->encoder->framerate.num = prop->value.frac.num;
 			ctx->encoder->framerate.den = prop->value.frac.den;
 			gf_media_get_reduced_frame_rate(&ctx->encoder->framerate.num, &ctx->encoder->framerate.den);
+
+			//some codecs in libavcodec will complain if timebase is too high
+			//if fps is set and its num is quite small compared to our input timescale, use the num
+			//otherwise we try to keep the same timescale as input
+			if (ctx->encoder->framerate.num * 100 < ctx->timescale) {
+				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
+			}
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Unknown frame rate for PID %s, will use 25 fps - use `:#FPS=VAL` on input to force frame rate\n", gf_filter_pid_get_name(pid) ));
 			ctx->encoder->framerate.num = 25;
