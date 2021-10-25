@@ -1265,9 +1265,21 @@ JSValue wgl_named_texture_upload(JSContext *c, JSValueConst pck_obj, void *_name
 			if (!data)
 				return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Unable to fetch packet data, cannot setup NamedTexture\n");
 		} else {
-			js_evg_get_texture_info(c, pck_obj, NULL, NULL, NULL, (u8 **) &data, NULL, NULL, NULL, NULL, NULL);
+			u32 pix_fmt=0, width=0, height=0, stride=0, uv_stride=0;
+			js_evg_get_texture_info(c, pck_obj, &width, &height, &pix_fmt, (u8 **) &data, &stride, NULL, NULL, &uv_stride, NULL);
 			if (!data)
 				return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Unable to fetch EVG texture data, cannot setup NamedTexture\n");
+
+			if (pix_fmt != named_tx->tx.pix_fmt)
+				return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] EVG texture pixel format changed, shader must be recomputed\n");
+
+			//optim for EVG texture if change of res but not pixel format, resetup texture
+			if ((width != named_tx->tx.width) || (height != named_tx->tx.height)) {
+				gf_gl_txw_reset(&named_tx->tx);
+				if (!gf_gl_txw_setup(&named_tx->tx, pix_fmt, width, height, stride, uv_stride, GF_FALSE, NULL, named_tx->tx.fullrange, named_tx->tx.mx_cicp)) {
+					return js_throw_err_msg(c, WGL_INVALID_VALUE, "[WebGL] Pixel format %s unknown, cannot setup NamedTexture\n", gf_4cc_to_str(pix_fmt));
+				}
+			}
 		}
 	}
 
