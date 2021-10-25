@@ -267,8 +267,12 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 				//if we have anything bending in the source graph, reset timeout
 				//typical use case: a filter aggregates packets for a long time before dispatching
 				//example: tileagg+dash (cf issue #1934)
-				u64 buffered = gf_filter_pid_query_buffer_duration(txh->stream->odm->pid, GF_FALSE);
-				if (buffered) txh->stream->connect_state = MO_CONNECT_BUFFERING;
+				//warning, mo->odm can be null at this point (bifs & co)
+				u64 buffered = 0;
+				if (txh->stream->odm && txh->stream->odm->pid) {
+					buffered = gf_filter_pid_query_buffer_duration(txh->stream->odm->pid, GF_FALSE);
+					if (buffered) txh->stream->connect_state = MO_CONNECT_BUFFERING;
+				}
 
 				if (txh->compositor->timeout) {
 					if (buffered || !txh->probe_time_ms) {
