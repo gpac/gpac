@@ -719,9 +719,15 @@ static void h2_flush_send(GF_DownloadSession *sess)
 	u32 res;
 
 	while (sess->h2_send_data) {
+		GF_Err e;
 		h2_session_send(sess);
 		//read any frame pending from remote peer (window update and co)
-		gf_dm_read_data(sess, h2_flush, 1023, &res);
+		e = gf_dm_read_data(sess, h2_flush, 1023, &res);
+		if ((e<0) && (e != GF_IP_NETWORK_EMPTY) && (e != GF_IP_SOCK_WOULD_BLOCK)) {
+			sess->status = GF_NETIO_STATE_ERROR;
+			sess->last_error = e;
+			break;
+		}
 
 		//error or regular eos
 		if (!sess->h2_stream_id)
@@ -4834,9 +4840,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					return GF_IP_NETWORK_EMPTY;
 				}
 				if (!sess->server_mode && (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->request_timeout)) {
-					sess->last_error = GF_IP_NETWORK_EMPTY;
+					sess->last_error = GF_IP_NETWORK_FAILURE;
 					sess->status = GF_NETIO_STATE_ERROR;
-					return GF_IP_NETWORK_EMPTY;
+					return GF_IP_NETWORK_FAILURE;
 				}
 				if (sess->server_mode)
 					sess->last_error = GF_IP_NETWORK_EMPTY;
@@ -6348,11 +6354,17 @@ void gf_dm_sess_flush_h2(GF_DownloadSession *sess)
 
 	in_time = gf_sys_clock_high_res();
 	while (nghttp2_session_want_read(sess->h2_sess->ng_sess)) {
+		GF_Err e;
 		if (gf_sys_clock_high_res() - in_time > 100000)
 			break;
 
 		//read any frame pending from remote peer (window update and co)
-		gf_dm_read_data(sess, h2_flush, 1023, &res);
+		e = gf_dm_read_data(sess, h2_flush, 2023, &res);
+		if ((e<0) && (e != GF_IP_NETWORK_EMPTY) && (e != GF_IP_SOCK_WOULD_BLOCK)) {
+			sess->last_error = e;
+			sess->status = GF_NETIO_STATE_ERROR;
+			break;
+		}
 	}
 #endif
 }
