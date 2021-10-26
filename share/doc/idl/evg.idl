@@ -544,7 +544,7 @@ interface Path {
 
 	/*! transforms a path - see \ref gf_path_add_subpath
 	\param mx matrix to apply to path
-	\return the path*/
+	\return the new transformed path*/
 	Path transform(Matrix2D mx);
 
 };

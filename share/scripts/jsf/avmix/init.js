@@ -1127,13 +1127,13 @@ function update_scene_matrix(scene, do_reset)
 	//compute absolute values
 	if (scene.units == UNIT_RELATIVE) {
 		if (typeof x == 'number')
-			x = x * video_width/100;
+			x = x * reference_width/100;
 		if (typeof y == 'number')
-			y = y * video_height/100;
-		cx = cx * video_width/100;
-		cy = cy * video_height/100;
+			y = y * reference_height/100;
+		cx = cx * reference_width/100;
+		cy = cy * reference_height/100;
 	}
-	//apply specia values
+	//apply special values
 	if (x == "y") x = y;
 	else if (x == "-y") x = -y;
 
@@ -1319,6 +1319,8 @@ function group_draw_offscreen(group)
 			group.texture._gl_texture = null;
 	}
 
+	if (!group.canvas_offscreen) return;
+
 	print(GF_LOG_DEBUG, 'Redrawing offscreen group ' + group.id);
 	group.tr_x = group_bounds.x + group_bounds.w/2;
 	group.tr_y = group_bounds.y - group_bounds.h/2;
@@ -1334,7 +1336,6 @@ function group_draw_offscreen(group)
 	canvas.clear(group.back_color);
 
 	draw_display_list_2d();
-
 
 	//restore state
 	global_transform.copy(global_transform_copy);
@@ -4818,7 +4819,7 @@ function canvas_set_clipper(clip, use_stack)
 let mask_canvas = null;
 let mask_canvas_data = null;
 let mask_texture = null;
-let mask_texture_stencil = null;
+let mask_gl_stencil = null;
 
 function canvas_set_mask_mode(mode)
 {
@@ -4827,9 +4828,18 @@ function canvas_set_mask_mode(mode)
 				if (!mask_canvas_data) {
 					mask_canvas_data = new ArrayBuffer(video_width * video_height);
 					mask_canvas = new evg.Canvas(video_width, video_height, "grey", mask_canvas_data);
-					//create our webgl texture and associated EVG
-					mask_texture = webgl.createTexture(null);
-					mask_texture_stencil = new evg.Texture(mask_canvas);
+					mask_texture = webgl.createTexture();
+
+					webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
+					webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_S, webgl.CLAMP_TO_EDGE);
+					webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_WRAP_T, webgl.CLAMP_TO_EDGE);
+					webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MIN_FILTER, webgl.LINEAR);
+					webgl.texParameteri(webgl.TEXTURE_2D, webgl.TEXTURE_MAG_FILTER, webgl.LINEAR);
+					webgl.texImage2D(webgl.TEXTURE_2D, 0, webgl.LUMINANCE, video_width, video_height, 0, webgl.LUMINANCE, webgl.UNSIGNED_BYTE, mask_canvas_data);
+					webgl.bindTexture(webgl.TEXTURE_2D, 0);
+
+					mask_gl_stencil = new evg.SolidBrush();
+					mask_gl_stencil.set_color("black");
 				}
 				let clear = null;
 				if (mode == GF_EVGMASK_DRAW) {
@@ -5133,14 +5143,13 @@ function canvas_draw(path, stencil)
     	}
 
 			let use_mask = 0;
-			if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_RECORD)) {
+			if (mask_mode==GF_EVGMASK_DRAW) {
 			  mask_canvas.path = path;
 			  mask_canvas.matrix = matrix;
 			  mask_canvas.fill(stencil);
-			  if (mask_mode==GF_EVGMASK_DRAW) return;
-			  use_mask = 1;
+				return;
 			}
-			else if (mask_mode==GF_EVGMASK_USE) {
+			else if ((mask_mode==GF_EVGMASK_USE) || (mask_mode==GF_EVGMASK_RECORD)) {
 			  use_mask = 1;
 			} else if (mask_mode==GF_EVGMASK_USE_INV) {
 			  use_mask = 2;
@@ -5167,9 +5176,11 @@ function canvas_draw(path, stencil)
 
 			if (use_mask) {
 				let tx_slot = is_texture ? stencil._gl_texture.nb_textures : 0;
+
 			  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 				webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
-		    mask_texture.upload(mask_texture_stencil);
+				//not a named texture
+				webgl.texSubImage2D(webgl.TEXTURE_2D, 0, 0, 0, video_width, video_height,webgl.LUMINANCE, webgl.UNSIGNED_BYTE, mask_canvas_data);
 				webgl.uniform1i(prog_info.mask_tx, tx_slot);
 			}
 
@@ -5199,6 +5210,13 @@ function canvas_draw(path, stencil)
 		  }
 		  webgl.useProgram(null);
 			webgl.disable(webgl.SCISSOR_TEST);
+
+			//record mode, also draw using black stencil on mask canvas
+			if (mask_mode==GF_EVGMASK_RECORD) {
+			  mask_canvas.path = path;
+			  mask_canvas.matrix = matrix;
+			  mask_canvas.fill(mask_gl_stencil);
+			}
 	} else {
 	  canvas.path = path;
 	  canvas.matrix = matrix;
@@ -5910,7 +5928,7 @@ void main() {
 		webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 		//and bind our named texture (this will setup active texture slots)
 		webgl.bindTexture(webgl.TEXTURE_2D, op_tx._gl_texture);
-		webgl.uniform1i(prog_info.op_textures.sampler, tx_slot);
+		webgl.uniform1i(prog_info.op_texture.sampler, tx_slot);
 
 		tx_slot += op_tx._gl_texture.nb_textures;
 	}
@@ -5920,7 +5938,8 @@ void main() {
 	if (use_mask) {
 	  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
 		webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
-    mask_texture.upload(mask_texture_stencil);
+		//not a named texture
+		webgl.texSubImage2D(webgl.TEXTURE_2D, 0, 0, 0, video_width, video_height,webgl.LUMINANCE, webgl.UNSIGNED_BYTE, mask_canvas_data);
 		webgl.uniform1i(prog_info.mask_tx, tx_slot);
 	}
 
@@ -5992,13 +6011,14 @@ void main(void) {
 	if (cmx_use) {
 		col = cmx_mul * col;
 		col += cmx_add;
+		col = clamp(col, 0.0, 1.0);
 	}
-	col = clamp(col, 0.0, 1.0);
 	col.a *= alpha;
 
 	if (mask_mode>0) {
 		vec2 mask_uv = vec2(gl_FragCoord.x/mask_w, 1.0 - gl_FragCoord.t/mask_h);
 		vec4 mask = texture2D(mask_tx, mask_uv);
+		float m;
 		if (mask_mode>1)
 			col.a *= (1.0-mask.r);
 		else

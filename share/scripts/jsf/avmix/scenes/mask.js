@@ -13,7 +13,8 @@ In software mode, combining mask effect in record mode and reverse group drawing
 export const options = [
  {name:"mode", value: "off", desc: `if set, reset clipper otherwise set it to scene position and size
   - off: mask is disabled
-  - on: mask is enabled, further draw operations will take place on mask
+  - on: mask is enabled and cleared, further draw operations will take place on mask
+  - onkeep: mask is enabled but not cleared, further draw operations will take place on mask
   - use: mask is enabled, further draw operations will be filtered by mask
   - use_inv: mask is enabled, further draw operations will be filtered by 1-mask
   - rec: mask is in record mode, further draw operations will be drawn on output and will set mask value to 0 
