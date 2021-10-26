@@ -644,7 +644,7 @@ local_stencil: null,
 local_stencil_type: 0,
 path: null,
 mx: null,
-last_img: null,
+last_img: "",
 dyn_text: null,
 dyn_path: null,
 last_path_time: 0,
@@ -745,15 +745,19 @@ update: function() {
       reset_local_stencil = false;
     }
   }
+  //no change in img, don't reset local stencil
+  else if (this.img == this.last_img) {
+      reset_local_stencil = false;
+  }
   if (this.replace_op && !this.img.length) {
     if ((this.fill == 'linear') || (this.fill == 'radial')) {}
     else this.replace_op = 0;
   }
 
-  if (this.update_flag & UPDATE_COLOR) {
-    if (!this.local_stencil || !this.local_stencil.solid_brush)
-      this.update_flag |= UPDATE_POS;
-      this.update_flag &= UPDATE_COLOR;
+  //update color but local stencil is a gradient, rebuild gradient
+  if ((this.update_flag & UPDATE_COLOR) && (!this.local_stencil || !this.local_stencil.solid_brush)) {
+    this.update_flag |= UPDATE_POS;
+    this.update_flag &= UPDATE_COLOR;
   }
 
   //update our objects
@@ -878,9 +882,7 @@ update: function() {
             }
         }
         //trash text, keep path only
-        this.path = this.path.get_path();
-
-        this.path.transform(text_mx);
+        this.path = this.path.get_path().transform(text_mx);
 
         path_loaded = true;
       } else if (this.shape == 'rect') {
@@ -959,8 +961,10 @@ update: function() {
     this.use_blit = blit_enabled ? this.blit : null;
   }
 
-  if (reset_local_stencil)
+  if (reset_local_stencil) {
     this.local_stencil = null;
+      print('reset stencil');
+  }
 
   if (this.update_flag & UPDATE_POS) {
     //setup textures
@@ -1040,7 +1044,10 @@ update: function() {
 
   if (this.update_flag & UPDATE_COLOR) {
       if (this.outline_brush) this.outline_brush.set_color(this.line_color);
-      if (!this.is_texture && this.local_stencil) this.local_stencil.set_color(this.fill);
+      if (!this.is_texture && this.local_stencil) {
+        this.local_stencil.set_color(this.fill);
+        this.local_stencil.set_alphaf(this.alpha);
+      }
   }
 
   this.update_flag = 0;
@@ -1072,9 +1079,7 @@ update: function() {
         this.opaque = false;
       }
   }
-  if (!this.use_blit) {
-//    this.blit_path = null;
-  }
+
   this.no_draw = false;
   return 1;
 },
