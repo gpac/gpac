@@ -2393,6 +2393,8 @@ void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, 
 	int i;
 	aspan.idx1 = aspan.idx2 = 0;
 
+	//disable yuv flush for 420 and 422
+	rctx->no_yuv_flush = 1;
 	for (i=0; i<count; i++) {
 		u32 len, o_x;
 		ospan = &spans[i];
@@ -2427,6 +2429,11 @@ void evg_fill_span_mask(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, 
 		}
 		//flush
 		if (aspan.len) {
+			//last span, enable yuv flush for 420 and 422
+			//we can do it now because we know we get called only once per y for YUV 420/422
+			if (i+1==count)
+				rctx->no_yuv_flush = 0;
+
 			surf->fill_spans(y, 1, &aspan, surf, rctx);
 		}
 	}
