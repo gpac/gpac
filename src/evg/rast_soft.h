@@ -463,6 +463,8 @@ struct _traster_ctx
 
 	//for 2D
 	u8 fill_rule;
+	//for YUV
+	u8 no_yuv_flush;
 	//for 3D
 	u8 is_tri_raster;
 

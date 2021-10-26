@@ -362,7 +362,7 @@ void evg_yuv420p_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *su
 			memset(surf_uv_alpha + spans[i].x, 0xFF, spans[i].len);
 		}
 	}
-	if (write_uv) {
+	if (write_uv && !rctx->no_yuv_flush) {
 		surf->yuv_flush_uv(surf, rctx, surf_uv_alpha, cu, cv, y);
 	}
 
@@ -421,7 +421,7 @@ void evg_yuv420p_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *
 		}
 	}
 	//we are at an odd line, write uv
-	if (write_uv)
+	if (write_uv && !rctx->no_yuv_flush)
 		surf->yuv_flush_uv(surf, rctx, surf_uv_alpha, cu, cv, y);
 }
 
@@ -567,7 +567,7 @@ void evg_yuv420p_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *surf
 		}
 	}
 	//compute final u,v for both lines
-	if (write_uv) {
+	if (write_uv && !rctx->no_yuv_flush) {
 		surf->yuv_flush_uv(surf, rctx, surf_uv_alpha, 0, 0, y);
 	}
 }
@@ -1464,7 +1464,7 @@ void evg_yuv420p_10_fill_const(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface 
 			}
 		}
 	}
-	if (write_uv) {
+	if (write_uv && !rctx->no_yuv_flush) {
 		surf->yuv_flush_uv(surf, rctx, (u8 *)surf_uv_alpha, cu, cv, y);
 	}
 
@@ -1531,7 +1531,7 @@ void evg_yuv420p_10_fill_const_a(s32 y, s32 count, EVG_Span *spans, GF_EVGSurfac
 		}
 	}
 	//we are at an odd line, write uv
-	if (write_uv)
+	if (write_uv && !rctx->no_yuv_flush)
 		surf->yuv_flush_uv(surf, rctx, (u8*)surf_uv_alpha, cu, cv, y);
 }
 
@@ -1672,7 +1672,7 @@ void evg_yuv420p_10_fill_var(s32 y, s32 count, EVG_Span *spans, GF_EVGSurface *s
 		}
 	}
 	//compute final u,v for both lines
-	if (write_uv) {
+	if (write_uv && !rctx->no_yuv_flush) {
 		surf->yuv_flush_uv(surf, rctx, (u8 *)surf_uv_alpha, 0, 0, y);
 	}
 }
