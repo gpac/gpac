@@ -161,6 +161,24 @@ globalThis.get_sequence_texture = get_sequence_texture;
 globalThis.get_screen_rect = get_screen_rect;
 
 
+/*gets a scene by ID
+\param id ID of the scene
+\return scene object or null if error
+*/
+globalThis.get_scene = get_scene;
+
+/*gets a group by ID
+\param id ID of the group
+\return group object or null if error
+*/
+globalThis.get_group = get_group;
+
+/*gets a script by ID
+\param id ID of the script
+\return script object or null if error
+*/
+globalThis.get_script = get_script;
+
 //metadata
 filter.set_name("AVMix");
 filter.set_desc("Audio Video Mixer");
@@ -961,6 +979,7 @@ filter.process = function()
 	}
 
 	timers.forEach(update_timer);
+	update_scripts();
 
 	if (filter.maxdur && (video_time >= filter.maxdur*video_timescale)) {
 		if (do_video) {
@@ -1122,7 +1141,10 @@ function update_scene_matrix(scene, do_reset)
 	let hscale = scene.hscale;
 	let vscale = scene.vscale;
 
-	scene.mx_untransform = scene.untransform || false;
+	if (scene.untransform)	
+		scene.mx_untransform = true;
+	else if (scene.mx_untransform)
+		scene.mx_untransform = false;
 
 	//compute absolute values
 	if (scene.units == UNIT_RELATIVE) {
@@ -1144,22 +1166,55 @@ function update_scene_matrix(scene, do_reset)
 		scene.mx.identity = true;
 
 	try {
-		if (scene.mxjs.length) {
-			let mx_set = false;
-			let untransform = false;
-			let update = false;
-			let mx = scene.mx;
-			eval(scene.mxjs);
-			scene.mx_untransform = untransform;
-			if (update) scene.update_flag = UPDATE_CHILD;
-			if (mx_set) {
-				scene.mx = mx;
+		if (scene.mxjs) {
+			let is_ok = true;
+			let mx_state = {x: x, y: y, cx: cx, cy: cy, rotation: rotation, hscale: hscale, vscale: vscale, hskew: hskew, vskew: vskew, untransform: scene.mx_untransform, update:false, depth: scene.current_depth, mx: scene.mx, set: false}
+
+			let res = scene.mxjs.apply(scene, [mx_state]);
+			if (mx_state.update) scene.update_flag = UPDATE_CHILD;
+			if ((typeof res == 'boolean') && !res) {
+				return false;
+			}
+			scene.mx_untransform = mx_state.untransform ? true : false;
+			if (mx_state.set) {
+				scene.mx = mx_state.mx;
 				return;
+			}
+			if (typeof mx_state.x == 'number') x = mx_state.x;
+			else is_ok = false;
+
+			if (typeof mx_state.y == 'number') y = mx_state.y;
+			else is_ok = false;
+
+			if (typeof mx_state.cx == 'number') cx = mx_state.cx;
+			else is_ok = false;
+
+			if (typeof mx_state.cy == 'number') cy = mx_state.cy;
+			else is_ok = false;
+
+			if (typeof mx_state.rotation == 'number') rotation = mx_state.rotation;
+			else is_ok = false;
+
+			if (typeof mx_state.hscale == 'number') hscale = mx_state.hscale;
+			else is_ok = false;
+
+			if (typeof mx_state.vscale == 'number') vscale = mx_state.vscale;
+			else is_ok = false;
+
+			if (typeof mx_state.hskew == 'number') hskew = mx_state.hskew;
+			else is_ok = false;
+
+			if (typeof mx_state.vskew == 'number') vskew = mx_state.vskew;
+			else is_ok = false;
+
+			if (!is_ok) {
+				print(GF_LOG_ERROR, 'Error processing mxjs, result not a valid object');
+				scene.mxjs = null;
 			}
 		}
 	} catch (e) {
-		print(GF_LOG_ERROR, 'Error processing mxjs ' + scene.mxjs + ': ' + e);
-		scene.mxjs = '';
+		print(GF_LOG_ERROR, 'Error processing mxjs : ' + e);
+		scene.mxjs = null;
 	}
 
 	scene.mx.rotate(cx, cy, rotation * Math.PI / 180);
@@ -1167,6 +1222,7 @@ function update_scene_matrix(scene, do_reset)
 	if (vskew) scene.mx.skew_y(vskew);
 	scene.mx.scale(hscale, vscale);
 	scene.mx.translate(x, y);
+	return true;
 }
 
 function get_dim(scene, is_width)
@@ -1363,9 +1419,11 @@ function update_group(group)
 
 		group.update_flag = 0;
 
-		update_scene_matrix(group, true);
-	} else if (group.use && group.mxjs.length) {
-		update_scene_matrix(group, true);
+		if (!update_scene_matrix(group, true))
+			return;
+	} else if (group.use && group.mxjs) {
+		if (!update_scene_matrix(group, true)) 
+			return;
 	}
 
 	if ( (group.opacity<1) || (group.scaler>1) || (group.offscreen>GROUP_OST_NONE)) {
@@ -1438,7 +1496,8 @@ function update_group(group)
   //update matrix, opacity and push group to display list
   group.mx.identity = 1;
 	group.mx.translate(group.tr_x, group.tr_y);
-	update_scene_matrix(group, false);
+	if (!update_scene_matrix(group, false))
+		return;
 	if (!group.mx_untransform)
 		group.mx.add(global_transform);
 
@@ -1487,11 +1546,22 @@ function update_scene(scene)
 		scene.mod.update_flag |= UPDATE_SIZE;
 	}
 
-	scene.gl_uniforms_reload = scene.mod.update_flag ? true : false;
+	if (scene.mod.update_flag)
+		scene.gl_uniforms_reload = true;
+	else if (scene.gl_uniforms_reload) 
+		scene.gl_uniforms_reload = false;
+
+
 	if (scene.mod.update_flag & UPDATE_FX) {
 		scene.transition = null;
 		scene.gl_program = null;
 	}
+
+	//update the matrix
+	if (!update_scene_matrix(scene, true))
+		return;
+	if (!scene.mx_untransform)
+		scene.mx.add(global_transform);
 
 	//update the scene
 	scene.mod.force_draw = false;
@@ -1499,9 +1569,6 @@ function update_scene(scene)
 	if (!res) return;
 	if (res==2) has_clip_mask = true;
 
-	update_scene_matrix(scene, true);
-	if (!scene.mx_untransform)
-		scene.mx.add(global_transform);
 
 	let cover_type = 0;
 	let use_rotation = false;
@@ -3617,8 +3684,8 @@ function get_group(group_id)
 const group_transform_props = [
 	{ name: "active", def_val: true, update_flag: 0},
 	{ name: "zorder", def_val: 0, update_flag: 0},
-	{ name: "x", def_val: 0, update_flag: UPDATE_POS},
-	{ name: "y", def_val: 0, update_flag: UPDATE_POS},
+	{ name: "x", def_val: 0, update_flag: UPDATE_POS|UPDATE_ALLOW_STRING},
+	{ name: "y", def_val: 0, update_flag: UPDATE_POS|UPDATE_ALLOW_STRING},
 	{ name: "rotation", def_val: 0, update_flag: UPDATE_POS},
 	{ name: "cx", def_val: 0, update_flag: UPDATE_POS},
 	{ name: "cy", def_val: 0, update_flag: UPDATE_POS},
@@ -3628,7 +3695,7 @@ const group_transform_props = [
 	{ name: "hscale", def_val: 1, update_flag: UPDATE_POS},
 	{ name: "untransform", def_val: false, update_flag: UPDATE_POS},
 	{ name: "units", def_val: null, update_flag: -1},
-	{ name: "mxjs", def_val: "", update_flag: -1},
+	{ name: "mxjs", def_val: null, update_flag: -1},
 ];
 
 
@@ -3641,8 +3708,8 @@ const group_props = [
 	{ name: "opacity", def_val: 1, update_flag: UPDATE_CHILD},
 	{ name: "scaler", def_val: 1, update_flag: UPDATE_CHILD},
 	{ name: "back_color", def_val: 'none', update_flag: UPDATE_CHILD},
-	{ name: "width", def_val: -1, update_flag: UPDATE_CHILD},
-	{ name: "height", def_val: -1, update_flag: UPDATE_CHILD},
+	{ name: "width", def_val: -1, update_flag: UPDATE_CHILD|UPDATE_ALLOW_STRING},
+	{ name: "height", def_val: -1, update_flag: UPDATE_CHILD|UPDATE_ALLOW_STRING},
 	{ name: "use_depth", def_val: -1, update_flag: UPDATE_CHILD},
 	{ name: "reverse", def_val: false, update_flag: UPDATE_CHILD},
 	{ name: "reference", def_val: false, update_flag: UPDATE_CHILD},
@@ -3663,6 +3730,9 @@ function parse_group_transform(scene, params)
 			print(GF_LOG_WARNING, 'Invalid unit type ' + params.units + ', using relative');
 		}
 	}
+	scene.mx_untransform = false;
+
+	scene.mxjs = (typeof params.mxjs == 'string') ? fn_from_script(['tr'], params.mxjs) : null;
 }
 
 function group_get_update_type(prop_name, transform_only)
@@ -3699,6 +3769,27 @@ function parse_group(pl, parent)
 		group.offscreen_canvas = null;
 		group.update_flag = UPDATE_CHILD;
 
+		group.get = function(prop) {
+			if (typeof this[prop] != 'undefined') return this[prop];
+			return undefined;
+		}
+		group.set = function(prop, val) {
+			let update_type = group_get_update_type(prop, false);
+			//no modifications allowed or not defined 
+			if (update_type<0) {
+				return;
+			}
+
+			let allow_string = (update_type & UPDATE_ALLOW_STRING) ? true : false;
+			update_type &= ~UPDATE_ALLOW_STRING;
+
+			if ((this[prop] != val) && check_prop_type(typeof this[prop], typeof val, allow_string)) {
+				this.update_flag |= update_type;
+				this[prop] = val;
+				if (update_type)
+					invalidate_parent(this);
+			}
+		}
 	} else if (group.pl_update) {
 		print(GF_LOG_WARNING, "Multiple groups with id `" + group_id + "` defined, ignoring subsequent declarations");
 		return;
@@ -3755,6 +3846,105 @@ function parse_group(pl, parent)
 	}
 }
 
+let user_scripts=[];
+
+function get_script(id)
+{
+	for (let i=0; i<user_scripts.length; i++) {
+		if (user_scripts[i].id == id) return user_scripts[i];
+	}
+	return null;
+}
+
+function fn_from_script(args, jscode)
+{
+	let url = sys.url_cat(playlist_url, jscode);
+	if (sys.file_exists(url)) {
+		return new Function(args, sys.load_file(url, true) );
+	} else {
+		return new Function(args, jscode);		
+	}
+}
+
+function parse_script(pl)
+{
+	if (typeof pl.script != 'string') {
+		print(GF_LOG_WARNING, 'Unrecognized script ' + JSON.stringify(pl) );
+		return;
+	}
+	if (pl.skip || false) 
+		return;
+
+	let id = pl.id || null;
+	let script_obj = id ? get_script(id) : null;
+	if (!script_obj) {
+		script_obj = {}
+		script_obj.id = id;
+		user_scripts.push(script_obj);
+	}
+	
+	script_obj.pl_update = true;
+	script_obj.next_time = 0;
+
+	if (typeof pl.active == 'boolean')
+		script_obj.active = pl.active;
+	else
+		script_obj.active = true;
+
+	try {
+		script_obj.run_script = fn_from_script([], pl.script);
+	} catch (err) {
+		print('Invalid script ' + pl.script + ' : ' + err);
+		script_obj.run_script = null;
+	}
+
+	for (var propertyName in pl) {
+		if (propertyName == 'skip') continue;
+		if (propertyName == 'id') continue;
+		if (propertyName == 'active') continue;
+		if (propertyName == 'script') continue;
+		if (propertyName.charAt(0) == '_') continue;
+
+		print(GF_LOG_WARNING, 'Unrecognized option ' + propertyName + ' in script ' + JSON.stringify(pl) );
+	}
+
+	return;
+}
+
+function update_scripts()
+{
+	for (let i=0; i<user_scripts.length; i++) {
+		let script = user_scripts[i];
+		if (!script.active) continue;
+
+		if (!script.run_script) {
+			user_scripts.splice(i, 1);
+			i--;
+			continue;
+		}
+
+		if (script.next_time) {
+			if (video_playing && (script.next_time>video_time)) continue;
+			if (audio_playing && (script.next_time>audio_time)) continue;
+		} 
+
+		try {
+			let res = script.run_script.apply(script, []) || 0;
+			if (typeof res == 'number') {
+				if (res<0) res=0;
+
+				if (video_playing) res = video_time + res*video_timescale;
+				else res = audio_time + res*audio_timescale;
+			}
+			script.next_time = res;
+		} catch (err) {
+			user_scripts.splice(i, 1);
+			i--;
+			print('Error executing script  ' + JSON.stringify(script.run_script) + ' : ' + err + ' - removing');
+		}
+	}
+}
+
 function parse_pl_elem(pl)
 {
 	let type = pl.type || null;
@@ -3778,6 +3968,8 @@ function parse_pl_elem(pl)
 	if (Array.isArray(pl.keys) || Array.isArray(pl.anims))
 		type = 'timer';
 
+	if (typeof pl.script == 'string')
+		type = 'script';
 
 
 	//try config last
@@ -3816,12 +4008,14 @@ function parse_pl_elem(pl)
 		if (validate_timer(pl)) {
 			parse_timer(pl);
 		}	
+	} else if (type==='script') {
+			parse_script(pl);
 	} else if (type==='config') {
 		if (!playlist_loaded) {
 			parse_config(pl);
 		}	
 	} else {
-		print(GF_LOG_WARNING, 'type ' + type + ' not defined, ignoring element ' + JSON.stringify(pl) );
+		print(GF_LOG_WARNING, 'Root element type ' + type + ' not defined, ignoring element ' + JSON.stringify(pl) );
 	}
 }
 
@@ -3890,6 +4084,12 @@ function load_playlist()
 	ID_groups.forEach(group => {
 		group.pl_update = false;
 	});
+
+	//mark all scripts as not updated
+	user_scripts.forEach(o => {
+		o.pl_update = false;
+	});
+
 	//reset root
 	root_scene.scenes.length = 0;
 
@@ -3919,6 +4119,17 @@ function load_playlist()
 	cleanup_list_id(false);
 	//cleanup groups no longer in use
 	cleanup_list_id(true);
+
+	//cleanup scripts no longer in use
+	for (let i=0; i<user_scripts.length; i++) {
+		let s = user_scripts[i];
+		if (s.pl_update) continue;
+
+		print(GF_LOG_INFO, 'Script ' + s.id + ' removed');
+		user_scripts.splice(i, 1);
+		i--;
+	}
+
 
 	//create default scene if needed
 	if (!root_scene.scenes.length && sources.length && generate_default_scene) {
@@ -3988,6 +4199,19 @@ function scene_is_mod_option(prop_name)
 	}
 	return -2;
 }
+function scene_mod_option_update_time(scene, prop_name)
+{
+	if (!scene.options) return -2;
+	for (let i=0; i<scene.options.length; i++) {
+		let o = scene.options[i];
+		if (o.name != prop_name) continue;
+		if (typeof o.dirty == 'number')
+			return o.dirty;
+		return -1;
+	}
+	return -2;
+}
+
 
 function set_scene_options(scene, params)
 {
@@ -4108,6 +4332,8 @@ function setup_scene(scene, seq_ids, params)
 	scene.mod.mix_ratio = 0;
 	scene.transition = null;
 
+	scene.sources = seq_ids;
+
 	//default scene
 	if (!seq_ids) {
 		scene.sequences.push( sequences[0] );
@@ -4124,7 +4350,8 @@ function setup_scene(scene, seq_ids, params)
 	}
 
 	scene.mod.update_flag = UPDATE_PID;
-	set_scene_options(scene, params);
+	if (params)
+		set_scene_options(scene, params);
 }
 
 function remove_scene_or_group(elmt)
@@ -4168,6 +4395,67 @@ function create_scene(seq_ids, params, parent)
 	scene.gl_type = SCENE_GL_NONE;
 	scene.parent = parent;
 	scene.mx = new evg.Matrix2D();
+
+	scene.get = function(prop) {
+		if (typeof this[prop] != 'undefined') return this[prop];
+		if (typeof this.mod[prop] != 'undefined') return this.mod[prop];
+		return undefined;
+	}
+
+	scene.set = function(prop, val) {
+		let obj = this;
+
+		//special handling of scenes
+		if (prop=='sources') {
+			if (Array.isArray(val)) {
+				setup_scene(obj, val, null);
+			}
+			return;
+		}
+		let update_type = group_get_update_type(prop, true);
+
+		if (update_type==-2) {
+			update_type = scene_mod_option_update_time(this, prop);
+			if (update_type>=0) {
+				obj = this.mod;
+			} else if (update_type==-2) {
+				update_type = scene_get_update_type(prop);
+				if ((update_type>=0) && scene_is_mod_option(prop)) {
+					obj = this.mod;
+				}
+			}
+		}
+		
+		//no modifications allowed or not defined 
+		if (update_type<0) {
+			return;
+		}
+
+		let allow_string = (update_type & UPDATE_ALLOW_STRING) ? true : false;
+		update_type &= ~UPDATE_ALLOW_STRING;
+
+		if ((obj[prop] != val) && check_prop_type(typeof obj[prop], typeof val, allow_string)) {
+			obj.update_flag |= update_type;
+			obj[prop] = val;
+			if (update_type)
+				invalidate_parent(this);
+		}
+	}
+
+/*
+	let handler = {
+		get: function(target, property) {
+			print('property ' + property + ' accessed');
+			return Reflect.get(target, property);
+		},
+		set: function(target, property, value) {
+			print('property ' + property + ' modified to \` ' + value + ' \`');
+			return Reflect.set(target, property, value);
+		}
+	};
+	let proxy = new Proxy(scene, handler);
+	scene = proxy;
+*/
 
 	if (parent)
 		parent.scenes.push(scene);
@@ -4218,7 +4506,7 @@ function create_scene(seq_ids, params, parent)
 		  })
 		  .catch(err => {
 		  		modules_pending--;
-					print(GF_LOG_ERROR, "Failed to load scene '" + params.js);
+					print(GF_LOG_ERROR, "Failed to load scene " + params.js + ' : ' + err);
 					remove_scene_or_group(scene);
 		  });
 }
@@ -4271,7 +4559,7 @@ function validate_timer(pl)
 			return;
 		}
 		anim.values.forEach(val => {
-			if (typeof val != 'string' && typeof val != 'number' && typeof val != 'boolean') {
+			if (typeof val != 'string' && typeof val != 'number' && typeof val != 'boolean' && !Array.isArray(val)) {
 				print(GF_LOG_ERROR, 'Timer anims values must be string or numbers, ignoring ' + JSON.stringify(pl) );
 				valid = false;
 				return;
@@ -4396,11 +4684,11 @@ function parse_timer(pl)
 			else if (anim.mode == "linear") a.mode = 0;
 			else {
 				a.mode = 2;
-				a.fun = anim.mode;
+				a.fun = fn_from_script(['interp'], anim.mode);
 			}
 		} 
 		
-		a.postfun = (typeof anim.postfun == 'string') ? anim.postfun : null;
+		a.postfun = (typeof anim.postfun == 'string') ? fn_from_script(['res', 'interp'], anim.postfun) : null;
 
 		let mod = anim.end || "freeze";
 		a.restore = 0;
@@ -4418,12 +4706,13 @@ function parse_timer(pl)
 			tar.id = vals[0];
 			tar.scene = get_scene(vals[0]);
 			tar.group = get_group(vals[0]);
+			tar.script = get_script(vals[0]);
 			tar.fx = null;
 			tar.fx_obj = null;
 			if (!tar.scene && !tar.group && check_transition(vals[0]))
 				tar.fx = vals[0];
 
-			if (!tar.scene && !tar.group && !tar.fx) {
+			if (!tar.scene && !tar.group && !tar.fx && !tar.script) {
 				print(GF_LOG_ERROR, 'No scene or transition with ID ' + vals[0] + ' found, ignoring target');
 				return;
 			}
@@ -4438,10 +4727,14 @@ function parse_timer(pl)
 			tar.scene_obj = false;
 
 			if (tar.scene) {
-				//check transform props
-				tar.update_type = group_get_update_type(tar.field, true);
-				if (tar.update_type>=0)
-						tar.scene_obj = true;
+				if (tar.field == 'sources') {
+					tar.update_type = UPDATE_PID;
+				} else {
+					//check transform props
+					tar.update_type = group_get_update_type(tar.field, true);
+					if (tar.update_type>=0)
+							tar.scene_obj = true;
+				}
 
 				//check scene (not module) props
 				if (tar.update_type == -2) {
@@ -4454,16 +4747,16 @@ function parse_timer(pl)
 					tar.update_type = -3;
 				}
 				else if ((tar.update_type == -2) && tar.scene && tar.scene.options) {
-					tar.scene.options.forEach(o=> {
-						if (o.name != tar.field) return;
-						if (typeof o.dirty == 'number')
-							tar.update_type = o.dirty;
-					  else
-							tar.update_type=-1;
-					});
+					tar.update_type = scene_mod_option_update_time(tar.scene, tar.field);
 				}
 			} else if (tar.group) {
 				tar.update_type = group_get_update_type(tar.field, false);
+			} else if (tar.script) {
+				if (tar.field!="active") {
+					print(GF_LOG_ERROR, 'Property ' + tar.field + ' of script cannot be animated, ignoring target');
+					return;
+				}
+				tar.update_type = 0;
 			} else {
 				tar.update_type = UPDATE_SIZE;
 			}
@@ -4598,10 +4891,13 @@ function update_timer(timer)
 
 		else if (anim.fun != null) {
 				try {
-					eval(anim.fun);
+					interp = anim.fun.apply(anim, [interp]);
+					if (typeof interp != 'number')
+						throw 'Interpolation function result is not a number !';
 				} catch (e) {
 					print(GF_LOG_ERROR, "Error processing anim fun " + anim.fun + ': ' + e);
 					anim.fun = null;
+					return;
 				}
 				if (interp<0) interp=0;
 				else if (interp>1) interp=1;
@@ -4611,7 +4907,7 @@ function update_timer(timer)
 			res = value1;
 			if (anim.postfun) {
 				try {
-					eval(anim.postfun);
+					res = anim.postfun.apply(anim, [res, interp]);
 				} catch (e) {
 					print(GF_LOG_ERROR, "Error processing anim postfun " + anim.postfun + ': ' + e);
 					anim.postfun = null;
@@ -4628,7 +4924,7 @@ function update_timer(timer)
 
 			if (anim.postfun) {
 				try {
-					eval(anim.postfun);
+					res = anim.postfun.apply(anim, [res, interp]);
 				} catch (e) {
 					print(GF_LOG_ERROR, "Error processing anim postfun " + anim.postfun + ': ' + e);
 					anim.postfun = null;
@@ -4641,10 +4937,12 @@ function update_timer(timer)
 
 			let anim_obj = null;
 
-			if (target.scene)
+			if (target.scene) {
 				anim_obj = target.scene.mod;
-			else if (target.group)
+			}
+			else if (target.group) {
 				anim_obj = target.group;
+			}
 			else if (target.fx) {
 				if (!target.fx_obj) {
 					target.fx_obj = get_transition(target.fx, false);
@@ -4657,6 +4955,8 @@ function update_timer(timer)
 				}
 				anim_obj = target.fx_obj.mod;
 			}
+			else if (target.script)
+				anim_obj = target.script;
 
 			if (!anim_obj) {
 				print(GF_LOG_WARNING, 'Animation target ' + target.field + ' not found, removing target');
@@ -4671,7 +4971,7 @@ function update_timer(timer)
 
 			if (typeof anim_obj[target.field] == 'undefined') {
 				//special case for scene, some options are not in the scene module
-				if (target.scene &&  (typeof target.scene[target.field] != 'undefined')) {
+				if (target.scene && ((target.update_type==UPDATE_PID) || (typeof target.scene[target.field] != 'undefined'))) {
 					anim_obj = target.scene;
 				} else {
 					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
@@ -4682,16 +4982,10 @@ function update_timer(timer)
 			}
 			let update_type = target.update_type;
 
-			//update type was defered (scene nnot loaded)
+			//update type was defered (scene not loaded)
 			if ((update_type == -3) && target.scene) {
 				if (typeof target.scene.mod[target.field] != 'undefined') {
-					target.scene.options.forEach(o => {
-						if (o.name != target.field) return;
-						if (typeof o.dirty == 'number')
-							update_type = o.dirty;
-					  else
-							update_type=-1;
-					});
+					update_type = scene_mod_option_update_time(target.scene, target.field);
 				}
 				if (update_type<0) {
 					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
@@ -4723,18 +5017,22 @@ function update_timer(timer)
 							invalidate_parent(target.scene);
 					}
 				}
-			} else if (check_prop_type(typeof anim_obj[target.field], typeof final, allow_string)) {
+			}
+			else if (check_prop_type(typeof anim_obj[target.field], typeof final, allow_string)) {
 				if (do_store) {
 					target.orig_value = anim_obj[target.field];
 				}
 				if ((anim_obj[target.field] != final)) {
-					anim_obj.update_flag |= update_type;
-					anim_obj[target.field] = final;
-
 					print(GF_LOG_DEBUG, 'update ' + target.id + '.' + target.field + ' to ' + final);
+					if (update_type == UPDATE_PID) {
+						setup_scene(target.scene, final, null);
+					} else {
+						anim_obj.update_flag |= update_type;
+						anim_obj[target.field] = final;
 
-					if (update_type)
-						invalidate_parent(target.group || target.scene);
+						if (update_type)
+							invalidate_parent(target.group || target.scene);
+					}
 				}
 			} else {
 				print(GF_LOG_WARNING, 'Anim type mismatch for ' + target.field + ' got ' + typeof final + ' expecting ' + typeof anim_obj[target.field] + ', ignoring');
@@ -5516,10 +5814,12 @@ function canvas_draw_sources(path)
 		return;
 	}
 
-	if (transition && (typeof transition.fun == 'string')) {
+	if (transition && transition.fun) {
 		let old_ratio = ratio;
 		try {
-			eval(transition.fun);
+			ratio = transition.fun.apply(transition, [ratio]);
+			if (typeof ratio != 'number')
+				throw 'Ratio function result is not a number !';
 		} catch (e) {
 			print(GF_LOG_WARNING, 'Error processing transition fun ' + transition.fun + ': ' + e);
 			transition.fun = null;
@@ -6180,7 +6480,7 @@ function apply_transition_options(seq, opts, strict)
 function setup_transition(seq)
 {
 	/*builtin parameters*/
-	seq.transition.fun = (typeof seq.transition_effect.fun == 'string') ? seq.transition_effect.fun : null;
+	seq.transition.fun = (typeof seq.transition_effect.fun == 'string') ? fn_from_script(['ratio'], seq.transition_effect.fun) : null;
 	seq.transition.id = (typeof seq.transition_effect.id == 'string') ? seq.transition_effect.id : null;
 
 	seq.transition.mod.update_flag = 0;
@@ -6393,15 +6693,21 @@ function parse_update_elem(pl, array)
 
 		let logname='';
 		if (scene) {
-			scene.options.forEach(o => {
-				if ((o.name == prop_name) && (typeof o.dirty == 'number'))
-						update_type = o.dirty;
-			});
 
+			if (prop_name == "sources") {
+				update_type = UPDATE_PID;
+				mod = scene;
+			} else {
+				//module options
+				update_type = scene_mod_option_update_time(scene, prop_name);
+			}
+
+			//transformation options
 			if (update_type==-2)
 				update_type = group_get_update_type(prop_name, true);
 
 			if (update_type==-2) {
+				//scene options, not module ones
 				update_type = scene_get_update_type(prop_name);
 				if (update_type>=0) {
 					if (!scene_is_mod_option(prop_name))
@@ -6438,8 +6744,8 @@ function parse_update_elem(pl, array)
 		}
 
 		let res = pl.with;
-		let allow_string = (update_flag & UPDATE_ALLOW_STRING) ? true : false;
-		update_flag &= ~UPDATE_ALLOW_STRING;
+		let allow_string = (update_type & UPDATE_ALLOW_STRING) ? true : false;
+		update_type &= ~UPDATE_ALLOW_STRING;
 
 		if (Array.isArray(mod[prop_name]) && (field_idx>=0)) {
 			if (field_idx >= mod[prop_name].length) {
@@ -6447,8 +6753,15 @@ function parse_update_elem(pl, array)
 				return;
 			} else if (typeof res == typeof mod[prop_name][0]) {
 				if (mod[prop_name][field_idx] != res) {
-					mod.update_flag |= update_type;
-					mod[prop_name][field_idx] = res;
+					if (update_type==UPDATE_PID) {
+						mod[prop_name][field_idx] = res;
+						setup_scene(scene, mod[prop_name], null);
+					} else {
+						mod.update_flag |= update_type;
+						mod[prop_name][field_idx] = res;
+						if (update_type && (scene||group))
+							invalidate_parent(scene || group);
+					}
 				}
 			} else {
 				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + (typeof mod[prop_name][0]) + ' but replacement value type is ' + rep_type);
@@ -6462,10 +6775,14 @@ function parse_update_elem(pl, array)
 			}
 
 			if (mod[prop_name] != res) {
-				mod.update_flag |= update_type;
-				mod[prop_name] = res;
-				if (update_type && (scene||group))
-					invalidate_parent(scene || group);
+				if (update_type==UPDATE_PID) {
+					setup_scene(scene, res, null);
+				} else {
+					mod.update_flag |= update_type;
+					mod[prop_name] = res;
+					if (update_type && (scene||group))
+						invalidate_parent(scene || group);
+				}
 			}
 		}
 		return;
@@ -6553,6 +6870,21 @@ function parse_update_elem(pl, array)
 		apply_transition_update(transition, prop_name, pl.with);
 		return;
 	}
+	//try scrips
+	let script=get_script(src);
+	if (script) {
+		if (prop_name == 'active') {
+			if (typeof pl.with == 'boolean') {
+				script.active = pl.with;
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for script.active');				
+			}
+		} else {
+			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of script not updatable');			
+		}
+		return;
+	}
+
 	print(GF_LOG_WARNING, "No updatable element with id " + src + ' found');
 }
 

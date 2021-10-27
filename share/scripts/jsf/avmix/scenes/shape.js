@@ -62,11 +62,11 @@ The code is exposed the scene as \`this\`. The variable \`this.path\` is created
 EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el);"
 
 The default behaviour is to use the shape width and height as reference size for texture mapping.
-If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable \`tx_adjust\` to true.
+If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable \`this.tx_adjust\` to true.
 
 In the previous example, the texture mapping will not be impacted by the custom path size.
 
-EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); tx_adjust = true;"
+EX "shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); this.tx_adjust = true;"
 In this example, the texture mapping will be adjusted to the desired size.
 
 
@@ -914,19 +914,22 @@ update: function() {
       } else {
         try {
           let url = resolve_url(this.shape);
-          let tx_adjust=false;
+          this.tx_adjust=false;
           if (sys.file_exists(url)) {
-            let f = sys.load_file(url, true);
-            eval(f);
+            let f = new Function([], sys.load_file(url, true) );
+            let res = f.apply(this, []);
+            if (typeof res == 'number') this.reload = res;
             path_loaded = true;
             this.dyn_path = url;
             this.last_path_time = sys.mod_time(url);
           } else {
-            eval(this.shape);
+            let f = new Function([], this.shape);
+            let res = f.apply(this, []);
+            if (typeof res == 'number') this.reload = res;
             path_loaded = true;
             this.dyn_path = null;
           }
-          if (tx_adjust) {
+          if (this.tx_adjust) {
             let rc = this.path.bounds;
             this.sw = rc.w;
             this.sh = rc.h;
@@ -963,7 +966,6 @@ update: function() {
 
   if (reset_local_stencil) {
     this.local_stencil = null;
-      print('reset stencil');
   }
 
   if (this.update_flag & UPDATE_POS) {
@@ -1049,6 +1051,14 @@ update: function() {
         this.local_stencil.set_alphaf(this.alpha);
       }
   }
+  this.pids.forEach( pid_link => {
+    pid_link.tx_info.alpha = this.alpha;
+    if (this.alpha<1) {
+      this.can_reuse = false;
+      this.use_blit = false;
+      this.opaque = false;      
+    }
+  });
 
   this.update_flag = 0;
 

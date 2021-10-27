@@ -7655,6 +7655,8 @@ Root objects types can be indicated through a type property:
 .br
 * timer: a timer object
 .br
+* script: a script object
+.br
 * config: a config object
 .br
 
@@ -7688,6 +7690,100 @@ Colors are handled as strings, formatted as:
 - RGBA hex values 0xAARRGGBB
 .br
 - the color none is 0x00000000, its signification depends on the object using it.
+.br
+
+.br
+If JS code needs to manipulate colors, use sys.color_lerp and sys.color_component functions.
+.br
+
+.br
+.P
+.B
+JS Hooks
+.br
+
+.br
+Some object types allow for custom JS code to be executed. 
+.br
+The script code can either be the value of the property, or located in a file indicated in the property. 
+.br
+The code is turned into a function (i.e. new Function(args, js_code)) upon initial playlist parsing or reload, hereafter called JSFun.
+.br
+The JSFun arguments and return value are dependent on the parent object type.
+.br
+The parent object is exposed as this in JSFun and can be used to store context information for the JS code.
+.br
+
+.br
+The code can use the global functions and modules defined, especially:
+.br
+* sys: GPAC system module
+.br
+* evg: GPAC EVG module
+.br
+* os: QuickJS OS module 
+.br
+* video_playing: video playing state
+.br
+* audio_playing: audio playing state
+.br
+* video_time: output video time
+.br
+* video_timescale: output video timescale
+.br
+* video_width: output video width
+.br
+* video_height: output video height
+.br
+* audio_time: output audio time
+.br
+* audio_timescale: output audio timescale
+.br
+* samplerate: output audio samplerate
+.br
+* channels: output audio channels
+.br
+* current_utc_clock: current UTC clock in ms
+.br
+* get_media_time: gets media time of output (no argument) or of source with id matching the first argument. Return
+.br
+  * -4: not found
+.br
+  * -3: not playing
+.br
+  * -2: in prefetch
+.br
+  * -1: timing not yet known
+.br
+  * value: media time in seconds (float)
+.br
+* resolve_url: resolves URL given in first argument against media playlist URL and returns the resolved url (string)
+.br
+* get_scene(id): gets scene with given ID
+.br
+* get_group(id): gets group with given ID
+.br
+* get_script(id): gets script with given ID
+.br
+
+.br
+Scene and group options must be accessed through getters and setters:
+.br
+* scene.get(prop_name): gets the scene option
+.br
+* scene.set(prop_name, value): sets the scene option
+.br
+* group.get(prop_name): gets the group option
+.br
+* group.set(prop_name, value): sets the group option
+.br
+
+.br
+Results are undefined if JS code modifies the scene/group objects in any other way.
+.br
+
+.br
+Warning: there is no protection of global variables and state, write your script carefully!
 .br
 
 .br
@@ -7921,25 +8017,29 @@ This order is independent of the parent group z-ordering. This allows moving obj
 .B
 Coordinate modifications through JS
 .br
-The code specified in mxjs can modify the following variables:
-.br
-* x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in pixel units
-.br
-* mx: 2D matrix of the scene for custom config. If this variable is modified:
-.br
-  - if the variable mx_set is set to true by the code, the other operations are ignored
-.br
-  - otherwise, other matrix operations are added after
-.br
-* update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if use is set)
+The JSFun specified in mxjs has a single parameter tr.
 .br
 
 .br
-The current scene object is exposed with the name scene. Results are undefined if  mxjs code modifies this object.
+The tr parameter is an object containing the following variables that the code can modify:
 .br
-All scene and group properties are available. Additional variables:
+* x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in local coordinate system units
 .br
-* scene.current_depth: for groups with use, indicate the recursion level of the used element. A value of 0 inidcates this is a direct render of the element, otheriwse it is a render through use
+* mx: 2D matrix of the scene for custom config
+.br
+* set: if set to true by the code, the other operations are ignored and the modified mx is used as is. Otherwise, other matrix operations are added after
+.br
+* update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if use is set)
+.br
+* depth: for groups with use, indicates the recursion level of the used element. A value of 0 indcates this is a direct render of the element, otherwise it is a render through use
+.br
+
+.br
+The JSFun may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
+.br
+
+.br
+EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
 .br
 
 .br
@@ -8023,7 +8123,7 @@ Properties for scene objects
 .br
 * js ('shape'): scene type, either builtin (see below) or path to a JS module, cannot be animated or updated
 .br
-* sources ([]): list of identifiers of sequences or offscreen groups used by this scene, cannot be animated or updated
+* sources ([]): list of identifiers of sequences or offscreen groups used by this scene
 .br
 * width (-1): width of the scene, -1 means reference space width
 .br
@@ -8077,7 +8177,7 @@ Properties for transition objects:
 .br
 * dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene mix.
 .br
-* fun (null): JS code modifying the ratio effect called ratio (e.g. fun="ratio = ratio*ratio;")
+* fun (null): JS code modifying the ratio effect
 .br
 - any other property exposed by the underlying transition module.
 .br
@@ -8088,6 +8188,18 @@ Properties for transition objects:
 Notes
 .br
 A sequence of two media with playback duration (as indicated in source) of D1 and D2 using a transition of duration DT will result in a sequence lasting D1 + D2 - DT.
+.br
+
+.br
+The JSFun specified by fun takes one argument ratio and must return the recomputed ratio.
+.br
+
+.br
+Example
+.br
+"fun": "return ratio*ratio;"
+.br
+
 .br
 
 .br
@@ -8131,9 +8243,9 @@ Properties for animation objects
 .br
   * discrete: do not interpolate
 .br
-  * other: JS code modifying the interpolation ratio called interp, eg "interp = interp*interp;"
+  * other: JS code modifying the interpolation ratio
 .br
-* postfun (null): JS code modifying the interpolation result res, eg "res = res*res;"
+* postfun (null): JS code modifying the interpolation result
 .br
 * end ('freeze'): behavior at end of animation:
 .br
@@ -8153,7 +8265,63 @@ Properties for animation objects
 .B
 Notes
 .br
-Currently, only scene, group and transition objects can be modified through timers (see playlist updates).
+Currently, only scene, group, transition and script objects can be modified through timers (see playlist updates).
+.br
+
+.br
+The JSFun specified by mode has one input parameter interp equal to the interpolation factor and must return the new interpolation factor.
+.br
+Example
+.br
+"mode":"return interp*interp;" 
+.br
+
+.br
+
+.br
+The JSFun specified postfun has two input parameters res (the current interplation result) and interp (the interpolation factor), and must return the new interpolated value.
+.br
+Example
+.br
+"postfun": "if (interp<0.5) return res*res; return res;" 
+.br
+
+.br
+
+.br
+.P
+.B
+Scripts
+.br
+.P
+.B
+Properties for script objects
+.br
+* id (null): id of the script
+.br
+* script (null): JavaScript code or path to JavaScript file to execute, cannot be animated or updated
+.br
+* active (true): indicate if script is active or not
+.br
+
+.br
+.P
+.B
+Notes
+.br
+
+.br
+Script objects allow read and write access to the playlist from script. They currently can only be used to modify scenes and groups and to activate/deactivate other scripts.
+.br
+
+.br
+The JSFun function specified by fun has no input parameter. The return value (default 0) is the number of seconds (float) to wait until next evaluation of the script.
+.br
+
+.br
+EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+.br
+This will change scene s1 rotation every 2 seconds 
 .br
 
 .br
@@ -8306,7 +8474,7 @@ An id property cannot be updated.
 .br
 The following playlist elements of a playlist can be updated:
 .br
-* scene: all properties except js, sources and read-only module properties
+* scene: all properties except js and read-only module properties
 .br
 * group: all properties except scenes and  offscreen
 .br
@@ -8551,7 +8719,7 @@ Example
 .br
 The default behaviour is to use the shape width and height as reference size for texture mapping.
 .br
-If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable tx_adjust to true.
+If your custom path is textured, with bounding rectangle size different from the indicated shape size, set the variable this.tx_adjust to true.
 .br
 
 .br
@@ -8561,7 +8729,7 @@ In the previous example, the texture mapping will not be impacted by the custom 
 .br
 Example
 .br
-"shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); tx_adjust = true;"
+"shape": "this.path.add_rectangle(0, 0, this.width, this.height); let el = new evg.Path().ellipse(0, 0, this.width, this.height/3); this.path.add_path(el); this.tx_adjust = true;"
 .br
 
 .br
@@ -9067,7 +9235,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1409-gcf8da3461-master
+build: 1.1.0-DEV-rev1412-gdb56f2050-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
