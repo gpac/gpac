@@ -432,6 +432,11 @@ filter.initialize = function()
 	}
 
 	playlist_url = filter.pl.slice();
+	let cwd = os.getcwd()[0] + '/';
+	playlist_url = sys.url_cat(cwd, playlist_url);
+	print('playlist_url is ' + playlist_url);
+
+
 
 	if (!load_playlist())
 		return GF_BAD_PARAM;
@@ -4506,7 +4511,7 @@ function create_scene(seq_ids, params, parent)
 		  })
 		  .catch(err => {
 		  		modules_pending--;
-					print(GF_LOG_ERROR, "Failed to load scene " + params.js + ' : ' + err);
+					print(GF_LOG_ERROR, "Failed to load scene " + params.js + ' (' + script_src + '): ' + err);
 					remove_scene_or_group(scene);
 		  });
 }
