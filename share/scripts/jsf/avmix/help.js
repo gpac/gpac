@@ -47,6 +47,7 @@ Root objects types can be indicated through a \`type\` property:
 - scene: a \`scene\` object
 - group: a \`group\` object
 - timer: a \`timer\` object
+- script: a \`script\` object
 - config: a \`config\` object
 
 The \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
@@ -63,6 +64,52 @@ Colors are handled as strings, formatted as:
 - RGB hex vales \`0xRRGGBB\`
 - RGBA hex values \`0xAARRGGBB\`
 - the color \`none\` is \`0x00000000\`, its signification depends on the object using it.
+
+If JS code needs to manipulate colors, use sys.color_lerp and sys.color_component functions.
+
+## JS Hooks
+
+Some object types allow for custom JS code to be executed. 
+The script code can either be the value of the property, or located in a file indicated in the property. 
+The code is turned into a function (i.e. \`new Function(args, js_code)\`) upon initial playlist parsing or reload, hereafter called \`JSFun\`.
+The \`JSFun\` arguments and return value are dependent on the parent object type.
+The parent object is exposed as \`this\` in \`JSFun\` and can be used to store context information for the JS code.
+
+The code can use the global functions and modules defined, especially:
+- sys: GPAC system module
+- evg: GPAC EVG module
+- os: QuickJS OS module 
+- video_playing: video playing state
+- audio_playing: audio playing state
+- video_time: output video time
+- video_timescale: output video timescale
+- video_width: output video width
+- video_height: output video height
+- audio_time: output audio time
+- audio_timescale: output audio timescale
+- samplerate: output audio samplerate
+- channels: output audio channels
+- current_utc_clock: current UTC clock in ms
+- get_media_time: gets media time of output (no argument) or of source with id matching the first argument. Return
+  - -4: not found
+  - -3: not playing
+  - -2: in prefetch
+  - -1: timing not yet known
+  - value: media time in seconds (float)
+- resolve_url: resolves URL given in first argument against media playlist URL and returns the resolved url (string)
+- get_scene(id): gets scene with given ID
+- get_group(id): gets group with given ID
+- get_script(id): gets script with given ID
+
+Scene and group options must be accessed through getters and setters:
+- scene.get(prop_name): gets the scene option
+- scene.set(prop_name, value): sets the scene option
+- group.get(prop_name): gets the group option
+- group.set(prop_name, value): sets the group option
+
+Results are undefined if JS code modifies the scene/group objects in any other way.
+
+Warning: there is no protection of global variables and state, write your script carefully!
 
 ## Sequences
 ### Properties for \`sequence\` objects:
@@ -167,16 +214,20 @@ Changing reference is typically needed when creating offscreen groups, so that c
 This order is independent of the parent group z-ordering. This allows moving objects of a group up and down the display stack without modifying the groups.
 
 ### Coordinate modifications through JS
-The code specified in \`mxjs\` can modify the following variables:
-- x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in pixel units
-- mx: 2D matrix of the scene for custom config. If this variable is modified:
-  - if the variable \`mx_set\` is set to true by the code, the other operations are ignored
-  - otherwise, other matrix operations are added after
-- update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if \`use\` is set)
+The \`JSFun\` specified in \`mxjs\` has a single parameter \`tr\`.
 
-The current scene object is exposed with the name \`scene\`. Results are undefined if  \`mxjs\` code modifies this object.
-All scene and group properties are available. Additional variables:
-- scene.current_depth: for groups with \`use\`, indicate the recursion level of the used element. A value of 0 inidcates this is a direct render of the element, otheriwse it is a render through \`use\`
+The \`tr\` parameter is an object containing the following variables that the code can modify:
+- x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in local coordinate system units
+- mx: 2D matrix of the scene for custom config
+- set: if set to true by the code, the other operations are ignored and the modified \`mx\` is used as is. Otherwise, other matrix operations are added after
+- update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if \`use\` is set)
+- depth: for groups with \`use\`, indicates the recursion level of the used element. A value of 0 indcates this is a direct render of the element, otherwise it is a render through \`use\`
+
+The \`JSFun\` may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
+
+EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
+
+
 
 ## Grouping
 ### Properties for \`group\` objects
@@ -213,7 +264,7 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
 ### Properties for \`scene\` objects
 - id (null): scene identifier
 - js ('shape'): scene type, either builtin (see below) or path to a JS module, cannot be animated or updated
-- sources ([]): list of identifiers of sequences or offscreen groups used by this scene, cannot be animated or updated
+- sources ([]): list of identifiers of sequences or offscreen groups used by this scene
 - width (-1): width of the scene, -1 means reference space width
 - height (-1): height of the scene, -1 means reference space height
 - mix (null): a \`transition\` object to apply if more than one source is set, ignored otherwise
@@ -237,11 +288,16 @@ Properties for \`transition\` objects:
 - id (null): transition identifier
 - type: transition type, either builtin (see below) or path to a JS module
 - dur: transition duration (transitions always end at source stop time). Ignored if transition is specified for a scene \`mix\`.
-- fun (null): JS code modifying the ratio effect called \`ratio\` (e.g. \`fun="ratio = ratio*ratio;"\`)
+- fun (null): JS code modifying the ratio effect
 - any other property exposed by the underlying transition module.
 
 ### Notes
 A \`sequence\` of two media with playback duration (as indicated in \`source\`) of D1 and D2 using a transition of duration DT will result in a sequence lasting \`D1 + D2 - DT\`.
+
+The \`JSFun\` specified by \`fun\` takes one argument \`ratio\` and must return the recomputed ratio.
+
+EX "fun": "return ratio*ratio;"
+
 
 ## Timers and animations
 ### Properties for \`timer\` objects
@@ -260,8 +316,8 @@ A \`sequence\` of two media with playback duration (as indicated in \`source\`) 
 - mode ('linear') : interpolation mode:
   - linear: linear interpolation between the values
   - discrete: do not interpolate
-  - other: JS code modifying the interpolation ratio called \`interp\`, eg \`"interp = interp*interp;"\`
-- postfun (null): JS code modifying the interpolation result \`res\`, eg \`"res = res*res;"\`
+  - other: JS code modifying the interpolation ratio
+- postfun (null): JS code modifying the interpolation result
 - end ('freeze'): behavior at end of animation:
   - freeze: keep last animated values
   - restore: restore targets to their initial values
@@ -270,7 +326,29 @@ A \`sequence\` of two media with playback duration (as indicated in \`source\`) 
   - ID@option[IDX]: modifies value at index \`IDX\` of array property \`option\` of object with given ID
 
 ### Notes
-Currently, only \`scene\`, \`group\` and \`transition\` objects can be modified through timers (see playlist updates).
+Currently, only \`scene\`, \`group\`, \`transition\` and \`script\` objects can be modified through timers (see playlist updates).
+
+The \`JSFun\` specified by \`mode\` has one input parameter \`interp\` equal to the interpolation factor and must return the new interpolation factor.
+EX "mode":"return interp*interp;" 
+
+The \`JSFun\` specified \`postfun\` has two input parameters \`res\` (the current interplation result) and \`interp\` (the interpolation factor), and must return the new interpolated value.
+EX "postfun": "if (interp<0.5) return res*res; return res;" 
+
+## Scripts
+### Properties for \`script\` objects
+- id (null): id of the script
+- script (null): JavaScript code or path to JavaScript file to execute, cannot be animated or updated
+- active (true): indicate if script is active or not
+
+
+### Notes
+
+Script objects allow read and write access to the playlist from script. They currently can only be used to modify scenes and groups and to activate/deactivate other scripts.
+
+The \`JSFun\` function specified by \`fun\` has no input parameter. The return value (default 0) is the number of seconds (float) to wait until next evaluation of the script.
+
+EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
+This will change scene \`s1\` rotation every 2 seconds 
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
@@ -284,6 +362,7 @@ The following additional properties are defined for testing:
 - reload_tests([]): list of playlists to reload
 - reload_timeout(1.0): timeout in seconds before playlist reload
 - reload_loop (0): number of times to repeat the reload tests (not including original playlist which is not reloaded)
+
 
 ## Playlist modification
 The playlist file can be modified at any time.
@@ -342,7 +421,7 @@ The properties of these objects are:
 An \`id\` property cannot be updated.
 
 The following playlist elements of a playlist can be updated:
-- scene: all properties except \`js\`, \`sources\` and read-only module properties
+- scene: all properties except \`js\` and read-only module properties
 - group: all properties except \`scenes\` and  \`offscreen\`
 - sequence: \`start\`, \`stop\`, \`loop\` and \`transition\` properties
 - timer: \`start\`, \`stop\`, \`loop\` and \`dur\` properties
