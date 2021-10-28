@@ -1279,16 +1279,21 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		if (full_dump) break;
 		DUMP_OBU_INT(sequence_width)
 		DUMP_OBU_INT(sequence_height)
-		DUMP_OBU_INT(bit_depth)
 		DUMP_OBU_INT(still_picture)
 		DUMP_OBU_INT(OperatingPointIdc)
-		DUMP_OBU_INT(color_range)
+		DUMP_OBU_INT2("profile", av1->config->seq_profile)
+		DUMP_OBU_INT2("level", av1->config->seq_level_idx_0)
+		DUMP_OBU_INT(bit_depth)
+		DUMP_OBU_INT2("monochrome", av1->config->monochrome)
 		DUMP_OBU_INT(color_description_present_flag)
 		DUMP_OBU_INT(color_primaries)
 		DUMP_OBU_INT(transfer_characteristics)
 		DUMP_OBU_INT(matrix_coefficients)
-		DUMP_OBU_INT2("profile", av1->config->seq_profile)
-		DUMP_OBU_INT2("level", av1->config->seq_level_idx_0)
+		DUMP_OBU_INT(color_range)
+		DUMP_OBU_INT2("chroma_subsampling_x", av1->config->chroma_subsampling_x)
+		DUMP_OBU_INT2("chroma_subsampling_y", av1->config->chroma_subsampling_y)
+		DUMP_OBU_INT2("chroma_sample_position", av1->config->chroma_sample_position)
+		DUMP_OBU_INT(film_grain_params_present)
 		break;
 	case OBU_FRAME_HEADER:
 	case OBU_FRAME:
