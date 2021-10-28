@@ -67,6 +67,7 @@ Colors are handled as strings, formatted as:
 
 If JS code needs to manipulate colors, use sys.color_lerp and sys.color_component functions.
 
+
 ## JS Hooks
 
 Some object types allow for custom JS code to be executed. 
@@ -99,7 +100,6 @@ The code can use the global functions and modules defined, especially:
 - resolve_url: resolves URL given in first argument against media playlist URL and returns the resolved url (string)
 - get_scene(id): gets scene with given ID
 - get_group(id): gets group with given ID
-- get_script(id): gets script with given ID
 
 Scene and group options must be accessed through getters and setters:
 - scene.get(prop_name): gets the scene option
@@ -115,20 +115,21 @@ Warning: there is no protection of global variables and state, write your script
 ### Properties for \`sequence\` objects:
  - id (null): sequence identifier
  - loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
- - start (0): sequence start time:
-   - positive number: offset in seconds from current clock
-   - negative number: sequence is not active
-   - otherwise: date or \`now\`
- - stop (0): sequence stop time:
-   - positive number greater than \`start\`: offset in seconds from current clock
-   - negative number or less than \`start\`: sequence will stop only when over
-   - otherwise: date or \`now\`
+ - start (0): sequence start time (see notes). If negative, the sequence is not active
+ - stop (0): sequence stop time (see notes). If less than \`start\`, the sequence will stop only when over
  - transition (null): a \`transition\` object to apply between sources of the sequence
  - seq ([]): array of one or more \`source\` objects
 
 ### Notes
 Media source timing does not depend on the media being used by a scene or not, it is only governed by the \`sequence\` parameters.
 This means that a \`sequence\` not used by any active scene will not be rendered (video nor audio).
+
+The syntax for \`start\` and  \`stop\` fields is:
+- \`now\`: resolves to current UTC clock in \`live\` mode, and to 0 for non-live mode
+- date: converted to UTC date in \`live\` mode, and to 0 for non-live mode
+- N: converted to current utc clock plus N seconds UTC
+- "N": converted to current utc clock plus N seconds UTC
+
 
 ## Sources
 ### Properties for \`source\` objects
@@ -304,8 +305,9 @@ EX "fun": "return ratio*ratio;"
 - id (null): id of the timer
 - dur (0): duration of the timer in seconds
 - loop (false): loops timer when \`stop\` is not set
-- start (-1): start time, as offset in seconds from current video time (number) or as date (string) or \`now\`
-- stop (-1): stop time, as offset in seconds from current video time (number) or as date (string) or \`now\`, ignored if less than \`start\`
+- pause (false): pause timer
+- start (-1): start time (see notes), negative value means inactive
+- stop (-1): stop time (see notes), ignored if less than \`start\`
 - keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 - anims ([]): list of \`animation\` objects
 
@@ -327,6 +329,12 @@ EX "fun": "return ratio*ratio;"
 
 ### Notes
 Currently, only \`scene\`, \`group\`, \`transition\` and \`script\` objects can be modified through timers (see playlist updates).
+
+The syntax for \`start\` and  \`stop\` fields is:
+- \`now\`: resolves to current UTC clock in \`live\` mode, and to 0 for non-live mode
+- date: converted to UTC date in \`live\` mode, and to 0 for non-live mode
+- N: converted to UTC clock at init plus N seconds for \`timer\` objects (absolute offset from timeline init)
+- "N": converted to current UTC clock plus N seconds (relative offset from current time) with N a positive or negative number
 
 The \`JSFun\` specified by \`mode\` has one input parameter \`interp\` equal to the interpolation factor and must return the new interpolation factor.
 EX "mode":"return interp*interp;" 
@@ -424,10 +432,11 @@ The following playlist elements of a playlist can be updated:
 - scene: all properties except \`js\` and read-only module properties
 - group: all properties except \`scenes\` and  \`offscreen\`
 - sequence: \`start\`, \`stop\`, \`loop\` and \`transition\` properties
-- timer: \`start\`, \`stop\`, \`loop\` and \`dur\` properties
+- timer: \`start\`, \`stop\`, \`loop\`, \`pause\` and \`dur\` properties
 - transition: all properties
   - for sequence transitions: most of these properties will only be updated at next reload
   - for active scene transitions: whether these changes are applied right away depend on the transition module
+
 
 EX [
 EX  {"replace": "scene1@x", "with": 20},
