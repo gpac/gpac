@@ -7763,8 +7763,6 @@ The code can use the global functions and modules defined, especially:
 .br
 * get_group(id): gets group with given ID
 .br
-* get_script(id): gets script with given ID
-.br
 
 .br
 Scene and group options must be accessed through getters and setters:
@@ -7799,21 +7797,9 @@ Properties for sequence objects:
 .br
  * loop (0): number of loops for the sequence (0 means no loop, -1 will loop forever)
 .br
- * start (0): sequence start time:
+ * start (0): sequence start time (see notes). If negative, the sequence is not active
 .br
-   - positive number: offset in seconds from current clock
-.br
-   - negative number: sequence is not active
-.br
-   - otherwise: date or now
-.br
- * stop (0): sequence stop time:
-.br
-   - positive number greater than start: offset in seconds from current clock
-.br
-   - negative number or less than start: sequence will stop only when over
-.br
-   - otherwise: date or now
+ * stop (0): sequence stop time (see notes). If less than start, the sequence will stop only when over
 .br
  * transition (null): a transition object to apply between sources of the sequence
 .br
@@ -7828,6 +7814,18 @@ Notes
 Media source timing does not depend on the media being used by a scene or not, it is only governed by the sequence parameters.
 .br
 This means that a sequence not used by any active scene will not be rendered (video nor audio).
+.br
+
+.br
+The syntax for start and  stop fields is:
+.br
+* `now`: resolves to current UTC clock in live mode, and to 0 for non-live mode
+.br
+* date: converted to UTC date in live mode, and to 0 for non-live mode
+.br
+* N: converted to current utc clock plus N seconds UTC
+.br
+* "N": converted to current utc clock plus N seconds UTC
 .br
 
 .br
@@ -8217,9 +8215,11 @@ Properties for timer objects
 .br
 * loop (false): loops timer when stop is not set
 .br
-* start (-1): start time, as offset in seconds from current video time (number) or as date (string) or now
+* pause (false): pause timer
 .br
-* stop (-1): stop time, as offset in seconds from current video time (number) or as date (string) or now, ignored if less than start
+* start (-1): start time (see notes), negative value means inactive
+.br
+* stop (-1): stop time (see notes), ignored if less than start
 .br
 * keys ([]): list of keys used for interpolation, ordered list between 0.0 and 1.0
 .br
@@ -8266,6 +8266,18 @@ Properties for animation objects
 Notes
 .br
 Currently, only scene, group, transition and script objects can be modified through timers (see playlist updates).
+.br
+
+.br
+The syntax for start and  stop fields is:
+.br
+* `now`: resolves to current UTC clock in live mode, and to 0 for non-live mode
+.br
+* date: converted to UTC date in live mode, and to 0 for non-live mode
+.br
+* N: converted to UTC clock at init plus N seconds for timer objects (absolute offset from timeline init)
+.br
+* "N": converted to current UTC clock plus N seconds (relative offset from current time) with N a positive or negative number
 .br
 
 .br
@@ -8480,7 +8492,7 @@ The following playlist elements of a playlist can be updated:
 .br
 * sequence: start, stop, loop and transition properties
 .br
-* timer: start, stop, loop and dur properties
+* timer: start, stop, loop, pause and dur properties
 .br
 * transition: all properties
 .br
@@ -9235,7 +9247,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1412-gdb56f2050-master
+build: 1.1.0-DEV-rev1414-g602d94512-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

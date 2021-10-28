@@ -173,11 +173,76 @@ globalThis.get_scene = get_scene;
 */
 globalThis.get_group = get_group;
 
-/*gets a script by ID
-\param id ID of the script
-\return script object or null if error
+/*removes a scene, group or sequence from playlist
+
+The caller must be a scene module, in update callback.
+
+\param id_or_elem ID of the object or object itself
 */
-globalThis.get_script = get_script;
+globalThis.remove_element = remove_element_mod;
+
+
+/*parses a root playlist element and add it to the current playlist
+
+The caller must be a scene module, in update callback.
+
+\param elt JSON object
+*/
+globalThis.parse_element = parse_playlist_element_mod;
+
+/*parses a scene
+
+The caller must be a scene module, in update callback.
+
+\param elt JSON object for the scene
+\param parent parent group, NULL if at root of scene tree
+\return scene object or null if error
+
+Warning: the return value may get remove later on if underlying module loading fails
+*/
+globalThis.parse_scene = parse_scene_mod;
+
+/*parses a group
+
+The caller must be a scene module, in update callback.
+
+\param elt JSON object for the group
+\param parent parent group, NULL if at root of scene tree
+\return group object or null if error
+*/
+globalThis.parse_group = parse_group_mod;
+
+/*parses a new playlist
+
+The caller must be a scene module, in update callback.
+
+If the calling scene is no longer in the resulting scene tree, it will be added to the root of the scene tree.
+
+\param pl JSON playlist object, use empty array to reset
+*/
+globalThis.reload_playlist = reload_playlist;
+
+/*update an element
+
+The caller must be a scene module, in update callback.
+
+\param ID ID of element to update
+\param property name of the property to update
+\param value new value to set
+\return true if success, false otherwise
+*/
+globalThis.update_element = update_element_mod;
+
+/*query a property of an element
+
+The caller must be a scene module, in update callback.
+
+\param ID element ID
+\param property name  of property to query
+\return property if success, undefined otherwise
+*/
+globalThis.query_element = query_element_mod;
+
 
 //metadata
 filter.set_name("AVMix");
@@ -235,6 +300,7 @@ const TYPE_AUDIO = 2;
 let playlist_url = null;
 
 let active_scene = null;
+let scene_in_update = null;
 
 const SCENE_GL_NONE=0;
 const SCENE_GL_ANY=1;
@@ -434,9 +500,6 @@ filter.initialize = function()
 	playlist_url = filter.pl.slice();
 	let cwd = os.getcwd()[0] + '/';
 	playlist_url = sys.url_cat(cwd, playlist_url);
-	print('playlist_url is ' + playlist_url);
-
-
 
 	if (!load_playlist())
 		return GF_BAD_PARAM;
@@ -1570,7 +1633,9 @@ function update_scene(scene)
 
 	//update the scene
 	scene.mod.force_draw = false;
+	scene_in_update = scene;
 	let res = scene.mod.update();
+	scene_in_update = null;
 	if (!res) return;
 	if (res==2) has_clip_mask = true;
 
@@ -3192,7 +3257,7 @@ function open_source(s)
 	});
 }
 
-function get_sequence_by_id(seq_id)
+function get_sequence(seq_id)
 {
 	for (let i=0; i<sequences.length; i++) {
 		if (sequences[i].id === seq_id) return sequences[i];
@@ -3200,7 +3265,7 @@ function get_sequence_by_id(seq_id)
 	return null;
 }
 
-function get_sequence(seq_pl)
+function get_sequence_by_json(seq_pl)
 {
 	let id = (seq_pl==null) ? "_seq_default" : seq_pl.id;
 	for (let i=0; i<sequences.length; i++) {
@@ -3269,7 +3334,7 @@ function push_source(el, id, seq)
 	} else {
 		s.logname = s.id; 
 	}
-	let parent_seq = get_sequence(seq);
+	let parent_seq = get_sequence_by_json(seq);
 
 	s.pl_update = true;
 	parent_seq.sources.push(s);
@@ -3303,7 +3368,7 @@ function parse_url(src_pl, seq_pl)
 	if (!src) {
 		push_source(src_pl, id, seq_pl);
 	} else {
-		let par_seq = get_sequence(seq_pl);
+		let par_seq = get_sequence_by_json(seq_pl);
 		if (src.sequence != par_seq) {
 			print(GF_LOG_ERROR, 'source update cannot change parent sequence, ignoring');
 			return;
@@ -3394,7 +3459,10 @@ function validate_seq(pl)
 
 function parse_seq(pl)
 {
-	let seq = get_sequence(pl);
+	if (!validate_seq(pl))
+		return;
+
+	let seq = get_sequence_by_json(pl);
 	//got new seg
 	seq.pl_update = true;
 
@@ -3425,6 +3493,23 @@ function parse_seq(pl)
 	if (seq.loop && (typeof pl.loop == 'boolean'))
 		seq.loop = -1;
 	pl.seq.forEach( p => { parse_url(p, pl); });
+
+
+	if (seq.id && scene_in_update) {
+		//we are called from a module, force seting up scenes using this sequence
+		do_traverse(root_scene, scene => {
+			let is_match = false;
+			//either removed or not yet loaded
+			if (!scene.mod) return;
+
+			scene.sources.forEach( seq_id => {
+				if (seq_id == seq.id) is_match = true;
+			});
+			if (is_match) {
+				setup_scene(scene, scene.sources, null);
+			}
+		});
+	}
 }
 
 function validate_scene(pl)
@@ -3443,7 +3528,7 @@ function validate_scene(pl)
 				print(GF_LOG_WARNING, 'Invalid scene.sources element ' + s_id + ', expecting string - ignoring element ' + JSON.stringify(pl) );
 				return false;
 			}
-			let src = get_sequence_by_id(s_id);
+			let src = get_sequence(s_id);
 			if (!src) {
 				src = get_group(s_id);
 				if (src && (src.offscreen==GROUP_OST_NONE)) src = null;
@@ -3533,8 +3618,11 @@ function get_transition(fx_id, get_json)
 
 function parse_scene(pl, parent)
 {
+	if (!validate_scene(pl))
+		return null;
+
 	if (pl.skip || false)
-		return;
+		return null;
 
 	let scene_id = pl.id || null;
 	let scene = get_scene(scene_id);
@@ -3544,11 +3632,14 @@ function parse_scene(pl, parent)
 		create_scene(pl.sources, pl, parent);
 	} else if (scene.pl_update) {
 		print(GF_LOG_WARNING, "Multiple scenes with id `" + scene_id + "` defined, ignoring subsequent declarations");
+		return null;
 	} else {
 		scene.pl_update = true;
 		if (parent) parent.scenes.push(scene);
 		else root_scene.scenes.push(scene);
 		set_scene_options(scene, pl);
+
+		return scene;
 	}
 }
 
@@ -3757,8 +3848,11 @@ function group_get_update_type(prop_name, transform_only)
 
 function parse_group(pl, parent)
 {
+	if (!validate_group(pl))
+		return null;
+
 	if (pl.skip || false)
-		return;
+		return null;
 
 	let group_id = pl.id || null;
 	let group = get_group(group_id);
@@ -3797,7 +3891,7 @@ function parse_group(pl, parent)
 		}
 	} else if (group.pl_update) {
 		print(GF_LOG_WARNING, "Multiple groups with id `" + group_id + "` defined, ignoring subsequent declarations");
-		return;
+		return null;
 	}
 	group.pl_update = true;
 
@@ -3834,12 +3928,10 @@ function parse_group(pl, parent)
 	if (! group.use) {
 		pl.scenes.forEach(s => {
 			if (Array.isArray(s.scenes) || (typeof s.use == 'string')) {
-				if (validate_group(s))
-					parse_group(s, group);
+				parse_group(s, group);
 			}
 			else if (is_scene_pl(s)) {
-				if (validate_scene(s))
-					parse_scene(s, group);
+				parse_scene(s, group);
 			}
 		});
 	}
@@ -3849,6 +3941,7 @@ function parse_group(pl, parent)
 	} else {
 		root_scene.scenes.push(group);
 	}
+	return group;
 }
 
 let user_scripts=[];
@@ -3899,7 +3992,7 @@ function parse_script(pl)
 	try {
 		script_obj.run_script = fn_from_script([], pl.script);
 	} catch (err) {
-		print('Invalid script ' + pl.script + ' : ' + err);
+		print(GF_LOG_ERROR, 'Invalid script ' + pl.script + ' : ' + err);
 		script_obj.run_script = null;
 	}
 
@@ -3945,12 +4038,12 @@ function update_scripts()
 		} catch (err) {
 			user_scripts.splice(i, 1);
 			i--;
-			print('Error executing script  ' + JSON.stringify(script.run_script) + ' : ' + err + ' - removing');
+			print(GF_LOG_ERROR, 'Error executing script  ' + JSON.stringify(script.run_script) + ' : ' + err + ' - removing');
 		}
 	}
 }
 
-function parse_pl_elem(pl)
+function parse_playlist_element(pl)
 {
 	let type = pl.type || null;
 
@@ -3998,17 +4091,11 @@ function parse_pl_elem(pl)
 			parse_url(pl, null);
 		}	
 	} else if (type==='seq') {
-		if (validate_seq(pl)) {
-			parse_seq(pl);
-		}	
+		parse_seq(pl);
 	} else if (type==='scene') {
-		if (validate_scene(pl)) {
-			parse_scene(pl, null);
-		}
+		parse_scene(pl, null);
 	} else if (type==='group') {
-		if (validate_group(pl)) {
-			parse_group(pl, null);
-		}	
+		parse_group(pl, null);
 	} else if (type==='timer') {
 		if (validate_timer(pl)) {
 			parse_timer(pl);
@@ -4050,26 +4137,35 @@ function cleanup_list_id(is_group)
 
 function load_playlist()
 {
-	let last_mtime = sys.mod_time(filter.pl);
-	if (!last_mtime || (last_mtime == last_modification))
-		return true;
-
-	print(GF_LOG_DEBUG, last_modification ? 'refreshing JSON config' : 'loading JSON config')
-
-	let f = sys.load_file(filter.pl, true);
-	if (!f) return  true;
-
-	current_utc_clock = Date.now();
-
-	let pl;
-	try {
-		pl = JSON.parse(f);
-	} catch (e) {
-		print(GF_LOG_ERROR, "Invalid JSON playlist specified: " + e);
-		last_modification = last_mtime;
-		return false;
+	let pl = null;
+	if (arguments.length==1) {
+		pl = arguments[0];
+		if (!Array.isArray(pl))
+			return;
 	}
-	last_modification = last_mtime;
+
+	if (!pl) {
+		let last_mtime = sys.mod_time(filter.pl);
+		if (!last_mtime || (last_mtime == last_modification))
+			return true;
+
+		print(GF_LOG_DEBUG, last_modification ? 'refreshing JSON config' : 'loading JSON config')
+
+		let f = sys.load_file(filter.pl, true);
+		if (!f) return  true;
+
+		current_utc_clock = Date.now();
+
+		try {
+			pl = JSON.parse(f);
+		} catch (e) {
+			print(GF_LOG_ERROR, "Invalid JSON playlist specified: " + e);
+			last_modification = last_mtime;
+			return false;
+		}
+		last_modification = last_mtime;
+	}
+
 	print(GF_LOG_DEBUG, 'Playlist is ' + JSON.stringify(pl) );
 
 	//mark all our objects present
@@ -4084,6 +4180,7 @@ function load_playlist()
 	ID_scenes.forEach(scene => {
 		scene.pl_update = false;
 	});
+	if (scene_in_update) scene_in_update.pl_update = true;
 
 	//mark all groups with ID as not updated
 	ID_groups.forEach(group => {
@@ -4099,13 +4196,9 @@ function load_playlist()
 	root_scene.scenes.length = 0;
 
 	if (Array.isArray(pl) ) {
-		pl.forEach(parse_pl_elem);
+		pl.forEach(parse_playlist_element);
 	} else {
-		parse_pl_elem(pl);
-	}
-
-	if (root_scene.scenes.length) {
-		generate_default_scene = false;
+		parse_playlist_element(pl);
 	}
 
 	//cleanup sources no longer in use
@@ -4134,6 +4227,17 @@ function load_playlist()
 		user_scripts.splice(i, 1);
 		i--;
 	}
+
+	if (scene_in_update) {
+		if (!scene_in_update.parent && (root_scene.scenes.indexOf(scene_in_update) < 0)) {
+			root_scene.scenes.push(scene_in_update);
+		}
+	}
+
+	if (root_scene.scenes.length) {
+		generate_default_scene = false;
+	}
+
 
 
 	//create default scene if needed
@@ -4344,7 +4448,7 @@ function setup_scene(scene, seq_ids, params)
 		scene.sequences.push( sequences[0] );
 	} else if (typeof seq_ids != 'undefined') {
 		seq_ids.forEach(sid =>{
-			let s = get_sequence_by_id(sid);
+			let s = get_sequence(sid);
 			if (!s) {
 				s = get_group(sid);
 				if (s && (s.offscreen == GROUP_OST_NONE)) s = null;
@@ -4368,6 +4472,7 @@ function remove_scene_or_group(elmt)
   if (elmt.id) {
 		//traverse down tree, remove all elements with ID
 		do_traverse_all(elmt, e => {
+			e.parent = null;
 			if (!e.id) return;
 			let id_list = Array.isArray(e.scenes) ? ID_groups : ID_scenes;
 			let index = id_list.indexOf(e);
@@ -4375,6 +4480,7 @@ function remove_scene_or_group(elmt)
 		});
   }
 }
+
 
 function create_scene(seq_ids, params, parent)
 {
@@ -4386,7 +4492,7 @@ function create_scene(seq_ids, params, parent)
 
 		if (! sys.file_exists(script_src)) {
 			print(GF_LOG_ERROR, 'No such scene file ' + script_src);
-			return;
+			return null;
 		}
 	}
 
@@ -4514,6 +4620,9 @@ function create_scene(seq_ids, params, parent)
 					print(GF_LOG_ERROR, "Failed to load scene " + params.js + ' (' + script_src + '): ' + err);
 					remove_scene_or_group(scene);
 		  });
+
+	//fixme, we need promises here
+	return scene;
 }
 
 let timers=[];
@@ -4619,7 +4728,17 @@ function parse_date_time(d, for_seq)
 {
 	let res = -1;
 	if (typeof d == 'string') {
-		if (filter.live) {
+		//float as string means offset to current time, wether live or offline
+		if (d.indexOf(':')<0) {
+			res = parseFloat(d);
+			//NaN
+			if (res != res)
+				res = -1;
+			else {
+				let now = for_seq ? current_utc_clock : (init_utc + video_time * 1000 / video_timescale);
+				res = now + 1000 * res;
+			}
+		} else if (filter.live) {
 			if (d === 'now') {
 				res = current_utc_clock;
 			} else {
@@ -4629,8 +4748,8 @@ function parse_date_time(d, for_seq)
 					res = -1;
 			}
 		} else {
-				print(GF_LOG_INFO, 'Date ' + d + ' found start/stop but non-live mode used, will use 0');
-				res = 0;
+			print(GF_LOG_INFO, 'Date ' + d + ' found start/stop but non-live mode used, will use 0');
+			res = 0;
 		}
 	} else if (typeof d == 'number') {
 		if (d >= 0) {
@@ -4649,18 +4768,15 @@ function parse_date_time(d, for_seq)
 function parse_timer(pl)
 {
 	let eval_start_time = false;
-	let timer = null;
 	let timer_id = pl.id || null;
-	timers.forEach(t => {
-		let tid = t.id || null;
-		if (tid && timer_id && (tid==timer_id)) timer = t;
-	});
+	let timer = timer_id ? get_timer(timer_id) : null;
 
 	if (!timer) {
 		timer = {};
 		timers.push(timer);
 		eval_start_time = true;
 		timer.active_state = 0;
+		timer.is_paused = false;
 		timer.id = timer_id;
 		timer.crc = 0;
 	} 
@@ -4791,6 +4907,7 @@ function parse_timer(pl)
 	}); 
 
 	timer.loop = pl.loop || false;
+	timer.pause = pl.pause || false;
 
 	if (timer.active_state!=1) {
 		eval_start_time = true;
@@ -4839,6 +4956,18 @@ function invalidate_parent(elm)
 	}
 }
 
+function get_timer(timer_id)
+{
+	if (!timer_id) return null;
+
+	for (let i=0; i<timers.length; i++) {
+		let timer = timers[i];
+		if (timer_id==timer.id)
+				return timer;
+	}
+	return null;
+}
+
 function update_timer(timer)
 {
 	let do_store=false;
@@ -4846,13 +4975,27 @@ function update_timer(timer)
 	if (timer.active_state == 2) return;
 
 	let now = init_utc + video_time * 1000 / video_timescale;
-	if ((timer.start_time<0) || (timer.start_time > now)) return;
+	if ((timer.start_time<0) || (timer.start_time > now)) {
+		return;
+	}
 
 	if (!timer.active_state) {
 		timer.active_state = 1;
 		timer.activation_time = video_time;
 		do_store = true;
 	}
+
+	if (timer.pause) {
+		if (!timer.is_paused) {
+			timer.pause_time = video_time;
+			timer.is_paused = true;
+		}
+		return;
+	} else if (timer.is_paused) {
+		timer.activation_time += video_time - timer.pause_time;
+		timer.is_paused = false;
+	}
+
 	let frac = (video_time - timer.activation_time) * video_time_inc / video_timescale;
 	
 	if (frac > timer.duration) {
@@ -4862,7 +5005,7 @@ function update_timer(timer)
 			while (frac > timer.duration) frac -= timer.duration;
 		}
 	}
-	if ((timer.stop_time > 0) && (timer.stop_time <= now)) {
+	if ((timer.stop_time > timer.start_time) && (timer.stop_time <= now)) {
 		timer.active_state = 2;
 	}
 
@@ -6623,19 +6766,22 @@ function apply_transition_update(transition, prop_name, value)
 		if (typeof value == 'number') {
 			transition.dur = value;
 		} else {
-			print(GF_LOG_ERROR, 'Wrong type for transition.dur');
+			print(GF_LOG_ERROR, 'Wrong type ' + typeof value + ' for transition.dur');
+			return false;
 		}
 	}
 	else if ((prop_name=='type')) {
 		if (typeof value == 'string') {
 			transition.type = value;
 		} else {
-			print(GF_LOG_ERROR, 'Wrong type for transition.type');
+			print(GF_LOG_ERROR, 'Wrong type ' + typeof value + ' for transition.type');
+			return false;
 		}
 	} else {
 		//blindly updat the transition
 		transition[prop_name] = value;
 	}
+	return true;
 }
 
 function check_prop_type(orig, final, allow_string)
@@ -6650,20 +6796,20 @@ function check_prop_type(orig, final, allow_string)
 function parse_update_elem(pl, array)
 {
 	if (pl.skip || false)
-		return;
+		return true;
 
 	if (typeof pl.replace != 'string') {
 		print(GF_LOG_WARNING, "Invalid replace command " + JSON.stringify(pl));
-		return;
+		return false;
 	}
 	if (typeof pl.with == 'undefined') {
 		print(GF_LOG_WARNING, "Invalid replace command " + JSON.stringify(pl));
-		return;
+		return false;
 	}
 	let src = pl.replace.split('@');
 	if (src.length != 2) {
 		print(GF_LOG_WARNING, "Invalid replace syntax " + src + ', expecting \`ID@name\`');
-		return;
+		return false;
 	}
 	let prop_name = src[1];
 	src = src[0];
@@ -6678,7 +6824,7 @@ function parse_update_elem(pl, array)
 
 	if (prop_name=='id') {
 		print(GF_LOG_WARNING, "ID property cannot be updated");
-		return;
+		return false;
 	}
 
 	//locate scene, transition or group
@@ -6733,11 +6879,11 @@ function parse_update_elem(pl, array)
 
 		if (update_type==-2) {
 			print(GF_LOG_ERROR, 'No property ' + prop_name + ' in ' + logname + ', ignoring');
-			return;
+			return false;
 		}
 		if (update_type==-2) {
 			print(GF_LOG_ERROR, 'Property ' + prop_name + ' in ' + logname + ' cannot be updated');
-			return;
+			return false;
 		}
 
 		let prop_type = typeof mod[prop_name];
@@ -6745,7 +6891,7 @@ function parse_update_elem(pl, array)
 			if (!transition) {
 				print(GF_LOG_WARNING, 'No property ' + prop_name + ' in scene ' + src);
 			}
-			return;
+			return false;
 		}
 
 		let res = pl.with;
@@ -6770,13 +6916,13 @@ function parse_update_elem(pl, array)
 				}
 			} else {
 				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + (typeof mod[prop_name][0]) + ' but replacement value type is ' + rep_type);
-				return;
+				return false;
 			}
 		} else {
 			let res_type = typeof res;
 			if (!check_prop_type(prop_type, res_type, allow_string)) {
 				print(GF_LOG_ERROR, 'Property ' + prop_name + ' type is ' + prop_type + ' but replacement value type is ' + res_type + ', ignoring');
-				return;
+				return false;
 			}
 
 			if (mod[prop_name] != res) {
@@ -6790,22 +6936,21 @@ function parse_update_elem(pl, array)
 				}
 			}
 		}
-		return;
+		return true;
 	}
 
 
 	//locate timer
-	let timer = null;
-	timers.forEach(t => { if (t.id == src) { timer = t;} });
+	let timer = get_timer(src);
 	if (timer) {
 		if (prop_name == 'start') {
 			if (timer.active_state == 1) {
 				print(GF_LOG_WARNING, 'Cannot modify start time of active timer');
-			} else {
-				timer.start_time = parse_date_time(pl.with, false);
-				timer.active_state = 0;
-				timer.stop_time = 0;
+				return false;
 			}
+			timer.start_time = parse_date_time(pl.with, false);
+			timer.active_state = 0;
+			timer.stop_time = 0;
 		}
 		else if (prop_name == 'stop') {
 			timer.stop_time = parse_date_time(pl.with, false);
@@ -6816,27 +6961,39 @@ function parse_update_elem(pl, array)
 				timer.loop = pl.with;
 			} else {
 				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for timer.loop');
+				return false;
 			}
 		} else if (prop_name == 'dur') {
 			if (typeof pl.with == 'number') {
 				timer.duration = pl.with;
 			} else {
 				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for timer.dur');
+				return false;
+			}
+		} else if (prop_name == 'pause') {
+			if (typeof pl.with == 'boolean') {
+				timer.pause = pl.with;
+			} else {
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for timer.pause');
+				return false;
 			}
 		} else if (typeof timer[prop_name] != 'undefined') {
 			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of timer not updatable');
+				return false;
 		} else {
 			print(GF_LOG_WARNING, 'Unknown timer property ' + prop_name);
+				return false;
 		}
-		return;
+		return true;
 	}
 
 	//locate sequence
-	let seq = get_sequence_by_id(src);
+	let seq = get_sequence(src);
 	if (seq) {
 		if (prop_name == 'start') {
 			if (seq.active_state==1) {
 				print(GF_LOG_WARNING, 'Cannot modify start of active sequence');
+				return false;
 			} else {
 				seq.start_time = parse_date_time(pl.with, true);
 				seq.active_state = 0;
@@ -6854,26 +7011,28 @@ function parse_update_elem(pl, array)
 				seq.loop = pl.with;
 			} else {
 				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for sequence.loop');
+				return false;
 			}
 		} else if (prop_name == 'transition') {
 			if (typeof pl.with == 'object') {
 				seq.transition_effect = pl.with;
-				print(GF_LOG_WARNING, 'assigning transition');
 			} else {
 				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for sequence.transition');
+				return false;
 			}
 		} else if (typeof seq[prop_name] != 'undefined') {
 			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of sequence not updatable');
+			return false;
 		} else {
 			print(GF_LOG_WARNING, 'Unknown sequence property ' + prop_name);
+			return false;
 		}
-		return;
+		return true;
 	}
 	//try inactive transition
 	transition = get_transition(src, true);
 	if (transition) {
-		apply_transition_update(transition, prop_name, pl.with);
-		return;
+		return apply_transition_update(transition, prop_name, pl.with);
 	}
 	//try scrips
 	let script=get_script(src);
@@ -6883,14 +7042,16 @@ function parse_update_elem(pl, array)
 				script.active = pl.with;
 			} else {
 				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for script.active');				
+				return false;
 			}
 		} else {
 			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of script not updatable');			
+			return false;
 		}
-		return;
+		return true;
 	}
-
 	print(GF_LOG_WARNING, "No updatable element with id " + src + ' found');
+	return false;
 }
 
 function load_updates()
@@ -6926,7 +7087,7 @@ function load_updates()
 
 function get_sequence_texture(seq_id)
 {
-	let seq = get_sequence_by_id(seq_id);
+	let seq = get_sequence(seq_id);
 	if (!seq) return null;
 	let active_src = null;
 	seq.sources.forEach(s => {
@@ -6973,5 +7134,146 @@ function get_screen_rect(path)
 	rc.h = Math.floor(rc.h);
 
 	return round_rect(rc);
+}
+
+
+function reload_playlist(content)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "reload_playlist called outside of module.update() callback, ignoring");
+		return;
+	}
+	load_playlist(content);
+
+	display_list.length = 0;
+}
+
+function parse_group_mod(content, parent)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "parse_group called outside of module.update() callback, ignoring");
+		return;
+	}
+	parse_group(content, parent);
+}
+function parse_scene_mod(content, parent)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "parse_scene called outside of module.update() callback, ignoring");
+		return;
+	}
+	parse_scene(content, parent);
+}
+
+function parse_playlist_element_mod(content)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "parse_playlist_element called outside of module.update() callback, ignoring");
+		return;
+	}
+	parse_playlist_element(content);
+}
+
+function remove_element_mod(elmt)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "remove_element called outside of module.update() callback, ignoring");
+		return;
+	}
+
+	if (typeof elmt == 'string') {
+		let the_elem = get_group(elmt);
+		if (!the_elem)
+				the_elem = get_scene(elmt);
+		if (!the_elem)
+				the_elem = get_sequence(elmt);
+		if (!the_elem)
+				the_elem = get_timer(elmt);
+		if (!the_elem)
+				the_elem = get_script(elmt);
+
+		elmt = the_elem;
+	}
+	if (! elmt) return;
+
+	//group
+	if (elmt.scenes) {
+		remove_scene_or_group(elmt);
+		return;
+	}
+	//scene
+	if (Array.isArray(elmt.sources) && Array.isArray(elmt.sequences)) {
+		remove_scene_or_group(elmt);
+		return;
+	}
+	//sequence
+	if (Array.isArray(elmt.sources)) {
+		let idx = sequences.indexOf(elmt);
+		if (idx>=0) sequences.splice(idx, 1);
+
+		sources.forEach(s => {
+			if (s.sequence != elmt) return;
+			stop_source(s, true);
+			s.removed = true;
+		});
+	}
+	//timer
+	if (Array.isArray(elmt.keys)) {
+		let idx = timers.indexOf(elmt);
+		if (idx>=0) timers.splice(idx, 1);
+		timer_restore(elmt);
+	}
+	//scripts
+	if (typeof elmt.script == 'function') {
+		let idx = user_scripts.indexOf(elmt);
+		if (idx>=0) user_scripts.splice(idx, 1);
+	}
+}
+
+
+function update_element_mod(id, prop, value)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "update_element called outside of module.update() callback, ignoring");
+		return false;
+	}
+	let update = { replace: id+'@'+prop, with: value};
+	return parse_update_elem(update);
+}
+
+
+function query_element_mod(id, prop)
+{
+	if (!scene_in_update) {
+		print(GF_LOG_ERROR, "update_element called outside of module.update() callback, ignoring");
+		return undefined;
+	}
+	let elt = get_scene(id);
+	if (elt) {
+		if (elt.mod && typeof elt.mod[prop] != 'undefined') return elt.mod[prop];
+		if (typeof elt[prop] != 'undefined') return elt[prop];
+		return undefined;
+	}
+	elt = get_group(id);
+	if (elt) {
+		if (typeof elt[prop] != 'undefined') return elt[prop];
+		return undefined;
+	}
+	elt = get_timer(id);
+	if (elt) {
+		if (typeof elt[prop] != 'undefined') return elt[prop];
+		return undefined;
+	}
+	elt = get_script(id);
+	if (elt) {
+		if (typeof elt[prop] != 'undefined') return elt[prop];
+		return undefined;
+	}
+	elt = get_sequence(id);
+	if (elt) {
+		if (typeof elt[prop] != 'undefined') return elt[prop];
+		return undefined;
+	}
+	return undefined;
 }
 
