@@ -3954,7 +3954,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 
 	if (av1_state.color_description_present_flag) {
 		char tmp[RFC6381_CODEC_NAME_SIZE_MAX];
-		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, ".%01u.%01u%01u%01u.%02u.%02u.%02u.%01u",
+		snprintf(tmp, RFC6381_CODEC_NAME_SIZE_MAX, ".%01u.%01u%01u%01u.%02u.%02u.%02u.%01u",
 			av1_state.config->monochrome, av1_state.config->chroma_subsampling_x, av1_state.config->chroma_subsampling_y,
 			av1_state.config->chroma_subsampling_x && av1_state.config->chroma_subsampling_y ? av1_state.config->chroma_sample_position : 0,
 			colr.override == GF_TRUE ? colr.colour_primaries : av1_state.color_primaries,
