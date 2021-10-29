@@ -246,6 +246,7 @@ GPAC configuration options:
   --enable-mem-track       enable tracking of all memory allocated by gpac
   --enable-sanitizer       enable address sanitizer
   --enable-afl             enable instrumentation for American Fuzzy Lop
+  --enable-afl-clang       enable instrumentation for American Fuzzy Lop using afl-clang(++)
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-platinum       disable Platinum UPnP support
@@ -385,6 +386,8 @@ for opt do
         --enable-gcov) want_gcov="yes";
             ;;
         --enable-afl) cc_orig="afl-gcc"; cxx_orig="afl-g++"
+            ;;
+        --enable-afl-clang) cc_orig="afl-clang"; cxx_orig="afl-clang++"
             ;;
         --verbose) verbose="yes";
             ;;
