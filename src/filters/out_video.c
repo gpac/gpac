@@ -798,6 +798,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 static Bool vout_on_event(void *cbk, GF_Event *evt)
 {
 	GF_FilterEvent fevt;
+	Bool translate_mouse=GF_FALSE;
 	Bool is_down=GF_FALSE;
 	GF_VideoOutCtx *ctx = (GF_VideoOutCtx *) cbk;
 
@@ -829,6 +830,8 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 	case GF_EVENT_MOUSEWHEEL:
 	case GF_EVENT_LONGKEYPRESS:
 	case GF_EVENT_TEXTINPUT:
+	case GF_EVENT_MULTITOUCH:
+		translate_mouse = GF_TRUE;
 		GF_FEVT_INIT(fevt, GF_FEVT_USER, ctx->pid);
 		fevt.user_event.event = *evt;
 		break;
@@ -867,10 +870,29 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 	if (gf_filter_ui_event(ctx->filter, evt))
 		return GF_TRUE;
 
-	if (fevt.base.type)
+	//forward event
+	if (fevt.base.type) {
+		//rescale mouse event to original PID size
+		if (translate_mouse) {
+			if (evt->type == GF_EVENT_MULTITOUCH) {
+				Fixed o_x = evt->mtouch.x * (s32) ctx->width / (s32) ctx->display_width;
+				Fixed o_y = evt->mtouch.y * (s32) ctx->height / (s32) ctx->display_height;
+				o_x -= FLT2FIX(ctx->ow);
+				o_y -= FLT2FIX(ctx->oh);
+				fevt.user_event.event.mtouch.x = o_x;
+				fevt.user_event.event.mtouch.y = o_y;
+			} else {
+				s32 o_x = evt->mouse.x * (s32) ctx->width / (s32) ctx->display_width;
+				s32 o_y = evt->mouse.y * (s32) ctx->height / (s32) ctx->display_height;
+				o_x -= FLT2FIX(ctx->ow);
+				o_y -= FLT2FIX(ctx->oh);
+				fevt.user_event.event.mouse.x = o_x;
+				fevt.user_event.event.mouse.y = o_y;
+			}
+		}
 	 	gf_filter_pid_send_event(ctx->pid, &fevt);
-
-	 return GF_TRUE;
+	}
+	return GF_TRUE;
 }
 
 GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter);
