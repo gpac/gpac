@@ -243,6 +243,18 @@ The caller must be a scene module, in update callback.
 */
 globalThis.query_element = query_element_mod;
 
+/*checks if a givent point is over a scene
+\param evt GPAC mouse event
+
+or
+
+\param x x-coordinate of the point in output reference sapce in pixels (0 means center, x increase towards right)
+\param y y-coordinate of the point in output reference sapce in pixels (0 means center, y increase towards top)
+
+\return scene object under the mouse, or null if none
+*/
+globalThis.mouse_over = mouse_over_mod;
+
 
 //metadata
 filter.set_name("AVMix");
@@ -833,7 +845,23 @@ filter.update_arg = function(name, val)
 
 filter.process_event = function(pid, evt)
 {
-//	if (evt.type != GF_FEVT_USER) { } 
+	if (evt.type == GF_FEVT_USER) {
+
+		event_watchers.forEach(watcher => {
+			if ((watcher.evt>0) && (watcher.evt != evt.ui_type)) return;
+
+			if (watcher.evt_param && (watcher.evt_param != sys.keyname(evt.keycode) ) ) return;
+
+			if (watcher.mode==2) {
+				watcher.fun.apply(watcher, [evt]);
+			} else if (watcher.mode==3) {
+				if (watcher.scene.mod && (typeof watcher.scene.mod[watcher.target] == 'function')) {
+					watcher.scene.mod[watcher.target].apply(watcher.scene.mod, [evt]);
+				}
+			}
+		});
+		return;
+	}
 
 	if (evt.type == GF_FEVT_STOP) { 
 		if (pid==aout) {
@@ -1004,6 +1032,12 @@ filter.process = function()
 	//modules are pending, wait for fail/success - async cannot wait here because QuickJS will only try to load the modules once out of JS functions
 	if (modules_pending)
 		return GF_OK;
+
+	//we had pending events, waiting for import module resolutions, flush them
+	if (watchers_defered.length) {
+		flush_watchers();
+	}
+
 
 	video_inputs_ready = video_playing;
 	audio_inputs_ready = audio_playing;
@@ -1771,6 +1805,8 @@ function set_canvas_yuv(pfmt)
 	}
 
 }
+
+let prev_display_list = [];
 let display_list = [];
 let has_clip_mask = false;
 let has_opaque = false;
@@ -2130,6 +2166,11 @@ function process_video()
 	}
 
 	video_time += video_time_inc;
+
+	let old_prev = prev_display_list;
+	prev_display_list = display_list;
+	display_list = old_prev;
+	display_list.length = 0;
 }
 
 function process_audio()
@@ -2338,6 +2379,8 @@ function next_source(s, prefetch_check)
 		if (!next_src) {
 			print(GF_LOG_INFO, 'All sources in sequence disabled !');
 			s.sequence.active_state = 2;
+			if (s.sequence.id)
+				trigger_watcher(s.sequence, 'active', false);
 		}
 	}
 	return next_src;
@@ -2475,6 +2518,9 @@ function fetch_source(s)
 			s.sequence.start_offset = (current_utc_clock + s.prefetch_ms - s.sequence.start_time ) / 1000.0;
 			if (s.sequence.start_offset<0.1) s.sequence.start_offset = 0;
 			s.sequence.active_state = 1;
+			if (s.sequence.id)
+				trigger_watcher(s.sequence, 'active', true);
+
 			print(GF_LOG_DEBUG, 'Starting sequence start offset ' + s.sequence.start_offset + ' - ' + s.sequence.start_time + ' - UTC ' + current_utc_clock);
 
 			if (s.media_start + s.media_stop < s.sequence.start_offset) {
@@ -2526,6 +2572,8 @@ function fetch_source(s)
 			inactive_sources++;
 			print(GF_LOG_INFO, 'End of sequence ' + s.sequence.id + ' at ' + (current_utc_clock-s.sequence.stop_time));
 			s.sequence.active_state = 2;
+			if (s.sequence.id)
+				trigger_watcher(s.sequence, 'active', false);
 			return;
 	}
 
@@ -2952,8 +3000,11 @@ function play_source(s)
 		return;
 	}
 	print(GF_LOG_DEBUG, 'Playing source ' + s.logname);
+	if (!s.sequence.active_state)
+		trigger_watcher(s.sequence, 'active', true);
 	s.sequence.active_state = 1;
 	s.playing = true;
+	trigger_watcher(s, "active", true);
 	s.timeline_init = false;
 	s.pids.forEach(pid => { play_pid(pid, s); });
 }
@@ -2962,6 +3013,7 @@ function stop_source(s, is_remove)
 {
 	if (s.playing) {
 		s.playing = false;
+		trigger_watcher(s, "active", false);
 		s.sequence.prefetch_check = false;
 		s.timeline_init=0;
 
@@ -3008,6 +3060,9 @@ function stop_source(s, is_remove)
 function disable_source(s)
 {
 	s.disabled = true;
+	if (!s.sequence.active_state)
+		trigger_watcher(s.sequence, 'active', false);
+
 	s.sequence.active_state = 0;
 	s.fsrc.forEach( f => {
 		f.remove();
@@ -3273,6 +3328,7 @@ function get_sequence_by_json(seq_pl)
 	}
 	let seq = {};
 	seq.id = id;
+	seq.watchers = null;
 	seq.pl_update = true;
 	seq.active_state = 0;
 	seq.start_time = 0;
@@ -3313,6 +3369,7 @@ function push_source(el, id, seq)
 	let s = {};
 	s.id = id || "";
 	s.src = el.src;
+	s.watchers = null;
 	s.fsrc = [];
 	s.pids = [];
 	s.timeline_init=false;
@@ -3362,6 +3419,9 @@ function push_source(el, id, seq)
 
 function parse_url(src_pl, seq_pl)
 {
+	if (!validate_source(src_pl))
+		return;
+
 	let id = src_pl.id || 0;
 
 	let src = get_source(id, src_pl.src);
@@ -3556,20 +3616,25 @@ function validate_scene(pl)
 	return true;
 }
 
+
+function get_element_by_id(elem_id, list)
+{
+	if (!elem_id) return null;
+
+	for (let i=0; i<list.length; i++) {
+		let e = list[i];
+		if (elem_id==e.id)
+				return e;
+	}
+	return null;
+}
+
+
 let ID_scenes = [];
 
 function get_scene(scene_id)
 {
-	if (!scene_id) return null;
-
-	for (let i=0; i<ID_scenes.length; i++) {
-		let scene = ID_scenes[i];
-		if (scene_id==scene.id)
-				return scene;
-
-		continue;
-	}
-	return null;
+	return get_element_by_id(scene_id, ID_scenes);
 }
 
 function check_transition(fx_id)
@@ -3765,15 +3830,7 @@ let ID_groups = [];
 
 function get_group(group_id)
 {
-	if (!group_id) return null;
-	for (let i=0; i<ID_groups.length; i++) {
-		let group = ID_groups[i];
-		if (group_id==group.id )
-				return group;
-
-		continue;
-	}
-	return null;
+	return get_element_by_id(group_id, ID_groups);
 }
 
 
@@ -3858,6 +3915,7 @@ function parse_group(pl, parent)
 	let group = get_group(group_id);
 	if (!group) {
 		group = {};
+		group.watchers = null;
 		group.id = group_id;
 		group.scenes = [];
 		group.parent = parent;
@@ -3887,6 +3945,7 @@ function parse_group(pl, parent)
 				this[prop] = val;
 				if (update_type)
 					invalidate_parent(this);
+				trigger_watcher(group, prop, val);
 			}
 		}
 	} else if (group.pl_update) {
@@ -3948,10 +4007,7 @@ let user_scripts=[];
 
 function get_script(id)
 {
-	for (let i=0; i<user_scripts.length; i++) {
-		if (user_scripts[i].id == id) return user_scripts[i];
-	}
-	return null;
+	return get_element_by_id(id, user_scripts);
 }
 
 function fn_from_script(args, jscode)
@@ -3976,9 +4032,13 @@ function parse_script(pl)
 	let id = pl.id || null;
 	let script_obj = id ? get_script(id) : null;
 	if (!script_obj) {
-		script_obj = {}
+		script_obj = {};
+		script_obj.watchers = null;
 		script_obj.id = id;
 		user_scripts.push(script_obj);
+	}	else if (script_obj.pl_update) {
+		print(GF_LOG_WARNING, "Multiple scripts with id `" + id + "` defined, ignoring subsequent declarations");
+		return null;
 	}
 	
 	script_obj.pl_update = true;
@@ -4043,6 +4103,280 @@ function update_scripts()
 	}
 }
 
+function validate_watcher(pl)
+{
+	let valid=true;
+	if ( typeof pl.watch != 'string') {
+		print(GF_LOG_ERROR, 'Watcher watch must be a string, ignoring ' + JSON.stringify(pl) );
+		return false;
+	}
+	if (pl.watch != 'events') {
+		let evt = pl.watch.split('(');
+		if (sys.get_event_type(evt[0]) ) {
+		}
+		else if (pl.watch.indexOf('@') < 0) {
+			print(GF_LOG_ERROR, 'Watcher watch must be in the form `ID@field`, ignoring ' + JSON.stringify(pl) );
+			return false;
+		}
+	}
+	if ( typeof pl.target != 'string') {
+		print(GF_LOG_ERROR, 'Watcher target must be an array, ignoring ' + JSON.stringify(pl) );
+		return false;
+	}
+	if ((typeof pl.mode != 'string') && (typeof pl.mode != 'undefined')) {
+		print(GF_LOG_ERROR, 'Watcher target must be an array, ignoring ' + JSON.stringify(pl) );
+		return false;
+	}
+	if ((pl.mode == 'set') && (pl.target.indexOf('@') < 0)) {
+		print(GF_LOG_ERROR, 'Watcher target must be in the form `ID@field`, ignoring ' + JSON.stringify(pl) );
+		return false;
+	}
+	return valid;
+}
+
+let watchers=[];
+let defer_parse_watchers = null;
+let watchers_defered = [];
+let event_watchers=[];
+
+function remove_watcher(watcher, parent_only)
+{
+	let idx;
+	if (watcher.parent) {
+		idx = watcher.parent.watchers.indexOf(watcher);
+		if (idx>=0) watcher.parent.watchers.splice(idx, 1);
+
+		if (watcher.parent.watchers.length == 0) {
+			watcher.parent.watchers = null;
+		}
+		watcher.parent = null;
+	} else if (watcher.evt) {
+		idx = event_watchers.indexOf(watcher);
+		if (idx>=0) event_watchers.splice(idx, 1);
+	}
+
+	if (!parent_only) {
+		idx = watchers.indexOf(watcher);
+		if (idx>=0) watchers.splice(idx, 1);
+	}
+}
+
+
+function parse_watcher(pl)
+{
+	if (!validate_watcher(pl))
+		return;
+
+	if (pl.skip || false)
+		return;
+
+	let do_register = false;
+	let id = pl.id || null;
+	let watcher = id ? get_element_by_id(id, watchers) : null;
+	if (!watcher) {
+		watcher = {}
+		watcher.id = id;
+		watcher.evt = 0;
+		do_register = true;
+		watcher.parent = null;
+	}	else if (watcher.pl_update) {
+		print(GF_LOG_WARNING, "Multiple watchers with id `" + id + "` defined, ignoring subsequent declarations");
+		return null;
+	}
+	watcher.pl_update = true;
+
+	if (typeof pl.active == 'boolean')
+		watcher.active = pl.active;
+	else
+		watcher.active = true;
+
+
+	for (var propertyName in pl) {
+		if (propertyName == 'skip') continue;
+		if (propertyName == 'id') continue;
+		if (propertyName == 'active') continue;
+		if (propertyName == 'watch') continue;
+		if (propertyName == 'mode') continue;
+		if (propertyName == 'target') continue;
+		if (propertyName == 'with') continue;
+		if (propertyName.charAt(0) == '_') continue;
+
+		print(GF_LOG_WARNING, 'Unrecognized option ' + propertyName + ' in script ' + JSON.stringify(pl) );
+	}
+
+	let elem = null;
+	if (pl.watch.indexOf('@')>=0) {
+		let vals = pl.watch.split("@");
+		let s_id = vals[0];
+
+		let elem = get_scene(s_id);
+		if (!elem) elem = get_group(s_id);
+		if (!elem) elem = get_script(s_id);
+		if (!elem) elem = get_timer(s_id);
+		if (!elem) elem = get_sequence(s_id);
+		if (!elem) elem = get_source(s_id);
+
+		if (!elem) {
+			print(GF_LOG_WARNING, 'No watchable element with ID ' + s_id + ' discarding watcher');
+			remove_watcher(watcher, false);
+			return;
+		}
+
+		//parent changed
+		if (watcher.src_id && s_id && (watcher.src_id != s_id)) {
+			remove_watcher(watcher, true);
+		}
+
+		watcher.src_id = s_id;
+		watcher.src_field = vals[1];
+		watcher.evt = 0;
+	} else {
+		let evt = pl.watch.split('(');
+		remove_watcher(watcher, true);
+		watcher.src_id = null;
+
+		if (evt != 'events') {
+			watcher.evt = sys.get_event_type(evt[0]);
+			if (!watcher.evt) {
+				print(GF_LOG_WARNING, 'Unkown event type ' + pl.watch + ' discarding watcher');
+				remove_watcher(watcher, false);
+				return;
+			}
+			if (evt.length>1) {
+				evt = evt[1].split(')');
+				watcher.evt_param = evt[0];
+			} else {
+				watcher.evt_param = 0;
+			}
+		} else {
+			watcher.evt = -1;
+			watcher.evt_param = 0;
+		}
+	}
+
+	let vals = pl.target.split('.');
+	if (vals.length==2) {
+		let target_scene = get_scene(vals[0]);
+		if (!target_scene) {
+			print(GF_LOG_WARNING, 'Cannot find scene for target ' + pl.target + ', discardinf watcher');
+			remove_watcher(watcher);
+			return;
+		}
+		watcher.mode = 3;
+		watcher.scene = target_scene;
+		watcher.target = vals[1];
+	} else {
+		let is_script = false;
+		let vals = pl.target.split('@');
+		if (vals.length>1) {
+			if (vals.length>2) is_script = true;
+			else if (vals[1].indexOf(' ')>=0) is_script = true;
+			else if (vals[1].indexOf('{')>=0) is_script = true;
+			else if (vals[1].indexOf('}')>=0) is_script = true;
+			else if (vals[1].indexOf('[')>=0) is_script = true;
+			else if (vals[1].indexOf(']')>=0) is_script = true;
+			else if (vals[1].indexOf('()')>=0) is_script = true;
+			else if (vals[1].indexOf(')')>=0) is_script = true;
+			else if (vals[1].indexOf('.')>=0) is_script = true;
+		} else if (vals.length==1) {
+			is_script = true;
+		}
+
+		if (is_script) {
+			watcher.mode = 2;
+			if (watcher.evt)
+				watcher.fun = fn_from_script(['evt'], pl.target);
+			else
+				watcher.fun = fn_from_script(['value'], pl.target);
+
+			if (!watcher.fun) {
+				print(GF_LOG_WARNING, 'Cannot parse action function ' + pl.target + ', discardinf watcher');
+				remove_watcher(watcher);
+				return;
+			}
+		} else {
+			if (watcher.evt) {
+				print(GF_LOG_WARNING, 'Cannot use target `ID@property` for event watchers, discarding watcher');
+				remove_watcher(watcher, false);
+				return;
+			}
+			watcher.mode = 0;
+			watcher.target = pl.target;
+			if (typeof pl.with != 'undefined') {
+				watcher.with = pl.with;
+				watcher.mode = 1;
+			}
+		}
+	}
+
+	if (do_register)
+		watchers.push(watcher);
+
+	if (elem) {
+		if (!elem.watchers)
+			elem.watchers = [];
+
+		elem.watchers.push(watcher);
+		watcher.parent = elem;
+	} else {
+		event_watchers.push(watcher);
+	}
+	return;
+}
+
+function flush_watchers()
+{
+	watchers_defered.forEach(evt => {
+		trigger_watcher(evt.elem, evt.prop, evt.val);
+	});
+	watchers_defered.length = 0;
+}
+
+function trigger_watcher(src, prop_name, value)
+{
+	if (defer_parse_watchers) {
+		let evt = {elem: src, prop: prop_name, val: value};
+		watchers_defered.push(evt);
+		return;
+	}
+
+	if (!src.watchers) return;
+
+	src.watchers.forEach(watcher => {
+		if (!watcher.active) return;
+
+		if (watcher.src_field != prop_name) return;
+
+		if (watcher.in_callback) {
+			print(GF_LOG_WARNING, 'recursive call for watcher ' + watcher.id + ' value was ' + src.id + '@' + prop_name+ '=' + value + ', ignoring');
+			return;
+		}
+		watcher.in_callback = true;
+		if (watcher.mode==0) {
+			let cmd = {replace: watcher.target, with: value};
+			parse_update_elem(cmd);
+		} else if (watcher.mode==1) {
+			let cmd = {replace: watcher.target, with: watcher.with};
+			parse_update_elem(cmd);
+		} else if (watcher.mode==2) {
+			try {
+				watcher.fun.apply(watcher, [value]);
+			} catch (err) {
+				print(GF_LOG_ERROR, 'Error executing action function: ' + err);
+			}
+		} else if (watcher.mode==3) {
+			if (watcher.scene.mod) {
+				if (typeof watcher.scene.mod[watcher.target] == 'function') {
+					watcher.scene.mod[watcher.target].apply(watcher.scene.mod, [value, src.id, prop_name]);
+				}
+			}
+		}
+		watcher.in_callback = false;
+
+	});
+}
+
+
 function parse_playlist_element(pl)
 {
 	let type = pl.type || null;
@@ -4069,6 +4403,8 @@ function parse_playlist_element(pl)
 	if (typeof pl.script == 'string')
 		type = 'script';
 
+	if (typeof pl.watch == 'string')
+		type = 'watch';
 
 	//try config last
 	if ((typeof pl.reload_timeout != 'undefined') || (typeof pl.reload_loop != 'undefined'))
@@ -4087,9 +4423,7 @@ function parse_playlist_element(pl)
 
 
 	if (type==='url') {
-		if (validate_source(pl)) {
-			parse_url(pl, null);
-		}	
+		parse_url(pl, null);
 	} else if (type==='seq') {
 		parse_seq(pl);
 	} else if (type==='scene') {
@@ -4097,11 +4431,14 @@ function parse_playlist_element(pl)
 	} else if (type==='group') {
 		parse_group(pl, null);
 	} else if (type==='timer') {
-		if (validate_timer(pl)) {
-			parse_timer(pl);
-		}	
+		parse_timer(pl);
 	} else if (type==='script') {
 			parse_script(pl);
+	} else if (type==='watch') {
+		if (defer_parse_watchers)
+			defer_parse_watchers.push(pl);
+		else
+			parse_watcher(pl);
 	} else if (type==='config') {
 		if (!playlist_loaded) {
 			parse_config(pl);
@@ -4111,19 +4448,32 @@ function parse_playlist_element(pl)
 	}
 }
 
-function cleanup_list_id(is_group)
+function cleanup_list(type)
 {
-	let ID_list = is_group ? ID_groups : ID_scenes;
+	let ID_list = null;
+	let log_name = null;
+	if (!type) { ID_list = ID_scenes; log_name = 'Scene'; }
+	else if (type==1) { ID_list = ID_groups; log_name = 'Group'; }
+	else if (type==2) { ID_list = user_scripts; log_name = 'Script'; }
+	else if (type==3) { ID_list = watchers; log_name = 'Watcher'; }
+	else if (type==4) { ID_list = timers; log_name = 'Timer'; }
+	else
+			return;
 
 	for (let i=0; i<ID_list.length; i++) {
 		let s = ID_list[i];
 		if (s.pl_update) continue;
 
-		print(GF_LOG_INFO, (is_group ? 'Group ' : 'Scene ') + s.id + ' removed');
+		if (s.id)
+			print(GF_LOG_INFO, log_name + ' ' + s.id + ' removed');
+		else
+			print(GF_LOG_INFO, log_name + ' removed');
+
 		ID_list.splice(i, 1);
 		i--;
 
-		if (is_group) {
+		//group
+		if (type==1) {
 			let len_before = ID_list.length;
 			remove_scene_or_group(s);
 			//cleanup of subtree removed a group with ID, restart
@@ -4131,9 +4481,12 @@ function cleanup_list_id(is_group)
 				i=-1;
 			}
 		}
+		//watcher
+		else if (type==3) {
+			remove_watcher(s, true);
+		}
 	}
 }
-
 
 function load_playlist()
 {
@@ -4177,23 +4530,23 @@ function load_playlist()
 	});
 
 	//mark all scenes with ID as not updated
-	ID_scenes.forEach(scene => {
-		scene.pl_update = false;
-	});
+	ID_scenes.forEach(scene => { scene.pl_update = false; });
 	if (scene_in_update) scene_in_update.pl_update = true;
 
 	//mark all groups with ID as not updated
-	ID_groups.forEach(group => {
-		group.pl_update = false;
-	});
+	ID_groups.forEach(group => { group.pl_update = false; });
 
 	//mark all scripts as not updated
-	user_scripts.forEach(o => {
-		o.pl_update = false;
-	});
+	user_scripts.forEach(o => { o.pl_update = false; });
+	//mark all watchers as not updated
+	watchers.forEach(o => { o.pl_update = false; });
+	//mark all timers as not updated
+	timers.forEach(o => { o.pl_update = false; });
 
 	//reset root
 	root_scene.scenes.length = 0;
+	watchers_defered.length = 0;
+	defer_parse_watchers = [];
 
 	if (Array.isArray(pl) ) {
 		pl.forEach(parse_playlist_element);
@@ -4202,6 +4555,7 @@ function load_playlist()
 	}
 
 	//cleanup sources no longer in use
+	//we don't use cleanup_list because we don't remove the source right away, this is done at next fetch_source
 	for (let i=0; i<sources.length; i++) {
 		let s = sources[i];
 		if (s.pl_update) continue;
@@ -4214,19 +4568,18 @@ function load_playlist()
 	}
 
 	//cleanup scenes no longer in use
-	cleanup_list_id(false);
+	cleanup_list(0);
 	//cleanup groups no longer in use
-	cleanup_list_id(true);
-
+	cleanup_list(1);
 	//cleanup scripts no longer in use
-	for (let i=0; i<user_scripts.length; i++) {
-		let s = user_scripts[i];
-		if (s.pl_update) continue;
+	cleanup_list(2);
+	//cleanup watchers no longer in use
+	cleanup_list(3);
+	//cleanup timers no longer in use
+	cleanup_list(4);
 
-		print(GF_LOG_INFO, 'Script ' + s.id + ' removed');
-		user_scripts.splice(i, 1);
-		i--;
-	}
+	defer_parse_watchers.forEach( parse_watcher );
+	defer_parse_watchers = null;
 
 	if (scene_in_update) {
 		if (!scene_in_update.parent && (root_scene.scenes.indexOf(scene_in_update) < 0)) {
@@ -4237,8 +4590,6 @@ function load_playlist()
 	if (root_scene.scenes.length) {
 		generate_default_scene = false;
 	}
-
-
 
 	//create default scene if needed
 	if (!root_scene.scenes.length && sources.length && generate_default_scene) {
@@ -4499,6 +4850,7 @@ function create_scene(seq_ids, params, parent)
 	modules_pending ++;
 	let scene = {};
 	scene.id = params.id || null;
+	scene.watchers = null;
 	scene.pl_update = true;
 	scene.mod = null;
 	scene.sequences = [];
@@ -4550,6 +4902,7 @@ function create_scene(seq_ids, params, parent)
 			obj[prop] = val;
 			if (update_type)
 				invalidate_parent(this);
+			trigger_watcher(scene, prop, val);
 		}
 	}
 
@@ -4702,6 +5055,7 @@ function validate_timer(pl)
 		if (propertyName == 'stop') continue;
 		if (propertyName == 'keys') continue;
 		if (propertyName == 'anims') continue;
+		if (propertyName == 'pause') continue;
 		if (propertyName.charAt(0) == '_') continue;
 
 		print(GF_LOG_WARNING, 'Unrecognized option ' + propertyName + ' in timer ' + JSON.stringify(pl) );
@@ -4767,19 +5121,27 @@ function parse_date_time(d, for_seq)
 
 function parse_timer(pl)
 {
+	if (!validate_timer(pl)) 
+		return;
+
 	let eval_start_time = false;
 	let timer_id = pl.id || null;
 	let timer = timer_id ? get_timer(timer_id) : null;
 
 	if (!timer) {
 		timer = {};
+		timer.watchers = null;
 		timers.push(timer);
 		eval_start_time = true;
 		timer.active_state = 0;
 		timer.is_paused = false;
 		timer.id = timer_id;
 		timer.crc = 0;
-	} 
+	}	else if (timer.pl_update) {
+		print(GF_LOG_WARNING, "Multiple timers with id `" + timer_id + "` defined, ignoring subsequent declarations");
+		return null;
+	}
+	timer.pl_update = true;
 
 	let crc = sys.crc32(JSON.stringify(pl));
 	if (crc != timer.crc) {
@@ -4828,6 +5190,7 @@ function parse_timer(pl)
 			tar.scene = get_scene(vals[0]);
 			tar.group = get_group(vals[0]);
 			tar.script = get_script(vals[0]);
+			tar.watcher = get_element_by_id(vals[0], watchers);
 			tar.fx = null;
 			tar.fx_obj = null;
 			if (!tar.scene && !tar.group && check_transition(vals[0]))
@@ -4875,6 +5238,12 @@ function parse_timer(pl)
 			} else if (tar.script) {
 				if (tar.field!="active") {
 					print(GF_LOG_ERROR, 'Property ' + tar.field + ' of script cannot be animated, ignoring target');
+					return;
+				}
+				tar.update_type = 0;
+			} else if (tar.watcher) {
+				if (tar.field!="active") {
+					print(GF_LOG_ERROR, 'Property ' + tar.field + ' of watcher cannot be animated, ignoring target');
 					return;
 				}
 				tar.update_type = 0;
@@ -4958,14 +5327,7 @@ function invalidate_parent(elm)
 
 function get_timer(timer_id)
 {
-	if (!timer_id) return null;
-
-	for (let i=0; i<timers.length; i++) {
-		let timer = timers[i];
-		if (timer_id==timer.id)
-				return timer;
-	}
-	return null;
+	return get_element_by_id(timer_id, timers);
 }
 
 function update_timer(timer)
@@ -4981,6 +5343,7 @@ function update_timer(timer)
 
 	if (!timer.active_state) {
 		timer.active_state = 1;
+		trigger_watcher(timer, "active", true);
 		timer.activation_time = video_time;
 		do_store = true;
 	}
@@ -5001,12 +5364,14 @@ function update_timer(timer)
 	if (frac > timer.duration) {
 		if (!timer.loop && (timer.stop_time<0) ) {
 			timer.active_state = 2;
+			trigger_watcher(timer, "active", false);
 		} else {
 			while (frac > timer.duration) frac -= timer.duration;
 		}
 	}
 	if ((timer.stop_time > timer.start_time) && (timer.stop_time <= now)) {
 		timer.active_state = 2;
+		trigger_watcher(timer, "active", false);
 	}
 
 	if (timer.active_state == 2) {
@@ -5082,11 +5447,13 @@ function update_timer(timer)
 
 		for (let i=0; i<anim.targets.length; i++) {
 			let target = anim.targets[i];
+			let watch_src=null;
 
 			let anim_obj = null;
 
 			if (target.scene) {
 				anim_obj = target.scene.mod;
+				watch_src = target.scene;
 			}
 			else if (target.group) {
 				anim_obj = target.group;
@@ -5103,8 +5470,12 @@ function update_timer(timer)
 				}
 				anim_obj = target.fx_obj.mod;
 			}
-			else if (target.script)
+			else if (target.script) {
 				anim_obj = target.script;
+			}
+			else if (target.watcher) {
+				anim_obj = target.watcher;
+			}
 
 			if (!anim_obj) {
 				print(GF_LOG_WARNING, 'Animation target ' + target.field + ' not found, removing target');
@@ -5149,6 +5520,7 @@ function update_timer(timer)
 			update_type &= ~UPDATE_ALLOW_STRING;
 
 			let final = res;
+			if (!watch_src) watch_src = anim_obj;
 
 			if (target.idx>=0) {
 				if (Array.isArray(anim_obj[target.field])
@@ -5163,6 +5535,8 @@ function update_timer(timer)
 						anim_obj[target.field][target.idx] = final;
 						if (update_type)
 							invalidate_parent(target.scene);
+
+						trigger_watcher(watch_src, target.field, anim_obj[target.field]);
 					}
 				}
 			}
@@ -5181,6 +5555,7 @@ function update_timer(timer)
 						if (update_type)
 							invalidate_parent(target.group || target.scene);
 					}
+					trigger_watcher(watch_src, target.field, anim_obj[target.field]);
 				}
 			} else {
 				print(GF_LOG_WARNING, 'Anim type mismatch for ' + target.field + ' got ' + typeof final + ' expecting ' + typeof anim_obj[target.field] + ', ignoring');
@@ -6854,8 +7229,10 @@ function parse_update_elem(pl, array)
 			}
 
 			//transformation options
-			if (update_type==-2)
+			if (update_type==-2) {
 				update_type = group_get_update_type(prop_name, true);
+				mod = scene;
+			}
 
 			if (update_type==-2) {
 				//scene options, not module ones
@@ -6914,6 +7291,7 @@ function parse_update_elem(pl, array)
 							invalidate_parent(scene || group);
 					}
 				}
+				trigger_watcher(scene || transition || group , prop_name, mod[prop_name][field_idx]);
 			} else {
 				print(GF_LOG_WARNING, 'Property ' + prop_name + ' type is ' + (typeof mod[prop_name][0]) + ' but replacement value type is ' + rep_type);
 				return false;
@@ -6934,6 +7312,7 @@ function parse_update_elem(pl, array)
 					if (update_type && (scene||group))
 						invalidate_parent(scene || group);
 				}
+				trigger_watcher(scene || transition || group, prop_name, res);
 			}
 		}
 		return true;
@@ -6984,6 +7363,7 @@ function parse_update_elem(pl, array)
 			print(GF_LOG_WARNING, 'Unknown timer property ' + prop_name);
 				return false;
 		}
+		trigger_watcher(timer, prop_name, timer[prop_name]);
 		return true;
 	}
 
@@ -7027,6 +7407,7 @@ function parse_update_elem(pl, array)
 			print(GF_LOG_WARNING, 'Unknown sequence property ' + prop_name);
 			return false;
 		}
+		trigger_watcher(seq, prop_name, timer[prop_name]);
 		return true;
 	}
 	//try inactive transition
@@ -7034,20 +7415,27 @@ function parse_update_elem(pl, array)
 	if (transition) {
 		return apply_transition_update(transition, prop_name, pl.with);
 	}
-	//try scrips
+
+	//try scripts and watchers, only active property
 	let script=get_script(src);
+	let log_name='script';
+	if (!script) {
+		script=get_element_by_id(src, watchers);
+		log_name='watcher';
+	}
 	if (script) {
 		if (prop_name == 'active') {
 			if (typeof pl.with == 'boolean') {
 				script.active = pl.with;
 			} else {
-				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for script.active');				
+				print(GF_LOG_WARNING, 'Wrong type ' + (typeof pl.with) + ' for ' + log_name + '.active');
 				return false;
 			}
 		} else {
-			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of script not updatable');			
+			print(GF_LOG_WARNING, 'Property ' + prop_name + ' of ' + log_name + ' not updatable');
 			return false;
 		}
+		trigger_watcher(script, prop_name, timer[prop_name]);
 		return true;
 	}
 	print(GF_LOG_WARNING, "No updatable element with id " + src + ' found');
@@ -7191,6 +7579,8 @@ function remove_element_mod(elmt)
 				the_elem = get_timer(elmt);
 		if (!the_elem)
 				the_elem = get_script(elmt);
+		if (!the_elem)
+				the_elem = get_element_by_id(elmt, watchers);
 
 		elmt = the_elem;
 	}
@@ -7228,15 +7618,15 @@ function remove_element_mod(elmt)
 		let idx = user_scripts.indexOf(elmt);
 		if (idx>=0) user_scripts.splice(idx, 1);
 	}
+	//watcher
+	if (typeof elmt.target == 'string') {
+		remove_watcher(elmt, false);
+	}
 }
 
 
 function update_element_mod(id, prop, value)
 {
-	if (!scene_in_update) {
-		print(GF_LOG_ERROR, "update_element called outside of module.update() callback, ignoring");
-		return false;
-	}
 	let update = { replace: id+'@'+prop, with: value};
 	return parse_update_elem(update);
 }
@@ -7244,10 +7634,6 @@ function update_element_mod(id, prop, value)
 
 function query_element_mod(id, prop)
 {
-	if (!scene_in_update) {
-		print(GF_LOG_ERROR, "update_element called outside of module.update() callback, ignoring");
-		return undefined;
-	}
 	let elt = get_scene(id);
 	if (elt) {
 		if (elt.mod && typeof elt.mod[prop] != 'undefined') return elt.mod[prop];
@@ -7275,5 +7661,50 @@ function query_element_mod(id, prop)
 		return undefined;
 	}
 	return undefined;
+}
+
+function mouse_over_mod()
+{
+	if (!arguments.length) return null;
+	let x, y;
+
+	if (typeof (arguments[0]) == 'object') {
+		let evt = arguments[0];
+		x = evt.mouse_x;
+		y = evt.mouse_y;
+		x -= video_width/2;
+		y = video_height/2 - y;
+	} else if (arguments.length==2) {
+		x = arguments[0];
+		y = arguments[1];
+	}
+
+	let len = prev_display_list.length;
+	let pt = {x: x, y: y};
+
+	for (let i=0; i<len; i++) {
+		let ctx = prev_display_list[len-i-1];
+
+		let inv_mx = ctx.mx.copy().inverse();
+		let a_pt = inv_mx.apply(pt);
+		let w = ctx.scene.mod.width;
+		let h = ctx.scene.mod.height;
+
+		if (a_pt.x < -w/2) continue;
+		if (a_pt.x > w/2) continue;
+		if (a_pt.y < -h/2) continue;
+		if (a_pt.y > h/2) continue;
+
+		//offscreen group
+		if (ctx.group) {
+			return ctx.group;
+		}
+		let over = true;
+		if (typeof ctx.scene.mod.point_over == 'function') {
+			over = ctx.scene.mod.point_over(a_pt.x, a_pt.y);
+		}
+		if (over) return ctx.scene;
+	}
+	return null;
 }
 

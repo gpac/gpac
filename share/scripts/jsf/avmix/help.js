@@ -49,6 +49,7 @@ Root objects types can be indicated through a \`type\` property:
 - timer: a \`timer\` object
 - script: a \`script\` object
 - config: a \`config\` object
+- watch: a \`watcher\` object
 
 The \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
 
@@ -100,6 +101,8 @@ The code can use the global functions and modules defined, especially:
 - resolve_url: resolves URL given in first argument against media playlist URL and returns the resolved url (string)
 - get_scene(id): gets scene with given ID
 - get_group(id): gets group with given ID
+- mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene
+- mouse_over(x, y): returns scene under coordinates {x, y} in pixels, {0,0} representing the center of the frame, x axis oriented towards the right and y axis oriented towards the top
 
 Scene and group options must be accessed through getters and setters:
 - scene.get(prop_name): gets the scene option
@@ -107,9 +110,20 @@ Scene and group options must be accessed through getters and setters:
 - group.get(prop_name): gets the group option
 - group.set(prop_name, value): sets the group option
 
-Results are undefined if JS code modifies the scene/group objects in any other way.
+Warning: Results are undefined if JS code modifies the scene/group objects in any other way.
+
+Other playlist objects (as well as scene and group objects) can be queried using \`query_element(ID, propName)\` or modified using \`update_element(ID, propName, value)\` (see playlist update below).   
 
 Warning: there is no protection of global variables and state, write your script carefully!
+
+Additionally, scripts executed within scene modules can modify the internal playlist using:
+- remove_element(ID):  removes a scene, group, sequence, timer, script or watcher with given ID from playlist
+- parse_element(JSON): parses a root playlist element and add it to the current playlist
+- parse_scene(JSON, parent): parses a scene and add it to \`parent\` group if not null or root otherwise
+- parse_group(JSON, parent): parses a group and add it to \`parent\` group if not null or root otherwise
+- reload_playlist(JSON): parses a new playlist (an empty JSON array will reset the playlist). If the calling scene is no longer in the resulting scene tree, it will be added to the root of the scene tree.
+
+All these playlist-related functions must be called within the update() callback of the scene module.
 
 ## Sequences
 ### Properties for \`sequence\` objects:
@@ -339,7 +353,7 @@ The syntax for \`start\` and  \`stop\` fields is:
 The \`JSFun\` specified by \`mode\` has one input parameter \`interp\` equal to the interpolation factor and must return the new interpolation factor.
 EX "mode":"return interp*interp;" 
 
-The \`JSFun\` specified \`postfun\` has two input parameters \`res\` (the current interplation result) and \`interp\` (the interpolation factor), and must return the new interpolated value.
+The \`JSFun\` specified by \`postfun\` has two input parameters \`res\` (the current interplation result) and \`interp\` (the interpolation factor), and must return the new interpolated value.
 EX "postfun": "if (interp<0.5) return res*res; return res;" 
 
 ## Scripts
@@ -357,6 +371,52 @@ The \`JSFun\` function specified by \`fun\` has no input parameter. The return v
 
 EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
 This will change scene \`s1\` rotation every 2 seconds 
+
+
+## Watchers
+### Properties for \`watcher\` objects
+- id (null): ID of the watcher
+- active (true): indicate if watcher is active or not
+- watch (""): element watched, formated as \`ID@prop\`, with \`ID\` the element ID and \`prop\` the property name to watch
+- target (""): action for watcher. Allowed syntaxes are:
+  - \`ID@prop\`, \`ID@prop[idx]\`: copy value to property \`prop\` of the element  \`ID\` (potentially at index \`idx\` if specified for arrays)
+  - \`ID.fun_name\`: call function \`fun_name\` exported from scene module \`ID\`, using three arguments ['value', 'watchID', 'watchPropName'], no return value check
+  - otherwise: action must be JS code, and the resulting \`JSFun\` has one argument \`value\` containing the watched value, and no return value check
+- with (undefined): for targets in the form \`ID@prop\`, use this value instead of the watched value
+
+### Notes
+
+A watcher can be used to monitor changes in an object in the playlist.
+Any object property that can be animated or updated can be monitored by a watcher.
+
+In addition, the following virtual properties (cannot be read or write) can be watched:
+- sequence.active: value is set to true when sequence is activated, and false when deactivated
+- source.active: value is set to true when source playback starts, and false when source playback stops
+- timer.active: value is set to true when timer starts, and false when timer stops
+
+Only the \`active\` property can be animated or updated in a watcher.
+
+EX {'watch': 's1@rotation', 'target': 's2@rotation'}
+This will copy s1.rotation to s2.rotation.
+
+EX {'watch': 's1@rotation', 'target': 'get_scene('s2').set('rotation', -value); }
+This will copy the -1*s1.rotation to s2.rotation.
+
+### Watching UI events
+
+Watchers can also be used to monitor GPAC user events by setting \`watch\` to:
+- an event name to monitor: one of \`keydown\`, \`keyup\`, \`mousemove\`, \`mouseup\`, \`mousedown\`, \`wheel\`, \`textInput\`
+- \`events\` to monitor all events (including internal events).
+
+For \`keyup\` and \`keydown\` events, the key code to watch may additionnaly be given in parenthesis, e.g. \`'watch': 'keyup(T)'\`.
+
+Note: User events are only sent if the output of the filter is consummed by the [vout](vout) filter.
+
+When event monitoring is used, the \`target\` must be a javascript callback (i.e. it cannot be \`ID@prop\`).
+The javascript function will be called with a single argument \`evt\` containing the GPAC event.
+
+EX {'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' ); }
+This will set s1 fill color to white of mouse is over s2 and to black otherwise.
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
@@ -388,6 +448,11 @@ A \`scene\` or \`group\` object modified between two reloads is notified of each
 A \`timer\` object modified between two reloads is shut down and restarted. Consequently, \`animation\` objects are not tracked between reloads.
 
 A \`transition\` object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
+
+A \`script\` object modified between two reloads has its code re-evaluated
+
+A \`watcher\` object modified between two reloads has its watch source and code re-evaluated
+
 
 ## Playlist example
 

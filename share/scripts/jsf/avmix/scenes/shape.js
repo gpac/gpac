@@ -1218,7 +1218,15 @@ draw: function(canvas)
     canvas_draw(this.outline, this.outline_brush);
   }
 
-}
+},
 
+
+point_over: function(pt_x, pt_y)
+{
+  if (this.blit_path)
+    return this.blit_path.point_over(pt_x, pt_y);
+
+  return this.path.point_over(pt_x, pt_y);
+},
 
 }; }
