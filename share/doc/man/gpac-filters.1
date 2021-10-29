@@ -7659,6 +7659,8 @@ Root objects types can be indicated through a type property:
 .br
 * config: a config object
 .br
+* watch: a watcher object
+.br
 
 .br
 The type property of root objects is usually not needed as the parser guesses the object types from its properties.
@@ -7763,6 +7765,10 @@ The code can use the global functions and modules defined, especially:
 .br
 * get_group(id): gets group with given ID
 .br
+* mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene
+.br
+* mouse_over(x, y): returns scene under coordinates {x, y} in pixels, {0,0} representing the center of the frame, x axis oriented towards the right and y axis oriented towards the top
+.br
 
 .br
 Scene and group options must be accessed through getters and setters:
@@ -7777,11 +7783,33 @@ Scene and group options must be accessed through getters and setters:
 .br
 
 .br
-Results are undefined if JS code modifies the scene/group objects in any other way.
+Warning: Results are undefined if JS code modifies the scene/group objects in any other way.
+.br
+
+.br
+Other playlist objects (as well as scene and group objects) can be queried using query_element(ID, propName) or modified using update_element(ID, propName, value) (see playlist update below).   
 .br
 
 .br
 Warning: there is no protection of global variables and state, write your script carefully!
+.br
+
+.br
+Additionally, scripts executed within scene modules can modify the internal playlist using:
+.br
+* remove_element(ID):  removes a scene, group, sequence, timer, script or watcher with given ID from playlist
+.br
+* parse_element(JSON): parses a root playlist element and add it to the current playlist
+.br
+* parse_scene(JSON, parent): parses a scene and add it to parent group if not null or root otherwise
+.br
+* parse_group(JSON, parent): parses a group and add it to parent group if not null or root otherwise
+.br
+* reload_playlist(JSON): parses a new playlist (an empty JSON array will reset the playlist). If the calling scene is no longer in the resulting scene tree, it will be added to the root of the scene tree.
+.br
+
+.br
+All these playlist-related functions must be called within the update() callback of the scene module.
 .br
 
 .br
@@ -8291,7 +8319,7 @@ Example
 .br
 
 .br
-The JSFun specified postfun has two input parameters res (the current interplation result) and interp (the interpolation factor), and must return the new interpolated value.
+The JSFun specified by postfun has two input parameters res (the current interplation result) and interp (the interpolation factor), and must return the new interpolated value.
 .br
 Example
 .br
@@ -8334,6 +8362,116 @@ The JSFun function specified by fun has no input parameter. The return value (de
 EX: { "script": "let s=get_scene('s1'); let rot = s.get('rotation'); rot += 10; s.set('rotation', rot); return 2;" }
 .br
 This will change scene s1 rotation every 2 seconds 
+.br
+
+.br
+.P
+.B
+Watchers
+.br
+.P
+.B
+Properties for watcher objects
+.br
+* id (null): ID of the watcher
+.br
+* active (true): indicate if watcher is active or not
+.br
+* watch (""): element watched, formated as ID@prop, with ID the element ID and prop the property name to watch
+.br
+* target (""): action for watcher. Allowed syntaxes are:
+.br
+  * `ID@prop`, `ID@prop[idx]`: copy value to property prop of the element  ID (potentially at index idx if specified for arrays)
+.br
+  * `ID.fun_name`: call function fun_name exported from scene module ID, using three arguments ['value', 'watchID', 'watchPropName'], no return value check
+.br
+  * otherwise: action must be JS code, and the resulting JSFun has one argument value containing the watched value, and no return value check
+.br
+* with (undefined): for targets in the form ID@prop, use this value instead of the watched value
+.br
+
+.br
+.P
+.B
+Notes
+.br
+
+.br
+A watcher can be used to monitor changes in an object in the playlist.
+.br
+Any object property that can be animated or updated can be monitored by a watcher.
+.br
+
+.br
+In addition, the following virtual properties (cannot be read or write) can be watched:
+.br
+* sequence.active: value is set to true when sequence is activated, and false when deactivated
+.br
+* source.active: value is set to true when source playback starts, and false when source playback stops
+.br
+* timer.active: value is set to true when timer starts, and false when timer stops
+.br
+
+.br
+Only the active property can be animated or updated in a watcher.
+.br
+
+.br
+Example
+.br
+{'watch': 's1@rotation', 'target': 's2@rotation'}
+.br
+
+.br
+This will copy s1.rotation to s2.rotation.
+.br
+
+.br
+Example
+.br
+{'watch': 's1@rotation', 'target': 'get_scene('s2').set('rotation', -value); }
+.br
+
+.br
+This will copy the -1*s1.rotation to s2.rotation.
+.br
+
+.br
+.P
+.B
+Watching UI events
+.br
+
+.br
+Watchers can also be used to monitor GPAC user events by setting watch to:
+.br
+* an event name to monitor: one of keydown, keyup, mousemove, mouseup, mousedown, wheel, textInput
+.br
+- events to monitor all events (including internal events).
+.br
+
+.br
+For keyup and keydown events, the key code to watch may additionnaly be given in parenthesis, e.g. 'watch': 'keyup(T)'.
+.br
+
+.br
+Note: User events are only sent if the output of the filter is consummed by the vout filter.
+.br
+
+.br
+When event monitoring is used, the target must be a javascript callback (i.e. it cannot be ID@prop).
+.br
+The javascript function will be called with a single argument evt containing the GPAC event.
+.br
+
+.br
+Example
+.br
+{'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' ); }
+.br
+
+.br
+This will set s1 fill color to white of mouse is over s2 and to black otherwise.
 .br
 
 .br
@@ -8398,6 +8536,14 @@ A timer object modified between two reloads is shut down and restarted. Conseque
 
 .br
 A transition object may change between two reloads, but any modification on the object will only be taken into consideration when restarting the effect.
+.br
+
+.br
+A script object modified between two reloads has its code re-evaluated
+.br
+
+.br
+A watcher object modified between two reloads has its watch source and code re-evaluated
 .br
 
 .br
@@ -9247,7 +9393,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1414-g602d94512-master
+build: 1.1.0-DEV-rev1418-gcbcb697b0-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

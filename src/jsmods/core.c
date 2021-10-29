@@ -1294,6 +1294,22 @@ static JSValue js_sys_keyname(JSContext *ctx, JSValueConst this_val, int argc, J
 #else
 	return js_throw_err(ctx, GF_NOT_SUPPORTED);
 #endif
+}
+
+GF_EventType gf_dom_event_type_by_name(const char *name);
+
+static JSValue js_sys_evt_by_name(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+#ifndef GPAC_DISABLE_SVG
+	if (!argc) return GF_JS_EXCEPTION(ctx);
+	const char *name = JS_ToCString(ctx, argv[0]);
+	if (!name) return GF_JS_EXCEPTION(ctx);
+	JSValue res = JS_NewInt32(ctx, gf_dom_event_type_by_name(name));
+	JS_FreeCString(ctx, name);
+	return res;
+#else
+	return js_throw_err(ctx, GF_NOT_SUPPORTED);
+#endif
 
 }
 
@@ -2452,6 +2468,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
     JS_CFUNC_DEF("prompt_size", 0, js_sys_prompt_size),
 
     JS_CFUNC_DEF("keyname", 0, js_sys_keyname),
+    JS_CFUNC_DEF("get_event_type", 0, js_sys_evt_by_name),
     JS_CFUNC_DEF("gc", 0, js_sys_gc),
 
 	JS_CFUNC_DEF("enum_directory", 0, js_sys_enum_directory),
