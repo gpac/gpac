@@ -1008,7 +1008,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 
 
 //write the file track by track, with moov box before or after the mdat
-static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seakable, Bool for_fragments, GF_BitStream *moov_bs)
+static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool non_seekable, Bool for_fragments, GF_BitStream *moov_bs)
 {
 	GF_Err e;
 	u32 i;
@@ -1030,7 +1030,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 	if (e) goto exit;
 
 	if (!moovFirst) {
-		if ((movie->openMode == GF_ISOM_OPEN_WRITE) && !non_seakable) {
+		if ((movie->openMode == GF_ISOM_OPEN_WRITE) && !non_seekable) {
 			begin = 0;
 			totSize = gf_isom_datamap_get_offset(movie->editFileMap);
 			/*start boxes have not been written yet, do it*/
@@ -1085,7 +1085,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 				}
 			}
 			totSize -= begin;
-		} else if (!non_seakable || for_fragments) {
+		} else if (!non_seekable || for_fragments) {
 			if (movie->is_jp2) {
 				gf_bs_write_u32(bs, 12);
 				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
@@ -1136,7 +1136,7 @@ static GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs, Bool no
 					if (e) goto exit;
 					continue;
 				}
-				if (non_seakable) {
+				if (non_seekable) {
 					begin = gf_bs_get_position(bs);
 					//do a sim pass to get the true mdat size
 					e = DoWrite(mw, writers, bs, 1, begin);
