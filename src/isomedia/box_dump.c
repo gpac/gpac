@@ -1937,6 +1937,7 @@ GF_Err tx3g_box_dump(GF_Box *a, FILE * trace)
 	gf_fprintf(trace, ">\n");
 	gf_fprintf(trace, "<DefaultBox>\n");
 	tx3g_dump_box(trace, &p->default_box);
+	gf_isom_box_dump_done("DefaultBox", a, trace);
 
 	gf_fprintf(trace, "<DefaultStyle>\n");
 	tx3g_dump_style(trace, &p->default_style);

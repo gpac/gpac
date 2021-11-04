@@ -5054,9 +5054,17 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 //	return GF_OK;
 
-	//these boxes are mandatory !
-	if (!ptr->SampleToChunk || !ptr->SampleSize || !ptr->ChunkOffset || !ptr->TimeToSample)
-		return GF_ISOM_INVALID_FILE;
+#define CHECK_BOX(_name) \
+	if (!ptr->_name) {\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Mandatory box %s is missing\n", #_name)); \
+		return GF_ISOM_INVALID_FILE; \
+	}
+
+	CHECK_BOX(SampleToChunk)
+	CHECK_BOX(SampleSize)
+	CHECK_BOX(ChunkOffset)
+	CHECK_BOX(TimeToSample)
+
 	//sanity check
 	if (ptr->SampleSize->sampleCount) {
 		if (!ptr->TimeToSample->nb_entries || !ptr->SampleToChunk->nb_entries)
