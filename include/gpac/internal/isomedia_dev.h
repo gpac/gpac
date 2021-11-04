@@ -1322,9 +1322,9 @@ typedef struct
 	u32 cleanApertureWidthD;
 	u32 cleanApertureHeightN;
 	u32 cleanApertureHeightD;
-	u32 horizOffN;
+	s32 horizOffN;
 	u32 horizOffD;
-	u32 vertOffN;
+	s32 vertOffN;
 	u32 vertOffD;
 } GF_CleanApertureBox;
 
