@@ -9797,11 +9797,25 @@ static s32 gf_media_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8
 	sps->height = gf_bs_read_ue_log(bs, "height");
 	sps->conf_window = gf_bs_read_int_log(bs, 1, "conformance_window_present_flag");
 	if (sps->conf_window) {
+		u32 SubWidthC, SubHeightC;
 		sps->cw_left = gf_bs_read_ue_log(bs, "conformance_window_left");
 		sps->cw_right = gf_bs_read_ue_log(bs, "conformance_window_right");
 		sps->cw_top = gf_bs_read_ue_log(bs, "conformance_window_top");
 		sps->cw_bottom = gf_bs_read_ue_log(bs, "conformance_window_bottom");
+
+
+		if (sps->chroma_format_idc == 1) {
+			SubWidthC = SubHeightC = 2;
+		} else if (sps->chroma_format_idc == 2) {
+			SubWidthC = 2;
+			SubHeightC = 1;
+		} else {
+			SubWidthC = SubHeightC = 1;
+		}
+		sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
+		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
+	
 	sps->subpic_info_present = gf_bs_read_int_log(bs, 1, "subpic_info_present");
 	if (sps->subpic_info_present) {
 		sps->nb_subpics = 1 + gf_bs_read_ue_log(bs, "nb_subpics_minus1");

@@ -1708,7 +1708,7 @@ sample_entry_setup:
 			m_subtype = ((xps_inband==XPS_IB_PPS) || (xps_inband==XPS_IB_ALL) || (xps_inband==XPS_IB_BOTH)) ? GF_ISOM_SUBTYPE_VVI1  : GF_ISOM_SUBTYPE_VVC1;
 		}
 		use_vvc = GF_TRUE;
-		comp_name = "HEVC";
+		comp_name = "VVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
 		break;
