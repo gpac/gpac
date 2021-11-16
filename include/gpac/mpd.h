@@ -441,6 +441,9 @@ typedef struct
 	/*! set to true if the representation comes from a broadcast link (ATSC3, eMBMS)*/
 	Bool broadcast_flag;
 
+	/*! if set indicates the associated representations use vvc rpr switching*/
+	Bool vvc_rpr_switch;
+
 	/*! start of segment name in full url*/
 	const char *init_seg_name_start;
 	/*! opaque data*/

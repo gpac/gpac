@@ -773,6 +773,13 @@ Errors will be thrown if these are not met on future parts and merging will be d
 */
 void gf_dash_enable_single_range_llhls(GF_DashClient *dash, Bool enable_single_range);
 
+/*! create a new DASH client
+\param dash the target dash cleint
+\param auto_switch_count forces representation switching (quality up if positive, down if negative) every auto_switch_count segments, set to 0 to disable
+\param auto_switch_loop if false (default when creating dasher), restart at lowest quality when higher quality is reached and vice-versa. If true, quality switches decreases then increase in loop
+*/
+void gf_dash_set_auto_switch(GF_DashClient *dash, s32 auto_switch_count, Bool auto_switch_loop);
+
 /*! returns active period start
 \param dash the target dash client
 \return period start in milliseconds

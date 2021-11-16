@@ -690,7 +690,7 @@ static const GF_FilterArgs AudioOutArgs[] =
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
