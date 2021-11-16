@@ -1222,6 +1222,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 			) {
 				ctx->cur_fps.num = sps->time_scale;
 				ctx->cur_fps.den = sps->num_units_in_tick;
+				gf_media_get_reduced_frame_rate(&ctx->cur_fps.num, &ctx->cur_fps.den);
 
 				if (!ctx->fps.num && ctx->dts==ctx->fps.den)
 					ctx->dts = ctx->cur_fps.den;
