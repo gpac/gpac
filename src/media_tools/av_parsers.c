@@ -9685,8 +9685,9 @@ static void vvc_parse_ref_pic_list_struct(GF_BitStream *bs, VVC_SPS *sps, u32 li
 
 static void vvc_parse_general_timing_hrd_parameters(GF_BitStream *bs, VVC_SPS *sps, VVC_VPS *vps, Bool *general_nal_hrd_params_present_flag, Bool *general_vcl_hrd_params_present_flag, Bool *general_du_hrd_params_present_flag, u32 *hrd_cpb_cnt_minus1)
 {
-	gf_bs_read_int_log(bs, 32, "num_units_in_tick");
-	gf_bs_read_int_log(bs, 32, "timescale");
+	sps->has_timing_info = 1;
+	sps->num_units_in_tick = gf_bs_read_int_log(bs, 32, "num_units_in_tick");
+	sps->time_scale = gf_bs_read_int_log(bs, 32, "timescale");
 	*general_du_hrd_params_present_flag = GF_FALSE;
 	*general_nal_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_nal_hrd_params_present_flag");
 	*general_vcl_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_vcl_hrd_params_present_flag");
@@ -9735,7 +9736,7 @@ static void vvc_parse_ols_timing_hrd_parameters(GF_BitStream *bs, u32 firstSubLa
 		if (general_nal_hrd_params_present_flag) {
 			vvc_parse_sublayer_hrd_parameters(bs, i, general_du_hrd_params_present_flag, hrd_cpb_cnt_minus1);
 		}
-		if (general_nal_hrd_params_present_flag) {
+		if (general_vcl_hrd_params_present_flag) {
 			vvc_parse_sublayer_hrd_parameters(bs, i, general_du_hrd_params_present_flag, hrd_cpb_cnt_minus1);
 		}
 	}
