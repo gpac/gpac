@@ -1766,6 +1766,8 @@ chain_mode (enum, default: on): MPD chaining mode
 .br
 
 .br
+asloop (bool, default: false): when auto switch is enabled, iterates back and forth from highest to lowest qualities
+.br
 
 .br
 .SH cdcrypt
@@ -3412,7 +3414,7 @@ buffer (uint, default: 200):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
-rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)
 .br
 adelay (frac, default: 0, updatable): set audio delay in sec
 .br
@@ -3536,7 +3538,7 @@ buffer (uint, default: 100):   set playout buffer in ms
 .br
 mbuffer (uint, default: 0):    set max buffer occupancy in ms (if less than buffer, use buffer)
 .br
-rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering
+rbuffer (uint, default: 0, updatable): rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)
 .br
 dumpframes (uintl):            ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames
 .br
@@ -9393,7 +9395,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1418-gcbcb697b0-master
+build: 1.1.0-DEV-rev1424-gdc3734f4c-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

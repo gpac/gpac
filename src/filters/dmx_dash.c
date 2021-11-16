@@ -59,7 +59,7 @@ typedef struct
 	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 auto_switch;
 	s32 init_timeshift;
-	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, chain_mode;
+	Bool server_utc, screen_res, aggressive, speedadapt, fmodefwd, skip_lqt, llhls_merge, filemode, chain_mode, asloop;
 	u32 forward;
 	GF_PropUIntList debug_as;
 	GF_DASHInitialSelectionMode start_with;
@@ -2072,7 +2072,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 	}
 
 
-	ctx->dash = gf_dash_new(&ctx->dash_io, 0, ctx->auto_switch, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, timeshift);
+	ctx->dash = gf_dash_new(&ctx->dash_io, 0, 0, (ctx->segstore==2) ? GF_TRUE : GF_FALSE, (algo==GF_DASH_ALGO_NONE) ? GF_TRUE : GF_FALSE, ctx->start_with, timeshift);
 
 	if (!ctx->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHDmx] Error - cannot create DASH Client\n"));
@@ -2105,6 +2105,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		gf_dash_split_adaptation_sets(ctx->dash);
 	gf_dash_disable_low_quality_tiles(ctx->dash, ctx->skip_lqt);
 	gf_dash_set_chaining_mode(ctx->dash, ctx->chain_mode);
+	gf_dash_set_auto_switch(ctx->dash, ctx->auto_switch, ctx->asloop);
 
 	//in test mode, we disable seeking inside the segment: this initial seek range is dependent from tune-in time and would lead to different start range
 	//at each run, possibly breaking all tests
@@ -3186,6 +3187,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	"- off: do not use MPD chaining\n"
 	"- on: use MPD chaining once over, fallback if MPD load failure\n"
 	"- error: use MPD chaining once over or if error (MPD or segment download)", GF_PROP_UINT, "on", "off|on|error", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(asloop), "when auto switch is enabled, iterates back and forth from highest to lowest qualities", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

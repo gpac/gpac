@@ -88,6 +88,7 @@ struct __dash_client
 	u32 max_cache_duration, max_width, max_height;
 	u8 max_bit_per_pixel;
 	s32 auto_switch_count;
+	Bool auto_switch_loop;
 	Bool keep_files, disable_switching, allow_local_mpd_update, estimate_utc_drift, ntp_forced;
 	Bool is_m3u8, is_smooth;
 	Bool split_adaptation_set;
@@ -3246,13 +3247,42 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		return;
 	}
 
+
+
 	/* in case of dependent representations: we set max_complementary_rep_index than active_rep_index*/
-	if (group->base_rep_index_plus_one)
+	if (group->base_rep_index_plus_one) {
 		group->max_complementary_rep_index = i;
-	else {
+	} else {
+		//if VVC RPR switching, don't allow downswitch to more than half size (max for rpr)
+		//pickup lowest quality above current rep that fits rpr downsampling requirements
+		if (rep->playback.vvc_rpr_switch) {
+#ifndef GPAC_DISABLE_LOGS
+			u32 req_w=rep->width, req_h=rep->height;
+#endif
+			GF_MPD_Representation *orep = gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
+			while (orep->playback.vvc_rpr_switch) {
+				if (!rep->playback.disabled
+					&& (rep->width * 2 >= orep->width)
+					&& (rep->height * 2 >= orep->height)
+				) {
+#ifndef GPAC_DISABLE_LOGS
+					if (req_w < rep->width) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Cannot switch VVC RPR from %dx%d to %dx%d, using higher resolution %dx%d\n", orep->width, orep->height, req_w, req_h, rep->width, rep->height));
+					}
+#endif
+					break;
+				}
+
+				i++;
+				if (i>=prev_active_rep_index) {
+					i = prev_active_rep_index;
+					rep = orep;
+					break;
+				}
+				rep = gf_list_get(group->adaptation_set->representations, i);
+			}
+		}
 		group->active_rep_index = i;
-//			if (group->timeline_setup)
-//				group->llhls_edge_chunk = NULL;
 	}
 	group->active_bitrate = rep->bandwidth;
 	group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
@@ -4673,6 +4703,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	return GF_OK;
 }
 
+
 static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Representation *rep, Bool for_autoswitch)
 {
 	s32 rep_idx, orig_idx;
@@ -4680,12 +4711,34 @@ static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Re
 
 	rep_idx = orig_idx = gf_list_find(group->adaptation_set->representations, rep);
 	while (1) {
+		u32 nb_reps = gf_list_count(group->adaptation_set->representations);
 		if (for_autoswitch && (group->dash->auto_switch_count<0)) {
 			if (rep_idx) rep_idx--;
-			else rep_idx = gf_list_count(group->adaptation_set->representations) - 1;
+			else {
+				if (!group->dash->auto_switch_loop) {
+					rep_idx = nb_reps - 1;
+				} else {
+					group->dash->auto_switch_count = -group->dash->auto_switch_count;
+					rep_idx ++;
+					if (rep_idx > nb_reps - 1)
+						rep_idx = nb_reps - 1;
+				}
+			}
 		} else {
 			rep_idx++;
-			if (rep_idx==gf_list_count(group->adaptation_set->representations)) rep_idx = 0;
+			if (rep_idx==nb_reps) {
+				if (for_autoswitch) {
+					if (!group->dash->auto_switch_loop) {
+						rep_idx = 0;
+					} else {
+						group->dash->auto_switch_count = -group->dash->auto_switch_count;
+						if (nb_reps>=2)
+							rep_idx = nb_reps - 2;
+					}
+				} else {
+					rep_idx = 0;
+				}
+			}
 		}
 		//none other than current one
 		if (orig_idx==rep_idx) return;
@@ -5004,6 +5057,9 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				group->max_complementary_rep_index = j;
 			if (!rep->playback.disabled && rep->dependency_id)
 				nb_dependent_rep++;
+
+			if (set->bitstream_switching && (set->starts_with_sap==3) && strstr(rep->codecs, "vvi"))
+				rep->playback.vvc_rpr_switch = GF_TRUE;
 		}
 
 		if (!seg_dur && !dash->is_m3u8) {
@@ -8174,6 +8230,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, s32 a
 	dash->initial_time_shift_value = initial_time_shift_percent;
 
 	dash->auto_switch_count = auto_switch_count;
+	dash->auto_switch_loop = GF_FALSE;
 	dash->keep_files = keep_files;
 	dash->disable_switching = disable_switching;
 	dash->first_select_mode = first_select_mode;
@@ -8242,6 +8299,14 @@ GF_EXPORT
 void gf_dash_set_agressive_adaptation(GF_DashClient *dash, Bool agressive_switch)
 {
 	dash->agressive_switching = agressive_switch;
+}
+
+GF_EXPORT
+void gf_dash_set_auto_switch(GF_DashClient *dash, s32 auto_switch_count, Bool auto_switch_loop)
+{
+	if (!dash) return;
+	dash->auto_switch_count = auto_switch_count;
+	dash->auto_switch_loop = auto_switch_loop;
 }
 
 

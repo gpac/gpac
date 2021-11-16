@@ -2111,7 +2111,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(fullscreen), "use fullscreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
