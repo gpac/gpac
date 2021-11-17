@@ -285,10 +285,10 @@ static Bool nalumx_is_nal_skip(GF_NALUMxCtx *ctx, u8 *data, u32 pos, Bool *has_n
 		}
 	} else if (ctx->vtype==UFNAL_VVC) {
 		u8 nal_type = data[pos+1] >> 3;
-		u8 temporal_id = data[pos+1] & 0x7;
+		u8 temporal_id = (data[pos+1] & 0x7) - 1;
 		u8 layer_id = data[pos] & 0x3f;
 		if (temporal_id > *out_temporal_id) *out_temporal_id = temporal_id;
-		if (! (*out_layer_id) ) *out_layer_id = 1+layer_id;
+		if (! (*out_layer_id) ) *out_layer_id = layer_id;
 
 		switch (nal_type) {
 		case GF_VVC_NALU_VID_PARAM:
@@ -454,7 +454,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 #ifndef GPAC_DISABLE_HEVC
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, GF_HEVC_NALU_ACCESS_UNIT, 6);
-			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
+			gf_bs_write_int(ctx->bs_w, layer_id-1, 6);
 			gf_bs_write_int(ctx->bs_w, temporal_id, 3);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);
@@ -462,15 +462,11 @@ GF_Err nalumx_process(GF_Filter *filter)
 			gf_bs_write_int(ctx->bs_w, 0, 4); //4 bits to 0
 #endif
 		} else if (ctx->vtype==UFNAL_VVC) {
-			if (!layer_id)
-				layer_id=1;
-			if (!temporal_id)
-				temporal_id=1;
 			gf_bs_write_int(ctx->bs_w, 0, 1);
 			gf_bs_write_int(ctx->bs_w, 0, 1);
-			gf_bs_write_int(ctx->bs_w, layer_id-1, 6); //we should pick the layerID of the following nalus ...
+			gf_bs_write_int(ctx->bs_w, layer_id, 6);
 			gf_bs_write_int(ctx->bs_w, GF_VVC_NALU_ACCESS_UNIT, 5);
-			gf_bs_write_int(ctx->bs_w, temporal_id, 3);
+			gf_bs_write_int(ctx->bs_w, temporal_id+1, 3);
 			gf_bs_write_int(ctx->bs_w, sap ? 1 : 0, 1);
 			/*pic-type - by default we signal all slice types possible*/
 			gf_bs_write_int(ctx->bs_w, 2, 3);

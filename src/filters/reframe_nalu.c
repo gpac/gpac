@@ -2038,7 +2038,7 @@ static void naludmx_push_prefix(GF_NALUDmxCtx *ctx, u8 *data, u32 size, Bool avc
 	memcpy(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, data, size);
 
 	if (avc_sei_rewrite) {
-		u32 rw_sei_size = gf_media_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
+		u32 rw_sei_size = gf_avc_reformat_sei(ctx->sei_buffer + ctx->sei_buffer_size + ctx->nal_length, size, ctx->seirw, ctx->avc_state);
 		if (rw_sei_size < size) {
 			gf_bs_seek(ctx->bs_w, 0);
 			gf_bs_write_int(ctx->bs_w, rw_sei_size, 8*ctx->nal_length);
@@ -2222,7 +2222,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	*skip_nal = GF_FALSE;
 
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
-	res = gf_media_vvc_parse_nalu_bs(ctx->bs_r, ctx->vvc_state, &nal_unit_type, &temporal_id, &layer_id);
+	res = gf_vvc_parse_nalu_bs(ctx->bs_r, ctx->vvc_state, &nal_unit_type, &temporal_id, &layer_id);
 	ctx->nb_nalus++;
 
 	if (res < 0) {
@@ -2293,7 +2293,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 #endif
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
-		gf_media_vvc_parse_sei(data, size, ctx->vvc_state);
+		gf_vvc_parse_sei(data, size, ctx->vvc_state);
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
 
@@ -3068,7 +3068,7 @@ naldmx_flush:
 			}
 #endif // GPAC_DISABLE_HEVC
 		} else if (ctx->codecid==GF_CODECID_VVC) {
-			slice_is_idr = gf_media_vvc_slice_is_ref(ctx->vvc_state);
+			slice_is_idr = gf_vvc_slice_is_ref(ctx->vvc_state);
 			recovery_point_valid = ctx->vvc_state->s_info.recovery_point_valid;
 			recovery_point_frame_cnt = ctx->vvc_state->s_info.gdr_recovery_count;
 
@@ -3188,7 +3188,7 @@ naldmx_flush:
 
 			recovery_point_valid = ctx->avc_state->sei.recovery_point.valid;
 			recovery_point_frame_cnt = ctx->avc_state->sei.recovery_point.frame_cnt;
-			bIntraSlice = gf_media_avc_slice_is_intra(ctx->avc_state);
+			bIntraSlice = gf_avc_slice_is_intra(ctx->avc_state);
 
 			au_sap_type = GF_FILTER_SAP_NONE;
 			if (ctx->avc_state->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE)

@@ -812,6 +812,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		u8 lid, tid;
 
 		if (full_bs_dump) {
+			vvc->parse_mode = 2;
 			if (pctx) {
 				if (!pctx->bs)
 					pctx->bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
@@ -822,8 +823,9 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 				bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
 			}
 			gf_bs_set_logger(bs, regular_bs_log, &lcbk);
-			res = gf_media_vvc_parse_nalu_bs(bs, vvc, &type, &lid, &tid);
+			res = gf_vvc_parse_nalu_bs(bs, vvc, &type, &lid, &tid);
 		} else {
+			vvc->parse_mode = 0;
 			bs = NULL;
 			u32 forb_zero = (ptr[0] & 0x80) ? 1 : 0;
 			u32 res_zero = (ptr[0] & 0x40) ? 1 : 0;
@@ -836,7 +838,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			tid -= 1;
 			type = ptr[1]>>3;
 
-			res = gf_media_vvc_parse_nalu(ptr, ptr_size, vvc, &type, &lid, &tid);
+			res = gf_vvc_parse_nalu(ptr, ptr_size, vvc, &type, &lid, &tid);
 			gf_fprintf(dump, "code=\"%d\" temporalid=\"%d\" layerid=\"%d\"", type, tid, lid);
 		}
 		if (res==-1) {
@@ -2505,7 +2507,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 	}
 
 	/*check if it is a superframe*/
-	e = gf_media_vp9_parse_superframe(pctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+	e = gf_vp9_parse_superframe(pctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
 
 	gf_fprintf(dump, "<VP%d%sFrame", vpversion, superframe_index_size ? "Super" : "");
 	if (e) {
@@ -2525,7 +2527,7 @@ static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_
 			gf_fprintf(dump, "<VP%dFrame", vpversion);
 
 		gf_fprintf(dump, " size=\"%u\"", frame_sizes[i]);
-		if (gf_media_vp9_parse_sample(pctx->bs, pctx->vpcc, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+		if (gf_vp9_parse_sample(pctx->bs, pctx->vpcc, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
 			gf_fprintf(dump, " status=\"error parsing frame\"/>\n");
 			goto exit;
 		}

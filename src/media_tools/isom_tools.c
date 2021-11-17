@@ -59,7 +59,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den, 
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 			if (rewrite_bs) {
-				gf_media_avc_change_par(avcc, ar_num, ar_den);
+				gf_avc_change_par(avcc, ar_num, ar_den);
 				e = gf_isom_avc_config_update(file, track, 1, avcc);
 			} else {
 				GF_NALUFFParam *sl = gf_list_get(avcc->sequenceParameterSets, 0);
@@ -199,7 +199,7 @@ GF_Err gf_media_change_color(GF_ISOFile *file, u32 track, s32 fullrange, s32 vid
 			|| (stype==GF_ISOM_SUBTYPE_AVC4_H264)
 	) {
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
-		gf_media_avc_change_color(avcc, fullrange, vidformat, colorprim, transfer, colmatrix);
+		gf_avc_change_color(avcc, fullrange, vidformat, colorprim, transfer, colmatrix);
 		e = gf_isom_avc_config_update(file, track, 1, avcc);
 		gf_odf_avc_cfg_del(avcc);
 		if (e) return e;

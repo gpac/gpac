@@ -53,6 +53,7 @@ typedef enum {
 	CENC_HEVC, /*HEVC, nalu-based*/
 	CENC_AV1,  /*AV1, OBU-based*/
 	CENC_VPX,  /*VPX, custom, see https://www.webmproject.org/vp9/mp4/ */
+	CENC_VVC, /*VVC, nalu-based*/
 } CENCCodecMode;
 
 typedef struct
@@ -113,6 +114,8 @@ typedef struct
 #endif
 	AV1State av1;
 	GF_VPConfig *vp9_cfg;
+
+	VVCState vvc;
 #endif
 	Bool slice_header_clear;
 
@@ -161,6 +164,17 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, (cstr->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 			cstr->nalu_size_length = hvcc ? hvcc->nal_unit_size : 0;
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+		}
+		if (!cstr->nalu_size_length) {
+			cstr->nalu_size_length = 4;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing NALU length size, assuming 4\n") );
+		}
+		break;
+	case GF_CODECID_VVC:
+		if (p) {
+			GF_VVCConfig *vvcc = gf_odf_vvc_cfg_read(p->value.data.ptr, p->value.data.size);
+			cstr->nalu_size_length = vvcc ? vvcc->nal_unit_size : 0;
+			if (vvcc) gf_odf_vvc_cfg_del(vvcc);
 		}
 		if (!cstr->nalu_size_length) {
 			cstr->nalu_size_length = 4;
@@ -536,6 +550,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	Bool is_reinit=GF_FALSE;
 	GF_AVCConfig *avccfg;
 	GF_HEVCConfig *hevccfg;
+	GF_VVCConfig *vvccfg;
 	const GF_PropertyValue *p;
 
 	p = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECODER_CONFIG);
@@ -648,6 +663,32 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				cstr->cenc_codec = CENC_VPX;
 				cstr->bytes_in_nal_hdr = 2;
 				cstr->vp9_cfg = gf_odf_vp_cfg_new();
+			}
+			break;
+		case GF_CODECID_VVC:
+			if (!p)
+				return GF_OK;
+
+			vvccfg = gf_odf_vvc_cfg_read(p->value.data.ptr, p->value.data.size);
+			if (vvccfg) cstr->nalu_size_length = vvccfg->nal_unit_size;
+
+#if !defined(GPAC_DISABLE_AV_PARSERS)
+			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_VID_PARAM);
+			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_SEQ_PARAM);
+			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_PIC_PARAM);
+#endif
+
+			//mandatory for VVC
+			cstr->slice_header_clear = GF_TRUE;
+
+			cstr->cenc_codec = CENC_VVC;
+
+			if (vvccfg) gf_odf_vvc_cfg_del(vvccfg);
+			cstr->bytes_in_nal_hdr = 3;
+
+			if (!cstr->nalu_size_length) {
+				cstr->nalu_size_length = 4;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
 			}
 			break;
 		}
@@ -1346,17 +1387,26 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 				clear_bytes = nal_size;
 				break;
 			}
-		} else {
+		} else if (cstr->cenc_codec==CENC_HEVC) {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
 			cstr->hevc.full_slice_header_parse = GF_TRUE;
-			gf_hevc_parse_nalu (samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
+			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
 				clear_bytes = cstr->hevc.s_info.payload_start_offset;
 			} else {
 				clear_bytes = nal_size;
 			}
 #endif
+		} else if (cstr->cenc_codec==CENC_VVC) {
+			u8 ntype, ntid, nlid;
+			cstr->vvc.parse_mode = 1;
+			gf_vvc_parse_nalu(samp_data + nal_start, nal_size, &cstr->vvc, &ntype, &ntid, &nlid);
+			if (ntype <= GF_VVC_NALU_SLICE_GDR) {
+				clear_bytes = cstr->vvc.s_info.payload_start_offset;
+			} else {
+				clear_bytes = nal_size;
+			}
 		}
 		gf_bs_seek(plaintext_bs, nal_start);
 	} else {
@@ -1465,6 +1515,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 			switch (cstr->cenc_codec) {
 			case CENC_AVC:
 			case CENC_HEVC:
+			case CENC_VVC:
 				nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
 				if (nalu_size == 0) {
 					continue;
@@ -1532,7 +1583,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				}
 
 				pos = gf_bs_get_position(ctx->bs_r);
-				e = gf_media_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+				e = gf_vp9_parse_superframe(ctx->bs_r, pck_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
 				if (e) return e;
 				gf_bs_seek(ctx->bs_r, pos);
 
@@ -1542,7 +1593,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					Bool key_frame;
 					u32 width = 0, height = 0, renderWidth = 0, renderHeight = 0;
 					u64 pos2 = gf_bs_get_position(ctx->bs_r);
-					e = gf_media_vp9_parse_sample(ctx->bs_r, cstr->vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
+					e = gf_vp9_parse_sample(ctx->bs_r, cstr->vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
 					if (e) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
 						return e;
