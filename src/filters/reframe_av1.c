@@ -684,7 +684,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	}
 
 	/*check if it is a superframe*/
-	e = gf_media_vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+	e = gf_vp9_parse_superframe(ctx->bs, frame_size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing superframe structure\n"));
 		return e;
@@ -692,7 +692,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	for (i = 0; i < num_frames_in_superframe; ++i) {
 		u64 pos2 = gf_bs_get_position(ctx->bs);
-		if (gf_media_vp9_parse_sample(ctx->bs, ctx->vp_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+		if (gf_vp9_parse_sample(ctx->bs, ctx->vp_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VP9Dmx] Error parsing frame\n"));
 			return e;
 		}

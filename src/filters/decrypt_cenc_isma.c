@@ -1853,6 +1853,7 @@ static GF_Err cenc_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		case GF_CODECID_HEVC:
 		case GF_CODECID_HEVC_TILES:
 		case GF_CODECID_LHVC:
+		case GF_CODECID_VVC:
 			cstr->is_nalu = GF_TRUE;;
 			break;
 		}
