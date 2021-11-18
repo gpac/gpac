@@ -2854,7 +2854,8 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 		}
 		//blacklisted filter
 		else if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0) {
-			assert(freg != dst->freg);
+			//this commented because not true for multi-pids inputs (tiling) to a decoder
+			//assert(freg != dst->freg);
 			if (!reconfigurable_only) {
 				assert(freg != pid->filter->freg);
 			}

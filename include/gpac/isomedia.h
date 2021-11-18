@@ -149,6 +149,9 @@ enum
 
 	/*! Item auxiliary reference */
 	GF_ISOM_REF_AUXR = GF_4CC( 'a', 'u', 'x', 'r' ),
+
+	/*! ref type for the VVC subpicture tracks*/
+	GF_ISOM_REF_SUBPIC = GF_4CC( 's', 'u', 'b', 'p' ),
 };
 
 /*! Track Edit list type*/
@@ -234,6 +237,8 @@ enum
 	/*VVC media types*/
 	GF_ISOM_SUBTYPE_VVC1			= GF_4CC( 'v', 'v', 'c', '1' ),
 	GF_ISOM_SUBTYPE_VVI1			= GF_4CC( 'v', 'v', 'i', '1' ),
+	GF_ISOM_SUBTYPE_VVS1			= GF_4CC( 'v', 'v', 's', '1' ),
+	GF_ISOM_SUBTYPE_VVCN			= GF_4CC( 'v', 'v', 'c', 'N' ),
 
 	/*AV1 media type*/
 	GF_ISOM_SUBTYPE_AV01 = GF_4CC('a', 'v', '0', '1'),
@@ -425,6 +430,8 @@ enum
 	GF_ISOM_BRAND_HEIM = GF_4CC('h', 'e', 'i', 'm'),
 	GF_ISOM_BRAND_AVIF = GF_4CC('a', 'v', 'i', 'f'),
 	GF_ISOM_BRAND_AVCI = GF_4CC('a', 'v', 'c', 'i'),
+	GF_ISOM_BRAND_VVIC = GF_4CC('v', 'v', 'i', 'c'),
+
 	/*other iso media brands */
 	GF_ISOM_BRAND_ISO1 = GF_4CC( 'i', 's', 'o', '1' ),
 	GF_ISOM_BRAND_ISO3 = GF_4CC( 'i', 's', 'o', '3' ),
@@ -1524,6 +1531,14 @@ GF_Err gf_isom_get_track_kind(GF_ISOFile *isom_file, u32 trackNumber, u32 index,
 \return the magic number (0 by default)
 */
 u64 gf_isom_get_track_magic(GF_ISOFile *isom_file, u32 trackNumber);
+
+/*! gets track group ID of a given track group type for this track
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param track_group_type the target track group type
+\return the track group ID, 0 if not found
+*/
+u32 gf_isom_get_track_group(GF_ISOFile *isom_file, u32 trackNumber, u32 track_group_type);
 
 /*! checks if file is a single AV file with max one audio, one video, one text and basic od/bifs
 \param isom_file the target ISO file
@@ -3243,16 +3258,16 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u
 */
 GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-/*! HEVC family type*/
+/*! VVC family type*/
 typedef enum
 {
-	/*! not an HEVC codec*/
+	/*! not an VVC codec*/
 	GF_ISOM_VVCTYPE_NONE=0,
-	/*! HEVC only*/
+	/*! VVC only*/
 	GF_ISOM_VVCTYPE_ONLY,
-	/*! HEVC+LHVC in same track*/
+	/*! VVC subpicture track*/
 	GF_ISOM_VVCTYPE_SUBPIC,
-	/*! LHVC only*/
+	/*! VVC non-VCL only*/
 	GF_ISOM_VVCTYPE_NVCL,
 } GF_ISOMVVCType;
 

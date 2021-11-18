@@ -1682,10 +1682,6 @@ sample_entry_setup:
 			use_m4sys = GF_FALSE;
 			if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
 		}
-		if (codec_id==GF_CODECID_HEVC_TILES) {
-			m_subtype = GF_ISOM_SUBTYPE_HVT1;
-			skip_dsi = GF_TRUE;
-		}
 		break;
 	case GF_CODECID_HEVC_TILES:
 		m_subtype = GF_ISOM_SUBTYPE_HVT1;
@@ -1711,6 +1707,14 @@ sample_entry_setup:
 		comp_name = "VVC";
 		use_gen_sample_entry = GF_FALSE;
 		if (xps_inband==XPS_IB_ALL) skip_dsi = GF_TRUE;
+		break;
+	case GF_CODECID_VVC_SUBPIC:
+		m_subtype = GF_ISOM_SUBTYPE_VVS1;
+		skip_dsi = GF_TRUE;
+		use_vvc = GF_TRUE;
+		use_m4sys = GF_FALSE;
+		comp_name = "VVC Subpicture";
+		use_gen_sample_entry = GF_FALSE;
 		break;
 	case GF_CODECID_MPEG1:
 	case GF_CODECID_MPEG2_422:
@@ -4317,6 +4321,25 @@ static GF_Err mp4_mux_process_item(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filte
 		item_type = GF_ISOM_SUBTYPE_PNG;
 		//not defined !
 		media_brand = GF_ISOM_SUBTYPE_PNG /* == GF_4CC('j', 'p', 'e', 'g') */;
+		break;
+
+	case GF_CODECID_VVC:
+		config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_VVCC);
+
+		if ((tkw->codecid == GF_CODECID_VVC) && !dsi) return GF_OK;
+
+		((GF_VVCConfigurationBox *)config_box)->config = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		item_type = GF_ISOM_SUBTYPE_VVC1;
+
+		if (! ((GF_VVCConfigurationBox *)config_box)->config) {
+			return GF_NON_COMPLIANT_BITSTREAM;
+		} else {
+			image_props.num_channels = 3;
+			image_props.bits_per_channel[0] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth;
+			image_props.bits_per_channel[1] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth;
+			image_props.bits_per_channel[2] = ((GF_VVCConfigurationBox *)config_box)->config->bit_depth;
+		}
+		media_brand = GF_ISOM_BRAND_VVIC;
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec %s not supported to create HEIF image items\n", gf_codecid_name(tkw->codecid) ));

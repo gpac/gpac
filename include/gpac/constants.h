@@ -260,9 +260,16 @@ GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name);
 */
 const char *gf_pixel_fmt_name(GF_PixelFormat pfmt);
 
+/*! checks if pixel format is known, does not throw error message
+\param pf_4cc pixel format code or 0
+\param pf_name pixel format name or short name or NULL
+\return GF_TRUE is format is known, GF_FALSE otherwise
+*/
+Bool gf_pixel_fmt_probe(GF_PixelFormat pf_4cc, const char *pf_name);
+
 /*! gets short name of pixel formats, as used for file extensions
 \param pfmt pixel format code
-\return pixel format short name
+\return pixel format short name, "unknown" if not found
 */
 const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt);
 
@@ -574,6 +581,7 @@ typedef enum
 
 	/*! codecid for VVC video */
 	GF_CODECID_VVC = GF_4CC('v','v','c',' '),
+	GF_CODECID_VVC_SUBPIC = GF_4CC('v','v','c','s'),
 
 	/*! codecid for USAC / xHE-AACv2 audio */
 	GF_CODECID_USAC = GF_4CC('u','s','a','c'),

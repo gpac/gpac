@@ -3123,6 +3123,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		break;
 
 	case GF_CODECID_VVC:
+	case GF_CODECID_VVC_SUBPIC:
 		if (!dsi) {
 			gf_fprintf(dump, "/>\n");
 			return;

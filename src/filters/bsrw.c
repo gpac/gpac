@@ -528,6 +528,7 @@ static GF_Err bsrw_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		break;
 #endif
 	case GF_CODECID_VVC:
+	case GF_CODECID_VVC_SUBPIC:
 		pctx->rewrite_pid_config = vvc_rewrite_pid_config;
 		break;
 	case GF_CODECID_MPEG4_PART2:
