@@ -1608,7 +1608,7 @@ src=video.264.mp4 @ reframer dst=dump.mp4
 .br
 
 .br
-This will link src file.mp4 PID (type file) to dst dump.mp4 filter (type file) because dst has no sourceID and therefore will accept input from src. Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
+This will link src file.mp4 PID (type file) to dst dump.mp4 filter (type file) because dst has no sourceID and therefore will accept input from src with the same format (extension or mime). Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
 .br
 Example
 .br
@@ -1617,6 +1617,26 @@ src=file.mp4 reframer @ dst=dump.mp4
 
 .br
 This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and src PID will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remultiplexing of the source file.
+.br
+
+.br
+An exception is made for destinations: if at least one option set on the destination is not an option of that destination filter, the destination filter will not accept files as input, potentially forcing a demultiplexing of the source.
+.br
+Example
+.br
+src=file.mp4 dst=dump.mp4:mode=frag
+.br
+
+.br
+This will prevent direct connection of PID of type file to dst, remuxing the file.
+.br
+Example
+.br
+src=file.mp4 dst=dump.mp4
+.br
+
+.br
+This will result in a direct file copy.
 .br
 
 .br
@@ -4165,6 +4185,11 @@ QT TimeCode
 VVC Video
 .br
 .TP
+.B vvs1
+.br
+VVC Subpicture Video
+.br
+.TP
 .B usac|xheaac
 .br
 xHEAAC / USAC Audio
@@ -4286,7 +4311,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1424-gdc3734f4c-master
+build: 1.1.0-DEV-rev1429-gfe9fccf0b-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

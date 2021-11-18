@@ -3914,6 +3914,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
+	u32 pid_is_file = 0;
 	Bool ignore_source_ids = GF_FALSE;
 	const char *filter_id;
 
@@ -3939,6 +3940,13 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 
 	if (filter->user_pid_props)
 		gf_filter_pid_set_args(filter, pid);
+
+	//explicit source, check if demux is forcd
+	if (!pid->filter->dynamic_filter && !pid->filter->num_input_pids) {
+		const GF_PropertyValue *st = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+		if (st && (st->value.uint==GF_STREAM_FILE))
+			pid_is_file = 1;
+	}
 
 	//since we may have inserted filters in the middle (demuxers typically), get the last explicitly
 	//loaded ID in the chain
@@ -4029,6 +4037,7 @@ single_retry:
 				continue;
 			}
 		}
+
 		//we already linked to this one
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s already linked to filter %s\n", pid->name, filter_dst->name));
@@ -4283,6 +4292,17 @@ single_retry:
 		//remember we had a sourceid match
 		found_matching_sourceid = GF_TRUE;
 
+		//we have a match, check if caps are OK
+		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
+
+		//dst filter forces demuxing, pid is file and caps matched, do not test and do not activate link resolution
+		//if can_try_link_resolution is still false at end of pass one, we will insert a reframer
+		if (cap_matched && filter_dst->force_demux && pid_is_file) {
+			if (pid_is_file==1)
+				pid_is_file = 2;
+			continue;
+		}
+
 		can_try_link_resolution = GF_TRUE;
 
 		//this is the right destination filter. We however need to check if we don't have a possible destination link
@@ -4307,14 +4327,10 @@ single_retry:
 			}
 		}
 
-
-		//we have a match, check if caps are OK
-		cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, filter_dst, NULL, NULL, pid->filter->dst_filter, -1);
-
 		//if clonable filter and no match, check if we would match the caps without caps override of dest
 		//note we don't do this on sources for the time being, since this might trigger undesired resolution of file->file
 		if (!cap_matched && filter_dst->clonable && pid->filter->num_input_pids) {
-			cap_matched  = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
+			cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
 		}
 
 		if (!cap_matched) {
@@ -4556,6 +4572,22 @@ single_retry:
 			f_idx = count-1;
 			num_pass = 1;
 			goto single_retry;
+		}
+	}
+
+	//nothing found at first pass and demuxed forced, inject a reframer filter
+	if (!num_pass && !can_try_link_resolution && (pid_is_file==2)) {
+		GF_Err e;
+		GF_Filter *f = gf_fs_load_filter(filter->session, "reframer", &e);
+		if (!e) {
+			f->dynamic_filter = GF_TRUE;
+			//force pid's filter destination to the reframer - this will in pass #2:
+			//- force solving file->reframer, loading the demuxer
+			//- since caps between pid and reframer don't match and reframer is not used by anyone, the reframer will be removed
+			//We end up with a demuxed source with no intermediate reframer filter :)
+			pid->filter->dst_filter = f;
+			num_pass = 1;
+			goto restart;
 		}
 	}
 
@@ -6239,6 +6271,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
 	u32 i, count, nb_playing=0, nb_paused=0;
 	Bool canceled = GF_FALSE;
+	Bool forced_cancel = GF_FALSE;
 	GF_FilterEvent *evt = task->udta;
 	GF_Filter *f = task->filter;
 	GF_List *dispatched_filters = NULL;
@@ -6413,8 +6446,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (!canceled && (evt->base.type==GF_FEVT_STOP) && evt->play.forced_dash_segment_switch) {
 			GF_FilterPidInst *pid_inst = gf_list_get(f->input_pids, 0);
 			//input is source filter, cancel
-			if (pid_inst && ((pid_inst->pid->filter->num_input_pids==0) || (pid_inst->pid->filter->freg->flags & GF_FS_REG_ACT_AS_SOURCE)))
+			if (pid_inst && ((pid_inst->pid->filter->num_input_pids==0) || (pid_inst->pid->filter->freg->flags & GF_FS_REG_ACT_AS_SOURCE))) {
 				canceled = GF_TRUE;
+				forced_cancel = GF_TRUE;
+			}
 		}
 	}
 
@@ -6487,8 +6522,13 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			//unlock before setting discard to avoid deadlocks during shutdown
 			gf_mx_v(f->tasks_mx);
 			if (evt->base.type==GF_FEVT_STOP) {
-				if (!canceled)
+				if (forced_cancel) {
+					//we stop propagating the event to the source, but we must reset/restart the source pid
 					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
+					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
+				} else if (!canceled) {
+					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
+				}
 			} else if (evt->base.type==GF_FEVT_PLAY) {
 				gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
 			}

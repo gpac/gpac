@@ -1646,6 +1646,11 @@ skip_date:
 			}
 		}
 
+		//unknown argument on explicit sink, not dynamic and no multi-sink target, foce demux
+		if (!found && (arg_type==GF_FILTER_ARG_EXPLICIT_SINK) && !filter->dynamic_filter && !filter->multi_sink_target) {
+			filter->force_demux = GF_TRUE;
+		}
+
 		if (!internal_arg && !opaque_arg && !opts_optional)
 			gf_fs_push_arg(filter->session, szArg, found ? 1 : 0, 0);
 
