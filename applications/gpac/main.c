@@ -1375,6 +1375,9 @@ static void gpac_load_suggested_filter_args()
 				gf_dynstrcat(&argn, "--", NULL);
 			}
 			gf_dynstrcat(&argn, arg->arg_name, NULL);
+			if ((arg->arg_type==GF_PROP_UINT) && arg->min_max_enum && strchr(arg->min_max_enum, '|')) {
+				gf_dynstrcat(&argn, arg->min_max_enum, "@");
+			}
 
 			old_val = gf_cfg_get_key(opts, "allopts", argn);
 			if (old_val) {
@@ -1537,14 +1540,33 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 	count = gf_cfg_get_key_count(opts, "allopts");
 	for (i=0; i<count; i++) {
 		Bool ffound = GF_FALSE;
+		char *enum_vals=NULL;
 		const char *arg = gf_cfg_get_key_name(opts, "allopts", i);
 		const char *aval = gf_cfg_get_key(opts, "allopts", arg);
 		if ((arg[1]=='+') && (atype!=2)) continue;
 		if ((arg[1]=='-') && (atype==2)) continue;
 
 		arg += 2;
+		char *sep = strchr(arg, '@');
+		if (sep) {
+			sep[0] = 0;
+			enum_vals = strstr(sep+1, argname);
+			if (enum_vals) {
+				if (!f_found) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unknown argument \"%s%s\" set but not used by any filter - possible matches\n",
+						(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
+					f_found = GF_TRUE;
+				}
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s (%s) in filters %s\n", arg, sep+1, aval));
+				sep[0] = '@';
+				continue;
+			}
+		}
 		u32 alen = (u32) strlen(arg);
-		if (alen>2*len) continue;
+		if (alen>2*len) {
+			if (sep) sep[0] = '@';
+			continue;
+		}
 
 		for (j=0; j<nb_filters; j++) {
 			GF_FilterStats stats;
@@ -1556,8 +1578,10 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 				break;
 			}
 		}
-		if (!ffound) continue;
-
+		if (!ffound) {
+			if (sep) sep[0] = '@';
+			continue;
+		}
 		if (gf_sys_word_match(argname, arg)) {
 			if (!f_found) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unknown argument \"%s%s\" set but not used by any filter - possible matches\n",
@@ -1566,6 +1590,7 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s in filters %s\n", arg, aval));
 		}
+		if (sep) sep[0] = '@';
 	}
 	if (!f_found) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Unknown argument \"%s%s\" set but not used by any filter - no matching argument found\n",
