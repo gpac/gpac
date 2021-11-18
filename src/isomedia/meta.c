@@ -785,6 +785,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 			case GF_ISOM_BOX_TYPE_HVCC:
 			case GF_ISOM_BOX_TYPE_AVCC:
 			case GF_ISOM_BOX_TYPE_AV1C:
+			case GF_ISOM_BOX_TYPE_VVCC:
 				prop->config = b;
 				break;
 			}

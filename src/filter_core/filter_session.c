@@ -2297,7 +2297,9 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 
 		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pidout, GF_PROP_PID_CODECID);
-		if (p && (p->value.uint==GF_CODECID_HEVC_TILES)) {
+		if (p &&
+			((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
+		) {
 			is_tiled = GF_TRUE;
 			//only print the first tile pid
 			if (num_tile_pids) {
@@ -2306,7 +2308,9 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 				for (j=i; j<f->num_output_pids; j++) {
 					GF_FilterPid *apid = gf_list_get(f->output_pids, j);
 					const GF_PropertyValue *p = gf_filter_pid_get_property(apid, GF_PROP_PID_CODECID);
-					if (p && (p->value.uint==GF_CODECID_HEVC_TILES)) {
+					if (p &&
+						((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
+					) {
 						num_tile_pids++;
 					}
 				}

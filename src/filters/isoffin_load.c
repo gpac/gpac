@@ -76,9 +76,28 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 }
 #endif
 
+static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *rname)
+{
+	u32 nb_refs = gf_isom_get_reference_count(read->mov, ch->track, rtype);
+	if (nb_refs) {
+		u32 j;
+		GF_PropertyValue prop;
+		prop.type = GF_PROP_UINT_LIST;
+		prop.value.uint_list.nb_items = nb_refs;
+		prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_refs);
+		for (j=0; j<nb_refs; j++) {
+			u32 ref_tk;
+			gf_isom_get_reference(read->mov, ch->track, rtype, j+1, &ref_tk );
+			prop.value.uint_list.vals[j] = gf_isom_get_track_id(read->mov, ref_tk);
+		}
+		gf_filter_pid_set_property_str(ch->pid, rname, &prop);
+		gf_free(prop.value.uint_list.vals);
+	}
+}
+
 static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32 stsd_idx, u32 streamtype, Bool use_iod)
 {
-	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, nb_refs, exp_refs, base_track, audio_fmt, pix_fmt;
+	u32 w, h, sr, nb_ch, nb_bps, codec_id, depends_on_id, esid, avg_rate, max_rate, buffer_size, sample_count, max_size, base_track, audio_fmt, pix_fmt;
 	GF_ESD *an_esd;
 	const char *mime, *encoding, *stxtcfg, *namespace, *schemaloc, *mime_cfg;
 #if !defined(GPAC_DISABLE_ISOM_WRITE)
@@ -150,7 +169,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 #endif
 
 	} else {
-		u32 pcm_flags, pcm_size;
+		u32 i, pcm_flags, pcm_size;
 		Bool load_default = GF_FALSE;
 
 		if (an_esd)
@@ -272,6 +291,31 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			codec_id = GF_CODECID_VVC;
 		}
 			break;
+		case GF_ISOM_SUBTYPE_VVS1:
+			base_tile_track = 0;
+			codec_id = gf_isom_get_track_group(read->mov, track, GF_4CC('a','l','t','e') );
+			for (i=0; i<gf_isom_get_track_count(read->mov); i++) {
+				u32 j, nb_refs = gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_SUBPIC);
+				for (j=0; j<nb_refs; j++) {
+					u32 ref_tk=0;
+					gf_isom_get_reference_ID(read->mov, i+1, GF_ISOM_REF_SUBPIC, j+1, &ref_tk);
+					if ((ref_tk == esid) || (ref_tk == codec_id)) {
+						base_tile_track = i+1;
+						depends_on_id = gf_isom_get_track_id(read->mov, base_tile_track);
+						break;
+					}
+				}
+				if (base_tile_track) break;
+			}
+			if (!base_tile_track) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] VVC subpicture track ID %d with no base VVC track referencing it, ignoring\n", esid));
+				if (lang_desc) gf_odf_desc_del((GF_Descriptor *)lang_desc);
+				if (dsi) gf_free(dsi);
+				return;
+			}
+			codec_id = GF_CODECID_VVC_SUBPIC;
+			gf_isom_get_tile_info(read->mov, track, 1, NULL, &srd_id, &srd_indep, &srd_full_frame, &srd_x, &srd_y, &srd_w, &srd_h);
+			break;
 
 		case GF_ISOM_SUBTYPE_AC3:
 		case GF_ISOM_SUBTYPE_EC3:
@@ -312,7 +356,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				pix_fmt=0;
 				if (streamtype==GF_STREAM_VISUAL) {
 					pix_fmt = gf_pixel_fmt_from_qt_type(m_subtype);
-					if (!pix_fmt && (gf_pixel_fmt_sname(m_subtype)!= NULL))
+					if (!pix_fmt && gf_pixel_fmt_probe(m_subtype, NULL))
 						pix_fmt = m_subtype;
 				}
 
@@ -509,6 +553,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SABT)>0) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
 		}
+		else if (gf_isom_get_reference_count(read->mov, track, GF_ISOM_REF_SUBPIC)>0) {
+			gf_filter_pid_set_property(pid, GF_PROP_PID_TILE_BASE, &PROP_BOOL(GF_TRUE));
+		}
 
 		if (srd_w && srd_h) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(srd_x, srd_y) );
@@ -520,28 +567,12 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 		}
 
-		for (exp_refs=0; exp_refs<3; exp_refs++) {
-			u32 rtype = (exp_refs==2) ? GF_ISOM_REF_TBAS : exp_refs ? GF_ISOM_REF_SABT : GF_ISOM_REF_SCAL;
-			const char *rname = (exp_refs==2) ? "isom:tbas" : exp_refs ? "isom:sabt" : "isom:scal";
-			if (!exp_refs && (codec_id==GF_CODECID_LHVC))
-				continue;
 
-			nb_refs = gf_isom_get_reference_count(read->mov, track, rtype);
-			if (nb_refs) {
-				u32 j;
-				GF_PropertyValue prop;
-				prop.type = GF_PROP_UINT_LIST;
-				prop.value.uint_list.nb_items = nb_refs;
-				prop.value.uint_list.vals = gf_malloc(sizeof(u32)*nb_refs);
-				for (j=0; j<nb_refs; j++) {
-					u32 ref_tk;
-					gf_isom_get_reference(read->mov, track, rtype, j+1, &ref_tk );
-					prop.value.uint_list.vals[j] = gf_isom_get_track_id(read->mov, ref_tk);
-				}
-				gf_filter_pid_set_property_str(pid, rname, &prop);
-				gf_free(prop.value.uint_list.vals);
-			}
-		}
+		if (codec_id !=GF_CODECID_LHVC)
+			isor_export_ref(read, ch, GF_ISOM_REF_SCAL, "isom:scal");
+		isor_export_ref(read, ch, GF_ISOM_REF_SABT, "isom:sabt");
+		isor_export_ref(read, ch, GF_ISOM_REF_TBAS, "isom:tbas");
+		isor_export_ref(read, ch, GF_ISOM_REF_SUBPIC, "isom:subp");
 
 		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
 		if (!ch->duration) {

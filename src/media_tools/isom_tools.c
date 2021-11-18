@@ -1398,7 +1398,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
-	} else if (item_type == GF_ISOM_SUBTYPE_AVC_H264) {
+	}
+
+	if (item_type == GF_ISOM_SUBTYPE_AVC_H264) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
@@ -1418,7 +1420,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
-	} else if (item_type == GF_ISOM_SUBTYPE_AV01) {
+	}
+
+	if (item_type == GF_ISOM_SUBTYPE_AV01) {
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
@@ -1437,7 +1441,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
-	} else if ((item_type == GF_ISOM_SUBTYPE_JPEG) || (mime && !strcmp(mime, "image/jpeg")) ){
+	}
+
+	if ((item_type == GF_ISOM_SUBTYPE_JPEG) || (mime && !strcmp(mime, "image/jpeg")) ){
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
@@ -1457,7 +1463,9 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		esd->slConfig->useTimestampsFlag = 1;
 		esd->slConfig->timestampResolution = 1000;
 		return esd;
-	} else if ((item_type == GF_ISOM_SUBTYPE_PNG) || (mime && !strcmp(mime, "image/png")) ){
+	}
+
+	if ((item_type == GF_ISOM_SUBTYPE_PNG) || (mime && !strcmp(mime, "image/png")) ){
 		GF_ImageItemProperties props;
 		esd = gf_odf_desc_esd_new(0);
 		if (!esd) return NULL;
@@ -1479,6 +1487,27 @@ GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id)
 		return esd;
 	}
 
+	if (item_type == GF_ISOM_SUBTYPE_VVC1) {
+		GF_ImageItemProperties props;
+		esd = gf_odf_desc_esd_new(0);
+		if (!esd) return NULL;
+
+		if (item_id > (1 << 16)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Item ID greater than 16 bits, does not fit on ES ID\n"));
+		}
+		esd->ESID = (u16)item_id;
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		esd->decoderConfig->objectTypeIndication = GF_CODECID_VVC;
+		e = gf_isom_get_meta_image_props(mp4, GF_TRUE, 0, item_id, &props);
+		if (e == GF_OK && props.config) {
+			gf_odf_vvc_cfg_write(((GF_VVCConfigurationBox *)props.config)->config, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		}
+		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		esd->slConfig->useTimestampsFlag = 1;
+		esd->slConfig->timestampResolution = 1000;
+		return esd;
+	}
 	return NULL;
 }
 

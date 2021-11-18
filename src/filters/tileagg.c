@@ -72,7 +72,6 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 {
 	u32 codec_id=0;
 	const GF_PropertyValue *p;
-	GF_HEVCConfig *hvcc;
 	GF_TileAggInput *pctx;
 
 	GF_TileAggCtx *ctx = (GF_TileAggCtx *) gf_filter_get_udta(filter);
@@ -96,12 +95,16 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (!p) TILEAGG_CFG_ERR("missing CodecID")
 	codec_id = p->value.uint;
 
-	//a single HEVC base is allowed per instance
-	if ((codec_id==GF_CODECID_HEVC) && ctx->base_ipid && (ctx->base_ipid != pid))
+	Bool is_base_codec_type = GF_FALSE;
+	if (codec_id==GF_CODECID_HEVC) is_base_codec_type = GF_TRUE;
+	else if (codec_id==GF_CODECID_VVC) is_base_codec_type = GF_TRUE;
+
+	//a single base is allowed per instance
+	if (is_base_codec_type && ctx->base_ipid && (ctx->base_ipid != pid))
 		return GF_REQUIRES_NEW_INSTANCE;
 
 	//a tile pid connected before our base, check we have the same base ID, otherwise we need a new instance
-	if ((codec_id==GF_CODECID_HEVC) && !ctx->base_ipid && ctx->base_id) {
+	if (is_base_codec_type && !ctx->base_ipid && ctx->base_id) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (!p) TILEAGG_CFG_ERR("missing PID ID")
 
@@ -114,7 +117,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	//tile pid connecting after another tile pid,  we share the same base
-	if ((codec_id==GF_CODECID_HEVC_TILES) && ctx->base_id) {
+	if (!is_base_codec_type && ctx->base_id) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 		if (!p) TILEAGG_CFG_ERR("missing PID DependencyID")
 
@@ -131,7 +134,7 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	pctx->id = p ? p->value.uint : 0;
 
-	if (!ctx->base_ipid && (codec_id==GF_CODECID_HEVC) ) {
+	if (!ctx->base_ipid && is_base_codec_type ) {
 		ctx->base_ipid = pid;
 		if (!ctx->opid) {
 			ctx->opid = gf_filter_pid_new(filter);
@@ -144,20 +147,30 @@ static GF_Err tileagg_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TILE_BASE, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SRD, NULL);
 		//we keep the SRDREF property to indicate this was a tiled HEVC reassembled
-		gf_filter_pid_set_property_str(ctx->opid, "isom:sabt", NULL);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		//not ready yet
 		if (!p) return GF_OK;
-		hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
-		ctx->nalu_size_length = hvcc ? hvcc->nal_unit_size : 4;
-		if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+
+		if (codec_id==GF_CODECID_HEVC) {
+			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(p->value.data.ptr, p->value.data.size, GF_FALSE);
+			ctx->nalu_size_length = hvcc ? hvcc->nal_unit_size : 4;
+			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+			gf_filter_pid_set_property_str(ctx->opid, "isom:sabt", NULL);
+			ctx->sabt = gf_filter_pid_get_property_str(pid, "isom:sabt");
+		} else {
+			GF_VVCConfig *vvcc = gf_odf_vvc_cfg_read(p->value.data.ptr, p->value.data.size);
+			ctx->nalu_size_length = vvcc ? vvcc->nal_unit_size : 4;
+			if (vvcc) gf_odf_vvc_cfg_del(vvcc);
+			gf_filter_pid_set_property_str(ctx->opid, "isom:subp", NULL);
+			//todo, need to handle spor override, for now we only support all subpic in order
+//			ctx->sabt = gf_filter_pid_get_property_str(pid, "isom:subp");
+		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (!p) TILEAGG_CFG_ERR("missing PID ID, base PID assigned")
 		ctx->base_id = p->value.uint;
 
-		ctx->sabt = gf_filter_pid_get_property_str(pid, "isom:sabt");
 	} else {
 		u32 base_id;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
@@ -350,7 +363,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 			GF_TileAggInput *pctx = gf_list_get(ctx->ipids, i);
 			if (pctx->pid==ctx->base_ipid) continue;
 			if (pid_id && (pctx->id != pid_id)) {
-					continue;
+				continue;
 			}
 			pck = gf_filter_pid_get_packet(pctx->pid);
 			//can happen if we drop one tile
@@ -459,17 +472,33 @@ static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 static const GF_FilterCapability TileAggCaps[] =
 {
+	//HEVC tiles
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_TILE_BASE, GF_TRUE),
-
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC_TILES),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	{0},
+	//VVC subpic
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_TILE_BASE, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC_SUBPIC),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_VVC),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_TileAggCtx, _n)

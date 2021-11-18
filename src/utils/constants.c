@@ -157,10 +157,9 @@ CodecIDReg CodecRegistry [] = {
 
 	{GF_CODECID_TMCD, 0, GF_STREAM_METADATA, "QT TimeCode", "tmcd", NULL, NULL},
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc"},
+	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac"},
 	{GF_CODECID_V210, 0, GF_STREAM_VISUAL, "v210 YUV 422 10 bits", "v210", "v210", "video/x-raw-v210"},
-
-
 };
 
 
@@ -1076,6 +1075,30 @@ GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
 	return 0;
 }
+
+GF_EXPORT
+Bool gf_pixel_fmt_probe(GF_PixelFormat pf_4cc, const char *pf_name)
+{
+	u32 i=0;
+	if (pf_name) {
+		if (!strcmp(pf_name, "none") || !strcmp(pf_name, "0")) return GF_TRUE;
+	}
+	while (GF_PixelFormats[i].pixfmt) {
+		if (pf_4cc) {
+			if (GF_PixelFormats[i].pixfmt == pf_4cc)
+				return GF_TRUE;
+		}
+		if (pf_name) {
+			if (!strcmp(GF_PixelFormats[i].name, pf_name))
+				return GF_TRUE;
+			if (GF_PixelFormats[i].sname && !strcmp(GF_PixelFormats[i].sname, pf_name))
+				return GF_TRUE;
+		}
+		i++;
+	}
+	return GF_FALSE;
+}
+
 GF_EXPORT
 const char *gf_pixel_fmt_name(GF_PixelFormat pfmt)
 {
