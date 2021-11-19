@@ -549,7 +549,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
-	sep_ext = gf_url_colon_suffix(dasher->mpd_name);
+	sep_ext = gf_url_colon_suffix(dasher->mpd_name, '=');
 	if (sep_ext) {
 		if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
 		else if (sep_ext[1]=='/') {

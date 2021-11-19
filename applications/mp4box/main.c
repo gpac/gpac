@@ -1738,7 +1738,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		if (opts[0]==':') opts += 1;
 
 		szSlot = opts;
-		next = gf_url_colon_suffix(opts);
+		next = gf_url_colon_suffix(opts, '=');
 		if (next) next[0] = 0;
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
@@ -1999,7 +1999,7 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		if (!opts || !opts[0]) return 0;
 		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
-		next = gf_url_colon_suffix(szSlot);
+		next = gf_url_colon_suffix(szSlot, '=');
 		if (next) next[0] = 0;
 
 
@@ -2059,7 +2059,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	GF_DashSegmenterInput *di;
 	Bool skip_rep_id = GF_FALSE;
 	char *other_opts = NULL;
-	char *sep = gf_url_colon_suffix(name);
+	char *sep = gf_url_colon_suffix(name, '=');
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -2071,8 +2071,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		first_opt = sep;
 		opts = sep+1;
 		while (opts) {
-			sep = gf_url_colon_suffix(opts);
-			if (sep && !strncmp(sep, "://", 3) && strncmp(sep, ":@", 2)) sep = gf_url_colon_suffix(sep+3);
+			//none of our options use filenames, so don't check for '='
+			sep = gf_url_colon_suffix(opts, 0);
+			if (sep && !strncmp(sep, "://", 3) && strncmp(sep, ":@", 2)) sep = gf_url_colon_suffix(sep+3, 0);
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "id=", 3)) {
@@ -2420,7 +2421,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	}
 
 	while (param) {
-		param = gf_url_colon_suffix(param);
+		param = gf_url_colon_suffix(param, '=');
 		if (param) {
 			*param = 0;
 			param++;
@@ -4257,7 +4258,7 @@ static u32 do_add_cat(int argc, char **argv)
 						if (strstr(src, "://"))
 							break;
 
-						opt_sep = gf_url_colon_suffix(src);
+						opt_sep = gf_url_colon_suffix(src, '=');
 						if (opt_sep)
 							opt_sep[0] = 0;
 						if (gf_file_exists(src)) {
@@ -5308,7 +5309,7 @@ static GF_Err do_itunes_tag()
 		Bool is_wma = GF_FALSE;
 		u32 tlen, tagtype=0, itag = 0;
 		s32 tag_idx=-1;
-		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags);
+		char *sep = itunes_data ? strchr(tags, '\n') : gf_url_colon_suffix(tags, '=');
 		while (sep) {
 			char *eq = strchr(sep+1, '=');
 			if (eq) eq[0] = 0;
@@ -5321,7 +5322,7 @@ static GF_Err do_itunes_tag()
 				sep[0] = 0;
 				break;
 			}
-			sep = itunes_data ? strchr(sep+1, '\n') : gf_url_colon_suffix(sep+1);
+			sep = itunes_data ? strchr(sep+1, '\n') : gf_url_colon_suffix(sep+1, '=');
 		}
 		val = strchr(tags, '=');
 		if (val) val[0] = 0;
@@ -5792,7 +5793,8 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (pack_file) {
-		char *fileName = gf_url_colon_suffix(pack_file);
+		//don't use any check for ':', the first word must be the four CC
+		char *fileName = gf_url_colon_suffix(pack_file, 0);
 		if (fileName && ((fileName - pack_file)==4)) {
 			fileName[0] = 0;
 			file = package_file(fileName + 1, pack_file, pack_wgt);

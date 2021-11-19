@@ -1684,15 +1684,16 @@ char* gf_file_ext_start(const char* filename)
 	return NULL;
 }
 
+
 GF_EXPORT
-char* gf_url_colon_suffix(const char *path)
+char* gf_url_colon_suffix(const char *path, char assign_sep)
 {
 	char *sep = strchr(path, ':');
 	if (!sep) return NULL;
 
 	//handle Z:\ and Z:/
 	if ((path[1]==':') && ( (path[2]=='/') || (path[2]=='\\') ) )
-		return gf_url_colon_suffix(path+2);
+		return gf_url_colon_suffix(path+2, assign_sep);
 
 	if (!strncmp(path, "gfio://", 7) || !strncmp(path, "gmem://", 7)) {
 		return strchr(path+7, ':');
@@ -1711,7 +1712,7 @@ char* gf_url_colon_suffix(const char *path)
 			if sep[1]==':', then sep[2] is valid (0 or something else), no need to check for len
 		*/
 		if ((sep[1]==':') && ( (sep[2]=='/') || (sep[2]=='\\') ) ) {
-			return gf_url_colon_suffix(sep+2);
+			return gf_url_colon_suffix(sep+2, assign_sep);
 		}
 		//find closest : or /, if : is before / consider this is a port or an IPv6 address and check next : after /
 		next_colon = strchr(sep, ':');
@@ -1739,5 +1740,16 @@ char* gf_url_colon_suffix(const char *path)
 		}
 		return next_colon;
 	}
+
+	if (sep && assign_sep) {
+		char *file_ext = strchr(path, '.');
+		char *assign = strchr(path, assign_sep);
+		if (assign && assign>file_ext) assign = NULL;
+		if (assign) file_ext = NULL;
+		if (file_ext && (file_ext>sep)) {
+			sep = strchr(file_ext, ':');
+		}
+	}
 	return sep;
 }
+

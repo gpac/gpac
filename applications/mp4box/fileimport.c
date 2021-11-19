@@ -565,10 +565,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	par_d = par_n = -1;
 	force_par = rewrite_bs = GF_FALSE;
 
-
 	ext_start = gf_file_ext_start(final_name);
 	ext = strrchr(ext_start ? ext_start : final_name, '#');
-	if (!ext) ext = gf_url_colon_suffix(final_name);
+	if (!ext) ext = gf_url_colon_suffix(final_name, '=');
 	char c_sep = ext ? ext[0] : 0;
 	if (ext) ext[0] = 0;
  	if (!strlen(final_name) || !strcmp(final_name, "self")) {
@@ -579,7 +578,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 	if (ext) ext[0] = c_sep;
 
-	ext = gf_url_colon_suffix(final_name);
+	ext = gf_url_colon_suffix(final_name, '=');
 
 #define GOTO_EXIT(_msg) if (e) { fail_msg = _msg; goto exit; }
 
@@ -590,7 +589,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
-		char *ext2 = gf_url_colon_suffix(ext+1);
+		char *ext2 = gf_url_colon_suffix(ext+1, '=');
 
 		if (ext2) ext2[0] = 0;
 
@@ -1144,7 +1143,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	}
 	else if (ext) {
 		ext++;
-		char *sep = gf_url_colon_suffix(ext);
+		char *sep = gf_url_colon_suffix(ext, '=');
 		if (sep) sep[0] = 0;
 
 		//we have a fragment, we need to check if the track or the program is present in source
@@ -2225,8 +2224,8 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		multi_cat[0] = 0;
 		multi_cat = &multi_cat[1];
 	}
-	opts = gf_url_colon_suffix(fileName);
 
+	opts = gf_url_colon_suffix(fileName, '=');
 	e = GF_OK;
 
 	/*if options are specified, reimport the file*/
@@ -2856,7 +2855,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, GF
 	sep[0] = 0;
 	sep = strchr(cat_enum.szRad2, '%');
 	if (!sep) sep = strchr(cat_enum.szRad2, '#');
-	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2);
+	if (!sep) sep = gf_url_colon_suffix(cat_enum.szRad2, '=');
 	strcpy(cat_enum.szOpt, "");
 	if (sep) {
 		if (strlen(sep) >= sizeof(cat_enum.szOpt)) {

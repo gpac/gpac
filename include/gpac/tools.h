@@ -1470,7 +1470,6 @@ char* gf_file_basename(const char* filename);
 */
 char* gf_file_ext_start(const char* filename);
 
-
 /*!\brief FileEnum info object
 
 The FileEnumInfo object is used to get file attributes upon enumeration of a directory.

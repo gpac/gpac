@@ -2728,7 +2728,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 		char *sep;
 
 		if (use_old_syntax) {
-			sep = gf_url_colon_suffix(url_search);
+			sep = gf_url_colon_suffix(url_search, 0);
 		} else {
 			sep = strstr(url_search, "::");
 		}
