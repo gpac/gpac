@@ -1181,7 +1181,8 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	assert(name);
 	if (err_code) *err_code = GF_OK;
 
-	sep = gf_fs_path_escape_colon(fsess, name);
+	//the first string before any option sep MUST be the filter registry name, so we don't use gf_fs_path_escape_colon here
+	sep = strchr(name, fsess->sep_args);
 	if (sep) {
 		args = sep+1;
 		len = (u32) (sep - name);

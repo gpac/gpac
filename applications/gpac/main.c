@@ -4439,7 +4439,7 @@ static const char *make_fileio(const char *inargs, const char **out_arg, Bool is
 {
 	FileIOCtx *ioctx;
 	GF_FileIO *fio;
-	char *sep = (char *) gf_url_colon_suffix(inargs);
+	char *sep = (char *) gf_url_colon_suffix(inargs, separator_set[1]);
 	*out_arg = NULL;
 	if (sep) sep[0] = 0;
 

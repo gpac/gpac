@@ -888,7 +888,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 	if (profile) {
 		prof_len = (u32) strlen(profile);
-		prof_opt = gf_url_colon_suffix(profile);
+		prof_opt = gf_url_colon_suffix(profile, 0);
 		if (prof_opt) {
 			prof_len -= (u32) strlen(prof_opt);
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;

@@ -42,12 +42,12 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
-	const char *res, *arg;
+	const char *res;
 	if (!path) return NULL;
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
 
-	res = gf_url_colon_suffix(path);
+	res = gf_url_colon_suffix(path, sess->sep_name);
 	//if path is one of this proto, check if we have a port specified
 	if (!strncmp(path, "tcp://", 6)
 		|| !strncmp(path, "udp://", 6)
@@ -80,11 +80,6 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 			if (port) res = sep2;
 		}
 	}
-
-
-	arg = strchr(path, sess->sep_name);
-	if (arg && res && (res > arg))
-		res = gf_url_colon_suffix(arg+1);
 	return res;
 }
 
@@ -1406,7 +1401,31 @@ skip_date:
 			}
 			if (sep) {
 				escaped = strstr(sep, szEscape);
-				if (escaped) sep = escaped;
+				if (escaped) {
+					sep = escaped;
+				}
+				/*no escape, special case for src= and dst= where we need to detect if this is a filename with an option
+				separator in the name, i.e. differentiate
+					foo:bar=toto.mp4:bar2=z
+				and
+					foo:toto.mp4:bar2=z
+
+				We do that by checking that if a file extension is present after the option sep, we don't have an assign ('=')
+				in-between the option sep and the extension.
+				If no assign is persent, ignore all option separators before the file extension
+				cf #1942
+
+				Note that this only works if file extension is present. If not, escape mechanism (eg :gpac:) must be used
+				*/
+				else if (!strncmp(args, szSrc, 4) || !strncmp(args, szDst, 4)) {
+					char *ext_sep = strchr(args, '.');
+					if (ext_sep && (ext_sep>sep)) {
+						char *assign = strchr(args+4, filter->session->sep_name);
+						if (!assign || (assign>ext_sep)) {
+							sep = strchr(ext_sep+1, filter->session->sep_args);
+						}
+					}
+				}
 			}
 
 			if (sep && !strncmp(args, szSrc, 4) && !escaped && absolute_url && !internal_url) {

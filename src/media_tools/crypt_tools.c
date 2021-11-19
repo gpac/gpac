@@ -744,7 +744,7 @@ static GF_Err gf_crypt_file_ex(GF_ISOFile *mp4, const char *drm_file, const char
 	if (gf_isom_has_keep_utc_times(mp4))
 		gf_dynstrcat(&szArgs, ":keep_utc", NULL);
 
-	arg_dst = gf_url_colon_suffix(dst_file);
+	arg_dst = gf_url_colon_suffix(dst_file, '=');
 	if (arg_dst) {
 		gf_dynstrcat(&szArgs, arg_dst, NULL);
 		arg_dst[0]=0;

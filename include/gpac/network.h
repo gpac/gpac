@@ -134,12 +134,16 @@ void gf_url_to_fs_path(char *url);
 /*!
 \brief get first after a filename/path
 
-Returns a pointer to the first colon at the end of a filename or URL, if any
+Returns a pointer to the first colon at the end of a filename or URL, if any.
+
+If assign_sep is specified, for example '=', the function will make sure that the colon is after the file extension if found and that '=' is not present between colon and file ext.
+This is used to parse 'a:b.mp4:c' (expected result ':c...' and not ':b...') vs 'a:b=c.mp4' ' (expected result ':b') 
+
 \param URL path or URL to inspect
+\param assign_sep value of assignment operand character. If 0, only checks for colon, otherwise chec that no assign sep or colon is present before file extension, if present
 \return position of first colon, or NULL
 */
-char* gf_url_colon_suffix(const char* URL);
-
+char* gf_url_colon_suffix(const char* URL, char assign_sep);
 
 /*!
 \brief Extract resource name from URL
