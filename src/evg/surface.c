@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -444,11 +444,11 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 	if (surf->ext3d && size_changed) {
 		surf->ext3d->depth_buffer = NULL;
 
-		if (!surf->ext3d->vp_w || !surf->ext3d->vp_h) {
-			surf->ext3d->vp_x = 0;
-			surf->ext3d->vp_y = 0;
-			surf->ext3d->vp_w = surf->width;
-			surf->ext3d->vp_h = surf->height;
+		if (!surf->vp_w || !surf->vp_h) {
+			surf->vp_x = 0;
+			surf->vp_y = 0;
+			surf->vp_w = surf->width;
+			surf->vp_h = surf->height;
 		}
 	}
 	return GF_OK;
@@ -1172,23 +1172,47 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 
 		switch (sten->type) {
 		case GF_STENCIL_TEXTURE:
-			if (!surf->is_shader) {
-				EVG_Texture *texture = (EVG_Texture *) sten;
-				if (!texture->tx_callback && ! texture->pixels)
-					return GF_BAD_PARAM;
 
-				if (texture->mod & GF_TEXTURE_FLIP_Y) {
-					if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
-				} else {
-					if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+			//in 3D mode, we only need the orginal stencil matrix
+			if (!surf->is_3d_matrix) {
+				if (!surf->is_shader) {
+					EVG_Texture *texture = (EVG_Texture *) sten;
+					if (!texture->tx_callback && ! texture->pixels)
+						return GF_BAD_PARAM;
+
+					if (texture->mod & GF_TEXTURE_FLIP_Y) {
+						if (!surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+					} else {
+						if (surf->center_coords) gf_mx2d_add_scale(&sten->smat, FIX_ONE, -FIX_ONE);
+					}
+				}
+
+				//add texture transform (normalized)
+				gf_mx2d_add_matrix(&sten->smat, &sten->smat_bck);
+				if (sten->auto_mx) {
+					EVG_Texture *_tx = (EVG_Texture *)sten;
+					//move translation to texture size
+					sten->smat.m[2] *= _tx->width;
+					sten->smat.m[5] *= _tx->height;
+					//in auto mx, matrix is given inverted, as in openGL
+					gf_mx2d_inverse(&sten->smat);
+
+					//add texture -> untransformed path bounds matrix scale and translation
+					gf_mx2d_add_scale(&sten->smat, surf->path_bounds.width/_tx->width, surf->path_bounds.height/_tx->height);
+					gf_mx2d_add_translation(&sten->smat, -surf->path_bounds.width/2, surf->path_bounds.height/2);
+
+					//add final path matrix
+					gf_mx2d_add_matrix(&sten->smat, &surf->shader_mx);
+				}
+
+				//add surface matrix matrix
+				gf_mx2d_add_matrix(&sten->smat, mat);
+				gf_mx2d_inverse(&sten->smat);
+			} else {
+				if (!sten->auto_mx) {
+					return GF_NOT_SUPPORTED;
 				}
 			}
-			gf_mx2d_add_matrix(&sten->smat, &sten->smat_bck);
-			if (sten->auto_mx)
-				gf_mx2d_add_matrix(&sten->smat, &surf->shader_mx);
-
-			gf_mx2d_add_matrix(&sten->smat, mat);
-			gf_mx2d_inverse(&sten->smat);
 
 			evg_texture_init(sten, surf);
 			if (surf->is_shader) {
@@ -1200,8 +1224,20 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 		case GF_STENCIL_LINEAR_GRADIENT:
 		{
 			EVG_LinearGradient *lin = (EVG_LinearGradient *)sten;
-			gf_mx2d_add_matrix(&sten->smat, &sten->smat_bck);
-			gf_mx2d_add_matrix(&sten->smat, mat);
+			gf_mx2d_copy(sten->smat, sten->smat_bck);
+			if (!surf->is_3d_matrix) {
+				if (sten->auto_mx) {
+					//add [0,1] -> untransformed path bounds and path translation
+					gf_mx2d_add_translation(&sten->smat, gf_divfix(surf->path_bounds.x, surf->path_bounds.width), gf_divfix(surf->path_bounds.y, surf->path_bounds.height));
+					gf_mx2d_add_scale(&sten->smat, surf->path_bounds.width, surf->path_bounds.height);
+					gf_mx2d_add_matrix(&sten->smat, &surf->shader_mx);
+				}
+				gf_mx2d_add_matrix(&sten->smat, mat);
+			} else {
+				if (!sten->auto_mx) {
+					return GF_NOT_SUPPORTED;
+				}
+			}
 			gf_mx2d_inverse(&sten->smat);
 			/*and finalize matrix in gradient coord system*/
 			gf_mx2d_add_matrix(&sten->smat, &lin->vecmat);
@@ -1209,20 +1245,32 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 
 			/*init*/
 			evg_gradient_precompute((EVG_BaseGradient *)lin, surf);
-
 		}
 		break;
 		case GF_STENCIL_RADIAL_GRADIENT:
 		{
 			EVG_RadialGradient *rad = (EVG_RadialGradient*)sten;
 			gf_mx2d_copy(sten->smat, sten->smat_bck);
-			gf_mx2d_add_matrix(&sten->smat, mat);
+			if (!surf->is_3d_matrix) {
+				if (sten->auto_mx) {
+					//add [0,1] -> untransformed path bounds and path translation
+					gf_mx2d_add_translation(&sten->smat, gf_divfix(surf->path_bounds.x, surf->path_bounds.width), gf_divfix(surf->path_bounds.y, surf->path_bounds.height));
+					gf_mx2d_add_scale(&sten->smat, surf->path_bounds.width, surf->path_bounds.height);
+					gf_mx2d_add_matrix(&sten->smat, &surf->shader_mx);
+				}
+				gf_mx2d_add_matrix(&sten->smat, mat);
+			} else {
+				if (!sten->auto_mx) {
+					return GF_NOT_SUPPORTED;
+				}
+			}
 			gf_mx2d_inverse(&sten->smat);
 			gf_mx2d_add_translation(&sten->smat, -rad->center.x, -rad->center.y);
 			gf_mx2d_add_scale(&sten->smat, gf_invfix(rad->radius.x), gf_invfix(rad->radius.y));
 
 			rad->d_f.x = gf_divfix(rad->focus.x - rad->center.x, rad->radius.x);
 			rad->d_f.y = gf_divfix(rad->focus.y - rad->center.y, rad->radius.y);
+
 			/*init*/
 			evg_radial_init(rad);
 			evg_gradient_precompute((EVG_BaseGradient *)rad, surf);

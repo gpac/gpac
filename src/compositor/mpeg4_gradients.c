@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -149,7 +149,7 @@ static void LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	/*translate to the center of the bounds*/
 	gf_mx2d_add_translation(mat, gf_divfix(bounds->x, bounds->width), gf_divfix(bounds->y - bounds->height, bounds->height));
 	/*scale back to object coordinates - the gradient is still specified in texture coordinates
-	i order to avoid overflows in fixed point*/
+	in order to avoid overflows in fixed point*/
 	gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 
 	gf_evg_stencil_set_linear_gradient(stencil, lg->startPoint.x, lg->startPoint.y, lg->endPoint.x, lg->endPoint.y);
@@ -291,6 +291,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	/*back to GL bottom->up order*/
 	gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
 	gf_evg_stencil_set_matrix(stenc, &mat);
+	gf_evg_stencil_set_auto_matrix(stenc, GF_FALSE);
 
 	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
 	gf_evg_surface_set_path(surface, path);
@@ -491,6 +492,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	/*back to GL bottom->up order*/
 	gf_mx2d_add_scale(&mat, FIX_ONE, -FIX_ONE);
 	gf_evg_stencil_set_matrix(stenc, &mat);
+	gf_evg_stencil_set_auto_matrix(stenc, GF_FALSE);
 
 	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
 	gf_evg_surface_set_path(surface, path);
@@ -598,10 +600,11 @@ static void RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Matrix2
 	GradientGetMatrix((GF_Node *) rg->transform, mat);
 
 	gf_evg_stencil_set_radial_gradient(stencil, rg->center.x, rg->center.y, rg->focalPoint.x, rg->focalPoint.y, rg->radius, rg->radius);
+
 	/*move to center of bounds*/
 	gf_mx2d_add_translation(mat, gf_divfix(bounds->x, bounds->width), gf_divfix(bounds->y - bounds->height, bounds->height));
 	/*scale back to object coordinates - the gradient is still specified in texture coordinates
-	i order to avoid overflows in fixed point*/
+	in order to avoid overflows in fixed point*/
 	gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 }
 

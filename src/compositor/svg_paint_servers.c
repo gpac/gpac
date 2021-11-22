@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato - Jean le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -445,6 +445,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	}
 
 	gf_evg_stencil_set_matrix(stencil, &mat);
+	gf_evg_stencil_set_auto_matrix(stencil, GF_FALSE);
 	gf_evg_surface_set_raster_level(surface, GF_RASTER_HIGH_QUALITY);
 	gf_evg_surface_set_path(surface, path);
 	gf_evg_surface_fill(surface, stencil);

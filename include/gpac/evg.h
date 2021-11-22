@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Embedded Vector Graphics engine
@@ -162,6 +162,13 @@ GF_Err gf_evg_stencil_set_matrix(GF_EVGStencil *stencil, GF_Matrix2D *mat);
 Bool gf_evg_stencil_get_matrix(GF_EVGStencil * stencil, GF_Matrix2D *mat);
 
 /*! sets stencil transformation matrix auto mode.
+
+When auto matrix mode is activated, the stencil matrix only describes texture mapping transform in uv space (normalized UV coordinates, openGL like),
+and final transformation to raster coordinates is done internally.
+When auto matrix mode is not activated,, the stencil matrix must describe the complete transformation from uv space to raster coordinates (consequently, the matrix usually includes the final path transformation).
+
+Stencils are by default created in auto matrix mode.
+
 \param stencil the target stencil
 \param auto_on  If true,  the surface current matrix will be added to the stencil matrix when drawing, otherwise the stencil matrix is in final surface coordinates
 \return error if any
@@ -468,7 +475,13 @@ GF_Err gf_evg_surface_set_matrix(GF_EVGSurface *surf, GF_Matrix2D *mat);
 
 /*! sets the given matrix as the current transformations for all drawn paths. The matrix shall be a projection matrix (ortho or perspective)
 with normalized coordinates in [-1,1]. It may also contain a modelview part.
-\warning 2D rasterizer does not work with texture coordinates, and perspective correct texture mapping is not supported for 2D rasterizer. Use this only for objects with plain colors for predictable results.
+
+Perspective correct mapping is supported for textures and gradients:
+- the bottom-left corner of the path bounds is texture coordinate 0,0
+- the top-right corner of the path bounds is texture coordinate 1,1
+
+\warning When 3D matrices are used, filling a path shall be done with a stencil in auto matrix mode.
+
 \note this is only used for 2D rasterizer, and ignored in 3D mode
 \param surf the surface object
 \param mat the matrix to set; if NULL, resets the current transformation

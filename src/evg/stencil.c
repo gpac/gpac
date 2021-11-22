@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -188,6 +188,7 @@ GF_EVGStencil * gf_evg_stencil_new(GF_StencilType type)
 		gf_mx2d_init(st->pmat);
 		gf_mx2d_init(st->smat);
 		gf_cmx_init(&st->cmat);
+		st->auto_mx = 1;
 	}
 	return st;
 }
@@ -215,15 +216,15 @@ void gf_evg_stencil_delete(GF_EVGStencil * st)
 GF_EXPORT
 GF_Err gf_evg_stencil_set_auto_matrix(GF_EVGStencil * st, Bool auto_on)
 {
-	if (!st) return GF_BAD_PARAM;
-	st->auto_mx = auto_on ? 1 : 0;
-	return GF_OK;
+       if (!st) return GF_BAD_PARAM;
+       st->auto_mx = auto_on ? 1 : 0;
+       return GF_OK;
 }
 
 GF_EXPORT
 Bool gf_evg_stencil_get_auto_matrix(GF_EVGStencil * st)
 {
-	return st ? st->auto_mx : GF_FALSE;
+       return st ? st->auto_mx : GF_FALSE;
 }
 
 GF_EXPORT
@@ -242,7 +243,6 @@ GF_EXPORT
 Bool gf_evg_stencil_get_matrix(GF_EVGStencil * st, GF_Matrix2D *mx)
 {
 	if (!st || !mx || (st->type>GF_STENCIL_TEXTURE)) return GF_FALSE;
-	if (gf_mx2d_is_identity(st->smat)) return GF_FALSE;
 	gf_mx2d_copy(*mx, st->smat);
 	return GF_TRUE;
 }
@@ -299,12 +299,40 @@ GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * st)
 	return _this->color;
 }
 
+#define edgeFunction_pre2(a, b_minus_a_x, b_minus_a_y) \
+	( (_x - a.x) * (b_minus_a_y) - (_y - a.y) * (b_minus_a_x) ) / surf->tri_area
+
+#define PERSP_VARS_DECL \
+	GF_EVGSurface *surf = rctx->surf; \
+	Float bc1 = edgeFunction_pre2(surf->s_v2, surf->s3_m_s2_x, surf->s3_m_s2_y); \
+	Float bc3 = edgeFunction_pre2(surf->s_v1, surf->s2_m_s1_x, surf->s2_m_s1_y); \
+	Float bc1_inc = surf->s3_m_s2_y / surf->tri_area; \
+	Float bc3_inc = surf->s2_m_s1_y / surf->tri_area; \
+	Float pbc1 = bc1 * surf->s_v1.q; \
+	Float pbc3 = bc3 * surf->s_v3.q; \
+	Float pbc2 = (1.0 - bc1 - bc3) * surf->s_v2.q; \
+	Float pbc1_inc = bc1_inc * surf->s_v1.q; \
+	Float pbc3_inc = bc3_inc * surf->s_v3.q; \
+	Float pbc2_inc = - (bc1_inc + bc3_inc) * surf->s_v2.q; \
+	Float persp_denum = pbc1 + pbc2 + pbc3; \
+	Float pers_denum_inc = pbc1_inc + pbc2_inc + pbc3_inc;
+
+
+
+//we map texture coords, pt1 is {0,0} pt2 is {1,0} pt3 is {0,1}
+//y flip is done by switching the points in evg_raster_render_path_3d
+#define PERSP_APPLY \
+	Float ix = ((Float) pbc2) / persp_denum;\
+	Float iy = ((Float) pbc3) / persp_denum;\
+	pbc2 += pbc2_inc;\
+	pbc3 += pbc3_inc;\
+	persp_denum += pers_denum_inc;
 
 /*
 	linear gradient stencil
 */
 
-static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 x, s32 y, u32 count)
+static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u32 count)
 {
 	Fixed _res;
 	s32 val;
@@ -315,17 +343,35 @@ static void lg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 x, s32 y, u32 
 
 	assert(data);
 
-	/*no need to move x & y to fixed*/
-	_res = (Fixed) (x * _this->smat.m[0] + y * _this->smat.m[1] + _this->smat.m[2]);
-	while (count) {
-		val = FIX2INT(_res);
-		_res += _this->smat.m[0];
+	if (rctx->surf->is_3d_matrix) {
+		PERSP_VARS_DECL
 
-		col = gradient_get_color((EVG_BaseGradient *)_this, val );
-		if (data_wide) *data_wide++ = evg_col_to_wide(col);
-		else *data++ = col;
+		while (count) {
 
-		count--;
+			PERSP_APPLY
+
+			gf_mx2d_apply_coords(&_this->smat, &ix, &iy);
+			val = FIX2INT(ix);
+
+			col = gradient_get_color((EVG_BaseGradient *)_this, val );
+			if (data_wide) *data_wide++ = evg_col_to_wide(col);
+			else *data++ = col;
+
+			count--;
+		}
+	} else {
+		/*no need to move x & y to fixed*/
+		_res = (Fixed) (_x * _this->smat.m[0] + _y * _this->smat.m[1] + _this->smat.m[2]);
+		while (count) {
+			val = FIX2INT(_res);
+			_res += _this->smat.m[0];
+
+			col = gradient_get_color((EVG_BaseGradient *)_this, val );
+			if (data_wide) *data_wide++ = evg_col_to_wide(col);
+			else *data++ = col;
+
+			count--;
+		}
 	}
 }
 
@@ -394,25 +440,49 @@ static void rg_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u3
 
 	assert(data);
 	
-	x = INT2FIX(_x);
-	y = INT2FIX(_y);
-	gf_mx2d_apply_coords(&_this->smat, &x, &y);
+	if (rctx->surf->is_3d_matrix) {
+		PERSP_VARS_DECL
 
-	dx = x - _this->d_f.x;
-	dy = y - _this->d_f.y;
-	while (count) {
-		b = gf_mulfix(_this->rad, gf_mulfix(dx, _this->d_f.x) + gf_mulfix(dy,  _this->d_f.y));
-		val = gf_mulfix(b, b) + gf_mulfix(_this->rad, gf_mulfix(dx, dx)+gf_mulfix(dy, dy));
-		b += gf_sqrt(val);
-		pos = FIX2INT(EVGGRADIENTBUFFERSIZE*b);
+		while (count) {
 
-		col = gradient_get_color((EVG_BaseGradient *)_this, pos);
-		if (data_wide) *data_wide++ = evg_col_to_wide(col);
-		else *data++ = col;
+			PERSP_APPLY
 
-		dx += _this->d_i.x;
-		dy += _this->d_i.y;
-		count--;
+			gf_mx2d_apply_coords(&_this->smat, &ix, &iy);
+
+			dx = ix - _this->d_f.x;
+			dy = iy - _this->d_f.y;
+			b = gf_mulfix(_this->rad, gf_mulfix(dx, _this->d_f.x) + gf_mulfix(dy,  _this->d_f.y));
+			val = gf_mulfix(b, b) + gf_mulfix(_this->rad, gf_mulfix(dx, dx)+gf_mulfix(dy, dy));
+			b += gf_sqrt(val);
+			pos = FIX2INT(EVGGRADIENTBUFFERSIZE*b);
+
+			col = gradient_get_color((EVG_BaseGradient *)_this, pos );
+			if (data_wide) *data_wide++ = evg_col_to_wide(col);
+			else *data++ = col;
+
+			count--;
+		}
+	} else {
+		x = INT2FIX(_x);
+		y = INT2FIX(_y);
+		gf_mx2d_apply_coords(&_this->smat, &x, &y);
+
+		dx = x - _this->d_f.x;
+		dy = y - _this->d_f.y;
+		while (count) {
+			b = gf_mulfix(_this->rad, gf_mulfix(dx, _this->d_f.x) + gf_mulfix(dy,  _this->d_f.y));
+			val = gf_mulfix(b, b) + gf_mulfix(_this->rad, gf_mulfix(dx, dx)+gf_mulfix(dy, dy));
+			b += gf_sqrt(val);
+			pos = FIX2INT(EVGGRADIENTBUFFERSIZE*b);
+
+			col = gradient_get_color((EVG_BaseGradient *)_this, pos);
+			if (data_wide) *data_wide++ = evg_col_to_wide(col);
+			else *data++ = col;
+
+			dx += _this->d_i.x;
+			dy += _this->d_i.y;
+			count--;
+		}
 	}
 }
 
@@ -896,14 +966,14 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 	y0 = FIX2INT(y);
 	if (y0<0) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T) {
-			while (y0<0) y0 += _this->height;
+			while (y0<0) y0 += (s32) _this->height;
 		} else if (_this->fill_pad_color)
 			pad_y = _this->fill_pad_color;
 		else
 			y0 = 0;
-	} else if (y0>=(s32) _this->height) {
+	} else if (y0 >= (s32) _this->height) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T)
-			y0 = y0 % _this->height;
+			while (y0 >= (s32) _this->height) y0 -= (s32) _this->height;
 		else if (_this->fill_pad_color)
 			pad_y = _this->fill_pad_color;
 		else
@@ -927,7 +997,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 		x0 = FIX2INT(x);
 		if (x0 > m_width) {
 			if (repeat_s) {
-				x0 = (x0) % _this->width;
+				while (x0 > _this->width) x0 -= _this->width;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
 				goto write_pix;
@@ -1200,7 +1270,7 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32
 			y0 = 0;
 	} else if (y0>=(s32) _this->height) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T)
-			y0 = y0 % _this->height;
+			while (y0 > _this->height) y0 -= _this->height;
 		else if (_this->fill_pad_color_wide)
 			pad_y = _this->fill_pad_color_wide;
 		else
@@ -1254,6 +1324,378 @@ write_pix:
 		case 2:
 			pix = gf_evg_argb_to_ayuv_wide(rctx->surf, pix);
 			break;
+		}
+
+		*data++ = pix;
+		count--;
+	}
+}
+
+static void tex_fill_run_3d(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u32 count)
+{
+	s32 cx, x0, y0, m_width, m_height;
+	u32 pix;
+	Bool has_alpha, has_cmat, repeat_s, repeat_t;
+	Fixed x, y;
+#if USE_BILINEAR
+	s32 incx, incy;
+#endif
+	EVG_YUVType yuv_type = rctx->surf->yuv_type;
+	u32 *data = rctx->stencil_pix_run;
+	EVG_Texture *_this = (EVG_Texture *) p;
+
+
+#if USE_BILINEAR
+	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? 1 : 0;
+	incx = (_this->inc_x>0) ? 1 : -1;
+	incy = (_this->inc_y>0) ? 1 : -1;
+#endif
+
+	Bool do_mx = gf_mx2d_is_identity(_this->smat_bck) ? GF_FALSE : GF_TRUE;
+
+	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
+	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+
+	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
+	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
+
+	m_width = _this->width-1;
+	m_height = _this->height-1;
+
+	PERSP_VARS_DECL
+
+	while (count) {
+		PERSP_APPLY
+
+		if (do_mx)
+			gf_mx2d_apply_coords(&_this->smat_bck, &ix, &iy);
+
+		x = m_width * ix;
+		y = m_height * iy;
+
+		x0 = FIX2INT(x);
+
+		if (x0 > m_width) {
+			if (repeat_s) {
+				while (x0>m_width) x0 -= m_width;
+			} else if (_this->fill_pad_color) {
+				pix = _this->fill_pad_color;
+				goto write_pix;
+			} else {
+				x0 = m_width;
+			}
+		}
+		else if (x0 < 0) {
+			if (repeat_s) {
+				while (x0<0) x0 += m_width;
+			} else if (_this->fill_pad_color) {
+				pix = _this->fill_pad_color;
+				goto write_pix;
+			} else {
+				x0 = 0;
+			}
+		}
+
+		y0 = FIX2INT(y);
+		if (y0 > m_height) {
+			if (repeat_t) {
+				while (y0>m_height) y0 -= m_height;
+			} else if (_this->fill_pad_color) {
+				pix = _this->fill_pad_color;
+				goto write_pix;
+			} else {
+				y0 = m_height;
+			}
+		}
+		else if (y0 < 0) {
+			if (repeat_t) {
+				while (y0<0) y0 += m_height;
+			} else if (_this->fill_pad_color) {
+				pix = _this->fill_pad_color;
+				goto write_pix;
+			} else {
+				y0 = 0;
+			}
+		}
+
+		pix = _this->tx_get_pixel(_this, x0, y0, rctx);
+
+		/*bilinear filtering*/
+#if USE_BILINEAR
+		if (use_bili) {
+			Bool do_lerp=GF_TRUE;
+			u32 p00, p01, p10, p11;
+			s32 x1, y1;
+			u8 tx, ty;
+
+			tx = FIX2INT(gf_muldiv(x, 255, m_width) );
+			ty = FIX2INT(gf_muldiv(y, 255, m_height) );
+
+			x1 = (x0+incx);
+			if (x1<0) {
+				if (!repeat_s)
+					do_lerp=GF_FALSE;
+				else
+					while (x1<0) x1 += m_width;
+			} else {
+				if (!repeat_s && (x1 > m_width))
+					do_lerp=GF_FALSE;
+				else
+					x1 = x1 % m_width;
+			}
+			y1 = (y0+incy);
+			if (y1<0) {
+				if (!repeat_t)
+					do_lerp=GF_FALSE;
+				else
+					while (y1<0) y1 += m_height;
+			} else {
+				if (!repeat_t && (y1 > m_height))
+					do_lerp=GF_FALSE;
+				else
+					y1 = y1 % m_height;
+			}
+
+			if (!do_lerp) goto write_pix;
+
+			if (incx>0) {
+				if (x1<x0) tx = 255-tx;
+			} else {
+				if (x1>x0) tx = 255-tx;
+			}
+			if (incy>0) {
+				if (y1<y0) ty = 255-ty;
+			} else {
+				if (y1>y0) ty = 255-ty;
+			}
+
+			p00 = pix;
+			p01 = _this->tx_get_pixel(_this, x1, y0, rctx);
+			p10 = _this->tx_get_pixel(_this, x0, y1, rctx);
+			p11 = _this->tx_get_pixel(_this, x1, y1, rctx);
+
+			p00 = EVG_LERP(p00, p01, tx);
+			p10 = EVG_LERP(p10, p11, tx);
+			pix = EVG_LERP(p00, p10, ty);
+
+		}
+#endif
+
+write_pix:
+		if (has_alpha) {
+			cx = ((GF_COL_A(pix) + 1) * _this->alpha) >> 8;
+			pix = ( (((u32)cx<<24) & 0xFF000000) ) | (pix & 0x00FFFFFF);
+		}
+		//move pixel to target pixel format, applying color transform matrix
+		if (_this->is_yuv) {
+			//if surf is rgb, transform
+			if (!yuv_type) {
+				pix = gf_evg_ayuv_to_argb(rctx->surf, pix);
+				//apply cmat
+				if (has_cmat)
+					pix = gf_cmx_apply(&_this->cmat, pix);
+			} else if (has_cmat) {
+				//yuv->yuv , use color matrix in yuv domain
+				//this is equivalent to  gf_evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), gf_evg_argb_to_ayuv
+				pix = gf_cmx_apply(&_this->yuv_cmat, pix);
+			}
+		}
+		//texture is RGB
+		else {
+			//apply cmat
+			if (has_cmat)
+				pix = gf_cmx_apply(&_this->cmat, pix);
+
+			//dest is yuv, transform
+			if (yuv_type)
+				pix = gf_evg_argb_to_ayuv(rctx->surf, pix);
+		}
+
+		*data++ = pix;
+		count--;
+	}
+}
+
+static void tex_fill_run_3d_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u32 count)
+{
+	s32 x0, y0, m_width, m_height;
+	u64 pix;
+	Bool has_alpha, has_cmat, repeat_s, repeat_t;
+	Fixed x, y;
+#if USE_BILINEAR
+	s32 incx, incy;
+#endif
+	EVG_YUVType yuv_type = rctx->surf->yuv_type;
+	u64 *data = rctx->stencil_pix_run;
+	EVG_Texture *_this = (EVG_Texture *) p;
+
+
+#if USE_BILINEAR
+	Bool use_bili = (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) ? 1 : 0;
+	incx = (_this->inc_x>0) ? 1 : -1;
+	incy = (_this->inc_y>0) ? 1 : -1;
+#endif
+
+	Bool do_mx = gf_mx2d_is_identity(_this->smat_bck) ? GF_FALSE : GF_TRUE;
+
+	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
+	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
+
+	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
+	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
+
+	m_width = _this->width-1;
+	m_height = _this->height-1;
+
+	PERSP_VARS_DECL
+
+	while (count) {
+		PERSP_APPLY
+
+		if (do_mx)
+			gf_mx2d_apply_coords(&_this->smat_bck, &ix, &iy);
+
+		x = m_width * ix;
+		y = m_height * iy;
+
+		x0 = FIX2INT(x);
+
+		if (x0 > m_width) {
+			if (repeat_s) {
+				while (x0>m_width) x0 -= m_width;
+			} else if (_this->fill_pad_color_wide) {
+				pix = _this->fill_pad_color_wide;
+				goto write_pix;
+			} else {
+				x0 = m_width;
+			}
+		}
+		else if (x0 < 0) {
+			if (repeat_s) {
+				while (x0<0) x0 += m_width;
+			} else if (_this->fill_pad_color_wide) {
+				pix = _this->fill_pad_color_wide;
+				goto write_pix;
+			} else {
+				x0 = 0;
+			}
+		}
+
+		y0 = FIX2INT(y);
+		if (y0 > m_height) {
+			if (repeat_t) {
+				while (y0>m_height) y0 -= m_height;
+			} else if (_this->fill_pad_color_wide) {
+				pix = _this->fill_pad_color_wide;
+				goto write_pix;
+			} else {
+				y0 = m_height;
+			}
+		}
+		else if (y0 < 0) {
+			if (repeat_t) {
+				while (y0<0) y0 += m_height;
+			} else if (_this->fill_pad_color_wide) {
+				pix = _this->fill_pad_color_wide;
+				goto write_pix;
+			} else {
+				y0 = 0;
+			}
+		}
+
+		pix = _this->tx_get_pixel_wide(_this, x0, y0, rctx);
+
+		/*bilinear filtering*/
+#if USE_BILINEAR
+		if (use_bili) {
+			Bool do_lerp=GF_TRUE;
+			u64 p00, p01, p10, p11;
+			s32 x1, y1;
+			u8 tx, ty;
+
+			tx = FIX2INT(gf_muldiv(x, 255, m_width) );
+			ty = FIX2INT(gf_muldiv(y, 255, m_height) );
+
+			x1 = (x0+incx);
+			if (x1<0) {
+				if (!repeat_s)
+					do_lerp=GF_FALSE;
+				else
+					while (x1<0) x1 += m_width;
+			} else {
+				if (!repeat_s && (x1 > m_width))
+					do_lerp=GF_FALSE;
+				else
+					x1 = x1 % m_width;
+			}
+			y1 = (y0+incy);
+			if (y1<0) {
+				if (!repeat_t)
+					do_lerp=GF_FALSE;
+				else
+					while (y1<0) y1 += m_height;
+			} else {
+				if (!repeat_t && (y1 > m_height))
+					do_lerp=GF_FALSE;
+				else
+					y1 = y1 % m_height;
+			}
+
+			if (!do_lerp) goto write_pix;
+
+			if (incx>0) {
+				if (x1<x0) tx = 255-tx;
+			} else {
+				if (x1>x0) tx = 255-tx;
+			}
+			if (incy>0) {
+				if (y1<y0) ty = 255-ty;
+			} else {
+				if (y1>y0) ty = 255-ty;
+			}
+
+			p00 = pix;
+			p01 = _this->tx_get_pixel_wide(_this, x1, y0, rctx);
+			p10 = _this->tx_get_pixel_wide(_this, x0, y1, rctx);
+			p11 = _this->tx_get_pixel_wide(_this, x1, y1, rctx);
+
+			p00 = EVG_LERP_WIDE(p00, p01, tx);
+			p10 = EVG_LERP_WIDE(p10, p11, tx);
+			pix = EVG_LERP_WIDE(p00, p10, ty);
+
+		}
+#endif
+
+write_pix:
+		if (has_alpha) {
+			u64 _a = (pix>>48)&0xFF;
+			_a = (_a * _this->alpha) >> 8;
+			_a<<=48;
+			pix = ( (_a & 0xFFFF000000000000UL) ) | (pix & 0x0000FFFFFFFFFFFFUL);
+		}
+		//move pixel to target pixel format, applying color transform matrix
+		if (_this->is_yuv) {
+			//if surf is rgb, transform
+			if (!yuv_type) {
+				pix = gf_evg_ayuv_to_argb_wide(rctx->surf, pix);
+				//apply cmat
+				if (has_cmat)
+					pix = gf_cmx_apply_wide(&_this->cmat, pix);
+			} else if (has_cmat) {
+				//yuv->yuv , use color matrix in yuv domain
+				//this is equivalent to  gf_evg_ayuv_to_argb, gf_cmx_apply(&_this->cmat, pix), gf_evg_argb_to_ayuv
+				pix = gf_cmx_apply_wide(&_this->yuv_cmat, pix);
+			}
+		}
+		//texture is RGB
+		else {
+			//apply cmat
+			if (has_cmat)
+				pix = gf_cmx_apply_wide(&_this->cmat, pix);
+
+			//dest is yuv, transform
+			if (yuv_type)
+				pix = gf_evg_argb_to_ayuv_wide(rctx->surf, pix);
 		}
 
 		*data++ = pix;
@@ -1951,7 +2393,13 @@ void evg_texture_init(GF_EVGStencil *p, GF_EVGSurface *surf)
 	_this->inc_x = p1.x - p0.x;
 	_this->inc_y = p1.y - p0.y;
 
-	if (_this->tx_callback && _this->tx_callback_screen_coords) {
+	if (surf->is_3d_matrix) {
+		if (surf->not_8bits) {
+			_this->fill_run = tex_fill_run_3d_wide;
+		} else {
+			_this->fill_run = tex_fill_run_3d;
+		}
+	} else if (_this->tx_callback && _this->tx_callback_screen_coords) {
 		if (surf->not_8bits) {
 			_this->fill_run = tex_fill_run_callback_wide;
 		} else {
