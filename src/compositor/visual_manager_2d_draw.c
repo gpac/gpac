@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -248,10 +248,10 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 	/*move to bottom-left corner of bounds */
 	if (ext_mx) gf_mx2d_add_matrix(&g_mat, ext_mx);
 	if (orig_bounds) gf_mx2d_add_translation(&g_mat, (orig_bounds->x), (orig_bounds->y - orig_bounds->height));
-
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
 
 	gf_evg_stencil_set_matrix(stencil, &g_mat);
+	gf_evg_stencil_set_auto_matrix(stencil, GF_FALSE);
 	gf_evg_stencil_set_color_matrix(stencil, ctx->col_mat);
 
 	/*MPEG-4/VRML context or no fill info*/
@@ -307,6 +307,7 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
 	gf_evg_stencil_set_matrix(stencil, &gf_mx2d_txt);
+	gf_evg_stencil_set_auto_matrix(stencil, GF_FALSE);
 
 	alpha = GF_COL_A(txt_ctx->aspect.fill_color);
 	r = GF_COL_R(txt_ctx->aspect.fill_color);
@@ -551,6 +552,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 
 	/*set path transform*/
 	gf_evg_stencil_set_matrix(tx_raster, &mx_texture);
+	gf_evg_stencil_set_auto_matrix(tx_raster, GF_FALSE);
 
 
 	tx_tile = 0;

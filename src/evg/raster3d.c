@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2019
+*			Copyright (c) Telecom ParisTech 2019-2021
 *					All rights reserved
 *
 *  This file is part of GPAC / software 3D rasterizer module
@@ -53,6 +53,15 @@ static Float float_clamp(Float val, Float minval, Float maxval)
 #endif
 
 
+static float edgeFunction(const GF_Vec4 *a, const GF_Vec4 *b, const GF_Vec4 *c)
+{
+	return (c->x - a->x) * (b->y - a->y) - (c->y - a->y) * (b->x - a->x);
+}
+
+float edgeFunction_pre(const GF_Vec4 *a, const Float b_minus_a_x, const Float b_minus_a_y, const GF_Vec4 *c)
+{
+	return (c->x - a->x) * (b_minus_a_y) - (c->y - a->y) * (b_minus_a_x);
+}
 
 static GFINLINE Bool evg3d_persp_divide(GF_Vec4 *pt)
 {
@@ -67,36 +76,24 @@ static GFINLINE Bool evg3d_persp_divide(GF_Vec4 *pt)
 
 static GFINLINE void evg_ndc_to_raster(GF_EVGSurface *surf, GF_Vec4 *pt, TPos *x, TPos *y)
 {
+	if (!surf->vp_w || !surf->vp_h) {
+		surf->vp_w = surf->width;
+		surf->vp_h = surf->height;
+		surf->vp_x = surf->vp_y = 0;
+	}
 	//from [-1, 1] to [0,2] to [0,1] to [0,vp_width] to [vp left, vp right]
-	pt->x = (pt->x + FIX_ONE) / 2 * surf->width;
+	pt->x = (pt->x + FIX_ONE) / 2 * surf->vp_w + surf->vp_x;
 	//idem but flip Y
-	pt->y = (FIX_ONE - (pt->y + FIX_ONE)/2) * surf->height;
-
-	//move Z from [-1, 1] to [min_depth, max_depth]
-	pt->z += FIX_ONE;
-	pt->z /= 2;
-
-#ifdef GPAC_FIXED_POINT
-	*x = UPSCALE(pt->x);
-	*y = UPSCALE(pt->y);
-#else
-	*x = (s32) (pt->x * ONE_PIXEL);
-	*y = (s32) (pt->y * ONE_PIXEL);
-#endif
-}
-static GFINLINE void evg3d_ndc_to_raster(GF_EVGSurface *surf, GF_Vec4 *pt, TPos *x, TPos *y)
-{
-	//from [-1, 1] to [0,2] to [0,1] to [0,vp_width] to [vp left, vp right]
-	pt->x = (pt->x + FIX_ONE) / 2 * surf->ext3d->vp_w + surf->ext3d->vp_x;
-	//idem but flip Y
-	pt->y = (FIX_ONE - (pt->y + FIX_ONE)/2) * surf->ext3d->vp_h + surf->ext3d->vp_y;
+	pt->y = (FIX_ONE - (pt->y + FIX_ONE)/2) * surf->vp_h + surf->vp_y;
 	/*compute depth*/
-	if (!surf->ext3d->clip_zero) {
+	if (!surf->ext3d || !surf->ext3d->clip_zero) {
 		//move Z from [-1, 1] to [min_depth, max_depth]
 		pt->z += FIX_ONE;
 		pt->z /= 2;
 	}
-	pt->z = surf->ext3d->min_depth + pt->z * surf->ext3d->depth_range;
+
+	if (surf->ext3d)
+		pt->z = surf->ext3d->min_depth + pt->z * surf->ext3d->depth_range;
 
 #ifdef GPAC_FIXED_POINT
 	*x = UPSCALE(pt->x);
@@ -139,11 +136,20 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 	EVG_Outline *outline = &surf->ftoutline;
 
 	/* Set up state in the raster object */
+	if (surf->vp_w && surf->vp_h) {
+		if (surf->clip_xMin < surf->vp_x)
+			surf->clip_xMin = surf->vp_x;
+		if (surf->clip_yMin < surf->vp_y)
+			surf->clip_yMin = surf->vp_y;
+		if (surf->clip_xMax > surf->vp_x + surf->vp_w)
+			surf->clip_xMax = surf->vp_x + surf->vp_w;
+		if (surf->clip_yMax > surf->vp_y + surf->vp_h)
+			surf->clip_yMax = surf->vp_y + surf->vp_h;
+	}
 	surf->min_ex = surf->clip_xMin;
 	surf->min_ey = surf->clip_yMin;
 	surf->max_ex = surf->clip_xMax;
 	surf->max_ey = surf->clip_yMax;
-
 
 	size_y = (u32) (surf->max_ey - surf->min_ey);
 	if ((u32) surf->max_lines < size_y) {
@@ -157,6 +163,44 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 	surf->cover = 0;
 	surf->area = 0;
 	surf->first_scanline = surf->max_ey;
+
+	//raster coordinates of points
+	TPos _x1, _y1, _x2, _y2, _x3, _y3;
+	/*vertices in raster/window space: x and y are in pixel space, z is [min_depth, max_depth]*/
+	GF_Vec4 s_pt1, s_pt2, s_pt3;
+
+	/*get bounds, and compute interpolation from (top-left, top-right, bottom-right) vertices
+	they are only used for tx coord interpolation, using {0,0}, {1,0} and {0,1}
+	so that we flip y*/
+	GF_Rect rc = surf->path_bounds;
+	Float z = 0;
+	//rc.y is bottom
+	rc.y += rc.height;
+	s_pt1.x = rc.x; s_pt1.y = rc.y; s_pt1.z = z; s_pt1.q = 1;
+	s_pt2.x = rc.x + rc.width; s_pt2.y = rc.y; s_pt2.z = z; s_pt2.q = 1;
+	s_pt3.x = rc.x; s_pt3.y = rc.y - rc.height ; s_pt3.z = z; s_pt3.q = 1;
+
+	gf_mx_apply_vec_4x4(&surf->mx3d, &s_pt1);
+	evg3d_persp_divide(&s_pt1);
+	evg_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
+	gf_mx_apply_vec_4x4(&surf->mx3d, &s_pt2);
+	evg3d_persp_divide(&s_pt2);
+	evg_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
+	gf_mx_apply_vec_4x4(&surf->mx3d, &s_pt3);
+	evg3d_persp_divide(&s_pt3);
+	evg_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
+
+	//precompute triangle
+	surf->tri_area = edgeFunction(&s_pt1, &s_pt2, &s_pt3);
+	surf->s_v1 = s_pt1;
+	surf->s_v2 = s_pt2;
+	surf->s_v3 = s_pt3;
+	surf->s3_m_s2_x = surf->s_v3.x - surf->s_v2.x;
+	surf->s3_m_s2_y = surf->s_v3.y - surf->s_v2.y;
+	surf->s1_m_s3_x = surf->s_v1.x - surf->s_v3.x;
+	surf->s1_m_s3_y = surf->s_v1.y - surf->s_v3.y;
+	surf->s2_m_s1_x = surf->s_v2.x - surf->s_v1.x;
+	surf->s2_m_s1_y = surf->s_v2.y - surf->s_v1.y;
 
 	dir.x = dir.y = 0;
 	dir.z = -FIX_ONE;
@@ -288,15 +332,6 @@ void evg_get_fragment(GF_EVGSurface *surf, EVGRasterCtx *rctx, Bool *is_transpar
 	return;
 }
 
-static float edgeFunction(const GF_Vec4 *a, const GF_Vec4 *b, const GF_Vec4 *c)
-{
-	return (c->x - a->x) * (b->y - a->y) - (c->y - a->y) * (b->x - a->x);
-}
-
-static float edgeFunction_pre(const GF_Vec4 *a, const Float b_minus_a_x, const Float b_minus_a_y, const GF_Vec4 *c)
-{
-	return (c->x - a->x) * (b_minus_a_y) - (c->y - a->y) * (b_minus_a_x);
-}
 
 static void push_patch_pixel(AAScanline *sl, s32 x, u32 col, u8 coverage, Float depth, Float write_depth, u32 idx1, u32 idx2)
 {
@@ -398,8 +433,8 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 	if (s3d->prim_type==GF_EVG_POINTS) {
 		if (s3d->smooth_points) {
 			Float dx, dy;
-			dx = (Float)x - s3d->s_v1.x;
-			dy = (Float)y - s3d->s_v1.y;
+			dx = (Float)x - surf->s_v1.x;
+			dy = (Float)y - surf->s_v1.y;
 			dx *=dx;
 			dy *=dy;
 			if (dx+dy > s3d->pt_radius) {
@@ -407,7 +442,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 				continue;
 			}
 		}
-		depth = s3d->s_v1.z;
+		depth = surf->s_v1.z;
 
 		bc1 = bc2 = bc3 = 0;
 		if (coverage!=0xFF) {
@@ -416,123 +451,49 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 	} else if (s3d->prim_type==GF_EVG_LINES) {
 		GF_Vec pt;
 
-		gf_vec_diff(pt, pix, s3d->s_v1);
+		gf_vec_diff(pt, pix, surf->s_v1);
 		bc1 = gf_vec_len(pt);
 		bc1 /= s3d->v1v2_length;
 		bc1 = float_clamp(bc1, 0, 1);
 		bc2 = FIX_ONE - bc1;
-		depth = s3d->s_v1.z * bc1 + s3d->s_v2.z * bc2;
+		depth = surf->s_v1.z * bc1 + surf->s_v2.z * bc2;
 
 		bc3 = 0;
 		if (coverage!=0xFF) {
 			full_cover = GF_FALSE;
 		}
 	} else {
-		bc1 = edgeFunction_pre(&s3d->s_v2, s3d->s3_m_s2_x, s3d->s3_m_s2_y, &pix);
-		bc1 /= s3d->area;
-		bc2 = edgeFunction_pre(&s3d->s_v3, s3d->s1_m_s3_x, s3d->s1_m_s3_y, &pix);
-		bc2 /= s3d->area;
-		bc3 = edgeFunction_pre(&s3d->s_v1, s3d->s2_m_s1_x, s3d->s2_m_s1_y, &pix);
-		bc3 /= s3d->area;
-		//bc3 = 1.0 - bc1 - bc2;
+		bc1 = edgeFunction_pre(&surf->s_v2, surf->s3_m_s2_x, surf->s3_m_s2_y, &pix);
+		bc1 /= surf->tri_area;
+		bc2 = edgeFunction_pre(&surf->s_v3, surf->s1_m_s3_x, surf->s1_m_s3_y, &pix);
+		bc2 /= surf->tri_area;
 
 		/* in antialiased mode, we don't need to test for bc1>=0 && bc2>=0 && bc3>=0 (ie, is the pixel in the triangle),
 		because we already know the point is in the triangle since we are called back
 		in non-AA mode, coverage is forced to full pixel, and we check if we are or not in the triangle*/
-		if (s3d->disable_aa)
-		{
+		if (s3d->disable_aa) {
+			bc3 = edgeFunction_pre(&surf->s_v1, surf->s2_m_s1_x, surf->s2_m_s1_y, &pix);
+			bc3 /= surf->tri_area;
 			if ((bc1<0) || (bc2<0) || (bc3<0)) {
 				spans[i].coverage=0;
 				continue;
 			}
 		}
-		/*if coverage is not full, we are on a line - recompute the weights assuming the pixel is exactly on the line*/
-		else if (coverage!=0xFF) {
-
-		//results are not precise enough to give better results, we always clamp for now
-#if 0
-			if (!s3d->backface_cull) {
-
-#if 0
-				//method 1, find a subpixel in a 5x5 grid belonging to the triangle
-				GF_Vec4 subp;
-				u32 k, l;
-				subp.q = 1;
-				subp.z = 0;
-				Bool subp_found=GF_FALSE;
-				for (k=0; k<=4; k++) {
-					for (l=0; l<=4; l++) {
-						subp.x = (Float) x + 0.25*k;
-						subp.y = (Float) x + 0.25*l;
-						bc1 = edgeFunction_pre(&s3d->s_v2, s3d->s3_m_s2_x, s3d->s3_m_s2_y, &subp);
-						bc1 /= s3d->area;
-						bc2 = edgeFunction_pre(&s3d->s_v3, s3d->s1_m_s3_x, s3d->s1_m_s3_y, &subp);
-						bc2 /= s3d->area;
-						bc3 = 1.0 - bc1 - bc2;
-						if ((bc1<0) || (bc2<0) || (bc3<0)) continue;
-						subp_found = GF_TRUE;
-						break;
-					}
+		else {
+			bc3 = 1.0 - bc1 - bc2;
+			/*if coverage is not full, we are on a line - recompute the weights assuming the pixel is exactly on the line*/
+			if (coverage!=0xFF) {
+				if (!s3d->mode2d) {
+					bc1 = float_clamp(bc1, 0, 1);
+					bc2 = float_clamp(bc2, 0, 1);
+					bc3 = float_clamp(bc3, 0, 1);
 				}
-//				assert(subp_found);
 
-#else
-				//method 2, reproject point on triangle edges
-				GF_Vec pt;
-				u32 on_line = 0;
-
-				if ((bc1<0) || (bc2<0) || (bc3<0)) {
-					if ((bc1<0) && (bc2<0)) { bc3 = 1.0; bc1 = bc2 = 0; }
-					else if ((bc1<0) && (bc3<0)) { bc2 = 1.0; bc1 = bc3 = 0; }
-					else if ((bc2<0) && (bc3<0)) { bc1 = 1.0; bc2 = bc3 = 0; }
-					else if ((bc1<=bc2) && (bc1<=bc3)) on_line = 3;
-					else if ((bc2<=bc1) && (bc2<=bc3)) on_line = 2;
-					else if ((bc3<=bc1) && (bc3<=bc2)) on_line = 1;
-				}
-				//project pixel center on line v2v3
-				if (on_line==3) {
-					bc1 = 0;
-					gf_vec_diff(pt, pix, s3d->s_v2);
-					pt.z=0;
-					bc2 = gf_vec_dot(pt, s3d->v2v3);
-					bc2 /= s3d->v2v3_length;
-					bc3 = float_clamp(bc2, 0, 1);
-					bc2 = FIX_ONE - bc3;
-				}
-				//project pixel center on line v1v3
-				else if (on_line==2) {
-					bc2 = 0;
-					gf_vec_diff(pt, pix, s3d->s_v1);
-					pt.z=0;
-					bc1 = gf_vec_dot(pt, s3d->v1v3);
-					bc1 /= s3d->v1v3_length;
-					bc3 = float_clamp(bc1, 0, 1);
-					bc1 = FIX_ONE - bc3;
-				}
-				//project pixel center on line v1v2
-				else if (on_line==1) {
-					bc3 = 0;
-					gf_vec_diff(pt, pix, s3d->s_v1);
-					pt.z=0;
-					bc1 = gf_vec_dot(pt, s3d->v1v2);
-					bc1 /= s3d->v1v2_length;
-					bc2 = float_clamp(bc1, 0, 1);
-					bc1 = FIX_ONE - bc2;
-				}
-#endif
-
-			} else
-#endif
-			if (!s3d->mode2d) {
-				bc1 = float_clamp(bc1, 0, 1);
-				bc2 = float_clamp(bc2, 0, 1);
-				bc3 = float_clamp(bc3, 0, 1);
+				full_cover = GF_FALSE;
+				transparent = GF_TRUE;
 			}
-
-			full_cover = GF_FALSE;
-			transparent = GF_TRUE;
 		}
-		depth = s3d->s_v1.z * bc1 + s3d->s_v2.z * bc2 + s3d->s_v3.z * bc3;
+		depth = surf->s_v1.z * bc1 + surf->s_v2.z * bc2 + surf->s_v3.z * bc3;
 	}
 
 	//clip by depth
@@ -574,9 +535,9 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 	rctx->frag_param.color.q = 1.0;
 	rctx->frag_param.frag_valid = 0;
 	/*perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3 - we already have store 1/q in the perspective divide step*/
-	rctx->frag_param.pbc1 = bc1*s3d->s_v1.q;
-	rctx->frag_param.pbc2 = bc2*s3d->s_v2.q;
-	rctx->frag_param.pbc3 = bc3*s3d->s_v3.q;
+	rctx->frag_param.pbc1 = bc1 * surf->s_v1.q;
+	rctx->frag_param.pbc2 = bc2 * surf->s_v2.q;
+	rctx->frag_param.pbc3 = bc3 * surf->s_v3.q;
 
 	rctx->frag_param.persp_denum = rctx->frag_param.pbc1 + rctx->frag_param.pbc2 + rctx->frag_param.pbc3;
 
@@ -655,7 +616,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 	}
 }
 
-static GFINLINE Bool precompute_tri(EVG_Surface3DExt *s3d, GF_EVGFragmentParam *fparam, TPos xmin, TPos xmax, TPos ymin, TPos ymax,
+static GFINLINE Bool precompute_tri(GF_EVGSurface *surf, GF_EVGFragmentParam *fparam, TPos xmin, TPos xmax, TPos ymin, TPos ymax,
 									TPos _x1, TPos _y1, TPos _x2, TPos _y2, TPos _x3, TPos _y3,
 									GF_Vec4 *s_pt1, GF_Vec4 *s_pt2, GF_Vec4 *s_pt3,
 									u32 vidx1, u32 vidx2, u32 vidx3
@@ -671,39 +632,25 @@ static GFINLINE Bool precompute_tri(EVG_Surface3DExt *s3d, GF_EVGFragmentParam *
 	if ((_y1>=ymax) && (_y2>=ymax) && (_y3>=ymax))
 		return GF_FALSE;
 
-	s3d->area = edgeFunction(s_pt1, s_pt2, s_pt3);
+	surf->tri_area = edgeFunction(s_pt1, s_pt2, s_pt3);
 
-	s3d->s_v1 = *s_pt1;
-	s3d->s_v2 = *s_pt2;
-	s3d->s_v3 = *s_pt3;
-	fparam->idx1 = vidx1;
-	fparam->idx2 = vidx2;
-	fparam->idx3 = vidx3;
-
+	surf->s_v1 = *s_pt1;
+	surf->s_v2 = *s_pt2;
+	surf->s_v3 = *s_pt3;
 
 	//precompute a few things for this run
-	s3d->s3_m_s2_x = s3d->s_v3.x - s3d->s_v2.x;
-	s3d->s3_m_s2_y = s3d->s_v3.y - s3d->s_v2.y;
-	s3d->s1_m_s3_x = s3d->s_v1.x - s3d->s_v3.x;
-	s3d->s1_m_s3_y = s3d->s_v1.y - s3d->s_v3.y;
-	s3d->s2_m_s1_x = s3d->s_v2.x - s3d->s_v1.x;
-	s3d->s2_m_s1_y = s3d->s_v2.y - s3d->s_v1.y;
+	surf->s3_m_s2_x = surf->s_v3.x - surf->s_v2.x;
+	surf->s3_m_s2_y = surf->s_v3.y - surf->s_v2.y;
+	surf->s1_m_s3_x = surf->s_v1.x - surf->s_v3.x;
+	surf->s1_m_s3_y = surf->s_v1.y - surf->s_v3.y;
+	surf->s2_m_s1_x = surf->s_v2.x - surf->s_v1.x;
+	surf->s2_m_s1_y = surf->s_v2.y - surf->s_v1.y;
 
-	GF_Vec lv;
-	lv.z=0;
-	gf_vec_diff(lv, *s_pt2, *s_pt1);
-	s3d->v1v2_length = gf_vec_len(lv);
-	gf_vec_norm(&lv);
-	s3d->v1v2 = lv;
-	gf_vec_diff(lv, *s_pt3, *s_pt2);
-	s3d->v2v3_length = gf_vec_len(lv);
-	gf_vec_norm(&lv);
-	s3d->v2v3 = lv;
-	gf_vec_diff(lv, *s_pt3, *s_pt1);
-	s3d->v1v3_length = gf_vec_len(lv);
-	gf_vec_norm(&lv);
-	s3d->v1v3 = lv;
-
+	if (fparam) {
+		fparam->idx1 = vidx1;
+		fparam->idx2 = vidx2;
+		fparam->idx3 = vidx3;
+	}
 	return GF_TRUE;
 }
 
@@ -851,7 +798,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 				vparam.vertex_idx = vidx2;
 				vparam.vertex_idx_in_prim = 1;
 				GETVEC(pt2, idx2)
-				evg3d_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
+				evg_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
 			}
 			//triangle strip
 			else if (is_strip_fan==1) {
@@ -873,7 +820,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 					vparam.vertex_idx = vidx3;
 					vparam.vertex_idx_in_prim = 2;
 					GETVEC(pt3, idx3)
-					evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
+					evg_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 				}
 				//quad strip - since we draw [v1, v2, v3, v4] as 2 triangles [v1, v2, v3] and [v1, v3, v4]
 				// we only need to restore prev v2 as v1
@@ -888,7 +835,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 					vparam.vertex_idx = vidx4;
 					vparam.vertex_idx_in_prim = 3;
 					GETVEC(pt4, idx4)
-					evg3d_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
+					evg_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
 				}
 			}
 			//triangle fan
@@ -904,7 +851,7 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 				vparam.vertex_idx = vidx3;
 				vparam.vertex_idx_in_prim = 2;
 				GETVEC(pt3, idx3)
-				evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
+				evg_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 			}
 		} else {
 			vidx1 = indices[i];
@@ -912,28 +859,28 @@ GF_Err evg_raster_render3d(GF_EVGSurface *surf, u32 *indices, u32 nb_idx, Float 
 			vparam.vertex_idx = vidx1;
 			vparam.vertex_idx_in_prim = 0;
 			GETVEC(pt1, idx1)
-			evg3d_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
+			evg_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
 			if (prim_type>=GF_EVG_LINES) {
 				vidx2 = indices[i+1];
 				idx2 = vidx2 * nb_comp;
 				vparam.vertex_idx = vidx2;
 				vparam.vertex_idx_in_prim = 1;
 				GETVEC(pt2, idx2)
-				evg3d_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
+				evg_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
 				if (prim_type>=GF_EVG_TRIANGLES) {
 					vidx3 = indices[i+2];
 					idx3 = vidx3 * nb_comp;
 					vparam.vertex_idx = vidx3;
 					vparam.vertex_idx_in_prim = 2;
 					GETVEC(pt3, idx3)
-					evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
+					evg_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 					if (prim_type==GF_EVG_QUADS) {
 						vidx4 = indices[i+3];
 						idx4 = vidx4 * nb_comp;
 						vparam.vertex_idx = vidx4;
 						vparam.vertex_idx_in_prim = 3;
 						GETVEC(pt4, idx4)
-						evg3d_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
+						evg_ndc_to_raster(surf, &s_pt4, &_x4, &_y4);
 					}
 				}
 			}
@@ -950,27 +897,27 @@ restart_quad:
 
 		if (prim_type>=GF_EVG_TRIANGLES) {
 
-			if (!precompute_tri(s3d, &fparam, xmin, xmax, ymin, ymax, _x1, _y1, _x2, _y2, _x3, _y3, &s_pt1, &s_pt2, &s_pt3, vidx1, vidx2, vidx3))
+			if (!precompute_tri(surf, &fparam, xmin, xmax, ymin, ymax, _x1, _y1, _x2, _y2, _x3, _y3, &s_pt1, &s_pt2, &s_pt3, vidx1, vidx2, vidx3))
 				continue;
 
 			//check backcull
 			if (s3d->is_ccw) {
-				if (s3d->area<0) {
+				if (surf->tri_area<0) {
 					if (s3d->backface_cull)
 						continue;
 				}
 			} else {
-				if (s3d->area>0) {
+				if (surf->tri_area>0) {
 					if (s3d->backface_cull)
 						continue;
 				}
 			}
 		} else {
-			s3d->s_v1 = s_pt1;
+			surf->s_v1 = s_pt1;
 			fparam.idx1 = vidx1;
 			if (prim_type==GF_EVG_LINES) {
 				GF_Vec lv;
-				s3d->s_v2 = s_pt2;
+				surf->s_v2 = s_pt2;
 				gf_vec_diff(lv, s_pt2, s_pt1);
 				lv.z=0;
 				s3d->v1v2_length = gf_vec_len(lv);
@@ -1034,8 +981,8 @@ restart_quad:
 			s_pt3 = s_pt4;
 			vidx2 = vidx3;
 			vidx3 = vidx4;
-			s3d->s_v1 = s3d->s_v2;
-			s3d->s_v2 = s3d->s_v3;
+			surf->s_v1 = surf->s_v2;
+			surf->s_v2 = surf->s_v3;
 			goto restart_quad;
 		}
 	}
@@ -1131,15 +1078,15 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 
 	gf_mx_apply_vec_4x4(&projModeView, &s_pt1);
 	evg3d_persp_divide(&s_pt1);
-	evg3d_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
+	evg_ndc_to_raster(surf, &s_pt1, &_x1, &_y1);
 	gf_mx_apply_vec_4x4(&projModeView, &s_pt2);
 	evg3d_persp_divide(&s_pt2);
-	evg3d_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
+	evg_ndc_to_raster(surf, &s_pt2, &_x2, &_y2);
 	gf_mx_apply_vec_4x4(&projModeView, &s_pt3);
 	evg3d_persp_divide(&s_pt3);
-	evg3d_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
+	evg_ndc_to_raster(surf, &s_pt3, &_x3, &_y3);
 
-	if (!precompute_tri(s3d, &fparam, xmin, xmax, ymin, ymax, _x1, _y1, _x2, _y2, _x3, _y3, &s_pt1, &s_pt2, &s_pt3, 0, 1, 2))
+	if (!precompute_tri(surf, &fparam, xmin, xmax, ymin, ymax, _x1, _y1, _x2, _y2, _x3, _y3, &s_pt1, &s_pt2, &s_pt3, 0, 1, 2))
 		return GF_OK;
 
 	s3d->mode2d = GF_TRUE;
@@ -1162,7 +1109,7 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 		if (!evg3d_persp_divide(&pt)) {
 			continue;
 		}
-		evg3d_ndc_to_raster(surf, &pt, &_sx, &_sy);
+		evg_ndc_to_raster(surf, &pt, &_sx, &_sy);
 		gray3d_move_to(surf, _sx, _sy);
 		while ( point < limit ) {
 			point++;
@@ -1175,7 +1122,7 @@ GF_Err evg_raster_render3d_path(GF_EVGSurface *surf, GF_Path *path, Float z)
 			if (!evg3d_persp_divide(&pt)) {
 				break;
 			}
-			evg3d_ndc_to_raster(surf, &pt, &_x, &_y);
+			evg_ndc_to_raster(surf, &pt, &_x, &_y);
 			gray_render_line(surf, _x, _y);
 		}
 		gray_render_line(surf, _sx, _sy);
@@ -1221,11 +1168,11 @@ GF_Err gf_evg_surface_clear_depth(GF_EVGSurface *surf, Float depth)
 GF_EXPORT
 GF_Err gf_evg_surface_viewport(GF_EVGSurface *surf, u32 x, u32 y, u32 w, u32 h)
 {
-	if (!surf->ext3d) return GF_BAD_PARAM;
-	surf->ext3d->vp_x = x;
-	surf->ext3d->vp_y = y;
-	surf->ext3d->vp_w = w;
-	surf->ext3d->vp_h = h;
+	if (!surf) return GF_BAD_PARAM;
+	surf->vp_x = x;
+	surf->vp_y = y;
+	surf->vp_w = w;
+	surf->vp_h = h;
 	return GF_OK;
 }
 

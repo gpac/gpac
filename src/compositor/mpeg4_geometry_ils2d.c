@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -219,6 +219,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 
 		}
 		gf_evg_stencil_set_matrix(grad, &ctx->transform);
+		gf_evg_stencil_set_auto_matrix(grad, GF_FALSE);
 		visual_2d_draw_path(tr_state->visual, path, ctx, NULL, grad, tr_state);
 		if (grad) gf_evg_stencil_delete(grad);
 

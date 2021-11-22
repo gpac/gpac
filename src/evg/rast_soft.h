@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2021
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer
@@ -41,7 +41,7 @@ typedef struct _traster_ctx EVGRasterCtx;
 	GF_Rect frame;					\
 	GF_ColorMatrix cmat;\
 	u8 type;	\
-	u8 auto_mx;	\
+	u8 auto_mx;     \
 
 
 
@@ -90,7 +90,6 @@ typedef struct
 	gf_evg_vertex_shader vert_shader;
 	void *vert_shader_udta;
 	/*render state*/
-	u32 vp_x, vp_y, vp_w, vp_h;
 	Bool is_ccw;
 	Bool backface_cull;
 	Float max_depth;
@@ -103,18 +102,14 @@ typedef struct
 	Bool mode2d;
 	Bool clip_zero;
 	Float zw_factor, zw_offset;
-	/*internal variables for triangle rasterization*/
-	GF_EVGPrimitiveType prim_type;
-	GF_Vec4 s_v1, s_v2, s_v3;
-	Float area;
-	
-	Float s3_m_s2_x, s3_m_s2_y;
-	Float s1_m_s3_x, s1_m_s3_y;
-	Float s2_m_s1_x, s2_m_s1_y;
-	Float pt_radius;
-	Float v1v2_length, v1v3_length, v2v3_length;
-	GF_Vec v1v2, v1v3, v2v3;
 
+	/*internal variables for triangle rasterization*/
+	//primitive type
+	GF_EVGPrimitiveType prim_type;
+	//radius for point
+	Float pt_radius;
+	//line length
+	Float v1v2_length;
 	struct _gf_evg_base_stencil yuv_sten;
 } EVG_Surface3DExt;
 
@@ -583,6 +578,16 @@ struct _gf_evg_surface
 
 	u8 *internal_mask;
 	u32 mask_mode;
+
+	u32 vp_x, vp_y, vp_w, vp_h;
+
+	//for 3D rasterization, for mesh or for path
+	//triangle area
+	Float tri_area;
+	//transformed triangle points in NDC
+	GF_Vec4 s_v1, s_v2, s_v3;
+	//precomputed variables for edge function
+	Float s3_m_s2_x, s3_m_s2_y, s1_m_s3_x, s1_m_s3_y, s2_m_s1_x, s2_m_s1_y;
 };
 
 
