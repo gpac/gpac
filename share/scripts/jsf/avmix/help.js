@@ -33,8 +33,8 @@ When operating live, the mixer will initially wait for video frames to be ready 
 export const help_playlist = `
 # Playlist Format
 ## Overview
-The playlist describes:
-- Media sequences: each sequence is a set of sources to be played continuously
+The main components in a playlist are:
+- Media sources and sequences: each source is described by one or more URL to the media data, and each sequence is a set of sources to be played continuously 
 - Transitions: sources in a sequence can be combined using transitions
 - Scenes: a scene describes one graphical object to put on screen and if and how input video are mapped on objects
 - Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements.
@@ -50,8 +50,10 @@ Root objects types can be indicated through a \`type\` property:
 - script: a \`script\` object
 - config: a \`config\` object
 - watch: a \`watcher\` object
+- style: a \`style\` object
 
-The \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
+Except for \`style\`, the \`type\` property of root objects is usually not needed as the parser guesses the object types from its properties.
+
 
 A root object with a property \`skip\` set to anything but \`0\` or \`false\` is ignored.
 Within a \`group\` hierarchy, any \`scene\` or \`group\` object with a property \`skip\` set to anything but \`0\` or \`false\` is ignored.
@@ -101,7 +103,7 @@ The code can use the global functions and modules defined, especially:
 - resolve_url: resolves URL given in first argument against media playlist URL and returns the resolved url (string)
 - get_scene(id): gets scene with given ID
 - get_group(id): gets group with given ID
-- mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene
+- mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene (picking for scenes with perspective projection is not supported)
 - mouse_over(x, y): returns scene under coordinates {x, y} in pixels, {0,0} representing the center of the frame, x axis oriented towards the right and y axis oriented towards the top
 
 Scene and group options must be accessed through getters and setters:
@@ -114,7 +116,7 @@ Warning: Results are undefined if JS code modifies the scene/group objects in an
 
 Other playlist objects (as well as scene and group objects) can be queried using \`query_element(ID, propName)\` or modified using \`update_element(ID, propName, value)\` (see playlist update below).   
 
-Warning: there is no protection of global variables and state, write your script carefully!
+Warning: There is no protection of global variables and state, write your script carefully!
 
 Additionally, scripts executed within scene modules can modify the internal playlist using:
 - remove_element(ID):  removes a scene, group, sequence, timer, script or watcher with given ID from playlist
@@ -177,9 +179,9 @@ The syntax for \`start\` and  \`stop\` fields is:
 ### Notes
 When launching child process, the input filter is created first and the child process launched afterwards.
 
-Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
+Warning: When launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
 
-## 2D transformation
+## 2D and 3D transformation
 ### Common properties for \`group\` and \`scene\` objects
 - active (true): indicate if the object is active or not. An inactive object will not be refreshed nor rendered
 - x (0): horizontal translation
@@ -197,10 +199,30 @@ Warning: when launching child process directly (e.g. \`in="ffmpeg ..."\`), any r
 - zorder (0): display order of the scene or of the offscreen group (ignored for regular groups)
 - untransform (false): if true, reset parent tree matrix to identity before computing matrix
 - mxjs (null): JS code for matrix evaluation
+- z (0): depth translation
+- cz (0): depth coordinate of rotation center
+- zscale (1): depth scaling factor to apply to the group
+- orientation ([0, 0, 1, 0]): scale along the given orientation axis [x, y, z, angle] - see VRML \`scaleOrientation\`
+- axis ([0, 0, 1]): rotation axis
+- position ([0, 0, auto]): camera location
+- target ([0, 0, 0]): point where the camera is looking
+- up ([0, 1, 0]): camera up vector
+- viewport ([0, 0, 100, 100]): viewport for camera
+- fov (45): field of view in degrees
+- ar (0): camera aspect ratio, 0 means default
+- znear (0): near Z plane distance, 0 means default
+- zfar (0): far Z plane distance, 0 means default
+
 
 ### Coordinate System
-Each group or scene is specified in a local coordinate system for which {0,0} represents the center.
-The local transformation matrix is computed as \`rotate(cx, cy, rotation)\` * \`hskew\` * \`vskew\` * \`scale(hscale, vscale)\` * \`translate(x, y)\`.
+Each group or scene is specified in a local coordinate system for which:
+- {0,0} represents the center
+- X values increase to the right
+- Y values increase to the top
+- Z values increase  towards the eye of a viewer (Z=X^Y)
+
+The 2D local transformation matrix is computed as \`rotate(cx, cy, rotation)\` * \`hskew\` * \`vskew\` * \`scale(hscale, vscale)\` * \`translate(x, y)\`.
+The 3D local transformation matrix is computed as \`translate(x, y, z)\` * \`rotate(cx, cy, cz, rotation)\` * \`scale(hscale, vscale, zscale)\`. Skewing is not supported for 3D.
 
 The default unit system (\`rel\`) is relative to the current established reference space:
 - by default, the reference space is \`{output_width, output_height}\`, the origin {0,0} being the center of the output frame 
@@ -211,6 +233,7 @@ Inside a reference space \`R\`, relative coordinates are interpreted as follows:
 - For vertical coordinates, 0 means center, -50 means bottom edge (\`-R.height/2\`), 50 means top edge (\`+R.height/2\`).
 - For \`width\`, 100 means \`R.width\`.
 - For \`height\`, 100 means \`R.height\`.
+- For depth (z and cz) coordinates, the value is a percent of the reference height (\`+R.height\`).
 
 If \`width=height\`, the width is set to the computed height of the object.
 If \`height=width\`, the height is set to the computed width of the object.
@@ -224,6 +247,21 @@ For \`y\` property, the following special values are defined:
 
 Changing reference is typically needed when creating offscreen groups, so that children relative coordinates are resolved against the offscreen canvas size.
 
+The selection between 2D and 3D is done automatically based on \`z\`, \`cz\`, \`axis\` and \`orientation\` values.
+The default projection is:
+- viewport is the entire output frame
+- field of view is PI/4 and aspect ratio is output width/height
+- zNear is 0.1 and zFar is 10 times maximum(output width, output height)
+- camera up direction is Y axis and camera distance is so that a rectangle facing the camera with \`z=0\` and size equal to output size covers exactly the output frame.
+- depth buffer is disabled
+
+The default projection can be changed by setting camera properties at group or scene level. When set on a group, all children of the group will use the given camera properties (camera parameters on children are ignored).
+The \`viewport\` parameter is specified as an array \`[x, y, w, h]\`, where:
+- x: horizontal coordinate of the viewport center, in group or scene units, or 'y' to use \`y\` value, or '-y' to use -\`y\` value.
+- y: vertical coordinate of the viewport center, in group or scene units, or 'x' to use \`x\` value, or '-x' to use -\`x\` value.
+- w: width of the viewport, in group or scene units, or 'height' to use \`h\` value.
+- h: height of the viewport, in group or scene units, or 'width' to use \`w\` value.
+
 ### z-ordering
 \`zorder\` specifies the display order of the element in the offscreen canvas of the enclosing offscreen group, or on the output frame if no offscreen group in parent tree.
 This order is independent of the parent group z-ordering. This allows moving objects of a group up and down the display stack without modifying the groups.
@@ -232,16 +270,13 @@ This order is independent of the parent group z-ordering. This allows moving obj
 The \`JSFun\` specified in \`mxjs\` has a single parameter \`tr\`.
 
 The \`tr\` parameter is an object containing the following variables that the code can modify:
-- x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in local coordinate system units
-- mx: 2D matrix of the scene for custom config
-- set: if set to true by the code, the other operations are ignored and the modified \`mx\` is used as is. Otherwise, other matrix operations are added after
+- x, y, z, cx, cy, cz, hscale, vscale, zscale, hskew, vskew, rotation, untransform, axis, orientation: these values are initialized to the current group values in local coordinate system units
 - update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if \`use\` is set)
 - depth: for groups with \`use\`, indicates the recursion level of the used element. A value of 0 indcates this is a direct render of the element, otherwise it is a render through \`use\`
 
 The \`JSFun\` may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
 
 EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
-
 
 
 ## Grouping
@@ -266,7 +301,7 @@ EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
 ### Notes
 The maximum depth of a branch in the scene graph is \`maxdepth\` (traversing aborts after this limit).
 
-In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless \`width\` and  \`height\` are both greater or equal to 0.
+In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless \`width\` and \`height\` are both greater or equal to 0.
 Enforcing offscreen size is useful when generating textures for later effects.
 
 Offscreen rendering is always done in software.
@@ -290,6 +325,7 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
   - out: audio fade-out when playing last frame at scene activation
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
+- styles ([]): list of style IDs to use
 - any other property exposed by the underlying scene JS module.
 
 ### Notes
@@ -379,7 +415,7 @@ This will change scene \`s1\` rotation every 2 seconds
 - active (true): indicate if watcher is active or not
 - watch (""): element watched, formated as \`ID@prop\`, with \`ID\` the element ID and \`prop\` the property name to watch
 - target (""): action for watcher. Allowed syntaxes are:
-  - \`ID@prop\`, \`ID@prop[idx]\`: copy value to property \`prop\` of the element  \`ID\` (potentially at index \`idx\` if specified for arrays)
+  - \`ID@prop\`, \`ID@prop[idx]\`: copy value to property \`prop\` of the element \`ID\` (potentially at index \`idx\` if specified for arrays)
   - \`ID.fun_name\`: call function \`fun_name\` exported from scene module \`ID\`, using three arguments ['value', 'watchID', 'watchPropName'], no return value check
   - otherwise: action must be JS code, and the resulting \`JSFun\` has one argument \`value\` containing the watched value, and no return value check
 - with (undefined): for targets in the form \`ID@prop\`, use this value instead of the watched value
@@ -405,7 +441,7 @@ This will copy the -1*s1.rotation to s2.rotation.
 ### Watching UI events
 
 Watchers can also be used to monitor GPAC user events by setting \`watch\` to:
-- an event name to monitor: one of \`keydown\`, \`keyup\`, \`mousemove\`, \`mouseup\`, \`mousedown\`, \`wheel\`, \`textInput\`
+- an event name to monitor, one of \`keydown\`, \`keyup\`, \`mousemove\`, \`mouseup\`, \`mousedown\`, \`wheel\`, \`textInput\`
 - \`events\` to monitor all events (including internal events).
 
 For \`keyup\` and \`keydown\` events, the key code to watch may additionnaly be given in parenthesis, e.g. \`'watch': 'keyup(T)'\`.
@@ -415,8 +451,31 @@ Note: User events are only sent if the output of the filter is consummed by the 
 When event monitoring is used, the \`target\` must be a javascript callback (i.e. it cannot be \`ID@prop\`).
 The javascript function will be called with a single argument \`evt\` containing the GPAC event.
 
-EX {'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' ); }
+EX {'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );'}
 This will set s1 fill color to white of mouse is over s2 and to black otherwise.
+
+## Styles
+### Properties for \`style\` objects
+- id (null): ID of the style
+- forced (false): always apply style even when no modifications
+- other: any property to share between scene
+
+### Notes
+
+A style object allows scenes to share the same values for a given set of properties.
+
+If a scene property has the same name as a style property, the scene property is replaced by the style property.
+Styles only apply to scene, and stylable properties are restricted as follows:
+- volume, fade, mix_ratio can use style
+- all options defined by the scene module can use style
+- transformation or other scene properties cannot use style
+
+Properties of a style object can be animated or updated, but a style object cannot be watched.
+
+Styles are applied to each associated scene in order of declaration, e.g. \`['st1', 'st2']\` and \`['st2', 'st1']\` will likely give different results.
+
+If \`force\` is not set for a style, the style is only applied after being modified (load, animation, update); if a scene uses \`['st1', 'st2']\` and only \`st1\` is
+modified (animation, update), \`st2\` will only be applied once.
 
 ## Filter configuration
 The playlist may specify configuration options of the filter, using a root object of type \'config\':
@@ -430,7 +489,6 @@ The following additional properties are defined for testing:
 - reload_tests([]): list of playlists to reload
 - reload_timeout(1.0): timeout in seconds before playlist reload
 - reload_loop (0): number of times to repeat the reload tests (not including original playlist which is not reloaded)
-
 
 ## Playlist modification
 The playlist file can be modified at any time.
@@ -453,6 +511,7 @@ A \`script\` object modified between two reloads has its code re-evaluated
 
 A \`watcher\` object modified between two reloads has its watch source and code re-evaluated
 
+A \`style\` object is not tracked (all styles are reloaded when reloading a playlist).
 
 ## Playlist example
 

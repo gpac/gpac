@@ -1233,15 +1233,19 @@ let round_scene_size = 0;
 
 let global_transform = new evg.Matrix2D();
 let global_branch_depth = 0;
+let active_camera = null;
 
-function update_scene_matrix(scene, do_reset)
+function update_scene_matrix(scene)
 {
-	let x=scene.x, y=scene.y, cx=scene.cx, cy=scene.cy;
+	let x=scene.x, y=scene.y, z=scene.z, cx=scene.cx, cy=scene.cy, cz=scene.cz;
 	let rotation = scene.rotation;
 	let hskew = scene.hskew;
 	let vskew = scene.vskew;
 	let hscale = scene.hscale;
 	let vscale = scene.vscale;
+	let zscale = scene.zscale;
+	let axis = scene.axis;
+	let orientation = scene.orientation;
 
 	if (scene.untransform)	
 		scene.mx_untransform = true;
@@ -1256,6 +1260,9 @@ function update_scene_matrix(scene, do_reset)
 			y = y * reference_height/100;
 		cx = cx * reference_width/100;
 		cy = cy * reference_height/100;
+
+		z = z * reference_height/100;
+		cz = cz * reference_height/100;
 	}
 	//apply special values
 	if (x == "y") x = y;
@@ -1264,13 +1271,22 @@ function update_scene_matrix(scene, do_reset)
 	if (y == "x") y = x;
 	else if (y == "-x") y = -x;
 
-	if (do_reset)
-		scene.mx.identity = true;
+	scene.mx.identity = true;
 
 	try {
 		if (scene.mxjs) {
 			let is_ok = true;
-			let mx_state = {x: x, y: y, cx: cx, cy: cy, rotation: rotation, hscale: hscale, vscale: vscale, hskew: hskew, vskew: vskew, untransform: scene.mx_untransform, update:false, depth: scene.current_depth, mx: scene.mx, set: false}
+			let mx_state = {
+					x: x, y: y, z: z,
+					cx: cx, cy: cy, cz,
+					rotation: rotation,
+					hscale: hscale, vscale: vscale, zscale: zscale,
+					hskew: hskew, vskew: vskew,
+					axis: axis,
+					orientation: orientation,
+
+					untransform: scene.mx_untransform, update:false, depth: scene.current_depth
+			};
 
 			let res = scene.mxjs.apply(scene, [mx_state]);
 			if (mx_state.update) scene.update_flag = UPDATE_CHILD;
@@ -1278,20 +1294,19 @@ function update_scene_matrix(scene, do_reset)
 				return false;
 			}
 			scene.mx_untransform = mx_state.untransform ? true : false;
-			if (mx_state.set) {
-				scene.mx = mx_state.mx;
-				return;
-			}
+
 			if (typeof mx_state.x == 'number') x = mx_state.x;
 			else is_ok = false;
-
 			if (typeof mx_state.y == 'number') y = mx_state.y;
+			else is_ok = false;
+			if (typeof mx_state.z == 'number') z = mx_state.z;
 			else is_ok = false;
 
 			if (typeof mx_state.cx == 'number') cx = mx_state.cx;
 			else is_ok = false;
-
 			if (typeof mx_state.cy == 'number') cy = mx_state.cy;
+			else is_ok = false;
+			if (typeof mx_state.cz == 'number') cz = mx_state.cz;
 			else is_ok = false;
 
 			if (typeof mx_state.rotation == 'number') rotation = mx_state.rotation;
@@ -1299,14 +1314,19 @@ function update_scene_matrix(scene, do_reset)
 
 			if (typeof mx_state.hscale == 'number') hscale = mx_state.hscale;
 			else is_ok = false;
-
 			if (typeof mx_state.vscale == 'number') vscale = mx_state.vscale;
+			else is_ok = false;
+			if (typeof mx_state.zscale == 'number') zscale = mx_state.zscale;
 			else is_ok = false;
 
 			if (typeof mx_state.hskew == 'number') hskew = mx_state.hskew;
 			else is_ok = false;
-
 			if (typeof mx_state.vskew == 'number') vskew = mx_state.vskew;
+			else is_ok = false;
+
+			if (!mx_state.axis || Array.isArray(mx_state.axis)) axis = mx_state.axis;
+			else is_ok = false;
+			if (!mx_state.orientation || Array.isArray(mx_state.orientation)) orientation = mx_state.orientation;
 			else is_ok = false;
 
 			if (!is_ok) {
@@ -1319,11 +1339,57 @@ function update_scene_matrix(scene, do_reset)
 		scene.mxjs = null;
 	}
 
-	scene.mx.rotate(cx, cy, rotation * Math.PI / 180);
-	if (hskew) scene.mx.skew_x(hskew);
-	if (vskew) scene.mx.skew_y(vskew);
-	scene.mx.scale(hscale, vscale);
-	scene.mx.translate(x, y);
+	//validate axis, if 0,0,1 move to null (no 3D rotation)
+	if (axis) {
+		if (axis.length!=3) axis = null;
+		else if (!axis[0] && !axis[1] && (axis[2]>0)) axis = null;
+	}
+
+	//validate orientation, if no angle, move to null  (no 3D oriented scaling)
+	if (orientation) {
+		if (orientation.length!=4) orientation = null;
+		else if (!orientation[3]) orientation = null;
+	}
+
+	let is_3d = false;
+	if (z || cz
+		|| (zscale != 1)
+		|| orientation
+		|| axis
+	) {
+		is_3d = true;
+	}
+
+	if (!is_3d) {
+		if (scene.mx.is3D) scene.mx = new evg.Matrix2D();
+		scene.mx.rotate(cx, cy, rotation * Math.PI / 180);
+		if (hskew) scene.mx.skew_x(hskew);
+		if (vskew) scene.mx.skew_y(vskew);
+		scene.mx.scale(hscale, vscale);
+		scene.mx.translate(x, y);
+		return true;
+	}
+	//3D matrix
+	if (!scene.mx.is3D) scene.mx = new evg.Matrix();
+	if (x || y || scene.z)
+		scene.mx.translate(x, y, z);
+
+	let recenter = (cx || cy || cz) ? 1 : 0;
+	if (recenter)
+		scene.mx.translate(cx, cy, cz);
+
+	if (rotation && axis) scene.mx.rotate(axis[0], axis[1], axis[2], rotation * Math.PI / 180);
+	let	scale_rot = (orientation && orientation[3]) ? 1 : 0;
+	if (scale_rot)
+		scene.mx.rotate(orientation[0], orientation[1], orientation[2], orientation[3] * Math.PI / 180);
+
+	if ((hscale != 1) || (vscale != 1) || (zscale != 1))
+		scene.mx.scale(hscale, vscale, zscale);
+	if (scale_rot)
+		scene.mx.rotate(orientation[0], orientation[1], orientation[2], -orientation[3] * Math.PI / 180);
+
+	if (recenter)
+		scene.mx.translate(-cx, -cy, -cz);
 	return true;
 }
 
@@ -1444,7 +1510,6 @@ function group_draw_offscreen(group)
 			else
 				pf = canvas_yuv ? 'y4ap' : 'rgba';
 		}
-
 		print(GF_LOG_DEBUG, 'Offscreen group ' + group.id + ' creating offscreen canvas ' + new_w + 'x' + new_h + ' pfmt ' + pf + ' scaler ' + scaler);
 
 		group.canvas_offscreen = new evg.Canvas(new_w, new_h, pf);
@@ -1462,8 +1527,6 @@ function group_draw_offscreen(group)
 		group.texture.filtering = (scaler>1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
 
 	  let mx = new evg.Matrix2D();
-	  mx.translate(-new_w/2, new_h/2);
-	  mx.scale(scaler, scaler);
 	  group.texture_mx = mx;
 
 	  group.texture.repeat_s = false;
@@ -1510,6 +1573,21 @@ function group_draw_offscreen(group)
   group.texture._gl_modified = true;
 }
 
+
+function check_camera(group)
+{
+	if (group.position) return group;
+	if (group.target) return group;
+	if (group.up) return group;
+	if (group.viewport) return group;
+	if (group.fov != 45) return group;
+	if (group.ar && (group.ar * video_height != video_width)) return group;
+	if ((group.znear != 0) || (group.zfar != 0)) return group;
+	return null;
+}
+
+let dummy_mx = new evg.Matrix2D();
+
 function update_group(group)
 {
 	let invalidate_offscreen = false;
@@ -1521,10 +1599,10 @@ function update_group(group)
 
 		group.update_flag = 0;
 
-		if (!update_scene_matrix(group, true))
+		if (!update_scene_matrix(group))
 			return;
 	} else if (group.use && group.mxjs) {
-		if (!update_scene_matrix(group, true)) 
+		if (!update_scene_matrix(group))
 			return;
 	}
 
@@ -1547,6 +1625,14 @@ function update_group(group)
 
 		//we need a copy at each level
 		let global_transform_copy = global_transform.copy();
+		let last_camera = active_camera;
+		let current_camera = check_camera(group);
+		if (current_camera) active_camera = current_camera;
+
+		if ((group.mx.is3D || current_camera) && !global_transform.is3D) {
+			global_transform = new evg.Matrix(global_transform_copy);
+		}
+
 		if (!group.mx_untransform)
 			global_transform.add(group.mx, true);
 		else
@@ -1578,8 +1664,11 @@ function update_group(group)
 		} else {
 			group.scenes.forEach(scene => do_traverse_all(scene, update_scene));
 		}
-		global_transform.copy(global_transform_copy);
+
+		global_transform = global_transform_copy;
 		global_branch_depth --;
+
+		if (current_camera) active_camera = last_camera;
 		reference_width = ref_width_bck;
 		reference_height = ref_height_bck;
 
@@ -1596,10 +1685,13 @@ function update_group(group)
 	if (group.skip_draw) return;
 
   //update matrix, opacity and push group to display list
-  group.mx.identity = 1;
-	group.mx.translate(group.tr_x, group.tr_y);
-	if (!update_scene_matrix(group, false))
+	if (!update_scene_matrix(group))
 		return;
+
+	dummy_mx.identity = true;
+	dummy_mx.translate(group.tr_x, group.tr_y);
+	group.mx.add(dummy_mx, true);
+
 	if (!group.mx_untransform)
 		group.mx.add(global_transform);
 
@@ -1611,6 +1703,7 @@ function update_group(group)
 	draw_ctx.opaque_pid = null;
 	draw_ctx.is_opaque = false;
 	draw_ctx.zorder = group.zorder;
+	draw_ctx.camera = check_camera(group);
 
 	display_list.push(draw_ctx);
 
@@ -1629,6 +1722,18 @@ function update_scene(scene)
 	if (!scene.active) {
 		return;
 	}
+
+	//apply styles if any
+	scene.styles.forEach(sid => {
+		let style = get_element_by_id(sid, styles);
+		if (!style) return;
+		if (!style.updated && !style.forced) return;
+		for (var x in style ) {
+			if (typeof scene.mod[x] != undefined) {
+				scene.set(x, style[x]);
+			}
+		}
+	});
 
 	//recreate our set of inputs for the scene if any
 	if (scene.resetup_pids) {
@@ -1660,10 +1765,16 @@ function update_scene(scene)
 	}
 
 	//update the matrix
-	if (!update_scene_matrix(scene, true))
+	if (!update_scene_matrix(scene))
 		return;
-	if (!scene.mx_untransform)
+
+	if (!scene.mx_untransform) {
+		if (!scene.mx.is3D && global_transform.is3D)
+				scene.mx = new evg.Matrix(scene.mx);
+
 		scene.mx.add(global_transform);
+	}
+
 
 	//update the scene
 	scene.mod.force_draw = false;
@@ -1676,8 +1787,12 @@ function update_scene(scene)
 
 	let cover_type = 0;
 	let use_rotation = false;
-	if (!scene.mx.xx || !scene.mx.yy) return;
-	if ((scene.mx.xx<0) || (scene.mx.yy<0) || (scene.mx.xy) || (scene.mx.yx)) use_rotation = true;
+	if (scene.mx.is3D) {
+		use_rotation = true;
+	} else {
+		if (!scene.mx.xx || !scene.mx.yy) return;
+		if ((scene.mx.xx<0) || (scene.mx.yy<0) || (scene.mx.xy) || (scene.mx.yx)) use_rotation = true;
+	}
 
 	scene.mod.screen_rect = null;
 
@@ -1738,7 +1853,7 @@ function update_scene(scene)
 	if (!has_clip_mask && cover_type) {
 		let opaque_pid_idx = scene.mod.fullscreen();
 		if (scene.sequences.length && !scene.mod.pids.length) {
-
+		} else if ((scene.sequences.length>1) && scene.transition) {
 		} else {
 			if ((opaque_pid_idx>=0) && (opaque_pid_idx<scene.mod.pids.length)) {
 				opaque_pid = scene.mod.pids[opaque_pid_idx].pid;
@@ -1746,6 +1861,12 @@ function update_scene(scene)
 
 			if (!opaque_pid) {
 				is_opaque = scene.mod.is_opaque() || false;
+			} else {
+				//disable reuse if transition
+				if (opaque_pid.source.sequence.transition_state) {
+					opaque_pid = null;
+					is_opaque = false;
+				}
 			}
 		}
 	}
@@ -1771,6 +1892,8 @@ function update_scene(scene)
 	draw_ctx.opaque_pid = opaque_pid;
 	draw_ctx.is_opaque = is_opaque;
 	draw_ctx.zorder = scene.zorder;
+	draw_ctx.camera = check_camera(scene);
+	if (!draw_ctx.camera) draw_ctx.camera = active_camera;
 
 	display_list.push(draw_ctx);
 }
@@ -1813,14 +1936,17 @@ let has_opaque = false;
 
 function set_active_scene(ctx)
 {
+	active_camera = null;
 	if (ctx.group) {
 		ctx.group.mx.copy(ctx.mx);
+		active_camera = ctx.camera;
 		active_scene = null;
 		return true;
 	}
 	if (ctx.scene) {
 		ctx.scene.mx.copy(ctx.mx);
 		ctx.scene.mod.screen_rect = ctx.screen_rect;
+		active_camera = ctx.camera;
 		active_scene = ctx.scene;
 		return true;
 	}
@@ -1921,7 +2047,7 @@ function process_video()
 	has_opaque = false;
 	reference_width = video_width;
 	reference_height = video_height;
-
+	active_camera = null;
 	global_transform.identity = true;
 	root_scene.scenes.forEach(elm => do_traverse_all(elm, update_scene) );
 
@@ -2171,6 +2297,10 @@ function process_video()
 	prev_display_list = display_list;
 	display_list = old_prev;
 	display_list.length = 0;
+
+	styles.forEach(style => {
+		style.updated = false;
+	});
 }
 
 function process_audio()
@@ -3849,6 +3979,19 @@ const group_transform_props = [
 	{ name: "untransform", def_val: false, update_flag: UPDATE_POS},
 	{ name: "units", def_val: null, update_flag: -1},
 	{ name: "mxjs", def_val: null, update_flag: -1},
+	{ name: "z", def_val: 0, update_flag: UPDATE_CHILD},
+	{ name: "cz", def_val: 0, update_flag: UPDATE_CHILD},
+	{ name: "zscale", def_val: 1, update_flag: UPDATE_CHILD},
+	{ name: "orientation", def_val: null, update_flag: UPDATE_CHILD},
+	{ name: "axis", def_val: null, update_flag: UPDATE_CHILD},
+	{ name: "position", def_val: null, update_flag: UPDATE_CHILD},
+	{ name: "target", def_val: null, update_flag: UPDATE_CHILD},
+	{ name: "up", def_val: null, update_flag: UPDATE_CHILD},
+	{ name: "viewport", def_val: null, update_flag: UPDATE_CHILD|UPDATE_ALLOW_STRING},
+	{ name: "fov", def_val: 45, update_flag: UPDATE_CHILD},
+	{ name: "ar", def_val: 0, update_flag: UPDATE_CHILD},
+	{ name: "znear", def_val: 0, update_flag: UPDATE_CHILD},
+	{ name: "zfar", def_val: 0, update_flag: UPDATE_CHILD},
 ];
 
 
@@ -3871,10 +4014,15 @@ const group_props = [
 
 function parse_group_transform(scene, params)
 {
+	scene.position = null;
+	scene.target = null;
+	scene.up = null;
+	scene.viewport = null;
+
 	group_transform_props.forEach(o => {
-		if (o.def_val != null)
-			parse_val(params, o.name, scene, o.def_val, o.update_flag);
+		parse_val(params, o.name, scene, o.def_val, o.update_flag);
 	});
+
 	scene.units = UNIT_RELATIVE;
 	if (typeof params.units == 'string') {
 		if (params.units == 'pix') scene.units = UNIT_PIXEL;
@@ -3884,7 +4032,6 @@ function parse_group_transform(scene, params)
 		}
 	}
 	scene.mx_untransform = false;
-
 	scene.mxjs = (typeof params.mxjs == 'string') ? fn_from_script(['tr'], params.mxjs) : null;
 }
 
@@ -4150,7 +4297,7 @@ function remove_watcher(watcher, parent_only)
 			watcher.parent.watchers = null;
 		}
 		watcher.parent = null;
-	} else if (watcher.evt) {
+	} else if (watcher.evt != 0) {
 		idx = event_watchers.indexOf(watcher);
 		if (idx>=0) event_watchers.splice(idx, 1);
 	}
@@ -4209,7 +4356,7 @@ function parse_watcher(pl)
 		let vals = pl.watch.split("@");
 		let s_id = vals[0];
 
-		let elem = get_scene(s_id);
+		elem = get_scene(s_id);
 		if (!elem) elem = get_group(s_id);
 		if (!elem) elem = get_script(s_id);
 		if (!elem) elem = get_timer(s_id);
@@ -4226,7 +4373,6 @@ function parse_watcher(pl)
 		if (watcher.src_id && s_id && (watcher.src_id != s_id)) {
 			remove_watcher(watcher, true);
 		}
-
 		watcher.src_id = s_id;
 		watcher.src_field = vals[1];
 		watcher.evt = 0;
@@ -4254,11 +4400,16 @@ function parse_watcher(pl)
 		}
 	}
 
-	let vals = pl.target.split('.');
+	let vals = [];
+	if (pl.target.indexOf(' ')>=0) {}
+	else if (pl.target.indexOf(')')>=0) {}
+	else if (pl.target.indexOf('(')>=0) {}
+	else vals = pl.target.split('.');
+
 	if (vals.length==2) {
 		let target_scene = get_scene(vals[0]);
 		if (!target_scene) {
-			print(GF_LOG_WARNING, 'Cannot find scene for target ' + pl.target + ', discardinf watcher');
+			print(GF_LOG_WARNING, 'Cannot find scene for target ' + pl.target + ', discarding watcher');
 			remove_watcher(watcher);
 			return;
 		}
@@ -4315,11 +4466,11 @@ function parse_watcher(pl)
 	if (elem) {
 		if (!elem.watchers)
 			elem.watchers = [];
-
 		elem.watchers.push(watcher);
 		watcher.parent = elem;
 	} else {
-		event_watchers.push(watcher);
+		if (watcher.evt)
+			event_watchers.push(watcher);
 	}
 	return;
 }
@@ -4374,6 +4525,25 @@ function trigger_watcher(src, prop_name, value)
 		watcher.in_callback = false;
 
 	});
+}
+
+let styles=[];
+
+function parse_style(pl)
+{
+	if (pl.skip || false)
+		return;
+
+	let id = pl.id || null;
+	if (!id) return;
+	let style = get_element_by_id(id, styles);
+	if (style) {
+		print(GF_LOG_WARNING, "Multiple styles with id `" + id + "` defined, ignoring subsequent declarations");
+		return;
+	}
+	pl.forced = pl.forced || false;
+	pl.updated = true;
+	styles.push(pl);
 }
 
 
@@ -4443,6 +4613,8 @@ function parse_playlist_element(pl)
 		if (!playlist_loaded) {
 			parse_config(pl);
 		}	
+	} else if (type==='style') {
+		parse_style(pl);
 	} else {
 		print(GF_LOG_WARNING, 'Root element type ' + type + ' not defined, ignoring element ' + JSON.stringify(pl) );
 	}
@@ -4543,6 +4715,9 @@ function load_playlist()
 	//mark all timers as not updated
 	timers.forEach(o => { o.pl_update = false; });
 
+	//reset styles
+	styles.length = 0;
+
 	//reset root
 	root_scene.scenes.length = 0;
 	watchers_defered.length = 0;
@@ -4610,7 +4785,7 @@ function parse_val(params, name, scene_obj, def_val, update_type)
 			new_val = def_val;
 		else
 			return;
-	} else if (typeof params[name] == 'object') {
+	} else if (!Array.isArray(params[name]) && (typeof params[name] == 'object')) {
 		return;
 	} else {		
 		new_val = params[name];
@@ -4634,6 +4809,7 @@ const scene_props = [
 	{ name: "js", def_val: null, update_flag: -1, is_mod: false},
 	{ name: "sources", def_val: null, update_flag: -1, is_mod: false},
 	{ name: "mix", def_val: null, update_flag: -1, is_mod: false},
+	{ name: "styles", def_val: [], update_flag: 0, is_mod: false},
 
 	{ name: "width", def_val: -1, update_flag: UPDATE_SIZE, is_mod: false},
 	{ name: "height", def_val: -1, update_flag: UPDATE_SIZE, is_mod: false},
@@ -4906,21 +5082,6 @@ function create_scene(seq_ids, params, parent)
 		}
 	}
 
-/*
-	let handler = {
-		get: function(target, property) {
-			print('property ' + property + ' accessed');
-			return Reflect.get(target, property);
-		},
-		set: function(target, property, value) {
-			print('property ' + property + ' modified to \` ' + value + ' \`');
-			return Reflect.set(target, property, value);
-		}
-	};
-	let proxy = new Proxy(scene, handler);
-	scene = proxy;
-*/
-
 	if (parent)
 		parent.scenes.push(scene);
 	else
@@ -5191,13 +5352,14 @@ function parse_timer(pl)
 			tar.group = get_group(vals[0]);
 			tar.script = get_script(vals[0]);
 			tar.watcher = get_element_by_id(vals[0], watchers);
+			tar.style = get_element_by_id(vals[0], styles);
 			tar.fx = null;
 			tar.fx_obj = null;
 			if (!tar.scene && !tar.group && check_transition(vals[0]))
 				tar.fx = vals[0];
 
-			if (!tar.scene && !tar.group && !tar.fx && !tar.script) {
-				print(GF_LOG_ERROR, 'No scene or transition with ID ' + vals[0] + ' found, ignoring target');
+			if (!tar.scene && !tar.group && !tar.fx && !tar.script && !tar.style) {
+				print(GF_LOG_ERROR, 'No object with ID ' + vals[0] + ' found, ignoring target');
 				return;
 			}
 
@@ -5209,6 +5371,16 @@ function parse_timer(pl)
 			}
 
 			tar.scene_obj = false;
+
+			//indexed anim
+			if (tar.field.indexOf('[')>0) {
+				vals = tar.field.split('[');
+				tar.field = vals[0];
+				let idx = vals[1].split(']');
+				tar.idx = parseInt(idx[0]);
+			} else {
+				tar.idx = -1;
+			}
 
 			if (tar.scene) {
 				if (tar.field == 'sources') {
@@ -5247,29 +5419,21 @@ function parse_timer(pl)
 					return;
 				}
 				tar.update_type = 0;
+			} else if (tar.style) {
+				tar.update_type = 0;
 			} else {
 				tar.update_type = UPDATE_SIZE;
 			}
 
 			if (tar.update_type == -2) {
-				print(GF_LOG_ERROR, 'No field ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ', ignoring target');
+				print(GF_LOG_ERROR, 'No property ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ', ignoring target');
 				return;
 			}
 			if (tar.update_type == -1) {
-				print(GF_LOG_ERROR, 'Field ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ' cannot be updated, ignoring target');
+				print(GF_LOG_ERROR, 'Property ' + tar.field + ' in ' + (tar.scene ? 'scene' : 'group') + ' cannot be updated, ignoring target');
 				return;
 			}
 
-
-			//indexed anim
-			if (tar.field.indexOf('[')>0) {
-				vals = tar.field.split('[');
-				tar.field = vals[0];
-				let idx = vals[1].split(']');
-				tar.idx = parseInt(idx[0]);
-			} else {
-				tar.idx = -1;
-			}
 			a.targets.push(tar);
 		});
 		timer.anims.push(a);
@@ -5473,6 +5637,9 @@ function update_timer(timer)
 			else if (target.script) {
 				anim_obj = target.script;
 			}
+			else if (target.style) {
+				anim_obj = target.style;
+			}
 			else if (target.watcher) {
 				anim_obj = target.watcher;
 			}
@@ -5492,8 +5659,10 @@ function update_timer(timer)
 				//special case for scene, some options are not in the scene module
 				if (target.scene && ((target.update_type==UPDATE_PID) || (typeof target.scene[target.field] != 'undefined'))) {
 					anim_obj = target.scene;
-				} else {
-					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
+				}
+				//otherwise error except for style
+				else if (!target.style) {
+					print(GF_LOG_WARNING, 'No property named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
 					anim.targets.splice(i, 1);
 					i--;
 					continue;
@@ -5507,7 +5676,7 @@ function update_timer(timer)
 					update_type = scene_mod_option_update_time(target.scene, target.field);
 				}
 				if (update_type<0) {
-					print(GF_LOG_WARNING, 'No field named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
+					print(GF_LOG_WARNING, 'No property named ' + target.field + ' in target obj ID ' + target.id + ', removing target');
 					anim.targets.splice(i, 1);
 					i--;
 					continue;
@@ -5534,13 +5703,14 @@ function update_timer(timer)
 						anim_obj.update_flag |= update_type;
 						anim_obj[target.field][target.idx] = final;
 						if (update_type)
-							invalidate_parent(target.scene);
+							invalidate_parent(target.scene || target.group);
 
 						trigger_watcher(watch_src, target.field, anim_obj[target.field]);
 					}
 				}
 			}
-			else if (check_prop_type(typeof anim_obj[target.field], typeof final, allow_string)) {
+			//we don't check type for style objects, and check ot for others
+			else if (target.style || check_prop_type(typeof anim_obj[target.field], typeof final, allow_string)) {
 				if (do_store) {
 					target.orig_value = anim_obj[target.field];
 				}
@@ -5552,7 +5722,9 @@ function update_timer(timer)
 						anim_obj.update_flag |= update_type;
 						anim_obj[target.field] = final;
 
-						if (update_type)
+						if (target.style)
+							target.style.updated = true;
+						else if (update_type)
 							invalidate_parent(target.group || target.scene);
 					}
 					trigger_watcher(watch_src, target.field, anim_obj[target.field]);
@@ -5586,6 +5758,11 @@ function clip_to_output(clip)
 function canvas_clear(color, clip)
 {
 	if (!active_scene) return;
+	if (active_scene.mx.is3D) {
+		print(GF_LOG_ERROR, 'Cannot clear canvas in 3D context');
+		return;
+	}
+
 	clip = clip_to_output(clip);
 
 	if (webgl) {
@@ -5612,6 +5789,10 @@ let clip_stack = [];
 function canvas_set_clipper(clip, use_stack)
 {
 	if (!active_scene) return;
+	if (active_scene.mx.is3D) {
+		print(GF_LOG_ERROR, 'Cannot set clipper in 3D context');
+		return;
+	}
 
 	if (use_stack) {
 		if (!clip) {
@@ -5815,7 +5996,7 @@ function draw_scene_no_signal()
 
 function push_texture_uniforms(tx, prog_tx_uni)
 {
-	let mx2d = tx._gl_mx || null;
+	let mx2d = tx.mx || null;
 	const txmx = mx2d ? new evg.Matrix(mx2d) : new evg.Matrix();
 	webgl.uniformMatrix4fv(prog_tx_uni.matrix, false, txmx.m);
 
@@ -5852,6 +6033,104 @@ function push_texture_uniforms(tx, prog_tx_uni)
 	}
 }
 
+function canvas_set_matrix(cnv, mx, prog_info)
+{
+	if (!mx.is3D) {
+		if (cnv) {
+			cnv.matrix = mx;
+		} else {
+			const modelViewMatrix = new evg.Matrix(mx);
+			webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
+		}
+		return;
+	}
+  let fieldOfView = active_camera ? (active_camera.fov*Math.PI / 180) : (Math.PI / 4);
+  let aspect =  (active_camera && active_camera.ar) ? active_camera.ar : (video_width / video_height);
+  let zNear = (active_camera && active_camera.znear) ? active_camera.znear : 0.1;
+  let zFar = (active_camera && active_camera.zfar) ? active_camera.zfar : (10 * (video_width>video_height ? video_width : video_height));
+
+  //pick view distance so that with no transformation, a rectangular scene with size 100%x100% is exactly fullscreen 
+	let final_z = video_height/2 / Math.tan(fieldOfView/2);
+	let pos = {x:0, y:0, z: final_z};
+	let center = {x:0, y:0, z: 0};
+	let up = {x:0, y:1, z: 0};
+
+  if (active_camera) {
+		if (active_camera.position && (active_camera.position.length==3)) {
+			pos.x = active_camera.position[0];
+			pos.y = active_camera.position[1];
+			pos.z = active_camera.position[2];
+		}
+		if (active_camera.target && (active_camera.target.length==3)) {
+			center.x = active_camera.target[0];
+			center.y = active_camera.target[1];
+			center.z = active_camera.target[2];
+		}
+		if (active_camera.up && (active_camera.up.length==3)) {
+			up.x = active_camera.up[0];
+			up.y = active_camera.up[1];
+			up.z = active_camera.up[2];
+		}
+	}
+
+  let projectionMatrix = new evg.Matrix().perspective(fieldOfView, aspect, zNear, zFar);
+  let modelViewMatrix = new evg.Matrix();
+
+  modelViewMatrix.lookat(pos, center, up);
+
+  modelViewMatrix.add(mx);
+
+  if (cnv) {
+	  projectionMatrix.add(modelViewMatrix, true);
+	  cnv.matrix3d = projectionMatrix;
+  }
+  //webgl
+  else {
+		webgl.uniformMatrix4fv(prog_info.projectionMatrix, false, projectionMatrix.m);
+	  webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
+  }
+
+  if (active_camera && active_camera.viewport && (active_camera.viewport.length==4)) {
+		let vp_x = active_camera.viewport[0];
+		let vp_y = active_camera.viewport[1];
+		let vp_w = active_camera.viewport[2];
+		let vp_h = active_camera.viewport[3];
+		if (active_camera.units == UNIT_RELATIVE) {
+			if (typeof vp_x == 'number') vp_x = vp_x * video_width / 100;
+			if (typeof vp_y == 'number') vp_y = vp_y * video_height / 100;
+			if (typeof vp_w == 'number') vp_w = vp_w * video_width / 100;
+			if (typeof vp_h == 'number') vp_h = vp_h * video_height / 100;
+		}
+
+		if (vp_x == 'y') vp_x = vp_y;
+		else if (vp_x == '-y') vp_x = -vp_y;
+		if (vp_y == 'x') vp_y = vp_x;
+		else if (vp_y == '-x') vp_y = -vp_x;
+		if (vp_w == 'height') vp_w = vp_h;
+		if (vp_h == 'width') vp_h = vp_w;
+
+		vp_x = video_width/2 + vp_x - vp_w/2;
+		vp_y = video_height/2 + vp_y - vp_h/2;
+
+	  if (cnv) {
+			vp_y = video_height - vp_y - vp_h;
+
+			if (round_scene_size) {
+				if (vp_x % 2) { vp_x--; vp_w++; };
+				if (vp_w % 2) vp_w--;
+				if (round_scene_size==2) {
+					if (vp_y % 2) { vp_y--; vp_h++; };
+					if (vp_h % 2) vp_h--;
+				}
+			}
+			cnv.viewport(vp_x, vp_y, vp_w, vp_h);
+	  } else {
+		  webgl.viewport(vp_x, vp_y, vp_w, vp_h);
+	  }
+  }
+
+}
+
 function canvas_draw(path, stencil)
 {
 	let uniform_reload = false;
@@ -5876,172 +6155,169 @@ function canvas_draw(path, stencil)
 
 	let matrix = active_scene ? active_scene.mx : no_signal_transform;
 
-	stencil.auto_mx = true;
-
-	if (webgl) {
-
-			let is_texture = stencil.width || 0;
-			let is_text = path.fontsize || 0;
-			let use_soft_raster = false;
-			if (!is_texture) {
-				if (stencil.solid_brush) {
-					use_soft_raster = (filter.gpu==2) ? false : true;
-				}
-				//we don't support gradients on GPU for now
-				else use_soft_raster = true;
-			}
-			//we only draw text through software rasterizer
-			else if (is_text) use_soft_raster = true;
-
-			if (mask_mode) {
-				use_soft_raster = false;
-			}
-
-			if (use_soft_raster) {
-				canvas_offscreen_activate();
-				if (canvas_offscreen.mask_mode != mask_mode) {
-					canvas_offscreen.mask_mode = mask_mode;
-				}
-			  canvas_offscreen.path = path;
-			  canvas_offscreen.matrix = matrix;
-			  canvas_offscreen.fill(stencil);
-				return;
-			}
-
-			canvas_offscreen_deactivate();
-
-			let mesh = path.mesh || null;
-			if (!mesh) {
-				mesh = path.mesh = new evg.Mesh(path);
-				if (!path.mesh) return;
-				path.mesh.update_gl();
-			}
-
-			if (is_texture) {
-				let texture = stencil._gl_texture || null;
-				if (!texture) {
-					stencil._gl_texture = webgl.createTexture(null);
-					if (!stencil._gl_texture) return;
-					stencil._gl_tx_id = webgl.textureName(stencil._gl_texture);
-
-					if (stencil._gl_program) {
-						stencil._gl_program = null;
-						print(GF_LOG_INFO, 'texture format change, reloading GLSL shader');
-					}
-					stencil._gl_modified = true;
-				}
-
-				if (stencil._gl_modified == true) {
-					webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
-			    stencil._gl_texture.upload(stencil);
-					stencil._gl_modified = false;
-				}
-			}
-
-			let prog_info = stencil._gl_program || null;
-	    if (!stencil._gl_program) {
-				if (is_texture) {
-					let color_mx = stencil.cmx;
-					if (color_mx.identity) color_mx = null;
-
-					let fs_src = fs_source; 
-
-					prog_info = stencil._gl_program = setup_webgl_program(vs_source, fs_src, stencil._gl_tx_id);
-					if (!stencil._gl_program) {
-						filter.abort();
-						return;
-					}
-				} else {
-					prog_info = stencil._gl_program = setup_webgl_program(vs_const_col, fs_const_col, null);
-					if (!stencil._gl_program) {
-						filter.abort();
-						return;
-					}
-				}
-				webgl.useProgram(prog_info.program);
-				webgl.uniform1f(prog_info.mask_w, video_width);
-				webgl.uniform1f(prog_info.mask_h, video_height);
-    	}
-
-			let use_mask = 0;
-			if (mask_mode==GF_EVGMASK_DRAW) {
-			  mask_canvas.path = path;
-			  mask_canvas.matrix = matrix;
-			  mask_canvas.fill(stencil);
-				return;
-			}
-			else if ((mask_mode==GF_EVGMASK_USE) || (mask_mode==GF_EVGMASK_RECORD)) {
-			  use_mask = 1;
-			} else if (mask_mode==GF_EVGMASK_USE_INV) {
-			  use_mask = 2;
-			}
-
-		  webgl.useProgram(prog_info.program);
-
-		  webgl.viewport(0, 0, video_width, video_height);
-
-		  if (wgl_clipper) {
-				webgl.enable(webgl.SCISSOR_TEST);
-
-				webgl.scissor(video_width/2 + wgl_clipper.x, wgl_clipper.y - wgl_clipper.h + video_height/2, wgl_clipper.w, wgl_clipper.h);
-		  } else {
-				webgl.disable(webgl.SCISSOR_TEST);
-		  }
-
-		  //set transform
-	  	const modelViewMatrix = new evg.Matrix(matrix);
-		  webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
-
-		  //set mask
-		  webgl.uniform1i(prog_info.mask_mode, use_mask);
-
-			if (use_mask) {
-				let tx_slot = is_texture ? stencil._gl_texture.nb_textures : 0;
-
-			  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
-				webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
-				//not a named texture
-				webgl.texSubImage2D(webgl.TEXTURE_2D, 0, 0, 0, video_width, video_height,webgl.LUMINANCE, webgl.UNSIGNED_BYTE, mask_canvas_data);
-				webgl.uniform1i(prog_info.mask_tx, tx_slot);
-			}
-
-		  if (is_texture) {
-				if (uniform_reload) {
-					push_texture_uniforms(stencil, prog_info.textures[0]);
-				}
-
-			  //set video texture
-			  webgl.activeTexture(webgl.TEXTURE0);
-			  webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
-				webgl.uniform1i(prog_info.textures[0].sampler, 0);
-
-				mesh.draw(webgl, prog_info.attribLocations.vertexPosition, prog_info.attribLocations.textureCoord);
-		  } else {
-				if (uniform_reload) {
-					let color = stencil.get_color();
-					let alpha = stencil.get_alphaf();
-					let a = sys.color_component(color, 0) * alpha;
-					let r = sys.color_component(color, 1);
-					let g = sys.color_component(color, 2);
-					let b = sys.color_component(color, 3);
-					webgl.uniform4f(prog_info.color, r, g, b, a);
-				}
-
-				mesh.draw(webgl, prog_info.attribLocations.vertexPosition);
-		  }
-		  webgl.useProgram(null);
-			webgl.disable(webgl.SCISSOR_TEST);
-
-			//record mode, also draw using black stencil on mask canvas
-			if (mask_mode==GF_EVGMASK_RECORD) {
-			  mask_canvas.path = path;
-			  mask_canvas.matrix = matrix;
-			  mask_canvas.fill(mask_gl_stencil);
-			}
-	} else {
+	if (!webgl) {
 	  canvas.path = path;
-	  canvas.matrix = matrix;
+	  canvas_set_matrix(canvas, matrix);
 	  canvas.fill(stencil);
+	  return;
+	}
+
+	let is_texture = stencil.width || 0;
+	let is_text = path.fontsize || 0;
+	let use_soft_raster = false;
+	if (!is_texture) {
+		if (stencil.solid_brush) {
+			use_soft_raster = (filter.gpu==2) ? false : true;
+		}
+		//we don't support gradients on GPU for now
+		else use_soft_raster = true;
+	}
+	//we only draw text through software rasterizer
+	else if (is_text) use_soft_raster = true;
+
+	if (mask_mode) {
+		use_soft_raster = false;
+	}
+
+	if (use_soft_raster) {
+		canvas_offscreen_activate();
+		if (canvas_offscreen.mask_mode != mask_mode) {
+			canvas_offscreen.mask_mode = mask_mode;
+		}
+	  canvas_offscreen.path = path;
+	  canvas_set_matrix(canvas_offscreen, matrix);
+	  canvas_offscreen.fill(stencil);
+		return;
+	}
+
+	canvas_offscreen_deactivate();
+
+	let mesh = path.mesh || null;
+	if (!mesh) {
+		mesh = path.mesh = new evg.Mesh(path);
+		if (!path.mesh) return;
+		path.mesh.update_gl();
+	}
+
+	if (is_texture) {
+		let texture = stencil._gl_texture || null;
+		if (!texture) {
+			stencil._gl_texture = webgl.createTexture(null);
+			if (!stencil._gl_texture) return;
+			stencil._gl_tx_id = webgl.textureName(stencil._gl_texture);
+
+			if (stencil._gl_program) {
+				stencil._gl_program = null;
+				print(GF_LOG_INFO, 'texture format change, reloading GLSL shader');
+			}
+			stencil._gl_modified = true;
+		}
+
+		if (stencil._gl_modified == true) {
+			webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
+	    stencil._gl_texture.upload(stencil);
+			stencil._gl_modified = false;
+		}
+	}
+
+	let prog_info = stencil._gl_program || null;
+  if (!stencil._gl_program) {
+		if (is_texture) {
+			let color_mx = stencil.cmx;
+			if (color_mx.identity) color_mx = null;
+
+			let fs_src = fs_source;
+
+			prog_info = stencil._gl_program = setup_webgl_program(vs_source, fs_src, stencil._gl_tx_id);
+			if (!stencil._gl_program) {
+				filter.abort();
+				return;
+			}
+		} else {
+			prog_info = stencil._gl_program = setup_webgl_program(vs_const_col, fs_const_col, null);
+			if (!stencil._gl_program) {
+				filter.abort();
+				return;
+			}
+		}
+		webgl.useProgram(prog_info.program);
+		webgl.uniform1f(prog_info.mask_w, video_width);
+		webgl.uniform1f(prog_info.mask_h, video_height);
+	}
+
+	let use_mask = 0;
+	if (mask_mode==GF_EVGMASK_DRAW) {
+	  mask_canvas.path = path;
+	  canvas_set_matrix(mask_canvas, matrix);
+	  mask_canvas.fill(stencil);
+		return;
+	}
+	else if ((mask_mode==GF_EVGMASK_USE) || (mask_mode==GF_EVGMASK_RECORD)) {
+	  use_mask = 1;
+	} else if (mask_mode==GF_EVGMASK_USE_INV) {
+	  use_mask = 2;
+	}
+
+  webgl.useProgram(prog_info.program);
+
+  webgl.viewport(0, 0, video_width, video_height);
+
+  if (wgl_clipper) {
+		webgl.enable(webgl.SCISSOR_TEST);
+
+		webgl.scissor(video_width/2 + wgl_clipper.x, wgl_clipper.y - wgl_clipper.h + video_height/2, wgl_clipper.w, wgl_clipper.h);
+  } else {
+		webgl.disable(webgl.SCISSOR_TEST);
+  }
+
+  //set transform
+	canvas_set_matrix(null, matrix, prog_info);
+
+  //set mask
+  webgl.uniform1i(prog_info.mask_mode, use_mask);
+
+	if (use_mask) {
+		let tx_slot = is_texture ? stencil._gl_texture.nb_textures : 0;
+
+	  webgl.activeTexture(webgl.TEXTURE0 + tx_slot);
+		webgl.bindTexture(webgl.TEXTURE_2D, mask_texture);
+		//not a named texture
+		webgl.texSubImage2D(webgl.TEXTURE_2D, 0, 0, 0, video_width, video_height,webgl.LUMINANCE, webgl.UNSIGNED_BYTE, mask_canvas_data);
+		webgl.uniform1i(prog_info.mask_tx, tx_slot);
+	}
+
+  if (is_texture) {
+		if (uniform_reload) {
+			push_texture_uniforms(stencil, prog_info.textures[0]);
+		}
+
+	  //set video texture
+	  webgl.activeTexture(webgl.TEXTURE0);
+	  webgl.bindTexture(webgl.TEXTURE_2D, stencil._gl_texture);
+		webgl.uniform1i(prog_info.textures[0].sampler, 0);
+
+		mesh.draw(webgl, prog_info.attribLocations.vertexPosition, prog_info.attribLocations.textureCoord);
+  } else {
+		if (uniform_reload) {
+			let color = stencil.get_color();
+			let alpha = stencil.get_alphaf();
+			let a = sys.color_component(color, 0) * alpha;
+			let r = sys.color_component(color, 1);
+			let g = sys.color_component(color, 2);
+			let b = sys.color_component(color, 3);
+			webgl.uniform4f(prog_info.color, r, g, b, a);
+		}
+
+		mesh.draw(webgl, prog_info.attribLocations.vertexPosition);
+  }
+  webgl.useProgram(null);
+	webgl.disable(webgl.SCISSOR_TEST);
+
+	//record mode, also draw using black stencil on mask canvas
+	if (mask_mode==GF_EVGMASK_RECORD) {
+	  mask_canvas.path = path;
+	  canvas_set_matrix(mask_canvas, matrix);
+	  mask_canvas.fill(mask_gl_stencil);
 	}
 }
 
@@ -6252,8 +6528,6 @@ function canvas_draw_sources(path)
 	}
 
 	if (op_type) {
-		pids[0].texture.auto_mx = true;
-
 	  if ((op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)) {
 			if (pids.length<=1) {
 				print(GF_LOG_WARNING, 'Canvas multitexture fill with 3 textures but only 2 textures provided');
@@ -6265,11 +6539,9 @@ function canvas_draw_sources(path)
 		if (!use_gpu) {
 			let mx = op_tx.mx;
 
-			op_tx.auto_mx = true;
-			canvas.matrix = active_scene.mx;
+			canvas_set_matrix(canvas, active_scene.mx);
 		  canvas.path = path;
 		  if ((op_type == GF_EVG_OPERAND_MIX_DYN) || (op_type == GF_EVG_OPERAND_MIX_DYN_ALPHA)) {
-				pids[1].texture.auto_mx = true;
 			  canvas.fill(op_type, [op_param], pids[0].texture, pids[1].texture, op_tx);
 		  } else {
 			  canvas.fill(op_type, [op_param], pids[0].texture, op_tx);
@@ -6356,9 +6628,7 @@ function canvas_draw_sources(path)
 			canvas_draw(path, pids[0].texture);
 			return;
 		}
-		pids[0].texture.auto_mx = true;
-		pids[1].texture.auto_mx = true;
-		canvas.matrix = active_scene.mx;
+		canvas_set_matrix(canvas, active_scene.mx);
 
 		transition.mod.apply(canvas, ratio, path, pids);
 		return;
@@ -6369,7 +6639,7 @@ function canvas_draw_sources(path)
 	let use_mask = 0;
 	if ((mask_mode==GF_EVGMASK_DRAW) || (mask_mode==GF_EVGMASK_RECORD)) {
 	  mask_canvas.path = path;
-	  mask_canvas.matrix = matrix;
+	  canvas_set_matrix(mask_canvas, matrix);
 	  mask_canvas.fill(pids[0].texture);
 	  if (mask_mode==GF_EVGMASK_DRAW) return;
 	  use_mask = 1;
@@ -6718,8 +6988,7 @@ void main() {
   }
 
 	//set transform
-	const modelViewMatrix = new evg.Matrix(active_scene.mx);
-	webgl.uniformMatrix4fv(prog_info.modelViewMatrix, false, modelViewMatrix.m);
+	canvas_set_matrix(null, active_scene.mx, prog_info);
 
 	if (!transition) ratio = active_scene.mod.mix_ratio;
 
@@ -7438,6 +7707,15 @@ function parse_update_elem(pl, array)
 		trigger_watcher(script, prop_name, timer[prop_name]);
 		return true;
 	}
+
+	//try styles and watchers, only active property
+	let style = get_element_by_id(src, styles);
+	if (style) {
+		style[prop_name] = pl.with;
+		style.updated = true;
+		return true;
+	}
+
 	print(GF_LOG_WARNING, "No updatable element with id " + src + ' found');
 	return false;
 }
@@ -7511,6 +7789,7 @@ function get_group_texture(group_id)
 function get_screen_rect(path)
 {
 	if (!active_scene || !path) return null;
+	if (active_scene.mx.is3D) return null;
 	let rc = active_scene.mx.apply(path.bounds);
 
 	rc.x += video_width/2;
@@ -7684,6 +7963,9 @@ function mouse_over_mod()
 
 	for (let i=0; i<len; i++) {
 		let ctx = prev_display_list[len-i-1];
+		if (ctx.mx.is3D) {
+			continue;
+		}
 
 		let inv_mx = ctx.mx.copy().inverse();
 		let a_pt = inv_mx.apply(pt);
@@ -7699,7 +7981,7 @@ function mouse_over_mod()
 		if (ctx.group) {
 			return ctx.group;
 		}
-		let over = true;
+		let over = false;
 		if (typeof ctx.scene.mod.point_over == 'function') {
 			over = ctx.scene.mod.point_over(a_pt.x, a_pt.y);
 		}

@@ -126,40 +126,55 @@ apply: function(canvas, ratio, path, pids)
   let t_x2 = 0;
   let t_y2 = 0;
 
+  let c_x1 = 0.5;
+  let c_y1 = 0.5;
+  let c_x2 = 0.5;
+  let c_y2 = 0.5;
+
   //left
   if (this.h_mode==1) {
-    t_x1 = rc.w*ratio;
-    t_x2 = rc.w*(ratio-1);
+    t_x1 = ratio;
+    c_x1 -= 0.5;
+    t_x2 = (ratio-1);
+    c_x2 += 0.5;
   }
   //right
   else if (this.h_mode==2) {
-    t_x1 = -rc.w*ratio;
-    t_x2 = -rc.w*(ratio-1);
+    t_x1 = -ratio;
+    c_x1 += 0.5;
+    t_x2 = -(ratio-1);
+    c_x2 -= 0.5;
   }
 
   //top
   if (this.v_mode==1) {
-    t_y1 = -rc.h*ratio;
-    t_y2 = -rc.h*(ratio-1);
+    t_y1 = -ratio;
+    c_y1 -= 0.5;
+    t_y2 = -(ratio-1);
+    c_y2 += 0.5;
   }
   //bottom
   else if (this.v_mode==2) {
-    t_y1 = rc.h*ratio;
-    t_y2 = rc.h*(ratio-1);
+    t_y1 = ratio;
+    c_y1 += 0.5;
+    t_y2 = (ratio-1);
+    c_y2 -= 0.5;
   }
 
-  mx1.translate(t_x1, t_y1);
-  mx2.translate(t_x2, t_y2);
+  mx1.translate(-t_x1, t_y1);
+  mx2.translate(-t_x2, t_y2);
 
-  if (this.mod == 2) 
-    mx1.scale(1-ratio, 1-ratio);
-  else if (this.mod == 3) 
-    mx2.scale(ratio, ratio);
-  else if (this.mod == 4) {
-    mx1.scale(1-ratio, 1-ratio);
-    mx2.scale(ratio, ratio);
+  if ((this.mod == 2) || (this.mod == 4)) {
+    mx1.translate(-c_x1, -c_y1);
+    mx1.scale( 1 / (1-ratio), 1/(1-ratio) );
+    mx1.translate(c_x1, c_y1);
   }
 
+  if ((this.mod == 3) || (this.mod == 4)) {
+    mx2.translate(-c_x2, -c_y2);
+    mx2.scale(1/ratio, 1/ratio);
+    mx2.translate(c_x2, c_y2);
+  }
 
 
   let pad1_bck = pids[0].texture.get_pad_color();

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2021
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript vector graphics bindings
@@ -3801,6 +3801,7 @@ enum
 	MX2D_YY,
 	MX2D_TY,
 	MX2D_IDENTITY,
+	MX2D_3D,
 };
 
 static JSValue mx2d_getProperty(JSContext *c, JSValueConst obj, int magic)
@@ -3812,6 +3813,8 @@ static JSValue mx2d_getProperty(JSContext *c, JSValueConst obj, int magic)
 	}
 	if (magic==MX2D_IDENTITY)
 		return JS_NewBool(c, gf_mx2d_is_identity(*mx));
+	if (magic==MX2D_3D)
+		return JS_FALSE;
 	return JS_UNDEFINED;
 }
 static JSValue mx2d_setProperty(JSContext *c, JSValueConst obj, JSValueConst value, int magic)
@@ -4080,6 +4083,7 @@ static const JSCFunctionListEntry mx2d_funcs[] =
 	JS_CGETSET_MAGIC_DEF("yy", mx2d_getProperty, mx2d_setProperty, MX2D_YY),
 	JS_CGETSET_MAGIC_DEF("ty", mx2d_getProperty, mx2d_setProperty, MX2D_TY),
 	JS_CGETSET_MAGIC_DEF("identity", mx2d_getProperty, mx2d_setProperty, MX2D_IDENTITY),
+	JS_CGETSET_MAGIC_DEF("is3D", mx2d_getProperty, NULL, MX2D_3D),
 	JS_CFUNC_DEF("get_scale", 0, mx2d_get_scale),
 	JS_CFUNC_DEF("get_translate", 0, mx2d_get_translate),
 	JS_CFUNC_DEF("get_rotate", 0, mx2d_get_rotate),
@@ -4710,7 +4714,7 @@ static JSValue path_point_over(JSContext *c, JSValueConst obj, int argc, JSValue
 	} else {
 		return GF_JS_EXCEPTION(c);
 	}
-	return JS_NewBool(c, gf_path_point_over(gp, FLT2FIX(x), FLT2FIX(y)));
+	return gf_path_point_over(gp, FLT2FIX(x), FLT2FIX(y)) ? JS_TRUE : JS_FALSE;
 }
 
 
@@ -6959,6 +6963,7 @@ static JSValue text_constructor(JSContext *c, JSValueConst new_target, int argc,
 enum
 {
 	MX_PROP_IDENTITY=0,
+	MX_PROP_3D,
 	MX_PROP_YAW,
 	MX_PROP_PITCH,
 	MX_PROP_ROLL,
@@ -7013,7 +7018,10 @@ static JSValue mx_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
 	if (!mx) return GF_JS_EXCEPTION(ctx);
 	switch (magic) {
-	case MX_PROP_IDENTITY: return JS_NewBool(ctx, gf_mx2d_is_identity(*mx));
+	case MX_PROP_IDENTITY:
+		return JS_NewBool(ctx, gf_mx_is_identity(*mx));
+	case MX_PROP_3D:
+		return JS_TRUE;
 	case MX_PROP_YAW:
 		gf_mx_get_yaw_pitch_roll(mx, &yaw, &pitch, &roll);
 		return JS_NewFloat64(ctx, FIX2FLT(yaw));
@@ -7083,12 +7091,23 @@ static JSValue mx_setProperty(JSContext *ctx, JSValueConst this_val, JSValueCons
 
 static JSValue mx_copy(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	GF_Matrix *mx2;
 	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
-	if (!mx || !argc) return GF_JS_EXCEPTION(ctx);
-	GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+	if (!mx)
+		return GF_JS_EXCEPTION(ctx);
+	if (argc) {
+		GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+		if (!mx2)
+			return GF_JS_EXCEPTION(ctx);
+		gf_mx_copy(*mx, *mx2);
+		return JS_DupValue(ctx, this_val);
+	}
+	GF_SAFEALLOC(mx2, GF_Matrix);
 	if (!mx2) return GF_JS_EXCEPTION(ctx);
-	gf_mx_copy(*mx, *mx2);
-	return JS_DupValue(ctx, this_val);
+	JSValue res = JS_NewObjectClass(ctx, matrix_class_id);
+	JS_SetOpaque(res, mx2);
+	gf_mx_copy(*mx2, *mx);
+	return res;
 }
 static JSValue mx_equal(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
@@ -7158,10 +7177,14 @@ static JSValue mx_translate(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
 	if (!mx || !argc) return GF_JS_EXCEPTION(ctx);
 	if (!JS_IsObject(argv[0])) {
-		if (argc<3) return GF_JS_EXCEPTION(ctx);
+		if (argc<2) return GF_JS_EXCEPTION(ctx);
 		EVG_GET_FLOAT(vx, argv[0])
 		EVG_GET_FLOAT(vy, argv[1])
-		EVG_GET_FLOAT(vz, argv[2])
+		if (argc==3) {
+			EVG_GET_FLOAT(vz, argv[2])
+		} else {
+			vz = 0;
+		}
 	} else {
 		WGL_GET_VEC3(vx, vy, vz, argv[0])
 	}
@@ -7203,15 +7226,30 @@ static JSValue mx_rotate(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 }
 static JSValue mx_add(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+	GF_Matrix *_mx2 = NULL;
 	GF_Matrix *mx = JS_GetOpaque(this_val, matrix_class_id);
-	if (!mx || !argc) return GF_JS_EXCEPTION(ctx);
+	if (!mx || !argc)
+		return GF_JS_EXCEPTION(ctx);
 	GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
-	if (!mx2) return GF_JS_EXCEPTION(ctx);
+
+	if (!mx2) {
+		GF_Matrix2D *mx2_2D = JS_GetOpaque(argv[0], mx2d_class_id);
+		if (!mx2_2D)
+			return GF_JS_EXCEPTION(ctx);
+
+		GF_SAFEALLOC(_mx2, GF_Matrix);
+		if (!_mx2)
+			return GF_JS_EXCEPTION(ctx);
+		gf_mx_from_mx2d(_mx2, mx2_2D);
+		mx2 = _mx2;
+	}
 	if ((argc>1) && JS_ToBool(ctx, argv[1])) {
 		gf_mx_add_matrix_4x4(mx, mx2);
 	} else {
 		gf_mx_add_matrix(mx, mx2);
 	}
+	if (_mx2) gf_free(_mx2);
+
 	return JS_DupValue(ctx, this_val);
 }
 
@@ -7247,11 +7285,16 @@ static JSValue mx_apply(JSContext *ctx, JSValueConst this_val, int argc, JSValue
 
 	/*try rect*/
 	v = JS_GetPropertyStr(ctx, argv[0], "width");
+	if (JS_IsUndefined(v))
+		v = JS_GetPropertyStr(ctx, argv[0], "w");
+
 	if (!JS_IsUndefined(v)) {
 		GF_Rect rc;
 		EVG_GET_FLOAT(width, v);
 		JS_FreeValue(ctx, v);
 		v = JS_GetPropertyStr(ctx, argv[0], "height");
+		if (JS_IsUndefined(v))
+			v = JS_GetPropertyStr(ctx, argv[0], "h");
 		EVG_GET_FLOAT(height, v);
 		JS_FreeValue(ctx, v);
 		v = JS_GetPropertyStr(ctx, argv[0], "x");
@@ -7352,6 +7395,7 @@ static JSValue mx_lookat(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 static const JSCFunctionListEntry mx_funcs[] =
 {
 	JS_CGETSET_MAGIC_DEF("identity", mx_getProperty, mx_setProperty, MX_PROP_IDENTITY),
+	JS_CGETSET_MAGIC_DEF("is3D", mx_getProperty, mx_setProperty, MX_PROP_3D),
 	JS_CGETSET_MAGIC_DEF("m", mx_getProperty, mx_setProperty, MX_PROP_M),
 	JS_CGETSET_MAGIC_DEF("yaw", mx_getProperty, NULL, MX_PROP_YAW),
 	JS_CGETSET_MAGIC_DEF("pitch", mx_getProperty, NULL, MX_PROP_PITCH),
