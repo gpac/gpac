@@ -618,6 +618,8 @@ interface Matrix2D {
 	attribute double tx;
 	/*! matrix is identity*/
 	attribute boolean identity;
+	/*! indicates matrix is a 2D matrix*/
+	attribute const boolean is3D = false;
 
 	/*! get scale part of the matrix after decomposition - see \ref gf_mx2d_decompose
 	\return {x, y} object, or null if matrix cannot be decomposed*/
@@ -1249,6 +1251,9 @@ print(`transformed ${res.x} ${res.y} ${res.z});`
 interface Matrix {
 /*! indicates if matrix is identity. If set to true, resets matrix*/
 attribute boolean identity;
+/*! indicates matrix is a 3D matrix*/
+attribute const boolean is3D = true;
+
 /*! float buffer of coeficients (typically use matrix.m to pass matrices uniforms)*/
 attribute Array<float> m;
 /*! yaw value of matrix*/
@@ -1348,7 +1353,7 @@ Matrix transpose();
 \param z_far max depth coordinate of viewport
 \return the matrix object
 */
-Matrix ortho(float left, float right, float top, float bottom, float z_near, float z_far);
+Matrix ortho(float left, float right, float bottom, float top, float z_near, float z_far);
 
 /*! loads a perspective projection matrix
 \param fov camera field of view angle in radian

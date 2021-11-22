@@ -7629,9 +7629,9 @@ When operating live, the mixer will initially wait for video frames to be ready 
 .B
 Overview
 .br
-The playlist describes:
+The main components in a playlist are:
 .br
-* Media sequences: each sequence is a set of sources to be played continuously
+* Media sources and sequences: each source is described by one or more URL to the media data, and each sequence is a set of sources to be played continuously 
 .br
 * Transitions: sources in a sequence can be combined using transitions
 .br
@@ -7663,9 +7663,11 @@ Root objects types can be indicated through a type property:
 .br
 * watch: a watcher object
 .br
+* style: a style object
+.br
 
 .br
-The type property of root objects is usually not needed as the parser guesses the object types from its properties.
+Except for style, the type property of root objects is usually not needed as the parser guesses the object types from its properties.
 .br
 
 .br
@@ -7767,7 +7769,7 @@ The code can use the global functions and modules defined, especially:
 .br
 * get_group(id): gets group with given ID
 .br
-* mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene
+* mouse_over(evt): returns scene under mouse described by a GPAC event, or null if no scene (picking for scenes with perspective projection is not supported)
 .br
 * mouse_over(x, y): returns scene under coordinates {x, y} in pixels, {0,0} representing the center of the frame, x axis oriented towards the right and y axis oriented towards the top
 .br
@@ -7793,7 +7795,7 @@ Other playlist objects (as well as scene and group objects) can be queried using
 .br
 
 .br
-Warning: there is no protection of global variables and state, write your script carefully!
+Warning: There is no protection of global variables and state, write your script carefully!
 .br
 
 .br
@@ -7933,13 +7935,13 @@ When launching child process, the input filter is created first and the child pr
 .br
 
 .br
-Warning: when launching child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
+Warning: When launching child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
 .br
 
 .br
 .P
 .B
-2D transformation
+2D and 3D transformation
 .br
 .P
 .B
@@ -7977,15 +7979,53 @@ Common properties for group and scene objects
 .br
 * mxjs (null): JS code for matrix evaluation
 .br
+* z (0): depth translation
+.br
+* cz (0): depth coordinate of rotation center
+.br
+* zscale (1): depth scaling factor to apply to the group
+.br
+* orientation ([0, 0, 1, 0]): scale along the given orientation axis [x, y, z, angle] - see VRML scaleOrientation
+.br
+* axis ([0, 0, 1]): rotation axis
+.br
+* position ([0, 0, auto]): camera location
+.br
+* target ([0, 0, 0]): point where the camera is looking
+.br
+* up ([0, 1, 0]): camera up vector
+.br
+* viewport ([0, 0, 100, 100]): viewport for camera
+.br
+* fov (45): field of view in degrees
+.br
+* ar (0): camera aspect ratio, 0 means default
+.br
+* znear (0): near Z plane distance, 0 means default
+.br
+* zfar (0): far Z plane distance, 0 means default
+.br
 
 .br
 .P
 .B
 Coordinate System
 .br
-Each group or scene is specified in a local coordinate system for which {0,0} represents the center.
+Each group or scene is specified in a local coordinate system for which:
 .br
-The local transformation matrix is computed as rotate(cx, cy, rotation) * hskew * vskew * scale(hscale, vscale) * translate(x, y).
+- {0,0} represents the center
+.br
+- X values increase to the right
+.br
+- Y values increase to the top
+.br
+- Z values increase  towards the eye of a viewer (Z=X^Y)
+.br
+
+.br
+The 2D local transformation matrix is computed as rotate(cx, cy, rotation) * hskew * vskew * scale(hscale, vscale) * translate(x, y).
+.br
+The 3D local transformation matrix is computed as translate(x, y, z) * rotate(cx, cy, cz, rotation) * scale(hscale, vscale, zscale). Skewing is not supported for 3D.
 .br
 
 .br
@@ -8006,6 +8046,8 @@ Inside a reference space R, relative coordinates are interpreted as follows:
 - For width, 100 means R.width.
 .br
 - For height, 100 means R.height.
+.br
+- For depth (z and cz) coordinates, the value is a percent of the reference height (+R.height).
 .br
 
 .br
@@ -8031,6 +8073,36 @@ Changing reference is typically needed when creating offscreen groups, so that c
 .br
 
 .br
+The selection between 2D and 3D is done automatically based on z, cz, axis and orientation values.
+.br
+The default projection is:
+.br
+- viewport is the entire output frame
+.br
+- field of view is PI/4 and aspect ratio is output width/height
+.br
+- zNear is 0.1 and zFar is 10 times maximum(output width, output height)
+.br
+- camera up direction is Y axis and camera distance is so that a rectangle facing the camera with z=0 and size equal to output size covers exactly the output frame.
+.br
+- depth buffer is disabled
+.br
+
+.br
+The default projection can be changed by setting camera properties at group or scene level. When set on a group, all children of the group will use the given camera properties (camera parameters on children are ignored).
+.br
+The viewport parameter is specified as an array [x, y, w, h], where:
+.br
+* x: horizontal coordinate of the viewport center, in group or scene units, or 'y' to use y value, or '-y' to use -y value.
+.br
+* y: vertical coordinate of the viewport center, in group or scene units, or 'x' to use x value, or '-x' to use -x value.
+.br
+* w: width of the viewport, in group or scene units, or 'height' to use h value.
+.br
+* h: height of the viewport, in group or scene units, or 'width' to use w value.
+.br
+
+.br
 .P
 .B
 z-ordering
@@ -8051,11 +8123,7 @@ The JSFun specified in mxjs has a single parameter tr.
 .br
 The tr parameter is an object containing the following variables that the code can modify:
 .br
-* x, y, cx, cy, hscale, vscale, hskew, vskew, rotation, untransform: these values are initialized to the current group values in local coordinate system units
-.br
-* mx: 2D matrix of the scene for custom config
-.br
-* set: if set to true by the code, the other operations are ignored and the modified mx is used as is. Otherwise, other matrix operations are added after
+* x, y, z, cx, cy, cz, hscale, vscale, zscale, hskew, vskew, rotation, untransform, axis, orientation: these values are initialized to the current group values in local coordinate system units
 .br
 * update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if use is set)
 .br
@@ -8121,7 +8189,7 @@ The maximum depth of a branch in the scene graph is maxdepth (traversing aborts 
 .br
 
 .br
-In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless width and  height are both greater or equal to 0.
+In offscreen mode, the bounds of the enclosed objects are computed to allocate the offscreen surface, unless width and height are both greater or equal to 0.
 .br
 Enforcing offscreen size is useful when generating textures for later effects.
 .br
@@ -8172,6 +8240,8 @@ Properties for scene objects
   * inout: both fade-in and fade-out are enabled
 .br
   * other: no audio fade
+.br
+* styles ([]): list of style IDs to use
 .br
 - any other property exposed by the underlying scene JS module.
 .br
@@ -8383,7 +8453,7 @@ Properties for watcher objects
 .br
 * target (""): action for watcher. Allowed syntaxes are:
 .br
-  * `ID@prop`, `ID@prop[idx]`: copy value to property prop of the element  ID (potentially at index idx if specified for arrays)
+  * `ID@prop`, `ID@prop[idx]`: copy value to property prop of the element ID (potentially at index idx if specified for arrays)
 .br
   * `ID.fun_name`: call function fun_name exported from scene module ID, using three arguments ['value', 'watchID', 'watchPropName'], no return value check
 .br
@@ -8447,7 +8517,7 @@ Watching UI events
 .br
 Watchers can also be used to monitor GPAC user events by setting watch to:
 .br
-* an event name to monitor: one of keydown, keyup, mousemove, mouseup, mousedown, wheel, textInput
+- an event name to monitor, one of keydown, keyup, mousemove, mouseup, mousedown, wheel, textInput
 .br
 - events to monitor all events (including internal events).
 .br
@@ -8469,11 +8539,63 @@ The javascript function will be called with a single argument evt containing the
 .br
 Example
 .br
-{'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' ); }
+{'watch': 'mousemove', 'target': 'let s = mouse_over(evt); get_scene('s2').set('fill', (s && (s.id=='s1') ? 'white' : 'black' );'}
 .br
 
 .br
 This will set s1 fill color to white of mouse is over s2 and to black otherwise.
+.br
+
+.br
+.P
+.B
+Styles
+.br
+.P
+.B
+Properties for style objects
+.br
+* id (null): ID of the style
+.br
+* forced (false): always apply style even when no modifications
+.br
+* other: any property to share between scene
+.br
+
+.br
+.P
+.B
+Notes
+.br
+
+.br
+A style object allows scenes to share the same values for a given set of properties.
+.br
+
+.br
+If a scene property has the same name as a style property, the scene property is replaced by the style property.
+.br
+Styles only apply to scene, and stylable properties are restricted as follows:
+.br
+- volume, fade, mix_ratio can use style
+.br
+- all options defined by the scene module can use style
+.br
+- transformation or other scene properties cannot use style
+.br
+
+.br
+Properties of a style object can be animated or updated, but a style object cannot be watched.
+.br
+
+.br
+Styles are applied to each associated scene in order of declaration, e.g. ['st1', 'st2'] and ['st2', 'st1'] will likely give different results.
+.br
+
+.br
+If force is not set for a style, the style is only applied after being modified (load, animation, update); if a scene uses ['st1', 'st2'] and only st1 is
+.br
+modified (animation, update), st2 will only be applied once.
 .br
 
 .br
@@ -8546,6 +8668,10 @@ A script object modified between two reloads has its code re-evaluated
 
 .br
 A watcher object modified between two reloads has its watch source and code re-evaluated
+.br
+
+.br
+A style object is not tracked (all styles are reloaded when reloading a playlist).
 .br
 
 .br
@@ -8925,13 +9051,13 @@ Options:
 .br
 * ry (0): vertical radius for rounded rect in percent of object height if positive, in absolute value if negative, value x means use rx
 .br
-* tl (true): top-left corner rounded
+* tl (1): top-left corner scaler (positive, 0 disables corner)
 .br
-* bl (true): bottom-left corner rounded
+* bl (1): bottom-left corner scaler (positive, 0 disables corner)
 .br
-* tr (true): top-right corner rounded
+* tr (1): top-right corner scaler (positive, 0 disables corner)
 .br
-* br (true): bottom-right corner rounded
+* br (1): bottom-right corner scaler (positive, 0 disables corner)
 .br
 * rs (false): repeat texture horizontally
 .br
@@ -9395,7 +9521,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1429-gfe9fccf0b-master
+build: 1.1.0-DEV-rev1431-gf448b75bf-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

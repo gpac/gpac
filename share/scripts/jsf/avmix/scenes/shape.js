@@ -89,10 +89,10 @@ const UPDATE_COLOR = 1<<7;
 export const options = [
  {name:"rx", value: 0, desc: "horizontal radius for rounded rect in percent of object width if positive, in absolute value if negative, value `y` means use `ry`", dirty: UPDATE_SIZE|UPDATE_ALLOW_STRING},
  {name:"ry", value: 0, desc: "vertical radius for rounded rect in percent of object height if positive, in absolute value if negative, value `x` means use `rx`", dirty: UPDATE_SIZE|UPDATE_ALLOW_STRING},
- {name:"tl", value: true, desc: "top-left corner rounded", dirty: UPDATE_SIZE},
- {name:"bl", value: true, desc: "bottom-left corner rounded", dirty: UPDATE_SIZE},
- {name:"tr", value: true, desc: "top-right corner rounded", dirty: UPDATE_SIZE},
- {name:"br", value: true, desc: "bottom-right corner rounded", dirty: UPDATE_SIZE},
+ {name:"tl", value: 1.0, desc: "top-left corner scaler (positive, 0 disables corner)", dirty: UPDATE_SIZE},
+ {name:"bl", value: 1.0, desc: "bottom-left corner scaler (positive, 0 disables corner)", dirty: UPDATE_SIZE},
+ {name:"tr", value: 1.0, desc: "top-right corner scaler (positive, 0 disables corner)", dirty: UPDATE_SIZE},
+ {name:"br", value: 1.0, desc: "bottom-right corner scaler (positive, 0 disables corner)", dirty: UPDATE_SIZE},
  {name:"rs", value: false, desc: "repeat texture horizontally", dirty: UPDATE_SIZE},
  {name:"rt", value: false, desc: "repeat texture vertically", dirty: UPDATE_SIZE},
  {name:"keep_ar", value: true, desc: "keep aspect ratio", dirty: UPDATE_POS},
@@ -219,10 +219,15 @@ function make_rounded_rect(is_straight)
   if (ry >= hh) ry = hh;
   rx_bl = rx_br = rx_tl = rx_tr = rx;
   ry_bl = ry_br = ry_tl = ry_tr = ry;
-  if (!this.tl) rx_tl = ry_tl = 0;
-  if (!this.tr) rx_tr = ry_tr = 0;
-  if (!this.bl) rx_bl = ry_bl = 0;
-  if (!this.br) rx_br = ry_br = 0;
+
+  rx_tl *= this.tl;
+  ry_tl *= this.tl;
+  rx_tr *= this.tr;
+  ry_tr *= this.tr;
+  rx_bl *= this.bl;
+  ry_bl *= this.bl;
+  rx_br *= this.br;
+  ry_br *= this.br;
 
   this.path.move_to(hw - rx_tr, hh);
 
@@ -304,12 +309,7 @@ function create_brush(color)
       } else {
         txmx = new evg.Matrix2D();        
       }
-      let mmx = new evg.Matrix2D();
-      mmx.add(txmx);
-      mmx.scale(this.width, this.height);
-      mmx.translate(-this.width/2, -this.height/2);
-      stencil.mx = mmx;
-
+      stencil.mx = txmx;
     } else {
       stencil = new evg.SolidBrush();
       stencil.set_color(color);
@@ -339,12 +339,11 @@ function setup_texture(pid_link)
   } else {
     txmx = new evg.Matrix2D();        
   }
-  let mmx = new evg.Matrix2D();
 
-  let scale_gl_sw = 1;
-  let scale_gl_sh = 1;
-  let trans_gl_x = 0;
-  let trans_gl_y = 0;
+  let scale_tx_sw = 1;
+  let scale_tx_sh = 1;
+  let trans_tx_x = 0;
+  let trans_tx_y = 0;
   let sw = this.sw;
   let sh = this.sh;
   let sw_o = this.sw;
@@ -366,8 +365,8 @@ function setup_texture(pid_link)
     tx_info.repeat_t = true;
     keep_ar_pid = false;
   } else {
-    tx_info.repeat_s = !txmx.identity ? true : rs_pid;
-    tx_info.repeat_t = !txmx.identity ? true : rt_pid;
+    tx_info.repeat_s = rs_pid;
+    tx_info.repeat_t = rt_pid;
   }
   tx_info.pad_color = null;
 
@@ -406,10 +405,10 @@ function setup_texture(pid_link)
   this.blit_path = null;
   if ((sw != sw_o) || (sh != sh_o)) {
       this.can_reuse = false;
-      scale_gl_sw = sw_o / sw;
-      trans_gl_x = (sw - sw_o)/sw/2;
-      scale_gl_sh = sh_o / sh;
-      trans_gl_y = (sh - sh_o)/sh/2;
+      scale_tx_sw = sw_o / sw;
+      trans_tx_x = (sw - sw_o)/sw/2;
+      scale_tx_sh = sh_o / sh;
+      trans_tx_y = (sh - sh_o)/sh/2;
 
       if (!rs_pid || !rt_pid) {
         if (pid_link || !this.use_mix) {
@@ -438,70 +437,37 @@ function setup_texture(pid_link)
       this.can_reuse = false;
   }
 
-  mmx.add(txmx);
-  mmx.scale(sw / tx_w, sh / tx_h);
-  
-  let tx = -sw/2;
-  let ty = sh/2;
-
-  if (rotated==1) {
-    if (mirrored==1) {}
-    else if (mirrored==2) { tx=-tx; ty = -ty; }
-    else if (mirrored==3) { tx = -tx; }
-    else { ty = -ty; }
-  }
-  else if (rotated==2) {
-    if (mirrored==1) { ty = -ty; } 
-    else if (mirrored==2) { tx = -tx; }
-    else if (mirrored==3) {}
-    else { tx = -tx; ty = -ty; }
-  }
-  else if (rotated==3) {
-    if (mirrored==1) { tx = -tx; ty = -ty; }
-    else if (mirrored==2) {}
-    else if (mirrored==3) { ty = -ty; }
-    else { tx = -tx; }
-  }
-  else {
-    if (mirrored==1) { tx = -tx; }
-    else if (mirrored==2) { ty = -ty; }
-    else if (mirrored==3) { tx = -tx; ty = -ty; }
-    else {}
-  }
-
-  mmx.translate(tx, ty);
-  tx_info.mx = mmx;
-
-  //set gl matrix
-  tx_info._gl_mx = new evg.Matrix2D();
-  tx_info._gl_mx.scale(scale_gl_sw, scale_gl_sh);
-  tx_info._gl_mx.translate(trans_gl_x, trans_gl_y);
-  tx_info._gl_mx.add(txmx);
+  //set texture matrix matrix
+  tx_info.mx = new evg.Matrix2D();
+  tx_info.mx.scale(scale_tx_sw, scale_tx_sh);
+  tx_info.mx.translate(trans_tx_x, trans_tx_y);
+  tx_info.mx.add(txmx);
 
   if (rotated==0) {
-    if (mirrored==2) tx_info._gl_mx.translate(0, 1);
-    else if (mirrored==3) tx_info._gl_mx.translate(1, 1);
-    else if (mirrored==1) tx_info._gl_mx.translate(1, 0);
-    else tx_info._gl_mx.translate(0, 0);
+    if (mirrored==2) tx_info.mx.translate(0, 1);
+    else if (mirrored==3) tx_info.mx.translate(1, 1);
+    else if (mirrored==1) tx_info.mx.translate(1, 0);
+    else tx_info.mx.translate(0, 0);
   }
   else if (rotated==1) {
-    if (mirrored==2) tx_info._gl_mx.translate(0, 0);
-    else if (mirrored==3) tx_info._gl_mx.translate(0, 1);
-    else if (mirrored==1) tx_info._gl_mx.translate(1, 1);
-    else tx_info._gl_mx.translate(1, 0);
+    if (mirrored==2) tx_info.mx.translate(0, 0);
+    else if (mirrored==3) tx_info.mx.translate(0, 1);
+    else if (mirrored==1) tx_info.mx.translate(1, 1);
+    else tx_info.mx.translate(1, 0);
   }
   else if (rotated==2) {
-    if (mirrored==2) tx_info._gl_mx.translate(1, 0);
-    else if (mirrored==3) tx_info._gl_mx.translate(0, 0);
-    else if (mirrored==1) tx_info._gl_mx.translate(0, 1);
-    else tx_info._gl_mx.translate(1, 1);
+    if (mirrored==2) tx_info.mx.translate(1, 0);
+    else if (mirrored==3) tx_info.mx.translate(0, 0);
+    else if (mirrored==1) tx_info.mx.translate(0, 1);
+    else tx_info.mx.translate(1, 1);
   }
   else { // (rotated==3) 
-    if (mirrored==2) tx_info._gl_mx.translate(1, 1);
-    else if (mirrored==3) tx_info._gl_mx.translate(1, 0);
-    else if (mirrored==1) tx_info._gl_mx.translate(0, 0);
-    else tx_info._gl_mx.translate(0, 1);
+    if (mirrored==2) tx_info.mx.translate(1, 1);
+    else if (mirrored==3) tx_info.mx.translate(1, 0);
+    else if (mirrored==1) tx_info.mx.translate(0, 0);
+    else tx_info.mx.translate(0, 1);
   }
+
 
   if (pid) {
     if ((tx_w != this.sw) || (tx_h != this.sh)) {
@@ -634,7 +600,6 @@ function set_texture_params(texture, tx_info)
   texture.set_pad_color(tx_info.pad_color);
   texture.mx = tx_info.mx;
   texture.cmx = tx_info.cmx;
-  texture._gl_mx = tx_info._gl_mx;
 }
 
 export function load() {
@@ -1097,7 +1062,6 @@ update: function() {
 fullscreen: function()
 {
   this.no_draw = false;
-
   if (this.opaque && this.can_reuse) {
     if (this.pids.length>1) {
       if (this.mix_ratio == 0) {
