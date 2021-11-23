@@ -3202,6 +3202,10 @@ sample_entry_done:
 		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
 			tkw->probe_min_ctts = GF_TRUE;
 		}
+		//for old arch compatibility
+		else if (remove_edits) {
+			gf_isom_remove_edits(ctx->file, tkw->track_num);
+		}
 		if (use_negccts) {
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
 
