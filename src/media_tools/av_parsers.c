@@ -11212,8 +11212,11 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 	case GF_VVC_NALU_SLICE_GDR:
 		/* slice - read the info and compare.*/
 		ret = vvc_parse_slice(bs, vvc, &n_state);
-		if (ret < 0) return ret;
-
+		if (ret < 0) {
+			memcpy(&vvc->s_info, &n_state, sizeof(VVCSliceInfo));
+			return ret;
+		}
+		
 		ret = 0;
 		if (n_state.compute_poc_defer || n_state.picture_header_in_slice_header_flag) {
 			is_slice = GF_TRUE;

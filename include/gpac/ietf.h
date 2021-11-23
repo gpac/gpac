@@ -1398,13 +1398,15 @@ enum
 	GF_RTP_PAYT_AC3,
 	/*use H264-SVC transport*/
 	GF_RTP_PAYT_H264_SVC,
-	/*use HEVC/H265 transport - no RFC yet, only draft*/
+	/*use HEVC/H265 transport (RFC 7798)*/
 	GF_RTP_PAYT_HEVC,
 	GF_RTP_PAYT_LHVC,
 #if GPAC_ENABLE_3GPP_DIMS_RTP
 	/*use 3GPP DIMS format*/
 	GF_RTP_PAYT_3GPP_DIMS,
 #endif
+	/*use VVC transport (no RFC yet)*/
+	GF_RTP_PAYT_VVC,
 };
 
 

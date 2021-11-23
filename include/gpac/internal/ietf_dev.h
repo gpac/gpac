@@ -446,6 +446,10 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_mp2t(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_vvc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+
+#define RTP_VVC_AGG_NAL		0x1C //28
+#define RTP_VVC_FRAG_NAL	0x1D //29
 
 /*! RTP depacketization tool*/
 struct __tag_rtp_depacketizer

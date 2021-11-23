@@ -1,6 +1,6 @@
 # On-going: GPAC 1.1-DEV
 ## Protocols
-- support for HTTP/2 (client and server)
+- support for HTTP/2 (client and server) through nghttp2
 - ROUTE muxer and support for low-latency ROUTE mux and demux
 
 ## Adaptive Streaming
@@ -13,6 +13,8 @@
 - support for PPS injection for inband param set modes
 - improved SmoothStreaming support
 - DASH period continuity support (from playlists or reframer)
+- DASH MPD Chaining support
+- support for text segments in their native format (WebVTT, TTML) in dasher
 
 ## Image File Format (HEIF)
 - support for grid creation and other derive images
@@ -20,7 +22,7 @@
 - support for time range in -add-image
 - support for item to sample data reference (no copy)
 - support for item to item data reference (no copy)
-- AVIF support
+- AV1 (AVIF) and VVC support
 
 ## MP4Box
 - in-place editing support for MP4Box (no file remux) 
@@ -32,7 +34,7 @@
 - chunk interleaving dumper
 
 ## Filters
-- added avmix audio video mixer
+- added avmix, a playlist based audio video mixer/compositor
 - Python bindings for filter session
 - support for custom HAS adaptation algorithms (JS and Python)
 - support for custom remotery callbacks (JS and Python)
@@ -48,12 +50,10 @@
 - added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 
 - support for reading back frame interface data (GPU, decoder mem) in JS or Python sink filters
 
-## Filters
-
 ## Media Formats
 - improved support for MPEG-H audio mux/demux/dashing
-- VVC parsing, inspecting, mux and demux support (ISOBMFF and M2TS)
-- VUI color info rewrite for AVC and HEVC (mp4box and bsrw filter)
+- VVC parsing, inspecting, mux/demux (ISOBMFF, M2TS), RTP, DASH and encryption
+- VUI color info rewrite for AVC, HEVC and VVC (mp4box and bsrw filter)
 - support for Dolby TrueHD 
 - DolbyVision 'dvvC'
 - improved multichannel AAC (>=8) support 
@@ -61,6 +61,7 @@
 - improved bitstream dumping for inspect analyze mode
 - better TTML support: metrics, image embedding (IMSC1), TTML sample merging while exporting, subtitle zero in TTML
 - support for youtube VR meta-data
+- yuv4mpeg format read/write
 
 ## Encryption
 - support for multi-key per sample encryption
@@ -68,7 +69,7 @@
 
 ## Misc
 - improved HTTP rate limiter and chunk-transfer rate estimator
-- reworked mod-dirs and js-dirs usage, JSFilters now can be part of the default available filters
+- reworked mod-dirs and js-dirs usage, JSFilters can now be included in the default available filters
 - support for windows long path
 - moved to latest QuickJS (2021-03-27)
 - added QJS-libc modules, support for exec/waitpid/kill and Workers on most platforms

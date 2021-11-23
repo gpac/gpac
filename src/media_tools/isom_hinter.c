@@ -482,6 +482,26 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			break;
 		}
 		break;
+		case GF_ISOM_SUBTYPE_VVC1:
+		case GF_ISOM_SUBTYPE_VVI1:
+		case GF_ISOM_SUBTYPE_VVS1:
+		{
+			GF_VVCConfig *vvcc = gf_isom_vvc_config_get(file, TrackNum, 1);
+			if (!vvcc) {
+				*e = GF_NON_COMPLIANT_BITSTREAM;
+				return NULL;
+			}
+			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+			hintType = GF_RTP_PAYT_VVC;
+			streamType = GF_STREAM_VISUAL;
+			avc_nalu_size = vvcc->nal_unit_size;
+			codecid = GF_CODECID_VVC;
+			PL_ID = 0x0F;
+			flags |= GP_RTP_PCK_USE_MULTI;
+			gf_odf_vvc_cfg_del(vvcc);
+			break;
+		}
+		break;
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;

@@ -97,6 +97,8 @@ typedef struct _gf_ffdec_ctx
 	s64 delay;
 	u32 ts_offset;
 
+	Bool force_rap_wait;
+
 #if (LIBAVCODEC_VERSION_MAJOR < 59)
 	AVPacket pkt;
 #else
@@ -198,6 +200,15 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->in_pid);
 
+	if (pck && ctx->force_rap_wait) {
+		GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
+		if (sap && (sap<=GF_FILTER_SAP_4)) {
+			ctx->force_rap_wait = GF_FALSE;
+		} else {
+			gf_filter_pid_drop_packet(ctx->in_pid);
+			return GF_OK;
+		}
+	}
 	if (ctx->reconfig_pending) {
 		pck = NULL;
 	} else if (!pck) {
@@ -934,6 +945,10 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
 		//libvvdec only supports annexB, request ufnalu adaptation filter
 		if (codec && codec->name && strstr(codec->name, "vvdec")) {
+			//vvdec currently requires bootstrap on SAP
+			if (!ctx->decoder)
+				ctx->force_rap_wait = GF_TRUE;
+
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
 			if (!prop || !prop->value.boolean) {
 				gf_filter_override_caps(filter, FFDecodeAnnexBCaps, GF_ARRAY_LENGTH(FFDecodeAnnexBCaps));
