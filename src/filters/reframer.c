@@ -208,7 +208,7 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 	gf_filter_pid_reset_properties(st->opid);
 	gf_filter_pid_copy_properties(st->opid, st->ipid);
 	//if range processing, we drop frames not in the target playback range so do not forward delay
-	if (ctx->range_type && (st->tk_delay>0)) {
+	if (ctx->range_type && ((st->tk_delay>0) || (!st->tk_delay && !st->ts_sub)) ){
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, NULL);
 	}
 	if (ctx->filter_sap1 || ctx->filter_sap2)
@@ -217,6 +217,11 @@ static void reframer_push_props(GF_ReframerCtx *ctx, RTStream *st)
 	//seek mode, signal we have sample-accurate seek info for the pid
 	if (st->seek_mode)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(1));
+
+	//for old arch compat, signal we must remove edits
+	if (gf_sys_old_arch_compat()) {
+		gf_filter_pid_set_property_str(st->opid, "reframer_rem_edits", &PROP_BOOL(GF_TRUE) );
+	}
 }
 
 GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)

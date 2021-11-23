@@ -3204,7 +3204,10 @@ sample_entry_done:
 		}
 		//for old arch compatibility
 		else if (remove_edits) {
-			gf_isom_remove_edits(ctx->file, tkw->track_num);
+			p = gf_filter_pid_get_property_str(tkw->ipid, "reframer_rem_edits");
+			if (p && p->value.boolean) {
+				gf_isom_remove_edits(ctx->file, tkw->track_num);
+			}
 		}
 		if (use_negccts) {
 			gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_TRUE);
