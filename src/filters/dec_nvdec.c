@@ -1188,7 +1188,7 @@ GF_Err nvframe_get_gl_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32
 		gl_fmt = GL_LUMINANCE_ALPHA;
 	}
 
-	cuGLMapBufferObject(&tx_data, &tx_pitch, pbo_id);
+	res = cuGLMapBufferObject(&tx_data, &tx_pitch, pbo_id);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map GL texture data %s\n", cudaGetErrorEnum(res) ) );
 		return GF_IO_ERR;
