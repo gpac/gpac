@@ -460,6 +460,9 @@ static void gsfmx_write_prop(GSFMxCtx *ctx, const GF_PropertyValue *p)
 
 static GFINLINE Bool gsfmx_is_prop_skip(GSFMxCtx *ctx, u32 prop_4cc, const char *prop_name, u8 sep_l)
 {
+	if (prop_name && !strcmp(prop_name, "reframer_rem_edits"))
+		return GF_TRUE;
+
 	if (ctx->minp) {
 		u8 flags;
 		if (prop_name) return GF_TRUE;

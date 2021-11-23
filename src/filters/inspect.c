@@ -1874,7 +1874,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		//all properties starting with __ are not dumped
 		if (!strncmp(pname, "__", 2))
 			return;
-		if (!strcmp(pname, "isom_force_ctts"))
+		if (!strcmp(pname, "isom_force_ctts") || !strcmp(pname, "reframer_rem_edits") )
 			return;
 	}
 

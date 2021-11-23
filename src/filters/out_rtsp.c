@@ -197,17 +197,11 @@ static GF_Err rtspout_send_sdp(GF_RTSPOutSession *sess)
 	return GF_OK;
 }
 
-
 static void rtspout_del_stream(GF_RTPOutStream *st)
 {
-	if (st->rtp) gf_rtp_streamer_del(st->rtp);
-	if (st->pck) gf_filter_pid_drop_packet(st->pid);
-	if (st->avcc)
-		gf_odf_avc_cfg_del(st->avcc);
-	if (st->hvcc)
-		gf_odf_hevc_cfg_del(st->hvcc);
-	gf_free(st);
+	rtpout_del_stream(st);
 }
+
 
 static void rtspout_del_session(GF_RTSPOutSession *sess)
 {

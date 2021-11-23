@@ -366,6 +366,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	stream->avcc = NULL;
 	if (stream->hvcc) gf_odf_hevc_cfg_del(stream->hvcc);
 	stream->hvcc = NULL;
+	if (stream->vvcc) gf_odf_vvc_cfg_del(stream->vvcc);
+	stream->vvcc = NULL;
 
 	stream->avc_nalu_size = 0;
 	switch (codecid) {
@@ -385,33 +387,54 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		break;
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
+	case GF_CODECID_VVC:
 		if (dsi) {
-			GF_HEVCConfig *hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, (codecid==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE );
-			if (hvcc) {
+			GF_VVCConfig *vvcc = NULL;
+			GF_HEVCConfig *hvcc = NULL;
+			u8 vps_nut=0,sps_nut=0,pps_nut=0;
+			GF_List *param_array = NULL;
+			if (codecid == GF_CODECID_VVC) {
+				vvcc = gf_odf_vvc_cfg_read(dsi, dsi_len);
+				param_array = vvcc->param_array;
+				sps_nut = GF_VVC_NALU_SEQ_PARAM;
+				pps_nut = GF_VVC_NALU_PIC_PARAM;
+				vps_nut = GF_VVC_NALU_VID_PARAM;
+				stream->avc_nalu_size = vvcc->nal_unit_size;
+			} else {
+				hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, (codecid==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE );
+				param_array = hvcc->param_array;
+				sps_nut = GF_HEVC_NALU_SEQ_PARAM;
+				pps_nut = GF_HEVC_NALU_PIC_PARAM;
+				vps_nut = GF_HEVC_NALU_VID_PARAM;
 				stream->avc_nalu_size = hvcc->nal_unit_size;
+			}
+			if (param_array) {
 				if (stream->inject_ps) {
-					u32 i, count = gf_list_count(hvcc->param_array);
+					u32 i, count = gf_list_count(param_array);
 					GF_NALUFFParamArray *vpsa=NULL, *spsa=NULL;
+					stream->vvcc = vvcc;
 					stream->hvcc = hvcc;
 					for (i=0; i<count; i++) {
-						GF_NALUFFParamArray *pa = gf_list_get(hvcc->param_array, i);
-						if (!vpsa && (pa->type == GF_HEVC_NALU_VID_PARAM)) {
+						GF_NALUFFParamArray *pa = gf_list_get(param_array, i);
+						if (!vpsa && (pa->type == vps_nut)) {
 							vpsa = pa;
-							gf_list_rem(hvcc->param_array, i);
+							gf_list_rem(param_array, i);
 							count--;
 						}
-						else if (!spsa && (pa->type == GF_HEVC_NALU_SEQ_PARAM)) {
+						else if (!spsa && (pa->type == sps_nut)) {
 							spsa = pa;
-							gf_list_rem(hvcc->param_array, i);
+							gf_list_rem(param_array, i);
 							count--;
 						}
 					}
 					//insert SPS at beginning
-					gf_list_insert(hvcc->param_array, spsa, 0);
+					if (spsa) gf_list_insert(param_array, spsa, 0);
 					//insert VPS at beginning - we now have VPS, SPS and other (PPS, SEI...)
-					gf_list_insert(hvcc->param_array, vpsa, 0);
-				} else
-					gf_odf_hevc_cfg_del(hvcc);
+					if (vpsa) gf_list_insert(param_array, vpsa, 0);
+				} else {
+					if (vvcc) gf_odf_vvc_cfg_del(vvcc);
+					if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+				}
 			}
 		}
 		break;
@@ -548,7 +571,7 @@ static u16 rtpout_check_next_port(GF_RTPOutCtx *ctx, u16 first_port)
 	return first_port;
 }
 
-static void rtpout_del_stream(GF_RTPOutStream *st)
+void rtpout_del_stream(GF_RTPOutStream *st)
 {
 	if (st->rtp) gf_rtp_streamer_del(st->rtp);
 	if (st->pck) gf_filter_pid_drop_packet(st->pid);
@@ -556,6 +579,8 @@ static void rtpout_del_stream(GF_RTPOutStream *st)
 		gf_odf_avc_cfg_del(st->avcc);
 	if (st->hvcc)
 		gf_odf_hevc_cfg_del(st->hvcc);
+	if (st->vvcc)
+		gf_odf_vvc_cfg_del(st->vvcc);
 	gf_free(st);
 }
 
@@ -1004,11 +1029,11 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 			if (!e)
 				e = rtpout_send_xps(stream, stream->avcc->pictureParameterSets, &au_start, pck_size, cts, dts, duration);
 		}
-		else if (stream->hvcc && stream->current_sap) {
-			u32 nbps = gf_list_count(stream->hvcc->param_array);
+		else if ((stream->hvcc||stream->vvcc) && stream->current_sap) {
+			GF_List *ar_list = stream->vvcc ? stream->vvcc->param_array : stream->hvcc->param_array;
+			u32 nbps = gf_list_count(ar_list);
 			for (i=0; i<nbps; i++) {
-				GF_NALUFFParamArray *pa = gf_list_get(stream->hvcc->param_array, i);
-
+				GF_NALUFFParamArray *pa = gf_list_get(ar_list, i);
 				if (!e)
 					e = rtpout_send_xps(stream, pa->nalus, &au_start, pck_size, cts, dts, duration);
 			}

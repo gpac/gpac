@@ -332,7 +332,12 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		rtp_type = GF_RTP_PAYT_LHVC;
 		PL_ID = 0x0F;
 		break;
-
+	/*VVC*/
+	case GF_CODECID_VVC:
+		required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+		rtp_type = GF_RTP_PAYT_VVC;
+		PL_ID = 0x0F;
+		break;
 	case GF_CODECID_H263:
 		rtp_type = GF_RTP_PAYT_H263;
 		required_rate = 90000;
@@ -600,21 +605,40 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 			strcat(sdpLine, "\n");
 		}
 	}
-	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_LHVC)) {
-#ifndef GPAC_DISABLE_HEVC
-		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read((u8*)dsi, dsi_len, GF_FALSE) : NULL;
-		if (hevcc) {
+	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC)
+		|| (rtp->packetizer->rtp_payt == GF_RTP_PAYT_LHVC)
+		|| (rtp->packetizer->rtp_payt == GF_RTP_PAYT_VVC)
+	) {
+		GF_VVCConfig *vvcc = NULL;
+		GF_HEVCConfig *hvcc = NULL;
+		GF_List *param_array = NULL;
+		u8 sps_nut=0, pps_nut=0, vps_nut=0;
+		if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_VVC) {
+			vvcc = dsi ? gf_odf_vvc_cfg_read((u8*)dsi, dsi_len) : NULL;
+			param_array = vvcc ? vvcc->param_array : NULL;
+			sps_nut = GF_VVC_NALU_SEQ_PARAM;
+			pps_nut = GF_VVC_NALU_PIC_PARAM;
+			vps_nut = GF_VVC_NALU_VID_PARAM;
+		} else {
+			hvcc = dsi ? gf_odf_hevc_cfg_read((u8*)dsi, dsi_len, GF_FALSE) : NULL;
+			param_array = hvcc ? hvcc->param_array : NULL;
+			sps_nut = GF_HEVC_NALU_SEQ_PARAM;
+			pps_nut = GF_HEVC_NALU_PIC_PARAM;
+			vps_nut = GF_HEVC_NALU_VID_PARAM;
+		}
+
+		if (param_array) {
 			u32 count, i, j, b64s;
 			char b64[200];
 			sprintf(sdpLine, "a=fmtp:%d", rtp->packetizer->PayloadType);
-			count = gf_list_count(hevcc->param_array);
+			count = gf_list_count(param_array);
 			for (i = 0; i < count; i++) {
-				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(hevcc->param_array, i);
-				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+				GF_NALUFFParamArray *ar = (GF_NALUFFParamArray *)gf_list_get(param_array, i);
+				if (ar->type==sps_nut) {
 					strcat(sdpLine, "; sprop-sps=");
-				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+				} else if (ar->type==pps_nut) {
 					strcat(sdpLine, "; sprop-pps=");
-				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+				} else if (ar->type==vps_nut) {
 					strcat(sdpLine, "; sprop-vps=");
 				}
 				for (j = 0; j < gf_list_count(ar->nalus); j++) {
@@ -625,10 +649,10 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 					strcat(sdpLine, b64);
 				}
 			}
-			gf_odf_hevc_cfg_del(hevcc);
+			if (vvcc) gf_odf_vvc_cfg_del(vvcc);
+			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 			strcat(sdpLine, "\n");
 		}
-#endif
 	}
 	/*MPEG-4 decoder config*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_MPEG4) {

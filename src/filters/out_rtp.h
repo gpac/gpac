@@ -83,6 +83,7 @@ typedef struct
 
 	GF_AVCConfig *avcc;
 	GF_HEVCConfig *hvcc;
+	GF_VVCConfig *vvcc;
 	u32 rtp_ts_offset;
 
 	s64 ts_delay;
@@ -101,6 +102,8 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Bool loop, s32 delay, u32 *active_stream_idx, u64 sys_clock_at_init, u64 *active_min_ts_microsec, u64 microsec_ts_init, Bool *wait_for_loop, u32 *repost_delay_us, Bool *first_RTCP_sent, u32 base_pid_id);
 
+
+void rtpout_del_stream(GF_RTPOutStream *st);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 
