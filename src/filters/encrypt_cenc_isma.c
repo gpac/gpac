@@ -1769,7 +1769,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					}
 					//full subsample encryption
 					else {
-						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, nalu_size - clear_bytes);
+						//clear_bytes_at_end is 0 unless NALU-based cbcs without pattern (not defined in CENC)
+						//in this case, we must only encrypt a multiple of 16-byte blocks
+						e = gf_crypt_encrypt(cstr->keys[key_idx].crypt, output+cur_pos, nalu_size - clear_bytes - clear_bytes_at_end);
 					}
 				}
 

@@ -1351,7 +1351,7 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 					key_info_get_iv_size(cstr->cenc_ki->value.data.ptr, cstr->cenc_ki->value.data.size, kidx, &const_iv_size, &const_iv);
 					kidx-=1;
 				}
-				//to clarify in the speck: kidx 0 should be allowed for clear subsamples
+				//to clarify in the spec: kidx 0 should be allowed for clear subsamples
 				else if (bytes_encrypted_data) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Corrupted CENC sai key idx 0 but encrypted payload\n", cstr->nb_crypts));
 					e = GF_NON_COMPLIANT_BITSTREAM;
@@ -1416,7 +1416,16 @@ static GF_Err cenc_dec_process_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, 
 			}
 			//full subsample decryption
 			else {
-				gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data+cur_pos, bytes_encrypted_data);
+				u32 res = bytes_encrypted_data;
+				//trailing will be 0 in cbc1 (as cbc1 mandates bytes_encrypted_data % 16 == 0)
+				//but can be non-0 in cbcs NALU-based without pattern (not defined in CENC)
+				//in this case, we must only decrypt a multiple of 16-byte blocks
+				//note that vpX cbcs mandates bytes_encrypted_data % 16 == 0, as cbc1
+				if (cstr->is_cbc) {
+					u32 clear_trailing = res % 16;
+					res -= clear_trailing;
+				}
+				gf_crypt_decrypt(cstr->crypts[kidx].crypt, out_data+cur_pos, res);
 			}
 			cur_pos += bytes_encrypted_data;
 		}
