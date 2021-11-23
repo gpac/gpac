@@ -1927,7 +1927,7 @@ u32 gf_node_get_field_count(GF_Node *node)
 GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
-	assert(node && node->sgprivate->tag);
+	if (!node) return "null";
 	if (node->sgprivate->tag==TAG_UndefinedNode) return "UndefinedNode";
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
