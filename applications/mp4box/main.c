@@ -1146,7 +1146,8 @@ MP4BoxArg m4b_dump_args[] =
  	MP4BOX_ARG("topsize", "print to stdout the number of bytes of top-level boxes matching types given as parameter, formatted as `4cc_1,4cc_2N` or `all` for all boxes", GF_ARG_STRING, 0, parse_comp_box, 1, ARG_IS_FUN),
  	MP4BOX_ARG("bin", "convert input XML file using NHML bitstream syntax to binary", GF_ARG_BOOL, 0, &do_bin_xml, 0, 0),
  	MP4BOX_ARG("mpd-rip", "fetch MPD and segment to disk", GF_ARG_BOOL, 0, &do_mpd_rip, 0, 0),
- 	MP4BOX_ARG_S("udp-write", "IP[:port]", "write input name to UDP (default port 2345)", GF_FS_ARG_HINT_EXPERT, &udp_dest, 0, 0),
+ 	//MP4BOX_ARG_S("udp-write", "IP[:port]", "write input name to UDP (default port 2345)", GF_FS_ARG_HINT_EXPERT, &udp_dest, 0, GF_ARG_STRING),
+	{"udp-write", NULL, "write input name to UDP (default port 2345)", "IP[:port]", NULL, GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &udp_dest, 0, 0},
  	MP4BOX_ARG("raw-cat", "raw concatenation of given file with input file", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &raw_cat, 0, 0),
  	MP4BOX_ARG("wget", "fetch resource from http(s) URL", GF_ARG_STRING, GF_FS_ARG_HINT_EXPERT, &do_wget, 0, 0),
  	MP4BOX_ARG("dm2ts", "dump timing of an input MPEG-2 TS stream sample timing", GF_ARG_BOOL, 0, &dump_m2ts, 0, 0),
@@ -4002,6 +4003,7 @@ static u32 do_raw_cat()
 static u32 do_write_udp()
 {
 	GF_Err e;
+	u32 res = 0;
 	GF_Socket *sock = gf_sk_new(GF_SOCK_TYPE_UDP);
 	u16 port = 2345;
 	char *sep = strrchr(udp_dest, ':');
@@ -4009,17 +4011,20 @@ static u32 do_write_udp()
 		sep[0] = 0;
 		port = atoi(sep+1);
 	}
-	e = gf_sk_bind( sock, "127.0.0.1", 0, udp_dest, port, 0);
+	e = gf_sk_bind( sock, NULL, port, udp_dest, port, 0);
 	if (sep) sep[0] = ':';
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Failed to bind socket to %s: %s\n", udp_dest, gf_error_to_string(e) ));
+		res = 1;
 	} else {
 		e = gf_sk_send(sock, (u8 *) inName, (u32)strlen(inName));
-		if (e)
+		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to send datagram: %s\n", gf_error_to_string(e) ));
+			res = 1;
+		}
 	}
 	gf_sk_del(sock);
-	return 0;
+	return res;
 }
 
 #ifndef GPAC_DISABLE_MPD
