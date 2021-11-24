@@ -6422,8 +6422,9 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 				Double diff = set_ds->set_seg_duration - seg_duration;
 
 				if (ABS(diff) > 0.001) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Segments are not aligned across representations: first rep segment duration %g but new segment duration %g for the same segment %d\n", set_ds->set_seg_duration, seg_duration, set_ds->seg_number));
-
+					if (set_ds->set->segment_alignment || set_ds->set->subsegment_alignment) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Segments are not aligned across representations: first rep segment duration %g but new segment duration %g for the same segment %d\n", set_ds->set_seg_duration, seg_duration, set_ds->seg_number));
+					}
 					if (ctx->profile != GF_DASH_PROFILE_FULL) {
 						set_ds->set->segment_alignment = GF_FALSE;
 						set_ds->set->subsegment_alignment = GF_FALSE;
