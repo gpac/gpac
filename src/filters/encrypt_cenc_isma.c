@@ -88,7 +88,7 @@ typedef struct
 	Bool isma_oma;
 	u64 BSO;
 	u64 range_end;
-	Bool prev_pck_encryped;
+	Bool prev_pck_encrypted;
 	u32 KI_length;
 	u32 isma_IV_size;
 	Bool has_crypted_pck;
@@ -286,7 +286,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	}
 
 	cstr->isma_oma = GF_TRUE;
-	cstr->prev_pck_encryped = GF_TRUE;
+	cstr->prev_pck_encrypted = GF_TRUE;
 	cstr->has_crypted_pck = GF_FALSE;
 
 	//we drop IPMPX support for now
@@ -893,7 +893,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			}
 		}
 
-		cstr->prev_pck_encryped = cstr->tci->IsEncrypted;
+		cstr->prev_pck_encrypted = cstr->tci->IsEncrypted;
 	}
 
 	/*set CENC protection properties*/
@@ -1244,7 +1244,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 	//encrypt
 	if (flags & GF_ISOM_ISMA_IS_ENCRYPTED) {
 		/*resync IV*/
-		if (!cstr->prev_pck_encryped) {
+		if (!cstr->prev_pck_encrypted) {
 			char IV[17];
 			u64 count;
 			u32 remain;
@@ -1267,9 +1267,9 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			}
 		}
 		gf_crypt_encrypt(cstr->keys[0].crypt, output+isma_hdr_size, size);
-		cstr->prev_pck_encryped = GF_TRUE;
+		cstr->prev_pck_encrypted = GF_TRUE;
 	} else {
-		cstr->prev_pck_encryped = GF_FALSE;
+		cstr->prev_pck_encrypted = GF_FALSE;
 	}
 
 	//rewrite ISMA header
@@ -1336,10 +1336,10 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 
 	if (is_encrypted) {
-		if (!cstr->prev_pck_encryped) {
+		if (!cstr->prev_pck_encrypted) {
 			memcpy(IV, cstr->tci->keys[0].IV, sizeof(char)*16);
 			e = gf_crypt_init(cstr->keys[0].crypt, cstr->keys[0].key, IV);
-			cstr->prev_pck_encryped = GF_TRUE;
+			cstr->prev_pck_encrypted = GF_TRUE;
 		} else {
 			cstr->isma_IV_size = 16;
 			e = gf_crypt_get_IV(cstr->keys[0].crypt, IV, &cstr->isma_IV_size);
