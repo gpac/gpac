@@ -108,14 +108,14 @@ typedef struct
 	Bool rap_roll;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	AVCState avc;
+	AVCState *avc_state;
 #ifndef GPAC_DISABLE_HEVC
-	HEVCState hevc;
+	HEVCState *hevc_state;
 #endif
-	AV1State av1;
+	AV1State *av1_state;
 	GF_VPConfig *vp9_cfg;
 
-	VVCState vvc;
+	VVCState *vvc_state;
 #endif
 	Bool slice_header_clear;
 
@@ -540,6 +540,32 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	return e;
 }
 
+static void cenc_pid_reset_codec_states(GF_CENCStream *cstr)
+{
+#ifndef GPAC_DISABLE_AV_PARSERS
+	if (cstr->av1_state) {
+		if (cstr->av1_state->config) gf_odf_av1_cfg_del(cstr->av1_state->config);
+		gf_free(cstr->av1_state);
+		cstr->av1_state = NULL;
+	}
+	if (cstr->avc_state) {
+		gf_free(cstr->avc_state);
+		cstr->avc_state = NULL;
+	}
+	if (cstr->hevc_state) {
+		gf_free(cstr->hevc_state);
+		cstr->hevc_state = NULL;
+	}
+	if (cstr->vvc_state) {
+		gf_free(cstr->vvc_state);
+		cstr->vvc_state = NULL;
+	}
+#endif
+	if (cstr->vp9_cfg) {
+		gf_odf_vp_cfg_del(cstr->vp9_cfg);
+		cstr->vp9_cfg = NULL;
+	}
+}
 
 static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const char *cfile_name)
 {
@@ -568,19 +594,63 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 	if (is_reinit) {
 		const GF_PropertyValue *p2;
+		u32 cenc_codec = CENC_FULL_SAMPLE;
 		cstr->nalu_size_length = 0;
-		cstr->cenc_codec = CENC_FULL_SAMPLE;
+
+		//get CENC media type
 		switch (cstr->codec_id) {
 		case GF_CODECID_AVC:
 		case GF_CODECID_SVC:
 		case GF_CODECID_MVC:
+			cenc_codec = CENC_AVC;
+			break;
+		case GF_CODECID_HEVC:
+		case GF_CODECID_LHVC:
+			cenc_codec = CENC_HEVC;
+			break;
+		case GF_CODECID_AV1:
+			cenc_codec = CENC_AV1;
+			break;
+		case GF_CODECID_VP8:
+		case GF_CODECID_VP9:
+			cenc_codec = CENC_VPX;
+			break;
+		case GF_CODECID_VVC:
+			cenc_codec = CENC_VVC;
+			break;
+		}
+		//if change in type, free/realloc parsing contexts
+		if (cstr->cenc_codec != cenc_codec) {
+			cenc_pid_reset_codec_states(cstr);
+			cstr->cenc_codec = cenc_codec;
+			switch (cenc_codec) {
+			case CENC_AVC:
+				GF_SAFEALLOC(cstr->avc_state, AVCState);
+				if (!cstr->avc_state) return GF_OUT_OF_MEM;
+				break;
+			case CENC_HEVC:
+				GF_SAFEALLOC(cstr->hevc_state, HEVCState);
+				if (!cstr->hevc_state) return GF_OUT_OF_MEM;
+				break;
+			case CENC_VVC:
+				GF_SAFEALLOC(cstr->vvc_state, VVCState);
+				if (!cstr->vvc_state) return GF_OUT_OF_MEM;
+				break;
+			case CENC_AV1:
+				GF_SAFEALLOC(cstr->av1_state, AV1State);
+				if (!cstr->av1_state) return GF_OUT_OF_MEM;
+				break;
+			}
+		}
+
+
+		switch (cstr->cenc_codec) {
+		case CENC_AVC:
 			if (!p)
 				return GF_OK;
 
 			avccfg = gf_odf_avc_cfg_read(p->value.data.ptr, p->value.data.size);
 			if (avccfg) cstr->nalu_size_length = avccfg->nal_unit_size;
-
-			cstr->cenc_codec = CENC_AVC;
 
 			p2 = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISOM_SUBTYPE);
 			if (p2 && (p2->value.uint==GF_ISOM_BOX_TYPE_AVC1)) {
@@ -596,11 +666,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (avccfg) {
 				for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
 					GF_NALUFFParam *slc = gf_list_get(avccfg->sequenceParameterSets, i);
-					gf_avc_read_sps(slc->data, slc->size, &cstr->avc, 0, NULL);
+					gf_avc_read_sps(slc->data, slc->size, cstr->avc_state, 0, NULL);
 				}
 				for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
 					GF_NALUFFParam *slc = gf_list_get(avccfg->pictureParameterSets, i);
-					gf_avc_read_pps(slc->data, slc->size, &cstr->avc);
+					gf_avc_read_pps(slc->data, slc->size, cstr->avc_state);
 				}
 
 				gf_odf_avc_cfg_del(avccfg);
@@ -618,8 +688,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
 			}
 			break;
-		case GF_CODECID_HEVC:
-		case GF_CODECID_LHVC:
+		case CENC_HEVC:
 			if (!p)
 				return GF_OK;
 
@@ -627,15 +696,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (hevccfg) cstr->nalu_size_length = hevccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
-			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_VID_PARAM);
-			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_SEQ_PARAM);
-			gf_hevc_parse_ps(hevccfg, &cstr->hevc, GF_HEVC_NALU_PIC_PARAM);
+			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_VID_PARAM);
+			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_SEQ_PARAM);
+			gf_hevc_parse_ps(hevccfg, cstr->hevc_state, GF_HEVC_NALU_PIC_PARAM);
 #endif
 
 			//mandatory for HEVC
 			cstr->slice_header_clear = GF_TRUE;
-
-			cstr->cenc_codec = CENC_HEVC;
 
 			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 			cstr->bytes_in_nal_hdr = 2;
@@ -645,27 +712,24 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
 			}
 			break;
-		case GF_CODECID_AV1:
+		case CENC_AV1:
 			if (!p)
 				return GF_OK;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_AV1)
-			cstr->av1.config = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
-			cstr->cenc_codec = CENC_AV1;
+			cstr->av1_state->config = gf_odf_av1_cfg_read(p->value.data.ptr, p->value.data.size);
 			cstr->bytes_in_nal_hdr = 2;
 #endif
 			//mandatory for AV1
 			cstr->slice_header_clear = GF_TRUE;
 			break;
-		case GF_CODECID_VP8:
-		case GF_CODECID_VP9:
+		case CENC_VPX:
 			if (p) {
-				cstr->cenc_codec = CENC_VPX;
 				cstr->bytes_in_nal_hdr = 2;
 				cstr->vp9_cfg = gf_odf_vp_cfg_new();
 			}
 			break;
-		case GF_CODECID_VVC:
+		case CENC_VVC:
 			if (!p)
 				return GF_OK;
 
@@ -673,23 +737,24 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 			if (vvccfg) cstr->nalu_size_length = vvccfg->nal_unit_size;
 
 #if !defined(GPAC_DISABLE_AV_PARSERS)
-			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_VID_PARAM);
-			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_SEQ_PARAM);
-			gf_vvc_parse_ps(vvccfg, &cstr->vvc, GF_VVC_NALU_PIC_PARAM);
+			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_VID_PARAM);
+			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_SEQ_PARAM);
+			gf_vvc_parse_ps(vvccfg, cstr->vvc_state, GF_VVC_NALU_PIC_PARAM);
 #endif
 
 			//mandatory for VVC
 			cstr->slice_header_clear = GF_TRUE;
 
-			cstr->cenc_codec = CENC_VVC;
-
 			if (vvccfg) gf_odf_vvc_cfg_del(vvccfg);
-			cstr->bytes_in_nal_hdr = 3;
+			cstr->bytes_in_nal_hdr = 2;
 
 			if (!cstr->nalu_size_length) {
 				cstr->nalu_size_length = 4;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENCCrypt] Missing NALU length size, assuming 4\n") );
 			}
+			break;
+
+		default:
 			break;
 		}
 	}
@@ -887,6 +952,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	return cenc_parse_pssh(ctx, cstr, cfile_name);
 }
 
+
 static void cenc_free_pid_context(GF_CENCStream *cstr)
 {
 	u32 i;
@@ -895,12 +961,10 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 	}
 	gf_free(cstr->keys);
 	if (cstr->cinfo) gf_crypt_info_del(cstr->cinfo);
-#ifndef GPAC_DISABLE_AV_PARSERS
-	if (cstr->av1.config) gf_odf_av1_cfg_del(cstr->av1.config);
-#endif
-	if (cstr->vp9_cfg) gf_odf_vp_cfg_del(cstr->vp9_cfg);
 
 	if (cstr->mkey_indices.vals) gf_free(cstr->mkey_indices.vals);
+	cenc_pid_reset_codec_states(cstr);
+
 	gf_free(cstr);
 }
 
@@ -1370,8 +1434,8 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
 			u32 ntype;
-			gf_avc_parse_nalu(plaintext_bs, &cstr->avc);
-			ntype = cstr->avc.last_nal_type_parsed;
+			gf_avc_parse_nalu(plaintext_bs, cstr->avc_state);
+			ntype = cstr->avc_state->last_nal_type_parsed;
 			switch (ntype) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
 			case GF_AVC_NALU_DP_A_SLICE:
@@ -1390,20 +1454,20 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 		} else if (cstr->cenc_codec==CENC_HEVC) {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
-			cstr->hevc.full_slice_header_parse = GF_TRUE;
-			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, &cstr->hevc, &ntype, &ntid, &nlid);
+			cstr->hevc_state->full_slice_header_parse = GF_TRUE;
+			gf_hevc_parse_nalu(samp_data + nal_start, nal_size, cstr->hevc_state, &ntype, &ntid, &nlid);
 			if (ntype<=GF_HEVC_NALU_SLICE_CRA) {
-				clear_bytes = cstr->hevc.s_info.payload_start_offset;
+				clear_bytes = cstr->hevc_state->s_info.payload_start_offset;
 			} else {
 				clear_bytes = nal_size;
 			}
 #endif
 		} else if (cstr->cenc_codec==CENC_VVC) {
 			u8 ntype, ntid, nlid;
-			cstr->vvc.parse_mode = 1;
-			gf_vvc_parse_nalu(samp_data + nal_start, nal_size, &cstr->vvc, &ntype, &ntid, &nlid);
+			cstr->vvc_state->parse_mode = 1;
+			gf_vvc_parse_nalu(samp_data + nal_start, nal_size, cstr->vvc_state, &ntype, &ntid, &nlid);
 			if (ntype <= GF_VVC_NALU_SLICE_GDR) {
-				clear_bytes = cstr->vvc.s_info.payload_start_offset;
+				clear_bytes = cstr->vvc_state->s_info.payload_start_offset;
 			} else {
 				clear_bytes = nal_size;
 			}
@@ -1525,7 +1589,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 			case CENC_AV1:
 				pos = gf_bs_get_position(ctx->bs_r);
-				e = gf_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, &cstr->av1);
+				e = gf_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, cstr->av1_state);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
 					return e;
@@ -1537,16 +1601,16 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				//we only encrypt frame and tile group
 				case OBU_FRAME:
 				case OBU_TILE_GROUP:
-					if (!cstr->av1.frame_state.nb_tiles_in_obu) {
+					if (!cstr->av1_state->frame_state.nb_tiles_in_obu) {
 						clear_bytes = (u32) obu_size;
 					} else {
-						nb_ranges = cstr->av1.frame_state.nb_tiles_in_obu;
+						nb_ranges = cstr->av1_state->frame_state.nb_tiles_in_obu;
 
-						ranges[0].clear = cstr->av1.frame_state.tiles[0].obu_start_offset;
-						ranges[0].encrypted = cstr->av1.frame_state.tiles[0].size;
+						ranges[0].clear = cstr->av1_state->frame_state.tiles[0].obu_start_offset;
+						ranges[0].encrypted = cstr->av1_state->frame_state.tiles[0].size;
 						for (i = 1; i < nb_ranges; ++i) {
-							ranges[i].clear = cstr->av1.frame_state.tiles[i].obu_start_offset - (cstr->av1.frame_state.tiles[i - 1].obu_start_offset + cstr->av1.frame_state.tiles[i - 1].size);
-							ranges[i].encrypted = cstr->av1.frame_state.tiles[i].size;
+							ranges[i].clear = cstr->av1_state->frame_state.tiles[i].obu_start_offset - (cstr->av1_state->frame_state.tiles[i - 1].obu_start_offset + cstr->av1_state->frame_state.tiles[i - 1].size);
+							ranges[i].encrypted = cstr->av1_state->frame_state.tiles[i].size;
 						}
 						clear_bytes = ranges[0].clear;
 						nalu_size = clear_bytes + ranges[0].encrypted;

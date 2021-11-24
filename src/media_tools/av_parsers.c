@@ -11330,15 +11330,16 @@ GF_EXPORT
 GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 {
 	GF_BitStream *orig, *mod;
-	VVCState vvc;
+	VVCState *vvc;
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_NALUFFParamArray *spss;
 	GF_NALUFFParam *slc;
 	orig = NULL;
 
-	memset(&vvc, 0, sizeof(VVCState));
-	vvc.sps_active_idx = -1;
+	GF_SAFEALLOC(vvc, VVCState);
+	if (!vvc) return GF_OUT_OF_MEM;
+	vvc->sps_active_idx = -1;
 
 	i = 0;
 	spss = NULL;
@@ -11361,7 +11362,7 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 
 		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
 		vvc_parse_nal_header(orig, &nal_unit_type, &temporal_id, &layer_id);
-		idx = gf_vvc_read_sps_bs_internal(orig, &vvc, layer_id, &bit_offset);
+		idx = gf_vvc_read_sps_bs_internal(orig, vvc, layer_id, &bit_offset);
 
 		if (idx < 0) {
 			if (orig)
@@ -11445,6 +11446,7 @@ GF_Err gf_vvc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, 
 	VVCState *vvc;
 	s32 idx;
 	GF_SAFEALLOC(vvc, VVCState);
+	if (!vvc) return GF_OUT_OF_MEM;
 	vvc->sps_active_idx = -1;
 
 	GF_BitStream *bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
