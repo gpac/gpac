@@ -310,7 +310,7 @@ GF_Color gf_evg_stencil_get_brush_color(GF_EVGStencil * st)
 	Float bc3_inc = surf->s2_m_s1_y / surf->tri_area; \
 	Float pbc1 = bc1 * surf->s_v1.q; \
 	Float pbc3 = bc3 * surf->s_v3.q; \
-	Float pbc2 = (1.0 - bc1 - bc3) * surf->s_v2.q; \
+	Float pbc2 = (1.0f - bc1 - bc3) * surf->s_v2.q; \
 	Float pbc1_inc = bc1_inc * surf->s_v1.q; \
 	Float pbc3_inc = bc3_inc * surf->s_v3.q; \
 	Float pbc2_inc = - (bc1_inc + bc3_inc) * surf->s_v2.q; \
@@ -851,7 +851,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				else
 					while (x1<0) x1 += _this->width;
 			} else {
-				if (!repeat_s && (x1 > _this->width))
+				if (!repeat_s && ((u32) x1 > _this->width))
 					do_lerp=GF_FALSE;
 				else
 					x1 = x1 % _this->width;
@@ -863,7 +863,7 @@ static void tex_fill_run(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 _y, u
 				else
 					while (y1<0) y1+=_this->height;
 			} else {
-				if (!repeat_t && (y1 > _this->height))
+				if (!repeat_t && ((u32) y1 > _this->height))
 					do_lerp=GF_FALSE;
 				else
 					y1 = y1 % _this->height;
@@ -997,7 +997,7 @@ static void tex_fill_run_straight(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, 
 		x0 = FIX2INT(x);
 		if (x0 > m_width) {
 			if (repeat_s) {
-				while (x0 > _this->width) x0 -= _this->width;
+				while ((u32) x0 > _this->width) x0 -= _this->width;
 			} else if (_this->fill_pad_color) {
 				pix = _this->fill_pad_color;
 				goto write_pix;
@@ -1144,7 +1144,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				else
 					while (x1<0) x1 += _this->width;
 			} else {
-				if (!repeat_s && (x1 > _this->width))
+				if (!repeat_s && ((u32) x1 > _this->width))
 					do_lerp=GF_FALSE;
 				else
 					x1 = x1 % _this->width;
@@ -1156,7 +1156,7 @@ static void tex_fill_run_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32 _x, s32 
 				else
 					while (y1<0) y1+=_this->height;
 			} else {
-				if (!repeat_t && (y1 > _this->height))
+				if (!repeat_t && ((u32) y1 > _this->height))
 					do_lerp=GF_FALSE;
 				else
 					y1 = y1 % _this->height;
@@ -1270,7 +1270,7 @@ static void tex_fill_run_straight_wide(GF_EVGStencil *p, EVGRasterCtx *rctx, s32
 			y0 = 0;
 	} else if (y0>=(s32) _this->height) {
 		if (_this->mod & GF_TEXTURE_REPEAT_T)
-			while (y0 > _this->height) y0 -= _this->height;
+			while ((u32) y0 > _this->height) y0 -= _this->height;
 		else if (_this->fill_pad_color_wide)
 			pad_y = _this->fill_pad_color_wide;
 		else

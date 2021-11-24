@@ -884,8 +884,8 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 			} else {
 				s32 o_x = evt->mouse.x * (s32) ctx->width / (s32) ctx->display_width;
 				s32 o_y = evt->mouse.y * (s32) ctx->height / (s32) ctx->display_height;
-				o_x -= FLT2FIX(ctx->ow);
-				o_y -= FLT2FIX(ctx->oh);
+				o_x -= (s32) ctx->ow;
+				o_y -= (s32) ctx->oh;
 				fevt.user_event.event.mouse.x = o_x;
 				fevt.user_event.event.mouse.y = o_y;
 			}
