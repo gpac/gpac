@@ -4720,7 +4720,7 @@ static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Re
 				} else {
 					group->dash->auto_switch_count = -group->dash->auto_switch_count;
 					rep_idx ++;
-					if (rep_idx > nb_reps - 1)
+					if ((u32) rep_idx > nb_reps - 1)
 						rep_idx = nb_reps - 1;
 				}
 			}

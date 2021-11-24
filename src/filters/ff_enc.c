@@ -1558,7 +1558,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			//some codecs in libavcodec will complain if timebase is too high
 			//if fps is set and its num is quite small compared to our input timescale, use the num
 			//otherwise we try to keep the same timescale as input
-			else if (ctx->encoder->framerate.num * 100 < ctx->timescale) {
+			else if ((u32) ctx->encoder->framerate.num * 100 < ctx->timescale) {
 				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
 			}
 		} else {

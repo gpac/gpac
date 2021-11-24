@@ -137,13 +137,13 @@ GF_Err evg_raster_render_path_3d(GF_EVGSurface *surf)
 
 	/* Set up state in the raster object */
 	if (surf->vp_w && surf->vp_h) {
-		if (surf->clip_xMin < surf->vp_x)
+		if ((u32) surf->clip_xMin < surf->vp_x)
 			surf->clip_xMin = surf->vp_x;
-		if (surf->clip_yMin < surf->vp_y)
+		if ((u32) surf->clip_yMin < surf->vp_y)
 			surf->clip_yMin = surf->vp_y;
-		if (surf->clip_xMax > surf->vp_x + surf->vp_w)
+		if ((u32) surf->clip_xMax > surf->vp_x + surf->vp_w)
 			surf->clip_xMax = surf->vp_x + surf->vp_w;
-		if (surf->clip_yMax > surf->vp_y + surf->vp_h)
+		if ((u32) surf->clip_yMax > surf->vp_y + surf->vp_h)
 			surf->clip_yMax = surf->vp_y + surf->vp_h;
 	}
 	surf->min_ex = surf->clip_xMin;
@@ -480,7 +480,7 @@ void EVG3D_SpanFunc(int y, int count, EVG_Span *spans, GF_EVGSurface *surf, EVGR
 			}
 		}
 		else {
-			bc3 = 1.0 - bc1 - bc2;
+			bc3 = 1.0f - bc1 - bc2;
 			/*if coverage is not full, we are on a line - recompute the weights assuming the pixel is exactly on the line*/
 			if (coverage!=0xFF) {
 				if (!s3d->mode2d) {
