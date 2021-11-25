@@ -11348,7 +11348,10 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 			break;
 		spss = NULL;
 	}
-	if (!spss) return GF_NON_COMPLIANT_BITSTREAM;
+	if (!spss) {
+		gf_free(vvc);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	i = 0;
 	while ((slc = (GF_NALUFFParam *)gf_list_enum(spss->nalus, &i))) {
@@ -11405,6 +11408,7 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
 	}
+	gf_free(vvc);
 	return GF_OK;
 }
 
