@@ -2749,7 +2749,7 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 }
 
 GF_EXPORT
-void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, Bool (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
 {
 	if (!filter) return;
 	if (!source_filter) return;
@@ -2774,7 +2774,8 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	if (task->udta) {
 		e = ((struct _gf_filter_setup_failure *)task->udta)->e;
 		gf_free(task->udta);
-		f->session->last_connect_error = e;
+		if (e)
+			f->session->last_connect_error = e;
 	}
 
 	if (!f->finalized && f->freg->finalize) {
@@ -2813,8 +2814,10 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
 {
 	struct _gf_filter_setup_failure *st = (struct _gf_filter_setup_failure *)task->udta;
-	if (st->notify_filter && st->filter->on_setup_error)
-		st->filter->on_setup_error(st->filter, st->filter->on_setup_error_udta, st->e);
+	if (st->notify_filter && st->filter->on_setup_error) {
+		Bool cancel = st->filter->on_setup_error(st->filter, st->filter->on_setup_error_udta, st->e);
+		if (cancel) st->e = GF_OK;
+	}
 
 	if (st->do_disconnect) {
 		gf_fs_post_task(st->filter->session, gf_filter_setup_failure_task, NULL, NULL, "setup_failure", st);
@@ -2871,8 +2874,8 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 			gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, sfilter, pidinst->pid, "pid_inst_delete", pidinst);
 		}
 		gf_mx_v(filter->tasks_mx);
-
-		filter->session->last_connect_error = reason;
+		if (reason)
+			filter->session->last_connect_error = reason;
 		return;
 	}
 

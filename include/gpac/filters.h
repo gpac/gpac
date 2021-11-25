@@ -2354,10 +2354,10 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 /*! Sets callback function on source filter setup failure
 \param filter target filter
 \param source_filter the source filter to monitor
-\param on_setup_error callback function to call upon source  setup error
+\param on_setup_error callback function to call upon source  setup error - the callback can return GF_TRUE to cancel error reporting
 \param udta user data passed back to the task function
 */
-void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta);
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, Bool (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta);
 
 /*! Notify a filter setup error. This is typically called when a source filter or a filter having accepted input PIDs detects an issue.
 For a source filter (no input PID), the failure callback will be called if any, and the filter will be removed.

@@ -105,13 +105,14 @@ static GF_Err cryptfile_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 const char *gf_filter_get_src_args(GF_Filter *filter);
 
-static void cryptfile_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+static Bool cryptfile_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	GF_Filter *f = (GF_Filter *)udta;
-	if (!udta) return;
+	if (!udta) return GF_FALSE;
 	//forward failure, but do not send a setup failure (gf_filter_setup_failure) which would remove this filter
 	//we let the final user (dashdmx) decide what to do
 	gf_filter_notification_failure(f, err, GF_FALSE);
+	return GF_FALSE;
 }
 
 static GF_Err cryptfin_initialize(GF_Filter *filter)

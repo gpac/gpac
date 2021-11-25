@@ -585,21 +585,27 @@ static GF_Err rtspout_interleave_packet(void *cbk1, void *cbk2, Bool is_rtcp, u8
 	return gf_rtsp_session_write_interleaved(sess->rtsp, idx, pck, pck_size);
 }
 
-void rtspout_on_filter_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
+Bool rtspout_on_filter_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
 {
 	GF_RTSPOutSession *sess = (GF_RTSPOutSession *)on_setup_error_udta;
 
 	gf_list_del_item(sess->filter_srcs, f);
-	if (gf_list_count(sess->filter_srcs)) return;
+	//we don't notify error at our session level if the request fails
+	if (gf_list_count(sess->filter_srcs)) return GF_TRUE;
 
 	if (sess->sdp_state != SDP_LOADED) {
 		sess->sdp_state = SDP_LOADED;
 		gf_rtsp_response_reset(sess->response);
 		sess->response->ResponseCode = NC_RTSP_Internal_Server_Error;
+		if ((e == GF_URL_ERROR) || (e == GF_URL_REMOVED)) {
+			sess->response->ResponseCode = NC_RTSP_Not_Found;
+		}
 		sess->response->CSeq = sess->command->CSeq;
 		rtspout_send_response(sess->ctx, sess);
 	}
 	rtspout_del_session(sess);
+	//we don't notify error at our session level if the request fails
+	return GF_TRUE;
 }
 
 static GF_Err rtspout_load_media_service(GF_Filter *filter, GF_RTSPOutCtx *ctx, GF_RTSPOutSession *sess, char *src_url)
@@ -877,7 +883,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 						else
 							rsp_code = NC_RTSP_Not_Found;
 					} else {
-						if (gf_filter_is_supported_source(filter, src_url, NULL)) {
+						if (gf_filter_is_supported_source(filter, res_path, NULL)) {
 							src_url = gf_strdup(res_path);
 							gf_list_add(paths, src_url);
 						} else {

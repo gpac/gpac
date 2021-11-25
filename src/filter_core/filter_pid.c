@@ -1329,7 +1329,9 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 			matched=4;
 			type=GF_STREAM_TEXT;
 		}
-		if (matched && (type != pent->prop.value.uint)) {
+		if (matched &&
+			( (!is_neg && (type != pent->prop.value.uint)) || (is_neg && (type == pent->prop.value.uint)) )
+		) {
 			//special case: if we request a non-file stream but the pid is a file, we will need a demux to
 			//move from file to A/V/... streams, so we accept any #MEDIA from file streams
 			if (pent->prop.value.uint == GF_STREAM_FILE) {
@@ -1455,10 +1457,16 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		psep++;
 		use_not_equal = GF_TRUE;
 	}
+
 	//parse the property, based on its property type
 	if (pent->p4cc==GF_PROP_PID_CODECID) {
 		prop_val.type = GF_PROP_UINT;
 		prop_val.value.uint = gf_codecid_parse(psep+1);
+	}
+	//parse the property, based on its property type
+	else if (pent->p4cc==GF_PROP_PID_STREAM_TYPE) {
+		prop_val.type = GF_PROP_UINT;
+		prop_val.value.uint = gf_stream_type_by_name(psep+1);
 	} else {
 		u32 val_is_prop = gf_props_get_id(psep+1);
 		if (val_is_prop) {
@@ -6523,9 +6531,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_mx_v(f->tasks_mx);
 			if (evt->base.type==GF_FEVT_STOP) {
 				if (forced_cancel) {
-					//we stop propagating the event to the source, but we must reset/restart the source pid
+					//we stop propagating the event to the source, but we must reset the source pid
 					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
-					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
+//					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_FALSE);
 				} else if (!canceled) {
 					gf_filter_pid_set_discard((GF_FilterPid *)apidi, GF_TRUE);
 				}
@@ -7489,9 +7497,13 @@ GF_Err gf_filter_pid_set_discard(GF_FilterPid *pid, Bool discard_on)
 	if (discard_on) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Discarding packets on PID %s (filter %s to %s)\n", pid->pid->name, pid->pid->filter->name, pid->filter->name));
 		gf_filter_aggregate_packets(pidi);
+		//force discarding
+		u32 pck_discard_bck = pidi->discard_packets;
+		pidi->discard_packets = 0;
 		while (gf_filter_pid_get_packet(pid)) {
 			gf_filter_pid_drop_packet(pid);
 		}
+		pidi->discard_packets = pck_discard_bck;
 		pidi->is_end_of_stream = GF_TRUE;
 	} else {
 		//no more packets in queue or postponed, we can trust the EOS signal on the PID

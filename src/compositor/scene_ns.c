@@ -27,7 +27,7 @@
 #include <gpac/network.h>
 
 
-void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+Bool scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	GF_SceneNamespace *scene_ns;
 	GF_Scene *scene;
@@ -42,7 +42,7 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 
 	if (root->scene_ns->owner != root) {
 		gf_scene_message(scene, scene_ns->url, "Incompatible module type", GF_SERVICE_ERROR);
-		return;
+		return GF_FALSE;
 	}
 	/*this is service connection*/
 	gf_odm_service_media_event(root, GF_EVENT_MEDIA_SETUP_DONE);
@@ -97,9 +97,10 @@ void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 				gf_scene_remove_object(root->parentscene, root, 0);
 				gf_odm_disconnect(root, 1);
 			}
-			return;
+			return GF_FALSE;
 		}
 	}
+	return GF_FALSE;
 }
 
 
