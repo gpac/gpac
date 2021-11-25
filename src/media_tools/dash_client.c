@@ -1336,7 +1336,11 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 group_idx, u32 bit
 	if (group->groups_depending_on) return GF_OK;
 	if (group->dash->disable_switching) return GF_OK;
 	if (!total_bytes || !bytes_done || !bits_per_sec) return GF_OK;
-	if (total_bytes == bytes_done) return GF_OK;
+	if (total_bytes == bytes_done) {
+		//in test mode always call to make sure we cover the callback
+		if (!gf_sys_is_test_mode())
+			return GF_OK;
+	}
 
 	//force a call go query buffer
 	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, group_idx, GF_OK);
