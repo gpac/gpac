@@ -34,7 +34,7 @@
 
 GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *useTCP)
 {
-	char schema[10], *test, text[1024], *retest;
+	char schema[10], *test, text[1024], *retest, *sep;
 	u32 i, len;
 	Bool is_ipv6;
 	if (!sURL) return GF_BAD_PARAM;
@@ -46,6 +46,8 @@ GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *
 
 	if (!strchr(sURL, ':')) return GF_BAD_PARAM;
 
+	sep = strchr(sURL, '?');
+	if (sep) sep[0] = 0;
 	//extract the schema
 	i = 0;
 	while (i<=strlen(sURL)) {
@@ -53,6 +55,7 @@ GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *
 		schema[i] = sURL[i];
 		i += 1;
 	}
+	if (sep) sep[0] = '?';
 	return GF_BAD_PARAM;
 
 found:
@@ -64,12 +67,17 @@ found:
 		if (test) return GF_NOT_SUPPORTED;
 	*/
 	test = strstr(sURL, "://");
-	if (!test) return GF_URL_ERROR;
+	if (!test) {
+		if (sep) sep[0] = '?';
+		return GF_URL_ERROR;
+	}
 	test += 3;
 	//check for service
 	retest = strstr(test, "/");
-	if (!retest) return GF_URL_ERROR;
-
+	if (!retest) {
+		if (sep) sep[0] = '?';
+		return GF_URL_ERROR;
+	}
 	if (!stricmp(schema, "rtsp") || !stricmp(schema, "satip"))
 		*useTCP = GF_TRUE;
 
@@ -89,6 +97,7 @@ found:
 		text[i] = 0;
 		*Port = atoi(text);
 	}
+
 	//get the server name
 	is_ipv6 = GF_FALSE;
 	len = (u32) strlen(test);
@@ -102,6 +111,7 @@ found:
 	}
 	text[i] = 0;
 	strcpy(Server, text);
+	if (sep) sep[0] = '?';
 
 	while (test[i] != '/') i += 1;
 	strcpy(Service, test+i+1);
