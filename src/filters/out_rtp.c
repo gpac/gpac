@@ -411,7 +411,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 			if (param_array) {
 				if (stream->inject_ps) {
 					u32 i, count = gf_list_count(param_array);
-					GF_NALUFFParamArray *vpsa=NULL, *spsa=NULL;
+					GF_NALUFFParamArray *vpsa=NULL, *spsa=NULL, *ppsa=NULL;
 					stream->vvcc = vvcc;
 					stream->hvcc = hvcc;
 					for (i=0; i<count; i++) {
@@ -426,7 +426,14 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 							gf_list_rem(param_array, i);
 							count--;
 						}
+						else if (!ppsa && (pa->type == pps_nut)) {
+							ppsa = pa;
+							gf_list_rem(param_array, i);
+							count--;
+						}
 					}
+					//insert PPS at beginning
+					if (ppsa) gf_list_insert(param_array, ppsa, 0);
 					//insert SPS at beginning
 					if (spsa) gf_list_insert(param_array, spsa, 0);
 					//insert VPS at beginning - we now have VPS, SPS and other (PPS, SEI...)
