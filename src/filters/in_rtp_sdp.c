@@ -107,6 +107,9 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 	return GF_OK;
 }
 
+//we now ignore the IOD (default scene anyway) and let the user deal with the media streams
+//code is kept for reference
+#if 0
 /*load iod from data:application/mpeg4-iod;base64*/
 static GF_Err rtpin_sdp_load_iod(GF_RTPIn *rtp, char *iod_str)
 {
@@ -145,6 +148,7 @@ static GF_Err rtpin_sdp_load_iod(GF_RTPIn *rtp, char *iod_str)
 	gf_odf_desc_read(buf, size, &rtp->iod_desc);
 	return GF_OK;
 }
+#endif
 
 void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *ocr_es_id)
 {
@@ -343,7 +347,8 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 		}
 
 		/*force iod reconstruction with ISMA to use proper clock dependencies*/
-		if (is_isma_1) iod_str = NULL;
+		//if (is_isma_1)
+		iod_str = NULL; //we always force scene reconstruction
 
 		if (!iod_str) {
 			GF_RTPInStream *a_stream;
@@ -362,8 +367,9 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 			}
 		}
 
+#if 0
 		if (iod_str) e = rtpin_sdp_load_iod(rtp, iod_str);
-
+#endif
 		/* service failed*/
 		if (e) gf_filter_setup_failure(rtp->filter, e);
 		else rtpin_declare_media(rtp, force_in_iod);
