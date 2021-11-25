@@ -533,7 +533,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			stride = txh->tx_io->conv_stride;
 			pfmt = txh->tx_io->conv_format;
 		}
-		gf_gl_txw_setup(&txh->tx_io->tx, pfmt, txh->width, txh->height, stride, 0, GF_TRUE, NULL, full_range, cmx);
+		gf_gl_txw_setup(&txh->tx_io->tx, pfmt, txh->width, txh->height, stride, 0, GF_TRUE, txh->frame_ifce, full_range, cmx);
 	}
 	return 1;
 }
