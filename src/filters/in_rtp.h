@@ -282,9 +282,8 @@ struct __rtpin_stream
 
 /*creates new RTP stream from SDP info*/
 GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, GF_RTPInStream *input_stream);
-/*creates new SAT>IP stream*/
-GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip);
-GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port);
+/*creates new standalone RTP stream, or new SAT>IP stream*/
+GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port, Bool for_satip);
 
 /*destroys RTP stream */
 void rtpin_stream_del(GF_RTPInStream *stream);
@@ -353,6 +352,8 @@ void rtpin_rtsp_teardown(GF_RTPInRTSP *sess, GF_RTPInStream *stream);
 
 
 void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size);
+
+void rtpin_satip_get_server_ip(const char *sURL, char *Server);
 
 #endif /*GPAC_DISABLE_STREAMING*/
 
