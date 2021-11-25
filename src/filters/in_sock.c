@@ -233,7 +233,10 @@ static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 	GF_SockInClient *sc = (GF_SockInClient *) gf_filter_pid_get_udta(pid);
 	sc->pck_out = GF_FALSE;
 	data = (char *) gf_filter_pck_get_data(pck, &size);
-	if (data) gf_free(data);
+	if (data) {
+		data-=12;
+		gf_free(data);
+	}
 }
 #endif
 
