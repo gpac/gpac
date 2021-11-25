@@ -2262,6 +2262,8 @@ fps (frac, default: 15000/1000): import frame rate
 .br
 index (dbl, default: 1.0):     indexing window length
 .br
+notime (bool, default: false): ignore input timestamps, rebuild from 0
+.br
 
 .br
 .SH rfmpgvid
@@ -2287,6 +2289,8 @@ index (dbl, default: 1.0):     indexing window length
 vfr (bool, default: false):    set variable frame rate import
 .br
 importer (bool, default: false): compatibility with old importer, displays import results
+.br
+notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
 
 .br
@@ -2385,6 +2389,8 @@ deps (bool, default: false):   import samples dependencies information
 seirw (bool, default: true):   rewrite AVC sei messages for ISOBMFF constraints
 .br
 audelim (bool, default: false): keep Access Unit delimiter in payload
+.br
+notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
 bsdbg (enum, default: off):    debug NAL parsing in parser@debug logs
 .br
@@ -5597,6 +5603,8 @@ importer (bool, default: false): compatibility with old importer
 .br
 deps (bool, default: false):   import samples dependencies information
 .br
+notime (bool, default: false): ignore input timestamps, rebuild from 0
+.br
 bsdbg (enum, default: off):    debug NAL parsing in parser@debug logs
 .br
 * off: not enabled
@@ -6575,6 +6583,8 @@ fps (frac, default: 0/1000):   import frame rate (0 default to FPS from bitstrea
 findex (bool, default: true):  index frames. If true, filter will be able to work in rewind mode
 .br
 cid (str):                     set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422
+.br
+notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
 
 .br
@@ -9521,7 +9531,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1431-gf448b75bf-master
+build: 1.1.0-DEV-rev1446-g18c1a350f-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

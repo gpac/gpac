@@ -50,7 +50,7 @@ typedef struct
 	GF_Fraction fps;
 	Double index;
 	Bool importer;
-	Bool deps;
+	Bool deps, notime;
 	
 	u32 bsdbg;
 
@@ -127,7 +127,11 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
-	if (ctx->timescale) {
+
+	//if source has no timescale, recompute time
+	if (!ctx->timescale) {
+		ctx->notime = GF_TRUE;
+	} else {
 		//if we have a FPS prop, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) ctx->cur_fps = p->value.frac;
@@ -462,7 +466,7 @@ static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 	assert(ctx->cur_fps.num);
 	assert(ctx->cur_fps.den);
 
-	if (ctx->timescale) {
+	if (!ctx->notime) {
 		u64 inc = ctx->cur_fps.den;
 		inc *= ctx->timescale;
 		inc /= ctx->cur_fps.num;
@@ -1004,10 +1008,9 @@ GF_Err av1dmx_process(GF_Filter *filter)
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 
-	//input pid sets some timescale - we flushed pending data , update cts
+	//input pid is muxed - we flushed pending data , update cts unless recomputing all times
 	if (ctx->timescale) {
 		Bool start, end;
-		u64 cts;
 
 		e = GF_OK;
 
@@ -1037,9 +1040,11 @@ GF_Err av1dmx_process(GF_Filter *filter)
 		}
 
 		//beginning of a new frame
-		cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
+		if (!ctx->notime) {
+			u64 cts = gf_filter_pck_get_cts(pck);
+			if (cts != GF_FILTER_NO_TS)
+				ctx->cts = cts;
+		}
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = pck;
 		gf_filter_pck_ref_props(&ctx->src_pck);
@@ -1191,6 +1196,7 @@ static const GF_FilterArgs AV1DmxArgs[] =
 
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
 		"- off: not enabled\n"

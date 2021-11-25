@@ -41,7 +41,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool vfr, importer;
+	Bool vfr, importer, notime;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -160,6 +160,9 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	//if source has no timescale, recompute time
+	if (!ctx->timescale) ctx->notime = GF_TRUE;
+
 	return GF_OK;
 }
 
@@ -475,7 +478,7 @@ static GFINLINE void mpgviddmx_update_time(GF_MPGVidDmxCtx *ctx)
 {
 	assert(ctx->cur_fps.num);
 
-	if (ctx->timescale) {
+	if (!ctx->notime) {
 		u64 inc = 3000;
 		if (ctx->cur_fps.den && ctx->cur_fps.num) {
 			inc = ctx->cur_fps.den;
@@ -559,27 +562,30 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	start = data;
 	remain = pck_size;
 
-	//input pid sets some timescale - we flushed pending data , update cts
+	//input pid was muxed - we flushed pending data , update cts
 	if (!ctx->resume_from && ctx->timescale) {
-		u64 ts = gf_filter_pck_get_cts(pck);
-		if (ts != GF_FILTER_NO_TS) {
-			if (!ctx->cts || !ctx->recompute_cts)
-				ctx->cts = ts;
-		}
-		ts = gf_filter_pck_get_dts(pck);
-		if (ts != GF_FILTER_NO_TS) {
-			if (!ctx->dts || !ctx->recompute_cts)
-				ctx->dts = ts;
+		if (!ctx->notime) {
+			u64 ts = gf_filter_pck_get_cts(pck);
+			if (ts != GF_FILTER_NO_TS) {
+				if (!ctx->cts || !ctx->recompute_cts)
+					ctx->cts = ts;
+			}
+			ts = gf_filter_pck_get_dts(pck);
+			if (ts != GF_FILTER_NO_TS) {
+				if (!ctx->dts || !ctx->recompute_cts)
+					ctx->dts = ts;
 
-			if (!ctx->prev_dts) ctx->prev_dts = ts;
-			else if (ctx->prev_dts != ts) {
-				u64 diff = ts;
-				diff -= ctx->prev_dts;
-				if (!ctx->cur_fps.den) ctx->cur_fps.den = (u32) diff;
-				else if (ctx->cur_fps.den > diff)
-					ctx->cur_fps.den = (u32) diff;
+				if (!ctx->prev_dts) ctx->prev_dts = ts;
+				else if (ctx->prev_dts != ts) {
+					u64 diff = ts;
+					diff -= ctx->prev_dts;
+					if (!ctx->cur_fps.den) ctx->cur_fps.den = (u32) diff;
+					else if (ctx->cur_fps.den > diff)
+						ctx->cur_fps.den = (u32) diff;
+				}
 			}
 		}
+
 		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, &ctx->input_is_au_end);
 		//this will force CTS recomput of each frame
 		if (ctx->recompute_cts) ctx->input_is_au_start = GF_FALSE;
@@ -1232,6 +1238,7 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
