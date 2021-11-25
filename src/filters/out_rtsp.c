@@ -597,7 +597,7 @@ Bool rtspout_on_filter_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_E
 		sess->sdp_state = SDP_LOADED;
 		gf_rtsp_response_reset(sess->response);
 		sess->response->ResponseCode = NC_RTSP_Internal_Server_Error;
-		if ((e == GF_URL_ERROR) || (e == GF_URL_REMOVED)) {
+		if ((e == GF_URL_ERROR) || (e == GF_URL_REMOVED) || (e == GF_IP_CONNECTION_FAILURE)) {
 			sess->response->ResponseCode = NC_RTSP_Not_Found;
 		}
 		sess->response->CSeq = sess->command->CSeq;
