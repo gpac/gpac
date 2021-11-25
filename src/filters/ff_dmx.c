@@ -31,6 +31,7 @@
 
 //for NTP clock
 #include <gpac/network.h>
+#include <gpac/bitstream.h>
 
 enum
 {
@@ -221,6 +222,41 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		} else {
 			FF_FREE_PCK(pkt);
 			return GF_OK;
+		}
+	}
+
+	if (pkt->side_data_elems) {
+		for (i=0; i<pkt->side_data_elems; i++) {
+			AVPacketSideData *sd = &pkt->side_data[i];
+			if (sd->type == AV_PKT_DATA_NEW_EXTRADATA) {
+				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA(sd->data, sd->size) );
+			}
+			else if (sd->type == AV_PKT_DATA_PARAM_CHANGE) {
+				GF_BitStream *bs = gf_bs_new(sd->data, sd->size, GF_BITSTREAM_READ);
+
+				u32 flags = gf_bs_read_u32_le(bs);
+				if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_COUNT) {
+					u32 new_ch = gf_bs_read_u32_le(bs);
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(new_ch) );
+				}
+				if (flags & AV_SIDE_DATA_PARAM_CHANGE_CHANNEL_LAYOUT) {
+					u64 new_lay = gf_bs_read_u64_le(bs);
+					new_lay = ffmpeg_channel_layout_to_gpac(new_lay);
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(new_lay) );
+				}
+				if (flags & AV_SIDE_DATA_PARAM_CHANGE_SAMPLE_RATE) {
+					u32 new_sr = gf_bs_read_u32_le(bs);
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(new_sr) );
+				}
+				if (flags & AV_SIDE_DATA_PARAM_CHANGE_DIMENSIONS) {
+					u32 new_w = gf_bs_read_u32_le(bs);
+					u32 new_h = gf_bs_read_u32_le(bs);
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_WIDTH, &PROP_UINT(new_w) );
+					gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_HEIGHT, &PROP_UINT(new_h) );
+				}
+				gf_bs_del(bs);
+			}
+			//todo, map the rest ?
 		}
 	}
 
@@ -641,6 +677,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		ffdmx_update_arg(filter, NULL, NULL);
+		ffmpeg_pixfmt_from_codec_tag(0, NULL);
 	}
 #endif
 	if (!ctx->src) {
