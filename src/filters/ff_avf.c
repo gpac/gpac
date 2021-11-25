@@ -176,7 +176,6 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_SAR, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_MX, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, NULL);
-				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_SPACE, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_TRANSFER, NULL);
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_PRIMARIES, NULL);
 			}

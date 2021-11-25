@@ -1502,6 +1502,47 @@ GF_Err gf_isom_get_color_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample
 */
 GF_Err gf_isom_get_clean_aperture(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *cleanApertureWidthN, u32 *cleanApertureWidthD, u32 *cleanApertureHeightN, u32 *cleanApertureHeightD, s32 *horizOffN, u32 *horizOffD, s32 *vertOffN, u32 *vertOffD);
 
+/*! content light level info*/
+typedef struct  {
+	/*! max content ligth level*/
+	u16 max_content_light_level;
+	/*! max picture average ligth level*/
+	u16 max_pic_average_light_level;
+} GF_ContentLightLevelInfo;
+
+/*! mastering display colour volume info*/
+typedef struct  {
+	/*! display primaries*/
+	struct {
+		u16 x;
+		u16 y;
+	} display_primaries[3];
+	/*! X white point*/
+	u16 white_point_x;
+	/*! Y white point*/
+	u16 white_point_y;
+	u32 max_display_mastering_luminance;
+	/*! min display mastering luminance*/
+	u32 min_display_mastering_luminance;
+} GF_MasteringDisplayColourVolumeInfo;
+
+/* gets master display colour info if any
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\return the mdcv info, or NULL if none or not a valid video track
+*/
+const GF_MasteringDisplayColourVolumeInfo *gf_isom_get_mastering_display_colour_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+/* gets content light level info if any
+\param isom_file the target ISO file
+\param trackNumber the target track number
+\param sampleDescriptionIndex the target sample description index
+\return the clli info, or NULL if none or not a valid video track
+*/
+const GF_ContentLightLevelInfo *gf_isom_get_content_light_level_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
+
+
 /*! gets the media language code of a track
 \param isom_file the target ISO file
 \param trackNumber the target track
@@ -2386,30 +2427,6 @@ GF_Err gf_isom_set_clean_aperture(GF_ISOFile *isom_file, u32 trackNumber, u32 sa
 \return error if any
 */
 GF_Err gf_isom_update_aperture_info(GF_ISOFile *isom_file, u32 trackNumber, Bool remove);
-
-/*! content light level info*/
-typedef struct  {
-	/*! max content ligth level*/
-	u16 max_content_light_level;
-	/*! max picture average ligth level*/
-	u16 max_pic_average_light_level;
-} GF_ContentLightLevelInfo;
-
-/*! mastering display colour volume info*/
-typedef struct  {
-	/*! display primaries*/
-	struct {
-		u16 x;
-		u16 y;
-	} display_primaries[3];
-	/*! X white point*/
-	u16 white_point_x;
-	/*! Y white point*/
-	u16 white_point_y;
-	u32 max_display_mastering_luminance;
-	/*! min display mastering luminance*/
-	u32 min_display_mastering_luminance;
-} GF_MasteringDisplayColourVolumeInfo;
 
 
 /*! sets high dynamic range information for a sample description

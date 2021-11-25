@@ -1265,6 +1265,37 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_X, NULL);;
 			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CLAP_Y, NULL);
 		}
+
+		const GF_MasteringDisplayColourVolumeInfo *mdcv = gf_isom_get_mastering_display_colour_info(ch->owner->mov, ch->track,ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+		if (mdcv) {
+			u8 *pdata;
+			u32 psize, c;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+			for(c=0;c<3;c++) {
+				gf_bs_write_u16(bs, mdcv->display_primaries[c].x);
+				gf_bs_write_u16(bs, mdcv->display_primaries[c].x);
+			}
+			gf_bs_write_u16(bs, mdcv->white_point_x);
+			gf_bs_write_u16(bs, mdcv->white_point_y);
+			gf_bs_write_u32(bs, mdcv->max_display_mastering_luminance);
+			gf_bs_write_u32(bs, mdcv->min_display_mastering_luminance);
+			gf_bs_get_content(bs, &pdata, &psize);
+			gf_bs_del(bs);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA_NO_COPY(pdata, psize));
+		}
+
+		const GF_ContentLightLevelInfo *clli = gf_isom_get_content_light_level_info(ch->owner->mov, ch->track,ch->last_sample_desc_index ? ch->last_sample_desc_index : 1);
+		if (clli) {
+			u8 *pdata;
+			u32 psize;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u16(bs, clli->max_content_light_level);
+			gf_bs_write_u16(bs, clli->max_pic_average_light_level);
+			gf_bs_get_content(bs, &pdata, &psize);
+			gf_bs_del(bs);
+			gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA_NO_COPY(pdata, psize));
+		}
 	}
 }
 

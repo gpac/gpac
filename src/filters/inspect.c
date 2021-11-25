@@ -320,7 +320,7 @@ static void dump_clli(FILE *dump, GF_BitStream *bs)
 {
 	u16 max_content_light_level = gf_bs_read_int(bs, 16);
 	u16 max_pic_average_light_level = gf_bs_read_int(bs, 16);
-	gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"/>\n", max_content_light_level, max_pic_average_light_level);
+	gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"\n", max_content_light_level, max_pic_average_light_level);
 }
 
 static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
@@ -340,7 +340,7 @@ static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
 	white_point_y = gf_bs_read_int(bs, 16);
 	max_display_mastering_luminance = gf_bs_read_int(bs, 32);
 	min_display_mastering_luminance = gf_bs_read_int(bs, 32);
-	gf_fprintf(dump, " display_primaries_x=\"%.04f %.04f %.04f\" display_primaries_y=\"%.04f %.04f %.04f\" white_point_x=\"%.04f\" white_point_y=\"%.04f\" max_display_mastering_luminance=\"%.04f\" min_display_mastering_luminance=\"%.04f\"/>\n",
+	gf_fprintf(dump, " display_primaries_x=\"%.04f %.04f %.04f\" display_primaries_y=\"%.04f %.04f %.04f\" white_point_x=\"%.04f\" white_point_y=\"%.04f\" max_display_mastering_luminance=\"%.04f\" min_display_mastering_luminance=\"%.04f\"",
 			   display_primaries_x[0]*1.0/(isMPEG?50000:65536),
 			   display_primaries_x[1]*1.0/(isMPEG?50000:65536),
 			   display_primaries_x[2]*1.0/(isMPEG?50000:65536),
@@ -1882,6 +1882,23 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		return;
 	if (p4cc==GF_PROP_PCK_END_RANGE)
 		return;
+
+	if ((att->type==GF_PROP_DATA) && (ctx->analyze || ctx->xml)) {
+		if (p4cc==GF_PROP_PID_CONTENT_LIGHT_LEVEL) {
+			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+			dump_clli(dump, bs);
+			gf_bs_del(bs);
+			return;
+		}
+		else if (p4cc==GF_PROP_PID_MASTER_DISPLAY_COLOUR) {
+			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
+			const GF_PropertyValue *cid = pctx ? gf_filter_pid_get_property(pctx->src_pid, GF_PROP_PID_CODECID) : NULL;
+			dump_mdcv(dump, bs, (cid && cid->value.uint==GF_CODECID_AV1) ? GF_FALSE : GF_TRUE);
+			gf_bs_del(bs);
+			return;
+		}
+	}
+
 
 	if (p4cc==GF_PROP_PID_CENC_KEY_INFO) {
 		u32 i, nb_keys, kpos;
