@@ -139,6 +139,11 @@ readonly attribute unsigned long http_bitrate;
 /*! set to true if no PID initialization task (connections) is pending*/
 readonly attribute boolean connected;
 
+/*! last process error, cf gf_fs_get_last_process_error*/
+readonly attribute boolean last_process_error;
+/*! last connection error, cf gf_fs_get_last_connect_error*/
+readonly attribute boolean last_connect_error;
+
 };
 
 
