@@ -38,6 +38,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
+	Bool notime;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -95,6 +96,10 @@ GF_Err h263dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+
+	//if source has no timescale, recompute time
+	if (!ctx->timescale) ctx->notime = GF_TRUE;
+
 	return GF_OK;
 }
 
@@ -309,7 +314,7 @@ static GFINLINE void h263dmx_update_cts(GF_H263DmxCtx *ctx)
 	assert(ctx->fps.num);
 	assert(ctx->fps.den);
 
-	if (ctx->timescale) {
+	if (!ctx->notime) {
 		u64 inc = ctx->fps.den;
 		inc *= ctx->timescale;
 		inc /= ctx->fps.num;
@@ -421,11 +426,13 @@ GF_Err h263dmx_process(GF_Filter *filter)
 #endif
 
 	}
-	//input pid sets some timescale - we flushed pending data , update cts
+	//input pid is muxed - we flushed pending data , update cts unless recomputing timing
 	else if (ctx->timescale) {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
+		if (!ctx->notime) {
+			u64 cts = gf_filter_pck_get_cts(pck);
+			if (cts != GF_FILTER_NO_TS)
+				ctx->cts = cts;
+		}
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = pck;
 		gf_filter_pck_ref_props(&ctx->src_pck);
@@ -719,6 +726,7 @@ static const GF_FilterArgs H263DmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, 0},
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

@@ -60,7 +60,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index;
-	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze;
+	Bool explicit, force_sync, nosei, importer, subsamples, nosvc, novpsext, deps, seirw, audelim, analyze, notime;
 	u32 nal_length;
 	u32 strict_poc;
 	u32 bsdbg;
@@ -359,6 +359,9 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 		ctx->full_au_source = GF_TRUE;
 	}
+
+	//if source has no timescale, recompute time
+	if (!ctx->timescale) ctx->notime = GF_TRUE;
 
 	//copy properties at init or reconfig
 	if (ctx->opid) {
@@ -1043,7 +1046,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (!ctx->timescale && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
+			if (ctx->notime && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
@@ -1216,7 +1219,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 			}
 
 			/*disable frame rate scan, most bitstreams have wrong values there*/
-			if (!ctx->timescale && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
+			if (ctx->notime && first && (!ctx->fps.num || !ctx->fps.den) && sps->has_timing_info
 				/*if detected FPS is greater than 1000, assume wrong timing info*/
 				&& (sps->time_scale <= 1000*sps->num_units_in_tick)
 			) {
@@ -1369,7 +1372,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 					else
 						DeltaTfiDivisorIdx = (ctx->avc_state->sei.pic_timing.pic_struct+1) / 2;
 				}
-				if (!ctx->timescale && sps->vui.time_scale && sps->vui.num_units_in_tick) {
+				if (ctx->notime && sps->vui.time_scale && sps->vui.num_units_in_tick) {
 					ctx->cur_fps.num = 2 * sps->vui.time_scale;
 					ctx->cur_fps.den = 2 * sps->vui.num_units_in_tick * DeltaTfiDivisorIdx;
 
@@ -1478,7 +1481,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 
 	dsi = dsi_enh = NULL;
 
-	if (!ctx->timescale) {
+	if (ctx->notime) {
 		ctx->cur_fps = ctx->fps;
 		if (!ctx->cur_fps.num || !ctx->cur_fps.den) {
 			ctx->cur_fps.num = 25000;
@@ -1703,7 +1706,7 @@ static GFINLINE void naludmx_update_time(GF_NALUDmxCtx *ctx)
 {
 	assert(ctx->cur_fps.num);
 
-	if (ctx->timescale) {
+	if (!ctx->notime) {
 		//very first frame, no dts diff, assume 3000/90k. It should only hurt if we have several frames packet in the first packet sent
 		u64 dts_inc = ctx->cur_fps.den ? ctx->cur_fps.den : 3000;
 		ctx->cts += dts_inc;
@@ -1915,7 +1918,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
 	//otherwise we will need to wait for the next ref frame to make sure we know all pocs ...
-	if (ctx->timescale || (!ctx->strict_poc && ctx->poc_probe_done) )
+	if (!ctx->notime || (!ctx->strict_poc && ctx->poc_probe_done) )
 		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 
 	ctx->first_pck_in_au = NULL;
@@ -1931,38 +1934,6 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 	}
 }
 
-
-GF_Err naludmx_realloc_last_pck(GF_NALUDmxCtx *ctx, u32 nb_bytes_to_add, u8 **data_ptr)
-{
-	GF_Err e;
-	u8 *pck_data;
-	u32 full_size;
-	GF_FilterPacket *pck = gf_list_last(ctx->pck_queue);
-	*data_ptr = NULL;
-	if (!pck) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] attempt to reallocate a non-existing packet!\n", ctx->log_name));
-		return GF_SERVICE_ERROR;
-	}
-	e = gf_filter_pck_expand(pck, nb_bytes_to_add, &pck_data, data_ptr, &full_size);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Failed to reallocate packet buffer: %s\n", ctx->log_name, gf_error_to_string(e) ));
-		return e;
-	}
-	assert(ctx->bs_w);
-	//rewrite NALU size length
-	full_size -= ctx->nal_length;
-	gf_bs_reassign_buffer(ctx->bs_w, pck_data, ctx->nal_length);
-	gf_bs_write_int(ctx->bs_w, full_size, 8*ctx->nal_length);
-	naludmx_update_nalu_maxsize(ctx, full_size);
-	//rewrite subsample size
-	if (ctx->subsamples) {
-		assert(ctx->subsamp_buffer_size>=14);
-		//reassign to beginning of size field (after first u32 flags)
-		gf_bs_reassign_buffer(ctx->bs_w, ctx->subsamp_buffer + ctx->subsamp_buffer_size-14 + 4, 14 - 4);
-		gf_bs_write_u32(ctx->bs_w, full_size + ctx->nal_length);
-	}
-	return GF_OK;
-}
 
 GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_nal_field, Bool *au_start, u8 **pck_data)
 {
@@ -1990,7 +1961,7 @@ GF_FilterPacket *naludmx_start_nalu(GF_NALUDmxCtx *ctx, u32 nal_size, Bool skip_
 			gf_filter_pck_set_dts(dst_pck, ctx->dts);
 		}
 		//we use the carousel flag temporarly to indicate the cts must be recomputed
-		gf_filter_pck_set_carousel_version(dst_pck, ctx->timescale ? 0 : 1);
+		gf_filter_pck_set_carousel_version(dst_pck, ctx->notime ? 1 : 0);
 
 		gf_filter_pck_set_duration(dst_pck, ctx->pck_duration ? ctx->pck_duration : ctx->cur_fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
@@ -2552,7 +2523,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 static void naldmx_switch_timestamps(GF_NALUDmxCtx *ctx, GF_FilterPacket *pck)
 {
 	//input pid sets some timescale - we flushed pending data , update cts
-	if (ctx->timescale) {
+	if (!ctx->notime) {
 		u64 ts = gf_filter_pck_get_cts(pck);
 		if (ts != GF_FILTER_NO_TS) {
 			ctx->prev_cts = ctx->cts;
@@ -2635,7 +2606,6 @@ GF_Err naludmx_process(GF_Filter *filter)
 {
 	GF_NALUDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
-	GF_Err e;
 	u8 *start;
 	u32 nalu_before = ctx->nb_nalus;
 	u32 nalu_store_before = 0;
@@ -2779,44 +2749,22 @@ naldmx_flush:
 		if (current == remain)
 			current = -1;
 
-		//no start code: if eos or full AU dispatch mode, send remaining otherwise gather
+		//no start code, gontinue gathering data
 		if (current<0) {
-			if (!is_eos && !ctx->full_au_source) {
-				break;
-			}
-			e = naludmx_realloc_last_pck(ctx, (u32) remain, &pck_data);
-			if (e==GF_OK)
-				memcpy(pck_data, start, (size_t) remain);
-			remain = 0;
 			break;
 		}
 
 		assert(current>=0);
 
-		//skip if no output pid
-		if (!ctx->opid && current) {
+		//unknown data before start of nal, may happen when tuning in, discard
+		if (current) {
 			assert(remain>=current);
-            assert((s32) current >= 0);
-
 			start += current;
 			remain -= current;
 			current = 0;
-		}
-
-		//dispatch remaining bytes
-		if (current>0) {
-			//flush remaining bytes in NAL
-			if (gf_list_count(ctx->pck_queue)) {
-				e = naludmx_realloc_last_pck(ctx, current, &pck_data);
-				if (e==GF_OK) {
-					memcpy(pck_data, start, current);
-				}
-			}
-			assert(remain>=current);
-			start += current;
-			remain -= current;
 			naldmx_check_timestamp_switch(ctx, &nalu_store_before, current, &drop_packet, pck);
 		}
+
 		if (!remain)
 			break;
 
@@ -3779,6 +3727,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
+	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
 		"- off: not enabled\n"

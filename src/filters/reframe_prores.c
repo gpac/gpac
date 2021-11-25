@@ -34,7 +34,7 @@ typedef struct
 {
 	//filter args
 	GF_Fraction fps;
-	Bool findex;
+	Bool findex, notime;
 	char *cid;
 
 	//only one input pid declared
@@ -97,7 +97,11 @@ GF_Err proresdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
-	if (ctx->timescale) {
+
+	//if source has no timescale, recompute time
+	if (!ctx->timescale) {
+		ctx->notime = GF_TRUE;
+	} else {
 		//if we have a FPS prop, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) ctx->cur_fps = p->value.frac;
@@ -657,6 +661,7 @@ static const GF_FilterArgs ProResDmxArgs[] =
 	{ OFFS(findex), "index frames. If true, filter will be able to work in rewind mode", GF_PROP_BOOL, "true", NULL, 0},
 
 	{ OFFS(cid), "set QT 4CC for the imported media. If not set, defaults to 'ap4h' for YUV444 or 'apch' for YUV422", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
