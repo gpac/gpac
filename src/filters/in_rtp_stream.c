@@ -220,47 +220,7 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	hdr->decodingTimeStamp = dts;
 }
 
-GF_RTPInStream *rtpin_stream_new_satip(GF_RTPIn *rtp, const char *server_ip)
-{
-	GF_RTSPTransport trans;
-	GF_RTPInStream *tmp;
-	GF_SAFEALLOC(tmp, GF_RTPInStream);
-	if (!tmp) return NULL;
-	tmp->rtpin = rtp;
-	tmp->buffer = gf_malloc(sizeof(char) * rtp->block_size);
-
-	/*create an RTP channel*/
-	tmp->rtp_ch = gf_rtp_new();
-	tmp->control = gf_strdup("*");
-
-	memset(&trans, 0, sizeof(GF_RTSPTransport));
-	trans.Profile = "RTP/AVP";
-	trans.source = (char *) server_ip;
-	trans.IsUnicast = GF_TRUE;
-	trans.client_port_first = 0;
-	trans.client_port_last = 0;
-	trans.port_first = 0;
-	trans.port_last = 0;
-
-	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
-		rtpin_stream_del(tmp);
-		return NULL;
-	}
-
-	gf_rtp_setup_payload(tmp->rtp_ch, 33, 90000);
-
-	if (rtp->disable_rtcp) tmp->flags |= RTP_ENABLE_RTCP;
-
-	/*setup NAT keep-alive*/
-	gf_rtp_enable_nat_keepalive(tmp->rtp_ch, rtp->nat_keepalive ? rtp->nat_keepalive : 30000);
-
-	tmp->range_start = 0;
-	tmp->range_end = 0;
-
-	return tmp;
-}
-
-GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port)
+GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, u32 port, Bool for_satip)
 {
 	GF_RTSPTransport trans;
 	GF_RTPInStream *tmp;
@@ -275,25 +235,35 @@ GF_RTPInStream *rtpin_stream_new_standalone(GF_RTPIn *rtp, const char *flow_ip, 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = "RTP/AVP";
 	trans.source = (char *) flow_ip;
-	trans.IsUnicast = gf_sk_is_multicast_address(flow_ip);
-	trans.client_port_first = port;
-	trans.client_port_last = port+1;
-	trans.port_first = port;
-	trans.port_last = port+1;
+	if (for_satip) {
+		tmp->control = gf_strdup("*");
+
+		trans.IsUnicast = GF_TRUE;
+		//ports not set for satip
+	} else {
+		trans.IsUnicast = gf_sk_is_multicast_address(flow_ip);
+		trans.client_port_first = port;
+		trans.client_port_last = port+1;
+		trans.port_first = port;
+		trans.port_last = port+1;
+	}
 
 	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
 		rtpin_stream_del(tmp);
 		return NULL;
 	}
 
-//	gf_rtp_setup_payload(tmp->rtp_ch, 33, 90000);
+	if (for_satip)
+		gf_rtp_setup_payload(tmp->rtp_ch, 33, 90000);
 
-	if (rtp->disable_rtcp) tmp->flags |= RTP_ENABLE_RTCP;
+	if (rtp->disable_rtcp)
+		tmp->flags |= RTP_ENABLE_RTCP;
 
 	/*setup NAT keep-alive*/
 	gf_rtp_enable_nat_keepalive(tmp->rtp_ch, rtp->nat_keepalive ? rtp->nat_keepalive : 30000);
 	tmp->range_start = 0;
 	tmp->range_end = 0;
+
 	return tmp;
 }
 

@@ -67,11 +67,12 @@ static GF_FilterProbeScore rtpin_probe_url(const char *url, const char *mime)
 }
 
 //simplified version of RTSP_UnpackURL for SAT>IP
-static void rtpin_satip_get_server_ip(const char *sURL, char *Server)
+void rtpin_satip_get_server_ip(const char *sURL, char *Server)
 {
 	char schema[10], *test, text[1024], *retest;
 	u32 i, len;
 	Bool is_ipv6;
+	if (!sURL) return;
 
 	strcpy(Server, "");
 
@@ -651,7 +652,7 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 		} else {
 			ip = gf_strdup(ip);
 		}
-		stream = rtpin_stream_new_standalone(ctx, ip, port);
+		stream = rtpin_stream_new_standalone(ctx, ip, port, GF_FALSE);
 		gf_free(ip);
 		if (!stream)
 			e = GF_OUT_OF_MEM;
