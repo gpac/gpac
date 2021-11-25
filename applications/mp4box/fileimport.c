@@ -934,7 +934,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (opt_dst) import.filter_dst_opts = opt_dst+6;
 			if (fchain) {
 				//check for old syntax (0.9->1.0) :@@
-				import.filter_chain = fchain + ((fchain[2]=='@') ? 3 : 2);
+				if (fchain[2]=='@') {
+					import.filter_chain = fchain + 3;
+					import.is_chain_old_syntax = GF_TRUE;
+				} else {
+					import.filter_chain = fchain + 2;
+					import.is_chain_old_syntax = GF_FALSE;
+				}
 			}
 
 			ext = NULL;

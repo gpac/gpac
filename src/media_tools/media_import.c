@@ -1082,11 +1082,12 @@ restart_check:
 	return GF_OK;
 }
 
-static void on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
+static Bool on_import_setup_failure(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
 {
 	GF_MediaImporter *importer = (GF_MediaImporter *)on_setup_error_udta;
 	if (importer)
 		importer->last_error = e;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -1348,17 +1349,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->filter_chain) {
 		GF_Filter *prev_filter=NULL;
 		char *fargs = (char *) importer->filter_chain;
-		char *sep1 = strstr(fargs, "@@");
-		char *sep2 = strstr(fargs, "@");
-		Bool old_syntax = GF_FALSE;
-		if (sep1 && sep2 && (sep1==sep2))
-			old_syntax = GF_TRUE;
 
 		while (fargs) {
 			GF_Filter *f;
 			char *sep;
 			Bool end_of_sub_chain = GF_FALSE;
-			if (old_syntax) {
+			if (importer->is_chain_old_syntax) {
 				sep = strstr(fargs, "@@");
 			} else {
 				sep = strstr(fargs, "@");
@@ -1366,6 +1362,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 					end_of_sub_chain = GF_TRUE;
 			}
 			if (sep) sep[0] = 0;
+
 			f = gf_fs_load_filter(fsess, fargs, &e);
 			if (!f) {
 				if (!importer->run_in_session)
@@ -1409,7 +1406,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			if (!sep) break;
 			sep[0] = '@';
 
-			if (old_syntax || end_of_sub_chain) {
+			if (importer->is_chain_old_syntax || end_of_sub_chain) {
 				fargs = sep+2;
 			} else {
 				fargs = sep+1;

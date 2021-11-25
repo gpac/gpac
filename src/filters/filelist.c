@@ -1009,7 +1009,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	return GF_TRUE;
 }
 
-static void filelist_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+static Bool filelist_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	u32 i, count;
 	GF_Filter *filter = (GF_Filter *)udta;
@@ -1028,6 +1028,7 @@ static void filelist_on_filter_setup_error(GF_Filter *failed_filter, void *udta,
 	ctx->src_error = GF_TRUE;
 	gf_list_del_item(ctx->filter_srcs, failed_filter);
 	gf_filter_post_process_task(filter);
+	return GF_FALSE;
 }
 
 
@@ -1642,7 +1643,7 @@ static void filelist_purge_slice(GF_FileListCtx *ctx)
 	gf_filter_pid_drop_packet(ctx->splice_ctrl->splice_ipid);
 }
 
-void filein_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPacket *pck, Bool is_splice_forced)
+void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPacket *pck, Bool is_splice_forced)
 {
 	GF_FilterPacket *dst_pck;
 	u32 dur;
@@ -2130,7 +2131,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 				break;
 			}
 
-			filein_send_packet(ctx, iopid, pck, GF_FALSE);
+			filelist_send_packet(ctx, iopid, pck, GF_FALSE);
 
 			//if we have an end range, compute max_dts (includes dur) - first_dts
 			if (ctx->stop > ctx->start) {
@@ -2223,7 +2224,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 							}
 							iopid->audio_samples_to_keep = (s32) diff_ts;
 							if (ctx->keep_splice) {
-								filein_send_packet(ctx, iopid, pck, GF_TRUE);
+								filelist_send_packet(ctx, iopid, pck, GF_TRUE);
 							} else {
 								iopid->audio_samples_to_keep = -iopid->audio_samples_to_keep;
 							}

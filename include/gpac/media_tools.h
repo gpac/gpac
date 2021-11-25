@@ -411,6 +411,7 @@ typedef struct __track_import
 	const char *filter_dst_opts;
 	/*! filter chain to insert before destination, formatted as "f1[:args]@f2[:args]" options to pass to sink*/
 	const char *filter_chain;
+	Bool is_chain_old_syntax;
 
 	/*! force mode for the created  ISOBMFF sample entry*/
 	GF_AudioSampleEntryImportMode asemode;

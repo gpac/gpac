@@ -1769,6 +1769,7 @@ static JSValue jsf_filter_set_blocking(JSContext *ctx, JSValueConst this_val, in
 	return JS_UNDEFINED;
 }
 
+
 static const JSCFunctionListEntry jsf_filter_funcs[] = {
     JS_CGETSET_MAGIC_DEF("initialize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_INITIALIZE),
     JS_CGETSET_MAGIC_DEF("finalize", jsf_filter_prop_get, jsf_filter_prop_set, JSF_EVT_FINALIZE),
@@ -1869,20 +1870,24 @@ static JSValue jsf_filter_has_pid_connections_pending(JSContext *ctx, JSValueCon
 	return JS_NewBool(ctx, gf_filter_has_pid_connection_pending(jsfi->filter, stop_at) );
 }
 
-static void jsf_on_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
+static Bool jsf_on_setup_error(GF_Filter *f, void *on_setup_error_udta, GF_Err e)
 {
-	GF_JSFilterInstanceCtx *f_inst = on_setup_error_udta;
+	Bool res = GF_FALSE;
 	JSValue ret, argv[1];
-	gf_js_lock(f_inst->jsf->ctx, GF_TRUE);
+	GF_JSFilterInstanceCtx *f_inst = on_setup_error_udta;
+	JSContext *ctx = f_inst->jsf->ctx;
+	gf_js_lock(ctx, GF_TRUE);
 
-	argv[0] = JS_NewInt32(f_inst->jsf->ctx, e);
+	argv[0] = JS_NewInt32(ctx, e);
 
-	ret = JS_Call(f_inst->jsf->ctx, f_inst->setup_failure_fun, f_inst->filter_obj, 0, NULL);
+	ret = JS_Call(ctx, f_inst->setup_failure_fun, f_inst->filter_obj, 0, NULL);
+	if (JS_IsBool(ret) && JS_ToBool(ctx, ret)) res = GF_TRUE;
 
-	JS_FreeValue(f_inst->jsf->ctx, argv[0]);
-	JS_FreeValue(f_inst->jsf->ctx, ret);
-	gf_js_lock(f_inst->jsf->ctx, GF_FALSE);
-	js_std_loop(f_inst->jsf->ctx);
+	JS_FreeValue(ctx, argv[0]);
+	JS_FreeValue(ctx, ret);
+	gf_js_lock(ctx, GF_FALSE);
+	js_std_loop(ctx);
+	return res;
 }
 
 enum

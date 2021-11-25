@@ -438,10 +438,10 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 }
 
 
-static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+static Bool dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	GF_DASHGroup *group = (GF_DASHGroup *)udta;
-	if (!udta) return;
+	if (!udta) return GF_FALSE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] group %d download setup error %s\n", group->idx, gf_error_to_string(err) ));
 
@@ -467,6 +467,7 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 				group->seg_filter_src = NULL;
 		}
 	}
+	return GF_FALSE;
 }
 
 void gf_cryptfin_set_kms(GF_Filter *f, const char *key_url, bin128 key_IV);
@@ -869,6 +870,8 @@ void dashdmx_io_manifest_updated(GF_DASHFileIO *dashio, const char *manifest_nam
 	}
 }
 
+static GF_Err dashin_abort(GF_DASHDmxCtx *ctx);
+
 GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt, s32 group_idx, GF_Err error_code)
 {
 	GF_Err e;
@@ -887,8 +890,10 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 #ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_cov_mode()) {
 			gf_dash_groups_set_language(ctx->dash, gf_opts_get_key("core", "lang"));
-			//these are not used in the test suite (require JS)
+			//not used in the test suite (require JS)
 			gf_dash_switch_quality(ctx->dash, GF_TRUE);
+			//not used relyably in the test suite (require fatal error in session)
+			dashin_abort(NULL);
 		}
 #endif
 		if (ctx->groupsel)
@@ -2753,10 +2758,10 @@ fetch_next:
 	gf_filter_send_event(group->seg_filter_src, &evt, GF_FALSE);
 }
 
-GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
+static GF_Err dashin_abort(GF_DASHDmxCtx *ctx)
 {
 	u32 i;
-	if (ctx->in_error) return GF_EOS;
+	if (!ctx || ctx->in_error) return GF_EOS;
 	
 	for (i=0; i<gf_filter_get_ipid_count(ctx->filter); i++) {
 		GF_FilterEvent evt;
@@ -2913,7 +2918,7 @@ GF_Err dashdmx_process(GF_Filter *filter)
 							agroup = gf_filter_pid_get_udta(an_opid);
 							if (!agroup || (agroup != group)) continue;
 
-							if (gf_filter_pid_is_eos(an_ipid)) {
+							if (gf_filter_pid_is_eos(an_ipid) || group->force_seg_switch) {
 								gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Clearing EOS on pids from group %d\n", group->idx));
 							}
@@ -2993,7 +2998,11 @@ GF_Err dashdmx_process(GF_Filter *filter)
 		gf_filter_ask_rt_reschedule(filter, 1000);
 		return GF_OK;
 	}
-	if (has_pck) check_eos = GF_FALSE;
+	if (has_pck)
+		check_eos = GF_FALSE;
+	//only check for eos if no pending events, otherwise we may miss a PLAY pending (due to seek)
+	else if (check_eos && gf_filter_get_num_events_queued(filter))
+		check_eos = GF_FALSE;
 
 	if (check_eos) {
 		Bool all_groups_done = GF_TRUE;
