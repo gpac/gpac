@@ -129,6 +129,12 @@ static GF_Err cryptfin_initialize(GF_Filter *filter)
 	if (args) args += 8;
 	else args = ctx->src+8;
 
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		cryptfile_on_filter_setup_error(NULL, NULL, GF_OK);
+	}
+#endif
+
 	ctx->for_filter = gf_filter_connect_source(filter, args, NULL, GF_FALSE, &e);
 	if (e) return e;
 	gf_filter_set_setup_failure_callback(filter, ctx->for_filter, cryptfile_on_filter_setup_error, filter);

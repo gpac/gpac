@@ -2276,6 +2276,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 		break;
 	case GF_VVC_NALU_SEI_SUFFIX:
 		if (! ctx->is_playing) return 0;
+		gf_vvc_parse_sei(data, size, ctx->vvc_state);
 		if (ctx->nosei) {
 			*skip_nal = GF_TRUE;
 			ctx->nb_nalus--;
