@@ -1454,6 +1454,9 @@ static JSValue js_sys_sleep(JSContext *ctx, JSValueConst this_val, int argc, JSV
 static JSValue js_sys_exit(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u32 rval=0;
+	if (argc==2) {
+		return JS_UNDEFINED;
+	}
 	if (argc==1) {
 		if (JS_ToInt32(ctx, &rval, argv[0]))
 			return GF_JS_EXCEPTION(ctx);
@@ -1543,7 +1546,7 @@ static JSValue js_sys_file_data(JSContext *ctx, JSValueConst this_val, int argc,
 static JSValue js_sys_load_script(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     const char *filename;
-    u8 *data;
+    u8 *data=NULL;
     u32 data_size;
     JSValue res;
     GF_Err e;

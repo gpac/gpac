@@ -4706,6 +4706,7 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 		return GF_BAD_PARAM;
 	}
 	JS_FreeValue(jsf->ctx, ret);
+	js_std_loop(jsf->ctx);
 	return GF_OK;
 }
 
