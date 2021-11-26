@@ -383,7 +383,7 @@ This is used for full segment encryption modes of MPEG-2 TS segments. key_IV is 
 \param group_idx the 0-based index of the target group
 \param crypto_type set to 0 if no encryption in segments, 1 if full segment encryption, 2 if CENC/per-sample encryption is used -  may be NULL
 \param key_IV set to the IV used for the first media segment (can be NULL)
-\return the key URL of the first media segment
+\return the key URL of the first media segment, either a URN or a resolved URL
 */
 const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 group_idx, u32 *crypto_type, bin128 *key_IV);
 
@@ -493,7 +493,7 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 \param switching_end_range set to end byte offset of the switching segment if needed (optional, may be NULL)
 \param original_url set to original URL value of the segment (optional, may be NULL)
 \param has_next_segment set to GF_TRUE if next segment location is known (unthreaded mode) or next segment is downloaded (threaded mode) (optional, may be NULL)
-\param key_url set to the key URL of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
+\param key_url set to the key URL of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL). The URL is either a URN or a resolved URL
 \param key_IV set to the key initialization vector of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
 \return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session, GF_URL_REMOVED if segment is disabled (but all output info is OK, this can be ignored and considered as GF_OK by the user) or error if any
 */
