@@ -776,7 +776,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			}
 		}
 
-		if (iinf->ref_it_id) {
+		if (!iinf || iinf->ref_it_id) {
 			continue;
 		}
 
@@ -788,7 +788,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			}
 
 			/*new resource*/
-			if (iinf && (iinf->full_path || (iinf->tk_id && iinf->sample_num))) {
+			if (iinf->full_path || (iinf->tk_id && iinf->sample_num)) {
 				FILE *src=NULL;
 
 				if (!iinf->data_len && iinf->full_path) {

@@ -43,7 +43,7 @@ Bool IsHintTrack(GF_TrackBox *trak)
 u32 GetHintFormat(GF_TrackBox *trak)
 {
 	GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;
-	if (!hmhd || (hmhd->type != GF_ISOM_BOX_TYPE_HMHD))
+	if (hmhd && (hmhd->type != GF_ISOM_BOX_TYPE_HMHD))
 		return 0;
 		
 	if (!hmhd || !hmhd->subType) {

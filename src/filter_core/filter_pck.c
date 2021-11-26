@@ -352,7 +352,6 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 	if (dangling_packet) {
 		if (cached_pck && cached_pck->reference) {
 			gf_filter_pck_discard(cached_pck);
-			cached_pck = NULL;
 		}
 		GF_SAFEALLOC(dst, GF_FilterPacket);
 		if (!dst) {

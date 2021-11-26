@@ -341,10 +341,10 @@ static GF_Err gf_isom_extract_meta_item_intern(GF_ISOFile *file, Bool root_meta,
 		}
 		nb_assoc = gf_list_count(meta->item_props->property_association->entries);
 		for (i=0; i<nb_assoc; i++) {
-			GF_ItemPropertyAssociationEntry *e = gf_list_get(meta->item_props->property_association->entries, i);
-			if (e->item_id!=item_id) continue;
-			for (j=0; j<e->nb_associations; j++) {
-				u32 idx = e->associations[j].index;
+			GF_ItemPropertyAssociationEntry *ent = gf_list_get(meta->item_props->property_association->entries, i);
+			if (ent->item_id!=item_id) continue;
+			for (j=0; j<ent->nb_associations; j++) {
+				u32 idx = ent->associations[j].index;
 				if (! idx) continue;
 				hvcc = gf_list_get(meta->item_props->property_container->child_boxes, idx - 1);
 				if (!hvcc) {

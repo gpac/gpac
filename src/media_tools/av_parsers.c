@@ -9705,7 +9705,7 @@ static void vvc_parse_general_timing_hrd_parameters(GF_BitStream *bs, VVC_SPS *s
 	*general_du_hrd_params_present_flag = GF_FALSE;
 	*general_nal_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_nal_hrd_params_present_flag");
 	*general_vcl_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_vcl_hrd_params_present_flag");
-	if (general_nal_hrd_params_present_flag || general_vcl_hrd_params_present_flag) {
+	if (*general_nal_hrd_params_present_flag || *general_vcl_hrd_params_present_flag) {
 		gf_bs_read_int_log(bs, 1, "general_same_pic_timing_in_all_ols_flag");
 		*general_du_hrd_params_present_flag = gf_bs_read_int_log(bs, 1, "general_du_hrd_params_present_flag");
 		if (*general_du_hrd_params_present_flag)
@@ -11173,8 +11173,6 @@ static void vvc_compute_poc(VVCSliceInfo *si, Bool poc_reset)
 	}
 
 	si->poc = si->poc_msb + si->poc_lsb;
-	if (si->poc<0)
-		si->poc = si->poc;
 }
 
 

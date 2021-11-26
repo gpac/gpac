@@ -919,8 +919,8 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				gf_filter_pck_set_seek_flag(new_pck, GF_TRUE);
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, NULL);
 				if (st->stream_type!=GF_STREAM_VISUAL) {
-					u32 dur = gf_filter_pck_get_duration(new_pck);
-					if (gf_timestamp_greater(ts + ts_adj + dur - st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
+					u32 pck_dur = gf_filter_pck_get_duration(new_pck);
+					if (gf_timestamp_greater(ts + ts_adj + pck_dur - st->ts_sub, st->timescale, ctx->cur_start.num, ctx->cur_start.den)) {
 						u32 ts_diff = (u32) ( gf_timestamp_rescale(ctx->cur_start.num, ctx->cur_start.den, st->timescale) - (ts + ts_adj - st->ts_sub));
 						gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_BEGIN, &PROP_UINT(ts_diff));
 						gf_filter_pck_set_seek_flag(new_pck, GF_FALSE);
@@ -957,11 +957,11 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		//packet was split or was re-inserted
 		if (st->split_start) {
 			if (!dur) {
-				u32 dur = gf_filter_pck_get_duration(pck);
+				u32 pck_dur = gf_filter_pck_get_duration(pck);
 				//can happen if source packet is less than split period duration, we just copy with no timing adjustment
-				if (dur > st->split_start)
-					dur -= st->split_start;
-				gf_filter_pck_set_duration(new_pck, dur);
+				if (pck_dur > st->split_start)
+					pck_dur -= st->split_start;
+				gf_filter_pck_set_duration(new_pck, pck_dur);
 			}
 			st->ts_at_range_start_plus_one += st->split_start;
 			st->split_start = 0;
@@ -977,7 +977,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 		}
 		//packet reinserted (not split), adjust duration and store offset in split start
 		if (!st->can_split && !is_split && st->reinsert_single_pck) {
-			u32 dur = gf_filter_pck_get_duration(pck);
+			dur = gf_filter_pck_get_duration(pck);
 			//only for closed range
 			if (st->range_end_reached_ts) {
 				u64 ndur = st->range_end_reached_ts;
@@ -1401,7 +1401,7 @@ static void check_gop_split(GF_ReframerCtx *ctx)
 				//end of stream, force final flush
 				ctx->in_range = GF_TRUE;
 				return;
-			} else if (nb_eos && (ctx->min_ts_computed == ctx->prev_min_ts_computed)) {
+			} else if (ctx->min_ts_computed == ctx->prev_min_ts_computed) {
 				ctx->in_range = GF_TRUE;
 				return;
 			}

@@ -812,7 +812,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		in->in_bytes_used = (prev+1) * in->bytes_p_samp;
 		in->has_prev = GF_TRUE;
 
-		if (!src_samp || (in->in_bytes_used >= src_size)) {
+		if (in->in_bytes_used >= src_size) {
 			in->in_bytes_used = src_size;
 			for (j=0; j<in_ch; j++) in->last_channels[j] = inChanNext[j];
 		} else {

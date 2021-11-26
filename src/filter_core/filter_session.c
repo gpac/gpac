@@ -1218,12 +1218,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 				//check we have a src specified for the filter
 				const char *src_url = strstr(name, "src");
 				if (src_url && (src_url[3]==fsess->sep_name)) {
-					const GF_FilterArgs *args = filter->instance_args ? filter->instance_args : f_reg->args;
+					const GF_FilterArgs *f_args = filter->instance_args ? filter->instance_args : f_reg->args;
 					//check the filter has an src argument
 					//we don't want to call process on a filter not acting as source until at least one input is connected
 					i=0;
-					while (args && args[i].arg_name) {
-						if (!strcmp(args[i].arg_name, "src")) {
+					while (f_args && f_args[i].arg_name) {
+						if (!strcmp(f_args[i].arg_name, "src")) {
 							gf_filter_post_process_task(filter);
 							break;
 						}
@@ -2308,7 +2308,7 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			} else {
 				for (j=i; j<f->num_output_pids; j++) {
 					GF_FilterPid *apid = gf_list_get(f->output_pids, j);
-					const GF_PropertyValue *p = gf_filter_pid_get_property(apid, GF_PROP_PID_CODECID);
+					p = gf_filter_pid_get_property(apid, GF_PROP_PID_CODECID);
 					if (p &&
 						((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
 					) {
@@ -2748,7 +2748,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 					if (filter) {
 						//for link resolution
-						if (dst_filter && for_source)	{
+						if (dst_filter)	{
 							if (gf_list_find(filter->destination_links, dst_filter)<0)
 								gf_list_add(filter->destination_links, dst_filter);
 							//to remember our connection target

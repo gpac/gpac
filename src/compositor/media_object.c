@@ -473,9 +473,9 @@ static void check_temi(GF_MediaObject *mo)
 			u32 len = (u32) strlen(data);
 			memset(&temi_l, 0, sizeof(GF_AssociatedContentLocation));
 			temi_l.timeline_id = atoi(pname+7);
-			temi_l.is_announce = data[len+1] & 0x80 ? GF_TRUE : GF_FALSE;
-			temi_l.is_splicing = data[len+1] & 0x40 ? GF_TRUE : GF_FALSE;
-			temi_l.reload_external = data[len+1] & 0x20 ? GF_TRUE : GF_FALSE;
+			temi_l.is_announce = (data[len+1] & 0x80) ? GF_TRUE : GF_FALSE;
+			temi_l.is_splicing = (data[len+1] & 0x40) ? GF_TRUE : GF_FALSE;
+			temi_l.reload_external = (data[len+1] & 0x20) ? GF_TRUE : GF_FALSE;
 			if (temi_l.is_announce) {
 				temi_l.activation_countdown.den = GF_4CC(data[len+2], data[len+3], data[len+4], data[len+5]);
 				temi_l.activation_countdown.num = GF_4CC(data[len+6], data[len+7], data[len+8], data[len+9]);

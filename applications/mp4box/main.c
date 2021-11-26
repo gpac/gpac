@@ -1798,33 +1798,33 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			u32 comma_count = 0;
 			u32 offset_index = 0;
 			char *prev = szSlot+position;
-			char *next = strchr(szSlot+position, ',');
-			while (next != NULL) {
+			char *sub_next = strchr(szSlot+position, ',');
+			while (sub_next != NULL) {
 				comma_count++;
-				next++;
-				next = strchr(next, ',');
+				sub_next++;
+				sub_next = strchr(sub_next, ',');
 			}
 			meta->image_props->overlay_count = comma_count/2+1;
 			meta->image_props->overlay_offsets = (GF_ImageItemOverlayOffset *)gf_malloc(meta->image_props->overlay_count*sizeof(GF_ImageItemOverlayOffset));
 			if (!meta->image_props->overlay_offsets) {
 				return 0;
 			}
-			next = strchr(szSlot+position, ',');
-			while (next != NULL) {
-				*next = 0;
+			sub_next = strchr(szSlot+position, ',');
+			while (sub_next != NULL) {
+				*sub_next = 0;
 				meta->image_props->overlay_offsets[offset_index].horizontal = atoi(prev);
-				*next = ',';
-				next++;
-				prev = next;
-				if (next) {
-					next = strchr(next, ',');
-					if (next) *next = 0;
+				*sub_next = ',';
+				sub_next++;
+				prev = sub_next;
+				if (sub_next) {
+					sub_next = strchr(sub_next, ',');
+					if (sub_next) *sub_next = 0;
 					meta->image_props->overlay_offsets[offset_index].vertical = atoi(prev);
-					if (next) {
-						*next = ',';
-						next++;
-						prev = next;
-						next = strchr(next, ',');
+					if (sub_next) {
+						*sub_next = ',';
+						sub_next++;
+						prev = sub_next;
+						sub_next = strchr(sub_next, ',');
 					}
 				} else {
 					meta->image_props->overlay_offsets[offset_index].vertical = 0;

@@ -5670,8 +5670,7 @@ retry_pck:
 					gf_filter_pid_drop_packet(tkw->ipid);
 					goto retry_pck;
 				} else {
-					if (sap)
-						tkw->wait_sap = GF_FALSE;
+					tkw->wait_sap = GF_FALSE;
 
 					if (!ctx->wait_dts_plus_one) {
 						ctx->wait_dts_plus_one = 1 + gf_filter_pck_get_dts(pck);

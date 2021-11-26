@@ -226,11 +226,9 @@ mad_resync:
 		if (!pck) return GF_OK;
 
 		if (ctx->stream.error==MAD_ERROR_BUFLEN) {
-			if (pck) {
-				ctx->last_cts = gf_filter_pck_get_cts(pck);
-				ctx->timescale = gf_filter_pck_get_timescale(pck);
-				gf_filter_pid_drop_packet(ctx->ipid);
-			}
+			ctx->last_cts = gf_filter_pck_get_cts(pck);
+			ctx->timescale = gf_filter_pck_get_timescale(pck);
+			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[MAD] Decoding failed error %s (%d)\n", mad_stream_errorstr(&ctx->stream), ctx->stream.error ) );

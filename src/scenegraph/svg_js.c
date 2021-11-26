@@ -2760,7 +2760,9 @@ void svg_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 	GF_DOMHandler *hdl = (GF_DOMHandler *)node;
 	JSContext *ctx;
 
-	if (!hdl->js_data || !hdl->js_data->ctx || (JS_IsUndefined(hdl->js_data->fun_val) && JS_IsUndefined(hdl->js_data->evt_listen_obj))) {
+	if (!hdl || !hdl->js_data || !hdl->js_data->ctx
+		|| (JS_IsUndefined(hdl->js_data->fun_val) && JS_IsUndefined(hdl->js_data->evt_listen_obj))
+	) {
 		return;
 	}
 	ctx = hdl->js_data->ctx;

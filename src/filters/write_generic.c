@@ -993,10 +993,8 @@ GF_Err writegen_process(GF_Filter *filter)
 	ctx->sample_num++;
 
 	if (ctx->dash_mode && ctx->ttml_agg && gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM)) {
-		if (ctx->ttml_dash_pck)
-			writegen_flush_ttml(ctx);
-
 		if (ctx->ttml_dash_pck) {
+			writegen_flush_ttml(ctx);
 			gf_filter_pck_unref(ctx->ttml_dash_pck);
 			ctx->ttml_dash_pck = NULL;
 		}
@@ -1107,10 +1105,10 @@ GF_Err writegen_process(GF_Filter *filter)
 			gf_dynstrcat(&y4m_hdr, "FRAME\n", NULL);
 		}
 		u8 * output;
-		u32 len = (u32) strlen(y4m_hdr);
+		u32 len = y4m_hdr ? (u32) strlen(y4m_hdr) : 0;
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, pck_size + len, &output);
 		if (!dst_pck) return GF_OUT_OF_MEM;
-		memcpy(output, y4m_hdr, len);
+		if (y4m_hdr) memcpy(output, y4m_hdr, len);
 		memcpy(output+len, data, pck_size);
 		if (ctx->split)
 			ctx->is_y4m=1;
