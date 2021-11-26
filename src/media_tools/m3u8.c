@@ -161,7 +161,14 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->init_byte_range_end = attribs->init_byte_range_end;
 
 	if (e->drm_method) {
-		e->key_uri = (attribs->key_url ? gf_strdup(attribs->key_url) : NULL);
+		e->key_uri = NULL;
+		if (attribs->key_url) {
+			//if url is local and not a urn, concatenate
+			if (!strchr(attribs->key_url, ':'))
+				e->key_uri = gf_url_concatenate(url, attribs->key_url);
+
+			if (!e->key_uri) e->key_uri = gf_strdup(attribs->key_url);
+		}
 
 		if (attribs->has_iv) {
 			memcpy(e->key_iv, attribs->key_iv, sizeof(bin128));
