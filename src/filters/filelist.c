@@ -1105,7 +1105,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			ctx->dts_sub_plus_one.num = 1;
 			ctx->dts_sub_plus_one.den = 1;
 			for (i=0; i<count; i++) {
-				FileListPid *iopid = gf_list_get(ctx->io_pids, i);
+				iopid = gf_list_get(ctx->io_pids, i);
 				iopid->splice_ready = GF_TRUE;
 			}
 			return GF_OK;
@@ -1629,8 +1629,8 @@ static void filelist_purge_slice(GF_FileListCtx *ctx)
 				break;
 
 			if (ctx->keep_splice) {
-				GF_FilterPacket *pck = gf_filter_pid_get_packet(iopid->splice_ipid);
-				filelist_forward_splice_pck(iopid, pck);
+				GF_FilterPacket *splice_pck = gf_filter_pid_get_packet(iopid->splice_ipid);
+				filelist_forward_splice_pck(iopid, splice_pck);
 			}
 			gf_filter_pid_drop_packet(iopid->splice_ipid);
 		}

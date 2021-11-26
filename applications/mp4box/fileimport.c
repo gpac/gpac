@@ -347,12 +347,12 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 
 GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 {
-	GF_Err e = GF_OK;
 	u32 movie_ts = gf_isom_get_timescale(dest);
 	u32 media_ts = gf_isom_get_media_timescale(dest, track);
 	u64 media_dur = gf_isom_get_media_duration(dest, track);
 
 	while (edits) {
+		GF_Err e;
 		char c=0;
 		char *sep = strchr(edits+1, 'r');
 		if (!sep) sep = strchr(edits+1, 'e');

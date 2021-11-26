@@ -689,7 +689,6 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 			//we handle group clip by faking a drawable the size of the viewport
 			//we insert one drawable doing the clipping, and one disabling it
 			if (cp && (tr_state->traversing_mode==TRAVERSE_SORT)) {
-				SVGgStack *group = gf_node_get_private(node);
 				DrawableContext *ctx;
 				gf_path_reset(group->clip_drawable->path);
 				gf_path_add_rect(group->clip_drawable->path,

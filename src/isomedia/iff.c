@@ -1743,7 +1743,7 @@ GF_Err gf_isom_iff_create_image_grid_item_internal(GF_ISOFile *movie, Bool root_
 	grid_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!grid_bs) return GF_OUT_OF_MEM;
 	gf_bs_write_u8(grid_bs, 0); //version
-	gf_bs_write_u8(grid_bs, (image_props->width > 1<<16 || image_props->width > 1<<16) ? 1 : 0); // flags
+	gf_bs_write_u8(grid_bs, (image_props->width > 1<<16 || image_props->height > 1<<16) ? 1 : 0); // flags
 	gf_bs_write_u8(grid_bs, image_props->num_grid_rows-1);
 	gf_bs_write_u8(grid_bs, image_props->num_grid_columns-1);
 	gf_bs_write_u16(grid_bs, image_props->width);

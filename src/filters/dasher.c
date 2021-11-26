@@ -5932,7 +5932,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 
 
 		if (ctx->mha_compat && ((ds->codec_id==GF_CODECID_MHAS) || (ds->codec_id==GF_CODECID_MPHA))) {
-			const GF_PropertyValue *prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
+			prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_MHA_COMPATIBLE_PROFILES);
 			if (prop) {
 				ds->set->nb_alt_mha_profiles = prop->value.uint_list.nb_items;
 				ds->set->alt_mha_profiles = prop->value.uint_list.vals;
@@ -8232,11 +8232,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (ds->dyn_bitrate) {
 				u32 dsize;
-				u64 dts = gf_filter_pck_get_dts(pck);
+				u64 rdts = gf_filter_pck_get_dts(pck);
 				gf_filter_pck_get_data(pck, &dsize);
 				if (!ds->rate_first_dts_plus_one)
-					ds->rate_first_dts_plus_one = 1 + dts;
-				ds->rate_last_dts = dts;
+					ds->rate_first_dts_plus_one = 1 + rdts;
+				ds->rate_last_dts = rdts;
 				ds->rate_media_size += dsize;
 			}
 

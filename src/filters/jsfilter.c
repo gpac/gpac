@@ -1044,7 +1044,6 @@ static JSValue jsf_filter_prop_get(JSContext *ctx, JSValueConst this_val, int ma
 		return JS_NULL;
 	case JSF_FILTER_PATH:
 	{
-		JSValue res;
 		char c=0;
 		char *path = (char *) jsf_get_script_filename(ctx);
 		if (!path) return JS_NULL;

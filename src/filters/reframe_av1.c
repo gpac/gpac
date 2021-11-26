@@ -1132,7 +1132,7 @@ static const char * av1dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 							nb_units++;
 					} else {
 						//we got one frame + seq header without errors, assume maybe supported
-						if (nb_units && has_seq_header) {
+						if (has_seq_header) {
 							res = GF_TRUE;
 							*score = GF_FPROBE_MAYBE_SUPPORTED;
 						}

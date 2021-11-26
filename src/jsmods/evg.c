@@ -7096,7 +7096,7 @@ static JSValue mx_copy(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 	if (!mx)
 		return GF_JS_EXCEPTION(ctx);
 	if (argc) {
-		GF_Matrix *mx2 = JS_GetOpaque(argv[0], matrix_class_id);
+		mx2 = JS_GetOpaque(argv[0], matrix_class_id);
 		if (!mx2)
 			return GF_JS_EXCEPTION(ctx);
 		gf_mx_copy(*mx, *mx2);

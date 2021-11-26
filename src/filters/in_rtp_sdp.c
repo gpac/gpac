@@ -313,12 +313,13 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 	u32 i;
 	GF_SDPInfo *sdp;
 	Bool is_isma_1;
-	char *iod_str;
+#if 0
+	char *iod_str = NULL;
+#endif
 	GF_X_Attribute *att;
 	Bool force_in_iod = GF_FALSE;
 
 	is_isma_1 = GF_FALSE;
-	iod_str = NULL;
 	sdp = gf_sdp_info_new();
 	e = gf_sdp_info_parse(sdp, sdp_text, sdp_len);
 
@@ -341,17 +342,23 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 		/*look for IOD*/
 		i=0;
 		while ((att = (GF_X_Attribute*)gf_list_enum(sdp->Attributes, &i))) {
+#if 0
 			if (!iod_str && !strcmp(att->Name, "mpeg4-iod") ) iod_str = att->Value;
+#endif
 			if (!is_isma_1 && !strcmp(att->Name, "isma-compliance") ) {
 				if (!stricmp(att->Value, "1,1.0,1")) is_isma_1 = GF_TRUE;
 			}
 		}
 
+#if 0
 		/*force iod reconstruction with ISMA to use proper clock dependencies*/
-		//if (is_isma_1)
-		iod_str = NULL; //we always force scene reconstruction
+		if (is_isma_1) iod_str = NULL;
 
-		if (!iod_str) {
+		if (iod_str) {
+			e = rtpin_sdp_load_iod(rtp, iod_str);
+		} else
+#endif
+		{
 			GF_RTPInStream *a_stream;
 			i=0;
 			while (!force_in_iod && (a_stream = (GF_RTPInStream *)gf_list_enum(rtp->streams, &i))) {
@@ -368,9 +375,6 @@ void rtpin_load_sdp(GF_RTPIn *rtp, char *sdp_text, u32 sdp_len, GF_RTPInStream *
 			}
 		}
 
-#if 0
-		if (iod_str) e = rtpin_sdp_load_iod(rtp, iod_str);
-#endif
 		/* service failed*/
 		if (e) gf_filter_setup_failure(rtp->filter, e);
 		else rtpin_declare_media(rtp, force_in_iod);

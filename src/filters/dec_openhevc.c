@@ -928,7 +928,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		}
 
 		if (oh_output_update(ctx->codec, 1, &openHFrame)) {
-			u32 i, s_stride, hs_stride, qs_stride, d_stride, dd_stride, hd_stride;
+			u32 s_stride, hs_stride, qs_stride, d_stride, dd_stride, hd_stride;
 
 			s_stride = openHFrame.frame_par.linesize_y;
 			qs_stride = s_stride / 4;
@@ -1122,7 +1122,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 	if (ctx->check_hybrid_clock) {
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[0].ipid);
-		u32 idx=0;
+		idx=0;
 		while (pck) {
 			GF_BitStream *bs;
 			u32 p4cc;

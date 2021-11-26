@@ -278,11 +278,10 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		merge_properties(ctx, pid, mtype, odm->parentscene);
 
 		if (notify_quality) {
-			GF_Event evt;
-			memset(&evt, 0, sizeof(GF_Event));
-			evt.type = GF_EVENT_QUALITY_SWITCHED;
-
-			gf_filter_forward_gf_event(filter, &evt, GF_FALSE, GF_FALSE);
+			GF_Event gevt;
+			memset(&gevt, 0, sizeof(GF_Event));
+			gevt.type = GF_EVENT_QUALITY_SWITCHED;
+			gf_filter_forward_gf_event(filter, &gevt, GF_FALSE, GF_FALSE);
 		}
 
 		return GF_OK;

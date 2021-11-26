@@ -4874,7 +4874,6 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_SPOR:
 		{
 			GF_SubpictureOrderEntry *spor = (GF_SubpictureOrderEntry *) entry;
-			u32 i;
 			gf_fprintf(trace, "<SubPictureOrderEntry subpic_id_info_flag=\"%d\" refs=\"", spor->subpic_id_info_flag);
 			for (i=0; i<spor->num_subpic_ref_idx; i++) {
 				if (i) gf_fprintf(trace, " ");
@@ -4891,7 +4890,6 @@ GF_Err sgpd_box_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_SULM:
 		{
 			GF_SubpictureLayoutMapEntry *sulm = (GF_SubpictureLayoutMapEntry *) entry;
-			u32 i;
 			gf_fprintf(trace, "<SubPictureLayoutMapEntry groupID_info_4cc=\"%s\" groupIDs=\"", gf_4cc_to_str(sulm->groupID_info_4cc) );
 			for (i=0; i<sulm->nb_entries; i++) {
 				if (i) gf_fprintf(trace, " ");

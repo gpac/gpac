@@ -2755,7 +2755,7 @@ props_done:
 	if (pctx->hevc_state || pctx->avc_state || pctx->vvc_state) {
 		idx=1;
 
-		if (pctx->is_adobe_protected && size) {
+		if (pctx->is_adobe_protected) {
 			u8 encrypted_au = data[0];
 			if (encrypted_au) {
 				gf_fprintf(dump, "   <!-- Packet is an Adobe's protected frame and can not be dumped -->\n");

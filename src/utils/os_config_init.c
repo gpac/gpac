@@ -1898,7 +1898,6 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 			else if (gen_doc==2) {
 				line+=3;
 				header_string = ".SS ";
-				header_string = ".P\n.B\n";
 			}
 
 			console_code = GF_CONSOLE_MAGENTA;

@@ -725,7 +725,6 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	assert(pNode->sgprivate->parents==NULL);
 
 	if (pSG) {
-		GF_Route *r;
 		/*if def, remove from sg def table*/
 		if (pNode->sgprivate->flags & GF_NODE_IS_DEF) {
 			remove_node_id(pSG, pNode);
@@ -733,6 +732,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 #ifndef GPAC_DISABLE_VRML
 		/*check all routes from or to this node and destroy them - cf spec*/
+		GF_Route *r;
 		j=0;
 		while ((r = (GF_Route *)gf_list_enum(pSG->Routes, &j))) {
 			if ( (r->ToNode == pNode) || (r->FromNode == pNode)) {
@@ -1870,11 +1870,10 @@ void gf_node_del(GF_Node *node)
 		gf_node_free(node);
 	}
 	else if (node->sgprivate->tag==TAG_DOMUpdates) {
-		u32 i, count;
 		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
 		if (up->data) gf_free(up->data);
-		count = gf_list_count(up->updates);
 #ifndef GPAC_DISABLE_VRML
+		u32 i, count = gf_list_count(up->updates);
 		for (i=0; i<count; i++) {
 			GF_Command *com = gf_list_get(up->updates, i);
 			gf_sg_command_del(com);
@@ -2367,7 +2366,9 @@ GF_EXPORT
 GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
 {
 	GF_ChildNodeItem *child, *prev;
+#ifndef GPAC_DISABLE_VRML
 	u32 tag;
+#endif
 	u32 cur_pos = 0;
 
 	child = *container;
@@ -2381,7 +2382,10 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 		}
 		break;
 	}
+#ifndef GPAC_DISABLE_VRML
 	tag = child->node->sgprivate->tag;
+#endif
+
 	gf_node_unregister(child->node, node);
 	if (newNode) {
 		child->node = newNode;
