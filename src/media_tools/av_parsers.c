@@ -6495,6 +6495,11 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	}
 	//set par
 	else {
+		aspect_ratio_info_present_flag = 1;
+	}
+
+	//add par size
+	if (aspect_ratio_info_present_flag) {
 		ar_n = vui_info->ar_num;
 		ar_d = vui_info->ar_den;
 		aspect_ratio_idc = avc_hevc_get_sar_idx((u32) ar_n, (u32) ar_d);
@@ -6503,7 +6508,6 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			if (aspect_ratio_idc==0xFF)
 				final_vvc_payload_size += 32;
 		}
-		aspect_ratio_info_present_flag = 1;
 	}
 
 	if (vui_info->remove_video_info) {
@@ -6618,7 +6622,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	if (is_vvc) {
 		//write vui_chroma_loc_info_present_flag
 		gf_bs_write_int(mod, vui_chroma_loc_info_present_flag, 1);
-		if (!vui_chroma_loc_info_present_flag) {
+		if (vui_chroma_loc_info_present_flag) {
 			if (progressive_source_flag && !interlaced_source_flag) {
 				gf_bs_write_ue(mod, chroma_loc1);
 			} else {

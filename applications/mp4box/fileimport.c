@@ -654,10 +654,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		else if (!strnicmp(ext+1, "mx=", 3)) {
 			if (strstr(ext+4, "0x")) {
-				if (sscanf(ext+4, "0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d:0x%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
+				if (sscanf(ext+4, "0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%x,0x%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
 					has_mx=GF_TRUE;
 				}
-			} else if (sscanf(ext+4, "%d:%d:%d:%d:%d:%d:%d:%d:%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
+			} else if (sscanf(ext+4, "%d,%d,%d,%d,%d,%d,%d,%d,%d", &mx[0], &mx[1], &mx[2], &mx[3], &mx[4], &mx[5], &mx[6], &mx[7], &mx[8])==9) {
 				has_mx=GF_TRUE;
 			}
 		}
