@@ -2142,7 +2142,11 @@ static JSValue wgl_texture_name(JSContext *ctx, JSValueConst this_val, int argc,
 	if (!glc || !argc) return js_throw_err(ctx, WGL_INVALID_VALUE);
 
 	named_tx = JS_GetOpaque(argv[0], NamedTexture_class_id);
-	if (!named_tx) return GF_JS_EXCEPTION(ctx);
+	if (!named_tx) {
+		GF_WebGLObject *tx = JS_GetOpaque(argv[0], WebGLTexture_class_id);
+		if (tx) return JS_NULL;
+		return GF_JS_EXCEPTION(ctx);
+	}
 	return JS_NewString(ctx, named_tx->tx_name);
 }
 

@@ -64,6 +64,9 @@
 
 uint8_t *evg_get_array(JSContext *ctx, JSValueConst obj, u32 *size);
 
+//test code, unused
+//#define BUILTIN_SHADERS
+
 //not used, wau too slow - we kept the code for future testing
 //#define EVG_USE_JS_SHADER
 
@@ -229,9 +232,11 @@ typedef struct __evg_shader
 	Bool has_branches;
 	GF_List *vars_stack;
 
+#ifdef BUILTIN_SHADERS
 	//native shaders
 	Bool (*frag_shader)(void *udta, GF_EVGFragmentParam *frag);
 	Bool (*frag_shader_init)(void *udta, GF_EVGFragmentParam *frag, u32 th_id, Bool is_cleanup);
+#endif
 } EVGShader;
 
 typedef struct
@@ -677,9 +682,12 @@ static JSValue canvas_setProperty(JSContext *ctx, JSValueConst obj, JSValueConst
 				return js_throw_err_msg(ctx, GF_BAD_PARAM, "Invalid fragment shader object");
 			canvas->frag_shader = JS_DupValue(ctx, value);
 
+#ifdef BUILTIN_SHADERS
 			if (canvas->frag->frag_shader) {
 				e = gf_evg_surface_set_fragment_shader(canvas->surface, canvas->frag->frag_shader, canvas->frag->frag_shader_init, canvas->frag);
-			} else {
+			} else
+#endif
+			{
 				e = gf_evg_surface_set_fragment_shader(canvas->surface, evg_frag_shader_ops, evg_frag_shader_ops_init, canvas);
 			}
 			if (!e) e = gf_evg_surface_disable_early_depth(canvas->surface, canvas->frag->disable_early_z);
@@ -2474,8 +2482,14 @@ static void shader_reset(JSRuntime *rt, EVGShader *shader)
 	}
 	shader->nb_ops = 0;
 	for (i=0; i<shader->nb_vars; i++) {
-		if (!shader->frag_shader && shader->vars[i].name)
+		if (
+#ifdef BUILTIN_SHADERS
+			!shader->frag_shader &&
+#endif
+			shader->vars[i].name
+		) {
 			gf_free(shader->vars[i].name);
+		}
 		shader->vars[i].name = NULL;
 	}
 	shader->nb_vars = 0;
@@ -2577,6 +2591,7 @@ static u8 get_value_type(const char *comp)
 	return COMP_V4;
 }
 
+#ifdef BUILTIN_SHADERS
 static JSValue shader_push_builtin(JSContext *ctx, EVGShader *shader, int argc, JSValueConst *argv)
 {
 	u32 i;
@@ -2608,6 +2623,7 @@ static JSValue shader_push_builtin(JSContext *ctx, EVGShader *shader, int argc, 
 	}
 	return JS_UNDEFINED;
 }
+#endif
 
 static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
 {
@@ -2624,8 +2640,10 @@ static JSValue shader_push(JSContext *ctx, JSValueConst obj, int argc, JSValueCo
 	EVGShader *shader = JS_GetOpaque(obj, shader_class_id);
 	if (!shader) return GF_JS_EXCEPTION(ctx);
 
+#ifdef BUILTIN_SHADERS
 	if (shader->frag_shader)
 		return shader_push_builtin(ctx, shader, argc, argv);
+#endif
 
 	shader->invalid = GF_FALSE;
 	if (!argc) {
@@ -3126,6 +3144,8 @@ static const JSCFunctionListEntry shader_funcs[] =
 	JS_CFUNC_DEF("update", 0, shader_update),
 };
 
+//test code
+#ifdef BUILTIN_SHADERS
 Bool rvideo_shader(void *udta, GF_EVGFragmentParam *frag)
 {
 	EVGShader *shader = udta;
@@ -3179,6 +3199,7 @@ EVGShader *load_builtin_shader(const char *sname, GF_Err *e)
 	}
 	return NULL;
 }
+#endif
 
 static JSValue canvas_new_shader(JSContext *ctx, JSValueConst obj, int argc, JSValueConst *argv)
 {
@@ -3189,6 +3210,7 @@ static JSValue canvas_new_shader(JSContext *ctx, JSValueConst obj, int argc, JSV
 	if (!canvas) return GF_JS_EXCEPTION(ctx);
 	if (!argc) return GF_JS_EXCEPTION(ctx);
 
+#ifdef BUILTIN_SHADERS
 	if (JS_IsString(argv[0])) {
 		GF_Err e = GF_OK;
 		const char *sname = JS_ToCString(ctx, argv[0]);
@@ -3200,17 +3222,24 @@ static JSValue canvas_new_shader(JSContext *ctx, JSValueConst obj, int argc, JSV
 		}
 		JS_FreeCString(ctx, sname);
 		shader->mode = GF_EVG_SHADER_FRAGMENT;
-	} else {
-		JS_ToInt32(ctx, &mode, argv[0]);
-		if ((mode != GF_EVG_SHADER_FRAGMENT) && (mode != GF_EVG_SHADER_VERTEX))
-			return GF_JS_EXCEPTION(ctx);
-		GF_SAFEALLOC(shader, EVGShader);
-		if (!shader) {
-			return js_throw_err(ctx, GF_OUT_OF_MEM);
-		}
-		shader->mode = mode;
-		shader->vars_stack = gf_list_new();
+
+		res = JS_NewObjectClass(ctx, shader_class_id);
+		JS_SetOpaque(res, shader);
+		return res;
 	}
+#endif
+
+	if (JS_ToInt32(ctx, &mode, argv[0]))
+		return GF_JS_EXCEPTION(ctx);
+
+	if ((mode != GF_EVG_SHADER_FRAGMENT) && (mode != GF_EVG_SHADER_VERTEX))
+		return GF_JS_EXCEPTION(ctx);
+	GF_SAFEALLOC(shader, EVGShader);
+	if (!shader) {
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
+	shader->mode = mode;
+	shader->vars_stack = gf_list_new();
 
 	res = JS_NewObjectClass(ctx, shader_class_id);
 	JS_SetOpaque(res, shader);
@@ -7462,24 +7491,6 @@ JSClassDef mesh_class = {
 	.finalizer = mesh_finalize
 };
 
-enum
-{
-	MESH_PROP_VERTICES=0,
-	MESH_PROP_INDICES
-};
-
-static JSValue mesh_getProperty(JSContext *c, JSValueConst obj, int magic)
-{
-	GF_Mesh *mesh = JS_GetOpaque(obj, mesh_class_id);
-	if (!mesh) return GF_JS_EXCEPTION(c);
-	if (magic== MESH_PROP_VERTICES) {
-		return JS_UNDEFINED;
-	}
-	if (magic== MESH_PROP_INDICES) {
-		return JS_UNDEFINED;
-	}
-	return JS_UNDEFINED;
-}
 
 Bool mesh_gl_update_buffers(GF_Mesh *mesh);
 
@@ -7503,8 +7514,6 @@ static JSValue mesh_draw(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 
 static const JSCFunctionListEntry mesh_funcs[] =
 {
-	JS_CGETSET_MAGIC_DEF("vertices", mesh_getProperty, NULL, MESH_PROP_VERTICES),
-	JS_CGETSET_MAGIC_DEF("indices", mesh_getProperty, NULL, MESH_PROP_INDICES),
 	JS_CFUNC_DEF("update_gl", 0, mesh_update_gl),
 	JS_CFUNC_DEF("draw", 0, mesh_draw),
 };
