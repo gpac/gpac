@@ -620,7 +620,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 			pps_nut = GF_VVC_NALU_PIC_PARAM;
 			vps_nut = GF_VVC_NALU_VID_PARAM;
 		} else {
-			hvcc = dsi ? gf_odf_hevc_cfg_read((u8*)dsi, dsi_len, GF_FALSE) : NULL;
+			if (dsi) {
+				hvcc = gf_odf_hevc_cfg_read((u8*)dsi, dsi_len, GF_FALSE);
+			} else if (dsi_enh) {
+				hvcc = gf_odf_hevc_cfg_read((u8*)dsi_enh, dsi_enh_len, GF_TRUE);
+			}
 			param_array = hvcc ? hvcc->param_array : NULL;
 			sps_nut = GF_HEVC_NALU_SEQ_PARAM;
 			pps_nut = GF_HEVC_NALU_PIC_PARAM;

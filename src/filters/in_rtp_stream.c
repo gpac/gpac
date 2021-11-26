@@ -310,9 +310,13 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 			sscanf(att->Value, "%*d lay L%d %*s %2999s", &base_stream, buf);
 			if (!strlen(buf))
 				sscanf(att->Value, "%*d lay %2999s", buf);
+			//we only check first indicated dependency
+			char *sep = strchr(buf, ':');
+			if (sep) sep[0] = 0;
 			sscanf(buf, "L%d", &prev_stream);
 		}
 	}
+	if (!base_stream && mid) base_stream = mid;
 
 	if (range) {
 		Start = range->start;
@@ -709,10 +713,10 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 			rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
 		}
 	}
-	if (!tot_size) return 0;
 
 	/*and send the report*/
-	if (stream->flags & RTP_ENABLE_RTCP) gf_rtp_send_rtcp_report(stream->rtp_ch);
+	if (tot_size && (stream->flags & RTP_ENABLE_RTCP))
+		gf_rtp_send_rtcp_report(stream->rtp_ch);
 
 	/*detect timeout*/
 	if (stream->rtpin->udp_timeout) {
@@ -721,12 +725,14 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 		} else if (stream->rtp_ch->net_info.IsUnicast) {
 			u32 diff = gf_sys_clock() - stream->last_udp_time;
 			if (diff >= stream->rtpin->udp_timeout) {
-				char szMessage[1024];
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms\n", diff));
-				sprintf(szMessage, "No data received in %d ms%s", diff, stream->rtpin->autortsp ? ", retrying using TCP" : "");
-				rtpin_send_message(stream->rtpin, GF_IP_UDP_TIMEOUT, szMessage);
-				if (stream->rtpin->autortsp)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms on stream %d%s\n", diff, stream->ES_ID,
+					(stream->rtpin->session && stream->rtpin->autortsp) ? ", retrying using TCP" : ""));
+
+				if (stream->rtpin->autortsp && stream->rtpin->session && !stream->rtpin->retry_tcp) {
 					stream->rtpin->retry_tcp = GF_TRUE;
+				} else {
+					gf_filter_pid_set_eos(stream->opid);
+				}
 			}
 		}
 	}

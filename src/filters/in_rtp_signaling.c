@@ -270,7 +270,7 @@ Bool rtpin_rtsp_describe_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 	RTPIn_StreamDescribe *ch_desc;
 	/*not a channel describe*/
 	if (!com->user_data) {
-		rtpin_send_message(sess->rtpin, GF_OK, "Connecting...");
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPIn] Connecting ...\n" ));
 		return GF_TRUE;
 	}
 
@@ -316,7 +316,7 @@ GF_Err rtpin_rtsp_describe_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_E
 	if (ch_desc) {
 		stream = rtpin_find_stream(sess->rtpin, ch_desc->opid, ch_desc->ES_ID, ch_desc->esd_url, GF_FALSE);
 	} else {
-		rtpin_send_message(sess->rtpin, GF_OK, "Connected");
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSPIn] Connected\n" ));
 	}
 
 	/*error on loading SDP is done internally*/

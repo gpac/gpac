@@ -45,7 +45,6 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	GF_RTSPCommand *com;
 	GF_Err e;
 	u32 time;
-	char sMsg[1000];
 
 	com = (GF_RTSPCommand *)gf_list_get(sess->rtsp_commands, 0);
 
@@ -112,8 +111,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	case GF_RTSP_STATE_WAIT_FOR_CONTROL:
 		return;
 	case GF_RTSP_STATE_INVALIDATED:
-		sprintf(sMsg, "Cannot send %s", com->method);
-		rtpin_send_message(sess->rtpin, GF_IP_NETWORK_FAILURE, sMsg);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPIn] Cannot send %s: %s\n", com->method, gf_error_to_string(GF_IP_NETWORK_FAILURE) ));
 		gf_list_rem(sess->rtsp_commands, 0);
 		gf_rtsp_command_del(com);
 		sess->flags &= ~RTSP_WAIT_REPLY;
@@ -147,8 +145,7 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	}
 	e = gf_rtsp_send_command(sess->session, com);
 	if (e) {
-		sprintf(sMsg, "Cannot send %s", com->method);
-		rtpin_send_message(sess->rtpin, e, sMsg);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSPIn] Cannot send %s\n", com->method ));
 		rtpin_rtsp_process_response(sess, com, e);
 	} else {
 		sess->command_time = gf_sys_clock();
@@ -367,17 +364,5 @@ void rtpin_rtsp_del(GF_RTPInRTSP *sess)
 	gf_free(sess);
 }
 
-void rtpin_send_message(GF_RTPIn *ctx, GF_Err e, const char *message)
-{
-/*	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(com));
-	com.command_type = GF_NET_SERVICE_EVENT;
-	com.send_event.evt.type = GF_EVENT_MESSAGE;
-	com.send_event.evt.message.message = message;
-	com.send_event.evt.message.error = e;
-	gf_service_command(service, &com, GF_OK);
-*/
-
-}
 
 #endif /*GPAC_DISABLE_STREAMING*/

@@ -3691,6 +3691,9 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 	if (ctx->pcr)
 		gf_filter_pid_set_clock_mode(pid, GF_TRUE);
+
+	if (!ctx->deep)
+		gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 

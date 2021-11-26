@@ -154,8 +154,6 @@ GF_RTPInRTSP *rtpin_rtsp_check(GF_RTPIn *rtp, char *control);
 
 void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess);
 
-void rtpin_send_message(GF_RTPIn *ctx, GF_Err e, const char *message);
-
 /*RTP channel state*/
 enum
 {
@@ -265,7 +263,6 @@ struct __rtpin_stream
 	u32 mid;
 
 	u32 prev_stream;
-	u32 next_stream;
 	u32 base_stream;
 
 	u32 rtcp_check_start;
