@@ -76,6 +76,9 @@ let task_reschedule = 500;
 let rot = 0;
 let flip = 0;
 
+let do_coverage=0;
+if (sys.get_opt('temp', 'vout_cov') == 'yes') do_coverage = 1;
+
 function setup_overlay()
 {
 	let target_width=ol_width;
@@ -157,7 +160,6 @@ if (vout) {
 		}
 		return false;
 	}, "check_vout_pids");
-
 }
 
 session.set_event_fun( (evt)=> {
@@ -182,6 +184,14 @@ session.set_event_fun( (evt)=> {
 		process_keyboard(evt);
 		break;
 	case GF_EVENT_SIZE:
+		if (do_coverage) {
+			overlay_type=OL_PLAY;
+			ol_visible=true;
+			if (do_coverage==1) {
+				do_coverage = 0;
+				coverage_tests();
+			}
+		}
 		if (ol_visible) {
 			let old_type = overlay_type;
 			vout.lock(true);
@@ -197,6 +207,18 @@ session.set_event_fun( (evt)=> {
 	return 0;
 }
 );
+
+function coverage_tests()
+{
+	print('coverage tests');
+	if (aout) aout.update('speed', '1');
+	let evt = new FilterEvent(GF_FEVT_QUALITY_SWITCH);
+	evt.up = true;
+	let src = vout.ipid_source(0);
+	session.fire_event(evt, src);
+	evt.up = false;
+	session.fire_event(evt, src);
+}
 
 
 function check_duration()

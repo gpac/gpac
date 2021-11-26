@@ -238,16 +238,26 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 			u32 j;
 
 			gf_fprintf(sdp_out, "a=mid:L%d\n", i+1);
-			gf_fprintf(sdp_out, "a=depend:%d lay", gf_rtp_streamer_get_payload_type(stream->rtp) );
+			if ((base_pid_id != stream->id) && stream->depends_on) {
+				GF_RTPOutStream *dep = stream;
+				gf_fprintf(sdp_out, "a=depend:%d lay", gf_rtp_streamer_get_payload_type(stream->rtp) );
 
-			for (j=0; j<count; j++) {
-				GF_RTPOutStream *tk = gf_list_get(streams, j);
-				if (tk == stream) continue;
-				if (tk->depends_on == stream->id) {
-					gf_fprintf(sdp_out, " L%d:%d", j+1, gf_rtp_streamer_get_payload_type(tk->rtp) );
+				while (dep) {
+					GF_RTPOutStream *base=NULL;
+					for (j=0; j<count; j++) {
+						base = gf_list_get(streams, j);
+						if (dep->depends_on == base->id) break;
+						base = NULL;
+					}
+					if (!base) break;
+
+					s32 idx = gf_list_find(streams, base);
+					if (idx<0) break;
+					gf_fprintf(sdp_out, " L%d:%d", idx+1, gf_rtp_streamer_get_payload_type(base->rtp) );
+					dep = base;
 				}
+				gf_fprintf(sdp_out, "\n");
 			}
-			gf_fprintf(sdp_out, "\n");
 		}
 
 		if (is_rtsp) {
@@ -263,7 +273,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	Bool disable_mpeg4 = GF_FALSE;
 	u32 flags, average_size, max_size, max_tsdelta, codecid, const_dur, nb_ch, samplerate, max_cts_offset, bandwidth, IV_length, KI_length, dsi_len, max_ptime, au_sn_len;
 	char *dsi;
-	Bool is_crypted;
+	Bool is_crypted, is_enh_dsi = GF_FALSE;
 	const GF_PropertyValue *p;
 
 	*base_pid_id = 0;
@@ -305,6 +315,11 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	u32 cfg_crc=0;
 	dsi = NULL;
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DECODER_CONFIG);
+
+	if (!p) {
+		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+		is_enh_dsi = GF_TRUE;
+	}
 	if (p) {
 		dsi = p->value.data.ptr;
 		dsi_len = p->value.data.size;
@@ -401,7 +416,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 				vps_nut = GF_VVC_NALU_VID_PARAM;
 				stream->avc_nalu_size = vvcc->nal_unit_size;
 			} else {
-				hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, (codecid==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE );
+				hvcc = gf_odf_hevc_cfg_read(dsi, dsi_len, (is_enh_dsi && (codecid==GF_CODECID_LHVC)) ? GF_TRUE : GF_FALSE );
 				param_array = hvcc->param_array;
 				sps_nut = GF_HEVC_NALU_SEQ_PARAM;
 				pps_nut = GF_HEVC_NALU_PIC_PARAM;
@@ -491,6 +506,9 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_ISMA_KI_LENGTH);
 		KI_length = p ? p->value.uint : 0;
 	}
+
+	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DEPENDENCY_ID);
+	if (p) stream->depends_on = p->value.uint;
 
 
 	/*init packetizer*/

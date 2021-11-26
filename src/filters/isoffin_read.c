@@ -791,7 +791,7 @@ u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool s
 						u64 resume_at;
 						GF_Err e;
 						//try to locate sync after current time in base
-						resume_at = gf_timestamp_rescale(base->static_sample->DTS, base->timescale, ch->timescale);
+						resume_at = base->static_sample ? gf_timestamp_rescale(base->static_sample->DTS, base->timescale, ch->timescale) : 0;
 						e = gf_isom_get_sample_for_media_time(ch->owner->mov, ch->track, resume_at, &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 						//found, rewind so that next fetch is the sync
 						if (e==GF_OK) {

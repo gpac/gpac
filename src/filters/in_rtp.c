@@ -193,21 +193,14 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 	if (!cur_stream) return;
 
 	if (switch_up) {
-		/*this is the highest stream*/
-		if (!cur_stream->next_stream) {
-			cur_stream->status = RTP_Running;
-			return;
-		} else {
-			for (i = 0; i < count; i++) {
-				stream = (GF_RTPInStream *) gf_list_get(rtp->streams, i);
-				if (stream->mid == cur_stream->next_stream) {
-					/*resume streaming next channel*/
-					rtpin_stream_init(stream, GF_FALSE);
-					stream->status = RTP_Running;
-					rtp->cur_mid = stream->mid;
-					break;
-				}
-
+		for (i = 0; i < count; i++) {
+			stream = (GF_RTPInStream *) gf_list_get(rtp->streams, i);
+			if (stream->prev_stream == cur_stream->mid) {
+				/*resume streaming next channel*/
+				rtpin_stream_init(stream, GF_FALSE);
+				stream->status = RTP_Running;
+				rtp->cur_mid = stream->mid;
+				break;
 			}
 		}
 	} else {
@@ -220,9 +213,15 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 				stream = (GF_RTPInStream *) gf_list_get(rtp->streams, i);
 				if (stream->mid == cur_stream->prev_stream) {
 					/*stop streaming current channel*/
+					if (cur_stream->rtp_ch->rtp)
+						gf_sk_group_unregister(rtp->sockgroup, cur_stream->rtp_ch->rtp);
+					if (cur_stream->rtp_ch->rtcp)
+						gf_sk_group_unregister(rtp->sockgroup, cur_stream->rtp_ch->rtcp);
+
 					gf_rtp_stop(cur_stream->rtp_ch);
 					cur_stream->status = RTP_Connected;
 					rtp->cur_mid = stream->mid;
+					if (cur_stream->opid) gf_filter_pid_set_eos(cur_stream->opid);
 					break;
 				}
 			}
@@ -341,8 +340,7 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		} else {
 			ctx->last_start_range = evt->play.start_range;
 			stream->status = RTP_Running;
-			if (!stream->next_stream)
-				ctx->cur_mid = stream->mid;
+			ctx->cur_mid = stream->mid;
 
 			if (stream->rtp_ch) {
 				//wait for RTCP to perform stream sync
@@ -602,7 +600,9 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 	if (ctx->max_sleep<0)
 		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
-	else {
+	else if (!ctx->min_frame_dur_ms) {
+		gf_filter_ask_rt_reschedule(filter, ctx->max_sleep*1000);
+	} else {
 		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
 		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*1000);
 	}

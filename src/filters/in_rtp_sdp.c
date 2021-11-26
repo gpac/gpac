@@ -55,7 +55,8 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 		//NPT range only for now
 		else if (!strcmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 		/*we have the H264-SVC streams*/
-		else if (!strcmp(att->Name, "group") && !strncmp(att->Value, "DDP", 3)) rtp->is_scalable = GF_TRUE;
+		else if (!strcmp(att->Name, "group") && !strncmp(att->Value, "DDP", 3))
+			rtp->is_scalable = GF_TRUE;
 	}
 	if (range) {
 		Start = range->start;
@@ -186,7 +187,7 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 	//od->objectDescriptorID = stream->OD_ID ? stream->OD_ID : stream->ES_ID;
 
 	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
-	if (stream->rtpin->is_scalable) {
+	if (stream->rtpin->is_scalable && stream->prev_stream) {
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT( stream->prev_stream) );
 	}
 
@@ -298,7 +299,7 @@ static void rtpin_declare_media(GF_RTPIn *rtp, Bool force_iod)
 	i=0;
 	while ((stream = (GF_RTPInStream *)gf_list_enum(rtp->streams, &i))) {
 		if (stream->control && !strnicmp(stream->control, "data:", 5)) continue;
-		if (stream->prev_stream) continue;
+
 		if (rtp->stream_type && (rtp->stream_type!=stream->depacketizer->sl_map.StreamType)) continue;
 
 		rtpin_declare_pid(stream, force_iod, i, &ocr_es_id);
