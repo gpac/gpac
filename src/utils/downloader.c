@@ -1281,11 +1281,7 @@ void *gf_ssl_new(void *ssl_ctx, GF_Socket *client_sock, GF_Err *e)
 	*e = GF_OK;
 	return ssl;
 }
-void gf_ssl_del(void *ssl)
-{
-	SSL_shutdown(ssl);
-	SSL_free(ssl);
-}
+
 
 static GF_Err gf_ssl_write(void *ssl_ctx, const u8 *buffer, u32 size)
 {

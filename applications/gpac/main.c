@@ -4152,6 +4152,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_filter_get_max_extra_input_pids(NULL);
 	gf_filter_remove(NULL);
 	gf_filter_reconnect_output(NULL);
+	gf_filter_pid_get_udta_flags(NULL);
 
 	gf_audio_fmt_get_cicp_layout(2, 1, 1);
 	gf_audio_fmt_get_layout_from_cicp(3);

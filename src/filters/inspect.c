@@ -182,95 +182,212 @@ static u32 inspect_get_nal_size(char *ptr, u32 nalh_size)
 	return nal_size;
 }
 
+typedef struct
+{
+	u32 code;
+	const char *name;
+} tag_to_name;
+
+static const tag_to_name SEINames[] =
+{
+	{0, "buffering_period"},
+	{1, "pic_timing"},
+	{2, "pan_scan_rect"},
+	{3, "filler_payload"},
+	{4, "itu_t_t35"},
+	{5, "user_data_unregistered"},
+	{6, "recovery_point"},
+	{7, "dec_ref_pic_marking_repetition"},
+	{8, "spare_pic"},
+	{9, "scene_info"},
+	{10, "sub_seq_info"},
+	{11, "sub_seq_layer_characteristics"},
+	{12, "sub_seq_characteristics"},
+	{13, "full_frame_freeze"},
+	{14, "full_frame_freeze_release"},
+	{15, "picture_snapshot"},
+	{16, "progressive_refinement_segment_start"},
+	{17, "progressive_refinement_segment_end"},
+	{18, "motion_constrained_slice_group_set"},
+	{19, "film_grain_characteristics"},
+	{20, "deblocking_filter_display_preference"},
+	{21, "stereo_video_info"},
+	{22, "post_filter_hint"},
+	{23, "tone_mapping_info"},
+	{24, "scalability_info"},
+	{25, "sub_pic_scalable_layer"},
+	{26, "non_required_layer_rep"},
+	{27, "priority_layer_info"},
+	{28, "layers_not_present"},
+	{29, "layer_dependency_change"},
+	{30, "scalable_nesting"},
+	{31, "base_layer_temporal_hrd"},
+	{32, "quality_layer_integrity_check"},
+	{33, "redundant_pic_property"},
+	{34, "tl0_dep_rep_index"},
+	{35, "tl_switching_point"},
+	{36, "parallel_decoding_info"},
+	{37, "mvc_scalable_nesting"},
+	{38, "view_scalability_info"},
+	{39, "multiview_scene_info"},
+	{40, "multiview_acquisition_info"},
+	{41, "non_required_view_component"},
+	{42, "view_dependency_change"},
+	{43, "operation_points_not_present"},
+	{44, "base_view_temporal_hrd"},
+	{45, "frame_packing_arrangement"},
+	{47, "display_orientation"},
+	{56, "green_metadata"},
+	{128, "structure_of_pictures_info"},
+	{129, "active_parameter_sets"},
+	{130, "decoding_unit_info"},
+	{131, "temporal_sub_layer_zero_index"},
+	{132, "decoded_picture_hash"},
+	{133, "scalable_nesting"},
+	{134, "region_refresh_info"},
+	{135, "no_display"},
+	{136, "time_code"},
+	{137, "mastering_display_colour_volume"},
+	{138, "segmented_rect_frame_packing_arrangement"},
+	{140, "temporal_motion_constrained_tile_sets"},
+	{141, "knee_function_info"},
+	{142, "colour_remapping_info"},
+	{143, "deinterlaced_field_identification"},
+	{144, "content_light_level_info"},
+	{145, "dependent_rap_indication"},
+	{146, "coded_region_completion"},
+	{147, "alternative_transfer_characteristics"},
+	{148, "ambient_viewing_environment"},
+	{160, "layers_not_present"},
+	{161, "inter_layer_constrained_tile_sets"},
+	{162, "bsp_nesting"},
+	{163, "bsp_initial_arrival_time"},
+	{164, "sub_bitstream_property"},
+	{165, "alpha_channel_info"},
+	{166, "overlay_info"},
+	{167, "temporal_mv_prediction_constraints"},
+	{168, "frame_field_info"},
+	{176, "three_dimensional_reference_displays_info"},
+	{177, "depth_representation_info"},
+	{178, "multiview_scene_info"},
+	{179, "multiview_acquisition_info"},
+	{180, "multiview_view_position"},
+	{181, "alternative_depth_info"}
+};
+
 static const char *get_sei_name(u32 sei_type, u32 is_hevc)
 {
-	switch (sei_type) {
-	case 0: return "buffering_period";
-	case 1: return "pic_timing";
-	case 2: return "pan_scan_rect";
-	case 3: return "filler_payload";
-	case 4: return "itu_t_t35";
-	case 5: return "user_data_unregistered";
-	case 6: return "recovery_point";
-	case 7: return "dec_ref_pic_marking_repetition";
-	case 8: return "spare_pic";
-	case 9: return "scene_info";
-	case 10: return "sub_seq_info";
-	case 11: return "sub_seq_layer_characteristics";
-	case 12: return "sub_seq_characteristics";
-	case 13: return "full_frame_freeze";
-	case 14: return "full_frame_freeze_release";
-	case 15: return "picture_snapshot";
-	case 16: return "progressive_refinement_segment_start";
-	case 17: return "progressive_refinement_segment_end";
-	case 18: return "motion_constrained_slice_group_set";
-	case 19: return "film_grain_characteristics";
-	case 20: return "deblocking_filter_display_preference";
-	case 21: return "stereo_video_info";
-	case 22: return "post_filter_hint";
-	case 23: return "tone_mapping_info";
-
-	case 24: return "scalability_info";
-	case 25: return "sub_pic_scalable_layer";
-	case 26: return "non_required_layer_rep";
-	case 27: return "priority_layer_info";
-	case 28: return "layers_not_present";
-	case 29: return "layer_dependency_change";
-	case 30: return "scalable_nesting";
-	case 31: return "base_layer_temporal_hrd";
-	case 32: return "quality_layer_integrity_check";
-	case 33: return "redundant_pic_property";
-	case 34: return "tl0_dep_rep_index";
-	case 35: return "tl_switching_point";
-	case 36: return "parallel_decoding_info";
-	case 37: return "mvc_scalable_nesting";
-	case 38: return "view_scalability_info";
-	case 39: return "multiview_scene_info";
-	case 40: return "multiview_acquisition_info";
-	case 41: return "non_required_view_component";
-	case 42: return "view_dependency_change";
-	case 43: return "operation_points_not_present";
-	case 44: return "base_view_temporal_hrd";
-	case 45: return "frame_packing_arrangement";
-	case 47: return "display_orientation";
-	case 56: return "green_metadata";
-	case 128: return "structure_of_pictures_info";
-	case 129: return "active_parameter_sets";
-	case 130: return "decoding_unit_info";
-	case 131: return "temporal_sub_layer_zero_index";
-	case 132: return "decoded_picture_hash";
-	case 133: return "scalable_nesting";
-	case 134: return "region_refresh_info";
-	case 135: return "no_display";
-	case 136: return "time_code";
-	case 137: return "mastering_display_colour_volume";
-	case 138: return "segmented_rect_frame_packing_arrangement";
-	case 140: return "temporal_motion_constrained_tile_sets";
-	case 141: return "knee_function_info";
-	case 142: return "colour_remapping_info";
-	case 143: return "deinterlaced_field_identification";
-	case 144: return "content_light_level_info";
-	case 145: return "dependent_rap_indication";
-	case 146: return "coded_region_completion";
-	case 147: return "alternative_transfer_characteristics";
-	case 148: return "ambient_viewing_environment";
-	case 160: return "layers_not_present";
-	case 161: return "inter_layer_constrained_tile_sets";
-	case 162: return "bsp_nesting";
-	case 163: return "bsp_initial_arrival_time";
-	case 164: return "sub_bitstream_property";
-	case 165: return "alpha_channel_info";
-	case 166: return "overlay_info";
-	case 167: return "temporal_mv_prediction_constraints";
-	case 168: return "frame_field_info";
-	case 176: return "three_dimensional_reference_displays_info";
-	case 177: return "depth_representation_info";
-	case 178: return "multiview_scene_info";
-	case 179: return "multiview_acquisition_info";
-	case 180: return "multiview_view_position";
-	case 181: return "alternative_depth_info";
+	u32 i, count = sizeof(SEINames) / sizeof(tag_to_name);
+	for (i=0; i<count; i++) {
+		if (SEINames[i].code == sei_type) return SEINames[i].name;
 	}
 	return "Unknown";
+}
+
+static const tag_to_name HEVCNalNames[] =
+{
+	{GF_HEVC_NALU_SLICE_TRAIL_N, "TRAIL_N slice segment"},
+	{GF_HEVC_NALU_SLICE_TRAIL_R, "TRAIL_R slice segment"},
+	{GF_HEVC_NALU_SLICE_TSA_N, "TSA_N slice segment"},
+	{GF_HEVC_NALU_SLICE_TSA_R, "TSA_R slice segment"},
+	{GF_HEVC_NALU_SLICE_STSA_N, "STSA_N slice segment"},
+	{GF_HEVC_NALU_SLICE_STSA_R, "STSA_R slice segment"},
+	{GF_HEVC_NALU_SLICE_RADL_N, "RADL_N slice segment"},
+	{GF_HEVC_NALU_SLICE_RADL_R, "RADL_R slice segment"},
+	{GF_HEVC_NALU_SLICE_RASL_N, "RASL_N slice segment"},
+	{GF_HEVC_NALU_SLICE_RASL_R, "RASL_R slice segment"},
+	{GF_HEVC_NALU_SLICE_BLA_W_LP, "Broken link access slice (W LP)"},
+	{GF_HEVC_NALU_SLICE_BLA_W_DLP, "Broken link access slice (W DLP)"},
+	{GF_HEVC_NALU_SLICE_BLA_N_LP, "Broken link access slice (N LP)"},
+	{GF_HEVC_NALU_SLICE_IDR_W_DLP, "IDR slice (W DLP)"},
+	{GF_HEVC_NALU_SLICE_IDR_N_LP, "IDR slice (N LP)"},
+	{GF_HEVC_NALU_SLICE_CRA, "CRA slice"},
+	{GF_HEVC_NALU_VID_PARAM, "Video Parameter Set"},
+	{GF_HEVC_NALU_SEQ_PARAM, "Sequence Parameter Set"},
+	{GF_HEVC_NALU_PIC_PARAM, "Picture Parameter Set"},
+	{GF_HEVC_NALU_ACCESS_UNIT, "AU Delimiter"},
+	{GF_HEVC_NALU_END_OF_SEQ, "End of Sequence"},
+	{GF_HEVC_NALU_END_OF_STREAM, "End of Stream"},
+	{GF_HEVC_NALU_FILLER_DATA, "Filler Data"},
+	{GF_HEVC_NALU_SEI_PREFIX, "SEI Prefix"},
+	{GF_HEVC_NALU_SEI_SUFFIX, "SEI Suffix"},
+	{48, "HEVCAggregator"},
+	{49, "HEVCExtractor"}
+};
+
+static const char *get_hevc_nal_name(u32 nal_type)
+{
+	u32 i, count = sizeof(HEVCNalNames) / sizeof(tag_to_name);
+	for (i=0; i<count; i++) {
+		if (HEVCNalNames[i].code == nal_type) return HEVCNalNames[i].name;
+	}
+	return NULL;
+}
+
+static const tag_to_name VVCNalNames[] =
+{
+	{GF_VVC_NALU_SLICE_TRAIL, "Slice_TRAIL"},
+	{GF_VVC_NALU_SLICE_STSA, "Slice_STSA"},
+	{GF_VVC_NALU_SLICE_RADL, "Slice_RADL"},
+	{GF_VVC_NALU_SLICE_RASL, "Slice_RASL"},
+	{GF_VVC_NALU_SLICE_IDR_W_RADL, "IDR_RADL"},
+	{GF_VVC_NALU_SLICE_IDR_N_LP, "IDR"},
+	{GF_VVC_NALU_SLICE_CRA, "CRA"},
+	{GF_VVC_NALU_SLICE_GDR, "GDR"},
+	{GF_VVC_NALU_OPI, "OperationPointInfo"},
+	{GF_VVC_NALU_VID_PARAM, "VideoParameterSet"},
+	{GF_VVC_NALU_SEQ_PARAM, "SequenceParameterSet"},
+	{GF_VVC_NALU_PIC_PARAM, "PictureParameterSet"},
+	{GF_VVC_NALU_APS_PREFIX, "AdaptationParameterSet_Prefix"},
+	{GF_VVC_NALU_APS_SUFFIX, "AdaptationParameterSet_Suffix"},
+	{GF_VVC_NALU_ACCESS_UNIT, "AUDelimiter"},
+	{GF_VVC_NALU_END_OF_SEQ, "EOS"},
+	{GF_VVC_NALU_END_OF_STREAM, "EOB"},
+	{GF_VVC_NALU_FILLER_DATA, "FillerData"},
+	{GF_VVC_NALU_SEI_PREFIX, "SEI_Prefix"},
+	{GF_VVC_NALU_SEI_SUFFIX, "SEI_Suffix"},
+	{GF_VVC_NALU_PIC_HEADER, "PictureHeader"}
+};
+
+static const char *get_vvc_nal_name(u32 nal_type)
+{
+	u32 i, count = sizeof(VVCNalNames) / sizeof(tag_to_name);
+	for (i=0; i<count; i++) {
+		if (VVCNalNames[i].code == nal_type) return VVCNalNames[i].name;
+	}
+	return NULL;
+}
+
+static const tag_to_name AVCNalNames[] =
+{
+	{GF_AVC_NALU_NON_IDR_SLICE, "Non IDR slice"},
+	{GF_AVC_NALU_DP_A_SLICE, "DP Type A slice"},
+	{GF_AVC_NALU_DP_B_SLICE, "DP Type B slice"},
+	{GF_AVC_NALU_DP_C_SLICE, "DP Type C slice"},
+	{GF_AVC_NALU_IDR_SLICE, "IDR slice"},
+	{GF_AVC_NALU_SEI, "SEI Message"},
+	{GF_AVC_NALU_SEQ_PARAM, "SequenceParameterSet"},
+	{GF_AVC_NALU_PIC_PARAM, "PictureParameterSet"},
+	{GF_AVC_NALU_ACCESS_UNIT, "AccessUnit delimiter"},
+	{GF_AVC_NALU_END_OF_SEQ, "EndOfSequence"},
+	{GF_AVC_NALU_END_OF_STREAM, "EndOfStream"},
+	{GF_AVC_NALU_FILLER_DATA, "Filler data"},
+	{GF_AVC_NALU_SEQ_PARAM_EXT, "SequenceParameterSetExtension"},
+	{GF_AVC_NALU_SVC_PREFIX_NALU, "SVCPrefix"},
+	{GF_AVC_NALU_SVC_SUBSEQ_PARAM, "SVCSubsequenceParameterSet"},
+	{GF_AVC_NALU_SLICE_AUX, "Auxiliary Slice"},
+	{GF_AVC_NALU_SVC_SLICE, "SVCSlice"},
+	{30, "SVCAggregator"},
+	{31, "SVCExtractor"}
+};
+
+static const char *get_avc_nal_name(u32 nal_type)
+{
+	u32 i, count = sizeof(AVCNalNames) / sizeof(tag_to_name);
+	for (i=0; i<count; i++) {
+		if (AVCNalNames[i].code == nal_type) return AVCNalNames[i].name;
+	}
+	return NULL;
 }
 
 typedef struct
@@ -436,7 +553,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	s32 idx;
 	InspectLogCbk lcbk;
 	GF_BitStream *bs = NULL;
-
+	const char *nal_name;
 
 	if (full_bs_dump<INSPECT_ANALYZE_BS)
 		full_bs_dump = 0;
@@ -482,66 +599,21 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			gf_fprintf(dump, " status=\"error parsing\"", type);
 		}
 		gf_fprintf(dump, " type=\"", type);
+		nal_name = get_hevc_nal_name(type);
+		if (nal_name)
+			gf_fputs(nal_name, dump);
+		else
+			gf_fprintf(dump, "UNKNOWN (parsing return %d)", res);
 
+		//specific dump
 		switch (type) {
-		case GF_HEVC_NALU_SLICE_TRAIL_N:
-			gf_fputs("TRAIL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TRAIL_R:
-			gf_fputs("TRAIL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TSA_N:
-			gf_fputs("TSA_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_TSA_R:
-			gf_fputs("TSA_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_STSA_N:
-			gf_fputs("STSA_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_STSA_R:
-			gf_fputs("STSA_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RADL_N:
-			gf_fputs("RADL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RADL_R:
-			gf_fputs("RADL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RASL_N:
-			gf_fputs("RASL_N slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_RASL_R:
-			gf_fputs("RASL_R slice segment", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_W_LP:
-			gf_fputs("Broken link access slice (W LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-			gf_fputs("Broken link access slice (W DLP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_BLA_N_LP:
-			gf_fputs("Broken link access slice (N LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_IDR_W_DLP:
-			gf_fputs("IDR slice (W DLP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_IDR_N_LP:
-			gf_fputs("IDR slice (N LP)", dump);
-			break;
-		case GF_HEVC_NALU_SLICE_CRA:
-			gf_fputs("CRA slice", dump);
-			break;
-
 		case GF_HEVC_NALU_VID_PARAM:
-			gf_fputs("Video Parameter Set", dump);
 			if (full_bs_dump) break;
 			idx = gf_hevc_read_vps(ptr, ptr_size, hevc);
 			if (idx<0) gf_fprintf(dump, "\" vps_id=\"PARSING FAILURE");
 			else gf_fprintf(dump, "\" vps_id=\"%d", idx);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			gf_fputs("Sequence Parameter Set", dump);
 			if (full_bs_dump) break;
 			idx = gf_hevc_read_sps(ptr, ptr_size, hevc);
 			if (idx<0) {
@@ -551,7 +623,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			{
 			HEVC_SPS *sps= &hevc->sps[idx];
 			gf_fprintf(dump, "\" sps_id=\"%d", idx);
-			if (gf_sys_is_test_mode()) break;
 
 			gf_fprintf(dump, "\" aspect_ratio_info_present_flag=\"%d", sps->aspect_ratio_info_present_flag);
 			gf_fprintf(dump, "\" bit_depth_chroma=\"%d", sps->bit_depth_chroma);
@@ -632,7 +703,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
-			gf_fputs("Picture Parameter Set", dump);
 			if (full_bs_dump) break;
 			idx = gf_hevc_read_pps(ptr, ptr_size, hevc);
 			if (idx<0) {
@@ -642,8 +712,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			{
 			HEVC_PPS *pps= &hevc->pps[idx];
 			gf_fprintf(dump, "\" pps_id=\"%d", idx);
-
-			if (gf_sys_is_test_mode()) break;
 
 			gf_fprintf(dump, "\" cabac_init_present_flag=\"%d", pps->cabac_init_present_flag);
 			gf_fprintf(dump, "\" dependent_slice_segments_enabled_flag=\"%d", pps->dependent_slice_segments_enabled_flag);
@@ -698,33 +766,15 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
-			gf_fputs("AU Delimiter", dump);
 			gf_fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
-		case GF_HEVC_NALU_END_OF_SEQ:
-			gf_fputs("End of Sequence", dump);
-			break;
-		case GF_HEVC_NALU_END_OF_STREAM:
-			gf_fputs("End of Stream", dump);
-			break;
-		case GF_HEVC_NALU_FILLER_DATA:
-			gf_fputs("Filler Data", dump);
-			break;
-		case GF_HEVC_NALU_SEI_PREFIX:
-			gf_fputs("SEI Prefix", dump);
-			break;
-		case GF_HEVC_NALU_SEI_SUFFIX:
-			gf_fputs("SEI Suffix", dump);
-			break;
-		case 48:
-			gf_fputs("HEVCAggregator", dump);
-			break;
+		//extractor
 		case 49:
 		{
 			u32 remain = ptr_size-2;
 			char *s = ptr+2;
 
-			gf_fputs("HEVCExtractor ", dump);
+			gf_fputs(" ", dump);
 
 			while (remain) {
 				u32 mode = s[0];
@@ -757,7 +807,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		}
 			break;
 		default:
-			gf_fprintf(dump, "UNKNOWN (parsing return %d)", res);
 			break;
 		}
 		gf_fputs("\"", dump);
@@ -846,39 +895,16 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		}
 
 		gf_fprintf(dump, " type=\"");
+		nal_name = get_vvc_nal_name(type);
+		if (nal_name)
+			gf_fprintf(dump, nal_name);
+		else {
+			gf_fprintf(dump, "Unknwon");
+			res = -2;
+		}
+		//specific dump
 		switch (type) {
-		case GF_VVC_NALU_SLICE_TRAIL:
-			gf_fprintf(dump, "Slice_TRAIL");
-			break;
-		case GF_VVC_NALU_SLICE_STSA:
-			gf_fprintf(dump, "Slice_STSA");
-			break;
-		case GF_VVC_NALU_SLICE_RADL:
-			gf_fprintf(dump, "Slice_RADL");
-			break;
-		case GF_VVC_NALU_SLICE_RASL:
-			gf_fprintf(dump, "Slice_RASL");
-			break;
-		case GF_VVC_NALU_SLICE_IDR_W_RADL:
-			gf_fprintf(dump, "IDR_RADL");
-			break;
-		case GF_VVC_NALU_SLICE_IDR_N_LP:
-			gf_fprintf(dump, "IDR");
-			break;
-		case GF_VVC_NALU_SLICE_CRA:
-			gf_fprintf(dump, "CRA");
-			break;
-		case GF_VVC_NALU_SLICE_GDR:
-			gf_fprintf(dump, "GDR");
-			break;
-		case GF_VVC_NALU_OPI:
-			gf_fprintf(dump, "OperationPointInfo");
-			break;
-		case GF_VVC_NALU_DEC_PARAM:
-			gf_fprintf(dump, "DecodeParameterSet");
-			break;
 		case GF_VVC_NALU_VID_PARAM:
-			gf_fprintf(dump, "VideoParameterSet");
 			if ((res>=0) && !full_bs_dump) {
 				u32 j;
 				VVC_VPS *vps = &vvc->vps[vvc->last_parsed_vps_id];
@@ -898,7 +924,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			res = -2;
 			break;
 		case GF_VVC_NALU_SEQ_PARAM:
-			gf_fprintf(dump, "SequenceParameterSet");
 			if ((res>=0) && !full_bs_dump) {
 				VVC_SPS *sps = &vvc->sps[vvc->last_parsed_sps_id];
 
@@ -923,7 +948,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			res=-2;
 			break;
 		case GF_VVC_NALU_PIC_PARAM:
-			gf_fprintf(dump, "PictureParameterSet");
 			if ((res>=0) && !full_bs_dump) {
 				VVC_PPS *pps = &vvc->pps[vvc->last_parsed_pps_id];
 				gf_fprintf(dump, "\" id=\"%d\" sps_id=\"%d\" width=\"%d\" height=\"%d\" mixed_nal_types=\"%d\" conf_window=\"%d", pps->id, pps->sps_id, pps->width, pps->height, pps->mixed_nal_types, pps->conf_window);
@@ -935,49 +959,14 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			res=-2;
 			break;
-		case GF_VVC_NALU_APS_PREFIX:
-			gf_fprintf(dump, "AdaptationParameterSet_Prefix");
-			res=-2;
-			break;
-		case GF_VVC_NALU_APS_SUFFIX:
-			gf_fprintf(dump, "AdaptationParameterSet_Suffix");
-			res=-2;
-			break;
-		case GF_VVC_NALU_ACCESS_UNIT:
-			gf_fprintf(dump, "AUDelimiter");
-			res=-2;
-			break;
-		case GF_VVC_NALU_END_OF_SEQ:
-			gf_fprintf(dump, "EOS");
-			res=-2;
-			break;
-		case GF_VVC_NALU_END_OF_STREAM:
-			gf_fprintf(dump, "EOB");
-			res=-2;
-			break;
-		case GF_VVC_NALU_FILLER_DATA:
-			gf_fprintf(dump, "FillerData");
-			res=-2;
-			break;
-		case GF_VVC_NALU_SEI_PREFIX:
-			gf_fprintf(dump, "SEI_Prefix");
-			res=-2;
-			break;
-		case GF_VVC_NALU_SEI_SUFFIX:
-			gf_fprintf(dump, "SEI_Suffix");
-			res=-2;
-			break;
-		case GF_VVC_NALU_PIC_HEADER:
-			gf_fprintf(dump, "PictureHeader");
-			break;
 		default:
-			gf_fprintf(dump, "Unknwon");
-			res = -2;
 			break;
 		}
 		gf_fprintf(dump, "\"");
 
 		//picture header or slice
+		if ((type!=GF_VVC_NALU_PIC_HEADER) && (type>GF_VVC_NALU_SLICE_GDR))
+			res = -2;
 		if ((res>=0) && !full_bs_dump) {
 			if (type!=GF_VVC_NALU_PIC_HEADER)
 				gf_fprintf(dump, " picture_header_in_slice_header_flag=\"%d\"", vvc->s_info.picture_header_in_slice_header_flag);
@@ -1031,6 +1020,13 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 
 	gf_fprintf(dump, "type=\"");
 	res = -2;
+	nal_name = get_avc_nal_name(type);
+	if (type == GF_AVC_NALU_SVC_SLICE) nal_name = is_svc ? "SVCSlice" : "CodedSliceExtension";
+	if (nal_name) {
+		gf_fputs(nal_name, dump);
+	} else {
+		gf_fputs("UNKNWON", dump);
+	}
 
 	if (pctx) {
 		if (!pctx->bs)
@@ -1045,31 +1041,17 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (full_bs_dump)
 		gf_bs_set_logger(bs, shifted_bs_log, &lcbk);
 
+	//specific dump
 	switch (type) {
 	case GF_AVC_NALU_NON_IDR_SLICE:
-		gf_fputs("Non IDR slice", dump);
-		if (is_encrypted) break;
-		res = gf_avc_parse_nalu(bs, avc);
-		break;
 	case GF_AVC_NALU_DP_A_SLICE:
-		gf_fputs("DP Type A slice", dump);
-		break;
 	case GF_AVC_NALU_DP_B_SLICE:
-		gf_fputs("DP Type B slice", dump);
-		break;
 	case GF_AVC_NALU_DP_C_SLICE:
-		gf_fputs("DP Type C slice", dump);
-		break;
 	case GF_AVC_NALU_IDR_SLICE:
-		gf_fputs("IDR slice", dump);
 		if (is_encrypted) break;
 		res = gf_avc_parse_nalu(bs, avc);
-		break;
-	case GF_AVC_NALU_SEI:
-		gf_fputs("SEI Message", dump);
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
-		gf_fputs("SequenceParameterSet", dump);
 		if (is_encrypted) break;
 		idx = gf_avc_read_sps_bs(bs, avc, 0, NULL);
 		if (idx<0) {
@@ -1105,7 +1087,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			gf_fprintf(dump, "\" vui_matrix_coefficients=\"%d", avc->sps->vui.matrix_coefficients);
 			gf_fprintf(dump, "\" vui_low_delay_hrd_flag=\"%d", avc->sps->vui.low_delay_hrd_flag);
 		}
-		if (gf_sys_is_test_mode()) break;
 		gf_fprintf(dump, "\" log2_max_poc_lsb=\"%d", avc->sps->log2_max_poc_lsb);
 		gf_fprintf(dump, "\" log2_max_frame_num=\"%d", avc->sps->log2_max_frame_num);
 		gf_fprintf(dump, "\" delta_pic_order_always_zero_flag=\"%d", avc->sps->delta_pic_order_always_zero_flag);
@@ -1113,7 +1094,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
-		gf_fputs("PictureParameterSet", dump);
 		if (is_encrypted) break;
 		idx = gf_avc_read_pps_bs(bs, avc);
 		if (idx<0) {
@@ -1123,7 +1103,6 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		if (full_bs_dump) break;
 		gf_fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		gf_fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
-		if (gf_sys_is_test_mode()) break;
 		gf_fprintf(dump, "\" deblocking_filter_control_present_flag=\"%d", avc->pps[idx].deblocking_filter_control_present_flag);
 		gf_fprintf(dump, "\" mb_slice_group_map_type=\"%d", avc->pps[idx].mb_slice_group_map_type);
 		gf_fprintf(dump, "\" num_ref_idx_l0_default_active_minus1=\"%d", avc->pps[idx].num_ref_idx_l0_default_active_minus1);
@@ -1137,40 +1116,18 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		gf_fprintf(dump, "\" weighted_bipred_idc=\"%d", avc->pps[idx].weighted_bipred_idc);
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
-		gf_fputs("AccessUnit delimiter", dump);
 		if (is_encrypted) break;
 		if (full_bs_dump) break;
 		gf_fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
 		break;
-	case GF_AVC_NALU_END_OF_SEQ:
-		gf_fputs("EndOfSequence", dump);
-		break;
-	case GF_AVC_NALU_END_OF_STREAM:
-		gf_fputs("EndOfStream", dump);
-		break;
-	case GF_AVC_NALU_FILLER_DATA:
-		gf_fputs("Filler data", dump);
-		break;
-	case GF_AVC_NALU_SEQ_PARAM_EXT:
-		gf_fputs("SequenceParameterSetExtension", dump);
-		break;
-	case GF_AVC_NALU_SVC_PREFIX_NALU:
-		gf_fputs("SVCPrefix", dump);
-		break;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-		gf_fputs("SVCSubsequenceParameterSet", dump);
 		if (is_encrypted) break;
 		idx = gf_avc_read_sps_bs(bs, avc, 1, NULL);
 		assert (idx >= 0);
 		if (full_bs_dump) break;
 		gf_fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
 		break;
-	case GF_AVC_NALU_SLICE_AUX:
-		gf_fputs("Auxiliary Slice", dump);
-		break;
-
 	case GF_AVC_NALU_SVC_SLICE:
-		gf_fputs(is_svc ? "SVCSlice" : "CodedSliceExtension", dump);
 		if (is_encrypted) break;
 		gf_avc_parse_nalu(bs, avc);
 		dependency_id = (ptr[2] & 0x70) >> 4;
@@ -1179,11 +1136,8 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		gf_fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
 		gf_fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
-	case 30:
-		gf_fputs("SVCAggregator", dump);
-		break;
+	//extractor
 	case 31:
-		gf_fputs("SVCExtractor", dump);
 		if (is_encrypted) break;
 		track_ref_index = (u8) ptr[4];
 		sample_offset = (s8) ptr[5];
@@ -1191,9 +1145,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		data_size = inspect_get_nal_size(&ptr[6+nalh_size], nalh_size);
 		gf_fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d\"", track_ref_index, sample_offset, data_offset, data_size);
 		break;
-
 	default:
-		gf_fputs("UNKNOWN", dump);
 		break;
 	}
 	gf_fputs("\"", dump);
@@ -2283,6 +2235,8 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 
 			if (prop) {
 				gf_fprintf(dump, "%s", gf_props_dump(prop_4cc, prop, szDump, (GF_PropDumDataMode) ctx->dump_data) );
+			} else {
+				gf_fprintf(dump, "N/A");
 			}
 		}
 		else {
@@ -2297,6 +2251,8 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 
 			if (prop) {
 				gf_fprintf(dump, "%s", gf_props_dump(prop_4cc, prop, szDump, (GF_PropDumDataMode) ctx->dump_data) );
+			} else {
+				gf_fprintf(dump, "N/A");
 			}
 		}
 
@@ -2802,6 +2758,7 @@ props_done:
 		}
 	} else {
 		u32 hdr, pos, fsize, i;
+		u32 dflag=0;
 		switch (pctx->codec_id) {
 		case GF_CODECID_MPEG1:
 		case GF_CODECID_MPEG2_422:
@@ -2829,17 +2786,16 @@ props_done:
 			break;
 		case GF_CODECID_SUBS_TEXT:
 		case GF_CODECID_META_TEXT:
-			gf_fprintf(dump, "<![CDATA[");
-			for (i=0; i<size; i++) {
-				gf_fputc(data[i], dump);
-			}
-			gf_fprintf(dump, "]]>\n");
-			break;
+			dflag=1;
 		case GF_CODECID_SUBS_XML:
 		case GF_CODECID_META_XML:
+			if (dflag)
+				gf_fprintf(dump, "<![CDATA[");
 			for (i=0; i<size; i++) {
 				gf_fputc(data[i], dump);
 			}
+			if (dflag)
+				gf_fprintf(dump, "]]>\n");
 			break;
 		case GF_CODECID_APCH:
 		case GF_CODECID_APCO:
@@ -2859,16 +2815,14 @@ props_done:
 			gf_inspect_dump_mhas(dump, (char *) data, size, ctx->crc, pctx);
 			break;
 		case GF_CODECID_VP8:
-			inspect_dump_vpx(ctx, dump, (char *) data, size, ctx->crc, pctx, 8);
-			break;
+			dflag=1;
 		case GF_CODECID_VP9:
-			inspect_dump_vpx(ctx, dump, (char *) data, size, ctx->crc, pctx, 9);
+			inspect_dump_vpx(ctx, dump, (char *) data, size, ctx->crc, pctx, dflag ? 8 : 9);
 			break;
 		case GF_CODECID_AC3:
-			inspect_dump_ac3_eac3(ctx, dump, (char *) data, size, ctx->crc, pctx, 0);
-			break;
+			dflag=1;
 		case GF_CODECID_EAC3:
-			inspect_dump_ac3_eac3(ctx, dump, (char *) data, size, ctx->crc, pctx, 1);
+			inspect_dump_ac3_eac3(ctx, dump, (char *) data, size, ctx->crc, pctx, dflag ? 0 : 1);
 			break;
 		case GF_CODECID_TRUEHD:
 			gf_bs_reassign_buffer(pctx->bs, data, size);
