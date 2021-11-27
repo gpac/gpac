@@ -415,8 +415,14 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 	task->fun = JS_DupValue(ctx, argv[0]);
 	task->_obj = JS_DupValue(ctx, this_val);
 
-	if (cbk_type == 1)
+	if (cbk_type == 1) {
 		gf_sys_profiler_set_callback(task, jsfs_rmt_user_callback);
+#ifdef GPAC_ENABLE_COVERAGE
+		if (gf_sys_is_cov_mode()) {
+			jsfs_rmt_user_callback(task, "test");
+		}
+#endif
+	}
 	else if (cbk_type == 2)
 		fs->new_f_task = task;
 	else if (cbk_type == 3)

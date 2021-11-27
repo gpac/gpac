@@ -2886,7 +2886,8 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 	gf_filter_notification_failure(filter, reason, GF_TRUE);
 }
 
-#ifndef GPAC_DISABLE_LOG
+//#define DUMP_TASKS
+#if !defined(GPAC_DISABLE_LOG) && defined DUMP_TASKS
 static Bool task_postponed_log(void *udta, void *item)
 {
 	GF_FSTask *at = (GF_FSTask *)item;
@@ -2912,7 +2913,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
 		task->can_swap = GF_TRUE;
-#ifndef GPAC_DISABLE_LOG
+#if !defined(GPAC_DISABLE_LOG) && defined DUMP_TASKS
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG) ) {
 			gf_fq_enum(f->tasks, task_postponed_log, NULL);
 		}

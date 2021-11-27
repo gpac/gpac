@@ -51,7 +51,6 @@ void gf_dm_sess_flush_h2(GF_DownloadSession *sess);
 #ifdef GPAC_HAS_SSL
 
 void *gf_ssl_new(void *ssl_server_ctx, GF_Socket *client_sock, GF_Err *e);
-void gf_ssl_del(void *ssl_ctx);
 void *gf_ssl_server_context_new(const char *cert, const char *key);
 void gf_ssl_server_context_del(void *ssl_server_ctx);
 Bool gf_ssl_init_lib();
