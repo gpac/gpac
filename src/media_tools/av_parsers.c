@@ -10088,7 +10088,7 @@ static s32 gf_vvc_read_sps_bs_internal(GF_BitStream *bs, VVCState *vvc, u8 layer
 	if (sps_ptl_dpb_hrd_params_present_flag) {
 		if (gf_bs_read_int_log(bs, 1, "sps_timing_hrd_params_present_flag")) {
 			Bool general_nal_hrd_params_present_flag, general_vcl_hrd_params_present_flag, general_du_hrd_params_present_flag;
-			u32 hrd_cpb_cnt_minus1;
+			u32 hrd_cpb_cnt_minus1=0;
 			u32 sublayer_cpb_params_present_flag = 0;
 			vvc_parse_general_timing_hrd_parameters(bs, sps, NULL, &general_nal_hrd_params_present_flag, &general_vcl_hrd_params_present_flag, &general_du_hrd_params_present_flag, &hrd_cpb_cnt_minus1);
 			if (sps->max_sublayers > 1) {
@@ -10223,7 +10223,7 @@ static s32 gf_vvc_read_pps_bs_internal(GF_BitStream *bs, VVCState *vvc)
 
 		u32 nb_ctb_left = pps->pic_width_in_ctbsY;
 		pps->num_tile_cols=0;
-		u32 nb_ctb_last;
+		u32 nb_ctb_last=0;
 		for (i=0; i<num_exp_tile_columns; i++) {
 			u32 nb_ctb_width = 1 + gf_bs_read_ue_log_idx(bs, "tile_column_width_minus1", i);
 			nb_ctb_left -= nb_ctb_width;
@@ -10845,7 +10845,7 @@ static u32 vvc_get_num_entry_points(VVCSliceInfo *si, u32 sh_slice_address, u32 
 	if (!si->sps->entry_point_offsets_present_flag) return 0;
 
 	u32 nb_entry_points = 0;
-	u32 prev_ctb_addr_y;
+	u32 prev_ctb_addr_y=0;
 	u32 prev_ctb_to_tile_row_bd, prev_ctb_to_tile_col_bd;
 	s32 i;
 	s32 nb_ctus_in_slice = vvc_get_ctb_info_in_slice(si, sh_slice_address, sh_num_tiles_in_slice, -1);

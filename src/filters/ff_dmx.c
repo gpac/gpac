@@ -226,7 +226,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	}
 
 	if (pkt->side_data_elems) {
-		for (i=0; i<pkt->side_data_elems; i++) {
+		for (i=0; i < (u32) pkt->side_data_elems; i++) {
 			AVPacketSideData *sd = &pkt->side_data[i];
 			if (sd->type == AV_PKT_DATA_NEW_EXTRADATA) {
 				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA(sd->data, sd->size) );
