@@ -1007,13 +1007,6 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *sg, GF_List *comList, Double time
 \return new commandFieldInfo structure*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 
-/*! executes JS code in the root context of the scene graph
-\param sg the target scene graph where to execute the script
-\param com javascript code to execute
-\return error if any
-*/
-GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com);
-
 /*! XML node from DOM parser */
 typedef struct _xml_node *GF_DOMXMLNODE;
 

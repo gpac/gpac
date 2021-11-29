@@ -4192,7 +4192,7 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_isom_get_media_time(NULL, 0, 0, NULL);
 	gf_isom_get_sample_description_index(NULL, 0, 0);
 
-
+	gf_sg_has_scripting();
 #endif
 	return 0;
 }

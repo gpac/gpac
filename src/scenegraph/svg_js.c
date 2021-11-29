@@ -123,10 +123,8 @@ void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF
 {
 	if (svg_js->handler_execute(hdl, event, observer, (char *) iri)) {
 		return;
-	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Error executing JavaScript event handler\n"));
-		return;
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] Error executing JavaScript event handler\n"));
 }
 static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
 
@@ -198,8 +196,10 @@ static JSValue svg_nav_to_location(JSContext *c, JSValueConst obj, int argc, JSV
 
 	par.uri.url = (char *) JS_ToCString(c, argv[0]);
 	par.uri.nb_params = 0;
-	ScriptAction(sg, GF_JSAPI_OP_LOAD_URL, sg->RootNode, &par);
-	JS_FreeCString(c, par.uri.url);
+	if (par.uri.url) {
+		ScriptAction(sg, GF_JSAPI_OP_LOAD_URL, sg->RootNode, &par);
+		JS_FreeCString(c, par.uri.url);
+	}
 	return JS_UNDEFINED;
 }
 
@@ -210,13 +210,15 @@ static JSValue svg_parse_xml(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	GF_Node *node;
 	const char *str;
 
-	if (!JS_IsObject(argv[1])) {
+	if ((argc<2) || !JS_IsObject(argv[1])) {
 		return js_throw_err(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
 	}
 
+	sg = dom_get_doc(c, argv[1]);
+	if (!sg) return js_throw_err(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
+
 	str = JS_ToCString(c, argv[0]);
 	if (!str) return JS_TRUE;
-	sg = dom_get_doc(c, argv[1]);
 
 	node = gf_sm_load_svg_from_string(sg, (char *) str);
 	JS_FreeCString(c, str);
@@ -1890,22 +1892,22 @@ static JSValue matrix_setProperty(JSContext *c, JSValueConst obj, JSValueConst v
 	switch (magic) {
 	case 0:
 		mx->m[0] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	case 1:
 		mx->m[3] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	case 2:
 		mx->m[1] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	case 3:
 		mx->m[4] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	case 4:
 		mx->m[2] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	case 5:
 		mx->m[5] = FLT2FIX(d);
-		break;
+		return JS_UNDEFINED;
 	default:
 		break;
 	}
@@ -1986,7 +1988,7 @@ static JSValue svg_mx2d_rotate(JSContext *c, JSValueConst obj, int argc, JSValue
 	GF_Matrix2D *mx1, mx2;
 
 	mx1 = (GF_Matrix2D *) JS_GetOpaque(obj, matrixClass.class_id);
-	if (!mx1 || (argc!=2)) return GF_JS_EXCEPTION(c);
+	if (!mx1 || (argc!=1)) return GF_JS_EXCEPTION(c);
 	if (JS_ToFloat64(c, &angle, argv[0])) return GF_JS_EXCEPTION(c);
 
 	gf_mx2d_init(mx2);
@@ -1995,31 +1997,6 @@ static JSValue svg_mx2d_rotate(JSContext *c, JSValueConst obj, int argc, JSValue
 	return JS_DupValue(c, obj);
 }
 
-JSValue svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed height)
-{
-	rectCI *rc = (rectCI *)gf_malloc(sizeof(rectCI));
-	if (!rc) return GF_JS_EXCEPTION(c);
-	JSValue r = JS_NewObjectClass(c, rectClass.class_id);
-	rc->x = FIX2FLT(x);
-	rc->y = FIX2FLT(y);
-	rc->w = FIX2FLT(width);
-	rc->h = FIX2FLT(height);
-	rc->sg = NULL;
-	JS_SetOpaque(r, rc);
-	return r;
-}
-
-JSValue svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
-{
-	pointCI *pt = (pointCI *)gf_malloc(sizeof(pointCI));
-	if (!pt) return GF_JS_EXCEPTION(c);
-	JSValue p = JS_NewObjectClass(c, pointClass.class_id);
-	pt->x = FIX2FLT(x);
-	pt->y = FIX2FLT(y);
-	pt->sg = NULL;
-	JS_SetOpaque(p, pt);
-	return p;
-}
 
 #ifdef GPAC_ENABLE_HTML5_MEDIA
 void *html_get_element_class(GF_Node *n);
@@ -2613,6 +2590,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	GF_SVGJS *svg_js;
 	JSValue __this;
 	JSValue ret;
+	Bool free_this = GF_FALSE;
 	u32 flags = JS_EVAL_TYPE_GLOBAL;
 	Bool success=GF_TRUE;
 	GF_DOM_Event *prev_event = NULL;
@@ -2623,7 +2601,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		if (!node) return GF_FALSE;
 		hdl = NULL;
 	} else {
-		if (JS_IsUndefined(hdl->js_data->fun_val) && JS_IsUndefined(hdl->js_data->evt_listen_obj)) {
+		if (!hdl->js_data || (JS_IsUndefined(hdl->js_data->fun_val) && JS_IsUndefined(hdl->js_data->evt_listen_obj))) {
 			txt = svg_get_text_child(node);
 			if (!txt) return GF_FALSE;
 		}
@@ -2664,9 +2642,15 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		flags = JS_EVAL_TYPE_MODULE;
 
 	/*if an observer is being specified, use it*/
-	if (hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->evt_listen_obj)) __this = hdl->js_data->evt_listen_obj;
+	if (hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->evt_listen_obj))
+		__this = hdl->js_data->evt_listen_obj;
 	/*compile the jsfun if any - 'this' is the associated observer*/
-	else __this = observer ? dom_element_construct(svg_js->js_ctx, observer) : svg_js->global;
+	else if (observer) {
+		__this = dom_element_construct(svg_js->js_ctx, observer);
+		free_this = GF_TRUE;
+	} else {
+		__this = svg_js->global;
+	}
 
 	if (txt && hdl && hdl->js_data && !JS_IsUndefined(hdl->js_data->fun_val)) {
 		hdl->js_data->fun_val = JS_EvalThis(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), "handler", flags|JS_EVAL_FLAG_COMPILE_ONLY);
@@ -2691,11 +2675,18 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			ret = JS_Call(svg_js->js_ctx, fun, hdl->js_data->evt_listen_obj, 1, argv);
 			JS_FreeValue(svg_js->js_ctx, fun);
 		}
+		JS_FreeValue(svg_js->js_ctx, evt);
 	} else if (txt) {
 		JSValue fun = JS_GetPropertyStr(svg_js->js_ctx, svg_js->global, txt->textContent);
+		if (JS_IsUndefined(fun)) {
+			JSValue glob = JS_GetGlobalObject(svg_js->js_ctx);
+			fun = JS_GetPropertyStr(svg_js->js_ctx, glob, txt->textContent);
+			JS_FreeValue(svg_js->js_ctx, glob);
+		}
+
 		if (!JS_IsUndefined(fun)) {
 			ret = JS_NULL;
-			if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) {
+			if (! svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) {
 				success = GF_FALSE;
 			}
 		}
@@ -2711,6 +2702,9 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		success = GF_FALSE;
 	}
 	JS_FreeValue(svg_js->js_ctx, ret);
+
+	if (free_this)
+		JS_FreeValue(svg_js->js_ctx, __this);
 
 	JS_SetOpaque(svg_js->event, prev_event);
 	if (txt && hdl && hdl->js_data) hdl->js_data->fun_val = JS_UNDEFINED;
