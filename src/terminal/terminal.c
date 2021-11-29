@@ -688,7 +688,22 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	if (!term || !com) return GF_BAD_PARAM;
 
 	if (type && (!stricmp(type, "application/ecmascript") || !stricmp(type, "js")) )  {
-		return gf_scene_execute_script(compositor->root_scene->graph, com);
+#if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_SVG)
+		u32 tag;
+		GF_Node *root = gf_sg_get_root_node(compositor->root_scene->graph);
+		if (!root) return GF_BAD_PARAM;
+		tag = gf_node_get_tag(root);
+		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+			if (compositor->root_scene->graph->svg_js) {
+				GF_Err svg_exec_script(struct __tag_svg_script_ctx *svg_js, GF_SceneGraph *sg, const char *com);
+				return svg_exec_script(compositor->root_scene->graph->svg_js, compositor->root_scene->graph, (char *)com);
+			}
+			return GF_NOT_FOUND;
+		}
+		return GF_NOT_SUPPORTED;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	if (!type && !strncmp(com, "gpac ", 5)) {

@@ -771,7 +771,7 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 	if (callback) gf_dom_add_text_node((GF_Node *)handler, gf_strdup(callback));
 
 #ifndef GPAC_DISABLE_SVG
-	if (handler->sgprivate->scenegraph->svg_js)
+	if (handler->sgprivate->scenegraph->svg_js && !handler->handle_event)
 		handler->handle_event = gf_sg_handle_dom_event;
 #endif
 
@@ -893,7 +893,7 @@ JSValue gf_sg_js_event_remove_listener(JSContext *c, JSValueConst obj, int argc,
 #endif
 
 err_exit:
-	if (callback) JS_FreeCString(c, callback);
+	if (callback) gf_free(callback);
 	return JS_UNDEFINED;
 }
 
@@ -1181,6 +1181,8 @@ static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
 	/*browse attributes*/
 	GF_DOMAttribute *att;
 	if (!node) return NULL;
+	if (node->sgprivate->tag < GF_NODE_FIRST_DOM_NODE_TAG) return NULL;
+
 	att = ((SVG_Element*)node)->attributes;
 	while (att) {
 		if (att->tag==TAG_DOM_ATT_any) {
@@ -2568,7 +2570,9 @@ static const JSCFunctionListEntry element_Funcs[] =
 	JS_CFUNC_DEF("removeAttributeNode", 1, xml_dom3_not_implemented),
 	JS_CFUNC_DEF("getAttributeNodeNS", 2, xml_dom3_not_implemented),
 	JS_CFUNC_DEF("setAttributeNodeNS", 1, xml_dom3_not_implemented),
-	JS_CFUNC_DEF("setIdAttributeNode", 2, xml_dom3_not_implemented)
+	JS_CFUNC_DEF("setIdAttributeNode", 2, xml_dom3_not_implemented),
+	/*eventTarget interface*/
+	JS_DOM3_EVENT_TARGET_INTERFACE
 };
 
 static const JSCFunctionListEntry text_Funcs[] =

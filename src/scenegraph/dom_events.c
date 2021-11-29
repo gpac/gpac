@@ -260,6 +260,7 @@ void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer
 	if (hdl->sgprivate->scenegraph->svg_js) {
 		void svgjs_handler_execute(struct __tag_svg_script_ctx *svg_js, GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer, const char *_none);
 		svgjs_handler_execute(hdl->sgprivate->scenegraph->svg_js, hdl, event, observer, NULL);
+		return;
 	}
 #endif
 	GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[DOM Events] JavaScript context not found \n"));
