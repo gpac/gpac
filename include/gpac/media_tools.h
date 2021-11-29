@@ -439,6 +439,8 @@ typedef struct __track_import
 	GF_FilterSession *run_in_session;
 	/*! muxer arguments when running multiple importers in one session*/
 	char *update_mux_args;
+	/*! muxer source ID argument when running multiple importers in one session*/
+	char *update_mux_sid;
 	/*! index of source importer when running multiple importers in one session*/
 	u32 track_index;
 	/*! target start time in source*/

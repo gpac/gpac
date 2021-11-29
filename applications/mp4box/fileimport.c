@@ -455,7 +455,7 @@ error:
 static const char *videofmt_names[] = { "component", "pal", "ntsc", "secam", "mac", "undef"};
 
 
-GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, u32 tk_idx)
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction force_fps, u32 frames_per_sample, GF_FilterSession *fsess, char **mux_args_if_first_pass, char **mux_sid_if_first_pass, u32 tk_idx)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, compat, level, new_timescale, rescale_num, rescale_den, svc_mode, txt_flags, split_tile_mode, temporal_mode, nb_tracks;
 	s32 par_d, par_n, prog_id, force_rate, moov_timescale;
@@ -1298,6 +1298,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		if (fsess) {
 			*mux_args_if_first_pass = import.update_mux_args;
 			import.update_mux_args = NULL;
+			*mux_sid_if_first_pass = import.update_mux_sid;
+			import.update_mux_sid = NULL;
 			goto exit;
 		}
 	}
@@ -2241,7 +2243,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	if (!is_isom || multi_cat) {
 		orig = gf_isom_open("temp", GF_ISOM_WRITE_EDIT, NULL);
 		if (opts) opts[0] = ':';
-		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
+		e = import_file(orig, fileName, import_flags, force_fps, frames_per_sample, NULL, NULL, NULL, 0);
 		if (e) return e;
 	} else {
 		//open read+edit mode to allow applying options on file
@@ -2250,7 +2252,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		if (!orig) return gf_isom_last_error(NULL);
 
 		if (opts) {
-			e = import_file(orig, fileName, 0xFFFFFFFF, force_fps, frames_per_sample, NULL, NULL, 0);
+			e = import_file(orig, fileName, 0xFFFFFFFF, force_fps, frames_per_sample, NULL, NULL, NULL, 0);
 			if (e) return e;
 		}
 	}
@@ -2259,7 +2261,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 		char *sep = strchr(multi_cat, '+');
 		if (sep) sep[0] = 0;
 
-		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL, 0);
+		e = import_file(orig, multi_cat, import_flags, force_fps, frames_per_sample, NULL, NULL, NULL, 0);
 		if (e) {
 			gf_isom_delete(orig);
 			return e;

@@ -4176,6 +4176,7 @@ static u32 do_add_cat(int argc, char **argv)
 	GF_Err e;
 	u32 i, ipass, nb_pass = 1;
 	char *mux_args=NULL;
+	char *mux_sid=NULL;
 	GF_FilterSession *fs = NULL;
 	if (nb_add) {
 
@@ -4248,6 +4249,7 @@ static u32 do_add_cat(int argc, char **argv)
 		u32 tk_idx = 1;
 		for (i=0; i<(u32) argc; i++) {
 			char *margs=NULL;
+			char *msid = NULL;
 			if (!strcmp(argv[i], "-add")) {
 				char *src = argv[i+1];
 
@@ -4277,13 +4279,20 @@ static u32 do_add_cat(int argc, char **argv)
 						sep[0] = '+';
 						loc_src = sep+1;
 					}
-
-					e = import_file(file, src, import_flags, import_fps, agg_samples, fs, (fs && (ipass==0)) ? &margs : NULL, tk_idx);
+					if (fs && (ipass==0)) {
+						e = import_file(file, src, import_flags, import_fps, agg_samples, fs, &margs, &msid, tk_idx);
+					} else {
+						e = import_file(file, src, import_flags, import_fps, agg_samples, fs, NULL, NULL, tk_idx);
+					}
 					tk_idx++;
 
 					if (margs) {
 						gf_dynstrcat(&mux_args, margs, ":");
 						gf_free(margs);
+					}
+					if (msid) {
+						gf_dynstrcat(&mux_sid, msid, ",");
+						gf_free(msid);
 					}
 
 					if (e) {
@@ -4337,6 +4346,10 @@ static u32 do_add_cat(int argc, char **argv)
 			}
 		}
 		if ((nb_pass == 2) && !ipass) {
+			if (mux_sid) {
+				gf_dynstrcat(&mux_args, "SID=", ":");
+				gf_dynstrcat(&mux_args, mux_sid, NULL);
+			}
 			GF_Filter *mux_filter = gf_fs_load_filter(fs, mux_args, NULL);
 			gf_free(mux_args);
 			if (!mux_filter) {
@@ -4822,7 +4835,7 @@ static GF_Err do_meta_act()
 					if (meta->image_props->item_ref_id)
 						src_tk_id = 0;
 				} else {
-					e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, 0);
+					e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, NULL, 0);
 				}
 			} else {
 				M4_LOG(GF_LOG_ERROR, ("Missing file name to import\n"));
