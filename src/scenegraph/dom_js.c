@@ -1919,6 +1919,7 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMJS] Failed to allocate DOM attribute\n"));
 		return;
 	}
+	att->tag = TAG_DOM_ATT_any;
 	att->name = gf_strdup(attribute_name);
 	att->data_type = (u16) DOM_String_datatype;
 	att->data = gf_svg_create_attribute_value(att->data_type);
@@ -2182,7 +2183,7 @@ static JSValue xml_element_set_id(JSContext *c, JSValueConst obj, int argc, JSVa
 	}
 	if (is_id) {
 		if (!name) return GF_JS_EXCEPTION(c);
-		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, gf_strdup(name) );
+		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, name);
 	} else if (node_id) {
 		gf_node_remove_id(n);
 	}
