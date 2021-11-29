@@ -424,8 +424,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_LIB) {
 #if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_LINUX)
 		_Dl_info dl_info;
-		dladdr((void *)get_default_install_path, &dl_info);
-		if (dl_info.dli_fname) {
+		dl_info.dli_fname = NULL;
+		if (dladdr((void *)get_default_install_path, &dl_info)
+			&& dl_info.dli_fname
+		) {
 			strcpy(file_path, dl_info.dli_fname);
 			sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
