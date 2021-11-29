@@ -171,7 +171,7 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (load.isom) {
 			GF_Fraction _frac = {0,0};
-			e = import_file(load.isom, file, 0, _frac, 0, NULL, NULL, 0);
+			e = import_file(load.isom, file, 0, _frac, 0, NULL, NULL, NULL, 0);
 		} else
 #else
 		M4_LOG(GF_LOG_WARNING, ("Warning: GPAC was compiled without Media Import support\n"));

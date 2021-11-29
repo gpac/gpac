@@ -1256,7 +1256,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	filter_orig=NULL;
 
 	if (importer->run_in_session) {
-		sprintf(szFilterID, "%d", (u32) ( (importer->source_magic & 0xFFFFFFFFUL) ) );
+		sprintf(szFilterID, "%u", (u32) ( (importer->source_magic & 0xFFFFFFFFUL) ) );
 	} else {
 		strcpy(szFilterID, "1");
 	}
@@ -1340,7 +1340,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			return gf_import_message(importer, e, "[Importer] Cannot load ISOBMFF muxer");
 		}
 	} else {
-		importer->update_mux_args = args;
+		if (args)
+			gf_dynstrcat(&importer->update_mux_args, args, ":");
 		args = NULL;
 		isobmff_mux = NULL;
 	}
@@ -1394,8 +1395,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 					prev_id = gf_filter_get_id(prev_filter);
 				}
 				if (importer->run_in_session) {
-					gf_dynstrcat(&importer->update_mux_args, ":SID=", NULL);
-					gf_dynstrcat(&importer->update_mux_args, prev_id, NULL);
+					gf_dynstrcat(&importer->update_mux_sid, prev_id, importer->update_mux_sid ? "," : ":SID=");
 				} else {
 					assert(isobmff_mux);
 					gf_filter_set_source(isobmff_mux, prev_filter, NULL);
