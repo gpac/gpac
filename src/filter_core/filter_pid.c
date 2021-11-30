@@ -5869,6 +5869,8 @@ GF_EXPORT
 void gf_filter_pid_set_eos(GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
+	//allow NULL as input (most filters blindly call set_eos on output even if no output)
+	if (!pid) return;
 
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
