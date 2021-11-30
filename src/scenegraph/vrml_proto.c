@@ -990,6 +990,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 	GF_Err e;
 	GF_Route *r;
 	GF_FieldInfo field, nodeField;
+	if (!protoinst) return GF_BAD_PARAM;
 	if (protoinst->sgprivate->tag != TAG_ProtoNode) return GF_BAD_PARAM;
 
 	e = gf_node_get_field(protoinst, protoFieldIndex, &field);
@@ -1250,7 +1251,7 @@ GF_Proto *gf_node_get_proto(GF_Node *node)
 GF_EXPORT
 u32 gf_sg_proto_get_id(GF_Proto *proto)
 {
-	return proto->ID;
+	return proto ? proto->ID : 0;
 }
 
 GF_EXPORT

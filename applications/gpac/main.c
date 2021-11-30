@@ -3796,6 +3796,7 @@ static Bool gpac_expand_alias(int argc, char **argv)
 #include <gpac/thread.h>
 #include <gpac/avparse.h>
 #include <gpac/mpegts.h>
+#include <gpac/scenegraph_vrml.h>
 #include <gpac/rtp_streamer.h>
 #include <gpac/internal/odf_dev.h>
 #include <gpac/internal/media_dev.h>
@@ -4193,6 +4194,17 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	gf_isom_get_sample_description_index(NULL, 0, 0);
 
 	gf_sg_has_scripting();
+	gf_node_get_proto_root(NULL);
+	gf_node_proto_is_grouping(NULL);
+	gf_sg_proto_get_id(NULL);
+	gf_sg_proto_instance_set_ised(NULL, 0, NULL, 0);
+
+	gf_audio_fmt_to_isobmf(0);
+	gf_pixel_fmt_probe(0, NULL);
+	gf_net_ntp_to_utc(0);
+	gf_sys_profiler_sampling_enabled();
+
+
 #endif
 	return 0;
 }

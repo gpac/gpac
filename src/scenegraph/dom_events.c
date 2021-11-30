@@ -724,7 +724,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
 	GF_FieldInfo info;
-	SVGTimedAnimBaseElement *timed_elt = (SVGTimedAnimBaseElement *)gf_node_get_private(hdl);
+	SVGTimedAnimBaseElement *timed_elt = (SVGTimedAnimBaseElement *) ((SVG_handlerElement *)hdl)->timed_elt;
 	if (!timed_elt || !timed_elt->timingp) return;
 
 	memset(&info, 0, sizeof(GF_FieldInfo));
@@ -737,7 +737,9 @@ static void gf_smil_handle_event_begin(GF_Node *hdl, GF_DOM_Event *evt, GF_Node 
 static void gf_smil_handle_event_end(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
 	GF_FieldInfo info;
-	GF_Node *timed_elt = (GF_Node *)gf_node_get_private(hdl);
+	SVGTimedAnimBaseElement *timed_elt = (SVGTimedAnimBaseElement *) ((SVG_handlerElement *)hdl)->timed_elt;
+	if (!timed_elt || !timed_elt->timingp) return;
+
 	memset(&info, 0, sizeof(GF_FieldInfo));
 	info.name = "end";
 	info.far_ptr = ((SVGTimedAnimBaseElement *)timed_elt)->timingp->end;
@@ -778,22 +780,12 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 
 		if (hdl) {
 			((SVG_handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
+			//remember parent timed element
+			((SVG_handlerElement *)hdl)->timed_elt = node;
 		}
 		else {
 			continue;
 		}
-
-		//this code is broken, it introduces a cyclic ref between the parent and the handler but
-		//the listener (parent of the handler) is not inserted in the graph, so destruction of the handler
-		//will only happen if the SMIL_Time is destroyed (thus destroying the listener), but this SMIL_time
-		//will never get destroyed since the attribute owner (node) has an extra instance
-#if 0
-		/*We don't want to insert the implicit listener in the DOM. However remember
-		the listener at the handler level in case the handler gets destroyed*/
-		gf_node_set_private((GF_Node *)hdl, node);
-		gf_node_register((GF_Node*)node, NULL);
-#endif
-
 		/*we keep the t->element pointer in order to discard the source of identical events (begin of # elements, ...)*/
 	}
 }

@@ -12780,6 +12780,8 @@ static const u16 Script_Def2All[] = { 0, 1, 2};
 static const u16 Script_In2All[] = { 0};
 static const u16 Script_Out2All[] = { 0};
 
+//unused
+#if 0
 static u32 Script_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
@@ -12795,7 +12797,7 @@ static u32 Script_get_field_count(GF_Node *node, u8 IndexMode)
 		return 3;
 	}
 }
-
+#endif
 static GF_Err Script_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
 {
 	switch(IndexMode) {
@@ -12838,7 +12840,8 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 	}
 }
 
-
+//unused
+#if 0
 static s32 Script_get_field_index_by_name(char *name)
 {
 	if (!strcmp("url", name)) return 0;
@@ -12846,6 +12849,7 @@ static s32 Script_get_field_index_by_name(char *name)
 	if (!strcmp("mustEvaluate", name)) return 2;
 	return -1;
 }
+#endif
 static Bool Script_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -38260,8 +38264,11 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 		return Rectangle_get_field_count(node, code_mode);
 	case TAG_MPEG4_ScalarInterpolator:
 		return ScalarInterpolator_get_field_count(node, code_mode);
+//unused
+#if 0
 	case TAG_MPEG4_Script:
 		return Script_get_field_count(node, code_mode);
+#endif
 	case TAG_MPEG4_Shape:
 		return Shape_get_field_count(node, code_mode);
 	case TAG_MPEG4_Sound:
@@ -40169,8 +40176,11 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 		return Rectangle_get_field_index_by_name(name);
 	case TAG_MPEG4_ScalarInterpolator:
 		return ScalarInterpolator_get_field_index_by_name(name);
+//unused
+#if 0
 	case TAG_MPEG4_Script:
 		return Script_get_field_index_by_name(name);
+#endif
 	case TAG_MPEG4_Shape:
 		return Shape_get_field_index_by_name(name);
 	case TAG_MPEG4_Sound:

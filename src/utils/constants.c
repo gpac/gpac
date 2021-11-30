@@ -885,7 +885,25 @@ u64 gf_audio_fmt_get_layout_from_name(const char *name)
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
 	return 0;
 }
+
+
 GF_EXPORT
+u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
+{
+	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
+	for (i = 0; i < nb_cicp; i++) {
+		if (GF_CICPLayouts[i].channel_mask == chan_layout) return GF_CICPLayouts[i].cicp;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
+	return 255;
+}
+
+//unused
+#if 0
+/*! get channel CICP code  from name
+\param name channel layout name
+\return channel CICP code
+*/
 u32 gf_audio_fmt_get_cicp_from_name(const char *name)
 {
 	u32 i, iname, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
@@ -901,19 +919,10 @@ u32 gf_audio_fmt_get_cicp_from_name(const char *name)
 	return 0;
 }
 
-
-GF_EXPORT
-u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
-{
-	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
-	for (i = 0; i < nb_cicp; i++) {
-		if (GF_CICPLayouts[i].channel_mask == chan_layout) return GF_CICPLayouts[i].cicp;
-	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
-	return 255;
-}
-
-GF_EXPORT
+/*! get channel CICP name from
+\param cicp_code channel cicp code
+\return channel CICP name
+*/
 const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 {
 	u32 i, nb_cicp = sizeof(GF_CICPLayouts) / sizeof(GF_CICPAudioLayout);
@@ -923,6 +932,8 @@ const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
 	return NULL;
 }
+#endif
+
 
 GF_EXPORT
 u32 gf_audio_fmt_get_num_channels_from_layout(u64 chan_layout)

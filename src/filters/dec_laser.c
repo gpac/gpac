@@ -230,6 +230,17 @@ static GF_Err lsrdec_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static GF_Err lsrdec_initialize(GF_Filter *filter)
+{
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_svg_get_system_paint_server_type("");
+		gf_svg_get_system_paint_server_name(0);
+	}
+#endif
+	return GF_OK;
+}
+
 static void lsrdec_finalize(GF_Filter *filter)
 {
 	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);
@@ -255,6 +266,7 @@ GF_FilterRegister LSRDecRegister = {
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,
 	SETCAPS(LSRDecCaps),
+	.initialize = lsrdec_initialize,
 	.finalize = lsrdec_finalize,
 	.process = lsrdec_process,
 	.configure_pid = lsrdec_configure_pid,

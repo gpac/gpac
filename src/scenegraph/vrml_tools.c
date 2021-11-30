@@ -610,10 +610,6 @@ void gf_sg_sfimage_del(SFImage im) {
 void gf_sg_sfstring_del(SFString par) {
 	if (par.buffer) gf_free(par.buffer);
 }
-void gf_sg_sfscript_del(SFScript par) {
-	if (par.script_text) gf_free(par.script_text);
-}
-
 
 void gf_sg_sfcommand_del(SFCommandBuffer cb)
 {

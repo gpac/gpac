@@ -1955,7 +1955,7 @@ void gf_fs_run_step(GF_FilterSession *fsess)
 	gf_fs_thread_proc(&fsess->main_th);
 }
 
-static void filter_abort(GF_FSTask *task)
+static void filter_abort_task(GF_FSTask *task)
 {
 	GF_FilterEvent evt;
 	GF_FEVT_INIT(evt, GF_FEVT_STOP, task->pid);
@@ -2030,7 +2030,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 						if (opid->filter->freg->process_event) {
 							if (threaded) {
 								safe_int_inc(&opid->filter->abort_pending);
-								gf_fs_post_task(opid->filter->session, filter_abort, opid->filter, opid, "filter_abort", NULL);
+								gf_fs_post_task(opid->filter->session, filter_abort_task, opid->filter, opid, "filter_abort", NULL);
 								force_disable = GF_FALSE;
 							} else {
 								GF_FilterEvent evt;

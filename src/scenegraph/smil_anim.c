@@ -842,12 +842,6 @@ static void gf_smil_anim_animate(SMIL_Timing_RTI *rti, Fixed normalized_simple_t
 	gf_smil_apply_additive(rai);
 }
 
-static void gf_smil_anim_animate_with_fraction(SMIL_Timing_RTI *rti, Fixed normalized_simple_time)
-{
-	gf_smil_anim_animate(rti, rti->fraction);
-	rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
-}
-
 void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai)
 {
 	if (!rai) return;
@@ -941,7 +935,8 @@ static void gf_smil_anim_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_simple_
 		gf_smil_anim_remove(rti, normalized_simple_time);
 		break;
 	case SMIL_TIMING_EVAL_FRACTION:
-		gf_smil_anim_animate_with_fraction(rti, normalized_simple_time);
+		gf_smil_anim_animate(rti, normalized_simple_time);
+		rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
 		break;
 		/*
 			discard should be done before in smil_notify_time

@@ -667,7 +667,9 @@ event list when destructed.*/
 	/* JavaScript context in which the listener is applicable */ \
 	struct js_handler_context *js_data;\
 	/* text content of the callback */ \
-	char *callback;
+	char *callback; \
+	/* parent timed elt */ \
+	GF_Node *timed_elt;
 
 /*! DOM Event handler*/
 typedef struct __xml_ev_handler

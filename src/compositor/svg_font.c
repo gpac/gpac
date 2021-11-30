@@ -485,16 +485,6 @@ GF_Font *svg_font_uri_get_alias(void *udta)
 	return st->alias;
 }
 
-static GF_Err svg_font_uri_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang, Bool *is_rtl)
-{
-	return GF_URL_ERROR;
-}
-
-static GF_Glyph *svg_font_uri_load_glyph(void *udta, u32 glyph_name)
-{
-	return NULL;
-}
-
 static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
@@ -559,8 +549,6 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 
 	font->ft_mgr = compositor->font_manager;
 
-	font->get_glyphs = svg_font_uri_get_glyphs;
-	font->load_glyph = svg_font_uri_load_glyph;
 	font->get_alias = svg_font_uri_get_alias;
 	font->udta = node;
 	font->name = gf_strdup(atts.font_family->value);
