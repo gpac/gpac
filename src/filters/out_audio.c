@@ -298,7 +298,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			cts -= (u64) -delay;
 		}
 
-		if (ctx->last_cts && (cts>ctx->last_cts)) {
+		if (ctx->last_cts && (cts != GF_FILTER_NO_TS) && (cts>ctx->last_cts)) {
 			u64 now = gf_sys_clock_high_res();
 			u64 diff = cts - ctx->last_cts;
 			//diff too high and no discontinuity, wait
