@@ -1659,7 +1659,7 @@ static GF_Path *gf_path_dash(GF_Path *path, GF_PenSettings *pen)
 
 
 	/* calculate line lengths and update offset*/
-	if (pen->path_length>=0) {
+	if (pen->path_length>0) {
 		Fixed totaldist = 0;
 		nb_pts = 0;
 		for (i=0; i<path->n_contours; i++) {
