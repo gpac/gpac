@@ -2582,6 +2582,9 @@ void gf_filter_process_inline(GF_Filter *filter)
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
 		return;
 	}
+	if (filter->in_process || filter->in_process_callback) {
+		return;
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s inline process\n", filter->name));
 
 	if (filter->postponed_packets) {
@@ -2598,12 +2601,18 @@ void gf_filter_process_inline(GF_Filter *filter)
 	}
 	FSESS_CHECK_THREAD(filter)
 
+	filter->in_process = GF_TRUE;
+	filter->in_process_callback = GF_TRUE;
+
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
 		e = gf_filter_process_check_alloc(filter);
 	else
 #endif
 		e = filter->freg->process(filter);
+
+	filter->in_process_callback = GF_FALSE;
+	filter->in_process = GF_FALSE;
 
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {
