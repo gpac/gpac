@@ -603,6 +603,7 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 	else {
 		u32 i = 0;
 		const char *fun_name;
+		char *fun_name_dup=NULL;
 		JSAtom atom;
 		GF_RouteToScript *r = NULL;
 		if (!JS_IsFunction(c, argv[3]) ) return GF_JS_EXCEPTION(c);
@@ -619,12 +620,16 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 					break;
 			}
 		}
+		if (!r) fun_name_dup = gf_strdup(fun_name);
 		JS_FreeCString(c, fun_name);
 		JS_FreeAtom(c, atom);
 
 		if ( !r ) {
 			GF_SAFEALLOC(r, GF_RouteToScript)
-			if (!r) return JS_FALSE;
+			if (!r) {
+				if (fun_name_dup) gf_free(fun_name_dup);
+				return JS_FALSE;
+			}
 			r->script_route = 1;
 			r->FromNode = n1;
 			r->FromField.fieldIndex = f_id1;
@@ -635,7 +640,9 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 			r->ToField.on_event_in = on_route_to_object;
 			r->ToField.eventType = GF_SG_EVENT_IN;
 			r->ToField.far_ptr = NULL;
-			r->ToField.name = fun_name;
+			//store fun text val in name, route to obj cannot have their ID set
+			r->name = fun_name_dup;
+			r->ToField.name = r->name;
 
 			r->obj = JS_DupValue(c, argv[2]);
 			r->fun = JS_DupValue(c, argv[3]);
@@ -647,6 +654,8 @@ static JSValue addRoute(JSContext *c, JSValueConst this_val, int argc, JSValueCo
 				GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
 				if (!n1->sgprivate->interact) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
+					if (fun_name_dup) gf_free(fun_name_dup);
+					gf_free(r);
 					return GF_JS_EXCEPTION(c);
 				}
 			}
