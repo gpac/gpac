@@ -587,6 +587,9 @@ static GF_Err nvdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	NVDecCtx *ctx = (NVDecCtx *) gf_filter_get_udta(filter);
 
 	if (is_remove) {
+		if (ctx->ipid != pid)
+			return GF_OK;
+
 		if (ctx->opid) {
 			gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;

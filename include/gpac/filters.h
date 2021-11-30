@@ -2142,6 +2142,7 @@ struct __gf_filter_register
 	- a return error of GF_BAD_PARAM, GF_SERVICE_ERROR or GF_REMOTE_SERVICE_ERROR indicates the PID cannot be processed and no alternate chain resolution would help, and throws a log error message
 	- any other return error will trigger a reconfigure of the chain to find another filter unless disabled at session level.
 
+	If an error is returned when (re)configuring a pid, the function is called again with is_remove set to GF_TRUE
 	*/
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *PID, Bool is_remove);
 

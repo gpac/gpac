@@ -675,11 +675,6 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			HEVCTilePid  *tpid;
 			opid = gf_filter_get_opid(filter, i);
 			tpid = gf_filter_pid_get_udta(opid);
-
-			if (tpid->opid) {
-				gf_filter_pid_remove(tpid->opid);
-				tpid->opid = NULL;
-			}
 			if (tpid) gf_free(tpid);
 			if (opid) {
 				gf_filter_pid_set_udta(opid, NULL);
