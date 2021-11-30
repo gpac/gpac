@@ -1169,8 +1169,7 @@ Bool gf_fs_solve_js_script(char *szPath, const char *file_name, const char *file
 	return GF_FALSE;
 }
 
-GF_EXPORT
-GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
+static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char *name, GF_Err *err_code, Bool *probe_only)
 {
 	const char *args=NULL;
 	const char *sep, *file_ext;
@@ -1266,6 +1265,10 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 		}
 
 		if (file_exists) {
+			if (probe_only) {
+				*probe_only = GF_TRUE;
+				return NULL;
+			}
 			sprintf(szName, "jsf%cjs%c", fsess->sep_args, fsess->sep_name);
 			strcat(szName, szPath);
 			if (name[len])
@@ -1279,6 +1282,12 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *
 	}
 	if (err_code) *err_code = GF_FILTER_NOT_FOUND;
 	return NULL;
+}
+
+GF_EXPORT
+GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name, GF_Err *err_code)
+{
+	return gf_fs_load_filter_internal(fsess, name, err_code, NULL);
 }
 
 //in mono thread mode, we cannot always sleep for the requested timeout in case there are more tasks to be processed
@@ -2744,7 +2753,8 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 
 				if (try_js) {
 					if (!strncmp(url, "gpac://", 7)) url += 7;
-					filter = gf_fs_load_filter(fsess, url, err);
+					filter = gf_fs_load_filter_internal(fsess, url, err, probe_only);
+					if (probe_only) return NULL;
 
 					if (filter) {
 						//for link resolution
