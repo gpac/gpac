@@ -3561,6 +3561,7 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 	while (size>3) {
 		u32 nal_type=0;
+		sc_size = 0;
 		sc = gf_media_nalu_next_start_code(data, size, &sc_size);
 		if (!sc_size) break;
 
