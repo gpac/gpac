@@ -339,6 +339,7 @@ function put_image(vsrc, tx, is_testcard, is_first)
 		}
 	}
 	tx.mx = mmx;
+	tx.auto_mx=false;
 	vsrc.canvas.fill(tx);
 
 	if (is_testcard) return;
