@@ -1830,23 +1830,26 @@ static JSValue xml_element_remove_attribute(JSContext *c, JSValueConst obj, int 
 	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		u32 ns_code = 0;
 		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, (char *) ns);
-		else ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
+		else if (!strchr(name, ':'))
+			ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
 
 		tag = gf_xml_get_attribute_tag(n, (char *)name, ns_code);
 	}
 
 	while (att) {
-		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-			DOM_String *s;
-			if (prev) prev->next = att->next;
-			else node->attributes = att->next;
-			s = att->data;
-			if (*s) gf_free(*s);
-			gf_free(s);
-			gf_free(att->name);
-			gf_free(att);
-			dom_node_changed(n, GF_FALSE, NULL);
-			goto exit;
+		if (att->tag==TAG_DOM_ATT_any) {
+			if (!strcmp(att->name, name)) {
+				DOM_String *s;
+				if (prev) prev->next = att->next;
+				else node->attributes = att->next;
+				s = att->data;
+				if (*s) gf_free(*s);
+				gf_free(s);
+				gf_free(att->name);
+				gf_free(att);
+				dom_node_changed(n, GF_FALSE, NULL);
+				goto exit;
+			}
 		} else if (tag==att->tag) {
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;

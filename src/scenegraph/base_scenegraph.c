@@ -196,6 +196,8 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_free(sg);
 }
 
+//unused, cf gf_sg_reset
+#if 0
 /*recursive traverse of the whole graph to check for scope mixes (nodes from an inline graph
 inserted in a parent graph through bind or routes). We must do this otherwise we're certain to get random
 crashes or mem leaks.*/
@@ -297,6 +299,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 		}
 	}
 }
+#endif
 
 GFINLINE GF_Node *SG_SearchForNode(GF_SceneGraph *sg, GF_Node *node)
 {

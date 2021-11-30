@@ -11159,10 +11159,13 @@ static void Script_Del(GF_Node *node)
 }
 
 
+//unused
+#if 0
 static u32 Script_get_field_count(GF_Node *node, u8 dummy)
 {
 	return 4;
 }
+#endif
 
 static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 {
@@ -11198,6 +11201,8 @@ static GF_Err Script_get_field(GF_Node *node, GF_FieldInfo *info)
 }
 
 
+//unused
+#if 0
 static s32 Script_get_field_index_by_name(char *name)
 {
 	if (!strcmp("url", name)) return 0;
@@ -11206,7 +11211,7 @@ static s32 Script_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
 }
-
+#endif
 
 static GF_Node *Script_Create()
 {
@@ -15410,8 +15415,11 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 		return Rectangle2D_get_field_count(node, 0);
 	case TAG_X3D_ScalarInterpolator:
 		return ScalarInterpolator_get_field_count(node, 0);
+//unused
+#if 0
 	case TAG_X3D_Script:
 		return Script_get_field_count(node, 0);
+#endif
 	case TAG_X3D_Shape:
 		return Shape_get_field_count(node, 0);
 	case TAG_X3D_SignalPdu:
@@ -16074,8 +16082,11 @@ s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)
 		return Rectangle2D_get_field_index_by_name(name);
 	case TAG_X3D_ScalarInterpolator:
 		return ScalarInterpolator_get_field_index_by_name(name);
+//unused
+#if 0
 	case TAG_X3D_Script:
 		return Script_get_field_index_by_name(name);
+#endif
 	case TAG_X3D_Shape:
 		return Shape_get_field_index_by_name(name);
 	case TAG_X3D_SignalPdu:

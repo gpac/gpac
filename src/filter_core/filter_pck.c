@@ -184,7 +184,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, u8 **
 	return gf_filter_pck_new_alloc_internal(pid, data_size, data);
 }
 
-static GF_FilterPacket *new_dangling_packet(GF_FilterPacket *cached_pck, u32 data_length)
+static GF_FilterPacket *gf_filter_pck_new_dangling_packet(GF_FilterPacket *cached_pck, u32 data_length)
 {
 	GF_FilterPacket *dst;
 
@@ -224,7 +224,7 @@ static GF_FilterPacket *new_dangling_packet(GF_FilterPacket *cached_pck, u32 dat
 	return dst;
 }
 
-static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data, Bool dangling_packet, GF_FilterPacket *cached_pck)
+static GF_FilterPacket *gf_filter_pck_clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket *pck_source, u8 **data, Bool dangling_packet, GF_FilterPacket *cached_pck)
 {
 	u32 i, w, h, stride, stride_uv, pf, osize;
 	u32 nb_planes, uv_height;
@@ -264,7 +264,7 @@ static GF_FilterPacket *clone_frame_interface(GF_FilterPid *pid, GF_FilterPacket
 		dst = gf_filter_pck_new_alloc(pid, osize, &pck_data);
 		if (!dst) return NULL;
 	} else {
-		dst = new_dangling_packet(cached_pck, osize);
+		dst = gf_filter_pck_new_dangling_packet(cached_pck, osize);
 		if (!dst) return NULL;
 		pck_data = dst->data;
 	}
@@ -314,7 +314,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 
 	pcki = (GF_FilterPacketInstance *) pck_source;
 	if (pcki->pck->frame_ifce)
-		return clone_frame_interface(pid, pck_source, data, dangling_packet, cached_pck);
+		return gf_filter_pck_clone_frame_interface(pid, pck_source, data, dangling_packet, cached_pck);
 
 	if (force_copy) {
 		max_ref = 2;
@@ -334,7 +334,7 @@ static GF_FilterPacket *gf_filter_pck_new_clone_internal(GF_FilterPid *pid, GF_F
 	if (max_ref>1) {
 		u8 *data_new;
 		if (dangling_packet) {
-			dst = new_dangling_packet(cached_pck, pcki->pck->data_length);
+			dst = gf_filter_pck_new_dangling_packet(cached_pck, pcki->pck->data_length);
 			if (!dst) return NULL;
 
 			data_new = dst->data;

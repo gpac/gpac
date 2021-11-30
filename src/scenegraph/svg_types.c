@@ -224,7 +224,7 @@ void gf_svg_reset_path(SVG_PathData d)
 
 
 /* TODO: update for elliptical arcs */
-#if USE_GF_PATH
+#if USE_GF_PATH==0
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
 	u32 i, j, command_count;

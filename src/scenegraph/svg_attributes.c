@@ -211,6 +211,7 @@ static const struct dom_event_def {
 
 };
 
+#ifdef WIN32
 /** In order to have the same representation of laser/svg media on unix and windows
   * we have to force windows to use the same rounding method as the glibc.
   * See: http://pubs.opengroup.org/onlinepubs/009695399/functions/fprintf.html
@@ -251,7 +252,6 @@ double round_float_hte(double value, int digits)
 	return value;
 };
 
-#ifdef WIN32
 #define _FIX2FLT(x) (round_float_hte(FIX2FLT(x),6))
 #else
 #define _FIX2FLT(x) FIX2FLT(x)
@@ -5790,13 +5790,6 @@ static GF_Err svg_matrix_muladd(Fixed alpha, GF_Matrix2D *a, Fixed beta, GF_Matr
 	return GF_OK;
 }
 
-static GF_Err laser_size_muladd(Fixed alpha, LASeR_Size *sza, Fixed beta, LASeR_Size *szb, LASeR_Size *szc)
-{
-	szc->width  = gf_mulfix(alpha, sza->width)  + gf_mulfix(beta, szb->width);
-	szc->height = gf_mulfix(alpha, sza->height) + gf_mulfix(beta, szb->height);
-	return GF_OK;
-}
-
 /* c = alpha * a + beta * b */
 GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
                                 Fixed beta, GF_FieldInfo *b,
@@ -5982,7 +5975,13 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 	}
 	break;
 	case LASeR_Size_datatype:
-		laser_size_muladd(alpha, (LASeR_Size*)a->far_ptr, beta, (LASeR_Size*)b->far_ptr, (LASeR_Size*)c->far_ptr);
+	{
+		LASeR_Size *sza = (LASeR_Size*)a->far_ptr;
+		LASeR_Size *szb = (LASeR_Size*)b->far_ptr;
+		LASeR_Size *szc = (LASeR_Size*)c->far_ptr;
+		szc->width  = gf_mulfix(alpha, sza->width)  + gf_mulfix(beta, szb->width);
+		szc->height = gf_mulfix(alpha, sza->height) + gf_mulfix(beta, szb->height);
+	}
 		break;
 
 	/* Keyword types */

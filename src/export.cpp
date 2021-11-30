@@ -2337,6 +2337,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_enum) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_get_dolby_chanmap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_audio_fmt_to_isobmf) )
+
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_stream_type_name) )
@@ -2356,7 +2358,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_from_qt_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_to_qt_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_pixel_is_wide_depth) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_pixel_fmt_probe) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_codecid_enum) )
