@@ -950,11 +950,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
-		if (ctx->opid) {
+		gf_list_del_item(ctx->streams, pid);
+		if (ctx->opid && !gf_list_count(ctx->streams)) {
 			gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
 		}
-		gf_list_del_item(ctx->streams, pid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid)) {
@@ -1006,7 +1006,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
-	if ((codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) {
+	if (ctx->opid && (codecid==ctx->codecid) && (dsi_crc == ctx->cfg_crc) && ctx->width && ctx->height) {
 		gf_filter_pid_copy_properties(ctx->opid, pid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);

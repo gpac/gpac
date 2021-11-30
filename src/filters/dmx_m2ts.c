@@ -925,7 +925,18 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-//		gf_filter_pid_remove(ctx->opid);
+		u32 i, count = gf_list_count(ctx->ts->programs);
+		for (i=0; i<count; i++) {
+			GF_M2TS_Program *prog = gf_list_get(ctx->ts->programs, i);
+			u32 j, count2 = gf_list_count(prog->streams);
+			for (j=0; j<count2; j++) {
+				GF_M2TS_ES *es = gf_list_get(prog->streams, j);
+				if (es->user) {
+					GF_FilterPid *opid = es->user;
+					gf_filter_pid_remove(opid);
+				}
+			}
+		}
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))

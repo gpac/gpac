@@ -186,8 +186,7 @@ GF_Err nhntdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		//gf_filter_pid_remove(st->opid);
-
+		gf_filter_pid_remove(ctx->opid);
 		return GF_OK;
 	}
 	if (! gf_filter_pid_check_caps(pid))
