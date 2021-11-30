@@ -540,7 +540,11 @@ static JSValue xml_http_open(JSContext *c, JSValueConst obj, int argc, JSValueCo
 	val = JS_ToCString(c, argv[1]);
 	par.uri.url = (char *) val;
 	ctx->url = NULL;
-	if (scene && scene->script_action) {
+
+	if (!strncmp(val, "gpac://", 7)) {
+		ctx->url = gf_strdup(val+7);
+	}
+	else if (scene && scene->script_action) {
 		scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
 		ctx->url = par.uri.url;
 	} else {
@@ -1430,6 +1434,9 @@ static void xml_http_gc_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_
 	JS_MarkValue(rt, ctx->onprogress, mark_func);
 	JS_MarkValue(rt, ctx->onreadystatechange, mark_func);
 	JS_MarkValue(rt, ctx->ontimeout, mark_func);
+
+	if (!JS_IsUndefined(ctx->arraybuffer))
+		JS_MarkValue(rt, ctx->arraybuffer, mark_func);
 }
 
 static JSValue xhr_load_class(JSContext *c)
