@@ -1279,6 +1279,14 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 	global_obj = JS_GetGlobalObject(c);
 
 	js_load_constants(c, global_obj);
+
+#define DEF_CONST( _val ) \
+    JS_SetPropertyStr(c, global_obj, #_val, JS_NewInt32(c, _val));
+
+	DEF_CONST(GF_FS_FLUSH_NONE)
+	DEF_CONST(GF_FS_FLUSH_ALL)
+	DEF_CONST(GF_FS_FLUSH_FAST)
+
 	if (!fs->jstasks) {
 		fs->jstasks = gf_list_new();
 		if (!fs->jstasks) return GF_OUT_OF_MEM;
@@ -1365,6 +1373,7 @@ GF_Err gf_fs_load_script(GF_FilterSession *fs, const char *jsfile)
 		return GF_BAD_PARAM;
 	}
 	JS_FreeValue(fs->js_ctx, ret);
+	js_std_loop(fs->js_ctx);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
