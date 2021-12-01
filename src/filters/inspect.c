@@ -490,7 +490,6 @@ static u32 dump_t35(FILE *dump, GF_BitStream *bs)
 				   terminal_provider_code, terminal_provider_oriented_code,
 				   application_identifier, application_mode);
 	}
-	gf_fprintf(dump, "/>\n");
 	return read_bytes;
 }
 
@@ -1290,17 +1289,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		break;
 	case OBU_METADATA:
 		{
-			GF_BitStream *bs = NULL;
-			if (pctx)
-			{
-				if (!pctx->bs)
-					pctx->bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
-				else
-					gf_bs_reassign_buffer(pctx->bs, obu+hdr_size, obu_length-hdr_size);
-				bs = pctx->bs;
-			} else {
-				bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
-			}
+			GF_BitStream *bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
 			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
@@ -1316,14 +1305,14 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 				default:
 					break;
 			}
-			if (!pctx) gf_bs_del(bs);
+			gf_bs_del(bs);
 		}
 		break;
 	default:
 		break;
 
 	}
-	if (obu_type != OBU_TILE_GROUP && obu_type != OBU_FRAME && obu_type != OBU_METADATA)
+	if ((obu_type != OBU_TILE_GROUP) && (obu_type != OBU_FRAME) )
 		gf_fprintf(dump, "/>\n");
 
 	return obu_size;
@@ -2742,7 +2731,6 @@ props_done:
 			ObuType obu_type = 0;
 			u64 obu_size = 0;
 			u32 hdr_size = 0;
-
 
 			obu_size = gf_inspect_dump_obu_internal(dump, pctx->av1_state, (char *) data, obu_size, obu_type, obu_size, hdr_size, ctx->crc, pctx, ctx->analyze);
 
