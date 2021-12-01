@@ -1209,9 +1209,7 @@ Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be conf
 .SH Filter declaration [FILTER]
 .LP
 .br
-.P
-.B
-Generic declaration
+.SS Generic declaration
 .br
 Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated name=value pairs. Additional syntax is provided for:
 .br
@@ -1285,9 +1283,7 @@ A filter may be assigned a tag (any string) using :TAG=name option. This tag doe
 .br
   
 .br
-.P
-.B
-Source and Sink filters
+.SS Source and Sink filters
 .br
 Source and sink filters do not need to be addressed by the filter name, specifying src= or dst= instead is enough. You can also use the syntax -src URL or -i URL for sources and -dst URL or -o URL for destination, this allows prompt completion in shells.
 .br
@@ -1317,9 +1313,7 @@ The src= and dst= syntaxes can also be used in alias for dynamic argument clonin
 .br
 
 .br
-.P
-.B
-Forcing specific filters
+.SS Forcing specific filters
 .br
 There is a special option called gfreg which allows specifying preferred filters to use when handling URLs.
 .br
@@ -1333,9 +1327,7 @@ This will use ffdmx to read file.mp4 and ffdec to decode it.
 .br
 This can be used to test a specific filter when alternate filter chains are possible.
 .br
-.P
-.B
-Specifying encoders and decoders
+.SS Specifying encoders and decoders
 .br
 By default filters chain will be resolved without any decoding/encoding if the destination accepts the desired format. Otherwise, decoders/encoders will be dynamically loaded to perform the conversion, unless dynamic resolution is disabled. There is a special shortcut filter name for encoders enc allowing to match a filter providing the desired encoding. The parameters for enc are:
 .br
@@ -1408,9 +1400,7 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 
 .br
-.P
-.B
-Quick links
+.SS Quick links
 .br
 Link between filters may be manually specified. The syntax is an @ character optionally followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter.
 .br
@@ -1452,9 +1442,7 @@ Warning: This means that fA fB fC and fA fB @ fC will likely not give the same r
 .br
 
 .br
-.P
-.B
-Complex links
+.SS Complex links
 .br
 The link directive is just a quick shortcut to set the following arguments:
 .br
@@ -4321,7 +4309,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1457-gedf1da60a-master
+build: 1.1.0-DEV-rev1487-g64e4ee5c9-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

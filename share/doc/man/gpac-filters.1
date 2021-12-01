@@ -76,9 +76,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * crc: 32 bit CRC of packet
 .br
-* lf: insert linefeed
-.br
-* cr: insert carriage return
+* lf or n: insert new line
 .br
 * t: insert tab
 .br
@@ -3832,9 +3830,7 @@ Playlist refreshing will abort:
 .br
 - if the input playlist has not been modified for the .I timeout option value (infinite by default).
 .br
-.P
-.B
-Playlist directives
+.SS Playlist directives
 .br
 A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:
 .br
@@ -3886,9 +3882,7 @@ This may create gaps in the timeline in case each pid are not of equal duration 
 .br
 Using nosync directive will disable this realignment and provide a continuous timeline but may introduce synchronization errors depending in the source encoding (use with caution).
 .br
-.P
-.B
-Source syntax
+.SS Source syntax
 .br
 The source lines follow the usual source syntax, see gpac -h.
 .br
@@ -3908,9 +3902,7 @@ audio.mp4 && video.mp4
 .br
 
 .br
-.P
-.B
-Source with filter chains
+.SS Source with filter chains
 .br
 Each URL can be followed by a chain of one or more filters, using the @ link directive as used in gpac (see gpac -h doc).
 .br
@@ -3976,9 +3968,7 @@ src.mp4 @ reframer:rt=on @#audio
 .br
 This will inject a reframer with real-time regulation between source and flist filter and only connect audio pids to flist filter.
 .br
-.P
-.B
-Splicing
+.SS Splicing
 .br
 The playlist can be used to splice content with other content following a media in the playlist.
 .br
@@ -4365,9 +4355,7 @@ src=file.mp4 reframer:rt=on @ -o live.mpd:dmode=dynamic
 .br
 
 .br
-.P
-.B
-Template strings
+.SS Template strings
 .br
 The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). The default one is $File$_dash for ondemand and single file modes, and $File$_$Number$ for separate segment files
 .br
@@ -4421,9 +4409,7 @@ Note: these strings are replaced in the manifest templates elements.
 .br
 
 .br
-.P
-.B
-PID assignment and configuration
+.SS PID assignment and configuration
 .br
 To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:
 .br
@@ -4567,9 +4553,7 @@ The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of th
 .br
 
 .br
-.P
-.B
-Segmentation
+.SS Segmentation
 .br
 The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.
 .br
@@ -4589,9 +4573,7 @@ The segmenter can also be configured to:
 .br
 
 .br
-.P
-.B
-Dynamic (real-time live) Mode
+.SS Dynamic (real-time live) Mode
 .br
 The dasher does not perform real-time regulation by default.
 .br
@@ -4675,9 +4657,7 @@ Note: if not set as a global option using --utcs=, you must escape the url using
 .br
 
 .br
-.P
-.B
-Cue-driven segmentation
+.SS Cue-driven segmentation
 .br
 The segmenter can take a list of instructions, or Cues, to use for the segmentation process, in which case only these are used to derive segment boundaries. Cues can be set through XML files or injected in input packets.
 .br
@@ -4719,9 +4699,7 @@ Example
 .br
 
 .br
-.P
-.B
-Manifest Generation only mode
+.SS Manifest Generation only mode
 .br
 The segmenter can be used to generate manifests from already fragmented ISOBMFF inputs using .I sigfrag.
 .br
@@ -4785,9 +4763,7 @@ This will generate a DASH manifest in live Profile based on the input files. The
 .br
 
 .br
-.P
-.B
-Muxer development considerations
+.SS Muxer development considerations
 .br
 Output muxers allowing segmented output must obey the following:
 .br
@@ -6421,17 +6397,13 @@ The filter will check the SPS and PPS configurations of input PID and warn if th
 .br
 The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same dts. If pids are of unequal duration, the filter will drop frames as soon as one pid is over.
 .br
-.P
-.B
-Implicit Positioning
+.SS Implicit Positioning
 .br
 In implicit positioning, results may vary based on the order of input pids declaration.
 .br
 In this mode the filter will automatically allocate new columns for tiles with height not a multiple of max CU height.
 .br
-.P
-.B
-Explicit Positioning
+.SS Explicit Positioning
 .br
 In explicit positioning, the CropOrigin property on input PIDs is used to setup the tile grid. In this case, tiles shall not overlap in the final output.
 .br
@@ -6449,9 +6421,7 @@ In this mode, it is the caller responsibility to set coordinates so that all til
 .br
   
 .br
-.P
-.B
-Spatial Relationship Description (SRD)
+.SS Spatial Relationship Description (SRD)
 .br
 
 .br
@@ -7635,9 +7605,7 @@ When operating live, the mixer will initially wait for video frames to be ready 
 .SH Playlist Format
 .LP
 .br
-.P
-.B
-Overview
+.SS Overview
 .br
 The main components in a playlist are:
 .br
@@ -7691,9 +7659,7 @@ Any unrecognized property not starting with _ will be reported as warning.
 .br
 
 .br
-.P
-.B
-Colors
+.SS Colors
 .br
 Colors are handled as strings, formatted as:
 .br
@@ -7713,9 +7679,7 @@ If JS code needs to manipulate colors, use sys.color_lerp and sys.color_componen
 .br
 
 .br
-.P
-.B
-JS Hooks
+.SS JS Hooks
 .br
 
 .br
@@ -7827,9 +7791,7 @@ All these playlist-related functions must be called within the update() callback
 .br
 
 .br
-.P
-.B
-Sequences
+.SS Sequences
 .br
 .P
 .B
@@ -7871,9 +7833,7 @@ The syntax for start and  stop fields is:
 .br
 
 .br
-.P
-.B
-Sources
+.SS Sources
 .br
 .P
 .B
@@ -7907,9 +7867,7 @@ Properties for source objects
 .br
 
 .br
-.P
-.B
-Source Locations
+.SS Source Locations
 .br
 .P
 .B
@@ -7949,9 +7907,7 @@ Warning: When launching child process directly (e.g. in="ffmpeg ..."), any relat
 .br
 
 .br
-.P
-.B
-2D and 3D transformation
+.SS 2D and 3D transformation
 .br
 .P
 .B
@@ -8149,9 +8105,7 @@ EX: "mxjs": "tr.rotation = (get_media_time() % 8) * 360 / 8; tr.update=true;"
 .br
 
 .br
-.P
-.B
-Grouping
+.SS Grouping
 .br
 .P
 .B
@@ -8217,9 +8171,7 @@ When enforcing width and height on a group with opacity<1, the display may be tr
 .br
 
 .br
-.P
-.B
-Scenes
+.SS Scenes
 .br
 .P
 .B
@@ -8269,9 +8221,7 @@ A default scene will be injected if none is found when initially loading the pla
 .br
 
 .br
-.P
-.B
-Transitions and Mixing effects
+.SS Transitions and Mixing effects
 .br
 .P
 .B
@@ -8311,9 +8261,7 @@ Example
 .br
 
 .br
-.P
-.B
-Timers and animations
+.SS Timers and animations
 .br
 .P
 .B
@@ -8411,9 +8359,7 @@ Example
 .br
 
 .br
-.P
-.B
-Scripts
+.SS Scripts
 .br
 .P
 .B
@@ -8447,9 +8393,7 @@ This will change scene s1 rotation every 2 seconds
 .br
 
 .br
-.P
-.B
-Watchers
+.SS Watchers
 .br
 .P
 .B
@@ -8557,9 +8501,7 @@ This will set s1 fill color to white of mouse is over s2 and to black otherwise.
 .br
 
 .br
-.P
-.B
-Styles
+.SS Styles
 .br
 .P
 .B
@@ -8609,9 +8551,7 @@ modified (animation, update), st2 will only be applied once.
 .br
 
 .br
-.P
-.B
-Filter configuration
+.SS Filter configuration
 .br
 The playlist may specify configuration options of the filter, using a root object of type 'config':
 .br
@@ -8637,9 +8577,7 @@ The following additional properties are defined for testing:
 .br
 
 .br
-.P
-.B
-Playlist modification
+.SS Playlist modification
 .br
 The playlist file can be modified at any time.
 .br
@@ -8685,9 +8623,7 @@ A style object is not tracked (all styles are reloaded when reloading a playlist
 .br
 
 .br
-.P
-.B
-Playlist example
+.SS Playlist example
 .br
 
 .br
@@ -8805,9 +8741,7 @@ Example
 .SH Scene modules
 .LP
 .br
-.P
-.B
-Scene mask
+.SS Scene mask
 .br
 This scene sets the canvas alpha mask mode.
 .br
@@ -8839,9 +8773,7 @@ Options:
 .br
  
 .br
-.P
-.B
-Scene clear
+.SS Scene clear
 .br
 This scene clears the canvas area covered by the scene with a given color. 
 .br
@@ -8859,9 +8791,7 @@ Options:
 .br
 * color ('none'): clear color
 .br
-.P
-.B
-Scene clip
+.SS Scene clip
 .br
 This scene resets the canvas clipper or sets the canvas clipper to the scene area.
 .br
@@ -8883,9 +8813,7 @@ Options:
 .br
 * stack (true): if false, clipper is set/reset independently of the clipper stack (no intersection, no push/pop of the stack)
 .br
-.P
-.B
-Scene shape
+.SS Scene shape
 .br
 This scene can be used to setup a shape, its outline and specify the fill and strike modes.
 .br
@@ -8935,9 +8863,7 @@ Warning: Color replacement operations cannot be used with transition or mix effe
 .br
 
 .br
-.P
-.B
-Text options 
+.SS Text options 
 .br
 
 .br
@@ -8981,9 +8907,7 @@ Predefined keywords can be used in input text, identified as $KEYWORD$. The foll
 .br
 
 .br
-.P
-.B
-Custom paths
+.SS Custom paths
 .br
 
 .br
@@ -9254,9 +9178,7 @@ Options:
 .SH Transition modules
 .LP
 .br
-.P
-.B
-Transition gltrans - GPU only
+.SS Transition gltrans - GPU only
 .br
 This transition module wraps gl-transitions, see https://gl-transitions.com/ and gpac -h avmix:gltrans for builtin transitions
 .br
@@ -9264,9 +9186,7 @@ Options:
 .br
 * fx (''): effect name for built-in effects, or path to gl-transition GLSL file
 .br
-.P
-.B
-Transition swipe - software/GPU
+.SS Transition swipe - software/GPU
 .br
 This transition performs simple 2D affine transformations for source videos transitions, with configurable effect origin
 .br
@@ -9306,15 +9226,11 @@ Options:
 .br
 
 .br
-.P
-.B
-Transition mix - software/GPU
+.SS Transition mix - software/GPU
 .br
 This transition performs cross-fade of source videos
 .br
-.P
-.B
-Transition fade - software/GPU
+.SS Transition fade - software/GPU
 .br
 This transition performs fade to/from color of source videos
 .br
@@ -9531,7 +9447,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1457-gedf1da60a-master
+build: 1.1.0-DEV-rev1487-g64e4ee5c9-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
