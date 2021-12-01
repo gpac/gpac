@@ -1333,7 +1333,7 @@ _libgpac.gf_fs_is_supported_mime.restype = gf_bool
 _libgpac.gf_fs_is_supported_mime.argtypes = [_gf_filter_session, c_char_p]
 _libgpac.gf_fs_is_supported_mime.restype = gf_bool
 
-_libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p]
+_libgpac.gf_fs_is_supported_source.argtypes = [_gf_filter_session, c_char_p, c_char_p]
 _libgpac.gf_fs_is_supported_source.restype = gf_bool
 
 _libgpac.gf_pixel_fmt_sname.argtypes = [c_uint]
@@ -1582,8 +1582,10 @@ class FilterSession:
     ##checks if a given source URL is supported - see \ref gf_fs_is_supported_source
     # \param url URL to check
     # \return true or false
-    def is_supported_source(self, url):
-        return _libgpac.gf_fs_is_supported_source(self._sess, url.encode('utf-8'))
+    def is_supported_source(self, url, parent=None):
+        if parent:
+            return _libgpac.gf_fs_is_supported_source(self._sess, url.encode('utf-8'), parent.encode('utf-8'))
+        return _libgpac.gf_fs_is_supported_source(self._sess, url.encode('utf-8'), None)
 
 
     ##\cond private: until end, properties
