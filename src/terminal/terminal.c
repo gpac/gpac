@@ -261,17 +261,15 @@ static void gf_term_refresh_cache()
 		}
 
 		force_delete = 0;
-		if (file) {
-			FILE *t = gf_fopen(file, "r");
-			if (!t) force_delete = 1;
-			else gf_fclose(t);
+		if (file && gf_file_exists(file)) {
+			force_delete = 1;
 		}
 		sscanf(opt, "%u", &exp);
 		gf_net_get_ntp(&sec, &frac);
 		if (exp && (exp<sec)) force_delete=1;
 
 		if (force_delete) {
-			if (file) gf_file_delete((char*) opt);
+			if (file) gf_file_delete(file);
 
 			gf_opts_del_section(name);
 			i--;
