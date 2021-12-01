@@ -5108,6 +5108,8 @@ Bool get_color_from_args(JSContext *c, int argc, JSValueConst *argv, u32 idx, Do
 		*r = ((Double)GF_COL_R(col)) / 255;
 		*g = ((Double)GF_COL_G(col)) / 255;
 		*b = ((Double)GF_COL_B(col)) / 255;
+	} else if (JS_IsNull(argv[idx])) {
+		*a = *r = *g = *b = 0;
 	} else if (JS_IsObject(argv[idx])) {
 		if (!get_color(c, argv[idx], a, r, g, b)) {
 			return GF_FALSE;

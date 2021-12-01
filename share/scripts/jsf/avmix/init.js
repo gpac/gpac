@@ -974,14 +974,13 @@ filter.process = function()
 	if (terminated)
 		return GF_EOS;
 
-
-	if (filter.maxdur) {
+	if (filter.maxdur && (video_time || audio_time) ) {
 		let abort = true;
 		if (video_playing && (video_time < filter.maxdur*video_timescale)) abort = false;
 		if (audio_playing && (audio_time < filter.maxdur*audio_timescale)) abort = false;
 		if (wait_for_pids) abort = false;
 		if (abort) {
-			print(GF_LOG_INFO, 'maxdur reached, quit - video time ' + video_time + '/' + video_timescale + ' - audio time ' + audio_time + '/' + audio_timescale);
+			print(GF_LOG_INFO, 'maxdur ' +  filter.maxdur + ' reached, quit - video time ' + video_time + '/' + video_timescale + ' - audio time ' + audio_time + '/' + audio_timescale);
 			do_terminate();
 			return;
 		}
