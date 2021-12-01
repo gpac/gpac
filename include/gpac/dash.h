@@ -1083,6 +1083,13 @@ u32 gf_dash_get_min_wait_ms(GF_DashClient *dash);
 */
 s32 gf_dash_group_get_as_id(GF_DashClient *dash, u32 group_idx);
 
+/*! check if the group has an init segment associated
+\param dash the target dash client
+\param group_idx the 0-based index of the target group
+\return GF_TRUE if init segment is present, GF_FALSE otherwise
+*/
+Bool gf_dash_group_has_init_segment(GF_DashClient *dash, u32 group_idx);
+
 //any change to the structure below MUST be reflected in libgpac.py !!
 
 /*! Information passed to DASH custom algorithm*/

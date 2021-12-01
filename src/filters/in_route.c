@@ -81,15 +81,22 @@ typedef struct
 } ROUTEInCtx;
 
 
-static void routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+static Bool routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
     u32 i, pos;
+    Bool drop_if_first = GF_FALSE;
     u8 *data = finfo->blob->data;
-    
+
+
     pos = 0;
     for (i=0; i<finfo->nb_frags; i++) {
         u32 start_range = finfo->frags[i].offset;
         u32 end_range = finfo->frags[i].size;
+
+		//if we missed first 4 packets, we cannot rely on PAT/PMT being present in the rest of the segment
+		//we could further check this at the demux level, but for now we drop the segment
+        if (!i && (start_range>4*188))
+			drop_if_first = GF_TRUE;
 
         end_range += start_range;
         //reset all missed byte ranges as padding packets
@@ -103,10 +110,8 @@ static void routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *fi
             pos += 188;
         }
         //end range not aligned with a packet start, rewind position to prev packet start
-        if (end_range % 188) {
-            while (end_range % 188) end_range--;
-            pos = end_range;
-        }
+		while (end_range % 188) end_range--;
+		pos = end_range;
     }
     //and patch all end packets
     while (pos<finfo->blob->size) {
@@ -118,6 +123,7 @@ static void routein_repair_segment_ts(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *fi
     }
 	//remove corrupted flag
 	finfo->blob->flags = 0;
+	return drop_if_first;
 }
 
 //top boxes we look for in segments
@@ -268,22 +274,25 @@ static void routein_repair_segment_isobmf(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo
 	finfo->blob->flags = 0;
 }
 
-static void routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
+static Bool routein_repair_segment(ROUTEInCtx *ctx, GF_ROUTEEventFileInfo *finfo)
 {
+	Bool drop_if_first = GF_FALSE;
 	if (ctx->repair==ROUTEIN_REPAIR_NO)
-		return;
+		return GF_FALSE;
 
 	if (finfo->blob->mx)
 		gf_mx_p(finfo->blob->mx);
 	
     if (strstr(finfo->filename, ".ts") || strstr(finfo->filename, ".m2ts")) {
-        routein_repair_segment_ts(ctx, finfo);
+        drop_if_first = routein_repair_segment_ts(ctx, finfo);
     } else {
         routein_repair_segment_isobmf(ctx, finfo);
     }
 
 	if (finfo->blob->mx)
 		gf_mx_v(finfo->blob->mx);
+
+	return drop_if_first;
 }
 
 
@@ -461,6 +470,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 	ROUTEInCtx *ctx = (ROUTEInCtx *)udta;
 	u32 nb_obj;
 	Bool is_init = GF_TRUE;
+	Bool drop_if_first = GF_FALSE;
 	Bool is_loop = GF_FALSE;
 	DownloadedCacheEntry cache_entry;
 
@@ -538,7 +548,7 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 
 		//corrupted file, try to repair
 		if (finfo->blob->flags & GF_BLOB_CORRUPTED) {
-			routein_repair_segment(ctx, finfo);
+			drop_if_first = routein_repair_segment(ctx, finfo);
 		}
 			
 		if (ctx->odir) {
@@ -593,6 +603,9 @@ void routein_on_event(void *udta, GF_ROUTEEventType evt, u32 evt_param, GF_ROUTE
 		if (!ctx->sync_tsi) {
 			ctx->sync_tsi = finfo->tsi;
 			ctx->last_toi = finfo->toi;
+			if (drop_if_first) {
+				break;
+			}
 		} else if (ctx->sync_tsi == finfo->tsi) {
 			if (ctx->last_toi > finfo->toi) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_ROUTE, ("[ROUTE] Loop detected on service %d for TSI %u: prev TOI %u this toi %u\n", ctx->tune_service_id, finfo->tsi, ctx->last_toi, finfo->toi));
