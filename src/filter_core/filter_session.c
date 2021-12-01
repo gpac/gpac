@@ -100,12 +100,29 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 		return;
 	}
 	if (fsess->blacklist) {
-		char *fname = strstr(fsess->blacklist, freg->name);
-		if (fname) {
+		Bool match = GF_FALSE;
+		const char *blacklist = fsess->blacklist;
+		Bool is_whitelist=GF_FALSE;
+		if (blacklist[0]=='-') {
+			blacklist++;
+			is_whitelist = GF_TRUE;
+		}
+		while (blacklist) {
+			char *fname = strstr(blacklist, freg->name);
+			if (!fname) break;
 			u32 len = (u32) strlen(freg->name);
 			if (!fname[len] || (fname[len] == fsess->sep_list)) {
-				return;
+				match = GF_TRUE;
+				break;
 			}
+			blacklist = fname+len;
+		}
+		if (match) {
+			if (!is_whitelist)
+				return;
+		} else {
+			if (is_whitelist)
+				return;
 		}
 	}
 	//except for meta filters, don't accept a filter with input caps but no output caps

@@ -1574,7 +1574,7 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
 	//check if nvdec is not globally blacklisted - if so, do not try to load CUDA SDK which may be time consuming on some devices
 	const char *blacklist = gf_opts_get_key("core", "blacklist");
-	if (blacklist && strstr(blacklist, "nvdec"))
+	if (blacklist && (blacklist[0]!='-') && strstr(blacklist, "nvdec"))
 		return NULL;
 
 	init_cuda_sdk();
