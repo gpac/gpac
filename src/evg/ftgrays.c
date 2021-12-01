@@ -531,7 +531,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 		coverage = -coverage;
 
 	if (fill_rule) {
-		/* non-zero winding rule */
+		/* odd / even winding rule */
 		if ( coverage >= 256 ) {
 			coverage &= 511;
 
@@ -543,6 +543,7 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 			if (coverage!=255)
 				odd_flag = 0;
 
+			/* even only fill */
 			if (fill_rule==2) {
 				coverage = odd_flag ? 0 : (255-coverage);
 			} else {
@@ -553,11 +554,8 @@ static void gray_hline(EVGRasterCtx *raster, TCoord  x, TCoord  y, TPos area, in
 			coverage = 255-coverage;
 		}
 	} else {
-		coverage &= 511;
-
-		if ( coverage > 256 )
-			coverage = 512 - coverage;
-		else if ( coverage == 256 )
+		// normal non-zero winding rule
+		if ( coverage >= 256 )
 			coverage = 255;
 	}
 
