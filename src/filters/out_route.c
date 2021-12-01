@@ -127,6 +127,7 @@ typedef struct
 	u8 *init_seg_data;
 	u32 init_seg_size;
 	u32 init_seg_crc;
+	Bool no_init;
 	char *init_seg_name;
 
 	//0: not manifest, 1: MPD, 2: HLS
@@ -437,6 +438,11 @@ static GF_Err routeout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (manifest_type) {
 		rserv->creation_time = gf_sys_clock();
 		gf_filter_pid_ignore_blocking(pid, GF_TRUE);
+	} else {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_NO_INIT);
+		if (p && p->value.boolean) {
+			rpid->no_init = GF_TRUE;
+		}
 	}
 
 	gf_list_add(rserv->pids, rpid);
@@ -708,7 +714,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		//media file, check for init segment and hls child manifest
 		if (!rpid->manifest_type) {
 			nb_media++;
-			while (1) {
+			while (! rpid->no_init) {
 				GF_FilterPacket *pck = gf_filter_pid_get_packet(rpid->pid);
 				if (!pck) break;
 
@@ -740,7 +746,7 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 				break;
 			}
-			if (rpid->init_seg_data) {
+			if (rpid->init_seg_data || rpid->no_init) {
 				nb_media_init ++;
 				if (serv->manifest_type==2) {
 					if (!rpid->hld_child_pl_name)
@@ -1679,7 +1685,7 @@ next_packet:
 				send_hls_child = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_ROUTE, ("[ROUTE] Sending init segment %s\n", rpid->init_seg_name));
 
-				//send init asap
+				//send init asap (may be empty)
 				offset = 0;
 				while (offset < rpid->init_seg_size) {
 					//we use codepoint 5 (new IS) or 7 (repeated IS)

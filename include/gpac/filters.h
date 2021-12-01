@@ -1197,6 +1197,8 @@ enum
 
 	//PID has temi information
 	GF_PROP_PID_HAS_TEMI = GF_4CC('P','T','E','M'),
+	//PID has no init segment associated (file foward mode of dasher)
+	GF_PROP_PID_NO_INIT = GF_4CC('P','N','I','N'),
 
 	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
 	GF_PROP_PCK_END_RANGE = GF_4CC('P','C','E','R'),

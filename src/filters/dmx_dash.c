@@ -1509,6 +1509,10 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(stream_type) );
 
 		gf_filter_pid_set_property(opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( (u64) 1+group->idx) );
+
+		if (!gf_dash_group_has_init_segment(ctx->dash, group_idx)) {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_NO_INIT, &PROP_BOOL(GF_TRUE) );
+		}
 	}
 
 	const char *title, *source;

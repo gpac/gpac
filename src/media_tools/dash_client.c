@@ -402,6 +402,7 @@ struct __dash_group
 	Bool llhls_last_was_merged;
 	s32 llhls_switch_request;
 	u32 last_mpd_change_time;
+	Bool no_init_seg;
 };
 
 //wait time before requesting again a M3U8 child playlist update when something goes wrong during the update: either same file or the expected next segment is not there
@@ -4537,6 +4538,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			return e;
 		}
 		nb_segment_read = 1;
+		group->no_init_seg = GF_TRUE;
 	} else if (dash->is_m3u8) {
 		char *tmp_url=NULL;
 		u64 dur, sr, er;
@@ -4644,6 +4646,18 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		dash->dash_io->del(dash->dash_io, sess);
 
 		if (e!=GF_OK) {
+			//ROUTE + segment format not using init segment, we must wait for the segment to be available
+			//i fnot available after segment duration, check next segment
+			if (group->no_init_seg) {
+				u32 ck = gf_sys_clock();
+				if (!group->time_at_first_failure) {
+					group->time_at_first_failure = ck;
+				} else if (ck - group->time_at_first_failure > group->current_downloaded_segment_duration) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Bootstrap segment %s not found after %d ms, checking next one\n", base_init_url, ck - group->time_at_first_failure));
+					group->time_at_first_failure = 0;
+					group->download_segment_index++;
+				}
+			}
 			gf_free(base_init_url);
 			return e;
 		}
@@ -6459,7 +6473,7 @@ static DownloadGroupStatus on_group_download_error(GF_DashClient *dash, GF_DASH_
 
 		//we are lost ....
 		if (group->nb_consecutive_segments_lost >= 10) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found (broken source, sync or signal lost...) - entering end of stream detection mode\n"));
 			dash_set_min_wait(dash, 1000);
 			group->maybe_end_of_stream = 1;
 		} else {
@@ -6822,7 +6836,7 @@ llhls_rety:
 				} else if (group->download_segment_index) {
 					group->download_segment_index--;
 				}
-				return on_group_download_error(dash, group, base_group, GF_URL_REMOVED, rep, new_base_seg_url, key_url, has_dep_following);
+				return on_group_download_error(dash, group, base_group, GF_URL_ERROR, rep, new_base_seg_url, key_url, has_dep_following);
 			}
 		}
 		group->current_base_url_idx = 0;
@@ -10166,6 +10180,16 @@ GF_Err gf_dash_group_push_tfrf(GF_DashClient *dash, u32 group_idx, void *_tfrf, 
 		}
 	}
 	return GF_OK;
+}
+
+Bool gf_dash_group_has_init_segment(GF_DashClient *dash, u32 group_idx)
+{
+	GF_DASH_Group *group;
+	if (!dash) return GF_FALSE;
+	group = gf_list_get(dash->groups, group_idx);
+	if (!group) return GF_FALSE;
+	if (group->no_init_seg) return GF_FALSE;
+	return GF_TRUE;
 }
 
 #endif //GPAC_DISABLE_DASH_CLIENT
