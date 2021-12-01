@@ -408,7 +408,7 @@ void gf_cryptfin_set_kms(GF_Filter *filter, const char *key_url, bin128 key_IV)
 		}
 		//key is local, activate right away
 		else if (gf_url_is_local(key_url)) {
-			FILE *fkey = gf_fopen(key_url, "r");
+			FILE *fkey = gf_fopen(key_url, "rb");
 			if (!fkey) {
 				ctx->in_error = GF_URL_ERROR;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CryptFile] key %s not found\n", key_url))

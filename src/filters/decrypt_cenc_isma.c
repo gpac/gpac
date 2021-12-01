@@ -682,7 +682,7 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	}
 	//key is local, activate right away
 	else if (gf_url_is_local(key_url)) {
-		FILE *fkey = gf_fopen(key_url, "r");
+		FILE *fkey = gf_fopen(key_url, "rb");
 		if (!fkey) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[CENC/HLS] key %s not found\n", key_url))
 			return GF_URL_ERROR;
