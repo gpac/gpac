@@ -233,7 +233,7 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
 \param type scheduler type
 \param flags set of above flags for the session. Modes set by flags cannot be changed at runtime
-\param blacklist string containing comma-separated names of filters to disable
+\param blacklist string containing comma-separated names of filters to disable. If first character is '-', this describes a whitelist, i.e. only filters listed in this string will be allowed
 \return the created filter session
 */
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
