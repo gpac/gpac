@@ -174,7 +174,7 @@ GF_Err gf_route_dmx_process(GF_ROUTEDmx *routedmx);
 
 /*! Sets reordering on.
 \param routedmx the ROUTE demultiplexer
-\param force_reorder if TRUE,  the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
+\param force_reorder if TRUE, the order flag in ROUTE/LCT is ignored and objects are gathered for the given time. Otherwise, if order flag is set in ROUTE/LCT, an object is considered done as soon as a new object starts
 \param timeout_ms maximum delay to wait before considering the object is done when ROUTE/LCT order is not used. A value of 0 implies waiting forever (default value is 5s).
 \return error code if any
  */
