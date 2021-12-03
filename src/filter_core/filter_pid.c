@@ -2024,6 +2024,7 @@ Bool gf_filter_has_in_caps(const GF_FilterCapability *caps, u32 nb_caps)
 u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_idx, const GF_FilterRegister *dst_reg, GF_Filter *dst_filter, u32 *dst_bundle_idx, u32 for_dst_bundle, u32 *loaded_filter_flags, GF_CapsBundleStore *capstore)
 {
 	u32 i=0;
+	s32 first_static_cap=-1;
 	u32 cur_bundle_start = 0;
 	u32 cur_bundle_idx = 0;
 	u32 nb_matched=0;
@@ -2081,6 +2082,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		Bool already_tested = GF_FALSE;
 		const GF_FilterCapability *out_cap = &src->caps[i];
 
+		if (i<cur_bundle_start) {
+			if (!(out_cap->flags & GF_CAPFLAG_STATIC))
+				continue;
+		}
+
 		if (!(out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 			all_caps_matched = GF_TRUE;
 			cur_bundle_start = i+1;
@@ -2088,6 +2094,8 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			if (src_bundle_idx < cur_bundle_idx)
 				break;
 
+			if (first_static_cap>=0)
+				i = (u32) (first_static_cap-1);
 			continue;
 		}
 
@@ -2098,6 +2106,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 
 		//not an output cap
 		if (!(out_cap->flags & GF_CAPFLAG_OUTPUT) ) continue;
+
+		if ((first_static_cap==-1) && (out_cap->flags & GF_CAPFLAG_STATIC)) {
+			first_static_cap = i;
+		}
+
 
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
@@ -2131,7 +2144,12 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 		}
 
 		//check all output caps in this bundle with the same code/name, consider OK if one is matched
-		for (k=cur_bundle_start; k<src->nb_caps; k++) {
+		if (first_static_cap>=0)
+			k = first_static_cap-1;
+		else
+			k = cur_bundle_start;
+
+		for (; k<src->nb_caps; k++) {
 			u32 cur_dst_bundle=0;
 			Bool static_matched = GF_FALSE;
 			u32 nb_caps_tested = 0;
@@ -2140,6 +2158,11 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 			Bool exclude=GF_FALSE;
 			Bool prop_found=GF_FALSE;
 			const GF_FilterCapability *an_out_cap = &src->caps[k];
+
+			if (k<cur_bundle_start) {
+				if (!(an_out_cap->flags & GF_CAPFLAG_STATIC))
+					continue;
+			}
 			if (! (an_out_cap->flags & GF_CAPFLAG_IN_BUNDLE) ) {
 				break;
 			}
@@ -2182,7 +2205,10 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					}
 
 					matched = static_matched ? GF_TRUE : GF_FALSE;
-					exclude = GF_FALSE;
+					if (exclude) {
+						bundles_cap_found[cur_dst_bundle] = 0;
+						exclude = GF_FALSE;
+					}
 					prop_found = GF_FALSE;
 					nb_caps_tested = 0;
 					cur_dst_bundle++;
@@ -2260,12 +2286,16 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 
 					nb_matched++;
 				}
+				//excluded cap was found, disable bundle (might have been activated before we found the excluded cap)
+				else if (exclude) {
+					bundles_cap_found[cur_dst_bundle] = 0;
+				}
 			} else if (!nb_dst_caps) {
 				if (!bundles_cap_found[cur_dst_bundle])
 					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
 
 				nb_matched++;
-			} else if (!nb_matched && !prop_found && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+			} else if (!nb_matched && !prop_found && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) && (cur_dst_bundle<nb_in_bundles) ) {
 				if (!bundles_cap_found[cur_dst_bundle])
 					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
 
@@ -2522,7 +2552,7 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 		if (!source_stream_type && dst_stream_type>0)
 			source_stream_type = dst_stream_type;
 		//if source is encrypted type and dest type is set, use dest type
-		if ((source_stream_type==GF_STREAM_ENCRYPTED) && dst_stream_type>0)
+		if ((source_stream_type==GF_STREAM_ENCRYPTED) && (dst_stream_type>0) && (dst_stream_type!=GF_STREAM_FILE))
 			source_stream_type = dst_stream_type;
 		//if dest is encrypted type and source type is set, use source type
 		if ((dst_stream_type==GF_STREAM_ENCRYPTED) && source_stream_type>0)
@@ -3465,25 +3495,17 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 		//escaped arg separator, skip everything until next escape sep or end
 		if (args[0] == sep_args) {
+			char szEscape[3];
+			szEscape[0] = szEscape[1] = sep_args;
+			szEscape[2] = 0;
 			args++;
-			while (1) {
-				if (sep_args == ':') {
-					sep = (char *)gf_fs_path_escape_colon(filter->session, args);
-				} else {
-					sep = strchr(args, sep_args);
-				}
-				if (!sep) return;
-				if (sep[1]==sep_args) {
-					args = sep+1;
-					break;
-				}
-				args = sep+1;
-			}
-		}
-		if (sep_args == ':') {
-			sep = (char *)gf_fs_path_escape_colon(filter->session, args);
+			sep = strstr(args, szEscape);
 		} else {
-			sep = strchr(args, sep_args);
+			if (sep_args == ':') {
+				sep = (char *)gf_fs_path_escape_colon(filter->session, args);
+			} else {
+				sep = strchr(args, sep_args);
+			}
 		}
 		if (sep) {
 			char *xml_start = strchr(args, '<');
@@ -4386,7 +4408,7 @@ single_retry:
 			}
 			filter_found_but_pid_excluded = GF_FALSE;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Attempting to solve link between PID %s and filter %s\n", pid->name, filter_dst->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Attempting to solve link between PID %s:%s and filter %s\n", pid->filter->freg->name, pid->name, filter_dst->name));
 
 			if (num_pass==1) reassigned = GF_TRUE;
 			else reassigned = GF_FALSE;
