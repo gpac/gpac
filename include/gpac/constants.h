@@ -801,6 +801,8 @@ typedef enum
 	GF_AUDIO_FMT_U8 = 1,
 	/*! sample = signed short Little Endian, interleaved channels*/
 	GF_AUDIO_FMT_S16,
+	/*! sample = signed short Big Endian, interleaved channels*/
+	GF_AUDIO_FMT_S16_BE,
 	/*! sample = signed integer, interleaved channels*/
 	GF_AUDIO_FMT_S32,
 	/*! sample = 1 float, interleaved channels*/

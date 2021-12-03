@@ -559,6 +559,7 @@ static const GF_AudioFmt GF_AudioFormats[] =
 {
 	{GF_AUDIO_FMT_U8, "u8", "8 bit PCM", "pc8"},
 	{GF_AUDIO_FMT_S16, "s16", "16 bit PCM Little Endian", "pcm"},
+	{GF_AUDIO_FMT_S16_BE, "s16b", "16 bit PCM Big Endian", "pcmb"},
 	{GF_AUDIO_FMT_S24, "s24", "24 bit PCM"},
 	{GF_AUDIO_FMT_S32, "s32", "32 bit PCM Little Endian"},
 	{GF_AUDIO_FMT_FLT, "flt", "32-bit floating point PCM"},
@@ -698,6 +699,7 @@ u32 gf_audio_fmt_bit_depth(GF_AudioFormat audio_fmt)
 	case GF_AUDIO_FMT_U8: return 8;
 
 	case GF_AUDIO_FMT_S16P:
+	case GF_AUDIO_FMT_S16_BE:
 	case GF_AUDIO_FMT_S16: return 16;
 
 	case GF_AUDIO_FMT_S32P:
@@ -745,7 +747,7 @@ static struct pcmfmt_to_qt
 	{GF_AUDIO_FMT_DBL, GF_QT_SUBTYPE_FL64},
 	{GF_AUDIO_FMT_S24, GF_QT_SUBTYPE_IN24},
 	{GF_AUDIO_FMT_S32, GF_QT_SUBTYPE_IN32},
-	{GF_AUDIO_FMT_S16, GF_QT_SUBTYPE_TWOS},
+	{GF_AUDIO_FMT_S16_BE, GF_QT_SUBTYPE_TWOS},
 };
 
 GF_EXPORT

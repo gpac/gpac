@@ -762,6 +762,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			case GF_AUDIO_FMT_S16P:
 				ff_codec_id = AV_CODEC_ID_PCM_S16LE;
 				break;
+			case GF_AUDIO_FMT_S16_BE:
+				ff_codec_id = AV_CODEC_ID_PCM_S16BE;
+				break;
 			case GF_AUDIO_FMT_S24:
 			case GF_AUDIO_FMT_S24P:
 				ff_codec_id = AV_CODEC_ID_PCM_S24LE;
