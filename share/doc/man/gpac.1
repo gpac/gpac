@@ -182,7 +182,7 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * layouts: print the builtin CICP audio channel layout names and their values
 .br
-* links: print possible connections between each supported filters
+* links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)
 .br
 * links FNAME: print sources and sinks for filter FNAME (either builtin or JS filter)
 .br
@@ -3042,7 +3042,7 @@ Value of active period start time in forward mode
 .TP
 .B HLSKey (HLSK,str,  )
 .br
-URI, KEYFORMAT and KEYFORMATVERSIONS for HLS creation, Key URI for decoding
+URI, KEYFORMAT and KEYFORMATVERSIONS for HLS full segment encryption creation, Key URI otherwise ( decoding and sample-AES)
 .br
 .TP
 .B HLSIV (HLSI,mem,  )
@@ -4309,7 +4309,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1487-g096fab00e-master
+build: 1.1.0-DEV-rev1491-g5bed60917-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
