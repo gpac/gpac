@@ -483,6 +483,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (inflags & GF_FS_FLAG_NO_GRAPH_CACHE)
 		flags |= GF_FS_FLAG_NO_GRAPH_CACHE;
 
+	if (inflags & GF_FS_FLAG_PRINT_CONNECTIONS)
+		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
+
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
@@ -3158,7 +3161,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 {
 	Bool found = GF_FALSE;
 	GF_List *done;
-	u32 i, j, count;
+	u32 i, j, k, count;
 	u32 llev = gf_log_get_tool_level(GF_LOG_FILTER);
 
 	gf_log_set_tool_level(GF_LOG_FILTER, GF_LOG_INFO);
@@ -3199,6 +3202,28 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 					GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" %s", src->edges[j].src_reg->freg->name));
 				}
 				gf_list_add(done, (void *) src->edges[j].src_reg->freg->name);
+				if (session->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+					if (print_fn)
+						print_fn(stderr, 0, " ( ", src->edges[j].src_reg->freg->name);
+					else {
+						GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ( ", src->edges[j].src_reg->freg->name));
+					}
+					for (k=0; k<src->nb_edges; k++) {
+						if (src->edges[j].src_reg != src->edges[k].src_reg) continue;;
+
+						if (print_fn)
+							print_fn(stderr, 0, "%d->%d ", src->edges[k].src_cap_idx, src->edges[k].dst_cap_idx);
+						else {
+							GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%d->%d ", src->edges[k].src_cap_idx, src->edges[k].dst_cap_idx));
+						}
+
+					}
+					if (print_fn)
+						print_fn(stderr, 0, ")", src->edges[j].src_reg->freg->name);
+					else {
+						GF_LOG(GF_LOG_INFO, GF_LOG_APP, (")", src->edges[j].src_reg->freg->name));
+					}
+				}
 			}
 		}
 		if (print_fn)
@@ -3233,6 +3258,27 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 						GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" %s", src->freg->name));
 					}
 					gf_list_add(done, (void *) src->freg->name);
+					if (session->flags & GF_FS_FLAG_PRINT_CONNECTIONS) {
+						if (print_fn)
+							print_fn(stderr, 0, " ( ", src->edges[j].src_reg->freg->name);
+						else {
+							GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" ( ", src->edges[j].src_reg->freg->name));
+						}
+						for (k=0; k<src->nb_edges; k++) {
+							if (src->edges[j].src_reg != src->edges[k].src_reg) continue;
+
+							if (print_fn)
+								print_fn(stderr, 0, "%d->%d ", src->edges[k].src_cap_idx, src->edges[k].dst_cap_idx);
+							else {
+								GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%d->%d ", src->edges[k].src_cap_idx, src->edges[k].dst_cap_idx));
+							}
+						}
+						if (print_fn)
+							print_fn(stderr, 0, ")", src->edges[j].src_reg->freg->name);
+						else {
+							GF_LOG(GF_LOG_INFO, GF_LOG_APP, (")", src->edges[j].src_reg->freg->name));
+						}
+				}
 				}
 			}
 			gf_list_reset(done);

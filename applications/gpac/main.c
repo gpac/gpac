@@ -620,7 +620,7 @@ static GF_GPACArg gpac_args[] =
 			"- props: print the supported builtin PID and packet properties\n"\
 			"- colors: print the builtin color names and their values\n"\
 			"- layouts: print the builtin CICP audio channel layout names and their values\n"\
-			"- links: print possible connections between each supported filters\n"\
+			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
 			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`\n"
@@ -2043,6 +2043,9 @@ static int gpac_main(int argc, char **argv)
 		gf_opts_set_key("temp", "helponly", "yes");
 
 restart:
+
+	if (view_conn_for_filter && argmode>=GF_ARGMODE_EXPERT)
+		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
 	session = gf_fs_new_defaults(sflags);
 
