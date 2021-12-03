@@ -2794,11 +2794,12 @@ multipid_stsd_setup:
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBC_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
+		case GF_HLS_SAMPLE_AES_SCHEME:
 			tkw->cenc_state = CENC_NEED_SETUP;
 			if (tkw->is_nalu || tkw->is_av1 || tkw->is_vpx) tkw->cenc_subsamples = GF_TRUE;
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", gf_4cc_to_str(tkw->stream_type) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unrecognized protection scheme type %s, using generic signaling\n", gf_4cc_to_str(scheme_type) ));
 			switch (tkw->stream_type) {
 			case GF_STREAM_VISUAL:
 				gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_BOX_TYPE_ENCV);

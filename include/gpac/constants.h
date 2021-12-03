@@ -1125,7 +1125,7 @@ enum
 };
 
 /*! Scheme Type only used internally to signal HLS sample AES in TS */
-#define GF_HLS_SAMPLE_AES_SCHEME	GF_4CC('H','S','A','E')
+#define GF_HLS_SAMPLE_AES_SCHEME	GF_4CC('s','a','e','s')
 
 
 /*! HEVC NAL unit types */

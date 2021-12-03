@@ -67,6 +67,9 @@ enum
 	GF_CRYPT_TYPE_ADOBE	= GF_4CC('a','d','k','m'),
 	/*! PIFF CTR-128 encryption*/
 	GF_CRYPT_TYPE_PIFF	= GF_4CC('p','i','f','f'),
+	/*! HLS Sample encryption*/
+	GF_CRYPT_TYPE_SAES	= GF_4CC('s','a','e','s'),
+
 };
 
 /*! Selective encryption modes */

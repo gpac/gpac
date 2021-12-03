@@ -53,6 +53,8 @@ static u32 cryptinfo_get_crypt_type(char *cr_type)
 		return GF_CRYPT_TYPE_CBCS;
 	else if (!stricmp(cr_type, "OMA"))
 		return GF_ISOM_OMADRM_SCHEME;
+	else if (!stricmp(cr_type, "HLS SAES"))
+		return GF_HLS_SAMPLE_AES_SCHEME;
 
 	GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Unrecognized crypto type %s\n", cr_type));
 	return 0;

@@ -2141,7 +2141,9 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				gf_free(pssh_data);
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Protection scheme %s has no official DASH mapping, using URI \"urn:gpac:dash:mp4protection:2018\"\n", gf_4cc_to_str(prot_scheme)));
+			if (ctx->do_mpd) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Protection scheme %s has no official DASH mapping, using URI \"urn:gpac:dash:mp4protection:2018\"\n", gf_4cc_to_str(prot_scheme)));
+			}
 			if (!res) res = gf_list_new();
 			desc = gf_mpd_descriptor_new(NULL, "urn:gpac:dash:mp4protection:2018", gf_4cc_to_str(prot_scheme));
 			gf_list_add(res, desc);
@@ -6795,8 +6797,42 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 			}
 		}
 		//we need a hard copy as the pid may reconfigure before we flush the segment
-		if (kms_uri)
-			seg_state->hls_key_uri = gf_strdup(kms_uri);
+		if (kms_uri) {
+			//insert IV if not mp4
+			if (!ds->tci && !strstr(kms_uri, "IV=") && (ctx->muxtype || ctx->m2ts)) {
+				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_KEY_INFO);
+				if (p && (p->value.data.size==37)) {
+					char *kms_iv=NULL;
+					u8 *iv=p->value.data.ptr + 21;
+					char szIV[40];
+					u32 i;
+					strcpy(szIV, "IV=0x");
+					for (i=0; i<16; i++) {
+						char szVal[3];
+						sprintf(szVal, "%02X", iv[i]);
+						strcat(szIV, szVal);
+					}
+					if (!strstr(kms_uri, "URI=")) {
+						gf_dynstrcat(&kms_iv, "URI=\"", NULL);
+						gf_dynstrcat(&kms_iv, kms_uri, NULL);
+						gf_dynstrcat(&kms_iv, "\"", NULL);
+					} else {
+						gf_dynstrcat(&kms_iv, kms_uri, NULL);
+					}
+					gf_dynstrcat(&kms_iv, szIV, ",");
+					seg_state->hls_key_uri = kms_iv;
+				}
+			}
+			if (!seg_state->hls_key_uri) {
+				if (!strstr(kms_uri, "URI=")) {
+					gf_dynstrcat(&seg_state->hls_key_uri, "URI=\"", NULL);
+					gf_dynstrcat(&seg_state->hls_key_uri, kms_uri, NULL);
+					gf_dynstrcat(&seg_state->hls_key_uri, "\"", NULL);
+				} else {
+					seg_state->hls_key_uri = gf_strdup(kms_uri);
+				}
+			}
+		}
 
 		gf_list_add(ds->rep->state_seg_list, seg_state);
 		if (ctx->sigfrag) {

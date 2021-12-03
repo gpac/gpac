@@ -104,6 +104,7 @@ typedef struct
 
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
+	Bool is_saes;
 
 	Bool rap_roll;
 
@@ -591,15 +592,22 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		is_reinit = GF_TRUE;
 
 	cstr->dsi_crc = dsi_crc;
+	if (cstr->is_saes) {
+		cstr->tci->crypt_byte_block = 1;
+		cstr->tci->skip_byte_block = 9;
+	}
+
 
 	if (is_reinit) {
 		const GF_PropertyValue *p2;
+		Bool allow_saes=GF_FALSE;
 		u32 cenc_codec = CENC_FULL_SAMPLE;
 		cstr->nalu_size_length = 0;
 
 		//get CENC media type
 		switch (cstr->codec_id) {
 		case GF_CODECID_AVC:
+			allow_saes=GF_TRUE;
 		case GF_CODECID_SVC:
 		case GF_CODECID_MVC:
 			cenc_codec = CENC_AVC;
@@ -618,6 +626,16 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		case GF_CODECID_VVC:
 			cenc_codec = CENC_VVC;
 			break;
+		case GF_CODECID_AAC_MPEG4:
+		case GF_CODECID_AAC_MPEG2_MP:
+		case GF_CODECID_AAC_MPEG2_LCP:
+		case GF_CODECID_AAC_MPEG2_SSRP:
+			allow_saes=GF_TRUE;
+			break;
+		}
+		if (cstr->is_saes && !allow_saes) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCCrypt] HLS Sample-AES not supported for codec %s\n", gf_codecid_name(cstr->codec_id) ));
+			return GF_NOT_SUPPORTED;
 		}
 		//if change in type, free/realloc parsing contexts
 		if (cstr->cenc_codec != cenc_codec) {
@@ -1043,6 +1061,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		case GF_CRYPT_TYPE_CENS:
 		case GF_CRYPT_TYPE_CBCS:
 		case GF_CRYPT_TYPE_PIFF:
+		case GF_CRYPT_TYPE_SAES:
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Unsupported scheme type %s\n", gf_4cc_to_str(scheme_type) ));
@@ -1149,6 +1168,9 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		cstr->ctr_mode = GF_TRUE;
 	case GF_CRYPT_TYPE_CBC1:
 	case GF_CRYPT_TYPE_CBCS:
+		return cenc_enc_configure(ctx, cstr, cfile_name);
+	case GF_CRYPT_TYPE_SAES:
+		cstr->is_saes = GF_TRUE;
 		return cenc_enc_configure(ctx, cstr, cfile_name);
 	default:
 		return GF_NOT_SUPPORTED;
@@ -1430,6 +1452,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size)
 static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs, char *samp_data, u32 nal_size, u32 bytes_in_nalhr)
 {
 	u32 clear_bytes = 0;
+
 	if (cstr->slice_header_clear) {
 		u32 nal_start = (u32) gf_bs_get_position(plaintext_bs);
 		if (cstr->cenc_codec==CENC_AVC) {
@@ -1451,6 +1474,14 @@ static u32 cenc_get_clear_bytes(GF_CENCStream *cstr, GF_BitStream *plaintext_bs,
 				clear_bytes = nal_size;
 				break;
 			}
+			if (cstr->is_saes) {
+				if ((ntype == GF_AVC_NALU_NON_IDR_SLICE) || (ntype == GF_AVC_NALU_IDR_SLICE)) {
+					clear_bytes = 32;
+				} else {
+					clear_bytes = nal_size;
+				}
+			}
+
 		} else if (cstr->cenc_codec==CENC_HEVC) {
 #if !defined(GPAC_DISABLE_HEVC)
 			u8 ntype, ntid, nlid;
@@ -1523,8 +1554,12 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
 
-	//CENC can use inplace processing for decryption
-	dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
+	//CENC can use inplace processing for decryption, SAES cannot
+	if (!cstr->is_saes) {
+		dst_pck = gf_filter_pck_new_clone(cstr->opid, pck, &output);
+	} else {
+		dst_pck = gf_filter_pck_new_copy(cstr->opid, pck, &output);
+	}
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
 	gf_filter_pck_merge_properties(pck, dst_pck);
@@ -1787,7 +1822,9 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				} else {
 					//in cbcs, we don't adjust bytes_encrypted_data to be a multiple of 16 bytes and leave the last block unencrypted
 					//except in VPX, where BytesOfProtectedData SHALL end on the last byte of the decode_tile structure
-					if ((cstr->cenc_codec != CENC_VPX) && (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS)) {
+					if ((cstr->cenc_codec != CENC_VPX)
+						&& ((cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) || cstr->is_saes)
+					) {
 						u32 ret = (nalu_size - clear_bytes) % 16;
 						clear_bytes_at_end = ret;
 					}
@@ -1930,16 +1967,19 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		}
 		//CBC full sample with padding
 		else {
-			u32 clear_trailing;
+			u32 clear_trailing, clear_header=0;
+			//clear SAES header is 16 bytes for all audio codecs (AAC and AC3)
+			if (cstr->is_saes)
+				clear_header = 16;
 
-			clear_trailing = pck_size % 16;
+			clear_trailing = (pck_size-clear_header) % 16;
 
 			//cbcs scheme with constant IV, reinit at each sample,
 			if (!cstr->tci->keys[0].IV_size)
 				gf_crypt_set_IV(cstr->keys[0].crypt, cstr->keys[0].IV, 16);
 
 			if (pck_size >= 16) {
-				gf_crypt_encrypt(cstr->keys[0].crypt, output, pck_size - clear_trailing);
+				gf_crypt_encrypt(cstr->keys[0].crypt, output+clear_header, pck_size - clear_header - clear_trailing);
 			}
 			gf_bs_skip_bytes(ctx->bs_r, pck_size);
 		}
@@ -1979,6 +2019,53 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA_NO_COPY(sai, sai_size) );
 	}
 	gf_bs_del(sai_bs);
+
+	if (cstr->is_saes)
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CENC_SAI, NULL);
+
+	if (cstr->is_saes && (cstr->cenc_codec==CENC_AVC)) {
+		u8 *nal;
+		u32 epb_add_count = 0;
+
+		gf_bs_reassign_buffer(ctx->bs_r, output, pck_size);
+		nal = output;
+		while (gf_bs_available(ctx->bs_r)) {
+			u32 nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
+			nal += cstr->nalu_size_length;
+			epb_add_count += gf_media_nalu_emulation_bytes_add_count(nal, nalu_size);
+			nal += nalu_size;
+			gf_bs_skip_bytes(ctx->bs_r, nalu_size);
+		}
+
+		if (epb_add_count) {
+			u32 w_pos = 0;
+			u8 *dst_nal;
+			u8 *old_output = gf_malloc(sizeof(u8) * pck_size);
+			memcpy(old_output, output, sizeof(u8) * pck_size);
+			gf_filter_pck_expand(dst_pck, epb_add_count, &output, NULL, NULL);
+			gf_bs_reassign_buffer(ctx->bs_r, old_output, pck_size);
+			gf_bs_reassign_buffer(ctx->bs_w, output, pck_size+epb_add_count);
+			dst_nal = output;
+			nal = old_output;
+
+			while (gf_bs_available(ctx->bs_r)) {
+				u32 nalu_size = gf_bs_read_int(ctx->bs_r, 8*cstr->nalu_size_length);
+				epb_add_count = gf_media_nalu_emulation_bytes_add_count(nal, nalu_size);
+				gf_bs_write_int(ctx->bs_w, nalu_size+epb_add_count, 8*cstr->nalu_size_length);
+				nal += cstr->nalu_size_length;
+				dst_nal += cstr->nalu_size_length;
+				w_pos += 4;
+
+				gf_media_nalu_add_emulation_bytes(nal, dst_nal, nalu_size);
+				nal += nalu_size;
+				dst_nal += nalu_size+epb_add_count;
+				gf_bs_skip_bytes(ctx->bs_r, nalu_size);
+				w_pos += nalu_size+epb_add_count;
+				gf_bs_seek(ctx->bs_w, w_pos);
+			}
+			gf_free(old_output);
+		}
+	}
 
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
@@ -2238,10 +2325,8 @@ static const GF_FilterCapability CENCEncCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-//	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_CENCEncCtx, _n)
