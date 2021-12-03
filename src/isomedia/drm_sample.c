@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/constants.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -365,6 +366,8 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_SVE1_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_HLS_SAMPLE_AES_SCHEME, &sea);
 	if (!sinf) return GF_OK;
 
 	sea->type = sinf->original_format->data_format;
@@ -676,6 +679,8 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CENS_SCHEME, NULL);
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_CBCS_SCHEME, NULL);
 		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_PIFF_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_ISOM_SVE1_SCHEME, NULL);
+		if (!sinf) sinf = isom_get_sinf_entry(trak, i+1, GF_HLS_SAMPLE_AES_SCHEME, NULL);
 
 		if (!sinf) continue;
 
@@ -689,6 +694,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 		case GF_ISOM_CENS_SCHEME:
 		case GF_ISOM_CBCS_SCHEME:
 		case GF_ISOM_SVE1_SCHEME:
+		case GF_HLS_SAMPLE_AES_SCHEME:
 			return GF_TRUE;
 		default:
 			return GF_FALSE;
@@ -714,6 +720,8 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_SVE1_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_HLS_SAMPLE_AES_SCHEME, NULL);
 
 	if (!sinf) return GF_BAD_PARAM;
 
@@ -1702,6 +1710,8 @@ void gf_isom_cenc_get_default_info_internal(GF_TrackBox *trak, u32 sampleDescrip
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_PIFF_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_SVE1_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_HLS_SAMPLE_AES_SCHEME, NULL);
 
 	if (!sinf) {
 		u32 i, nb_stsd = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);

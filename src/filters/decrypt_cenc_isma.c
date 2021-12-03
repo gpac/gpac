@@ -738,6 +738,8 @@ static GF_Err cenc_dec_set_hls_key(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, c
 	return GF_OK;
 }
 
+static GF_Err cenc_dec_push_iv(GF_CENCDecStream *cstr, u32 key_idx, u8 *IV, u32 iv_size, u32 const_iv_size, const u8 *const_iv);
+
 static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 scheme_type, u32 scheme_version, const char *scheme_uri, const char *kms_uri)
 {
 	GF_Err e;
@@ -754,6 +756,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 		&& (scheme_type != GF_ISOM_CENS_SCHEME)
 		&& (scheme_type != GF_ISOM_CBCS_SCHEME)
 		&& (scheme_type != GF_ISOM_PIFF_SCHEME)
+		&& (scheme_type != GF_HLS_SAMPLE_AES_SCHEME)
 	)
 		return GF_NOT_SUPPORTED;
 
@@ -928,6 +931,7 @@ static GF_Err cenc_dec_setup_cenc(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u3
 			for (i=0; i<tci->nb_keys; i++) {
 				memcpy(cstr->KIDs[i], tci->keys[i].KID, sizeof(bin128));
 				memcpy(cstr->keys[i], tci->keys[i].key, sizeof(bin128));
+				memcpy(cstr->hls_IV, tci->keys[i].IV, sizeof(bin128));
 			}
 			if (cinfo != ctx->cinfo)
 				gf_crypt_info_del(cinfo);
@@ -984,6 +988,18 @@ static GF_Err cenc_dec_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cstr, u32 
 	if (cinfo_prop && prop) {
 		e = cenc_dec_set_hls_key(ctx, cstr, cinfo_prop->value.string, prop->value.data.ptr);
 		if (!e) return GF_OK;
+	}
+	prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_ISOM_SUBTYPE);
+	if (!prop) prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_DECRYPT_INFO);
+	if (prop || ctx->cinfo) {
+		e = cenc_dec_setup_cenc(ctx, cstr, scheme_type, scheme_version, scheme_uri, kms_uri);
+		if (e) return e;
+		if (!cstr->cenc_ki && cstr->nb_crypts && cstr->crypts[0].crypt && !cstr->crypts[0].key_valid) {
+			bin128 IV;
+			memcpy(cstr->crypts[0].key, cstr->keys[0], 16);
+			cenc_dec_push_iv(cstr, 0, IV, 0, 16, cstr->hls_IV);
+		}
+		return GF_OK;
 	}
 
 	if (ctx->decrypt!=DECRYPT_FULL) {
@@ -1480,19 +1496,28 @@ static GF_Err cenc_dec_process_hls_saes(GF_CENCDecCtx *ctx, GF_CENCDecStream *cs
 	if (!out_pck) return GF_OUT_OF_MEM;
 
 	//packet has been fetched, we now MUST have a key info
-	if (!cstr->hls_key_url) {
+
+	if (!cstr->hls_key_url && !cstr->cenc_ki && !ctx->cinfo) {
 		if (ctx->decrypt == DECRYPT_SKIP) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info nor constant IV\n" ) );
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[HLS_SAES] Packet encrypted but no KEY info\n" ) );
 			e = GF_OK;
 			goto send_packet;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HLS_SAES] Packet encrypted but no KEY info\n" ) );
 		return GF_SERVICE_ERROR;
 	}
-
-	e = cenc_dec_push_iv(cstr, 0, cstr->hls_IV, 16, 0, NULL);
-	if (e) goto exit;
-
+	if (cstr->cenc_ki) {
+		if (cstr->cenc_ki->value.data.size<37) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HLS_SAES] Broken KID for HLS SAES\n" ) );
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		e = cenc_dec_push_iv(cstr, 0, cstr->cenc_ki->value.data.ptr + 21, 16, 0, NULL);
+		if (e) goto exit;
+		memcpy(cstr->hls_IV, cstr->cenc_ki->value.data.ptr + 21, 16);
+	} else {
+		e = cenc_dec_push_iv(cstr, 0, cstr->hls_IV, 16, 0, NULL);
+		if (e) goto exit;
+	}
 	cstr->crypt_init = GF_TRUE;
 
 	if (cstr->key_error) {
@@ -1989,7 +2014,7 @@ static void cenc_dec_finalize(GF_Filter *filter)
 static const GF_FilterCapability CENCDecCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ISMACRYP_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_OMADRM_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_CENC_SCHEME),
@@ -1999,12 +2024,10 @@ static const GF_FilterCapability CENCDecCaps[] =
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_ADOBE_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_ISOM_PIFF_SCHEME),
 	CAP_4CC(GF_CAPS_INPUT,GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_HLS_SAMPLE_AES_SCHEME),
-
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	//CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_FALSE),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 

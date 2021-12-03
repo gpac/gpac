@@ -1354,6 +1354,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	break;
 	/*perform ADTS encapsulation*/
 	case GF_M2TS_AUDIO_AAC:
+	case GF_M2TS_HLS_AAC_CRYPT:
 		if (stream->ifce->decoder_config) {
 			GF_BitStream *bs;
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -2369,7 +2370,10 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
 			break;
 		case GF_CODECID_AVC:
-			stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
+			if (ifce->caps & GF_ESI_STREAM_HLS_SAES)
+				stream->mpeg2_stream_type = GF_M2TS_HLS_AVC_CRYPT;
+			else
+				stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 6 bytes (start code + 1 nal hdr + AU delim)
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 11;
@@ -2463,16 +2467,24 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 		case GF_CODECID_AAC_MPEG2_SSRP:
 			if (ifce->caps & GF_ESI_AAC_USE_LATM)
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
+			else if (ifce->caps & GF_ESI_STREAM_HLS_SAES)
+				stream->mpeg2_stream_type = GF_M2TS_HLS_AAC_CRYPT;
 			else
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
 			break;
 		case GF_CODECID_AC3:
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
+			if (ifce->caps & GF_ESI_STREAM_HLS_SAES)
+				stream->mpeg2_stream_type = GF_M2TS_HLS_AC3_CRYPT;
+			else
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_AC3;
 			break;
 		case GF_CODECID_EAC3:
-			stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
+			if (ifce->caps & GF_ESI_STREAM_HLS_SAES)
+				stream->mpeg2_stream_type = GF_M2TS_HLS_EC3_CRYPT;
+			else
+				stream->mpeg2_stream_type = GF_M2TS_AUDIO_EC3;
 			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts audio type for codec %s, signaling as PES private using codec 4CC in registration descriptor\n", gf_codecid_name(ifce->codecid) ));

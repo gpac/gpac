@@ -684,8 +684,20 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	GF_ESInterface bckp = tspid->esi;
 
 	memset(&tspid->esi, 0, sizeof(GF_ESInterface));
+
+	if (stream_type == GF_STREAM_ENCRYPTED) {
+		p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+		if (p && (p->value.uint == GF_HLS_SAMPLE_AES_SCHEME)) {
+			p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ORIG_STREAM_TYPE);
+			if (p) {
+				stream_type = p->value.uint;
+				tspid->esi.caps |= GF_ESI_STREAM_HLS_SAES;
+			}
+
+		}
+	}
 	tspid->esi.stream_type = stream_type;
-	
+
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_TIMESCALE);
 	tspid->esi.timescale = p->value.uint;
 
@@ -733,10 +745,10 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 		update_m4sys_info(ctx, prog);
 	}
 
-	tspid->esi.caps = 0;
 	switch (tspid->esi.stream_type) {
 	case GF_STREAM_AUDIO:
-		if (ctx->latm) tspid->esi.caps |= GF_ESI_AAC_USE_LATM;
+		if (ctx->latm && !(tspid->esi.caps & GF_ESI_STREAM_HLS_SAES))
+			tspid->esi.caps |= GF_ESI_AAC_USE_LATM;
 	case GF_STREAM_VISUAL:
 		if (ctx->mpeg4==2) {
 			tspid->esi.caps |= GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS;
@@ -1667,6 +1679,13 @@ static const GF_FilterCapability TSMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_MPHA),
 	//no RAW support for now$
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	{0},
+
+	//for SAES, accepte encrypted AVC with scheme SAES, unframed
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_PROTECTION_SCHEME_TYPE, GF_4CC('s','a','e','s') ),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_AVC),
 };
 
 
