@@ -2013,7 +2013,7 @@ refetch_streams:
 						if (ts >= min_ts) {
 							is_start = 1;
 						}
-						else if (st->can_split && (ts+dur >= min_ts)) {
+						else if (st->can_split && (ts+dur > min_ts)) {
 							is_start = 2;
 						}
 						else if (check_priming && (check_ts >= min_ts)) {
