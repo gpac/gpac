@@ -1400,7 +1400,7 @@ skip_date:
 				}
 			}
 			if (sep) {
-				escaped = strstr(sep, szEscape);
+				escaped = (sep[1] == filter->session->sep_args) ? NULL : strstr(sep, szEscape);
 				if (escaped) {
 					sep = escaped;
 				}
@@ -4258,6 +4258,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 	Bool res = GF_FALSE;
 	if (!filter) return GF_FALSE;
 	if (filter->session->pid_connect_tasks_pending) return GF_TRUE;
+	if (filter->session->in_final_flush) return GF_FALSE;
 	gf_mx_p(filter->session->filters_mx);
 	count = gf_list_count(filter->session->filters);
 	for (i=0; i<count; i++) {
