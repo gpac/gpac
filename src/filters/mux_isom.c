@@ -1833,6 +1833,9 @@ sample_entry_setup:
 				m_subtype = GF_QT_SUBTYPE_SOWT;
 				m_subtype_alt_raw = GF_ISOM_SUBTYPE_IPCM;
 				break;
+			case GF_AUDIO_FMT_S16_BE:
+				m_subtype = GF_QT_SUBTYPE_TWOS;
+				break;
 			case GF_AUDIO_FMT_S24P:
 			 	req_non_planar_type = GF_AUDIO_FMT_S24;
 			case GF_AUDIO_FMT_S24:

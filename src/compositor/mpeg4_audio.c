@@ -537,6 +537,7 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 			aifc->afmt = GF_AUDIO_FMT_U8;
 			break;
 		case GF_AUDIO_FMT_S16P:
+		case GF_AUDIO_FMT_S16_BE:
 			aifc->afmt = GF_AUDIO_FMT_S16;
 			break;
 		case GF_AUDIO_FMT_S24P:
