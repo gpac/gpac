@@ -1605,7 +1605,7 @@ sample_entry_setup:
 		use_ac3_entry = GF_TRUE;
 		break;
 	case GF_CODECID_EAC3:
-		m_subtype = GF_ISOM_SUBTYPE_AC3;
+		m_subtype = GF_ISOM_SUBTYPE_EC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
@@ -2650,6 +2650,10 @@ sample_entry_setup:
 			udesc.v_res = 72;
 			udesc.h_res = 72;
 			udesc.depth = 24;
+		}
+		if (dsi) {
+			udesc.extension_buf = dsi->value.data.ptr;
+			udesc.extension_buf_size = dsi->value.data.size;
 		}
 		if (unknown_generic) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));

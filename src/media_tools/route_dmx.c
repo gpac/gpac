@@ -226,6 +226,8 @@ static void gf_route_service_del(GF_ROUTEDmx *routedmx, GF_ROUTEService *s)
 GF_EXPORT
 void gf_route_dmx_del(GF_ROUTEDmx *routedmx)
 {
+	if (!routedmx) return;
+
 	if (routedmx->buffer) gf_free(routedmx->buffer);
 	if (routedmx->unz_buffer) gf_free(routedmx->unz_buffer);
 	if (routedmx->atsc_sock) gf_sk_del(routedmx->atsc_sock);
