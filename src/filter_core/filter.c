@@ -1088,7 +1088,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				if (len != alen) continue;
 				strncpy(szArg, o_arg, 100);
 				szArg[ MIN(flen + alen, 100) ] = 0;
-				gf_fs_push_arg(session, szArg, 1, 0);
+				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL);
 
 				if (sep) return sep+1;
 				//no arg value means boolean true
@@ -1117,6 +1117,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 {
 	GF_PropertyValue argv;
 	Bool gf_sys_has_filter_global_meta_args();
+	Bool gf_sys_has_filter_global_args();
 	u32 i, key_count = gf_opts_get_key_count(sec_name);
 
 	FSESS_CHECK_THREAD(filter)
@@ -1145,7 +1146,12 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		argv.value.string = (char *) arg_val;
 		filter->freg->update_arg(filter, arg_name, &argv);
 	}
-	if (!gf_sys_has_filter_global_meta_args()) return;
+	if (!gf_sys_has_filter_global_meta_args()
+		//allow -- syntax as well
+		&& !gf_sys_has_filter_global_args()
+	) {
+		return;
+	}
 
 	key_count = gf_sys_get_argc();
 	for (i=0; i<key_count; i++) {
@@ -1156,7 +1162,7 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		const char *per_filter;
 		const char *sep, *o_arg, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
-		if (arg[1] != '+') continue;
+		if ((arg[1] != '+') && (arg[1] != '-')) continue;
 		arg+=2;
 
 		o_arg = arg;
@@ -1187,7 +1193,9 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 #undef META_MAX_ARG
 
 		e = filter->freg->update_arg(filter, szArg + len, &argv);
-		gf_fs_push_arg(filter->session, szArg, (e==GF_OK) ? 1 : 0, 2);
+
+		//no need to push the arg, global args are always pushed when creating the session,
+		//and meta filters must report used/unused options
 	}
 }
 
@@ -1671,7 +1679,7 @@ skip_date:
 		}
 
 		if (!internal_arg && !opaque_arg && !opts_optional)
-			gf_fs_push_arg(filter->session, szArg, found ? 1 : 0, 0);
+			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL);
 
 skip_arg:
 		if (escaped) {
@@ -4142,7 +4150,10 @@ void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_f
 		}
 	}
 	gf_mx_p(filter->session->filters_mx);
-	gf_fs_push_arg(filter->session, arg, was_found ? 2 : 0, 2);
+	//meta filters may report unused options set when setting up the filter, and not specified
+	//at prompt, ignore them
+	//the argtype will be ignored here
+	gf_fs_push_arg(filter->session, arg, was_found, GF_ARGTYPE_META_REPORTING);
 	gf_mx_v(filter->session->filters_mx);
 }
 

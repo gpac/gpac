@@ -371,7 +371,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 
 	fsess->init_done = GF_TRUE;
 
-
+	//parse all global filter options for argument tracking
 	if (gf_sys_has_filter_global_args() || gf_sys_has_filter_global_meta_args()) {
 		u32 nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
@@ -380,8 +380,9 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if ((arg[1]!='-') && (arg[1]!='+')) continue;
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
-			gf_fs_push_arg(fsess, arg+2, 0, (arg[1]!='-') ? 2 : 1);
+			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]=='-') ? GF_ARGTYPE_GLOBAL : GF_ARGTYPE_META);
 
+			//force indexing in reframers when dash template with bandwidth is used
 			if (sep && !strcmp(arg+2, "template") && strstr(sep+1, "$Bandwidth$")) {
 				gf_opts_set_key("temp", "force_indexing", "true");
 			}
@@ -399,11 +400,16 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	return fsess;
 }
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found, u32 type)
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type)
 {
+	Bool create_if_not_found = GF_TRUE;
 	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
 		return;
 
+	//ignore any meta argument reported (found or not) that is not already present
+	if (type==GF_ARGTYPE_META_REPORTING) {
+		create_if_not_found = GF_FALSE;
+	}
 	if (!was_found) {
 		Bool afound = GF_FALSE;
 		u32 k, acount;
@@ -413,12 +419,10 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found,
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
 				afound = GF_TRUE;
-				if ((ai->type==2) && (type==2) && (ai->found_type==1))
-					ai->found_type = 0;
 				break;
 			}
 		}
-		if (!afound) {
+		if (!afound && create_if_not_found) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
 			if (ai) {
@@ -435,18 +439,18 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, u32 was_found,
 		for (k=0; k<acount; k++) {
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
-				ai->found_type = was_found;
+				ai->found = was_found;
 				found = GF_TRUE;
 				break;
 			}
 		}
-		if (!found) {
+		if (!found && create_if_not_found) {
 			GF_FSArgItem *ai;
 			GF_SAFEALLOC(ai, GF_FSArgItem);
 			if (ai) {
 				ai->argname = gf_strdup(szArg);
 				ai->type = type;
-				ai->found_type = was_found;
+				ai->found = GF_TRUE;
 				gf_list_add(session->parsed_args, ai );
 			}
 		}
@@ -614,7 +618,7 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argna
 	for (i=*idx; i<count; i++) {
 		GF_FSArgItem *ai = gf_list_get(fsess->parsed_args, i);
 		(*idx)++;
-		if (ai->found_type) continue;
+		if (ai->found) continue;
 		if (argname) *argname = ai->argname;
 		if (argtype) *argtype = ai->type;
 		return GF_TRUE;

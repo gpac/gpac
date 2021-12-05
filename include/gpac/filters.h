@@ -603,7 +603,7 @@ GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats
 \param session filter session
 \param idx index of argument to query, 0 being first argument; this value is automatically incremented
 \param argname set to argument name
-\param argtype set to argument type: 0 was a filter param (eg:arg=val), 1 was a global arg (eg --arg=val) and 2 was a global meta arg (eg -+arg=val)
+\param argtype set to argument type: 0 was a filter param (eg :arg=val), 1 was a global arg (eg --arg=val) and 2 was a global meta arg (eg -+arg=val)
 \return GF_TRUE if success, GF_FALSE if nothing more to enumerate
 */
 Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, char **argname, u32 *argtype);
