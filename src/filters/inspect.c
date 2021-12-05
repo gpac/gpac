@@ -437,7 +437,7 @@ static void dump_clli(FILE *dump, GF_BitStream *bs)
 {
 	u16 max_content_light_level = gf_bs_read_int(bs, 16);
 	u16 max_pic_average_light_level = gf_bs_read_int(bs, 16);
-	gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"\n", max_content_light_level, max_pic_average_light_level);
+	gf_fprintf(dump, " max_content_light_level=\"%u\" max_pic_average_light_level=\"%u\"", max_content_light_level, max_pic_average_light_level);
 }
 
 static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
