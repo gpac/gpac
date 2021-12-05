@@ -3007,6 +3007,34 @@ sample_entry_done:
 				}
 
 			}
+
+			p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_CONTENT_LIGHT_LEVEL);
+			const GF_PropertyValue *p2 = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MASTER_DISPLAY_COLOUR);
+			if (p || p2) {
+				GF_MasteringDisplayColourVolumeInfo mdcv;
+				GF_ContentLightLevelInfo clli;
+				GF_BitStream *bs;
+				if (p) {
+					bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+					clli.max_content_light_level = gf_bs_read_int(bs, 16);
+					clli.max_pic_average_light_level = gf_bs_read_int(bs, 16);
+					gf_bs_del(bs);
+				}
+				if (p2) {
+					bs = gf_bs_new(p2->value.data.ptr, p2->value.data.size, GF_BITSTREAM_READ);
+
+					for(u32 c=0;c<3;c++) {
+						mdcv.display_primaries[c].x = gf_bs_read_int(bs, 16);
+						mdcv.display_primaries[c].y = gf_bs_read_int(bs, 16);
+					}
+					mdcv.white_point_x = gf_bs_read_int(bs, 16);
+					mdcv.white_point_y = gf_bs_read_int(bs, 16);
+					mdcv.max_display_mastering_luminance = gf_bs_read_int(bs, 32);
+					mdcv.min_display_mastering_luminance = gf_bs_read_int(bs, 32);
+					gf_bs_del(bs);
+				}
+				gf_isom_set_high_dynamic_range_info(ctx->file, tkw->track_num, tkw->stsd_idx, p2 ? &mdcv : NULL, p ? &clli : NULL);
+			}
 		}
 		//default for old arch
 		else if (force_tk_layout

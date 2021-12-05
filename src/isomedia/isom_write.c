@@ -1930,19 +1930,27 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile* movie, u32 trackNumber, u
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	GF_MasteringDisplayColourVolumeBox *mdcvb = (GF_MasteringDisplayColourVolumeBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
-	if (!mdcvb) {
-		mdcvb = (GF_MasteringDisplayColourVolumeBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
-		if (!mdcvb) return GF_OUT_OF_MEM;
+	if (mdcv) {
+		if (!mdcvb) {
+			mdcvb = (GF_MasteringDisplayColourVolumeBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_MDCV);
+			if (!mdcvb) return GF_OUT_OF_MEM;
+		}
+		mdcvb->mdcv = *mdcv;
+	} else {
+		if (mdcvb) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *) mdcvb);
 	}
-	mdcvb->mdcv = *mdcv;
 
 	/*clli*/
 	GF_ContentLightLevelBox *cllib = (GF_ContentLightLevelBox *)gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
-	if (!cllib) {
-		cllib = (GF_ContentLightLevelBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
-		if (!cllib) return GF_OUT_OF_MEM;
+	if (clli) {
+		if (!cllib) {
+			cllib = (GF_ContentLightLevelBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_CLLI);
+			if (!cllib) return GF_OUT_OF_MEM;
+		}
+		cllib->clli = *clli;
+	} else {
+		if (cllib) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box *) cllib);
 	}
-	cllib->clli = *clli;
 	return GF_OK;
 }
 

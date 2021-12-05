@@ -222,6 +222,8 @@ typedef struct
 
 	//layer and temporal ID of last VCL nal
 	u8 last_layer_id, last_temporal_id;
+
+	u32 clli_crc, mdcv_crc;
 } GF_NALUDmxCtx;
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref);
@@ -1616,6 +1618,27 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, NULL);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, NULL);
 	}
+
+	ctx->clli_crc = 0;
+	if ((ctx->hevc_state && ctx->hevc_state->clli_valid)
+		|| (ctx->vvc_state && ctx->vvc_state->clli_valid)
+	) {
+		u8 *clli = ctx->hevc_state ? ctx->hevc_state->clli_data : ctx->vvc_state->clli_data;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(clli, 4));
+		ctx->clli_crc = gf_crc_32(clli, 4);
+	}
+	ctx->mdcv_crc = 0;
+	if ((ctx->hevc_state && ctx->hevc_state->mdcv_valid)
+		|| (ctx->vvc_state && ctx->vvc_state->mdcv_valid)
+	) {
+		u8 *mdcv = ctx->hevc_state ? ctx->hevc_state->mdcv_data : ctx->vvc_state->mdcv_data;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
+		ctx->mdcv_crc = gf_crc_32(mdcv, 24);
+	}
+	if (ctx->hevc_state)
+		ctx->hevc_state->clli_valid = ctx->hevc_state->mdcv_valid = 0;
+	if (ctx->vvc_state)
+		ctx->vvc_state->clli_valid = ctx->vvc_state->mdcv_valid = 0;
 }
 
 static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -1915,6 +1938,30 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 	ctx->has_ref_slices = GF_FALSE;
 	ctx->has_redundant = GF_FALSE;
 
+	if ((ctx->hevc_state && ctx->hevc_state->clli_valid)
+		|| (ctx->vvc_state && ctx->vvc_state->clli_valid)
+	) {
+		u8 *clli = ctx->hevc_state ? ctx->hevc_state->clli_data : ctx->vvc_state->clli_data;
+		u32 crc = gf_crc_32(clli, 4);
+		if (crc != ctx->clli_crc) {
+			gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(clli, 4));
+		}
+	}
+	if ((ctx->hevc_state && ctx->hevc_state->mdcv_valid)
+		|| (ctx->vvc_state && ctx->vvc_state->mdcv_valid)
+	) {
+		u8 *mdcv = ctx->hevc_state ? ctx->hevc_state->mdcv_data : ctx->vvc_state->mdcv_data;
+		u32 crc = gf_crc_32(mdcv, 24);
+		if (crc != ctx->mdcv_crc) {
+			gf_filter_pck_set_property(ctx->first_pck_in_au, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(mdcv, 24));
+		}
+	}
+	if (ctx->hevc_state)
+		ctx->hevc_state->clli_valid = ctx->hevc_state->mdcv_valid = 0;
+	if (ctx->vvc_state)
+		ctx->vvc_state->clli_valid = ctx->vvc_state->mdcv_valid = 0;
+
+
 	//if we reuse input packets timing, we can dispatch asap.
 	//otherwise if poc probe is done (we know the min_poc_diff between images) and we are not in strict mode, dispatch asap
 	//otherwise we will need to wait for the next ref frame to make sure we know all pocs ...
@@ -2079,6 +2126,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 		*skip_nal = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SEI_PREFIX:
+		ctx->hevc_state->clli_valid = ctx->hevc_state->mdcv_valid = 0;
 		gf_hevc_parse_sei(data, size, ctx->hevc_state);
 		if (!ctx->nosei) {
 			ctx->nb_sei++;
@@ -2264,6 +2312,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 #endif
 		break;
 	case GF_VVC_NALU_SEI_PREFIX:
+		ctx->vvc_state->clli_valid = ctx->vvc_state->mdcv_valid = 0;
 		gf_vvc_parse_sei(data, size, ctx->vvc_state);
 		if (!ctx->nosei) {
 			ctx->nb_sei++;

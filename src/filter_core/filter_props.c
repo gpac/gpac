@@ -1482,8 +1482,8 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_COLR_MX, "ColorMatrix", "Indicate color matrix coefficient for a visual pid ", GF_PROP_CICP_COL_MX, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_RANGE, "FullRange", "Indicate color full range flag for a visual pid", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COLR_CHROMALOC, "ChromaLoc", "Indicate chroma location for a visual pid (see ISO/IEC 23001-8 / 23091-2)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_CONTENT_LIGHT_LEVEL, "ContentLightLevel", "Indicate content light level, payload of clli box (see ISO/IEC 14496-12)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_MASTER_DISPLAY_COLOUR, "MasterDisplayColour", "Indicate master display colour info, payload of mdcv box (see ISO/IEC 14496-12)", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CONTENT_LIGHT_LEVEL, "ContentLightLevel", "Indicate content light level, payload of clli box (see ISO/IEC 14496-12), can be set as a list of 2 integers in fragment declaration (e.g. \"=max_cll,max_pic_avg_ll\")", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_MASTER_DISPLAY_COLOUR, "MasterDisplayColour", "Indicate master display colour info, payload of mdcv box (see ISO/IEC 14496-12), can be set as a list of 10 integers in fragment declaration (e.g. \"=dpx0,dpy0,dpx1,dpy1,dpx2,dpy2,wpx,wpy,max,min\")", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_SRC_MAGIC, "SrcMagic", "Indicate a magic number to store in the track, only used by importers", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MUX_INDEX, "MuxIndex", "Indicate target track index in destination file, stored by lowest value first (not set by demuxers)", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
