@@ -6627,7 +6627,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);\
 			e = gf_isom_box_array_read((GF_Box *) _box, bs); \
 			count_subb = _box->child_boxes ? gf_list_count(_box->child_boxes) : 0; \
-			if (!count_subb || e) { \
+			if (count_subb & !e) { \
 				gf_bs_seek(bs, pos); \
 				_box->data_size = (u32) gf_bs_available(bs); \
 				if (_box->data_size) { \
