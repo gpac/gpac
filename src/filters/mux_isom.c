@@ -1605,7 +1605,7 @@ sample_entry_setup:
 		use_ac3_entry = GF_TRUE;
 		break;
 	case GF_CODECID_EAC3:
-		m_subtype = GF_ISOM_SUBTYPE_AC3;
+		m_subtype = GF_ISOM_SUBTYPE_EC3;
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
