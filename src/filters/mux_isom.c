@@ -238,7 +238,7 @@ typedef struct
 	//filter args
 	GF_ISOFile *file;
 	Bool m4sys, dref;
-	GF_Fraction idur;
+	GF_Fraction dur;
 	u32 pack3gp, ctmode;
 	Bool importer, pack_nal, moof_first, abs_offset, fsap, tfdt_traf, keep_utc, pps_inband;
 	u32 xps_inband, moovpad;
@@ -4117,9 +4117,9 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if (duration && !for_fragment && !tkw->raw_audio_bytes_per_sample)
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
-	if (ctx->idur.num) {
+	if (ctx->dur.num) {
 		Bool abort = GF_FALSE;
-		if (ctx->idur.num>0) {
+		if (ctx->dur.num>0) {
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 
 			/*patch to align to old arch */
@@ -4128,20 +4128,20 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 			}
 
 			if (ctx->importer) {
-				tkw->prog_done = mdur * ctx->idur.den;
-				tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->idur.num;
+				tkw->prog_done = mdur * ctx->dur.den;
+				tkw->prog_total =  ((u64)tkw->tk_timescale) * ctx->dur.num;
 			}
 
 			/*patch to align to old arch */
 			if (gf_sys_old_arch_compat()) {
-				if (gf_timestamp_greater(mdur, tkw->tk_timescale, ctx->idur.num, ctx->idur.den))
+				if (gf_timestamp_greater(mdur, tkw->tk_timescale, ctx->dur.num, ctx->dur.den))
 					abort = GF_TRUE;
 			} else {
-				if (gf_timestamp_greater_or_equal(mdur, tkw->tk_timescale, ctx->idur.num, ctx->idur.den))
+				if (gf_timestamp_greater_or_equal(mdur, tkw->tk_timescale, ctx->dur.num, ctx->dur.den))
 					abort = GF_TRUE;
 			}
 		} else {
-			if ((s32) tkw->nb_samples >= -ctx->idur.num)
+			if ((s32) tkw->nb_samples >= -ctx->dur.num)
 				abort = GF_TRUE;
 		}
 
@@ -4596,9 +4596,9 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 	if (ctx->sseg && ctx->noinit)
 		ctx->single_file = GF_FALSE;
 
-	if (ctx->idur.num && ctx->idur.den) {
-		max_dur.num = ctx->idur.num;
-		max_dur.den = ctx->idur.den;
+	if (ctx->dur.num && ctx->dur.den) {
+		max_dur.num = ctx->dur.num;
+		max_dur.den = ctx->dur.den;
 	}
 
 	//make sure we have one sample from each PID. This will trigger potential pending reconfigure
@@ -5812,14 +5812,14 @@ void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 t
 			TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 			if (tkw->aborted) {
 				pc=10000;
-			} else if (ctx->idur.num) {
-				if (ctx->idur.num>0) {
+			} else if (ctx->dur.num) {
+				if (ctx->dur.num>0) {
 					u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
-					u64 tk_done = mdur * ctx->idur.den;
-					u64 tk_total = ((u64)tkw->tk_timescale) * ctx->idur.num;
+					u64 tk_done = mdur * ctx->dur.den;
+					u64 tk_total = ((u64)tkw->tk_timescale) * ctx->dur.num;
 					pc = (u32) ((tk_done*10000)/tk_total);
 				} else {
-					pc = (u32) ( (10000 * (u64) (tkw->nb_samples + tkw->frame_offset) ) / (-ctx->idur.num) );
+					pc = (u32) ( (10000 * (u64) (tkw->nb_samples + tkw->frame_offset) ) / (-ctx->dur.num) );
 				}
 			} else {
 				if (tkw->nb_frames) {
@@ -6464,7 +6464,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 		gf_isom_purge_track_reference(ctx->file, tkw->track_num);
 		
-		if (ctx->importer && ctx->idur.num && ctx->idur.den) {
+		if (ctx->importer && ctx->dur.num && ctx->dur.den) {
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 			u64 pdur = gf_isom_get_track_duration(ctx->file, tkw->track_num);
 			if (pdur==mdur) {
@@ -6510,8 +6510,8 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->file, tkw->track_num);
 
-		if ((tkw->nb_samples == 1) && (ctx->idur.num>0) && ctx->idur.den) {
-			u32 dur = (u32) gf_timestamp_rescale(ctx->idur.num, ctx->idur.den, tkw->tk_timescale);
+		if ((tkw->nb_samples == 1) && (ctx->dur.num>0) && ctx->dur.den) {
+			u32 dur = (u32) gf_timestamp_rescale(ctx->dur.num, ctx->dur.den, tkw->tk_timescale);
 			gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, dur);
 		}
 
@@ -6688,7 +6688,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
 	"- noedit: ignore edit lists and does not shift timeline\n"
 	"- negctts: uses ctts v1 with possibly negative offsets and no edit lists", GF_PROP_UINT, "edit", "edit|noedit|negctts", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(idur), "only import the specified duration. If negative, specify the number of coded frames to import", GF_PROP_FRACTION, "0", NULL, 0},
+	{ OFFS(dur), "only import the specified duration. If negative, specify the number of coded frames to import", GF_PROP_FRACTION, "0", NULL, 0},
 	{ OFFS(pack3gp), "pack a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},

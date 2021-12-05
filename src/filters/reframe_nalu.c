@@ -64,7 +64,7 @@ typedef struct
 	u32 nal_length;
 	u32 strict_poc;
 	u32 bsdbg;
-	GF_Fraction idur;
+	GF_Fraction dur;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -3455,7 +3455,7 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 	if (ctx->cur_fps.den)
 		nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
 
-	if (ctx->idur.den && ctx->idur.num) {
+	if (ctx->dur.den && ctx->dur.num) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s duration specified at import time, may have parsed more frames than imported\n", ctx->log_name));
 		msg_import = "parsed";
 	} else {
@@ -3722,7 +3722,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(nosvc), "remove all SVC/MVC/LHVC data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(novpsext), "remove all VPS extensions", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(importer), "compatibility with old importer, displays import results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(idur), "compatibility with old importer to log imported frames only", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(dur), "compatibility with old importer to log imported frames only", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nal_length), "set number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
