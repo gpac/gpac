@@ -2651,6 +2651,10 @@ sample_entry_setup:
 			udesc.h_res = 72;
 			udesc.depth = 24;
 		}
+		if (dsi) {
+			udesc.extension_buf = dsi->value.data.ptr;
+			udesc.extension_buf_size = dsi->value.data.size;
+		}
 		if (unknown_generic) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 		}
