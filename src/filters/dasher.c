@@ -154,7 +154,6 @@ typedef struct
 	Bool check_dur, skip_seg, loop, reschedule, scope_deps;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
-	Bool m2ts;
 	Bool cmpd, dual, sreg, pswitch;
 	char *styp;
 	Bool sigfrag;
@@ -1518,11 +1517,12 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 		ctx->mpd->availabilityStartTime = 0;
 	}
 
+	Bool is_m2ts = (ctx->muxtype==DASHER_MUX_TS) ? GF_TRUE : GF_FALSE;
 	if (ctx->profile==GF_DASH_PROFILE_LIVE) {
-		if (ctx->use_xlink && !ctx->m2ts) {
+		if (ctx->use_xlink && !is_m2ts) {
 			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-segext-live:2014");
 		} else {
-			sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", ctx->m2ts ? "mp2t-simple" : "isoff-live");
+			sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_m2ts ? "mp2t-simple" : "isoff-live");
 		}
 	} else if (ctx->profile==GF_DASH_PROFILE_ONDEMAND) {
 		if (ctx->use_xlink) {
@@ -1531,7 +1531,7 @@ static GF_Err dasher_update_mpd(GF_DasherCtx *ctx)
 			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011");
 		}
 	} else if (ctx->profile==GF_DASH_PROFILE_MAIN) {
-		sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", ctx->m2ts ? "mp2t-main" : "isoff-main");
+		sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_m2ts ? "mp2t-main" : "isoff-main");
 	} else if (ctx->profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		strcpy(profiles_string, "urn:hbbtv:dash:profile:isoff-live:2012");
 	} else if (ctx->profile==GF_DASH_PROFILE_AVC264_LIVE) {
@@ -2159,9 +2159,7 @@ static void dasher_get_mime_and_ext(GF_DasherCtx *ctx, GF_DashStream *ds, const 
 	const char *mux_ext = NULL;
 	const char *cstr;
 
-	if (ctx->m2ts) {
-		subtype = "mp2t";
-	} else if (ctx->muxtype!=DASHER_MUX_AUTO) {
+	if (ctx->muxtype!=DASHER_MUX_AUTO) {
 		switch (ctx->muxtype) {
 		case DASHER_MUX_ISOM: subtype = "mp4"; mux_ext = "mp4"; break;
 		case DASHER_MUX_TS: subtype = "mp2t"; mux_ext = "ts"; break;
@@ -2664,10 +2662,17 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 	GF_MPD_Representation *base_rep = gf_list_get(set->representations, 0);
 	GF_DashStream *base_ds;
 
-	if (ctx->m2ts) {
+	switch (ctx->muxtype) {
+	case DASHER_MUX_TS:
+	case DASHER_MUX_OGG:
+	case DASHER_MUX_RAW:
 		set->bitstream_switching = GF_TRUE;
 		return;
+	//other formats use an init segment
+	default:
+		break;
 	}
+
 	if (ctx->bs_switch==DASHER_BS_SWITCH_OFF) return;
 	if (!base_rep) return;
 	base_ds = base_rep->playback.udta;
@@ -3541,67 +3546,66 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		ds->rawmux = GF_FALSE;
 		idx_ext = NULL;
-		if (ctx->m2ts) {
-			seg_ext = init_ext = "ts";
+
+
+		const char *def_ext = NULL;
+		seg_ext = init_ext = NULL;
+
+		if (ctx->muxtype==DASHER_MUX_TS) {
+			def_ext = seg_ext = init_ext = "ts";
 			if (!ctx->do_m3u8 && (ctx->subs_sidx>=0) )
 				idx_ext = "idx";
-		} else {
-			const char *def_ext = NULL;
-
-			seg_ext = init_ext = NULL;
-
-			if (ctx->muxtype==DASHER_MUX_TS) def_ext = "ts";
-			else if (ctx->muxtype==DASHER_MUX_MKV) def_ext = "mkv";
-			else if (ctx->muxtype==DASHER_MUX_WEBM) def_ext = "webm";
-			else if (ctx->muxtype==DASHER_MUX_OGG) def_ext = "ogg";
-			else if (ctx->muxtype==DASHER_MUX_RAW) {
-				char *ext = (char *) gf_codecid_file_ext(ds->codec_id);
-				if (ds->codec_id==GF_CODECID_RAW) {
-					const GF_PropertyValue *p;
-					if (ds->stream_type==GF_STREAM_VISUAL) {
-						p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PIXFMT);
-						if (p) ext = (char *) gf_pixel_fmt_sname(p->value.uint);
-					}
-					else if (ds->stream_type==GF_STREAM_AUDIO) {
-						p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AUDIO_FORMAT);
-						if (p) ext = (char *) gf_audio_fmt_sname(p->value.uint);
-					}
+		}
+		else if (ctx->muxtype==DASHER_MUX_MKV) def_ext = "mkv";
+		else if (ctx->muxtype==DASHER_MUX_WEBM) def_ext = "webm";
+		else if (ctx->muxtype==DASHER_MUX_OGG) def_ext = "ogg";
+		else if (ctx->muxtype==DASHER_MUX_RAW) {
+			char *ext = (char *) gf_codecid_file_ext(ds->codec_id);
+			if (ds->codec_id==GF_CODECID_RAW) {
+				const GF_PropertyValue *p;
+				if (ds->stream_type==GF_STREAM_VISUAL) {
+					p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PIXFMT);
+					if (p) ext = (char *) gf_pixel_fmt_sname(p->value.uint);
 				}
-				strncpy(szRawExt, ext ? ext : "raw", 19);
+				else if (ds->stream_type==GF_STREAM_AUDIO) {
+					p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_AUDIO_FORMAT);
+					if (p) ext = (char *) gf_audio_fmt_sname(p->value.uint);
+				}
+			}
+			strncpy(szRawExt, ext ? ext : "raw", 19);
+			szRawExt[19] = 0;
+			ext = strchr(szRawExt, '|');
+			if (ext) ext[0] = 0;
+			def_ext = szRawExt;
+		}
+
+		if (!ds->muxed_base && ctx->rawsub && (ds->stream_type==GF_STREAM_TEXT) ) {
+			char *ext_sub = (char *) gf_codecid_file_ext(ds->codec_id);
+			if (ext_sub) {
+				if (!strcmp(ext_sub, "subx"))
+					ext_sub = "ttml";
+
+				strncpy(szRawExt, ext_sub, 19);
 				szRawExt[19] = 0;
-				ext = strchr(szRawExt, '|');
-				if (ext) ext[0] = 0;
+				ext_sub = strchr(szRawExt, '|');
+				if (ext_sub) ext_sub[0] = 0;
 				def_ext = szRawExt;
+				skip_init = GF_TRUE;
+				ds->rawmux = GF_TRUE;
 			}
+		}
 
-			if (!ds->muxed_base && ctx->rawsub && (ds->stream_type==GF_STREAM_TEXT) ) {
-				char *ext_sub = (char *) gf_codecid_file_ext(ds->codec_id);
-				if (ext_sub) {
-					if (!strcmp(ext_sub, "subx"))
-						ext_sub = "ttml";
-
-					strncpy(szRawExt, ext_sub, 19);
-					szRawExt[19] = 0;
-					ext_sub = strchr(szRawExt, '|');
-					if (ext_sub) ext_sub[0] = 0;
-					def_ext = szRawExt;
-					skip_init = GF_TRUE;
-					ds->rawmux = GF_TRUE;
-				}
-			}
-
-			if (ctx->segext && !stricmp(ctx->segext, "null")) {
-				seg_ext = NULL;
-			} else {
-				seg_ext = ctx->segext;
-				if (!seg_ext) seg_ext = def_ext ? def_ext : "m4s";
-			}
-			if (ctx->initext && !stricmp(ctx->initext, "null")) {
-				init_ext = NULL;
-			} else {
-				init_ext = ctx->initext;
-				if (!init_ext) init_ext = def_ext ? def_ext : "mp4";
-			}
+		if (ctx->segext && !stricmp(ctx->segext, "null")) {
+			seg_ext = NULL;
+		} else {
+			seg_ext = ctx->segext;
+			if (!seg_ext) seg_ext = def_ext ? def_ext : "m4s";
+		}
+		if (ctx->initext && !stricmp(ctx->initext, "null")) {
+			init_ext = NULL;
+		} else {
+			init_ext = ctx->initext;
+			if (!init_ext) init_ext = def_ext ? def_ext : "mp4";
 		}
 
 		is_bs_switch = set->bitstream_switching;
@@ -3695,9 +3699,9 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (!force_init_seg_sl && tile_base_ds->set->segment_list) force_init_seg_sl = tile_base_ds->set->segment_list->initialization_segment;
 #endif
 		}
-		if (ctx->m2ts) skip_init = GF_TRUE;
-		else if (ctx->muxtype==DASHER_MUX_RAW) skip_init = GF_TRUE;
+		if (ctx->muxtype==DASHER_MUX_RAW) skip_init = GF_TRUE;
 		else if (ctx->muxtype==DASHER_MUX_TS) skip_init = GF_TRUE;
+		else if (ctx->muxtype==DASHER_MUX_OGG) skip_init = GF_TRUE;
 
 
 		//forward mode, change segment names
@@ -3830,12 +3834,6 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		/*we are using a single file or segment, use base url*/
 		else if (ctx->sseg || ctx->sfile) {
 			GF_MPD_BaseURL *baseURL;
-/*			char *segext = (ctx->segext && !stricmp(ctx->segext, "null")) ? NULL : "mp4";
-			if (ctx->m2ts) segext = "ts";
-
-			//use GF_DASH_TEMPLATE_INITIALIZATION_SKIPINIT to get rid of default "init" added for init templates
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, set->bitstream_switching, szInitSegmentName, ds->rep_id, NULL, szDASHTemplate, segext, 0, 0, 0, ctx->stl);
-*/
 
 			if (ds->init_seg) gf_free(ds->init_seg);
 			ds->init_seg = gf_strdup(szInitSegmentFilename);
@@ -6742,7 +6740,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				}
 			}
 
-			if (!ds->rep->hls_single_file_name && !ctx->m2ts) {
+			if (!ds->rep->hls_single_file_name) {
 				switch (ctx->muxtype) {
 				case DASHER_MUX_TS:
 				case DASHER_MUX_OGG:
@@ -6799,7 +6797,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		//we need a hard copy as the pid may reconfigure before we flush the segment
 		if (kms_uri) {
 			//insert IV if not mp4
-			if (!ds->tci && !strstr(kms_uri, "IV=") && (ctx->muxtype || ctx->m2ts)) {
+			if (!ds->tci && !strstr(kms_uri, "IV=") && (ctx->muxtype!=DASHER_MUX_ISOM)) {
 				p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_CENC_KEY_INFO);
 				if (p && (p->value.data.size==37)) {
 					char *kms_iv=NULL;
@@ -8738,7 +8736,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 	default:
 		break;
 	}
-	if (ctx->m2ts) {
+	if (ctx->muxtype==DASHER_MUX_TS) {
 		switch (ctx->profile) {
 		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
 		case GF_DASH_PROFILE_AVC264_LIVE:
@@ -8774,7 +8772,7 @@ static GF_Err dasher_setup_profile(GF_DasherCtx *ctx)
 		ctx->sseg = ctx->align = ctx->sap = ctx->sfile = GF_TRUE;
 		ctx->tpl = GF_FALSE;
 
-		if (ctx->m2ts) {
+		if (ctx->muxtype==DASHER_MUX_TS) {
 			ctx->sseg = GF_FALSE;
 			ctx->tpl = GF_TRUE;
 			ctx->profile = GF_DASH_PROFILE_MAIN;
@@ -9024,7 +9022,6 @@ static const GF_FilterArgs DasherArgs[] =
 	"- yes: inserts NTP at each segment start\n"
 	"- keep: leaves input packet NTP untouched", GF_PROP_UINT, "rem", "rem|yes|keep", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(no_sar), "do not check for identical sample aspect ratio for adaptation sets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(m2ts), "generate MPEG-2 TS output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bs_switch), "bitstream switching mode (single init segment)\n"
 	"- def: resolves to off for onDemand and inband for live\n"
 	"- off: disables BS switching\n"
