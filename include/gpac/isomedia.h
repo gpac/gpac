@@ -2433,8 +2433,8 @@ GF_Err gf_isom_update_aperture_info(GF_ISOFile *isom_file, u32 trackNumber, Bool
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
-\param mdcv the mastering display colour volume to set
-\param clli the content light level to set
+\param mdcv the mastering display colour volume to set, if NULL removes the info
+\param clli the content light level to set, if NULL removes the info
 \return error if any
 */
 GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_MasteringDisplayColourVolumeInfo *mdcv, GF_ContentLightLevelInfo *clli);

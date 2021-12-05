@@ -25,6 +25,7 @@
 
 #include "filter_session.h"
 #include <gpac/constants.h>
+#include <gpac/bitstream.h>
 
 static void pcki_del(GF_FilterPacketInstance *pcki)
 {
@@ -3637,13 +3638,55 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 
 
 		if (prop_type != GF_PROP_FORBIDEN) {
-			GF_PropertyValue p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
-			if (prop_type==GF_PROP_NAME) {
-				p.type = GF_PROP_STRING;
-				gf_filter_pid_set_property(pid, p4cc, &p);
-			} else {
-				gf_filter_pid_set_property(pid, p4cc, &p);
+			GF_PropertyValue p;
+			p.type = GF_PROP_FORBIDEN;
+
+			//specific parsing for clli: it's a data prop but we allow textual specifiers
+			if ((p4cc == GF_PROP_PID_CONTENT_LIGHT_LEVEL) && strchr(value, sep_list) ){
+				GF_PropertyValue a_p = gf_props_parse_value(GF_PROP_UINT_LIST, name, value, NULL, sep_list);
+				if ((a_p.type == GF_PROP_UINT_LIST) && (a_p.value.uint_list.nb_items==2))  {
+					GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[0]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[1]);
+					gf_bs_get_content(bs, &p.value.data.ptr, &p.value.data.size);
+					p.type = GF_PROP_DATA;
+					gf_bs_del(bs);
+				}
+				gf_props_reset_single(&a_p);
 			}
+			//specific parsing for mdcv: it's a data prop but we allow textual specifiers
+			else if ((p4cc == GF_PROP_PID_MASTER_DISPLAY_COLOUR) && strchr(value, sep_list) ) {
+				GF_PropertyValue a_p = gf_props_parse_value(GF_PROP_UINT_LIST, name, value, NULL, sep_list);
+				if ((a_p.type == GF_PROP_UINT_LIST) && (a_p.value.uint_list.nb_items==10))  {
+					GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[0]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[1]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[2]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[3]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[4]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[5]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[6]);
+					gf_bs_write_u16(bs, a_p.value.uint_list.vals[7]);
+					gf_bs_write_u32(bs, a_p.value.uint_list.vals[8]);
+					gf_bs_write_u32(bs, a_p.value.uint_list.vals[9]);
+					gf_bs_get_content(bs, &p.value.data.ptr, &p.value.data.size);
+					p.type = GF_PROP_DATA;
+					gf_bs_del(bs);
+				}
+				gf_props_reset_single(&a_p);
+			} else {
+				p = gf_props_parse_value(prop_type, name, value, NULL, sep_list);
+			}
+
+			if (p.type != GF_PROP_FORBIDEN) {
+				if (prop_type==GF_PROP_NAME) {
+					p.type = GF_PROP_STRING;
+					gf_filter_pid_set_property(pid, p4cc, &p);
+				} else {
+					gf_filter_pid_set_property(pid, p4cc, &p);
+				}
+			}
+
 			if ((p4cc==GF_PROP_PID_TEMPLATE) && p.value.string) {
 				if (strstr(p.value.string, "$Bandwidth$")) {
 					gf_opts_set_key("temp", "force_indexing", "true");

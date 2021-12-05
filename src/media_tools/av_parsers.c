@@ -4126,6 +4126,26 @@ static void on_aom_av1_eos(void *_state)
 	state->bs_overread = GF_TRUE;
 }
 
+static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
+{
+	u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
+
+	switch (metadata_type) {
+	case OBU_METADATA_TYPE_ITUT_T35:
+		break;
+	case OBU_METADATA_TYPE_HDR_CLL:
+		gf_bs_read_data(bs, state->clli_data, 4);
+		state->clli_valid = 1;
+		break;
+	case OBU_METADATA_TYPE_HDR_MDCV:
+		gf_bs_read_data(bs, state->mdcv_data, 24);
+		state->mdcv_valid = 1;
+		break;
+	default:
+		break;
+	}
+}
+
 GF_EXPORT
 GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state)
 {
@@ -4197,6 +4217,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		break;
 
 	case OBU_METADATA:
+		av1_parse_obu_metadata(state, bs);
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
 
@@ -4231,6 +4252,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		break;
 	case OBU_TEMPORAL_DELIMITER:
 		state->frame_state.seen_frame_header = GF_FALSE;
+		state->clli_valid = state->mdcv_valid = 0;
 	case OBU_PADDING:
 		gf_bs_seek(bs, pos + *obu_size);
 		break;
@@ -7306,6 +7328,26 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 		case 4: /*user registered ITU-T T35*/
 			if (hevc) {
 				avc_parse_itu_t_t35_sei(bs, &hevc->sei.dovi);
+			}
+			break;
+		case 144:
+			//clli
+			if (hevc) {
+				gf_bs_read_data(bs, hevc->clli_data, 4);
+				hevc->clli_valid = 1;
+			} else {
+				gf_bs_read_data(bs, vvc->clli_data, 4);
+				vvc->clli_valid = 1;
+			}
+			break;
+		case 137:
+			//mdcv
+			if (hevc) {
+				gf_bs_read_data(bs, hevc->mdcv_data, 24);
+				hevc->mdcv_valid = 1;
+			} else {
+				gf_bs_read_data(bs, vvc->mdcv_data, 24);
+				vvc->mdcv_valid = 1;
 			}
 			break;
 		default:

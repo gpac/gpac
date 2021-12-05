@@ -99,6 +99,8 @@ typedef struct
 	Bool pts_from_file;
 	u64 cumulated_dur, last_pts;
 	u32 bitrate;
+
+	u32 clli_crc, mdcv_crc;
 } GF_AV1DmxCtx;
 
 
@@ -560,11 +562,24 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
 
+	ctx->clli_crc = 0;
+	ctx->mdcv_crc = 0;
 	if (ctx->is_av1) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_PRIMARIES, & PROP_UINT(ctx->state.color_primaries) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_TRANSFER, & PROP_UINT(ctx->state.transfer_characteristics) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, & PROP_UINT(ctx->state.matrix_coefficients) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, & PROP_BOOL(ctx->state.color_range) );
+
+
+		if (ctx->state.clli_valid) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(ctx->state.clli_data, 4));
+			ctx->clli_crc = gf_crc_32(ctx->state.clli_data, 4);
+		}
+		if (ctx->state.mdcv_valid) {
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(ctx->state.mdcv_data, 24));
+			ctx->mdcv_crc = gf_crc_32(ctx->state.mdcv_data, 24);
+		}
+
 	}
 	//disabled for the time being, matchin `colr` box will be injected by mp43mx if needed
 	//check vpX specs to see if always needed
@@ -812,6 +827,19 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		//hasRedundant
 	 	//flags |= ctx->has_redundant ? 1 : 2;
 	 	gf_filter_pck_set_dependency_flags(pck, flags);
+	}
+
+	if (ctx->state.clli_valid) {
+		u32 crc = gf_crc_32(ctx->state.clli_data, 4);
+		if (crc != ctx->clli_crc) {
+			gf_filter_pck_set_property(pck, GF_PROP_PID_CONTENT_LIGHT_LEVEL, &PROP_DATA(ctx->state.clli_data, 4));
+		}
+	}
+	if (ctx->state.mdcv_valid) {
+		u32 crc = gf_crc_32(ctx->state.mdcv_data, 24);
+		if (crc != ctx->mdcv_crc) {
+			gf_filter_pck_set_property(pck, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(ctx->state.mdcv_data, 24));
+		}
 	}
 
 	gf_filter_pck_send(pck);

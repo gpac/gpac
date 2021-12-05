@@ -1311,8 +1311,8 @@ static struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_IAUX, iaux, "ipco", 0, "cenc"),
 
 	//MIAF
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 vvc1 vvi1 encv resv av01", "miaf"),
-	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MDCV, mdcv, "mp4v jpeg avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 vvc1 vvi1 encv resv av01", "miaf"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_CLLI, clli, "video_sample_entry ipco encv resv", "p12"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_MDCV, mdcv, "video_sample_entry ipco encv resv", "p12"),
 
 	//AVIF
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_A1LX, a1lx, "ipco", "avif"),

@@ -570,6 +570,11 @@ typedef struct _hevc_state
 	// Dolby Vision
 	Bool dv_rpu;
 	Bool dv_el;
+
+
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
 } HEVCState;
 
 typedef struct hevc_combine{
@@ -818,6 +823,11 @@ typedef struct _vvc_state
 	//1: full parsing, error check: used to retrieve end of slice header
 	//2: full parsing, no error check (used by dumpers)
 	u32 parse_mode;
+
+
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
 } VVCState;
 
 s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
@@ -963,6 +973,12 @@ typedef struct
 
 	/*layer sizes for AVIF a1lx*/
 	u32 layer_size[4];
+
+
+	u8 clli_data[4];
+	u8 mdcv_data[24];
+	u8 clli_valid, mdcv_valid;
+
 } AV1State;
 
 GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *state);
