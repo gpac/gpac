@@ -1295,7 +1295,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, ":forcesync", NULL);
 
 	if (importer->duration.den) {
-		sprintf(szSubArg, "idur=%d/%d", importer->duration.num, importer->duration.den);
+		sprintf(szSubArg, "dur=%d/%d", importer->duration.num, importer->duration.den);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->frames_per_sample) {

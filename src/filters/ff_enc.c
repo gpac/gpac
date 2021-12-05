@@ -1820,7 +1820,7 @@ GF_FilterRegister FFEncodeRegister = {
 		"The filter will try to resolve the codec name in [-c]() against a libavcodec codec name (eg `libx264`) and use it if found.\n"
 		"If not found, it will consider the name to be a GPAC codec name and find a codec for it. In that case, if no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 		"\n"
-		"Options can be passed from prompt using `-+OPT=VAL` (global options) or appending `::OPT=VAL` to the desired encoder filter.\n"
+		"Options can be passed from prompt using `--OPT=VAL` (global options) or appending `::OPT=VAL` to the desired encoder filter.\n"
 		"\n"
 		"The filter will look for property `TargetRate` on input PID to set the desired bitrate per PID.\n"
 		"\n"

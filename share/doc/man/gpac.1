@@ -21,9 +21,9 @@ FILTER: a single filter declaration (eg, -i file, -o dump, inspect, ...), see gp
 .br
   - an option using a single - indicates an option of gpac (see gpac -hx) or of libgpac (see gpac -hx core)
 .br
-  - an option using -- indicates a global filter option, for example --block_size=1000 (see gpac -h doc)
+  - an option using -- indicates a global filter or meta-filter (eg FFMPEG) option, for example --block_size=1000 (see gpac -h doc)
 .br
-  - an option using -+ indicates a global meta-filter filter (eg FFMPEG) option, for example -+profile=Baseline (see gpac -h doc)
+  - an option using -+ indicates a global option only targetting meta-filters (eg FFMPEG), for example -+profile=Baseline (see gpac -h doc) (DEPRECATED)
 .br
   
 .br
@@ -518,11 +518,11 @@ This is equivalent to specifying vout:buffer=100 aout:buffer=10.
 .br
 Warning: This syntax only applies to regular filter options. It cannot be used with builtin shortcuts (gfreg, enc, ...).
 .br
-Meta-filter options can be set in the same way using the syntax -+OPT_NAME=VAL.
+Meta-filter options can be set in the same way using the syntax --OPT_NAME=VAL.
 .br
 Example
 .br
--+profile=Baseline -i file.cmp -o dump.264
+--profile=Baseline -i file.cmp -o dump.264
 .br
 
 .br
@@ -3527,6 +3527,11 @@ External OpenGL texture of unknown format, to be used with samplerExternalOES
 16 bit PCM Little Endian
 .br
 .TP
+.B s16b (ext *.pcmb)
+.br
+16 bit PCM Big Endian
+.br
+.TP
 .B s24 (ext *.s24)
 .br
 24 bit PCM
@@ -4309,7 +4314,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1491-g5bed60917-master
+build: 1.1.0-DEV-rev1496-gebac308b2-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -1287,8 +1287,8 @@ GF_FilterRegister FFDecodeRegister = {
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported decoders for your GPAC build, use `gpac -h ffdec:*`.\n"
 	"\n"
-	"Options can be passed from prompt using `-+OPT=VAL`\n"
-	"The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use `-+threads=1`\n"
+	"Options can be passed from prompt using `--OPT=VAL`\n"
+	"The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use `--threads=1`\n"
 	)
 	.private_size = sizeof(GF_FFDecodeCtx),
 	SETCAPS(FFDecodeCaps),
