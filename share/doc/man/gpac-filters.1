@@ -6211,6 +6211,12 @@ In this example, a real-time dynamic DASH session with chunks of 100ms is create
 .br
   
 .br
+The server can store incoming files to memory mode by setting the read directory to "gmem".
+.br
+In this mode, each incoming pid will store at most "max_mem_segs" files in memory, trashing older files.
+.br
+  
+.br
 .SH HTTP client sink
 .LP
 .br
@@ -6355,6 +6361,8 @@ reqlog (str):                  provide short log of the requests indicated in th
 ice (bool, default: false):    insert ICE meta-data in response headers in sink mode - see filter help
 .br
 max_client_errors (uint, default: 20): force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when close is set)
+.br
+max_mem_segs (uint, default: 3): set maximum mem segment per HAS quality in memory mode
 .br
 
 .br
@@ -9445,7 +9453,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1500-ge2218e563-master
+build: 1.1.0-DEV-rev1509-g957102841-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

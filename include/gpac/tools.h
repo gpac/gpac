@@ -1584,6 +1584,7 @@ typedef struct __gf_file_io GF_FileIO;
 	- "unref": indicates this FileIO object is not used by some part of the code and may be destroyed if no more references to this object are set. Associated URL is null
 	- "url": indicates to create a new FileIO object for the given URL without opening the output file. The resulting FileIO object must be garbage collected by the app in case its is never used by the callers
 	- "probe": checks if the file exists, but no need to open the file. The function should return NULL in this case. If file does not exist, set out_error to GF_URL_ERROR
+	- "close": indicates the fileIO object is being closed (fclose)
 \param out_error must be set to error code if any (never NULL)
 \return the opened GF_FileIO if success, or NULL otherwise
  */

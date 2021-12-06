@@ -2760,6 +2760,10 @@ process_m3u8_manifest:
 					if (!new_seg->hls_ll_chunk_type && skip_next_seg_url && !found) {
 						//starting from our current live edge, rewind and insert after the first full segment found
 						s32 pos = group->download_segment_index;
+						//in case the download index is already on the next, not present segment
+						if (pos && (pos>=gf_list_count(segments)))
+							pos -= 1;
+
 						while (pos>0) {
 							GF_MPD_SegmentURL *prev = gf_list_get(segments, pos);
 							if (!prev) break;

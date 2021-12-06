@@ -1438,7 +1438,7 @@ s32 gf_fclose(FILE *file)
 		return 0;
 	if (gf_fileio_check(file)) {
 		GF_Err e;
-		gf_fileio_open_url((GF_FileIO *) file, NULL, "deref", &e);
+		gf_fileio_open_url((GF_FileIO *) file, NULL, "close", &e);
 		if (e) return -1;
 		return 0;
 	}
