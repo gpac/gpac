@@ -1545,10 +1545,14 @@ sample_entry_setup:
 	case GF_CODECID_JPEG:
 		m_subtype = GF_ISOM_BOX_TYPE_JPEG;
 		comp_name = "JPEG";
+		//use generic sample desc, but don't inject dsi
+		dsi = NULL;
 		break;
 	case GF_CODECID_PNG:
 		m_subtype = GF_ISOM_BOX_TYPE_PNG;
 		comp_name = "PNG";
+		//use generic sample desc, but don't inject dsi
+		dsi = NULL;
 		break;
 	case GF_CODECID_J2K:
 		m_subtype = GF_ISOM_BOX_TYPE_MJP2;
