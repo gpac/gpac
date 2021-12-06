@@ -1515,6 +1515,20 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		}
 	}
 
+	if (ctx->forward == DFWD_FILE) {
+		u32 segdur, timescale;
+		u64 tsb = (u64) gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx);
+		gf_dash_group_get_segment_duration(ctx->dash, group_idx, &segdur, &timescale);
+		if (segdur) {
+			tsb *= timescale;
+			tsb /= segdur;
+		} else {
+			tsb = 0;
+		}
+		tsb++;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_SEGS, &PROP_UINT((u32) tsb) );
+	}
+
 	const char *title, *source;
 	gf_dash_get_info(ctx->dash, &title, &source);
 	gf_filter_pid_set_info(opid, GF_PROP_PID_SERVICE_NAME, &PROP_STRING(title) );
@@ -1683,6 +1697,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Creating manifest output PID\n"));
 			//for route
 			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE));
+			gf_filter_pid_set_property(ctx->output_mpd_pid, GF_PROP_PID_IS_MANIFEST, &PROP_BOOL(GF_TRUE));
 		}
 
 		e = gf_dash_open(ctx->dash, p->value.string);

@@ -77,7 +77,7 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_mem_segs;
 
 	//internal
 	GF_Filter *filter;
@@ -105,6 +105,9 @@ typedef struct
 
 	u64 req_id;
 	Bool log_record;
+
+	const char *mem_url;
+	GF_FileIO *mem_fileio;
 } GF_HTTPOutCtx;
 
 typedef struct __httpout_input
@@ -143,6 +146,10 @@ typedef struct __httpout_input
     Bool force_dst_name;
     Bool in_error;
 
+	//list of files created in mem - read-only fileios are not stored here
+	GF_List *fileios;
+	u32 max_mem_segs;
+	Bool is_manifest;
 
 } GF_HTTPOutInput;
 
@@ -200,6 +207,164 @@ typedef struct __httpout_session
 
 	Bool force_destroy;
 } GF_HTTPOutSession;
+
+/*GF FileIO for mem mode*/
+typedef struct __gf_http_io
+{
+	//only for read
+	struct __gf_http_io *parent;
+	u32 pos;
+
+	//only for write
+	u32 size;
+	u8 *data;
+	//source PID
+	GF_HTTPOutInput *in;
+	u32 nb_used;
+	GF_FileIO *fio;
+	Bool hls_ll_chunk, do_remove, is_static;
+} GF_HTTPFileIO;
+
+static void httpio_del(GF_HTTPFileIO *hio)
+{
+	gf_fileio_del(hio->fio);
+	if (hio->data) gf_free(hio->data);
+	gf_free(hio);
+}
+
+static GF_Err httpio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
+{
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->parent) return GF_BAD_PARAM;
+	if (whence == SEEK_CUR) ioctx->pos += offset;
+	else if (whence == SEEK_SET) ioctx->pos = offset;
+	else if (whence == SEEK_END) ioctx->pos = ioctx->parent->size - offset;
+	if (ioctx->pos > ioctx->parent->size) return GF_BAD_PARAM;
+	return GF_OK;
+}
+static u32 httpio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->parent) return 0;
+	u32 to_read = bytes;
+	if (to_read > ioctx->parent->size - ioctx->pos)
+		to_read = ioctx->parent->size - ioctx->pos;
+
+	if (to_read) {
+		memcpy(buffer, ioctx->parent->data + ioctx->pos, to_read);
+		ioctx->pos += to_read;
+	}
+	return to_read;
+}
+static u32 httpio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || ioctx->parent) return 0;
+
+	ioctx->data = gf_realloc(ioctx->data, ioctx->size+bytes);
+	if (!ioctx->data) return 0;
+	memcpy(ioctx->data + ioctx->size, buffer, bytes);
+	ioctx->size += bytes;
+	ioctx->pos += bytes;
+	return bytes;
+}
+static s64 httpio_tell(GF_FileIO *fileio)
+{
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx) return -1;
+	return (s64) ioctx->pos;
+}
+
+//not used but mandatory in constructor
+static Bool httpio_eof(GF_FileIO *fileio)
+{
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->parent) return GF_TRUE;
+	if (ioctx->pos == ioctx->parent->size) return GF_TRUE;
+	return GF_FALSE;
+}
+
+static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_err)
+{
+	u32 i, count;
+	GF_FileIO *gfio=NULL;
+	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio_ref);
+
+	*out_err = GF_OK;
+
+	if (!strcmp(mode, "close")) {
+		//read file io, drop
+		if (ioctx->parent) {
+			GF_HTTPFileIO *par = ioctx->parent;
+			ioctx->parent->nb_used--;
+			httpio_del(ioctx);
+			//last read session on a discarded object, fallthrough to discard parent
+			if (!par->nb_used && par->do_remove) {
+				assert(par->in);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] delete old version of input file %s\n", gf_fileio_resource_url(ioctx->fio) ));
+				gf_list_del_item(par->in->fileios, par);
+				httpio_del(par);
+			}
+			return NULL;
+		}
+		//write file io
+		assert(ioctx->in);
+
+		//purge old files
+		count = gf_list_count(ioctx->in->fileios);
+		if (count > ioctx->in->max_mem_segs) count -= ioctx->in->max_mem_segs;
+		else count = 0;
+
+		for (i=0; i<count; i++) {
+			GF_HTTPFileIO *old = gf_list_get(ioctx->in->fileios, i);
+			//static file (init seg, manifest), do not purge
+			if (old->is_static) continue;
+			//stop at first used io, or first HLS low latency chunk, if any
+			if (old->nb_used || old->hls_ll_chunk) break;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_mem_seg %d\n", gf_fileio_resource_url(old->fio), count));
+			gf_list_rem(ioctx->in->fileios, i);
+			httpio_del(old);
+			i--;
+			count--;
+		}
+		//keep active
+		return NULL;
+	}
+
+	if (!strcmp(mode, "wb")) {
+		GF_SAFEALLOC(ioctx, GF_HTTPFileIO);
+		if (!ioctx) {
+			*out_err = GF_OUT_OF_MEM;
+			return NULL;
+		}
+
+		gfio = gf_fileio_new((char *)url, ioctx, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
+		if (!gfio) {
+			gf_free(ioctx);
+			*out_err = GF_OUT_OF_MEM;
+		}
+		ioctx->fio = gfio;
+	}
+	if (!strcmp(mode, "rb")) {
+		GF_SAFEALLOC(ioctx, GF_HTTPFileIO);
+		if (!ioctx) {
+			*out_err = GF_OUT_OF_MEM;
+			return NULL;
+		}
+		//in read mode, the url given as parent is the gfio:// of the file
+		ioctx->parent = gf_fileio_get_udta(fileio_ref);
+		ioctx->parent->nb_used++;
+
+		gfio = gf_fileio_new((char *) gf_fileio_resource_url(fileio_ref), ioctx, httpio_open, httpio_seek, httpio_read, NULL, httpio_tell, httpio_eof, NULL);
+		if (!gfio) {
+			gf_free(ioctx);
+			*out_err = GF_OUT_OF_MEM;
+		}
+		ioctx->fio = gfio;
+	}
+	return gfio;
+}
 
 static void httpout_close_session(GF_HTTPOutSession *sess)
 {
@@ -858,6 +1023,20 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			source_pid_is_ll_hls_chunk = GF_TRUE;
 			break;
 		}
+		if (in->fileios) {
+			u32 j, count2 = gf_list_count(in->fileios);
+			for (j=0; j<count2; j++) {
+				GF_HTTPFileIO *hio = gf_list_get(in->fileios, j);
+				if (hio->do_remove) continue;
+				const char *fio_url = gf_fileio_resource_url(hio->fio);
+				//skip "gmem"
+				if (fio_url && !strcmp(fio_url+4, url)) {
+					gf_dynstrcat(&full_path, gf_fileio_url(hio->fio), NULL);
+					break;
+				}
+			}
+			if (full_path) break;
+		}
 	}
 
 	/*not resolved and no source matching, check file on disk*/
@@ -965,7 +1144,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		sess->resource = NULL;
 		sess->file_pos = sess->file_size = 0;
 
-		if (gf_file_exists(full_path)) {
+		if (sess->ctx->mem_url) {
+			e = GF_NOT_SUPPORTED;
+		}
+		else if (gf_file_exists(full_path)) {
 			e = gf_file_delete(full_path);
 
 			if (e) {
@@ -1049,6 +1231,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				goto exit;
 			}
 		} else {
+			//no need to use gf_fopen_ex in mem mode, since the fullpath is the gfio:// URL of the mem resource
 			sess->resource = gf_fopen(full_path, "rb");
 			//we may not have the file if it is currently being created
 			if (!sess->resource && !sess->in_source) {
@@ -1504,6 +1687,21 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->patch_blocks = patch_blocks;
 		pctx->hold = ctx->hold;
 
+		if (ctx->mem_fileio) {
+            p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
+			pctx->fileios = gf_list_new();
+			pctx->max_mem_segs = ctx->max_mem_segs;
+			if (p && p->value.uint) {
+				if (p->value.uint > ctx->max_mem_segs) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max mem segments set to %d, may result in client errors\n\tTry increasing memory buffer using --max_mem_segs\n", p->value.uint, ctx->max_mem_segs));
+				} else {
+					pctx->max_mem_segs = p->value.uint;
+				}
+			}
+		}
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
+		if (p && p->value.boolean) pctx->is_manifest = GF_TRUE;
+
         res_path = NULL;
 		if (ctx_orig->dst) {
             res_path = ctx_orig->dst;
@@ -1732,6 +1930,19 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 
 	if (ctx->rdirs.nb_items || ctx->wdir) {
 		gf_filter_make_sticky(filter);
+
+		if (!strcmp(ctx->rdirs.vals[0], "gmem")) {
+			ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
+			ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
+			if (!ctx->max_mem_segs) ctx->max_mem_segs = 1;
+
+#ifdef GPAC_ENABLE_COVERAGE
+			if (gf_sys_is_cov_mode()) {
+				httpio_eof(ctx->mem_fileio);
+			}
+#endif
+		}
+
 	} else if (ctx->hmode!=MODE_PUSH) {
 		ctx->single_mode = GF_TRUE;
 	}
@@ -1827,6 +2038,25 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 	gf_free(s);
 }
 
+static void httpout_check_mem_path(GF_HTTPOutSession *sess, GF_HTTPOutInput *in)
+{
+	u32 i, count;
+	if (!in || !in->fileios) return;
+	if (!sess->path) return;
+	if (!strncmp(sess->path, "gfio://", 7)) return;
+
+	count = gf_list_count(in->fileios);
+	for (i=0; i<count; i++) {
+		GF_HTTPFileIO *hio = gf_list_get(in->fileios, i);
+		const char *url = gf_fileio_resource_url(hio->fio);
+		if (url && !strcmp(url, sess->path)) {
+			gf_free(sess->path);
+			sess->path = gf_strdup(gf_fileio_url(hio->fio) );
+			return;
+		}
+	}
+}
+
 static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Bool final_flush)
 {
 	if (!in->hls_chunk) return;
@@ -1849,6 +2079,8 @@ static void httpout_close_hls_chunk(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, Boo
 				sess->in_source->nb_dest--;
 				sess->in_source = NULL;
 				if (!sess->resource && sess->path) {
+					//in mem mode, sess->path may still be a local path, convert to gfio of source if needed
+					httpout_check_mem_path(sess, sess->in_source);
 					sess->resource = gf_fopen(sess->path, "rb");
 				}
 			}
@@ -1899,6 +2131,13 @@ static void httpout_finalize(GF_Filter *filter)
 			}
 			gf_list_del(in->file_deletes);
 		}
+		if (in->fileios) {
+			while (gf_list_count(in->fileios)) {
+				GF_HTTPFileIO *hio = gf_list_pop_back(in->fileios);
+				httpio_del(hio);
+			}
+			gf_list_del(in->fileios);
+		}
 		gf_free(in);
 	}
 	gf_list_del(ctx->inputs);
@@ -1906,6 +2145,7 @@ static void httpout_finalize(GF_Filter *filter)
 	if (ctx->sg) gf_sk_group_del(ctx->sg);
 	if (ctx->ip) gf_free(ctx->ip);
 
+	if (ctx->mem_fileio) gf_fileio_del(ctx->mem_fileio);
 #ifdef GPAC_HAS_SSL
 	if (ctx->ssl_ctx) {
 		gf_ssl_server_context_del(ctx->ssl_ctx);
@@ -2253,6 +2493,10 @@ static void httpout_process_session(GF_Filter *filter, GF_HTTPOutCtx *ctx, GF_HT
 			sess->last_active_time = gf_sys_clock_high_res();
 			return;
 		}
+
+		//in mem mode, sess->path is still a local path, convert to gfio of source
+		httpout_check_mem_path(sess, sess->in_source);
+
 		sess->resource = gf_fopen(sess->path, "rb");
 		if (!sess->resource) return;
 		sess->last_active_time = gf_sys_clock_high_res();
@@ -2384,7 +2628,7 @@ session_done:
 	}
 }
 
-static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete)
+static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const char *name, Bool is_delete, Bool is_static)
 {
 //	Bool reassign_clients = GF_TRUE;
 	u32 len = 0;
@@ -2505,6 +2749,23 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		else
 			gf_dynstrcat(&loc_path, sep, NULL);
 
+
+		//purge mem
+		if (in->fileios) {
+			u32 i, count = gf_list_count(in->fileios);
+			for (i=0; i<count; i++) {
+				GF_HTTPFileIO *hio = gf_list_get(in->fileios, i);
+				const char *res_url = gf_fileio_resource_url(hio->fio);
+				if (!res_url || strcmp(res_url, loc_path)) continue;
+
+				gf_list_rem(in->fileios, i);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] delete old version of input file %s\n", res_url ));
+
+				httpio_del(hio);
+				break;
+			}
+		}
+
 		gf_file_delete(loc_path);
 		if (o_url) gf_free(o_url);
 		gf_free(loc_path);
@@ -2525,9 +2786,33 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
 	httpout_set_local_path(ctx, in);
 
-	in->resource = gf_fopen(in->local_path, "wb");
+	//for mem mode, pass the parent gfio for fileIO construction
+	in->resource = gf_fopen_ex(in->local_path, ctx->mem_url, "wb");
 	if (!in->resource)
 		in->is_open = GF_FALSE;
+
+	if (ctx->mem_url) {
+		u32 i, count;
+		GF_HTTPFileIO *hio = gf_fileio_get_udta((GF_FileIO *) in->resource);
+		hio->in = in;
+
+		count = gf_list_count(in->fileios);
+		for (i=0; i<count; i++) {
+			GF_HTTPFileIO *prev_hio = gf_list_get(in->fileios, i);
+			const char *res_url = gf_fileio_resource_url(prev_hio->fio);
+			if (strcmp(res_url, in->local_path )) continue;
+			if (prev_hio->nb_used) {
+				prev_hio->do_remove = GF_TRUE;
+				continue;
+			}
+			gf_list_rem(in->fileios, i);
+			httpio_del(prev_hio);
+			i--;
+			count--;
+		}
+		if (is_static) hio->is_static = GF_TRUE;
+		gf_list_add(in->fileios, hio);
+	}
 	return GF_TRUE;
 }
 
@@ -2575,6 +2860,8 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 				if (sess->in_source != in) continue;
 				assert(sess->file_in_progress);
 				if (sess->in_source) {
+					//in mem mode, sess->path may still be a local path, convert to gfio of source if needed
+					httpout_check_mem_path(sess, sess->in_source);
 					sess->in_source->nb_dest--;
 					sess->in_source = NULL;
 					if (!sess->resource && sess->path) {
@@ -2637,7 +2924,7 @@ retry:
 			if (file_start && (nb_retry<10) ) {
 				in->is_open = GF_FALSE;
 				nb_retry++;
-				if (httpout_open_input(ctx, in, in->path, GF_FALSE))
+				if (httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE))
 					goto retry;
 			}
 		}
@@ -2772,7 +3059,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		if (!in->is_open && in->file_deletes) {
 			while (gf_list_count(in->file_deletes)) {
 				char *url = gf_list_pop_back(in->file_deletes);
-				httpout_open_input(ctx, in, url, GF_TRUE);
+				httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE);
 				gf_free(url);
 			}
 			gf_list_del(in->file_deletes);
@@ -2812,6 +3099,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		}
 
 		if (start) {
+			Bool is_static = in->is_manifest;
 			const GF_PropertyValue *fnum, *fname;
 			const char *name = NULL;
 			fname = NULL;
@@ -2829,6 +3117,9 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 			if (fname) name = fname->value.string;
+
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
+			if (p && p->value.boolean) is_static = GF_TRUE;
 
 			if (!name) {
 				/*if PID was connected to an alias, get the alias context to get the destination
@@ -2850,7 +3141,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 				ctx->dst_in = in;
 			}
 
-			httpout_open_input(ctx, in, name, GF_FALSE);
+			httpout_open_input(ctx, in, name, GF_FALSE, is_static);
 
 			if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest) {
 				if ((gf_filter_pck_get_dependency_flags(pck)==0xFF) && (gf_filter_pck_get_carousel_version(pck)==1)) {
@@ -2869,10 +3160,19 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			char szHLSChunk[GF_MAX_PATH];
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
-			in->hls_chunk = gf_fopen(szHLSChunk, "w+b");
+			//for mem mode, pass the parent gfio for fileIO construction
+			in->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->mem_url, "wb");
 			in->hls_chunk_local_path = gf_strdup(szHLSChunk);
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 			in->hls_chunk_path = gf_strdup(szHLSChunk);
+
+			if (ctx->mem_url && in->hls_chunk) {
+				GF_HTTPFileIO *hio = gf_fileio_get_udta((GF_FileIO *) in->hls_chunk);
+				hio->in = in;
+				hio->hls_ll_chunk = GF_TRUE;
+				gf_list_add(in->fileios, hio);
+			}
+
 		}
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
@@ -2904,7 +3204,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 							//re-open file
 							in->write_start_range = bo;
 							in->write_end_range = bo + pck_size - 1;
-							httpout_open_input(ctx, in, in->path, GF_FALSE);
+							httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE);
 
 							nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
 							if (nb_write!=pck_size) {
@@ -2918,7 +3218,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 					}
 				} else {
 					if (in->write_start_range) {
-						httpout_open_input(ctx, in, in->path, GF_FALSE);
+						httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE);
 					}
 
 					nb_write = httpout_write_input(ctx, in, pck_data, pck_size, start);
@@ -3091,7 +3391,7 @@ static Bool httpout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	if (!in) return GF_TRUE;
 
 	ctx = (GF_HTTPOutCtx *) gf_filter_get_udta(filter);
-		//simple server mode (no record, no push), nothing to do
+	//simple server mode (no record, no push), nothing to do
 	if (!in->upload && !ctx->rdirs.nb_items) return GF_TRUE;
 
 	if (!in->file_deletes)
@@ -3172,6 +3472,8 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC` logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_client_errors), "force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when `close` is set)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_mem_segs), "set maximum mem segment per HAS quality in memory mode", GF_PROP_UINT, "3", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 
@@ -3240,6 +3542,9 @@ GF_FilterRegister HTTPOutRegister = {
 		"  \nThis mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).\n"
 		"EX gpac -i SOURCE reframer:rt=on @ -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1\n"
 		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, outputting files in `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
+		"  \n"
+		"The server can store incoming files to memory mode by setting the read directory to \"gmem\".\n"
+		"In this mode, each incoming pid will store at most \"max_mem_segs\" files in memory, trashing older files.\n"
 		"  \n"
 		"# HTTP client sink\n"
 		"In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if [-post]() is set).\n"

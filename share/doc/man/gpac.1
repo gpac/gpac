@@ -3230,6 +3230,11 @@ Indicate the PID is a scene node decoder (AFX BitWrapper in BIFS)
 Indicate the original cryptor scheme on a decrypted PID
 .br
 .TP
+.B TSBSegs (PTSN,uint,  )
+.br
+Indicate the time shift in number of segments for HAS streams, only set by dashin and dasher filters
+.br
+.TP
 .B SkipBegin (PCKS,uint, P)
 .br
 Amount of media to skip from begining of packet in PID timescale
@@ -4314,7 +4319,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1500-ge2218e563-master
+build: 1.1.0-DEV-rev1509-g957102841-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

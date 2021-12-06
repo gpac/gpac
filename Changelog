@@ -49,6 +49,7 @@
 - improved audio resampler
 - added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 
 - support for reading back frame interface data (GPU, decoder mem) in JS or Python sink filters
+- support for memory storage in httpout server file sink
 
 ## Media Formats
 - improved support for MPEG-H audio mux/demux/dashing
