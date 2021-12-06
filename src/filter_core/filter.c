@@ -1193,6 +1193,9 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 #undef META_MAX_ARG
 
 		e = filter->freg->update_arg(filter, szArg + len, &argv);
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Error assigning argument %s to filter %s: %s\n", szArg, filter->name, gf_errno_str(e) ));
+		}
 
 		//no need to push the arg, global args are always pushed when creating the session,
 		//and meta filters must report used/unused options
