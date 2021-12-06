@@ -7541,6 +7541,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 						for (s_idx=0; s_idx<count; s_idx++) {
 							GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, s_idx);
 							if (a_ds == ds) continue;
+							if (a_ds->stream_type==GF_STREAM_TEXT) continue;
 							if (!a_ds->done) {
 								over = GF_FALSE;
 								break;
@@ -7765,6 +7766,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 					nb_seg_waiting++;
 					break;
 				}
+				cts = orig_cts;
 			}
 			nb_seg_active++;
 
