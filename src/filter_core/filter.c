@@ -4302,7 +4302,7 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 			res = GF_TRUE;
 		}
 		//filter has no output, check if it is expected or not
-		else if (!f->removed && !f->finalized && !f->num_output_pids && !f->act_as_sink && !f->multi_sink_target) {
+		else if (!f->removed && !f->finalized && !f->disabled && !f->num_output_pids && !f->act_as_sink && !f->multi_sink_target) {
 			if (f->forced_caps) {
 				res = gf_filter_has_out_caps(f->forced_caps, f->nb_forced_caps);
 			} else {

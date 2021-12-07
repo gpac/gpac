@@ -483,11 +483,23 @@ const char *jsf_get_script_filename(JSContext *c)
 	JSValue global = JS_GetGlobalObject(c);
 	JSValue filter_obj = JS_GetPropertyStr(c, global, "filter");
 	JS_FreeValue(c, global);
-	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) return NULL;
+	if (JS_IsNull(filter_obj) || JS_IsException(filter_obj)) {
+		return NULL;
+	}
+
 	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
 	JS_FreeValue(c, filter_obj);
-	if (!jsf) return NULL;
-	return jsf->js;
+	if (jsf) return jsf->js;
+
+	JSValue g = JS_GetGlobalObject(c);
+	JSValue v = JS_GetPropertyStr(c, g, "_gpac_script_src");
+	const char *parent = NULL;
+	if (!JS_IsUndefined(v))
+		parent = JS_ToCString(c, v);
+	JS_FreeValue(c, g);
+	JS_FreeCString(c, parent);
+	JS_FreeValue(c, v);
+	return parent;
 }
 
 JSValue jsf_NewProp(JSContext *ctx, const GF_PropertyValue *new_val)
@@ -4755,10 +4767,21 @@ static void jsfilter_finalize(GF_Filter *filter)
 	if (jsf->unload_session_api)
 		gf_fs_unload_script(filter->session, jsf->ctx);
 
-	if (!jsf->is_custom)
+	if (!jsf->is_custom) {
+		u32 i, count;
+		//we created the context, detach all other filters jsvals
+		gf_mx_p(jsf->filter->session->filters_mx);
+		count = gf_list_count(jsf->filter->session->filters);
+		for (i=0; i<count; i++) {
+			GF_Filter *a_f = gf_list_get(jsf->filter->session->filters, i);
+			if (a_f == jsf->filter) continue;;
+			jsfs_on_filter_destroyed(a_f);
+		}
+		gf_mx_v(jsf->filter->session->filters_mx);
 		gf_js_delete_context(jsf->ctx);
-	else
+	} else {
 		gf_js_call_gc(jsf->ctx);
+	}
 
 	while (gf_list_count(jsf->pids)) {
 		GF_JSPidCtx *pctx = gf_list_pop_back(jsf->pids);
@@ -4953,8 +4976,8 @@ static GF_FilterArgs JSFilterArgs[] =
 
 static const GF_FilterCapability JSFilterCaps[] =
 {
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
-	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
+       CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
+       CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
 };
 
 GF_FilterRegister JSFilterRegister = {
