@@ -569,6 +569,14 @@ void close();
 */
 unsigned long read(ArrayBuffer buf, optional unsigned long nb_bytes=0);
 
+
+/*! seek into file - see \ref gf_fseek
+\param offset offset in file
+\param whence seek origin
+\return -1 if error, 0 otherwise
+*/
+long seek(unsigned long long offset, long whence);
+
 /*! get a string from a file, stopping at first new line character found - see \ref gf_fgets
 \return string read
 */
@@ -843,13 +851,60 @@ attribute readonly unsigned long long refreshed_size;
 
 }
 
-/*! FILE object*/
+/*! Fraction object*/
 interface Fraction {
 /*! numerator*/
 long n;
 /*! denumerator*/
 unsigned long d;
 };
+
+
+/*! FileIO object
+
+A FileIO object wraps calls to file IO, allowing the script to feed GPAC files not present on disk, or have GPAC create files in JS memory.
+
+Whenever a file is opened, a new JS object of type FileIO is created and passed as "this" in the specified open, close, read, write, seek, tell, eof callbacks.
+
+Any URL relative to the reference URL provided will be solved against the parent FileIO, resulting in additionnals open() calls.
+
+Warning: this is work in progress
+*/
+interface FileIO {
+
+/*! constructor for a FileIO
+\param reference_url the base URL this FileIO wraps
+\param open the open function callback, shall not be NULL. The callback is \code boolean open(DOMString url, DOMString mode); \endcode, with mode a fopen mode and the return value true indicates success
+\param close the close function callback, shall not be NULL. The callback is \code close(); \endcode
+\param write the write function callback, shall not be NULL if read is NULL. The callback is \code unsigned long write(ArrayBuffer ab); \endcode, where ab is the buffer to write and the return value the number of bytes written
+\param read the read function callback, shall not be NULL if write is NULL. The callback is \code unsigned long read(ArrayBuffer ab); \endcode, where ab is the buffer to fill and the return value the number of bytes read
+\param seek the seek function callback, shall not be NULL. The callback is \code unsigned long seek(unsigned long long pos, unsigned long whence); \endcode, as in \ref gf_fseek
+\param tell the seek function callback, shall not be NULL. The callback is \code unsigned long long tell(); \endcode, as in \ref gf_ftell
+\param eof the end of file function callback, shall not be NULL. The callback is \code boolean eof(); \endcode, as in \ref gf_eof
+\param exists the file existence probing function callback, shall not be NULL. The callback is \code boolean exists(DOMString URL); \endcode, returns true if file exists (for read access). The "this" object is the constructed FileIO on this callback.
+*/
+File(DOMString reference_url, function open, function close, function write, function read, function seek, function tell, function eof, function exists);
+
+/*! protects the FileIO factory, preventing it to be deleted until destroy is called
+This is needded in case a FileIO URL is used several time in a session (re-injecting a source), as libgpac will otherwise destroy the
+underlying FileIO factory when no more files are associated with it
+*/
+void protect();
+
+/*! destroy the underlying FileIO, if not already destroyed. If \ref protect is used, this function MUST be called before exiting gpac*/
+void destroy();
+
+/*! get the gfio:// URL associated with the fileIO object */
+attribute readonly DOMString url;
+
+/*! get the underlying resource URL associated with the fileIO object */
+attribute readonly DOMString resource_url;
+
+/*! the parent FileIO object (the one constructed by the script) for this FileIO instance*/
+attribute readonly FileIO parent;
+
+};
+
 
 
 /*! @} */

@@ -313,6 +313,7 @@ void js_std_loop(JSContext *ctx)
 static JSClassID bitstream_class_id = 0;
 static JSClassID sha1_class_id = 0;
 static JSClassID file_class_id = 0;
+static JSClassID fileio_class_id = 0;
 static JSClassID amix_class_id = 0;
 
 typedef struct
@@ -2687,6 +2688,21 @@ static JSValue js_file_read(JSContext *ctx, JSValueConst this_val, int argc, JSV
 	read = (u32) gf_fread((void *) data, nb_bytes, f);
 	return JS_NewInt64(ctx, read);
 }
+
+static JSValue js_file_seek(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	s64 pos;
+	s32 whence, res;
+	FILE *f = JS_GetOpaque(this_val, file_class_id);
+	if (!f) return GF_JS_EXCEPTION(ctx);
+	if (argc!=2) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt64(ctx, &pos, argv[0])) return GF_JS_EXCEPTION(ctx);
+	if (JS_ToInt32(ctx, &whence, argv[1])) return GF_JS_EXCEPTION(ctx);
+
+	res = gf_fseek(f, pos, whence);
+	return JS_NewInt32(ctx, res);
+}
+
 static JSValue js_file_gets(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	char *data=NULL;
@@ -2787,6 +2803,7 @@ static const JSCFunctionListEntry file_funcs[] = {
 	JS_CFUNC_DEF("flush", 0, js_file_flush),
 	JS_CFUNC_DEF("close", 0, js_file_close),
 	JS_CFUNC_DEF("read", 0, js_file_read),
+	JS_CFUNC_DEF("seek", 0, js_file_seek),
 	JS_CFUNC_DEF("gets", 0, js_file_gets),
 	JS_CFUNC_DEF("getc", 0, js_file_getc),
 	JS_CFUNC_DEF("write", 0, js_file_write),
@@ -2840,6 +2857,499 @@ static JSValue file_constructor(JSContext *ctx, JSValueConst new_target, int arg
 }
 
 
+typedef struct
+{
+	JSValue open, close, read, write, tell, seek, eof, exists, factory_obj;
+	JSContext *ctx;
+	u32 all_refs;
+	GF_List *url_pending;
+	Bool lock;
+	struct __jsf_fileio *root;
+} JSFileIOFactoryCtx;
+
+typedef struct __jsf_fileio
+{
+	JSFileIOFactoryCtx *factory;
+	JSValue js_obj;
+	GF_FileIO *gfio;
+	u32 nb_refs;
+} JSFileIOCtx;
+
+static void js_fileio_gc_mark(JSRuntime *rt, JSValueConst this_val, JS_MarkFunc *mark_func)
+{
+	JSFileIOCtx *ioctx = JS_GetOpaque(this_val, fileio_class_id);
+	if (!ioctx) return;
+	if (ioctx->factory->root == ioctx) {
+		JSFileIOFactoryCtx *iofac = ioctx->factory;
+		JS_MarkValue(rt, iofac->open, mark_func);
+		JS_MarkValue(rt, iofac->close, mark_func);
+		JS_MarkValue(rt, iofac->write, mark_func);
+		JS_MarkValue(rt, iofac->read, mark_func);
+		JS_MarkValue(rt, iofac->tell, mark_func);
+		JS_MarkValue(rt, iofac->seek, mark_func);
+		JS_MarkValue(rt, iofac->eof, mark_func);
+		JS_MarkValue(rt, iofac->exists, mark_func);
+		JS_MarkValue(rt, iofac->factory_obj, mark_func);
+	}
+	JS_MarkValue(rt, ioctx->js_obj, mark_func);
+}
+
+static void js_fileio_finalize(JSRuntime *rt, JSValue obj)
+{
+	FILE *f = JS_GetOpaque(obj, file_class_id);
+	if (!f) return;
+	gf_fclose(f);
+}
+
+JSClassDef fileioClass = {
+    "FILEIO",
+    .finalizer = js_fileio_finalize,
+	.gc_mark = js_fileio_gc_mark
+};
+
+
+enum
+{
+	JS_FILEIO_URL = 0,
+	JS_FILEIO_RES_URL,
+	JS_FILEIO_PARENT,
+};
+
+static JSValue js_fileio_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
+{
+	JSFileIOCtx *ioctx = JS_GetOpaque(this_val, fileio_class_id);
+	if (!ioctx) return GF_JS_EXCEPTION(ctx);
+
+	switch (magic) {
+	case JS_FILEIO_URL:
+		return JS_NewString(ctx, gf_fileio_url(ioctx->gfio) );
+	case JS_FILEIO_RES_URL:
+		return JS_NewString(ctx, gf_fileio_resource_url(ioctx->gfio) );
+	case JS_FILEIO_PARENT:
+		return JS_DupValue(ctx, ioctx->factory->factory_obj);
+	}
+	return JS_UNDEFINED;
+}
+
+static JSValue js_fileio_protect(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSFileIOCtx *ioctx = JS_GetOpaque(this_val, fileio_class_id);
+	if (!ioctx) return JS_UNDEFINED;
+	if (!ioctx->factory->lock) {
+		ioctx->factory->lock = GF_TRUE;
+		ioctx->factory->all_refs++;
+	}
+	return JS_UNDEFINED;
+}
+
+static void js_fileio_factory_delete(JSContext *ctx, JSFileIOFactoryCtx *iofac, JSFileIOCtx *ioctx_deleted)
+{
+	while (gf_list_count(iofac->url_pending)) {
+		JSFileIOCtx *ioctx = gf_list_pop_back(iofac->url_pending);
+		gf_fileio_del(ioctx->gfio);
+		gf_free(ioctx);
+	}
+	gf_list_del(iofac->url_pending);
+
+	JS_SetOpaque(iofac->factory_obj, NULL);
+	JS_FreeValue(ctx, iofac->factory_obj);
+	JS_FreeValue(ctx, iofac->open);
+	JS_FreeValue(ctx, iofac->close);
+	JS_FreeValue(ctx, iofac->read);
+	JS_FreeValue(ctx, iofac->write);
+	JS_FreeValue(ctx, iofac->seek);
+	JS_FreeValue(ctx, iofac->tell);
+	JS_FreeValue(ctx, iofac->eof);
+	JS_FreeValue(ctx, iofac->exists);
+
+	//detach root (might have been closed before)
+	if (!ioctx_deleted || (ioctx_deleted->factory->root != ioctx_deleted) ) {
+		JS_SetOpaque(iofac->root->js_obj, NULL);
+		JS_FreeValue(ctx, iofac->root->js_obj);
+		gf_fileio_del(iofac->root->gfio);
+		gf_free(iofac->root);
+	}
+	gf_free(iofac);
+}
+
+static JSValue js_fileio_destroy(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSFileIOCtx *ioctx = JS_GetOpaque(this_val, fileio_class_id);
+	if (!ioctx) return JS_UNDEFINED;
+	if (!ioctx->factory->lock) return JS_UNDEFINED;
+
+	ioctx->factory->lock = GF_FALSE;
+	ioctx->factory->all_refs--;
+	if (!ioctx->factory->all_refs) {
+		js_fileio_factory_delete(ctx, ioctx->factory, NULL);
+	}
+	return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry fileio_funcs[] = {
+    JS_CGETSET_MAGIC_DEF_ENUM("url", js_fileio_prop_get, NULL, JS_FILEIO_URL),
+    JS_CGETSET_MAGIC_DEF_ENUM("resource_url", js_fileio_prop_get, NULL, JS_FILEIO_RES_URL),
+    JS_CGETSET_MAGIC_DEF_ENUM("parent", js_fileio_prop_get, NULL, JS_FILEIO_PARENT),
+	JS_CFUNC_DEF("protect", 0, js_fileio_protect),
+	JS_CFUNC_DEF("destroy", 0, js_fileio_destroy),
+};
+
+static GF_Err jsfio_seek(GF_FileIO *fileio, u64 offset, s32 whence)
+{
+	JSValue argv[2], res;
+	s32 ret;
+	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	JSContext *ctx = ioctx->factory->ctx;
+
+	gf_js_lock(ctx, GF_TRUE);
+
+	argv[0] = JS_NewInt64(ctx, offset);
+	argv[1] = JS_NewInt64(ctx, whence);
+	res = JS_Call(ctx, ioctx->factory->seek, ioctx->js_obj, 2, argv);
+	JS_ToInt32(ctx, &ret, res);
+	JS_FreeValue(ctx, res);
+	gf_js_lock(ctx, GF_FALSE);
+	return ret;
+}
+static u32 jsfio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	JSValue argv[1], res;
+	u32 ret;
+	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	JSContext *ctx = ioctx->factory->ctx;
+	gf_js_lock(ctx, GF_TRUE);
+	argv[0] = JS_NewArrayBuffer(ctx, buffer, bytes, NULL, 0, 0);
+	res = JS_Call(ctx, ioctx->factory->read, ioctx->js_obj, 1, argv);
+	JS_FreeValue(ctx, argv[0]);
+	JS_ToInt32(ctx, &ret, res);
+	JS_FreeValue(ctx, res);
+	gf_js_lock(ctx, GF_FALSE);
+	return ret;
+}
+static u32 jsfio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
+{
+	JSValue argv[1], res;
+	u32 ret;
+	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	JSContext *ctx = ioctx->factory->ctx;
+
+	gf_js_lock(ctx, GF_TRUE);
+	argv[0] = JS_NewArrayBuffer(ctx, buffer, bytes, NULL, 0, 0);
+	res = JS_Call(ctx, ioctx->factory->write, ioctx->js_obj, 1, argv);
+	JS_FreeValue(ctx, argv[0]);
+	JS_ToInt32(ctx, &ret, res);
+	JS_FreeValue(ctx, res);
+	gf_js_lock(ctx, GF_FALSE);
+	return ret;
+}
+
+static s64 jsfio_tell(GF_FileIO *fileio)
+{
+	JSValue res;
+	s64 ret;
+	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	JSContext *ctx = ioctx->factory->ctx;
+	gf_js_lock(ctx, GF_TRUE);
+	res = JS_Call(ctx, ioctx->factory->tell, ioctx->js_obj, 0, NULL);
+	JS_ToInt64(ctx, &ret, res);
+	JS_FreeValue(ctx, res);
+	gf_js_lock(ctx, GF_FALSE);
+	return ret;
+}
+
+static Bool jsfio_eof(GF_FileIO *fileio)
+{
+	JSValue res;
+	s32 ret;
+	JSFileIOCtx *ioctx = gf_fileio_get_udta(fileio);
+	if (!ioctx || !ioctx->gfio) return GF_BAD_PARAM;
+	JSContext *ctx = ioctx->factory->ctx;
+	gf_js_lock(ctx, GF_TRUE);
+	res = JS_Call(ctx, ioctx->factory->eof, ioctx->js_obj, 0, NULL);
+	JS_ToInt32(ctx, &ret, res);
+	JS_FreeValue(ctx, res);
+	gf_js_lock(ctx, GF_FALSE);
+	return ret ? GF_TRUE : GF_FALSE;
+}
+
+static GF_FileIO *jsfio_open(GF_FileIO *fileio_ref, const char *url, const char *mode, GF_Err *out_err)
+{
+	JSValue args[2], res;
+	Bool do_delete = GF_FALSE;
+	JSFileIOCtx *ioctx_ref = gf_fileio_get_udta(fileio_ref);
+	if (!ioctx_ref || !ioctx_ref->gfio) return NULL;
+	JSContext *ctx = ioctx_ref->factory->ctx;
+	gf_js_lock(ctx, GF_TRUE);
+
+	*out_err = GF_OK;
+
+	if (!strcmp(mode, "url")) {
+		JSFileIOCtx *ioctx;
+		if (!url) return NULL;
+		GF_SAFEALLOC(ioctx, JSFileIOCtx);
+		if (!ioctx) return NULL;
+		char *path = gf_url_concatenate(gf_fileio_resource_url(ioctx_ref->gfio), url);
+
+		if (JS_IsUndefined(ioctx_ref->factory->write)) {
+			ioctx->gfio = gf_fileio_new((char *) path, ioctx, jsfio_open, jsfio_seek, jsfio_read, NULL, jsfio_tell, jsfio_eof, NULL);
+		} else if (JS_IsUndefined(ioctx_ref->factory->read)) {
+			ioctx->gfio = gf_fileio_new((char *) path, ioctx, jsfio_open, jsfio_seek, NULL, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+		} else {
+			ioctx->gfio = gf_fileio_new((char *) path, ioctx, jsfio_open, jsfio_seek, jsfio_read, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+		}
+		gf_free(path);
+		if (!ioctx->gfio) {
+			gf_free(ioctx);
+			gf_js_lock(ctx, GF_FALSE);
+			return NULL;
+		}
+		ioctx->factory = ioctx_ref->factory;
+		ioctx->js_obj = JS_UNDEFINED;
+		gf_list_add(ioctx->factory->url_pending, ioctx);
+		ioctx_ref->factory->all_refs++;
+		gf_js_lock(ctx, GF_FALSE);
+		return ioctx->gfio;
+	}
+
+	if (!strcmp(mode, "probe")) {
+		args[0] = JS_NewString(ctx, url);
+		res = JS_Call(ctx, ioctx_ref->factory->exists, ioctx_ref->factory->factory_obj, 1, args);
+		JS_FreeValue(ctx, args[0]);
+		if (!JS_ToBool(ctx, res)) *out_err = GF_URL_ERROR;
+		JS_FreeValue(ctx, res);
+		gf_js_lock(ctx, GF_FALSE);
+		return NULL;
+	}
+
+	if (!strcmp(mode, "ref")) {
+		ioctx_ref->nb_refs++;
+		ioctx_ref->factory->all_refs++;
+		gf_js_lock(ctx, GF_FALSE);
+		return fileio_ref;
+	}
+	if (!strcmp(mode, "unref")) {
+		if (!ioctx_ref->nb_refs) return NULL;
+		ioctx_ref->nb_refs--;
+		ioctx_ref->factory->all_refs--;
+		if (ioctx_ref->nb_refs) {
+			gf_js_lock(ctx, GF_FALSE);
+			return fileio_ref;
+		}
+		//close
+		url = NULL;
+		mode = NULL;
+		do_delete = GF_TRUE;
+	}
+
+
+	if (mode && !strcmp(mode, "close")) {
+		if (!JS_IsUndefined(ioctx_ref->js_obj)) {
+			ioctx_ref->factory->all_refs--;
+			res = JS_Call(ctx, ioctx_ref->factory->close, ioctx_ref->js_obj, 0, NULL);
+			JS_FreeValue(ctx, res);
+		}
+		if (ioctx_ref->nb_refs) {
+			gf_js_lock(ctx, GF_FALSE);
+			return NULL;
+		}
+		do_delete = GF_TRUE;
+	}
+	if (do_delete) {
+		JS_SetOpaque(ioctx_ref->js_obj, NULL);
+		JS_FreeValue(ctx, ioctx_ref->js_obj);
+		ioctx_ref->js_obj = JS_UNDEFINED;
+
+		//closing the root object
+		if (!ioctx_ref->factory->all_refs) {
+			js_fileio_factory_delete(ctx, ioctx_ref->factory, ioctx_ref);
+
+			gf_fileio_del(ioctx_ref->gfio);
+			gf_free(ioctx_ref);
+		} else if (ioctx_ref->factory->root != ioctx_ref) {
+			gf_fileio_del(ioctx_ref->gfio);
+			gf_free(ioctx_ref);
+		}
+
+		gf_js_lock(ctx, GF_FALSE);
+		return NULL;
+	}
+
+	JSFileIOCtx *ioctx = NULL;
+	Bool created = GF_FALSE;
+	//open, create a new obj if underlying file object is not undefined (ie, it is open)
+	if (JS_IsUndefined(ioctx_ref->js_obj) ) {
+		ioctx = ioctx_ref;
+		if (gf_list_del_item(ioctx_ref->factory->url_pending, ioctx)>=0) {
+			ioctx_ref->factory->all_refs--;
+		}
+	}
+	if (!ioctx) {
+		u32 i, count = gf_list_count(ioctx_ref->factory->url_pending);
+		for (i=0; i<count; i++) {
+			ioctx = gf_list_get(ioctx_ref->factory->url_pending, i);
+			const char *a_url = gf_fileio_resource_url(ioctx->gfio);
+			if (!strcmp(url, a_url)) {
+				ioctx_ref->factory->all_refs--;
+				gf_list_rem(ioctx_ref->factory->url_pending, i);
+				break;
+			}
+			ioctx = NULL;
+		}
+	}
+
+	if (!ioctx) {
+		GF_SAFEALLOC(ioctx, JSFileIOCtx);
+		if (!ioctx) {
+			*out_err = GF_OUT_OF_MEM;
+			gf_js_lock(ctx, GF_FALSE);
+			return NULL;
+		}
+		ioctx->factory = ioctx_ref->factory;
+		created = GF_TRUE;
+	}
+
+	ioctx->js_obj = JS_NewObjectClass(ctx, fileio_class_id);
+	if (JS_IsException(ioctx->js_obj)) {
+		JS_FreeValue(ctx, ioctx->js_obj);
+		ioctx->js_obj = JS_UNDEFINED;
+		if (created) gf_free(ioctx);
+		*out_err = GF_OUT_OF_MEM;
+		gf_js_lock(ctx, GF_FALSE);
+		return NULL;
+	}
+	JS_SetOpaque(ioctx->js_obj, ioctx);
+
+	char *path = NULL;
+	if (!strnicmp(url, "gfio://", 7)) {
+		url = gf_fileio_translate_url(url);
+	} else if (created) {
+		path = gf_url_concatenate( gf_fileio_resource_url(ioctx_ref->gfio), url);
+		url = path;
+	}
+
+	if (created) {
+		if (JS_IsUndefined(ioctx->factory->write)) {
+			ioctx->gfio = gf_fileio_new((char *) url, ioctx, jsfio_open, jsfio_seek, jsfio_read, NULL, jsfio_tell, jsfio_eof, NULL);
+		} else if (JS_IsUndefined(ioctx->factory->read)) {
+			ioctx->gfio = gf_fileio_new((char *) url, ioctx, jsfio_open, jsfio_seek, NULL, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+		} else {
+			ioctx->gfio = gf_fileio_new((char *) url, ioctx, jsfio_open, jsfio_seek, jsfio_read, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+		}
+	}
+
+	args[0] = JS_NewString(ctx, url);
+	args[1] = JS_NewString(ctx, mode);
+	res = JS_Call(ctx, ioctx_ref->factory->open, ioctx->js_obj, 2, args);
+
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
+	if (path) gf_free(path);
+
+	if (JS_IsBool(res) && JS_ToBool(ctx, res) ) {
+		ioctx_ref->factory->all_refs++;
+		gf_js_lock(ctx, GF_FALSE);
+		return ioctx->gfio;
+	}
+	JS_ToInt32(ctx, out_err, res);
+
+	JS_SetOpaque(ioctx->js_obj, NULL);
+	JS_FreeValue(ctx, ioctx->js_obj);
+	ioctx->js_obj = JS_UNDEFINED;
+	if (created) {
+		gf_fileio_del(ioctx->gfio);
+		gf_free(ioctx);
+	}
+	gf_js_lock(ctx, GF_FALSE);
+	return NULL;
+}
+
+
+static JSValue fileio_constructor(JSContext *ctx, JSValueConst new_target, int argc, JSValueConst *argv)
+{
+	JSValue anobj;
+	JSFileIOCtx *ioctx;
+	char *full_url;
+	const char *parent;
+
+	if (argc != 9) return GF_JS_EXCEPTION(ctx);
+	if (!JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	//open
+	if (!JS_IsFunction(ctx, argv[1]) || JS_IsNull(argv[1])) return GF_JS_EXCEPTION(ctx);
+	//close
+	if (!JS_IsFunction(ctx, argv[2]) || JS_IsNull(argv[2])) return GF_JS_EXCEPTION(ctx);
+	//write, can be null
+	if (!JS_IsFunction(ctx, argv[3]) || JS_IsNull(argv[3])) {
+		if (!JS_IsFunction(ctx, argv[4]) || JS_IsNull(argv[4])) return GF_JS_EXCEPTION(ctx);
+	}
+	//read, can be null
+	if (!JS_IsFunction(ctx, argv[4]) || JS_IsNull(argv[4])) {
+		if (!JS_IsFunction(ctx, argv[3]) || JS_IsNull(argv[3])) return GF_JS_EXCEPTION(ctx);
+	}
+	//seek
+	if (!JS_IsFunction(ctx, argv[5]) || JS_IsNull(argv[5])) return GF_JS_EXCEPTION(ctx);
+	//tell
+	if (!JS_IsFunction(ctx, argv[6]) || JS_IsNull(argv[6])) return GF_JS_EXCEPTION(ctx);
+	//eos
+	if (!JS_IsFunction(ctx, argv[7]) || JS_IsNull(argv[7])) return GF_JS_EXCEPTION(ctx);
+	//exists
+	if (!JS_IsFunction(ctx, argv[8]) || JS_IsNull(argv[8])) return GF_JS_EXCEPTION(ctx);
+
+	const char *url = JS_ToCString(ctx, argv[0]);
+	if (!url) return GF_JS_EXCEPTION(ctx);
+
+	GF_SAFEALLOC(ioctx, JSFileIOCtx);
+	if (!ioctx) return js_throw_err(ctx, GF_OUT_OF_MEM);
+	GF_SAFEALLOC(ioctx->factory, JSFileIOFactoryCtx);
+	if (!ioctx->factory) {
+		gf_free(ioctx);
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
+	ioctx->factory->url_pending = gf_list_new();
+	if (!ioctx->factory->url_pending) {
+		gf_free(ioctx->factory);
+		gf_free(ioctx);
+		return js_throw_err(ctx, GF_OUT_OF_MEM);
+	}
+
+	anobj = JS_NewObjectClass(ctx, fileio_class_id);
+	if (JS_IsException(anobj)) {
+		gf_free(ioctx);
+		return anobj;
+	}
+	JS_SetOpaque(anobj, ioctx);
+	ioctx->factory->open = JS_DupValue(ctx, argv[1]);
+	ioctx->factory->close = JS_DupValue(ctx, argv[2]);
+	ioctx->factory->write = JS_DupValue(ctx, argv[3]);
+	ioctx->factory->read = JS_DupValue(ctx, argv[4]);
+	ioctx->factory->seek = JS_DupValue(ctx, argv[5]);
+	ioctx->factory->tell = JS_DupValue(ctx, argv[6]);
+	ioctx->factory->eof = JS_DupValue(ctx, argv[7]);
+	ioctx->factory->exists = JS_DupValue(ctx, argv[8]);
+	ioctx->factory->factory_obj = JS_DupValue(ctx, anobj);
+	ioctx->factory->ctx = ctx;
+	ioctx->js_obj = JS_UNDEFINED;
+	ioctx->factory->root = ioctx;
+
+	parent = jsf_get_script_filename(ctx);
+	full_url = gf_url_concatenate(parent, url);
+
+	if (JS_IsUndefined(ioctx->factory->write)) {
+		ioctx->gfio = gf_fileio_new((char *) full_url, ioctx, jsfio_open, jsfio_seek, jsfio_read, NULL, jsfio_tell, jsfio_eof, NULL);
+	} else if (JS_IsUndefined(ioctx->factory->read)) {
+		ioctx->gfio = gf_fileio_new((char *) full_url, ioctx, jsfio_open, jsfio_seek, NULL, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+	} else {
+		ioctx->gfio = gf_fileio_new((char *) full_url, ioctx, jsfio_open, jsfio_seek, jsfio_read, jsfio_write, jsfio_tell, jsfio_eof, NULL);
+	}
+	JS_FreeCString(ctx, url);
+	gf_free(full_url);
+	return anobj;
+}
+
+
 static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 {
 	JSValue proto, ctor;
@@ -2855,6 +3365,9 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 
 		JS_NewClassID(&amix_class_id);
 		JS_NewClass(JS_GetRuntime(ctx), amix_class_id, &amixClass);
+
+		JS_NewClassID(&fileio_class_id);
+		JS_NewClass(JS_GetRuntime(ctx), fileio_class_id, &fileioClass);
 	}
 
 	JSValue core_o = JS_NewObject(ctx);
@@ -2886,6 +3399,9 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 	DEF_CONST(GF_CONSOLE_ITALIC)
 	DEF_CONST(GF_CONSOLE_UNDERLINED)
 	DEF_CONST(GF_CONSOLE_STRIKE)
+	DEF_CONST(SEEK_SET)
+	DEF_CONST(SEEK_CUR)
+	DEF_CONST(SEEK_END)
 
 #undef DEF_CONST
 
@@ -2918,6 +3434,13 @@ static int js_gpaccore_init(JSContext *ctx, JSModuleDef *m)
 	ctor = JS_NewCFunction2(ctx, amix_constructor, "AudioMixer", 1, JS_CFUNC_constructor, 0);
     JS_SetModuleExport(ctx, m, "AudioMixer", ctor);
 
+	//FILEIO constructor
+	proto = JS_NewObjectClass(ctx, fileio_class_id);
+	JS_SetPropertyFunctionList(ctx, proto, fileio_funcs, countof(fileio_funcs));
+	JS_SetClassProto(ctx, fileio_class_id, proto);
+	ctor = JS_NewCFunction2(ctx, fileio_constructor, "FileIO", 1, JS_CFUNC_constructor, 0);
+    JS_SetModuleExport(ctx, m, "FileIO", ctor);
+
 	return 0;
 }
 
@@ -2932,6 +3455,7 @@ void qjs_module_init_gpaccore(JSContext *ctx)
 	JS_AddModuleExport(ctx, m, "Bitstream");
 	JS_AddModuleExport(ctx, m, "SHA1");
 	JS_AddModuleExport(ctx, m, "File");
+	JS_AddModuleExport(ctx, m, "FileIO");
 	JS_AddModuleExport(ctx, m, "AudioMixer");
 	return;
 }

@@ -647,7 +647,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 	//temporary until we don't introduce fsess_stop
 	assert(fsess->run_status != GF_OK);
 	if (fsess->filters) {
-		u32 i, count=gf_list_count(fsess->filters);
+		u32 i, pass, count=gf_list_count(fsess->filters);
 		//first pass: disconnect all filters, since some may have references to property maps or packets 
 		for (i=0; i<count; i++) {
 			u32 j;
@@ -681,13 +681,21 @@ void gf_fs_del(GF_FilterSession *fsess)
 			filter->scheduled_for_next_task = GF_FALSE;
 		}
 		//second pass, finalize all
-		for (i=0; i<count; i++) {
-			GF_Filter *filter = gf_list_get(fsess->filters, i);
-			if (filter->freg->finalize && !filter->finalized) {
-				filter->finalized = GF_TRUE;
-				FSESS_CHECK_THREAD(filter)
-				filter->freg->finalize(filter);
+		for (pass=0; pass<2; pass++) {
+			Bool has_scripts = GF_FALSE;
+			for (i=0; i<count; i++) {
+				GF_Filter *filter = gf_list_get(fsess->filters, i);
+				if (!pass && (filter->freg->flags & GF_FS_REG_SCRIPT)) {
+					has_scripts = GF_TRUE;
+					continue;
+				}
+				if (filter->freg->finalize && !filter->finalized) {
+					filter->finalized = GF_TRUE;
+					FSESS_CHECK_THREAD(filter)
+					filter->freg->finalize(filter);
+				}
 			}
+			if (!has_scripts) break;
 		}
 
 		while (gf_list_count(fsess->filters)) {
