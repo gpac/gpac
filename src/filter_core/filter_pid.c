@@ -794,7 +794,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 
 		if (e==GF_REQUIRES_NEW_INSTANCE) {
 			//TODO: copy over args from current filter
-			GF_Filter *new_filter = gf_filter_clone(filter);
+			GF_Filter *new_filter = gf_filter_clone(filter, pid->filter);
 			if (new_filter) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Clone filter %s, new instance for pid %s\n", filter->name, pid->name));
 				gf_filter_pid_post_connect_task(new_filter, pid);
@@ -1003,7 +1003,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 
 	//filter will require a new instance, clone it
 	if (filter->num_input_pids && (filter->max_extra_pids <= filter->num_input_pids - 1)) {
-		GF_Filter *new_filter = gf_filter_clone(filter);
+		GF_Filter *new_filter = gf_filter_clone(filter, task->pid->pid->filter);
 		if (new_filter) {
 			filter = new_filter;
 		} else {
@@ -4634,7 +4634,7 @@ single_retry:
 
 	//on first pass, if we found a clone (eg a filter using freg:#PropName=*), instantiate this clone and redo the pid linking to this clone (last entry in the filter list)
 	if (dynamic_filter_clone && !num_pass) {
-		GF_Filter *clone = gf_filter_clone(dynamic_filter_clone);
+		GF_Filter *clone = gf_filter_clone(dynamic_filter_clone, NULL);
 		if (clone) {
 			assert(dynamic_filter_clone->dynamic_source_ids);
 			gf_free(clone->source_ids);
