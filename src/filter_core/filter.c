@@ -2668,9 +2668,9 @@ GF_Filter *gf_filter_clone(GF_Filter *filter, GF_Filter *source_filter)
 		//remove all old source args and append new source args
 		//this allows dealing with -i live.mpd:OPT1 -i live2.mpd:OPT2
 		//where the filter (dashin here) will request a clone when fin:live2.mpd connects, we must use the options from live2.mpd
-		char *args = gf_strdup(filter->orig_args);
+		char *args = gf_strdup(filter->orig_args ? filter->orig_args : "");
 		u32 arg_len = (u32) strlen(args);
-		char *old_args = strstr(args, args_src_old);
+		char *old_args = args_src_old ? strstr(args, args_src_old) : NULL;
 		if (old_args) {
 			u32 offset = (u32) (old_args - args);
 			u32 old_args_len = (u32) strlen(args_src_old);
