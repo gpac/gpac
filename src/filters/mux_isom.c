@@ -3229,9 +3229,15 @@ sample_entry_done:
 					gf_isom_remove_edits(ctx->file, tkw->track_num);
 					tkw->patch_tfdt = GF_TRUE;
 				} else {
-					s64 dur = p->value.longsint;
+					s64 dur = 100*p->value.longsint;
 					dur *= (u32) ctx->moovts;
 					dur /= tkw->src_timescale;
+					if ((ctx->moovts < tkw->src_timescale) && (dur>150)) {
+						dur /= 100;
+						dur ++;
+					} else {
+						dur /= 100;
+					}
 					if (remove_edits) {
 						gf_isom_remove_edits(ctx->file, tkw->track_num);
 					}
