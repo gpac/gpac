@@ -4237,7 +4237,7 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size);
 /*writing of the final chunk info in edit mode*/
 GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 StreamDescIndex, GF_SampleToChunkBox *the_stsc, GF_Box **the_stco, u64 data_offset, Bool forceNewChunk, u32 nb_samp);
 /*EDIT LIST functions*/
-GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode);
+GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u32 MediaRate, u8 EditMode);
 
 GF_Err stbl_SetRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber);

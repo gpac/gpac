@@ -1338,7 +1338,7 @@ err_exit:
 	return NULL;
 }
 
-GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
+GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u32 MediaRate, u8 EditMode)
 {
 	GF_EdtsEntry *ent;
 
@@ -1356,7 +1356,7 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 		ent->mediaTime = MediaTime;
 		break;
 	default:
-		ent->mediaRate = 0x10000;
+		ent->mediaRate = MediaRate;
 		ent->mediaTime = MediaTime;
 		break;
 	}
