@@ -478,6 +478,39 @@ static GFINLINE void av1dmx_update_cts(GF_AV1DmxCtx *ctx)
 	}
 }
 
+static void av1dmx_set_mdcv(GF_AV1DmxCtx *ctx, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	u32 i;
+	u64 val;
+	u8 rw_mdcv[24];
+	GF_BitStream *bs_r = gf_bs_new(ctx->state.mdcv_data, 24, GF_BITSTREAM_READ);
+	GF_BitStream *bs_w = gf_bs_new(rw_mdcv, 24, GF_BITSTREAM_WRITE);
+
+	//3x{display_primaries_x, display_primaries_y} + whitePoint_x + whitePoint_y
+	//translate from AV1 representation 0.16 float to MPEG in increments of 0.00002 (1/50000)
+	for (i=0; i<8; i++) {
+		val = gf_bs_read_u16(bs_r);
+		val = (50000 * val) / 65536;
+		gf_bs_write_u16(bs_w, (u32) val);
+	}
+	//max_display_mastering_luminance: 24.8 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 256;
+	gf_bs_write_u32(bs_w, (u32) val);
+
+	//min_display_mastering_luminance: 18.14 fixed point in AV1 vs increments of 0.0001 (1/10000) candelas per square metre in MPEG
+	val = gf_bs_read_u32(bs_r);
+	val = (10000 * val) / 16384;
+	gf_bs_write_u32(bs_w, (u32) val);
+	gf_bs_del(bs_r);
+	gf_bs_del(bs_w);
+
+	if (pid) {
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(rw_mdcv, 24));
+	} else if (pck) {
+		gf_filter_pck_set_property(pck, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(rw_mdcv, 24));
+	}
+}
 static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	u8 *dsi;
@@ -576,7 +609,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->clli_crc = gf_crc_32(ctx->state.clli_data, 4);
 		}
 		if (ctx->state.mdcv_valid) {
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(ctx->state.mdcv_data, 24));
+			av1dmx_set_mdcv(ctx, ctx->opid, NULL);
 			ctx->mdcv_crc = gf_crc_32(ctx->state.mdcv_data, 24);
 		}
 
@@ -838,7 +871,7 @@ static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->state.mdcv_valid) {
 		u32 crc = gf_crc_32(ctx->state.mdcv_data, 24);
 		if (crc != ctx->mdcv_crc) {
-			gf_filter_pck_set_property(pck, GF_PROP_PID_MASTER_DISPLAY_COLOUR, &PROP_DATA(ctx->state.mdcv_data, 24));
+			av1dmx_set_mdcv(ctx, NULL, pck);
 		}
 	}
 
