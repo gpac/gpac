@@ -35,6 +35,10 @@
 #include "../scenegraph/qjs_common.h"
 #endif
 
+#define DASHIN_MIMES "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"
+
+#define DASHIN_FILE_EXT "mpd|m3u8|3gm|ism"
+
 enum
 {
 	DFWD_OFF = 0,
@@ -307,13 +311,21 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &mpd_timescale);
 			group->pto_setup = 1;
 
-			if (mpd_timescale && (mpd_timescale != ts)) {
-				pto = gf_timestamp_rescale(pto, mpd_timescale, ts);
+			//we are forwarding segment boundaries and potentially rebuilding manifest based on the source time
+			//do not adjust timestamps
+			if (ctx->forward) {
+				pto = 0;
+			} else {
+				if (mpd_timescale && (mpd_timescale != ts)) {
+					pto = gf_timestamp_rescale(pto, mpd_timescale, ts);
+				}
 			}
+
 			group->pto = (s64) pto;
 			group->timescale = ts;
 			scale = ts;
 			scale /= 1000;
+
 
 			dur = (u64) (scale * gf_dash_get_period_duration(ctx->dash));
 			if (dur) {
@@ -322,7 +334,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				group->max_cts_in_period = 0;
 			}
 
-			if (gf_dash_is_m3u8(ctx->dash)) {
+			//no max cts in HLS, and don't filter in forward modes
+			if (gf_dash_is_m3u8(ctx->dash) || ctx->forward) {
 				group->max_cts_in_period = 0;
 			} else if (!group->pto && group->max_cts_in_period && !gf_dash_is_dynamic_mpd(ctx->dash) ) {
 				u32 seg_number=0;
@@ -557,6 +570,7 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] setting up group %d from %s\n", group->idx, init_segment_name));
 	group->signal_seg_name = (ctx->forward==DFWD_FILE) ? GF_TRUE : GF_FALSE;
+	gf_filter_set_source(ctx->filter, group->seg_filter_src, NULL);
 
 	gf_filter_set_setup_failure_callback(ctx->filter, group->seg_filter_src, dashdmx_on_filter_setup_error, group);
 
@@ -1733,6 +1747,12 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//figure out group for this pid
 	group_idx = dashdmx_group_idx_from_pid(ctx, pid);
 	if (group_idx<0) {
+		const GF_PropertyValue *p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (p && strstr(DASHIN_MIMES, p->value.string)) return GF_REQUIRES_NEW_INSTANCE;
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+		if (p && strstr(DASHIN_FILE_EXT, p->value.string)) return GF_REQUIRES_NEW_INSTANCE;
+
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Failed to locate adaptation set for input pid\n"));
 		return GF_SERVICE_ERROR;
 	}
@@ -2493,6 +2513,9 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 		//setup some info for consuming filters
 		if (ctx->forward) {
 			GF_DASHQualityInfo q;
+			const char *init_seg = NULL;
+			const char *dash_url = gf_dash_get_url(ctx->dash);
+			u32 segment_timeline_timescale = 0;
 
 			//we dispatch timing in milliseconds
 			if (ctx->forward==DFWD_FILE) {
@@ -2506,18 +2529,25 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 					gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 			}
 			if (group->template) gf_free(group->template);
-			group->template = gf_dash_group_get_template(ctx->dash, group->idx);
+			group->template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg);
 			if (!group->template) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", gf_dash_get_url(ctx->dash) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", dash_url ));
 				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, NULL);
 			} else {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, &PROP_STRING(group->template) );
 				char *sep = strchr(group->template, '$');
 				if (sep) sep[0] = 0;
+				gf_filter_pid_set_property_str(opid, "source_template", &PROP_BOOL(GF_TRUE) );
+				gf_filter_pid_set_property_str(opid, "stl_timescale", segment_timeline_timescale ? &PROP_UINT(segment_timeline_timescale) : NULL);
+				gf_filter_pid_set_property_str(opid, "init_url", init_seg ? &PROP_STRING(init_seg) : NULL);
+				gf_filter_pid_set_property_str(opid, "manifest_url", dash_url ? &PROP_STRING(dash_url) : NULL);
 			}
+			gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(q.ID) );
+
+			//file forward mode, we may need a dash duration later in the chain (route mux for ex), signal what we know
+			//from manifest
 			if (ctx->forward==DFWD_FILE) {
 				u32 dur, timescale;
-				gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(q.ID) );
 
 				gf_dash_group_get_segment_duration(ctx->dash, group->idx, &dur, &timescale);
 				gf_filter_pid_set_property(opid, GF_PROP_PID_DASH_DUR, &PROP_FRAC_INT(dur, timescale) );
@@ -3224,8 +3254,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 static const GF_FilterCapability DASHDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "mpd|m3u8|3gm|ism"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/dash+xml|video/vnd.3gpp.mpd|audio/vnd.3gpp.mpd|video/vnd.mpeg.dash.mpd|audio/vnd.mpeg.dash.mpd|audio/mpegurl|video/mpegurl|application/vnd.ms-sstr+xml"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, DASHIN_FILE_EXT),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, DASHIN_MIMES),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
@@ -3264,7 +3294,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"If the source has dependent media streams (scalability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
 	"\n"
 	"# Segment bound modes\n"
-	"When [-forward]() is set to `segs` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"
+	"When [-forward]() is set to `segb` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"
 	"\n"
 	"This mode can be used to process media data and regenerating the same manifest/segmentation.\n"
 	"\n"
