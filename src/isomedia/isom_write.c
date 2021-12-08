@@ -2516,16 +2516,13 @@ static GF_Err gf_isom_set_edit_internal(GF_ISOFile *movie, u32 trackNumber, u64 
 	if (!ent) {
 		Bool empty_inserted = GF_FALSE;
 		if (startTime != EditTime) {
-			newEnt = CreateEditEntry(EditTime - startTime, 0, GF_ISOM_EDIT_EMPTY);
+			newEnt = CreateEditEntry(EditTime - startTime, 0, 0, GF_ISOM_EDIT_EMPTY);
 			if (!newEnt) return GF_OUT_OF_MEM;
 			empty_inserted = GF_TRUE;
 			gf_list_add(elst->entryList, newEnt);
 		}
-		newEnt = CreateEditEntry(EditDuration, MediaTime, EditMode);
+		newEnt = CreateEditEntry(EditDuration, MediaTime, media_rate, EditMode);
 		if (!newEnt) return GF_OUT_OF_MEM;
-		if (EditMode==GF_ISOM_EDIT_NORMAL+1) {
-			newEnt->mediaRate = media_rate;
-		}
 		gf_list_add(elst->entryList, newEnt);
 		e = SetTrackDuration(trak);
 		if (e) return e;
@@ -2539,24 +2536,19 @@ found:
 	//if same time, we erase the current one...
 	if (startTime == EditTime) {
 		ent->segmentDuration = EditDuration;
-		if (EditMode==GF_ISOM_EDIT_NORMAL+1) {
+		switch (EditMode) {
+		case GF_ISOM_EDIT_EMPTY:
+			ent->mediaRate = 0x10000;
+			ent->mediaTime = -1;
+			break;
+		case GF_ISOM_EDIT_DWELL:
+			ent->mediaRate = 0;
+			ent->mediaTime = MediaTime;
+			break;
+		default:
 			ent->mediaRate = media_rate;
 			ent->mediaTime = MediaTime;
-		} else {
-			switch (EditMode) {
-			case GF_ISOM_EDIT_EMPTY:
-				ent->mediaRate = 0x10000;
-				ent->mediaTime = -1;
-				break;
-			case GF_ISOM_EDIT_DWELL:
-				ent->mediaRate = 0;
-				ent->mediaTime = MediaTime;
-				break;
-			default:
-				ent->mediaRate = 0x10000;
-				ent->mediaTime = MediaTime;
-				break;
-			}
+			break;
 		}
 		return SetTrackDuration(trak);
 	}
@@ -2565,12 +2557,8 @@ found:
 	//Note: we don't change the next one as it is unknown to us in
 	//a lot of case (the author's changes)
 	ent->segmentDuration = EditTime - startTime;
-	newEnt = CreateEditEntry(EditDuration, MediaTime, EditMode);
+	newEnt = CreateEditEntry(EditDuration, MediaTime, media_rate, EditMode);
 	if (!newEnt) return GF_OUT_OF_MEM;
-	if (EditMode==GF_ISOM_EDIT_NORMAL+1) {
-		newEnt->mediaRate = media_rate;
-		newEnt->mediaTime = MediaTime;
-	}
 	//is it the last entry ???
 	if (i >= gf_list_count(elst->entryList) - 1) {
 		//add the new entry at the end
@@ -2586,13 +2574,13 @@ found:
 GF_EXPORT
 GF_Err gf_isom_set_edit(GF_ISOFile *movie, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, GF_ISOEditType EditMode)
 {
-	return gf_isom_set_edit_internal(movie, trackNumber, EditTime, EditDuration, MediaTime, 0, EditMode);
+	return gf_isom_set_edit_internal(movie, trackNumber, EditTime, EditDuration, MediaTime, 0x10000, EditMode);
 }
 
 GF_EXPORT
 GF_Err gf_isom_set_edit_with_rate(GF_ISOFile *movie, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u32 media_rate)
 {
-	return gf_isom_set_edit_internal(movie, trackNumber, EditTime, EditDuration, MediaTime, media_rate, GF_ISOM_EDIT_NORMAL+1);
+	return gf_isom_set_edit_internal(movie, trackNumber, EditTime, EditDuration, MediaTime, media_rate, GF_ISOM_EDIT_NORMAL);
 
 }
 
