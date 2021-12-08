@@ -2650,9 +2650,45 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 	if (filter) gf_fs_send_update(filter->session, fid, fid ? NULL : filter, name, val, propagate_mask);
 }
 
-GF_Filter *gf_filter_clone(GF_Filter *filter)
+GF_Filter *gf_filter_clone(GF_Filter *filter, GF_Filter *source_filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, NULL, GF_FALSE);
+	GF_Filter *new_filter;
+
+	if (source_filter) {
+		GF_Filter *old_source;
+		GF_FilterPidInst *first_in = gf_list_get(filter->input_pids, 0);
+		//if source filter is set, this is a clone due to a new instance request, so we have at least one input
+		assert(first_in);
+		old_source = first_in->pid->filter;
+		//get source arguments for new source filter connecting to the clone
+		const char *args_src_new = gf_filter_get_args_stripped(filter->session, source_filter->src_args ? source_filter->src_args : source_filter->orig_args, GF_FALSE);
+		//get source arguments for previous source filter connected to the clone
+		const char *args_src_old = gf_filter_get_args_stripped(filter->session, old_source->src_args ? old_source->src_args : old_source->orig_args, GF_FALSE);
+
+		//remove all old source args and append new source args
+		//this allows dealing with -i live.mpd:OPT1 -i live2.mpd:OPT2
+		//where the filter (dashin here) will request a clone when fin:live2.mpd connects, we must use the options from live2.mpd
+		char *args = gf_strdup(filter->orig_args);
+		u32 arg_len = (u32) strlen(args);
+		char *old_args = strstr(args, args_src_old);
+		if (old_args) {
+			u32 offset = (u32) (old_args - args);
+			u32 old_args_len = (u32) strlen(args_src_old);
+			memmove(old_args, old_args+old_args_len, arg_len - old_args_len - offset);
+			old_args[arg_len - old_args_len - offset]=0;
+		}
+		if (args_src_new) {
+			char szSep[2];
+			szSep[0] = filter->session->sep_args;
+			szSep[1] = 0;
+			gf_dynstrcat(&args, args_src_new, szSep);
+		}
+
+		new_filter = gf_filter_new(filter->session, filter->freg, args, NULL, filter->arg_type, NULL, NULL, GF_FALSE);
+		gf_free(args);
+	} else {
+		new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL, filter->arg_type, NULL, NULL, GF_FALSE);
+	}
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter cloned (register %s, args %s)\n", filter->freg->name, filter->orig_args ? filter->orig_args : "none"));
