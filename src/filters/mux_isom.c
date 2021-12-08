@@ -1546,7 +1546,8 @@ sample_entry_setup:
 		m_subtype = GF_ISOM_BOX_TYPE_JPEG;
 		comp_name = "JPEG";
 		//use generic sample desc, but don't inject dsi
-		dsi = NULL;
+		if (!use_m4sys)
+			dsi = NULL;
 		break;
 	case GF_CODECID_PNG:
 		m_subtype = GF_ISOM_BOX_TYPE_PNG;
