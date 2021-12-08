@@ -312,7 +312,8 @@ static const tag_to_name HEVCNalNames[] =
 	{GF_HEVC_NALU_SEI_PREFIX, "SEI Prefix"},
 	{GF_HEVC_NALU_SEI_SUFFIX, "SEI Suffix"},
 	{48, "HEVCAggregator"},
-	{49, "HEVCExtractor"}
+	{49, "HEVCExtractor"},
+	{62, "UNSPEC_DolbiVision_RPU"}
 };
 
 static const char *get_hevc_nal_name(u32 nal_type)
@@ -467,7 +468,7 @@ static void dump_mdcv(FILE *dump, GF_BitStream *bs, Bool isMPEG)
 			   white_point_x*1.0/(isMPEG?50000:65536),
 			   white_point_y*1.0/(isMPEG?50000:65536),
 			   max_display_mastering_luminance*1.0/(isMPEG?10000:256),
-			   min_display_mastering_luminance*1.0/(isMPEG?50000:(1<<14)));
+			   min_display_mastering_luminance*1.0/(isMPEG?10000:(1<<14)));
 }
 
 static u32 dump_t35(FILE *dump, GF_BitStream *bs)
@@ -532,8 +533,8 @@ static void dump_sei(FILE *dump, GF_BitStream *bs, Bool is_hevc)
 				gf_bs_read_u8(bs);
 				i++;
 			}
-			gf_fprintf(dump, "/>\n");
 		}
+		gf_fprintf(dump, "/>\n");
 		if (gf_bs_peek_bits(bs, 8, 0) == 0x80) {
 			break;
 		}
@@ -1833,8 +1834,8 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		}
 		else if (p4cc==GF_PROP_PID_MASTER_DISPLAY_COLOUR) {
 			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
-			const GF_PropertyValue *cid = pctx ? gf_filter_pid_get_property(pctx->src_pid, GF_PROP_PID_CODECID) : NULL;
-			dump_mdcv(dump, bs, (cid && cid->value.uint==GF_CODECID_AV1) ? GF_FALSE : GF_TRUE);
+			//mdcv property is always in MPEG units
+			dump_mdcv(dump, bs, GF_TRUE);
 			gf_bs_del(bs);
 			return;
 		}
