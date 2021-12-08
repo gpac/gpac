@@ -863,12 +863,14 @@ typedef struct
 */
 GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 group_idx, u32 quality_idx, GF_DASHQualityInfo *quality);
 
-/*! gets segment template used by group
+/*! gets segment template info used by group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
+\param segment_timeline_timescale set to segment timeline timescale, or to 0 if no segment timeline
+\param init_url set to initialization URL (template, timeline or base URL for VoD) as indicated in manifest (no resolution to base URL)
 \return segment template, NULL if no templates used. Memory must be freed by caller
 */
-char *gf_dash_group_get_template(GF_DashClient *dash, u32 group_idx);
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 group_idx, u32 *segment_timeline_timescale, const char **init_url);
 
 /*! checks automatic switching mode
 \param dash the target dash client

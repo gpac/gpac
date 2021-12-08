@@ -9527,12 +9527,15 @@ u32 gf_dash_group_get_num_components(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
-char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_timeline_timescale, const char **init_url)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	const char *tpl;
 	char *solved_template;
+	if (init_url) *init_url = NULL;
+	if (segment_timeline_timescale) *segment_timeline_timescale = 0;
+
 	if (!group) return NULL;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	if (!rep)
@@ -9542,6 +9545,38 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx)
 	if (rep && rep->segment_template) tpl = rep->segment_template->media;
 	if (!tpl && group->adaptation_set && group->adaptation_set->segment_template) tpl = group->adaptation_set->segment_template->media;
 	if (!tpl && group->period && group->period->segment_template) tpl = group->period->segment_template->media;
+
+	if (segment_timeline_timescale) {
+		if (rep && rep->segment_template && rep->segment_template->segment_timeline)
+			*segment_timeline_timescale = rep->segment_template->timescale;
+		else if (group->adaptation_set && group->adaptation_set->segment_template && group->adaptation_set->segment_template->segment_timeline)
+			*segment_timeline_timescale = group->adaptation_set->segment_template->timescale;
+		else if (group->period && group->period->segment_template && group->period->segment_template->segment_timeline)
+			*segment_timeline_timescale = group->period->segment_template->timescale;
+	}
+	if (init_url) {
+		const char *init = NULL;
+		if (rep && rep->segment_template && rep->segment_template->initialization) init = rep->segment_template->initialization;
+		else if (group->adaptation_set && group->adaptation_set->segment_template && group->adaptation_set->segment_template->initialization) init = group->adaptation_set->segment_template->initialization;
+		else if (group->period && group->period->segment_template && group->period->segment_template->initialization)
+			init = group->period->segment_template->initialization;
+
+		if (!init) {
+			if (rep && rep->segment_list && rep->segment_list->initialization_segment)
+				init = rep->segment_list->initialization_segment->sourceURL;
+			else if (group->adaptation_set && group->adaptation_set->segment_list && group->adaptation_set->segment_list->initialization_segment)
+				init = group->adaptation_set->segment_list->initialization_segment->sourceURL;
+			else if (group->period && group->period->segment_list && group->period->segment_list->initialization_segment)
+				init = group->period->segment_list->initialization_segment->sourceURL;
+		}
+		if (!init) {
+			if (rep && rep->segment_base) {
+				GF_MPD_BaseURL *base_url = gf_list_get(rep->base_URLs, 0);
+				if (base_url) init = base_url->URL;
+			}
+		}
+		*init_url = init;
+	}
 
 	if (tpl) {
 		u64 range_start, range_end, segment_duration_in_ms;
