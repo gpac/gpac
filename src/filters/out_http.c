@@ -1931,7 +1931,7 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (ctx->rdirs.nb_items || ctx->wdir) {
 		gf_filter_make_sticky(filter);
 
-		if (!strcmp(ctx->rdirs.vals[0], "gmem")) {
+		if (ctx->rdirs.nb_items && !strcmp(ctx->rdirs.vals[0], "gmem")) {
 			ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
 			ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
 			if (!ctx->max_mem_segs) ctx->max_mem_segs = 1;
