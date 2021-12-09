@@ -161,6 +161,7 @@ typedef struct
 	char *utcs;
 	char *mname;
 	char *hlsdrm;
+	GF_PropStringList hlsx;
 	u32 llhls;
 	//inherited from mp4mx
 	GF_Fraction cdur;
@@ -2380,6 +2381,17 @@ static void dasher_setup_rep(GF_DasherCtx *ctx, GF_DashStream *ds, u32 *srd_rep_
 		ds->rep_id = gf_strdup(szRepID);
 	}
 	ds->rep->id = gf_strdup(ds->rep_id);
+
+	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_EXT_MASTER);
+	if (p) {
+		ds->rep->nb_hls_master_tags = p->value.string_list.nb_items;
+		ds->rep->hls_master_tags = (const char **) p->value.string_list.vals;
+	}
+	p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_HLS_EXT_VARIANT);
+	if (p) {
+		ds->rep->nb_hls_variant_tags = p->value.string_list.nb_items;
+		ds->rep->hls_variant_tags = (const char **) p->value.string_list.vals;
+	}
 }
 
 static Bool dasher_same_roles(GF_DashStream *ds1, GF_DashStream *ds2)
@@ -2590,20 +2602,32 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			role_count = ds->p_role->value.string_list.nb_items;
 			for (j=0; j<role_count; j++) {
 				char *role = ds->p_role->value.string_list.vals[j];
-				GF_MPD_Descriptor *desc;
+				GF_MPD_Descriptor *desc=NULL;
 				char *uri;
+				//all roles defined by dash 5th edition
 				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
 			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
 			        || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
-					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio- intelligibility")
+					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio-intelligibility")
+					 || !strcmp(role, "emergency") || !strcmp(role, "forced-subtitle")
+					 || !strcmp(role, "easyreader") || !strcmp(role, "karaoke")
 				) {
 					uri = "urn:mpeg:dash:role:2011";
 					if (!strcmp(role, "main")) main_role_set = GF_TRUE;
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Unrecognized role %s - using GPAC urn for schemaID\n", role));
-					uri = "urn:gpac:dash:role:2013";
+					char *sep = strrchr(role, ':');
+					if (sep) {
+						sep[0] = 0;
+						desc = gf_mpd_descriptor_new(NULL, role, sep+1);
+						sep[0] = ':';
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Unrecognized role %s - using GPAC urn for schemaID\n", role));
+						uri = "urn:gpac:dash:role:2013";
+					}
 				}
-				desc = gf_mpd_descriptor_new(NULL, uri, role);
+				if (!desc)
+					desc = gf_mpd_descriptor_new(NULL, uri, role);
+
 				gf_list_add(set->role, desc);
 			}
 		}
@@ -4479,6 +4503,8 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 	FILE *tmp = gf_file_temp(NULL);
 	if (do_m3u8) {
 		ctx->mpd->m3u8_time = ctx->hlsc;
+		ctx->mpd->nb_hls_ext_master = ctx->hlsx.nb_items;
+		ctx->mpd->hls_ext_master = (const char **) ctx->hlsx.vals;
 		if (ctx->llhls==3)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
 		else
@@ -9213,6 +9239,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmaf), "use cmaf guidelines\n"
 		"- no: CMAF not enforced\n"
 		"- cmfc: use CMAF `cmfc` guidelines\n"
@@ -9284,6 +9311,8 @@ GF_FilterRegister DasherRegister = {
 "- CropOrigin: indicates x and y coordinates of video for SRD (size is video size)\n"
 "- SRD: indicates SRD position and size of video for SRD, ignored if `CropOrigin` is set\n"
 "- SRDRef: indicates global width and height of SRD, ignored if `CropOrigin` is set\n"
+"- HLSMExt: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
+"- HLSVExt: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
 "- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
 "EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"

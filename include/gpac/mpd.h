@@ -644,6 +644,13 @@ typedef struct {
 	/*! for m3u8: 0: not encrypted, 1: full segment, 2: CENC*/
 	u8 crypto_type;
 	u8 def_kms_used;
+
+	u32 nb_hls_master_tags;
+	const char **hls_master_tags;
+
+	u32 nb_hls_variant_tags;
+	const char **hls_variant_tags;
+
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -876,6 +883,9 @@ typedef struct {
 	Bool m3u8_time;
 	/*! indicates  LL-HLS forced generation. 0: regular write, 1: write as byterange, 2: write as independent files*/
 	u32 force_llhls_mode;
+	/*! HLS extensions to append in the master playlist*/
+	u32 nb_hls_ext_master;
+	const char **hls_ext_master;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM

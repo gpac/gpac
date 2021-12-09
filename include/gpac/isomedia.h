@@ -1526,7 +1526,7 @@ typedef struct  {
 	u32 min_display_mastering_luminance;
 } GF_MasteringDisplayColourVolumeInfo;
 
-/* gets master display colour info if any
+/*! gets master display colour info if any
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
@@ -1534,7 +1534,7 @@ typedef struct  {
 */
 const GF_MasteringDisplayColourVolumeInfo *gf_isom_get_mastering_display_colour_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-/* gets content light level info if any
+/*! gets content light level info if any
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
