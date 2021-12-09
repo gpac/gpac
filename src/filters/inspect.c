@@ -1226,8 +1226,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, 
 		gf_fprintf(dump, "has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	}
 
-	if (dump_crc && (obu_ptr_length<0xFFFFFFFFUL))
-		gf_fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu_ptr, (u32) obu_ptr_length) );
+	if (dump_crc && (obu_size<0xFFFFFFFFUL))
+		gf_fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu_ptr, (u32) obu_size) );
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 		if (full_dump) break;
