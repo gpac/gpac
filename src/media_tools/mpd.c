@@ -3284,8 +3284,9 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 
 static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Representation *rep, char *m3u8_name, const char *codec_ext, const char *g_type, const char *g_id_pref, u32 g_as_idx, const char *g2_type, const char *g2_id_pref, u32 g2_as_idx, GF_List *groups_done, const GF_MPD_AdaptationSet *set)
 {
+	u32 i;
 	if (groups_done) {
-		u32 i, count=gf_list_count(groups_done);
+		u32 count=gf_list_count(groups_done);
 		Bool g1_done = GF_FALSE;
 		Bool g2_done = GF_FALSE;
 		for (i=0; i<count; i++) {
@@ -3337,6 +3338,9 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 			gf_fprintf(out,"%d", g2_as_idx);
 		gf_fprintf(out,"\"");
 	}
+	for (i=0; i<rep->nb_hls_master_tags; i++) {
+		gf_fprintf(out,",%s", rep->hls_master_tags[i]);
+	}
 	gf_fprintf(out,"\n");
 
 	gf_fprintf(out, "%s\n",m3u8_name);
@@ -3374,6 +3378,10 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
 		if (rep->nb_chan)
 			gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
+
+		for (i=0; i<rep->nb_hls_master_tags; i++) {
+			gf_fprintf(out,",%s", rep->hls_master_tags[i]);
+		}
 		return;
 	}
 
@@ -3495,6 +3503,9 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx->seg_num);
 	if (as->use_hls_ll) {
 		gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", as->hls_ll_frag_dur);
+	}
+	for (i=0; i<rep->nb_hls_variant_tags; i++) {
+		gf_fprintf(out,"%s\n", rep->hls_variant_tags[i]);
 	}
 
 	if (as->starts_with_sap<SAP_TYPE_3)
@@ -3705,6 +3716,9 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	gf_fprintf(out, "#EXT-X-VERSION: %d\n", hls_version);
 	if (use_ind_segments)
 		gf_fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
+
+	for (i=0; i<mpd->nb_hls_ext_master; i++)
+		gf_fprintf(out, "%s\n", mpd->hls_ext_master[i]);
 	gf_fprintf(out, "\n");
 
 	if (!strncmp(m3u8_name, "gfio://", 7)) {

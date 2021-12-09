@@ -2589,6 +2589,9 @@ static GF_FilterProbeScore probe_meta_check_builtin_format(GF_FilterSession *fse
 		char *ext_arg;
 		sprintf(szExtN, "ext%c", fsess->sep_name);
 		ext_arg = strstr(fargs, szExtN);
+		if (ext_arg && (ext_arg>fargs) && (ext_arg[-1] != fsess->sep_name))
+			ext_arg = NULL;
+
 		if (ext_arg) {
 			char *next_arg;
 			ext_arg+=4;

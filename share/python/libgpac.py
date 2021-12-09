@@ -1573,6 +1573,7 @@ class FilterSession:
 
     ##checks if a given source URL is supported - see \ref gf_fs_is_supported_source
     # \param url URL to check
+    # \param parent parent URL for relative URLs
     # \return true or false
     def is_supported_source(self, url, parent=None):
         if parent:
@@ -4441,7 +4442,6 @@ class FileIO:
 		self._gf_fio = _libgpac.gf_fileio_new(url.encode('utf-8'), py_object(self), fileio_cbk_open, fileio_cbk_seek, fileio_cbk_read, fileio_cbk_write, fileio_cbk_tell, fileio_cbk_eof, None )
 		if self._gf_fio==None:
 			raise Exception('Failed to create FileIO for ' + url)
-##\endcond private
 
 	@property
 	def url(self):
@@ -4449,6 +4449,7 @@ class FileIO:
 		if _url==None:
 			return None
 		return _url.decode('utf-8')
+##\endcond private
 
 ## @}
 #

@@ -330,6 +330,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 			if (!next_dbsep) break;
 			nb_db_sep++;
 			dbsep = next_dbsep+2;
+			//this happens when we had cat :opt1 and ::opt2, this results in :opt1:::opt2
+			//consider that this is a new escaped option
+			while (dbsep[0] == filter->session->sep_args) {
+				nb_db_sep++;
+				dbsep++;
+			}
 		}
 		if (nb_db_sep % 2) nb_db_sep=1;
 		else nb_db_sep=0;

@@ -3232,7 +3232,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(forward), "segment forwarding mode  -see filter help\n"
 		"- none: regular DASH read\n"
 		"- file: do not demux files and forward them as file pids (imply `segstore=mem`)\n"
-		"- segb: turn on [-split_as](), segment and fragment bounds signaling and DASH cue insertion\n"
+		"- segb: turn on [-split_as](), segment and fragment bounds signaling (`sigfrag`) in sources and DASH cue insertion\n"
 		"- mani: same as `segb` and also forward manifests"
 	, GF_PROP_UINT, "none", "none|file|segb|mani", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fmodefwd), "forward packet rather than copy them in `file` forward mode. Packet copy might improve performances in low latency mode", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -3323,6 +3323,10 @@ GF_FilterRegister DASHDmxRegister = {
 	"- `FileName`: set to associated init segment if any\n"
 	"- `Representation`: set to the associated representation ID in the manifest\n"
 	"- `DashDur`: set to the average segment duration as indicated in the manifest\n"
+	"- `source_template`: set to true to indicate the source template is known\n"
+	"- `stl_timescale`: timescale used by SegmentTimeline, or 0 if no SegmentTimeline\n"
+	"- `init_url`: unresolved intialization URL (as it appears in the manifest)\n"
+	"- `manifest_url`: manifest URL\n"
 	"\n"
 	"When the [dasher](dasher) is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones.\n"
 	"It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.\n"

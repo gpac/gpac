@@ -2927,7 +2927,7 @@ DASH target segment duration in seconds
 .TP
 .B Role (ROLE,strl,D )
 .br
-List of roles for this pid
+List of roles for this pid, where each role string can be a DASH role, a URN:role-value or any other string (this will throw a warning and use a custom URI for the role)
 .br
 .TP
 .B PDesc (PDES,strl,D )
@@ -2983,6 +2983,16 @@ Name of the HLS variant playlist for this media
 .B HLSGroup (HLGI,str,D )
 .br
 Name of HLS Group of a stream
+.br
+.TP
+.B HLSMExt (HLMX,strl,D )
+.br
+List of extensions to add to the master playlist for this pid
+.br
+.TP
+.B HLSVExt (HLVX,strl,D )
+.br
+List of extensions to add to the variant playlist for this pid
 .br
 .TP
 .B DCue (DCUE,str,D )
@@ -3230,9 +3240,14 @@ Indicate the PID is a scene node decoder (AFX BitWrapper in BIFS)
 Indicate the original cryptor scheme on a decrypted PID
 .br
 .TP
-.B TSBSegs (PTSN,uint,  )
+.B TSBSegs (PTSN,uint,D )
 .br
 Indicate the time shift in number of segments for HAS streams, only set by dashin and dasher filters
+.br
+.TP
+.B IsManifest (PHSM,bool,D )
+.br
+Indicate the PID is a HAS manifest
 .br
 .TP
 .B SkipBegin (PCKS,uint, P)
@@ -4319,7 +4334,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1509-g957102841-master
+build: 1.1.0-DEV-rev1523-gc6b0b3f89-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -1523,7 +1523,7 @@ If the source has dependent media streams (scalability) and all qualities and in
 .SH Segment bound modes
 .LP
 .br
-When .I forward is set to segs or mani, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.
+When .I forward is set to segb or mani, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.
 .br
 
 .br
@@ -1588,6 +1588,14 @@ Each output PID will have the following properties assigned:
 * `Representation`: set to the associated representation ID in the manifest
 .br
 * `DashDur`: set to the average segment duration as indicated in the manifest
+.br
+* `source_template`: set to true to indicate the source template is known
+.br
+* `stl_timescale`: timescale used by SegmentTimeline, or 0 if no SegmentTimeline
+.br
+* `init_url`: unresolved intialization URL (as it appears in the manifest)
+.br
+* `manifest_url`: manifest URL
 .br
 
 .br
@@ -1740,7 +1748,7 @@ forward (enum, default: none): segment forwarding mode  -see filter help
 .br
 * file: do not demux files and forward them as file pids (imply segstore=mem)
 .br
-* segb: turn on .I split_as, segment and fragment bounds signaling and DASH cue insertion
+* segb: turn on .I split_as, segment and fragment bounds signaling (sigfrag) in sources and DASH cue insertion
 .br
 * mani: same as segb and also forward manifests
 .br
@@ -4445,6 +4453,10 @@ Note: If multiple streams in source, only the first stream will have an AS ID as
 .br
 * SRDRef: indicates global width and height of SRD, ignored if CropOrigin is set
 .br
+* HLSMExt: list of extensions to add to master playlist entries, ['foo','bar=val'] added as ,foo,bar=val
+.br
+* HLSVExt: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as #foo \n #bar=val
+.br
 * Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).
 .br
   
@@ -5055,6 +5067,8 @@ llhls (enum, default: off):    HLS low latency type
 
 .br
 hlsdrm (str):                  cryp file info for HLS full segment encryption
+.br
+hlsx (strl):                   list of string to append to master HLS header before variants with ['#foo','#bar=val'] added as #foo \n #bar=val
 .br
 cmaf (enum, default: no):      use cmaf guidelines
 .br
@@ -9453,7 +9467,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1509-g957102841-master
+build: 1.1.0-DEV-rev1523-gc6b0b3f89-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

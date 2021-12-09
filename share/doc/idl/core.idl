@@ -874,14 +874,14 @@ interface FileIO {
 
 /*! constructor for a FileIO
 \param reference_url the base URL this FileIO wraps
-\param open the open function callback, shall not be NULL. The callback is \code boolean open(DOMString url, DOMString mode); \endcode, with mode a fopen mode and the return value true indicates success
-\param close the close function callback, shall not be NULL. The callback is \code close(); \endcode
-\param write the write function callback, shall not be NULL if read is NULL. The callback is \code unsigned long write(ArrayBuffer ab); \endcode, where ab is the buffer to write and the return value the number of bytes written
-\param read the read function callback, shall not be NULL if write is NULL. The callback is \code unsigned long read(ArrayBuffer ab); \endcode, where ab is the buffer to fill and the return value the number of bytes read
-\param seek the seek function callback, shall not be NULL. The callback is \code unsigned long seek(unsigned long long pos, unsigned long whence); \endcode, as in \ref gf_fseek
-\param tell the seek function callback, shall not be NULL. The callback is \code unsigned long long tell(); \endcode, as in \ref gf_ftell
-\param eof the end of file function callback, shall not be NULL. The callback is \code boolean eof(); \endcode, as in \ref gf_eof
-\param exists the file existence probing function callback, shall not be NULL. The callback is \code boolean exists(DOMString URL); \endcode, returns true if file exists (for read access). The "this" object is the constructed FileIO on this callback.
+\param open the open function callback, shall not be NULL. The callback is "boolean open(DOMString url, DOMString mode); ", with mode a fopen mode and the return value true indicates success
+\param close the close function callback, shall not be NULL. The callback is "close();"
+\param write the write function callback, shall not be NULL if read is NULL. The callback is "unsigned long write(ArrayBuffer ab);", where ab is the buffer to write and the return value the number of bytes written
+\param read the read function callback, shall not be NULL if write is NULL. The callback is "unsigned long read(ArrayBuffer ab);", where ab is the buffer to fill and the return value the number of bytes read
+\param seek the seek function callback, shall not be NULL. The callback is "unsigned long seek(unsigned long long pos, unsigned long whence);", as in \ref gf_fseek
+\param tell the seek function callback, shall not be NULL. The callback is "unsigned long long tell();", as in \ref gf_ftell
+\param eof the end of file function callback, shall not be NULL. The callback is "boolean eof();", as in \ref gf_feof
+\param exists the file existence probing function callback, shall not be NULL. The callback is "boolean exists(DOMString URL);", returns true if file exists (for read access). The "this" object is the constructed FileIO on this callback.
 */
 File(DOMString reference_url, function open, function close, function write, function read, function seek, function tell, function eof, function exists);
 

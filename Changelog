@@ -15,6 +15,7 @@
 - DASH period continuity support (from playlists or reframer)
 - DASH MPD Chaining support
 - support for text segments in their native format (WebVTT, TTML) in dasher
+- user tags injection for HLS master and variant playlists
 
 ## Image File Format (HEIF)
 - support for grid creation and other derive images
