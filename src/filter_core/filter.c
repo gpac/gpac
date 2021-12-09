@@ -3692,6 +3692,12 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 		} else {
 			char *sep = gf_file_basename(url);
 
+			//for fileIO, fetch the underlying resource name, this avoids having memory address in pid name for inspect
+			if (!strncmp(url, "gfio://", 7)) {
+				const char *res_url = gf_fileio_translate_url(url);
+				if (res_url) sep = gf_file_basename(res_url);
+				else sep="Unknown_URL";
+			}
 			gf_filter_pid_set_name(pid, sep);
 		}
 

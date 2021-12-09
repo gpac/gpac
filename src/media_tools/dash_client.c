@@ -4562,7 +4562,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	) {
 		//if file-based, check if file exists, if not switch base URL
 		if ( strnicmp(base_init_url, "gmem://", 7) && strnicmp(base_init_url, "gfio://", 7)) {
-			if (! gf_file_exists(base_init_url) ) {
+			if (! gf_file_exists_ex(base_init_url, dash->base_url) ) {
 				if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
 					group->current_base_url_idx++;
 					gf_free(base_init_url);
@@ -6820,7 +6820,7 @@ llhls_rety:
 			/*restart*/
 			return GF_DASH_DownloadRestart;
 		}
-		if (! gf_file_exists(new_base_seg_url)) {
+		if (! gf_file_exists_ex(new_base_seg_url, dash->base_url)) {
 			if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
 				group->current_base_url_idx++;
 				if (new_base_seg_url) gf_free(new_base_seg_url);
