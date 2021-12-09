@@ -342,7 +342,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u64(ctx->bs_w, cts);
 		}
 		if (ctx->codec_id==GF_CODECID_AV1) {
-			//write temporal delim with obu size set
+			//write temporal delim without obu size set
 			gf_bs_write_u8(ctx->bs_w, 0x12);
 			gf_bs_write_u8(ctx->bs_w, 0);
 
