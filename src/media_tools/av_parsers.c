@@ -4166,6 +4166,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	if (e)
 		return e;
 
+	//at this point obu_size is either zero or the size of the containing buffer (likely the Temporal Unit)
 	if (state->obu_has_size_field) {
 		*obu_size = (u32)gf_av1_leb128_read(bs, NULL);
 	}
@@ -4183,9 +4184,9 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		gf_bs_seek(bs, pos);
 		return GF_BUFFER_TOO_SMALL;
 	}
+	//gpac's internal obu_size includes the header + the payload
 	*obu_size += hdr_size;
 	if (obu_hdr_size) *obu_hdr_size = hdr_size;
-
 
 	if (*obu_type != OBU_SEQUENCE_HEADER && *obu_type != OBU_TEMPORAL_DELIMITER &&
 		state->OperatingPointIdc != 0 && state->obu_extension_flag == 1)
