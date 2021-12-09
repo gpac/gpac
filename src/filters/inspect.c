@@ -1190,7 +1190,7 @@ static void av1_dump_tile(FILE *dump, u32 idx, AV1Tile *tile)
 	gf_fprintf(dump, "     <Tile number=\"%d\" start=\"%d\" size=\"%d\"/>\n", idx, tile->obu_start_offset, tile->size);
 }
 
-static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
+static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc, PidCtx *pctx, u32 full_dump)
 {
 	if (pctx) {
 		InspectLogCbk lcbk;
@@ -1226,8 +1226,8 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		gf_fprintf(dump, "has_size_field=\"%d\" has_ext=\"%d\" temporalID=\"%d\" spatialID=\"%d\" ", av1->obu_has_size_field, av1->obu_extension_flag, av1->temporal_id , av1->spatial_id);
 	}
 
-	if (dump_crc && (obu_length<0xFFFFFFFFUL))
-		gf_fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu, (u32) obu_length) );
+	if (dump_crc && (obu_ptr_length<0xFFFFFFFFUL))
+		gf_fprintf(dump, "crc=\"%u\" ", gf_crc_32(obu_ptr, (u32) obu_ptr_length) );
 	switch (obu_type) {
 	case OBU_SEQUENCE_HEADER:
 		if (full_dump) break;
@@ -1290,7 +1290,7 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 		break;
 	case OBU_METADATA:
 		{
-			GF_BitStream *bs = gf_bs_new(obu+hdr_size, obu_length-hdr_size, GF_BITSTREAM_READ);
+			GF_BitStream *bs = gf_bs_new(obu_ptr+hdr_size, obu_ptr_length-hdr_size, GF_BITSTREAM_READ);
 			u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
 			DUMP_OBU_INT2("metadata_type", metadata_type);
 			switch (metadata_type) {
@@ -1320,9 +1320,9 @@ static u64 gf_inspect_dump_obu_internal(FILE *dump, AV1State *av1, u8 *obu, u64 
 }
 
 GF_EXPORT
-void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
+void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu_ptr, u64 obu_ptr_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc)
 {
-	gf_inspect_dump_obu_internal(dump, av1, obu, obu_length, obu_type, obu_size, hdr_size, dump_crc, NULL, 0);
+	gf_inspect_dump_obu_internal(dump, av1, obu_ptr, obu_ptr_length, obu_type, obu_size, hdr_size, dump_crc, NULL, 0);
 }
 
 static void gf_inspect_dump_prores_internal(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx)

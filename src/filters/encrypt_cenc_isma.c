@@ -1590,14 +1590,14 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 		if (cstr->use_subsamples) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-			ObuType obut;
+			ObuType obut = 0;
 			u32 num_frames_in_superframe = 0, superframe_index_size = 0;
 			u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
 			struct {
 				int clear, encrypted;
 			} ranges[AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS];
-			u64 obu_size;
-			u32 hdr_size;
+			u64 obu_size = 0;
+			u32 hdr_size = 0;
 #else
 			struct {
 				int clear, encrypted;
