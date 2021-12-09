@@ -509,6 +509,12 @@ const char *gf_url_get_path(const char *sURL)
 	return NULL;
 }
 
+//exported for python bindings
+GF_EXPORT
+void gf_url_free(char *sURL)
+{
+	if (sURL) gf_free(sURL);
+}
 
 #if 0 //unused
 Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path)

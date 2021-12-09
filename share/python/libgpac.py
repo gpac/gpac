@@ -202,6 +202,7 @@ from ctypes.util import find_library
 import datetime
 import types
 import os
+import copy
 
 ## set to True if numpy was successfully loaded
 ##\hideinitializer
@@ -324,25 +325,14 @@ def e2s(err):
     return _libgpac.gf_error_to_string(err).decode('utf-8')
 
 
-mem_track_on=0
 ## initialize libgpac - see \ref gf_sys_init
 # \param mem_track
 # \param profile
 # \return
 #
 def init(mem_track=0, profile=None):
-    if mem_track!=0 or profile != None:
-        err = _libgpac.gf_sys_init(mem_track, profile)
-    else:
-        err = _libgpac.gf_sys_init(0, None)
-
-    mem_track_on=mem_track
-    if not hasattr(_libgpac, 'gf_memory_size'):
-        mem_track_on=0
-    else:
-        mem_track_on=mem_track
-    
-    if err<0: 
+    err = _libgpac.gf_sys_init(mem_track, profile)
+    if err<0:
         raise Exception('Failed to initialize libgpac: ' + e2s(err))
 
 
@@ -352,10 +342,12 @@ def init(mem_track=0, profile=None):
 #
 def close():
     _libgpac.gf_sys_close()
-    if mem_track_on:
+    if hasattr(_libgpac, 'gf_memory_size'):
         if _libgpac.gf_memory_size() or _libgpac.gf_file_handles_count():
             set_logs("mem@info")
             _libgpac.gf_memory_print()
+            return 2
+    return 0
 
 ## set log tools and levels - see \ref gf_log_set_tools_levels
 # \note Make sure you have destroyed all associated gpac resources before calling this !
@@ -1794,7 +1786,7 @@ class DASHQualityInfo:
         ## Number of channels, 0 if not audio
         self.nb_channels = qinfon.nb_channels
         ## set to true if quality is disabled (no playback support)
-        self.disabled = qinfon.disabled;
+        self.disabled = qinfon.disabled
         ## set to true if quality is selected
         self.is_selected = qinfon.is_selected
         ## AST offset for DASH low latency mode, 0 otherwise
@@ -1955,8 +1947,8 @@ class DASHGroupDownloadStatistics(Structure):
 
     def __str__(self):
         res = 'bits_per_sec ' + str(self.bits_per_sec)
-        res += ' - total_bytes ' + str(self.total_bytes) + ' bytes_done ' + str(self.bytes_done);
-        res += ' - time_since_start ' + str(self.time_since_start) + ' us - buffer_dur ' + str(self.buffer_dur) + ' ms - current_seg_dur ' + str(self.current_seg_dur) + ' ms';
+        res += ' - total_bytes ' + str(self.total_bytes) + ' bytes_done ' + str(self.bytes_done)
+        res += ' - time_since_start ' + str(self.time_since_start) + ' us - buffer_dur ' + str(self.buffer_dur) + ' ms - current_seg_dur ' + str(self.current_seg_dur) + ' ms'
         return res
     ## \endcond
 
@@ -2016,8 +2008,8 @@ def dash_group_new(cbk, groupidx, _dashobj):
  obj = cast(cbk, py_object).value
  if not hasattr(obj, 'on_new_group'):
     return 0
- new_group = DASHGroup(_dashobj, groupidx);
- obj.groups.append(new_group);
+ new_group = DASHGroup(_dashobj, groupidx)
+ obj.groups.append(new_group)
  obj.on_new_group(new_group)
  return 0
 
@@ -2034,7 +2026,7 @@ def dash_rate_adaptation(cbk, groupidx, base_groupidx, force_low_complex, stats)
     if obj.groups[i].idx==base_groupidx:
         base_group = obj.groups[i]
 
- return obj.on_rate_adaptation(group, base_group, force_low_complex, stats.contents);
+ return obj.on_rate_adaptation(group, base_group, force_low_complex, stats.contents)
 
 
 @CFUNCTYPE(c_int, c_void_p, c_uint, POINTER(DASHGroupDownloadStatistics))
@@ -2100,31 +2092,31 @@ def _prop_to_python(pname, prop):
     if type==GF_PROP_POINTER:
         return prop.value.ptr
     if type==GF_PROP_STRING_LIST:
-        res = [];
+        res = []
         for i in range(prop.value.string_list.nb_items):
             val = prop.value.string_list.vals[i].decode('utf-8')
             res.append(val)
         return res
     if type==GF_PROP_UINT_LIST:
-        res = [];
+        res = []
         for i in range(prop.value.uint_list.nb_items):
             val = prop.value.uint_list.vals[i]
             res.append(val)
         return res
     if type==GF_PROP_4CC_LIST:
-        res = [];
+        res = []
         for i in range(prop.value.uint_list.nb_items):
             val = _libgpac.gf_4cc_to_str(prop.value.uint).decode('utf-8')
             res.append(val)
         return res
     if type==GF_PROP_SINT_LIST:
-        res = [];
+        res = []
         for i in range(prop.value.uint_list.nb_items):
             val = prop.value.sint_list.vals[i]
             res.append(val)
         return res
     if type==GF_PROP_VEC2I_LIST:
-        res = [];
+        res = []
         for i in range(prop.value.v2i_list.nb_items):
             val = prop.value.v2i_list.vals[i]
             res.append(val)
@@ -2223,7 +2215,7 @@ class Filter:
             prop = _libgpac.gf_filter_pid_get_property_str(pid, _name)
         if prop:
             return _prop_to_python(prop_name, prop.contents)
-        return None;
+        return None
 
     def _pid_prop(self, idx, prop_name, IsInput):
         if IsInput:
@@ -2376,7 +2368,7 @@ class Filter:
     def _bind_dash_algo(self, object):
         if not hasattr(object, 'on_rate_adaptation'):
             raise Exception('Missing on_rate_adaptation member function on object, cannot bind')
-        object.groups = [];
+        object.groups = []
         if hasattr(object, 'on_download_monitor'):
             err = _libgpac.gf_filter_bind_dash_algo_callbacks(self._filter, py_object(object), dash_period_reset, dash_group_new, dash_rate_adaptation, dash_download_monitor)
         else:
@@ -2651,7 +2643,7 @@ def filter_cbk_process_event(_f, _evt):
     return 0
 
 _libgpac.gf_filter_set_probe_data_cbk.argtypes = [_gf_filter, c_void_p]
-@CFUNCTYPE(c_int, c_char_p, c_uint, POINTER(c_uint) )
+@CFUNCTYPE(c_int, POINTER(c_ubyte), c_uint, POINTER(c_uint) )
 def filter_cbk_probe_data(_data, _size, _probe):
     obj = _libgpac.gf_filter_get_rt_udta(_f)
     filter = cast(obj, py_object).value
@@ -2664,7 +2656,7 @@ def filter_cbk_probe_data(_data, _size, _probe):
     if res==None:
         _probe.contents=0
         return None
-    _probe.contents=2; #GF_FPROBE_MAYBE_SUPPORTED
+    _probe.contents=2 #GF_FPROBE_MAYBE_SUPPORTED
     return res.encode('utf-8')
 
 
@@ -2793,8 +2785,8 @@ class FilterCustom(Filter):
     #\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
     #\return
     def push_cap(self, pcode, prop, flag, priority=0, custom_type=0):
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -2907,13 +2899,13 @@ class FilterCustom(Filter):
     def clock_hint_time(self):
         val = c_ulonglong(0)
         _libgpac.gf_filter_get_clock_hint(self._filter, byref(val), None)
-        return val.value;
+        return val.value
 
     @property 
     def clock_hint_mediatime(self):
         val = Fraction64
         _libgpac.gf_filter_get_clock_hint(self._filter, None, byref(val))
-        return val.value;
+        return val.value
 
     @property 
     def connections_pending(self):
@@ -3212,8 +3204,8 @@ class FilterPid:
         if self._input:
             raise Exception('Cannot set properties on input PID')
             return
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -3242,8 +3234,8 @@ class FilterPid:
         if self._input:
             raise Exception('Cannot set info on input PID')
             return
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -3361,8 +3353,8 @@ class FilterPid:
         if self._input:
             raise Exception('Cannot query caps on input PID')
             return
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -3387,8 +3379,8 @@ class FilterPid:
         if not self._input:
             raise Exception('Cannot negociate caps on output PID')
             return
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -3837,7 +3829,7 @@ class FilterPacket:
             prop = _libgpac.gf_filter_pck_get_property_str(self._pck, _name)
         if prop:
             return _prop_to_python(prop_name, prop.contents)
-        return None;
+        return None
 
     ##increase packet reference count - see \ref gf_filter_pck_ref_ex
     #\return
@@ -3915,8 +3907,8 @@ class FilterPacket:
     def set_prop(self, pcode, prop, custom_type=0):
         if self._is_src:
             raise Exception('Cannot copy properties on source packet')
-        prop_4cc = pcode;
-        prop_name = None;
+        prop_4cc = pcode
+        prop_name = None
         if isinstance(pcode, str):
             _pname = pcode.encode('utf-8')
             prop_4cc = _libgpac.gf_props_get_id(_pname)
@@ -4158,7 +4150,305 @@ class FilterPacket:
     #todo
     #append ?
 
+## @}
 
+
+##\cond private
+_gf_fileio = c_void_p
+_libgpac.gf_fileio_new.argtypes = [c_char_p, py_object, c_void_p, c_void_p, c_void_p, c_void_p, c_void_p, c_void_p, c_void_p]
+_libgpac.gf_fileio_new.restype = _gf_fileio
+
+_libgpac.gf_fileio_url.argtypes = [_gf_fileio]
+_libgpac.gf_fileio_url.restype = c_char_p
+
+_libgpac.gf_fileio_resource_url.argtypes = [_gf_fileio]
+_libgpac.gf_fileio_resource_url.restype = c_char_p
+
+_libgpac.gf_fileio_translate_url.argtypes = [c_char_p]
+_libgpac.gf_fileio_translate_url.restype = c_char_p
+
+_libgpac.gf_fileio_get_udta.argtypes = [_gf_fileio]
+_libgpac.gf_fileio_get_udta.restype = c_void_p
+
+_libgpac.gf_fileio_del.argtypes = [_gf_fileio]
+
+
+#wraps gf_url_concatenate to be able to free the value
+#we declare a void * return value
+_libgpac.gf_url_concatenate.argtypes = [c_char_p, c_char_p]
+_libgpac.gf_url_concatenate.restype = c_void_p
+_libgpac.gf_url_free.argtypes = [c_void_p]
+
+def url_concatenate(_parent, _url):
+	#this is c_void_p
+	_path = _libgpac.gf_url_concatenate(_parent, _url)
+	if _path==None:
+		raise Exception('Failed to concatenate path, out of memory')
+	#this is a string
+	path = cast(_path, c_char_p).value.decode('utf-8')
+	#we still have the pointer, we can free it
+	_libgpac.gf_url_free(_path)
+	return path
+
+#fio open callback
+@CFUNCTYPE(_gf_fileio, _gf_fileio, c_char_p, c_char_p, POINTER(c_int))
+def fileio_cbk_open(_fio_ref, _url, _mode, error):
+    fio_ref = cast(_libgpac.gf_fileio_get_udta(_fio_ref), py_object).value
+    mode = _mode.decode('utf-8')
+    error.contents.value=GF_OK
+    if mode=="url":
+        path = url_concatenate(_libgpac.gf_fileio_resource_url(_fio_ref), _url);
+        new_gfio = FileIO(path, fio_ref)
+        fio_ref.factory.pending_urls.append(new_gfio)
+        #prevent garbage collection
+        fio_ref.factory.gc_exclude.append(new_gfio)
+        fio_ref.factory.all_refs+=1
+        return new_gfio._gf_fio
+
+    if mode=="ref":
+        fio_ref.nb_refs+=1
+        fio_ref.factory.all_refs+=1
+        return _fio_ref
+
+    if mode=="probe":
+        if not hasattr(fio_ref.factory.root_obj, 'exists'):
+            return False
+        return fio_ref.factory.root_obj.exists(url)
+
+    do_delete=False
+    if mode=="unref":
+        fio_ref.nb_refs-=1
+        fio_ref.factory.all_refs-=1
+        if fio_ref.nb_refs:
+            return _fio_ref
+        do_delete=True
+
+    if mode=="close":
+        if fio_ref.py_obj != None:
+            fio_ref.py_obj.close()
+            fio_ref.factory.all_refs-=1
+
+        if fio_ref.nb_refs:
+            return None
+        do_delete=True
+
+    if do_delete:
+        #file no longer used, can now be garbage collected
+        fio_ref.factory.gc_exclude.remove(fio_ref)
+
+        if not fio_ref.factory == fio_ref:
+            _libgpac.gf_fileio_del(fio_ref._gf_fio)
+            fio_ref._gf_fio = None
+
+        if not fio_ref.factory.all_refs and not len(fio_ref.factory.pending_urls) and not len(fio_ref.factory.gc_exclude):
+            _libgpac.gf_fileio_del(fio_ref.factory._gf_fio)
+            fio_ref.factory._gf_fio = None
+            fio_ref.factory.root_obj = None
+        return None
+
+
+	#this is an open() call
+    fio_url = _url.decode('utf-8')
+
+	#check if associated object exists, if not so we can use this instance
+    fio = None
+    if fio_ref.py_obj == None:
+        fio = fio_ref
+        if fio_ref in fio_ref.factory.pending_urls:
+            fio_ref.factory.all_refs-=1
+            fio_ref.factory.pending_urls.remove(fio_ref)
+
+	#check in pending urls
+    if fio == None:
+        for afio in fio_ref.factory.pending_urls:
+            a_url = _libgpac.gf_fileio_resource_url(afio._gf_fio).decode('utf-8')
+            if a_url == fio_url:
+                fio_ref.factory.all_refs-=1
+                fio_ref.factory.pending_urls.remove(afio)
+                fio = afio
+                break;
+
+	#we need to create a new FileIO
+    created=False
+    if fio==None:
+        created=True
+
+	#read url, translate
+    if fio_url.startswith('gfio://')==True:
+        fio_url = _libgpac.gf_fileio_translate_url(_url).decode('utf-8')
+	#if we create a new FileIO, we need to resolve url, against parent URL
+    elif created:
+        fio_url = url_concatenate(_libgpac.gf_fileio_resource_url(fio_ref._gf_fio), _url)
+
+    if fio==None:
+        fio = FileIO(fio_url, fio_ref)
+
+    #create object, direct copy of the object passed at construction
+    fio.py_obj = copy.copy(fio.factory.root_obj)
+    res = fio.py_obj.open(fio_url, mode)
+    the_fio = cast(_libgpac.gf_fileio_get_udta(fio._gf_fio), py_object).value
+
+    if res==True:
+        if not fio in fio.factory.gc_exclude:
+            fio.factory.gc_exclude.append(fio)
+        fio.factory.all_refs+=1
+        return fio._gf_fio
+
+    #failure to open a new created object, remove FileIO and let the object be garbage collected
+    if created:
+        _libgpac.gf_fileio_del(fio._gf_fio)
+        fio._gf_fio = None
+
+    error.contents.value=GF_URL_ERROR
+    return None
+
+#fio write callback
+@CFUNCTYPE(c_uint, _gf_fileio, POINTER(c_ubyte), c_uint)
+def fileio_cbk_write(_fio, buf, size):
+    fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
+    ar_data = np.ctypeslib.as_array(buf, shape=(size,))
+    ar_data.flags.writeable=False
+    return fio.py_obj.write(ar_data)
+
+#fio read callback
+@CFUNCTYPE(c_uint, _gf_fileio, POINTER(c_ubyte), c_uint)
+def fileio_cbk_read(_fio, buf, size):
+    ar_data = np.ctypeslib.as_array(buf, shape=(size,))
+    ar_data.flags.writeable=True
+    fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
+    return fio.py_obj.read(ar_data)
+
+#fio seek callback
+@CFUNCTYPE(c_uint, _gf_fileio, c_ulonglong, c_int)
+def fileio_cbk_seek(_fio, pos, whence):
+    fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
+    return fio.py_obj.seek(pos, whence)
+
+#fio tell callback
+@CFUNCTYPE(c_ulonglong, _gf_fileio)
+def fileio_cbk_tell(_fio):
+    fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
+    return fio.py_obj.tell()
+
+#fio eof callback
+@CFUNCTYPE(gf_bool, _gf_fileio)
+def fileio_cbk_eof(_fio):
+    fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
+    return fio.py_obj.eof()
+
+
+
+##\endcond private
+
+##
+#  \defgroup pyfileio_grp libgpac core tools
+#  \ingroup pycore_grp Python APIs
+#  \brief FileIO tools for libgpac.
+#
+# @{
+
+
+## FileIO object for file IO callbacks from libgpac
+#
+#
+# The FileIO object is used to create input or output interfaces in which GPAC will read or write.
+# This allows generating content in python without any disk IO.
+#
+# This object passed to the FileIO constructor must implement the following callbacks:
+#
+# \code boolean open(string URL, string mode)\endcode
+#Opens the file in read or write mode.
+#- URL: string containing file to open
+#- mode: open mode (same as fopen)
+#- return true if success, false otherwise
+#
+#\note There is no guarantee that the URL is checked for existence before calling open
+#\note There is no guarantee that the first call to open is on the URL provided for the constructor (e.g. for DASH generation, this will depend on the DASH profile used which may require to write the manifest after one or more segments)
+#
+# \code void close()\endcode
+#Closes the file
+#
+# \code int write(numpy np_arr)\endcode
+#Writes the file
+#- np_arr: numpy array to fill
+#- return number of bytes writen, at most the size of the array
+#
+# \code int read(numy np_arr)\endcode
+#Reads the file
+#- np_arr: numpy array to read
+#- return number of bytes read, at most the size of the array
+#
+# \code void seek(unsigned long long pos, int whence)\endcode
+#Seeks current position in file (same as fopen)
+#- pos: position
+#- whence: origin of the position
+#- return 0 if no error, error code otherwise
+#
+# \code unsigned long long tell()\endcode
+#Gets current position in file (same as ftell)
+#- pos: position
+#- return current position
+#
+# \code boolean eof()\endcode
+#Checks if the current position is at the end of the file (same as feof)
+#- return true if file end reached, false otherwise
+#
+# \code boolean exists(string URL)\endcode
+#Checks if the given URL exists. This callback is optional
+#- return true if associated URL exists, false otherwise
+#
+#
+# The URL passed to the constructor indentifies the file name wrapped. Some file types such as HLS or DASH manifest may
+#imply reading or writing several files, in which case the object passed to the constructor will be cloned to handle accessing these extra files.
+#
+#
+class FileIO:
+	## constructor for FileIO
+	#\param url url for this fileIO factory
+	#\param obj instance of the class used for IOs. This instance will be cloned (shallow copy) for each new file to open
+	def __init__(self, url, obj):
+		if 0:
+			## the underlying gfio:// URL to be provided to GPAC
+			self.url = 0
+
+##\cond private
+		self.nb_refs=0
+		self.py_obj = None
+		#this is internal constructor call from open
+		if obj.__class__.__name__=="FileIO":
+			self.factory = obj.factory
+		#this is regular constructor call
+		else:
+			if hasattr(obj, 'open')==False:
+				raise Exception('No open function on FileIO callback')
+			if hasattr(obj, 'close')==False:
+				raise Exception('No close function on FileIO callback')
+			if hasattr(obj, 'write')==False:
+				raise Exception('No write function on FileIO callback')
+			if hasattr(obj, 'read')==False:
+				raise Exception('No read function on FileIO callback')
+			if hasattr(obj, 'seek')==False:
+				raise Exception('No see function on FileIO callback')
+			if hasattr(obj, 'tell')==False:
+				raise Exception('No tell function on FileIO callback')
+			self.factory = self
+			self.factory.all_refs=0
+			self.factory.pending_urls=[]
+			#keep all created file IOs still usefull here to prevent garbage collection
+			self.factory.gc_exclude=[]
+			self.factory.root_obj = obj
+
+		self._gf_fio = _libgpac.gf_fileio_new(url.encode('utf-8'), py_object(self), fileio_cbk_open, fileio_cbk_seek, fileio_cbk_read, fileio_cbk_write, fileio_cbk_tell, fileio_cbk_eof, None )
+		if self._gf_fio==None:
+			raise Exception('Failed to create FileIO for ' + url)
+##\endcond private
+
+	@property
+	def url(self):
+		_url = _libgpac.gf_fileio_url(self._gf_fio)
+		if _url==None:
+			return None
+		return _url.decode('utf-8')
 
 ## @}
 #
