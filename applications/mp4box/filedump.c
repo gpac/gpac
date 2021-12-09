@@ -1374,9 +1374,9 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
 	AV1State av1;
-	ObuType obu_type;
-	u64 obu_size;
-	u32 hdr_size;
+	ObuType obu_type = 0;
+	u64 obu_size = 0;
+	u32 hdr_size = 0;
 	GF_BitStream *bs;
 	u32 idx;
 
