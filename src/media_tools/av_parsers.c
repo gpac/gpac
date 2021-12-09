@@ -2598,19 +2598,19 @@ GF_Err aom_av1_parse_temporal_unit_from_section5(GF_BitStream *bs, AV1State *sta
 		if (!gf_bs_available(bs))
 			return state->unframed ? GF_BUFFER_TOO_SMALL : GF_OK;
 
-		u64 pos = gf_bs_get_position(bs), obu_length = 0;
+		u64 pos = gf_bs_get_position(bs), obu_size = 0;
 
-		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_length, NULL, state);
+		e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 		if (e)
 			return e;
 
-		if (obu_length != gf_bs_get_position(bs) - pos) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_length, gf_bs_get_position(bs) - pos));
+		if (obu_size != gf_bs_get_position(bs) - pos) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] OBU (Section 5) frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_length));
-		av1_populate_state_from_obu(bs, pos, obu_length, state->obu_type, state);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Section5 OBU detected (size "LLU")\n", obu_size));
+		av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
 	}
 
 	return GF_OK;
@@ -2714,33 +2714,33 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 		sz -= Leb128Bytes + frame_unit_size;
 
 		while (frame_unit_size > 0) {
-			u64 pos, obu_length = gf_av1_leb128_read(bs, &Leb128Bytes);
+			u64 pos, obu_size = gf_av1_leb128_read(bs, &Leb128Bytes);
 
 			if (state->bs_overread) {
 				return GF_BUFFER_TOO_SMALL;
 			}
-			if (frame_unit_size < Leb128Bytes + obu_length) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_length));
+			if (frame_unit_size < Leb128Bytes + obu_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < Leb128Bytes("LLU") + obu_length("LLU")\n", frame_unit_size, Leb128Bytes, obu_size));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B OBU detected (size "LLU")\n", obu_length));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] Annex B OBU detected (size "LLU")\n", obu_size));
 			pos = gf_bs_get_position(bs);
 			frame_unit_size -= Leb128Bytes;
 
-			e = gf_av1_parse_obu(bs, &state->obu_type, &obu_length, NULL, state);
+			e = gf_av1_parse_obu(bs, &state->obu_type, &obu_size, NULL, state);
 			if (e) return e;
 
-			if (obu_length != gf_bs_get_position(bs) - pos) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] Annex B frame size "LLU" different from consumed bytes "LLU".\n", obu_length, gf_bs_get_position(bs) - pos));
+			if (obu_size != gf_bs_get_position(bs) - pos) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] Annex B frame size "LLU" different from consumed bytes "LLU".\n", obu_size, gf_bs_get_position(bs) - pos));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 
-			av1_populate_state_from_obu(bs, pos, obu_length, state->obu_type, state);
-			if (frame_unit_size < obu_length) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < OBU size ("LLU")\n", frame_unit_size, obu_length));
+			av1_populate_state_from_obu(bs, pos, obu_size, state->obu_type, state);
+			if (frame_unit_size < obu_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] Annex B frame_unit_size("LLU") < OBU size ("LLU")\n", frame_unit_size, obu_size));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
-			frame_unit_size -= obu_length;
+			frame_unit_size -= obu_size;
 		}
 	}
 	assert(sz == 0);

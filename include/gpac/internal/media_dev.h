@@ -991,7 +991,13 @@ GF_Err gf_media_parse_ivf_frame_header(GF_BitStream *bs, u64 *frame_size, u64 *p
 Bool gf_media_probe_ivf(GF_BitStream *bs);
 Bool gf_media_aom_probe_annexb(GF_BitStream *bs);
 
-/*parses one OBU*/
+/*parses one OBU
+\param bs bitstream object
+\param obu_type OBU type
+\param obu_size As an input the size of the input OBU (needed when obu_size is not coded). As an output the coded obu_size value.
+\param obu_hdr_size OBU header size
+\param state the frame parser
+*/
 GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 *obu_hdr_size, AV1State *state);
 
 Bool av1_is_obu_header(ObuType obu_type);

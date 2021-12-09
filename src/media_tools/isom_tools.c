@@ -1046,9 +1046,9 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 			u32 i;
 			for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
 				GF_BitStream *bs;
-				ObuType obu_type;
-				u32 hdr_size;
-				u64 obu_size;
+				ObuType obu_type = 0;
+				u32 hdr_size = 0;
+				u64 obu_size = 0;
 				GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
 				bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
 				gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
@@ -4342,7 +4342,7 @@ GF_Err gf_media_av1_layer_size_get(GF_ISOFile *file, u32 trackNumber, u32 sample
 	u32 i;
 	AV1State av1;
 	ObuType obu_type;
-	u64 obu_size;
+	u64 obu_size = 0;
 	u32 hdr_size;
 	GF_BitStream *bs;
 	u32 sdidx;
