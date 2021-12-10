@@ -249,7 +249,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		break;
 	case GF_SG_VRML_SFSCRIPT:
 #ifdef GPAC_HAS_QJS
-		codec->LastError = SFScript_Parse(codec, (SFScript*)field->far_ptr, bs, node);
+		codec->LastError = node ? SFScript_Parse(codec, (SFScript*)field->far_ptr, bs, node) : GF_NON_COMPLIANT_BITSTREAM;
 #else
 		return GF_NOT_SUPPORTED;
 #endif
