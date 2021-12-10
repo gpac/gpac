@@ -240,6 +240,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 			for (i=0; i<count; i++) {
 				GF_LASERConfig lsrcfg;
 				GF_ESD *esd = (GF_ESD *)gf_list_get(iod->ESDescriptors, i);
+				if (!esd || !esd->decoderConfig) continue;
 				if (esd->decoderConfig->streamType != GF_STREAM_SCENE) continue;
 				if (esd->decoderConfig->objectTypeIndication != 0x09) continue;
 				if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) continue;
