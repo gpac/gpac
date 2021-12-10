@@ -4307,17 +4307,21 @@ def fileio_cbk_open(_fio_ref, _url, _mode, error):
 @CFUNCTYPE(c_uint, _gf_fileio, POINTER(c_ubyte), c_uint)
 def fileio_cbk_write(_fio, buf, size):
     fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
-    ar_data = np.ctypeslib.as_array(buf, shape=(size,))
-    ar_data.flags.writeable=False
-    return fio.py_obj.write(ar_data)
+    if numpy_support:
+        ar_data = np.ctypeslib.as_array(buf, shape=(size,))
+        ar_data.flags.writeable=False
+        return fio.py_obj.write(ar_data, size)
+    return fio.py_obj.write(buf, size)
 
 #fio read callback
 @CFUNCTYPE(c_uint, _gf_fileio, POINTER(c_ubyte), c_uint)
 def fileio_cbk_read(_fio, buf, size):
-    ar_data = np.ctypeslib.as_array(buf, shape=(size,))
-    ar_data.flags.writeable=True
     fio = cast(_libgpac.gf_fileio_get_udta(_fio), py_object).value
-    return fio.py_obj.read(ar_data)
+    if numpy_support:
+        ar_data = np.ctypeslib.as_array(buf, shape=(size,))
+        ar_data.flags.writeable=True
+        return fio.py_obj.read(ar_data, size)
+    return fio.py_obj.read(buf, size)
 
 #fio seek callback
 @CFUNCTYPE(c_uint, _gf_fileio, c_ulonglong, c_int)
@@ -4369,14 +4373,16 @@ def fileio_cbk_eof(_fio):
 # \code void close()\endcode
 #Closes the file
 #
-# \code int write(numpy np_arr)\endcode
+# \code int write(numpy buffer, unsigned long size)\endcode
 #Writes the file
-#- np_arr: numpy array to fill
+#- buffer: numpy array to fill if numpy support, ctypes.c_ubyte otherwise
+#- size: number of bytes to write starting from first byte in buffer
 #- return number of bytes writen, at most the size of the array
 #
-# \code int read(numy np_arr)\endcode
+# \code int read(numy buffer, unsigned long size)\endcode
 #Reads the file
-#- np_arr: numpy array to read
+#- buffer: numpy array to read if numpy support, ctypes.c_ubyte otherwise
+#- size: number of bytes to read
 #- return number of bytes read, at most the size of the array
 #
 # \code void seek(unsigned long long pos, int whence)\endcode
