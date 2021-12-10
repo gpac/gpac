@@ -222,6 +222,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		if (!esd) continue;
 		if (!esd->decoderConfig || (esd->decoderConfig->objectTypeIndication==GF_CODECID_TEXT_MPEG4)) {
 			gf_odf_desc_del((GF_Descriptor *) esd);
+			esd = NULL;
 			continue;
 		}
 
@@ -230,6 +231,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 		   ) {
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
 			gf_odf_desc_del((GF_Descriptor *) esd);
+			esd = NULL;
 			continue;
 		}
 		sc = gf_sm_stream_new(load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
