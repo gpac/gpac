@@ -678,6 +678,7 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		while (tempSize < TLVsize) {
 			e = gf_isom_box_parse(&a, bs);
 			if (e) return e;
+			if (!a) continue;
 			gf_list_add(ptr->TLV, a);
 			tempSize += (u32) a->size;
 		}
