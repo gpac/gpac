@@ -3209,7 +3209,7 @@ static void dump_od_to_saf(GF_SceneDumper *dumper, GF_AUContext *au, u32 indent)
 			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(com->objectDescriptors, j);
 			GF_ESD *esd = (GF_ESD *) gf_list_get(od->ESDescriptors, 0);
 			GF_MuxInfo *mux;
-			if (!esd) {
+			if (!esd || (esd->tag != GF_ODF_ESD_TAG)) {
 				if (od->URLString) {
 					gf_fprintf(dumper->trace, "<saf:RemoteStreamHeader streamID=\"stream%d\" url=\"%s\"", au->owner->ESID, od->URLString);
 					if (au->timing) gf_fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
