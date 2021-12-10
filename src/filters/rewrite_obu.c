@@ -398,7 +398,10 @@ static const GF_FilterArgs OBUMxArgs[] =
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
 	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
-	GF_FS_SET_HELP("This filter is used to rewrite AV1 OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU.")
+	GF_FS_SET_HELP("This filter rewrites OBU bitstreams (VPx, AV1) into a IVF, annexB or OBU sequence.\n"
+	"Note1: VP8/9/10 are IVF-only (equivalent to .ivf in :ext property).\n"
+	"Note2: The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1b, with obu_size set)\n"
+	"       and OBU sequences (.obu, without obu_size)")
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,
 	SETCAPS(OBUMxCaps),
