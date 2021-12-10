@@ -133,6 +133,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 			} else {
 				if (!skip_logs) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level, skipping\n", gf_4cc_to_str(type), type, start));
+					return GF_EOS;
 				}
 				return GF_OK;
 			}
