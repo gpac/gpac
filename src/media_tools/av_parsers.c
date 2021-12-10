@@ -4975,13 +4975,15 @@ static const struct  {
 
 
 /*ISO 14496-10 (N11084) E.1.2*/
-static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+static s32 avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 {
 	int i, cpb_cnt_minus1;
 
 	cpb_cnt_minus1 = gf_bs_read_ue_log(bs, "cpb_cnt_minus1");
-	if (cpb_cnt_minus1 > 31)
+	if (cpb_cnt_minus1 > 31) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] invalid cpb_cnt_minus1 value: %d (expected in [0;31])\n", cpb_cnt_minus1));
+		return -1;
+	}
 	gf_bs_read_int_log(bs, 4, "bit_rate_scale");
 	gf_bs_read_int_log(bs, 4, "cpb_size_scale");
 
@@ -4995,7 +4997,7 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "cpb_removal_delay_length_minus1");
 	hrd->dpb_output_delay_length_minus1 = gf_bs_read_int_log(bs, 5, "dpb_output_delay_length_minus1");
 	hrd->time_offset_length = gf_bs_read_int_log(bs, 5, "time_offset_length");
-	return;
+	return 0;
 }
 
 /*returns the nal_size without emulation prevention bytes*/
@@ -5369,11 +5371,11 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 
 		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "nal_hrd_parameters_present_flag");
 		if (sps->vui.nal_hrd_parameters_present_flag)
-			avc_parse_hrd_parameters(bs, &sps->vui.hrd);
+			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0) return -1;
 
 		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_int_log(bs, 1, "vcl_hrd_parameters_present_flag");
 		if (sps->vui.vcl_hrd_parameters_present_flag)
-			avc_parse_hrd_parameters(bs, &sps->vui.hrd);
+			if (avc_parse_hrd_parameters(bs, &sps->vui.hrd)<0) return -1;
 
 		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
 			sps->vui.low_delay_hrd_flag = gf_bs_read_int_log(bs, 1, "low_delay_hrd_flag");
