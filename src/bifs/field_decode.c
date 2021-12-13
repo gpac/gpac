@@ -803,7 +803,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	if ((node_tag == TAG_MPEG4_IndexedFaceSet) && codec->info->config.Use3DMeshCoding) {
 		if (gf_bs_read_int(bs, 1)) {
 			/*nodeID = 1 + */gf_bs_read_int(bs, codec->info->config.NodeIDBits);
-			if (codec->UseName) gf_bifs_dec_name(bs, name);
+			if (codec->UseName) gf_bifs_dec_name(bs, name, 1000);
 		}
 		/*parse the 3DMesh node*/
 		return NULL;
@@ -822,7 +822,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 			return NULL;
 		}
 		nodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
-		if (codec->UseName) gf_bifs_dec_name(bs, name);
+		if (codec->UseName) gf_bifs_dec_name(bs, name, 1000);
 	}
 
 	new_node = NULL;

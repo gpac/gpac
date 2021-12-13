@@ -105,7 +105,7 @@ GF_Err ParseScriptField(ScriptParser *parser)
 
 	eventType = gf_bs_read_int(parser->bs, 2);
 	fieldType = gf_bs_read_int(parser->bs, 6);
-	gf_bifs_dec_name(parser->bs, name);
+	gf_bifs_dec_name(parser->bs, name, 1000);
 	field = gf_sg_script_field_new(parser->script, eventType, fieldType, name);
 	if (!field) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -244,7 +244,7 @@ void SFS_Identifier(ScriptParser *parser)
 	}
 	//parse
 	else {
-		gf_bifs_dec_name(parser->bs, name);
+		gf_bifs_dec_name(parser->bs, name, 500);
 		gf_list_add(parser->identifiers, gf_strdup(name));
 		SFS_AddString(parser, name);
 	}
@@ -769,7 +769,7 @@ void SFS_GetString(ScriptParser *parser)
 {
 	char name[1000];
 	if (parser->codec->LastError) return;
-	gf_bifs_dec_name(parser->bs, name);
+	gf_bifs_dec_name(parser->bs, name, 1000);
 	SFS_AddString(parser, name);
 }
 

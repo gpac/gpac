@@ -142,7 +142,7 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 /*decodes a route*/
 GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_insert);
 /*get name*/
-void gf_bifs_dec_name(GF_BitStream *bs, char *name);
+void gf_bifs_dec_name(GF_BitStream *bs, char *name, u32 size);
 
 BIFSStreamInfo *gf_bifs_dec_get_stream(GF_BifsDecoder * codec, u16 ESID);
 /*decodes a BIFS command frame*/
