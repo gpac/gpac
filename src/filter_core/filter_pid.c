@@ -602,6 +602,11 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 }
 
+static void task_canceled(GF_FSTask *task)
+{
+
+}
+
 
 typedef enum {
 	GF_PID_CONF_CONNECT,
@@ -786,6 +791,18 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			gf_mx_p(pid->filter->tasks_mx);
 			gf_list_del_item(pid->destinations, pidinst);
 			pid->num_destinations = gf_list_count(pid->destinations);
+
+			//cancel all tasks targeting this pid
+			gf_mx_p(pid->filter->tasks_mx);
+			count = gf_fq_count(pid->filter->tasks);
+			for (i=0; i<count; i++) {
+				GF_FSTask *t = gf_fq_get(pid->filter->tasks, i);
+				if (t->pid == (GF_FilterPid *) pidinst) {
+					t->run_task = task_canceled;
+				}
+			}
+			gf_mx_v(pid->filter->tasks_mx);
+
 			//destroy pid instance
 			gf_filter_pid_inst_del(pidinst);
 			gf_mx_v(pid->filter->tasks_mx);
