@@ -2511,7 +2511,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 
 	GF_LSR_READ_INT(lsr, coded_type, 4, "type");
 	values->type = coded_type;
-	values->laser_strings = 1;
+	values->laser_strings = 0;
 
 	count = lsr_read_vluimsbf5(lsr, "count");
 	for (i=0; i<count; i++) {
