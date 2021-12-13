@@ -3596,7 +3596,7 @@ static void av1_parse_uncompressed_header(GF_BitStream *bs, AV1State *state)
 	if (gf_bs_read_int_log(bs, 1, "using_qmatrix")) {
 		gf_bs_read_int_log(bs, 4, "qm_y");
 		gf_bs_read_int_log(bs, 4, "qm_u");
-		if (!state->separate_uv_delta_q) {
+		if (state->separate_uv_delta_q) {
 			gf_bs_read_int_log(bs, 4, "qm_v");
 		}
 	}
