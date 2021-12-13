@@ -2664,7 +2664,10 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 			else if (f->fieldType==SVG_Transform_Rotate_datatype) att_name = "rotation";
 			else if (f->fieldType==SVG_Transform_Translate_datatype) att_name = "translation";
 			else if (f->fieldIndex==(u32) -1) att_name = "textContent";
-			else att_name = (char*) gf_svg_get_attribute_name(com->node, f->fieldIndex);
+			else {
+				if (!com->node) return GF_NON_COMPLIANT_BITSTREAM;
+				att_name = (char*) gf_svg_get_attribute_name(com->node, f->fieldIndex);
+			}
 
 			gf_fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
 			if (f->field_ptr) {
