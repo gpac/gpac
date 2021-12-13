@@ -2869,8 +2869,12 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 		}
 	}
 	gf_mx_v(f->tasks_mx);
+	//avoid destruction of the current task (ourselves)
+	gf_fq_pop(f->tasks);
 
 	gf_filter_del(f);
+	task->filter = NULL;
+	task->requeue_request = GF_FALSE;
 }
 
 static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
@@ -2882,7 +2886,8 @@ static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
 	}
 
 	if (st->do_disconnect) {
-		gf_fs_post_task(st->filter->session, gf_filter_setup_failure_task, NULL, NULL, "setup_failure", st);
+		//post setup°failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
+		gf_fs_post_task(st->filter->session, gf_filter_setup_failure_task, st->filter, NULL, "setup_failure", st);
 	} else {
 		gf_free(st);
 	}
@@ -2905,7 +2910,8 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 	if (filter->on_setup_error_filter) {
 		gf_fs_post_task(filter->session, gf_filter_setup_failure_notify_task, filter->on_setup_error_filter, NULL, "setup_failure_notify", stack);
 	} else if (force_disconnect) {
-		gf_fs_post_task(filter->session, gf_filter_setup_failure_task, NULL, NULL, "setup_failure", stack);
+		//post setup°failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
+		gf_fs_post_task(filter->session, gf_filter_setup_failure_task, filter, NULL, "setup_failure", stack);
 	}
 }
 
@@ -2984,7 +2990,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
 
-	//avoid destruction of the task
+	//avoid destruction of the current task
 	gf_fq_pop(f->tasks);
 
 	if (f->freg->finalize) {
@@ -3020,6 +3026,7 @@ void gf_filter_post_remove(GF_Filter *filter)
 	assert(!filter->swap_pidinst_src);
 	assert(!filter->finalized);
 	filter->finalized = GF_TRUE;
+	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
 	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
 }
 
