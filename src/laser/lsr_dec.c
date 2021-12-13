@@ -737,7 +737,9 @@ static void lsr_read_id(GF_LASeRCodec *lsr, GF_Node *n)
 	count = gf_list_count(lsr->deferred_hrefs);
 	for (i=0; i<count; i++) {
 		XMLRI *href = (XMLRI *)gf_list_get(lsr->deferred_hrefs, i);
-		char *str_id = href->string;
+		char *str_id = href ? href->string : NULL;
+		if (!str_id) return;
+		
 		if (str_id[0] == '#') str_id++;
 		/*skip 'N'*/
 		str_id++;
@@ -1585,8 +1587,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			lsr_read_matrix(lsr, info.far_ptr);
 			break;
 		case TAG_SVG_ATT_text_decoration:
-			/*FIXME ASAP*/
-			assert(0);
+			lsr_read_byte_align_string_list(lsr, *(GF_List**)info.far_ptr, "textDecoration", GF_FALSE, GF_FALSE);
 			break;
 
 		case TAG_SVG_ATT_font_variant:
