@@ -35,13 +35,23 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 
 
 
-void gf_bifs_dec_name(GF_BitStream *bs, char *name)
+void gf_bifs_dec_name(GF_BitStream *bs, char *name, u32 size)
 {
+	Bool error = GF_FALSE;
 	u32 i = 0;
 	while (1) {
-		name[i] = gf_bs_read_int(bs, 8);
-		if (!name[i]) break;
+		char c = gf_bs_read_int(bs, 8);
+		if (i<size)
+			name[i] = c;
+		else {
+			error = GF_TRUE;
+		}
+		if (!c) break;
 		i++;
+	}
+	if (error) {
+		name[size-1] = 0;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFS] name too long %d bytes but max size %d, truncating\n", i, size));
 	}
 }
 
@@ -1022,7 +1032,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		ID = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
 
 		if (codec->UseName) {
-			gf_bifs_dec_name(bs, name);
+			gf_bifs_dec_name(bs, name, 1000);
 		} else {
 			sprintf(name, "Proto%d", gf_list_count(codec->current_graph->protos) );
 		}
@@ -1046,7 +1056,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			field_type = gf_bs_read_int(bs, 6);
 
 			if (codec->UseName) {
-				gf_bifs_dec_name(bs, name);
+				gf_bifs_dec_name(bs, name, 1000);
 			} else {
 				sprintf(name, "_field%d", numFields);
 			}
@@ -1266,7 +1276,7 @@ GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_inser
 	/*def'ed route*/
 	if (flag) {
 		RouteID = 1 + gf_bs_read_int(bs, codec->info->config.RouteIDBits);
-		if (codec->UseName) gf_bifs_dec_name(bs, name);
+		if (codec->UseName) gf_bifs_dec_name(bs, name, 1000);
 	}
 	/*origin*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
