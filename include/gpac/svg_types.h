@@ -177,6 +177,9 @@ enum {
 	LASeR_Size_datatype,
 
 	SVG_Matrix2D_datatype,
+
+	/*internal type for node list*/
+	SVG_NodeList_datatype
 };
 
 //! @cond Doxygen_Suppress

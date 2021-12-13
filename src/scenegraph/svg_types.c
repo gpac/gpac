@@ -491,6 +491,8 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
 		gf_free(value);
 		break;
+	case SVG_NodeList_datatype:
+		break;
 	case SMIL_RepeatCount_datatype:
 	case SMIL_Duration_datatype:
 	case SVG_Length_datatype:
