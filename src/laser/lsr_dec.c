@@ -162,8 +162,11 @@ void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), vo
 
 void lsr_end_of_stream(void *co)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] memory overread - corrupted decoding\n"));
-	((GF_LASeRCodec *) co)->last_error = GF_NON_COMPLIANT_BITSTREAM;
+	GF_LASeRCodec *codec = (GF_LASeRCodec *)co;
+	if (codec->last_error != GF_NON_COMPLIANT_BITSTREAM) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LASeR] memory overread - corrupted decoding\n"));
+		((GF_LASeRCodec *) co)->last_error = GF_NON_COMPLIANT_BITSTREAM;
+	}
 }
 
 GF_EXPORT
@@ -5326,6 +5329,7 @@ static GF_Err lsr_read_delete(GF_LASeRCodec *lsr, GF_List *com_list)
 			field->pos = idx;
 			if (att_type>=0) {
 				field->fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
+				if (!com->node) return GF_SG_UNKNOWN_NODE;
 				gf_node_get_field(com->node, field->fieldIndex, &info);
 				field->fieldType = info.fieldType;
 			}
