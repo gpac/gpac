@@ -1115,7 +1115,7 @@ GF_EXPORT
 GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
 {
 	GenMFField *mffield = (GenMFField *)mf;
-	if (!mffield->array) return GF_OK;
+	if (!mffield || !mffield->array) return GF_OK;
 
 	//field we can't copy
 	if (gf_sg_vrml_is_sf_field(FieldType)) return GF_BAD_PARAM;

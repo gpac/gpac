@@ -506,7 +506,8 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 				* (GF_ChildNodeItem **)field->far_ptr = NULL;
 			} else {
 				//remove all items of the MFField
-				gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
+				e = gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
+				if (e) return e;
 			}
 		}
 
@@ -538,7 +539,7 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 			} else {
 				e = BD_DecMFFieldVec(codec, bs, node, field, is_mem_com);
 			}
-			if (e) return e;
+			if (e) return codec->LastError = e;
 		}
 	}
 	return GF_OK;
