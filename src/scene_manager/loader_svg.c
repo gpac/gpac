@@ -1426,6 +1426,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			Bool rap;
 			time = 0;
 			rap =  GF_FALSE;
+			if (!parser->laser_es) {
+				svg_report(parser, GF_BAD_PARAM, "No LASER stream specified");
+				return;
+			}
 			if (!gf_list_count(parser->laser_es->AUs)) rap = GF_TRUE;
 			for (i=0; i<nb_attributes; i++) {
 				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
