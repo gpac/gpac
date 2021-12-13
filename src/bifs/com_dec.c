@@ -789,7 +789,7 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 NodeID, ind, field_ind, NumBits;
-	GF_Node *node, *prev_node;
+	GF_Node *node;
 	GF_ChildNodeItem *prev_child;
 	GF_FieldInfo field;
 
@@ -804,14 +804,9 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	e = gf_node_get_field(node, field_ind, &field);
 	if (e) return e;
 
-	prev_node = NULL;
 	prev_child = NULL;
-	/*store prev SF node*/
-	if (field.fieldType == GF_SG_VRML_SFNODE) {
-		prev_node = *((GF_Node **) field.far_ptr);
-	}
 	/*store prev MFNode content*/
-	else if (field.fieldType == GF_SG_VRML_MFNODE) {
+	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		prev_child = * ((GF_ChildNodeItem **) field.far_ptr);
 		* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
 	}
@@ -825,9 +820,7 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	e = gf_bifs_dec_field(codec, bs, node, &field, GF_FALSE);
 	codec->is_com_dec = GF_FALSE;
 	/*remove prev nodes*/
-	if (field.fieldType == GF_SG_VRML_SFNODE) {
-		if (prev_node) e = gf_node_unregister(prev_node, node);
-	} else if (field.fieldType == GF_SG_VRML_MFNODE) {
+	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		gf_node_unregister_children(node, prev_child);
 	}
 	if (!e) gf_bifs_check_field_change(node, &field);

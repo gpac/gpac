@@ -238,6 +238,14 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	}
 	break;
 	case GF_SG_VRML_SFNODE:
+		//if not memory dec mode, unregister previous node
+		//otherwise the field points to the memory command internal field
+		if (!is_mem_com) {
+			if ( *((GF_Node **) field->far_ptr) != NULL) {
+				gf_node_unregister(*((GF_Node **) field->far_ptr), node);
+				 *((GF_Node **) field->far_ptr) = NULL;
+			}
+		}
 		//for nodes the field ptr is a ptr to the field, which is a node ptr ;)
 		new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 		if (new_node) {
@@ -870,19 +878,6 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		return NULL;
 	}
 
-	/*VRML: "The transformation hierarchy shall be a directed acyclic graph; results are undefined if a node
-	in the transformation hierarchy is its own ancestor"
-	that's good, because the scene graph can't handle cyclic graphs (destroy will never be called).
-	We therefore only register the node once parsed*/
-	if (nodeID) {
-		if (strlen(name)) {
-			gf_node_set_id(new_node, nodeID, name);
-		} else {
-			gf_node_set_id(new_node, nodeID, NULL);
-		}
-	}
-
-
 	/*update default time fields except in proto parsing*/
 	if (!codec->pCurrentProto) UpdateTimeNode(codec, new_node);
 	/*nodes are only init outside protos, nodes internal to protos are never intialized */
@@ -915,6 +910,18 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		/*unregister (deletes)*/
 		gf_node_unregister(new_node, NULL);
 		return NULL;
+	}
+
+	/*VRML: "The transformation hierarchy shall be a directed acyclic graph; results are undefined if a node
+	in the transformation hierarchy is its own ancestor"
+	that's good, because the scene graph can't handle cyclic graphs (destroy will never be called).
+	We therefore only register the node once parsed*/
+	if (nodeID) {
+		if (strlen(name)) {
+			gf_node_set_id(new_node, nodeID, name);
+		} else {
+			gf_node_set_id(new_node, nodeID, NULL);
+		}
 	}
 
 	if (!skip_init)
