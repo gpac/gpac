@@ -273,6 +273,8 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 	u32 j, k, l, last;
 	GF_StscEntry *ent;
 
+	if (!stsc || !_stco) return GF_ISOM_INVALID_FILE;
+
 	//we have to proceed entry by entry in case a part of the media is not self-contained...
 	for (j=0; j<stsc->nb_entries; j++) {
 		ent = &stsc->entries[j];
