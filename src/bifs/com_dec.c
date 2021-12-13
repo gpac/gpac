@@ -812,7 +812,8 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	}
 	/*regular field*/
 	else if (!gf_sg_vrml_is_sf_field(field.fieldType)) {
-		gf_sg_vrml_mf_reset(field.far_ptr, field.fieldType);
+		e = gf_sg_vrml_mf_reset(field.far_ptr, field.fieldType);
+		if (e) return e;
 	}
 
 	/*parse the field*/
