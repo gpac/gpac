@@ -3223,7 +3223,9 @@ static void dump_od_to_saf(GF_SceneDumper *dumper, GF_AUContext *au, u32 indent)
 
 
 			gf_fprintf(dumper->trace, "<saf:mediaHeader streamID=\"stream%d\"", esd->ESID);
-			gf_fprintf(dumper->trace, " streamType=\"%d\" objectTypeIndication=\"%d\" timeStampResolution=\"%d\"", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, au->owner->timeScale);
+			if (esd->decoderConfig) {
+				gf_fprintf(dumper->trace, " streamType=\"%d\" objectTypeIndication=\"%d\" timeStampResolution=\"%d\"", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, au->owner->timeScale);
+			}
 			if (au->timing) gf_fprintf(dumper->trace, " time=\""LLD"\"", au->timing);
 			if (mux && mux->file_name) gf_fprintf(dumper->trace, " source=\"%s\"", mux->file_name);
 			gf_fprintf(dumper->trace, "/>\n");
