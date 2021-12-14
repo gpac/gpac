@@ -82,6 +82,7 @@ typedef struct
 	Bool is_vp9;
 	Bool is_vpX;
 	u32 codecid;
+	u32 num_frames;
 	GF_VPConfig *vp_cfg;
 
 	Bool is_playing;
@@ -207,6 +208,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->state.height = ctx->state.height < height ? height : ctx->state.height;
 		ctx->state.tb_num = timebase_num;
 		ctx->state.tb_den = timebase_den;
+		ctx->num_frames = num_frames;
 
 		if ((!ctx->fps.num || !ctx->fps.den) && ctx->state.tb_num && ctx->state.tb_den && ! ( (ctx->state.tb_num<=1) && (ctx->state.tb_den<=1) ) ) {
 			ctx->cur_fps.num = ctx->state.tb_num;
@@ -379,7 +381,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
-		if (duration && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
+		if (ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
 			rate *= 8 * ctx->duration.den;
 			rate /= ctx->duration.num;
 			ctx->bitrate = (u32) rate;
@@ -593,6 +595,9 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
+	}
+	if (ctx->num_frames) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NB_FRAMES, & PROP_UINT(ctx->num_frames) );
 	}
 
 	ctx->clli_crc = 0;
