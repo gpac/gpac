@@ -1136,7 +1136,7 @@ GF_EXPORT
 void gf_bs_get_content_no_truncate(GF_BitStream *bs, u8 **output, u32 *outSize, u32 *alloc_size)
 {
 	/*only in WRITE MEM mode*/
-	if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
+	if (!bs || bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
 
 	if (bs->on_block_out && bs->position>bs->bytes_out) {
 		bs->on_block_out(bs->usr_data, bs->original, (u32) (bs->position - bs->bytes_out) );

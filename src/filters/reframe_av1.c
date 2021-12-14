@@ -824,9 +824,9 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 static GF_Err av1dmx_parse_flush_sample(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
-	u32 pck_size;
-	GF_FilterPacket *pck;
-	u8 *output;
+	u32 pck_size = 0;
+	GF_FilterPacket *pck = NULL;
+	u8 *output = NULL;
 
 	if (!ctx->opid)
 		return GF_NON_COMPLIANT_BITSTREAM;
