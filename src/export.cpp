@@ -124,6 +124,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_get_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_resource_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_translate_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_stats) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
