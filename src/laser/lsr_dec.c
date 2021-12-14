@@ -675,6 +675,8 @@ static void lsr_read_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *nam
 			iri.type = 0xFF;
 			lsr_read_any_uri(lsr, &iri, name);
 			gf_node_unregister_iri(lsr->sg, &iri);
+			gf_list_del_item(lsr->deferred_hrefs, &iri);
+
 			paint->type = SVG_PAINT_URI;
 			if (iri.string) {
 				paint->type = SVG_PAINT_URI;
