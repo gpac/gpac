@@ -327,19 +327,42 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_bs_write_u16_le(ctx->bs_w, 0);
 			gf_bs_write_u16_le(ctx->bs_w, 32);
 
-			gf_bs_write_u32(ctx->bs_w, GF_4CC('A', 'V', '0', '1') ); //codec_fourcc
+			//codec_fourcc
+			switch (ctx->codec_id) {
+			case GF_CODECID_AV1:
+				gf_bs_write_u32(ctx->bs_w, GF_4CC('A', 'V', '0', '1') );
+				break;
+			case GF_CODECID_VP8:
+				gf_bs_write_u32(ctx->bs_w, GF_4CC('V', 'P', '8', '0') );
+				break;
+			case GF_CODECID_VP9:
+				gf_bs_write_u32(ctx->bs_w, GF_4CC('V', 'P', '9', '0') );
+				break;
+			case GF_CODECID_VP10:
+				gf_bs_write_u32(ctx->bs_w, GF_4CC('V', 'P', '1', '0') );
+				break;
+			default:
+				gf_bs_write_u32(ctx->bs_w, ctx->codec_id);
+				break;
+			}
+
 			gf_bs_write_u16_le(ctx->bs_w, ctx->w);
 			gf_bs_write_u16_le(ctx->bs_w, ctx->h);
 			gf_bs_write_u32_le(ctx->bs_w, ctx->fps.num);
 			gf_bs_write_u32_le(ctx->bs_w, ctx->fps.den);
-			gf_bs_write_u32_le(ctx->bs_w, 0); //nb frames
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_NB_FRAMES);
+			//nb frames
+			if (p)
+				gf_bs_write_u32_le(ctx->bs_w, p->value.uint );
+			else
+				gf_bs_write_u32_le(ctx->bs_w, 0);
 			gf_bs_write_u32_le(ctx->bs_w, 0);
 			ctx->ivf_hdr = 0;
 		}
 		if (ctx->mode==2) {
-			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.num * gf_filter_pck_get_timescale(pck), ctx->fps.den);
+			u64 cts = gf_timestamp_rescale(gf_filter_pck_get_cts(pck), ctx->fps.den * gf_filter_pck_get_timescale(pck), ctx->fps.num);
 			gf_bs_write_u32_le(ctx->bs_w, size);
-			gf_bs_write_u64(ctx->bs_w, cts);
+			gf_bs_write_u64_le(ctx->bs_w, cts);
 		}
 		if (ctx->codec_id==GF_CODECID_AV1) {
 			//write temporal delim without obu size set
