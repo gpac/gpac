@@ -400,7 +400,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 		}
 	} else {
 
-		if (animp->from) {
+		if (animp->from && animp->from->value) {
 			from_info.fieldType = animp->from->type;
 			from_info.far_ptr = animp->from->value;
 		} else {
@@ -421,7 +421,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 			gf_svg_attributes_resolve_currentColor(&from_info, &rai->owner->current_color_value);
 			gf_svg_attributes_resolve_inherit(&from_info, &rai->owner->parent_presentation_value);
 		}
-		if (animp->to) {
+		if (animp->to && animp->to->value) {
 			to_info.fieldType = animp->to->type;
 			to_info.far_ptr = animp->to->value;
 		} else {
