@@ -1358,7 +1358,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 		if (trak) {
 			e = gf_isom_get_sample_cenc_info_internal(trak, traf, senc, sample_number, &is_encrypted, NULL, NULL, &key_info, &key_info_size);
 			if (! key_info) {
-				if (!key_info_size) {
+				if (!key_info_size && is_encrypted) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] no key info and no associated IV size !\n" ));
 					gf_free(sai);
 					return GF_ISOM_INVALID_FILE;
