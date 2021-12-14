@@ -2493,6 +2493,7 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 	SVG_Point *pt;
 	Fixed *f;
 	GF_List *l;
+	Bool handled = GF_FALSE;
 
 	coded_type = val->type;
 	switch(transform_type) {
@@ -2500,15 +2501,19 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 		val->type = SVG_Transform_Translate_datatype;
 		break;
 	case SVG_TRANSFORM_SCALE:
+		if (coded_type==8) handled = GF_TRUE;
 		val->type = SVG_Transform_Scale_datatype;
 		break;
 	case SVG_TRANSFORM_ROTATE:
+		if ((coded_type==8) || (coded_type==1)) handled = GF_TRUE;
 		val->type = SVG_Transform_Rotate_datatype;
 		break;
 	case SVG_TRANSFORM_SKEWX:
+		if ((coded_type==1) || (coded_type==4)) handled = GF_TRUE;
 		val->type = SVG_Transform_SkewX_datatype;
 		break;
 	case SVG_TRANSFORM_SKEWY:
+		if ((coded_type==1) || (coded_type==4)) handled = GF_TRUE;
 		val->type = SVG_Transform_SkewY_datatype;
 		break;
 	case SVG_TRANSFORM_MATRIX:
@@ -2516,8 +2521,19 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] unknown datatype for animate transform.\n"));
+		break;
+	}
+
+	if (!handled) {
+		while (gf_list_count(val->values)) {
+			SMIL_AnimateValue a_val;
+			a_val.type = 0;
+			a_val.value = gf_list_pop_back(val->values);
+			lsr_delete_anim_value(lsr, &a_val, coded_type);
+		}
 		return;
 	}
+
 	count = gf_list_count(val->values);
 	if (!count) return;
 
