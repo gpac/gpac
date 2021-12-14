@@ -359,7 +359,8 @@ void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_SceneGraph *sg)
 {
 	/* TODO: handle specific animation types : Motion, else ? */
-	gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
+	if (anim_value)
+		gf_svg_delete_attribute_value(anim_datatype, anim_value, sg);
 }
 
 void gf_svg_reset_animate_values(SMIL_AnimateValues anim_values, GF_SceneGraph *sg)
