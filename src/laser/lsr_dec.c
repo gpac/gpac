@@ -1747,55 +1747,123 @@ static void lsr_read_attribute_name(GF_LASeRCodec *lsr, GF_Node *n)
 	lsr_read_attribute_name_ex(lsr, n, GF_TRUE);
 }
 
-static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
+static void lsr_delete_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type)
 {
-	switch (val->type) {
-	case SVG_StrokeDashArray_datatype:
-	{
-		SVG_StrokeDashArray *da;
-		GF_List *l = (GF_List *)val->value;
-		u32 i;
-		GF_SAFEALLOC(da, SVG_StrokeDashArray);
-		if (!da) return;
-		da->array.count = gf_list_count(l);
-		if (!da->array.count) {
-			da->type = SVG_STROKEDASHARRAY_INHERIT;
-		} else {
-			da->type = SVG_STROKEDASHARRAY_ARRAY;
-			da->array.vals = (Fixed *) gf_malloc(sizeof(Fixed)*da->array.count);
-			da->array.units = (u8 *) gf_malloc(sizeof(u8)*da->array.count);
-			for (i=0; i<da->array.count; i++) {
-				Fixed *v = (Fixed *)gf_list_get(l, i);
-				da->array.vals[i] = *v;
-				da->array.units[i] = 0;
+	//unable to transform, free mem and reset
+	switch (coded_type) {
+	case 0://SVG_string *
+		gf_free(* (SVG_String *)val->value);
+		gf_free(val->value);
+		break;
+	case 1://SVG_Number *
+		gf_free(val->value);
+		break;
+	case 2: //SVG_PathData *
+		gf_svg_delete_attribute_value(SVG_PathData_datatype, val->value, NULL);
+		break;
+	case 3: //SVG_Points *pts
+		gf_svg_delete_attribute_value(SVG_Points_datatype, val->value, NULL);
+		break;
+	case 4: //SVG_Number*
+		gf_free(val->value);
+		break;
+	case 5://SVG_Paint
+		gf_free(val->value);
+		break;
+	case 6://u8*
+		gf_free(val->value);
+		break;
+	case 7: //list of u8 *
+	case 8: //list of floats
+		{
+			GF_List *l = (GF_List *) val->value;
+			while (gf_list_count(l)) {
+				void *v = gf_list_pop_back(l);
 				gf_free(v);
 			}
 			gf_list_del(l);
-			val->value = da;
 		}
-	}
-	break;
-	case SVG_ViewBox_datatype:
+		break;
+	/*point */
+	case 9: //SVG_Point *
+		gf_free(val->value);
+		break;
+	case 10: //u32 *
+		gf_free(val->value);
+		break;
+	case 11: //SVG_FontFamily *
 	{
-		SVG_ViewBox *vb;
-		GF_List *l = (GF_List *)val->value;
-		GF_SAFEALLOC(vb, SVG_ViewBox);
-		if (!vb) return;
-		if (gf_list_count(l)==4) {
-			vb->x = * ((Fixed *)gf_list_get(l, 0));
-			vb->y = * ((Fixed *)gf_list_get(l, 1));
-			vb->width = * ((Fixed *)gf_list_get(l, 2));
-			vb->height = * ((Fixed *)gf_list_get(l, 3));
-		}
-		while (gf_list_count(l)) {
-			Fixed *v = (Fixed *)gf_list_last(l);
-			gf_free(v);
-			gf_list_rem_last(l);
-		}
-		gf_list_del(l);
-		val->value = vb;
+		SVG_FontFamily *ft = (SVG_FontFamily *) val->value;
+		if (ft->value) gf_free(ft->value);
+		gf_free(ft);
 	}
-	break;
+		break;
+	case 12:
+	{
+		XMLRI *iri = (XMLRI *)val->value;
+		gf_list_del_item(lsr->deferred_hrefs, iri);
+		gf_node_unregister_iri(lsr->sg, iri);
+		if (iri->string) gf_free(iri->string);
+		gf_free(iri);
+	}
+	default:
+		break;
+	}
+	val->value = NULL;
+}
+
+static void lsr_translate_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 coded_type)
+{
+	switch (val->type) {
+	case SVG_StrokeDashArray_datatype:
+		//if list of fixed only
+		if (coded_type == 8) {
+			SVG_StrokeDashArray *da;
+			GF_List *l = (GF_List *)val->value;
+			u32 i;
+			GF_SAFEALLOC(da, SVG_StrokeDashArray);
+			if (!da) return;
+			da->array.count = gf_list_count(l);
+			if (!da->array.count) {
+				da->type = SVG_STROKEDASHARRAY_INHERIT;
+			} else {
+				da->type = SVG_STROKEDASHARRAY_ARRAY;
+				da->array.vals = (Fixed *) gf_malloc(sizeof(Fixed)*da->array.count);
+				da->array.units = (u8 *) gf_malloc(sizeof(u8)*da->array.count);
+				for (i=0; i<da->array.count; i++) {
+					Fixed *v = (Fixed *)gf_list_get(l, i);
+					da->array.vals[i] = *v;
+					da->array.units[i] = 0;
+					gf_free(v);
+				}
+				gf_list_del(l);
+				val->value = da;
+			}
+			return;
+		}
+		break;
+	case SVG_ViewBox_datatype:
+		//if list of fixed only
+		if (coded_type == 8) {
+			SVG_ViewBox *vb;
+			GF_List *l = (GF_List *)val->value;
+			GF_SAFEALLOC(vb, SVG_ViewBox);
+			if (!vb) return;
+			if (gf_list_count(l)==4) {
+				vb->x = * ((Fixed *)gf_list_get(l, 0));
+				vb->y = * ((Fixed *)gf_list_get(l, 1));
+				vb->width = * ((Fixed *)gf_list_get(l, 2));
+				vb->height = * ((Fixed *)gf_list_get(l, 3));
+			}
+			while (gf_list_count(l)) {
+				Fixed *v = (Fixed *)gf_list_last(l);
+				gf_free(v);
+				gf_list_rem_last(l);
+			}
+			gf_list_del(l);
+			val->value = vb;
+		}
+		break;
 	case SVG_Coordinates_datatype:
 	{
 		SVG_Coordinates *coords;
@@ -1806,6 +1874,7 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 			coords = (SVG_Coordinates*)gf_malloc(sizeof(SVG_Coordinates));
 			*coords = l;
 			val->value = coords;
+			return;
 		} else if (coded_type==8) {
 			GF_List *l = (GF_List *)val->value;
 			u32 i, count = gf_list_count(l);
@@ -1822,9 +1891,10 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 			coords = (SVG_Coordinates*)gf_malloc(sizeof(SVG_Coordinates));
 			*coords = (GF_List *) val->value;
 			val->value = coords;
+			return;
 		}
 	}
-	break;
+		break;
 	case SVG_Motion_datatype:
 		if (coded_type==9) {
 			GF_Matrix2D *mat;
@@ -1837,29 +1907,51 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 				val->value = mat;
 			}
 			gf_free(pt);
+			return;
 		}
 		break;
+	default:
+		break;
 	}
+	lsr_delete_anim_value(lsr, val, coded_type);
 }
-static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
+
+
+static void lsr_translate_anim_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *val, u32 coded_type)
 {
 	u32 i, count;
+	Bool handled = GF_FALSE;
 	GF_List *list, *new_list;
 
 	list = val->values;
 	switch (val->type) {
 	case SVG_StrokeDashArray_datatype:
+		if (coded_type == 8) handled = GF_TRUE;
 		break;
 	case SVG_ViewBox_datatype:
+		if (coded_type == 8) handled = GF_TRUE;
 		break;
 	case SVG_Coordinates_datatype:
+		if (coded_type == 8) handled = GF_TRUE;
 		break;
 	case SVG_Motion_datatype:
-		if (coded_type!=9) return;
+		if (coded_type==9) handled = GF_TRUE;
 		break;
 	default:
+		break;
+	}
+	if (!handled) {
+		while (gf_list_count(list)) {
+			SMIL_AnimateValue a_val;
+			a_val.type = 0;
+			a_val.value = gf_list_pop_back(list);
+			lsr_delete_anim_value(lsr, &a_val, coded_type);
+		}
+		gf_list_del(list);
+		val->values = gf_list_new();
 		return;
 	}
+
 	val->values = new_list = gf_list_new();
 	count = gf_list_count(list);
 	for (i=0; i<count; i++) {
@@ -2062,7 +2154,7 @@ translate_vals:
 			value = info.far_ptr;
 			coded_type = value->type;
 			value->type = is_animateMotion ? SVG_Motion_datatype : name->type;
-			lsr_translate_anim_value(value, coded_type);
+			lsr_translate_anim_value(lsr, value, coded_type);
 		}
 	}
 	if (gf_node_get_attribute_by_tag((GF_Node *)anim, TAG_SVG_ATT_by, GF_FALSE, GF_FALSE, &info)==GF_OK) {
@@ -2072,7 +2164,7 @@ translate_vals:
 			value = info.far_ptr;
 			coded_type = value->type;
 			value->type = is_animateMotion ? SVG_Motion_datatype : name->type;
-			lsr_translate_anim_value(value, coded_type);
+			lsr_translate_anim_value(lsr, value, coded_type);
 		}
 	}
 	if (gf_node_get_attribute_by_tag((GF_Node *)anim, TAG_SVG_ATT_to, GF_FALSE, GF_FALSE, &info)==GF_OK) {
@@ -2082,7 +2174,7 @@ translate_vals:
 			value = info.far_ptr;
 			coded_type = value->type;
 			value->type = is_animateMotion ? SVG_Motion_datatype : name->type;
-			lsr_translate_anim_value(value, coded_type);
+			lsr_translate_anim_value(lsr, value, coded_type);
 		}
 	}
 	if (gf_node_get_attribute_by_tag((GF_Node *)anim, TAG_SVG_ATT_values, GF_FALSE, GF_FALSE, &info)==GF_OK) {
@@ -2093,7 +2185,7 @@ translate_vals:
 			coded_type = values->type;
 			values->type = is_animateMotion ? SVG_Motion_datatype : name->type;
 			values->laser_strings = 0;
-			lsr_translate_anim_values(values, coded_type);
+			lsr_translate_anim_values(lsr, values, coded_type);
 		}
 	}
 
@@ -2292,7 +2384,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	return NULL;
 }
 
-static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform_type)
+static void lsr_translate_anim_trans_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val, u32 transform_type)
 {
 	SVG_Point_Angle *p;
 	Fixed *f;
@@ -2324,9 +2416,9 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 	if (!val->value) return;
 	switch (transform_type) {
 	case SVG_TRANSFORM_ROTATE:
-		p = (SVG_Point_Angle*)gf_malloc(sizeof(SVG_Point_Angle));
-		p->x = p->y = 0;
 		if (coded_type==8) {
+			p = (SVG_Point_Angle*)gf_malloc(sizeof(SVG_Point_Angle));
+			p->x = p->y = 0;
 			GF_List *l = (GF_List *)val->value;
 			f = (Fixed*)gf_list_get(l, 0);
 			if (f) {
@@ -2344,12 +2436,18 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 				gf_free(f);
 			}
 			gf_list_del(l);
-		} else {
+			p->angle = gf_muldiv(p->angle, GF_PI, INT2FIX(180) );
+			val->value = p;
+			return;
+		} else if ((coded_type==1) || (coded_type==4)) {
+			p = (SVG_Point_Angle*)gf_malloc(sizeof(SVG_Point_Angle));
+			p->x = p->y = 0;
 			p->angle = ((SVG_Number *)val->value)->value;
 			gf_free(val->value);
+			p->angle = gf_muldiv(p->angle, GF_PI, INT2FIX(180) );
+			val->value = p;
+			return;
 		}
-		p->angle = gf_muldiv(p->angle, GF_PI, INT2FIX(180) );
-		val->value = p;
 		break;
 	case SVG_TRANSFORM_SCALE:
 		if (coded_type==8) {
@@ -2370,19 +2468,25 @@ static void lsr_translate_anim_trans_value(SMIL_AnimateValue *val, u32 transform
 			else pt->y = pt->x;
 			gf_list_del(l);
 			val->value = pt;
+			return;
 		}
 		break;
 	case SVG_TRANSFORM_SKEWX:
 	case SVG_TRANSFORM_SKEWY:
-		f = (Fixed*)gf_malloc(sizeof(Fixed));
-		*f = ((SVG_Number *)val->value)->value;
-		gf_free(val->value);
-		val->value = f;
+		if ((coded_type==1) || (coded_type==4)) {
+			f = (Fixed*)gf_malloc(sizeof(Fixed));
+			*f = ((SVG_Number *)val->value)->value;
+			gf_free(val->value);
+			val->value = f;
+			return;
+		}
 		break;
 	}
+	//not handled
+	lsr_delete_anim_value(lsr, val, coded_type);
 }
 
-static void lsr_translate_anim_trans_values(SMIL_AnimateValues *val, u32 transform_type)
+static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValues *val, u32 transform_type)
 {
 	u32 count, i, coded_type;
 	SVG_Point_Angle *p;
@@ -2494,7 +2598,7 @@ static void lsr_read_anim_value_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, cons
 		((SMIL_AnimateValue*)info.far_ptr)->type = coded_type;
 
 		if (tr_type) {
-			lsr_translate_anim_trans_value(info.far_ptr, *tr_type);
+			lsr_translate_anim_trans_value(lsr, info.far_ptr, *tr_type);
 		}
 	}
 }
@@ -2522,7 +2626,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 		if (att) gf_list_add(values->values, att);
 	}
 	if (tr_type) {
-		lsr_translate_anim_trans_values(info.far_ptr, *tr_type);
+		lsr_translate_anim_trans_values(lsr, info.far_ptr, *tr_type);
 	}
 }
 #define lsr_read_anim_value(_a, _b, _c, _d) lsr_read_anim_value_ex(_a, _b, _c, _d, NULL)
