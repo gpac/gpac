@@ -2550,7 +2550,7 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 			if (coded_type==8) {
 				l = (GF_List*)a_val;
 				f = (Fixed*)gf_list_get(l, 0);
-				p->angle = *f;
+				if (f) p->angle = *f;
 				f = (Fixed*)gf_list_get(l, 1);
 				if (f) p->x = *f;
 				f = (Fixed*)gf_list_get(l, 2);
