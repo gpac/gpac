@@ -1628,6 +1628,20 @@ This will result in a direct file copy.
 .br
 
 .br
+The special option remux is used to force remultiplexing without specifying any muxer option (ignored for non-sink filters).
+.br
+This is equivalent to specifying a dummy option not tracked (eg :gfopt:dummy).
+.br
+Example
+.br
+-i file.mp4 -o dump.mp4:remux
+.br
+
+.br
+This will result in a remuxing of the file.
+.br
+
+.br
 Note: the linker will prevent cycles in the graph, and a given filter can never have the same PID connected twice as an input, whether directly or through a filter chain.
 .br
 .SH Arguments inheriting
@@ -4334,7 +4348,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1523-gc6b0b3f89-master
+build: 1.1.0-DEV-rev1567-g4613a3536-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

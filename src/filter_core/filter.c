@@ -1636,6 +1636,15 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
+			//force remux
+			else if (!strcmp("remux", szArg)) {
+				//unknown argument on explicit sink, not dynamic and no multi-sink target, foce demux
+				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) && !filter->dynamic_filter && !filter->multi_sink_target) {
+					filter->force_demux = GF_TRUE;
+				}
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
 			else if (!value && gf_file_exists(szArg)) {
 				if (!for_script && (argfile_level<5) ) {
 					char szLine[2001];
