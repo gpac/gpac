@@ -3324,7 +3324,7 @@ static void gf_mpd_write_m3u8_playlist_tags_entry(FILE *out, const GF_MPD_Repres
 		return;
 	}
 	if (rep->fps)
-		gf_fprintf(out,",FRAME-RATE=\"%.03g\"", rep->fps);
+		gf_fprintf(out,",FRAME-RATE=%.03g", rep->fps);
 
 	if (g_type && g_id_pref) {
 		gf_fprintf(out, ",%s=\"%s", g_type, g_id_pref);
