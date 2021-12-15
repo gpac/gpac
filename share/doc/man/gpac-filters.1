@@ -5612,7 +5612,13 @@ Description: IVF/OBU/annexB writer
 .br
 
 .br
-This filter is used to rewrite AV1 OBU bitstream into IVF, annex B or OBU sequence, reinserting the temporal delimiter OBU.
+This filter rewrites IVF (VPx, AV1) and OBU (AV1) bitstreams into a IVF, annexB or OBU sequence.
+.br
+Note1: VP8/9 are IVF-only (equivalent to .ivf in :ext property).
+.br
+Note2: The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1b, with obu_size set)
+.br
+       and OBU sequences (.obu, without obu_size)
 .br
 
 .br
@@ -9467,7 +9473,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1523-gc6b0b3f89-master
+build: 1.1.0-DEV-rev1567-g4613a3536-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
