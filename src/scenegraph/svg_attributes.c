@@ -4580,7 +4580,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 	case SVG_FontFamily_datatype:
 	{
 		SVG_FontFamily *f = (SVG_FontFamily *)info->far_ptr;
-		return gf_strdup( (f->type==SVG_FONTFAMILY_INHERIT) ? "inherit" : (const char *) f->value);
+		return gf_strdup( (!f->value || (f->type==SVG_FONTFAMILY_INHERIT)) ? "inherit" : (const char *) f->value);
 	}
 
 	case SVG_PreserveAspectRatio_datatype:
@@ -4924,7 +4924,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 	case SVG_PointerEvents_datatype:
 		break;
 	case XMLRI_List_datatype:
-		return gf_strdup( (char *) info->far_ptr);
+		return gf_strdup(info->far_ptr ? (char *) info->far_ptr : "");
 
 	case SVG_Points_datatype:
 	{
