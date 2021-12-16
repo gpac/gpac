@@ -1435,6 +1435,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (importer->flags & GF_IMPORT_FORCE_PACKED) e |= gf_dynstrcat(&args, "nal_length=0", ":");
 	if (importer->flags & GF_IMPORT_SET_SUBSAMPLES) e |= gf_dynstrcat(&args, "subsamples", ":");
 	if (importer->flags & GF_IMPORT_NO_SEI) e |= gf_dynstrcat(&args, "nosei", ":");
+	if (importer->flags & GF_IMPORT_KEEP_AV1_TEMPORAL_OBU) e |= gf_dynstrcat(&args, "temporal_delim", ":");
 	if (importer->flags & GF_IMPORT_SVC_NONE) e |= gf_dynstrcat(&args, "nosvc", ":");
 	if (importer->flags & GF_IMPORT_SAMPLE_DEPS) e |= gf_dynstrcat(&args, "deps", ":");
 	if (importer->flags & GF_IMPORT_FORCE_MPEG4) e |= gf_dynstrcat(&args, "mpeg4", ":");

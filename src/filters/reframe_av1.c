@@ -50,7 +50,7 @@ typedef struct
 	GF_Fraction fps;
 	Double index;
 	Bool importer;
-	Bool deps, notime;
+	Bool deps, notime, temporal_delim;
 	
 	u32 bsdbg;
 
@@ -1146,6 +1146,16 @@ GF_Err av1dmx_process(GF_Filter *filter)
 	return e;
 }
 
+static GF_Err av1dmx_initialize(GF_Filter *filter)
+{
+	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
+	gf_av1_init_state(&ctx->state);
+	if (ctx->temporal_delim)
+		ctx->state.keep_temporal_delim = GF_TRUE;
+
+	return GF_OK;
+}
+
 static void av1dmx_finalize(GF_Filter *filter)
 {
 	GF_AV1DmxCtx *ctx = gf_filter_get_udta(filter);
@@ -1263,6 +1273,8 @@ static const GF_FilterArgs AV1DmxArgs[] =
 	{ OFFS(importer), "compatibility with old importer", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(temporal_delim), "keep temporal delimiters in reconstructed frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
 
 	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
 		"- off: not enabled\n"
@@ -1278,6 +1290,7 @@ GF_FilterRegister AV1DmxRegister = {
 	GF_FS_SET_HELP("This filter parses AV1 OBU, AV1 AnnexB or IVF with AV1 or VP9 files/data and outputs corresponding visual PID and frames.")
 	.private_size = sizeof(GF_AV1DmxCtx),
 	.args = AV1DmxArgs,
+	.initialize = av1dmx_initialize,
 	.finalize = av1dmx_finalize,
 	SETCAPS(AV1DmxCaps),
 	.configure_pid = av1dmx_configure_pid,
