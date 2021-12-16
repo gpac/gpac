@@ -369,7 +369,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (ctx->opid) {
 		if (ctx->poc_probe_done) {
 			//full frame mode, flush everything before signaling discontinuity
-			//for other modes discontinuity we signal disconntinuity before the current AU being reconstructed
+			//for other modes discontinuity we signal discontinuity before the current AU being reconstructed
 			if (ctx->full_au_source && ctx->first_pck_in_au)
 				naludmx_finalize_au_flags(ctx);
 
@@ -2865,7 +2865,7 @@ naldmx_flush:
 				break;
 			}
 			//check if VPS/SPS/PPS lid/tid are greater than last seen VCL. If not, force a picture flush
-			//not doing so could lead in dispatching the config changed before the current AU is send
+			//not doing so could lead in dispatching the config changed before the current AU is sent
 			if (force_au_flush) {
 				if (!ctx->first_pck_in_au) {
 					force_au_flush = GF_FALSE;
@@ -2917,7 +2917,7 @@ naldmx_flush:
 			}
 
 			//check if VPS/SPS/PPS/OPI/DEC lid/tid are greater than last seen VCL. If not, force a picture flush
-			//not doing so could lead in dispatching the config changed before the current AU is send
+			//not doing so could lead in dispatching the config changed before the current AU is sent
 			if (force_au_flush) {
 				if (!ctx->first_pck_in_au) {
 					force_au_flush = GF_FALSE;

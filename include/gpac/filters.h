@@ -3764,7 +3764,7 @@ reassign output packet properties changed by the filter.
 In order to handle reordering of packets, it is possible to keep references to either packets (may block the filter chain), or packet properties.
 
 Packets shall always be dispatched in their processing order (decode order). If reordering upon reception is needed, or AU interleaving is used, a filter SHALL do the reordering.
-However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is send.
+However, packets do not have to be send in their creation order: a created packet is not assigned to PID buffers until it is sent.
 
 @{
  */

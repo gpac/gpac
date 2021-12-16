@@ -707,7 +707,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				sc_type_forced = GF_TRUE;
 			}
 		}
-		//no starcode in store, look for startcode in packet
+		//no startcode in store, look for startcode in packet
 		if (current == -1) {
 			//locate next start code
 			current = mpgviddmx_next_start_code(start, remain);
