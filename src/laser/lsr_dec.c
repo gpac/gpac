@@ -387,7 +387,7 @@ static void lsr_read_any_attribute(GF_LASeRCodec *lsr, GF_Node *node, Bool skipp
 			val = lsr_read_vluimsbf5(lsr, "len");//len in BITS
 			GF_LSR_READ_INT(lsr, val, val, "reserved_val");
 			GF_LSR_READ_INT(lsr, val, 1, "hasNextExtension");
-			if (lsr->last_error) break;
+			if (lsr->last_error) return;
 		} while (val);
 	}
 }
@@ -1321,7 +1321,7 @@ static void lsr_read_smil_times(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SMIL_Ti
 	for (i=0; i<count; i++) {
 		v = lsr_read_smil_time(lsr, n);
 		gf_list_add(*times, v);
-		if (lsr->last_error) break;
+		if (lsr->last_error) return;
 	}
 }
 
@@ -1491,7 +1491,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 				for (j=0; j<da->array.count; j++) {
 					da->array.vals[j] = lsr_read_fixed_16_8(lsr, "dash");
 					da->array.units[j] = 0;
-					if (lsr->last_error) break;
+					if (lsr->last_error) return;
 				}
 			}
 		}
@@ -1547,7 +1547,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			for (j=0; j<fcount; j++) {
 				u32 fval;
 				GF_LSR_READ_INT(lsr, fval, 6, "feature");
-				if (lsr->last_error) break;
+				if (lsr->last_error) return;
 			}
 		}
 		break;
@@ -1663,7 +1663,7 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			lsr_read_duration_ex(lsr, NULL, 0, info.far_ptr, "min", 0);
 			break;
 		}
-		if (lsr->last_error) break;
+		if (lsr->last_error) return;
 	}
 }
 
@@ -2652,7 +2652,7 @@ static void lsr_read_anim_values_ex(GF_LASeRCodec *lsr, GF_Node *n, u32 *tr_type
 	for (i=0; i<count; i++) {
 		void *att = lsr_read_an_anim_value(lsr, coded_type, "a_value");
 		if (att) gf_list_add(values->values, att);
-		if (lsr->last_error) break;
+		if (lsr->last_error) return;
 	}
 	if (tr_type) {
 		lsr_translate_anim_trans_values(lsr, info.far_ptr, *tr_type);
@@ -2696,7 +2696,7 @@ static void lsr_read_fraction_12(GF_LASeRCodec *lsr, GF_Node *elt, u32 tag, cons
 	for (i=0; i<count; i++) {
 		Fixed *f = lsr_read_fraction_12_item(lsr);
 		gf_list_add( *((SMIL_KeyTimes*)info.far_ptr), f);
-		if (lsr->last_error) break;
+		if (lsr->last_error) return;
 	}
 }
 static void lsr_read_float_list(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Coordinates*coords, const char *name)
@@ -2723,7 +2723,7 @@ static void lsr_read_float_list(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Coo
 			num->type = SVG_NUMBER_VALUE;
 			num->value = lsr_read_fixed_16_8(lsr, "val");
 			gf_list_add(*coords, num);
-			if (lsr->last_error) break;
+			if (lsr->last_error) return;
 		}
 	}
 	else {
@@ -2731,7 +2731,7 @@ static void lsr_read_float_list(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Coo
 			Fixed *num = (Fixed *)gf_malloc(sizeof(Fixed));
 			*num = lsr_read_fixed_16_8(lsr, "val");
 			gf_list_add(*coords, num);
-			if (lsr->last_error) break;
+			if (lsr->last_error) return;
 		}
 	}
 }
@@ -2760,7 +2760,7 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 				pt->x = lsr_translate_coords(lsr, v, nb_bits);
 				GF_LSR_READ_INT(lsr, v, nb_bits, "y");
 				pt->y = lsr_translate_coords(lsr, v, nb_bits);
-				if (lsr->last_error) break;
+				if (lsr->last_error) return;
 			}
 		} else {
 			u32 nb_dx, nb_dy, k;
@@ -2786,7 +2786,7 @@ static void lsr_read_point_sequence(GF_LASeRCodec *lsr, GF_List *pts, const char
 				pt->y = y + lsr_translate_coords(lsr, k, nb_dy);
 				y = pt->y;
 
-				if (lsr->last_error) break;
+				if (lsr->last_error) return;
 			}
 		}
 	}
@@ -3066,7 +3066,7 @@ static void lsr_read_coord_list(GF_LASeRCodec *lsr, GF_Node *elt, u32 tag, const
 		GF_LSR_READ_INT(lsr, res, lsr->coord_bits, name);
 		f->value = lsr_translate_coords(lsr, res, lsr->coord_bits);
 		gf_list_add(*(SVG_Coordinates*)info.far_ptr, f);
-		if (lsr->last_error) break;
+		if (lsr->last_error) return;
 	}
 }
 
@@ -4595,7 +4595,7 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, GF_Node *elt, Bool skip_o
 		count = lsr_read_vluimsbf5(lsr, "occ0");
 		for (i=0; i<count; i++) {
 			GF_Node *n;
-			if (lsr->last_error) break;
+			if (lsr->last_error) return;
 			n = lsr_read_scene_content_model(lsr, (SVG_Element*)elt);
 			if (n) {
 				gf_node_register(n, elt);
@@ -4604,7 +4604,6 @@ static void lsr_read_group_content(GF_LASeRCodec *lsr, GF_Node *elt, Bool skip_o
 			} else {
 				/*either error or text content*/
 			}
-			if (lsr->last_error) break;
 		}
 	}
 
@@ -4633,7 +4632,6 @@ static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVG_Element *el
 			} else {
 				/*either error or text content*/
 			}
-			if (lsr->last_error) break;
 		}
 	}
 	if (!skip_init) gf_node_init((GF_Node*)elt);
@@ -5398,7 +5396,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 					gf_node_register(new_node, NULL);
 					gf_node_list_add_child_last(& field->node_list, new_node, &last);
 					count--;
-					if (lsr->last_error) break;
+					if (lsr->last_error) return lsr->last_error;
 				}
 			}
 		} else {
@@ -5429,7 +5427,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 						gf_node_register(new_node, n);
 					}
 					count--;
-					if (lsr->last_error) break;
+					if (lsr->last_error) return lsr->last_error;
 				}
 				gf_node_changed(n, NULL);
 			}
@@ -5584,7 +5582,7 @@ static GF_Err lsr_read_save(GF_LASeRCodec *lsr, GF_List *com_list)
 		GF_LSR_READ_INT(lsr, flag, 1, "reserved");
 
 		lsr_get_attribute_name(lsr);
-		if (lsr->last_error) break;
+		if (lsr->last_error) return lsr->last_error;
 	}
 	lsr_read_byte_align_string(lsr, NULL, "groupID");
 	lsr_read_any_attribute(lsr, NULL, 1);
@@ -5740,9 +5738,8 @@ static GF_Err lsr_read_command_list(GF_LASeRCodec *lsr, GF_List *com_list, SVG_E
 							lsr_read_private_element_container(lsr);
 							break;
 						}
-						if (lsr->last_error) break;
+						if (lsr->last_error) return lsr->last_error;
 					}
-					if (lsr->last_error) break;
 				}
 			}
 		}
@@ -5826,7 +5823,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 			GF_LSR_READ_INT(lsr, c.g, lsr->info->cfg.colorComponentBits, "green");
 			GF_LSR_READ_INT(lsr, c.b, lsr->info->cfg.colorComponentBits, "blue");
 			lsr->col_table[lsr->nb_cols+i] = c;
-			if (lsr->last_error) break;
+			if (lsr->last_error) return lsr->last_error;
 		}
 		lsr->nb_cols += count;
 	}
@@ -5842,7 +5839,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 			char *ft = NULL;
 			lsr_read_byte_align_string(lsr, &ft, "font");
 			gf_list_add(lsr->font_table, ft);
-			if (lsr->last_error) break;
+			if (lsr->last_error) return lsr->last_error;
 		}
 	}
 	lsr->fontIndexBits = gf_get_bit_size(count);
@@ -5856,7 +5853,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 		for (i=0; i<count; i++) {
 			lsr->privateData_id_index++;
 			lsr_read_byte_align_string(lsr, NULL, "privateDataIdentifier");
-			if (lsr->last_error) break;
+			if (lsr->last_error) return lsr->last_error;
 		}
 	}
 	/*
@@ -5885,7 +5882,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 					lsr_read_byte_align_string(lsr, NULL, "tag");
 				}
 			}
-			if (lsr->last_error) break;
+			if (lsr->last_error) return lsr->last_error;
 		}
 	}
 	/*
@@ -5895,7 +5892,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	for (i=0; i<count; i++) {
 		/*u32 locID = */lsr_read_vluimsbf5(lsr, "binaryIdForThisStringID");
 		lsr_read_byte_align_string(lsr, NULL, "stringID");
-		if (lsr->last_error) break;
+		if (lsr->last_error) return lsr->last_error;
 	}
 	GF_LSR_READ_INT(lsr, flag, 1, "hasExtension");
 	if (flag) {
@@ -5906,7 +5903,7 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 		for (i=0; i<count; i++) {
 			/*u32 locID = */lsr_read_vluimsbf5(lsr, "localStreamIdForThisGlobal");
 			lsr_read_byte_align_string(lsr, NULL, "globalName");
-			if (lsr->last_error) break;
+			if (lsr->last_error) return lsr->last_error;
 		}
 		pos = gf_bs_get_bit_offset(lsr->bs) - pos;
 		if (len<pos)
