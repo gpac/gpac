@@ -1496,8 +1496,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 	return gf_mpd_complete_from_dom(root, mpd, default_base_url);
 }
 
-static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file, const char *src_base_url, const char *mpd_file, char *title, Double update_interval,
-                                      char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
+static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file, const char *src_base_url, const char *mpd_file, char *title, Double update_interval, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool use_segment_timeline, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
 {
 	char *sep, *template_base=NULL, *template_ext;
 	u32 nb_streams, i, j, k, template_width, template_idx_start;
@@ -1739,11 +1738,10 @@ try_next_segment:
 			if (parse_sub_playlist && !elt)
 				break;
 
-			if (elt) {
-				base_url = gf_url_get_absolute_path(elt->url, pe->url);
-			} else {
-				base_url = gf_strdup(pe->url);
-			}
+			//baseURL is the URL of the variant playlist, not a concat with first playlist elem (see #1996)
+			//because we will further concatenate baseURL with each pl element (so don't do it twice...)
+			base_url = gf_strdup(pe->url);
+
 			sep = strrchr(base_url, '/');
 			if (!sep)
 				sep = strrchr(base_url, '\\');
