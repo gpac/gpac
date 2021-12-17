@@ -35,8 +35,12 @@ GF_EXPORT
 u32 gf_get_bit_size(u32 MaxVal)
 {
 	u32 k=0;
-	while (MaxVal > (((u32)1<<k)-1) )
+	while (MaxVal > (((u32)1<<k)-1) ) {
+		if (k==31) {
+			return 32;
+		}
 		k+=1;
+	}
 	return k;
 }
 
