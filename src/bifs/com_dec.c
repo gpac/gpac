@@ -998,7 +998,7 @@ static GF_Err BD_DecReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list)
 {
 	u8 flag, field_type, event_type, useQuant, useAnim, f;
-	u32 i, NbRoutes, ID, numProtos, numFields, count, qpsftype, QP_Type, NumBits;
+	u32 i, NbRoutes, ID, numProtos, numFields, count, qpsftype, QP_Type, NumBits, nb_cmd_bufs;
 	GF_Node *node;
 	char name[1000];
 	GF_ProtoFieldInterface *proto_field;
@@ -1015,6 +1015,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 	ParentProto = codec->pCurrentProto;
 	e = GF_OK;
 
+	nb_cmd_bufs = gf_list_count(codec->command_buffers);
 	numProtos = 0;
 	proto = NULL;
 	flag = gf_bs_read_int(bs, 1);
@@ -1244,6 +1245,15 @@ exit:
 	if (e) {
 		if (proto) {
 			if (proto_list) gf_list_del_item(proto_list, proto);
+
+			//remove all command buffers inserted while decoding the proto list
+			u32 new_cmd_bufs = gf_list_count(codec->command_buffers);
+			while (nb_cmd_bufs < new_cmd_bufs) {
+				new_cmd_bufs--;
+				CommandBufferItem *cbi = gf_list_pop_back(codec->command_buffers);
+
+				gf_free(cbi);
+			}
 			gf_sg_proto_del(proto);
 		}
 		codec->current_graph = rootSG;
