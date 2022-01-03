@@ -288,6 +288,8 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 			//be careful for the last entry, nextChunk is set to 0 in edit mode...
 			last = ent->nextChunk ? ent->nextChunk : stco->nb_entries + 1;
 			for (k = ent->firstChunk; k < last; k++) {
+				if (stco->nb_entries < k)
+					return GF_ISOM_INVALID_FILE;
 
 				//we need to rewrite the table: only allocate co64 if not done previously and convert all offsets
 				//to co64. Then (whether co64 was created or not) adjust the offset
@@ -320,6 +322,8 @@ static GF_Err shift_chunk_offsets(GF_SampleToChunkBox *stsc, GF_MediaBox *mdia, 
 			//be careful for the last entry ...
 			last = ent->nextChunk ? ent->nextChunk : stco64->nb_entries + 1;
 			for (k = ent->firstChunk; k < last; k++) {
+				if (stco64->nb_entries < k)
+					return GF_ISOM_INVALID_FILE;
 				stco64->offsets[k-1] += offset;
 			}
 		}
