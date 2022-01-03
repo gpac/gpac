@@ -511,6 +511,8 @@ GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *al
 #endif
 		return gf_sg_script_get_field_index(Node, inField, IndexMode, allField);
 	default:
+		if (inField >= gf_sg_mpeg4_node_get_field_count(Node, IndexMode))
+			return GF_NON_COMPLIANT_BITSTREAM;
 		return gf_sg_mpeg4_node_get_field_index(Node, inField, IndexMode, allField);
 	}
 }
