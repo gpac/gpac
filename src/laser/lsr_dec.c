@@ -1879,6 +1879,7 @@ static void lsr_translate_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val,
 			}
 			gf_list_del(l);
 			val->value = vb;
+			return;
 		}
 		break;
 	case SVG_Coordinates_datatype:
