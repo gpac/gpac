@@ -1288,10 +1288,13 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 b
 			}
 			gf_isom_sample_del(&samp);
 		}
-		if (remove_ocr) esd->OCRESID = 0;
-		else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 
-		gf_list_add(iod->ESDescriptors, esd);
+		if (esd) {
+			if (remove_ocr) esd->OCRESID = 0;
+			else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
+
+			gf_list_add(iod->ESDescriptors, esd);
+		}
 
 		if (is_ok) {
 			u32 has_a, has_v, has_i_a, has_i_v;
