@@ -4009,7 +4009,8 @@ GF_Err audio_sample_entry_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->esd = NULL;
 			e = gf_isom_box_parse((GF_Box **)&ptr->esd, mybs);
 			gf_bs_del(mybs);
-			if (e==GF_OK) {
+
+			if ((e==GF_OK) && (ptr->esd->type == GF_ISOM_BOX_TYPE_ESDS)) {
 				if (!ptr->child_boxes) ptr->child_boxes = gf_list_new();
 				gf_list_add(ptr->child_boxes, ptr->esd);
 			} else if (ptr->esd) {
