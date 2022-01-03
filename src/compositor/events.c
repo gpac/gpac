@@ -91,6 +91,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		txt = (char*)gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 		lptr = compositor->sel_buffer;
 		len = gf_utf8_wcstombs(txt, 2*compositor->sel_buffer_len, &lptr);
+		if ((s32)len<0) len = 0;
 		txt[len] = 0;
 		*compositor->edited_text = gf_strdup(txt);
 		gf_free(txt);
@@ -298,6 +299,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							cur->textContent = (char*)gf_malloc(sizeof(char)*(len+1));
 							srcp = compositor->sel_buffer;
 							len = gf_utf8_wcstombs(cur->textContent, len, &srcp);
+							if ((s32)len<0) len = 0;
 							cur->textContent[len] = 0;
 							compositor->sel_buffer[compositor->caret_pos] = end;
 
@@ -306,6 +308,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 								ntext->textContent = (char*)gf_malloc(sizeof(char)*(len+1));
 								srcp = compositor->sel_buffer + compositor->caret_pos + 1;
 								len = gf_utf8_wcstombs(ntext->textContent, len, &srcp);
+								if ((s32)len<0) len = 0;
 								ntext->textContent[len] = 0;
 							} else {
 								ntext->textContent = gf_strdup("");

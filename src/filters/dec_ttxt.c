@@ -657,6 +657,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 				wsChunk[i-start_char] = 0;
 				sp = &wsChunk[0];
 				len = (u32) gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
+				if ((s32)len<0) len = 0;
 				szLine[len] = 0;
 
 				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
