@@ -3783,9 +3783,10 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 			u32 len = (u32) ( UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str) );
 			char *utf8str = (char *)gf_malloc(len + 1);
 			u32 res_len = (u32) gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
-			utf8str[res_len] = 0;
-			fprintf(stderr, "%s\n", utf8str);
-
+			if (res_len != (u32) -1) {
+				utf8str[res_len] = 0;
+				fprintf(stderr, "%s\n", utf8str);
+			}
 			gf_free(utf8str);
 		}
 	}

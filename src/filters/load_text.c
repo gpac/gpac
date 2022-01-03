@@ -329,6 +329,7 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 	}
 	sptr = (u16 *)szLine;
 	i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
+	if ((s32)i<0) i = 0;
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the gf_fgets never reads the \0 after a \n*/
@@ -770,6 +771,7 @@ force_line:
 				else if (uniLine[i]=='<')  {
 					const unsigned short* src = uniLine + i;
 					size_t alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
+					if (alen<0) alen = 0;
 					szLine[alen] = 0;
 					strlwr(szLine);
 					if (!strncmp(szLine, "<font ", 6) ) {
@@ -942,6 +944,7 @@ force_line:
 
 			sptr = (u16 *) uniText;
 			len = (u32) gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
+			if ((s32)len<0) len = 0;
 
 			gf_isom_text_add_text(ctx->samp, szText, len);
 			char_len += char_line;
