@@ -4002,6 +4002,8 @@ struct __tag_isom {
 	u8 convert_streaming_text;
 	u8 is_jp2;
 	u8 force_co64;
+	u8 disable_odf_translate;
+	u8 disable_brand_rewrite;
 	u64 next_flush_chunk_time;
 	Bool keep_utc;
 	/*main boxes for fast access*/
@@ -4021,8 +4023,6 @@ struct __tag_isom {
 
 	s64 read_byte_offset;
 	u64 bytes_removed;
-
-	Bool disable_odf_translate;
 
 	GF_ISOCompressMode compress_mode;
 	u32 compress_flags;

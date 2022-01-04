@@ -251,7 +251,8 @@ static void ShiftMetaOffset(GF_MetaBox *meta, u64 offset)
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->data_reference_index) continue;
-		if (iloc->construction_method == 2) continue;
+		//idat or item ref offset, don't shift offset
+		if (iloc->construction_method) continue;
 		if (!iloc->base_offset) {
 			GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 			if (entry && !entry->extent_length && !entry->original_extent_offset && (gf_list_count(iloc->extent_entries)==1) )
@@ -789,7 +790,8 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 		it_size = 0;
 		/*for self contained only*/
 		if (!iloc->data_reference_index) {
-			if (iloc->construction_method != 2) {
+			//update offset only if not idat nor item ref offset
+			if (! iloc->construction_method) {
 				iloc->base_offset = baseOffset;
 			}
 
@@ -849,11 +851,10 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				while ((entry = (GF_ItemExtentEntry *)gf_list_enum(iloc->extent_entries, &j))) {
 					if (entry->extent_index) continue;
 					if (j && (maxExtendOffset<it_size) ) maxExtendOffset = it_size;
-					/*compute new offset*/
-					if (iloc->construction_method != 2) {
+
+					//update offset only if not idat nor item ref offset
+					if (! iloc->construction_method) {
 						entry->extent_offset = it_size;
-					} else {
-						entry->extent_offset = baseOffset + it_size;
 					}
 					it_size += entry->extent_length;
 					if (maxExtendSize<entry->extent_length) maxExtendSize = entry->extent_length;
