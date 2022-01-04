@@ -5845,7 +5845,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 	meta = (GF_MetaBox *) gf_isom_create_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_BAD_PARAM;
 
-	ilst = gf_ismo_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) {
 		ilst = (GF_ItemListBox *) gf_isom_box_new_parent(&meta->child_boxes, GF_ISOM_BOX_TYPE_ILST);
 	}
@@ -5945,7 +5945,15 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 			loc_data[0] = int_val ? 1 : 0;
 		}
 		data = loc_data;
-		data_len = 0;
+		data_len = 1;
+		dbox->flags = int_flags;
+		break;
+	case GF_ITAG_INT8:
+		loc_data[0] = 0;
+		if (data && data_len) int_val = atoi(data);
+		loc_data[0] = (u8) int_val;
+		data = loc_data;
+		data_len = 1;
 		dbox->flags = int_flags;
 		break;
 	case GF_ITAG_INT16:
@@ -5980,7 +5988,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		loc_data[1] = (u8) (int_val>>48);
 		loc_data[0] = (u8) (int_val>>56);
 		data = loc_data;
-		data_len = 4;
+		data_len = 8;
 		dbox->flags = int_flags;
 		break;
 	default:

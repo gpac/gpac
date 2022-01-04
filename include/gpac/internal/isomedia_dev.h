@@ -4274,7 +4274,7 @@ Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);
 u32 GetHintFormat(GF_TrackBox *trak);
 
 /*locate a box by its type or UUID*/
-GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
+GF_ItemListBox *gf_isom_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
 GF_Err moov_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
 GF_Err trak_on_child_box(GF_Box *ptr, GF_Box *a, Bool is_rem);
