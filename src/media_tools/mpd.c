@@ -3358,6 +3358,7 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 	if (!period) {
 		const char *g_type = NULL;
 		const char *g_id = NULL;
+		char szLANG[100];
 
 		if (rep->streamtype==GF_STREAM_AUDIO) {
 			g_type = "AUDIO";
@@ -3370,10 +3371,16 @@ static void gf_mpd_write_m3u8_playlist_tags(const GF_MPD_AdaptationSet *as, u32 
 		if (!g_type || !g_id)
 			return;
 
+		//don't inject LANGUAGE if not known
+		if (!strcmp(as->lang, "und")) {
+			szLANG[0] = 0;
+		} else {
+			sprintf(szLANG, ",LANGUAGE=\"%s\"", as->lang);
+		}
 		if (rep->groupID)
-			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, rep->groupID, rep->id, as->lang, m3u8_name);
+			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s\",NAME=\"%s\"%s,AUTOSELECT=YES,URI=\"%s\"", g_type, rep->groupID, rep->id, szLANG, m3u8_name);
 		else
-			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\",LANGUAGE=\"%s\",AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, as->lang, m3u8_name);
+			gf_fprintf(out, "#EXT-X-MEDIA:TYPE=%s,GROUP-ID=\"%s%d\",NAME=\"%s\"%s,AUTOSELECT=YES,URI=\"%s\"", g_type, g_id, as_idx, rep->id, szLANG, m3u8_name);
 		if (rep->nb_chan)
 			gf_fprintf(out,",CHANNELS=\"%d\"", rep->nb_chan);
 
@@ -3473,7 +3480,7 @@ static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const G
 	return url;
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version)
+static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session)
 {
 	u32 i, count;
 	GF_DASH_SegmentContext *sctx;
@@ -3500,7 +3507,10 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	gf_fprintf(out,"#EXT-X-VERSION:%d\n", hls_version);
 	gf_fprintf(out,"#EXT-X-MEDIA-SEQUENCE:%d\n", sctx->seg_num);
 	if (as->use_hls_ll) {
-		gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", as->hls_ll_frag_dur);
+		//PART-HOLD-BACK is REQUIRED if the Playlist contains the EXT-X-PART-INF tag
+		//we use the recommended (should) PART-TARGET x 3
+		gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", 3 * max_part_dur_session);
+		gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", rep->hls_ll_part_dur);
 	}
 	for (i=0; i<rep->nb_hls_variant_tags; i++) {
 		gf_fprintf(out,"%s\n", rep->hls_variant_tags[i]);
@@ -3591,14 +3601,19 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					gf_fprintf(out, "\n");
 				}
 				//live edge not done yet
-				if (! sctx->llhls_mode) {
+				if (!sctx->llhls_mode) {
 					if (close_file)
 						gf_fclose(out);
-
 					return GF_OK;
 				}
 			}
-			
+
+			//live edge seg not done yet, do not write EXTINF and stop writing
+			if (sctx->llhls_mode && (i+1==count) && !sctx->llhls_done) {
+				if (close_file)
+					gf_fclose(out);
+				return GF_OK;
+			}
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
 			gf_fprintf(out,"#EXTINF:%g,\n", dur);
@@ -3709,7 +3724,6 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	if (use_intra_only) hls_version = 5;
 	if (is_fmp4 || use_init) hls_version = 6;
 
-
 	gf_fprintf(out, "#EXTM3U\n");
 	gf_fprintf(out, "#EXT-X-VERSION: %d\n", hls_version);
 	if (use_ind_segments)
@@ -3731,6 +3745,38 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	if (sep) sep[0] = 0;
 	szVariantName = gf_malloc(sizeof(char) * (100 + strlen(m3u8_name_rad)) );
 
+	//if live low lat, update parts dur
+	Double max_part_dur_session=0;
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		u32 j=0;
+		GF_MPD_Representation *rep;
+		if (!as->use_hls_ll) continue;
+
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			u32 k=0;
+			//figure out max part duration for this version of the playlist
+			Double max_part_dur=0;
+			GF_DASH_SegmentContext *sctx;
+			while ( (sctx = (GF_DASH_SegmentContext *) gf_list_enum(rep->state_seg_list, &k))) {
+				u32 nseg;
+				Double dur;
+				if (!sctx->llhls_mode || sctx->llhls_done) continue;
+
+				for (nseg=0; nseg<sctx->nb_frags; nseg++) {
+					dur = sctx->frags[nseg].duration;
+					dur /= rep->timescale;
+					if (dur>max_part_dur) max_part_dur = dur;
+				}
+			}
+			if (!max_part_dur) max_part_dur = as->hls_ll_target_frag_dur;
+			assert(max_part_dur);
+			max_part_dur = ceil(max_part_dur*1000) / 1000.0;
+			rep->hls_ll_part_dur = max_part_dur;
+			if (max_part_dur_session < max_part_dur)
+				max_part_dur_session = max_part_dur;
+		}
+	}
 
 	//first pass, generate all subplaylists, and check if we have muxed components, or video or audio
 	var_idx = 1;
@@ -3766,7 +3812,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			}
 			var_idx++;
 
-			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version);
+			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
 				return GF_IO_ERR;

@@ -1464,6 +1464,7 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	sess->nb_consecutive_errors = 0;
 	sess->canceled = GF_FALSE;
+	assert(sess->reply_code);
 	e = gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, response_body, no_body);
 	sess->headers_done = GF_TRUE;
 	sess->is_h2 = gf_dm_sess_is_h2(sess->http_sess);
@@ -1547,6 +1548,10 @@ exit:
 		gf_dm_sess_set_header(sess->http_sess, "Content-Type", "text/plain");
 		sprintf(szFmt, "%d", body_size);
 		gf_dm_sess_set_header(sess->http_sess, "Content-Length", szFmt);
+	}
+	else if (is_options) {
+		//if this header is not present, firefox may timeout on preflight
+		gf_dm_sess_set_header(sess->http_sess, "Content-Length", "0");
 	}
 
 	gf_dm_sess_send_reply(sess->http_sess, sess->reply_code, response_body, GF_FALSE);

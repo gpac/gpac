@@ -6025,7 +6025,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 		if (ctx->llhls) {
 			ds->set->use_hls_ll = GF_TRUE;
 			if (ctx->cdur.den)
-				ds->set->hls_ll_frag_dur = ((Double)ctx->cdur.num) / ctx->cdur.den;
+				ds->set->hls_ll_target_frag_dur = ((Double)ctx->cdur.num) / ctx->cdur.den;
 		}
 		ds->set->udta = ds;
 		if (ds->period_continuity_id) {
@@ -8609,6 +8609,7 @@ static void dasher_process_hls_ll(GF_DasherCtx *ctx, const GF_FilterEvent *evt)
 	} else {
 		sctx->frags[sctx->nb_frags].duration = 0;
 	}
+
 	sctx->frags[sctx->nb_frags].independent = evt->frag_size.independent;
 	sctx->nb_frags++;
 	if (evt->frag_size.is_last) {
