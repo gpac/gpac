@@ -5374,7 +5374,8 @@ static GF_Err do_itunes_tag()
 		}
 		if (!val || (val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
-		tlen = val ? (u32) strlen(val) : 0;
+		//if val is NULL, use tlen=1 to force removal of tag
+		tlen = val ? (u32) strlen(val) : 1;
 		if (clear) {
 			e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_RESET, NULL, 0, 0, 0);
 		}

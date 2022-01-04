@@ -6359,9 +6359,9 @@ GF_Err gf_isom_wma_enum_tag(GF_ISOFile *isom_file, u32 idx, char **out_tag, cons
 \param isom_file the target ISO file
 \param tag the tag to set
 \param data tag data buffer or string to parse
-\param data_len size of the tag data buffer. If data is NLL and and data_len not  0, removes the given tag
-\param int_val value for integer/boolean tags. If data and data_len ar set, parse data as string  to get the value
-\param int_val2 value for fractional  tags. If data and data_len ar set, parse data as string to get the value
+\param data_len size of the tag data buffer. If data is NULL and and data_len not  0, removes the given tag
+\param int_val value for integer/boolean tags. If data and data_len are set, parse data as string  to get the value
+\param int_val2 value for fractional  tags. If data and data_len are set, parse data as string to get the value
 \return error if any
 */
 GF_Err gf_isom_apple_set_tag(GF_ISOFile *isom_file, GF_ISOiTunesTag tag, const u8 *data, u32 data_len, u64 int_val, u32 int_val2);
