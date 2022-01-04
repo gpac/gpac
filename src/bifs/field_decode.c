@@ -296,6 +296,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	sffield.fieldIndex = field->fieldIndex;
 	sffield.fieldType = gf_sg_vrml_get_sf_type(field->fieldType);
 	sffield.NDTtype = field->NDTtype;
+	sffield.name = field->name;
 
 	nbF = 0;
 	qp_on = qp_local = 0;
@@ -385,6 +386,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 	sffield.fieldIndex = field->fieldIndex;
 	sffield.fieldType = gf_sg_vrml_get_sf_type(field->fieldType);
 	sffield.NDTtype = field->NDTtype;
+	sffield.name = field->name;
 
 	initial_qp = qp_local = qp_on = 0;
 
