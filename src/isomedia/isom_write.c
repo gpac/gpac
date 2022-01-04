@@ -3275,10 +3275,20 @@ GF_Err gf_isom_use_compact_size(GF_ISOFile *movie, u32 trackNumber, Bool Compact
 
 
 GF_EXPORT
+GF_Err gf_isom_disable_brand_rewrite(GF_ISOFile *movie, Bool do_disable)
+{
+	if (!movie) return GF_BAD_PARAM;
+	movie->disable_brand_rewrite = do_disable ? 1: 0;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_set_brand_info(GF_ISOFile *movie, u32 MajorBrand, u32 MinorVersion)
 {
 	u32 i, *p;
 
+	if (!movie) return GF_BAD_PARAM;
+	if (movie->disable_brand_rewrite) return GF_OK;
 	if (!MajorBrand) return GF_BAD_PARAM;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -3328,6 +3338,8 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, Bool AddIt)
 {
 	u32 i, k, *p;
 
+	if (!movie) return GF_BAD_PARAM;
+	if (movie->disable_brand_rewrite) return GF_OK;
 	if (!Brand) return GF_BAD_PARAM;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -3400,6 +3412,9 @@ found:
 GF_Err gf_isom_reset_alt_brands_ex(GF_ISOFile *movie, Bool leave_empty)
 {
 	u32 *p;
+
+	if (!movie) return GF_BAD_PARAM;
+	if (movie->disable_brand_rewrite) return GF_OK;
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (! (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
@@ -6317,7 +6332,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	GF_RVCConfigurationBox *rvcc = (GF_RVCConfigurationBox *) gf_isom_box_find_child(entry->child_boxes, GF_ISOM_BOX_TYPE_RVCC);
 	if (rvcc && rvcc->rvc_meta_idx) {
-		gf_isom_remove_meta_item(movie, GF_FALSE, track, rvcc->rvc_meta_idx);
+		gf_isom_remove_meta_item(movie, GF_FALSE, track, rvcc->rvc_meta_idx, GF_FALSE, NULL);
 		rvcc->rvc_meta_idx = 0;
 	}
 

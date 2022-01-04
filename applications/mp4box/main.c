@@ -102,9 +102,10 @@ typedef struct
 	Bool root_meta, use_dref;
 	GF_ISOTrackID trackID;
 	u32 meta_4cc;
-	char *szPath, *szName, *mime_type, *enc_type;
+	char *szPath, *szName, *mime_type, *enc_type, *keep_props;
 	u32 item_id;
 	Bool primary;
+	Bool replace;
 	u32 item_type;
 	u32 ref_item_id;
 	GF_List *item_refs;
@@ -1179,13 +1180,14 @@ MP4BoxArg m4b_meta_args[] =
  	MP4BOX_ARG("add-item", "add resource to meta, with parameter syntax `file_path[:opt1:optN]`\n"
 		"- file_path `this` or `self`: item is the file itself\n"
 		"- tk=tkID: meta location (file, moov, track)\n"
-		"- name=str: item name\n"
+		"- name=str: item name, none if not set\n"
 		"- type=itype: item 4cc type (not needed if mime is provided)\n"
-		"- mime=mtype: item mime type\n"
-		"- encoding=enctype: item content-encoding type\n"
+		"- mime=mtype: item mime type, none if not set\n"
+		"- encoding=enctype: item content-encoding type, none if not set\n"
 		"- id=ID: item ID\n"
 		"- ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)\n"
-		"- group=id,type: indicate the id and type of an alternate group for this item"
+		"- group=id,type: indicate the id and type of an alternate group for this item\n"
+		"- replace: replace existing item by new item"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-image", "add the given file as HEIF image item, with parameter syntax `file_path[:opt1:optN]`. If `filepath` is omitted, source is the input MP4 file\n"
 		"- name, id, ref: see [-add-item]()\n"
@@ -1211,6 +1213,10 @@ MP4BoxArg m4b_meta_args[] =
 		"- ref: do not copy the data but refer to the final sample/item location, ignored if `filepath` is set\n"
 		"- agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will **try to** have `AR` aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden\n"
 		"- av1_op_index: select the AV1 operating point to use via a1op box\n"
+		"- replace: replace existing image by new image, keeping props listed in `keep_props`\n"
+		"- keep_props=4CCs: coma-separated list of properties types to keep when replacing the image, e.g. `keep_props=auxC`\n"
+		"- auxt=URN: mark image as auxiliary using given `URN`\n"
+		"- auxd=FILE: use data from `FILE` as auxiliary extensions (cf `auxC` box)\n"
 		"- any other options will be passed as options to the media importer, see [-add]()"
 		, GF_ARG_STRING, 0, parse_meta_args, META_ACTION_ADD_IMAGE_ITEM, ARG_IS_FUN),
 	MP4BOX_ARG("add-derived-image", "create an image grid, overlay or identity item, with parameter syntax `:type=(grid|iovl|iden)[:opt1:optN]`\n"
@@ -1741,6 +1747,17 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		szSlot = opts;
 		next = gf_url_colon_suffix(opts, '=');
 		if (next) next[0] = 0;
+		if (next && !strncmp(szSlot, "auxt", 4)) {
+			next[0] = ':';
+			char *sep = strchr(next, '=');
+			if (sep) {
+				next = sep;
+				while (next[0] != ':')
+					next--;
+
+				next[0] = 0;
+			}
+		}
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
 			sscanf(szSlot, "tk=%u", &meta->trackID);
@@ -1944,6 +1961,25 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		else if (!strnicmp(szSlot, "av1_op_index=", 13)) {
 			CHECK_IMGPROP
 			meta->image_props->av1_op_index = atoi(szSlot+13);
+		}
+		else if (!stricmp(szSlot, "replace")) {
+			meta->replace = GF_TRUE;
+		}
+		else if (!strnicmp(szSlot, "keep_props=", 11)) {
+			CHECK_IMGPROP
+			meta->keep_props = gf_strdup(szSlot+11);
+		}
+		else if (!strnicmp(szSlot, "auxt=", 5)) {
+			CHECK_IMGPROP
+			meta->image_props->aux_urn = gf_strdup(szSlot+5);
+		}
+		else if (!strnicmp(szSlot, "auxd=", 5)) {
+			CHECK_IMGPROP
+			GF_Err e = gf_file_load_data(szSlot+5, (u8 **) &meta->image_props->aux_data, &meta->image_props->aux_data_len);
+			if (e) {
+				M4_LOG(GF_LOG_ERROR, ("Failed to load auxiliary data file %s: %s\n", szSlot+5, gf_error_to_string(e) ));
+				return 1;
+			}
 		}
 		else if (!strchr(szSlot, '=')) {
 			switch (meta->act_type) {
@@ -4793,6 +4829,17 @@ static GF_Err do_meta_act()
 			do_save = GF_TRUE;
 			break;
 		case META_ACTION_ADD_ITEM:
+
+			if (meta->replace) {
+				if (!gf_isom_get_meta_item_by_id(file, meta->root_meta, tk, meta->item_id)) {
+					M4_LOG(GF_LOG_WARNING, ("No item with ID %d, ignoring replace\n", meta->item_id));
+					meta->item_id = 0;
+				} else {
+					e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id, GF_TRUE, meta->keep_props);
+					if (e) break;
+				}
+			}
+
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 			                          meta->szName,
@@ -4835,7 +4882,9 @@ static GF_Err do_meta_act()
 					if (meta->image_props->item_ref_id)
 						src_tk_id = 0;
 				} else {
+					gf_isom_disable_brand_rewrite(file, GF_TRUE);
 					e = import_file(file, meta->szPath, 0, _frac, 0, NULL, NULL, NULL, 0);
+					gf_isom_disable_brand_rewrite(file, GF_FALSE);
 				}
 			} else {
 				M4_LOG(GF_LOG_ERROR, ("Missing file name to import\n"));
@@ -4868,11 +4917,20 @@ static GF_Err do_meta_act()
 							if (!src_tk_id) {
 								M4_LOG(GF_LOG_ERROR, ("No video track in file, cannot add image from track\n"));
 								e = GF_BAD_PARAM;
-								break;
 							}
 						}
 
-						e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, src_tk_id, meta->szName, meta->item_id, meta->image_props, NULL);
+						if (e == GF_OK && meta->replace) {
+							if (!gf_isom_get_meta_item_by_id(file, meta->root_meta, tk, meta->item_id)) {
+								M4_LOG(GF_LOG_WARNING, ("No item with ID %d, ignoring replace\n", meta->item_id));
+								meta->item_id = 0;
+							} else {
+								e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id, GF_TRUE, meta->keep_props);
+							}
+						}
+						if (e==GF_OK)
+							e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, src_tk_id, meta->szName, meta->item_id, meta->image_props, NULL);
+
 						if (e == GF_OK && meta->primary) {
 							e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 						}
@@ -4914,38 +4972,40 @@ static GF_Err do_meta_act()
 					e = GF_BAD_PARAM;
 				}
 			}
-			if (e == GF_OK) {
-				if (!meta->item_id) {
-					e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+			if (e) break;
+			if (!meta->item_id) {
+				e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+			}
+			if (e == GF_OK && meta->item_type) {
+				if (meta->item_type == GF_4CC('g','r','i','d')) {
+					e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
+							meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+							meta->item_id,
+							meta->image_props);
+				} else if (meta->item_type == GF_4CC('i','o','v','l')) {
+					e = gf_isom_iff_create_image_overlay_item(file, meta->root_meta, tk,
+							meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+							meta->item_id,
+							meta->image_props);
+				} else if (meta->item_type == GF_4CC('i','d','e','n')) {
+					e = gf_isom_iff_create_image_identity_item(file, meta->root_meta, tk,
+							meta->szName && strlen(meta->szName) ? meta->szName : NULL,
+							meta->item_id,
+							meta->image_props);
+				} else {
+					e = GF_NOT_SUPPORTED;
 				}
-				if (e == GF_OK && meta->item_type) {
-					if (meta->item_type == GF_4CC('g','r','i','d')) {
-						e = gf_isom_iff_create_image_grid_item(file, meta->root_meta, tk,
-								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
-								meta->item_id,
-								meta->image_props);
-					} else if (meta->item_type == GF_4CC('i','o','v','l')) {
-						e = gf_isom_iff_create_image_overlay_item(file, meta->root_meta, tk,
-								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
-								meta->item_id,
-								meta->image_props);
-					} else if (meta->item_type == GF_4CC('i','d','e','n')) {
-						e = gf_isom_iff_create_image_identity_item(file, meta->root_meta, tk,
-								meta->szName && strlen(meta->szName) ? meta->szName : NULL,
-								meta->item_id,
-								meta->image_props);
-					} else {
-						e = GF_NOT_SUPPORTED;
-					}
-					if (e == GF_OK && meta->primary) {
-						e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
-					}
-					if (e == GF_OK && meta->item_refs && gf_list_count(meta->item_refs)) {
-						u32 ref_i;
-						for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
-							MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
-							e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
-						}
+				if (e) break;
+				if (meta->primary) {
+					e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
+					if (e) break;
+				}
+				if (meta->item_refs && gf_list_count(meta->item_refs)) {
+					u32 ref_i;
+					for (ref_i = 0; ref_i < gf_list_count(meta->item_refs); ref_i++) {
+						MetaRef	*ref_entry = gf_list_get(meta->item_refs, ref_i);
+						e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, ref_entry->ref_item_id, ref_entry->ref_type, NULL);
+						if (e) break;
 					}
 				}
 			}
@@ -4953,7 +5013,7 @@ static GF_Err do_meta_act()
 		}
 			break;
 		case META_ACTION_REM_ITEM:
-			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
+			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id, GF_FALSE, NULL);
 			do_save = GF_TRUE;
 			break;
 		case META_ACTION_SET_PRIMARY_ITEM:
@@ -5478,9 +5538,12 @@ static u32 mp4box_cleanup(u32 ret_code) {
 			if (metas[i].mime_type) gf_free(metas[i].mime_type);
 			if (metas[i].szName) gf_free(metas[i].szName);
 			if (metas[i].szPath) gf_free(metas[i].szPath);
+			if (metas[i].keep_props) gf_free(metas[i].keep_props);
 			if (metas[i].image_props) {
 				GF_ImageItemProperties *iprops = metas[i].image_props;
 				if (iprops->overlay_offsets) gf_free(iprops->overlay_offsets);
+				if (iprops->aux_urn) gf_free((char *) iprops->aux_urn);
+				if (iprops->aux_data) gf_free((char *) iprops->aux_data);
 				gf_free(iprops);
 			}
 		}

@@ -18,11 +18,13 @@
 - user tags injection for HLS master and variant playlists
 
 ## Image File Format (HEIF)
-- support for grid creation and other derive images
+- support for grid creation and other derived images
 - support for encryption
 - support for time range in -add-image
 - support for item to sample data reference (no copy)
 - support for item to item data reference (no copy)
+- support for generic aux image tagging
+- support for image replacement
 - AV1 (AVIF) and VVC support
 
 ## MP4Box
@@ -45,7 +47,7 @@
 - raw options for flist and reframer
 - flip and rotate in vout
 - simple UI for vout to test seeking and speed modes
-- improved colorspace support in rendering (OpenGL only)
+- improved color space support in rendering (OpenGL only)
 - improved round-trip audio decode
 - improved audio resampler
 - added back old arch compositor features (TEMI support, HEVC tiling JS monitoring, MPEG-4 SegmentDescriptor) 

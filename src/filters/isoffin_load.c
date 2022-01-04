@@ -1494,6 +1494,8 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 	u32 scheme_type=0, scheme_version=0, item_type;
 	const char *item_name, *item_mime_type, *item_encoding;
 
+retry:
+
 	if (item_idx>gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0))
 		return GF_FALSE;
 
@@ -1520,7 +1522,11 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 
 
 	esd = gf_media_map_item_esd(read->mov, item_id);
-	if (!esd) return GF_FALSE;
+	if (!esd) {
+		//unsupported item, try next
+		item_idx++;
+		goto retry;
+	}
 
 
 	//OK declare PID

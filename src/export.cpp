@@ -1048,6 +1048,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_user_data_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_uuid) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_use_compact_size) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_disable_brand_rewrite) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_brand_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_alternate_brand) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_alt_brands) )

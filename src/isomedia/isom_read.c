@@ -642,7 +642,7 @@ Bool gf_isom_has_root_od(GF_ISOFile *movie)
 GF_EXPORT
 void gf_isom_disable_odf_conversion(GF_ISOFile *movie, Bool disable)
 {
-	if (movie) movie->disable_odf_translate = disable;
+	if (movie) movie->disable_odf_translate = disable ? 1 : 0;
 }
 
 //this funct is used for exchange files, where the iods contains an OD

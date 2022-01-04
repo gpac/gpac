@@ -1247,6 +1247,11 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 	u32 sai_size = 0, sai_alloc_size = 0;
 	u32 sample_desc_index = 0;
 	GF_ISOFile *fsrc = movie;
+	Bool reset_brands = GF_FALSE;
+
+	//only reset brands if first item import
+	if (!gf_isom_get_meta_item_count(movie, root_meta, meta_track_number))
+		reset_brands = GF_TRUE;
 
 	if (image_props && image_props->src_file)
 		fsrc = image_props->src_file;
@@ -1283,9 +1288,10 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			gf_list_add(tile_item_ids, tile_item_id);
 			e = gf_isom_get_reference(movie, imported_track, GF_ISOM_REF_SABT, 1, &tile_track);
 			if (e) return e;
-			sprintf(sz_item_name, "%s-Tile%d", (item_name ? item_name : "Image"), i + 1);
+			if (item_name)
+				sprintf(sz_item_name, "%s-Tile%d", item_name, i + 1);
 			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
-				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, sz_item_name, *tile_item_id, NULL, NULL);
+				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, item_name ? sz_item_name : NULL, *tile_item_id, NULL, NULL);
 			}
 			if (e) return e;
 			gf_isom_remove_track(movie, tile_track);
@@ -1294,9 +1300,10 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			}
 			if (e) return e;
 		}
-		sprintf(sz_item_name, "%s-TileBase", (item_name ? item_name : "Image"));
+		if (item_name)
+			sprintf(sz_item_name, "%s-TileBase", item_name);
 		if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
-			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, sz_item_name, item_id, image_props, tile_item_ids);
+			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, item_name ? sz_item_name : NULL, item_id, image_props, tile_item_ids);
 		}
 		else if (orig_tile_mode == TILE_ITEM_ALL_GRID) {
 			// TODO
@@ -1382,10 +1389,10 @@ static GF_Err gf_isom_iff_create_image_item_from_track_internal(GF_ISOFile *movi
 			e = gf_isom_extract_meta_item_mem(fsrc, GF_TRUE, 0, ref_id, &data, &size, &size, NULL, GF_FALSE);
 			if (e) return GF_BAD_PARAM;
 
-			e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
+			e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, data, size, NULL);
 			if (data) gf_free(data);
 		} else {
-			e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
+			e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, 0, ref_id);
 		}
 		return e;
 	}
@@ -1648,7 +1655,6 @@ import_next_sample:
 			image_props->cenc_info = NULL;
 		}
 	}
-
 	if (!item_id) {
 		e = gf_isom_meta_get_next_item_id(movie, root_meta, meta_track_number, &item_id);
 		if (e) goto exit;
@@ -1659,7 +1665,7 @@ import_next_sample:
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("referring trackID %d sample at time %.3f as item %d\n", imported_track, (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
 		}
-		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name)) ? "Image" : item_name, &item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
+		e = gf_isom_add_meta_item_sample_ref(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, imported_track, sample_number);
 	} else {
 
 		if (image_props->sample_num) {
@@ -1667,19 +1673,22 @@ import_next_sample:
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample at time %.3f as item %d\n", (sample->DTS+sample->CTS_Offset)*1.0/timescale, item_id));
 		}
-		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), &item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
-
+		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, item_name, &item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
 	}
 
 	image_props->cenc_info = NULL;
 
-	gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
-	gf_isom_reset_alt_brands(movie);
-	// TODO Analyze configuration to determine the brand */
-	//if (media_brand) {
-	//	gf_isom_modify_alternate_brand(movie, media_brand, GF_TRUE);
-	//}
+	if (reset_brands) {
+		gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
+		gf_isom_reset_alt_brands(movie);
 
+		// TODO Analyze configuration to determine the brand */
+		//if (media_brand) {
+		//	gf_isom_modify_alternate_brand(movie, media_brand, GF_TRUE);
+		//}
+	}
+
+	
 	if (neg_time)
 		image_props->time = -1;
 

@@ -2310,6 +2310,13 @@ compaction is done automatically while writing based on the track's sample sizes
 */
 GF_Err gf_isom_use_compact_size(GF_ISOFile *isom_file, u32 trackNumber, Bool CompactionOn);
 
+/*! disabled brand rewrite for file, usually done for temporary import in an existing file
+\param isom_file the target ISO file
+\param do_disable if true, brand rewrite is disabled, otherwise enabled
+\return error if any
+*/
+GF_Err gf_isom_disable_brand_rewrite(GF_ISOFile *isom_file, Bool do_disable);
+
 /*! sets the brand of the movie
 \note this automatically adds the major brand to the set of alternate brands if not present
 \param isom_file the target ISO file
@@ -6006,6 +6013,10 @@ typedef struct
 	u32 av1_layer_size[3];
 	/*AV1 operation point index*/
 	u8 av1_op_index;
+
+	const char *aux_urn;
+	const u8 *aux_data;
+	u32 aux_data_len;
 } GF_ImageItemProperties;
 
 
@@ -6167,9 +6178,11 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *isom_file, Bool root
 \param root_meta if GF_TRUE uses meta at the file, otherwise uses meta at the movie level if track number is 0
 \param track_num if GF_TRUE and root_meta is GF_FALSE, uses meta at the track level
 \param item_num 1-based index of the item to remove
+\param keep_refs do not modify item reference, typically used when replacing an item
+\param keep_props keep property association for properties with 4CC listed in keep_props (coma-seprated list)
 \return error if any
 */
-GF_Err gf_isom_remove_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num);
+GF_Err gf_isom_remove_meta_item(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 item_num, Bool keep_refs, const char *keep_props);
 
 /*! sets the given item as the primary one
 \warning This SHALL NOT be used if the meta has a valid XML data

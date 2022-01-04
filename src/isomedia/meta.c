@@ -1171,6 +1171,21 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.av1_op_index = 0;
 	}
 
+	if (image_props->aux_urn) {
+		GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_AUXC);
+		if (!auxC) return GF_OUT_OF_MEM;
+		auxC->aux_urn = gf_strdup(image_props->aux_urn);
+		prop_index = gf_list_count(ipco->child_boxes) - 1;
+		if (image_props->aux_data && image_props->aux_data_len) {
+			auxC->data_size = image_props->aux_data_len;
+			auxC->data = gf_malloc(sizeof(u8) * image_props->aux_data_len);
+			if (!auxC->data) return GF_OUT_OF_MEM;
+			memcpy(auxC->data, image_props->aux_data, sizeof(u8) * image_props->aux_data_len);
+		}
+		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
+		if (e) return e;
+	}
+
 	if (image_props->cenc_info) {
 		GF_ItemEncryptionPropertyBox *ienc = NULL;
 
@@ -1316,7 +1331,8 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		infe->item_name = gf_strdup(item_name);
 		file->no_inplace_rewrite = GF_TRUE;
 	} else if (resource_path) {
-		infe->item_name = gf_strdup(gf_file_basename( resource_path ));
+		//don't write an item name if not set
+		//infe->item_name = gf_strdup(gf_file_basename( resource_path ));
 		file->no_inplace_rewrite = GF_TRUE;
 	}
 
@@ -1604,8 +1620,75 @@ GF_Err gf_isom_add_meta_item_sample_ref(GF_ISOFile *file, Bool root_meta, u32 tr
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, GF_FALSE, NULL, item_name, item_id, item_type, mime_type, content_encoding, image_props, NULL, NULL, NULL, 0, NULL, tk_id, sample_num);
 }
 
+static Bool meta_use_item_prop_idx(GF_MetaBox *meta, u32 prop_idx)
+{
+	u32 k, i, count = gf_list_count(meta->item_props->property_association->entries);
+	for (i=0; i<count; i++) {
+		GF_ItemPropertyAssociationEntry *pa_ent = gf_list_get(meta->item_props->property_association->entries, i);
+		for (k=0; k<pa_ent->nb_associations; k++) {
+			if (pa_ent->associations[k].index == prop_idx) return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+
+static void meta_shift_item_prop_idx(GF_MetaBox *meta, u32 prop_idx)
+{
+	u32 k, i, count = gf_list_count(meta->item_props->property_association->entries);
+	for (i=0; i<count; i++) {
+		GF_ItemPropertyAssociationEntry *pa_ent = gf_list_get(meta->item_props->property_association->entries, i);
+		for (k=0; k<pa_ent->nb_associations; k++) {
+			if (pa_ent->associations[k].index > prop_idx) {
+				pa_ent->associations[k].index--;
+			}
+		}
+	}
+}
+
+static void meta_cleanup_associations(GF_MetaBox *meta)
+{
+	u32 i, count = gf_list_count(meta->item_props->property_container->child_boxes);
+	for (i=0; i<count; i++) {
+		u32 prop_idx = i+1;
+		if (meta_use_item_prop_idx(meta, prop_idx)) continue;
+
+		meta_shift_item_prop_idx(meta, prop_idx);
+		GF_Box *prop = gf_list_get(meta->item_props->property_container->child_boxes, i);
+		gf_isom_box_del_parent(&meta->item_props->property_container->child_boxes, prop);
+		i--;
+		count--;
+	}
+}
+
+static void meta_cleanup_item_association(GF_MetaBox *meta, GF_ItemPropertyAssociationEntry *pa_ent, const char *keep_props)
+{
+	u32 i;
+	GF_ItemPropertyContainerBox *ipco = meta->item_props->property_container;
+
+	for (i=0; i<pa_ent->nb_associations; i++) {
+		GF_Box *prop;
+		Bool do_rem = GF_TRUE;
+		if (!pa_ent->associations[i].index) continue;
+		prop = gf_list_get(ipco->child_boxes, pa_ent->associations[i].index-1);
+		if (prop && keep_props) {
+			const char *p4cc = gf_4cc_to_str(prop->type);
+			if (keep_props && strstr(keep_props, p4cc))
+				do_rem = GF_FALSE;
+		}
+
+		if (do_rem) {
+			if (i+1<pa_ent->nb_associations) {
+				memmove(&pa_ent->associations[i], &pa_ent->associations[i+1], sizeof(GF_ItemPropertyAssociationSlot)*(pa_ent->nb_associations-i-1));
+			}
+			pa_ent->nb_associations--;
+			i--;
+		}
+	}
+}
+
+
 GF_EXPORT
-GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id)
+GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, Bool keep_refs, const char *keep_props)
 {
 	GF_ItemInfoEntryBox *iinf;
 	u32 i, count;
@@ -1625,7 +1708,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
-			/*FIXME: remove data ref...*/
+			/*TODO: remove data ref...*/
 			if (iloc->data_reference_index) { }
 
 			gf_list_rem(meta->item_locations->location_entries, i);
@@ -1635,15 +1718,53 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	}
 
 	if (meta->item_props && meta->item_props->property_association) {
+		Bool cleanup_associations = GF_FALSE;
 		GF_ItemPropertyAssociationBox *ipma = meta->item_props->property_association;
 		count = gf_list_count(ipma->entries);
 		for (i=0; i<count; i++) {
 			GF_ItemPropertyAssociationEntry *pa_ent = gf_list_get(ipma->entries, i);
 			if (pa_ent->item_id == iinf->item_ID) {
-				gf_free(pa_ent->associations);
-				gf_free(pa_ent);
-				gf_list_rem(ipma->entries, i);
+				meta_cleanup_item_association(meta, pa_ent, keep_props);
+				if (!pa_ent->nb_associations) {
+					gf_free(pa_ent->associations);
+					gf_free(pa_ent);
+					gf_list_rem(ipma->entries, i);
+				}
+				cleanup_associations = GF_TRUE;
 				break;
+			}
+		}
+
+		if (cleanup_associations) {
+			meta_cleanup_associations(meta);
+		}
+	}
+
+	if (!keep_refs && meta->item_refs) {
+		count = gf_list_count(meta->item_refs->references);
+		for (i=0; i<count; i++) {
+			GF_ItemReferenceTypeBox *iref = gf_list_get(meta->item_refs->references, i);
+			Bool do_delete = GF_FALSE;
+			if (iref->from_item_id == item_id) {
+				do_delete = GF_FALSE;
+			} else {
+				u32 k;
+				for (k=0; k<iref->reference_count; k++) {
+					if (iref->to_item_IDs[k] != item_id) continue;
+					if (k+1<iref->reference_count)
+						memmove(&iref->to_item_IDs[k], &iref->to_item_IDs[k+1], sizeof(u32)*(iref->reference_count-k-1));
+					iref->reference_count--;
+					k--;
+				}
+				if (!iref->reference_count) {
+					do_delete = GF_TRUE;
+				}
+			}
+			if (do_delete) {
+				gf_isom_box_del_parent(&meta->item_refs->child_boxes, (GF_Box *) iref);
+				gf_list_rem(meta->item_refs->references, i);
+				i--;
+				count--;
 			}
 		}
 	}
