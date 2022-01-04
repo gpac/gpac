@@ -2325,7 +2325,7 @@ static GF_Err DumpRouteReplace(GF_SceneDumper *sdump, GF_Command *com)
 
 static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type)
 {
-	char toNode[512], fromNode[512];
+	char toNodeBuf[100], fromNodeBuf[100], *to_node_p, *from_node_p;
 	const char *node_name;
 	u32 id;
 	if (!r->is_setup) {
@@ -2337,22 +2337,22 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 
 	if (sdump->XMLDump || !dump_type) DUMP_IND(sdump);
 
+	to_node_p = toNodeBuf;
+	from_node_p = fromNodeBuf;
 	node_name = gf_node_get_name_and_id(r->FromNode, &id);
 	if (node_name) {
 		const char *to_name;
-		strcpy(fromNode, node_name);
+		from_node_p = (char *)node_name;
 		to_name = gf_node_get_name(r->ToNode);
 		if (to_name) {
-			strcpy(toNode, to_name);
+			to_node_p = (char *) to_name;
 		} else {
-			char str[100];
 			id = gf_node_get_id(r->ToNode);
-			sprintf(str, "node_%d", id);
-			strcpy(toNode, str);
+			sprintf(toNodeBuf, "node_%d", id);
 		}
 	} else {
-		sprintf(fromNode, "N%d", id-1);
-		sprintf(toNode, "N%d", gf_node_get_id(r->ToNode) - 1);
+		sprintf(fromNodeBuf, "N%d", id-1);
+		sprintf(toNodeBuf, "N%d", gf_node_get_id(r->ToNode) - 1);
 	}
 	if (sdump->XMLDump) {
 		gf_fprintf(sdump->trace, "<ROUTE");
@@ -2361,7 +2361,7 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 			scene_dump_vrml_route_id(sdump, r->ID, r->name);
 			EndAttribute(sdump);
 		}
-		gf_fprintf(sdump->trace, " fromNode=\"%s\" fromField=\"%s\" toNode=\"%s\" toField=\"%s\"/>\n", fromNode, r->FromField.name, toNode, r->ToField.name);
+		gf_fprintf(sdump->trace, " fromNode=\"%s\" fromField=\"%s\" toNode=\"%s\" toField=\"%s\"/>\n", from_node_p, r->FromField.name, to_node_p, r->ToField.name);
 	} else {
 		if (dump_type==2) gf_fprintf(sdump->trace, "ROUTE ");
 		if (r->ID) {
@@ -2370,10 +2370,10 @@ static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_ty
 			gf_fprintf(sdump->trace, " ");
 		}
 		if (dump_type==1) {
-			gf_fprintf(sdump->trace, "%s.%s TO %s.%s\n", fromNode, r->FromField.name, toNode, r->ToField.name);
+			gf_fprintf(sdump->trace, "%s.%s TO %s.%s\n", from_node_p, r->FromField.name, to_node_p, r->ToField.name);
 		} else {
 			if (dump_type!=2) gf_fprintf(sdump->trace, "ROUTE ");
-			gf_fprintf(sdump->trace, "%s.%s TO %s.%s\n", fromNode, r->FromField.name, toNode, r->ToField.name);
+			gf_fprintf(sdump->trace, "%s.%s TO %s.%s\n", from_node_p, r->FromField.name, to_node_p, r->ToField.name);
 		}
 	}
 	return GF_OK;
