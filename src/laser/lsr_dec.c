@@ -1885,9 +1885,9 @@ static void lsr_translate_anim_value(GF_LASeRCodec *lsr, SMIL_AnimateValue *val,
 					da->array.units[i] = 0;
 					gf_free(v);
 				}
-				gf_list_del(l);
-				val->value = da;
 			}
+			gf_list_del(l);
+			val->value = da;
 			return;
 		}
 		break;
