@@ -585,6 +585,12 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		u32 len, i;
 		char *str;
 		str = (char*)((SFScript *)ptr)->script_text;
+		if (!str) {
+			if (!sdump->XMLDump) {
+				gf_fprintf(sdump->trace, "\"\"");
+			}
+			break;
+		}
 		len = (u32)strlen(str);
 
 		if (!sdump->XMLDump) {
