@@ -841,25 +841,27 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 		GF_ProtoField *field = (GF_ProtoField *)gf_list_get(inst->fields, 0);
 		gf_list_rem(inst->fields, 0);
 
-		/*regular type*/
-		if ( (field->FieldType!=GF_SG_VRML_SFNODE) && (field->FieldType!=GF_SG_VRML_MFNODE)) {
-			gf_sg_vrml_field_pointer_del(field->field_pointer, field->FieldType);
-		}
-		/*node types: delete instances*/
-		else if (field->field_pointer) {
-			if (field->FieldType == GF_SG_VRML_SFNODE) {
-				gf_node_unregister((GF_Node *) field->field_pointer, (GF_Node *) inst);
-			} else {
-				GF_ChildNodeItem *list = (GF_ChildNodeItem *)field->field_pointer;
-				while (list) {
-					GF_ChildNodeItem *cur = list;
-					gf_node_unregister(list->node, (GF_Node *) inst);
-					list = list->next;
-					gf_free(cur);
+		if (field->field_pointer) {
+			/*regular type*/
+			if ( (field->FieldType!=GF_SG_VRML_SFNODE) && (field->FieldType!=GF_SG_VRML_MFNODE)) {
+				gf_sg_vrml_field_pointer_del(field->field_pointer, field->FieldType);
+			}
+			/*node types: delete instances*/
+			else {
+				if (field->FieldType == GF_SG_VRML_SFNODE) {
+					gf_node_unregister((GF_Node *) field->field_pointer, (GF_Node *) inst);
+				} else {
+					GF_ChildNodeItem *list = (GF_ChildNodeItem *)field->field_pointer;
+					while (list) {
+						GF_ChildNodeItem *cur = list;
+						gf_node_unregister(list->node, (GF_Node *) inst);
+						list = list->next;
+						gf_free(cur);
+					}
 				}
 			}
 		}
-
+		
 		gf_free(field);
 	}
 	gf_list_del(inst->fields);
