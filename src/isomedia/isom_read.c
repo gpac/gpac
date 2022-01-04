@@ -4124,7 +4124,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 	return GF_ISOM_BRAND_3GG6;
 }
 
-GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID)
+GF_ItemListBox *gf_isom_locate_box(GF_List *list, u32 boxType, bin128 UUID)
 {
 	u32 i;
 	GF_Box *box;
@@ -4156,7 +4156,7 @@ GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 **da
 	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_URL_ERROR;
 
-	ilst = gf_ismo_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) return GF_URL_ERROR;
 
 	if (tag==GF_ISOM_ITUNE_PROBE) return gf_list_count(ilst->child_boxes) ? GF_OK : GF_URL_ERROR;
@@ -4201,7 +4201,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_URL_ERROR;
 
-	ilst = gf_ismo_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
+	ilst = gf_isom_locate_box(meta->child_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
 	if (!ilst) return GF_URL_ERROR;
 
 	child_index = i = 0;
