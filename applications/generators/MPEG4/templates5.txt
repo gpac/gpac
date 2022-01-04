@@ -406,8 +406,8 @@ exposedField 	SFBool	solid		FALSE
 ]{}
 
 PROTO SBBone [ #%NDT=SFWorldNode,SF2DNode,SF3DNode,SFSBBoneNode %COD=N
-eventIn	        SF3DNode	addChildren
-eventIn	        SF3DNode	removeChildren
+eventIn	        MF3DNode	addChildren
+eventIn	        MF3DNode	removeChildren
 exposedField  	SFInt32		boneID			0 #%b=[0,1023] #%q=13 10
 exposedField 	SFVec3f		center			0 0 0 #%q=1 #%a=1
 exposedField 	MF3DNode	children		[]
