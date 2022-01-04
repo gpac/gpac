@@ -3811,7 +3811,7 @@ GF_Err gf_filter_pid_raw_new(GF_Filter *filter, const char *url, const char *loc
 	if (mime_type && is_new_pid && !strstr(mime_type, "/octet-")) {
 		strncpy(tmp_ext, mime_type, 50);
 		tmp_ext[49] = 0;
-		strlwr(tmp_ext);
+		//keep case for mime type
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING( tmp_ext ));
 		//we have a mime, disable extension checking
 		pid->ext_not_trusted = GF_TRUE;
@@ -3837,7 +3837,7 @@ const char *gf_filter_probe_data(GF_Filter *filter, u8 *data, u32 size)
 		a_mime = freg->probe_data(data, size, &score);
 		if (score==GF_FPROBE_NOT_SUPPORTED) {
 		} else if (score==GF_FPROBE_EXT_MATCH) {
-			probe_mime = NULL;
+//			probe_mime = NULL;
 		} else {
 			if (a_mime && (score > max_score)) {
 				probe_mime = a_mime;

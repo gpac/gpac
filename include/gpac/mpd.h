@@ -651,6 +651,8 @@ typedef struct {
 	u32 nb_hls_variant_tags;
 	const char **hls_variant_tags;
 
+	/*! target part (cmaf chunk) duration for HLS LL*/
+	Double hls_ll_part_dur;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -732,8 +734,8 @@ typedef struct
 	Bool intra_only;
 	/*! adaptation set uses HLS LL*/
 	Bool use_hls_ll;
-	/*! target part (cmaf chunk) duration for HLS LL*/
-	Double hls_ll_frag_dur;
+	/*target fragment duration*/
+	Double hls_ll_target_frag_dur;
 } GF_MPD_AdaptationSet;
 
 /*! MPD offering type*/
