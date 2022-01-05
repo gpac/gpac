@@ -241,8 +241,19 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		//if not memory dec mode, unregister previous node
 		//otherwise the field points to the memory command internal field
 		if (!is_mem_com) {
-			if ( *((GF_Node **) field->far_ptr) != NULL) {
-				gf_node_unregister(*((GF_Node **) field->far_ptr), node);
+			GF_Node *old_node = *((GF_Node **) field->far_ptr);
+			if (old_node != NULL) {
+				u32 i, count = gf_list_count(codec->command_buffers);
+				for (i=0; i<count; i++) {
+					CommandBufferItem *cbi = (CommandBufferItem*) gf_list_get(codec->command_buffers, i);
+					if (cbi->node == old_node) {
+						gf_list_rem(codec->command_buffers, i);
+						i--;
+						count--;
+						gf_free(cbi);
+					}
+				}
+				gf_node_unregister(old_node, node);
 				 *((GF_Node **) field->far_ptr) = NULL;
 			}
 		}

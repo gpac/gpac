@@ -1332,7 +1332,8 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	e = gf_bifs_dec_proto_list(codec, bs, proto_list);
 	if (e) goto exit;
 
-	assert(codec->pCurrentProto==NULL);
+	//cannot have replace scene in a proto
+	if (codec->pCurrentProto) return GF_NON_COMPLIANT_BITSTREAM;
 	/*Parse the top node - always of type SFTopNode*/
 	root = gf_bifs_dec_node(codec, bs, NDT_SFTopNode);
 	if (!root && codec->LastError) {
