@@ -6295,9 +6295,10 @@ GF_Err traf_box_size(GF_Box *s)
 	//cmaf-like
 	if (ptr->truns_first) {
 		gf_isom_check_position_list(s, ptr->TrackRuns, &pos);
-		gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
 		gf_isom_check_position_list(s, ptr->sai_sizes, &pos);
 		gf_isom_check_position_list(s, ptr->sai_offsets, &pos);
+		//senc MUST be after saio in GPAC, as senc writing uses info from saio writing
+		gf_isom_check_position(s, (GF_Box *)ptr->sample_encryption, &pos);
 		gf_isom_check_position_list(s, ptr->sampleGroupsDescription, &pos);
 		gf_isom_check_position_list(s, ptr->sampleGroups, &pos);
 		//subsamples will be last
