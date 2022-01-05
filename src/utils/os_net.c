@@ -1462,7 +1462,8 @@ GF_Err gf_sk_receive_internal(GF_Socket *sock, char *buffer, u32 length, u32 *By
 		case ENOTCONN:
 		case ECONNRESET:
 		case ECONNABORTED:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] error reading: %s\n", gf_errno_str(LASTSOCKERROR)));
+			//log as debug, let higher level decide if this is an error or not
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] error reading: %s\n", gf_errno_str(LASTSOCKERROR)));
 			return GF_IP_CONNECTION_CLOSED;
 #endif
 		default:
