@@ -2356,19 +2356,21 @@ add resource to meta, with parameter syntax file_path[:opt1:optN]
 .br
 * tk=tkID: meta location (file, moov, track)
 .br
-* name=str: item name
+* name=str: item name, none if not set
 .br
 * type=itype: item 4cc type (not needed if mime is provided)
 .br
-* mime=mtype: item mime type
+* mime=mtype: item mime type, none if not set
 .br
-* encoding=enctype: item content-encoding type
+* encoding=enctype: item content-encoding type, none if not set
 .br
 * id=ID: item ID
 .br
 * ref=4cc,id: reference of type 4cc to an other item (can be set multiple times)
 .br
 * group=id,type: indicate the id and type of an alternate group for this item
+.br
+* replace: replace existing item by new item
 .br
 .TP
 .B \-add-image (string)
@@ -2420,6 +2422,14 @@ add the given file as HEIF image item, with parameter syntax file_path[:opt1:opt
 * agrid[=AR]: creates an automatic grid from the image items present in the file, in their declaration order. The grid will try to have AR aspect ratio if specified (float), or the aspect ratio of the source otherwise. The grid will be the primary item and all other images will be hidden
 .br
 * av1_op_index: select the AV1 operating point to use via a1op box
+.br
+* replace: replace existing image by new image, keeping props listed in keep_props
+.br
+* keep_props=4CCs: coma-separated list of properties types to keep when replacing the image, e.g. keep_props=auxC
+.br
+* auxt=URN: mark image as auxiliary using given URN
+.br
+* auxd=FILE: use data from FILE as auxiliary extensions (cf auxC box)
 .br
 - any other options will be passed as options to the media importer, see .I add
 .br
@@ -2794,7 +2804,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1592-gd31affbe9-master
+build: 1.1.0-DEV-rev1593-g786b21cdb-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
