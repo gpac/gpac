@@ -237,7 +237,7 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 
 void BD_EndOfStream(void *co)
 {
-	((GF_BifsDecoder *) co)->LastError = GF_IO_ERR;
+	((GF_BifsDecoder *) co)->LastError = GF_NON_COMPLIANT_BITSTREAM;
 }
 
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
