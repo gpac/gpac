@@ -930,6 +930,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 	GF_BitStream *bs;
 	GF_Err e;
 	CommandBufferItem *cbi;
+	GF_SceneGraph *prev_root = codec->current_graph;
 	u32 NbPass = gf_list_count(codec->command_buffers);
 	GF_List *nextPass = gf_list_new();
 	while (NbPass) {
@@ -981,6 +982,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 		codec->LastError = GF_OK;
 	}
 	gf_list_del(nextPass);
+	codec->current_graph = prev_root;
 	return GF_OK;
 }
 
