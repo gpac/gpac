@@ -5392,8 +5392,20 @@ static GF_Err do_itunes_tag()
 			char *eq = strchr(sep+1, '=');
 			if (eq) eq[0] = 0;
 			s32 next_tag_idx = gf_itags_find_by_name(sep+1);
-			if ((next_tag_idx<0) && strlen(sep+1)==4)
-				next_tag_idx = 0;
+			if (next_tag_idx<0) {
+				//4CC tag
+				if ( strlen(sep+1)==4) {
+					next_tag_idx = 0;
+				}
+				//3CC tag, changed to @tag
+				if ( strlen(sep+1)==3) {
+					next_tag_idx = 0;
+				}
+				//unrecognized tag tag
+				else {
+					M4_LOG(GF_LOG_WARNING, ("Unrecognize tag \"%s\", assuming part of previous tag\n", sep+1));
+				}
+			}
 
 			if (eq) eq[0] = '=';
 			if (next_tag_idx>=0) {
