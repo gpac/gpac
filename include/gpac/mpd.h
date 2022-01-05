@@ -1012,7 +1012,7 @@ struct _gf_file_get
 \param reload_count number of times the manifest was reloaded
 \param mimeTypeForM3U8Segments default mime type for the segments in case not found in the m3u8
 \param do_import if GF_TRUE, will try to load the media segments to extract more info
-\param use_mpd_templates if GF_TRUE, will use MPD SegmentTemplate instead of SegmentList
+\param use_mpd_templates if GF_TRUE, will use MPD SegmentTemplate instead of SegmentList (only if parse_sub_playlist is GF_TRUE)
 \param use_segment_timeline if GF_TRUE, uses SegmentTimeline to describe the varying duration of segments
 \param getter HTTP interface object
 \param mpd MPD structure to fill, or NULL if converting to file
@@ -1024,13 +1024,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *m
 
 /*! solves an m3u8 xlink on a representation, and fills the SegmentList accordingly
 \param rep the target representation
+\param base_url base URL of master manifest (representation xlink is likely relative to this URL)
 \param getter HTTP interface object
 \param is_static set to GF_TRUE if the variant subplaylist is on demand
 \param duration set to the duration of the parsed subplaylist
 \param signature SHA1 digest of last solved version, updated if changed
 \return error if any, GF_EOS if no changes
 */
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration, u8 signature[GF_SHA1_DIGEST_SIZE]);
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char *base_url, GF_FileDownload *getter, Bool *is_static, u64 *duration, u8 signature[GF_SHA1_DIGEST_SIZE]);
 
 /*! creates a segment list from a remote segment list DOM root
 \param mpd the target MPD to write

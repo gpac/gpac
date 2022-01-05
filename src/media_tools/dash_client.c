@@ -2015,11 +2015,11 @@ static GF_Err gf_dash_solve_m3u8_representation_xlink(GF_DASH_Group *group, GF_M
 	const char *name, *local_url;
 	GF_DashClient *dash = group->dash;
 	if (!dash->dash_io->manifest_updated) {
-		return gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration, signature);
+		return gf_m3u8_solve_representation_xlink(rep, dash->base_url, &dash->getter, is_static, duration, signature);
 	}
 
-	xlink_copy = gf_strdup(rep->segment_list->xlink_href);
-	e = gf_m3u8_solve_representation_xlink(rep, &dash->getter, is_static, duration, signature);
+	xlink_copy = gf_url_concatenate(dash->base_url, rep->segment_list->xlink_href);
+	e = gf_m3u8_solve_representation_xlink(rep, dash->base_url, &dash->getter, is_static, duration, signature);
 	//do not notify m3u8 update if same as last one
 	if (e==GF_EOS) {
 		gf_free(xlink_copy);

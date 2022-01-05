@@ -163,11 +163,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	if (e->drm_method) {
 		e->key_uri = NULL;
 		if (attribs->key_url) {
-			//if url is local and not a urn, concatenate
-			if (!strchr(attribs->key_url, ':'))
-				e->key_uri = gf_url_concatenate(url, attribs->key_url);
-
-			if (!e->key_uri) e->key_uri = gf_strdup(attribs->key_url);
+			e->key_uri = gf_strdup(attribs->key_url);
 		}
 
 		if (attribs->has_iv) {
@@ -847,7 +843,7 @@ GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist
 		string2num("coverage");
 	}
 #endif
-	return gf_m3u8_parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
+	return gf_m3u8_parse_sub_playlist(file, playlist, baseURL, NULL, NULL, GF_TRUE);
 }
 
 GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulated_attributes *attribs, PlaylistElement *sub_playlist, MasterPlaylist **playlist, Stream *in_stream)
@@ -859,11 +855,6 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	if (attribs->is_master_playlist && attribs->is_media_segment) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Media segment tag MUST NOT appear in a Master Playlist\n"));
 		return GF_BAD_PARAM;
-	}
-
-	if (gf_url_is_local(fullURL)) {
-		fullURL = gf_url_concatenate(baseURL, fullURL);
-		assert(fullURL);
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] declaring %s %s\n", attribs->is_master_playlist ? "sub-playlist" : "media segment", fullURL));
@@ -961,7 +952,12 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(fullURL);
 				assert(curr_playlist->url && !curr_playlist->codecs);
 				curr_playlist->codecs = NULL;
+
 				subElement = playlist_element_new(TYPE_UNKNOWN, fullURL, attribs);
+				if (attribs->init_url) {
+					gf_free(attribs->init_url);
+					attribs->init_url = NULL;
+				}
 				if (subElement == NULL) {
 					gf_m3u8_master_playlist_del(playlist);
 					playlist_element_del(curr_playlist);
@@ -1037,9 +1033,6 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		gf_free(attribs->group.video);
 		attribs->group.video = NULL;
 	}
-	if (fullURL != currentLine) {
-		gf_free(fullURL);
-	}
 	return GF_OK;
 }
 
@@ -1068,7 +1061,7 @@ static void reset_attribs(s_accumulated_attributes *attribs, Bool is_cleanup)
 }
 
 
-GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
+GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist, Bool is_master)
 {
 	int i, currentLineNumber;
 	FILE *f = NULL;
@@ -1250,7 +1243,15 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *m3u8_file, MasterPlaylist **playli
 		} else {
 
 			/*file encountered: sub-playlist or segment*/
-			GF_Err e = declare_sub_playlist(currentLine, baseURL, &attribs, sub_playlist, playlist, in_stream);
+			GF_Err e;
+			const char *pl_url = baseURL;
+			//this is the first (master) playlist but what is parsed is not a master playlist
+			//we will create a master + child with xlink, but the xlink must be only the file name
+			//otherwise dir/pl_video.m3u8 will be translated in master(dir/pl_video.m3u8) [ child(xlink=dir/pl_video.m3u8) ]
+			//thus xlink resolution would give dir/dir/pl_video.m3u8
+			if (is_master && !attribs.is_master_playlist)
+				pl_url = gf_file_basename(baseURL);
+			e = declare_sub_playlist(currentLine, pl_url, &attribs, sub_playlist, playlist, in_stream);
 			attribs.current_media_seq += 1;
 			if (e != GF_OK) {
 				_CLEANUP
