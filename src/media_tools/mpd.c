@@ -1505,6 +1505,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 	GF_MPD_ProgramInfo *info;
 	GF_MPD_Period *period;
 	GF_Err e;
+	if (!parse_sub_playlist) use_mpd_templates = GF_FALSE;
 	Bool all_template_used = use_mpd_templates;
 	char str[1024];
 
@@ -1685,7 +1686,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 			all_template_used = GF_FALSE;
 		}
 		for (j=0; j<count_variants; j++) {
-			char *base_url=NULL;
+			char *variant_base_url=NULL;
 			u32 count_elements;
 			char szName[20];
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -1738,20 +1739,24 @@ try_next_segment:
 			if (parse_sub_playlist && !elt)
 				break;
 
-			//baseURL is the URL of the variant playlist, not a concat with first playlist elem (see #1996)
-			//because we will further concatenate baseURL with each pl element (so don't do it twice...)
-			base_url = gf_strdup(pe->url);
+			//get base URL of child  manifest, only needed when injecting base URL
+			variant_base_url = gf_strdup(pe->url);
 
-			sep = strrchr(base_url, '/');
-			if (!sep)
-				sep = strrchr(base_url, '\\');
+			sep = strrchr(variant_base_url, '/');
+			if (!sep) sep = strrchr(variant_base_url, '\\');
 			/*keep final '/' */
-			if (sep)
+			if (sep) {
 				sep[1] = 0;
-			/* if no path separator then base_url is just a filename */
+				/* base_url is same as manifest dir, no add of MPD BaseURL */
+				if (!strcmp(variant_base_url, "./") || !strcmp(variant_base_url, ".\\")) {
+					gf_free(variant_base_url);
+					variant_base_url = NULL;
+				}
+			}
+			/* base_url is just a filename so is same as manifest dir, no add of MPD BaseURL */
 			else {
-				gf_free(base_url);
-				base_url = gf_strdup("./");
+				gf_free(variant_base_url);
+				variant_base_url = NULL;
 			}
 
 			width = pe->width;
@@ -1769,7 +1774,10 @@ retry_import:
 
 				br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
 				br_end = elt->init_segment_url ? elt->init_byte_range_end : elt->byte_range_end;
-				elt_url = gf_url_get_absolute_path(elt_url, pe->url);
+
+				char *par_url = gf_url_concatenate(src_base_url, pe->url);
+				elt_url = gf_url_concatenate(par_url, elt_url);
+				gf_free(par_url);
 
 				memset(&import, 0, sizeof(GF_MediaImporter));
 				import.trackID = 0;
@@ -1792,12 +1800,12 @@ retry_import:
 
 				if (!strstr(elt_url, "://") && !gf_file_exists(elt_url)) {
 					import_file = GF_FALSE;
+					if (elt_url) gf_free(elt_url);
 					goto retry_import;
 				}
 				e = gf_media_import(&import);
 
 				if (e != GF_OK) {
-//					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s< (Playlist %s) %s \n", import.in_name, base_url));
 					k++;
 					if (elt_url) gf_free(elt_url);
 					goto try_next_segment;
@@ -1825,25 +1833,21 @@ retry_import:
 					gf_file_delete(tmp_file);
 
 				if (!pe->codecs) {
-					char szCodecs[1024];
-					szCodecs[0] = 0;
+					char *codecs = NULL;
 					for (k=0; k<import.nb_tracks; k++) {
 						if (strlen(import.tk_info[k].szCodecProfile)) {
-							if (strlen(szCodecs)) strcat(szCodecs, ",");
-							strcat(szCodecs, import.tk_info[k].szCodecProfile);
+							gf_dynstrcat(&codecs, import.tk_info[k].szCodecProfile, ",");
 						}
 					}
-					pe->codecs = gf_strdup(szCodecs);
+					pe->codecs = codecs;
 				}
 				for (k=0; k<import.nb_tracks; k++) {
 					switch (import.tk_info[k].stream_type) {
-					case GF_ISOM_MEDIA_VISUAL:
-                    case GF_ISOM_MEDIA_AUXV:
-                    case GF_ISOM_MEDIA_PICT:
+					case GF_STREAM_VISUAL:
 						width = import.tk_info[k].video_info.width;
 						height = import.tk_info[k].video_info.height;
 						break;
-					case GF_ISOM_MEDIA_AUDIO:
+					case GF_STREAM_AUDIO:
 						samplerate = import.tk_info[k].audio_info.sample_rate;
 						num_channels = import.tk_info[k].audio_info.nb_channels;
 						break;
@@ -1879,8 +1883,9 @@ retry_import:
 			if (pe->codecs) {
 				rep->codecs = gf_strdup(pe->codecs);
 			}
-			if (pe->language) {
-				//???
+			if (pe->language && !set->lang) {
+				set->lang = pe->language;
+				pe->language = NULL;
 			}
 			if (width && height) {
 				rep->width = width;
@@ -1908,64 +1913,109 @@ retry_import:
 				}
 			}
 
-
-			if (use_template) {
-				GF_MPD_BaseURL *url;
-				GF_SAFEALLOC(url, GF_MPD_BaseURL);
-				if (! url) return GF_OUT_OF_MEM;
-				e = gf_list_add(rep->base_URLs, url);
-				if (e) return GF_OUT_OF_MEM;
-				url->URL = gf_strdup(base_url);
-
-
-				if (elt->init_segment_url) {
-					u32 len = (u32) strlen(base_url);
-					GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
-					if (!rep->segment_template)  return GF_OUT_OF_MEM;
-					rep->segment_template->start_number = (u32) -1;
-					if (!strncmp(base_url, elt->init_segment_url, len)) {
-						rep->segment_template->initialization = gf_strdup(elt->init_segment_url + len);
-					} else {
-						rep->segment_template->initialization = gf_strdup(elt->init_segment_url);
-					}
+			//if parsing subplaylist with a MPD, we translate HLS to MPD directly
+			//compute relative url from source HLS to target MPD and inject it in base URL (SegmentTemplate or SegmentList)
+			//otherwise, we use the element url as is, and wait for xlink resolution, which will be done
+			//against the HLS base URL
+			char *rel_url = NULL;
+			if (parse_sub_playlist && mpd_file) {
+				u32 base_len;
+				//check we do not generate the MPD at the same location
+				char *f1 = gf_file_basename(mpd_file);
+				char *f2 = gf_file_basename(src_base_url);
+				base_len = (u32) (f1 - mpd_file);
+				if ((base_len == (u32) (f2 - src_base_url)) && !strncmp(src_base_url, mpd_file, base_len)) {
+					rel_url = NULL;
+				} else {
+					rel_url = gf_url_concatenate_parent(mpd_file, src_base_url);
 				}
-
-				continue;
 			}
 
-			byte_range_media_file = NULL;
-			elt = gf_list_get(pe->element.playlist.elements, 0);
-			if (elt && (elt->byte_range_end || elt->byte_range_start)) {
-				GF_MPD_BaseURL *url;
-				GF_SAFEALLOC(url, GF_MPD_BaseURL);
-				if (! url) return GF_OUT_OF_MEM;
-				e = gf_list_add(rep->base_URLs, url);
-				if (e) return GF_OUT_OF_MEM;
-				byte_range_media_file = elt->url;
-				url->URL = gf_strdup(byte_range_media_file);
-			} else {
-				u32 url_len = (u32) strlen(base_url);
-				if (!strcmp(base_url, "./") || !strcmp(base_url, ".")) {
 
-				} else if (strncmp(base_url, mpd_file, url_len)) {
+			if (use_template) {
+				//inject baseURL pointing to source playlist
+				if (rel_url || variant_base_url) {
 					GF_MPD_BaseURL *url;
 					GF_SAFEALLOC(url, GF_MPD_BaseURL);
 					if (! url) return GF_OUT_OF_MEM;
 					e = gf_list_add(rep->base_URLs, url);
 					if (e) return GF_OUT_OF_MEM;
-					url->URL = gf_url_concatenate_parent(mpd_file, base_url);
+
+					if (rel_url) {
+						if (variant_base_url)
+							url->URL = gf_url_concatenate(rel_url, variant_base_url);
+						else
+							url->URL = gf_strdup(rel_url);
+					} else {
+						url->URL = gf_strdup(variant_base_url);
+					}
 				}
+
+				if (elt->init_segment_url) {
+					GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
+					if (!rep->segment_template)  return GF_OUT_OF_MEM;
+					rep->segment_template->start_number = (u32) -1;
+					//no need to conctenate with rel_url since it is now in our MPD base url
+					rep->segment_template->initialization = gf_strdup(elt->init_segment_url);
+				}
+
+				if (rel_url) gf_free(rel_url);
+				if (variant_base_url) gf_free(variant_base_url);
+				continue;
 			}
+
+			byte_range_media_file = NULL;
+			elt = gf_list_get(pe->element.playlist.elements, 0);
+
+			if (parse_sub_playlist && elt && (elt->byte_range_end || elt->byte_range_start)) {
+				byte_range_media_file = elt->url;
+			}
+
+			//only if we parse subplaylist now (otherwise baseURL added when resolving xlink)
+			if (parse_sub_playlist && elt && (
+				//if byte-range media file, add base URL
+				byte_range_media_file
+				//otherwise if we have different location for HLS vs MPD url or if child playlist is not in same path as master HLS
+				|| (rel_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
+			)) {
+				GF_MPD_BaseURL *url;
+				GF_SAFEALLOC(url, GF_MPD_BaseURL);
+				if (! url) {
+					if (rel_url) gf_free(rel_url);
+					if (variant_base_url) gf_free(variant_base_url);
+					return GF_OUT_OF_MEM;
+				}
+				e = gf_list_add(rep->base_URLs, url);
+				if (e) {
+					if (rel_url) gf_free(rel_url);
+					if (variant_base_url) gf_free(variant_base_url);
+					return GF_OUT_OF_MEM;
+				}
+				if (rel_url) {
+					if (variant_base_url) {
+						char *rel_base = gf_url_concatenate(rel_url, variant_base_url);
+						url->URL = gf_url_concatenate(rel_base, elt->url);
+						gf_free(rel_base);
+					} else {
+						url->URL = gf_strdup(rel_url);
+					}
+				}
+				else
+					url->URL = gf_strdup(elt->url);
+			}
+			if (rel_url) gf_free(rel_url);
+			//no longer needed
+			if (variant_base_url) gf_free(variant_base_url);
 
 			GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
 			if (!rep->segment_list) return GF_OUT_OF_MEM;
-			// doesn't parse sub-playlists, we need to save URL to these sub-playlist in xlink:href so that we can get the segment URL when we need
-			// note: for MPD type static, always parse all sub-playlist because we just do it once in a period
-			if (/*(mpd->type == GF_MPD_TYPE_DYNAMIC) && */ !parse_sub_playlist) {
+
+			//Not parsing sub-playlists, save URL to these sub-playlist in xlink:href
+			//resolution will be done against the HLS base URL
+			//child playlist will be loaded if active and not modified since last load
+			if (!parse_sub_playlist) {
 				rep->segment_list->xlink_href = pe->url;
 				pe->url=NULL;
-				gf_free(base_url);
-				base_url = NULL;
 				if (template_base) {
 					gf_free(template_base);
 					template_base = NULL;
@@ -1976,15 +2026,11 @@ retry_import:
 			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
 			rep->segment_list->timescale = 1000;
 			if (elt && elt->init_segment_url) {
-				u32 len = (u32) strlen(base_url);
 				GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 				if (!rep->segment_list->initialization_segment) return GF_OUT_OF_MEM;
 
-				if (!strncmp(base_url, elt->init_segment_url, len)) {
-					rep->segment_list->initialization_segment->sourceURL = gf_strdup(elt->init_segment_url + len);
-				} else {
-					rep->segment_list->initialization_segment->sourceURL = gf_strdup(elt->init_segment_url);
-				}
+				rep->segment_list->initialization_segment->sourceURL = gf_strdup(elt->init_segment_url);
+
 				if (elt->init_byte_range_end) {
 					GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
 					if (!rep->segment_list->initialization_segment->byte_range) return GF_OUT_OF_MEM;
@@ -2036,13 +2082,8 @@ retry_import:
 						elt->url=NULL;
 					}
 				} else {
-					u32 len = (u32) strlen(base_url);
-					if (!strncmp(base_url, elt->url, len)) {
-						segment_url->media = gf_strdup(elt->url+len);
-					} else {
-						segment_url->media = elt->url;
-						elt->url=NULL;
-					}
+					segment_url->media = elt->url;
+					elt->url=NULL;
 				}
 				//only signal duration if different from default one
 				segment_url->duration = (u64) (rep->segment_list->timescale * elt->duration_info);
@@ -2078,7 +2119,6 @@ retry_import:
 					gf_list_add(rep->segment_list->segment_timeline->entries, se);
 				}
 			}
-			gf_free(base_url);
 		}
 
 		if (template_base) {
@@ -2173,7 +2213,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					continue;
 				}
 				if (e == GF_OK) {
-					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
+					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe, GF_FALSE);
 				}
 				//getter->del_session(getter);
 			} else { /* for use in MP4Box */
@@ -2181,14 +2221,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Downloading %s...\n", suburl));
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
 					if (e == GF_OK) {
-						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
+						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe, GF_FALSE);
 					} else {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
 					gf_file_delete("tmp.m3u8");
 				} else {
-					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
+					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe, GF_FALSE);
 				}
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Failed to parse subplaylist %s\n", suburl));
@@ -2247,7 +2287,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 }
 
 GF_EXPORT
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration, u8 last_sig[GF_SHA1_DIGEST_SIZE])
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char *base_url, GF_FileDownload *getter, Bool *is_static, u64 *duration, u8 last_sig[GF_SHA1_DIGEST_SIZE])
 {
 	GF_Err e;
 	MasterPlaylist *pl = NULL;
@@ -2255,13 +2295,12 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	PlaylistElement *pe;
 	u32 k, count_elements;
 	u32 seq_num;
-	u32 base_url_len = 0;
 	Bool has_full_seg_following = GF_FALSE;
 	Bool can_merge_parts = GF_FALSE;
 	Bool first_ll_part = GF_TRUE;
-	char *base_url = NULL;
 	u8 signature[GF_SHA1_DIGEST_SIZE];
 	const char *loc_file = rep->segment_list->xlink_href;
+	char *full_url;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
 
@@ -2270,37 +2309,42 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		return GF_BAD_PARAM;
 	}
 
+	//get absolute resource path
+	full_url = gf_url_concatenate(base_url, rep->segment_list->xlink_href);
 
-	if (gf_url_is_local(loc_file)) {
-		if (!strncmp(loc_file, "gmem://", 7)) {
-			u8 *m3u8_payload;
-			u32 m3u8_size;
-			e = gf_blob_get(loc_file, &m3u8_payload,  &m3u8_size, NULL);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot load m3u8 source blob %s\n", loc_file));
-				return e;
-			}
-			gf_blob_release(loc_file);
-
-			gf_sha1_csum(m3u8_payload, m3u8_size, signature);
-		} else {
-			gf_sha1_file(loc_file, signature);
+	if (!strncmp(loc_file, "gmem://", 7)) {
+		u8 *m3u8_payload;
+		u32 m3u8_size;
+		e = gf_blob_get(loc_file, &m3u8_payload,  &m3u8_size, NULL);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot load m3u8 source blob %s\n", loc_file));
+			gf_free(full_url);
+			return e;
 		}
+		gf_blob_release(loc_file);
+
+		gf_sha1_csum(m3u8_payload, m3u8_size, signature);
+	} else  if (gf_url_is_local(full_url)) {
+		loc_file = full_url;
+		gf_sha1_file(loc_file, signature);
 	} else {
-		e = getter->new_session(getter, rep->segment_list->xlink_href);
+		e = getter->new_session(getter, full_url);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Download failed for %s: %s\n", rep->segment_list->xlink_href, gf_error_to_string(e) ));
+			gf_free(full_url);
 			return e;
 		}
 		loc_file = getter->get_cache_name(getter);
 		gf_sha1_file(loc_file, signature);
-
 	}
 	if (! memcmp(signature, last_sig, GF_SHA1_DIGEST_SIZE)) {
+		gf_free(full_url);
 		return GF_EOS;
 	}
 
-	e = gf_m3u8_parse_master_playlist(loc_file, &pl, rep->segment_list->xlink_href);
+	e = gf_m3u8_parse_sub_playlist(loc_file, &pl, rep->segment_list->xlink_href, NULL, NULL, GF_FALSE);
+	//no longer needed
+	gf_free(full_url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
 		gf_m3u8_master_playlist_del(&pl);
@@ -2333,21 +2377,17 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		*duration = (u32) (stream->computed_duration * 1000);
 	}
 
-	if (gf_list_count(rep->base_URLs)) {
-		GF_MPD_BaseURL *burl = gf_list_get(rep->base_URLs, 0);
-		if (burl->URL) {
-			base_url = burl->URL;
-			base_url_len = (u32) strlen(base_url);
-		}
+	//create a base URL if not found, otherwise modify existing one, pointing to our unresolved base (xlink)
+	//if xlink is relative, it wil still be resolved against manifest base url when solving segment templates
+	//this allows using parent path (ie "../") in the master playlist
+	GF_MPD_BaseURL *burl = gf_list_get(rep->base_URLs, 0);
+	if (!burl) {
+		GF_SAFEALLOC(burl, GF_MPD_BaseURL);
+		gf_list_add(rep->base_URLs, burl);
+	} else {
+		gf_free(burl->URL);
 	}
-	if (!base_url) {
-		base_url = rep->segment_list->xlink_href;
-		if (base_url) {
-			char *sep = gf_file_basename(base_url);
-			if (sep)
-				base_url_len = (u32) (sep - base_url);
-		}
-	}
+	burl->URL = gf_strdup(rep->segment_list->xlink_href);
 
 	if (pe->init_segment_url) {
 		if (!rep->segment_list->initialization_segment) {
@@ -2387,7 +2427,6 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
-		char *seg_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 		if (!elt)
 			continue;
@@ -2444,18 +2483,9 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		}
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
 
-		//get absolute url, and remove base from it if we have a baseURL
-		if (base_url && !strncmp(elt->url, base_url, base_url_len)) {
-			segment_url->media = gf_strdup(elt->url + base_url_len);
-		} else {
-			seg_url = gf_url_concatenate(pe->url, elt->url);
-			if (base_url && !strncmp(seg_url, base_url, base_url_len)) {
-				segment_url->media = gf_strdup(seg_url + base_url_len);
-				gf_free(seg_url);
-			} else {
-				segment_url->media = seg_url;
-			}
-		}
+
+		segment_url->media = elt->url;
+		elt->url = NULL;
 
 		segment_url->duration = (u64) (rep->segment_list->timescale * elt->duration_info);
 
@@ -4301,6 +4331,18 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 			*out_url = url;
 			segment = gf_list_get(segments, item_index);
+
+			if (segment->key_url && out_key_url) {
+				//if ':', key URL is absolute or urn:
+				if (strchr(segment->key_url+2, ':'))
+					*out_key_url = gf_strdup(segment->key_url);
+				//otherwise key url is relative to url (base url)
+				else
+					*out_key_url = gf_url_concatenate(url, segment->key_url);
+				if (out_key_iv)
+					memcpy((*out_key_iv), segment->key_iv, sizeof(bin128) );
+			}
+
 			if (segment->media) {
 				*out_url = gf_url_concatenate(url, segment->media);
 				gf_free(url);
@@ -4311,11 +4353,6 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 			if (segment->duration) {
 				*segment_duration_in_ms = (u32) ((Double) (segment->duration) * 1000.0 / timescale);
-			}
-			if (segment->key_url && out_key_url) {
-				*out_key_url = gf_strdup((const char *) segment->key_url);
-				if (out_key_iv)
-					memcpy((*out_key_iv), segment->key_iv, sizeof(bin128) );
 			}
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INDEX:
