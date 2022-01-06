@@ -343,6 +343,114 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 	return GF_FALSE;
 }
 
+static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
+{
+	GF_Err e;
+	u32 dv_profile = 0;
+	u32 dv_compat_id=0;
+	char *sep = strchr(dv_profile_str, '.');
+	if (sep) {
+		sep[0] = 0;
+		if (!strcmp(sep+1, "none")) dv_compat_id=0;
+		else if (!strcmp(sep+1, "hdr10")) dv_compat_id=1;
+		else if (!strcmp(sep+1, "bt709")) dv_compat_id=2;
+		else if (!strcmp(sep+1, "hlg709")) dv_compat_id=3;
+		else if (!strcmp(sep+1, "hlg2100")) dv_compat_id=4;
+		else if (!strcmp(sep+1, "bt2020")) dv_compat_id=5;
+		else if (!strcmp(sep+1, "brd")) dv_compat_id=6;
+		else {
+			M4_LOG(GF_LOG_WARNING, ("DV compatibility mode %s not recognized, using none\n", sep+1));
+		}
+	}
+	dv_profile = atoi(dv_profile_str);
+
+	GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(dest, track, 1);
+	if (dovi) {
+		dovi->dv_profile = dv_profile;
+		dovi->dv_bl_signal_compatibility_id = dv_compat_id;
+		e = gf_isom_set_dolby_vision_profile(dest, track, 1, dovi);
+		gf_odf_dovi_cfg_del(dovi);
+		return e;
+	}
+	if (!dv_profile) return GF_OK;
+	u32 nb_samples = gf_isom_get_sample_count(dest, track);
+	if (!nb_samples) {
+		M4_LOG(GF_LOG_ERROR, ("No DV config in file and no samples, cannot guess DV config\n"));
+		return GF_NOT_SUPPORTED;
+	}
+
+	GF_DOVIDecoderConfigurationRecord _dovi;
+	memset(&_dovi, 0, sizeof(GF_DOVIDecoderConfigurationRecord));
+	_dovi.dv_version_major = 1;
+	_dovi.dv_version_minor = 0;
+	_dovi.dv_profile = dv_profile;
+	_dovi.dv_bl_signal_compatibility_id = dv_compat_id;
+
+	u32 w, h;
+	Bool is_avc = GF_FALSE;
+
+	e = gf_isom_get_visual_info(dest, track, 1, &w, &h);
+	if (e) return e;
+	//no DV profile present in file, we need to guess
+	GF_AVCConfig *avcc = gf_isom_avc_config_get(dest, track, 1);
+	GF_HEVCConfig *hvcc = gf_isom_hevc_config_get(dest, track, 1);
+
+	if (!avcc && !hvcc) {
+		M4_LOG(GF_LOG_WARNING, ("DV profile can only be set on AVC or HEVC tracks\n"));
+		return GF_BAD_PARAM;
+	}
+
+	u32 nalu_length = avcc ? avcc->nal_unit_size : hvcc->nal_unit_size;
+	if (avcc) {
+		is_avc = GF_TRUE;
+		gf_odf_avc_cfg_del(avcc);
+	}
+	if (hvcc) gf_odf_hevc_cfg_del(hvcc);
+
+	//inspect at most first 50 samples
+	u32 i;
+	for (i=0; i<50; i++) {
+		u32 stsd_idx;
+		GF_BitStream *bs;
+
+		GF_ISOSample *samp = gf_isom_get_sample(dest, track, i+1, &stsd_idx);
+		if (!samp) break;
+
+		bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
+
+		while (gf_bs_available(bs)) {
+			u32 nal_type;
+			u32 nal_size = gf_bs_read_int(bs, nalu_length*8);
+			if (is_avc) {
+				nal_type = gf_bs_read_u8(bs);
+				nal_type = nal_type & 0x1F;
+				nal_size--;
+				if (nal_type == GF_AVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
+				else if (nal_type == GF_AVC_NALU_DV_EL) _dovi.el_present_flag = 1;
+				else if (nal_type <= GF_AVC_NALU_IDR_SLICE) _dovi.bl_present_flag = 1;
+			} else {
+				gf_bs_read_int(bs, 1);
+				nal_type = gf_bs_read_int(bs, 6);
+				gf_bs_read_int(bs, 1);
+				nal_size--;
+				if (nal_type == GF_HEVC_NALU_DV_RPU) _dovi.rpu_present_flag = 1;
+				else if (nal_type == GF_HEVC_NALU_DV_EL) _dovi.el_present_flag = 1;
+				else if (nal_type <= GF_HEVC_NALU_SLICE_CRA) _dovi.bl_present_flag = 1;
+			}
+			gf_bs_skip_bytes(bs, nal_size);
+		}
+		gf_bs_del(bs);
+		gf_isom_sample_del(&samp);
+	}
+
+	u64 mdur = gf_isom_get_media_duration(dest, track);
+	mdur /= nb_samples;
+	u32 timescale = gf_isom_get_media_timescale(dest, track);
+
+	_dovi.dv_level = gf_dolby_vision_level(w, h, timescale, mdur, is_avc ? GF_CODECID_AVC : GF_CODECID_HEVC);
+	return gf_isom_set_dolby_vision_profile(dest, track, 1, &_dovi);
+}
+
 
 
 GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
@@ -479,7 +587,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	Bool has_mx=GF_FALSE;
 	s32 mx[9];
 	u32 bitdepth=0;
-	u32 dv_profile=0; /*Dolby Vision*/
+	char dv_profile[100]; /*Dolby Vision*/
 	u32 clr_type=0;
 	u32 clr_prim;
 	u32 clr_tranf;
@@ -511,6 +619,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 roll = 0;
 	Bool src_is_isom = GF_FALSE;
 
+	dv_profile[0] = 0;
 	rvc_predefined = 0;
 	chapter_name = NULL;
 	new_timescale = 1;
@@ -1007,7 +1116,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
-			dv_profile = atoi(ext + 12);
+			strncpy(dv_profile, ext + 12, 100);
 		}
 		else if (!strnicmp(ext+1, "fullrange=", 10)) {
 			if (!stricmp(ext+11, "off") || !stricmp(ext+11, "no")) fullrange = 0;
@@ -1389,8 +1498,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				e = gf_isom_set_visual_color_info(dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 				GOTO_EXIT("changing color info")
 			}
-			if (dv_profile) {
-				e = gf_isom_set_dolby_vision_profile(dest, track, 1, dv_profile);
+			if (dv_profile[0]) {
+				e = set_dv_profile(dest, track, dv_profile);
 				GOTO_EXIT("setting DV profile")
 			}
 

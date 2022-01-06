@@ -1661,6 +1661,7 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 	return cfg;
 }
 
+GF_EXPORT
 void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg)
 {
 	gf_free(cfg);

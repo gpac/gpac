@@ -1835,7 +1835,7 @@ GF_Err gf_isom_set_visual_color_info(GF_ISOFile *movie, u32 trackNumber, u32 Str
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 dv_profile)
+GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc)
 {
 	GF_Err e;
 	GF_TrackBox* trak;
@@ -1863,42 +1863,70 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_DVHE:
 		entry->type = GF_ISOM_BOX_TYPE_DVHE;
 		break;
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_DVH1:
 		entry->type = GF_ISOM_BOX_TYPE_DVH1;
 		break;
 	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_DVA1:
 		entry->type = GF_ISOM_BOX_TYPE_DVA1;
 		break;
 	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_DVAV:
 		entry->type = GF_ISOM_BOX_TYPE_DVAV;
 		break;
 	case GF_ISOM_BOX_TYPE_AV01:
+	case GF_ISOM_BOX_TYPE_DAV1:
 		entry->type = GF_ISOM_BOX_TYPE_DAV1;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 
+	if (!dvcc->dv_profile) dvcc = NULL;
+
 	dovi = ((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config;
-	if (!dv_profile) {
-		if (dovi) gf_isom_box_del((GF_Box*)dovi);
+	if (!dvcc) {
+		if (dovi) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)dovi);
 		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = NULL;
+		//reverse entry type
+		switch (entry->type) {
+		case GF_ISOM_BOX_TYPE_DVHE:
+			entry->type = GF_ISOM_BOX_TYPE_HEV1;
+			break;
+		case GF_ISOM_BOX_TYPE_DVH1:
+			entry->type = GF_ISOM_BOX_TYPE_HVC1;
+			break;
+		case GF_ISOM_BOX_TYPE_DVA1:
+			entry->type = GF_ISOM_BOX_TYPE_AVC1;
+			break;
+		case GF_ISOM_BOX_TYPE_DVAV:
+			entry->type = GF_ISOM_BOX_TYPE_AVC3;
+			break;
+		case GF_ISOM_BOX_TYPE_DAV1:
+			entry->type = GF_ISOM_BOX_TYPE_AV01;
+			break;
+		default:
+			break;
+		}
 		return GF_OK;
 	}
 	if (!dovi) {
-		if (dv_profile < 8) {
-			dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DVCC);
-		} else {
-			dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DVVC);
-		}
+		dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DVCC);
 		if (!dovi) return GF_OUT_OF_MEM;
 		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = dovi;
 	}
-	dovi->DOVIConfig.dv_profile = dv_profile;
-	if (dv_profile>7) dovi->type = GF_ISOM_BOX_TYPE_DVVC;
+	if (dvcc->dv_profile < 8) {
+		dovi->type = GF_ISOM_BOX_TYPE_DVCC;
+	} else {
+		dovi->type = GF_ISOM_BOX_TYPE_DVVC;
+	}
+	dovi->DOVIConfig = *dvcc;
+
 	return GF_OK;
 }
 

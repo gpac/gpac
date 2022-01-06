@@ -2398,6 +2398,36 @@ audelim (bool, default: false): keep Access Unit delimiter in payload
 .br
 notime (bool, default: false): ignore input timestamps, rebuild from 0
 .br
+dv_mode (enum, default: auto): profile injection for DolbyVision
+.br
+* none: never signal DV profile
+.br
+* auto: signal DV profile if RPU or EL are found
+.br
+* force: always signal DV profile
+.br
+
+.br
+dv_profile (uint, default: 5): profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9)
+.br
+dv_compatid (enum, default: none): cross-compatibility ID for DolbyVision
+.br
+* none: do not signal compatibility
+.br
+* hdr10: CTA HDR10, as specified by EBU TR 03
+.br
+* bt709: SDR BT.709
+.br
+* hlg709: HLG BT.709 gamut in ITU-R BT.2020
+.br
+* hlg2100: HLG BT.2100 gamut in ITU-R BT.2020
+.br
+* bt2020: SDR BT.2020
+.br
+* brd: Ultra HD Blu-ray Disc HDR
+.br
+
+.br
 bsdbg (enum, default: off):    debug NAL parsing in parser@debug logs
 .br
 * off: not enabled
@@ -9475,7 +9505,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1593-g786b21cdb-master
+build: 1.1.0-DEV-rev1599-g28c31ce97-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

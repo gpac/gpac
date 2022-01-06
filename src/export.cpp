@@ -714,6 +714,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_vp_cfg_write_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_dump_txtcfg) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_dovi_cfg_del) )
+
+
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_list_read) )
@@ -1436,6 +1439,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_hevc_tiles) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_lhvc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_filter_hevc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dolby_vision_level) )
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 

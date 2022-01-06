@@ -2450,10 +2450,10 @@ GF_Err gf_isom_set_high_dynamic_range_info(GF_ISOFile *isom_file, u32 trackNumbe
 \param isom_file the target ISO file
 \param trackNumber the target track number
 \param sampleDescriptionIndex the target sample description index
-\param dv_profile the Dolby Vision profile
+\param dvcc the Dolby Vision configuration
 \return error if any
 */
-GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 dv_profile);
+GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_DOVIDecoderConfigurationRecord *dvcc);
 
 
 /*! sets image sequence coding constraints (mostly used for HEIF image files)
