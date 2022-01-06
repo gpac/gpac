@@ -826,7 +826,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
 		"  - rICC,path: with path indicating the file containing the restricted ICC color profile", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("dv-profile", NULL, "`S` set the Dolby Vision profile on imported track\n"
-	"- Profile is an integer, 0 removes DV signaling\n"
+	"- Profile is an integer, or `none` to remove DV signaling\n"
 	"- Profile can be suffixed with compatibility ID, e.g. `5.hdr10`\n"
 	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),

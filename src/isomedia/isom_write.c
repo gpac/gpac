@@ -1887,8 +1887,6 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (!dvcc->dv_profile) dvcc = NULL;
-
 	dovi = ((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config;
 	if (!dvcc) {
 		if (dovi) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)dovi);

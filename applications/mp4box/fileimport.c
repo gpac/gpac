@@ -346,6 +346,7 @@ Bool scan_color(char *val, u32 *clr_prim, u32 *clr_tranf, u32 *clr_mx, Bool *clr
 static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 {
 	GF_Err e;
+	Bool remove=GF_FALSE;
 	u32 dv_profile = 0;
 	u32 dv_compat_id=0;
 	char *sep = strchr(dv_profile_str, '.');
@@ -362,17 +363,27 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 			M4_LOG(GF_LOG_WARNING, ("DV compatibility mode %s not recognized, using none\n", sep+1));
 		}
 	}
-	dv_profile = atoi(dv_profile_str);
+	if (!strcmp(dv_profile_str, "none")) {
+		remove = GF_TRUE;
+	} else {
+		dv_profile = atoi(dv_profile_str);
+		if (dv_profile==8) {
+			if ((dv_compat_id!=1) && (dv_compat_id!=2)) {
+				M4_LOG(GF_LOG_ERROR, ("DV profile 8 must indicate a compatibility mode `hdr10` or `bt709`\n"));
+				return GF_BAD_PARAM;
+			}
+		}
+	}
 
 	GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(dest, track, 1);
 	if (dovi) {
 		dovi->dv_profile = dv_profile;
 		dovi->dv_bl_signal_compatibility_id = dv_compat_id;
-		e = gf_isom_set_dolby_vision_profile(dest, track, 1, dovi);
+		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
 	}
-	if (!dv_profile) return GF_OK;
+	if (remove) return GF_OK;
 	u32 nb_samples = gf_isom_get_sample_count(dest, track);
 	if (!nb_samples) {
 		M4_LOG(GF_LOG_ERROR, ("No DV config in file and no samples, cannot guess DV config\n"));
