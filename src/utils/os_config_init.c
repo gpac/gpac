@@ -1626,7 +1626,7 @@ void gf_sys_print_arg(FILE *helpout, u32 flags, const GF_GPACArg *arg, const cha
 		}
 
 		sep = strchr(arg->description, ' ');
-		if (sep) {
+		if (sep && (sep>arg->description)) {
 			sep--;
 			if ((sep[0] == 's') && (sep[-1] != 's')) {
 				fprintf(stderr, "\nWARNING: arg %s bad description format \"%s\", should use infintive\n", arg->name, arg->description);
@@ -2342,12 +2342,13 @@ retry_char:
 		gf_free(run);
 		return GF_FALSE;
 	}
+/*
 	//if 4/5 of characters are matched, suggest it
 	if (match * 5 >= 4 * dlen ) {
 		gf_free(run);
 		return GF_TRUE;
 	}
-/*	if ((olen<=4) && (match>=3) && (dlen*2<olen*3) ) {
+	if ((olen<=4) && (match>=3) && (dlen*2<olen*3) ) {
 		gf_free(run);
 		return GF_TRUE;
 	}

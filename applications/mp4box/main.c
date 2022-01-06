@@ -1439,7 +1439,7 @@ MP4BoxArg m4b_usage_args[] =
 		"- cicp: print various CICP code points\n"
 		"- VAL: search for option named `VAL` (without `-` or `--`) in MP4Box, libgpac core and all filters\n"
 		, GF_ARG_STRING, 0, parse_help, 0, ARG_IS_FUN | ARG_EMPTY | ARG_PUSH_SYSARGS),
- 	MP4BOX_ARG("hx", "look for given string in all possible options"
+ 	MP4BOX_ARG("hx", "look for given string in name and descriptions of all MP4Box and filters options"
 		, GF_ARG_STRING, 0, parse_help, 1, ARG_IS_FUN),
  	MP4BOX_ARG("nodes", "list supported MPEG4 nodes", GF_ARG_BOOL, 0, PrintBuiltInNodes, 0, ARG_IS_FUN),
  	MP4BOX_ARG("nodex", "list supported MPEG4 nodes and print nodes", GF_ARG_BOOL, 0, PrintBuiltInNodes, 1, ARG_IS_FUN),
@@ -1457,7 +1457,7 @@ MP4BoxArg m4b_usage_args[] =
  	MP4BOX_ARG("version", "get build version", GF_ARG_BOOL, 0, print_version, 0, ARG_IS_FUN),
  	MP4BOX_ARG("genmd", "generate MD doc", GF_ARG_BOOL, GF_ARG_HINT_HIDE, parse_gendoc, 0, ARG_IS_FUN),
  	MP4BOX_ARG("genman", "generate man doc", GF_ARG_BOOL, GF_ARG_HINT_HIDE, parse_gendoc, 1, ARG_IS_FUN),
- 	MP4BOX_ARG_S("--", "INPUT", "escape option if INPUT starts with `-` character", 0, NULL, 0, 0),
+ 	MP4BOX_ARG_S("-", "INPUT", "escape option if INPUT starts with `-` character", 0, NULL, 0, 0),
  	{0}
 };
 
@@ -1503,11 +1503,14 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 	return GF_FALSE;
 }
 
-static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, u32 search_type)
+static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, u32 search_type, char *class_name)
 {
+	char szDesc[100];
 	u32 res=0;
 	u32 i=0;
 	u32 alen = (u32) strlen(arg_name);
+
+	sprintf(szDesc, "see MP4Box -h %s", class_name);
 
 	while (1) {
 		u32 flags=0;
@@ -1545,17 +1548,23 @@ static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, 
 			i++;
 			continue;
 		}
-		if ((search_type==SEARCH_DESC) && !strstr_nocase(arg->description, arg_name, alen)) {
+		if ((search_type==SEARCH_DESC) && strcmp(arg->name, arg_name) && !strstr_nocase(arg->description, arg_name, alen)) {
 			i++;
 			continue;
 		}
 
 		an_arg = *arg;
 		if (search_type!=SEARCH_ARG_EXACT) {
-			an_arg.description = NULL;
+			if (search_type == SEARCH_DESC)
+				an_arg.description = szDesc;
+			else
+				an_arg.description = NULL;
 			an_arg.type = GF_ARG_BOOL;
+			gf_sys_print_arg(helpout, flags, (GF_GPACArg *) &an_arg, "");
+
+		} else {
+			gf_sys_print_arg(helpout, flags, (GF_GPACArg *) &an_arg, "");
 		}
-		gf_sys_print_arg(helpout, flags, (GF_GPACArg *) &an_arg, "");
 		res++;
 		i++;
 	}
@@ -1563,26 +1572,27 @@ static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, 
 }
 static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 {
+	char szDesc[100];
 	Bool first=GF_TRUE;
 	GF_GPACArg an_arg;
 	u32 i, count;
 	u32 res = 0;
 	u32 alen = (u32) strlen(arg_name);
-	res += PrintHelpForArgs(arg_name, m4b_gen_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_split_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_dash_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_imp_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_imp_fileopt_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_senc_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_crypt_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_hint_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_extr_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_dump_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_meta_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_swf_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, m4b_usage_args, NULL, search_type);
-	res += PrintHelpForArgs(arg_name, NULL, (GF_GPACArg *) gf_sys_get_options(), search_type);
+	res += PrintHelpForArgs(arg_name, m4b_gen_args, NULL, search_type, "general");
+	res += PrintHelpForArgs(arg_name, m4b_split_args, NULL, search_type, "split");
+	res += PrintHelpForArgs(arg_name, m4b_dash_args, NULL, search_type, "dash");
+	res += PrintHelpForArgs(arg_name, m4b_imp_args, NULL, search_type, "import");
+	res += PrintHelpForArgs(arg_name, m4b_imp_fileopt_args, NULL, search_type, "import (per-file option)");
+	res += PrintHelpForArgs(arg_name, m4b_senc_args, NULL, search_type, "encode");
+	res += PrintHelpForArgs(arg_name, m4b_crypt_args, NULL, search_type, "crypt");
+	res += PrintHelpForArgs(arg_name, m4b_hint_args, NULL, search_type, "hint");
+	res += PrintHelpForArgs(arg_name, m4b_extr_args, NULL, search_type, "extract");
+	res += PrintHelpForArgs(arg_name, m4b_dump_args, NULL, search_type, "dump");
+	res += PrintHelpForArgs(arg_name, m4b_meta_args, NULL, search_type, "meta");
+	res += PrintHelpForArgs(arg_name, m4b_swf_args, NULL, search_type, "swf");
+	res += PrintHelpForArgs(arg_name, m4b_liveenc_args, NULL, search_type, "live");
+	res += PrintHelpForArgs(arg_name, m4b_usage_args, NULL, search_type, "");
+	res += PrintHelpForArgs(arg_name, NULL, (GF_GPACArg *) gf_sys_get_options(), search_type, "core");
 
 	if (!fs) return res;
 
@@ -1602,7 +1612,7 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 			if ((search_type==SEARCH_ARG_CLOSE) && !gf_sys_word_match(arg->arg_name, arg_name)) continue;
 
 			if (search_type==SEARCH_DESC) {
-				if (!strstr_nocase(arg->arg_desc, arg_name, alen)) continue;
+				if (stricmp(arg->arg_name, arg_name) && !strstr_nocase(arg->arg_desc, arg_name, alen)) continue;
 			}
 
 			an_arg.name = arg->arg_name;
@@ -1637,7 +1647,8 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 				}
 				if (first) {
 					first = GF_FALSE;
-					gf_sys_format_help(helpout, 0, "\nGlobal filter session arguments. Syntax is `--arg` or `--arg=VAL`. `[F]` indicates filter name. See `gpac -h` and `gpac -h F` for more info.\n");
+					gf_sys_format_help(helpout, 0, "\nGlobal filter session arguments matching %s:\n", arg_name);
+					//. Syntax is `--arg` or `--arg=VAL`. `[F]` indicates filter name. See `gpac -h` and `gpac -h F` for more info.\n");
 				}
 				fprintf(helpout, "[%s]", reg->name);
 				len = (u32)strlen(reg->name);
@@ -1646,6 +1657,9 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 					fprintf(helpout, " ");
 				}
 				fprintf(helpout, " ");
+			} else if (search_type==SEARCH_DESC) {
+				sprintf(szDesc, "see filter %s", reg->name);
+				an_arg.description = szDesc;
 			}
 
 			gf_sys_print_arg(helpout, GF_PRINTARG_ADD_DASH, &an_arg, "TEST");
