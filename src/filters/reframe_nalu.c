@@ -36,6 +36,16 @@
 
 GF_Err gf_bs_set_logger(GF_BitStream *bs, void (*on_bs_log)(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3), void *udta);
 
+
+enum
+{
+	DVMODE_NONE=0,
+	DVMODE_AUTO,
+	DVMODE_FORCE,
+	DVMODE_CLEAN,
+	DVMODE_SINGLE,
+};
+
 typedef struct
 {
 	u64 pos;
@@ -1495,14 +1505,24 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 {
 	u8 dv_cfg[24];
 
-	if (!ctx->dv_mode)
+	switch (ctx->dv_mode) {
+	case DVMODE_NONE:
+	case DVMODE_CLEAN:
 		return;
-	//auto mode
-	if (ctx->dv_mode==1) {
+	//auto mode, wait until we have RPU or EL to signal profile
+	case DVMODE_AUTO:
 		if (!ctx->nb_dv_rpu && !ctx->nb_dv_el) return;
+		break;
 	}
 
 	u32 dv_level = gf_dolby_vision_level(ctx->width, ctx->height, ctx->cur_fps.num, ctx->cur_fps.den, ctx->codecid);
+
+	if (ctx->dv_profile==8) {
+		if (!ctx->dv_compatid) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] DV profile 8 used but dv_compatid not set, defaulting to bt709 (=2)\n", ctx->log_name));
+			ctx->dv_compatid = 2;
+		}
+	}
 
 	memset(dv_cfg, 0, sizeof(u8)*24);
 	GF_BitStream *bs = gf_bs_new(dv_cfg, 24, GF_BITSTREAM_WRITE);
@@ -1510,10 +1530,10 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 	gf_bs_write_u8(bs, 0); //version minor
 	gf_bs_write_int(bs, ctx->dv_profile, 7);
 	gf_bs_write_int(bs, dv_level, 6);
-	gf_bs_write_int(bs, ctx->nb_dv_rpu, 1);
-	gf_bs_write_int(bs, ctx->nb_dv_el, 1);
+	gf_bs_write_int(bs, ctx->nb_dv_rpu ? 1 : 0, 1); //rpu present
+	gf_bs_write_int(bs, ctx->nb_dv_el ? 1 : 0, 1); //el present
 	gf_bs_write_int(bs, 1, 1); //bl_present_flag always true, we don't split streams
-	gf_bs_write_int(bs, ctx->dv_compatid, 4); //bl_present_flag always true, we don't split streams
+	gf_bs_write_int(bs, ctx->dv_compatid, 4);
 	//the rest is zero-reserved
 	gf_bs_write_int(bs, 0, 28);
 	gf_bs_write_u32(bs, 0);
@@ -2262,14 +2282,22 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 
 	//parsing is partial, see https://github.com/DolbyLaboratories/dlb_mp4base/blob/70a2e1d4d99a8439b7b8087bf50dd503eeea2291/src/esparser/parser_hevc.c#L1233
 	case GF_HEVC_NALU_DV_RPU:
-		ctx->nb_dv_rpu ++;
-		if (ctx->nb_dv_rpu==1)
-			naludmx_set_dolby_vision(ctx);
+		if (ctx->dv_mode==DVMODE_CLEAN) {
+			*skip_nal = GF_TRUE;
+		} else {
+			ctx->nb_dv_rpu ++;
+			if (ctx->nb_dv_rpu==1)
+				naludmx_set_dolby_vision(ctx);
+		}
 		break;
 	case GF_HEVC_NALU_DV_EL:
-		ctx->nb_dv_el ++;
-		if (ctx->nb_dv_el==1)
-			naludmx_set_dolby_vision(ctx);
+		if ((ctx->dv_mode==DVMODE_CLEAN) || (ctx->dv_mode==DVMODE_SINGLE)) {
+			*skip_nal = GF_TRUE;
+		} else {
+			ctx->nb_dv_el ++;
+			if (ctx->nb_dv_el==1)
+				naludmx_set_dolby_vision(ctx);
+		}
 		break;
 
 	default:
@@ -2628,17 +2656,23 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		break;
 
 	case GF_AVC_NALU_DV_RPU:
-		ctx->nb_dv_rpu ++;
-		if (ctx->nb_dv_rpu==1)
-			naludmx_set_dolby_vision(ctx);
+		if (ctx->dv_mode==DVMODE_CLEAN) {
+			*skip_nal = GF_TRUE;
+		} else {
+			ctx->nb_dv_rpu ++;
+			if (ctx->nb_dv_rpu==1)
+				naludmx_set_dolby_vision(ctx);
+		}
 		break;
 	case GF_AVC_NALU_DV_EL:
-		ctx->nb_dv_el ++;
-		if (ctx->nb_dv_el==1)
-			naludmx_set_dolby_vision(ctx);
+		if ((ctx->dv_mode==DVMODE_CLEAN) || (ctx->dv_mode==DVMODE_SINGLE)) {
+			*skip_nal = GF_TRUE;
+		} else {
+			ctx->nb_dv_el ++;
+			if (ctx->nb_dv_el==1)
+				naludmx_set_dolby_vision(ctx);
+		}
 		break;
-		break;
-
 	}
 	return res;
 }
@@ -3853,11 +3887,13 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(notime), "ignore input timestamps, rebuild from 0", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
-	{ OFFS(dv_mode), "profile injection for DolbyVision\n"
+	{ OFFS(dv_mode), "signaling for DolbyVision\n"
 	"- none: never signal DV profile\n"
 	"- auto: signal DV profile if RPU or EL are found\n"
-	"- force: always signal DV profile"
-	, GF_PROP_UINT, "auto", "none|auto|force", GF_FS_ARG_HINT_ADVANCED},
+	"- force: always signal DV profile\n"
+	"- clean: do not signal and remove RPU and EL NAL units\n"
+	"- single: remove EL NAL units"
+	, GF_PROP_UINT, "auto", "none|auto|force|clean|single", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dv_profile), "profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9)", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dv_compatid), "cross-compatibility ID for DolbyVision\n"
 		"- none: do not signal compatibility\n"

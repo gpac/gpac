@@ -1647,15 +1647,13 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 	cfg->rpu_present_flag = gf_bs_read_int(bs, 1);
 	cfg->el_present_flag = gf_bs_read_int(bs, 1);
 	cfg->bl_present_flag = gf_bs_read_int(bs, 1);
-	{
-		int i = 0;
-		u32 data[5];
-		memset(data, 0, sizeof(data));
-		gf_bs_read_data(bs, (char*)data, 20);
-		for (i = 0; i < 5; ++i) {
-			if (data[i] != 0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[odf_cfg] dovi config reserved bytes are not zero\n"));
-			}
+	cfg->dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
+	if (gf_bs_read_int(bs, 28)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[odf_cfg] dovi config reserved bits are not zero\n"));
+	}
+	for (u32 i=0; i<4; i++) {
+		if (gf_bs_read_u32(bs)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[odf_cfg] dovi config reserved bits are not zero\n"));
 		}
 	}
 	return cfg;
@@ -1676,7 +1674,8 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 	gf_bs_write_int(bs, cfg->rpu_present_flag, 1);
 	gf_bs_write_int(bs, cfg->el_present_flag, 1);
 	gf_bs_write_int(bs, cfg->bl_present_flag, 1);
-    gf_bs_write_u32(bs, 0);
+	gf_bs_write_int(bs, cfg->dv_bl_signal_compatibility_id, 4);
+    gf_bs_write_int(bs, 0, 28);
     gf_bs_write_u32(bs, 0);
     gf_bs_write_u32(bs, 0);
     gf_bs_write_u32(bs, 0);

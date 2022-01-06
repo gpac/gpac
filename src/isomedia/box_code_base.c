@@ -11726,7 +11726,6 @@ void dvcC_box_del(GF_Box *s)
 GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	u8 data[19/*3+4*4*/];
 	GF_DOVIConfigurationBox *ptr = (GF_DOVIConfigurationBox *)s;
 
 	//GF_DOVIDecoderConfigurationRecord
@@ -11739,15 +11738,18 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 	ptr->DOVIConfig.el_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.bl_present_flag = gf_bs_read_int(bs, 1);
 	ptr->DOVIConfig.dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
-	if (gf_bs_read_int(bs, 4) != 0)
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero (1)\n"));
+	if (gf_bs_read_int(bs, 28) != 0)
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bits are not zero\n"));
 
-	memset(data, 0, 3+4*4);
-	gf_bs_read_data(bs, (char*)data, 3+4*4);
-	for (i = 0; i < 3+4*4; ++i) {
-		if (data[i] != 0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bytes are not zero (2)\n"));
-			//return GF_ISOM_INVALID_FILE;
+	for (i = 0; i < 4; i++) {
+		if (gf_bs_read_u32(bs) != 0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bits are not zero\n"));
+		}
+	}
+	if (ptr->DOVIConfig.dv_profile==8) {
+		if (!ptr->DOVIConfig.dv_bl_signal_compatibility_id || (ptr->DOVIConfig.dv_bl_signal_compatibility_id>2) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC profile 8 but compatibility ID %d is not 1 or 2, patching to 2\n", ptr->DOVIConfig.dv_bl_signal_compatibility_id));
+			ptr->DOVIConfig.dv_bl_signal_compatibility_id = 2;
 		}
 	}
 	return GF_OK;
