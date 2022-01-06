@@ -1453,48 +1453,83 @@ static void gpac_suggest_arg(char *aname)
 static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 {
 	Bool found = GF_FALSE;
-	u32 i, count;
+	Bool first = GF_FALSE;
+	u32 i, count, pass_exact = GF_TRUE;
 	if (!fname) return;
-	count = gf_fs_filters_registers_count(session);
-	for (i=0; i<count; i++) {
-		const GF_FilterRegister *freg = gf_fs_get_filter_register(session, i);
 
-		if (gf_sys_word_match(fname, freg->name)) {
-			if (!found) {
-				found = GF_TRUE;
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest filter names: \n"));
+	if (filter_only || !is_help) pass_exact = GF_FALSE;
+
+redo_pass:
+
+	count = gf_fs_filters_registers_count(session);
+	if (!pass_exact) {
+		for (i=0; i<count; i++) {
+			const GF_FilterRegister *freg = gf_fs_get_filter_register(session, i);
+
+			if (gf_sys_word_match(fname, freg->name)) {
+				if (!first) {
+					first = GF_TRUE;
+					if (!found) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+						found = GF_TRUE;
+					}
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest filter names: \n"));
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("- %s\n", freg->name));
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("- %s\n", freg->name));
 		}
 	}
-	if (!found && is_help) {
-		const char *doc_helps[] = {
-			"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
-		};
-		i=0;
-		while (doc_helps[i]) {
-			if (gf_sys_word_match(fname, doc_helps[i])) {
-				if (!found) {
-					found = GF_TRUE;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest help command: \n"));
+
+	if (is_help) {
+		if (!pass_exact) {
+			const char *doc_helps[] = {
+				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
+			};
+			first = GF_FALSE;
+			i=0;
+			while (doc_helps[i]) {
+				if (gf_sys_word_match(fname, doc_helps[i])) {
+					if (!first) {
+						first = GF_TRUE;
+						if (!found) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+							found = GF_TRUE;
+						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest help commands: \n"));
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-h %s\n", doc_helps[i]));
 				}
-				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("-h %s\n", doc_helps[i]));
+				i++;
 			}
-			i++;
 		}
+
 		if (!filter_only) {
-			Bool arg_found=GF_FALSE;
 			u32 nb_alias = gf_opts_get_key_count("gpac.alias");
+			first = GF_FALSE;
 			for (i=0; i<nb_alias; i++) {
 				const char *alias = gf_opts_get_key_name("gpac.alias", i);
-				if (gf_sys_word_match(fname, alias)) {
-					if (!found) {
+
+				if (pass_exact) {
+					if (!strcmp(fname, alias+1)) {
+						const char *doc = gf_opts_get_key("gpac.aliasdoc", alias);
+						if (!doc) doc = "Not documented";
+						GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: %s\n", alias, doc));
 						found = GF_TRUE;
-						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Closest alias: \n"));
 					}
-					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s\n", alias));
+				}
+				else if (gf_sys_word_match(fname, alias)) {
+					if (!first) {
+						first = GF_TRUE;
+						if (!found) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+							found = GF_TRUE;
+						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest alias: \n"));
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s\n", alias));
 				}
 			}
+			first = GF_FALSE;
 			for (i=0; i<count; i++) {
 				u32 j=0;
 				const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
@@ -1503,12 +1538,23 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 					const GF_FilterArgs *arg = &reg->args[j];
 					if (!arg || !arg->arg_name) break;
 					j++;
+
+					if (pass_exact) {
+						if (!strcmp(fname, arg->arg_name)) {
+							gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s %s\n", reg->name, arg->arg_name, arg->arg_desc);
+							found = GF_TRUE;
+						}
+						continue;
+					}
 					if (!gf_sys_word_match(fname, arg->arg_name)) continue;
 
-					if (!arg_found) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest matching filter option:\n", fname));
-						arg_found = GF_TRUE;
-						found = GF_TRUE;
+					if (!first) {
+						first = GF_TRUE;
+						if (!found) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+							found = GF_TRUE;
+						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest matching filter options:\n", fname));
 					}
 					gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
 				}
@@ -1516,9 +1562,14 @@ static void gpac_suggest_filter(char *fname, Bool is_help, Bool filter_only)
 		}
 	}
 	if (!found) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter %swith similar name found, see gpac -h filters%s\n",
-			is_help ? "or help command " : "",
-			is_help ? " or gpac -h" : ""
+		if (pass_exact) {
+			pass_exact = GF_FALSE;
+			goto redo_pass;
+		}
+
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No filter%swith similar name found, see gpac -h filters%s\n",
+			is_help ? ", option or help command " : " ",
+			is_help ? ", gpac -h or search all help using gpac -hx" : ""
 		));
 	}
 }
@@ -2010,9 +2061,16 @@ static int gpac_main(int argc, char **argv)
 			if (!strcmp(arg, "-i") || !strcmp(arg, "-src")
 				|| !strcmp(arg, "-o") || !strcmp(arg, "-dst")
 				|| !strcmp(arg, "-ib") || !strcmp(arg, "-ob")
-				|| !strcmp(arg, "-p") || !strcmp(arg, "-")
 			) {
-			} else if (!gf_sys_is_gpac_arg(arg) ) {
+				//skip next arg: input or output, could start with '-'
+				i++;
+				gf_sys_mark_arg_used(i, GF_TRUE);
+			}
+			//profile already processed, and global options (--) handled by libgpac, not this app
+			else if (!strcmp(arg, "-p") || !strcmp(arg, "-")
+			) {
+			}
+			else if (!gf_sys_is_gpac_arg(arg) ) {
 				if (!has_xopt) {
 					gpac_suggest_arg(arg);
 					gpac_exit(-1);
@@ -2962,23 +3020,10 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 				//search for name:*, also accept *:*
 				else {
 					char *sepo = strchr(arg, ':');
-					char *sepd = strchr(reg->name, ':');
-					Bool patch_meta = GF_FALSE;
-					if (sepo && sepd) {
-						u32 slen = (u32) (sepd - reg->name);
-						if (!strnicmp(arg, reg->name, slen)) {
-							char *subf = strstr(reg->name, sepo+1);
-							if (subf) {
-								slen = (u32) strlen(sepo+1);
-								if ((subf[slen]==0) || (subf[slen]==','))
-									patch_meta = GF_TRUE;
-							}
-						}
-					}
+
 					if (!strcmp(arg, "*:*") || !strcmp(arg, "@:@")
 						|| (!sepo && (!strcmp(arg, "*") || !strcmp(arg, "@")) )
 						|| (sepo && (!strcmp(sepo, ":*") || !strcmp(sepo, ":@"))  && !strncmp(reg->name, arg, 1+sepo - arg) )
-						|| patch_meta
 					) {
 						if (optname)
 							print_filter_single_opt(reg, optname, NULL);
@@ -3111,7 +3156,6 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 
 	if (found) return GF_TRUE;
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter \"%s\"\n", fname));
 	gpac_suggest_filter(fname, GF_TRUE, GF_FALSE);
 	return GF_FALSE;
 }

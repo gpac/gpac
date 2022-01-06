@@ -219,6 +219,8 @@ static GF_Err ffmx_initialize_ex(GF_Filter *filter, Bool use_templates)
 	const AVOutputFormat *ofmt;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
 
+	if (!ctx->dst) return GF_BAD_PARAM;
+
 	ffmpeg_setup_logs(GF_LOG_CONTAINER);
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)
@@ -1031,7 +1033,7 @@ static void ffmx_finalize(GF_Filter *filter)
 		}
 		ctx->status = FFMX_STATE_TRAILER_DONE;
 	} 
-	if (!ctx->gfio && ctx->muxer->pb) {
+	if (!ctx->gfio && ctx->muxer && ctx->muxer->pb) {
 		ctx->muxer->io_close(ctx->muxer, ctx->muxer->pb);
 	}
 

@@ -386,7 +386,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 
 	if (e) {
 		if (!filter->setup_notified && (e<0) ) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),freg->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),freg->name));
 			gf_filter_setup_failure(filter, e);
 		}
 		if (err) *err = e;

@@ -1308,10 +1308,6 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 			return gf_fs_load_filter(fsess, szName, err_code);
 		}
 	}
-
-	if (!quiet) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to load filter %s: no such filter registry\n", name));
-	}
 	if (err_code) *err_code = GF_FILTER_NOT_FOUND;
 	return NULL;
 }
