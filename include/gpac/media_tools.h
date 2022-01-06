@@ -1437,6 +1437,16 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 */
 void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *ts_inc);
 
+/*! gets dolby vision level
+ \param width width in pixels of video
+ \param height height in pixels of video
+ \param fps_num framerate numerator
+ \param fps_den framerate denominator
+ \param codecid GPAC codec ID
+ \return dv level
+*/
+u32 gf_dolby_vision_level(u32 width, u32 height, u32 fps_num, u32 fps_den, u32 codecid);
+
 #ifdef __cplusplus
 }
 #endif

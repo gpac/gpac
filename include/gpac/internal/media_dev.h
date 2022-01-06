@@ -567,11 +567,6 @@ typedef struct _hevc_state
 	s32 last_parsed_sps_id;
 	s32 last_parsed_pps_id;
 
-	// Dolby Vision
-	Bool dv_rpu;
-	Bool dv_el;
-
-
 	u8 clli_data[4];
 	u8 mdcv_data[24];
 	u8 clli_valid, mdcv_valid;

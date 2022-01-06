@@ -3044,6 +3044,17 @@ sample_entry_done:
 				}
 				gf_isom_set_high_dynamic_range_info(ctx->file, tkw->track_num, tkw->stsd_idx, p2 ? &mdcv : NULL, p ? &clli : NULL);
 			}
+
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
+			if (p) {
+				GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+				GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
+				gf_bs_del(bs);
+				if (dvcc) {
+					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
+					gf_odf_dovi_cfg_del(dvcc);
+				}
+			}
 		}
 		//default for old arch
 		else if (force_tk_layout

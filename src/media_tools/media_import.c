@@ -151,6 +151,45 @@ void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 }
 
 
+GF_EXPORT
+u32 gf_dolby_vision_level(u32 width, u32 height, u32 fps_num, u32 fps_den, u32 codecid)
+{
+	u32 dv_level = 0;
+	u64 level_check = width;
+	level_check *= height * fps_num;
+	if (fps_den)
+		level_check /= fps_den;
+	if (codecid==GF_CODECID_AVC) {
+		if (level_check <= 1280*720*24) dv_level = 1;
+		else if (level_check <= 1280*720*30) dv_level = 2;
+		else if (level_check <= 1920*1080*24) dv_level = 3;
+		else if (level_check <= 1920*1080*30) dv_level = 4;
+		else if (level_check <= 1920*1080*60) dv_level = 5;
+		else if (level_check <= 3840*2160*24) dv_level = 6;
+		else if (level_check <= 3840*2160*30) dv_level = 7;
+		else if (level_check <= 3840*2160*48) dv_level = 8;
+		else if (level_check <= 3840*2160*60) dv_level = 9;
+	} else {
+		if (level_check <= 1280*720*24) dv_level = 1;
+		else if (level_check<= 1280*720*30) dv_level = 2;
+		else if (level_check <= 1920*1080*24) dv_level = 3;
+		else if (level_check <= 1920*1080*30) dv_level = 4;
+		else if (level_check <= 1920*1080*60) dv_level = 5;
+		else if (level_check <= 3840*2160*24) dv_level = 6;
+		else if (level_check <= 3840*2160*30) dv_level = 7;
+		else if (level_check <= 3840*2160*48) dv_level = 8;
+		else if (level_check <= 3840*2160*60) dv_level = 9;
+        else if (level_check <= 3840*2160*120) {
+            if (width == 7680) dv_level = 11;
+            else dv_level = 10;
+        }
+        else if (level_check <= 7680*4320*60) dv_level = 12;
+        else level_check = 13;
+	}
+	return dv_level;
+}
+
+
 static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allowed)
 {
 	GF_Err e;
