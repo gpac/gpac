@@ -58,8 +58,8 @@ exposedField	MFGeometryNode		FacadeCellsArray	[]
 
 
 PROTO Shadow [#%NDT=SFWorldNode,SF3DNode,SFGeometryNode %COD=N
-eventIn		SF3DNode			addChildren	
-eventIn		SF3DNode			removeChildren	
+eventIn		MF3DNode			addChildren	
+eventIn		MF3DNode			removeChildren	
 exposedField	MF3DNode			children		[]
 exposedField	SFBool			enabled			TRUE
 exposedField	SFBool			cast			TRUE

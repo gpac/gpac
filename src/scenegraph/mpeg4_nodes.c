@@ -35924,7 +35924,7 @@ static GF_Err Shadow_get_field(GF_Node *node, GF_FieldInfo *info)
 		info->name = "addChildren";
 		info->eventType = GF_SG_EVENT_IN;
 		info->on_event_in = ((M_Shadow *)node)->on_addChildren;
-		info->fieldType = GF_SG_VRML_SFNODE;
+		info->fieldType = GF_SG_VRML_MFNODE;
 		info->NDTtype = NDT_SF3DNode;
 		info->far_ptr = & ((M_Shadow *)node)->addChildren;
 		return GF_OK;
@@ -35932,7 +35932,7 @@ static GF_Err Shadow_get_field(GF_Node *node, GF_FieldInfo *info)
 		info->name = "removeChildren";
 		info->eventType = GF_SG_EVENT_IN;
 		info->on_event_in = ((M_Shadow *)node)->on_removeChildren;
-		info->fieldType = GF_SG_VRML_SFNODE;
+		info->fieldType = GF_SG_VRML_MFNODE;
 		info->NDTtype = NDT_SF3DNode;
 		info->far_ptr = & ((M_Shadow *)node)->removeChildren;
 		return GF_OK;
