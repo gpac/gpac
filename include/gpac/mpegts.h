@@ -1639,6 +1639,9 @@ typedef struct __m2ts_mux_stream {
 	u32 pck_sap_type;
 	/*! packet SAP time (=PTS) when segmenting the TS*/
 	u64 pck_sap_time;
+
+	/*! last process result*/
+	u32 process_res;
 } GF_M2TS_Mux_Stream;
 
 /*! MPEG-4 systems signaling mode*/

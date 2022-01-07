@@ -2805,6 +2805,11 @@ void gf_m2ts_program_stream_remove(GF_M2TS_Mux_Stream *stream)
 		}
 	}
 	stream->next = NULL;
+
+	//if we remove PCR, reassign to first stream
+	if (program->pcr == stream)
+		program->pcr = program->streams;
+
 	gf_m2ts_mux_stream_del(stream);
 	program->pmt->table_needs_update = GF_TRUE;
 }
@@ -3148,6 +3153,21 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 	program = muxer->programs;
 	while (program) {
 		stream = program->streams;
+
+		//first pass, process all PES and update stream clocks - this is needed for non realtime VBR because gf_m2ts_stream_too_early (below) assumes all
+		//stream times are up to date
+		while (stream) {
+			if (flush_all_pes && !stream->pes_data_remain) {
+				stream->process_res = 0;
+			} else {
+				stream->process_res = stream->process(muxer, stream);
+			}
+			stream = stream->next;
+			continue;
+		}
+
+		//second pass, get earliest PES packet
+		stream = program->streams;
 		while (stream) {
 #if FORCE_PCR_FIRST
 			if (stream != program->pcr)
@@ -3159,7 +3179,8 @@ const u8 *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, GF_M2TSMuxState *status, u32 *
 					continue;
 				}
 
-				res = stream->process(muxer, stream);
+				res = stream->process_res;
+
 				/*next is rap on this stream, check flushing of other pes (we could use a goto)*/
 				if (!flush_all_pes && muxer->force_pat)
 					return gf_m2ts_mux_process(muxer, status, usec_till_next);
