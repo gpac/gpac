@@ -326,6 +326,7 @@ typedef struct _dash_stream
 
 	u32 startNumber, seg_number;
 	Bool rep_init;
+	Bool forced_period_switch;
 	u64 first_cts;
 	u64 first_dts;
 	s64 pts_minus_cts;
@@ -689,6 +690,9 @@ static GF_Err dasher_stream_period_changed(GF_Filter *filter, GF_DasherCtx *ctx,
 		if (ds->opid)
 			gf_filter_pid_set_eos(ds->opid);
 		ds->rep_init = GF_FALSE;
+		//indicate this input is moved to next period. If a scheduled input is muxed with this one in the current period
+		//it will abort its current segment
+		ds->forced_period_switch = GF_TRUE;
 		ds->presentation_time_offset = 0;
 		gf_list_rem(ctx->current_period->streams, res);
 	} else {
@@ -988,7 +992,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #define CHECK_PROP_PROP(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
-	if (p != _mem) period_switch = GF_TRUE; \
+	if (p != _mem) period_switch = GF_TRUE;\
 	_mem = p; \
 
 
@@ -4511,9 +4515,9 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 			ctx->mpd->force_llhls_mode = 0;
 
 		if (m3u8_second_pass) {
-			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_last(ctx->mpd->periods) );
 		} else {
-			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_get(ctx->mpd->periods, 0) );
+			e = gf_mpd_write_m3u8_master_playlist(ctx->mpd, tmp, ctx->out_path, gf_list_last(ctx->mpd->periods) );
 		}
 	} else {
 		e = gf_mpd_write(ctx->mpd, tmp, ctx->cmpd);
@@ -4673,7 +4677,7 @@ GF_Err dasher_send_manifest(GF_Filter *filter, GF_DasherCtx *ctx, Bool for_mpd_o
 	if (ctx->do_m3u8) {
 		Bool m3u8_second_pass = GF_FALSE;
 		u32 j;
-		GF_MPD_Period *period = gf_list_get(ctx->mpd->periods, 0);
+		GF_MPD_Period *period = gf_list_last(ctx->mpd->periods);
 		GF_MPD_AdaptationSet *as;
 		GF_MPD_Representation *rep;
 		GF_FilterPid *opid;
@@ -4829,6 +4833,7 @@ static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_de
 		}
 		ds->nb_sap_in_queue = 0;
 	}
+	ds->forced_period_switch = GF_FALSE;
 }
 
 void dasher_context_update_period_end(GF_DasherCtx *ctx)
@@ -7922,6 +7927,16 @@ static GF_Err dasher_process(GF_Filter *filter)
 
 			if (ds->seek_to_pck) {
 				ds->seek_to_pck = 0;
+			}
+			//base rep has been forced to another period, we switch asap
+			else if (base_ds->forced_period_switch) {
+				ds->seg_done = GF_TRUE;
+				dasher_inject_eods(ctx, ds);
+				seg_done = GF_TRUE;
+				dasher_stream_period_changed(filter, ctx, ds, GF_FALSE);
+				i--;
+				count--;
+				break;
 			}
 			//force flush mode, segment is done upon eos
 			else if (ctx->force_flush) {
