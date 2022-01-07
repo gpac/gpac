@@ -180,6 +180,17 @@ GF_Err obumx_process(GF_Filter *filter)
 	}
 
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
+	if (!pck_size) {
+		//if output and packet properties, forward - this is required for sinks using packets for state signaling
+		//such as TS muxer in dash mode looking for EODS property
+		if (ctx->opid && gf_filter_pck_has_properties(pck))
+			gf_filter_pck_forward(pck, ctx->opid);
+
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_OK;
+	}
+
+
 	hdr_size = 0;
 	size = pck_size;
 	//always add temporal delim

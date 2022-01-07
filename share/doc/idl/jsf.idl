@@ -714,9 +714,12 @@ readonly attribute unsigned long size;
 	\warning This arraybuffer will be detached whenever the packet data is modified for a destination packet
 */
 readonly attribute ArrayBuffer data;
+
 /*! set to true if data of the packet is available through a GF_FilterFrameInterface object*/
 readonly attribute boolean frame_ifce;
 
+/*! set to true if packet has properties other than default ones - see gf_filter_pck_has_properties*/
+readonly attribute boolean has_properties;
 
 /*! sets packet readonly - see gf_filter_pck_set_readonly*/
 void set_readonly();

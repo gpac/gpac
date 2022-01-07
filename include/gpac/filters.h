@@ -3933,6 +3933,15 @@ GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, co
 */
 GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF_PropertyValue *value);
 
+/*! Checks if a packet has properties other than packet built-in ones
+
+ This is typically needed to decide whether a packet with no data should be forwarded or not
+
+\param pck the target packet
+\return GF_TRUE if packet has properties, GF_FALSE otherwise
+*/
+Bool gf_filter_pck_has_properties(GF_FilterPacket *pck);
+
 /*! Merge properties of source packet into destination packet but does NOT reset destination packet properties
 \param pck_src source packet
 \param pck_dst destination packet

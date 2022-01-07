@@ -1467,6 +1467,15 @@ GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF
 }
 
 GF_EXPORT
+Bool gf_filter_pck_has_properties(GF_FilterPacket *pck)
+{
+	//get true packet pointer
+	pck = pck->pck;
+	if (!pck->props) return GF_FALSE;
+	return GF_TRUE;
+}
+
+GF_EXPORT
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc)
 {
 	//get true packet pointer
