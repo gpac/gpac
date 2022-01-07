@@ -3076,6 +3076,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 			continue;
 		}
 
+next_pck:
 		pck = gf_filter_pid_get_packet(in->ipid);
 		if (!pck) {
 			nb_nopck++;
@@ -3283,6 +3284,8 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		if (end) {
 			httpout_close_input(ctx, in);
 		}
+
+		goto next_pck;
 	}
 
 	if (count && (nb_eos==count)) {
