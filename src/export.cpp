@@ -2528,6 +2528,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_property_str ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_set_property_dyn ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_has_properties ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_property ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_get_property_str ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_enum_properties ) )

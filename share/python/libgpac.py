@@ -3694,6 +3694,9 @@ _libgpac.gf_filter_pck_get_frame_interface.restype = c_void_p
 _libgpac.gf_filter_pck_is_blocking_ref.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_is_blocking_ref.restype = gf_bool
 
+_libgpac.gf_filter_pck_has_properties.argtypes = [_gf_filter_packet]
+_libgpac.gf_filter_pck_has_properties.restype = gf_bool
+
 _libgpac.gf_filter_pck_enum_properties.argtypes = [_gf_filter_packet, POINTER(c_uint), POINTER(c_uint), POINTER(c_char_p)]
 _libgpac.gf_filter_pck_enum_properties.restype = POINTER(PropertyValue)
 
@@ -3793,6 +3796,9 @@ class FilterPacket:
             ##true if packet holds a GF_FrameInterface object and not a data packet
             #\hideinitializer
             frame_ifce=0
+            ##Custom properties present, readonly - see \ref gf_filter_pck_has_properties
+            #\hideinitializer
+            self.has_properties=0
 
     ##enumerate an packet properties
     #\param callback_obj callback object to use, must have a 'on_prop_enum' method defined taking two parameters, prop_name(string) and propval
@@ -4138,6 +4144,12 @@ class FilterPacket:
         if self._is_src:
             raise Exception('Cannot set deps on source packet')
         return _libgpac.gf_filter_pck_set_dependency_flags(self._pck, value)
+
+    @property
+    def has_properties(self):
+        if _libgpac.gf_filter_pck_has_properties(self._pck):
+            return True
+        return False
 
     @property
     def frame_ifce(self):

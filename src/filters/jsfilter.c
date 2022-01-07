@@ -3524,6 +3524,7 @@ enum
 	JSF_PCK_SIZE,
 	JSF_PCK_DATA,
 	JSF_PCK_FRAME_IFCE,
+	JSF_PCK_HAS_PROPERTIES,
 };
 
 static JSValue jsf_pck_set_prop(JSContext *ctx, JSValueConst this_val, JSValueConst value, int magic)
@@ -3723,6 +3724,9 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		if (gf_filter_pck_get_frame_interface(pck) != NULL)
 			return JS_NewBool(ctx, 1);
 		else return JS_NewBool(ctx, 0);
+
+	case JSF_PCK_HAS_PROPERTIES:
+		return JS_NewBool(ctx, gf_filter_pck_has_properties(pck) );
 	}
     return JS_UNDEFINED;
 }
@@ -4086,6 +4090,7 @@ static const JSCFunctionListEntry jsf_pck_funcs[] =
     JS_CGETSET_MAGIC_DEF("size", jsf_pck_get_prop, NULL, JSF_PCK_SIZE),
     JS_CGETSET_MAGIC_DEF("data", jsf_pck_get_prop, NULL, JSF_PCK_DATA),
     JS_CGETSET_MAGIC_DEF("frame_ifce", jsf_pck_get_prop, NULL, JSF_PCK_FRAME_IFCE),
+    JS_CGETSET_MAGIC_DEF("has_properties", jsf_pck_get_prop, NULL, JSF_PCK_HAS_PROPERTIES),
 
     JS_CFUNC_DEF("set_readonly", 0, jsf_pck_set_readonly),
     JS_CFUNC_DEF("enum_properties", 0, jsf_pck_enum_properties),
