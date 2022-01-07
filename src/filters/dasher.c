@@ -8695,6 +8695,8 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			sctx->index_size = 1 + (u32) (evt->seg_size.idx_range_end - evt->seg_size.idx_range_start);
 			sctx->index_offset = evt->seg_size.idx_range_start;
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] Got segment size event for %s\n", sctx->filename));
+
 			if (sctx->llhls_mode) {
 				sctx->llhls_done = GF_TRUE;
 				//reset frags of past segments
@@ -8718,6 +8720,7 @@ static Bool dasher_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 					}
 					prev_sctx->llhls_mode = 0;
 				}
+				ctx->force_hls_ll_manifest = GF_TRUE;
 			}
 		}
 
