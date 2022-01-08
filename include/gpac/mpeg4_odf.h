@@ -1118,6 +1118,9 @@ typedef struct {
 	u8 dv_bl_signal_compatibility_id; //4 bits
 	//const unsigned int (28) reserved = 0;
 	//const unsigned int (32)[4] reserved = 0;
+
+	//internal, force dvhe or dvh1 signaling
+	u8 force_dv;
 } GF_DOVIDecoderConfigurationRecord;
 
 /*! Media Segment Descriptor used for Media Control Extensions*/

@@ -347,6 +347,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 {
 	GF_Err e;
 	Bool remove=GF_FALSE;
+	Bool force_dv=GF_FALSE;
 	u32 dv_profile = 0;
 	u32 dv_compat_id=0;
 	char *sep = strchr(dv_profile_str, '.');
@@ -359,10 +360,16 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 		else if (!strcmp(sep+1, "hlg2100")) dv_compat_id=4;
 		else if (!strcmp(sep+1, "bt2020")) dv_compat_id=5;
 		else if (!strcmp(sep+1, "brd")) dv_compat_id=6;
+		else if ((sep[1]>='0') && (sep[1]<='9')) dv_compat_id=atoi(sep+1);
 		else {
 			M4_LOG(GF_LOG_WARNING, ("DV compatibility mode %s not recognized, using none\n", sep+1));
 		}
 	}
+	if (dv_profile_str[0]=='f') {
+		force_dv = GF_TRUE;
+		dv_profile_str++;
+	}
+
 	if (!strcmp(dv_profile_str, "none")) {
 		remove = GF_TRUE;
 	} else {
@@ -379,6 +386,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	if (dovi) {
 		dovi->dv_profile = dv_profile;
 		dovi->dv_bl_signal_compatibility_id = dv_compat_id;
+		dovi->force_dv = force_dv;
 		e = gf_isom_set_dolby_vision_profile(dest, track, 1, remove ? NULL : dovi);
 		gf_odf_dovi_cfg_del(dovi);
 		return e;
@@ -396,6 +404,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	_dovi.dv_version_minor = 0;
 	_dovi.dv_profile = dv_profile;
 	_dovi.dv_bl_signal_compatibility_id = dv_compat_id;
+	_dovi.force_dv = force_dv;
 
 	u32 w, h;
 	Bool is_avc = GF_FALSE;
