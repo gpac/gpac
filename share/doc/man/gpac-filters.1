@@ -4268,9 +4268,17 @@ Warning: multipliers (k,m,g) are not supported in TEMI options.
 .SH Notes
 .LP
 .br
-In DASH mode, the PCR is always initialized at 0, and .I flush_rap is automatically set.
+In DASH and HLS mode:
 .br
-The filter watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
+- the PCR is always initialized at 0, and .I flush_rap is automatically set.
+.br
+- unless nb_pack is specified, 200 TS packets will be used as pack output in DASH mode.
+.br
+- pes_pack=none is forced since some demuxers have issues with non-aligned ADTS PES.
+.br
+
+.br
+The filter watches the property FileNumber on incoming packets to create new files, or new segments in DASH mode.
 .br
 
 .br
@@ -9509,7 +9517,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1602-g0c6853338-master
+build: 1.1.0-DEV-rev1613-ga5bd3a59d-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -619,6 +619,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	char *fchain = NULL;
 	char *edits = NULL;
 	const char *fail_msg = NULL;
+	char *hdr_file=NULL;
 	Bool set_ccst=GF_FALSE;
 	Bool has_last_sample_dur=GF_FALSE;
 	u32 fake_import = 0;
@@ -1088,9 +1089,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		} else if (!strnicmp(ext+1, "bitdepth=", 9)) {
 			bitdepth=atoi(ext+10);
 		}
+		else if (!strnicmp(ext+1, "hdr=", 4)) {
+			hdr_file = gf_strdup(ext+5);
+		}
 		else if (!strnicmp(ext+1, "colr=", 5)) {
 			char *cval = ext+6;
-			if (strlen(cval)<6) {
+			if (!strcmp(cval, "none")) {
+				clr_type = (u32) -1;
+			} else if (strlen(cval)<6) {
 				fmt_ok = GF_FALSE;
 			} else {
 				clr_type = GF_4CC(cval[0],cval[1],cval[2],cval[3]);
@@ -1506,8 +1512,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("changing bit depth")
 			}
 			if (clr_type) {
+				if (clr_type==(u32)-1)
+					clr_type = 0;
+
 				e = gf_isom_set_visual_color_info(dest, track, 1, clr_type, clr_prim, clr_tranf, clr_mx, clr_full_range, icc_data, icc_size);
 				GOTO_EXIT("changing color info")
+			}
+			if (hdr_file) {
+				e = parse_high_dynamc_range_xml_desc(dest, track, hdr_file);
+				GOTO_EXIT("setting HDR info")
 			}
 			if (dv_profile[0]) {
 				e = set_dv_profile(dest, track, dv_profile);
@@ -1865,6 +1878,7 @@ exit:
 	if (opt_src) opt_src[0] = ':';
 	if (opt_dst) opt_dst[0] = ':';
 	if (fchain) fchain[0] = ':';
+	if (hdr_file) gf_free(hdr_file);
 
 	gf_list_del(kinds);
 	if (handler_name) gf_free(handler_name);
@@ -3676,7 +3690,7 @@ exit:
 	return file;
 }
 
-GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
+GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file_name)
 {
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *stream;
@@ -3687,6 +3701,15 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 
 	memset(&mdcv, 0, sizeof(GF_MasteringDisplayColourVolumeInfo));
 	memset(&clli, 0, sizeof(GF_ContentLightLevelInfo));
+
+	if (!strcmp(file_name, "none")) {
+		for (i=0; i<gf_isom_get_track_count(movie); i++) {
+			if (gf_isom_is_video_handler_type(gf_isom_get_media_type(movie, i+1))) {
+				gf_isom_set_high_dynamic_range_info(movie, i+1, 1, NULL, NULL);
+			}
+		}
+		return GF_OK;
+	}
 
 	parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser, file_name, NULL, NULL);
@@ -3709,17 +3732,25 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 
 	i = 0;
 	while ((stream = gf_list_enum(root->content, &i))) {
-		u32 id = 0, j;
+		u32 j;
 		GF_XMLAttribute* att = NULL;
 		GF_XMLNode *box = NULL;
 
 		if (stream->type != GF_XML_NODE_TYPE) continue;
 		if (strcmp(stream->name, "Track")) continue;
 
-		j = 0;
-		while ((att = gf_list_enum(stream->attributes, &j))) {
-			if (!strcmp(att->name, "id")) id = atoi(att->value);
-			else fprintf(stderr, "HDR XML: ignoring track attribute \"%s\"\n", att->name);
+		if (!track) {
+			j = 0;
+			while ((att = gf_list_enum(stream->attributes, &j))) {
+				if (!strcmp(att->name, "id")) {
+					u32 id = atoi(att->value);
+					track = gf_isom_get_track_by_id(movie, id);
+					if (!track) {
+						fprintf(stderr, "HDR XML: no track with ID %d, ignoring attribute\n", id);
+					}
+				}
+				else fprintf(stderr, "HDR XML: ignoring track attribute \"%s\"\n", att->name);
+			}
 		}
 
 		j = 0;
@@ -3756,7 +3787,16 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, char *file_name)
 			}
 		}
 
-		e = gf_isom_set_high_dynamic_range_info(movie, id, 1, &mdcv, &clli);
+		if (!track) {
+			for (i=0; i<gf_isom_get_track_count(movie); i++) {
+				if (gf_isom_is_video_handler_type(gf_isom_get_media_type(movie, i+1))) {
+					e = gf_isom_set_high_dynamic_range_info(movie, i+1, 1, &mdcv, &clli);
+					if (e) break;
+				}
+			}
+		} else {
+			e = gf_isom_set_high_dynamic_range_info(movie, track, 1, &mdcv, &clli);
+		}
 		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("HDR XML: error in gf_isom_set_high_dynamic_range_info()\n"));
 			break;
@@ -3774,7 +3814,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
 	return NULL;
 }
 
-GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, char* file_name)
+GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, u32 track, char* file_name)
 {
 	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot process HDR parameter file\n"));
 	return GF_OK;
