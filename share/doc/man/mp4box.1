@@ -399,7 +399,7 @@ disable inplace rewrite
 .TP
 .B \-hdr (string)
 .br
-update HDR information based on given XML
+update HDR information based on given XML, 'none' removes HDR info
 .br
 .TP
 .B \-time [tkID=]DAY/MONTH/YEAR-H:M:S
@@ -1908,6 +1908,13 @@ S set color profile for imported video content (see ISO/IEC 23001-8). Value is f
 .br
   * rICC,path: with path indicating the file containing the restricted ICC color profile
 .br
+  * 'none': removes color info
+.br
+.TP
+.B hdr (string)
+.br
+S set HDR info on track (see .I -hdr ), 'none' removes HDR info
+.br
 .TP
 .B dv-profile (string)
 .br
@@ -2810,7 +2817,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1602-g0c6853338-master
+build: 1.1.0-DEV-rev1613-ga5bd3a59d-master
 .br
 Copyright: (c) 2000-2021 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

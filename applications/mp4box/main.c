@@ -445,7 +445,7 @@ MP4BoxArg m4b_gen_args[] =
 				, 0, parse_track_action, TRACK_ACTION_SET_EDITS, ARG_IS_FUN),
  	MP4BOX_ARG("moovpad", "specify amount of padding to keep after moov box for later inplace editing - if 0, moov padding is disabled", GF_ARG_INT, GF_ARG_HINT_EXPERT, &moov_pading, 0, ARG_NEED_SAVE),
  	MP4BOX_ARG("no-inplace", "disable inplace rewrite", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &no_inplace, 0, 0),
- 	MP4BOX_ARG("hdr", "update HDR information based on given XML", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &high_dynamc_range_filename, 0, ARG_OPEN_EDIT),
+ 	MP4BOX_ARG("hdr", "update HDR information based on given XML, 'none' removes HDR info", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &high_dynamc_range_filename, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG_S("time", "[tkID=]DAY/MONTH/YEAR-H:M:S", "set movie or track creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRACK_ACTION_SET_TIME, ARG_IS_FUN),
  	MP4BOX_ARG_S("mtime", "tkID=DAY/MONTH/YEAR-H:M:S", "set media creation time", GF_ARG_HINT_EXPERT, parse_track_action, TRACK_ACTION_SET_MEDIA_TIME, ARG_IS_FUN),
 	{0}
@@ -824,7 +824,9 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 		"  - nclc,p,t,m: with p colour primary (int or string), t transfer characteristics (int or string) and m matrix coef (int or string)\n"
 		"  - nclx,p,t,m,r: same as `nclx` with r full range flag (`yes`, `on` or `no`, `off`)\n"
 		"  - prof,path: with path indicating the file containing the ICC color profile\n"
-		"  - rICC,path: with path indicating the file containing the restricted ICC color profile", NULL, NULL, GF_ARG_STRING, 0),
+		"  - rICC,path: with path indicating the file containing the restricted ICC color profile\n"
+		"  - 'none': removes color info", NULL, NULL, GF_ARG_STRING, 0),
+	GF_DEF_ARG("hdr", NULL, "`S` set HDR info on track (see [-hdr](MP4B_GEN) ), 'none' removes HDR info", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("dv-profile", NULL, "`S` set the Dolby Vision profile on imported track\n"
 	"- Profile is an integer, or `none` to remove DV signaling\n"
 	"- Profile can be suffixed with compatibility ID, e.g. `5.hdr10`\n"
@@ -6086,7 +6088,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 	if (high_dynamc_range_filename) {
-		e = parse_high_dynamc_range_xml_desc(file, high_dynamc_range_filename);
+		e = parse_high_dynamc_range_xml_desc(file, 0, high_dynamc_range_filename);
 		if (e) goto err_exit;
 	}
 
