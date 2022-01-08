@@ -1840,6 +1840,7 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	GF_Err e;
 	GF_TrackBox* trak;
 	GF_SampleEntryBox* entry;
+	Bool switch_type = GF_FALSE;
 	GF_SampleDescriptionBox* stsd;
 	GF_DOVIConfigurationBox* dovi = NULL;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -1860,28 +1861,40 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_OK;
+
+	if (dvcc) {
+		switch_type = dvcc->force_dv;
+		switch (dvcc->dv_profile) {
+		case 1:
+		case 3:
+		case 5:
+			switch_type = 1;
+			break;
+		}
+	}
+
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_DVHE:
-		entry->type = GF_ISOM_BOX_TYPE_DVHE;
+		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVHE : GF_ISOM_BOX_TYPE_HEV1;
 		break;
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_DVH1:
-		entry->type = GF_ISOM_BOX_TYPE_DVH1;
+		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVH1 : GF_ISOM_BOX_TYPE_HVC1;
 		break;
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_DVA1:
-		entry->type = GF_ISOM_BOX_TYPE_DVA1;
+		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVA1 : GF_ISOM_BOX_TYPE_AVC1;
 		break;
 	case GF_ISOM_BOX_TYPE_AVC3:
 	case GF_ISOM_BOX_TYPE_DVAV:
-		entry->type = GF_ISOM_BOX_TYPE_DVAV;
+		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVAV : GF_ISOM_BOX_TYPE_AVC3;
 		break;
 	case GF_ISOM_BOX_TYPE_AV01:
 	case GF_ISOM_BOX_TYPE_DAV1:
-		entry->type = GF_ISOM_BOX_TYPE_DAV1;
+		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DAV1 : GF_ISOM_BOX_TYPE_AV01;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
