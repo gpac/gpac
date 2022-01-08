@@ -1584,7 +1584,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if (dsi) crc_cfg = gf_crc_32(dsi, dsi_size);
 	if (dsi_enh) crc_cfg_enh = gf_crc_32(dsi_enh, dsi_enh_size);
 
-	if (!w || !h) {
+	if (!ctx->analyze && (!w || !h)) {
 		if (dsi) gf_free(dsi);
 		if (dsi_enh) gf_free(dsi_enh);
 		return;
