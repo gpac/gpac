@@ -3639,7 +3639,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			sai = fake_sai;
 		}
 	}
-	//we injected xPS at the begining of the sample (AVC/HEVC/VVC), we must patch the first subsample
+	//we injected xPS at the beginning of the sample (AVC/HEVC/VVC), we must patch the first subsample
 	//of SAI data
 	else if (injected_hdr_size) {
 		u32 offset = 0;
