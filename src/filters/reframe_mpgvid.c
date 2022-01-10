@@ -649,7 +649,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		u8 ftype;
 		u32 tinc;
 		u64 size=0;
-		u64 fstart;
+		u64 fstart=0;
 		Bool is_coded;
 		u32 bytes_from_store = 0;
 		u32 hdr_offset = 0;
@@ -1052,7 +1052,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			gf_filter_pck_set_carousel_version(dst_pck, 1);
 		}
 		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
-		gf_filter_pck_set_duration(dst_pck, ctx->cur_fps.den);
+		if (ctx->cur_fps.den > 0) gf_filter_pck_set_duration(dst_pck, ctx->cur_fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		ctx->frame_started = GF_TRUE;
 
