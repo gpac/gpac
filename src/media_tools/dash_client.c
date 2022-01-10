@@ -9471,7 +9471,7 @@ u64 gf_dash_get_period_duration(GF_DashClient *dash)
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index+1);
 
 	if (!period) {
-		//infered from MPD duration
+		//inferred from MPD duration
 		if (dash->mpd->media_presentation_duration) return dash->mpd->media_presentation_duration - start;
 		//duration is not known (live)
 		if (dash->mpd->type==GF_MPD_TYPE_STATIC) {

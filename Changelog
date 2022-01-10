@@ -118,7 +118,7 @@ It also adds several small features:
     * HTTP output (client and server), supporting low latency DASH access
     * Ad-hoc stream format called GSF to allow serialization to file, pipe or socket of a session (for distributed filter chains), supporting AES-128 CBC encryption.
 - Raw audio (PCM) and video (RGB, YUV) reframers and exporters
-- HEVC tile spliting and merging filters
+- HEVC tile splitting and merging filters
 - Compositor is a standalone filter (SVG/BIFS/VRML graphics in a filter chain)
 - Image encoding support through libjpg and libpng
 - Full FFMPEG support:
@@ -458,7 +458,7 @@ It also adds several small features:
     - cf configuration.html or man gpac for more info on progressive loading control
   - added 'define' support in BT - to use it just do:
      #define symbol blab labl a
-    and reuse the symbol in the BT text. This may be quite buggy, but it can be usefull
+    and reuse the symbol in the BT text. This may be quite buggy, but it can be useful
   - support for Scene Carousel in hinters, core and rtp reassembler. Currently only BIFS and BIFS+AV can be use the scene carousel, carouseling of 
     static data (eg images) is not supported. The OD data must be embedded in the IOD a la ISMA.
   - added FPS and size info dumping for MPEG and AVI file import (MP4Box -info file.mpg)
@@ -486,7 +486,7 @@ It also adds several small features:
     - basic conditional processing (switch)
     - SMIL anim events (begin, end, restart)
   - added PAR modification support to MP4Box (import time and file based)
-  - improved precision of IsoMedia file spliting
+  - improved precision of IsoMedia file splitting
   - added NHML import/export. NHML is an XML representation of the NHNT file, with add-ons and a more flexible way of integrating media. Doc to come on web site
   - clean-up of 2D direct rendering mode: 
       * no more bounds tracking for less memory usage

@@ -1426,11 +1426,11 @@ u8 gf_props_4cc_get_flags(u32 prop_4cc);
 #define PROP_VEC2(_val) (GF_PropertyValue){.type=GF_PROP_VEC2, .value.vec2 = _val}
 /*! Helper macro to set 2D integer vector property */
 #define PROP_VEC2I(_val) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i = _val}
-/*! Helper macro to set 2D integer vector property from intergers*/
+/*! Helper macro to set 2D integer vector property from integers*/
 #define PROP_VEC2I_INT(_x, _y) (GF_PropertyValue){.type=GF_PROP_VEC2I, .value.vec2i.x = _x, .value.vec2i.y = _y}
 /*! Helper macro to set 3D integer vector property */
 #define PROP_VEC3I(_val) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i = _val}
-/*! Helper macro to set 3D integer vector property from intergers*/
+/*! Helper macro to set 3D integer vector property from integers*/
 #define PROP_VEC3I_INT(_x, _y, _z) (GF_PropertyValue){.type=GF_PROP_VEC3I, .value.vec3i.x = _x, .value.vec3i.y = _y, .value.vec3i.z = _z}
 /*! Helper macro to set 4D integer vector property */
 #define PROP_VEC4I(_val) (GF_PropertyValue){.type=GF_PROP_VEC4I, .value.vec4i = _val}
@@ -2205,7 +2205,7 @@ struct __gf_filter_register
 	/*! optional, usually set by demuxers. This function probes the mime type of a data chunk, usually located at the start of the file.
 	This function is called once the source is open, but is never called on an instanciated filter. The returned mime type (if any) is then used instead of the file extension
 	for solving filter graph.
-	\note Demux filters should always exposed 2 input caps bundle, one for specifiying input cap by file extension and one for specifying input cap by mime type.
+	\note Demux filters should always exposed 2 input caps bundle, one for specifying input cap by file extension and one for specifying input cap by mime type.
 	\param data data to probe
 	\param size size of the data to probe
 	\param score set to the probe score. Initially set to \ref GF_FPROBE_NOT_SUPPORTED before calling the function. If you are certain of the data type, use \ref GF_FPROBE_SUPPORTED, if unsure use \ref GF_FPROBE_MAYBE_SUPPORTED. If the format cannot be probed (bad design), set it to \ref GF_FPROBE_EXT_MATCH
@@ -2644,7 +2644,7 @@ GF_Err gf_filter_reconnect_output(GF_Filter *filter);
 GF_Err gf_filter_set_event_target(GF_Filter *filter, Bool enable_events);
 
 /*! Looks for a built-in property value marked as informative on a filter on all PIDs (inputs and output)
-This is a recursive call on both input and ouput chain.
+This is a recursive call on both input and output chain.
 There is no guarantee that a queried property will still be valid at the setter side upon returning the call, the setter could have
 already reassigned it to NULL. To avoids random behavior, the property returned is reference counted so that it is not
 destroyed by the setter while the caller uses it.
@@ -2679,7 +2679,7 @@ gf_filter_release_property(pe);
 const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc, GF_PropertyEntry **propentry);
 
 /*! Looks for a property value on a filter on all PIDs (inputs and output).
-This is a recursive call on both input and ouput chain
+This is a recursive call on both input and output chain
 Properties retrieved shall be released using \ref gf_filter_release_property. See \ref gf_filter_pid_get_info for more details.
 \param filter the target filter
 \param prop_name the name of the property to fetch
@@ -2689,7 +2689,7 @@ Properties retrieved shall be released using \ref gf_filter_release_property. Se
 const GF_PropertyValue *gf_filter_get_info_str(GF_Filter *filter, const char *prop_name, GF_PropertyEntry **propentry);
 
 /*! Release a property previously queried, only used for []_get_info_[] functions.
-This is a recursive call on both input and ouput chain
+This is a recursive call on both input and output chain
 \param propentry the property reference object to be released
 */
 void gf_filter_release_property(GF_PropertyEntry *propentry);
@@ -3479,7 +3479,7 @@ Properties retrieved shall be released using \ref gf_filter_release_property. Se
 */
 const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *PID, u32 prop_4cc, GF_PropertyEntry **propentry);
 
-/*! Looks for a property value on a  PIDs. This is a recursive call on both input and ouput chain
+/*! Looks for a property value on a  PIDs. This is a recursive call on both input and output chain
 Properties retrieved shall be released using \ref gf_filter_release_property. See \ref gf_filter_pid_get_info for more details.
 \param PID the target filter PID to query
 \param prop_name the name of the property to fetch

@@ -399,7 +399,7 @@ MP4BoxArg m4b_gen_args[] =
  			"- n, d: numerator, denominator\n"
 	        "- W, H, HO, VO: clap width, clap height, clap horizontal offset, clap vertical offset\n"
  			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_CLAP, ARG_IS_FUN),
- 	MP4BOX_ARG_S("mx", "tkID=MX", "set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point intergers or hexa"
+ 	MP4BOX_ARG_S("mx", "tkID=MX", "set track matrix, with MX is M1:M2:M3:M4:M5:M6:M7:M8:M9 in 16.16 fixed point integers or hexa"
  			, GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_MX, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind", "tkID=schemeURI=value", "set kind for the track or for all tracks using `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_SET_KIND, ARG_IS_FUN),
 	MP4BOX_ARG_S("kind-rem", "tkID=schemeURI=value", "remove kind if given schemeID for the track or for all tracks with `all=schemeURI=value`", 0, parse_track_action, TRACK_ACTION_REM_KIND, ARG_IS_FUN),
@@ -962,7 +962,7 @@ MP4BoxArg m4b_senc_args[] =
  	MP4BOX_ARG("resolution", "resolution factor (-8 to 7, default 0) for LASeR encoding, and all coordinates are multiplied by `2^res` before truncation (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.resolution, 0, 0),
  	MP4BOX_ARG("coord-bits", "number of bits used for encoding truncated coordinates (0 to 31, default 12) (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.coord_bits, 0, 0),
  	MP4BOX_ARG("scale-bits", "extra bits used for encoding truncated scales (0 to 4, default 0) (LASeR encoding)", GF_ARG_INT, 0, &smenc_opts.scale_bits, 0, 0),
- 	MP4BOX_ARG("auto-quant", "resolution is given as if using [-resolution]() but coord-bits and scale-bits are infered (LASeR encoding)", GF_ARG_INT, 0, parse_senc_param, 3, ARG_IS_FUN),
+ 	MP4BOX_ARG("auto-quant", "resolution is given as if using [-resolution]() but coord-bits and scale-bits are inferred (LASeR encoding)", GF_ARG_INT, 0, parse_senc_param, 3, ARG_IS_FUN),
  	MP4BOX_ARG("global-quant", "resolution is given as if using [-resolution]() but the res is inferred (BIFS encoding)", GF_ARG_INT, 0, parse_senc_param, 4, ARG_IS_FUN),
 #endif
  	{0}
@@ -980,7 +980,7 @@ void PrintEncodeUsage()
 		"## Scene Random Access\n"
 		"MP4Box can encode BIFS or LASeR streams and insert random access points at a given frequency. This is useful when packaging content for broadcast, where users will not turn in the scene at the same time. In MPEG-4 terminology, this is called the __scene carousel__."
 		"## BIFS Chunk Processing\n"
-		"The BIFS chunk encoding mode alows encoding single BIFS access units from an initial context and a set of commands.\n"
+		"The BIFS chunk encoding mode allows encoding single BIFS access units from an initial context and a set of commands.\n"
 		"The generated AUs are raw BIFS (not SL-packetized), in files called FILE-ESID-AUIDX.bifs, with FILE the basename of the input file.\n"
 		"Commands with a timing of 0 in the input will modify the carousel version only (i.e. output context).\n"
 		"Commands with a timing different from 0 in the input will generate new AUs.\n"
@@ -1686,7 +1686,7 @@ static void PrintHelp(char *arg_name, Bool search_desc, Bool no_match)
 	if (search_desc) {
 		char *_arg_name = gf_strdup(arg_name);
 		strlwr(_arg_name);
-		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options mentionning `%s`:\n", arg_name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Possible options mentioning `%s`:\n", arg_name));
 		PrintHelpArg(_arg_name, SEARCH_DESC, fs);
 		gf_free(_arg_name);
 	} else {

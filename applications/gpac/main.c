@@ -3134,7 +3134,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 			if (argmode==GF_ARGMODE_EXPERT) {
 				if (!arg->arg_desc || !strstr_nocase(arg->arg_desc, l_fname, lf_len)) continue;
 				if (!found) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\"%s\" is mentionned in the following filters options:\n", fname));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\"%s\" is mentioned in the following filters options:\n", fname));
 					found = GF_TRUE;
 				}
 				gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
@@ -3757,7 +3757,7 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 		}
 		if ((int) idx + arg_idx >= argc) {
 			if (sep) sep[0]=',';
-			fprintf(stderr, "Bad format for alias parameter %s: argment out of bounds (not enough paramteters?)\n", oparam);
+			fprintf(stderr, "Bad format for alias parameter %s: argument out of bounds (not enough paramteters?)\n", oparam);
 			gf_free(alias_arg);
 			return GF_FALSE;
 		}

@@ -1137,7 +1137,7 @@ struct _traversing_state
 
 	/*layer traversal state:
 		set to the first traversed layer3D when picking
-		set to the current layer3D traversed when rendering 3D to an offscreen bitmap. This alows other
+		set to the current layer3D traversed when rendering 3D to an offscreen bitmap. This allows other
 			nodes (typically bindables) seting the layer dirty flags to force a redraw
 	*/
 	GF_Node *layer3d;

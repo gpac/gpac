@@ -547,7 +547,7 @@ int live_session(int argc, char **argv)
 					char rad[GF_MAX_PATH];
 					fprintf(stderr, "Enter output file name - \"std\" for stderr: ");
 					if (1 > scanf("%1023s", rad)) {
-						fprintf(stderr, "No ouput file name entered, aborting.\n");
+						fprintf(stderr, "No output file name entered, aborting.\n");
 						break;
 					}
 					e = gf_seng_save_context(livesess.seng, !strcmp(rad, "std") ? NULL : rad);

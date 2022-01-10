@@ -6980,7 +6980,7 @@ void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si
 parse_weights:
 	for (i = 0; i < num_ref_idx; i++) {
 		luma_weights[i] = gf_bs_read_int_log_idx(bs, 1, "luma_weights", i);
-		//infered to be 0 if not present
+		//inferred to be 0 if not present
 		chroma_weights[i] = 0;
 	}
 	if (ChromaArrayType != 0) {

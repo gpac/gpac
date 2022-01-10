@@ -5900,7 +5900,7 @@ u32 gf_isom_meta_get_item_ref_count(GF_ISOFile *isom_file, Bool root_meta, u32 t
 \param from_id item ID to check
 \param type reference type to check
 \param ref_idx 1-based index of reference to check
-\return ID if the refered item*/
+\return ID if the referred item*/
 u32 gf_isom_meta_get_item_ref_id(GF_ISOFile *isom_file, Bool root_meta, u32 track_num, u32 from_id, u32 type, u32 ref_idx);
 
 /*! item tile mode*/

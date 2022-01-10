@@ -290,7 +290,7 @@ public interface GpacCallback {
     // * @param siteURL The URL of site requiring authorization
     // * @param userName The User Name (may be null if never set)
     // * @param password The password (may be null if never set)
-    // * @return A String formated as username:password
+    // * @return A String formatted as username:password
     // */
     // public String onGPACAuthorization(String siteURL, String userName, String password);
 

@@ -13,21 +13,21 @@
 
 void OnNewPacket(void *cbk, GF_RTPHeader *header)
 {
-	((PNC_CallbackData *)cbk)->formatedPacketLength = 0;
+	((PNC_CallbackData *)cbk)->formattedPacketLength = 0;
 }
 
 void OnPacketDone(void *cbk, GF_RTPHeader *header)
 {
 	PNC_CallbackData *data = (PNC_CallbackData *)cbk;
 	dprintf(DEBUG_RTP_serv_packetizer, "RTP Packet done\n");
-	PNC_SendRTP(data, ((PNC_CallbackData *)cbk)->formatedPacket, ((PNC_CallbackData *)cbk)->formatedPacketLength);
-	((PNC_CallbackData *)cbk)->formatedPacketLength = 0;
+	PNC_SendRTP(data, ((PNC_CallbackData *)cbk)->formattedPacket, ((PNC_CallbackData *)cbk)->formattedPacketLength);
+	((PNC_CallbackData *)cbk)->formattedPacketLength = 0;
 }
 
 void OnData(void *cbk, char *data, u32 data_size, Bool is_head)
 {
-	memcpy(((PNC_CallbackData *)cbk)->formatedPacket+((PNC_CallbackData *)cbk)->formatedPacketLength, data, data_size);
-	((PNC_CallbackData *)cbk)->formatedPacketLength += data_size;
+	memcpy(((PNC_CallbackData *)cbk)->formattedPacket+((PNC_CallbackData *)cbk)->formattedPacketLength, data, data_size);
+	((PNC_CallbackData *)cbk)->formattedPacketLength += data_size;
 }
 
 void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt, unsigned short mtu_size)
@@ -61,13 +61,13 @@ void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt, unsigned short m
 	p->rtp_header.SSRC=rand();
 	data->hdr=& p->rtp_header;
 	data->rtpBuilder=p;
-	data->formatedPacket = gf_malloc(MAX_PACKET_SIZE);
-	data->formatedPacketLength = 0;
+	data->formattedPacket = gf_malloc(MAX_PACKET_SIZE);
+	data->formattedPacketLength = 0;
 }
 
 void PNC_ClosePacketizer(PNC_CallbackData *data)
 {
-	gf_free(data->formatedPacket);
+	gf_free(data->formattedPacket);
 	gf_rtp_builder_del(data->rtpBuilder);
 }
 

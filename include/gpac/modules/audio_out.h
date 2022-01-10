@@ -88,7 +88,7 @@ typedef struct _audiooutput
 	u32 (*GetTotalBufferTime)(struct _audiooutput *aout);
 
 	/*returns audio delay in ms, eg time delay until written audio data is outputed by the sound card
-	This function is only called after ConfigureOuput*/
+	This function is only called after ConfigureOutput*/
 	u32 (*GetAudioDelay)(struct _audiooutput *aout);
 
 	/*set output volume(between 0 and 100) */

@@ -29,7 +29,7 @@
 	Notes about the mixer:
 	1- spatialization is out of scope for the mixer (eg that's the sound node responsability)
 	2- mixing is performed by resampling input source & deinterleaving its channels into dedicated buffer.
-	We could directly deinterleave in the main mixer ouput buffer, but this would prevent any future
+	We could directly deinterleave in the main mixer output buffer, but this would prevent any future
 	gain correction.
 */
 typedef struct

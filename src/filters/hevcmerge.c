@@ -1619,7 +1619,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"EX src2:SRD=640x0x640x480:SRDRef=1280x720\n"
 		"This indicates that `src1` contains a video located at 640,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.\n"
 		" \n"
-		"Each merged input is described by 8 intergers in the output `SRDMap`:\n"
+		"Each merged input is described by 8 integers in the output `SRDMap`:\n"
 		"- the source `SRD` is rescaled in the output `SRDRef` to form the first part (4 integers) of the `SRDMap` (i.e. __where was the input ?__)\n"
 		"- the source location in the reconstructed video forms the second part (4 integers) of the `SRDMap` (i.e. __where are the input pixels in the output ?__)\n"
 		"Assuming the two sources are encoded at 320x240 and merged as src2 above src1, the output will be a 320x480 video with a `SRDMap` of {0,160,160,240,0,0,320,240,0,0,160,240,0,240,320,240}\n"

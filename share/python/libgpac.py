@@ -4453,7 +4453,7 @@ class FileIO:
 			self.factory = self
 			self.factory.all_refs=0
 			self.factory.pending_urls=[]
-			#keep all created file IOs still usefull here to prevent garbage collection
+			#keep all created file IOs still useful here to prevent garbage collection
 			self.factory.gc_exclude=[]
 			self.factory.root_obj = obj
 

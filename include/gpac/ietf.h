@@ -1070,7 +1070,7 @@ typedef struct
 	GF_List *FMTP;
 
 	/*for RTP this is PayloadType, but can be opaque (string) depending on the app.
-	Formated as XX WW QQ FF
+	Formatted as XX WW QQ FF
 	When reading the SDP, the payloads defined in RTPMap are removed from this list
 	When writing the SDP for RTP, you should only specify static payload types here,
 	as dynamic ones are stored in RTPMaps and automatically written*/
@@ -1467,7 +1467,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder);
 \param avgSize average size of an AU. This is not always known (real-time encoding).
 In this case you should specify a rough compute indicating how many packets could be
 stored per RTP packet. for ex AAC stereo at 44100 k / 64kbps , one AU ~= 380 bytes
-so 3 AUs for 1500 MTU is ok - BE CAREFULL: MultiSL adds some SL info on top of the 12
+so 3 AUs for 1500 MTU is ok - BE CAREFUL: MultiSL adds some SL info on top of the 12
 byte RTP header so you should specify a smaller size
 The packetizer will ALWAYS make sure there's no pb storing the packets so specifying
 more will result in a slight overhead in the SL mapping but the gain to singleSL

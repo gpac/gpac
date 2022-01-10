@@ -691,7 +691,7 @@ GF_FilterRegister FileOutRegister = {
 		"It can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"
 		"In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
 		"If the output file name is `std` or `stdout`, writes to stdout.\n"
-		"The ouput file name can use gpac templating mechanism, see `gpac -h doc`."
+		"The output file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
 	)
 	.private_size = sizeof(GF_FileOutCtx),

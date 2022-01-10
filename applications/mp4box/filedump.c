@@ -2902,7 +2902,7 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 							fprintf(stderr, "Spatial scalability");
 							break;
 						case 8:
-							fprintf(stderr, "Auxilary");
+							fprintf(stderr, "Auxiliary");
 							break;
 						default:
 							fprintf(stderr, "unknown");
