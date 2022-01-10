@@ -889,7 +889,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		ohevc_set_out_props(ctx);
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending ouput frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Sending output frame CTS "LLU"\n", openHevcFrame_FL.frame_par.pts ));
 
 	if (ctx->no_copy && !ctx->pack_hfr) {
 		return ohevcdec_send_output_frame(ctx);

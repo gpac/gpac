@@ -578,7 +578,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		e = gf_bs_reassign_buffer(mdia->nalu_parser, mdia->in_sample_buffer, sample->dataLength);
 		if (e) return e;
 	}
-	//setup ouput
+	//setup output
 	if (!mdia->nalu_out_bs) {
 		u8 *output;
 		u32 outSize;

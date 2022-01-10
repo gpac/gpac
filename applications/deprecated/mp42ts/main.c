@@ -1575,7 +1575,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 					if (gf_isom_get_media_type(source->mp4, k+1) != GF_ISOM_MEDIA_OD)
 						continue;
 
-					/*this stream is not refered to by any OD, send as regular PES*/
+					/*this stream is not referred to by any OD, send as regular PES*/
 					if (gf_isom_has_track_reference(source->mp4, k+1, GF_ISOM_REF_OD, gf_isom_get_track_id(source->mp4, i+1) )==1) {
 						found_dep = 1;
 						break;

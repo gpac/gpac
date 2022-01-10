@@ -1528,7 +1528,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Indicate the time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_IS_MANIFEST, "IsManifest", "Indicate the PID is a HAS manifest", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 
-	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from begining of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
+	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from beginning of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_SKIP_PRES, "SkipPres", "Indicate the packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 
 

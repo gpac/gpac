@@ -1062,7 +1062,7 @@ static int avi_close_output_file(avi_t *AVI)
 	}
 
 
-	/* Try to ouput the index entries. This may fail e.g. if no space
+	/* Try to output the index entries. This may fail e.g. if no space
 	   is left on device. We will report this as an error, but we still
 	   try to write the header correctly (so that the file still may be
 	   readable in the most cases */

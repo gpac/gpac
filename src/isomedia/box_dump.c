@@ -4598,7 +4598,7 @@ static void oinf_entry_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 	u32 i, count;
 
 	if (!ptr) {
-		gf_fprintf(trace, "<OperatingPointsInformation scalability_mask=\"Multiview|Spatial scalability|Auxilary|unknown\" num_profile_tier_level=\"\" num_operating_points=\"\" dependency_layers=\"\">\n");
+		gf_fprintf(trace, "<OperatingPointsInformation scalability_mask=\"Multiview|Spatial scalability|Auxiliary|unknown\" num_profile_tier_level=\"\" num_operating_points=\"\" dependency_layers=\"\">\n");
 
 		gf_fprintf(trace, " <ProfileTierLevel general_profile_space=\"\" general_tier_flag=\"\" general_profile_idc=\"\" general_profile_compatibility_flags=\"\" general_constraint_indicator_flags=\"\" />\n");
 
@@ -4620,7 +4620,7 @@ static void oinf_entry_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 		gf_fprintf(trace, "Spatial scalability");
 		break;
 	case 8:
-		gf_fprintf(trace, "Auxilary");
+		gf_fprintf(trace, "Auxiliary");
 		break;
 	default:
 		gf_fprintf(trace, "unknown");

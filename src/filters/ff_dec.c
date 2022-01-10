@@ -769,7 +769,7 @@ dispatch_next:
 		if (gf_filter_pid_would_block(ctx->out_pid))
 			return GF_OK;
 
-		//if space available in ouput, decode right away - needed for audio formats with very short frames
+		//if space available in output, decode right away - needed for audio formats with very short frames
 		//avoid recursion
 		goto decode_next;
 	}

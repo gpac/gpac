@@ -877,7 +877,7 @@ wxOsmo4Frame::wxOsmo4Frame() :
 
 	if (!strcmp(sOpt, "No Audio Output Available")) {
 		::wxLogMessage(wxT("WARNING: no audio output availble - make sure no other program is locking the sound card"));
-		SetStatus(wxT("No audio ouput available"));
+		SetStatus(wxT("No audio output available"));
 
 	} else {
 		SetStatus(wxT("Ready"));

@@ -1128,7 +1128,7 @@ interface ConvolutionKernel
 	attribute unsigned long h;
 	/*! kernel normalization. If 0 or undefined, no normalization is applied*/
 	attribute unsigned long norm;
-	/*! kernel coeficients. The coeficients are unsigned intergers, and there shall be at least w * h coefficients*/
+	/*! kernel coeficients. The coeficients are unsigned integers, and there shall be at least w * h coefficients*/
 	attribute Array k;
 };
 
@@ -1503,7 +1503,7 @@ The working principles of the shader object is as follows:
 - variables can be defined as uniforms, and updated whenever needed
 - upon executing the shader, the instructions are processed in order
 
-Local variables are untyped, except for reserved variables. The type is infered whenever the variable is assigned or modified, thus a same variable can change type during the execution of the shader. 
+Local variables are untyped, except for reserved variables. The type is inferred whenever the variable is assigned or modified, thus a same variable can change type during the execution of the shader. 
 Upon assigning, the type of the source variable is inferred as follows:
 - Javascript bool and integer are converted to integer type
 - Javascript float is converted to float type

@@ -1240,7 +1240,7 @@ screen_res_crc=3526471735
 timeshift=Sets initial timshift in ms (if >0) or in %% of timeshift buffer (if <0)
 timeshift_crc=3110845565
 tile_mode=@Sets tile adaptiaion mode:
-	none: bitrate is shared equaly accross all tiles
+	none: bitrate is shared equaly across all tiles
 	rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row
 	rrows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row
 	mrows: bitrate decreased for top and bottom rows only, same rate for each tile on the row
@@ -1543,7 +1543,7 @@ desc=Generic file output
 desc_crc=320552344
 help=@The file output filter can work as a null sink when its destination is "null", dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.
 In regular mode, the filter will dump to file incomming packets (stream type file), starting a new file for each packet having a start block set, unless operating in cat mode.
-The ouput file name can use gpac templating mechanism, see gpac help.@
+The output file name can use gpac templating mechanism, see gpac help.@
 help_crc=606079466
 dst=location of destination file - see filter help 
 dst_crc=2944539646

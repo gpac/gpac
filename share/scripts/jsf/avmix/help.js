@@ -413,7 +413,7 @@ This will change scene \`s1\` rotation every 2 seconds
 ### Properties for \`watcher\` objects
 - id (null): ID of the watcher
 - active (true): indicate if watcher is active or not
-- watch (""): element watched, formated as \`ID@prop\`, with \`ID\` the element ID and \`prop\` the property name to watch
+- watch (""): element watched, formatted as \`ID@prop\`, with \`ID\` the element ID and \`prop\` the property name to watch
 - target (""): action for watcher. Allowed syntaxes are:
   - \`ID@prop\`, \`ID@prop[idx]\`: copy value to property \`prop\` of the element \`ID\` (potentially at index \`idx\` if specified for arrays)
   - \`ID.fun_name\`: call function \`fun_name\` exported from scene module \`ID\`, using three arguments ['value', 'watchID', 'watchPropName'], no return value check

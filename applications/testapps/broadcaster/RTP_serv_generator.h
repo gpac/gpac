@@ -16,8 +16,8 @@
 typedef struct tmp_PNC_CallbackData {
 	GF_RTPChannel *chan;
 	GF_RTPHeader *hdr;
-	char * formatedPacket;
-	int formatedPacketLength;
+	char * formattedPacket;
+	int formattedPacketLength;
 	GP_RTPPacketizer *rtpBuilder;
 	GF_SceneEngine *codec;
 
