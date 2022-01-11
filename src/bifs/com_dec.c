@@ -1251,7 +1251,7 @@ exit:
 			while (nb_cmd_bufs < new_cmd_bufs) {
 				new_cmd_bufs--;
 				CommandBufferItem *cbi = gf_list_pop_back(codec->command_buffers);
-
+				gf_node_unregister(cbi->node, NULL);
 				gf_free(cbi);
 			}
 			gf_sg_proto_del(proto);

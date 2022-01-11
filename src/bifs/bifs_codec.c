@@ -227,6 +227,7 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 
 	while (gf_list_count(codec->command_buffers)) {
 		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
+		gf_node_unregister(cbi->node, NULL);
 		gf_free(cbi);
 		gf_list_rem(codec->command_buffers, 0);
 	}
