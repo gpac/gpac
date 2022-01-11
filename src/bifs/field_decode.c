@@ -177,7 +177,10 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	}
 	break;
 	case GF_SG_VRML_SFIMAGE:
-		if (((SFImage *)field->far_ptr)->pixels) gf_free(((SFImage *)field->far_ptr)->pixels);
+		if (((SFImage *)field->far_ptr)->pixels) {
+			gf_free(((SFImage *)field->far_ptr)->pixels);
+			((SFImage *)field->far_ptr)->pixels = NULL;
+		}
 		w = gf_bs_read_int(bs, 12);
 		h = gf_bs_read_int(bs, 12);
 		length = gf_bs_read_int(bs, 2);
