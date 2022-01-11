@@ -993,6 +993,7 @@ static GF_Err BD_DecReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	return GF_OK;
 }
 
+void command_buffers_del(GF_List *command_buffers);
 
 /*if parent is non-NULL, we are in a proto code parsing, otherwise this is a top-level proto*/
 GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *proto_list)
@@ -1121,9 +1122,19 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		}
 		/*get proto code*/
 		else {
+			//scope command buffer solving by proto nodes - cf poc in #2040
+			//this means that any pending command buffer not solved at the end of a proto declaration is
+			//a falty one
+			GF_List *old_cb = codec->command_buffers;
+			codec->command_buffers = gf_list_new();
+			
 			/*parse sub-proto list - subprotos are ALWAYS registered with parent proto graph*/
 			e = gf_bifs_dec_proto_list(codec, bs, NULL);
-			if (e) goto exit;
+			if (e) {
+				command_buffers_del(codec->command_buffers);
+				codec->command_buffers = old_cb;
+				goto exit;
+			}
 
 			flag = 1;
 
@@ -1133,6 +1144,8 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				if (!node) {
 					if (codec->LastError) {
 						e = codec->LastError;
+						command_buffers_del(codec->command_buffers);
+						codec->command_buffers = old_cb;
 						goto exit;
 					} else {
 						flag = gf_bs_read_int(bs, 1);
@@ -1140,14 +1153,20 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					}
 				}
 				e = gf_node_register(node, NULL);
-				if (e) goto exit;
-
+				if (e) {
+					command_buffers_del(codec->command_buffers);
+					codec->command_buffers = old_cb;
+					goto exit;
+				}
 				//Ivica patch - Flush immediately because of proto instantiation
 				gf_bifs_flush_command_list(codec);
 
 				gf_sg_proto_add_node_code(proto, node);
 				flag = gf_bs_read_int(bs, 1);
 			}
+
+			command_buffers_del(codec->command_buffers);
+			codec->command_buffers = old_cb;
 
 			/*routes*/
 			flag = gf_bs_read_int(bs, 1);
