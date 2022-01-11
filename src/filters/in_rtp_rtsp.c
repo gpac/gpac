@@ -121,9 +121,11 @@ void rtpin_rtsp_process_commands(GF_RTPInRTSP *sess)
 	/*process*/
 	if (!com->User_Agent) com->User_Agent = (char *) sess->rtpin->user_agent;
 	com->Accept_Language = (char *) sess->rtpin->languages;
-	/*if no session assigned and a session ID is valid, use it*/
-	if (sess->session_id && !com->Session)
+
+	/*if no session assigned but session-level ID was required, use it*/
+	if (!com->Session && com->user_flags) {
 		com->Session = sess->session_id;
+	}
 
 	/*preprocess describe before sending (always the ESD url thing)*/
 	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) {

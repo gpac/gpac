@@ -221,7 +221,8 @@ static void gf_rtp_switch_quality(GF_RTPIn *rtp, Bool switch_up)
 					gf_rtp_stop(cur_stream->rtp_ch);
 					cur_stream->status = RTP_Connected;
 					rtp->cur_mid = stream->mid;
-					if (cur_stream->opid) gf_filter_pid_set_eos(cur_stream->opid);
+					if (cur_stream->opid)
+						gf_filter_pid_set_eos(cur_stream->opid);
 					break;
 				}
 			}
@@ -271,6 +272,9 @@ static void rtpin_check_setup(GF_RTPInStream *stream)
 		rtpin_stream_ack_connect(stream, GF_OK);
 		return;
 	default:
+		if (stream->rtsp && ! (stream->rtsp->flags & RTSP_AGG_CONTROL) && stream->session_id)  {
+			return;
+		}
 		break;
 	}
 	memset(&ch_desc, 0, sizeof(RTPIn_StreamDescribe));
@@ -772,6 +776,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(stats), "update statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_sleep), "set max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtcpsync), "use RTCP to adjust synchronization", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(forceagg), "force RTSP control aggregation (patch for buggy servers)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
