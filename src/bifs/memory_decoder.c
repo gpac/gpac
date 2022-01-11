@@ -946,6 +946,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 				gf_bs_del(bs);
 			}
 			if (!e) {
+				gf_node_unregister(cbi->node, NULL);
 				gf_free(cbi);
 				continue;
 			}
@@ -960,6 +961,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 					for (i=0; i<gf_list_count(codec->command_buffers); i++) {
 						CommandBufferItem *cbi2 = (CommandBufferItem *)gf_list_get(codec->command_buffers, i);
 						if (cbi2->cb == cf->field_ptr) {
+							gf_node_unregister(cbi2->node, NULL);
 							gf_free(cbi2);
 							gf_list_rem(codec->command_buffers, i);
 							i--;
@@ -1018,6 +1020,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, u8 *data, u3
 	/*if err or not reset conditionals*/
 	while (gf_list_count(codec->command_buffers)) {
 		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
+		gf_node_unregister(cbi->node, NULL);
 		gf_free(cbi);
 		gf_list_rem(codec->command_buffers, 0);
 	}

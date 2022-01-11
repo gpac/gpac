@@ -235,6 +235,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (codec->dec_memory_mode || (node->sgprivate->tag==TAG_MPEG4_InputSensor)) {
 			CommandBufferItem *cbi = (CommandBufferItem *)gf_malloc(sizeof(CommandBufferItem));
 			cbi->node = node;
+			gf_node_register(cbi->node, NULL);
 			cbi->cb = sfcb;
 			gf_list_add(codec->command_buffers, cbi);
 		}
@@ -253,6 +254,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 						gf_list_rem(codec->command_buffers, i);
 						i--;
 						count--;
+						gf_node_unregister(cbi->node, NULL);
 						gf_free(cbi);
 					}
 				}

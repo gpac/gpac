@@ -83,6 +83,7 @@ typedef struct
 /*per_stream config support*/
 typedef struct
 {
+	//node is registered with NULL as parent
 	GF_Node *node;
 	SFCommandBuffer *cb;
 } CommandBufferItem;
