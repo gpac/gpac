@@ -293,6 +293,9 @@ typedef struct
 	/*user data: this is never touched by the lib, its intend is to help stacking
 	RTSP commands in your app*/
 	void *user_data;
+	/*user flags: this is never touched by the lib, its intend is to help stacking
+	RTSP commands in your app*/
+	u32 user_flags;
 
 
 	/*

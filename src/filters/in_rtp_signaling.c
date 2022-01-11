@@ -55,7 +55,13 @@ static Bool rtpin_rtsp_is_active(GF_RTPInStream *stream)
 static void rtpin_rtsp_queue_command(GF_RTPInRTSP *sess, GF_RTPInStream *stream, GF_RTSPCommand *com, Bool needs_sess_id)
 {
 	if (needs_sess_id) {
-		com->Session = sess->session_id;
+		if (stream && !(stream->rtsp->flags & RTSP_AGG_CONTROL))  {
+			com->Session = stream->session_id;
+		} else {
+			com->Session = sess->session_id;
+			//session_id can still be null (setup reply not yet processed), remember we need it
+			com->user_flags = 1;
+		}
 	}
 	gf_list_add(sess->rtsp_commands, com);
 }
@@ -197,7 +203,11 @@ void rtpin_rtsp_setup_process(GF_RTPInRTSP *sess, GF_RTSPCommand *com, GF_Err e)
 		goto exit;
 	}
 	if (!sess->session_id) sess->session_id = gf_strdup(sess->rtsp_rsp->Session);
-	assert(!stream->session_id);
+
+	if (! (stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
+		assert(!stream->session_id);
+		stream->session_id = gf_strdup(sess->rtsp_rsp->Session);
+	}
 
 	/*transport setup: break at the first correct transport */
 	i=0;
@@ -478,6 +488,14 @@ Bool rtpin_rtsp_usercom_preprocess(GF_RTPInRTSP *sess, GF_RTSPCommand *com)
 		assert(stream->opid == ch_ctrl->evt.base.on_pid);
 	}
 
+	if (!com->Session) {
+		if (stream && !(stream->rtsp->flags & RTSP_AGG_CONTROL) )  {
+			com->Session = stream->session_id;
+		} else {
+			com->Session = sess->session_id;
+		}
+	}
+
 	skip_it = GF_FALSE;
 	if (!com->Session) {
 		/*re-SETUP failed*/
@@ -633,8 +651,17 @@ process_reply:
 		}
 	} else if (ch_ctrl->evt.base.type == GF_FEVT_STOP) {
 		sess->rtpin->eos_probe_start = gf_sys_clock();
-		if (stream)
+
+		if (sess->flags & RTSP_AGG_CONTROL) {
+			u32 i, count = gf_list_count(sess->rtpin->streams);
+			for (i=0; i<count; i++) {
+				stream = gf_list_get(sess->rtpin->streams, i);
+				if (stream->rtsp == sess)
+					stream->flags |= RTP_EOS;
+			}
+		} else if (stream) {
 			stream->flags |= RTP_EOS;
+		}
 	}
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
@@ -749,16 +776,11 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 
 		if (sess->flags & RTSP_AGG_CONTROL)
 			rtpin_rtsp_skip_command(stream);
-		else if (strlen(stream->control))
+		else if (stream->control && strlen(stream->control))
 			com->ControlString = gf_strdup(stream->control);
 
 		if (rtpin_rtsp_is_active(stream)) {
 			if (!com->ControlString && stream->control) com->ControlString = gf_strdup(stream->control);
-		} else {
-			if (com->ControlString) {
-				gf_free(com->ControlString);
-				com->ControlString=NULL;
-			}
 		}
 
 	} else if (evt->base.type == GF_FEVT_PAUSE) {

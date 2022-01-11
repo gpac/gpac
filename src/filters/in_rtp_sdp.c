@@ -64,6 +64,14 @@ static GF_Err rtpin_setup_sdp(GF_RTPIn *rtp, GF_SDPInfo *sdp, GF_RTPInStream *fo
 		gf_rtsp_range_del(range);
 	}
 
+	if (!sess_ctrl && rtp->session) {
+		if (rtp->forceagg) {
+			sess_ctrl = "*";
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPIn] Session-level control missing in RTSP SDP - if playback failure, retry specifying `--forceagg`\n"));
+		}
+	}
+
 	//setup all streams
 	i=0;
 	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {

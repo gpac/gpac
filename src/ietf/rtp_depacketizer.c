@@ -1274,6 +1274,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
+			rtp->sl_hdr.au_duration = 1024;
 		}
 		/*in case no IOD and no streamType/OTI in the file*/
 		else if (!stricmp(param_val, "avc-video") ) {
@@ -1448,10 +1449,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		else if (!strnicmp(map->payload_name, "AAC", 3)) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
+			rtp->sl_hdr.au_duration = 1024;
 		}
 		else if (!stricmp(map->payload_name, "MP4A-LATM")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 			rtp->sl_map.CodecID = GF_CODECID_AAC_MPEG4;
+			rtp->sl_hdr.au_duration = 1024;
 		}
 		/*MPEG-4 video, check RAPs if not indicated*/
 		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.CodecID == GF_CODECID_MPEG4_PART2) && !rtp->sl_map.RandomAccessIndication) {

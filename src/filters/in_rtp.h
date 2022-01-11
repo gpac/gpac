@@ -54,6 +54,7 @@ typedef struct
 	Bool disable_rtcp;
 	u32 default_port;
 	u32 rtsp_timeout, udp_timeout, rtcp_timeout, stats;
+	Bool forceagg;
 	/*transport mode. 0 is udp, 1 is tcp, 3 is tcp if unreliable media */
 	u32 interleave;
 	s32 max_sleep;

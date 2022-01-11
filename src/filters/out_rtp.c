@@ -128,7 +128,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 	gf_fprintf(sdp_out, "t=0 0\n");
 
 	if (is_rtsp) {
-		gf_fprintf(sdp_out, "a=control=*\n");
+		gf_fprintf(sdp_out, "a=control:*\n");
 	}
 
 	if (gf_sys_is_test_mode()) {

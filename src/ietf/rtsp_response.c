@@ -557,7 +557,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//RTP Infos
 	count = gf_list_count(rsp->RTP_Infos);
 	if (count) {
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "RTPInfo: ");
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "RTP-Info: ");
 
 		for (i=0; i<count; i++) {
 			GF_RTPInfo *info;
