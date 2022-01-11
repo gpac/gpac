@@ -890,6 +890,8 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	GF_Err e;
 	go = 1;
 	e = GF_OK;
+	GF_SceneGraph *cur_graph = codec->current_graph;
+	GF_Proto *cur_proto = codec->pCurrentProto;
 
 	codec->LastError = GF_OK;
 	while (go) {
@@ -908,13 +910,16 @@ GF_Err BM_ParseCommand(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 			e = BM_SceneReplace(codec, bs, com_list);
 			break;
 		}
-		if (e) return e;
+		if (e) break;
 		go = gf_bs_read_int(bs, 1);
 	}
 	while (gf_list_count(codec->QPs)) {
 		gf_bifs_dec_qp_remove(codec, GF_TRUE);
 	}
-	return GF_OK;
+
+	codec->current_graph = cur_graph;
+	codec->pCurrentProto = cur_proto;
+	return e;
 }
 
 void BM_EndOfStream(void *co)
@@ -937,6 +942,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 		while (gf_list_count(codec->command_buffers)) {
 			cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
 			gf_list_rem(codec->command_buffers, 0);
+
 			codec->current_graph = gf_node_get_graph(cbi->node);
 			e = GF_OK;
 			if (cbi->cb->bufferSize) {

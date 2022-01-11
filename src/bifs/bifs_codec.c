@@ -211,6 +211,17 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 #endif
 
 
+void command_buffers_del(GF_List *command_buffers)
+{
+	while (gf_list_count(command_buffers)) {
+		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(command_buffers, 0);
+		gf_node_unregister(cbi->node, NULL);
+		gf_free(cbi);
+		gf_list_rem(command_buffers, 0);
+	}
+	gf_list_del(command_buffers);
+}
+
 GF_EXPORT
 void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 {
@@ -225,13 +236,8 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 	}
 	gf_list_del(codec->streamInfo);
 
-	while (gf_list_count(codec->command_buffers)) {
-		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
-		gf_node_unregister(cbi->node, NULL);
-		gf_free(cbi);
-		gf_list_rem(codec->command_buffers, 0);
-	}
-	gf_list_del(codec->command_buffers);
+	command_buffers_del(codec->command_buffers);
+
 	gf_free(codec);
 }
 
