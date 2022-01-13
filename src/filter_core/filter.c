@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -599,8 +599,16 @@ void gf_filter_del(GF_Filter *filter)
 #endif
 
 	if (filter->freg && (filter->freg->flags & GF_FS_REG_CUSTOM)) {
-		if (! (filter->freg->flags & GF_FS_REG_SCRIPT))
-			if (filter->forced_caps) gf_free( (void *) filter->forced_caps);
+		//external custom filters
+		if (! (filter->freg->flags & GF_FS_REG_SCRIPT) && filter->forced_caps) {
+			u32 i;
+			for (i=0; i<filter->nb_forced_caps; i++) {
+				if (filter->forced_caps[i].name)
+					gf_free((char *) filter->forced_caps[i].name);
+				gf_props_reset_single( (GF_PropertyValue *) & filter->forced_caps[i].val);
+			}
+			gf_free( (void *) filter->forced_caps);
+		}
 		gf_free( (char *) filter->freg->name);
 		gf_free( (void *) filter->freg);
 	}
@@ -776,6 +784,11 @@ static void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Prop
 			//we don't strdup since we don't free the string at the caller site
 			*(char **)ptr = argv->value.string;
 			res = GF_TRUE;
+		}
+		if (argv->value.string && !strncmp(argv->value.string, "gfio://", 7)) {
+			if (gf_fileio_is_main_thread(argv->value.string)) {
+				gf_filter_force_main_thread(filter, GF_TRUE);
+			}
 		}
 		break;
 	case GF_PROP_DATA:
@@ -2756,7 +2769,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 	if (use_direct_dispatch) {
 		safe_int_inc(&filter->process_task_queued);
-		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_TRUE);
+		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE);
 	} else if (safe_int_inc(&filter->process_task_queued) <= 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->freg->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
@@ -4034,11 +4047,10 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 	e = gf_fs_check_gl_provider(filter->session);
 	if (e) {
 		filter->session->nb_gl_filters--;
-		filter->main_thread_forced = GF_FALSE;
 		return e;
 	}
 	if (!(filter->freg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD))
-		filter->main_thread_forced = GF_TRUE;
+		safe_int_inc(&filter->nb_main_thread_forced);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
@@ -4442,6 +4454,14 @@ GF_Err gf_filter_push_caps(GF_Filter *filter, u32 code, GF_PropertyValue *value,
 	caps[nb_caps].flags = flags;
 	filter->nb_forced_caps++;
 	filter->forced_caps = caps;
+
+	//reload graph for this updated registry!
+	GF_FilterRegister *freg = (GF_FilterRegister *)filter->freg;
+	freg->caps = filter->forced_caps;
+	freg->nb_caps = filter->nb_forced_caps;
+	gf_filter_sess_reset_graph(filter->session, filter->freg);
+	gf_filter_sess_build_graph(filter->session, filter->freg);
+
 	return GF_OK;
 }
 
@@ -4604,4 +4624,15 @@ GF_EXPORT
 const GF_FilterRegister *gf_filter_get_register(GF_Filter *filter)
 {
 	return filter ? filter->freg : NULL;
+}
+
+GF_EXPORT
+void gf_filter_force_main_thread(GF_Filter *filter, Bool do_tag)
+{
+	if (!filter) return;
+	if (do_tag)
+		safe_int_inc(&filter->nb_main_thread_forced);
+	else
+		safe_int_dec(&filter->nb_main_thread_forced);
+
 }

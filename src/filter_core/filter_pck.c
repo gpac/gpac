@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -48,8 +48,13 @@ GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_Filter
 	pck_src=pck_src->pck;
 	pck_dst=pck_dst->pck;
 
+	//keep internal flags
+	u32 iflags = pck_dst->info.flags & (GF_PCKF_PROPS_REFERENCE | GF_PCKF_FORCE_MAIN) ;
 	pck_dst->info = pck_src->info;
-	pck_dst->info.flags &= ~GF_PCKF_PROPS_REFERENCE;
+	//remove internal props flags of reference
+	pck_dst->info.flags &= ~ (GF_PCKF_PROPS_REFERENCE | GF_PCKF_FORCE_MAIN);
+	//restore internal props flags of packet
+	pck_dst->info.flags |= iflags;
 
 	if (!pck_src->props || pck_dst->is_dangling) {
 		return GF_OK;
@@ -405,7 +410,11 @@ GF_EXPORT
 GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_size, u8 **data, gf_fsess_packet_destructor destruct)
 {
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data);
-	if (pck) pck->destructor = destruct;
+	if (pck && destruct) {
+		pck->destructor = destruct;
+		if (pid->filter->freg->flags & GF_FS_REG_MAIN_THREAD)
+			pck->info.flags |= GF_PCKF_FORCE_MAIN;
+	}
 	return pck;
 }
 
@@ -436,6 +445,9 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s has %d shared packets out\n", pid->filter->name, pid->name, pid->nb_shared_packets_out));
 	}
 	gf_filter_pck_reset_props(pck, pid);
+
+	if (destruct && (pid->filter->freg->flags & GF_FS_REG_MAIN_THREAD))
+		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 
 	assert(pck->pid);
 	return pck;
@@ -479,6 +491,9 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, u32 data_offset, u32 d
 		pck->data_length = reference->data_length;
 		pck->frame_ifce = reference->frame_ifce;
 	}
+	if (reference->info.flags & GF_PCKF_FORCE_MAIN)
+		pck->info.flags |= GF_PCKF_FORCE_MAIN;
+
 	safe_int_inc(&reference->pid->nb_shared_packets_out);
 	safe_int_inc(&reference->pid->filter->nb_shared_packets_out);
 	return pck;
@@ -505,6 +520,8 @@ GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *pid, GF_FilterF
 	pck->destructor = destruct;
 	pck->frame_ifce = frame_ifce;
 	pck->filter_owns_mem = 2;
+	if (frame_ifce && frame_ifce->get_gl_texture)
+		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 	return pck;
 }
 
@@ -526,6 +543,8 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	pck->data = reference->data;
 	pck->data_length = reference->data_length;
 	pck->frame_ifce = reference->frame_ifce;
+	if (reference->info.flags & GF_PCKF_FORCE_MAIN)
+		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 
 	return gf_filter_pck_send(pck);
 }
@@ -1091,6 +1110,9 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	assert(pck->pid);
 	count = pck->pid->num_destinations;
+	//check if processing this packet must be done on main thread (openGL interface or source filter asked fo this) 
+	Bool force_main_thread = (pck->info.flags & GF_PCKF_FORCE_MAIN) ? GF_TRUE : GF_FALSE;
+
 	for (i=0; i<count; i++) {
 		Bool post_task=GF_FALSE;
 		GF_FilterPacketInstance *inst;
@@ -1138,9 +1160,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		inst->pid = dst;
 		inst->pid_props_change_done = 0;
 		inst->pid_info_change_done = 0;
-		//if packet is an openGL interface, force scheduling on main thread for the destination
-		if (pck->frame_ifce&&pck->frame_ifce->get_gl_texture)
-			dst->filter->main_thread_forced = GF_TRUE;
+
+		//if packet is forcing main thread processing increase destination filter main_thread
+		if (force_main_thread) {
+			safe_int_inc(&dst->filter->nb_main_thread_forced);
+		}
 
 		if ((inst->pck->info.flags & GF_PCK_CMD_MASK) == GF_PCK_CMD_PID_EOS)  {
 			safe_int_inc(&inst->pid->nb_eos_signaled);

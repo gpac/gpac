@@ -374,6 +374,13 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			return GF_NOT_SUPPORTED;
 		ctx->file_pid = pid;
 
+
+		//check multithreaded FileIO restrictions
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+		if (p && p->value.string && gf_fileio_is_main_thread(p->value.string)) {
+			gf_filter_force_main_thread(filter, GF_TRUE);
+		}
+
 		//we will declare pids later
 
 		//from now on we only accept the above caps

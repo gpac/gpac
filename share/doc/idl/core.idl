@@ -851,7 +851,7 @@ attribute readonly unsigned long long refreshed_size;
 
 }
 
-/*! Fraction object*/
+/*! fraction object*/
 interface Fraction {
 /*! numerator*/
 long n;

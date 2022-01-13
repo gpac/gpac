@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2020
+ *			Copyright (c) Telecom ParisTech 2007-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript libgpac Core bindings
@@ -2835,7 +2835,7 @@ static JSValue file_constructor(JSContext *ctx, JSValueConst new_target, int arg
 		if (!name || !mode) {
 			e = GF_BAD_PARAM;
 		} else {
-			f = gf_fopen_ex(name, parent_io, mode);
+			f = gf_fopen_ex(name, parent_io, mode, GF_FALSE);
 			if (!f) e = GF_URL_ERROR;
 		}
 		if (name) JS_FreeCString(ctx, name);

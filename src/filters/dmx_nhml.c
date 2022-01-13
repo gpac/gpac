@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NHML demuxer filter
@@ -113,6 +113,11 @@ GF_Err nhmldmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (p && p->value.string && strstr(p->value.string, "dims")) ctx->is_dims = GF_TRUE;
 	}
 
+	//check multithreaded FileIO restrictions
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
+	if (p && p->value.string && gf_fileio_is_main_thread(p->value.string)) {
+		gf_filter_force_main_thread(filter, GF_TRUE);
+	}
 	return GF_OK;
 }
 
@@ -689,7 +694,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		streamType = GF_STREAM_SCENE;
 	}
 	if (gf_file_exists_ex(ctx->media_file, ctx->src_url))
-		ctx->mdia = gf_fopen_ex(ctx->media_file, ctx->src_url, "rb");
+		ctx->mdia = gf_fopen_ex(ctx->media_file, ctx->src_url, "rb", GF_FALSE);
 
 	specInfoSize = 0;
 	if (!streamType && !mtype && !codec_tag) {
@@ -699,7 +704,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	finfo = NULL;
 	if (gf_file_exists_ex(init_name, ctx->src_url))
-		finfo = gf_fopen_ex(init_name, ctx->src_url, "rb");
+		finfo = gf_fopen_ex(init_name, ctx->src_url, "rb", GF_FALSE);
 
 	if (finfo) {
 		e = gf_file_load_data_filep(finfo, (u8 **)&specInfo, &specInfoSize);

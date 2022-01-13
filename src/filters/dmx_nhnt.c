@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -195,6 +195,12 @@ GF_Err nhntdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	ctx->ipid = pid;
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 
+	//check multithreaded FileIO restrictions
+	const GF_PropertyValue *p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
+	if (p && p->value.string && gf_fileio_is_main_thread(p->value.string)) {
+		gf_filter_force_main_thread(filter, GF_TRUE);
+	}
+
 	return GF_OK;
 }
 
@@ -311,7 +317,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ext = strrchr(szMedia, '.');
 			if (ext) ext[0] = 0;
 			strcat(szMedia, ".media");
-			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb");
+			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 
 			if (!ctx->mdia) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Cannot find MEDIA file %s\n", szMedia));
@@ -368,7 +374,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			if (ext) ext[0] = 0;
 			strcat(szMedia, ".info");
 
-			finfo = gf_fopen_ex(szMedia, p->value.string, "rb");
+			finfo = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 			dsi = NULL;
 			if (finfo) {
 				if ( gf_file_load_data_filep(finfo, (u8 **) &dsi, &dsi_size) != GF_OK) {

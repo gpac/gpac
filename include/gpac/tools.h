@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1421,10 +1421,11 @@ Opens a file, potentially using file IO if the parent URL is a File IO wrapper
 \param file_name same as fopen
 \param parent_url URL of parent file. If not a file io wrapper (gfio://), the function is equivalent to gf_fopen
 \param mode same as fopen
+\param no_warn if GF_TRUE, do not throw log message if failure
 \return stream handle of the file object
 \note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 \return stream habdle of the file or file IO object*/
-FILE *gf_fopen_ex(const char *file_name, const char *parent_url, const char *mode);
+FILE *gf_fopen_ex(const char *file_name, const char *parent_url, const char *mode, Bool no_warn);
 
 /*!
 \brief file closing
@@ -1702,6 +1703,22 @@ Bool gf_fileio_get_stats(GF_FileIO *fileio, u64 *bytes_done, u64 *file_size, Boo
 \return file IO object for this resource
 */
 GF_FileIO *gf_fileio_open_url(GF_FileIO *fileio, const char *url, const char *mode, GF_Err *out_err);
+
+
+/*! Tags a FileIO object to be accessed from main thread only
+\param fileio target file IO object
+\return error if any
+*/
+GF_Err gf_fileio_tag_main_thread(GF_FileIO *fileio);
+
+/*! Check if a FileIO object is to be accessed from main thread only
+
+ \note Filters accessing FileIO objects by other means that a filter option must manually tag themselves as main thread, potentially rescheduling a configure call to next process. Not doing so can result in binding crashes in multi-threaded mode.
+
+\param url target url
+\return GF_TRUE if object is tagged for main thread, GF_FALSE otherwise
+*/
+Bool gf_fileio_is_main_thread(const char *url);
 
 /*! Gets GF_FileIO object from its URL
  The url uses the protocol scheme "gfio://"

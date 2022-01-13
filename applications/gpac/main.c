@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / gpac application
@@ -2054,7 +2054,7 @@ static int gpac_main(int argc, char **argv)
 			do_unit_tests = GF_TRUE;
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
-			sflags |= GF_FS_FLAG_NO_MAIN_THREAD;
+			sflags |= GF_FS_FLAG_NON_BLOCKING;
 		} else if (!strcmp(arg, "-xopt")) {
 			has_xopt = GF_TRUE;
 		} else if (arg[0]=='-') {
@@ -2365,7 +2365,7 @@ restart:
 
 	if (use_step_mode) {
 		do {
-			gf_fs_run_step(session);
+			gf_fs_run(session);
 		} while (!gf_fs_is_last_task(session));
 
 	} else {
@@ -4582,7 +4582,7 @@ static GF_Err cust_process(GF_Filter *filter)
 
 static GF_Filter *load_custom_filter(GF_FilterSession *sess, char *opts, GF_Err *e)
 {
-	GF_Filter *f = gf_fs_new_filter(sess, "custom", e);
+	GF_Filter *f = gf_fs_new_filter(sess, "custom", 0, e);
 	if (!f) return NULL;
 
 	*e = gf_filter_push_caps(f, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL), NULL, GF_CAPS_INPUT, 0);

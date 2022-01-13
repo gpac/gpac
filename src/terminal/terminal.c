@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media terminal sub-project
@@ -308,7 +308,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	sprintf(szArgs, "%d", user->init_flags);
 	gf_opts_set_key("Temp", "InitFlags", szArgs);
 
-	tmp->fsess = gf_fs_new_defaults(GF_FS_FLAG_NO_MAIN_THREAD);
+	tmp->fsess = gf_fs_new_defaults(GF_FS_FLAG_NON_BLOCKING);
 	if (!tmp->fsess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create filter session.\n"));
 		gf_free(tmp);
@@ -1301,7 +1301,7 @@ Bool gf_term_process_step(GF_Terminal *term)
 		}
 	}
 
-	gf_fs_run_step(term->fsess);
+	gf_fs_run(term->fsess);
 	return term->compositor->frame_was_produced;
 }
 

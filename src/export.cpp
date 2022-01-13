@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -127,6 +127,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_resource_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_translate_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fileio_set_stats) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_tag_main_thread) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fileio_is_main_thread) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
@@ -2399,7 +2401,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_run) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_fs_run_step) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_connections) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_print_non_connected) )
@@ -2418,6 +2419,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_post_user_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_abort ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_last_task ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_in_final_flush) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_set_source_restricted ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_abort ) )
@@ -2445,6 +2447,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_rt_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg_str ) )
@@ -2519,6 +2522,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_post_process_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_require_source_id ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_register ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_print_all_connections ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_force_main_thread ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )

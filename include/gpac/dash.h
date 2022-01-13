@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2012-2021
+ *			Copyright (c) Telecom ParisTech 2012-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming sub-project
@@ -1106,9 +1106,9 @@ typedef struct
 	/*! max supported playback speed according to associated decoder stats*/
 	Double max_available_speed;
 	/*! display width of the video in pixels, 0 if audio stream*/
-	u32 disp_width;
+	u32 display_width;
 	/*! display height of the video in pixels, 0 if audio stream*/
-	u32 disp_height;
+	u32 display_height;
 	/*! index of currently selected quality*/
 	u32 active_quality_idx;
 	/*! minimum buffer level in milliseconds below witch rebuffer will happen*/

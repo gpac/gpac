@@ -126,5 +126,8 @@ Notes on QuickJS 'os' module support:
 \defgroup pyapi_grp Python APIs
 \brief Python API for using libgpac
 
+\defgroup nodejs_grp NodeJS  APIs
+\brief API for using libgpac in NodeJS
+
 */
 

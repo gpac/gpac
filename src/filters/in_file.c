@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / generic FILE input filter
@@ -133,7 +133,7 @@ static GF_Err filein_initialize(GF_Filter *filter)
 	}
 
 	if (!ctx->file) {
-		ctx->file = gf_fopen_ex(src, prev_url, "rb");
+		ctx->file = gf_fopen_ex(src, prev_url, "rb", GF_FALSE);
 	}
 
 	if (old_file) {

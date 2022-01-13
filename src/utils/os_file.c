@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2020
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2022
  *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
@@ -252,7 +252,6 @@ Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 
 	if (gfio_type) {
 		GF_FileIO *gfio_ref;
-		GF_FileIO *new_gfio;
 		GF_Err e;
 		Bool res = GF_TRUE;
 		if (gfio_type==1)
@@ -261,11 +260,9 @@ Bool gf_file_exists_ex(const char *fileName, const char *par_name)
 			gfio_ref = gf_fileio_from_url(par_name);
 
 		if (!gfio_ref) return GF_FALSE;
-		new_gfio = gf_fileio_open_url(gfio_ref, fileName, "probe", &e);
+		gf_fileio_open_url(gfio_ref, (gfio_type==1) ? gf_fileio_resource_url(gfio_ref) : fileName, "probe", &e);
 		if (e==GF_URL_ERROR)
 			res = GF_FALSE;
-		if (new_gfio)
-			gf_fileio_open_url(new_gfio, NULL, "r", &e);
 		return res;
 	}
 
@@ -602,7 +599,7 @@ FILE *gf_file_temp(char ** const fileName)
 			return NULL;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Opening new temp file %s\n", opath));
-		res = gf_fopen_ex(opath, "__temp_file", "w+b");
+		res = gf_fopen_ex(opath, "__temp_file", "w+b", GF_FALSE);
 		if (!res) {
 			gf_free(opath);
 			return NULL;
@@ -946,7 +943,7 @@ struct __gf_file_io
 	void *udta;
 
 	u64 bytes_done, file_size_plus_one;
-	Bool cache_complete;
+	Bool cache_complete, main_th;
 	u32 bytes_per_sec;
 
 	u32 printf_alloc;
@@ -1149,7 +1146,8 @@ GF_FileIO *gf_fileio_from_url(const char *url)
 	char szURL[100];
 	GF_FileIO *ptr=NULL;
 	if (!url) return NULL;
-	
+	if (strncmp(url, "gfio://", 7)) return NULL;
+
 	sscanf(url, "gfio://%p", &ptr);
 	sprintf(szURL, "gfio://%p", ptr);
 	if (strcmp(url, szURL))
@@ -1214,6 +1212,23 @@ Bool gf_fileio_get_stats(GF_FileIO *gfio, u64 *bytes_done, u64 *file_size, Bool 
 	if (bytes_per_sec) *bytes_per_sec = gfio->bytes_per_sec;
 	return GF_TRUE;
 }
+
+GF_EXPORT
+GF_Err gf_fileio_tag_main_thread(GF_FileIO *fileio)
+{
+	if (!fileio) return GF_BAD_PARAM;
+	fileio->main_th = GF_TRUE;
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_fileio_is_main_thread(const char *url)
+{
+	GF_FileIO *gfio = gf_fileio_from_url(url);
+	if (!gfio) return GF_FALSE;
+	return gfio->main_th;
+}
+
 
 GF_EXPORT
 u64 gf_ftell(FILE *fp)
@@ -1300,7 +1315,7 @@ static GF_FileIO *gf_fileio_from_blob(const char *file_name)
 	return gf_fileio_new((char *) file_name, gfio_blob, gfio_blob_open, gfio_blob_seek, gfio_blob_read, NULL, gfio_blob_tell, gfio_blob_eof, NULL);
 }
 GF_EXPORT
-FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mode)
+FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mode, Bool no_warn)
 {
 	FILE *res = NULL;
 	u32 gfio_type = 0;
@@ -1345,10 +1360,13 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 		}
 		new_gfio = gf_fileio_open_url(gfio_ref, file_name, mode, &e);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s open in mode %s failed: %s\n", file_name, mode, gf_error_to_string(e)));
+			if (!no_warn) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("FileIO %s open in mode %s failed: %s\n", file_name, mode, gf_error_to_string(e)));
+			}
 			return NULL;
 		}
-		gf_register_file_handle((char*)file_name, (FILE *) new_gfio, GF_FALSE);
+		if (new_gfio)
+			gf_register_file_handle((char*)file_name, (FILE *) new_gfio, GF_FALSE);
 		return (FILE *) new_gfio;
 	}
 
@@ -1409,7 +1427,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 			gf_register_file_handle((char*)file_name, res, GF_FALSE);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file \"%s\" opened in mode \"%s\" - %d file handles\n", file_name, mode, gpac_file_handles));
-	} else {
+	} else if (!no_warn) {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)
 			u32 err = GetLastError();
@@ -1425,7 +1443,7 @@ FILE *gf_fopen_ex(const char *file_name, const char *parent_name, const char *mo
 GF_EXPORT
 FILE *gf_fopen(const char *file_name, const char *mode)
 {
-	return gf_fopen_ex(file_name, NULL, mode);
+	return gf_fopen_ex(file_name, NULL, mode, GF_FALSE);
 }
 
 GF_EXPORT

@@ -2,7 +2,7 @@
 #          GPAC - Multimedia Framework C SDK
 #
 #          Authors: Jean Le Feuvre
-#          Copyright (c) Telecom Paris 2020-2021
+#          Copyright (c) Telecom Paris 2020-2022
 #                  All rights reserved
 #
 #  Python ctypes bindings for GPAC (core initialization and filters API only)
@@ -62,7 +62,8 @@
 #
 # # Basic setup
 #
-# You must initialize libgpac before any other calls, and uninintialize it after everything gpac-related is done.
+# You can initialize libgpac before any other calls to set memory tracker or profile. When importing the module, libgpac is by default initialized with no memory tracking and using the default profile.
+# You currently must uninintialize it after everything gpac-related is done.
 # You also must destroy explicitly the filter session, as otherwise the garbage collection on the filter session object could happen after libgpac shutdown and will likely crash
 #
 # \code
@@ -238,7 +239,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
 GF_ABI_MAJOR=10
-GF_ABI_MINOR=10
+GF_ABI_MINOR=11
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -290,21 +291,27 @@ _libgpac.gf_log_set_tools_levels.argtypes = [c_char_p, c_int]
 _libgpac.gf_props_get_type_name.argtypes = [c_uint]
 _libgpac.gf_props_get_type_name.restype = c_char_p
 
-_libgpac.gf_sys_clock.res = c_uint
-_libgpac.gf_sys_clock_high_res.res = c_ulonglong
+_libgpac.gf_sys_clock.restype = c_uint
+_libgpac.gf_sys_clock_high_res.restype = c_ulonglong
 
 _libgpac.gf_sys_profiler_send.argtypes = [c_char_p]
 _libgpac.gf_sys_profiler_sampling_enabled.restype = gf_bool
 _libgpac.gf_sys_profiler_enable_sampling.argtypes = [gf_bool]
 
 _libgpac.gf_4cc_to_str.argtypes = [c_uint]
-_libgpac.gf_4cc_to_str.res = c_char_p
+_libgpac.gf_4cc_to_str.restype = c_char_p
 
 _libgpac.gf_4cc_parse.argtypes = [c_char_p]
-_libgpac.gf_4cc_parse.res = c_uint
+_libgpac.gf_4cc_parse.restype = c_uint
 
 _libgpac.gf_sleep.argtypes = [c_uint]
-_libgpac.gf_sleep.res = c_uint
+_libgpac.gf_sleep.restype = c_uint
+
+#default init of libgpac
+_libgpac.user_init = False
+err = _libgpac.gf_sys_init(0, None)
+if err<0:
+	raise Exception('Failed to initialize libgpac: ' + e2s(err))
 
 #\endcond
 
@@ -331,6 +338,10 @@ def e2s(err):
 # \return
 #
 def init(mem_track=0, profile=None):
+    if _libgpac.user_init:
+        return
+    _libgpac.user_init = True
+    _libgpac.gf_sys_close()
     err = _libgpac.gf_sys_init(mem_track, profile)
     if err<0:
         raise Exception('Failed to initialize libgpac: ' + e2s(err))
@@ -378,6 +389,7 @@ _libgpac._args=None
 # \param args list of strings, the first string is ignored (considered to be the executable name)
 # \return
 def set_args(args):
+    _libgpac.user_init = True
     nb_args = len(args)
     _libgpac._args = (POINTER(c_char)*nb_args)()
     for i, arg in enumerate(args):
@@ -400,6 +412,7 @@ def rmt_fun_cbk(_udta, text):
 # \param callback_obj object to call back, must have a method `on_rmt_event` taking a single string parameter
 # \return True if success, False if no Remotery support
 def set_rmt_fun(callback_obj):
+    _libgpac.user_init = True
     if hasattr(callback_obj, 'on_rmt_event')==False:
         raise Exception('No on_rmt_event function on callback')
     err = _libgpac.gf_sys_profiler_set_callback(py_object(callback_obj), rmt_fun_cbk)
@@ -425,6 +438,7 @@ def rmt_on():
 # \param value enable or disable sampling
 # \return
 def rmt_enable(value):
+    _libgpac.user_init = True
     _libgpac.gf_sys_profiler_enable_sampling(value)
     
 
@@ -647,7 +661,7 @@ class PropertyValueUnion(Union):
 		("ptr", c_void_p),
         ("string_list", PropStringList),
         ("uint_list", PropUIntList),
-		("int_list", PropIntList),
+		("sint_list", PropIntList),
 		("v2i_list", PropVec2iList)
 	]
 
@@ -798,8 +812,9 @@ class FilterEvent(Union):
     #\param type type of event
     def __init__(self, type=0):
         self.base.type = type
-
     ## \cond private
+        _libgpac.user_init = True
+
     _fields_ =  [
         ("base", FEVT_Base),
         ("play", FEVT_Play),
@@ -873,8 +888,8 @@ GF_FS_FLAG_NO_BLOCKING=1<<2
 #see \ref GF_FS_FLAG_NO_GRAPH_CACHE
 GF_FS_FLAG_NO_GRAPH_CACHE=1<<3
 ##\hideinitializer
-#see \ref GF_FS_FLAG_NO_MAIN_THREAD
-GF_FS_FLAG_NO_MAIN_THREAD=1<<4
+#see \ref GF_FS_FLAG_NON_BLOCKING
+GF_FS_FLAG_NON_BLOCKING=1<<4
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_REGULATION
 GF_FS_FLAG_NO_REGULATION=1<<5
@@ -1279,7 +1294,6 @@ _libgpac.gf_fs_del.argtypes = [_gf_filter_session]
 _libgpac.gf_fs_del.restype =  None
 
 _libgpac.gf_fs_run.argtypes = [_gf_filter_session]
-_libgpac.gf_fs_run_step.argtypes = [_gf_filter_session]
 
 _libgpac.gf_fs_load_source.argtypes = [_gf_filter_session, c_char_p, c_char_p, c_char_p, POINTER(c_int)]
 _libgpac.gf_fs_load_source.restype = _gf_filter
@@ -1290,7 +1304,7 @@ _libgpac.gf_fs_load_destination.restype = _gf_filter
 _libgpac.gf_fs_load_filter.argtypes = [_gf_filter_session, c_char_p, POINTER(c_int)]
 _libgpac.gf_fs_load_filter.restype = _gf_filter
 
-_libgpac.gf_fs_new_filter.argtypes = [_gf_filter_session, c_char_p, POINTER(c_int)]
+_libgpac.gf_fs_new_filter.argtypes = [_gf_filter_session, c_char_p, c_uint, POINTER(c_int)]
 _libgpac.gf_fs_new_filter.restype = _gf_filter
 
 
@@ -1344,7 +1358,7 @@ def fs_task_fun(sess, cbk, resched):
 
 
 
-_libgpac.gf_fs_set_filter_creation_callback.argtypes = [_gf_filter_session, c_void_p, py_object]
+_libgpac.gf_fs_set_filter_creation_callback.argtypes = [_gf_filter_session, c_void_p, py_object, gf_bool]
 @CFUNCTYPE(c_int, c_void_p, _gf_filter, gf_bool)
 def on_filter_new_del(cbk, _filter, is_del):
  sess = cast(cbk, py_object).value
@@ -1387,17 +1401,18 @@ class FilterSession:
     #\param sched_type session scheduler type
     def __init__(self, flags=0, blacklist=None, nb_threads=0, sched_type=0):
         ##\cond private
+        _libgpac.user_init = True
         self._sess = None
         if blacklist:
             self._sess = _libgpac.gf_fs_new(nb_threads, sched_type, flags, blacklist.encode('utf-8'))
         else:
-            self._sess = _libgpac.gf_fs_new(nb_threads, sched_type, flags, blacklist)
+            self._sess = _libgpac.gf_fs_new(nb_threads, sched_type, flags, None)
         if not self._sess:
             raise Exception('Failed to create new filter session')
         self._filters = []
         self._tasks = []
-
-        _libgpac.gf_fs_set_filter_creation_callback(self._sess, on_filter_new_del, py_object(self))
+        #for now force sync user tasks and filter management to run on main thread, not tested otherwise
+        _libgpac.gf_fs_set_filter_creation_callback(self._sess, on_filter_new_del, py_object(self), True)
 
         ##\endcond
         #hack for doxygen to generate member vars (not support for parsing @property)
@@ -1448,13 +1463,6 @@ class FilterSession:
     #\return
     def run(self):
         err = _libgpac.gf_fs_run(self._sess)
-        if err<0: 
-            raise Exception('Failed to run session: ' + e2s(err))
-
-    ##step the session - see \ref gf_fs_run_step
-    #\return
-    def run_step(self):
-        err = _libgpac.gf_fs_run_step(self._sess)
         if err<0: 
             raise Exception('Failed to run session: ' + e2s(err))
 
@@ -2288,7 +2296,7 @@ class Filter:
 
     ##gets the filter at the source of an input pid
     #\param idx index of input PID
-    #\return Filter or None of error
+    #\return Filter or None if error
     def ipid_source(self, idx):
         pid = _libgpac.gf_filter_get_ipid(self._filter, idx)
         if not pid:
@@ -2708,17 +2716,20 @@ _libgpac.gf_filter_connections_pending.argtypes = [_gf_filter]
 _libgpac.gf_filter_connections_pending.restype = gf_bool
 _libgpac.gf_filter_hint_single_clock.argtypes = [_gf_filter, c_ulonglong, Fraction64]
 
+GF_FS_REG_MAIN_THREAD=1<<1
+
 ##\endcond
 
 ## Base class used to create custom filters in python
 class FilterCustom(Filter):
 
-    ##constructor
+    ##constructor, see \ref gf_fs_new_filter
     #\param session FilterSession object
     #\param fname name of the filter
-    def __init__(self, session, fname="Custom"):
+    #\param flags flags for the filter
+    def __init__(self, session, fname="Custom", flags=0):
         errp = c_int(0)
-        _filter = _libgpac.gf_fs_new_filter(session._sess, fname.encode('utf-8'), byref(errp))
+        _filter = _libgpac.gf_fs_new_filter(session._sess, fname.encode('utf-8'), flags | GF_FS_REG_MAIN_THREAD, byref(errp))
         err = errp.value
         if err<0: 
             raise Exception('Failed to create filter ' + URL + ': ' + e2s(err))
@@ -2825,7 +2836,7 @@ class FilterCustom(Filter):
         if when:
             _libgpac.gf_filter_ask_rt_reschedule(self._filter, when)
         else:
-            _libgpac.gf_filter_post_process_task(self._filter, when)
+            _libgpac.gf_filter_post_process_task(self._filter)
 
     ##notify an internal failure of the filter has happend - see \ref gf_filter_notification_failure and \ref gf_filter_setup_failure
     #\param err the failure reason (gpac error code, int)
@@ -3793,12 +3804,15 @@ class FilterPacket:
             ##Dependency flags - see \ref gf_filter_pck_get_dependency_flags and \ref gf_filter_pck_set_dependency_flags
             #\hideinitializer
             self.deps=0
-            ##true if packet holds a GF_FrameInterface object and not a data packet
+            ##true if packet holds a GF_FrameInterface object and not a data packet, readonly
             #\hideinitializer
-            frame_ifce=0
+            self.frame_ifce=0
             ##Custom properties present, readonly - see \ref gf_filter_pck_has_properties
             #\hideinitializer
             self.has_properties=0
+            ##true if packet is a blocking reference, readonly - see \ref gf_filter_pck_is_blocking_ref
+            #\hideinitializer
+            self.blocking_ref=0
 
     ##enumerate an packet properties
     #\param callback_obj callback object to use, must have a 'on_prop_enum' method defined taking two parameters, prop_name(string) and propval
@@ -3867,7 +3881,7 @@ class FilterPacket:
     #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
     #\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
     #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
-    def clone(self, cached_pck=False):
+    def clone(self, cached_pck=None):
         if cached_pck:
             _pck = _libgpac.gf_filter_pck_dangling_copy(self._pck, cached_pck._pck)
         else:
@@ -3940,16 +3954,14 @@ class FilterPacket:
     #\return
     def truncate(self, size):
         if self._is_src:
-            raise Exception('Cannot truncate on source packet')
+            raise Exception('Cannot truncate an source packet')
         _libgpac.gf_filter_pck_truncate(self._pck, size)
 
-    ##Check if packet is a blocking reference - see \ref gf_filter_pck_is_blocking_ref
-    #\return true if packet is a blocking reference
-    def blocking(self):
+    ##\cond private: until end, all packet properties
+    @property
+    def blocking_ref(self):
         return _libgpac.gf_filter_pck_is_blocking_ref(self._pck)
 
-
-    ##\cond private: until end, all packet properties
     @property
     def dts(self):
         return _libgpac.gf_filter_pck_get_dts(self._pck)
@@ -4185,6 +4197,7 @@ _libgpac.gf_fileio_get_udta.restype = c_void_p
 
 _libgpac.gf_fileio_del.argtypes = [_gf_fileio]
 
+_libgpac.gf_fileio_tag_main_thread.argtypes = [_gf_fileio]
 
 #wraps gf_url_concatenate to be able to free the value
 #we declare a void * return value
@@ -4225,8 +4238,10 @@ def fileio_cbk_open(_fio_ref, _url, _mode, error):
 
     if mode=="probe":
         if not hasattr(fio_ref.factory.root_obj, 'exists'):
-            return False
-        return fio_ref.factory.root_obj.exists(url)
+            return None
+        if not fio_ref.factory.root_obj.exists(url):
+            error.contents.value=GF_URL_ERROR
+        return None
 
     do_delete=False
     if mode=="unref":
@@ -4299,7 +4314,6 @@ def fileio_cbk_open(_fio_ref, _url, _mode, error):
     #create object, direct copy of the object passed at construction
     fio.py_obj = copy.copy(fio.factory.root_obj)
     res = fio.py_obj.open(fio_url, mode)
-    the_fio = cast(_libgpac.gf_fileio_get_udta(fio._gf_fio), py_object).value
 
     if res==True:
         if not fio in fio.factory.gc_exclude:
@@ -4369,7 +4383,7 @@ def fileio_cbk_eof(_fio):
 #
 #
 # The FileIO object is used to create input or output interfaces in which GPAC will read or write.
-# This allows generating content in python without any disk IO.
+# This allows generating content in python without any disk IO, or passing python data as input to GPAC without intermediate file.
 #
 # This object passed to the FileIO constructor must implement the following callbacks:
 #
@@ -4416,10 +4430,15 @@ def fileio_cbk_eof(_fio):
 #Checks if the given URL exists. This callback is optional
 #- return true if associated URL exists, false otherwise
 #
+#\warning All these callbacks MUST perform synchronously
 #
-# The URL passed to the constructor indentifies the file name wrapped. Some file types such as HLS or DASH manifest may
-#imply reading or writing several files, in which case the object passed to the constructor will be cloned to handle accessing these extra files.
+# The URL passed to the constructor indentifies the file name wrapped.
+# Some file types such as HLS or DASH manifest may imply reading or writing several files.
+# To handle these cases, the object passed to the constructor will be cloned for each call to open().
 #
+#\warning This object is a shallow copy of the factory object, not an empty object (difference with NodeJS bindings).
+#
+# All FileIO callbacks will be done in the main thread.
 #
 class FileIO:
 	## constructor for FileIO
@@ -4431,6 +4450,7 @@ class FileIO:
 			self.url = 0
 
 ##\cond private
+		_libgpac.user_init = True
 		self.nb_refs=0
 		self.py_obj = None
 		#this is internal constructor call from open
@@ -4460,6 +4480,8 @@ class FileIO:
 		self._gf_fio = _libgpac.gf_fileio_new(url.encode('utf-8'), py_object(self), fileio_cbk_open, fileio_cbk_seek, fileio_cbk_read, fileio_cbk_write, fileio_cbk_tell, fileio_cbk_eof, None )
 		if self._gf_fio==None:
 			raise Exception('Failed to create FileIO for ' + url)
+		#ask for all file IOs to happen on main thread
+		_libgpac.gf_fileio_tag_main_thread(self._gf_fio)
 
 	@property
 	def url(self):

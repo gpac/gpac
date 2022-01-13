@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / SAF demuxer filter
@@ -250,8 +250,10 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 	if (!ctx->file_loaded) return;
 
 	stream = gf_fopen(p->value.string, "rb");
-	if (!stream) return;
-
+	if (!stream) {
+		ctx->duration.num=1;
+		return;
+	}
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	ctx->file_size = gf_bs_get_size(bs);
 
