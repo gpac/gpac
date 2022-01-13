@@ -196,10 +196,10 @@ static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf, Bool is_d
 {
 	if ((buf[0]==0xFF) || (buf[0]==0xFE)) {
 		const u16 *sptr = (u16 *) (buf+2);
-		s32 len = (s32) ( UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(sptr) );
+		u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(sptr);
 		char *tmp = gf_malloc(len+1);
-		len = (s32) gf_utf8_wcstombs(tmp, len, &sptr);
-		if (len>=0) {
+		len = gf_utf8_wcstombs(tmp, len, &sptr);
+		if (len != GF_UTF8_FAIL) {
 			tmp[len] = 0;
 			if (is_dyn) {
 				gf_filter_pid_set_property_dyn(apid, name, &PROP_STRING(tmp) );

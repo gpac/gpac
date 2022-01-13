@@ -2607,7 +2607,7 @@ static void dasher_setup_set_defaults(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *s
 			for (j=0; j<role_count; j++) {
 				char *role = ds->p_role->value.string_list.vals[j];
 				GF_MPD_Descriptor *desc=NULL;
-				char *uri;
+				char *uri=NULL;
 				//all roles defined by dash 5th edition
 				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
 			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")

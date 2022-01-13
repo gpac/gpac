@@ -328,8 +328,8 @@ char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32 unicod
 		}
 	}
 	sptr = (u16 *)szLine;
-	i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
-	if ((s32)i<0) i = 0;
+	i = gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);
+	if (i == GF_UTF8_FAIL) i = 0;
 	szLineConv[i] = 0;
 	strcpy(szLine, szLineConv);
 	/*this is ugly indeed: since input is UTF16-LE, there are many chances the gf_fgets never reads the \0 after a \n*/
@@ -745,12 +745,12 @@ force_line:
 
 			ptr = (char *) szLine;
 			{
-				size_t _len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
-				if (_len == (size_t) -1) {
+				len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+				if (len == GF_UTF8_FAIL) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
 					ctx->state = 0;
+					len = 0;
 				}
-				len = (u32) _len;
 			}
 			i=j=0;
 			rem_styles = 0;
@@ -770,8 +770,8 @@ force_line:
 				}
 				else if (uniLine[i]=='<')  {
 					const unsigned short* src = uniLine + i;
-					size_t alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
-					if (alen<0) alen = 0;
+					u32 alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
+					if (alen == GF_UTF8_FAIL) alen = 0;
 					szLine[alen] = 0;
 					strlwr(szLine);
 					if (!strncmp(szLine, "<font ", 6) ) {
@@ -943,8 +943,8 @@ force_line:
 			uniText[j] = 0;
 
 			sptr = (u16 *) uniText;
-			len = (u32) gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
-			if ((s32)len<0) len = 0;
+			len = gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
+			if (len == GF_UTF8_FAIL) len = 0;
 
 			gf_isom_text_add_text(ctx->samp, szText, len);
 			char_len += char_line;

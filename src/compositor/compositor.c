@@ -3799,7 +3799,7 @@ GF_EXPORT
 const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 {
 	const u16 *srcp;
-	size_t len;
+	u32 len;
 	if (compositor->store_text_state != GF_SC_TSEL_FROZEN) return NULL;
 
 	gf_sc_lock(compositor, GF_TRUE);
@@ -3819,7 +3819,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	compositor->selected_text = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
-	if ((s32)len<0) len = 0;
+	if (len == GF_UTF8_FAIL) len = 0;
 	compositor->selected_text[len] = 0;
 	gf_sc_lock(compositor, GF_FALSE);
 

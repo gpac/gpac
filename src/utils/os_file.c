@@ -723,12 +723,12 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	}
 
 	tmpdir = _path;
-	if (gf_utf8_mbstowcs(path, GF_MAX_PATH, &tmpdir) == (size_t)-1) {
+	if (gf_utf8_mbstowcs(path, GF_MAX_PATH, &tmpdir) == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot convert %s to UTF16: broken string\n", dir));
 		return GF_BAD_PARAM;
 	}
 	tmpdir  = filter;
-	if (gf_utf8_mbstowcs(w_filter, sizeof(w_filter), &tmpdir) == (size_t)-1) {
+	if (gf_utf8_mbstowcs(w_filter, sizeof(w_filter), &tmpdir) == GF_UTF8_FAIL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot convert %s to UTF16: broken string\n", filter));
 		return GF_BAD_PARAM;
 	}
