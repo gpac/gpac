@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -115,7 +115,7 @@ Performs a simple reordering of words in the string based on each word direction
 Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
 
 /*! maximum character size in bytes*/
-static const size_t UTF8_MAX_BYTES_PER_CHAR = 4;
+static const u32 UTF8_MAX_BYTES_PER_CHAR = 4;
 
 
 /*!

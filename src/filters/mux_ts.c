@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-2 TS mux filter
@@ -507,13 +507,13 @@ static GF_Err tsmux_esi_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				if (gf_timestamp_greater_or_equal(dur, ifce->timescale, tspid->ctx->cdur.num, tspid->ctx->cdur.den)) {
 					if (tspid->ctx->ref_pid == tspid) {
 						tspid->ctx->wait_llhls_flush = GF_TRUE;
-						tspid->ctx->frag_duration = dur;
+						tspid->ctx->frag_duration = (u32) dur;
 					}
 					tspid->has_seen_eods = M2TS_EODS_LLHLS;
 					return GF_OK;
 				}
 				if (tspid->ctx->ref_pid == tspid) {
-					tspid->ctx->frag_duration = dur + gf_filter_pck_get_duration(pck);
+					tspid->ctx->frag_duration = (u32) dur + gf_filter_pck_get_duration(pck);
 				}
 			}
 		}

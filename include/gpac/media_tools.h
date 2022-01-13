@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Authoring Tools sub-project
@@ -1445,7 +1445,7 @@ void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *ts_inc);
  \param codecid GPAC codec ID
  \return dv level
 */
-u32 gf_dolby_vision_level(u32 width, u32 height, u32 fps_num, u32 fps_den, u32 codecid);
+u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 codecid);
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMF mux filter
@@ -3243,7 +3243,7 @@ sample_entry_done:
 					s64 dur = 100*p->value.longsint;
 					dur *= (u32) ctx->moovts;
 					dur /= tkw->src_timescale;
-					if ((ctx->moovts < tkw->src_timescale) && (dur>150)) {
+					if ((ctx->moovts < (s32) tkw->src_timescale) && (dur>150)) {
 						dur /= 100;
 						dur ++;
 					} else {

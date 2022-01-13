@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -152,7 +152,7 @@ void gf_media_get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 
 
 GF_EXPORT
-u32 gf_dolby_vision_level(u32 width, u32 height, u32 fps_num, u32 fps_den, u32 codecid)
+u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 codecid)
 {
 	u32 dv_level = 0;
 	u64 level_check = width;

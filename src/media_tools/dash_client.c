@@ -2761,7 +2761,7 @@ process_m3u8_manifest:
 						//starting from our current live edge, rewind and insert after the first full segment found
 						s32 pos = group->download_segment_index;
 						//in case the download index is already on the next, not present segment
-						if (pos && (pos>=gf_list_count(segments)))
+						if (pos && (pos >= (s32) gf_list_count(segments)))
 							pos -= 1;
 
 						while (pos>0) {
