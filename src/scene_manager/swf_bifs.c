@@ -848,7 +848,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 		gf_node_register((GF_Node *) par, (GF_Node *)tr);
 
 		if (use_text) {
-			size_t _len;
+			u32 _len;
 			u16 *str_w, *widestr;
 			char *str;
 			void *ptr;
@@ -882,8 +882,8 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			str = (char*)gf_malloc(sizeof(char) * (gr->nbGlyphs+2));
 			widestr = str_w;
 			_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
-			if (_len != (size_t) -1) {
-				j=(u32) _len;
+			if (_len != GF_UTF8_FAIL) {
+				j = _len;
 				str[j] = 0;
 				gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);

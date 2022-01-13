@@ -47,7 +47,7 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 static GFINLINE u32 OD_SizeUTF8String(char *string, Bool isUTF8)
 {
 	if (isUTF8) return 1 + (u32) strlen(string);
-	return 1 + 2 * (u32) gf_utf8_wcslen((const unsigned short *)string);
+	return 1 + 2 * gf_utf8_wcslen((const unsigned short *)string);
 }
 
 static GFINLINE void OD_WriteUTF8String(GF_BitStream *bs, char *string, Bool isUTF8)
@@ -58,7 +58,7 @@ static GFINLINE void OD_WriteUTF8String(GF_BitStream *bs, char *string, Bool isU
 		gf_bs_write_int(bs, len, 8);
 		gf_bs_write_data(bs, string, len);
 	} else {
-		len = (u32) gf_utf8_wcslen((const unsigned short *)string);
+		len = gf_utf8_wcslen((const unsigned short *)string);
 		gf_bs_write_int(bs, len, 8);
 		gf_bs_write_data(bs, string, len*2);
 	}
@@ -2217,7 +2217,7 @@ GF_Err gf_odf_size_exp_text(GF_ExpandedTextual *etd, u32 *outSize)
 		if (etd->isUTF8) {
 			nonLen = (u32) strlen((const char*)etd->NonItemText);
 		} else {
-			nonLen = (u32) gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
+			nonLen = gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
 		}
 	} else {
 		nonLen = 0;
@@ -2267,7 +2267,7 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 		if (etd->isUTF8) {
 			nonLen = (u32) strlen((const char*)etd->NonItemText);
 		} else {
-			nonLen = (u32) gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
+			nonLen = gf_utf8_wcslen((const unsigned short*)etd->NonItemText);
 		}
 	} else {
 		nonLen = 0;

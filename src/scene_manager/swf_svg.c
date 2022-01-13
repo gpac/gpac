@@ -292,7 +292,7 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 			swf_svg_print(read, ">");
 			/*convert to UTF-8*/
 			{
-				size_t _len;
+				u32 _len;
 				u16     *str_w;
 				u16     *widestr;
 				char    *str;
@@ -306,8 +306,8 @@ static GF_Err swf_svg_define_text(SWFReader *read, SWFText *text)
 				str = (char*)gf_malloc(sizeof(char) * (gr->nbGlyphs+2));
 				widestr = str_w;
 				_len = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
-				if (_len != (size_t) -1) {
-					str[(u32) _len] = 0;
+				if (_len != GF_UTF8_FAIL) {
+					str[_len] = 0;
 					swf_svg_print(read, "%s", str);
 				}
 			}

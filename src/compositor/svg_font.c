@@ -44,7 +44,7 @@ typedef struct
 static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang, Bool *is_rtl)
 {
 	u32 prev_c;
-	size_t len;
+	u32 len;
 	u32 i, gl_idx;
 	u16 *utf_res;
 	GF_Node *node = (GF_Node *)udta;
@@ -64,16 +64,16 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 	}
 
 	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char**)&utf8);
-	if (len == (size_t) -1) return GF_IO_ERR;
+	if (len == GF_UTF8_FAIL) return GF_IO_ERR;
 	/*should not happen*/
 	if (utf8) return GF_IO_ERR;
 
 	/*perform bidi relayout*/
 	utf_res = (u16 *) glyph_buffer;
-	*is_rtl = gf_utf8_reorder_bidi(utf_res, (u32) len);
+	*is_rtl = gf_utf8_reorder_bidi(utf_res, len);
 
 	/*move 16bit buffer to 32bit*/
-	for (i=(u32)len; i>0; i--) {
+	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = utf_res[i-1];
 	}
 
@@ -349,7 +349,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 {
 	u16 utf_name[20];
 	u8 *utf8;
-	size_t len;
+	u32 len;
 	GF_Rect rc;
 	GF_Glyph *glyph;
 	GF_Font *font;
@@ -377,6 +377,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	if (!st) return;
 	utf8 = (u8 *) *atts.unicode;
 	len = gf_utf8_mbstowcs(utf_name, 200, (const char **) &utf8);
+	if (len == GF_UTF8_FAIL) return;
 	/*this is a single glyph*/
 	if (len==1) {
 		st->glyph.utf_name = utf_name[0];

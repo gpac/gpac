@@ -2377,8 +2377,8 @@ static JSValue event_getProperty(JSContext *c, JSValueConst obj, int magic)
 		txt[0] = evt->detail;
 		txt[1] = 0;
 		srcp = (const u16 *) txt;
-		len = (u32) gf_utf8_wcstombs(szData, 5, &srcp);
-		if ((s32)len<0) len = 0;
+		len = gf_utf8_wcstombs(szData, 5, &srcp);
+		if (len == GF_UTF8_FAIL) len = 0;
 		szData[len] = 0;
 		return JS_NewString(c, szData);
 	}

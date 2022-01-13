@@ -593,7 +593,6 @@ static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, u32 *em_size
 
 static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang, Bool *is_rtl)
 {
-	size_t _len;
 	u32 len;
 	u32 i;
 	u16 *conv;
@@ -613,9 +612,8 @@ static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyp
 		*io_glyph_buffer_size = len+1;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	_len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
-	if (_len==(size_t)-1) return GF_IO_ERR;
-	len = (u32) _len;
+	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
+	if (len == GF_UTF8_FAIL) return GF_IO_ERR;
 	if (utf8) return GF_IO_ERR;
 
 	/*perform bidi relayout*/

@@ -63,7 +63,7 @@ static char *xml_translate_xml_string(char *str)
 			if (str[i+1]=='#') {
 				char szChar[20], *end;
 				u16 wchar[2];
-				u32 val;
+				u32 val, _len;
 				const unsigned short *srcp;
 				strncpy(szChar, str+i, 10);
 				szChar[10] = 0;
@@ -78,7 +78,9 @@ static char *xml_translate_xml_string(char *str)
 					sscanf(szChar, "&#%u;", &val);
 				wchar[0] = val;
 				srcp = wchar;
-				j += (u32) gf_utf8_wcstombs(&value[j], 20, &srcp);
+				_len = gf_utf8_wcstombs(&value[j], 20, &srcp);
+				if (_len == GF_UTF8_FAIL) _len = 0;
+				j += _len;
 			}
 			else if (!strnicmp(&str[i], "&amp;", sizeof(char)*5)) {
 				value[j] = '&';
@@ -1074,10 +1076,10 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 
 	if (parser->unicode_type>1) {
 		const u16 *sptr = (const u16 *)string;
-		u32 len = 2 * (u32) gf_utf8_wcslen(sptr);
+		u32 len = 2 * gf_utf8_wcslen(sptr);
 		utf_conv = (char *)gf_malloc(sizeof(char)*(len+1));
-		len = (u32) gf_utf8_wcstombs(utf_conv, len, &sptr);
-		if (len==(u32) -1) {
+		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
+		if (len == GF_UTF8_FAIL) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
 			gf_free(utf_conv);
 			return GF_CORRUPTED_DATA;

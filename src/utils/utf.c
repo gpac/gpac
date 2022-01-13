@@ -435,16 +435,16 @@ Bool gf_utf8_is_legal(const u8 *data, u32 length)
 }
 
 GF_EXPORT
-size_t gf_utf8_wcslen (const unsigned short *s)
+u32 gf_utf8_wcslen (const unsigned short *s)
 {
 	const unsigned short* ptr;
 	for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
 	}
-	return ptr - s;
+	return (u32) ( ptr - s );
 }
 
 GF_EXPORT
-size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
+u32 gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
 	if (!srcp || !*srcp)
 		return 0;
@@ -456,15 +456,15 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 		ConversionFlags flags = strictConversion;
 
 		ConversionResult res = ConvertUTF16toUTF8(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
-		if (res != conversionOK) return (size_t)-1;
+		if (res != conversionOK) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
-		return strlen(dest);
+		return (u32) strlen(dest);
 	}
 }
 
 GF_EXPORT
-size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
+u32 gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
 	if (!srcp || !*srcp)
 		return 0;
@@ -475,7 +475,7 @@ size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 		UTF16* targetEnd = (UTF16* ) (dest + len);
 		ConversionFlags flags = strictConversion;
 		ConversionResult res = ConvertUTF8toUTF16(sourceStart, sourceEnd, &targetStart, targetEnd, flags);
-		if (res != conversionOK) return (size_t)-1;
+		if (res != conversionOK) return GF_UTF8_FAIL;
 		*targetStart = 0;
 		*srcp=NULL;
 		return gf_utf8_wcslen(dest);
@@ -486,16 +486,16 @@ size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 #else
 
 GF_EXPORT
-size_t gf_utf8_wcslen (const unsigned short *s)
+u32 gf_utf8_wcslen (const unsigned short *s)
 {
 	const unsigned short* ptr;
 	for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
 	}
-	return ptr - s;
+	return (u32) (ptr - s);
 }
 
 GF_EXPORT
-size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
+u32 gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
 	/*
 	* Original code from the GNU UTF-8 Library
@@ -538,7 +538,7 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 					*destptr++ = (unsigned char)(((wc >> (6 * --count)) & 0x3F) | 0x80);
 				} while (count > 0);
 		}
-		return destptr - dest;
+		return (u32) (destptr - dest);
 	} else {
 		/* Ignore dest and len. */
 		size_t totalcount = 0;
@@ -558,7 +558,7 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 			}
 			totalcount += count;
 		}
-		return totalcount;
+		return (u32) totalcount;
 	}
 }
 
@@ -576,7 +576,7 @@ typedef struct
 static gf_utf8_mbstate_t internal;
 
 GF_EXPORT
-size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
+u32 gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
 	gf_utf8_mbstate_t* ps = &internal;
 	const char *src = *srcp;
@@ -636,11 +636,11 @@ bad_input_backup:
 		goto bad_input;
 	}
 	*srcp = src;
-	return destptr-dest;
+	return (u32) (destptr - dest);
 
 bad_input:
 	*srcp = src;
-	return (size_t)(-1);
+	return GF_UTF8_FAIL;
 }
 
 
@@ -723,7 +723,7 @@ wchar_t* gf_utf8_to_wcs(const char* str)
 	result = gf_calloc(source_len + 1, sizeof(wchar_t));
 	if (!result)
 		return 0;
-	if (gf_utf8_mbstowcs(result, source_len, &str) == (size_t)-1) {
+	if (gf_utf8_mbstowcs(result, source_len, &str) == GF_UTF8_FAIL) {
 		gf_free(result);
 		return 0;
 	}
@@ -740,7 +740,7 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
 	if (!result)
 		return 0;
-	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) < 0) {
+	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) == GF_UTF8_FAIL) {
 		gf_free(result);
 		return 0;
 	}

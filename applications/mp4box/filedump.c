@@ -3782,10 +3782,10 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 			fprintf(stderr, "unknown type %d\n", type);
 		} else {
 			u16 *src_str = (u16 *) data;
-			u32 len = (u32) ( UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str) );
+			u32 len = UTF8_MAX_BYTES_PER_CHAR * gf_utf8_wcslen(src_str);
 			char *utf8str = (char *)gf_malloc(len + 1);
-			u32 res_len = (u32) gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
-			if (res_len != (u32) -1) {
+			u32 res_len = gf_utf8_wcstombs(utf8str, len, (const unsigned short **) &src_str);
+			if (res_len != GF_UTF8_FAIL) {
 				utf8str[res_len] = 0;
 				fprintf(stderr, "%s\n", utf8str);
 			}

@@ -49,6 +49,7 @@ The wide characters in GPAC are unsignad shorts, in other words GPAC only suppor
 
 #include <gpac/tools.h>
 
+#define GF_UTF8_FAIL	0xFFFFFFFF
 /*!
 \brief wide-char to multibyte conversion
 
@@ -56,9 +57,9 @@ Converts a wide-char string to a multibyte string
 \param dst multibyte destination buffer
 \param dst_len multibyte destination buffer size
 \param srcp address of the wide-char string. This will be set to the next char to be converted in the input buffer if not enough space in the destination, or NULL if conversion was completed.
-\return length (in byte) of the multibyte string or -1 if error.
+\return length (in byte) of the multibyte string or GF_UTF8_FAIL if error.
  */
-size_t gf_utf8_wcstombs(char* dst, size_t dst_len, const unsigned short** srcp);
+u32 gf_utf8_wcstombs(char* dst, size_t dst_len, const unsigned short** srcp);
 
 /*!
 \brief multibyte to wide-char conversion
@@ -67,9 +68,9 @@ Converts a multibyte string to a wide-char string
 \param dst wide-char destination buffer
 \param dst_len wide-char destination buffer size
 \param srcp address of the multibyte character buffer. This will be set to the next char to be converted in the input buffer if not enough space in the destination, or NULL if conversion was completed.
-\return length (in unsigned short) of the wide-char string or -1 if error.
+\return length (in unsigned short) of the wide-char string or GF_UTF8_FAIL if error.
  */
-size_t gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
+u32 gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
 
 /*!
 \brief wide-char string length
@@ -78,7 +79,7 @@ Gets the length in character of a wide-char string
 \param s the wide-char string
 \return the wide-char string length
  */
-size_t gf_utf8_wcslen(const unsigned short *s);
+u32 gf_utf8_wcslen(const unsigned short *s);
 
 /*!
 \brief returns a UTF8 string from a string started with BOM

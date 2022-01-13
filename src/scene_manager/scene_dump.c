@@ -422,16 +422,14 @@ static void EndList(GF_SceneDumper *sdump, const char *name)
 
 static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *str)
 {
-	size_t _len;
 	u32 len, i;
 	u16 *uniLine;
 	if (!str) return;
 	len = (u32) strlen(str);
 	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len*4);
-	_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-	if (_len != (size_t) (-1)) {
-		len = (u32) _len;
+	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
+	if (len != GF_UTF8_FAIL) {
 		for (i=0; i<len; i++) {
 			//if (uniLine[i] == (u16) '\"') gf_fprintf(sdump->trace, "\\");
 			switch (uniLine[i]) {
@@ -597,15 +595,12 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			gf_fprintf(sdump->trace, "\"%s\"", str);
 		}
 		else {
-			size_t _len;
 			u16 *uniLine;
 
 			uniLine = (u16*)gf_malloc(sizeof(short) * (len + 1));
-			_len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
+			len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
 
-			if (_len != (size_t)-1) {
-				len = (u32)_len;
-
+			if (len != GF_UTF8_FAIL) {
 				for (i = 0; i<len; i++) {
 
 					switch (uniLine[i]) {
@@ -702,7 +697,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			short uniLine[5000];
 			str = ((SFURL *)ptr)->url;
 			len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &str);
-			if (len != (size_t) -1) {
+			if (len != GF_UTF8_FAIL) {
 				gf_fprintf(sdump->trace, sdump->XMLDump ? (sdump->X3DDump ?  "'" : "&quot;") : "\"");
 				fwprintf(sdump->trace, (unsigned short *) uniLine);
 				gf_fprintf(sdump->trace, sdump->XMLDump ? (sdump->X3DDump ?  "'" : "&quot;") : "\"");

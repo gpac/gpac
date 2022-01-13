@@ -656,8 +656,8 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 				memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
 				wsChunk[i-start_char] = 0;
 				sp = &wsChunk[0];
-				len = (u32) gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
-				if ((s32)len<0) len = 0;
+				len = gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
+				if (len == GF_UTF8_FAIL) len = 0;
 				szLine[len] = 0;
 
 				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
@@ -919,7 +919,8 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		char_count = txt->len / 2;
 	} else {
 		char *p = txt->text;
-		char_count = (u32) gf_utf8_mbstowcs(utf16_text, 2500, (const char **) &p);
+		char_count = gf_utf8_mbstowcs(utf16_text, 2500, (const char **) &p);
+		if (char_count == GF_UTF8_FAIL) char_count = 0;
 	}
 
 	chunks = gf_list_new();
