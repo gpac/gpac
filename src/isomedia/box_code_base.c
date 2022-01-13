@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2895,9 +2895,9 @@ GF_Err mdat_box_read(GF_Box *s, GF_BitStream *bs)
 
 	//store idat for rewrite
 	if (ptr->type==GF_ISOM_BOX_TYPE_IDAT) {
-		ptr->data = gf_malloc(sizeof(u8) * ptr->dataSize);
+		ptr->data = gf_malloc(sizeof(u8) * (size_t)ptr->dataSize);
 		if (!ptr->data) return GF_OUT_OF_MEM;
-		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
+		gf_bs_read_data(bs, ptr->data, (u32) ptr->dataSize);
 		ptr->size = 0;
 		return GF_OK;
 	}

@@ -213,10 +213,10 @@ typedef struct __gf_http_io
 {
 	//only for read
 	struct __gf_http_io *parent;
-	u32 pos;
+	u64 pos;
 
 	//only for write
-	u32 size;
+	u64 size;
 	u8 *data;
 	//source PID
 	GF_HTTPOutInput *in;
@@ -248,7 +248,7 @@ static u32 httpio_read(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 	if (!ioctx || !ioctx->parent) return 0;
 	u32 to_read = bytes;
 	if (to_read > ioctx->parent->size - ioctx->pos)
-		to_read = ioctx->parent->size - ioctx->pos;
+		to_read = (u32) (ioctx->parent->size - ioctx->pos);
 
 	if (to_read) {
 		memcpy(buffer, ioctx->parent->data + ioctx->pos, to_read);
@@ -261,7 +261,7 @@ static u32 httpio_write(GF_FileIO *fileio, u8 *buffer, u32 bytes)
 	GF_HTTPFileIO *ioctx = gf_fileio_get_udta(fileio);
 	if (!ioctx || ioctx->parent) return 0;
 
-	ioctx->data = gf_realloc(ioctx->data, ioctx->size+bytes);
+	ioctx->data = gf_realloc(ioctx->data, sizeof(u8)*((size_t)ioctx->size+bytes));
 	if (!ioctx->data) return 0;
 	memcpy(ioctx->data + ioctx->size, buffer, bytes);
 	ioctx->size += bytes;

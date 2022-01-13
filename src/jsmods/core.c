@@ -3254,7 +3254,7 @@ static GF_FileIO *jsfio_open(GF_FileIO *fileio_ref, const char *url, const char 
 		gf_js_lock(ctx, GF_FALSE);
 		return ioctx->gfio;
 	}
-	JS_ToInt32(ctx, out_err, res);
+	JS_ToInt32(ctx, (int32_t *) out_err, res);
 
 	JS_SetOpaque(ioctx->js_obj, NULL);
 	JS_FreeValue(ctx, ioctx->js_obj);
