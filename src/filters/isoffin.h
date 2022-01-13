@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -100,6 +100,7 @@ typedef struct
 	u32 frag_type;
 	Bool waiting_for_data, reset_frag_state;
 
+	Bool gfio_probe;
 
 	u32 pending_scalable_enhancement_segment_index;
 

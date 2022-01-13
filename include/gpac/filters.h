@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -212,8 +212,8 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_NO_BLOCKING	1<<2
 /*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
 #define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
-/*! Flag set to disable main thread. Such sessions shall be run using \ref gf_fs_run_step*/
-#define GF_FS_FLAG_NO_MAIN_THREAD	1<<4
+/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
+#define GF_FS_FLAG_NON_BLOCKING	1<<4
 /*! Flag set to disable session regulation (no sleep)*/
 #define GF_FS_FLAG_NO_REGULATION	1<<5
 /*! Flag set to disable data probe*/
@@ -239,7 +239,7 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType type, u32 flags, const char *blacklist);
 
 /*! Creates a new filter session, loading parameters from gpac config. This will also load all available filter registers not blacklisted.
-\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NO_MAIN_THREAD , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
+\param flags set of flags for the session. Only \ref GF_FS_FLAG_LOAD_META,  \ref GF_FS_FLAG_NON_BLOCKING , \ref GF_FS_FLAG_NO_GRAPH_CACHE and \ref GF_FS_FLAG_PRINT_CONNECTIONS are used, other flags are set from config file or command line
 \return the created filter session
 */
 GF_FilterSession *gf_fs_new_defaults(u32 flags);
@@ -267,6 +267,10 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *session, const char *name, GF_Err
 Bool gf_fs_filter_exists(GF_FilterSession *session, const char *name);
 
 /*! Runs the session
+
+If the session is non-blocking ( created with \ref GF_FS_FLAG_NON_BLOCKING), process all tasks of oldest scheduled filter, process any pending PID connections and returns.
+Otherwise (session is blocking), runs until session is over or aborted.
+
 \param session filter session
 \return error if any, or GF_EOS. The last errors can be retrieved using \ref gf_fs_get_last_connect_error and \ref gf_fs_get_last_process_error
 */
@@ -310,12 +314,6 @@ GF_Err gf_fs_set_max_sleep_time(GF_FilterSession *session, u32 max_sleep);
 \return maximum chain length when resolving filter links.
 */
 u32 gf_fs_get_max_resolution_chain_length(GF_FilterSession *session);
-
-/*! Runs session in non blocking mode: process all tasks of oldest scheduled filter, process any pending PID connections and returns.
-This can only be used if the flag \ref GF_FS_FLAG_NO_MAIN_THREAD was specified at session creation time
-\param session filter session
-*/
-void gf_fs_run_step(GF_FilterSession *session);
 
 /*! Stops the session, waiting for all additional threads to complete
 \param session filter session
@@ -418,6 +416,12 @@ GF_Err gf_fs_abort(GF_FilterSession *session, GF_FSFlushType flush_type);
 */
 Bool gf_fs_is_last_task(GF_FilterSession *session);
 
+/*! Checks if the session is in its final flush state (shutdown)
+\param session filter session
+\return GF_TRUE if no session is aborting, GF_FALSE otherwise
+*/
+Bool gf_fs_in_final_flush(GF_FilterSession *session);
+
 /*! Checks if a given MIME type is supported as input
 \param session filter session
 \param mime MIME type to query
@@ -509,8 +513,8 @@ GF_Filter *gf_fs_get_filter(GF_FilterSession *session, u32 idx);
 /*! Type of filter*/
 typedef enum
 {
-	/*! Unknown filter type*/
-	GF_FS_STATS_FILTER_UNKNOWN,
+	/*! Generic filter type accepting input(s) and producing output(s)*/
+	GF_FS_STATS_FILTER_GENERIC,
 	/*! raw input (file, socket, pipe) filter type*/
 	GF_FS_STATS_FILTER_RAWIN,
 	/*! demultiplexer filter type*/
@@ -578,7 +582,7 @@ typedef struct
 	u64 nb_out_pck;
 	/*!set to GF_TRUE if filter has seen end of stream*/
 	Bool in_eos;
-	/*!set to GF_TRUE if filter has seen end of stream*/
+	/*!set to the filter class type*/
 	GF_FSFilterType type;
 	/*!set to streamtype of output PID if single output, GF_STREAM_UNKNOWN otherwise*/
 	u32 stream_type;
@@ -674,12 +678,27 @@ typedef	void (*gf_fs_on_filter_creation)(void *udta, GF_Filter *filter, Bool is_
 
 /*! assign callbacks for filter creation and destruction monitoring
 \param session filter session
-\param on_create_destroy filter creation/destruction callback
-\param udta user data for callbacks
+\param on_create_destroy filter creation/destruction callback, may be NULL
+\param udta user data for callbacks, may be NULL
+\param force_sync execute tasks involving filter creation/setup and user tasks on main thread
 \return error if any
  */
-GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_filter_creation on_create_destroy, void *udta);
+GF_Err gf_fs_set_filter_creation_callback(GF_FilterSession *session, gf_fs_on_filter_creation on_create_destroy, void *udta, Bool force_sync);
 
+/*! returns RT user data passed in  \ref gf_fs_set_filter_creation_callback
+\param session filter session
+\return  udta user data, NULL if error or none
+ */
+void *gf_fs_get_rt_udta(GF_FilterSession *session);
+
+/*! Fires an event on filter
+\param session filter session
+\param filter target filter - if NULL, event will be executed on all filters. Otherwise, the event will be executed directly if its type is \ref GF_FEVT_USER, and fired otherwise
+\param evt event to fire
+\param upstream if true, send event toward sinks, otherwise towards sources
+\return GF_TRUE if event was sent, GF_FALSE otherwise
+ */
+Bool gf_fs_fire_event(GF_FilterSession *session, GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
 
 /*! @} */
 
@@ -1589,13 +1608,13 @@ typedef struct
 	u64 start_offset;
 	/*! end offset in source*/
 	u64 end_offset;
-	/*! new path to switch to*/
+	/*! GF_FEVT_SOURCE_SWITCH only, new path to switch to*/
 	const char *source_switch;
-	/*! indicates  source is a DASH init segment and should be kept in memory cache*/
+	/*!GF_FEVT_SOURCE_SWITCH only, indicates  source is a DASH init segment and should be kept in memory cache*/
 	u8 is_init_segment;
-	/*! ignore cache expiration directive for HTTP*/
+	/*!GF_FEVT_SOURCE_SWITCH only, ignore cache expiration directive for HTTP*/
 	u8 skip_cache_expiration;
-	/*! hint block size for source, might not be respected*/
+	/*! GF_FEVT_SOURCE_SEEK only,  hint block size for source, might not be respected*/
 	u32 hint_block_size;
 } GF_FEVT_SourceSeek;
 
@@ -2014,6 +2033,18 @@ void gf_filter_lock_all(GF_Filter *filter, Bool do_lock);
 \param filter target filter
 */
 void gf_filter_require_source_id(GF_Filter *filter);
+
+/*! Sets opaque runtime data for filter - used by bindings
+\param filter target filter
+\param udta data to set
+\return error if any
+*/
+GF_Err gf_filter_set_rt_udta(GF_Filter *filter, void *udta);
+/*! Gets opaque runtime data for filter - used by bindings
+\param filter target filter
+\return associated data or NULL
+*/
+void *gf_filter_get_rt_udta(GF_Filter *filter);
 
 
 /*! Filter probe score, used when probing a URL/MIME or when probing formats from data*/
@@ -3029,6 +3060,21 @@ Bool gf_filter_relocate_url(GF_Filter *filter, const char *service_url, const ch
 \return the register object, or NULL if error
 */
 const GF_FilterRegister *gf_filter_get_register(GF_Filter *filter);
+
+/*! Prints all possible connections between filter registries for a loaded filter using \code LOG_APP@LOG_INFO \endcode
+\param filter filter object
+\param print_fn optional callback function for print, otherwise print to stderr
+*/
+void gf_filter_print_all_connections(GF_Filter *filter, void (*print_fn)(FILE *output, GF_SysPrintArgFlags flags, const char *fmt, ...) );
+
+/*! Force a filter to run on main thread.
+
+\param filter filter object
+\param do_tag if GF_TRUE, tags filter to run on main thread, otherwise untags filters
+
+\warning There shall be at most as many with do_tag=GF_FALSE as there were calls with do_tag=GF_TRUE
+*/
+void gf_filter_force_main_thread(GF_Filter *filter, Bool do_tag);
 
 /*! @} */
 
@@ -4371,10 +4417,11 @@ If your app requires custom I/Os for source or sinks, use \ref GF_FileIO.
 /*! Loads custom filter
 \param session filter session
 \param name name of filter to use - optional, may be NULL
+\param flags flags for filter registry, currently only GF_FS_REG_MAIN_THREAD is used
 \param e set to the error code if any - optional, may be NULL
 \return filter or NULL if error
 */
-GF_Filter *gf_fs_new_filter(GF_FilterSession *session, const char *name, GF_Err *e);
+GF_Filter *gf_fs_new_filter(GF_FilterSession *session, const char *name, u32 flags, GF_Err *e);
 
 /*! Push a new capability for a custom filter
 \param filter the target filter

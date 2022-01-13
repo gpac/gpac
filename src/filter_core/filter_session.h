@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -191,7 +191,9 @@ enum
 	//2 bits for crypt type
 	GF_PCK_CMD_POS = 13,
 	GF_PCK_CMD_MASK = 0x3 << GF_PCK_CMD_POS,
-	//RESERVED bits [9,12]
+	GF_PCKF_FORCE_MAIN = 1<<12,
+	//RESERVED bits [8,11]
+
 	//2 bits for is_leading
 	GF_PCK_ISLEADING_POS = 6,
 	GF_PCK_ISLEADING_MASK = 0x3 << GF_PCK_ISLEADING_POS,
@@ -279,6 +281,7 @@ struct __gf_fs_task
 	Bool requeue_request;
 	Bool can_swap;
 	Bool blocking;
+	Bool force_main;
 
 	u64 schedule_next_time;
 
@@ -294,7 +297,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter
 /* extended version of gf_fs_post_task
 force_direct_call shall only be true for gf_filter_process_task
 */
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_direct_call);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call);
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
 
@@ -352,7 +355,11 @@ struct __gf_filter_session
 	Bool direct_mode;
 	volatile u32 tasks_in_process;
 	Bool requires_solved_graph;
-	Bool no_main_thread;
+	//non blicking session mode:
+	//0: session is blocking
+	//1: session is non-blocking and first call to gf_fs_run (extra threads not started)
+	//2: session is non-blocking and not first call to gf_fs_run (extra threads started)
+	u32 non_blocking;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -473,6 +480,7 @@ struct __gf_filter_session
 
 	gf_fs_on_filter_creation on_filter_create_destroy;
 	void *rt_udta;
+	Bool force_main_thread_tasks;
 
 #ifdef GF_FS_ENABLE_LOCALES
 	GF_List *uri_relocators;
@@ -749,7 +757,7 @@ struct __gf_filter
 
 	GF_Err in_connect_err;
 
-	Bool main_thread_forced;
+	volatile u32 nb_main_thread_forced;
 	Bool no_dst_arg_inherit;
 	GF_List *source_filters;
 

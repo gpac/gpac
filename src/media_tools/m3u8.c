@@ -1,8 +1,8 @@
-/**
+/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Pierre Souchay, Jean Le Feuvre, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2010-2021
+ *			Copyright (c) Telecom ParisTech 2010-2022
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -906,7 +906,6 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		if (attribs->is_master_playlist) {
 			if (curr_playlist != NULL) {
 				//playlist has already been defined - this happens when the same video playlist is defined several times with different audio codecs ...
-				gf_free(fullURL);
 				return GF_OK;
 			}
 			curr_playlist = playlist_element_new(TYPE_PLAYLIST, fullURL, attribs);

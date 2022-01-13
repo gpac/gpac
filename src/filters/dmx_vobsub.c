@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT demuxer filter
@@ -111,6 +111,10 @@ GF_Err vobsubdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 		if (!strncmp(p->value.string, "gfio://", 7)) {
 			use_gfio = GF_TRUE;
 			strcpy(sURL, gf_fileio_translate_url(p->value.string) );
+
+			if (gf_fileio_is_main_thread(p->value.string)) {
+				gf_filter_force_main_thread(filter, GF_TRUE);
+			}
 		} else {
 			strcpy(sURL, p->value.string);
 		}

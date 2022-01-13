@@ -1,8 +1,8 @@
-/**
+/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2021
+ *			Copyright (c) Telecom ParisTech 2010-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Adaptive HTTP Streaming
@@ -8193,8 +8193,8 @@ static s32 dash_do_rate_adaptation_custom(GF_DashClient *dash, GF_DASH_Group *gr
 	stats.file_size = group->total_size;
 	stats.speed = speed;
 	stats.max_available_speed = max_available_speed;
-	stats.disp_width = group->hint_visible_width;
-	stats.disp_height = group->hint_visible_height;
+	stats.display_width = group->hint_visible_width;
+	stats.display_height = group->hint_visible_height;
 	stats.active_quality_idx = group->active_rep_index;
 	stats.buffer_min_ms = group->buffer_min_ms;
 	stats.buffer_max_ms = group->buffer_max_ms;

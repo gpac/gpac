@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ProRes reframer filter
@@ -147,8 +147,12 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 	if (!ctx->findex)
 		return;
 
-	stream = gf_fopen(filepath, "rb");
-	if (!stream) return;
+	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
+	if (!stream) {
+		if (gf_fileio_is_main_thread(p->value.string))
+			ctx->file_loaded = GF_TRUE;
+		return;
+	}
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 

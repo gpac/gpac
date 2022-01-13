@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / http server and output filter
@@ -2792,7 +2792,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 	httpout_set_local_path(ctx, in);
 
 	//for mem mode, pass the parent gfio for fileIO construction
-	in->resource = gf_fopen_ex(in->local_path, ctx->mem_url, "wb");
+	in->resource = gf_fopen_ex(in->local_path, ctx->mem_url, "wb", GF_FALSE);
 	if (!in->resource)
 		in->is_open = GF_FALSE;
 
@@ -3167,7 +3167,7 @@ next_pck:
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->local_path, p->value.uint);
 			httpout_close_hls_chunk(ctx, in, GF_FALSE);
 			//for mem mode, pass the parent gfio for fileIO construction
-			in->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->mem_url, "wb");
+			in->hls_chunk = gf_fopen_ex(szHLSChunk, ctx->mem_url, "wb", GF_FALSE);
 			in->hls_chunk_local_path = gf_strdup(szHLSChunk);
 			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 			in->hls_chunk_path = gf_strdup(szHLSChunk);

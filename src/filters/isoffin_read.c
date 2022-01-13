@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISOBMFF reader filter
@@ -68,7 +68,19 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	} else {
 		src = read->src;
 	}
-	if (!src)  return GF_SERVICE_ERROR;
+	if (!src) return GF_SERVICE_ERROR;
+
+	//if source is a fileIO, check if it is tagged for main thread
+	//if so, force main thread for this filter and configure at next process
+	if (!strncmp(src, "gfio://", 7) && !read->gfio_probe) {
+		read->gfio_probe = GF_TRUE;
+		if (gf_fileio_is_main_thread(src)) {
+			read->moov_not_loaded = 1;
+			gf_filter_force_main_thread(filter, GF_TRUE);
+			gf_filter_post_process_task(filter);
+			return GF_OK;
+		}
+	}
 
 	read->src_crc = gf_crc_32(src, (u32) strlen(src));
 

@@ -1,0 +1,1486 @@
+/*
+\file
+\brief silence !
+*/
+
+typedef char *DOMString;
+
+/*!
+
+\defgroup nodegpac_grp GPAC module exports
+\ingroup nodejs_grp
+\brief Exported symbols for GPAC NodeJS.
+
+This section documents the JavaScript API used to query the filter session.
+
+Unless explictly stated, errors are handled through exceptions.
+
+All constants from GPAC are exported in the module object (e.g. use gpac.GF_Err ...) 
+
+
+The API is very close to the GPAC python bindings.
+
+
+@{
+
+*/
+
+
+/*! initialize libgpac - see \ref gf_sys_init
+
+When loading the module, libgpac is innitialized with no memory tracking and the default profile. Use this function only if you need to change these settings. This must be called before any other calls to gpac.
+
+\param mem_track mem tracker mode
+\param profile profile name, null for default
+\return
+*/
+void init(unsigned long mem_track=0, DOMString profile=null);
+
+/*! convert error value to string message
+\param err gpac error code (int)
+\return string
+*/
+DOMString e2s(long err);
+
+/*! set log tools and levels - see \ref gf_log_set_tools_levels
+\note Make sure you have destroyed all associated gpac resources before calling this !
+
+\param logs
+\param reset if true, resets all logs to default
+\return
+*/
+void set_logs(DOMString logs, boolean reset=false);
+
+/*! get clock - see \ref gf_sys_clock
+\return clock in milliseconds
+*/
+unsigned long sys_clock();
+
+/*! get high res clock - see \ref gf_sys_clock_high_res
+\return clock in microseconds
+*/
+unsigned long long sys_clock_high_res();
+
+/*! set libgpac arguments - see \ref gf_sys_set_args
+\param args Array of strings, the first string is ignored (considered to be the executable name)
+*/
+void set_args(Array args);
+
+/*! set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
+\param callback object to call back, must have a method `on_rmt_event` taking a single string parameter
+*/
+void set_rmt_fun(function callback);
+
+/*! send message to profiler (Remotery) - see \ref gf_sys_profiler_send
+\param text text to send
+*/
+void rmt_send(DOMString text);
+
+/*! check if profiler (Remotery) sampling is enabled - see \ref gf_sys_profiler_sampling_enabled
+\return true if enabled, false otherwise
+*/
+boolean rmt_on();
+
+/*! enable or disable sampling in profiler (Remotery) - see \ref gf_sys_profiler_enable_sampling
+\param do_enable enable or disable sampling
+*/
+void rmt_enable(boolean do_enable);
+
+/*! GPAC event proc callback, initially set to null
+\param evt the user event being dispatched
+\return true to cancel the event
+*/
+boolean on_event(_FilterEvent evt);
+
+/*! libgpac version */
+attribute readonly DOMString version;
+
+/*! libgpac copyright notice */
+attribute readonly DOMString copyright;
+
+/*! libgpac full copyright notice*/
+attribute readonly DOMString copyright_cite;
+
+/*! libgpac major ABI - see \ref gf_gpac_abi_major */
+attribute readonly unsigned long abi_major;
+
+/*! libgpac minor ABI - see \ref gf_gpac_abi_minor */
+attribute readonly unsigned long abi_minor;
+
+/*! libgpac micor ABI - see \ref gf_gpac_abi_micro */
+attribute readonly unsigned long abi_micro;
+
+/*! filter session constructor*/
+attribute _FilterSession FilterSession;
+
+/*! filter session constructor*/
+attribute _FilterEvent FilterEvent;
+
+/*! FileIO constructor*/
+attribute _FileIO FileIO;
+
+/*! @} */
+
+
+
+/*!
+
+\defgroup nodefs_grp FilterSession class
+\ingroup nodejs_grp
+\brief FilterSession management
+
+See \ref GF_FilterSession
+
+The default behaviour is to run the session in blocking mode, which will prevent executing anything until the end of a session.
+While this may be OK for workers or simple applications, it is obviously problematic if you have async tasks to be performed by your node app.
+
+An example approach for by-passing this is to create the session in non-blocking mode and use a recursive promise to run the session:
+\code
+
+//create session in non-blocking mode:
+let	fs = new gpac.FilterSession(gpac.GF_FS_FLAG_NON_BLOCKING);
+
+//setup your filters
+
+
+//Run session as Promise
+const FilterSessionPromise = (fs_run_task) => {
+  var fsrun_promise = () => {
+    return (fs.last_task==false) ? fs_run_task().then(fsrun_promise) : Promise.resolve();
+  }
+  return fsrun_promise();
+};
+
+const run_task = () => {
+	return new Promise((resolve, reject) => {
+	  resolve( fs.run_step() );
+	});
+}
+FilterSessionPromise(run_task).then( ).finally( ()=> { console.log('session is done'); } ) );
+
+console.log('Entering NodeJS EventLoop');
+
+\endcode
+
+
+The filter session supports multithreaded mode, using e.g.
+\code gpac.set_args(["", "-threads=N"]);
+\endcode
+However it is currently not capable of running asynchronous callbacks into Node.
+
+The consequences are:
+- any custom JS filter will run on the main thread (EventLoop or worker thread)
+- any packet dispatched by a custom filter and requiring a JS callback upon packet destruction (shared data dispatch) will force filters consuming these packets to run on the main thread as well.
+
+For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
+
+@{
+
+*/
+
+/*! FilterSession object*/
+interface _FilterSession {
+
+/*! constructor for filter session - see \ref gf_fs_new_defaults. Other options MUST be passed as libgpac options using \ref set_args 
+\param flags session flags
+*/
+FilterSession(unsigned long flags=0);
+
+/*! set to true if this is the last task running, readonly - see \ref gf_fs_is_last_task*/
+attribute readonly boolean last_task;
+
+/*! number of filters in session, readonly - see \ref gf_fs_get_filters_count*/
+attribute readonly unsigned long nb_filters;
+
+/*! current HTTP cumulated download rate, readonly - see \ref gf_fs_get_http_rate*/
+attribute readonly unsigned long http_bitrate;
+
+/*! HTTP max download rate - see \ref gf_fs_get_http_max_rate and \ref gf_fs_set_http_max_rate*/
+attribute unsigned long http_max_bitrate;
+
+/*! callback used whenever a new filter is added, initially set to null
+\param filter _Filter object being added
+*/
+void on_filter_new(_Filter filter);
+
+/*! callback used whenever a filter is destroyed, typically used by classes deriving from _FilterSession, initially set to null
+\param filter _Filter object being removed
+*/
+void on_filter_del(_Filter filter);
+
+/*! run the session - see \ref gf_fs_run */
+void run();
+
+/*! load source filter - see \ref gf_fs_load_source
+\param URL source URL to load
+\param parentURL URL of parent resource for relative path resolution
+\return new _Filter object
+*/
+_Filter load_src(DOMString URL, DOMString parentURL=null);
+
+/*! load destination filter - see \ref gf_fs_load_destination
+\param URL source URL to load
+\param parentURL URL of parent resource for relative path resolution
+\return new _Filter object
+*/
+_Filter load_dst(DOMString URL, DOMString parentURL=null);
+
+/*! load a filter - see \ref gf_fs_load_filter
+\param fname filter name and options
+\return new _Filter object
+*/
+_Filter load(DOMString fname);
+
+/*! post a user task to the filter sesison - see \ref gf_fs_post_user_task
+
+The task object must have an execute callback with no parameter and returning false to cancel the task or the reschedule time in milliseconds 
+
+\param task task object to post
+*/
+void post_task(Object task);
+
+/*! abort the session - see \ref gf_fs_abort
+\param flush pipeline flush mode before abort
+*/
+void abort(unsigned long flush=GF_FS_FLUSH_NONE);
+
+/*! get a filter by index - see \ref gf_fs_get_filter
+\param index index of filter
+\return _Filter object
+*/
+_Filter get_filter(unsigned long index);
+
+/*! lock the session - see \ref gf_fs_lock_filters
+\param lock if True, locks otherwise unlocks
+*/
+void lock(boolean lock);
+
+/*! enable status reporting by filters - see \ref gf_fs_enable_reporting
+\param do_report if True, enables reporting
+*/
+void reporting(boolean do_report);
+
+/*! print statistics on stderr - see \ref gf_fs_print_stats*/
+void print_stats();
+
+/*! print graph on stderr - see \ref gf_fs_print_connections*/
+void print_graph();
+
+
+/*! fire an event on the given filter if any, or on any filter accepting user events
+\param evt FilterEvent to fire
+\param filter _Filter to use as target
+\param upstream if true, walks the chain towards the sink, otehrwise towards the source
+*/
+void fire_event(FilterEvent evt, _Filter filter=null, boolean upstream=false);
+
+/*! checks if a given mime is supported - see \ref gf_fs_is_supported_mime
+\param mime mime type to check
+\return true or false
+*/
+boolean is_supported_mime(DOMString mime);
+
+/*! checks if a given source URL is supported - see \ref gf_fs_is_supported_source
+\param url URL to check
+\param parent parent URL for relative URLs
+\return true or false
+*/
+boolean is_supported_source(DOMString url, DOMString parent=null);
+
+/*! creates a new custom filter to be filled by JS code - see \ref gf_fs_new_filter
+
+\note Custom filters are always created with the flag GF_FS_REG_MAIN_THREAD set, so that they always run in the main thread
+
+\param name name for the filter
+\param flags filter flags
+\return new custom filter
+*/
+CustomFilter new_filter(DOMString name="Custom", unsigend long flags=0);
+
+};
+
+/*! @} */
+
+/*!
+
+\defgroup nodefilter_grp Filter class
+\ingroup nodejs_grp
+\brief Filter management
+
+See \ref GF_Filter
+
+@{
+*/
+/*! Filter object*/
+interface _Filter {
+
+/*! name of the filter, readonly - see \ref gf_filter_get_name*/
+attribute readonly DOMString name;
+
+/*! ID of the filter, readonly - see \ref gf_filter_get_id*/
+attribute readonly DOMString ID;
+
+/*! number of input pids for that filter, readonly - see \ref gf_filter_get_ipid_count*/
+attribute readonly unsigned long nb_ipid;
+
+/*! number of output pids for that filter, readonly - see \ref gf_filter_get_opid_count*/
+attribute readonly unsigned long nb_opid;
+
+
+/*! remove this filter - see \ref gf_filter_remove*/
+void remove();
+
+/*! send option update to this filter - see \ref gf_fs_send_update
+\param name name of option
+\param value value of option
+*/
+void update(DOMString name, DOMString value);
+
+
+/*! set a given filter as source for this filter - see \ref gf_filter_set_source
+\param src source filter
+\param link_args link options
+*/
+void set_source(_Filter src, DOMString link_args=null);
+
+/*! set a given filter as restricted source for this filter - see \ref gf_filter_set_source_restricted
+\param src source filter
+\param link_args link options
+*/
+void set_source_restricted(_Filter src, DOMString link_args=null);
+
+/*! insert a given filter after this filter - see \ref gf_filter_set_source and \ref gf_filter_reconnect_output
+\param f _Filter to insert
+\param link_args link options
+*/
+void insert(_Filter f, DOMString link_args=null);
+
+/*! get an input pid property by name
+\param idx index of input pid
+\param prop_name name of property
+\return property value or None if not found
+*/
+PropertyValue ipid_prop(unsigned long idx, DOMStreing prop_name);
+
+/*! enumerate an input pid properties
+\param idx index of input pid
+\param callback_fun callback function taking three parameters, prop_name (string), propval (PropertyValue) and proptype (int, GPAC property data type)
+*/
+void ipid_enum_props(unsigned long idx, function callback_fun);
+
+/*! get an output pid property by name
+\param idx index of output pid
+\param prop_name name of property
+\return property value or null if not found
+*/
+PropertyValue opid_prop(unsigned long idx, DOMString prop_name);
+
+/*! enumerate an output pid properties
+\param idx index of output pid
+\param callback_fun callback function taking three parameters, prop_name (string), propval (PPropertyValue) and proptype (int, GPAC property data type)
+*/
+void opid_enum_props(unsigned long idx, function callback_fun);
+
+/*! gets the filter at the source of an input pid
+\param idx index of input PID
+\return filter or null if error
+*/
+_Filter ipid_source(unsigned long idx);
+
+/*! gets the list of destination filters of an output pid
+\param idx index of output PID
+\return list of _Filter
+*/
+Array opid_sinks(unsigned long idx);
+
+/*! gets all defined options / arguments for a filter
+\return list of FilterArg
+*/
+Array all_args();
+
+/*! gets a property info on a filter - see \ref gf_filter_get_info and \ref gf_filter_get_info_str
+\param info_name property to query
+\return property value or None if not found
+*/
+PropertyValue get_info(DOMString info_name);
+
+/*! gets the statistics of a filter - see \ref gf_filter_get_stats
+\return stats object*/
+FilterStatistics get_statistics();
+
+/*! enforces sourceID to be present for output pids of this filter - see \ref gf_filter_require_source_id*/
+void require_source_id();
+
+/*!  Binds the given object to the underlying filter for callbacks override - only supported by DASH demuxer for the current time
+
+For DASH, the object must derive implement the methods of the \ref _DASHCustomAlgorithm interface
+
+\param interf interface object to bind
+*/
+void bind(object interf);
+
+};
+
+/*! Statistics object for filter as defined in libgpac.
+
+Fields have the same types, names and semantics as \ref GF_FilterStats, except:
+-  filter which is not present,
+-  filter_alias which is exposed as a boolean.
+*/
+interface FilterStatistics {
+	
+};
+
+
+/*! PropertyValue for filter, PIDs and packets are passed as 
+:
+- native JS types for integers and strings
+- nFraction for 32 and 64 bit fractions
+- Vec2 for 2D float and interger vectors
+- Vec3 for 3D interger vectors
+- Vec4 for 4D interger vectors
+- ArrayBuffer for data, with data being copied
+- Array of above types for list properties
+
+Pointer properties are passed back as "INTERNAL_POINTER" string and cannot be set.
+
+Properties corresponding to constants are usually passed as strings, for example `StreamType`, `CodecID`, `PixelFormat`, `AudioFormat`.
+*/
+interface PropertyValue {
+	
+};
+
+/*! fraction object */
+interface nFraction {
+	/*! integer or long long numerator*/
+	number num;
+	/*! unsigned integer or unsigned long long denominator*/
+	number den;
+};
+
+/*! 2D vector object */
+interface Vec2 {
+	/*! integer or float X value*/
+	number x;
+	/*! integer or float Y value*/
+	number y;
+};
+
+/*! 3D vector object */
+interface Vec3 {
+	/*! X value */
+	long x;
+	/*! Y value */
+	long y;
+	/*! Z value */
+	long z;
+};
+
+/*! 4D vector object */
+interface Vec4 {
+	/*! X value */
+	long x;
+	/*! Y value */
+	long y;
+	/*! Z value */
+	long z;
+	/*! W value */
+	long w;
+};
+
+
+/*! @} */
+
+/*!
+
+\defgroup nodefiltercust_grp CustomFilter class
+\ingroup nodejs_grp
+\brief User-defined filters
+
+A custom filter allows your application to interact closely with the media pipeline, but cannot be used in graph resolution.
+Custom filters can be sources, sinks, or intermediate filters. The following limitations however exist:
+- custom filters will not be cloned
+- custom filters cannot be used as sources of filters loading a source filter graph dynamically, such as the dashin filter.
+- custom filters cannot be used as destination of filters loading a destination filter graph dynamically, such as the dasher filters.
+
+A custom filter must implement the \ref CustomFilter class, and optionally provide the following methods
+- configure_pid: callback for PID configuration, mandatory if your filter is not a source
+- process: callback for processing
+- process_event: callback for processing and event
+- reconfigure_output: callback for output reconfiguration (PID capability negociation)
+
+A custom filter must also declare its capabilities, input and output, using push_cap method 
+\code
+
+let fs = new gpac.FilterSession();
+let cust = fs.new_filter("NodeJS_Test");
+
+//we accept any number of input pids
+cust.set_max_pids(-1);
+cust.pids = [];
+
+cust.push_cap('StreamType', 'Visual', gpac.GF_CAPS_INPUT);
+cust.push_cap('StreamType', 'Audio', gpac.GF_CAPS_INPUT);
+
+cust.configure_pid = function(pid, is_remove)
+{
+	if (this.pids.indexOf(pid) < 0) {
+		this.pids.push(pid);
+		console.log('New PID !');
+	} else if (is_remove) {
+		console.log('PID remove !');
+	} else {
+		console.log('PID reconfigure !');
+	}
+	return gpac.GF_OK;
+}
+
+cust.process = function() {
+	let nb_eos=0;
+
+	this.pids.forEach(pid =>{
+		if (pid.eos) {
+			nb_eos++;
+			return;
+		}
+		let pck = pid.get_packet();
+		if (!pck) return;
+		//do something
+
+		//done
+		pid.drop_packet();
+		return;
+	}
+	if (nb_eos == this.pids.length)
+		return gpac.GF_EOS;
+
+	return gpac.GF_OK;
+}
+cust.process_event = function(evt)
+{
+	//do something, return true to cancel event
+
+	return false;
+}
+\endcode
+
+
+See \ref GF_Filter
+
+@{
+*/
+
+/*! Custom filter object*/
+interface CustomFilter {
+
+/*! filter blocking is enabled - see \ref gf_filter_block_enabled*/
+attribute readonly boolean block_enabled;
+
+/*! maximum output buffer time - see \ref gf_filter_get_output_buffer_max*/
+attribute readonly unsigned long output_buffer;
+
+/*! maximum plyaout buffer time - see \ref gf_filter_get_output_buffer_max*/
+attribute readonly unsigned long playout_buffer;
+
+/*! all sinks are done for this filter - see \ref gf_filter_all_sinks_done*/
+attribute readonly boolean sinks_done;
+
+/*! number of queued events on the filter - see \ref gf_filter_get_num_events_queued*/
+attribute readonly unsigned long nb_evts_queued;
+
+/*! clock hint value in microseconds - see \ref gf_filter_get_clock_hint*/
+attribute readonly unsigned long long clock_hint_time;
+
+/*! clock hint media time as fraction - see \ref gf_filter_get_clock_hint*/
+attribute readonly nFraction clock_hint_mediatime;
+
+/*! indicating connections are pending on the filter, readonly - see \ref gf_filter_connections_pending*/
+attribute readonly boolean connections_pending;
+
+
+
+/*! callback used whenever a new filter pid is configured, initially set to null
+\param pid the PID to configure
+\param is_remove set to true if PID is being removed
+\return error code
+
+\warning the return value SHALL be set
+*/
+GF_Err configure_pid(_FilterPid pid, boolean is_remove);
+
+/*! callback used by the filter to process data, initially set to null
+\return error code
+
+\warning the return value SHALL be set
+*/
+GF_Err process();
+
+/*! callback used whenever a new filter is added, initially set to null
+\param event the event being processed (read-only)
+\return true to cancel the event, false otherwise
+
+\warning the return value SHALL be set
+*/
+boolean process_event(_FilterEvent event);
+
+/*! callback used whenever an output pid is to be reconfigured (capability negotiation), initially set to null
+\param opid the filter output pid to reconfigure
+\return error if any, usualy GF_NOT_SUPPORTED if capability cannot be changed
+
+\warning the return value SHALL be set
+*/
+GF_Err reconfigure_output(_FilterPid *opid);
+
+
+
+/*! push a capability in the current capability bundle - see \ref gf_filter_push_caps
+\param pcode capability name
+\param prop capability value
+\param flag capability flags (input, output, etc)
+\param priority capability priority
+\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
+*/
+void push_cap(DOMString pcode, PropertyValue prop, unsigned long flag, unsigned long priority=0, unsigned long custom_type=0);
+
+/*! create a new output pid for this filter - see \ref gf_filter_pid_new
+\return _FilterPid object
+*/
+_FilterPid new_pid();
+
+/*! update filter status - see \ref gf_filter_update_status
+\param status status
+\param percent progress in per 10000
+*/
+void update_status(DOMString status, unsigned long percent=0);
+
+/*! reschedule the filter after a given delay - see \ref gf_filter_ask_rt_reschedule and \ref gf_filter_post_process_task
+\param when delay in microseconds
+*/
+void reschedule(unsigned long when=0);
+
+/*! notify an internal failure of the filter has happend - see \ref gf_filter_notification_failure and \ref gf_filter_setup_failure
+\param err the failure reason (gpac error code, int)
+\param error_type the failure notification type. Can be one of:
+	- GF_SETUP_ERROR: notification is a setup error, the filter chain was never connected
+	- GF_NOTIF_ERROR: notification is an error but keep the filter chain connected
+	- GF_NOTIF_ERROR_AND_DISCONNECT: notification is an error and disconnect the filter chain
+*/
+void notify_failure(GF_Err err, unsigned long error_type=GF_SETUP_ERROR);
+
+/*! make the filter sticky - see \ref gf_filter_make_sticky*/
+void make_sticky();
+
+/*! prevent blocking on the filter - see \ref gf_filter_prevent_blocking
+\param enable if true, blocking prevention is enabled
+*/
+void prevent_blocking(boolean enable);
+
+/*! block eos signaling on the filter - see \ref gf_filter_block_eos
+\param enable if true, eos blocking is enabled
+*/
+void block_eos(boolean enable);
+
+/*! set maximum number of extra pids accepted by this filter - see \ref gf_filter_set_max_extra_input_pids
+\param max_pids number of extra pids, -1 for no limits
+*/
+void set_max_pids(long max_pids);
+
+/*! set clock hint - see \ref gf_filter_hint_single_clock
+\param clock_us clock in microseconds
+\param media_time media time as nFraction
+*/
+void hint_clock(unsigned long long clock_us, nFraction media_time);
+
+
+};
+
+
+/*! Custom filter PID object*/
+interface _FilterPid {
+
+
+/*! name of the PID - see \ref gf_filter_pid_get_name and \ref gf_filter_pid_set_name*/
+attribute DOMString name;
+
+/*! name of the parent filter - see \ref gf_filter_pid_get_filter_name*/
+attribute readonly DOMString filter_name;
+
+/*! end of stream property of PID  - see \ref gf_filter_pid_is_eos and \ref gf_filter_pid_set_eos*/
+attribute boolean eos;
+
+/*! True if end of stream was seen in the chain but has not yet reached the filter  - see \ref gf_filter_pid_has_seen_eos*/
+attribute readonly boolean has_seen_eos;
+
+/*! True if end of stream was seen on the input PID but some packets are still to be processed  - see \ref gf_filter_pid_eos_received*/
+attribute readonly boolean eos_received;
+
+/*! True if PID would block - see \ref gf_filter_pid_would_block*/
+attribute readonly boolean would_block;
+
+/*! maximum buffer of PID in microseconds - see \ref gf_filter_pid_get_max_buffer and \ref gf_filter_pid_set_max_buffer*/
+attribute unsigned long long max_buffer;
+
+/*! buffer of PID in microseconds - see \ref gf_filter_pid_query_buffer_duration*/
+attribute readonly unsigned long long buffer;
+
+/*! True if buffer is full - see \ref gf_filter_pid_query_buffer_duration*/
+attribute readonly boolean buffer_full;
+
+/*! True if no pending packet - see \ref gf_filter_pid_first_packet_is_empty*/
+attribute readonly boolean first_empty;
+
+/*! value of CTS of first pending packet, null if none - see \ref gf_filter_pid_get_first_packet_cts*/
+attribute readonly unsigned long long first_cts;
+
+/*! number of queued packets for input pid - see \ref gf_filter_pid_get_packet_count*/
+attribute readonly unsigned long self.nb_pck_queued;
+
+/*! timescale of pid - see \ref gf_filter_pid_get_timescale*/
+attribute readonly unsigned long timescale;
+
+/*! minimum packet duration (in timescale) of pid - see \ref gf_filter_pid_get_min_pck_duration*/
+attribute readonly unsigned long min_pck_dur;
+
+/*! True if PID is playing - see \ref gf_filter_pid_is_playing*/
+attribute readonly boolean playing;
+
+/*! Next estimated timestamp on pid  - see \ref gf_filter_pid_get_next_ts*/
+attribute readonly unsigned long long next_ts;
+
+
+
+/*! send an event on the pid - see \ref gf_filter_pid_send_event
+\param evt filter event to send
+*/
+void send_event(_FilterEvent evt);
+
+/*! removes this output pid - see \ref gf_filter_pid_remove*/
+void remove();
+
+/*! enumerates property on pid
+\param callback_obj callback object to use, must have a 'on_prop_enum' method defined taking three parameters, prop_name (string), propval (PropertyValue) and ptype (int, GPAC property data type)
+*/
+void enum_props(function callback_obj);
+
+/*! get a PID property
+\param pname property name
+\return property value or null if not found
+*/
+PropertyValue get_prop(DOMString pname);
+
+/*! get a PID info
+\param pname property name
+\return property value or null if not found
+*/
+PropertyValue get_info(DOMString pname);
+
+/*! get first packet of input PID - see gf_filter_pid_get_packet
+\return packet or null if no packet available
+*/
+_FilterPacket get_packet();
+
+/*! drops (removes) the first packet of input PID - see \ref gf_filter_pid_drop_packet
+*/
+void drop_packet();
+
+/*! copy property of given PID to the current pid - see \ref gf_filter_pid_copy_properties
+\param ipid filter pid to copy from
+*/
+void copy_props(_FilterPid ipid);
+
+/*! removes all properties of the current pid - see \ref gf_filter_pid_reset_properties*/
+void reset_props(self);
+
+/*! forward a packet on the current pid - see \ref gf_filter_pck_forward
+\param ipck packet to forward
+*/
+void forward(_FilterPacket ipck);
+
+/*! set a property the current pid - see \ref gf_filter_pid_set_property and \ref gf_filter_pid_set_property_str
+\param pcode property type
+\param prop property value to set, or null to remove property
+\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
+*/
+void set_prop(DOMString pcode, PropertyValue prop, unsigend long custom_type);
+
+/*! set a info property the current pid - see \ref gf_filter_pid_set_info and \ref gf_filter_pid_set_info_str
+\param pcode property type
+\param prop property value to set, or null to remove property
+\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
+*/
+void set_info(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
+
+/*! clears EOS on the current PID - see \ref gf_filter_pid_clear_eos
+\param all_pids if true, clears eos on all input pids
+*/
+void clear_eos(boolean all_pids);
+
+/*! check PID properties match capability of filter - see \ref gf_filter_pid_check_caps*/
+void check_caps();
+
+/*! discard blocking mode on PID - see \ref gf_filter_pid_discard_block*/
+void discard_block();
+
+/*! allow direct dispatch of output to destinations - see \ref gf_filter_pid_allow_direct_dispatch*/
+void allow_direct_dispatch();
+
+/*! get current clock type info - see \ref gf_filter_pid_get_clock_info
+\return clock type 
+*/
+unsigned long get_clock_type();
+
+/*! get current clock time stamp - see \ref gf_filter_pid_get_clock_info
+\return clock timestamp
+*/
+_Fraction get_clock_timestamp();
+
+/*! check if a filter is in the parent filter chain of the pid - see \ref gf_filter_pid_is_filter_in_parents
+\param filter filter to check
+\return true or false
+*/
+boolean is_filter_in_parents(_Filter filter);
+
+/*! get buffer occupancy - see \ref gf_filter_pid_get_buffer_occupancy
+\return buffer occupancy object
+*/
+_BufferOccupancy get_buffer_occupancy();
+
+/*! sets loose connect mode - see \ref gf_filter_pid_set_loose_connect*/
+void loose_connect();
+
+/*! sets framing mode - see \ref gf_filter_pid_set_framing_mode
+\param framed if true, complete frames only will be delivered on the pid
+*/
+void set_framing(boolean framed);
+
+/*! sets clock mode - see \ref gf_filter_pid_set_clock_mode
+#\param cmode clock mode operation of filter
+*/
+void set_clock_mode(boolean cmode);
+
+/*! sets discard mode - see \ref gf_filter_pid_set_discard
+\param do_discard if True, discard is on
+*/
+void set_discard(boolean do_discard);
+
+/*! enforces sourceID to be present for output pids of this filter - see \ref gf_filter_pid_require_source_id*/
+void require_source_id();
+
+/*! sets DTS recomputing mode - see \ref gf_filter_pid_recompute_dts
+\param do_compute if True, DTS are recomputed
+*/
+void recompute_dts(boolean do_compute);
+
+/*! queries a capability property on output PID - see \ref gf_filter_pid_caps_query and \ref gf_filter_pid_caps_query_str
+\param pcode property to check
+\return property value if found, null otherwise
+*/
+PropertyValue query_cap(DOMString pcode);
+
+/*! negociates a capability property on input PID - see \ref gf_filter_pid_negociate_property and \ref gf_filter_pid_negociate_property_dyn
+\param pcode property to negotiate
+\param prop property to negotiate
+\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
+*/
+void negociate_cap(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
+
+/*! resolves a template string - see \ref gf_filter_pid_resolve_file_template
+\param template the template string
+\param file_idx the file index
+\param suffix the file suffix
+\return the resolved template string
+*/
+DOMString resolve_template(DOMString template, unsigned long file_idx=0, DOMString suffix=null);
+
+/*! creates a new packet referring to an existing packet - see \ref gf_filter_pck_new_ref
+\param ipck the input (referenced) packet
+\param size the data size of the new packet
+\param offset the offset in the original data
+\return the new FilterPacket or None if failure
+*/
+_FilterPacket new_pck_ref(_FilterPacket ipck, unsigned long size=0, unsigned long offset=0);
+
+
+/*! creates a new packet of the given size, allocating memory in libgpac - see \ref gf_filter_pck_new_alloc
+\param size the data size of the new packet
+\return the new FilterPacket or None if failure
+*/
+_FilterPacket new_pck(unsigned long size=0);
+
+/*! creates a new packet sharing memory of the filter - see \ref gf_filter_pck_new_shared
+The filter object must have a `packet_release` method with arguments [ FilterPid,  FilterPacket ] 
+\param data the data to use
+\return the new FilterPacket or None if failure
+*/
+_FilterPacket new_pck_shared(ArrayBuffer data);
+
+/*! creates a new packet copying a source packet - see \ref gf_filter_pck_new_copy
+\param ipck the FilterPacket to copy
+\return the new FilterPacket or None if failure
+*/
+_FilterPacket new_pck_copy(_FilterPacket ipck);
+
+/*! creates a new packet cloning a source packet - see \ref gf_filter_pck_new_clone
+\param ipck the FilterPacket to clone
+\return the new FilterPacket or None if failure
+*/
+_FilterPacket new_pck_clone(_FilterPacket ipck);
+
+};
+
+/*! buffer occupancy descriptor*/
+interface _BufferOccupancy
+{
+/*! maximum number of packets (partial or full AU) allowed in buffer*/
+unsigned long max_units;
+
+/*! number of block allowed in buffer*/
+unsigned long nb_pck;
+
+/*! maximum buffer duration in microseconds*/
+unsigned long max_dur;
+
+/*! buffer duration in microseconds*/
+unsigned long dur;
+
+/*! if true, the session has been aborted and this is the final flush for this buffer*/
+boolean is_final_flush;
+	
+};
+
+/*! filter packet for custom filters
+
+Unless specified, properties are all read-only for input packets, and read/write for output packets.
+*/
+interface _FilterPacket
+{
+
+/*! Decode Timestamp, or null not set - see \ref gf_filter_pck_get_dts and \ref gf_filter_pck_set_dts*/
+attribute unsigned long long dts;
+
+/*! Compose Timestamp or null if not set - see \ref gf_filter_pck_get_cts and \ref gf_filter_pck_set_cts*/
+attribute unsigned long long cts;
+
+/*! SAP type - see \ref gf_filter_pck_get_sap and \ref gf_filter_pck_set_sap*/
+attribute unsigned long sap;
+
+/*! Duration - see \ref gf_filter_pck_get_duration and \ref gf_filter_pck_set_duration*/
+attribute unsigned long dur;
+
+/*! Size of packet data, readonly*/
+attribute unsigned long size;
+
+/*! Packet data - see \ref gf_filter_pck_get_data
+The property MUST be treated as readonly (shall not be set). For non-refs output packets, content of the array buffer can be modified
+
+\warning The array buffer is not tracked and is live to avoid doing a memory copy. This means you SHALL NOT access this ArrayBuffer once the packet is discarded (drop without ref, final unref, send)
+*/
+attribute ArrayBuffer data;
+
+/*! frame start - see \ref gf_filter_pck_get_framing and \ref gf_filter_pck_set_framing*/
+attribute boolean start;
+
+#/*! frame end - see \ref gf_filter_pck_get_framing and \ref gf_filter_pck_set_framing*/
+attribute boolean end;
+
+/*! associated timescale, readonly - see \ref gf_filter_pck_get_timescale*/
+attribute unsigned long timescale;
+
+/*! Interlaced flags - see \ref gf_filter_pck_get_interlaced and \ref gf_filter_pck_set_interlaced*/
+attribute unsigned long interlaced;
+
+/*! Corrupted flag - see \ref gf_filter_pck_get_corrupted and \ref gf_filter_pck_set_corrupted*/
+attribute boolean corrupted;
+
+#/*! Seek flag - see \ref gf_filter_pck_get_seek_flag and \ref gf_filter_pck_set_seek_flag*/
+attribute boolean seek;
+
+/*! Byte offset or null if not set - see \ref gf_filter_pck_get_byte_offset and \ref gf_filter_pck_set_byte_offset*/
+attribute unsigned long long byte_offset;
+
+/*! Roll info - see \ref gf_filter_pck_get_roll_info and \ref gf_filter_pck_set_roll_info*/
+attribute long roll;
+
+/*! Encryption flags - see \ref gf_filter_pck_get_crypt_flags and \ref gf_filter_pck_set_crypt_flags*/
+attribute unsigned long crypt;
+
+/*! Clock reference flag - see \ref gf_filter_pck_get_clock_type and \ref gf_filter_pck_set_clock_type*/
+attribute unsigned long clock;
+
+/*! Carousel version - see \ref gf_filter_pck_get_carousel_version and \ref gf_filter_pck_set_carousel_version*/
+attribute unsigned long carousel;
+
+/*! Sequence number - see \ref gf_filter_pck_get_seq_num and \ref gf_filter_pck_set_seq_num*/
+attribute unsigned long seqnum;
+
+/*! Dependency flags - see \ref gf_filter_pck_get_dependency_flags and \ref gf_filter_pck_set_dependency_flags*/
+attribute unsigned long deps;
+
+/*! true if packet holds a GF_FrameInterface object and not a data packet - always readonly*/
+attribute readonly boolean frame_ifce;
+
+/*! true if packet is a blocking reference - see \ref gf_filter_pck_is_blocking_ref - always readonly*/
+attribute readonly boolean blocking_ref;
+
+
+/*! enumerate an packet properties
+\param callback_obj callback object to use, must have a 'on_prop_enum' method defined taking three parameters, prop_name (string), propval (PropertyValue) and ptype (int, GPAC property data type)
+*/
+void enum_props(function callback_obj);
+
+/*! get a packet property - see \ref gf_filter_pck_get_property and \ref gf_filter_pck_get_property_str
+\param prop_name name of property to get
+\return property value, or None if not found
+*/
+PropertyValue get_prop(DOMString prop_name);
+
+/*! increase packet reference count - see \ref gf_filter_pck_ref_ex*/
+void ref();
+
+/*! decrease packet reference count - see \ref gf_filter_pck_unref*/
+void unref();
+
+/*! discard an output packet instead of sending it - see \ref gf_filter_pck_discard*/
+void discard();
+
+/*! creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
+The resulting packet is read/write mode and may have its own memory allocated.
+This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
+the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
+\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
+*/
+_FilterPacket clone(_FilterPacket cached_pck=null);
+
+/*! mark an output packet as readonly - see \ref gf_filter_pck_set_readonly*/
+void readonly();
+
+/*! send the packet - see \ref gf_filter_pck_send*/
+void send();
+
+/*! copy properties of source packet in this packet - see \ref gf_filter_pck_merge_properties
+\param ipck source packet*/
+void copy_props(_FilterPacket ipck);
+
+/*! set property in this packet - see \ref gf_filter_pck_set_property and \ref gf_filter_pck_set_property_str
+\param pcode name of property
+\param prop property value to set, or null to remove property
+\param custom_type type of property if user-defined property. If not set and user-defined, property is a string
+*/
+void set_prop(DOMString pcode, PropertyValue prop, unsigned long custom_type=0);
+
+/*! truncates an output packet to the given size - see \ref gf_filter_pck_truncate
+\param size new size of packet
+*/
+void truncate(unsigned long size);
+};
+
+
+/*! event object for filters and GPAC event proc.
+
+The variables defined have the same names as the fields in the various unions of \ref __gf_filter_event.
+
+The variables are defined depending on the event type.
+
+Additional variables are defined:
+- name: string decribing the event type
+- ui_type: integer giving the UI event type (see \ref GF_Event)
+- ui_name: string decribing the UI event type
+
+Events properties are read-only for input events and read/write for events created by the JS code.
+*/
+interface _FilterEvent
+{
+	
+};
+
+
+/*! @} */
+
+
+
+/*!
+
+\defgroup nodedash_grp DASHAlgorithm interface
+\ingroup nodejs_grp
+\brief DASH and HLS user-defined rate adaptation algorithms
+
+
+The DASH demuxer can be provided with a custom JS algorithm, provided as an object implementing the the DASHAlgorithm interface.
+
+When running the session in multithreaded mode, the dash demuxer will always be scheduled on the main thread if a custom algorithm is bound.
+
+@{
+
+*/
+
+/*! interface for custom DASH algorithms
+
+Callbacks may be changed at runtime, however if the object passed to initialize the binding has no on_download_monitor function, rate monitoring will be disabled for the binding*/
+interface _DASHCustomAlgorithm 
+{
+
+/*! Callback (optional) called upon a period reset.
+\param reset_type indicate the type of period reset. Values can be:
+   - 0: end of period (groups are no longer valid)
+   - 1: start of a static period
+   - 2: start of a dynamic (live) period
+*/
+void on_period_reset(unsigned long reset_type);
+
+
+/*! Callback (optional) called when a new group (adaptation set) is created
+\param group the newly created dash group
+*/
+void on_new_group(_DASHGroup group);
+
+/*! Callback (mandatory) called at the end of the segment download to perform rate adaptation
+\param group the group on which to perform adaptation
+\param base_group the associated base group (tiling only), or None if no base group
+\param force_low_complexity indicates that the client would like a lower complexity (typically because it is dropping frames)
+\param stats the statistics for the downloaded segment
+\return value can be:
+ - new quality index,
+ - -1 to take no decision
+ - -2 to disable quality (debug, will drop segment)
+ - other negative values are handled as error
+*/
+long on_rate_adaptation(_DASHGroup group, _DASHGroup base_group, boolean force_low_complexity, _DASHGroupStatistics stats);
+
+/*! Callback (optional) called on regular basis during a segment download
+\param group the group  associated with the current download
+\param stats the current statistics for the download
+\return value can be:
+   - `-1` to continue download
+   - `-2` to abort download but without retrying to downloading the same segment at lower quality
+   - the index of the new quality to download for the same segment index (same time)
+*/
+long on_download_monitor(_DASHGroup group, _DASHGroupDownloadStatistics stats);
+
+
+};
+
+
+/*! interface for custom DASH groups*/
+interface _DASHGroup 
+{
+
+/*!  Index of group, as used in callbacks */
+attribute readonly idx;
+
+/*! List of _DASHQualityInfo for group*/
+attribute readonly Array qualities;
+
+/*! period duration in milliseconds, 0 if unknwon*/
+attribute readonly unsigned long duration;
+
+/*! SRD object or null if no SRD defined*/
+_DASHSRD SRD;
+};
+
+/*! interface for custom DASH groups*/
+interface _DASHQualityInfo 
+{
+
+/*! bandwidth in bits per second*/
+attribute readonly unsigned long bandwidth;
+
+/*! ID (representation ID in DASH)*/
+attribute readonly DOMString ID;
+
+/*! MIME type*/
+attribute readonly DOMString mime;
+
+/*! codec parameter string*/
+attribute readonly DOMString codec;
+
+/*! width in pixels, 0 if not visual*/
+attribute readonly unsigned long width;
+
+/*! height in pixels, 0 if not visual*/
+attribute readonly unsigned long height;
+
+/*! interlaced flag, false 0 if not visual*/
+attribute readonly boolean interlaced;
+
+/*! Frame Rate (Fraction), 0/0 if not visual*/
+attribute readonly _Fraction fps;
+
+/*! Sample Aspect Ration (Fraction), 0/0 if not visual*/
+attribute readonly _Fraction sar;
+
+/*! Samplerate, 0 if not audio*/
+attribute readonly unsigned long sample_rate;
+
+/*! Number of channels, 0 if not audio*/
+attribute readonly unsigned long nb_channels;
+
+/*! set to true if quality is disabled (no playback support)*/
+attribute readonly disabled disabled;
+
+/*! set to true if quality is selected*/
+attribute readonly boolean is_selected;
+
+/*! AST offset for DASH low latency mode, 0 otherwise*/
+attribute readonly double ast_offset;
+
+/*! Average segment duration in seconds, 0 if unknown*/
+attribute readonly double avg_duration;
+
+/*! list of segment _DASHSegmentInfo for onDemand profiles or empty otherwise*/
+attribute readonly Array sizes;
+
+};
+
+/*! segemnt size info*/
+interface _DASHSegmentInfo 
+{
+/*! segemnt size*/
+attribute readonly unsigned long long size;
+/*! segemnt duration*/
+attribute readonly unsigned long duration;
+};
+
+/*! statistics for rate adaptation*/
+interface _DASHGroupStatistics
+{
+/*! download rate of last segment in bits per second, divided by current playback speed*/
+attribute readonly unsigned long download_rate;
+
+/*! size of last segment in bytes*/
+attribute readonly unsigned long file_size;
+
+/*! current playback speed*/
+attribute readonly double speed;
+
+/*! max playback speed based on associated codec runtime statistics*/
+attribute readonly double max_available_speed;
+
+/*! display width in pixels of object*/
+attribute readonly unsigned long display_width;
+
+/*! display height in pixels of object*/
+attribute readonly unsigned long display_height;
+
+/*! index of current quality*/
+attribute readonly unsigned long active_quality_idx;
+
+/*! minimum buffer in milliseconds, below witch rebuffer occurs*/
+attribute readonly unsigned long buffer_min;
+
+/*! maximum buffer in milliseconds, algorithm should not fill more than this*/
+attribute readonly unsigned long self.buffer_max;
+
+/*! current buffer in milliseconds*/
+attribute readonly unsigned long self.buffer;
+
+/*! degradation hint, 0 means no degradation, 100 means tile completely hidden*/
+attribute readonly unsigned long self.quality_degradation_hint;
+
+/*! cumulated download rate of all active groups - 0 means all files are local*/
+attribute readonly unsigned long self.total_rate;
+
+};
+
+/*! statistics for download monitoring*/
+interface _DASHGroupStatistics
+{
+
+/*! download rate of last segment in bits per second*/
+attribute readonly unsigned long bits_per_sec;
+
+/*! total number of bytes in segment*/
+attribute readonly unsigned long total_bytes;
+
+/*! number of downloaded bytes from segment (starting from first byte)*/
+attribute readonly unsigned long long bytes_done;
+
+/*! number of microseconds elapsed since segment was scheduled for download*/
+attribute readonly unsigned longlong time_since_start;
+
+/*! current buffer length in milliseconds*/
+attribute readonly unsigned long buffer_dur;
+
+/*! duration of segment being downloaded, in milliseconds - 0 if unknown*/
+attribute readonly unsigned long current_seg_dur;
+	
+};
+
+/*! Spacial Relationship Descriptor for DASH group*/
+interface _DASHSRD
+{
+/*! X coordinate of SRD for this tile*/
+attribute readonly unsigned long x;
+
+/*! Y coordinate of SRD for this tile*/
+attribute readonly unsigned long y;
+
+/*! width of SRD for this tile - 0 for tile base track*/
+attribute readonly unsigned long w;
+
+/*! height of SRD for this tile - 0 for tile base track*/
+attribute readonly unsigned long h;
+
+/*! total width of SRD descriptor for this tile*/
+attribute readonly unsigned long fw;
+
+/*! total height of SRD descriptor for this tile*/
+attribute readonly unsigned long fh;
+	
+};
+
+
+/*! @} */
+
+
+
+/*!
+
+\defgroup fileio_grp FileIO interface
+\ingroup nodejs_grp
+\brief File IO wrapper
+
+
+FileIO allows redirecting calls to file access (open, close, read, write) to NodeJS rather than using system calls.
+
+This allows generating content in NodeJS without any disk IO, or passing NodeJS data as input to GPAC without intermediate file.
+
+See \ref GF_FileIO for more details
+
+A FileIO object is constructed from the URL to wrap and a factory object with callbacks used to access the file.
+For example, to wrap a file for input:
+\code
+//create the FileIO factory
+let factory = {
+open: function(url, mode) { ... },
+close: function() { ... },
+read: function(buffer) { ... },
+seek: function(position, whence) { ... },
+tell: function() { ... },
+eof: function() { ... }
+};
+
+//create the FileIO
+let fio = new FileIO("somefile.mp4", factory_obj);
+
+//load a source filter using this FileIO
+let src = filter_sess.load_src(fio.url);
+
+\endcode
+
+\warning All callbacks of the factory object MUST perform synchronously
+
+The URL passed to the constructor indentifies the file name wrapped.
+
+
+Some file types, such as HLS or DASH manifest, may imply reading or writing several files.
+To handle these cases, a new JS object is created for each call to open().
+
+\warning This object is an empty JS object, not a clone of the factory object (difference with Python bindings).
+
+All FileIO callbacks will be done in the main thread.
+
+
+@{
+
+*/
+
+/*! interface for customFileIO object
+*/
+interface _FileIO
+{
+
+/*! constructor for FileIO object - see \ref gf_fileio_new
+
+\param url URL to wrap, either source or destination
+\param factory factory for object creation
+\param direct_mem if true, the buffer passed to read and write callbacks is only a wrapper around GPAC internal mem and is no longer valid at the end of the call (detached). If false, the buffer passed is a copy (slower).
+
+\note For NAPI less than 7, direct_mem is forced to false.
+*/
+FileIO(DOMString url, _FileIOFactory factory, boolean direct_mem=true);
+
+/*! gfio:// url corresponding to the fileIO object. This is the URL that must be passed to filter arguments*/
+attribute readonly DOMString url;
+};
+
+
+/*! interface object for file IO*/
+interface _FileIOFactory
+{
+
+/*! open a URL
+\param URL the final URL to open
+\param mode the open mode as in \ref gf_fopen
+\param parent the parent _FileIO object
+\return true if success, false if error
+
+\note When opening a file, a new empty object is created and open is called with `this` being the new object. The object will be kept live until the file is closed.
+
+\note There is no guarantee that the URL is checked for existence before calling open
+
+\note There is no guarantee that the first call to open is on the URL provided for the constructor (e.g. for DASH generation, this will depend on the DASH profile used which may require to write the manifest after one or more segments)
+
+\warning This callback MUST be provided in the factory object
+*/
+boolean open(DOMString URL, DOMString mode, _FileIO parent);
+
+/*! close the file object
+
+\warning This callback MUST be provided in the factory object
+*/
+void close();
+
+
+/*! read the file object from its current position
+\param buffer the buffer to read
+\return the number of bytes read into the buffer
+
+This callback can be omitted for write-only files
+*/
+unsigned long read(Uint8Array buffer);
+
+/*! write the file object from its current position
+\param buffer the buffer to read
+\return the number of bytes written to file
+
+This callback can be omitted for read-only files
+*/
+unsigned long write(Uint8Array buffer);
+
+/*! seek the file object - see \ref gf_fseek
+\param position the position in the file
+\param whence the offset in the file (0: begin, 1: current position, 2: end)
+\return 0 if no error, error code otherwise
+
+\warning This callback MUST be provided in the factory object
+*/
+unsigned long seek(unsigned long long position, unsigned long whence);
+
+/*! get position in the file object - see \ref gf_ftell
+\return position in the file
+
+\warning This callback MUST be provided in the factory object
+*/
+unsigned long long tell();
+
+
+/*! check if file position is at end of file - see \ref gf_feof
+\return true if end of file is reached, false otherwise
+
+\warning This callback MUST be provided in the factory object
+*/
+boolean eof();
+
+/*! check if the given file exists - see \ref gf_file_exists
+\param URL the final URL to open
+\return true if file exists, false otherwise
+*/
+boolean exists(DOMString URL);
+
+};
+
+
+/*! @} */
+
+

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2020
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1211,12 +1211,18 @@ static JSValue jsfs_new_filter(JSContext *ctx, JSValueConst this_val, int argc, 
 {
 	GF_Filter *f;
 	GF_Err e;
+	u32 flags=0;
 	const char *name = NULL;
 	GF_FilterSession *fs = JS_GetOpaque(this_val, fs_class_id);
 	if (!fs) return GF_JS_EXCEPTION(ctx);
-	if (argc) name = JS_ToCString(ctx, argv[0]);
+	if (argc) {
+		name = JS_ToCString(ctx, argv[0]);
+		if (argc>1) {
+			JS_ToInt32(ctx, &flags, argv[1]);
+		}
+	}
 
-	f = gf_fs_new_filter(fs, name, &e);
+	f = gf_fs_new_filter(fs, name, flags, &e);
 	if (name) JS_FreeCString(ctx, name);
 	if (!f) return js_throw_err(ctx, e);
 

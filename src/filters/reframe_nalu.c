@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU (AVC, HEVC, VVC)  reframer filter
@@ -460,11 +460,15 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		if (!avc_state) return;
 	}
 
-	stream = gf_fopen(filepath, "rb");
+	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
 	if (!stream) {
 		if (hevc_state) gf_free(hevc_state);
 		if (vvc_state) gf_free(vvc_state);
 		if (avc_state) gf_free(avc_state);
+		if (gf_fileio_is_main_thread(filepath)) {
+			ctx->duration.num = 1;
+			ctx->file_loaded = GF_TRUE;
+		}
 		return;
 	}
 	ctx->index_size = 0;

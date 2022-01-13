@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -125,8 +125,14 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 		unblock=GF_TRUE;
 	}
 
+	if (!unblock) {
+		return;
+	}
 	gf_mx_p(pid->filter->tasks_mx);
-	if (pid->would_block && unblock) {
+	unblock = GF_FALSE;
+
+	//unblock pid
+	if (pid->would_block) {
 		assert(pid->would_block);
 		safe_int_dec(&pid->would_block);
 
@@ -137,13 +143,21 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked (filter has %d blocking pids)\n", pid->pid->filter->name, pid->pid->name, pid->pid->filter->would_block));
 
-		if (pid->filter->would_block + pid->filter->num_out_pids_not_connected < pid->filter->num_output_pids) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block + pid->filter->num_out_pids_not_connected, pid->filter->num_output_pids, pid->filter->process_task_queued));
-
-			//post a process task
-			gf_filter_post_process_task(pid->filter);
-		}
+		//check filter unblock
+		unblock = GF_TRUE;
 	}
+	//pid was not blocking but filter is no longer scheduled (might happen in multi-threaded modes), check filter unblock
+	else if (!pid->filter->process_task_queued) {
+		unblock = GF_TRUE;
+	}
+
+	if (unblock && (pid->filter->would_block + pid->filter->num_out_pids_not_connected < pid->filter->num_output_pids)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has only %d / %d blocked pids, requesting process task (%d queued)\n", pid->filter->name, pid->filter->would_block + pid->filter->num_out_pids_not_connected, pid->filter->num_output_pids, pid->filter->process_task_queued));
+
+		//post a process task
+		gf_filter_post_process_task(pid->filter);
+	}
+
 	gf_mx_v(pid->filter->tasks_mx);
 }
 
@@ -518,6 +532,11 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			assert(src->filter->pending_packets);
 			safe_int_dec(&src->filter->pending_packets);
 
+			if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
+				assert(src->filter->nb_main_thread_forced);
+				safe_int_dec(&src->filter->nb_main_thread_forced);
+				safe_int_inc(&dst->filter->nb_main_thread_forced);
+			}
 			pcki->pid = dst;
 			gf_fq_add(dst->packets, pcki);
 			safe_int_inc(&dst->filter->pending_packets);
@@ -4768,16 +4787,20 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE);
 }
 
 
 void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 {
+	Bool force_main_thread=GF_FALSE;
 	if (pid->init_task_pending) return;
 
 	safe_int_inc(&pid->init_task_pending);
-	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+	if (filter->session->force_main_thread_tasks)
+		force_main_thread = GF_TRUE;
+
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE);
 }
 
 GF_EXPORT
@@ -5806,6 +5829,10 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (pck->pid_props)
 		timescale = pck->pid_props->timescale;
 
+	if (pck->info.flags & GF_PCKF_FORCE_MAIN) {
+		assert(pidinst->filter->nb_main_thread_forced);
+		safe_int_dec(&pidinst->filter->nb_main_thread_forced);
+	}
 	gf_filter_pidinst_update_stats(pidinst, pck);
 	if (timescale && (pck->info.cts!=GF_FILTER_NO_TS)) {
 		pidinst->last_ts_drop.num = pck->info.cts;

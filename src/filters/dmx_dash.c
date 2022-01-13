@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / DASH/HLS demux filter
@@ -1816,8 +1816,8 @@ static s32 dashdmx_algo_js(void *udta, u32 group, u32 base_group, Bool force_low
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "filesize", JS_NewInt32(ctx->js_ctx, stats->file_size) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "speed", JS_NewFloat64(ctx->js_ctx, stats->speed) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "max_speed", JS_NewFloat64(ctx->js_ctx, stats->max_available_speed) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_width", JS_NewInt32(ctx->js_ctx, stats->disp_width) );
-	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_height", JS_NewInt32(ctx->js_ctx, stats->disp_height) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_width", JS_NewInt32(ctx->js_ctx, stats->display_width) );
+	JS_SetPropertyStr(ctx->js_ctx, args[3], "display_height", JS_NewInt32(ctx->js_ctx, stats->display_height) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "active_quality", JS_NewInt32(ctx->js_ctx, stats->active_quality_idx) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_min", JS_NewInt32(ctx->js_ctx, stats->buffer_min_ms) );
 	JS_SetPropertyStr(ctx->js_ctx, args[3], "buffer_max", JS_NewInt32(ctx->js_ctx, stats->buffer_max_ms) );
