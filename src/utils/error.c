@@ -40,7 +40,7 @@ const char *gf_4cc_to_str(u32 type)
 	char *name = (char *)szTYPE;
 	if (!type) return "00000000";
 	buf_4cc_idx++;
-	if (buf_4cc_idx==NB_4CC_BUF)
+	if (buf_4cc_idx>=NB_4CC_BUF)
 		buf_4cc_idx=0;
 
 	for (i = 0; i < 4; i++) {
