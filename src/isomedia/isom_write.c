@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1839,8 +1839,10 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 {
 	GF_Err e;
 	GF_TrackBox* trak;
-	GF_SampleEntryBox* entry;
+	GF_Box *dv_cfge = NULL;
+	GF_MPEGVisualSampleEntryBox* entry;
 	Bool switch_type = GF_FALSE;
+	Bool is_avc = GF_FALSE;
 	GF_SampleDescriptionBox* stsd;
 	GF_DOVIConfigurationBox* dovi = NULL;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -1854,7 +1856,7 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->child_boxes)) {
 		return movie->LastError = GF_BAD_PARAM;
 	}
-	entry = (GF_SampleEntryBox*)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(stsd->child_boxes, StreamDescriptionIndex - 1);
 	//no support for generic sample entries (eg, no MPEG4 descriptor)
 	if (entry == NULL) return GF_BAD_PARAM;
 	if (!movie->keep_utc)
@@ -1886,10 +1888,12 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		break;
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_DVA1:
+		is_avc = GF_TRUE;
 		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVA1 : GF_ISOM_BOX_TYPE_AVC1;
 		break;
 	case GF_ISOM_BOX_TYPE_AVC3:
 	case GF_ISOM_BOX_TYPE_DVAV:
+		is_avc = GF_TRUE;
 		entry->type = switch_type ? GF_ISOM_BOX_TYPE_DVAV : GF_ISOM_BOX_TYPE_AVC3;
 		break;
 	case GF_ISOM_BOX_TYPE_AV01:
@@ -1900,10 +1904,15 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 		return GF_NOT_SUPPORTED;
 	}
 
-	dovi = ((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config;
+	u32 dve_type = is_avc ? GF_ISOM_BOX_TYPE_AVCE : GF_ISOM_BOX_TYPE_HVCE;
+	dv_cfge = gf_isom_box_find_child(entry->child_boxes, dve_type);
+
+	dovi = entry->dovi_config;
 	if (!dvcc) {
 		if (dovi) gf_isom_box_del_parent(&entry->child_boxes, (GF_Box*)dovi);
-		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = NULL;
+		entry->dovi_config = NULL;
+
+		if (dv_cfge) gf_isom_box_del_parent(&entry->child_boxes, dv_cfge);
 		//reverse entry type
 		switch (entry->type) {
 		case GF_ISOM_BOX_TYPE_DVHE:
@@ -1929,7 +1938,7 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	if (!dovi) {
 		dovi = (GF_DOVIConfigurationBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DVCC);
 		if (!dovi) return GF_OUT_OF_MEM;
-		((GF_MPEGVisualSampleEntryBox*)entry)->dovi_config = dovi;
+		entry->dovi_config = dovi;
 	}
 	if (dvcc->dv_profile < 8) {
 		dovi->type = GF_ISOM_BOX_TYPE_DVCC;
@@ -1938,6 +1947,18 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	}
 	dovi->DOVIConfig = *dvcc;
 
+	if (dv_cfge) gf_isom_box_del_parent(&entry->child_boxes, dv_cfge);
+	dv_cfge = NULL;
+
+	//inject avcE / hvcE if not split layer - not clear from the spec what is supposed to be in these, we just clone avcC/hvcC
+	if (dvcc->bl_present_flag) {
+		GF_Box *src = is_avc ? (GF_Box *)entry->avc_config : (GF_Box *)entry->hevc_config;
+		if (!src) return GF_BAD_PARAM;
+		e = gf_isom_clone_box(src, &dv_cfge);
+		if (e) return e;
+		dv_cfge->type = dve_type;
+		gf_list_add(entry->child_boxes, dv_cfge);
+	}
 	return GF_OK;
 }
 
