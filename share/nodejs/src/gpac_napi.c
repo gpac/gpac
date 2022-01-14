@@ -48,19 +48,23 @@ typedef struct
 	napi_ref rmt_ref;
 
 	u32 main_thid;
+	GF_List *rmt_messages;
+	struct _napi_session *fs_rmt_handler;
+	Bool rmt_task_scheduled;
 } GPAC_NAPI;
 
 #define GF_SETUP_ERROR	0
 #define GF_NOTIF_ERROR	1
 #define GF_NOTIF_ERROR_AND_DISCONNECT	2
 
-typedef struct
+typedef struct _napi_session
 {
 	GF_FilterSession *fs;
 	napi_async_context async_ctx;
 	napi_env env;
 	napi_ref ref;
 	GF_List *defer_filters;
+	Bool blocking;
 } NAPI_Session;
 
 
@@ -199,32 +203,61 @@ napi_value gpac_sys_clock_high_res(napi_env env, napi_callback_info info)
 	return val;
 }
 
-void gpac_rmt_callback(void *udta, const char *message)
+void gpac_rmt_callback_exec(napi_env env, GPAC_NAPI *gpac)
 {
-	GPAC_NAPI *gpac;
 	napi_status status;
-	napi_value global, res, arg, fun_val;
-	napi_env env = (napi_env) udta;
-
-	status = napi_get_instance_data(env, (void **) &gpac);
-	if (status != napi_ok) return;
-
-	if (gpac->main_thid != gf_th_id()) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_SCRIPT, ("[NodeJS] RMT callback from different thread not implemented, ignoring message %s\n", message));
-		return;
-	}
+	napi_value global, fun_val;
 
 	status = napi_get_global(env, &global);
-	if (status != napi_ok) return;
+	if (status == napi_ok)
+		status = napi_get_reference_value(env, gpac->rmt_ref, &fun_val);
 
-	status = napi_get_reference_value(env, gpac->rmt_ref, &fun_val);
-	if (status != napi_ok) return;
+	if (status == napi_ok) {
+		while (gf_list_count(gpac->rmt_messages)) {
+			napi_value res, arg;
+			char *msg = gf_list_pop_front(gpac->rmt_messages);
 
-	status = napi_create_string_utf8(env, message, NAPI_AUTO_LENGTH, &arg);
-	if (status != napi_ok) return;
+			status = napi_create_string_utf8(env, msg, NAPI_AUTO_LENGTH, &arg);
+			if (status == napi_ok)
+				status = napi_make_callback(env, gpac->rmt_ctx, global, fun_val, 1, &arg, &res);
 
-	status = napi_make_callback(env, gpac->rmt_ctx, global, fun_val, 1, &arg, &res);
+			gf_free(msg);
+		}
+	}
 }
+
+Bool fs_flush_rmt(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
+{
+	NAPI_Session *napi_fs = callback;
+	GPAC_NAPI *gpac=NULL;
+	napi_get_instance_data(napi_fs->env, (void **) &gpac);
+	if (!gpac) return GF_FALSE;
+
+	gpac_rmt_callback_exec(napi_fs->env, gpac);
+	if (!gf_list_count(gpac->rmt_messages)) {
+		gpac->rmt_task_scheduled = GF_FALSE;
+		return GF_FALSE;
+	}
+	*reschedule_ms = 10;
+	return GF_TRUE;
+}
+
+void gpac_rmt_callback(void *udta, const char *message)
+{
+	GPAC_NAPI *gpac=NULL;
+	napi_get_instance_data((napi_env) udta, (void **) &gpac);
+	if (!gpac) return;
+
+	if (!gpac->rmt_messages) gpac->rmt_messages = gf_list_new();
+	gf_list_add(gpac->rmt_messages, gf_strdup(message) );
+
+	//session is running in blocking mode, schedule task to call NodeJS from main thread
+	if (gpac->fs_rmt_handler && !gpac->rmt_task_scheduled) {
+		gpac->rmt_task_scheduled = GF_TRUE;
+		gf_fs_post_user_task(gpac->fs_rmt_handler->fs, fs_flush_rmt, gpac->fs_rmt_handler, "RemoteryFlush");
+	}
+}
+
 
 napi_value gpac_set_rmt_fun(napi_env env, napi_callback_info info)
 {
@@ -334,7 +367,13 @@ static void gpac_napi_finalize(napi_env env, void* finalize_data, void* finalize
 
 	napi_delete_reference(env, inst->rmt_ref);
 	if (inst->str_buf) gf_free(inst->str_buf);
-
+	if (inst->rmt_messages) {
+		while (gf_list_count(inst->rmt_messages)) {
+			char *msg = gf_list_pop_back(inst->rmt_messages);
+			gf_free(msg);
+		}
+		gf_list_del(inst->rmt_messages);
+	}
 	//close gpac
 	gf_sys_close();
 
@@ -3270,8 +3309,27 @@ napi_value fs_run(napi_env env, napi_callback_info info)
 	GF_Err e;
 	NARG_THIS
 	FILTER_SESSION
+	NAPI_GPAC
+	NAPI_Session *napi_fs = gf_fs_get_rt_udta(fs);
 
-	e = gf_fs_run(fs);
+	if (napi_fs->blocking) {
+		//session is running in blocking mode, schedule task to call NodeJS from main thread
+		if (gpac->rmt_ref) {
+			gpac->fs_rmt_handler = napi_fs;
+			gpac->rmt_task_scheduled = GF_TRUE;
+			gf_fs_post_user_task(fs, fs_flush_rmt, napi_fs, "RemoteryFlush");
+		}
+		e = gf_fs_run(fs);
+
+		gpac->fs_rmt_handler = NULL;
+	} else {
+		e = gf_fs_run(fs);
+
+		//flush rmt events
+		if (gpac->rmt_ref)
+			gpac_rmt_callback_exec(env, gpac);
+	}
+
 	if (e>=GF_OK) {
 		e = gf_fs_get_last_connect_error(fs);
 		if (e>=GF_OK)
@@ -3281,7 +3339,6 @@ napi_value fs_run(napi_env env, napi_callback_info info)
 		napi_throw_error(env, gf_error_to_string(e), "Error running session");\
 
 
-	NAPI_Session *napi_fs = gf_fs_get_rt_udta(fs);
 	while (gf_list_count(napi_fs->defer_filters)) {
 		GF_Filter *filter = gf_list_pop_front(napi_fs->defer_filters);
 		const char *fname = "on_filter_new";
@@ -3865,6 +3922,8 @@ napi_value new_fs(napi_env env, napi_callback_info info)
 
 	gf_fs_set_ui_callback(fs, napi_gpac_event_proc, napi_fs);
 
+	if (! (flags & GF_FS_FLAG_NON_BLOCKING))
+		napi_fs->blocking = GF_TRUE;
 
 	return this_val;
 }

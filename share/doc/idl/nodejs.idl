@@ -67,7 +67,7 @@ unsigned long long sys_clock_high_res();
 void set_args(Array args);
 
 /*! set profiler (Remotery) callback - see \ref gf_sys_profiler_set_callback
-\param callback object to call back, must have a method `on_rmt_event` taking a single string parameter
+\param callback function for Remotery message, takes a single string parameter and no return values
 */
 void set_rmt_fun(function callback);
 
@@ -107,7 +107,7 @@ attribute readonly unsigned long abi_major;
 /*! libgpac minor ABI - see \ref gf_gpac_abi_minor */
 attribute readonly unsigned long abi_minor;
 
-/*! libgpac micor ABI - see \ref gf_gpac_abi_micro */
+/*! libgpac micro ABI - see \ref gf_gpac_abi_micro */
 attribute readonly unsigned long abi_micro;
 
 /*! filter session constructor*/
@@ -171,6 +171,7 @@ However it is currently not capable of running asynchronous callbacks into Node.
 The consequences are:
 - any custom JS filter will run on the main thread (EventLoop or worker thread)
 - any packet dispatched by a custom filter and requiring a JS callback upon packet destruction (shared data dispatch) will force filters consuming these packets to run on the main thread as well.
+- any filter assigned with a JS binding (only `dashin` for now) will be scheduled on the main thread
 
 For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
 
