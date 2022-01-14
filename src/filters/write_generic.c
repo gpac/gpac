@@ -140,11 +140,17 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	pf = p ? p->value.uint : 0;
 	if (!pf) pf = GF_PIXEL_YUV;
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p) {
-		ctx->dcfg = p->value.data.ptr;
-		ctx->dcfg_size = p->value.data.size;
+	//get DSI except for unframed streams
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED);
+	if (!p ) p = gf_filter_pid_get_property(pid, GF_PROP_PID_UNFRAMED_LATM);
+	if (!p || !p->value.boolean) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (p) {
+			ctx->dcfg = p->value.data.ptr;
+			ctx->dcfg_size = p->value.data.size;
+		}
 	}
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
 	ctx->dash_mode = (p && p->value.uint) ? GF_TRUE : GF_FALSE;
 

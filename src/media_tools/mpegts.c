@@ -1521,6 +1521,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						case GF_M2TS_RA_STREAM_OPUS:
 							es->stream_type = GF_M2TS_AUDIO_OPUS;
 							break;
+						case GF_M2TS_RA_STREAM_DOVI:
+							break;
+
 						case GF_M2TS_RA_STREAM_GPAC:
 							if (len==8) {
 								es->stream_type = GF_4CC(data[6], data[7], data[8], data[9]);
@@ -1611,6 +1614,29 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					}
 				}
 				break;
+				case GF_M2TS_HEVC_VIDEO_DESCRIPTOR:
+					if (es) es->stream_type = GF_M2TS_VIDEO_HEVC;
+					break;
+
+				case GF_M2TS_AVC_VIDEO_DESCRIPTOR:
+					if (es) es->stream_type = GF_M2TS_VIDEO_H264;
+					break;
+
+				case GF_M2TS_DOLBY_VISION_DESCRIPTOR:
+					if (pes && (len>=5)) {
+						GF_BitStream *hbs = gf_bs_new((const char *)data+2, len, GF_BITSTREAM_READ);
+						pes->dv_info[0] = gf_bs_read_u8(hbs);
+						pes->dv_info[1] = gf_bs_read_u8(hbs);
+						pes->dv_info[2] = gf_bs_read_u8(hbs);
+						pes->dv_info[3] = gf_bs_read_u8(hbs);
+						if (! (pes->dv_info[3] & 0x1) ) {
+							pes->depends_on_pid = gf_bs_read_int(hbs, 13);
+							gf_bs_read_int(hbs, 3);
+						}
+						pes->dv_info[4] = gf_bs_read_u8(hbs);
+						gf_bs_del(hbs);
+					}
+					break;
 
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
@@ -1631,8 +1657,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			es = NULL;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Private Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 		}
-
 		if (!es) continue;
+
+		if (pes && (stream_type==GF_M2TS_PRIVATE_DATA) && (es->stream_type!=stream_type) && pes->dv_info[0]) {
+			//non-compatible base layer dolby vision
+			pes->dv_info[24] = 1;
+		}
 
 		if (ts->ess[pid]) {
 			//this is component reuse across programs, overwrite the previously declared stream ...

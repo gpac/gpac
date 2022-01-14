@@ -391,8 +391,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_filter_pid_set_name(opid, szName);
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
-	if (stream->mpeg4_es_id)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_ESID, &PROP_UINT(stream->mpeg4_es_id) );
+	gf_filter_pid_set_property(opid, GF_PROP_PID_ESID, stream->mpeg4_es_id ? &PROP_UINT(stream->mpeg4_es_id) : NULL);
 
 	if (m4sys_stream) {
 		if (stream->slcfg) gf_free(stream->slcfg);
@@ -415,22 +414,22 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	} else {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
-		if (unframed)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 
-		if (unframed_latm)
-			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_LATM, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, unframed ? &PROP_BOOL(GF_TRUE) : NULL);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED_LATM, unframed_latm ? &PROP_BOOL(GF_TRUE) : NULL );
 
 		if (orig_stype) {
 			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(orig_stype) );
 			gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(GF_HLS_SAMPLE_AES_SCHEME) );
+		} else {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_ORIG_STREAM_TYPE, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, NULL);
 		}
 
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
 	}
-	if (has_scal_layer)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
+	gf_filter_pid_set_property(opid, GF_PROP_PID_SCALABLE, has_scal_layer ? &PROP_BOOL(GF_TRUE) : NULL);
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 
@@ -445,7 +444,24 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			if ((stream->stream_type == GF_M2TS_VIDEO_HEVC_TEMPORAL) || (stream->stream_type == GF_M2TS_VIDEO_HEVC_MCTS)) {
 				gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, &PROP_BOOL(GF_TRUE) );
 			}
+		} else {
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, NULL);
+			gf_filter_pid_set_property(opid, GF_PROP_PID_SUBLAYER, NULL);
 		}
+	}
+
+	if (stream->dv_info[0]) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA(stream->dv_info, 24) );
+		u32 dvtype=0;
+		if (stream->dv_info[24]) {
+			if (stream->stream_type == GF_M2TS_VIDEO_H264)
+				dvtype = GF_4CC('d','a','v','1');
+			else
+				dvtype = GF_4CC('d','v','h','1');
+		}
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ISOM_SUBTYPE, dvtype ? &PROP_4CC(dvtype) : NULL);
+	} else {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DOLBY_VISION, NULL);
 	}
 
 	m2tsdmx_update_sdt(ctx->ts, opid);

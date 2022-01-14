@@ -717,6 +717,7 @@ u32 gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 }
 
 static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream);
+static s32 gf_m2ts_find_stream(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id, GF_M2TS_Mux_Stream **out_stream);
 
 u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
@@ -807,20 +808,45 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 		}
 		es = stream->program->streams;
 		while (es) {
+			u32 force_reg = 0;
 			Bool has_lang = GF_FALSE;
 			u32 es_info_length = 0;
 			u8 type = es->mpeg2_stream_type;
 			nb_streams++;
+			GF_AVCConfig *avcc = NULL;
+			GF_HEVCConfig *hvcc = NULL;
 
 			switch (es->mpeg2_stream_type) {
 			case GF_M2TS_AUDIO_AC3:
+			case GF_M2TS_AUDIO_EC3:
+				//reg desc
+				es_info_length += 2 + 4;
+				//AC3/EC3 desc
+				es_info_length += 2;
+				type = GF_M2TS_PRIVATE_DATA;
+				break;
 			case GF_M2TS_VIDEO_VC1:
+			case GF_M2TS_AUDIO_DTS:
+			case GF_M2TS_AUDIO_OPUS:
+				//reg desc
 				es_info_length += 2 + 4;
 				type = GF_M2TS_PRIVATE_DATA;
 				break;
-			case GF_M2TS_AUDIO_EC3:
-				es_info_length += 2;
-				type = GF_M2TS_PRIVATE_DATA;
+			case GF_M2TS_VIDEO_HEVC:
+			case GF_M2TS_VIDEO_H264:
+				//check dv
+				if (es->ifce->caps & GF_ESI_FORCE_DOLBY_VISION) {
+					type = GF_M2TS_PRIVATE_DATA;
+					force_reg = GF_M2TS_RA_STREAM_DOVI;
+					//reg desc
+					es_info_length += 2 + 4;
+				}
+
+				if (es->ifce->dv_info[0]) {
+					u32 dv_len = 5;
+					if (! (es->ifce->dv_info[3] & 0x1)) dv_len+=2;
+					es_info_length += 2 + dv_len;
+				}
 				break;
 			default:
 				if (es->force_reg_desc) {
@@ -828,6 +854,15 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 					type = GF_M2TS_PRIVATE_DATA;
 				}
 				break;
+			}
+
+			if (es->ifce->decoder_config && (es->mpeg2_stream_type==GF_M2TS_VIDEO_H264)) {
+				avcc = gf_odf_avc_cfg_read(es->ifce->decoder_config, es->ifce->decoder_config_size);
+				if (avcc) es_info_length += 6;
+			}
+			if (es->ifce->decoder_config && (es->mpeg2_stream_type==GF_M2TS_VIDEO_HEVC) && !es->ifce->depends_on_stream) {
+				hvcc = gf_odf_hevc_cfg_read(es->ifce->decoder_config, es->ifce->decoder_config_size, GF_FALSE);
+				if (hvcc) es_info_length += 15;
 			}
 
 			gf_bs_write_int(bs,	type, 8);
@@ -870,26 +905,71 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_int(bs,	es->ifce->lang & 0xFF, 8);
 			}
 
+			//AVC descriptor
+			if (avcc) {
+				gf_bs_write_int(bs,	GF_M2TS_AVC_VIDEO_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u8(bs, avcc->AVCProfileIndication);
+				gf_bs_write_u8(bs, avcc->profile_compatibility);
+				gf_bs_write_u8(bs, avcc->AVCLevelIndication);
+				gf_bs_write_u8(bs, 0);
+				gf_odf_avc_cfg_del(avcc);
+			}
+			//HEVC descriptor
+			if (hvcc) {
+				gf_bs_write_int(bs,	GF_M2TS_HEVC_VIDEO_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	13, 8);
+				gf_bs_write_int(bs, hvcc->profile_space, 2);
+				gf_bs_write_int(bs, hvcc->tier_flag, 1);
+				gf_bs_write_int(bs, hvcc->profile_idc, 5);
+				gf_bs_write_u32(bs, hvcc->general_profile_compatibility_flags);
+				gf_bs_write_int(bs, hvcc->progressive_source_flag, 1);
+				gf_bs_write_int(bs, hvcc->interlaced_source_flag, 1);
+				gf_bs_write_int(bs, hvcc->non_packed_constraint_flag, 1);
+				gf_bs_write_int(bs, hvcc->frame_only_constraint_flag, 1);
+				gf_bs_write_long_int(bs, hvcc->constraint_indicator_flags, 44);
+				gf_bs_write_int(bs, hvcc->level_idc, 8);
+				gf_bs_write_int(bs, 0, 1);//temporal subset
+				gf_bs_write_int(bs, 0, 1);//still present
+				gf_bs_write_int(bs, 0, 1);//24h present
+				gf_bs_write_int(bs, 1, 1);//sub_pic_hrd_params_not_present_flag: we don't know, set to 1
+				gf_bs_write_int(bs, 0, 2);//reserved
+				gf_bs_write_int(bs, 2, 2);//HDR_WCG_idc
+				gf_odf_hevc_cfg_del(hvcc);
+			}
+
 			switch (es->mpeg2_stream_type) {
 			case GF_M2TS_AUDIO_AC3:
+				gf_bs_write_int(bs,	GF_M2TS_DVB_AC3_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	0, 8); //todo
+				//also write reg desc
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	4, 8);
-				gf_bs_write_int(bs,	'A', 8);
-				gf_bs_write_int(bs,	'C', 8);
-				gf_bs_write_int(bs,	'-', 8);
-				gf_bs_write_int(bs,	'3', 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_AC3);
 				break;
 			case GF_M2TS_VIDEO_VC1:
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
 				gf_bs_write_int(bs,	4, 8);
-				gf_bs_write_int(bs,	'V', 8);
-				gf_bs_write_int(bs,	'C', 8);
-				gf_bs_write_int(bs,	'-', 8);
-				gf_bs_write_int(bs,	'1', 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_VC1);
 				break;
 			case GF_M2TS_AUDIO_EC3:
 				gf_bs_write_int(bs,	GF_M2TS_DVB_EAC3_DESCRIPTOR, 8);
-				gf_bs_write_int(bs,	0, 8); //check what is in this desc
+				gf_bs_write_int(bs,	0, 8);  //todo
+
+				//also write reg desc
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_EAC3);
+				break;
+			case GF_M2TS_AUDIO_DTS:
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_DTS3);
+				break;
+			case GF_M2TS_AUDIO_OPUS:
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_OPUS);
 				break;
 			default:
 				if (es->force_reg_desc && es->ifce && es->ifce->codecid) {
@@ -899,6 +979,34 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 					gf_bs_write_int(bs,	es->ifce->codecid, 32);
 				}
 				break;
+			}
+
+			if (force_reg) {
+				//also write reg desc
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	force_reg);
+			}
+
+			if (es->ifce->dv_info[0]) {
+				u32 len = 5;
+				if (! (es->ifce->dv_info[3] & 0x1)) len+=2;
+
+				gf_bs_write_int(bs,	GF_M2TS_DOLBY_VISION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	len, 8);
+				gf_bs_write_u8(bs, es->ifce->dv_info[0]);
+				gf_bs_write_u8(bs, es->ifce->dv_info[1]);
+				gf_bs_write_u8(bs, es->ifce->dv_info[2]);
+				gf_bs_write_u8(bs, es->ifce->dv_info[3]);
+				//base later not present
+				if (! (es->ifce->dv_info[3] & 0x1)) {
+					GF_M2TS_Mux_Stream *base_st = NULL;
+					gf_m2ts_find_stream(stream->program, 0, stream->ifce->depends_on_stream, &base_st);
+					gf_bs_write_int(bs, base_st ? base_st->pid : 0, 13);
+					gf_bs_write_int(bs, 0, 3);
+				}
+				//4bits compatid + 4 bits 0
+				gf_bs_write_u8(bs, es->ifce->dv_info[4]);
 			}
 
 			if (es->loop_descriptors)
@@ -1297,7 +1405,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 		/*same mux config = 0 (refresh aac config)*/
 		next_time = gf_sys_clock();
-		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->ifce->repeat_rate < next_time)) {
+		if (stream->ifce->decoder_config && (stream->latm_last_aac_time + stream->refresh_rate_ms < next_time)) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo cfg;
 #endif
@@ -2472,7 +2580,7 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			else
 				stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 
-			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
+			stream->refresh_rate_ms = ifce->repeat_rate ? ifce->repeat_rate : 500;
 			break;
 		case GF_CODECID_AC3:
 			if (ifce->caps & GF_ESI_STREAM_HLS_SAES)
