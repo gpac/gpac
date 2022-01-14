@@ -49,7 +49,7 @@
 		napi_throw_error(env, NULL, "Failed to parse arguments");\
 		return NULL;\
 	}\
-	if (argc<_MIN) {\
+	if (argc+1<_MIN+1) {\
 		napi_throw_error(env, NULL, "Not enough arguments");\
 		return NULL;\
 	}\
@@ -64,7 +64,7 @@
 		napi_throw_error(env, NULL, "Failed to parse arguments");\
 		return NULL;\
 	}\
-	if (argc<_MIN) {\
+	if (argc+1<_MIN+1) {\
 		napi_throw_error(env, NULL, "Not enough arguments");\
 		return NULL;\
 	}\
@@ -80,7 +80,7 @@
 		napi_throw_error(env, NULL, "Failed to parse arguments");\
 		return NULL;\
 	}\
-	if (argc<_MIN) {\
+	if (argc+1<_MIN+1) {\
 		napi_throw_error(env, NULL, "Not enough arguments");\
 		return NULL;\
 	}\
