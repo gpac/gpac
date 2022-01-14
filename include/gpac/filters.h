@@ -385,8 +385,9 @@ void gf_fs_remove_filter_register(GF_FilterSession *session, GF_FilterRegister *
 
 /*! Posts a user task to the session
 \param session filter session
-\param task_execute the callback function for the task. The callback can return GF_TRUE to reschedule the task, in which case the task will be rescheduled
-immediately or after reschedule_ms.
+\param task_execute the callback function for the task. The callback can return:
+ - GF_FALSE to cancel the task
+ - GF_TRUE to reschedule the task, in which case the task will be rescheduled immediately or after reschedule_ms.
 \param udta_callback callback user data passed back to the task_execute function
 \param log_name log name of the task. If NULL, default is "user_task"
 \return the error code if any

@@ -1,8 +1,6 @@
 const gpac = require('..');
 const filesys = require('fs');
 
-console.log('GPAC NodeJS version ' + gpac.version + ' libgpac ' + gpac.abi_major + ':' + gpac.abi_minor + '.' + gpac.abi_micro);
-console.log('' + gpac.copyright_cite);
 
 //run in blocking mode
 const RUN_SYNC=0;
@@ -87,8 +85,8 @@ print_usage = () => {
 	console.log("- Play MyURL into custom node filter then to aout and vout:\nnode gpac.js -cust=fwd -src=MyURL -f=aout -f=vout\n");
 	console.log("- Play MyURL into custom node filter, get input file from NodeJS, keep node eventloop active and use 2 extra threads:\nnode gpac.js -run=async -threads=2 -cust=fwd -ib -src=MyURL -f=aout -f=vout\n");
 	console.log();
-
-	console.log();
+	console.log('GPAC NodeJS version ' + gpac.version + ' libgpac ' + gpac.abi_major + ':' + gpac.abi_minor + '.' + gpac.abi_micro);
+	console.log('' + gpac.copyright_cite);
 	process.exit(0);
 }
 bad_param = (v) => {
@@ -97,6 +95,9 @@ bad_param = (v) => {
 };
 
 let other_args=['nodegpac'];
+
+if (is_verbose)
+	console.log('GPAC NodeJS version ' + gpac.version + ' libgpac ' + gpac.abi_major + ':' + gpac.abi_minor + '.' + gpac.abi_micro);
 
 let fio_factory = {
 	open: function(url, mode) {
@@ -295,6 +296,11 @@ if (custom_dash) {
 	};
 }
 
+
+gpac.set_rmt_fun( (msg) => {
+	console.log('RMT got message ' + msg);
+	gpac.rmt_send('ACK for ' + msg);
+}); 
 
 let fs;
 if (run_mode==RUN_SYNC) {
