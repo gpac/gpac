@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2738,11 +2738,17 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 7) //7 includes the 2 counts of sps and pps
 
+	Bool is_avcc;
+	if ((ptr->type==GF_ISOM_BOX_TYPE_AVCC) || (ptr->type==GF_ISOM_BOX_TYPE_AVCE))
+		is_avcc = GF_TRUE;
+	else
+		is_avcc = GF_FALSE;
+
 	ptr->config->configurationVersion = gf_bs_read_u8(bs);
 	ptr->config->AVCProfileIndication = gf_bs_read_u8(bs);
 	ptr->config->profile_compatibility = gf_bs_read_u8(bs);
 	ptr->config->AVCLevelIndication = gf_bs_read_u8(bs);
-	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+	if (is_avcc) {
 		gf_bs_read_int(bs, 6);
 	} else {
 		ptr->config->complete_representation = gf_bs_read_int(bs, 1);
@@ -2784,7 +2790,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	//not avcC (svcC; mvcC), no check for rext signaling
-	if (ptr->type!=GF_ISOM_BOX_TYPE_AVCC)
+	if (!is_avcc)
 		return GF_OK;
 
 	//not REXT profile, no check for rext signaling
@@ -2869,11 +2875,17 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
+	Bool is_avcc;
+	if ((ptr->type==GF_ISOM_BOX_TYPE_AVCC) || (ptr->type==GF_ISOM_BOX_TYPE_AVCE))
+		is_avcc = GF_TRUE;
+	else
+		is_avcc = GF_FALSE;
+
 	gf_bs_write_u8(bs, ptr->config->configurationVersion);
 	gf_bs_write_u8(bs, ptr->config->AVCProfileIndication);
 	gf_bs_write_u8(bs, ptr->config->profile_compatibility);
 	gf_bs_write_u8(bs, ptr->config->AVCLevelIndication);
-	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+	if (is_avcc) {
 		gf_bs_write_int(bs, 0x3F, 6);
 	} else {
 		gf_bs_write_int(bs, ptr->config->complete_representation, 1);
@@ -2898,7 +2910,7 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 	}
 
 
-	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+	if (is_avcc) {
 		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			gf_bs_write_int(bs, 0xFF, 6);
 			gf_bs_write_int(bs, ptr->config->chroma_format, 2);
@@ -2936,7 +2948,8 @@ GF_Err avcc_box_size(GF_Box *s)
 	for (i=0; i<count; i++)
 		ptr->size += 2 + ((GF_NALUFFParam *)gf_list_get(ptr->config->pictureParameterSets, i))->size;
 
-	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+
+	if ((ptr->type==GF_ISOM_BOX_TYPE_AVCC) || (ptr->type==GF_ISOM_BOX_TYPE_AVCE)) {
 		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			ptr->size += 4;
 			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
@@ -2965,7 +2978,15 @@ GF_Err hvcc_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->config) gf_odf_hevc_cfg_del(ptr->config);
 
 	consumed = gf_bs_get_position(bs);
-	ptr->config = gf_odf_hevc_cfg_read_bs(bs, (s->type == GF_ISOM_BOX_TYPE_HVCC) ? GF_FALSE : GF_TRUE);
+	switch (s->type) {
+	case GF_ISOM_BOX_TYPE_HVCC:
+	case GF_ISOM_BOX_TYPE_HVCE:
+		ptr->config = gf_odf_hevc_cfg_read_bs(bs, GF_FALSE);
+		break;
+	default:
+		ptr->config = gf_odf_hevc_cfg_read_bs(bs, GF_TRUE);
+		break;
+	}
 	consumed = gf_bs_get_position(bs) - consumed ;
 	ISOM_DECREASE_SIZE(ptr, (u32)consumed)
 

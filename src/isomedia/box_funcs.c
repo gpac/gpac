@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1503,6 +1503,10 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD(GF_ISOM_BOX_TYPE_DAV1, video_sample_entry, "stsd", "DolbyVision"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_MLPA, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DMLP, dmlp, "mlpa enca", "dolby"),
+
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_HVCE, hvcc, "hvc1 hev1 hvc2 hev2 encv resv ipco dvh1 dvhe", "DolbyVision"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AVCE, avcc, "avc1 avc2 avc3 avc4 encv resv ipco dva1 dvav", "DolbyVision"),
+
 
 	//Adobe boxes
 #ifndef GPAC_DISABLE_ISOM_ADOBE

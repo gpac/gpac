@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1550,7 +1550,22 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *p = (GF_AVCConfigurationBox *) a;
-	const char *name = (p->type==GF_ISOM_BOX_TYPE_MVCC) ? "MVC" : (p->type==GF_ISOM_BOX_TYPE_SVCC) ? "SVC" : "AVC";
+	const char *name;
+	switch (p->type) {
+	case GF_ISOM_BOX_TYPE_MVCC:
+		name = "MVC";
+		break;
+	case GF_ISOM_BOX_TYPE_SVCC:
+		name = "SVC";
+		break;
+	case GF_ISOM_BOX_TYPE_AVCE:
+		name = "DV-AVC";
+		break;
+	default:
+		name = "AVC";
+		break;
+	}
+
 	char boxname[256];
 	sprintf(boxname, "%sConfigurationBox", name);
 	gf_isom_box_dump_start(a, boxname, trace);
@@ -1626,7 +1641,18 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 GF_Err hvcc_box_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
-	const char *name = (a->type==GF_ISOM_BOX_TYPE_HVCC) ? "HEVC" : "L-HEVC";
+	const char *name;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_HVCC:
+		name = "HEVC";
+		break;
+	case GF_ISOM_BOX_TYPE_HVCE:
+		name = "DV-HEVC";
+		break;
+	default:
+		name = "L-HEVC";
+		break;
+	}
 	char boxname[256];
 	GF_HEVCConfigurationBox *p = (GF_HEVCConfigurationBox *) a;
 

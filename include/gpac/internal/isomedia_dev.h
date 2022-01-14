@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -525,6 +525,11 @@ enum
 	GF_ISOM_BOX_TYPE_EQUI	= GF_4CC( 'e', 'q', 'u', 'i' ),
 	GF_ISOM_BOX_TYPE_MSHP	= GF_4CC( 'm', 's', 'h', 'p' ),
 	GF_ISOM_BOX_TYPE_MESH	= GF_4CC( 'm', 'e', 's', 'h' ),
+
+
+	GF_ISOM_BOX_TYPE_AVCE	= GF_4CC( 'a', 'v', 'c', 'E' ),
+	GF_ISOM_BOX_TYPE_HVCE	= GF_4CC( 'h', 'v', 'c', 'E' ),
+
 };
 
 enum
