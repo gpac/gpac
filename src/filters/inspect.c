@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / inspection filter
@@ -313,7 +313,8 @@ static const tag_to_name HEVCNalNames[] =
 	{GF_HEVC_NALU_SEI_SUFFIX, "SEI Suffix"},
 	{48, "HEVCAggregator"},
 	{49, "HEVCExtractor"},
-	{62, "UNSPEC_DolbiVision_RPU"}
+	{GF_HEVC_NALU_DV_RPU, "UNSPEC_DolbiVision_RPU"},
+	{GF_HEVC_NALU_DV_EL, "UNSPEC_DolbiVision_EL"}
 };
 
 static const char *get_hevc_nal_name(u32 nal_type)
