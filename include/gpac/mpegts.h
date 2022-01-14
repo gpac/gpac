@@ -97,6 +97,8 @@ enum
 	/* ... */
 	GF_M2TS_MPEG4_ODUPDATE_DESCRIPTOR			= 0x35,
 
+	GF_M2TS_HEVC_VIDEO_DESCRIPTOR			= 0x38,
+
 	/* 0x2D - 0x3F - ISO/IEC 13818-6 values */
 	/* 0x40 - 0xFF - User Private values */
 	GF_M2TS_DVB_NETWORK_NAME_DESCRIPTOR			= 0x40,
@@ -137,6 +139,8 @@ enum
 	/* ... */
 	GF_M2TS_DVB_EAC3_DESCRIPTOR				= 0x7A,
 	GF_M2TS_DVB_LOGICAL_CHANNEL_DESCRIPTOR = 0x83,
+
+	GF_M2TS_DOLBY_VISION_DESCRIPTOR = 0xB0
 };
 
 /*! Reserved PID values */
@@ -304,6 +308,7 @@ enum
 	GF_M2TS_RA_STREAM_DTS2	= GF_4CC('D','T','S','2'),
 	GF_M2TS_RA_STREAM_DTS3	= GF_4CC('D','T','S','3'),
 	GF_M2TS_RA_STREAM_OPUS	= GF_4CC('O','p','u','s'),
+	GF_M2TS_RA_STREAM_DOVI	= GF_4CC('D','O','V','I'),
 
 
 	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
@@ -874,6 +879,8 @@ typedef struct tag_m2ts_pes
 	Bool temi_pending;
 	/*! flag set to indicate the last PES packet was not flushed (HLS) to avoid warning on same PTS/DTS used*/
 	Bool is_resume;
+	/*! DolbiVison info, last byte set to 1 if non-compatible signaling*/
+	u8 dv_info[25];
 } GF_M2TS_PES;
 
 /*! reserved streamID for PES headers*/
@@ -1388,6 +1395,8 @@ enum
 	GF_ESI_STREAM_FLUSH	=	1<<5,
 	/*! stream uses HLS SAES encryption*/
 	GF_ESI_STREAM_HLS_SAES	=	1<<6,
+	/*! stream uses non-backward DolbyVision signaling*/
+	GF_ESI_FORCE_DOLBY_VISION = 1<<7,
 };
 
 /*! elementary stream information*/
@@ -1430,6 +1439,9 @@ typedef struct __elementary_stream_ifce
 	void *output_udta;
 	/*! stream dependency ID*/
 	u32 depends_on_stream;
+
+	/*! dv info, not valid if first byte not 1*/
+	u8 dv_info[24];
 } GF_ESInterface;
 
 /*! @} */

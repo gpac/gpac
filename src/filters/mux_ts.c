@@ -183,7 +183,6 @@ typedef struct __tsmx_pid
 
 	u32 sid;
 	u32 codec_id;
-	u32 dsi_crc;
 	u32 pmt_pid;
 	u32 nb_pck;
 	Bool is_repeat;
@@ -737,7 +736,7 @@ void update_m4sys_info(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog)
 	}
 }
 
-static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *tspid, u32 stream_type)
+static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *tspid, u32 stream_type)
 {
 	const GF_PropertyValue *p;
 	GF_ESInterface bckp = tspid->esi;
@@ -764,7 +763,6 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	if (p) {
 		tspid->esi.decoder_config = p->value.data.ptr;
 		tspid->esi.decoder_config_size = p->value.data.size;
-		tspid->dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 	}
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ID);
 	if (p) tspid->esi.stream_id = p->value.uint;
@@ -815,12 +813,47 @@ static void tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 		break;
 	}
 
+	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DOLBY_VISION);
+	if (p && p->value.data.ptr && (p->value.data.size==24)) {
+		memcpy(tspid->esi.dv_info, p->value.data.ptr, 24);
+	}
+
+	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ISOM_SUBTYPE);
+	if (p && (((p->value.uint>>24) & 0xFF) == 'd') && (((p->value.uint>>16) & 0xFF) == 'v'))
+		tspid->esi.caps |= GF_ESI_FORCE_DOLBY_VISION;
+
 	tspid->esi.input_ctrl = tsmux_esi_ctrl;
 	tspid->esi.input_udta = tspid;
 	tspid->prog = prog;
 
 	tspid->esi.output_ctrl = bckp.output_ctrl;
 	tspid->esi.output_udta = bckp.output_udta;
+
+	Bool changed = GF_FALSE;
+	if (bckp.stream_id != tspid->esi.stream_id) changed = GF_TRUE;
+	else if (bckp.codecid != tspid->esi.codecid) changed = GF_TRUE;
+	else if (bckp.depends_on_stream != tspid->esi.depends_on_stream) changed = GF_TRUE;
+	else if (bckp.lang != tspid->esi.lang) changed = GF_TRUE;
+	else if (bckp.decoder_config && !tspid->esi.decoder_config) changed = GF_TRUE;
+	else if (!bckp.decoder_config && tspid->esi.decoder_config) changed = GF_TRUE;
+	else if (bckp.decoder_config && tspid->esi.decoder_config &&
+		( (bckp.decoder_config_size != tspid->esi.decoder_config_size)
+		|| memcmp(bckp.decoder_config, tspid->esi.decoder_config, bckp.decoder_config_size))
+	)
+		changed = GF_TRUE;
+	else if (memcmp(bckp.dv_info, tspid->esi.dv_info, 24))
+		changed = GF_TRUE;
+
+	else if ((tspid->esi.caps & GF_ESI_STREAM_HLS_SAES) != (bckp.caps & GF_ESI_STREAM_HLS_SAES))
+		changed = GF_TRUE;
+	else if ((tspid->esi.caps & GF_ESI_AAC_USE_LATM) != (bckp.caps & GF_ESI_AAC_USE_LATM))
+		changed = GF_TRUE;
+	else if ((tspid->esi.caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS) != (bckp.caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS))
+		changed = GF_TRUE;
+	else if ((tspid->esi.caps & GF_ESI_FORCE_DOLBY_VISION) != (bckp.caps & GF_ESI_FORCE_DOLBY_VISION))
+		changed = GF_TRUE;
+
+	return changed;
 }
 
 static void tsmux_setup_temi(GF_TSMuxCtx *ctx, M2Pid *tspid)
@@ -1127,17 +1160,7 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSMux] Setting up program ID %d - send rates: PSI %d ms PCR every %d ms max - PCR offset %d\n", service_id, ctx->pmt_rate, ctx->max_pcr, ctx->pcr_offset));
 	}
-	//no changes in codec ID or stream type
-	if ((tspid->codec_id == codec_id) && (tspid->esi.stream_type == streamtype)) {
-		u32 crc = 0;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (p && p->value.data.ptr) {
-			crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
-		}
-		if (crc == tspid->dsi_crc) return GF_OK;
-		tspid->dsi_crc = crc;
-	}
-
+	//first setup
 	if (!tspid->codec_id) {
 		Bool is_pcr=GF_FALSE;
 		Bool force_pes=GF_FALSE;
@@ -1166,6 +1189,15 @@ static GF_Err tsmux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (!ctx->mux->ref_pid || (streamtype==GF_STREAM_VISUAL))
 			ctx->mux->ref_pid = pes_pid;
 
+	}
+	//no changes in codec ID, update ifce, notify pmt update if needed and return
+	else if (tspid->codec_id == codec_id) {
+		if (tsmux_setup_esi(ctx, prog, tspid, streamtype)) {
+			prog->pmt->table_needs_update = GF_TRUE;
+			ctx->pmt_update_pending = GF_TRUE;
+			ctx->update_mux = GF_TRUE;
+		}
+		return GF_OK;
 	} else {
 		tspid->codec_id = codec_id;
 		tsmux_setup_esi(ctx, prog, tspid, streamtype);

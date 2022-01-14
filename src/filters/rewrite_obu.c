@@ -87,8 +87,6 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 
 	ctx->ipid = pid;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
-
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
 	ctx->codec_id = p ? p->value.uint : 0;
 	switch (ctx->codec_id) {
