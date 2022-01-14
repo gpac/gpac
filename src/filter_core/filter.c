@@ -3048,8 +3048,9 @@ void gf_filter_post_remove(GF_Filter *filter)
 	assert(!filter->swap_pidinst_src);
 	assert(!filter->finalized);
 	filter->finalized = GF_TRUE;
+
 	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
-	gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE);
 }
 
 static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter, Bool keep_end_connections)
