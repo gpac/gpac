@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / generic pipe output filter
@@ -69,7 +69,7 @@ typedef struct
 
 	GF_FilterCapability in_caps[2];
 	char szExt[10];
-	char szFileName[GF_MAX_PATH];
+	char *szFileName;
 	Bool owns_pipe;
 
 } GF_PipeOutCtx;
@@ -108,7 +108,7 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	}
 	gf_filter_pid_resolve_file_template(ctx->pid, szName, szFinalName, file_idx, NULL);
 
-	if (!strcmp(szFinalName, ctx->szFileName) 
+	if (ctx->szFileName && !strcmp(szFinalName, ctx->szFileName) 
 #ifdef WIN32
 		&& (ctx->pipe != INVALID_HANDLE_VALUE)
 #else
@@ -191,15 +191,15 @@ static GF_Err pipeout_open_close(GF_PipeOutCtx *ctx, const char *filename, const
 	ctx->fd = open(szFinalName, O_WRONLY );
 
 	if (ctx->fd<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Cannot open output pipe %s: %s\n", ctx->szFileName, gf_errno_str(errno)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Cannot open output pipe %s: %s\n", szFinalName, gf_errno_str(errno)));
 		e = ctx->owns_pipe ? GF_IO_ERR : GF_URL_ERROR;
 	}
 #endif
 	if (e) {
 		return e;
 	}
-	strncpy(ctx->szFileName, szFinalName, GF_MAX_PATH-1);
-	ctx->szFileName[GF_MAX_PATH-1] = 0;
+	if (ctx->szFileName) gf_free(ctx->szFileName);
+	ctx->szFileName = gf_strdup(szFinalName);
 	return GF_OK;
 }
 
@@ -302,8 +302,11 @@ static void pipeout_finalize(GF_Filter *filter)
 	GF_PipeOutCtx *ctx = (GF_PipeOutCtx *) gf_filter_get_udta(filter);
 	pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 
-	if (ctx->owns_pipe)
-		gf_file_delete(ctx->szFileName);
+	if (ctx->szFileName) {
+		if (ctx->owns_pipe)
+			gf_file_delete(ctx->szFileName);
+		gf_free(ctx->szFileName);
+	}
 }
 
 static GF_Err pipeout_process(GF_Filter *filter)

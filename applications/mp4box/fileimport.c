@@ -1142,7 +1142,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
-			strncpy(dv_profile, ext + 12, 100);
+			strncpy(dv_profile, ext + 12, 99);
+			dv_profile[99]=0;
 		}
 		else if (!strnicmp(ext+1, "fullrange=", 10)) {
 			if (!stricmp(ext+11, "off") || !stricmp(ext+11, "no")) fullrange = 0;

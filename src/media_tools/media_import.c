@@ -965,9 +965,9 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 				ts = (h*3600 + m*60+s)*1000;
 			}
 			else {
-				char szTS[20], *tok;
-				strncpy(szTS, sL, 19);
-				szTS[19]=0;
+				char szTS[1025], *tok;
+				strncpy(szTS, sL, 1024);
+				szTS[1024]=0;
 				tok = strrchr(szTS, ' ');
 				if (tok) {
 					title = strchr(sL, ' ') + 1;
@@ -1003,9 +1003,9 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 		/*CHAPTERX= and CHAPTERXNAME=*/
 		else if (!strnicmp(sL, "CHAPTER", 7)) {
 			u32 idx;
-			char szTemp[20], *str;
-			strncpy(szTemp, sL, 19);
-			szTemp[19] = 0;
+			char szTemp[1025], *str;
+			strncpy(szTemp, sL, 1024);
+			szTemp[1024] = 0;
 			str = strrchr(szTemp, '=');
 			if (!str) continue;
 			str[0] = 0;
