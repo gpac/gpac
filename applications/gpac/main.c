@@ -1529,6 +1529,28 @@ redo_pass:
 					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s\n", alias));
 				}
 			}
+			//check in libgpac core opts
+			first = GF_FALSE;
+			i=0;
+			const GF_GPACArg *core_opts = gf_sys_get_options();
+			while (core_opts && core_opts[i].name) {
+				const GF_GPACArg *arg = &core_opts[i];
+				i++;
+
+				if (gf_sys_word_match(fname, arg->name)) {
+					if (!first) {
+						first = GF_TRUE;
+						if (!found) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+							found = GF_TRUE;
+						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest core option: \n"));
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-%s: %s\n", arg->name, arg->description));
+				}
+			}
+
+			//check filters
 			first = GF_FALSE;
 			for (i=0; i<count; i++) {
 				u32 j=0;
