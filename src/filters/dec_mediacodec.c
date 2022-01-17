@@ -1283,7 +1283,13 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session)
 	mcdec_configure_pid(NULL, NULL, GF_FALSE);
 	mcdec_process(NULL);
 #endif
-
-#endif
 	return &GF_MCDecCtxRegister;
+
+#elif defined(GPAC_HAS_MEDIACODEC)
+
+	return &GF_MCDecCtxRegister;
+#else
+
+	return NULL;
+#endif
 }
