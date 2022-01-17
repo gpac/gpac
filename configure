@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC configure script
-#     (c) 2003-2020 Telecom ParisTech
+#     (c) 2003-2022 Telecom ParisTech
 #     Authors: Jean Le Feuvre, Romain Bouqueau, Aurelien David
 #
 #set -v
@@ -395,6 +395,8 @@ for opt do
             ;;
         --static-mp4box) use_static="yes"
             ;;
+        --enable-sanitizer) enable_sanitizer="yes"
+            ;;
     esac
 done
 
@@ -476,6 +478,13 @@ ar="${cross_prefix}${ar}"
 ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
 windres="${cross_prefix}${windres}"
+
+if test "$enable_sanitizer" = "yes" ; then
+if test "$use_static" = "yes" ; then
+echo "Cannot use static bin with sanitizer, disabling static bin"
+use_static="no"
+fi
+fi
 
 if test "$use_static" = "yes" ; then
 pkg_config="${pkg_config} --static"
@@ -1786,8 +1795,6 @@ for opt do
         --strip) INSTFLAGS="-s $INSTFLAGS"
             ;;
         --enable-mem-track) use_memory_tracking="yes"
-            ;;
-        --enable-sanitizer) enable_sanitizer="yes"
             ;;
         --enable-tinygl) enable_tinygl="yes"
             ;;
