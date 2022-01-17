@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020
+ *			Copyright (c) Telecom ParisTech 2020-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ROUTE output filter
@@ -950,8 +950,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 
 
 		if (serv->manifest) {
-			snprintf(temp, 1000, " <item metadataURI=\"%s\" version=\"%d\" contentType=\"%s\"/>\n", serv->manifest_name, serv->manifest_version, serv->manifest_mime);
+			gf_dynstrcat(&payload_text, " <item metadataURI=\"", NULL);
+			gf_dynstrcat(&payload_text, serv->manifest_name, NULL);
+			snprintf(temp, 1000, "\" version=\"%d\" contentType=\"", serv->manifest_version);
 			gf_dynstrcat(&payload_text, temp, NULL);
+			gf_dynstrcat(&payload_text, serv->manifest_mime, NULL);
+			gf_dynstrcat(&payload_text, "\"/>\n", NULL);
 		}
 
 		gf_dynstrcat(&payload_text, "</metadataEnvelope>\n\r\n", NULL);
@@ -973,10 +977,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 		snprintf(temp, 1000, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 				"<BundleDescriptionROUTE xmlns=\"tag:atsc.org,2016:XMLSchemas/ATSC3/Delivery/ROUTEUSD/1.0/\">\n"
 				" <UserServiceDescription serviceId=\"%d\">\n"
-				"  <Name lang=\"eng\">%s</Name>\n"
-				"  <DeliveryMethod>\n"
-				"   <BroadcastAppService>\n", service_id, service_name);
+				"  <Name lang=\"eng\">", service_id);
 		gf_dynstrcat(&payload_text, temp, NULL);
+		gf_dynstrcat(&payload_text, service_name, NULL);
+		gf_dynstrcat(&payload_text, "</Name>\n"
+				"  <DeliveryMethod>\n"
+				"   <BroadcastAppService>\n", NULL);
 
 		for (i=0;i<count; i++) {
 			rpid = gf_list_get(serv->pids, i);
@@ -1046,8 +1052,12 @@ static GF_Err routeout_check_service_updates(GF_ROUTEOutCtx *ctx, ROUTEService *
 			src_ip = szIP;
 		}
 
-		snprintf(temp, 1000, " <RS dIpAddr=\"%s\" dPort=\"%d\" sIpAddr=\"%s\">\n", rlct->ip, rlct->port, src_ip);
+		gf_dynstrcat(&payload_text, " <RS dIpAddr=\"", NULL);
+		gf_dynstrcat(&payload_text, rlct->ip, NULL);
+		snprintf(temp, 1000, "\" dPort=\"%d\" sIpAddr=\"", rlct->port);
 		gf_dynstrcat(&payload_text, temp, NULL);
+		gf_dynstrcat(&payload_text, src_ip, NULL);
+		gf_dynstrcat(&payload_text, "\">\n", NULL);
 
 		for (i=0; i<count; i++) {
 			const GF_PropertyValue *p;
