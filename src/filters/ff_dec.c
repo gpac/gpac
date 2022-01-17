@@ -943,8 +943,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (gpac_codecid==GF_CODECID_VVC) {
 		u32 codec_id = ffmpeg_codecid_from_gpac(gpac_codecid, NULL);
 		codec = codec_id ? avcodec_find_decoder(codec_id) : NULL;
-		//libvvdec only supports annexB, request ufnalu adaptation filter
-		if (codec && codec->name && strstr(codec->name, "vvdec")) {
+		//first version of libvvdec+ffmpeg only supported annexB, request ufnalu adaptation filter
+		if (codec && codec->name && strstr(codec->name, "vvdec") && gf_opts_get_bool("core", "vvdec-annexb")) {
 			//vvdec currently requires bootstrap on SAP
 			if (!ctx->decoder)
 				ctx->force_rap_wait = GF_TRUE;

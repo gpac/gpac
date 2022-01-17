@@ -3189,6 +3189,20 @@
 					"-lxml2",
 					"-lmp3lame",
 					"-lvpx",
+					"-weak_framework",
+					VideoToolbox,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					CoreMedia,
+					"-weak_framework",
+					CoreVideo,
+					"-weak_framework",
+					CoreImage,
+					"-weak_framework",
+					CoreServices,
+					"-framework",
+					Metal,
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3303,6 +3317,20 @@
 					"-lxml2",
 					"-lmp3lame",
 					"-lvpx",
+					"-weak_framework",
+					VideoToolbox,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					CoreMedia,
+					"-weak_framework",
+					CoreVideo,
+					"-weak_framework",
+					CoreImage,
+					"-weak_framework",
+					CoreServices,
+					"-framework",
+					Metal,
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
