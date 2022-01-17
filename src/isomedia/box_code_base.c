@@ -2835,7 +2835,17 @@ GF_Err iods_box_read(GF_Box *s, GF_BitStream *bs)
 	e = gf_odf_desc_read(desc, descSize, &ptr->descriptor);
 	//OK, free our desc
 	gf_free(desc);
-	return e;
+
+	if (e) return e;
+	switch (ptr->descriptor->tag) {
+	case GF_ODF_ISOM_OD_TAG:
+	case GF_ODF_ISOM_IOD_TAG:
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid descriptor in iods, tag %u found but only %u or %u allowed\n", ptr->descriptor->tag, GF_ODF_ISOM_IOD_TAG, GF_ODF_ISOM_OD_TAG ));
+		return GF_ISOM_INVALID_FILE;
+	}
+	return GF_OK;
 }
 
 GF_Box *iods_box_new()
@@ -5079,6 +5089,32 @@ GF_Err stbl_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->SampleSize->sampleCount) {
 		if (!ptr->TimeToSample->nb_entries || !ptr->SampleToChunk->nb_entries)
 			return GF_ISOM_INVALID_FILE;
+	}
+	u32 i, max_chunks=0;
+	if (ptr->ChunkOffset->type == GF_ISOM_BOX_TYPE_STCO) {
+		max_chunks = ((GF_ChunkOffsetBox *)ptr->ChunkOffset)->nb_entries;
+	}
+	else if (ptr->ChunkOffset->type == GF_ISOM_BOX_TYPE_CO64) {
+		max_chunks = ((GF_ChunkOffsetBox *)ptr->ChunkOffset)->nb_entries;
+	}
+
+	//sanity check on stsc vs chunk offset tables
+	for (i=0; i<ptr->SampleToChunk->nb_entries; i++) {
+		GF_StscEntry *ent = &ptr->SampleToChunk->entries[i];
+		if (!i && (ent->firstChunk!=1)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] first_chunk of first entry shall be 1 but is %u\n", ent->firstChunk));
+			return GF_ISOM_INVALID_FILE;
+		}
+		if (ptr->SampleToChunk->entries[i].firstChunk > max_chunks) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] first_chunk is %u but number of chunks defined %u\n", ptr->SampleToChunk->entries[i].firstChunk, max_chunks));
+			return GF_ISOM_INVALID_FILE;
+		}
+		if (i+1 == ptr->SampleToChunk->nb_entries) break;
+		GF_StscEntry *next_ent = &ptr->SampleToChunk->entries[i+1];
+		if (next_ent->firstChunk < ent->firstChunk) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] first_chunk (%u) for entry %u is greater than first_chunk (%u) for entry %u\n", i+1, ent->firstChunk, i+2, next_ent->firstChunk));
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 	return GF_OK;
 }

@@ -2822,6 +2822,7 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	i=0;
 	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
 		if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_OD) continue;
+
 		//this is an OD track...
 		j = gf_isom_get_sample_count(movie, i);
 		for (k=0; k < j; k++) {
@@ -2845,7 +2846,6 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 	//note that we don't touch scal references, as we don't want to rewrite AVC/HEVC samples ...
 	i=0;
 	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
-		if (trak == the_trak) continue;
 		if (! trak->References || ! gf_list_count(trak->References->child_boxes)) continue;
 
 		j=0;
