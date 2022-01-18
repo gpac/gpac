@@ -12570,6 +12570,7 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 				//MSB set, this is a index of a group described in the fragment
 				if (idx & gidx_mask) {
 					idx += 0x10000;
+					idx &= ~gidx_mask;
 				}
 			}
 			ptr->patterns[i].sample_group_description_indices[j] = idx;

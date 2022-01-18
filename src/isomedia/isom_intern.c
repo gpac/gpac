@@ -284,6 +284,7 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 					k = 0;
 			}
 		}
+		gf_isom_box_del((GF_Box*)csgp);
 	}
 }
 
