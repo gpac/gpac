@@ -55,10 +55,14 @@
 /*for built-in box printing*/
 #include <gpac/internal/isomedia_dev.h>
 
+#include <gpac/download.h>
+#include <gpac/mpd.h>
+
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern GF_FileType get_file_type_by_ext(char *inName);
 extern u32 fs_dump_flags;
+extern Bool dump_check_xml;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
@@ -1013,9 +1017,10 @@ void gf_inspect_dump_nalu(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_svc, HEVCSt
 #endif
 
 
-static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, u32 dump_flags)
+static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, u32 dump_flags)
 {
 	u32 i, j, count, nb_descs, track, nalh_size, timescale, cur_extract_mode;
+	GF_Err e=GF_OK;
 	s32 countRef;
 	Bool is_adobe_protected = GF_FALSE;
 	Bool is_cenc_protected = GF_FALSE;
@@ -1043,7 +1048,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 	nb_descs = gf_isom_get_sample_description_count(file, track);
 	if (!nb_descs) {
 		M4_LOG(GF_LOG_ERROR, ("Error: Track #%d has no sample description so is likely not NALU-based!\n", trackID));
-		return;
+		return GF_BAD_PARAM;
 	}
 
 	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
@@ -1119,7 +1124,7 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 
 		if (!avccfg && !svccfg && !hevccfg && !lhvccfg && !vvccfg) {
 			M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not NALU or OBU based!\n", trackID));
-			return;
+			return GF_BAD_PARAM;
 		}
 
 		if (avccfg) {
@@ -1228,8 +1233,8 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 		u8 *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
 		if (!samp) {
-			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
-			continue;
+			e = gf_isom_last_error(file);
+			break;
 		}
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
@@ -1305,22 +1310,24 @@ static void dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
 	if (vvc_state) gf_free(vvc_state);
 	if (avc_state) gf_free(avc_state);
 #endif
+
+	return e;
 }
 
-static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
-static void dump_qt_prores(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
+static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
+static GF_Err dump_qt_prores(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 
-void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags)
+GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags)
 {
+	char szFileName[GF_MAX_PATH];
 	Bool is_av1 = GF_FALSE;
 	Bool is_prores = GF_FALSE;
 
 	FILE *dump;
 	if (inName) {
 		GF_ESD* esd;
-		char szBuf[GF_MAX_PATH];
 
-		strcpy(szBuf, inName);
+		strcpy(szFileName, inName);
 
 		u32 track = gf_isom_get_track_by_id(file, trackID);
 		esd = gf_isom_get_esd(file, track, 1);
@@ -1345,32 +1352,48 @@ void dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool i
 		}
 		if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
 
-		if (!is_final_name) sprintf(szBuf, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
-		dump = gf_fopen(szBuf, "wt");
+		if (!is_final_name) sprintf(szFileName, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
+		dump = gf_fopen(szFileName, "wt");
 		if (!dump) {
-			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szBuf));
-			return;
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s for dumping\n", szFileName));
+			return GF_URL_ERROR;
 		}
 	} else {
 		dump = stdout;
 	}
 
+	GF_Err e = GF_OK;
 	if (is_av1)
-		dump_isom_obu(file, trackID, dump, dump_flags);
+		e = dump_isom_obu(file, trackID, dump, dump_flags);
 	else if (is_prores)
-		dump_qt_prores(file, trackID, dump, dump_flags);
+		e = dump_qt_prores(file, trackID, dump, dump_flags);
 	else
-		dump_isom_nal_ex(file, trackID, dump, dump_flags);
+		e = dump_isom_nal_ex(file, trackID, dump, dump_flags);
 
 	if (inName) gf_fclose(dump);
+
+	if (!e && dump_check_xml) {
+		if (inName) {
+			GF_DOMParser *xml_parser = gf_xml_dom_new();
+			GF_Err e = gf_xml_dom_parse(xml_parser, szFileName, NULL, NULL);
+			if (e) {
+				fprintf(stderr, "Failed to parse XML dump %s: line %d: %s\n", szFileName, gf_xml_dom_get_line(xml_parser), gf_xml_dom_get_error(xml_parser) );
+			}
+			gf_xml_dom_del(xml_parser);
+		} else {
+			fprintf(stderr, "Cannot check XML for dump on stdout\n");
+		}
+	}
+	return e;
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 void gf_inspect_dump_obu(FILE *dump, AV1State *av1, u8 *obu, u64 obu_length, ObuType obu_type, u64 obu_size, u32 hdr_size, Bool dump_crc);
 #endif
 
-static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
+static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
+	GF_Err e = GF_OK;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
 	AV1State av1;
@@ -1386,7 +1409,7 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	av1.config = gf_isom_av1_config_get(file, track, 1);
 	if (!av1.config) {
 		M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not AV1!\n", trackID));
-		return;
+		return GF_ISOM_INVALID_FILE;
 	}
 
 	count = gf_isom_get_sample_count(file, track);
@@ -1399,7 +1422,12 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	for (i=0; i<gf_list_count(av1.config->obu_array); i++) {
 		GF_AV1_OBUArrayEntry *obu = gf_list_get(av1.config->obu_array, i);
 		bs = gf_bs_new(obu->obu, (u32) obu->obu_length, GF_BITSTREAM_READ);
-		gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+		if (e<GF_OK) {
+			if (av1.config) gf_odf_av1_cfg_del(av1.config);
+			gf_av1_reset_state(&av1, GF_TRUE);
+			return e;
+		}
 		gf_inspect_dump_obu(dump, &av1, obu->obu, obu->obu_length, obu_type, obu_size, hdr_size, dump_crc);
 		gf_bs_del(bs);
 	}
@@ -1407,14 +1435,15 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 
 	fprintf(dump, " <OBUSamples>\n");
 
+	e = GF_OK;
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		u32 size;
 		u8 *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
 		if (!samp) {
-			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
-			continue;
+			e = gf_isom_last_error(file);
+			break;
 		}
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
@@ -1428,7 +1457,9 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 
 		bs = gf_bs_new(ptr, size, GF_BITSTREAM_READ);
 		while (size) {
-			gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			e = gf_av1_parse_obu(bs, &obu_type, &obu_size, &hdr_size, &av1);
+			if (e<GF_OK) break;
+
 			if (obu_size > size) {
 				fprintf(dump, "   <!-- OBU number %d is corrupted: size is %d but only %d remains -->\n", idx, (u32) obu_size, size);
 				break;
@@ -1443,6 +1474,8 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 		gf_isom_sample_del(&samp);
 
 		fprintf(dump, "\n");
+
+		if (e<GF_OK) break;
 		gf_set_progress("Analysing Track OBUs", i+1, count);
 	}
 	fprintf(dump, " </OBUSamples>\n");
@@ -1451,10 +1484,12 @@ static void dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, B
 	if (av1.config) gf_odf_av1_cfg_del(av1.config);
 	gf_av1_reset_state(&av1, GF_TRUE);
 #endif
+	return e;
 }
 
-static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
+static GF_Err dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_crc)
 {
+	GF_Err e = GF_OK;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	u32 i, count, track, timescale;
 
@@ -1470,8 +1505,8 @@ static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_
 		u64 dts, cts;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
 		if (!samp) {
-			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
-			continue;
+			e = gf_isom_last_error(file);
+			break;
 		}
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
@@ -1491,6 +1526,7 @@ static void dump_qt_prores(GF_ISOFile *file, u32 trackID, FILE *dump, Bool dump_
 	}
 	fprintf(dump, "</ProResTrack>\n");
 #endif
+	return e;
 }
 
 void dump_isom_saps(GF_ISOFile *file, GF_ISOTrackID trackID, u32 dump_saps_mode, char *inName, Bool is_final_name)
@@ -1887,20 +1923,20 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump, Bool merge_vtt_cues, Bool skip_init, Bool skip_samples)
 {
+	char szFileName[1024];
 	GF_Err e;
 	FILE *dump = stdout;
 	Bool do_close=GF_FALSE;
 	if (!file) return GF_ISOM_INVALID_FILE;
 
 	if (inName) {
-		char szBuf[1024];
-		strcpy(szBuf, inName);
+		strcpy(szFileName, inName);
 		if (!is_final_name) {
-			strcat(szBuf, do_track_dump ? "_dump.xml" : "_info.xml");
+			strcat(szFileName, do_track_dump ? "_dump.xml" : "_info.xml");
 		}
-		dump = gf_fopen(szBuf, "wt");
+		dump = gf_fopen(szFileName, "wt");
 		if (!dump) {
-			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szBuf));
+			M4_LOG(GF_LOG_ERROR, ("Failed to open %s\n", szFileName));
 			return GF_IO_ERR;
 		}
 		do_close=GF_TRUE;
@@ -1934,6 +1970,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			dumper.trackID = trackID;
 			dumper.dump_file = dump;
 
+			e = GF_OK;
 			if (mtype == GF_ISOM_MEDIA_HINT) {
 #ifndef GPAC_DISABLE_ISOM_HINTING
 				char *name=NULL;
@@ -1956,16 +1993,35 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				fmt_handled = GF_TRUE;
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
 			}
-			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
-				dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
+			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1)
+				|| gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)
+				|| gf_isom_get_vvc_type(the_file, i+1, 1)
+			) {
+				e = dump_isom_nal_ex(the_file, trackID, dump, GF_FALSE);
 				fmt_handled = GF_TRUE;
-			} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
+			}
+			else if (msubtype == GF_ISOM_SUBTYPE_AV01) {
+				e = dump_isom_obu(the_file, trackID, dump, GF_FALSE);
+				fmt_handled = GF_TRUE;
+			}
+			else if (msubtype == GF_ISOM_SUBTYPE_AV01) {
+				e = dump_isom_obu(the_file, trackID, dump, GF_FALSE);
+				fmt_handled = GF_TRUE;
+			}
+			else if ((msubtype == GF_QT_SUBTYPE_APCH) || (msubtype == GF_QT_SUBTYPE_APCO)
+				|| (msubtype == GF_QT_SUBTYPE_APCN) || (msubtype == GF_QT_SUBTYPE_APCS)
+				|| (msubtype == GF_QT_SUBTYPE_AP4X) || (msubtype == GF_QT_SUBTYPE_AP4H)
+			) {
+				e = dump_qt_prores(the_file, trackID, dump, GF_FALSE);
+				fmt_handled = GF_TRUE;
+			}
+			else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
 
 				if (msubtype==GF_ISOM_SUBTYPE_WVTT) {
-					gf_webvtt_dump_iso_track(&dumper, i+1, merge_vtt_cues, GF_TRUE);
+					e = gf_webvtt_dump_iso_track(&dumper, i+1, merge_vtt_cues, GF_TRUE);
 					fmt_handled = GF_TRUE;
 				} else if ((msubtype==GF_ISOM_SUBTYPE_TX3G) || (msubtype==GF_ISOM_SUBTYPE_TEXT)) {
-					gf_isom_text_dump(the_file, i+1, dump, GF_TEXTDUMPTYPE_TTXT_BOXES);
+					e = gf_isom_text_dump(the_file, i+1, dump, GF_TEXTDUMPTYPE_TTXT_BOXES);
 					fmt_handled = GF_TRUE;
 				}
 			}
@@ -1973,8 +2029,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 			if (!fmt_handled) {
 				dumper.flags = GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
 				dumper.print_stats_graph = fs_dump_flags;
-				gf_media_export(&dumper);
+				e = gf_media_export(&dumper);
 			}
+			if (e) break;
 		}
 #else
 		return GF_NOT_SUPPORTED;
@@ -1984,6 +2041,19 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		fprintf(dump, "</ISOBaseMediaFileTrace>\n");
 	}
 	if (do_close) gf_fclose(dump);
+
+	if (!e && dump_check_xml) {
+		if (do_close) {
+			GF_DOMParser *xml_parser = gf_xml_dom_new();
+			e = gf_xml_dom_parse(xml_parser, szFileName, NULL, NULL);
+			if (e) {
+				fprintf(stderr, "Failed to parse XML dump %s: line %d: %s\n", szFileName, gf_xml_dom_get_line(xml_parser), gf_xml_dom_get_error(xml_parser) );
+			}
+			gf_xml_dom_del(xml_parser);
+		} else {
+			fprintf(stderr, "Cannot check XML for dump on stdout\n");
+		}
+	}
 	return e;
 }
 #endif
@@ -4137,9 +4207,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
-
-#include <gpac/download.h>
-#include <gpac/mpd.h>
 
 void get_file_callback(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
