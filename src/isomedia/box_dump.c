@@ -4604,15 +4604,20 @@ GF_Err sbgp_box_dump(GF_Box *a, FILE * trace)
 		if (isalnum(ptr->grouping_type_parameter&0xFF)) {
 			gf_fprintf(trace, " grouping_type_parameter=\"%s\"", gf_4cc_to_str(ptr->grouping_type_parameter) );
 		} else {
-			gf_fprintf(trace, " grouping_type_parameter=\"%d\"", ptr->grouping_type_parameter);
+			gf_fprintf(trace, " grouping_type_parameter=\"%u\"", ptr->grouping_type_parameter);
 		}
 	}
 	gf_fprintf(trace, ">\n");
 	for (i=0; i<ptr->entry_count; i++) {
-		gf_fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%d\" group_description_index=\"%d\"/>\n", ptr->sample_entries[i].sample_count, ptr->sample_entries[i].group_description_index );
+		GF_SampleGroupEntry *pe = &ptr->sample_entries[i];
+		if (pe->group_description_index>0x10000) {
+			gf_fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%u\" group_description_index=\"%u\" group_description_in_traf=\"1\" />\n", pe->sample_count, pe->group_description_index-0x10000);
+		} else {
+			gf_fprintf(trace, "<SampleGroupBoxEntry sample_count=\"%u\" group_description_index=\"%u\"/>\n", ptr->sample_entries[i].sample_count, ptr->sample_entries[i].group_description_index );
+		}
 	}
 	if (!ptr->size) {
-		gf_fprintf(trace, "<SampleGroupBoxEntry sample_count=\"\" group_description_index=\"\"/>\n");
+		gf_fprintf(trace, "<SampleGroupBoxEntry sample_count=\"\" group_description_index=\"\" group_description_in_traf=\"\"/>\n");
 	}
 	gf_isom_box_dump_done("SampleGroupBox", a, trace);
 	return GF_OK;
