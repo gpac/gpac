@@ -6229,7 +6229,7 @@ GF_Err csgp_box_dump(GF_Box *a, FILE * trace)
 			else
 				fprintf(trace, "%d", idx);
 		}
-		fprintf(trace, "\">\n");
+		fprintf(trace, "\"/>\n");
 	}
 
 	gf_isom_box_dump_done("CompactSampleGroupBox", a, trace);
