@@ -31,6 +31,8 @@
 
 #include <gpac/mpegts.h>
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 typedef struct
 {
 	GF_FilterPid *opid;
@@ -491,3 +493,4 @@ const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session)
 	return &M2TSSplitRegister;
 }
 
+#endif /*GPAC_DISABLE_MPEG2TS*/

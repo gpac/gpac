@@ -267,6 +267,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 					make_mp4a = GF_TRUE;
 				}
 				if (make_mp4a) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					GF_M4ADecSpecInfo aacinfo;
 					memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
 					aacinfo.nb_chan = ase->channel_count;
@@ -276,6 +277,9 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 					(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 					(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_AAC_MPEG4;
 					gf_m4a_write_config(&aacinfo, &(*out_esd)->decoderConfig->decoderSpecificInfo->data, &(*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
+#else
+					return GF_NOT_SUPPORTED;
+#endif
 				}
             }
         }

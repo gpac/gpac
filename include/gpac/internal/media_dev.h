@@ -43,6 +43,15 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
+
+typedef struct
+{
+	Bool override;
+	u16 colour_primaries, transfer_characteristics, matrix_coefficients;
+	Bool full_range;
+} COLR;
+
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 u32 gf_latm_get_value(GF_BitStream *bs);
@@ -68,14 +77,6 @@ s32 gf_bs_read_se(GF_BitStream *bs);
 void gf_bs_write_ue(GF_BitStream *bs, u32 num);
 void gf_bs_write_se(GF_BitStream *bs, s32 num);
 
-
-
-typedef struct
-{
-	Bool override;
-	u16 colour_primaries, transfer_characteristics, matrix_coefficients;
-	Bool full_range;
-} COLR;
 
 enum
 {

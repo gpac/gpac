@@ -33,6 +33,8 @@
 #include <gpac/isomedia.h>
 #include <gpac/base_coding.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
 #endif
@@ -933,6 +935,8 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	return e;
 }
 
+
+
 void nhml_get_bs(GF_BitStream **bs, char *data, u32 size, u32 mode)
 {
 	if (*bs) gf_bs_reassign_buffer(*bs, data, size);
@@ -1441,4 +1445,6 @@ const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session)
 {
 	return &NHMLDmxRegister;
 }
+
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 

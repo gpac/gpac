@@ -1126,6 +1126,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32 *next_time_ms)
 {
+#ifndef GPAC_DISABLE_CORE_TOOLS
 	u64 next_gen_ntp = 0;
 	GF_Err e = GF_OK;
 	GF_DOMParser *mpd_parser;
@@ -1163,6 +1164,9 @@ GF_Err dash_state_check_timing(const char *dash_state, u64 *next_gen_ntp_ms, u32
 		}
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 }
 
 GF_EXPORT

@@ -39,7 +39,7 @@
 #include <gpac/internal/swf_dev.h>
 #endif
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_CORE_TOOLS)
 
 #define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 

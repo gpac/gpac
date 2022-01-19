@@ -30,6 +30,9 @@
 #include <gpac/webvtt.h>
 
 
+#ifndef GPAC_DISABLE_MPEG2TS_MUX
+
+
 #define M2TS_FILE_EXTS "ts|m2t|mts|dmb|trp"
 #define M2TS_MIMES "video/mpeg-2|video/mp2t|video/mpeg|audio/mp2t"
 
@@ -1973,3 +1976,5 @@ const GF_FilterRegister *tsmux_register(GF_FilterSession *session)
 {
 	return &TSMuxRegister;
 }
+
+#endif /*GPAC_DISABLE_MPEG2TS_MUX*/

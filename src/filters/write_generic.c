@@ -31,6 +31,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 enum
 {
 	DECINFO_NO=0,
@@ -1651,3 +1653,4 @@ const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 	return &GenDumpRegister;
 }
 
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
