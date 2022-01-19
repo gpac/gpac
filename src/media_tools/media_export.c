@@ -1075,6 +1075,11 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 			GF_ISOSample *samp;
 			if (safs[i].last_sample==safs[i].nb_samp) continue;
 			samp = gf_isom_get_sample(dumper->file, safs[i].track_num, safs[i].last_sample + 1, &di);
+			if (!samp) {
+				gf_saf_mux_del(mux);
+				return gf_isom_last_error(dumper->file);
+			}
+
 			gf_saf_mux_add_au(mux, safs[i].stream_id, (u32) (samp->DTS+samp->CTS_Offset), samp->data, samp->dataLength, (samp->IsRAP==RAP) ? 1 : 0);
 			/*data is kept by muxer!!*/
 			gf_free(samp);
