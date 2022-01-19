@@ -32,6 +32,8 @@
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #define DEFAULT_PERIOD_ID	 "_gf_dash_def_period"
 
 typedef struct
@@ -9482,3 +9484,5 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return &DasherRegister;
 }
+
+#endif /*GPAC_DISABLE_CORE_TOOLS*/

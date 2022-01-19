@@ -529,12 +529,6 @@ static void tilesplit_finalize(GF_Filter *filter)
 	if (ctx->pck_buf) gf_free(ctx->pck_buf);
 }
 
-#else
-static GF_Err tilesplit_process(GF_Filter *filter)
-{
-	return GF_NOT_SUPPORTED;
-}
-#endif
 
 static const GF_FilterCapability TileSplitCaps[] =
 {
@@ -590,18 +584,13 @@ GF_FilterRegister TileSplitRegister = {
 	.configure_pid = tilesplit_configure_pid,
 #endif
 	.process = tilesplit_process,
-
 };
 
 
 const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
 {
-#if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
-	if (!gf_opts_get_bool("temp", "gendoc"))
-		return NULL;
-	TileSplitRegister.version = "! Warning: NOT AVAILABLE IN THIS BUILD !";
-#endif
 	return &TileSplitRegister;
 }
 
+#endif /* !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS) */
 

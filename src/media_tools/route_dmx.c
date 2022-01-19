@@ -25,7 +25,7 @@
 
 #include <gpac/route.h>
 
-#ifndef GPAC_DISABLE_ROUTE
+#if !defined(GPAC_DISABLE_ROUTE) && !defined(GPAC_DISABLE_CORE_TOOLS)
 
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
@@ -2044,4 +2044,4 @@ void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 	if (routedmx) routedmx->debug_tsi = tsi;
 }
 
-#endif /* GPAC_DISABLE_ROUTE */
+#endif /* !GPAC_DISABLE_ROUTE && !GPAC_DISABLE_CORE_TOOLS */

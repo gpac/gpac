@@ -9531,6 +9531,8 @@ s32 gf_mpegh_get_mhas_pl(u8 *ptr, u32 size, u64 *ch_layout)
 }
 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 GF_EXPORT
 void gf_vvc_parse_sei(char *buffer, u32 nal_size, VVCState *vvc)
 {
@@ -11522,3 +11524,5 @@ GF_Err gf_vvc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, 
 	gf_free(vvc);
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/

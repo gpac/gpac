@@ -372,7 +372,9 @@ static void adtsmx_finalize(GF_Filter *filter)
 {
 	GF_ADTSMxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs_w) gf_bs_del(ctx->bs_w);
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (ctx->pce) gf_free(ctx->pce);
+#endif
 }
 
 static const GF_FilterCapability ADTSMxCaps[] =

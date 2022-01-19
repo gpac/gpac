@@ -43,7 +43,9 @@ struct _bsrw_pid_ctx
 
 	u32 nalu_size_length;
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VUIInfo vui;
+#endif
 	Bool rewrite_vui;
 };
 
@@ -81,7 +83,11 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	memcpy(dsi, prop->value.data.ptr, sizeof(u8) * dsi_size);
 
 	if (ctx->sar.num && ctx->sar.den) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		e = gf_m4v_rewrite_par(&dsi, &dsi_size, ctx->sar.num, ctx->sar.den);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 		if (e) {
 			gf_free(dsi);
 			return e;
@@ -89,8 +95,12 @@ static GF_Err m4v_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->sar) );
 	}
 	if (ctx->m4vpl>=0) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		gf_m4v_rewrite_pl(&dsi, &dsi_size, (u32) ctx->m4vpl);
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(ctx->m4vpl) );
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
@@ -210,6 +220,7 @@ static GF_Err vvc_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPacket
 	return nalu_rewrite_packet(ctx, pctx, pck, 2);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
 {
 	if ((vui->ar_num>0) && (vui->ar_den>0))
@@ -227,6 +238,7 @@ static void update_props(BSRWPid *pctx, GF_VUIInfo *vui)
 			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(vui->color_matrix) );
 	}
 }
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
@@ -243,12 +255,16 @@ static GF_Err avc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	avcc = gf_odf_avc_cfg_read(prop->value.data.ptr, prop->value.data.size);
 
 	if (pctx->rewrite_vui) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		GF_VUIInfo tmp_vui = pctx->vui;
 		tmp_vui.update = GF_TRUE;
 		e = gf_avc_change_vui(avcc, &tmp_vui);
 		if (!e) {
 			update_props(pctx, &tmp_vui);
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 	}
 
 	if ((ctx->lev>=0) || (ctx->prof>=0) || (ctx->pcomp>=0)) {
@@ -303,12 +319,16 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 	hvcc = gf_odf_hevc_cfg_read(prop->value.data.ptr, prop->value.data.size, (pctx->codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
 	if (pctx->rewrite_vui) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		GF_VUIInfo tmp_vui = pctx->vui;
 		tmp_vui.update = GF_TRUE;
 		e = gf_hevc_change_vui(hvcc, &tmp_vui);
 		if (!e) {
 			update_props(pctx, &tmp_vui);
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 	}
 
 	if (ctx->pidc>=0) hvcc->profile_idc = ctx->pidc;
@@ -335,6 +355,7 @@ static GF_Err hevc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_VVCConfig *vvcc;
 	GF_Err e = GF_OK;
 	u8 *dsi;
@@ -372,6 +393,9 @@ static GF_Err vvc_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 		pctx->rewrite_packet = none_rewrite_packet;
 	}
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 }
 
 static GF_Err none_rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
@@ -390,6 +414,7 @@ static GF_Err rewrite_pid_config(GF_BSRWCtx *ctx, BSRWPid *pctx)
 
 static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	pctx->vui.ar_num = ctx->sar.num;
 	pctx->vui.ar_den = ctx->sar.den;
 	pctx->vui.color_matrix = ctx->cmx;
@@ -398,6 +423,7 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	pctx->vui.remove_video_info = ctx->novsi;
 	pctx->vui.color_tfc = ctx->ctfc;
 	pctx->vui.video_format = ctx->vidfmt;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 	pctx->rewrite_vui = GF_TRUE;
 	if (ctx->sar.num>=0) return;

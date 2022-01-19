@@ -7680,6 +7680,17 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 	return GF_OK;
 }
 
+
+#ifdef GPAC_DISABLE_CORE_TOOLS
+
+GF_EXPORT
+GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename, Bool for_fragments)
+{
+	return GF_NOT_SUPPORTED;
+}
+
+#else
+
 #include <gpac/xml.h>
 GF_EXPORT
 GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename, Bool for_fragments)
@@ -7937,6 +7948,9 @@ err_exit:
 	if (box_data) gf_free(box_data);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
+
 
 GF_EXPORT
 GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic)

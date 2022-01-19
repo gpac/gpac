@@ -320,6 +320,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 		} else if (value && !strnicmp(value, "bxml@", 5) ) {
 			GF_Err e;
+#ifndef GPAC_DISABLE_CORE_TOOLS
 			GF_DOMParser *dom = gf_xml_dom_new();
 			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
 			if (e) {
@@ -337,6 +338,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 			}
 			gf_xml_dom_del(dom);
+#else
+			e = GF_NOT_SUPPORTED;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to binarize XML file %s: %s\n", value+5, gf_error_to_string(e) ));
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 		} else {
 			p.value.string = value ? gf_strdup(value) : NULL;
 		}
@@ -365,6 +370,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			}
 		} else if (!strnicmp(value, "bxml@", 5) ) {
 			GF_Err e;
+#ifndef GPAC_DISABLE_CORE_TOOLS
 			GF_DOMParser *dom = gf_xml_dom_new();
 			e = gf_xml_dom_parse(dom, value+5, NULL, NULL);
 			if (e) {
@@ -380,6 +386,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 			}
 			gf_xml_dom_del(dom);
+#else
+			e = GF_NOT_SUPPORTED;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to binarize XML file %s: %s\n", value+5, gf_error_to_string(e) ));
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 		} else if (!strnicmp(value, "file@", 5) ) {
 			GF_Err e = gf_file_load_data(value+5, (u8 **) &p.value.data.ptr, &p.value.data.size);
 			if (e) {
@@ -388,6 +398,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size=0;
 			}
 		} else if (!strnicmp(value, "b64@", 4) ) {
+#ifndef GPAC_DISABLE_CORE_TOOLS
 			u8 *b64 = (u8 *)value + 5;
 			u32 size = (u32) strlen(b64);
 			p.value.data.ptr = gf_malloc(sizeof(char) * size);
@@ -403,6 +414,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				p.value.data.size = 0;
 				p.type=GF_PROP_FORBIDEN;
 			}
+#else
+			GF_Err e = GF_NOT_SUPPORTED;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to binarize XML file %s: %s\n", value+5, gf_error_to_string(e) ));
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 		} else {
 			p.value.data.size = (u32) strlen(value);
 			if (p.value.data.size)

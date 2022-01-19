@@ -3359,6 +3359,8 @@ const GF_FilterRegister *dashdmx_register(GF_FilterSession *session)
 #endif
 }
 
+
+#ifndef GPAC_DISABLE_DASH_CLIENT
 static s32 dashdmx_rate_adaptation_ext(void *udta, u32 group_idx, u32 base_group_idx, Bool force_lower_complexity, GF_DASHCustomAlgoInfo *stats)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
@@ -3376,7 +3378,7 @@ typedef struct
 	u32 current_seg_dur;
 } GF_DASHDownloadStats;
 
-s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
+static s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_sec, u64 total_bytes, u64 bytes_done, u64 us_since_start, u32 buffer_dur_ms, u32 current_seg_dur)
 {
 	GF_DASHDmxCtx *ctx = (GF_DASHDmxCtx*) udta;
 	GF_DASHDownloadStats stats;
@@ -3389,6 +3391,7 @@ s32 dashdmx_download_monitor_ext(void *udta, u32 group_idx, u32 bits_per_sec, u6
 	stats.current_seg_dur = current_seg_dur;
 	return ctx->on_download_monitor(ctx->rt_udta, group_idx, &stats);
 }
+#endif /*GPAC_DISABLE_DASH_CLIENT*/
 
 
 GF_EXPORT

@@ -1830,6 +1830,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		return;
 
 	if ((att->type==GF_PROP_DATA) && (ctx->analyze || ctx->xml)) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (p4cc==GF_PROP_PID_CONTENT_LIGHT_LEVEL) {
 			GF_BitStream *bs = gf_bs_new(att->value.data.ptr, att->value.data.size, GF_BITSTREAM_READ);
 			dump_clli(dump, bs);
@@ -1843,6 +1844,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			gf_bs_del(bs);
 			return;
 		}
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 	}
 
 
@@ -2455,6 +2457,7 @@ static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, 
 	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
 {
 	GF_Err e;
@@ -2538,6 +2541,8 @@ static void inspect_dump_ac3_eac3(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 f
 	gf_fprintf(dump, "/>\n");
 	gf_bs_set_logger(pctx->bs, NULL, NULL);
 }
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
@@ -2867,9 +2872,8 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 
 static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
 {
-	u32 idx=0, nalh_size;
+	u32 idx=0, nalh_size, i;
 #ifndef GPAC_DISABLE_AV_PARSERS
-	u32 i;
 	GF_NALUFFParam *slc;
 #endif
 	GF_AVCConfig *avcc, *svcc;
@@ -3255,7 +3259,9 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 		size = gf_bs_read_u16(pctx->bs);
 		if (size) {
 			gf_fprintf(dump, ">\n");
+#ifndef GPAC_DISABLE_AV_PARSERS
 			dump_mha_config(dump, pctx->bs, "  ");
+#endif
 			gf_fprintf(dump, " </MPEGHAudioConfig>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
@@ -3301,6 +3307,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Inspect] bitstream analysis for codec %s not supported, only configuration is\n", gf_codecid_name(pctx->codec_id)));
 		}
 		if (dsi) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 			GF_M4ADecSpecInfo acfg;
 			InspectLogCbk lcbk;
 
@@ -3328,6 +3335,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			}
 			if (acfg.comments[0])
 				gf_fprintf(dump, "comments=\"%s\" ", acfg.comments);
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 			gf_fprintf(dump, "/>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
