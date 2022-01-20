@@ -4644,6 +4644,8 @@ GF_Box *gf_isom_clone_config_box(GF_Box *box);
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
 GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
 
+u64 gf_moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID);
+
 void gf_isom_registry_disable(u32 boxCode, Bool disable);
 
 /*Apple extensions*/

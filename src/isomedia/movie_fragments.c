@@ -875,7 +875,7 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID)
 	return duration;
 }
 
-static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID)
+u64 gf_moof_get_earliest_cts(GF_MovieFragmentBox *moof, GF_ISOTrackID refTrackID)
 {
 	u32 i, j;
 	u64 cts, duration;
@@ -1738,7 +1738,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 	if (referenceTrackID) {
 		Bool is_root_sidx = GF_FALSE;
 
-		prev_earliest_cts = get_presentation_time( ref_track_decode_time + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
+		prev_earliest_cts = get_presentation_time( ref_track_decode_time + gf_moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
 
 		//we don't trust ref_track_next_cts to be the earliest in the following segment
 		next_earliest_cts = estimate_next_moof_earliest_presentation_time(ref_track_decode_time, ts_shift, referenceTrackID, movie);
@@ -1904,7 +1904,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 			if (!sidx) return GF_OUT_OF_MEM;
 			sidx->reference_ID = referenceTrackID;
 			sidx->timescale = trak ? trak->Media->mediaHeader->timeScale : 1000;
-			sidx->earliest_presentation_time = get_presentation_time( ref_track_decode_time + sidx_dur + moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
+			sidx->earliest_presentation_time = get_presentation_time( ref_track_decode_time + sidx_dur + gf_moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
 
 			frag_count = frags_per_subsidx;
 
@@ -1973,7 +1973,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 
 				/*do not compute earliest CTS if single segment sidx since we only have set the info for one subsegment*/
 				if (!movie->root_sidx && first_frag_in_subseg) {
-					u64 first_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur +  moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
+					u64 first_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur +  gf_moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
 					if (cur_index) {
 						u32 subseg_dur = (u32) (first_cts - prev_earliest_cts);
 						sidx->refs[cur_index-1].subsegment_duration = subseg_dur;
@@ -2057,7 +2057,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, GF_ISO
 					if ((next_earliest_cts==-1) || (next_earliest_cts < prev_earliest_cts))  {
 						u64 next_cts;
 						if (gf_list_count(movie->moof_list)) {
-							next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
+							next_cts = get_presentation_time( ref_track_decode_time + sidx_dur + cur_dur + gf_moof_get_earliest_cts((GF_MovieFragmentBox*)gf_list_get(movie->moof_list, 0), referenceTrackID), ts_shift);
 						} else {
 							next_cts = get_presentation_time( ref_track_next_cts, ts_shift);
 						}
