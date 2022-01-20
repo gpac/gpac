@@ -827,8 +827,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 			}
 			else if (!edts_e->segmentDuration) {
 				edts_e->was_empty_dur = GF_TRUE;
-				if ((s64) traf_duration > edts_e->mediaTime)
-					traf_duration -= edts_e->mediaTime;
+				s64 earliest_cts = (s64)gf_moof_get_earliest_cts(moof_box, trak->Header->trackID);
+				s64 offs = edts_e->mediaTime - earliest_cts;
+				if ((s64) traf_duration > offs)
+					traf_duration -= offs;
 				else
 					traf_duration = 0;
 
