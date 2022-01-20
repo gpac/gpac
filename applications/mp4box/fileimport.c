@@ -1231,6 +1231,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				}
 			}
 		}
+		else if (!strnicmp(ext+1, "ID=", 3)) {
+			import.target_trackID = (u32) atoi(ext+4);
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			M4_LOG(GF_LOG_ERROR, ("Unrecognized import option %s, ignoring\n", ext+1));
