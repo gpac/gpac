@@ -451,10 +451,18 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			clone_flags = 0;
 	}
 
-	if (import->flags & GF_IMPORT_USE_DATAREF) clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
+	if (import->flags & GF_IMPORT_USE_DATAREF)
+		clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
+	if (import->target_trackID && (import->target_trackID==(u32)-1))
+		clone_flags |= GF_ISOM_CLONE_TRACK_DROP_ID;
+		
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, clone_flags, &track);
 	if (e) goto exit;
 
+	if (import->target_trackID && (import->target_trackID!=(u32)-1)) {
+		u32 new_tk_id = import->target_trackID;
+		gf_isom_set_track_id(import->dest, track, new_tk_id);
+	}
 
 	if ((gf_isom_get_track_count(import->dest)==1) && gf_isom_has_keep_utc_times(import->dest)) {
 		u64 cdate, mdate;
@@ -1328,6 +1336,10 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		e |= gf_dynstrcat(&args, "xps_inband=both", ":");
 	if (importer->esd && importer->esd->ESID) {
 		sprintf(szSubArg, "trackid=%d", importer->esd->ESID);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
+	else if (importer->target_trackID) {
+		sprintf(szSubArg, "trackid=%u", importer->target_trackID);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
 	if (importer->flags & GF_IMPORT_FORCE_SYNC)

@@ -1986,6 +1986,17 @@ S set duration of the last sample. Value is formatted as:
   * N/D: indicate the duration as fractional second
 .br
 .TP
+.B ID (int)
+.br
+S set target ID
+.br
+  - a value of 0 (default) will try to keep source track ID
+.br
+  - a value of -1 will ignore source track ID
+.br
+  - other value will try to set track ID to this value if no other track with same ID is present
+.br
+.TP
 .B stats,-fstat
 .br
 C print filter session stats after import
@@ -2824,7 +2835,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1642-g5ff2a87df-master
+build: 1.1.0-DEV-rev1645-g9f8510835-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

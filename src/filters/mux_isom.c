@@ -1188,8 +1188,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (p) tkid = p->value.uint;
 
-		if (ctx->trackid) tkid = ctx->trackid;
-
 		if (tkw->stream_type == GF_STREAM_ENCRYPTED) {
 			tkw->is_encrypted = GF_TRUE;
 			tkw->stream_type = gf_codecid_type(tkw->codecid);
@@ -1253,6 +1251,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable to find ISOM media type for stream type %s codec %s\n", gf_stream_type_name(tkw->stream_type), gf_codecid_name(tkw->codecid) ));
 			}
 			if (!tkid) tkid = tk_idx;
+
+			if (ctx->trackid) {
+				if (ctx->trackid==(u32)-1) tkid = 0;
+				else tkid = ctx->trackid;
+			}
 
 			tkw->track_num = gf_isom_new_track(ctx->file, tkid, mtype, tkw->tk_timescale);
 			if (!tkw->track_num) {

@@ -4198,8 +4198,11 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	stbl->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STTS);
 	if (!stbl->TimeToSample) return GF_OUT_OF_MEM;
 
+	if (flags & GF_ISOM_CLONE_TRACK_DROP_ID)
+		new_tk->Header->trackID = 0;
+
 	/*check trackID validity before adding track*/
-	if (gf_isom_get_track_by_id(dest_file, new_tk->Header->trackID)) {
+	if (!new_tk->Header->trackID || gf_isom_get_track_by_id(dest_file, new_tk->Header->trackID)) {
 		u32 ID = 1;
 		while (1) {
 			if (RequestTrack(dest_file->moov, ID)) break;

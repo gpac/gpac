@@ -430,6 +430,13 @@ typedef struct __track_import
 	/*! target timescale to set*/
 	s32 moov_timescale;
 
+	/*! value for created track
+		0: let importer decide
+		0xFFFFFFFF: try to keep source ID
+		other value: trackk ID value
+	*/
+	u32 target_trackID;
+
 	/*magic number for identifying source, will be set to the destination track. Only the low 32 bits are used
 	the high 32 bits are updated by the importer as follows:
 		1<<33: if bit is set, source was an isobmff file
