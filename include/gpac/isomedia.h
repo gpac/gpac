@@ -3926,6 +3926,15 @@ u32 gf_isom_segment_get_track_fragment_count(GF_ISOFile *isom_file, u32 moof_ind
 */
 u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *isom_file, u32 moof_index, u32 traf_index, u64 *decode_time);
 
+/*! get the movie fragment size, i.e. the size of moof, mdat and related boxes before moof/mdat
+
+\param isom_file the target ISO file
+\param moof_index the target movie fragment (1-based index)
+\param moof_size set to moof box size, may be NULL
+\return the movie fragemnt size
+*/
+u64 gf_isom_segment_get_fragment_size(GF_ISOFile *file, u32 moof_index, u32 *moof_size);
+
 /*! enables single moof mode. In single moof mode, file is parsed only one moof/mdat at a time
    in order to proceed to next moof, \ref gf_isom_reset_data_offset must be called to parse the next moof
 \param isom_file the target ISO file
