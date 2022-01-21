@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -1098,6 +1098,11 @@ enum
 	GF_AVC_NALU_DV_RPU = 28,
 	/*! Dolby Vision EL */
 	GF_AVC_NALU_DV_EL = 30,
+
+	/*! NALU-FF extractor */
+	GF_AVC_NALU_FF_AGGREGATOR=30,
+	/*! NALU-FF aggregator */
+	GF_AVC_NALU_FF_EXTRACTOR=31,
 };
 
 
@@ -1191,6 +1196,12 @@ enum
 	GF_HEVC_NALU_SEI_PREFIX = 39,
 	/*! suffix SEI message*/
 	GF_HEVC_NALU_SEI_SUFFIX = 40,
+
+	/*! NALU-FF aggregator */
+	GF_HEVC_NALU_FF_AGGREGATOR=48,
+	/*! NALU-FF extractor */
+	GF_HEVC_NALU_FF_EXTRACTOR=49,
+
 	/*! Dolby Vision RPU */
 	GF_HEVC_NALU_DV_RPU = 62,
 	/*! Dolby Vision EL */

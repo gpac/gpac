@@ -819,6 +819,8 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DOLBY_VISION);
 	if (p && p->value.data.ptr && (p->value.data.size==24)) {
 		memcpy(tspid->esi.dv_info, p->value.data.ptr, 24);
+		if (! (tspid->esi.dv_info[3] & 0x1))
+			tspid->esi.caps |= GF_ESI_FORCE_DOLBY_VISION;
 	}
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_ISOM_SUBTYPE);

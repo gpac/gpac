@@ -336,6 +336,8 @@
 		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
 		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
 		92261A89239E326900C14199 /* out_http.c in Sources */ = {isa = PBXBuildFile; fileRef = 92261A88239E326900C14199 /* out_http.c */; };
+		9227B8582799F8E700BF3D1B /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8562799F8E600BF3D1B /* bs_agg.c */; };
+		9227B8592799F8E700BF3D1B /* bs_split.c in Sources */ = {isa = PBXBuildFile; fileRef = 9227B8572799F8E600BF3D1B /* bs_split.c */; };
 		922B2774244625B0001D4F72 /* dec_ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 922B2773244625B0001D4F72 /* dec_ttml.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
@@ -935,6 +937,8 @@
 		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
 		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
 		92261A88239E326900C14199 /* out_http.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = out_http.c; path = ../../src/filters/out_http.c; sourceTree = "<group>"; };
+		9227B8562799F8E600BF3D1B /* bs_agg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_agg.c; path = ../../src/filters/bs_agg.c; sourceTree = "<group>"; };
+		9227B8572799F8E600BF3D1B /* bs_split.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_split.c; path = ../../src/filters/bs_split.c; sourceTree = "<group>"; };
 		922B2773244625B0001D4F72 /* dec_ttml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ttml.c; path = ../../src/filters/dec_ttml.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
@@ -1901,6 +1905,8 @@
 		92EB6D5E20E4E16700A97A49 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9227B8562799F8E600BF3D1B /* bs_agg.c */,
+				9227B8572799F8E600BF3D1B /* bs_split.c */,
 				92C236E72576DC4E00CD59A9 /* tilesplit.c */,
 				9274295924647B98009ADD8D /* bsrw.c */,
 				92EB6D8B20E4E19300A97A49 /* compose.c */,
@@ -2404,6 +2410,7 @@
 				71CCF27D1277045100339E12 /* mpeg4_path_layout.c in Sources */,
 				71CCF27E1277045100339E12 /* mpeg4_sensors.c in Sources */,
 				71CCF27F1277045100339E12 /* mpeg4_sound.c in Sources */,
+				9227B8582799F8E700BF3D1B /* bs_agg.c in Sources */,
 				71CCF2801277045100339E12 /* mpeg4_text.c in Sources */,
 				71CCF2811277045100339E12 /* mpeg4_textures.c in Sources */,
 				71CCF2821277045100339E12 /* mpeg4_timesensor.c in Sources */,
@@ -2641,6 +2648,7 @@
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				92E9DFA62215CE9A00628420 /* g_crypt_openssl.c in Sources */,
 				71CCF3391277045100339E12 /* os_net.c in Sources */,
+				9227B8592799F8E700BF3D1B /* bs_split.c in Sources */,
 				71CCF33A1277045100339E12 /* os_thread.c in Sources */,
 				71CCF33B1277045100339E12 /* path2d.c in Sources */,
 				71CCF33C1277045100339E12 /* path2d_stroker.c in Sources */,

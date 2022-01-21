@@ -248,6 +248,8 @@
     <ClCompile Include="..\..\src\compositor\visual_manager_3d.c" />
     <ClCompile Include="..\..\src\compositor\visual_manager_3d_gl.c" />
     <ClCompile Include="..\..\src\compositor\x3d_geometry.c" />
+    <ClCompile Include="..\..\src\filters\bs_agg.c" />
+    <ClCompile Include="..\..\src\filters\bs_split.c" />
     <ClCompile Include="..\..\src\filters\bsrw.c" />
     <ClCompile Include="..\..\src\filters\compose.c" />
     <ClCompile Include="..\..\src\filters\dasher.c" />

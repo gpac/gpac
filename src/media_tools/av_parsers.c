@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Romain Bouqueau, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -5858,7 +5858,7 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 		si->field_pic_flag = gf_bs_read_int_log(bs, 1, "field_pic_flag");
 		if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int_log(bs, 1, "bottom_field_flag");
 	}
-	if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si->NalHeader.idr_pic_flag)
+	if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si->svc_nalhdr.idr_pic_flag)
 		si->idr_pic_id = gf_bs_read_ue_log(bs, "idr_pic_id");
 
 	if (si->sps->poc_type == 0) {
@@ -6113,7 +6113,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		break;
 
 	case GF_AVC_NALU_SVC_SLICE:
-		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
+		SVC_ReadNal_header_extension(bs, &n_state.svc_nalhdr);
 		// slice buffer - read the info and compare.
 		/*ret = */svc_parse_slice(bs, avc, &n_state);
 		if (avc->s_info.nal_ref_idc) {
@@ -6130,7 +6130,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		return 0;
 
 	case GF_AVC_NALU_SVC_PREFIX_NALU:
-		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
+		SVC_ReadNal_header_extension(bs, &avc->s_info.svc_nalhdr);
 		return 0;
 
 	case GF_AVC_NALU_IDR_SLICE:
@@ -9544,7 +9544,7 @@ static Bool vvc_parse_nal_header(GF_BitStream *bs, u8 *nal_unit_type, u8 *tempor
 	u32 val;
 	val = gf_bs_read_int_log(bs, 1, "forbidden_zero");
 	if (val) return GF_FALSE;
-	val = gf_bs_read_int_log(bs, 1, "resevred0");
+	val = gf_bs_read_int_log(bs, 1, "reserved_zero");
 	if (val) return GF_FALSE;
 
 	val = gf_bs_read_int_log(bs, 6, "layerID");

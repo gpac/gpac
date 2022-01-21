@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2021
+ *			Copyright (c) Telecom ParisTech 2010-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenSVC Decoder filter
@@ -74,7 +74,7 @@ typedef struct
 static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	Bool found=GF_TRUE;
-	const GF_PropertyValue *p;
+	const GF_PropertyValue *p, *dsi_enh;
 	u32 i, count, dep_id=0, id=0, cfg_crc=0;
 	s32 res;
 	OPENSVCFRAME Picture;
@@ -122,6 +122,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if ((ctx->streams[i].ipid == pid) && (ctx->streams[i].cfg_crc == cfg_crc)) return GF_OK;
 		}
 	}
+	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
 
 	found = GF_FALSE;
 	for (i=0; i<ctx->active_streams; i++) {
@@ -189,6 +190,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
 		}
 
+retry:
 		/*decode all NALUs*/
 		count = gf_list_count(cfg->sequenceParameterSets);
 		SetCommandLayer(ctx->layers, 255, 0, &res, 0);//bufindex can be reset without pb
@@ -240,6 +242,12 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		}
 		gf_odf_avc_cfg_del(cfg);
+
+		if (dsi_enh) {
+			cfg = gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
+			dsi_enh = NULL;
+			if (cfg) goto retry;
+		}
 	} else {
 		if (ctx->nalu_size_length) {
 			return GF_NOT_SUPPORTED;
@@ -376,7 +384,8 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	if (!src_pck)
 		gf_list_add(ctx->src_packets, pck_ref);
 
-	pic.Width = pic.Height = 0;
+	memset(&pic, 0, sizeof(OPENSVCFRAME));
+
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -505,7 +514,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 
 		if (got_pic) has_pic = GF_TRUE;
 	}
-	if (!has_pic) return GF_OK;
+	if (!has_pic || !pic.Width || !pic.Height) return GF_OK;
 
 	if ((pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[SVC Decoder] Resizing from %dx%d to %dx%d\n", ctx->width, ctx->height, pic.Width, pic.Height ));

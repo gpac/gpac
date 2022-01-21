@@ -2440,7 +2440,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 				gf_bs_read_data(bs, buffer, size);
 				nal_type = buffer[0] & 0x1F;
 				/*skip extractor*/
-				if (nal_type == 31)
+				if (nal_type == GF_AVC_NALU_FF_EXTRACTOR)
 					continue;
 				/*copy to new bitstream*/
 				gf_bs_write_int(dst_bs, size, nalu_size_length);
@@ -3060,7 +3060,7 @@ reparse:
 					//extractor size 5
 					gf_bs_write_int(xbs, 2*nal_unit_size + 5, 8*nal_unit_size);
 					gf_bs_write_int(xbs, 0, 1);
-					gf_bs_write_int(xbs, 49, 6); //extractor
+					gf_bs_write_int(xbs, GF_HEVC_NALU_FF_EXTRACTOR, 6); //extractor
 					gf_bs_write_int(xbs, k, 6);
 					gf_bs_write_int(xbs, sti[k].max_temporal_id_sample, 3);
 					gf_bs_write_u8(xbs, 0); //constructor type 0

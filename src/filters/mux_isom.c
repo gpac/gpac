@@ -2844,6 +2844,7 @@ multipid_stsd_setup:
 		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL);
 		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT);
 		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:sbas", GF_ISOM_REF_BASE);
 		//whenever we add a new tile track, rewrite sabt on main tile track
 		if (codec_id==GF_CODECID_HEVC_TILES) {
 			count = gf_list_count(ctx->tracks);
@@ -3055,6 +3056,30 @@ sample_entry_done:
 				gf_bs_del(bs);
 				if (dvcc) {
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
+
+					if (!dvcc->bl_present_flag) {
+						u32 i, ref_id = 0;
+
+						p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
+						if (p) ref_id = p->value.uint;
+						for (i=0; i<gf_list_count(ctx->tracks); i++) {
+							TrackWriter *tkw_base = gf_list_get(ctx->tracks, i);
+							if (tkw_base == tkw) continue;
+							if (tkw->codecid!=tkw_base->codecid) continue;
+							if (ref_id) {
+								p = gf_filter_pid_get_property(tkw_base->ipid, GF_PROP_PID_ID);
+								if (!p || (p->value.uint!=ref_id)) continue;
+							}
+							ref_id = gf_isom_get_track_id(ctx->file, tkw_base->track_num);
+							gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_4CC('v','d','e','p'), ref_id);
+
+							//dolby requires seperate moof for each track fragment for base and el
+							if (ctx->store>=MP4MX_MODE_FRAG) {
+								ctx->straf = GF_TRUE;
+							}
+							break;
+						}
+					}
 					gf_odf_dovi_cfg_del(dvcc);
 				}
 			}
@@ -3217,6 +3242,9 @@ sample_entry_done:
 				remove_edits = GF_TRUE;
 			}
 		}
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_FORCE_NEGCTTS);
+		if (p && p->value.boolean) use_negccts = GF_TRUE;
+
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DELAY);
 		if (p) {
 			//media skip
@@ -6321,12 +6349,12 @@ static void mp4_mux_get_min_max_cts(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 *om
 }
 #endif
 
-static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
+static void mp4_mux_update_edit_list_for_bframes(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u32 ctts_mode)
 {
 	u64 max_cts, min_cts;
 	s64 moffset;
 
-	if (ctx->ctmode > MP4MX_CT_EDIT) return;
+	if (ctts_mode > MP4MX_CT_EDIT) return;
 
 	//if we have a complex edit list (due to track template), don't override
 	if (gf_isom_get_edit_list_type(ctx->file, tkw->track_num, &moffset)) return;
@@ -6437,6 +6465,7 @@ static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		if (hevc_base_track) {
 			ref_track_id = gf_isom_get_track_id(ctx->file, hevc_base_track);
 			gf_isom_set_track_reference(ctx->file, tkw->track_num, GF_ISOM_REF_OREF, ref_track_id);
+			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_OINF);
 		}
 	}
 }
@@ -6449,13 +6478,17 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 	count = gf_list_count(ctx->tracks);
 	for (i=0; i<count; i++) {
+		u32 ctts_mode = ctx->ctmode;
 		const GF_PropertyValue *p;
 		Bool has_bframes = GF_FALSE;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_FORCE_NEGCTTS);
+		if (p && p->value.boolean) ctts_mode = MP4MX_CT_NEGCTTS;
+
 		if (tkw->min_neg_ctts<0) {
 			//use ctts v1 negative offsets
-			if (ctx->ctmode==MP4MX_CT_NEGCTTS) {
+			if (ctts_mode==MP4MX_CT_NEGCTTS) {
 				gf_isom_set_ctts_v1(ctx->file, tkw->track_num, (u32) -tkw->min_neg_ctts);
 			}
 			//ctts v0
@@ -6465,11 +6498,11 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 				gf_isom_set_cts_packing(ctx->file, tkw->track_num, GF_FALSE);
 				gf_isom_set_composition_offset_mode(ctx->file, tkw->track_num, GF_FALSE);
 
-				mp4_mux_update_edit_list_for_bframes(ctx, tkw);
+				mp4_mux_update_edit_list_for_bframes(ctx, tkw, ctts_mode);
 			}
 			has_bframes = GF_TRUE;
 		} else if (tkw->has_ctts && (tkw->stream_type==GF_STREAM_VISUAL)) {
-			mp4_mux_update_edit_list_for_bframes(ctx, tkw);
+			mp4_mux_update_edit_list_for_bframes(ctx, tkw, ctts_mode);
 
 			has_bframes = GF_TRUE;
 		} else if (tkw->ts_delay || tkw->empty_init_dur) {
@@ -6495,7 +6528,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			else
 				mdur = 0;
 
-			if ((ctx->ctmode!=MP4MX_CT_NEGCTTS) && (tkw->ts_delay<0) && (tkw->stream_type==GF_STREAM_VISUAL)) {
+			if ((ctts_mode != MP4MX_CT_NEGCTTS) && (tkw->ts_delay<0) && (tkw->stream_type==GF_STREAM_VISUAL)) {
 				delay = (u32) -tkw->ts_delay;
 			}
 
