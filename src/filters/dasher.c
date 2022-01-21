@@ -167,6 +167,7 @@ typedef struct
 	u32 llhls;
 	//inherited from mp4mx
 	GF_Fraction cdur;
+	Bool pl_hint;
 
 	//internal
 	Bool in_error;
@@ -4281,6 +4282,7 @@ static void dasher_transfer_file(FILE *f, GF_FilterPid *opid, const char *name, 
 	if (nb_read != size) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Error reading temp MPD file, read %d bytes but file size is %d\n", nb_read, size ));
 	}
+
 	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
 	gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 	if (name) {
@@ -4511,6 +4513,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->m3u8_time = ctx->hlsc;
 		ctx->mpd->nb_hls_ext_master = ctx->hlsx.nb_items;
 		ctx->mpd->hls_ext_master = (const char **) ctx->hlsx.vals;
+		ctx->mpd->llhls_preload = ctx->pl_hint;
 		if (ctx->llhls==3)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
 		else
@@ -9256,11 +9259,12 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(llhls), "HLS low latency type\n"
 		"- off: do not use LL-HLS\n"
 		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
-		"- sf: use separated files for segment parts\n"
+		"- sf: use separate files for segment parts (post-fixed .1, .2 etc.)\n"
 		"- brsf: generate two sets of manifest, one for byte-range and one for files (`_IF` added before extension of manifest)", GF_PROP_UINT, "off", "off|br|sf|brsf", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(hlsdrm), "cryp file info for HLS full segment encryption", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(pl_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmaf), "use cmaf guidelines\n"
 		"- no: CMAF not enforced\n"
 		"- cmfc: use CMAF `cmfc` guidelines\n"

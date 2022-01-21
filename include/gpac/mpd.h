@@ -888,6 +888,8 @@ typedef struct {
 	/*! HLS extensions to append in the master playlist*/
 	u32 nb_hls_ext_master;
 	const char **hls_ext_master;
+	/*! if true inject XT-X-PRELOAD-HINT*/
+	Bool llhls_preload;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM

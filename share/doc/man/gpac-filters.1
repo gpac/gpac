@@ -5104,7 +5104,7 @@ llhls (enum, default: off):    HLS low latency type
 .br
 * br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)
 .br
-* sf: use separated files for segment parts
+* sf: use separate files for segment parts (post-fixed .1, .2 etc.)
 .br
 * brsf: generate two sets of manifest, one for byte-range and one for files (_IF added before extension of manifest)
 .br
@@ -5113,6 +5113,8 @@ llhls (enum, default: off):    HLS low latency type
 hlsdrm (str):                  cryp file info for HLS full segment encryption
 .br
 hlsx (strl):                   list of string to append to master HLS header before variants with ['#foo','#bar=val'] added as #foo \n #bar=val
+.br
+pl_hint (bool, default: true): inject preload hint for LL-HLS
 .br
 cmaf (enum, default: no):      use cmaf guidelines
 .br
@@ -6783,6 +6785,10 @@ Each input stream is filtered according to the ltid option as follows:
 .br
 
 .br
+Note: A tID value of 0 in ltid is equivalent to value 1.
+.br
+
+.br
 Multiple values can be given in ltid, in which case each value gives the maximum {layerID,temporalID} values for the current layer.
 .br
 A few examples on an input with 2 layers each with 2 temporal sublayers:
@@ -6815,7 +6821,7 @@ The filter can also be used on AVC and HEVC DolbyVision streams to split base st
 .br
 
 .br
-The filter does not forward aggregator or extractor NAL units.
+The filter does not create aggregator or extractor NAL units.
 .br
 
 .br
@@ -9637,7 +9643,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1647-gb6f68145e-master
+build: 1.1.0-DEV-rev1654-g4d491e4a0-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
