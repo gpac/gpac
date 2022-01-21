@@ -12780,8 +12780,6 @@ static const u16 Script_Def2All[] = { 0, 1, 2};
 static const u16 Script_In2All[] = { 0};
 static const u16 Script_Out2All[] = { 0};
 
-//unused
-#if 0
 static u32 Script_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
@@ -12797,7 +12795,7 @@ static u32 Script_get_field_count(GF_Node *node, u8 IndexMode)
 		return 3;
 	}
 }
-#endif
+
 static GF_Err Script_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
 {
 	switch(IndexMode) {
@@ -38264,11 +38262,8 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 		return Rectangle_get_field_count(node, code_mode);
 	case TAG_MPEG4_ScalarInterpolator:
 		return ScalarInterpolator_get_field_count(node, code_mode);
-//unused
-#if 0
 	case TAG_MPEG4_Script:
 		return Script_get_field_count(node, code_mode);
-#endif
 	case TAG_MPEG4_Shape:
 		return Shape_get_field_count(node, code_mode);
 	case TAG_MPEG4_Sound:
