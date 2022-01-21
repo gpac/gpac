@@ -242,9 +242,10 @@ GF_Err cprt_box_read(GF_Box *s,GF_BitStream *bs)
 	}
 	if (ptr->size) {
 		u32 bytesToRead = (u32) ptr->size;
-		ptr->notice = (char*)gf_malloc(bytesToRead * sizeof(char));
+		ptr->notice = (char*)gf_malloc((bytesToRead+1) * sizeof(char));
 		if (ptr->notice == NULL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->notice, bytesToRead);
+		ptr->notice[bytesToRead] = 0;
 	}
 	return GF_OK;
 }
