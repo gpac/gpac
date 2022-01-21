@@ -3684,13 +3684,16 @@ void DumpMovieInfo(GF_ISOFile *file, Bool full_dump)
 			count = gf_isom_segment_get_fragment_count(file);
 			fprintf(stderr, "File is a segment - %d movie fragments - Brand %s (version %d):\n", count, gf_4cc_to_str(brand), min);
 			for (i=0; i<count; i++) {
-				u32 j, traf_count = gf_isom_segment_get_track_fragment_count(file, i+1);
+				u32 moof_size, j, traf_count = gf_isom_segment_get_track_fragment_count(file, i+1);
+				u64 fsize = gf_isom_segment_get_fragment_size(file, i+1, &moof_size);
+				fprintf(stderr, "\tFragment #%d size "LLU" (moof %d)", i+1, fsize, moof_size);
 				for (j=0; j<traf_count; j++) {
 					u32 ID;
 					u64 tfdt;
 					ID = gf_isom_segment_get_track_fragment_decode_time(file, i+1, j+1, &tfdt);
-					fprintf(stderr, "\tFragment #%d Track ID %d - TFDT "LLU"\n", i+1, ID, tfdt);
+					fprintf(stderr, "%s {TKID %d TFDT "LLU"}", j ? "," : "", ID, tfdt);
 				}
+				fprintf(stderr, "\n");
 			}
 		} else {
 			fprintf(stderr, "File has no movie (moov) - static data container\n");

@@ -903,6 +903,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_fragment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_track_fragment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_track_fragment_decode_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_fragment_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_keep_utc_times) )
