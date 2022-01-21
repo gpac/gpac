@@ -3609,6 +3609,8 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 				}
 			}
 
+			u64 next_br_start_plus_one=0;
+			u32 next_seg_idx=0;
 			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && sctx->llhls_mode) {
 				u32 k;
 				for (k=0; k<sctx->nb_frags; k++) {
@@ -3621,10 +3623,13 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
 					else if (sctx->llhls_mode==1) write_br = GF_TRUE;
 
-					if (write_br)
+					if (write_br) {
 						gf_fprintf(out, "\",BYTERANGE=\""LLU"@"LLU"\"", sctx->frags[k].size, sctx->frags[k].offset );
-					else
+						next_br_start_plus_one = 1 + sctx->frags[k].offset + sctx->frags[k].size;
+					} else {
+						next_seg_idx = k+2;
 						gf_fprintf(out, ".%d\"", k+1);
+					}
 
 					if (sctx->frags[k].independent)
 						gf_fprintf(out, ",INDEPENDENT=YES");
@@ -3640,6 +3645,21 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 
 			//live edge seg not done yet, do not write EXTINF and stop writing
 			if (sctx->llhls_mode && (i+1==count) && !sctx->llhls_done) {
+				//write preload hint
+				if (mpd->llhls_preload) {
+					//last seg has no parts yet, we just started it (live edge), advertise first part
+					if (!sctx->nb_frags) {
+						assert(sctx->filename);
+						if (sctx->llhls_mode==2) next_seg_idx = 1;
+						else next_br_start_plus_one = 1;
+					}
+
+					if (next_seg_idx)
+						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s.%d\"\n", sctx->filename, next_seg_idx);
+					else if (next_br_start_plus_one)
+						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\",BYTERANGE-START="LLU"\n", sctx->filename, next_br_start_plus_one-1);
+				}
+				
 				if (close_file)
 					gf_fclose(out);
 				return GF_OK;
@@ -3790,16 +3810,22 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			GF_DASH_SegmentContext *sctx;
 			while ( (sctx = (GF_DASH_SegmentContext *) gf_list_enum(rep->state_seg_list, &k))) {
 				u32 nseg;
-				Double dur;
-				if (!sctx->llhls_mode || sctx->llhls_done) continue;
 
+				//check max part dur for active ll segments, but use previously computed value
+				//this avoids changing the HOLD-BACK too often which throws error in apple tools/safari
+				Double dur = rep->hls_ll_part_dur;
+				if (!sctx->llhls_mode || sctx->llhls_done) continue;
 				for (nseg=0; nseg<sctx->nb_frags; nseg++) {
 					dur = sctx->frags[nseg].duration;
 					dur /= rep->timescale;
-					if (dur>max_part_dur) max_part_dur = dur;
+
+					if (dur>max_part_dur)
+						max_part_dur = dur;
 				}
 			}
 			if (!max_part_dur) max_part_dur = as->hls_ll_target_frag_dur;
+			if (max_part_dur<rep->hls_ll_part_dur)
+				max_part_dur = rep->hls_ll_part_dur;
 			assert(max_part_dur);
 			max_part_dur = ceil(max_part_dur*1000) / 1000.0;
 			rep->hls_ll_part_dur = max_part_dur;

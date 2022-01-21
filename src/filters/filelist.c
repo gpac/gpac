@@ -2592,11 +2592,30 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 			gf_enum_directory(dir, GF_FALSE, filelist_enum, ctx, pattern);
 			if (c && sep_dir) sep_dir[0] = c;
 		} else {
+			u64 f_size=0, f_date=0;
 			u32 type = 0;
 			if (strstr(list, " && ") || strstr(list, "&&"))
 				type = 1;
-			else if (gf_file_exists(list))
-				type = 2;
+			else {
+				char *ext_start = gf_file_ext_start(list);
+				if (!ext_start) ext_start = list;
+				char *frag = strchr(ext_start, '#');
+				if (frag) frag[0] = 0;
+				char *cgi = strchr(list, '?');
+				if (cgi) cgi[0] = 0;
+				if (gf_file_exists(list)) {
+					type = 2;
+					f_date = gf_file_modification_time(list);
+					FILE *fo = gf_fopen(list, "rb");
+					if (fo) {
+						f_size = gf_fsize(fo);
+						gf_fclose(fo);
+					}
+				}
+
+				if (frag) frag[0] = '#';
+				if (cgi) cgi[0] = '?';
+			}
 
 			if (type) {
 				FileListEntry *fentry;
@@ -2604,13 +2623,8 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 				if (fentry) {
 					fentry->file_name = gf_strdup(list);
 					if (type==2) {
-						FILE *fo;
-						fentry->last_mod_time = gf_file_modification_time(list);
-						fo = gf_fopen(list, "rb");
-						if (fo) {
-							fentry->file_size = gf_fsize(fo);
-							gf_fclose(fo);
-						}
+						fentry->last_mod_time = f_date;
+						fentry->file_size = f_size;
 					}
 					filelist_add_entry(ctx, fentry);
 				}
