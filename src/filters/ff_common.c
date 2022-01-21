@@ -740,7 +740,7 @@ static u32 ff_streamtype(u32 st)
 	return GF_STREAM_UNKNOWN;
 }
 
-#if (LIBAVFORMAT_VERSION_MAJOR >= 58) && (LIBAVFORMAT_VERSION_MINOR>=30)
+#if ( (LIBAVFORMAT_VERSION_MAJOR >= 59) || ((LIBAVFORMAT_VERSION_MAJOR >= 58) && (LIBAVFORMAT_VERSION_MINOR>=30)))
 #else
 #define NO_AVIO_PROTO
 #endif
@@ -1180,7 +1180,6 @@ second_pass:
 		}
 	}
 #endif
-
 }
 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type)
