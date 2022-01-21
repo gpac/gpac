@@ -787,7 +787,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 {
 	const char *mime_type = NULL;
 	char *dst = NULL;
-	u8 *res;
+	GF_Err e;
+	char *res=NULL;
 
 	/* check gzip magic header */
 	if ((size>2) && (probe_data[0] == 0x1f) && (probe_data[1] == 0x8b)) {
@@ -795,8 +796,8 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		return "btz|bt.gz|xmt.gz|xmtz|wrl.gz|x3dv.gz|x3dvz|x3d.gz|x3dz";
 	}
 
-	res = gf_utf_get_utf8_string_from_bom((char *)probe_data, size, &dst);
-	if (res) probe_data = res;
+	e = gf_utf_get_utf8_string_from_bom(probe_data, size, &dst, &res);
+	if (e) return NULL;
 
 	//strip all spaces and \r\n
 	while (probe_data[0] && strchr("\n\r\t ", (char) probe_data[0]))
