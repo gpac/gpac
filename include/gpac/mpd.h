@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre - Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2010-2021
+ *			Copyright (c) Telecom ParisTech 2010-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -888,8 +888,10 @@ typedef struct {
 	/*! HLS extensions to append in the master playlist*/
 	u32 nb_hls_ext_master;
 	const char **hls_ext_master;
-	/*! if true inject XT-X-PRELOAD-HINT*/
+	/*! if true inject EXT-X-PRELOAD-HINT*/
 	Bool llhls_preload;
+	/*! if true inject EXT-X-RENDITION-REPORT*/
+	Bool llhls_rendition_reports;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM

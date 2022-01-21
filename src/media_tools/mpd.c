@@ -1,8 +1,8 @@
-/**
+/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
@@ -3658,6 +3658,45 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s.%d\"\n", sctx->filename, next_seg_idx);
 					else if (next_br_start_plus_one)
 						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\",BYTERANGE-START="LLU"\n", sctx->filename, next_br_start_plus_one-1);
+
+				}
+				//generate rendition report
+				if (mpd->llhls_rendition_reports) {
+					char *par_dir= strchr(m3u8_name, '/');
+					u32 i_as=0;
+					const GF_MPD_AdaptationSet *o_as;
+					while ( (o_as = gf_list_enum(period->adaptation_sets, &i_as))) {
+						u32 i_rep=0;
+						GF_MPD_Representation *o_rep;
+						while ( (o_rep = gf_list_enum(o_as->representations, &i_rep))) {
+							GF_DASH_SegmentContext *o_sctx;
+							if (o_rep == rep) continue;
+							o_sctx = gf_list_last(o_rep->state_seg_list);
+							if (!o_sctx || !o_sctx->llhls_mode) continue;
+							//not clear in the spec, we assume what is listed must be the last PART completely produced
+							//if no frag and a segemnt exists before, use last part of that segment
+							if (!o_sctx->nb_frags) {
+								u32 idx = gf_list_count(o_rep->state_seg_list);
+								if (idx<2) continue;
+								o_sctx = gf_list_get(o_rep->state_seg_list, idx-2);
+								if (!o_sctx || !o_sctx->nb_frags) continue;
+							}
+
+							char *o_name = (char *) o_rep->m3u8_name;
+							if (!o_name) {
+								o_name = gf_file_basename(o_rep->m3u8_var_name);
+							}
+							char *par_url = NULL;
+							//we always produce from the same root, so just use ../
+							//if no parent dir we are producing at the root, and o_name is relative to the root
+							if (par_dir) {
+								gf_dynstrcat(&par_url, "../", NULL);
+								gf_dynstrcat(&par_url, o_name, NULL);
+							}
+							fprintf(out, "#EXT-X-RENDITION-REPORT:URI=\"%s\",LAST-MSN=%d,LAST-PART=%d\n", par_url ? par_url : o_name, o_sctx->seg_num, o_sctx->nb_frags);
+							if (par_url) gf_free(par_url);
+						}
+					}
 				}
 				
 				if (close_file)
@@ -3834,7 +3873,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 		}
 	}
 
-	//first pass, generate all subplaylists, and check if we have muxed components, or video or audio
+	//first pass, check if we have muxed components, or video or audio, generate playlists names
 	var_idx = 1;
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
@@ -3849,25 +3888,34 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 
 		j=0;
 		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
-			char *name = (char *) rep->m3u8_name;
-
-			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8, ignoring representation\n"));
-				continue;
-			}
 			if (rep->mime_type) {
 				if (!strncmp(rep->mime_type, "video/", 6)) has_video = GF_TRUE;
 				else if (!strncmp(rep->mime_type, "audio/", 6)) has_audio = GF_TRUE;
 			}
 
-			if (!name) {
+			if (!rep->m3u8_name) {
 				sprintf(szVariantName, "%s_%d.m3u8",m3u8_name_rad, var_idx);
 				if (rep->m3u8_var_name) gf_free(rep->m3u8_var_name);
 				rep->m3u8_var_name = gf_strdup(szVariantName);
-				name = gf_file_basename(rep->m3u8_var_name);
 			}
 			var_idx++;
+		}
+	}
 
+	//second pass, generate all subplaylists
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		j=0;
+		while ( (rep = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			if (!rep->state_seg_list || !gf_list_count(rep->state_seg_list) ) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] No segment state in representation, MPD cannot be translated to M3U8, ignoring representation\n"));
+				continue;
+			}
+
+			char *name = (char *) rep->m3u8_name;
+			if (!name) {
+				name = gf_file_basename(rep->m3u8_var_name);
+			}
 			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
@@ -3880,7 +3928,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	if (!has_video && !has_muxed_comp)
 		nb_audio = 0;
 
-	//second pass, generate master playlists with the right groups
+	//third pass, generate master playlists with the right groups
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
 		Bool is_video = GF_FALSE;
