@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre , Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS multiplexer sub-project
@@ -1001,7 +1001,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				//base later not present
 				if (! (es->ifce->dv_info[3] & 0x1)) {
 					GF_M2TS_Mux_Stream *base_st = NULL;
-					gf_m2ts_find_stream(stream->program, 0, stream->ifce->depends_on_stream, &base_st);
+					gf_m2ts_find_stream(es->program, 0, es->ifce->depends_on_stream, &base_st);
 					gf_bs_write_int(bs, base_st ? base_st->pid : 0, 13);
 					gf_bs_write_int(bs, 0, 3);
 				}
@@ -2497,9 +2497,11 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC;
 			//this is a bit crude and will need refinement
 			if (ifce->depends_on_stream) {
-				GF_M2TS_Mux_Stream *base_st;
-				stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC_TEMPORAL;
-				gf_m2ts_stream_add_hierarchy_descriptor(stream);
+				GF_M2TS_Mux_Stream *base_st=NULL;
+				if (! (stream->ifce->caps & GF_ESI_FORCE_DOLBY_VISION)) {
+					stream->mpeg2_stream_type = GF_M2TS_VIDEO_HEVC_TEMPORAL;
+					gf_m2ts_stream_add_hierarchy_descriptor(stream);
+				}
 				stream->force_single_au = GF_TRUE;
 				gf_m2ts_find_stream(stream->program, 0, ifce->depends_on_stream, &base_st);
 				if (base_st) base_st->force_single_au = GF_TRUE;

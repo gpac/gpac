@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -215,7 +215,7 @@ typedef struct
 
 	AVC_SPS *sps;
 	AVC_PPS *pps;
-	SVC_NALUHeader NalHeader;
+	SVC_NALUHeader svc_nalhdr;
 } AVCSliceInfo;
 
 

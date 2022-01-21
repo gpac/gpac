@@ -6748,6 +6748,124 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264, HEVC and VVC (
 .br
 
 .br
+.SH bssplit
+.LP
+.br
+Description: Compressed layered bitstream spliter
+.br
+
+.br
+This filter splits input stream by layers and sublayers
+.br
+
+.br
+The filter supports AVC|H264, HEVC and VVC stream spliting, and is passthrough for other codec types.
+.br
+
+.br
+Spliting is based on temporalID value (start from 1) and layerID value (start from 0).
+.br
+For AVC|H264, layerID is the dependency value, or quality value if svcqid is set.
+.br
+
+.br
+Each input stream is filtered according to the ltid option as follows:
+.br
+* no value set: input stream is split by layerID, i.e. each layer creates an output
+.br
+* `all`: input stream is split by layerID and temporalID, i.e. each {layerID,temporalID} creates an output
+.br
+* `lID`: input stream is split according to layer lID value, and temporalID is ignored
+.br
+* `.tID`: input stream is split according to temporal sub-layer tID value and layerID is ignored
+.br
+* `lID.tID`: input stream is split according to layer lID and sub-layer tID values
+.br
+
+.br
+Multiple values can be given in ltid, in which case each value gives the maximum {layerID,temporalID} values for the current layer.
+.br
+A few examples on an input with 2 layers each with 2 temporal sublayers:
+.br
+* `ltid=0.2`: this will split the stream in:
+.br
+  - one stream with {lID=0,tID=1} and {lID=0,tID=2} NAL units
+.br
+  - one stream with all other layers/substreams
+.br
+* `ltid=0.1,1.1`: this will split the stream in:
+.br
+  - one stream with {lID=0,tID=1} NAL units
+.br
+  - one stream with {lID=0,tID=2}, {lID=1,tID=1} NAL units
+.br
+  - one stream with the rest {lID=0,tID=2}, {lID=1,tID=2} NAL units
+.br
+* `ltid=0.1,0.2`: this will split the stream in:
+.br
+  - one stream with {lID=0,tID=1} NAL units
+.br
+  - one stream with {lID=0,tID=2} NAL units
+.br
+  - one stream with the rest {lID=1,tID=1}, {lID=1,tID=2} NAL units
+.br
+
+.br
+The filter can also be used on AVC and HEVC DolbyVision streams to split base stream and DV RPU/EL.
+.br
+
+.br
+The filter does not forward aggregator or extractor NAL units.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+ltid (strl):                   temporal and layer ID of output streams - see filter help
+.br
+svcqid (bool, default: false): use qualityID instead of dependencyID for SVC splitting
+.br
+sig_ltid (bool, default: false): signal maximum temporal (max_temporal_id) and layer ID (max_layer_id) of output streams (mostly used for debug)
+.br
+
+.br
+.SH bsagg
+.LP
+.br
+Description: Compressed layered bitstream aggregator
+.br
+
+.br
+This filter aggregates layers and sublayers into a single output pid.
+.br
+
+.br
+The filter supports AVC|H264, HEVC and VVC stream reconstruction, and is passthrough for other codec types.
+.br
+
+.br
+Aggregation is based on temporalID value (start from 1) and layerID value (start from 0).
+.br
+For AVC|H264, layerID is the dependency value, or quality value if svcqid is set.
+.br
+
+.br
+The filter can also be used on AVC and HEVC DolbyVision dual-streams to aggregate base stream and DV RPU/EL.
+.br
+
+.br
+The filter does not forward aggregator or extractor NAL units.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+svcqid (bool, default: false): use qualityID instead of dependencyID for SVC splitting
+.br
+
+.br
 .SH ffdmx
 .LP
 .br
@@ -9519,7 +9637,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1645-g9f8510835-master
+build: 1.1.0-DEV-rev1647-gb6f68145e-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

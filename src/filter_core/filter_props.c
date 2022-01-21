@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -1453,6 +1453,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ISOM_TRACK_FLAGS, "TrackFlags", "ISOBMFF track header flags", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_TRACK_MATRIX, "TrackMatrix", "ISOBMFF track header matrix", GF_PROP_SINT_LIST, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_ISOM_ALT_GROUP, "AltGroup", "ISOBMFF alt group ID", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_ISOM_FORCE_NEGCTTS, "ForceNCTTS", "ISOBMFF force negative CTS offsets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DISABLED, "Disable", "ISOBMFF disable flag", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_ID, "Period", "ID of DASH period", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_PERIOD_START, "PStart", "DASH Period start - cf dasher help", GF_PROP_FRACTION64, GF_PROP_FLAG_GSF_REM},

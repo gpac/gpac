@@ -718,14 +718,15 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			}
 
 #ifndef GPAC_DISABLE_HEVC
-			/*we already wrote this stuff*/
-			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
+			switch (nal_type) {
+			/*we already wrote AU delim, and we trash aggregators*/
+			case GF_HEVC_NALU_ACCESS_UNIT:
+			case GF_HEVC_NALU_FF_AGGREGATOR:
 				gf_bs_skip_bytes(mdia->nalu_parser, nal_size-2);
 				continue;
-			}
-			switch (nal_type) {
+
 			//extractor
-			case 49:
+			case GF_HEVC_NALU_FF_EXTRACTOR:
 				e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_TRUE, rewrite_ps, rewrite_start_codes, extractor_mode);
 				if (e) goto exit;
 				break;
@@ -790,11 +791,12 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		switch(nal_type) {
 		case GF_AVC_NALU_ACCESS_UNIT:
-			/*we already wrote this stuff*/
+		case GF_AVC_NALU_FF_AGGREGATOR:
+			/*we already wrote this stuff, and we trash aggregators*/
 			gf_bs_skip_bytes(mdia->nalu_parser, nal_size-1);
 			continue;
 		//extractor
-		case 31:
+		case GF_AVC_NALU_FF_EXTRACTOR:
 			e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_FALSE, rewrite_ps, rewrite_start_codes, extractor_mode);
 			if (e) goto exit;
 			break;

@@ -311,8 +311,8 @@ static const tag_to_name HEVCNalNames[] =
 	{GF_HEVC_NALU_FILLER_DATA, "Filler Data"},
 	{GF_HEVC_NALU_SEI_PREFIX, "SEI Prefix"},
 	{GF_HEVC_NALU_SEI_SUFFIX, "SEI Suffix"},
-	{48, "HEVCAggregator"},
-	{49, "HEVCExtractor"},
+	{GF_HEVC_NALU_FF_AGGREGATOR, "HEVCAggregator"},
+	{GF_HEVC_NALU_FF_EXTRACTOR, "HEVCExtractor"},
 	{GF_HEVC_NALU_DV_RPU, "UNSPEC_DolbiVision_RPU"},
 	{GF_HEVC_NALU_DV_EL, "UNSPEC_DolbiVision_EL"}
 };
@@ -379,8 +379,10 @@ static const tag_to_name AVCNalNames[] =
 	{GF_AVC_NALU_SVC_SUBSEQ_PARAM, "SVCSubsequenceParameterSet"},
 	{GF_AVC_NALU_SLICE_AUX, "Auxiliary Slice"},
 	{GF_AVC_NALU_SVC_SLICE, "SVCSlice"},
-	{30, "SVCAggregator"},
-	{31, "SVCExtractor"}
+	{GF_AVC_NALU_DV_RPU, "DV_RPU"},
+	{GF_AVC_NALU_DV_EL, "DV_EL"},
+	{GF_AVC_NALU_FF_AGGREGATOR, "SVCAggregator"},
+	{GF_AVC_NALU_FF_EXTRACTOR, "SVCExtractor"}
 };
 
 static const char *get_avc_nal_name(u32 nal_type)
@@ -770,7 +772,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			gf_fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
 		//extractor
-		case 49:
+		case GF_HEVC_NALU_FF_EXTRACTOR:
 		{
 			u32 remain = ptr_size-2;
 			char *s = ptr+2;
@@ -1098,7 +1100,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		if (is_encrypted) break;
 		idx = gf_avc_read_pps_bs(bs, avc);
 		if (idx<0) {
-			gf_fprintf(dump, "\" pps_id=\"PARSING FAILURE\" ");
+			gf_fprintf(dump, "\" pps_id=\"PARSING FAILURE");
 			break;
 		}
 		if (full_bs_dump) break;
@@ -1131,14 +1133,23 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SVC_SLICE:
 		if (is_encrypted) break;
 		gf_avc_parse_nalu(bs, avc);
+		if (full_bs_dump) break;
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
 		gf_fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
 		gf_fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
+	case GF_AVC_NALU_SVC_PREFIX_NALU:
+		if (is_encrypted) break;
+		if (full_bs_dump) break;
+		dependency_id = (ptr[2] & 0x70) >> 4;
+		quality_id = (ptr[2] & 0x0F);
+		temporal_id = (ptr[3] & 0xE0) >> 5;
+		gf_fprintf(dump, "\" dependency_id=\"%d\" quality_id=\"%d\" temporal_id=\"%d", dependency_id, quality_id, temporal_id);
+		break;
 	//extractor
-	case 31:
+	case GF_AVC_NALU_FF_EXTRACTOR:
 		if (is_encrypted) break;
 		track_ref_index = (u8) ptr[4];
 		sample_offset = (s8) ptr[5];

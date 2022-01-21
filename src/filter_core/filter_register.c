@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -154,6 +154,8 @@ const GF_FilterRegister *mcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *flac_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *proresdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *bsrw_register(GF_FilterSession *session);
+const GF_FilterRegister *bs_split_register(GF_FilterSession *session);
+const GF_FilterRegister *bs_agg_register(GF_FilterSession *session);
 const GF_FilterRegister *mhas_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *mhasmx_register(GF_FilterSession *session);
 const GF_FilterRegister *routeout_register(GF_FilterSession *session);
@@ -278,6 +280,8 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, proresdmx_register(a_sess));
 	gf_fs_add_filter_register(fsess, m2tssplit_register(a_sess));
 	gf_fs_add_filter_register(fsess, bsrw_register(a_sess));
+	gf_fs_add_filter_register(fsess, bs_split_register(a_sess));
+	gf_fs_add_filter_register(fsess, bs_agg_register(a_sess));
 
 	gf_fs_add_filter_register(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_register(fsess, ffdec_register(a_sess) );
