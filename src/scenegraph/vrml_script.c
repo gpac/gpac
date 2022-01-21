@@ -121,7 +121,7 @@ GF_Err gf_sg_script_get_field_index(GF_Node *node, u32 inField, u8 IndexMode, u3
 	}
 	/*try with default*/
 
-	if (gf_sg_mpeg4_node_get_field_count(node, IndexMode)>=inField)
+	if (gf_sg_mpeg4_node_get_field_count(node, IndexMode) <= inField)
 		return GF_NON_COMPLIANT_BITSTREAM;
 
 	return gf_sg_mpeg4_node_get_field_index(node, inField, IndexMode, allField);
