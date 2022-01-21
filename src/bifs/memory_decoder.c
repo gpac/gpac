@@ -936,7 +936,12 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 	GF_Err e;
 	CommandBufferItem *cbi;
 	GF_SceneGraph *prev_root = codec->current_graph;
+	M_QuantizationParameter *prev_qp = codec->ActiveQP;
+	u32 prev_qp_count = gf_list_count(codec->QPs);
 	u32 NbPass = gf_list_count(codec->command_buffers);
+
+
+	codec->ActiveQP = NULL;
 	GF_List *nextPass = gf_list_new();
 	while (NbPass) {
 		while (gf_list_count(codec->command_buffers)) {
@@ -987,10 +992,17 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 		}
 		NbPass --;
 		if (NbPass > gf_list_count(codec->command_buffers)) NbPass = gf_list_count(codec->command_buffers);
+
+		//restore QP state
+		while (gf_list_count(codec->QPs) > prev_qp_count) {
+			gf_list_rem(codec->QPs, 0); //QPs are inserted at head of list
+		}
+		codec->ActiveQP = NULL;
 		codec->LastError = GF_OK;
 	}
 	gf_list_del(nextPass);
 	codec->current_graph = prev_root;
+	codec->ActiveQP = prev_qp;
 	return GF_OK;
 }
 
