@@ -500,7 +500,6 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 
 		size=0;
 		while (size<pck_size) {
-			Bool force_dv = GF_FALSE;
 			u32 nal_type=0;
 			u32 layer_id = 0;
 			u32 temporal_id = 0;
@@ -541,7 +540,6 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 				//force layerID 100 for DV
 				if ((nal_type == GF_AVC_NALU_DV_RPU) || (nal_type == GF_AVC_NALU_DV_EL)) {
 					layer_id = 100;
-					force_dv = GF_TRUE;
 				}
 				//don't forward extractors
 				//todo, find a way to differentiate DV EL from naluff aggregator
@@ -569,7 +567,6 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 				//force layerID 100 for DV
 				if ((nal_type == GF_HEVC_NALU_DV_RPU) || (nal_type == GF_HEVC_NALU_DV_EL)) {
 					layer_id = 100;
-					force_dv = GF_TRUE;
 				}
 				//don't forward extractors nor aggregators
 				else if ((nal_type == GF_HEVC_NALU_FF_EXTRACTOR)
