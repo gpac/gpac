@@ -292,6 +292,7 @@ GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBit
 	if(NbComp == 2) dir -= 2 * gf_bs_read_int(bs, 1);
 
 	orient = gf_bs_read_int(bs, 2);
+	if ((orient==3) && (NbComp==2)) return GF_NON_COMPLIANT_BITSTREAM;
 
 	for(i=0; i<NbComp; i++) {
 		value = gf_bs_read_int(bs, NbBits) - (1 << (NbBits-1) );
@@ -341,7 +342,7 @@ GF_Err Q_DecRotation(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, void *
 //parses a Normal vec
 GF_Err Q_DecNormal(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, void *field_ptr)
 {
-	Fixed comp[3];
+	Fixed comp[4];
 	SFVec3f v;
 	GF_Err e;
 	e = Q_DecCoordOnUnitSphere(codec, bs, NbBits, 2, comp);
