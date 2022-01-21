@@ -84,14 +84,15 @@ u32 gf_utf8_wcslen(const unsigned short *s);
 /*!
 \brief returns a UTF8 string from a string started with BOM
 
-Returns the length in character of a wide-char string
+Returns UTF8 from data
 \param data the string or wide-char string
 \param size of the data buffer
   size of the data buffer
-\param out_ptr set to an allocated buffer if needed for conversion, shall be destroyed by caller
-\return the UTF8 string corresponding
+\param out_ptr set to an allocated buffer if needed for conversion, shall be destroyed by caller. Must not be NULL
+\param result set to resulting UTF8 string. Must not be NULL
+\return error if any: GF_IO_ERR if UTF decode error or GF_BAD_PARAM
  */
-char *gf_utf_get_utf8_string_from_bom(u8 *data, u32 size, char **out_ptr);
+GF_Err gf_utf_get_utf8_string_from_bom(const u8 *data, u32 size, char **out_ptr, char **result);
 
 /*!
 \brief Checks validity of a UTF8 string

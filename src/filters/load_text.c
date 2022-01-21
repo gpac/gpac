@@ -3530,11 +3530,10 @@ void txtin_finalize(GF_Filter *filter)
 static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProbeScore *score)
 {
 	char *dst = NULL;
-	u8 *res;
-
-	res = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst);
-	if (res) data = res;
-
+	char *res=NULL;
+	GF_Err e = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst, &res);
+	if (e) return NULL;
+	
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
 		if (dst) gf_free(dst);\
