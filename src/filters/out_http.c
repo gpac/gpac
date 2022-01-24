@@ -1770,6 +1770,19 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return GF_OK;
 }
 
+static void httpout_check_connection(GF_HTTPOutSession *sess)
+{
+	GF_Err e = gf_sk_probe(sess->socket);
+	if (e==GF_IP_CONNECTION_CLOSED) {
+		sess->last_active_time = gf_sys_clock_high_res();
+		sess->done = GF_TRUE;
+		sess->canceled = GF_FALSE;
+		sess->upload_type = 0;
+		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
+		httpout_close_session(sess);
+		return;
+	}
+}
 
 static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 {
@@ -1796,10 +1809,13 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 		u32 i, nb_conn=0, count = gf_list_count(ctx->sessions);
 		for (i=0; i<count; i++) {
 			sess = gf_list_get(ctx->sessions, i);
-			if (!strcmp(sess->peer_address, peer_address)) nb_conn++;
+			if (strcmp(sess->peer_address, peer_address)) continue;
+			httpout_check_connection(sess);
+			if (sess->done) continue;
+			nb_conn++;
 		}
 		if (nb_conn>=ctx->maxp) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections from peer %s\n", peer_address));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Connection rejected due to too many connections from peer %s (%d vs max %d)\n", peer_address, nb_conn, ctx->maxp));
 			gf_sk_del(new_conn);
 			return;
 		}
@@ -2220,19 +2236,6 @@ static GF_Err httpout_sess_data_upload(GF_HTTPOutSession *sess, const u8 *data, 
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
-}
-static void httpout_check_connection(GF_HTTPOutSession *sess)
-{
-	GF_Err e = gf_sk_probe(sess->socket);
-	if (e==GF_IP_CONNECTION_CLOSED) {
-		sess->last_active_time = gf_sys_clock_high_res();
-		sess->done = GF_TRUE;
-		sess->canceled = GF_FALSE;
-		sess->upload_type = 0;
-		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Client %s disconnected, destroying session\n", sess->peer_address));
-		httpout_close_session(sess);
-		return;
-	}
 }
 
 static void log_request_done(GF_HTTPOutSession *sess)
