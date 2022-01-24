@@ -825,7 +825,8 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		}
 		/* otherwise send a PAUSE on the stream */
 		else {
-			if (stream->paused) {
+			//strea paused or not running, don't send event
+			if (stream->paused || (stream->status<RTP_Running)) {
 				if (com) gf_rtsp_command_del(com);
 				return;
 			}

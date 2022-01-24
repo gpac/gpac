@@ -309,6 +309,9 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 		if ((stream->status==RTP_Running) && ((ctx->last_start_range >= 0) && (ctx->last_start_range==evt->play.start_range)))
 		 	return GF_TRUE;
+		//stream was canceled due to setup failure
+		if (stream->status == RTP_Unavailable)
+			return GF_TRUE;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Processing play on channel @%08x - %s\n", stream, stream->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
@@ -400,6 +403,10 @@ static Bool rtpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_RESUME:
 		assert(stream->rtsp);
 		rtpin_rtsp_usercom_send(stream->rtsp, stream, evt);
+		break;
+	case GF_FEVT_CONNECT_FAIL:
+		//stream canceled due to setup failure, prevent any further setup on PLAY
+		stream->status = RTP_Unavailable;
 		break;
 	default:
 		break;
@@ -602,6 +609,13 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			ctx->session->connect_error = GF_OK;
 		}
 	}
+
+	//we had data, ask for immediate re-process
+	if (tot_read) {
+		gf_filter_post_process_task(filter);
+		return GF_OK;
+	}
+
 	if (ctx->max_sleep<0)
 		gf_filter_ask_rt_reschedule(filter, (u32) ((-ctx->max_sleep) *1000) );
 	else if (!ctx->min_frame_dur_ms) {
@@ -609,7 +623,8 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 	else {
 		assert(ctx->min_frame_dur_ms <= (u32) ctx->max_sleep);
-		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*1000);
+		//reschedule in half the frame dur
+		gf_filter_ask_rt_reschedule(filter, ctx->min_frame_dur_ms*500);
 	}
 	return GF_OK;
 }
@@ -629,6 +644,8 @@ static GF_Err rtpin_initialize(GF_Filter *filter)
 	ctx->last_start_range = -1.0;
 
 	ctx->sockgroup = gf_sk_group_new();
+	//prevent blocking so that we are always called even if output is full
+	gf_filter_prevent_blocking(filter, GF_TRUE);
 
 	//sdp mode, we will have a configure_pid
 	if (!ctx->src) return GF_OK;
@@ -756,7 +773,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "127", "0-127", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_len), "reorder length in packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_delay), "max delay in RTP reorderer, packets will be dispatched after that", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(block_size), "buffer size fur RTP/UDP or RTSP when interleaved", GF_PROP_UINT, "0x200000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "buffer size for RTP/UDP or RTSP when interleaved", GF_PROP_UINT, "0x200000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_rtcp), "disable RTCP reporting", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nat_keepalive), "delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_mcast), "force multicast on indicated IP in RTSP setup", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
