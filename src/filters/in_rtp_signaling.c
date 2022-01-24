@@ -825,9 +825,15 @@ void rtpin_rtsp_usercom_send(GF_RTPInRTSP *sess, GF_RTPInStream *stream, const G
 		}
 		/* otherwise send a PAUSE on the stream */
 		else {
-			//strea paused or not running, don't send event
+			//stream paused or not running, don't send event
 			if (stream->paused || (stream->status<RTP_Running)) {
 				if (com) gf_rtsp_command_del(com);
+				//if last active stream, send teardown
+				if (!rtpin_rtsp_is_active(stream))
+					rtpin_rtsp_teardown(sess, NULL);
+				//mark as disconnected and start processing eos
+				stream->status = RTP_Disconnected;
+				stream->flags |= RTP_EOS;
 				return;
 			}
 			range = gf_rtsp_range_new();
