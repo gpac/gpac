@@ -897,8 +897,7 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 	it->size = pck_size;
 	it->pck = gf_malloc(pck_size);
 	memcpy(it->pck, pck, pck_size);
-	/*reset timeout*/
-	po->LastTime = 0;
+	/*do NOT reset timeout when receiving a new packet, this would make the re-orderer wait forever to output a packet in case of losses*/
 
 	//no input, this packet will be the input
 	if (!po->in) {
