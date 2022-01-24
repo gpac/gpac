@@ -1950,8 +1950,9 @@ GF_Err gf_isom_set_dolby_vision_profile(GF_ISOFile* movie, u32 trackNumber, u32 
 	if (dv_cfge) gf_isom_box_del_parent(&entry->child_boxes, dv_cfge);
 	dv_cfge = NULL;
 
-	//inject avcE / hvcE if not split layer - not clear from the spec what is supposed to be in these, we just clone avcC/hvcC
-	if (dvcc->bl_present_flag) {
+	//inject avcE / hvcE if enhancement layer and RPU present in single-track case
+	//not clear from the spec what is supposed to be in these, we just clone avcC/hvcC
+	if (dvcc->bl_present_flag && dvcc->el_present_flag && dvcc->rpu_present_flag) {
 		GF_Box *src = is_avc ? (GF_Box *)entry->avc_config : (GF_Box *)entry->hevc_config;
 		if (!src) return GF_BAD_PARAM;
 		e = gf_isom_clone_box(src, &dv_cfge);
