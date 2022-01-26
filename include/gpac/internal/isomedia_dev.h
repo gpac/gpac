@@ -4198,6 +4198,9 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 
 GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid);
 
+
+GF_Err gf_isom_set_sample_group_description_internal(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size, Bool check_access);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
@@ -4268,6 +4271,7 @@ GF_Err gf_isom_flush_sidx(GF_ISOFile *movie, u32 sidx_max_size, Bool force_v1);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
+void sgpd_del_entry(u32 grouping_type, void *entry);
 
 GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp);
 

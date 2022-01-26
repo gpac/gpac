@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -897,7 +897,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 							new_idx[count] = j + 1;
 							count ++;
 							new_entry = GF_FALSE;
-							gf_free(sgpd_entry);
+
+							sgpd_del_entry(new_sgdesc->grouping_type, sgpd_entry);
 							break;
 						}
 					}
@@ -932,6 +933,14 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				stbl_group->grouping_type_parameter = frag_group->grouping_type_parameter;
 				stbl_group->version = frag_group->version;
 				gf_list_add(groups, stbl_group);
+				//we created a new sample to group, the first num_first_sample_in_traf are not mapped to any description
+				if (num_first_sample_in_traf) {
+					stbl_group->entry_count = 1;
+					stbl_group->sample_entries = gf_malloc(sizeof(GF_SampleGroupEntry));
+					if (!stbl_group->sample_entries) return GF_OUT_OF_MEM;
+					stbl_group->sample_entries[0].group_description_index = 0;
+					stbl_group->sample_entries[0].sample_count = num_first_sample_in_traf;
+				}
 			}
 
 			if (is_identical_sgpd) {

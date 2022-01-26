@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -65,6 +65,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
+		u32 prev_sample_count;
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
@@ -87,6 +88,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
+		prev_sample_count = trak->Media->information->sampleTable->SampleSize->sampleCount;
 		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset, !trak->first_traf_merged);
 		if (e) return e;
 
@@ -97,6 +99,32 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (trak->Header->duration > MaxDur)
 			MaxDur = trak->Header->duration;
 
+		//we have PSSH per moov, internally remap as a sample group of type PSSH
+		if (gf_list_count(moof->PSSHs)) {
+			u8 *pssh_data;
+			u32 pssh_len;
+			u32 j, k, nb_pssh = gf_list_count(moof->PSSHs);
+			GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(pssh_bs, nb_pssh);
+			for (j=0; j<nb_pssh; j++) {
+				GF_ProtectionSystemHeaderBox *pssh = gf_list_get(moof->PSSHs, j);
+				gf_bs_write_data(pssh_bs, pssh->SystemID, 16);
+				gf_bs_write_u32(pssh_bs, pssh->version);
+				if (pssh->version) {
+					gf_bs_write_u32(pssh_bs, pssh->KID_count);
+					for (k=0; k<pssh->KID_count; k++) {
+						gf_bs_write_data(pssh_bs, pssh->KIDs[k], 16);
+					}
+				}
+				gf_bs_write_u32(pssh_bs, pssh->private_data_size);
+				gf_bs_write_data(pssh_bs, pssh->private_data, pssh->private_data_size);
+			}
+			gf_bs_get_content(pssh_bs, &pssh_data, &pssh_len);
+			gf_bs_del(pssh_bs);
+
+			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('P','S','S','H'), 0, pssh_data, pssh_len, GF_FALSE);
+			gf_free(pssh_data);
+		}
 		trak->first_traf_merged = GF_TRUE;
 	}
 
