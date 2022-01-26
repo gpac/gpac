@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -98,18 +98,20 @@ enum
 /*! Key info structure, one per defined key in the DRM XML doc*/
 typedef struct
 {
+	//keep first 3 bin128 at the begining for data alignment
 	/*! KEY ID*/
 	bin128 KID;
 	/*! key value*/
 	bin128 key;
+	/*! constant IV or initial IV if not constant*/
+	u8 IV[16];
+
 	/*! hls_info defined*/
 	char *hls_info;
 	/*!IV size */
 	u8 IV_size;
 	/*! constant IV size */
 	u8 constant_IV_size;
-	/*! constant IV or initial IV if not constant*/
-	unsigned char IV[16];
 } GF_CryptKeyInfo;
 
 
@@ -184,6 +186,9 @@ typedef struct
 
 	/*! force using type set in XML rather than type indicated in file when decrypting*/
 	Bool force_type;
+
+	/*! generate random keys and key values*/
+	Bool rand_keys;
 
 	/*! randomly encrypts subsample if rand() % subs_rand is 0*/
 	u32 subs_rand;

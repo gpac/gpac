@@ -49,6 +49,7 @@ The wide characters in GPAC are unsignad shorts, in other words GPAC only suppor
 
 #include <gpac/tools.h>
 
+/*! error code for UTF-8 conversion errors*/
 #define GF_UTF8_FAIL	0xFFFFFFFF
 /*!
 \brief wide-char to multibyte conversion

@@ -1437,6 +1437,16 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_END_RANGE, &PROP_BOOL(GF_TRUE));
 				}
+				u32 pssh_idx=0;
+				gf_isom_get_sample_to_group_info(read->mov, ch->track, ch->sample_num, GF_4CC('P','S','S','H'), 0, &pssh_idx);
+				if (pssh_idx) {
+					const u8 *pssh;
+					u32 pssh_size;
+					gf_isom_get_sample_group_info(read->mov, ch->track, pssh_idx, GF_4CC('P','S','S','H'), NULL, &pssh, &pssh_size);
+					if (pssh) {
+						gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA((u8*)pssh, pssh_size) );
+					}
+				}
 
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);

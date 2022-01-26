@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / CENC and ISMA encrypt module
@@ -121,6 +121,10 @@ typedef struct
 	Bool slice_header_clear;
 
 	GF_PropUIntList mkey_indices;
+
+	//0: no generation, >0: use v-1 as key idx
+	u32 pssh_template_plus_one;
+	GF_List *pssh_templates;
 } GF_CENCStream;
 
 typedef struct
@@ -411,6 +415,15 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(pssh_bs, 0);
 
+	if (cstr->pssh_templates) {
+		while (gf_list_count(cstr->pssh_templates)) {
+			GF_XMLNode *n = gf_list_pop_back(cstr->pssh_templates);
+			gf_xml_dom_node_del(n);
+		}
+		gf_list_del(cstr->pssh_templates);
+	}
+	cstr->pssh_templates = NULL;
+
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		Bool is_pssh;
@@ -423,6 +436,14 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		s32 cypherOffset = -1;
 		Bool has_key = GF_FALSE, has_IV = GF_FALSE;
 
+		if (!strcmp(node->name, "DRMInfoTemplate")) {
+			if (!cstr->pssh_templates) cstr->pssh_templates = gf_list_new();
+			if (gf_list_add(cstr->pssh_templates, node) == GF_OK) {
+				i--;
+				gf_list_rem(root->content, i);
+			}
+			continue;
+		}
 		if (strcmp(node->name, "DRMInfo")) continue;
 
 		j = 0;
@@ -447,14 +468,14 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 				e = gf_bin128_parse(att->value, cypherKey);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherKey\n"));
-                    return e;
+                    break;
                 }
 				has_key = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherIV")) {
 				e = gf_bin128_parse(att->value, cypherIV);
                 if (e != GF_OK) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherIV\n"));
-                    return e;
+                    break;
                 }
 				has_IV = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherOffset")) {
@@ -470,15 +491,27 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		e = gf_xml_parse_bit_sequence(node, cfile_name, &specInfo, &specInfoSize);
 		if (e) {
 			if (specInfo) gf_free(specInfo);
-			gf_xml_dom_del(parser);
-			return e;
+			break;
 		}
 
 		bs = gf_bs_new(specInfo, specInfoSize, GF_BITSTREAM_READ);
 		gf_bs_read_data(bs, (char *)systemID, 16);
 		if (version) {
 			KID_count = gf_bs_read_u32(bs);
+			if (KID_count*16 > gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob, KID count %d but only %d bytes available\n", KID_count, gf_bs_available(bs)));
+				if (specInfo) gf_free(specInfo);
+				gf_bs_del(bs);
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 			KIDs = (bin128 *)gf_malloc(KID_count*sizeof(bin128));
+			if (!KIDs) {
+				if (specInfo) gf_free(specInfo);
+				gf_bs_del(bs);
+				e = GF_OUT_OF_MEM;
+				break;
+			}
 			for (j = 0; j < KID_count; j++) {
 				gf_bs_read_data(bs, (char *)KIDs[j], 16);
 			}
@@ -489,17 +522,33 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		}
 		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
+
+			if (specInfo) gf_free(specInfo);
+			gf_bs_del(bs);
+			if (KIDs) gf_free(KIDs);
 			continue;
 		}
 		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
 		data = (char *)gf_malloc(len*sizeof(char));
+		if (!data) {
+			e = GF_OUT_OF_MEM;
+			if (specInfo) gf_free(specInfo);
+			gf_bs_del(bs);
+			if (KIDs) gf_free(KIDs);
+			break;
+		}
 		gf_bs_read_data(bs, data, len);
 
 		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 1)) {
 			GF_Crypt *gc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!gc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
-				return GF_IO_ERR;
+				if (specInfo) gf_free(specInfo);
+				gf_bs_del(bs);
+				if (KIDs) gf_free(KIDs);
+				if (data) gf_free(data);
+				e = GF_IO_ERR;
+				break;
 			}
 			e = gf_crypt_init(gc, cypherKey, cypherIV);
 			gf_crypt_encrypt(gc, data+cypherOffset, len-cypherOffset);
@@ -526,7 +575,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 
 	gf_xml_dom_del(parser);
 
-	if (nb_pssh) {
+	if (!e && nb_pssh) {
 		u8 *pssh=NULL;
 		u32 pssh_size=0;
 		u32 pos = (u32) gf_bs_get_position(pssh_bs);
@@ -799,6 +848,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		cstr->use_subsamples = GF_TRUE;
 	//CBCS mode with skip byte block may be used for any track, in which case we need subsamples
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
+		const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_STREAM_TYPE);
+		if (prop && prop->value.uint != GF_STREAM_VISUAL) {
+			if (cstr->tci->skip_byte_block) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("\n[CENC] Using cbcs pattern mode on-video track is disabled in GPAC, using whole-block full encryption\n"));
+				cstr->tci->skip_byte_block = 0;
+			}
+		}
 		if (cstr->tci->skip_byte_block) {
 			cstr->use_subsamples = GF_TRUE;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("\n[CENC] Using cbcs pattern mode on non NAL video track, this may not be supported by most devices; consider setting skip_byte_block to 0\n\n"));
@@ -982,8 +1038,30 @@ static void cenc_free_pid_context(GF_CENCStream *cstr)
 
 	if (cstr->mkey_indices.vals) gf_free(cstr->mkey_indices.vals);
 	cenc_pid_reset_codec_states(cstr);
-
+	if (cstr->pssh_templates) {
+		while (gf_list_count(cstr->pssh_templates)) {
+			GF_XMLNode *n = gf_list_pop_back(cstr->pssh_templates);
+			gf_xml_dom_node_del(n);
+		}
+		gf_list_del(cstr->pssh_templates);
+	}
 	gf_free(cstr);
+}
+
+void cenc_gen_bin128(bin128 data)
+{
+	u64 *low = (u64 *) &data[0];
+	u64 *high = (u64 *) &data[8];
+
+	u64 val = gf_rand();
+	val <<= 32;
+	val |= gf_rand();
+	*low = val;
+
+	val = gf_rand();
+	val <<= 32;
+	val |= gf_rand();
+	*high = val;
 }
 
 static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -1086,6 +1164,26 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	cstr->cinfo = (cinfo != ctx->cinfo) ? cinfo : NULL;
 	cstr->tci = tci;
 	cstr->passthrough = tci ? GF_FALSE : GF_TRUE;
+
+	if (tci->rand_keys) {
+		if (!tci->nb_keys) {
+			tci->keys = gf_realloc(tci->keys, sizeof(GF_CryptKeyInfo));
+			memset(&tci->keys[0], 0, sizeof(GF_CryptKeyInfo));
+		}
+		tci->nb_keys = 1;
+		if (tci->scheme_type == GF_CRYPT_TYPE_CBCS) {
+			tci->keys[0].IV_size = 0;
+			tci->keys[0].constant_IV_size = 16;
+		} else {
+			if (!tci->keys[0].IV_size) tci->keys[0].IV_size = 16;
+			tci->keys[0].constant_IV_size = 0;
+		}
+		tci->nb_keys = 1;
+		gf_rand_init(GF_TRUE);
+		cenc_gen_bin128(tci->keys[0].key);
+		cenc_gen_bin128(tci->keys[0].KID);
+		cenc_gen_bin128(tci->keys[0].IV);
+	}
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(cstr->opid, pid);
@@ -2067,6 +2165,149 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 		}
 	}
 
+	if (cstr->pssh_template_plus_one) {
+		u32 key_idx = cstr->pssh_template_plus_one-1;
+		cstr->pssh_template_plus_one = 0;
+
+		if (cstr->pssh_templates) {
+			GF_XMLNode *pssh_tpl=NULL;
+			char szKID[33];
+			const char *cfile_name = ctx->cfile;
+			const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_CRYPT_INFO);
+			if (prop)  cfile_name = prop->value.string;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			u32 nb_systems=0;
+			//nb systems
+			gf_bs_write_u32(bs, 0);
+
+			szKID[0]=0;
+			for (i=0; i<16; i++) {
+				char szTmp[3];
+				sprintf(szTmp, "%02x", cstr->tci->keys[key_idx].KID[i]);
+				strcat(szKID, szTmp);
+			}
+			i=0;
+			while ((pssh_tpl = gf_list_enum(cstr->pssh_templates, &i))) {
+				u32 j=0;
+				GF_XMLNode *bs_node;
+				char szCryptKey[33];
+				u32 pssh_version=1;
+				u32 crypt_mode=GF_CBC;
+				char *key_att_backup = NULL;
+				char *kid_att_backup = NULL;
+				Bool valid=GF_TRUE;
+				GF_XMLAttribute *att, *sys_att=NULL, *key_val = NULL, *key_att = NULL, *kid_att = NULL, *iv_val=NULL;
+				while ((att = gf_list_enum(pssh_tpl->attributes, &j))) {
+					if (!stricmp(att->name, "system")) {
+						sys_att = att;
+					}
+					else if (!stricmp(att->name, "key")) {
+						key_val = att;
+					}
+					else if (!stricmp(att->name, "mode")) {
+						if (strcmp(att->value, "cbc")) crypt_mode = GF_CBC;
+						else if (strcmp(att->value, "ctr")) crypt_mode = GF_CTR;
+						else if (strcmp(att->value, "ecb")) crypt_mode = GF_ECB;
+						else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Unsupported mode %s, ignoring DRMInfoTemplate\n", att->value));
+							valid=GF_FALSE;
+						}
+					}
+					else if (!stricmp(att->name, "IV")) {
+						iv_val = att;
+					}
+					else if (!stricmp(att->name, "version")) {
+						pssh_version = atoi(att->value);
+					}
+				}
+				if (!valid) continue;
+
+				if (!sys_att) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Missing systemID, ignoring DRMInfoTemplate\n"));
+					continue;
+				}
+				if (!key_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Missing keyval, ignoring DRMInfoTemplate\n"));
+					continue;
+				}
+
+				j=0;
+				while ((bs_node = gf_list_enum(pssh_tpl->content, &j))) {
+					u32 k=0;
+					if (strcmp(bs_node->name, "BS")) continue;
+					while ((att = gf_list_enum(bs_node->attributes, &k))) {
+						if (stricmp(att->name, "ID128")) continue;
+						if (!stricmp(att->value, "KEY"))
+							key_att = att;
+						else if (!stricmp(att->value, "KID"))
+							kid_att = att;
+					}
+				}
+
+				if (kid_att) {
+					kid_att_backup = kid_att->value;
+					kid_att->value = szKID;
+				}
+
+				if (key_val && key_att) {
+					bin128 master_key, leaf_key;
+					key_att_backup = key_att->value;
+					gf_bin128_parse(key_val->value, master_key);
+					GF_Crypt *crypto = gf_crypt_open(GF_AES_128, crypt_mode);
+					if (iv_val) {
+						bin128 IV;
+						gf_bin128_parse(iv_val->value, IV);
+						gf_crypt_init(crypto, master_key, IV);
+					} else {
+						gf_crypt_init(crypto, master_key, NULL);
+					}
+					memcpy(leaf_key, cstr->tci->keys[key_idx].key, 16);
+					gf_crypt_encrypt(crypto, leaf_key, 16);
+					gf_crypt_close(crypto);
+
+					szCryptKey[0]=0;
+					for (j=0; j<16; j++) {
+						char szTmp[3];
+						sprintf(szTmp, "%02x", leaf_key[j]);
+						strcat(szCryptKey, szTmp);
+					}
+					key_att->value = szCryptKey;
+				}
+
+				u8 *pssh_kid=NULL;
+				u32 pssh_kid_size;
+				GF_Err e = gf_xml_parse_bit_sequence(pssh_tpl, cfile_name, &pssh_kid, &pssh_kid_size);
+				if (e) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Failed to get binary XML for PSSH template: %s\n", gf_error_to_string(e) ));
+				} else {
+					bin128 system_ID;
+					gf_bin128_parse(sys_att->value, system_ID);
+					gf_bs_write_data(bs, system_ID, 16); //systemID
+					gf_bs_write_u32(bs, pssh_version); //version
+					if (pssh_version) {
+						gf_bs_write_u32(bs, 1); //nb KIDs
+						gf_bs_write_data(bs, (const u8 *) cstr->tci->keys[key_idx].KID, 16); //kid
+					}
+					gf_bs_write_u32(bs, pssh_kid_size);
+					gf_bs_write_data(bs, pssh_kid, pssh_kid_size);
+					nb_systems++;
+				}
+				if (pssh_kid) gf_free(pssh_kid);
+				if (key_att_backup) key_att->value = key_att_backup;
+				if (kid_att_backup) kid_att->value = kid_att_backup;
+			}
+			u32 pssh_pos = (u32) gf_bs_get_position(bs);
+			gf_bs_seek(bs, 0);
+			gf_bs_write_u32(bs, nb_systems);
+			gf_bs_seek(bs, pssh_pos);
+			u8 *pssh;
+			u32 pssh_len;
+			gf_bs_get_content(bs, &pssh, &pssh_len);
+			gf_bs_del(bs);
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA_NO_COPY(pssh, pssh_len) );
+		}
+	}
+
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }
@@ -2166,6 +2407,8 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		return GF_OK;
 	}
 
+	cstr->pssh_template_plus_one = 0;
+
 	/*load initialization vector for the first sample in track ... */
 	if (!cstr->cenc_init) {
 		u32 i, nb_keys = cstr->multi_key ? cstr->tci->nb_keys : 1;
@@ -2193,23 +2436,32 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 				return GF_IO_ERR;
 			}
+
+			cstr->pssh_template_plus_one = 1;
 		}
 		cstr->cenc_init = GF_TRUE;
 	} else if (!cstr->multi_key) {
 		u32 new_idx = cstr->kidx;
+		u32 nb_keys = cstr->tci->rand_keys ? 2 : cstr->tci->nb_keys;
 		Bool key_changed = GF_FALSE;
 
 		if (cstr->tci->keyRoll) {
-			new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % cstr->tci->nb_keys;
+			new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % nb_keys;
 		} else if (cstr->rap_roll) {
 			if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2)) {
-				new_idx = (new_idx + 1) % cstr->tci->nb_keys;
+				new_idx = (new_idx + 1) % nb_keys;
 			}
 		}
 		if (cstr->kidx != new_idx) {
+			if (cstr->tci->rand_keys) {
+				new_idx = 0;
+				cenc_gen_bin128(cstr->tci->keys[0].KID);
+				cenc_gen_bin128(cstr->tci->keys[0].key);
+			}
 			cstr->kidx = new_idx;
 			memcpy(cstr->keys[0].key, cstr->tci->keys[cstr->kidx].key, 16);
 			key_changed = GF_TRUE;
+			cstr->pssh_template_plus_one = new_idx+1;
 			e = gf_crypt_set_key(cstr->keys[0].crypt, cstr->keys[0].key);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );

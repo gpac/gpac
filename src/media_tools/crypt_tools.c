@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -253,6 +253,17 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 					tkc->roll_rap = GF_TRUE;
 				else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized roll parameter %s, ignoring\n", att->value));
+				}
+			}
+			else if (!stricmp(att->name, "random")) {
+				if (!strcmp(att->value, "true") || !strcmp(att->value, "1") || !strcmp(att->value, "yes")) {
+					tkc->rand_keys=GF_TRUE;
+				}
+				else if (!strcmp(att->value, "false") || !strcmp(att->value, "0") || !strcmp(att->value, "no")) {
+					tkc->rand_keys=GF_FALSE;
+				}
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized random parameter %s, ignoring\n", att->value));
 				}
 			}
 			else if (!stricmp(att->name, "metadata")) {

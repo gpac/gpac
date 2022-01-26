@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2018
+*			Copyright (c) Telecom ParisTech 2018-2022
 *					All rights reserved
 *
 *  This file is part of GPAC / crypto lib sub-project
@@ -165,6 +165,66 @@ GF_Err gf_crypt_decrypt_tinyaes_ctr(GF_Crypt* td, u8 *ciphertext, u32 len)
 	return GF_OK;
 }
 
+/** ECB mode **/
+
+GF_Err gf_crypt_init_tinyaes_ecb(GF_Crypt* td, void *key, const void *iv)
+{
+	struct AES_ctx *ctx = (struct AES_ctx *)td->context;
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, struct AES_ctx);
+		if (ctx == NULL) return GF_OUT_OF_MEM;
+		td->context = ctx;
+	}
+	AES_init_ctx(ctx, key);
+	return GF_OK;
+}
+
+void gf_crypt_deinit_tinyaes_ecb(GF_Crypt* td)
+{
+}
+
+void gf_set_key_tinyaes_ecb(GF_Crypt* td, void *key)
+{
+	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
+	AES_init_ctx(ctx, key);
+}
+
+GF_Err gf_crypt_set_IV_tinyaes_ecb(GF_Crypt* td, const u8 *iv, u32 iv_size)
+{
+	return GF_OK;
+}
+
+GF_Err gf_crypt_get_IV_tinyaes_ecb(GF_Crypt* td, u8 *iv, u32 *iv_size)
+{
+	*iv_size = AES_BLOCKLEN;
+	memset(iv, 0, AES_BLOCKLEN);
+	return GF_OK;
+}
+
+
+GF_Err gf_crypt_encrypt_tinyaes_ecb(GF_Crypt* td, u8 *plaintext, u32 len)
+{
+	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
+	if (len % AES_BLOCKLEN) return GF_BAD_PARAM;
+	while (len) {
+		AES_ECB_encrypt(ctx, plaintext);
+		plaintext += AES_BLOCKLEN;
+		len -= AES_BLOCKLEN;
+	}
+	return GF_OK;
+}
+
+GF_Err gf_crypt_decrypt_tinyaes_ecb(GF_Crypt* td, u8 *ciphertext, u32 len)
+{
+	struct AES_ctx* ctx = (struct AES_ctx *)td->context;
+	if (len % AES_BLOCKLEN) return GF_BAD_PARAM;
+	while (len) {
+		AES_ECB_decrypt(ctx, ciphertext);
+		ciphertext += AES_BLOCKLEN;
+		len -= AES_BLOCKLEN;
+	}
+	return GF_OK;
+}
 
 GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 {
@@ -187,6 +247,15 @@ GF_Err gf_crypt_open_open_tinyaes(GF_Crypt* td, GF_CRYPTO_MODE mode)
 		td->_decrypt = gf_crypt_decrypt_tinyaes_ctr;
 		td->_get_state = gf_crypt_get_IV_tinyaes_ctr;
 		td->_set_state = gf_crypt_set_IV_tinyaes_ctr;
+		break;
+	case GF_ECB:
+		td->_init_crypt = gf_crypt_init_tinyaes_ecb;
+		td->_deinit_crypt = gf_crypt_deinit_tinyaes_ecb;
+		td->_set_key = gf_set_key_tinyaes_ecb;
+		td->_crypt = gf_crypt_encrypt_tinyaes_ecb;
+		td->_decrypt = gf_crypt_decrypt_tinyaes_ecb;
+		td->_get_state = gf_crypt_get_IV_tinyaes_ecb;
+		td->_set_state = gf_crypt_set_IV_tinyaes_ecb;
 		break;
 	default:
 		return GF_BAD_PARAM;

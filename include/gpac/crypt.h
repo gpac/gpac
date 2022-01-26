@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre
-*			Copyright (c) Telecom ParisTech 2000-2019
+*			Copyright (c) Telecom ParisTech 2000-2022
 *					All rights reserved
 *
 *  This file is part of GPAC / Crypto Tools sub-project
@@ -65,7 +65,9 @@ typedef enum {
 	/*! CBC chaining mode*/
 	GF_CBC = 0,
 	/*! CTR chaining mode*/
-	GF_CTR = 1
+	GF_CTR = 1,
+	/*! ECB (no chaining), payload must be a multiple of 16-bytes blocks*/
+	GF_ECB = 2,
 } GF_CRYPTO_MODE;
 
 /*! Algorithm mode to use*/
