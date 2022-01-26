@@ -9849,7 +9849,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, s32 bytes_in_
 	return def_ptr;
 }
 
-static void	sgpd_del_entry(u32 grouping_type, void *entry)
+void sgpd_del_entry(u32 grouping_type, void *entry)
 {
 	switch (grouping_type) {
 	case GF_ISOM_SAMPLE_GROUP_SYNC:

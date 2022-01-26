@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -3933,7 +3933,7 @@ u32 gf_isom_segment_get_track_fragment_decode_time(GF_ISOFile *isom_file, u32 mo
 \param moof_size set to moof box size, may be NULL
 \return the movie fragemnt size
 */
-u64 gf_isom_segment_get_fragment_size(GF_ISOFile *file, u32 moof_index, u32 *moof_size);
+u64 gf_isom_segment_get_fragment_size(GF_ISOFile *isom_file, u32 moof_index, u32 *moof_size);
 
 /*! enables single moof mode. In single moof mode, file is parsed only one moof/mdat at a time
    in order to proceed to next moof, \ref gf_isom_reset_data_offset must be called to parse the next moof
@@ -6605,12 +6605,23 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *isom_file, u32 trackNumber, 
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sample_group_description_index index of sample group description entry to query
-\param grouping_type four character code of grouping typpe of sample group description to query
+\param grouping_type four character code of grouping type of sample group description to query
 \param default_index set to the default index for this sample group description if any, 0 otherwise (no defaults)
 \param data set to the internal sample group description data buffer
 \param size set to size of the sample group description data buffer
 \return GF_TRUE if found, GF_FALSE otherwise*/
 Bool gf_isom_get_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_group_description_index, u32 grouping_type, u32 *default_index, const u8 **data, u32 *size);
+
+/*! gets sample group description index for a given sample and grouping type.
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sample_number sample number to query
+\param grouping_type four character code of grouping type of sample group description to query
+\param grouping_type_parameter  grouping type parameter of sample group description to query
+\param sampleGroupDescIndex set to the 1-based sample group description index, or 0 if no sample group of this type is associated
+\return error if any
+*/
+GF_Err gf_isom_get_sample_to_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, u32 *sampleGroupDescIndex);
 
 /*! checks if a track as a CENC seig sample group used for key rolling
 \param isom_file the target ISO file
@@ -6701,6 +6712,19 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *isom_file, u32 trackNumber, u32
 \return error if any
 */
 GF_Err gf_isom_remove_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 grouping_type);
+
+/*! adds the given blob as a sample group description entry of the given grouping type for the given sample.
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleNumber the target sample number
+\param grouping_type the four character code of the grouping type
+\param grouping_type_parameter associated grouping type parameter (usually 0)
+\param data the payload of the sample group description
+\param data_size the size of the payload
+\return error if any
+*/
+GF_Err gf_isom_set_sample_group_description(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 grouping_type, u32 grouping_type_parameter, void *data, u32 data_size);
+
 
 /*! adds a sample to the given sample group
 \param isom_file the target ISO file

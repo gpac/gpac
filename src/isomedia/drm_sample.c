@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Cyril Concolato / Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -870,7 +870,7 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	GF_PIFFProtectionSystemHeaderBox *pssh_piff = NULL;
 	u32 i=0;
 	GF_Box *a;
-	GF_List **child_boxes = NULL;
+	GF_List **child_boxes = NULL, *moof_pssh = NULL;
 
 	if (pssh_mode==2) {
 		if (!file->meta) return GF_BAD_PARAM;
@@ -879,7 +879,8 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 	} else if (file->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) {
 		if (!file->moof) return GF_BAD_PARAM;
 		if (!file->moof->PSSHs) file->moof->PSSHs = gf_list_new();
-		child_boxes = &file->moof->PSSHs;
+		child_boxes = &file->moof->child_boxes;
+		moof_pssh = file->moof->PSSHs;
 	} else {
 		if (!file->moov) return GF_BAD_PARAM;
 		if (!file->moov->child_boxes) file->moov->child_boxes = gf_list_new();
@@ -912,11 +913,13 @@ GF_Err gf_cenc_set_pssh(GF_ISOFile *file, bin128 systemID, u32 version, u32 KID_
 			if (!pssh_piff) return GF_IO_ERR;
 			memcpy((char *)pssh_piff->SystemID, systemID, sizeof(bin128));
 			pssh_piff->version = version;
+			if (moof_pssh) gf_list_add(moof_pssh, pssh_piff);
 		} else {
 			pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new_parent(child_boxes, GF_ISOM_BOX_TYPE_PSSH);
 			if (!pssh) return GF_IO_ERR;
 			memcpy((char *)pssh->SystemID, systemID, sizeof(bin128));
 			pssh->version = version;
+			if (moof_pssh) gf_list_add(moof_pssh, pssh);
 		}
 	}
 
