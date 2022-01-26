@@ -1,8 +1,9 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
-*			Authors: Rodolphe Fouquet
+*			Authors: Rodolphe Fouquet, Jean Le Feuvre
 *			Copyright (c) Motion Spell 2016
+*                     (c) Telecom Paris 2022
 *					All rights reserved
 *
 *  This file is part of GPAC / crypto lib sub-project
@@ -190,6 +191,73 @@ GF_Err gf_crypt_decrypt_openssl_ctr(GF_Crypt* td, u8 *ciphertext, u32 len)
 	return gf_crypt_crypt_openssl_ctr(td, ciphertext, len);
 }
 
+/* ECB */
+typedef struct {
+	AES_KEY key;
+} Openssl_ctx_ecb;
+
+/** CBC STUFF **/
+
+GF_Err gf_crypt_init_openssl_ecb(GF_Crypt* td, void *key, const void *iv)
+{
+	Openssl_ctx_ecb *ctx = (Openssl_ctx_ecb*)td->context;
+	if (!ctx) {
+		GF_SAFEALLOC(ctx, Openssl_ctx_ecb);
+		if (ctx == NULL) return GF_OUT_OF_MEM;
+		td->context = ctx;
+	}
+	return GF_OK;
+}
+
+void gf_crypt_deinit_openssl_ecb(GF_Crypt* td)
+{
+}
+
+void gf_set_key_openssl_ecb(GF_Crypt* td, void *key)
+{
+	Openssl_ctx_ecb* ctx = (Openssl_ctx_ecb*)td->context;
+	AES_set_encrypt_key(key, 128, &(ctx->key));
+	AES_set_decrypt_key(key, 128, &(ctx->key));
+}
+
+GF_Err gf_crypt_set_IV_openssl_ecb(GF_Crypt* td, const u8 *iv, u32 iv_size)
+{
+	return GF_OK;
+}
+
+GF_Err gf_crypt_get_IV_openssl_ecb(GF_Crypt* td, u8 *iv, u32 *iv_size)
+{
+	*iv_size = AES_BLOCK_SIZE;
+	memset(iv, 0, AES_BLOCK_SIZE);
+	return GF_OK;
+}
+
+GF_Err gf_crypt_crypt_openssl_ecb(GF_Crypt* td, u8 *plaintext, u32 len, u32 aes_crypt_type)
+{
+	Openssl_ctx_ecb* ctx = (Openssl_ctx_ecb*)td->context;
+	u32 iteration;
+	u32 numberOfIterations = len / AES_BLOCK_SIZE;
+	if (numberOfIterations * AES_BLOCK_SIZE < len) {
+		return GF_BAD_PARAM;
+	}
+
+	for (iteration = 0; iteration < numberOfIterations; ++iteration) {
+		AES_ecb_encrypt(plaintext + iteration*AES_BLOCK_SIZE, plaintext + iteration*AES_BLOCK_SIZE, &ctx->key, aes_crypt_type);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_crypt_encrypt_openssl_ecb(GF_Crypt* td, u8 *plaintext, u32 len)
+{
+	return gf_crypt_crypt_openssl_ecb(td, plaintext, len, AES_ENCRYPT);
+}
+
+GF_Err gf_crypt_decrypt_openssl_ecb(GF_Crypt* td, u8 *ciphertext, u32 len)
+{
+	return gf_crypt_crypt_openssl_ecb(td, ciphertext, len, AES_DECRYPT);
+}
+
+
 
 GF_Err gf_crypt_open_open_openssl(GF_Crypt* td, GF_CRYPTO_MODE mode)
 {
@@ -212,6 +280,15 @@ GF_Err gf_crypt_open_open_openssl(GF_Crypt* td, GF_CRYPTO_MODE mode)
 		td->_decrypt = gf_crypt_decrypt_openssl_ctr;
 		td->_get_state = gf_crypt_get_IV_openssl_ctr;
 		td->_set_state = gf_crypt_set_IV_openssl_ctr;
+		break;
+	case GF_ECB:
+		td->_init_crypt = gf_crypt_init_openssl_ecb;
+		td->_deinit_crypt = gf_crypt_deinit_openssl_ecb;
+		td->_set_key = gf_set_key_openssl_ecb;
+		td->_crypt = gf_crypt_encrypt_openssl_ecb;
+		td->_decrypt = gf_crypt_decrypt_openssl_ecb;
+		td->_get_state = gf_crypt_get_IV_openssl_ecb;
+		td->_set_state = gf_crypt_set_IV_openssl_ecb;
 		break;
 	default:
 		return GF_BAD_PARAM;
