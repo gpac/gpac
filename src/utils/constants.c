@@ -201,6 +201,7 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_DVA1:
 	case GF_ISOM_SUBTYPE_DVAV:
 		return GF_CODECID_AVC;
+	case GF_ISOM_SUBTYPE_AV01:
 	case GF_ISOM_SUBTYPE_DAV1:
 		return GF_CODECID_AV1;
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -252,6 +253,12 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_VVC;
 	case GF_QT_SUBTYPE_YUV422_10:
 		return GF_CODECID_V210;
+	case GF_ISOM_SUBTYPE_VP08:
+		return GF_CODECID_VP8;
+	case GF_ISOM_SUBTYPE_VP09:
+		return GF_CODECID_VP9;
+	case GF_ISOM_SUBTYPE_VP10:
+		return GF_CODECID_VP10;
 
 	case GF_QT_SUBTYPE_APCH:
 		return GF_CODECID_APCH;
