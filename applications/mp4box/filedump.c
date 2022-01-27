@@ -2648,7 +2648,16 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "Track composition offset shift (negative CTS offset): %d\n", cts_shift);
 
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stderr, "Track is present in Root OD\n");
-	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stderr, "Track is disabled\n");
+
+	u32 tk_flags = gf_isom_get_track_flags(file, trackNum);
+	fprintf(stderr, "Track flags:");
+	if (tk_flags & GF_ISOM_TK_ENABLED) fprintf(stderr, " Enabled");
+	else fprintf(stderr, " Disabled");
+	if (tk_flags & GF_ISOM_TK_IN_MOVIE) fprintf(stderr, " In Movie");
+	if (tk_flags & GF_ISOM_TK_IN_PREVIEW) fprintf(stderr, " In Preview");
+	if (tk_flags & GF_ISOM_TK_SIZE_IS_AR) fprintf(stderr, " Size is AspectRatio");
+	fprintf(stderr, "\n");
+
 	gf_isom_get_media_language(file, trackNum, &lang);
 	fprintf(stderr, "Media Info: Language \"%s (%s)\" - ", GetLanguage(lang), lang );
 	gf_free(lang);

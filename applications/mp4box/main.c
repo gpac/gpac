@@ -730,7 +730,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("ext", NULL, "override file extension when importing", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("hdlr", NULL, "`S` set track handler type to the given code point (4CC)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("stype", NULL, "`S` force sample description type to given code point (4CC), may likely break the file", NULL, NULL, GF_ARG_STRING, 0),
-	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer. Use `tkhd+=FLAGS` to add flags and `tkhd-=FLAGS` to remove flags", NULL, NULL, GF_ARG_INT, 0),
+	GF_DEF_ARG("tkhd", NULL, "`S` set track header flags has hex integer or as comma-separated list of `enable`, `movie`, `preview`, `size_ar` keywords (use `tkhd+=FLAGS` to add and `tkhd-=FLAGS` to remove)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("disable", NULL, "`S` disable imported track(s), use `disable=no` to force enabling a disabled track", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("group", NULL, "`S` add the track as part of the G alternate group. If G is 0, the first available GroupID will be picked", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("fps", NULL, "same as [-fps]()", NULL, NULL, GF_ARG_STRING, 0),
