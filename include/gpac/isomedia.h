@@ -1843,7 +1843,7 @@ enum
 {
 	/*! track is enabled */
 	GF_ISOM_TK_ENABLED = 1,
-	/*! track is in regular prsentation*/
+	/*! track is in regular presentation*/
 	GF_ISOM_TK_IN_MOVIE = 1<<1,
 	/*! track is in preview*/
 	GF_ISOM_TK_IN_PREVIEW = 1<<2,
