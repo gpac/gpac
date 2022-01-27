@@ -813,8 +813,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			else if (flags[0]=='-') { track_flags_mode = GF_ISOM_TKFLAGS_REM; flags += 1; }
 			else track_flags_mode = GF_ISOM_TKFLAGS_SET;
 
-			if (!strnicmp(flags, "0x", 2)) flags += 2;
-			sscanf(flags, "%X", &track_flags);
+			if (strstr(flags, "enable")) track_flags |= GF_ISOM_TK_ENABLED;
+			if (strstr(flags, "movie")) track_flags |= GF_ISOM_TK_IN_MOVIE;
+			if (strstr(flags, "preview")) track_flags |= GF_ISOM_TK_IN_PREVIEW;
+			if (strstr(flags, "size_ar")) track_flags |= GF_ISOM_TK_SIZE_IS_AR;
+			if (!track_flags) {
+				if (!strnicmp(flags, "0x", 2)) flags += 2;
+				sscanf(flags, "%X", &track_flags);
+			}
 		} else if (!strnicmp(ext+1, "disable", 7)) {
 			do_disable = !stricmp(ext+1, "disable=no") ? 2 : 1;
 		}

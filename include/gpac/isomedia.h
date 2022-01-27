@@ -1837,6 +1837,20 @@ typedef enum
 	GF_ISOM_TKFLAGS_ADD,
 } GF_ISOMTrackFlagOp;
 
+
+/*! Track header flags*/
+enum
+{
+	/*! track is enabled */
+	GF_ISOM_TK_ENABLED = 1,
+	/*! track is in regular prsentation*/
+	GF_ISOM_TK_IN_MOVIE = 1<<1,
+	/*! track is in preview*/
+	GF_ISOM_TK_IN_PREVIEW = 1<<2,
+	/*! track size is an aspect ratio indicator only*/
+	GF_ISOM_TK_SIZE_IS_AR = 1<<3
+};
+
 /*! toggles track flags on or off
 \param isom_file the target ISO file
 \param trackNumber the target track

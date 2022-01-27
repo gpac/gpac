@@ -576,13 +576,16 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	gf_free(tkw);
 }
 
-static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const char *rname, u32 rtype)
+static void mp4_mux_write_track_refs(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const char *rname, u32 rtype, Bool remove_from_pres)
 {
 	u32 i;
 	const GF_PropertyValue *p = gf_filter_pid_get_property_str(tkw->ipid, rname);
 	if (!p) return;
 	for (i=0; i<p->value.uint_list.nb_items; i++) {
 		gf_isom_set_track_reference(ctx->file, tkw->track_num, rtype, p->value.uint_list.vals[i]);
+		if (remove_from_pres) {
+			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_REM);
+		}
 	}
 }
 
@@ -1289,12 +1292,15 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
 		tkw->next_is_first_sample = GF_TRUE;
 
-		//TODO: this should be the case for any new file since the redefinition of  track_in_movie and track_in_preview in ISOBMFF
-		//This will require modifying ALL our isobmf hashes
 		if (ctx->cmaf) {
-			gf_isom_set_track_flags(ctx->file, tkw->track_num, 0x7, GF_ISOM_TKFLAGS_SET);
+			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_ENABLED|GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
+		}
+		//unless in test mode or old arch compat, set track to be enabled, in movie and in preview
+		else if (!gf_sys_is_test_mode() && !gf_sys_old_arch_compat()) {
+			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
 		}
 
+		//override flags if provided
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_FLAGS);
 		if (p) {
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, p->value.uint, GF_ISOM_TKFLAGS_SET);
@@ -2845,17 +2851,17 @@ multipid_stsd_setup:
 	}
 
 	if (is_true_pid) {
-		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL);
-		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT);
-		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
-		mp4_mux_write_track_refs(ctx, tkw, "isom:sbas", GF_ISOM_REF_BASE);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:scal", GF_ISOM_REF_SCAL, GF_FALSE);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:sabt", GF_ISOM_REF_SABT, GF_FALSE);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS, GF_TRUE);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:sbas", GF_ISOM_REF_BASE, GF_FALSE);
 		//whenever we add a new tile track, rewrite sabt on main tile track
 		if (codec_id==GF_CODECID_HEVC_TILES) {
 			count = gf_list_count(ctx->tracks);
 			for (i=0; i<count; i++) {
 				TrackWriter *base_tk = gf_list_get(ctx->tracks, i);
 				if (base_tk->is_hevc_tile_base)
-					mp4_mux_write_track_refs(ctx, base_tk, "isom:sabt", GF_ISOM_REF_SABT);
+					mp4_mux_write_track_refs(ctx, base_tk, "isom:sabt", GF_ISOM_REF_SABT, GF_FALSE);
 			}
 		}
 
@@ -2865,7 +2871,7 @@ multipid_stsd_setup:
 			tkw->check_seek_ts = GF_TRUE;
 
 	} else if (codec_id==GF_CODECID_HEVC_TILES) {
-		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS);
+		mp4_mux_write_track_refs(ctx, tkw, "isom:tbas", GF_ISOM_REF_TBAS, GF_TRUE);
 	}
 
 	if (is_true_pid && ctx->dash_mode && is_tile_base) {
