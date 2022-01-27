@@ -766,6 +766,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 		offset = key_info_get_iv_size(ch->cenc_ki->value.data.ptr, ch->cenc_ki->value.data.size, 1, NULL, NULL);
 		sub_count_size = 2; //16bit sub count
 	}
+	if (sai_size < offset + sub_count_size) return;
 
 	sai += offset;
 	if (sub_count_size==2) {
