@@ -440,9 +440,11 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 {
 	u32 size, pck_size, i, count, tot_size=0, nb_done=0;
 	u64 min_dts = GF_FILTER_NO_TS;
-	u32 min_timescale;
+	u32 min_timescale, min_nal_size;
 	GF_Err process_error = GF_OK;
 	Bool has_svc_prefix = GF_FALSE;
+
+	min_nal_size = codec_type ? 2 : 1;
 
 	count = gf_list_count(pctx->ipids);
 	for (i=0; i<count; i++) {
@@ -517,11 +519,21 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				break;
 			}
+			if (nal_size < min_nal_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSAgg] Invalid NAL size %d but mn size %d\n", nal_size, min_nal_size));
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
 
 			//AVC
 			if (codec_type==0) {
 				nal_type = data[size] & 0x1F;
 				if ((nal_type == GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
+					if (nal_size < 4) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSAgg] Invalid NAL size %d but mn size 4\n", nal_size));
+						e = GF_NON_COMPLIANT_BITSTREAM;
+						break;
+					}
 					has_svc_prefix = GF_TRUE;
 					//quick parse svc nal header (right after 1-byte nal header)
 					//u32 prio_id = (data[size+1]) & 0x3F;

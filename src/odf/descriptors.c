@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 ObjectDescriptor sub-project
@@ -601,17 +601,47 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
-		sl->size = gf_bs_read_int(bs, 16);
+		GF_NALUFFParam *sl;
+		u32 size = gf_bs_read_int(bs, 16);
+		if ((size>gf_bs_available(bs)) || (size<2)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
+		GF_SAFEALLOC(sl, GF_NALUFFParam );
+		if (!sl) {
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
+		sl->size = size;
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+		if (!sl->data) {
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->sequenceParameterSets, sl);
 	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
-		GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
-		sl->size = gf_bs_read_int(bs, 16);
+		GF_NALUFFParam *sl;
+		u32 size = gf_bs_read_int(bs, 16);
+		if ((size>gf_bs_available(bs)) || (size<2)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
+		GF_SAFEALLOC(sl, GF_NALUFFParam );
+		if (!sl) {
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
+		sl->size = size;
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+		if (!sl->data) {
+			gf_odf_avc_cfg_del(avcc);
+			return NULL;
+		}
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
@@ -627,9 +657,24 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		if (count) {
 			avcc->sequenceParameterSetExtensions = gf_list_new();
 			for (i=0; i<count; i++) {
-				GF_NALUFFParam *sl = (GF_NALUFFParam *)gf_malloc(sizeof(GF_NALUFFParam));
-				sl->size = gf_bs_read_u16(bs);
-				sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
+				GF_NALUFFParam *sl;
+				u32 size = gf_bs_read_int(bs, 16);
+				if ((size>gf_bs_available(bs)) || (size<2)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+					gf_odf_avc_cfg_del(avcc);
+					return NULL;
+				}
+				GF_SAFEALLOC(sl, GF_NALUFFParam );
+				if (!sl) {
+					gf_odf_avc_cfg_del(avcc);
+					return NULL;
+				}
+				sl->size = size;
+				sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
+				if (!sl->data) {
+					gf_odf_avc_cfg_del(avcc);
+					return NULL;
+				}
 				gf_bs_read_data(bs, sl->data, sl->size);
 				gf_list_add(avcc->sequenceParameterSetExtensions, sl);
 			}
@@ -1050,7 +1095,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
-			if (size>gf_bs_available(bs)) {
+			if ((size>gf_bs_available(bs)) || (size<2)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[HEVC] Wrong param set size %d\n", size));
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
@@ -1330,7 +1375,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 		for (j=0; j<nalucount; j++) {
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
-			if (size>gf_bs_available(bs)) {
+			if ((size>gf_bs_available(bs)) || (size<2)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] Wrong param set size %d\n", size));
 				gf_odf_vvc_cfg_del(cfg);
 				return NULL;

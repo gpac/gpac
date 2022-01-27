@@ -2746,6 +2746,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 	else
 		is_avcc = GF_FALSE;
 
+	//we don't use gf_odf_avc_cfg_read to deal with missing rext profile signaling on many files
 	ptr->config->configurationVersion = gf_bs_read_u8(bs);
 	ptr->config->AVCProfileIndication = gf_bs_read_u8(bs);
 	ptr->config->profile_compatibility = gf_bs_read_u8(bs);
@@ -2820,7 +2821,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 			}
 		}
 #endif
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("AVCC: invalid syntax for REXT profile, patching.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[isom/avcc] Missing REXT profile signaling, patching.\n"));
 		return GF_OK;
 	}
 	ISOM_DECREASE_SIZE(ptr, 4)

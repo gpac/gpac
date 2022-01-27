@@ -1921,6 +1921,8 @@ GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_fr
 	e = gf_bs_seek(bs, pos + ivf_frame_size - 1);
 	if (e) return e;
 
+	gf_bs_mark_overflow(bs, GF_TRUE);
+
 	byte = gf_bs_read_u8(bs);
 	if ((byte & 0xe0) != 0xc0)
 		goto exit; /*no superframe*/
@@ -1943,6 +1945,9 @@ GF_Err gf_vp9_parse_superframe(GF_BitStream *bs, u64 ivf_frame_size, u32 *num_fr
 
 exit:
 	gf_bs_seek(bs, pos);
+
+	if (gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
+
 	return e;
 }
 
@@ -2690,7 +2695,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 	u64 tusize, sz;
 	if (!bs || !state) return GF_BAD_PARAM;
 
-	state->bs_overread = GF_FALSE;
+	gf_bs_mark_overflow(bs, GF_TRUE);
 	tusize = sz = gf_av1_leb128_read(bs, NULL);
 	tupos = gf_bs_get_position(bs);
 	if (!sz) {
@@ -2703,7 +2708,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 		u8 Leb128Bytes = 0;
 		u64 frame_unit_size = gf_av1_leb128_read(bs, &Leb128Bytes);
 
-		if (state->bs_overread) {
+		if (gf_bs_is_overflow(bs)) {
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (sz < Leb128Bytes + frame_unit_size) {
@@ -2716,7 +2721,7 @@ GF_Err aom_av1_parse_temporal_unit_from_annexb(GF_BitStream *bs, AV1State *state
 		while (frame_unit_size > 0) {
 			u64 pos, obu_size = gf_av1_leb128_read(bs, &Leb128Bytes);
 
-			if (state->bs_overread) {
+			if (gf_bs_is_overflow(bs)) {
 				return GF_BUFFER_TOO_SMALL;
 			}
 			if (frame_unit_size < Leb128Bytes + obu_size) {
@@ -4120,12 +4125,6 @@ static GF_Err av1_parse_frame(GF_BitStream *bs, AV1State *state, u64 obu_start, 
 	return av1_parse_tile_group(bs, state, obu_start, obu_size);
 }
 
-static void on_aom_av1_eos(void *_state)
-{
-	AV1State *state = (AV1State *)_state;
-	state->bs_overread = GF_TRUE;
-}
-
 static void av1_parse_obu_metadata(AV1State *state, GF_BitStream *bs)
 {
 	u32 metadata_type = (u32)gf_av1_leb128_read(bs, NULL);
@@ -4156,13 +4155,13 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	if (!bs || !obu_type || !state)
 		return GF_BAD_PARAM;
 
-	state->bs_overread = GF_FALSE;
-	gf_bs_set_eos_callback(bs, on_aom_av1_eos, state);
+	gf_bs_mark_overflow(bs, GF_TRUE);
 
 	state->obu_extension_flag = state->obu_has_size_field = 0;
 	state->temporal_id = state->spatial_id = 0;
 	state->frame_state.uncompressed_header_bytes = 0;
 	e = gf_av1_parse_obu_header(bs, obu_type, &state->obu_extension_flag, &state->obu_has_size_field, &state->temporal_id, &state->spatial_id);
+	if (gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
 	if (e)
 		return e;
 
@@ -4180,7 +4179,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		}
 	}
 	hdr_size = (u32)(gf_bs_get_position(bs) - pos);
-	if ((gf_bs_available(bs) < *obu_size) || state->bs_overread) {
+	if (gf_bs_is_overflow(bs) || (gf_bs_available(bs) < *obu_size) ) {
 		gf_bs_seek(bs, pos);
 		return GF_BUFFER_TOO_SMALL;
 	}
@@ -4210,7 +4209,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	switch (*obu_type) {
 	case OBU_SEQUENCE_HEADER:
 		av1_parse_sequence_header_obu(bs, state);
-		if (gf_bs_get_position(bs) > pos + *obu_size) {
+		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Sequence header parsing consumed too many bytes !\n"));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -4220,13 +4219,14 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	case OBU_METADATA:
 		av1_parse_obu_metadata(state, bs);
 		gf_bs_seek(bs, pos + *obu_size);
+		if (gf_bs_is_overflow(bs)) e = GF_NON_COMPLIANT_BITSTREAM;
 		break;
 
 	case OBU_FRAME_HEADER:
 	case OBU_REDUNDANT_FRAME_HEADER:
 		if (state->config) {
 			av1_parse_frame_header(bs, state);
-			if (gf_bs_get_position(bs) > pos + *obu_size) {
+			if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) > pos + *obu_size)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame header parsing consumed too many bytes !\n"));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 			}
@@ -4235,7 +4235,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 		break;
 	case OBU_FRAME:
 		e = av1_parse_frame(bs, state, pos, *obu_size);
-		if (gf_bs_get_position(bs) != pos + *obu_size) {
+		if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) != pos + *obu_size)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Frame parsing did not consume the right number of bytes !\n"));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -4244,7 +4244,7 @@ GF_Err gf_av1_parse_obu(GF_BitStream *bs, ObuType *obu_type, u64 *obu_size, u32 
 	case OBU_TILE_GROUP:
 		if (state->config) {
 			e = av1_parse_tile_group(bs, state, pos, *obu_size);
-			if (gf_bs_get_position(bs) != pos + *obu_size) {
+			if (gf_bs_is_overflow(bs) || (gf_bs_get_position(bs) != pos + *obu_size)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] Tile group parsing did not consume the right number of bytes !\n"));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 			}
@@ -4733,12 +4733,15 @@ u32 gf_bs_read_ue_log_idx3(GF_BitStream *bs, const char *fname, s32 idx1, s32 id
 	}
 
 	if (nb_lead>=32) {
-		//gf_bs_read_int keeps returning 0 on EOS, so if no more bits available, rbsp was truncated otherwise code is broken in rbsp)
-		//we only test once nb_lead>=32 to avoid testing at each bit read
-		if (!gf_bs_available(bs)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] exp-golomb read failed, not enough bits in bitstream !\n"));
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] corrupted exp-golomb code, %d leading zeros, max 31 allowed !\n", nb_lead));
+		if (gf_bs_is_overflow(bs)<2) {
+			//gf_bs_read_int keeps returning 0 on EOS, so if no more bits available, rbsp was truncated otherwise code is broken in rbsp)
+			//we only test once nb_lead>=32 to avoid testing at each bit read
+			if (!gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] exp-golomb read failed, not enough bits in bitstream !\n"));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Core] corrupted exp-golomb code, %d leading zeros, max 31 allowed !\n", nb_lead));
+			}
+			gf_bs_mark_overflow(bs, GF_FALSE);
 		}
 		return 0;
 	}
@@ -6095,6 +6098,8 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 	AVCSliceInfo n_state;
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	if (!gf_bs_available(bs)) return -1;
+	gf_bs_mark_overflow(bs, GF_TRUE);
 
 	nal_hdr = gf_bs_read_u8(bs);
 
@@ -6114,6 +6119,8 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 
 	case GF_AVC_NALU_SVC_SLICE:
 		SVC_ReadNal_header_extension(bs, &n_state.svc_nalhdr);
+		if (gf_bs_is_overflow(bs)) return -1;
+
 		// slice buffer - read the info and compare.
 		/*ret = */svc_parse_slice(bs, avc, &n_state);
 		if (avc->s_info.nal_ref_idc) {
@@ -6131,6 +6138,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 
 	case GF_AVC_NALU_SVC_PREFIX_NALU:
 		SVC_ReadNal_header_extension(bs, &avc->s_info.svc_nalhdr);
+		if (gf_bs_is_overflow(bs)) return -1;
 		return 0;
 
 	case GF_AVC_NALU_IDR_SLICE:
@@ -6141,6 +6149,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		slice = 1;
 		/* slice buffer - read the info and compare.*/
 		ret = avc_parse_slice(bs, avc, idr_flag, &n_state);
+		if (gf_bs_is_overflow(bs)) ret = -1;
 		if (ret < 0) return ret;
 		ret = 0;
 		if (
@@ -6202,19 +6211,23 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 		avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);
+		if (gf_bs_is_overflow(bs)) return -1;
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 
 	case GF_AVC_NALU_PIC_PARAM:
 		avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);
+		if (gf_bs_is_overflow(bs)) return -1;
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);
+		if (gf_bs_is_overflow(bs)) return -1;
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 	case GF_AVC_NALU_SEQ_PARAM_EXT:
 		avc->last_ps_idx = (s32) gf_bs_read_ue(bs);
+		if (gf_bs_is_overflow(bs)) return -1;
 		if (avc->last_ps_idx < 0) return -1;
 		return 0;
 
@@ -8562,6 +8575,9 @@ s32 gf_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, 
 	HEVCSliceInfo n_state;
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	if (gf_bs_available(bs)<2) return -1;
+
+	gf_bs_mark_overflow(bs, GF_TRUE);
 
 	memcpy(&n_state, &hevc->s_info, sizeof(HEVCSliceInfo));
 	if (!hevc_parse_nal_header(bs, nal_unit_type, temporal_id, layer_id)) return -1;
@@ -8629,6 +8645,9 @@ s32 gf_hevc_parse_nalu_bs(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, 
 		break;
 	}
 
+	if (gf_bs_is_overflow(bs))
+		ret = -1;
+
 	/* save _prev values */
 	if ((ret>0) && hevc->s_info.sps) {
 		n_state.frame_num_offset_prev = hevc->s_info.frame_num_offset;
@@ -8650,6 +8669,8 @@ s32 gf_hevc_parse_nalu(u8 *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u
 {
 	GF_BitStream *bs = NULL;
 	s32 ret = -1;
+
+	if (size<2) return -1;
 
 	if (!hevc) {
 		if (nal_unit_type) (*nal_unit_type) = (data[0] & 0x7E) >> 1;
@@ -11236,6 +11257,8 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 	VVCSliceInfo n_state;
 
 	gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);
+	if (gf_bs_available(bs)<2) return -1;
+	gf_bs_mark_overflow(bs, GF_TRUE);
 
 	memcpy(&n_state, &vvc->s_info, sizeof(VVCSliceInfo));
 	if (!vvc_parse_nal_header(bs, nal_unit_type, temporal_id, layer_id)) return -1;
@@ -11322,6 +11345,7 @@ s32 gf_vvc_parse_nalu_bs(GF_BitStream *bs, VVCState *vvc, u8 *nal_unit_type, u8 
 		ret = 0;
 		break;
 	}
+	if (gf_bs_is_overflow(bs)) ret = -1;
 
 	/* save current POC lsb/msb to prev values */
 	if ((ret>0) && vvc->s_info.sps) {
@@ -11343,6 +11367,8 @@ s32 gf_vvc_parse_nalu(u8 *data, u32 size, VVCState *vvc, u8 *nal_unit_type, u8 *
 {
 	GF_BitStream *bs = NULL;
 	s32 ret;
+
+	if (size<2) return -1;
 
 	if (!vvc) {
 		if (nal_unit_type) (*nal_unit_type) = data[1] >> 3;

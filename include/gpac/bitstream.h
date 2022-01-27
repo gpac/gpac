@@ -624,6 +624,26 @@ Gets the current cookie on the bitstream
  */
 u64 gf_bs_get_cookie(GF_BitStream *bs);
 
+
+/*!
+\brief Marks overflow access
+
+Marks the bitstream as overflown (reading outside of buffer range). Marking is done automatically when reading but can be forced using this function.
+
+\param bs the target bitstream
+\param reset if GF_TRUE, reset overflown state, otherwise mark as overflown
+ */
+void gf_bs_mark_overflow(GF_BitStream *bs, Bool reset);
+
+/*!
+\brief Gets overflow state
+
+Gets overflow state of the bitstream
+\param bs the target bitstream
+\return 2 if an overflow was marked by user using \ref gf_bs_mark_overflow, 1 if an overflow occured, 0 otherwise
+ */
+u32 gf_bs_is_overflow(GF_BitStream *bs);
+
 /*! @} */
 
 #ifdef __cplusplus

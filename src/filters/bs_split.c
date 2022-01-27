@@ -1014,7 +1014,7 @@ static GF_Err none_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 
 static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacket *pck, u32 codec_type)
 {
-	u32 size, pck_size;
+	u32 size, pck_size, min_nal_size;
 	GF_Err e;
 	u64 pck_ts;
 	Bool has_svc_prefix = GF_FALSE;
@@ -1034,6 +1034,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 	if (!pctx->first_ts_plus_one) {
 		pctx->first_ts_plus_one = pck_ts+1;
 	}
+	min_nal_size = codec_type ? 2 : 1;
 
 	size=0;
 	while (size<pck_size) {
@@ -1052,6 +1053,11 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 		}
 		if (size + nal_size > pck_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSSplit] Invalid NAL size %d but remain %d\n", nal_size, pck_size-size));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			break;
+		}
+		if (nal_size < min_nal_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BSSplit] Invalid NAL size %d but mn size %d\n", nal_size, min_nal_size));
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
