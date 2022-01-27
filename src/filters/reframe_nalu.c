@@ -2159,6 +2159,8 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	u8 nal_unit_type, temporal_id, layer_id;
 	*skip_nal = GF_FALSE;
 
+	if (size<2) return -1;
+
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	res = gf_hevc_parse_nalu_bs(ctx->bs_r, ctx->hevc_state, &nal_unit_type, &temporal_id, &layer_id);
 	ctx->nb_nalus++;
@@ -2333,6 +2335,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	u8 nal_unit_type, temporal_id, layer_id;
 	*skip_nal = GF_FALSE;
 
+	if (size<2) return -1;
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	res = gf_vvc_parse_nalu_bs(ctx->bs_r, ctx->vvc_state, &nal_unit_type, &temporal_id, &layer_id);
 	ctx->nb_nalus++;
@@ -2510,6 +2513,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	s32 ps_idx = 0;
 	s32 res = 0;
 
+	if (!size) return -1;
 	gf_bs_reassign_buffer(ctx->bs_r, data, size);
 	*skip_nal = GF_FALSE;
 	res = gf_avc_parse_nalu(ctx->bs_r, ctx->avc_state);

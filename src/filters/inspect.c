@@ -575,7 +575,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
 
-		if (ptr_size==1) {
+		if (ptr_size<=1) {
 			gf_fprintf(dump, "error=\"invalid nal size 1\"/>\n");
 			return;
 		}
@@ -863,6 +863,11 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (vvc) {
 		u8 lid, tid;
 
+		if (ptr_size<=1) {
+			gf_fprintf(dump, "error=\"invalid nal size 1\"/>\n");
+			return;
+		}
+
 		if (full_bs_dump) {
 			vvc->parse_mode = 2;
 			if (pctx) {
@@ -1015,6 +1020,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	}
 
 	//avc
+	if (!ptr_size) {
+		gf_fprintf(dump, "error=\"invalid nal size 1\"/>\n");
+		return;
+	}
 	type = ptr[0] & 0x1F;
 	nal_ref_idc = ptr[0] & 0x60;
 	nal_ref_idc>>=5;

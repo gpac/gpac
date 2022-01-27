@@ -897,7 +897,7 @@ typedef struct
 	Bool mem_mode;
 	/*bitstream object for mem mode - this bitstream is NOT destroyed by gf_av1_reset_state(state, GF_TRUE) */
 	GF_BitStream *bs;
-	Bool bs_overread, unframed;
+	Bool unframed;
 	u8 *frame_obus;
 	u32 frame_obus_alloc;
 
