@@ -558,9 +558,11 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			nb_pssh++;
 			gf_bs_write_data(pssh_bs, systemID, 16);
 			gf_bs_write_u32(pssh_bs, version);
-			gf_bs_write_u32(pssh_bs, KID_count);
-			for (j=0; j<KID_count; j++) {
-				gf_bs_write_data(pssh_bs, KIDs[j], 16);
+			if (version) {
+				gf_bs_write_u32(pssh_bs, KID_count);
+				for (j=0; j<KID_count; j++) {
+					gf_bs_write_data(pssh_bs, KIDs[j], 16);
+				}
 			}
 			gf_bs_write_u32(pssh_bs, len);
 			gf_bs_write_data(pssh_bs, data, len);
@@ -1165,7 +1167,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	cstr->tci = tci;
 	cstr->passthrough = tci ? GF_FALSE : GF_TRUE;
 
-	if (tci->rand_keys) {
+	if (tci && tci->rand_keys) {
 		if (!tci->nb_keys) {
 			tci->keys = gf_realloc(tci->keys, sizeof(GF_CryptKeyInfo));
 			memset(&tci->keys[0], 0, sizeof(GF_CryptKeyInfo));
