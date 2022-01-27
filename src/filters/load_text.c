@@ -225,8 +225,8 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TXTIN_MODE_SUB;
 	else if (szLine[0] == '<') {
 		char *ext = gf_file_ext_start(filename);
-		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TXTIN_MODE_TTXT;
-		else if (!strnicmp(ext, ".ttml", 5)) *fmt = GF_TXTIN_MODE_TTML;
+		if (ext && !strnicmp(ext, ".ttxt", 5)) *fmt = GF_TXTIN_MODE_TTXT;
+		else if (ext && !strnicmp(ext, ".ttml", 5)) *fmt = GF_TXTIN_MODE_TTML;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
 		if (ext && !ext[0]) {
@@ -2486,6 +2486,10 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		return e;
 	}
 	root = gf_xml_dom_get_root(ctx->parser);
+	if (!root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Missing root \"TextStream\" element"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (strcmp(root->name, "TextStream")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Invalid Timed Text file - expecting \"TextStream\" got %s", root->name));

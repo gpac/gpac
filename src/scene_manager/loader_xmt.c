@@ -1858,7 +1858,10 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 				gf_node_get_field_by_name(parent->node, "children", &container);
 				parent->last = NULL;
 			}
-
+			if (!container.far_ptr) {
+				parser->last_error = GF_SG_UNKNOWN_NODE;
+				container.fieldType = GF_SG_VRML_UNKNOWN;
+			}
 		}
 		if (container.fieldType == GF_SG_VRML_SFNODE) {
 			if (* ((GF_Node **)container.far_ptr) ) gf_node_unregister(* ((GF_Node **)container.far_ptr) , parent->node);

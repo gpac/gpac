@@ -346,6 +346,10 @@ static GF_Err qcpdmx_process_header(GF_Filter *filter, GF_QCPDmxCtx *ctx, char *
 	ctx->sample_rate = gf_bs_read_u16_le(bs);
 	/*bps = */gf_bs_read_u16_le(bs);
 	ctx->rate_table_count = gf_bs_read_u32_le(bs);
+	if (ctx->rate_table_count>8) {
+		if (!file_bs) gf_bs_del(bs);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	chunk_size -= 14;
 	/*skip var rate*/
 	for (i=0; i<8; i++) {
