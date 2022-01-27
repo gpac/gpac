@@ -1903,14 +1903,15 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
 	if (sdp && size)
-		fprintf(dump, "%s", sdp);
+		fprintf(dump, "%s", !sdp[size-1] ? sdp : "INVALID STRING");
 	fprintf(dump, "\r\n");
 
 	//then tracks
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		if (gf_isom_get_media_type(file, i+1) != GF_ISOM_MEDIA_HINT) continue;
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
-		fprintf(dump, "%s", sdp);
+		if (sdp && size)
+			fprintf(dump, "%s", !sdp[size-1] ? sdp : "INVALID STRING");
 	}
 	fprintf(dump, "\n\n");
 	if (inName) gf_fclose(dump);
