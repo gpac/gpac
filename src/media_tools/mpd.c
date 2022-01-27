@@ -3814,7 +3814,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	if (is_fmp4 || use_init) hls_version = 6;
 
 	gf_fprintf(out, "#EXTM3U\n");
-	gf_fprintf(out, "#EXT-X-VERSION: %d\n", hls_version);
+	gf_fprintf(out, "#EXT-X-VERSION:%d\n", hls_version);
 	if (use_ind_segments)
 		gf_fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
 
