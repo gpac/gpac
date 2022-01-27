@@ -5705,11 +5705,20 @@ GF_Err stsz_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->alloc_size = ptr->sampleCount;
 
 		for (i = 0; i < ptr->sampleCount; ) {
+			u32 s_size;
 			switch (ptr->sampleSize) {
 			case 4:
-				ptr->sizes[i] = gf_bs_read_int(bs, 4);
+				s_size = ptr->sizes[i] = gf_bs_read_int(bs, 4);
+				if (ptr->max_size < s_size)
+					ptr->max_size = s_size;
+				ptr->total_size += s_size;
+				ptr->total_samples++;
 				if (i+1 < ptr->sampleCount) {
-					ptr->sizes[i+1] = gf_bs_read_int(bs, 4);
+					s_size = ptr->sizes[i+1] = gf_bs_read_int(bs, 4);
+					if (ptr->max_size < s_size)
+						ptr->max_size = s_size;
+					ptr->total_size += s_size;
+					ptr->total_samples++;
 				} else {
 					//0 padding in odd sample count
 					gf_bs_read_int(bs, 4);
@@ -5717,14 +5726,14 @@ GF_Err stsz_box_read(GF_Box *s, GF_BitStream *bs)
 				i += 2;
 				break;
 			default:
-				ptr->sizes[i] = gf_bs_read_int(bs, ptr->sampleSize);
+				s_size = ptr->sizes[i] = gf_bs_read_int(bs, ptr->sampleSize);
+				if (ptr->max_size < s_size)
+					ptr->max_size = s_size;
+				ptr->total_size += s_size;
+				ptr->total_samples++;
 				i += 1;
 				break;
 			}
-			if (ptr->max_size < ptr->sizes[i])
-				ptr->max_size = ptr->sizes[i];
-			ptr->total_size += ptr->sizes[i];
-			ptr->total_samples++;
 		}
 	}
 	return GF_OK;
