@@ -553,7 +553,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 						gf_isom_set_visual_info(mp4file, VideoTrack, 1, w, h);
 						GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
 					}
-					if (dsi.par_num && (dsi.par_den!=dsi.par_num)) {
+					if (dsi.par_num && dsi.par_den && (dsi.par_den!=dsi.par_num)) {
 						w *= dsi.par_num;
 						w /= dsi.par_den;
 					}
