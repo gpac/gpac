@@ -2117,8 +2117,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				gf_bs_read_data(bs_r, sysID, 16);
 				version = gf_bs_read_u32(bs_r);
 
-				k_count = gf_bs_read_u32(bs_r);
-				if (k_count) version = 1;
+				k_count = version ? gf_bs_read_u32(bs_r) : 0;
 				gf_bs_write_u8(bs_w, version);
 				gf_bs_write_u24(bs_w, 0);
 				gf_bs_write_data(bs_w, sysID, 16);

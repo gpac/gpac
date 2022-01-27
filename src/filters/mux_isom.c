@@ -3461,7 +3461,7 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		gf_bs_read_data(ctx->bs_r, sysID, 16);
 		version = gf_bs_read_u32(ctx->bs_r);
-		kid_count = gf_bs_read_u32(ctx->bs_r);
+		kid_count = version ? gf_bs_read_u32(ctx->bs_r) : 0;
 
 		if (kid_count>=max_keys) {
 			max_keys = kid_count;
@@ -3479,6 +3479,8 @@ static void mp4_mux_cenc_insert_pssh(GF_MP4MuxCtx *ctx, TrackWriter *tkw, const 
 
 		gf_cenc_set_pssh(ctx->file, sysID, version, kid_count, keyIDs, data, len, mode);
 		gf_bs_skip_bytes(ctx->bs_r, len);
+		if (gf_bs_is_overflow(ctx->bs_r))
+			break;
 	}
 	if (keyIDs) gf_free(keyIDs);
 

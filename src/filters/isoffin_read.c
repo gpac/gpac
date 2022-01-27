@@ -532,9 +532,11 @@ void isor_declare_pssh(ISOMChannel *ch)
 
 		gf_bs_write_data(pssh_bs, SystemID, 16);
 		gf_bs_write_u32(pssh_bs, version);
-		gf_bs_write_u32(pssh_bs, KID_count);
-		for (s=0; s<KID_count; s++) {
-			gf_bs_write_data(pssh_bs, KIDs[s], 16);
+		if (version) {
+			gf_bs_write_u32(pssh_bs, KID_count);
+			for (s=0; s<KID_count; s++) {
+				gf_bs_write_data(pssh_bs, KIDs[s], 16);
+			}
 		}
 		gf_bs_write_u32(pssh_bs, private_data_size);
 		gf_bs_write_data(pssh_bs, private_data, private_data_size);
