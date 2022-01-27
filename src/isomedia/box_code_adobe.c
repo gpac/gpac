@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Author: Romain Bouqueau, Jean Le Feuvre
- *			Copyright (c) Romain Bouqueau 2012- Telecom Paris 2019-
+ *			Copyright (c) Romain Bouqueau 2012- Telecom Paris 2019-2022
  *				All rights reserved
  *
  *          Note: this development was kindly sponsorized by Vizion'R (http://vizionr.com)
@@ -95,9 +95,9 @@ GF_Err abst_box_read(GF_Box *s, GF_BitStream *bs)
 	i=0;
 	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
 	tmp_strsize =(u32)ptr->size;
-	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+	tmp_str = gf_malloc(sizeof(char)*(tmp_strsize+1));
 	if (!tmp_str) return GF_OUT_OF_MEM;
-	memset(tmp_str, 0, sizeof(char)*tmp_strsize);
+	memset(tmp_str, 0, sizeof(char)*(tmp_strsize+1) );
 
 	while (tmp_strsize) {
 		ISOM_DECREASE_SIZE_GOTO_EXIT(ptr, 1)
@@ -562,8 +562,9 @@ GF_Err asrt_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
 		u32 tmp_strsize=(u32)ptr->size;
-		char *tmp_str = (char*) gf_malloc(tmp_strsize);
+		char *tmp_str = (char*) gf_malloc(tmp_strsize+1);
 		if (!tmp_str) return GF_OUT_OF_MEM;
+		tmp_str[tmp_strsize]=0;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
@@ -680,8 +681,9 @@ GF_Err afrt_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
 		u32 tmp_strsize=(u32)ptr->size-8;
-		char *tmp_str = (char*) gf_malloc(tmp_strsize);
+		char *tmp_str = (char*) gf_malloc(tmp_strsize+1);
 		if (!tmp_str) return GF_OUT_OF_MEM;
+		tmp_str[tmp_strsize]=0;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
 			tmp_strsize--;
