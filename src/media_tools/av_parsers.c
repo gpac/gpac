@@ -5268,6 +5268,10 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_int_log(bs, 1, "gaps_in_frame_num_value_allowed_flag");
 	mb_width = gf_bs_read_ue_log(bs, "pic_width_in_mbs_minus1") + 1;
 	mb_height = gf_bs_read_ue_log(bs, "pic_height_in_map_units_minus1") + 1;
+	//5.1 level max frame size in MBs is 36864, we set our limit at 16k x 16x pixels (eg 1 M MBs) for fuzzed stream detection
+	if ( (u64) mb_width * (u64) mb_height > 1000000) {
+		return -1;
+	}
 
 	sps->frame_mbs_only_flag = gf_bs_read_int_log(bs, 1, "frame_mbs_only_flag");
 
