@@ -12774,15 +12774,14 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		u32 prop_type = 0;
 
 		char *data=NULL, *data2=NULL;
-		ISOM_DECREASE_SIZE_NO_ERR(ptr, 18)
+		ISOM_DECREASE_SIZE_NO_ERR(ptr, 8)
 		s32 tag_size = gf_bs_read_u32(bs);
 		u32 name_size = gf_bs_read_u32(bs);
-		tag_size -= 8;
-
-		if (name_size >= (u32)0xFFFFFFFF) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid name_size %lu in xtra\n", name_size));
+		if ((tag_size < 8) || (tag_size>ptr->size) || (name_size>ptr->size)) {
 			return GF_ISOM_INVALID_FILE;
 		}
+		ISOM_DECREASE_SIZE_NO_ERR(ptr, 10)
+		tag_size -= 8;
 
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
 		data = gf_malloc(sizeof(char) * (name_size+1));
@@ -12802,6 +12801,8 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			data2 = gf_malloc(sizeof(char) * (prop_size));
 			gf_bs_read_data(bs, data2, prop_size);
 			tag_size-=prop_size;
+		} else {
+			prop_size = 0;
 		}
 		GF_SAFEALLOC(tag, GF_XtraTag)
 		tag->flags = flags;
