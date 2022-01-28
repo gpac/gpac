@@ -548,7 +548,7 @@ GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 		}
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
-	if (gf_avc_is_rext_profile(cfg->AVCProfileIndication)) {
+	if (gf_avcc_use_extensions(cfg->AVCProfileIndication)) {
 		if (!cfg->write_annex_b) {
 			gf_bs_write_int(bs, 0xFF, 6);
 			gf_bs_write_int(bs, cfg->chroma_format, 2);
@@ -645,7 +645,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
-	if (gf_avc_is_rext_profile(avcc->AVCProfileIndication)) {
+	if (gf_avcc_use_extensions(avcc->AVCProfileIndication)) {
 		gf_bs_read_int(bs, 6);
 		avcc->chroma_format = gf_bs_read_int(bs, 2);
 		gf_bs_read_int(bs, 5);

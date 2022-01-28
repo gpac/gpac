@@ -1600,7 +1600,7 @@ GF_Err avcc_box_dump(GF_Box *a, FILE * trace)
 		gf_fprintf(trace, " complete_representation=\"%d\"", p->config->complete_representation);
 
 	if (p->type==GF_ISOM_BOX_TYPE_AVCC) {
-		if (gf_avc_is_rext_profile(p->config->AVCProfileIndication)) {
+		if (gf_avcc_use_extensions(p->config->AVCProfileIndication)) {
 			gf_fprintf(trace, " chroma_format=\"%s\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\"", gf_avc_hevc_get_chroma_format_name(p->config->chroma_format), p->config->luma_bit_depth, p->config->chroma_bit_depth);
 		}
 	}
