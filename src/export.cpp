@@ -1469,7 +1469,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_pps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_hevc_get_chroma_format_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_avc_is_rext_profile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_parse_nalu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_read_sps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_avc_read_pps) )

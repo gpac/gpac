@@ -743,11 +743,12 @@ const char * gf_avc_hevc_get_chroma_format_name(u8 chroma_format);
 \return the name of the profile
 */
 const char *gf_avc_get_profile_name(u8 profile_idc);
-/*! checks if an AVC profile is a range extension profile
-\param profile_idc the PL indication
-\return GF_TRUE if given profile is in range extensions
+
+/*! checks if avcc extensions are used for this profile
+ param profile_idc the PL indication
+\return GF_TRUE if extensions must be written in avcc for the given profile
 */
-Bool gf_avc_is_rext_profile(u8 profile_idc);
+Bool gf_avcc_use_extensions(u8 profile_idc);
 
 /*! gets HEVC profile name from profile indication
 \param profile_idc the PL indication

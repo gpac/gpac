@@ -2797,7 +2797,7 @@ GF_Err avcc_box_read(GF_Box *s, GF_BitStream *bs)
 		return GF_OK;
 
 	//not REXT profile, no check for rext signaling
-	if (!gf_avc_is_rext_profile(ptr->config->AVCProfileIndication))
+	if (!gf_avcc_use_extensions(ptr->config->AVCProfileIndication))
 		return GF_OK;
 
 	//non-compliant file (rext signaling missing), try to fill in values from SPS
@@ -2914,7 +2914,7 @@ GF_Err avcc_box_write(GF_Box *s, GF_BitStream *bs)
 
 
 	if (is_avcc) {
-		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
+		if (gf_avcc_use_extensions(ptr->config->AVCProfileIndication)) {
 			gf_bs_write_int(bs, 0xFF, 6);
 			gf_bs_write_int(bs, ptr->config->chroma_format, 2);
 			gf_bs_write_int(bs, 0xFF, 5);
@@ -2953,7 +2953,7 @@ GF_Err avcc_box_size(GF_Box *s)
 
 
 	if ((ptr->type==GF_ISOM_BOX_TYPE_AVCC) || (ptr->type==GF_ISOM_BOX_TYPE_AVCE)) {
-		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
+		if (gf_avcc_use_extensions(ptr->config->AVCProfileIndication)) {
 			ptr->size += 4;
 			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			for (i=0; i<count; i++)

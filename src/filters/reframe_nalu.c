@@ -1358,7 +1358,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 			cfg->luma_bit_depth = 8 + sps->luma_bit_depth_m8;
 			cfg->chroma_bit_depth = 8 + sps->chroma_bit_depth_m8;
 			/*try to patch ?*/
-			if (!gf_avc_is_rext_profile(cfg->AVCProfileIndication)
+			if (!gf_avcc_use_extensions(cfg->AVCProfileIndication)
 				&& ((cfg->chroma_format>1) || (cfg->luma_bit_depth>8) || (cfg->chroma_bit_depth>8))
 			) {
 				if ((cfg->luma_bit_depth>8) || (cfg->chroma_bit_depth>8)) {
