@@ -266,7 +266,7 @@ typedef struct
 	GF_AudioSampleEntryImportMode ase;
 	char *styp;
 	Bool sseg;
-	Bool noroll;
+	Bool noroll, norap;
 	Bool saio32, tfdt64;
 	u32 compress;
 	Bool trun_inter;
@@ -1369,6 +1369,9 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		if (ctx->noroll) {
 			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_ROLL);
+		}
+		if (ctx->norap) {
+			gf_isom_remove_sample_group(ctx->file, tkw->track_num, GF_ISOM_SAMPLE_GROUP_RAP);
 		}
 
 
@@ -4151,13 +4154,15 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	//compat with old arch: write sample to group info for all samples
 	if ((sap_type==3) || tkw->has_open_gop)  {
-		if (for_fragment) {
-			e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
-		} else if (sap_type==3) {
-			e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
-		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+		if (!ctx->norap) {
+			if (for_fragment) {
+				e = gf_isom_fragment_set_sample_rap_group(ctx->file, tkw->track_id, tkw->samples_in_frag, (sap_type==3) ? GF_TRUE : GF_FALSE, 0);
+			} else if (sap_type==3) {
+				e = gf_isom_set_sample_rap_group(ctx->file, tkw->track_num, tkw->nb_samples, GF_TRUE /*(sap_type==3) ? GF_TRUE : GF_FALSE*/, 0);
+			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set sample DTS "LLU" SAP 3 in RAP group: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+			}
 		}
 		tkw->has_open_gop = GF_TRUE;
 	}
@@ -6922,6 +6927,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(norap), "disable rap sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(saio32), "use 32 bit offset for side data location instead of 64 bit offset", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tfdt64), "use 64 bit tfdt and sidx even for 32 bits timestamps", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 #ifdef GF_ENABLE_CTRN
