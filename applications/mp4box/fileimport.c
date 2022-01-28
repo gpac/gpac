@@ -541,7 +541,6 @@ GF_Err apply_edits(GF_ISOFile *dest, u32 track, char *edits)
 				edur = edit_dur.num;
 				edur *= movie_ts;
 				edur /= edit_dur.den;
-				edur /= movie_time.den;
 				if (edur>media_dur)
 					edur = media_dur;
 			}
