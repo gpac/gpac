@@ -4174,6 +4174,7 @@ GF_Box *mp4s_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MPEGSampleEntryBox, GF_ISOM_BOX_TYPE_MP4S);
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
+	tmp->internal_type = GF_ISOM_SAMPLE_ENTRY_MP4S;
 	return (GF_Box *)tmp;
 }
 
@@ -4181,6 +4182,7 @@ GF_Box *encs_box_new()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MPEGSampleEntryBox, GF_ISOM_BOX_TYPE_ENCS);
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
+	tmp->internal_type = GF_ISOM_SAMPLE_ENTRY_MP4S;
 	return (GF_Box *)tmp;
 }
 
@@ -6522,7 +6524,7 @@ void trak_box_del(GF_Box *s)
 	gf_free(s);
 }
 
-static void gf_isom_check_sample_desc(GF_TrackBox *trak)
+static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 {
 	GF_BitStream *bs;
 	GF_UnknownBox *a;
@@ -6532,7 +6534,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 
 	if (!trak->Media || !trak->Media->information) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no media box !\n" ));
-		return;
+		return GF_OK;
 	}
 	if (!trak->Media->information->sampleTable) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample table !\n" ));
@@ -6543,34 +6545,74 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	if (!stbl->SampleDescription) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));
 		stbl->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new_parent(&stbl->child_boxes, GF_ISOM_BOX_TYPE_STSD);
-		return;
+		return GF_OK;
 	}
 
 	i=0;
-	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->child_boxes, &i))) {
+	while ((a = (GF_UnknownBox*)gf_list_enum(stbl->SampleDescription->child_boxes, &i))) {
+		GF_ProtectionSchemeInfoBox *sinf;
+		u32 base_ent_type = 0;
+		u32 type = a->type;
 		switch (a->type) {
-		case GF_ISOM_BOX_TYPE_MP4S:
 		case GF_ISOM_BOX_TYPE_ENCS:
-		case GF_ISOM_BOX_TYPE_MP4A:
 		case GF_ISOM_BOX_TYPE_ENCA:
-		case GF_ISOM_BOX_TYPE_MP4V:
 		case GF_ISOM_BOX_TYPE_ENCV:
 		case GF_ISOM_BOX_TYPE_RESV:
+		case GF_ISOM_BOX_TYPE_ENCT:
+			sinf = (GF_ProtectionSchemeInfoBox *) gf_isom_box_find_child(a->child_boxes, GF_ISOM_BOX_TYPE_SINF);
+			if (!sinf || !sinf->original_format) return GF_ISOM_INVALID_FILE;
+			type = sinf->original_format->data_format;
+			base_ent_type = ((GF_SampleEntryBox *)a)->internal_type;
+			break;
+		}
+
+		switch (type) {
+		case GF_ISOM_BOX_TYPE_MP4S:
+			if (base_ent_type && (base_ent_type != GF_ISOM_SAMPLE_ENTRY_MP4S)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Protected sample entry %s uses incompatible sample description %s\n", gf_4cc_to_str(a->type), gf_4cc_to_str(type) ));
+
+				return GF_ISOM_INVALID_FILE;
+			}
+			continue;
+
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
 		case GF_ISOM_SUBTYPE_3GP_SMV:
+		case GF_ISOM_BOX_TYPE_MP4A:
+		case GF_ISOM_BOX_TYPE_MP3:
+		case GF_ISOM_BOX_TYPE_MHA1:
+		case GF_ISOM_BOX_TYPE_MHA2:
+		case GF_ISOM_BOX_TYPE_MHM1:
+		case GF_ISOM_BOX_TYPE_MHM2:
+		case GF_ISOM_BOX_TYPE_OPUS:
+		case GF_ISOM_BOX_TYPE_AC3:
+		case GF_ISOM_BOX_TYPE_EC3:
+		case GF_QT_SUBTYPE_RAW_AUD:
+		case GF_QT_SUBTYPE_TWOS:
+		case GF_QT_SUBTYPE_SOWT:
+		case GF_QT_SUBTYPE_FL32:
+		case GF_QT_SUBTYPE_FL64:
+		case GF_QT_SUBTYPE_IN24:
+		case GF_QT_SUBTYPE_IN32:
+		case GF_QT_SUBTYPE_ULAW:
+		case GF_QT_SUBTYPE_ALAW:
+		case GF_QT_SUBTYPE_ADPCM:
+		case GF_QT_SUBTYPE_IMA_ADPCM:
+		case GF_QT_SUBTYPE_DVCA:
+		case GF_QT_SUBTYPE_QDMC:
+		case GF_QT_SUBTYPE_QDMC2:
+		case GF_QT_SUBTYPE_QCELP:
+		case GF_QT_SUBTYPE_kMP3:
+		case GF_ISOM_BOX_TYPE_IPCM:
+		case GF_ISOM_BOX_TYPE_FPCM:
+			if (base_ent_type && (base_ent_type != GF_ISOM_SAMPLE_ENTRY_AUDIO))
+				return GF_ISOM_INVALID_FILE;
+			continue;
+
+		case GF_ISOM_BOX_TYPE_MP4V:
 		case GF_ISOM_SUBTYPE_3GP_H263:
-		case GF_ISOM_BOX_TYPE_GHNT:
-		case GF_ISOM_BOX_TYPE_RTP_STSD:
-		case GF_ISOM_BOX_TYPE_SRTP_STSD:
-		case GF_ISOM_BOX_TYPE_FDP_STSD:
-		case GF_ISOM_BOX_TYPE_RRTP_STSD:
-		case GF_ISOM_BOX_TYPE_RTCP_STSD:
-		case GF_ISOM_BOX_TYPE_METX:
-		case GF_ISOM_BOX_TYPE_METT:
-		case GF_ISOM_BOX_TYPE_STXT:
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_AVC3:
@@ -6588,50 +6630,16 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_VP08:
 		case GF_ISOM_BOX_TYPE_VP09:
 		case GF_ISOM_BOX_TYPE_AV1C:
-		case GF_ISOM_BOX_TYPE_TX3G:
-		case GF_ISOM_BOX_TYPE_TEXT:
-		case GF_ISOM_BOX_TYPE_ENCT:
-		case GF_ISOM_BOX_TYPE_DIMS:
-		case GF_ISOM_BOX_TYPE_OPUS:
-		case GF_ISOM_BOX_TYPE_AC3:
-		case GF_ISOM_BOX_TYPE_EC3:
-		case GF_ISOM_BOX_TYPE_LSR1:
-		case GF_ISOM_BOX_TYPE_WVTT:
-		case GF_ISOM_BOX_TYPE_STPP:
-		case GF_ISOM_BOX_TYPE_SBTT:
-		case GF_ISOM_BOX_TYPE_MP3:
 		case GF_ISOM_BOX_TYPE_JPEG:
 		case GF_ISOM_BOX_TYPE_PNG:
 		case GF_ISOM_BOX_TYPE_JP2K:
-		case GF_ISOM_BOX_TYPE_MHA1:
-		case GF_ISOM_BOX_TYPE_MHA2:
-		case GF_ISOM_BOX_TYPE_MHM1:
-		case GF_ISOM_BOX_TYPE_MHM2:
 		case GF_ISOM_BOX_TYPE_MJP2:
-		case GF_QT_SUBTYPE_RAW_AUD:
-		case GF_QT_SUBTYPE_TWOS:
-		case GF_QT_SUBTYPE_SOWT:
-		case GF_QT_SUBTYPE_FL32:
-		case GF_QT_SUBTYPE_FL64:
-		case GF_QT_SUBTYPE_IN24:
-		case GF_QT_SUBTYPE_IN32:
-		case GF_QT_SUBTYPE_ULAW:
-		case GF_QT_SUBTYPE_ALAW:
-		case GF_QT_SUBTYPE_ADPCM:
-		case GF_QT_SUBTYPE_IMA_ADPCM:
-		case GF_QT_SUBTYPE_DVCA:
-		case GF_QT_SUBTYPE_QDMC:
-		case GF_QT_SUBTYPE_QDMC2:
-		case GF_QT_SUBTYPE_QCELP:
-		case GF_QT_SUBTYPE_kMP3:
 		case GF_QT_SUBTYPE_APCH:
 		case GF_QT_SUBTYPE_APCO:
 		case GF_QT_SUBTYPE_APCN:
 		case GF_QT_SUBTYPE_APCS:
 		case GF_QT_SUBTYPE_AP4X:
 		case GF_QT_SUBTYPE_AP4H:
-		case GF_ISOM_BOX_TYPE_IPCM:
-		case GF_ISOM_BOX_TYPE_FPCM:
 		case GF_ISOM_BOX_TYPE_VVC1:
 		case GF_ISOM_BOX_TYPE_VVI1:
 		case GF_QT_SUBTYPE_RAW_VID:
@@ -6654,7 +6662,31 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_DVA1:
 		case GF_ISOM_BOX_TYPE_DVAV:
 		case GF_ISOM_BOX_TYPE_DAV1:
+			if (base_ent_type && (base_ent_type != GF_ISOM_SAMPLE_ENTRY_VIDEO))
+				return GF_ISOM_INVALID_FILE;
 			continue;
+
+
+		case GF_ISOM_BOX_TYPE_METX:
+		case GF_ISOM_BOX_TYPE_METT:
+		case GF_ISOM_BOX_TYPE_STXT:
+		case GF_ISOM_BOX_TYPE_TX3G:
+		case GF_ISOM_BOX_TYPE_TEXT:
+		case GF_ISOM_BOX_TYPE_GHNT:
+		case GF_ISOM_BOX_TYPE_RTP_STSD:
+		case GF_ISOM_BOX_TYPE_SRTP_STSD:
+		case GF_ISOM_BOX_TYPE_FDP_STSD:
+		case GF_ISOM_BOX_TYPE_RRTP_STSD:
+		case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		case GF_ISOM_BOX_TYPE_DIMS:
+		case GF_ISOM_BOX_TYPE_LSR1:
+		case GF_ISOM_BOX_TYPE_WVTT:
+		case GF_ISOM_BOX_TYPE_STPP:
+		case GF_ISOM_BOX_TYPE_SBTT:
+			if (base_ent_type && (base_ent_type != GF_ISOM_SAMPLE_ENTRY_GENERIC))
+				return GF_ISOM_INVALID_FILE;
+			continue;
+
 
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 			break;
@@ -6743,14 +6775,14 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 
 			e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)genm, bs);
-			if (e) return;
+			if (e) return e;
 
 			STSD_SWITCH_BOX(genm)
 		}
 		break;
 		}
-
 	}
+	return GF_OK;
 }
 
 
@@ -6805,7 +6837,8 @@ GF_Err trak_box_read(GF_Box *s, GF_BitStream *bs)
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
 	e = gf_isom_box_array_read(s, bs);
 	if (e) return e;
-	gf_isom_check_sample_desc(ptr);
+	e = gf_isom_check_sample_desc(ptr);
+	if (e) return e;
 
 	if (!ptr->Header) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing TrackHeaderBox\n"));
