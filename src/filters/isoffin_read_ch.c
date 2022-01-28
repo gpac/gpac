@@ -790,6 +790,7 @@ void isor_sai_bytes_removed(ISOMChannel *ch, u32 pos, u32 removed)
 		}
 		cur_pos += clear + crypt;
 		sai += 6;
+		sai_size-=6;
 	}
 }
 
