@@ -4895,16 +4895,16 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 Samp
 
 /*! gets SDP info at the movie level
 \param isom_file the target ISO file
-\param sdp set to the sdp text - do not modify
-\param length set to the sdp length
+\param sdp set to the sdp text, including a null-terminating character - do not modify
+\param length set to the sdp length, not including the null-terminating character
 \return error if any
 */
 GF_Err gf_isom_sdp_get(GF_ISOFile *isom_file, const char **sdp, u32 *length);
 /*! gets SDP info at the track level
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sdp set to the sdp text - do not modify
-\param length set to the sdp length
+\param sdp set to the sdp text, including a null-terminating character - do not modify
+\param length set to the sdp length, not including the null-terminating character
 \return error if any
 */
 GF_Err gf_isom_sdp_track_get(GF_ISOFile *isom_file, u32 trackNumber, const char **sdp, u32 *length);
