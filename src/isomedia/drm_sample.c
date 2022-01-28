@@ -417,6 +417,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 {
 	u32 original_format;
 	GF_Err e;
+	u32 gnr_type=0;
 	GF_SampleEntryBox *sea;
 	GF_ProtectionSchemeInfoBox *sinf;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -427,10 +428,13 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 
 	original_format = sea->type;
 	if (original_format==GF_ISOM_BOX_TYPE_GNRA) {
+		gnr_type = original_format;
 		original_format = ((GF_GenericAudioSampleEntryBox*)sea)->EntryType;
 	} else if (original_format==GF_ISOM_BOX_TYPE_GNRV) {
+		gnr_type = original_format;
 		original_format = ((GF_GenericVisualSampleEntryBox*)sea)->EntryType;
 	} else if (original_format==GF_ISOM_BOX_TYPE_GNRM) {
+		gnr_type = original_format;
 		original_format = ((GF_GenericSampleEntryBox*)sea)->EntryType;
 	}
 
@@ -532,8 +536,12 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 
 	sinf->original_format = (GF_OriginalFormatBox *)gf_isom_box_new_parent(&sinf->child_boxes, GF_ISOM_BOX_TYPE_FRMA);
 	if (!sinf->original_format) return GF_OUT_OF_MEM;
-	sinf->original_format->data_format = original_format;
-
+	if (gnr_type) {
+		sinf->original_format->data_format = gnr_type;
+		sinf->original_format->gnr_type = original_format;
+	} else {
+		sinf->original_format->data_format = original_format;
+	}
 	//common to isma, cenc and oma
 	sinf->info = (GF_SchemeInformationBox *)gf_isom_box_new_parent(&sinf->child_boxes, GF_ISOM_BOX_TYPE_SCHI);
 

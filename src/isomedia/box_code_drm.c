@@ -108,7 +108,10 @@ GF_Err frma_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	gf_bs_write_u32(bs, ptr->data_format);
+	if (ptr->gnr_type)
+		gf_bs_write_u32(bs, ptr->gnr_type);
+	else
+		gf_bs_write_u32(bs, ptr->data_format);
 	return GF_OK;
 }
 

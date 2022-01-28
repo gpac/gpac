@@ -2412,6 +2412,9 @@ typedef struct
 {
 	GF_ISOM_BOX
 	u32 data_format;
+	//if the sample entry is a generic sample entry (data_format==GNRX), this is the underlying 4CC
+	//otherwise this is 0
+	u32 gnr_type;
 } GF_OriginalFormatBox;
 
 typedef struct

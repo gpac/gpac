@@ -1943,15 +1943,6 @@ sample_entry_setup:
 
 	default:
 		m_subtype = codec_id;
-		//
-		if (gf_codec_id_from_isobmf(codec_id) == 0) {
-			GF_Box *b = gf_isom_box_new(m_subtype);
-			if (b) {
-				gf_isom_box_del(b);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Unknown codec mapped to existing isobmf type %s, cannot mux\n", gf_4cc_to_str(codec_id) ));
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-		}
 		unknown_generic = GF_TRUE;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
