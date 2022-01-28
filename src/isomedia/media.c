@@ -293,7 +293,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
-		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
 
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {
@@ -306,7 +306,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 #endif
 #ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_WVTT:
-		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
 	{
 		GF_WebVTTSampleEntryBox*vtte = (GF_WebVTTSampleEntryBox*)entry;
@@ -390,7 +390,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		}
 
 	case GF_ISOM_SUBTYPE_LSR1:
-		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_MP4S)
+		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_GENERIC)
 			return GF_ISOM_INVALID_MEDIA;
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;

@@ -534,11 +534,14 @@ enum
 
 enum
 {
-	GF_ISOM_SAMPLE_ENTRY_UNKN = 0,
+	//can be safely type-casted to sample entry
+	GF_ISOM_SAMPLE_ENTRY_GENERIC = 0,
+	//can be safely type-casted to Video sample entry
 	GF_ISOM_SAMPLE_ENTRY_VIDEO = GF_4CC('v','i','d','e'),
+	//can be safely type-casted to Audio sample entry
 	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i'),
-	GF_ISOM_SAMPLE_ENTRY_MP4S = GF_4CC('m','p','4','s')
-
+	//can be safely type-casted to mpeg systems sample entry
+	GF_ISOM_SAMPLE_ENTRY_MP4S = GF_4CC('m','p','4','s'),
 };
 
 

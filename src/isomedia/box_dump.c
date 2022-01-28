@@ -3825,8 +3825,10 @@ GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, F
 		switch (entry->type) {
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_ENCV:
-		case GF_ISOM_BOX_TYPE_ENCT:
 		case GF_ISOM_BOX_TYPE_ENCS:
+		case GF_ISOM_BOX_TYPE_ENCT:
+		case GF_ISOM_BOX_TYPE_ENCF:
+		case GF_ISOM_BOX_TYPE_ENCM:
 			break;
 		default:
 			continue;
