@@ -4429,9 +4429,9 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		group->active_rep_index = old_index;
 		return;
 	}
+	group->disabled = GF_FALSE;
 	if (new_index != group->active_rep_index) {
 		GF_MPD_Representation *new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
-		group->disabled = GF_FALSE;
 		if (!new_rep) {
 			group->active_rep_index = old_index;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot find new representation index %d, using previous one\n", new_index));
