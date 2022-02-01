@@ -435,13 +435,13 @@ GF_Err stbl_AddSize(GF_SampleSizeBox *stsz, u32 sampleNumber, u32 size, u32 nb_p
 	//all samples have the same size
 	if (stsz->sizes == NULL) {
 		//1 first sample added in NON COMPACT MODE
-		if (! stsz->sampleCount && (stsz->type != GF_ISOM_BOX_TYPE_STZ2) ) {
+		if (! stsz->sampleCount && (stsz->type != GF_ISOM_BOX_TYPE_STZ2) && size) {
 			stsz->sampleCount = nb_pack;
 			stsz->sampleSize = size;
 			return GF_OK;
 		}
 		//2- sample has the same size
-		if (stsz->sampleSize == size) {
+		if ((stsz->sampleSize == size) && size) {
 			stsz->sampleCount += nb_pack;
 			return GF_OK;
 		}
@@ -1649,7 +1649,7 @@ GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack)
 	u32 i;
 	CHECK_PACK(GF_ISOM_INVALID_FILE)
 
-	if (!stbl->SampleSize->sampleCount) {
+	if (!stbl->SampleSize->sampleCount && size) {
 		stbl->SampleSize->sampleSize = size;
 		stbl->SampleSize->sampleCount += nb_pack;
 		return GF_OK;
