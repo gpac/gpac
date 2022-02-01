@@ -4315,6 +4315,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	GF_Err e;
 	u32 dataRefIndex;
     u32 mtype;
+	u32 internal_type;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -4325,6 +4326,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, orig_desc_index-1);
 	if (!entry) return GF_BAD_PARAM;
+	internal_type = ((GF_SampleEntryBox *)entry)->internal_type;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -4337,6 +4339,33 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	gf_bs_del(bs);
 	gf_free(data);
 	if (e) return e;
+	if (entry->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
+		GF_UnknownBox *ubox = (GF_UnknownBox*)entry;
+		if (internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+			GF_GenericVisualSampleEntryBox *ve = (GF_GenericVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRV);
+			ve->EntryType = ubox->type;
+			ve->data = ubox->data;
+			ve->data_size = ubox->dataSize;
+			entry = (GF_Box *) ve;
+		}
+		else if (internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
+			GF_GenericAudioSampleEntryBox *ae = (GF_GenericAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRA);
+			ae->EntryType = ubox->type;
+			ae->data = ubox->data;
+			ae->data_size = ubox->dataSize;
+			entry = (GF_Box *) ae;
+		}
+		else {
+			GF_GenericSampleEntryBox *ge = (GF_GenericSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_GNRM);
+			ge->EntryType = ubox->type;
+			ge->data = ubox->data;
+			ge->data_size = ubox->dataSize;
+			entry = (GF_Box *) ge;
+		}
+		ubox->data = NULL;
+		ubox->dataSize = 0;
+		gf_isom_box_del((GF_Box *)ubox);
+	}
 
 	/*get new track and insert clone*/
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
