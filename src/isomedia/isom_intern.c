@@ -89,8 +89,9 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		}
 
 		prev_sample_count = trak->Media->information->sampleTable->SampleSize->sampleCount;
-		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset, !trak->first_traf_merged);
+		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset);
 		if (e) return e;
+		trak->first_traf_merged = GF_TRUE;
 
 		trak->present_in_scalable_segment = 1;
 
@@ -125,7 +126,6 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('P','S','S','H'), 0, pssh_data, pssh_len, GF_FALSE);
 			gf_free(pssh_data);
 		}
-		trak->first_traf_merged = GF_TRUE;
 	}
 
 	if (moof->child_boxes) {

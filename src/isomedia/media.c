@@ -839,8 +839,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	GF_Err e;
 	GF_ESD *esd;
 	u64 DTS;
-	GF_SttsEntry *ent;
-	u32 nbSamp;
+	u32 nbSamp, dur;
 
 	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable)
 		return GF_ISOM_INVALID_FILE;
@@ -850,11 +849,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 
 	nbSamp = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
-	//we need to check how many samples we have.
-	// == 1 -> last sample duration == default duration
-	// > 1 -> last sample duration == prev sample duration
-	switch (nbSamp) {
-	case 0:
+	if (nbSamp == 0) {
 		trak->Media->mediaHeader->duration = 0;
 		if (Track_IsMPEG4Stream(trak->Media->handler->handlerType)) {
 			Media_GetESD(trak->Media, 1, &esd, 1);
@@ -862,71 +857,35 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 
 		}
 		return GF_OK;
-
-//	case 1:
-//		trak->Media->mediaHeader->duration = trak->Media->mediaHeader->timeScale;
-//		return GF_OK;
-
-	default:
-		//we assume a constant frame rate for the media and assume the last sample
-		//will be hold the same time as the prev one
-		e = stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		if (e < 0) {
-			return e;
-		}
-		if (trak->Media->information->sampleTable->TimeToSample->nb_entries > 0) {
-			ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
-		} else {
-			ent = NULL;
-		}
-		trak->Media->mediaHeader->duration = DTS;
-
-
-#if 1
-		if (ent) trak->Media->mediaHeader->duration += ent->sampleDelta;
-#else
-		if (!ent) {
-			u64 DTSprev;
-			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
-			trak->Media->mediaHeader->duration += (DTS - DTSprev);
-		} else {
-#ifndef GPAC_DISABLE_ISOM_WRITE
-			if (trak->moov->mov->editFileMap && trak->Media->information->sampleTable->CompositionOffset) {
-				u32 count, i;
-				u64 max_ts;
-				GF_DttsEntry *cts_ent;
-				GF_CompositionOffsetBox *ctts = trak->Media->information->sampleTable->CompositionOffset;
-				if (ctts->w_LastSampleNumber==nbSamp) {
-					count = gf_list_count(ctts->entryList);
-					max_ts = trak->Media->mediaHeader->duration;
-					while (count) {
-						count -= 1;
-						cts_ent = gf_list_get(ctts->entryList, count);
-						if (nbSamp<cts_ent->sampleCount) break;
-
-						for (i=0; i<cts_ent->sampleCount; i++) {
-							stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-i, &DTS);
-							if ((s32) cts_ent->decodingOffset < 0) max_ts = DTS;
-							else max_ts = DTS + cts_ent->decodingOffset;
-							if (max_ts>=trak->Media->mediaHeader->duration) {
-								trak->Media->mediaHeader->duration = max_ts;
-							} else {
-								break;
-							}
-						}
-						if (max_ts<trak->Media->mediaHeader->duration) {
-							break;
-						}
-						nbSamp-=cts_ent->sampleCount;
-					}
-				}
-			}
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
-			trak->Media->mediaHeader->duration += ent->sampleDelta;
-		}
-#endif
-		return GF_OK;
 	}
+
+	//get last sample
+	e = stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS, &dur);
+	if (e < 0) return e;
+	DTS += dur;
+	trak->Media->mediaHeader->duration = DTS;
+
+	//do not do that for old arch compat which was not taking into account cts offset
+	if (gf_sys_old_arch_compat() || !trak->Media->information->sampleTable->CompositionOffset)
+		return GF_OK;
+
+	//try to set duration according to spec: "should be the largest composition timestamp plus the duration of that sample"
+	//browse from sample_num_max_cts_delta (updated in read and edit to point to sample number with max cts offset)
+	u32 s_idx, min = trak->Media->information->sampleTable->CompositionOffset->sample_num_max_cts_delta;
+	if (!min) return GF_OK;
+	for (s_idx=min; s_idx<=nbSamp; s_idx++) {
+		u64 a_dts;
+		u32 a_dur;
+		s32 cts_o;
+		stbl_GetSampleCTS(trak->Media->information->sampleTable->CompositionOffset, s_idx, &cts_o);
+		if (cts_o<=0) continue;
+		stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, s_idx, &a_dts, &a_dur);
+		if (a_dts + a_dur + (u32) cts_o > DTS) {
+			DTS = a_dts + (u32) cts_o + a_dur;
+		}
+	}
+	trak->Media->mediaHeader->duration = DTS;
+	return GF_OK;
 }
 
 
