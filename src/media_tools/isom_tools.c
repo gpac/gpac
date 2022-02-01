@@ -544,6 +544,8 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 				if (v_esd->decoderConfig
 					&& (v_esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2)
 					&& (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)
+					&& v_esd->decoderConfig->decoderSpecificInfo
+					&& v_esd->decoderConfig->decoderSpecificInfo->data
 				) {
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
@@ -586,7 +588,10 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (a_esd->decoderConfig && (a_esd->decoderConfig->objectTypeIndication == GF_CODECID_AAC_MPEG4)) {
+			if (a_esd->decoderConfig && (a_esd->decoderConfig->objectTypeIndication == GF_CODECID_AAC_MPEG4)
+				&& a_esd->decoderConfig->decoderSpecificInfo
+				&& a_esd->decoderConfig->decoderSpecificInfo->data
+			) {
 				GF_M4ADecSpecInfo cfg;
 				gf_m4a_get_config(a_esd->decoderConfig->decoderSpecificInfo->data, a_esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 				audioPL = cfg.audioPL;
@@ -4159,7 +4164,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				}
 				break;
 			case GF_STREAM_VISUAL:
-				if (esd->decoderConfig->decoderSpecificInfo) {
+				if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 					e = rfc_6381_get_codec_m4v(szCodec, esd->decoderConfig->objectTypeIndication, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				} else {
 					e = rfc_6381_get_codec_m4v(szCodec, esd->decoderConfig->objectTypeIndication, NULL, 0);
