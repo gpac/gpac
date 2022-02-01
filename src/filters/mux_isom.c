@@ -3579,8 +3579,13 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 
 		tkw->cenc_state = CENC_SETUP_DONE;
 		tkw->def_cenc_key_info_crc = tkw->cenc_key_info_crc;
-		e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, crypt_byte_block, skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
-
+		if (tkw->cenc_ki) {
+			e = gf_isom_set_cenc_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, pck_is_encrypted, crypt_byte_block, skip_byte_block, tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Missing CENC Key config, cannot mux\n"));
+			tkw->cenc_state = CENC_SETUP_ERROR;
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to setup CENC information: %s\n", gf_error_to_string(e) ));
 			tkw->cenc_state = CENC_SETUP_ERROR;
