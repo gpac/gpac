@@ -769,6 +769,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			}
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
+			if (ptr_size<3) {
+				gf_fprintf(dump, "\" status=\"CORRUPTED NAL");
+				break;
+			}
 			gf_fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
 		//extractor
@@ -1143,6 +1147,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		if (is_encrypted) break;
 		gf_avc_parse_nalu(bs, avc);
 		if (full_bs_dump) break;
+		if (ptr_size<4) {
+			gf_fprintf(dump, "\" status=\"CORRUPTED NAL");
+			break;
+		}
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
@@ -1152,6 +1160,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SVC_PREFIX_NALU:
 		if (is_encrypted) break;
 		if (full_bs_dump) break;
+		if (ptr_size<4) {
+			gf_fprintf(dump, "\" status=\"CORRUPTED NAL");
+			break;
+		}
 		dependency_id = (ptr[2] & 0x70) >> 4;
 		quality_id = (ptr[2] & 0x0F);
 		temporal_id = (ptr[3] & 0xE0) >> 5;
@@ -1160,6 +1172,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	//extractor
 	case GF_AVC_NALU_FF_EXTRACTOR:
 		if (is_encrypted) break;
+		if (ptr_size<7) {
+			gf_fprintf(dump, "\" status=\"CORRUPTED NAL");
+			break;
+		}
 		track_ref_index = (u8) ptr[4];
 		sample_offset = (s8) ptr[5];
 		data_offset = inspect_get_nal_size(&ptr[6], nalh_size);
