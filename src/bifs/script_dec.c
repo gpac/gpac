@@ -672,7 +672,7 @@ void SFS_Expression(ScriptParser *parser)
 		SFS_StatementBlock(parser, GF_TRUE);
 		break;
 	default:
-		assert(0);
+		parser->codec->LastError = GF_NON_COMPLIANT_BITSTREAM;
 		break;
 	}
 }
