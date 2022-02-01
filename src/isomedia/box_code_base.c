@@ -409,10 +409,12 @@ GF_Err ctts_box_read(GF_Box *s, GF_BitStream *bs)
 			ptr->entries[i].decodingOffset = gf_bs_read_int(bs, 32);
 		else
 			ptr->entries[i].decodingOffset = (s32) gf_bs_read_u32(bs);
-		sampleCount += ptr->entries[i].sampleCount;
 
-		if (ptr->max_ts_delta < ABS(ptr->entries[i].decodingOffset))
-			ptr->max_ts_delta = ABS(ptr->entries[i].decodingOffset);
+		if (ptr->max_cts_delta <= ABS(ptr->entries[i].decodingOffset)) {
+			ptr->max_cts_delta = ABS(ptr->entries[i].decodingOffset);
+			ptr->sample_num_max_cts_delta = sampleCount;
+		}
+		sampleCount += ptr->entries[i].sampleCount;
 	}
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	ptr->w_LastSampleNumber = sampleCount;
@@ -12777,11 +12779,13 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, 8)
 		s32 tag_size = gf_bs_read_u32(bs);
 		u32 name_size = gf_bs_read_u32(bs);
-		if ((tag_size < 8) || (tag_size>ptr->size) || (name_size>ptr->size)) {
+		if (tag_size < 8) return GF_ISOM_INVALID_FILE;
+
+		tag_size -= 8;
+		if ((tag_size>ptr->size) || (name_size>ptr->size)) {
 			return GF_ISOM_INVALID_FILE;
 		}
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, 10)
-		tag_size -= 8;
 
 		ISOM_DECREASE_SIZE_NO_ERR(ptr, name_size)
 		data = gf_malloc(sizeof(char) * (name_size+1));

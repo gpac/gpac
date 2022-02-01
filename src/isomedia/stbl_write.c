@@ -271,16 +271,27 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 		ctts->nb_entries++;
 		ctts->w_LastSampleNumber++;
 		if (offset<0) ctts->version=1;
+		if (ABS(offset) >= ctts->max_cts_delta) {
+			ctts->max_cts_delta = ABS(offset);
+			ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+		}
 		return GF_OK;
 	}
 	//check if we're working in order...
 	if (ctts->w_LastSampleNumber < sampleNumber) {
+		GF_Err e;
 		//add some 0 till we get to the sample
 		while (ctts->w_LastSampleNumber + 1 != sampleNumber) {
-			GF_Err e = AddCompositionOffset(ctts, 0);
+			e = AddCompositionOffset(ctts, 0);
 			if (e) return e;
 		}
-		return AddCompositionOffset(ctts, offset);
+		e = AddCompositionOffset(ctts, offset);
+		if (e) return e;
+		if (ABS(offset) >= ctts->max_cts_delta) {
+			ctts->max_cts_delta = ABS(offset);
+			ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+		}
+		return GF_OK;
 	}
 
 	//NOPE we are inserting a sample...
@@ -297,6 +308,10 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 			if (sampNum+1==sampleNumber) {
 				CTSs[sampNum] = offset;
 				sampNum ++;
+				if (ABS(offset) >= ctts->max_cts_delta) {
+					ctts->max_cts_delta = ABS(offset);
+					ctts->sample_num_max_cts_delta = sampNum;
+				}
 			}
 			CTSs[sampNum] = ctts->entries[i].decodingOffset;
 			sampNum ++;
@@ -1192,6 +1207,7 @@ GF_Err stbl_RemoveCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 nb_samples)
 
 	assert(ctts->unpack_mode);
 	if ((nb_samples>1) && (sampleNumber>1)) return GF_BAD_PARAM;
+	ctts->max_cts_delta = 0;
 
 	//last one...
 	if (stbl->SampleSize->sampleCount == 1) {
@@ -1872,7 +1888,10 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 	ctts->nb_entries++;
 	if (offset<0) ctts->version=1;
 
-	if (ABS(offset) > ctts->max_ts_delta) ctts->max_ts_delta = ABS(offset);
+	if (ABS(offset) >= ctts->max_cts_delta) {
+		ctts->max_cts_delta = ABS(offset);
+		ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+	}
 
 	return GF_OK;
 }

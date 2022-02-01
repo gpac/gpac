@@ -928,7 +928,9 @@ typedef struct
 #endif
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	//dts value when at refererence fragment start (first frag ever or first after a table reset), usually current segment start
 	u64 dts_at_seg_start;
+	//number of samples at refererence fragment start (first frag ever or first after a table reset), usually current segment start
 	u32 sample_count_at_seg_start;
 	Bool first_traf_merged;
 	Bool present_in_scalable_segment;
@@ -936,7 +938,7 @@ typedef struct
 
 	u64 last_tfxd_value;
 	struct __traf_mss_timeref_box *tfrf;
-	u64 dts_at_next_seg_start;
+	u64 dts_at_next_frag_start;
 #endif
 } GF_TrackBox;
 
@@ -1152,8 +1154,8 @@ typedef struct
 	u32 r_currentEntryIndex;
 	u32 r_FirstSampleInEntry;
 
-	//stats for read
-	s32 max_ts_delta;
+	s32 max_cts_delta;
+	u32 sample_num_max_cts_delta;
 } GF_CompositionOffsetBox;
 
 
@@ -4665,7 +4667,7 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string, GF_List **parent);
 
 GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compresed_diff, u64 *cumulated_offset, Bool is_first_merge);
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof, u64 moof_offset, s32 compresed_diff, u64 *cumulated_offset);
 
 
 #endif //GPAC_DISABLE_ISOM

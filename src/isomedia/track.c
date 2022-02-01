@@ -442,10 +442,10 @@ GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 #endif
 
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset, Bool is_first_merge)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset)
 {
 	u32 i, j, chunk_size, track_num;
-	u64 base_offset, data_offset, traf_duration;
+	u64 base_offset, data_offset, traf_duration, tfdt;
 	u32 def_duration, DescIndex, def_size, def_flags;
 	u32 duration, size, flags, prev_trun_data_offset, sample_index, num_first_sample_in_traf;
 	u8 pad, sync;
@@ -461,6 +461,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 #ifdef GF_ENABLE_CTRN
 	GF_TrackFragmentBox *traf_ref = NULL;
 #endif
+	Bool is_first_merge = !trak->first_traf_merged;
 
 	GF_Err stbl_AppendTime(GF_SampleTableBox *stbl, u32 duration, u32 nb_pack);
 	GF_Err stbl_AppendSize(GF_SampleTableBox *stbl, u32 size, u32 nb_pack);
@@ -527,22 +528,34 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 	num_first_sample_in_traf = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
-	/*in playback mode*/
-	if (traf->tfdt && is_first_merge) {
-#ifndef GPAC_DISABLE_LOG
-		if (trak->moov->mov->NextMoofNumber && trak->present_in_scalable_segment && trak->sample_count_at_seg_start && (trak->dts_at_seg_start != traf->tfdt->baseMediaDecodeTime)) {
-			s32 drift = (s32) ((s64) traf->tfdt->baseMediaDecodeTime - (s64)trak->dts_at_seg_start);
-			if (drift<0)  {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: TFDT timing "LLD" less than cumulated timing "LLD" - using tfdt\n", traf->tfdt->baseMediaDecodeTime, trak->dts_at_seg_start ));
-			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] TFDT timing "LLD" higher than cumulated timing "LLD" (last sample got extended in duration)\n", traf->tfdt->baseMediaDecodeTime, trak->dts_at_seg_start ));
+	if (traf->tfdt)
+		tfdt = traf->tfdt->baseMediaDecodeTime;
+	else if (traf->tfxd)
+		tfdt = traf->tfxd->absolute_time_in_track_timescale;
+	else
+		tfdt = 0;
+
+	if (tfdt) {
+		//do this test for each fragment merged as soon as we have a tfdt, so that we detect samples with extended duration
+		//if trak->moov->mov->NextMoofNumber is 0 we initialize or seek so skip test
+		if (trak->moov->mov->NextMoofNumber && trak->dts_at_next_frag_start) {
+			s32 diff = (s32) ((s64) tfdt - (s64) trak->dts_at_next_frag_start);
+			if (diff < 0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: TFDT timing "LLD" less than cumulated timing "LLD" - using tfdt\n", tfdt, trak->dts_at_next_frag_start ));
+			}
+			//sample dur was extended, adjust track duration
+			else if (diff > 0) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] TFDT timing "LLD" higher than cumulated timing "LLD" (last sample got extended in duration)\n", tfdt, trak->dts_at_next_frag_start ));
+				traf_duration += diff;
 			}
 		}
-#endif
-		trak->dts_at_seg_start = traf->tfdt->baseMediaDecodeTime;
-	}
-	else if (traf->tfxd) {
-		trak->dts_at_seg_start = traf->tfxd->absolute_time_in_track_timescale;
+		//remember dts if this is the first fragment we merge (either after a table reset or at first segment start)
+		if (is_first_merge) {
+			trak->dts_at_seg_start = tfdt;
+			trak->dts_at_next_frag_start = tfdt;
+		}
+	} else if (is_first_merge && trak->moov->mov->is_smooth) {
+		trak->dts_at_seg_start = trak->dts_at_next_frag_start;
 	}
 
 	if (traf->tfxd) {
@@ -811,32 +824,20 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		}
 	}
 
-	if (trak->moov->mov->is_smooth && !traf->tfdt && !traf->tfxd) {
-		if (is_first_merge)
-			trak->dts_at_seg_start = trak->dts_at_next_seg_start;
-		trak->dts_at_next_seg_start += last_dts;
-	}
+	//remember target next dts - last_dts is the duration in media timescale, dos not include tfdt
+	trak->dts_at_next_frag_start += last_dts;
+
 	if (traf_duration && trak->editBox && trak->editBox->editList) {
-		for (i=0; i<gf_list_count(trak->editBox->editList->entryList); i++) {
-			GF_EdtsEntry *edts_e = gf_list_get(trak->editBox->editList->entryList, i);
-			if (edts_e->was_empty_dur) {
-				u64 extend_dur = traf_duration;
-				extend_dur *= trak->moov->mvhd->timeScale;
-				extend_dur /= trak->Media->mediaHeader->timeScale;
-				edts_e->segmentDuration += extend_dur;
-			}
-			else if (!edts_e->segmentDuration) {
-				edts_e->was_empty_dur = GF_TRUE;
-				if ((s64) traf_duration > edts_e->mediaTime)
-					traf_duration -= edts_e->mediaTime;
-				else
-					traf_duration = 0;
-
-				edts_e->segmentDuration = traf_duration;
-				edts_e->segmentDuration *= trak->moov->mvhd->timeScale;
-				edts_e->segmentDuration /= trak->Media->mediaHeader->timeScale;
-			}
-
+		//append to last edit only, adding edits on the fly is not possible in isobmff
+		GF_EdtsEntry *edts_e = gf_list_last(trak->editBox->editList->entryList);
+		if (edts_e->was_empty_dur || !edts_e->segmentDuration) {
+			//extend last edit duration by the amount of media received in fragment (traf duration)
+			//regardless of the mediaTime offset of the edit (cf #2985)
+			u64 extend_dur = traf_duration;
+			extend_dur *= trak->moov->mvhd->timeScale;
+			extend_dur /= trak->Media->mediaHeader->timeScale;
+			edts_e->segmentDuration += extend_dur;
+			edts_e->was_empty_dur = GF_TRUE;
 		}
 	}
 

@@ -331,7 +331,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	if (!stbl->SampleDescription) return GF_OUT_OF_MEM;
 
 	trak->dts_at_seg_start = tfdt;
-	trak->dts_at_next_seg_start = tfdt;
+	trak->dts_at_next_frag_start = tfdt;
 
 
 	if (!stricmp(sz4cc, "H264") || !stricmp(sz4cc, "AVC1")) {
@@ -1993,7 +1993,7 @@ u32 gf_isom_get_max_sample_cts_offset(GF_ISOFile *the_file, u32 trackNumber)
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->CompositionOffset) return 0;
 
-	return trak->Media->information->sampleTable->CompositionOffset->max_ts_delta;
+	return trak->Media->information->sampleTable->CompositionOffset->max_cts_delta;
 }
 
 
@@ -3156,6 +3156,7 @@ static void gf_isom_recreate_tables(GF_TrackBox *trak)
 		stbl->CompositionOffset->w_LastSampleNumber = 0;
 		stbl->CompositionOffset->r_currentEntryIndex = 0;
 		stbl->CompositionOffset->r_FirstSampleInEntry = 0;
+		stbl->CompositionOffset->max_cts_delta = 0;
 	}
 
 	if (stbl->DegradationPriority) {
@@ -5227,7 +5228,7 @@ u64 gf_isom_get_smooth_next_tfdt(GF_ISOFile *the_file, u32 trackNumber)
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
-	return trak->dts_at_next_seg_start;
+	return trak->dts_at_next_frag_start;
 #endif
 }
 
