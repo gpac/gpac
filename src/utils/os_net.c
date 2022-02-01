@@ -396,8 +396,8 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 	} else {
 		res = getsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &nsize, &psize );
 	}
-	if ((res>=0) && (nsize=!NewSize)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Asked to set socket %s buffer size to %d but system used %d\n", SendBuffer ? "send" : "receive", NewSize, nsize));
+	if ((res>=0) && (nsize!=NewSize)) {
+		GF_LOG(nsize <= NewSize ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Socket] Asked to set socket %s buffer size to %d but system used %d\n", SendBuffer ? "send" : "receive", NewSize, nsize));
 	}
 
 	return GF_OK;
