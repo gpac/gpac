@@ -37,7 +37,7 @@ The main components in a playlist are:
 - Media sources and sequences: each source is described by one or more URL to the media data, and each sequence is a set of sources to be played continuously 
 - Transitions: sources in a sequence can be combined using transitions
 - Scenes: a scene describes one graphical object to put on screen and if and how input video are mapped on objects
-- Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements.
+- Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements
 - Timers: a timer can be used to animate scene parameters in various fashions
 
 The playlist content shall be either a single JSON object or an array of JSON objects, hereafter called root objects.
@@ -159,7 +159,7 @@ The syntax for \`start\` and  \`stop\` fields is:
   - out: audio fade-out when playing last frame
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
-- keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after \`rtimeout\`
+- keep_alive (false): if using a dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after \`rtimeout\`
 - seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to the time elapsed since source start when relaunching process(es)
 - prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
 
@@ -172,14 +172,14 @@ The syntax for \`start\` and  \`stop\` fields is:
   - tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (\`tcp\`) or unix domain TCP socket (\`tcpu\`)
   - not specified or empty string: loads source using the current process
   - other: use value as input filter declaration and launch \`in\` as a dedicated process (e.g., \`in="ffmpeg ..." port="pipe://..."\`)
-- opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
+- opts (null): options for the gpac process instance when using a dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
-- raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using dedicated gpac process, ignored otherwise
+- raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using a dedicated gpac process, ignored otherwise
 
 ### Notes
-When launching child process, the input filter is created first and the child process launched afterwards.
+When launching a child process, the input filter is created first and the child process launched afterwards.
 
-Warning: When launching child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
+Warning: When launching a child process directly (e.g. \`in="ffmpeg ..."\`), any relative URL used in \`in\` must be relative to the current working directory.
 
 ## 2D and 3D transformation
 ### Common properties for \`group\` and \`scene\` objects
