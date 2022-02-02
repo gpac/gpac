@@ -381,35 +381,50 @@ u64 gf_file_modification_time(const char *filename)
 	WCHAR _file[GF_MAX_PATH];
 	WIN32_FIND_DATA FindData;
 	HANDLE fh;
-	ULARGE_INTEGER uli;
-	ULONGLONG time_ms;
+//	ULARGE_INTEGER uli;
+	ULONGLONG time_us;
 	BOOL ret;
 	CE_CharToWide((char *) filename, _file);
 	fh = FindFirstFile(_file, &FindData);
 	if (fh == INVALID_HANDLE_VALUE) return 0;
-	uli.LowPart = FindData.ftLastWriteTime.dwLowDateTime;
-	uli.HighPart = FindData.ftLastWriteTime.dwHighDateTime;
+//	uli.LowPart = FindData.ftLastWriteTime.dwLowDateTime;
+//	uli.HighPart = FindData.ftLastWriteTime.dwHighDateTime;
+	time_us = (u64) ((*(LONGLONG *) &FindData.ftLastWriteTime - TIMESPEC_TO_FILETIME_OFFSET) / 10);
 	ret = FindClose(fh);
 	if (!ret) {
 		DWORD err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] FindClose() in gf_file_modification_time() returned the following error code: %d\n", err));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] FindClose() in gf_file_modification_time() error: %d\n", err));
 	}
-	time_ms = uli.QuadPart/10000;
-	return time_ms;
+//	time_ms = uli.QuadPart/10000;
+	return time_us;
 #elif defined(WIN32) && !defined(__GNUC__)
-	struct _stat64 sb;
+	struct _stat64 st;
 	int op_result;
 	wchar_t* wcsFilename = gf_utf8_to_wcs(filename);
 	if (!wcsFilename)
 		return 0;
-	op_result = _wstat64(wcsFilename, &sb);
+	op_result = _wstat64(wcsFilename, &st);
 	gf_free(wcsFilename);
 	if (op_result != 0) return 0;
-	return sb.st_mtime;
+	u64 time_us = st.st_mtime * 1000000;
+#if defined(GPAC_HAS_MTIM_NSEC)
+	time_us += st.st_mtim.tv_nsec / 1000;
+#endif
+	return time_us;
 #else
-	struct stat sb;
-	if (stat(filename, &sb) != 0) return 0;
-	return sb.st_mtime;
+	struct stat st;
+	if (stat(filename, &st) != 0) return 0;
+	u64 time_us = st.st_mtime * 1000000;
+
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS)
+	time_us += st.st_mtimespec.tv_nsec / 1000;
+#elif defined(GPAC_HAS_MTIM_NSEC)
+	time_us += st.st_mtim.tv_nsec / 1000;
+#elif defined(GPAC_CONFIG_ANDROID)
+	time_us += st.st_mtime_nsec / 1000;
+#endif
+
+	return time_us;
 #endif
 	return 0;
 }
@@ -829,7 +844,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		file_info.size += 1;
 		file_info.size *= FindData.nFileSizeHigh;
 		file_info.size += FindData.nFileSizeLow;
-		file_info.last_modified = (u64) ((*(LONGLONG *) &FindData.ftLastWriteTime - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
+		file_info.last_modified = (u64) ((*(LONGLONG *) &FindData.ftLastWriteTime - TIMESPEC_TO_FILETIME_OFFSET) / 10);
 #endif
 
 #if defined (_WIN32_WCE)
@@ -853,10 +868,17 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 		file_info.size = st.st_size;
 
-		{
-			struct tm _t = * gf_gmtime(& st.st_mtime);
-			file_info.last_modified = mktime(&_t);
-		}
+		struct tm _t = * gf_gmtime(& st.st_mtime);
+		file_info.last_modified = mktime(&_t);
+		file_info.last_modified *= 1000000;
+#if defined(__DARWIN__) || defined(__APPLE__) || defined(GPAC_CONFIG_IOS)
+		file_info.last_modified += st.st_mtimespec.tv_nsec / 1000;
+#elif defined(GPAC_HAS_MTIM_NSEC)
+		file_info.last_modified += st.st_mtim.tv_nsec / 1000;
+#elif defined(GPAC_CONFIG_ANDROID)
+		file_info.last_modified += st.st_mtime_nsec / 1000;
+#endif
+
 		file = the_file->d_name;
 		if (file && file[0]=='.') file_info.hidden = GF_TRUE;
 

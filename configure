@@ -201,6 +201,7 @@ OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
 ffmpeg_extra_ldflags=""
+has_st_nsec="no"
 
 logs="config.log"
 echo "Logs for GPAC configure $GPAC_CONFIGURATION" > $logs
@@ -809,6 +810,17 @@ elif docc $LDFLAGS -ldl ; then
     GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
 fi
 
+
+
+#check st_mtim.tv_nsec
+cat > $TMPC << EOF
+#include <sys/stat.h>
+int main( void ) { struct stat st; st.st_mtim.tv_nsec = 0; return 0; }
+EOF
+
+if docc ; then
+    has_st_nsec="yes"
+fi
 
 
 #look for platinum support
@@ -2519,6 +2531,10 @@ if test "$disable_player" = "yes" ; then
     echo "Player disabled"
     echo "#define GPAC_DISABLE_PLAYER" >> $TMPH
     disable_laser="yes"
+fi
+
+if test "$has_st_nsec" = "yes" ; then
+    echo "#define GPAC_HAS_MTIM_NSEC" >> $TMPH
 fi
 
 

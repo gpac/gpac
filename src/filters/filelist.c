@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / file concatenator filter
@@ -162,7 +162,7 @@ typedef struct
 	GF_List *file_list;
 	s32 file_list_idx;
 
-	u64 current_file_dur;
+	u64 current_file_dur_us;
 	Bool last_is_isom;
 
 	u32 wait_update_start;
@@ -287,10 +287,13 @@ static void filelist_start_ipid(GF_FileListCtx *ctx, FileListPid *iopid, u32 pre
 		dts = iopid->max_dts - iopid->dts_sub;
 		cts = iopid->max_cts - iopid->dts_sub;
 		//convert to output timescale
-		if (prev_timescale != iopid->o_timescale) {
+		if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX)) {
+
+		} else if (prev_timescale != iopid->o_timescale) {
 			dts = gf_timestamp_rescale(dts, prev_timescale, iopid->o_timescale);
 			cts = gf_timestamp_rescale(cts, prev_timescale, iopid->o_timescale);
 		}
+
 		if (
 			//skip sync mode, do not adjust timestamps
 			ctx->skip_sync
@@ -412,8 +415,11 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		GF_SAFEALLOC(iopid, FileListPid);
 		if (!iopid) return GF_OUT_OF_MEM;
 		iopid->ipid = pid;
-		if (ctx->timescale) iopid->o_timescale = ctx->timescale;
-		else {
+		if (ctx->timescale) {
+			iopid->o_timescale = ctx->timescale;
+		} else if (ctx->fsort == FL_SORT_DATEX) {
+			iopid->o_timescale = 1000000;
+		} else {
 			iopid->o_timescale = gf_filter_pid_get_timescale(pid);
 			if (!iopid->o_timescale) iopid->o_timescale = 1000;
 		}
@@ -530,8 +536,13 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		gf_filter_pid_push_properties(opid, ctx->pid_props, GF_TRUE, GF_TRUE);
 	}
 
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-	iopid->delay = p ? (s32) p->value.longsint : 0;
+	if (iopid->single_frame && (ctx->fsort == FL_SORT_DATEX)) {
+		iopid->delay = 0;
+	} else {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+		iopid->delay = p ? (s32) p->value.longsint : 0;
+	}
+
 	if (first_config) {
 		iopid->initial_delay = iopid->delay;
 	} else {
@@ -726,7 +737,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		filelist_check_implicit_cat(ctx, szURL);
 		next = gf_list_get(ctx->file_list, ctx->file_list_idx + 1);
 		if (next)
-			ctx->current_file_dur = next->last_mod_time - fentry->last_mod_time;
+			ctx->current_file_dur_us = next->last_mod_time - fentry->last_mod_time;
 		return GF_TRUE;
 	}
 
@@ -1655,6 +1666,7 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 	GF_FilterPacket *dst_pck;
 	u32 dur;
 	u64 dts, cts;
+	Bool skip_ts_rescale=GF_FALSE;
 	if (iopid->audio_samples_to_keep) {
 		u32 nb_samp;
 		u8 *output;
@@ -1688,9 +1700,9 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 	if (cts==GF_FILTER_NO_TS) cts=0;
 
 	if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX) ) {
-		dur = (u32) ctx->current_file_dur;
-		//move from second to input pid timescale
-		dur *= iopid->timescale;
+		dts = cts = 0;
+		dur = gf_timestamp_rescale(ctx->current_file_dur_us, 1000000, iopid->o_timescale);
+		skip_ts_rescale = GF_TRUE;
 	} else if (iopid->single_frame && ctx->fdur.num && ctx->fdur.den) {
 		s64 pdur = ctx->fdur.num;
 		pdur *= iopid->timescale;
@@ -1719,7 +1731,7 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 		dur = gf_filter_pck_get_duration(pck);
 	}
 
-	if (iopid->timescale == iopid->o_timescale) {
+	if (skip_ts_rescale || (iopid->timescale == iopid->o_timescale)) {
 		gf_filter_pck_set_dts(dst_pck, iopid->dts_o + dts - iopid->dts_sub);
 		gf_filter_pck_set_cts(dst_pck, iopid->cts_o + cts - iopid->dts_sub);
 		gf_filter_pck_set_duration(dst_pck, dur);
@@ -2413,13 +2425,19 @@ static GF_Err filelist_process(GF_Filter *filter)
 			ts = iopid->max_cts - iopid->dts_sub;
 			if (gf_timestamp_less(max_cts.num, max_cts.den, ts, iopid->timescale)) {
 				max_cts.num = ts;
-				max_cts.den = iopid->timescale;
+				if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX))
+					max_cts.den = iopid->o_timescale;
+				else
+					max_cts.den = iopid->timescale;
 			}
 
 			ts = iopid->max_dts - iopid->dts_sub;
 			if (gf_timestamp_less(max_dts.num, max_dts.den, ts, iopid->timescale)) {
 				max_dts.num = ts;
-				max_dts.den = iopid->timescale;
+				if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX))
+					max_dts.den = iopid->o_timescale;
+				else
+					max_dts.den = iopid->timescale;
 			}
 		}
 		if (!ctx->cts_offset.num || !ctx->cts_offset.den) {
@@ -2503,8 +2521,8 @@ static GF_Err filelist_process(GF_Filter *filter)
 
 static void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
 {
-	u32 i, count;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s to list\n", fentry->file_name));
+	u32 i, count, l1, l2;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s size "LLU" mod time "LLU" to list\n", fentry->file_name, fentry->file_size, fentry->last_mod_time));
 	if (ctx->fsort==FL_SORT_NONE) {
 		gf_list_add(ctx->file_list, fentry);
 		return;
@@ -2522,7 +2540,13 @@ static void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
 			if (cur->last_mod_time>fentry->last_mod_time) insert = GF_TRUE;
 			break;
 		case FL_SORT_NAME:
-			if (strcmp(cur->file_name, fentry->file_name) > 0) insert = GF_TRUE;
+			l1 = (u32) strlen(cur->file_name);
+			l2 = (u32) strlen(fentry->file_name);
+
+			if (l1 > l2)
+				insert = GF_TRUE;
+			else if ((l1==l2) && (strcmp(cur->file_name, fentry->file_name) > 0))
+				insert = GF_TRUE;
 			break;
 		}
 		if (insert) {
@@ -2576,15 +2600,19 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 	count = ctx->srcs.nb_items;
 	for (i=0; i<count; i++) {
 		char *list = ctx->srcs.vals[i];
+		Bool is_dir = gf_dir_exists(list);
 
-		if (strchr(list, '*') ) {
+		if (is_dir || strchr(list, '*') ) {
 			sep_dir = strrchr(list, '/');
 			if (!sep_dir) sep_dir = strrchr(list, '\\');
 			if (sep_dir) {
 				c = sep_dir[0];
 				sep_dir[0] = 0;
 				dir = list;
-				pattern = sep_dir+2;
+				pattern = is_dir ? NULL : (sep_dir+2);
+			} else if (is_dir) {
+				dir = list;
+				pattern = NULL;
 			} else {
 				dir = ".";
 				pattern = list;
@@ -2635,7 +2663,7 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 	}
 
 	if (!gf_list_count(ctx->file_list)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->srcs));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->srcs.vals[0]));
 		return GF_BAD_PARAM;
 	}
 	if (ctx->fsort==FL_SORT_DATEX) {
@@ -2783,9 +2811,9 @@ GF_FilterRegister FileListRegister = {
 		"# Source list mode\n"
 		"The source list mode is activated by using `flist:srcs=f1[,f2]`, where f1 can be a file or a directory to enumerate.\n"
 		"The syntax for directory enumeration is:\n"
-		"- dir/*: enumerates everything in dir\n"
-		"- foo/*.png: enumerates all files with extension png in foo\n"
-		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo\n"
+		"- dir, dir/ or dir/*: enumerates everything in directory `dir`\n"
+		"- foo/*.png: enumerates all files with extension png in directory `foo`\n"
+		"- foo/*.png;*.jpg: enumerates all files with extension png or jpg in directory `foo`\n"
 		"\n"
 		"The resulting file list can be sorted using [-fsort]().\n"
 		"If the sort mode is `datex` and source files are images or single frame files, the following applies:\n"
@@ -2794,6 +2822,11 @@ GF_FilterRegister FileListRegister = {
 		"- the first frame is assigned a timestamp of 0\n"
 		"- each frame (coming from each file) is assigned a duration equal to the difference of modification time between the file and the next file\n"
 		"- the last frame is assigned the same duration as the previous one\n"
+		"\n"
+		"When sorting by names:\n"
+		"- shorter filenames are inserted before longer filenames\n"
+		"- alphabetical sorting is used if same filename length\n"
+		"\n"
 		"# Playlist mode\n"
 		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions `m3u`, `txt` or `pl`).\n"
 		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"

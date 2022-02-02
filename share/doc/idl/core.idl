@@ -260,7 +260,7 @@ void del(DOMString filename);
 */
 unsigned long long mod_time(DOMString filename);
 
-/*! get file modification time - cf \ref gf_file_modification_time
+/*! rename/move file - cf \ref gf_file_move
 \param filename name of file
 \param newname new name of the file
 */
@@ -525,7 +525,7 @@ interface FileInformation {
 	boolean system;
 	/*! file size in bytes*/
 	unsigned long long size;
-	/*! last modification UTC time*/
+	/*! last modification UTC time in microseconds*/
 	unsigned long long last_modified;
 };
 
