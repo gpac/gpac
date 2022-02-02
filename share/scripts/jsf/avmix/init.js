@@ -108,7 +108,7 @@ Note: scenes using canvas.blit must use the provided variable this.screen_rect c
 
 */
 
-/*clears cnavas - function shall only be used inside scene.draw()
+/*clears canvas - function shall only be used inside scene.draw()
 \param color: color to use
 \param clip clipper to use (type IRect) , or null/not specified
 */
@@ -118,7 +118,7 @@ globalThis.canvas_clear = canvas_clear;
 \param use_stack if true, push and intersect the stack if clipper set or pop if clipper not set, otherwise change clipper directly without checking the clipper stack
 */
 globalThis.canvas_set_clipper = canvas_set_clipper;
-/*draw path on canvas - function shall only be used inside scene.draw()
+/*draws path on canvas - function shall only be used inside scene.draw()
 \param path path (type Path) to draw
 \param stencil stencil to use (type Texture or Stencil)
 */
@@ -128,7 +128,7 @@ globalThis.canvas_draw = canvas_draw;
 \param dst_rc destination window (type IRect)
 */
 globalThis.canvas_blit = canvas_blit;
-/* texture path on canvas  - function shall only be used inside scene.draw()
+/*texture path on canvas - function shall only be used inside scene.draw()
 The input textures are fteched from the sequences associated with the scene 
 \param path path (type Path) to draw
 \param op_type (=0) multitexture operand type
@@ -233,7 +233,7 @@ The caller must be a scene module, in update callback.
 */
 globalThis.update_element = update_element_mod;
 
-/*query a property of an element
+/*queries a property of an element
 
 The caller must be a scene module, in update callback.
 
@@ -243,7 +243,7 @@ The caller must be a scene module, in update callback.
 */
 globalThis.query_element = query_element_mod;
 
-/*checks if a givent point is over a scene
+/*checks if a given point is over a scene
 \param evt GPAC mouse event
 
 or
@@ -892,7 +892,7 @@ filter.process_event = function(pid, evt)
 			wait_pid_play--;
 		return true;
 	}
-	//cancel all other events events	
+	//cancel all other events	
 	return true;
 }
 
@@ -1344,7 +1344,7 @@ function update_scene_matrix(scene)
 		else if (!axis[0] && !axis[1] && (axis[2]>0)) axis = null;
 	}
 
-	//validate orientation, if no angle, move to null  (no 3D oriented scaling)
+	//validate orientation, if no angle, move to null (no 3D oriented scaling)
 	if (orientation) {
 		if (orientation.length!=4) orientation = null;
 		else if (!orientation[3]) orientation = null;
@@ -1425,10 +1425,9 @@ let reference_height = 0;
 
 function group_draw_offscreen(group)
 {
-
 	//store display list and canvas state
-  let	has_opaque_bck = has_opaque;
-  let	display_list_bck = display_list;
+	let has_opaque_bck = has_opaque;
+	let	display_list_bck = display_list;
 	let global_transform_copy = global_transform.copy();
 	let use_gpu_bck = globalThis.use_gpu;
 	let canvas_bck = canvas;
@@ -1439,11 +1438,11 @@ function group_draw_offscreen(group)
 	globalThis.use_gpu = false;
 	globalThis.blit_enabled = false;
 	global_transform.identity = true;
-  display_list = [];
+	display_list = [];
 	webgl = null;
 	round_scene_size = 0;
 
-  //traverse while collecting bounds
+	//traverse while collecting bounds
 	group_bounds = {x: 0,x: 0,w: 0,h: 0,}
 
 
@@ -1521,21 +1520,21 @@ function group_draw_offscreen(group)
 			group.texture.update(group.canvas_offscreen);
 
 		if (!group.texture) return;
-	  group.texture.set_pad_color(group.back_color);
+		group.texture.set_pad_color(group.back_color);
 
-		group.texture.filtering = (scaler>1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
+		group.texture.filtering = (scaler > 1) ? GF_TEXTURE_FILTER_HIGH_QUALITY : GF_TEXTURE_FILTER_HIGH_SPEED;
 
-	  let mx = new evg.Matrix2D();
-	  group.texture_mx = mx;
+		let mx = new evg.Matrix2D();
+		group.texture_mx = mx;
 
-	  group.texture.repeat_s = false;
-	  group.texture.repeat_t = false;
+		group.texture.repeat_s = false;
+		group.texture.repeat_t = false;
 
-	  group.path = new evg.Path().rectangle(0, 0, new_w*scaler, new_h*scaler, true);
+		group.path = new evg.Path().rectangle(0, 0, new_w * scaler, new_h * scaler, true);
 
 		group.prev_pixfmt = pf;
-	  //texture size changed but not pix format, keep opengl shader otherwise reset it
-	  if (pf != old_pf) 
+		//texture size changed but not pix format, keep opengl shader otherwise reset it
+		if (pf != old_pf)
 			group.texture._gl_texture = null;
 	}
 
@@ -1559,8 +1558,8 @@ function group_draw_offscreen(group)
 
 	//restore state
 	global_transform.copy(global_transform_copy);
-  has_opaque = has_opaque_bck;
-  display_list = display_list_bck;
+	has_opaque = has_opaque_bck;
+	display_list = display_list_bck;
 
 	globalThis.use_gpu = use_gpu_bck;
 	globalThis.blit_enabled = use_gpu_bck ? false : evg.BlitEnabled;
@@ -1569,7 +1568,7 @@ function group_draw_offscreen(group)
 	round_scene_size = round_scene_bck;
 	group_bounds = group_bounds_bck;
 
-  group.texture._gl_modified = true;
+	group.texture._gl_modified = true;
 }
 
 
@@ -1694,11 +1693,11 @@ function update_group(group)
 	if (!group.mx_untransform)
 		group.mx.add(global_transform);
 
-  let draw_ctx = {};
-  draw_ctx.mx = group.mx.copy();
-  draw_ctx.screen_rect = null; //TODO
-  draw_ctx.scene = null;
-  draw_ctx.group = group;
+	let draw_ctx = {};
+	draw_ctx.mx = group.mx.copy();
+	draw_ctx.screen_rect = null; //TODO
+	draw_ctx.scene = null;
+	draw_ctx.group = group;
 	draw_ctx.opaque_pid = null;
 	draw_ctx.is_opaque = false;
 	draw_ctx.zorder = group.zorder;
@@ -1883,11 +1882,11 @@ function update_scene(scene)
 		is_opaque = false;
 	}
 
-  let draw_ctx = {};
-  draw_ctx.mx = scene.mx.copy();
-  draw_ctx.screen_rect = scene.mod.screen_rect;
-  draw_ctx.scene = scene;
-  draw_ctx.group = null;
+	let draw_ctx = {};
+	draw_ctx.mx = scene.mx.copy();
+	draw_ctx.screen_rect = scene.mod.screen_rect;
+	draw_ctx.scene = scene;
+	draw_ctx.group = null;
 	draw_ctx.opaque_pid = opaque_pid;
 	draw_ctx.is_opaque = is_opaque;
 	draw_ctx.zorder = scene.zorder;
@@ -2000,16 +1999,15 @@ function draw_display_list_2d()
 				}
 			}
 
-		  canvas.matrix = null;
-		  canvas.path = null;
-		  //do not reset clipper
+		canvas.matrix = null;
+		canvas.path = null;
+		//do not reset clipper
 	});
 }
 
 
 function process_video()
 {
-
 	if (!video_inputs_ready) {
 		if (!video_time && !live_forced_play) {
 			print(GF_LOG_DEBUG, 'video not init');
