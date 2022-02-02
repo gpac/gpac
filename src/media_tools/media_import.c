@@ -1209,7 +1209,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (!fsess) {
 			return gf_import_message(importer, GF_BAD_PARAM, "[Importer] Cannot load filter session for import");
 		}
-		prober = gf_fs_load_filter(fsess, "probe", &e);
+		prober = gf_fs_load_filter(fsess, "probe:log=null", &e);
 		src_filter = gf_fs_load_source(fsess, importer->in_name, "index=0", NULL, &e);
 		if (e) {
 			gf_fs_run(fsess);

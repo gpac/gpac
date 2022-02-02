@@ -22,7 +22,11 @@ Description: Inspect packets
 .br
 
 .br
-The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets. The default options inspect only pid changes.
+The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets.
+.br
+
+.br
+The default options inspect only pid changes.
 .br
 The packet inspector can be configured to dump specific properties of packets using .I fmt.
 .br
@@ -218,13 +222,20 @@ Description: Probe source
 .br
 
 .br
-The Probe filter is used by applications (typically MP4Box) to query demuxed pids available in a source chain.
-.br
-The filter does not produce any output nor feedback, it is up to the app developer to query input pids of the prober and take appropriated decisions.
+The Probe filter is used by applications (typically MP4Box) to query demultiplexed pids (audio, video, ...) available in a source chain.
 .br
 
 .br
-No options
+The filter outputs the number of input pids in the file specified by .I log.
+.br
+It is up to the app developer to query input pids of the prober and take appropriated decisions.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+log (str, default: stdout, minmax: fileName, stderr, stdout or null): set probe log filename to print number of streams
 .br
 
 .br
@@ -3829,11 +3840,11 @@ The source list mode is activated by using flist:srcs=f1[,f2], where f1 can be a
 .br
 The syntax for directory enumeration is:
 .br
-* dir/*: enumerates everything in dir
+* dir, dir/ or dir/*: enumerates everything in directory dir
 .br
-* foo/*.png: enumerates all files with extension png in foo
+* foo/*.png: enumerates all files with extension png in directory foo
 .br
-* foo/*.png;*.jpg: enumerates all files with extension png or jpg in foo
+* foo/*.png;*.jpg: enumerates all files with extension png or jpg in directory foo
 .br
 
 .br
@@ -3850,6 +3861,16 @@ If the sort mode is datex and source files are images or single frame files, the
 - each frame (coming from each file) is assigned a duration equal to the difference of modification time between the file and the next file
 .br
 - the last frame is assigned the same duration as the previous one
+.br
+
+.br
+When sorting by names:
+.br
+- shorter filenames are inserted before longer filenames
+.br
+- alphabetical sorting is used if same filename length
+.br
+
 .br
 .SH Playlist mode
 .LP
@@ -8085,7 +8106,7 @@ Properties for sourceURL objects
 .br
   * not specified or empty string: loads source using the current process
 .br
-  * other: use value as input filter declaration and launch in  as dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
+  * other: use value as input filter declaration and launch in as a dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
 .br
 * opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
 .br
@@ -9647,7 +9668,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1681-g6cb9dddc5-master
+build: 1.1.0-DEV-rev1697-g64a2e1b79-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

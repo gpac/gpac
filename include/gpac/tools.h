@@ -1550,7 +1550,7 @@ FILE *gf_file_temp(char ** const fileName);
 /*!
 \brief File Modification Time
 
-Gets the modification time of the given file. The exact meaning of this value is system dependent
+Gets the UTC modification time of the given file in microseconds
 \param filename file to check
 \return modification time of the file
  */

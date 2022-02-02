@@ -1673,17 +1673,35 @@ static void inspect_finalize(GF_Filter *filter)
 	Bool concat=GF_FALSE;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
-	if (ctx->dump) {
-		if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
-		else if (!ctx->interleave) concat=GF_TRUE;
-	}
-	if (!ctx->interleave) {
-		finalize_dump(ctx, GF_STREAM_AUDIO, concat);
-		finalize_dump(ctx, GF_STREAM_VISUAL, concat);
-		finalize_dump(ctx, GF_STREAM_SCENE, concat);
-		finalize_dump(ctx, GF_STREAM_OD, concat);
-		finalize_dump(ctx, GF_STREAM_TEXT, concat);
-		finalize_dump(ctx, 0, concat);
+	if (ctx->is_prober) {
+		FILE *fout;
+		Bool do_close=GF_FALSE;
+		if (!strcmp(ctx->log, "stderr")) fout = stderr;
+		else if (!strcmp(ctx->log, "stdout")) fout = stdout;
+		else if (!strcmp(ctx->log, "null")) fout = NULL;
+		else {
+			fout = gf_fopen(ctx->log, "w");
+			do_close = GF_TRUE;
+		}
+		if (fout) {
+			gf_fprintf(fout, "%u\n", gf_list_count(ctx->src_pids));
+			if (do_close) gf_fclose(fout);
+		}
+	} else {
+		if (ctx->dump) {
+			if ((ctx->dump!=stderr) && (ctx->dump!=stdout)) concat=GF_TRUE;
+			else if (!ctx->interleave) concat=GF_TRUE;
+		}
+
+
+		if (!ctx->interleave) {
+			finalize_dump(ctx, GF_STREAM_AUDIO, concat);
+			finalize_dump(ctx, GF_STREAM_VISUAL, concat);
+			finalize_dump(ctx, GF_STREAM_SCENE, concat);
+			finalize_dump(ctx, GF_STREAM_OD, concat);
+			finalize_dump(ctx, GF_STREAM_TEXT, concat);
+			finalize_dump(ctx, 0, concat);
+		}
 	}
 
 	while (gf_list_count(ctx->src_pids)) {
@@ -1718,7 +1736,6 @@ static void inspect_finalize(GF_Filter *filter)
 			gf_fclose(ctx->dump);
 		}
 	}
-
 }
 
 static void dump_temi_loc(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const char *pname, const GF_PropertyValue *att)
@@ -3832,56 +3849,58 @@ static const GF_FilterCapability InspectCaps[] =
 const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	GF_FS_SET_DESCRIPTION("Inspect packets")
-	GF_FS_SET_HELP("The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets. The default options inspect only pid changes.\n"\
-				"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"\
-	 			"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
-	 			"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"\
-				"- pn: packet (frame in framed mode) number\n"\
-				"- dts: decoding time stamp in stream timescale, N/A if not available\n"\
-				"- ddts: difference between current and previous packets decoding time stamp in stream timescale, N/A if not available\n"\
-				"- cts: composition time stamp in stream timescale, N/A if not available\n"\
-				"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"\
-				"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"\
-				"- dur: duration in stream timescale\n"\
-				"- frame: framing status\n"
-				"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
-				"  - frame_full: complete AU\n"
-				"  - frame_start: beginning of frame\n"
-				"  - frame_end: end of frame\n"
-				"  - frame_cont: frame continuation (not beginning, not end)\n"
-				"- sap or rap: SAP type of the frame\n"\
-				"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"\
-				"- corr: corrupted packet flag\n"\
-				"- seek: seek flag\n"\
-				"- bo: byte offset in source, N/A if not available\n"\
-				"- roll: roll info\n"\
-				"- crypt: crypt flag\n"\
-				"- vers: carousel version number\n"\
-				"- size: size of packet\n"\
-				"- csize: cumulated size of packets\n"\
-				"- crc: 32 bit CRC of packet\n"\
-				"- lf or n: insert new line\n"\
-				"- t: insert tab\n"\
-				"- data: hex dump of packet (__big output!__)\n"\
-				"- lp: leading picture flag\n"\
-				"- depo: depends on other packet flag\n"\
-				"- depf: is depended on other packet flag\n"\
-				"- red: redundant coding flag\n"\
-				"- ck: clock type used for PCR discontinuities\n"\
-				"- pcr: MPEG-2 TS last PCR, n/a if not available\n"\
-				"- pcrd: difference between last PCR and decoding time, n/a if no PCR available\n"\
-				"- pcrc: difference between last PCR and composition time, n/a if no PCR available\n"\
-	 			"- P4CC: 4CC of packet property\n"\
-	 			"- PropName: Name of packet property\n"\
-	 			"- pid.P4CC: 4CC of PID property\n"\
-	 			"- pid.PropName: Name of PID property\n"\
-	 			"\n"\
-	 			"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
-	 			"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"\
-	 			"  \n"\
-	 			"An unrecognized keyword or missing property will resolve to an empty string.\n"\
-	 			"\n"\
-	 			"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
+	GF_FS_SET_HELP("The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets.\n"
+	"\n"
+	"The default options inspect only pid changes.\n"
+	"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"
+	"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
+	"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"
+	"- pn: packet (frame in framed mode) number\n"
+	"- dts: decoding time stamp in stream timescale, N/A if not available\n"
+	"- ddts: difference between current and previous packets decoding time stamp in stream timescale, N/A if not available\n"
+	"- cts: composition time stamp in stream timescale, N/A if not available\n"
+	"- dcts: difference between current and previous packets composition time stamp in stream timescale, N/A if not available\n"
+	"- ctso: difference between composition time stamp and decoding time stamp in stream timescale, N/A if not available\n"
+	"- dur: duration in stream timescale\n"
+	"- frame: framing status\n"
+	"  - interface: complete AU, interface object (no size info). Typically a GL texture\n"
+	"  - frame_full: complete AU\n"
+	"  - frame_start: beginning of frame\n"
+	"  - frame_end: end of frame\n"
+	"  - frame_cont: frame continuation (not beginning, not end)\n"
+	"- sap or rap: SAP type of the frame\n"
+	"- ilace: interlacing flag (0: progressive, 1: top field, 2: bottom field)\n"
+	"- corr: corrupted packet flag\n"
+	"- seek: seek flag\n"
+	"- bo: byte offset in source, N/A if not available\n"
+	"- roll: roll info\n"
+	"- crypt: crypt flag\n"
+	"- vers: carousel version number\n"
+	"- size: size of packet\n"
+	"- csize: cumulated size of packets\n"
+	"- crc: 32 bit CRC of packet\n"
+	"- lf or n: insert new line\n"
+	"- t: insert tab\n"
+	"- data: hex dump of packet (__big output!__)\n"
+	"- lp: leading picture flag\n"
+	"- depo: depends on other packet flag\n"
+	"- depf: is depended on other packet flag\n"
+	"- red: redundant coding flag\n"
+	"- ck: clock type used for PCR discontinuities\n"
+	"- pcr: MPEG-2 TS last PCR, n/a if not available\n"
+	"- pcrd: difference between last PCR and decoding time, n/a if no PCR available\n"
+	"- pcrc: difference between last PCR and composition time, n/a if no PCR available\n"
+	"- P4CC: 4CC of packet property\n"
+	"- PropName: Name of packet property\n"
+	"- pid.P4CC: 4CC of PID property\n"
+	"- pid.PropName: Name of PID property\n"
+	"\n"
+	"EX fmt=\"PID $pid.ID$ packet $pn$ DTS $dts$ CTS $cts$ $lf$\"\n"
+	"This dumps packet number, cts and dts as follows: `PID 1 packet 10 DTS 100 CTS 108 \\n`\n"
+	"  \n"
+	"An unrecognized keyword or missing property will resolve to an empty string.\n"
+	"\n"
+	"Note: when dumping in interleaved mode, there is no guarantee that the packets will be dumped in their original sequence order since the inspector fetches one packet at a time on each PID.\n")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
@@ -3914,16 +3933,24 @@ static const GF_FilterCapability ProberCaps[] =
 	{0},
 };
 
+static const GF_FilterArgs ProbeArgs[] =
+{
+	{ OFFS(log), "set probe log filename to print number of streams", GF_PROP_STRING, "stdout", "fileName, stderr, stdout or null", 0},
+	{0}
+};
+
 
 const GF_FilterRegister ProbeRegister = {
 	.name = "probe",
 	GF_FS_SET_DESCRIPTION("Probe source")
-	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demuxed pids available in a source chain.\n"
-	"The filter does not produce any output nor feedback, it is up to the app developer to query input pids of the prober and take appropriated decisions.")
+	GF_FS_SET_HELP("The Probe filter is used by applications (typically `MP4Box`) to query demultiplexed pids (audio, video, ...) available in a source chain.\n\n"
+	"The filter outputs the number of input pids in the file specified by [-log]().\n"
+	"It is up to the app developer to query input pids of the prober and take appropriated decisions.")
 	.private_size = sizeof(GF_InspectCtx),
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.max_extra_pids = (u32) -1,
 	.initialize = inspect_initialize,
+	.args = ProbeArgs,
 	SETCAPS(ProberCaps),
 	.finalize = inspect_finalize,
 	.process = inspect_process,

@@ -469,7 +469,7 @@ static Bool httpout_dir_file_enum(void *cbck, char *item_name, char *item_path, 
 	}
 	if (file_info) {
 		char szDate[200];
-		httpout_format_date(file_info->last_modified*1000, szDate, GF_TRUE);
+		httpout_format_date(file_info->last_modified/1000, szDate, GF_TRUE);
 		gf_dynstrcat(listing, szDate, NULL);
 	}
 
