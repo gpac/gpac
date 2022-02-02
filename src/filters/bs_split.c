@@ -1198,7 +1198,7 @@ static GF_Err nalu_split_packet(BSSplitCtx *ctx, BSSplitIn *pctx, GF_FilterPacke
 
 				gf_filter_pck_set_dts(inject_pck, pctx->first_ts_plus_one-1);
 				gf_filter_pck_set_cts(inject_pck, pctx->first_ts_plus_one-1);
-				gf_filter_pck_set_duration(inject_pck, ts_diff);
+				gf_filter_pck_set_duration(inject_pck, (u32) ts_diff);
 				gf_filter_pck_set_framing(inject_pck, GF_TRUE, GF_TRUE);
 				gf_filter_pck_send(inject_pck);
 			}

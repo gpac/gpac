@@ -931,7 +931,7 @@ u64 gf_isom_segment_get_fragment_size(GF_ISOFile *file, u32 moof_index, u32 *moo
 			if (!moof_after_mdat && (moof_sn == moof_index))
 				return size - b->size;
 
-			if (moof_size) *moof_size = b->size;
+			if (moof_size) *moof_size = (u32) b->size;
 			moof_sn++;
 			if (moof_after_mdat && (moof_sn == moof_index))
 				return size;

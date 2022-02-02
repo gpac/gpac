@@ -72,7 +72,7 @@ static void SFS_AddString(ScriptParser *parser, char *str)
 	char *new_str;
 	if (!str) return;
 	if (strlen(parser->string) + strlen(str) >= parser->length) {
-		parser->length = strlen(parser->string) + strlen(str) + PARSER_STEP_ALLOC;
+		parser->length = (u32) ( strlen(parser->string) + strlen(str) + PARSER_STEP_ALLOC );
 		new_str = (char *)gf_malloc(sizeof(char)*parser->length);
 		strcpy(new_str, parser->string);
 		gf_free(parser->string);
