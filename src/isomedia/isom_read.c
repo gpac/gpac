@@ -4721,10 +4721,9 @@ GF_Err gf_isom_get_sample_to_group_info(GF_ISOFile *the_file, u32 trackNumber, u
 	count = gf_list_count(trak->Media->information->sampleTable->sampleGroups);
 	for (i=0; i<count; i++) {
 		GF_SampleGroupBox *sg;
-		u32 j, group_desc_index;
+		u32 j;
 		u32 first_sample_in_entry, last_sample_in_entry;
 		first_sample_in_entry = 1;
-		group_desc_index = 0;
 		sg = (GF_SampleGroupBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroups, i);
 		if (sg->grouping_type != grouping_type) continue;
 		if (sg->grouping_type_parameter != grouping_type_param) continue;

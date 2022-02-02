@@ -440,7 +440,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 {
 	u32 size, pck_size, i, count, tot_size=0, nb_done=0;
 	u64 min_dts = GF_FILTER_NO_TS;
-	u32 min_timescale, min_nal_size;
+	u32 min_timescale=0, min_nal_size;
 	GF_Err process_error = GF_OK;
 	Bool has_svc_prefix = GF_FALSE;
 
@@ -478,6 +478,7 @@ static GF_Err nalu_process(BSAggCtx *ctx, BSAggOut *pctx, u32 codec_type)
 		gf_filter_pid_set_eos(pctx->opid);
 		return GF_EOS;
 	}
+	if (!min_timescale) return GF_OK;
 
 	for (i=0; i<count; i++) {
 		GF_Err e = GF_OK;
