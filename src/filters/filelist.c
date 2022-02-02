@@ -1701,7 +1701,7 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 
 	if (iopid->single_frame && (ctx->fsort==FL_SORT_DATEX) ) {
 		dts = cts = 0;
-		dur = gf_timestamp_rescale(ctx->current_file_dur_us, 1000000, iopid->o_timescale);
+		dur = (u32) gf_timestamp_rescale(ctx->current_file_dur_us, 1000000, iopid->o_timescale);
 		skip_ts_rescale = GF_TRUE;
 	} else if (iopid->single_frame && ctx->fdur.num && ctx->fdur.den) {
 		s64 pdur = ctx->fdur.num;
