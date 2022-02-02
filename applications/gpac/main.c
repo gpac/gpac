@@ -671,6 +671,9 @@ static void gpac_usage(GF_SysArgMode argmode)
 		"Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.  \n"
 		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.  \n"
 		"Boolean values do not need any value specified. Other types shall be formatted as `opt=val`, except [-i](), `-src`, [-o](), `-dst` and [-h]() options.\n\n"
+		"\n"
+		"The session can be interrupted at any time using `ctrl+c`, which can also be used to toggle global reporting.\n"
+		"\n"
 		"The possible options for gpac are:\n\n",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#filter-declaration-filter)" : "`gpac -h doc`",
 			(gen_doc==1) ? "[gpac -h doc](filters_general#explicit-links-between-filters-link)" : "`gpac -h doc`",
@@ -836,10 +839,13 @@ static void print_date(u64 time)
 	fprintf(stderr, "[%02d:%02d:%02d.%03dZ] ", t->tm_hour, t->tm_min, t->tm_sec, ms);
 }
 
+static Bool in_sig_handler = GF_FALSE;
 static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_final)
 {
 	u32 i, count, nb_active;
 	u64 now;
+
+	if (in_sig_handler) return;;
 
 	if (is_init) {
 		if (enable_reports==2)
@@ -1222,13 +1228,14 @@ static void gpac_sig_handler(int sig)
 			}
 			signal_catched = GF_TRUE;
 			if (is_inter) {
-				fprintf(stderr, "catched SIGINT - flush session before exit ? (Y/f/n):\n");
+				in_sig_handler = GF_TRUE;
+				fprintf(stderr, "\nToggle reports (r) or flush session before exit (Y/f/n) ? \n");
+rescan:
 				res = scanf("%c", &input);
 				if (res!=1) input=0;
 				switch (input) {
 				case 'Y':
 				case 'y':
-				case '\n':
 					signal_processed = GF_TRUE;
 					gf_fs_abort(session, GF_FS_FLUSH_FAST);
 					break;
@@ -1239,11 +1246,33 @@ static void gpac_sig_handler(int sig)
 					break;
 				case 0:
 					break;
+				case '\n':
+					goto rescan;
+
+				case 'R':
+				case 'r':
+					if (!enable_reports) {
+						enable_reports = 2;
+						report_filter = NULL;
+						gf_fs_set_ui_callback(session, gpac_event_proc, session);
+						gf_fs_enable_reporting(session, GF_TRUE);
+						in_sig_handler = GF_FALSE;
+						gpac_print_report(session, GF_TRUE, GF_FALSE);
+					} else {
+						enable_reports = 0;
+						gf_fs_enable_reporting(session, GF_FALSE);
+						gf_sys_set_console_code(stderr, GF_CONSOLE_CLEAR);
+						gf_sys_set_console_code(stderr, GF_CONSOLE_RESTORE);
+					}
+					signal_catched = GF_FALSE;
+					signal_processed = GF_FALSE;
+					break;
 				default:
 					signal_processed = GF_TRUE;
 					gf_fs_abort(session, GF_FS_FLUSH_NONE);
 					break;
 				}
+				in_sig_handler = GF_FALSE;
 			} else {
 				signal_processed = GF_TRUE;
 				gf_fs_abort(session, GF_FS_FLUSH_NONE);
