@@ -239,7 +239,7 @@ except OSError:
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
 GF_ABI_MAJOR=10
-GF_ABI_MINOR=11
+GF_ABI_MINOR=12
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -882,35 +882,35 @@ GF_FS_SCHEDULER_DIRECT=4
 #see \ref GF_FS_FLAG_LOAD_META
 GF_FS_FLAG_LOAD_META=1<<1
 ##\hideinitializer
-#see \ref GF_FS_FLAG_NO_BLOCKING
-GF_FS_FLAG_NO_BLOCKING=1<<2
+#see \ref GF_FS_FLAG_NON_BLOCKING
+GF_FS_FLAG_NON_BLOCKING=1<<2
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_GRAPH_CACHE
 GF_FS_FLAG_NO_GRAPH_CACHE=1<<3
 ##\hideinitializer
-#see \ref GF_FS_FLAG_NON_BLOCKING
-GF_FS_FLAG_NON_BLOCKING=1<<4
-##\hideinitializer
 #see \ref GF_FS_FLAG_NO_REGULATION
-GF_FS_FLAG_NO_REGULATION=1<<5
+GF_FS_FLAG_NO_REGULATION=1<<4
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_PROBE
-GF_FS_FLAG_NO_PROBE=1<<6
+GF_FS_FLAG_NO_PROBE=1<<5
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_REASSIGN
-GF_FS_FLAG_NO_REASSIGN=1<<7
+GF_FS_FLAG_NO_REASSIGN=1<<6
 ##\hideinitializer
 #see \ref GF_FS_FLAG_PRINT_CONNECTIONS
-GF_FS_FLAG_PRINT_CONNECTIONS=1<<8
+GF_FS_FLAG_PRINT_CONNECTIONS=1<<7
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_ARG_CHECK
-GF_FS_FLAG_NO_ARG_CHECK=1<<9
+GF_FS_FLAG_NO_ARG_CHECK=1<<8
 ##\hideinitializer
 #see \ref GF_FS_FLAG_NO_RESERVOIR
-GF_FS_FLAG_NO_RESERVOIR=1<<10
+GF_FS_FLAG_NO_RESERVOIR=1<<0
 ##\hideinitializer
 #see \ref GF_FS_FLAG_FULL_LINK
-GF_FS_FLAG_FULL_LINK=1<<11
+GF_FS_FLAG_FULL_LINK=1<<10
+##\hideinitializer
+#see \ref GF_FS_FLAG_SINGLE_LINK
+GF_FS_FLAG_SINGLE_LINK=1<<11
 
 
 ##\hideinitializer

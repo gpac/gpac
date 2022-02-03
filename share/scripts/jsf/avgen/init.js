@@ -50,7 +50,7 @@ filter.set_help(
 +"More than one output size can be specified. This will result in multiple sources being generated, one per size.\n"
 +"A size can be specified more than once, resulting in packet references when [-copy]() is not set, or full copies otherwise.\n"
 +"Target encoding bitrates can be assigned to each output using [-rates](). This can be useful when generating dash:\n"
-+"EX gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M enc:c=aac:FID=1 enc:c=264:FID=2:clone -o live.mpd:SID=1,2\n"
++"EX gpac avgen:sizes=1280x720,1920x1080:rates=2M,5M c=aac:FID=1 c=264:FID=2:clone -o live.mpd:SID=1,2\n"
 +"\n"
 +"# Multiview generation\n"
 +"In multiview mode, only the animated counter will move in depth backward and forward, as indicated by the [-disparity]() value.\n"

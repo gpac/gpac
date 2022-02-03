@@ -184,9 +184,12 @@ const char *gpac_doc =
 "- g=UINT, gop=UINT: indicates the GOP size in frames\n"
 "- pfmt=NAME: indicates the target pixel format name (see [properties (-h props)](filters_properties) ) of the source, if supported by codec\n"
 "- all_intra=BOOL: indicates all frames should be intra frames, if supported by codec\n"
-"\n  \nOther options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).\n"
+"\n"
+"Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).\n"
 "EX src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264\n"
 "This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.\n"
+"\n"
+"The shortcut syntax `c=TYPE` (e.g. `c=aac:opts`) is also supported.\n"
 "\n"
 "The inverse operation (forcing a decode to happen) is possible using the __reframer__ filter.\n"
 "EX src=file.mp4 reframer:raw=av @ -o null\n"
@@ -202,7 +205,41 @@ const char *gpac_doc =
 "This will set option `a` to `foo:b=bar` on the filter.\n"
 "EX f:a=foo::b=bar:c::d=fun\n"
 "This will set option `a` to `foo`, `b` to `bar:c` and the option `d` to `fun` on the filter.\n"
-"# Explicit links between filters [__LINK__]\n"
+"\n"
+"# Filter linking [__LINK__]\n"
+"\n"
+"## Implicit linking\n"
+"Implicit linking is enabled by the gpac application if the command line has:\n"
+"- no link directives (`@`, `FID=`, `SID=`)\n"
+"- a single output (`-o`, `-dst`, `-ob`)\n"
+"- [-fl](GPAC) option is not set\n"
+"In this mode, a PID will be linked only once to the first matching filter in declaration order (so argument order really matters in this case).\n"
+"This allows specifying linear processing chains (no PID fan-out) without giving the link directives, simplifying command lines for common cases.\n"
+"\n"
+"EX -i file.mp4 c=avc -o output\n"
+"If the file has a video PID, it will connect to `enc` but not to `output`. The output PID of `enc` will connect to `output`.\n"
+"If the file has other PIDs than video, they will connect to `output`, since this `enc` filter accepts only video.\n"
+"\n"
+"EX -i file.mp4 c=avc c=aac -o output\n"
+"If the file has a video PID, it will connect to `c=avc` but not to `output`. The output PID of `c=avc` will connect to `output`.\n"
+"If the file has an audio PID, it will connect to `c=aac` but not to `output`. The output PID of `c=aac` will connect to `output`.\n"
+"If the file has other PIDs than audio or video, they will connect to `output`.\n"
+"\n"
+"EX -i file.mp4 ffswf=osize:128x720 c=avc resample=osr=48k c=aac -o output\n"
+"This will force:\n"
+"- `SRC(video)->ffsws->enc(video)->output` and prevent `SRC(video)->output` and `ffsws->output` connections.\n"
+"- `SRC(audio)->resample->enc(audio)->output` and prevent `SRC(audio)->output` and `resample->output` connections.\n"
+"\n"
+"You must be carefull for cases where multiple PIDs of the same type are present:\n"
+"EX -i dual_audio resample:osr=48k c=aac -o dst\n"
+"Here, the first audio will connect to the `resample` while the second will connect to the `enc`, the resampled audio connecting directly to `dst`.\n"
+"Filter cloning instructions (see below) should be used in this case:\n"
+"EX -i dual_audio resample:osr=48k:clone c=aac -o dst\n"
+"Here, both audio will connect to the `resample`, and only the first resampled audio will connect to the `enc`, the resampled audio connecting directly to `dst`.\n"
+"EX -i dual_audio resample:osr=48k c=aac:clone -o dst\n"
+"Here, the first audio will connect to the `resample` filter, the second to the `enc` filter and the resampler output will connect to a clone of the `enc` filter.\n"
+"EX -i dual_audio resample:osr=48k:clone c=aac:clone -o dst\n"
+"Here, both audio will be resampled and transcoded.\n"
 "\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionally followed by an integer (0 if omitted). "
@@ -216,8 +253,7 @@ const char *gpac_doc =
 "This indicates that `fD` only accepts inputs from `fB` and `fC`.\n"
 "EX fA fB fC ... @@1 fZ\n"
 "This indicates that `fZ` only accepts inputs from `fB`.\n"
-"\nIf no link directives are given, the links will be dynamically solved to fulfill as many connections as possible (__see below__).\n"
-"Warning: This means that `fA fB fC` and `fA fB @ fC` will likely not give the same result.\n"
+"\nIf no link directives are given and [-fl](GPAC) is set, the links will be dynamically solved to fulfill as many connections as possible (__see below__).\n"
 "\n"
 "## Complex links\n"
 "The link directive is just a quick shortcut to set the following arguments:\n"
@@ -270,29 +306,24 @@ const char *gpac_doc =
 "EX src=vid.mp4 @#Width=640#Height+380 vout\n"
 "This indicates to connect to `vout` only PIDs with `Width` property equal to `640` and `Height` greater than `380`.\n"
 "\n"
-"Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
+"Warning: If a PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
 "be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.\n"
-"EX src=video.264.mp4 @ reframer dst=dump.mp4\n"
-"This will link src `file.mp4` PID (type `file`) to dst `dump.mp4` filter (type `file`) because dst has no sourceID and therefore will "
-"accept input from src with the same format (extension or mime). Since the PID is connected, the filter engine will not try to solve "
-"a link between src and `reframer`. The result is a direct copy of the source file, `reframer` being unused.\n"
-"EX src=file.mp4 reframer @ dst=dump.mp4\n"
-"This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and "
-"src PID will be linked to `reframer` (no source ID), loading a demuxer to solve the link. The result is a complete remultiplexing of the source file.\n"
+"EX fA @ reframer fB\n"
+"If `fB` accepts inputs provided by `fA` but `reframer` does not, this will link `fA` PID to `fB` filter since `fB` has no sourceID.\n"
+"Since the PID is connected, the filter engine will not try to solve a link between `fA` and `reframer`.\n"
 "\n"
-"An exception is made for destinations: if at least one option set on the destination is not an option of that destination filter, "
-"the destination filter will not accept files as input, potentially forcing a demultiplexing of the source.\n"
-"EX src=file.mp4 dst=dump.mp4:mode=frag\n"
-"This will prevent direct connection of PID of type `file` to dst, remuxing the file.\n"
+"An exception is made for local files: by default, a local file destination will force a remux of input pids from a local file.\n"
 "EX src=file.mp4 dst=dump.mp4\n"
+"This will prevent direct connection of PID of type `file` to dst `file.mp4`, remuxing the file.\n"
+"\n"
+"The special option `nomux` is used to allow direct connections (ignored for non-sink filters).\n"
+"EX src=file.mp4 dst=dump.mp4:nomux\n"
 "This will result in a direct file copy.\n"
 "\n"
-"The special option `remux` is used to force remultiplexing without specifying any muxer option (ignored for non-sink filters).\n"
-"This is equivalent to specifying a dummy option not tracked (eg `:gfopt:dummy`).\n"
-"EX -i file.mp4 -o dump.mp4:remux\n"
-"This will result in a remuxing of the file.\n"
+"Note: this only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):\n"
+"- direct copy is enabled by default\n"
+"- `nomux=0` can be used to force remux\n"
 "\n"
-"Note: the linker will prevent cycles in the graph, and a given filter can never have the same PID connected twice as an input, whether directly or through a filter chain.\n"
 "# Arguments inheriting\n"
 "Unless explicitly disabled (see [-max-chain](CORE)), the filter engine will resolve implicit or explicit (__LINK__) connections "
 "between filters and will allocate any filter chain required to connect the filters. "
@@ -327,7 +358,7 @@ const char *gpac_doc =
 "`$$` is an escape for $\n"
 "\n"
 "Templating can be useful when encoding several qualities in one pass.\n"
-"EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone\n"
+"EX src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone\n"
 "This will create a cropped version of the source, encoded in AVC at 1M, and a full version of the content in AVC at 750k. "
 "Outputs will be `dump_0x0x320x180.264` for the cropped version and `dump_0x0x640x360.264` for the non-cropped one.\n"
 "# Cloning filters\n"
@@ -339,7 +370,7 @@ const char *gpac_doc =
 "There is a special option `clone` allowing filters to be cloned with the same arguments. The cloned filters have the same ID as the original one.\n"
 "EX src=img.heif dst=dump_$ItemID$.jpg:clone\n"
 "In this case, the destination will be cloned for each item, and all will be exported to different JPEGs thanks to URL templating.\n"
-"EX src=vid.mpd enc:c=avc:FID=1:clone dst=transcode.mpd:SID=1\n"
+"EX src=vid.mpd c=avc:FID=1:clone dst=transcode.mpd:SID=1\n"
 "In this case, the encoder will be cloned for each video PIDs in the source, and the destination will only use PIDs coming from the encoders.\n"
 "# Templating filter chains\n"
 "There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone` option is not enough since the muxer will always accept the input PIDs.\n"
@@ -609,6 +640,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("fl", NULL, "force full linking when no link directive are set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("step", NULL, "test step mode in non-blocking session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.  \nNote: The `@` character can be used in place of the `*` character. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
@@ -665,8 +697,7 @@ static void gpac_usage(GF_SysArgMode argmode)
 		"__[LINK]__: a link instruction (eg, `@`, `@2`, `@2#StreamType=Visual`, ...), see %s.\n"
 		"__[options]__: one or more option strings, each starting with a `-` character.\n"
 		"  - an option using a single `-` indicates an option of gpac (see %s) or of libgpac (see %s)\n"
-		"  - an option using `--` indicates a global filter or meta-filter (eg FFMPEG) option, for example `--block_size=1000` (see %s)\n"
-		"  - an option using `-+` indicates a global option only targetting meta-filters (eg FFMPEG), for example `-+profile=Baseline` (see %s) (DEPRECATED)\n"
+		"  - an option using `--` indicates a global filter or meta-filter (e.g. FFMPEG) option, e.g. `--block_size=1000` or `--profile=Baseline` (see %s)\n"
 		"  \n"
 		"Filter declaration order may impact the link resolver which will try linking in declaration order. Most of the time for simple graphs, this has no impact. However, for complex graphs with no link declarations, this can lead to different results.  \n"
 		"Options do not require any specific order, and may be present anywhere, including between link statements or filter declarations.  \n"
@@ -755,7 +786,7 @@ static const char *gpac_config =
 "EX --profile=Baseline -i file.cmp -o dump.264\n"
 "This is equivalent to specifying `-o dump.264:profile=Baseline`.\n"
 "  \n"
-"For both syntax, it is possible to specify the filter registry name of the option, using `--FNAME@OPTNAME=VAL`.\n"
+"For both syntax, it is possible to specify the filter registry name of the option, using `--FNAME:OPTNAME=VAL` or `--FNAME@OPTNAME=VAL`.\n"
 "In this case the option will only be set for filters which are instances of registry FNAME. This is used when several registries use same option names.\n"
 "EX --flist@timescale=100 -i plist1 -i plist2 -o live.mpd\n"
 "This will set the timescale option on the playlists filters but not on the dasher filter.\n"
@@ -1762,9 +1793,11 @@ static int gpac_main(int argc, char **argv)
 	GF_FilterSession *tmp_sess;
 	Bool alias_is_play = GF_FALSE;
 	Bool has_xopt = GF_FALSE;
+	Bool has_link_info = GF_FALSE;
+
 	helpout = stdout;
 
-	//look for mem track and profile, and also process all helpers
+	//look for mem track and profile, and check for link directives
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
@@ -1777,8 +1810,19 @@ static int gpac_main(int argc, char **argv)
 			profile = arg+3;
 		} else if (!strncmp(arg, "-mkl=", 5)) {
 			return gpac_make_lang(arg+5);
+		} else if (arg[0] != '-') {
+			if (arg[0] == '@') {
+				has_link_info = GF_TRUE;
+			} else {
+				if (strstr(arg, "FID=")) has_link_info = GF_TRUE;
+				else if (strstr(arg, "SID=")) has_link_info = GF_TRUE;
+			}
+		} else if (!strcmp(arg, "-dst") || !strcmp(arg, "-o")  || !strcmp(arg, "-ob") ) {
+			sflags++;
 		}
 	}
+	if (sflags>1) has_link_info = GF_TRUE;
+	sflags = 0;
 
 	gf_sys_init(mem_track, profile);
 
@@ -2103,6 +2147,8 @@ static int gpac_main(int argc, char **argv)
 			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
+		} else if (!strcmp(arg, "-fl")) {
+			has_link_info = GF_TRUE;
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
 			sflags |= GF_FS_FLAG_NON_BLOCKING;
@@ -2161,6 +2207,8 @@ restart:
 	if (view_conn_for_filter && argmode>=GF_ARGMODE_EXPERT)
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
+	if (!has_link_info)
+		sflags |= GF_FS_FLAG_SINGLE_LINK;
 	session = gf_fs_new_defaults(sflags);
 
 	if (!session) {

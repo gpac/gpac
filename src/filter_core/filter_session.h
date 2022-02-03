@@ -336,7 +336,7 @@ typedef struct
 	Bool found;
 } GF_FSArgItem;
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type);
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter);
 
 enum
 {
@@ -691,6 +691,8 @@ struct __gf_filter
 	u32 sticky;
 	//explicitly loaded filters are usually not cloned, except if this flag is set
 	Bool clonable;
+	//set to true during pid link resolution for filters accepting a single pid
+	Bool in_link_resolution;
 	//one of the output PID needs reconfiguration
 	volatile u32 nb_caps_renegociate;
 

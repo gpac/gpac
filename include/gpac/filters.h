@@ -208,26 +208,26 @@ typedef enum
 The sub-filters are usually not exposed as filters, only the parent one is.
 When set, all sub-filters are exposed. This should only be set when inspecting filters help*/
 #define GF_FS_FLAG_LOAD_META	1<<1
-/*! Flag set to disable the blocking mode of the filter session. The default is a semi-blocking mode, cf \ref gf_filter_pid_would_block*/
-#define GF_FS_FLAG_NO_BLOCKING	1<<2
+/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
+#define GF_FS_FLAG_NON_BLOCKING	1<<2
 /*! Flag set to disable internal caching of filter graph connections. If disabled, the graph will be recomputed at each link resolution (less memory occupancy but slower)*/
 #define GF_FS_FLAG_NO_GRAPH_CACHE	1<<3
-/*! Flag set to run session in non-blocking mode. Each call to \ref gf_fs_run will return as soon as there are no more pending tasks on the main thread */
-#define GF_FS_FLAG_NON_BLOCKING	1<<4
 /*! Flag set to disable session regulation (no sleep)*/
-#define GF_FS_FLAG_NO_REGULATION	1<<5
+#define GF_FS_FLAG_NO_REGULATION	1<<4
 /*! Flag set to disable data probe*/
-#define GF_FS_FLAG_NO_PROBE	(1<<6)
+#define GF_FS_FLAG_NO_PROBE	(1<<5)
 /*! Flag set to disable source reassignment (e.g. switching from fin to ffdmx) in PID resolution*/
-#define GF_FS_FLAG_NO_REASSIGN	(1<<7)
+#define GF_FS_FLAG_NO_REASSIGN	(1<<6)
 /*! Flag set to print enabled/disabled edges for debug of PID resolution*/
-#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<8)
+#define GF_FS_FLAG_PRINT_CONNECTIONS	(1<<7)
 /*! Flag set to disable argument checking*/
-#define GF_FS_FLAG_NO_ARG_CHECK	(1<<9)
+#define GF_FS_FLAG_NO_ARG_CHECK	(1<<8)
 /*! Disables reservoir for packets and properties, uses much less memory but much more alloc/free*/
-#define GF_FS_FLAG_NO_RESERVOIR (1<<10)
+#define GF_FS_FLAG_NO_RESERVOIR (1<<9)
 /*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
-#define GF_FS_FLAG_FULL_LINK (1<<11)
+#define GF_FS_FLAG_FULL_LINK (1<<10)
+/*! Flag set to multi-link: linking aborts after the first successfull pid, which implies that the order in which filters are created now matters*/
+#define GF_FS_FLAG_SINGLE_LINK	(1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -2122,7 +2122,11 @@ typedef enum
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
 	/*! Indicates the filter requires graph resolver (typically because it creates new destinations/sinks at run time)*/
 	GF_FS_REG_REQUIRES_RESOLVER = 1<<11,
-
+	/*!
+		For sink filters, indicates the filter forces remux of input PIDs of type GF_STREAM_FILE (prevents direct file copy)
+		For source filters, indicates the PIDs should be remuxed to a destination filter with force remux set
+	*/
+	GF_FS_REG_FORCE_REMUX = 1<<12,
 
 	/*! flag dynamically set at runtime for custom filters*/
 	GF_FS_REG_CUSTOM = 0x40000000,
