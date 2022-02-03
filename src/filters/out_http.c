@@ -1119,8 +1119,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	//check ETag
 	else if (full_path) {
 		modif_time = gf_file_modification_time(full_path);
-		sprintf(szETag, LLU, modif_time);
-		etag = gf_dm_sess_get_header(sess->http_sess, "If-None-Match");
+		if (modif_time) {
+			sprintf(szETag, LLU, modif_time);
+			etag = gf_dm_sess_get_header(sess->http_sess, "If-None-Match");
+		}
 	}
 
 	range = gf_dm_sess_get_header(sess->http_sess, "Range");

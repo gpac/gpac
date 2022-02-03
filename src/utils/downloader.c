@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -4456,7 +4456,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
 		}
 
-		if (etag) PUSH_HDR("If-None-Match", "etag")
+		if (etag) PUSH_HDR("If-None-Match", etag)
 		if (last_modif) PUSH_HDR("If-Modified-Since", last_modif)
 	}
 
