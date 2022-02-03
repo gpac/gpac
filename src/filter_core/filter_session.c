@@ -95,6 +95,16 @@ void gf_fs_add_filter_register(GF_FilterSession *fsess, const GF_FilterRegister 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
 		return;
 	}
+#if 0
+	if (strchr(freg->name, fsess->sep_args)	) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter name cannot contain argument separator %c - ignoring\n", fsess->sep_args));
+		return;
+	}
+	if (strchr(freg->name, fsess->sep_name)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter name cannot contain argument value separator %c - ignoring\n", fsess->sep_name));
+		return;
+	}
+#endif
 	if (!freg->process) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing process function - ignoring\n", freg->name));
 		return;
@@ -380,7 +390,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if ((arg[1]!='-') && (arg[1]!='+')) continue;
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
-			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]=='-') ? GF_ARGTYPE_GLOBAL : GF_ARGTYPE_META);
+			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]=='-') ? GF_ARGTYPE_GLOBAL : GF_ARGTYPE_META, NULL);
 
 			//force indexing in reframers when dash template with bandwidth is used
 			if (sep && !strcmp(arg+2, "template") && strstr(sep+1, "$Bandwidth$")) {
@@ -400,8 +410,9 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	return fsess;
 }
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type)
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter)
 {
+	u32 meta_len = meta_filter ? (u32) strlen(meta_filter->freg->name) : 0;
 	Bool create_if_not_found = GF_TRUE;
 	if (session->flags & GF_FS_FLAG_NO_ARG_CHECK)
 		return;
@@ -418,6 +429,14 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		for (k=0; k<acount; k++) {
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
+				afound = GF_TRUE;
+				break;
+			}
+			if (meta_len
+				&& !strncmp(ai->argname, meta_filter->freg->name, meta_len)
+				&& ((ai->argname[meta_len]==':') || (ai->argname[meta_len]=='@'))
+				&& !strcmp(ai->argname+meta_len+1, szArg)
+			) {
 				afound = GF_TRUE;
 				break;
 			}
@@ -439,6 +458,15 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		for (k=0; k<acount; k++) {
 			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
 			if (!strcmp(ai->argname, szArg)) {
+				ai->found = was_found;
+				found = GF_TRUE;
+				break;
+			}
+			if (meta_len
+				&& !strncmp(ai->argname, meta_filter->freg->name, meta_len)
+				&& ((ai->argname[meta_len]==':') || (ai->argname[meta_len]=='@'))
+				&& !strcmp(ai->argname+meta_len+1, szArg)
+			) {
 				ai->found = was_found;
 				found = GF_TRUE;
 				break;
@@ -489,6 +517,9 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 
 	if (inflags & GF_FS_FLAG_PRINT_CONNECTIONS)
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
+
+	if (inflags & GF_FS_FLAG_SINGLE_LINK)
+		flags |= GF_FS_FLAG_SINGLE_LINK;
 
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
@@ -1035,7 +1066,7 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 	return gf_fs_check_filter_register_cap_ex(f_reg, incode, cap_input, outcode, cap_output, exact_match_only, GF_FALSE);
 }
 
-static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
+static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, const char *fname)
 {
 	GF_Err e;
 	char szCodec[3];
@@ -1051,7 +1082,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 	szCodec[1] = fsess->sep_name;
 	szCodec[2] = 0;
 
-	cid = args ? strstr(args, szCodec) : NULL;
+	cid = args ? strstr(args, szCodec) : (char *)fname;
 	if (!cid) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args ? args : "no arguments"));
 		return NULL;
@@ -1097,7 +1128,7 @@ retry:
 		if (blacklist) gf_list_del(blacklist);
 		return NULL;
 	}
-	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
+	filter = gf_filter_new(fsess, candidate, args ? args : fname, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
 	if (!filter) {
 		if (e==GF_NOT_SUPPORTED) {
 			if (!blacklist) blacklist = gf_list_new();
@@ -1118,6 +1149,8 @@ Bool gf_fs_filter_exists(GF_FilterSession *fsess, const char *name)
 	u32 i, count;
 
 	if (!strcmp(name, "enc")) return GF_TRUE;
+	if ((strlen(name)>2) && (name[0]=='c') && (name[1]==fsess->sep_name))
+		return GF_TRUE;
 
 	count = gf_list_count(fsess->registry);
 	for (i=0;i<count;i++) {
@@ -1231,8 +1264,12 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 	}
 
 	if (!strncmp(name, "enc", len)) {
-		return gf_fs_load_encoder(fsess, args);
+		return gf_fs_load_encoder(fsess, args, NULL);
 	}
+	if ((strlen(name)>2) && (name[0]=='c') && (name[1]==fsess->sep_name)) {
+		return gf_fs_load_encoder(fsess, args, name);
+	}
+
 	/*regular filter loading*/
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);

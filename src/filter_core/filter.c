@@ -479,7 +479,7 @@ void task_del(void *_task)
 
 void gf_filter_del(GF_Filter *filter)
 {
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	assert(filter);
 //	assert(!filter->detached_pid_inst);
 	assert(!filter->detach_pid_tasks_pending);
@@ -666,6 +666,7 @@ static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 
 	gf_mx_p(filter->session->filters_mx);
 
+	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
 		filter->source_ids = NULL;
@@ -1080,14 +1081,22 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 		u32 i, nb_args = gf_sys_get_argc();
 		for (i=0; i<nb_args; i++) {
 			u32 flen = 0;
-			const char *per_filter;
+			const char *per_filter, *sep2, *sep;
 			const char *o_arg, *arg = gf_sys_get_arg(i);
 			if (arg[0]!='-') continue;
 			if (arg[1]!='-') continue;
 
 			arg += 2;
 			o_arg = arg;
+			//allow filter@opt= and filter:opt=
+			sep = strchr(arg, '=');
 			per_filter = strchr(arg, '@');
+			sep2 = strchr(arg, ':');
+			if (sep && per_filter && (sep<per_filter)) per_filter = NULL;
+			if (sep && sep2 && (sep<sep2)) sep2 = NULL;
+			if (per_filter && sep2 && (sep2<per_filter)) per_filter = sep2;
+			else if (!per_filter) per_filter = sep2;
+
 			if (per_filter) {
 				flen = (u32) (per_filter - arg);
 				if (!flen || strncmp(filter->freg->name, arg, flen))
@@ -1098,7 +1107,6 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 
 			if (!strncmp(arg, arg_name, alen)) {
 				u32 len=0;
-				char *sep = strchr(arg, '=');
 				if (sep) {
 					len = (u32) (sep - (arg));
 				} else {
@@ -1107,7 +1115,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				if (len != alen) continue;
 				strncpy(szArg, o_arg, 100);
 				szArg[ MIN(flen + alen, 100) ] = 0;
-				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL);
+				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL);
 
 				if (sep) return sep+1;
 				//no arg value means boolean true
@@ -1179,13 +1187,22 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 		GF_Err e;
 		u32 len = 0;
 		const char *per_filter;
-		const char *sep, *o_arg, *arg = gf_sys_get_arg(i);
+		const char *sep, *sep2, *o_arg, *arg = gf_sys_get_arg(i);
 		if (arg[0] != '-') continue;
 		if ((arg[1] != '+') && (arg[1] != '-')) continue;
 		arg+=2;
 
 		o_arg = arg;
+
+		//allow filter@opt= and filter:opt=
+		sep = strchr(arg, '=');
 		per_filter = strchr(arg, '@');
+		sep2 = strchr(arg, ':');
+		if (sep && per_filter && (sep<per_filter)) per_filter = NULL;
+		if (sep && sep2 && (sep<sep2)) sep2 = NULL;
+		if (per_filter && sep2 && (sep2<per_filter)) per_filter = sep2;
+		else if (!per_filter) per_filter = sep2;
+
 		if (per_filter) {
 			len = (u32) (per_filter - arg);
 			if (!len || strncmp(filter->freg->name, arg, len))
@@ -1194,7 +1211,6 @@ static void gf_filter_load_meta_args_config(const char *sec_name, GF_Filter *fil
 			arg += len;
 		}
 
-		sep = strchr(arg, '=');
 		memset(&argv, 0, sizeof(GF_PropertyValue));
 		argv.type = GF_PROP_STRING;
 		if (sep) {
@@ -1231,6 +1247,15 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 
 	if (args)
 		szArg = gf_malloc(sizeof(char)*1024);
+
+	//by default always force a remux
+	if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK)
+		&& !filter->dynamic_filter
+		&& !filter->multi_sink_target
+		&& (filter->freg->flags & GF_FS_REG_FORCE_REMUX)
+	) {
+		filter->force_demux = GF_TRUE;
+	}
 
 	//parse each arg
 	while (args) {
@@ -1649,11 +1674,15 @@ skip_date:
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
-			//force remux
-			else if (!strcmp("remux", szArg)) {
-				//unknown argument on explicit sink, not dynamic and no multi-sink target, foce demux
+			//allow direct copy
+			else if (!strcmp("nomux", szArg)) {
+				//only apply fo explicit sink, not dynamic and no multi-sink target
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) && !filter->dynamic_filter && !filter->multi_sink_target) {
-					filter->force_demux = GF_TRUE;
+					if (value && (!strcmp(value, "0") || !strcmp(value, "false") || !strcmp(value, "no"))) {
+						filter->force_demux = GF_TRUE;
+					} else {
+						filter->force_demux = GF_FALSE;
+					}
 				}
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
@@ -1704,13 +1733,8 @@ skip_date:
 			}
 		}
 
-		//unknown argument on explicit sink, not dynamic and no multi-sink target, foce demux
-		if (!found && (arg_type==GF_FILTER_ARG_EXPLICIT_SINK) && !filter->dynamic_filter && !filter->multi_sink_target) {
-			filter->force_demux = GF_TRUE;
-		}
-
 		if (!internal_arg && !opaque_arg && !opts_optional)
-			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL);
+			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL, NULL);
 
 skip_arg:
 		if (escaped) {
@@ -3010,7 +3034,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 #endif //GPAC_DISABLE_LOG
 		return;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
 
 	//avoid destruction of the current task
 	gf_fq_pop(f->tasks);
@@ -3562,6 +3586,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 {
 	if (!filter || !link_from) return GF_BAD_PARAM;
 	if (filter == link_from) return GF_OK;
+
 	//don't allow loops
 	if (gf_filter_in_parent_chain(filter, link_from)) return GF_BAD_PARAM;
 
@@ -4233,7 +4258,7 @@ void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_f
 	//meta filters may report unused options set when setting up the filter, and not specified
 	//at prompt, ignore them
 	//the argtype will be ignored here
-	gf_fs_push_arg(filter->session, arg, was_found, GF_ARGTYPE_META_REPORTING);
+	gf_fs_push_arg(filter->session, arg, was_found, GF_ARGTYPE_META_REPORTING, filter);
 	gf_mx_v(filter->session->filters_mx);
 }
 
@@ -4613,7 +4638,10 @@ void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
 GF_EXPORT
 void gf_filter_require_source_id(GF_Filter *filter)
 {
-	if (filter) filter->require_source_id = GF_TRUE;
+	if (filter) {
+		filter->require_source_id = GF_TRUE;
+		filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+	}
 }
 
 void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking)

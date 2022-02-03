@@ -594,6 +594,7 @@ GF_FilterRegister FileInRegister = {
 	.private_size = sizeof(GF_FileInCtx),
 	.args = FileInArgs,
 	.initialize = filein_initialize,
+	.flags = GF_FS_REG_FORCE_REMUX,
 	SETCAPS(FileInCaps),
 	.finalize = filein_finalize,
 	.process = filein_process,

@@ -18,7 +18,8 @@ endif
 
 
 config.mak:
-	./configure
+	@echo "running default configure"
+	@./configure
 
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h

@@ -21,9 +21,7 @@ FILTER: a single filter declaration (eg, -i file, -o dump, inspect, ...), see gp
 .br
   - an option using a single - indicates an option of gpac (see gpac -hx) or of libgpac (see gpac -hx core)
 .br
-  - an option using -- indicates a global filter or meta-filter (eg FFMPEG) option, for example --block_size=1000 (see gpac -h doc)
-.br
-  - an option using -+ indicates a global option only targetting meta-filters (eg FFMPEG), for example -+profile=Baseline (see gpac -h doc) (DEPRECATED)
+  - an option using -- indicates a global filter or meta-filter (e.g. FFMPEG) option, e.g. --block_size=1000 or --profile=Baseline (see gpac -h doc)
 .br
   
 .br
@@ -145,6 +143,11 @@ specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)
 .B \-ob (string)
 .br
 specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)
+.br
+.TP
+.B \-fl
+.br
+force full linking when no link directive are set
 .br
 .TP
 .B \-step
@@ -534,7 +537,7 @@ This is equivalent to specifying -o dump.264:profile=Baseline.
 .br
   
 .br
-For both syntax, it is possible to specify the filter registry name of the option, using --FNAME@OPTNAME=VAL.
+For both syntax, it is possible to specify the filter registry name of the option, using --FNAME:OPTNAME=VAL or --FNAME@OPTNAME=VAL.
 .br
 In this case the option will only be set for filters which are instances of registry FNAME. This is used when several registries use same option names.
 .br
@@ -1352,8 +1355,6 @@ By default filters chain will be resolved without any decoding/encoding if the d
 .br
 
 .br
-  
-.br
 Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).
 .br
 Example
@@ -1363,6 +1364,10 @@ src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst
 
 .br
 This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.
+.br
+
+.br
+The shortcut syntax c=TYPE (e.g. c=aac:opts) is also supported.
 .br
 
 .br
@@ -1404,8 +1409,104 @@ f:a=foo::b=bar:c::d=fun
 .br
 This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
-.SH Explicit links between filters [LINK]
+
+.br
+.SH Filter linking [LINK]
 .LP
+.br
+
+.br
+.SS Implicit linking
+.br
+Implicit linking is enabled by the gpac application if the command line has:
+.br
+- no link directives (@, FID=, SID=)
+.br
+- a single output (-o, -dst, -ob)
+.br
+- .I -fl option is not set
+.br
+In this mode, a PID will be linked only once to the first matching filter in declaration order (so argument order really matters in this case).
+.br
+This allows specifying linear processing chains (no PID fan-out) without giving the link directives, simplifying command lines for common cases.
+.br
+
+.br
+Example
+.br
+-i file.mp4 c=avc -o output
+.br
+
+.br
+If the file has a video PID, it will connect to enc but not to output. The output PID of enc will connect to output.
+.br
+If the file has other PIDs than video, they will connect to output, since this enc filter accepts only video.
+.br
+
+.br
+Example
+.br
+-i file.mp4 c=avc c=aac -o output
+.br
+
+.br
+If the file has a video PID, it will connect to c=avc but not to output. The output PID of c=avc will connect to output.
+.br
+If the file has an audio PID, it will connect to c=aac but not to output. The output PID of c=aac will connect to output.
+.br
+If the file has other PIDs than audio or video, they will connect to output.
+.br
+
+.br
+Example
+.br
+-i file.mp4 ffswf=osize:128x720 c=avc resample=osr=48k c=aac -o output
+.br
+
+.br
+This will force:
+.br
+- SRC(video)->ffsws->enc(video)->output and prevent SRC(video)->output and ffsws->output connections.
+.br
+- SRC(audio)->resample->enc(audio)->output and prevent SRC(audio)->output and resample->output connections.
+.br
+
+.br
+You must be carefull for cases where multiple PIDs of the same type are present:
+.br
+Example
+.br
+-i dual_audio resample:osr=48k c=aac -o dst
+.br
+
+.br
+Here, the first audio will connect to the resample while the second will connect to the enc, the resampled audio connecting directly to dst.
+.br
+Filter cloning instructions (see below) should be used in this case:
+.br
+Example
+.br
+-i dual_audio resample:osr=48k:clone c=aac -o dst
+.br
+
+.br
+Here, both audio will connect to the resample, and only the first resampled audio will connect to the enc, the resampled audio connecting directly to dst.
+.br
+Example
+.br
+-i dual_audio resample:osr=48k c=aac:clone -o dst
+.br
+
+.br
+Here, the first audio will connect to the resample filter, the second to the enc filter and the resampler output will connect to a clone of the enc filter.
+.br
+Example
+.br
+-i dual_audio resample:osr=48k:clone c=aac:clone -o dst
+.br
+
+.br
+Here, both audio will be resampled and transcoded.
 .br
 
 .br
@@ -1445,9 +1546,7 @@ This indicates that fZ only accepts inputs from fB.
 .br
 
 .br
-If no link directives are given, the links will be dynamically solved to fulfill as many connections as possible (see below).
-.br
-Warning: This means that fA fB fC and fA fB @ fC will likely not give the same result.
+If no link directives are given and .I -fl is set, the links will be dynamically solved to fulfill as many connections as possible (see below).
 .br
 
 .br
@@ -1597,35 +1696,21 @@ This indicates to connect to vout only PIDs with Width property equal to 640 and
 .br
 
 .br
-Warning: If a filter PID gets connected to an explicitly loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.
+Warning: If a PID gets connected to an explicitly loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.
 .br
 Example
 .br
-src=video.264.mp4 @ reframer dst=dump.mp4
+fA @ reframer fB
 .br
 
 .br
-This will link src file.mp4 PID (type file) to dst dump.mp4 filter (type file) because dst has no sourceID and therefore will accept input from src with the same format (extension or mime). Since the PID is connected, the filter engine will not try to solve a link between src and reframer. The result is a direct copy of the source file, reframer being unused.
+If fB accepts inputs provided by fA but reframer does not, this will link fA PID to fB filter since fB has no sourceID.
 .br
-Example
-.br
-src=file.mp4 reframer @ dst=dump.mp4
+Since the PID is connected, the filter engine will not try to solve a link between fA and reframer.
 .br
 
 .br
-This will force dst to accept only from reframer, a muxer will be loaded to solve this link, and src PID will be linked to reframer (no source ID), loading a demuxer to solve the link. The result is a complete remultiplexing of the source file.
-.br
-
-.br
-An exception is made for destinations: if at least one option set on the destination is not an option of that destination filter, the destination filter will not accept files as input, potentially forcing a demultiplexing of the source.
-.br
-Example
-.br
-src=file.mp4 dst=dump.mp4:mode=frag
-.br
-
-.br
-This will prevent direct connection of PID of type file to dst, remuxing the file.
+An exception is made for local files: by default, a local file destination will force a remux of input pids from a local file.
 .br
 Example
 .br
@@ -1633,25 +1718,29 @@ src=file.mp4 dst=dump.mp4
 .br
 
 .br
+This will prevent direct connection of PID of type file to dst file.mp4, remuxing the file.
+.br
+
+.br
+The special option nomux is used to allow direct connections (ignored for non-sink filters).
+.br
+Example
+.br
+src=file.mp4 dst=dump.mp4:nomux
+.br
+
+.br
 This will result in a direct file copy.
 .br
 
 .br
-The special option remux is used to force remultiplexing without specifying any muxer option (ignored for non-sink filters).
+Note: this only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):
 .br
-This is equivalent to specifying a dummy option not tracked (eg :gfopt:dummy).
+- direct copy is enabled by default
 .br
-Example
-.br
--i file.mp4 -o dump.mp4:remux
+- nomux=0 can be used to force remux
 .br
 
-.br
-This will result in a remuxing of the file.
-.br
-
-.br
-Note: the linker will prevent cycles in the graph, and a given filter can never have the same PID connected twice as an input, whether directly or through a filter chain.
 .br
 .SH Arguments inheriting
 .LP
@@ -1739,7 +1828,7 @@ Templating can be useful when encoding several qualities in one pass.
 .br
 Example
 .br
-src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 enc:c=avc:b=1M @2 enc:c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone
+src=dump.yuv:size=640x360 vcrop:wnd=0x0x320x180 c=avc:b=1M @2 c=avc:b=750k dst=dump_$CropOrigin$x$Width$x$Height$.264:clone
 .br
 
 .br
@@ -1772,7 +1861,7 @@ In this case, the destination will be cloned for each item, and all will be expo
 .br
 Example
 .br
-src=vid.mpd enc:c=avc:FID=1:clone dst=transcode.mpd:SID=1
+src=vid.mpd c=avc:FID=1:clone dst=transcode.mpd:SID=1
 .br
 
 .br
@@ -4362,7 +4451,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1698-g234ffa28f-master
+build: 1.1.0-DEV-rev1702-gdc1c8d3f4-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -696,6 +696,7 @@ GF_FilterRegister FileOutRegister = {
 	)
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
+	.flags = GF_FS_REG_FORCE_REMUX,
 	SETCAPS(FileOutCaps),
 	.probe_url = fileout_probe_url,
 	.initialize = fileout_initialize,
