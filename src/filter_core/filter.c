@@ -1256,6 +1256,10 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 	) {
 		filter->force_demux = GF_TRUE;
 	}
+	if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT)) {
+		if (filter->session->flags & GF_FS_FLAG_SINGLE_LINK)
+			filter->clonable = GF_TRUE;
+	}
 
 	//parse each arg
 	while (args) {
@@ -1634,8 +1638,13 @@ skip_date:
 			}
 			//clonable filter
 			else if (!strcmp("clone", szArg)) {
-				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
-					filter->clonable=GF_TRUE;
+				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT)) {
+					if (value && (!strcmp(value, "0") || !strcmp(value, "false") || !strcmp(value, "no"))) {
+						filter->clonable = GF_FALSE;
+					} else {
+						filter->clonable = GF_TRUE;
+					}
+				}
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -3411,6 +3420,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 		if (err) *err = GF_BAD_PARAM;
 		return NULL;
 	}
+	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
 	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
 		char *rem_opts[] = {"FID", "SID", "N", "clone", NULL};
@@ -3473,6 +3483,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
+	if (filter) filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
 }
 
@@ -4346,6 +4357,7 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
+	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
 	return gf_fs_load_filter(filter->session, name, err_code);
 }
 

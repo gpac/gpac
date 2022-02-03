@@ -7836,7 +7836,7 @@ The main components in a playlist are:
 .br
 * Scenes: a scene describes one graphical object to put on screen and if and how input video are mapped on objects
 .br
-* Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements.
+* Groups: a group is a hierarchy of scenes and groups with positioning properties, and can also be used to create offscreen images reused by other elements
 .br
 * Timers: a timer can be used to animate scene parameters in various fashions
 .br
@@ -8080,7 +8080,7 @@ Properties for source objects
 .br
   * other: no audio fade
 .br
-* keep_alive (false): if using dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after rtimeout
+* keep_alive (false): if using a dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after rtimeout
 .br
 * seek (false): if true and keep_alive is active, adjust start according to the time elapsed since source start when relaunching process(es)
 .br
@@ -8108,11 +8108,11 @@ Properties for sourceURL objects
 .br
   * other: use value as input filter declaration and launch in as a dedicated process (e.g., in="ffmpeg ..." port="pipe://...")
 .br
-* opts (null): options for the gpac process instance when using dedicated gpac process, ignored otherwise
+* opts (null): options for the gpac process instance when using a dedicated gpac process, ignored otherwise
 .br
 * media ('all'): filter input media by type, a for audio, v for video, t for text (several characters allowed, e.g. av or va), all accept all input media
 .br
-* raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using dedicated gpac process, ignored otherwise
+* raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using a dedicated gpac process, ignored otherwise
 .br
 
 .br
@@ -8120,11 +8120,11 @@ Properties for sourceURL objects
 .B
 Notes
 .br
-When launching child process, the input filter is created first and the child process launched afterwards.
+When launching a child process, the input filter is created first and the child process launched afterwards.
 .br
 
 .br
-Warning: When launching child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
+Warning: When launching a child process directly (e.g. in="ffmpeg ..."), any relative URL used in in must be relative to the current working directory.
 .br
 
 .br
@@ -9668,7 +9668,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1702-gdc1c8d3f4-master
+build: 1.1.0-DEV-rev1704-gbea70d511-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
