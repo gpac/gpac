@@ -1472,44 +1472,6 @@ This will force:
 .br
 
 .br
-You must be carefull for cases where multiple PIDs of the same type are present:
-.br
-Example
-.br
--i dual_audio resample:osr=48k c=aac -o dst
-.br
-
-.br
-Here, the first audio will connect to the resample while the second will connect to the enc, the resampled audio connecting directly to dst.
-.br
-Filter cloning instructions (see below) should be used in this case:
-.br
-Example
-.br
--i dual_audio resample:osr=48k:clone c=aac -o dst
-.br
-
-.br
-Here, both audio will connect to the resample, and only the first resampled audio will connect to the enc, the resampled audio connecting directly to dst.
-.br
-Example
-.br
--i dual_audio resample:osr=48k c=aac:clone -o dst
-.br
-
-.br
-Here, the first audio will connect to the resample filter, the second to the enc filter and the resampler output will connect to a clone of the enc filter.
-.br
-Example
-.br
--i dual_audio resample:osr=48k:clone c=aac:clone -o dst
-.br
-
-.br
-Here, both audio will be resampled and transcoded.
-.br
-
-.br
 .SS Quick links
 .br
 Link between filters may be manually specified. The syntax is an @ character optionally followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter.
@@ -1885,6 +1847,44 @@ src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=
 
 .br
 In this case, each new ServiceID value found when connecting PIDs to the destination will create a new destination file.
+.br
+
+.br
+When implicit linking is enabled, all filters are by default clonable.
+.br
+This allows duplicating the processing for each PIDs of the same type.
+.br
+Example
+.br
+-i dual_audio resample:osr=48k c=aac -o dst
+.br
+
+.br
+The resampler filter will be cloned for each audio PID, and the encoder will be cloned for each resampler output.
+.br
+You can explicetly deactivate the cloning instructions:
+.br
+Example
+.br
+-i dual_audio resample:osr=48k:clone=0 c=aac -o dst
+.br
+
+.br
+The first audio will connect to the resample filter, the second to the enc filter and the resampler output will connect to a clone of the enc filter.
+.br
+
+.br
+Cloning in implicit mode applies to output as well:
+.br
+Example
+.br
+-i dual_audio -o dst_$PID$.aac
+.br
+
+.br
+Each audio track will be dumped to aac (potentially reencoding if needed).
+.br
+
 .br
 .SH Assigning PID properties
 .LP
@@ -4451,7 +4451,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1702-gdc1c8d3f4-master
+build: 1.1.0-DEV-rev1704-gbea70d511-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
