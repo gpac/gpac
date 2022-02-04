@@ -1256,9 +1256,13 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 	) {
 		filter->force_demux = GF_TRUE;
 	}
-	if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT)) {
-		if (filter->session->flags & GF_FS_FLAG_SINGLE_LINK)
-			filter->clonable = GF_TRUE;
+	//implicit linking mode: if not a script or if script init (initialized called) and no extra pid set, enable clonable 
+	if ( (filter->session->flags & GF_FS_FLAG_SINGLE_LINK)
+		&& !filter->max_extra_pids
+		&& (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT))
+		&& ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
+	) {
+		filter->clonable = GF_FILTER_CLONE_PROBE;
 	}
 
 	//parse each arg
@@ -1640,9 +1644,9 @@ skip_date:
 			else if (!strcmp("clone", szArg)) {
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT)) {
 					if (value && (!strcmp(value, "0") || !strcmp(value, "false") || !strcmp(value, "no"))) {
-						filter->clonable = GF_FALSE;
+						filter->clonable = GF_FILTER_NO_CLONE;
 					} else {
-						filter->clonable = GF_TRUE;
+						filter->clonable = GF_FILTER_CLONE;
 					}
 				}
 				found = GF_TRUE;
