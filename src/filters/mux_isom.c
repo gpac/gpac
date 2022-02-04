@@ -188,6 +188,8 @@ typedef struct
 
 	u8 *dyn_pssh;
 	u32 dyn_pssh_len;
+
+	GF_FilterPacket *dgl_copy;
 } TrackWriter;
 
 enum
@@ -573,6 +575,7 @@ static void mp4_mux_track_writer_del(TrackWriter *tkw)
 	if (tkw->inband_hdr) gf_free(tkw->inband_hdr);
 	if (tkw->inband_hdr_non_rap) gf_free(tkw->inband_hdr_non_rap);
 	if (tkw->dyn_pssh) gf_free(tkw->dyn_pssh);
+	if (tkw->dgl_copy) gf_filter_pck_discard(tkw->dgl_copy);
 	gf_free(tkw);
 }
 
@@ -3866,7 +3869,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	prev_dts = tkw->nb_samples ? tkw->sample.DTS : GF_FILTER_NO_TS;
 	prev_size = tkw->sample.dataLength;
 	tkw->sample.CTS_Offset = 0;
-	tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
+	if (gf_filter_pck_get_frame_interface(pck)) {
+		tkw->dgl_copy = gf_filter_pck_dangling_copy(pck, tkw->dgl_copy);
+		if (!tkw->dgl_copy) return GF_IO_ERR;
+		tkw->sample.data = (char *)gf_filter_pck_get_data(tkw->dgl_copy, &tkw->sample.dataLength);
+	} else {
+		tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
+	}
 
 	ctx->update_report = GF_TRUE;
 	ctx->total_bytes_in += tkw->sample.dataLength;
@@ -4759,7 +4768,13 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 		pck = gf_filter_pid_get_packet(tkw->ipid);
 		if (!pck) {
-			if (gf_filter_pid_is_eos(tkw->ipid)) continue;
+			if (gf_filter_pid_is_eos(tkw->ipid)) {
+				if (tkw->dgl_copy) {
+					gf_filter_pck_discard(tkw->dgl_copy);
+					tkw->dgl_copy = NULL;
+				}
+				continue;
+			}
 			return GF_OK;
 		}
 
@@ -5388,6 +5403,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 						nb_suspended++;
 					nb_done ++;
 					nb_eos++;
+					if (tkw->dgl_copy) {
+						gf_filter_pck_discard(tkw->dgl_copy);
+						tkw->dgl_copy = NULL;
+					}
 					break;
 				}
 				return GF_OK;
@@ -5872,6 +5891,10 @@ retry_pck:
 					if (p) {
 						gf_isom_setup_track_fragment_template(ctx->file, tkw->track_id, p->value.data.ptr, p->value.data.size, ctx->nofragdef);
 					}
+				}
+				if (tkw->dgl_copy) {
+					gf_filter_pck_discard(tkw->dgl_copy);
+					tkw->dgl_copy = NULL;
 				}
 				continue;
 			}
