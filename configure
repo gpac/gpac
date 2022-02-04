@@ -2914,7 +2914,7 @@ echo "STRIP=@$strip" >> config.mak
 echo "WINDRES=$windres" >> config.mak
 fi
 echo "INSTALL=$install" >> config.mak
-echo "LIBTOOL=libtool" >> config.mak
+echo "LIBTOOL=@libtool" >> config.mak
 
 echo "INSTFLAGS=$instflags" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
