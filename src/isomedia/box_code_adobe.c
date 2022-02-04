@@ -562,17 +562,18 @@ GF_Err asrt_box_read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
 		u32 tmp_strsize=(u32)ptr->size;
+		if (!tmp_strsize) return GF_ISOM_INVALID_FILE;
 		char *tmp_str = (char*) gf_malloc(tmp_strsize+1);
 		if (!tmp_str) return GF_OUT_OF_MEM;
 		tmp_str[tmp_strsize]=0;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
+			ISOM_DECREASE_SIZE(ptr, 1)
 			tmp_strsize--;
 			if (!tmp_str[j])
 				break;
 			j++;
 		}
-		ISOM_DECREASE_SIZE(ptr, j)
 		gf_list_insert(ptr->quality_segment_url_modifiers, tmp_str, i);
 	}
 
@@ -678,23 +679,26 @@ GF_Err afrt_box_read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size < ptr->quality_entry_count)
 		return GF_ISOM_INVALID_FILE;
 
+
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
-		u32 tmp_strsize=(u32)ptr->size-8;
+		u32 tmp_strsize = (u32) ptr->size;
+		if (!tmp_strsize) return GF_ISOM_INVALID_FILE;
 		char *tmp_str = (char*) gf_malloc(tmp_strsize+1);
 		if (!tmp_str) return GF_OUT_OF_MEM;
 		tmp_str[tmp_strsize]=0;
 		while (tmp_strsize) {
 			tmp_str[j] = gf_bs_read_u8(bs);
+			ISOM_DECREASE_SIZE(ptr, 1)
 			tmp_strsize--;
 			if (!tmp_str[j])
 				break;
 			j++;
 		}
-		ISOM_DECREASE_SIZE(ptr, j)
 		gf_list_insert(ptr->quality_segment_url_modifiers, tmp_str, i);
 	}
 
+	ISOM_DECREASE_SIZE(ptr, 4)
 	ptr->fragment_run_entry_count = gf_bs_read_u32(bs);
 	if (ptr->size / 16 < ptr->fragment_run_entry_count)
 		return GF_ISOM_INVALID_FILE;
