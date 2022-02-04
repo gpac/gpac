@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg encode filter
@@ -193,7 +193,6 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 	}
 	if (!ctx->force_codec) return GF_NOT_SUPPORTED;
 	ffenc_override_caps(filter, ctx->force_codec->type);
-	ctx->force_codec = NULL;
 	return GF_OK;
 }
 
