@@ -349,6 +349,7 @@
     <ClCompile Include="..\..\src\filters\reframe_rawvid.c" />
     <ClCompile Include="..\..\src\filters\reframe_truehd.c" />
     <ClCompile Include="..\..\src\filters\resample_audio.c" />
+    <ClCompile Include="..\..\src\filters\restamp.c" />
     <ClCompile Include="..\..\src\filters\rewind.c" />
     <ClCompile Include="..\..\src\filters\rewrite_adts.c" />
     <ClCompile Include="..\..\src\filters\rewrite_mhas.c" />

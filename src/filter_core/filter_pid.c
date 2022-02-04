@@ -2873,6 +2873,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	u32 i, dijsktra_node_count, dijsktra_edge_count, count;
 	GF_CapsBundleStore capstore;
 	Bool first;
+	Bool check_codec_id_raw = GF_FALSE;
 	u32 path_weight, pid_stream_type, max_weight=0;
 	u64 dijkstra_time_us, sort_time_us, start_time_us = gf_sys_clock_high_res();
 	const GF_PropertyValue *p;
@@ -2887,14 +2888,48 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) pid_stream_type = p->value.uint;
 
+	//decoders usually do not expose reconfigure_output interface
+	//if this is a reconfig asking for codecID=raw, check each registry for non-raw->raw conversion
+	//and if present consider this filter suitable
+	//note that encoders must use reconfigure output
+	if (reconfigurable_only
+		&& pid->caps_negociate
+		&& (gf_list_count(pid->caps_negociate->properties)==1)
+	) {
+		const GF_PropertyValue *cid = gf_props_get_property(pid->caps_negociate, GF_PROP_PID_CODECID, NULL);
+		//for now we only check decoders, encoders must use reconfigure output
+		if (cid && (cid->value.uint==GF_CODECID_RAW)) {
+			check_codec_id_raw = cid->value.uint;
+		}
+	}
+
 	//1: select all elligible filters for the graph resolution: exclude sources, sinks, explicits, blacklisted and not reconfigurable if we reconfigure
 	count = gf_list_count(fsess->links);
 	for (i=0; i<count; i++) {
 		u32 j;
 		Bool disable_filter = GF_FALSE;
+		Bool reconf_only = reconfigurable_only;
 		GF_FilterRegDesc *reg_desc = gf_list_get(fsess->links, i);
 		const GF_FilterRegister *freg = reg_desc->freg;
 
+		if (check_codec_id_raw) {
+			Bool has_raw_out=GF_FALSE, has_non_raw_in=GF_FALSE;
+			for (j=0; j<freg->nb_caps; j++) {
+				if (!(freg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE))
+					continue;
+				if (freg->caps[j].code!=GF_PROP_PID_CODECID) continue;
+
+				if (freg->caps[j].val.value.uint == GF_CODECID_RAW) {
+					if ((freg->caps[j].flags & GF_CAPFLAG_OUTPUT) && ! (freg->caps[j].flags & GF_CAPFLAG_EXCLUDED))
+						has_raw_out = GF_TRUE;
+					continue;
+				}
+				if ((freg->caps[j].flags & GF_CAPFLAG_INPUT) && ! (freg->caps[j].flags & GF_CAPFLAG_EXCLUDED))
+					has_non_raw_in = GF_TRUE;
+			}
+			if (has_raw_out && has_non_raw_in)
+				reconf_only = GF_FALSE;
+		}
 		//reset state, except for edges which are reseted after each dijkstra resolution
 		reg_desc->destination = NULL;
 		reg_desc->cap_idx = 0;
@@ -2923,7 +2958,7 @@ static void gf_filter_pid_resolve_link_dijkstra(GF_FilterPid *pid, GF_Filter *ds
 			disable_filter = GF_TRUE;
 		}
 		//we only want reconfigurable output filters
-		else if (reconfigurable_only && !freg->reconfigure_output && (freg != dst->freg)) {
+		else if (reconf_only && !freg->reconfigure_output && (freg != dst->freg)) {
 			assert(freg != dst->freg);
 			disable_filter = GF_TRUE;
 		}
