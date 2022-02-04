@@ -3769,7 +3769,7 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 			offset = key_info_get_iv_size(tkw->cenc_ki->value.data.ptr, tkw->cenc_ki->value.data.size, 1, NULL, NULL);
 			sub_count_size = 2; //16bit sub count
 		}
-		if (sai_size < offset + sub_count_size) {
+		if (sai_size < offset + sub_count_size + 6) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid CENC SAI !\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
