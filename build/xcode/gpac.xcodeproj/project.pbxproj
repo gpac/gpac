@@ -234,6 +234,7 @@
 		925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */; };
 		925E564C2798B87300BBD530 /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 925E564B2798B87300BBD530 /* bs_agg.c */; };
 		926245981FD691A000184072 /* ff_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 926245971FD691A000184072 /* ff_common.h */; };
+		9265307A27AD295200DEBE4B /* restamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9265307927AD295200DEBE4B /* restamp.c */; };
 		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
 		926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C51F7D45F700299CC6 /* dmx_ogg.c */; };
 		926656C81F7E92C200299CC6 /* dmx_m2ts.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C71F7E92C200299CC6 /* dmx_m2ts.c */; };
@@ -896,6 +897,7 @@
 		92609BD2252F56CC00DB821E /* export.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = export.cpp; sourceTree = "<group>"; };
 		92609BD3252F570200DB821E /* share */ = {isa = PBXFileReference; lastKnownFileType = folder; name = share; path = ../../share; sourceTree = "<group>"; };
 		926245971FD691A000184072 /* ff_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ff_common.h; path = filters/ff_common.h; sourceTree = "<group>"; };
+		9265307927AD295200DEBE4B /* restamp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = restamp.c; path = filters/restamp.c; sourceTree = "<group>"; };
 		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
 		926656C31F7D3DF700299CC6 /* dec_theora.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_theora.c; path = filters/dec_theora.c; sourceTree = "<group>"; };
 		926656C51F7D45F700299CC6 /* dmx_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ogg.c; path = filters/dmx_ogg.c; sourceTree = "<group>"; };
@@ -2024,6 +2026,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9265307927AD295200DEBE4B /* restamp.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
 				9274295724647AB8009ADD8D /* bsrw.c */,
@@ -2528,6 +2531,7 @@
 				92B9A58B1F8660D700A24FE4 /* mpeg4_path_layout.c in Sources */,
 				920100B118D5A444003D1ACA /* bifs_codec.c in Sources */,
 				92F8D47B1F71642E00616F7C /* filter_session.c in Sources */,
+				9265307A27AD295200DEBE4B /* restamp.c in Sources */,
 				92E249902057B973002CC029 /* resample_audio.c in Sources */,
 				920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */,
 				920100B318D5A444003D1ACA /* com_dec.c in Sources */,

@@ -7691,6 +7691,68 @@ fullfile (bool, default: false): reassemble full file before decryption
 .br
 
 .br
+.SH restamp
+.LP
+.br
+Description: Packet timestamp rewriter
+.br
+
+.br
+This filter rewrites timing (offsets and rate) of packets.
+.br
+
+.br
+The specified delay per stream class can be either positive (stream presented later) or negative (stream presented sooner).
+.br
+
+.br
+The specified .I fps can be either 0, positive or negative.
+.br
+- if 0 or if the stream is audio, stream rate is not modified.
+.br
+- otherwise if negative, stream rate is multiplied by -fps.num/fps.den.
+.br
+- otherwise if positive and the stream is not video, stream rate is not modified.
+.br
+- otherwise (video pid), constant frame rate is assumed and:
+.br
+  - if .I rawv=no, video frame rate is changed to the specified rate (speed-up or slow-down).
+.br
+  - if .I rawv=force, input video stream is decoded and video frames are dropped/copied to match the new rate.
+.br
+  - if .I rawv=dyn, input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.
+.br
+
+.br
+Note: frames are simply copied or droped with no motion compensation.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+fps (frac, default: 0/1):      target fps - see filter help
+.br
+delay_v (frac, default: 0/1, updatable): delay to add to video streams
+.br
+delay_a (frac, default: 0/1, updatable): delay to add to audio streams
+.br
+delay_t (frac, default: 0/1, updatable): delay to add to text streams
+.br
+delay_o (frac, default: 0/1, updatable): delay to add to other streams
+.br
+rawv (enum, default: no):      copy video frames - see filter help
+.br
+* no: no raw frame copy/drop
+.br
+* force: force decoding all video streams
+.br
+* dyn: decoding video streams if not all intra
+.br
+
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -9668,7 +9730,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1704-gbea70d511-master
+build: 1.1.0-DEV-rev1712-geef054784-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

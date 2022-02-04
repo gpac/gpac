@@ -1382,6 +1382,9 @@
     <ClCompile Include="..\..\src\filters\resample_audio.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\restamp.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\rewind.c">
       <Filter>filters</Filter>
     </ClCompile>

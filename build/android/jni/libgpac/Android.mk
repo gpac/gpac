@@ -250,6 +250,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/reframe_truehd.c \
 	../../../../src/filters/reframer.c \
 	../../../../src/filters/resample_audio.c \
+	../../../../src/filters/restamp.c \
 	../../../../src/filters/rewind.c \
 	../../../../src/filters/rewrite_adts.c \
 	../../../../src/filters/rewrite_mhas.c \

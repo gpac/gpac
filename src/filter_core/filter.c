@@ -2129,12 +2129,15 @@ Bool gf_filter_reconf_output(GF_Filter *filter, GF_FilterPid *pid)
 		assert(filter->dst_filter);
 		assert(filter->num_input_pids==1);
 	}
-	assert(filter->freg->reconfigure_output);
 	//swap to pid
 	pid->caps_negociate = filter->caps_negociate;
 	filter->caps_negociate = NULL;
-	e = filter->freg->reconfigure_output(filter, pid);
-
+	if (filter->freg->reconfigure_output) {
+		e = filter->freg->reconfigure_output(filter, pid);
+	} else {
+		//happens for decoders
+		e = GF_OK;
+	}
 
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("PID Adaptation Filter %s output reconfiguration error %s, discarding filter and reloading new adaptation chain\n", filter->name, gf_error_to_string(e)));
