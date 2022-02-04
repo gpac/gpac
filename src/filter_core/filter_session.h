@@ -518,6 +518,16 @@ typedef enum
 	GF_FILTER_ARG_EXPLICIT_SINK,
 } GF_FilterArgType;
 
+typedef enum
+{
+	//filter cannot be cloned
+	GF_FILTER_NO_CLONE=0,
+	//filter can be cloned
+	GF_FILTER_CLONE,
+	//filter may be cloned in implicit link session mode only
+	GF_FILTER_CLONE_PROBE,
+} GF_FilterCloneType;
+
 struct __gf_filter
 {
 	const GF_FilterRegister *freg;
@@ -690,7 +700,7 @@ struct __gf_filter
 	//2 means temporary sticky, used when reconfiguring filter chain
 	u32 sticky;
 	//explicitly loaded filters are usually not cloned, except if this flag is set
-	Bool clonable;
+	GF_FilterCloneType clonable;
 	//set to true during pid link resolution for filters accepting a single pid
 	Bool in_link_resolution;
 	//one of the output PID needs reconfiguration

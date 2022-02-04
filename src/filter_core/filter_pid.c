@@ -4212,8 +4212,11 @@ single_retry:
 			&& (filter_dst->num_input_pids || filter_dst->in_pid_connection_pending || filter_dst->in_link_resolution)
 		 	&& (!filter->swap_pidinst_dst || (filter->swap_pidinst_dst->filter != filter_dst))
 		) {
+			if ((filter_dst->clonable==GF_FILTER_CLONE_PROBE) && !(filter->session->flags & GF_FS_FLAG_SINGLE_LINK))
+				filter_dst->clonable = GF_FILTER_NO_CLONE;
+
 			//not explicitly clonable, don't connect to it
-			if (!filter_dst->clonable) {
+			if (filter_dst->clonable==GF_FILTER_NO_CLONE) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s not clonable\n", filter_dst->name));
 				continue;
 			}
@@ -4442,7 +4445,7 @@ single_retry:
 
 		//if clonable filter and no match, check if we would match the caps without caps override of dest
 		//note we don't do this on sources for the time being, since this might trigger undesired resolution of file->file
-		if (!cap_matched && filter_dst->clonable && pid->filter->num_input_pids) {
+		if (!cap_matched && (filter_dst->clonable==GF_FILTER_CLONE) && pid->filter->num_input_pids) {
 			cap_matched = gf_filter_pid_caps_match(pid, filter_dst->freg, NULL, NULL, NULL, pid->filter->dst_filter, -1);
 		}
 
@@ -4562,11 +4565,16 @@ single_retry:
 					continue;
 				}
 			}
+			//target was in clone probe but we have loaded a mux, disable clone
+			if ((filter_dst->clonable==GF_FILTER_CLONE_PROBE) && new_f->max_extra_pids)
+				filter_dst->clonable = GF_FILTER_NO_CLONE;
+
 			gf_list_del_item(filter->destination_filters, filter_dst);
 			if (gf_list_find(new_f->destination_filters, filter_dst)>=0) {
-				if (!filter_dst->clonable)
+				if (filter_dst->clonable==GF_FILTER_NO_CLONE)
 					filter_dst->in_link_resolution = GF_TRUE;
 			}
+
 			filter_dst = new_f;
 			gf_list_add(loaded_filters, new_f);
 		}
