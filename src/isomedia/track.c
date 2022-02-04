@@ -1502,9 +1502,12 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_BOX_TYPE_MP4V:
 			entry_v = (GF_MPEGVisualSampleEntryBox*) entry;
-			//OK, delete the previous ESD
-			gf_odf_desc_del((GF_Descriptor *) entry_v->esd->desc);
-			entry_v->esd->desc = esd;
+			if (entry_v->esd) {
+				gf_odf_desc_del((GF_Descriptor *) entry_v->esd->desc);
+				entry_v->esd->desc = esd;
+			} else {
+				return GF_ISOM_INVALID_MEDIA;
+			}
 			break;
 		case GF_ISOM_BOX_TYPE_MP4A:
 			entry_a = (GF_MPEGAudioSampleEntryBox*) entry;
