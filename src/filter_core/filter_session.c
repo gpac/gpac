@@ -1066,7 +1066,7 @@ Bool gf_fs_check_filter_register_cap(const GF_FilterRegister *f_reg, u32 incode,
 	return gf_fs_check_filter_register_cap_ex(f_reg, incode, cap_input, outcode, cap_output, exact_match_only, GF_FALSE);
 }
 
-static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, const char *fname)
+static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args)
 {
 	GF_Err e;
 	char szCodec[3];
@@ -1082,7 +1082,7 @@ static GF_Filter *gf_fs_load_encoder(GF_FilterSession *fsess, const char *args, 
 	szCodec[1] = fsess->sep_name;
 	szCodec[2] = 0;
 
-	cid = args ? strstr(args, szCodec) : (char *)fname;
+	cid = strstr(args, szCodec);
 	if (!cid) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Missing codec identifier in \"enc\" definition: %s\n", args ? args : "no arguments"));
 		return NULL;
@@ -1128,7 +1128,7 @@ retry:
 		if (blacklist) gf_list_del(blacklist);
 		return NULL;
 	}
-	filter = gf_filter_new(fsess, candidate, args ? args : fname, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
+	filter = gf_filter_new(fsess, candidate, args, NULL, GF_FILTER_ARG_EXPLICIT, &e, NULL, GF_FALSE);
 	if (!filter) {
 		if (e==GF_NOT_SUPPORTED) {
 			if (!blacklist) blacklist = gf_list_new();
@@ -1264,10 +1264,10 @@ static GF_Filter *gf_fs_load_filter_internal(GF_FilterSession *fsess, const char
 	}
 
 	if (!strncmp(name, "enc", len)) {
-		return gf_fs_load_encoder(fsess, args, NULL);
+		return gf_fs_load_encoder(fsess, args);
 	}
 	if ((strlen(name)>2) && (name[0]=='c') && (name[1]==fsess->sep_name)) {
-		return gf_fs_load_encoder(fsess, args, name);
+		return gf_fs_load_encoder(fsess, name);
 	}
 
 	/*regular filter loading*/
