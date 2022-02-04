@@ -1139,7 +1139,10 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		if (is_encrypted) break;
 		idx = gf_avc_read_sps_bs(bs, avc, 1, NULL);
-		assert (idx >= 0);
+		if (idx<0) {
+			gf_fprintf(dump, "\" status=\"CORRUPTED NAL");
+			break;
+		}
 		if (full_bs_dump) break;
 		gf_fprintf(dump, "\" sps_id=\"%d", idx - GF_SVC_SSPS_ID_SHIFT);
 		break;
