@@ -72,6 +72,7 @@ typedef struct
 	AC3Idx *indexes;
 	u32 index_alloc_size, index_size;
 	u32 bitrate;
+	Bool copy_props;
 } GF_AC3DmxCtx;
 
 
@@ -118,6 +119,7 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -199,7 +201,6 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
@@ -210,8 +211,9 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		ac3dmx_check_dur(filter, ctx);
 	}
-	if ((ctx->sample_rate == ctx->hdr.sample_rate) && (ctx->nb_ch == ctx->hdr.channels) ) return;
+	if ((ctx->sample_rate == ctx->hdr.sample_rate) && (ctx->nb_ch == ctx->hdr.channels) && !ctx->copy_props) return;
 
+	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	//don't change codec type if reframing an ES (for HLS SAES)
@@ -222,6 +224,8 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale && !gf_sys_is_test_mode())
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 
 	ctx->nb_ch = ctx->hdr.channels;

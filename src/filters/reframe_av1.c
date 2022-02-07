@@ -102,6 +102,7 @@ typedef struct
 	u32 bitrate;
 
 	u32 clli_crc, mdcv_crc;
+	Bool copy_props;
 } GF_AV1DmxCtx;
 
 
@@ -138,6 +139,8 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		//if we have a FPS prop, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) ctx->cur_fps = p->value.frac;
+
+		ctx->copy_props = GF_TRUE;
 	}
 	return GF_OK;
 }
@@ -391,10 +394,6 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			ctx->bitrate = (u32) rate;
 		}
 	}
-
-	//currently not supported because of OBU size field rewrite - could work on some streams but we would
-	//need to analyse all OBUs in the stream for that
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_FALSE) );
 }
 
 
@@ -565,7 +564,7 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 	}
 
-	if (crc == ctx->dsi_crc) {
+	if ((crc == ctx->dsi_crc) && !ctx->copy_props) {
 		gf_free(dsi);
 		return;
 	}
@@ -573,6 +572,8 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	ctx->copy_props = GF_FALSE;
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
@@ -589,6 +590,10 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+	//currently not supported because of OBU size field rewrite - could work on some streams but we would
+	//need to analyse all OBUs in the stream for that
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, NULL );
 
 	if (ctx->bitrate) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));

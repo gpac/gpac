@@ -616,7 +616,6 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 

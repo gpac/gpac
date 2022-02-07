@@ -83,6 +83,7 @@ typedef struct
 
 	u32 nb_unknown_pck;
 	u32 bitrate;
+	Bool copy_props;
 } GF_MHASDmxCtx;
 
 
@@ -124,6 +125,7 @@ GF_Err mhas_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -256,7 +258,6 @@ static void mhas_dmx_check_dur(GF_Filter *filter, GF_MHASDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u32 sample_rate, u32 frame_len, s32 CICPspeakerLayoutIdx, s32 numSpeakers, u8 *dsi, u32 dsi_size)
@@ -272,6 +273,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 			&& (ctx->sample_rate == sample_rate)
 			&& (ctx->cicp_layout_idx == CICPspeakerLayoutIdx)
 			&& (ctx->num_speakers == numSpeakers)
+			&& !ctx->copy_props
 		) {
 			return;
 		}
@@ -281,6 +283,7 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 	ctx->sample_rate = sample_rate;
 	ctx->cicp_layout_idx = CICPspeakerLayoutIdx;
 	ctx->num_speakers = numSpeakers;
+	ctx->copy_props = GF_FALSE;
 
 	chan_layout = 0;
 	nb_channels = 0;
@@ -300,6 +303,8 @@ static void mhas_dmx_check_pid(GF_Filter *filter, GF_MHASDmxCtx *ctx, u32 PL, u3
 	}
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 

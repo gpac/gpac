@@ -1489,6 +1489,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info_with_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_parse_nalu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_vvc_get_sps_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_vvc_get_profile_name) )
 #endif //GPAC_DISABLE_HEVC
 
 

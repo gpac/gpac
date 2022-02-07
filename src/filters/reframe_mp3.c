@@ -74,6 +74,7 @@ typedef struct
 	u32 id3_buffer_size, id3_buffer_alloc;
 
 	GF_FilterPid *vpid;
+	Bool copy_props;
 } GF_MP3DmxCtx;
 
 
@@ -108,6 +109,7 @@ GF_Err mp3_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -187,7 +189,6 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 
@@ -349,9 +350,11 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	if ((ctx->sr == gf_mp3_sampling_rate(ctx->hdr)) && (ctx->nb_ch == gf_mp3_num_channels(ctx->hdr) )
 		&& (ctx->codecid == gf_mp3_object_type_indication(ctx->hdr) )
+		&& !ctx->copy_props
 	)
 		return;
 
+	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
@@ -361,6 +364,8 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	}
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
@@ -476,6 +481,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
+	Bool is_eos=GF_FALSE;
 	u8 *data, *output;
 	u8 *start;
 	u32 pck_size, remain, prev_pck_size;
@@ -498,6 +504,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				ctx->src_pck = NULL;
 				return GF_EOS;
 			}
+			is_eos = GF_TRUE;
 		} else {
 			return GF_OK;
 		}
@@ -663,7 +670,9 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] truncated frame!\n"));
+			if (!is_eos) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] truncated frame!\n"));
+			}
 			bytes_to_drop=remain;
 		}
 

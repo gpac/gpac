@@ -82,7 +82,7 @@ typedef struct
 	Bool is_playing;
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
-
+	Bool copy_props;
 	GF_FilterPacket *src_pck;
 
 	ADTSIdx *indexes;
@@ -216,6 +216,7 @@ GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 		//we don't update copy props on output for now - if we decide we need it, we will need to also force resengin the decoder config
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 
 	return GF_OK;
 }
@@ -300,7 +301,6 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
@@ -312,14 +312,20 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
-		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		adts_dmx_check_dur(filter, ctx);
 	}
 
 	if ((ctx->sr_idx == ctx->hdr.sr_idx) && (ctx->nb_ch == ctx->hdr.nb_ch)
-		&& (ctx->is_mp2 == ctx->hdr.is_mp2) && (ctx->profile == ctx->hdr.profile) ) return;
+		&& (ctx->is_mp2 == ctx->hdr.is_mp2) && (ctx->profile == ctx->hdr.profile) && !ctx->copy_props) return;
 
 	//copy properties at init or reconfig
+	ctx->copy_props = GF_FALSE;
+	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+
+	if (ctx->duration.num)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	//don't change codec type if reframing an ES (for HLS SAES)
 	if (!ctx->timescale)
@@ -330,9 +336,6 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	if (ctx->is_file && ctx->index) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, & PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD) );
 	}
-
-	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 
 	ctx->is_mp2 = ctx->hdr.is_mp2;
@@ -746,6 +749,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				gf_bs_skip_bytes(ctx->bs, 2);  //per block CRC
 
 			ctx->hdr.hdr_size += (u32) gf_bs_get_position(ctx->bs) - pos;
+			ctx->hdr.nb_ch = ctx->acfg.nb_chan;
 		}
 		//value 1->6 match channel number, value 7 is 7.1
 		if (ctx->hdr.nb_ch==7)
