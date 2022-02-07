@@ -273,27 +273,34 @@ void rtpin_declare_pid(GF_RTPInStream *stream, Bool force_iod, u32 ch_idx, u32 *
 	}
 
 
-	if (sl_map->StreamType==GF_STREAM_AUDIO) {
-		switch (sl_map->CodecID) {
-		case GF_CODECID_AAC_MPEG4:
-		case GF_CODECID_AAC_MPEG2_MP:
-		case GF_CODECID_AAC_MPEG2_LCP:
-		case GF_CODECID_AAC_MPEG2_SSRP:
-			if (sl_map->config) {
+	switch (sl_map->CodecID) {
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+		if (sl_map->config) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-				GF_M4ADecSpecInfo acfg;
-				gf_m4a_get_config(sl_map->config, sl_map->configSize, &acfg);
-				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(acfg.base_sr) );
-				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(acfg.nb_chan) );
+			GF_M4ADecSpecInfo acfg;
+			gf_m4a_get_config(sl_map->config, sl_map->configSize, &acfg);
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(acfg.base_sr) );
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(acfg.nb_chan) );
 #endif
 
-			} else {
-				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(gf_rtp_get_clockrate(stream->rtp_ch) ) );
-				gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
-
-			}
-			break;
+		} else {
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(gf_rtp_get_clockrate(stream->rtp_ch) ) );
+			gf_filter_pid_set_property(stream->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
 		}
+		break;
+	//declare as unframed the following for decoder config extraction
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_422:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_SPATIAL:
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+		break;
 	}
 }
 
