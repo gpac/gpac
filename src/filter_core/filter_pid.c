@@ -4049,6 +4049,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool found_matching_sourceid;
 	Bool can_reassign_filter = GF_FALSE;
 	Bool can_try_link_resolution=GF_FALSE;
+	Bool link_sinks_only = GF_FALSE;
 	u32 num_pass=0;
 	GF_List *loaded_filters = NULL;
 	GF_List *linked_dest_filters = NULL;
@@ -4158,7 +4159,7 @@ restart:
 	for (f_idx=0; f_idx<count; f_idx++) {
 		s32 f_dst_idx;
 		Bool needs_clone;
-		Bool cap_matched, in_parent_chain;
+		Bool cap_matched, in_parent_chain, is_sink;
 		GF_Filter *filter_dst;
 
 single_retry:
@@ -4184,6 +4185,15 @@ single_retry:
 				continue;
 			}
 		}
+
+		if (filter_dst->dynamic_filter)
+			is_sink = GF_FALSE;
+		else if (filter_dst->forced_caps)
+			is_sink = !gf_filter_has_out_caps(filter_dst->forced_caps, filter_dst->nb_forced_caps);
+		else
+			is_sink = !gf_filter_has_out_caps(filter_dst->freg->caps, filter_dst->freg->nb_caps);
+
+		if (link_sinks_only && !is_sink) continue;
 
 		//we already linked to this one
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
@@ -4247,7 +4257,7 @@ single_retry:
 			&& (filter_dst->num_input_pids || filter_dst->in_pid_connection_pending || filter_dst->in_link_resolution)
 		 	&& (!filter->swap_pidinst_dst || (filter->swap_pidinst_dst->filter != filter_dst))
 		) {
-			if ((filter_dst->clonable==GF_FILTER_CLONE_PROBE) && !(filter->session->flags & GF_FS_FLAG_SINGLE_LINK))
+			if ((filter_dst->clonable==GF_FILTER_CLONE_PROBE) && !(filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE))
 				filter_dst->clonable = GF_FILTER_NO_CLONE;
 
 			//not explicitly clonable, don't connect to it
@@ -4533,6 +4543,7 @@ single_retry:
 
 			if (num_pass==1) reassigned = GF_TRUE;
 			else reassigned = GF_FALSE;
+
 			//we pass the list of loaded filters for this pid, so that we don't instanciate twice the same chain start
 			new_f = gf_filter_pid_resolve_link_check_loaded(pid, filter_dst, &reassigned, loaded_filters, &skipped);
 
@@ -4600,6 +4611,15 @@ single_retry:
 					continue;
 				}
 			}
+
+			//in implicit link, if target is not here push it (we have no SID/FID to solve that later)
+			if ((filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
+				&& !gf_list_count(new_f->destination_filters)
+				&& !gf_list_count(new_f->destination_links)
+			) {
+				gf_list_add(new_f->destination_links, filter_dst);
+			}
+
 			//target was in clone probe but we have loaded a mux, disable clone
 			if ((filter_dst->clonable==GF_FILTER_CLONE_PROBE) && new_f->max_extra_pids)
 				filter_dst->clonable = GF_FILTER_NO_CLONE;
@@ -4639,8 +4659,13 @@ single_retry:
 			}
 		}
 
-		if (filter->session->flags & GF_FS_FLAG_SINGLE_LINK)
-			break;
+		//implicit link mode: if target was a sink, allow further sink connections, otherwise stop linking
+		if (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE) {
+			if (is_sink)
+				link_sinks_only = GF_TRUE;
+			else
+				break;
+		}
     }
 
 	if (!num_pass) {
@@ -5609,6 +5634,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
 	if (!pcki) {
+		if (!pidinst->pid || !pidinst->pid->filter) return NULL;
 		if (pidinst->pid->filter->disabled) {
 			pidinst->is_end_of_stream = pidinst->pid->has_seen_eos = GF_TRUE;
 		}
@@ -6014,6 +6040,7 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
 	}
+	if (!pid->pid) return GF_TRUE;
 	if (!pid->pid->has_seen_eos && !pidi->discard_inputs && !pidi->discard_packets) {
 		pidi->is_end_of_stream = GF_FALSE;
 		return GF_FALSE;

@@ -1155,17 +1155,13 @@ Note: When a PID cannot be connected to any filter, a warning is thrown and all 
 .br
   
 .br
-Each output PID carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (identified by a 4 character code abcd, see properties (-h props) ), or user-defined (identified by a string). Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
-.br
-  
-.br
-Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting PIDs.
+Each output PID carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (see gpac -h props ), or user-defined. Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
 .br
   
 .br
 Each filter exposes a set of argument to configure itself, using property types and values described as strings formatted with separators. This help is given with default separator sets :=#,@ to specify filters, properties and options. Use .I -seps to change them.
 .br
-.SH Property format
+.SH Property and filter option format
 .LP
 .br
 * boolean: formatted as yes,true,1 or no,false,0
@@ -1217,7 +1213,7 @@ Each filter is declared by its name, with optional filter arguments appended as 
 .br
 * boolean: value can be omitted, defaulting to true (eg :noedit). Using ! before the name negates the result (eg :!moof_first)
 .br
-* enumerations: name can be omitted (eg :disp=pbo is equivalent to :pbo), provided that filter developers pay attention to not reuse enumeration names in the same filter.
+* enumerations: name can be omitted, e.g. :disp=pbo is equivalent to :pbo.
 .br
 
 .br
@@ -1274,14 +1270,6 @@ filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2
 
 .br
 This will pass UDP://IP:PORT/:someopt=VAL to opt1 without inspecting it, and VAL2 to opt2.
-.br
-  
-.br
-A filter may be assigned a name (for inspection purposes, not inherited) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
-.br
-  
-.br
-A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.
 .br
   
 .br
@@ -1347,6 +1335,10 @@ By default filters chain will be resolved without any decoding/encoding if the d
 .br
 Other options will be passed to the filter if it accepts generic argument parsing (as is the case for ffmpeg).
 .br
+The shortcut syntax c=TYPE (e.g. c=aac:opts) is also supported.
+.br
+
+.br
 Example
 .br
 src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst=raw.264
@@ -1354,10 +1346,6 @@ src=dump.yuv:size=320x240:fps=25 enc:c=avc:b=150000:g=50:cgop=true:fast=true dst
 
 .br
 This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.
-.br
-
-.br
-The shortcut syntax c=TYPE (e.g. c=aac:opts) is also supported.
 .br
 
 .br
@@ -1372,6 +1360,8 @@ src=file.mp4 reframer:raw=av @ -o null
 This will force decoding media from file.mp4 and trash (send to null) the result (doing a decoder benchmark for example).
 .br
 
+.br
+.SS Escaping option separators
 .br
 When a filter uses an option defined as a string using the same separator character as gpac, you can either modify the set of separators, or escape the separator by duplicating it. The options enclosed by duplicated separator are not parsed. This is mostly used for meta filters, such as ffmpeg, to pass options to sub-filters such as libx264 (cf x264opts parameter).
 .br
@@ -1406,19 +1396,35 @@ This will set option a to foo, b to bar:c and the option d to fun on the filter.
 .br
 
 .br
+Each filter exposes one or more sets of capabilities, called capability bundle, which are property type and values that must be matched or excluded by connecting PIDs.
+.br
+To check the possible sources and destination for a filter FNAME, use gpac -h links FNAME
+.br
+
+.br
+The filter graph resolver uses this information together with the PID properties to link the different filters.
+.br
+
+.br
 .SS Implicit linking
 .br
 Implicit linking is enabled by the gpac application if the command line has:
 .br
 - no link directives (@, FID=, SID=)
 .br
-- a single output (-o, -dst, -ob)
-.br
 - .I -fl option is not set
 .br
-In this mode, a PID will be linked only once to the first matching filter in declaration order (so argument order really matters in this case).
+In this mode, a PID will be linked:
 .br
-This allows specifying linear processing chains (no PID fan-out) without giving the link directives, simplifying command lines for common cases.
+- only once to the first matching non-sink filter in declaration order.
+.br
+- or to any of the matching sink (destination) filters in declaration order.
+.br
+
+.br
+This allows specifying linear processing chains (no PID fan-out except for final output(s)) without giving the link directives, simplifying command lines for common cases.
+.br
+Warning: Argument order really matters in this mode!
 .br
 
 .br
@@ -1468,7 +1474,7 @@ Link between filters may be manually specified. The syntax is an @ character opt
 .br
 The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).
 .br
-If @@ is used instead of @, the optional integer gives the filter index starting from the first filter specified in command line.
+If @@ is used instead of @, the optional integer gives the filter index starting from the first filter (index 0) specified in command line.
 .br
 Several link directives can be given for a filter.
 .br
@@ -1508,7 +1514,7 @@ The link directive is just a quick shortcut to set the following arguments:
 .br
 - FID=name, which assigns an identifier to the filter
 .br
-- SID=name1[,name2...], which set a list of filter identifiers , or sourceIDs, restricting the list of possible inputs for a filter.
+- SID=name1[,name2...], which set a list of filter identifiers, or sourceIDs, restricting the list of possible inputs for a filter.
 .br
 
 .br
@@ -1540,6 +1546,8 @@ This indicates that fD only accepts input from fA and fB and fC only from fA
 .br
 Note: A filter with sourceID set cannot get input from filters with no IDs.
 .br
+
+.br
 A sourceID name can be further extended using fragment identifier (# by default):
 .br
 * name#PIDNAME: accepts only PID(s) with name PIDNAME
@@ -1550,7 +1558,7 @@ A sourceID name can be further extended using fragment identifier (# by default)
 .br
 * name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching VAL
 .br
-* name#P4CC=VAL: accepts only PIDs with property matching VAL.
+* name#P4CC=VAL: accepts only PIDs with builtin property of type P4CC and value VAL.
 .br
 * name#PName=VAL: same as above, using the builtin name corresponding to the property.
 .br
@@ -1747,10 +1755,20 @@ src=file.mp4 dst=file.aac:OPTFOO:gfopt:OPTBAR dst=file.264
 .br
 This will warn if OPTFOO is not consumed, but will not track OPTBAR.
 .br
+  
+.br
+A filter may be assigned a name (for inspection purposes, not inherited) using :N=name option. This name is not used in link resolution and may be changed at runtime by the filter instance.
+.br
+  
+.br
+A filter may be assigned a tag (any string) using :TAG=name option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.
+.br
+  
+.br
 .SH URL templating
 .LP
 .br
-Destination URLs can be templated using the same mechanism as MPEG-DASH, where $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
+Destination URLs can be templated (dynamically constructed). Pattern $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
 .br
 KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD:
 .br
@@ -1819,30 +1837,9 @@ src=vid.mpd c=avc:FID=1:clone dst=transcode.mpd:SID=1
 .br
 In this case, the encoder will be cloned for each video PIDs in the source, and the destination will only use PIDs coming from the encoders.
 .br
-.SH Templating filter chains
-.LP
-.br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the muxer will always accept the input PIDs.
-.br
-To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
-.br
-Warning: This feature should only be called with a single property set to * (or empty) per source ID, results are undefined otherwise.
-.br
-Example
-.br
-src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*
-.br
-src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=
-.br
 
 .br
-In this case, each new ServiceID value found when connecting PIDs to the destination will create a new destination file.
-.br
-
-.br
-When implicit linking is enabled, all filters are by default clonable.
-.br
-This allows duplicating the processing for each PIDs of the same type.
+When implicit linking is enabled, all filters are by default clonable. This allows duplicating the processing for each PIDs of the same type.
 .br
 Example
 .br
@@ -1861,6 +1858,27 @@ Example
 
 .br
 The first audio will connect to the resample filter, the second to the enc filter and the resampler output will connect to a clone of the enc filter.
+.br
+
+.br
+.SH Templating filter chains
+.LP
+.br
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the muxer will always accept the input PIDs.
+.br
+To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
+.br
+Warning: This feature should only be called with a single property set to * (or empty) per source ID, results are undefined otherwise.
+.br
+Example
+.br
+src=source.ts dst=file_$ServiceID$.mp4:SID=*#ServiceID=*
+.br
+src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=
+.br
+
+.br
+In this case, each new ServiceID value found when connecting PIDs to the destination will create a new destination file.
 .br
 
 .br
@@ -2012,6 +2030,30 @@ gpac -i source.ts tssplit @#ServiceID= -o dump_$GINC(10,2).ts
 
 .br
 This will dump first service in dump_10.ts, second service in dump_12.ts, etc...
+.br
+
+.br
+As seen previously, the following options may be set on any filter, but are not visible in filter help:
+.br
+* FID: filter identifier
+.br
+* SID: filter source(s)
+.br
+* N: filter name
+.br
+* TAG: filter tag
+.br
+* clone: filter cloning flag
+.br
+* nomux: enable/disable direct file copy
+.br
+* gfreg: prefered filter registry names for link solving
+.br
+* gfloc: following options are local to filter declaration (not inherited)
+.br
+* gfopt: following options are not tracked
+.br
+
 .br
 .SH External filters
 .LP
@@ -3185,6 +3227,11 @@ Indicate color matrix coefficient for a visual pid
 .B FullRange (CFRA,bool,D )
 .br
 Indicate color full range flag for a visual pid
+.br
+.TP
+.B Chroma (CFMT,uint,D )
+.br
+Indicate chroma format (see ISO/IEC 23001-8 / 23091-2)
 .br
 .TP
 .B ChromaLoc (CLOC,uint,D )
@@ -4441,7 +4488,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1712-geef054784-master
+build: 1.1.0-DEV-rev1716-g7535448f4-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -175,6 +175,9 @@ The consequences are:
 
 For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
 
+
+By default the filter session will run with implicit linking. Setting a source on a filter will force the session linker to use explicit linking for all future link resolution.
+
 @{
 
 */
@@ -339,12 +342,14 @@ void update(DOMString name, DOMString value);
 
 
 /*! set a given filter as source for this filter - see \ref gf_filter_set_source
+\note Setting a source will force the filter session linker to run in explicit linking mode.
 \param src source filter
 \param link_args link options
 */
 void set_source(_Filter src, DOMString link_args=null);
 
 /*! set a given filter as restricted source for this filter - see \ref gf_filter_set_source_restricted
+\note Setting a source will force the filter session linker to run in explicit linking mode.
 \param src source filter
 \param link_args link options
 */
