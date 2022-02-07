@@ -205,6 +205,12 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
 		return NULL;
 	}
+	//reverse implicit mode flag, we run by default in this mode
+	if (flags & GF_FS_FLAG_NO_IMPLICIT)
+		flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
+	else
+		flags |= GF_FS_FLAG_IMPLICIT_MODE;
+
 	fsess->flags = flags;
 
 	fsess->filters = gf_list_new();
@@ -518,8 +524,8 @@ GF_FilterSession *gf_fs_new_defaults(u32 inflags)
 	if (inflags & GF_FS_FLAG_PRINT_CONNECTIONS)
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
 
-	if (inflags & GF_FS_FLAG_SINGLE_LINK)
-		flags |= GF_FS_FLAG_SINGLE_LINK;
+	if (inflags & GF_FS_FLAG_NO_IMPLICIT)
+		flags |= GF_FS_FLAG_NO_IMPLICIT;
 
 	if (gf_opts_get_bool("core", "dbg-edges"))
 		flags |= GF_FS_FLAG_PRINT_CONNECTIONS;
@@ -3717,7 +3723,7 @@ GF_Err gf_filter_get_stats(GF_Filter *f, GF_FilterStats *stats)
 		if (pidi->is_decoder_input) stats->type = GF_FS_STATS_FILTER_DECODE;
 		else if (pidi->is_encoder_input) stats->type = GF_FS_STATS_FILTER_ENCODE;
 
-		if (pidi->pid->stream_type==GF_STREAM_FILE)
+		if (pidi->pid && (pidi->pid->stream_type==GF_STREAM_FILE))
 			stats->type = GF_FS_STATS_FILTER_DEMUX;
 
 		if (pidi->last_ts_drop.num * stats->last_ts_drop.den >= stats->last_ts_drop.num * pidi->last_ts_drop.den)

@@ -28,6 +28,14 @@ The inspect filter can be used to dump pid and packets. It may also be used to c
 .br
 The default options inspect only pid changes.
 .br
+If .I full is not set, .I mode=frame is forced and PID properties are formated in human-readable form, one pid per line.
+.br
+Otherwise, all properties are dumped.
+.br
+Note: specifying .I xml, .I analyze, .I fmt or using -for-test will force .I full to true.
+.br
+
+.br
 The packet inspector can be configured to dump specific properties of packets using .I fmt.
 .br
 When the option is not present, all properties are dumped. Otherwise, only properties identified by $TOKEN$ are printed. You may use '$', '@' or '%' for TOKEN separator. TOKEN can be:
@@ -162,6 +170,8 @@ hdr (bool, default: true):     print a header corresponding to fmt string withou
 allp (bool, default: false):   analyse for the entire duration, rather than stopping when all pids are found
 .br
 info (bool, default: false, updatable): monitor PID info changes
+.br
+full (bool, default: false, updatable): full dump of PID properties (always on if XML)
 .br
 pcr (bool, default: false, updatable): dump M2TS PCR info
 .br
@@ -9730,7 +9740,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1712-geef054784-master
+build: 1.1.0-DEV-rev1716-g7535448f4-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

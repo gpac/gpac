@@ -647,6 +647,7 @@ static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
+	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 }
 
 GF_EXPORT
@@ -666,7 +667,7 @@ static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 
 	gf_mx_p(filter->session->filters_mx);
 
-	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
 		filter->source_ids = NULL;
@@ -1257,7 +1258,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 		filter->force_demux = GF_TRUE;
 	}
 	//implicit linking mode: if not a script or if script init (initialized called) and no extra pid set, enable clonable 
-	if ( (filter->session->flags & GF_FS_FLAG_SINGLE_LINK)
+	if ( (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)
 		&& !filter->max_extra_pids
 		&& (for_script || !(filter->freg->flags&GF_FS_REG_SCRIPT))
 		&& ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT))
@@ -1632,6 +1633,7 @@ skip_date:
 					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
+				filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 			}
 			//filter sources
 			else if (!strcmp("SID", szArg)) {
@@ -1639,6 +1641,7 @@ skip_date:
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
+				filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 			}
 			//clonable filter
 			else if (!strcmp("clone", szArg)) {
@@ -3427,7 +3430,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 		if (err) *err = GF_BAD_PARAM;
 		return NULL;
 	}
-	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
 		char *rem_opts[] = {"FID", "SID", "N", "clone", NULL};
@@ -3490,7 +3493,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
-	if (filter) filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+	if (filter) filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
 }
 
@@ -4364,7 +4367,7 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	return gf_fs_load_filter(filter->session, name, err_code);
 }
 
@@ -4659,7 +4662,7 @@ void gf_filter_require_source_id(GF_Filter *filter)
 {
 	if (filter) {
 		filter->require_source_id = GF_TRUE;
-		filter->session->flags &= ~GF_FS_FLAG_SINGLE_LINK;
+		filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	}
 }
 

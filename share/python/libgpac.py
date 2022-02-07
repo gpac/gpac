@@ -56,9 +56,9 @@
 # 4CCs are handled as strings in python, and list of 4CCs are handled as list of strings
 #
 # The following builtin property types are always handled as strings in Python instead of int in libgpac :
-# - StreamType:  string containing the streamtype name
-# - CodecID:  string containing the codec name
-# - Enumeration properties (PixelFormat, AudioFormat, ...):  string containing the corresponding name
+# - StreamType: string containing the streamtype name
+# - CodecID: string containing the codec name
+# - Enumeration properties (PixelFormat, AudioFormat, ...): string containing the corresponding name
 #
 # # Basic setup
 #
@@ -98,10 +98,13 @@
 # f = fs.load("filtername:optX")
 # \endcode
 #
-# It is possible to assign sources of a filter (much like the `@` command in `gpac`):
+# By default the filter session will run with implicit linking.
+# It is however possible to assign sources of a filter (much like the `@` command in `gpac`):
 # \code
 # dst.set_source(f)
 # \endcode
+#
+# Setting a source on a filter will force the session linker to use explicit explicit for all future link resolution.
 #
 # # Posting user tasks
 # 
@@ -909,8 +912,8 @@ GF_FS_FLAG_NO_RESERVOIR=1<<0
 #see \ref GF_FS_FLAG_FULL_LINK
 GF_FS_FLAG_FULL_LINK=1<<10
 ##\hideinitializer
-#see \ref GF_FS_FLAG_SINGLE_LINK
-GF_FS_FLAG_SINGLE_LINK=1<<11
+#see \ref GF_FS_FLAG_NO_IMPLICIT
+GF_FS_FLAG_NO_IMPLICIT=1<<11
 
 
 ##\hideinitializer
@@ -2177,6 +2180,8 @@ class Filter:
         _libgpac.gf_fs_send_update(None, None, self._filter, name, value, 0)
 
     ## set a given filter as source for this filter - see \ref gf_filter_set_source
+    #
+    #\note Setting a source will force the filter session linker to run in explicit linking mode.
     #\param f source Filter
     #\param link_args link options (string)
     #\return

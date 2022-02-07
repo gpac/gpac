@@ -226,8 +226,12 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_NO_RESERVOIR (1<<9)
 /*! Throws an error if any PID in the filter graph cannot be linked. The default behavior is to run the session even when some PIDs are not connected*/
 #define GF_FS_FLAG_FULL_LINK (1<<10)
-/*! Flag set to multi-link: linking aborts after the first successfull pid, which implies that the order in which filters are created now matters*/
-#define GF_FS_FLAG_SINGLE_LINK	(1<<11)
+/*! Flag set to disable implicit linking
+ By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
+ \note This implies that the order in which filters are added to the session now matters
+ This flag is automatically enabled when link directives are present (FID, SID) or when loading filters from filters
+*/
+#define GF_FS_FLAG_NO_IMPLICIT	(1<<11)
 
 /*! Creates a new filter session. This will also load all available filter registers not blacklisted.
 \param nb_threads number of extra threads to allocate. A negative value means all core used by session (eg nb_cores-1 extra threads)
@@ -1166,6 +1170,7 @@ enum
 	GF_PROP_PID_COLR_TRANSFER = GF_4CC('C','T','R','C'),
 	GF_PROP_PID_COLR_MX = GF_4CC('C','M','X','C'),
 	GF_PROP_PID_COLR_RANGE = GF_4CC('C','F','R','A'),
+	GF_PROP_PID_COLR_CHROMAFMT = GF_4CC('C','F','M','T'),
 	GF_PROP_PID_COLR_CHROMALOC = GF_4CC('C','L','O','C'),
 	GF_PROP_PID_CONTENT_LIGHT_LEVEL = GF_4CC('C','L','L','I'),
 	GF_PROP_PID_MASTER_DISPLAY_COLOUR = GF_4CC('M','D','C','V'),

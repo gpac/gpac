@@ -58,6 +58,10 @@ struct __gf_prop_entry
 	u32 alloc_size;
 };
 
+//we use the same value internally but with reverse meaning
+#define GF_FS_FLAG_IMPLICIT_MODE	GF_FS_FLAG_NO_IMPLICIT
+
+
 #ifndef GF_PROPS_HASHTABLE_SIZE
 #define GF_PROPS_HASHTABLE_SIZE 0
 #endif
