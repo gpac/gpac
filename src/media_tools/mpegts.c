@@ -2026,7 +2026,7 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	pes->temi_pending = 1;
 }
 
-void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool force_flush)
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_type)
 {
 	GF_M2TS_PESHeader pesh;
 	if (!ts) return;
@@ -2131,12 +2131,13 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool force_flush)
 			u32 offset = len;
 
 			if (pesh.pck_len && (pesh.pck_len-3-pesh.hdr_data_len != pes->pck_data_len-len)) {
-				if (!force_flush) {
+				if (!force_flush_type) {
 					pes->is_resume = GF_TRUE;
 					return;
 				}
-
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES payload size %d but received %d bytes\n", pes->pid, (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->pck_data_len-len));
+				if (force_flush_type==1) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES payload size %d but received %d bytes\n", pes->pid, (u32) ( pesh.pck_len-3-pesh.hdr_data_len), pes->pck_data_len-len));
+				}
 			}
 			//copy over the remaining of previous PES payload before start of this PES payload
 			if (pes->prev_data_len) {
@@ -2249,7 +2250,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	/*PES first fragment: flush previous packet*/
 	if (flush_pes && pes->pck_data_len) {
-		gf_m2ts_flush_pes(ts, pes, GF_TRUE);
+		gf_m2ts_flush_pes(ts, pes, 1);
 		if (!data_size) return;
 	}
 	/*we need to wait for first packet of PES*/
@@ -2271,7 +2272,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Got PES packet len %d\n", pes->pid, pes->pes_len));
 
 		if (pes->pes_len + 6 == pes->pck_data_len) {
-			gf_m2ts_flush_pes(ts, pes, GF_TRUE);
+			gf_m2ts_flush_pes(ts, pes, 1);
 		}
 	}
 }
@@ -2282,7 +2283,7 @@ void gf_m2ts_flush_all(GF_M2TS_Demuxer *ts, Bool no_force_flush)
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		GF_M2TS_ES *stream = ts->ess[i];
 		if (stream && (stream->flags & GF_M2TS_ES_IS_PES)) {
-			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream, no_force_flush ? GF_FALSE : GF_TRUE);
+			gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) stream, no_force_flush ? 0 : 2);
 		}
 	}
 }
