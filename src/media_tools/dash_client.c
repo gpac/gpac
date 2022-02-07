@@ -5968,6 +5968,8 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 						group->srd_desc->srd_fh = h;
 				}
 
+			} else if (!strcmp(mpd_desc->scheme_id_uri, "http://dashif.org/guidelines/trickmode") ) {
+				continue;
 			} else {
 				//we don't know any defined scheme for now
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));

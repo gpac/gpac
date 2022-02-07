@@ -981,6 +981,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 					break;
 				j++;
 				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
+				} else if (!strcmp(desc_scheme, "http://dashif.org/guidelines/trickmode")) {
 				} else {
 					playable = GF_FALSE;
 					break;
