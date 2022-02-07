@@ -832,9 +832,11 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 		}
 	}
 	//probe_data is now the first element of the document, if XML
-	//we should refin by getting the xmlns attribute value rather than searching for its value...
+	//we should refine by getting the xmlns attribute value rather than searching for its value...
 
-	if (!strncmp(probe_data, "<XMT-A", strlen("<XMT-A"))
+	if (strstr(probe_data, "http://www.w3.org/1999/XSL/Transform")
+	) {
+	} else if (!strncmp(probe_data, "<XMT-A", strlen("<XMT-A"))
 		|| strstr(probe_data, "urn:mpeg:mpeg4:xmta:schema:2002")
 	) {
 		mime_type = "application/x-xmt";
