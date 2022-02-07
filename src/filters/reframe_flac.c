@@ -74,6 +74,8 @@ typedef struct
 	FLACIdx *indexes;
 	u32 index_alloc_size, index_size;
 	u32 bitrate;
+	Bool copy_props;
+	u32 dsi_crc;
 } GF_FLACDmxCtx;
 
 
@@ -108,6 +110,7 @@ GF_Err flac_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -150,15 +153,19 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u32 dsi_size)
 {
+	u32 crc = gf_crc_32(dsi, dsi_size);
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		flac_dmx_check_dur(filter, ctx);
 	}
+	if ((ctx->dsi_crc == crc) && !ctx->copy_props) return;
+	ctx->dsi_crc = crc;
+	ctx->copy_props = GF_FALSE;
+
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
@@ -168,6 +175,8 @@ static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u
 	}
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 

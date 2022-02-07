@@ -68,6 +68,7 @@ typedef struct
 	H263Idx *indexes;
 	u32 index_alloc_size, index_size;
 	u32 bitrate;
+	Bool copy_props;
 } GF_H263DmxCtx;
 
 
@@ -99,7 +100,7 @@ GF_Err h263dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	//if source has no timescale, recompute time
 	if (!ctx->timescale) ctx->notime = GF_TRUE;
-
+	else ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -218,7 +219,6 @@ static void h263dmx_check_dur(GF_Filter *filter, GF_H263DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, u32 height)
@@ -228,18 +228,20 @@ static void h263dmx_check_pid(GF_Filter *filter, GF_H263DmxCtx *ctx, u32 width, 
 		ctx->opid = gf_filter_pid_new(filter);
 		h263dmx_check_dur(filter, ctx);
 	}
-	if ((ctx->width == width) && (ctx->height == height)) return;
+	if ((ctx->width == width) && (ctx->height == height) && !ctx->copy_props) return;
 
+	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+	if (ctx->duration.num)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(GF_CODECID_H263));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
-
-	if (ctx->duration.num)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 	ctx->width = width;
 	ctx->height = height;

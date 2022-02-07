@@ -487,7 +487,9 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 			gf_bs_read_data(m4v->bs, (char *)p, 4);
 			ext_type = ((p[0] >> 4) & 0xf);
 			if (ext_type == 1) {
-				dsi->VideoPL = 0x65;
+				dsi->VideoPL = (p[0]&0xf) | ((p[1] >> 4) & 0xf);
+				dsi->progresive = (p[1] & 0x8) ? 1 : 0;
+				dsi->chroma_fmt = (p[1]>>1) & 0x3;
 				dsi->height = ((p[1] & 0x1) << 13) | ((p[2] & 0x80) << 5) | (dsi->height & 0x0fff);
 				dsi->width = (((p[2] >> 5) & 0x3) << 12) | (dsi->width & 0x0fff);
 			}
@@ -546,7 +548,8 @@ static void gf_m4v_parse_vol(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 		dsi->par_den = m4v_sar[par].h;
 	}
 	if (gf_bs_read_int(m4v->bs, 1)) {
-		gf_bs_read_int(m4v->bs, 3);
+		dsi->chroma_fmt = gf_bs_read_int(m4v->bs, 2);
+		gf_bs_read_int(m4v->bs, 1);
 		if (gf_bs_read_int(m4v->bs, 1)) gf_bs_read_int(m4v->bs, 79);
 	}
 	dsi->has_shape = gf_bs_read_int(m4v->bs, 2);
@@ -574,10 +577,12 @@ static void gf_m4v_parse_vol(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 		dsi->time_increment = gf_bs_read_int(m4v->bs, dsi->NumBitsTimeIncrement);
 	}
 	if (!dsi->has_shape) {
-		gf_bs_read_int(m4v->bs, 1);
+		gf_bs_read_int(m4v->bs, 1); //marker bit
 		dsi->width = gf_bs_read_int(m4v->bs, 13);
-		gf_bs_read_int(m4v->bs, 1);
+		gf_bs_read_int(m4v->bs, 1); //marker bit
 		dsi->height = gf_bs_read_int(m4v->bs, 13);
+		gf_bs_read_int(m4v->bs, 1); //marker bit
+		dsi->progresive = !gf_bs_read_int(m4v->bs, 1);
 	} else {
 		dsi->width = dsi->height = 0;
 	}
@@ -11543,4 +11548,37 @@ GF_Err gf_vvc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, 
 	return GF_OK;
 }
 
+
+GF_EXPORT
+const char *gf_vvc_get_profile_name(u8 video_prof)
+{
+	switch (video_prof) {
+	case 1:
+		return "Main 10";
+	case 65:
+		return "Main 10 Still Picture";
+	case 17:
+		return "Multilayer Main 10";
+	case 2:
+		return "Main 12";
+	case 10:
+		return "Main 12 Intra";
+	case 66:
+		return "Main 12 Still Picture";
+	case 34:
+		return "Main 12 4:4:4";
+	case 42:
+		return "Main 12 4:4:4 Intra";
+	case 98:
+		return "Main 12 4:4:4 Still Picture";
+	case 36:
+		return "Main 16 4:4:4";
+	case 44:
+		return "Main 16 4:4:4 Intra";
+	case 100:
+		return "Main 16 4:4:4 Still Picture";
+	default:
+		return "Unknown";
+	}
+}
 #endif /*GPAC_DISABLE_AV_PARSERS*/

@@ -119,6 +119,11 @@ typedef struct
 	Double fps;
 	/*! position of next object in the bitstream*/
 	u32 next_object_start;
+
+	/*! progressive video sequence */
+	Bool progresive;
+	/*! chroma format */
+	u8 chroma_fmt;
 } GF_M4VDecSpecInfo;
 
 
@@ -732,6 +737,8 @@ GF_Err gf_hevc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width,
 GF_Err gf_vvc_get_sps_info(u8 *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
+
+const char *gf_vvc_get_profile_name(u8 video_prof);
 
 /*! gets chroma format name from MPEG chroma format
 \param chroma_format the chroma format to query (1: 420, 2: 422, 3: 444)

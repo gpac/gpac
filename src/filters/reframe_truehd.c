@@ -77,6 +77,7 @@ typedef struct
 
 	TrueHDIdx *indexes;
 	u32 index_alloc_size, index_size;
+	Bool copy_props;
 } GF_TrueHDDmxCtx;
 
 
@@ -107,6 +108,7 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 	}
+	if (ctx->timescale) ctx->copy_props = GF_TRUE;
 	return GF_OK;
 }
 
@@ -253,7 +255,6 @@ static void truehd_check_dur(GF_Filter *filter, GF_TrueHDDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void truehd_check_pid(GF_Filter *filter, GF_TrueHDDmxCtx *ctx, TrueHDHdr *hdr)
@@ -265,10 +266,11 @@ static void truehd_check_pid(GF_Filter *filter, GF_TrueHDDmxCtx *ctx, TrueHDHdr 
 		ctx->opid = gf_filter_pid_new(filter);
 		truehd_check_dur(filter, ctx);
 	}
-	if ((ctx->sample_rate == hdr->sample_rate) && (ctx->format == hdr->format)	)
+	if ((ctx->sample_rate == hdr->sample_rate) && (ctx->format == hdr->format) && !ctx->copy_props)
 		return;
 
 	ctx->frame_dur = truehd_frame_dur(hdr->sample_rate);
+	ctx->copy_props = GF_FALSE;
 
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
@@ -278,6 +280,8 @@ static void truehd_check_pid(GF_Filter *filter, GF_TrueHDDmxCtx *ctx, TrueHDHdr 
 
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	if (hdr->ch_2_modif==1) {
 		ctx->nb_ch = 1;
@@ -316,6 +320,7 @@ static void truehd_check_pid(GF_Filter *filter, GF_TrueHDDmxCtx *ctx, TrueHDHdr 
 		}
 	}
 	ctx->sample_rate = hdr->sample_rate;
+	ctx->format = hdr->format;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));

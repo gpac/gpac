@@ -69,6 +69,7 @@ typedef struct
 	u32 *frame_sizes;
 
 	u32 bitrate;
+	Bool copy_props;
 } GF_ProResDmxCtx;
 
 
@@ -102,6 +103,7 @@ GF_Err proresdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	if (!ctx->timescale) {
 		ctx->notime = GF_TRUE;
 	} else {
+		ctx->copy_props = GF_TRUE;
 		//if we have a FPS prop, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) ctx->cur_fps = p->value.frac;
@@ -193,7 +195,6 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 			ctx->bitrate = (u32) rate;
 		}
 	}
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE) );
 }
 
 
@@ -319,7 +320,7 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 
 #undef CHECK_CFG
 
-	if (same_cfg) return;
+	if (same_cfg && !ctx->copy_props) return;
 	fps.num = fps.den = 0;
 	switch (finfo->framerate_code) {
 	case 1: fps.num = 24000; fps.den = 1001; break;
@@ -365,6 +366,7 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 		codec_id = GF_CODECID_APCH;
 	}
 
+	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
@@ -404,6 +406,8 @@ static void proresdmx_check_pid(GF_Filter *filter, GF_ProResDmxCtx *ctx, GF_ProR
 
 	if (ctx->duration.num)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+	if (!ctx->timescale)
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 	if (ctx->bitrate) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
