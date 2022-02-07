@@ -206,8 +206,9 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 {
 	if (ots == GF_FILTER_NO_TS) return ots;
 	u64 ts = ots + pctx->ts_offset;
-	if (ts<0) {
-		pctx->ts_offset += -ts;
+	//if ts<0
+	if ((pctx->ts_offset>0) && (ots < -pctx->ts_offset)) {
+		pctx->ts_offset += (s64) -ts;
 		gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT(pctx->ts_offset) );
 		ts = 0;
 	}
@@ -230,7 +231,7 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 
 	if (ots + 1 <= pctx->last_ts) return ts;
 	u64 dur = ots - (pctx->last_ts-1);
-	if (!pctx->min_dur || (dur < pctx->min_dur)) pctx->min_dur = dur;
+	if (!pctx->min_dur || (dur < pctx->min_dur)) pctx->min_dur = (u32) dur;
 
 
 	if (pctx->raw_vid_copy) {

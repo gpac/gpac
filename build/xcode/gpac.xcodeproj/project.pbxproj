@@ -2026,7 +2026,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				9265307927AD295200DEBE4B /* restamp.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
 				9274295724647AB8009ADD8D /* bsrw.c */,
@@ -2115,6 +2114,7 @@
 				924E805C206D357A00AB580F /* reframe_rawvid.c */,
 				9288A4A125ADB1DD006F7355 /* reframe_truehd.c */,
 				92E2498F2057B973002CC029 /* resample_audio.c */,
+				9265307927AD295200DEBE4B /* restamp.c */,
 				92FA79422076687100AE005F /* rewind.c */,
 				9257307D2056948D009DB328 /* rewrite_adts.c */,
 				9290E74F25263FC300BC0EE3 /* rewrite_mhas.c */,
