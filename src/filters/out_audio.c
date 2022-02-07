@@ -348,9 +348,8 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[AudioOut] At %d ms audio frame CTS "LLU" (compensated time %g s, HW delay "LLU" us)\n", gf_sys_clock(), cts, ((Double)timestamp.num)/timestamp.den, ctx->hwdelay_us ));
 		}
 		
-		if (data && !ctx->wait_recfg) {
+		if (data && !ctx->wait_recfg && (size >= ctx->pck_offset)) {
 			u32 nb_copy;
-			assert(size >= ctx->pck_offset);
 			
 			nb_copy = (size - ctx->pck_offset);
 			if (nb_copy + done > buffer_size) nb_copy = buffer_size - done;
