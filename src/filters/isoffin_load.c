@@ -1153,6 +1153,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		gf_filter_pid_set_property_str(ch->pid, "meta:mime", &PROP_STRING(mime_cfg) );
 	}
 
+	if (!gf_sys_is_test_mode() && (m_subtype==GF_ISOM_SUBTYPE_MPEG4))
+		m_subtype = gf_isom_get_mpeg4_subtype(read->mov, ch->track, stsd_idx);
+
 	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_ISOM_SUBTYPE, &PROP_4CC(m_subtype) );
 	if (stxtcfg) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA((char *)stxtcfg, (u32) strlen(stxtcfg) ));
 
