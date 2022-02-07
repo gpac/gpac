@@ -2636,8 +2636,12 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 	bin128 key_IV;
 	u32 group_idx;
 
-	group->init_ok = GF_TRUE;
+	//for smooth if prev is init segment itis not connected to the real httpin yet...
+	if (group->prev_is_init_segment && gf_dash_is_smooth_streaming(ctx->dash)) {
 
+	} else {
+		group->init_ok = GF_TRUE;
+	}
 	dashdmx_notify_group_quality(ctx, group);
 
 fetch_next:
