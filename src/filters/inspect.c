@@ -109,7 +109,7 @@ typedef struct
 	char *log;
 	char *fmt;
 	u32 analyze;
-	Bool props, hdr, allp, info, pcr, xml;
+	Bool props, hdr, allp, info, pcr, xml, full;
 	Double speed, start;
 	u32 test;
 	GF_Fraction dur;
@@ -2600,6 +2600,60 @@ static void inspect_dump_ac3_eac3(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 f
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+static void inspect_dump_packet_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
+{
+	u32 size, sap, flag;
+	u64 ts, dts;
+	GF_FilterClockType ck_type;
+	GF_FilterFrameInterface *fifce=NULL;
+	u8 *data;
+
+	data = (u8 *) gf_filter_pck_get_data(pck, &size);
+	ck_type = ctx->pcr ? gf_filter_pck_get_clock_type(pck) : 0;
+	if (!size && !ck_type) {
+		fifce = gf_filter_pck_get_frame_interface(pck);
+	}
+
+	gf_fprintf(dump, "PID %d PCK "LLU, pid_idx, pck_num);
+
+	if (ck_type) {
+		ts = gf_filter_pck_get_cts(pck);
+		if (ts!=GF_FILTER_NO_TS)
+			gf_fprintf(dump, " PCR%s "LLU"\n", (ck_type==GF_FILTER_CLOCK_PCR) ? "" : " discontinuity", ts );
+		return;
+	}
+
+	ts = gf_filter_pck_get_cts(pck);
+	if (ts==GF_FILTER_NO_TS) gf_fprintf(dump, " cts N/A");
+	else gf_fprintf(dump, " cts "LLU, ts);
+
+	dts = gf_filter_pck_get_dts(pck);
+	if ((dts!=GF_FILTER_NO_TS) && (dts!= ts)) gf_fprintf(dump, " dts "LLU, dts);
+
+	flag = gf_filter_pck_get_duration(pck);
+	if (flag) gf_fprintf(dump, " dur %u", flag);
+
+	sap = gf_filter_pck_get_sap(pck);
+	if (sap==GF_FILTER_SAP_4_PROL) {
+		gf_fprintf(dump, " sap 4 (prol)");
+	} else if (sap) {
+		gf_fprintf(dump, " sap %u", sap);
+	}
+	flag = gf_filter_pck_get_interlaced(pck);
+	if (flag) gf_fprintf(dump, " ilace %u", flag);
+	flag = gf_filter_pck_get_corrupted(pck);
+	if (flag) gf_fprintf(dump, " corr %u", flag);
+	flag = gf_filter_pck_get_seek_flag(pck);
+	if (flag) gf_fprintf(dump, " seek %u", flag);
+	flag = gf_filter_pck_get_crypt_flags(pck);
+	if (flag) gf_fprintf(dump, " crypt %u", flag);
+	flag = gf_filter_pck_get_carousel_version(pck);
+	if (flag) gf_fprintf(dump, " vers %u", flag);
+
+	if (!fifce) gf_fprintf(dump, " size %u", size);
+
+	gf_fprintf(dump, "\n");
+}
 static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket *pck, u32 pid_idx, u64 pck_num, PidCtx *pctx)
 {
 	u32 idx=0, size, sap;
@@ -2612,6 +2666,10 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	if (!dump) return;
 
 	if (!ctx->deep && !ctx->fmt) return;
+	if (!ctx->full) {
+		inspect_dump_packet_as_info(ctx, dump, pck, pid_idx, pck_num, pctx);
+		return;
+	}
 
 	data = (u8 *) gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
@@ -2926,6 +2984,372 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 }
 #endif
 
+static void format_duration(u64 dur, u32 timescale, FILE *dump)
+{
+	u32 h, m, s, ms;
+	if ((dur==(u64) -1) || (dur==(u32) -1))  {
+		gf_fprintf(dump, " duration unknown");
+		return;
+	}
+	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
+	h = (u32) (dur / 3600000);
+	m = (u32) (dur/ 60000) - h*60;
+	s = (u32) (dur/1000) - h*3600 - m*60;
+	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
+	if (h<=24) {
+		if (h)
+			gf_fprintf(dump, " duration %02d:%02d:%02d.%03d", h, m, s, ms);
+		else
+			gf_fprintf(dump, " duration %02d:%02d.%03d", m, s, ms);
+	} else {
+		u32 d = (u32) (dur / 3600000 / 24);
+		h = (u32) (dur/3600000)-24*d;
+		if (d<=365) {
+			gf_fprintf(dump, " duration %d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
+		} else {
+			u32 y=0;
+			while (d>365) {
+				y++;
+				d-=365;
+				if (y%4) d--;
+			}
+			gf_fprintf(dump, " duration %d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
+		}
+	}
+}
+
+
+static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
+{
+	const GF_PropertyValue *p, *dsi, *dsi_enh;
+	Bool is_raw=GF_FALSE;
+	Bool is_protected=GF_FALSE;
+	u32 codec_id=0;
+	gf_fprintf(dump, "PID");
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+	if (p) gf_fprintf(dump, " %d", p->value.uint);
+
+	if (is_remove) {
+		gf_fprintf(dump, " removed\n");
+		return;
+	}
+	if (!is_connect) {
+		gf_fprintf(dump, " reconfigure");
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (p) {
+		if (p->value.uint==GF_STREAM_ENCRYPTED) {
+			is_protected = GF_TRUE;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		}
+		if (p)
+			gf_fprintf(dump, " %s", gf_stream_type_short_name(p->value.uint));
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
+	if (p) {
+		gf_fprintf(dump, " service %d", p->value.uint);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_NAME);
+		if (p) gf_fprintf(dump, " \"%s\"", p->value.string);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_PROVIDER);
+		if (p) gf_fprintf(dump, " (%s)", p->value.string);
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DISABLED);
+	if (p && p->value.boolean) gf_fprintf(dump, " disabled");
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_TRACK_FLAGS);
+	if (p && p->value.uint) {
+		if (p->value.uint & (1<<1)) gf_fprintf(dump, " inMovie");
+		if (p->value.uint & (1<<2)) gf_fprintf(dump, " inPreview");
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
+	if (p) gf_fprintf(dump, " language \"%s\"", p->value.string);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+	if (p) format_duration(p->value.lfrac.num, p->value.lfrac.den, dump);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	if (p) gf_fprintf(dump, " timescale %d", p->value.uint);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	if (p) gf_fprintf(dump, " delay "LLD, p->value.longsint);
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (p) {
+		if (p->value.uint==GF_CODECID_RAW) {
+			is_raw = GF_TRUE;
+			gf_fprintf(dump, " raw");
+		} else {
+			codec_id = p->value.uint;
+			//fprintf(dump, " codec \"%s\"", gf_codecid_name(codec_id));
+		}
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
+	if (p) {
+		gf_fprintf(dump, " %dx", p->value.uint);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
+		gf_fprintf(dump, "%d", p ? p->value.uint  : 0);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
+		if (p) {
+			u32 tscale = p->value.frac.num;
+			u32 sdur = p->value.frac.den;
+			gf_media_get_reduced_frame_rate(&tscale, &sdur);
+			gf_fprintf(dump, " fps %d", tscale);
+			if (sdur!=1) gf_fprintf(dump, "/%u", sdur);
+		}
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+		if (p && p->value.frac.num!=p->value.frac.den)
+			gf_fprintf(dump, " SAR %d/%u", p->value.frac.num, p->value.frac.den);
+		else
+			gf_fprintf(dump, " SAR 1/1");
+		if (is_raw) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+			if (p) gf_fprintf(dump, " raw format %s", gf_pixel_fmt_name(p->value.uint) );
+		}
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAMPLE_RATE);
+	if (p) {
+		gf_fprintf(dump, " %d Hz", p->value.uint);
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+		if (p) {
+			gf_fprintf(dump, " %s", gf_audio_fmt_get_layout_name(p->value.longuint));
+		} else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_NUM_CHANNELS);
+			if (p) gf_fprintf(dump, " %d channels", p->value.uint);
+		}
+		if (is_raw) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_AUDIO_FORMAT);
+			if (p) gf_fprintf(dump, " raw format %s", gf_audio_fmt_name(p->value.uint) );
+		}
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_BITRATE);
+	if (p) {
+		if (p->value.uint<5000) gf_fprintf(dump, " %d bps", p->value.uint );
+		else gf_fprintf(dump, " %d kbps", p->value.uint/1000 );
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_NB_FRAMES);
+	if (p && (p->value.uint>1)) gf_fprintf(dump, " %d frames", p->value.uint);
+
+
+	if (is_protected) {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+		gf_fprintf(dump, " encryption %s", p ? gf_4cc_to_str(p->value.uint) : "unknown");
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PATTERN);
+		if (p)
+			gf_fprintf(dump, " %d/%d pattern", p->value.frac.num, p->value.frac.den);
+	}
+
+	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	dsi_enh = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT);
+	if (is_raw) {
+		gf_fprintf(dump, "\n");
+		return;
+	}
+
+	gf_fprintf(dump, " codec");
+
+	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {
+		u32 i, j, k;
+		HEVCState *hvcs = NULL;
+		GF_HEVCConfig *hvcc=NULL;
+		if (dsi) {
+			hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_LHVC) ? GF_TRUE : GF_FALSE);
+			if (dsi_enh) {
+				GF_SAFEALLOC(hvcs, HEVCState);
+				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
+					GF_NALUFFParamArray *pa = gf_list_get(hvcc->param_array, i);
+					for (j=0; j<gf_list_count(pa->nalus); j++) {
+						GF_NALUFFParam *sl = gf_list_get(pa->nalus, j);
+						u8 nut, lid, tid;
+						gf_hevc_parse_nalu(sl->data, sl->size, hvcs, &nut, &tid, &lid);
+					}
+				}
+			}
+		} else {
+			hvcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
+		}
+		gf_fprintf(dump, " %s", (codec_id==GF_CODECID_LHVC) ? "L-HEVC" : "HEVC");
+		if (codec_id==GF_CODECID_HEVC_TILES) gf_fprintf(dump, " tile");
+
+		if (hvcc) {
+			if (hvcc->interlaced_source_flag)
+				gf_fprintf(dump, " interlaced");
+			if (!hvcc->is_lhvc) {
+				gf_fprintf(dump, " PL %s@%g %s %d bpp compatibility 0x%08X", gf_hevc_get_profile_name(hvcc->profile_idc), ((Double)hvcc->level_idc) / 30.0, gf_avc_hevc_get_chroma_format_name(hvcc->chromaFormat), hvcc->luma_bit_depth, hvcc->general_profile_compatibility_flags);
+			}
+			gf_odf_hevc_cfg_del(hvcc);
+		}
+		if (dsi && dsi_enh) {
+			hvcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
+			if (hvcc) {
+				gf_fprintf(dump, " scalable");
+				for (k=0; k<2; k++) {
+				u32 ntype = k ? GF_HEVC_NALU_SEQ_PARAM : GF_HEVC_NALU_VID_PARAM;
+				for (i=0; i<gf_list_count(hvcc->param_array); i++) {
+					GF_NALUFFParamArray *pa = gf_list_get(hvcc->param_array, i);
+					if (pa->type!=ntype) continue;
+					for (j=0; j<gf_list_count(pa->nalus); j++) {
+						GF_NALUFFParam *sl = gf_list_get(pa->nalus, j);
+						u8 nut, lid, tid;
+						s32 idx = gf_hevc_parse_nalu(sl->data, sl->size, hvcs, &nut, &tid, &lid);
+						if ((idx>=0) && (pa->type==GF_HEVC_NALU_SEQ_PARAM)) {
+							idx = hvcs->last_parsed_sps_id;
+							gf_fprintf(dump, " %dx%d", hvcs->sps[idx].width, hvcs->sps[idx].height);
+						}
+					}
+				}
+				}
+				gf_odf_hevc_cfg_del(hvcc);
+			}
+		}
+		if (hvcs) gf_free(hvcs);
+	}
+	else if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
+		GF_AVCConfig *avcc;
+		if (dsi) {
+			avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		} else {
+			avcc = gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
+		}
+		if (codec_id==GF_CODECID_AVC) gf_fprintf(dump, " %s", "AVC|H264");
+		else if (codec_id==GF_CODECID_SVC) gf_fprintf(dump, " %s", "SVC");
+		else if (codec_id==GF_CODECID_MVC) gf_fprintf(dump, " %s", "MVC");
+
+		if (avcc) {
+			gf_fprintf(dump, " PL %s@%g %s %d bpp", gf_avc_get_profile_name(avcc->AVCProfileIndication), ((Double)avcc->AVCLevelIndication)/10.0, gf_avc_hevc_get_chroma_format_name(avcc->chroma_format), avcc->luma_bit_depth );
+			gf_odf_avc_cfg_del(avcc);
+		}
+		if (dsi && dsi_enh) {
+			gf_fprintf(dump, " scalable");
+			avcc = gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
+			if (avcc) {
+				AVCState *avcs;
+				GF_SAFEALLOC(avcs, AVCState);
+				for (u32 i=0; i<gf_list_count(avcc->sequenceParameterSets); i++) {
+					GF_NALUFFParam *sl = gf_list_get(avcc->sequenceParameterSets, i);
+					s32 idx = gf_avc_read_sps(sl->data, sl->size, avcs, 0, NULL);
+					if (idx>=0) gf_fprintf(dump, " %dx%d", avcs->sps[idx].width, avcs->sps[idx].height);
+				}
+				gf_free(avcs);
+				gf_odf_avc_cfg_del(avcc);
+			}
+		}
+	}
+	else if ((codec_id==GF_CODECID_VVC) || (codec_id==GF_CODECID_VVC_SUBPIC)) {
+		GF_VVCConfig *vvcc;
+		if (dsi) {
+			vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+		} else {
+			vvcc = gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
+		}
+		if (codec_id==GF_CODECID_VVC) gf_fprintf(dump, " VVC%s", (codec_id==GF_CODECID_VVC) ? "" : " subpictures");
+
+		if (vvcc) {
+			gf_fprintf(dump, " PL %s@%.1g %s %d bpp", gf_vvc_get_profile_name(vvcc->general_profile_idc), ((Double)vvcc->general_level_idc)/16.0, gf_avc_hevc_get_chroma_format_name(vvcc->chroma_format), vvcc->bit_depth );
+			if (vvcc->numTemporalLayers>1)
+			gf_fprintf(dump, " %d sublayers", vvcc->numTemporalLayers);
+
+			gf_odf_vvc_cfg_del(vvcc);
+		}
+	}
+	else if (codec_id==GF_CODECID_AV1) {
+		gf_fprintf(dump, " AV1");
+		if (dsi) {
+			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
+			if (av1c) {
+				gf_fprintf(dump, " PL %d@%d", av1c->seq_profile, av1c->seq_level_idx_0);
+				if (av1c->chroma_subsampling_x) {
+					if (av1c->chroma_subsampling_y) gf_fprintf(dump, " YUV 4:2:0");
+					else gf_fprintf(dump, " YUV 4:2:2");
+				} else gf_fprintf(dump, " YUV 4:4:4");
+				if (av1c->monochrome) gf_fprintf(dump, " monochrome");
+				if (av1c->twelve_bit) gf_fprintf(dump, " 12 bpp");
+
+				gf_odf_av1_cfg_del(av1c);
+			}
+		}
+	}
+	else if ((codec_id==GF_CODECID_AAC_MPEG4) || (codec_id==GF_CODECID_AAC_MPEG2_MP) || (codec_id==GF_CODECID_AAC_MPEG2_LCP) || (codec_id==GF_CODECID_AAC_MPEG2_SSRP)) {
+		if (dsi) {
+			const char *name, *sep;
+			GF_M4ADecSpecInfo a_cfg;
+			gf_m4a_get_config(dsi->value.data.ptr, dsi->value.data.size, &a_cfg);
+			char *signaling = "implicit";
+			char *heaac = "";
+			if ((codec_id==GF_CODECID_AAC_MPEG4) && a_cfg.has_sbr) {
+				if (a_cfg.has_ps) heaac = " HEAACv2";
+				else heaac = " HEAACv1";
+			}
+			if (a_cfg.base_object_type==2) {
+				if (a_cfg.has_ps || a_cfg.has_sbr)
+					signaling = "backward compatible";
+			} else {
+				signaling = "hierarchical";
+			}
+			name = gf_m4a_object_type_name(a_cfg.base_object_type);
+			sep = strstr(name, "Audio");
+			if (sep) name = sep+6;
+
+			gf_fprintf(dump, " %s (aot=%d %s)%s", name, a_cfg.base_object_type, signaling, heaac);
+			if (a_cfg.has_sbr) gf_fprintf(dump, " SBR %d Hz aot %s", a_cfg.sbr_sr, gf_m4a_object_type_name(a_cfg.sbr_object_type));
+			if (a_cfg.has_ps) gf_fprintf(dump, " PS");
+		} else {
+			gf_fprintf(dump, " AAC");
+		}
+	} else if (codec_id==GF_CODECID_MPEG4_PART2) {
+		gf_fprintf(dump, " MPEG-4 Visual");
+		if (dsi) {
+			GF_M4VDecSpecInfo vcfg;
+			gf_m4v_get_config(dsi->value.data.ptr, dsi->value.data.size, &vcfg);
+			gf_fprintf(dump, " PL %s", gf_m4v_get_profile_name(vcfg.VideoPL));
+			if (vcfg.chroma_fmt) gf_fprintf(dump, " %s", gf_avc_hevc_get_chroma_format_name(vcfg.chroma_fmt) );
+			if (!vcfg.progresive) gf_fprintf(dump, " interlaced");
+		}
+	} else {
+		gf_fprintf(dump, " %s", gf_codecid_name(codec_id));
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
+		if (p) gf_fprintf(dump, " PL %d", p->value.uint);
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_CHROMAFMT);
+		if (p) gf_fprintf(dump, " %s", gf_avc_hevc_get_chroma_format_name(p->value.uint) );
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_INTERLACED);
+		if (p && p->value.boolean) gf_fprintf(dump, " interlaced");
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_W);
+	u32 clap_w = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_H);
+	u32 clap_h = p ? p->value.uint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_X);
+	s32 clap_x = p ? p->value.sint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CLAP_Y);
+	s32 clap_y = p ? p->value.sint : 0;
+	if (clap_w && clap_h) {
+		gf_fprintf(dump, " clap %dx%d@%ux%u", clap_x, clap_y, clap_w, clap_h);
+	}
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DOLBY_VISION);
+	if (p) {
+		GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+		GF_DOVIDecoderConfigurationRecord *dovi = gf_odf_dovi_cfg_read_bs(bs);
+		gf_bs_del(bs);
+		if (dovi) {
+			gf_fprintf(dump, " DolbyVision %d.%d PL %d@%d",
+				dovi->dv_version_major, dovi->dv_version_minor, dovi->dv_profile, dovi->dv_level);
+			if (dovi->rpu_present_flag) gf_fprintf(dump, " rpu");
+			if (dovi->bl_present_flag) gf_fprintf(dump, " base");
+			if (dovi->el_present_flag) gf_fprintf(dump, " el");
+			if (dovi->dv_bl_signal_compatibility_id) gf_fprintf(dump, " compat %d", dovi->dv_bl_signal_compatibility_id);
+			gf_odf_dovi_cfg_del(dovi);
+		}
+	}
+	gf_fprintf(dump, "\n");
+}
+
 static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove, u64 pck_for_config, Bool is_info, PidCtx *pctx)
 {
 	u32 idx=0, nalh_size, i;
@@ -2942,6 +3366,11 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 	if (!ctx->dump) return;
 	if (ctx->test==INSPECT_TEST_NOPROP) return;
+
+	if (!ctx->full) {
+		inspect_dump_pid_as_info(ctx, dump, pid, pid_idx, is_connect, is_remove, pck_for_config, is_info, pctx);
+		return;
+	}
 
 	//disconnect of src pid (not yet supported)
 	if (ctx->xml) {
@@ -3768,6 +4197,13 @@ GF_Err inspect_initialize(GF_Filter *filter)
 		gf_fprintf(ctx->dump, "<GPACInspect>\n");
 	}
 
+	if (ctx->xml || ctx->analyze || gf_sys_is_test_mode() || ctx->fmt) {
+		ctx->full = GF_TRUE;
+	}
+	if (!ctx->full) {
+		ctx->mode = INSPECT_MODE_REFRAME;
+	}
+
 	switch (ctx->mode) {
 	case INSPECT_MODE_RAW:
 		break;
@@ -3816,6 +4252,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(hdr), "print a header corresponding to fmt string without '$' or \"pid\"", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(allp), "analyse for the entire duration, rather than stopping when all pids are found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(info), "monitor PID info changes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(full), "full dump of PID properties (always on if XML)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(pcr), "dump M2TS PCR info", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(speed), "set playback command speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
@@ -3855,6 +4292,10 @@ const GF_FilterRegister InspectRegister = {
 	GF_FS_SET_HELP("The inspect filter can be used to dump pid and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only pid changes.\n"
+	"If [-full]() is not set, [-mode=frame]() is forced and PID properties are formated in human-readable form, one pid per line.\n"
+	"Otherwise, all properties are dumped.\n"
+	"Note: specifying [-xml](), [-analyze](), [-fmt]() or using `-for-test` will force [-full]() to true.\n"
+	"\n"
 	"The packet inspector can be configured to dump specific properties of packets using [-fmt]().\n"
 	"When the option is not present, all properties are dumped. Otherwise, only properties identified by `$TOKEN$` "
 	"are printed. You may use '$', '@' or '%' for `TOKEN` separator. `TOKEN` can be:\n"
