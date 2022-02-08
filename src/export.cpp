@@ -2525,6 +2525,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_register ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_print_all_connections ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_force_main_thread ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_sink ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_is_source ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_tag_subsession ) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_discard ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pck_ref ) )

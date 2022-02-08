@@ -176,7 +176,7 @@ The consequences are:
 For better multithreaded usage, it is therefore not recommended to use packets with shared JS data.
 
 
-By default the filter session will run with implicit linking. Setting a source on a filter will force the session linker to use explicit linking for all future link resolution.
+By default the filter session will run with implicit linking.
 
 @{
 

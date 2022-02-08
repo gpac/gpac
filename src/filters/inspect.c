@@ -3169,7 +3169,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 					}
 				}
 			}
-		} else {
+		} else if (dsi_enh) {
 			hvcc = gf_odf_hevc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size, GF_TRUE);
 		}
 		gf_fprintf(dump, " %s", (codec_id==GF_CODECID_LHVC) ? "L-HEVC" : "HEVC");
@@ -3209,10 +3209,10 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		if (hvcs) gf_free(hvcs);
 	}
 	else if ((codec_id==GF_CODECID_AVC) || (codec_id==GF_CODECID_SVC) || (codec_id==GF_CODECID_MVC)) {
-		GF_AVCConfig *avcc;
+		GF_AVCConfig *avcc=NULL;
 		if (dsi) {
 			avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-		} else {
+		} else if (dsi_enh) {
 			avcc = gf_odf_avc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
 		}
 		if (codec_id==GF_CODECID_AVC) gf_fprintf(dump, " %s", "AVC|H264");
@@ -3240,10 +3240,10 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		}
 	}
 	else if ((codec_id==GF_CODECID_VVC) || (codec_id==GF_CODECID_VVC_SUBPIC)) {
-		GF_VVCConfig *vvcc;
+		GF_VVCConfig *vvcc=NULL;
 		if (dsi) {
 			vvcc = gf_odf_vvc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-		} else {
+		} else if (dsi_enh) {
 			vvcc = gf_odf_vvc_cfg_read(dsi_enh->value.data.ptr, dsi_enh->value.data.size);
 		}
 		if (codec_id==GF_CODECID_VVC) gf_fprintf(dump, " VVC%s", (codec_id==GF_CODECID_VVC) ? "" : " subpictures");
@@ -3257,20 +3257,20 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 		}
 	}
 	else if (codec_id==GF_CODECID_AV1) {
+		GF_AV1Config *av1c = NULL;
+		if (dsi)
+			av1c = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 		gf_fprintf(dump, " AV1");
-		if (dsi) {
-			GF_AV1Config *av1c = gf_odf_av1_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
-			if (av1c) {
-				gf_fprintf(dump, " PL %d@%d", av1c->seq_profile, av1c->seq_level_idx_0);
-				if (av1c->chroma_subsampling_x) {
-					if (av1c->chroma_subsampling_y) gf_fprintf(dump, " YUV 4:2:0");
-					else gf_fprintf(dump, " YUV 4:2:2");
-				} else gf_fprintf(dump, " YUV 4:4:4");
-				if (av1c->monochrome) gf_fprintf(dump, " monochrome");
-				if (av1c->twelve_bit) gf_fprintf(dump, " 12 bpp");
+		if (av1c) {
+			gf_fprintf(dump, " PL %d@%d", av1c->seq_profile, av1c->seq_level_idx_0);
+			if (av1c->chroma_subsampling_x) {
+				if (av1c->chroma_subsampling_y) gf_fprintf(dump, " YUV 4:2:0");
+				else gf_fprintf(dump, " YUV 4:2:2");
+			} else gf_fprintf(dump, " YUV 4:4:4");
+			if (av1c->monochrome) gf_fprintf(dump, " monochrome");
+			if (av1c->twelve_bit) gf_fprintf(dump, " 12 bpp");
 
-				gf_odf_av1_cfg_del(av1c);
-			}
+			gf_odf_av1_cfg_del(av1c);
 		}
 	}
 	else if ((codec_id==GF_CODECID_AAC_MPEG4) || (codec_id==GF_CODECID_AAC_MPEG2_MP) || (codec_id==GF_CODECID_AAC_MPEG2_LCP) || (codec_id==GF_CODECID_AAC_MPEG2_SSRP)) {

@@ -93,23 +93,22 @@ static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_F
 const char *gpac_doc =
 "# General\n"
 "Filters are configurable processing units consuming and producing data packets. These packets are carried "
-"between filters through a data channel called __pid__. A PID is in charge of allocating/tracking data packets, "
+"between filters through a data channel called __PID__. A PID is in charge of allocating/tracking data packets, "
 "and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. "
 "This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).\n"
 "Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on "
 "this PID will be destroyed. The session may however still run, unless [-full-link](CORE) is set.\n"
-"  \nEach output PID carries a set of properties describing the data it delivers (eg __width__, __height__, __codec__, ...). Properties "
+"  \nEach output PID carries a set of properties describing the data it delivers (e.g. __width__, __height__, __codec__, ...). Properties "
 "can be built-in (see [gpac -h props](filters_properties) ), or user-defined. Each PID tracks "
 "its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be "
-"reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed "
+"reconfigured at run time, potentially reloading part of the chain (e.g. unload a video decoder when switching from compressed "
 "to uncompressed sources).\n"
 "  \nEach filter exposes a set of argument to configure itself, using property types and values described as strings formatted with "
 "separators. This help is given with default separator sets `:=#,@` to specify filters, properties and options. Use [-seps](GPAC) to change them.\n"
 "# Property and filter option format\n"
 "- boolean: formatted as `yes`,`true`,`1` or `no`,`false`,`0`\n"
 "- enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value `0` (first in enum) is assumed.\n"
-"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`,`K` (x 1000) or `m`,`M` (x 1000000) or `g`,`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). "
-"For such properties, value `+I` means maximum possible value, `-I` minimum possible value.\n"
+"- 1-dimension (numbers, floats, ints...): formatted as `value[unit]`, where `unit` can be `k`,`K` (x 1000) or `m`,`M` (x 1000000) or `g`,`G` (x 1000000000) or `sec` (x 1000) or `min` (x 60000). `+I` means max float/int/uint value, `-I` min float/int/uint value.\n"
 "- fraction: formatted as `num/den` or `num-den` or `num`, in which case the denominator is 1 if `num` is an integer, or 1000000 if `num` is a floating-point value.\n"
 "- unsigned 32 bit integer: formatted as number or hexadecimal using the format `0xAABBCCDD`.\n"
 "- N-dimension (vectors): formatted as `DIM1xDIM2[xDIM3[xDIM4]]` values, without unit multiplier.\n"
@@ -123,17 +122,17 @@ const char *gpac_doc =
 "  - `file@FILE`: load data from local `FILE` (opened in binary mode).\n"
 "  - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/NHML-Format.\n"
 "  - `b64@DATA`: load data from base-64 encoded `DATA`.\n"
-"- pointer: are formatted as `address` giving the pointer address (32 or 64 bit depending on platforms).\n"
+"- pointer: pointer address as formatted by `\%p` in C.\n"
 "- string lists: formatted as `val1,val2[,...]`. Each value can also use `file@FILE` syntax.\n"
 "- integer lists: formatted as `val1,val2[,...]`\n"
 "Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
 "# Filter declaration [__FILTER__]\n"
 "## Generic declaration\n"
 "Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated `name=value` pairs. Additional syntax is provided for:\n"
-"- boolean: `value` can be omitted, defaulting to `true` (eg `:noedit`). Using `!` before the name negates the result (eg `:!moof_first`)\n"
+"- boolean: `value` can be omitted, defaulting to `true` (e.g. `:noedit`). Using `!` before the name negates the result (eg `:!moof_first`)\n"
 "- enumerations: name can be omitted, e.g. `:disp=pbo` is equivalent to `:pbo`.\n"
 "\n  \n"
-"When string parameters are used (eg URLs), it is recommended to escape the string using the keyword `gpac`.  \n"
+"When string parameters are used (e.g. URLs), it is recommended to escape the string using the keyword `gpac`.  \n"
 "EX filter:ARG=http://foo/bar?yes:gpac:opt=VAL\n"
 "This will properly extract the URL.\n"
 "EX filter:ARG=http://foo/bar?yes:opt=VAL\n"
@@ -145,7 +144,7 @@ const char *gpac_doc =
 "This will fail to extract the URL and options.\n"
 "EX -i tcp://127.0.0.1:1234/:OPT\n"
 "This will extract the URL and options.\n"
-"Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg `f1:opt1=foo:url=http://bar`, provided you have only one URL parameter to specify on the filter.\n"
+"Note: one trick to avoid the escape sequence is to declare the URLs option at the end, e.g. `f1:opt1=foo:url=http://bar`, provided you have only one URL parameter to specify on the filter.\n"
 "\n"
 "It is possible to disable option parsing (for string options) by duplicating the separator.\n"
 "EX filter::opt1=UDP://IP:PORT/:someopt=VAL::opt2=VAL2\n"
@@ -209,20 +208,32 @@ const char *gpac_doc =
 "\n"
 "The filter graph resolver uses this information together with the PID properties to link the different filters.\n"
 "\n"
-"## Implicit linking\n"
-"Implicit linking is enabled by the gpac application if the command line has:\n"
-"- no link directives (`@`, `FID=`, `SID=`)\n"
-"- [-fl](GPAC) option is not set\n"
-"In this mode, a PID will be linked:\n"
-"- only once to the first matching non-sink filter in declaration order.\n"
-"- or to any of the matching sink (destination) filters in declaration order.\n"
+"Link directives, when provided, specify which source a filter can accept connections from.\n"
+"__They do not specify which destination a filter can connect to.__\n"
 "\n"
-"This allows specifying linear processing chains (no PID fan-out except for final output(s)) without giving the link directives, simplifying command lines for common cases.\n"
-"Warning: Argument order really matters in this mode!\n"
+"## Default filter linking\n"
+"When no link instructions are given (see below), the default linking strategy used is either __implicit mode__ (default in `gpac`) or __complete mode__ (if [-cl](GPAC) is set).\n"
+"Each PID is checked for possible connection to all defined filters, in their declaration order.\n"
+"For each filter `DST` accepting a connection from the PID, directly or with intermediate filters:\n"
+"- if `DST` filter has link directives, use them to allow or reject PID connection.\n"
+"- otherwise, if __complete mode__ is enabled, allow connection.\n"
+"- otherwise (__implicit mode__):\n"
+" - if `DST` is not a sink and is the first matching filter with no link directive, allow connection.\n"
+" - otherwise, if `DST` is not a sink and is not the first matching filter with no link directive, reject connection.\n"
+" - otherwise (`DST` is a sink), allow connection.\n"
+"\n"
+"The __implicit mode__ allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.\n"
+"Warning: Argument order really matters in implicit mode!\n"
 "\n"
 "EX -i file.mp4 c=avc -o output\n"
-"If the file has a video PID, it will connect to `enc` but not to `output`. The output PID of `enc` will connect to `output`.\n"
-"If the file has other PIDs than video, they will connect to `output`, since this `enc` filter accepts only video.\n"
+"With this setup in __implicit mode__:\n"
+"- if the file has a video PID, it will connect to `enc` but not to `output`. The output PID of `enc` will connect to `output`.\n"
+"- if the file has other PIDs than video, they will connect to `output`, since this `enc` filter accepts only video.\n"
+"\n"
+"EX -cl -i file.mp4 c=avc -o output\n"
+"With this setup in __complete mode__:\n"
+"- if the file has a video PID, it will connect both to `enc` and to `output`, and the output PID of `enc` will connect to `output`.\n"
+"- if the file has other PIDs than video, they will connect to `output`.\n"
 "\n"
 "EX -i file.mp4 c=avc c=aac -o output\n"
 "If the file has a video PID, it will connect to `c=avc` but not to `output`. The output PID of `c=avc` will connect to `output`.\n"
@@ -231,11 +242,11 @@ const char *gpac_doc =
 "\n"
 "EX -i file.mp4 ffswf=osize:128x720 c=avc resample=osr=48k c=aac -o output\n"
 "This will force:\n"
-"- `SRC(video)->ffsws->enc(video)->output` and prevent `SRC(video)->output` and `ffsws->output` connections.\n"
-"- `SRC(audio)->resample->enc(audio)->output` and prevent `SRC(audio)->output` and `resample->output` connections.\n"
+"- `SRC(video)->ffsws->enc(video)->output` and prevent `SRC(video)->output` and `ffsws->output` connections which would happen in __complete mode__.\n"
+"- `SRC(audio)->resample->enc(audio)->output` and prevent `SRC(audio)->output` and `resample->output` connections which would happen in __complete mode__.\n"
 "\n"
 "## Quick links\n"
-"Link between filters may be manually specified. The syntax is an `@` character optionally followed by an integer (0 if omitted). "
+"Link between filters may be manually specified. The syntax is an `@` character optionally followed by an integer (0 if omitted).\n"
 "This indicates that the following filter specified at prompt should be linked only to a previous listed filter.\n"
 "The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).\n"
 "If `@@` is used instead of `@`, the optional integer gives the filter index starting from the first filter (index 0) specified in command line.\n"
@@ -246,16 +257,14 @@ const char *gpac_doc =
 "This indicates that `fD` only accepts inputs from `fB` and `fC`.\n"
 "EX fA fB fC ... @@1 fZ\n"
 "This indicates that `fZ` only accepts inputs from `fB`.\n"
-"\nIf no link directives are given and [-fl](GPAC) is set, the links will be dynamically solved to fulfill as many connections as possible (__see below__).\n"
 "\n"
 "## Complex links\n"
-"The link directive is just a quick shortcut to set the following arguments:\n"
-"- FID=name, which assigns an identifier to the filter\n"
-"- SID=name1[,name2...], which set a list of filter identifiers, or __sourceIDs__, restricting the list of possible inputs for a filter.\n"
+"The `@` link directive is just a quick shortcut to set the following filter arguments:\n"
+"- FID=name: assigns an identifier to the filter\n"
+"- SID=name1[,name2...]: sets a list of filter identifiers, or __sourceIDs__, restricting the list of possible inputs for a filter.\n"
 "\n"
 "EX fA fB @1 fC\n"
 "This is equivalent to `fA:FID=1 fB fC:SID=1`.\n"
-"Link directives specify which source a filter can accept connections from. They do not specify which destination a filter can connect to.\n"
 "EX fA:FID=1 fB fC:SID=1\n"
 "This indicates that `fC` only accepts input from `fA`, but `fB` might accept inputs from `fA`.\n"
 "EX fA:FID=1 fB:FID=2 fC:SID=1 fD:SID=1,2\n"
@@ -265,7 +274,7 @@ const char *gpac_doc =
 "A sourceID name can be further extended using fragment identifier (`#` by default):\n"
 "- name#PIDNAME: accepts only PID(s) with name `PIDNAME`\n"
 "- name#TYPE: accepts only PIDs of matching media type. TYPE can be `audio`, `video`, `scene`, `text`, `font`, `meta`\n"
-"- name#TYPEN: accepts only `N` (1-based index) PID of matching type from source (eg `video2` to only accept second video PID)\n"
+"- name#TYPEN: accepts only `N` (1-based index) PID of matching type from source (e.g. `video2` to only accept second video PID)\n"
 "- name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching `VAL`\n"
 "- name#P4CC=VAL: accepts only PIDs with builtin property of type `P4CC` and value `VAL`.\n"
 "- name#PName=VAL: same as above, using the builtin name corresponding to the property.\n"
@@ -300,8 +309,8 @@ const char *gpac_doc =
 "EX src=vid.mp4 @#Width=640#Height+380 vout\n"
 "This indicates to connect to `vout` only PIDs with `Width` property equal to `640` and `Height` greater than `380`.\n"
 "\n"
-"Warning: If a PID gets connected to an explicitly loaded filter, no further dynamic link resolution will "
-"be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.\n"
+"Warning: If a PID directly connects to one or more explicitly loaded filters, no further dynamic link resolution will "
+"be done to connect it to other filters with no sourceID set. Link directives should be carefully setup.\n"
 "EX fA @ reframer fB\n"
 "If `fB` accepts inputs provided by `fA` but `reframer` does not, this will link `fA` PID to `fB` filter since `fB` has no sourceID.\n"
 "Since the PID is connected, the filter engine will not try to solve a link between `fA` and `reframer`.\n"
@@ -314,9 +323,21 @@ const char *gpac_doc =
 "EX src=file.mp4 dst=dump.mp4:nomux\n"
 "This will result in a direct file copy.\n"
 "\n"
-"Note: this only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):\n"
+"This only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):\n"
 "- direct copy is enabled by default\n"
 "- `nomux=0` can be used to force remux\n"
+"\n"
+"## Sub-session tagging\n"
+"Filters may be assigned to a subsession using `:FS=N`, with `N` a positive integer.\n"
+"Filters belonging to different subsessions may only link to each-other:\n"
+"- if explicitly allowed through sourceID directives (`@` or `SID`)\n"
+"- or if they have the same sub-session identifier\n"
+"\n"
+"This is mostly used for __implicit mode__ in `gpac`: each first source filter specified after a sink filter will trigger a new subsession.\n"
+"EX -i in1.mp4 -i in2.mp4 -o out1.mp4 -o out2.mp4\n"
+"This will result in both inputs muxed in both outputs.\n"
+"EX -i in1.mp4 -o out1.mp4 -i in2.mp4 -o out2.mp4\n"
+"This will result in in1 mixed to out1 and in2 mixed to out2, these last two filters belonging to a different sub-session.\n"
 "\n"
 "# Arguments inheriting\n"
 "Unless explicitly disabled (see [-max-chain](CORE)), the filter engine will resolve implicit or explicit (__LINK__) connections "
@@ -387,16 +408,16 @@ const char *gpac_doc =
 "EX src=source.ts dst=file_$ServiceID$.mp4:SID=#ServiceID=\n"
 "In this case, each new `ServiceID` value found when connecting PIDs to the destination will create a new destination file.\n"
 "\n"
-"Cloning in implicit mode applies to output as well:\n"
+"Cloning in implicit linking mode applies to output as well:\n"
 "EX -i dual_audio -o dst_$PID$.aac\n"
 "Each audio track will be dumped to aac (potentially reencoding if needed).\n"
 "\n"
 "# Assigning PID properties\n"
 "It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the "
 "graph with different properties than other parts (for example `ServiceID`). "
-"The syntax is the same as filter option, and uses the fragment separator to identify properties, eg `#Name=Value`.\n"
+"The syntax is the same as filter option, and uses the fragment separator to identify properties, e.g. `#Name=Value`.\n"
 "This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for boolean "
-"(defaults to true, eg `:#Alpha`).\n"
+"(defaults to true, e.g. `:#Alpha`).\n"
 "Non built-in properties are parsed as follows:\n"
 "- `file@FOO` will be declared as string with a value set to the content of `FOO`.\n"
 "- `bxml@FOO` will be declared as data with a value set to the binarized content of `FOO`.\n"
@@ -455,12 +476,14 @@ const char *gpac_doc =
 "- FID: filter identifier\n"
 "- SID: filter source(s)\n"
 "- N: filter name\n"
+"- FS: sub-session identfier\n"
 "- TAG: filter tag\n"
 "- clone: filter cloning flag\n"
 "- nomux: enable/disable direct file copy\n"
 "- gfreg: prefered filter registry names for link solving\n"
 "- gfloc: following options are local to filter declaration (not inherited)\n"
 "- gfopt: following options are not tracked\n"
+"- gpac: argument separator for URLs\n"
 "\n"
 "# External filters\n"
 "GPAC comes with a set of built-in filters in libgpac. It may also load external filters in dynamic libraries, located in "
@@ -553,7 +576,7 @@ const char *gpac_alias =
 "\n"
 "The specified index can be:\n"
 "- forward index: a strictly positive integer, 1 being the first argument after the alias\n"
-"- backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by `-x` to rewind arguments (eg `@{n-1}` is the before last argument)\n"
+"- backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by `-x` to rewind arguments (e.g. `@{n-1}` is the before last argument)\n"
 "\n"
 "Arguments not used by any aliases are kept on the command line, other ones are removed\n"
 "\n"
@@ -649,7 +672,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("r", NULL, "enable reporting\n"
 			"- r: runtime reporting\n"
-			"- r=FA[,FB]: runtime reporting but only print given filters, eg `r=mp4mx` for ISOBMFF muxer only\n"
+			"- r=FA[,FB]: runtime reporting but only print given filters, e.g. `r=mp4mx` for ISOBMFF muxer only\n"
 			"- r=: only print final report"
 			, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to separate various arguments\n"\
@@ -664,7 +687,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("o", "dst", "specify an output file - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("ib", NULL, "specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("ob", NULL, "specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT),
-	GF_DEF_ARG("fl", NULL, "force full linking when no link directive are set", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
+	GF_DEF_ARG("cl", NULL, "force complete mode when no link directive are set - see [filters help (-h doc)](filters_general)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("step", NULL, "test step mode in non-blocking session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("h", "help,-ha,-hx,-hh", "print help. Use `-help` or `-h` for basic options, `-ha` for advanced options, `-hx` for expert options and `-hh` for all.  \nNote: The `@` character can be used in place of the `*` character. String parameter can be:\n"\
 			"- empty: print command line options help\n"\
@@ -684,7 +707,7 @@ static GF_GPACArg gpac_args[] =
 			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"\
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"\
 			"- FNAME: print filter `FNAME` info (multiple FNAME can be given)\n"
-			"  - For meta-filters, use `FNAME:INST`, eg `ffavin:avfoundation`\n"
+			"  - For meta-filters, use `FNAME:INST`, e.g. `ffavin:avfoundation`\n"
 			"  - Use `*` to print info on all filters (__big output!__), `*:*` to print info on all filters including meta filter instances (__really big output!__)\n"
 			"  - By default only basic filter options and description are shown. Use `-ha` to show advanced options capabilities, `-hx` for expert options, `-hh` for all options and filter capabilities including on filters disabled in this build\n"\
 			"- FNAME.OPT: print option `OPT` in filter `FNAME`\n"
@@ -1816,6 +1839,8 @@ static int gpac_main(int argc, char **argv)
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
 	Bool alias_is_play = GF_FALSE;
+	Bool prev_filter_is_sink;
+	u32 current_subsession_id;
 	Bool has_xopt = GF_FALSE;
 
 	helpout = stdout;
@@ -2159,7 +2184,7 @@ static int gpac_main(int argc, char **argv)
 			}
 		} else if (!strcmp(arg, "-unit-tests")) {
 			do_unit_tests = GF_TRUE;
-		} else if (!strcmp(arg, "-fl")) {
+		} else if (!strcmp(arg, "-cl")) {
 			sflags |= GF_FS_FLAG_NO_IMPLICIT;
 		} else if (!strcmp(arg, "-step")) {
 			use_step_mode = GF_TRUE;
@@ -2215,6 +2240,8 @@ static int gpac_main(int argc, char **argv)
 		gf_opts_set_key("temp", "helponly", "yes");
 
 restart:
+	prev_filter_is_sink = 0;
+	current_subsession_id = 0;
 
 	if (view_conn_for_filter && argmode>=GF_ARGMODE_EXPERT)
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
@@ -2363,6 +2390,8 @@ restart:
 			goto exit;
 		}
 		nb_filters++;
+		if (current_subsession_id)
+			gf_filter_tag_subsession(filter, current_subsession_id);
 
 		while (gf_list_count(links_directive)) {
 			char *link_prev_filter_ext = NULL;
@@ -2402,6 +2431,14 @@ restart:
 				goto exit;
 			}
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
+		}
+
+		if (gf_filter_is_sink(filter)) {
+			prev_filter_is_sink = GF_TRUE;
+		}
+		else if (prev_filter_is_sink && gf_filter_is_source(filter)) {
+			prev_filter_is_sink = GF_FALSE;
+			current_subsession_id++;
 		}
 		gf_list_add(loaded_filters, filter);
 	}
