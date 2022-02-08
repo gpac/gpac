@@ -5226,7 +5226,11 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, " IV_size=\"%u\"", iv_size);
 			if (iv_size) {
 				gf_fprintf(trace, " IV=\"");
-				dump_data_hex(trace, (char *) sai->cenc_data, iv_size);
+				if (iv_size <= sai->cenc_data_size) {
+					dump_data_hex(trace, (char *) sai->cenc_data, iv_size);
+				} else {
+					gf_fprintf(trace, "CORRUPTED");
+				}
 				gf_fprintf(trace, "\"");
 				gf_bs_skip_bytes(bs, iv_size);
 			}
@@ -5239,10 +5243,13 @@ GF_Err senc_box_dump(GF_Box *a, FILE * trace)
 				u32 pos;
 				u32 idx = gf_bs_read_u16(bs);
 				u8 mk_iv_size = key_info_get_iv_size(sai->key_info, sai->key_info_size, idx, NULL, NULL);
-				assert(mk_iv_size);
 				pos = (u32) gf_bs_get_position(bs);
-				gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
-				dump_data_hex(trace, (char *) sai->cenc_data+pos, mk_iv_size);
+				if (mk_iv_size + pos <= sai->cenc_data_size) {
+					gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:", k ? "," : "", idx, mk_iv_size);
+					dump_data_hex(trace, (char *) sai->cenc_data+pos, mk_iv_size);
+				} else {
+					gf_fprintf(trace, "%sidx:%d,iv_size:%d,IV:CORRUPTED", k ? "," : "", idx, mk_iv_size);
+				}
 				gf_bs_skip_bytes(bs, mk_iv_size);
 			}
 			if (nb_ivs) {
