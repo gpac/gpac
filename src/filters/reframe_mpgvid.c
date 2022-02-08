@@ -983,7 +983,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		e = gf_m4v_parse_frame(ctx->vparser, &ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
 
 		//only for m1v/m2v, for m4v we mah have fstart>0 when we strip VO and VISOBJ
-		if (ctx->is_mpg12 && fstart) {
+		if (ctx->is_mpg12 && fstart && (fstart<remain)) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) fstart, &pck_data);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 
@@ -1001,7 +1001,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
 
 			start += fstart;
-			remain -= fstart;
+			remain -= (s32) fstart;
 		}
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
