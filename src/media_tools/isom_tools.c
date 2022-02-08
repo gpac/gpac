@@ -442,7 +442,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
         case GF_ISOM_MEDIA_AUXV:
         case GF_ISOM_MEDIA_PICT:
 			image_track = 0;
-			if (esd && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG)) )
+			if (esd && esd->decoderConfig && ((esd->decoderConfig->objectTypeIndication==GF_CODECID_JPEG) || (esd->decoderConfig->objectTypeIndication==GF_CODECID_PNG)) )
 				image_track = 1;
 
 			/*remove image tracks if wanted*/
