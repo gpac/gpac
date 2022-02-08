@@ -367,7 +367,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	gf_mx_p(sg->dom_evt_mx);
 	/*remove listeners attached to the doc*/
-	gf_dom_event_remove_all_listeners(sg->dom_evt);
+	gf_dom_event_remove_all_listeners(sg->dom_evt, sg);
 	/*flush any pending add_listener*/
 	gf_dom_listener_reset_deferred(sg);
 	gf_mx_v(sg->dom_evt_mx);
@@ -1598,7 +1598,7 @@ void gf_node_free(GF_Node *node)
 		}
 #ifndef GPAC_DISABLE_SVG
 		if (node->sgprivate->interact->dom_evt) {
-			gf_dom_event_remove_all_listeners(node->sgprivate->interact->dom_evt);
+			gf_dom_event_remove_all_listeners(node->sgprivate->interact->dom_evt, node->sgprivate->scenegraph);
 			gf_dom_event_target_del(node->sgprivate->interact->dom_evt);
 		}
 		if (node->sgprivate->interact->animations) {

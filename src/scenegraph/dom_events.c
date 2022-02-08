@@ -189,11 +189,15 @@ GF_Err gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target,
 	return GF_OK;
 }
 
-void gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target)
+void gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target, GF_SceneGraph *sg)
 {
 	while (gf_list_count(event_target->listeners)) {
 		GF_Node *n = (GF_Node *)gf_list_get(event_target->listeners, 0);
-		gf_dom_listener_del(n, event_target);
+		if (gf_list_find(sg->exported_nodes, n)>=0) {
+			gf_list_rem(event_target->listeners, 0);
+		} else {
+			gf_dom_listener_del(n, event_target);
+		}
 	}
 }
 
