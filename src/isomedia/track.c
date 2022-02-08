@@ -830,7 +830,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 	if (traf_duration && trak->editBox && trak->editBox->editList) {
 		//append to last edit only, adding edits on the fly is not possible in isobmff
 		GF_EdtsEntry *edts_e = gf_list_last(trak->editBox->editList->entryList);
-		if (edts_e->was_empty_dur || !edts_e->segmentDuration) {
+		if (edts_e && (edts_e->was_empty_dur || !edts_e->segmentDuration)) {
 			//extend last edit duration by the amount of media received in fragment (traf duration)
 			//regardless of the mediaTime offset of the edit (cf #2985)
 			u64 extend_dur = traf_duration;
