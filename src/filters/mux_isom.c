@@ -4092,12 +4092,14 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 				if ((nal[0] & 0x1F) == GF_AVC_NALU_ACCESS_UNIT) {
 					first_nal_is_audelim = au_delim_size = 2 + tkw->nal_unit_size;
 					au_delim = pck_data;
+					if (au_delim_size >= pck_data_len) au_delim = NULL;
 				}
 			} else {
 				char *nal = pck_data + tkw->nal_unit_size;
 				if (((nal[0] & 0x7E)>>1) == GF_HEVC_NALU_ACCESS_UNIT) {
 					first_nal_is_audelim = au_delim_size = 3 + tkw->nal_unit_size;
 					au_delim = pck_data;
+					if (au_delim_size >= pck_data_len) au_delim = NULL;
 				}
 			}
 
