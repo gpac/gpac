@@ -122,7 +122,7 @@ const char *gpac_doc =
 "  - `file@FILE`: load data from local `FILE` (opened in binary mode).\n"
 "  - `bxml@FILE`: binarize XML from local `FILE` - see https://wiki.gpac.io/NHML-Format.\n"
 "  - `b64@DATA`: load data from base-64 encoded `DATA`.\n"
-"- pointer: pointer address as formatted by `\%p` in C.\n"
+"- pointer: pointer address as formatted by `%p` in C.\n"
 "- string lists: formatted as `val1,val2[,...]`. Each value can also use `file@FILE` syntax.\n"
 "- integer lists: formatted as `val1,val2[,...]`\n"
 "Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be configured.\n"
@@ -220,10 +220,7 @@ const char *gpac_doc =
 "- otherwise (__implicit mode__):\n"
 " - if `DST` is not a sink and is the first matching filter with no link directive, allow connection.\n"
 " - otherwise, if `DST` is not a sink and is not the first matching filter with no link directive, reject connection.\n"
-" - otherwise (`DST` is a sink), allow connection.\n"
-"\n"
-"The __implicit mode__ allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.\n"
-"Warning: Argument order really matters in implicit mode!\n"
+" - otherwise (`DST` is a sink) and no previous connections to a non-sink filter, allow connection.\n"
 "\n"
 "EX -i file.mp4 c=avc -o output\n"
 "With this setup in __implicit mode__:\n"
@@ -235,15 +232,27 @@ const char *gpac_doc =
 "- if the file has a video PID, it will connect both to `enc` and to `output`, and the output PID of `enc` will connect to `output`.\n"
 "- if the file has other PIDs than video, they will connect to `output`.\n"
 "\n"
+"Furthermore in __implicit mode__, filter connections are restricted to filters defined between the last source and the sink(s).\n"
+"EX -i video1 reframer:saps=1 -i video2 ffsws:osize=128x72 -o output\n"
+"This will connect:\n"
+"- `video1` to `reframer` then `reframer` to `output` but will prevent `reframer` to `ffsws` connection.\n"
+"- `video2` to `ffsws` then `ffsws` to `output` but will prevent `video2` to `reframer` connection.\n"
+"\n"
+"EX -i video1 -i video2 reframer:saps=1 ffsws:osize=128x72 -o output\n"
+"This will connect `video1` AND `video2` to `reframer->ffsws->output`\n"
+"\n"
+"The __implicit mode__ allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.\n"
+"Warning: Argument order really matters in implicit mode!\n"
+"\n"
 "EX -i file.mp4 c=avc c=aac -o output\n"
 "If the file has a video PID, it will connect to `c=avc` but not to `output`. The output PID of `c=avc` will connect to `output`.\n"
 "If the file has an audio PID, it will connect to `c=aac` but not to `output`. The output PID of `c=aac` will connect to `output`.\n"
 "If the file has other PIDs than audio or video, they will connect to `output`.\n"
 "\n"
-"EX -i file.mp4 ffswf=osize:128x720 c=avc resample=osr=48k c=aac -o output\n"
+"EX -i file.mp4 ffswf=osize:128x72 c=avc resample=osr=48k c=aac -o output\n"
 "This will force:\n"
-"- `SRC(video)->ffsws->enc(video)->output` and prevent `SRC(video)->output` and `ffsws->output` connections which would happen in __complete mode__.\n"
-"- `SRC(audio)->resample->enc(audio)->output` and prevent `SRC(audio)->output` and `resample->output` connections which would happen in __complete mode__.\n"
+"- `SRC(video)->ffsws->enc(video)->output` and prevent `SRC(video)->output`, `SRC(video)->enc(video)` and `ffsws->output` connections which would happen in __complete mode__.\n"
+"- `SRC(audio)->resample->enc(audio)->output` and prevent `SRC(audio)->output`, `SRC(audio)->enc(audio)` and `resample->output` connections which would happen in __complete mode__.\n"
 "\n"
 "## Quick links\n"
 "Link between filters may be manually specified. The syntax is an `@` character optionally followed by an integer (0 if omitted).\n"
@@ -328,12 +337,12 @@ const char *gpac_doc =
 "- `nomux=0` can be used to force remux\n"
 "\n"
 "## Sub-session tagging\n"
-"Filters may be assigned to a subsession using `:FS=N`, with `N` a positive integer.\n"
-"Filters belonging to different subsessions may only link to each-other:\n"
+"Filters may be assigned to a sub-session using `:FS=N`, with `N` a positive integer.\n"
+"Filters belonging to different sub-sessions may only link to each-other:\n"
 "- if explicitly allowed through sourceID directives (`@` or `SID`)\n"
 "- or if they have the same sub-session identifier\n"
 "\n"
-"This is mostly used for __implicit mode__ in `gpac`: each first source filter specified after a sink filter will trigger a new subsession.\n"
+"This is mostly used for __implicit mode__ in `gpac`: each first source filter specified after a sink filter will trigger a new sub-session.\n"
 "EX -i in1.mp4 -i in2.mp4 -o out1.mp4 -o out2.mp4\n"
 "This will result in both inputs muxed in both outputs.\n"
 "EX -i in1.mp4 -o out1.mp4 -i in2.mp4 -o out2.mp4\n"
@@ -396,9 +405,9 @@ const char *gpac_doc =
 "When implicit linking is enabled, all filters are by default clonable. This allows duplicating the processing for each PIDs of the same type.\n"
 "EX -i dual_audio resample:osr=48k c=aac -o dst\n"
 "The `resampler` filter will be cloned for each audio PID, and the encoder will be cloned for each resampler output.\n"
-"You can explicetly deactivate the cloning instructions:\n"
+"You can explicitly deactivate the cloning instructions:\n"
 "EX -i dual_audio resample:osr=48k:clone=0 c=aac -o dst\n"
-"The first audio will connect to the `resample` filter, the second to the `enc` filter and the resampler output will connect to a clone of the `enc` filter.\n"
+"The first audio will connect to the `resample` filter, the second to the `enc` filter and the `resample` output will connect to a clone of the `enc` filter.\n"
 "\n"
 "# Templating filter chains\n"
 "There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone` option is not enough since the muxer will always accept the input PIDs.\n"
@@ -468,11 +477,11 @@ const char *gpac_doc =
 "- $GUA: replaced by the global config user agent option [-user-agent](CORE)\n"
 "- $GINC(init_val[,inc]): replaced by `init_val` and increment `init_val` by `inc` (positive or negative number, 1 if not specified) each time a new filter using this string is created.\n"
 "\n"
-"The $GINC construct can be used to dynamically assign numbers in filter chains:\n"
+"The `$GINC` construct can be used to dynamically assign numbers in filter chains:\n"
 "EX gpac -i source.ts tssplit @#ServiceID= -o dump_$GINC(10,2).ts\n"
 "This will dump first service in dump_10.ts, second service in dump_12.ts, etc...\n"
 "\n"
-"As seen previously, the following options may be set on any filter, but are not visible in filter help:\n"
+"As seen previously, the following options may be set on any filter, but are not visible in individual filter help:\n"
 "- FID: filter identifier\n"
 "- SID: filter source(s)\n"
 "- N: filter name\n"
@@ -1840,7 +1849,9 @@ static int gpac_main(int argc, char **argv)
 	GF_FilterSession *tmp_sess;
 	Bool alias_is_play = GF_FALSE;
 	Bool prev_filter_is_sink;
+	Bool prev_filter_is_not_source;
 	u32 current_subsession_id;
+	u32 current_source_id;
 	Bool has_xopt = GF_FALSE;
 
 	helpout = stdout;
@@ -2242,6 +2253,8 @@ static int gpac_main(int argc, char **argv)
 restart:
 	prev_filter_is_sink = 0;
 	current_subsession_id = 0;
+	prev_filter_is_not_source = 0;
+	current_source_id = 0;
 
 	if (view_conn_for_filter && argmode>=GF_ARGMODE_EXPERT)
 		sflags |= GF_FS_FLAG_PRINT_CONNECTIONS;
@@ -2390,8 +2403,9 @@ restart:
 			goto exit;
 		}
 		nb_filters++;
-		if (current_subsession_id)
-			gf_filter_tag_subsession(filter, current_subsession_id);
+
+		if (!(sflags & GF_FS_FLAG_NO_IMPLICIT))
+			gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
 
 		while (gf_list_count(links_directive)) {
 			char *link_prev_filter_ext = NULL;
@@ -2433,14 +2447,31 @@ restart:
 			gf_filter_set_source(filter, link_from, link_prev_filter_ext);
 		}
 
-		if (gf_filter_is_sink(filter)) {
-			prev_filter_is_sink = GF_TRUE;
-		}
-		else if (prev_filter_is_sink && gf_filter_is_source(filter)) {
-			prev_filter_is_sink = GF_FALSE;
-			current_subsession_id++;
-		}
 		gf_list_add(loaded_filters, filter);
+
+		//implicit mode, check changes of source and sinks
+		if (!(sflags & GF_FS_FLAG_NO_IMPLICIT)) {
+			if (gf_filter_is_source(filter)) {
+				if (prev_filter_is_not_source) {
+					current_source_id++;
+					gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
+				}
+				prev_filter_is_not_source = 0;
+			} else {
+				prev_filter_is_not_source = 1;
+			}
+
+			if (gf_filter_is_sink(filter)) {
+				prev_filter_is_sink = GF_TRUE;
+			}
+			else if (prev_filter_is_sink && gf_filter_is_source(filter)) {
+				prev_filter_is_sink = GF_FALSE;
+				current_subsession_id++;
+				current_source_id=0;
+				prev_filter_is_not_source = 0;
+				gf_filter_tag_subsession(filter, current_subsession_id, current_source_id);
+			}
+		}
 	}
 	if (!gf_list_count(loaded_filters) && !session_js) {
 		if (nothing_to_do && !gen_doc) {

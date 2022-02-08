@@ -2541,7 +2541,7 @@ static u32 gf_filter_pid_enable_edges(GF_FilterSession *fsess, GF_FilterRegDesc 
 	we only accept dst type FILE for the first call (ie reg desc is the loaded destination), and forbid muxers in the middle of the chain
 	for dynamic resolution. This avoids situations such as StreamTypeA->mux->demux->streamtypeB which cannot be resolved
 
-	note that it is still possible to use a mux or demux in the chain, but they have to be explicetly loaded
+	note that it is still possible to use a mux or demux in the chain, but they have to be explicitly loaded
 	*/
 	if ((rlevel>1) && (dst_stream_type==GF_STREAM_FILE))
 		return 0;
@@ -3312,6 +3312,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	} else if (reconfigurable_only && (count>2)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
+		Bool is_sink = gf_filter_is_sink(dst);
 		const char *dst_args = NULL;
 		const char *args = pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
@@ -3452,6 +3453,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL, GF_TRUE);
 			if (!af) goto exit;
 			af->subsession_id = dst->subsession_id;
+			af->subsource_id = is_sink ? 0 : pid->filter->subsource_id;
 
 			if (!af->forced_caps) {
 				//remember our target cap bundle on that filter
@@ -4200,9 +4202,21 @@ single_retry:
 
 		//we linked to a sink in implicit mode and new filter is not a sink, continue
 		if (link_sinks_only && !is_sink) continue;
-		//we linked to a non-sink filter in implicit mode and the destination is not a sink and has no sourceID, continue
-		if (implicit_link_found && !filter_dst->source_ids && !is_sink)
-			continue;
+		//we linked to a non-sink filter in implicit mode and the destination has no sourceID, continue
+		if (implicit_link_found && !filter_dst->source_ids) {
+			//destination not a sink, do not connect
+			if (!is_sink) continue;
+			//destination is a sink, do not connect if destination is not already registered as target for our filter
+			//we need to check this for case such as
+			//rtpin(avc) -> avc
+			//           -> ts
+			//which will invoke the AVC unframer/rewriter (ufnalu) only once and then try to link it to both TS mux and fout
+			if ((gf_list_find(filter->destination_filters, filter_dst)<0)
+				&& (gf_list_find(filter->destination_links, filter_dst)<0)
+			) {
+				continue;
+			}
+		}
 
 		//we already linked to this one
 		if (gf_list_find(linked_dest_filters, filter_dst)>=0) {
@@ -4455,6 +4469,12 @@ single_retry:
 		}
 		else if (filter->subsession_id != filter_dst->subsession_id) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s and filter %s not in same subsession and no links directive\n", pid->name, filter_dst->name));
+			continue;
+		}
+		//filters are in the same subsession and have a subsource_id (not part of chain-to-sink)
+		//only link if same subsource_id
+		else if (filter->subsource_id && filter_dst->subsource_id && (filter->subsource_id != filter_dst->subsource_id)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s and filter %s do not have same source and no links directive\n", pid->name, filter_dst->name));
 			continue;
 		}
 		if (needs_clone) {
@@ -4795,6 +4815,7 @@ single_retry:
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Local file PID %s to local file detected, forcing remux\n", pid->name));
 			f->dynamic_filter = GF_TRUE;
 			f->subsession_id = pid->filter->subsession_id;
+			f->subsource_id = pid->filter->subsource_id;
 			//force pid's filter destination to the reframer - this will in pass #2:
 			//- force solving file->reframer, loading the demuxer
 			//- since caps between pid and reframer don't match and reframer is not used by anyone, the reframer will be removed
@@ -7785,7 +7806,7 @@ char *gf_filter_pid_get_destination(GF_FilterPid *pid)
 	res = gf_filter_pid_get_dst_string(pid->filter->session, dst_args, GF_TRUE);
 	if (res) return res;
 
-	//if not set this means we have explicetly loaded the filter
+	//if not set this means we have explicitly loaded the filter
 	for (i=0; i<pid->num_destinations; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
 
@@ -7821,7 +7842,7 @@ char *gf_filter_pid_get_source(GF_FilterPid *pid)
 	res = gf_filter_pid_get_dst_string(pid->filter->session, src_args, GF_FALSE);
 	if (res) return res;
 
-	//if not set this means we have explicetly loaded the filter
+	//if not set this means we have explicitly loaded the filter
 	gf_mx_p(pid->filter->tasks_mx);
 	for (i=0; i<pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->filter->input_pids, i);
