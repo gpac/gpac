@@ -4775,7 +4775,7 @@ resend:
 static void dasher_reset_stream(GF_Filter *filter, GF_DashStream *ds, Bool is_destroy)
 {
 	//we do not remove the destination filter, it will be removed automatically once all remove_pids are called
-	//removing it explicetly will discard the upper chain and any packets not yet processed
+	//removing it explicitly will discard the upper chain and any packets not yet processed
 
 	ds->dst_filter = NULL;
 	if (ds->seg_template) gf_free(ds->seg_template);

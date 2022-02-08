@@ -2120,7 +2120,7 @@ typedef enum
 	GF_FS_REG_SCRIPT = 1<<8,
 	/*! Indicates the filter is a meta filter, wrapping various underlying filters (e.g., FFmpeg)*/
 	GF_FS_REG_META = 1<<9,
-	/*! Indicates that this filter, when dynamically loaded, allows the link resolver to redirect PID connection to this filter rather than to its next explicetly loaded filter in the chain.
+	/*! Indicates that this filter, when dynamically loaded, allows the link resolver to redirect PID connection to this filter rather than to its next explicitly loaded filter in the chain.
 		This is typically used by mux filters
 	*/
 	GF_FS_REG_DYNAMIC_REDIRECT = 1<<10,
@@ -3100,15 +3100,18 @@ Bool gf_filter_is_sink(GF_Filter *filter);
 */
 Bool gf_filter_is_source(GF_Filter *filter);
 
-/*! Tags a filter in a given subsession.
-\note a filter may have no inputs but still not be a source, typically the case for some custom filters loading their sources dynamically
+/*! Tags a filter in a given subsession, ignored in non-implicit mode.
+
+If  sourceIDs are used on destination filter, subsession and source IDs are ignored.
+If filters do not have the same subsession ID, they cannot link to each
+If filters do not have the same sourceID, they cannot link to each other except if destination is a sink
+
 \param filter target filter
 \param subsession_id subsession identifier
-\return
-	- GF_OK if the subsession tagging is successfull
-	- GF_BAD_PARAM if NULL filter or if filter already has a subsession assigned
+\param source_id subsession identifier
+\return error if any
 */
-GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id);
+GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id);
 
 /*! @} */
 

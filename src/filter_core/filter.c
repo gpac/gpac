@@ -4712,11 +4712,15 @@ Bool gf_filter_is_source(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id)
+GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id, u32 source_id)
 {
 	if (!filter) return GF_BAD_PARAM;
-	if (filter->subsession_id==subsession_id) return GF_OK;
-	if (filter->subsession_id) return GF_BAD_PARAM;
+	//ignored in non implicit mode
+	if (! (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)) return GF_OK;
 	filter->subsession_id = subsession_id;
+	if (gf_filter_is_sink(filter))
+		filter->subsource_id = 0;
+	else
+		filter->subsource_id = 1 + source_id;
 	return GF_OK;
 }

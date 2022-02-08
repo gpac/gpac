@@ -1440,13 +1440,7 @@ For each filter DST accepting a connection from the PID, directly or with interm
 .br
  - otherwise, if DST is not a sink and is not the first matching filter with no link directive, reject connection.
 .br
- - otherwise (DST is a sink), allow connection.
-.br
-
-.br
-The implicit mode allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.
-.br
-Warning: Argument order really matters in implicit mode!
+ - otherwise (DST is a sink) and no previous connections to a non-sink filter, allow connection.
 .br
 
 .br
@@ -1478,6 +1472,38 @@ With this setup in complete mode:
 .br
 
 .br
+Furthermore in implicit mode, filter connections are restricted to filters defined between the last source and the sink(s).
+.br
+Example
+.br
+-i video1 reframer:saps=1 -i video2 ffsws:osize=128x72 -o output
+.br
+
+.br
+This will connect:
+.br
+- video1 to reframer then reframer to output but will prevent reframer to ffsws connection.
+.br
+- video2 to ffsws then ffsws to output but will prevent video2 to reframer connection.
+.br
+
+.br
+Example
+.br
+-i video1 -i video2 reframer:saps=1 ffsws:osize=128x72 -o output
+.br
+
+.br
+This will connect video1 AND video2 to reframer->ffsws->output
+.br
+
+.br
+The implicit mode allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.
+.br
+Warning: Argument order really matters in implicit mode!
+.br
+
+.br
 Example
 .br
 -i file.mp4 c=avc c=aac -o output
@@ -1494,15 +1520,15 @@ If the file has other PIDs than audio or video, they will connect to output.
 .br
 Example
 .br
--i file.mp4 ffswf=osize:128x720 c=avc resample=osr=48k c=aac -o output
+-i file.mp4 ffswf=osize:128x72 c=avc resample=osr=48k c=aac -o output
 .br
 
 .br
 This will force:
 .br
-- SRC(video)->ffsws->enc(video)->output and prevent SRC(video)->output and ffsws->output connections which would happen in complete mode.
+- SRC(video)->ffsws->enc(video)->output and prevent SRC(video)->output, SRC(video)->enc(video) and ffsws->output connections which would happen in complete mode.
 .br
-- SRC(audio)->resample->enc(audio)->output and prevent SRC(audio)->output and resample->output connections which would happen in complete mode.
+- SRC(audio)->resample->enc(audio)->output and prevent SRC(audio)->output, SRC(audio)->enc(audio) and resample->output connections which would happen in complete mode.
 .br
 
 .br
@@ -4558,7 +4584,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1727-g8be34973d-master
+build: 1.1.0-DEV-rev1739-g681e45e3c-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

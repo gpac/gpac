@@ -174,7 +174,7 @@ attribute readonly DOMString status;
 attribute readonly boolean alias;
 /*! set to the arguments passed to the filter, null if none*/
 attribute readonly DOMString args;
-/*! set to true if filter was dynamically loaded during graph resolution, false if filter was explicetly loaded by user/app*/
+/*! set to true if filter was dynamically loaded during graph resolution, false if filter was explicitly loaded by user/app*/
 attribute readonly boolean dynamic;
 /*! set to true if filter is done processing and will soon be removed*/
 attribute readonly boolean done;
