@@ -1268,6 +1268,10 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 			}
 		}
 		while (size) {
+			if (size<nalh_size) {
+				fprintf(dump, "   <!-- NALU number %d is corrupted: size is %d but only %d remains -->\n", idx, nal_size, size);
+				break;
+			}
 			nal_size = read_nal_size_hdr(ptr, nalh_size);
 			ptr += nalh_size;
 
