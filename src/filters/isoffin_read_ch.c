@@ -364,8 +364,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				ch->edit_sync_frame++;
 				if (ch->edit_sync_frame < ch->sample_num) {
 					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample, &ch->sample_data_offset);
-					ch->sample->DTS = ch->sample_time;
-					ch->sample->CTS_Offset = 0;
+					if (ch->sample) {
+						ch->sample->DTS = ch->sample_time;
+						ch->sample->CTS_Offset = 0;
+					}
 				} else {
 					ch->edit_sync_frame = 0;
 					if (ch->sample) ch->sample_time = ch->sample->DTS;
