@@ -195,6 +195,8 @@ static void filter_push_args(GF_FilterSession *fsess, char **out_args, char *in_
 		}
 		else if (!strncmp(in_args, "TAG", 3) && (in_args[3]==fsess->sep_name)) {
 		}
+		else if (!strncmp(in_args, "FS", 2) && (in_args[2]==fsess->sep_name)) {
+		}
 		else if (!is_src && (in_args[0]==fsess->sep_frag)) {
 
 		} else {
@@ -647,7 +649,6 @@ static void gf_filter_set_id(GF_Filter *filter, const char *ID)
 
 	if (filter->id) gf_free(filter->id);
 	filter->id = ID ? gf_strdup(ID) : NULL;
-	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 }
 
 GF_EXPORT
@@ -667,7 +668,6 @@ static void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 
 	gf_mx_p(filter->session->filters_mx);
 
-	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	if (!sources_ID) {
 		if (filter->source_ids) gf_free(filter->source_ids);
 		filter->source_ids = NULL;
@@ -1633,7 +1633,6 @@ skip_date:
 					gf_filter_set_id(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
-				filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 			}
 			//filter sources
 			else if (!strcmp("SID", szArg)) {
@@ -1641,7 +1640,6 @@ skip_date:
 					gf_filter_set_sources(filter, value);
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
-				filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 			}
 			//clonable filter
 			else if (!strcmp("clone", szArg)) {
@@ -1660,6 +1658,13 @@ skip_date:
 				if ((arg_type==GF_FILTER_ARG_EXPLICIT_SINK) || (arg_type==GF_FILTER_ARG_EXPLICIT) || (arg_type==GF_FILTER_ARG_EXPLICIT_SOURCE)) {
 					gf_filter_set_name(filter, value);
 				}
+				found = GF_TRUE;
+				internal_arg = GF_TRUE;
+			}
+			if (!strcmp("FS", szArg)) {
+				if (arg_type != GF_FILTER_ARG_INHERIT)
+					filter->subsession_id = atoi(value);
+
 				found = GF_TRUE;
 				internal_arg = GF_TRUE;
 			}
@@ -3430,7 +3435,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 		if (err) *err = GF_BAD_PARAM;
 		return NULL;
 	}
-	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
+
 	args = inherit_args ? gf_filter_get_dst_args(filter) : NULL;
 	if (args) {
 		char *rem_opts[] = {"FID", "SID", "N", "clone", NULL};
@@ -3493,7 +3498,7 @@ GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const ch
 GF_EXPORT
 GF_Filter *gf_filter_connect_destination(GF_Filter *filter, const char *url, GF_Err *err)
 {
-	if (filter) filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
+	if (!filter) return NULL;
 	return gf_fs_load_source_dest_internal(filter->session, url, NULL, NULL, err, NULL, filter, GF_FALSE, GF_FALSE, NULL);
 }
 
@@ -3614,6 +3619,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	if (!link_from->id) {
 		gf_filter_assign_id(link_from, NULL);
 	}
+
 	if (link_ext) {
 		char szSep[2];
 		char *id = NULL;
@@ -3626,6 +3632,7 @@ GF_Err gf_filter_set_source(GF_Filter *filter, GF_Filter *link_from, const char 
 	} else {
 		gf_filter_set_sources(filter, link_from->id);
 	}
+
 	if (link_from->target_filter != filter) {
 		filter->target_filter = link_from->target_filter;
 		link_from->target_filter = NULL;
@@ -4367,7 +4374,6 @@ GF_EXPORT
 GF_Filter *gf_filter_load_filter(GF_Filter *filter, const char *name, GF_Err *err_code)
 {
 	if (!filter) return NULL;
-	filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
 	return gf_fs_load_filter(filter->session, name, err_code);
 }
 
@@ -4660,10 +4666,7 @@ void gf_filter_mirror_forced_caps(GF_Filter *filter, GF_Filter *dst_filter)
 GF_EXPORT
 void gf_filter_require_source_id(GF_Filter *filter)
 {
-	if (filter) {
-		filter->require_source_id = GF_TRUE;
-		filter->session->flags &= ~GF_FS_FLAG_IMPLICIT_MODE;
-	}
+	if (filter) filter->require_source_id = GF_TRUE;
 }
 
 void gf_filter_set_blocking(GF_Filter *filter, Bool is_blocking)
@@ -4686,4 +4689,34 @@ void gf_filter_force_main_thread(GF_Filter *filter, Bool do_tag)
 	else
 		safe_int_dec(&filter->nb_main_thread_forced);
 
+}
+
+GF_EXPORT
+Bool gf_filter_is_sink(GF_Filter *filter)
+{
+	if (!filter) return GF_FALSE;
+	if (filter->forced_caps) {
+		return !gf_filter_has_out_caps(filter->forced_caps, filter->nb_forced_caps);
+	}
+	return !gf_filter_has_out_caps(filter->freg->caps, filter->freg->nb_caps);
+}
+
+GF_EXPORT
+Bool gf_filter_is_source(GF_Filter *filter)
+{
+	if (!filter) return GF_FALSE;
+	if (filter->forced_caps) {
+		return !gf_filter_has_in_caps(filter->forced_caps, filter->nb_forced_caps);
+	}
+	return !gf_filter_has_in_caps(filter->freg->caps, filter->freg->nb_caps);
+}
+
+GF_EXPORT
+GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id)
+{
+	if (!filter) return GF_BAD_PARAM;
+	if (filter->subsession_id==subsession_id) return GF_OK;
+	if (filter->subsession_id) return GF_BAD_PARAM;
+	filter->subsession_id = subsession_id;
+	return GF_OK;
 }

@@ -42,6 +42,16 @@ The possible options for gpac are:
 
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -93,7 +103,7 @@ enable reporting
 .br
 * r: runtime reporting
 .br
-* r=FA[,FB]: runtime reporting but only print given filters, eg r=mp4mx for ISOBMFF muxer only
+* r=FA[,FB]: runtime reporting but only print given filters, e.g. r=mp4mx for ISOBMFF muxer only
 .br
 * r=: only print final report
 .br
@@ -135,9 +145,9 @@ specify an input file to wrap as GF_FileIO object (testing of GF_FileIO)
 specify an output file to wrap as GF_FileIO object (testing of GF_FileIO)
 .br
 .TP
-.B \-fl
+.B \-cl
 .br
-force full linking when no link directive are set
+force complete mode when no link directive are set - see filters help (-h doc)
 .br
 .TP
 .B \-step
@@ -185,7 +195,7 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * FNAME: print filter FNAME info (multiple FNAME can be given)
 .br
-  - For meta-filters, use FNAME:INST, eg ffavin:avfoundation
+  - For meta-filters, use FNAME:INST, e.g. ffavin:avfoundation
 .br
   - Use * to print info on all filters (big output!), *:* to print info on all filters including meta filter instances (really big output!)
 .br
@@ -389,7 +399,7 @@ The specified index can be:
 .br
 * forward index: a strictly positive integer, 1 being the first argument after the alias
 .br
-* backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by -x to rewind arguments (eg @{n-1} is the before last argument)
+* backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by -x to rewind arguments (e.g. @{n-1} is the before last argument)
 .br
 
 .br
@@ -1149,13 +1159,13 @@ use new line at each progress messages
 .SH General
 .LP
 .br
-Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called pid. A PID is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
+Filters are configurable processing units consuming and producing data packets. These packets are carried between filters through a data channel called PID. A PID is in charge of allocating/tracking data packets, and passing the packets to the destination filter(s). A filter output PID may be connected to zero or more filters. This fan-out is handled internally by GPAC (no such thing as a tee filter in GPAC).
 .br
 Note: When a PID cannot be connected to any filter, a warning is thrown and all packets dispatched on this PID will be destroyed. The session may however still run, unless .I -full-link is set.
 .br
   
 .br
-Each output PID carries a set of properties describing the data it delivers (eg width, height, codec, ...). Properties can be built-in (see gpac -h props ), or user-defined. Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (eg unload a video decoder when switching from compressed to uncompressed sources).
+Each output PID carries a set of properties describing the data it delivers (e.g. width, height, codec, ...). Properties can be built-in (see gpac -h props ), or user-defined. Each PID tracks its properties changes and triggers filter reconfiguration during packet processing. This allows the filter chain to be reconfigured at run time, potentially reloading part of the chain (e.g. unload a video decoder when switching from compressed to uncompressed sources).
 .br
   
 .br
@@ -1168,7 +1178,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
 * enumeration (for filter arguments only): must use the syntax given in the argument description, otherwise value 0 (first in enum) is assumed.
 .br
-* 1-dimension (numbers, floats, ints...): formatted as value[unit], where unit can be k,K (x 1000) or m,M (x 1000000) or g,G (x 1000000000) or sec (x 1000) or min (x 60000). For such properties, value +I means maximum possible value, -I minimum possible value.
+* 1-dimension (numbers, floats, ints...): formatted as value[unit], where unit can be k,K (x 1000) or m,M (x 1000000) or g,G (x 1000000000) or sec (x 1000) or min (x 60000). +I means max float/int/uint value, -I min float/int/uint value.
 .br
 * fraction: formatted as num/den or num-den or num, in which case the denominator is 1 if num is an integer, or 1000000 if num is a floating-point value.
 .br
@@ -1196,7 +1206,7 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
   * `b64@DATA`: load data from base-64 encoded DATA.
 .br
-* pointer: are formatted as address giving the pointer address (32 or 64 bit depending on platforms).
+* pointer: pointer address as formatted by %p in C.
 .br
 * string lists: formatted as val1,val2[,...]. Each value can also use file@FILE syntax.
 .br
@@ -1211,7 +1221,7 @@ Note: The special characters in property formats (0x,/,-,+I,-I,x) cannot be conf
 .br
 Each filter is declared by its name, with optional filter arguments appended as a list of colon-separated name=value pairs. Additional syntax is provided for:
 .br
-* boolean: value can be omitted, defaulting to true (eg :noedit). Using ! before the name negates the result (eg :!moof_first)
+* boolean: value can be omitted, defaulting to true (e.g. :noedit). Using ! before the name negates the result (eg :!moof_first)
 .br
 * enumerations: name can be omitted, e.g. :disp=pbo is equivalent to :pbo.
 .br
@@ -1219,7 +1229,7 @@ Each filter is declared by its name, with optional filter arguments appended as 
 .br
   
 .br
-When string parameters are used (eg URLs), it is recommended to escape the string using the keyword gpac.  
+When string parameters are used (e.g. URLs), it is recommended to escape the string using the keyword gpac.  
 .br
 Example
 .br
@@ -1257,7 +1267,7 @@ Example
 .br
 This will extract the URL and options.
 .br
-Note: one trick to avoid the escape sequence is to declare the URLs option at the end, eg f1:opt1=foo:url=http://bar, provided you have only one URL parameter to specify on the filter.
+Note: one trick to avoid the escape sequence is to declare the URLs option at the end, e.g. f1:opt1=foo:url=http://bar, provided you have only one URL parameter to specify on the filter.
 .br
 
 .br
@@ -1406,25 +1416,37 @@ The filter graph resolver uses this information together with the PID properties
 .br
 
 .br
-.SS Implicit linking
+Link directives, when provided, specify which source a filter can accept connections from.
 .br
-Implicit linking is enabled by the gpac application if the command line has:
-.br
-- no link directives (@, FID=, SID=)
-.br
-- .I -fl option is not set
-.br
-In this mode, a PID will be linked:
-.br
-- only once to the first matching non-sink filter in declaration order.
-.br
-- or to any of the matching sink (destination) filters in declaration order.
+They do not specify which destination a filter can connect to.
 .br
 
 .br
-This allows specifying linear processing chains (no PID fan-out except for final output(s)) without giving the link directives, simplifying command lines for common cases.
+.SS Default filter linking
 .br
-Warning: Argument order really matters in this mode!
+When no link instructions are given (see below), the default linking strategy used is either implicit mode (default in gpac) or complete mode (if .I -cl is set).
+.br
+Each PID is checked for possible connection to all defined filters, in their declaration order.
+.br
+For each filter DST accepting a connection from the PID, directly or with intermediate filters:
+.br
+- if DST filter has link directives, use them to allow or reject PID connection.
+.br
+- otherwise, if complete mode is enabled, allow connection.
+.br
+- otherwise (implicit mode):
+.br
+ - if DST is not a sink and is the first matching filter with no link directive, allow connection.
+.br
+ - otherwise, if DST is not a sink and is not the first matching filter with no link directive, reject connection.
+.br
+ - otherwise (DST is a sink), allow connection.
+.br
+
+.br
+The implicit mode allows specifying linear processing chains (no PID fan-out except for final output(s)) without link directives, simplifying command lines for common cases.
+.br
+Warning: Argument order really matters in implicit mode!
 .br
 
 .br
@@ -1434,9 +1456,25 @@ Example
 .br
 
 .br
-If the file has a video PID, it will connect to enc but not to output. The output PID of enc will connect to output.
+With this setup in implicit mode:
 .br
-If the file has other PIDs than video, they will connect to output, since this enc filter accepts only video.
+- if the file has a video PID, it will connect to enc but not to output. The output PID of enc will connect to output.
+.br
+- if the file has other PIDs than video, they will connect to output, since this enc filter accepts only video.
+.br
+
+.br
+Example
+.br
+-cl -i file.mp4 c=avc -o output
+.br
+
+.br
+With this setup in complete mode:
+.br
+- if the file has a video PID, it will connect both to enc and to output, and the output PID of enc will connect to output.
+.br
+- if the file has other PIDs than video, they will connect to output.
 .br
 
 .br
@@ -1462,15 +1500,17 @@ Example
 .br
 This will force:
 .br
-- SRC(video)->ffsws->enc(video)->output and prevent SRC(video)->output and ffsws->output connections.
+- SRC(video)->ffsws->enc(video)->output and prevent SRC(video)->output and ffsws->output connections which would happen in complete mode.
 .br
-- SRC(audio)->resample->enc(audio)->output and prevent SRC(audio)->output and resample->output connections.
+- SRC(audio)->resample->enc(audio)->output and prevent SRC(audio)->output and resample->output connections which would happen in complete mode.
 .br
 
 .br
 .SS Quick links
 .br
-Link between filters may be manually specified. The syntax is an @ character optionally followed by an integer (0 if omitted). This indicates that the following filter specified at prompt should be linked only to a previous listed filter.
+Link between filters may be manually specified. The syntax is an @ character optionally followed by an integer (0 if omitted).
+.br
+This indicates that the following filter specified at prompt should be linked only to a previous listed filter.
 .br
 The optional integer is a 0-based index to the previous filter declarations, 0 indicating the previous filter declaration, 1 the one before the previous declaration, ...).
 .br
@@ -1504,17 +1544,13 @@ This indicates that fZ only accepts inputs from fB.
 .br
 
 .br
-If no link directives are given and .I -fl is set, the links will be dynamically solved to fulfill as many connections as possible (see below).
-.br
-
-.br
 .SS Complex links
 .br
-The link directive is just a quick shortcut to set the following arguments:
+The @ link directive is just a quick shortcut to set the following filter arguments:
 .br
-- FID=name, which assigns an identifier to the filter
+* FID=name: assigns an identifier to the filter
 .br
-- SID=name1[,name2...], which set a list of filter identifiers, or sourceIDs, restricting the list of possible inputs for a filter.
+* SID=name1[,name2...]: sets a list of filter identifiers, or sourceIDs, restricting the list of possible inputs for a filter.
 .br
 
 .br
@@ -1525,8 +1561,6 @@ fA fB @1 fC
 
 .br
 This is equivalent to fA:FID=1 fB fC:SID=1.
-.br
-Link directives specify which source a filter can accept connections from. They do not specify which destination a filter can connect to.
 .br
 Example
 .br
@@ -1554,7 +1588,7 @@ A sourceID name can be further extended using fragment identifier (# by default)
 .br
 * name#TYPE: accepts only PIDs of matching media type. TYPE can be audio, video, scene, text, font, meta
 .br
-* name#TYPEN: accepts only N (1-based index) PID of matching type from source (eg video2 to only accept second video PID)
+* name#TYPEN: accepts only N (1-based index) PID of matching type from source (e.g. video2 to only accept second video PID)
 .br
 * name#TAG=VAL: accepts the PID if its parent filter has no tag or a tag matching VAL
 .br
@@ -1656,7 +1690,7 @@ This indicates to connect to vout only PIDs with Width property equal to 640 and
 .br
 
 .br
-Warning: If a PID gets connected to an explicitly loaded filter, no further dynamic link resolution will be done to connect it to other filters, unless sourceIDs are set. Link directives should be carefully setup.
+Warning: If a PID directly connects to one or more explicitly loaded filters, no further dynamic link resolution will be done to connect it to other filters with no sourceID set. Link directives should be carefully setup.
 .br
 Example
 .br
@@ -1694,11 +1728,43 @@ This will result in a direct file copy.
 .br
 
 .br
-Note: this only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):
+This only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):
 .br
 - direct copy is enabled by default
 .br
 - nomux=0 can be used to force remux
+.br
+
+.br
+.SS Sub-session tagging
+.br
+Filters may be assigned to a subsession using :FS=N, with N a positive integer.
+.br
+Filters belonging to different subsessions may only link to each-other:
+.br
+- if explicitly allowed through sourceID directives (@ or SID)
+.br
+- or if they have the same sub-session identifier
+.br
+
+.br
+This is mostly used for implicit mode in gpac: each first source filter specified after a sink filter will trigger a new subsession.
+.br
+Example
+.br
+-i in1.mp4 -i in2.mp4 -o out1.mp4 -o out2.mp4
+.br
+
+.br
+This will result in both inputs muxed in both outputs.
+.br
+Example
+.br
+-i in1.mp4 -o out1.mp4 -i in2.mp4 -o out2.mp4
+.br
+
+.br
+This will result in in1 mixed to out1 and in2 mixed to out2, these last two filters belonging to a different sub-session.
 .br
 
 .br
@@ -1882,7 +1948,7 @@ In this case, each new ServiceID value found when connecting PIDs to the destina
 .br
 
 .br
-Cloning in implicit mode applies to output as well:
+Cloning in implicit linking mode applies to output as well:
 .br
 Example
 .br
@@ -1897,9 +1963,9 @@ Each audio track will be dumped to aac (potentially reencoding if needed).
 .SH Assigning PID properties
 .LP
 .br
-It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, eg #Name=Value.
+It is possible to define properties on output PIDs that will be declared by a filter. This allows tagging parts of the graph with different properties than other parts (for example ServiceID). The syntax is the same as filter option, and uses the fragment separator to identify properties, e.g. #Name=Value.
 .br
-This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for boolean (defaults to true, eg :#Alpha).
+This sets output PIDs property (4cc, built-in name or any name) to the given value. Value can be omitted for boolean (defaults to true, e.g. :#Alpha).
 .br
 Non built-in properties are parsed as follows:
 .br
@@ -2041,6 +2107,8 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * N: filter name
 .br
+* FS: sub-session identfier
+.br
 * TAG: filter tag
 .br
 * clone: filter cloning flag
@@ -2052,6 +2120,8 @@ As seen previously, the following options may be set on any filter, but are not 
 * gfloc: following options are local to filter declaration (not inherited)
 .br
 * gfopt: following options are not tracked
+.br
+* gpac: argument separator for URLs
 .br
 
 .br
@@ -4488,7 +4558,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1716-g7535448f4-master
+build: 1.1.0-DEV-rev1727-g8be34973d-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

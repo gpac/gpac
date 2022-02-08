@@ -4690,6 +4690,10 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading script file %s: %s\n", jsf->js, gf_error_to_string(e) ));
 		return e;
 	}
+	if (!strstr(buf, "session.") && !strstr(buf, "filter.") ) {
+		gf_free(buf);
+		return GF_FILTER_NOT_FOUND;
+	}
 
 	if (strstr(buf, "session.")) {
 		GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs);
@@ -4698,6 +4702,7 @@ static GF_Err jsfilter_initialize_ex(GF_Filter *filter, JSContext *custom_ctx)
 		e = gf_fs_load_js_api(jsf->ctx, filter->session);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JSF] Error loading session API: %s\n", gf_error_to_string(e) ));
+			gf_free(buf);
 			return e;
 		}
 		jsf->unload_session_api = GF_TRUE;

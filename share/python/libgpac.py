@@ -99,12 +99,12 @@
 # \endcode
 #
 # By default the filter session will run with implicit linking.
-# It is however possible to assign sources of a filter (much like the `@` command in `gpac`):
+#
+# It is possible to assign sources of a filter (much like the `@` command in `gpac`):
 # \code
 # dst.set_source(f)
 # \endcode
 #
-# Setting a source on a filter will force the session linker to use explicit explicit for all future link resolution.
 #
 # # Posting user tasks
 # 

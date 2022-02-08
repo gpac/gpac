@@ -228,8 +228,7 @@ When set, all sub-filters are exposed. This should only be set when inspecting f
 #define GF_FS_FLAG_FULL_LINK (1<<10)
 /*! Flag set to disable implicit linking
  By default the session runs in implicit linking when no link directives are set on any filter: linking aborts after the first successfull pid if destination is not a sink, or links only to sinks otherwise.
- \note This implies that the order in which filters are added to the session now matters
- This flag is automatically enabled when link directives are present (FID, SID) or when loading filters from filters
+ \note This implies that the order in which filters are added to the session matters
 */
 #define GF_FS_FLAG_NO_IMPLICIT	(1<<11)
 
@@ -3086,6 +3085,30 @@ void gf_filter_print_all_connections(GF_Filter *filter, void (*print_fn)(FILE *o
 \warning There shall be at most as many with do_tag=GF_FALSE as there were calls with do_tag=GF_TRUE
 */
 void gf_filter_force_main_thread(GF_Filter *filter, Bool do_tag);
+
+/*! Check if a filter is a sink, i.e. it has no output capabilities.
+ \note a filter may have no outputs but still not be a sink due to dynamic nature of filter linking
+\param filter target filter
+\return GF_TRUE if filter is a sink, GF_FALSE otherwise
+*/
+Bool gf_filter_is_sink(GF_Filter *filter);
+
+/*! Check if a filter is a source, i.e. it has no input capabilities
+ \note a filter may have no inputs but still not be a source, typically the case for some custom filters loading their sources dynamically
+\param filter target filter
+\return GF_TRUE if filter is a source, GF_FALSE otherwise
+*/
+Bool gf_filter_is_source(GF_Filter *filter);
+
+/*! Tags a filter in a given subsession.
+\note a filter may have no inputs but still not be a source, typically the case for some custom filters loading their sources dynamically
+\param filter target filter
+\param subsession_id subsession identifier
+\return
+	- GF_OK if the subsession tagging is successfull
+	- GF_BAD_PARAM if NULL filter or if filter already has a subsession assigned
+*/
+GF_Err gf_filter_tag_subsession(GF_Filter *filter, u32 subsession_id);
 
 /*! @} */
 
