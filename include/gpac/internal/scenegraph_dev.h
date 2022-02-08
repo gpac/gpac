@@ -945,7 +945,7 @@ GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
 
 void	gf_dom_event_dump_listeners(GF_Node *n, FILE *f);
-void	gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target);
+void	gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target, GF_SceneGraph *sg);
 void	gf_dom_event_target_del(GF_DOMEventTarget *target);
 GF_Err	gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener);
 
