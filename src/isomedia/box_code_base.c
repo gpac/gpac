@@ -5772,12 +5772,12 @@ GF_Err stsz_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->sampleCount);
 
 	if (ptr->type == GF_ISOM_BOX_TYPE_STSZ) {
-		if (! ptr->sampleSize) {
-			for (i = 0; i < ptr->sampleCount; i++) {
-				gf_bs_write_u32(bs, ptr->sizes ? ptr->sizes[i] : 0);
-			}
+		if (ptr->sampleSize) return GF_OK;
+		for (i = 0; i < ptr->sampleCount; i++) {
+			gf_bs_write_u32(bs, ptr->sizes ? ptr->sizes[i] : 0);
 		}
 	} else {
+		if (!ptr->sizes) return GF_ISOM_INVALID_FILE;
 		for (i = 0; i < ptr->sampleCount; ) {
 			switch (ptr->sampleSize) {
 			case 4:
@@ -5814,12 +5814,15 @@ GF_Err stsz_box_size(GF_Box *s)
 		ptr->size += (4 * ptr->sampleCount);
 		return GF_OK;
 	}
+	if (!ptr->sizes) return GF_ISOM_INVALID_FILE;
 
+	//compact size table
 	fieldSize = 4;
 	size = ptr->sizes[0];
 
 	for (i=0; i < ptr->sampleCount; i++) {
-		if (ptr->sizes[i] <= 0xF) continue;
+		if (ptr->sizes[i] <= 0xF) {
+		}
 		//switch to 8-bit table
 		else if (ptr->sizes[i] <= 0xFF) {
 			fieldSize = 8;
@@ -5842,6 +5845,7 @@ GF_Err stsz_box_size(GF_Box *s)
 		ptr->sampleSize = size;
 		gf_free(ptr->sizes);
 		ptr->sizes = NULL;
+		return GF_OK;
 	}
 
 	if (fieldSize == 32) {
