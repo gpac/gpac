@@ -438,6 +438,7 @@ GF_EXPORT
 u32 gf_utf8_wcslen (const unsigned short *s)
 {
 	const unsigned short* ptr;
+	if (!s) return 0;
 	for (ptr = s; *ptr != (unsigned short)'\0'; ptr++) {
 	}
 	return (u32) ( ptr - s );
