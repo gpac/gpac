@@ -2984,7 +2984,7 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 }
 #endif
 
-static void format_duration(u64 dur, u32 timescale, FILE *dump)
+static void format_duration(u64 dur, u64 timescale, FILE *dump)
 {
 	u32 h, m, s, ms;
 	if ((dur==(u64) -1) || (dur==(u32) -1))  {
@@ -3068,7 +3068,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p) gf_fprintf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) format_duration(p->value.lfrac.num, p->value.lfrac.den, dump);
+	if (p && (p->value.lfrac.num>0)) format_duration((u64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) gf_fprintf(dump, " timescale %d", p->value.uint);
