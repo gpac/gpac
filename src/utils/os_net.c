@@ -533,11 +533,11 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 		}
 		server_add.sun_family = AF_UNIX;
 		strcpy(server_add.sun_path, PeerName);
-		if (connect(sock->socket, (struct sockaddr *) &server_add, sizeof(struct sockaddr_un)) < 0) {
+		if (connect(sock->socket, (struct sockaddr *)&server_add, sizeof(struct sockaddr_un)) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Failed to connect unix domain socket to %s\n", PeerName));
 			return GF_IP_CONNECTION_FAILURE;
-	     }
-	     return GF_OK;
+		}
+		return GF_OK;
 #else
 	     return GF_NOT_SUPPORTED;
 #endif
