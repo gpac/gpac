@@ -925,7 +925,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 			StartOffset += size;
 		}
 		if (movie->moov && movie->moov->meta) {
-			e = DoWriteMeta(movie, movie->meta, bs, Emulation, StartOffset, &size);
+			e = DoWriteMeta(movie, movie->moov->meta, bs, Emulation, StartOffset, &size);
 			if (e) return e;
 			mdatSize += size;
 			StartOffset += size;
@@ -933,7 +933,7 @@ GF_Err DoWrite(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation
 		i=0;
 		while ((writer = (TrackWriter*)gf_list_enum(writers, &i))) {
 			if (writer->mdia->mediaTrack->meta) {
-				e = DoWriteMeta(movie, movie->meta, bs, Emulation, StartOffset, &size);
+				e = DoWriteMeta(movie, writer->mdia->mediaTrack->meta, bs, Emulation, StartOffset, &size);
 				if (e) return e;
 				mdatSize += size;
 				StartOffset += size;
