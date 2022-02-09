@@ -1087,6 +1087,8 @@ index (dbl, default: 1.0):     indexing window length
 .br
 expart (bool, default: false): expose pictures as a dedicated video pid
 .br
+forcemp3 (bool, default: true): force mp3 signaling for MPEG-2 Audio layer 3
+.br
 
 .br
 .SH faad
@@ -1527,7 +1529,7 @@ To expose a live DASH session to route:
 .br
 Example
 .br
-gpac -i MANIFEST_URL dashin:forward=file @ -o route://225.0.0.1:8000/
+gpac -i MANIFEST_URL dashin:forward=file -o route://225.0.0.1:8000/
 .br
 
 .br
@@ -1554,7 +1556,7 @@ This mode can be used to process media data and regenerating the same manifest/s
 .br
 Example
 .br
-gpac -i MANIFEST_URL:forward=mani cecrypt:cfile=DRM.xml @ -o encrypted/live.mpd:pssh=mv
+gpac -i MANIFEST_URL:forward=mani cecrypt:cfile=DRM.xml -o encrypted/live.mpd:pssh=mv
 .br
 
 .br
@@ -1564,7 +1566,7 @@ This will encrypt an existing DASH session, inject PSSH in manifest and segments
 .br
 Example
 .br
-gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml @ -o encrypted/live.m3u8
+gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml -o encrypted/live.m3u8
 .br
 
 .br
@@ -2981,7 +2983,7 @@ This filter can force input media streams to be decoded using the .I raw option.
 .br
 Example
 .br
-gpac src=m.mp4 reframer:raw=av @ [dst]
+gpac src=m.mp4 reframer:raw=av [dst]
 .br
 
 .br
@@ -2994,7 +2996,7 @@ For example to simulate a live DASH:
 .br
 Example
 .br
-gpac src=m.mp4 reframer:rt=on @ dst=live.mpd:dynamic
+gpac src=m.mp4 reframer:rt=on dst=live.mpd:dynamic
 .br
 
 .br
@@ -4436,7 +4438,7 @@ If you need per-frame real-time regulation on non-real-time inputs, insert a ref
 .br
 Example
 .br
-src=file.mp4 reframer:rt=on @ -o live.mpd:dmode=dynamic
+src=file.mp4 reframer:rt=on -o live.mpd:dmode=dynamic
 .br
 
 .br
@@ -4688,7 +4690,7 @@ If your sources are not real-time, insert a reframer filter with real-time regul
 .br
 Example
 .br
-gpac -i source.mp4 reframer:rt=on @ -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profile=live:dmode=dynamic
+gpac -i source.mp4 reframer:rt=on -o live.mpd:segdur=2:cdur=0.2:asto=1.8:profile=live:dmode=dynamic
 .br
 
 .br
@@ -4696,7 +4698,7 @@ This will create DASH segments of 2 seconds made of fragments of 200 ms and indi
 .br
 Example
 .br
-gpac -i source.mp4 reframer:rt=on @ -o live.m3u8:segdur=2:cdur=0.2:llhls=br:dmode=dynamic
+gpac -i source.mp4 reframer:rt=on -o live.m3u8:segdur=2:cdur=0.2:llhls=br:dmode=dynamic
 .br
 
 .br
@@ -4704,7 +4706,7 @@ This will create DASH segments of 2 seconds made of fragments of 200 ms and prod
 .br
 Example
 .br
-gpac -i source.mp4 reframer:rt=on @ -o live.m3u8:segdur=2:cdur=0.2:llhls=sf:dmode=dynamic
+gpac -i source.mp4 reframer:rt=on -o live.m3u8:segdur=2:cdur=0.2:llhls=sf:dmode=dynamic
 .br
 
 .br
@@ -4716,7 +4718,7 @@ You can combine LL-HLS and DASH-LL generation:
 .br
 Example
 .br
-gpac -i source.mp4 reframer:rt=on @ -o live.mpd:dual:segdur=2:cdur=0.2:asto=1.8:llhls=br:profile=live:dmode=dynamic
+gpac -i source.mp4 reframer:rt=on -o live.mpd:dual:segdur=2:cdur=0.2:asto=1.8:llhls=br:profile=live:dmode=dynamic
 .br
 
 .br
@@ -5443,7 +5445,7 @@ By default the filter only accepts framed media streams as input PID, not files.
 .br
 Example
 .br
-gpac -i source.mp4 gsfmx:dst=manifest.mpd @ -o dump.gsf
+gpac -i source.mp4 gsfmx:dst=manifest.mpd -o dump.gsf
 .br
 
 .br
@@ -5453,7 +5455,7 @@ In order to demux such a file, the GSF demuxer will likely need to be explicitly
 .br
 Example
 .br
-gpac -i mux.gsf gsfdmx @ -o dump/$File$:dynext:clone
+gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone
 .br
 
 .br
@@ -5467,7 +5469,7 @@ To allow a mix of files and streams, use .I mixed:
 .br
 Example
 .br
-gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed @ -o dump.gsf
+gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed -o dump.gsf
 .br
 
 .br
@@ -6263,7 +6265,7 @@ If the source is not real-time, you can inject a reframer filter performing real
 .br
 Example
 .br
-gpac -i MP3_SOURCE reframer:rt=on @ -o http://localhost/live.mp3
+gpac -i MP3_SOURCE reframer:rt=on -o http://localhost/live.mp3
 .br
 
 .br
@@ -6306,7 +6308,7 @@ This mode is typically used for origin server in HAS sessions where clients may 
 .br
 Example
 .br
-gpac -i SOURCE reframer:rt=on @ -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1
+gpac -i SOURCE reframer:rt=on -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1
 .br
 
 .br
@@ -7432,9 +7434,9 @@ If multiple services with different formats are needed, you will need to explici
 .br
 Example
 .br
-gpac -i DASH_URL:#ServiceID=1 @ dashin:forward=file:FID=1 -i HLS_URL:#ServiceID=2 @ dashin:forward=file:FID=2 -o atsc://:SID=1,2
+gpac -i DASH_URL:#ServiceID=1 dashin:forward=file:FID=1 -i HLS_URL:#ServiceID=2 dashin:forward=file:FID=2 -o atsc://:SID=1,2
 .br
-gpac -i MOVIE1:#ServiceID=1 @ dasher:FID=1:mname=manifest.mpd -i MOVIE2:#ServiceID=2 @ dasher:FID=2:mname=manifest.m3u8 -o atsc://:SID=1,2
+gpac -i MOVIE1:#ServiceID=1 dasher:FID=1:mname=manifest.mpd -i MOVIE2:#ServiceID=2 dasher:FID=2:mname=manifest.m3u8 -o atsc://:SID=1,2
 .br
 
 .br
@@ -7514,7 +7516,7 @@ Muxing an existing DASH session in route:
 .br
 Example
 .br
-gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/
+gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/
 .br
 
 .br
@@ -7522,7 +7524,7 @@ Muxing an existing DASH session in atsc:
 .br
 Example
 .br
-gpac -i source.mpd dashin:forward=file @ -o atsc://
+gpac -i source.mpd dashin:forward=file -o atsc://
 .br
 
 .br
@@ -7530,7 +7532,7 @@ Dashing and muxing in route:
 .br
 Example
 .br
-gpac -i source.mp4 dasher:profile=live @ -o route://225.1.1.0:6000/manifest.mpd
+gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
@@ -7538,7 +7540,7 @@ Dashing and muxing in route Low Latency (experimental):
 .br
 Example
 .br
-gpac -i source.mp4 dasher @ -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode
+gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode
 .br
 
 .br
@@ -7566,21 +7568,21 @@ This will only send the manifest file as a regular object and will not load the 
 .br
 Example
 .br
-gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/
-.br
-gpac -i source.mpd dasher @ -o route://225.1.1.0:6000/manifest.mpd
-.br
-
-.br
-These will load the dash session, instantiate a new dasher filter (hence a new DASH manifest), sending the output of the dasher to ROUTE
-.br
-Example
-.br
-gpac -i source.mpd dashin:forward=file @ -o route://225.1.1.0:6000/manifest.mpd
+gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
 This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if .I ext is used).
+.br
+Example
+.br
+gpac -i source.mpd dasher -o route://225.1.1.0:6000/
+.br
+gpac -i source.mpd dasher -o route://225.1.1.0:6000/manifest.mpd
+.br
+
+.br
+These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE
 .br
 
 .br
@@ -9740,7 +9742,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1739-g681e45e3c-master
+build: 1.1.0-DEV-rev1740-gbd98129fd-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

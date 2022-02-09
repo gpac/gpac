@@ -1610,7 +1610,7 @@ GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
 	GF_FS_SET_DESCRIPTION("Stream to file")
 	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
-	"The writegen filter should usually not be explicitly loaded without a source ID specified, since the filter would likely match any pid connection.")
+	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
 	.initialize = writegen_initialize,

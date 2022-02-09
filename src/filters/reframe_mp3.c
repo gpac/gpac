@@ -39,7 +39,7 @@ typedef struct
 {
 	//filter args
 	Double index;
-	Bool expart;
+	Bool expart, forcemp3;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -371,6 +371,16 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	ctx->nb_ch = gf_mp3_num_channels(ctx->hdr);
 	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
+	switch (gf_mp3_layer(ctx->hdr)) {
+	case 3:
+		if (ctx->forcemp3) {
+			ctx->codecid = GF_CODECID_MPEG_AUDIO;
+		}
+		break;
+	case 1:
+		ctx->codecid = GF_CODECID_MPEG_AUDIO_L1;
+		break;
+	}
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
 	if (!ctx->timescale) {
@@ -710,6 +720,14 @@ drop_byte:
 	return GF_OK;
 }
 
+static GF_Err mp3_dmx_initialize(GF_Filter *filter)
+{
+	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
+	//in test mode we keep strict signaling, eg MPEG-2 layer 3 is still mpeg2 audio
+	if (gf_sys_is_test_mode()) ctx->forcemp3 = GF_FALSE;
+	return GF_OK;
+}
+
 static void mp3_dmx_finalize(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
@@ -846,6 +864,7 @@ static const GF_FilterArgs MP3DmxArgs[] =
 {
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(expart), "expose pictures as a dedicated video pid", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(forcemp3), "force mp3 signaling for MPEG-2 Audio layer 3", GF_PROP_BOOL, "true", NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -856,6 +875,7 @@ GF_FilterRegister MP3DmxRegister = {
 	GF_FS_SET_HELP("This filter parses MPEG-1/2 audio files/data and outputs corresponding audio PID and frames.")
 	.private_size = sizeof(GF_MP3DmxCtx),
 	.args = MP3DmxArgs,
+	.initialize = mp3_dmx_initialize,
 	.finalize = mp3_dmx_finalize,
 	SETCAPS(MP3DmxCaps),
 	.configure_pid = mp3_dmx_configure_pid,
