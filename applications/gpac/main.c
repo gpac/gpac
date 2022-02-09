@@ -185,7 +185,7 @@ const char *gpac_doc =
 "This creates a 25 fps AVC at 175kbps with a gop duration of 2 seconds, using closed gop and fast encoding settings for ffmpeg.\n"
 "\n"
 "The inverse operation (forcing a decode to happen) is possible using the __reframer__ filter.\n"
-"EX src=file.mp4 reframer:raw=av @ -o null\n"
+"EX src=file.mp4 reframer:raw=av -o null\n"
 "This will force decoding media from `file.mp4` and trash (send to `null`) the result (doing a decoder benchmark for example).\n"
 "\n"
 "## Escaping option separators\n"

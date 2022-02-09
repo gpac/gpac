@@ -1301,15 +1301,15 @@ GF_FilterRegister GSFMxRegister = {
 			"\n"
 			"# File mode\n"
 			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explicitly loading the filter with [-ext]() or [-dst]() set.\n"
-			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd @ -o dump.gsf\n"
+			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
 			"In order to demux such a file, the GSF demuxer will likely need to be explicitly loaded:\n"
-			"EX gpac -i mux.gsf gsfdmx @ -o dump/$File$:dynext:clone\n"
+			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"
 			"When working in file mode, the filter by default only accepts PID of type `file` as input.\n"
 			"To allow a mix of files and streams, use [-mixed]():\n"
-			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed @ -o dump.gsf\n"
+			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed -o dump.gsf\n"
 			"This will DASH the source, store the manifest file and the media streams with their packet properties in the GSF mux.\n"
 		,
 #endif
