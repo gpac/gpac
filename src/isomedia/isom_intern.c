@@ -88,7 +88,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			return GF_ISOM_INVALID_FILE;
 		}
 
-		prev_sample_count = trak->Media->information->sampleTable->SampleSize->sampleCount;
+		prev_sample_count = trak->Media->information->sampleTable->SampleSize ? trak->Media->information->sampleTable->SampleSize->sampleCount : 0;
 		e = MergeTrack(trak, traf, moof, mov->current_top_box_start, moof->compressed_diff, &base_data_offset);
 		if (e) return e;
 		trak->first_traf_merged = GF_TRUE;
