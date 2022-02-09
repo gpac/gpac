@@ -3771,6 +3771,10 @@ static GF_Err mp4_mux_cenc_update(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Filter
 				}
 				sai_p += mk_iv_size;
 				remain -= mk_iv_size;
+				if (remain && (remain<=2)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Invalid multi-key CENC SAI, cannot modify first subsample !\n"));
+					return GF_NON_COMPLIANT_BITSTREAM;
+				}
 			}
 			offset = (u32) (sai_p - sai);
 			sub_count_size = 4; //32bit sub count
