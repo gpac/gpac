@@ -11484,16 +11484,18 @@ GF_Err bloc_box_read(GF_Box *s,GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(s, 256)
 	gf_bs_read_data(bs, (char *) ptr->baseLocation, 256);
+	ptr->baseLocation[256]=0;
 	ISOM_DECREASE_SIZE(s, 256)
 	gf_bs_read_data(bs, (char *) ptr->basePurlLocation, 256);
 	ISOM_DECREASE_SIZE(s, 512)
+	ptr->basePurlLocation[256]=0;
 	gf_bs_skip_bytes(bs, 512);
 	return GF_OK;
 }
 
 GF_Box *bloc_box_new()
 {
-	ISOM_DECL_BOX_ALLOC(GF_BaseLocationBox, GF_ISOM_BOX_TYPE_TRIK);
+	ISOM_DECL_BOX_ALLOC(GF_BaseLocationBox, GF_ISOM_BOX_TYPE_BLOC);
 	return (GF_Box *)tmp;
 }
 

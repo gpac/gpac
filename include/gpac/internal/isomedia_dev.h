@@ -3032,8 +3032,8 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u8  baseLocation[256];
-	u8 basePurlLocation[256];
+	u8  baseLocation[257];
+	u8 basePurlLocation[257];
 } GF_BaseLocationBox;
 
 typedef struct
