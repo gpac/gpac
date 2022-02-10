@@ -766,9 +766,17 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				}
 				if (ext[5]=='w') {
 					rewrite_bs = GF_TRUE;
-					sscanf(ext+6, "%d:%d", &par_n, &par_d);
+					if (sscanf(ext+6, "%d:%d", &par_n, &par_d)!=2) {
+						M4_LOG(GF_LOG_ERROR, ("Unrecognized syntax for par=, expecting N:D got %s\n", ext+5));
+						e = GF_BAD_PARAM;
+						goto exit;
+					}
 				} else {
-					sscanf(ext+5, "%d:%d", &par_n, &par_d);
+					if (sscanf(ext+5, "%d:%d", &par_n, &par_d) != 2) {
+						M4_LOG(GF_LOG_ERROR, ("Unrecognized syntax for par=, expecting N:D got %s\n", ext+5));
+						e = GF_BAD_PARAM;
+						goto exit;
+					}
 				}
 			}
 		}
