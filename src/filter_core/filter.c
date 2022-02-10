@@ -378,8 +378,18 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		filter->orig_args = all_args;
 		src_striped = NULL;
 	} else if (dst_striped) {
+		//remove local args from dst
+		char *localarg_marker = strstr(dst_striped, "gfloc");
+		if (localarg_marker) {
+			localarg_marker--;
+			if (localarg_marker[0]!=filter->session->sep_args)
+				localarg_marker = NULL;
+			else
+				localarg_marker[0] = 0;
+		}
 		e = gf_filter_new_finalize(filter, dst_striped, arg_type);
 		filter->orig_args = gf_strdup(dst_striped);
+		if (localarg_marker) localarg_marker[0] = filter->session->sep_args;
 		src_striped = NULL;
 	} else {
 		e = gf_filter_new_finalize(filter, src_striped, arg_type);
