@@ -100,7 +100,7 @@ typedef struct
 	u32 bytes_in_nal_hdr;
 	Bool use_subsamples;
 	Bool cenc_init;
-	u32 nb_pck_encrypted, kidx;
+	u32 nb_pck_encrypted, kidx, nb_saps, nb_segments, nb_periods;
 
 	//true if using AES-CTR mode, false if using AES-CBC mode
 	Bool ctr_mode;
@@ -909,7 +909,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 
 	//configure roll rap
-	if (cstr->tci->roll_rap) {
+	if (cstr->tci->roll_type==GF_KEYROLL_SAPS) {
 		cstr->rap_roll = GF_TRUE;
 		//if no subsample, only use key roll "rap" if codec has sync point
 		if (!cstr->use_subsamples) {
@@ -1080,7 +1080,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	const char *cfile_name = ctx->cfile;
 	GF_TrackCryptInfo *tci_any = NULL;
 	u32 i, count;
-
+	Bool force_clear = GF_FALSE;
 
 	if (is_remove) {
 		cstr = gf_filter_pid_get_udta(pid);
@@ -1099,14 +1099,19 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CRYPT_INFO);
 	if (prop) {
-		cinfo = gf_crypt_info_load(prop->value.string, &e);
-		if (!cinfo) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] failed to load crypt info file %s for pid %s\n", prop->value.string, gf_filter_pid_get_name(pid) ) );
-			return e;
+		if (!stricmp(prop->value.string, "clear")) {
+			force_clear = GF_TRUE;
+		} else {
+			cinfo = gf_crypt_info_load(prop->value.string, &e);
+			if (!cinfo) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] failed to load crypt info file %s for pid %s\n", prop->value.string, gf_filter_pid_get_name(pid) ) );
+				return e;
+			}
+			cfile_name = prop->value.string;
 		}
-		cfile_name = prop->value.string;
 	}
-	if (!cinfo) cinfo = ctx->cinfo;
+	if (!cinfo && !force_clear)
+		cinfo = ctx->cinfo;
 
 
 	if (cinfo) {
@@ -1120,7 +1125,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			tci = NULL;
 		}
 		if (!tci) tci = tci_any;
-	} else if (ctx->allc) {
+	} else if (ctx->allc && !force_clear) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCrypt] Missing DRM config file\n") );
 		return GF_NOT_SUPPORTED;
 	}
@@ -2448,10 +2453,29 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 		Bool key_changed = GF_FALSE;
 
 		if (cstr->tci->keyRoll) {
-			new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % nb_keys;
-		} else if (cstr->rap_roll) {
-			if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2)) {
-				new_idx = (new_idx + 1) % nb_keys;
+			if (cstr->tci->roll_type == GF_KEYROLL_SAMPLES) {
+				new_idx = (cstr->nb_pck_encrypted / cstr->tci->keyRoll) % nb_keys;
+			} else if (cstr->tci->roll_type == GF_KEYROLL_SEGMENTS) {
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
+				if (!p) {
+					p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CUE_START);
+					if (p && !p->value.boolean) p=NULL;
+				}
+				if (p) {
+					cstr->nb_segments++;
+					new_idx = (cstr->nb_segments / cstr->tci->keyRoll) % nb_keys;
+				}
+			} else if (cstr->tci->roll_type == GF_KEYROLL_PERIODS) {
+				const GF_PropertyValue *p = gf_filter_pck_get_property(pck, GF_PROP_PID_DASH_PERIOD_START);
+				if (p) {
+					cstr->nb_periods++;
+					new_idx = (cstr->nb_periods / cstr->tci->keyRoll) % nb_keys;
+				}
+			} else if (cstr->rap_roll) {
+				if ((sap==GF_FILTER_SAP_1) || (sap==GF_FILTER_SAP_2)) {
+					cstr->nb_saps++;
+					new_idx = (cstr->nb_saps / cstr->tci->keyRoll) % nb_keys;
+				}
 			}
 		}
 		if (cstr->kidx != new_idx) {

@@ -274,6 +274,11 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			dashdmx_set_string_list_prop(ref, GF_PROP_PCK_HLS_VARIANT, &ctx->hls_variants);
 			dashdmx_set_string_list_prop(ref, GF_PROP_PCK_HLS_VARIANT_NAME, &ctx->hls_variants_names);
 		}
+
+		if (gf_filter_pid_get_udta_flags(out_pid)) {
+			gf_filter_pid_set_udta_flags(out_pid, 0);
+			gf_filter_pck_set_property(ref, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(0) );
+		}
 		gf_filter_pck_send(ref);
 		return;
 	}
@@ -1136,14 +1141,18 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 	}
 
 	//discontinuity at next period, recompute timeline anchor at end of pres
-	//in foraward mode, we don't touch timestamps for now
-	if ((dash_evt==GF_DASH_EVENT_END_OF_PERIOD) && group_idx && !ctx->forward) {
+	if ((dash_evt==GF_DASH_EVENT_END_OF_PERIOD) && group_idx) {
 		ctx->time_discontinuity.num = 0;
 		ctx->time_discontinuity.den = 0;
 
 		for (i=0; i<gf_filter_get_opid_count(ctx->filter); i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
 
+			//in forward mode, signal period switch at packet level but don't touch timestamps for now
+			if (ctx->forward) {
+				gf_filter_pid_set_udta_flags(opid, 1);
+				continue;
+			}
 			u32 timescale = gf_filter_pid_get_timescale(opid);
 			u64 ts = gf_filter_pid_get_next_ts(opid);
 			if (ts==GF_FILTER_NO_TS) continue;
@@ -3316,6 +3325,8 @@ GF_FilterRegister DASHDmxRegister = {
 	"- `CueStart`: to indicate this is a segment start (set by demuxer if it offers `sigfrag` option)\n"
 	"- `FileNumber`: current segment number\n"
 	"- `FileName`: current segment file name without manifest base url\n"
+	"\n"
+	"If this first packet is also the first in the period, it will have the property `DFPStart` set with value 0.\n"
 	"\n"
 	"If [-forward]() is set to `mani`, the first packet of a segment dispatched after a manifest update will also carry the manifest payload as a property:\n"
 	"- `DFManifest`: contains main manifest (MPD, M3U8 master)\n"

@@ -247,11 +247,24 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 			else if (!stricmp(att->name, "keyRoll")) {
 				if (!strncmp(att->value, "idx=", 4))
 					tkc->defaultKeyIdx = atoi(att->value+4);
-				else if (!strncmp(att->value, "roll=", 5))
-					tkc->keyRoll = atoi(att->value+5);
-				else if (!strcmp(att->value, "rap"))
-					tkc->roll_rap = GF_TRUE;
-				else {
+				else if (!strncmp(att->value, "roll", 4) || !strncmp(att->value, "samp", 4)) {
+					tkc->roll_type = GF_KEYROLL_SAMPLES;
+					if (att->value[4]=='=') tkc->keyRoll = atoi(att->value+5);
+					if (!tkc->keyRoll) tkc->keyRoll = 1;
+				}
+				else if (!strncmp(att->value, "seg", 3)) {
+					tkc->roll_type = GF_KEYROLL_SEGMENTS;
+					if (att->value[3]=='=') tkc->keyRoll = atoi(att->value+4);
+					if (!tkc->keyRoll) tkc->keyRoll = 1;
+				} else if (!strncmp(att->value, "period", 6)) {
+					tkc->roll_type = GF_KEYROLL_PERIODS;
+					if (att->value[6]=='=') tkc->keyRoll = atoi(att->value+7);
+					if (!tkc->keyRoll) tkc->keyRoll = 1;
+				} else if (!strcmp(att->value, "rap")) {
+					tkc->roll_type = GF_KEYROLL_SAPS;
+					if (att->value[3]=='=') tkc->keyRoll = atoi(att->value+4);
+					if (!tkc->keyRoll) tkc->keyRoll = 1;
+				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unrecognized roll parameter %s, ignoring\n", att->value));
 				}
 			}
