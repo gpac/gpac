@@ -1414,7 +1414,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_OMA_CID, "ContentID", "OMA Content ID", GF_PROP_STRING},
 	{ GF_PROP_PID_OMA_TXT_HDR, "TextualHeaders", "OMA textual headers", GF_PROP_STRING},
 	{ GF_PROP_PID_OMA_CLEAR_LEN, "PlaintextLen", "OMA size of plaintext data", GF_PROP_LUINT},
-	{ GF_PROP_PID_CRYPT_INFO, "CryptInfo", "URL (local file only) of crypt info file for this pid", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CRYPT_INFO, "CryptInfo", "URL (local file only) of crypt info file for this pid, use `clear` to force passthrough", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECRYPT_INFO, "DecryptInfo", "URL (local file only) of crypt info file for this pid - see decrypter help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "NTP time at sender side or grabber side", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PCK_RECEIVER_NTP, "ReceiverNTP", "Receiver NTP time (usually associated with the sender NTP property)", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},

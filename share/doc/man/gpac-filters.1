@@ -1588,6 +1588,10 @@ Each first packet of a segment will have the following properties attached:
 .br
 
 .br
+If this first packet is also the first in the period, it will have the property DFPStart set with value 0.
+.br
+
+.br
 If .I forward is set to mani, the first packet of a segment dispatched after a manifest update will also carry the manifest payload as a property:
 .br
 * `DFManifest`: contains main manifest (MPD, M3U8 master)
@@ -4790,6 +4794,12 @@ Example
 .br
 
 .br
+
+.br
+If the .I cues option equals none, the DashCue property of input PIDs will be ignored.
+.br
+
+.br
 .SS Manifest Generation only mode
 .br
 The segmenter can be used to generate manifests from already fragmented ISOBMFF inputs using .I sigfrag.
@@ -4851,6 +4861,56 @@ Example
 
 .br
 This will generate a DASH manifest in live Profile based on the input files. The input file will contain init.mp4, q1/1.m4s, q1/2.m4s...
+.br
+
+.br
+.SS Cue Generation only mode
+.br
+The segmenter can be used to only generate segment boundaries from a set of inputs using .I gencues, without generating manifests or output files.
+.br
+In this mode, output PIDs are declared directly rather than redirected to media segment files.
+.br
+The segmentation logic is not changed, and packets are forwarded with the same information and timing as in regular mode.
+.br
+
+.br
+Output PIDs are forwarded with DashCue=inband property, so that any subsequent dasher follows the same segmentation process (see above).
+.br
+
+.br
+The first packet in a segment has:
+.br
+- property FileNumber (and, if multiple files, FileName) set as usual
+.br
+- property CueStart set
+.br
+- property DFPStart=0 set if this is the first packet in a period
+.br
+
+.br
+This mode can be used to pre-segment the streams for later processing that must take place before final dashing.
+.br
+Example
+.br
+-i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd
+.br
+
+.br
+This will allow the encrypter to locate dash boundaries and roll keys at segment boundaries.
+.br
+Example
+.br
+-i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd
+.br
+
+.br
+If the DRM file uses keyRoll=period, this will generate:
+.br
+- first period crypted with one key
+.br
+- second period clear
+.br
+- third period crypted with another key
 .br
 
 .br
@@ -5166,6 +5226,8 @@ cmaf (enum, default: no):      use cmaf guidelines
 chain (str):                   URL of next MPD for regular chaining
 .br
 chain_fbk (str):               URL of fallback MPD
+.br
+gencues (bool, default: false): only insert segment boundaries and do not generate manifests
 .br
 
 .br
@@ -9812,7 +9874,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1749-gb1a2e4127-master
+build: 1.1.0-DEV-rev1751-ged7188cf3-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

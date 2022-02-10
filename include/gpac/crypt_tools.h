@@ -114,6 +114,18 @@ typedef struct
 	u8 constant_IV_size;
 } GF_CryptKeyInfo;
 
+/*! key roll modes*/
+typedef enum
+{
+	/*! change keys every keyRoll AUs*/
+	GF_KEYROLL_SAMPLES = 0,
+	/*! roll keys at each SAP type 1 or 2 for streams with SAPs*/
+	GF_KEYROLL_SAPS,
+	/*! change keys every keyRoll DASH segments*/
+	GF_KEYROLL_SEGMENTS,
+	/*! change keys every keyRoll periods*/
+	GF_KEYROLL_PERIODS,
+} GF_KeyRollType;
 
 /*! Crypto information for one media stream*/
 typedef struct
@@ -160,10 +172,10 @@ typedef struct
 
 	/*! default key index to use*/
 	u32 defaultKeyIdx;
-	/*! roll period of keys (change keys every keyRoll AUs)*/
+	/*! roll period of keys*/
 	u32 keyRoll;
-	/*! roll keys at each SAP type 1 or 2 for streams with SAPs*/
-	Bool roll_rap;
+	/*! roll type */
+	GF_KeyRollType roll_type;
 	/*! number of bytes to leave in the clear for non NAL-based tracks. Only used in cbcs mode*/
 	u32 clear_bytes;
 

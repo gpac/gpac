@@ -168,6 +168,7 @@ typedef struct
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
+	Bool gencues;
 
 	//internal
 	Bool in_error;
@@ -445,6 +446,9 @@ typedef struct _dash_stream
 
 	u64 last_min_segment_start_time;
 	Bool stl;
+
+	Bool set_period_switch;
+
 } GF_DashStream;
 
 static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_last_in_period);
@@ -795,7 +799,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 	ctx->check_connections = GF_TRUE;
-	if (!ctx->opid) {
+	if (!ctx->opid && !ctx->gencues) {
 		u32 i, nb_opids = ctx->dual ? 2 : 1;
 		for (i=0; i < nb_opids; i++) {
 			char *segext=NULL;
@@ -946,7 +950,13 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			evt.play.speed = 1.0;
 			gf_filter_pid_send_event(ds->ipid, &evt);
 		}
-		//don't create pid at this time
+		//don't create pid at this time except in gencues mode
+
+		if (ctx->gencues) {
+			ds->opid = gf_filter_pid_new(filter);
+			gf_filter_pid_copy_properties(ds->opid, pid);
+			gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
+		}
 	}
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
@@ -985,7 +995,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 #define CHECK_PROP_STR(_type, _mem, _e) \
 	p = gf_filter_pid_get_property(pid, _type); \
 	if (!p && (_e<=0) ) return _e; \
-	if (p && _mem && strcmp(_mem, p->value.string)) period_switch = GF_TRUE; \
+	if (p && p->value.string && _mem && strcmp(_mem, p->value.string)) period_switch = GF_TRUE; \
 	if (p) { \
 		if (_mem) gf_free(_mem); \
 		_mem = gf_strdup(p->value.string); \
@@ -1336,8 +1346,10 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		//only reload queues if we detected a period switch
 		if (period_switch) {
 			cue_file = ctx->cues;
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_CUE);
-			if (p) cue_file = p->value.string;
+			if (!cue_file || strcmp(cue_file, "none") ) {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_CUE);
+				if (p) cue_file = p->value.string;
+			}
 
 			if (ds->cues) gf_free(ds->cues);
 			ds->cues = NULL;
@@ -1352,7 +1364,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 						if (p && p->value.uint)
 							ctx->forward_mode = p->value.uint;
 					}
-				} else {
+				} else if (strcmp(cue_file, "none")) {
 					e = gf_mpd_load_cues(cue_file, ds->id, &ds->cues_timescale, &ds->cues_use_edits, &ds->cues_ts_offset, &ds->cues, &ds->nb_cues);
 					if (e) return e;
 					if (!ds->cues_timescale)
@@ -1452,7 +1464,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_list_del_item(ctx->next_period->streams, ds);
 		//reset discard, blocking mode on output (set by EOS) and reset dasher EOS state
 		gf_filter_pid_set_discard(ds->ipid, GF_FALSE);
-		if (ds->opid) {
+		if (ds->opid && !ctx->gencues) {
 			gf_filter_pid_discard_block(ds->opid);
 			gf_filter_pid_remove(ds->opid);
 			ds->opid = NULL;
@@ -1492,6 +1504,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PCK_HLS_REF, &PROP_LONGUINT( ds->hls_ref_id ) );
 			if (ctx->llhls)
 				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
+
+			if (ctx->gencues)
+				gf_filter_pid_set_property(ds->opid, GF_PROP_PID_DASH_CUE, &PROP_STRING("inband") );
 		}
 		if (ds->rep)
 			dasher_update_rep(ctx, ds);
@@ -2818,7 +2833,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	char *szDST = NULL;
 	char szSRC[100];
 
-	if (ctx->sigfrag)
+	if (ctx->sigfrag || ctx->gencues)
 		return;
 
 	GF_DashStream *ds = rep->playback.udta;
@@ -3030,7 +3045,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 	GF_DashStream *base_ds = ds->muxed_base ? ds->muxed_base : ds;
 	char szSRC[1024];
 
-	if (ctx->sigfrag || ctx->in_error)
+	if (ctx->sigfrag || ctx->in_error || ctx->gencues)
 		return;
 
 	assert(!ds->opid);
@@ -3064,9 +3079,6 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 			}
 		}
 	}
-
-	if (ctx->sigfrag)
-		return;
 
 	sprintf(szSRC, "dasher_%p", base_ds->dst_filter);
 	ds->opid = gf_filter_pid_new(filter);
@@ -5321,7 +5333,7 @@ static void dasher_udpate_periods_and_manifest(GF_Filter *filter, GF_DasherCtx *
 		dasher_context_update_period_end(ctx);
 
 	//we have a MPD ready, flush it
-	if (ctx->mpd)
+	if (!ctx->gencues && ctx->mpd)
 		dasher_send_manifest(filter, ctx, GF_FALSE);
 }
 
@@ -5521,14 +5533,16 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	GF_DashStream *first_in_period=NULL;
 	p = ctx->current_period;
 
-	if (!ctx->out_path) {
-		dasher_check_outpath(ctx);
-	}
-	if (ctx->current_period->period) {
-		if (ctx->dyn_rate)
-			dasher_update_dyn_bitrates(ctx);
+	if (!ctx->gencues) {
+		if (!ctx->out_path) {
+			dasher_check_outpath(ctx);
+		}
+		if (ctx->current_period->period) {
+			if (ctx->dyn_rate)
+				dasher_update_dyn_bitrates(ctx);
 
-		dasher_udpate_periods_and_manifest(filter, ctx);
+			dasher_udpate_periods_and_manifest(filter, ctx);
+		}
 	}
 
 	if (ctx->subdur_done || (ctx->current_period->period && (ctx->dmode == GF_MPD_TYPE_DYNAMIC_LAST)) )
@@ -5559,7 +5573,7 @@ static GF_Err dasher_switch_period(GF_Filter *filter, GF_DasherCtx *ctx)
 	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count;i++) {
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
-		if (ds->opid) {
+		if (ds->opid && !ctx->gencues) {
 			gf_filter_pid_remove(ds->opid);
 			ds->opid = NULL;
 		}
@@ -5870,6 +5884,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			count--;
 			continue;
 		}
+
+		if (ctx->gencues)
+			ds->set_period_switch = GF_TRUE;
 
 		if (ctx->is_period_restore) continue;
 
@@ -6821,8 +6838,21 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		} else if (ctx->ntp==DASHER_NTP_REM) {
 			gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, NULL);
 		}
+		if (!ctx->gencues) {
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, NULL );
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_IDXFILENAME, NULL );
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENAME, NULL );
+		}
 
 		gf_filter_pck_set_property(pck, GF_PROP_PCK_FILENUM, &PROP_UINT(base_ds->seg_number ) );
+
+		if (ctx->gencues) {
+			gf_filter_pck_set_property(pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
+			if (ds->set_period_switch) {
+				ds->set_period_switch = GF_FALSE;
+				gf_filter_pck_set_property(pck, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(0) );
+			}
+		}
 	}
 
 	//only signal file name & insert timelines on one stream for muxed representations
@@ -6842,6 +6872,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	if (ctx->store_seg_states) {
 		char *kms_uri;
 		const GF_PropertyValue *p;
+		assert(!ctx->gencues);
 		if (!ds->rep->state_seg_list) {
 			ds->rep->state_seg_list = gf_list_new();
 		}
@@ -7018,6 +7049,8 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	}
 
 	if (ctx->sseg) {
+		if (ctx->gencues) return;
+
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SIDX_RANGE);
 			if (p) {
@@ -7051,6 +7084,9 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 	if (ctx->sfile) {
 		GF_MPD_SegmentURL *seg_url;
 		assert(ds->rep->segment_list);
+
+		if (ctx->gencues) return;
+
 		GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
 		if (!seg_url) return;
 
@@ -7155,7 +7191,7 @@ send_packet:
 		seg_state->filename = gf_strdup(szSegmentName);
 	}
 
-	if (ds->rep->segment_list && (ctx->forward_mode!=DASHER_FWD_ALL) ) {
+	if (ds->rep->segment_list && (ctx->forward_mode!=DASHER_FWD_ALL) && !ctx->gencues) {
 		GF_MPD_SegmentURL *seg_url;
 		GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
 		if (seg_url) {
@@ -8500,11 +8536,14 @@ static GF_Err dasher_process(GF_Filter *filter)
 	//proper segment size for segment_list+byte_range mode
 	if (ctx->nb_seg_url_pending) {
 		u64 diff;
-		if (!ctx->last_evt_check_time) ctx->last_evt_check_time = gf_sys_clock_high_res();
+		if (!ctx->last_evt_check_time) {
+			ctx->last_evt_check_time = gf_sys_clock_high_res();
+			gf_filter_prevent_blocking(filter, GF_TRUE);
+		}
 
 		diff = gf_sys_clock_high_res() - ctx->last_evt_check_time;
 		if (diff < 10000000) {
-			gf_filter_post_process_task(filter);
+			gf_filter_ask_rt_reschedule(filter, 1000);
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] timeout %d segment info still pending but no event from muxer after "LLU" us, aborting\n", ctx->nb_seg_url_pending, diff));
@@ -8514,6 +8553,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 	if (ctx->sseg && !ctx->on_demand_done && !ctx->sigfrag) {
 		return GF_OK;
 	}
+	gf_filter_prevent_blocking(filter, GF_FALSE);
 	ctx->force_period_switch = GF_FALSE;
 	//done with this period, do period switch - this will update the MPD if needed
 	e = dasher_switch_period(filter, ctx);
@@ -9037,6 +9077,10 @@ static GF_Err dasher_initialize(GF_Filter *filter)
 			if (!ctx->sseg)
 				ctx->sfile = GF_TRUE;
 		}
+		if (ctx->gencues) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] `sigfrag` and `gencues` options cannot be used together, disabling gencies\n"));
+			ctx->gencues = GF_FALSE;
+		}
 	}
 
 	if (!ctx->sap || ctx->sigfrag || ctx->cues)
@@ -9274,6 +9318,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(pswitch), "force period switch instead of absorbing PID reconfiguration (for splicing or add insertion not using periodID)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -9427,7 +9472,9 @@ GF_FilterRegister DasherRegister = {
 "If the `DashCue` property of a PID equals `inband`, the PID will be segmented according to the `CueStart` property of input packets.\n"
 "This feature is typically combined with a list of files as input:\n"
 "EX -i list.m3u:sigcues -o res/live.mpd"
-"This will load the `flist` filter in cue mode, generating continuous timelines from the sources and injecting a `CueStart` property at each new file."
+"This will load the `flist` filter in cue mode, generating continuous timelines from the sources and injecting a `CueStart` property at each new file.\n"
+"\n"
+"If the [-cues]() option equals `none`, the `DashCue` property of input PIDs will be ignored.\n"
 "\n"
 "## Manifest Generation only mode\n"
 "The segmenter can be used to generate manifests from already fragmented ISOBMFF inputs using [-sigfrag]().\n"
@@ -9452,6 +9499,27 @@ GF_FilterRegister DasherRegister = {
 "This will generate a DASH manifest in Main Profile based on the input files.\n"
 "EX -i seglist.txt:Template=$XInit=init$$q1/$Number$ -o dash.mpd:sigfrag:profile=live\n"
 "This will generate a DASH manifest in live Profile based on the input files. The input file will contain `init.mp4`, `q1/1.m4s`, `q1/2.m4s`...\n"
+"\n"
+"## Cue Generation only mode\n"
+"The segmenter can be used to only generate segment boundaries from a set of inputs using [-gencues](), without generating manifests or output files.\n"
+"In this mode, output PIDs are declared directly rather than redirected to media segment files.\n"
+"The segmentation logic is not changed, and packets are forwarded with the same information and timing as in regular mode.\n"
+"\n"
+"Output PIDs are forwarded with `DashCue=inband` property, so that any subsequent dasher follows the same segmentation process (see above).\n"
+"\n"
+"The first packet in a segment has:\n"
+"- property `FileNumber` (and, if multiple files, `FileName`) set as usual\n"
+"- property `CueStart` set\n"
+"- property `DFPStart=0` set if this is the first packet in a period\n"
+"\n"
+"This mode can be used to pre-segment the streams for later processing that must take place before final dashing.\n"
+"EX -i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd\n"
+"This will allow the encrypter to locate dash boundaries and roll keys at segment boundaries.\n"
+"EX -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
+"If the DRM file uses `keyRoll=period`, this will generate:\n"
+"- first period crypted with one key\n"
+"- second period clear\n"
+"- third period crypted with another key\n"
 "\n"
 "## Muxer development considerations\n"
 "Output muxers allowing segmented output must obey the following:\n"
