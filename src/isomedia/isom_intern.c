@@ -293,6 +293,8 @@ static void convert_compact_sample_groups(GF_List *child_boxes, GF_List *sampleG
 			//unroll the pattern
 			while (nb_samples) {
 				u32 nb_same_index=1;
+				if (csgp->patterns[j].length<=k)
+					break;
 				u32 sg_idx = csgp->patterns[j].sample_group_description_indices[k];
 				while (nb_same_index+k<csgp->patterns[j].length) {
 					if (csgp->patterns[j].sample_group_description_indices[k+nb_same_index] != sg_idx)
