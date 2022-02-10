@@ -1392,8 +1392,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );
 				}
 
-				if (ch->sai_buffer && ch->pck_encrypted) {
-					assert(ch->sai_buffer_size);
+				if (ch->sai_buffer && ch->sai_buffer_size && ch->pck_encrypted) {
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}
 
