@@ -887,7 +887,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 						u8 *udta=NULL;
 						u32 udta_size;
 						gf_isom_get_user_data(read->mov, ch->track, type, uuid, j+1, &udta, &udta_size);
-						if (!udta) continue;
+						if (!udta || !udta_size) continue;
 						if (nb_items>1)
 							snprintf(szName, 30, "udta_%s_%d", gf_4cc_to_str(type), j+1);
 						else
