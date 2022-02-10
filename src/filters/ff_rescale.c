@@ -28,6 +28,14 @@
 #ifdef GPAC_HAS_FFMPEG
 
 #include "ff_common.h"
+#include <gpac/evg.h>
+
+enum
+{
+	FFSWS_KEEPAR_OFF=0,
+	FFSWS_KEEPAR_FULL,
+	FFSWS_KEEPAR_NOSRC,
+};
 
 typedef struct
 {
@@ -40,6 +48,9 @@ typedef struct
 	GF_PropIntList otable, itable;
 	//internal data
 	Bool initialized;
+	char *padclr;
+	u32 keepar;
+	GF_Fraction osar;
 
 	GF_FilterPid *ipid, *opid;
 	u32 w, h, stride, s_pfmt;
@@ -54,6 +65,9 @@ typedef struct
 
 	u32 swap_idx_1, swap_idx_2;
 	Bool fullrange;
+
+	u32 o_bpp, offset_w, offset_h;
+	GF_EVGSurface *surf;
 } GF_FFSWScaleCtx;
 
 static GF_Err ffsws_process(GF_Filter *filter)
@@ -135,21 +149,45 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 	dst_planes[0] = output;
+	dst_planes[0] += ctx->dst_stride[0] * ctx->offset_h + ctx->offset_w*ctx->o_bpp;
+
 	if (ctx->nb_planes==1) {
 	} else if (ctx->nb_planes==2) {
 		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
+
+		dst_planes[1] += ctx->dst_stride[1] * ctx->offset_h * ctx->dst_uv_height / ctx->oh;
+		dst_planes[1] += ctx->offset_w*ctx->o_bpp*ctx->dst_stride[1]/ctx->dst_stride[0];
 	} else if (ctx->nb_planes==3) {
 		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
 		dst_planes[2] = dst_planes[1] + ctx->dst_stride[1]*ctx->dst_uv_height;
+
+		dst_planes[1] += ctx->dst_stride[1] * ctx->offset_h * ctx->dst_uv_height / ctx->oh;
+		dst_planes[1] += ctx->offset_w*ctx->o_bpp*ctx->dst_stride[1]/ctx->dst_stride[0];
+
+		dst_planes[2] += ctx->dst_stride[2] * ctx->offset_h * ctx->dst_uv_height / ctx->oh;
+		dst_planes[2] += ctx->offset_w*ctx->o_bpp*ctx->dst_stride[2]/ctx->dst_stride[0];
 	} else if (ctx->nb_planes==4) {
 		dst_planes[1] = output + ctx->dst_stride[0] * ctx->oh;
 		dst_planes[2] = dst_planes[1] + ctx->dst_stride[1]*ctx->dst_uv_height;
 		dst_planes[3] = dst_planes[2] + ctx->dst_stride[2]*ctx->dst_uv_height;
+
+		dst_planes[1] += ctx->dst_stride[1] * ctx->offset_h * ctx->dst_uv_height / ctx->oh;
+		dst_planes[1] += ctx->offset_w*ctx->o_bpp*ctx->dst_stride[1]/ctx->dst_stride[0];
+
+		dst_planes[2] += ctx->dst_stride[2] * ctx->offset_h * ctx->dst_uv_height / ctx->oh;
+		dst_planes[2] += ctx->offset_w*ctx->o_bpp*ctx->dst_stride[2]/ctx->dst_stride[0];
+
+		dst_planes[3] += ctx->dst_stride[3] * ctx->offset_h + ctx->offset_w*ctx->o_bpp;
+	}
+	if (ctx->offset_w || ctx->offset_h) {
+		u32 color = ctx->padclr ? gf_color_parse(ctx->padclr) : 0xFF000000;
+		gf_evg_surface_attach_to_buffer(ctx->surf, output, ctx->ow, ctx->oh, 0, ctx->dst_stride[0], ctx->ofmt);
+		gf_evg_surface_clear(ctx->surf, NULL, color);
 	}
 
 	//rescale the cropped frame
 	res = sws_scale(ctx->swscaler, (const u8**) src_planes, ctx->src_stride, 0, ctx->h, dst_planes, ctx->dst_stride);
-	if (res != ctx->oh) {
+	if (res + 2*ctx->offset_h != ctx->oh) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Error during scale, expected height %d got %d\n", ctx->oh, res));
 		gf_filter_pid_drop_packet(ctx->ipid);
 		gf_filter_pck_discard(dst_pck);
@@ -270,8 +308,83 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	ctx->passthrough = GF_FALSE;
 
-	ctx->ow = ctx->osize.x ? ctx->osize.x : w;
-	ctx->oh = ctx->osize.y ? ctx->osize.y : h;
+	Bool downsample_w=GF_FALSE, downsample_h=GF_FALSE;
+	switch (ofmt) {
+	case GF_PIXEL_YUV:
+	case GF_PIXEL_YVU:
+	case GF_PIXEL_YUV_10:
+	case GF_PIXEL_NV12:
+	case GF_PIXEL_NV21:
+	case GF_PIXEL_NV12_10:
+	case GF_PIXEL_NV21_10:
+	case GF_PIXEL_YUVA:
+	case GF_PIXEL_YUVD:
+		downsample_h=GF_TRUE;
+		//fallthrough
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_UYVY:
+	case GF_PIXEL_VYUY:
+	case GF_PIXEL_YUYV:
+	case GF_PIXEL_YVYU:
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+		downsample_w = GF_TRUE;
+		break;
+
+	default:
+		break;
+	}
+
+	u32 scale_w = w;
+	if ((ctx->keepar == FFSWS_KEEPAR_FULL) && (sar.num>sar.den)) {
+		scale_w = w * sar.num / sar.den;
+		sar.num=0;
+	}
+
+	if (!ctx->osize.x && !ctx->osize.y) {
+		ctx->ow = w;
+		ctx->oh = h;
+		scale_w = w;
+	}
+	else if (!ctx->osize.x) {
+		ctx->oh = ctx->osize.y;
+		ctx->ow = ctx->osize.y * scale_w / h;
+	}
+	else if (!ctx->osize.y) {
+		ctx->ow = ctx->osize.x;
+		ctx->oh = ctx->osize.x * h / scale_w;
+	} else {
+		ctx->ow = ctx->osize.x;
+		ctx->oh = ctx->osize.y;
+	}
+	ctx->offset_w = ctx->offset_h = 0;
+
+	u32 final_w = ctx->ow;
+	u32 final_h = ctx->oh;
+	if (ctx->keepar!=FFSWS_KEEPAR_OFF) {
+		if (ctx->ow * h < scale_w * ctx->oh) {
+			final_h = ctx->ow * h / scale_w;
+		} else if (ctx->ow * h > scale_w * ctx->oh) {
+			final_w = ctx->oh * scale_w / h;
+		}
+	}
+	if (ctx->osar.num > ctx->osar.den) {
+		ctx->ow = ctx->ow * ctx->osar.den / ctx->osar.num;
+		final_w = final_w * ctx->osar.den / ctx->osar.num;
+		if (downsample_w) {
+			if (ctx->ow % 2) ctx->ow -= 1;
+			if (final_w % 2) final_w -= 1;
+		}
+	}
+	ctx->offset_w = (ctx->ow - final_w) / 2;
+	ctx->offset_h = (ctx->oh - final_h) / 2;
+
+	if (downsample_w && (ctx->offset_w % 2)) ctx->offset_w -= 1;
+	if (downsample_h && (ctx->offset_h % 2)) ctx->offset_h -= 1;
+
 	if ((ctx->w == w) && (ctx->h == h) && (ctx->s_pfmt == ofmt) && (ctx->stride == stride) && (ctx->fullrange==fullrange)) {
 		//nothing to reconfigure
 	}
@@ -303,6 +416,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
 		if (ctx->nb_src_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
 
+		ctx->o_bpp = gf_pixel_get_bytes_per_pixel(ofmt);
 		//get layout info for dest
 		memset(ctx->dst_stride, 0, sizeof(ctx->dst_stride));
 		res = gf_pixel_get_size_info(ctx->ofmt, ctx->ow, ctx->oh, &ctx->out_size, &ctx->dst_stride[0], &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
@@ -325,7 +439,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 		}
 		//create/get a swscale context
-		ctx->swscaler = sws_getCachedContext(ctx->swscaler, w, h, ff_src_pfmt, ctx->ow, ctx->oh, ff_dst_pfmt, mode, NULL, NULL, par_p);
+		ctx->swscaler = sws_getCachedContext(ctx->swscaler, w, h, ff_src_pfmt, ctx->ow-2*ctx->offset_w, ctx->oh-2*ctx->offset_h, ff_dst_pfmt, mode, NULL, NULL, par_p);
 
 		if (!ctx->swscaler) {
 #ifndef GPAC_DISABLE_LOG
@@ -361,7 +475,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FFSWS] Setup rescaler from %dx%d fmt %s to %dx%d fmt %s\n", w, h, gf_pixel_fmt_name(ofmt), ctx->ow, ctx->oh, gf_pixel_fmt_name(ctx->ofmt)));
 
 		ctx->swap_idx_1 = ctx->swap_idx_2 = 0;
-		//if same source / dest pixel format, don'( swap UV components
+		//if same source / dest pixel format, don't swap UV components
 		if (ctx->s_pfmt != ctx->ofmt) {
 			if (ctx->ofmt==GF_PIXEL_VYUY) {
 				ctx->swap_idx_1 = 0;
@@ -382,19 +496,36 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->ofmt));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
+
+	if (ctx->osar.num >= ctx->osar.den) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->osar) );
+	} else if (sar.num) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL );
+	}
 	return GF_OK;
 }
 
 static GF_Err ffsws_initialize(GF_Filter *filter)
 {
+	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	ffmpeg_setup_logs(GF_LOG_AUTHOR);
+	ctx->surf = gf_evg_surface_new(GF_FALSE);
+
+	if (ctx->osar.num &&
+	 ((ctx->osar.num<0) || (ctx->osar.num < ctx->osar.den))
+	) {
+		ctx->osar.num = 0;
+		ctx->osar.den = 1;
+	}
 	return GF_OK;
 }
 static void ffsws_finalize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->swscaler) sws_freeContext(ctx->swscaler);
+	gf_evg_surface_delete(ctx->surf);
 	return;
 }
 
@@ -420,11 +551,11 @@ static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 #define OFFS(_n)	#_n, offsetof(GF_FFSWScaleCtx, _n)
 static GF_FilterArgs FFSWSArgs[] =
 {
-	{ OFFS(osize), "osize of output video. When not set, input osize is used", GF_PROP_VEC2I, NULL, NULL, 0},
+	{ OFFS(osize), "osize of output video - see filter help", GF_PROP_VEC2I, NULL, NULL, 0},
 	{ OFFS(ofmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(scale), "scaling mode - see filter info", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(p1), "scaling algo param1 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(p2), "scaling algo param2 - see filter info", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(p1), "scaling algo param1 - see filter help", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(p2), "scaling algo param2 - see filter help", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(ofr), "force output full range", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(brightness), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_BOOL, "0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -432,6 +563,13 @@ static GF_FilterArgs FFSWSArgs[] =
 	{ OFFS(saturation), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(otable), "the yuv2rgb coefficients describing the output yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(itable), "the yuv2rgb coefficients describing the input yuv space, normally ff_yuv2rgb_coeffs[x], use default if not set", GF_PROP_SINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keepar), "keep aspect ratio\n"
+	"- off: ignore aspect ratio\n"
+	"- full: respect aspect ratio, applying input sample aspect ratio info\n"
+	"- nosrc: respect aspect ratio but ignore input sample aspect ratio"
+	, GF_PROP_UINT, "off", "off|full|nosrc", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(padclr), "clear color when aspect ration preservation is used", GF_PROP_STRING, "black", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(osar), "force output pixel aspect ratio - see filter help", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -446,11 +584,36 @@ GF_FilterRegister FFSWSRegister = {
 	.name = "ffsws",
 	.version=LIBSWSCALE_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG video rescaler")
-	GF_FS_SET_HELP("For bicubic, to tune the shape of the basis function, [-p1]() tunes f(1) and [-p2]() f´(1)\n"\
-				"For gauss [-p1]() tunes the exponent and thus cutoff frequency\n"\
-				"For lanczos [-p1]() tunes the width of the window function"\
-				"\nSee FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
-
+	GF_FS_SET_HELP("This filter rescales raw video data using FFMPEG to the specified size and pixel format.\n"
+	"## Output size assignment\n"
+	"If [-osize]() is {0,0}, the output dimensions will be set to the input size, and input aspect ratio will be ignored.\n"
+	"\n"
+	"If [-osize]() is {0,H} (resp. {W,0}), the output width (resp. height) will be set to respect input aspect ratio. If [-keepar=nosrc](), input sample aspect ratio is ignored.\n"
+	"## Aspect Ratio and Sample Aspect Ratio\n"
+	"When output sample aspect ratio is set, the output dimensions are divided by the output sample aspect ratio.\n"
+	"EX ffsws:osize=288x240:osar=3/2\n"
+	"The output dimensions will be 192x240.\n"
+	"\n"
+	"When aspect ratio is not kept ([-keepar=off]()):\n"
+	"- source is resampled to desired dimensions\n"
+	"- if output aspect ratio is not set, output will use source sample aspect ratio\n"
+	"\n"
+	"When aspect ratio is partially kept ([-keepar=nosrc]()):\n"
+	"- resampling is done on the input data without taking input sample aspect ratio into account\n"
+	"- if output sample aspect ratio is not set ([-osar=0/N]()), source aspect ratio is forwarded to output.\n"
+	"\n"
+	"When aspect ratio is fully kept ([-keepar=full]()), output aspect ratio is force to 1/1 if not set.\n"
+	"\n"
+	"When sample aspect ratio is kept, the filter will:\n"
+	"- center the rescaled input frame on the output frame\n"
+	"- fill extra pixels with [-padclr]()\n"
+	"\n"
+	"## Algorithms options\n"
+	"- for bicubic, to tune the shape of the basis function, [-p1]() tunes f(1) and [-p2]() f´(1)\n"
+	"- for gauss [-p1]() tunes the exponent and thus cutoff frequency\n"
+	"- for lanczos [-p1]() tunes the width of the window function\n"
+	"\n"
+	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details")
 	.private_size = sizeof(GF_FFSWScaleCtx),
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
