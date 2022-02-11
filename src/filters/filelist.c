@@ -2713,6 +2713,9 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 	if (!gf_utf8_is_legal(data, size)) {
 		return NULL;
 	}
+	//we only deal with no-BOM files
+	if ((data[0] == 0xFF) || (data[0] == 0xFE) || (data[0] == 0xEF)) return NULL;
+
 	while (data && size) {
 		u32 i, line_size;
 		Bool is_cr = GF_FALSE;
