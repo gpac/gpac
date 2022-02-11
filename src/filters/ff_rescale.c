@@ -339,7 +339,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	}
 
 	u32 scale_w = w;
-	if ((ctx->keepar == FFSWS_KEEPAR_FULL) && (sar.num>sar.den)) {
+	if ((ctx->keepar == FFSWS_KEEPAR_FULL) && (sar.num > (s32) sar.den)) {
 		scale_w = w * sar.num / sar.den;
 		sar.num=0;
 	}
@@ -371,7 +371,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			final_w = ctx->oh * scale_w / h;
 		}
 	}
-	if (ctx->osar.num > ctx->osar.den) {
+	if (ctx->osar.num > (s32) ctx->osar.den) {
 		ctx->ow = ctx->ow * ctx->osar.den / ctx->osar.num;
 		final_w = final_w * ctx->osar.den / ctx->osar.num;
 		if (downsample_w) {
@@ -497,7 +497,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->ofmt));
 
-	if (ctx->osar.num >= ctx->osar.den) {
+	if (ctx->osar.num >= (s32) ctx->osar.den) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(ctx->osar) );
 	} else if (sar.num) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, &PROP_FRAC(sar) );
@@ -514,7 +514,7 @@ static GF_Err ffsws_initialize(GF_Filter *filter)
 	ctx->surf = gf_evg_surface_new(GF_FALSE);
 
 	if (ctx->osar.num &&
-	 ((ctx->osar.num<0) || (ctx->osar.num < ctx->osar.den))
+	 ((ctx->osar.num<0) || (ctx->osar.num < (s32) ctx->osar.den))
 	) {
 		ctx->osar.num = 0;
 		ctx->osar.den = 1;
