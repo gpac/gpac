@@ -6006,7 +6006,13 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		return GF_OK;
 	}
 
-	info = (GF_ListItemBox *)gf_isom_box_new(btype);
+	//wtach out for cprt, we don't want to create a regular cprt box
+	if (btype==GF_ISOM_ITUNE_COPYRIGHT) {
+		info = (GF_ListItemBox *)gf_isom_box_new(GF_ISOM_ITUNE_TOOL);
+		info->type = GF_ISOM_ITUNE_COPYRIGHT;
+	} else {
+		info = (GF_ListItemBox *)gf_isom_box_new(btype);
+	}
 	if (info == NULL) return GF_OUT_OF_MEM;
 
 	dbox = (GF_DataBox *)gf_isom_box_new_parent(&info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
