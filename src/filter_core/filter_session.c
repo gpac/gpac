@@ -2359,7 +2359,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks));
 }
 
-static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid, GF_Filter *alias_for, u32 src_num_tiled_pids, Bool skip_print, s32 no_recursion, u32 max_length)
+static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid, GF_Filter *alias_for, u32 src_num_tiled_pids, Bool skip_print, s32 nb_recursion, u32 max_length)
 {
 	u32 i=0;
 
@@ -2389,9 +2389,9 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 					l++;
 			}
 		}
-		if (no_recursion>0) {
+		if (nb_recursion>0) {
 			u32 k=0;
-			while (k<no_recursion-1) {
+			while (k<(u32) nb_recursion-1) {
 				k++;
 				GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" "));
 			}
@@ -2399,8 +2399,8 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			return;
 		}
 		if (pid) {
-			if (no_recursion<0) {
-				u32 k=(u32) -no_recursion;
+			if (nb_recursion<0) {
+				u32 k=(u32) -nb_recursion;
 				while (k>1) {
 					k--;
 					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-"));
