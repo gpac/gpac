@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / VideoToolBox decoder filter
@@ -149,7 +149,7 @@ typedef struct
 
 	Bool profile_supported, can_reconfig;
 	u32 nb_consecutive_errors;
-	//openGL output
+	//OpenGL output
 #ifdef VTB_GL_TEXTURE
 	Bool use_gl_textures;
 	GF_CVGLTextureCacheREF cache_texture;
@@ -168,7 +168,7 @@ typedef struct __vtb_frame_ifce
 	CVPixelBufferRef frame;
 	GF_VTBDecCtx *ctx;
 	GF_FilterPacket *pck_src;
-	//openGL mode
+	//OpenGL mode
 #ifdef VTB_GL_TEXTURE
 	GF_CVGLTextureREF y, u, v;
 #endif
@@ -2027,8 +2027,8 @@ static const GF_FilterCapability VTBDecCaps[] =
 static const GF_FilterArgs VTBDecArgs[] =
 {
 	{ OFFS(reorder), "number of frames to wait for temporal re-ordering", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ofmt), "set default pixel format for decoded video. If not matched default to nv12", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(no_copy), "dispatch decoded frames as OpenGL textures (true) or as copied packets (false) ", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ofmt), "set default pixel format for decoded video. If not found, fall back to `nv12`", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_hw), "disable hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
 	{}
 };

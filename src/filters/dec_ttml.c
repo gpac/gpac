@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2021
+ *			Copyright (c) Telecom ParisTech 2020-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / TTML decoder filter
@@ -489,9 +489,9 @@ void ttmldec_finalize(GF_Filter *filter)
 static const GF_FilterArgs TTMLDecArgs[] =
 {
 	{ OFFS(script), "location of TTML SVG JS renderer", GF_PROP_STRING, "$GSHARE/scripts/ttml-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(font), "font to use", GF_PROP_STRING, "SANS", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(fontSize), "font size to use", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(color), "color to use", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(font), "font", GF_PROP_STRING, "SANS", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(fontSize), "font size", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(color), "text color", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(valign), "vertical alignment\n"
 	"- bottom: align text at bottom of text area\n"
 	"- center: align text at center of text area\n"

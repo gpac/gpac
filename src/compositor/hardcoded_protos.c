@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -1162,7 +1162,7 @@ void compositor_init_test_sensor(GF_Compositor *compositor, GF_Node *node)
 }
 
 
-/*CustomTexture: tests defining new (openGL) textures*/
+/*CustomTexture: tests defining new (OpenGL) textures*/
 typedef struct
 {
     BASE_NODE
@@ -1226,7 +1226,7 @@ static void CustomTexture_update(GF_TextureHandler *txh)
     if (! gf_sc_texture_get_gl_id(txh)) {
         
         //setup some defaults (these two vars are used to setup internal texture format)
-        //in our case we only want to test openGL so no need to fill in the texture width/height stride
+        //in our case we only want to test OpenGL so no need to fill in the texture width/height stride
         //since we will upload ourselves the texture
         txh->transparent = 0;
         txh->pixelformat = GF_PIXEL_RGB;

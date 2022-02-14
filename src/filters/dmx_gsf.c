@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream format reader filter
@@ -1365,7 +1365,7 @@ GF_FilterRegister GSFDemuxRegister = {
 	GF_FS_SET_DESCRIPTION("GSF Demuxer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) demultiplexing.\n"
-			"It unserializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs.\n"
+			"It de-serializes the stream states (config/reconfig/info update/remove/eos) and packets in the GSF bytestream.\n"
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO

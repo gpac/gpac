@@ -657,14 +657,14 @@ static GF_FilterProbeScore fileout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs FileOutArgs[] =
 {
-	{ OFFS(dst), "location of destination file - see filter help ", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination file", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(append), "open in append mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dynext), "indicate the file extension is set by filter chain, not dst", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed when vsync is on. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cat), "cat each file of input pid rather than creating one file per filename\n"
+	{ OFFS(cat), "cat each file of input PID rather than creating one file per filename\n"
 			"- none: never cat files\n"
 			"- auto: only cat if files have same names\n"
 			"- all: always cat regardless of file names"
@@ -687,12 +687,15 @@ static const GF_FilterCapability FileOutCaps[] =
 GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	GF_FS_SET_DESCRIPTION("File output")
-	GF_FS_SET_HELP("The file output filter is used to write output to disk, and does not produce any output PID.\n"
-		"It can work as a null sink when its destination is `null`, dropping all input packets. In this case it accepts ANY type of input pid, not just file ones.\n"
-		"In regular mode, the filter only accept pid of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
+	GF_FS_SET_HELP("This filter is used to write data to disk, and does not produce any output PID.\n"
+		"In regular mode, the filter only accept PID of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
 		"If the output file name is `std` or `stdout`, writes to stdout.\n"
 		"The output file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
+		"\n"
+		"# Discard sink mode\n"
+		"When the destination is `null`, the filter is a sink dropping all input packets.\n"
+		"In this case it accepts ANY type of input PID, not just file ones.\n"
 	)
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,

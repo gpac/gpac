@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2021
+ *			Copyright (c) Telecom Paris 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Transport Stream splitter filter
@@ -475,8 +475,8 @@ GF_FilterRegister M2TSSplitRegister = {
 	.name = "tssplit",
 	GF_FS_SET_DESCRIPTION("MPEG Transport Stream splitter")
 	GF_FS_SET_HELP("This filter splits an MPEG-2 transport stream into several single program transport streams.\n"
-	"Only the PAT table is rewritten, the CAT table, PMT and all program streams are forwarded as is.\n"
-	"In [-full]() mode, global DVB tables of the input multiplex are forwarded to each output mux; otherwise these tables are discarded.")
+	"Only the PAT table is rewritten, other tables (PAT, PMT) and streams (PES) are forwarded as is.\n"
+	"If [-dvb]() is set, global DVB tables of the input multiplex are forwarded to each output mux; otherwise these tables are discarded.")
 	.flags = GF_FS_REG_EXPLICIT_ONLY,
 	.private_size = sizeof(GF_M2TSSplitCtx),
 	.initialize = m2tssplit_initialize,

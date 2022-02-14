@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Embedded Vector Graphics engine
@@ -163,7 +163,7 @@ Bool gf_evg_stencil_get_matrix(GF_EVGStencil * stencil, GF_Matrix2D *mat);
 
 /*! sets stencil transformation matrix auto mode.
 
-When auto matrix mode is activated, the stencil matrix only describes texture mapping transform in uv space (normalized UV coordinates, openGL like),
+When auto matrix mode is activated, the stencil matrix only describes texture mapping transform in uv space (normalized UV coordinates, OpenGL like),
 and final transformation to raster coordinates is done internally.
 When auto matrix mode is not activated,, the stencil matrix must describe the complete transformation from uv space to raster coordinates (consequently, the matrix usually includes the final path transformation).
 
@@ -809,7 +809,7 @@ typedef struct
 	GF_EVGFragmentType frag_valid;
 
 	/*vars for lerp*/
-	/*perspective correct interpolation is done according to openGL eq 14.9
+	/*perspective correct interpolation is done according to OpenGL eq 14.9
 		f = (a*fa/wa + b*fb/wb + c*fc/wc) / (a/w_a + b/w_b + c/w_c)
 	*/
 	/*! perspective corrected barycentric, eg bc1/q1, bc2/q2, bc3/q3  - 3D shaders only*/

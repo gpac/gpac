@@ -3453,25 +3453,25 @@ static const GF_FilterCapability HTTPOutCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_HTTPOutCtx, _n)
 static const GF_FilterArgs HTTPOutArgs[] =
 {
-	{ OFFS(dst), "location of destination resource - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination resource", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(port), "server port", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(ifce), "default network interface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(rdirs), "list of directories to expose for read - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
-	{ OFFS(wdir), "directory to expose for write - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(rdirs), "list of directories to expose for read", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(wdir), "directory to expose for write", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(cert), "certificate file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pkey), "private key file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read and write TCP socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close HTTP connection after each request", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(maxc), "maximum number of connections, 0 is unlimited", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(maxp), "maximum number of connections for one peer, 0 is unlimited", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cache_control), "specify the `Cache-Control` string to add; `none` disable ETag", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(maxp), "maximum number of connections for one peer (0 is unlimited)", GF_PROP_UINT, "6", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cache_control), "specify the `Cache-Control` string to add (`none` disable cache control and ETag)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hold), "hold packets until one client connects", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(hmode), "filter operation mode, ignored if [-wdir]() is set. See filter help for more details. Mode can be\n"
-	"- default: run in server mode (see filter help)\n"
-	"- push: run in client mode using PUT or POST (see filter help)\n"
+	{ OFFS(hmode), "filter operation mode, ignored if [-wdir]() is set\n"
+	"- default: run in server mode\n"
+	"- push: run in client mode using PUT or POST\n"
 	"- source: use server as source filter on incoming PUT/POST", GF_PROP_UINT, "default", "default|push|source", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "timeout in seconds for persistent connections; 0 disable timeout", GF_PROP_UINT, "30", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in seconds for persistent connections (0 disable timeout)", GF_PROP_UINT, "30", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(quit), "exit server once all input PIDs are done and client disconnects (for test purposes)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -3483,7 +3483,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 		"- on: enable CORS\n"
 		"- auto: enable CORS when `Origin` is found in request", GF_PROP_UINT, "auto", "auto|off|on", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC` logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_client_errors), "force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when `close` is set)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_mem_segs), "set maximum mem segment per HAS quality in memory mode", GF_PROP_UINT, "3", NULL, GF_FS_ARG_HINT_EXPERT},
 
@@ -3532,7 +3532,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"# HTTP server sink\n"
 		"In this mode, the filter will forward input PIDs to connected clients, trashing the data if no client is connected unless [-hold]() is specified.\n"
 		"The filter does not use any read directory in this mode.\n"
-		"This mode is mostly useful to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other muxed representations:\n"
+		"This mode is mostly useful to setup live HTTP streaming of media sessions such as MP3, MPEG-2 TS or other multiplexed representations:\n"
 		"EX gpac -i MP3_SOURCE -o http://localhost/live.mp3 --hold\n"
 		"In this example, the server waits for client requests on `/live.mp3` and will then push each input packet to all connected clients.\n"
 		"If the source is not real-time, you can inject a reframer filter performing realtime regulation.\n"
@@ -3540,7 +3540,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"In this example, the server will push each input packet to all connected clients, or trash the packet if no connected clients.\n"
 		"  \n"
 		"In this mode, ICECast meta-data can be inserted using [-ice](). The default inserted values are `ice-audio-info`, `icy-br`, `icy-pub` (set to 1) and `icy-name` if input `ServiceName` property is set.\n"
-		"The server will also look for any property called `ice-*` on the input pid and inject them.\n"
+		"The server will also look for any property called `ice-*` on the input PID and inject them.\n"
 		"EX gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3 --ice\n"
 		"This will inject the header `ice-Genre: CoolRock` in the response."
 		"  \n"
@@ -3554,10 +3554,10 @@ GF_FilterRegister HTTPOutRegister = {
 		"- If not so, the server will simply send the file from the disk as a regular HTTP session, without chunk transfer.\n"
 		"  \nThis mode is typically used for origin server in HAS sessions where clients may request files while they are being produced (low latency DASH).\n"
 		"EX gpac -i SOURCE reframer:rt=on -o http://localhost:8080/live.mpd --rdirs=temp --dmode=dynamic --cdur=0.1\n"
-		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, outputting files in `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
+		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, writing files to `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
 		"  \n"
-		"The server can store incoming files to memory mode by setting the read directory to \"gmem\".\n"
-		"In this mode, each incoming pid will store at most \"max_mem_segs\" files in memory, trashing older files.\n"
+		"The server can store incoming files to memory mode by setting the read directory to `gmem`.\n"
+		"In this mode, each incoming PID will store at most [-max_mem_segs]() files in memory, trashing older files.\n"
 		"  \n"
 		"# HTTP client sink\n"
 		"In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if [-post]() is set).\n"
@@ -3583,7 +3583,7 @@ GF_FilterRegister HTTPOutRegister = {
 		"- the first loaded HTTP output filter with same URL/port will be reused\n"
 		"- all httpout options of subsequent httpout filters, except [-dst]() will be ignored, other options will be inherited as usual\n"
 		"\n"
-		"EX -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag\n"
+		"EX gpac -i dash.mpd dashin:forward=file:SID=D1 dashin:forward=segb:SID=D2 -o http://localhost:80/live.mpd:SID=D1:rdirs=dash -o http://localhost:80/live_rw.mpd:SID=D2:sigfrag\n"
 		"This will:\n"
 		"- load the HTTP server and forward (through `D1`) the dash session to this server using `live.mpd` as manifest name\n"
 		"- reuse the HTTP server and regenerate the manifest (through `D2` and `sigfrag` option), using `live_rw.mpd` as manifest name\n"

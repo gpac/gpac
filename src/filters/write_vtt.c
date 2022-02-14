@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT stream to file filter
@@ -340,7 +340,7 @@ static const GF_FilterArgs WebVTTMxArgs[] =
 GF_FilterRegister WebVTTMxRegister = {
 	.name = "writevtt",
 	GF_FS_SET_DESCRIPTION("WebVTT writer")
-	GF_FS_SET_HELP("This filter converts a single stream to a WebVTT output file.")
+	GF_FS_SET_HELP("This filter converts a single ISOBMFF WebVTT stream to a WebVTT output file.")
 	.private_size = sizeof(GF_WebVTTMxCtx),
 	.args = WebVTTMxArgs,
 	.finalize = vttmx_finalize,

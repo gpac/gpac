@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / generic TCP/UDP input filter
@@ -520,7 +520,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 
 static const GF_FilterArgs SockInArgs[] =
 {
-	{ OFFS(src), "address of source content - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(src), "address of source content", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(block_size), "block size used to read socket", GF_PROP_UINT, "0x60000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
 	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -559,10 +559,10 @@ GF_FilterRegister SockInRegister = {
 		"- TCP unix domain sockets are used for source URLs formatted as `tcpu://NAME`\n"
 		"\n"
 		"When ports are specified in the URL and the default option separators are used (see `gpac -h doc`), the URL must either:\n"
-		"- have a trailing '/', eg `udp://localhost:1234/[:opts]`\n"
-		"- use `gpac` separator, eg `udp://localhost:1234[:gpac:opts]`\n"
+		"- have a trailing '/', e.g. `udp://localhost:1234/[:opts]`\n"
+		"- use `gpac` separator, e.g. `udp://localhost:1234[:gpac:opts]`\n"
 #ifdef GPAC_CONFIG_DARWIN
-	"\nOn OSX with VM packet replay you will need to force multicast routing, eg: route add -net 239.255.1.4/32 -interface vboxnet0"
+	"\nOn OSX with VM packet replay you will need to force multicast routing, e.g. `route add -net 239.255.1.4/32 -interface vboxnet0`"
 #endif
 	""
 #else

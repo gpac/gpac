@@ -171,7 +171,7 @@ The syntax for \`start\` and  \`stop\` fields is:
   - pipe: launch a gpac process to play the source using GSF format over pipe
   - tcp, tcpu: launch a gpac process to play the source using GSF format over TCP socket (\`tcp\`) or unix domain TCP socket (\`tcpu\`)
   - not specified or empty string: loads source using the current process
-  - other: use value as input filter declaration and launch \`in\` as a dedicated process (e.g., \`in="ffmpeg ..." port="pipe://..."\`)
+  - other: use value as input filter declaration and launch \`in\` as a dedicated process (e.g. \`in="ffmpeg ..." port="pipe://..."\`)
 - opts (null): options for the gpac process instance when using a dedicated gpac process, ignored otherwise
 - media ('all'): filter input media by type, \`a\` for audio, \`v\` for video, \`t\` for text (several characters allowed, e.g. \`av\` or \`va\`), \`all\` accept all input media
 - raw (true): indicate if input port is decoded AV (true) or compressed AV (false) when using a dedicated gpac process, ignored otherwise

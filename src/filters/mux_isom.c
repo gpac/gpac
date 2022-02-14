@@ -6889,7 +6889,7 @@ static const GF_FilterCapability MP4MuxCaps[] =
 static const GF_FilterArgs MP4MuxArgs[] =
 {
 	{ OFFS(m4sys), "force MPEG-4 Systems signaling of tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dref), "only references data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dref), "only reference data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ctmode), "set composition offset mode for video tracks\n"
 	"- edit: uses edit lists to shift first frame to presentation time 0\n"
 	"- noedit: ignore edit lists and does not shift timeline\n"
@@ -6904,11 +6904,11 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- all: parameter sets are inband, no parameter sets in sample description\n"
 	"- both: parameter sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband\n"
-	"- auto: keep source config, or defaults to no if qource is not isobmff", GF_PROP_UINT, "no", "no|pps|all|both|mix|auto", 0},
+	"- auto: keep source config, or defaults to no if source is not ISOBMFF", GF_PROP_UINT, "no", "no|pps|all|both|mix|auto", 0},
 	{ OFFS(store), "file storage mode\n"
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
-	"- flat: write samples as they arrive and moov at end (fastest mode)\n"
-	"- fstart: write samples as they arrive and moov before mdat\n"
+	"- flat: write samples as they arrive and `moov` at end (fastest mode)\n"
+	"- fstart: write samples as they arrive and `moov` before `mdat`\n"
 	"- tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
 	"- frag: fragments the file using cdur duration\n"
 	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
@@ -6920,51 +6920,51 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(abs_offset), "use absolute file offset in fragments rather than offsets from moof", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fsap), "split truns in video fragments at SAPs to reduce file size", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(file), "pointer to a write/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
-	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source pid", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx, -2 removes sidx if present in source PID", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(m4cc), "4 character code of empty box to append at the end of a segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_sidx), "use daisy-chaining of SIDX", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(msn), "sequence number of first moof to N", GF_PROP_UINT, "1", NULL, 0},
-	{ OFFS(msninc), "sequence number increase between moofs", GF_PROP_UINT, "1", NULL, 0},
-	{ OFFS(tfdt), "set TFDT of first traf", GF_PROP_FRACTION64, "0", NULL, 0},
-	{ OFFS(tfdt_traf), "set TFDT in each traf", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(msninc), "sequence number increase between `moof` boxes", GF_PROP_UINT, "1", NULL, 0},
+	{ OFFS(tfdt), "set initial decode time (`tfdt`) of first traf", GF_PROP_FRACTION64, "0", NULL, 0},
+	{ OFFS(tfdt_traf), "force `tfdt` box in each traf", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(nofragdef), "disable default flags in fragments", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(straf), "use a single traf per moof (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strun), "use a single trun per traf (smooth streaming and co)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(psshs), "set PSSH boxes store mode\n"
+	{ OFFS(psshs), "set `pssh` boxes store mode\n"
 	"- moof: in first moof of each segments\n"
 	"- moov: in movie box\n"
 	"- none: pssh is discarded", GF_PROP_UINT, "moov", "moov|moof|none", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sgpd_traf), "store sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(vodcache), "enable temp storage for VoD dash modes - see filter help\n"
+	{ OFFS(vodcache), "enable temp storage for VoD dash modes\n"
 		"- on: use temp storage of complete file for sidx and ssix injection\n"
 		"- insert: insert sidx and ssix by shifting bytes in output file\n"
 		"- replace: precompute pace requirements for sidx and ssix and rewrite file range at end", GF_PROP_UINT, "replace", "on|insert|replace", 0},
-	{ OFFS(noinit), "do not produce initial moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(noinit), "do not produce initial `moov, used for DASH bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tktpl), "use track box from input if any as a template to create new track\n"
 	"- no: disables template\n"
 	"- yes: clones the track (except edits and decoder config)\n"
 	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mudta), "use udta and other moov extension boxes from input if any\n"
+	{ OFFS(mudta), "use `udta` and other `moov` extension boxes from input if any\n"
 	"- no: disables import\n"
 	"- yes: clones all extension boxes\n"
 	"- udta: only loads udta", GF_PROP_UINT, "yes", "no|yes|udta", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mvex), "set mvex after tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sdtp_traf), "use sdtp in traf rather than using flags in trun sample entries\n"
-		"- no: do not use sdtp\n"
-		"- sdtp: use sdtp box to indicate sample dependencies and do not write info in trun sample flags\n"
-		"- both: use sdtp box to indicate sample dependencies and also write info in trun sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mvex), "set `mvex` boxes after `trak` boxes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sdtp_traf), "use `sdtp` box in `traf` box rather than using flags in trun sample entries\n"
+		"- no: do not use `sdtp`\n"
+		"- sdtp: use `sdtp` box to indicate sample dependencies and do not write info in `trun` sample flags\n"
+		"- both: use `sdtp` box to indicate sample dependencies and also write info in `trun` sample flags", GF_PROP_UINT, "no", "no|sdtp|both", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(trackid), "track ID of created track for single track. Default 0 uses next available trackID", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for MP4Box -frag option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(btrt), "set btrt box in sample description", GF_PROP_BOOL, "true", NULL, 0},
-	{ OFFS(styp), "set segment styp major brand to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from pid, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
-	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"\
-			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"\
-			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"\
-			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"\
-			"- v1qt: use v1 signaling, QTFF style"\
+	{ OFFS(fragdur), "fragment based on fragment duration rather than CTS. Mostly used for `MP4Box -frag` option", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(btrt), "set `btrt` box in sample description", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(styp), "set segment `styp` major brand (and optionally version) to the given 4CC[.version]", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mediats), "set media timescale. A value of 0 means inherit from PID, a value of -1 means derive from samplerate or frame rate", GF_PROP_SINT, "0", NULL, 0},
+	{ OFFS(ase), "set audio sample entry mode for more than stereo layouts\n"
+			"- v0: use v0 signaling but channel count from stream, recommended for backward compatibility\n"
+			"- v0s: use v0 signaling and force channel count to 2 (stereo) if more than 2 channels\n"
+			"- v1: use v1 signaling, ISOBMFF style (will mux raw PCM as ISOBMFF style)\n"
+			"- v1qt: use v1 signaling, QTFF style"
 		, GF_PROP_UINT, "v0", "|v0|v0s|v1|v1qt", 0},
-	{ OFFS(ssix), "create ssix when sidx is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ssix), "create `ssix` box when `sidx` box is present, level 1 mapping I-frames byte ranges, level 0xFF mapping the rest", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ccst), "insert coding constraint box for video tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxchunk), "set max chunk size in bytes for runs (only used in non-fragmented mode). 0 means no constraints", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noroll), "disable roll sample grouping", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -6987,14 +6987,14 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(fcomp), "force using compress box even when compressed size is larger than uncompressed", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(otyp), "inject original file type when using compressed boxes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
-	{ OFFS(trun_inter), "interleave samples in trun based on the temporal level, the lowest level are stored first - this will create as many trun as required", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(trun_inter), "interleave samples in `trun` based on the temporal level, the lowest level are stored first (this will create as many `trun` boxes as required)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(truns_first), "store track runs before sample group description and sample encryption information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "target output block size, 0 for default internal value (10k)", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-conformant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(refrag), "indicate to use track fragment defaults from initial file if any rather than computing them from PID properties (used when processing standalone segments/fragments)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(refrag), "use track fragment defaults from initial file if any rather than computing them from PID properties (used when processing standalone segments/fragments)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itags), "tag injection mode\n"
 			"- none: do not inject tags\n"
 			"- strict: only inject recognized itunes tags\n"
@@ -7002,14 +7002,14 @@ static const GF_FilterArgs MP4MuxArgs[] =
 			, GF_PROP_UINT, "strict", "none|strict|all", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(keep_utc), "force all new files and tracks to keep the source UTC creation and modification times", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pps_inband), "when xps_inband is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(moovpad), "insert free box of given size after moov for future in-place editing", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cmaf), "use cmaf guidelines (turns on `mvex`, `truns_first`, `strun`, `straf`, `tfdt_traf`, `chain_sidx` and restricts `subs_sidx` to -1 or 0)\n"
+	{ OFFS(pps_inband), "when [-xps_inband]() is set, inject PPS in each non SAP 1/2/3 sample", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(moovpad), "insert `free` box of given size after `moov` for future in-place editing", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cmaf), "use CMAF guidelines (turns on `mvex`, `truns_first`, `strun`, `straf`, `tfdt_traf`, `chain_sidx` and restricts `subs_sidx` to -1 or 0)\n"
 		"- no: CMAF not enforced\n"
 		"- cmfc: use CMAF `cmfc` guidelines\n"
 		"- cmf2: use CMAF `cmf2` guidelines (turns on `nofragdef`)"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(start), "set playback start offset (MP4Box import only). Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(start), "set playback start offset for MP4Box import only. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
 
@@ -7017,38 +7017,38 @@ static const GF_FilterArgs MP4MuxArgs[] =
 GF_FilterRegister MP4MuxRegister = {
 	.name = "mp4mx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT muxer")
-	GF_FS_SET_HELP("Muxes file according to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
+	GF_FS_SET_HELP("This filter multiplexes streams to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
 	"  \n"
 	"# Tracks and Items\n"
-	"By default all input PIDs with ItemID property set are muxed as items, otherwise they are muxed as tracks.\n"
-	"To prevent source items to be muxed as items, use [-itemid](mp4dmx) option from ISOBMF demuxer.\n"
-	"EX -i source.mp4:itemid=false -o file.mp4\n"
+	"By default all input PIDs with ItemID property set are multiplexed as items, otherwise they are multiplexed as tracks.\n"
+	"To prevent source items to be multiplexed as items, use [-itemid](mp4dmx) option from ISOBMF demuxer.\n"
+	"EX gpac -i source.mp4:itemid=false -o file.mp4\n"
 	"  \n"
-	"To force non-item streams to be muxed as items, use __#ItemID__ option on that PID:\n"
-	"EX -i source.jpg:#ItemID=1 -o file.mp4\n"
+	"To force non-item streams to be multiplexed as items, use __#ItemID__ option on that PID:\n"
+	"EX gpac -i source.jpg:#ItemID=1 -o file.mp4\n"
 	"  \n"
 	"# Storage\n"
-	"The [-store]() option allows controlling if the file is fragmented ot not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
+	"The [-store]() option allows controlling if the file is fragmented or not, and when not fragmented, how interleaving is done. For cases where disk requirements are tight and fragmentation cannot be used, it is recommended to use either `flat` or `fstart` modes.\n"
 	"  \n"
 	"The [-vodcache]() option allows controlling how DASH onDemand segments are generated:\n"
 	"- If set to `on`, file data is stored to a temporary file on disk and flushed upon completion, no padding is present.\n"
 	"- If set to `insert`, SIDX/SSIX will be injected upon completion of the file by shifting bytes in file. In this case, no padding is required but this might not be compatible with all output sinks and will take longer to write the file.\n"
-	"- If set to `replace`, SIDX/SSIX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX. If input pids have the properties `DSegs` set, this will be as the number of segments.\n"
+	"- If set to `replace`, SIDX/SSIX size will be estimated based on duration and DASH segment length, and padding will be used in the file __before__ the final SIDX. If input PIDs have the properties `DSegs` set, this will used be as the number of segments.\n"
 	"The `on` and `insert` modes will produce exactly the same file, while the mode `replace` may inject a `free` box before the sidx.\n"
 	"  \n"
 	"# Custom boxes\n"
 	"Custom boxes can be specified as box patches:\n"
 	"For movie-level patch, the [-boxpatch]() option of the filter should be used.\n"
 	"Per PID box patch can be specified through the PID property `boxpatch`.\n"
-	"EX src=source:#boxpatch=myfile.xml dst=mux.mp4\n"
+	"EX gpac -i source:#boxpatch=myfile.xml -o mux.mp4\n"
 	"Per Item box patch can be specified through the PID property `boxpatch`.\n"
-	"EX src=source:1ItemID=1:#boxpatch=myfile.xml dst=mux.mp4\n"
+	"EX gpac -i source:1ItemID=1:#boxpatch=myfile.xml -o mux.mp4\n"
 	"  \n"
-	"The box patch is applied before writing the initial moov box in fragmented mode, or when writing the complete file otherwise.\n"
+	"The box patch is applied before writing the initial `moov box in fragmented mode, or when writing the complete file otherwise.\n"
 	"The box patch can either be a filename or the full XML string.\n"
 	"  \n"
 	"# Tagging\n"
-	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming pid.\n"
+	"When tagging is enabled, the filter will watch the property `CoverArt` and all custom properties on incoming PID.\n"
 	"The built-in tag names are indicated by `MP4Box -h tags`.\n"
 	"Other tag class may be specified using `tag_NAME` property names, and will be added if [-tags]() is set to `all` using:\n"
 	"- `NAME` as a box 4CC if `NAME` is four characters long\n"
@@ -7062,8 +7062,8 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `udta_U4CC`: set track user-data box entry of type `U4CC` to property value\n"
 	"- `mudta_U4CC`: set movie user-data box entry of type `U4CC` to property value\n"
 	"  \n"
-	"EX -i src.mp4:#udta_tagc='My Awsome Tag'\n"
-	"EX -i src.mp4:#mudtab=data@box.bin\n"
+	"EX gpac -i src.mp4:#udta_tagc='My Awsome Tag' -o tag.mp4\n"
+	"EX gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4\n"
 	"  \n"
 	"# Notes\n"
 	"The filter watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"

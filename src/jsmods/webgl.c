@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript WebGL bindings
@@ -845,7 +845,7 @@ static JSValue wgl_getUniform(JSContext *ctx, JSValueConst this_val, int argc, J
 	WGL_GET_GLID(program_shader, argv[0], WebGLProgram_class_id);
 	WGL_GET_GLID(location, argv[1], WebGLUniformLocation_class_id);
 
-	//openGL doesn't provide a way to get a uniform type from its location
+	//OpenGL doesn't provide a way to get a uniform type from its location
 	//we need to browse all active uniforms by name in the program
 	//then look for the location of each uniform and check against the desired location
 

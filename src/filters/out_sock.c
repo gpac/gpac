@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / generic socket output filter
@@ -517,21 +517,21 @@ static GF_FilterProbeScore sockout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterArgs SockOutArgs[] =
 {
-	{ OFFS(dst), "URL of destination - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "URL of destination", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(sockbuf), "block size used to read file", GF_PROP_UINT, "65536", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(port), "default port if not specified", GF_PROP_UINT, "1234", NULL, 0},
 	{ OFFS(ifce), "default multicast interface", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ext), "file extension of pipe data - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(mime), "mime type of pipe data - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(ext), "file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(mime), "mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(listen), "indicate the output socket works in server mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(maxc), "max number of concurrent connections", GF_PROP_UINT, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ka), "keep socket alive if no more connections", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(kp), "keep packets in queue if no more clients", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(rate), "set send rate in bps, disabled by default (as fast as possible)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pckr), "reverse packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(pckd), "drop packet every N - see filter help", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(pckr), "reverse packet every N", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(pckd), "drop packet every N", GF_PROP_FRACTION, "0/0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "0", "0-127", GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
@@ -549,7 +549,7 @@ GF_FilterRegister SockOutRegister = {
 	GF_FS_SET_DESCRIPTION("UDP/TCP output")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter handles generic output sockets (mono-directional) in blocking mode only.\n"
-		"The filter can work in server mode, waiting for source connections, or or in client mode, directly connecting.\n"
+		"The filter can work in server mode, waiting for source connections, or in client mode, directly connecting to a server.\n"
 		"In server mode, the filter can be instructed to keep running at the end of the stream.\n"
 		"In server mode, the default behavior is to keep input packets when no more clients are connected; "
 		"this can be adjusted though the [-kp]() option, however there is no realtime regulation of how fast packets are dropped.\n"
@@ -565,15 +565,15 @@ GF_FilterRegister SockOutRegister = {
 #endif
 		"\n"
 		"When ports are specified in the URL and the default option separators are used (see `gpac -h doc`), the URL must either:\n"
-		"- have a trailing '/', eg `udp://localhost:1234/[:opts]`\n"
-		"- use `gpac` '/', eg `udp://localhost:1234[:gpac:opts]`\n"
+		"- have a trailing '/', e.g. `udp://localhost:1234/[:opts]`\n"
+		"- use `gpac` escape, e.g. `udp://localhost:1234[:gpac:opts]`\n"
 		"\n"
 		"The socket output can be configured to drop or revert packet order for test purposes.\n"
-		"For both mode, a window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/\n"
+		"A window size in packets is specified as the drop/revert fraction denominator, and the index of the packet to drop/revert is given as the numerator/\n"
 		"If the numerator is 0, a packet is randomly chosen in that window.\n"
-		"EX :pckd=4/10\n"\
+		"EX :pckd=4/10\n"
 		"This drops every 4th packet of each 10 packet window.\n"
-		"EX :pckr=0/100\n"\
+		"EX :pckr=0/100\n"
 		"This reverts the send order of one random packet in each 100 packet window.\n"
 		"\n",
 #endif //GPAC_DISABLE_DOC

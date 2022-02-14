@@ -1532,8 +1532,8 @@ static const char *isoffin_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 static const GF_FilterArgs ISOFFInArgs[] =
 {
-	{ OFFS(src), "location of source content (only used when explicitly loading the demuxer)", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(allt), "load all tracks even if unknown", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(src), "local file name of source content (only used when explicitly loading the demuxer)", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(allt), "load all tracks even if unknown media type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "convert all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itemid), "keep item IDs in PID properties", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1541,9 +1541,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- split: each track is declared, extractors are removed\n"
 	"- splitx: each track is declared, extractors are kept\n"
 	"- single: a single track is declared (highest level for scalable, tile base for tiling)", GF_PROP_UINT, "split", "split|splitx|single", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(alltk), "declare all tracks even disabled ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(alltk), "declare disabled tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(frame_size), "frame size for raw audio samples (dispatches frame_size samples per packet)", GF_PROP_UINT, "1024", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(expart), "expose cover art as a dedicated video pid", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(expart), "expose cover art as a dedicated video PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sigfrag), "signal fragment and segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(tkid), "declare only track based on given param\n"
@@ -1551,13 +1551,13 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- audio: declares first audio track\n"
 	"- video: declares first video track\n"
 	"- 4CC: declares first track with matching 4CC for handler type", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(stsd), "only extract sample mapped to the given sample description index. 0 means no filter", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stsd), "only extract sample mapped to the given sample description index (0 means extract all)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mov), "pointer to a read/edit ISOBMF file used internally by importers and exporters", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
 	{ OFFS(catseg), "append the given segment to the movie at init time (only local file supported)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nocrypt), "signal encrypted tracks as non encrypted (mostly used for export)", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mstore_size), "target buffer size in bytes", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_size), "target buffer size in bytes when reading from memory stream (pipe etc...)", GF_PROP_UINT, "1000000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mstore_purge), "minimum size in bytes between memory purges when reading from memory stream, 0 means purge as soon as possible", GF_PROP_UINT, "50000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mstore_samples), "minimum number of samples to be present before purging sample tables when reading from memory stream (pipe etc...), 0 means purge as soon as possible", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strtxt), "load text tracks (apple/tx3g) as MPEG-4 streaming text tracks", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_check), "parameter sets extraction mode from AVC/HEVC/VVC samples\n"
@@ -1592,7 +1592,8 @@ static const GF_FilterCapability ISOFFInCaps[] =
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
 	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demuxer")
-	GF_FS_SET_HELP("This filter demultiplexes ISOBMF and QT files (regular or fragmented).\n"
+	GF_FS_SET_HELP("This filter demultiplexes ISOBMF and QT files.\n"
+		"Input ISOBMFF/QT can be regular or fragmented, and available as files or as raw bytestream.\n"
 		"# Track Selection\n"
 		"The filter can use fragment identifiers of source to select a single track for playback. The allowed fragments are:\n"
 		" - #audio: only use the first audio track\n"
@@ -1605,14 +1606,15 @@ GF_FilterRegister ISOFFInRegister = {
 		" - #VAL: only use the track with given ID\n"
 		"\n"
 		"# Scalable Tracks\n"
-		"When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"\
-	 	"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"\
-	 	"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"\
-	 	"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
-	 	"and an enhancement decoder config.\n"\
-	 	"- smode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"
-	 	" (copied from base) and an enhancement decoder config. This is mostly used for DASHing content.\n"\
-	 	"Warning: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n")
+		"When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"
+		"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"
+		"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"
+		"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
+		"and an enhancement decoder config.\n"
+		"- smode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"
+		" (copied from base) and an enhancement decoder config. This is mostly used for DASHing content.\n"
+		"Warning: smode=splitx will result in extractor NAL units still present in the output bitstream, which shall only be true if the output is ISOBMFF based\n"
+	 	)
 	.private_size = sizeof(ISOMReader),
 	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,

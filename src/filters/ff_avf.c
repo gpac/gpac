@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019
+ *			Copyright (c) Telecom Paris 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg avfilter filter
@@ -991,14 +991,14 @@ GF_FilterRegister FFAVFilterRegister = {
 		"For simple filter graphs with only one input and one output, the input PID is assigned the avfilter name `in` and the output PID is assigned the avfilter name `out`\n"
 		"\n"
 		"When a graph has several inputs, input PID names shall be assigned by the user using the `ffid` property, and mapping must be done in the filter.\n"
-		"EX src=video:#ffid=a src=logo:#ffid=b ffavf::f=[a][b]overlay=main_w-overlay_w-10:main_h-overlay_h-10\n"
+		"EX gpac -i video:#ffid=a -i logo:#ffid=b ffavf::f=[a][b]overlay=main_w-overlay_w-10:main_h-overlay_h-10 vout\n"
 		"In this example:\n"
 		"- the video source is identified as `a`\n"
 		"- the logo source is identified as `b`\n"
 		"- the filter declaration maps `a` to its first input (in this case, main video) and `b` to its second input (in this case the overlay)\n"
 	   "\n"
 		"When a graph has several outputs, output PIDs will be identified using the `ffid` property set to the output avfilter name.\n"
-		"EX src=source ffavf::f=split inspect:SID=#ffid=out0 vout#SID=out1\n"
+		"EX gpac -i source ffavf::f=split inspect:SID=#ffid=out0 vout#SID=out1\n"
 		"In this example:\n"
 		"- the splitter produces 2 video streams `out0` and `out1`\n"
 		"- the inspector only process stream with ffid `out0`\n"
@@ -1026,13 +1026,13 @@ GF_FilterRegister FFAVFilterRegister = {
 
 static const GF_FilterArgs FFAVFilterArgs[] =
 {
-	{ "f", -1, "filter or filter chain description - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "f", -1, "filter or filter chain description", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{ OFFS(pfmt), "pixel format of output. If not set, let AVFilter decide", GF_PROP_PIXFMT, "none", NULL, 0},
 	{ OFFS(afmt), "audio format of output. If not set, let AVFilter decide", GF_PROP_PCMFMT, "none", NULL, 0},
 	{ OFFS(sr), "sample rate of output. If not set, let AVFilter decide", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(ch), "number of channels of output. If not set, let AVFilter decide", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dump), "dump graph as log media@info or stderr if not set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
-	{ "*", -1, "any possible options defined for AVFilter and sub-classes. See `gpac -hx ffavf` and `gpac -hx ffavf:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVFilter and sub-classes (see `gpac -hx ffavf` and `gpac -hx ffavf:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 

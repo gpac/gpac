@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2020-2021
+ *			Copyright (c) Telecom ParisTech 2020-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / compressed bitstream metadata rewrite filter
@@ -655,7 +655,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(cprim), "color primaries according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_PRIM, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ctfc), "color transfer characteristics according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_TFC, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(cmx), "color matrix coeficients according to ISO/IEC 23001-8 / 23091-2", GF_PROP_CICP_COL_MX, "-1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(sar), "aspect ratio to rewrite - see filter help", GF_PROP_FRACTION, "-1/-1", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(sar), "aspect ratio to rewrite", GF_PROP_FRACTION, "-1/-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(m4vpl), "set ProfileLevel for MPEG-4 video part two", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fullrange), "video full range flag", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(novsi), "remove video_signal_type from VUI in AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},

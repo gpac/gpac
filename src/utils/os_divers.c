@@ -109,9 +109,9 @@ const char *gf_gpac_copyright_cite()
 		MINI_BUILD_DISCLAIMER
 #endif
 		"\n\n" \
-			"Please cite our work in your research:\n"\
-		"\tGPAC Filters: https://doi.org/10.1145/3339825.3394929\n"\
-		"\tGPAC: https://doi.org/10.1145/1291233.1291452\n"\
+			"Please cite our work in your research:\n"
+		"\tGPAC Filters: https://doi.org/10.1145/3339825.3394929\n"
+		"\tGPAC: https://doi.org/10.1145/1291233.1291452\n"
 		;
 
 }
@@ -1146,7 +1146,7 @@ static Bool gf_sys_enable_remotery(Bool start, Bool is_shutdown)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] unable to initialize Remotery profiler: error %d\n", rme));
 			return GF_FALSE;
 		}
-		//openGL binding is done upon loading of the driver, otherwise crashes on windows
+		//OpenGL binding is done upon loading of the driver, otherwise crashes on windows
 
 		if (gf_opts_get_bool("core", "rmt-log")) {
 			gpac_prev_default_logs = gf_log_set_callback(NULL, gpac_rmt_log_callback);

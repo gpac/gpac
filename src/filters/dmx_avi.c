@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI demuxer filter
@@ -652,7 +652,7 @@ static const GF_FilterArgs AVIDmxArgs[] =
 GF_FilterRegister AVIDmxRegister = {
 	.name = "avidmx",
 	GF_FS_SET_DESCRIPTION("AVI demuxer")
-	GF_FS_SET_HELP("This filter demultiplexes AVI files/data to produce media PIDs and frames.")
+	GF_FS_SET_HELP("This filter demultiplexes AVI files to produce media PIDs and frames.")
 	.private_size = sizeof(GF_AVIDmxCtx),
 	.initialize = avidmx_initialize,
 	.finalize = avidmx_finalize,

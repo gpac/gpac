@@ -3875,7 +3875,7 @@ static const GF_FilterCapability NALUDmxCaps[] =
 static const GF_FilterArgs NALUDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate (0 default to FPS from bitstream or 25 Hz)", GF_PROP_FRACTION, "0/1000", NULL, 0},
-	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued, otherwise uses the positive value", GF_PROP_DOUBLE, "-1.0", NULL, 0},
+	{ OFFS(index), "indexing window length. If 0, bitstream is not probed for duration. A negative value skips the indexing if the source file is larger than 100M (slows down importers) unless a play with start range > 0 is issued", GF_PROP_DOUBLE, "-1.0", NULL, 0},
 	{ OFFS(explicit), "use explicit layered (SVC/LHVC) import", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(strict_poc), "delay frame output of an entire GOP to ensure CTS info is correct when POC suddenly changes\n"
 		"- off: disable GOP buffering\n"
@@ -3888,7 +3888,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(dur), "compatibility with old importer to log imported frames only", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(nal_length), "set number of bytes used to code length field: 1, 2 or 4", GF_PROP_UINT, "4", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(subsamples), "import subsamples information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(deps), "import samples dependencies information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(deps), "import sample dependency information", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seirw), "rewrite AVC sei messages for ISOBMFF constraints", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(audelim), "keep Access Unit delimiter in payload", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(analyze), "skip reformat of decoder config and SEI and dispatch all NAL in input order - shall only be used with inspect filter analyze mode!", GF_PROP_UINT, "off", "off|on|bs|full", GF_FS_ARG_HINT_HIDE},
@@ -3910,7 +3910,7 @@ static const GF_FilterArgs NALUDmxArgs[] =
 		"- hlg2100: HLG BT.2100 gamut in ITU-R BT.2020\n"
 		"- bt2020: SDR BT.2020\n"
 		"- brd: Ultra HD Blu-ray Disc HDR", GF_PROP_UINT, "none", "none|hdr10|bt709|hlg709|hlg2100|bt2020|brd", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(bsdbg), "debug NAL parsing in parser@debug logs\n"
+	{ OFFS(bsdbg), "debug NAL parsing in `parser@debug` logs\n"
 		"- off: not enabled\n"
 		"- on: enabled\n"
 		"- full: enable with number of bits dumped", GF_PROP_UINT, "off", "off|on|full", GF_FS_ARG_HINT_EXPERT},

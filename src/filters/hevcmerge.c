@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile merger filter
@@ -1579,7 +1579,7 @@ static const GF_FilterCapability HEVCMergeCaps[] =
 
 static const GF_FilterArgs HEVCMergeArgs[] =
 {
-	{ OFFS(strict), "strict comparison of SPS and PPS of input pids - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(strict), "strict comparison of SPS and PPS of input PIDs", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mrows), "signal multiple rows in tile grid when possible", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
@@ -1592,15 +1592,15 @@ GF_FilterRegister HEVCMergeRegister = {
 		"If [-mrows]() is set and tiles properly align on the final grid, multiple rows will be declared in the PPS.\n"
 		"Positioning of tiles can be automatic (implicit) or explicit.\n"
 		"The filter will check the SPS and PPS configurations of input PID and warn if they are not aligned but will still process them unless [-strict]() is set.\n"
-		"The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same dts. If pids are of unequal duration, the filter will drop frames as soon as one pid is over.\n"
+		"The filter assumes that all input PIDs are synchronized (frames share the same timestamp) and will reassemble frames with the same decode time. If PIDs are of unequal duration, the filter will drop frames as soon as one PID is over.\n"
 		"## Implicit Positioning\n"
-		"In implicit positioning, results may vary based on the order of input pids declaration.\n"
+		"In implicit positioning, results may vary based on the order of input PIDs declaration.\n"
 		"In this mode the filter will automatically allocate new columns for tiles with height not a multiple of max CU height.\n"
 		"## Explicit Positioning\n"
 		"In explicit positioning, the `CropOrigin` property on input PIDs is used to setup the tile grid. In this case, tiles shall not overlap in the final output.\n"
 		"If `CropOrigin` is used, it shall be set on all input sources.\n"
 		"If positive coordinates are used, they specify absolute positioning in pixels of the tiles. The coordinates are automatically adjusted to the next multiple of max CU width and height.\n"
-		"If negative coordinates are used, they specify relative positioning (eg `0x-1` indicates to place the tile below the tile 0x0).\n"
+		"If negative coordinates are used, they specify relative positioning (e.g. `0x-1` indicates to place the tile below the tile 0x0).\n"
 		"In this mode, it is the caller responsibility to set coordinates so that all tiles in a column have the same width and only the last row/column uses non-multiple of max CU width/height values. The filter will complain and abort if this is not respected.\n"
 		"- If an horizontal blank is detected in the layout, an empty column in the tiling grid will be inserted.\n"
 		"- If a vertical blank is detected in the layout, it is ignored.\n"
@@ -1609,11 +1609,11 @@ GF_FilterRegister HEVCMergeRegister = {
 		"\n"
 		"The filter will create an `SRDMap` property in the output PID if `SRDRef` and `SRD` or `CropOrigin` are set on all input PIDs.\n"
 		"The `SRDMap` allows forwarding the logical sources `SRD` in the merged PID.\n"
-		"The output pid `SRDRef` is set to the output video size.\n"
+		"The output PID `SRDRef` is set to the output video size.\n"
 		"The input `SRDRef` and `SRD` are usually specified in DASH MPD, but can be manually assigned to inputs.\n"
 		"- `SRDRef` gives the size of the referential used for the input `SRD` (usually matches the original video size, but not always)\n"
 		"- `SRD` gives the size and position of the input in the original video, expressed in `SRDRef` referential of the input.\n"
-		"The inputs do not need to have matching `SRDRef`."
+		"The inputs do not need to have matching `SRDRef`\n."
 		"EX src1:SRD=0x0x640x480:SRDRef=1280x720\n"
 		"This indicates that `src1` contains a video located at 0,0, with a size of 640x480 pixels in a virtual source of 1280x720 pixels.\n"
 		"EX src2:SRD=640x0x640x480:SRDRef=1280x720\n"
@@ -1622,6 +1622,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"Each merged input is described by 8 integers in the output `SRDMap`:\n"
 		"- the source `SRD` is rescaled in the output `SRDRef` to form the first part (4 integers) of the `SRDMap` (i.e. __where was the input ?__)\n"
 		"- the source location in the reconstructed video forms the second part (4 integers) of the `SRDMap` (i.e. __where are the input pixels in the output ?__)\n"
+		" \n"
 		"Assuming the two sources are encoded at 320x240 and merged as src2 above src1, the output will be a 320x480 video with a `SRDMap` of {0,160,160,240,0,0,320,240,0,0,160,240,0,240,320,240}\n"
 		"Note: merged inputs are always listed in `SRDMap` in their tile order in the output bitstream.\n"
 		"\n"
@@ -1629,7 +1630,7 @@ GF_FilterRegister HEVCMergeRegister = {
 		"- the `CropOrigin` gives the location in the source\n"
 		"- the input size gives the size in the source, and no rescaling of referential is done\n"
 		"EX src1:CropOrigin=0x0  src1:CropOrigin=640x0 \n"
-		"Assuming the two sources are encoded at 320x240 and merged as src1 above src2, the output will be a 320x480 video with a `SRDMap` of {0,0,320,240,0,0,320,240,640,0,320,240,0,240,320,240}\n"
+		"Assuming the two sources are encoded at 320x240 and merged as src1 above src2, the output will be a 320x480 video with a `SRDMap` of `{0,0,320,240,0,0,320,240,640,0,320,240,0,240,320,240}`\n"
 	)
 	.private_size = sizeof(GF_HEVCMergeCtx),
 	SETCAPS(HEVCMergeCaps),

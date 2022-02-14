@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -523,7 +523,7 @@ static void PrintSplitUsage()
 		"  \n"
 		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
 		"- `splitrange` option of the reframer is always set\n"
-		"- source is demuxed with `alltk` option set\n"
+		"- source is demultiplexed with `alltk` option set\n"
 		"- start and end ranges are passed to `xs` and `xe` options of the reframer\n"
 		"- for `-splitz`, options `xadjust` and `xround=after` are enforced\n"
 		"- for `-splitg`, options `xadjust` and `xround=before` are enforced\n"
@@ -631,7 +631,7 @@ MP4BoxArg m4b_dash_args[] =
 	        "- as: sets ContentProtection in AdaptationSet element\n"
 	        "- rep: sets ContentProtection in Representation element\n"
 	        "- both: sets ContentProtection in both elements", GF_ARG_STRING, GF_ARG_HINT_EXPERT, parse_cp_loc, 0, ARG_IS_FUN),
-	MP4BOX_ARG("start-date", "for live mode, set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ). Default is current UTC\n"
+	MP4BOX_ARG("start-date", "for live mode, set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ). Default is current UTC\n"
 	"Warning: Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &dash_start_date, 0, 0),
 	MP4BOX_ARG("cues", "ignore dash duration and segment according to cue times in given XML file (tests/media/dash_cues for examples)", GF_ARG_STRING, GF_ARG_HINT_EXPERT, &dash_cues, 0, 0),
 	MP4BOX_ARG("strict-cues", "throw error if something is wrong while parsing cues or applying cue-based segmentation", GF_ARG_BOOL, GF_ARG_HINT_EXPERT, &strict_cues, 0, 0),
@@ -658,7 +658,7 @@ void PrintDASHUsage()
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
 		"- :bandwidth=VALUE: set the representation's bandwidth to a given value\n"
-		"- :pdur=VALUE: sets the duration of the associated period to VALUE seconds (fraction) (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), eg `:period=X:xlink=Z:pdur=Y`\n"
+		"- :pdur=VALUE: sets the duration of the associated period to VALUE seconds (fraction) (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), e.g. `:period=X:xlink=Z:pdur=Y`\n"
 		"- :ddur=VALUE: override target DASH segment duration to VALUE seconds (fraction) for this input (alias for duration:VALUE)\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
 		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
@@ -693,14 +693,14 @@ void PrintDASHUsage()
 
 MP4BoxArg m4b_imp_args[] =
 {
- 	MP4BOX_ARG("add", "add given file tracks to file. Multiple inputs can be specified using `+`, eg `-add url1+url2`", GF_ARG_STRING, 0, &nb_add, 0, ARG_INT_INC),
- 	MP4BOX_ARG("cat", "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`, eg `-cat url1+url2`.  \nNote: This aligns initial timestamp of the file to be concatenated", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
+	MP4BOX_ARG("add", "add given file tracks to file. Multiple inputs can be specified using `+`, e.g. `-add url1+url2`", GF_ARG_STRING, 0, &nb_add, 0, ARG_INT_INC),
+	MP4BOX_ARG("cat", "concatenate given file samples to file, creating tracks if needed. Multiple inputs can be specified using `+`, e.g/ `-cat url1+url2`.  \nNote: This aligns initial timestamp of the file to be concatenated", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catx", "same as [-cat]() but new tracks can be imported before concatenation by specifying `+ADD_COMMAND` where `ADD_COMMAND` is a regular [-add]() syntax", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("catpl", "concatenate files listed in the given playlist file (one file per line, lines starting with # are comments).  \nNote: Each listed file is concatenated as if called with -cat", GF_ARG_STRING, 0, &nb_cat, 0, ARG_INT_INC),
  	MP4BOX_ARG("unalign-cat", "do not attempt to align timestamps of samples in-between tracks", GF_ARG_BOOL, 0, &align_cat, 0, ARG_BOOL_REV),
  	MP4BOX_ARG("force-cat", "skip media configuration check when concatenating file.  \nWarning: THIS MAY BREAK THE CONCATENATED TRACK(S)", GF_ARG_BOOL, 0, &force_cat, 0, 0),
  	MP4BOX_ARG("keep-sys", "keep all MPEG-4 Systems info when using [-add]() and [-cat]() (only used when adding IsoMedia files)", GF_ARG_BOOL, 0, &keep_sys_tracks, 0, 0),
- 	MP4BOX_ARG("dref", "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  \nNote: Data referencing may fail on some files because it requires the framed data (eg an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_USE_DATAREF, ARG_BIT_MASK),
+	MP4BOX_ARG("dref", "keep media data in original file using `data referencing`. The resulting file only contains the meta-data of the presentation (frame sizes, timing, etc...) and references media data in the original file. This is extremely useful when developing content, since importing and storage of the MP4 file is much faster and the resulting file much smaller.  \nNote: Data referencing may fail on some files because it requires the framed data (e.g. an IsoMedia sample) to be continuous in the original file, which is not always the case depending on the original interleaving or bitstream format (__AVC__ or __HEVC__ cannot use this option)", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_USE_DATAREF, ARG_BIT_MASK),
  	MP4BOX_ARG_ALT("no-drop", "nodrop", "force constant FPS when importing AVI video", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_NO_FRAME_DROP, ARG_BIT_MASK),
  	MP4BOX_ARG("packed", "force packed bitstream when importing raw MPEG-4 part 2 Advanced Simple Profile", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_FORCE_PACKED, ARG_BIT_MASK),
  	MP4BOX_ARG("sbr", "backward compatible signaling of AAC-SBR", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_SBR_IMPLICIT, ARG_BIT_MASK),
@@ -882,7 +882,7 @@ void PrintImportUsage()
 		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding original ISOBMF file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat](MP4B_GEN) option, but this disables media interleaving.\n"
 		"  \n"
 		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
-		" - Some muxing options (marked with `X` below) will be activated for all inputs (e.g it is not possible to import one AVC track with `xps_inband` and another without).\n"
+		" - Some muxing options (marked with `X` below) will be activated for all inputs (e.g. it is not possible to import one AVC track with `xps_inband` and another without).\n"
 		" - Some muxing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
 		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a [playlist](flist).\n"
 		"  \n"
@@ -1496,22 +1496,6 @@ enum
 	SEARCH_DESC,
 };
 
-static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len)
-{
-	if (!*text || !subtext || !subtext_len)
-		return GF_FALSE;
-
-	while (*text) {
-		if (tolower(*text) == *subtext) {
-			if (!strnicmp(text, subtext, subtext_len))
-				return GF_TRUE;
-
-		}
-		text++;
-	}
-	return GF_FALSE;
-}
-
 static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, u32 search_type, char *class_name)
 {
 	char szDesc[100];
@@ -1557,7 +1541,7 @@ static u32 PrintHelpForArgs(char *arg_name, MP4BoxArg *args, GF_GPACArg *_args, 
 			i++;
 			continue;
 		}
-		if ((search_type==SEARCH_DESC) && strcmp(arg->name, arg_name) && !strstr_nocase(arg->description, arg_name, alen)) {
+		if ((search_type==SEARCH_DESC) && strcmp(arg->name, arg_name) && !gf_strnistr(arg->description, arg_name, alen)) {
 			i++;
 			continue;
 		}
@@ -1621,7 +1605,7 @@ static Bool PrintHelpArg(char *arg_name, u32 search_type, GF_FilterSession *fs)
 			if ((search_type==SEARCH_ARG_CLOSE) && !gf_sys_word_match(arg->arg_name, arg_name)) continue;
 
 			if (search_type==SEARCH_DESC) {
-				if (stricmp(arg->arg_name, arg_name) && !strstr_nocase(arg->arg_desc, arg_name, alen)) continue;
+				if (stricmp(arg->arg_name, arg_name) && !gf_strnistr(arg->arg_desc, arg_name, alen)) continue;
 			}
 
 			an_arg.name = arg->arg_name;

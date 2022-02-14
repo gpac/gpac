@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / video output filter
@@ -36,7 +36,7 @@
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 #define VOUT_USE_OPENGL
 
-//include openGL
+//include OpenGL
 #include "../compositor/gl_inc.h"
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
@@ -285,7 +285,7 @@ static GF_Err resize_video_output(GF_VideoOutCtx *ctx, u32 dw, u32 dh)
 		gf_opengl_init();
 
 	if ((ctx->disp<MODE_2D) && (glCompileShader == NULL)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load openGL, fallback to 2D blit\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Failed to load OpenGL, fallback to 2D blit\n"));
 		evt.setup.use_opengl = GF_FALSE;
 		evt.setup.back_buffer = 1;
 		ctx->disp = MODE_2D;
@@ -961,7 +961,7 @@ static GF_Err vout_initialize(GF_Filter *filter)
 #endif
 	{
 		if (ctx->disp < MODE_2D) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No openGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("No OpenGL support - using 2D rasterizer!\n", ctx->video_out->module_name));
 			ctx->disp = MODE_2D;
 		}
 	}
@@ -2098,22 +2098,24 @@ static const GF_FilterArgs VideoOutArgs[] =
 	"- pbo: OpenGL with PBO\n"
 	"- blit: 2D hardware blit\n"
 	"- soft: software blit", GF_PROP_UINT, "gl", "gl|pbo|blit|soft", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION64, "0", NULL, 0},
 	{ OFFS(speed), "set playback speed when vsync is on. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(hold), "number of seconds to hold display for single-frame streams. A negative value force a hold on last frame for single or multi-frames streams", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(hold), "number of seconds to hold display for single-frame streams (a negative value force a hold on last frame for single or multi-frames streams)", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(linear), "use linear filtering instead of nearest pixel for GL mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(back), "back color for transparent images", GF_PROP_UINT, "0x808080", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(wsize), "default init window size. 0x0 holds the window size of the first frame. Negative values indicate video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(wsize), "default init window size\n"
+	"- 0x0 holds the window size of the first frame\n"
+	"- negative values indicate video media size", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(wpos), "default position (0,0 top-left)", GF_PROP_VEC2I, "-1x-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(vdelay), "set delay in sec, positive value displays after audio clock", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(hide), "hide output window", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(fullscreen), "use fullscreen", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "100", NULL, 0},
-	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame - see filter help. Special value 0 means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(out), "radical of dump frame filenames. If no extension is provided, frames are exported as $OUT_%d.PFMT", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(dumpframes), "ordered list of frames to dump, 1 being first frame. Special value `0` means dump all frames", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(out), "radical of dump frame filenames. If no extension provided, frames are exported as `$OUT_%d.PFMT`", GF_PROP_STRING, "dump", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(step), "step frame", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
 
 	{ OFFS(olwnd), "overlay window position and size", GF_PROP_VEC4I, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE},
@@ -2121,7 +2123,7 @@ static const GF_FilterArgs VideoOutArgs[] =
 	{ OFFS(oldata), "overlay texture data (must be RGBA)", GF_PROP_CONST_DATA, NULL, NULL, GF_ARG_HINT_HIDE|GF_FS_ARG_UPDATE_SYNC},
 	{ OFFS(owsize), "output window size (readonly)", GF_PROP_VEC2I, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(rebuffer), "system time in us at which last rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(vflip), "flip video (GL only)\n"
 		"- no: no flipping\n"
@@ -2149,14 +2151,14 @@ static const GF_FilterCapability VideoOutCaps[] =
 GF_FilterRegister VideoOutRegister = {
 	.name = "vout",
 	GF_FS_SET_DESCRIPTION("Video output")
-	GF_FS_SET_HELP("This filter displays a single visual pid in a window.\n"\
-	"The window is created unless a window handle (HWND, xWindow, etc) is indicated in the config file ( [Temp]OSWnd=ptr).\n"\
-	"The output uses GPAC video output module indicated in [-drv]() option or in the config file (see GPAC core help).\n"\
-	"The video output module can be further configured (see GPAC core help).\n"\
-	"The filter can use OpenGL or 2D blit of the graphics card, depending on the OS support.\n"\
-	"The filter can be used do dump frames as written on the graphics card.\n"\
-	"In this case, the window is not visible and only the listed frames are drawn to the GPU.\n"\
-	"The pixel format of the dumped frame is always RGB in OpenGL and matches the video backbuffer format in 2D mode.\n"\
+	GF_FS_SET_HELP("This filter displays a single visual input PID in a window.\n"
+	"The window is created unless a window handle (HWND, xWindow, etc) is indicated in the config file ( [Temp]OSWnd=ptr).\n"
+	"The output uses GPAC video output module indicated in [-drv]() option or in the config file (see GPAC core help).\n"
+	"The video output module can be further configured (see GPAC core help).\n"
+	"The filter can use OpenGL or 2D blit of the graphics card, depending on the OS support.\n"
+	"The filter can be used do dump frames as written by the graphics card (GPU read-back) using [-dumpframes]().\n"
+	"In this case, the window is not visible and only the listed frames are drawn to the GPU.\n"
+	"The pixel format of the dumped frame is always RGB in OpenGL and matches the video backbuffer format in 2D mode.\n"
 	)
 	.private_size = sizeof(GF_VideoOutCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,

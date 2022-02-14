@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2020
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / rtsp output filter
@@ -1258,18 +1258,18 @@ static const GF_FilterCapability RTSPOutCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_RTSPOutCtx, _n)
 static const GF_FilterArgs RTSPOutArgs[] =
 {
-	{ OFFS(dst), "location of destination resource - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "location of destination resource", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(port), "server port", GF_PROP_UINT, "554", NULL, 0},
 	{ OFFS(firstport), "port for first stream in session", GF_PROP_UINT, "6000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
-	{ OFFS(ttl), "time-to-live for multicast packets. A value of 0 uses client requested TTL, or 1", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttl), "time-to-live for multicast packets (a value of 0 uses client requested TTL, or 1)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ifce), "default network interface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(payt), "payload type to use for dynamic configs", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tt), "time tolerance in microseconds. Whenever schedule time minus realtime is below this value, the packet is sent right away", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(runfor), "run the session for the given time in ms. Negative value means run for ever (if loop) or source duration, 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(tso), "set timestamp offset in microseconds. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tt), "time tolerance in microsecond (whenever schedule time minus realtime is below this value, the packet is sent right away)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(runfor), "run the session for the given time in ms. A negative value means run for ever if loop or source duration, value 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(tso), "set timestamp offset in microseconds (negative value means random initial timestamp)", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(mounts), "list of directories to expose in server mode", GF_PROP_STRING_LIST, NULL, NULL, 0},
@@ -1277,8 +1277,8 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(maxc), "maximum number of connections", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close RTSP connection after each request, except when RTP over RTSP is used", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(loop), "loop all streams in session (not always possible depending on source type) - see filter help", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dynurl), "allow dynamic service assembly - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(loop), "loop all streams in session (not always possible depending on source type)", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dynurl), "allow dynamic service assembly", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mcast), "control multicast setup of a session\n"
 				"- off: clients are never allowed to create a multicast\n"
 				"- on: clients can create multicast sessions\n"
@@ -1292,31 +1292,31 @@ static const GF_FilterArgs RTSPOutArgs[] =
 GF_FilterRegister RTSPOutRegister = {
 	.name = "rtspout",
 	GF_FS_SET_DESCRIPTION("RTSP Server")
-	GF_FS_SET_HELP("The RTSP server partially implements RTSP 1.0, with support for OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE and TEARDOWN.\n"\
+	GF_FS_SET_HELP("The RTSP server partially implements RTSP 1.0, with support for OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE and TEARDOWN.\n"
 		"Multiple PLAY ranges are not supported, PLAY range end is not supported, PAUSE range is not supported.\n"
-		"Only aggregated control is supported for PLAY and PAUSE, PAUSE/PLAY on single stream is not supported.\n"\
-		"The server only runs on TCP, and handles request in sequence (will not probe for commands until previous response was sent).\n"\
-		"The server supports both RTP over UDP delivery and RTP interleaved over RTSP delivery.\n"\
-		"\n"\
-		"The filter can work as a simple output filter by specifying the [-dst]() option:\n"\
-		"EX gpac -i source -o rtsp://myip/sessionname\n"\
-		"EX gpac -i source dst=rtsp://myip/sessionname\n"\
-		"In this mode, only one session is possible. It is possible to [-loop]() the input source(s).\n"\
-		"\n"\
-		"The filter can work as a regular RTSP server by specifying the [-mounts]() option to indicate paths of media file to be served:\n"\
-		"EX gpac rtspout:mounts=mydir1,mydir2\n"\
-		"In server mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"\
-		"The expected syntax of the dynamic RTSP URLs is `rtsp://servername/?URL1[&URLN]` or `rtsp://servername/@URL1[@URLN]` \n"\
-		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"\
-		"EX gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]\n"\
-		"The server will resolve this URL in a new session containing streams from myfile.mp4 and streams from pipe mynamepipe.\n"\
-		"When setting [-runfor]() in server mode, the server will exit at the end of the last session being closed.\n"\
-		"\n"\
-		"In both modes, clients can setup multicast if the [-mcast]() option is `on` or `mirror`.\n"\
-		"When [-mcast]() is set to `mirror` mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.\n"\
-		"Consequently, only DESCRIBE methods are processed for such sessions, other methods will return Unauthorized.\n"\
-		"\n"\
-		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"\
+		"Only aggregated control is supported for PLAY and PAUSE, PAUSE/PLAY on single stream is not supported.\n"
+		"The server only runs on TCP, and handles request in sequence: it will not probe for commands until previous response is sent.\n"
+		"The server supports both RTP over UDP delivery and RTP interleaved over RTSP delivery.\n"
+		"\n"
+		"The filter can work as a simple output filter by specifying the [-dst]() option:\n"
+		"EX gpac -i source -o rtsp://myip/sessionname\n"
+		"EX gpac -i source -o rtsp://myip/sessionname\n"
+		"In this mode, only one session is possible. It is possible to [-loop]() the input source(s).\n"
+		"\n"
+		"The filter can work as a regular RTSP server by specifying the [-mounts]() option to indicate paths of media file to be served:\n"
+		"EX gpac rtspout:mounts=mydir1,mydir2\n"
+		"In server mode, it is possible to load any source supported by gpac by setting the option [-dynurl]().\n"
+		"The expected syntax of the dynamic RTSP URLs is `rtsp://servername/?URL1[&URLN]` or `rtsp://servername/@URL1[@URLN]` \n"
+		"Each URL can be absolute or local, in which case it is resolved against the mount point(s).\n"
+		"EX gpac -i rtsp://localhost/?pipe://mynamepipe&myfile.mp4 [dst filters]\n"
+		"The server will resolve this URL in a new session containing streams from `myfile.mp4` and streams from pipe `mynamepipe`.\n"
+		"When setting [-runfor]() in server mode, the server will exit at the end of the last session being closed.\n"
+		"\n"
+		"In both modes, clients can setup multicast if the [-mcast]() option is `on` or `mirror`.\n"
+		"When [-mcast]() is set to `mirror` mode, any DESCRIBE command on a resource already delivered through a multicast session will use that multicast.\n"
+		"Consequently, only DESCRIBE methods are processed for such sessions, other methods will return Unauthorized.\n"
+		"\n"
+		"The scheduling algorithm and RTP options are the same as the RTP output filter, see [gpac -h rtpout](rtpout)\n"
 	)
 	.private_size = sizeof(GF_RTSPOutCtx),
 	.max_extra_pids = -1,

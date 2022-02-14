@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Rendering sub-project
@@ -251,7 +251,7 @@ struct __tag_compositor
 	GF_List *textures;
 	Bool texture_inserted;
 
-	/*all textures to be destroyed (needed for openGL context ...)*/
+	/*all textures to be destroyed (needed for OpenGL context ...)*/
 	GF_List *textures_gc;
 
 	/*event queue*/
@@ -595,7 +595,7 @@ struct __tag_compositor
 	If not set video is written through glDrawPixels with bitmap (slow scaling), or converted to
 	po2 texture*/
 	Bool epow2;
-	/*use openGL for outline rather than vectorial ones*/
+	/*use OpenGL for outline rather than vectorial ones*/
 	Bool linegl;
 	/*disable RECT extensions (except for Bitmap...)*/
 	Bool rext;

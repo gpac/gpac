@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / tile aggregrator filter
@@ -505,7 +505,7 @@ static const GF_FilterCapability TileAggCaps[] =
 
 static const GF_FilterArgs TileAggArgs[] =
 {
-	{ OFFS(tiledrop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, "", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(tiledrop), "specify indexes of tiles to drop", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(ttimeout), "number of milliseconds to wait until considering a tile packet lost, 0 waits forever", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_UPDATE},
 	{0}
 };
@@ -513,7 +513,7 @@ static const GF_FilterArgs TileAggArgs[] =
 GF_FilterRegister TileAggRegister = {
 	.name = "tileagg",
 	GF_FS_SET_DESCRIPTION("HEVC tile aggregator")
-	GF_FS_SET_HELP("This filter reaggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in isobmff) into a single HEVC stream.")
+	GF_FS_SET_HELP("This filter reaggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in ISOBMFF) into a single HEVC stream.")
 	.private_size = sizeof(GF_TileAggCtx),
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,

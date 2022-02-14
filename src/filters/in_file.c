@@ -587,7 +587,7 @@ GF_FilterRegister FileInRegister = {
 	"Note: Unless disabled at session level (see [-no-probe](CORE) ), file extensions are usually ignored and format probing is done on the first data block.\n"
 	"The special file name `null` is used for creating a file with no data, needed by some filters such as [dasher](dasher).\n"
 	"The special file name `rand` is used to generate random data.\n"
-	"The special file name `randsc` is used to generate random data with fake start-codes (0x000001).\n"
+	"The special file name `randsc` is used to generate random data with `0x000001` start-code prefix.\n"
 	"\n"
 	"The filter handles both files and GF_FileIO objects as input URL.\n"
 	)

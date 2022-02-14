@@ -768,7 +768,7 @@ static const GF_FilterCapability RTPInCaps[] =
 static const GF_FilterArgs RTPInArgs[] =
 {
 	{ OFFS(src), "location of source content (SDP, RTP or RTSP URL)", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(firstport), "default first port number to use. 0 lets the filter decide", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(firstport), "default first port number to use (0 lets the filter decide)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ifce), "default interface IP to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "127", "0-127", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_len), "reorder length in packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -777,7 +777,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(disable_rtcp), "disable RTCP reporting", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nat_keepalive), "delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_mcast), "force multicast on indicated IP in RTSP setup", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(use_client_ports), "force using client ports  (hack for some RTSP servers overriding client ports)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(use_client_ports), "force using client ports (hack for some RTSP servers overriding client ports)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bandwidth), "set bandwidth param for RTSP requests", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(default_port), "set default RTSP port", GF_PROP_UINT, "554", "0-65535", 0},
 	{ OFFS(satip_port), "set default port for SATIP", GF_PROP_UINT, "1400", "0-65535", 0},
@@ -786,12 +786,14 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(rtsp_timeout), "default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, 0},
 	{ OFFS(rtcp_timeout), "default timeout for RTCP traffic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(autortsp), "automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(first_packet_drop), "set number of first RTP packet to drop - 0 if no drop", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(frequency_drop), "drop 1 out of N packet - 0 disable dropping", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(first_packet_drop), "set number of first RTP packet to drop (0 if no drop)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(frequency_drop), "drop 1 out of N packet (0 disable dropping)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(languages), "user languages, by default solved from GPAC preferences", GF_PROP_STRING, "$GLANG", NULL, 0},
-	{ OFFS(stats), "update statistics to the user every given MS, 0 disables reporting", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(max_sleep), "set max sleep in milliseconds. A negative value -N means to always sleep for N ms, a positive value N means to sleep at most N ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(stats), "update statistics to the user every given MS (0 disables reporting)", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(max_sleep), "set max sleep in milliseconds:\n"
+	"- a negative value `-N` means to always sleep for `N` ms\n"
+	"- a positive value `N` means to sleep at most `N` ms but will sleep less if frame duration is shorter", GF_PROP_SINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(rtcpsync), "use RTCP to adjust synchronization", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forceagg), "force RTSP control aggregation (patch for buggy servers)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
@@ -806,7 +808,7 @@ GF_FilterRegister RTPInRegister = {
 	"- RTP direct url through `rtp://` protocol scheme\n"
 	"- RTSP session processing through `rtsp://` and `satip://` protocol schemes\n"
 	" \n"
-	"The filter produces either media PIDs and compressed media frames, or file PIDs and multiplex data (e.g., MPEG-2 TS).")
+	"The filter produces either media PIDs with unmultiplexed media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).")
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,

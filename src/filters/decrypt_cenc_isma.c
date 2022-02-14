@@ -2123,7 +2123,7 @@ static const GF_FilterCapability CENCDecCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_CENCDecCtx, _n)
 static const GF_FilterArgs GF_CENCDecArgs[] =
 {
-	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(cfile), "crypt file location", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(decrypt), "decrypt mode (CENC only)\n"
 		"- full: decrypt everything, throwing error if keys are not found\n"
 		"- nokey: decrypt everything for which a key is found, skip decryption otherwise\n"
@@ -2144,9 +2144,11 @@ GF_FilterRegister CENCDecRegister = {
 	"For HLS, key is retrieved according to the key URI in the manifest.\n"
 	"Otherwise, the filter uses a configuration file.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
-	"The file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
+	"The DRM config file can be set per PID using the property `DecryptInfo` (highest priority), `CryptInfo` (lower priority) "
 	"or set at the filter level using [-cfile]() (lowest priority).\n"
-	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used.")
+	"When the file is set per PID, the first `CryptInfo` with the same ID is used, otherwise the first `CryptInfo` is used."
+	"When the file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"
+	)
 	.private_size = sizeof(GF_CENCDecCtx),
 	.max_extra_pids=-1,
 	.args = GF_CENCDecArgs,

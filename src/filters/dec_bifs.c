@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / BIFS decoder filter
@@ -275,7 +275,8 @@ static const GF_FilterCapability BIFSDecCaps[] =
 GF_FilterRegister BIFSDecRegister = {
 	.name = "bifsdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 BIFS decoder")
-	GF_FS_SET_HELP("This filter decodes MPEG-4 BIFS frames directly into the scene graph of the compositor. It cannot be used to dump BIFS content.")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 BIFS binary frames directly into the scene graph of the compositor.\n"
+	"Note: This filter cannot be used to dump BIFS content to text or xml, use `MP4Box` for that.")
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

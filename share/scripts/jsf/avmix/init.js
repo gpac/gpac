@@ -55,7 +55,7 @@ globalThis.UPDATE_SIZE = UPDATE_SIZE;
 globalThis.UPDATE_POS = UPDATE_POS;
 //scene update allows string for number
 globalThis.UPDATE_ALLOW_STRING = UPDATE_ALLOW_STRING;
-//scene update flag indicating that if a property with this flag is changed, mix and transition effects must be recomputed (used for openGL shader setup)
+//scene update flag indicating that if a property with this flag is changed, mix and transition effects must be recomputed (used for OpenGL shader setup)
 globalThis.UPDATE_FX = UPDATE_FX;
 //indicates if GPU (WebGL) is used
 globalThis.use_gpu = false;
@@ -263,14 +263,14 @@ filter.set_author("GPAC team");
 
 //global options
 filter.set_arg({ name: "pl", desc: "local playlist file to load", type: GF_PROP_STRING, def: "avmix.json" } );
-filter.set_arg({ name: "live", desc: "live mode (see filter help)", type: GF_PROP_BOOL, def: "true"} );
+filter.set_arg({ name: "live", desc: "live mode", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "gpu", desc: `enable GPU usage
   - off: no GPU
   - mix: only render textured path to GPU, use software rasterizer for the outlines, solid fills and gradients
   - all: try to use GPU for everything`, type: GF_PROP_UINT, def: "off", minmax_enum: 'off|mix|all', hint:"advanced"} );
 filter.set_arg({ name: "thread", desc: "use threads for software rasterizer (-1 for all available cores)", type: GF_PROP_SINT, def: "-1", hint:"expert"} );
 filter.set_arg({ name: "lwait", desc: "timeout in ms before considering no signal is present", type: GF_PROP_UINT, def: "1000", hint:"expert"} );
-filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes (see filter help)", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
+filter.set_arg({ name: "ltimeout", desc: "timeout in ms before restarting child processes", type: GF_PROP_UINT, def: "4000", hint:"expert"} );
 filter.set_arg({ name: "maxdur", desc: "run for given seconds and exit, will not abort if 0 (used for live mode tests)", type: GF_PROP_DOUBLE, def: "0", hint:"expert"} );
 filter.set_arg({ name: "updates", desc: "local JSON files for playlist updates", type: GF_PROP_STRING, hint:"advanced"} );
 filter.set_arg({ name: "maxdepth", desc: "maximum depth of a branch in the scene graph", type: GF_PROP_UINT, def: "100", hint:"expert"} );
@@ -282,7 +282,7 @@ filter.set_arg({ name: "pfmt", desc: "output pixel format. Use \`rgba\` in GPU m
 filter.set_arg({ name: "dynpfmt", desc: `allow dynamic change of output pixel format in software mode
   - off: pixel format is forced to desired value
   - init: pixel format is forced to format of fullscreen input in first generated frame
-  - all: pixel format changes each time a full-screen input pid at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
+  - all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
 
 //audio output options
 filter.set_arg({ name: "sr", desc: "output audio sample rate", type: GF_PROP_UINT, def: "44100"} );

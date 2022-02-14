@@ -580,7 +580,7 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
         GET_PROC(cuLaunchKernel);
     }
 
-	/*load openGL*/
+	/*load OpenGL*/
     if (cudaVersion >= 2010)
     {
         GET_PROC(cuGLCtxCreate);

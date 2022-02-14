@@ -458,8 +458,6 @@
 		92BBFCE31A7122AD006A7735 /* audio_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC821A7122AD006A7735 /* audio_out.h */; };
 		92BBFCE51A7122AD006A7735 /* font.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC841A7122AD006A7735 /* font.h */; };
 		92BBFCE61A7122AD006A7735 /* hardcoded_proto.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC851A7122AD006A7735 /* hardcoded_proto.h */; };
-		92BBFCE81A7122AD006A7735 /* js_usr.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC871A7122AD006A7735 /* js_usr.h */; };
-		92BBFCE91A7122AD006A7735 /* raster2d.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC881A7122AD006A7735 /* raster2d.h */; };
 		92BBFCEC1A7122AD006A7735 /* video_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC8B1A7122AD006A7735 /* video_out.h */; };
 		92BBFCED1A7122AD006A7735 /* mpeg4_odf.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC8C1A7122AD006A7735 /* mpeg4_odf.h */; };
 		92BBFCEE1A7122AD006A7735 /* mpegts.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC8D1A7122AD006A7735 /* mpegts.h */; };
@@ -1127,8 +1125,6 @@
 		92BBFC821A7122AD006A7735 /* audio_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio_out.h; sourceTree = "<group>"; };
 		92BBFC841A7122AD006A7735 /* font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = font.h; sourceTree = "<group>"; };
 		92BBFC851A7122AD006A7735 /* hardcoded_proto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hardcoded_proto.h; sourceTree = "<group>"; };
-		92BBFC871A7122AD006A7735 /* js_usr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = js_usr.h; sourceTree = "<group>"; };
-		92BBFC881A7122AD006A7735 /* raster2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = raster2d.h; sourceTree = "<group>"; };
 		92BBFC8B1A7122AD006A7735 /* video_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = video_out.h; sourceTree = "<group>"; };
 		92BBFC8C1A7122AD006A7735 /* mpeg4_odf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpeg4_odf.h; path = ../include/gpac/mpeg4_odf.h; sourceTree = "<group>"; };
 		92BBFC8D1A7122AD006A7735 /* mpegts.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mpegts.h; path = ../include/gpac/mpegts.h; sourceTree = "<group>"; };
@@ -1920,8 +1916,6 @@
 				92BBFC821A7122AD006A7735 /* audio_out.h */,
 				92BBFC841A7122AD006A7735 /* font.h */,
 				92BBFC851A7122AD006A7735 /* hardcoded_proto.h */,
-				92BBFC871A7122AD006A7735 /* js_usr.h */,
-				92BBFC881A7122AD006A7735 /* raster2d.h */,
 				92BBFC8B1A7122AD006A7735 /* video_out.h */,
 			);
 			name = modules;
@@ -2215,7 +2209,6 @@
 				92BBFD081A7122AD006A7735 /* utf.h in Headers */,
 				92BBFCD11A7122AD006A7735 /* odf_parse_common.h in Headers */,
 				92BBFD091A7122AD006A7735 /* version.h in Headers */,
-				92BBFCE81A7122AD006A7735 /* js_usr.h in Headers */,
 				9225DD752326790C00F94C42 /* mpd.h in Headers */,
 				92BBFCB21A7122AD006A7735 /* compositor.h in Headers */,
 				92BBFCAB1A7122AD006A7735 /* ait.h in Headers */,
@@ -2242,7 +2235,6 @@
 				92B9A5AA1F8660D700A24FE4 /* texturing.h in Headers */,
 				92BBFCFC1A7122AD006A7735 /* scenegraph_vrml.h in Headers */,
 				92BB85771F7BFB63009BC9C8 /* isoffin.h in Headers */,
-				92BBFCE91A7122AD006A7735 /* raster2d.h in Headers */,
 				92BBFD031A7122AD006A7735 /* thread.h in Headers */,
 				92BBFD051A7122AD006A7735 /* tools.h in Headers */,
 				92BBFCB91A7122AD006A7735 /* dsmcc.h in Headers */,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -1011,7 +1011,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 
 	if (txh->compositor->fbo_id) compositor_3d_enable_fbo(txh->compositor, GF_FALSE);
 
-	/*flip image because of openGL*/
+	/*flip image because of OpenGL*/
 	tmp = (char*)gf_malloc(sizeof(char)*txh->stride);
 	hy = txh->height/2;
 	for (i=0; i<hy; i++) {

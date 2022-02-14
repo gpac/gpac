@@ -1428,7 +1428,7 @@ static const GF_FilterCapability NHMLDmxCaps[] =
 
 GF_FilterRegister NHMLDmxRegister = {
 	.name = "nhmlr",
-	GF_FS_SET_DESCRIPTION("NHML parser")
+	GF_FS_SET_DESCRIPTION("NHML reader")
 	GF_FS_SET_HELP("This filter reads NHML files/data to produce a media PID and frames.\n"
 	"NHML documentation is available at https://wiki.gpac.io/NHML-Format\n")
 	.private_size = sizeof(GF_NHMLDmxCtx),

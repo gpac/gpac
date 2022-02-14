@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder filter
@@ -512,7 +512,8 @@ static const GF_FilterCapability ODFDecCaps[] =
 GF_FilterRegister ODFDecRegister = {
 	.name = "odfdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 OD decoder")
-	GF_FS_SET_HELP("This filter decodes MPEG-4 OD frames directly into the scene manager of the compositor. It cannot be used to dump OD content.")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 OD binary frames directly into the scene manager of the compositor.\n"
+	"Note: This filter cannot be used to dump OD content to text or xml, use `MP4Box` for that.")
 	.private_size = sizeof(GF_ODFDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

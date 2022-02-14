@@ -265,7 +265,7 @@ GF_Err gf_dynstrcat(char **str, const char *to_append, const char *sep);
 Parse a 64 bit fraction from string
 \param str string to parse
 \param frac fraction to fill
-\return GF_TRUE if success, GF_FALSE otherwisen fraction being set to {0,0}
+\return GF_TRUE if success, GF_FALSE otherwise ( fraction being set to {0,0} )
  */
 Bool gf_parse_lfrac(const char *str, GF_Fraction64 *frac);
 
@@ -275,9 +275,21 @@ Bool gf_parse_lfrac(const char *str, GF_Fraction64 *frac);
 Parse a 32 bit fraction from string
 \param str string to parse
 \param frac fraction to fill
-\return GF_TRUE if success, GF_FALSE otherwisen fraction being set to {0,0}
+\return GF_TRUE if success, GF_FALSE otherwise ( fraction being set to {0,0} )
  */
 Bool gf_parse_frac(const char *str, GF_Fraction *frac);
+
+/*!
+\brief search string without case
+
+Search a aubstring in a string witout checking for case
+\param text text to search
+\param subtext string to find
+\param subtext_len length of string to find
+\return GF_TRUE if success, GF_FALSE otherwise
+ */
+Bool gf_strnistr(const char *text, const char *subtext, u32 subtext_len);
+
 
 /*!
 \brief safe timestamp rescale
@@ -2080,8 +2092,8 @@ extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func)
 void gf_fm_request_call(u32 type, u32 param, int *value);
 #endif //GPAC_CONFIG_ANDROID
 
-/*to call whenever the OpenGL library is opened - this function is needed to bind openGL and remotery, and to load
-openGL extensions on windows
+/*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
+OpenGL extensions on windows
 not exported, and not included in src/compositor/gl_inc.h since it may be needed even when no OpenGL 
 calls are made by the caller*/
 void gf_opengl_init();

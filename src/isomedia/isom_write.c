@@ -6006,7 +6006,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, GF_ISOiTunesTag tag, const u8 *dat
 		return GF_OK;
 	}
 
-	//wtach out for cprt, we don't want to create a regular cprt box
+	//watch out for cprt, we don't want to create a regular cprt box
 	if (btype==GF_ISOM_ITUNE_COPYRIGHT) {
 		info = (GF_ListItemBox *)gf_isom_box_new(GF_ISOM_ITUNE_TOOL);
 		info->type = GF_ISOM_ITUNE_COPYRIGHT;

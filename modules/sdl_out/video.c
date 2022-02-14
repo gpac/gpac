@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Jean Le Feuvre - Romain Bouqueau
-*			Copyright (c) Telecom ParisTech 2000-2020
+*			Copyright (c) Telecom ParisTech 2000-2022
 *					All rights reserved
 *
 *  This file is part of GPAC / SDL audio and video module
@@ -1555,7 +1555,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	break;
 	case GF_EVENT_SHOWHIDE:
 		/*the only way to have proper show/hide with SDL is to shutdown the video system and reset it up
-		which we don't want to do since the setup MUST occur in the rendering thread for some configs (openGL)*/
+		which we don't want to do since the setup MUST occur in the rendering thread for some configs (OpenGL)*/
 		return GF_NOT_SUPPORTED;
 	case GF_EVENT_SIZE:
 	{

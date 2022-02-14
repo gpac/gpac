@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1135,49 +1135,49 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("log-file", "lf", "set output log file", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("log-clock", "lc", "log time in micro sec since start time of GPAC before each log line except for `app` tool", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("log-utc", "lu", "log UTC time in ms before each log line except for `app` tool", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_LOG),
- GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"\
-			"  \n"\
-			"You can independently log different tools involved in a session.  \n"\
-			"log_args is formatted as a colon (':') separated list of `toolX[:toolZ]@levelX`  \n"\
-	        "`levelX` can be one of:\n"\
-	        "- quiet: skip logs\n"\
-	        "- error: logs only error messages\n"\
-	        "- warning: logs error+warning messages\n"\
-	        "- info: logs error+warning+info messages\n"\
-	        "- debug: logs all messages\n"\
-	        "\n`toolX` can be one of:\n"\
-	        "- core: libgpac core\n"\
-	        "- coding: bitstream formats (audio, video, scene)\n"\
-	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"\
-	        "- network: network data except RTP traffic\n"\
-	        "- http: HTTP traffic\n"\
-	        "- rtp: RTP traffic\n"\
-	        "- author: authoring tools (hint, import, export)\n"\
-	        "- sync: terminal sync layer\n"\
-	        "- codec: terminal codec messages\n"\
-	        "- parser: scene parsers (svg, xmt, bt) and other\n"\
-	        "- media: terminal media object management\n"\
-	        "- scene: scene graph and scene manager\n"\
-	        "- script: scripting engine messages\n"\
-	        "- interact: interaction engine (events, scripts, etc)\n"\
-	        "- smil: SMIL timing engine\n"\
-	        "- compose: composition engine (2D, 3D, etc)\n"\
-	        "- mmio: Audio/Video HW I/O management\n"\
-	        "- rti: various run-time stats\n"\
-	        "- cache: HTTP cache subsystem\n"\
-	        "- audio: Audio renderer and mixers\n"\
-	        "- mem: GPAC memory tracker\n"\
-	        "- dash: HTTP streaming logs\n"\
-	        "- module: GPAC modules (av out, font engine, 2D rasterizer)\n"\
-	        "- filter: filters debugging\n"\
-	        "- sched: filter session scheduler debugging\n"\
-	        "- mutex: log all mutex calls\n"\
-	        "- route: ROUTE (ATSC3) debugging\n"\
-	        "- all: all tools logged - other tools can be specified afterwards.  \n"\
-	        "The special keyword `ncl` can be set to disable color logs.  \n"\
-	        "The special keyword `strict` can be set to exit at first error.  \n"\
-	        "\nEX -logs=all@info:dash@debug:ncl\n"\
-			"This moves all log to info level, dash to debug level and disable color logs"\
+ GF_DEF_ARG("logs", NULL, "set log tools and levels.  \n"
+			"  \n"
+			"You can independently log different tools involved in a session.  \n"
+			"log_args is formatted as a colon (':') separated list of `toolX[:toolZ]@levelX`  \n"
+	        "`levelX` can be one of:\n"
+	        "- quiet: skip logs\n"
+	        "- error: logs only error messages\n"
+	        "- warning: logs error+warning messages\n"
+	        "- info: logs error+warning+info messages\n"
+	        "- debug: logs all messages\n"
+	        "\n`toolX` can be one of:\n"
+	        "- core: libgpac core\n"
+	        "- coding: bitstream formats (audio, video, scene)\n"
+	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
+	        "- network: network data except RTP traffic\n"
+	        "- http: HTTP traffic\n"
+	        "- rtp: RTP traffic\n"
+	        "- author: authoring tools (hint, import, export)\n"
+	        "- sync: terminal sync layer\n"
+	        "- codec: terminal codec messages\n"
+	        "- parser: scene parsers (svg, xmt, bt) and other\n"
+	        "- media: terminal media object management\n"
+	        "- scene: scene graph and scene manager\n"
+	        "- script: scripting engine messages\n"
+	        "- interact: interaction engine (events, scripts, etc)\n"
+	        "- smil: SMIL timing engine\n"
+	        "- compose: composition engine (2D, 3D, etc)\n"
+	        "- mmio: Audio/Video HW I/O management\n"
+	        "- rti: various run-time stats\n"
+	        "- cache: HTTP cache subsystem\n"
+	        "- audio: Audio renderer and mixers\n"
+	        "- mem: GPAC memory tracker\n"
+	        "- dash: HTTP streaming logs\n"
+	        "- module: GPAC modules (av out, font engine, 2D rasterizer)\n"
+	        "- filter: filters debugging\n"
+	        "- sched: filter session scheduler debugging\n"
+	        "- mutex: log all mutex calls\n"
+	        "- route: ROUTE (ATSC3) debugging\n"
+	        "- all: all tools logged - other tools can be specified afterwards.  \n"
+	        "The special keyword `ncl` can be set to disable color logs.  \n"
+	        "The special keyword `strict` can be set to exit at first error.  \n"
+	        "\nEX -logs=all@info:dash@debug:ncl\n"
+			"This moves all log to info level, dash to debug level and disable color logs"
  			, NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_LOG),
  GF_DEF_ARG("proglf", NULL, "use new line at each progress messages", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_LOG),
 
@@ -1188,14 +1188,14 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("no-js-mods", NULL, "disable javascript module loading", NULL, NULL, GF_ARG_STRINGS, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("ifce", NULL, "set default multicast interface through interface IP address (default is 127.0.0.1)", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("lang", NULL, "set preferred language", NULL, NULL, GF_ARG_STRING, GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("cfg", "opt", "get or set configuration file value. The string parameter can be formatted as:\n"\
-	        "- `section:key=val`: set the key to a new value\n"\
-	        "- `section:key=null`, `section:key`: remove the key\n"\
-	        "- `section=null`: remove the section\n"\
-	        "- no argument: print the entire configuration file\n"\
-	        "- `section`: print the given section\n"\
-	        "- `section:key`: print the given `key` in `section` (section can be set to `*`)"\
-	        "- `*:key`: print the given `key` in all sections"\
+ GF_DEF_ARG("cfg", "opt", "get or set configuration file value. The string parameter can be formatted as:\n"
+	        "- `section:key=val`: set the key to a new value\n"
+	        "- `section:key=null`, `section:key`: remove the key\n"
+	        "- `section=null`: remove the section\n"
+	        "- no argument: print the entire configuration file\n"
+	        "- `section`: print the given section\n"
+	        "- `section:key`: print the given `key` in `section` (section can be set to `*`)"
+	        "- `*:key`: print the given `key` in all sections"
 			, NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-save", NULL, "discard any changes made to the config file upon exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("version", NULL, "set to GPAC version, used to check config file refresh", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
@@ -1238,21 +1238,21 @@ GF_GPACArg GPAC_Args[] = {
 #endif
 
  GF_DEF_ARG("dbg-edges", NULL, "log edges status in filter graph before dijkstra resolution (for debug). Edges are logged as edge_source(status, weight, src_cap_idx, dst_cap_idx)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
-GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot be linked", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+GF_DEF_ARG("full-link", NULL, "throw error if any PID in the filter graph cannot be linked", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters\n"
 			"- no: enable blocking mode\n"
 			"- fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet\n"
 			"- all: disable blocking", "no", "no|fanout|all", GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in pid graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("sched", NULL, "set scheduler mode\n"\
-		"- free: lock-free queues except for task list (default)\n"\
-		"- lock: mutexes for queues when several threads\n"\
-		"- freex: lock-free queues including for task lists (experimental)\n"\
-		"- flock: mutexes for queues even when no thread (debug mode)\n"\
+ GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in PID graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("sched", NULL, "set scheduler mode\n"
+		"- free: lock-free queues except for task list (default)\n"
+		"- lock: mutexes for queues when several threads\n"
+		"- freex: lock-free queues including for task lists (experimental)\n"
+		"- flock: mutexes for queues even when no thread (debug mode)\n"
 		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out]__. Filter chains loaded for adaptation (eg pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out]__. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-sleep", NULL, "set maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
@@ -1271,15 +1271,15 @@ GF_DEF_ARG("full-link", NULL, "throw error if any pid in the filter graph cannot
  GF_DEF_ARG("yuv-overlay", NULL, "indicate YUV overlay is possible on the video card. Always overridden by video output module", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("offscreen-yuv", NULL, "indicate if offscreen yuv->rgb is enabled. can be set to false to force disabling", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("overlay-color-key", NULL, "color to use for overlay keying, hex format", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in openGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in openGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("gl-doublebuf", NULL, "enable openGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-bits-comp", NULL, "number of bits per color component in OpenGL", "8", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-bits-depth", NULL, "number of bits for depth buffer in OpenGL", "16", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("gl-doublebuf", NULL, "enable OpenGL double buffering", "yes", NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("sdl-defer", NULL, "use defer rendering for SDL", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("no-colorkey", NULL, "disable color keying at the video output level", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("glfbo-txid", NULL, "set output texture ID when using `glfbo` output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("video-output", NULL, "indicate the name of the video output module to use (see `gpac -h modules`)."
- 	" The reserved name `glfbo` is used in player mode to draw in the openGL texture identified by [-glfbo-txid](). "
- 	" In this mode, the application is responsible for sending event to the terminal"
+	" The reserved name `glfbo` is used in player mode to draw in the OpenGL texture identified by [-glfbo-txid](). "
+	" In this mode, the application is responsible for sending event to the terminal"
  , NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("alsa-devname", NULL, "set ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
@@ -2289,6 +2289,22 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 	}
 }
 
+GF_EXPORT
+Bool gf_strnistr(const char *text, const char *subtext, u32 subtext_len)
+{
+	if (!*text || !subtext || !subtext_len)
+		return GF_FALSE;
+
+	while (*text) {
+		if (tolower(*text) == *subtext) {
+			if (!strnicmp(text, subtext, subtext_len))
+				return GF_TRUE;
+
+		}
+		text++;
+	}
+	return GF_FALSE;
+}
 
 GF_EXPORT
 Bool gf_sys_word_match(const char *orig, const char *dst)
@@ -2315,6 +2331,10 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 			return GF_TRUE;
 		return GF_FALSE;
 	}
+
+	if (gf_strnistr(orig, dst, dlen))
+		return GF_TRUE;
+
 	run = gf_malloc(sizeof(u32) * olen);
 	memset(run, 0, sizeof(u32) * olen);
 

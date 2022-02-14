@@ -1863,27 +1863,27 @@ static const GF_FilterCapability TSMuxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_TSMuxCtx, _n)
 static const GF_FilterArgs TSMuxArgs[] =
 {
-	{ OFFS(breq), "buffer requirements in ms for input pids", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(breq), "buffer requirements in ms for input PIDs", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pmt_id), "define the ID of the first PMT to use in the mux", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(rate), "target rate in bps of the multiplex. If not set, variable rate is used", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(pmt_rate), "interval between PMT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(pat_rate), "interval between PAT in ms", GF_PROP_UINT, "200", NULL, 0},
 	{ OFFS(first_pts), "force PTS value of first packet, in 90kHz", GF_PROP_LUINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(pcr_offset), "offset all timestamps from PCR by V, in 90kHz. Default value is computed based on input media", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mpeg4), "force usage of MPEG-4 signaling (IOD and SL Config)\n"\
-				"- none: disables 4on2\n"\
-				"- full: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"\
-				"- scene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"\
+	{ OFFS(pcr_offset), "offset all timestamps from PCR by V, in 90kHz (default value is computed based on input media)", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mpeg4), "force usage of MPEG-4 signaling (IOD and SL Config)\n"
+				"- none: disables 4on2\n"
+				"- full: sends AUs as SL packets over section for OD, section/pes for scene (cf bifs_pes)\n"
+				"- scene: sends only scene streams as 4on2 but uses regular PES without SL for audio and video"
 				, GF_PROP_UINT, "none", "none|full|scene", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(pmt_version), "set version number of the PMT", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disc), "set the discontinuity marker for the first packet of each stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems. Is overridden by carousel duration PID property if defined", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(repeat_img), "interval in ms between re-sending (as PES) of single-image streams. If 0, image data is sent once only", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(repeat_rate), "interval in ms between two carousel send for MPEG-4 systems (overridden by `CarouselRate` PID property if defined)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(repeat_img), "interval in ms between re-sending (as PES) of single-image streams (if 0, image data is sent once only)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(max_pcr), "set max interval in ms between 2 PCR", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nb_pack), "pack N TS packets in output packets", GF_PROP_UINT, "4", NULL, 0},
-	{ OFFS(pes_pack), "set AU to PES packing mode\n"\
-		"- audio: will pack only multiple audio AUs in a PES\n"\
-		"- none: make exactly one AU per PES\n"\
+	{ OFFS(pes_pack), "set AU to PES packing mode\n"
+		"- audio: will pack only multiple audio AUs in a PES\n"
+		"- none: make exactly one AU per PES\n"
 		"- all: will pack multiple AUs per PES for all streams", GF_PROP_UINT, "audio", "audio|none|all", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(realtime), "use real-time output", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(bifs_pes), "select BIFS streams packetization (PES vs sections)\n"
@@ -1892,16 +1892,15 @@ static const GF_FilterArgs TSMuxArgs[] =
 	"- copy: uses BIFS PES but removes timestamps in BIFS SL and only carries PES timestamps", GF_PROP_UINT, "off", "off|on|copy", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(flush_rap), "force flushing mux program when RAP is found on video, and injects PAT and PMT before the next video PES begin", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(pcr_only), "enable PCR-only TS packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(pcr_init), "set initial PCR value for the programs. Negative value implies random value is picked", GF_PROP_LSINT, "-1", NULL, 0},
-	{ OFFS(sid), "set service ID for the program - see filter help", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(name), "set service name for the program - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(provider), "set service provider name for the program - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(sdt_rate), "interval in ms between two DVB SDT tables. If 0, SDT is disabled", GF_PROP_UINT, "0", NULL, 0},
-
-	{ OFFS(temi), "insert TEMI time codes in adaptation field - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(pcr_init), "set initial PCR value for the programs. A negative value means random value is picked", GF_PROP_LSINT, "-1", NULL, 0},
+	{ OFFS(sid), "set service ID for the program", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(name), "set service name for the program", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(provider), "set service provider name for the program", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(sdt_rate), "interval in ms between two DVB SDT tables (if 0, SDT is disabled)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(temi), "insert TEMI time codes in adaptation field", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(log_freq), "delay between logs for realtime mux", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(latm), "use LATM AAC encapsulation instead of regular ADTS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(subs_sidx), "number of subsegments per sidx (negative value disables sidx)", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(cdur), "chunk duration for fragmentation modes", GF_PROP_FRACTION, "-1/1", NULL, GF_FS_ARG_HINT_HIDE},
 	{0}
 };
@@ -1910,22 +1909,24 @@ static const GF_FilterArgs TSMuxArgs[] =
 GF_FilterRegister TSMuxRegister = {
 	.name = "m2tsmx",
 	GF_FS_SET_DESCRIPTION("MPEG-2 TS muxer")
-	GF_FS_SET_HELP("GPAC TS multiplexer selects M2TS PID for media streams using the PID of the PMT plus the stream index.\n"
-	 	"For example, default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"
+	GF_FS_SET_HELP("This filter multiplexes one or more input PIDs into a MPEG-2 Transport Stream multiplex.\n"
+		"\n"
+		"# PID selection\n"
+		"The MPEG-2 TS multiplexer assigns M2TS PID for media streams using the PID of the PMT plus the stream index.\n"
+	 	"For example, the default config creates the first program with a PMT PID 100, the first stream will have a PID of 101.\n"
 		"Streams are grouped in programs based on input PID property ServiceID if present. If absent, stream will go in the program with service ID as indicated by [-sid]() option.\n"
 		"- [-name]() option is overridden by input PID property `ServiceName`.\n"
 		"- [-provider]() option is overridden by input PID property `ServiceProvider`.\n"
 		"- [-pcr_offset]() option is overridden by input PID property `\"tsmux:pcr_offset\"`\n"
 		"- [-first_pts]() option is overridden by input PID property `\"tsmux:force_pts\"`\n"
 		"- [-temi]() option is overridden by input PID property `\"tsmux:temi\"`\n"
-
 		"\n"
 		"# Time and External Media Information (TEMI)\n"
 		"The [-temi]() option allows specifying a list of URLs or timeline IDs to insert in streams of a program.\n"
 		"One or more TEMI timeline can be specified per PID.\n"
 		"The syntax is a comma-separated list of one or more TEMI description.\n"
 		"Each TEMI description is formatted as ID_OR_URL or #OPT1[#OPT2]#ID_OR_URL. Options are:\n"
-		"- S`N`: gives number N indicating the target serviceID\n"
+		"- S`N`: indicate the target service with ID `N`\n"
 		"- T`N`: set timescale to use (default: PID timescale)\n"
 		"- D`N`: set delay in ms between two TEMI url descriptors (default 1000)\n"
 		"- O`N`: set offset (max 64 bits) to add to TEMI timecodes (default 0). If timescale is not specified, offset value is in ms, otherwise in timescale units.\n"
@@ -1934,13 +1935,13 @@ GF_FilterRegister TSMuxRegister = {
 		"  - `V`: only insert for video streams.\n"
 		"  - `A`: only insert for audio streams.\n"
 		"  - `T`: only insert for text streams.\n"
-		"  - N: only insert for stream with index N (0-based) in the program.\n"
-		"- L`N`: set 64bit timecode signaling. Possible values are:\n"
+		"  - N: only insert for stream with index `N` (0-based) in the program.\n"
+		"- L`C`: set 64bit timecode signaling. Possible values for `C` are:\n"
 		"  - `A`: automatic switch between 32 and 64 bit depending on timecode value (default if not specified).\n"
 		"  - `Y`: use 64 bit signaling only.\n"
 		"  - `N`: use 32 bit signaling only and wrap around timecode value.\n"
 		"- N: insert NTP timestamp in TEMI timeline descriptor\n"
-		"- ID_OR_URL: If number, indicates the TEMI ID to use for external timeline. Otherwise, gives the URL to insert\n"
+		"- ID_OR_URL: If number, indicate the TEMI ID to use for external timeline. Otherwise, give the URL to insert\n"
 		"  \n"
 		"EX temi=\"url\"\n"
 		"Inserts a TEMI URL+timecode in the each stream of each program.\n"
@@ -1954,7 +1955,7 @@ GF_FilterRegister TSMuxRegister = {
 		"Inserts an external TEMI with ID 4 and timescale 30000, NTP injection and carousel of 500 ms in the video stream of all programs.\n"
 		"\n"
 		"Warning: multipliers (k,m,g) are not supported in TEMI options.\n"
-		"# Notes\n"
+		"# Adaptive Streaming\n"
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
 		"- unless `nb_pack` is specified, 200 TS packets will be used as pack output in DASH mode.\n"

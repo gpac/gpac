@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / XIPH OGG demux filter
@@ -965,8 +965,8 @@ static const GF_FilterCapability OGGDmxCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_OGGDmxCtx, _n)
 static const GF_FilterArgs OGGDmxArgs[] =
 {
-	{ OFFS(index), "indexing window length (unimplemented, only 0 disables stream probing for duration), ", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(expart), "expose pictures as a dedicated video pid", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(index), "indexing window length (not implemented), use 0 to disable stream probing for duration), ", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(expart), "expose pictures as a dedicated video PID", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

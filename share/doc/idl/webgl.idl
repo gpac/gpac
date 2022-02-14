@@ -414,7 +414,7 @@ interface WebGLContext : implements WebGLRenderingContextBase {
 
 
   /*!
-  \param use_gl_exts if true, queries all extensions supported by the underlying openGL implementation. Otherwise, queries only supported WebGL extensions (none at the moment)
+  \param use_gl_exts if true, queries all extensions supported by the underlying OpenGL implementation. Otherwise, queries only supported WebGL extensions (none at the moment)
   \return an array of strings, each entry being the name of a supported extension
   */
   sequence<DOMString>? getSupportedExtensions(optional boolean use_gl_exts=false);

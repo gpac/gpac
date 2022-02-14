@@ -863,7 +863,7 @@ static const GF_FilterCapability MP3DmxCaps[] =
 static const GF_FilterArgs MP3DmxArgs[] =
 {
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(expart), "expose pictures as a dedicated video pid", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(expart), "expose pictures as a dedicated video PID", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(forcemp3), "force mp3 signaling for MPEG-2 Audio layer 3", GF_PROP_BOOL, "true", NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };

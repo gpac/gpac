@@ -2118,7 +2118,7 @@ typedef enum
 	GF_FS_REG_DYNAMIC_PIDS = 1<<7,
 	/*! Indicates the filter is a script-based filter. The registry is not valid until the script is loaded*/
 	GF_FS_REG_SCRIPT = 1<<8,
-	/*! Indicates the filter is a meta filter, wrapping various underlying filters (e.g., FFmpeg)*/
+	/*! Indicates the filter is a meta filter, wrapping various underlying filters (e.g. FFmpeg)*/
 	GF_FS_REG_META = 1<<9,
 	/*! Indicates that this filter, when dynamically loaded, allows the link resolver to redirect PID connection to this filter rather than to its next explicitly loaded filter in the chain.
 		This is typically used by mux filters
@@ -2577,7 +2577,7 @@ GF_Err gf_filter_set_source_restricted(GF_Filter *filter, GF_Filter *link_from, 
 
 /*! Explicitly reset sourceID of a filter. This shall be called before connecting the filter (eg creating PIDs).
 
- This is mostly used to reset a source ID of a filter created from a destination (e.g., dasher creating muxers from the MPD URL) where the destination arguments could have sourceIDs specified/
+ This is mostly used to reset a source ID of a filter created from a destination (e.g. dasher creating muxers from the MPD URL) where the destination arguments could have sourceIDs specified/
 
 \param filter the target filter
 */
@@ -2834,23 +2834,23 @@ Bool gf_filter_is_supported_mime(GF_Filter *filter, const char *mime);
 Bool gf_filter_ui_event(GF_Filter *filter, GF_Event *uievt);
 
 
-/*! Registers filter as an openGL provider. This is only used by sink filters creating a openGL context, to avoid creating another context. Filters registered as OpenGL providers will run on the main thread.
+/*! Registers filter as an OpenGL provider. This is only used by sink filters creating a OpenGL context, to avoid creating another context. Filters registered as OpenGL providers will run on the main thread.
 \param filter filter providing OpenGL context
 \param do_register if TRUE the filter carries a valid gl context, if FALSE the filter no longer carries a valid GL context
 */
 void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register);
 
-/*! Requests openGL support for this filter. If no OpenGL providers exist, a default provider will be created (GL context creation on hidden window). Filters requiring OpenGL will run on the main thread.
+/*! Requests OpenGL support for this filter. If no OpenGL providers exist, a default provider will be created (GL context creation on hidden window). Filters requiring OpenGL will run on the main thread.
 
-\note Filters using openGL should not assume any persistent GL state among calls. Other filters using openGL might change the openGL context state (depth test, viewport, alpha blending, culling, etc...).
+\note Filters using OpenGL should not assume any persistent GL state among calls. Other filters using OpenGL might change the OpenGL context state (depth test, viewport, alpha blending, culling, etc...).
 
 \param filter filter providing OpenGL context
 \return error code if any
 */
 GF_Err gf_filter_request_opengl(GF_Filter *filter);
 
-/*! Sets openGL context active for this filter.
-\note There may be several openGL context created in the filter session, depending on activated filters. A filter using openGL must call this function before issuing any openGL calls
+/*! Sets OpenGL context active for this filter.
+\note There may be several OpenGL context created in the filter session, depending on activated filters. A filter using OpenGL must call this function before issuing any OpenGL calls
 
 \param filter filter asking for OpenGL context activation
 \return error code if any
@@ -3105,6 +3105,8 @@ Bool gf_filter_is_source(GF_Filter *filter);
 If  sourceIDs are used on destination filter, subsession and source IDs are ignored.
 If filters do not have the same subsession ID, they cannot link to each
 If filters do not have the same sourceID, they cannot link to each other except if destination is a sink
+
+\note In non-implicit mode, subsession tagging must be done through filter option :FS=
 
 \param filter target filter
 \param subsession_id subsession identifier

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -1194,7 +1194,7 @@ static GF_Err gf_evg_setup_stencil(GF_EVGSurface *surf, GF_EVGStencil *sten, GF_
 					//move translation to texture size
 					sten->smat.m[2] *= _tx->width;
 					sten->smat.m[5] *= _tx->height;
-					//in auto mx, matrix is given inverted, as in openGL
+					//in auto mx, matrix is given inverted, as in OpenGL
 					gf_mx2d_inverse(&sten->smat);
 
 					//add texture -> untransformed path bounds matrix scale and translation

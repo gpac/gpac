@@ -879,7 +879,7 @@ static const GF_FilterArgs MHASDmxArgs[] =
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mpha), "demux MHAS and only forward audio frames", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(pcksync), "number of unknwon packets to tolerate before considering sync is lost", GF_PROP_UINT, "4", NULL, 0},
-	{ OFFS(nosync), "initial sync state - see filter help", GF_PROP_BOOL, "true", NULL, 0},
+	{ OFFS(nosync), "initial sync state", GF_PROP_BOOL, "true", NULL, 0},
 
 	{0}
 };

@@ -1110,7 +1110,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	assert(pck->pid);
 	count = pck->pid->num_destinations;
-	//check if processing this packet must be done on main thread (openGL interface or source filter asked fo this) 
+	//check if processing this packet must be done on main thread (OpenGL interface or source filter asked fo this) 
 	Bool force_main_thread = (pck->info.flags & GF_PCKF_FORCE_MAIN) ? GF_TRUE : GF_FALSE;
 
 	for (i=0; i<count; i++) {
