@@ -237,7 +237,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 	filter->freg = freg;
 	filter->session = fsess;
 	filter->max_extra_pids = freg->max_extra_pids;
-	filter->dynamic_filter = is_dynamic_filter;
+	filter->dynamic_filter = is_dynamic_filter ? 1 : 0;
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);

@@ -695,8 +695,8 @@ struct __gf_filter
 	u32 removed;
 	//setup has been notified
 	Bool setup_notified;
-	//filter loaded to solve a filter chain
-	Bool dynamic_filter;
+	//filter loaded to solve a filter chain - special value 2 is for dummy reframer when forcing demux
+	u32 dynamic_filter;
 	//filter block EOS queries
 	Bool block_eos;
 	//set when one input pid of the filter has been marked for removal through gf_filter_remove_src

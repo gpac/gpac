@@ -4176,7 +4176,7 @@ restart:
 	for (f_idx=0; f_idx<count; f_idx++) {
 		s32 f_dst_idx;
 		Bool needs_clone;
-		Bool cap_matched, in_parent_chain, is_sink=GF_FALSE;
+		Bool cap_matched, in_parent_chain, is_sink;
 		Bool ignore_source_ids;
 		Bool use_explicit_link;
 		GF_Filter *filter_dst;
@@ -4207,6 +4207,7 @@ single_retry:
 			}
 		}
 
+		is_sink = GF_FALSE;
 		if (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE) {
 			if (filter_dst->dynamic_filter) {
 				if (!filter_dst->subsource_id) {
