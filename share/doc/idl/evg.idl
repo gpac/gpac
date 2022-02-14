@@ -1890,7 +1890,7 @@ interface Mesh {
 	*/
 	Mesh(Path path);
 
-	/*! Updates underlying openGL vertex buffer objects*/
+	/*! Updates underlying OpenGL vertex buffer objects*/
 	void update_gl();
 	/*! Draw mesh using current program
 	\param vertex_attrib_location uniform location of vertex buffer attribute in program

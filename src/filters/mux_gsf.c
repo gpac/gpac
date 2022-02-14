@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC stream serializer filter
@@ -1251,19 +1251,19 @@ static const GF_FilterArgs GSFMxArgs[] =
 	"- nodata: force packet size to 0\n"
 	"- nopck: skip packet", GF_PROP_UINT, "no", "no|nodata|nopck", GF_FS_ARG_HINT_EXPERT},
 #ifndef GPAC_DISABLE_CRYPTO
-	{ OFFS(key), "encrypt packets using given key - see filter helps", GF_PROP_DATA, NULL, NULL, 0},
+	{ OFFS(key), "encrypt packets using given key", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(IV), "set IV for encryption - a constant IV is used to keep packet overhead small (cbcs-like)", GF_PROP_DATA, NULL, NULL, 0},
 	{ OFFS(pattern), "set nb_crypt / nb_skip block pattern. default is all encrypted", GF_PROP_FRACTION, "1/0", NULL, GF_FS_ARG_HINT_ADVANCED},
 #endif // GPAC_DISABLE_CRYPTO
 	{ OFFS(mpck), "set max packet size. 0 means no fragmentation (each AU is sent in one packet)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(magic), "magic string to append in setup packet", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(skp), "comma separated list of pid property names to skip - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(minp), "include only the minimum set of properties required for stream processing - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(crate), "carousel period for tune-in info in seconds - see filter help", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ext), "file extension for file mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dst), "target URL in file mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
-	{ OFFS(mime), "file mime for file mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
-	{ OFFS(mixed), "allow GSF to contain both files and media streams - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
+	{ OFFS(skp), "comma separated list of PID property names to skip", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(minp), "include only the minimum set of properties required for stream processing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(crate), "carousel period for tune-in info in seconds", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ext), "file extension for file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(dst), "target URL in file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
+	{ OFFS(mime), "file mime for file mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(mixed), "allow GSF to contain both files and media streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_SINK_ALIAS},
 
 	{0}
 };
@@ -1279,12 +1279,12 @@ GF_FilterRegister GSFMxRegister = {
 			"using either pipes or sockets. Upstream events are not serialized.\n"
 			"\n"
 			"The default behavior does not insert sequence numbers. When running over general protocols not ensuring packet order, this should be inserted.\n"
-			"The serializer sends tune-in packets (global and per pid) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
+			"The serializer sends tune-in packets (global and per PID) at the requested carousel rate - if 0, no carousel. These packets are marked as redundant so that they can be discarded by output filters if needed.\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO
 			"# Encryption\n"
 			"The stream format can be encrypted in AES 128 CBC mode. For all packets, the packet header (header, size, frame size/block offset and optional seq num) are in the clear "
-			"and the followings byte until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"
+			"and the following bytes until the last byte of the last multiple of block size (16) fitting in the payload are encrypted.\n"
 			"For data packets, each fragment is encrypted individually to avoid error propagation in case of losses.\n"
 			"For other packets, the entire packet is encrypted before fragmentation (fragments cannot be processed individually).\n"
 			"For header/tunein packets, the first 25 bytes after the header are in the clear (signature,version,IV and pattern).\n"
@@ -1293,21 +1293,21 @@ GF_FilterRegister GSFMxRegister = {
 			"\n"
 #endif
 			"# Filtering properties\n"
-			"The header/tunein packet may get quite big when all pid properties are kept. In order to help reduce its size, the [-minp]() option can be used: "
+			"The header/tunein packet may get quite big when all PID properties are kept. In order to help reduce its size, the [-minp]() option can be used: "
 			"this will remove all built-in properties marked as droppable (cf property help) as well as all non built-in properties.\n"
 			"The [-skp]() option may also be used to specify which property to drop:\n"
-			"EX skp=\"4CC1,Name2\n"\
-			"This will remove properties of type 4CC1 and properties (built-in or not) of name Name2.\n"
+			"EX skp=\"4CC1,Name2\n"
+			"This will remove properties of type `4CC1` and properties (built-in or not) of name `Name2`.\n"
 			"\n"
 			"# File mode\n"
 			"By default the filter only accepts framed media streams as input PID, not files. This can be changed by explicitly loading the filter with [-ext]() or [-dst]() set.\n"
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd -o dump.gsf\n"
 			"This will DASH the source and store every files produced as PIDs in the GSF mux.\n"
-			"In order to demux such a file, the GSF demuxer will likely need to be explicitly loaded:\n"
+			"In order to demultiplex such a file, the `gsfdmx`filter will likely need to be explicitly loaded:\n"
 			"EX gpac -i mux.gsf gsfdmx -o dump/$File$:dynext:clone\n"
 			"This will extract all files from the GSF mux.\n"
 			"\n"
-			"When working in file mode, the filter by default only accepts PID of type `file` as input.\n"
+			"By default when working in file mode, the filter only accepts PIDs of type `file` as input.\n"
 			"To allow a mix of files and streams, use [-mixed]():\n"
 			"EX gpac -i source.mp4 gsfmx:dst=manifest.mpd:mixed -o dump.gsf\n"
 			"This will DASH the source, store the manifest file and the media streams with their packet properties in the GSF mux.\n"

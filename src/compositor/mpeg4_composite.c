@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -434,7 +434,7 @@ static void composite_update(GF_TextureHandler *txh)
 					&& ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height))
 				) {
 
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Offscreen OpenGL is not possible if no openGL context is created - use hybridGL mode for compositor\n"));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Offscreen OpenGL is not possible if no OpenGL context is created - use hybridGL mode for compositor\n"));
 					st->unsupported = GF_TRUE;
 				}
 			} else {

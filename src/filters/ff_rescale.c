@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg video rescaler filter
@@ -551,11 +551,11 @@ static GF_Err ffsws_reconfigure_output(GF_Filter *filter, GF_FilterPid *pid)
 #define OFFS(_n)	#_n, offsetof(GF_FFSWScaleCtx, _n)
 static GF_FilterArgs FFSWSArgs[] =
 {
-	{ OFFS(osize), "osize of output video - see filter help", GF_PROP_VEC2I, NULL, NULL, 0},
+	{ OFFS(osize), "osize of output video", GF_PROP_VEC2I, NULL, NULL, 0},
 	{ OFFS(ofmt), "pixel format for output video. When not set, input format is used", GF_PROP_PIXFMT, "none", NULL, 0},
-	{ OFFS(scale), "scaling mode - see filter info", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(p1), "scaling algo param1 - see filter help", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(p2), "scaling algo param2 - see filter help", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(scale), "scaling mode (see filter help)", GF_PROP_UINT, "bicubic", "fastbilinear|bilinear|bicubic|X|point|area|bicublin|gauss|sinc|lanzcos|spline", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(p1), "scaling algo param1", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(p2), "scaling algo param2", GF_PROP_DOUBLE, "+I", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(ofr), "force output full range", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(brightness), "16.16 fixed point brightness correction, 0 means use default", GF_PROP_BOOL, "0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -569,7 +569,7 @@ static GF_FilterArgs FFSWSArgs[] =
 	"- nosrc: respect aspect ratio but ignore input sample aspect ratio"
 	, GF_PROP_UINT, "off", "off|full|nosrc", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(padclr), "clear color when aspect ration preservation is used", GF_PROP_STRING, "black", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(osar), "force output pixel aspect ratio - see filter help", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(osar), "force output pixel aspect ratio", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

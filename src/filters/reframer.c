@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / force reframer filter
@@ -2458,18 +2458,18 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(exporter), "compatibility with old exporter, displays export results", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rt), "real-time regulation mode of input\n"
 	"- off: disables real-time regulation\n"
-	"- on: enables real-time regulation, one clock per pid\n"
-	"- sync: enables real-time regulation one clock for all pids", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(saps), "drop non-SAP packets, off by default. The list gives the SAP types (0,1,2,3,4) to forward. Note that forwarding only sap 0 will break the decoding", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL},
+	"- on: enables real-time regulation, one clock per PID\n"
+	"- sync: enables real-time regulation one clock for all PIDs", GF_PROP_UINT, "off", "off|on|sync", GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(saps), "list of SAP types (0,1,2,3,4) to forward, other packets are dropped (forwarding only sap 0 will break the decoding)", GF_PROP_UINT_LIST, NULL, "0|1|2|3|4", GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(refs), "forward only frames used as reference frames, if indicated in the input stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(speed), "speed for real-time regulation mode - only positive value", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(speed), "speed for real-time regulation mode", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
 	"- no: do not force decoding of inputs\n"
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
-	{ OFFS(frames), "drop all except listed frames (first being 1), off by default", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(xs), "extraction start time(s), see filter help", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
+	{ OFFS(frames), "drop all except listed frames (first being 1)", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(xs), "extraction start time(s)", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xe), "extraction end time(s). If less values than start times, the last time interval extracted is an open range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_NORMAL},
 	{ OFFS(xround), "adjust start time of extraction range to I-frame\n"
 	"- before: use first I-frame preceding or matching range start\n"
@@ -2482,7 +2482,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sur I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(tcmdrw), "rewrite TCMD samples when splitting", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(props), "extra output PID properties per extraction range", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(no_audio_seek), "disable seek mode on audio streams (no change of priming duration) - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(no_audio_seek), "disable seek mode on audio streams (no change of priming duration)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(probe_ref), "allow extracted range to be longer in case of B-frames with reference frames presented outside of range", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
@@ -2490,13 +2490,14 @@ static const GF_FilterArgs ReframerArgs[] =
 GF_FilterRegister ReframerRegister = {
 	.name = "reframer",
 	GF_FS_SET_DESCRIPTION("Media Reframer")
-	GF_FS_SET_HELP("This filter provides various compressed domain tools on inputs:\n"
-		"- ensure reframing\n"
+	GF_FS_SET_HELP("This filter provides various tools on inputs:\n"
+		"- ensure reframing (1 packet = 1 Access Unit)\n"
 		"- optionally force decoding\n"
 		"- real-time regulation\n"
 		"- packet filtering based on SAP types or frame numbers\n"
 		"- time-range extraction and splitting\n"
-		"This filter forces input pids to be properly framed (1 packet = 1 Access Unit).\n"
+		"  \n"
+		"This filter forces input PIDs to be properly framed (1 packet = 1 Access Unit).\n"
 		"It is typically needed to force remultiplexing in file to file operations when source and destination files use the same format.\n"
 		"  \n"
 		"# SAP filtering\n"
@@ -2505,15 +2506,15 @@ GF_FilterRegister ReframerRegister = {
 		"  \n"
 		"# Frame filtering\n"
 		"This filter can keep only specific Access Units of the source using [-frames]() option.\n"
-		"For example, this can be used to extract only specific key frame of a video to create a HEIF collection.\n"
+		"For example, this can be used to extract only specific key pictures of a video to create a HEIF collection.\n"
 		"  \n"
 		"# Frame decoding\n"
 		"This filter can force input media streams to be decoded using the [-raw]() option.\n"
-		"EX gpac src=m.mp4 reframer:raw=av [dst]\n"
+		"EX gpac -i m.mp4 reframer:raw=av [dst]\n"
 		"# Real-time Regulation\n"
 		"The filter can perform real-time regulation of input packets, based on their timescale and timestamps.\n"
 		"For example to simulate a live DASH:\n"
-		"EX gpac src=m.mp4 reframer:rt=on dst=live.mpd:dynamic\n"
+		"EX gpac -i m.mp4 reframer:rt=on -o live.mpd:dynamic\n"
 		"  \n"
 		"# Range extraction\n"
 		"The filter can perform time range extraction of the source using [-xs]() and [-xe]() options.\n"
@@ -2523,38 +2524,39 @@ GF_FilterRegister ReframerRegister = {
 		"- INT, FLOAT: specify time in seconds\n"
 		"- NUM/DEN: specify time in seconds as fraction\n"
 		"- 'F'NUM: specify time as frame number\n"
+		"  \n"
 		"In this mode, the timestamps are rewritten to form a continuous timeline.\n"
 		"When multiple ranges are given, the filter will try to seek if needed and supported by source.\n"
 		"\n"
-		"EX gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 [dst]\n"
+		"EX gpac -i m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 [dst]\n"
 		"This will extract the time ranges [10s,20s], [1m10s,1m20s] and all media starting from 2m\n"
 		"\n"
 		"If no end range is found for a given start range:\n"
 		"- if a following start range is set, the end range is set to this next start\n"
 		"- otherwise, the end range is open\n"
 		"\n"
-		"EX gpac src=m.mp4 reframer:xs=0,10,25:xe=5 [dst]\n"
+		"EX gpac -i m.mp4 reframer:xs=0,10,25:xe=5 [dst]\n"
 		"This will extract the time ranges [0s,5s], [10s,25s] and all media starting from 25s\n"
-		"EX gpac src=m.mp4 reframer:xs=0,10,25 [dst]\n"
+		"EX gpac -i m.mp4 reframer:xs=0,10,25 [dst]\n"
 		"This will extract the time ranges [0s,10s], [10s,25s] and all media starting from 25s\n"
 		"\n"
 		"It is possible to signal range boundaries in output packets using [-splitrange]().\n"
-		"This will expose on the first packet of each range in each pid the following properties:\n"
-		"- FileNumber: starting at 1 for the first range, to be used as replacement for $num$ in templates\n"
-		"- FileSuffix: corresponding to `StartRange_EndRange` or `StartRange` for open ranges, to be used as replacement for $FS$ in templates\n"
+		"This will expose on the first packet of each range in each PID the following properties:\n"
+		"- `FileNumber`: starting at 1 for the first range, to be used as replacement for $num$ in templates\n"
+		"- `FileSuffix`: corresponding to `StartRange_EndRange` or `StartRange` for open ranges, to be used as replacement for $FS$ in templates\n"
 		"\n"
-		"EX gpac src=m.mp4 reframer:xs=T00:00:10,T00:01:10:xe=T00:00:20:splitrange -o dump_$FS$.264\n"
+		"EX gpac -i m.mp4 reframer:xs=T00:00:10,T00:01:10:xe=T00:00:20:splitrange -o dump_$FS$.264 [dst]\n"
 		"This will create two output files dump_T00.00.10_T00.02.00.264 and dump_T00.01.10.264.\n"
 		"Note: The `:` and `/` characters are replaced by `.` in `FileSuffix` property.\n"
 		"\n"
 		"It is possible to modify PID properties per range using [-props](). Each set of property must be specified using the active separator set.\n"
 		"Warning: The option must be escaped using double separators in order to be parsed properly.\n"
-		"EX gpac src=m.mp4 reframer:xs=0,30::props=#Period=P1,#Period=P2:#foo=bar\n"
+		"EX gpac -i m.mp4 reframer:xs=0,30::props=#Period=P1,#Period=P2:#foo=bar [dst]\n"
 		"This will assign to output PIDs\n"
 		"- during the range [0,30]: property `Period` to `P1`\n"
 		"- during the range [30, end]: properties `Period` to `P2` and property `foo` to `bar`\n"
 		"\n"
-		"For uncompressed audio pids, input frame will be split to closest audio sample number.\n"
+		"For uncompressed audio PIDs, input frame will be split to closest audio sample number.\n"
 		"\n"
 		"When [-xround]() is set to `seek`, the following applies:\n"
 		"- a single range shall be specified\n"
@@ -2571,10 +2573,10 @@ GF_FilterRegister ReframerRegister = {
 		"# Other split actions\n"
 		"The filter can perform splitting of the source using [-xs]() option.\n"
 		"The additional formats allowed for [-xs]() option are:\n"
-		"- 'SAP': split source at each SAP/RAP\n"
-		"- 'D'VAL: split source by chunks of VAL ms\n"
-		"- 'D'NUM/DEN: split source by chunks of NUM/DEN seconds\n"
-		"- 'S'VAL: split source by chunks of estimated size VAL bytes, VAL can use property multipliers\n"
+		"- `SAP`: split source at each SAP/RAP\n"
+		"- `D`VAL: split source by chunks of `VAL` ms\n"
+		"- `D`NUM/DEN: split source by chunks of `NUM/DEN` seconds\n"
+		"- `S`VAL: split source by chunks of estimated size `VAL` bytes (can use property multipliers, e.g. `m`)\n"
 		"\n"
 		"Note: In these modes, [-splitrange]() and [-xadjust]() are implicitly set.\n"
 	)

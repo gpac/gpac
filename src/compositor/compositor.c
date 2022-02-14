@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -54,7 +54,7 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 		if (!compositor->skip_flush)
 			compositor->skip_flush = 2;
 
-		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
+		//if in OpenGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
 		if (!compositor->frame_draw_type
 #ifndef GPAC_DISABLE_3D
 		        && !compositor->visual->type_3d && !compositor->hybrid_opengl
@@ -1527,7 +1527,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 		if (compositor->player && (compositor->ogl > GF_SC_GLMODE_OFF)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode requested but no opengl-capable output - disabling openGL\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode requested but no opengl-capable output - disabling OpenGL\n"));
 		}
 		compositor->force_opengl_2d = 0;
 		compositor->autoconfig_opengl = 0;
@@ -1590,7 +1590,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif //GPAC_DISABLE_3D
 
-	/*load defer mode only once hybrid_opengl is known. If no hybrid openGL and no backbuffer 2D, disable defer rendering*/
+	/*load defer mode only once hybrid_opengl is known. If no hybrid OpenGL and no backbuffer 2D, disable defer rendering*/
 	if (!compositor->hybrid_opengl && compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
 		compositor->traverse_state->immediate_draw = 1;
 	} else {
@@ -2755,7 +2755,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	/*setup root visual BEFORE updating the composite textures (since they may depend on root setup)*/
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
-	/*setup display before updating composite textures (some may require a valid openGL context)*/
+	/*setup display before updating composite textures (some may require a valid OpenGL context)*/
 	gf_sc_recompute_ar(compositor, gf_sg_get_root_node(compositor->scene) );
 
 	if (compositor->video_setup_failed)	{

@@ -1416,7 +1416,7 @@ static void bs_split_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(BSSplitCtx, _n)
 static GF_FilterArgs BSSplitArgs[] =
 {
-	{ OFFS(ltid), "temporal and layer ID of output streams - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(ltid), "temporal and layer ID of output streams", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(svcqid), "use qualityID instead of dependencyID for SVC splitting", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sig_ltid), "signal maximum temporal (`max_temporal_id`) and layer ID (`max_layer_id`) of output streams (mostly used for debug)", GF_PROP_BOOL, "false", NULL, 0},
 	{0}

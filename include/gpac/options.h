@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -295,7 +295,7 @@ enum
 	GF_OPT_FORCE_AUDIO_CONFIG,
 
 	/*!		3D ONLY OPTIONS		*/
-	/*! set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only openGL raster outline*/
+	/*! set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only OpenGL raster outline*/
 	GF_OPT_RASTER_OUTLINES,
 	/*! set/get pow2 emulation flag (value: boolean) - when set, video textures with non power of 2 dimensions
 	are emulated as pow2 by expanding the video buffer (image is not scaled). Otherwise the entire image

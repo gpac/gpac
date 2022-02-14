@@ -55,7 +55,7 @@ filter.set_help(
 +"# Multiview generation\n"
 +"In multiview mode, only the animated counter will move in depth backward and forward, as indicated by the [-disparity]() value.\n"
 +"When [-pack]() is set, a packed stereo couple is generated for each video packet.\n"
-+"Otherwise, when [-views]() is greater than 2, each view is generated on a dedicated output pid with the property `ViewIdx` set in [1, views].\n"
++"Otherwise, when [-views]() is greater than 2, each view is generated on a dedicated output PID with the property `ViewIdx` set in [1, views].\n"
 +"Multi-view output forces usage of [-copy]() mode.\n"
 +"\n"
 +"# PID Naming\n"
@@ -81,7 +81,7 @@ filter.set_arg({ name: "dyn", desc: "move bottom banner", type: GF_PROP_BOOL, de
 filter.set_arg({ name: "ntp", desc: "send NTP along with packets", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "copy", desc: "copy the framebuffer into each video packet instead of using packet references", type: GF_PROP_BOOL, def: "false"} );
 filter.set_arg({ name: "dur", desc: "run for the given time in second", type: GF_PROP_FRACTION, def: "0/0"} );
-filter.set_arg({ name: "adjust", desc: "adjust start time to synchronize counter and UTC - see filter help", type: GF_PROP_BOOL, def: "true"} );
+filter.set_arg({ name: "adjust", desc: "adjust start time to synchronize counter and UTC", type: GF_PROP_BOOL, def: "true"} );
 filter.set_arg({ name: "pack", desc: "packing mode for stereo views\n - no: no packing\n - ss: side by side packing, forces [-views]() to 2\n - tb: top-bottom packing, forces [-views]() to 2", type: GF_PROP_UINT, def: "no", minmax_enum: "no|ss|tb"} );
 filter.set_arg({ name: "disparity", desc: "disparity in pixels between left-most and right-most views", type: GF_PROP_UINT, def: "20"} );
 filter.set_arg({ name: "views", desc: "number of views", type: GF_PROP_UINT, def: "1"} );

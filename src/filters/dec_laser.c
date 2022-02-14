@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR decoder filter
@@ -261,7 +261,8 @@ static const GF_FilterCapability LSRDecCaps[] =
 GF_FilterRegister LSRDecRegister = {
 	.name = "lsrdec",
 	GF_FS_SET_DESCRIPTION("MPEG-4 LASeR decoder")
-	GF_FS_SET_HELP("This filter decodes MPEG-4 LASeR frames directly into the scene graph of the compositor. It cannot be used to dump LASeR content.")
+	GF_FS_SET_HELP("This filter decodes MPEG-4 LASeR binary frames directly into the scene graph of the compositor.\n"
+	"Note: This filter cannot be used to dump LASeR content to text or xml, use `MP4Box` for that.")
 	.private_size = sizeof(GF_LSRDecCtx),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.priority = 1,

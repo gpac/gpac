@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Context loader filter
@@ -34,7 +34,6 @@
 typedef struct
 {
 	//opts
-	Bool progressive;
 	u32 sax_dur;
 
 	//internal
@@ -424,7 +423,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 	if (priv->load_flags != 2) {
 
-		if (priv->progressive) {
+		if (priv->sax_dur) {
 			u32 entry_time;
 			char file_buf[4096+1];
 			if (!priv->src) {
@@ -935,15 +934,16 @@ static const GF_FilterCapability CTXLoadCaps[] =
 
 static const GF_FilterArgs CTXLoadArgs[] =
 {
-	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sax_dur), "loading duration for SAX parsing (XMT), 0 disables SAX parsing", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sax_dur), "duration for SAX parsing (XMT), 0 disables SAX parsing", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
 GF_FilterRegister CTXLoadRegister = {
 	.name = "btplay",
 	GF_FS_SET_DESCRIPTION("BT/XMT/X3D loader")
-	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.")
+	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.\n"
+	"\n"
+	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when procesing time is higher than `N`.\n")
 	.private_size = sizeof(CTXLoadPriv),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,

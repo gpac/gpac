@@ -897,7 +897,7 @@ static const GF_FilterCapability BSAggCaps[] =
 GF_FilterRegister BSAggRegister = {
 	.name = "bsagg",
 	GF_FS_SET_DESCRIPTION("Compressed layered bitstream aggregator")
-	GF_FS_SET_HELP("This filter aggregates layers and sublayers into a single output pid.\n"
+	GF_FS_SET_HELP("This filter aggregates layers and sublayers into a single output PID.\n"
 	"\n"
 	"The filter supports AVC|H264, HEVC and VVC stream reconstruction, and is passthrough for other codec types.\n"
 	"\n"

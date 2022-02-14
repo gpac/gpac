@@ -2610,8 +2610,8 @@ static const GF_FilterCapability CENCEncCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_CENCEncCtx, _n)
 static const GF_FilterArgs GF_CENCEncArgs[] =
 {
-	{ OFFS(cfile), "crypt file location - see filter help", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(allc), "throw error if no DRM config file is found for a PID - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(cfile), "crypt file location", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(allc), "throw error if no DRM config file is found for a PID", GF_PROP_BOOL, NULL, NULL, 0},
 	{0}
 };
 
@@ -2621,7 +2621,8 @@ GF_FilterRegister CENCEncRegister = {
 	GF_FS_SET_HELP("The CENC encryptor supports CENC, ISMA and Adobe encryption. It uses a DRM config file for declaring keys.\n"
 	"The syntax is available at https://wiki.gpac.io/Common-Encryption\n"
 	"The DRM config file can be set per PID using the property `CryptInfo`, or set at the filter level using [-cfile]().\n"
-	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used.\n"
+	"When the DRM config file is set per PID, the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` is used (regardless of the `CrypTrack` ID).\n"
+	"When the DRM config file is set globally (not per PID), the first `CrypTrack` in the DRM config file with the same ID is used, otherwise the first `CrypTrack` with ID 0 or not set is used.\n"
 	"If no DRM config file is defined for a given PID, this PID will not be encrypted, or an error will be thrown if [-allc]() is specified.\n"
 	)
 	.private_size = sizeof(GF_CENCEncCtx),

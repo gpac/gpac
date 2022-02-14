@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
 *			Authors: Romain Bouqueau, Jean Le Feuvre
-*			Copyright (c) 2014-2016 GPAC Licensing
+*			Copyright (c) 2014-2022 GPAC Licensing
 *			Copyright (c) 2016-2020 Telecom Paris
 *					All rights reserved
 *
@@ -44,12 +44,12 @@ static GF_Err dtout_process_dummy(GF_Filter *filter)
 
 static const GF_FilterArgs DTOutArgs[] =
 {
-	{ OFFS(bus), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(slot), "PCI bus number - if not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT },
+	{ OFFS(bus), "PCI bus number. If not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(slot), "PCI bus number. If not set, device discovery is used", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT },
 	{ OFFS(fps), "default FPS to use if input stream fps cannot be detected", GF_PROP_FRACTION, "30/1", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(clip), "clip YUV data to valid SDI range, slower", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(port), "set sdi output port of card", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED },
-	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, eg -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_NORMAL },
+	{ OFFS(start), "set playback start offset, [-1, 0] means percent of media dur, e.g. -1 == dur", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_NORMAL },
 	{ 0 }
 };
 

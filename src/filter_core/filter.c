@@ -4093,7 +4093,7 @@ void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register)
 	gf_list_del_item(filter->session->gl_providers, filter);
 	e = gf_fs_check_gl_provider(filter->session);
 	if (e && filter->session->nb_gl_filters) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reload an OpenGL provider and some filters require openGL, aborting\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reload an OpenGL provider and some filters require OpenGL, aborting\n"));
 		gf_fs_abort(filter->session, GF_FS_FLUSH_NONE);
 	}
 #endif

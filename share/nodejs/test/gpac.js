@@ -65,7 +65,7 @@ print_usage = () => {
 
 	console.log("-src=URL:     adds a source URL. Can be set multiple times for multiple sources");
 	console.log("-dst=URL:     adds a destination URL. Can be set multiple times for multiple sinks");
-	console.log("-f=FILTER:    adds a filter (e.g., 'avgen'). Can be set multiple times for filters, cf `gpac -h doc` for link options");
+	console.log("-f=FILTER:    adds a filter (e.g. 'avgen'). Can be set multiple times for filters, cf `gpac -h doc` for link options");
 	console.log("-mt:          enables GPAC memory tracking");
 	console.log("-p=PROF:      sets profile to PROF");
 	console.log("-ib:          enables FileIO wrapper for source(s)");

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg decode filter
@@ -1283,7 +1283,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.version = LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG decoder")
-	GF_FS_SET_HELP("Decodes audio and video streams.\n"
+	GF_FS_SET_HELP("This filter decodes audio and video streams using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported decoders for your GPAC build, use `gpac -h ffdec:*`.\n"
 	"\n"

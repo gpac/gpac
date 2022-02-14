@@ -403,15 +403,15 @@ offscreen-yuv=indique si yuv-> rgb hors écran est activé. peut être réglé s
 offscreen-yuv_crc=3163794729
 overlay-color-key=indique la couleur à utiliser pour l'incrustation YUV, format hexadécimal
 overlay-color-key_crc=1982790583
-gl-offscreen=@indique le mode openGL pour le rendu hors écran.
+gl-offscreen=@indique le mode OpenGL pour le rendu hors écran.
 	Window: Une fenêtre cachée est utilisée pour effectuer un rendu hors écran. Selon votre pilote vidéo et votre configuration X11, cela peut ne pas fonctionner.
 	VisibleWindow: une fenêtre visible est utilisée pour effectuer un rendu hors écran. Cela peut être utile lors du débogage
 	Pixmap: Un Pixmap X11 est utilisé pour effectuer un rendu hors écran. Selon votre pilote vidéo et votre configuration X11, cela peut ne pas fonctionner et même planter le lecteur.
 	PBuffer: utilise opengl PBuffers pour le dessin, pas toujours supporté@
 gl-offscreen_crc=2846403537
-gl-bits-comp=nombre de bits par composante de couleur dans openGL
+gl-bits-comp=nombre de bits par composante de couleur dans OpenGL
 gl-bits-comp_crc=1796229199
-gl-bits-depth=nombre de bits pour le tampon de profondeur dans openGL
+gl-bits-depth=nombre de bits pour le tampon de profondeur dans OpenGL
 gl-bits-depth_crc=2302848994
 gl-doublebuf=active le double buffer OpenGL
 gl-doublebuf_crc=4108413565
@@ -897,7 +897,7 @@ nav=overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine
 nav_crc=4231320967
 linegl=specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining
 linegl_crc=4224418980
-epow2=@emulate power-of-2 textures for openGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
+epow2=@emulate power-of-2 textures for OpenGL (old hardware). Ignored if OpenGL rectangular texture extension is enabled
 	yes: video texture is not resized but emulated with padding. This usually speeds up video mapping on shapes but disables texture transformations
 	no: video is resized to a power of 2 texture when mapping to a shape@
 epow2_crc=2327000520

@@ -2766,22 +2766,22 @@ static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeS
 static const GF_FilterArgs GF_FileListArgs[] =
 {
 	{ OFFS(floop), "loop playlist/list of files, `0` for one time, `n` for n+1 times, `-1` for indefinitely", GF_PROP_SINT, "0", NULL, 0},
-	{ OFFS(srcs), "list of files to play - see filter help", GF_PROP_STRING_LIST, NULL, NULL, 0},
-	{ OFFS(fdur), "for source files with a single frame, sets frame duration. 0/NaN fraction means reuse source timing which is usually not set!", GF_PROP_FRACTION, "1/25", NULL, 0},
-	{ OFFS(revert), "revert list of files (not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timescale), "force output timescale on all pids. 0 uses the timescale of the first pid found", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ka), "keep playlist alive (disable loop), waiting the for a new input to be added or `#end` to end playlist. The value specifies the refresh rate in ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(timeout), "timeout in ms after which the playlist is considered dead. `-1` means indefinitely", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(srcs), "list of files to play", GF_PROP_STRING_LIST, NULL, NULL, 0},
+	{ OFFS(fdur), "frame duration for source files with a single frame (0/NaN fraction means reuse source timing which is usually not set!)", GF_PROP_FRACTION, "1/25", NULL, 0},
+	{ OFFS(revert), "revert list of files ([-srcs](), not playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timescale), "force output timescale on all PIDs (0 uses the timescale of the first PID found)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ka), "keep playlist alive (disable loop), waiting for a new input to be added or `#end` directive to end playlist. The value specifies the refresh rate in ms", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(timeout), "timeout in ms after which the playlist is considered dead (`-1` means indefinitely)", GF_PROP_LUINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{ OFFS(fsort), "sort list of files\n"
 		"- no: no sorting, use default directory enumeration of OS\n"
 		"- name: sort by alphabetical name\n"
 		"- size: sort by increasing size\n"
 		"- date: sort by increasing modification time\n"
-		"- datex: sort by increasing modification time - see filter help"
+		"- datex: sort by increasing modification time"
 		, GF_PROP_UINT, "no", "no|name|size|date|datex", 0},
 
-	{ OFFS(sigcues), "inject CueStart property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigcues), "inject `CueStart` property at each source begin (new or repeated) for DASHing", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(fdel), "delete source files after processing in playlist mode (does not delete the playlist)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(raw), "force input AV streams to be in raw format\n"
 	"- no: do not force decoding of inputs\n"
@@ -2808,7 +2808,7 @@ GF_FilterRegister FileListRegister = {
 	GF_FS_SET_HELP("This filter can be used to play playlist files or a list of sources.\n"
 		"\n"
 		"The filter loads any source supported by GPAC: remote or local files or streaming sessions (TS, RTP, DASH or other).\n"
-		"The filter forces input demultiplex and recomputes the input timestamps into a continuous timeline.\n"
+		"The filter demultiplexes inputs and recomputes input timestamps into a continuous timeline.\n"
 		"At each new source, the filter tries to remap input PIDs to already declared output PIDs of the same type, if any, or declares new output PIDs otherwise. If no input PID matches the type of an output, no packets are send for that PID.\n"
 		"\n"
 		"# Source list mode\n"
@@ -2831,11 +2831,11 @@ GF_FilterRegister FileListRegister = {
 		"- alphabetical sorting is used if same filename length\n"
 		"\n"
 		"# Playlist mode\n"
-		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, default extensions `m3u`, `txt` or `pl`).\n"
-		"In this mode, directives can be given in a comment line, i.e. a line starting with '#' before the line with the file name.\n"
+		"The playlist mode is activated when opening a playlist file (m3u format, utf-8 encoding, no BOM, default extensions `m3u`, `txt` or `pl`).\n"
+		"In this mode, directives can be given in a comment line, i.e. a line starting with `#` before the line with the file name.\n"
 		"Lines stating with `##` are ignored.\n"
 		"\n"
-		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"\
+		"The playlist file is refreshed whenever the next source has to be reloaded in order to allow for dynamic pushing of sources in the playlist.\n"
 		"If the last URL played cannot be found in the playlist, the first URL in the playlist file will be loaded.\n"
 		"\n"
 		"When [-ka]() is used to keep refreshing the playlist on regular basis, the playlist must end with a new line.\n"
@@ -2844,33 +2844,33 @@ GF_FilterRegister FileListRegister = {
 		"- if the input playlist has not been modified for the [-timeout]() option value (infinite by default).\n"
 		"## Playlist directives\n"
 		"A playlist directive line can contain zero or more directives, separated with space. The following directives are supported:\n"
-		"- repeat=N: repeats N times the content (hence played N+1).\n"
-		"- start=T: tries to play the file from start time T seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
-		"- stop=T: stops source playback after T seconds (double format only). This works on any source (implemented independently from seek support).\n"
+		"- repeat=N: repeats `N` times the content (hence played N+1).\n"
+		"- start=T: tries to play the file from start time `T` seconds (double format only). This may not work with some files/formats not supporting seeking.\n"
+		"- stop=T: stops source playback after `T` seconds (double format only). This works on any source (implemented independently from seek support).\n"
 		"- cat: specifies that the following entry should be concatenated to the previous source rather than opening a new source. This can optionally specify a byte range if desired, otherwise the full file is concatenated.\n"
 		"Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO objects, the concatenation will be automatically detected.\n"
-		"- srange=T: when cat is set, indicates the start T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
-		"- send=T: when cat is set, indicates the end T (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
-		"- props=STR: assigns properties described in `STR` to all pids coming from the listed sources on next line. `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
+		"- srange=T: when cat is set, indicates the start `T` (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
+		"- send=T: when cat is set, indicates the end `T` (64 bit decimal, default 0) of the byte range from the next entry to concatenate.\n"
+		"- props=STR: assigns properties described in `STR` to all PIDs coming from the listed sources on next line. `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
 		"- del: specifies that the source file(s) must be deleted once processed, true by default if [-fdel]() is set.\n"
 		"- out=V: specifies splicing start time (cf below).\n"
 		"- in=V: specifies splicing end time (cf below).\n"
 		"- nosync: prevents timestamp adjustments when joining sources (implied if `cat` is set).\n"
 		"- keep: keeps spliced period in output (cf below).\n"
 		"- mark: only inject marker for the splice period and do not load any replacement content (cf below).\n"
-		"- sprops=STR: assigns properties described in `STR` to all pids of the main content during a splice (cf below). `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
+		"- sprops=STR: assigns properties described in `STR` to all PIDs of the main content during a splice (cf below). `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
 		"\n"
 		"The following global options (applying to the filter, not the sources) may also be set in the playlist:\n"
 		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"
 		"- floop=N: set [-floop]() option from within playlist.\n"
 		"- raw: set [-raw]() option from within playlist.\n"
 		"\n"
-		"The default behavior when joining sources is to realign the timeline origin of the new source to the maximum time in all pids of the previous sources.\n"
-		"This may create gaps in the timeline in case each pid are not of equal duration (quite common with most audio codecs).\n"
+		"The default behavior when joining sources is to realign the timeline origin of the new source to the maximum time in all PIDs of the previous sources.\n"
+		"This may create gaps in the timeline in case previous source PIDs are not of equal duration (quite common with most audio codecs).\n"
 		"Using `nosync` directive will disable this realignment and provide a continuous timeline but may introduce synchronization errors depending in the source encoding (use with caution).\n"
 		"## Source syntax\n"
 		"The source lines follow the usual source syntax, see `gpac -h`.\n"
-		"Additional pid properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
+		"Additional PID properties can be added per source (see `gpac -h doc`), but are valid only for the current source, and reset at next source.\n"
 		"The loaded sources do not inherit arguments from the parent playlist filter.\n"
 		"\n"
 		"The URL given can either be a single URL, or a list of URLs separated by \" && \" to load several sources for the active entry.\n"
@@ -2889,16 +2889,16 @@ GF_FilterRegister FileListRegister = {
 		"\n"
 		"Link options can be specified (see `gpac -h doc`).\n"
 		"EX src.mp4 @#video reframer:rt=on\n"
-		"This will inject a reframer with real-time regulation between video pid of source and `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between video PID of source and `flist` filter.\n"
 		"\n"
 		"When using filter chains, the `flist` filter will only accept PIDs from the last declared filter in the chain.\n"
 		"In order to accept other PIDs from the source, you must specify a final link directive with no following filter.\n"
 		"EX src.mp4 @#video reframer:rt=on @-1#audio\n"
-		"This will inject a reframer with real-time regulation between video pid of source and `flist` filter, and will also allow audio pids from source to connect to `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between video PID of source and `flist` filter, and will also allow audio PIDs from source to connect to `flist` filter.\n"
 		"\n"
 		"The empty link directive can also be used on the last declared filter\n"
 		"EX src.mp4 @ reframer:rt=on @#audio\n"
-		"This will inject a reframer with real-time regulation between source and `flist` filter and only connect audio pids to `flist` filter.\n"
+		"This will inject a reframer with real-time regulation between source and `flist` filter and only connect audio PIDs to `flist` filter.\n"
 		"## Splicing\n"
 		"The playlist can be used to splice content with other content following a media in the playlist.\n"
 		"A source item is declared as main media in a splice operation if and only if it has an `out` directive set (possibly empty).\n"
@@ -2938,7 +2938,7 @@ GF_FilterRegister FileListRegister = {
 		"When `mark` or `keep` directives are set, it is possible to alter the PID properties of the main media using `sprops` directive.\n"
 		"\n"
 		"EX #out=2 in=4 mark sprops=#xlink=http://foo.bar/\nEX src:#Period=main\n"
-		"This will inject property xlink on the output pids in the splice zone (corresponding to period `main_2`) but not in the rest of the main media.\n"
+		"This will inject property xlink on the output PIDs in the splice zone (corresponding to period `main_2`) but not in the rest of the main media.\n"
 		"\n"
 		"Directives `mark`, `keep` and `sprops` are reset at the end of the splice period.\n"
 		)

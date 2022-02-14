@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / text import filter
@@ -3597,18 +3597,18 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(webvtt), "force WebVTT import of SRT files", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nodefbox), "skip default text box", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noflush), "skip final sample flush for srt", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(fontname), "default font to use", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(fontname), "default font", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, 0},
-	{ OFFS(lang), "default language to use", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(width), "default width of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(height), "default height of text area, set to 0 to resolve against visual PIDs", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(lang), "default language", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(width), "default width of text area", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(height), "default height of text area", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(txtx), "default horizontal offset of text area: -1 (left), 0 (center) or 1 (right)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_dur), "force single sample mode - see filter help", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_embed), "force embedding TTML resources - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_zero), "set subtitle zero time for TTML - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_dur), "force single sample mode", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_embed), "force embedding TTML resources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_zero), "set subtitle zero time for TTML", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -3624,20 +3624,20 @@ GF_FilterRegister TXTInRegister = {
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
 	"\n"
-	"Input files must be in UTF-8 or UTF-16 format, with or without BOM.\n"
-	"The internal frame format is: \n"
+	"Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: \n"
 	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"
 	"- TTML: ISO/IEC 14496-30 XML subtitles\n"
 	"- Others: 3GPP/QT Timed Text\n"
 	"\n"
 	"# TTML Support\n"
-	"The [-ttml_dur]() option controls how TTML are split into packets:\n"
+	"The [-ttml_dur]() option controls how the TTML document is split into packets:\n"
 	"- if negative (default), TTML document is split in independent time segments by inspecting all overlapping subtitles in the body\n"
 	"- if 0, the input document is not split, forwarded as a single frame with `CTS` matching the first active time in document and a duration equal to the document duration\n"
 	"- if >0, the input document is not split, forwarded as a single frame with `CTS=0` and the specified duration in `timescale` units.\n"
 	"\n"
 	"By default, media resources are kept as declared in TTML2 documents.\n"
-	"[-ttml_embed]() can be used to embed inside the TTML sample the resources in `<head>` or `<body>`.\n"
+	"\n"
+	"[-ttml_embed]() can be used to embed inside the TTML sample the resources in `<head>` or `<body>`:\n"
 	"- for `<source>`, `<image>`, `<audio>`, `<font>`, local URIs indicated in `src` will be loaded and `src` rewritten.\n"
 	"- for `<data>` with base64 coding, the data will be decoded, `<data>` element removed and parent <source> rewritten with `src` attribute inserted.\n"
 	"\nThe embedded data is added as a subsample to the TTML frame, and the referring elements will use `src=urn:mpeg:14496-30:N` with `N` the index of the subsample.\n"
@@ -3649,6 +3649,7 @@ GF_FilterRegister TXTInRegister = {
 	"EX gpac -i test.ttml:ttml_zero=T10:00:00 [...]\n"
 	"EX MP4Box -add test.ttml:sopt:ttml_zero=T10:00:00 [...]\n"
 	"EX gpac -i test.ttml --ttml_zero=10:00:00 [...]\n"
+	"EX gpac -i test.ttml --ttml_zero=T10:00:00 [...]\n"
 	"EX MP4Box -add test.ttml --ttml_zero=10:00:00 [...]\n"
 
 

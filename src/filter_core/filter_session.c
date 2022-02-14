@@ -2359,10 +2359,9 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks));
 }
 
-static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid, GF_Filter *alias_for, u32 src_num_tiled_pids, Bool skip_print)
+static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 indent, GF_FilterPid *pid, GF_Filter *alias_for, u32 src_num_tiled_pids, Bool skip_print, s32 no_recursion, u32 max_length)
 {
 	u32 i=0;
-	u32 num_tile_pids = 0;
 
 	if (!skip_print) {
 		while (i<indent) {
@@ -2374,15 +2373,46 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(tilePID[%d]) ", src_num_tiled_pids));
 		}
 		else if (pid) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(PID %s) ", pid->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(PID %s)", pid->name));
+		}
+		if (max_length) {
+			u32 l;
+			if (src_num_tiled_pids) {
+				char szName[50];
+				sprintf(szName, "PID[%d]", src_num_tiled_pids);
+				l = (u32) strlen(szName);
+			} else {
+				l = (u32) strlen(pid->name);
+			}
+			while (l<max_length) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" "));
+					l++;
+			}
+		}
+		if (no_recursion>0) {
+			u32 k=0;
+			while (k<no_recursion-1) {
+				k++;
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" "));
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("\\\n"));
+			return;
+		}
+		if (pid) {
+			if (no_recursion<0) {
+				u32 k=(u32) -no_recursion;
+				while (k>1) {
+					k--;
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-"));
+				}
+				GF_LOG(GF_LOG_INFO, GF_LOG_APP, (">"));
+			}
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" "));
 		}
 
 		print_filter_name(f, GF_TRUE, GF_FALSE);
-		if (f->id) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (ID=%s)\n", f->id));
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (ptr=%p)\n", f));
-		}
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" (%s=%u)\n", f->dynamic_filter ? "dyn_idx" : "idx", 1+gf_list_find(f->session->filters, f) ));
 	}
 
 	if (filters_done && (gf_list_find(filters_done, f)>=0))
@@ -2401,22 +2431,39 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, (")\n"));
 	}
 
+	GF_List *dests = gf_list_new();
 	for (i=0; i<f->num_output_pids; i++) {
-		u32 j, k;
-		Bool is_tiled = GF_FALSE;
-		Bool skip_tiled = skip_print;
-
+		u32 j;
 		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
+		for (j=0; j<pidout->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
+			if (gf_list_find(dests, pidi->filter)<0)
+				gf_list_add(dests, pidi->filter);
+		}
+	}
+
+	while (gf_list_count(dests)) {
+	GF_Filter *dest = gf_list_pop_front(dests);
+	GF_List *pids = gf_list_new();
+	u32 max_name_len=0;
+	u32 num_tile_pids=0;
+	for (i=0; i<f->num_output_pids; i++) {
+		u32 j;
+		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
+		for (j=0; j<pidout->num_destinations; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
+			if (pidi->filter != dest) continue;
+			gf_list_add(pids, pidi);
+		}
+		u32 plen = (u32) strlen(pidout->name);
+
 		const GF_PropertyValue *p = gf_filter_pid_get_property(pidout, GF_PROP_PID_CODECID);
 		if (p &&
 			((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
 		) {
-			is_tiled = GF_TRUE;
-			//only print the first tile pid
-			if (num_tile_pids) {
-				skip_tiled = GF_TRUE;
-			} else {
-				for (j=i; j<f->num_output_pids; j++) {
+			plen = 0;
+			if (!num_tile_pids) {
+				for (j=0; j<f->num_output_pids; j++) {
 					GF_FilterPid *apid = gf_list_get(f->output_pids, j);
 					p = gf_filter_pid_get_property(apid, GF_PROP_PID_CODECID);
 					if (p &&
@@ -2425,12 +2472,52 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 						num_tile_pids++;
 					}
 				}
+				plen = 5;
+				j=0;
+				while (j<num_tile_pids) {
+					plen+=1;
+					j+=10;
+				}
+			}
+		}
+		if (plen>max_name_len) max_name_len = plen;
+	}
+	s32 nb_pids_print = gf_list_count(pids);
+	if (nb_pids_print==1) nb_pids_print = 0;
+	if (num_tile_pids) nb_pids_print -= num_tile_pids-1;
+	s32 nb_final_pids = nb_pids_print;
+	if (nb_pids_print) nb_pids_print++;
+	Bool first_tile = GF_TRUE;
+
+	for (i=0; i<f->num_output_pids; i++) {
+		u32 j, k;
+		Bool is_tiled = GF_FALSE;
+		Bool skip_tiled = skip_print;
+
+		GF_FilterPid *pidout = gf_list_get(f->output_pids, i);
+		if (num_tile_pids) {
+			const GF_PropertyValue *p = gf_filter_pid_get_property(pidout, GF_PROP_PID_CODECID);
+			if (p &&
+				((p->value.uint==GF_CODECID_HEVC_TILES) || (p->value.uint==GF_CODECID_VVC_SUBPIC))
+			) {
+				is_tiled = GF_TRUE;
 			}
 		}
 
 		for (j=0; j<pidout->num_destinations; j++) {
-			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
 			GF_Filter *alias = NULL;
+			GF_FilterPidInst *pidi = gf_list_get(pidout->destinations, j);
+			if (pidi->filter != dest) continue;
+
+			gf_list_del_item(pids, pidi);
+			if (nb_pids_print && !gf_list_count(pids))
+				nb_pids_print = 0;
+			else if (is_tiled) {
+				if (!first_tile) continue;
+				nb_pids_print = 0;
+				first_tile = GF_FALSE;
+			}
+
 			for (k=0; k<gf_list_count(f->destination_filters); k++) {
 				alias = gf_list_get(f->destination_filters, k);
 				if (alias->multi_sink_target == pidi->filter)
@@ -2438,12 +2525,16 @@ static void gf_fs_print_filter_outputs(GF_Filter *f, GF_List *filters_done, u32 
 				alias = NULL;
 			}
 			if (alias) {
-				gf_fs_print_filter_outputs(alias, filters_done, indent+1, pidout, pidi->filter, is_tiled ? num_tile_pids : src_num_tiled_pids, skip_tiled);
+				gf_fs_print_filter_outputs(alias, filters_done, indent+1, pidout, pidi->filter, is_tiled ? num_tile_pids : src_num_tiled_pids, skip_tiled, nb_pids_print-nb_final_pids, max_name_len);
 			} else {
-				gf_fs_print_filter_outputs(pidi->filter, filters_done, indent+1, pidout, NULL, is_tiled ? num_tile_pids : src_num_tiled_pids, skip_tiled);
+				gf_fs_print_filter_outputs(pidi->filter, filters_done, indent+1, pidout, NULL, is_tiled ? num_tile_pids : src_num_tiled_pids, skip_tiled, nb_pids_print-nb_final_pids, max_name_len);
 			}
 		}
+		if (nb_pids_print) nb_pids_print++;
 	}
+	gf_list_del(pids);
+	}
+	gf_list_del(dests);
 }
 
 static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *filters_done, Bool ignore_sinks)
@@ -2468,7 +2559,7 @@ static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *
 			has_unconnected = GF_TRUE;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Filters not connected:\n"));
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE, 0, 0);
 	}
 }
 
@@ -2506,7 +2597,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 			has_connected = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters connected:\n"));
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE, 0, 0);
 	}
 
 	gf_fs_print_not_connected_filters(fsess, filters_done, GF_FALSE);
@@ -2519,7 +2610,7 @@ void gf_fs_print_connections(GF_FilterSession *fsess)
 			has_undefined = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Filters in unknown connection state:\n"));
 		}
-		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE);
+		gf_fs_print_filter_outputs(f, filters_done, 0, NULL, NULL, 0, GF_FALSE, 0, 0);
 	}
 
 	gf_mx_v(fsess->filters_mx);

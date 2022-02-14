@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / audio output filter
@@ -678,21 +678,21 @@ GF_Err aout_update_arg(GF_Filter *filter, const char *arg_name, const GF_Propert
 static const GF_FilterArgs AudioOutArgs[] =
 {
 	{ OFFS(drv), "audio driver name", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(bnum), "number of audio buffers - 0 for auto", GF_PROP_UINT, "2", NULL, 0},
-	{ OFFS(bdur), "total duration of all buffers in ms - 0 for auto. The longer the audio buffer is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers", GF_PROP_UINT, "100", NULL, 0},
+	{ OFFS(bnum), "number of audio buffers (0 for auto)", GF_PROP_UINT, "2", NULL, 0},
+	{ OFFS(bdur), "total duration of all buffers in ms (0 for auto)", GF_PROP_UINT, "100", NULL, 0},
 	{ OFFS(threaded), "force dedicated thread creation if sound card driver is not threaded", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dur), "only play the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(clock), "hint audio clock for this stream (reports system time and CTS), for other filters to use", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(clock), "hint audio clock for this stream", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(vol), "set default audio volume, as a percentage between 0 and 100", GF_PROP_UINT, "100", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(pan), "set stereo pan, as a percentage between 0 and 100, 50 being centered", GF_PROP_UINT, "50", "0-100", GF_FS_ARG_UPDATE},
 	{ OFFS(buffer), "set playout buffer in ms", GF_PROP_UINT, "200", NULL, 0},
-	{ OFFS(mbuffer), "set max buffer occupancy in ms (if less than buffer, use buffer)", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(rbuffer), "rebuffer trigger in ms (if 0 or more than buffer, disable rebuffering)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(mbuffer), "set max buffer occupancy in ms. If less than buffer, use buffer", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(rbuffer), "rebuffer trigger in ms. If 0 or more than buffer, disable rebuffering", GF_PROP_UINT, "0", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(adelay), "set audio delay in sec", GF_PROP_FRACTION, "0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(buffer_done), "buffer done indication (readonly)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(rebuffer), "time at which rebuffer started, 0 if not rebuffering (readonly)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(buffer_done), "buffer done indication (readonly, for user app)", GF_PROP_BOOL, NULL, NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(rebuffer), "system time in us at which last rebuffer started, 0 if not rebuffering (readonly, for user app)", GF_PROP_LUINT, NULL, NULL, GF_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -707,7 +707,11 @@ static const GF_FilterCapability AudioOutCaps[] =
 GF_FilterRegister AudioOutRegister = {
 	.name = "aout",
 	GF_FS_SET_DESCRIPTION("Audio output")
-	GF_FS_SET_HELP("This filter outputs a single uncompressed audio PID to a sound card or other audio output device.")
+	GF_FS_SET_HELP("This filter writes a single uncompressed audio input PID to a sound card or other audio output device.\n"
+	"\n"
+	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers.\n"
+	"\n"
+	"If [-clock]() is set, the filter will report system time (in us) and corresponding paclet CTS for other filters to use for AV sync.\n")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

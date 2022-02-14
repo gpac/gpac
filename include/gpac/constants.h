@@ -171,7 +171,7 @@ typedef enum
 
 	/*!32 bit ARGB. Component ordering in bytes is A-R-G-B.*/
 	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
-	/*!32 bit RGBA (openGL like). Component ordering in bytes is R-G-B-A.*/
+	/*!32 bit RGBA (OpenGL like). Component ordering in bytes is R-G-B-A.*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
 	/*!32 bit BGRA. Component ordering in bytes is B-G-R-A.*/
 	GF_PIXEL_BGRA		=	GF_4CC('B','G','R','A'),
@@ -243,7 +243,7 @@ typedef enum
 	/*!444 YUV 10 bit packed*/
 	GF_PIXEL_YUV444_10_PACK	=	GF_4CC('Y','4','1','p'),
 
-	/*!Unknown format exposed a single openGL texture to be consumed using samplerExternalOES*/
+	/*!Unknown format exposed a single OpenGL texture to be consumed using samplerExternalOES*/
 	GF_PIXEL_GL_EXTERNAL	=	GF_4CC('E','X','G','L')
 } GF_PixelFormat;
 

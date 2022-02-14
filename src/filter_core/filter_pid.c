@@ -3312,7 +3312,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 	} else if (reconfigurable_only && (count>2)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Cannot find filter chain with only one filter handling reconfigurable output for pid %s from filter %s - not supported\n", pid->name, pid->filter->name));
 	} else {
-		Bool is_sink = gf_filter_is_sink(dst);
+		Bool dst_is_sink = gf_filter_is_sink(dst);
 		const char *dst_args = NULL;
 		const char *args = pid->filter->orig_args ? pid->filter->orig_args : pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
@@ -3453,7 +3453,21 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL, GF_TRUE);
 			if (!af) goto exit;
 			af->subsession_id = dst->subsession_id;
-			af->subsource_id = is_sink ? 0 : pid->filter->subsource_id;
+			//destination is sink, check if af is a mux (output cap type STREAM=FILE present
+			//if not, copy subsource_id from pid
+			Bool af_is_mux = GF_FALSE;
+			if (dst_is_sink) {
+				for (u32 cidx=0; cidx<freg->nb_caps; cidx++) {
+					const GF_FilterCapability *cap = &freg->caps[cidx];
+					if (!(cap->flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+					if (!(cap->flags & GF_CAPFLAG_OUTPUT)) continue;
+					if (cap->flags & GF_CAPFLAG_EXCLUDED) continue;
+					if (cap->code!=GF_PROP_PID_STREAM_TYPE) continue;
+					if (cap->val.value.uint!=GF_STREAM_FILE) break;
+					af_is_mux = GF_TRUE;
+				}
+			}
+			af->subsource_id = af_is_mux ? 0 : pid->filter->subsource_id;
 
 			if (!af->forced_caps) {
 				//remember our target cap bundle on that filter
@@ -4162,7 +4176,7 @@ restart:
 	for (f_idx=0; f_idx<count; f_idx++) {
 		s32 f_dst_idx;
 		Bool needs_clone;
-		Bool cap_matched, in_parent_chain, is_sink;
+		Bool cap_matched, in_parent_chain, is_sink=GF_FALSE;
 		Bool ignore_source_ids;
 		Bool use_explicit_link;
 		GF_Filter *filter_dst;
@@ -4193,12 +4207,17 @@ single_retry:
 			}
 		}
 
-		if (filter_dst->dynamic_filter)
-			is_sink = GF_FALSE;
-		else if (filter_dst->forced_caps)
-			is_sink = !gf_filter_has_out_caps(filter_dst->forced_caps, filter_dst->nb_forced_caps);
-		else
-			is_sink = !gf_filter_has_out_caps(filter_dst->freg->caps, filter_dst->freg->nb_caps);
+		if (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE) {
+			if (filter_dst->dynamic_filter) {
+				if (!filter_dst->subsource_id) {
+					is_sink = GF_TRUE;
+				}
+			} else if (filter_dst->forced_caps) {
+				is_sink = !gf_filter_has_out_caps(filter_dst->forced_caps, filter_dst->nb_forced_caps);
+			} else {
+				is_sink = !gf_filter_has_out_caps(filter_dst->freg->caps, filter_dst->freg->nb_caps);
+			}
+		}
 
 		//we linked to a sink in implicit mode and new filter is not a sink, continue
 		if (link_sinks_only && !is_sink) continue;
@@ -4381,7 +4400,7 @@ single_retry:
 			RELOCK_FILTER_LIST
 
 			if (cyclic_detected) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s has one or more PID in input chain already connected to filter %s, breaking cycle\n", pid->name, pid->filter->name, filter_dst->name));
+				GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("PID %s:%s has one or more PID in input chain already connected to filter %s, breaking cycle\n", pid->name, pid->filter->name, filter_dst->name));
 				gf_list_del_item(force_link_resolutions, filter_dst);
 				for (k=0; k<gf_list_count(filter_dst->destination_links); k++) {
 					GF_Filter *a_dst = gf_list_get(filter_dst->destination_links, k);
@@ -4556,12 +4575,16 @@ single_retry:
 					&& !old_dst->num_input_pids
 					&& !old_dst->out_pid_connection_pending
 				) {
+					Bool skip = ((old_dst==filter_dst) && (filter_dst->dynamic_filter!=2)) ? GF_TRUE : GF_FALSE;
 					gf_filter_post_remove(old_dst);
+					if (skip)
+						continue;
 				}
 			}
 			if (!num_pass) {
                 //we have an explicit link instruction so we must try dynamic link even if we connect to another filter
-				if (filter_dst->source_ids) {
+                //is_sink set, same thing (implicit mode only, force link to sink)
+				if (filter_dst->source_ids || (is_sink && !implicit_link_found)) {
                     gf_list_add(force_link_resolutions, filter_dst);
                     //! filter is an alias, prevent linking to the filter being aliased
                     if (filter_dst->multi_sink_target) {
@@ -4707,8 +4730,17 @@ single_retry:
 		if (!use_explicit_link && (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE)) {
 			if (is_sink)
 				link_sinks_only = GF_TRUE;
-			else
+			else if (!implicit_link_found) {
+				u32 k=0;
+				for (k=0; k<gf_list_count(force_link_resolutions); k++) {
+					GF_Filter *dst_f = gf_list_get(force_link_resolutions, k);
+					if (!dst_f->source_ids) {
+						gf_list_rem(force_link_resolutions, k);
+						k--;
+					}
+				}
 				implicit_link_found = GF_TRUE;
+			}
 		}
     }
 
@@ -4813,7 +4845,7 @@ single_retry:
 		GF_Filter *f = gf_fs_load_filter(filter->session, "reframer", &e);
 		if (!e) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Local file PID %s to local file detected, forcing remux\n", pid->name));
-			f->dynamic_filter = GF_TRUE;
+			f->dynamic_filter = 2;
 			f->subsession_id = pid->filter->subsession_id;
 			f->subsource_id = pid->filter->subsource_id;
 			//force pid's filter destination to the reframer - this will in pass #2:

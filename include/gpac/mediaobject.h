@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Stream Management sub-project
@@ -229,7 +229,7 @@ Bool gf_mo_is_started(GF_MediaObject *mo);
 \param stride set to stride in bytes for visual objects with data frame, 0 if unknown
 \param pixel_ar set to the pixel aspect ratio as \code (PAR_NUM<<16)|PAR_DEN \endcode
 \param pixelFormat set to the pixel format of the video
-\param is_flipped set to GF_TRUE if the pixels are vertically flipped (happens when reading back openGL textures)
+\param is_flipped set to GF_TRUE if the pixels are vertically flipped (happens when reading back OpenGL textures)
 \return GF_TRUE if success*/
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped);
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / audio resample filter
@@ -461,10 +461,10 @@ static const GF_FilterCapability ResamplerCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_ResampleCtx, _n)
 static GF_FilterArgs ResamplerArgs[] =
 {
-	{ OFFS(och), "desired number of output audio channels - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(osr), "desired sample rate of output audio - 0 for auto", GF_PROP_UINT, "0", NULL, 0},
-	{ OFFS(ofmt), "desired format of output audio - none for auto", GF_PROP_PCMFMT, "none", NULL, 0},
-	{ OFFS(olayout), "desired CICP layout of output audio - null for auto", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(och), "desired number of output audio channels (0 for auto)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(osr), "desired sample rate of output audio (0 for auto)", GF_PROP_UINT, "0", NULL, 0},
+	{ OFFS(ofmt), "desired format of output audio (`none` for auto)", GF_PROP_PCMFMT, "none", NULL, 0},
+	{ OFFS(olayout), "desired CICP layout of output audio (null for auto)", GF_PROP_STRING, NULL, NULL, 0},
 	{0}
 };
 

@@ -1812,11 +1812,11 @@ GF_FilterRegister FFEncodeRegister = {
 	.name = "ffenc",
 	.version=LIBAVCODEC_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG encoder")
-	GF_FS_SET_HELP("Encodes audio and video streams.\n"
+	GF_FS_SET_HELP("This filter encodes audio and video streams using FFMPEG.\n"
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 		"To list all supported encoders for your GPAC build, use `gpac -h ffenc:*`.\n"
 		"\n"
-		"The filter will try to resolve the codec name in [-c]() against a libavcodec codec name (eg `libx264`) and use it if found.\n"
+		"The filter will try to resolve the codec name in [-c]() against a libavcodec codec name (e.g. `libx264`) and use it if found.\n"
 		"If not found, it will consider the name to be a GPAC codec name and find a codec for it. In that case, if no pixel format is given, codecs will be enumerated to find a matching pixel format.\n"
 		"\n"
 		"Options can be passed from prompt using `--OPT=VAL` (global options) or appending `::OPT=VAL` to the desired encoder filter.\n"
@@ -1826,6 +1826,7 @@ GF_FilterRegister FFEncodeRegister = {
 		"The filter will force a closed gop boundary:\n"
 		"- at each packet with a `FileNumber` property set or a `CueStart` property set to true.\n"
 		"- if [-fintra]() and [-rc]() is set.\n"
+		"\n"
 		"When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.\n"
 		"If [-fintra]() is not set and the output of the encoder is a DASH session in live profile without segment timeline, [-fintra]() will be set to the target segment duration and [-rc]() will be set.\n"
 	)

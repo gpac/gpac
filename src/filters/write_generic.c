@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / generic stream to file filter
@@ -1583,7 +1583,7 @@ static GF_FilterArgs GenDumpArgs[] =
 	"- sap: inserted at each SAP\n"
 	"- auto: selects between no and first based on media type", GF_PROP_UINT, "auto", "no|first|sap|auto", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "force one file per decoded frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codecids are supported", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(frame), "force single frame dump with no rewrite. In this mode, all codec types are supported", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(sstart), "start number of frame to forward. If 0, all samples are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(send), "end number of frame to forward. If less than start frame, all samples after start are forwarded", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(dur), "duration of media to forward after first sample. If 0, all samples are forwarded", GF_PROP_FRACTION, "0", NULL, 0},
@@ -1610,7 +1610,7 @@ GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
 	GF_FS_SET_DESCRIPTION("Stream to file")
 	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
-	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any pid connection.")
+	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any PID connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
 	.initialize = writegen_initialize,

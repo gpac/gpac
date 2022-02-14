@@ -9211,7 +9211,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)\n"
 	"- force: enables it even if only one representation\n"
 	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|pps|force|multi", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(template), "template string to use to generate segment name - see filter help", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(template), "template string to use to generate segment name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(muxtype), "muxtype to use for the segments\n"
@@ -9220,7 +9220,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- mkv: uses Matroska format\n"
 		"- webm: uses WebM format\n"
 		"- ogg: uses OGG format\n"
-		"- raw: uses raw media format (disables muxed representations)\n"
+		"- raw: uses raw media format (disables multiplexed representations)\n"
 		"- auto: guess format based on extension, default to mp4 if no extension", GF_PROP_UINT, "auto", "mp4|ts|mkv|webm|ogg|raw|auto", 0},
 	{ OFFS(rawsub), "use raw subtitle format instead of encapsulating in container", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(asto), "availabilityStartTimeOffset to use in seconds. A negative value simply increases the AST, a positive value sets the ASToffset to representations", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -9248,7 +9248,7 @@ static const GF_FilterArgs DasherArgs[] =
 	"- mf: stores in mpd and movie fragment\n"
 	"- mv: stores in mpd and movie\n"
 	"- n: discard pssh from mpd and segments", GF_PROP_UINT, "v", "v|f|mv|mf|m|n", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(buf), "min buffer duration in ms. negative value means percent of segment duration (eg -150 = 1.5*seg_dur)", GF_PROP_SINT, "-100", NULL, 0},
+	{ OFFS(buf), "min buffer duration in ms. negative value means percent of segment duration (e.g. -150 = 1.5*seg_dur)", GF_PROP_SINT, "-100", NULL, 0},
 	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "0", NULL, 0},
 	{ OFFS(timescale), "set timescale for timeline and segment list/template. A value of 0 picks up the first timescale of the first stream in an adaptation set. A negative value forces using stream timescales for each timed element (multiplication of segment list/template/timelines). A positive value enforces the MPD timescale", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(check_dur), "check duration of sources in period, trying to have roughly equal duration. Enforced whenever period start times are used", GF_PROP_BOOL, "true", NULL, 0},
@@ -9260,15 +9260,15 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(lang), "language of MPD Info", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(location), "set MPD locations to given URL", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ OFFS(base), "set base URLs of MPD", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(refresh), "refresh rate for dynamic manifests, in seconds. A negative value sets the MPD duration. If 0, uses dash duration", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(tsb), "time-shift buffer depth in seconds. A negative value means infinity", GF_PROP_DOUBLE, "30", NULL, 0},
+	{ OFFS(refresh), "refresh rate for dynamic manifests, in seconds (a negative value sets the MPD duration, value 0 uses dash duration)", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsb), "time-shift buffer depth in seconds (a negative value means infinity)", GF_PROP_DOUBLE, "30", NULL, 0},
 	{ OFFS(subdur), "maximum duration of the input file to be segmented. This does not change the segment duration, segmentation stops once segments produced exceeded the duration", GF_PROP_DOUBLE, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ast), "set start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ast), "set start date (as xs:date, e.g. YYYY-MM-DDTHH:MM:SSZ) for live mode. Default is now. !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(state), "path to file used to store/reload state info when simulating live. This is stored as a valid MPD with GPAC XML extensions", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(loop), "loop sources when dashing with subdur and state. If not set, a new period is created once the sources are over", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(split), "enable cloning samples for text/metadata/scene description streams, marking further clones as redundant", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(hlsc), "insert clock reference in variant playlist in live HLS", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(cues), "set cue file - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(cues), "set cue file", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_cues), "strict mode for cues, complains if splitting is not on SAP type 1/2/3 or if unused cue is found", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(strict_sap), "strict mode for sap\n"
 	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
@@ -9279,7 +9279,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(styp), "indicate the 4CC to use for styp boxes when using ISOBMFF output", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dual), "indicate to produce both MPD and M3U files", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(sigfrag), "use manifest generation only mode - see filter help", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigfrag), "use manifest generation only mode", GF_PROP_BOOL, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(_p_gentime), "pointer to u64 holding the ntp clock in ms of next DASH generation in live mode", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(_p_mpdtime), "pointer to u64 holding the mpd time in ms of the last generated segment", GF_PROP_POINTER, NULL, NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(sbound), "indicate how the theoretical segment start `TSS (= segment_number * duration)` should be handled\n"
@@ -9327,7 +9327,6 @@ GF_FilterRegister DasherRegister = {
 	.name = "dasher",
 	GF_FS_SET_DESCRIPTION("DASH and HLS segmenter")
 	GF_FS_SET_HELP(
-"# GPAC DASH and HLS segmenter\n"
 "This filter provides segmentation and manifest generation for MPEG-DASH and HLS formats.\n"
 "The segmenter currently supports:\n"
 "- MPD and m3u8 generation (potentially in parallel)\n"
@@ -9339,14 +9338,14 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "The filter does perform per-segment real-time regulation using [-sreg]().\n"
 "If you need per-frame real-time regulation on non-real-time inputs, insert a [reframer](reframer) before to perform real-time regulation.\n"
-"EX src=file.mp4 reframer:rt=on -o live.mpd:dmode=dynamic\n"
+"EX gpac -i file.mp4 reframer:rt=on -o live.mpd:dmode=dynamic\n"
 "## Template strings\n"
 "The segmenter uses templates to derive output file names, regardless of the DASH mode (even when templates are not used). "
 "The default one is `$File$_dash` for ondemand and single file modes, and `$File$_$Number$` for separate segment files\n"
 "EX template=Great_$File$_$Width$_$Number$\n"
-"If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640_$Number$ for the DASH template.\n"
+"If input is `foo.mp4` with `640x360` video resolution, this will resolve in `Great_foo_640_$Number$` for the DASH template.\n"
 "EX template=Great_$File$_$Width$\n"
-"If input is foo.mp4 with 640x360 video, this will resolve in Great_foo_640.mp4 for onDemand case.\n"
+"If input is `foo.mp4` with `640x360` video resulution, this will resolve in `Great_foo_640.mp4` for onDemand case.\n"
 "\n"
 "Standard DASH replacement strings: \n"
 "- $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0\n"
@@ -9365,62 +9364,62 @@ GF_FilterRegister DasherRegister = {
 "Note: these strings are replaced in the manifest templates elements.\n"
 "\n"
 "## PID assignment and configuration\n"
-"To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input pid:\n"
-"- Representation: assigns representation ID to input pid. If not set, the default behavior is to have each media component in different adaptation sets. Setting the RepresentationID allows explicit multiplexing of the source(s)\n"
-"- Period: assigns period ID to input pid. If not set, the default behavior is to have all media in the same period with the same start time\n"
-"- PStart: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"
+"To assign PIDs into periods and adaptation sets and configure the session, the segmenter looks for the following properties on each input PID:\n"
+"- `Representation`: assigns representation ID to input PID. If not set, the default behavior is to have each media component in different adaptation sets. Setting the `Representation` allows explicit multiplexing of the source(s)\n"
+"- `Period`: assigns period ID to input PID. If not set, the default behavior is to have all media in the same period with the same start time\n"
+"- `PStart`: assigns period start. If not set, 0 is assumed, and periods appear in the Period ID declaration order. If negative, this gives the period order (-1 first, then -2 ...). If positive, this gives the true start time and will abort DASHing at period end\n"
 "Note: When both positive and negative values are found, the by-order periods (negative) will be inserted AFTER the timed period (positive)\n"
-"- ASID: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
+"- `ASID`: assigns parent adaptation set ID. If not 0, only sources with same AS ID will be in the same adaptation set\n"
 "Note: If multiple streams in source, only the first stream will have an AS ID assigned\n"
-"- xlink: for remote periods, only checked for null pid\n"
-"- Role, PDesc, ASDesc, ASCDesc, RDesc: various descriptors to set for period, AS or representation\n"
-"- BUrl: overrides segmenter [-base] with a set of BaseURLs to use for the pid (per representation)\n"
-"- Template: overrides segmenter [-template]() for this PID\n"
-"- DashDur: overrides segmenter segment duration for this PID\n"
-"- StartNumber: sets the start number for the first segment in the PID, default is 1\n"
-"- IntraOnly: indicates input pid follows HLS EXT-X-I-FRAMES-ONLY guidelines\n"
-"- CropOrigin: indicates x and y coordinates of video for SRD (size is video size)\n"
-"- SRD: indicates SRD position and size of video for SRD, ignored if `CropOrigin` is set\n"
-"- SRDRef: indicates global width and height of SRD, ignored if `CropOrigin` is set\n"
-"- HLSMExt: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
-"- HLSVExt: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
-"- Non-dash properties: Bitrate, SAR, Language, Width, Height, SampleRate, NumChannels, Language, ID, DependencyID, FPS, Interlaced, Codec. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
+"- `xlink`: for remote periods, only checked for null PID\n"
+"- `Role`, `PDesc`, `ASDesc`, `ASCDesc`, `RDesc`: various descriptors to set for period, AS or representation\n"
+"- `BUrl`: overrides segmenter [-base] with a set of BaseURLs to use for the PID (per representation)\n"
+"- `Template`: overrides segmenter [-template]() for this PID\n"
+"- `DashDur`: overrides segmenter segment duration for this PID\n"
+"- `StartNumber`: sets the start number for the first segment in the PID, default is 1\n"
+"- `IntraOnly`: indicates input PID follows HLS EXT-X-I-FRAMES-ONLY guidelines\n"
+"- `CropOrigin`: indicates x and y coordinates of video for SRD (size is video size)\n"
+"- `SRD`: indicates SRD position and size of video for SRD, ignored if `CropOrigin` is set\n"
+"- `SRDRef`: indicates global width and height of SRD, ignored if `CropOrigin` is set\n"
+"- `HLSMExt`: list of extensions to add to master playlist entries, ['foo','bar=val'] added as `,foo,bar=val`\n"
+"- `HLSVExt`: list of extensions to add to variant playlist, ['#foo','#bar=val'] added as `#foo \\n #bar=val`\n"
+"- Non-dash properties: `Bitrate`, `SAR`, `Language`, `Width`, `Height`, `SampleRate`, `NumChannels`, `Language`, `ID`, `DependencyID`, `FPS`, `Interlaced`, `Codec`. These properties are used to setup each representation and can be overridden on input PIDs using the general PID property settings (cf global help).\n"
 "  \n"
-"EX src=test.mp4:#Bitrate=1M dst=test.mpd\n"
+"EX gpac -i test.mp4:#Bitrate=1M -o test.mpd\n"
 "This will force declaring a bitrate of 1M for the representation, regardless of actual input bitrate.\n"
-"EX src=muxav.mp4 dst=test.mpd\n"
-"This will create unmuxed DASH segments.\n"
-"EX src=muxav.mp4:#Representation=1 dst=test.mpd\n"
-"This will create muxed DASH segments.\n"
-"EX src=m1.mp4 src=m2.mp4:#Period=Yep dst=test.mpd\n"
-"This will put src m1.mp4 in first period, m2.mp4 in second period.\n"
-"EX src=m1.mp4:#BUrl=http://foo/bar dst=test.mpd\n"
-"This will assign a baseURL to src m1.mp4.\n"
-"EX src=m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> dst=test.mpd\n"
+"EX gpac -i muxav.mp4 -o test.mpd\n"
+"This will create un-multiplexed DASH segments.\n"
+"EX gpac -i muxav.mp4:#Representation=1 -o test.mpd\n"
+"This will create multiplexed DASH segments.\n"
+"EX gpac -i m1.mp4 -i m2.mp4:#Period=Yep -o test.mpd\n"
+"This will put src `m1.mp4` in first period, `m2.mp4` in second period.\n"
+"EX gpac -i m1.mp4:#BUrl=http://foo/bar -o test.mpd\n"
+"This will assign a baseURL to src `m1.mp4`.\n"
+"EX gpac -i m1.mp4:#ASCDesc=<ElemName val=\"attval\">text</ElemName> -o test.mpd\n"
 "This will assign the specified XML descriptor to the adaptation set.\n"
 "Note:  this can be used to inject most DASH descriptors not natively handled by the segmenter.\n"
 "The segmenter handles the XML descriptor as a string and does not attempt to validate it. Descriptors, as well as some segmenter filter arguments, are string lists (comma-separated by default), so that multiple descriptors can be added:\n"
-"EX src=m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> dst=test.mpd\n"
-"This will insert two descriptors in the representation(s) of m1.mp4.\n"
-"EX src=video.mp4:#Template=foo$Number$ src=audio.mp4:#Template=bar$Number$ dst=test.mpd\n"
+"EX gpac -i m1.mp4:#RDesc=<Elem attribute=\"1\"/>,<Elem2>text</Elem2> -o test.mpd\n"
+"This will insert two descriptors in the representation(s) of `m1.mp4`.\n"
+"EX gpac -i video.mp4:#Template=foo$Number$ -i audio.mp4:#Template=bar$Number$ -o test.mpd\n"
 "This will assign different templates to the audio and video sources.\n"
-"EX src=null:#xlink=http://foo/bar.xml:#PDur=4 src=m.mp4:#PStart=-1\n"
+"EX gpac -i null:#xlink=http://foo/bar.xml:#PDur=4 -i m.mp4:#PStart=-1 -o test.mpd\n"
 "This will insert an create an MPD with first a remote period then a regular one.\n"
-"EX src=null:#xlink=http://foo/bar.xml:#PStart=6 src=m.mp4\n"
+"EX gpac -i null:#xlink=http://foo/bar.xml:#PStart=6 -i m.mp4 -o test.mpd\n"
 "This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.\n"
-"EX src=v1:#SRD=0x0x1280x360:#SRDRef=1280x720 src=vid2:#SRD=0x360x1280x360\n"
-"This will layout the v2 below v1 using a global SRD size of 1280x720.\n"
+"EX gpac -i v1:#SRD=0x0x1280x360:#SRDRef=1280x720 -i v2:#SRD=0x360x1280x360 -o test.mpd\n"
+"This will layout the `v2` below `v1` using a global SRD size of 1280x720.\n"
 "\n"
 "The segmenter will create muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
 "\n"
-"For HLS, the output pid will deliver the master playlist **and** the variant playlists.\n"
+"For HLS, the output PID will deliver the master playlist **and** the variant playlists.\n"
 "The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.\n"
 "\n"
 "## Segmentation\n"
 "The default behavior of the segmenter is to estimate the theoretical start time of each segment based on target segment duration, and start a new segment when a packet with SAP type 1,2,3 or 4 with time greater than the theoretical time is found.\n"
 "This behavior can be changed to find the best SAP packet around a segment theoretical boundary using [-sbound]():\n"
-"- closest mode: the segment will start at the closest SAP of the theoretical boundary\n"
-"- in mode: the segment will start at or before the theoretical boundary\n"
+"- `closest` mode: the segment will start at the closest SAP of the theoretical boundary\n"
+"- `in` mode: the segment will start at or before the theoretical boundary\n"
 "Warning: These modes will introduce delay in the segmenter (typically buffering of one GOP) and should not be used for low-latency modes.\n"
 "The segmenter can also be configured to:\n"
 "- completely ignore SAP when segmenting using [-sap]().\n"
@@ -9459,7 +9458,7 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "Cue files can be specified for the entire segmenter, or per PID using `DashCue` property.\n"
 "Cues are given in an XML file with a root element called <DASHCues>, with currently no attribute specified. The children are one or more <Stream> elements, with attributes:\n"
-"- id: integer for stream/track/pid ID\n"
+"- id: integer for stream/track/PID ID\n"
 "- timescale: integer giving the units of following timestamps\n"
 "- mode: if present and value is `edit`, the timestamp are in presentation time (edit list applied) otherwise they are in media time\n"
 "- ts_offset: integer giving a value (in timescale) to subtract to the DTS/CTS values listed\n"
@@ -9471,7 +9470,7 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "If the `DashCue` property of a PID equals `inband`, the PID will be segmented according to the `CueStart` property of input packets.\n"
 "This feature is typically combined with a list of files as input:\n"
-"EX -i list.m3u:sigcues -o res/live.mpd"
+"EX gpac -i list.m3u:sigcues -o res/live.mpd"
 "This will load the `flist` filter in cue mode, generating continuous timelines from the sources and injecting a `CueStart` property at each new file.\n"
 "\n"
 "If the [-cues]() option equals `none`, the `DashCue` property of input PIDs will be ignored.\n"
@@ -9491,13 +9490,13 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "The manifest generation-only mode supports both MPD and HLS generation.\n"
 "\n"
-"EX -i ondemand_src.mp4 -o dash.mpd:sigfrag:profile=onDemand\n"
+"EX gpac -i ondemand_src.mp4 -o dash.mpd:sigfrag:profile=onDemand\n"
 "This will generate a DASH manifest for onDemand Profile based on the input file.\n"
-"EX -i ondemand_src.mp4 -o dash.m3u8:sigfrag\n"
+"EX gpac -i ondemand_src.mp4 -o dash.m3u8:sigfrag\n"
 "This will generate a HLS manifest based on the input file.\n"
-"EX -i seglist.txt -o dash.mpd:sigfrag\n"
+"EX gpac -i seglist.txt -o dash.mpd:sigfrag\n"
 "This will generate a DASH manifest in Main Profile based on the input files.\n"
-"EX -i seglist.txt:Template=$XInit=init$$q1/$Number$ -o dash.mpd:sigfrag:profile=live\n"
+"EX gpac -i seglist.txt:Template=$XInit=init$$q1/$Number$ -o dash.mpd:sigfrag:profile=live\n"
 "This will generate a DASH manifest in live Profile based on the input files. The input file will contain `init.mp4`, `q1/1.m4s`, `q1/2.m4s`...\n"
 "\n"
 "## Cue Generation only mode\n"
@@ -9513,9 +9512,9 @@ GF_FilterRegister DasherRegister = {
 "- property `DFPStart=0` set if this is the first packet in a period\n"
 "\n"
 "This mode can be used to pre-segment the streams for later processing that must take place before final dashing.\n"
-"EX -i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd\n"
+"EX gpac -i source.mp4 dasher:gencues cecrypt:cfile=roll_seg.xml -o live.mpd\n"
 "This will allow the encrypter to locate dash boundaries and roll keys at segment boundaries.\n"
-"EX -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
+"EX gpac -i s1.mp4 -i s2.mp4:#CryptInfo=clear:#Period=3 -i s3.mp4:#Period=3 dasher:gencues cecrypt:cfile=roll_period.xml -o live.mpd\n"
 "If the DRM file uses `keyRoll=period`, this will generate:\n"
 "- first period crypted with one key\n"
 "- second period clear\n"
@@ -9526,7 +9525,7 @@ GF_FilterRegister DasherRegister = {
 "- inspect packet properties\n"
 " - FileNumber: if set, indicate the start of a new DASH segment\n"
 " - FileName: if set, indicate the file name. If not present, output shall be a single file. This is only set for packet carrying the `FileNumber` property, and only on one PID (usually the first) for multiplexed outputs\n"
-" - IDXName: gives the optional index name (if not present, index shall be in the same file as dash segment). Only used for MPEG-2 TS for now\n"
+" - IDXName: gives the optional index name. If not present, index shall be in the same file as dash segment. Only used for MPEG-2 TS for now\n"
 " - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stopping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
 "- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"
 "- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
@@ -9537,9 +9536,10 @@ GF_FilterRegister DasherRegister = {
 " - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"
 " - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"
 "\n"
-"The segmenter will add the following properties to the output PIDs:\n"
+"The segmenter adds the following properties to the output PIDs:\n"
 "- DashMode: identifies VoD (single file with global index) or regular DASH mode used by segmenter\n"
 "- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
+"- LLHLS: identifies LLHLS is used; the muxer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,

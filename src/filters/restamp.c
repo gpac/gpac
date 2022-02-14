@@ -415,12 +415,12 @@ static void restamp_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(RestampCtx, _n)
 static GF_FilterArgs RestampArgs[] =
 {
-	{ OFFS(fps), "target fps - see filter help", GF_PROP_FRACTION, "0/1", NULL, 0},
+	{ OFFS(fps), "target fps", GF_PROP_FRACTION, "0/1", NULL, 0},
 	{ OFFS(delay_v), "delay to add to video streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_a), "delay to add to audio streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_t), "delay to add to text streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_o), "delay to add to other streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
-	{ OFFS(rawv), "copy video frames - see filter help\n"
+	{ OFFS(rawv), "copy video frames\n"
 		"- no: no raw frame copy/drop\n"
 		"- force: force decoding all video streams\n"
 		"- dyn: decoding video streams if not all intra"
@@ -455,7 +455,7 @@ GF_FilterRegister RestampRegister = {
 	"- if 0 or if the stream is audio, stream rate is not modified.\n"
 	"- otherwise if negative, stream rate is multiplied by `-fps.num/fps.den`.\n"
 	"- otherwise if positive and the stream is not video, stream rate is not modified.\n"
-	"- otherwise (video pid), constant frame rate is assumed and:\n"
+	"- otherwise (video PID), constant frame rate is assumed and:\n"
 	"  - if [-rawv=no](), video frame rate is changed to the specified rate (speed-up or slow-down).\n"
 	"  - if [-rawv=force](), input video stream is decoded and video frames are dropped/copied to match the new rate.\n"
 	"  - if [-rawv=dyn](), input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.\n"

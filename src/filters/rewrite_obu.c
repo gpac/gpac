@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / AV1 OBU rewrite filter
@@ -430,10 +430,10 @@ static const GF_FilterArgs OBUMxArgs[] =
 GF_FilterRegister OBUMxRegister = {
 	.name = "ufobu",
 	GF_FS_SET_DESCRIPTION("IVF/OBU/annexB writer")
-	GF_FS_SET_HELP("This filter rewrites IVF (VPx, AV1) and OBU (AV1) bitstreams into a IVF, annexB or OBU sequence.\n"
-	"Note1: VP8/9 are IVF-only (equivalent to .ivf in :ext property).\n"
-	"Note2: The temporal delimiter OBU is re-inserted in annexB (.av1 and .av1b, with obu_size set)\n"
-	"       and OBU sequences (.obu, without obu_size)")
+	GF_FS_SET_HELP("This filter rewrites VPx or AV1 bitstreams into a IVF, annexB or OBU sequence.\n"
+	"The temporal delimiter OBU is re-inserted in annexB (`.av1` and `.av1b`files, with obu_size set) and OBU sequences (`.obu`files, without obu_size)\n"
+	"Note: VP8/9 codecs will only use IVF output (equivalent to file extension `.ivf` or `:ext=ivf` set on output).\n"
+	)
 	.private_size = sizeof(GF_OBUMxCtx),
 	.args = OBUMxArgs,
 	SETCAPS(OBUMxCaps),

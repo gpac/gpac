@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -2824,8 +2824,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 
 #ifdef MESH_USE_SFCOLOR
-		/*this is a real pain: we cannot "scale" colors through openGL, and our components are 16.16 (32 bytes) ranging
-		from [0 to 65536] mapping to [0, 1.0], but openGL assumes for s32 a range from [-2^31 2^31] mapping to [0, 1.0]
+		/*this is a real pain: we cannot "scale" colors through OpenGL, and our components are 16.16 (32 bytes) ranging
+		from [0 to 65536] mapping to [0, 1.0], but OpenGL assumes for s32 a range from [-2^31 2^31] mapping to [0, 1.0]
 		we must thus rebuild a dedicated array...*/
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			u32 i;
@@ -3638,7 +3638,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	}
 
 #ifndef GPAC_USE_TINYGL
-	/*flip image (openGL always handle image data bottom to top) */
+	/*flip image (OpenGL always handle image data bottom to top) */
 	u32 hy = fb->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(compositor->line_buffer, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
@@ -3677,7 +3677,7 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 	glDisable(GL_TEXTURE_2D);
 
-	/*flip image (openGL always handle image data bottom to top) */
+	/*flip image (OpenGL always handle image data bottom to top) */
 	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
 	hy = fb->height/2;
 	for (i=0; i<hy; i++) {

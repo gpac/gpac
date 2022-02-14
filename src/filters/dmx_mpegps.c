@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG Program Stream demuxer filter
@@ -472,7 +472,7 @@ static const GF_FilterCapability M2PSDmxCaps[] =
 GF_FilterRegister M2PSDmxRegister = {
 	.name = "m2psdmx",
 	GF_FS_SET_DESCRIPTION("MPEG PS demuxer")
-	GF_FS_SET_HELP("This filter demultiplexes MPEG-2 program stream files/data to produce media PIDs and frames.")
+	GF_FS_SET_HELP("This filter demultiplexes MPEG-2 program streams to produce media PIDs and frames.")
 	.private_size = sizeof(GF_M2PSDmxCtx),
 	.initialize = m2psdmx_initialize,
 	.finalize = m2psdmx_finalize,

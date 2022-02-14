@@ -2097,11 +2097,11 @@ static Bool routeout_use_alias(GF_Filter *filter, const char *url, const char *m
 
 static const GF_FilterArgs ROUTEOutArgs[] =
 {
-	{ OFFS(dst), "destination URL - see filter help", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(dst), "destination URL", GF_PROP_NAME, NULL, NULL, 0},
 	{ OFFS(ext), "set extension for graph resolution, regardless of file extension", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(carousel), "carousel period in ms for repeating signaling and raw file data - see filter help", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(carousel), "carousel period in ms for repeating signaling and raw file data", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(first_port), "port number of first ROUTE session in ATSC mode", GF_PROP_UINT, "6000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ip), "mulicast IP address for ROUTE session in ATSC mode", GF_PROP_STRING, "225.1.1.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ttl), "time-to-live for multicast packets", GF_PROP_UINT, "0", NULL, 0},
@@ -2114,7 +2114,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 		, GF_PROP_UINT, "off", "off|type|all", 0},
 	{ OFFS(korean), "use Korean version of ATSC 3.0 spec instead of US", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(llmode), "use low-latency mode", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
-	{ OFFS(brinc), "bitrate increase in percent when estimating timing in low latency mode - see filter help", GF_PROP_UINT, "10", NULL, GF_ARG_HINT_EXPERT},
+	{ OFFS(brinc), "bitrate increase in percent when estimating timing in low latency mode", GF_PROP_UINT, "10", NULL, GF_ARG_HINT_EXPERT},
 	{ OFFS(noreg), "disable rate regulation for media segments, pushing them as fast as received", GF_PROP_BOOL, "false", NULL, GF_ARG_HINT_EXPERT},
 
 	{ OFFS(runfor), "run for the given time in ms", GF_PROP_UINT, "0", NULL, 0},
@@ -2196,7 +2196,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd dashin:forward=file -o atsc://\n"
 		"Dashing and muxing in route:\n"
 		"EX gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd\n"
-		"Dashing and muxing in route Low Latency (experimental):\n"
+		"Dashing and muxing in route Low Latency:\n"
 		"EX gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode\n"
 		"\n"
 		"Sending a single file in ROUTE using half a second upload time, 2 seconds carousel:\n"

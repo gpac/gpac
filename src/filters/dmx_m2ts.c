@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / M2TS demux filter
@@ -432,6 +432,17 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SCALABLE, has_scal_layer ? &PROP_BOOL(GF_TRUE) : NULL);
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
+
+	if (stream->lang) {
+		char szLang[4];
+		szLang[0] = (stream->lang>>16) & 0xFF;
+		szLang[1] = (stream->lang>>8) & 0xFF;
+		szLang[2] = stream->lang & 0xFF;
+		szLang[3] = 0;
+		if (szLang[2]==' ') szLang[2] = 0;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(szLang) );
+	}
+
 
 	if (ctx->duration.num>1) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
@@ -1280,7 +1291,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(temi_url), "force TEMI URL", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(sigfrag), "signal segment boundaries of source on output packets", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 

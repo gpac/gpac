@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / modules interfaces
@@ -101,9 +101,9 @@ typedef struct _gf_sc_texture_handler GF_TextureH;
 	the app accesses to the surface through the GF_VideoSurface handler.
 	The module may support HW blitting of RGB or YUV data to backbuffer.
 
-	** the 3D video output only handles window management and openGL contexts setup.
+	** the 3D video output only handles window management and OpenGL contexts setup.
 	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main
-	rendering thread. This will take care of openGL context issues with multithreading
+	rendering thread. This will take care of OpenGL context issues with multithreading
 
 	By default all modules are required to be setup in 2D. If 3D is needed, a GF_EVENT_VIDEO_SETUP will
 	be sent with the desired configuration.

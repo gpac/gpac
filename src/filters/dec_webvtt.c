@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Cyril Concolato - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2013-2021
+ *			Copyright (c) Telecom ParisTech 2013-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / WebVTT decoder filter
@@ -463,9 +463,9 @@ void vttd_finalize(GF_Filter *filter)
 static const GF_FilterArgs VTTDecArgs[] =
 {
 	{ OFFS(script), "location of WebVTT SVG JS renderer", GF_PROP_STRING, "$GSHARE/scripts/webvtt-renderer.js", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(font), "font to use", GF_PROP_STRING, "SANS", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(fontSize), "font size to use", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(color), "color to use", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(font), "font", GF_PROP_STRING, "SANS", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(fontSize), "font size", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
+	{ OFFS(color), "text color", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(txtx), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(txty), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},

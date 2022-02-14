@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / rtp output filter
@@ -1180,9 +1180,9 @@ static const GF_FilterArgs RTPOutArgs[] =
 	{ OFFS(tso), "set timestamp offset in microseconds. Negative value means random initial timestamp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps), "force parameter set injection at each SAP. If not set, only inject if different from SDP ones", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(latm), "use latm for AAC payload format", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(dst), "URL for direct RTP mode - see filter help", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(ext), "file extension for direct RTP mode - see filter help", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mime), "set mime type for direct RTP mode - see filter help", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dst), "URL for direct RTP mode", GF_PROP_NAME, NULL, NULL, 0},
+	{ OFFS(ext), "file extension for direct RTP mode", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mime), "set mime type for direct RTP mode", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -1192,9 +1192,9 @@ GF_FilterRegister RTPOutRegister = {
 	GF_FS_SET_DESCRIPTION("RTP Streamer")
 	GF_FS_SET_HELP("The RTP streamer handles SDP/RTP output streaming.\n"
 	"# SDP mode\n"
-	"When the destination url is an SDP, the filter outputs an SDP on a file pid and streams RTP packets over UDP, starting from the indicated [-port]().\n"
+	"When the destination URL is an SDP, the filter outputs an SDP on a file PID and streams RTP packets over UDP, starting from the indicated [-port]().\n"
 	"# Direct RTP mode\n"
-	"When the destination url uses the protocol scheme `rtp://IP:PORT`, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first [-port]() configured.\n"
+	"When the destination URL uses the protocol scheme `rtp://IP:PORT`, the filter does not output any SDP and streams a single input over RTP, using PORT indicated in the destination URL, or the first [-port]() configured.\n"
 	"In this mode, it is usually needed to specify the desired format using [-ext]() or [-mime]().\n"
 	"EX gpac -i src -o rtp://localhost:1234/:ext=ts\n"
 	"This will indicate that the RTP streamer expects a MPEG-2 TS mux as an input.\n"
@@ -1202,9 +1202,9 @@ GF_FilterRegister RTPOutRegister = {
 	"The RTP packets produced have a maximum payload set by the [-mtu]() option (IP packet will be MTU + 40 bytes of IP+UDP+RTP headers).\n"
 	"The real-time scheduling algorithm works as follows:\n"
 	"- first initialize the clock by:\n"
-	" - computing the smallest timestamp for all input pids\n"
-	" - mapping this media time to the system clock\n"
-	"- determine the earliest packet to send next on each input pid, adding [-delay]() if any\n"
+	"  - computing the smallest timestamp for all input PIDs\n"
+	"  - mapping this media time to the system clock\n"
+	"- determine the earliest packet to send next on each input PID, adding [-delay]() if any\n"
 	"- finally compare the packet mapped timestamp __TS__ to the system clock __SC__. When __TS__ - __SC__ is less than [-tt](), the RTP packets for the source packet are sent\n"
 	)
 	.private_size = sizeof(GF_RTPOutCtx),

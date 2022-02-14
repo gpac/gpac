@@ -3201,8 +3201,8 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- min_q: start with lowest quality\n"
 		"- max_q: start with highest quality\n"
 		"- min_bw: start with lowest bitrate\n"
-		"- max_bw: start with highest bitrate; for tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n"
-		"- max_bw_tiles: start with highest bitrate; for tiles all low priority tiles will have their lowest bandwidth selected"
+		"- max_bw: start with highest bitrate; if tiles are used, all low priority tiles will have the lower (below max) bandwidth selected\n"
+		"- max_bw_tiles: start with highest bitrate; if tiles are used, all low priority tiles will have their lowest bandwidth selected"
 		, GF_PROP_UINT, "max_bw", "min_q|max_q|min_bw|max_bw|max_bw_tiles", 0},
 
 	{ OFFS(max_res), "use max media resolution to configure display", GF_PROP_BOOL, "true", NULL, 0},
@@ -3214,7 +3214,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(server_utc), "use ServerUTC: or Date: http headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(server_utc), "use `ServerUTC` or `Date` HTTP headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(init_timeshift), "set initial timeshift in ms (if >0) or in per-cent of timeshift buffer (if <0)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tile_mode), "tile adaptation mode\n"
@@ -3232,7 +3232,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(delay40X), "delay in milliseconds to wait between two 40X on the same segment", GF_PROP_UINT, "500", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(exp_threshold), "delay in milliseconds to wait after the segment AvailabilityEndDate before considering the segment lost", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(switch_count), "indicate how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations", GF_PROP_UINT, "1", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(aggressive), "if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(aggressive), "if enabled, switching algo targets the closest bandwidth fitting the available download rate. If no, switching algo targets the lowest bitrate representation that is above the currently played (e.g. does not try to switch to max bandwidth)", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(debug_as), "play only the adaptation sets indicated by their indices (0-based) in the MPD", GF_PROP_UINT_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(speedadapt), "enable adaptation based on playback speed", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(noxlink), "disable xlink if period has both xlink and adaptation sets", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -3244,9 +3244,9 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- no: disable low latency\n"
 		"- strict: strict respect of AST offset in low latency\n"
 		"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(forward), "segment forwarding mode  -see filter help\n"
+	{ OFFS(forward), "segment forwarding mode\n"
 		"- none: regular DASH read\n"
-		"- file: do not demux files and forward them as file pids (imply `segstore=mem`)\n"
+		"- file: do not demux files and forward them as file PIDs (imply `segstore=mem`)\n"
 		"- segb: turn on [-split_as](), segment and fragment bounds signaling (`sigfrag`) in sources and DASH cue insertion\n"
 		"- mani: same as `segb` and also forward manifests"
 	, GF_PROP_UINT, "none", "none|file|segb|mani", GF_FS_ARG_HINT_ADVANCED},
@@ -3285,7 +3285,7 @@ static const GF_FilterCapability DASHDmxCaps[] =
 GF_FilterRegister DASHDmxRegister = {
 	.name = "dashin",
 	GF_FS_SET_DESCRIPTION("MPEG-DASH and HLS client")
-	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth manifests and produce media output according to its mode.\n"
+	GF_FS_SET_HELP("This filter reads MPEG-DASH, HLS and MS Smooth manifests.\n"
 	"\n"
 	"# Regular mode\n"
 	"This is the default mode, in which the filter produces media PIDs and frames from sources indicated in the manifest.\n"
@@ -3293,7 +3293,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"- run with no adaptation, to grab maximum quality.\n"
 	"EX gpac -i MANIFEST_URL:algo=none:start_with=max_bw -o dest.mp4\n"
 	"- run with no adaptation, fetching all qualities.\n"
-	"EX gpac -i MANIFEST_URL:split_as fout:dst=$File$.mp4:clone\n"
+	"EX gpac -i MANIFEST_URL:split_as -o dst=$File$.mp4:clone\n"
 	"\n"
 	"# File mode\n"
 	"When [-forward]() is set to `file`, the client forwards media files without demultiplexing them.\n"
@@ -3311,7 +3311,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"# Segment bound modes\n"
 	"When [-forward]() is set to `segb` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"
 	"\n"
-	"This mode can be used to process media data and regenerating the same manifest/segmentation.\n"
+	"This mode can be used to process media data and regenerate the same manifest/segmentation.\n"
 	"\n"
 	"EX gpac -i MANIFEST_URL:forward=mani cecrypt:cfile=DRM.xml -o encrypted/live.mpd:pssh=mv\n"
 	"This will encrypt an existing DASH session, inject PSSH in manifest and segments.\n"
@@ -3319,19 +3319,18 @@ GF_FilterRegister DASHDmxRegister = {
 	"EX gpac -i MANIFEST_URL:forward=segb cecrypt:cfile=DRM.xml -o encrypted/live.m3u8\n"
 	"This will encrypt an existing DASH session and republish it as HLS, using same segment names and boundaries.\n"
 	"\n"
-	"This mode will force [-noseek]() to `true` to ensure the first segment fetched is complete, and [-split_as]() to `true` to fetch all qualities.\n"
+	"This mode will force [-noseek]()=`true` to ensure the first segment fetched is complete, and [-split_as]()=`true` to fetch all qualities.\n"
 	"\n"
 	"Each first packet of a segment will have the following properties attached:\n"
-	"- `CueStart`: to indicate this is a segment start (set by demuxer if it offers `sigfrag` option)\n"
+	"- `CueStart`: indicate this is a segment start\n"
 	"- `FileNumber`: current segment number\n"
 	"- `FileName`: current segment file name without manifest base url\n"
-	"\n"
-	"If this first packet is also the first in the period, it will have the property `DFPStart` set with value 0.\n"
+	"- `DFPStart`: set with value `0` if this is the first packet in the period, absent otherwise\n"
 	"\n"
 	"If [-forward]() is set to `mani`, the first packet of a segment dispatched after a manifest update will also carry the manifest payload as a property:\n"
 	"- `DFManifest`: contains main manifest (MPD, M3U8 master)\n"
 	"- `DFVariant`: contains list of HLS child playlists as strings for the given quality\n"
-	"- `DFVariantName`: contains list of associated HLS child playlists name\n"
+	"- `DFVariantName`: contains list of associated HLS child playlists name, in same order as manifests in `DFVariant`\n"
 	"\n"
 	"Each output PID will have the following properties assigned:\n"
 	"- `DFMode`: set to 1 for `segb` or 2 for `mani`\n"
@@ -3345,8 +3344,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"- `init_url`: unresolved intialization URL (as it appears in the manifest)\n"
 	"- `manifest_url`: manifest URL\n"
 	"\n"
-	"When the [dasher](dasher) is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones.\n"
-	"It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.\n"
+	"When the [dasher](dasher) is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones. It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.\n"
 	)
 	.private_size = sizeof(GF_DASHDmxCtx),
 	.initialize = dashdmx_initialize,

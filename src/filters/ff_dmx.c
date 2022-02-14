@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg demux filter
@@ -868,7 +868,7 @@ GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
 	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
-	GF_FS_SET_HELP("Demultiplexes files and open protocol using FFMPEG.\n"
+	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
 	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
 	"This will list both supported input formats and protocols.\n"
@@ -1158,7 +1158,7 @@ GF_FilterRegister FFAVInRegister = {
 	"- `FaceTime HD Camera` on OSX, device name on windows, `/dev/video0` on linux\n"
 	"- `screen-capture-recorder`, see http://screencapturer.sf.net/ on windows\n"
 	"- `Capture screen 0` on OSX (0=first screen), or `screenN` for short\n"
-	"- X display name (eg `:0.0`) on linux\n"
+	"- X display name (e.g. `:0.0`) on linux\n"
 	"\n"
 	"The general mapping from ffmpeg command line is:\n"
 	"- ffmpeg `-f` maps to [-fmt]() option\n"
@@ -1183,8 +1183,8 @@ GF_FilterRegister FFAVInRegister = {
 static const GF_FilterArgs FFAVInArgs[] =
 {
 	{ OFFS(src), "url of device, `video://`, `audio://` or `av://`", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(fmt), "name of device class - see filter help. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(dev), "name of device or index of device - see filter help", GF_PROP_STRING, "0", NULL, 0},
+	{ OFFS(fmt), "name of device class. If not set, defaults to first device class", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(dev), "name of device or index of device", GF_PROP_STRING, "0", NULL, 0},
 	{ OFFS(copy), "set copy mode of raw frames\n"
 		"- N: frames are only forwarded (shared memory, no copy)\n"
 		"- A: audio frames are copied, video frames are forwarded\n"
@@ -1192,9 +1192,9 @@ static const GF_FilterArgs FFAVInArgs[] =
 		"- AV: all frames are copied"
 		"", GF_PROP_UINT, "A", "N|A|V|AV", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(sclock), "use system clock (us) instead of device timestamp (for buggy devices)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(probes), "probe a given number of video frames before emitting - this usually helps with bad timing of the first frames", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(probes), "probe a given number of video frames before emitting (this usually helps with bad timing of the first frames)", GF_PROP_UINT, "10", "0-100", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ "*", -1, "any possible options defined for AVInputFormat and AVFormatContext. See `gpac -hx ffavin` and `gpac -hx ffavin:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVInputFormat and AVFormatContext (see `gpac -hx ffavin` and `gpac -hx ffavin:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 

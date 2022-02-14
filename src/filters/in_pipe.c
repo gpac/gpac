@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / pipe input filter
@@ -511,10 +511,10 @@ static const GF_FilterArgs PipeInArgs[] =
 	{ OFFS(block_size), "buffer size used to read pipe", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ext), "indicate file extension of pipe data", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(mime), "indicate mime type of pipe data", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(blk), "open pipe in block mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ka), "keep-alive pipe when end of input is detected - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(mkp), "create pipe if not found - see filter help", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(sigeos), "signal end of stream whenever a pipe breaks in keep-alive mode - see filter help", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(blk), "open pipe in block mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ka), "keep-alive pipe when end of input is detected", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(mkp), "create pipe if not found", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(sigeos), "signal end of stream whenever a pipe breaks in keep-alive mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -537,25 +537,26 @@ GF_FilterRegister PipeInRegister = {
 		"EX gpac -i stdin vout\n"
 		"\n"
 		"# Named pipes\n"
-		"The filter can handle reading from named pipes. The associated protocol scheme is `pipe://` when loaded as a generic input (eg, `-i pipe://URL` where URL is a relative or absolute pipe name).\n"
+		"The filter can handle reading from named pipes. The associated protocol scheme is `pipe://` when loaded as a generic input (e.g. `-i pipe://URL` where URL is a relative or absolute pipe name).\n"
 		"On Windows hosts, the default pipe prefix is `\\\\.\\pipe\\gpac\\` if no prefix is set.\n"
-		"EX dst=mypipe resolves in \\\\.\\pipe\\gpac\\mypipe\n"
-		"EX dst=\\\\.\\pipe\\myapp\\mypipe resolves in \\\\.\\pipe\\myapp\\mypipe\n"
+		"`dst=mypipe` resolves in `\\\\.\\pipe\\gpac\\mypipe`\n"
+		"`dst=\\\\.\\pipe\\myapp\\mypipe` resolves in `\\\\.\\pipe\\myapp\\mypipe`\n"
 		"Any destination name starting with `\\\\` is used as is, with `\\` translated in `/`.\n"
 		"\n"
 		"Input pipes are created by default in non-blocking mode.\n"
 		"\n"
 		"The filter can create the pipe if not found using [-mkp](). On windows hosts, this will create a pipe server.\n"
 		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction.\n"
-		"\n"
+		"  \n"
 		"Input pipes can be setup to run forever using [-ka](). In this case:\n"
 		"- any potential pipe close on the writing side will be ignored\n"
 		"- end of stream will be triggered upon pipe close if [-sigeos]() is set\n"
 		"- final end of stream will be triggered upon session close.\n"
+		"  \n"
 		"This can be useful to pipe raw streams from different process into gpac:\n"
-		"Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
-		"Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
-		"\n"
+		"- Receiver side: `gpac -i pipe://mypipe:ext=.264:mkp:ka`\n"
+		"- Sender side: `cat raw1.264 > mypipe && gpac -i raw2.264 -o pipe://mypipe:ext=.264`"
+		"  \n"
 		"The pipe input can be created in blocking mode or non-blocking mode.\n"
 	"")
 	.private_size = sizeof(GF_PipeInCtx),

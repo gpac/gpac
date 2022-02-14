@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2021
+ *			Copyright (c) Telecom ParisTech 2021-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / file crypt/decrypt for full segment encryption filter
@@ -333,10 +333,11 @@ GF_FilterRegister CryptFinRegister = {
 	GF_FS_SET_DESCRIPTION("CryptFile input")
 	GF_FS_SET_HELP("This filter dispatch raw blocks from encrypted files with AES 128 CBC in PKCS7 to clear input files\n"
 	"\n"
+	"The filter is automatically loaded by the DASH/HLS demultiplexer and should not be explicitly loaded by your application.\n"
+	"\n"
 	"The filter accepts URL with scheme `gcryp://URL`, where `URL` is the URL to decrypt.\n"
 	"\n"
-	"The filter can process http(s) and local file key URLs, and expects a full key (16 bytes) as result of resource fetching.\n"
-	"The special URL `urn:gpac:keys:value:VALUE` can also be used, with `VALUE` containing the 16 bytes of the key in hexadecimal.\n"
+	"The filter can process http(s) and local file key URLs (setup through HLS manifest), and expects a full key (16 bytes) as result of resource fetching.\n"
 	)
 	.private_size = sizeof(GF_CryptFileCtx),
 	.args = CryptFinArgs,
@@ -611,6 +612,8 @@ GF_FilterRegister CryptFoutRegister = {
 	.name = "cryptout",
 	GF_FS_SET_DESCRIPTION("CryptFile output")
 	GF_FS_SET_HELP("This filter dispatch raw blocks from clear input files to encrypted files with AES 128 CBC in PKCS7\n"
+	"\n"
+	"The filter is automatically loaded by the DASH/HLS multiplexer and should not be explicitly loaded by your application.\n"
 	"\n"
 	"The filter accepts URL with scheme `gcryp://URL`, where `URL` is the URL to encrypt.")
 	.private_size = sizeof(GF_CryptFileCtx),

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / QCP stream to file filter
@@ -377,7 +377,7 @@ static const GF_FilterArgs QCPMxArgs[] =
 GF_FilterRegister QCPMxRegister = {
 	.name = "writeqcp",
 	GF_FS_SET_DESCRIPTION("QCP writer")
-	GF_FS_SET_HELP("This filter converts a single stream to a QCP output file.")
+	GF_FS_SET_HELP("This filter converts a single QCELP, EVRC or MSV stream to a QCP output file.")
 	.private_size = sizeof(GF_QCPMxCtx),
 	.args = QCPMxArgs,
 	SETCAPS(QCPMxCaps),

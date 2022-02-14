@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom Paris 2019-2020
+ *			Copyright (c) Telecom Paris 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ffmpeg muxer filter
@@ -1160,15 +1160,15 @@ GF_FilterRegister FFMuxRegister = {
 static const GF_FilterArgs FFMuxArgs[] =
 {
 	{ OFFS(dst), "location of destination file or remote URL", GF_PROP_NAME, NULL, NULL, 0},
-	{ OFFS(start), "set playback start offset. Negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
-	{ OFFS(speed), "set playback speed. If speed is negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
+	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes. See `gpac -hx ffmx` and `gpac -hx ffmx:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
+	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };
 
