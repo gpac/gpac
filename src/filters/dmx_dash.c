@@ -1412,9 +1412,9 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	else
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, NULL);
 
-	dur = (1000*gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx) );
-	if (dur>0)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(dur, 1000) );
+	dur = gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx);
+	if ((s32) dur > 0)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_DEPTH, &PROP_FRAC_INT(1000*dur, 1000) );
 
 
 	if (ctx->use_bmin==BMIN_MPD) {
@@ -1546,6 +1546,7 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 		if (segdur) {
 			tsb *= timescale;
 			tsb /= segdur;
+			tsb /= 1000; //tsb given in ms
 		} else {
 			tsb = 0;
 		}

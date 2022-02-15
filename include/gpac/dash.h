@@ -404,7 +404,7 @@ u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 group_idx);
 /*! gets time shift buffer depth of the group
 \param dash the target dash client
 \param group_idx the 0-based index of the target group
-\return time shift buffer depth of the group, -1 means infinity
+\return time shift buffer depth in ms of the group, -1 means infinity
 */
 u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 group_idx);
 
