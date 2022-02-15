@@ -1036,7 +1036,7 @@ MP4BoxArg m4b_hint_args[] =
  	MP4BOX_ARG("mpeg4", "force MPEG-4 generic payload whenever possible", GF_ARG_BOOL, 0, &import_flags, GF_IMPORT_FORCE_MPEG4, ARG_BIT_MASK),
  	MP4BOX_ARG("latm", "force MPG4-LATM transport for AAC streams", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_USE_LATM_AAC, ARG_BIT_MASK),
  	MP4BOX_ARG("static", "enable static RTP payload IDs whenever possible (by default, dynamic payloads are always used)", GF_ARG_BOOL, 0, &hint_flags, GP_RTP_PCK_USE_STATIC_ID, ARG_BIT_MASK),
- 	MP4BOX_ARG("add-sdp", "add given SDP string to hint track (`tkID:string`) or movie (`string`)", GF_ARG_STRING, 0, parse_sdp_ext, 0, ARG_IS_FUN),
+ 	MP4BOX_ARG("add-sdp", "add given SDP string to movie (`string`) or track (`tkID:string`), `tkID` being the track ID or the hint track ID", GF_ARG_STRING, 0, parse_sdp_ext, 0, ARG_IS_FUN),
  	MP4BOX_ARG("no-offset", "signal no random offset for sequence number and timestamp (support will depend on server)", GF_ARG_BOOL, 0, &hint_no_offset, 0, 0),
  	MP4BOX_ARG("unhint", "remove all hinting information from file", GF_ARG_BOOL, 0, &remove_hint, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-single", "put all tracks in a single hint group", GF_ARG_BOOL, 0, &single_group, 0, 0),
@@ -1701,7 +1701,7 @@ u32 parse_sdp_ext(char *arg_val, u32 param)
 	id = strchr(arg_val, ':');
 	if (id) {
 		id[0] = 0;
-		if (sscanf(arg_val, "%u", &sdp_lines[0].trackID) == 1) {
+		if (sscanf(arg_val, "%u", &sdp_lines[nb_sdp_ex].trackID) == 1) {
 			id[0] = ':';
 			sdp_lines[nb_sdp_ex].line = id + 1;
 		}
