@@ -406,7 +406,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					ch->sample = NULL;
 					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, &ch->sample_data_offset);
 
-					if (e == GF_OK) ch->sample = ch->static_sample;
+					ch->sample = (e == GF_OK) ? ch->static_sample : NULL;
 
 					/*if no sync point in the past, use the first non-sync for the given time*/
 					if (!ch->sample || !ch->sample->data) {
@@ -838,10 +838,11 @@ void isor_reader_check_config(ISOMChannel *ch)
 	if (!ch->nal_bs) ch->nal_bs = gf_bs_new(ch->sample->data, ch->sample->dataLength, GF_BITSTREAM_READ);
 	else gf_bs_reassign_buffer(ch->nal_bs, ch->sample->data, ch->sample->dataLength);
 
-	while (gf_bs_available(ch->nal_bs)) {
+	while (1) {
 		Bool replace_nal = GF_FALSE;
 		u8 nal_type=0;
 		u32 pos = (u32) gf_bs_get_position(ch->nal_bs);
+		if (pos + nalu_len >= ch->sample->dataLength) break;
 		u32 size = gf_bs_read_int(ch->nal_bs, nalu_len*8);
 		//this takes care of size + pos + nalu_len > 0 but (s32) size < 0 ...
 		if (ch->sample->dataLength < size) break;
