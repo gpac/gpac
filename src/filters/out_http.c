@@ -77,7 +77,8 @@ typedef struct
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_PropStringList rdirs;
 	Bool close, hold, quit, post, dlist, ice;
-	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors, max_mem_segs;
+	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors;
+	s32 max_cache_segs;
 
 	//internal
 	GF_Filter *filter;
@@ -146,9 +147,13 @@ typedef struct __httpout_input
     Bool force_dst_name;
     Bool in_error;
 
+	//max number of files to keep per pid
+	u32 max_segs;
+	//list of past files in non-mem mode
+	GF_List *past_files;
+
 	//list of files created in mem - read-only fileios are not stored here
-	GF_List *fileios;
-	u32 max_mem_segs;
+	GF_List *mem_files;
 	Bool is_manifest;
 
 } GF_HTTPOutInput;
@@ -302,7 +307,7 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 			if (!par->nb_used && par->do_remove) {
 				assert(par->in);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] delete old version of input file %s\n", gf_fileio_resource_url(ioctx->fio) ));
-				gf_list_del_item(par->in->fileios, par);
+				gf_list_del_item(par->in->mem_files, par);
 				httpio_del(par);
 			}
 			return NULL;
@@ -311,19 +316,19 @@ static GF_FileIO *httpio_open(GF_FileIO *fileio_ref, const char *url, const char
 		assert(ioctx->in);
 
 		//purge old files
-		count = gf_list_count(ioctx->in->fileios);
-		if (count > ioctx->in->max_mem_segs) count -= ioctx->in->max_mem_segs;
+		count = gf_list_count(ioctx->in->mem_files);
+		if (count > ioctx->in->max_segs) count -= ioctx->in->max_segs;
 		else count = 0;
 
 		for (i=0; i<count; i++) {
-			GF_HTTPFileIO *old = gf_list_get(ioctx->in->fileios, i);
+			GF_HTTPFileIO *old = gf_list_get(ioctx->in->mem_files, i);
 			//static file (init seg, manifest), do not purge
 			if (old->is_static) continue;
 			//stop at first used io, or first HLS low latency chunk, if any
 			if (old->nb_used || old->hls_ll_chunk) break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_mem_seg %d\n", gf_fileio_resource_url(old->fio), count));
-			gf_list_rem(ioctx->in->fileios, i);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] remove %s in write mode, exceed max_cache_seg %d\n", gf_fileio_resource_url(old->fio), count));
+			gf_list_rem(ioctx->in->mem_files, i);
 			httpio_del(old);
 			i--;
 			count--;
@@ -1023,10 +1028,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			source_pid_is_ll_hls_chunk = GF_TRUE;
 			break;
 		}
-		if (in->fileios) {
-			u32 j, count2 = gf_list_count(in->fileios);
+		if (in->mem_files) {
+			u32 j, count2 = gf_list_count(in->mem_files);
 			for (j=0; j<count2; j++) {
-				GF_HTTPFileIO *hio = gf_list_get(in->fileios, j);
+				GF_HTTPFileIO *hio = gf_list_get(in->mem_files, j);
 				if (hio->do_remove) continue;
 				const char *fio_url = gf_fileio_resource_url(hio->fio);
 				//skip "gmem"
@@ -1694,18 +1699,27 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		pctx->patch_blocks = patch_blocks;
 		pctx->hold = ctx->hold;
 
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
 		if (ctx->mem_fileio) {
-            p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
-			pctx->fileios = gf_list_new();
-			pctx->max_mem_segs = ctx->max_mem_segs;
-			if (p && p->value.uint) {
-				if (p->value.uint > ctx->max_mem_segs) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max mem segments set to %d, may result in client errors\n\tTry increasing memory buffer using --max_mem_segs\n", p->value.uint, ctx->max_mem_segs));
-				} else {
-					pctx->max_mem_segs = p->value.uint;
-				}
+			pctx->mem_files = gf_list_new();
+			pctx->max_segs = (u32) ctx->max_cache_segs;
+		} else {
+			pctx->past_files = gf_list_new();
+			if (ctx->max_cache_segs<0) {
+				pctx->max_segs = (u32) (-ctx->max_cache_segs);
+				p = NULL;
+			} else if (p) {
+				pctx->max_segs = (u32) ctx->max_cache_segs;
 			}
 		}
+		if (p && p->value.uint) {
+			if (ctx->mem_fileio && (p->value.uint > ctx->max_cache_segs)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max segments cache set to %d, may result in client errors\n\tTry increasing segemnt buffer using --max_cache_segs\n", p->value.uint, ctx->max_cache_segs));
+			} else {
+				pctx->max_segs = p->value.uint;
+			}
+		}
+
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
 		if (p && p->value.boolean) pctx->is_manifest = GF_TRUE;
 
@@ -1957,7 +1971,8 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 		if (ctx->rdirs.nb_items && !strcmp(ctx->rdirs.vals[0], "gmem")) {
 			ctx->mem_fileio = gf_fileio_new("gmem", NULL, httpio_open, httpio_seek, httpio_read, httpio_write, httpio_tell, httpio_eof, NULL);
 			ctx->mem_url = gf_fileio_url(ctx->mem_fileio);
-			if (!ctx->max_mem_segs) ctx->max_mem_segs = 1;
+			if (ctx->max_cache_segs==0) ctx->max_cache_segs = 1;
+			else if (ctx->max_cache_segs<0) ctx->max_cache_segs = -ctx->max_cache_segs;
 
 #ifdef GPAC_ENABLE_COVERAGE
 			if (gf_sys_is_cov_mode()) {
@@ -2064,13 +2079,13 @@ static void httpout_del_session(GF_HTTPOutSession *s)
 static void httpout_check_mem_path(GF_HTTPOutSession *sess, GF_HTTPOutInput *in)
 {
 	u32 i, count;
-	if (!in || !in->fileios) return;
+	if (!in || !in->mem_files) return;
 	if (!sess->path) return;
 	if (!strncmp(sess->path, "gfio://", 7)) return;
 
-	count = gf_list_count(in->fileios);
+	count = gf_list_count(in->mem_files);
 	for (i=0; i<count; i++) {
-		GF_HTTPFileIO *hio = gf_list_get(in->fileios, i);
+		GF_HTTPFileIO *hio = gf_list_get(in->mem_files, i);
 		const char *url = gf_fileio_resource_url(hio->fio);
 		if (url && !strcmp(url, sess->path)) {
 			gf_free(sess->path);
@@ -2154,12 +2169,19 @@ static void httpout_finalize(GF_Filter *filter)
 			}
 			gf_list_del(in->file_deletes);
 		}
-		if (in->fileios) {
-			while (gf_list_count(in->fileios)) {
-				GF_HTTPFileIO *hio = gf_list_pop_back(in->fileios);
+		if (in->mem_files) {
+			while (gf_list_count(in->mem_files)) {
+				GF_HTTPFileIO *hio = gf_list_pop_back(in->mem_files);
 				httpio_del(hio);
 			}
-			gf_list_del(in->fileios);
+			gf_list_del(in->mem_files);
+		}
+		if (in->past_files) {
+			while (gf_list_count(in->past_files)) {
+				char *url = gf_list_pop_back(in->past_files);
+				gf_free(url);
+			}
+			gf_list_del(in->past_files);
 		}
 		gf_free(in);
 	}
@@ -2761,14 +2783,14 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
 
 		//purge mem
-		if (in->fileios) {
-			u32 i, count = gf_list_count(in->fileios);
+		if (in->mem_files) {
+			u32 i, count = gf_list_count(in->mem_files);
 			for (i=0; i<count; i++) {
-				GF_HTTPFileIO *hio = gf_list_get(in->fileios, i);
+				GF_HTTPFileIO *hio = gf_list_get(in->mem_files, i);
 				const char *res_url = gf_fileio_resource_url(hio->fio);
 				if (!res_url || strcmp(res_url, loc_path)) continue;
 
-				gf_list_rem(in->fileios, i);
+				gf_list_rem(in->mem_files, i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[HTTPOutIO] delete old version of input file %s\n", res_url ));
 
 				httpio_del(hio);
@@ -2806,22 +2828,34 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		GF_HTTPFileIO *hio = gf_fileio_get_udta((GF_FileIO *) in->resource);
 		hio->in = in;
 
-		count = gf_list_count(in->fileios);
+		count = gf_list_count(in->mem_files);
 		for (i=0; i<count; i++) {
-			GF_HTTPFileIO *prev_hio = gf_list_get(in->fileios, i);
+			GF_HTTPFileIO *prev_hio = gf_list_get(in->mem_files, i);
 			const char *res_url = gf_fileio_resource_url(prev_hio->fio);
 			if (strcmp(res_url, in->local_path )) continue;
 			if (prev_hio->nb_used) {
 				prev_hio->do_remove = GF_TRUE;
 				continue;
 			}
-			gf_list_rem(in->fileios, i);
+			gf_list_rem(in->mem_files, i);
 			httpio_del(prev_hio);
 			i--;
 			count--;
 		}
 		if (is_static) hio->is_static = GF_TRUE;
-		gf_list_add(in->fileios, hio);
+		gf_list_add(in->mem_files, hio);
+	} else if (in->past_files) {
+		if (!in->file_deletes)
+			in->file_deletes = gf_list_new();
+
+		//move pas files beyond our timeshift to list of files to delete
+		//we don't call delete directly since the file could still be used by a session
+		while (gf_list_count(in->past_files)>in->max_segs) {
+			char *url = gf_list_pop_front(in->past_files);
+			gf_list_add(in->file_deletes, url);
+		}
+		if (!is_static)
+			gf_list_add(in->past_files, gf_strdup(in->path));
 	}
 	return GF_TRUE;
 }
@@ -3181,7 +3215,7 @@ next_pck:
 				GF_HTTPFileIO *hio = gf_fileio_get_udta((GF_FileIO *) in->hls_chunk);
 				hio->in = in;
 				hio->hls_ll_chunk = GF_TRUE;
-				gf_list_add(in->fileios, hio);
+				gf_list_add(in->mem_files, hio);
 			}
 
 		}
@@ -3485,7 +3519,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(reqlog), "provide short log of the requests indicated in this option (comma separated list, `*` for all) regardless of HTTP log settings. Value `REC` logs file writing start/end", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_client_errors), "force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when `close` is set)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(max_mem_segs), "set maximum mem segment per HAS quality in memory mode", GF_PROP_UINT, "3", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality (see filter help)", GF_PROP_SINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
@@ -3557,7 +3591,12 @@ GF_FilterRegister HTTPOutRegister = {
 		"In this example, a real-time dynamic DASH session with chunks of 100ms is created, writing files to `temp`. A client connecting to the live edge will receive segments as they are produced using HTTP chunk transfer.\n"
 		"  \n"
 		"The server can store incoming files to memory mode by setting the read directory to `gmem`.\n"
-		"In this mode, each incoming PID will store at most [-max_mem_segs]() files in memory, trashing older files.\n"
+		"In this mode, [-max_cache_segs]() is always at least 1.\n"
+		"  \n"
+		"If [-max_cache_segs]() valeu `N` is not 0, each incoming PID will store at most:\n"
+		"- `MIN(N, time-shift depth)` files if stored in memory\n"
+		"- `MAX(N, time-shift depth)` files if stored locally and `N` is positive\n"
+		"- `-N` files if stored locally and `N` is negative\n"
 		"  \n"
 		"# HTTP client sink\n"
 		"In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if [-post]() is set).\n"

@@ -43,6 +43,7 @@ typedef struct
 	Bool append, dynext, ow, redund, noinitraw;
 	u32 cat;
 	u32 mvbk;
+	s32 max_cache_segs;
 
 	//only one input pid
 	GF_FilterPid *pid;
@@ -64,6 +65,9 @@ typedef struct
 	GF_FileIO *gfio_ref;
 
 	FILE *hls_chunk;
+
+	u32 max_segs;
+	GF_List *past_files;
 } GF_FileOutCtx;
 
 #ifdef WIN32
@@ -241,6 +245,18 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
 	if (p && p->value.uint) ctx->dash_mode = 1;
 
+	ctx->max_segs = 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESHIFT_SEGS);
+	if (ctx->max_cache_segs<0) {
+		ctx->max_segs = (u32) -ctx->max_cache_segs;
+	} else if (ctx->max_cache_segs>0) {
+		ctx->max_segs = (u32) ctx->max_cache_segs;
+		if (p && (p->value.uint > ctx->max_cache_segs))
+			ctx->max_segs = p->value.uint;
+	}
+	if (ctx->max_segs && !ctx->past_files)
+		ctx->past_files = gf_list_new();
+
 	ctx->error = GF_OK;
 	return GF_OK;
 }
@@ -335,6 +351,14 @@ static void fileout_finalize(GF_Filter *filter)
 	fileout_open_close(ctx, NULL, NULL, 0, GF_FALSE, NULL);
 	if (ctx->gfio_ref)
 		gf_fileio_open_url((GF_FileIO *)ctx->gfio_ref, NULL, "unref", &e);
+
+	if (ctx->past_files) {
+		while (gf_list_count(ctx->past_files)) {
+			char *url = gf_list_pop_back(ctx->past_files);
+			gf_free(url);
+		}
+		gf_list_del(ctx->past_files);
+	}
 }
 
 static GF_Err fileout_process(GF_Filter *filter)
@@ -472,6 +496,18 @@ static GF_Err fileout_process(GF_Filter *filter)
 			fileout_open_close(ctx, name, ext ? ext->value.string : NULL, fnum ? fnum->value.uint : 0, explicit_overwrite, fsuf ? fsuf->value.string : NULL);
 		} else if (!ctx->file && !ctx->noinitraw) {
 			fileout_setup_file(ctx, explicit_overwrite);
+		}
+
+		if (ctx->max_segs) {
+			while (gf_list_count(ctx->past_files)>ctx->max_segs) {
+				char *url = gf_list_pop_front(ctx->past_files);
+				gf_file_delete(url);
+				gf_free(url);
+			}
+			p = gf_filter_pck_get_property(pck, GF_PROP_PCK_INIT);
+			if (!p || !p->value.boolean) {
+				gf_list_add(ctx->past_files, gf_strdup(ctx->szFileName));
+			}
 		}
 	}
 
@@ -673,7 +709,7 @@ static const GF_FilterArgs FileOutArgs[] =
 	{ OFFS(mvbk), "block size used when moving parts of the file around in patch mode", GF_PROP_UINT, "8192", NULL, 0},
 	{ OFFS(redund), "keep redundant packet in output file", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(noinitraw), "do not produce initial segment", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_HIDE},
-
+	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality when recording live sessions (0 means no limit)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -696,6 +732,16 @@ GF_FilterRegister FileOutRegister = {
 		"# Discard sink mode\n"
 		"When the destination is `null`, the filter is a sink dropping all input packets.\n"
 		"In this case it accepts ANY type of input PID, not just file ones.\n"
+		"\n"
+		"# HTTP streaming recording\n"
+		"When recording a DASH or HLS session, the number of segments to keep per quality can be set using [-max_cache_segs]().\n"
+		"- value `0`  keeps everything (default behaviour)\n"
+		"- a negative value `N` will keep `-N` files regardless of the time-shift buffer value\n"
+		"- a positive value `N` will keep `MAX(N, time-shift buffer)` files\n"
+		"\n"
+		"EX gpac -i LIVE_MPD dashin:forward=file -o rec/$File$:max_cache_segs=3\n"
+		"This will force keeping a maximum of 3 media segments while recording the DASH session.\n"
+		""
 	)
 	.private_size = sizeof(GF_FileOutCtx),
 	.args = FileOutArgs,
