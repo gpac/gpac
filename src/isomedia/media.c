@@ -474,7 +474,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	u32 bytesRead;
 	u32 dataRefIndex, chunkNumber;
 	u64 offset, new_size;
-	u32 sdesc_idx;
+	u32 sdesc_idx, data_size;
 	GF_SampleEntryBox *entry;
 	GF_StscEntry *stsc_entry;
 
@@ -510,7 +510,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		(*samp)->CTS_Offset = 0;
 	}
 	//the size
-	e = stbl_GetSampleSize(mdia->information->sampleTable->SampleSize, sampleNumber, &(*samp)->dataLength);
+	e = stbl_GetSampleSize(mdia->information->sampleTable->SampleSize, sampleNumber, &data_size);
 	if (e) return e;
 	//the RAP
 	if (mdia->information->sampleTable->SyncSample) {
@@ -541,12 +541,12 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 	//the data info
 	if (!sIDX && !no_data) return GF_BAD_PARAM;
-	if (!sIDX && !out_offset) return GF_OK;
-	if (!sIDX) return GF_OK;
-
+//	if (!sIDX && !out_offset) return GF_OK;
+	if (!sIDX) {
+		(*samp)->dataLength = data_size;
+		return GF_OK;
+	}
 	(*sIDX) = sdesc_idx;
-//	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &stsc_entry);
-//	if (e) return e;
 
 	//then get the DataRef
 	e = Media_GetSampleDesc(mdia, sdesc_idx, &entry, &dataRefIndex);
@@ -562,6 +562,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 
 	if (no_data) {
+		(*samp)->dataLength = data_size;
 		if ( ((*samp)->dataLength != 0) && mdia->mediaTrack->pack_num_samples) {
 			u32 idx_in_chunk = sampleNumber - mdia->information->sampleTable->SampleToChunk->firstSampleInCurrentChunk;
 			u32 left_in_chunk = stsc_entry->samplesPerChunk - idx_in_chunk;
@@ -603,45 +604,47 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			offset -= real_offset;
 		}
 	}
-	if ((*samp)->dataLength != 0) {
+
+	if (data_size != 0) {
 		if (mdia->mediaTrack->pack_num_samples) {
 			u32 idx_in_chunk = sampleNumber - mdia->information->sampleTable->SampleToChunk->firstSampleInCurrentChunk;
 			u32 left_in_chunk = stsc_entry->samplesPerChunk - idx_in_chunk;
 			if (left_in_chunk > mdia->mediaTrack->pack_num_samples)
 				left_in_chunk = mdia->mediaTrack->pack_num_samples;
-			(*samp)->dataLength *= left_in_chunk;
+			data_size *= left_in_chunk;
 			(*samp)->nb_pack = left_in_chunk;
 		}
 
 		/*and finally get the data, include padding if needed*/
 		if ((*samp)->alloc_size) {
-			if ((*samp)->alloc_size < (*samp)->dataLength + mdia->mediaTrack->padding_bytes) {
-				(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+			if ((*samp)->alloc_size < data_size + mdia->mediaTrack->padding_bytes) {
+				(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
 				if (! (*samp)->data) return GF_OUT_OF_MEM;
 
-				(*samp)->alloc_size = (*samp)->dataLength + mdia->mediaTrack->padding_bytes;
+				(*samp)->alloc_size = data_size + mdia->mediaTrack->padding_bytes;
 			}
 		} else {
-			(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+			(*samp)->data = (char *) gf_malloc(sizeof(char) * ( data_size + mdia->mediaTrack->padding_bytes) );
 			if (! (*samp)->data) return GF_OUT_OF_MEM;
 		}
+		(*samp)->dataLength = data_size;
 		if (mdia->mediaTrack->padding_bytes)
-			memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
+			memset((*samp)->data + data_size, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
 
 		//check if we can get the sample (make sure we have enougth data...)
 		new_size = gf_bs_get_size(mdia->information->dataHandler->bs);
-		if (offset + (*samp)->dataLength > new_size) {
+		if (offset + data_size > new_size) {
 			//always refresh the size to avoid wrong info on http/ftp
 			new_size = gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
-			if (offset + (*samp)->dataLength > new_size) {
-				mdia->BytesMissing = offset + (*samp)->dataLength - new_size;
+			if (offset + data_size > new_size) {
+				mdia->BytesMissing = offset + data_size - new_size;
 				return GF_ISOM_INCOMPLETE_FILE;
 			}
 		}
 
 		bytesRead = gf_isom_datamap_get_data(mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset);
 		//if bytesRead != sampleSize, we have an IO err
-		if (bytesRead < (*samp)->dataLength) {
+		if (bytesRead < data_size) {
 			return GF_IO_ERR;
 		}
 		mdia->BytesMissing = 0;
