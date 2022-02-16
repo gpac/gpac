@@ -2034,10 +2034,25 @@ gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4
 .br
   
 .br
+.SH Custom sample group descriptions and sample auxiliary info
+.LP
+.br
+The filter watches the following custom data properties on incoming packets:
+.br
+* `grp_A4CC`: maps packet to sample group description of type A4CC and entry set to property payload
+.br
+* `grp_A4CC_param`: same as above and sets sample to group grouping_type_parameter to param
+.br
+* `sai_A4CC`: adds property payload as sample auxiliary information of type A4CC
+.br
+* `sai_A4CC_param`: same as above and sets aux_info_type_parameterto param
+.br
+  
+.br
 .SH Notes
 .LP
 .br
-The filter watches the property FileNumber on incoming packets to create new files or new segments in DASH mode.
+The filter watches the property FileNumber on incoming packets to create new files (regular mode) or new segments (DASH mode).
 .br
 
 .br
@@ -9981,7 +9996,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1758-g57188a0c2-master
+build: 1.1.0-DEV-rev1759-geb2d1e6dd-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

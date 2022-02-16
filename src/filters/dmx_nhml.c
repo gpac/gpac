@@ -450,7 +450,7 @@ static GF_Err compress_sample_data(GF_NHMLDmxCtx *ctx, u32 compress_type, char *
 	}\
 
 
-static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
+static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XMLNode *root)
 {
 	GF_Err e;
 	Bool inRootOD;
@@ -460,78 +460,32 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	u32 dims_profile, dims_level, dims_pathComponents, dims_fullRequestHost, dims_streamType, dims_containsRedundant;
 	char *textEncoding, *contentEncoding, *dims_content_script_types, *mime_type, *xml_schema_loc, *xmlns;
-	FILE *nhml;
-	const GF_PropertyValue *p;
 	char *auxiliary_mime_types = NULL;
-	char *ext, *init_name=NULL, szXmlFrom[1000], szXmlHeaderEnd[1000];
+	char*init_name=NULL, szXmlFrom[1000], szXmlHeaderEnd[1000];
 	u8 *specInfo;
 	char compressor_name[100];
 	GF_XMLNode *node;
 	FILE *finfo;
-	u64 media_size, last_dts;
-	char *szRootName, *szSampleName, *szImpName;
+	u64 media_size;
+	char *szSampleName, *szImpName;
 
-	szRootName = ctx->is_dims ? "DIMSStream" : "NHNTStream";
 	szSampleName = ctx->is_dims ? "DIMSUnit" : "NHNTSample";
 	szImpName = ctx->is_dims ? "DIMS" : "NHML";
-
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
-	if (!p) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_NOT_SUPPORTED;
-	}
-	ctx->src_url = p->value.string;
-	nhml = gf_fopen(ctx->src_url, "rt");
-	if (!nhml) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot find %s file %s", szImpName, ctx->src_url));
-		return GF_URL_ERROR;
-	}
-
-	if (!strncmp(ctx->src_url, "gfio://", 7)) {
-		char *base = gf_file_basename( gf_fileio_translate_url(ctx->src_url) );
-		if (base) gf_dynstrcat(&init_name, base, NULL);
-	} else {
-		gf_dynstrcat(&init_name, ctx->src_url, NULL);
-	}
-	if (!init_name) return GF_OUT_OF_MEM;
-	ext = gf_file_ext_start(init_name);
-	if (ext) ext[0] = 0;
-	if (ctx->media_file) gf_free(ctx->media_file);
-	ctx->media_file = gf_strdup(init_name);
-	gf_dynstrcat(&ctx->media_file, ".media", NULL);
-	gf_dynstrcat(&init_name, ".info", NULL);
-
-	ctx->parser = gf_xml_dom_new();
-	e = gf_xml_dom_parse(ctx->parser, p->value.string, NULL, NULL);
-	if (e) {
-		gf_fclose(nhml);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file: Line %d - %s", szImpName, gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
-		if (init_name) gf_free(init_name);
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-	gf_fclose(nhml);
-
-	ctx->root = gf_xml_dom_get_root(ctx->parser);
-	if (!ctx->root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - no root node found", szImpName ));
-		if (init_name) gf_free(init_name);
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
 
 	ctx->dts_inc = 0;
 	inRootOD = GF_FALSE;
 	ctx->compress_type = 0;
 	specInfo = NULL;
 
+	gf_dynstrcat(&init_name, ctx->media_file, NULL);
+	char *ext = gf_file_ext_start(init_name);
+	if (ext) ext[0] = 0;
+	gf_dynstrcat(&init_name, ".info", NULL);
+
+
 #ifndef GPAC_DISABLE_ZLIB
 	ctx->use_dict = GF_FALSE;
 #endif
-
-	if (stricmp(ctx->root->name, szRootName)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, ctx->root->name));
-		if (init_name) gf_free(init_name);
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
 
 	tkID = mtype = streamType = codecid = par_den = par_num = 0;
 	ctx->timescale = 1000;
@@ -547,9 +501,11 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	dims_streamType = GF_TRUE;
 	dims_containsRedundant = 1;
 
-	while ((att = (GF_XMLAttribute *)gf_list_enum(ctx->root->attributes, &i))) {
+	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
 		if (!stricmp(att->name, "streamType")) {
 			NHML_SCAN_INT("%u", streamType)
+			if (!streamType)
+				streamType = gf_stream_type_by_name(att->value);
 		} else if (!stricmp(att->name, "mediaType") && (strlen(att->value)==4)) {
 			mtype = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		} else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
@@ -559,7 +515,14 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else if (!stricmp(att->name, "codecID") && (strlen(att->value)==4)) {
 			codecid = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		} else if (!stricmp(att->name, "timeScale")) {
+			u32 old_timescale = ctx->timescale;
 			NHML_SCAN_INT("%u", ctx->timescale)
+			if (old_timescale && ctx->timescale && (root != ctx->root)) {
+				if (ctx->dts_inc)
+					ctx->dts_inc = (u32) gf_timestamp_rescale(ctx->dts_inc, old_timescale, ctx->timescale);
+				if (ctx->last_dts != GF_FILTER_NO_TS)
+					ctx->last_dts = gf_timestamp_rescale(ctx->last_dts, old_timescale, ctx->timescale);
+			}
 		} else if (!stricmp(att->name, "width")) {
 			NHML_SCAN_INT("%u", width)
 		} else if (!stricmp(att->name, "height")) {
@@ -740,7 +703,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	}
 
 	i=0;
-	while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &i))) {
+	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		if (node->type) continue;
 		if (stricmp(node->name, "DecoderSpecificInfo") ) continue;
 
@@ -753,7 +716,9 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		break;
 	}
 
-	ctx->opid = gf_filter_pid_new(filter);
+	if (!ctx->opid)
+		ctx->opid = gf_filter_pid_new(filter);
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(streamType) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(codecid) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
@@ -866,12 +831,6 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		specInfoSize = 0;
 	}
 
-	if (inRootOD) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
-
-	ctx->media_done = 0;
-	ctx->current_child_idx = 0;
-	ctx->last_dts = GF_FILTER_NO_TS;
-
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILEPATH, & PROP_STRING(ctx->media_file));
 
 	if (ctx->mdia) {
@@ -881,6 +840,80 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 	if (specInfo) gf_free(specInfo);
 	if (auxiliary_mime_types) gf_free(auxiliary_mime_types);
+	if (init_name) gf_free(init_name);
+
+	if (inRootOD) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
+
+	return GF_OK;
+}
+
+static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
+{
+	GF_Err e;
+	u32 i;
+	GF_XMLAttribute *att;
+	FILE *nhml;
+	const GF_PropertyValue *p;
+	char *ext;
+	GF_XMLNode *node;
+	u64 last_dts;
+	char *szRootName, *szSampleName, *szImpName;
+
+	szRootName = ctx->is_dims ? "DIMSStream" : "NHNTStream";
+	szSampleName = ctx->is_dims ? "DIMSUnit" : "NHNTSample";
+	szImpName = ctx->is_dims ? "DIMS" : "NHML";
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
+	if (!p) {
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return GF_NOT_SUPPORTED;
+	}
+	ctx->src_url = p->value.string;
+	nhml = gf_fopen(ctx->src_url, "rt");
+	if (!nhml) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot find %s file %s", szImpName, ctx->src_url));
+		return GF_URL_ERROR;
+	}
+
+	if (ctx->media_file) gf_free(ctx->media_file);
+	ctx->media_file = NULL;
+
+	if (!strncmp(ctx->src_url, "gfio://", 7)) {
+		char *base = gf_file_basename( gf_fileio_translate_url(ctx->src_url) );
+		if (base) gf_dynstrcat(&ctx->media_file, base, NULL);
+	} else {
+		gf_dynstrcat(&ctx->media_file, ctx->src_url, NULL);
+	}
+	if (!ctx->media_file) return GF_OUT_OF_MEM;
+	ext = gf_file_ext_start(ctx->media_file);
+	if (ext) ext[0] = 0;
+	gf_dynstrcat(&ctx->media_file, ".media", NULL);
+
+	ctx->parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(ctx->parser, p->value.string, NULL, NULL);
+	if (e) {
+		gf_fclose(nhml);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file: Line %d - %s", szImpName, gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	gf_fclose(nhml);
+
+	ctx->root = gf_xml_dom_get_root(ctx->parser);
+	if (!ctx->root) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - no root node found", szImpName ));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	if (stricmp(ctx->root->name, szRootName)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, ctx->root->name));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	nhmldmx_config_output(filter, ctx, ctx->root);
+
+	ctx->media_done = 0;
+	ctx->current_child_idx = 0;
+	ctx->last_dts = GF_FILTER_NO_TS;
 
 	//compute duration
 	ctx->duration.den = ctx->timescale;
@@ -894,7 +927,12 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		s32 cts_offset=0;
 		u64 sample_duration = 0;
 		if (node->type) continue;
-		if (stricmp(node->name, szSampleName) ) continue;
+		if (!stricmp(node->name, szSampleName) ) {
+		} else if (!stricmp(node->name, "NHNTReconfig") ) {
+			break;
+		} else {
+			continue;
+		}
 
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!stricmp(att->name, "DTS") || !stricmp(att->name, "time")) {
@@ -910,6 +948,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			else if (!stricmp(att->name, "duration") ) sscanf(att->value, ""LLU, &sample_duration);
 			else if (!stricmp(att->name, "isRAP") ) ctx->has_sap = GF_TRUE;
 		}
+
 		last_dts = ctx->duration.num;
 		if (dts) ctx->duration.num = (u32) (dts + cts_offset);
 		if (sample_duration) {
@@ -923,12 +962,13 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	if (last_dts) {
 		ctx->duration.num += (u32) (ctx->duration.num - last_dts);
 	}
+
+	p = gf_filter_pid_get_property(ctx->opid, GF_PROP_PID_STREAM_TYPE);
 	//assume image, one sec (default for old arch)
-	if ((streamType==4) && !ctx->duration.num) {
+	if (p && (p->value.uint==4) && !ctx->duration.num) {
 		ctx->is_img = GF_TRUE;
 		ctx->duration.num =ctx->duration.den;
 	}
-	if (init_name) gf_free(init_name);
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
@@ -942,6 +982,154 @@ void nhml_get_bs(GF_BitStream **bs, char *data, u32 size, u32 mode)
 	if (*bs) gf_bs_reassign_buffer(*bs, data, size);
 	else  (*bs) = gf_bs_new(data, size, mode);
 }
+
+static void nhmldmx_set_subs(GF_XMLNode *node, GF_FilterPacket *pck)
+{
+	GF_XMLNode *childnode, *subs;
+	u32 i=0;
+	while ((childnode = (GF_XMLNode *) gf_list_enum(node->content, &i))) {
+		u32 j;
+		GF_XMLAttribute *att;
+		GF_BitStream *bs;
+
+		if (childnode->type) continue;
+		if (stricmp(childnode->name, "SubSamples")) continue;
+
+		u32 flags=0;
+		j=0;
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &j))) {
+			if (!strcmp(att->name, "flags")) flags = atoi(att->value);
+		}
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		j=0;
+		while ((subs = (GF_XMLNode *) gf_list_enum(childnode->content, &j))) {
+			if (subs->type) continue;
+			if (stricmp(subs->name, "SubSample")) continue;
+
+			Bool discardable=0;
+			u32 priority=0;
+			u32 size=0;
+			u32 codec_info=0;
+
+			u32 k = 0;
+			while ((att = (GF_XMLAttribute *)gf_list_enum(subs->attributes, &k))) {
+				if (!stricmp(att->name, "size")) size = atoi(att->value);
+				else if (!stricmp(att->name, "discardable")) {
+					if (!stricmp(att->value, "yes") || !stricmp(att->value, "true") || !stricmp(att->value, "1")) {
+						discardable = GF_TRUE;
+					}
+				}
+				else if (!stricmp(att->name, "priority")) priority = atoi(att->value);
+				else if (!stricmp(att->name, "codec_info")) {
+					if (!strnicmp(att->value, "0x", 2)) sscanf(att->value+2, "%x", &codec_info);
+					else sscanf(att->value, "%u", &codec_info);
+				}
+			}
+			gf_bs_write_u32(bs, flags); //flags
+			gf_bs_write_u32(bs, size);
+			gf_bs_write_u32(bs, codec_info); //codec_specific_parameters
+			gf_bs_write_u8(bs, priority); //priority
+			gf_bs_write_u8(bs, discardable); //discardable
+		}
+
+		u8 *subs_data;
+		u32 subs_size;
+		gf_bs_get_content(bs, &subs_data, &subs_size);
+		gf_bs_del(bs);
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_data, subs_size) );
+		break;
+	}
+}
+
+static GF_XMLNode *nhmldmx_find_sai(GF_NHMLDmxCtx *ctx, char *id)
+{
+	GF_XMLNode *node;
+	u32 idx=0;
+	while ((node = (GF_XMLNode *) gf_list_enum(ctx->root->content, &idx))) {
+		GF_XMLNode *child;
+		u32 j=0;
+		if (node->type) continue;
+		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) continue;
+
+		while ((child = (GF_XMLNode *) gf_list_enum(node->content, &j))) {
+			u32 k=0;
+			GF_XMLAttribute *att;
+			if (child->type) continue;
+			if (stricmp(child->name, "SAI") ) continue;
+			while ((att = (GF_XMLAttribute *) gf_list_enum(child->attributes, &k))) {
+				if (!strcmp(att->name, "id") && !strcmp(att->value, id))
+					return child;
+			}
+		}
+	}
+	return NULL;
+}
+
+static void nhmldmx_set_sai(GF_NHMLDmxCtx *ctx, GF_XMLNode *node, GF_FilterPacket *pck)
+{
+	GF_XMLNode *childnode;
+	u32 i=0;
+	while ((childnode = (GF_XMLNode *) gf_list_enum(node->content, &i))) {
+		u32 j;
+		char szPName[30];
+		GF_XMLAttribute *att;
+		GF_BitStream *bs;
+
+		if (childnode->type) continue;
+		if (stricmp(childnode->name, "SAI")) continue;
+
+		Bool is_ref=GF_FALSE;
+		u32 type, aux_info;
+		Bool is_sample_group;
+		Bool valid = GF_TRUE;
+
+retry_sai:
+		type=0;
+		aux_info=0;
+		is_sample_group = GF_FALSE;
+		j=0;
+		while ( (att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &j))) {
+			if (!strcmp(att->name, "type")) type = gf_4cc_parse(att->value);
+			else if (!strcmp(att->name, "ref")) {
+				if (!is_ref) {
+					GF_XMLNode *ref_sai = nhmldmx_find_sai(ctx, att->value);
+					if (ref_sai) {
+						is_ref = GF_TRUE;
+						childnode = ref_sai;
+						goto retry_sai;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot locate SAI with id %s, ignoring SAI", att->value));
+						valid=GF_FALSE;
+					}
+				}
+			}
+			else if (!strcmp(att->name, "aux_info")) aux_info = atoi(att->value);
+			else if (!strcmp(att->name, "group")) {
+				if (!strcmp(att->value, "yes") || !strcmp(att->value, "true") || !strcmp(att->value, "1")) is_sample_group = GF_TRUE;
+			}
+		}
+		if (!valid) continue;
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_xml_parse_bit_sequence_bs(childnode, ctx->src_url, bs);
+
+		u8 *sai_data;
+		u32 sai_size;
+		gf_bs_get_content(bs, &sai_data, &sai_size);
+		gf_bs_del(bs);
+
+		char *prefix = is_sample_group ? "grp" : "sai";
+		if (aux_info) {
+			sprintf(szPName, "%s_%s_%d", prefix, gf_4cc_to_str(type), aux_info);
+		} else {
+			sprintf(szPName, "%s_%s", prefix, gf_4cc_to_str(type));
+		}
+
+		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );
+	}
+}
+
 
 static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 {
@@ -965,7 +1153,12 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		u32 compress_type;
 		char *base_data = NULL;
 		if (node->type) continue;
-		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) continue;
+		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) {
+			if (!strcmp(node->name, "NHNTReconfig")) {
+				nhmldmx_config_output(filter, ctx, node);
+			}
+			continue;
+		}
 
 		strcpy(szMediaTemp, "");
 		strcpy(szXmlFrom, "");
@@ -1063,15 +1256,31 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 		if (ctx->is_img) sample_duration = ctx->duration.den;
 
+		GF_XMLNode *sample_child=NULL;
+		Bool has_subs_child = GF_FALSE;
+		Bool has_sai_child = GF_FALSE;
 		has_subbs = GF_FALSE;
 		j=0;
 		while ((childnode = (GF_XMLNode *) gf_list_enum(node->content, &j))) {
 			if (childnode->type) continue;
+			if (!stricmp(childnode->name, "Media")) {
+				sample_child = childnode;
+				has_subbs = GF_TRUE;
+			}
+			if (!stricmp(childnode->name, "SubSamples")) {
+				has_subs_child = GF_TRUE;
+			}
+			if (!stricmp(childnode->name, "SAI")) {
+				has_sai_child = GF_TRUE;
+			}
+			if (!stricmp(childnode->name, szSubSampleName)) {
+				nb_subsamples++;
+			}
 			if (!stricmp(childnode->name, "BS")) {
 				has_subbs = GF_TRUE;
-				break;
 			}
 		}
+		if (nb_subsamples) has_subs_child = GF_FALSE;
 
 		if (strlen(szXmlFrom) && strlen(szXmlTo)) {
 			char *xml_file;
@@ -1100,7 +1309,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 
 		} else if (has_subbs) {
 			gf_bs_reassign_buffer(ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_alloc);
-			gf_xml_parse_bit_sequence_bs(node, ctx->src_url, ctx->bs_w);
+			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, ctx->bs_w);
 			gf_bs_get_content(ctx->bs_w, &ctx->samp_buffer, &ctx->samp_buffer_size);
 			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc)
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size;
@@ -1118,14 +1327,6 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		} else {
 			Bool close = GF_FALSE;
 			FILE *f = ctx->mdia;
-
-			j = 0;
-			while ((childnode = (GF_XMLNode *)gf_list_enum(node->content, &j))) {
-				if (childnode->type) continue;
-				if (!stricmp(childnode->name, szSubSampleName)) {
-					nb_subsamples++;
-				}
-			}
 
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
@@ -1238,6 +1439,12 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						gf_filter_pck_set_seek_flag(pck, GF_TRUE);
 				}
 			}
+			if (has_subs_child) {
+				nhmldmx_set_subs(node, pck);
+			}
+			if (has_sai_child) {
+				nhmldmx_set_sai(ctx, node, pck);
+			}
 			gf_filter_pck_send(pck);
 		} else {
 			first_subsample_is_first = GF_TRUE;
@@ -1255,74 +1462,89 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		j = 0;
 		while (!append && nb_subsamples && (childnode = (GF_XMLNode *)gf_list_enum(node->content, &j))) {
 			if (childnode->type) continue;
-			if (!stricmp(childnode->name, szSubSampleName)) {
-				u32 k = 0;
-				while ((att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
-					if (!stricmp(att->name, "mediaFile")) {
-						u64 subsMediaFileSize = 0;
-						FILE *f = NULL;
-						char *sub_file_url = gf_url_concatenate(ctx->src_url, att->value);
-						if (sub_file_url) {
-							f = gf_fopen(sub_file_url, "rb");
-							gf_free(sub_file_url);
-						}
+			if (stricmp(childnode->name, szSubSampleName)) continue;
 
-						if (!f) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: mediaFile \"%s\" not found for subsample in sample %d. Abort.\n", att->value, ctx->sample_num));
-							return GF_URL_ERROR;
-						}
-						subsMediaFileSize = gf_fsize(f);
-						assert(subsMediaFileSize < 0x80000000);
+			char *szSubMediaFile=NULL;
+			Bool discardable=0;
+			u32 priority=0;
+			u32 codec_info=0;
 
-						//send continuation frame
-						pck = gf_filter_pck_new_alloc(ctx->opid, (u32) subsMediaFileSize, &data);
-						if (!pck) {
-							gf_fclose(f);
-							return GF_OUT_OF_MEM;
-						}
-						subsMediaFileSize = (u32) gf_fread(data, (u32) subsMediaFileSize, f);
-						gf_fclose(f);
-
-						nb_subsamples--;
-						if (first_subsample_is_first) {
-							gf_filter_pck_set_framing(pck, GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
-
-							gf_filter_pck_set_sap(pck, sap_type);
-							gf_filter_pck_set_dts(pck, dts);
-							gf_filter_pck_set_cts(pck, dts+cts_offset);
-							if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
-
-							if (sample_duration || ctx->dts_inc)
-								gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
-
-							if (ctx->in_seek) {
-								if (dts+cts_offset >= ctx->start_range * ctx->timescale)
-									ctx->in_seek = GF_FALSE;
-								else
-									gf_filter_pck_set_seek_flag(pck, GF_TRUE);
-							}
-
-							first_subsample_is_first = GF_FALSE;
-						} else {
-							gf_filter_pck_set_framing(pck, GF_FALSE, nb_subsamples ? GF_FALSE : GF_TRUE);
-						}
-
-
-						gf_bs_write_u32(ctx->bs_w, 0); //flags
-						gf_bs_write_u32(ctx->bs_w, (u32) subsMediaFileSize);
-						gf_bs_write_u32(ctx->bs_w, 0); //reserved
-						gf_bs_write_u8(ctx->bs_w, 0); //priority
-						gf_bs_write_u8(ctx->bs_w, 0); //discardable
-
-						if (!nb_subsamples) {
-							u32 subs_size = (u32) gf_bs_get_position(ctx->bs_w);
-							gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA(ctx->samp_buffer, subs_size) );
-						}
-
-						gf_filter_pck_send(pck);
+			u32 k = 0;
+			while ((att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
+				if (!stricmp(att->name, "mediaFile")) szSubMediaFile = att->value;
+				else if (!stricmp(att->name, "discardable")) {
+					if (!stricmp(att->value, "yes") || !stricmp(att->value, "true") || !stricmp(att->value, "1")) {
+						discardable = GF_TRUE;
 					}
 				}
+				else if (!stricmp(att->name, "priority")) priority = atoi(att->value);
+				else if (!stricmp(att->name, "codec_info")) {
+					if (!strnicmp(att->value, "0x", 2)) sscanf(att->value+2, "%x", &codec_info);
+					else sscanf(att->value, "%u", &codec_info);
+				}
 			}
+
+			if (!szSubMediaFile) continue;
+			u64 subsMediaFileSize = 0;
+			FILE *f = NULL;
+			char *sub_file_url = gf_url_concatenate(ctx->src_url, szSubMediaFile);
+			if (sub_file_url) {
+				f = gf_fopen(sub_file_url, "rb");
+				gf_free(sub_file_url);
+			}
+
+			if (!f) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: mediaFile \"%s\" not found for subsample in sample %d. Abort.\n", att->value, ctx->sample_num));
+				return GF_URL_ERROR;
+			}
+			subsMediaFileSize = gf_fsize(f);
+			assert(subsMediaFileSize < 0x80000000);
+
+			//send continuation frame
+			pck = gf_filter_pck_new_alloc(ctx->opid, (u32) subsMediaFileSize, &data);
+			if (!pck) {
+				gf_fclose(f);
+				return GF_OUT_OF_MEM;
+			}
+			subsMediaFileSize = (u32) gf_fread(data, (u32) subsMediaFileSize, f);
+			gf_fclose(f);
+
+			nb_subsamples--;
+			if (first_subsample_is_first) {
+				gf_filter_pck_set_framing(pck, GF_TRUE, nb_subsamples ? GF_FALSE : GF_TRUE);
+
+				gf_filter_pck_set_sap(pck, sap_type);
+				gf_filter_pck_set_dts(pck, dts);
+				gf_filter_pck_set_cts(pck, dts+cts_offset);
+				if (redundant_rap && !ctx->is_dims) gf_filter_pck_set_dependency_flags(pck, 0x1);
+
+				if (sample_duration || ctx->dts_inc)
+					gf_filter_pck_set_duration(pck, sample_duration ? (u32) sample_duration : ctx->dts_inc);
+
+				if (ctx->in_seek) {
+					if (dts+cts_offset >= ctx->start_range * ctx->timescale)
+						ctx->in_seek = GF_FALSE;
+					else
+						gf_filter_pck_set_seek_flag(pck, GF_TRUE);
+				}
+
+				first_subsample_is_first = GF_FALSE;
+			} else {
+				gf_filter_pck_set_framing(pck, GF_FALSE, nb_subsamples ? GF_FALSE : GF_TRUE);
+			}
+
+
+			gf_bs_write_u32(ctx->bs_w, 0); //flags
+			gf_bs_write_u32(ctx->bs_w, (u32) subsMediaFileSize);
+			gf_bs_write_u32(ctx->bs_w, codec_info); //codec_specific_parameters
+			gf_bs_write_u8(ctx->bs_w, priority); //priority
+			gf_bs_write_u8(ctx->bs_w, discardable); //discardable
+
+			if (!nb_subsamples) {
+				u32 subs_size = (u32) gf_bs_get_position(ctx->bs_w);
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA(ctx->samp_buffer, subs_size) );
+			}
+			gf_filter_pck_send(pck);
 		}
 
 		ctx->last_dts = dts;
@@ -1421,9 +1643,8 @@ static const GF_FilterCapability NHMLDmxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "nhml|dims|dml"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "application/x-nhml|application/dims"),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_UNKNOWN),
+	CAP_UINT(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE)
 };
 
 GF_FilterRegister NHMLDmxRegister = {

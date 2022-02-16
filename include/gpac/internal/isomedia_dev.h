@@ -530,6 +530,8 @@ enum
 	GF_ISOM_BOX_TYPE_AVCE	= GF_4CC( 'a', 'v', 'c', 'E' ),
 	GF_ISOM_BOX_TYPE_HVCE	= GF_4CC( 'h', 'v', 'c', 'E' ),
 
+	//opaque data container
+	GF_ISOM_BOX_TYPE_GPAC	= GF_4CC( 'g', 'p', 'a', 'c' ),
 };
 
 enum
@@ -743,6 +745,9 @@ typedef struct
 	u8 *data;
 	u32 dataSize;
 	u32 original_4cc;
+	u32 sai_type, sai_aux_info;
+	u64 sai_offset;
+	struct _gf_saio_box *saio_box;
 } GF_UnknownBox;
 
 typedef struct
@@ -2010,7 +2015,7 @@ typedef struct
 	u32 cached_prev_size;
 } GF_SampleAuxiliaryInfoSizeBox;
 
-typedef struct
+typedef struct _gf_saio_box
 {
 	GF_ISOM_FULL_BOX
 
@@ -2026,6 +2031,8 @@ typedef struct
 
 	u32 total_size;
 	u8 *cached_data;
+
+	GF_UnknownBox *sai_data;
 } GF_SampleAuxiliaryInfoOffsetBox;
 
 typedef struct
@@ -4333,6 +4340,8 @@ Bool gf_isom_is_encrypted_entry(u32 entryType);
 
 //too export in constants
 Bool gf_cenc_validate_key_info(const u8 *key_info, u32 key_info_size);
+
+GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size);
 
 
 /*! CENC auxiliary info*/

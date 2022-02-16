@@ -4285,6 +4285,44 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	}
 
+	u32 idx = 0;
+	while (1) {
+		Bool is_sample_group=GF_FALSE;
+		u32 aux_type=0, aux_info=0;
+		u32 p4cc;
+		const char *pname=NULL;
+		const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &p4cc, &pname);
+		if (!p) break;
+		if ((p->type!=GF_PROP_DATA) && (p->type!=GF_PROP_CONST_DATA)) continue;
+		if (!p->value.data.size || !p->value.data.ptr) continue;
+		if (!pname) continue;
+
+		if (!strncmp(pname, "sai_", 4)) {
+
+		} else if (!strncmp(pname, "grp_", 4)) {
+			is_sample_group = GF_TRUE;
+		} else {
+			continue;
+		}
+
+		pname+=4;
+		if (strlen(pname) < 4) continue;
+		aux_type = GF_4CC(pname[0], pname[1], pname[2], pname[3]);
+		if (pname[4] == '_') aux_info = atoi(pname+5);
+
+		if (!aux_type) continue;
+
+		if (is_sample_group) {
+			gf_isom_set_sample_group_description(ctx->file, tkw->track_num, for_fragment ? 0 : tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
+		} else {
+			if (for_fragment) {
+				gf_isom_fragment_set_sample_aux_info(ctx->file, tkw->track_id, tkw->samples_in_frag, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
+			} else {
+				gf_isom_add_sample_aux_info(ctx->file, tkw->track_num, tkw->nb_samples, aux_type, aux_info, p->value.data.ptr, p->value.data.size);
+			}
+		}
+	}
+
 
 	tkw->next_is_first_sample = GF_FALSE;
 
@@ -7069,8 +7107,15 @@ GF_FilterRegister MP4MuxRegister = {
 	"EX gpac -i src.mp4:#udta_tagc='My Awsome Tag' -o tag.mp4\n"
 	"EX gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4\n"
 	"  \n"
+	"# Custom sample group descriptions and sample auxiliary info\n"
+	"The filter watches the following custom data properties on incoming packets:\n"
+	"- `grp_A4CC`: maps packet to sample group description of type `A4CC` and entry set to property payload\n"
+	"- `grp_A4CC_param`: same as above and sets sample to group `grouping_type_parameter` to `param`\n"
+	"- `sai_A4CC`: adds property payload as sample auxiliary information of type `A4CC`\n"
+	"- `sai_A4CC_param`: same as above and sets `aux_info_type_parameter`to `param`\n"
+	"  \n"
 	"# Notes\n"
-	"The filter watches the property `FileNumber` on incoming packets to create new files or new segments in DASH mode.\n"
+	"The filter watches the property `FileNumber` on incoming packets to create new files (regular mode) or new segments (DASH mode).\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

@@ -2079,6 +2079,21 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleN
 */
 GF_Err gf_isom_set_media_timescale(GF_ISOFile *isom_file, u32 trackNumber, u32 new_timescale, u32 new_tsinc, u32 force_rescale_type);
 
+
+
+/*! adds sample auxiliary data
+
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleNumber the sample number. Must be equal or larger to last auxiliary
+\param aux_type auxiliary sample data type, shall not be 0
+\param aux_info auxiliary sample data specific info type, may be 0
+\param data data to add
+\param size size of data to add
+\return error if any
+*/
+GF_Err gf_isom_add_sample_aux_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size);
+
 /*! sets the save file name of the (edited) movie.
 If the movie is edited, the default fileName is the open name suffixed with an internally defined extension "%p_isotmp")"
 \note you cannot save an edited file under the same name (overwrite not allowed)
@@ -4648,6 +4663,21 @@ GF_Err gf_isom_fragment_set_sample_rap_group(GF_ISOFile *isom_file, GF_ISOTrackI
 GF_Err gf_isom_fragment_set_sample_flags(GF_ISOFile *isom_file, GF_ISOTrackID trackID, u32 is_leading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 
+
+/*! adds sample auxiliary data
+
+\param isom_file the target ISO file
+\param trackID the ID of the target track
+\param sample_number_in_frag the sample number in the current fragment. Must be equal or larger to last auxiliary added
+\param aux_type auxiliary sample data type, shall not be 0
+\param aux_info auxiliary sample data specific info type, may be 0
+\param data data to add
+\param size size of data to add
+\return error if any
+*/
+GF_Err gf_isom_fragment_set_sample_aux_info(GF_ISOFile *isom_file, u32 trackID, u32 sample_number_in_frag, u32 aux_type, u32 aux_info, u8 *data, u32 size);
+
+
 /*! sets the number of the next moof to be produced
 \param isom_file the target ISO file
 \param value the number of the next moof
@@ -6659,6 +6689,32 @@ Bool gf_isom_has_cenc_sample_group(GF_ISOFile *isom_file, u32 trackNumber);
 Bool gf_isom_get_tile_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_group_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
 
 
+/*! enumerates custom sample groups (not natively supported by this library) for a given sample
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sample_number the target sample
+\param sgrp_idx the current index. Must be et to 0 on first call, incremented by this call on each success, must not be NULL
+\param sgrp_type set to the grouping type, or set to 0 if no more sample group descriptions, must not be NULL
+\param sgrp_parameter set to the grouping_type_parameter or 0 if not defined
+\param sgrp_data set to the sample group description data
+\param sgrp_size set to the sample group description size
+\return error if any
+*/
+GF_Err gf_isom_enum_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 *sgrp_idx, u32 *sgrp_type, u32 *sgrp_parameter, const u8 **sgrp_data, u32 *sgrp_size);
+
+/*! enumerates custom sample auxiliary data (not natively supported by this library) for a given sample
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sample_number the target sample
+\param sai_idx the current index. Must be et to 0 on first call, incremented by this call on each success, must not be NULL
+\param sai_type set to the grouping type, or set to 0 if no more sample group descriptions, must not be NULL
+\param sai_parameter set to the grouping_type_parameter or 0 if not defined
+\param sai_data set (allocated) to the sample group description data, must not be NULL and must be freed by caller
+\param sgrp_size set to the sample group description size, must not be NULL
+\return error if any
+*/
+GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 *sai_idx, u32 *sai_type, u32 *sai_parameter, u8 **sai_data, u32 *sai_size);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*! sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used
@@ -6730,7 +6786,7 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 g
 /*! adds the given blob as a sample group description entry of the given grouping type for the given sample.
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param sampleNumber the target sample number
+\param sampleNumber the target sample number.Use 0 for setting sample group info to last sample in a track fragment
 \param grouping_type the four character code of the grouping type
 \param grouping_type_parameter associated grouping type parameter (usually 0)
 \param data the payload of the sample group description
