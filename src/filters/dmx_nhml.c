@@ -512,8 +512,12 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 			codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
 		} else if (!stricmp(att->name, "objectTypeIndication")) {
 			NHML_SCAN_INT("%u", codecid)
-		} else if (!stricmp(att->name, "codecID") && (strlen(att->value)==4)) {
-			codecid = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+		} else if (!stricmp(att->name, "codecID")) {
+			if (strlen(att->value)==4) {
+				codecid = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+			} else {
+				codecid = gf_codecid_parse(att->value);
+			}
 		} else if (!stricmp(att->name, "timeScale")) {
 			u32 old_timescale = ctx->timescale;
 			NHML_SCAN_INT("%u", ctx->timescale)
@@ -1195,7 +1199,10 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			}
 			else if (!stricmp(att->name, "CTSOffset")) cts_offset = atoi(att->value);
 			else if (!stricmp(att->name, "isRAP") ) {
-				sap_type = (!stricmp(att->value, "yes")) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE;
+				if ((att->value[0]>='0') && (att->value[0]<='9'))
+					sap_type = atoi(att->value);
+				else
+					sap_type = (!stricmp(att->value, "yes")) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE;
 			}
 			else if (!stricmp(att->name, "isSyncShadow")) redundant_rap = !stricmp(att->value, "yes") ? 1 : 0;
 			else if (!stricmp(att->name, "SAPType") ) sap_type = atoi(att->value);
