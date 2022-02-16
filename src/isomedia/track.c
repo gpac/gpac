@@ -963,7 +963,21 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					stbl_group->entry_count += frag_group->entry_count;
 				}
 			} else {
-				stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
+				u32 samples_in_stbl_group = 0;
+				for (j=0; j<stbl_group->entry_count; j++) {
+					samples_in_stbl_group += stbl_group->sample_entries[j].sample_count;
+				}
+				u32 num_entries = stbl_group->entry_count + frag_group->entry_count;
+				if (samples_in_stbl_group < num_first_sample_in_traf) num_entries++;
+
+				stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * num_entries);
+				//set unmapped entries to 0
+				if (samples_in_stbl_group < num_first_sample_in_traf) {
+					stbl_group->sample_entries[stbl_group->entry_count].sample_count = num_first_sample_in_traf - samples_in_stbl_group;
+					stbl_group->sample_entries[stbl_group->entry_count].group_description_index = 0;
+					stbl_group->entry_count++;
+				}
+
 				//adjust sgpd index
 				for (j = 0; j < frag_group->entry_count; j++) {
 					u32 sgidx = frag_group->sample_entries[j].group_description_index;
@@ -1136,6 +1150,72 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				trak->sample_encryption->flags |= 0x00000002;
 		}
 	}
+
+	/*merge other saio*/
+	for (i=0; i<gf_list_count(traf->sai_sizes); i++) {
+		GF_SampleAuxiliaryInfoOffsetBox *saio = NULL;
+		GF_SampleAuxiliaryInfoSizeBox *saiz = gf_list_get(traf->sai_sizes, i);
+		switch (saiz->aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
+		case 0:
+			continue;
+		default:
+			break;
+		}
+		for (j=0; j<gf_list_count(traf->sai_offsets); j++) {
+			saio = gf_list_get(traf->sai_offsets, j);
+			if ((saio->aux_info_type==saiz->aux_info_type) && (saio->aux_info_type_parameter==saiz->aux_info_type_parameter)) break;
+			saio=NULL;
+		}
+		if (!saio) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isobmf] No saio for saiz type %s aux info type %d, cannot merge SAI\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+			continue;
+		}
+		if (!saio->offsets) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] No offset in saio type %s aux info type %d, cannot merge SAI\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+			continue;
+		}
+		u64 offset = saio->offsets[0] + moof_offset;
+		u32 nb_saio = saio->entry_count;
+		if ((nb_saio>1) && (saio->entry_count != saiz->sample_count)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of size and offset mismatch in auxiliary type %s aux info type %d, cannot merge SAI\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+			continue;
+		}
+
+		u32 sai_max_size=0;
+		u8 *sai = NULL;
+		for (j=0; j < saiz->sample_count; j++) {
+			if (nb_saio != 1)
+				offset = saio->offsets[j] + moof_offset;
+			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+
+			u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+			gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
+
+			u32 samp_num = num_first_sample_in_traf + j + 1;
+
+			if (sai_max_size<size) {
+				sai_max_size = size;
+				sai = gf_realloc(sai, sai_max_size);
+			}
+			gf_bs_read_data(trak->moov->mov->movieFileMap->bs, sai, size);
+			gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
+
+			GF_Err e = gf_isom_add_sample_aux_info_internal(trak, NULL, samp_num, saiz->aux_info_type, saiz->aux_info_type_parameter, sai, size);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Failed to merge sai data: %s\n", gf_error_to_string(e) ));
+			}
+
+			if (nb_saio == 1)
+				offset += size;
+		}
+		if (sai) gf_free(sai);
+	}
+
 	return GF_OK;
 }
 

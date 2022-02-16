@@ -232,6 +232,8 @@ Bool isor_declare_item_properties(ISOMReader *read, ISOMChannel *ch, u32 item_id
 
 void isor_declare_pssh(ISOMChannel *ch);
 
+void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_FilterPacket *pck);
+
 #endif /*GPAC_DISABLE_ISOM*/
 
 #endif /*_ISMO_IN_H_*/

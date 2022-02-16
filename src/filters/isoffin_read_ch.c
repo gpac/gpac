@@ -923,4 +923,48 @@ void isor_reader_check_config(ISOMChannel *ch)
 	}
 }
 
+
+
+void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_FilterPacket *pck)
+{
+	char szPName[30];
+
+	u32 grp_idx=0;
+	while (1) {
+		u32 grp_type=0, grp_size=0, grp_parameter=0;
+		const u8 *grp_data=NULL;
+		GF_Err e = gf_isom_enum_sample_group(read->mov, ch->track, ch->sample_num, &grp_idx, &grp_type, &grp_parameter, &grp_data, &grp_size);
+		if (e) continue;
+		if (!grp_type) break;
+		if (!grp_size || !grp_data) continue;
+
+		if (grp_type == GF_4CC('P','S','S','H')) {
+			gf_filter_pck_set_property(pck, GF_PROP_PID_CENC_PSSH, &PROP_DATA((u8*)grp_data, grp_size) );
+			continue;
+		}
+		//all other are mapped to sample groups
+		if (grp_parameter) sprintf(szPName, "grp_%s_%d", gf_4cc_to_str(grp_type), grp_parameter);
+		else sprintf(szPName, "grp_%s", gf_4cc_to_str(grp_type));
+
+		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA((u8*)grp_data, grp_size) );
+	}
+
+	u32 sai_idx=0;
+	while (1) {
+		u32 sai_type=0, sai_size=0, sai_parameter=0;
+		u8 *sai_data=NULL;
+		GF_Err e = gf_isom_enum_sample_aux_data(read->mov, ch->track, ch->sample_num, &sai_idx, &sai_type, &sai_parameter, &sai_data, &sai_size);
+		if (e) continue;
+		if (!sai_type) break;
+		if (!sai_size || !sai_data) continue;
+
+		//all other are mapped to sample groups
+		if (sai_parameter) sprintf(szPName, "sai_%s_%d", gf_4cc_to_str(sai_type), sai_parameter);
+		else sprintf(szPName, "sai_%s", gf_4cc_to_str(sai_type));
+
+		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );
+	}
+}
+
+
 #endif /*GPAC_DISABLE_ISOM*/

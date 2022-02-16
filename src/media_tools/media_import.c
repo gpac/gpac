@@ -723,7 +723,6 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			goto exit;
 	}
 
-
 	if (import->esd) {
 		if (!import->esd->slConfig) {
 			import->esd->slConfig = origin_esd ? origin_esd->slConfig : NULL;

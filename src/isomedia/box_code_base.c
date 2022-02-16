@@ -821,6 +821,20 @@ GF_Err unkn_box_write(GF_Box *s, GF_BitStream *bs)
 	ptr->type = type;
 	if (e) return e;
 
+	if (ptr->sai_type) {
+		if (ptr->saio_box) {
+			u64 pos = gf_bs_get_position(bs);
+			gf_bs_seek(bs, ptr->saio_box->offset_first_offset_field);
+			if (ptr->saio_box->version)
+				gf_bs_write_u64(bs, pos);
+			else
+				gf_bs_write_u32(bs, (u32) pos);
+			gf_bs_seek(bs, pos);
+		} else {
+			ptr->sai_offset = gf_bs_get_position(bs);
+		}
+	}
+
 	if (ptr->dataSize && ptr->data) {
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
@@ -10371,6 +10385,18 @@ GF_Err saio_box_write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->entry_count);
 	if (ptr->entry_count) {
 		u32 i;
+		if (ptr->sai_data) {
+			if (ptr->sai_data->sai_offset) {
+				if (ptr->version==0) {
+					gf_bs_write_u32(bs, (u32) ptr->sai_data->sai_offset);
+				} else {
+					gf_bs_write_u64(bs, ptr->sai_data->sai_offset);
+				}
+				return GF_OK;
+			}
+			ptr->sai_data->saio_box = ptr;
+		}
+
 		//store position in bitstream before writing data - offsets can be NULL if a single offset is rewritten later on (cf senc_box_write)
 		ptr->offset_first_offset_field = gf_bs_get_position(bs);
 		if (ptr->version==0) {

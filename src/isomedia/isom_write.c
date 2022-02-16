@@ -3939,6 +3939,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	GF_DataReferenceBox *dref;
 	GF_SampleTableBox *stbl, *stbl_temp;
 	GF_SampleEncryptionBox *senc;
+	GF_List *gpac_internals = NULL;
 	u32 i, count;
 
 	*output = NULL;
@@ -3979,6 +3980,19 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	gf_list_add(stbl_temp->child_boxes, stbl->CompositionToDecode);
 
 
+	count = gf_list_count(trak->child_boxes);
+	for (i=0;i<count; i++) {
+		GF_UnknownBox *b = gf_list_get(trak->child_boxes, i);
+		if (b->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+		if (b->original_4cc==GF_ISOM_BOX_TYPE_GPAC) {
+			if (!gpac_internals) gpac_internals = gf_list_new();
+			gf_list_add(gpac_internals, b);
+			gf_list_rem(trak->child_boxes, i);
+			i--;
+			count--;
+		}
+	}
+
 	//don't serialize senc
 	senc = trak->sample_encryption;
 	if (senc) {
@@ -4017,6 +4031,11 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	stbl_temp->CompositionToDecode = NULL;
 	gf_list_del_item(stbl_temp->child_boxes, stbl->CompositionToDecode);
 	gf_isom_box_del((GF_Box *)stbl_temp);
+
+	if (gpac_internals) {
+		gf_list_transfer(trak->child_boxes, gpac_internals);
+		gf_list_del(gpac_internals);
+	}
 	return GF_OK;
 
 }
@@ -4264,6 +4283,17 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 				e = Media_SetDrefURL((GF_DataEntryURLBox *)dref_entry, orig_file->fileName, dest_file->finalName);
 				if (e) return e;
 			}
+		}
+	}
+
+	//purge all 'gpac' boxes at track level
+	for (i=0; i<gf_list_count(new_tk->child_boxes); i++) {
+		GF_UnknownBox *b = (GF_UnknownBox *)gf_list_get(new_tk->child_boxes, i);
+		if (b->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+		if (b->original_4cc==GF_ISOM_BOX_TYPE_GPAC) {
+			gf_list_rem(new_tk->child_boxes, i);
+			i--;
+			gf_isom_box_del((GF_Box*)b);
 		}
 	}
 
@@ -7442,7 +7472,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 				//find the same entry
 				for (k=0; k<gf_list_count(sgd_dst->group_descriptions); k++) {
-					sgde_dst = gf_list_get(sgd_dst->group_descriptions, i);
+					sgde_dst = gf_list_get(sgd_dst->group_descriptions, k);
 					if (gf_isom_is_identical_sgpd(sgde_src, sgde_dst, sgd_src->grouping_type)) {
 						group_desc_index_dst = k+1;
 						break;
@@ -7468,6 +7498,73 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 		}
 	}
 
+	//copy auxiliary info
+	count = gf_list_count(src_trak->Media->information->sampleTable->sai_sizes);
+	for (i=0; i<count; i++) {
+		u32 j;
+		GF_SampleAuxiliaryInfoOffsetBox *saio = NULL;
+		GF_SampleAuxiliaryInfoSizeBox *saiz = gf_list_get(src_trak->Media->information->sampleTable->sai_sizes, i);
+
+		switch (saiz->aux_info_type) {
+		case GF_ISOM_CENC_SCHEME:
+		case GF_ISOM_CBC_SCHEME:
+		case GF_ISOM_CENS_SCHEME:
+		case GF_ISOM_CBCS_SCHEME:
+		case GF_ISOM_PIFF_SCHEME:
+		case 0:
+			continue;
+		default:
+			break;
+		}
+		//no aux sample associated
+		if (saiz->sample_count<sampleNumber) continue;
+		//no size associated
+		if (!saiz->sample_info_size[sampleNumber-1]) continue;
+
+		for (j=0; j<gf_list_count(src_trak->Media->information->sampleTable->sai_offsets); j++) {
+			saio = gf_list_get(src_trak->Media->information->sampleTable->sai_offsets, j);
+			if ((saio->aux_info_type==saiz->aux_info_type) && (saio->aux_info_type_parameter==saiz->aux_info_type_parameter)) break;
+			saio=NULL;
+		}
+		if (!saio) continue;
+		if (!saio->offsets && !saio->sai_data) continue;
+
+		u64 offset = saio->offsets ? saio->offsets[0] : 0;
+		u32 nb_saio = saio->entry_count;
+		if ((nb_saio>1) && (saio->entry_count != saiz->sample_count)) continue;
+
+		u32 size;
+
+		if (nb_saio == 1) {
+			for (j=0; j < sampleNumber-1; j++) {
+				size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+				offset += size;
+			}
+		} else {
+			offset = saio->offsets[sampleNumber-1];
+		}
+
+		size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
+
+		if (saio->sai_data) {
+			e = gf_isom_add_sample_aux_info_internal(dst_trak, NULL, j+1, saiz->aux_info_type, saiz->aux_info_type_parameter, saio->sai_data->data + offset, size);
+		} else {
+			u8 *sai = gf_malloc(size);
+			if (!sai) return GF_OUT_OF_MEM;
+
+			u64 cur_position = gf_bs_get_position(src_trak->moov->mov->movieFileMap->bs);
+			gf_bs_seek(src_trak->moov->mov->movieFileMap->bs, offset);
+
+			gf_bs_read_data(src_trak->moov->mov->movieFileMap->bs, sai, size);
+			gf_bs_seek(src_trak->moov->mov->movieFileMap->bs, cur_position);
+			e = gf_isom_add_sample_aux_info_internal(dst_trak, NULL, j+1, saiz->aux_info_type, saiz->aux_info_type_parameter, sai, size);
+			gf_free(sai);
+		}
+
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Failed to clone sai data: %s\n", gf_error_to_string(e) ));
+		}
+	}
 	return GF_OK;
 }
 
@@ -8333,5 +8430,145 @@ GF_Err gf_isom_set_y3d_info(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescri
 	return GF_OK;
 }
 
+
+GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size)
+{
+	u32 i, count;
+	GF_List **child_box_cont, **child_box_sai, **child_box_saiz, **child_box_saio;
+	GF_UnknownBox *sai_cont = NULL;
+
+	if (!trak && !_traf) return GF_BAD_PARAM;
+
+	if (trak) {
+		child_box_cont = &trak->child_boxes;
+		child_box_sai = &trak->Media->information->sampleTable->child_boxes;
+		child_box_saiz = &trak->Media->information->sampleTable->sai_sizes;
+		child_box_saio = &trak->Media->information->sampleTable->sai_offsets;
+	} else {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+		GF_TrackFragmentBox *traf = (GF_TrackFragmentBox *)_traf;
+
+		child_box_cont = &traf->child_boxes;
+		child_box_sai = &traf->child_boxes;
+		child_box_saiz = &traf->sai_sizes;
+		child_box_saio = &traf->sai_offsets;
+#endif
+	}
+
+	count = gf_list_count(*child_box_cont);
+	for (i=0; i<count; i++) {
+		GF_UnknownBox *unkn = gf_list_get(*child_box_cont, i);
+		if (unkn->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+		if (unkn->original_4cc != GF_ISOM_BOX_TYPE_GPAC) continue;
+		if (unkn->sai_type != aux_type) continue;
+		if (unkn->sai_aux_info != aux_info) continue;
+		sai_cont = unkn;
+		break;
+	}
+	if (!sai_cont) {
+		sai_cont = (GF_UnknownBox *) gf_isom_box_new_parent(child_box_cont, GF_ISOM_BOX_TYPE_UNKNOWN);
+		if (!sai_cont) return GF_OUT_OF_MEM;
+		sai_cont->original_4cc = GF_ISOM_BOX_TYPE_GPAC;
+		sai_cont->sai_type = aux_type;
+		sai_cont->sai_aux_info = aux_info;
+	}
+	sai_cont->data = gf_realloc(sai_cont->data, (size+sai_cont->dataSize));
+	if (!sai_cont->data) return GF_OUT_OF_MEM;
+	memcpy(sai_cont->data+sai_cont->dataSize, data, size);
+	sai_cont->dataSize += size;
+
+	GF_SampleAuxiliaryInfoSizeBox *saiz=NULL;
+	GF_SampleAuxiliaryInfoOffsetBox *saio=NULL;
+	count = gf_list_count(*child_box_saiz);
+	for (i=0; i<count; i++) {
+		saiz = gf_list_get(*child_box_saiz, i);
+		if ((saiz->aux_info_type==aux_type) && (saiz->aux_info_type_parameter==aux_info)) break;
+		saiz = NULL;
+	}
+	if (!saiz) {
+		saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new_parent(child_box_sai, GF_ISOM_BOX_TYPE_SAIZ);
+		if (!saiz) return GF_OUT_OF_MEM;
+		if (! *child_box_saiz) *child_box_saiz = gf_list_new();
+		gf_list_add(*child_box_saiz, saiz);
+
+		saiz->aux_info_type = aux_type;
+		saiz->aux_info_type_parameter = aux_info;
+	}
+
+	if (saiz->sample_count >= sampleNumber)
+		return GF_BAD_PARAM;
+
+	if ( (!saiz->sample_count && (sampleNumber==1))
+		|| ((saiz->default_sample_info_size==size) && size)
+	) {
+		saiz->sample_count ++;
+		saiz->default_sample_info_size = size;
+	} else {
+		if (sampleNumber > saiz->sample_alloc) {
+			if (!saiz->sample_alloc) saiz->sample_alloc = sampleNumber;
+			else saiz->sample_alloc *= 2;
+			saiz->sample_info_size = (u8*)gf_realloc(saiz->sample_info_size, sizeof(u8)*(saiz->sample_alloc));
+		}
+
+		if (saiz->default_sample_info_size) {
+			for (i=0; i<saiz->sample_count; i++)
+				saiz->sample_info_size[i] = saiz->default_sample_info_size;
+			saiz->default_sample_info_size = 0;
+		}
+		for (i=saiz->sample_count; i<sampleNumber-1; i++)
+			saiz->sample_info_size[i] = 0;
+
+		saiz->sample_info_size[sampleNumber-1] = size;
+		saiz->sample_count = sampleNumber;
+	}
+
+
+	count = gf_list_count(*child_box_saio);
+	for (i=0; i<count; i++) {
+		saio = gf_list_get(*child_box_saio, i);
+		if ((saio->aux_info_type==aux_type) && (saio->aux_info_type_parameter==aux_info)) break;
+		saio = NULL;
+	}
+	if (!saio) {
+		saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new_parent(child_box_sai, GF_ISOM_BOX_TYPE_SAIO);
+		if (!saio) return GF_OUT_OF_MEM;
+		if (! *child_box_saio) *child_box_saio = gf_list_new();
+		gf_list_add(*child_box_saio, saio);
+		saio->aux_info_type = aux_type;
+		saio->aux_info_type_parameter = aux_info;
+	}
+	if (!saio->sai_data) saio->sai_data = sai_cont;
+	saio->version = 1;
+	saio->entry_count = 1;
+
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+GF_Err gf_isom_fragment_set_sample_aux_info(GF_ISOFile *movie, u32 trackID, u32 sample_number_in_frag, u32 aux_type, u32 aux_info, u8 *data, u32 size)
+{
+	GF_TrackFragmentBox *traf;
+	if (!movie || !movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	traf = gf_isom_get_traf(movie, trackID);
+	if (!traf) return GF_BAD_PARAM;
+	return gf_isom_add_sample_aux_info_internal(NULL, traf, sample_number_in_frag, aux_type, aux_info, data, size);
+}
+#endif
+
+GF_Err gf_isom_add_sample_aux_info(GF_ISOFile *file, u32 track, u32 sampleNumber, u32 aux_type, u32 aux_info, u8 *data, u32 size)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	return gf_isom_add_sample_aux_info_internal(trak, NULL, sampleNumber, aux_type, aux_info, data, size);
+}
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
