@@ -4316,7 +4316,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		}
 		break;
 	case GF_ITAG_INT64:
-		if (dbox->dataSize>3) {
+		if (dbox->dataSize>7) {
 			u64 v = dbox->data[0];
 			v<<=8;
 			v |= dbox->data[1];
@@ -4337,7 +4337,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		break;
 	case GF_ITAG_FRAC6:
 	case GF_ITAG_FRAC8:
-		if (dbox->dataSize>3) {
+		if (dbox->dataSize>5) {
 			u32 v = dbox->data[2];
 			v<<=8;
 			v |= dbox->data[3];
