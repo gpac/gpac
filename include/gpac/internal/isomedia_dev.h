@@ -531,7 +531,7 @@ enum
 	GF_ISOM_BOX_TYPE_HVCE	= GF_4CC( 'h', 'v', 'c', 'E' ),
 
 	//opaque data container
-	GF_ISOM_BOX_TYPE_GPAC	= GF_4CC( 'g', 'p', 'a', 'c' ),
+	GF_ISOM_BOX_TYPE_GDAT	= GF_4CC( 'g', 'd', 'a', 't' ),
 };
 
 enum
