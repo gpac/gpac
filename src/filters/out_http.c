@@ -156,6 +156,11 @@ typedef struct __httpout_input
 	GF_List *mem_files;
 	Bool is_manifest;
 
+	//for PUT mode for LL-HLS SF, NULL in server mode
+	GF_DownloadSession *llhls_upload;
+	u32 llhls_cur_header;
+	Bool llhls_is_open;
+	char *llhls_url;
 } GF_HTTPOutInput;
 
 typedef struct
@@ -797,10 +802,11 @@ GF_Err httpout_new_subsession(GF_HTTPOutSession *sess, u32 stream_id)
 {
 	GF_HTTPOutSession *sub_sess;
 	GF_Err e;
-	if (!sess || !sess->http_sess || !sess->is_h2)
+	//warning, sess->is_h2 might not be set yet
+	if (!sess || !sess->http_sess || !gf_dm_sess_is_h2(sess->http_sess))
 		return GF_BAD_PARAM;
 
-
+	sess->is_h2 = GF_TRUE;
 	GF_SAFEALLOC(sub_sess, GF_HTTPOutSession);
 	if (!sub_sess) return GF_OUT_OF_MEM;
 	sub_sess->socket = sess->socket;
@@ -1598,16 +1604,18 @@ enum
 	HTTP_PUT_HEADER_DONE
 };
 
-static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
+static void httpout_in_io_ex(void *usr_cbk, GF_NETIO_Parameter *parameter, Bool is_llhls)
 {
 	GF_HTTPOutInput *in =usr_cbk;
+
+	u32 *cur_header = is_llhls ? &in->llhls_cur_header : &in->cur_header;
 
 	if (parameter->msg_type==GF_NETIO_GET_METHOD) {
 		if (in->is_delete)
 			parameter->name = "DELETE";
 		else
 			parameter->name = in->ctx->post ? "POST" : "PUT";
-		in->cur_header = HTTP_PUT_HEADER_ENCODING;
+		*cur_header = HTTP_PUT_HEADER_ENCODING;
 		return;
 	}
 	if (parameter->msg_type==GF_NETIO_GET_HEADER) {
@@ -1615,20 +1623,21 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 		if (in->is_delete) return;
 
-		switch (in->cur_header) {
+		switch (*cur_header) {
 		case HTTP_PUT_HEADER_ENCODING:
 			parameter->name = "Transfer-Encoding";
 			parameter->value = "chunked";
 			if (in->mime)
-				in->cur_header = HTTP_PUT_HEADER_MIME;
+				*cur_header = HTTP_PUT_HEADER_MIME;
 			else
-				in->cur_header = in->write_start_range ? HTTP_PUT_HEADER_RANGE : HTTP_PUT_HEADER_DONE;
+				*cur_header = in->write_start_range ? HTTP_PUT_HEADER_RANGE : HTTP_PUT_HEADER_DONE;
 			break;
 		case HTTP_PUT_HEADER_MIME:
 			parameter->name = "Content-Type";
 			parameter->value = in->mime;
-			in->cur_header = HTTP_PUT_HEADER_DONE;
-			if (in->write_start_range)
+			*cur_header = HTTP_PUT_HEADER_DONE;
+			//range only for non LLHLS
+			if (in->write_start_range && !is_llhls)
 				in->cur_header = HTTP_PUT_HEADER_RANGE;
 			break;
 		case HTTP_PUT_HEADER_RANGE:
@@ -1647,6 +1656,15 @@ static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			break;
 		}
 	}
+}
+
+static void httpout_in_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
+{
+	httpout_in_io_ex(usr_cbk, parameter, GF_FALSE);
+}
+static void httpout_in_io_llhls(void *usr_cbk, GF_NETIO_Parameter *parameter)
+{
+	httpout_in_io_ex(usr_cbk, parameter, GF_TRUE);
 }
 
 static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -2161,6 +2179,8 @@ static void httpout_finalize(GF_Filter *filter)
 		httpout_close_hls_chunk(ctx, in, GF_TRUE);
 
 		if (in->resource) gf_fclose(in->resource);
+		if (in->llhls_upload) gf_dm_sess_del(in->llhls_upload);
+		if (in->llhls_url) gf_free(in->llhls_url);
 		if (in->upload) gf_dm_sess_del(in->upload);
 		if (in->file_deletes) {
 			while (gf_list_count(in->file_deletes)) {
@@ -2937,6 +2957,53 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	}
 	in->nb_write = 0;
 }
+
+//for upload of LLHLS in seperate file mode only
+static void httpout_close_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
+{
+	GF_Err e;
+	if (!in->llhls_is_open) return;
+	in->llhls_is_open = GF_FALSE;
+	//close prev session
+	if (!in->is_h2) {
+		e = gf_dm_sess_send(in->llhls_upload, "0\r\n\r\n", 5);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error sending last chunk of LLHLS part from %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+		}
+	}
+	//signal we're done sending the body
+	gf_dm_sess_send(in->llhls_upload, NULL, 0);
+
+	//fetch reply (blocking)
+	e = gf_dm_sess_process(in->llhls_upload);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error closing output %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+	}
+}
+
+//for upload of LLHLS in seperate file mode only
+static Bool httpout_open_input_llhls(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, char *dst)
+{
+	GF_Err e = gf_dm_sess_setup_from_url(in->llhls_upload, dst, GF_TRUE);
+	if (!e) {
+		in->llhls_cur_header = 0;
+		e = gf_dm_sess_process(in->llhls_upload);
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Failed to open output file %s: %s\n", in->path, gf_error_to_string(e) ));
+		in->llhls_is_open = GF_FALSE;
+		return GF_FALSE;
+	}
+
+	in->llhls_is_open = GF_TRUE;
+	if (in->llhls_url != dst) {
+		if (in->llhls_url) gf_free(in->llhls_url);
+		in->llhls_url = gf_strdup(dst);
+	}
+	return GF_TRUE;
+}
+
+
 u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_data, u32 pck_size, Bool file_start)
 {
 	u32 out=0;
@@ -2949,6 +3016,7 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 		char szChunkHdr[100];
 		u32 chunk_hdr_len=0;
 		GF_Err e;
+		u32 s_idx, max_out = 1;
 		u32 nb_retry = 0;
 		out = pck_size;
 
@@ -2956,25 +3024,36 @@ u32 httpout_write_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const u8 *pck_d
 			sprintf(szChunkHdr, "%X\r\n", pck_size);
 			chunk_hdr_len = (u32) strlen(szChunkHdr);
 		}
+		if (in->llhls_upload && in->llhls_is_open)
+			max_out = 2;
+
+		for (s_idx=0; s_idx<max_out; s_idx++) {
+			GF_DownloadSession *up_sess = s_idx ? in->llhls_upload : in->upload;
 retry:
-		if (!in->is_h2) {
-			e = gf_dm_sess_send(in->upload, szChunkHdr, chunk_hdr_len);
-			if (!e) e = gf_dm_sess_send(in->upload, (u8 *) pck_data, pck_size);
-			if (!e) e = gf_dm_sess_send(in->upload, "\r\n", 2);
-		} else {
-			e = gf_dm_sess_send(in->upload, (u8 *) pck_data, pck_size);
-		}
-		if (e==GF_IP_CONNECTION_CLOSED) {
-			if (file_start && (nb_retry<10) ) {
-				in->is_open = GF_FALSE;
-				nb_retry++;
-				if (httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE))
-					goto retry;
+			if (!in->is_h2) {
+				e = gf_dm_sess_send(up_sess, szChunkHdr, chunk_hdr_len);
+				if (!e) e = gf_dm_sess_send(up_sess, (u8 *) pck_data, pck_size);
+				if (!e) e = gf_dm_sess_send(up_sess, "\r\n", 2);
+			} else {
+				e = gf_dm_sess_send(up_sess, (u8 *) pck_data, pck_size);
 			}
-		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error writing to output file %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
-			out = 0;
+			if (e==GF_IP_CONNECTION_CLOSED) {
+				if (file_start && (nb_retry<10) ) {
+					in->is_open = GF_FALSE;
+					nb_retry++;
+					if (s_idx) {
+						if (httpout_open_input_llhls(ctx, in, in->llhls_url))
+							goto retry;
+					} else {
+						if (httpout_open_input(ctx, in, in->path, GF_FALSE, GF_FALSE))
+							goto retry;
+					}
+				}
+			}
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Error writing to output file %s: %s\n", in->local_path ? in->local_path : in->path, gf_error_to_string(e) ));
+				out = 0;
+			}
 		}
 
 	} else {
@@ -3159,7 +3238,11 @@ next_pck:
 				//if (!fname) name = ctx->dst;
 			}
 			//filename change at packet start, open new file
-			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
+			if (!fname) {
+				fname = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENAME);
+				if (fname) in->force_dst_name = GF_FALSE;
+			}
+
 			if (!fname) fname = gf_filter_pck_get_property(pck, GF_PROP_PID_OUTPATH);
 			if (fname) name = fname->value.string;
 
@@ -3217,7 +3300,20 @@ next_pck:
 				hio->hls_ll_chunk = GF_TRUE;
 				gf_list_add(in->mem_files, hio);
 			}
+		} else if (p && in->upload) {
+			GF_Err e;
+			char szHLSChunk[GF_MAX_PATH];
+			snprintf(szHLSChunk, GF_MAX_PATH-1, "%s.%d", in->path, p->value.uint);
 
+			if (!in->llhls_upload) {
+				in->llhls_upload = gf_dm_sess_new(gf_filter_get_download_manager(ctx->filter), ctx->dst, GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_PERSISTENT, httpout_in_io_llhls, in, &e);
+			}
+
+			if (in->llhls_upload) {
+				httpout_close_input_llhls(ctx, in);
+
+				httpout_open_input_llhls(ctx, in, szHLSChunk);
+			}
 		}
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
@@ -3322,6 +3418,7 @@ next_pck:
 		gf_filter_pid_drop_packet(in->ipid);
 		if (end) {
 			httpout_close_input(ctx, in);
+			httpout_close_input_llhls(ctx, in);
 		}
 
 		goto next_pck;

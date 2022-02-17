@@ -3865,7 +3865,11 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			if (!max_part_dur) max_part_dur = as->hls_ll_target_frag_dur;
 			if (max_part_dur<rep->hls_ll_part_dur)
 				max_part_dur = rep->hls_ll_part_dur;
-			assert(max_part_dur);
+
+			//default cdur in gpac
+			if (!max_part_dur) {
+				max_part_dur=1.0;
+			}
 			max_part_dur = ceil(max_part_dur*1000) / 1000.0;
 			rep->hls_ll_part_dur = max_part_dur;
 			if (max_part_dur_session < max_part_dur)
