@@ -1358,6 +1358,19 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 
 		movie->styp_written = GF_TRUE;
 	}
+
+	if (movie->emsgs) {
+		while (1) {
+			GF_Box *b = gf_list_pop_front(movie->emsgs);
+			if (!b) break;
+			gf_isom_box_size(b);
+			gf_isom_box_write(b, movie->editFileMap->bs);
+			gf_isom_box_del(b);
+		}
+		gf_list_del(movie->emsgs);
+		movie->emsgs = NULL;
+	}
+
 	return GF_OK;
 }
 
@@ -3234,5 +3247,24 @@ u32 gf_isom_get_next_moof_number(GF_ISOFile *movie)
 #endif
 	return 0;
 }
+
+GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size)
+{
+	if (!movie || !data) return GF_BAD_PARAM;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		GF_Box *emsg;
+		GF_Err e = gf_isom_box_parse(&emsg, bs);
+		if (e) break;
+		if (!movie->emsgs) movie->emsgs = gf_list_new();
+		gf_list_add(movie->emsgs, emsg);
+	}
+	gf_bs_del(bs);
+#endif
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM*/

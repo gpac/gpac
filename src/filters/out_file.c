@@ -251,7 +251,7 @@ static GF_Err fileout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->max_segs = (u32) -ctx->max_cache_segs;
 	} else if (ctx->max_cache_segs>0) {
 		ctx->max_segs = (u32) ctx->max_cache_segs;
-		if (p && (p->value.uint > ctx->max_cache_segs))
+		if (p && (p->value.uint > (u32) ctx->max_cache_segs))
 			ctx->max_segs = p->value.uint;
 	}
 	if (ctx->max_segs && !ctx->past_files)

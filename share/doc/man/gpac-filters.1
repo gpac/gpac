@@ -2049,6 +2049,14 @@ The filter watches the following custom data properties on incoming packets:
 .br
   
 .br
+The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG-DASH.
+.br
+- in fragmented mode, presence of these boxes in a packet will start a new fragment, with the boxes written before the moof
+.br
+- in regular mode, an internal sample group of type EMSG is currently used for emsg box storage
+.br
+  
+.br
 .SH Notes
 .LP
 .br
@@ -9996,7 +10004,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1759-geb2d1e6dd-master
+build: 1.1.0-DEV-rev1765-gf5446dbe2-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

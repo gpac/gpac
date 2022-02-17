@@ -4300,6 +4300,8 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (!strncmp(pname, "sai_", 4)) {
 
 		} else if (!strncmp(pname, "grp_", 4)) {
+			//discard emsg if fragmented, otherwise add as internal sample group - TODO, support for EventMessage tracks
+			if (!strcmp(pname, "grp_EMSG") && (ctx->store>=MP4MX_MODE_FRAG)) continue;
 			is_sample_group = GF_TRUE;
 		} else {
 			continue;
@@ -5543,6 +5545,13 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				e = mp4_mux_start_fragment(ctx, orig_frag_bounds ? pck : NULL);
 				if (e) return e;
 
+				const GF_PropertyValue *emsg = gf_filter_pck_get_property_str(pck, "grp_EMSG");
+				if (emsg && (emsg->type==GF_PROP_DATA) && emsg->value.data.ptr) {
+					GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size);
+
+					gf_isom_set_emsg(ctx->file, emsg->value.data.ptr, emsg->value.data.size);
+				}
+
 				ctx->nb_frags++;
 				if (ctx->dash_mode)
 					ctx->nb_frags_in_seg++;
@@ -5591,8 +5600,8 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (tkw->cts_next < ncts)
 				tkw->cts_next = ncts;
 
-
-			if (tkw->samples_in_frag && orig_frag_bounds) {
+			//we have samples and either a request to flush fragment or a emsg, start new fragment
+			if (tkw->samples_in_frag && (orig_frag_bounds || (gf_filter_pck_get_property_str(pck, "grp_EMSG")!=NULL))) {
 				tkw->fragment_done = GF_TRUE;
 				nb_done ++;
 				tkw->samples_in_frag = 0;
@@ -7113,6 +7122,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"- `grp_A4CC_param`: same as above and sets sample to group `grouping_type_parameter` to `param`\n"
 	"- `sai_A4CC`: adds property payload as sample auxiliary information of type `A4CC`\n"
 	"- `sai_A4CC_param`: same as above and sets `aux_info_type_parameter`to `param`\n"
+	"  \n"
+	"The property `grp_EMSG` consists in one or more `EventMessageBox` as defined in MPEG-DASH.\n"
+	"- in fragmented mode, presence of these boxes in a packet will start a new fragment, with the boxes written before the `moof`\n"
+	"- in regular mode, an internal sample group of type `EMSG` is currently used for `emsg` box storage\n"
 	"  \n"
 	"# Notes\n"
 	"The filter watches the property `FileNumber` on incoming packets to create new files (regular mode) or new segments (DASH mode).\n"

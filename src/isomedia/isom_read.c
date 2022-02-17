@@ -3385,6 +3385,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 
 	gf_isom_datamap_del(movie->movieFileMap);
 	movie->movieFileMap = NULL;
+
 #endif
 	return GF_OK;
 }
@@ -6048,5 +6049,24 @@ GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *the_file, u32 trackNumber, u32 s
 	return GF_OK;
 }
 
+GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size)
+{
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_Box *emsg = gf_list_pop_front(the_file->emsgs);
+	if (!emsg) return GF_NOT_FOUND;
+
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	//write everything
+	gf_isom_box_size(emsg);
+	gf_isom_box_write(emsg, bs);
+	gf_bs_get_content(bs, emsg_data, emsg_size);
+	gf_isom_box_del(emsg);
+	return GF_OK;
+
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

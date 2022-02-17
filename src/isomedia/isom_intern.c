@@ -126,6 +126,28 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('P','S','S','H'), 0, pssh_data, pssh_len, GF_FALSE);
 			gf_free(pssh_data);
 		}
+
+
+		//we have emsg, internally remap as a sample group of type EMSG
+		if (gf_list_count(mov->emsgs)) {
+			u8 *emsg_data;
+			u32 emsg_len;
+			u32 j, nb_emsg = gf_list_count(mov->emsgs);
+			GF_BitStream *emsg_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			for (j=0; j<nb_emsg; j++) {
+				GF_Box *emsg = gf_list_get(mov->emsgs, j);
+				gf_isom_box_write(emsg, emsg_bs);
+			}
+			gf_bs_get_content(emsg_bs, &emsg_data, &emsg_len);
+			gf_bs_del(emsg_bs);
+
+			gf_isom_set_sample_group_description_internal(mov, gf_list_find(mov->moov->trackList, trak)+1, 1+prev_sample_count, GF_4CC('E','M','S','G'), 0, emsg_data, emsg_len, GF_FALSE);
+			gf_free(emsg_data);
+		}
+	}
+	if (mov->emsgs) {
+		gf_isom_box_array_del(mov->emsgs);
+		mov->emsgs = NULL;
 	}
 
 	if (moof->child_boxes) {
@@ -454,6 +476,14 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				mov->first_data_toplevel_size = a->size;
 			}
 			totSize += a->size;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+			if (mov->emsgs) {
+				gf_isom_box_array_del(mov->emsgs);
+				mov->emsgs = NULL;
+			}
+#endif
+
 			if (mov->openMode == GF_ISOM_OPEN_READ) {
 				if (!mov->mdat) {
 					mov->mdat = (GF_MediaDataBox *) a;
@@ -730,6 +760,14 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 			}
 #endif
 		//fallthrough
+		case GF_ISOM_BOX_TYPE_EMSG:
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
+				if (!mov->emsgs) mov->emsgs = gf_list_new();
+				gf_list_add(mov->emsgs, a);
+				break;
+			}
+#endif
 
 		default:
 			totSize += a->size;
