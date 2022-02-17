@@ -1289,6 +1289,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 	return GF_TRUE;
 }
 
+static Bool prev_was_cmd=GF_FALSE;
 static Bool signal_catched=GF_FALSE;
 static Bool signal_processed=GF_FALSE;
 #ifdef WIN32
@@ -1314,6 +1315,7 @@ static void gpac_sig_handler(int sig)
 				}
 				exit(1);
 			}
+
 			signal_catched = GF_TRUE;
 			if (is_inter) {
 				in_sig_handler = GF_TRUE;
@@ -1335,10 +1337,16 @@ rescan:
 				case 0:
 					break;
 				case '\n':
-					goto rescan;
+					//prev was a command, flush \n
+					if (prev_was_cmd) {
+						prev_was_cmd = GF_FALSE;
+						goto rescan;
+					}
+					break;
 
 				case 'R':
 				case 'r':
+					prev_was_cmd = GF_TRUE;
 					if (!enable_reports) {
 						enable_reports = 2;
 						report_filter = NULL;
