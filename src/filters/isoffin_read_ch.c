@@ -964,6 +964,18 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 
 		gf_filter_pck_set_property_dyn(pck, szPName, &PROP_DATA_NO_COPY(sai_data, sai_size) );
 	}
+
+
+	while (1) {
+		GF_Err gf_isom_pop_emsg(GF_ISOFile *the_file, u8 **emsg_data, u32 *emsg_size);
+		u8 *data=NULL;
+		u32 size;
+		GF_Err e = gf_isom_pop_emsg(read->mov, &data, &size);
+		if (e || !data) break;
+
+		gf_filter_pck_set_property_str(pck, "emsg", &PROP_DATA_NO_COPY(data, size));
+	}
+
 }
 
 

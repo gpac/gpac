@@ -12537,7 +12537,6 @@ GF_Err emsg_box_size(GF_Box *s)
 {
 	GF_EventMessageBox *ptr = (GF_EventMessageBox*) s;
 
-	ptr->size += 4;
 	if (ptr->version) {
 		ptr->size += 20;
 	} else {

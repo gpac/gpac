@@ -583,9 +583,8 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 	GF_XMLNode *node;
 	FILE *finfo;
 	u64 media_size;
-	char *szSampleName, *szImpName;
+	char *szImpName;
 
-	szSampleName = ctx->is_dims ? "DIMSUnit" : "NHNTSample";
 	szImpName = ctx->is_dims ? "DIMS" : "NHML";
 
 	ctx->dts_inc = 0;
@@ -1175,7 +1174,7 @@ static void nhmldmx_set_subs(GF_NHMLDmxCtx *ctx, GF_XMLNode *node, GF_FilterPack
 				if (sub_file_url) {
 					FILE *f = gf_fopen(sub_file_url, ftext ? "rt" : "r");
 					if (f) {
-						size += gf_fsize(f);
+						size += (u32) gf_fsize(f);
 						gf_fclose(f);
 					}
 					gf_free(sub_file_url);

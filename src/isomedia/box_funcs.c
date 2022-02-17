@@ -1849,7 +1849,8 @@ void gf_isom_check_position(GF_Box *s, GF_Box *child, u32 *pos)
 
 	s32 cur_pos = gf_list_find(s->child_boxes, child);
 
-	assert (cur_pos >= 0);
+	//happens when partially cloning boxes 
+	if (cur_pos < 0) return;
 
 	if (cur_pos != (s32) *pos) {
 		gf_list_del_item(s->child_boxes, child);

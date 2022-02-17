@@ -3972,7 +3972,12 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	stbl_temp->sampleGroupsDescription = stbl->sampleGroupsDescription;
 	count = gf_list_count(stbl->sampleGroupsDescription);
 	for (i=0;i<count; i++) {
-		GF_Box *b = gf_list_get(stbl->sampleGroupsDescription, i);
+		GF_SampleGroupDescriptionBox *b = gf_list_get(stbl->sampleGroupsDescription, i);
+		//don't add our internal sample groups
+		if (b->grouping_type==GF_4CC('E','M','S','G'))
+			continue;
+		if (b->grouping_type==GF_4CC('P','S','S','H'))
+			continue;
 		gf_list_add(stbl_temp->child_boxes, b);
 	}
 	/*clone CompositionToDecode table, we may remove it later*/
