@@ -3984,7 +3984,7 @@ GF_Err gf_isom_get_track_template(GF_ISOFile *file, u32 track, u8 **output, u32 
 	for (i=0;i<count; i++) {
 		GF_UnknownBox *b = gf_list_get(trak->child_boxes, i);
 		if (b->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
-		if (b->original_4cc==GF_ISOM_BOX_TYPE_GPAC) {
+		if (b->original_4cc==GF_ISOM_BOX_TYPE_GDAT) {
 			if (!gpac_internals) gpac_internals = gf_list_new();
 			gf_list_add(gpac_internals, b);
 			gf_list_rem(trak->child_boxes, i);
@@ -4290,7 +4290,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	for (i=0; i<gf_list_count(new_tk->child_boxes); i++) {
 		GF_UnknownBox *b = (GF_UnknownBox *)gf_list_get(new_tk->child_boxes, i);
 		if (b->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
-		if (b->original_4cc==GF_ISOM_BOX_TYPE_GPAC) {
+		if (b->original_4cc==GF_ISOM_BOX_TYPE_GDAT) {
 			gf_list_rem(new_tk->child_boxes, i);
 			i--;
 			gf_isom_box_del((GF_Box*)b);
@@ -8459,7 +8459,7 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 	for (i=0; i<count; i++) {
 		GF_UnknownBox *unkn = gf_list_get(*child_box_cont, i);
 		if (unkn->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
-		if (unkn->original_4cc != GF_ISOM_BOX_TYPE_GPAC) continue;
+		if (unkn->original_4cc != GF_ISOM_BOX_TYPE_GDAT) continue;
 		if (unkn->sai_type != aux_type) continue;
 		if (unkn->sai_aux_info != aux_info) continue;
 		sai_cont = unkn;
@@ -8468,7 +8468,7 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 	if (!sai_cont) {
 		sai_cont = (GF_UnknownBox *) gf_isom_box_new_parent(child_box_cont, GF_ISOM_BOX_TYPE_UNKNOWN);
 		if (!sai_cont) return GF_OUT_OF_MEM;
-		sai_cont->original_4cc = GF_ISOM_BOX_TYPE_GPAC;
+		sai_cont->original_4cc = GF_ISOM_BOX_TYPE_GDAT;
 		sai_cont->sai_type = aux_type;
 		sai_cont->sai_aux_info = aux_info;
 	}

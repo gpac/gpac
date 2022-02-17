@@ -4071,7 +4071,7 @@ typedef struct
 	u64 mdat_end;
 	/*segment start offset plus one:
 		0 if regular fragment, 1 if dash segment, offset indicates start of segment (styp or sidx)
-		if sidx, it is writtent in the moof_template
+		if sidx, it is written in the moof_template
 	*/
 	u64 seg_start_plus_one;
 
@@ -5596,7 +5596,7 @@ GF_Err gf_isom_piff_allocate_storage(GF_ISOFile *isom_file, u32 trackNumber, u32
 \param trackNumber the target track
 \param container_type the code of the container (currently 'senc' for CENC or 'PSEC' for smooth)
 \param buf the SAI buffer
-\param len the size of the SAI buffer. If buf is NULL or len is 0, this adds an unencrypted entry (not writtent to file)
+\param len the size of the SAI buffer. If buf is NULL or len is 0, this adds an unencrypted entry (not written to file)
 \param use_subsamples if GF_TRUE, the media format uses CENC subsamples
 \param use_saio_32bit forces usage of 32-bit saio boxes
 \param is_multi_key indicates if multi key is in use (required to tag saio and saiz boxes)

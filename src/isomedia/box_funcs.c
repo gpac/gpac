@@ -1657,7 +1657,7 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			case GF_QT_BOX_TYPE_WAVE:
 				break;
 			default:
-				if (boxType==GF_ISOM_BOX_TYPE_GPAC) break;
+				if (boxType==GF_ISOM_BOX_TYPE_GDAT) break;
 
 				if (is_root_box) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] Unknown top-level box type %s\n", gf_4cc_to_str(boxType)));
