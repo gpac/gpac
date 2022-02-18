@@ -269,11 +269,11 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	name = (char*) gf_codecid_name(ctx->codecid);
 	if (ctx->exporter) {
 		if (ctx->w && ctx->h) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", name, ctx->w, ctx->h));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - Size %dx%d\n", name, ctx->w, ctx->h));
 		} else if (ctx->sr && ctx->chan) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, ctx->sr, ctx->chan, ctx->bps));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, ctx->sr, ctx->chan, ctx->bps));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s\n", name));
 		}
 	}
 
@@ -476,7 +476,7 @@ static void nhmldump_send_header(GF_NHMLDumpCtx *ctx)
 	if (p) {
 		if (!strcmp(p->value.string, "deflate")) ctx->uncompress = GF_TRUE;
 		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHMLMx] content_encoding %s not supported\n", p->value.string ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[NHMLMx] content_encoding %s not supported\n", p->value.string ));
 		}
 	}
 
@@ -593,7 +593,7 @@ static void nhmldump_send_dims(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, G
 				inflateEnd(&d_stream);
 			}
 #else
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compiled with no libz support."));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Error: your version of GPAC was compiled with no libz support."));
 			gf_bs_del(ctx->bs_r);
 			if (prev)
 				data[pos+2+size] = prev;
@@ -766,7 +766,7 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 
 
 			if (offset_in_sample + s_size > data_size) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong subsample info: sample size %d vs subsample offset+size %dn", data_size, offset_in_sample + s_size));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Wrong subsample info: sample size %d vs subsample offset+size %dn", data_size, offset_in_sample + s_size));
 				break;
 			}
 

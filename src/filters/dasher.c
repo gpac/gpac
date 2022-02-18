@@ -541,14 +541,14 @@ static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 	if (!drm && !cinfo) return GF_OK;
 
 	if (ctx->sfile) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Dasher] Cannot use HLS segment encryption with single file output\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Cannot use HLS segment encryption with single file output\n"));
 		return GF_BAD_PARAM;
 	}
 
 	if (!cinfo) {
 		cinfo = gf_crypt_info_load(drm, &e);
 		if (!cinfo) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Dasher] Cannot load HLS DRM file %s\n", drm ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Cannot load HLS DRM file %s\n", drm ));
 			return e;
 		}
 		if (p) {
@@ -1747,7 +1747,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			colr.full_range = p4->value.boolean;
 		} else if (!p1 && !p2 && !p3 && !p4) {
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Incomplete upstream-filter 'colr' information when computing RFC6381. Ignoring.\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[ISOM Tools] Incomplete upstream-filter 'colr' information when computing RFC6381. Ignoring.\n"));
 		}
 	}
 
@@ -1793,7 +1793,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 		GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
 		gf_bs_del(bs);
 		if (!dvcc) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_BAD_PARAM;
 		}
 
@@ -1846,7 +1846,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			}
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot find AVC config, using default %s\n", szCodec));
 		return GF_OK;
 
 #ifndef GPAC_DISABLE_HEVC
@@ -1886,12 +1886,12 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				gf_odf_hevc_cfg_del(hvcc);
 				return e;
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[Dasher] HEVC config not compliant !\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] HEVC config not compliant !\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot find HEVC config, using default %s\n", szCodec));
 		return GF_OK;
 #endif
 
@@ -1906,11 +1906,11 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				gf_odf_av1_cfg_del(av1c);
 				return e;
 			}
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[DASHER] AV1 config not conformant\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASHER] AV1 config not conformant\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot find AV1 config, using default %s\n", szCodec));
 		return GF_OK;
 #endif /*GPAC_DISABLE_AV1*/
 
@@ -1928,11 +1928,11 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				gf_odf_vp_cfg_del(vpcc);
 				return e;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot find VPX config, using default %s\n", szCodec));
 		return GF_OK;
 
 	case GF_CODECID_MHAS:
@@ -1961,11 +1961,11 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				gf_odf_vvc_cfg_del(vvcc);
 				return e;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[Dasher] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[Dasher] Cannot find VVC config, using default %s\n", szCodec));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Cannot find VVC config, using default %s\n", szCodec));
 		return GF_OK;
 
 	default:
@@ -1985,7 +1985,7 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 			}
 		}
 		if (!subtype) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Dasher] codec parameters not known, cannot set codec string\n" ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] codec parameters not known, cannot set codec string\n" ));
 			strcpy(szCodec, "unkn");
 			return GF_OK;
 		}
@@ -5960,7 +5960,7 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
 				ctx->profile = GF_DASH_PROFILE_LIVE;
 			} else if (ctx->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in HbbTV 1.5 ISOBMFF live profile\n\tswitching to regular live profile\n"));
 				ctx->profile = GF_DASH_PROFILE_LIVE;
 			} else if (ctx->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
@@ -9299,7 +9299,7 @@ static const GF_FilterArgs DasherArgs[] =
 		"- comp: only generate the adaptation sets for all compatible profiles\n"
 		"- all: generate the adaptation set for the main profile and all compatible profiles"
 		, GF_PROP_UINT, "no", "no|comp|all", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mname), "output manifest name for ATSC3 muxing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mname), "output manifest name for ATSC3 multiplexing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(llhls), "HLS low latency type\n"
 		"- off: do not use LL-HLS\n"
 		"- br: use LL-HLS with byte-range for segment parts, pointing to full segment (DASH-LL compatible)\n"
@@ -9345,7 +9345,7 @@ GF_FilterRegister DasherRegister = {
 "EX template=Great_$File$_$Width$_$Number$\n"
 "If input is `foo.mp4` with `640x360` video resolution, this will resolve in `Great_foo_640_$Number$` for the DASH template.\n"
 "EX template=Great_$File$_$Width$\n"
-"If input is `foo.mp4` with `640x360` video resulution, this will resolve in `Great_foo_640.mp4` for onDemand case.\n"
+"If input is `foo.mp4` with `640x360` video resolution, this will resolve in `Great_foo_640.mp4` for onDemand case.\n"
 "\n"
 "Standard DASH replacement strings: \n"
 "- $Number[%%0Nd]$: replaced by the segment number, possibly prefixed with 0\n"
@@ -9406,11 +9406,11 @@ GF_FilterRegister DasherRegister = {
 "EX gpac -i null:#xlink=http://foo/bar.xml:#PDur=4 -i m.mp4:#PStart=-1 -o test.mpd\n"
 "This will insert an create an MPD with first a remote period then a regular one.\n"
 "EX gpac -i null:#xlink=http://foo/bar.xml:#PStart=6 -i m.mp4 -o test.mpd\n"
-"This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.\n"
+"This will create an MPD with first a regular period, dashing only 6s of content, then a remote one.\n"
 "EX gpac -i v1:#SRD=0x0x1280x360:#SRDRef=1280x720 -i v2:#SRD=0x360x1280x360 -o test.mpd\n"
 "This will layout the `v2` below `v1` using a global SRD size of 1280x720.\n"
 "\n"
-"The segmenter will create muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
+"The segmenter will create multiplexing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.\n"
 "\n"
 "For HLS, the output PID will deliver the master playlist **and** the variant playlists.\n"
 "The default variant playlist are $NAME_$N.m3u8, where $NAME is the radical of the output file name and $N is the 1-based index of the variant.\n"
@@ -9470,7 +9470,7 @@ GF_FilterRegister DasherRegister = {
 "\n"
 "If the `DashCue` property of a PID equals `inband`, the PID will be segmented according to the `CueStart` property of input packets.\n"
 "This feature is typically combined with a list of files as input:\n"
-"EX gpac -i list.m3u:sigcues -o res/live.mpd"
+"EX gpac -i list.m3u:sigcues -o res/live.mpd\n"
 "This will load the `flist` filter in cue mode, generating continuous timelines from the sources and injecting a `CueStart` property at each new file.\n"
 "\n"
 "If the [-cues]() option equals `none`, the `DashCue` property of input PIDs will be ignored.\n"
@@ -9520,18 +9520,18 @@ GF_FilterRegister DasherRegister = {
 "- second period clear\n"
 "- third period crypted with another key\n"
 "\n"
-"## Muxer development considerations\n"
-"Output muxers allowing segmented output must obey the following:\n"
+"## Multiplexer development considerations\n"
+"Output multiplexers allowing segmented output must obey the following:\n"
 "- inspect packet properties\n"
 " - FileNumber: if set, indicate the start of a new DASH segment\n"
 " - FileName: if set, indicate the file name. If not present, output shall be a single file. This is only set for packet carrying the `FileNumber` property, and only on one PID (usually the first) for multiplexed outputs\n"
 " - IDXName: gives the optional index name. If not present, index shall be in the same file as dash segment. Only used for MPEG-2 TS for now\n"
 " - EODS: property is set on packets with no payload and no timestamp to signal the end of a DASH segment. This is only used when stopping/resuming the segmentation process, in order to flush segments without dispatching an EOS (see [-subdur]() )\n"
 "- for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any\n"
-"- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
-"- the following filter options are passed to muxers, which should declare them as arguments:\n"
-" - noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)\n"
-" - frag: indicates muxer shall use fragmented format (used for ISOBMFF mostly)\n"
+"- for multiplexers with init data, send a downstream event signaling the size of the init and the size of the global index if any\n"
+"- the following filter options are passed to multiplexers, which should declare them as arguments:\n"
+" - noinit: disables output of init segment for the multiplexer (used to handle bitstream switching with single init in DASH)\n"
+" - frag: indicates multiplexer shall use fragmented format (used for ISOBMFF mostly)\n"
 " - subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"
 " - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"
 " - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"
@@ -9539,7 +9539,7 @@ GF_FilterRegister DasherRegister = {
 "The segmenter adds the following properties to the output PIDs:\n"
 "- DashMode: identifies VoD (single file with global index) or regular DASH mode used by segmenter\n"
 "- DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example\n"
-"- LLHLS: identifies LLHLS is used; the muxer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
+"- LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set `LLHLSFragNum` on the first packet of each fragment\n"
 			)
 	.private_size = sizeof(GF_DasherCtx),
 	.args = DasherArgs,

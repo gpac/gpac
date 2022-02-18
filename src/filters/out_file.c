@@ -667,6 +667,7 @@ static Bool fileout_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (ctx->is_null) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] null delete (file name was %s)\n", evt->file_del.url));
 		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[FileOut] delete file %s\n", evt->file_del.url));
 			gf_file_delete(evt->file_del.url);
 		}
 		return GF_TRUE;
@@ -724,7 +725,7 @@ GF_FilterRegister FileOutRegister = {
 	.name = "fout",
 	GF_FS_SET_DESCRIPTION("File output")
 	GF_FS_SET_HELP("This filter is used to write data to disk, and does not produce any output PID.\n"
-		"In regular mode, the filter only accept PID of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
+		"In regular mode, the filter only accept PID of type file. It will dump to file incoming packets (stream type file), starting a new file for each packet having a __frame_start__ flag set, unless operating in [-cat]() mode.\n"
 		"If the output file name is `std` or `stdout`, writes to stdout.\n"
 		"The output file name can use gpac templating mechanism, see `gpac -h doc`."
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"

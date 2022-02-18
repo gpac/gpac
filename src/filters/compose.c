@@ -741,7 +741,7 @@ static GF_Err compose_initialize(GF_Filter *filter)
 			GF_Filter *audio_out = gf_filter_load_filter(filter, "aout", &e);
 			ctx->audio_renderer->non_rt_output = 0;
 			if (!audio_out) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
 			}
 //			else {
 //				gf_filter_reconnect_output(filter);
@@ -892,7 +892,7 @@ static GF_FilterArgs CompositorArgs[] =
 	"- none: disables navigation\n"
 	"- walk: 3D world walk\n"
 	"- fly: 3D world fly (no ground detection)\n"
-	"- pan: 2D/3D world zomm/pan\n"
+	"- pan: 2D/3D world zoom/pan\n"
 	"- game: 3D world game (mouse gives walk direction)\n"
 	"- slide: 2D/3D world slide\n"
 	"- exam: 2D/3D object examine\n"
@@ -950,7 +950,7 @@ static GF_FilterArgs CompositorArgs[] =
 		"- linear: camera is moved along a straight line with rotation\n"
 		"- circular: camera is moved along a circle with rotation"
 	"", GF_PROP_UINT, "offaxis", "straight|offaxis|linear|circular", GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(iod), "inter-occular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(iod), "inter-ocular distance (eye separation) in cm (distance between the cameras). ", GF_PROP_FLOAT, "6.4", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(rview), "reverse view order", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(dbgpack), "view packed stereo video as single image (show all)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_EXPERT},
 

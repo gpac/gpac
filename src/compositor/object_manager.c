@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -297,13 +297,13 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 {
 	char *parent_url = NULL;
 	if (!remote_url) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] No URL specified for remote object - ignoring object setup\n", odm->ID));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM%d] No URL specified for remote object - ignoring object setup\n", odm->ID));
 		return;
 	}
 
 	if (!odm->scene_ns) {
 		if (odm->flags & GF_ODM_DESTROYED) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
 			return;
 		}
 
@@ -318,7 +318,7 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 
 	//detach it
 	odm->scene_ns = NULL;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Object redirection to %s (MO %08x)\n", odm->ID, remote_url, odm->mo));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] Object redirection to %s (MO %08x)\n", odm->ID, remote_url, odm->mo));
 
 	/*if object is a scene, create the inline before connecting the object.
 		This is needed in order to register the nodes using the resource for event
@@ -350,7 +350,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 	if (!odm->scene_ns) {
 		if (odm->flags & GF_ODM_DESTROYED) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
 			return;
 		}
 		odm->scene_ns = parent_ns;
@@ -373,11 +373,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		assert(odm->subscene->root_od==odm);
 		odm->subscene->is_dynamic_scene = GF_TRUE;
 	} else if (odm->pid) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Setting up object streams\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Setting up object streams\n"));
 
 		e = gf_odm_setup_pid(odm, for_pid);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Service %s PID %s Setup Failure: %s", odm->scene_ns->url, gf_filter_pid_get_name(for_pid ? for_pid : odm->pid), gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("Service %s PID %s Setup Failure: %s", odm->scene_ns->url, gf_filter_pid_get_name(for_pid ? for_pid : odm->pid), gf_error_to_string(e) ));
 		}
 	}
 
@@ -456,7 +456,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	} else if (odm->pid==for_pid) {
 		/*othewise send a connect ack for top level*/
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", odm->scene_ns->url));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM] Root object connected (%s) !\n", odm->scene_ns->url));
 		if (odm->subscene) {
 			GF_Event evt;
 			evt.type = GF_EVENT_CONNECT;
@@ -501,7 +501,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
 			odm->parentscene->selected_service_id = odm->ServiceID;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from input service %s - forcing play\n", odm->ID, odm->scene_ns->url));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] Inserted from input service %s - forcing play\n", odm->ID, odm->scene_ns->url));
 			odm->flags &= ~GF_ODM_NOT_SETUP;
 			gf_odm_start(odm);
 		}
@@ -613,7 +613,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 		}
 		if (ck)
 			goto clock_setup;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] Cannot inherit timeline from parent scene for scene %s - new clock will be created\n", odm->scene_ns->url));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM] Cannot inherit timeline from parent scene for scene %s - new clock will be created\n", odm->scene_ns->url));
 	}
 
 	/*get clocks namespace (eg, parent scene)*/
@@ -922,7 +922,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s: At OTB %u requesting PLAY from %g to %g (clock init %d) - speed %g\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(clock), com.play.start_range, com.play.end_range, clock->clock_init, com.play.speed));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d %s] PID %s: At OTB %u requesting PLAY from %g to %g (clock init %d) - speed %g\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(clock), com.play.start_range, com.play.end_range, clock->clock_init, com.play.speed));
 
 
 	if (odm->state != GF_ODM_STATE_PLAY) {
@@ -1031,7 +1031,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->has_seen_eos = GF_FALSE;
 	odm->state = GF_ODM_STATE_STOP;
 	GF_FEVT_INIT(com, GF_FEVT_STOP, odm->pid)
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s At OTB %u requesting STOP\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), odm->ck ? gf_clock_time(odm->ck) : 0 ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d %s] PID %s At OTB %u requesting STOP\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), odm->ck ? gf_clock_time(odm->ck) : 0 ));
 
 	gf_filter_pid_send_event(odm->pid, &com);
 	gf_list_del_item(scene->compositor->systems_pids, odm->pid);
@@ -1233,13 +1233,13 @@ void gf_odm_pause(GF_ObjectManager *odm)
 
 	//cleanup - we need to enter in stop state for broadcast modes
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d %s] PID %s: no time control available in source filter, will not pause\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM%d %s] PID %s: no time control available in source filter, will not pause\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid)));
 		return;
 	}
 
 	scene = gf_scene_get_root_scene(scene);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] PID %s: At OTB %u requesting PAUSE (clock init %d)\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck), odm->ck->clock_init ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d %s] PID %s: At OTB %u requesting PAUSE (clock init %d)\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck), odm->ck->clock_init ));
 
 	GF_FEVT_INIT(com, GF_FEVT_PAUSE, odm->pid);
 	gf_clock_pause(odm->ck);
@@ -1305,7 +1305,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	ctrl = gf_odm_get_mediacontrol(odm);
 #endif
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck), odm->ck->clock_init ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d %s] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->ID, odm->scene_ns->url, gf_filter_pid_get_name(odm->pid), gf_clock_time(odm->ck), odm->ck->clock_init ));
 
 	GF_FEVT_INIT(com, GF_FEVT_RESUME, odm->pid);
 	com.play.speed = odm->ck->speed;
@@ -1467,7 +1467,7 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
 		if (time==GF_FILTER_NO_TS) {
 			//this usually happens with BT/XMT playback
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("No timestamp on first packet, using 0\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("No timestamp on first packet, using 0\n"));
 			time = 0;
 		}
 		if (odm->timestamp_offset<0) {
@@ -1598,7 +1598,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			clock_reference /= timescale;
 			diff = (s32) clock_time + odm->buffer_playout_ms;
 			diff -= (s32) clock_reference;
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d (ODM %d) reference found "LLU" ms clock time %d ms - diff %d - type %d\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("Clock %d (ODM %d) reference found "LLU" ms clock time %d ms - diff %d - type %d\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type));
 
 			//if explicit clock discontinuity, mark clock
 			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
@@ -1613,7 +1613,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			diff = (u32) ((u64) clock_time - pck_time);
 			diff_to = odm->ck->ocr_discontinuity_time ? 500 : 8000;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
 
 		//we have a valid TS for the packet, and the CTS diff to the current clock is larget than 8 sec, check for discontinuities
 		//it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems, 8 sec should be enough
@@ -1629,7 +1629,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (diff_pck_old_clock > diff_pck_new_clock) {
 				u32 i, count;
 				GF_Scene *in_scene = odm->subscene ? odm->subscene : odm->parentscene;
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
 
 				count = gf_list_count(in_scene->resources);
 				for (i=0; i<count; i++) {
@@ -1648,7 +1648,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
 			odm->ck->ocr_discontinuity_time = (u32) (1 + clock_reference);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
 	}
 	//only send event when playing
 	if (!odm->ck->nb_buffering) {

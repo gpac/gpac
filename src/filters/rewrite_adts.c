@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / AAC ADTS write filter
@@ -148,23 +148,23 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 			} else
 #endif
 			{
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[UFADTS] no AAC decoder config, assuming AAC-LC\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[UFADTS] no AAC decoder config, assuming AAC-LC\n"));
 				ctx->aac_type = GF_M4A_AAC_LC;
 
 				if (!ctx->channels) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[UFADTS] no channel config found for ADTS, forcing stereo\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[UFADTS] no channel config found for ADTS, forcing stereo\n"));
 					chan_cfg = ctx->channels = 2;
 					patch_channels = GF_TRUE;
 				}
 
 				if (!chan_cfg) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[UFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[UFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
 				}
 			}
 		}
 
 		if (chan_cfg>7) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[UFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[UFADTS] Unknown channel config, will not be able to signal it in ADTS\n"));
 			chan_cfg = 0;
 		}
 	} else {
@@ -174,12 +174,12 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (ctx->channels && ctx->acfg.nb_chan && (ctx->channels != ctx->acfg.nb_chan)) {
 		//do not warn here, as most MP4 files will use nbChan=2 for multichan
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[UFADTS] Mismatch between container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, ctx->acfg.nb_chan));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[UFADTS] Mismatch between container number of channels (%d) and AAC config (%d), using AAC config\n", ctx->channels, ctx->acfg.nb_chan));
 		ctx->channels = ctx->acfg.nb_chan;
 		patch_channels = GF_TRUE;
 	}
 	if ((ctx->acfg.base_object_type==2) && (ctx->acfg.base_sr!=sr)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[UFADTS] Mismatch between container samplerate (%d) and AAC config SBR base samplerate (%d), using AAC config\n", sr, ctx->acfg.base_sr));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[UFADTS] Mismatch between container samplerate (%d) and AAC config SBR base samplerate (%d), using AAC config\n", sr, ctx->acfg.base_sr));
 		sr = ctx->acfg.base_sr;
 	}
 	if (!ctx->acfg.chan_cfg && ctx->acfg.program_config_element_present) {
@@ -190,7 +190,7 @@ GF_Err adtsmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		gf_bs_get_content(bs, &ctx->pce, &ctx->pce_size);
 		gf_bs_del(bs);
 
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[UFADTS] ADTS will use multiple raw blocks to signal channel configuration\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[UFADTS] ADTS will use multiple raw blocks to signal channel configuration\n"));
 	}
 #else
 

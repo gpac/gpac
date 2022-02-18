@@ -46,7 +46,7 @@ filter.set_help(
 +"\n"
 +"If NTP injection is used, each video packet (but not audio ones) has a `SenderNTP` property set; if video is not used, each audio packet has a `SenderNTP` property set.\n"
 +"\n"
-+"# Multistream generation\n"
++"# Multiple output stream generation\n"
 +"More than one output size can be specified. This will result in multiple sources being generated, one per size.\n"
 +"A size can be specified more than once, resulting in packet references when [-copy]() is not set, or full copies otherwise.\n"
 +"Target encoding bitrates can be assigned to each output using [-rates](). This can be useful when generating dash:\n"

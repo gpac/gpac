@@ -331,16 +331,16 @@ static GF_Err restamp_process(GF_Filter *filter)
 						pctx->pck_ref = NULL;
 					}
 					gf_filter_pid_drop_packet(pctx->ipid);
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Restamp] Droping frame TS "LLU"/%u\n", ots, pctx->timescale));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Droping frame TS "LLU"/%u\n", ots, pctx->timescale));
 					continue;
 				}
 
 				if (!pctx->keep_prev_state && pctx->pck_ref) {
 					gf_filter_pck_unref(pctx->pck_ref);
 					pctx->pck_ref = NULL;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Restamp] Moving to next frame for output TS "LLU"\n", ts));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Moving to next frame for output TS "LLU"\n", ts));
 				} else if (pctx->pck_ref) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Restamp] Keeping prev frame for output ts "LLU"\n", ts));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Restamp] Keeping prev frame for output ts "LLU"\n", ts));
 				}
 				if (!pctx->pck_ref) {
 					pctx->pck_ref = pck;
@@ -460,7 +460,7 @@ GF_FilterRegister RestampRegister = {
 	"  - if [-rawv=force](), input video stream is decoded and video frames are dropped/copied to match the new rate.\n"
 	"  - if [-rawv=dyn](), input video stream is decoded if not all-intra and video frames are dropped/copied to match the new rate.\n"
 	"\n"
-	"Note: frames are simply copied or droped with no motion compensation.\n"
+	"Note: frames are simply copied or dropped with no motion compensation.\n"
 	)
 	.private_size = sizeof(RestampCtx),
 	.max_extra_pids = 0xFFFFFFFF,

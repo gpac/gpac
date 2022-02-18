@@ -1,9 +1,8 @@
-
 /*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -2121,7 +2120,7 @@ static GF_Err inplace_shift_mdat(MovieWriter *mw, u64 *shift_offset, GF_BitStrea
 		nb_write = (u32) gf_bs_write_data(bs, data, move_bytes);
 
 		if (nb_write!=move_bytes) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[FileOut] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOM] Write error, wrote %d bytes but had %d to write\n", nb_write, move_bytes));
 			return GF_IO_ERR;
 		}
 		cur_r -= move_bytes;

@@ -572,7 +572,7 @@ GF_Err truehd_process(GF_Filter *filter)
 
 		//truncated last frame
 		if (bytes_to_drop > remain) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TrueHDDmx] truncated TrueHD frame!\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TrueHDDmx] truncated TrueHD frame!\n"));
 			bytes_to_drop = remain;
 		}
 

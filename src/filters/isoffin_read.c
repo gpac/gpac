@@ -1525,7 +1525,7 @@ static const char *isoffin_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 static const GF_FilterArgs ISOFFInArgs[] =
 {
-	{ OFFS(src), "local file name of source content (only used when explicitly loading the demuxer)", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(src), "local file name of source content (only used when explicitly loading the filter)", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(allt), "load all tracks even if unknown media type", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(noedit), "do not use edit lists", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itt), "convert all items of root meta into a single PID", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -1584,7 +1584,7 @@ static const GF_FilterCapability ISOFFInCaps[] =
 
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4dmx",
-	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demuxer")
+	GF_FS_SET_DESCRIPTION("ISOBMFF/QT demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes ISOBMF and QT files.\n"
 		"Input ISOBMFF/QT can be regular or fragmented, and available as files or as raw bytestream.\n"
 		"# Track Selection\n"
@@ -1601,7 +1601,7 @@ GF_FilterRegister ISOFFInRegister = {
 		"# Scalable Tracks\n"
 		"When scalable tracks are present in a file, the reader can operate in 3 modes using [-smode]() option:\n"
 		"- smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used\n"
-		"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs\n"
+		"In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the layers configurations\n"
 		"- smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config\n"
 		"and an enhancement decoder config.\n"
 		"- smode=splitx: extractors are kept in the bitstream, and every track of the scalable set is declared. In this mode, each enhancement track has a base decoder config\n"

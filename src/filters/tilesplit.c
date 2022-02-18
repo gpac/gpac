@@ -171,7 +171,7 @@ static GF_Err tilesplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 	if (! ctx->hevc.pps[pps_idx].tiles_enabled_flag) {
 		gf_odf_hevc_cfg_del(hvcc);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[TileSplit] Tiles not enabled, using passthrough\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileSplit] Tiles not enabled, using passthrough\n"));
 		gf_filter_pid_set_property(ctx->base_opid, GF_PROP_PID_TILE_BASE, NULL);
 		ctx->passthrough = GF_TRUE;
 		return GF_OK;
@@ -411,7 +411,7 @@ static GF_Err tilesplit_process(GF_Filter *filter)
 		}
 
 		if (pck_size < nalu_size + ctx->nalu_size_length) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[TileSplit] Corrupted NAL size, %d indicated but %d remaining\n", nalu_size + ctx->nalu_size_length, pck_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[TileSplit] Corrupted NAL size, %d indicated but %d remaining\n", nalu_size + ctx->nalu_size_length, pck_size));
 			break;
 		}
 
@@ -440,7 +440,7 @@ static GF_Err tilesplit_process(GF_Filter *filter)
 			tx = ty = tw = th = 0;
 			cur_tile = hevc_get_tile_id(&ctx->hevc, &tx, &ty, &tw, &th);
 			if (cur_tile >= ctx->nb_tiles) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[TileSplit] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, ctx->nb_tiles));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[TileSplit] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, ctx->nb_tiles));
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto err_exit;
 			}

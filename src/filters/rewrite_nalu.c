@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NALU video AnnexB write filter
@@ -359,7 +359,7 @@ GF_Err nalumx_process(GF_Filter *filter)
 	}
 
 	if (!ctx->nal_hdr_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NALWrite] no NAL size length field set, assuming 4\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[NALWrite] no NAL size length field set, assuming 4\n"));
 		ctx->nal_hdr_size = 4;
 	}
 

@@ -510,7 +510,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static GF_Err ffsws_initialize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
-	ffmpeg_setup_logs(GF_LOG_AUTHOR);
+	ffmpeg_setup_logs(GF_LOG_MEDIA);
 	ctx->surf = gf_evg_surface_new(GF_FALSE);
 
 	if (ctx->osar.num &&

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / FreeType font engine module
@@ -124,7 +124,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 	GF_FontReader *dr = cbck;
 	FTBuilder *ftpriv = dr->udta;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
 
 	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
 	if (!face || !face->family_name) return 0;
@@ -199,7 +199,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 
 static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
 	gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
 	return (gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL)==GF_OK) ? GF_FALSE : GF_TRUE;
 }
@@ -212,7 +212,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 
 	ftpriv->cache_checked = GF_TRUE;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Rescaning %d font directories\n", gf_list_count(ftpriv->font_dirs) ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Rescaning %d font directories\n", gf_list_count(ftpriv->font_dirs) ));
 
 	gf_opts_del_section("FontCache");
 	gf_opts_del_section("temp_freetype");
@@ -301,7 +301,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	gf_opts_set_key("FontCache", "FontSerif", ftpriv->font_serif);
 	gf_opts_set_key("FontCache", "FontSans", ftpriv->font_sans);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Font directories scanned\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned\n"));
 }
 
 
@@ -315,7 +315,7 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 
 	/*inits freetype*/
 	if (FT_Init_FreeType(&ftpriv->library) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] Cannot initialize FreeType\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[FreeType] Cannot initialize FreeType\n"));
 		return GF_IO_ERR;
 	}
 
@@ -330,7 +330,7 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 rescan_font_dirs:
 	sOpt = gf_opts_get_key("core", "font-dirs");
 	if (!sOpt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FreeType] No fonts directory indicated!"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[FreeType] No fonts directory indicated!"));
 		return GF_BAD_PARAM;
 	}
 
@@ -375,7 +375,7 @@ rescan_fonts:
 		sOpt = gf_opts_get_key("FontCache", "FontFixed");
 		ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - %d font directory (first %s)\n", gf_list_count(ftpriv->font_dirs), gf_list_get(ftpriv->font_dirs, 0) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[FreeType] Init OK - %d font directory (first %s)\n", gf_list_count(ftpriv->font_dirs), gf_list_get(ftpriv->font_dirs, 0) ));
 
 	e = dr->set_font(dr, ftpriv->font_serif, 0);
 	if (!e) e = dr->set_font(dr, ftpriv->font_sans, 0);
@@ -400,7 +400,7 @@ rescan_fonts:
 		sOpt = gf_opts_get_key("core", "font-dirs");
 		rescan = 2;
 		if (sOpt) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Default fonts not valid, rescanning font directories %s\n", sOpt));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[FreeType] Default fonts not valid, rescanning font directories %s\n", sOpt));
 			goto rescan_fonts;
 		}
 	}
@@ -414,7 +414,7 @@ rescan_fonts:
 		if (sOpt && !strcmp(sOpt, szPath))
 			return e;
 
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] No fonts found in %s, restoring default directories %s and rescanning\n", sOpt, szPath));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[FreeType] No fonts found in %s, restoring default directories %s and rescanning\n", sOpt, szPath));
 		gf_opts_set_key("core", "font-dirs", szPath);
 		rescan = 3;
 		while (gf_list_count(ftpriv->font_dirs)) {
@@ -528,7 +528,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	//we likely have a problem with the font cache, rebuild if
 	if (!fontName || !strlen(fontName)) {
 		if (is_def_font && !ftpriv->cache_checked) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] No default font set, rescanning fonts\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] No default font set, rescanning fonts\n"));
 			ft_rescan_fonts(dr);
 			return ft_set_font(dr, OrigFontName, styles);
 		}
@@ -568,7 +568,7 @@ checkFont:
 		}
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
 	gf_free(fname);
 	gf_opts_set_key("temp_freetype", OrigFontName, "not found");
 	return GF_NOT_SUPPORTED;
@@ -700,7 +700,7 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	glyph_idx = FT_Get_Char_Index(ftpriv->active_face, glyph_name);
 	/*missing glyph*/
 	if (!glyph_idx) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FreeType] Glyph not found for char %d in font %s (style %s)\n", glyph_name, ftpriv->active_face->family_name, ftpriv->active_face->style_name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[FreeType] Glyph not found for char %d in font %s (style %s)\n", glyph_name, ftpriv->active_face->family_name, ftpriv->active_face->style_name));
 		return NULL;
 	}
 

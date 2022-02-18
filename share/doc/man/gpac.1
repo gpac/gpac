@@ -1085,57 +1085,55 @@ toolX can be one of:
 .br
 * core: libgpac core
 .br
-* coding: bitstream formats (audio, video, scene)
-.br
-* container: container formats (ISO File, MPEG-2 TS, AVI, ...)
-.br
-* network: network data except RTP traffic
-.br
-* http: HTTP traffic
-.br
-* rtp: RTP traffic
-.br
-* author: authoring tools (hint, import, export)
-.br
-* sync: terminal sync layer
-.br
-* codec: terminal codec messages
-.br
-* parser: scene parsers (svg, xmt, bt) and other
-.br
-* media: terminal media object management
-.br
-* scene: scene graph and scene manager
-.br
-* script: scripting engine messages
-.br
-* interact: interaction engine (events, scripts, etc)
-.br
-* smil: SMIL timing engine
-.br
-* compose: composition engine (2D, 3D, etc)
-.br
-* mmio: Audio/Video HW I/O management
-.br
-* rti: various run-time stats
-.br
-* cache: HTTP cache subsystem
-.br
-* audio: Audio renderer and mixers
+* mutex: log all mutex calls
 .br
 * mem: GPAC memory tracker
 .br
-* dash: HTTP streaming logs
-.br
 * module: GPAC modules (av out, font engine, 2D rasterizer)
 .br
-* filter: filters debugging
+* filter: filter session debugging
 .br
 * sched: filter session scheduler debugging
 .br
-* mutex: log all mutex calls
+* codec: codec messages (used by encoder and decoder filters)
+.br
+* coding: bitstream formats (audio, video, scene)
+.br
+* container: container formats (ISO File, MPEG-2 TS, AVI, ...) and multiplexer/demultiplexer filters
+.br
+* network: TCP/UDP sockets and TLS
+.br
+* http: HTTP traffic
+.br
+* cache: HTTP cache subsystem
+.br
+* rtp: RTP traffic
+.br
+* dash: HTTP streaming logs
 .br
 * route: ROUTE (ATSC3) debugging
+.br
+* media: messages from generic filters and reframer/rewriter filters
+.br
+* parser: textual parsers (svg, xmt, bt, ...)
+.br
+* mmio: I/O management (AV devices, file, pipes, OpenGL)
+.br
+* audio: audio renderer/mixer/output
+.br
+* script: script engine except console log
+.br
+* console: script console log
+.br
+* scene: scene graph and scene manager
+.br
+* compose: composition engine (2D, 3D, etc)
+.br
+* ctime: media and SMIL timing info from composition engine
+.br
+* interact: interaction messages (UI events and triggered DOM events and VRML route)
+.br
+* rti: run-time stats of compositor
 .br
 * all: all tools logged - other tools can be specified afterwards.  
 .br
@@ -4586,7 +4584,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1765-gf5446dbe2-master
+build: 1.1.0-DEV-rev1769-g1d936f89d-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

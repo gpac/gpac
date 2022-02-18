@@ -1298,7 +1298,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 
 GF_FilterRegister M2TSDmxRegister = {
 	.name = "m2tsdmx",
-	GF_FS_SET_DESCRIPTION("MPEG-2 TS demuxer")
+	GF_FS_SET_DESCRIPTION("MPEG-2 TS demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes MPEG-2 Transport Stream files/data into a set of media PIDs and frames.")
 	.private_size = sizeof(GF_M2TSDmxCtx),
 	.initialize = m2tsdmx_initialize,

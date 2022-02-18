@@ -468,7 +468,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 
 		if (ctx->bytes_in_header) {
 			if (first_frame_found) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[H263Dmx] corrupted frame!\n"));
 			}
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);
@@ -514,11 +514,11 @@ GF_Err h263dmx_process(GF_Filter *filter)
 					start += current;
 					remain -= current;
 				}
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] garbage before first frame!\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[H263Dmx] garbage before first frame!\n"));
 				continue;
 			}
 			if (first_frame_found) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[H263Dmx] corrupted frame!\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[H263Dmx] corrupted frame!\n"));
 			}
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);

@@ -605,9 +605,9 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		gsfmx_write_prop(ctx, p);
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
 		}
 #endif
 	}
@@ -634,9 +634,9 @@ static void gsfmx_write_pid_config(GF_Filter *filter, GSFMxCtx *ctx, GSFStream *
 		gsfmx_write_prop(ctx, p);
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFMux] Write pid %d %s property to %s\n", gst->idx, prop_name ? prop_name : gf_props_4cc_get_name(prop_4cc), gf_props_dump(prop_4cc, p, dump, GF_PROP_DUMP_DATA_NONE) ) );
 		}
 #endif
 	}
@@ -967,7 +967,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 	} else if (data) {
 		u32 nb_write = gf_bs_write_data(ctx->bs_w, data, frame_size);
 		if (nb_write != frame_size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, frame_size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, frame_size));
 		}
 		gsfmx_send_packets(ctx, gst, GFS_PCKTYPE_PCK, GF_FALSE, GF_FALSE, frame_size, frame_hdr_size);
 	} else if (frame_ifce) {
@@ -978,7 +978,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			u32 out_stride = i ? stride_uv : stride;
 			GF_Err e = frame_ifce->get_plane(frame_ifce, i, &out_ptr, &out_stride);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Failed to fetch plane data from hardware frame, cannot write\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Failed to fetch plane data from hardware frame, cannot write\n"));
 				break;
 			}
 			write_h = h;
@@ -987,7 +987,7 @@ static void gsfmx_write_data_packet(GSFMxCtx *ctx, GSFStream *gst, GF_FilterPack
 			for (j=0; j<write_h; j++) {
 				u32 nb_write = (u32) gf_bs_write_data(ctx->bs_w, out_ptr, lsize);
 				if (nb_write != lsize) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[GSFMux] Write error, wrote %d bytes but had %d to write\n", nb_write, lsize));
 				}
 				out_ptr += out_stride;
 			}
@@ -1271,7 +1271,7 @@ static const GF_FilterArgs GSFMxArgs[] =
 
 GF_FilterRegister GSFMxRegister = {
 	.name = "gsfmx",
-	GF_FS_SET_DESCRIPTION("GSF Muxer")
+	GF_FS_SET_DESCRIPTION("GSF Multiplexer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) multiplexing.\n"
 			"It serializes the stream states (config/reconfig/info update/remove/eos) and packets of input PIDs. "

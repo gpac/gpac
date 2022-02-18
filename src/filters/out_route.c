@@ -2103,7 +2103,7 @@ static const GF_FilterArgs ROUTEOutArgs[] =
 	{ OFFS(ifce), "default interface to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(carousel), "carousel period in ms for repeating signaling and raw file data", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(first_port), "port number of first ROUTE session in ATSC mode", GF_PROP_UINT, "6000", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(ip), "mulicast IP address for ROUTE session in ATSC mode", GF_PROP_STRING, "225.1.1.0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ip), "multicast IP address for ROUTE session in ATSC mode", GF_PROP_STRING, "225.1.1.0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ttl), "time-to-live for multicast packets", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(bsid), "ID for ATSC broadcast stream", GF_PROP_UINT, "800", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mtu), "size of LCT MTU in bytes", GF_PROP_UINT, "1472", NULL, 0},
@@ -2139,7 +2139,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- `route://IP:port`: session is a ROUTE session running on given multicast IP and port\n"
 		"\n"
 		"The filter only accepts input PIDs of type `FILE`.\n"
-		"- HAS Manifests files are detected by file extension and/or MIME types, and sent as part of the signaling bundle or as LCT object files for HLS subplaylists.\n"
+		"- HAS Manifests files are detected by file extension and/or MIME types, and sent as part of the signaling bundle or as LCT object files for HLS child playlists.\n"
 		"- HAS Media segments are detected using the `OrigStreamType` property, and send as LCT object files using the DASH template string.\n"
 		"- A PID without `OrigStreamType` property set is delivered as a regular LCT object file (called `raw` hereafter).\n"
 		"  \n"
@@ -2165,7 +2165,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"- raw files are assigned TSI 1 and increasing number of TOI\n"
 		"- otherwise, the first PID found is assigned TSI 10, the second TSI 20 etc ...\n"
 		"\n"
-		"Init segments and HLS subplaylists are sent before each new segment, independently of [-carousel]().\n"
+		"Init segments and HLS child playlists are sent before each new segment, independently of [-carousel]().\n"
 		"# ATSC 3.0 mode\n"
 		"In this mode, the filter allows multiple service multiplexing, identified through the `ServiceID` property.\n"
 		"By default, a single multicast IP is used for route sessions, each service will be assigned a different port.\n"
@@ -2182,21 +2182,21 @@ GF_FilterRegister ROUTEOutRegister = {
 		"When using low-latency mode, the input media segments are not re-assembled in a single packet but are instead sent as they are received.\n"
 		"In order for the real-time scheduling of data chunks to work, each fragment of the segment should have a CTS and timestamp describing its timing.\n"
 		"If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by [-brinc]() percent for safety.\n"
-		"If this fails, the muxer will trigger warnings and send as fast as possible.\n"
+		"If this fails, the filter will trigger warnings and send as fast as possible.\n"
 		"Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.\n"
 		"\n"
 		"# Examples\n"
 		"Since the ROUTE filter only consumes files, it is required to insert:\n"
-		"- the dash demuxer in file forwarding mode when loading a DASH session\n"
-		"- the dash muxer when creating a DASH session\n"
+		"- the dash demultiplexer in file forwarding mode when loading a DASH session\n"
+		"- the dash multiplexer when creating a DASH session\n"
 		"\n"
-		"Muxing an existing DASH session in route:\n"
+		"Multiplexing an existing DASH session in route:\n"
 		"EX gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/\n"
-		"Muxing an existing DASH session in atsc:\n"
+		"Multiplexing an existing DASH session in atsc:\n"
 		"EX gpac -i source.mpd dashin:forward=file -o atsc://\n"
-		"Dashing and muxing in route:\n"
+		"Dashing and multiplexing in route:\n"
 		"EX gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd\n"
-		"Dashing and muxing in route Low Latency:\n"
+		"Dashing and multiplexing in route Low Latency:\n"
 		"EX gpac -i source.mp4 dasher -o route://225.1.1.0:6000/manifest.mpd:profile=live:cdur=0.2:llmode\n"
 		"\n"
 		"Sending a single file in ROUTE using half a second upload time, 2 seconds carousel:\n"
@@ -2206,7 +2206,7 @@ GF_FilterRegister ROUTEOutRegister = {
 		"EX gpac -i source.mpd -o route://225.1.1.0:6000/\n"
 		"This will only send the manifest file as a regular object and will not load the dash session.\n"
 		"EX gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/manifest.mpd\n"
-		"This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if [-ext]() is used).\n"
+		"This will force the ROUTE multiplexer to only accept .mpd files, and will drop all segment files (same if [-ext]() is used).\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/\n"
 		"EX gpac -i source.mpd dasher -o route://225.1.1.0:6000/manifest.mpd\n"
 		"These will demultiplex the input, re-dash it and send the output of the dasher to ROUTE\n"

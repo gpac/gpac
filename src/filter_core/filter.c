@@ -3714,17 +3714,17 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 	case GF_PLAYBACK_MODE_NONE:
 		evt->play.start_range = 0;
 		if (start) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Media PID does not support seek, ignoring start directive\n", log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Media PID does not support seek, ignoring start directive\n", log_name));
 		}
 		break;
 	case GF_PLAYBACK_MODE_SEEK:
 		if (speed != 1.0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Media PID does not support speed, ignoring speed directive\n", log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Media PID does not support speed, ignoring speed directive\n", log_name));
 		}
 		break;
 	case GF_PLAYBACK_MODE_FASTFORWARD:
 		if (speed<0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Media PID does not support negative speed, ignoring speed directive\n", log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Media PID does not support negative speed, ignoring speed directive\n", log_name));
 			if (was_end) evt->play.start_range = 0;
 		} else {
 			evt->play.speed = speed;

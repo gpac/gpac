@@ -5286,10 +5286,10 @@ GF_Err gf_mpd_smooth_to_mpd(char * smooth_file, GF_MPD *mpd, const char *default
 	if (!e) {
 		e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(dom), mpd, default_base_url);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[MPD] Failed to convert smooth manifest to MPD\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Failed to convert smooth manifest to MPD\n"));
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[MPD] Failed to load smooth manifest\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] Failed to load smooth manifest\n"));
 	}
 	gf_xml_dom_del(dom);
 	return e;

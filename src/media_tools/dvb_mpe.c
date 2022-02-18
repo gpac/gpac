@@ -162,7 +162,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	if (ts->direct_mpe) {
 		if (table_id != GF_M2TS_TABLE_ID_DSM_CC_PRIVATE) return;
 		if (section_number != last_section_number) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("MPE IP datagram on several section not supported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("MPE IP datagram on several section not supported\n"));
 			return;
 		}
 		/* send the IP data :
@@ -328,7 +328,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 			/* compare the destination ip address and the ESG Bootstrap address */
 			Boostrap_ip = gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_address_bootstrap);
 			if(Boostrap_ip) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("ESG Bootstrap found !\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("ESG Bootstrap found !\n"));
 			}
 		} else {
 			offset += (ip_packet->u32_total_length);
@@ -442,7 +442,7 @@ u32 gf_m2ts_ipdatagram_reader(u8 *datagram,GF_M2TS_IP_Packet *ip_packet, u32 off
 	/*ip_packet->data = gf_malloc((ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));
 	memcpy(ip_packet->data,datagram+offset+20,(ip_packet->u32_total_length-ip_packet->u32_hdr_length)*sizeof(char));*/
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("TX addr: %d.%d.%d.%d RX addr : %d.%d.%d.%d port:%d(0x%x) \n",ip_packet->u8_tx_adr[0],ip_packet->u8_tx_adr[1],ip_packet->u8_tx_adr[2],ip_packet->u8_tx_adr[3],ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1],ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3],ip_packet->u32_rx_udp_port,ip_packet->u32_rx_udp_port));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("TX addr: %d.%d.%d.%d RX addr : %d.%d.%d.%d port:%d(0x%x) \n",ip_packet->u8_tx_adr[0],ip_packet->u8_tx_adr[1],ip_packet->u8_tx_adr[2],ip_packet->u8_tx_adr[3],ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1],ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3],ip_packet->u32_rx_udp_port,ip_packet->u32_rx_udp_port));
 
 	return 1;
 
@@ -722,8 +722,8 @@ void encode_fec(MPE_FEC_FRAME * mff)
 		/* ************** */
 		/* Encode data into codeword, adding NPAR parity bytes */
 		encode_data(adt_rs_en_buffer, cols, adt_rs_en_buffer);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Encoded data is   : \"%s\"\n", adt_rs_en_buffer));
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("data with error is: \"%s\"\n", adt_rs_en_buffer));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Encoded data is   : \"%s\"\n", adt_rs_en_buffer));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("data with error is: \"%s\"\n", adt_rs_en_buffer));
 		/*set a row of RS into RS table*/
 		setRowRS ( mff, i , (unsigned char *)(adt_rs_en_buffer + cols) );
 	}
@@ -763,7 +763,7 @@ void decode_fec(MPE_FEC_FRAME * mff)
 			/* TODO: set the erasures and errors based on the MFF */
 			if(correct_errors_erasures (linebuffer, ML, nerasures,  erasures) == 0)
 			{
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Correction Error line %d \n", i));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Correction Error line %d \n", i));
 			}
 
 			/* TODO: replace the current line in MFF */
@@ -884,13 +884,13 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	if (!ts->ip_platform) return;
 
 	/* provider and ip platform name */
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" IP Platform : %s provided by %s \n",ip_platform->name,ip_platform->provider_name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" IP Platform : %s provided by %s \n",ip_platform->name,ip_platform->provider_name));
 
 	assert(ip_platform->ip_streams);
 	i_streams = gf_list_count(ip_platform->ip_streams);
 	for(i=0; i<i_streams; i++) {
 		GF_M2TS_IP_Stream *ip_stream_buff = gf_list_get(ip_platform->ip_streams, i);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("PID:%d - Target IP address: \n", ip_stream_buff->PID));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("PID:%d - Target IP address: \n", ip_stream_buff->PID));
 		/*Print the target IP address  */
 		u32 i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0; j<i_targets; j++)
@@ -900,75 +900,75 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 			l=0;
 
 			ip_address = ip_targets->address;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%d.%d.%d.%d/%d ",ip_address[0],ip_address[1],ip_address[2],ip_address[3],ip_targets->slash_mask));
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" RX port :"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("%d.%d.%d.%d/%d ",ip_address[0],ip_address[1],ip_address[2],ip_address[3],ip_targets->slash_mask));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" RX port :"));
 			while(ip_targets->rx_port[l] != 0)
 			{
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" %d ",ip_targets->rx_port[l]));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" %d ",ip_targets->rx_port[l]));
 				l++;
 			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("\n"));
 		}
 
 		/*Print the time slice fec descriptor */
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Time Slice Fec Descriptor : \n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Time Slice Fec Descriptor : \n"));
 
 		if(ip_stream_buff->time_slice_fec.time_slicing==0)
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" No Time Slicing \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" No Time Slicing \n"));
 		} else
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Time Slicing\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Time Slicing\n"));
 		}
 
 		if(ip_stream_buff->time_slice_fec.mpe_fec==0)
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" No MPE FEC used \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" No MPE FEC used \n"));
 		} else
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" MPE FEC used \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" MPE FEC used \n"));
 		}
 
 		switch(ip_stream_buff->time_slice_fec.frame_size)
 		{
 		case 0:
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Frame size : 256 rows \n"));
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Max Burst Duration 512 kbits\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Frame size : 256 rows \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Max Burst Duration 512 kbits\n"));
 		}
 		break;
 		case 1:
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Frame size : 512 rows \n"));
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Max Burst Duration 1024 kbits\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Frame size : 512 rows \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Max Burst Duration 1024 kbits\n"));
 		}
 		break;
 		case 2:
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Frame size : 768 rows \n"));
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Max Burst Duration 1536 kbits\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Frame size : 768 rows \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Max Burst Duration 1536 kbits\n"));
 		}
 		break;
 		case 3:
 		{
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Frame size : 1024 rows \n"));
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Max Burst Duration 2048 kbits\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Frame size : 1024 rows \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Max Burst Duration 2048 kbits\n"));
 		}
 		break;
 		default:
 			break;
 		}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, (" Time Slice Fec ID : %x\n",ip_stream_buff->time_slice_fec.time_slice_fec_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, (" Time Slice Fec ID : %x\n",ip_stream_buff->time_slice_fec.time_slice_fec_id));
 
 		/* Locayion descriptor */
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Location Descriptor \n"));
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Network ID:%d \n",ip_stream_buff->location.network_id));
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Original Network ID:%d \n",ip_stream_buff->location.original_network_id));
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Transport Stream ID:%d \n",ip_stream_buff->location.transport_stream_id));
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Service ID:%d \n",ip_stream_buff->location.service_id));
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Component Tag:%d \n",ip_stream_buff->location.component_tag));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Location Descriptor \n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Network ID:%d \n",ip_stream_buff->location.network_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Original Network ID:%d \n",ip_stream_buff->location.original_network_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Transport Stream ID:%d \n",ip_stream_buff->location.transport_stream_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Service ID:%d \n",ip_stream_buff->location.service_id));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Component Tag:%d \n",ip_stream_buff->location.component_tag));
 	}
 }
 
@@ -1023,7 +1023,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 		}
 
 		if (e != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Server Bind Error: %s\n", gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Server Bind Error: %s\n", gf_error_to_string(e)));
 			Sock_Struct->bind_failure = 1;
 		}
 		gf_list_add(ts->ip_platform->socket_struct, Sock_Struct);
@@ -1035,7 +1035,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 
 	e = gf_sk_send(Sock_Struct->sock, ip_packet->data, ip_packet->u32_udp_data_size - 8);
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Error sending to \n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error sending to \n"));
 	}
 	if (yield) gf_sleep(10);
 
@@ -1058,7 +1058,7 @@ Bool init_frame(MPE_FEC_FRAME * mff, u32 rows)
 	mff->p_rs = (u8 *)gf_calloc(MPE_RS_COLS*rows,sizeof(u8));
 
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("MPE_RS_COLS*rows :%d \n",MPE_RS_COLS*rows));
 
 	mff->capacity_total = mff->col_adt*rows;
 	mff->p_error_adt = (u32 *)gf_calloc(mff->col_adt*rows,sizeof(u32));
@@ -1129,7 +1129,7 @@ void setRowRS(MPE_FEC_FRAME *mff, u32 index, u8 *p_rs)
 void addPadding(MPE_FEC_FRAME *mff , u32 offset)
 {
 	u32 i = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("add paddings from %d to the end %d\n", offset, mff->capacity_total ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("add paddings from %d to the end %d\n", offset, mff->capacity_total ));
 	for ( i = offset ; i <mff->capacity_total; i ++ )
 		mff -> p_adt [i] = 0xff ;
 }
@@ -1141,13 +1141,13 @@ static void print_bytes2(u8 * data, u32 length ) /*print_bytes2 */
 	u32 k = 0;
 	for ( i = 0; i < length ; i ++ ) {
 		if (k == 0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("%x0  : ", row_num));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("%x0  : ", row_num));
 			k = 0;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("%#x ", data[i]));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("%#x ", data[i]));
 		k++;
 		if (k == 16) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\n"));
 			k = 0;
 			row_num ++;
 		}
@@ -1164,17 +1164,17 @@ void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
 
 
 	if (offset >= mff->capacity_total) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Offset %d bigger than capacity %d \n", offset, mff->capacity_total ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Offset %d bigger than capacity %d \n", offset, mff->capacity_total ));
 	}
 	if (offset+length >= mff->capacity_total) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Offset+length %d+%d bigger than capacity %d \n", offset, length, mff->capacity_total ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Offset+length %d+%d bigger than capacity %d \n", offset, length, mff->capacity_total ));
 	}
 	if (mff->current_offset_adt != offset) {
 		if (mff->current_offset_adt > offset) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("We missed an offset reset (%d to %d)\n", mff->current_offset_adt, offset));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("We missed an offset reset (%d to %d)\n", mff->current_offset_adt, offset));
 			mff->current_offset_adt = offset;
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("there is an error hole in the ADT from %d to %d \n", mff->current_offset_adt, offset));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("there is an error hole in the ADT from %d to %d \n", mff->current_offset_adt, offset));
 		}
 		setErrorIndicator( mff->p_error_adt , mff->current_offset_adt , (offset - mff->current_offset_adt)*sizeof(u32)  ) ;
 		mpe_error_holes->offset = mff->current_offset_adt;
@@ -1191,7 +1191,7 @@ void setIpDatagram(MPE_FEC_FRAME * mff, u32 offset, u8* dgram, u32 length )
 void setColRS( MPE_FEC_FRAME * mff, u32 offset, u8 * pds, u32 length )
 {
 	if ( mff->current_offset_rs != offset)	{
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("there is an error hole in the RS from %d to %d \n", mff->current_offset_rs, offset ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("there is an error hole in the RS from %d to %d \n", mff->current_offset_rs, offset ));
 		setErrorIndicator( mff->p_error_rs , mff->current_offset_rs , (offset - mff->current_offset_rs)*sizeof(u32));
 		mff->current_offset_rs = offset;
 	}
@@ -1235,9 +1235,9 @@ u32  getErrasurePositions( MPE_FEC_FRAME *mff , u32 row, u32 *errasures)
 		}
 		base += mff->rows ;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, (" the erasure locations is:\n"));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, (" the erasure locations is:\n"));
 	for ( i = 0; i < nb ; i ++ )
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("%d ", errasures[i]));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("%d ", errasures[i]));
 	return nb;
 }
 

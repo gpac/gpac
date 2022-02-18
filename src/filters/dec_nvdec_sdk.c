@@ -230,7 +230,7 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
 {
     *pInstance = LoadLibrary(__CudaLibName);
     if (*pInstance == NULL) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CudaLibName));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CudaLibName));
         return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
     }
     return CUDA_SUCCESS;
@@ -240,7 +240,7 @@ static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
 {
     *pInstance = LoadLibrary(__CuvidLibName);
     if (*pInstance == NULL) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CuvidLibName));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] LoadLibrary \"%s\" failed!\n", __CuvidLibName));
         return CUDA_ERROR_UNKNOWN;
     }
     return CUDA_SUCCESS;
@@ -249,14 +249,14 @@ static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
 #define GET_PROC_EX(name, alias, required)                     \
     alias = (t##name *)GetProcAddress(curr_lib, #name);               \
     if (alias == NULL && required) {                                    \
-        GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[NVDec] Failed to find required function \"%s\" \n",       \
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Failed to find required function \"%s\" \n",       \
                #name));                                  \
         }
 
 #define GET_PROC_EX_V2(name, alias, required)                           \
     alias = (t##name *)GetProcAddress(curr_lib, STRINGIFY(name##_v2));\
     if (alias == NULL && required) {                                    \
-        GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[NVDec] Failed to find required function \"%s\" \n",       \
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Failed to find required function \"%s\" \n",       \
                STRINGIFY(name##_v2)));                       \
         }
 
@@ -278,7 +278,7 @@ static CUresult LOAD_LIBRARY_CUDA(CUDADRIVER *pInstance)
 {
     *pInstance = dlopen(__CudaLibName, RTLD_NOW);
     if (*pInstance == NULL) {
-        GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec] dlopen \"%s\" failed!\n", __CudaLibName));
+        GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] dlopen \"%s\" failed!\n", __CudaLibName));
         return CUDA_ERROR_SHARED_OBJECT_INIT_FAILED;
     }
     return CUDA_SUCCESS;
@@ -288,7 +288,7 @@ static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
 {
     *pInstance = dlopen(__CuvidLibName, RTLD_NOW);
     if (*pInstance == NULL) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[NVDec]dlopen \"%s\" failed!\n", __CuvidLibName));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec]dlopen \"%s\" failed!\n", __CuvidLibName));
         return CUDA_ERROR_UNKNOWN;
     }
     return CUDA_SUCCESS;
@@ -297,14 +297,14 @@ static CUresult LOAD_LIBRARY_CUVID(CUVIDDRIVER *pInstance)
 #define GET_PROC_EX(name, alias, required)                              \
     alias = (t##name *)dlsym(curr_lib, #name);                        \
     if (alias == NULL && required) {                                    \
-        GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[NVDec] Failed to find required function \"%s\"\n",       \
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] Failed to find required function \"%s\"\n",       \
                #name));                                  \
         }
 
 #define GET_PROC_EX_V2(name, alias, required)                           \
     alias = (t##name *)dlsym(curr_lib, STRINGIFY(name##_v2));         \
     if (alias == NULL && required) {                                    \
-        GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[NVDec]Failed to find required function \"%s\"\n",       \
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec]Failed to find required function \"%s\"\n",       \
                STRINGIFY(name##_v2)));                    \
         }
 

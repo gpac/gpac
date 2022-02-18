@@ -102,7 +102,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 				ctx->ivf_hdr = 1;
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[OBUWrite] Couldn't guess desired output format type, assuming plain OBU\n"));
 		}
 		break;
 	case GF_CODECID_VP8:
@@ -120,7 +120,7 @@ GF_Err obumx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		GF_AV1_OBUArrayEntry *obu;
 		ctx->av1c = gf_odf_av1_cfg_read(dcd->value.data.ptr, dcd->value.data.size);
 		if (!ctx->av1c) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OBUWrite] Invalid av1 config\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] Invalid av1 config\n"));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		ctx->av1b_cfg_size = 0;
@@ -234,7 +234,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			gf_av1_parse_obu_header(ctx->bs_r, &obu_type, &obu_extension_flag, &obu_has_size_field, &temporal_id, &spatial_id);
 
 			if (!obu_has_size_field) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[OBUWrite] OBU without size field, bug in demux filter !!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] OBU without size field, bug in demux filter !!\n"));
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
 			obu_size = (u32)gf_av1_leb128_read(ctx->bs_r, NULL);
@@ -247,7 +247,7 @@ GF_Err obumx_process(GF_Filter *filter)
 			if (obu_type==OBU_FRAME) {
 				frame_idx++;
 				if (frame_idx==128) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[OBUWrite] more than 128 frames in a temporal unit not supported\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[OBUWrite] more than 128 frames in a temporal unit not supported\n"));
 					return GF_NOT_SUPPORTED;
 				}
 				if (frame_idx>1)

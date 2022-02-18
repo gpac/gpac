@@ -616,7 +616,7 @@ void avidmx_finalize(GF_Filter *filter)
 	gf_list_del(ctx->audios);
 
 	if (ctx->importer) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("AVI Removed Frames: 1 VFW delay frames - 296 N-VOPs\n", ctx->dummy, ctx->nvops));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("AVI Removed Frames: 1 VFW delay frames - 296 N-VOPs\n", ctx->dummy, ctx->nvops));
 	}
 
 }
@@ -651,7 +651,7 @@ static const GF_FilterArgs AVIDmxArgs[] =
 
 GF_FilterRegister AVIDmxRegister = {
 	.name = "avidmx",
-	GF_FS_SET_DESCRIPTION("AVI demuxer")
+	GF_FS_SET_DESCRIPTION("AVI demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes AVI files to produce media PIDs and frames.")
 	.private_size = sizeof(GF_AVIDmxCtx),
 	.initialize = avidmx_initialize,

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -95,11 +95,11 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 		diff = ABS(drift_old);
 		diff -= ABS(drift);
 		if (diff < 0) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Audio Input] in clock discontinuity: drift old clock %d new clock %d - disabling clock adjustment\n", drift_old, drift));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Audio Input] in clock discontinuity: drift old clock %d new clock %d - disabling clock adjustment\n", drift_old, drift));
 			drift = 0;
 			audio_delay_ms = 0;
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Audio Input] end of clock discontinuity: drift old clock %d new clock %d\n", drift_old, drift));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Audio Input] end of clock discontinuity: drift old clock %d new clock %d\n", drift_old, drift));
 			ai->stream->odm->prev_clock_at_discontinuity_plus_one = 0;
 			if (drift<0) {
 				drift = 0;

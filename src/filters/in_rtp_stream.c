@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -446,7 +446,7 @@ GF_RTPInStream *rtpin_stream_new(GF_RTPIn *rtp, GF_SDPMedia *media, GF_SDPInfo *
 		if (rvc_data) {
 			if (is_gz) {
 #ifdef GPAC_DISABLE_ZLIB
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Error: no zlib support - RVC not supported in RTP\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("Error: no zlib support - RVC not supported in RTP\n"));
 				gf_free(rvc_data);
 				return NULL;
 #else

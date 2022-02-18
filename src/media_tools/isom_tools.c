@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -329,7 +329,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 					u32 to_read = (u32) ((box_size-bsize<4096) ? (box_size-bsize) : 4096);
 					read = gf_bs_read_data(bs, (char *) block, to_read);
 					if (!read || (read != to_read) ) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("corrupted isobmf file, box read "LLU" but expected still "LLU" bytes\n", bsize, box_size));
 						break;
 					}
 					gf_sha1_update(ctx, block, to_read);
@@ -450,13 +450,13 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 				/*only ONE video stream possible with ISMA*/
 				if (VID) {
 					if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA convert] More than one video track found, cannot convert file - remove extra track(s)\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISMA convert] More than one video track found, cannot convert file - remove extra track(s)\n"));
 					return GF_NOT_SUPPORTED;
 				}
 				VID = gf_isom_get_track_id(mp4file, i+1);
 				is_image = image_track;
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Visual track ID %d: only one sample found, assuming image and removing track\n", gf_isom_get_track_id(mp4file, i+1) ) );
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMA convert] Visual track ID %d: only one sample found, assuming image and removing track\n", gf_isom_get_track_id(mp4file, i+1) ) );
 				gf_isom_remove_track(mp4file, i+1);
 				i -= 1;
 				Tracks = gf_isom_get_track_count(mp4file);
@@ -465,7 +465,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		case GF_ISOM_MEDIA_AUDIO:
 			if (AID) {
 				if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMA convert] More than one audio track found, cannot convert file - remove extra track(s)\n") );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISMA convert] More than one audio track found, cannot convert file - remove extra track(s)\n") );
 				return GF_NOT_SUPPORTED;
 			}
 			AID = gf_isom_get_track_id(mp4file, i+1);
@@ -473,9 +473,9 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMA convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMA convert] Removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			}
 			gf_isom_remove_track(mp4file, i+1);
 			i -= 1;
@@ -553,7 +553,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 						w = dsi.width;
 						h = dsi.height;
 						gf_isom_set_visual_info(mp4file, VideoTrack, 1, w, h);
-						GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
+						GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMA convert] Adjusting visual track size to %d x %d\n", w, h));
 					}
 					if (dsi.par_num && dsi.par_den && (dsi.par_den!=dsi.par_num)) {
 						w *= dsi.par_num;
@@ -751,7 +751,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
         case GF_ISOM_MEDIA_PICT:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[3GPP convert] Visual track ID %d: only one sample found\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[3GPP convert] Visual track ID %d: only one sample found\n", gf_isom_get_track_id(mp4file, i+1) ));
 				//goto remove_track;
 			}
 
@@ -785,13 +785,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 					nb_vid++;
 					break;
 				default:
-					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 					goto remove_track;
 				}
 			}
 			break;
 			default:
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 				goto remove_track;
 			}
 			break;
@@ -824,13 +824,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 					nb_aud++;
 					break;
 				default:
-					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 					goto remove_track;
 				}
 			}
 			break;
 			default:
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Audio format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 				goto remove_track;
 			}
 			break;
@@ -849,9 +849,9 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Removing Hint track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Removing system track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Removing system track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
 			}
 
 remove_track:
@@ -870,7 +870,7 @@ remove_track:
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, GF_FALSE);
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
 		gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP2\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Setting major brand to 3GPP2\n"));
 	} else {
 		/*update FType*/
 		if ((nb_vid>1) || (nb_aud>1) || (nb_txt>1)) {
@@ -879,25 +879,25 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, GF_FALSE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_FALSE);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
 		} else if (nb_txt) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 1024);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_TRUE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_TRUE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Setting major brand to 3GPP V6 file\n"));
 		} else if (nb_avc) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 0/*1024*/);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_AVC1, GF_TRUE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, GF_FALSE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_FALSE);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V6 file + AVC compatible\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Setting major brand to 3GPP V6 file + AVC compatible\n"));
 		} else {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP5, 0/*1024*/);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP6, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, GF_TRUE);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GG6, GF_FALSE);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP V5 file\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[3GPP convert] Setting major brand to 3GPP V5 file\n"));
 		}
 	}
 	/*add/remove MP4 brands and add isom*/
@@ -931,7 +931,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 		}
 	}
 	if ((nb_v != 1) && (nb_a!=1)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[PSP convert] Movies need one audio track and one video track\n" ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PSP convert] Movies need one audio track and one video track\n" ));
 		return GF_BAD_PARAM;
 	}
 	for (i=0; i<count; i++) {
@@ -951,7 +951,7 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 			gf_isom_add_uuid(mp4, i+1, psp_track_uuid, (char *) psp_track_sig, 28);
 			break;
 		default:
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[PSP convert] Removing track ID %d\n", gf_isom_get_track_id(mp4, i+1) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[PSP convert] Removing track ID %d\n", gf_isom_get_track_id(mp4, i+1) ));
 			gf_isom_remove_track(mp4, i+1);
 			i -= 1;
 			count -= 1;
@@ -1119,7 +1119,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		}
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[QTFF/ProRes] Adjusting %s compliancy\n", prores_type ? "ProRes" : "QTFF"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[QTFF/ProRes] Adjusting %s compliancy\n", prores_type ? "ProRes" : "QTFF"));
 
 	//adjust audio tracks
 	for (i=0; i<count; i++) {
@@ -1146,21 +1146,21 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		u32 brand, version;
 		gf_isom_get_brand_info(mp4, &brand, &version, NULL);
 		if (brand != GF_ISOM_BRAND_QT) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] Cannot change brand from \"%s\" to \"qt  \", flat storage used. Try using different storage mode\n", gf_4cc_to_str(brand)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ProRes] Cannot change brand from \"%s\" to \"qt  \", flat storage used. Try using different storage mode\n", gf_4cc_to_str(brand)));
 		}
 	}
 
 	if (!video_tk) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[QTFF] No visual track\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[QTFF] No visual track\n"));
 		return GF_OK;
 	}
 
 	if (nb_video_tracks>1) {
 		if (prores_type) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("QTFF] cannot adjust params to prores, %d video tracks present\n", nb_video_tracks));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("QTFF] cannot adjust params to prores, %d video tracks present\n", nb_video_tracks));
 			return GF_BAD_PARAM;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ProRes] no prores codec found but %d video tracks, not adjusting file\n", nb_video_tracks));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ProRes] no prores codec found but %d video tracks, not adjusting file\n", nb_video_tracks));
 		return GF_OK;
 	}
 
@@ -1186,7 +1186,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 		}
 	}
 	if (!def_dur) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] cannot estimate default sample duration for video track\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ProRes] cannot estimate default sample duration for video track\n"));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1228,12 +1228,12 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 				colour_primaries=0;
 		}
 		if (!colour_primaries) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
 			colour_primaries = 1;
 			transfer_characteristics = 1;
 			matrix_coefficients = 1;
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, extracting from %s\n", prores_type ? "first ProRes frame" : "sample description"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ProRes] No color info present in visual track, extracting from %s\n", prores_type ? "first ProRes frame" : "sample description"));
 		}
 		gf_isom_set_visual_color_info(mp4, video_tk, 1, GF_4CC('n','c','l','c'), colour_primaries, transfer_characteristics, matrix_coefficients, GF_FALSE, NULL, 0);
 	} else if (e) {
@@ -1257,7 +1257,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 
 	if (!target_ts) {
 		if (prores_type) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ProRes] Unrecognized frame rate %g\n", ((Double)timescale)/def_dur ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		} else {
 			target_ts = timescale;
@@ -1265,7 +1265,7 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 	}
 
 	if (target_ts != timescale) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ProRes] Adjusting timescale to %d\n", target_ts));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ProRes] Adjusting timescale to %d\n", target_ts));
 		gf_isom_set_media_timescale(mp4, video_tk, target_ts, 0, 0);
 	}
 	gf_isom_set_timescale(mp4, target_ts);
@@ -2869,7 +2869,7 @@ reparse:
 		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
 	}
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to update HEVC/LHVC config\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to update HEVC/LHVC config\n"));
 		goto exit;
 	}
 
@@ -3023,7 +3023,7 @@ reparse:
 					if (e) goto exit;
 				}
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to update HEVC/LHVC config\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to update HEVC/LHVC config\n"));
 					goto exit;
 				}
 
@@ -3096,7 +3096,7 @@ reparse:
 				sti[j].data_offset = sample->dataLength;
 				e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to add HEVC/LHVC sample to track %d\n", sti[j].track_num));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to add HEVC/LHVC sample to track %d\n", sti[j].track_num));
 					goto exit;
 				}
 				gf_free(sample->data);
@@ -3107,7 +3107,7 @@ reparse:
 					gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
 					e = gf_isom_append_sample_data(file, sti[j].track_num, sample->data, sample->dataLength);
 					if (e) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to append HEVC/LHVC data to sample (track %d)\n", sti[j].track_num));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to append HEVC/LHVC data to sample (track %d)\n", sti[j].track_num));
 						goto exit;
 					}
 				}
@@ -3140,7 +3140,7 @@ reparse:
 					e = gf_isom_update_sample(file, sti[j].track_num, sample_num+1, sample, 1);
 				}
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to %s HEVC/LHVC sample (track %d, base sample num %d)\n", j ? "add" : "update", sti[j].track_num, sample_num+1));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to %s HEVC/LHVC sample (track %d, base sample num %d)\n", j ? "add" : "update", sti[j].track_num, sample_num+1));
 					goto exit;
 				}
 			}
@@ -3148,7 +3148,7 @@ reparse:
 			else if (!j) {
 				e = gf_isom_remove_sample(file, sti[j].track_num, sample_num+1);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to remove HEVC/LHVC sample (track %d)\n", sti[j].track_num));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC] Failed to remove HEVC/LHVC sample (track %d)\n", sti[j].track_num));
 					goto exit;
 				}
 				sample_num--;
@@ -3484,7 +3484,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) {
 		hevc_add_trif(file, track, gf_isom_get_track_id(file, track), GF_TRUE, 1, filter_disabled, 0, 0, hevc.sps[pps_idx].width, hevc.sps[pps_idx].height, GF_TRUE);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[HEVC Tiles] Tiles not enabled, signal only single tile full picture\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVC Tiles] Tiles not enabled, signal only single tile full picture\n"));
 		return GF_OK;
 	}
 
@@ -3574,7 +3574,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 				tx = ty = tw = th = 0;
 				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
 				if (cur_tile>=nb_tiles) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tiles));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tiles));
 					e = GF_NON_COMPLIANT_BITSTREAM;
 				}
 				if (e)
@@ -3780,7 +3780,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_FilterSession *fsess = gf_fs_new_defaults(0);
 
 	if (!fsess) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Failed to create filter session\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;
 	}
 
@@ -3976,7 +3976,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 		GF_AV1_OBUArrayEntry *a = gf_list_get(av1c->obu_array, i);
 		bs = gf_bs_new(a->obu, a->obu_length, GF_BITSTREAM_READ);
 		if (!av1_is_obu_header(a->obu_type))
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] AV1: unexpected obu_type %d when computing RFC6381. Parsing anyway.\n", a->obu_type, gf_4cc_to_str(subtype)));
 
 		e = aom_av1_parse_temporal_unit_from_section5(bs, &av1_state);
 		gf_bs_del(bs);
@@ -4003,7 +4003,7 @@ GF_Err rfc_6381_get_codec_av1(char *szCodec, u32 subtype, GF_AV1Config *av1c, CO
 		if ((av1_state.color_primaries == 2) && (av1_state.transfer_characteristics == 2) && (av1_state.matrix_coefficients == 2) && av1_state.color_range == GF_FALSE) {
 
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AV1] incoherent color characteristics primaries %d transfer %d matrix %d color range %d\n",
 				av1_state.color_primaries, av1_state.transfer_characteristics, av1_state.matrix_coefficients, av1_state.color_range));
 		}
 	}
@@ -4112,7 +4112,7 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 		else
 			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4s.%02X", codec_id);
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("Codec parameters not known - using default value \"%s\"\n", gf_4cc_to_str(subtype) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Codec parameters not known - using default value \"%s\"\n", gf_4cc_to_str(subtype) ));
 		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 	}
 	return GF_OK;
@@ -4140,11 +4140,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
 			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
 			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
 		}
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] Error fetching protection information\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] Error fetching protection information\n"));
 			return e;
 		}
 
@@ -4263,7 +4263,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			gf_odf_av1_cfg_del(av1c);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for AV1 file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 #endif /*!defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)*/
@@ -4283,7 +4283,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			gf_odf_vp_cfg_del(vpcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for VP file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 
@@ -4295,7 +4295,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	{
 		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(movie, track, 1);
 		if (!dovi) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 
@@ -4315,7 +4315,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			gf_odf_vvc_cfg_del(vvcc);
 			return e;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] No config found for VVC file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ISOM Tools] No config found for VVC file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 		return GF_BAD_PARAM;
 	}
 

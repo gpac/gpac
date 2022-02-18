@@ -437,7 +437,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Source file larger than 20M, skipping indexing\n", ctx->log_name));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] Source file larger than 20M, skipping indexing\n", ctx->log_name));
 			} else {
 				ctx->index = -ctx->index;
 			}
@@ -716,7 +716,7 @@ static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_p
 				}
 
 				gf_filter_pck_set_cts(q_pck, cts);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] Frame timestamps computed dts "LLU" cts "LLU" (poc %d min poc %d poc_diff %d last IDR DTS "LLU")\n", ctx->log_name, dts, cts, poc, ctx->min_poc, ctx->poc_diff, ctx->dts_last_IDR));
 
 				if (ctx->importer && ctx->cur_fps.den) {
 					poc = (s32) ( (s64) cts - (s64) dts);
@@ -1399,7 +1399,7 @@ void naludmx_create_avc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 *dsi_si
 						ctx->dts = ctx->cur_fps.den;
 				}
 				if (! sps->vui.fixed_frame_rate_flag)
-					GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent\n", ctx->log_name));
 			}
 			ctx->fps = ctx->cur_fps;
 		}
@@ -1522,7 +1522,7 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 
 	if (ctx->dv_profile==8) {
 		if (!ctx->dv_compatid) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] DV profile 8 used but dv_compatid not set, defaulting to bt709 (=2)\n", ctx->log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] DV profile 8 used but dv_compatid not set, defaulting to bt709 (=2)\n", ctx->log_name));
 			ctx->dv_compatid = 2;
 		}
 	}
@@ -1615,7 +1615,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	
 	naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 	if (!ctx->analyze && (gf_list_count(ctx->pck_queue)>1))  {
-		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
+		GF_LOG(dsi_enh ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] xPS changed but could not flush frames before signaling state change %s\n", ctx->log_name, dsi_enh ? "- likely scalable xPS update" : "!"));
 	}
 
 	//copy properties at init or reconfig
@@ -1666,7 +1666,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx, Bool force_
 	if ((ctx->codecid==GF_CODECID_HEVC) && gf_list_count(ctx->vps) ) {
 		GF_Err e = naludmx_set_hevc_oinf(ctx, NULL);
 		if (e) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] Failed to create OINF chunk\n", ctx->log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Failed to create OINF chunk\n", ctx->log_name));
 		}
 		naludmx_set_hevc_linf(ctx);
 	}
@@ -1743,7 +1743,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->index = -ctx->index;
 			ctx->file_loaded = GF_FALSE;
 			ctx->duration.den = ctx->duration.num = 0;
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[%s] Play request from %d, building index\n", ctx->log_name, ctx->start_range));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[%s] Play request from %d, building index\n", ctx->log_name, ctx->start_range));
 			naludmx_check_dur(filter, ctx);
 		}
 		ctx->start_range = evt->play.start_range;
@@ -1960,7 +1960,7 @@ static void naludmx_finalize_au_flags(GF_NALUDmxCtx *ctx)
 		gf_filter_pck_set_sap(ctx->first_pck_in_au, GF_FILTER_SAP_1);
 		if (!ctx->use_opengop_gdr) {
 			ctx->use_opengop_gdr = 1;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF conformant\n", ctx->log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF compliant\n", ctx->log_name));
 		}
 		is_rap = GF_TRUE;
 	}
@@ -2058,7 +2058,7 @@ static void naludmx_update_nalu_maxsize(GF_NALUDmxCtx *ctx, u32 size)
 	if (ctx->max_nalu_size < size) {
 		ctx->max_nalu_size = size;
 		if (size > ctx->max_nalu_size_allowed) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] nal size %d larger than max allowed size %d - change import settings\n", ctx->log_name, size, ctx->max_nalu_size_allowed ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] nal size %d larger than max allowed size %d - change import settings\n", ctx->log_name, size, ctx->max_nalu_size_allowed ));
 		}
 	}
 }
@@ -2166,7 +2166,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
 		}
 		*skip_nal = GF_TRUE;
 	}
@@ -2185,7 +2185,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 			ps_idx = ctx->hevc_state->last_parsed_vps_id;
 		}
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Video Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Video Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_VID_PARAM, ps_idx);
 		}
@@ -2194,7 +2194,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_SEQ_PARAM:
 		ps_idx = ctx->hevc_state->last_parsed_sps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_SEQ_PARAM, ps_idx);
 		}
@@ -2203,7 +2203,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 	case GF_HEVC_NALU_PIC_PARAM:
 		ps_idx = ctx->hevc_state->last_parsed_pps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_HEVC_NALU_PIC_PARAM, ps_idx);
 		}
@@ -2307,7 +2307,7 @@ static s32 naludmx_parse_nal_hevc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool
 
 	default:
 		if (! ctx->is_playing) return 0;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] NAL Unit type %d not handled - adding\n", ctx->log_name, nal_unit_type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] NAL Unit type %d not handled - adding\n", ctx->log_name, nal_unit_type));
 		break;
 	}
 	if (*skip_nal) return res;
@@ -2341,7 +2341,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
 		}
 		*skip_nal = GF_TRUE;
 	}
@@ -2361,7 +2361,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 			ps_idx = ctx->vvc_state->last_parsed_vps_id;
 		}
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Video Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Video Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_VID_PARAM, ps_idx);
 		}
@@ -2370,7 +2370,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_SEQ_PARAM:
 		ps_idx = ctx->vvc_state->last_parsed_sps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_SEQ_PARAM, ps_idx);
 		}
@@ -2379,7 +2379,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 	case GF_VVC_NALU_PIC_PARAM:
 		ps_idx = ctx->vvc_state->last_parsed_pps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_PIC_PARAM, ps_idx);
 		}
@@ -2395,7 +2395,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 #if 0
 		ps_idx = ctx->vvc_state->last_parsed_aps_id;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Decoder Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Decoder Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_VVC_NALU_APS_PREFIX, ps_idx);
 		}
@@ -2489,7 +2489,7 @@ static s32 naludmx_parse_nal_vvc(GF_NALUDmxCtx *ctx, char *data, u32 size, Bool 
 
 	default:
 		if (! ctx->is_playing) return 0;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] NAL Unit type %d not handled - adding\n", ctx->log_name, nal_unit_type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] NAL Unit type %d not handled - adding\n", ctx->log_name, nal_unit_type));
 		break;
 	}
 	if (*skip_nal) return res;
@@ -2518,7 +2518,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	res = gf_avc_parse_nalu(ctx->bs_r, ctx->avc_state);
 	if (res < 0) {
 		if (res == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Warning: Error parsing NAL unit\n", ctx->log_name));
 		}
 		*skip_nal = GF_TRUE;
 	}
@@ -2530,7 +2530,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
 			if (ctx->avc_state->sps[0].profile_idc) {
-				GF_LOG(ctx->avc_state->sps[0].profile_idc ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
+				GF_LOG(ctx->avc_state->sps[0].profile_idc ? GF_LOG_WARNING : GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Sequence Param Set\n", ctx->log_name));
 			}
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_AVC_NALU_SEQ_PARAM, ps_idx);
@@ -2541,7 +2541,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	case GF_AVC_NALU_PIC_PARAM:
 		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Picture Param Set\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_AVC_NALU_PIC_PARAM, ps_idx);
 		}
@@ -2551,7 +2551,7 @@ static s32 naludmx_parse_nal_avc(GF_NALUDmxCtx *ctx, char *data, u32 size, u32 n
 	case GF_AVC_NALU_SEQ_PARAM_EXT:
 		ps_idx = ctx->avc_state->last_ps_idx;
 		if (ps_idx<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing Sequence Param Set Extension\n", ctx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing Sequence Param Set Extension\n", ctx->log_name));
 		} else {
 			naludmx_queue_param_set(ctx, data, size, GF_AVC_NALU_SEQ_PARAM_EXT, ps_idx);
 		}
@@ -2748,21 +2748,21 @@ static void naldmx_check_timestamp_switch(GF_NALUDmxCtx *ctx, u32 *nalu_store_be
 static void naldmx_bs_log(void *udta, const char *field_name, u32 nb_bits, u64 field_val, s32 idx1, s32 idx2, s32 idx3)
 {
 	GF_NALUDmxCtx *ctx = (GF_NALUDmxCtx *) udta;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, (" %s", field_name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, (" %s", field_name));
 	if (idx1>=0) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx1));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx1));
 		if (idx2>=0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx2));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx2));
 			if (idx3>=0) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("_%d", idx3));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("_%d", idx3));
 			}
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("=\""LLD, field_val));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("=\""LLD, field_val));
 	if ((ctx->bsdbg==2) && ((s32) nb_bits > 1) )
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("(%u)", nb_bits));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("(%u)", nb_bits));
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("\" "));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("\" "));
 }
 
 
@@ -2865,7 +2865,7 @@ naldmx_flush:
 		ctx->bs_r = gf_bs_new(start, remain, GF_BITSTREAM_READ);
 
 #ifndef GPAC_DISABLE_LOG
-		if (ctx->bsdbg && gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG))
+		if (ctx->bsdbg && gf_log_tool_level_on(GF_LOG_MEDIA, GF_LOG_DEBUG))
 			gf_bs_set_logger(ctx->bs_r, naldmx_bs_log, ctx);
 #endif
 
@@ -3089,7 +3089,7 @@ naldmx_flush:
 		if (!ctx->is_playing) {
 			ctx->resume_from = (u32) (start - ctx->nal_store);
             assert(ctx->resume_from<=ctx->nal_store_size);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] not yet playing\n", ctx->log_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] not yet playing\n", ctx->log_name));
 
 			if (drop_packet)
 				gf_filter_pid_drop_packet(ctx->ipid);
@@ -3108,9 +3108,9 @@ naldmx_flush:
 				u64 bo = byte_offset;
 				bo += (start - ctx->nal_store);
 
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit %d (byte offset "LLU" size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, bo, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing NAL Unit %d (byte offset "LLU" size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, bo, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[%s] Error parsing NAL Unit %d (size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[%s] Error parsing NAL Unit %d (size %d type %d frame %d last POC %d) - skipping\n", ctx->log_name, ctx->nb_nalus, nal_size, nal_type, ctx->nb_frames, ctx->last_poc));
 			}
 			nal_size += sc_size;
 			assert((u32) remain >= nal_size);
@@ -3263,7 +3263,7 @@ naldmx_flush:
 				}
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
                     if (ctx->svc_prefix_buffer_size) {
-                        GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice in-between\n", ctx->log_name));
+                        GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] broken bitstream, two consecutive SVC prefix NALU without SVC slice in-between\n", ctx->log_name));
                         ctx->svc_prefix_buffer_size = 0;
                     }
 
@@ -3339,7 +3339,7 @@ naldmx_flush:
 						ctx->has_islice = 1;
 						if (ctx->use_opengop_gdr == 1) {
 							ctx->use_opengop_gdr = 2; /*avoid message flooding*/
-							GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] No valid SEI Recovery Point found although needed - forcing\n", ctx->log_name));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] No valid SEI Recovery Point found although needed - forcing\n", ctx->log_name));
 						}
 					}
 					if (ctx->codecid==GF_CODECID_HEVC) {
@@ -3394,7 +3394,7 @@ naldmx_flush:
 				}
 				ctx->last_poc = slice_poc;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[%s] POC is %d - min poc diff %d - slice is IDR %d (SAP %d)\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_idr, au_sap_type));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] POC is %d - min poc diff %d - slice is IDR %d (SAP %d)\n", ctx->log_name, slice_poc, ctx->poc_diff, slice_is_idr, au_sap_type));
 
 			/*ref slice, reset poc*/
 			if (slice_is_idr) {
@@ -3538,7 +3538,7 @@ naldmx_flush:
 
 	if (remain) {
 		if (is_eos && (remain == ctx->nal_store_size)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[%s] Incomplete last NAL and eos, discarding\n", ctx->log_name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] Incomplete last NAL and eos, discarding\n", ctx->log_name));
 			remain = 0;
 		} else {
 			assert((u32) remain<=ctx->nal_store_size);
@@ -3589,7 +3589,7 @@ static GF_Err naludmx_initialize(GF_Filter *filter)
 		ctx->nal_adjusted = GF_TRUE;
 		break;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] NAL size length %d is not allowed, defaulting to 4 bytes\n", ctx->log_name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] NAL size length %d is not allowed, defaulting to 4 bytes\n", ctx->log_name));
 		ctx->max_nalu_size_allowed = 0xFFFFFFFF;
 		ctx->nal_length = 4;
 		break;
@@ -3619,19 +3619,19 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 		nb_frames = (u32) (ctx->dts / ctx->cur_fps.den);
 
 	if (ctx->dur.den && ctx->dur.num) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s duration specified at import time, may have parsed more frames than imported\n", ctx->log_name));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s duration specified at import time, may have parsed more frames than imported\n", ctx->log_name));
 		msg_import = "parsed";
 	} else {
 		msg_import = "Import results:";
 	}
 
 	if (ctx->nb_si || ctx->nb_sp) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s %d frames (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR\n", ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sp, ctx->nb_si, ctx->nb_sei, ctx->nb_idr ));
 	} else if (ctx->vvc_no_stats) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - %d SEI - %d IDR - %d CRA\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s %d samples (%d NALUs) - %d SEI - %d IDR - %d CRA\n",
 			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_sei, ctx->nb_idr, ctx->nb_cra));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR - %d CRA\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR - %d CRA\n",
 			                  ctx->log_name, msg_import, nb_frames, ctx->nb_nalus, ctx->nb_i, ctx->nb_p, ctx->nb_b, ctx->nb_sei, ctx->nb_idr, ctx->nb_cra));
 	}
 
@@ -3642,22 +3642,22 @@ static void naludmx_log_stats(GF_NALUDmxCtx *ctx)
 			GF_NALUFFParam *svcc = (GF_NALUFFParam*)gf_list_get(ctx->sps, i);
 			sps = & ctx->avc_state->sps[svcc->id];
 			if (sps->nb_ei || sps->nb_ep) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s SVC (SSPS ID %d, %dx%d) %s Slices: %d I %d P %d B\n", ctx->log_name, svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->width, sps->height, msg_import, sps->nb_ei, sps->nb_ep, sps->nb_eb ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s SVC (SSPS ID %d, %dx%d) %s Slices: %d I %d P %d B\n", ctx->log_name, svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->width, sps->height, msg_import, sps->nb_ei, sps->nb_ep, sps->nb_eb ));
 			}
 		}
 	} else if (ctx->nb_e_i || ctx->nb_e_p || ctx->nb_e_b) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s L-HEVC %s Slices: %d I %d P %d B\n", ctx->log_name, msg_import, ctx->nb_e_i, ctx->nb_e_p, ctx->nb_e_b ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s L-HEVC %s Slices: %d I %d P %d B\n", ctx->log_name, msg_import, ctx->nb_e_i, ctx->nb_e_p, ctx->nb_e_b ));
 	}
 
 	if (ctx->max_total_delay>1) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Stream uses forward prediction - stream CTS offset: %d frames\n", ctx->log_name, ctx->max_total_delay));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s Stream uses forward prediction - stream CTS offset: %d frames\n", ctx->log_name, ctx->max_total_delay));
 	}
 
 	if (!ctx->nal_adjusted) {
 		if ((ctx->max_nalu_size < 0xFF) && (ctx->nal_length>1) ){
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Max NALU size is %d - stream could be optimized by setting nal_length=1\n", ctx->log_name, ctx->max_nalu_size));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s Max NALU size is %d - stream could be optimized by setting nal_length=1\n", ctx->log_name, ctx->max_nalu_size));
 		} else if ((ctx->max_nalu_size < 0xFFFF) && (ctx->nal_length>2) ){
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s Max NALU size is %d - stream could be optimized by setting nal_length=2\n", ctx->log_name, ctx->max_nalu_size));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s Max NALU size is %d - stream could be optimized by setting nal_length=2\n", ctx->log_name, ctx->max_nalu_size));
 		}
 	}
 }
@@ -3922,7 +3922,8 @@ GF_FilterRegister NALUDmxRegister = {
 	.name = "rfnalu",
 	GF_FS_SET_DESCRIPTION("AVC/HEVC reframer")
 	GF_FS_SET_HELP("This filter parses AVC|H264 and HEVC files/data and outputs corresponding video PID and frames.\n"
-	"This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\nNote: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS greater than CTS.")
+	"This filter produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.\n"
+	"Note: The filter uses negative CTS offsets: CTS is correct, but some frames may have DTS greater than CTS.")
 	.private_size = sizeof(GF_NALUDmxCtx),
 	.args = NALUDmxArgs,
 	.initialize = naludmx_initialize,

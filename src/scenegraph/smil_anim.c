@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom ParisTech 2004-2022
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
  *
@@ -149,13 +149,13 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 	SMILAnimationAttributesPointers *animp = rai->animp;
 
 	if (!animp->to) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Animation     %s - set element without to attribute\n",
 		        gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 		return;
 	}
 	if (!animp->to->type) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Animation     %s - set element with an unparsed to attribute\n",
 		        gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 		return;
@@ -168,7 +168,7 @@ static void gf_smil_anim_set(SMIL_Anim_RTI *rai)
 		else rai->interpolated_value_changed = 1;
 		return;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Time %f - Animation     %s - applying set animation\n",
 		        gf_node_get_scene_time((GF_Node*)rai->anim_elt),
 		        gf_node_get_log_name((GF_Node *)rai->anim_elt)));
@@ -216,7 +216,7 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 		else
 			*interpolation_coefficient = FIX_ONE;
 		if (!rai->change_detection_mode)
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - Using Key Times: index %d, interval duration %.2f, coeff: %.2f\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt),
 			        gf_node_get_log_name((GF_Node *)rai->anim_elt),
@@ -237,7 +237,7 @@ static void gf_smil_anim_use_keypoints_keytimes(SMIL_Anim_RTI *rai, Fixed normal
 		}
 		if (keyValueIndex) *keyValueIndex = 0;
 		if (!rai->change_detection_mode)
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - Using Key Points: key Point Index %d, coeff: %.2f\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyTimeIndex, *interpolation_coefficient));
 	}
@@ -276,7 +276,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 			   therefore no need to resolve inherit and currentColor */
 			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 			rai->previous_key_index = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - Using values[0] as interpolation value\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 			return;
@@ -308,7 +308,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 			}
 			interpolation_coefficient = tmp - INT2FIX(keyValueIndex);
 		}
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - No KeyTimes: key index %d, coeff: %.2f\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyValueIndex, FIX2FLT(interpolation_coefficient)));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Animation     %s - No KeyTimes: key index %d, coeff: %.2f\n", gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyValueIndex, FIX2FLT(interpolation_coefficient)));
 	} else {
 		gf_smil_anim_use_keypoints_keytimes(rai, normalized_simple_time, &interpolation_coefficient, &keyValueIndex);
 	}
@@ -326,7 +326,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 
 		switch (real_calcMode) {
 		case SMIL_CALCMODE_DISCRETE:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying discrete animation using values (key value index: %d)\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyValueIndex));
 			value_info.far_ptr = gf_list_get(values, keyValueIndex);
@@ -340,7 +340,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 		/* TODO: at the moment assume it is linear */
 		case SMIL_CALCMODE_LINEAR:
 			if (keyValueIndex == rai->values_count - 1) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 				       ("[SMIL Animation] Time %f - Animation     %s - applying linear animation using values (setting last key value: %d)\n",
 				        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyValueIndex));
 				value_info.far_ptr = gf_list_get(values, rai->values_count - 1);
@@ -349,7 +349,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 				gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 			} else {
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 				       ("[SMIL Animation] Time %f - Animation     %s - applying linear animation using values (key value indices: %d, %d / coeff: %f)\n",
 				        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), keyValueIndex, keyValueIndex+1, interpolation_coefficient));
 				value_info.far_ptr = gf_list_get(values, keyValueIndex);
@@ -451,7 +451,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 		case SMIL_CALCMODE_DISCRETE:
 		{
 			/* before half of the duration stay at 'from' and then switch to 'to' */
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (using %s value)\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), (useFrom?"from":"to")));
 			gf_svg_attributes_copy(&rai->interpolated_value, (useFrom?&from_info:&to_info), 0);
@@ -462,7 +462,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 		case SMIL_CALCMODE_PACED:
 		case SMIL_CALCMODE_LINEAR:
 		default:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (linear interpolation, using coefficient %f)\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), interpolation_coefficient));
 			gf_svg_attributes_interpolate(&from_info, &to_info, &rai->interpolated_value, interpolation_coefficient, 1);
@@ -537,12 +537,12 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 		{
 			/* before half of the duration stay at 'from' and then switch to 'to' */
 			if (useFrom) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 				       ("[SMIL Animation] Time %f - Animation     %s - applying from-by animation (setting from)",
 				        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 				gf_svg_attributes_muladd(from_coef, &from_info, 0, &by_info, &rai->interpolated_value, 0);
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 				       ("[SMIL Animation] Time %f - Animation     %s - applying from-by animation (setting from+by)",
 				        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 				gf_svg_attributes_muladd(from_coef, &from_info, FIX_ONE, &by_info, &rai->interpolated_value, 0);
@@ -554,7 +554,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 		case SMIL_CALCMODE_PACED:
 		case SMIL_CALCMODE_LINEAR:
 		default:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying from-by animation (linear interpolation between from and from+by, coef: %f)\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), normalized_simple_time));
 			gf_svg_attributes_muladd(from_coef, &from_info, normalized_simple_time, &by_info, &rai->interpolated_value, 0);
@@ -570,7 +570,7 @@ static void gf_svg_compute_path_anim(SMIL_Anim_RTI *rai, GF_Matrix2D *m, Fixed n
 	gf_mx2d_init(*m);
 
 	gf_path_iterator_get_transform(rai->path_iterator, offset, 1, m, 1, 0);
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("offset: %f, position: (%f, %f)", offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]));
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("offset: %f, position: (%f, %f)", offset, ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[2], ((GF_Matrix2D *)rai->interpolated_value.far_ptr)->m[5]));
 	switch (rai->rotate) {
 	case SVG_NUMBER_AUTO:
 		break;
@@ -600,7 +600,7 @@ static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized
 	} else {
 		rai->previous_coef = interpolation_coefficient;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Time %f - Animation     %s - applying path animation (coef: %f)\n",
 		        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), normalized_simple_time));
 
@@ -628,10 +628,10 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+	if (gf_log_tool_level_on(GF_LOG_COMPTIME, GF_LOG_DEBUG)) {
 		char *str = gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Interpolation value changed for attribute %s, new value: %s \n",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Animation     %s - Interpolation value changed for attribute %s, new value: %s \n",
 		       gf_node_get_scene_time(rai->anim_elt), gf_node_get_log_name(rai->anim_elt),
 		       gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 		);
@@ -693,7 +693,7 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 			rai->last_specified_value.far_ptr   = animp->to->value;
 		} else {
 			/* TODO ??? */
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Animation     %s - set element without to attribute\n",
 			        gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 		}
@@ -750,7 +750,7 @@ static void gf_smil_anim_apply_accumulate(SMIL_Anim_RTI *rai)
 		}
 
 		if ((animp->accumulate && *animp->accumulate == SMIL_ACCUMULATE_SUM) && nb_iterations > 0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying accumulation (iteration #%d)\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), nb_iterations));
 
@@ -781,7 +781,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 		/* Apply additive behavior if required
 			PV = (additive == sum ? PV + animp->IV : animp->IV); */
 		if (animp->additive && *animp->additive == SMIL_ADDITIVE_SUM) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying additive behavior\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 
@@ -791,9 +791,9 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 			                      1);
 
 #ifndef GPAC_DISABLE_LOG
-			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+			if (gf_log_tool_level_on(GF_LOG_COMPTIME, GF_LOG_DEBUG)) {
 				char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 				       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
 				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 				);
@@ -802,7 +802,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 #endif
 
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Time %f - Animation     %s - applying non-additive behavior\n",
 			        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 
@@ -817,10 +817,10 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 
 			gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
 #ifndef GPAC_DISABLE_LOG
-			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+			if (gf_log_tool_level_on(GF_LOG_COMPTIME, GF_LOG_DEBUG)) {
 				char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 				       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
 				       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 				);
@@ -869,7 +869,7 @@ static void gf_smil_anim_freeze(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 		else
 			rai->interpolated_value_changed = 0;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Time %f - Animation     %s - applying freeze behavior\n",
 		        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 
@@ -891,7 +891,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 		else
 			rai->interpolated_value_changed = 0;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL,
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME,
 		       ("[SMIL Animation] Time %f - Animation     %s - applying remove behavior\n",
 		        gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 
@@ -903,10 +903,10 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 		rai->anim_done = 1;
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+		if (gf_log_tool_level_on(GF_LOG_COMPTIME, GF_LOG_DEBUG)) {
 			char *str = gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n",
 			       gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt),
 			       gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str)
 			);
@@ -1037,10 +1037,10 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 //		gf_svg_attributes_copy(&aa->presentation_value, &aa->specified_value, 0);
 
 #ifndef GPAC_DISABLE_LOG
-			if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+			if (gf_log_tool_level_on(GF_LOG_COMPTIME, GF_LOG_DEBUG)) {
 				char *str = gf_svg_dump_attribute(node, &aa->presentation_value);
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n",
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Animation] Time %f - Element %s - Presentation value changed for attribute %s, new value: %s - dirty flags %x\n",
 				       gf_node_get_scene_time(node), gf_node_get_log_name(node),
 				       gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags)
 				);
@@ -1131,7 +1131,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			gf_mx2d_init(*(GF_Matrix2D *)target_attribute.far_ptr);
 			break;
 		default:
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Missing attributeName attribute on element %s\n",
 			        gf_node_get_log_name((GF_Node*)e) ));
 			return;
@@ -1141,7 +1141,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	if (animp->attributeType && *animp->attributeType == SMIL_ATTRIBUTETYPE_CSS) {
 		/* see example animate-elem-219-t.svg from the SVG test suite, upper row */
 		if (!gf_svg_is_property(target, &target_attribute)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SMIL,
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,
 			       ("[SMIL Animation] Using CSS attributeType for an animation on an attribute which is not a property %s\n",
 			        gf_node_get_log_name((GF_Node*)e) ));
 			return;
@@ -1151,7 +1151,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	/* Creation and setup of the runtime structure for animation */
 	GF_SAFEALLOC(rai, SMIL_Anim_RTI)
 	if (!rai) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Animation] Failed to allocated SMIL anim RTI\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Animation] Failed to allocated SMIL anim RTI\n"));
 		return;
 	}
 
@@ -1193,7 +1193,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			animp->additive = info.far_ptr;
 		}
 		if (*animp->additive == SMIL_ADDITIVE_REPLACE) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SMIL, ("[SMIL Animation] Warning: by-animations cannot use additive=\"replace\"\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[SMIL Animation] Warning: by-animations cannot use additive=\"replace\"\n"));
 		}
 		*animp->additive = SMIL_ADDITIVE_SUM;
 	}
@@ -1294,7 +1294,7 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	if (!aa) {
 		GF_SAFEALLOC(aa, SMIL_AttributeAnimations)
 		if (!aa) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Animation] Failed to allocated SMIL attribue ani\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Animation] Failed to allocated SMIL attribue ani\n"));
 			return;
 		}
 
@@ -1417,7 +1417,7 @@ void gf_smil_anim_init_discard(GF_Node *node)
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 	GF_SAFEALLOC(e->xlinkp, XLinkAttributesPointers);
 	if (!e->xlinkp) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("[SMIL] Error creating anim xlink attrib\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME,("[SMIL] Error creating anim xlink attrib\n"));
 		return;
 	}
 	xlinkp = e->xlinkp;
@@ -1451,7 +1451,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 	}
 	if (xlinkp->href->type == XMLRI_STRING) {
 		if (!xlinkp->href->string) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("Error: IRI not initialized\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME,("Error: IRI not initialized\n"));
 			return;
 		} else {
 			GF_Node *n;
@@ -1467,7 +1467,7 @@ void gf_smil_anim_init_node(GF_Node *node)
 		}
 	}
 	if (!xlinkp->href->target) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_SMIL,("Trying to initialize an animation when the target is not known\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME,("Trying to initialize an animation when the target is not known\n"));
 		return;
 	}
 

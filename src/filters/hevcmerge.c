@@ -354,7 +354,7 @@ u32 hevcmerge_rewrite_slice(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *tile_pid, char
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(ctx->bs_nal_in, 1);
 	if (al != 1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] source slice header not properly aligned\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] source slice header not properly aligned\n"));
 	}
 	gf_bs_align(ctx->bs_nal_in);
 
@@ -512,7 +512,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 				x = (srd_x * ctx->out_width) / srd_ref->value.vec2i.x;
 				w = (srd_w * ctx->out_width) / srd_ref->value.vec2i.x;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] width=0 in source pid SRD referential, cannot output SRD map\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] width=0 in source pid SRD referential, cannot output SRD map\n" ));
 				srd_map_valid = GF_FALSE;
 				break;
 			}
@@ -520,7 +520,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 				y = (srd_y * ctx->out_height) / srd_ref->value.vec2i.y;
 				h = (srd_h * ctx->out_height) / srd_ref->value.vec2i.y;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] height=0 in source pid SRD referential, undefined results\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] height=0 in source pid SRD referential, undefined results\n" ));
 				srd_map_valid = GF_FALSE;
 				break;
 			}
@@ -530,7 +530,7 @@ void hevcmerge_build_srdmap(GF_HEVCMergeCtx *ctx, Bool use_abs_pos)
 			w = (s32)(tile->width);
 			h = (s32)(tile->height);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[HEVCMerge] SRD, SRD_REF and CROP_POS are not defined for source pid, undefined results\n" ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] SRD, SRD_REF and CROP_POS are not defined for source pid, undefined results\n" ));
 			srd_map_valid = GF_FALSE;
 			break;
 		}
@@ -598,15 +598,15 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 		}
 	}
 	if ((nb_cols>1) && (nb_rows>1)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge more than one tile not a multiple of CTUs in both width and height, not possible in standard\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge more than one tile not a multiple of CTUs in both width and height, not possible in standard\n"));
 		return GF_BAD_PARAM;
 	}
 	if (nb_has_pos && nb_no_pos) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with explicit positioning and tiles with implicit positioning, not supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge tiles with explicit positioning and tiles with implicit positioning, not supported\n"));
 		return GF_BAD_PARAM;
 	}
 	if (nb_rel_pos && nb_abs_pos) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles with both relative explicit positioning and absolute explicit positioning, not supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge tiles with both relative explicit positioning and absolute explicit positioning, not supported\n"));
 		return GF_BAD_PARAM;
 	}
 	if (ctx->grid) gf_free(ctx->grid);
@@ -648,7 +648,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				}
 
 				if (overlap) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Overlapping tiles detected, cannot merge\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Overlapping tiles detected, cannot merge\n"));
 					return GF_BAD_PARAM;
 				}
 			}
@@ -727,7 +727,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 			}
 		}
 		if (!ctx->grid) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Failed to create grid\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Failed to create grid\n"));
 			return GF_OUT_OF_MEM;
 		}
 		// pass on the grid to insert empty columns
@@ -763,7 +763,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 			}
 			//check non-last columns are multiple of max CU width
 			if ((j+1<max_cols) && (ctx->grid[j].width % ctx->max_CU_height) ) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Invalid grid specification, column %d width %d not a multiple of max CU width and not the last one\n", j+1, ctx->grid[j].width));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Invalid grid specification, column %d width %d not a multiple of max CU width and not the last one\n", j+1, ctx->grid[j].width));
 				return GF_BAD_PARAM;
 			}
 			for (i=0; i<nb_pids; i++) {
@@ -771,7 +771,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				if (nb_rel_pos) {
 					if (-tile->pos_x != ctx->grid[j].pos_x) continue;
 					if (ctx->grid[j].width != tile->width) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Invalid relative positioning in the same column of tiles with different width %d vs %d\n", tile->width, ctx->grid[j].width));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Invalid relative positioning in the same column of tiles with different width %d vs %d\n", tile->width, ctx->grid[j].width));
 						return GF_BAD_PARAM;
 					}
 					tile->pos_col = j;
@@ -782,7 +782,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 					tile->pos_col = j;
 					tile->pos_row = tile->pos_y / ctx->max_CU_height;
 					if (tile->pos_row * ctx->max_CU_height != tile->pos_y) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] Tile y %d not a multiple of CU height %d, adjusting to next boundary\n", tile->pos_y, ctx->max_CU_height));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] Tile y %d not a multiple of CU height %d, adjusting to next boundary\n", tile->pos_y, ctx->max_CU_height));
 						tile->pos_row++;
 					}
 					if (tile->pos_y + tile->height > ctx->grid[j].height)
@@ -799,7 +799,7 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 				HEVCTilePidCtx *tile = gf_list_get(ctx->pids, i);
 				if (tile->pos_col != j) continue;
 				if ((tile->pos_row < ctx->grid[j].max_row_pos) && (tile->height % ctx->max_CU_height)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Invalid grid specification, row %d in column %d height %d not a multiple of max CU height and not the last one\n", tile->pos_row, j+1, tile->height));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Invalid grid specification, row %d in column %d height %d not a multiple of max CU height and not the last one\n", tile->pos_row, j+1, tile->height));
 					return GF_BAD_PARAM;
 				}
 			}
@@ -897,12 +897,12 @@ static GF_Err hevcmerge_rebuild_grid(GF_HEVCMergeCtx *ctx,  GF_FilterPid *pid)
 	ctx->nb_cols = nb_cols;
 
 	//recompute slice addresses
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVCMerge] Grid reconfigured, output size %dx%d, %d input pids:\n", ctx->out_width, ctx->out_height, nb_pids));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HEVCMerge] Grid reconfigured, output size %dx%d, %d input pids:\n", ctx->out_width, ctx->out_height, nb_pids));
 	for (i=0; i<nb_pids; i++) {
 		HEVCTilePidCtx *pidctx = gf_list_get(ctx->pids, i);
 		pidctx->slice_segment_address = hevcmerge_compute_address(ctx, pidctx, nb_abs_pos ? GF_TRUE : GF_FALSE);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("- pid %s (pos %dx%d) size %dx%d new address %d\n",
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("- pid %s (pos %dx%d) size %dx%d new address %d\n",
 				gf_filter_pid_get_name(pidctx->pid),
 				nb_has_pos ? pidctx->pos_x : pidctx->pos_col,
 				nb_has_pos ? pidctx->pos_y : pidctx->pos_row,
@@ -1006,7 +1006,7 @@ static GF_Err hevcmerge_check_sps_pps(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *pid_
 
 #define CHECK_SPS_VAL(__name)	\
 			if (sps_base->__name != sps_o->__name ) { \
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] "#__name" differs in SPS between %s and %s, undefined results\n", src_base, src_o));\
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] "#__name" differs in SPS between %s and %s, undefined results\n", src_base, src_o));\
 				all_ok = GF_FALSE;\
 			}\
 
@@ -1099,7 +1099,7 @@ static GF_Err hevcmerge_check_sps_pps(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *pid_
 
 #define CHECK_PPS_VAL(__name)	\
 			if (pps_base->__name != pps_o->__name ) { \
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] "#__name" differs in PPS, undefined results\n"));\
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] "#__name" differs in PPS, undefined results\n"));\
 				all_ok = GF_FALSE;\
 			}\
 
@@ -1240,14 +1240,14 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 					if (!ctx->max_CU_width) {
 						ctx->max_CU_width = tile_pid->hevc_state.sps[idx].max_CU_width;
 					} else if (ctx->max_CU_width != tile_pid->hevc_state.sps[idx].max_CU_width) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles not using the same max CU width (%d vs %d)\n", ctx->max_CU_width, tile_pid->hevc_state.sps[idx].max_CU_width));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge tiles not using the same max CU width (%d vs %d)\n", ctx->max_CU_width, tile_pid->hevc_state.sps[idx].max_CU_width));
 						e = GF_BAD_PARAM;
 						break;
 					}
 					if (!ctx->max_CU_height) {
 						ctx->max_CU_height = tile_pid->hevc_state.sps[idx].max_CU_height;
 					} else if (ctx->max_CU_height != tile_pid->hevc_state.sps[idx].max_CU_height) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCMerge] Cannot merge tiles not using the same max CU height (%d vs %d)\n", ctx->max_CU_height, tile_pid->hevc_state.sps[idx].max_CU_height));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCMerge] Cannot merge tiles not using the same max CU height (%d vs %d)\n", ctx->max_CU_height, tile_pid->hevc_state.sps[idx].max_CU_height));
 						e = GF_BAD_PARAM;
 						break;
 					}
@@ -1301,7 +1301,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		if (p->value.vec2i.x>0) {
 			pos_x = p->value.vec2i.x / ctx->max_CU_width;
 			if (pos_x * ctx->max_CU_width != p->value.vec2i.x) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] CropOrigin X %d is not a multiple of max CU width %d, adjusting to next boundary\n", p->value.vec2i.x, ctx->max_CU_width));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] CropOrigin X %d is not a multiple of max CU width %d, adjusting to next boundary\n", p->value.vec2i.x, ctx->max_CU_width));
 				pos_x++;
 			}
 			pos_x *= ctx->max_CU_width;
@@ -1312,7 +1312,7 @@ static GF_Err hevcmerge_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 		if (p->value.vec2i.y>0) {
 			pos_y = p->value.vec2i.y / ctx->max_CU_height;
 			if (pos_y * ctx->max_CU_height != p->value.vec2i.y) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] CropOrigin Y %d is not a multiple of max CU height %d, adjusting to next boundary\n", p->value.vec2i.y, ctx->max_CU_height));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] CropOrigin Y %d is not a multiple of max CU height %d, adjusting to next boundary\n", p->value.vec2i.y, ctx->max_CU_height));
 				pos_y++;
 			}
 			pos_y *= ctx->max_CU_height;
@@ -1430,13 +1430,13 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 		if (nb_eos) {
 			if (pck_src) {
 				tile_pid->nb_pck++;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] pids of unequal duration, skipping packet %d on pid %d\n", tile_pid->nb_pck, i+1));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] pids of unequal duration, skipping packet %d on pid %d\n", tile_pid->nb_pck, i+1));
 				gf_filter_pid_drop_packet(tile_pid->pid);
 			}
 			continue;
 		}
 		if (!pck_src) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] no data on pid %d while merging, eos detected %d\n", i+1, gf_filter_pid_is_eos(tile_pid->pid) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] no data on pid %d while merging, eos detected %d\n", i+1, gf_filter_pid_is_eos(tile_pid->pid) ));
 			continue;
 		}
 
@@ -1467,7 +1467,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 			if (nal_unit_type < 32) {
 				if (!i) current_poc = tile_pid->hevc_state.s_info.poc;
 				else if (current_poc != tile_pid->hevc_state.s_info.poc) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVCMerge] merging AU %u with different POC (%d vs %d), undefined results.\n", tile_pid->nb_pck, current_poc, tile_pid->hevc_state.s_info.poc));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[HEVCMerge] merging AU %u with different POC (%d vs %d), undefined results.\n", tile_pid->nb_pck, current_poc, tile_pid->hevc_state.s_info.poc));
 				}
 
 				nal_pck_size = hevcmerge_rewrite_slice(ctx, tile_pid, data + pos, nal_length);
@@ -1533,7 +1533,7 @@ static GF_Err hevcmerge_process(GF_Filter *filter)
 
 static GF_Err hevcmerge_initialize(GF_Filter *filter)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCMerge] hevcmerge_initialize started.\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[HEVCMerge] hevcmerge_initialize started.\n"));
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx *)gf_filter_get_udta(filter);
 	ctx->bs_au_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
 	ctx->bs_nal_in = gf_bs_new((char *)ctx, 1, GF_BITSTREAM_READ);
@@ -1544,7 +1544,7 @@ static GF_Err hevcmerge_initialize(GF_Filter *filter)
 
 static void hevcmerge_finalize(GF_Filter *filter)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCMerge] hevcmerge_finalize.\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[HEVCMerge] hevcmerge_finalize.\n"));
 	GF_HEVCMergeCtx *ctx = (GF_HEVCMergeCtx *)gf_filter_get_udta(filter);
 	if (ctx->buffer_nal) gf_free(ctx->buffer_nal);
 	if (ctx->buffer_nal_no_epb) gf_free(ctx->buffer_nal_no_epb);

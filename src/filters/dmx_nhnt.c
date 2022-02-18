@@ -320,7 +320,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			ctx->mdia = gf_fopen_ex(szMedia, p->value.string, "rb", GF_FALSE);
 
 			if (!ctx->mdia) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Cannot find MEDIA file %s\n", szMedia));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Cannot find MEDIA file %s\n", szMedia));
 				gf_filter_pid_drop_packet(ctx->ipid);
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				ctx->in_error = GF_URL_ERROR;
@@ -331,7 +331,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			if (ctx->sig == GF_MEDIA_TYPE_NHNT) ctx->sig = 0;
 			else if (ctx->sig == GF_MEDIA_TYPE_NHNL) ctx->sig = 1;
 			else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Invalid NHNT signature %s\n", gf_4cc_to_str(ctx->sig) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Invalid NHNT signature %s\n", gf_4cc_to_str(ctx->sig) ));
 				gf_filter_pid_drop_packet(ctx->ipid);
 				gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
 				ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
@@ -350,7 +350,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 
 			val = gf_bs_read_u8(ctx->bs);
 			if (val == GF_STREAM_OD) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] OD stream detected, might result in broken import\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[NHNT] OD stream detected, might result in broken import\n"));
 			}
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(val));
 
@@ -378,7 +378,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 			dsi = NULL;
 			if (finfo) {
 				if ( gf_file_load_data_filep(finfo, (u8 **) &dsi, &dsi_size) != GF_OK) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[NHNT] Failed to read decoder config\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[NHNT] Failed to read decoder config\n"));
 				} else {
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -449,7 +449,7 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		
 		res = (u32) gf_fread(output, len, ctx->mdia);
 		if (res != len) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[NHNT] Read failure, expecting %d bytes got %d", len, res));
 		}
 		gf_filter_pck_set_framing(dst_pck, is_start, is_end);
 		if (is_rap)
@@ -485,7 +485,7 @@ void nhntdmx_finalize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_NHNTDmxCtx, _n)
 static const GF_FilterArgs GF_NHNTDmxArgs[] =
 {
-	{ OFFS(reframe), "force reparsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(reframe), "force re-parsing of referenced content", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{0}
 };

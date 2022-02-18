@@ -38,13 +38,13 @@
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_AUTHOR, e ? GF_LOG_WARNING : GF_LOG_INFO)) {
+	if (gf_log_tool_level_on(GF_LOG_APP, e ? GF_LOG_WARNING : GF_LOG_INFO)) {
 		va_list args;
 		char szMsg[1024];
 		va_start(args, format);
 		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
-		GF_LOG((u32) (e ? GF_LOG_WARNING : GF_LOG_INFO), GF_LOG_AUTHOR, ("%s\n", szMsg) );
+		GF_LOG((u32) (e ? GF_LOG_WARNING : GF_LOG_INFO), GF_LOG_APP, ("%s\n", szMsg) );
 	}
 #endif
 	return e;
@@ -393,7 +393,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				h = dsi.height;
 				PL = dsi.VideoPL;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Missing DecoderSpecificInfo in MPEG-4 Visual (Part2) stream\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 Visual (Part2) stream\n"));
 			}
 		}
 #endif
@@ -418,7 +418,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 				sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : GF_FALSE;
 				ps = dsi.has_ps;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Missing DecoderSpecificInfo in MPEG-4 AAC stream\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing DecoderSpecificInfo in MPEG-4 AAC stream\n"));
 			}
 		}
 #endif
@@ -554,9 +554,9 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 
 	if (import->xps_inband) {
 		if (is_cenc ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] CENC media detected - cannot switch parameter set storage mode\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOM import] CENC media detected - cannot switch parameter set storage mode\n"));
 		} else if (import->flags & GF_IMPORT_USE_DATAREF) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] Cannot switch parameter set storage mode when using data reference\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOM import] Cannot switch parameter set storage mode when using data reference\n"));
 		} else {
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_AVC_H264:
@@ -645,7 +645,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 			/*if not first sample and same DTS as previous sample, force DTS++*/
 			if (i && (samp->DTS<=sampDTS)) {
 				if (i+1 < num_samples) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] 0-duration sample detected at DTS %u - adjusting\n", samp->DTS));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISOM import] 0-duration sample detected at DTS %u - adjusting\n", samp->DTS));
 				}
 				samp->DTS = sampDTS + 1;
 			}
@@ -711,7 +711,7 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 	} else {
 		s64 mediaOffset;
 		if (gf_isom_get_edit_list_type(import->orig, track_in, &mediaOffset)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMF Import] Multiple edits found in source media, import may be broken\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOBMF Import] Multiple edits found in source media, import may be broken\n"));
 		}
 		gf_isom_update_edit_list_duration(import->dest, track);
 		gf_isom_update_duration(import->dest);
@@ -900,7 +900,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 			import->video_fps.num = timescale;
 			import->video_fps.den = inc;
 			gf_isom_sample_del(&samp);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %u/%u\n", timescale, inc));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("[Chapter import] Guessed video frame rate %u/%u\n", timescale, inc));
 			break;
 		}
 		if (!import->video_fps.num || !import->video_fps.den) {

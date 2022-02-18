@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -1060,7 +1060,7 @@ typedef struct
 	\note This is used for scalable media: PortNumber indicates the port of the base
 	media and NumPorts the ports||total number of the upper layers*/
 	u32 NumPorts;
-	/*currently ony "RTP/AVP" and "udp" defined*/
+	/*currently only "RTP/AVP" and "udp" defined*/
 	char *Profile;
 
 	/*list of GF_SDPConnection's. A media can have several connection in case of scalable content*/

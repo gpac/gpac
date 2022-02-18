@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -128,7 +128,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, ar->aout);
 				gf_filter_pid_send_event(ar->aout, &evt);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] pausing master clock - time "LLD" (sys time "LLD")\n", ar->freeze_time, gf_sys_clock_high_res()));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] pausing master clock - time "LLD" (sys time "LLD")\n", ar->freeze_time, gf_sys_clock_high_res()));
 			ar->Frozen = GF_TRUE;
 		}
 	} else {
@@ -140,7 +140,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 			}
 
 			ar->start_time += gf_sys_clock_high_res() - ar->freeze_time;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] resuming master clock - new time "LLD" (sys time "LLD") \n", ar->start_time, gf_sys_clock_high_res()));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Audio] resuming master clock - new time "LLD" (sys time "LLD") \n", ar->start_time, gf_sys_clock_high_res()));
 			ar->Frozen = GF_FALSE;
 		}
 	}

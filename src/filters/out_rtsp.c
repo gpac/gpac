@@ -946,7 +946,7 @@ static GF_Err rtspout_process_session_signaling(GF_Filter *filter, GF_RTSPOutCtx
 		return GF_OK;
 	}
 
-	//forbid any access to the streams, ony describe is allowed
+	//forbid any access to the streams, only describe is allowed
 	if (sess->mcast_mirror) {
 		gf_rtsp_response_reset(sess->response);
 		sess->response->ResponseCode = NC_RTSP_Unauthorized;
@@ -1264,8 +1264,8 @@ static const GF_FilterArgs RTSPOutArgs[] =
 	{ OFFS(mtu), "size of RTP MTU in bytes", GF_PROP_UINT, "1460", NULL, 0},
 	{ OFFS(ttl), "time-to-live for multicast packets (a value of 0 uses client requested TTL, or 1)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ifce), "default network interface to use", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(payt), "payload type to use for dynamic configs", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if posible", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(payt), "payload type to use for dynamic decoder configurations", GF_PROP_UINT, "96", "96-127", GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(mpeg4), "send all streams using MPEG-4 generic payload format if possible", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(delay), "send delay for packet (negative means send earlier)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(tt), "time tolerance in microsecond (whenever schedule time minus realtime is below this value, the packet is sent right away)", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(runfor), "run the session for the given time in ms. A negative value means run for ever if loop or source duration, value 0 only outputs the sdp", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},

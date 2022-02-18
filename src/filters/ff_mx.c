@@ -1067,11 +1067,11 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 		case GF_PROP_STRING:
 			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Failed to set option %s:%s\n", arg_name, arg_val ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to set option %s:%s\n", arg_name, arg_val ));
 			}
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
 			return GF_NOT_SUPPORTED;
 		}
 		return GF_OK;
@@ -1123,13 +1123,13 @@ static const GF_FilterCapability FFMuxCaps[] =
 GF_FilterRegister FFMuxRegister = {
 	.name = "ffmx",
 	.version = LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG muxer")
+	GF_FS_SET_DESCRIPTION("FFMPEG multiplexer")
 
-	GF_FS_SET_HELP("Mulitiplexes files and open output protocols using FFMPEG.\n"
+	GF_FS_SET_HELP("Multiplexes files and open output protocols using FFMPEG.\n"
 		"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
-		"To list all supported muxers for your GPAC build, use `gpac -h ffmx:*`."
+		"To list all supported multiplexers for your GPAC build, use `gpac -h ffmx:*`."
 		"This will list both supported output formats and protocols.\n"
-		"Output protocols are listed with `Description: Output protocol`, and the subclass name identitfes the protocol scheme.\n"
+		"Output protocols are listed with `Description: Output protocol`, and the subclass name identifies the protocol scheme.\n"
 		"For example, if `ffmx:rtmp` is listed as output protocol, this means `rtmp://` destination URLs are supported.\n"
 		"\n"
 		"Some URL formats may not be sufficient to derive the multiplexing format, you must then use [-ffmt]() to specify the desired format.\n"
@@ -1163,7 +1163,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(start), "set playback start offset. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, 0},
 	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(interleave), "write frame in interleave mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(nodisc), "ignore stream configuration changes while muxing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(nodisc), "ignore stream configuration changes while multiplexing, may result in broken streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mime), "set mime type for graph resolution", GF_PROP_NAME, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},

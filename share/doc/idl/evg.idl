@@ -1809,7 +1809,7 @@ Texture sampling can also work on both RGB and YUV texture maps.
 - When a `samplerYUV` call is made on a RGB texture, conversion is performed
 - Otherwise, no conversion is done
 
-The `toRGB` and `toYUV` operations can also be used to convert between color space, but precomputed values should be prefered. 
+The `toRGB` and `toYUV` operations can also be used to convert between color space, but precomputed values should be preferred. 
 
 */
 interface Shader {

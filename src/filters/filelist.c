@@ -747,7 +747,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 			if (!is_splice_update) {
 				u64 diff = gf_sys_clock() - ctx->wait_update_start;
 				if (diff > ctx->timeout) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] Timeout refreshing playlist after %d ms, triggering eos\n", diff));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Timeout refreshing playlist after %d ms, triggering eos\n", diff));
 					ctx->ka = 0;
 				}
 			}
@@ -891,7 +891,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
 				} else {
 					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] Unrecognized directive %s, ignoring\n", args));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Unrecognized directive %s, ignoring\n", args));
 						gf_dynstrcat(&ctx->unknown_params, args, ",");
 					}
 				}
@@ -1003,7 +1003,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 		return GF_FALSE;
 
 	if ((ctx->splice_state == FL_SPLICE_ACTIVE) && (splice_start.den || splice_end.den)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] URL %s is a main splice content but expecting a regular content in active splice\n", szURL));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] URL %s is a main splice content but expecting a regular content in active splice\n", szURL));
 		return GF_FALSE;
 	}
 
@@ -1033,7 +1033,7 @@ static Bool filelist_on_filter_setup_error(GF_Filter *failed_filter, void *udta,
 	GF_Filter *filter = (GF_Filter *)udta;
 	GF_FileListCtx *ctx = gf_filter_get_udta(filter);
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to load URL %s: %s\n", gf_filter_get_src_args(failed_filter), gf_error_to_string(err) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Failed to load URL %s: %s\n", gf_filter_get_src_args(failed_filter), gf_error_to_string(err) ));
 
 	count = gf_list_count(ctx->io_pids);
 	for (i=0; i<count; i++) {
@@ -1079,7 +1079,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 		if (!next_url_ok) {
 			ctx->wait_splice_start = GF_FALSE;
 			ctx->wait_source = GF_FALSE;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No URL for splice, ignoring splice\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] No URL for splice, ignoring splice\n"));
 			ctx->splice_state = FL_SPLICE_AFTER;
 			ctx->splice_end_cts = ctx->splice_start_cts;
 			ctx->cts_offset = ctx->cts_offset_at_splice;
@@ -1117,7 +1117,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 	if (! next_url_ok) {
 		if (ctx->splice_state==FL_SPLICE_ACTIVE) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No next URL for splice but splice period still active, resuming splice with possible broken coding dependencies!\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] No next URL for splice but splice period still active, resuming splice with possible broken coding dependencies!\n"));
 			ctx->wait_splice_end = GF_TRUE;
 			ctx->splice_state = FL_SPLICE_AFTER;
 			ctx->dts_sub_plus_one.num = 1;
@@ -1177,7 +1177,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			sep = strstr(url, "&&");
 
 		if (sep_f && ctx->do_cat) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Cannot use filter directives in cat mode\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Cannot use filter directives in cat mode\n"));
 			gf_filter_lock_all(filter, GF_FALSE);
 			return GF_BAD_PARAM;
 		}
@@ -1206,7 +1206,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				prev_filter = gf_list_get(filters, (u32) link_idx); \
 				if (!prev_filter) { \
 					if (filters) gf_list_del(filters); \
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Invalid link directive, filter index %d does not point to a valid filter\n")); \
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Invalid link directive, filter index %d does not point to a valid filter\n")); \
 					gf_filter_lock_all(filter, GF_FALSE);\
 					return GF_SERVICE_ERROR; \
 				} \
@@ -1234,7 +1234,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 				if (sep) sep[0] = c;
 				else if (sep_f) sep_f[0] = ' ';
 
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] More URL to cat than opened service!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] More URL to cat than opened service!\n"));
 				gf_filter_lock_all(filter, GF_FALSE);
 				return GF_BAD_PARAM;
 			}
@@ -1263,7 +1263,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 
 			if (e) {
 				if (filters) gf_list_del(filters);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Failed to open file %s: %s\n", szURL, gf_error_to_string(e) ));
 
 				if (sep) sep[0] = c;
 				else if (sep_f) sep_f[0] = ' ';
@@ -1343,7 +1343,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 			if (!prev_filter) {
 				if (!fsrc) {
 					if (filters) gf_list_del(filters);
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Missing source declaration before filter directive\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Missing source declaration before filter directive\n"));
 					gf_filter_lock_all(filter, GF_FALSE);
 					return GF_BAD_PARAM;
 				}
@@ -1368,7 +1368,7 @@ static GF_Err filelist_load_next(GF_Filter *filter, GF_FileListCtx *ctx)
 	if (filters) gf_list_del(filters);
 
 	//wait for PIDs to connect
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Switching to file %s\n", szURL));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FileList] Switching to file %s\n", szURL));
 
 	ctx->wait_splice_start = GF_FALSE;
 	return GF_OK;
@@ -1818,7 +1818,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 					f = gf_fopen(ctx->file_path, "rt");
 				}
 				if (!f) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] Unable to open file %s\n", ctx->file_path ? ctx->file_path : "no source path"));
 					return GF_SERVICE_ERROR;
 				} else {
 					gf_fclose(f);
@@ -2193,7 +2193,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 		if (!ready)
 			return GF_OK;
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice end reached, resuming main content\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FileList] Splice end reached, resuming main content\n"));
 		ctx->wait_splice_end = GF_FALSE;
 		ctx->nb_repeat = ctx->splice_nb_repeat;
 		ctx->splice_nb_repeat = 0;
@@ -2331,7 +2331,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 			gf_filter_pid_set_discard(iopid->ipid, GF_TRUE);
 		}
 		//spliced media is done, load next
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Spliced media is over, switching to next item in playlist\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FileList] Spliced media is over, switching to next item in playlist\n"));
 		nb_inactive = 0;
 		nb_done = count;
 		ctx->cur_splice_index = 0;
@@ -2351,7 +2351,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 		if (!ready)
 			return GF_OK;
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] Splice start reached, loading splice content\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FileList] Splice start reached, loading splice content\n"));
 		ctx->splice_nb_repeat = ctx->nb_repeat;
 		ctx->nb_repeat = 0;
 		ctx->init_start = ctx->start;
@@ -2522,7 +2522,7 @@ static GF_Err filelist_process(GF_Filter *filter)
 static void filelist_add_entry(GF_FileListCtx *ctx, FileListEntry *fentry)
 {
 	u32 i, count, l1, l2;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[FileList] Adding file %s size "LLU" mod time "LLU" to list\n", fentry->file_name, fentry->file_size, fentry->last_mod_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[FileList] Adding file %s size "LLU" mod time "LLU" to list\n", fentry->file_name, fentry->file_size, fentry->last_mod_time));
 	if (ctx->fsort==FL_SORT_NONE) {
 		gf_list_add(ctx->file_list, fentry);
 		return;
@@ -2591,7 +2591,7 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 
 	if (! ctx->srcs.nb_items ) {
 		if (! gf_filter_is_dynamic(filter)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[FileList] No inputs\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[FileList] No inputs\n"));
 		}
 		return GF_OK;
 	}
@@ -2657,13 +2657,13 @@ static GF_Err filelist_initialize(GF_Filter *filter)
 					filelist_add_entry(ctx, fentry);
 				}
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[FileList] File %s not found, ignoring\n", list));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] File %s not found, ignoring\n", list));
 			}
 		}
 	}
 
 	if (!gf_list_count(ctx->file_list)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[FileList] No files found in list %s\n", ctx->srcs.vals[0]));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FileList] No files found in list %s\n", ctx->srcs.vals[0]));
 		return GF_BAD_PARAM;
 	}
 	if (ctx->fsort==FL_SORT_DATEX) {

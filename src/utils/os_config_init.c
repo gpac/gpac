@@ -1147,32 +1147,31 @@ GF_GPACArg GPAC_Args[] = {
 	        "- debug: logs all messages\n"
 	        "\n`toolX` can be one of:\n"
 	        "- core: libgpac core\n"
+	        "- mutex: log all mutex calls\n"
+	        "- mem: GPAC memory tracker\n"
+	        "- module: GPAC modules (av out, font engine, 2D rasterizer)\n"
+	        "- filter: filter session debugging\n"
+	        "- sched: filter session scheduler debugging\n"
+	        "- codec: codec messages (used by encoder and decoder filters)\n"
 	        "- coding: bitstream formats (audio, video, scene)\n"
-	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
+	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...) and multiplexer/demultiplexer filters\n"
 	        "- network: TCP/UDP sockets and TLS\n"
 	        "- http: HTTP traffic\n"
-	        "- rtp: RTP traffic\n"
-	        "- author: authoring tools (hint, import, export)\n"
-	        "- sync: terminal sync layer\n"
-	        "- codec: terminal codec messages\n"
-	        "- parser: scene parsers (svg, xmt, bt) and other\n"
-	        "- media: terminal media object management\n"
-	        "- scene: scene graph and scene manager\n"
-	        "- script: scripting engine messages\n"
-	        "- interact: interaction engine (events, scripts, etc)\n"
-	        "- smil: SMIL timing engine\n"
-	        "- compose: composition engine (2D, 3D, etc)\n"
-	        "- mmio: Audio/Video HW I/O management\n"
-	        "- rti: various run-time stats\n"
 	        "- cache: HTTP cache subsystem\n"
-	        "- audio: Audio renderer and mixers\n"
-	        "- mem: GPAC memory tracker\n"
+	        "- rtp: RTP traffic\n"
 	        "- dash: HTTP streaming logs\n"
-	        "- module: GPAC modules (av out, font engine, 2D rasterizer)\n"
-	        "- filter: filters debugging\n"
-	        "- sched: filter session scheduler debugging\n"
-	        "- mutex: log all mutex calls\n"
 	        "- route: ROUTE (ATSC3) debugging\n"
+	        "- media: messages from generic filters and reframer/rewriter filters\n"
+	        "- parser: textual parsers (svg, xmt, bt, ...)\n"
+	        "- mmio: I/O management (AV devices, file, pipes, OpenGL)\n"
+	        "- audio: audio renderer/mixer/output\n"
+	        "- script: script engine except console log\n"
+	        "- console: script console log\n"
+	        "- scene: scene graph and scene manager\n"
+	        "- compose: composition engine (2D, 3D, etc)\n"
+	        "- ctime: media and SMIL timing info from composition engine\n"
+	        "- interact: interaction messages (UI events and triggered DOM events and VRML route)\n"
+	        "- rti: run-time stats of compositor\n"
 	        "- all: all tools logged - other tools can be specified afterwards.  \n"
 	        "The special keyword `ncl` can be set to disable color logs.  \n"
 	        "The special keyword `strict` can be set to exit at first error.  \n"
@@ -1209,7 +1208,7 @@ GF_GPACArg GPAC_Args[] = {
  "- desktop: desktop device", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_HIDE|GF_ARG_SUBSYS_CORE),
 
  GF_DEF_ARG("bs-cache-size", NULL, "cache size for bitstream read and write from file (0 disable cache, slower IOs)", "512", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
- GF_DEF_ARG("no-check", NULL, "disable compliancy tests for inputs (ISOBMFF for now). This will likely result in random crashes", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("no-check", NULL, "disable compliance tests for inputs (ISOBMFF for now). This will likely result in random crashes", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("unhandled-rejection", NULL, "dump unhandled promise rejections", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
@@ -1217,7 +1216,7 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("proxy-port", NULL, "set HTTP proxy port", "80", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("maxrate", NULL, "set max HTTP download rate in bits per sec. 0 means unlimited", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("no-cache", NULL, "disable HTTP caching", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
- GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no revalidation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
+ GF_DEF_ARG("offline-cache", NULL, "enable offline HTTP caching (no re-validation of existing resource in cache)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("clean-cache", NULL, "indicate if HTTP cache should be clean upon launch/exit", NULL, NULL, GF_ARG_BOOL, GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("cache-size", NULL, "specify cache size in bytes", "100M", NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("head-timeout", NULL, "set HTTP head request timeout in milliseconds", "5000", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_HTTP),
@@ -1242,7 +1241,7 @@ GF_DEF_ARG("full-link", NULL, "throw error if any PID in the filter graph cannot
 
  GF_DEF_ARG("no-block", NULL, "disable blocking mode of filters\n"
 			"- no: enable blocking mode\n"
-			"- fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet\n"
+			"- fanout: disable blocking on fan-out, unblocking the PID as soon as one of its destinations requires a packet\n"
 			"- all: disable blocking", "no", "no|fanout|all", GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reg", NULL, "disable regulation (no sleep) in session", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("no-reassign", NULL, "disable source filter reassignment in PID graph resolution", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
@@ -1252,7 +1251,7 @@ GF_DEF_ARG("full-link", NULL, "throw error if any PID in the filter graph cannot
 		"- freex: lock-free queues including for task lists (experimental)\n"
 		"- flock: mutexes for queues even when no thread (debug mode)\n"
 		"- direct: no threads and direct dispatch of tasks whenever possible (debug mode)", "free", "free|lock|flock|freex|direct", GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
- GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out]__. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
+ GF_DEF_ARG("max-chain", NULL, "set maximum chain length when resolving filter links. Default value covers for __[ in -> ] dmx -> reframe -> decode -> encode -> reframe -> mx [ -> out]__. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually", "6", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
  GF_DEF_ARG("max-sleep", NULL, "set maximum sleep time slot in milliseconds when regulation is enabled", "50", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_FILTERS),
 
  GF_DEF_ARG("threads", NULL, "set N extra thread for the session. -1 means use all available cores", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_FILTERS),

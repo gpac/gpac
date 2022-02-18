@@ -677,7 +677,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 		//not sync !
 		if ((sync[1] & 0xF0) != 0xF0) {
-			GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
+			GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid ADTS sync bytes, resyncing\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
@@ -722,12 +722,12 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		if (!ctx->hdr.frame_size || !GF_M4ASampleRates[ctx->hdr.sr_idx]) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] Invalid ADTS frame header, resyncing\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] Invalid ADTS frame header, resyncing\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
 		if ((nb_blocks_per_frame>2) || (nb_blocks_per_frame && ctx->hdr.nb_ch)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[ADTSDmx] Unsupported multi-block ADTS frame header - patch welcome\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ADTSDmx] Unsupported multi-block ADTS frame header - patch welcome\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		} else if (!nb_blocks_per_frame) {
@@ -737,7 +737,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				ctx->hdr.nb_ch = ctx->aacchcfg;
 
 			if (!ctx->hdr.nb_ch) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] Missing channel configuration in ADTS frame header, defaulting to stereo - use `--aacchcfg` to force config\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] Missing channel configuration in ADTS frame header, defaulting to stereo - use `--aacchcfg` to force config\n"));
 				ctx->hdr.nb_ch = ctx->aacchcfg = 2;
 			}
 		}
@@ -762,7 +762,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			u32 next_frame = ctx->hdr.frame_size;
 			//make sure we are sync!
 			if ((sync[next_frame] !=0xFF) || ((sync[next_frame+1] & 0xF0) !=0xF0) ) {
-				GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_PARSER, ("[ADTSDmx] invalid next ADTS frame sync, resyncing\n"));
+				GF_LOG(ctx->nb_frames ? GF_LOG_WARNING : GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ADTSDmx] invalid next ADTS frame sync, resyncing\n"));
 				ctx->nb_frames = 0;
 				goto drop_byte;
 			}
@@ -776,7 +776,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->hdr.frame_size < ctx->hdr.hdr_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] Corrupted ADTS frame header, resyncing\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] Corrupted ADTS frame header, resyncing\n"));
 			ctx->nb_frames = 0;
 			goto drop_byte;
 		}
@@ -833,7 +833,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 		//truncated last frame
 		if (bytes_to_drop>remain) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ADTSDmx] truncated ADTS frame %d bytes but only %d left!\n", bytes_to_drop, remain));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ADTSDmx] truncated ADTS frame %d bytes but only %d left!\n", bytes_to_drop, remain));
 			bytes_to_drop=remain;
 		}
 

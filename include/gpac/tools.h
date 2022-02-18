@@ -672,15 +672,11 @@ typedef enum
 	GF_LOG_HTTP,
 	/*! Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug)*/
 	GF_LOG_RTP,
-	/*! Log message from authoring subsystem (file manip, import/export)*/
-	GF_LOG_AUTHOR,
-	/*! Log message from the sync layer of the terminal*/
-	GF_LOG_SYNC,
 	/*! Log message from a codec*/
 	GF_LOG_CODEC,
-	/*! Log message from any XML parser (context loading, etc)*/
+	/*! Log message from any textual (XML, ...) parser (context loading, etc)*/
 	GF_LOG_PARSER,
-	/*! Log message from the terminal/compositor, indicating media object state*/
+	/*! Generic log message from a filter (not from filter core library)*/
 	GF_LOG_MEDIA,
 	/*! Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core)*/
 	GF_LOG_SCENE,
@@ -690,14 +686,14 @@ typedef enum
 	GF_LOG_INTERACT,
 	/*! Log message from compositor*/
 	GF_LOG_COMPOSE,
+	/*! Log message from the terminal/compositor, indicating media object state*/
+	GF_LOG_COMPTIME,
 	/*! Log for video object cache */
 	GF_LOG_CACHE,
 	/*! Log message from multimedia I/O devices (audio/video input/output, ...)*/
 	GF_LOG_MMIO,
 	/*! Log for runtime info (times, memory, CPU usage)*/
 	GF_LOG_RTI,
-	/*! Log for SMIL timing and animation*/
-	GF_LOG_SMIL,
 	/*! Log for memory tracker*/
 	GF_LOG_MEMORY,
 	/*! Log for audio compositor*/
@@ -710,7 +706,7 @@ typedef enum
 	GF_LOG_CONDITION,
 	/*! Log for all HTTP streaming */
 	GF_LOG_DASH,
-	/*! Log for all messages coming from filters */
+	/*! Log for all messages from filter core library (not from a filter) */
 	GF_LOG_FILTER,
 	/*! Log for filter scheduler only */
 	GF_LOG_SCHEDULER,

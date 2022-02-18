@@ -494,11 +494,11 @@ MP4BoxArg m4b_split_args[] =
 		, GF_ARG_STRING, 0, parse_split, 3, ARG_IS_FUN),
 	MP4BOX_ARG("splitz", "extract the specified time range so that ranges `A:B` and `B:C` share exactly the same boundary `B`:\n"
 	"- the start time is moved to the RAP sample at or after the specified start time\n"
-	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
+	"- the end time is moved to the frame preceding the RAP sample at or following the specified end time"
 		, GF_ARG_STRING, 0, parse_split, 4, ARG_IS_FUN),
 	MP4BOX_ARG("splitg", "extract the specified time range as follows:\n"
 	"- the start time is moved to the RAP sample at or before the specified start time\n"
-	"- the end time is moved to the frame preceeding the RAP sample at or following the specified end time"
+	"- the end time is moved to the frame preceding the RAP sample at or following the specified end time"
 		, GF_ARG_STRING, 0, parse_split, 5, ARG_IS_FUN),
 	MP4BOX_ARG("splitf", "extract the specified time range and insert edits such that the extracted output is exactly the specified range\n", GF_ARG_STRING, 0, parse_split, 6, ARG_IS_FUN),
 	{0}
@@ -653,7 +653,7 @@ void PrintDASHUsage()
 		"- #N: only use the track ID N from the source file (mapped to [-tkid](mp4dmx))\n"
 		"- #video: only use the first video track from the source file\n"
 		"- #audio: only use the first audio track from the source file\n"
-		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.\n"
+		"- :id=NAME: set the representation ID to NAME. Reserved value `NULL` disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output multiplex.\n"
 		"- :dur=VALUE: process VALUE seconds (fraction) from the media. If VALUE is longer than media duration, last sample duration is extended.\n"
 		"- :period=NAME: set the representation's period to NAME. Multiple periods may be used. Periods appear in the MPD in the same order as specified with this option\n"
 		"- :BaseURL=NAME: set the BaseURL. Set multiple times for multiple BaseURLs\nWarning: This does not modify generated files location (see segment template).\n"
@@ -830,7 +830,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("dv-profile", NULL, "`S` set the Dolby Vision profile on imported track\n"
 	"- Profile is an integer, or `none` to remove DV signaling\n"
 	"- Profile can be suffixed with compatibility ID, e.g. `5.hdr10`\n"
-	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or interger value as per DV spec\n"
+	"- Allowed compatibility ID are `none`, `hdr10`, `bt709`, `hlg709`, `hlg2100`, `bt2020`, `brd`, or integer value as per DV spec\n"
 	"- Profile can be prefixed with 'f' to force DV codec type signaling, e.g. `f8.2`", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("fullrange", NULL, "`S` force the video fullrange type in VUI for the AVC|H264 content (value `yes`, `on` or `no`, `off`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("videofmt", NULL, "`S` force the video format in VUI for AVC|H264 and HEVC content, value can be `component`, `pal`, `ntsc`, `secam`, `mac`, `undef`", NULL, NULL, GF_ARG_STRING, 0),
@@ -855,7 +855,7 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("graph", "fgraph", "`C` print filter session graph after import", NULL, NULL, GF_ARG_BOOL, 0),
 	{"sopt:[OPTS]", NULL, "set `OPTS` as additional arguments to source filter. `OPTS` can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
 	{"dopt:[OPTS]", NULL, "`X` set `OPTS` as additional arguments to [destination filter](mp4mx). OPTS can be any usual filter argument, see [filter doc `gpac -h doc`](Filters)"},
-	{"@f1[:args][@fN:args]", NULL, "set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). A `@@` separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified"},
+	{"@f1[:args][@fN:args]", NULL, "set a filter chain to insert before the multiplexer. Each filter in the chain is formatted as a regular filter, see [filter doc `gpac -h doc`](Filters). A `@@` separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified"},
 	{0}
 };
 
@@ -881,9 +881,9 @@ void PrintImportUsage()
 		"  \n"
 		"By default all imports are performed sequentially, and final interleaving is done at the end; this however requires a temporary file holding original ISOBMF file (if any) and added files before creating the final output. Since this can become quite large, it is possible to add media to a new file without temporary storage, using [-flat](MP4B_GEN) option, but this disables media interleaving.\n"
 		"  \n"
-		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
-		" - Some muxing options (marked with `X` below) will be activated for all inputs (e.g. it is not possible to import one AVC track with `xps_inband` and another without).\n"
-		" - Some muxing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
+		"If you wish to create an interleaved new file with no temporary storage, use the [-newfs](MP4B_GEN) option. The interleaving might not be as precise as when using [-new]() since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: \n"
+		" - Some multiplexing options (marked with `X` below) will be activated for all inputs (e.g. it is not possible to import one AVC track with `xps_inband` and another without).\n"
+		" - Some multiplexing options (marked as `D` below) cannot be used as they require temporary storage for file edition.\n"
 		" - Usage of [-cat]() is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a [playlist](flist).\n"
 		"  \n"
 		"Source URL can be any URL supported by GPAC, not limited to local files.\n"
@@ -1078,10 +1078,10 @@ MP4BoxArg m4b_extr_args[] =
  	MP4BOX_ARG("webvtt-raw", "extract given track as raw media in WebVTT as metadata. Use `tkID:embedded` to include media data in the WebVTT file", GF_ARG_STRING, 0, parse_track_dump, GF_EXPORT_WEBVTT_META, ARG_IS_FUN),
  	MP4BOX_ARG("single", "extract given track to a new mp4 file", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_MP4, ARG_IS_FUN),
  	MP4BOX_ARG("six", "extract given track as raw media in **experimental** XML streaming instructions", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_SIX, ARG_IS_FUN),
- 	MP4BOX_ARG("mux", "mux input to given destination", GF_ARG_STRING, 0, &mux_name, 0, 0),
+ 	MP4BOX_ARG("mux", "multiplex input file to given destination", GF_ARG_STRING, 0, &mux_name, 0, 0),
  	MP4BOX_ARG("qcp", "same as [-raw]() but defaults to QCP file for EVRC/SMV", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP, ARG_IS_FUN),
- 	MP4BOX_ARG("saf", "remux file to SAF multiplex", GF_ARG_BOOL, 0, &do_saf, 0, 0),
- 	MP4BOX_ARG("dvbhdemux", "demux DVB-H file into IP Datagrams sent on the network", GF_ARG_BOOL, 0, &dvbhdemux, 0, 0),
+ 	MP4BOX_ARG("saf", "multiplex input file to SAF multiplex", GF_ARG_BOOL, 0, &do_saf, 0, 0),
+ 	MP4BOX_ARG("dvbhdemux", "demultiplex DVB-H file into IP Datagrams sent on the network", GF_ARG_BOOL, 0, &dvbhdemux, 0, 0),
  	MP4BOX_ARG("raw-layer", "same as [-raw]() but skips SVC/MVC/LHVC extractors when extracting", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER, ARG_IS_FUN),
  	MP4BOX_ARG("diod", "extract file IOD in raw format", GF_ARG_BOOL, 0, &dump_iod, 0, 0),
  	MP4BOX_ARG("mpd", "convert given HLS or smooth manifest (local or remote http) to MPD.  \nWarning: This is not compatible with other DASH options and does not convert associated segments", GF_ARG_STRING, 0, &do_mpd_conv, 0, 0),
@@ -1317,7 +1317,7 @@ void PrintLiveUsage()
 {
 	u32 i=0;
 	gf_sys_format_help(helpout, help_flags, "# Live Scene Encoder Options\n"
-	        "The options shall be specified as òpt_name=opt_val.\n"
+	        "The options shall be specified as `opt_name=opt_val.\n"
 	        "Options:\n"
 	        "\n"
 	);
@@ -1433,7 +1433,7 @@ MP4BoxArg m4b_usage_args[] =
 		"- dash: DASH segmenter help\n"
 		"- split: split options help\n"
 		"- import: import options help\n"
-		"- encode: scene descrription encoding options help\n"
+		"- encode: scene description encoding options help\n"
 		"- meta: meta (HEIF, MPEG-21) handling options help\n"
 		"- extract: extraction options help\n"
 		"- dump: dump options help\n"
@@ -5785,7 +5785,7 @@ int mp4boxMain(int argc, char **argv)
 	gf_log_set_tool_level(GF_LOG_CONTAINER, level);
 	gf_log_set_tool_level(GF_LOG_SCENE, level);
 	gf_log_set_tool_level(GF_LOG_PARSER, level);
-	gf_log_set_tool_level(GF_LOG_AUTHOR, level);
+	gf_log_set_tool_level(GF_LOG_MEDIA, level);
 	gf_log_set_tool_level(GF_LOG_CODING, level);
 	gf_log_set_tool_level(GF_LOG_DASH, level);
 #ifdef GPAC_MEMORY_TRACKING

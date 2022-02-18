@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -250,7 +250,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 	if (mo->odm->ambi_ch_id) {
 		if (mo->num_channels>1) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d]: tagged as ambisonic channel %d but has %d channels, ignoring ambisonic tag\n",  mo->odm->ID, mo->odm->ambi_ch_id, mo->num_channels ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("[ODM%d]: tagged as ambisonic channel %d but has %d channels, ignoring ambisonic tag\n",  mo->odm->ID, mo->odm->ambi_ch_id, mo->num_channels ));
 		} else {
 			if (num_channels) *num_channels = 1;
 			if (channel_config) *channel_config = (u64) ( 1 << (mo->odm->ambi_ch_id - 1) );
@@ -406,7 +406,7 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 	} else if (mo->odm->type==GF_STREAM_TEXT) {
 		//nothing to do
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknwon scene object type %d\n", mo->odm->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("Unknwon scene object type %d\n", mo->odm->type));
 	}
 
 	if (changed) {
@@ -536,7 +536,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CU already fetched, returning\n", mo->odm->ID));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] ODM %d: CU already fetched, returning\n", mo->odm->ID));
 		mo->nb_fetch ++;
 		if (planar_size) *planar_size = mo->framesize / mo->num_channels;
 		return mo->frame;
@@ -591,7 +591,7 @@ retry:
 	/*not running and no resync (ie audio)*/
 	if (!gf_clock_is_started(mo->odm->ck)) {
 		if (!resync) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CB not running, returning\n", mo->odm->ID));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] ODM %d: CB not running, returning\n", mo->odm->ID));
 			return NULL;
 		} else if (mo->odm->ck->nb_buffering && mo->odm->type==GF_STREAM_AUDIO) {
 			return NULL;
@@ -643,7 +643,7 @@ retry:
 		gf_filter_pid_try_pull(mo->odm->pid);
 	}
 	if (!retry_pull && (force_decode_mode==1)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
 	}
 
 	/*resync*/
@@ -666,11 +666,11 @@ retry:
 		if (ABS(diff_pck_old) > ABS(diff_pck_new)) {
 			//don't reset discontinuity flag for audio
 			if (resync>GF_MO_FETCH) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] end of clock discontinuity: diff pck TS to old clock %d to new clock %d\n", mo->odm->ID, diff_pck_old, diff_pck_new));
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] end of clock discontinuity: diff pck TS to old clock %d to new clock %d\n", mo->odm->ID, diff_pck_old, diff_pck_new));
 				mo->odm->prev_clock_at_discontinuity_plus_one = 0;
 			}
 		} else if (diff_old < diff_new) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] in clock discontinuity: time since fetch old clock %d new clock %d\n", mo->odm->ID, diff_old, diff_new));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] in clock discontinuity: time since fetch old clock %d new clock %d\n", mo->odm->ID, diff_old, diff_new));
 
 			obj_time = old_timebase_time;
 		}
@@ -701,7 +701,7 @@ retry:
 			else if (next_ts + 300 >= obj_time) {
 				skip_resync = GF_TRUE;
 			} else if (next_ts) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
 				mo->flags |= GF_MO_IN_RESYNC;
 			}
 		}
@@ -720,7 +720,7 @@ retry:
 			//drop current and go to next - we use the same loop as regular resync below
 			resync = GF_MO_FETCH_RESYNC;
 			move_to_next_only = GF_TRUE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 		}
 	}
 	if (resync!=GF_MO_FETCH) {
@@ -730,7 +730,7 @@ retry:
 				if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
 					break;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 
 				//nothing ready yet
 				if ( gf_filter_pid_first_packet_is_empty(mo->odm->pid) ) {
@@ -745,7 +745,7 @@ retry:
 
 				nb_dropped ++;
 				if (nb_dropped>=1) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->ID, obj_time, pck_ts));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->ID, obj_time, pck_ts));
 
 					mo->odm->nb_dropped++;
 				}
@@ -767,7 +767,7 @@ retry:
 				s32 diff_pck_new = (s32) pck_ts - (s32) obj_time_orig;
 
 				if (ABS(diff_pck_old) > ABS(diff_pck_new)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] end of clock discontinuity, moving from old time base %d to new %d\n", mo->odm->ID, obj_time, obj_time_orig));
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] end of clock discontinuity, moving from old time base %d to new %d\n", mo->odm->ID, obj_time, obj_time_orig));
 					obj_time = obj_time_orig;
 					mo->odm->prev_clock_at_discontinuity_plus_one = 0;
 				}
@@ -846,7 +846,7 @@ retry:
 			mediasensor_update_timing(mo->odm, GF_FALSE);
 #endif
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->ID, mo->odm->scene_ns->url, gf_clock_time(mo->odm->ck), pck_ts, mo->framesize, mo->timestamp, gf_filter_pid_get_packet_count(mo->odm->pid), gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->ID, mo->odm->scene_ns->url, gf_clock_time(mo->odm->ck), pck_ts, mo->framesize, mo->timestamp, gf_filter_pid_get_packet_count(mo->odm->pid), gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 
 		v = gf_filter_pck_get_property(mo->pck, GF_PROP_PCK_SENDER_NTP);
 		if (v) {
@@ -865,7 +865,7 @@ retry:
 				mo->odm->last_drawn_frame_ntp_diff -= v->value.sint;
 			}
 			gf_filter_release_property(pe);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, mo->odm->last_drawn_frame_ntp_diff));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->ID, mo->odm->scene_ns->url, pck_ts, mo->odm->last_drawn_frame_ntp_diff));
 
 			if (mo->odm->parentscene->compositor->ntpsync
 				&& (mo->odm->last_drawn_frame_ntp_diff > (s32) mo->odm->parentscene->compositor->ntpsync)
@@ -885,7 +885,7 @@ retry:
 		//already rendered the last frame, consider we no longer have pending late frame on this stream
 		mo->ms_until_pres = 0;
 	} else {
-//		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u same frame fetch TS %u\n", mo->odm->ID, mo->odm->net_service->url, obj_time, CU->TS ));
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d (%s)] At OTB %u same frame fetch TS %u\n", mo->odm->ID, mo->odm->net_service->url, obj_time, CU->TS ));
 
 		//if paused force a high value for next frame
 		if (!gf_clock_is_started(mo->odm->ck)) {
@@ -964,7 +964,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		if (drop_mode) {
 			gf_filter_pck_unref(mo->pck);
 			mo->pck = NULL;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->ID,gf_clock_time(mo->odm->ck), mo->timestamp));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->ID,gf_clock_time(mo->odm->ck), mo->timestamp));
 		} else {
 			/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
 		}

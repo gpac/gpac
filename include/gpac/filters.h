@@ -3287,7 +3287,7 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *PID);
 */
 const char *gf_filter_pid_orig_src_args(GF_FilterPid *PID, Bool for_unicity);
 
-/*! Gets the source filter name or class name for the PID, walking down the chain until the source filter (ony the first input PID of each filter is used).
+/*! Gets the source filter name or class name for the PID, walking down the chain until the source filter (only the first input PID of each filter is used).
 \param PID the target filter PID
 \return argument of the source filter
 */

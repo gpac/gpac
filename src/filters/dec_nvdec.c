@@ -1544,7 +1544,7 @@ static const GF_FilterArgs NVDecArgs[] =
 	{ OFFS(vmode), "video decoder backend\n"
 		"- cuvid: use dedicated video engines directly\n"
 		"- cuda: use a CUDA-based decoder if faster than dedicated engines\n"
-		"- dxva: go through DXVA internally if possible (requires D3D9 interop)", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
+		"- dxva: go through DXVA internally if possible (requires D3D9)", GF_PROP_UINT, "cuvid", "cuvid|cuda|dxva", GF_FS_ARG_HINT_ADVANCED },
 	{ OFFS(fmode), "frame output mode\n"
 		"- copy: each frame is copied and dispatched\n"
 		"- single: frame data is only retrieved when used, single memory space for all frames (not safe if multiple consumers)\n"

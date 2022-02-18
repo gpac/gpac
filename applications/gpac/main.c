@@ -324,9 +324,9 @@ const char *gpac_doc =
 "If `fB` accepts inputs provided by `fA` but `reframer` does not, this will link `fA` PID to `fB` filter since `fB` has no sourceID.\n"
 "Since the PID is connected, the filter engine will not try to solve a link between `fA` and `reframer`.\n"
 "\n"
-"An exception is made for local files: by default, a local file destination will force a remux of input PIDs from a local file.\n"
+"An exception is made for local files: by default, a local file destination will force a remultiplex of input PIDs from a local file.\n"
 "EX gpac -i file.mp4 -o dump.mp4\n"
-"This will prevent direct connection of PID of type `file` to dst `file.mp4`, remuxing the file.\n"
+"This will prevent direct connection of PID of type `file` to dst `file.mp4`, remultiplexing the file.\n"
 "\n"
 "The special option `nomux` is used to allow direct connections (ignored for non-sink filters).\n"
 "EX gpac -i file.mp4 -o dump.mp4:nomux\n"
@@ -334,7 +334,7 @@ const char *gpac_doc =
 "\n"
 "This only applies to local files destination. For pipes, sockets or other file outputs (HTTP, ROUTE):\n"
 "- direct copy is enabled by default\n"
-"- `nomux=0` can be used to force remux\n"
+"- `nomux=0` can be used to force remultiplex\n"
 "\n"
 "## Sub-session tagging\n"
 "Filters may be assigned to a sub-session using `:FS=N`, with `N` a positive integer.\n"
@@ -372,7 +372,7 @@ const char *gpac_doc =
 "A filter may be assigned a tag (any string) using `:TAG=name` option. This tag does not need to be unique, and can be used to exclude filter in link resolution. Tags are not inherited, therefore dynamically loaded filters never have a tag.\n"
 "  \n"
 "# URL templating\n"
-"Destination URLs can be templated (dynamically constructed). Pattern `$KEYWORD$` is replaced in the template with the "
+"Destination URLs can be dynamically constructed using templates. Pattern `$KEYWORD$` is replaced in the template with the "
 "resolved value and `$KEYWORD%%0Nd$` is replaced in the template with the resolved integer, padded with up to N zeros if needed.\n"
 "`KEYWORD` is **case sensitive**, and may be present multiple times in the string. Supported `KEYWORD`:\n"
 "- num: replaced by file number if defined, 0 otherwise\n"
@@ -410,7 +410,7 @@ const char *gpac_doc =
 "The first audio will connect to the `resample` filter, the second to the `enc` filter and the `resample` output will connect to a clone of the `enc` filter.\n"
 "\n"
 "# Templating filter chains\n"
-"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone` option is not enough since the muxer will always accept the input PIDs.\n"
+"There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the `:clone` option is not enough since the multiplexer will always accept the input PIDs.\n"
 "To handle this, it is possible to use a PID property name in the sourceID of a filter with the value `*` or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.\n"
 "Warning: This feature should only be called with a single property set to `*` (or empty) per source ID, results are undefined otherwise.\n"
 "EX gpac -i source.ts -o file_$ServiceID$.mp4:SID=*#ServiceID=*\n"
@@ -439,7 +439,7 @@ const char *gpac_doc =
 "Warning: Properties are not filtered and override the properties of the filter's output PIDs, be careful not to break "
 "the session by overriding core properties such as width/height/samplerate/... !\n"
 "EX gpac -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts\n"
-"This will mux the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`.\n"
+"This will multiplex the streams in `dump.ts`, using `ServiceID` 4 for PIDs from `v1.mp4` and `ServiceID` 2 for PIDs from `v2.mp4`.\n"
 "\n"
 "PID properties may be conditionally assigned by checking other PID properties. The syntax uses parenthesis (not configurable) after the property assignment sign:\n"
 "`#Prop=(CP=CV)VAL`\n"
@@ -485,11 +485,11 @@ const char *gpac_doc =
 "- FID: filter identifier\n"
 "- SID: filter source(s)\n"
 "- N: filter name\n"
-"- FS: sub-session identfier\n"
+"- FS: sub-session identifier\n"
 "- TAG: filter tag\n"
 "- clone: filter cloning flag\n"
 "- nomux: enable/disable direct file copy\n"
-"- gfreg: prefered filter registry names for link solving\n"
+"- gfreg: preferred filter registry names for link solving\n"
 "- gfloc: following options are local to filter declaration (not inherited)\n"
 "- gfopt: following options are not tracked\n"
 "- gpac: argument separator for URLs\n"
@@ -681,7 +681,7 @@ static GF_GPACArg gpac_args[] =
 	GF_DEF_ARG("k", NULL, "enable keyboard interaction from command line", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("r", NULL, "enable reporting\n"
 			"- r: runtime reporting\n"
-			"- r=FA[,FB]: runtime reporting but only print given filters, e.g. `r=mp4mx` for ISOBMFF muxer only\n"
+			"- r=FA[,FB]: runtime reporting but only print given filters, e.g. `r=mp4mx` for ISOBMFF multiplexer only\n"
 			"- r=: only print final report"
 			, NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("seps", NULL, "set the default character sets used to separate various arguments\n"
@@ -711,7 +711,7 @@ static GF_GPACArg gpac_args[] =
 			"- filters:*: print name of all available filters, including meta filters\n"
 			"- codecs: print the supported builtin codecs\n"
 			"- props: print the supported builtin PID and packet properties\n"
-			"- props PNAME: print the supported builtin PID and packet properties mentionning `PNAME`\n"
+			"- props PNAME: print the supported builtin PID and packet properties mentioning `PNAME`\n"
 			"- colors: print the builtin color names and their values\n"
 			"- layouts: print the builtin CICP audio channel layout names and their values\n"
 			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"
@@ -3387,13 +3387,13 @@ static void dump_all_props(char *pname)
 		gf_sys_format_help(helpout, help_flags, "## Built-in properties for PIDs and packets, pixel formats and audio formats\n"
 		"  \n"
 		"Flags can be:\n"
-		"- D: droppable property, see [GSF mux](gsfmx) filter help for more info\n"
+		"- D: droppable property, see [GSF multiplexer](gsfmx) filter help for more info\n"
 		"- P: property applying to packet\n"
 		"  \n");
 		gf_sys_format_help(helpout, help_flags, "Name | type | Flags | Description | 4CC  \n");
 		gf_sys_format_help(helpout, help_flags, "--- | --- | --- | --- | ---  \n");
 	} else if (pname) {
-		gf_sys_format_help(helpout, help_flags, "Built-in properties matching `%s` for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF mux filter help), P (packet property)\n", pname);
+		gf_sys_format_help(helpout, help_flags, "Built-in properties matching `%s` for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF multiplexer filter help), P (packet property)\n", pname);
 	} else {
 		gf_sys_format_help(helpout, help_flags, "Built-in property types\n");
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
@@ -3409,7 +3409,7 @@ static void dump_all_props(char *pname)
 		}
 		gf_sys_format_help(helpout, help_flags, "\n\n");
 
-		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF mux filter help), P (packet property)\n");
+		gf_sys_format_help(helpout, help_flags, "Built-in properties for PIDs and packets listed as `Name (4CC type FLAGS): description`\n`FLAGS` can be D (droppable - see GSF multiplexer filter help), P (packet property)\n");
 	}
 	i=0;
 	while ((prop_info = gf_props_get_description(i))) {
@@ -3594,8 +3594,8 @@ static void dump_all_codec(GF_FilterSession *session)
 	u32 count = gf_fs_filters_registers_count(session);
 
 	gf_sys_format_help(helpout, help_flags, "Codec support in filters, listed as `built_in_name[|variant] [FLAGS]: full_name (mime)` with possible FLAGS values:\n");
-	gf_sys_format_help(helpout, help_flags, "  - I: Raw format input (demux) support\n");
-	gf_sys_format_help(helpout, help_flags, "  - O: Raw format output (mux) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - I: Raw format input (demultiplexer) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - O: Raw format output (multiplexer) support\n");
 	gf_sys_format_help(helpout, help_flags, "  - D: Decoder support\n");
 	gf_sys_format_help(helpout, help_flags, "  - E: Encoder support\n");
 	gf_sys_format_help(helpout, help_flags, "\nNote: Raw output may still be possible even when no output serializer is given\n\n");

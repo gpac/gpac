@@ -223,7 +223,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 #endif
 			return;
 		} else if (!odm || !pid ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SCENE, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
 			return;
 		}
 

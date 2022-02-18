@@ -1,10 +1,8 @@
-
-
 /*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -530,7 +528,7 @@ void InitMediaControl(GF_Scene *scene, GF_Node *node)
 	MediaControlStack *stack;
 	GF_SAFEALLOC(stack, MediaControlStack);
 	if (!stack) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate media control stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Compositor] Failed to allocate media control stack\n"));
 		return;
 	}
 	stack->changed = 1;

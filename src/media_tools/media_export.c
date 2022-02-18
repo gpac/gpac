@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -53,13 +53,13 @@ static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return e;
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_AUTHOR, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
+	if (gf_log_tool_level_on(GF_LOG_MEDIA, e ? GF_LOG_ERROR : GF_LOG_WARNING)) {
 		va_list args;
 		char szMsg[1024];
 		va_start(args, format);
 		vsnprintf(szMsg, 1024, format, args);
 		va_end(args);
-		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_AUTHOR, ("%s\n", szMsg) );
+		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_MEDIA, ("%s\n", szMsg) );
 	}
 #endif
 	return e;
@@ -556,7 +556,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	GF_ISOOpenMode mode;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
 		return GF_BAD_PARAM;
 	}
 	if (gf_isom_get_media_type(dumper->file, dumper->trackID)==GF_ISOM_MEDIA_OD) {
@@ -642,7 +642,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	u32 headerLength = 0;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
 		return GF_BAD_PARAM;
 	}
 	if (!track) return gf_export_message(dumper, GF_BAD_PARAM, "Invalid track ID %d", dumper->trackID);
@@ -874,7 +874,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	//Bool isText;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
 		return GF_BAD_PARAM;
 	}
 	if (!track) return gf_export_message(dumper, GF_BAD_PARAM, "Invalid track ID %d", dumper->trackID);
@@ -1134,7 +1134,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		const char *export_ext = dumper->out_name ? gf_file_ext_start(dumper->out_name) : NULL;
 		u32 track_num = gf_isom_get_track_by_id(dumper->file, dumper->trackID);
 		if (!track_num) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] No tracks with ID %d in file\n", dumper->trackID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] No tracks with ID %d in file\n", dumper->trackID));
 			return GF_BAD_PARAM;
 		}
 		esd = gf_media_map_esd(dumper->file, track_num, 0);
@@ -1298,7 +1298,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 	fsess = gf_fs_new_defaults(0);
 	if (!fsess) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Failed to create filter session\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Failed to create filter session\n"));
 		return GF_OUT_OF_MEM;
 	}
 	file_out = NULL;
@@ -1308,7 +1308,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		file_out = gf_fs_load_destination(fsess, dumper->out_name, NULL, NULL, &e);
 		if (!file_out) {
 			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot open destination %s\n", dumper->out_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot open destination %s\n", dumper->out_name));
 			return e;
 		}
 	}
@@ -1365,7 +1365,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 			e |= gf_dynstrcat(&args, ":dynext", NULL);
 		}
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load arguments for output file dumper\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load arguments for output file dumper\n"));
 			if (args) gf_free(args);
 			gf_fs_del(fsess);
 			return e;
@@ -1375,7 +1375,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!file_out) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load output file dumper\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load output file dumper\n"));
 			return e;
 		}
 	}
@@ -1392,7 +1392,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		remux = e ? NULL : gf_fs_load_filter(fsess, args, &e);
 		if (!remux || e) {
 			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load stream->file filter\n"));
 			if (args) gf_free(args);
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
@@ -1401,7 +1401,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		remux = gf_fs_load_filter(fsess, "nhntw:exporter", &e);
 		if (!remux) {
 			gf_fs_del(fsess);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHNT write filter\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load NHNT write filter\n"));
 			return e;
 		}
 	}
@@ -1418,7 +1418,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!remux || e) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load NHML write filter\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load NHML write filter\n"));
 			return e ? e : GF_FILTER_NOT_FOUND;
 		}
 	} else if (!skip_write_filter) {
@@ -1433,7 +1433,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 		if (!remux) {
 			gf_fs_del(fsess);
 			if (args) gf_free(args);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load stream->file filter\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load stream->file filter\n"));
 			return e;
 		}
 	}
@@ -1456,7 +1456,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	if (!reframer || e) {
 		gf_fs_del(fsess);
 		if (args) gf_free(args);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load reframer filter\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load reframer filter\n"));
 		return e ? e : GF_FILTER_NOT_FOUND;
 	}
 	if (args) gf_free(args);
@@ -1483,7 +1483,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 
 	if (!src_filter || e) {
 		gf_fs_del(fsess);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Exporter] Cannot load filter for input file \"%s\": %s\n", dumper->in_name, gf_error_to_string(e) ));
 		return e;
 	}
 

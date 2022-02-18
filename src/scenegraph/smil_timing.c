@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom ParisTech 2004-2022
  *
  *  This file is part of GPAC / SVG Scene Graph sub-project
  *
@@ -34,12 +34,12 @@ static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed norma
 
 static void gf_smil_timing_print_interval(SMIL_Timing_RTI *rti, Bool current, SMIL_Interval *interval)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - ", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, (current ? "Current " : "   Next "));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("Interval - "));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("begin: %.2f", interval->begin));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, (" - end: %.2f", interval->end));
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, (" - simple dur: %.2f - active dur: %.2f\n",interval->simple_duration, interval->active_duration));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - ", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, (current ? "Current " : "   Next "));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Interval - "));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("begin: %.2f", interval->begin));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, (" - end: %.2f", interval->end));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, (" - simple dur: %.2f - active dur: %.2f\n",interval->simple_duration, interval->active_duration));
 }
 
 /* Computes the active duration for the given interval,
@@ -227,7 +227,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 	if ((0) && rti->current_interval->end == -2) {
 		/* TODO: check if the interval can be discarded (i.e. if end is specified with an invalid end value (return -2)),
 		   probably yes, but next time we call the evaluation of interval, we should call get_first_interval */
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 		rti->current_interval->begin = -1;
 		rti->current_interval->end = -1;
 		return;
@@ -260,7 +260,7 @@ static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, Bool current,
 		gf_smil_timing_get_interval_end(rti, interval);
 		if (interval->end == -2) {
 			/* this is a wrong interval see first animation in animate-elem-201-t.svg */
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			interval->begin = -1;
 			interval->end = -1;
 			return 0;
@@ -358,12 +358,12 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 
 	GF_SAFEALLOC(rti, SMIL_Timing_RTI)
 	if (!rti) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing RTI\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL timing RTI\n"));
 		return;
 	}
 	timingp->runtime = rti;
 	rti->timed_elt = timed_elt;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Initialization\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Initialization\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 
 	rti->timingp = timingp;
 	rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
@@ -375,13 +375,13 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 
 	GF_SAFEALLOC(rti->current_interval, SMIL_Interval);
 	if (!rti->current_interval) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing current interval\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL timing current interval\n"));
 		return;
 	}
 	gf_smil_timing_get_first_interval(rti);
 	GF_SAFEALLOC(rti->next_interval, SMIL_Interval);
 	if (!rti->next_interval) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing next interval\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL timing next interval\n"));
 		return;
 	}
 	gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->current_interval->begin);
@@ -420,7 +420,7 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 
 	if (!rti || !timed_elt) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Destruction\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Destruction\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 	gf_free(rti->current_interval);
 	gf_free(rti->next_interval);
 
@@ -560,7 +560,7 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 
 	if (begin->clock > scene_time) return 0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SVG Composer] discarding element %s at time %f\n", target ? gf_node_get_log_name(target) : "None", scene_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SVG Composer] discarding element %s at time %f\n", target ? gf_node_get_log_name(target) : "None", scene_time));
 
 	gf_smil_mark_modified(rti, 1);
 
@@ -633,7 +633,7 @@ waiting_to_begin:
 		if (rti->current_interval->begin != -1 && rti->scene_time >= rti->current_interval->begin) {
 			/* if there is a computed interval with a definite begin value
 			   and if that value is lesser than the scene time, then the animation becomes active */
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Activating\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Activating\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			rti->status = SMIL_STATUS_ACTIVE;
 
 			if (rti->timed_elt->sgprivate->tag==TAG_LSR_conditional) {
@@ -650,7 +650,7 @@ waiting_to_begin:
 			evt.smil_event_time = rti->current_interval->begin;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Evaluating (Not starting)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Evaluating (Not starting)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			ret = -2;
 			goto exit;
 		}
@@ -662,7 +662,7 @@ waiting_to_begin:
 		if (rti->current_interval->active_duration >= 0
 		        && rti->scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
 force_end:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Stopping \n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Stopping \n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 
 			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, rti->scene_time, NULL);
 			ret = rti->postpone;
@@ -670,14 +670,14 @@ force_end:
 			if (timingp->fill && *timingp->fill == SMIL_FILL_FREEZE) {
 				rti->status = SMIL_STATUS_FROZEN;
 				rti->evaluate_status = SMIL_TIMING_EVAL_FREEZE;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to freeze\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to freeze\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				if (!rti->postpone) {
 					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 				}
 			} else {
 				rti->status = SMIL_STATUS_DONE;
 				rti->evaluate_status = SMIL_TIMING_EVAL_REMOVE;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to remove\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to remove\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				if (!rti->postpone) {
 					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 				}
@@ -692,7 +692,7 @@ force_end:
 		} else { /* the animation is still active */
 
 			if (!timingp->restart || *timingp->restart == SMIL_RESTART_ALWAYS) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart (always)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart (always)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 
 				if (rti->next_interval->begin != -1 && rti->next_interval->begin < rti->scene_time) {
 					*rti->current_interval = *rti->next_interval;
@@ -718,11 +718,11 @@ force_end:
 			cur_id = rti->current_interval->nb_iterations;
 			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, rti->scene_time, &force_end);
 			if (force_end) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Forcing end (fill or remove)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Forcing end (fill or remove)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				goto force_end;
 			}
 			if (cur_id < rti->current_interval->nb_iterations) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to repeat\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to repeat\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_REPEAT_EVENT;
 				evt.smil_event_time = rti->current_interval->begin + rti->current_interval->nb_iterations*rti->current_interval->simple_duration;
@@ -731,7 +731,7 @@ force_end:
 
 				rti->evaluate_status = SMIL_TIMING_EVAL_REPEAT;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to update\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to update\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				rti->evaluate_status = SMIL_TIMING_EVAL_UPDATE;
 			}
 
@@ -758,7 +758,7 @@ force_end:
 	if ((rti->status == SMIL_STATUS_DONE) || (rti->status == SMIL_STATUS_FROZEN)) {
 		if (!timingp->restart || *timingp->restart != SMIL_RESTART_NEVER) {
 			/* Check changes in begin or end attributes */
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart when not active\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart when not active\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			if (rti->next_interval->begin != -1) {
 				Bool restart_timing = 0;
 				/*next interval is right now*/
@@ -783,7 +783,7 @@ force_end:
 				if (restart_timing) {
 					rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
 					rti->evaluate_status = SMIL_TIMING_EVAL_NONE;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Returning to eval none status\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Returning to eval none status\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 					ret = 0;
 					goto waiting_to_begin;
 				}
@@ -881,7 +881,7 @@ end:
 		/* If the element does not define its simple duration, we assume it's blocked in final state
 		   Is this correct ? */
 		rti->current_interval->nb_iterations = 0;
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 		return FIX_ONE;
 	}
 
@@ -908,7 +908,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	rti = timingp->runtime;
 	if (!rti) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Modification\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Modification\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 	if (rti->current_interval->begin == -1) {
 		gf_smil_timing_get_next_interval(rti, 1, rti->current_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
 	} else {
@@ -917,7 +917,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 		if ((0) && rti->current_interval->end == -2) {
 			/* TODO: check if the interval can be discarded if end = -2,
 			   probably no, because the interval is currently running*/
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			rti->current_interval->begin = -1;
 			rti->current_interval->end = -1;
 			return;
@@ -970,7 +970,7 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element,
 		SMIL_Time *t;
 		GF_SAFEALLOC(t, SMIL_Time);
 		if (!t) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL time for discard\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL time for discard\n"));
 			return 0;
 		}
 		t->clock = 0;
@@ -992,7 +992,7 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 	GF_List *l;
 	GF_SAFEALLOC(begin, SMIL_Time);
 	if (!begin) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL begin value\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[SMIL Timing] Failed to alloc SMIL begin value\n"));
 		return;
 	}
 

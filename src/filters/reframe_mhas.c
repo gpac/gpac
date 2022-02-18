@@ -537,11 +537,11 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 			break;
 		}
 		if ((hdr_start[1]==0x01) && (hdr_start[2]==0xA5)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[MHASDmx] Sync found !\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] Sync found !\n"));
 			ctx->nosync = GF_FALSE;
 			break;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[MHASDmx] not sync, skipping byte\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] not sync, skipping byte\n"));
 		start++;
 		remain--;
 	}
@@ -573,14 +573,14 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		if (mhas_type>18) {
 			ctx->nb_unknown_pck++;
 			if (ctx->nb_unknown_pck > ctx->pcksync) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MHASDmx] %d packets of unknwon type, considering sync was lost\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MHASDmx] %d packets of unknwon type, considering sync was lost\n"));
 				consumed = 0;
 				ctx->nosync = GF_TRUE;
 				ctx->nb_unknown_pck = 0;
 				break;
 			}
 		} else if (!mhas_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MHASDmx] MHAS packet with 0 payload size, considering sync was lost\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MHASDmx] MHAS packet with 0 payload size, considering sync was lost\n"));
 			consumed = 0;
 			ctx->nosync = GF_TRUE;
 			ctx->nb_unknown_pck = 0;
@@ -592,7 +592,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		if (ctx->buffer_too_small) break;
 		if (mhas_size > gf_bs_available(ctx->bs)) {
 			//incomplete frame, keep in buffer
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[MHASDmx] incomplete packet type %d %s label "LLU" size "LLU" - keeping in buffer\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] incomplete packet type %d %s label "LLU" size "LLU" - keeping in buffer\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
 			break;
 		}
 		//frame
@@ -665,7 +665,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		//remaining of packet payload
 		gf_bs_skip_bytes(ctx->bs, mhas_size - parse_end);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[MHASDmx] MHAS Packet type %d %s label "LLU" size "LLU"\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] MHAS Packet type %d %s label "LLU" size "LLU"\n", mhas_type, mhas_pck_name(mhas_type), mhas_label, mhas_size));
 
 		if (ctx->timescale && !prev_pck_size && (cts != GF_FILTER_NO_TS) ) {
 			ctx->cts = cts;
@@ -726,7 +726,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 				offset += ctx->byte_offset + au_start;
 				gf_filter_pck_set_byte_offset(dst, offset);
 			}
- 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[MHASDmx] Send AU CTS "LLU" size %d dur %d sap %d\n", ctx->cts, au_size, (u32) pck_dur, mhas_sap));
+ 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[MHASDmx] Send AU CTS "LLU" size %d dur %d sap %d\n", ctx->cts, au_size, (u32) pck_dur, mhas_sap));
 			gf_filter_pck_send(dst);
 
 			au_start += au_size;
@@ -877,8 +877,8 @@ static const GF_FilterCapability MHASDmxCaps[] =
 static const GF_FilterArgs MHASDmxArgs[] =
 {
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
-	{ OFFS(mpha), "demux MHAS and only forward audio frames", GF_PROP_BOOL, "false", NULL, 0},
-	{ OFFS(pcksync), "number of unknwon packets to tolerate before considering sync is lost", GF_PROP_UINT, "4", NULL, 0},
+	{ OFFS(mpha), "demultiplex MHAS and only forward audio frames", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(pcksync), "number of unknown packets to tolerate before considering sync is lost", GF_PROP_UINT, "4", NULL, 0},
 	{ OFFS(nosync), "initial sync state", GF_PROP_BOOL, "true", NULL, 0},
 
 	{0}

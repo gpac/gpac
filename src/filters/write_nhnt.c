@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / NHNT stream to file filter
@@ -183,7 +183,7 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		ctx->oti = gf_codecid_oti(ctx->codecid);
 	}
 	if (!ctx->oti) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("CodecID %s has no mapping to MPEG-4 systems, cannot use NHNT. Use NHML instead\n", gf_4cc_to_str(cid) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("CodecID %s has no mapping to MPEG-4 systems, cannot use NHNT. Use NHML instead\n", gf_4cc_to_str(cid) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -211,11 +211,11 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	name = gf_codecid_name(ctx->codecid);
 	if (ctx->exporter) {
 		if (w && h) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", name, w, h));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - Size %dx%d\n", name, w, h));
 		} else if (sr && chan) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, bps));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, bps));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s\n", name));
 		}
 	}
 

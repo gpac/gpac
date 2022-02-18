@@ -208,7 +208,7 @@ static void id3dmx_set_string(GF_FilterPid *apid, char *name, u8 *buf, Bool is_d
 				gf_filter_pid_set_property_str(apid, name, &PROP_STRING(tmp) );
 			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Corrupted ID3 text frame %s\n", name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MP3Dmx] Corrupted ID3 text frame %s\n", name));
 		}
 		gf_free(tmp);
 	} else {
@@ -255,7 +255,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 			break;
 
 		if (size<fsize) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] Broken ID3 frame tag %s, size %d but remaining bytes %d\n", gf_4cc_to_str(ftag), fsize, size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MP3Dmx] Broken ID3 frame tag %s, size %d but remaining bytes %d\n", gf_4cc_to_str(ftag), fsize, size));
 			break;
 		}
 
@@ -297,7 +297,7 @@ void id3dmx_flush(GF_Filter *filter, u8 *id3_buf, u32 id3_buf_size, GF_FilterPid
 				if (video_pid_p) {
 					e = gf_filter_pid_raw_new(filter, NULL, NULL, buf+1, NULL, sep_desc+1, pic_size, GF_FALSE, video_pid_p);
 					if (e) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 					}
 					if (*video_pid_p) {
 						u8 *out_buffer;
@@ -623,7 +623,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 				if ((sync[size]=='T') && (sync[size+1]=='A') && (sync[size+2]=='G')) {
 					skip_id3v1=GF_TRUE;
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] invalid frame, resyncing\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] invalid frame, resyncing\n"));
 					goto drop_byte;
 				}
 			}
@@ -681,7 +681,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		//truncated last frame
 		if (bytes_to_drop>remain) {
 			if (!is_eos) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3Dmx] truncated frame!\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MP3Dmx] truncated frame!\n"));
 			}
 			bytes_to_drop=remain;
 		}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1182,7 +1182,7 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 	}
 
 	if (!xmlnamespace) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XML (Subtitle, Metadata or Text) SampleEntry: namespace is mandatory. Abort.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("XML (Subtitle, Metadata or Text) SampleEntry: namespace is mandatory. Abort.\n"));
 		return GF_BAD_PARAM;
 	}
 
@@ -1278,12 +1278,12 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	case GF_ISOM_SUBTYPE_METT:
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("SampleEntry shall be either Metadata, Subtitle or SimpleText. Abort.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("SampleEntry shall be either Metadata, Subtitle or SimpleText. Abort.\n"));
 		return GF_BAD_PARAM;
 	}
 
 	if (!mime) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Text (Metadata, Subtitle or SimpleText) SampleEntry: mime is mandatory. Using text/plain.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Text (Metadata, Subtitle or SimpleText) SampleEntry: mime is mandatory. Using text/plain.\n"));
 		mime = "text/plain";
 	}
 

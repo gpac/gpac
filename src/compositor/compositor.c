@@ -3029,14 +3029,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock() - flush_time;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] done flushing frame in %d ms\n", flush_time));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] done flushing frame in %d ms\n", flush_time));
 #endif
 
 		visual_2d_draw_overlays(compositor->visual);
 		compositor->last_had_overlays = compositor->visual->has_overlays;
 
 		if (!textures_released) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] Releasing textures after flush\n" ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Releasing textures after flush\n" ));
 			compositor_release_textures(compositor, frame_drawn);
 		}
 

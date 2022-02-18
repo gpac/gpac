@@ -455,9 +455,9 @@ static GF_Err gsfdmx_parse_pid_info(GF_Filter *filter, GSF_DemuxCtx *ctx, GSF_St
 		if (e) return e;
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_PARSER, GF_LOG_DEBUG)) {
+		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG)) {
 			char dump[GF_PROP_DUMP_ARG_SIZE];
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[GSFDemux] Set pid %d %s %s to %s\n", gst->idx, gf_props_4cc_get_name(p4cc), is_info_update ? "info" : "property", gf_props_dump(p4cc, &p, dump, GF_PROP_DUMP_DATA_NONE) ) );
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[GSFDemux] Set pid %d %s %s to %s\n", gst->idx, gf_props_4cc_get_name(p4cc), is_info_update ? "info" : "property", gf_props_dump(p4cc, &p, dump, GF_PROP_DUMP_DATA_NONE) ) );
 		}
 #endif
 
@@ -1362,14 +1362,14 @@ static const GF_FilterArgs GSFDemuxArgs[] =
 
 GF_FilterRegister GSFDemuxRegister = {
 	.name = "gsfdmx",
-	GF_FS_SET_DESCRIPTION("GSF Demuxer")
+	GF_FS_SET_DESCRIPTION("GSF demultiplexer")
 #ifndef GPAC_DISABLE_DOC
 	.help = "This filter provides GSF (__GPAC Serialized Format__) demultiplexing.\n"
 			"It de-serializes the stream states (config/reconfig/info update/remove/eos) and packets in the GSF bytestream.\n"
 			"This allows either reading a session saved to file, or receiving the state/data of streams from another instance of GPAC using either pipes or sockets\n"
 			"\n"
 #ifndef GPAC_DISABLE_CRYPTO
-			"The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters must be given a 128 bit key."
+			"The stream format can be encrypted in AES 128 CBC mode, in which case the demultiplexing filter must be given a 128 bit key."
 #endif
 		,
 #endif
