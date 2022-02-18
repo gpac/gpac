@@ -6892,7 +6892,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 		return;
 	}
 
-	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_TRUE;
+	canceled = f->freg->process_event ? f->freg->process_event(f, evt) : GF_FALSE;
 	if (!canceled) {
 		for (i=0; i<f->num_output_pids; i++) {
 			GF_FilterPid *apid = gf_list_get(f->output_pids, i);
