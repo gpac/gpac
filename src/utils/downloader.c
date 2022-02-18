@@ -1304,7 +1304,6 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	if (gf_log_tool_level_on(GF_LOG_NETWORK, GF_LOG_DEBUG) ) {
 		SSL_CTX_set_msg_callback(dm->ssl_ctx, ssl_on_log);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_HTTP, ("[SSL] Init OpenSSL version %u.%u.%u\n", OPENSSL_VERSION_MAJOR, OPENSSL_VERSION_MINOR, OPENSSL_VERSION_PATCH));
 #endif
 
 
