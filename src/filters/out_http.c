@@ -2726,7 +2726,10 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
                 path_sep = strrchr(o_url, '/');
                 if (path_sep) {
                     path_sep[1] = 0;
-                    gf_dynstrcat(&o_url, name, NULL);
+                    if (name[0]=='/')
+						gf_dynstrcat(&o_url, name+1, NULL);
+                    else
+						gf_dynstrcat(&o_url, name, NULL);
                     sep = o_url;
                 } else {
                     sep = name;
@@ -2749,7 +2752,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		return GF_FALSE;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening",  name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening", sep+1));
 	if (in->upload) {
 		GF_Err e;
 		in->done = GF_FALSE;
@@ -3166,6 +3169,19 @@ static void httpin_send_seg_info(GF_HTTPOutInput *in)
 	}
 }
 
+static void httpout_prune_files(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
+{
+	//not sending/writing anything, delete files
+	if (!in->is_open && in->file_deletes) {
+		while (gf_list_count(in->file_deletes)) {
+			char *url = gf_list_pop_front(in->file_deletes);
+			httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE);
+			gf_free(url);
+		}
+		gf_list_del(in->file_deletes);
+		in->file_deletes = NULL;
+	}
+}
 static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 {
 	u32 i, nb_eos=0, nb_nopck=0, count = gf_list_count(ctx->inputs);
@@ -3178,16 +3194,7 @@ static void httpout_process_inputs(GF_HTTPOutCtx *ctx)
 		GF_HTTPOutInput *in = gf_list_get(ctx->inputs, i);
 		if (in->in_error) continue;
 
-		//not sending/writing anything, delete files
-		if (!in->is_open && in->file_deletes) {
-			while (gf_list_count(in->file_deletes)) {
-				char *url = gf_list_pop_back(in->file_deletes);
-				httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE);
-				gf_free(url);
-			}
-			gf_list_del(in->file_deletes);
-			in->file_deletes = NULL;
-		}
+		httpout_prune_files(ctx, in);
 
 		//no destination and holding for first connect, don't drop
 		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && in->hold) {
@@ -3230,6 +3237,8 @@ next_pck:
 
 			if (in->is_open)
 				httpout_close_input(ctx, in);
+
+			httpout_prune_files(ctx, in);
 
 			//file num increased per packet, open new file
 			fnum = gf_filter_pck_get_property(pck, GF_PROP_PCK_FILENUM);
