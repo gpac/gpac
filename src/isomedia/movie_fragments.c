@@ -1184,6 +1184,17 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 		gf_bs_write_u64(bs, movie->moof->ntp);
 		gf_bs_write_u64(bs, movie->moof->timestamp);
 	}
+	if (movie->moof->emsgs) {
+		while (1) {
+			GF_Box *emsg = gf_list_pop_front(movie->moof->emsgs);
+			if (!emsg) break;
+			gf_isom_box_size(emsg);
+			gf_isom_box_write(emsg, bs);
+			gf_isom_box_del(emsg);
+		}
+		gf_list_del(movie->moof->emsgs);
+		movie->moof->emsgs = NULL;
+	}
 
 	if (moof_size) *moof_size = (u32) movie->moof->size;
 
@@ -3252,14 +3263,16 @@ GF_Err gf_isom_set_emsg(GF_ISOFile *movie, u8 *data, u32 size)
 {
 	if (!movie || !data) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!movie->moof) return GF_BAD_PARAM;
 
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		GF_Box *emsg;
 		GF_Err e = gf_isom_box_parse(&emsg, bs);
 		if (e) break;
-		if (!movie->emsgs) movie->emsgs = gf_list_new();
-		gf_list_add(movie->emsgs, emsg);
+
+		if (!movie->moof->emsgs) movie->moof->emsgs = gf_list_new();
+		gf_list_add(movie->moof->emsgs, emsg);
 	}
 	gf_bs_del(bs);
 #endif
