@@ -1149,7 +1149,7 @@ GF_GPACArg GPAC_Args[] = {
 	        "- core: libgpac core\n"
 	        "- coding: bitstream formats (audio, video, scene)\n"
 	        "- container: container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-	        "- network: network data except RTP traffic\n"
+	        "- network: TCP/UDP sockets and TLS\n"
 	        "- http: HTTP traffic\n"
 	        "- rtp: RTP traffic\n"
 	        "- author: authoring tools (hint, import, export)\n"
