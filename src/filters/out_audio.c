@@ -709,9 +709,9 @@ GF_FilterRegister AudioOutRegister = {
 	GF_FS_SET_DESCRIPTION("Audio output")
 	GF_FS_SET_HELP("This filter writes a single uncompressed audio input PID to a sound card or other audio output device.\n"
 	"\n"
-	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers.\n"
+	"The longer the audio buffering [-bdur]() is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degraded when using large audio buffers.\n"
 	"\n"
-	"If [-clock]() is set, the filter will report system time (in us) and corresponding paclet CTS for other filters to use for AV sync.\n")
+	"If [-clock]() is set, the filter will report system time (in us) and corresponding packet CTS for other filters to use for AV sync.\n")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
 	SETCAPS(AudioOutCaps),

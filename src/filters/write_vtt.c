@@ -97,7 +97,7 @@ GF_Err vttmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		ctx->first = GF_TRUE;
 
 		if (ctx->exporter) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", gf_codecid_name(ctx->codecid)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s\n", gf_codecid_name(ctx->codecid)));
 		}
 
 	}

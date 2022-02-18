@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 part2 video rewrite filter
@@ -168,7 +168,7 @@ static const GF_FilterArgs M4VMxArgs[] =
 GF_FilterRegister M4VMxRegister = {
 	.name = "ufm4v",
 	GF_FS_SET_DESCRIPTION("M4V writer")
-	GF_FS_SET_HELP("This filter converts MPEG-4 part 2 visual streams into dumpable format (reinsert decoder config).")
+	GF_FS_SET_HELP("This filter converts MPEG-4 part 2 visual streams into writable format (reinsert decoder config).")
 	.private_size = sizeof(GF_M4VMxCtx),
 	.args = M4VMxArgs,
 	SETCAPS(M4VMxCaps),

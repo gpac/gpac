@@ -451,7 +451,7 @@ static const GF_FilterCapability SAFDmxCaps[] =
 
 GF_FilterRegister SAFDmxRegister = {
 	.name = "safdmx",
-	GF_FS_SET_DESCRIPTION("SAF demuxer")
+	GF_FS_SET_DESCRIPTION("SAF demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes SAF (MPEG-4 Simple Aggregation Format for LASeR) files/data into a set of media PIDs and frames.")
 	.private_size = sizeof(GF_SAFDmxCtx),
 	.initialize = safdmx_initialize,

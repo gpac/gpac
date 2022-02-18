@@ -604,7 +604,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		GF_NALUFFParam *sl;
 		u32 size = gf_bs_read_int(bs, 16);
 		if ((size>gf_bs_available(bs)) || (size<2)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
@@ -627,7 +627,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		GF_NALUFFParam *sl;
 		u32 size = gf_bs_read_int(bs, 16);
 		if ((size>gf_bs_available(bs)) || (size<2)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
@@ -660,7 +660,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 				GF_NALUFFParam *sl;
 				u32 size = gf_bs_read_int(bs, 16);
 				if ((size>gf_bs_available(bs)) || (size<2)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVC] Wrong param set size %d\n", size));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
 					gf_odf_avc_cfg_del(avcc);
 					return NULL;
 				}
@@ -1096,7 +1096,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if ((size>gf_bs_available(bs)) || (size<2)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[HEVC] Wrong param set size %d\n", size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Wrong param set size %d\n", size));
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
@@ -1306,7 +1306,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			cfg->general_constraint_info = gf_malloc(sizeof(u8)*cfg->num_constraint_info);
 			if (!cfg->general_constraint_info) {
 				gf_free(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 			gf_bs_read_data(bs, cfg->general_constraint_info, cfg->num_constraint_info - 1);
@@ -1335,7 +1335,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			if (!cfg->sub_profiles_idc) {
 				gf_free(cfg->general_constraint_info);
 				gf_free(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 		}
@@ -1357,7 +1357,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 		GF_SAFEALLOC(ar, GF_NALUFFParamArray);
 		if (!ar) {
 			gf_odf_vvc_cfg_del(cfg);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] alloc failed while parsing vvc config\n"));
 			return NULL;
 		}
 		ar->nalus = gf_list_new();
@@ -1376,14 +1376,14 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			GF_NALUFFParam *sl;
 			u32 size = gf_bs_read_int(bs, 16);
 			if ((size>gf_bs_available(bs)) || (size<2)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] Wrong param set size %d\n", size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] Wrong param set size %d\n", size));
 				gf_odf_vvc_cfg_del(cfg);
 				return NULL;
 			}
 			GF_SAFEALLOC(sl, GF_NALUFFParam );
 			if (!sl) {
 				gf_odf_vvc_cfg_del(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 
@@ -1392,7 +1392,7 @@ GF_VVCConfig *gf_odf_vvc_cfg_read_bs(GF_BitStream *bs)
 			if (!sl->data) {
 				gf_free(sl);
 				gf_odf_vvc_cfg_del(cfg);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VVC] alloc failed while parsing vvc config\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VVC] alloc failed while parsing vvc config\n"));
 				return NULL;
 			}
 			gf_bs_read_data(bs, sl->data, sl->size);
@@ -1515,7 +1515,7 @@ GF_Err gf_odf_vp_cfg_write_bs(GF_VPConfig *cfg, GF_BitStream *bs, Bool is_v0)
 
 	if (!is_v0) {
 		if (cfg->codec_initdata_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d - ignoring\n", cfg->codec_initdata_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[VPX] Invalid data in configuration: codec_initdata_size must be 0, was %d - ignoring\n", cfg->codec_initdata_size));
 		}
 
 		gf_bs_write_int(bs, (u16)0, 16);
@@ -1562,7 +1562,7 @@ GF_VPConfig *gf_odf_vp_cfg_read_bs(GF_BitStream *bs, Bool is_v0)
 
 	// must be 0 according to spec
 	if (cfg->codec_initdata_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] VP Configuration Box: invalid data, codec_initdata_size must be 0, was %d\n", cfg->codec_initdata_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[VPX] Invalid data in configuration: codec_initdata_size must be 0, was %d\n", cfg->codec_initdata_size));
 		gf_odf_vp_cfg_del(cfg);
 		return NULL;
 	}
@@ -1608,7 +1608,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 
 	reserved = gf_bs_read_int(bs, 3);
 	if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] wrong avcC reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] wrong avcC reserved %d / marker %d / version %d expecting 0 1 1\n", reserved, cfg->marker, cfg->version));
 		gf_odf_av1_cfg_del(cfg);
 		return NULL;
 	}
@@ -1629,14 +1629,14 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		pos = gf_bs_get_position(bs);
 		obu_size = 0;
 		if (gf_av1_parse_obu(bs, &obu_type, &obu_size, NULL, &state) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AV1] could not parse AV1 OBU at position "LLU". Leaving parsing.\n", pos));
 			break;
 		}
 		assert(obu_size == gf_bs_get_position(bs) - pos);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] parsed AV1 OBU type=%u size="LLU" at position "LLU".\n", obu_type, obu_size, pos));
 
 		if (!av1_is_obu_header(obu_type)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[AV1] AV1 unexpected OBU type=%u size="LLU" found at position "LLU". Forwarding.\n", pos));
 		}
 		GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);
 		if (!a) break;
@@ -1652,7 +1652,7 @@ GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)
 		gf_list_add(cfg->obu_array, a);
 
 		if (size<obu_size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AV1] AV1 config misses %d bytes to fit the entire OBU\n", obu_size - size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AV1] AV1 config misses %d bytes to fit the entire OBU\n", obu_size - size));
 			break;
 		}
 		size -= (u32) obu_size;
@@ -1694,11 +1694,11 @@ GF_DOVIDecoderConfigurationRecord *gf_odf_dovi_cfg_read_bs(GF_BitStream *bs)
 	cfg->bl_present_flag = gf_bs_read_int(bs, 1);
 	cfg->dv_bl_signal_compatibility_id = gf_bs_read_int(bs, 4);
 	if (gf_bs_read_int(bs, 28)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[odf_cfg] dovi config reserved bits are not zero\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[DOVI] Configuration reserved bits are not zero\n"));
 	}
 	for (u32 i=0; i<4; i++) {
 		if (gf_bs_read_u32(bs)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[odf_cfg] dovi config reserved bits are not zero\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[DOVII] Configuration reserved bits are not zero\n"));
 		}
 	}
 	return cfg;

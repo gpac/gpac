@@ -467,7 +467,7 @@ static GF_Err prores_rewrite_packet(GF_BSRWCtx *ctx, BSRWPid *pctx, GF_FilterPac
 		else if (ctx->sar.num * 9 == ctx->sar.den * 16) new_ar = 3;
 		else {
 			if (pctx->prev_sar != new_ar) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[BSRW] Aspect ratio %d/%d not registered in ProRes, using 0 (unknown)\n", ctx->sar.num, ctx->sar.den));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[BSRW] Aspect ratio %d/%d not registered in ProRes, using 0 (unknown)\n", ctx->sar.num, ctx->sar.den));
 			}
 		}
 		new_ar <<= 4;

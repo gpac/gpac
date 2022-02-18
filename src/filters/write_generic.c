@@ -301,7 +301,7 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				} else {
 					ctx->target_pfmt = gf_pixel_fmt_parse(szExt);
 					if (!ctx->target_pfmt) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Cannot guess pixel format from extension type %s\n", szExt));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Cannot guess pixel format from extension type %s\n", szExt));
 						return GF_NOT_SUPPORTED;
 					}
 					strcpy(szExt, gf_pixel_fmt_sname(ctx->target_pfmt));
@@ -400,18 +400,18 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	if (ctx->exporter) {
 		if (w && h) {
 			if (cid==GF_CODECID_RAW) name = gf_pixel_fmt_name(pf);
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - Size %dx%d\n", name, w, h));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - Size %dx%d\n", name, w, h));
 		} else if (sr && chan) {
 			if (cid==GF_CODECID_RAW) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting PCM %s SampleRate %d %d channels %d bits per sample\n", gf_audio_fmt_name(sfmt), sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting PCM %s SampleRate %d %d channels %d bits per sample\n", gf_audio_fmt_name(sfmt), sr, chan, gf_audio_fmt_bit_depth(sfmt) ));
 			} else {
 				if (!nb_bps)
 					nb_bps = gf_audio_fmt_bit_depth(sfmt);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, nb_bps ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s - SampleRate %d %d channels %d bits per sample\n", name, sr, chan, nb_bps ));
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Exporting %s\n", name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Exporting %s\n", name));
 		}
 	}
 
@@ -728,9 +728,9 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 		}
 		if (!subs_size || (subs_offset + subs_size > aux_data_size)) {
 			if (!subs_size) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("No subsample with index %u in sample\n", subs_idx));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("No subsample with index %u in sample\n", subs_idx));
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Corrupted subsample %u info, size %u offset %u but sample size %u\n", subs_idx, subs_size, subs_offset, aux_data_size));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Corrupted subsample %u info, size %u offset %u but sample size %u\n", subs_idx, subs_size, subs_offset, aux_data_size));
 			}
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
@@ -836,7 +836,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	if (!dom) return GF_OUT_OF_MEM;
 	e = gf_xml_dom_parse_string(dom, ttml_text);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ttml_text));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[XML] Invalid TTML doc: %s\n\tXML text was:\n%s", gf_xml_dom_get_error(dom), ttml_text));
 		goto exit;
 	}
 	root_pck = gf_xml_dom_get_root(dom);
@@ -1610,7 +1610,7 @@ GF_FilterRegister GenDumpRegister = {
 	.name = "writegen",
 	GF_FS_SET_DESCRIPTION("Stream to file")
 	GF_FS_SET_HELP("Generic single stream to file converter, used when extracting/converting PIDs.\n"
-	"The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any PID connection.")
+	"The writegen filter should usually not be explicitly loaded without a source ID specified, since the filter would likely match any PID connection.")
 	.private_size = sizeof(GF_GenDumpCtx),
 	.args = GenDumpArgs,
 	.initialize = writegen_initialize,

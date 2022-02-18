@@ -471,7 +471,7 @@ static const GF_FilterCapability M2PSDmxCaps[] =
 
 GF_FilterRegister M2PSDmxRegister = {
 	.name = "m2psdmx",
-	GF_FS_SET_DESCRIPTION("MPEG PS demuxer")
+	GF_FS_SET_DESCRIPTION("MPEG PS demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes MPEG-2 program streams to produce media PIDs and frames.")
 	.private_size = sizeof(GF_M2PSDmxCtx),
 	.initialize = m2psdmx_initialize,

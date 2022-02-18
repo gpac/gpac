@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / LASeR codec sub-project
@@ -2559,7 +2559,7 @@ static void lsr_translate_anim_trans_value(GF_LASeRCodec *lsr, SMIL_AnimateValue
 		val->type = SVG_Transform_datatype;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[LSR Parsing] unknown datatype for animate transform.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[LSR Parsing] unknown datatype for animate transform.\n"));
 		return;
 	}
 	if (!val->value) return;
@@ -2681,7 +2681,7 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 		val->type = SVG_Transform_datatype;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] unknown datatype for animate transform.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[SVG Parsing] unknown datatype for animate transform.\n"));
 		break;
 	}
 

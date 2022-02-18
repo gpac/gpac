@@ -512,7 +512,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 			gf_bs_reassign_buffer(ctx->bs, ctx->flac_buffer, size);
 			u32 magic = gf_bs_read_u32(ctx->bs);
 			if (magic != GF_4CC('f','L','a','C')) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC magic\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FLACDmx] invalid FLAC magic\n"));
 				ctx->in_error = GF_TRUE;
 				ctx->flac_buffer_size = 0;
 				if (pck)
@@ -549,7 +549,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 				if (last) break;
 			}
 			if (!dsi_end) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[FLACDmx] invalid FLAC header\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FLACDmx] invalid FLAC header\n"));
 				ctx->in_error = GF_TRUE;
 				ctx->flac_buffer_size = 0;
 				if (pck)
@@ -566,7 +566,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 
 		//we have a next frame, check we are synchronize
 		if ((start[0] != 0xFF) && ((start[1]&0xFC) != 0xF8)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[FLACDmx] invalid frame, dropping %d bytes and resyncing\n", next_frame));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FLACDmx] invalid frame, dropping %d bytes and resyncing\n", next_frame));
 			start += next_frame;
 			remain -= next_frame;
 			continue;

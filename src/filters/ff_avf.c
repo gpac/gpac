@@ -284,7 +284,7 @@ static GF_Err ffavf_initialize(GF_Filter *filter)
 	ctx->opids = gf_list_new();
 	ctx->frame = av_frame_alloc();
 
-	ffmpeg_setup_logs(GF_LOG_AUTHOR);
+	ffmpeg_setup_logs(GF_LOG_MEDIA);
 
 	ctx->filter_graph = avfilter_graph_alloc();
 	ret = avfilter_graph_parse2(ctx->filter_graph, ctx->filter_desc, &inputs, &outputs);

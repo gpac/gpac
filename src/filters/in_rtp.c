@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -134,7 +134,7 @@ static GF_Err rtpin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	GF_RTPIn *ctx = gf_filter_get_udta(filter);
 
 	if (ctx->src) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[RTPIn] Configure pid called on filter instanciated with SRC %s\n", ctx->src));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPIn] Configure pid called on filter instanciated with SRC %s\n", ctx->src));
 		return GF_BAD_PARAM;
 	}
 
@@ -772,7 +772,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(ifce), "default interface IP to use for multicast. If NULL, the default system interface will be used", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttl), "multicast TTL", GF_PROP_UINT, "127", "0-127", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(reorder_len), "reorder length in packets", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(reorder_delay), "max delay in RTP reorderer, packets will be dispatched after that", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(reorder_delay), "max delay in RTP re-orderer, packets will be dispatched after that", GF_PROP_UINT, "50", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "buffer size for RTP/UDP or RTSP when interleaved", GF_PROP_UINT, "0x200000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_rtcp), "disable RTCP reporting", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(nat_keepalive), "delay in ms of NAT keepalive, disabled by default (except for SatIP, set to 30s by default)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
@@ -784,7 +784,7 @@ static const GF_FilterArgs RTPInArgs[] =
 	{ OFFS(interleave), "set RTP over RTSP", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(udp_timeout), "default timeout before considering UDP is down", GF_PROP_UINT, "10000", NULL, 0},
 	{ OFFS(rtsp_timeout), "default timeout before considering RTSP is down", GF_PROP_UINT, "3000", NULL, 0},
-	{ OFFS(rtcp_timeout), "default timeout for RTCP traffic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rtcp_timeout), "default timeout for RTCP traffic in ms. After this timeout, playback will start out of sync. If 0 always wait for RTCP", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(autortsp), "automatically reconfig RTSP interleaving if UDP timeout", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(first_packet_drop), "set number of first RTP packet to drop (0 if no drop)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(frequency_drop), "drop 1 out of N packet (0 disable dropping)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -808,7 +808,7 @@ GF_FilterRegister RTPInRegister = {
 	"- RTP direct url through `rtp://` protocol scheme\n"
 	"- RTSP session processing through `rtsp://` and `satip://` protocol schemes\n"
 	" \n"
-	"The filter produces either media PIDs with unmultiplexed media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).")
+	"The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).")
 	.private_size = sizeof(GF_RTPIn),
 	.args = RTPInArgs,
 	.initialize = rtpin_initialize,

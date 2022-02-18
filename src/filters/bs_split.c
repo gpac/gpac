@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2022
  *					All rights reserved
  *
- *  This file is part of GPAC / compressed bitstream spliter filter
+ *  This file is part of GPAC / compressed bitstream splitter filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -1435,12 +1435,12 @@ static const GF_FilterCapability BSSplitCaps[] =
 
 GF_FilterRegister BSSplitRegister = {
 	.name = "bssplit",
-	GF_FS_SET_DESCRIPTION("Compressed layered bitstream spliter")
+	GF_FS_SET_DESCRIPTION("Compressed layered bitstream splitter")
 	GF_FS_SET_HELP("This filter splits input stream by layers and sublayers\n"
 	"\n"
-	"The filter supports AVC|H264, HEVC and VVC stream spliting, and is passthrough for other codec types.\n"
+	"The filter supports AVC|H264, HEVC and VVC stream splitting and is pass-through for other codec types.\n"
 	"\n"
-	"Spliting is based on temporalID value (start from 1) and layerID value (start from 0).\n"
+	"Splitting is based on temporalID value (start from 1) and layerID value (start from 0).\n"
 	"For AVC|H264, layerID is the dependency value, or quality value if `svcqid` is set.\n"
 	"\n"
 	"Each input stream is filtered according to the `ltid` option as follows:\n"

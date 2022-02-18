@@ -497,7 +497,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 			gf_sm_del(priv->ctx);
 			priv->ctx = NULL;
 			priv->load_flags = 3;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[CtxLoad] Failed to load context for file %s: %s\n", priv->file_name, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[CtxLoad] Failed to load context for file %s: %s\n", priv->file_name, gf_error_to_string(e) ));
 			if (priv->out_pid)
 				gf_filter_pid_set_eos(priv->out_pid);
 			return e;
@@ -580,7 +580,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time, filter);
 				break;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));
 
 			if (sc->streamType == GF_STREAM_SCENE) {
 				GF_Command *com;
@@ -943,7 +943,7 @@ GF_FilterRegister CTXLoadRegister = {
 	GF_FS_SET_DESCRIPTION("BT/XMT/X3D loader")
 	GF_FS_SET_HELP("This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files directly into the scene graph of the compositor.\n"
 	"\n"
-	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when procesing time is higher than `N`.\n")
+	"When [-sax_dur=N]() is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than `N`.\n")
 	.private_size = sizeof(CTXLoadPriv),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = CTXLoadArgs,

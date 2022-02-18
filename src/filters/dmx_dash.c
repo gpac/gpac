@@ -3244,10 +3244,10 @@ static const GF_FilterArgs DASHDmxArgs[] =
 	{ OFFS(lowlat), "segment scheduling policy in low latency mode\n"
 		"- no: disable low latency\n"
 		"- strict: strict respect of AST offset in low latency\n"
-		"- early: allow fetching segments earlier than their AST in low latency when input demux is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
+		"- early: allow fetching segments earlier than their AST in low latency when input PID is empty", GF_PROP_UINT, "early", "no|strict|early", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(forward), "segment forwarding mode\n"
 		"- none: regular DASH read\n"
-		"- file: do not demux files and forward them as file PIDs (imply `segstore=mem`)\n"
+		"- file: do not demultiplex files and forward them as file PIDs (imply `segstore=mem`)\n"
 		"- segb: turn on [-split_as](), segment and fragment bounds signaling (`sigfrag`) in sources and DASH cue insertion\n"
 		"- mani: same as `segb` and also forward manifests"
 	, GF_PROP_UINT, "none", "none|file|segb|mani", GF_FS_ARG_HINT_ADVANCED},
@@ -3310,7 +3310,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"If the source has dependent media streams (scalability) and all qualities and initialization segments need to be forwarded, add [-split_as]().\n"
 	"\n"
 	"# Segment bound modes\n"
-	"When [-forward]() is set to `segb` or `mani`, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.\n"
+	"When [-forward]() is set to `segb` or `mani`, the client forwards media frames (after demultiplexing) together with segment and fragment boundaries of source files.\n"
 	"\n"
 	"This mode can be used to process media data and regenerate the same manifest/segmentation.\n"
 	"\n"

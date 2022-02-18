@@ -607,7 +607,7 @@ static void oggdmx_parse_picture(GF_Filter *filter, GF_OGGStream *st, u8 *data_b
 		if (ctx->expart) {
 			GF_Err e = gf_filter_pid_raw_new(filter, NULL, NULL, NULL, NULL, output + skip, img_size, GF_FALSE, &ctx->art_opid);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[OGGDmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGGDmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 			}
 			if (ctx->art_opid) {
 				u8 *out_buffer;
@@ -790,7 +790,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				case GF_CODECID_VORBIS:
 					res = gf_vorbis_parse_header(st->vorbis_parser, (char *) oggpacket.packet, oggpacket.bytes);
 					if (!res) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[OGG] Failed to parse Vorbis header\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to parse Vorbis header\n"));
 					} else {
 						add_page = GF_TRUE;
 					}
@@ -798,7 +798,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				case GF_CODECID_OPUS:
 					res = gf_opus_parse_header(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
 					if (!res) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[OGG] Failed to parse Opus header\n"));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to parse Opus header\n"));
 					}
 					break;
 				case GF_CODECID_THEORA:
@@ -973,7 +973,7 @@ static const GF_FilterArgs OGGDmxArgs[] =
 
 GF_FilterRegister OGGDmxRegister = {
 	.name = "oggdmx",
-	GF_FS_SET_DESCRIPTION("OGG demuxer")
+	GF_FS_SET_DESCRIPTION("OGG demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes OGG files/data into a set of media PIDs and frames.")
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,

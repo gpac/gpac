@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common ffmpeg filters
@@ -495,9 +495,9 @@ static GF_LOG_Tool gpac_to_ffmpeg_log_tool(AVClass* avc)
 	case AV_CLASS_CATEGORY_DECODER:
 		return GF_LOG_CODEC;
 	case AV_CLASS_CATEGORY_FILTER:
-		return GF_LOG_AUTHOR;
+		return GF_LOG_MEDIA;
 	case AV_CLASS_CATEGORY_BITSTREAM_FILTER:
-		return GF_LOG_PARSER;
+		return GF_LOG_CODING;
 	case AV_CLASS_CATEGORY_SWSCALER:
 	case AV_CLASS_CATEGORY_SWRESAMPLER:
 		return GF_LOG_MEDIA;

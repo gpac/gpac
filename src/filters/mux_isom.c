@@ -1154,7 +1154,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 				else if (inc * 60000 == ts * 1001) target_timescale = 60000;
 				else if (inc * 5994 == ts * 100) target_timescale = 60000;
 				else if (is_prores) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ProRes] Unrecognized frame rate %g\n", ((Double)ts)/inc ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ProRes] Unrecognized frame rate %g\n", ((Double)ts)/inc ));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 			}
@@ -3022,10 +3022,10 @@ sample_entry_done:
 						matrix_coefficients = 1;
 						full_range_flag = GF_FALSE;
 						if (ctx->make_qt==1) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ProRes] No color info present in visual track, defaulting to BT709\n"));
 						}
 						else if (ctx->cmaf) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CMAF] No color info present in visual track, defaulting to BT709\n"));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CMAF] No color info present in visual track, defaulting to BT709\n"));
 						}
 					}
 					gf_isom_set_visual_color_info(ctx->file, tkw->track_num, tkw->stsd_idx, colr_mode, colour_primaries, transfer_characteristics, matrix_coefficients, full_range_flag, NULL, 0);
@@ -3184,25 +3184,25 @@ sample_entry_done:
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
 			if (nb_chan) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - SampleRate %d Num Channels %d\n", dst_type, imp_name, sr, nb_chan));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - SampleRate %d Num Channels %d\n", dst_type, imp_name, sr, nb_chan));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - SampleRate %d\n", dst_type, imp_name, sr));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - SampleRate %d\n", dst_type, imp_name, sr));
 			}
 		} else if (is_text_subs) {
 			if (txt_fsize || txt_font) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - Text track %d x %d font %s (size %d) layer %d\n", dst_type, imp_name, width, height, txt_font ? txt_font : "unspecified", txt_fsize, z_order));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - Text track %d x %d font %s (size %d) layer %d\n", dst_type, imp_name, width, height, txt_font ? txt_font : "unspecified", txt_fsize, z_order));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - Text track %d x %d layer %d\n", dst_type, imp_name, width, height, z_order));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - Text track %d x %d layer %d\n", dst_type, imp_name, width, height, z_order));
 
 			}
 		} else if (width) {
 			if (sar.den && sar.num) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - Width %d Height %d FPS %d/%d SAR %d/%u\n", dst_type, imp_name, width, height, fps.num, fps.den, sar.num, sar.den));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - Width %d Height %d FPS %d/%d SAR %d/%u\n", dst_type, imp_name, width, height, fps.num, fps.den, sar.num, sar.den));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s - Width %d Height %d FPS %d/%d\n", dst_type, imp_name, width, height, fps.num, fps.den));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s - Width %d Height %d FPS %d/%d\n", dst_type, imp_name, width, height, fps.num, fps.den));
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("%s %s\n", dst_type, imp_name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("%s %s\n", dst_type, imp_name));
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (tkw->svcc) {
@@ -3215,7 +3215,7 @@ sample_entry_done:
 				Bool is_subseq = (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM) ? GF_TRUE : GF_FALSE;
 				s32 ps_idx = gf_avc_read_sps(sl->data, sl->size, &avc, is_subseq, NULL);
 				if (ps_idx>=0) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("SVC Detected - SSPS ID %d - frame size %d x %d\n", ps_idx-GF_SVC_SSPS_ID_SHIFT, avc.sps[ps_idx].width, avc.sps[ps_idx].height ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("SVC Detected - SSPS ID %d - frame size %d x %d\n", ps_idx-GF_SVC_SSPS_ID_SHIFT, avc.sps[ps_idx].width, avc.sps[ps_idx].height ));
 
 				}
 			}
@@ -6725,9 +6725,9 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			u64 mdur = gf_isom_get_media_duration(ctx->file, tkw->track_num);
 			u64 pdur = gf_isom_get_track_duration(ctx->file, tkw->track_num);
 			if (pdur==mdur) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Imported %d frames - duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MP4Mux] Imported %d frames - duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale ));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Imported %d frames - media duration %g - track duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale, ((Double)pdur)/ctx->moovts ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MP4Mux] Imported %d frames - media duration %g - track duration %g\n", tkw->nb_samples, ((Double)mdur)/tkw->tk_timescale, ((Double)pdur)/ctx->moovts ));
 			}
 		}
 
@@ -6739,7 +6739,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			if (!PL) PL = 0x01;
 
 			if (ctx->importer) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Indicated Profile: %s\n", gf_m4v_get_profile_name((u8) PL) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Indicated Profile: %s\n", gf_m4v_get_profile_name((u8) PL) ));
 			}
 
 			if (has_bframes && (tkw->media_profile_level <= 3)) {
@@ -6774,7 +6774,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 
 		if (tkw->has_open_gop) {
 			if (ctx->importer) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("OpenGOP detected - adjusting file brand\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("OpenGOP detected - adjusting file brand\n"));
 			}
 			gf_isom_modify_alternate_brand(ctx->file, GF_ISOM_BRAND_ISO6, GF_TRUE);
 		}
@@ -6812,7 +6812,7 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 					}
 				}
 				if (do_rewrite) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Adjusting NALU SizeLength to %d bits\n", msize ));
+					GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MP4Mux] Adjusting NALU SizeLength to %d bits\n", msize ));
 					gf_media_nal_rewrite_samples(ctx->file, tkw->track_num, msize);
 					msize /= 8;
 					for (j=0; j<stsd_count; j++) {
@@ -6873,11 +6873,11 @@ static GF_Err mp4_mux_done(GF_Filter *filter, GF_MP4MuxCtx *ctx, Bool is_final)
 			break;
 		}
 		if (e) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Failed to set storage mode: %s\n", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MP4Mux] Failed to set storage mode: %s\n", gf_error_to_string(e) ));
 		} else {
 			e = gf_isom_close(ctx->file);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[MP4Mux] Failed to write file: %s\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to write file: %s\n", gf_error_to_string(e) ));
 			}
 		}
 		ctx->file = NULL;
@@ -6895,7 +6895,7 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 	if (ctx->owns_mov && (ctx->file || (ctx->store>=MP4MX_MODE_FRAG))) {
 		if (ctx->store < MP4MX_MODE_FRAG) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[MP4Mux] Session aborted before writing to file, use fragmented storage mode to record session\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Session aborted before writing to file, use fragmented storage mode to record session\n"));
 		}
 		gf_isom_delete(ctx->file);
 	}
@@ -6951,7 +6951,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(pack_nal), "repack NALU size length to minimum possible size for NALU-based video (AVC/HEVC/...)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(xps_inband), "use inband (in sample data) parameter set for NALU-based video (AVC/HEVC/...)\n"
 	"- no: parameter sets are not inband, several sample descriptions might be created\n"
-	"- pps: pciture parameter sets are inband, all other parameter sets are in sample description\n"
+	"- pps: picture parameter sets are inband, all other parameter sets are in sample description\n"
 	"- all: parameter sets are inband, no parameter sets in sample description\n"
 	"- both: parameter sets are inband, signaled as inband, and also first set is kept in sample description\n"
 	"- mix: creates non-standard files using single sample entry with first PSs found, and moves other PS inband\n"
@@ -6962,7 +6962,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- fstart: write samples as they arrive and `moov` before `mdat`\n"
 	"- tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
 	"- frag: fragments the file using cdur duration\n"
-	"- sfrag: framents the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
+	"- sfrag: fragments the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for flat and interleaving modes or fragment duration for fragmentation modes\n"
 	"- 0: no specific interleaving but moov first\n"
 	"- negative: defaults to 1.0 unless overridden by storage profile", GF_PROP_FRACTION, "-1/1", NULL, 0},
@@ -7044,7 +7044,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(boxpatch), "apply box patch before writing", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(deps), "add samples dependencies information", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(mfra), "enable movie fragment random access when fragmenting (ignored when dashing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
-	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-conformant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(forcesync), "force all SAP types to be considered sync samples (might produce non-compliant files)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(refrag), "use track fragment defaults from initial file if any rather than computing them from PID properties (used when processing standalone segments/fragments)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(itags), "tag injection mode\n"
 			"- none: do not inject tags\n"
@@ -7067,12 +7067,12 @@ static const GF_FilterArgs MP4MuxArgs[] =
 
 GF_FilterRegister MP4MuxRegister = {
 	.name = "mp4mx",
-	GF_FS_SET_DESCRIPTION("ISOBMFF/QT muxer")
+	GF_FS_SET_DESCRIPTION("ISOBMFF/QT multiplexer")
 	GF_FS_SET_HELP("This filter multiplexes streams to ISOBMFF (14496-12 and derived specifications) or QuickTime\n"
 	"  \n"
 	"# Tracks and Items\n"
 	"By default all input PIDs with ItemID property set are multiplexed as items, otherwise they are multiplexed as tracks.\n"
-	"To prevent source items to be multiplexed as items, use [-itemid](mp4dmx) option from ISOBMF demuxer.\n"
+	"To prevent source items to be multiplexed as items, use [-itemid](mp4dmx) option from ISOBMFF demultiplexer.\n"
 	"EX gpac -i source.mp4:itemid=false -o file.mp4\n"
 	"  \n"
 	"To force non-item streams to be multiplexed as items, use __#ItemID__ option on that PID:\n"
@@ -7107,13 +7107,13 @@ GF_FilterRegister MP4MuxRegister = {
 	"- the CRC32 of the `NAME` as a box 4CC if `NAME` is not four characters long\n"
 	"  \n"
 	"# User data\n"
-	"The muxer will look for the following PID properties to create user data entries:\n"
+	"The filter will look for the following PID properties to create user data entries:\n"
 	"- `udtab`: set the track user-data box to the property value which __must__ be a serialized box array blob\n"
 	"- `mudtab`: set the movie user-data box to the property value which __must__ be a serialized box array blob\n"
 	"- `udta_U4CC`: set track user-data box entry of type `U4CC` to property value\n"
 	"- `mudta_U4CC`: set movie user-data box entry of type `U4CC` to property value\n"
 	"  \n"
-	"EX gpac -i src.mp4:#udta_tagc='My Awsome Tag' -o tag.mp4\n"
+	"EX gpac -i src.mp4:#udta_tagc='My Awesome Tag' -o tag.mp4\n"
 	"EX gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4\n"
 	"  \n"
 	"# Custom sample group descriptions and sample auxiliary info\n"

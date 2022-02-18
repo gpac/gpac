@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -174,8 +174,6 @@ static struct log_tool_info {
 	{ GF_LOG_NETWORK, "network", GF_LOG_WARNING },
 	{ GF_LOG_HTTP, "http", GF_LOG_WARNING },
 	{ GF_LOG_RTP, "rtp", GF_LOG_WARNING },
-	{ GF_LOG_AUTHOR, "author", GF_LOG_WARNING },
-	{ GF_LOG_SYNC, "sync", GF_LOG_WARNING },
 	{ GF_LOG_CODEC, "codec", GF_LOG_WARNING },
 	{ GF_LOG_PARSER, "parser", GF_LOG_WARNING },
 	{ GF_LOG_MEDIA, "media", GF_LOG_WARNING },
@@ -183,10 +181,10 @@ static struct log_tool_info {
 	{ GF_LOG_SCRIPT, "script", GF_LOG_WARNING },
 	{ GF_LOG_INTERACT, "interact", GF_LOG_WARNING },
 	{ GF_LOG_COMPOSE, "compose", GF_LOG_WARNING },
+	{ GF_LOG_COMPTIME, "ctime", GF_LOG_WARNING },
 	{ GF_LOG_CACHE, "cache", GF_LOG_WARNING },
 	{ GF_LOG_MMIO, "mmio", GF_LOG_WARNING },
 	{ GF_LOG_RTI, "rti", GF_LOG_WARNING },
-	{ GF_LOG_SMIL, "smil", GF_LOG_WARNING },
 	{ GF_LOG_MEMORY, "mem", GF_LOG_WARNING },
 	{ GF_LOG_AUDIO, "audio", GF_LOG_WARNING },
 	{ GF_LOG_MODULE, "module", GF_LOG_WARNING },

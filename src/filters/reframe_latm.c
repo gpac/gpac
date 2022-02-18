@@ -316,7 +316,7 @@ static void latm_dmx_check_pid(GF_Filter *filter, GF_LATMDmxCtx *ctx)
 		latm_dmx_check_dur(filter, ctx);
 	}
 	if (!GF_M4ASampleRates[ctx->acfg.base_sr_index]) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[LATMDmx] Wrong sample rate in audio config, broken stream\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[LATMDmx] Wrong sample rate in audio config, broken stream\n"));
 		ctx->in_error = GF_NON_COMPLIANT_BITSTREAM;
 		return;
 	}

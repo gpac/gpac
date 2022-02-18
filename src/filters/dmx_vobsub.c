@@ -279,12 +279,12 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 
 		gf_fseek(ctx->mdia, pos->filepos, SEEK_SET);
 		if (gf_ftell(ctx->mdia) != pos->filepos) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Could not seek in file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Could not seek in file\n"));
 			return GF_IO_ERR;
 		}
 
 		if (!gf_fread(buf, sizeof(buf), ctx->mdia)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Could not read from file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Could not read from file\n"));
 			return GF_IO_ERR;
 		}
 
@@ -294,7 +294,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		        (buf[0x17] & 0xf0) != 0x20			   ||
 		        (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (1)\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Corrupted data found in file (1)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 
@@ -330,12 +330,12 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		}
 
 		if (i != psize || left > 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (2)\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Corrupted data found in file (2)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 
 		if (vobsub_get_subpic_duration(packet, psize, dsize, &duration) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Corrupted data found in file (3)\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Corrupted data found in file (3)\n"));
 			return GF_CORRUPTED_DATA;
 		}
 
@@ -344,7 +344,7 @@ static GF_Err vobsubdmx_send_stream(GF_VOBSubDmxCtx *ctx, GF_FilterPid *pid)
 		gf_filter_pck_set_duration(dst_pck, duration);
 
 		if (vslang->last_dts && (vslang->last_dts >= pos->start * 90)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[VobSub] Out of order timestamps in vobsub file\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[VobSub] Out of order timestamps in vobsub file\n"));
 		}
 		gf_filter_pck_send(dst_pck);
 		vslang->last_dts = pos->start * 90;
@@ -387,7 +387,7 @@ GF_Err vobsubdmx_process(GF_Filter *filter)
 		p = gf_filter_pid_get_property(ctx->sub_pid, GF_PROP_PID_FILEPATH);
 		if (!p) {
 			gf_filter_setup_failure(filter, GF_URL_ERROR);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[VobSub] Cannot open sub file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[VobSub] Cannot open sub file\n"));
 			return GF_EOS;
 		}
 		ctx->mdia = gf_fopen(p->value.string, "rb");
@@ -459,8 +459,8 @@ static const GF_FilterCapability VOBSubDmxCaps[] =
 
 GF_FilterRegister VOBSubDmxRegister = {
 	.name = "vobsubdmx",
-	GF_FS_SET_DESCRIPTION("VobSub demuxer")
-	GF_FS_SET_HELP("This filter demultiplexes VobSub files/data to produce media PIDs and frames.")
+	GF_FS_SET_DESCRIPTION("VobSub parser")
+	GF_FS_SET_HELP("This filter parses VobSub files/data to produce media PIDs and frames.")
 	.private_size = sizeof(GF_VOBSubDmxCtx),
 	.max_extra_pids = 1,
 	.args = GF_VOBSubDmxArgs,

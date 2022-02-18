@@ -272,7 +272,7 @@ The \`JSFun\` specified in \`mxjs\` has a single parameter \`tr\`.
 The \`tr\` parameter is an object containing the following variables that the code can modify:
 - x, y, z, cx, cy, cz, hscale, vscale, zscale, hskew, vskew, rotation, untransform, axis, orientation: these values are initialized to the current group values in local coordinate system units
 - update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if \`use\` is set)
-- depth: for groups with \`use\`, indicates the recursion level of the used element. A value of 0 indcates this is a direct render of the element, otherwise it is a render through \`use\`
+- depth: for groups with \`use\`, indicates the recursion level of the used element. A value of 0 indicates this is a direct render of the element, otherwise it is a render through \`use\`
 
 The \`JSFun\` may return false to indicate that the scene should be considered as inactive. Any other return value (undefined or not false) will mark the scene as active.
 
@@ -444,9 +444,9 @@ Watchers can also be used to monitor GPAC user events by setting \`watch\` to:
 - an event name to monitor, one of \`keydown\`, \`keyup\`, \`mousemove\`, \`mouseup\`, \`mousedown\`, \`wheel\`, \`textInput\`
 - \`events\` to monitor all events (including internal events).
 
-For \`keyup\` and \`keydown\` events, the key code to watch may additionnaly be given in parenthesis, e.g. \`'watch': 'keyup(T)'\`.
+For \`keyup\` and \`keydown\` events, the key code to watch may additionally be given in parenthesis, e.g. \`'watch': 'keyup(T)'\`.
 
-Note: User events are only sent if the output of the filter is consummed by the [vout](vout) filter.
+Note: User events are only sent if the output of the filter is consumed by the [vout](vout) filter.
 
 When event monitoring is used, the \`target\` must be a javascript callback (i.e. it cannot be \`ID@prop\`).
 The javascript function will be called with a single argument \`evt\` containing the GPAC event.
@@ -465,7 +465,7 @@ This will set s1 fill color to white of mouse is over s2 and to black otherwise.
 A style object allows scenes to share the same values for a given set of properties.
 
 If a scene property has the same name as a style property, the scene property is replaced by the style property.
-Styles only apply to scene, and stylable properties are restricted as follows:
+Styles only apply to scene properties as follows:
 - volume, fade, mix_ratio can use style
 - all options defined by the scene module can use style
 - transformation or other scene properties cannot use style

@@ -7526,7 +7526,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 		}
 		sep = strchr(name+1, '$');
 		if (!sep) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] broken file template expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] broken file template expecting $KEYWORD$, couldn't find second '$'\n", szTemplate));
 			strcpy(szFinalName, szTemplate);
 			return GF_BAD_PARAM;
 		}
@@ -7582,20 +7582,20 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			prop_val = NULL;
 		} else if (!strncmp(name, "p4cc=", 5)) {
 			if (strlen(name) != 9) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] wrong length in 4CC template, expecting 4cc=ABCD\n", name));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] wrong length in 4CC template, expecting 4cc=ABCD\n", name));
 				is_ok = GF_FALSE;
 			} else {
 				prop_4cc = GF_4CC(name[5],name[6],name[7],name[8]);
 				prop_val = gf_filter_pid_get_property_first(pid, prop_4cc);
 				if (!prop_val) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] no pid property of type %s\n", name+5));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] no pid property of type %s\n", name+5));
 					is_ok = GF_FALSE;
 				}
 			}
 		} else if (!strncmp(name, "pname=", 6)) {
 			prop_val = gf_filter_pid_get_property_str_first(pid, name+6);
 			if (!prop_val) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] no pid property named %s\n", name+6));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] no pid property named %s\n", name+6));
 				is_ok = GF_FALSE;
 			}
 		} else if (!strncmp(name, "Number", 6)) {
@@ -7623,7 +7623,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				if (!prop_4cc) {
 					prop_val = gf_filter_pid_get_property_str_first(pid, name);
 					if (!prop_val) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] Unrecognized template %s\n", name));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Unrecognized template %s\n", name));
 						is_ok = GF_FALSE;
 					}
 				} else {
@@ -7685,7 +7685,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				prop_val = &prop_val_patched;
 				is_ok=GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
 				return GF_BAD_PARAM;
 			}
 		}
@@ -7739,7 +7739,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				strcpy(szTemplateVal, str_val);
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] property %s not found for pid, cannot resolve template\n", name));
 			return GF_BAD_PARAM;
 		}
 		if (k + strlen(szTemplateVal) > GF_MAX_PATH) {

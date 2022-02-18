@@ -867,12 +867,12 @@ static const GF_FilterCapability FFDmxCaps[] =
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.version=LIBAVFORMAT_IDENT,
-	GF_FS_SET_DESCRIPTION("FFMPEG demuxer")
+	GF_FS_SET_DESCRIPTION("FFMPEG demultiplexer")
 	GF_FS_SET_HELP("This filter demultiplexes an input file or open a source protocol using FFMPEG.\n"
 	"See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.\n"
-	"To list all supported demuxers for your GPAC build, use `gpac -h ffdmx:*`.\n"
+	"To list all supported demultiplexers for your GPAC build, use `gpac -h ffdmx:*`.\n"
 	"This will list both supported input formats and protocols.\n"
-	"Input protocols are listed with `Description: Input protocol`, and the subclass name identitfes the protocol scheme.\n"
+	"Input protocols are listed with `Description: Input protocol`, and the subclass name identifies the protocol scheme.\n"
 	"For example, if `ffdmx:rtmp` is listed as input protocol, this means `rtmp://` source URLs are supported.\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),

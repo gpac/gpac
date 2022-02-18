@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -334,7 +334,7 @@ start:
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
 		e = GF_IO_ERR;
 		goto exit;
 	}
@@ -355,7 +355,7 @@ start:
 
 		dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 		if (!dumper) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
 			e = GF_IO_ERR;
 			goto exit;
 		}
@@ -365,7 +365,7 @@ start:
 #endif
 
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot dump DIMS Commands\n"));
 		goto exit;
 	}
 #endif
@@ -381,7 +381,7 @@ start:
 
 	e = gf_file_load_data(file_name, (u8 **) &buffer, &fsize);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Error loading SVG dump file %s\n", file_name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Error loading SVG dump file %s\n", file_name));
 		goto exit;
 	}
 
@@ -396,20 +396,20 @@ start:
 	/* Then, if compression is asked, we do it */
 	buffer_len = (u32)fsize;
 	assert(fsize < 0x80000000);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len));
 	if (compress_dims) {
 #ifndef GPAC_DISABLE_ZLIB
 		dims_header |= GF_DIMS_UNIT_C;
 		e = gf_gz_compress_payload(&buffer, buffer_len, &buffer_len);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("/ compressed (%d)", buffer_len));
 		if (e) goto exit;
 #else
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: your version of GPAC was compiled with no libz support. Abort."));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Error: your version of GPAC was compiled with no libz support. Abort."));
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 #endif
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("\n"));
 
 	/* Then,  prepare the DIMS data using a bitstream instead of direct manipulation for endianness
 	       The new bitstream size should be:
@@ -420,7 +420,7 @@ start:
 	 */
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (buffer_len > 65535) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[SceneEngine] Warning: DIMS Unit size too big !!!\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_SCENE, ("[SceneEngine] Warning: DIMS Unit size too big !!!\n"));
 		gf_bs_write_u16(bs, 0); /* internal GPAC hack to indicate that the size is larger than 65535 */
 		gf_bs_write_u32(bs, buffer_len+1);
 	} else {

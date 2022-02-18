@@ -193,7 +193,7 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 		/*disconnect*/
 		gf_sc_disconnect(compositor);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connecting to %s\n", URL));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Connecting to %s\n", URL));
 
 	assert(!compositor->root_scene);
 
@@ -216,7 +216,7 @@ void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 
 		scene->first_frame_pause_type = pause_at_first_frame;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] root scene created\n", URL));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] root scene created\n", URL));
 
 	if (!strnicmp(URL, "views://", 8)) {
 		gf_scene_generate_views(compositor->root_scene, (char *) URL+8, (char*)parent_path);
@@ -289,11 +289,11 @@ GF_Terminal *gf_term_new(GF_User *user)
 	const char *opt;
 	char szArgs[200];
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating terminal\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Creating terminal\n"));
 
 	tmp = (GF_Terminal*)gf_malloc(sizeof(GF_Terminal));
 	if (!tmp) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate GF_Terminal : OUT OF MEMORY ?\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate GF_Terminal : OUT OF MEMORY ?\n"));
 		return NULL;
 	}
 	memset(tmp, 0, sizeof(GF_Terminal));
@@ -310,7 +310,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	tmp->fsess = gf_fs_new_defaults(GF_FS_FLAG_NON_BLOCKING);
 	if (!tmp->fsess) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create filter session.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to create filter session.\n"));
 		gf_free(tmp);
 		return NULL;
 	}
@@ -331,13 +331,13 @@ GF_Terminal *gf_term_new(GF_User *user)
 	comp_filter = gf_fs_load_filter(tmp->fsess, szArgs, &e);
 	tmp->compositor = comp_filter ? gf_sc_from_filter(comp_filter) : NULL;
 	if (!tmp->compositor) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to load compositor filter: %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to load compositor filter: %s\n", gf_error_to_string(e) ));
 		gf_fs_del(tmp->fsess);
 		gf_free(tmp);
 		return NULL;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] compositor loaded\n"));
 
 	gf_term_refresh_cache();
 	gf_fs_run(tmp->fsess);
@@ -350,10 +350,10 @@ GF_Err gf_term_del(GF_Terminal * term)
 {
 	if (!term) return GF_BAD_PARAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Destroying terminal\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Destroying terminal\n"));
 	/*close main service*/
 	gf_term_disconnect(term);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] main service disconnected\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] main service disconnected\n"));
 
 	term->in_destroy = GF_TRUE;
 	/*stop the media manager */
@@ -362,7 +362,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_sys_close();
 	if (term->reload_url) gf_free(term->reload_url);
 	gf_free(term);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Terminal destroyed\n"));
 	return GF_OK;
 }
 

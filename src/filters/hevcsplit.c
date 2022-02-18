@@ -4,7 +4,7 @@
  *			Authors: Jean Le Feuvre
  *					 Yacine Mathurin Boubacar Aziakou
  *					 Samir Mustapha
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / HEVC tile split and rewrite filter
@@ -534,7 +534,7 @@ static u32 hevcsplit_remove_slice_address(GF_HEVCSplitCtx *ctx, u8 *in_slice, u3
 	//read byte_alignment() is bit=1 + x bit=0
 	al = gf_bs_read_int(ctx->bs_nal_in, 1);
 	if (al != 1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[HEVCTileSplit] source slice header not properly aligned\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[HEVCTileSplit] source slice header not properly aligned\n"));
 	}
 
 	//write byte_alignment() is bit=1 + x bit=0
@@ -747,7 +747,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	o_height = ctx->hevc_state.sps[sps_id].height;
 	ctx->num_tiles = ctx->hevc_state.pps[pps_id].num_tile_rows * ctx->hevc_state.pps[pps_id].num_tile_columns;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVCTileSplit] Input stream %dx%d with %d tiles:\n", o_width, o_height, ctx->num_tiles));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HEVCTileSplit] Input stream %dx%d with %d tiles:\n", o_width, o_height, ctx->num_tiles));
 
 	// Done with parsing SPS/pps/vps
 	u32 rows = ctx->hevc_state.pps[pps_id].num_tile_rows;
@@ -778,7 +778,7 @@ static GF_Err hevcsplit_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 			e = hevcsplit_rewrite_dsi(ctx, tpid->opid, dsi->value.data.ptr, dsi->value.data.size, tpid->width, tpid->height);
 			if (e) return e;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVCTileSplit] output pid %dx%d (position was %dx%d)\n", tpid->width, tpid->height, tpid->orig_x, tpid->orig_y));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HEVCTileSplit] output pid %dx%d (position was %dx%d)\n", tpid->width, tpid->height, tpid->orig_x, tpid->orig_y));
 		}
 	}
 	// reaggregate to form complete frame.
@@ -817,7 +817,7 @@ static GF_Err hevcsplit_process(GF_Filter *filter)
 	/*create a bitstream reader for the whole packet*/
 	gf_bs_reassign_buffer(ctx->bs_au_in, data, data_size);
 	ctx->nb_pck++;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVCTileSplit] splitting frame %d DTS "LLU" CTS "LLU"\n", ctx->nb_pck, gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[HEVCTileSplit] splitting frame %d DTS "LLU" CTS "LLU"\n", ctx->nb_pck, gf_filter_pck_get_dts(pck_src), gf_filter_pck_get_cts(pck_src)));
 
 	while (gf_bs_available(ctx->bs_au_in)) {
 		u8 *rewritten_nal;

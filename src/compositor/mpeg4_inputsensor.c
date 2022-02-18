@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -510,7 +510,7 @@ void InitInputSensor(GF_Scene *scene, GF_Node *node)
 	ISStack *stack;
 	GF_SAFEALLOC(stack, ISStack);
 	if (!stack) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate input sensor stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Compositor] Failed to allocate input sensor stack\n"));
 		return;
 	}
 	stack->is = (M_InputSensor *) node;
@@ -966,7 +966,7 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node)
 	StringSensorStack*st;
 	GF_SAFEALLOC(st, StringSensorStack)
 	if (!st) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate string sensor stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Compositor] Failed to allocate string sensor stack\n"));
 		return;
 	}
 	st->compositor = scene->compositor;

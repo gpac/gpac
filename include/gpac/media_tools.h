@@ -1191,7 +1191,7 @@ enum
 	/*! Experimental Streaming Instructions */
 	GF_EXPORT_SIX = (1<<16),
 
-	/*! ony probes extraction format*/
+	/*! only probes extraction format*/
 	GF_EXPORT_PROBE_ONLY = (1<<30),
 	/*when set by user during export, will abort*/
 	GF_EXPORT_DO_ABORT = 0x80000000 //(1<<31)

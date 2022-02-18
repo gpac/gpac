@@ -876,7 +876,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	if (txh->stream) {
 		u32 ck;
 		gf_mo_get_object_time(txh->stream, &ck);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->tx.is_yuv ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->tx.pbo_state ? "yes" : "no"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->tx.is_yuv ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->tx.pbo_state ? "yes" : "no"));
 	}
 #endif
 	return 1;

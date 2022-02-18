@@ -3788,7 +3788,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	case GF_CODECID_USAC:
 		if (!pctx->no_analysis) {
 			pctx->no_analysis = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Inspect] bitstream analysis for codec %s not supported, only configuration is\n", gf_codecid_name(pctx->codec_id)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] bitstream analysis for codec %s not supported, only configuration is\n", gf_codecid_name(pctx->codec_id)));
 		}
 		if (dsi) {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -3855,7 +3855,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 	default:
 		if (!pctx->no_analysis) {
 			pctx->no_analysis = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[Inspect] bitstream analysis for codec %s not supported\n", gf_codecid_name(pctx->codec_id)));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Inspect] bitstream analysis for codec %s not supported\n", gf_codecid_name(pctx->codec_id)));
 		}
 		gf_fprintf(dump, "/>\n");
 		return;
@@ -3948,7 +3948,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 			if (ctx->is_prober) {
 				nb_done++;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[Inspect] PID %d (codec %s) dump packet CTS "LLU"\n", pctx->idx, gf_codecid_name(pctx->codec_id), gf_filter_pck_get_cts(pck) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inspect] PID %d (codec %s) dump packet CTS "LLU"\n", pctx->idx, gf_codecid_name(pctx->codec_id), gf_filter_pck_get_cts(pck) ));
 				if (ctx->fmt) {
 					inspect_dump_packet_fmt(ctx, pctx->tmp, pck, pctx, pctx->pck_num);
 				} else {
@@ -3968,7 +3968,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 				GF_FilterEvent evt;
 				GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Inspect] PID %d (codec %s) done dumping, aborting\n", pctx->idx, gf_codecid_name(pctx->codec_id) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Inspect] PID %d (codec %s) done dumping, aborting\n", pctx->idx, gf_codecid_name(pctx->codec_id) ));
 				gf_filter_pid_drop_packet(pctx->src_pid);
 
 				gf_filter_pid_send_event(pctx->src_pid, &evt);
@@ -4170,7 +4170,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 
 #ifdef GPAC_DISABLE_AVPARSE_LOGS
 	if (ctx->analyze>=INSPECT_ANALYZE_BS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Inspect] Bitstream logging is disable in this build\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] Bitstream logging is disable in this build\n"));
 		return GF_NOT_SUPPORTED;
 	}
 #endif
@@ -4182,7 +4182,7 @@ GF_Err inspect_initialize(GF_Filter *filter)
 	else {
 		ctx->dump = gf_fopen(ctx->log, "wt");
 		if (!ctx->dump) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Inspect] Failed to open file %s\n", ctx->log));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Inspect] Failed to open file %s\n", ctx->log));
 			return GF_IO_ERR;
 		}
 	}
@@ -4242,7 +4242,7 @@ static const GF_FilterArgs InspectArgs[] =
 	"- pck: dump full packet\n"
 	"- blk: dump packets before reconstruction\n"
 	"- frame: force reframer\n"
-	"- raw: dump source packets without demuxing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
+	"- raw: dump source packets without demultiplexing", GF_PROP_UINT, "pck", "pck|blk|frame|raw", 0},
 	{ OFFS(interleave), "dump packets as they are received on each PID. If false, logs are reported for each PID at end of session", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(deep), "dump packets along with PID state change, implied when [-fmt]() is set", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(props), "dump packet properties, ignored when [-fmt]() is set", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
@@ -4291,7 +4291,7 @@ const GF_FilterRegister InspectRegister = {
 	GF_FS_SET_HELP("The inspect filter can be used to dump PID and packets. It may also be used to check parts of payload of the packets.\n"
 	"\n"
 	"The default options inspect only PID changes.\n"
-	"If [-full]() is not set, [-mode=frame]() is forced and PID properties are formated in human-readable form, one PID per line.\n"
+	"If [-full]() is not set, [-mode=frame]() is forced and PID properties are formatted in human-readable form, one PID per line.\n"
 	"Otherwise, all properties are dumped.\n"
 	"Note: specifying [-xml](), [-analyze](), [-fmt]() or using `-for-test` will force [-full]() to true.\n"
 	"\n"
@@ -4320,7 +4320,7 @@ const GF_FilterRegister InspectRegister = {
 	"- crypt: crypt flag\n"
 	"- vers: carousel version number\n"
 	"- size: size of packet\n"
-	"- csize: cumulated size of packets\n"
+	"- csize: total size of packets received so far\n"
 	"- crc: 32 bit CRC of packet\n"
 	"- lf or n: insert new line\n"
 	"- t: insert tab\n"

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2019-2021
+ *			Copyright (c) Telecom ParisTech 2019-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript vector graphics bindings
@@ -1602,7 +1602,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 				if (op->uni_name) stack_idx = op->ival;
 
 				if (!stack_idx || (stack_idx > shader->nb_ops)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid goto operation, stack index %d not in stack indices [1, %d]\n", op->left_value, shader->nb_ops));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Shader] Invalid goto operation, stack index %d not in stack indices [1, %d]\n", op->left_value, shader->nb_ops));
 					shader->invalid = GF_TRUE;
 					return GF_FALSE;
 				}
@@ -1766,7 +1766,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 						gf_mx_apply_vec_4x4(op->mx.mx, left_val);
 						continue;
 					}
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid operation for right value matrix\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Shader] Invalid operation for right value matrix\n"));
 					shader->invalid = GF_TRUE;
 					return GF_FALSE;
 				}
@@ -1833,7 +1833,7 @@ static Bool evg_shader_ops(GF_JSCanvas *canvas, EVGShader *shader, GF_EVGFragmen
 			}
 		}
 		if (!right_val_type) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[Shader] Invalid right-value type in operation (stack index %d)\n", (u32) ((op - shader->ops) / sizeof(ShaderOp)) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Shader] Invalid right-value type in operation (stack index %d)\n", (u32) ((op - shader->ops) / sizeof(ShaderOp)) ));
 			shader->invalid = GF_TRUE;
 			return GF_FALSE;
 		}

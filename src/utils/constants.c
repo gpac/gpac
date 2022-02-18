@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / filters sub-project
@@ -466,7 +466,7 @@ u32 gf_stream_type_by_name(const char *val)
 			return GF_StreamTypes[i].st;
 	}
 	if (strnicmp(val, "unkn", 4) && strnicmp(val, "undef", 5)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unknow stream type %s\n", val));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unknow stream type %s\n", val));
 	}
 	return GF_STREAM_UNKNOWN;
 }
@@ -486,7 +486,7 @@ const char *gf_stream_type_all_names()
 		for (i=0; i<nb_st; i++) {
 			u32 len = (u32) strlen(GF_StreamTypes[i].name);
 			if (len+tot_len+2>=500) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all stream types!!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all stream types!!\n"));
 				break;
 			}
 			if (i) {
@@ -593,7 +593,7 @@ GF_AudioFormat gf_audio_fmt_parse(const char *af_name)
 			return GF_AudioFormats[i].sfmt;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %s\n", af_name));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported audio format %s\n", af_name));
 	return 0;
 }
 
@@ -605,7 +605,7 @@ const char *gf_audio_fmt_name(GF_AudioFormat sfmt)
 		if (GF_AudioFormats[i].sfmt==sfmt) return GF_AudioFormats[i].name;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %d\n", sfmt ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported audio format %d\n", sfmt ));
 	return "unknown";
 }
 GF_EXPORT
@@ -620,7 +620,7 @@ const char *gf_audio_fmt_sname(GF_AudioFormat sfmt)
 		}
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported audio format %d\n", sfmt ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported audio format %d\n", sfmt ));
 	return "unknown";
 }
 
@@ -636,7 +636,7 @@ const char *gf_audio_fmt_all_names()
 		while (!i || GF_AudioFormats[i].sfmt) {
 			u32 len = (u32) strlen(GF_AudioFormats[i].name);
 			if (len+tot_len+2>=500) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all audio formats!!\n"));
 				break;
 			}
 			strcat((char *)szAllAudioFormats, ",");
@@ -662,7 +662,7 @@ const char *gf_audio_fmt_all_shortnames()
 			const char * n = GF_AudioFormats[i].sname ? GF_AudioFormats[i].sname : GF_AudioFormats[i].name;
 			u32 len = (u32) strlen(n);
 			if (len+tot_len+1>=500) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all audio formats!!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all audio formats!!\n"));
 				break;
 			}
 			if (i) {
@@ -853,7 +853,7 @@ u64 gf_audio_fmt_get_layout_from_cicp(u32 cicp_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].cicp == cicp_layout) return GF_CICPLayouts[i].channel_mask;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout value %d\n", cicp_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout value %d\n", cicp_layout));
 	return 0;
 }
 
@@ -864,7 +864,7 @@ const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].cicp == cicp_layout) return GF_CICPLayouts[i].name;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout value %d\n", cicp_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout value %d\n", cicp_layout));
 	return "unknwon";
 }
 
@@ -875,7 +875,7 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].channel_mask == ch_layout) return GF_CICPLayouts[i].name;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout value "LLU"\n", ch_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout value "LLU"\n", ch_layout));
 	return "unknwon";
 }
 
@@ -891,7 +891,7 @@ u64 gf_audio_fmt_get_layout_from_name(const char *name)
 		if (GF_CICPLayouts[i].cicp ==  iname)
 			return GF_CICPLayouts[i].channel_mask;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout name %s\n", name));
 	return 0;
 }
 
@@ -903,7 +903,7 @@ u32 gf_audio_fmt_get_cicp_from_layout(u64 chan_layout)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].channel_mask == chan_layout) return GF_CICPLayouts[i].cicp;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout "LLU"\n", chan_layout));
 	return 255;
 }
 
@@ -924,7 +924,7 @@ u32 gf_audio_fmt_get_cicp_from_name(const char *name)
 		if (GF_CICPLayouts[i].cicp == iname)
 			return GF_CICPLayouts[i].cicp;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported audio layout name %s\n", name));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout name %s\n", name));
 	return 0;
 }
 
@@ -938,7 +938,7 @@ const char *gf_audio_fmt_get_cicp_name(u32 cicp_code)
 	for (i = 0; i < nb_cicp; i++) {
 		if (GF_CICPLayouts[i].cicp == cicp_code) return GF_CICPLayouts[i].name;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout for channel layout "LLU"\n", cicp_code));
 	return NULL;
 }
 #endif
@@ -1092,7 +1092,7 @@ GF_PixelFormat gf_pixel_fmt_parse(const char *pf_name)
 			return GF_PixelFormats[i].pixfmt;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s\n", pf_name));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %s\n", pf_name));
 	return 0;
 }
 
@@ -1127,7 +1127,7 @@ const char *gf_pixel_fmt_name(GF_PixelFormat pfmt)
 		if (GF_PixelFormats[i].pixfmt==pfmt) return GF_PixelFormats[i].name;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";
 }
 GF_EXPORT
@@ -1142,7 +1142,7 @@ const char *gf_pixel_fmt_sname(GF_PixelFormat pfmt)
 		}
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %d (%s)\n", pfmt, gf_4cc_to_str(pfmt) ));
 	return "unknown";
 
 }
@@ -1196,7 +1196,7 @@ const char *gf_pixel_fmt_all_names()
 
 			len = (u32) strlen(GF_PixelFormats[i].name);
 			if (len+tot_len+2>=5000) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
 			strcat((char *)szAllPixelFormats, ",");
@@ -1228,7 +1228,7 @@ const char *gf_pixel_fmt_all_shortnames()
 			n = GF_PixelFormats[i].sname ? GF_PixelFormats[i].sname : GF_PixelFormats[i].name;
 			len = (u32) strlen(n);
 			if (len+tot_len+1>=5000) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Not enough memory to hold all pixel formats!!\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Not enough memory to hold all pixel formats!!\n"));
 				break;
 			}
 			if (i) {
@@ -1427,7 +1427,7 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		uv_height = 0;
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
 		return GF_FALSE;
 	}
 	if (out_size) *out_size = size;
@@ -1548,7 +1548,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %s, cannot get bytes per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
 		break;
 	}
 	return 0;
@@ -1633,7 +1633,7 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unsupported pixel format %s, cannot get number of components per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %s, cannot get number of components per pixel info\n", gf_pixel_fmt_name(pixfmt) ));
 		break;
 	}
 	return 0;
@@ -1930,7 +1930,7 @@ u32 gf_cicp_parse_color_primaries(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color primaries type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color primaries type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2000,7 +2000,7 @@ u32 gf_cicp_parse_color_transfer(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color transfer type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color transfer type %s\n", val));
 	}
 	return (u32) -1;
 }
@@ -2061,7 +2061,7 @@ u32 gf_cicp_parse_color_matrix(const char *val)
 		}
 	}
 	if (strcmp(val, "-1")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Unknow CICP color matrix type %s\n", val));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknow CICP color matrix type %s\n", val));
 	}
 	return (u32) -1;
 }

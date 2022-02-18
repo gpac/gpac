@@ -1694,7 +1694,7 @@ static GF_Err tsmux_process(GF_Filter *filter)
 			ctx->last_log_time = now;
 		else if (now > ctx->last_log_time + ctx->log_freq) {
 			ctx->last_log_time = now;
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[M2TSMux] time % 6d TS time % 6d bitrate % 8d\r", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->average_birate_kbps));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[M2TSMux] time % 6d TS time % 6d bitrate % 8d\r", gf_m2ts_get_sys_clock(ctx->mux), gf_m2ts_get_ts_clock(ctx->mux), ctx->mux->average_birate_kbps));
 		}
 		if (status == GF_M2TS_STATE_IDLE) {
 #if 0
@@ -1767,7 +1767,7 @@ static void tsmux_finalize(GF_Filter *filter)
 #endif
 	u64 dur_ms = gf_m2ts_get_ts_clock(ctx->mux);
 	if (!dur_ms) dur_ms = 1;
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[M2TSMux] Done muxing - %.02f sec - %sbitrate %d kbps "LLD" packets written\nPadding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n",
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[M2TSMux] Done muxing - %.02f sec - %sbitrate %d kbps "LLD" packets written\nPadding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n",
 		((Double) dur_ms)/1000.0, ctx->rate ? "" : "average ", (u32) (bits/dur_ms), ctx->mux->tot_pck_sent,
 		 ctx->mux->tot_pad_sent, (Double) (ctx->mux->tot_pad_sent*188*8.0/dur_ms) , ctx->mux->tot_pes_pad_bytes, (Double) (ctx->mux->tot_pes_pad_bytes*8.0/dur_ms)
 	));
@@ -1908,7 +1908,7 @@ static const GF_FilterArgs TSMuxArgs[] =
 
 GF_FilterRegister TSMuxRegister = {
 	.name = "m2tsmx",
-	GF_FS_SET_DESCRIPTION("MPEG-2 TS muxer")
+	GF_FS_SET_DESCRIPTION("MPEG-2 TS multiplexer")
 	GF_FS_SET_HELP("This filter multiplexes one or more input PIDs into a MPEG-2 Transport Stream multiplex.\n"
 		"\n"
 		"# PID selection\n"
@@ -1959,7 +1959,7 @@ GF_FilterRegister TSMuxRegister = {
 		"In DASH and HLS mode:\n"
 		"- the PCR is always initialized at 0, and [-flush_rap]() is automatically set.\n"
 		"- unless `nb_pack` is specified, 200 TS packets will be used as pack output in DASH mode.\n"
-		"- `pes_pack=none` is forced since some demuxers have issues with non-aligned ADTS PES.\n"
+		"- `pes_pack=none` is forced since some demultiplexers have issues with non-aligned ADTS PES.\n"
 		"\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
 	)

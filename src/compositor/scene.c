@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -422,7 +422,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	GF_MediaObject *obj;
 	GF_ObjectManager *odm;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] disconnecting\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Scene] disconnecting\n"));
 
 
 	/*force unregistering of inline nodes (for safety)*/
@@ -583,7 +583,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	/*HACK - temp storage of sync ref*/
 	if (sync_ref) odm->sync_ref = sync_ref;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
 	gf_list_add(scene->resources, odm);
 
 	gf_odm_setup_remote_object(odm, original_parent_scene ? original_parent_scene->root_od->scene_ns : NULL, final_url, for_addon);
@@ -609,7 +609,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 
 	gf_list_del_item(scene->resources, odm);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] removing ODM %d\n", odm->ID ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Scene] removing ODM %d\n", odm->ID ));
 
 
 	i=0;
@@ -1099,7 +1099,7 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_MediaObject *obj;
 	u32 i;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %p)\n", odm->ID, odm->mo));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Scene] Setup object manager %d (MO %p)\n", odm->ID, odm->mo));
 
 	/*an object may already be assigned (when using ESD URLs, setup is performed twice)*/
 	if (odm->mo != NULL) goto existing;
@@ -1493,7 +1493,7 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *name, const ch
 		if (url)
 			url->vals = gf_malloc(sizeof(SFURL));
 		if (!url || !url->vals) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate VR proto\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate VR proto\n"));
 			return NULL;
 		}
 		url->count=1;
@@ -1572,7 +1572,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	M_Inline *dims;
 	if (scene->is_dynamic_scene != 1) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->scene_ns->url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->scene_ns->url));
 
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1");
 
@@ -1984,7 +1984,7 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 				gf_odm_disconnect(odm, 2);
 			}
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->scene_ns->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->scene_ns->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
 
 		scene->selected_service_id = service_id;
 		scene->audio_url.OD_ID = 0;
@@ -2317,14 +2317,14 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 	}
 
 	if (!restart_only) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Restarting from "LLD"\n", from_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Scene] Restarting from "LLD"\n", from_time));
 		/*reset clock*/
 		gf_clock_reset(ck);
 
 		//used by SVG for JSAPIs..;
 		if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0);
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Restarting scene from current clock %d\n", gf_clock_time(ck) ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Scene] Restarting scene from current clock %d\n", gf_clock_time(ck) ));
 	}
 
 
@@ -2935,7 +2935,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	mo = gf_scene_get_media_object_ex(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE, NULL, GF_FALSE, NULL, scene);
 
 	if (!mo || !mo->odm) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Compositor] Failed to load media addon %s\n", addon->url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Compositor] Failed to load media addon %s\n", addon->url));
 		return;
 	}
 
@@ -3031,7 +3031,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	if (!addon) {
 		GF_SAFEALLOC(addon, GF_AddonMedia);
 		if (!addon) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media addon\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate media addon\n"));
 			return;
 		}
 		addon->timeline_id = addon_info->timeline_id;

@@ -140,7 +140,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 		} else {
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 100000000)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[ProResDmx] Source file larger than 100M, skipping indexing\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ProResDmx] Source file larger than 100M, skipping indexing\n"));
 			} else {
 				ctx->findex = 2;
 			}
@@ -224,7 +224,7 @@ static Bool proresdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 				ctx->findex = 2;
 				ctx->file_loaded = GF_FALSE;
 				ctx->duration.den = ctx->duration.num = 0;
-				GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[ProResDmx] Play request from %d, building index\n", ctx->start_range));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ProResDmx] Play request from %d, building index\n", ctx->start_range));
 				proresdmx_check_dur(filter, ctx);
 			}
 			if ((evt->play.speed<0) && (ctx->start_range<0)) {

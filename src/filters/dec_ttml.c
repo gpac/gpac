@@ -366,7 +366,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 				first = GF_FALSE;
 				if (subs_size>pck_size) {
 					gf_filter_pid_drop_packet(ctx->ipid);
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[TTMLDec] Invalid subsample size %d for packet size %d\n", subs_size, pck_size));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[TTMLDec] Invalid subsample size %d for packet size %d\n", subs_size, pck_size));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 				pck_alloc = gf_malloc(sizeof(char)*(subs_size+2));

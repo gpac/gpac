@@ -63,7 +63,7 @@ typedef struct
 } GF_TileAggCtx;
 
 #define TILEAGG_CFG_ERR(_msg) {\
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Error configuring pid %s: %s\n", gf_filter_pid_get_name(pid), _msg ));\
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Error configuring pid %s: %s\n", gf_filter_pid_get_name(pid), _msg ));\
 		goto config_error;\
 	}
 
@@ -280,7 +280,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 						gf_filter_ask_rt_reschedule(filter, 0);
 						return GF_OK;
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] No frames on tiled pid %s after %d ms, reaggregating with lost tiles\n", gf_filter_pid_get_name(pctx->pid), gf_sys_clock() - ctx->wait_start ));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] No frames on tiled pid %s after %d ms, reaggregating with lost tiles\n", gf_filter_pid_get_name(pctx->pid), gf_sys_clock() - ctx->wait_start ));
 						break;
 					}
 				}
@@ -289,7 +289,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 
 			cts = gf_filter_pck_get_cts(pck);
 			if (cts < min_cts) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pctx->pid), cts, min_cts ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Tiled pid %s with cts "LLU" less than base tile pid cts "LLU" - discarding packet\n", gf_filter_pid_get_name(pctx->pid), cts, min_cts ));
 				gf_filter_pid_drop_packet(pctx->pid);
 			} else {
 				break;
@@ -314,7 +314,7 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		nb_ready++;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[TileAgg] reaggregating CTS "LLU" %d ready %d pids (nb flush pck %d)\n", min_cts, nb_ready+1, count, ctx->flush_packets));
 	if (ctx->flush_packets) {
 		ctx->flush_packets--;
 	}
@@ -459,7 +459,7 @@ static Bool tileagg_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			if (!ctx->flush_packets)
 				gf_filter_pid_get_buffer_occupancy(ctx->base_ipid, NULL, &ctx->flush_packets, NULL, NULL);
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] Something is wrong in demuxer, received segment flush event but previous segment is not yet flushed !\n" ));
 			}
 			ctx->wait_start = 0;
 		}
@@ -513,7 +513,7 @@ static const GF_FilterArgs TileAggArgs[] =
 GF_FilterRegister TileAggRegister = {
 	.name = "tileagg",
 	GF_FS_SET_DESCRIPTION("HEVC tile aggregator")
-	GF_FS_SET_HELP("This filter reaggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in ISOBMFF) into a single HEVC stream.")
+	GF_FS_SET_HELP("This filter aggregates a set of split tiled HEVC streams (`hvt1` or `hvt2` in ISOBMFF) into a single HEVC stream.")
 	.private_size = sizeof(GF_TileAggCtx),
 	SETCAPS(TileAggCaps),
 	.initialize = tileagg_initialize,

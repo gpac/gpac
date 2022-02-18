@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2018
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -308,7 +308,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		}
 		return;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[Texture %p] Updated new frame at clock time %d (%d ms) time %u ms\n", txh, gf_clock_time(txh->stream->odm->ck), gf_sys_clock(), ts));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Texture %p] Updated new frame at clock time %d (%d ms) time %u ms\n", txh, gf_clock_time(txh->stream->odm->ck), gf_sys_clock(), ts));
 	txh->stream_finished = 0;
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012
+ *			Copyright (c) Telecom ParisTech 2004-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / DOM 3 Events sub-project
@@ -719,7 +719,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		if (j!=count) i++;
 		count++;
 		found++;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Inserting new time in %s: %f\n", gf_node_get_scene_time(timed_elt), gf_node_get_log_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[SMIL Timing   ] Time %f - Timed element %s - Inserting new time in %s: %f\n", gf_node_get_scene_time(timed_elt), gf_node_get_log_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
 	}
 	/* calling indirectly gf_smil_timing_modified */
 	if (found) gf_node_changed(timed_elt, info);

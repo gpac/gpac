@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -101,7 +101,7 @@ void InitMediaSensor(GF_Scene *scene, GF_Node *node)
 	MediaSensorStack *st;
 	GF_SAFEALLOC(st, MediaSensorStack);
 	if (!st) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media sensor stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate media sensor stack\n"));
 		return;
 	}
 

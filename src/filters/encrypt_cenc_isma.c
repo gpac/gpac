@@ -216,7 +216,7 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	}
 
 	if (!cstr->tci || !cstr->tci->nb_keys) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] No keys specified for ISMA\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISMACrypt] No keys specified for ISMA\n"));
 		return GF_BAD_PARAM;
 	}
 
@@ -226,17 +226,17 @@ static GF_Err isma_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, Bool i
 	if (cstr->keys[0].crypt) gf_crypt_close(cstr->keys[0].crypt);
 	cstr->keys[0].crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 	if (!cstr->keys[0].crypt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] Cannot open AES-128 CTR\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISMACrypt] Cannot open AES-128 CTR\n"));
 		return GF_IO_ERR;
 	}
 
 	e = gf_crypt_init(cstr->keys[0].crypt, cstr->tci->keys[0].key, IV);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISMACrypt] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISMACrypt] Cannot initialize AES-128 CTR (%s)\n", gf_error_to_string(e)) );
 		return GF_IO_ERR;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMACrypt] Encrypting stream %s - KMS: %s%s\n", gf_filter_pid_get_name(cstr->ipid), cstr->tci->KMS_URI, cstr->tci->sel_enc_type ? " - Selective Encryption" : ""));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ISMACrypt] Encrypting stream %s - KMS: %s%s\n", gf_filter_pid_get_name(cstr->ipid), cstr->tci->KMS_URI, cstr->tci->sel_enc_type ? " - Selective Encryption" : ""));
 
 	if (!stricmp(kms_uri, "self")) {
 		char Data[100], d64[100];
@@ -376,7 +376,7 @@ static GF_Err adobe_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr)
 	if (cstr->keys[0].crypt) gf_crypt_close(cstr->keys[0].crypt);
 	cstr->keys[0].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 	if (!cstr->keys[0].crypt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Adobe] Cannot open AES-128 CBC \n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Adobe] Cannot open AES-128 CBC \n"));
 		return GF_IO_ERR;
 	}
 
@@ -409,7 +409,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 	root = gf_xml_dom_get_root(parser);
 	if (!root) {
 		gf_xml_dom_del(parser);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open or validate xml file %s\n", ctx->cfile));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Cannot open or validate xml file %s\n", ctx->cfile));
 		return GF_NOT_SUPPORTED;
 	}
 	pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -467,14 +467,14 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			} else if (!strcmp(att->name, "cypherKey")) {
 				e = gf_bin128_parse(att->value, cypherKey);
                 if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherKey\n"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherKey\n"));
                     break;
                 }
 				has_key = GF_TRUE;
 			} else if (!strcmp(att->name, "cypherIV")) {
 				e = gf_bin128_parse(att->value, cypherIV);
                 if (e != GF_OK) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannnot parse cypherIV\n"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannnot parse cypherIV\n"));
                     break;
                 }
 				has_IV = GF_TRUE;
@@ -484,7 +484,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		}
 
 		if (!is_pssh) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Not a Protection System Specific Header Box - skipping\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Not a Protection System Specific Header Box - skipping\n"));
 			continue;
 		}
 
@@ -499,7 +499,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		if (version) {
 			KID_count = gf_bs_read_u32(bs);
 			if (KID_count*16 > gf_bs_available(bs)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob, KID count %d but only %d bytes available\n", KID_count, gf_bs_available(bs)));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid PSSH blob, KID count %d but only %d bytes available\n", KID_count, gf_bs_available(bs)));
 				if (specInfo) gf_free(specInfo);
 				gf_bs_del(bs);
 				e = GF_NON_COMPLIANT_BITSTREAM;
@@ -521,7 +521,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 			KIDs = NULL;
 		}
 		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
 
 			if (specInfo) gf_free(specInfo);
 			gf_bs_del(bs);
@@ -542,7 +542,7 @@ static GF_Err cenc_parse_pssh(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const cha
 		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 1)) {
 			GF_Crypt *gc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!gc) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				if (specInfo) gf_free(specInfo);
 				gf_bs_del(bs);
 				if (KIDs) gf_free(KIDs);
@@ -832,7 +832,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	)  {
 		if (!cstr->tci->crypt_byte_block || !cstr->tci->skip_byte_block) {
 			if (cstr->tci->crypt_byte_block || cstr->tci->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Using pattern mode, crypt_byte_block and skip_byte_block shall be 0 only for track other than video, using 1 crypt + 9 skip\n"));
 			}
 			cstr->tci->crypt_byte_block = 1;
 			cstr->tci->skip_byte_block = 9;
@@ -840,7 +840,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 
 	if ( (cstr->cenc_codec==CENC_VPX) && (cstr->tci->scheme_type != GF_CRYPT_TYPE_CENC) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Encryption mode %s is not supported with VP8/VP9, only cenc is\n", gf_4cc_to_str(cstr->tci->scheme_type) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Encryption mode %s is not supported with VP8/VP9, only cenc is\n", gf_4cc_to_str(cstr->tci->scheme_type) ));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -853,13 +853,13 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 		const GF_PropertyValue *prop = gf_filter_pid_get_property(cstr->ipid, GF_PROP_PID_STREAM_TYPE);
 		if (prop && prop->value.uint != GF_STREAM_VISUAL) {
 			if (cstr->tci->skip_byte_block) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("\n[CENC] Using cbcs pattern mode on-video track is disabled in GPAC, using whole-block full encryption\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on-video track is disabled in GPAC, using whole-block full encryption\n"));
 				cstr->tci->skip_byte_block = 0;
 			}
 		}
 		if (cstr->tci->skip_byte_block) {
 			cstr->use_subsamples = GF_TRUE;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("\n[CENC] Using cbcs pattern mode on non NAL video track, this may not be supported by most devices; consider setting skip_byte_block to 0\n\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("\n[CENC] Using cbcs pattern mode on non NAL video track, this may not be supported by most devices; consider setting skip_byte_block to 0\n\n"));
 			//cbcs allows bytes of clear data
 			cstr->bytes_in_nal_hdr = cstr->tci->clear_bytes;
 		}
@@ -878,7 +878,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 	}
 	else if (cstr->tci->scheme_type == GF_CRYPT_TYPE_CENS) {
 		if (cstr->tci->skip_byte_block) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using cens pattern mode on non NAL video track not allowed, forcing skip_byte_block to 0\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Using cens pattern mode on non NAL video track not allowed, forcing skip_byte_block to 0\n"));
 			cstr->tci->skip_byte_block = 0;
 			if (!cstr->tci->crypt_byte_block) {
 				cstr->tci->crypt_byte_block = 1;
@@ -937,7 +937,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 
 		/*select key*/
 		if (!cstr->tci->keys) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No key specified\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] No key specified\n"));
 			return GF_BAD_PARAM;
 		}
 
@@ -952,7 +952,7 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				cstr->keys[i].crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 			}
 			if (!cstr->keys[i].crypt) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot open AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannot open AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
 				return GF_IO_ERR;
 			}
 
@@ -1213,7 +1213,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				gf_filter_pid_set_property(cstr->opid, GF_PROP_PID_ORIG_STREAM_TYPE, & PROP_UINT(prop->value.uint) );
 				break;
 			default:
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENCrypt] Stream type %s cannot be encrypted, using passthrough\n", gf_stream_type_name(prop->value.uint) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENCrypt] Stream type %s cannot be encrypted, using passthrough\n", gf_stream_type_name(prop->value.uint) ));
 				cstr->passthrough = GF_TRUE;
 				break;
 			}
@@ -1244,7 +1244,7 @@ static GF_Err cenc_enc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			case GF_CRYPT_TYPE_CBCS:
 				break;
 			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Multi-key not possible with scheme %s, ignoring\n", gf_4cc_to_str(scheme_type) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Multi-key not possible with scheme %s, ignoring\n", gf_4cc_to_str(scheme_type) ));
 				cstr->multi_key = 0;
 				break;
 			}
@@ -1345,7 +1345,7 @@ static GF_Err isma_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 	data = gf_filter_pck_get_data(pck, &size);
 	if (!data) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] No data associated with packet\n" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] No data associated with packet\n" ));
 		return GF_OK;
 	}
 	dst_pck = gf_filter_pck_new_alloc(cstr->opid, size+isma_hdr_size, &output);
@@ -1447,7 +1447,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 
 	data = gf_filter_pck_get_data(pck, &size);
 	if (!data) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] No data associated with packet\n" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] No data associated with packet\n" ));
 		return GF_OK;
 	}
 	padding_bytes = 0;
@@ -1473,7 +1473,7 @@ static GF_Err adobe_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPa
 		}
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n",  gf_error_to_string(e)) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n",  gf_error_to_string(e)) );
 			gf_filter_pck_discard(dst_pck);
 			return GF_IO_ERR;
 		}
@@ -1731,7 +1731,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				pos = gf_bs_get_position(ctx->bs_r);
 				e = gf_av1_parse_obu(ctx->bs_r, &obut, &obu_size, &hdr_size, cstr->av1_state);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Failed to parse OBU\n" ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Failed to parse OBU\n" ));
 					return e;
 				}
 				gf_bs_seek(ctx->bs_r, pos);
@@ -1782,7 +1782,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				break;
 			case CENC_VPX:
 				if (cstr->tci->block_align != 2) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] VP9 mandates that blockAlign=\"always\". Forcing value.\n"));
 					cstr->tci->block_align = 2;
 				}
 
@@ -1799,7 +1799,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					u64 pos2 = gf_bs_get_position(ctx->bs_r);
 					e = gf_vp9_parse_sample(ctx->bs_r, cstr->vp9_cfg, &key_frame, &width, &height, &renderWidth, &renderHeight);
 					if (e) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Error parsing VP9 frame at DTS "LLU"\n", gf_filter_pck_get_dts(pck) ));
 						return e;
 					}
 
@@ -1809,7 +1809,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					gf_bs_seek(ctx->bs_r, pos2 + frame_sizes[i]);
 				}
 				if (gf_bs_get_position(ctx->bs_r) + superframe_index_size != pos + pck_size) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[CENC] Inconsistent VP9 size %u (parsed "LLU") at DTS "LLU". Re-import raw VP9/IVF for more details.\n",
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[CENC] Inconsistent VP9 size %u (parsed "LLU") at DTS "LLU". Re-import raw VP9/IVF for more details.\n",
 						pck_size, gf_bs_get_position(ctx->bs_r) + superframe_index_size - pos, gf_filter_pck_get_dts(pck)));
 				}
 				gf_bs_seek(ctx->bs_r, pos);
@@ -2041,7 +2041,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 
 				range_idx++;
 				if (range_idx >= AV1_MAX_TILE_ROWS * AV1_MAX_TILE_COLS) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] More ranges than tiles allowed spec, bitstream error ?\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] More ranges than tiles allowed spec, bitstream error ?\n"));
 					return GF_BAD_PARAM;
 				}
 				switch (cstr->cenc_codec) {
@@ -2059,7 +2059,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 					}
 					break;
 				default:
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Unexpected subrange for sample format, only allowed for VPX and AV1\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Unexpected subrange for sample format, only allowed for VPX and AV1\n"));
 					return GF_BAD_PARAM;
 				}
 			}
@@ -2216,7 +2216,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 						else if (strcmp(att->value, "ctr")) crypt_mode = GF_CTR;
 						else if (strcmp(att->value, "ecb")) crypt_mode = GF_ECB;
 						else {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Unsupported mode %s, ignoring DRMInfoTemplate\n", att->value));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Unsupported mode %s, ignoring DRMInfoTemplate\n", att->value));
 							valid=GF_FALSE;
 						}
 					}
@@ -2230,11 +2230,11 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				if (!valid) continue;
 
 				if (!sys_att) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Missing systemID, ignoring DRMInfoTemplate\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing systemID, ignoring DRMInfoTemplate\n"));
 					continue;
 				}
 				if (!key_val) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Missing keyval, ignoring DRMInfoTemplate\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Missing keyval, ignoring DRMInfoTemplate\n"));
 					continue;
 				}
 
@@ -2285,7 +2285,7 @@ static GF_Err cenc_encrypt_packet(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_Fi
 				u32 pssh_kid_size;
 				GF_Err e = gf_xml_parse_bit_sequence(pssh_tpl, cfile_name, &pssh_kid, &pssh_kid_size);
 				if (e) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] Failed to get binary XML for PSSH template: %s\n", gf_error_to_string(e) ));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] Failed to get binary XML for PSSH template: %s\n", gf_error_to_string(e) ));
 				} else {
 					bin128 system_ID;
 					gf_bin128_parse(sys_att->value, system_ID);
@@ -2331,7 +2331,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 	data = gf_filter_pck_get_data(pck, &pck_size);
 	if (!data) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMACrypt] No data associated with packet\n" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISMACrypt] No data associated with packet\n" ));
 		return GF_OK;
 	}
 
@@ -2440,7 +2440,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 			e = gf_crypt_init(cstr->keys[i].crypt, cstr->keys[i].key, cstr->keys[i].IV);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannot initialize AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 				return GF_IO_ERR;
 			}
 
@@ -2490,7 +2490,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 			cstr->pssh_template_plus_one = new_idx+1;
 			e = gf_crypt_set_key(cstr->keys[0].crypt, cstr->keys[0].key);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannot set key AES-128 %s (%s)\n", cstr->ctr_mode ? "CTR" : "CBC", gf_error_to_string(e)) );
 				return e;
 			}
 		}
@@ -2520,7 +2520,7 @@ static GF_Err cenc_process(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, GF_FilterPac
 
 	e = cenc_encrypt_packet(ctx, cstr, pck);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Error encrypting packet %d in PID %s: %s\n", cstr->nb_pck, gf_filter_pid_get_name(cstr->ipid), gf_error_to_string(e)) );
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Error encrypting packet %d in PID %s: %s\n", cstr->nb_pck, gf_filter_pid_get_name(cstr->ipid), gf_error_to_string(e)) );
 		return e;
 	}
 
@@ -2574,7 +2574,7 @@ static GF_Err cenc_enc_initialize(GF_Filter *filter)
 		GF_Err e;
 		ctx->cinfo = gf_crypt_info_load(ctx->cfile, &e);
 		if (!ctx->cinfo) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENCCrypt] Cannot load config file %s\n", ctx->cfile ));
 			return GF_BAD_PARAM;
 		}
 	}

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / AVI output filter
@@ -580,7 +580,7 @@ static const GF_FilterCapability AVIMuxCapsNoRAW[] =
 
 GF_FilterRegister AVIMuxRegister = {
 	.name = "avimx",
-	GF_FS_SET_DESCRIPTION("AVI muxer")
+	GF_FS_SET_DESCRIPTION("AVI multiplexer")
 	GF_FS_SET_HELP("This filter multiplexes raw or compressed audio and video to produce an AVI output.\n"
 		"\n"
 		"Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.\n"
