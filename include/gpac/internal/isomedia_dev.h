@@ -2605,6 +2605,10 @@ typedef struct
 	//temp storage of prft box
 	GF_ISOTrackID reference_track_ID;
 	u64 ntp, timestamp;
+
+	//emsg to inject before moof, not part of the moof hierarchy !
+
+	GF_List *emsgs;
 } GF_MovieFragmentBox;
 
 
