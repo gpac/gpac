@@ -1977,7 +1977,7 @@ BOOL COptLogs::OnInitDialog()
 		break;
 	}
 
-	m_sync.SetCheck(gpac->m_log_tools & GF_LOG_SYNC);
+	m_sync.SetCheck(gpac->m_log_tools & GF_LOG_COMPTIME);
 	m_script.SetCheck(gpac->m_log_tools & GF_LOG_SCRIPT);
 	m_scene.SetCheck(gpac->m_log_tools & GF_LOG_SCENE);
 	m_rtp.SetCheck(gpac->m_log_tools & GF_LOG_RTP);
@@ -1991,7 +1991,7 @@ BOOL COptLogs::OnInitDialog()
 	m_compose.SetCheck(gpac->m_log_tools & GF_LOG_INTERACT);
 	m_coding.SetCheck(gpac->m_log_tools & GF_LOG_CODING);
 	m_codec.SetCheck(gpac->m_log_tools & GF_LOG_CODEC);
-	m_author.SetCheck(gpac->m_log_tools & GF_LOG_AUTHOR);
+	m_author.SetCheck(gpac->m_log_tools & GF_LOG_FILTER);
 #endif
 
 	return TRUE;

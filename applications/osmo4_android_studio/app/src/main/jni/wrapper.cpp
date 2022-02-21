@@ -480,11 +480,8 @@ displayInAndroidlogs:
 		case GF_LOG_RTP:
 			tag="GF_LOG_RTP";
 			break;
-		case GF_LOG_AUTHOR:
-			tag="GF_LOG_AUTHOR";
-			break;
-		case GF_LOG_SYNC:
-			tag="GF_LOG_SYNC";
+		case GF_LOG_COMPTIME:
+			tag="GF_LOG_COMPTIME";
 			break;
 		case GF_LOG_CODEC:
 			tag="GF_LOG_CODEC";
@@ -516,9 +513,6 @@ displayInAndroidlogs:
 		case GF_LOG_RTI:
 			tag="GF_LOG_RTI";
 			break;
-		case GF_LOG_SMIL:
-			tag="GF_LOG_SMIL";
-			break;
 		case GF_LOG_MEMORY:
 			tag="GF_LOG_MEMORY";
 			break;
@@ -537,14 +531,20 @@ displayInAndroidlogs:
 		case GF_LOG_DASH:
 			tag="GF_LOG_DASH";
 			break;
+		case GF_LOG_FILTER:
+			tag="GF_LOG_FILTER";
+			break;
+		case GF_LOG_SCHEDULER:
+			tag="GF_LOG_SCHEDULER";
+			break;
+		case GF_LOG_ROUTE:
+			tag="GF_LOG_ROUTE";
+			break;
 		case GF_LOG_CONSOLE:
 			tag="GF_LOG_CONSOLE";
 			break;
 		case GF_LOG_APP:
 			tag="GF_LOG_APP";
-			break;
-		case GF_LOG_SCHEDULER:
-			tag="GF_LOG_SCHEDULER";
 			break;
 		default:
 			snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
