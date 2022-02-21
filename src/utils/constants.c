@@ -160,6 +160,7 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac"},
 	{GF_CODECID_V210, 0, GF_STREAM_VISUAL, "v210 YUV 422 10 bits", "v210", "v210", "video/x-raw-v210"},
+	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFMPEG Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
 };
 
 
@@ -286,6 +287,8 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 		return GF_CODECID_RAW;
 	case GF_ISOM_SUBTYPE_MLPA:
 		return GF_CODECID_TRUEHD;
+	case GF_ISOM_SUBTYPE_FFV1:
+		return GF_CODECID_FFV1;
 	default:
 		break;
 	}

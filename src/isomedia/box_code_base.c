@@ -6553,6 +6553,49 @@ void trak_box_del(GF_Box *s)
 	gf_free(s);
 }
 
+static void stsd_switch_box(GF_BitStream *bs, GF_Box *box, GF_UnknownBox *a, u8 **data, u32 *data_size, u32 *EntryType, GF_SampleDescriptionBox *stsd, u32 stsd_idx)
+{
+	if (gf_bs_available(bs)) {
+		GF_Err e;
+		u32 count_subb;
+		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
+		e = gf_isom_box_array_read(box, bs);
+		count_subb = box->child_boxes ? gf_list_count(box->child_boxes) : 0;
+		if (count_subb && !e) {
+			u32 i;
+			GF_BitStream *new_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			//serialize all unknown boxes
+			for (i=0; i<count_subb; i++) {
+				GF_UnknownBox *priv = gf_list_get(box->child_boxes, i);
+				if (priv->type != GF_ISOM_BOX_TYPE_UNKNOWN) continue;
+				gf_bs_write_u32(new_dsi, 8 + priv->dataSize);
+				gf_bs_write_u32(new_dsi, priv->original_4cc);
+				gf_bs_write_data(new_dsi, priv->data, priv->dataSize);
+				gf_list_rem(box->child_boxes, i);
+				gf_isom_box_del((GF_Box*)priv);
+				count_subb--;
+				i--;
+			}
+			if (*data) gf_free(*data);
+			gf_bs_get_content(new_dsi, data, data_size);
+			gf_bs_del(new_dsi);
+		} else {
+			*data_size = 0;
+		}
+	}
+	gf_bs_del(bs);
+	if (!*data_size && *data) {
+		gf_free(*data);
+		*data = NULL;
+	}
+	box->size = 0;
+	*EntryType = a->original_4cc;
+	gf_list_rem(stsd->child_boxes, stsd_idx);
+	gf_isom_box_del((GF_Box *)a);
+	gf_list_insert(stsd->child_boxes, box, stsd_idx);
+}
+
+
 static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 {
 	GF_BitStream *bs;
@@ -6738,37 +6781,6 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			continue;
 		}
 
-#define STSD_SWITCH_BOX(_box) \
-		if (gf_bs_available(bs)) { \
-			u64 pos = gf_bs_get_position(bs); \
-			u32 count_subb = 0; \
-			gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);\
-			e = gf_isom_box_array_read((GF_Box *) _box, bs); \
-			count_subb = _box->child_boxes ? gf_list_count(_box->child_boxes) : 0; \
-			if (count_subb && !e) { \
-				gf_bs_seek(bs, pos); \
-				_box->data_size = (u32) gf_bs_available(bs); \
-				if (_box->data_size) { \
-					_box->data = a->data; \
-					a->data = NULL; \
-					memmove(_box->data, _box->data + pos, _box->data_size); \
-				} \
-			} else { \
-				_box->data_size = 0; \
-			} \
-		} \
-		gf_bs_del(bs); \
-		if (!_box->data_size && _box->data) { \
-			gf_free(_box->data); \
-			_box->data = NULL; \
-		} \
-		_box->size = 0; \
-		_box->EntryType = a->original_4cc; \
-		gf_list_rem(trak->Media->information->sampleTable->SampleDescription->child_boxes, i-1); \
-		gf_isom_box_del((GF_Box *)a); \
-		gf_list_insert(trak->Media->information->sampleTable->SampleDescription->child_boxes, _box, i-1); \
-
-
 		/*only process visual or audio
 		note: no need for new_box_parent here since we always store sample descriptions in child_boxes*/
 		switch (trak->Media->handler->handlerType) {
@@ -6781,8 +6793,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			genv->size = a->size-8;
 			gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *) genv, bs);
 
-			STSD_SWITCH_BOX(genv)
-
+			stsd_switch_box(bs, (GF_Box *) genv, a, &genv->data, &genv->data_size, &genv->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
 		break;
 		case GF_ISOM_MEDIA_AUDIO:
@@ -6792,8 +6803,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox *) gena, bs);
 
-			STSD_SWITCH_BOX(gena)
-
+			stsd_switch_box(bs, (GF_Box *) gena, a, &gena->data, &gena->data_size, &gena->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
 		break;
 
@@ -6806,7 +6816,7 @@ static GF_Err gf_isom_check_sample_desc(GF_TrackBox *trak)
 			e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)genm, bs);
 			if (e) return e;
 
-			STSD_SWITCH_BOX(genm)
+			stsd_switch_box(bs, (GF_Box *) genm, a, &genm->data, &genm->data_size, &genm->EntryType, trak->Media->information->sampleTable->SampleDescription, i-1);
 		}
 		break;
 		}

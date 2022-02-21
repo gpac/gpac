@@ -103,7 +103,7 @@ enable reporting
 .br
 * r: runtime reporting
 .br
-* r=FA[,FB]: runtime reporting but only print given filters, e.g. r=mp4mx for ISOBMFF muxer only
+* r=FA[,FB]: runtime reporting but only print given filters, e.g. r=mp4mx for ISOBMFF multiplexer only
 .br
 * r=: only print final report
 .br
@@ -185,7 +185,7 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * props: print the supported builtin PID and packet properties
 .br
-* props PNAME: print the supported builtin PID and packet properties mentionning PNAME
+* props PNAME: print the supported builtin PID and packet properties mentioning PNAME
 .br
 * colors: print the builtin color names and their values
 .br
@@ -284,7 +284,7 @@ disable blocking mode of filters
 .br
 * no: enable blocking mode
 .br
-* fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet
+* fanout: disable blocking on fan-out, unblocking the PID as soon as one of its destinations requires a packet
 .br
 * all: disable blocking
 .br
@@ -316,7 +316,7 @@ set scheduler mode
 .TP
 .B \-max-chain (int, default: 6)
 .br
-set maximum chain length when resolving filter links. Default value covers for [ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out]. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
+set maximum chain length when resolving filter links. Default value covers for [ in -> ] dmx -> reframe -> decode -> encode -> reframe -> mx [ -> out]. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
 .br
 .TP
 .B \-max-sleep (int, default: 50)
@@ -654,7 +654,7 @@ cache size for bitstream read and write from file (0 disable cache, slower IOs)
 .TP
 .B \-no-check
 .br
-disable compliancy tests for inputs (ISOBMFF for now). This will likely result in random crashes
+disable compliance tests for inputs (ISOBMFF for now). This will likely result in random crashes
 .br
 .TP
 .B \-unhandled-rejection
@@ -694,7 +694,7 @@ disable HTTP caching
 .TP
 .B \-offline-cache
 .br
-enable offline HTTP caching (no revalidation of existing resource in cache)
+enable offline HTTP caching (no re-validation of existing resource in cache)
 .br
 .TP
 .B \-clean-cache
@@ -788,7 +788,7 @@ disable blocking mode of filters
 .br
 * no: enable blocking mode
 .br
-* fanout: disable blocking on fanout, unblocking the PID as soon as one of its destinations requires a packet
+* fanout: disable blocking on fan-out, unblocking the PID as soon as one of its destinations requires a packet
 .br
 * all: disable blocking
 .br
@@ -820,7 +820,7 @@ set scheduler mode
 .TP
 .B \-max-chain (int, default: 6)
 .br
-set maximum chain length when resolving filter links. Default value covers for [ in -> ] demux -> reframe -> decode -> encode -> reframe -> mux [ -> out]. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
+set maximum chain length when resolving filter links. Default value covers for [ in -> ] dmx -> reframe -> decode -> encode -> reframe -> mx [ -> out]. Filter chains loaded for adaptation (e.g. pixel format change) are loaded after the link resolution. Setting the value to 0 disables dynamic link resolution. You will have to specify the entire chain manually
 .br
 .TP
 .B \-max-sleep (int, default: 50)
@@ -1730,7 +1730,7 @@ Since the PID is connected, the filter engine will not try to solve a link betwe
 .br
 
 .br
-An exception is made for local files: by default, a local file destination will force a remux of input PIDs from a local file.
+An exception is made for local files: by default, a local file destination will force a remultiplex of input PIDs from a local file.
 .br
 Example
 .br
@@ -1738,7 +1738,7 @@ gpac -i file.mp4 -o dump.mp4
 .br
 
 .br
-This will prevent direct connection of PID of type file to dst file.mp4, remuxing the file.
+This will prevent direct connection of PID of type file to dst file.mp4, remultiplexing the file.
 .br
 
 .br
@@ -1758,7 +1758,7 @@ This only applies to local files destination. For pipes, sockets or other file o
 .br
 - direct copy is enabled by default
 .br
-- nomux=0 can be used to force remux
+- nomux=0 can be used to force remultiplex
 .br
 
 .br
@@ -1860,7 +1860,7 @@ A filter may be assigned a tag (any string) using :TAG=name option. This tag doe
 .SH URL templating
 .LP
 .br
-Destination URLs can be templated (dynamically constructed). Pattern $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
+Destination URLs can be dynamically constructed using templates. Pattern $KEYWORD$ is replaced in the template with the resolved value and $KEYWORD%%0Nd$ is replaced in the template with the resolved integer, padded with up to N zeros if needed.
 .br
 KEYWORD is case sensitive, and may be present multiple times in the string. Supported KEYWORD:
 .br
@@ -1956,7 +1956,7 @@ The first audio will connect to the resample filter, the second to the enc filte
 .SH Templating filter chains
 .LP
 .br
-There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the muxer will always accept the input PIDs.
+There can be cases where the number of desired outputs depends on the source content, for example dumping a multiplex of N services into N files. When the destination involves multiplexing the input PIDs, the :clone option is not enough since the multiplexer will always accept the input PIDs.
 .br
 To handle this, it is possible to use a PID property name in the sourceID of a filter with the value * or an empty value. In this case, whenever a new PID with a new value for the property is found, the filter with such sourceID will be dynamically cloned.
 .br
@@ -2019,7 +2019,7 @@ gpac -i v1.mp4:#ServiceID=4 -i v2.mp4:#ServiceID=2 -o dump.ts
 .br
 
 .br
-This will mux the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4.
+This will multiplex the streams in dump.ts, using ServiceID 4 for PIDs from v1.mp4 and ServiceID 2 for PIDs from v2.mp4.
 .br
 
 .br
@@ -2133,7 +2133,7 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * N: filter name
 .br
-* FS: sub-session identfier
+* FS: sub-session identifier
 .br
 * TAG: filter tag
 .br
@@ -2141,7 +2141,7 @@ As seen previously, the following options may be set on any filter, but are not 
 .br
 * nomux: enable/disable direct file copy
 .br
-* gfreg: prefered filter registry names for link solving
+* gfreg: preferred filter registry names for link solving
 .br
 * gfloc: following options are local to filter declaration (not inherited)
 .br
@@ -2312,7 +2312,7 @@ color matrix coefficients, string or int value from ISO/IEC 23091-2
 .br
 Built-in properties for PIDs and packets listed as Name (4CC type FLAGS): description
 .br
-FLAGS can be D (droppable - see GSF mux filter help), P (packet property)
+FLAGS can be D (droppable - see GSF multiplexer filter help), P (packet property)
 .br
 .TP
 .B ID (PIDI,uint,  )
@@ -2352,7 +2352,7 @@ ID of clock reference PID
 .TP
 .B DependencyID (DPID,uint,  )
 .br
-ID of layer dependended on
+ID of layer depended on
 .br
 .TP
 .B SubLayer (DPSL,bool,  )
@@ -3082,22 +3082,22 @@ Constant duration of samples, 0 means variable duration (ISOBMFF only, static pr
 .TP
 .B TrackTemplate (ITKT,mem,D )
 .br
-ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref) - used by isomuxer to re-inject specific boxes of input ISOBMFF track
+ISOBMFF serialized track box for this PID, without any sample info (empty stbl and empty dref)
 .br
 .TP
 .B TrexTemplate (ITXT,mem,D )
 .br
-ISOBMFF serialized trex box for this PID - used by isomuxer to remux empty init segments
+ISOBMFF serialized trex box for this PID
 .br
 .TP
 .B STSDTemplate (ISTD,mem,D )
 .br
-ISOBMFF serialized sample description box (stsd entry) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF track
+ISOBMFF serialized sample description box (stsd entry) for this PID
 .br
 .TP
 .B MovieUserData (IMUD,mem,D )
 .br
-ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID - used by isomuxer to re-inject specific boxes of input ISOBMFF moov
+ISOBMFF serialized moov UDTA and other moov-level boxes (list) for this PID
 .br
 .TP
 .B HandlerName (IHDL,str,D )
@@ -3162,7 +3162,7 @@ Name of mux source(s), set by dasher to direct its outputs
 .TP
 .B DashMode (DMOD,uint,D )
 .br
-DASH mode to be used by muxer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
+DASH mode to be used by multiplexer if any, set by dasher. 0 is no DASH, 1 is regular DASH, 2 is VoD
 .br
 .TP
 .B DashDur (DDUR,frac,D )
@@ -3252,7 +3252,7 @@ Number of DASH segments defined by the DASH cue info
 .TP
 .B Codec (CODS,str,D )
 .br
-codec parameter string to force. If starting with '.', appended to ISOBMF code point; otherwise replace the codec string
+codec parameter string to force. If starting with '.', appended to ISOBMFF code point; otherwise replace the codec string
 .br
 .TP
 .B SingleScale (DSTS,bool,D )
@@ -3352,12 +3352,12 @@ Magic number to store in the track, only used by importers
 .TP
 .B MuxIndex (TIDX,luint,D )
 .br
-Target track index in destination file, stored by lowest value first (not set by demuxers)
+Target track index in destination file, stored by lowest value first (not set by demultiplexers)
 .br
 .TP
 .B NoTSLoop (NTSL,bool,  )
 .br
-Timestamps on this PID are adjusted in case of loops (used by TS muxer output)
+Timestamps on this PID are adjusted in case of loops (used by TS multiplexer output)
 .br
 .TP
 .B MHAProfiles (MHCP,uintl,D )
@@ -3427,7 +3427,7 @@ View index for multiview (1 being left)
 .TP
 .B FragURL (OFRA,str,D )
 .br
-Fragment URL (without '#') of original URL (used by dash demux to set the property on media PIDs)
+Fragment URL (without '#') of original URL (used by some filters to set the property on media PIDs)
 .br
 .TP
 .B ROUTEIP (RSIP,str,D )
@@ -4472,6 +4472,11 @@ xHEAAC / USAC Audio
 .br
 v210 YUV 422 10 bits
 .br
+.TP
+.B ffv1
+.br
+FFMPEG Video Codec 1
+.br
 .SH Stream types
 .LP
 .br
@@ -4584,7 +4589,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1769-g1d936f89d-master
+build: 1.1.0-DEV-rev1774-gaa8f03c11-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

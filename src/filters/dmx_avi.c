@@ -119,7 +119,9 @@ static void avidmx_setup(GF_Filter *filter, GF_AVIDmxCtx *ctx)
 		codecid = GF_CODECID_RAW;
 		pfmt = GF_PIXEL_BGR;
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not supported, patch welcome\n", comp));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIDmx] Video format %s not natively supported, signaling as is\n", comp));
+		codecid = gf_4cc_parse(comp);
+		unframed = GF_FALSE;
 	}
 
 	ctx->v_in_use = GF_FALSE;

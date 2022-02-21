@@ -2674,6 +2674,18 @@ sample_entry_setup:
 				ase_mode = GF_IMPORT_AUDIO_SAMPLE_ENTRY_v1_QTFF;
 			}
 		}
+
+		if (codec_id == GF_CODECID_FFMPEG) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
+			if (p) {
+				m_subtype = p->value.uint;
+			} else {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
+				if (p && p->type==GF_PROP_UINT)
+					m_subtype = p->value.uint;
+			}
+		}
+
 		udesc.codec_tag = m_subtype;
 		udesc.width = width;
 		udesc.height = height;
@@ -2685,7 +2697,18 @@ sample_entry_setup:
 		if (dsi) {
 			udesc.extension_buf = dsi->value.data.ptr;
 			udesc.extension_buf_size = dsi->value.data.size;
+			p = gf_filter_pid_get_property_str(pid, "DSIWrap");
+			if (p) {
+				if (p->type==GF_PROP_UINT) udesc.ext_box_wrap = p->value.uint;
+				else if (p->type==GF_PROP_STRING) udesc.ext_box_wrap = gf_4cc_parse(p->value.string);
+			}
 		}
+		if (codec_id==GF_CODECID_FFV1) {
+			udesc.codec_tag = GF_4CC('F', 'F', 'V', '1');
+			udesc.ext_box_wrap = GF_4CC('g', 'l', 'b', 'l');
+			unknown_generic = GF_FALSE;
+		}
+
 		if (unknown_generic) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] muxing unknown codec ID %s, using generic sample entry with 4CC \"%s\"\n", gf_codecid_name(codec_id), gf_4cc_to_str(m_subtype) ));
 		}
@@ -7130,6 +7153,10 @@ GF_FilterRegister MP4MuxRegister = {
 	"  \n"
 	"# Notes\n"
 	"The filter watches the property `FileNumber` on incoming packets to create new files (regular mode) or new segments (DASH mode).\n"
+	"  \n"
+	"The filter watches the property `DSIWrap` (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknonw wraping)\n"
+	"EX -i unkn.mkv:#ISOMSubtype=VIUK:#DSIWrap=cfgv -o t.mp4\n"
+	"This will wrap the uknown stream using `VIUK` code point in `stsd` and wrap any decoder configuration data in a `cfgv` box.\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

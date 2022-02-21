@@ -858,6 +858,18 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	else if ((tspid->esi.caps & GF_ESI_FORCE_DOLBY_VISION) != (bckp.caps & GF_ESI_FORCE_DOLBY_VISION))
 		changed = GF_TRUE;
 
+
+	u32 m2ts_ra = 0;
+	p = gf_filter_pid_get_property_str(tspid->ipid, "M2TSRA");
+	if (p) {
+		if ((p->type==GF_PROP_UINT) || (p->type==GF_PROP_4CC)) m2ts_ra = p->value.uint;
+		else if (p->type==GF_PROP_STRING) m2ts_ra = gf_4cc_parse(p->value.string);
+	}
+	if (m2ts_ra != tspid->esi.ra_code) {
+		changed = GF_TRUE;
+		tspid->esi.ra_code = m2ts_ra;
+	}
+
 	return changed;
 }
 
@@ -1962,6 +1974,8 @@ GF_FilterRegister TSMuxRegister = {
 		"- `pes_pack=none` is forced since some demultiplexers have issues with non-aligned ADTS PES.\n"
 		"\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
+		"The filter will look for property `M2TSRA` set on the input stream.\n"
+		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknwon media types.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,

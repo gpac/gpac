@@ -576,6 +576,8 @@ typedef enum
 
 	GF_CODECID_TMCD = GF_4CC('t','m','c','d'),
 
+	/*! codecid for FFV1*/
+	GF_CODECID_FFV1 = GF_4CC('f','f','v','1'),
 
 	GF_CODECID_FFMPEG = GF_4CC('F','F','I','D'),
 

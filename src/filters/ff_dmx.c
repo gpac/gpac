@@ -529,9 +529,13 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec_id);
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
-			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
+			gf_filter_pid_set_property(pid, GF_FFMPEG_CODEC_ID, &PROP_POINTER( (void*)codec ) );
 #else
-			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_UINT( codec_id ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID, &PROP_UINT( codec_id ) );
+			if (exdata) {
+				//expose as const data
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
+			}
 #endif
 
 			if (cname)
@@ -587,7 +591,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			u32 pfmt = 0;
 
 			if (codec_pixfmt) {
-				pfmt = ffmpeg_pixfmt_to_gpac(codec_pixfmt);
+				pfmt = ffmpeg_pixfmt_to_gpac(codec_pixfmt, GF_FALSE);
 				is_full_range = ffmpeg_pixfmt_is_fullrange(codec_pixfmt);
 			} else if (codec_tag) {
 				pfmt = ffmpeg_pixfmt_from_codec_tag(codec_tag, &is_full_range);

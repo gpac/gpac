@@ -36,9 +36,6 @@
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
 
-//can be pointer or uint
-#define GF_FFMPEG_DECODER_CONFIG GF_4CC('f','f','D','C')
-
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 #define AVFMT_URL(_mux) _mux->filename
 #else
@@ -79,7 +76,7 @@ enum{
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
 
 u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
-u32 ffmpeg_pixfmt_to_gpac(u32 pfmt);
+u32 ffmpeg_pixfmt_to_gpac(u32 pfmt, Bool no_warn);
 //return GPAC pix format from codec tag
 u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range);
 //check if FF pixfmt is an old format fullrange

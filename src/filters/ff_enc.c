@@ -226,8 +226,21 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	//copy properties at init or reconfig
 	gf_filter_pid_copy_properties(ctx->out_pid, ctx->in_pid);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, NULL);
-	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
+	if (!ctx->codecid) {
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_FFMPEG) );
+		if (ctx->encoder) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_FFMPEG_CODEC_ID, &PROP_UINT(ctx->encoder->codec->id) );
+
+			const char *cname = avcodec_get_name(ctx->encoder->codec->id);
+			if (cname)
+				gf_filter_pid_set_property_str(ctx->out_pid, "ffmpeg:codec", &PROP_STRING(cname ) );
+		}
+	} else {
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_CODECID, &PROP_UINT(ctx->codecid) );
+	}
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_STSD_TEMPLATE, NULL);
+	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_SUBTYPE, NULL);
+	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PROFILE_LEVEL, NULL);
 
 	switch (ctx->codecid) {
 	case GF_CODECID_AVC:
@@ -1382,7 +1395,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					break;
 				}
 				//handle pixel formats aliases
-				if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i]) == ctx->pfmt) {
+				if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i], GF_TRUE) == ctx->pfmt) {
 					force_pfmt = ctx->pixel_fmt;
 					break;
 				}
@@ -1406,7 +1419,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					break;
 				}
 				//handle pixel formats aliases
-				if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i]) == pfmt) {
+				if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i], GF_TRUE) == pfmt) {
 					ctx->pixel_fmt = change_input_fmt = codec->pix_fmts[i];
 					break;
 				}
@@ -1452,7 +1465,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				//find a mapped pixel format
 				while (codec->pix_fmts) {
 					if (codec->pix_fmts[i] == AV_PIX_FMT_NONE) break;
-					if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i])) {
+					if (ffmpeg_pixfmt_to_gpac(codec->pix_fmts[i], GF_TRUE)) {
 						ff_pmft = codec->pix_fmts[i];
 						break;
 					}
@@ -1465,7 +1478,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			} else if (ctx->pfmt) {
 				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
 			}
-			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft);
+			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft, GF_FALSE);
 			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
 			ctx->infmt_negociate = GF_TRUE;
 		} else {
@@ -1542,7 +1555,14 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (prop) {
-			ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
+			Bool reset_gop = GF_FALSE;
+			//don't write gop info for these codecs, unless ctx->gop_size is set (done later)
+			if (codec_id==AV_CODEC_ID_FFV1) reset_gop = GF_TRUE;
+
+			if (reset_gop)
+				ctx->encoder->gop_size = 0;
+			else
+				ctx->encoder->gop_size = prop->value.frac.num / prop->value.frac.den;
 
 			ctx->encoder->framerate.num = prop->value.frac.num;
 			ctx->encoder->framerate.den = prop->value.frac.den;

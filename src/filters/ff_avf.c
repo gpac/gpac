@@ -616,7 +616,7 @@ static GF_Err ffavf_process(GF_Filter *filter)
 			if (update_props) {
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_WIDTH, &PROP_UINT(frame->width));
 				gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(frame->height));
-				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format);
+				opid->gf_pfmt = ffmpeg_pixfmt_to_gpac(frame->format, GF_FALSE);
 				if (ffmpeg_pixfmt_is_fullrange(frame->format)) {
 					gf_filter_pid_set_property(opid->io_pid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(GF_TRUE));
 				} else {

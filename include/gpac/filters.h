@@ -1233,6 +1233,13 @@ enum
 	GF_PROP_PCK_XPS_MASK = GF_4CC('P','X','P','M'),
 	GF_PROP_PCK_END_RANGE = GF_4CC('P','C','E','R'),
 
+	/*! Internal property used for FFMPEG codec ID
+
+	Property can be:
+	- pointer to codec context: only for ffdmx with old ffmpeg versions)
+	- uint: AVCODEC_ID_*  ffdmx with newer versions or ffenc output
+	*/
+	GF_PROP_PID_FFMPEG_CODEC_ID = GF_4CC('F','C','I','D'),
 };
 
 /*! Block patching requirements for FILE pids, as signaled by GF_PROP_PID_DISABLE_PROGRESSIVE
