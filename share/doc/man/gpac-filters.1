@@ -28,7 +28,7 @@ The inspect filter can be used to dump PID and packets. It may also be used to c
 .br
 The default options inspect only PID changes.
 .br
-If .I full is not set, .I mode=frame is forced and PID properties are formated in human-readable form, one PID per line.
+If .I full is not set, .I mode=frame is forced and PID properties are formatted in human-readable form, one PID per line.
 .br
 Otherwise, all properties are dumped.
 .br
@@ -84,7 +84,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * size: size of packet
 .br
-* csize: cumulated size of packets
+* csize: total size of packets received so far
 .br
 * crc: 32 bit CRC of packet
 .br
@@ -151,7 +151,7 @@ mode (enum, default: pck):     dump mode
 .br
 * frame: force reframer
 .br
-* raw: dump source packets without demuxing
+* raw: dump source packets without demultiplexing
 .br
 
 .br
@@ -508,7 +508,7 @@ nav (enum, default: none, updatable): override the default navigation mode of MP
 .br
 * fly: 3D world fly (no ground detection)
 .br
-* pan: 2D/3D world zomm/pan
+* pan: 2D/3D world zoom/pan
 .br
 * game: 3D world game (mouse gives walk direction)
 .br
@@ -630,7 +630,7 @@ camlay (enum, default: offaxis, updatable): camera layout in multiview modes
 .br
 
 .br
-iod (flt, default: 6.4, updatable): inter-occular distance (eye separation) in cm (distance between the cameras). 
+iod (flt, default: 6.4, updatable): inter-ocular distance (eye separation) in cm (distance between the cameras). 
 .br
 rview (bool, default: false, updatable): reverse view order
 .br
@@ -709,7 +709,7 @@ gazer_enabled (bool, default: false, updatable): enable gaze event dispatch
 .SH mp4dmx
 .LP
 .br
-Description: ISOBMFF/QT demuxer
+Description: ISOBMFF/QT demultiplexer
 .br
 
 .br
@@ -747,7 +747,7 @@ When scalable tracks are present in a file, the reader can operate in 3 modes us
 .br
 * smode=single: resolves all extractors to extract a single bitstream from a scalable set. The highest level is used
 .br
-In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the configs
+In this mode, there is no enhancement decoder config, only a base one resulting from the merge of the layers configurations
 .br
 * smode=split: all extractors are removed and every track of the scalable set is declared. In this mode, each enhancement track has no base decoder config
 .br
@@ -764,7 +764,7 @@ Warning: smode=splitx will result in extractor NAL units still present in the ou
 .SH Options (expert):
 .LP
 .br
-src (cstr):                    local file name of source content (only used when explicitly loading the demuxer)
+src (cstr):                    local file name of source content (only used when explicitly loading the filter)
 .br
 allt (bool, default: false):   load all tracks even if unknown media type
 .br
@@ -917,7 +917,7 @@ This filter parses MPEG-4 BIFS (BT and XMT), VRML97 and X3D (wrl and XML) files 
 .br
 
 .br
-When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when procesing time is higher than N.
+When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
 .br
 
 .br
@@ -987,7 +987,7 @@ This filter parses SVG files directly into the scene graph of the compositor.
 .br
 
 .br
-When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when procesing time is higher than N.
+When .I sax_dur=N is set, the filter will do a progressive load of the source and cancel current loading when processing time is higher than N.
 .br
 
 .br
@@ -1243,7 +1243,7 @@ index (dbl, default: 1.0):     indexing window length
 .SH oggdmx
 .LP
 .br
-Description: OGG demuxer
+Description: OGG demultiplexer
 .br
 
 .br
@@ -1293,7 +1293,7 @@ No options
 .SH m2tsdmx
 .LP
 .br
-Description: MPEG-2 TS demuxer
+Description: MPEG-2 TS demultiplexer
 .br
 
 .br
@@ -1491,7 +1491,7 @@ No options
 .SH safdmx
 .LP
 .br
-Description: SAF demuxer
+Description: SAF demultiplexer
 .br
 
 .br
@@ -1573,7 +1573,7 @@ If the source has dependent media streams (scalability) and all qualities and in
 .SH Segment bound modes
 .LP
 .br
-When .I forward is set to segb or mani, the client forwards media frames (after demux) together with segment and fragment boundaries of source files.
+When .I forward is set to segb or mani, the client forwards media frames (after demultiplexing) together with segment and fragment boundaries of source files.
 .br
 
 .br
@@ -1790,7 +1790,7 @@ lowlat (enum, default: early): segment scheduling policy in low latency mode
 .br
 * strict: strict respect of AST offset in low latency
 .br
-* early: allow fetching segments earlier than their AST in low latency when input demux is empty
+* early: allow fetching segments earlier than their AST in low latency when input PID is empty
 .br
 
 .br
@@ -1798,7 +1798,7 @@ forward (enum, default: none): segment forwarding mode
 .br
 * none: regular DASH read
 .br
-* file: do not demux files and forward them as file PIDs (imply segstore=mem)
+* file: do not demultiplex files and forward them as file PIDs (imply segstore=mem)
 .br
 * segb: turn on .I split_as, segment and fragment bounds signaling (sigfrag) in sources and DASH cue insertion
 .br
@@ -1909,7 +1909,7 @@ allc (bool):                   throw error if no DRM config file is found for a 
 .SH mp4mx
 .LP
 .br
-Description: ISOBMFF/QT muxer
+Description: ISOBMFF/QT multiplexer
 .br
 
 .br
@@ -1922,7 +1922,7 @@ This filter multiplexes streams to ISOBMFF (14496-12 and derived specifications)
 .br
 By default all input PIDs with ItemID property set are multiplexed as items, otherwise they are multiplexed as tracks.
 .br
-To prevent source items to be multiplexed as items, use .I -itemid option from ISOBMF demuxer.
+To prevent source items to be multiplexed as items, use .I -itemid option from ISOBMFF demultiplexer.
 .br
 Example
 .br
@@ -2012,7 +2012,7 @@ Other tag class may be specified using tag_NAME property names, and will be adde
 .SH User data
 .LP
 .br
-The muxer will look for the following PID properties to create user data entries:
+The filter will look for the following PID properties to create user data entries:
 .br
 * `udtab`: set the track user-data box to the property value which must be a serialized box array blob
 .br
@@ -2026,7 +2026,7 @@ The muxer will look for the following PID properties to create user data entries
 .br
 Example
 .br
-gpac -i src.mp4:#udta_tagc='My Awsome Tag' -o tag.mp4
+gpac -i src.mp4:#udta_tagc='My Awesome Tag' -o tag.mp4
 .br
 gpac -i src.mp4:#mudtab=data@box.bin -o tag.mp4
 .br
@@ -2062,6 +2062,18 @@ The property grp_EMSG consists in one or more EventMessageBox as defined in MPEG
 .br
 The filter watches the property FileNumber on incoming packets to create new files (regular mode) or new segments (DASH mode).
 .br
+  
+.br
+The filter watches the property DSIWrap (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknonw wraping)
+.br
+Example
+.br
+-i unkn.mkv:#ISOMSubtype=VIUK:#DSIWrap=cfgv -o t.mp4
+.br
+
+.br
+This will wrap the uknown stream using VIUK code point in stsd and wrap any decoder configuration data in a cfgv box.
+.br
 
 .br
 .SH Options (expert):
@@ -2093,7 +2105,7 @@ xps_inband (enum, default: no): use inband (in sample data) parameter set for NA
 .br
 * no: parameter sets are not inband, several sample descriptions might be created
 .br
-* pps: pciture parameter sets are inband, all other parameter sets are in sample description
+* pps: picture parameter sets are inband, all other parameter sets are in sample description
 .br
 * all: parameter sets are inband, no parameter sets in sample description
 .br
@@ -2117,7 +2129,7 @@ store (enum, default: inter):  file storage mode
 .br
 * frag: fragments the file using cdur duration
 .br
-* sfrag: framents the file using cdur duration but adjusting to start with SAP1/3
+* sfrag: fragments the file using cdur duration but adjusting to start with SAP1/3
 .br
 
 .br
@@ -2281,7 +2293,7 @@ deps (bool, default: true):    add samples dependencies information
 .br
 mfra (bool, default: false):   enable movie fragment random access when fragmenting (ignored when dashing)
 .br
-forcesync (bool, default: false): force all SAP types to be considered sync samples (might produce non-conformant files)
+forcesync (bool, default: false): force all SAP types to be considered sync samples (might produce non-compliant files)
 .br
 refrag (bool, default: false): use track fragment defaults from initial file if any rather than computing them from PID properties (used when processing standalone segments/fragments)
 .br
@@ -2362,7 +2374,7 @@ Description: M1V/M2V/M4V reframer
 .br
 This filter parses MPEG-1/2 and MPEG-4 part 2 video files/data and outputs corresponding video PID and frames.
 .br
-Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS greater than CTS.
+Note: The filter uses negative CTS offsets: CTS is correct, but some frames may have DTS greater than CTS.
 .br
 
 .br
@@ -2397,7 +2409,7 @@ NHNT documentation is available at https://wiki.gpac.io/NHNT-Format
 .SH Options (expert):
 .LP
 .br
-reframe (bool, default: false): force reparsing of referenced content
+reframe (bool, default: false): force re-parsing of referenced content
 .br
 index (dbl, default: 1.0):     indexing window length
 .br
@@ -2419,7 +2431,7 @@ NHML documentation is available at https://wiki.gpac.io/NHML-Format
 .SH Options (expert):
 .LP
 .br
-reframe (bool, default: false): force reparsing of referenced content
+reframe (bool, default: false): force re-parsing of referenced content
 .br
 index (dbl, default: 1.0):     indexing window length
 .br
@@ -2434,9 +2446,9 @@ Description: AVC/HEVC reframer
 .br
 This filter parses AVC|H264 and HEVC files/data and outputs corresponding video PID and frames.
 .br
-This demuxer only produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.
+This filter produces ISOBMFF-compatible output: start codes are removed, NALU length field added and avcC/hvcC config created.
 .br
-Note: The demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS greater than CTS.
+Note: The filter uses negative CTS offsets: CTS is correct, but some frames may have DTS greater than CTS.
 .br
 
 .br
@@ -2528,7 +2540,7 @@ bsdbg (enum, default: off):    debug NAL parsing in parser@debug logs
 .SH m2psdmx
 .LP
 .br
-Description: MPEG PS demuxer
+Description: MPEG PS demultiplexer
 .br
 
 .br
@@ -2543,7 +2555,7 @@ No options
 .SH avidmx
 .LP
 .br
-Description: AVI demuxer
+Description: AVI demultiplexer
 .br
 
 .br
@@ -2812,7 +2824,7 @@ This filter handles SDP/RTSP/RTP input reading. It supports:
 .br
  
 .br
-The filter produces either media PIDs with unmultiplexed media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).
+The filter produces either PIDs with media frames, or file PIDs with multiplexed data (e.g. MPEG-2 TS).
 .br
 
 .br
@@ -2829,7 +2841,7 @@ ttl (uint, default: 127, minmax: 0-127): multicast TTL
 .br
 reorder_len (uint, default: 1000): reorder length in packets
 .br
-reorder_delay (uint, default: 50): max delay in RTP reorderer, packets will be dispatched after that
+reorder_delay (uint, default: 50): max delay in RTP re-orderer, packets will be dispatched after that
 .br
 block_size (uint, default: 0x200000): buffer size for RTP/UDP or RTSP when interleaved
 .br
@@ -2853,7 +2865,7 @@ udp_timeout (uint, default: 10000): default timeout before considering UDP is do
 .br
 rtsp_timeout (uint, default: 3000): default timeout before considering RTSP is down
 .br
-rtcp_timeout (uint, default: 5000): default timeout for RTCP traffic in ms. After this timeout, playback will start unsync. If 0 always wait for RTCP
+rtcp_timeout (uint, default: 5000): default timeout for RTCP traffic in ms. After this timeout, playback will start out of sync. If 0 always wait for RTCP
 .br
 autortsp (bool, default: true): automatically reconfig RTSP interleaving if UDP timeout
 .br
@@ -2890,7 +2902,7 @@ Description: File output
 .br
 This filter is used to write data to disk, and does not produce any output PID.
 .br
-In regular mode, the filter only accept PID of type file. It will dump to file incomming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in .I cat mode.
+In regular mode, the filter only accept PID of type file. It will dump to file incoming packets (stream type file), starting a new file for each packet having a frame_start flag set, unless operating in .I cat mode.
 .br
 If the output file name is std or stdout, writes to stdout.
 .br
@@ -3330,7 +3342,7 @@ Description: Stream to file
 .br
 Generic single stream to file converter, used when extracting/converting PIDs.
 .br
-The writegen filter should usually not be explicetly loaded without a source ID specified, since the filter would likely match any PID connection.
+The writegen filter should usually not be explicitly loaded without a source ID specified, since the filter would likely match any PID connection.
 .br
 
 .br
@@ -3502,11 +3514,11 @@ chksum (enum, default: none):  insert frame checksum
 .SH vobsubdmx
 .LP
 .br
-Description: VobSub demuxer
+Description: VobSub parser
 .br
 
 .br
-This filter demultiplexes VobSub files/data to produce media PIDs and frames.
+This filter parses VobSub files/data to produce media PIDs and frames.
 .br
 
 .br
@@ -3520,7 +3532,7 @@ blankframe (bool, default: true): force inserting a blank frame if first subpic 
 .SH avimx
 .LP
 .br
-Description: AVI muxer
+Description: AVI multiplexer
 .br
 
 .br
@@ -3533,6 +3545,14 @@ Unlike other multiplexing filters in GPAC, this filter is a sink filter and does
 The filter can however use template names for its output, using the first input PID to resolve the final name.
 .br
 The filter watches the property FileNumber on incoming packets to create new files.
+.br
+
+.br
+The filter will look for property AVIType set on the input stream.
+.br
+The value can either be a 4CC or a string, indicating the mux format for the PID.
+.br
+If the string is prefixed with + and the decoder configuration is present and formatted as an ISOBMFF box, the box header will be removed.
 .br
 
 .br
@@ -3560,11 +3580,11 @@ This filter writes a single uncompressed audio input PID to a sound card or othe
 .br
 
 .br
-The longer the audio buffering .I bdur is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degradated when using large audio buffers.
+The longer the audio buffering .I bdur is, the longer the audio latency will be (pause/resume). The quality of fast forward audio playback will also be degraded when using large audio buffers.
 .br
 
 .br
-If .I clock is set, the filter will report system time (in us) and corresponding paclet CTS for other filters to use for AV sync.
+If .I clock is set, the filter will report system time (in us) and corresponding packet CTS for other filters to use for AV sync.
 .br
 
 .br
@@ -3612,7 +3632,7 @@ Description: M4V writer
 .br
 
 .br
-This filter converts MPEG-4 part 2 visual streams into dumpable format (reinsert decoder config).
+This filter converts MPEG-4 part 2 visual streams into writable format (reinsert decoder config).
 .br
 
 .br
@@ -4305,7 +4325,7 @@ raw (enum, default: no):       force input AV streams to be in raw format
 .SH m2tsmx
 .LP
 .br
-Description: MPEG-2 TS muxer
+Description: MPEG-2 TS multiplexer
 .br
 
 .br
@@ -4432,11 +4452,15 @@ In DASH and HLS mode:
 .br
 - unless nb_pack is specified, 200 TS packets will be used as pack output in DASH mode.
 .br
-- pes_pack=none is forced since some demuxers have issues with non-aligned ADTS PES.
+- pes_pack=none is forced since some demultiplexers have issues with non-aligned ADTS PES.
 .br
 
 .br
 The filter watches the property FileNumber on incoming packets to create new files, or new segments in DASH mode.
+.br
+The filter will look for property M2TSRA set on the input stream.
+.br
+The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknwon media types.
 .br
 
 .br
@@ -4578,7 +4602,7 @@ template=Great_$File$_$Width$
 .br
 
 .br
-If input is foo.mp4 with 640x360 video resulution, this will resolve in Great_foo_640.mp4 for onDemand case.
+If input is foo.mp4 with 640x360 video resolution, this will resolve in Great_foo_640.mp4 for onDemand case.
 .br
 
 .br
@@ -4740,7 +4764,7 @@ gpac -i null:#xlink=http://foo/bar.xml:#PStart=6 -i m.mp4 -o test.mpd
 .br
 
 .br
-This will create an MPD with first a regular period, dashing ony 6s of content, then a remote one.
+This will create an MPD with first a regular period, dashing only 6s of content, then a remote one.
 .br
 Example
 .br
@@ -4752,7 +4776,7 @@ This will layout the v2 below v1 using a global SRD size of 1280x720.
 .br
 
 .br
-The segmenter will create muxing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.
+The segmenter will create multiplexing filter chains for each representation and will reassign PID IDs so that each media component (video, audio, ...) in an adaptation set has the same ID.
 .br
 
 .br
@@ -4904,9 +4928,11 @@ This feature is typically combined with a list of files as input:
 .br
 Example
 .br
-gpac -i list.m3u:sigcues -o res/live.mpdThis will load the flist filter in cue mode, generating continuous timelines from the sources and injecting a CueStart property at each new file.
+gpac -i list.m3u:sigcues -o res/live.mpd
 .br
 
+.br
+This will load the flist filter in cue mode, generating continuous timelines from the sources and injecting a CueStart property at each new file.
 .br
 
 .br
@@ -5028,9 +5054,9 @@ If the DRM file uses keyRoll=period, this will generate:
 .br
 
 .br
-.SS Muxer development considerations
+.SS Multiplexer development considerations
 .br
-Output muxers allowing segmented output must obey the following:
+Output multiplexers allowing segmented output must obey the following:
 .br
 - inspect packet properties
 .br
@@ -5044,13 +5070,13 @@ Output muxers allowing segmented output must obey the following:
 .br
 - for each segment done, send a downstream event on the first connected PID signaling the size of the segment and the size of its index if any
 .br
-- for muxers with init data, send a downstream event signaling the size of the init and the size of the global index if any
+- for multiplexers with init data, send a downstream event signaling the size of the init and the size of the global index if any
 .br
-- the following filter options are passed to muxers, which should declare them as arguments:
+- the following filter options are passed to multiplexers, which should declare them as arguments:
 .br
- * noinit: disables output of init segment for the muxer (used to handle bitstream switching with single init in DASH)
+ * noinit: disables output of init segment for the multiplexer (used to handle bitstream switching with single init in DASH)
 .br
- * frag: indicates muxer shall use fragmented format (used for ISOBMFF mostly)
+ * frag: indicates multiplexer shall use fragmented format (used for ISOBMFF mostly)
 .br
  * subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user
 .br
@@ -5066,7 +5092,7 @@ The segmenter adds the following properties to the output PIDs:
 .br
 * DashDur: identifies target DASH segment duration - this can be used to estimate the SIDX size for example
 .br
-* LLHLS: identifies LLHLS is used; the muxer must send fragment size events back to the dasher, and set LLHLSFragNum on the first packet of each fragment
+* LLHLS: identifies LLHLS is used; the multiplexer must send fragment size events back to the dasher, and set LLHLSFragNum on the first packet of each fragment
 .br
 
 .br
@@ -5309,7 +5335,7 @@ mha_compat (enum, default: no): adaptation set generation mode for compatible MP
 .br
 
 .br
-mname (str):                   output manifest name for ATSC3 muxing
+mname (str):                   output manifest name for ATSC3 multiplexing
 .br
 llhls (enum, default: off):    HLS low latency type
 .br
@@ -5356,7 +5382,7 @@ Description: HEVC tile aggregator
 .br
 
 .br
-This filter reaggregates a set of split tiled HEVC streams (hvt1 or hvt2 in ISOBMFF) into a single HEVC stream.
+This filter aggregates a set of split tiled HEVC streams (hvt1 or hvt2 in ISOBMFF) into a single HEVC stream.
 .br
 
 .br
@@ -5564,7 +5590,7 @@ block_size (uint, default: 5000): buffer size used to write to pipe, windows onl
 .SH gsfmx
 .LP
 .br
-Description: GSF Muxer
+Description: GSF Multiplexer
 .br
 
 .br
@@ -5699,7 +5725,7 @@ mixed (bool, default: false):  allow GSF to contain both files and media streams
 .SH gsfdmx
 .LP
 .br
-Description: GSF Demuxer
+Description: GSF demultiplexer
 .br
 
 .br
@@ -5711,7 +5737,7 @@ This allows either reading a session saved to file, or receiving the state/data 
 .br
 
 .br
-The stream format can be encrypted in AES 128 CBC mode, in which case the demux filters must be given a 128 bit key.
+The stream format can be encrypted in AES 128 CBC mode, in which case the demultiplexing filter must be given a 128 bit key.
 .br
 
 .br
@@ -5918,7 +5944,7 @@ vmode (enum, default: cuvid):  video decoder backend
 .br
 * cuda: use a CUDA-based decoder if faster than dedicated engines
 .br
-* dxva: go through DXVA internally if possible (requires D3D9 interop)
+* dxva: go through DXVA internally if possible (requires D3D9)
 .br
 
 .br
@@ -6170,7 +6196,7 @@ port (uint, default: 7000):    port for first stream in session
 .br
 loop (bool, default: true):    loop all streams in session (not always possible depending on source type)
 .br
-mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if posible
+mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if possible
 .br
 mtu (uint, default: 1460):     size of RTP MTU in bytes
 .br
@@ -6178,7 +6204,7 @@ ttl (uint, default: 2):        time-to-live for multicast packets
 .br
 ifce (str):                    default network interface to use
 .br
-payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic decoder configurations
 .br
 delay (sint, default: 0):      send delay for packet (negative means send earlier)
 .br
@@ -6286,9 +6312,9 @@ ttl (uint, default: 0):        time-to-live for multicast packets (a value of 0 
 .br
 ifce (str):                    default network interface to use
 .br
-payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic configs
+payt (uint, default: 96, minmax: 96-127): payload type to use for dynamic decoder configurations
 .br
-mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if posible
+mpeg4 (bool, default: false):  send all streams using MPEG-4 generic payload format if possible
 .br
 delay (sint, default: 0):      send delay for packet (negative means send earlier)
 .br
@@ -6821,9 +6847,9 @@ The default behavior is to dispatch a framed MHAS bitstream. To demultiplex into
 .br
 index (dbl, default: 1.0):     indexing window length
 .br
-mpha (bool, default: false):   demux MHAS and only forward audio frames
+mpha (bool, default: false):   demultiplex MHAS and only forward audio frames
 .br
-pcksync (uint, default: 4):    number of unknwon packets to tolerate before considering sync is lost
+pcksync (uint, default: 4):    number of unknown packets to tolerate before considering sync is lost
 .br
 nosync (bool, default: true):  initial sync state
 .br
@@ -6974,7 +7000,7 @@ vidfmt (enum, default: -1, updatable): video format for AVC|H264, HEVC and VVC (
 .SH bssplit
 .LP
 .br
-Description: Compressed layered bitstream spliter
+Description: Compressed layered bitstream splitter
 .br
 
 .br
@@ -6982,11 +7008,11 @@ This filter splits input stream by layers and sublayers
 .br
 
 .br
-The filter supports AVC|H264, HEVC and VVC stream spliting, and is passthrough for other codec types.
+The filter supports AVC|H264, HEVC and VVC stream splitting and is pass-through for other codec types.
 .br
 
 .br
-Spliting is based on temporalID value (start from 1) and layerID value (start from 0).
+Splitting is based on temporalID value (start from 1) and layerID value (start from 0).
 .br
 For AVC|H264, layerID is the dependency value, or quality value if svcqid is set.
 .br
@@ -7096,9 +7122,9 @@ svcqid (bool, default: false): use qualityID instead of dependencyID for SVC spl
 .SH ffdmx
 .LP
 .br
-Description: FFMPEG demuxer
+Description: FFMPEG demultiplexer
 .br
-Version: Lavf59.17.101
+Version: Lavf59.17.102
 .br
 
 .br
@@ -7106,11 +7132,11 @@ This filter demultiplexes an input file or open a source protocol using FFMPEG.
 .br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
-To list all supported demuxers for your GPAC build, use gpac -h ffdmx:*.
+To list all supported demultiplexers for your GPAC build, use gpac -h ffdmx:*.
 .br
 This will list both supported input formats and protocols.
 .br
-Input protocols are listed with Description: Input protocol, and the subclass name identitfes the protocol scheme.
+Input protocols are listed with Description: Input protocol, and the subclass name identifies the protocol scheme.
 .br
 For example, if ffdmx:rtmp is listed as input protocol, this means rtmp:// source URLs are supported.
 .br
@@ -7130,7 +7156,7 @@ src (cstr):                    URL of source content
 .br
 Description: FFMPEG decoder
 .br
-Version: Lavc59.20.100
+Version: Lavc59.21.100
 .br
 
 .br
@@ -7148,8 +7174,35 @@ The default threading mode is to let libavcodec decide how many threads to use. 
 .br
 
 .br
+.SH Codec Map
+.LP
+.br
+The .I ffcmap option allows specifying FFMPEG codecs for codecs not supported by GPAC.
+.br
+Each entry in the list is formated as GID@name or GID@+name, with:
+.br
+* GID: 4CC or 32 bit identifier of codec ID, as indicated by gpac -i source inspect:full
+.br
+* name: FFMPEG codec name
+.br
+* `+': is set and extra data is set and formatted as an ISOBMFF box, removes box header
+.br
+
+.br
+Example
+.br
+gpac -i source --ffcmap=BKV1@binkvideo vout
+.br
+
+.br
+This will map an ISOBMFF track declared with coding type BKV1 to binkvideo.
+.br
+
+.br
 .SH Options (expert):
 .LP
+.br
+ffcmap (strl):                 codec map
 .br
 * (str):                       any possible options defined for AVCodecContext and sub-classes. See gpac -hx ffdec and gpac -hx ffdec:*
 .br
@@ -7363,7 +7416,7 @@ osar (frac, default: 0/1):     force output pixel aspect ratio
 .br
 Description: FFMPEG encoder
 .br
-Version: Lavc59.20.100
+Version: Lavc59.21.100
 .br
 
 .br
@@ -7425,19 +7478,19 @@ rc (bool, default: false):     reset encoder when forcing intra frame (some enco
 .SH ffmx
 .LP
 .br
-Description: FFMPEG muxer
+Description: FFMPEG multiplexer
 .br
-Version: Lavf59.17.101
+Version: Lavf59.17.102
 .br
 
 .br
-Mulitiplexes files and open output protocols using FFMPEG.
+Multiplexes files and open output protocols using FFMPEG.
 .br
 See FFMPEG documentation (https://ffmpeg.org/documentation.html) for more details.
 .br
-To list all supported muxers for your GPAC build, use gpac -h ffmx:*.This will list both supported output formats and protocols.
+To list all supported multiplexers for your GPAC build, use gpac -h ffmx:*.This will list both supported output formats and protocols.
 .br
-Output protocols are listed with Description: Output protocol, and the subclass name identitfes the protocol scheme.
+Output protocols are listed with Description: Output protocol, and the subclass name identifies the protocol scheme.
 .br
 For example, if ffmx:rtmp is listed as output protocol, this means rtmp:// destination URLs are supported.
 .br
@@ -7466,7 +7519,7 @@ speed (dbl, default: 1.0):     set playback speed. If negative and start is 0, s
 .br
 interleave (bool, default: true): write frame in interleave mode
 .br
-nodisc (bool, default: false): ignore stream configuration changes while muxing, may result in broken streams
+nodisc (bool, default: false): ignore stream configuration changes while multiplexing, may result in broken streams
 .br
 mime (cstr):                   set mime type for graph resolution
 .br
@@ -7485,7 +7538,7 @@ block_size (uint, default: 4096): block size used to read file when using avio c
 .br
 Description: FFMPEG AVFilter
 .br
-Version: Lavf59.17.101
+Version: Lavf59.17.102
 .br
 
 .br
@@ -7650,7 +7703,7 @@ The filter is identified using the following URL schemes:
 .br
 The filter only accepts input PIDs of type FILE.
 .br
-- HAS Manifests files are detected by file extension and/or MIME types, and sent as part of the signaling bundle or as LCT object files for HLS subplaylists.
+- HAS Manifests files are detected by file extension and/or MIME types, and sent as part of the signaling bundle or as LCT object files for HLS child playlists.
 .br
 - HAS Media segments are detected using the OrigStreamType property, and send as LCT object files using the DASH template string.
 .br
@@ -7714,7 +7767,7 @@ TSI are assigned as follows:
 .br
 
 .br
-Init segments and HLS subplaylists are sent before each new segment, independently of .I carousel.
+Init segments and HLS child playlists are sent before each new segment, independently of .I carousel.
 .br
 .SH ATSC 3.0 mode
 .LP
@@ -7751,7 +7804,7 @@ In order for the real-time scheduling of data chunks to work, each fragment of t
 .br
 If this is not the case (typically when used with an existing DASH session in file mode), the scheduler will estimate CTS and duration based on the stream bitrate and segment duration. The indicated bitrate is increased by .I brinc percent for safety.
 .br
-If this fails, the muxer will trigger warnings and send as fast as possible.
+If this fails, the filter will trigger warnings and send as fast as possible.
 .br
 Note: The LCT objects are sent with no length (TOL header) assigned until the final segment size is known, potentially leading to a final 0-size LCT fragment signaling only the final size.
 .br
@@ -7762,13 +7815,13 @@ Note: The LCT objects are sent with no length (TOL header) assigned until the fi
 .br
 Since the ROUTE filter only consumes files, it is required to insert:
 .br
-- the dash demuxer in file forwarding mode when loading a DASH session
+- the dash demultiplexer in file forwarding mode when loading a DASH session
 .br
-- the dash muxer when creating a DASH session
+- the dash multiplexer when creating a DASH session
 .br
 
 .br
-Muxing an existing DASH session in route:
+Multiplexing an existing DASH session in route:
 .br
 Example
 .br
@@ -7776,7 +7829,7 @@ gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/
 .br
 
 .br
-Muxing an existing DASH session in atsc:
+Multiplexing an existing DASH session in atsc:
 .br
 Example
 .br
@@ -7784,7 +7837,7 @@ gpac -i source.mpd dashin:forward=file -o atsc://
 .br
 
 .br
-Dashing and muxing in route:
+Dashing and multiplexing in route:
 .br
 Example
 .br
@@ -7792,7 +7845,7 @@ gpac -i source.mp4 dasher:profile=live -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
-Dashing and muxing in route Low Latency:
+Dashing and multiplexing in route Low Latency:
 .br
 Example
 .br
@@ -7828,7 +7881,7 @@ gpac -i source.mpd dashin:forward=file -o route://225.1.1.0:6000/manifest.mpd
 .br
 
 .br
-This will force the ROUTE muxer to only accept .mpd files, and will drop all segment files (same if .I ext is used).
+This will force the ROUTE multiplexer to only accept .mpd files, and will drop all segment files (same if .I ext is used).
 .br
 Example
 .br
@@ -7857,7 +7910,7 @@ carousel (uint, default: 1000): carousel period in ms for repeating signaling an
 .br
 first_port (uint, default: 6000): port number of first ROUTE session in ATSC mode
 .br
-ip (str, default: 225.1.1.0):  mulicast IP address for ROUTE session in ATSC mode
+ip (str, default: 225.1.1.0):  multicast IP address for ROUTE session in ATSC mode
 .br
 ttl (uint, default: 0):        time-to-live for multicast packets
 .br
@@ -7998,7 +8051,7 @@ The specified .I fps can be either 0, positive or negative.
 .br
 
 .br
-Note: frames are simply copied or droped with no motion compensation.
+Note: frames are simply copied or dropped with no motion compensation.
 .br
 
 .br
@@ -8650,7 +8703,7 @@ The tr parameter is an object containing the following variables that the code c
 .br
 * update: if set to true, the object matrix will be recomputed at each frame even if no change in the group or scene parameters (always enforced to true if use is set)
 .br
-* depth: for groups with use, indicates the recursion level of the used element. A value of 0 indcates this is a direct render of the element, otherwise it is a render through use
+* depth: for groups with use, indicates the recursion level of the used element. A value of 0 indicates this is a direct render of the element, otherwise it is a render through use
 .br
 
 .br
@@ -9034,11 +9087,11 @@ Watchers can also be used to monitor GPAC user events by setting watch to:
 .br
 
 .br
-For keyup and keydown events, the key code to watch may additionnaly be given in parenthesis, e.g. 'watch': 'keyup(T)'.
+For keyup and keydown events, the key code to watch may additionally be given in parenthesis, e.g. 'watch': 'keyup(T)'.
 .br
 
 .br
-Note: User events are only sent if the output of the filter is consummed by the vout filter.
+Note: User events are only sent if the output of the filter is consumed by the vout filter.
 .br
 
 .br
@@ -9084,7 +9137,7 @@ A style object allows scenes to share the same values for a given set of propert
 .br
 If a scene property has the same name as a style property, the scene property is replaced by the style property.
 .br
-Styles only apply to scene, and stylable properties are restricted as follows:
+Styles only apply to scene properties as follows:
 .br
 - volume, fade, mix_ratio can use style
 .br
@@ -9889,7 +9942,7 @@ If NTP injection is used, each video packet (but not audio ones) has a SenderNTP
 .br
 
 .br
-.SH Multistream generation
+.SH Multiple output stream generation
 .LP
 .br
 More than one output size can be specified. This will result in multiple sources being generated, one per size.
@@ -10004,7 +10057,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1769-g1d936f89d-master
+build: 1.1.0-DEV-rev1774-gaa8f03c11-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

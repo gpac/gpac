@@ -1656,6 +1656,10 @@ GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType, Bool skip_logs, Bool is_
 			case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 			case GF_QT_BOX_TYPE_WAVE:
 				break;
+			//some sample descritions are handled as generic ones but we know them, don't warn
+			case GF_ISOM_BOX_TYPE_STSD:
+				if (boxType==GF_ISOM_SUBTYPE_FFV1) break;
+				//fallthrough
 			default:
 				if (boxType==GF_ISOM_BOX_TYPE_GDAT) break;
 

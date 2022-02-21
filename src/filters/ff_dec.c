@@ -51,6 +51,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 typedef struct _gf_ffdec_ctx
 {
+	GF_PropStringList ffcmap;
+
 	//internal data
 	Bool initialized;
 
@@ -353,7 +355,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 	if (!gotpic) return GF_OK;
 
 	if (ctx->decoder->pix_fmt != ctx->o_ff_pfmt) {
-		u32 pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
+		u32 pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt, GF_FALSE);
 		ctx->o_ff_pfmt = ctx->decoder->pix_fmt;
 		if (!pix_fmt) {
 			pix_fmt = GF_PIXEL_RGB;
@@ -883,6 +885,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	AVDictionary *options = NULL;
 	const GF_PropertyValue *prop;
 	const AVCodec *codec=NULL;
+	Bool unwrap_extra_data = GF_FALSE;
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
 	//disconnect of src pid (not yet supported)
@@ -958,9 +961,8 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		}
 	}
 
-
 	if (gpac_codecid == GF_CODECID_FFMPEG) {
-		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
 		if (prop && (prop->type==GF_PROP_POINTER)) {
 			ctx->decoder = prop->value.ptr;
 			if (!ctx->decoder) {
@@ -969,13 +971,14 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 			codec = avcodec_find_decoder(ctx->decoder->codec_id);
 			ctx->owns_context = GF_FALSE;
-		}
-		else if (prop && (prop->type==GF_PROP_UINT)) {
+		} else if (prop && (prop->type==GF_PROP_UINT)) {
 			ctx->decoder = avcodec_alloc_context3(NULL);
 			if (! ctx->decoder) return GF_OUT_OF_MEM;
 			codec = avcodec_find_decoder(prop->value.uint);
+			ctx->owns_context = GF_TRUE;
 		}
-		else {
+
+		if (!prop) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 			return GF_SERVICE_ERROR;
 		}
@@ -988,7 +991,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	//we reconfigure the stream
 	else {
 		u32 codec_id, ff_codectag=0;
-        
+
         if (!ctx->owns_context) {
             ctx->decoder = NULL;
         }
@@ -1023,7 +1026,36 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			}
 
 		}
-		if (codec_id) codec = avcodec_find_decoder(codec_id);
+		if (codec_id)
+			codec = avcodec_find_decoder(codec_id);
+
+		if (!codec_id && ctx->ffcmap.nb_items) {
+			char szFmt[20], szFmt2[20];
+			u32 i, l1, l2;
+			sprintf(szFmt, "%d@", gpac_codecid);
+			l1 = (u32) strlen(szFmt);
+			sprintf(szFmt2, "%s@", gf_4cc_to_str(gpac_codecid));
+			l2 = (u32) strlen(szFmt2);
+			for (i=0; i<ctx->ffcmap.nb_items; i++) {
+				char *fmt = NULL;
+				Bool unwrap_dsi = GF_FALSE;
+				if (!strncmp(ctx->ffcmap.vals[i], szFmt, l1)) fmt = ctx->ffcmap.vals[i] + l1;
+				else if (!strncmp(ctx->ffcmap.vals[i], szFmt2, l2)) fmt = ctx->ffcmap.vals[i] + l2;
+				else continue;
+
+				if (fmt[0]=='+') {
+					unwrap_dsi = GF_TRUE;
+					fmt++;
+				}
+				codec = avcodec_find_decoder_by_name(fmt);
+				if (codec) {
+					unwrap_extra_data = unwrap_dsi;
+					break;
+				}
+			}
+		}
+		if (!codec && gpac_codecid) codec = avcodec_find_decoder_by_name( gf_4cc_to_str(gpac_codecid));
+
 		if (!codec) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] No decoder found for codec %s\n", gf_codecid_name(gpac_codecid) ));
 			gf_filter_set_name(filter, "ffdec");
@@ -1035,6 +1067,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		ctx->owns_context = GF_TRUE;
 		if (ff_codectag)
 			ctx->decoder->codec_tag = ff_codectag;
+	}
+
+	if (ctx->owns_context) {
 
 		ffmpeg_set_enc_dec_flags(ctx->options, ctx->decoder);
 
@@ -1047,23 +1082,40 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->decoder->sample_rate = ctx->sample_rate;
 			ctx->decoder->channels = ctx->channels;
 		}
+	}
 
-		//we may have a dsi here!
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (prop && prop->value.data.ptr && prop->value.data.size) {
-			//looks like ffmpeg wants the fLaC keyword
-			if (gpac_codecid==GF_CODECID_FLAC) {
-				ctx->decoder->extradata_size = prop->value.data.size+4;
-				ctx->decoder->extradata = av_malloc(sizeof(char) * prop->value.data.size+4);
-				memcpy(ctx->decoder->extradata, "fLaC", 4);
-				memcpy(ctx->decoder->extradata+4, prop->value.data.ptr, prop->value.data.size);
-			} else {
-				ctx->decoder->extradata_size = prop->value.data.size;
-				ctx->decoder->extradata = av_malloc(sizeof(char) * prop->value.data.size);
-				memcpy(ctx->decoder->extradata, prop->value.data.ptr, prop->value.data.size);
+	//we may have a dsi here!
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (prop
+		&& ((prop->type==GF_PROP_DATA) || (prop->type==GF_PROP_CONST_DATA))
+		&& prop->value.data.ptr
+		&& prop->value.data.size
+	) {
+		//looks like ffmpeg wants the fLaC keyword
+		if (gpac_codecid==GF_CODECID_FLAC) {
+			ctx->decoder->extradata_size = prop->value.data.size+4;
+			ctx->decoder->extradata = av_malloc(sizeof(char) * prop->value.data.size+4);
+			memcpy(ctx->decoder->extradata, "fLaC", 4);
+			memcpy(ctx->decoder->extradata+4, prop->value.data.ptr, prop->value.data.size);
+		} else {
+			u8 *dsi = prop->value.data.ptr;
+			u32 dsi_size = prop->value.data.size;
+			if (unwrap_extra_data && (dsi_size>8)) {
+				u32 size = dsi[0]; size<<=8;
+				size |= dsi[1]; size<<=8;
+				size |= dsi[2]; size<<=8;
+				size |= dsi[3];
+				if (size == dsi_size) {
+					dsi += 8;
+					dsi_size -= 8;
+				}
 			}
-			ctx->extra_data_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
+
+			ctx->decoder->extradata_size = dsi_size;
+			ctx->decoder->extradata = av_malloc(sizeof(char) * dsi_size);
+			memcpy(ctx->decoder->extradata, dsi, dsi_size);
 		}
+		ctx->extra_data_crc = gf_crc_32(ctx->decoder->extradata, ctx->decoder->extradata_size);
 	}
 
 	//by default let libavcodec decide - if single thread is required, let the user define -threads option
@@ -1114,7 +1166,7 @@ reuse_codec_context:
 		//to make sure we are not confusing potential filters expecting them, init to default values
 		if (ctx->decoder->pix_fmt>=0) {
 			ctx->o_ff_pfmt = ctx->decoder->pix_fmt;
-			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt);
+			pix_fmt = ffmpeg_pixfmt_to_gpac(ctx->decoder->pix_fmt, GF_FALSE);
 			if (!pix_fmt) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFDec] Unsupported pixel format %d, defaulting to RGB\n", ctx->decoder->pix_fmt));
 				pix_fmt = GF_PIXEL_RGB;
@@ -1289,6 +1341,16 @@ GF_FilterRegister FFDecodeRegister = {
 	"\n"
 	"Options can be passed from prompt using `--OPT=VAL`\n"
 	"The default threading mode is to let libavcodec decide how many threads to use. To enforce single thread, use `--threads=1`\n"
+	"\n"
+	"# Codec Map\n"
+	"The [-ffcmap]() option allows specifying FFMPEG codecs for codecs not supported by GPAC.\n"
+	"Each entry in the list is formated as `GID@name` or `GID@+name`, with:\n"
+	"- GID: 4CC or 32 bit identifier of codec ID, as indicated by `gpac -i source inspect:full`\n"
+	"- name: FFMPEG codec name\n"
+	"- `+': is set and extra data is set and formatted as an ISOBMFF box, removes box header\n"
+	"\n"
+	"EX gpac -i source --ffcmap=BKV1@binkvideo vout\n"
+	"This will map an ISOBMFF track declared with coding type `BKV1` to binkvideo.\n"
 	)
 	.private_size = sizeof(GF_FFDecodeCtx),
 	SETCAPS(FFDecodeCaps),
@@ -1306,8 +1368,10 @@ GF_FilterRegister FFDecodeRegister = {
 };
 
 
+#define OFFS(_n)	#_n, offsetof(GF_FFDecodeCtx, _n)
 static const GF_FilterArgs FFDecodeArgs[] =
 {
+	{ OFFS(ffcmap), "codec map", GF_PROP_STRING_LIST, NULL, NULL, 0},
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. See `gpac -hx ffdec` and `gpac -hx ffdec:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };

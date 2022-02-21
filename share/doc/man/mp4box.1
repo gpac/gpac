@@ -458,7 +458,7 @@ extract given track as raw media in experimental XML streaming instructions
 .TP
 .B \-mux (string)
 .br
-mux input to given destination
+multiplex input file to given destination
 .br
 .TP
 .B \-qcp (int)
@@ -468,12 +468,12 @@ same as .I raw but defaults to QCP file for EVRC/SMV
 .TP
 .B \-saf
 .br
-remux file to SAF multiplex
+multiplex input file to SAF multiplex
 .br
 .TP
 .B \-dvbhdemux
 .br
-demux DVB-H file into IP Datagrams sent on the network
+demultiplex DVB-H file into IP Datagrams sent on the network
 .br
 .TP
 .B \-raw-layer (int)
@@ -516,7 +516,7 @@ Input media files to dash can use the following modifiers
 .br
 * #audio: only use the first audio track from the source file
 .br
-* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output mux.
+* :id=NAME: set the representation ID to NAME. Reserved value NULL disables representation ID for multiplexed inputs. If not set, a default value is computed and all selected tracks from the source will be in the same output multiplex.
 .br
 * :dur=VALUE: process VALUE seconds (fraction) from the media. If VALUE is longer than media duration, last sample duration is extended.
 .br
@@ -1038,7 +1038,7 @@ extract the specified time range so that ranges A:B and B:C share exactly the sa
 .br
 - the start time is moved to the RAP sample at or after the specified start time
 .br
-- the end time is moved to the frame preceeding the RAP sample at or following the specified end time
+- the end time is moved to the frame preceding the RAP sample at or following the specified end time
 .br
 .TP
 .B \-splitg (string)
@@ -1047,7 +1047,7 @@ extract the specified time range as follows:
 .br
 - the start time is moved to the RAP sample at or before the specified start time
 .br
-- the end time is moved to the frame preceeding the RAP sample at or following the specified end time
+- the end time is moved to the frame preceding the RAP sample at or following the specified end time
 .br
 .TP
 .B \-splitf (string)
@@ -1385,11 +1385,11 @@ By default all imports are performed sequentially, and final interleaving is don
 .br
   
 .br
-If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I new since it is dependent on muxer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: 
+If you wish to create an interleaved new file with no temporary storage, use the .I -newfs option. The interleaving might not be as precise as when using .I new since it is dependent on multiplexer input scheduling (each execution might lead to a slightly different result). Additionally in this mode: 
 .br
- - Some muxing options (marked with X below) will be activated for all inputs (e.g. it is not possible to import one AVC track with xps_inband and another without).
+ - Some multiplexing options (marked with X below) will be activated for all inputs (e.g. it is not possible to import one AVC track with xps_inband and another without).
 .br
- - Some muxing options (marked as D below) cannot be used as they require temporary storage for file edition.
+ - Some multiplexing options (marked as D below) cannot be used as they require temporary storage for file edition.
 .br
  - Usage of .I cat is possible, but concatenated sources will not be interleaved in the output. If you wish to perform more complex cat/add operations without temp file, use a playlist.
 .br
@@ -1929,7 +1929,7 @@ S set the Dolby Vision profile on imported track
 .br
 - Profile can be suffixed with compatibility ID, e.g. 5.hdr10
 .br
-- Allowed compatibility ID are none, hdr10, bt709, hlg709, hlg2100, bt2020, brd, or interger value as per DV spec
+- Allowed compatibility ID are none, hdr10, bt709, hlg709, hlg2100, bt2020, brd, or integer value as per DV spec
 .br
 - Profile can be prefixed with 'f' to force DV codec type signaling, e.g. f8.2
 .br
@@ -2019,7 +2019,7 @@ X set OPTS as additional arguments to destination filter. OPTS can be any usual 
 .TP
 .B @f1[:args][@fN:args]
 .br
-set a filter chain to insert before the muxer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. A @@ separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified
+set a filter chain to insert before the multiplexer. Each filter in the chain is formatted as a regular filter, see filter doc `gpac -h doc`. A @@ separator starts a new chain (see DASH help). The last filter in each chain shall not have any ID specified
 .br
 
 .br
@@ -2745,7 +2745,7 @@ exec_producer (A9xpd) string
 .SH Live Scene Encoder Options
 .LP
 .br
-The options shall be specified as òpt_name=opt_val.
+The options shall be specified as opt_name=opt_val.
 .br
 Options:
 .br
@@ -2835,7 +2835,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 1.1.0-DEV-rev1769-g1d936f89d-master
+build: 1.1.0-DEV-rev1774-gaa8f03c11-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

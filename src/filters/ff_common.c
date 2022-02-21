@@ -124,7 +124,7 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 	return 0;
 }
 
-u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
+u32 ffmpeg_pixfmt_to_gpac(u32 pfmt, Bool no_warn)
 {
 	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
 	if (!ffdesc) {
@@ -137,7 +137,9 @@ u32 ffmpeg_pixfmt_to_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].gpac_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+	if (!no_warn) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped FFMPEG pixel format %s, patch welcome\n", ffdesc->name));
+	}
 	return 0;
 }
 
@@ -378,7 +380,7 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 	{AV_CODEC_ID_V210, GF_CODECID_V210, 0},
 
 	{AV_CODEC_ID_TRUEHD, GF_CODECID_TRUEHD, 0},
-
+	{AV_CODEC_ID_FFV1, GF_CODECID_FFV1, 0},
 	{0}
 };
 

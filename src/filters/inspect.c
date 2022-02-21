@@ -3309,7 +3309,18 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (!vcfg.progresive) gf_fprintf(dump, " interlaced");
 		}
 	} else {
-		gf_fprintf(dump, " %s", gf_codecid_name(codec_id));
+		if (codec_id==GF_CODECID_FFMPEG) {
+			p = gf_filter_pid_get_property_str(pid, "ffmpeg:codec");
+			if (p) {
+				gf_fprintf(dump, " %s", p->value.string);
+			} else {
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_FFMPEG_CODEC_ID);
+				if (p && (p->type==GF_PROP_UINT)) codec_id = p->value.uint;
+				gf_fprintf(dump, " FFMPEG %d", codec_id);
+			}
+		} else {
+			gf_fprintf(dump, " %s", gf_codecid_name(codec_id));
+		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
 		if (p) gf_fprintf(dump, " PL %d", p->value.uint);
 

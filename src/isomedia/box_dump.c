@@ -854,6 +854,38 @@ GF_Err gen_sample_entry_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
+{
+	GF_List *list = NULL;
+	GF_Err e = GF_OK;
+	if (!data) return;
+
+	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
+	while (gf_bs_available(bs)) {
+		GF_Box *abox=NULL;
+		e = gf_isom_box_parse(&abox, bs);
+		if (!abox) break;
+		if (!list) list = gf_list_new();
+		gf_list_add(list, abox);
+	}
+	gf_bs_del(bs);
+
+	if (!e && gf_list_count(list)) {
+		gf_fprintf(trace, ">\n");
+		while (gf_list_count(list)) {
+			GF_Box *a = gf_list_pop_front(list);
+			gf_isom_box_dump(a, trace);
+			gf_isom_box_del(a);
+		}
+	} else {
+		dump_data_attribute(trace, "data", data, data_size);
+		gf_fprintf(trace, ">\n");
+	}
+	if (list)
+		gf_isom_box_array_del(list);
+}
+
 GF_Err gnrm_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericSampleEntryBox *p = (GF_GenericSampleEntryBox *)a;
@@ -861,8 +893,10 @@ GF_Err gnrm_box_dump(GF_Box *a, FILE * trace)
 		a->type = p->EntryType;
 
 	gf_isom_box_dump_start(a, "SampleDescriptionEntryBox", trace);
-	gf_fprintf(trace, "DataReferenceIndex=\"%d\" ExtensionDataSize=\"%d\">\n", p->dataReferenceIndex, p->data_size);
+	gf_fprintf(trace, "DataReferenceIndex=\"%d\" ExtensionDataSize=\"%d\"", p->dataReferenceIndex, p->data_size);
 	a->type = GF_ISOM_BOX_TYPE_GNRM;
+	gnr_dump_exts(p->data, p->data_size, trace);
+
 	gf_isom_box_dump_done("SampleDescriptionEntryBox", a, trace);
 	return GF_OK;
 }
@@ -874,9 +908,12 @@ GF_Err gnrv_box_dump(GF_Box *a, FILE * trace)
 		a->type = p->EntryType;
 
 	gf_isom_box_dump_start(a, "VisualSampleDescriptionBox", trace);
-	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\">\n",
+	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\"",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, isalnum(p->compressor_name[0]) ? p->compressor_name : p->compressor_name+1, p->bit_depth);
+
 	a->type = GF_ISOM_BOX_TYPE_GNRV;
+	gnr_dump_exts(p->data, p->data_size, trace);
+
 	gf_isom_box_dump_done("VisualSampleDescriptionBox", a, trace);
 	return GF_OK;
 }
@@ -888,9 +925,12 @@ GF_Err gnra_box_dump(GF_Box *a, FILE * trace)
 		a->type = p->EntryType;
 
 	gf_isom_box_dump_start(a, "AudioSampleDescriptionBox", trace);
-	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" ChannelCount=\"%d\" BitsPerSample=\"%d\" Samplerate=\"%d\">\n",
+	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" ChannelCount=\"%d\" BitsPerSample=\"%d\" Samplerate=\"%d\"",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->channel_count, p->bitspersample, p->samplerate_hi);
+
 	a->type = GF_ISOM_BOX_TYPE_GNRA;
+	gnr_dump_exts(p->data, p->data_size, trace);
+
 	gf_isom_box_dump_done("AudioSampleDescriptionBox", a, trace);
 	return GF_OK;
 }

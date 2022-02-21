@@ -361,6 +361,7 @@ enum
 	GF_QT_SUBTYPE_RGBA = GF_4CC('R','G','B','A'),
 	GF_QT_SUBTYPE_ABGR = GF_4CC('A','B','G','R'),
 
+	GF_ISOM_SUBTYPE_FFV1		= GF_4CC( 'F', 'F', 'V', '1' ),
 
 	GF_ISOM_ITEM_TYPE_AUXI 	= GF_4CC('a', 'u', 'x', 'i'),
 
@@ -3055,6 +3056,8 @@ typedef struct
 	u8 *extension_buf;
 	/*optional, sample description specific size*/
 	u32 extension_buf_size;
+	/*optional, wraps sample description specific data into a box if given type*/
+	u32 ext_box_wrap;
 } GF_GenericSampleDescription;
 
 /*! gets an unknown sample description

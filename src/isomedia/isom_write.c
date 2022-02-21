@@ -4437,6 +4437,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 {
 	GF_TrackBox *trak;
 	GF_Err e;
+	u8 **wrap_data;
+	u32 *wrap_size;
 	u32 dataRefIndex;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -4486,15 +4488,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		entry->horiz_res = udesc->h_res ? udesc->h_res : 0x00480000;
 		entry->vert_res = udesc->v_res ? udesc->v_res : 0x00480000;
 		entry->bit_depth = udesc->depth ? udesc->depth : 0x18;
-		if (udesc->extension_buf && udesc->extension_buf_size) {
-			entry->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
-			if (!entry->data) {
-				gf_isom_box_del((GF_Box *) entry);
-				return GF_OUT_OF_MEM;
-			}
-			memcpy(entry->data, udesc->extension_buf, udesc->extension_buf_size);
-			entry->data_size = udesc->extension_buf_size;
-		}
+		wrap_data = &entry->data;
+		wrap_size = &entry->data_size;
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, entry);
 	}
 	else if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_AUDIO) {
@@ -4524,15 +4519,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		gena->samplerate_lo = 0;
 		gena->qtff_mode = udesc->is_qtff ? GF_ISOM_AUDIO_QTFF_ON_NOEXT : GF_ISOM_AUDIO_QTFF_NONE;
 
-		if (udesc->extension_buf && udesc->extension_buf_size) {
-			gena->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
-			if (!gena->data) {
-				gf_isom_box_del((GF_Box *) gena);
-				return GF_OUT_OF_MEM;
-			}
-			memcpy(gena->data, udesc->extension_buf, udesc->extension_buf_size);
-			gena->data_size = udesc->extension_buf_size;
-		}
+		wrap_data = &gena->data;
+		wrap_size = &gena->data_size;
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, gena);
 	}
 	else {
@@ -4551,20 +4539,23 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 			gf_isom_box_del((GF_Box *)genm);
 			return GF_NOT_SUPPORTED;
 		}
-
 		genm->dataReferenceIndex = dataRefIndex;
-		if (udesc->extension_buf && udesc->extension_buf_size) {
-			genm->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
-			if (!genm->data) {
-				gf_isom_box_del((GF_Box *) genm);
-				return GF_OUT_OF_MEM;
-			}
-			memcpy(genm->data, udesc->extension_buf, udesc->extension_buf_size);
-			genm->data_size = udesc->extension_buf_size;
-		}
+		wrap_data = &genm->data;
+		wrap_size = &genm->data_size;
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->child_boxes, genm);
 	}
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->child_boxes);
+
+	if (udesc->extension_buf && udesc->extension_buf_size) {
+		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (udesc->ext_box_wrap) {
+			gf_bs_write_u32(bs, 8+udesc->extension_buf_size);
+			gf_bs_write_u32(bs, udesc->ext_box_wrap);
+		}
+		gf_bs_write_data(bs, udesc->extension_buf, udesc->extension_buf_size);
+		gf_bs_get_content(bs, wrap_data, wrap_size);
+		gf_bs_del(bs);
+	}
 	return e;
 }
 

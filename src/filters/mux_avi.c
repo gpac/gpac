@@ -102,6 +102,7 @@ static GF_Err avimux_open_close(GF_AVIMuxCtx *ctx, const char *filename, const c
 static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	AVIStream *stream;
+	Bool strip_box_header=GF_FALSE;
 	GF_FilterEvent evt;
 	const GF_PropertyValue *p;
 	u32 w, h, sr, stride, bps, nb_ch, pf, codec_id, type, br, timescale, wfmt;
@@ -200,8 +201,31 @@ static GF_Err avimux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[AVIOut] Unsupported codec %s for AVI  error\n", gf_codecid_name(codec_id) ));
-		return GF_NOT_SUPPORTED;
+		p = gf_filter_pid_get_property_str(pid, "AVIType");
+		if (p) {
+			if ((p->type==GF_PROP_UINT) || (p->type==GF_PROP_4CC)) {
+				if (type==GF_STREAM_VISUAL)
+					strcpy(ctx->comp_name, gf_4cc_to_str(p->value.uint));
+				else
+					wfmt = p->value.uint;
+				break;
+			}
+			else if ((p->type==GF_PROP_STRING) && p->value.string) {
+				char *str = p->value.string;
+				if (str[0]=='+') {
+					strip_box_header = GF_TRUE;
+					str+=1;
+				}
+				if (type==GF_STREAM_VISUAL)
+					strncpy(ctx->comp_name, str, 4);
+				else
+					wfmt = gf_4cc_parse(str);
+				break;
+			}
+		}
+		strcpy(ctx->comp_name, gf_4cc_to_str(codec_id));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[AVIOut] Muxing codec %s to unknown AVI type %s, set property `AVIType` on input PID to override\n", gf_codecid_name(codec_id), ctx->comp_name));
+		break;
 	}
 
 	if (!stream) {
@@ -278,6 +302,28 @@ check_mx:
 		avimux_open_close(ctx, szPath, NULL, 0);
 	}
 
+	if (stream->width) {
+		if (ctx->avi_out->extradata) gf_free(ctx->avi_out->extradata);
+		ctx->avi_out->extradata = NULL;
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (p) {
+			u8 *data = p->value.data.ptr;
+			u32 data_size = p->value.data.size;
+			if (strip_box_header) {
+				u32 size = data[0]; size<<=8;
+				size |= data[1]; size<<=8;
+				size |= data[2]; size<<=8;
+				size |= data[3];
+				if (size == data_size) {
+					data += 8;
+					data_size -= 8;
+				}
+			}
+			ctx->avi_out->extradata_size = data_size;
+			ctx->avi_out->extradata = gf_malloc(data_size);
+			memcpy(ctx->avi_out->extradata, data, data_size);
+		}
+	}
 	return GF_OK;
 }
 
@@ -533,11 +579,24 @@ static const GF_FilterCapability AVIMuxCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	{0},
+	//unframed video streams
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AV1),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	//all other video streams
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_AVC),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_HEVC),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_VVC),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	//unframed audio streams
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
@@ -546,11 +605,12 @@ static const GF_FilterCapability AVIMuxCaps[] =
 	/*we take adts as input*/
 	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	{0},
+	//all other audio streams
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG2_PART3),
-	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG_AUDIO_L1),
-	/*we want full MPEG-1/2 audio frames as input*/
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG4),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_MP),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_LCP),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,GF_PROP_PID_CODECID, GF_CODECID_AAC_MPEG2_SSRP),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
@@ -586,6 +646,10 @@ GF_FilterRegister AVIMuxRegister = {
 		"Unlike other multiplexing filters in GPAC, this filter is a sink filter and does not produce any PID to be redirected in the graph.\n"
 		"The filter can however use template names for its output, using the first input PID to resolve the final name.\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files.\n"
+		"\n"
+		"The filter will look for property `AVIType` set on the input stream.\n"
+		"The value can either be a 4CC or a string, indicating the mux format for the PID.\n"
+		"If the string is prefixed with `+` and the decoder configuration is present and formatted as an ISOBMFF box, the box header will be removed.\n"
 	)
 	.private_size = sizeof(GF_AVIMuxCtx),
 	.max_extra_pids = -1,

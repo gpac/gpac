@@ -366,6 +366,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 					load_default = GF_TRUE;
 				}
 			}
+			else if (codec_id==GF_CODECID_FFV1)
+				load_default = GF_TRUE;
 			break;
 		}
 
@@ -377,10 +379,16 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			}
 			udesc = gf_isom_get_generic_sample_description(read->mov, track, stsd_idx);
 			if (udesc) {
-				dsi = udesc->extension_buf;
-				dsi_size = udesc->extension_buf_size;
-				udesc->extension_buf = NULL;
-				udesc->extension_buf_size = 0;
+				if ((codec_id==GF_CODECID_FFV1) && (udesc->extension_buf_size>8)) {
+					dsi = gf_malloc(udesc->extension_buf_size-8);
+					if (dsi) memcpy(dsi, udesc->extension_buf+8, udesc->extension_buf_size-8);
+					dsi_size = udesc->extension_buf_size - 8;
+				} else {
+					dsi = udesc->extension_buf;
+					dsi_size = udesc->extension_buf_size;
+					udesc->extension_buf = NULL;
+					udesc->extension_buf_size = 0;
+				}
 			}
 		}
 	}
