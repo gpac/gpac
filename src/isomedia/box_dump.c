@@ -6195,7 +6195,8 @@ GF_Err emsg_box_dump(GF_Box *a, FILE * trace)
 	GF_EventMessageBox *p = (GF_EventMessageBox *) a;
 
 	gf_isom_box_dump_start(a, "EventMessageBox", trace);
-	fprintf(trace, "timescale=\"%u\" presentation_time_delta=\""LLU"\" event_duration=\"%u\" event_id=\"%u\"", p->timescale, p->presentation_time_delta, p->event_duration, p->event_id);
+	fprintf(trace, "timescale=\"%u\" presentation_time%s=\""LLU"\" event_duration=\"%u\" event_id=\"%u\"",
+		p->timescale, (p->version==0) ? "_delta" : "", p->presentation_time_delta, p->event_duration, p->event_id);
 
 	if (p->scheme_id_uri)
 		fprintf(trace, " scheme_id_uri=\"%s\"", p->scheme_id_uri);
