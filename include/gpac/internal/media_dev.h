@@ -464,7 +464,7 @@ typedef struct RepFormat
 typedef struct
 {
 	u16 avg_bit_rate, max_bit_rate, avg_pic_rate;
-	u8 constand_pic_rate_idc;
+	u8 constant_pic_rate_idc;
 } HEVC_RateInfo;
 
 
@@ -483,6 +483,7 @@ typedef struct
 	HEVC_ProfileTierLevel ptl;
 
 	HEVC_SublayerPTL sub_ptl[8];
+	//this is not parsed yet (in VPS VUI)
 	HEVC_RateInfo rates[8];
 
 

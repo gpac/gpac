@@ -8195,8 +8195,10 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 		sps->update_rep_format_flag = gf_bs_read_int_log(bs, 1, "update_rep_format_flag");
 		if (sps->update_rep_format_flag) {
 			sps->rep_format_idx = gf_bs_read_int_log(bs, 8, "rep_format_idx");
-		}
-		else {
+			if (sps->rep_format_idx>15) {
+				return -1;
+			}
+		} else {
 			sps->rep_format_idx = vps->rep_format_idx[layer_id];
 		}
 		sps->width = vps->rep_formats[sps->rep_format_idx].pic_width_luma_samples;

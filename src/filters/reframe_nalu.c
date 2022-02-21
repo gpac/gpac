@@ -1018,7 +1018,7 @@ static void naludmx_create_hevc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32
 
 		if (!i) {
 			hvcc->avgFrameRate = lvcc->avgFrameRate = vps->rates[0].avg_pic_rate;
-			hvcc->constantFrameRate = lvcc->constantFrameRate = vps->rates[0].constand_pic_rate_idc;
+			hvcc->constantFrameRate = lvcc->constantFrameRate = vps->rates[0].constant_pic_rate_idc;
 			hvcc->numTemporalLayers = lvcc->numTemporalLayers = vps->max_sub_layers;
 			hvcc->temporalIdNested = lvcc->temporalIdNested = vps->temporal_id_nesting;
 		}
@@ -1183,7 +1183,7 @@ static void naludmx_create_vvc_decoder_config(GF_NALUDmxCtx *ctx, u8 **dsi, u32 
 
 		if (!i) {
 			cfg->avgFrameRate = vps->rates[0].avg_pic_rate;
-			cfg->constantFrameRate = vps->rates[0].constand_pic_rate_idc;
+			cfg->constantFrameRate = vps->rates[0].constant_pic_rate_idc;
 			cfg->numTemporalLayers = vps->max_sub_layers;
 		}
 		if (!ctx->analyze)
