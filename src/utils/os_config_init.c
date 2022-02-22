@@ -946,7 +946,7 @@ static GF_Config *gf_cfg_init(const char *profile)
 
 		if (nb_old_sec || force_new_cfg) {
 			if (nb_old_sec && (!profile || strcmp(profile, "0"))) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Incompatible (0.8.0 or older) config file %s found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Incompatible config file %s found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
 			}
 			gf_cfg_del(cfg);
 			cfg = create_default_config(szPath, profile);

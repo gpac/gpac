@@ -11,22 +11,23 @@ Build-Depends: debhelper (>= 6), libc6, libc6-dev, libx11-dev (>= 1.3), zlib1g-d
 Package: gpac
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: framework for production, encoding, delivery and interactive playback of multimedia content
+Description: Framework for production, encoding, delivery and interactive playback of multimedia content
  GPAC supports many AV codecs, multimedia containers (MP4,fMP4, TS, avi, mov, mpg, mkv ...), complex
  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and subtitles (SRT, WebVTT, TTXT/TX3G, TTML).
- Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, RTP/RTSP, TS demuxing (from file, IP or DVB4Linux), 
+ Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, DASH/HLS, RTP/RTSP, MPEG-2 TS, 
  ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
- GPAC features a highly configurable media processing pipeline, and can further be extended using JavaScript.
+ GPAC features a highly configurable media processing pipeline extensible through JavaScript, and can be embedded in Python or NodeJS applications.
 
 
 Package: libgpac-dev
 Architecture: any
 Section: libdevel
 Depends: gpac
-Replaces: gpac (<= 0.8.0)
-Description: framework for production, encoding, delivery and interactive playback of multimedia content
+Replaces: gpac (<= 1.0.1)
+Description: Framework for production, encoding, delivery and interactive playback of multimedia content
  GPAC supports many AV codecs, multimedia containers (MP4,fMP4, TS, avi, mov, mpg, mkv ...), complex
  presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D) and subtitles (SRT, WebVTT, TTXT/TX3G, TTML).
- Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, RTP/RTSP, TS demuxing (from file, IP or DVB4Linux), 
+ Supported inputs and outputs are pipes, UDP/TCP/UN sockets, local files, HTTP, DASH/HLS, RTP/RTSP, MPEG-2 TS, 
  ATSC 3.0 ROUTE sessions, desktop grabbing, camera/microphone inputs and any input format supported by FFmpeg.
- GPAC features a highly configurable media processing pipeline, and can further be extended using JavaScript.
+ GPAC features a highly configurable media processing pipeline extensible through JavaScript, and can be embedded in Python or NodeJS applications.
+

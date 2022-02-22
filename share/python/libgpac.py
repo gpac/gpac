@@ -241,8 +241,8 @@ except OSError:
             os._exit(1)
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
-GF_ABI_MAJOR=10
-GF_ABI_MINOR=12
+GF_ABI_MAJOR=11
+GF_ABI_MINOR=0
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
