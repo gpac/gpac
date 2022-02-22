@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / command-line client
@@ -286,6 +286,9 @@ void PrintUsage(Bool show_all)
 			"# General\n"
 			"The player accepts any URL supported by GPAC.\n"
 			"Specific URLs shortcuts are available, see [GPAC Compositor (gpac -h compositor)](compositor)\n"
+			"\n"
+			"Warning: MP4Client is being deprecated, use `gpac -play URL`, `gpac -gui URL` or `gpac -mp4c URL`.\n"
+			"\n"
 			"Version: %s\n"
 			"%s\n"
 			"For more info on GPAC configuration, use `gpac ` [-h](GPAC) `bin`  \n  \n"

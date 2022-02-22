@@ -24,13 +24,11 @@
 
 
 # GPAC Introduction
-Current version: 1.1-DEV
-
-Latest Release: 1.0.1
+Latest Release: 2.0
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
 GPAC provides tools to process, inspect, package, stream, playback and interact with media content. Such content can be any combination of audio, video, subtitles, metadata, scalable graphics, encrypted media, 2D/3D graphics and ECMAScript.
-GPAC is best-known for its wide MP4 capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
+GPAC is best-known for its wide MP4/ISOBMFF capabilities and is popular among video enthusiasts, academic researchers, standardization bodies, and professional broadcasters.
 
 For more information, visit [GPAC website](http://gpac.io)
 
@@ -45,7 +43,7 @@ Please ! _cite_ ! our work in your research:
 
 GPAC can process, analyse, package, stream, encode, decode and playback a wide variety of contents. Selected feature list:
 - Audio: MPEG audio (mp1/2/3, aac), AC3, E-AC3, Opus, FLAC, …
-- Video: MPEG 1 / 2 / 4 (H264/AVC) / H (HEVC), AV1, VP9, Theora, ...
+- Video: MPEG 1 / 2 / 4 (H264/AVC) / H (HEVC), VVC, AV1, VP9, Theora, ...
 - Subtitles: WebVTT, TTML (full, EBU-TTD, …), 3GPP/Apple Timed Text, …
 - Encryption: CENC, PIFF, ISMA, OMA, ...
 - Containers: MP4/fMP4/CMAF/Quicktime MOV/ProRes MOV, AVI, MPG, OGG, MKV, ...
@@ -56,6 +54,7 @@ GPAC can process, analyse, package, stream, encode, decode and playback a wide v
 - 3D support (360 videos, WebGL JS filters…)
 - Inputs: microphone, camera, desktop grabbing
 - Highly configurable media processing pipeline
+- Python and NodeJS bindings
 
 Features are encapsulated in processing modules called filters:
 - to get the full list of available features, you can run the command line `gpac -h filters` or check [filters' wiki](https://github.com/gpac/gpac/wiki/Filters).
@@ -69,14 +68,17 @@ MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media 
 
 
 ## gpac 
-As of version 0.9.0, GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box and MP4Client.
+GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box and MP4Client.
 The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
 
-## MP4Client
+## MP4Client (deprecated)
 MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
 For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://wiki.gpac.io/mp4client).
 
-
+__Warning__
+MP4Client is deprecated and will be removed in the next release. Start modifying your scripts:
+- replace `MP4Client URL` with `gpac -play URL` (audio/video playback only) or `gpac -mp4c URL` (if compositor is needed)
+- replace `MP4Client -gui URL` with `gpac -gui URL`.
 
 # Getting started
 ## Download
@@ -87,7 +89,7 @@ If you want to compile GPAC yourself, please follow the instructions in the [bui
 ## Documentation
 The general GPAC framework documentation is available on [wiki.gpac.io](https://wiki.gpac.io), including [HowTos](https://github.com/gpac/gpac/wiki/Howtos).
 
-GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html).
+GPAC tools are mostly wrappers around an underlying library called libgpac which can easily be embedded in your projects. The libgpac developer documentation is available at [doxygen.gpac.io](https://doxygen.gpac.io), including documentation of [JS APIs](https://doxygen.gpac.io/group__jsapi__grp.html), [Python APIs](https://doxygen.gpac.io/group__pyapi__grp.html) and [NodeJS APIs](https://doxygen.gpac.io/group__nodejs__grp.html).
 
 
 ## Testing
@@ -110,7 +112,7 @@ If you want to contribute to GPAC, you can find ideas at [GSoC page](https://gpa
 # Team
 GPAC is brought to you by an experienced team of developers with a wide track-record on media processing. 
 
-The project is mainly developed at [Telecom Paris](https://www.telecom-paris.fr/), in the [MultiMedia group](http://www.tsi.telecom-paristech.fr/mm/), with the help of many [great contributors](https://github.com/gpac/gpac/graphs/contributors)
+The project is mainly developed in the MultiMedia group of [Telecom Paris](https://www.telecom-paris.fr/) with the help of many [great contributors](https://github.com/gpac/gpac/graphs/contributors).
 
 GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction from research and a nascent multimedia community as it was open-sourced in 2003. Since then we have never stopped transforming GPAC into a useful and up-to-date project, with many industrial R&D collaborations and a community of tens of thousands of users. This makes GPAC one of the few open-source multimedia projects that gathers so much diversity.
 
@@ -118,13 +120,15 @@ GPAC has a peculiar story: started as a startup in NYC, GPAC gained traction fro
 # Roadmap
 Users are encouraged to use the latest tag or the master branch.
 
-The previous v0.8.X release (the last one using the legacy architecture) is LTS until 30/06/2021. Important bug fixes will be backported but new features won’t. API compatibility between both versions should make the migration easy. If not please [file a bug](https://github.com/gpac/gpac/issues).
+The v0.8.X release (the last one using the legacy architecture) is officially deprecated.
 
-## V1.1.0
+## V2.X
 Targets:
-- [x] improve remotery support
-- [x] more JS filters
-- [x] Python bindings for libgpac
-- [ ] move input sensors to filter ?
-- [X] fixed features disabled during rearchitecture or drop them
-- [x] move Android client to filters
+- [ ] drop MP4Client and GF_Terminal API
+- [ ] User authentication for HTTP and RTSP servers
+- [ ] DASH event support
+- [ ] Web integration (emscripten, Remotery UI)
+- [ ] GUI cleanup ?
+
+
+
