@@ -115,6 +115,14 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 static GF_Err truehd_parse_frame(GF_BitStream *bs, TrueHDHdr *hdr)
 {
 	memset(hdr, 0, sizeof(TrueHDHdr));
+
+	u32 avail = (u32) gf_bs_available(bs);
+	//we need 8 bytes for base header (up to sync marker)
+	if (avail<8) {
+		hdr->frame_size = 0;
+		return GF_OK;
+	}
+
 	/*u8 nibble = */gf_bs_read_int(bs, 4);
 	hdr->frame_size = 2 * gf_bs_read_int(bs, 12);
 	hdr->time = gf_bs_read_u16(bs);
@@ -123,6 +131,13 @@ static GF_Err truehd_parse_frame(GF_BitStream *bs, TrueHDHdr *hdr)
 		hdr->sync = 0;
 		return GF_OK;
 	}
+	avail-=8;
+	//we need 12 bytes until peak rate - to update if we decide to parse more
+	if (avail < 12) {
+		hdr->frame_size = 0;
+		return GF_OK;
+	}
+
 	hdr->format = gf_bs_peek_bits(bs, 32, 0);
 	u8 sr_idx = gf_bs_read_int(bs, 4);
 	switch (sr_idx) {
@@ -145,14 +160,14 @@ static GF_Err truehd_parse_frame(GF_BitStream *bs, TrueHDHdr *hdr)
 	hdr->ch_8_assign = gf_bs_read_int(bs, 13);
 
 	u16 sig = gf_bs_read_u16(bs);
-	if (sig != 0xB752)
+	if (sig != 0xB752) {
 		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	gf_bs_read_u16(bs);
 	gf_bs_read_u16(bs);
 	gf_bs_read_int(bs, 1);
 	hdr->peak_rate = gf_bs_read_int(bs, 15);
-
 
 	return GF_OK;
 }
