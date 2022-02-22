@@ -4024,9 +4024,36 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 	return res;
 }
 
-static Bool gpac_expand_alias(int argc, char **argv)
+static Bool gpac_expand_alias(int o_argc, char **o_argv)
 {
-	u32 i;
+	u32 i, a_idx;
+	int argc = o_argc;
+
+	//move all options at the begining
+	char **argv = gf_malloc(sizeof(char*) * argc);
+	if (!argv) return GF_FALSE;
+
+	a_idx = 1;
+	argv[0] = o_argv[0];
+	for (i=1; i< (u32) argc; i++) {
+		//alias, do not push
+		if ( gf_opts_get_key("gpac.alias", o_argv[i]) != NULL)
+			continue;
+		//not an option, do not push
+		if (o_argv[i][0] != '-') continue;
+		argv[a_idx] = o_argv[i];
+		a_idx++;
+	}
+	for (i=1; i< (u32) argc; i++) {
+		//option and not an alias, do not push
+		if (o_argv[i][0] == '-') {
+			if ((char*) gf_opts_get_key("gpac.alias", o_argv[i]) == NULL)
+				continue;
+		}
+		argv[a_idx] = o_argv[i];
+		a_idx++;
+	}
+	assert(argc==a_idx);
 
 	for (i=0; i< (u32) argc; i++) {
 		char *arg = argv[i];
@@ -4043,12 +4070,15 @@ static Bool gpac_expand_alias(int argc, char **argv)
 			if (sep) sep[0] = 0;
 			Bool ok = check_param_extension(alias, i, argc, argv);
 			if (sep) sep[0] = ' ';
-			if (!ok) return GF_FALSE;
+			if (!ok) {
+				gf_free(argv);
+				return GF_FALSE;
+			}
 			if (!sep) break;
 			alias = sep+1;
 		}
-
 	}
+	gf_free(argv);
 	return GF_TRUE;
 }
 
