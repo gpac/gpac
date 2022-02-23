@@ -403,6 +403,7 @@ function setup_texture(pid_link)
       }
   }
   this.blit_path = null;
+  tx_info.pad_color = pad_color_pid;
   if ((sw != sw_o) || (sh != sh_o)) {
       this.can_reuse = false;
       scale_tx_sw = sw_o / sw;
@@ -422,7 +423,6 @@ function setup_texture(pid_link)
             }
           } else {
             this.use_blit = false;
-            tx_info.pad_color = pad_color_pid;
             let a = sys.color_component(pad_color_pid, 0);
             if (a < 1.0) this.opaque = false;
           }
