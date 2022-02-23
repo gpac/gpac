@@ -1,4 +1,10 @@
-22/02/2022: GPAC 2.0
+# On-going: GPAC 2.1-DEV
+
+## Filters
+- 2-pass encoding for FFmpeg codecs other than libx264
+
+
+# 22/02/2022: GPAC 2.0
 
 ## Adaptive Streaming
 - Low Latency HLS (LL-HLS, generation and playback)

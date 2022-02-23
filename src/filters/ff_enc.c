@@ -134,6 +134,8 @@ typedef struct _gf_ffenc_ctx
 #endif
 
 	u32 premul_timescale;
+
+	FILE *logfile_pass1;
 } GF_FFEncodeCtx;
 
 static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove, Bool is_force_reconf);
@@ -213,6 +215,13 @@ static void ffenc_finalize(GF_Filter *filter)
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)
 	av_packet_free(&ctx->pkt);
 #endif
+
+	if (ctx->logfile_pass1) {
+		if (ctx->encoder->stats_out) fprintf(ctx->logfile_pass1, "%s", ctx->encoder->stats_out);
+		gf_fclose(ctx->logfile_pass1);
+	}
+	if (ctx->encoder->stats_in)
+		gf_free(ctx->encoder->stats_in);
 
 	if (ctx->encoder) {
 		avcodec_free_context(&ctx->encoder);
@@ -1705,6 +1714,47 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->encoder->thread_count = 0;
 
+	//setup 2 pass encoding
+	if (ctx->encoder->flags & (AV_CODEC_FLAG_PASS1|AV_CODEC_FLAG_PASS2)) {
+		char szLogFile[GF_MAX_PATH];
+		const GF_PropertyValue *p = gf_filter_pid_get_property_str(pid, "logpass");
+		if (p && (p->type==GF_PROP_STRING) && p->value.string) {
+			sprintf(szLogFile, "%s", p->value.string);
+		} else {
+			u32 id=0;
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+			if (p) id = p->value.uint;
+			sprintf(szLogFile, "ffenc2pass-%d.log", id);
+		}
+		if (ctx->rc) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFEnc] Multi-pass encoding not compatible with `rc`, disabling reset coder flag\n", szLogFile));
+			ctx->rc = 0;
+		}
+		if (!strcmp(codec->name, "libx264")) {
+			av_dict_set(&options, "stats", szLogFile, AV_DICT_DONT_OVERWRITE);
+		} else {
+			if (ctx->encoder->flags & AV_CODEC_FLAG_PASS2) {
+				u32 len=0;
+				GF_Err e = gf_file_load_data(szLogFile, (u8**) &ctx->encoder->stats_in, &len);
+				if (!e && !gf_utf8_is_legal(ctx->encoder->stats_in, len)) {
+					e = GF_NON_COMPLIANT_BITSTREAM;
+				}
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error reading log file %s for pass-2 encoding: %s\n", szLogFile, gf_error_to_string(e) ));
+					if (ctx->encoder->stats_in) gf_free(ctx->encoder->stats_in);
+					return e;
+				}
+			}
+			if (ctx->encoder->flags & AV_CODEC_FLAG_PASS1) {
+				FILE *f = gf_fopen(szLogFile, "w");
+				if (!f) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error opening log file %s for pass-1 encoding\n", szLogFile));
+					return GF_IO_ERR;
+				}
+				ctx->logfile_pass1 = f;
+			}
+		}
+	}
 
 	av_dict_copy(&options, ctx->options, 0);
 	res = avcodec_open2(ctx->encoder, codec, &options );
@@ -1849,6 +1899,8 @@ GF_FilterRegister FFEncodeRegister = {
 		"\n"
 		"When forcing a closed GOP boundary, the filter will flush, destroy and recreate the encoder to make sure a clean context is used, as currently many encoders in libavcodec do not support clean reset when forcing picture types.\n"
 		"If [-fintra]() is not set and the output of the encoder is a DASH session in live profile without segment timeline, [-fintra]() will be set to the target segment duration and [-rc]() will be set.\n"
+		"\n"
+		"The filter will look for property `logpass` on input PID to set 2-pass log filename, otherwise defaults to `ffenc2pass-PID.log`.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
