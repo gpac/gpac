@@ -134,6 +134,5 @@ Targets:
 - [ ] configure buffer level per filter
 - [ ] GUI cleanup ?
 - [ ] deprecate `:filemode` in ROUTE
-
-
+- [ ] support ClearKey Content Protection (CCP)
 
