@@ -24,6 +24,8 @@
 
 
 # GPAC Introduction
+Current version: 2.1-DEV
+
 Latest Release: 2.0
 
 GPAC is an open-source multimedia framework focused on modularity and standards compliance.
@@ -128,7 +130,10 @@ Targets:
 - [ ] User authentication for HTTP and RTSP servers
 - [ ] DASH event support
 - [ ] Web integration (emscripten, Remotery UI)
+- [ ] Better TTML2 / SMPTE ST 2052-1 support
+- [ ] configure buffer level per filter
 - [ ] GUI cleanup ?
+- [ ] deprecate `:filemode` in ROUTE
 
 
 

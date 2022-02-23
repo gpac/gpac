@@ -30,7 +30,7 @@ mv ftmp $source
 
 # patch file gpac.spec
 source="gpac.spec"
-sed -e "s/Version:.*/Version: $version/;" $source | sed -e "s/Release:.*/Release: $version/;" | sed -e "s/Source0:.*/Source0: gpac-$version.tar.gz%{?_with_amr:Source1:http:\/\/www.3gpp.org\/ftp\/Specs\/archive\/26_series\/26.073\/26073-700.zip}/;" > ftmp
+sed -e "s/Version:.*/Version: $version/;" $source | sed -e "s/Release:.*/Release: $version/;" | sed -e "s/Source0:.*/Source0: gpac-$version.tar.gz/;" > ftmp
 rm $source
 mv ftmp $source
 
