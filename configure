@@ -907,8 +907,8 @@ if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
 fi
 
 if test "$has_ft" = "no" ; then
-    ft_cflags="`pkg-config --cflags freetype2 2>>$logs`"
-    ft_lflags="`pkg-config --libs freetype2 2>>$logs`"
+    ft_cflags="`$pkg_config --cflags freetype2 2>>$logs`"
+    ft_lflags="`$pkg_config --libs freetype2 2>>$logs`"
     if docc $ft_cflags $ft_lflags $LDFLAGS ; then
         has_ft="system"
     fi
@@ -1707,20 +1707,23 @@ fi
 
 #look for nghttp2 support
 
-if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libnghttp2 ; then
-    has_nghttp2="system"
-    nghttp2_cflags=`$pkg_config --cflags libnghttp2`
-    nghttp2_ldflags=`$pkg_config --libs libnghttp2`
-  fi
-fi
-
-if test "$has_nghttp2" = "no" ; then
 cat > $TMPC << EOF
 #include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) { return 0; }
 EOF
+
+if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
+  if $pkg_config --exists libnghttp2 ; then
+    nghttp2_cflags=`$pkg_config --cflags libnghttp2`
+    nghttp2_ldflags=`$pkg_config --libs libnghttp2`
+    if docc $nghttp2_cflags $LDFLAGS $nghttp2_ldflags ; then
+        has_nghttp2="system"
+    fi
+  fi
+fi
+
+if test "$has_nghttp2" = "no" ; then
 
 if docc $LDFLAGS -lnghttp2 ; then
     has_nghttp2="system"
@@ -1841,6 +1844,8 @@ for opt do
         --use-ffmpeg=*) has_ffmpeg=${opt#--use-ffmpeg=}
             ;;
         --use-freenect=*) has_freenect=${opt#--use-freenect=}
+            ;;
+        --use-nghttp2=*) has_nghttp2=${opt#--use-nghttp2=}
             ;;
         --use-png=*) tmp_has_png=${opt#--use-png=}
             if test "$tmp_has_png" = "system" ; then
