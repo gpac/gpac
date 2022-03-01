@@ -1,10 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     >
+
     <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" android:id="@+id/textView1" android:text="@string/CommandLineTitle"></TextView>
-    <EditText android:layout_height="wrap_content" android:text="-version" android:layout_width="match_parent" android:id="@+id/CommandLineEdit"></EditText>
-    <Button android:layout_height="wrap_content" android:id="@+id/OkButton" android:layout_width="wrap_content" android:text="@string/OkButton"></Button>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <EditText android:layout_height="wrap_content" android:text="-version" android:layout_width="292dp" android:id="@+id/CommandLineEdit"
+            android:layout_weight="1"></EditText>
+
+        <Button android:layout_height="wrap_content" android:id="@+id/OkButton" android:layout_width="wrap_content" android:text="@string/OkButton"
+            android:layout_weight="1"></Button>
+
+    </LinearLayout>
+
+    <TextView
+        android:text="output"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/stdoutView"
+        android:scrollbars = "vertical"
+        android:fontFamily="monospace"
+        android:typeface="monospace"
+        android:textSize="8sp" />
+
 </LinearLayout>
