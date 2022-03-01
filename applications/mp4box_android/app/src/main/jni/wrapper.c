@@ -11,7 +11,7 @@ extern "C" {
 
 #define jniTAG "WRAPPER_JNI"
 
-#define jniLOGV(X)  __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, X)
+#define jniLOGV(X...)  __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, X)
 #define jniLOGI(X)  __android_log_print(ANDROID_LOG_INFO, jniTAG, X)
 #define jniLOGE(X)  __android_log_print(ANDROID_LOG_ERROR, jniTAG, X)
 
@@ -41,16 +41,15 @@ JNIEXPORT void JNICALL Java_com_gpac_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 	const char * sOriginalCommand = (*env)->GetStringUTFChars(env, sCommand, &isCopy);
 
 	jniLOGV("mp4terminal::command get back ok");
-	//jniLOGV(sOriginalCommand);
+	jniLOGV("%s\n", sOriginalCommand);
 
 	int i = 0;
 	char** sConvertedCommandLine;
 	sConvertedCommandLine = ConvertCommandLine( sOriginalCommand, &i );
-
 	jniLOGV("Convert command line done");
-	FILE* ferr = freopen( "/mnt/sdcard/stderrout.txt", "w", stderr );
 
-	FILE* fout = freopen( "/mnt/sdcard/stdout.txt", "w", stdout );
+	FILE* ferr = freopen( "/mnt/sdcard/mp4box.stderrout.txt", "w", stderr );
+	FILE* fout = freopen( "/mnt/sdcard/mp4box.stderrout.txt", "w", stdout );
 
 	mp4boxMain(i, sConvertedCommandLine);
 
