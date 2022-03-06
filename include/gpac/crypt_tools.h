@@ -98,7 +98,7 @@ enum
 /*! Key info structure, one per defined key in the DRM XML doc*/
 typedef struct
 {
-	//keep first 3 bin128 at the begining for data alignment
+	//keep first 3 bin128 at the beginning for data alignment
 	/*! KEY ID*/
 	bin128 KID;
 	/*! key value*/

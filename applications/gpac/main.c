@@ -587,7 +587,7 @@ const char *gpac_alias =
 "- forward index: a strictly positive integer, 1 being the first argument after the alias\n"
 "- backward index: the value 'n' (or 'N') to indicate the last argument on the command line. This can be followed by `-x` to rewind arguments (e.g. `@{n-1}` is the before last argument)\n"
 "\n"
-"Before solving aliases, all option arguments are moved at the beginging of the command line. This implies that alias arguments cannot be options.\n"
+"Before solving aliases, all option arguments are moved at the beginning of the command line. This implies that alias arguments cannot be options.\n"
 "Arguments not used by any aliases are kept on the command line, other ones are removed\n"
 "\n"
 "EX -alias=\"foo src=@{N} dst=test.mp4\"\n"
@@ -4030,7 +4030,7 @@ static Bool gpac_expand_alias(int o_argc, char **o_argv)
 	u32 i, a_idx;
 	int argc = o_argc;
 
-	//move all options at the begining
+	//move all options at the beginning
 	char **argv = gf_malloc(sizeof(char*) * argc);
 	if (!argv) return GF_FALSE;
 
