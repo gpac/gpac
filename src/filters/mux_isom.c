@@ -3329,8 +3329,10 @@ sample_entry_done:
 					if (remove_edits) {
 						gf_isom_remove_edits(ctx->file, tkw->track_num);
 					}
-					gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+					if (dur) {
+						gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_EMPTY);
+						gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+					}
 				}
 			}
 			tkw->ts_delay = p->value.sint;
