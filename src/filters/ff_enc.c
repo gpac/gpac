@@ -252,11 +252,36 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PROFILE_LEVEL, NULL);
 
 	switch (ctx->codecid) {
+	//reframe all these codecs for proper DSI formating
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_422:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG4_PART2:
 	case GF_CODECID_AVC:
 	case GF_CODECID_HEVC:
-	case GF_CODECID_MPEG4_PART2:
+	case GF_CODECID_VVC:
+	case GF_CODECID_AV1:
+	case GF_CODECID_VP8:
+	case GF_CODECID_VP9:
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED_FULL_AU, &PROP_BOOL(GF_TRUE) );
+		break;
+	case GF_CODECID_FLAC:
+		if (ctx->encoder && ctx->encoder->extradata_size && ctx->encoder->extradata) {
+			u8 *data_dst = gf_malloc(ctx->encoder->extradata_size+4);
+			if (data_dst) {
+				data_dst[0] = (ctx->encoder->extradata_size==34) ? 0x80 : 0;
+				data_dst[1] = ctx->encoder->extradata_size >> 16;
+				data_dst[2] = ctx->encoder->extradata_size >> 8;
+				data_dst[3] = ctx->encoder->extradata_size & 0xFF;
+				memcpy(data_dst+4, ctx->encoder->extradata, ctx->encoder->extradata_size);
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data_dst, 4+ctx->encoder->extradata_size) );
+			}
+		}
 		break;
 	default:
 		if (ctx->encoder && ctx->encoder->extradata_size && ctx->encoder->extradata) {

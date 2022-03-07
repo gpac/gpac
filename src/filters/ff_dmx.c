@@ -272,12 +272,11 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		ctx->raw_pck_out = GF_TRUE;
 	} else {
 		//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
-		pck_dst = gf_filter_pck_new_alloc(pctx->pid , pkt->size, &data_dst);
+		pck_dst = gf_filter_pck_new_alloc(pctx->pid, pkt->size, &data_dst);
 		if (!pck_dst) return GF_OUT_OF_MEM;
 		assert(pck_dst);
 		memcpy(data_dst, pkt->data, pkt->size);
 	}
-
 
 	if (ctx->raw_data && ctx->sclock) {
 		u64 ts;
@@ -386,6 +385,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		Bool force_reframer = GF_FALSE;
 		Bool expose_ffdec=GF_FALSE;
 		u32 gpac_codec_id;
+		Bool rewrite_flac=GF_FALSE;
 		AVStream *stream = ctx->demuxer->streams[i];
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 		AVCodecContext *codec = stream->codec;
@@ -540,6 +540,12 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 				break;
 			}
 		}
+		//flac DSI is only STREAMINFO block in ffmpeg, without block header
+		if (gpac_codec_id==GF_CODECID_FLAC) {
+			if ((exdata_size>4) && (GF_4CC(exdata[0],exdata[1], exdata[2], exdata[3]) != GF_4CC('f', 'L', 'a', 'c'))) {
+				rewrite_flac = GF_TRUE;
+			}
+		}
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec_id);
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
@@ -564,8 +570,20 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			}
 
 			if (!force_reframer) {
-				//expose as const data
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
+				if (rewrite_flac) {
+					u8 *data_dst = gf_malloc(exdata_size+4);
+					if (data_dst) {
+						data_dst[0] = (exdata_size==34) ? 0x80 : 0;
+						data_dst[1] = exdata_size >> 16;
+						data_dst[2] = exdata_size >> 8;
+						data_dst[3] = exdata_size & 0xFF;
+						memcpy(data_dst+4, exdata, exdata_size);
+						gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data_dst, 4+exdata_size) );
+					}
+				} else {
+					//expose as const data
+					gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
+				}
 			}
 		}
 
