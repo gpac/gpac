@@ -2721,6 +2721,11 @@ found:
 		ptr = (GF_UnknownBox*)gf_list_get(map->boxes, UserDataIndex-1);
 
 		if (ptr->type == GF_ISOM_BOX_TYPE_UNKNOWN) {
+			if (!ptr->dataSize) {
+				*userData = NULL;
+				*userDataSize = 0;
+				return GF_OK;
+			}
 			*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
 			if (!*userData) return GF_OUT_OF_MEM;
 			memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
@@ -2728,6 +2733,11 @@ found:
 			return GF_OK;
 		} else if (ptr->type == GF_ISOM_BOX_TYPE_UUID) {
 			GF_UnknownUUIDBox *p_uuid = (GF_UnknownUUIDBox *)ptr;
+			if (!p_uuid->dataSize) {
+				*userData = NULL;
+				*userDataSize = 0;
+				return GF_OK;
+			}
 			*userData = (char *)gf_malloc(sizeof(char)*p_uuid->dataSize);
 			if (!*userData) return GF_OUT_OF_MEM;
 			memcpy(*userData, p_uuid->data, sizeof(char)*p_uuid->dataSize);
