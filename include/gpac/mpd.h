@@ -892,6 +892,8 @@ typedef struct {
 	Bool llhls_preload;
 	/*! if true inject EXT-X-RENDITION-REPORT*/
 	Bool llhls_rendition_reports;
+	/*! user-defined  PART-HOLD-BACK, auto computed if <=0*/
+	Double llhls_part_holdback;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM
