@@ -2746,7 +2746,7 @@ static void lsr_translate_anim_trans_values(GF_LASeRCodec *lsr, SMIL_AnimateValu
 				gf_list_insert(val->values, f, i);
 			break;
 		case SVG_TRANSFORM_SCALE:
-			pt = (SVG_Point*)gf_malloc(sizeof(SVG_Point));
+			GF_SAFEALLOC(pt, SVG_Point);
 			if (!pt)
 				lsr->last_error = GF_OUT_OF_MEM;
 
