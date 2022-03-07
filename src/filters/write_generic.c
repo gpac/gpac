@@ -1049,13 +1049,23 @@ GF_Err writegen_process(GF_Filter *filter)
 	if (ctx->frame) {
 		split = GF_TRUE;
 	} else if (ctx->dcfg_size && gf_filter_pck_get_sap(pck) && !ctx->is_mj2k && (ctx->decinfo!=DECINFO_NO) && !ctx->cfg_sent) {
-		dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
-		if (!dst_pck) return GF_OUT_OF_MEM;
-
+		if (ctx->codecid==GF_CODECID_FLAC) {
+			u8 *dsi_out;
+			dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->dcfg_size+4, &dsi_out);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+			dsi_out[0] = 'f';
+			dsi_out[1] = 'L';
+			dsi_out[2] = 'a';
+			dsi_out[3] = 'C';
+			memcpy(dsi_out+4, ctx->dcfg, ctx->dcfg_size);
+		} else {
+			dst_pck = gf_filter_pck_new_shared(ctx->opid, ctx->dcfg, ctx->dcfg_size, NULL);
+			if (!dst_pck) return GF_OUT_OF_MEM;
+			gf_filter_pck_set_readonly(dst_pck);
+		}
 		gf_filter_pck_merge_properties(pck, dst_pck);
 		gf_filter_pck_set_framing(dst_pck, ctx->first, GF_FALSE);
 		ctx->first = GF_FALSE;
-		gf_filter_pck_set_readonly(dst_pck);
 		gf_filter_pck_send(dst_pck);
 		if ((ctx->decinfo==DECINFO_FIRST) && !ctx->split) {
 			ctx->dcfg_size = 0;
