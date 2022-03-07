@@ -524,11 +524,11 @@ static void ac3dmx_finalize(GF_Filter *filter)
 
 static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
 {
+	GF_AC3Config ahdr;
 	u32 nb_frames=0;
 	Bool has_broken_frames = GF_FALSE;
 	u32 pos=0;
 	while (1) {
-		GF_AC3Config ahdr;
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
 		u32 fsize = ahdr.framesize;
@@ -550,6 +550,25 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/ac3";
 	}
+
+	//try eac3
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	while (gf_bs_available(bs)) {
+		if (!gf_eac3_parser_bs(bs, &ahdr, GF_FALSE))
+			break;
+
+		if (pos != (u32) gf_bs_get_position(bs))
+			has_broken_frames = GF_TRUE;
+		nb_frames++;
+		gf_bs_skip_bytes(bs, ahdr.framesize);
+		pos+=ahdr.framesize;
+	}
+	gf_bs_del(bs);
+	if (nb_frames>=2) {
+		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
+		return "audio/eac3";
+	}
+
 	return NULL;
 }
 
