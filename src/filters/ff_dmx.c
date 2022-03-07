@@ -515,13 +515,27 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		if (!exdata_size) {
 			switch (gpac_codec_id) {
 			case GF_CODECID_AC3:
+			case GF_CODECID_EAC3:
 			case GF_CODECID_AAC_MPEG4:
 			case GF_CODECID_AAC_MPEG2_MP:
 			case GF_CODECID_AAC_MPEG2_LCP:
 			case GF_CODECID_AAC_MPEG2_SSRP:
+			case GF_CODECID_FLAC:
+			case GF_CODECID_TRUEHD:
+			case GF_CODECID_MPEG1:
+			case GF_CODECID_MPEG2_422:
+			case GF_CODECID_MPEG2_SNR:
+			case GF_CODECID_MPEG2_HIGH:
+			case GF_CODECID_MPEG2_MAIN:
+			case GF_CODECID_MPEG2_SIMPLE:
+			case GF_CODECID_MPEG2_SPATIAL:
+			case GF_CODECID_MPEG4_PART2:
 			case GF_CODECID_AVC:
 			case GF_CODECID_HEVC:
+			case GF_CODECID_VVC:
 			case GF_CODECID_AV1:
+			case GF_CODECID_VP8:
+			case GF_CODECID_VP9:
 				force_reframer = GF_TRUE;
 				break;
 			}
