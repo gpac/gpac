@@ -3539,7 +3539,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 	if (as->use_hls_ll) {
 		//PART-HOLD-BACK is REQUIRED if the Playlist contains the EXT-X-PART-INF tag
 		//we use the recommended (should) PART-TARGET x 3
-		gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", 3 * max_part_dur_session);
+		if (mpd->llhls_part_holdback>0) {
+			gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", mpd->llhls_part_holdback);
+		} else {
+			gf_fprintf(out,"#EXT-X-SERVER-CONTROL:PART-HOLD-BACK=%g\n", 3 * max_part_dur_session);
+		}
 		gf_fprintf(out,"#EXT-X-PART-INF:PART-TARGET=%g\n", rep->hls_ll_part_dur);
 	}
 	for (i=0; i<rep->nb_hls_variant_tags; i++) {

@@ -169,6 +169,7 @@ typedef struct
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
 	Bool gencues;
+	Double ll_part_hb;
 
 	//internal
 	Bool in_error;
@@ -4526,6 +4527,8 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->hls_ext_master = (const char **) ctx->hlsx.vals;
 		ctx->mpd->llhls_preload = ctx->ll_preload_hint;
 		ctx->mpd->llhls_rendition_reports = ctx->ll_rend_rep;
+		ctx->mpd->llhls_part_holdback = ctx->ll_part_hb;
+
 		if (ctx->llhls==3)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
 		else
@@ -9310,6 +9313,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(hlsx), "list of string to append to master HLS header before variants with `['#foo','#bar=val']` added as `#foo \\n #bar=val`", GF_PROP_STRING_LIST, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmaf), "use cmaf guidelines\n"
 		"- no: CMAF not enforced\n"
 		"- cmfc: use CMAF `cmfc` guidelines\n"
