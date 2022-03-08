@@ -646,7 +646,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 				if (j==1 || (trun->nb_samples==1) ) RunFlags = ent->flags;
 
 				if (ssize != RunSize) RunSize = 0;
-				if (ent->Duration != RunDur)
+				if (RunDur && (ent->Duration != RunDur))
 					RunDur = 0;
 				if (j && (RunFlags != ent->flags)) NeedFlags = 1;
 			}
@@ -724,6 +724,10 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 			   we just need to check if the first entry flags need to be singled out*/
 			if (first_ent->flags != RunFlags) {
 				trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
+				//if not old arch write the flags
+				//in old arch we write 0, which means all deps unknwon and sync sample set
+				if (!traf->no_sdtp_first_flags)
+					trun->first_sample_flags = first_ent->flags;
 			}
 		}
 
@@ -1243,6 +1247,8 @@ static GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_off
 	}
 
 	if (!movie->use_segments) {
+		//remove from moof list (may happen in regular fragmentation when single traf per moof is used)
+		gf_list_del_item(movie->moof_list, movie->moof);
 		gf_isom_box_del((GF_Box *) movie->moof);
 		movie->moof = NULL;
 	}
@@ -2449,7 +2455,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, GF_ISOStartFragmentFlags flags)
 
 	//store existing fragment
 	if (movie->moof) {
-		e = StoreFragment(movie, movie->use_segments ? GF_TRUE : GF_FALSE, 0, NULL, movie->use_segments ? GF_TRUE : GF_FALSE);
+		e = StoreFragment(movie, movie->use_segments ? GF_TRUE : GF_FALSE, 0, NULL, movie->use_segments ? GF_TRUE : (movie->on_block_out ? GF_TRUE : GF_FALSE));
 		if (e) return e;
 	}
 

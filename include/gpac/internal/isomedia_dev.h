@@ -2687,6 +2687,7 @@ typedef struct
 	u8 truns_first;
 	u8 truns_v1;
 	u8 large_tfdt;
+	u8 no_sdtp_first_flags;
 } GF_TrackFragmentBox;
 
 GF_TrackFragmentBox *gf_isom_get_traf(GF_ISOFile *mov, GF_ISOTrackID TrackID);
