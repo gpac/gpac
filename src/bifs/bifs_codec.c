@@ -529,6 +529,9 @@ GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *al
 GF_EXPORT
 Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
+	*b_min = 0;
+	*b_max = 0;
+	*QT13_bits = 0;
 	switch (Node->sgprivate->tag) {
 	case TAG_ProtoNode:
 		return gf_sg_proto_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
