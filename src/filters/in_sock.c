@@ -45,9 +45,9 @@ typedef struct
 	char address[GF_MAX_IP_NAME_LEN];
 
 	u64 start_time, last_stats_time;
+	u32 init_time;
 	u64 nb_bytes;
 	Bool done;
-
 } GF_SockInClient;
 
 typedef struct
@@ -74,7 +74,8 @@ typedef struct
 	char *buffer;
 
 	GF_SockGroup *active_sockets;
-	u64 last_rcv_time;
+	u32 last_rcv_time;
+	u32 last_timeout_sec;
 } GF_SockInCtx;
 
 
@@ -155,6 +156,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		e = gf_sk_connect(ctx->sock_c.socket, url, port, NULL);
 	}
 
+	strcpy(ctx->sock_c.address, "unknown");
+	gf_sk_get_remote_address(ctx->sock_c.socket, ctx->sock_c.address);
+
 	if (str) str[0] = ':';
 
 	if (e) {
@@ -186,6 +190,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 		ctx->clients = gf_list_new();
 		if (!ctx->clients) return GF_OUT_OF_MEM;
 	}
+
+	ctx->sock_c.init_time = gf_sys_clock();
+
 	return GF_OK;
 }
 
@@ -273,7 +280,6 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	}
 
 	if (!sock_c->start_time) sock_c->start_time = gf_sys_clock_high_res();
-
 	pos = 0;
 	nb_read=0;
 	while (pos < ctx->block_size) {
@@ -308,6 +314,11 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 		pos += read;
 	}
 	if (!nb_read) return GF_OK;
+
+	if (!sock_c->nb_bytes) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Reception started after %u ms\n", gf_sys_clock() - sock_c->init_time));
+	}
+
 	sock_c->nb_bytes += nb_read;
 	sock_c->done = GF_FALSE;
 
@@ -401,20 +412,31 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 
 static Bool sockin_check_eos(GF_SockInCtx *ctx)
 {
-	u64 now;
+	u32 now;
 	if (!ctx->timeout) return GF_FALSE;
 
-	now = gf_sys_clock_high_res();
+	now = gf_sys_clock();
 	if (!ctx->last_rcv_time) {
 		ctx->last_rcv_time = now;
 		return GF_FALSE;
 	}
-	if (now - ctx->last_rcv_time < ctx->timeout*1000) {
+	if (now - ctx->last_rcv_time < ctx->timeout) {
+		u32 tout = (ctx->timeout - (now - ctx->last_rcv_time)) / 1000;
+		if (tout != ctx->last_timeout_sec) {
+			ctx->last_timeout_sec = tout;
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Waiting for %u seconds\r", tout));
+		}
 		return GF_FALSE;
 	}
-	if (ctx->sock_c.pid && !ctx->sock_c.done) {
-		gf_filter_pid_set_eos(ctx->sock_c.pid);
+	if (!ctx->sock_c.done) {
+		if (ctx->sock_c.pid)
+			gf_filter_pid_set_eos(ctx->sock_c.pid);
 		ctx->sock_c.done = GF_TRUE;
+		if (ctx->sock_c.nb_bytes) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] No data received for %d ms, assuming end of stream\n", ctx->timeout));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] No data received after %d ms, aborting\n", ctx->timeout));
+		}
 	}
 	return GF_TRUE;
 }
@@ -467,6 +489,7 @@ static GF_Err sockin_process(GF_Filter *filter)
 				gf_list_add(ctx->clients, sc);
 				ctx->had_clients = GF_TRUE;
 				gf_sk_group_register(ctx->active_sockets, sc->socket);
+				sc->init_time = gf_sys_clock();
 			}
 		}
 	}
