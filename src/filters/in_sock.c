@@ -70,6 +70,7 @@ typedef struct
 	GF_List *clients;
 	Bool had_clients;
 	Bool is_udp;
+	Bool is_stop;
 
 	char *buffer;
 
@@ -250,11 +251,14 @@ static void sockin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 static Bool sockin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	if (!evt->base.on_pid) return GF_FALSE;
+	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
+		ctx->is_stop = GF_FALSE;
 		return GF_TRUE;
 	case GF_FEVT_STOP:
+		ctx->is_stop = GF_TRUE;
 		return GF_TRUE;
 	default:
 		break;
@@ -410,15 +414,15 @@ static GF_Err sockin_read_client(GF_Filter *filter, GF_SockInCtx *ctx, GF_SockIn
 	return GF_OK;
 }
 
-static Bool sockin_check_eos(GF_SockInCtx *ctx)
+static GF_Err sockin_check_eos(GF_SockInCtx *ctx)
 {
 	u32 now;
-	if (!ctx->timeout) return GF_FALSE;
+	if (!ctx->timeout) return GF_OK;
 
 	now = gf_sys_clock();
 	if (!ctx->last_rcv_time) {
 		ctx->last_rcv_time = now;
-		return GF_FALSE;
+		return GF_OK;
 	}
 	if (now - ctx->last_rcv_time < ctx->timeout) {
 		u32 tout = (ctx->timeout - (now - ctx->last_rcv_time)) / 1000;
@@ -426,7 +430,7 @@ static Bool sockin_check_eos(GF_SockInCtx *ctx)
 			ctx->last_timeout_sec = tout;
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] Waiting for %u seconds\r", tout));
 		}
-		return GF_FALSE;
+		return GF_OK;
 	}
 	if (!ctx->sock_c.done) {
 		if (ctx->sock_c.pid)
@@ -436,9 +440,10 @@ static Bool sockin_check_eos(GF_SockInCtx *ctx)
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SockIn] No data received for %d ms, assuming end of stream\n", ctx->timeout));
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[SockIn] No data received after %d ms, aborting\n", ctx->timeout));
+			return GF_IP_NETWORK_FAILURE;
 		}
 	}
-	return GF_TRUE;
+	return GF_EOS;
 }
 
 static GF_Err sockin_process(GF_Filter *filter)
@@ -448,11 +453,13 @@ static GF_Err sockin_process(GF_Filter *filter)
 	u32 i, count;
 	GF_SockInCtx *ctx = (GF_SockInCtx *) gf_filter_get_udta(filter);
 
+	if (ctx->is_stop) return GF_EOS;
+
 	e = gf_sk_group_select(ctx->active_sockets, 1, GF_SK_SELECT_READ);
 	if (e==GF_IP_NETWORK_EMPTY) {
 		if (ctx->is_udp) {
-			if (sockin_check_eos(ctx) )
-				return GF_EOS;
+			e = sockin_check_eos(ctx);
+			if (e) return e;
 		} else if (!gf_list_count(ctx->clients)) {
 			gf_filter_ask_rt_reschedule(filter, 1000);
 			return GF_OK;
