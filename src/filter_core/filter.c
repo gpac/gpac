@@ -1591,15 +1591,21 @@ skip_date:
 				is_my_arg = GF_TRUE;
 				reverse_bool = GF_TRUE;
 			}
-			//little optim here, if no value check for enums
-			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') ) {
-				char *arg_found = strstr(a->min_max_enum, szArg);
-				if (arg_found) {
-					char c = arg_found[strlen(szArg)];
-					if (!c || (c=='|')) {
-						is_my_arg = GF_TRUE;
-						value = szArg;
+			//little optim here, if no value check if argument nale is exactly one of the possible enums
+			else if (!value && a->min_max_enum && strchr(a->min_max_enum, '|') && strstr(a->min_max_enum, szArg)) {
+				const char *enums = a->min_max_enum;
+				while (enums) {
+					if (!strncmp(enums, szArg, len)) {
+						char c = enums[len];
+						if (!c || (c=='|')) {
+							is_my_arg = GF_TRUE;
+							value = szArg;
+							break;
+						}
 					}
+					char *enext = strchr(enums, '|');
+					if (!enext) break;
+					enums=enext+1;
 				}
 			}
 
