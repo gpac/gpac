@@ -98,3 +98,5 @@ u64 ffmpeg_channel_layout_to_gpac(u64 ff_ch_layout);
 
 //this will destroy unknown_options if set
 void ffmpeg_report_options(GF_Filter *filter, AVDictionary *unknown_options, AVDictionary *all_options);
+
+void ffmpeg_register_set_dyn_help(GF_FilterRegister *reg);

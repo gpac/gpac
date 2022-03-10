@@ -49,6 +49,7 @@ typedef struct
 {
 	GF_List *all_filters;
 	u32 nb_arg_skip;
+	Bool free_help;
 } GF_FFRegistryExt;
 
 typedef struct
@@ -567,12 +568,20 @@ void ffmpeg_initialize()
 
 }
 
+void ffmpeg_register_set_dyn_help(GF_FilterRegister *reg)
+{
+	GF_FFRegistryExt *ffregext = reg->udta;
+	ffregext->free_help = GF_TRUE;
+}
 static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg)
 {
 	u32 i;
 	GF_FFRegistryExt *ffregext = reg->udta;
 	GF_List *all_filters = ffregext->all_filters;
 	u32 nb_skip_begin = ffregext->nb_arg_skip;
+#if !defined(GPAC_DISABLE_DOC)
+	if (ffregext->free_help) gf_free((char *)reg->help);
+#endif
 	gf_free(ffregext);
 	reg->udta = NULL;
 
@@ -761,6 +770,9 @@ static void ffmpeg_expand_register(GF_FilterSession *session, GF_FilterRegister 
 #if (LIBAVFILTER_VERSION_MAJOR > 5)
 	const AVFilter *avf = NULL;
 #endif
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
+	Bool audio_pass = GF_FALSE;
+#endif
 
 #if !defined(NO_AVIO_PROTO) || (LIBAVFILTER_VERSION_MAJOR > 6) || (LIBAVFORMAT_VERSION_MAJOR >= 59)
 	void *av_it = NULL;
@@ -852,14 +864,24 @@ second_pass:
 #endif
 		} else if (type==FF_REG_TYPE_DEV_IN) {
 #if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20)
-			fmt = av_input_video_device_next(FF_IFMT_CAST fmt);
-			if (!fmt) break;
+			if (audio_pass) {
+				fmt = av_input_audio_device_next(FF_IFMT_CAST fmt);
+			} else {
+				fmt = av_input_video_device_next(FF_IFMT_CAST fmt);
+			}
+			if (!fmt) {
+				if (!audio_pass) break;
+				audio_pass = GF_TRUE;
+				continue;
+			}
 			av_class = fmt->priv_class;
 			subname = fmt->name;
 #ifndef GPAC_DISABLE_DOC
 			description = fmt->long_name;
 #endif
-    		if (!av_class || (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
+    		if (!av_class) continue;
+			if (audio_pass && (av_class->category!=AV_CLASS_CATEGORY_DEVICE_AUDIO_INPUT) ) continue;
+			if (!audio_pass && (av_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT) ) continue;
 #else
 
 #if (LIBAVFORMAT_VERSION_MAJOR<59)
