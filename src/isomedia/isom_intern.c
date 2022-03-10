@@ -768,7 +768,14 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 				break;
 			}
 #endif
-
+		case GF_ISOM_BOX_TYPE_MFRA:
+		case GF_ISOM_BOX_TYPE_MFRO:
+			//only keep for dump mode, otherwise we ignore these boxes and we don't want to carry them over in non-fragmented file
+			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
+				totSize += a->size;
+				gf_isom_box_del(a);
+				break;
+			}
 		default:
 			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);

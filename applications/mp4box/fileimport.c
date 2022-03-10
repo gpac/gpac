@@ -2260,7 +2260,8 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u3
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
-			gf_isom_avc_set_inband_config(dest, dst_tk, 1, GF_FALSE);
+			//set inband config but keep param sets
+			gf_isom_avc_set_inband_config(dest, dst_tk, 1, GF_TRUE);
 		} else {
 			M4_LOG(GF_LOG_WARNING, ("WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id));
 		}
@@ -2316,7 +2317,7 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile **o_orig, u
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		gf_isom_set_nalu_extract_mode(orig, src_track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		if (!force_cat) {
-			gf_isom_hevc_set_inband_config(dest, dst_tk, 1, GF_FALSE);
+			gf_isom_hevc_set_inband_config(dest, dst_tk, 1, GF_TRUE);
 		} else {
 			M4_LOG(GF_LOG_WARNING, ("WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id));
 		}
@@ -2889,6 +2890,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 					editMode = GF_ISOM_EDIT_NORMAL;
 				}
 				gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
+			}
+			//no edit in added track, add duration
+			if (!count && (segmentDuration || mediaTime) && gf_isom_get_edits_count(dest, dst_tk)) {
+				t = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
+				t *= gf_isom_get_timescale(dest);
+				t /= gf_isom_get_media_timescale(orig, i+1);
+				gf_isom_set_edit(dest, dst_tk, editTime, segmentDuration+(u64) t, mediaTime, editMode);
 			}
 		}
 		gf_media_update_bitrate(dest, dst_tk);

@@ -3329,8 +3329,10 @@ sample_entry_done:
 					if (remove_edits) {
 						gf_isom_remove_edits(ctx->file, tkw->track_num);
 					}
-					gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_EMPTY);
-					gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+					if (dur) {
+						gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, 0, GF_ISOM_EDIT_EMPTY);
+						gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+					}
 				}
 			}
 			tkw->ts_delay = p->value.sint;
@@ -5662,6 +5664,10 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				&& gf_timestamp_greater_or_equal(cts - tkw->ts_delay, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
 			 ) {
 				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
+				//consider roll SAP as sap1 for the fragmentation
+				if ((sap==GF_FILTER_SAP_4) && (tkw->stream_type==GF_STREAM_AUDIO))
+					sap = GF_FILTER_SAP_1;
+
 				if ((ctx->store==MP4MX_MODE_FRAG) || (sap && sap<GF_FILTER_SAP_3)) {
 					tkw->fragment_done = GF_TRUE;
 					tkw->samples_in_frag = 0;
