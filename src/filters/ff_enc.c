@@ -109,6 +109,7 @@ typedef struct _gf_ffenc_ctx
 	Bool infmt_negociate;
 	Bool remap_ts;
 	Bool force_reconfig;
+	u32 setup_failed;
 
 	u32 dsi_crc;
 
@@ -217,13 +218,13 @@ static void ffenc_finalize(GF_Filter *filter)
 #endif
 
 	if (ctx->logfile_pass1) {
-		if (ctx->encoder->stats_out) fprintf(ctx->logfile_pass1, "%s", ctx->encoder->stats_out);
+		if (ctx->encoder && ctx->encoder->stats_out) fprintf(ctx->logfile_pass1, "%s", ctx->encoder->stats_out);
 		gf_fclose(ctx->logfile_pass1);
 	}
-	if (ctx->encoder->stats_in)
-		gf_free(ctx->encoder->stats_in);
 
 	if (ctx->encoder) {
+		if (ctx->encoder->stats_in)
+			gf_free(ctx->encoder->stats_in);
 		avcodec_free_context(&ctx->encoder);
 	}
 	if (ctx->sdbs) gf_bs_del(ctx->sdbs);
@@ -406,11 +407,21 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		if (ctx->infmt_negociate) return GF_OK;
+		//no encoder: if negociating input format or input pid props not known yet, wait
+		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] encoder reconfiguration failed, aborting stream\n"));
-		gf_filter_pid_set_eos(ctx->out_pid);
-		return GF_EOS;
+		if (ctx->setup_failed==1) {
+			GF_FilterEvent fevt;
+
+			ctx->setup_failed = 2;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] encoder reconfiguration failed, aborting stream\n"));
+			gf_filter_pid_set_eos(ctx->out_pid);
+
+			gf_filter_pid_set_discard(ctx->in_pid, GF_TRUE);
+			GF_FEVT_INIT(fevt, GF_FEVT_STOP, ctx->in_pid);
+			gf_filter_pid_send_event(ctx->in_pid, &fevt);
+		}
+		return GF_SERVICE_ERROR;
 	}
 
 	if (!pck) {
@@ -634,6 +645,7 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				avcodec_close(ctx->encoder);
 				ctx->encoder = NULL;
+				ctx->setup_failed = 0;
 				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
 				ctx->init_cts_setup = bck_init_cts;
 				return e;
@@ -898,11 +910,21 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	pck = gf_filter_pid_get_packet(ctx->in_pid);
 
 	if (!ctx->encoder) {
-		if (ctx->infmt_negociate) return GF_OK;
-		
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] encoder reconfiguration failed, aborting stream\n"));
-		gf_filter_pid_set_eos(ctx->out_pid);
-		return GF_EOS;
+		//no encoder: if negociating input format or input pid props not known yet, wait
+		if (ctx->infmt_negociate || !ctx->setup_failed) return GF_OK;
+
+		if (ctx->setup_failed==1) {
+			GF_FilterEvent fevt;
+
+			ctx->setup_failed = 2;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] encoder reconfiguration failed, aborting stream\n"));
+			gf_filter_pid_set_eos(ctx->out_pid);
+
+			gf_filter_pid_set_discard(ctx->in_pid, GF_TRUE);
+			GF_FEVT_INIT(fevt, GF_FEVT_STOP, ctx->in_pid);
+			gf_filter_pid_send_event(ctx->in_pid, &fevt);
+		}
+		return GF_SERVICE_ERROR;
 	}
 
 	if (!pck) {
@@ -1069,6 +1091,7 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 				ctx->reconfig_pending = GF_FALSE;
 				avcodec_free_context(&ctx->encoder);
 				ctx->encoder = NULL;
+				ctx->setup_failed = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FFEnc] codec flush done, triggering reconfiguration\n"));
 				e = ffenc_configure_pid_ex(filter, ctx->in_pid, GF_FALSE, GF_TRUE);
 				ctx->init_cts_setup = bck_init_cts;
@@ -1345,10 +1368,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->discontunity = GF_TRUE;
 		}
 	}
-
+	//macro to check if prop exists and has non-0 value
 #define GET_PROP(_a, _code, _name) \
 	prop = gf_filter_pid_get_property(pid, _code); \
-	if (!prop) {\
+	if (!prop || !prop->value.uint) {\
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[FFEnc] Input %s unknown, waiting for reconfigure\n", _name)); \
 		return GF_OK; \
 	}\
@@ -1569,7 +1592,10 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	ctx->in_tk_delay = prop ? prop->value.longsint : 0;
 
 	ctx->encoder = avcodec_alloc_context3(codec);
-	if (! ctx->encoder) return GF_OUT_OF_MEM;
+	if (! ctx->encoder) {
+		ctx->setup_failed = 1;
+		return GF_OUT_OF_MEM;
+	}
 
 	ctx->encoder->codec_tag = ff_codectag;
 	if (type==GF_STREAM_VISUAL) {
@@ -1788,6 +1814,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
 		avcodec_free_context(&ctx->encoder);
 		ctx->encoder = NULL;
+		ctx->setup_failed = 1;
 		return GF_BAD_PARAM;
 	}
 	//precompute gpac_timescale * encoder->time_base.num for rescale operations
