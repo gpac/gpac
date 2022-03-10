@@ -1220,9 +1220,108 @@ static const GF_FilterArgs FFAVInArgs[] =
 //number of arguments defined above
 const int FFAVIN_STATIC_ARGS = (sizeof (FFAVInArgs) / sizeof (GF_FilterArgs)) - 1;
 
+
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20) && !defined(GPAC_DISABLE_DOC)
+#define FF_PROBE_DEVICES
+#endif
+
+#ifdef FF_PROBE_DEVICES
+static void ffavin_enum_devices(const char *dev_name, char **outlist)
+{
+	const AVInputFormat *fmt;
+	AVFormatContext *ctx;
+
+    if (!dev_name) return;
+    fmt = av_find_input_format(dev_name);
+    if (!fmt) return;
+
+    if (!fmt || !fmt->priv_class || !AV_IS_INPUT_DEVICE(fmt->priv_class->category)) {
+		return;
+	}
+    ctx = avformat_alloc_context();
+    if (!ctx) return;
+    ctx->iformat = (AVInputFormat *)fmt;
+    if (ctx->iformat->priv_data_size > 0) {
+        ctx->priv_data = av_mallocz(ctx->iformat->priv_data_size);
+        if (!ctx->priv_data) {
+			avformat_free_context(ctx);
+            return;
+        }
+        if (ctx->iformat->priv_class) {
+            *(const AVClass**)ctx->priv_data = ctx->iformat->priv_class;
+            av_opt_set_defaults(ctx->priv_data);
+        }
+    } else {
+        ctx->priv_data = NULL;
+	}
+
+	AVDeviceInfoList *dev_list = NULL;
+
+    AVDictionary *tmp = NULL;
+    av_opt_set_dict2(ctx, &tmp, AV_OPT_SEARCH_CHILDREN);
+	int res = avdevice_list_devices(ctx, &dev_list);
+	if (res==ENOSYS) {
+
+	} else if (!res && dev_list->nb_devices) {
+		if(! *outlist) {
+			gf_dynstrcat(outlist, "# Detected devices\n", NULL);
+		}
+		for (u32 i=0; i<dev_list->nb_devices; i++) {
+			gf_dynstrcat(outlist, dev_name, "- fmt=");
+			gf_dynstrcat(outlist, dev_list->devices[i]->device_name, " dev=");
+			gf_dynstrcat(outlist, dev_list->devices[i]->device_description, ": ");
+			gf_dynstrcat(outlist, "\n", NULL);
+		}
+	}
+
+	if (dev_list) avdevice_free_list_devices(&dev_list);
+	avformat_free_context(ctx);
+}
+
+static void ffavin_log_none(void *avcl, int level, const char *fmt, va_list vl)
+{
+}
+#endif
+
 const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
+
+	if (!gf_opts_get_bool("temp", "helponly"))
+		return &FFAVInRegister;
+	
+#ifdef FF_PROBE_DEVICES
+	char *dev_desc = NULL;
+	Bool audio_pass=GF_FALSE;
+	av_log_set_callback(ffavin_log_none);
+	const AVInputFormat *fmt = NULL;
+	while (1) {
+		if (audio_pass) {
+			fmt = av_input_audio_device_next(FF_IFMT_CAST fmt);
+		} else {
+			fmt = av_input_video_device_next(FF_IFMT_CAST fmt);
+		}
+		if (!fmt) {
+			if (audio_pass) break;
+			audio_pass = GF_TRUE;
+			continue;
+		}
+		if (!fmt->priv_class) continue;
+		if (audio_pass && (fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_AUDIO_INPUT)) continue;
+		else if (!audio_pass && (fmt->priv_class->category!=AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT)) continue;
+		ffavin_enum_devices(fmt->name, &dev_desc);
+	}
+	av_log_set_callback(av_log_default_callback);
+	if (dev_desc) {
+		char *out_doc = NULL;
+		gf_dynstrcat(&out_doc, FFAVInRegister.help, NULL);
+		gf_dynstrcat(&out_doc, dev_desc, "\n");
+		gf_free(dev_desc);
+		FFAVInRegister.help = out_doc;
+		ffmpeg_register_set_dyn_help(&FFAVInRegister);
+	}
+#endif
+
 	return &FFAVInRegister;
 }
 
