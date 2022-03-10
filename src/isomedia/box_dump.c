@@ -5488,8 +5488,8 @@ GF_Err colr_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, "colour_type=\"%s\">\n", gf_4cc_to_str(ptr->colour_type));
 			if (ptr->opaque != NULL) {
 				gf_fprintf(trace, "<profile><![CDATA[");
-				size_64 = 2*ptr->opaque_size;
-				prof_data_64 = gf_malloc(size_64);
+				size_64 = 2*ptr->opaque_size+3;
+				prof_data_64 = gf_malloc(sizeof(char) * size_64);
 				size_64 = gf_base64_encode((const char *) ptr->opaque, ptr->opaque_size, (char *)prof_data_64, size_64);
 				prof_data_64[size_64] = 0;
 				gf_fprintf(trace, "%s", prof_data_64);

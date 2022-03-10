@@ -1877,14 +1877,15 @@ static JSValue js_sys_basecode_ex(JSContext *ctx, JSValueConst this_val, int arg
 		size_t data_size;
 		data = JS_GetArrayBuffer(ctx, &data_size, argv[0] );
 		if (!data) return GF_JS_EXCEPTION(ctx);
-		out_ptr = gf_malloc(sizeof(u8) * (1 + data_size * 2) );
+		u32 size64 = (u32) data_size * 2 + 3;
+		out_ptr = gf_malloc(sizeof(char) * size64);
 		if (!out_ptr) {
 			e = GF_OUT_OF_MEM;
 		} else if (is_16) {
-			out_size = gf_base16_encode((u8*) data, (u32) data_size, out_ptr, 1 + (u32) data_size * 2);
+			out_size = gf_base16_encode((u8*) data, (u32) data_size, out_ptr, size64);
 			e = out_size ? GF_OK : GF_NON_COMPLIANT_BITSTREAM;
 		} else {
-			out_size = gf_base64_encode((u8*) data, (u32) data_size, out_ptr, 1 + (u32) data_size * 2);
+			out_size = gf_base64_encode((u8*) data, (u32) data_size, out_ptr, size64);
 			e = out_size ? GF_OK : GF_NON_COMPLIANT_BITSTREAM;
 		}
 	}

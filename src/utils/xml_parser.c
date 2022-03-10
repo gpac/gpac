@@ -2333,12 +2333,13 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 			bs = bs_orig;
 			if (bs_data) {
 				u8 *bs_data_out;
-				bs_data_out = gf_malloc(sizeof(char)*2*bs_data_size);
+				u32 res = 2*bs_data_size + 3;
+				bs_data_out = gf_malloc(sizeof(char) * res);
 				if (!bs_data_out) {
 					e = GF_OUT_OF_MEM;
 					goto exit;
 				}
-				u32 res = gf_base64_encode(bs_data, bs_data_size, bs_data_out, 2*bs_data_size);
+				res = gf_base64_encode(bs_data, bs_data_size, bs_data_out, res);
 				bs_data_out[res] = 0;
 				if (base64_prefix_bits) {
 					if (base64_prefix_bits % 8) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -650,8 +650,8 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		str = ((SFString *)ptr)->buffer;
 
 		if (node && (gf_node_get_tag(node)==TAG_MPEG4_BitWrapper)) {
-			u32 bufsize = 50+ ((M_BitWrapper*)node)->buffer_len * 2;
-			str = gf_malloc(sizeof(char)* bufsize);
+			u32 bufsize = 37 + ((M_BitWrapper*)node)->buffer_len * 2 + 3;
+			str = gf_malloc(sizeof(char) * bufsize);
 			if (str) {
 				s32 res;
 				strcpy(str, "data:application/octet-string;base64,");

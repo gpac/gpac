@@ -2178,8 +2178,8 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 						pnode->type = GF_XML_TEXT_TYPE;
 						gf_list_add(node->content, pnode);
 
-						size_64 = 2*pssh_len;
-						pnode->name = gf_malloc(size_64);
+						size_64 = 2*pssh_len + 3;
+						pnode->name = gf_malloc(sizeof(char) * size_64);
 						if (pnode->name) {
 							size_64 = gf_base64_encode((const char *)pssh_data, pssh_len, (char *)pnode->name, size_64);
 							pnode->name[size_64] = 0;
