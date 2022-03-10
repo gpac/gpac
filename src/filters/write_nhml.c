@@ -781,8 +781,8 @@ static void nhmldump_send_frame(GF_NHMLDumpCtx *ctx, char *data, u32 data_size, 
 					gf_bs_write_data(ctx->bs_w, nhml, (u32) strlen(nhml));
 				} else {
 					u32 d_size;
-					if (ctx->b64_buffer_size<2*s_size) {
-						ctx->b64_buffer_size = 2 * s_size;
+					if (ctx->b64_buffer_size < 2*s_size + 3) {
+						ctx->b64_buffer_size = 2 * s_size + 3;
 						ctx->b64_buffer = gf_realloc(ctx->b64_buffer, ctx->b64_buffer_size);
 					}
 					d_size = gf_base64_encode(data + offset_in_sample, s_size, ctx->b64_buffer, ctx->b64_buffer_size);

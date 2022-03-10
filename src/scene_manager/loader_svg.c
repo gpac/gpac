@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -259,10 +259,10 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		} else {
 			char *mtype;
 			char *buf64;
-			u64 size64;
+			u32 size64 = size*2 + 3;
 			char *ext;
-			buf64 = (char *)gf_malloc((size_t)size*2);
-			size64 = gf_base64_encode(buffer, (u32)size, buf64, (u32)size*2);
+			buf64 = (char *)gf_malloc(sizeof(char) * size64);
+			size64 = gf_base64_encode(buffer, (u32)size, buf64, size64);
 			buf64[size64] = 0;
 			mtype = "application/data";
 			ext = strchr(iri->string, '.');

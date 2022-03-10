@@ -56,7 +56,7 @@ Encodes a data buffer to Base64
 \param in_buffer_size input data buffer size
 \param out_buffer output Base64 buffer location
 \param out_buffer_size output Base64 buffer allocated size
-\return size of the encoded Base64 buffer
+\return size of the encoded Base64 buffer, 0 if error
 \note the encoded data buffer is not NULL-terminated.
  */
 u32 gf_base64_encode(const u8 *in_buffer, u32 in_buffer_size, u8 *out_buffer, u32 out_buffer_size);
@@ -80,7 +80,7 @@ Encodes a data buffer to Base16
 \param in_buffer_size input data buffer size
 \param out_buffer output Base16 buffer location
 \param out_buffer_size output Base16 buffer allocated size
-\return size of the encoded Base16 buffer
+\return size of the encoded Base16 buffer, 0 if error
 \note the encoded data buffer is not NULL-terminated.
  */
 u32 gf_base16_encode(u8 *in_buffer, u32 in_buffer_size, u8 *out_buffer, u32 out_buffer_size);

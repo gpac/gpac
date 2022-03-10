@@ -834,14 +834,12 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 				samp->data[samp->dataLength] = 0;
 				gf_fprintf(vtt, "%s\n", samp->data);
 			} else {
-				u32 b64_size;
+				u32 b64_size = samp->dataLength*2 + 3;
 				char *b64;
-				b64 = (char *)gf_malloc(samp->dataLength*3);
-				b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, samp->dataLength*3);
-				if (b64_size != (u32)-1) {
-					b64[b64_size] = 0;
-					gf_fprintf(vtt, "%s\n", b64);
-				}
+				b64 = (char *)gf_malloc(sizeof(char)*b64_size);
+				b64_size = gf_base64_encode(samp->data, samp->dataLength, b64, b64_size);
+				b64[b64_size] = 0;
+				gf_fprintf(vtt, "%s\n", b64);
 				gf_free(b64);
 			}
 		}

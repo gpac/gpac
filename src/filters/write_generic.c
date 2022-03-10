@@ -778,12 +778,13 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 		GF_SAFEALLOC(node, GF_XMLNode)
 		if (!node) return GF_OUT_OF_MEM;
 		node->type = GF_XML_TEXT_TYPE;
-		node->name = gf_malloc(sizeof(u8) * subs_size * 2);
+		u64 size_64 = (subs_size * 2) + 3;
+		node->name = gf_malloc(sizeof(char) * size_64);
 		if (!node->name) {
 			gf_free(node);
 			return GF_OUT_OF_MEM;
 		}
-		subs_size = gf_base64_encode(aux_data + subs_offset, subs_size, (u8*) node->name, subs_size * 2);
+		subs_size = gf_base64_encode(aux_data + subs_offset, subs_size, (u8*) node->name, size_64);
 		node->name[subs_size] = 0;
 		return gf_list_add(data->content, node);
 	}

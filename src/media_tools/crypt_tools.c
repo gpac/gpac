@@ -280,7 +280,7 @@ static void cryptinfo_node_start(void *sax_cbck, const char *node_name, const ch
 				}
 			}
 			else if (!stricmp(att->name, "metadata")) {
-				u32 l = 2 * (u32) strlen(att->value);
+				u32 l = 2 * (u32) strlen(att->value) + 3;
 				tkc->metadata = gf_malloc(sizeof(char) * l);
 				l = gf_base64_encode(att->value, (u32) strlen(att->value), tkc->metadata, l);
 				tkc->metadata[l] = 0;

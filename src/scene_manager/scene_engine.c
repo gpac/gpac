@@ -1105,8 +1105,9 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 
 	size = 0;
 	gf_odf_desc_write((GF_Descriptor *) seng->ctx->root_od, &buffer, &size);
-	buf64 = gf_malloc(size*2);
-	size64 = gf_base64_encode( buffer, size, buf64, size*2);
+	size64 = size*2 + 3;
+	buf64 = gf_malloc(sizeof(char) * size64);
+	size64 = gf_base64_encode( buffer, size, buf64, size64);
 	buf64[size64] = 0;
 	gf_free(buffer);
 	return buf64;
