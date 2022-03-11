@@ -146,13 +146,13 @@ The syntax for \`start\` and  \`stop\` fields is:
 - N: converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
 - "N": converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
 
-In live mode, if `start` is set using a UTC date, the sequence will have a start range equal to `MAX(current_UTC - start_in_UTC, 0)`. Some sources may be skipped to fullfil this condition.
+In \'live\' mode, if \`start\` is set using a UTC date, the sequence will have a start range equal to \`MAX(current_UTC - start_in_UTC, 0)\`. Some sources may be skipped to fullfil this condition.
 This allows different instances of the filter using the same playlist to initialize media time in the same fashion.
 
 When reloading the playlist:
-- if the sequence is active, `start` value is ignored 
-- if the sequence was not started, `start` value is updated 
-- if the sequence was over, `start` value is updated only of greater than previous resolved UTC start time. 
+- if the sequence is active, \`start\` value is ignored 
+- if the sequence was not started, \`start\` value is updated 
+- if the sequence was over, \`start\` value is updated only of greater than previous resolved UTC start time. 
 
 ## Sources
 ### Properties for \`source\` objects
@@ -333,7 +333,7 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
   - out: audio fade-out when playing last frame at scene activation
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
-- autoshow (true): automatically deactivate scene when sequences set in `sources` are not active
+- autoshow (true): automatically deactivate scene when sequences set in \`sources\` are not active
 - nosignal ('lost'): enable no-signal message for scenes using sequences:
   - no: disable message
   - lost: display message when signal is lost
@@ -347,7 +347,7 @@ Inputs to a scene, whether \`sequence\` or offscreen \`group\`, must be declared
 
 A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
 
-If a scene uses one or more sequences and `autoshow` is not set, the scene will be drawn with no sequence attached if all sequences are inactive (not yet started or over).
+If a scene uses one or more sequences and \`autoshow\` is not set, the scene will be drawn with no sequence attached if all sequences are inactive (not yet started or over).
 
 ## Transitions and Mixing effects
 ### JSON syntax

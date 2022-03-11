@@ -2943,7 +2943,7 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 
 	u32 nb_opts=0;
 	idx=0;
-	while (1) {
+	while (args) {
 		const GF_FilterArgs *a = & args[idx];
 		if (!a || !a->arg_name) break;
 		idx++;
