@@ -2242,7 +2242,6 @@ function process_video()
 	  if (!display_list.length) {
 			active_scene = null;
 			draw_scene_no_signal(null);
-			print('DL empty');
 		} else {
 			display_list.forEach(ctx => {
 				if (!set_active_scene(ctx)) return;
@@ -2331,7 +2330,6 @@ function process_video()
 		  if (!display_list.length) {
 				active_scene = null;
 				draw_scene_no_signal(null);
-			print('DL empty2');
 			} else {
 				draw_display_list_2d();
 			}
@@ -3203,14 +3201,19 @@ function fetch_source(s)
 function get_source(id, src, par_seq)
 {
 	for (let i=0; i<sources.length; i++) {
-		let elem = sources[i]; 
+		let elem = sources[i];
+		//if parent sequence is given and differs from source parent, not our source
 		if (par_seq && (elem.sequence != par_seq)) continue;
-
+		//same id, this is our source
 		if (id && (elem.id == id)) return elem;
+		
+		//if source ID is given and differs from source ID, not our source. This allows having 2 sources with the same URLs in the same sequence
+		if (id && (elem.id != id)) continue;
+
 		if (src && (elem.src.length == src.length)) {
 			let diff = false;
 			elem.src.forEach( (v, index) => {
-				if (!(v.in === src[index].in)) diff = true; // Romain: if sources have the same input name they are discarded!!
+				if (!(v.in === src[index].in)) diff = true;
 				let id1 = v.id || 0;
 				let id2 = src[index].id || 0;
 				if (id1 && id2 && !(id1 === id2)) diff = true;
@@ -3696,6 +3699,7 @@ function parse_url(src_pl, seq_pl)
 
 	let par_seq = seq_pl ? get_sequence_by_json(seq_pl) : null;
 	let src = get_source(id, src_pl.src, par_seq);
+
 	if (!src) {
 		push_source(src_pl, id, seq_pl);
 	} else {
