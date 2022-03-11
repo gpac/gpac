@@ -571,7 +571,7 @@ void ffmpeg_initialize()
 void ffmpeg_register_set_dyn_help(GF_FilterRegister *reg)
 {
 	GF_FFRegistryExt *ffregext = reg->udta;
-	ffregext->free_help = GF_TRUE;
+	if (ffregext) ffregext->free_help = GF_TRUE;
 }
 static void ffmpeg_register_free(GF_FilterSession *session, GF_FilterRegister *reg)
 {

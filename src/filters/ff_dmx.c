@@ -1328,7 +1328,7 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
 
-	if (!gf_opts_get_bool("temp", "helponly"))
+	if (!gf_opts_get_bool("temp", "helponly") || gf_opts_get_bool("temp", "gendoc"))
 		return &FFAVInRegister;
 	
 #ifdef FF_PROBE_DEVICES
