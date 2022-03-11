@@ -341,15 +341,27 @@ static void mp3_dmx_flush_id3(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {
-	u32 sr;
+	u32 sr, codec_id;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		mp3_dmx_check_dur(filter, ctx);
 	}
 
+	codec_id = gf_mp3_object_type_indication(ctx->hdr);
+	switch (gf_mp3_layer(ctx->hdr)) {
+	case 3:
+		if (ctx->forcemp3) {
+			codec_id = GF_CODECID_MPEG_AUDIO;
+		}
+		break;
+	case 1:
+		codec_id = GF_CODECID_MPEG_AUDIO_L1;
+		break;
+	}
+
 	if ((ctx->sr == gf_mp3_sampling_rate(ctx->hdr)) && (ctx->nb_ch == gf_mp3_num_channels(ctx->hdr) )
-		&& (ctx->codecid == gf_mp3_object_type_indication(ctx->hdr) )
+		&& (ctx->codecid == codec_id )
 		&& !ctx->copy_props
 	)
 		return;
@@ -370,17 +382,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	if (!ctx->timescale) gf_filter_pid_set_name(ctx->opid, "audio");
 
 	ctx->nb_ch = gf_mp3_num_channels(ctx->hdr);
-	ctx->codecid = gf_mp3_object_type_indication(ctx->hdr);
-	switch (gf_mp3_layer(ctx->hdr)) {
-	case 3:
-		if (ctx->forcemp3) {
-			ctx->codecid = GF_CODECID_MPEG_AUDIO;
-		}
-		break;
-	case 1:
-		ctx->codecid = GF_CODECID_MPEG_AUDIO_L1;
-		break;
-	}
+
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
 	if (!ctx->timescale) {
@@ -390,6 +392,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		}
 	}
 	ctx->sr = sr;
+	ctx->codecid = codec_id;
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
