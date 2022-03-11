@@ -90,6 +90,8 @@ static GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
 
 u64 unused_bytes = 0;
 
+#define GF_SKIP_BOX 10
+
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size, restore_type;
@@ -132,8 +134,8 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				size = gf_bs_available(bs) + 8;
 			} else {
 				if (!skip_logs) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level !\n", gf_4cc_to_str(type), type, start));
-					return GF_ISOM_INVALID_FILE;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) at position "LLU" has size 0 but is not at root/file level. Forbidden, skipping end of parent box !\n", gf_4cc_to_str(type), type, start));
+					return GF_SKIP_BOX;
 				}
 				return GF_OK;
 			}
@@ -1725,7 +1727,7 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, u32 parent_ty
 		e = gf_isom_box_parse_ex(&a, bs, parent_type, GF_FALSE);
 		if (e) {
 			if (a) gf_isom_box_del(a);
-			return e;
+			return (e==GF_SKIP_BOX) ? GF_OK : e;
 		}
 		//sub box parsing aborted with no error
 		if (!a) return GF_OK;
