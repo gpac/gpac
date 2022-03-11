@@ -2253,10 +2253,10 @@ static JSValue js_audio_mix(JSContext *ctx, JSValueConst this_val, int argc, JSV
 			//todo , proper down/up mix ...
 			for (k=0; k<mix->channels; k++) {
 				Double s_val;
-				if (pid->channels < k )
+				if (pid->channels <= k)
 					s_val = mix->in_chan_buf[0];
 				else
-				s_val = mix->in_chan_buf[k];
+					s_val = mix->in_chan_buf[k];
 
 				mix->chan_buf[k] += s_val * fade_scale;
 			}

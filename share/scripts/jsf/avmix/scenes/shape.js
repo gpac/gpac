@@ -96,7 +96,7 @@ export const options = [
  {name:"rs", value: false, desc: "repeat texture horizontally", dirty: UPDATE_SIZE},
  {name:"rt", value: false, desc: "repeat texture vertically", dirty: UPDATE_SIZE},
  {name:"keep_ar", value: true, desc: "keep aspect ratio", dirty: UPDATE_POS},
- {name:"pad_color", value: "none", desc: `color to use for texture padding if \`rs\` or \`rt\` are false. Use \`none\` to use texture edge, \`0x00FFFFFF\` for transparent (always enforced if source is transparent)`, dirty: UPDATE_POS},
+ {name:"pad_color", value: "0x00FFFFFF", desc: `color to use for texture padding if \`rs\` or \`rt\` are false. Use \`none\` to use texture edge, \`0x00FFFFFF\` for transparent (always enforced if source is transparent)`, dirty: UPDATE_POS},
  {name:"txmx", value: [], desc: "texture matrix - all 6 coefficients must be set, i.e. [xx xy tx yx yy ty]", dirty: UPDATE_POS},
  {name:"cmx", value: [], desc: "color transform - all 20 coefficients must be set in order, i.e. [Mrr, Mrg, Mrb, Mra, Tr, Mgr, Mgg ...]", dirty: UPDATE_POS},
  {name:"line_width", value: 0, desc: "line width in percent of width if positive, or absolute value if negative", dirty: UPDATE_LINE},

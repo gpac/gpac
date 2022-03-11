@@ -276,7 +276,7 @@ filter.set_arg({ name: "updates", desc: "local JSON files for playlist updates",
 filter.set_arg({ name: "maxdepth", desc: "maximum depth of a branch in the scene graph", type: GF_PROP_UINT, def: "100", hint:"expert"} );
 
 //video output options
-filter.set_arg({ name: "vsize", desc: "output video size", type: GF_PROP_VEC2, def: "1920x1080"} );
+filter.set_arg({ name: "vsize", desc: "output video size, 0 disable video output", type: GF_PROP_VEC2, def: "1920x1080"} );
 filter.set_arg({ name: "fps", desc: "output video frame rate", type: GF_PROP_FRACTION, def: "25"} );
 filter.set_arg({ name: "pfmt", desc: "output pixel format. Use \`rgba\` in GPU mode to force alpha channel", type: GF_PROP_PIXFMT, def: "yuv"} );
 filter.set_arg({ name: "dynpfmt", desc: `allow dynamic change of output pixel format in software mode
@@ -285,8 +285,8 @@ filter.set_arg({ name: "dynpfmt", desc: `allow dynamic change of output pixel fo
   - all: pixel format changes each time a full-screen input PID at same resolution is used`, type: GF_PROP_UINT, def: "init", minmax_enum: 'off|init|all', hint:"expert"} );
 
 //audio output options
-filter.set_arg({ name: "sr", desc: "output audio sample rate", type: GF_PROP_UINT, def: "44100"} );
-filter.set_arg({ name: "ch", desc: "number of output audio channels", type: GF_PROP_UINT, def: "2"} );
+filter.set_arg({ name: "sr", desc: "output audio sample rate, 0 disable audio output", type: GF_PROP_UINT, def: "44100"} );
+filter.set_arg({ name: "ch", desc: "number of output audio channels, 0 disable audio output", type: GF_PROP_UINT, def: "2"} );
 filter.set_arg({ name: "afmt", desc: "output audio format (only s16, s32, flt and dbl are supported)", type: GF_PROP_PCMFMT, def: "s16"} );
 filter.set_arg({ name: "alen", desc: "default number of samples per frame", type: GF_PROP_UINT, def: "1024", hint:"expert"} );
 
@@ -548,6 +548,8 @@ filter.initialize = function()
 
 	configure_vout();
 	configure_aout();
+	if (filter.live)
+		print(GF_LOG_INFO, 'Initialized at ' + new Date());;
 
 	if (!filter.ltimeout)
 			filter.ltimeout = 1000;
@@ -744,6 +746,9 @@ filter.configure_pid = function(pid)
 	let p = pid.get_prop('StreamType');
 	let ts = 0;
 	if (p == 'Visual') {
+		//silently ignore
+		if (!vout) return GF_EOS;
+
 		pid.pfmt = pid.get_prop('PixelFormat');
 		pid.type = TYPE_VIDEO;
 		ts = video_timescale;
@@ -755,6 +760,9 @@ filter.configure_pid = function(pid)
 		pid.rotate = pid.get_prop('Rotate');
 	}	
 	else if (p == 'Audio') {
+		//silently ignore
+		if (!aout) return GF_EOS;
+
 		pid.type = TYPE_AUDIO;
 		pid.data = null;
 		ts = audio_timescale;
@@ -772,6 +780,8 @@ filter.configure_pid = function(pid)
 		pid.last_sample_time = 0;
 	} else {
 		pid.type = TYPE_UNHANDLED;
+		//silently ignore
+		return GF_EOS;
 	}
 
 	if (pid.timescale != ts) {
@@ -819,6 +829,10 @@ filter.remove_pid = function(pid)
 	}
   if (index < 0) return;
   pids.splice(index, 1);
+
+  index = pid.source.pids.indexOf(pid);
+  if (index>=0)
+		pid.source.pids.splice(index, 1);
 
 	do_traverse(root_scene, scene => {
 		for (let i=0; i<scene.mod.pids.length; i++) {
@@ -1106,6 +1120,9 @@ filter.process = function()
 	}
 
 	if (do_audio) {
+		//video is not playing, we must update the scenes for audio
+		if (!vout) update_display_list();
+
 		process_audio();
 		if (!video_playing) {
 			video_time = audio_time * video_timescale;
@@ -1742,6 +1759,31 @@ function update_scene(scene)
 	//not ready
 	if (!scene_update_visual_pids(scene)) return;
 
+	scene.no_signal_time = 0;
+	//sequences defined, check for no sequence active if autoshow / nosig are set 
+	if (scene.sequences.length && scene.check_active) {
+		let disabled=true;
+		let min_nosig = 0;
+		scene.sequences.forEach (seq => {
+			if (seq.active_state != 1) {
+				if ( (seq.start_time > current_utc_clock) && (!min_nosig || (min_nosig>seq.start_time)) )
+					min_nosig = seq.start_time;
+				return;
+			}
+			seq.sources.forEach(s => {
+				if (!s.in_prefetch) disabled = false;
+			});
+		});
+		if (disabled) {
+			//sequence not yet activated but we monitor no signal message
+			if ((scene.nosig == 'before') && min_nosig) {}
+			//sequence not activate, don't draw if autoshow
+			else if (scene.nosig != 'all') {
+				if (scene.autoshow) return;
+			}
+			scene.no_signal_time = min_nosig ? min_nosig : -1;
+		}
+	}
 	//compute scene size in pixels
 	let sw = get_dim(scene, true);
 	let sh = get_dim(scene, false);
@@ -1850,20 +1892,40 @@ function update_scene(scene)
 
 	if (!has_clip_mask && cover_type) {
 		let opaque_pid_idx = scene.mod.fullscreen();
+		let skip_opaque_test = false;
+		//no pids associated (inactive sequence), do not reuse input pck
 		if (scene.sequences.length && !scene.mod.pids.length) {
-		} else if ((scene.sequences.length>1) && scene.transition) {
+			skip_opaque_test = true;
+		}
+		//scene is using mix effect between sequence, do not reuse input pck
+		else if ((scene.sequences.length>1) && scene.transition) {
+			skip_opaque_test = true;
+		} else if (scene.mod.pids.length) {
+			let s = scene.mod.pids[0].pid.source;
+			//no signal on input, do not reuse input pck (which may be non-null if `hold` was set)
+			if (s.no_signal)
+				skip_opaque_test = true;
+			//sequence us in active transision state, do not reuse input pck
+			else if ((s.sequence.transition_state>1) && (s.sequence.transition_state<4))
+				skip_opaque_test = true;
+		}
+
+		//no reuse, force scene draw
+		if (skip_opaque_test) {
+			scene.mod.force_draw = true;
 		} else {
+			//get opaque pid
 			if ((opaque_pid_idx>=0) && (opaque_pid_idx<scene.mod.pids.length)) {
 				opaque_pid = scene.mod.pids[opaque_pid_idx].pid;
 			}
-
 			if (!opaque_pid) {
 				is_opaque = scene.mod.is_opaque() || false;
 			} else {
-				//disable reuse if transition
-				if (opaque_pid.source.sequence.transition_state) {
+				//disable reuse if transition is active on pid
+				if ((opaque_pid.source.sequence.transition_state>1) && (opaque_pid.source.sequence.transition_state<4)) {
 					opaque_pid = null;
 					is_opaque = false;
+					scene.mod.force_draw = true;
 				}
 			}
 		}
@@ -1969,35 +2031,40 @@ let mask_mode = 0;
 function draw_display_list_2d()
 {
 	display_list.forEach(ctx => {
-			if (!set_active_scene(ctx)) return;
+		if (!set_active_scene(ctx)) return;
+		//offscreen group
+		if (ctx.group) {
+			//only used to get the matrix
+			active_scene = ctx;
+			ctx.group.texture.mx = ctx.group.texture_mx;
+			ctx.group.texture.set_alphaf(ctx.group.opacity);
+			canvas_draw(ctx.group.path, ctx.group.texture, true);
+			return;
+		}
+		let scene = ctx.scene;
 
-			//offscreen group
-			if (ctx.group) {
-				//only used to get the matrix
-				active_scene = ctx;
-				ctx.group.texture.mx = ctx.group.texture_mx;
-				ctx.group.texture.set_alphaf(ctx.group.opacity);
-				canvas_draw(ctx.group.path, ctx.group.texture, true);
-				return;
-			}
-			let scene = ctx.scene;
+		//if mask is active or if transition is active, disable blit
+		if (mask_mode
+			|| (scene.mod.pids.length && scene.mod.pids[0].pid && ((scene.mod.pids[0].pid.source.sequence.transition_state==3) || scene.mod.pids[0].pid.source.no_signal))
+		) {
+			scene.mod.screen_rect = null;
+		} else if (round_scene_size && scene.sequences.length && scene.mod.screen_rect) {
+			scene.mod.screen_rect = round_rect(scene.mod.screen_rect);
+		}
 
-			if (mask_mode) {
-				scene.mod.screen_rect = null;
-			} else if (round_scene_size && scene.sequences.length && scene.mod.screen_rect) {
-				scene.mod.screen_rect = round_rect(scene.mod.screen_rect);
+		if (scene.no_signal_time) {
+			draw_scene_no_signal();
+		}
+		else if (1) {
+				scene.mod.draw(canvas);
+		} else {
+			try {
+				scene.mod.draw(canvas);
+			} catch (e) {
+				print(GF_LOG_ERROR, 'Error during scene ' + scene.id + ' draw, disabling scene - error was ');
+				scene.active = false;
 			}
-
-			if (1) {
-					scene.mod.draw(canvas);
-			} else {
-				try {
-					scene.mod.draw(canvas);
-				} catch (e) {
-					print(GF_LOG_ERROR, 'Error during scene ' + scene.id + ' draw, disabling scene - error was ');
-					scene.active = false;
-				}
-			}
+		}
 
 		canvas.matrix = null;
 		canvas.path = null;
@@ -2005,6 +2072,18 @@ function draw_display_list_2d()
 	});
 }
 
+
+function update_display_list()
+{
+  display_list.length = 0;
+  has_clip_mask = false;
+	has_opaque = false;
+	reference_width = video_width;
+	reference_height = video_height;
+	active_camera = null;
+	global_transform.identity = true;
+	root_scene.scenes.forEach(elm => do_traverse_all(elm, update_scene) );
+}
 
 function process_video()
 {
@@ -2039,14 +2118,7 @@ function process_video()
 		}
 	}
 
-  display_list.length = 0;
-  has_clip_mask = false;
-	has_opaque = false;
-	reference_width = video_width;
-	reference_height = video_height;
-	active_camera = null;
-	global_transform.identity = true;
-	root_scene.scenes.forEach(elm => do_traverse_all(elm, update_scene) );
+	update_display_list();
 
   //sort display list - BROKEN if multiple scene instances
   display_list.sort( (e1, e2) => { return e1.zorder - e2.zorder ; } );
@@ -2170,6 +2242,7 @@ function process_video()
 	  if (!display_list.length) {
 			active_scene = null;
 			draw_scene_no_signal(null);
+			print('DL empty');
 		} else {
 			display_list.forEach(ctx => {
 				if (!set_active_scene(ctx)) return;
@@ -2258,6 +2331,7 @@ function process_video()
 		  if (!display_list.length) {
 				active_scene = null;
 				draw_scene_no_signal(null);
+			print('DL empty2');
 			} else {
 				draw_display_list_2d();
 			}
@@ -2331,9 +2405,14 @@ function process_audio()
 
 	}
 
+	let empty_ok = false;
 	pids.forEach(pid => {
 		if (pid.type != TYPE_AUDIO) return;
 		if (!pid.source.playing) return;
+		if (pid.source.no_signal_state) {
+			empty_ok = true;
+			return;
+		}
 		if (pid.source.disabled) return;
 		if (pid.eos) return;
 		if (pid.done) return;
@@ -2364,13 +2443,16 @@ function process_audio()
 				print(GF_LOG_DEBUG, 'waiting for audio frame');
 				return;
 			}
-			let atime = init_clock_us + (audio_time + 2*filter.alen)*1000000/filter.sr;
-			let now = sys.clock_us();
-			if (atime >= now) {
-				print(GF_LOG_DEBUG, 'waiting for audio frame');
-				return;
+			if (!empty_ok) {
+				let atime = init_clock_us + (audio_time + 2*filter.alen)*1000000/filter.sr;
+				let now = sys.clock_us();
+				if (atime >= now) {
+					print(GF_LOG_DEBUG, 'waiting for audio frame');
+					return;
+				}
+				if (!empty_ok)
+					print(GF_LOG_WARNING, 'empty audio input but audio frame due since ' + Math.ceil(now-atime) + ' us');
 			}
-			print(GF_LOG_WARNING, 'empty audio input but audio frame due since ' + Math.ceil(now-atime) + ' us');
 		}
 
 		//send an empty packet of 100 samples
@@ -2543,6 +2625,7 @@ function sequence_over(s, force_seq_reload)
 	}
 
 	s.video_time_at_init = 0;
+	let force_load_source = false;
 
 	while (1) {
 
@@ -2560,7 +2643,7 @@ function sequence_over(s, force_seq_reload)
 	}
 
 	let next_src = next_source(s, false);
-	let is_same_source = (next_src === s) ? true : false;
+	let is_same_source = (!force_load_source && (next_src === s)) ? true : false;
 	if (force_seq_reload)
 		is_same_source = false;
 
@@ -2608,6 +2691,7 @@ function sequence_over(s, force_seq_reload)
 			if (dur && (dur < s.sequence.start_offset)) {
 				print(GF_LOG_DEBUG, 'source ' + next_src.logname + ' will end before sequence start offset ' + s.sequence.start_offset + ' - skipping');
 				s = next_src;
+				force_load_source = true;
 				continue;	
 			}
 
@@ -2620,6 +2704,7 @@ function sequence_over(s, force_seq_reload)
 		}
 	} else if (! is_transition_start) {
 		inactive_sources++;
+		s.sequence.active_state = 2;
 		print(GF_LOG_DEBUG, 'sequence over');
 	}
 	return;
@@ -2642,21 +2727,27 @@ function fetch_source(s)
 	//check if source must be started
 	if (!s.playing) {
 		if (!s.sequence.active_state && (s.sequence.start_time>0) && (s.sequence.start_time <= current_utc_clock + s.prefetch_ms)) {
-			s.sequence.start_offset = (current_utc_clock + s.prefetch_ms - s.sequence.start_time ) / 1000.0;
-			if (s.sequence.start_offset<0.1) s.sequence.start_offset = 0;
+			if (s.sequence.skip_start_offset) {
+				s.sequence.start_offset = 0;
+				print(GF_LOG_INFO, 'Starting sequence ' + s.sequence.id + ' at UTC ' + current_utc_clock);
+			} else {
+				s.sequence.start_offset = (current_utc_clock + s.prefetch_ms - s.sequence.start_time ) / 1000.0;
+				if (s.sequence.start_offset<0) s.sequence.start_offset = 0;
+				print(GF_LOG_INFO, 'Starting sequence ' + s.sequence.id + ' at UTC ' + current_utc_clock + ' with start offset ' + s.sequence.start_offset + ' sec');
+			}
+
 			s.sequence.active_state = 1;
 			if (s.sequence.id)
 				trigger_watcher(s.sequence, 'active', true);
 
-			print(GF_LOG_DEBUG, 'Starting sequence start offset ' + s.sequence.start_offset + ' - ' + s.sequence.start_time + ' - UTC ' + current_utc_clock);
-
 			if (s.media_start + s.media_stop < s.sequence.start_offset) {
-					print(GF_LOG_DEBUG, 'source ' + s.logname + ' will end before sequence start_offset, skipping source ');
+					print(GF_LOG_INFO, 'source ' + s.logname + ' will end before sequence start_offset, skipping source');
 					s.sequence.start_offset -= s.media_start + s.media_stop;
 					inactive_sources++;
 					sequence_over(s, false);
 					return;
 			} else {
+					print(GF_LOG_INFO, 'source ' + s.logname + ' open');
 				open_source(s);
 				play_source(s);
 				if (current_utc_clock < s.sequence.start_time) {
@@ -2778,9 +2869,22 @@ function fetch_source(s)
 		//source is active (has packets)
 		nb_active++;
 
-		if (!s.sequence.prefetch_check) {
+		let check_transition = false;
+		if (video_playing) {
+			if (pid.type == TYPE_VIDEO) check_transition = true;
+		} else {
+			if (pid.type != TYPE_VIDEO) check_transition = true;
+		}
+
+		if (!s.sequence.prefetch_check && check_transition) {
 			let check_end = s.duration;
 			if ((s.media_stop>s.media_start) && (s.media_stop<s.duration)) check_end = s.media_stop;
+
+			if (s.duration && s.hold && (s.media_stop > s.duration)) {
+				s.sequence.transition_state = 4;
+				s.transition_offset = 0;
+				s.sequence.transition_dur = 0;
+			}
 
 			if ((s.sequence.transition_state<=1) && s.sequence.transition_effect && next_source(s, true) ) {
 				let dur = s.sequence.transition_effect.dur || 0;
@@ -2824,7 +2928,7 @@ function fetch_source(s)
 			}
 		}
 
-		if (s.sequence.transition_state==1) {
+		if (check_transition && (s.sequence.transition_state==1)) {
 			let check_end = s.duration;
 			if ((s.media_stop>s.media_start) && (s.media_stop<s.duration)) check_end = s.media_stop;
 
@@ -2936,14 +3040,13 @@ function fetch_source(s)
 			}
 		}
 
-		print(GF_LOG_DEBUG, 'Video from ' + s.logname + ' will draw pck CTS ' + pid.pck.cts + ' translated ' + pid.frame_ts + ' video time ' + video_time);
+		print(GF_LOG_DEBUG, 'Video from ' + s.logname + ' will draw pck CTS ' + pid.pck.cts + '/' + pid.timescale + ' translated ' + pid.frame_ts + ' video time ' + video_time);
 		return;
 	}
 	});
 	//done fetching pids
 
 	if (s.pids.length && (nb_over == s.pids.length)) {
-		print(GF_LOG_INFO, 'source ' + s.logname + ' is over - transition state: ' + s.sequence.transition_state);
 		nb_over = 1;
 		let relaunch=false;
 		s.src.forEach(src => {
@@ -2964,6 +3067,38 @@ function fetch_source(s)
 
 		if (relaunch) {
 			source_restart = true;
+		} else if (s.duration && s.hold && (s.media_stop > s.duration)) {
+			let pid = s.pids[0];
+			let target_end, ref_time, ref_timescale;
+			if (pid.type == TYPE_VIDEO) {
+				ref_timescale = video_timescale;
+				ref_time = video_time;
+			} else {
+				ref_timescale = audio_timescale;
+				ref_time = audio_time;
+			}
+			target_end = pid.init_clock + ref_timescale * (s.media_stop - s.media_start);
+
+			if (target_end > ref_time) {
+				nb_over = 0;
+				s.no_signal = true;
+				if (!s.no_signal_state) {
+					print(GF_LOG_INFO, 'source ' + s.logname + ' is over but hold enabled, entering no signal state');
+				}
+				s.no_signal_state = (target_end - ref_time) / ref_timescale;
+				return;
+			} else {
+				s.no_signal = false;
+				s.no_signal_state = false;
+				//first source in sequence is done, reset start offset
+				s.sequence.start_offset = 0;
+				s.sequence.transition_state = 0;
+				print(GF_LOG_INFO, 'source ' + s.logname + ' is over, exiting no signal state');
+			}
+		} else {
+			//first source in sequence is done, reset start offset
+			s.sequence.start_offset = 0;
+			print(GF_LOG_INFO, 'source ' + s.logname + ' is over - transition state: ' + s.sequence.transition_state);
 		}
   } else if (!s.pids.length && s.has_ka_process) {
   	nb_over = 0;
@@ -2979,6 +3114,7 @@ function fetch_source(s)
 	  if (nb_over == s.src.length) {
 	  	nb_over = 1;
 	  	force_seq_over = true;
+			return;
 	  } else {
 	  	nb_over = 0;
 	  }
@@ -3064,10 +3200,12 @@ function fetch_source(s)
 }
 
 
-function get_source(id, src)
+function get_source(id, src, par_seq)
 {
 	for (let i=0; i<sources.length; i++) {
 		let elem = sources[i]; 
+		if (par_seq && (elem.sequence != par_seq)) continue;
+
 		if (id && (elem.id == id)) return elem;
 		if (src && (elem.src.length == src.length)) {
 			let diff = false;
@@ -3251,6 +3389,8 @@ function open_source(s)
 	s.sequence.prefetch_check = false;
 //	filter.reset_source();
 	wait_for_pids = current_utc_clock;
+
+	print(GF_LOG_DEBUG, 'Open source ' + s.logname);
 
   s.has_ka_process = false;
 	s.src.forEach(src => {
@@ -3485,6 +3625,7 @@ function parse_source_opts(src, pl_el)
 	else
 		src.mix = true;
 
+	src.hold = pl_el.hold || false;
 	src.seek = pl_el.seek || false;
 	if (typeof pl_el.prefetch_ms == 'number') src.prefetch_ms = pl_el.prefetch;
 	else src.prefetch_ms = 500;
@@ -3511,6 +3652,8 @@ function push_source(el, id, seq)
 	s.mix_volume = 1.0;
 	s.keep_alive = el.keep_alive || false;
 	s.video_time_at_init = 0;
+	s.no_signal = false;
+	s.no_signal_state = false;
 
 	sources.push(s);
 	if (s.id==="") {
@@ -3551,13 +3694,13 @@ function parse_url(src_pl, seq_pl)
 
 	let id = src_pl.id || 0;
 
-	let src = get_source(id, src_pl.src);
+	let par_seq = seq_pl ? get_sequence_by_json(seq_pl) : null;
+	let src = get_source(id, src_pl.src, par_seq);
 	if (!src) {
 		push_source(src_pl, id, seq_pl);
 	} else {
-		let par_seq = get_sequence_by_json(seq_pl);
 		if (src.sequence != par_seq) {
-			print(GF_LOG_ERROR, 'source update cannot change parent sequence, ignoring');
+			print(GF_LOG_ERROR, 'source update cannot change parent sequence, ignoring ' + JSON.stringify(seq_pl));
 			return;
 		}
 		src.pl_update = true;
@@ -3594,6 +3737,7 @@ function validate_source(pl)
 		if (propertyName == 'fade') continue;
 		if (propertyName == 'keep_alive') continue;
 		if (propertyName == 'seek') continue;
+		if (propertyName == 'hold') continue;
 
 		if (propertyName.charAt(0) == '_') continue;
 
@@ -3653,6 +3797,7 @@ function parse_seq(pl)
 	//got new seg
 	seq.pl_update = true;
 
+	let first = seq.crc ? false : true;
 	let crc = sys.crc32(JSON.stringify(pl));
 	if (crc != seq.crc) {
 		seq.crc = crc;
@@ -3663,11 +3808,32 @@ function parse_seq(pl)
 		return;
 	}
 
-  //parse UTC start time
-	if (seq.start_time<=0) {
+  //parse UTC start time. If reload and new start and active, we cannot modify the start time
+	if (!first && (seq.start_time_json != pl.start) && (seq.active_state == 1)) {
+		print(GF_LOG_ERROR, 'Cannot change sequence start time while active, ignoring start ' + pl.start);
+	}
+	//we're not started or over, parse the new start
+	else if (seq.active_state != 1) {
+		let old_start = seq.start_time;
+		let old_start_json = seq.start_time_json;
 		seq.start_time = parse_date_time(pl.start, true);
-		if (seq.start_time<0) 
+		if (seq.start_time<0) {
 			seq.start_time = -1;
+		}
+		//start is a date, don't skip range adjustment
+		else if ((typeof pl.start == 'string') && (pl.start.indexOf(':')>0)) {
+			seq.skip_start_offset = false;
+		}
+		//start is not a date, source will start from its start range
+		else {
+			seq.skip_start_offset = true;
+		}
+		//seq is over, check if we need to restart
+		if (seq.active_state>1) {
+			if ((pl.start != "now") && (pl.start != old_start_json) && (seq.start_time > old_start))
+				seq.active_state = 0;
+		}
+		seq.start_time_json = pl.start;
 	}
 
 	seq.stop_time = parse_date_time(pl.stop, true);
@@ -4358,7 +4524,7 @@ function parse_watcher(pl)
 		if (!elem) elem = get_script(s_id);
 		if (!elem) elem = get_timer(s_id);
 		if (!elem) elem = get_sequence(s_id);
-		if (!elem) elem = get_source(s_id);
+		if (!elem) elem = get_source(s_id, null, null);
 
 		if (!elem) {
 			print(GF_LOG_WARNING, 'No watchable element with ID ' + s_id + ' discarding watcher');
@@ -4813,6 +4979,8 @@ const scene_props = [
 	{ name: "volume", def_val: 1, update_flag: 0, is_mod: true},
 	{ name: "fade", def_val: "inout", update_flag: 0, is_mod: true},
 	{ name: "mix_ratio", def_val: 0, update_flag: 0, is_mod: true},
+	{ name: "autoshow", def_val: true, update_flag: 0, is_mod: false},
+	{ name: "nosig", def_val: "lost", update_flag: 0, is_mod: false},
 ];
 
 function scene_get_update_type(prop_name)
@@ -4860,6 +5028,10 @@ function set_scene_options(scene, params)
 			}
 		}
 	});
+
+	scene.check_active = false;
+	if (scene.autoshow || (scene.nosig != 'lost'))
+		scene.check_active = true;
 
 	//common with group
 	parse_group_transform(scene, params);
@@ -5930,6 +6102,8 @@ let no_signal_transform = new evg.Matrix2D();
 
 function draw_scene_no_signal()
 {
+	if (active_scene && (active_scene.nosig == 'no')) return;
+
 	if (!no_signal_path) no_signal_path = new evg.Text();
 
 	let text = no_signal_path;
@@ -5945,14 +6119,19 @@ function draw_scene_no_signal()
 	if (no_signal_text==null) {
 		//let version = 'GPAC '+sys.version + ' API '+sys.version_major+'.'+sys.version_minor+'.'+sys.version_micro;
 		let version = 'GPAC ' + (sys.test_mode ? 'Test Mode' : sys.version_full);
-		no_signal_text = ['No input', '', version, '(c) 2000-2021 Telecom Paris'];
+		no_signal_text = ['No input', '', version, '(c) 2000-2022 Telecom Paris'];
 	}
 	let s1 = null;
 	if (active_scene && active_scene.mod.pids.length) {
 		if (sys.test_mode) 
 			s1 = 'Signal lost';
+		else if (active_scene.mod.pids[0].pid.source.no_signal_state)
+			s1 = 'No signal (next scheduled in ' + Math.floor(active_scene.mod.pids[0].pid.source.no_signal_state) + ' s)';
 		else
 			s1 = 'Signal lost (' + Math.floor(active_scene.mod.pids[0].pid.source.no_signal/1000) + ' s)';
+	} else if (active_scene && (active_scene.no_signal_time>0)) {
+		let next = new Date(active_scene.no_signal_time);
+		s1 = 'No input (next schedule ' + next.toUTCString() + ' s)';
 	} else {
 		s1 = 'No input';
 	}
@@ -5965,11 +6144,14 @@ function draw_scene_no_signal()
 	}
 
 	if (active_scene)
-		no_signal_transform.copy(global_transform)
+		no_signal_transform.copy(active_scene.mx);
 	else
 		no_signal_transform.identity = true;
 
   no_signal_transform.translate(-w/2, 0);
+  //comment if align to left
+  let m = text.measure();
+  no_signal_transform.translate(m.width/2, 0);
 
   if (!no_signal_outline) {
   	no_signal_outline = text.get_path().outline( { width: 6, align: GF_PATH_LINE_CENTER, cap: GF_LINE_CAP_ROUND, join: GF_LINE_JOIN_ROUND } );
@@ -6494,7 +6676,6 @@ function canvas_draw_sources(path)
 {
 	let scene = active_scene;
 	let pids = scene.mod.pids;
-
 	let op_type = 0;
 	let op_param = 0;
 	let op_tx = null;
@@ -6510,6 +6691,11 @@ function canvas_draw_sources(path)
 		scene.active=false;
 		return;
 	}
+
+	if (pids[0].pid.source.no_signal) {
+		draw_scene_no_signal();
+		return;
+	}
 	if ((pids.length==1) && !op_type) {
 		let tx = pids[0].texture;
 		//should not happen
@@ -6517,11 +6703,6 @@ function canvas_draw_sources(path)
 
 		canvas_draw(path, tx);
 	  return;  
-	}
-
-	if (pids[0].pid.source.no_signal) {
-		draw_scene_no_signal();
-		return;
 	}
 
 	if (op_type) {
@@ -6572,6 +6753,7 @@ function canvas_draw_sources(path)
 
 		//as fraction
 		ratio = time / seq.transition_dur;
+		if (ratio>1) ratio=1;
 	} else if (scene.transition) {
 		let skip_tansition = !use_gpu;
 		transition = scene.transition;
@@ -7381,7 +7563,7 @@ function get_media_time()
 {
 	let media_time = -4;
 	if ((arguments.length == 1) && arguments[0]) {
-		let s = get_source(arguments[0], null);
+		let s = get_source(arguments[0], null, null);
 		if (!s) return -4;
 		if (!s.playing) return -3;
 		if (s.in_prefetch) return -1;
@@ -7642,6 +7824,14 @@ function parse_update_elem(pl, array)
 				return false;
 			} else {
 				seq.start_time = parse_date_time(pl.with, true);
+				//start is a date, don't skip range adjustment
+				if ((typeof pl.with == 'string') && (pl.with.indexOf(':')>0)) {
+					seq.skip_start_offset = false;
+				}
+				//start is not a date, source will start from its start range
+				else {
+					seq.skip_start_offset = true;
+				}
 				seq.active_state = 0;
 				seq.stop_time = 0;
 			}
