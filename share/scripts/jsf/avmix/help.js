@@ -143,9 +143,16 @@ This means that a \`sequence\` not used by any active scene will not be rendered
 The syntax for \`start\` and  \`stop\` fields is:
 - \`now\`: resolves to current UTC clock in \`live\` mode, and to 0 for non-live mode
 - date: converted to UTC date in \`live\` mode, and to 0 for non-live mode
-- N: converted to current utc clock plus N seconds UTC
-- "N": converted to current utc clock plus N seconds UTC
+- N: converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
+- "N": converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
 
+In live mode, if `start` is set using a UTC date, the sequence will have a start range equal to `MAX(current_UTC - start_in_UTC, 0)`. Some sources may be skipped to fullfil this condition.
+This allows different instances of the filter using the same playlist to initialize media time in the same fashion.
+
+When reloading the playlist:
+- if the sequence is active, `start` value is ignored 
+- if the sequence was not started, `start` value is updated 
+- if the sequence was over, `start` value is updated only of greater than previous resolved UTC start time. 
 
 ## Sources
 ### Properties for \`source\` objects
@@ -162,6 +169,7 @@ The syntax for \`start\` and  \`stop\` fields is:
 - keep_alive (false): if using a dedicated gpac process for one or more input, relaunch process(es) at source end if exit code is greater than 2 or if not responding after \`rtimeout\`
 - seek (false): if true and \`keep_alive\` is active, adjust \`start\` according to the time elapsed since source start when relaunching process(es)
 - prefetch (500): prefetch duration in ms (play before start time of source), 0 for no prefetch
+- hold (false): if media duration is known and media stop time is greater than media duration, activate no signal mode until desired stop time is reached (disable transition), otherwise move to next source at end of stream
 
 ## Source Locations
 ### Properties for \`sourceURL\` objects
@@ -325,6 +333,12 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
   - out: audio fade-out when playing last frame at scene activation
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
+- autoshow (true): automatically deactivate scene when sequences set in `sources` are not active
+- nosignal ('lost'): enable no-signal message for scenes using sequences:
+  - no: disable message
+  - lost: display message when signal is lost
+  - before: display message if source is not yet active
+  - all: always display message if source is inactive
 - styles ([]): list of style IDs to use
 - any other property exposed by the underlying scene JS module.
 
@@ -332,6 +346,8 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
 Inputs to a scene, whether \`sequence\` or offscreen \`group\`, must be declared prior to the scene itself.
 
 A default scene will be injected if none is found when initially loading the playlist. If you need to start with an empty output, use a scene with no sequence associated.
+
+If a scene uses one or more sequences and `autoshow` is not set, the scene will be drawn with no sequence attached if all sequences are inactive (not yet started or over).
 
 ## Transitions and Mixing effects
 ### JSON syntax
