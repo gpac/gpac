@@ -283,25 +283,33 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_VEC2I:
 		if (!value || (sscanf(value, "%dx%d", &p.value.vec2i.x, &p.value.vec2i.y) != 2)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
+			if (value && strcmp(value, "0x0") && strcmp(value, "0")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
+			}
 			p.value.vec2i.x = p.value.vec2i.y = 0;
 		}
 		break;
 	case GF_PROP_VEC2:
 		if (!value || (sscanf(value, "%lgx%lg", &p.value.vec2.x, &p.value.vec2.y) != 2)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2 arg %s - using {0,0}\n", value, name));
+			if (value && strcmp(value, "0x0") && strcmp(value, "0")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2 arg %s - using {0,0}\n", value, name));
+			}
 			p.value.vec2.x = p.value.vec2.y = 0;
 		}
 		break;
 	case GF_PROP_VEC3I:
 		if (!value || (sscanf(value, "%dx%dx%d", &p.value.vec3i.x, &p.value.vec3i.y, &p.value.vec3i.z) != 3)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3i arg %s - using {0,0,0}\n", value, name));
+			if (value && strcmp(value, "0x0x0") && strcmp(value, "0")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec3i arg %s - using {0,0,0}\n", value, name));
+			}
 			p.value.vec3i.x = p.value.vec3i.y = p.value.vec3i.z = 0;
 		}
 		break;
 	case GF_PROP_VEC4I:
 		if (!value || (sscanf(value, "%dx%dx%dx%d", &p.value.vec4i.x, &p.value.vec4i.y, &p.value.vec4i.z, &p.value.vec4i.w) != 4)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4i arg %s - using {0,0,0}\n", value, name));
+			if (value && strcmp(value, "0x0x0x0") && strcmp(value, "0")) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec4i arg %s - using {0,0,0}\n", value, name));
+			}
 			p.value.vec4i.x = p.value.vec4i.y = p.value.vec4i.z = p.value.vec4i.w = 0;
 		}
 		break;
@@ -528,7 +536,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			} else {
 				s32 v1=0, v2=0;
 				if (sscanf(szV, "%dx%d", &v1, &v2) != 2) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s[%d] - using {0,0}\n", value, name, p.value.v2i_list.nb_items));
+					if (strcmp(value, "0x0") && strcmp(value, "0")) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s[%d] - using {0,0}\n", value, name, p.value.v2i_list.nb_items));
+					}
+					v1 = v2 = 0;
 				}
 				p.value.v2i_list.vals = gf_realloc(p.value.v2i_list.vals, (p.value.v2i_list.nb_items+1) * sizeof(GF_PropVec2i));
 				p.value.v2i_list.vals[p.value.v2i_list.nb_items].x = v1;
