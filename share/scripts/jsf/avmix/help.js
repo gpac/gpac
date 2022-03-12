@@ -146,7 +146,7 @@ The syntax for \`start\` and  \`stop\` fields is:
 - N: converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
 - "N": converted to current utc clock (or 0 for non-live mode) plus N seconds UTC
 
-In \'live\' mode, if \`start\` is set using a UTC date, the sequence will have a start range equal to \`MAX(current_UTC - start_in_UTC, 0)\`. Some sources may be skipped to fullfil this condition.
+In \'live\' mode, if \`start\` is set using a UTC date, the sequence will have a start range equal to \`MAX(current_UTC - start_in_UTC, 0)\`. Some sources may be skipped to fulfill this condition.
 This allows different instances of the filter using the same playlist to initialize media time in the same fashion.
 
 When reloading the playlist:
@@ -334,7 +334,7 @@ When enforcing \`width\` and \`height\` on a group with \`opacity<1\`, the displ
   - inout: both fade-in and fade-out are enabled
   - other: no audio fade
 - autoshow (true): automatically deactivate scene when sequences set in \`sources\` are not active
-- nosignal ('lost'): enable no-signal message for scenes using sequences:
+- nosig ('lost'): enable no-signal message for scenes using sequences:
   - no: disable message
   - lost: display message when signal is lost
   - before: display message if source is not yet active

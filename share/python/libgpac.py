@@ -1862,7 +1862,7 @@ class DASHGroup:
         self.idx = groupidx
         ## List of DASHQualityInfo for group
         self.qualities = []
-        ## period duration in milliseconds, 0 if unknwon
+        ## period duration in milliseconds, 0 if unknown
         self.duration = _libgpac.gf_dash_get_period_duration(ptr_dash)
         ## SRD object or None if no SRD defined
         self.SRD = make_srd(ptr_dash, groupidx)
@@ -3050,7 +3050,7 @@ def filter_cbk_release_packet(_f, _pid, _pck):
     if obj:
         pid_obj = cast(obj, py_object).value
     else:
-        raise Exception('Unknwon PID on packet destruction callback')
+        raise Exception('unknown PID on packet destruction callback')
 
     for pck in pid_obj.pck_refs:
         if pck._pck==_pck:
@@ -3058,7 +3058,7 @@ def filter_cbk_release_packet(_f, _pid, _pck):
             break
 
     if not pck_obj:
-        raise Exception('Unknwon packet on packet destruction callback')
+        raise Exception('unknown packet on packet destruction callback')
     pid_obj.pck_refs.remove(pck_obj)
     filter.packet_release(pid_obj, pck_obj)
     return 0

@@ -1344,7 +1344,7 @@ GF_FilterRegister FFDecodeRegister = {
 	"\n"
 	"# Codec Map\n"
 	"The [-ffcmap]() option allows specifying FFMPEG codecs for codecs not supported by GPAC.\n"
-	"Each entry in the list is formated as `GID@name` or `GID@+name`, with:\n"
+	"Each entry in the list is formatted as `GID@name` or `GID@+name`, with:\n"
 	"- GID: 4CC or 32 bit identifier of codec ID, as indicated by `gpac -i source inspect:full`\n"
 	"- name: FFMPEG codec name\n"
 	"- `+': is set and extra data is set and formatted as an ISOBMFF box, removes box header\n"

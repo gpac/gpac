@@ -1177,7 +1177,7 @@ attribute readonly idx;
 /*! List of _DASHQualityInfo for group*/
 attribute readonly Array qualities;
 
-/*! period duration in milliseconds, 0 if unknwon*/
+/*! period duration in milliseconds, 0 if unknown*/
 attribute readonly unsigned long duration;
 
 /*! SRD object or null if no SRD defined*/

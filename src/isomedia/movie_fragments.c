@@ -725,7 +725,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 			if (first_ent->flags != RunFlags) {
 				trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
 				//if not old arch write the flags
-				//in old arch we write 0, which means all deps unknwon and sync sample set
+				//in old arch we write 0, which means all deps unknown and sync sample set
 				if (!traf->no_sdtp_first_flags)
 					trun->first_sample_flags = first_ent->flags;
 			}

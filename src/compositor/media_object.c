@@ -406,7 +406,7 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 	} else if (mo->odm->type==GF_STREAM_TEXT) {
 		//nothing to do
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("Unknwon scene object type %d\n", mo->odm->type));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("unknown scene object type %d\n", mo->odm->type));
 	}
 
 	if (changed) {

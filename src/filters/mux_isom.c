@@ -7160,9 +7160,9 @@ GF_FilterRegister MP4MuxRegister = {
 	"# Notes\n"
 	"The filter watches the property `FileNumber` on incoming packets to create new files (regular mode) or new segments (DASH mode).\n"
 	"  \n"
-	"The filter watches the property `DSIWrap` (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknonw wraping)\n"
+	"The filter watches the property `DSIWrap` (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknown wrapping)\n"
 	"EX -i unkn.mkv:#ISOMSubtype=VIUK:#DSIWrap=cfgv -o t.mp4\n"
-	"This will wrap the uknown stream using `VIUK` code point in `stsd` and wrap any decoder configuration data in a `cfgv` box.\n"
+	"This will wrap the unknown stream using `VIUK` code point in `stsd` and wrap any decoder configuration data in a `cfgv` box.\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

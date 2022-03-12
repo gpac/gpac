@@ -868,7 +868,7 @@ const char *gf_audio_fmt_get_layout_name_from_cicp(u32 cicp_layout)
 		if (GF_CICPLayouts[i].cicp == cicp_layout) return GF_CICPLayouts[i].name;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported cicp audio layout value %d\n", cicp_layout));
-	return "unknwon";
+	return "unknown";
 }
 
 GF_EXPORT
@@ -879,7 +879,7 @@ const char *gf_audio_fmt_get_layout_name(u64 ch_layout)
 		if (GF_CICPLayouts[i].channel_mask == ch_layout) return GF_CICPLayouts[i].name;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Unsupported audio layout value "LLU"\n", ch_layout));
-	return "unknwon";
+	return "unknown";
 }
 
 GF_EXPORT
@@ -1947,7 +1947,7 @@ const char *gf_cicp_color_primaries_name(u32 cicp_mx)
 			return CICPColorPrimaries[i].name;
 		}
 	}
-	return "unknwon";
+	return "unknown";
 }
 
 static char szCICPPrimAllNames[1024];
@@ -2017,7 +2017,7 @@ const char *gf_cicp_color_transfer_name(u32 cicp_mx)
 			return CICPColorTransfer[i].name;
 		}
 	}
-	return "unknwon";
+	return "unknown";
 }
 
 static char szCICPTFCAllNames[1024];
@@ -2078,7 +2078,7 @@ const char *gf_cicp_color_matrix_name(u32 cicp_mx)
 			return CICPColorMatrixCoefficients[i].name;
 		}
 	}
-	return "unknwon";
+	return "unknown";
 }
 
 static char szCICPMXAllNames[1024];
