@@ -68,6 +68,20 @@ int av_image_get_linesize(enum AVPixelFormat pix_fmt, int width, int plane);
 int av_image_fill_linesizes(int linesizes[4], enum AVPixelFormat pix_fmt, int width);
 
 /**
+ * Fill plane sizes for an image with pixel format pix_fmt and height height.
+ *
+ * @param size the array to be filled with the size of each image plane
+ * @param linesizes the array containing the linesize for each
+ *        plane, should be filled by av_image_fill_linesizes()
+ * @return >= 0 in case of success, a negative error code otherwise
+ *
+ * @note The linesize parameters have the type ptrdiff_t here, while they are
+ *       int for av_image_fill_linesizes().
+ */
+int av_image_fill_plane_sizes(size_t size[4], enum AVPixelFormat pix_fmt,
+                              int height, const ptrdiff_t linesizes[4]);
+
+/**
  * Fill plane data pointers for an image with pixel format pix_fmt and
  * height height.
  *
@@ -109,6 +123,24 @@ int av_image_alloc(uint8_t *pointers[4], int linesizes[4],
 void av_image_copy_plane(uint8_t       *dst, int dst_linesize,
                          const uint8_t *src, int src_linesize,
                          int bytewidth, int height);
+
+/**
+ * Copy image data located in uncacheable (e.g. GPU mapped) memory. Where
+ * available, this function will use special functionality for reading from such
+ * memory, which may result in greatly improved performance compared to plain
+ * av_image_copy_plane().
+ *
+ * bytewidth must be contained by both absolute values of dst_linesize
+ * and src_linesize, otherwise the function behavior is undefined.
+ *
+ * @note The linesize parameters have the type ptrdiff_t here, while they are
+ *       int for av_image_copy_plane().
+ * @note On x86, the linesizes currently need to be aligned to the cacheline
+ *       size (i.e. 64) to get improved performance.
+ */
+void av_image_copy_plane_uc_from(uint8_t       *dst, ptrdiff_t dst_linesize,
+                                 const uint8_t *src, ptrdiff_t src_linesize,
+                                 ptrdiff_t bytewidth, int height);
 
 /**
  * Copy image in src_data to dst_data.
