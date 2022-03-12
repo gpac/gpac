@@ -1975,7 +1975,7 @@ GF_FilterRegister TSMuxRegister = {
 		"\n"
 		"The filter watches the property `FileNumber` on incoming packets to create new files, or new segments in DASH mode.\n"
 		"The filter will look for property `M2TSRA` set on the input stream.\n"
-		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknwon media types.\n"
+		"The value can either be a 4CC or a string, indicating the MP2G-2 TS Registration tag for unknown media types.\n"
 	)
 	.private_size = sizeof(GF_TSMuxCtx),
 	.args = TSMuxArgs,

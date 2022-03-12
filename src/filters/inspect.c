@@ -911,7 +911,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 		if (nal_name)
 			gf_fprintf(dump, nal_name);
 		else {
-			gf_fprintf(dump, "Unknwon");
+			gf_fprintf(dump, "unknown");
 			res = -2;
 		}
 		//specific dump
@@ -1041,7 +1041,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 	if (nal_name) {
 		gf_fputs(nal_name, dump);
 	} else {
-		gf_fputs("UNKNWON", dump);
+		gf_fputs("unknown", dump);
 	}
 
 	if (pctx) {
@@ -1581,7 +1581,7 @@ static void gf_inspect_dump_mhas(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_
 
 	while (gf_bs_available(bs)) {
 		u32 i, count;
-		const char *type_name="uknown";
+		const char *type_name="unknown";
 		u64 pos;
 		u32 type = (u32) gf_mpegh_escaped_value(bs, 3, 8, 8);
 		u64 label = gf_mpegh_escaped_value(bs, 2, 8, 32);

@@ -573,7 +573,7 @@ GF_Err mhas_dmx_process(GF_Filter *filter)
 		if (mhas_type>18) {
 			ctx->nb_unknown_pck++;
 			if (ctx->nb_unknown_pck > ctx->pcksync) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MHASDmx] %d packets of unknwon type, considering sync was lost\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[MHASDmx] %d packets of unknown type, considering sync was lost\n"));
 				consumed = 0;
 				ctx->nosync = GF_TRUE;
 				ctx->nb_unknown_pck = 0;

@@ -1408,7 +1408,7 @@ void PrintCICP()
 	gf_sys_format_help(helpout, help_flags, "CICP Color Primaries:\n");
 	for (i=0; i<GF_CICP_PRIM_LAST; i++) {
 		const char *name = gf_cicp_color_primaries_name(i);
-		if (!name || !strcmp(name, "unknwon")) continue;
+		if (!name || !strcmp(name, "unknown")) continue;
 		gf_sys_format_help(helpout, help_flags, " - `%s` (value %d)\n", name, i);
 	}
 	gf_sys_format_help(helpout, help_flags, "  \nCICP Color Transfer Characteristics:\n");

@@ -3492,7 +3492,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			continue;
 		}
 		else if ((subtype!=GF_ISOM_SUBTYPE_TX3G) && (subtype!=GF_ISOM_SUBTYPE_TEXT)) {
-			gf_fprintf(dump, "unknwon\n");
+			gf_fprintf(dump, "unknown\n");
 			gf_isom_sample_del(&s);
 			continue;
 		}

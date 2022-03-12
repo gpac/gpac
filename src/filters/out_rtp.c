@@ -300,7 +300,7 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 		if (!p || (p->value.uint != GF_ISOM_ISMACRYP_SCHEME)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Protected track with scheme type %s, cannot stream (only ISMA over RTP is supported !\n", p ? gf_4cc_to_str(p->value.uint) : "unknwon" ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Protected track with scheme type %s, cannot stream (only ISMA over RTP is supported !\n", p ? gf_4cc_to_str(p->value.uint) : "unknown" ));
 			return GF_FILTER_NOT_SUPPORTED;
 		}
 	}
