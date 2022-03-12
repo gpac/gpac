@@ -943,7 +943,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 			} else if (!strcmp(arg, "-logs") ) {
 				e = gf_log_set_tools_levels(arg_val, GF_FALSE);
 				if (e) return e;
-				
+
 				if (!use_sep) i += 1;
 			} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 #ifndef GPAC_DISABLE_LOG
@@ -971,7 +971,7 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 				if (!use_sep) i += 1;
 			} else if (gf_opts_load_option(arg, arg_val, &consumed, &e)) {
 				if (e) return e;
-				
+
 				if (consumed && !use_sep)
 					i += 1;
 			}
@@ -1370,7 +1370,7 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 		logs_mx = gf_mx_new("Logs");
 
 		gf_rand_init(GF_FALSE);
-		
+
 		gf_init_global_config(profile);
 
 
@@ -1415,7 +1415,7 @@ void gf_sys_close()
 #endif
 
 		gf_sys_enable_remotery(GF_FALSE, GF_TRUE);
-		
+
 		gf_uninit_global_config(gpac_discard_config);
 
 #ifndef GPAC_DISABLE_LOG
@@ -2503,13 +2503,13 @@ static time_t gf_mktime_utc(struct tm *tm)
 }
 
 #elif defined(GPAC_CONFIG_ANDROID)
-#include <time64.h>
 #if defined(__LP64__)
 static time_t gf_mktime_utc(struct tm *tm)
 {
-	return timegm64(tm);
+	return timegm(tm);
 }
 #else
+#include <time64.h>
 static time_t gf_mktime_utc(struct tm *tm)
 {
 	static const time_t kTimeMax = ~(1L << (sizeof(time_t) * CHAR_BIT - 1));
@@ -2827,4 +2827,3 @@ u32 gf_sys_get_process_id()
 	return GetCurrentProcessId();
 }
 #endif
-

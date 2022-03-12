@@ -1,5 +1,5 @@
-APP_ABI := armeabi armeabi-v7a x86
-APP_STL := gnustl_static
+APP_ABI := x86 armeabi-v7a
+APP_STL := c++_static
 APP_CPPFLAGS := -frtti -fexceptions -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign
 APP_CFLAGS := -Wno-parentheses -Wno-shift-negative-value -Wno-pointer-sign
 LOCAL_CFLAGS := -O3
