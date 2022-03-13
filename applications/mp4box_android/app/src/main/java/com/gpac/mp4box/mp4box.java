@@ -44,10 +44,9 @@ public class mp4box extends Activity {
     synchronized static Map<String, Throwable> loadAllLibraries() {
 
         final String[] toLoad = {"avutil", "swresample", "swscale", "avcodec", "avformat", "avfilter", "avdevice",
-                "editline", "faad", "ft2",
-                "jpegdroid", "js_osmo", "mad", "openjpeg",
-                "png", "stlport_shared",
-                "z", "gpac", "mp4box"};
+                                "faad", "ft2", "png",
+                                "jpegdroid", "mad", "openjpeg",
+                                "z", "gpac", "mp4box"};
 
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
 
