@@ -63,14 +63,13 @@ public class GPACInstance implements GPACInstanceInterface {
         if (errors != null)
             return errors;
         StringBuilder sb = new StringBuilder();
-        final String[] toLoad = { "GLESv2", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
-                                 "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$
-                                 "mad", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                                 "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
-                                 "stlport_shared", "stdc++", "faad", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
+        final String[] toLoad = { "GLESv2", "log",
+                                 "jpegdroid", "javaenv",
+                                 "mad", "ft2", "faad",
+                                 "openjpeg", "png", "z",
                                  "avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter", "avdevice",
                                  "gpacWrapper", "gpac",
-                                 "gm_droid_mpegv" }; // //$NON-NLS-1$ //$NON-NLS-2$
+                                 "gm_droid_mpegv" };
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
             try {
