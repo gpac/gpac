@@ -762,12 +762,34 @@ exit:
 	return e;
 }
 
+static void dasher_get_dash_dur(GF_DasherCtx *ctx, GF_DashStream *ds)
+{
+	ds->dash_dur = ctx->segdur;
+	const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DASH_DUR);
+	if (p) {
+		ds->dash_dur = p->value.frac;
+		ds->no_seg_dur = GF_FALSE;
+		if (!ds->dash_dur.num || !ds->dash_dur.den) {
+			ds->dash_dur.num = 1;
+			ds->dash_dur.den = 1;
+		}
+	}
+	//this avoids very weird cases where (u64) (dash_dur*timescale) is 0. we limit the max segment duration to 1M sec, a bit more than 11.5 days
+	if ((u64) ds->dash_dur.num > (u64)ds->dash_dur.den * 1000000) {
+		ds->dash_dur.num = 1000000;
+		ds->dash_dur.den = 1;
+	}
+}
+
 static void dasher_send_encode_hints(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
 	if (!ctx->sfile && !ds->stl && !ctx->use_cues) {
 		GF_FilterEvent evt;
 		GF_FEVT_INIT(evt, GF_FEVT_ENCODE_HINTS, ds->ipid)
+		if (!ds->dash_dur.num)
+			dasher_get_dash_dur(ctx, ds);
 		evt.encode_hints.intra_period = ds->dash_dur;
+
 		gf_filter_pid_send_event(ds->ipid, &evt);
 	}
 }
@@ -1210,22 +1232,9 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ds->src_url = gf_strdup("file");
 		ds->startNumber = 1;
 		CHECK_PROP(GF_PROP_PID_START_NUMBER, ds->startNumber, GF_EOS)
-		ds->dash_dur = ctx->segdur;
+
 		ds->no_seg_dur = ctx->no_seg_dur;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_DUR);
-		if (p) {
-			ds->dash_dur = p->value.frac;
-			ds->no_seg_dur = GF_FALSE;
-			if (!ds->dash_dur.num || !ds->dash_dur.den) {
-				ds->dash_dur.num = 1;
-				ds->dash_dur.den = 1;
-			}
-		}
-		//this avoids very weird cases where (u64) (dash_dur*timescale) is 0. we limit the max segment duration to 1M sec, a bit more than 11.5 days
-		if ((u64) ds->dash_dur.num > (u64)ds->dash_dur.den * 1000000) {
-			ds->dash_dur.num = 1000000;
-			ds->dash_dur.den = 1;
-		}
+		dasher_get_dash_dur(ctx, ds);
 
 		ds->splitable = GF_FALSE;
 		switch (ds->stream_type) {
