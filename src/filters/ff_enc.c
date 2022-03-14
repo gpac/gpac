@@ -1628,15 +1628,24 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->encoder->framerate.den = prop->value.frac.den;
 			gf_media_get_reduced_frame_rate(&ctx->encoder->framerate.num, &ctx->encoder->framerate.den);
 
-			//if framerate exact or drop frame, use fps.num as timebase
-			//this is needed because some codecs in libavcodec check this value to derive the profile/levels
-			//so providing a too high time_base will increase the profile/levels ...
-			if ((ctx->encoder->framerate.den == 1) || (ctx->encoder->framerate.den == 1001)) {
+			//by default use input timescale as timebase for encoder, but:
+			//
+			//- if framerate indicates drop frame, use fps.num as timebase
+			if ((ctx->encoder->framerate.den % 1001)==0) {
 				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
 			}
-			//some codecs in libavcodec will complain if timebase is too high
+			//- if timescale more than 1mhz, use fps.num (if less than 1000) or 1000 * fps.num (otherwise) as timebase
+			//this is needed because some codecs in libavcodec check this value to derive the profile/levels
+			//so providing a too high time_base will increase the profile/levels ...
+			else if (ctx->timescale >= 1000000) {
+				if (ctx->encoder->framerate.num<1000) {
+					ctx->encoder->time_base.num = 1000 * ctx->encoder->framerate.den;
+					ctx->encoder->time_base.den = 1000 * ctx->encoder->framerate.num;
+				} else
+					ctx->encoder->time_base.den = ctx->encoder->framerate.num;
+			}
+			//- some codecs in libavcodec will complain if timebase is too high
 			//if fps is set and its num is quite small compared to our input timescale, use the num
-			//otherwise we try to keep the same timescale as input
 			else if ((u32) ctx->encoder->framerate.num * 100 < ctx->timescale) {
 				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
 			}
