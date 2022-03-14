@@ -3213,7 +3213,7 @@ function get_source(id, src, par_seq)
 		if (src && (elem.src.length == src.length)) {
 			let diff = false;
 			elem.src.forEach( (v, index) => {
-				if (!(v.in === src[index].in)) diff = true;
+				if (!(v.in === src[index].in)) diff = true; // FIXME: if sources have the same input name they are discarded!!
 				let id1 = v.id || 0;
 				let id2 = src[index].id || 0;
 				if (id1 && id2 && !(id1 === id2)) diff = true;
@@ -5416,7 +5416,7 @@ function parse_date_time(d, for_seq)
 {
 	let res = -1;
 	if (typeof d == 'string') {
-		//float as string means offset to current time, wether live or offline
+		//float as string means offset to current time, whether live or offline
 		if (d.indexOf(':')<0) {
 			res = parseFloat(d);
 			//NaN

@@ -581,7 +581,6 @@ The following playlist elements of a playlist can be updated:
 EX [
 EX  {"replace": "scene1@x", "with": 20},
 EX  {"replace": "seq1@start", "with": "now"}
-EX  }
 EX ]
 
 `;

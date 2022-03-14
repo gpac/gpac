@@ -3262,7 +3262,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				}
 			}
 		}
-		/* after processing the icon elements (wether there are valid icons or not), we use the default icon table
+		/* after processing the icon elements (whether there are valid icons or not), we use the default icon table
 		  see http://dev.w3.org/2006/waf/widgets/test-suite/test-cases/ta-FAFYMEGELU/004/ */
 		wm_set_default_icon_files(wm, szWidgetPath, widget);
 
