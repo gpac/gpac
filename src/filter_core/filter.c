@@ -4454,6 +4454,10 @@ Bool gf_filter_connections_pending(GF_Filter *filter)
 			} else {
 				res = gf_filter_has_out_caps(f->freg->caps, f->freg->nb_caps);
 			}
+			if (res) {
+				if (gf_filter_in_parent_chain(f, filter))
+					res = GF_FALSE;
+			}
 		}
 		gf_mx_v(f->tasks_mx);
 		if (res)

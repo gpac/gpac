@@ -2280,6 +2280,13 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 				//we found a property of that type , check if equal equal
 				prop_equal = gf_props_equal(&in_cap->val, &an_out_cap->val);
 				if ((in_cap->flags & GF_CAPFLAG_EXCLUDED) && !(an_out_cap->flags & GF_CAPFLAG_EXCLUDED) ) {
+					//special case for excluded output caps marked for loaded filter only and optional:
+					//always consider no match, the actual pid link resolving will sort this out
+					//this fixes a bug in reframer -> ffdec links: since ffdec only specifies excluded GF_CODEC_ID caps,
+					//not doing so will always force reframer->ufnalu->rfnalu->ffdec
+					if (an_out_cap->flags & (GF_CAPFLAG_OPTIONAL|GF_CAPFLAG_LOADED_FILTER))
+						prop_equal = GF_FALSE;
+
 					//prop type matched, output includes it and input excludes it: no match, don't look any further
 					if (prop_equal) {
 						matched = GF_FALSE;
@@ -3453,7 +3460,7 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 			af = gf_filter_new(fsess, freg, args, dst_args, pid->filter->no_dst_arg_inherit ? GF_FILTER_ARG_INHERIT_SOURCE_ONLY : GF_FILTER_ARG_INHERIT, NULL, NULL, GF_TRUE);
 			if (!af) goto exit;
 			af->subsession_id = dst->subsession_id;
-			//destination is sink, check if af is a mux (output cap type STREAM=FILE present
+			//destination is sink, check if af is a mux (output cap type STREAM=FILE present)
 			//if not, copy subsource_id from pid
 			Bool af_is_mux = GF_FALSE;
 			if (dst_is_sink) {
@@ -3467,7 +3474,13 @@ static GF_Filter *gf_filter_pid_resolve_link_internal(GF_FilterPid *pid, GF_Filt
 					af_is_mux = GF_TRUE;
 				}
 			}
-			af->subsource_id = af_is_mux ? 0 : pid->filter->subsource_id;
+			if (af_is_mux)
+				af->subsource_id = 0;
+			else if (pid->filter->subsource_id)
+				af->subsource_id = pid->filter->subsource_id;
+			//if subsource not set, force to 1 (we know this af is not a mux)
+			else
+				af->subsource_id = 1;
 
 			if (!af->forced_caps) {
 				//remember our target cap bundle on that filter
@@ -4113,14 +4126,20 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 			pid_is_file = 1;
 	}
 
-	//since we may have inserted filters in the middle (demuxers typically), get the last explicitly
-	//loaded ID in the chain
-	filter_id = gf_filter_last_id_in_chain(filter, GF_FALSE);
-	if (!filter_id && filter->cloned_from)
-		filter_id = gf_filter_last_id_in_chain(filter->cloned_from, GF_FALSE);
+	//get filter ID:
+	//this is a source - since we may have inserted filters in the middle (demuxers typically), get the last explicitly loaded ID in the chain
+	if (filter->subsource_id) {
+		filter_id = gf_filter_last_id_in_chain(filter, GF_FALSE);
+		if (!filter_id && filter->cloned_from)
+			filter_id = gf_filter_last_id_in_chain(filter->cloned_from, GF_FALSE);
+	}
+	//this is a sink or a mux - only use ID if defined on filter whether explicitly loaded or not ( some filters e.g. dasher,flist will self-assign an ID)
+	else {
+		filter_id = filter->id;
+	}
 
 	//we lock the instantiated filter list for the entire resolution process
-	//we must unlock this mutex before calling locking a filter mutex (->tasks_mx)
+	//we must unlock this mutex before calling lock on a filter mutex (->tasks_mx)
 	//either directly or in functions calling it (e.g. gf_filter_in_parent_chain)
 	//in case another thread is reconfiguring a filter fA:
 	//- fA would have tasks_mx locked, and could be waiting for session->filters_mx to insert a new filter (inserting a filter chain)
@@ -4256,6 +4275,9 @@ single_retry:
 			} else {
 				filter_dst->in_link_resolution = 0;
 				pid->filter->dst_filter = filter_dst;
+				//for mux->output case, the filter ID may be NULL but we still want to link
+				if (!num_pass && !filter->subsource_id)
+					ignore_source_ids = GF_TRUE;
 			}
 		}
 
