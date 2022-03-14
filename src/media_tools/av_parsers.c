@@ -9115,7 +9115,7 @@ block:
 		}
 		hdr->nb_streams++;
 		//not clear if this is only for the independent streams
-		hdr->brcode += ((frmsiz+1) * freq) / (numblks[numblkscod]*16) / 1000;
+		hdr->brcode += ((frmsiz+1) * freq) / (numblks[numblkscod < 4 ? numblkscod : 3]*16) / 1000;
 
 		if (lfon)
 			hdr->channels += 1;
