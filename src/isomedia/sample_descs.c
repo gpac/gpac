@@ -487,6 +487,24 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 #endif
 
 GF_EXPORT
+GF_OpusSpecificBox *gf_opus_parse_specific_info(u8 *opus_dsi, u32 opus_dsi_size)
+{
+    GF_Err e;
+    GF_BitStream *bs;
+    GF_Box *dOps;
+    bs = gf_bs_new(opus_dsi, opus_dsi_size, GF_BITSTREAM_READ);
+    e = gf_isom_box_parse(&dOps, bs);
+    if (e != GF_OK) {
+        gf_free(dOps);
+        gf_bs_del(bs);
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Error parsing Opus header!\n"));
+        return NULL;
+    }
+    gf_bs_del(bs);
+    return dOps;
+}
+
+GF_EXPORT
 GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size)
 {
 	u32 type;
