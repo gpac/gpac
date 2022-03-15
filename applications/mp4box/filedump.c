@@ -1320,12 +1320,14 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 
 static GF_Err dump_isom_obu(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 static GF_Err dump_qt_prores(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
+static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc);
 
 GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool is_final_name, u32 dump_flags)
 {
 	char szFileName[GF_MAX_PATH];
 	Bool is_av1 = GF_FALSE;
 	Bool is_prores = GF_FALSE;
+    Bool is_opus = GF_FALSE;
 
 	FILE *dump;
 	if (inName) {
@@ -1349,11 +1351,16 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 			case GF_QT_SUBTYPE_AP4H:
 				is_prores = GF_TRUE;
 				break;
+            case GF_ISOM_SUBTYPE_OPUS:
+                is_opus = GF_TRUE;
+                break;
 			}
 		}
 		else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_AV1) {
 			is_av1 = GF_TRUE;
-		}
+        } else if (esd->decoderConfig->objectTypeIndication == GF_CODECID_OPUS) {
+            is_opus = GF_TRUE;
+        }
 		if (esd) gf_odf_desc_del((GF_Descriptor*)esd);
 
 		if (!is_final_name) sprintf(szFileName, "%s_%d_%s.xml", inName, trackID, is_av1 ? "obu" : "nalu");
@@ -1371,6 +1378,8 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 		e = dump_isom_obu(file, trackID, dump, dump_flags);
 	else if (is_prores)
 		e = dump_qt_prores(file, trackID, dump, dump_flags);
+    else if (is_opus)
+        e = dump_isom_opus(file, trackID, dump, dump_flags);
 	else
 		e = dump_isom_nal_ex(file, trackID, dump, dump_flags);
 
@@ -1389,6 +1398,96 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 		}
 	}
 	return e;
+}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+void gf_inspect_dump_opus_packet(FILE *dump, u8 *ptr, u64 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc);
+#endif
+
+GF_OpusSpecificBox *gf_opus_parse_specific_info(u8 *opus_dsi, u32 opus_dsi_size);
+GF_Err dOps_box_dump(GF_Box *a, FILE * trace);
+
+static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
+{
+    GF_Err e = GF_OK;
+#ifndef GPAC_DISABLE_AV_PARSERS
+    u32 i, count, track, timescale;
+    u32 idx;
+    u8* opus_dsi = NULL;
+    u32 opus_dsi_size = 0;
+    GF_OpusSpecificBox *dOps;
+    track = gf_isom_get_track_by_id(file, trackID);
+
+    e = gf_isom_opus_config_get(file, track, 1, &opus_dsi, &opus_dsi_size);
+    if (e != GF_OK) {
+        M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not Opus!\n", trackID));
+        return GF_ISOM_INVALID_FILE;
+    }
+
+    dOps = gf_opus_parse_specific_info(opus_dsi, opus_dsi_size);
+    if (!dOps) {
+        M4_LOG(GF_LOG_ERROR, ("Error: Cannot parse Opus box in Track #%d!\n", trackID));
+        return GF_ISOM_INVALID_FILE;
+    }
+
+    count = gf_isom_get_sample_count(file, track);
+    timescale = gf_isom_get_media_timescale(file, track);
+
+    fprintf(dump, "<OpusTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
+    dOps_box_dump((GF_Box*)dOps, dump);
+
+    fprintf(dump, " <OpusSamples>\n");
+    e = GF_OK;
+    for (i=0; i<count; i++) {
+        u64 dts, cts;
+        u32 size;
+        u8 *ptr;
+        u8 k, channel_count = (dOps->StreamCount?dOps->StreamCount:1);
+        u32 pck_offset = 0;
+        GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+        if (!samp) {
+            e = gf_isom_last_error(file);
+            break;
+        }
+        dts = samp->DTS;
+        cts = dts + (s32) samp->CTS_Offset;
+
+        fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
+        if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
+
+        idx = 1;
+        ptr = samp->data;
+        size = samp->dataLength;
+
+        for(k = 0; k < channel_count; k++) {
+            u8 self_delimited = (k != channel_count-1);
+            GF_OpusPacketHeader pckh;
+            u8 headerres;
+
+            headerres = gf_opus_parse_packet_header(ptr+pck_offset, size-pck_offset, self_delimited, &pckh);
+            if (!headerres) break;
+
+            gf_inspect_dump_opus_packet(dump, ptr, size, pck_offset, pckh, GF_FALSE);
+            if (self_delimited) {
+                if (pck_offset+pckh.packet_size >= size) {
+                    M4_LOG(GF_LOG_ERROR, ("Error: Track #%d - Not enough data to parse next self-delimited packet!\n", trackID));
+                }
+                pck_offset += pckh.packet_size;
+            }
+        }
+        fprintf(dump, "  </Sample>\n");
+        gf_isom_sample_del(&samp);
+
+        fprintf(dump, "\n");
+
+        if (e<GF_OK) break;
+        gf_set_progress("Analysing Track Opus Sample", i+1, count);
+    }
+    fprintf(dump, " </OpusSamples>\n");
+    fprintf(dump, "</OpusTrack>\n");
+    gf_isom_box_del((GF_Box *)dOps);
+#endif
+    return e;
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -2009,10 +2108,6 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				e = dump_isom_obu(the_file, trackID, dump, GF_FALSE);
 				fmt_handled = GF_TRUE;
 			}
-			else if (msubtype == GF_ISOM_SUBTYPE_AV01) {
-				e = dump_isom_obu(the_file, trackID, dump, GF_FALSE);
-				fmt_handled = GF_TRUE;
-			}
 			else if ((msubtype == GF_QT_SUBTYPE_APCH) || (msubtype == GF_QT_SUBTYPE_APCO)
 				|| (msubtype == GF_QT_SUBTYPE_APCN) || (msubtype == GF_QT_SUBTYPE_APCS)
 				|| (msubtype == GF_QT_SUBTYPE_AP4X) || (msubtype == GF_QT_SUBTYPE_AP4H)
@@ -2030,6 +2125,10 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 					fmt_handled = GF_TRUE;
 				}
 			}
+            else if (msubtype == GF_ISOM_SUBTYPE_OPUS) {
+                e = dump_isom_opus(the_file, trackID, dump, GF_FALSE);
+                fmt_handled = GF_TRUE;
+            }
 
 			if (!fmt_handled) {
 				dumper.flags = GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
