@@ -3194,10 +3194,12 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_LLHLS, &PROP_UINT(ctx->llhls) );
 	}
 
-	if (ctx->tsb>=0) {
+	if ((ctx->dmode > GF_DASH_STATIC) && (ctx->tsb>=0)) {
 		u32 tsb_seg = ds->dash_dur.num ? ((u32) (ctx->tsb * ds->dash_dur.den / ds->dash_dur.num)) : 0;
 		tsb_seg++;
 		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESHIFT_SEGS, &PROP_UINT(tsb_seg) );
+	} else {
+		gf_filter_pid_set_property(ds->opid, GF_PROP_PID_TIMESHIFT_SEGS, NULL);
 	}
 }
 

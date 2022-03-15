@@ -1721,15 +1721,18 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (ctx->mem_fileio) {
 			pctx->mem_files = gf_list_new();
 			pctx->max_segs = (u32) ctx->max_cache_segs;
-		} else {
-			pctx->past_files = gf_list_new();
+		} else if (ctx->max_cache_segs) {
 			if (ctx->max_cache_segs<0) {
 				pctx->max_segs = (u32) (-ctx->max_cache_segs);
 				p = NULL;
 			} else if (p) {
 				pctx->max_segs = (u32) ctx->max_cache_segs;
 			}
+
+			if (pctx->max_segs)
+				pctx->past_files = gf_list_new();
 		}
+
 		if (p && p->value.uint) {
 			if (ctx->mem_fileio && (p->value.uint > (u32) ctx->max_cache_segs)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max segments cache set to %d, may result in client errors\n\tTry increasing segemnt buffer using --max_cache_segs\n", p->value.uint, ctx->max_cache_segs));
@@ -2871,14 +2874,14 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		if (!in->file_deletes)
 			in->file_deletes = gf_list_new();
 
-		//move pas files beyond our timeshift to list of files to delete
+		//move past files beyond our timeshift to list of files to delete
 		//we don't call delete directly since the file could still be used by a session
 		while (gf_list_count(in->past_files)>in->max_segs) {
 			char *url = gf_list_pop_front(in->past_files);
 			gf_list_add(in->file_deletes, url);
 		}
 		if (!is_static)
-			gf_list_add(in->past_files, gf_strdup(in->path));
+			gf_list_add(in->past_files, gf_strdup(name));
 	}
 	return GF_TRUE;
 }
@@ -3176,6 +3179,18 @@ static void httpout_prune_files(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 		while (gf_list_count(in->file_deletes)) {
 			char *url = gf_list_pop_front(in->file_deletes);
 			httpout_open_input(ctx, in, url, GF_TRUE, GF_FALSE);
+			//URL may be queued for later delete, remove it
+			if (in->past_files) {
+				u32 i, count = gf_list_count(in->past_files);
+				for (i=0; i<count; i++) {
+					char *past_url = gf_list_get(in->past_files, i);
+					if (!strcmp(past_url, url)) {
+						gf_list_rem(in->past_files, i);
+						gf_free(past_url);
+						break;
+					}
+				}
+			}
 			gf_free(url);
 		}
 		gf_list_del(in->file_deletes);
@@ -3699,10 +3714,11 @@ GF_FilterRegister HTTPOutRegister = {
 		"The server can store incoming files to memory mode by setting the read directory to `gmem`.\n"
 		"In this mode, [-max_cache_segs]() is always at least 1.\n"
 		"  \n"
-		"If [-max_cache_segs]() valeu `N` is not 0, each incoming PID will store at most:\n"
+		"If [-max_cache_segs]() value `N` is not 0, each incoming PID will store at most:\n"
 		"- `MIN(N, time-shift depth)` files if stored in memory\n"
-		"- `MAX(N, time-shift depth)` files if stored locally and `N` is positive\n"
 		"- `-N` files if stored locally and `N` is negative\n"
+		"- `MAX(N, time-shift depth)` files if stored locally and `N` is positive\n"
+		"- unlimited otherwise (files stored locally, `N` is positive and no time-shift info)\n"
 		"  \n"
 		"# HTTP client sink\n"
 		"In this mode, the filter will upload input PIDs data to remote server using PUT (or POST if [-post]() is set).\n"

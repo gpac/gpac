@@ -1540,18 +1540,22 @@ static void dashdmx_declare_properties(GF_DASHDmxCtx *ctx, GF_DASHGroup *group, 
 	}
 
 	if (ctx->forward == DFWD_FILE) {
-		u32 segdur, timescale;
-		u64 tsb = (u64) gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx);
-		gf_dash_group_get_segment_duration(ctx->dash, group_idx, &segdur, &timescale);
-		if (segdur) {
-			tsb *= timescale;
-			tsb /= segdur;
-			tsb /= 1000; //tsb given in ms
+		if (gf_dash_is_dynamic_mpd(ctx->dash)) {
+			u32 segdur, timescale;
+			u64 tsb = (u64) gf_dash_group_get_time_shift_buffer_depth(ctx->dash, group_idx);
+			gf_dash_group_get_segment_duration(ctx->dash, group_idx, &segdur, &timescale);
+			if (segdur) {
+				tsb *= timescale;
+				tsb /= segdur;
+				tsb /= 1000; //tsb given in ms
+			} else {
+				tsb = 0;
+			}
+			tsb++;
+			gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_SEGS, &PROP_UINT((u32) tsb) );
 		} else {
-			tsb = 0;
+			gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_SEGS, NULL );
 		}
-		tsb++;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESHIFT_SEGS, &PROP_UINT((u32) tsb) );
 	}
 
 	const char *title, *source;
