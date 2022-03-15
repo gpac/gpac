@@ -1193,13 +1193,12 @@ static GF_Err gsfdmx_demux(GF_Filter *filter, GSF_DemuxCtx *ctx, char *data, u32
 		assert(ctx->buf_size>=last_pck_end);
 		memmove(ctx->buffer, ctx->buffer+last_pck_end, sizeof(char) * (ctx->buf_size-last_pck_end));
 		ctx->buf_size -= last_pck_end;
-
-		if (ctx->stop_pending) {
-			GF_FilterEvent evt;
-			ctx->stop_pending = GF_FALSE;
-			GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
-			gf_filter_pid_send_event(ctx->ipid, &evt);
-		}
+	}
+	if (ctx->stop_pending) {
+		GF_FilterEvent evt;
+		ctx->stop_pending = GF_FALSE;
+		GF_FEVT_INIT(evt, GF_FEVT_STOP, ctx->ipid);
+		gf_filter_pid_send_event(ctx->ipid, &evt);
 	}
 	return GF_OK;
 }
