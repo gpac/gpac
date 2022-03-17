@@ -9429,6 +9429,10 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 	return ((vp->mode_flag[block_size]) ? vp->max_block : vp->min_block) / (2);
 }
 
+
+#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
+
+
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
 Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
@@ -9853,8 +9857,6 @@ u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, G
     }
     return 1;
 }
-
-#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
 u64 gf_mpegh_escaped_value(GF_BitStream *bs, u32 nBits1, u32 nBits2, u32 nBits3)
 {
