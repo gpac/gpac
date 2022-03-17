@@ -1453,6 +1453,8 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
         fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
         if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
 
+		gf_inspect_dump_opus(dump, samp->data, samp->dataLength, channel_count, dump_crc);
+
         fprintf(dump, "  </Sample>\n");
         gf_isom_sample_del(&samp);
 
