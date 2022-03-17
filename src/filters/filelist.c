@@ -2009,8 +2009,9 @@ static GF_Err filelist_process(GF_Filter *filter)
 				break;
 			}
 
-			if (gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux)))
+			if (gf_filter_pid_would_block(iopid->opid) && (!iopid->opid_aux || gf_filter_pid_would_block(iopid->opid_aux))) {
 				break;
+			}
 
 			cts = gf_filter_pck_get_cts(pck);
 			if (ctx->splice_state && (cts != GF_FILTER_NO_TS)) {

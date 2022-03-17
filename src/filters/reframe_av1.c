@@ -37,10 +37,16 @@ typedef struct
 } AV1Idx;
 
 typedef enum {
-	NOT_SET,   /*Section 5*/
-	OBUs,   /*Section 5*/
+	//input format not probed yet
+	NOT_SET,
+	//input is AV1 Section 5
+	OBUs,
+	//input is AV1 annexB
 	AnnexB,
+	//input is IVF (AV1, vpX ...)
 	IVF,
+	//input is raw VPX
+	RAW_VPX,
 	UNSUPPORTED
 } AV1BitstreamSyntax;
 
@@ -80,7 +86,6 @@ typedef struct
 
 	Bool is_av1;
 	Bool is_vp9;
-	Bool is_vpX;
 	u32 codecid;
 	u32 num_frames;
 	GF_VPConfig *vp_cfg;
@@ -148,6 +153,7 @@ GF_Err av1dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *bs, u32 *last_obu_end)
 {
 	GF_Err e;
+	const GF_PropertyValue *p;
 	if (last_obu_end) (*last_obu_end) = 0;
 	//probing av1 bs mode
 	if (ctx->bsmode != NOT_SET) return GF_OK;
@@ -156,7 +162,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 	if (!ctx->state.config)
 		ctx->state.config = gf_odf_av1_cfg_new();
 
-	ctx->is_av1 = ctx->is_vp9 = ctx->is_vpX = GF_FALSE;
+	ctx->is_av1 = ctx->is_vp9 = GF_FALSE;
 	ctx->codecid = 0;
 	if (ctx->vp_cfg) gf_odf_vp_cfg_del(ctx->vp_cfg);
 	ctx->vp_cfg = NULL;
@@ -200,7 +206,6 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (ctx->vp_cfg && !ctx->is_vp9) {
-			ctx->is_vpX = GF_TRUE;
 			ctx->vp_cfg->profile = 1;
 			ctx->vp_cfg->level = 10;
 			ctx->vp_cfg->bit_depth = 8;
@@ -224,7 +229,38 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 		ctx->file_hdr_size = (u32) gf_bs_get_position(bs);
 		if (last_obu_end) (*last_obu_end) = (u32) gf_bs_get_position(bs);
 		return GF_OK;
-	} else if (gf_media_aom_probe_annexb(bs)) {
+	}
+
+	ctx->codecid = 0;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_CODECID);
+	if (p && (p->value.uint!=GF_CODECID_AV1)) {
+		switch (p->value.uint) {
+		case GF_CODECID_VP9:
+			ctx->is_vp9 = GF_TRUE;
+		case GF_CODECID_VP8:
+		case GF_CODECID_VP10:
+			ctx->vp_cfg = gf_odf_vp_cfg_new();
+			ctx->codecid = p->value.uint;
+			if (ctx->vp_cfg && !ctx->is_vp9) {
+				ctx->vp_cfg->profile = 1;
+				ctx->vp_cfg->level = 10;
+				ctx->vp_cfg->bit_depth = 8;
+				//leave the rest as 0
+			}
+			break;
+		}
+	}
+
+	if (ctx->codecid) {
+		ctx->bsmode = RAW_VPX;
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
+		if (p) ctx->state.width = p->value.uint;
+		if (p) ctx->state.height = p->value.uint;
+		return GF_OK;
+	}
+
+
+	if (gf_media_aom_probe_annexb(bs)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[AV1Dmx] Detected Annex B format\n"));
 		ctx->bsmode = AnnexB;
 	} else {
@@ -577,8 +613,9 @@ static void av1dmx_check_pid(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, & PROP_UINT(ctx->codecid));
-
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
+	if (!ctx->timescale) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->cur_fps.num));
+	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->cur_fps));
 	if (ctx->state.sequence_width && ctx->state.sequence_height) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT(ctx->state.sequence_width));
@@ -649,28 +686,33 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u64 pos, pos_ivf_hdr;
 	u8 *output;
 
-	pos_ivf_hdr = gf_bs_get_position(ctx->bs);
-	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
-	if (e) return e;
+	if (ctx->bsmode==IVF) {
+		pos_ivf_hdr = gf_bs_get_position(ctx->bs);
+		e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
+		if (e) return e;
 
-	pos = gf_bs_get_position(ctx->bs);
-	if (gf_bs_available(ctx->bs) < frame_size) {
-		gf_bs_seek(ctx->bs, pos_ivf_hdr);
-		return GF_EOS;
-	}
-
-	if (ctx->pts_from_file) {
-		pts += ctx->cumulated_dur;
-		if (ctx->last_pts && (ctx->last_pts>pts)) {
-			pts -= ctx->cumulated_dur;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/AV1] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
-			ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
-			ctx->cumulated_dur -= pts;
-			pts = ctx->cumulated_dur;
+		pos = gf_bs_get_position(ctx->bs);
+		if (gf_bs_available(ctx->bs) < frame_size) {
+			gf_bs_seek(ctx->bs, pos_ivf_hdr);
+			return GF_EOS;
 		}
-		ctx->last_pts = pts;
+		if (ctx->pts_from_file) {
+			pts += ctx->cumulated_dur;
+			if (ctx->last_pts && (ctx->last_pts>pts)) {
+				pts -= ctx->cumulated_dur;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/AV1] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
+				ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
+				ctx->cumulated_dur -= pts;
+				pts = ctx->cumulated_dur;
+			}
+			ctx->last_pts = pts;
+		}
+	} else {
+		//raw framed input, each packet is a frame
+		pts = ctx->src_pck ? gf_filter_pck_get_cts(ctx->src_pck) : 0;
+		pos = 0;
+		frame_size = gf_bs_available(ctx->bs);
 	}
-
 
 	//check pid state
 	av1dmx_check_pid(filter, ctx);
@@ -723,30 +765,37 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u8 *output;
 	GF_Err e;
 
-	pos_ivf_hdr = gf_bs_get_position(ctx->bs);
-	e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
-	if (e) return e;
-	if (!frame_size) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted frame header !\n"));
-		return GF_NON_COMPLIANT_BITSTREAM;
-	}
-
-	pos = gf_bs_get_position(ctx->bs);
-	if (gf_bs_available(ctx->bs) < frame_size) {
-		gf_bs_seek(ctx->bs, pos_ivf_hdr);
-		return GF_EOS;
-	}
-
-	if (ctx->pts_from_file) {
-		pts += ctx->cumulated_dur;
-		if (ctx->last_pts && (ctx->last_pts>pts)) {
-			pts -= ctx->cumulated_dur;
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
-			ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
-			ctx->cumulated_dur -= pts;
-			pts = ctx->cumulated_dur;
+	if (ctx->bsmode==IVF) {
+		pos_ivf_hdr = gf_bs_get_position(ctx->bs);
+		e = gf_media_parse_ivf_frame_header(ctx->bs, &frame_size, &pts);
+		if (e) return e;
+		if (!frame_size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted frame header !\n"));
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		ctx->last_pts = pts;
+
+		pos = gf_bs_get_position(ctx->bs);
+		if (gf_bs_available(ctx->bs) < frame_size) {
+			gf_bs_seek(ctx->bs, pos_ivf_hdr);
+			return GF_EOS;
+		}
+
+		if (ctx->pts_from_file) {
+			pts += ctx->cumulated_dur;
+			if (ctx->last_pts && (ctx->last_pts>pts)) {
+				pts -= ctx->cumulated_dur;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
+				ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
+				ctx->cumulated_dur -= pts;
+				pts = ctx->cumulated_dur;
+			}
+			ctx->last_pts = pts;
+		}
+	} else {
+		//raw framed input, each packet is a frame
+		pts = ctx->src_pck ? gf_filter_pck_get_cts(ctx->src_pck) : 0;
+		frame_size = gf_bs_available(ctx->bs);
+		pos = 0;
 	}
 
 	/*check if it is a superframe*/

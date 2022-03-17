@@ -103,26 +103,9 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	) {
 		GF_BitStream *bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		if (esd->decoderConfig->objectTypeIndication==GF_CODECID_OPUS) {
-			GF_BitStream *bs_out;
-			GF_OpusSpecificBox *dops = (GF_OpusSpecificBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
-			dops->size = gf_bs_read_u32(bs);
-			gf_bs_read_u32(bs);
-			gf_isom_box_read((GF_Box *)dops, bs);
-			bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			GF_BitStream *bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_data(bs_out, "OpusHead", 8);
-			gf_bs_write_u8(bs_out, 1);//version
-			gf_bs_write_u8(bs_out, dops->OutputChannelCount);
-			gf_bs_write_u16_le(bs_out, dops->PreSkip);
-			gf_bs_write_u32_le(bs_out, dops->InputSampleRate);
-			gf_bs_write_u16_le(bs_out, dops->OutputGain);
-			gf_bs_write_u8(bs_out, dops->ChannelMappingFamily);
-			if (dops->ChannelMappingFamily) {
-				gf_bs_write_u8(bs_out, dops->StreamCount);
-				gf_bs_write_u8(bs_out, dops->CoupledCount);
-				gf_bs_write_data(bs, (char *) dops->ChannelMapping, dops->OutputChannelCount);
-			}
-			gf_isom_box_del((GF_Box*)dops);
-
+			gf_bs_write_data(bs_out, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_get_content(bs_out, &op.packet, &op.bytes);
 			gf_bs_del(bs_out);
 			ogg_stream_packetin(&os, &op);

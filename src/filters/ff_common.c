@@ -1443,4 +1443,158 @@ void ffmpeg_report_options(GF_Filter *filter, AVDictionary *options, AVDictionar
 		av_dict_free(&options);
 }
 
+#include <gpac/bitstream.h>
+GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_in_size, u8 **dsi_out, u32 *dsi_out_size)
+{
+	GF_Err e = GF_OK;
+	*dsi_out = NULL;
+	*dsi_out_size = 0;
+	if (!dsi_in) return GF_BAD_PARAM;
+
+	//rewrite our ogg dsi (sequence of blocks with 16 bit length prefix) into ffmpeg (1 byte num_bk-1, num_bk-1 sizes (8bits) and all data)
+	if (gpac_codec_id==GF_CODECID_VORBIS) {
+		u32 nb_pre=0;
+		u32 dsize;
+		u8 *d;
+		GF_BitStream *bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		GF_BitStream *bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		GF_BitStream *bs = gf_bs_new(dsi_in, dsi_in_size, GF_BITSTREAM_READ);
+		gf_bs_write_u8(bs1, 0);
+		while (gf_bs_available(bs)) {
+			u32 size = gf_bs_read_u16(bs);
+			if (size > gf_bs_available(bs)) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+			if (size<255) {
+				nb_pre ++;
+				gf_bs_write_u8(bs1, size);
+			}
+			while (size) {
+				gf_bs_write_u8(bs2, gf_bs_read_u8(bs));
+				size--;
+			}
+		}
+		if (e) {
+			gf_bs_del(bs);
+			gf_bs_del(bs1);
+			gf_bs_del(bs2);
+			return e;
+		}
+		gf_bs_transfer(bs1, bs2, GF_FALSE);
+		gf_bs_get_content(bs1, &d, &dsize);
+		d[0] = nb_pre;
+		gf_bs_del(bs);
+		gf_bs_del(bs1);
+		gf_bs_del(bs2);
+		*dsi_out_size = dsize;
+		*dsi_out = av_malloc(dsize + AV_INPUT_BUFFER_PADDING_SIZE);
+		if (!*dsi_out) return GF_OUT_OF_MEM;
+		memcpy(*dsi_out, d, dsize);
+		memset(*dsi_out + dsize, 0, AV_INPUT_BUFFER_PADDING_SIZE);
+		gf_free(d);
+	}
+
+	//we don't set full header fLaC+blocks as some muxer in libavformat expect only STREAMINFO for flac
+	//only inject STERAMINFO
+	else if (gpac_codec_id==GF_CODECID_FLAC) {
+		const u8 *flac_dsi=NULL;
+		u32 flac_dsi_size=0;
+		GF_BitStream *bs = gf_bs_new(dsi_in, dsi_in_size, GF_BITSTREAM_READ);
+		while (gf_bs_available(bs)) {
+			gf_bs_read_int(bs, 1);
+			u8 type = gf_bs_read_int(bs, 7);
+			u8 bsize = gf_bs_read_int(bs, 24);
+			if (!type) {
+				flac_dsi_size = bsize;
+				flac_dsi = dsi_in + (u32) gf_bs_get_position(bs);
+				break;
+			}
+			gf_bs_skip_bytes(bs, bsize);
+		}
+		gf_bs_del(bs);
+		if (!flac_dsi || !flac_dsi_size) return GF_NON_COMPLIANT_BITSTREAM;
+		*dsi_out_size = flac_dsi_size;
+		*dsi_out = av_malloc(sizeof(char) * (flac_dsi_size) );
+		if (! *dsi_out) return GF_OUT_OF_MEM;
+		memcpy(*dsi_out, flac_dsi, flac_dsi_size);
+	} else if (gpac_codec_id==GF_CODECID_OPUS) {
+		*dsi_out_size = dsi_in_size+8;
+		*dsi_out = av_malloc(sizeof(char) * (dsi_in_size+8) );
+		if (! *dsi_out) return GF_OUT_OF_MEM;
+		memcpy(*dsi_out, "OpusHead", 8);
+		memcpy(*dsi_out+8, dsi_in, dsi_in_size);
+	} else {
+		*dsi_out_size = dsi_in_size;
+		*dsi_out = av_malloc(sizeof(char) * dsi_in_size);
+		if (! *dsi_out) return GF_OUT_OF_MEM;
+		memcpy(*dsi_out, dsi_in, dsi_in_size);
+	}
+	return e;
+}
+
+GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 **dsi_out, u32 *dsi_out_size)
+{
+	*dsi_out = NULL;
+	*dsi_out_size = 0;
+	if (!data) return GF_BAD_PARAM;
+	if (gpac_codec_id==GF_CODECID_VORBIS) {
+		GF_BitStream *bs;
+		u32 nb_page = 1 + data[0];
+		if (nb_page != 3) return GF_NON_COMPLIANT_BITSTREAM;
+		u32 s1 = data[1];
+		u32 s2 = data[2];
+		u32 s3;
+		if (size < s1 + s2 + 1) return GF_NON_COMPLIANT_BITSTREAM;
+		s3 = size - s1 - s2 - 1;
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u16(bs, s1);
+		gf_bs_write_data(bs, data + 3, s1);
+		gf_bs_write_u16(bs, s2);
+		gf_bs_write_data(bs, data + 3 + s1, s2);
+		gf_bs_write_u16(bs, s3);
+		gf_bs_write_data(bs, data + 3 + s1 + s2, s3);
+		gf_bs_get_content(bs, dsi_out, dsi_out_size);
+		gf_bs_del(bs);
+		return GF_OK;
+	}
+
+	if (gpac_codec_id==GF_CODECID_FLAC) {
+		//flac DSI is only STREAMINFO block in ffmpeg, without block header
+		if ((size>4) && (GF_4CC(data[0],data[1], data[2], data[3]) != GF_4CC('f', 'L', 'a', 'c'))) {
+			*dsi_out_size = size+4;
+			u8 *dsi = gf_malloc(size+4);
+			if (! dsi) return GF_OUT_OF_MEM;
+
+			dsi[0] = (size==34) ? 0x80 : 0;
+			dsi[1] = size >> 16;
+			dsi[2] = size >> 8;
+			dsi[3] = size & 0xFF;
+			memcpy(dsi+4, data, size);
+			*dsi_out = dsi;
+			return GF_OK;
+		}
+		//fallthrough
+	}
+
+	if (gpac_codec_id==GF_CODECID_OPUS) {
+		if ((size>8) && !memcmp(data, "OpusHead", 8)) {
+			*dsi_out_size = size-8;
+			*dsi_out = gf_malloc(size-8);
+			if (! *dsi_out) return GF_OUT_OF_MEM;
+			memcpy(*dsi_out, data+8, size-8);
+			return GF_OK;
+		}
+		//fallthrough
+	}
+
+	//default is direct mapping
+
+	*dsi_out_size = size;
+	*dsi_out = gf_malloc(size);
+	if (! *dsi_out) return GF_OUT_OF_MEM;
+	memcpy(*dsi_out, data, size);
+	return GF_OK;
+}
+
 #endif

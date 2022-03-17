@@ -445,15 +445,15 @@ GF_Err gf_isom_truehd_config_new(GF_ISOFile *the_file, u32 trackNumber, char *UR
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_EXPORT
-GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpecificBox *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_MPEGAudioSampleEntryBox *entry;
 	GF_SampleDescriptionBox *stsd;
-	ptrdiff_t offset;
 
+	if (!cfg) return GF_BAD_PARAM;
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 
@@ -476,9 +476,8 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->cfg_opus = (GF_OpusSpecificBox*)gf_isom_box_new_parent(&entry->child_boxes, GF_ISOM_BOX_TYPE_DOPS);
 	if (!entry->cfg_opus) return GF_OUT_OF_MEM;
-	//skip box header
-	offset = (ptrdiff_t)&cfg->version - (ptrdiff_t)cfg;
-	memcpy((char*)entry->cfg_opus + offset, (char*)cfg + offset, sizeof(GF_OpusSpecificBox) - (size_t)offset);
+	entry->cfg_opus->opcfg = *cfg;
+	entry->cfg_opus->opcfg.version = 0;
 
 	entry->dataReferenceIndex = dataRefIndex;
 	*outDescriptionIndex = gf_list_count(stsd->child_boxes);
@@ -486,26 +485,7 @@ GF_Err gf_isom_opus_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_OpusSpe
 }
 #endif
 
-GF_EXPORT
-GF_OpusSpecificBox *gf_opus_parse_specific_info(u8 *opus_dsi, u32 opus_dsi_size)
-{
-    GF_Err e;
-    GF_BitStream *bs;
-    GF_Box *dOps;
-    bs = gf_bs_new(opus_dsi, opus_dsi_size, GF_BITSTREAM_READ);
-    e = gf_isom_box_parse(&dOps, bs);
-    if (e != GF_OK) {
-        gf_free(dOps);
-        gf_bs_del(bs);
-        GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Error parsing Opus header!\n"));
-        return NULL;
-    }
-    gf_bs_del(bs);
-    return dOps;
-}
-
-GF_EXPORT
-GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size)
+static GF_Err gf_isom_opus_config_get_internal(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u8 **dsi, u32 *dsi_size, GF_OpusConfig *ocfg)
 {
 	u32 type;
 	GF_TrackBox *trak;
@@ -513,6 +493,8 @@ GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (dsi) *dsi = NULL;
 	if (dsi_size) *dsi_size = 0;
+	if (ocfg) memset(ocfg, 0, sizeof(GF_OpusConfig));
+
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
 	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, StreamDescriptionIndex-1);
@@ -530,14 +512,26 @@ GF_Err gf_isom_opus_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 		return GF_BAD_PARAM;
 
 	if (dsi && dsi_size) {
-		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_isom_box_size((GF_Box *)entry->cfg_opus);
-		gf_isom_box_write((GF_Box *)entry->cfg_opus, bs);
-		gf_bs_get_content(bs, dsi, dsi_size);
-		gf_bs_del(bs);
+		gf_odf_opus_cfg_write(&entry->cfg_opus->opcfg, dsi, dsi_size);
 	}
+	if (ocfg)
+		*ocfg = entry->cfg_opus->opcfg;
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_isom_opus_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 **dsi, u32 *dsi_size)
+{
+	return gf_isom_opus_config_get_internal(isom_file, trackNumber, sampleDescriptionIndex, dsi, dsi_size, NULL);
+}
+
+GF_EXPORT
+GF_Err gf_isom_opus_config_get_desc(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_OpusConfig *opcfg)
+{
+	return gf_isom_opus_config_get_internal(isom_file, trackNumber, sampleDescriptionIndex, NULL, NULL, opcfg);
+
+}
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

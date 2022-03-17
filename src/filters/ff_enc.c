@@ -26,6 +26,7 @@
 #include <gpac/setup.h>
 #include <gpac/bitstream.h>
 #include <gpac/avparse.h>
+#include <gpac/internal/media_dev.h>
 
 #ifdef GPAC_HAS_FFMPEG
 
@@ -45,6 +46,7 @@ typedef struct _gf_ffenc_ctx
 
 	//internal data
 	Bool initialized;
+	Bool gen_dsi;
 
 	u32 gop_size;
 	u32 target_rate;
@@ -252,8 +254,18 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ISOM_SUBTYPE, NULL);
 	gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PROFILE_LEVEL, NULL);
 
+	ctx->gen_dsi = GF_FALSE;
 	switch (ctx->codecid) {
-	//reframe all these codecs for proper DSI formating
+	//reframe all these codecs for proper ISOBMFF+DSI formating
+	case GF_CODECID_AVC:
+	case GF_CODECID_HEVC:
+	case GF_CODECID_VVC:
+	case GF_CODECID_AV1:
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED_FULL_AU, &PROP_BOOL(GF_TRUE) );
+		break;
+
+	//for these, we will need to generate dsi from first frame - this avoids using reframers only for DSI extraction
 	case GF_CODECID_MPEG1:
 	case GF_CODECID_MPEG2_422:
 	case GF_CODECID_MPEG2_SNR:
@@ -262,31 +274,25 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	case GF_CODECID_MPEG2_SIMPLE:
 	case GF_CODECID_MPEG2_SPATIAL:
 	case GF_CODECID_MPEG4_PART2:
-	case GF_CODECID_AVC:
-	case GF_CODECID_HEVC:
-	case GF_CODECID_VVC:
-	case GF_CODECID_AV1:
 	case GF_CODECID_VP8:
 	case GF_CODECID_VP9:
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_UNFRAMED_FULL_AU, &PROP_BOOL(GF_TRUE) );
+	case GF_CODECID_VP10:
+	case GF_CODECID_AC3:
+	case GF_CODECID_EAC3:
+	case GF_CODECID_TRUEHD:
+		ctx->gen_dsi = GF_TRUE;
 		break;
+
 	case GF_CODECID_FLAC:
-		if (ctx->encoder && ctx->encoder->extradata_size && ctx->encoder->extradata) {
-			u8 *data_dst = gf_malloc(ctx->encoder->extradata_size+4);
-			if (data_dst) {
-				data_dst[0] = (ctx->encoder->extradata_size==34) ? 0x80 : 0;
-				data_dst[1] = ctx->encoder->extradata_size >> 16;
-				data_dst[2] = ctx->encoder->extradata_size >> 8;
-				data_dst[3] = ctx->encoder->extradata_size & 0xFF;
-				memcpy(data_dst+4, ctx->encoder->extradata, ctx->encoder->extradata_size);
-				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data_dst, 4+ctx->encoder->extradata_size) );
-			}
-		}
-		break;
+	case GF_CODECID_OPUS:
+	case GF_CODECID_VORBIS:
 	default:
-		if (ctx->encoder && ctx->encoder->extradata_size && ctx->encoder->extradata) {
-			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(ctx->encoder->extradata, ctx->encoder->extradata_size) );
+		if (ctx->encoder && ctx->encoder->extradata) {
+			u8 *dsi;
+			u32 dsi_size;
+			GF_Err e = ffmpeg_extradata_to_gpac(ctx->codecid, ctx->encoder->extradata, ctx->encoder->extradata_size, &dsi, &dsi_size);
+			if (!e)
+				gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size) );
 		}
 		break;
 	}
@@ -304,6 +310,131 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	if (ctx->width && ctx->height) {
 		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HAS_SYNC, ctx->all_intra ? NULL : &PROP_BOOL(GF_TRUE) );
 	}
+}
+
+static void ffenc_generate_dsi(GF_FFEncodeCtx *ctx, const u8 *data, u32 size)
+{
+	GF_VPConfig *vpc=NULL;
+	GF_AC3Header ac3hdr;
+	u32 dsi_size=0;
+	u8 *dsi=NULL;
+	GF_BitStream *bs;
+	GF_Err e;
+	Bool flag=GF_FALSE;
+
+	ctx->gen_dsi = GF_FALSE;
+	switch (ctx->codecid) {
+	case GF_CODECID_VP8:
+	case GF_CODECID_VP10:
+		vpc = gf_odf_vp_cfg_new();
+		vpc->profile = 1;
+		vpc->level = 10;
+		vpc->bit_depth = 8;
+		vpc->colour_primaries = ctx->encoder->color_primaries;
+		vpc->transfer_characteristics = ctx->encoder->color_trc;
+		vpc->matrix_coefficients = ctx->encoder->colorspace;
+		break;
+	case GF_CODECID_VP9:
+	{
+		Bool key_frame = GF_FALSE;
+		u32 width = 0, height = 0, renderWidth, renderHeight;
+		u32 num_frames_in_superframe = 0, superframe_index_size = 0, i;
+		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
+		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		e = gf_vp9_parse_superframe(bs, size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
+		if (!e) {
+			vpc = gf_odf_vp_cfg_new();
+			for (i = 0; i < num_frames_in_superframe; ++i) {
+				u64 pos2 = gf_bs_get_position(bs);
+				if (gf_vp9_parse_sample(bs, vpc, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VP9Dmx] Error parsing frame\n"));
+					gf_odf_vp_cfg_del(vpc);
+					vpc = NULL;
+					break;
+				}
+				gf_bs_seek(bs, pos2 + frame_sizes[i]);
+			}
+		}
+		gf_bs_del(bs);
+	}
+		break;
+	case GF_CODECID_EAC3:
+		flag = GF_TRUE;
+	case GF_CODECID_AC3:
+		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		if (flag) {
+			if (gf_eac3_parser_header_bs(bs, &ac3hdr) == GF_TRUE) {
+				ac3hdr.is_ec3=GF_TRUE;
+				gf_odf_ac3_cfg_write(&ac3hdr, &dsi, &dsi_size);
+			}
+		} else {
+			if (gf_ac3_parser_bs(bs, &ac3hdr, GF_TRUE) == GF_TRUE) {
+				gf_odf_ac3_cfg_write(&ac3hdr, &dsi, &dsi_size);
+			}
+		}
+		gf_bs_del(bs);
+		break;
+	case GF_CODECID_TRUEHD:
+	{
+		u32 format, peak_rate, sync, valid=0;
+		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+
+		/*nibble, frame size and time = */gf_bs_read_u32(bs);
+		sync = gf_bs_read_u32(bs);
+		if (sync == 0xF8726FBA) {
+			format = gf_bs_read_u32(bs);
+			u16 sig = gf_bs_read_u16(bs);
+			if (sig == 0xB752) {
+				gf_bs_read_u16(bs);
+				gf_bs_read_u16(bs);
+				gf_bs_read_int(bs, 1);
+				peak_rate = gf_bs_read_int(bs, 15);
+				valid = 1;
+			}
+		}
+		gf_bs_del(bs);
+
+		if (valid) {
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, format);
+			gf_bs_write_int(bs, peak_rate, 15);
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_u32(bs, 0);
+			gf_bs_get_content(bs, &dsi, &dsi_size);
+			gf_bs_del(bs);
+		}
+	}
+		break;
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_422:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_SPATIAL:
+		flag = GF_TRUE;
+	case GF_CODECID_MPEG4_PART2:
+	{
+		GF_M4VDecSpecInfo vcfg;
+		GF_M4VParser *mvp;
+		mvp = gf_m4v_parser_new((u8*)data, size, flag);
+		if (gf_m4v_parse_config(mvp, &vcfg) == GF_OK) {
+			dsi_size = gf_m4v_get_object_start(mvp);
+			dsi = gf_malloc(sizeof(u8) * dsi_size);
+			memcpy(dsi, data, dsi_size);
+		}
+		gf_m4v_parser_del(mvp);
+	}
+		break;
+	}
+
+	if (vpc) {
+		gf_odf_vp_cfg_write(vpc, &dsi, &dsi_size,  vpc->codec_initdata_size ? GF_TRUE : GF_FALSE);
+		gf_odf_vp_cfg_del(vpc);
+	}
+
+	if (dsi)
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
 }
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
@@ -797,6 +928,9 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			gf_filter_pck_set_duration(dst_pck, (u32) ctx->frame->pkt_duration);
 		}
 	}
+	if (ctx->gen_dsi) {
+		ffenc_generate_dsi(ctx, output, size);
+	}
 
 	ffenc_log_video(filter, ctx, pkt, gf_filter_reporting_enabled(filter));
 
@@ -829,8 +963,6 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 	return GF_OK;
 }
-
-
 
 static void ffenc_audio_append_samples(struct _gf_ffenc_ctx *ctx, const u8 *data, u32 size, u32 sample_offset, u32 nb_samples)
 {
@@ -935,7 +1067,14 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	if (ctx->reconfig_pending) pck = NULL;
 
 	if (ctx->encoder->frame_size && (ctx->encoder->frame_size <= (s32) ctx->samples_in_audio_buffer)) {
-		avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->bytes_per_sample * ctx->encoder->frame_size, 0);
+		ctx->frame->nb_samples = ctx->encoder->frame_size;
+		res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt,
+			ctx->audio_buffer, ctx->audio_buffer_size /*ctx->bytes_per_sample * ctx->encoder->frame_size*/, 0);
+		if (res<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Error filling raw audio frame: %s\n", av_err2str(res) ));
+			ctx->samples_in_audio_buffer = 0;
+			return GF_SERVICE_ERROR;
+		}
 
 		from_internal_buffer_only = GF_TRUE;
 
@@ -971,8 +1110,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 			ffenc_audio_append_samples(ctx, data, size, 0, nb_copy);
 
 			ctx->frame->nb_samples = ctx->encoder->frame_size;
-			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->encoder->frame_size*ctx->bytes_per_sample, 0);
-
+			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt,
+				ctx->audio_buffer, ctx->audio_buffer_size/*ctx->encoder->frame_size*ctx->bytes_per_sample*/, 0);
 		} else {
 			ctx->frame->nb_samples = size / ctx->bytes_per_sample;
 			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, data, size, 0);
@@ -996,7 +1135,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		if (ctx->encoder->frame_size) {
 			nb_samples = ctx->encoder->frame_size - ctx->samples_in_audio_buffer;
 			ffenc_audio_append_samples(ctx, NULL, 0, 0, nb_samples);
-			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->encoder->frame_size * ctx->bytes_per_sample, 0);
+			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt,
+				ctx->audio_buffer, ctx->audio_buffer_size/*ctx->encoder->frame_size * ctx->bytes_per_sample*/, 0);
 		} else {
 			res = avcodec_fill_audio_frame(ctx->frame, ctx->channels, ctx->sample_fmt, ctx->audio_buffer, ctx->samples_in_audio_buffer * ctx->bytes_per_sample, 0);
 		}
@@ -1112,13 +1252,20 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 
 		if (ctx->samples_in_audio_buffer > nb_samples_to_drop) {
 			offset = nb_samples_to_drop * ctx->bytes_per_sample;
-			len = (ctx->samples_in_audio_buffer - nb_samples_to_drop) * ctx->bytes_per_sample;
+			len = (ctx->samples_in_audio_buffer - nb_samples_to_drop);
+			//if planar we must move entire frames
+			if (ctx->planar_audio) {
+				u32 nb_p = len / ctx->encoder->frame_size;
+				if (nb_p * ctx->encoder->frame_size < len) nb_p++;
+				len = nb_p * ctx->encoder->frame_size;
+			}
+			len *= ctx->bytes_per_sample;
+			assert(len + offset <= ctx->audio_buffer_size);
 			memmove(ctx->audio_buffer, ctx->audio_buffer + offset, sizeof(u8)*len);
 			ctx->samples_in_audio_buffer -= nb_samples_to_drop;
 		} else {
 			ctx->samples_in_audio_buffer = 0;
 		}
-
 	}
 
 	//increase timestamp
@@ -1202,6 +1349,9 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_merge_properties(src_pck, dst_pck);
 		gf_list_del_item(ctx->src_packets, src_pck);
 		gf_filter_pck_unref(src_pck);
+	}
+	if (ctx->gen_dsi) {
+		ffenc_generate_dsi(ctx, output, pkt->size);
 	}
 
 	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift);
@@ -1410,6 +1560,9 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		GET_PROP(ctx->sample_rate, GF_PROP_PID_SAMPLE_RATE, "sample rate")
 		GET_PROP(ctx->channels, GF_PROP_PID_NUM_CHANNELS, "nb channels")
 		GET_PROP(afmt, GF_PROP_PID_AUDIO_FORMAT, "audio format")
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
+		ctx->channel_layout = prop ? prop->value.longuint : 0;
 	}
 
 
@@ -1543,6 +1696,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	} else {
 		u32 change_input_sr = 0;
+		u64 change_chan_layout = 0;
 		//check audio format
 		ctx->sample_fmt = ffmpeg_audio_fmt_from_gpac(afmt);
 		change_input_fmt = 0;
@@ -1566,7 +1720,32 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			i++;
 		}
-		if ((ctx->sample_fmt != change_input_fmt) || (ctx->sample_rate != change_input_sr)) {
+
+		i=0;
+		if (!ctx->channel_layout) {
+			ctx->channel_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(ctx->channels, 0, 0));
+		}
+		if (!codec->channel_layouts)
+			change_chan_layout = ctx->channel_layout;
+
+		while (codec->channel_layouts) {
+			if (!codec->channel_layouts[i]) break;
+			if (codec->channel_layouts[i] == ffmpeg_channel_layout_from_gpac(ctx->channel_layout)) {
+				change_chan_layout = ctx->channel_layout;
+				break;
+			}
+			i++;
+		}
+		//vorbis in ffmpeg currently requires stereo but channel_layouts is not set
+		if (ctx->codecid==GF_CODECID_VORBIS) {
+			change_chan_layout = gf_audio_fmt_get_layout_from_cicp(gf_audio_fmt_get_cicp_layout(2, 0, 0));
+		}
+
+
+		if ((ctx->sample_fmt != change_input_fmt)
+			|| (ctx->sample_rate != change_input_sr)
+			|| (ctx->channel_layout != change_chan_layout)
+		) {
 			if (ctx->sample_fmt != change_input_fmt) {
 				ctx->sample_fmt = codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_S16;
 				afmt = ffmpeg_audio_fmt_to_gpac(ctx->sample_fmt);
@@ -1574,6 +1753,13 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			}
 			if (ctx->sample_rate != change_input_sr) {
 				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(codec->supported_samplerates[0]) );
+			}
+			if (ctx->channel_layout != change_chan_layout) {
+				if (!change_chan_layout)
+					change_chan_layout = ffmpeg_channel_layout_to_gpac(codec->channel_layouts[0]);
+				u32 nb_chans = gf_audio_fmt_get_num_channels_from_layout(change_chan_layout);
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(nb_chans) );
+				gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(change_chan_layout) );
 			}
 			ctx->infmt_negociate = GF_TRUE;
 		} else {
@@ -1637,7 +1823,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			//- if timescale more than 1mhz, use fps.num (if less than 1000) or 1000 * fps.num (otherwise) as timebase
 			//this is needed because some codecs in libavcodec check this value to derive the profile/levels
 			//so providing a too high time_base will increase the profile/levels ...
-			else if (ctx->timescale >= 1000000) {
+			else if ((ctx->encoder->framerate.den==1) || (ctx->timescale >= 1000000)) {
 				if (ctx->encoder->framerate.num<1000) {
 					ctx->encoder->time_base.num = 1000 * ctx->encoder->framerate.den;
 					ctx->encoder->time_base.den = 1000 * ctx->encoder->framerate.num;
@@ -1672,6 +1858,24 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		if (ctx->fintra.den && (ctx->fintra.num>0) && !ctx->rc) {
 			av_dict_set(&ctx->options, "forced-idr", "1", 0);
 		}
+
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
+		ctx->encoder->color_primaries = prop ? prop->value.uint : AVCOL_PRI_UNSPECIFIED;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
+		if (prop) ctx->encoder->color_range = (prop->value.uint==1) ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
+		else ctx->encoder->color_range = AVCOL_RANGE_UNSPECIFIED;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
+		ctx->encoder->color_trc = prop ? prop->value.uint : AVCOL_TRC_UNSPECIFIED;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
+		ctx->encoder->colorspace = prop ? prop->value.uint : AVCOL_SPC_UNSPECIFIED;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_CHROMALOC);
+		ctx->encoder->chroma_sample_location = prop ? prop->value.uint : AVCHROMA_LOC_UNSPECIFIED;
+
 
 		//we don't use out of band headers, since x264 in ffmpeg (and likely other) do not output in MP4 format but
 		//in annexB (extradata only contains SPS/PPS/etc in annexB)
@@ -1715,12 +1919,15 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			ctx->timescale = ctx->sample_rate;
 		}
 
-		//for aac
+		//enable expermimental encoders
 		switch (ctx->codecid) {
 		case GF_CODECID_AAC_MPEG4:
 		case GF_CODECID_AAC_MPEG2_MP:
 		case GF_CODECID_AAC_MPEG2_LCP:
 		case GF_CODECID_AAC_MPEG2_SSRP:
+		case GF_CODECID_OPUS:
+		case GF_CODECID_TRUEHD:
+		case GF_CODECID_VORBIS:
 			av_dict_set(&ctx->options, "strict", "experimental", 0);
 			break;
 		}

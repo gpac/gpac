@@ -1985,9 +1985,9 @@ typedef enum {
 	CS_RGB = 7,
 } VP9_color_space;
 
-static const int VP9_CS_to_23001_8_colour_primaries[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
-static const int VP9_CS_to_23001_8_transfer_characteristics[] = { -1/*undefined*/, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
-static const int VP9_CS_to_23001_8_matrix_coefficients[] = { -1/*undefined*/, 6, 1, -1, -1, 9, -1/*reserved*/, 0 };
+static const int VP9_CS_to_23001_8_colour_primaries[] = { 2, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
+static const int VP9_CS_to_23001_8_transfer_characteristics[] = { 2, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
+static const int VP9_CS_to_23001_8_matrix_coefficients[] = { 2, 6, 1, -1, -1, 9, -1/*reserved*/, 0 };
 
 static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 {
@@ -8996,8 +8996,8 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 	return GF_TRUE;
 }
 
-GF_EXPORT
-Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
+
+static Bool gf_eac3_parser_internal(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse, Bool hdr_only)
 {
 	u32 fscod, bsid, ac3_mod, freq, framesize, syncword, substreamid, lfon, channels, numblkscod, strmtyp, frmsiz;
 	u64 pos;
@@ -9125,20 +9125,32 @@ block:
 		hdr->streams[substreamid].chan_loc |= chanmap;
 	}
 
-	if (numblkscod < 6) { //we need 6 blocks to make a sample
-		if (gf_bs_seek(bs, pos + framesize) != GF_OK) {
-			gf_bs_seek(bs, pos);
-			return GF_FALSE;
-		}
+	if (!hdr_only) {
+		if (numblkscod < 6) { //we need 6 blocks to make a sample
+			if (gf_bs_seek(bs, pos + framesize) != GF_OK) {
+				gf_bs_seek(bs, pos);
+				return GF_FALSE;
+			}
 
-		if ((gf_bs_available(bs) < 6) || !AC3_FindSyncCodeBS(bs))
-			return GF_FALSE;
-		goto block;
+			if ((gf_bs_available(bs) < 6) || !AC3_FindSyncCodeBS(bs))
+				return GF_FALSE;
+			goto block;
+		}
 	}
 
 	gf_bs_seek(bs, pos);
-
 	return GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
+{
+	return gf_eac3_parser_internal(bs, hdr, full_parse, GF_FALSE);
+}
+GF_EXPORT
+Bool gf_eac3_parser_header_bs(GF_BitStream *bs, GF_AC3Config *hdr)
+{
+	return gf_eac3_parser_internal(bs, hdr, GF_TRUE, GF_TRUE);
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -9419,7 +9431,7 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, u8 *data, u32 data_length)
 
 /*call with vorbis header packets - initializes the parser on success, leave it to NULL otherwise
 returns 1 if success, 0 if error.*/
-Bool gf_opus_parse_header(GF_OpusParser *opus, u8 *data, u32 data_len)
+Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 {
 	char tag[9];
 	GF_BitStream *bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
@@ -9431,21 +9443,21 @@ Bool gf_opus_parse_header(GF_OpusParser *opus, u8 *data, u32 data_len)
 		return GF_FALSE;
 	}
 	/*Identification Header*/
-	opus->version = gf_bs_read_u8(bs); /*version*/
-	if (opus->version != 1) {
+	ocfg->version = gf_bs_read_u8(bs); /*version*/
+	if (ocfg->version != 1) {
 		gf_bs_del(bs);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Opus] Unsupported version %d\n", opus->version));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[Opus] Unsupported version %d\n", ocfg->version));
 		return GF_FALSE;
 	}
-	opus->OutputChannelCount = gf_bs_read_u8(bs);
-	opus->PreSkip = gf_bs_read_u16_le(bs);
-	opus->InputSampleRate = gf_bs_read_u32_le(bs);
-	opus->OutputGain = gf_bs_read_u16_le(bs);
-	opus->ChannelMappingFamily = gf_bs_read_u8(bs);
-	if (opus->ChannelMappingFamily != 0) {
-		opus->StreamCount = gf_bs_read_u8(bs);
-		opus->CoupledCount = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) opus->ChannelMapping, opus->OutputChannelCount);
+	ocfg->OutputChannelCount = gf_bs_read_u8(bs);
+	ocfg->PreSkip = gf_bs_read_u16_le(bs);
+	ocfg->InputSampleRate = gf_bs_read_u32_le(bs);
+	ocfg->OutputGain = gf_bs_read_u16_le(bs);
+	ocfg->ChannelMappingFamily = gf_bs_read_u8(bs);
+	if (ocfg->ChannelMappingFamily != 0) {
+		ocfg->StreamCount = gf_bs_read_u8(bs);
+		ocfg->CoupledCount = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *) ocfg->ChannelMapping, ocfg->OutputChannelCount);
 	}
 	gf_bs_del(bs);
 	return GF_TRUE;
@@ -9453,7 +9465,7 @@ Bool gf_opus_parse_header(GF_OpusParser *opus, u8 *data, u32 data_len)
 
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
-u32 gf_opus_check_frame(GF_OpusParser *op, u8 *data, u32 data_length)
+u32 gf_opus_check_frame(GF_OpusConfig *ocfg, u8 *data, u32 data_length)
 {
 	u32 block_size;
 

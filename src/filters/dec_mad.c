@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MP3 libmad decoder filter
@@ -223,7 +223,13 @@ mad_resync:
 	mad_stream_buffer(&ctx->stream, ctx->buffer, ctx->len);
 
 	if (mad_frame_decode(&ctx->frame, &ctx->stream) == -1) {
-		if (!pck) return GF_OK;
+		if (!pck) {
+			if (ctx->flush_done) {
+				gf_filter_pid_set_eos(ctx->opid);
+				return GF_EOS;
+			}
+			return GF_OK;
+		}
 
 		if (ctx->stream.error==MAD_ERROR_BUFLEN) {
 			ctx->last_cts = gf_filter_pck_get_cts(pck);

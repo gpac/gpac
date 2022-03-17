@@ -969,7 +969,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_unused_box_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_clean_aperture) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dovi_config_get) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_opus_config_get_desc) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1449,7 +1449,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_nalu) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_obu) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_opus_packet) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_opus) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_dump_prores) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_inspect_format_timecode) )
 
