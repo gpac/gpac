@@ -11974,27 +11974,35 @@ void dOps_box_del(GF_Box *s)
 	if (ptr) gf_free(ptr);
 }
 
+//we don't use odf_opus_cfg read due to endianness
 GF_Err dOps_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
-	ptr->version = gf_bs_read_u8(bs);
-	ptr->OutputChannelCount = gf_bs_read_u8(bs);
-	ptr->PreSkip = gf_bs_read_u16(bs);
-	ptr->InputSampleRate = gf_bs_read_u32(bs);
-	ptr->OutputGain = gf_bs_read_u16(bs);
-	ptr->ChannelMappingFamily = gf_bs_read_u8(bs);
+	ptr->opcfg.version = gf_bs_read_u8(bs);
+	if (ptr->opcfg.version) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Opus config version not 0 !\n", ptr->size));
+		return GF_NOT_SUPPORTED;
+	}
+	//force version to 1 as used in ogg/opus
+	ptr->opcfg.version = 1;
+	ptr->opcfg.OutputChannelCount = gf_bs_read_u8(bs);
+	ptr->opcfg.PreSkip = gf_bs_read_u16(bs);
+	ptr->opcfg.InputSampleRate = gf_bs_read_u32(bs);
+	ptr->opcfg.OutputGain = gf_bs_read_u16(bs);
+	ptr->opcfg.ChannelMappingFamily = gf_bs_read_u8(bs);
 	ISOM_DECREASE_SIZE(ptr, 11)
 	if (ptr->size) {
-		ISOM_DECREASE_SIZE(ptr, 2+ptr->OutputChannelCount);
-		ptr->StreamCount = gf_bs_read_u8(bs);
-		ptr->CoupledCount = gf_bs_read_u8(bs);
-		gf_bs_read_data(bs, (char *) ptr->ChannelMapping, ptr->OutputChannelCount);
+		ISOM_DECREASE_SIZE(ptr, 2+ptr->opcfg.OutputChannelCount);
+		ptr->opcfg.StreamCount = gf_bs_read_u8(bs);
+		ptr->opcfg.CoupledCount = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *) ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
 	}
 	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+//we don't use odf_opus_cfg write due to endianness
 GF_Err dOps_box_write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -12002,16 +12010,17 @@ GF_Err dOps_box_write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	gf_bs_write_u8(bs, ptr->version);
-	gf_bs_write_u8(bs, ptr->OutputChannelCount);
-	gf_bs_write_u16(bs, ptr->PreSkip);
-	gf_bs_write_u32(bs, ptr->InputSampleRate);
-	gf_bs_write_u16(bs, ptr->OutputGain);
-	gf_bs_write_u8(bs, ptr->ChannelMappingFamily);
-	if (ptr->ChannelMappingFamily) {
-		gf_bs_write_u8(bs, ptr->StreamCount);
-		gf_bs_write_u8(bs, ptr->CoupledCount);
-		gf_bs_write_data(bs, (char *) ptr->ChannelMapping, ptr->OutputChannelCount);
+	//we always write 0 - the version may also be set to 1 when fed from ffenc or opus+ogg
+	gf_bs_write_u8(bs, /*ptr->opcfg.version*/ 0);
+	gf_bs_write_u8(bs, ptr->opcfg.OutputChannelCount);
+	gf_bs_write_u16(bs, ptr->opcfg.PreSkip);
+	gf_bs_write_u32(bs, ptr->opcfg.InputSampleRate);
+	gf_bs_write_u16(bs, ptr->opcfg.OutputGain);
+	gf_bs_write_u8(bs, ptr->opcfg.ChannelMappingFamily);
+	if (ptr->opcfg.ChannelMappingFamily) {
+		gf_bs_write_u8(bs, ptr->opcfg.StreamCount);
+		gf_bs_write_u8(bs, ptr->opcfg.CoupledCount);
+		gf_bs_write_data(bs, (char *) ptr->opcfg.ChannelMapping, ptr->opcfg.OutputChannelCount);
 	}
 	return GF_OK;
 }
@@ -12020,8 +12029,8 @@ GF_Err dOps_box_size(GF_Box *s)
 {
 	GF_OpusSpecificBox *ptr = (GF_OpusSpecificBox *)s;
 	ptr->size += 11;
-	if (ptr->ChannelMappingFamily)
-		ptr->size += 2 + ptr->OutputChannelCount;
+	if (ptr->opcfg.ChannelMappingFamily)
+		ptr->size += 2 + ptr->opcfg.OutputChannelCount;
 
 	return GF_OK;
 }

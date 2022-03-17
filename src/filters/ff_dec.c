@@ -1091,30 +1091,21 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		&& prop->value.data.ptr
 		&& prop->value.data.size
 	) {
-		//looks like ffmpeg wants the fLaC keyword
-		if (gpac_codecid==GF_CODECID_FLAC) {
-			ctx->decoder->extradata_size = prop->value.data.size+4;
-			ctx->decoder->extradata = av_malloc(sizeof(char) * prop->value.data.size+4);
-			memcpy(ctx->decoder->extradata, "fLaC", 4);
-			memcpy(ctx->decoder->extradata+4, prop->value.data.ptr, prop->value.data.size);
-		} else {
-			u8 *dsi = prop->value.data.ptr;
-			u32 dsi_size = prop->value.data.size;
-			if (unwrap_extra_data && (dsi_size>8)) {
-				u32 size = dsi[0]; size<<=8;
-				size |= dsi[1]; size<<=8;
-				size |= dsi[2]; size<<=8;
-				size |= dsi[3];
-				if (size == dsi_size) {
-					dsi += 8;
-					dsi_size -= 8;
-				}
+		u8 *dsi = prop->value.data.ptr;
+		u32 dsi_size = prop->value.data.size;
+		if (unwrap_extra_data && (dsi_size>8)) {
+			u32 size = dsi[0]; size<<=8;
+			size |= dsi[1]; size<<=8;
+			size |= dsi[2]; size<<=8;
+			size |= dsi[3];
+			if (size == dsi_size) {
+				dsi += 8;
+				dsi_size -= 8;
 			}
-
-			ctx->decoder->extradata_size = dsi_size;
-			ctx->decoder->extradata = av_malloc(sizeof(char) * dsi_size);
-			memcpy(ctx->decoder->extradata, dsi, dsi_size);
 		}
+		GF_Err e = ffmpeg_extradata_from_gpac(gpac_codecid, dsi, dsi_size, &ctx->decoder->extradata, &ctx->decoder->extradata_size);
+		if (e) return e;
+
 		ctx->extra_data_crc = gf_crc_32(ctx->decoder->extradata, ctx->decoder->extradata_size);
 	}
 

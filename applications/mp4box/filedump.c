@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -1401,32 +1401,20 @@ GF_Err dump_isom_nal(GF_ISOFile *file, GF_ISOTrackID trackID, char *inName, Bool
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-void gf_inspect_dump_opus_packet(FILE *dump, u8 *ptr, u64 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc);
+void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc);
 #endif
-
-GF_OpusSpecificBox *gf_opus_parse_specific_info(u8 *opus_dsi, u32 opus_dsi_size);
-GF_Err dOps_box_dump(GF_Box *a, FILE * trace);
 
 static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump, Bool dump_crc)
 {
     GF_Err e = GF_OK;
 #ifndef GPAC_DISABLE_AV_PARSERS
-    u32 i, count, track, timescale;
-    u32 idx;
-    u8* opus_dsi = NULL;
-    u32 opus_dsi_size = 0;
-    GF_OpusSpecificBox *dOps;
+    u32 i, count, track, timescale, channel_count;
+    GF_OpusConfig opcfg;
     track = gf_isom_get_track_by_id(file, trackID);
 
-    e = gf_isom_opus_config_get(file, track, 1, &opus_dsi, &opus_dsi_size);
+    e = gf_isom_opus_config_get_desc(file, track, 1, &opcfg);
     if (e != GF_OK) {
         M4_LOG(GF_LOG_ERROR, ("Error: Track #%d is not Opus!\n", trackID));
-        return GF_ISOM_INVALID_FILE;
-    }
-
-    dOps = gf_opus_parse_specific_info(opus_dsi, opus_dsi_size);
-    if (!dOps) {
-        M4_LOG(GF_LOG_ERROR, ("Error: Cannot parse Opus box in Track #%d!\n", trackID));
         return GF_ISOM_INVALID_FILE;
     }
 
@@ -1434,16 +1422,26 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
     timescale = gf_isom_get_media_timescale(file, track);
 
     fprintf(dump, "<OpusTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
-    dOps_box_dump((GF_Box*)dOps, dump);
+
+	fprintf(dump, " <OpusConfig version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
+			opcfg.version, opcfg.OutputChannelCount, opcfg.PreSkip, opcfg.InputSampleRate, opcfg.OutputGain, opcfg.ChannelMappingFamily);
+	if (opcfg.ChannelMappingFamily) {
+		u32 i;
+		fprintf(dump, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", opcfg.StreamCount, opcfg.CoupledCount);
+		for (i=0; i<opcfg.OutputChannelCount; i++) {
+			fprintf(dump, "%s%d", i ? " " : "", opcfg.ChannelMapping[i]);
+		}
+		fprintf(dump, "\"");
+	}
+	fprintf(dump, "/>\n");
+
+
+	channel_count = (opcfg.StreamCount ? opcfg.StreamCount : 1);
 
     fprintf(dump, " <OpusSamples>\n");
     e = GF_OK;
     for (i=0; i<count; i++) {
         u64 dts, cts;
-        u32 size;
-        u8 *ptr;
-        u8 k, channel_count = (dOps->StreamCount?dOps->StreamCount:1);
-        u32 pck_offset = 0;
         GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
         if (!samp) {
             e = gf_isom_last_error(file);
@@ -1455,26 +1453,6 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
         fprintf(dump, "  <Sample number=\"%d\" DTS=\""LLD"\" CTS=\""LLD"\" size=\"%d\" RAP=\"%d\" >\n", i+1, dts, cts, samp->dataLength, samp->IsRAP);
         if (cts<dts) fprintf(dump, "<!-- NEGATIVE CTS OFFSET! -->\n");
 
-        idx = 1;
-        ptr = samp->data;
-        size = samp->dataLength;
-
-        for(k = 0; k < channel_count; k++) {
-            u8 self_delimited = (k != channel_count-1);
-            GF_OpusPacketHeader pckh;
-            u8 headerres;
-
-            headerres = gf_opus_parse_packet_header(ptr+pck_offset, size-pck_offset, self_delimited, &pckh);
-            if (!headerres) break;
-
-            gf_inspect_dump_opus_packet(dump, ptr, size, pck_offset, pckh, GF_FALSE);
-            if (self_delimited) {
-                if (pck_offset+pckh.packet_size >= size) {
-                    M4_LOG(GF_LOG_ERROR, ("Error: Track #%d - Not enough data to parse next self-delimited packet!\n", trackID));
-                }
-                pck_offset += pckh.packet_size;
-            }
-        }
         fprintf(dump, "  </Sample>\n");
         gf_isom_sample_del(&samp);
 
@@ -1485,7 +1463,6 @@ static GF_Err dump_isom_opus(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *dump
     }
     fprintf(dump, " </OpusSamples>\n");
     fprintf(dump, "</OpusTrack>\n");
-    gf_isom_box_del((GF_Box *)dOps);
 #endif
     return e;
 }

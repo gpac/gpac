@@ -4342,20 +4342,19 @@ GF_Err dimC_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_EXPORT
 GF_Err dOps_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_OpusSpecificBox *p = (GF_OpusSpecificBox *)a;
 
 	gf_isom_box_dump_start(a, "OpusSpecificBox", trace);
 	gf_fprintf(trace, "version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
-		p->version, p->OutputChannelCount, p->PreSkip, p->InputSampleRate, p->OutputGain, p->ChannelMappingFamily);
+		p->version, p->opcfg.OutputChannelCount, p->opcfg.PreSkip, p->opcfg.InputSampleRate, p->opcfg.OutputGain, p->opcfg.ChannelMappingFamily);
 
-	if (p->ChannelMappingFamily) {
+	if (p->opcfg.ChannelMappingFamily) {
 		u32 i;
-		gf_fprintf(trace, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", p->StreamCount, p->CoupledCount);
-		for (i=0; i<p->OutputChannelCount; i++) {
-			gf_fprintf(trace, "%s%d", i ? " " : "", p->ChannelMapping[i]);
+		gf_fprintf(trace, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", p->opcfg.StreamCount, p->opcfg.CoupledCount);
+		for (i=0; i<p->opcfg.OutputChannelCount; i++) {
+			gf_fprintf(trace, "%s%d", i ? " " : "", p->opcfg.ChannelMapping[i]);
 		}
 		gf_fprintf(trace, "\"");
 	}

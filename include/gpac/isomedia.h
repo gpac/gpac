@@ -3761,11 +3761,33 @@ GF_Err gf_isom_flac_config_new(GF_ISOFile *isom_file, u32 trackNumber, u8 *metad
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sampleDescriptionIndex the target sample description index
-\param dsi set to the OPUS decoder config - shall be freeed by caller
-\param dsi_size set to the size of the OPUS decoder config
+\param dsi set to the OPUS decoder config (without OpusHead tag), may be NULL - shall be freeed by caller
+\param dsi_size set to the size of the OPUS decoder config, may be NULL
 \return error if any
 */
 GF_Err gf_isom_opus_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 **dsi, u32 *dsi_size);
+
+/*! gets a OPUS  sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param opcfg opus config to get
+\return error if any
+*/
+GF_Err gf_isom_opus_config_get_desc(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_OpusConfig *opcfg);
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+/*! creates a new opus  sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param cfg the opus stream configuration
+\param URLname URL value of the data reference, NULL if no data reference (media in the file)
+\param URNname URN value of the data reference, NULL if no data reference (media in the file)
+\param outDescriptionIndex set to the index of the created sample description
+\return error if any
+*/
+GF_Err gf_isom_opus_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_OpusConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -3847,8 +3869,6 @@ GF_Err gf_isom_new_mpha_description(GF_ISOFile *isom_file, u32 trackNumber, cons
 \return array of compatible profiles, NULL if none found
 */
 const u8 *gf_isom_get_mpegh_compatible_profiles(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *nb_compatible_profiles);
-
-
 
 /*! structure holding youtube 360 video info
 - cf https://github.com/google/spatial-media/blob/master/docs/spherical-video-v2-rfc.md#stereoscopic-3d-video-box-st3d
@@ -6713,7 +6733,7 @@ GF_Err gf_isom_enum_sample_group(GF_ISOFile *isom_file, u32 trackNumber, u32 sam
 \param sai_type set to the grouping type, or set to 0 if no more sample group descriptions, must not be NULL
 \param sai_parameter set to the grouping_type_parameter or 0 if not defined
 \param sai_data set (allocated) to the sample group description data, must not be NULL and must be freed by caller
-\param sgrp_size set to the sample group description size, must not be NULL
+\param sai_size set to the sample group description size, must not be NULL
 \return error if any
 */
 GF_Err gf_isom_enum_sample_aux_data(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_number, u32 *sai_idx, u32 *sai_type, u32 *sai_parameter, u8 **sai_data, u32 *sai_size);

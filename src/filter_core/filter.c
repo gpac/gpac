@@ -2048,6 +2048,7 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		is_new_chain = GF_FALSE;
 
 		//we will reassign packets from that pid instance to the new connection
+		assert(!filter_dst->swap_pidinst_dst);
 		filter_dst->swap_pidinst_dst = a_dst_pidi;
 
 		src_pidi->filter->removed = 2;
@@ -2109,6 +2110,8 @@ void gf_filter_renegociate_output_dst(GF_FilterPid *pid, GF_Filter *filter, GF_F
 		if (is_new_chain) {
 			//signal a stream reset is pending to prevent filter entering endless loop
 			safe_int_inc(&dst_pidi->filter->stream_reset_pending);
+			assert(!new_f->swap_pidinst_dst);
+			assert(!new_f->swap_pidinst_src);
 			//keep track of the pidinst being detached in the target filter
 			new_f->swap_pidinst_dst = dst_pidi;
 			//keep track of the pidinst being detached from the source filter

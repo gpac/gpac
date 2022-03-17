@@ -1039,6 +1039,12 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_MPEG2_MAIN:
 	case GF_CODECID_MPEG2_SIMPLE:
 	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_VP8:
+	case GF_CODECID_VP9:
+	case GF_CODECID_AV1:
+	case GF_CODECID_AC3:
+	case GF_CODECID_EAC3:
+	case GF_CODECID_OPUS:
 		if (!dsi && !enh_dsi) return GF_OK;
 		break;
 	case GF_CODECID_APCH:
@@ -2437,6 +2443,8 @@ sample_entry_setup:
 
 		if (dsi) {
 			gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3cfg);
+		} else {
+			if (codec_id==GF_CODECID_EAC3) ac3cfg.is_ec3 = GF_TRUE;
 		}
 		e = gf_isom_ac3_config_new(ctx->file, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 		if (e) {
@@ -2452,26 +2460,18 @@ sample_entry_setup:
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 	} else if (use_opus) {
-		GF_OpusSpecificBox *opus_cfg = NULL;
-		GF_BitStream *bs;
+		GF_OpusConfig opus_cfg;
 
 		if (!dsi) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] No decoder specific info found for opus\n" ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+		e = gf_odf_opus_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &opus_cfg);
+		if (!e)
+			e = gf_isom_opus_config_new(ctx->file, tkw->track_num, &opus_cfg, (char *)src_url, NULL, &tkw->stsd_idx);
 
-		bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
-		e = gf_isom_box_parse((GF_Box**)&opus_cfg, bs);
-		gf_bs_del(bs);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error parsing opus configuration data: %s\n", gf_error_to_string(e) ));
-			return e;
-		}
-
-		e = gf_isom_opus_config_new(ctx->file, tkw->track_num, opus_cfg, (char *)src_url, NULL, &tkw->stsd_idx);
-		if (opus_cfg) gf_isom_box_del((GF_Box*)opus_cfg);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new Opus audio sample description for stream type %d codecid %d: %s\n", tkw->stream_type, codec_id, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;

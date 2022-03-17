@@ -65,6 +65,8 @@ typedef struct
 	u32 tmcd_flags;
 	u32 tmcd_fpt;
 
+	u32 opus_channel_count;
+
 	u32 csize;
 	Bool buffer_done, no_analysis;
 
@@ -1500,36 +1502,57 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 	gf_inspect_dump_prores_internal(dump, ptr, frame_size, dump_crc, NULL);
 }
 
-static void gf_inspect_dump_opus_packet_internal(FILE *dump, u8 *ptr, u32 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc, PidCtx *pctx)
+static void gf_inspect_dump_opus_internal(FILE *dump, u8 *ptr, u32 size, u32 channel_count, Bool dump_crc, PidCtx *pctx)
 {
-    gf_fprintf(dump, "    <OpusPacket offset=\"%d\" self_delimited=\"%d\"", pck_offset, pckh.self_delimited);
-    gf_fprintf(dump, " header_size=\"%d\" config=\"%d\" stereo=\"%d\" code=\"%d\"", pckh.size, pckh.TOC_config, pckh.TOC_stereo, pckh.TOC_code);
-    if (pckh.TOC_code == 0) {
-        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0]);
-    } else if (pckh.TOC_code == 1) {
-        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
-    } else if (pckh.TOC_code == 2) {
-        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
-    } else if (pckh.TOC_code == 3) {
-        u32 j;
-        gf_fprintf(dump, " vbr=\"%d\" padding=\"%d\" padding_length=\"%d\" nb_frames=\"%d\"", pckh.code3_vbr, pckh.code3_padding, pckh.code3_padding_length, pckh.nb_frames);
-        gf_fprintf(dump, " frame_lengths=\"");
-        for(j=0;j<pckh.nb_frames;j++) {
-            if (j!=0) fprintf(dump, " ");
-            gf_fprintf(dump, "%d", pckh.frame_lengths[j]);
-        }
-        gf_fprintf(dump, "\"");
-        if (dump_crc) {
-            gf_fprintf(dump, " crc=\"%d\"" , gf_crc_32(ptr, (u32) size) );
-        }
-        gf_fprintf(dump, "/>\n");
-    }
+	u32 pck_offset=0;
+	u32 k;
+
+	if (pctx) channel_count = pctx->opus_channel_count;
+
+	for (k=0; k<channel_count; k++) {
+		u8 self_delimited = (k != channel_count-1);
+		GF_OpusPacketHeader pckh;
+		u8 headerres;
+
+		headerres = gf_opus_parse_packet_header(ptr+pck_offset, size-pck_offset, self_delimited, &pckh);
+		if (!headerres) break;
+
+		gf_fprintf(dump, "    <OpusPacket offset=\"%d\" self_delimited=\"%d\"", pck_offset, pckh.self_delimited);
+		gf_fprintf(dump, " header_size=\"%d\" config=\"%d\" stereo=\"%d\" code=\"%d\"", pckh.size, pckh.TOC_config, pckh.TOC_stereo, pckh.TOC_code);
+		if (pckh.TOC_code == 0) {
+			gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0]);
+		} else if (pckh.TOC_code == 1) {
+			gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
+		} else if (pckh.TOC_code == 2) {
+			gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
+		} else if (pckh.TOC_code == 3) {
+			u32 j;
+			gf_fprintf(dump, " vbr=\"%d\" padding=\"%d\" padding_length=\"%d\" nb_frames=\"%d\"", pckh.code3_vbr, pckh.code3_padding, pckh.code3_padding_length, pckh.nb_frames);
+			gf_fprintf(dump, " frame_lengths=\"");
+			for(j=0;j<pckh.nb_frames;j++) {
+				if (j!=0) fprintf(dump, " ");
+				gf_fprintf(dump, "%d", pckh.frame_lengths[j]);
+			}
+			gf_fprintf(dump, "\"");
+			if (dump_crc) {
+				gf_fprintf(dump, " crc=\"%d\"" , gf_crc_32(ptr, (u32) size) );
+			}
+			gf_fprintf(dump, "/>\n");
+		}
+
+		if (self_delimited) {
+			if (pck_offset+pckh.packet_size >= size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Opus] Not enough data to parse next self-delimited packet!\n"));
+			}
+			pck_offset += pckh.packet_size;
+		}
+	}
 }
 
 GF_EXPORT
-void gf_inspect_dump_opus_packet(FILE *dump, u8 *ptr, u64 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc)
+void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc)
 {
-    gf_inspect_dump_opus_packet_internal(dump, ptr, size, pck_offset, pckh, dump_crc, NULL);
+    gf_inspect_dump_opus_internal(dump, ptr, size, channel_count, dump_crc, NULL);
 }
 
 enum {
@@ -2970,6 +2993,10 @@ props_done:
 			gf_bs_reassign_buffer(pctx->bs, data, size);
 			gf_inspect_dump_truehd_frame(dump, pctx->bs);
 			break;
+		case GF_CODECID_OPUS:
+			gf_inspect_dump_opus_internal(dump, data, size, 0, ctx->crc, pctx);
+			break;
+
 		}
 	}
 #endif
@@ -3890,6 +3917,32 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 			prate = gf_bs_read_int(pctx->bs, 15);
 
 			gf_fprintf(dump, " format=\"%u\" peak_data_rate=\"%u\"/>\n", fmt, prate);
+		} else {
+			gf_fprintf(dump, "/>\n");
+			return;
+		}
+		break;
+
+	case GF_CODECID_OPUS:
+		if (dsi) {
+			GF_OpusConfig opcfg;
+			gf_fprintf(dump, ">\n");
+			gf_fprintf(dump, "<OpusConfiguration");
+			gf_odf_opus_cfg_parse(dsi->value.data.ptr, dsi->value.data.size, &opcfg);
+
+			gf_fprintf(dump, " version=\"%d\" OutputChannelCount=\"%d\" PreSkip=\"%d\" InputSampleRate=\"%d\" OutputGain=\"%d\" ChannelMappingFamily=\"%d\"",
+					opcfg.version, opcfg.OutputChannelCount, opcfg.PreSkip, opcfg.InputSampleRate, opcfg.OutputGain, opcfg.ChannelMappingFamily);
+			if (opcfg.ChannelMappingFamily) {
+				u32 i;
+				gf_fprintf(dump, " StreamCount=\"%d\" CoupledStreamCount=\"%d\" channelMapping=\"", opcfg.StreamCount, opcfg.CoupledCount);
+				for (i=0; i<opcfg.OutputChannelCount; i++) {
+					gf_fprintf(dump, "%s%d", i ? " " : "", opcfg.ChannelMapping[i]);
+				}
+				gf_fprintf(dump, "\"");
+			}
+			pctx->opus_channel_count = opcfg.StreamCount;
+			pctx->opus_channel_count = (opcfg.StreamCount ? opcfg.StreamCount : 1);
+			gf_fprintf(dump, "/>\n");
 		} else {
 			gf_fprintf(dump, "/>\n");
 			return;

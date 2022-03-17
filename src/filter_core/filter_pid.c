@@ -500,8 +500,8 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	if (filter->swap_needs_init) {
 		//we are in detach state, the packet queue of the old PID is never read
 		assert(filter->swap_pidinst_dst && filter->swap_pidinst_dst->detach_pending);
-		//we are in pending stete, the origin of the old PID is never dispatching
-		assert(dst->pid && dst->pid->filter && dst->pid->filter->out_pid_connection_pending);
+		//we are in pending state, the origin of the old PID is never dispatching
+//		assert(dst->pid && dst->pid->filter && dst->pid->filter->out_pid_connection_pending);
 		//we can therefore swap the packet queues safely and other important info
 	}
 	//otherwise we actually swap the pid instance on the same PID
@@ -511,6 +511,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 			gf_list_del_item(dst->pid->destinations, src);
 		if (gf_list_find(dst->pid->destinations, dst)<0)
 			gf_list_add(dst->pid->destinations, dst);
+		dst->pid->num_destinations = gf_list_count(dst->pid->destinations);
 		if (gf_list_find(dst->filter->input_pids, dst)<0) {
 			gf_list_add(dst->filter->input_pids, dst);
 			dst->filter->num_input_pids = gf_list_count(dst->filter->input_pids);
@@ -568,10 +569,14 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 		src->force_reconfig = GF_TRUE;
 		src->props = NULL;
 		if (prev_dst_props) {
-			gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
-			assert(prev_dst_props->reference_count);
-			if (safe_int_dec(&prev_dst_props->reference_count) == 0) {
-				gf_props_del(prev_dst_props);
+			if (dst->props) {
+				gf_props_merge_property(dst->props, prev_dst_props, NULL, NULL);
+				assert(prev_dst_props->reference_count);
+				if (safe_int_dec(&prev_dst_props->reference_count) == 0) {
+					gf_props_del(prev_dst_props);
+				}
+			} else {
+				dst->props = prev_dst_props;
 			}
 		}
 
@@ -616,6 +621,7 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	
 	if (filter->swap_pidinst_src) {
 		src = filter->swap_pidinst_src;
+		assert(!src->filter->swap_pidinst_dst);
 		src->filter->swap_pidinst_dst = filter->swap_pidinst_dst;
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_swap_delete_task, src->filter, src->pid, "pid_inst_delete", src);
 	}
@@ -888,6 +894,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				while (gf_list_count(filter->input_pids)) {
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
 					FSESS_CHECK_THREAD(filter)
+					filter->num_input_pids--;
 					filter->freg->configure_pid(filter, (GF_FilterPid *) a_pidinst, GF_TRUE);
 
 					gf_filter_pid_post_init_task(a_pidinst->pid->filter, a_pidinst->pid);

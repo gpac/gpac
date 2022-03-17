@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG-4 Object Descriptor sub-project
@@ -1645,6 +1645,63 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 \return Error if any
 */
 GF_Err gf_odf_ac3_config_parse_bs(GF_BitStream *bs, Bool is_ec3, GF_AC3Config *cfg);
+
+
+
+/*! Opus decoder config*/
+typedef struct
+{
+	//! version (should be 1)
+	u8 version;
+	//!same value as the *Output Channel Count* field in the identification header defined in Ogg Opus [3]
+	u8 OutputChannelCount;
+	//!The value of the PreSkip field shall be at least 80 milliseconds' worth of PCM samples even when removing any number of Opus samples which may or may not contain the priming samples. The PreSkip field is not used for discarding the priming samples at the whole playback at all since it is informative only, and that task falls on the Edit List Box.
+	u16 PreSkip;
+	//! The InputSampleRate field shall be set to the same value as the *Input Sample Rate* field in the identification header defined in Ogg Opus
+	u32 InputSampleRate;
+	//! The OutputGain field shall be set to the same value as the *Output Gain* field in the identification header define in Ogg Opus [3]. Note that the value is stored as 8.8 fixed-point.
+	s16 OutputGain;
+	//! The ChannelMappingFamily field shall be set to the same value as the *Channel Mapping Family* field in the identification header defined in Ogg Opus [3]. Note that the value 255 may be used for an alternative to map channels by ISO Base Media native mapping. The details are described in 4.5.1.
+	u8 ChannelMappingFamily;
+
+	//! The StreamCount field shall be set to the same value as the *Stream Count* field in the identification header defined in Ogg Opus [3].
+	u8 StreamCount;
+	//! The CoupledCount field shall be set to the same value as the *Coupled Count* field in the identification header defined in Ogg Opus [3].
+	u8 CoupledCount;
+	//! The ChannelMapping field shall be set to the same octet string as *Channel Mapping* field in the identi- fication header defined in Ogg Opus [3].
+	u8 ChannelMapping[255];
+} GF_OpusConfig;
+
+
+/*! writes Opus  config to buffer
+\param cfg the Opus config to write
+\param bs the bitstream object in which to write the config
+\return error if any
+*/
+GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs);
+
+/*! writes Opus config to buffer
+\param cfg the Opus config to write
+\param data set to created output buffer, must be freed by caller
+\param size set to created output buffer size
+\return error if any
+*/
+GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size);
+
+/*! parses an Opus sample description
+\param dsi the encoded config
+\param dsi_len the encoded config size
+\param cfg the Opus config to fill
+\return Error if any
+*/
+GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg);
+
+/*! parses an Opus sample description from bitstream
+\param bs the bitstream object
+\param cfg the Opus config to fill
+\return Error if any
+*/
+GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg);
 
 /*! destroy the descriptors in a list but not the list
 \param descList descriptor list to destroy

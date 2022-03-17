@@ -1822,3 +1822,57 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 	gf_bs_del(bs);
 	return e;
 }
+
+
+GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
+{
+	cfg->version = gf_bs_read_u8(bs);
+	cfg->OutputChannelCount = gf_bs_read_u8(bs);
+	cfg->PreSkip = gf_bs_read_u16_le(bs);
+	cfg->InputSampleRate = gf_bs_read_u32_le(bs);
+	cfg->OutputGain = gf_bs_read_u16_le(bs);
+	cfg->ChannelMappingFamily = gf_bs_read_u8(bs);
+	if (cfg->ChannelMappingFamily) {
+		cfg->StreamCount = gf_bs_read_u8(bs);
+		cfg->CoupledCount = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *) cfg->ChannelMapping, cfg->OutputChannelCount);
+	}
+	return GF_OK;
+}
+GF_Err gf_odf_opus_cfg_parse(u8 *dsi, u32 dsi_len, GF_OpusConfig *cfg)
+{
+	GF_BitStream *bs;
+	GF_Err e;
+	if (!cfg || !dsi) return GF_BAD_PARAM;
+	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
+	e = gf_odf_opus_cfg_parse_bs(bs, cfg);
+	gf_bs_del(bs);
+	return e;
+}
+
+GF_Err gf_odf_opus_cfg_write_bs(GF_OpusConfig *cfg, GF_BitStream *bs)
+{
+	if (!cfg || !bs) return GF_BAD_PARAM;
+	gf_bs_write_u8(bs, cfg->version);
+	gf_bs_write_u8(bs, cfg->OutputChannelCount);
+	gf_bs_write_u16_le(bs, cfg->PreSkip);
+	gf_bs_write_u32_le(bs, cfg->InputSampleRate);
+	gf_bs_write_u16_le(bs, cfg->OutputGain);
+	gf_bs_write_u8(bs, cfg->ChannelMappingFamily);
+	if (cfg->ChannelMappingFamily) {
+		gf_bs_write_u8(bs, cfg->StreamCount);
+		gf_bs_write_u8(bs, cfg->CoupledCount);
+		gf_bs_write_data(bs, (char *) cfg->ChannelMapping, cfg->OutputChannelCount);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_opus_cfg_write(GF_OpusConfig *cfg, u8 **data, u32 *size)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_Err e = gf_odf_opus_cfg_write_bs(cfg, bs);
+
+	gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+	return e;
+}

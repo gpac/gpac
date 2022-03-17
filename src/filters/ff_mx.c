@@ -47,6 +47,7 @@ typedef struct
 	Bool in_seg_flush;
 	u32 cts_shift;
 
+	Bool ready;
 	Bool suspended;
 	Bool reconfig_stream;
 } GF_FFMuxStream;
@@ -94,6 +95,7 @@ typedef struct
 	FILE *gfio;
 
 	u32 cur_file_idx_plus_one;
+	u32 probe_init;
 
 #if (LIBAVCODEC_VERSION_MAJOR < 59)
 	AVPacket pkt;
@@ -441,9 +443,27 @@ void ffmx_inject_config(GF_FilterPid *pid, GF_FFMuxStream *st, AVPacket *pkt)
 	if (st->reconfig_stream & FFMX_INJECT_DSI) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 		if (p && (p->type==GF_PROP_DATA) && p->value.data.ptr) {
-			data = av_packet_new_side_data(pkt, AV_PKT_DATA_NEW_EXTRADATA, p->value.data.size);
-			if (data)
-				memcpy(data, p->value.data.ptr, p->value.data.size);
+			u32 dsi_size = p->value.data.size;
+			u32 codec_id = 0;
+			const GF_PropertyValue *cid = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+			if (cid) codec_id = cid->value.uint;
+
+			if (codec_id==GF_CODECID_FLAC) {
+				dsi_size-=4;
+			} else if (codec_id==GF_CODECID_OPUS) {
+				dsi_size+=8;
+			}
+			data = av_packet_new_side_data(pkt, AV_PKT_DATA_NEW_EXTRADATA, dsi_size);
+			if (data) {
+				if (codec_id==GF_CODECID_FLAC) {
+					memcpy(data, p->value.data.ptr+4, p->value.data.size-4);
+				} else if (codec_id==GF_CODECID_OPUS) {
+					memcpy(data, "OpusHead", 8);
+					memcpy(data+8, p->value.data.ptr, p->value.data.size);
+				} else {
+					memcpy(data, p->value.data.ptr, p->value.data.size);
+				}
+			}
 		}
 	}
 	if (st->reconfig_stream & FFMX_INJECT_VID_INFO) {
@@ -504,12 +524,32 @@ static GF_Err ffmx_process(GF_Filter *filter)
 		Bool all_ready = GF_TRUE;
 		Bool needs_reinit = (ctx->status==FFMX_STATE_ALLOC) ? GF_TRUE : GF_FALSE;
 
+		//potpone until no pending connections so that we don't write header before all streams are declared
+		if (gf_filter_connections_pending(filter))
+			return GF_OK;
+
+		if (!ctx->probe_init) ctx->probe_init = gf_sys_clock();
+		else if (gf_sys_clock() - ctx->probe_init > 10000) {
+			for (i=0; i<nb_pids; i++) {
+				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+				gf_filter_pid_set_discard(ipid, GF_TRUE);
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Could not initialize stream list in 10s, aborting\n"));
+			return GF_SERVICE_ERROR;
+		}
+
 		for (i=0; i<nb_pids; i++) {
 			GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
-			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
 			GF_FilterPacket *ipck = gf_filter_pid_get_packet(ipid);
+			GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+			if (!st) continue;
 
-			if (needs_reinit) {
+			if (!st->ready) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DECODER_CONFIG);
+				if (!p) return GF_OK;
+			}
+
+			if (needs_reinit || !st->ready) {
 				e = ffmx_configure_pid(filter, ipid, GF_FALSE);
 				if (e) return e;
 			}
@@ -740,6 +780,38 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (!p) return GF_NOT_SUPPORTED;
 	codec_id = p->value.uint;
 
+	Bool stream_ready = GF_TRUE;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!p) {
+		//we must wait for decoder config to be present for these codecs
+		switch (codec_id) {
+		case GF_CODECID_MPEG1:
+		case GF_CODECID_MPEG2_422:
+		case GF_CODECID_MPEG2_SNR:
+		case GF_CODECID_MPEG2_HIGH:
+		case GF_CODECID_MPEG2_MAIN:
+		case GF_CODECID_MPEG2_SIMPLE:
+		case GF_CODECID_MPEG2_SPATIAL:
+		case GF_CODECID_MPEG4_PART2:
+		case GF_CODECID_AVC:
+		case GF_CODECID_HEVC:
+		case GF_CODECID_VVC:
+		case GF_CODECID_AV1:
+		case GF_CODECID_VP8:
+		case GF_CODECID_VP9:
+		case GF_CODECID_VP10:
+		case GF_CODECID_AC3:
+		case GF_CODECID_EAC3:
+		case GF_CODECID_FLAC:
+		case GF_CODECID_OPUS:
+		case GF_CODECID_VORBIS:
+			stream_ready = GF_FALSE;
+			break;
+		default:
+			break;
+		}
+	}
+
 	ff_st = ffmpeg_stream_type_from_gpac(streamtype);
 	if (codec_id==GF_CODECID_RAW) {
 		ff_codec_tag = 0;
@@ -801,6 +873,11 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (!st) {
 		GF_FilterEvent evt;
 
+		if (ctx->status > FFMX_STATE_HDR_DONE) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Cannot add new stream to container, header already written\n"));
+			return GF_NOT_SUPPORTED;
+		}
+
 		GF_SAFEALLOC(st, GF_FFMuxStream);
 		if (!st) return GF_OUT_OF_MEM;
 		gf_filter_pid_set_udta(pid, st);
@@ -809,6 +886,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_init_play_event(pid, &evt, ctx->start, ctx->speed, "FFMux");
 		gf_filter_pid_send_event(pid, &evt);
 	}
+	st->ready =  stream_ready;
 
 	if (ctx->status==FFMX_STATE_ALLOC) {
 		char szPath[GF_MAX_PATH];
@@ -889,13 +967,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	avst->codecpar->codec_tag = ff_codec_tag;
 
 	if (dsi && dsi->value.data.ptr) {
-		if (avst->codecpar->extradata) av_free(avst->codecpar->extradata);
-		avst->codecpar->extradata_size = dsi->value.data.size;
-		avst->codecpar->extradata = av_malloc(avst->codecpar->extradata_size+ AV_INPUT_BUFFER_PADDING_SIZE);
-		if (avst->codecpar->extradata) {
-			memcpy(avst->codecpar->extradata, dsi->value.data.ptr, avst->codecpar->extradata_size);
-			memset(avst->codecpar->extradata + dsi->value.data.size, 0, AV_INPUT_BUFFER_PADDING_SIZE);
-		}
+		GF_Err e = ffmpeg_extradata_from_gpac(codec_id, dsi->value.data.ptr, dsi->value.data.size, &avst->codecpar->extradata, &avst->codecpar->extradata_size);
+		if (e) return e;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 	if (p) avst->id = p->value.uint;
@@ -998,7 +1071,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 		if (p && (p->value.sint<0) && samplerate) {
-			s64 pad = p->value.longsint;
+			s64 pad = -p->value.longsint;
 			if (st->in_scale.den != samplerate) {
 				pad *= samplerate;
 				pad /= st->in_scale.den;

@@ -1443,6 +1443,7 @@ typedef struct __elementary_stream_ifce
 	/*! dv info, not valid if first byte not 1*/
 	u8 dv_info[24];
 
+	/*! registration authority code to use, 0 if not applicable*/
 	u32 ra_code;
 } GF_ESInterface;
 

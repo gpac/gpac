@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -344,23 +344,19 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO)
 			return GF_ISOM_INVALID_MEDIA;
 	{
-		GF_OpusSpecificBox *e = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
-		GF_BitStream *bs_out;
-		if (!e) {
+		GF_OpusSpecificBox *opus_c;
+		if (true_desc_only)
+			return GF_ISOM_INVALID_MEDIA;
+
+		opus_c = ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_opus;
+		if (!opus_c) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ESD not found for Opus\n)"));
 			break;
 		}
-
 		*out_esd = gf_odf_desc_esd_new(2);
 		(*out_esd)->decoderConfig->streamType = GF_STREAM_AUDIO;
 		(*out_esd)->decoderConfig->objectTypeIndication = GF_CODECID_OPUS;
-
-		//serialize box with header - compatibility with ffmpeg
-		bs_out = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_isom_box_size((GF_Box *) e);
-		gf_isom_box_write((GF_Box *) e, bs_out);
-		gf_bs_get_content(bs_out, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_bs_del(bs_out);
+		gf_odf_opus_cfg_write(&opus_c->opcfg, & (*out_esd)->decoderConfig->decoderSpecificInfo->data, & (*out_esd)->decoderConfig->decoderSpecificInfo->dataLength);
 		break;
 	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
@@ -857,7 +853,6 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		if (Track_IsMPEG4Stream(trak->Media->handler->handlerType)) {
 			Media_GetESD(trak->Media, 1, &esd, 1);
 			if (esd && esd->URLString) trak->Media->mediaHeader->duration = (u64) -1;
-
 		}
 		return GF_OK;
 	}

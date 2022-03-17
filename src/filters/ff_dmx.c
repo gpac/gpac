@@ -130,6 +130,15 @@ void ffdmx_shared_pck_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPac
 	}
 }
 
+static void ffdmx_set_decoder_config(GF_FilterPid *pid, const u8 *exdata, u32 exdata_size, u32 gpac_codec_id)
+{
+	u8 *dsi;
+	u32 dsi_size;
+	GF_Err e = ffmpeg_extradata_to_gpac(gpac_codec_id, exdata, exdata_size, &dsi, &dsi_size);
+	if (!e)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY( dsi, dsi_size) );
+}
+
 static GF_Err ffdmx_process(GF_Filter *filter)
 {
 	GF_Err e;
@@ -229,7 +238,12 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		for (i=0; i < (u32) pkt->side_data_elems; i++) {
 			AVPacketSideData *sd = &pkt->side_data[i];
 			if (sd->type == AV_PKT_DATA_NEW_EXTRADATA) {
-				gf_filter_pid_set_property(pctx->pid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA(sd->data, sd->size) );
+				if (sd->data) {
+					u32 cid = 0;
+					const GF_PropertyValue *p = gf_filter_pid_get_property(pctx->pid, GF_PROP_PID_CODECID);
+					if (p) cid = p->value.uint;
+					ffdmx_set_decoder_config(pctx->pid, sd->data, sd->size, 0);
+				}
 			}
 			else if (sd->type == AV_PKT_DATA_PARAM_CHANGE) {
 				GF_BitStream *bs = gf_bs_new(sd->data, sd->size, GF_BITSTREAM_READ);
@@ -385,7 +399,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 		Bool force_reframer = GF_FALSE;
 		Bool expose_ffdec=GF_FALSE;
 		u32 gpac_codec_id;
-		Bool rewrite_flac=GF_FALSE;
 		AVStream *stream = ctx->demuxer->streams[i];
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 		AVCodecContext *codec = stream->codec;
@@ -540,12 +553,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 				break;
 			}
 		}
-		//flac DSI is only STREAMINFO block in ffmpeg, without block header
-		if (gpac_codec_id==GF_CODECID_FLAC) {
-			if ((exdata_size>4) && (GF_4CC(exdata[0],exdata[1], exdata[2], exdata[3]) != GF_4CC('f', 'L', 'a', 'c'))) {
-				rewrite_flac = GF_TRUE;
-			}
-		}
+
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec_id);
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
@@ -570,20 +578,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			}
 
 			if (!force_reframer) {
-				if (rewrite_flac) {
-					u8 *data_dst = gf_malloc(exdata_size+4);
-					if (data_dst) {
-						data_dst[0] = (exdata_size==34) ? 0x80 : 0;
-						data_dst[1] = exdata_size >> 16;
-						data_dst[2] = exdata_size >> 8;
-						data_dst[3] = exdata_size & 0xFF;
-						memcpy(data_dst+4, exdata, exdata_size);
-						gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(data_dst, 4+exdata_size) );
-					}
-				} else {
-					//expose as const data
-					gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)exdata, exdata_size) );
-				}
+				ffdmx_set_decoder_config(pid, exdata, exdata_size, gpac_codec_id);
 			}
 		}
 

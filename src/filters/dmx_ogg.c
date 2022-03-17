@@ -30,7 +30,6 @@
 
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 #include <gpac/internal/ogg.h>
-#include <gpac/internal/isomedia_dev.h>
 //#include <ogg/ogg.h>
 #include <gpac/avparse.h>
 #include <gpac/base_coding.h>
@@ -72,7 +71,7 @@ typedef struct
 
 	GF_VorbisParser *vorbis_parser;
 
-	GF_OpusParser *opus_parser;
+	GF_OpusConfig *opus_cfg;
 } GF_OGGStream;
 
 typedef struct
@@ -222,23 +221,9 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 
 	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header
 	if (st->info.type==GF_CODECID_OPUS) {
-		GF_OpusSpecificBox *opus = (GF_OpusSpecificBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DOPS);
 		st->dsi_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		opus->version = 0;
-
-		opus->OutputChannelCount = st->opus_parser->OutputChannelCount;
-		opus->PreSkip = st->opus_parser->PreSkip;
-		opus->InputSampleRate = st->opus_parser->InputSampleRate;
-		opus->OutputGain = st->opus_parser->OutputGain;
-		opus->ChannelMappingFamily = st->opus_parser->ChannelMappingFamily;
-		opus->StreamCount = st->opus_parser->StreamCount;
-		opus->CoupledCount = st->opus_parser->CoupledCount;
-		memcpy(opus->ChannelMapping, st->opus_parser->ChannelMapping, sizeof(char)*255);
-		gf_isom_box_size((GF_Box *) opus);
-		gf_isom_box_write((GF_Box *) opus, st->dsi_bs);
-		gf_isom_box_del((GF_Box *) opus);
-
-		st->info.nb_chan = st->opus_parser->OutputChannelCount;
+		gf_odf_opus_cfg_write_bs(st->opus_cfg, st->dsi_bs);
+		st->info.nb_chan = st->opus_cfg->OutputChannelCount;
 	}
 
 	if (st->dsi_bs) {
@@ -322,7 +307,7 @@ static void oggdmx_new_stream(GF_Filter *filter, GF_OGGDmxCtx *ctx, ogg_page *og
 		GF_SAFEALLOC(st->vorbis_parser, GF_VorbisParser);
 		break;
 	case GF_CODECID_OPUS:
-		GF_SAFEALLOC(st->opus_parser, GF_OpusParser);
+		GF_SAFEALLOC(st->opus_cfg, GF_OpusConfig);
 		break;
 	default:
 		break;
@@ -384,7 +369,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	u64 max_gran;
 	Bool has_stream = GF_FALSE;
 	GF_VorbisParser vp;
-	GF_OpusParser op;
+	GF_OpusConfig op;
 	u64 recompute_ts;
 	GF_Fraction64 dur;
 
@@ -796,7 +781,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 					}
 					break;
 				case GF_CODECID_OPUS:
-					res = gf_opus_parse_header(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
+					res = gf_opus_parse_header(st->opus_cfg, (char *) oggpacket.packet, oggpacket.bytes);
 					if (!res) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to parse Opus header\n"));
 					}
@@ -850,7 +835,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!block_size) continue;
 					}
 					else if (st->info.type==GF_CODECID_OPUS) {
-						block_size = gf_opus_check_frame(st->opus_parser, (char *) oggpacket.packet, oggpacket.bytes);
+						block_size = gf_opus_check_frame(st->opus_cfg, (char *) oggpacket.packet, oggpacket.bytes);
 						if (!block_size) {
 							if ((oggpacket.bytes>8) && !strnicmp(oggpacket.packet, "OpusTags", 8)) {
 								oggdmx_parse_tags(filter, st, oggpacket.packet + 8, oggpacket.bytes - 8);
@@ -861,7 +846,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 						if (!st->recomputed_ts) {
 							//compat with old arch (keep same hashes), to remove once dropping it
 							if (!gf_sys_old_arch_compat()) {
-								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -st->opus_parser->PreSkip));
+								gf_filter_pid_set_property(st->opid, GF_PROP_PID_DELAY, &PROP_LONGSINT( -st->opus_cfg->PreSkip));
 							}
 						}
 					}
@@ -927,7 +912,7 @@ static void oggdmx_finalize(GF_Filter *filter)
 		ogg_stream_clear(&st->os);
 		if (st->dsi_bs) gf_bs_del(st->dsi_bs);
 		if (st->vorbis_parser) gf_free(st->vorbis_parser);
-		if (st->opus_parser) gf_free(st->opus_parser);
+		if (st->opus_cfg) gf_free(st->opus_cfg);
 		gf_free(st);
 	}
 	gf_list_del(ctx->streams);

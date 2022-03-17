@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -564,7 +564,6 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
 /*!
 \brief transfer content from source bitstream to destination bitstream
 
-Returns the size of the associated buffer/file.
 \param dst the target bitstream
 \param src the source bitstream.
 \param keep_src If not set, the source bitstream is empty after calling the function
