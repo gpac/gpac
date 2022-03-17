@@ -108,6 +108,7 @@ typedef struct
 
 	u32 clli_crc, mdcv_crc;
 	Bool copy_props;
+	Bool patch_pts;
 } GF_AV1DmxCtx;
 
 
@@ -781,15 +782,27 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 
 		if (ctx->pts_from_file) {
+			if (ctx->patch_pts) {
+				pts *= ctx->cur_fps.den;
+			}
 			pts += ctx->cumulated_dur;
-			if (ctx->last_pts && (ctx->last_pts>pts)) {
+			if (ctx->last_pts && (ctx->last_pts-1>pts)) {
 				pts -= ctx->cumulated_dur;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts));
-				ctx->cumulated_dur = ctx->last_pts + ctx->cur_fps.den;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than previous timestamp "LLU", assuming concatenation\n", pts, ctx->last_pts-1));
+				ctx->cumulated_dur = ctx->last_pts-1 + ctx->cur_fps.den;
 				ctx->cumulated_dur -= pts;
 				pts = ctx->cumulated_dur;
 			}
-			ctx->last_pts = pts;
+			if (!ctx->patch_pts && ctx->last_pts && (pts>ctx->last_pts-1) && (pts - ctx->last_pts+1 < ctx->cur_fps.den)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than IVF timebase %u, assuming PTS is a frame count\n", pts, ctx->cur_fps.den));
+				ctx->patch_pts = GF_TRUE;
+				pts *= ctx->cur_fps.den;
+			}
+			else if (ctx->patch_pts && ctx->last_pts && (pts>ctx->last_pts-1) && (pts - ctx->last_pts+1 >= ctx->cur_fps.den*ctx->cur_fps.den)) {
+				ctx->patch_pts = GF_FALSE;
+				pts /= ctx->cur_fps.den;
+			}
+			ctx->last_pts = pts+1;
 		}
 	} else {
 		//raw framed input, each packet is a frame
