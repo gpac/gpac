@@ -755,8 +755,7 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 
 	switch (field.fieldType) {
 	case GF_SG_VRML_SFNODE:
-		assert ( *(GF_Node **)field.far_ptr);
-		gf_dump_vrml_node(sdump, *(GF_Node **)field.far_ptr, 0, NULL);
+		gf_dump_vrml_node(sdump, field.far_ptr ? *(GF_Node **)field.far_ptr : NULL, 0, NULL);
 		return;
 	case GF_SG_VRML_MFNODE:
 		list = * ((GF_ChildNodeItem **) field.far_ptr);
