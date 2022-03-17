@@ -242,7 +242,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 					u32 cid = 0;
 					const GF_PropertyValue *p = gf_filter_pid_get_property(pctx->pid, GF_PROP_PID_CODECID);
 					if (p) cid = p->value.uint;
-					ffdmx_set_decoder_config(pctx->pid, sd->data, sd->size, 0);
+					ffdmx_set_decoder_config(pctx->pid, sd->data, sd->size, cid);
 				}
 			}
 			else if (sd->type == AV_PKT_DATA_PARAM_CHANGE) {
