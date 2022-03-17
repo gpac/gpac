@@ -1015,6 +1015,33 @@ u32 gf_av1_leb128_size(u64 value);
 u64 gf_av1_leb128_write(GF_BitStream *bs, u64 value);
 GF_Err gf_av1_parse_obu_header(GF_BitStream *bs, ObuType *obu_type, Bool *obu_extension_flag, Bool *obu_has_size_field, u8 *temporal_id, u8 *spatial_id);
 
+/*! OPUS packet header*/
+typedef struct
+{
+    Bool self_delimited;
+
+    // parsed header size
+    u8 size;
+
+    u16 self_delimited_length;
+    u8 TOC_config;
+    u8 TOC_stereo;
+    u8 TOC_code;
+    u16 code2_frame_length;
+    u8 code3_vbr;
+    u8 code3_padding;
+    u16 code3_padding_length;
+
+    u8 nb_frames;
+    // either explicitly coded (e.g. self_delimited) or computer (e.g. cbr)
+    u16 frame_lengths[255];
+
+    // computed packet size
+    u32 packet_size;
+} GF_OpusPacketHeader;
+
+u8 gf_opus_parse_packet_header(u8 *data, u32 data_length, Bool self_delimited, GF_OpusPacketHeader *header);
+
 typedef struct
 {
 	u32 picture_size;

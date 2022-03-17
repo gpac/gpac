@@ -4342,7 +4342,7 @@ GF_Err dimC_box_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err dOps_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_OpusSpecificBox *p = (GF_OpusSpecificBox *)a;

@@ -1499,6 +1499,39 @@ void gf_inspect_dump_prores(FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc)
 {
 	gf_inspect_dump_prores_internal(dump, ptr, frame_size, dump_crc, NULL);
 }
+
+static void gf_inspect_dump_opus_packet_internal(FILE *dump, u8 *ptr, u32 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc, PidCtx *pctx)
+{
+    gf_fprintf(dump, "    <OpusPacket offset=\"%d\" self_delimited=\"%d\"", pck_offset, pckh.self_delimited);
+    gf_fprintf(dump, " header_size=\"%d\" config=\"%d\" stereo=\"%d\" code=\"%d\"", pckh.size, pckh.TOC_config, pckh.TOC_stereo, pckh.TOC_code);
+    if (pckh.TOC_code == 0) {
+        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0]);
+    } else if (pckh.TOC_code == 1) {
+        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
+    } else if (pckh.TOC_code == 2) {
+        gf_fprintf(dump, " nb_frames=\"%d\" frame_lengths=\"%d %d\"/>\n", pckh.nb_frames, pckh.frame_lengths[0], pckh.frame_lengths[1]);
+    } else if (pckh.TOC_code == 3) {
+        u32 j;
+        gf_fprintf(dump, " vbr=\"%d\" padding=\"%d\" padding_length=\"%d\" nb_frames=\"%d\"", pckh.code3_vbr, pckh.code3_padding, pckh.code3_padding_length, pckh.nb_frames);
+        gf_fprintf(dump, " frame_lengths=\"");
+        for(j=0;j<pckh.nb_frames;j++) {
+            if (j!=0) fprintf(dump, " ");
+            gf_fprintf(dump, "%d", pckh.frame_lengths[j]);
+        }
+        gf_fprintf(dump, "\"");
+        if (dump_crc) {
+            gf_fprintf(dump, " crc=\"%d\"" , gf_crc_32(ptr, (u32) size) );
+        }
+        gf_fprintf(dump, "/>\n");
+    }
+}
+
+GF_EXPORT
+void gf_inspect_dump_opus_packet(FILE *dump, u8 *ptr, u64 size, u32 pck_offset, GF_OpusPacketHeader pckh, Bool dump_crc)
+{
+    gf_inspect_dump_opus_packet_internal(dump, ptr, size, pck_offset, pckh, dump_crc, NULL);
+}
+
 enum {
 	MHAS_FILLER = 0,
 	MHAS_CONFIG,
