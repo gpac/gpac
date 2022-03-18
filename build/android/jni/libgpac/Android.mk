@@ -221,6 +221,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/mux_avi.c \
 	../../../../src/filters/mux_gsf.c \
 	../../../../src/filters/mux_isom.c \
+	../../../../src/filters/mux_ogg.c \
 	../../../../src/filters/mux_ts.c \
 	../../../../src/filters/out_audio.c \
 	../../../../src/filters/out_file.c \

@@ -320,6 +320,7 @@
     <ClCompile Include="..\..\src\filters\mux_avi.c" />
     <ClCompile Include="..\..\src\filters\mux_gsf.c" />
     <ClCompile Include="..\..\src\filters\mux_isom.c" />
+    <ClCompile Include="..\..\src\filters\mux_ogg.c" />
     <ClCompile Include="..\..\src\filters\mux_ts.c" />
     <ClCompile Include="..\..\src\filters\out_audio.c" />
     <ClCompile Include="..\..\src\filters\out_file.c" />
