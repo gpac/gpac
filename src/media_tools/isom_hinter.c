@@ -532,6 +532,11 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			streamType = GF_STREAM_AUDIO;
 			gf_isom_get_audio_info(file, TrackNum, 1, NULL, &nb_ch, NULL);
 			break;
+		case GF_ISOM_SUBTYPE_EC3:
+			hintType = GF_RTP_PAYT_EAC3;
+			streamType = GF_STREAM_AUDIO;
+			gf_isom_get_audio_info(file, TrackNum, 1, NULL, &nb_ch, NULL);
+			break;
 		case GF_ISOM_SUBTYPE_MP3:
 		{
 			GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);

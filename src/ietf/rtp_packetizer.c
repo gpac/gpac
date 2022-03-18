@@ -118,6 +118,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration);
 #endif
 	case GF_RTP_PAYT_AC3:
+	case GF_RTP_PAYT_EAC3:
 		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_HEVC:
 	case GF_RTP_PAYT_LHVC:
@@ -536,6 +537,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 	case GF_RTP_PAYT_AC3:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "ac3");
+		return GF_TRUE;
+	case GF_RTP_PAYT_EAC3:
+		strcpy(szMediaName, "audio");
+		strcpy(szPayloadName, "eac3");
 		return GF_TRUE;
 	case GF_RTP_PAYT_H264_SVC:
 		strcpy(szMediaName, "video");
