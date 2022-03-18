@@ -202,6 +202,12 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 	}
 	gf_filter_pck_set_framing(pck, hdr->accessUnitStartFlag, hdr->accessUnitEndFlag);
 
+	if (stream->depacketizer && stream->depacketizer->sl_map.config_updated) {
+		stream->depacketizer->sl_map.config_updated = 0;
+		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->depacketizer->sl_map.config, stream->depacketizer->sl_map.configSize) );
+	}
+
+
 	if (stream->rtp_ch->packet_loss)
 		gf_filter_pck_set_corrupted(pck, 1);
 

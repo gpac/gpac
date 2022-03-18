@@ -1220,6 +1220,7 @@ typedef struct
 	/*config of the stream if carried in SDP*/
 	u8 *config;
 	u32 configSize;
+	u8 config_updated;
 	/* Stream Type*/
 	u8 StreamType;
 	/* stream profile and level indication - for AVC/H264, 0xPPCCLL, with PP:profile, CC:compatibility, LL:level*/
