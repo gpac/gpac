@@ -1994,7 +1994,16 @@ static GF_Err dasher_get_rfc_6381_codec_name(GF_DasherCtx *ctx, GF_DashStream *d
 				if (p) subtype = gf_audio_fmt_to_isobmf(p->value.uint);
 			}
 		}
+
 		if (!subtype) {
+			const char *mime = gf_codecid_mime(ds->codec_id);
+			if (mime) mime = strchr(mime, '/');
+			if (mime) mime++;
+			if (mime && mime[0]) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[Dasher] codec parameters not known, using mime type %s\n", mime));
+				strcpy(szCodec, mime);
+				return GF_OK;
+			}
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] codec parameters not known, cannot set codec string\n" ));
 			strcpy(szCodec, "unkn");
 			return GF_OK;
@@ -5950,12 +5959,19 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 				}
 			}
 			//check if this rep should be muxed: same rep ID, not raw format, not CMAF
-			if (a_ds->muxed_base) continue;
+			if (a_ds->muxed_base) {
+				//happens when we switch base_ds to use video one
+				if (a_ds->muxed_base == ds) ds->nb_comp++;
+				continue;
+			}
 			if (ctx->muxtype==DASHER_MUX_RAW) continue;
 			if (ctx->cmaf) continue;
 			if (strcmp(a_ds->rep_id, ds->rep_id)) continue;
 			if (a_ds->template && ds->template && strcmp(a_ds->template, ds->template)) continue;
 
+
+			if (!ds_video && (a_ds->stream_type==GF_STREAM_VISUAL))
+				ds_video = a_ds;
 
 			a_ds->muxed_base = ds;
 			a_ds->dash_dur = ds->dash_dur;
@@ -5985,14 +6001,21 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			}
 		}
 		//use video as main stream for segmentation of muxed sources
-		if (ds_video != ds) {
+		if (ds_video && (ds_video != ds)) {
+			u32 nb_comp = ds->nb_comp;
 			for (j=0; j<count; j++) {
 				GF_DashStream *a_ds = gf_list_get(ctx->current_period->streams, j);
 				if ((a_ds->muxed_base==ds) || (a_ds==ds)) {
-					if (a_ds == ds_video)
+					if (a_ds == ds_video) {
 						a_ds->muxed_base = NULL;
-					else
+						a_ds->nb_comp = nb_comp;
+						if (a_ds->rep->codecs) gf_free(a_ds->rep->codecs);
+						a_ds->rep->codecs = ds->rep->codecs;
+						ds->rep->codecs = NULL;
+					} else {
 						a_ds->muxed_base = ds_video;
+						a_ds->nb_comp = 1;
+					}
 				}
 			}
 		}
