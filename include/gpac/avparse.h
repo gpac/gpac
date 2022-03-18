@@ -659,6 +659,17 @@ Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Config *out_hdr,
 \return GF_TRUE if success
 */
 Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
+
+/*! parses an EAC-3 header from a buffer and checks for next frame/blocks presence
+\param buffer buffer to parse
+\param buffer_size size of buffer to parse
+\param pos set to start offset (in bytes) of the AC3 header parsed
+\param hdr will be filled by parser
+\param full_parse if GF_TRUE, complete parsing of the header will be done
+\return GF_TRUE if success
+*/
+Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse);
+
 /*! parses an EAC-3 header from a bitstream and checks for next frale/blocks presence
 \param bs bitstream to parse
 \param hdr will be filled by parser

@@ -1124,7 +1124,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
+static void gf_rtp_parse_ac3_eac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size, Bool is_eac3)
 {
 	u8 ft;
 
@@ -1142,8 +1142,14 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
-			if (!gf_ac3_parser((u8*)payload, size, &offset, &ac3hdr, GF_FALSE)) {
-				return;
+			if (is_eac3) {
+				if (!gf_eac3_parser((u8*)payload, size, &offset, &ac3hdr, GF_FALSE)) {
+					return;
+				}
+			} else {
+				if (!gf_ac3_parser((u8*)payload, size, &offset, &ac3hdr, GF_FALSE)) {
+					return;
+				}
 			}
 			if (offset) {
 				if (offset>size) return;
@@ -1151,6 +1157,7 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 				size-=offset;
 			}
 			if (!rtp->sl_map.config) {
+				ac3hdr.is_ec3 = is_eac3;
 				gf_odf_ac3_cfg_write(&ac3hdr, &rtp->sl_map.config, &rtp->sl_map.configSize);
 				rtp->sl_map.config_updated = 1;
 			}
@@ -1170,6 +1177,14 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 		rtp->sl_hdr.accessUnitEndFlag = 0;
 		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
 	}
+}
+static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
+{
+	gf_rtp_parse_ac3_eac3(rtp, hdr, payload, size, GF_FALSE);
+}
+static void gf_rtp_parse_eac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
+{
+	gf_rtp_parse_ac3_eac3(rtp, hdr, payload, size, GF_TRUE);
 }
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
@@ -1213,6 +1228,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
 #endif
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
+	else if (!stricmp(map->payload_name, "eac3")) return GF_RTP_PAYT_EAC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
 	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_LHVC;
@@ -1816,6 +1832,13 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ac3;
+		break;
+	case GF_RTP_PAYT_EAC3:
+		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
+		rtp->sl_map.CodecID = GF_CODECID_EAC3;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
+		/*assign depacketizer*/
+		rtp->depacketize = gf_rtp_parse_eac3;
 		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 	default:

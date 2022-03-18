@@ -9147,6 +9147,23 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
 	return gf_eac3_parser_internal(bs, hdr, full_parse, GF_FALSE);
 }
+
+GF_EXPORT
+Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse)
+{
+	GF_BitStream *bs;
+	Bool ret;
+
+	if (buflen < 6) return GF_FALSE;
+	(*pos) = AC3_FindSyncCode(buf, buflen);
+	if (*pos >= buflen) return GF_FALSE;
+
+	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
+	ret = gf_eac3_parser_internal(bs, hdr, full_parse, GF_TRUE);
+	gf_bs_del(bs);
+	return ret;
+}
+
 GF_EXPORT
 Bool gf_eac3_parser_header_bs(GF_BitStream *bs, GF_AC3Config *hdr)
 {

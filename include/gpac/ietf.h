@@ -1400,6 +1400,8 @@ enum
 	GF_RTP_PAYT_LATM,
 	/*use AC3 audio format*/
 	GF_RTP_PAYT_AC3,
+	/*use EAC3 audio format*/
+	GF_RTP_PAYT_EAC3,
 	/*use H264-SVC transport*/
 	GF_RTP_PAYT_H264_SVC,
 	/*use HEVC/H265 transport (RFC 7798)*/

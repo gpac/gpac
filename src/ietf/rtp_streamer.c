@@ -364,6 +364,11 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 		streamType = GF_STREAM_AUDIO;
 		has_mpeg4_mapping = GF_TRUE;
 		break;
+	case GF_CODECID_EAC3:
+		rtp_type = GF_RTP_PAYT_EAC3;
+		streamType = GF_STREAM_AUDIO;
+		has_mpeg4_mapping = GF_FALSE;
+		break;
 
 	case GF_CODECID_QCELP:
 		required_rate = 8000;
