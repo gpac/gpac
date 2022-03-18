@@ -1985,9 +1985,9 @@ typedef enum {
 	CS_RGB = 7,
 } VP9_color_space;
 
-static const int VP9_CS_to_23001_8_colour_primaries[] = { 2, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
-static const int VP9_CS_to_23001_8_transfer_characteristics[] = { 2, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
-static const int VP9_CS_to_23001_8_matrix_coefficients[] = { 2, 6, 1, -1, -1, 9, -1/*reserved*/, 0 };
+static const int VP9_CS_to_23001_8_colour_primaries[] = { 2/*unspecified*/, 5, 1, 6, 7, 9, -1/*reserved*/, 1 };
+static const int VP9_CS_to_23001_8_transfer_characteristics[] = { 2/*unspecified*/, 5, 1, 6, 7, 9, -1/*reserved*/, 13 };
+static const int VP9_CS_to_23001_8_matrix_coefficients[] = { 2/*unspecified*/, 6, 1, -1, -1, 9, -1/*reserved*/, 0 };
 
 static GF_Err vp9_color_config(GF_BitStream *bs, GF_VPConfig *vp9_cfg)
 {
