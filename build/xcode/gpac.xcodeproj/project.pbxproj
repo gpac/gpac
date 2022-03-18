@@ -247,6 +247,7 @@
 		926F15531FE867B000C40779 /* write_vtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15521FE867B000C40779 /* write_vtt.c */; };
 		926F15551FE964D000C40779 /* write_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15541FE964CF00C40779 /* write_nhnt.c */; };
 		926F15571FE986B000C40779 /* write_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 926F15561FE986B000C40779 /* write_nhml.c */; };
+		9272B50427E34CDF00D9D304 /* mux_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9272B50327E34CDF00D9D304 /* mux_ogg.c */; };
 		9273463323506D370081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 9273463223506D370081AF74 /* storage.c */; };
 		9274295824647AB8009ADD8D /* bsrw.c in Sources */ = {isa = PBXBuildFile; fileRef = 9274295724647AB8009ADD8D /* bsrw.c */; };
 		92754D60207D24F600170383 /* filelist.c in Sources */ = {isa = PBXBuildFile; fileRef = 92754D5F207D24F600170383 /* filelist.c */; };
@@ -907,6 +908,7 @@
 		926F15521FE867B000C40779 /* write_vtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_vtt.c; path = filters/write_vtt.c; sourceTree = "<group>"; };
 		926F15541FE964CF00C40779 /* write_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nhnt.c; path = filters/write_nhnt.c; sourceTree = "<group>"; };
 		926F15561FE986B000C40779 /* write_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_nhml.c; path = filters/write_nhml.c; sourceTree = "<group>"; };
+		9272B50327E34CDF00D9D304 /* mux_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ogg.c; path = filters/mux_ogg.c; sourceTree = "<group>"; };
 		9273463223506D370081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = jsmods/storage.c; sourceTree = "<group>"; };
 		9274295724647AB8009ADD8D /* bsrw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsrw.c; path = filters/bsrw.c; sourceTree = "<group>"; };
 		92754D5F207D24F600170383 /* filelist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filelist.c; path = filters/filelist.c; sourceTree = "<group>"; };
@@ -2020,6 +2022,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				9272B50327E34CDF00D9D304 /* mux_ogg.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
 				9274295724647AB8009ADD8D /* bsrw.c */,
@@ -2746,6 +2749,7 @@
 				9286070F239576D900FDA1ED /* tssplit.c in Sources */,
 				92BB85751F7BFB63009BC9C8 /* inspect.c in Sources */,
 				92B9A5721F8660D700A24FE4 /* mpeg4_animstream.c in Sources */,
+				9272B50427E34CDF00D9D304 /* mux_ogg.c in Sources */,
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
 				92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */,
 				926F15551FE964D000C40779 /* write_nhnt.c in Sources */,

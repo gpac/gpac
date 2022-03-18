@@ -1325,6 +1325,9 @@
     <ClCompile Include="..\..\src\filters\mux_isom.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\mux_ogg.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\out_audio.c">
       <Filter>filters</Filter>
     </ClCompile>

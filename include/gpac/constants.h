@@ -349,7 +349,13 @@ u32 gf_pixel_fmt_to_qt_type(GF_PixelFormat pixfmt);
 /*!
 \brief Codec IDs
 
-Codec ID identifies the stream coding type. The enum is divided into values less than 255, which are equivalent to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types*/
+Codec ID identifies the stream coding type. The enum is divided into values less than 255, which are equivalent to MPEG-4 systems ObjectTypeIndication. Other values are 4CCs, usually matching ISOMEDIA sample entry types.
+
+Unless specified otherwise the decoder configuration is:
+- the one specified in MPEG-4 systems if any
+- or the one defined in ISOBMFF and derived specs (3GPP, dolby, etc) if any
+- or NULL
+*/
 typedef enum
 {
 	/*!Never used by PID declarations, but used by filters caps*/
@@ -502,7 +508,7 @@ typedef enum
 	/*!
 		\brief OGG DecoderConfig
 
-	 The DecoderConfig for theora, vorbis, flac and opus contains all intitialization ogg packets for the codec
+	 The DecoderConfig for theora, vorbis and speek contains all intitialization ogg packets for the codec
 	  and is formatted as follows:\n
 	 \code
 	  while (dsi_size) {
@@ -511,6 +517,11 @@ typedef enum
 			dsi_size -= packet_size;
 		}
 	 \endcode
+
+	 The DecoderConfig for FLAC is the full flac header without "fLaC" magic
+
+	 The DecoderConfig for OPUS is the full opus header without "OpusHead" magic
+
 	*/
 	/*! codecid for theora video streams*/
 	GF_CODECID_THEORA = GF_4CC('t','h','e','u'),

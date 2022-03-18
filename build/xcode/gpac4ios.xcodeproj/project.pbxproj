@@ -369,6 +369,7 @@
 		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
 		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		9262B10C24B7791B009B059D /* core.c in Sources */ = {isa = PBXBuildFile; fileRef = 9262B10B24B7791B009B059D /* core.c */; };
+		9272B50627E4EFAD00D9D304 /* mux_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9272B50527E4EFAD00D9D304 /* mux_ogg.c */; };
 		92734635235084A50081AF74 /* storage.c in Sources */ = {isa = PBXBuildFile; fileRef = 92734634235084A50081AF74 /* storage.c */; };
 		9274295A24647B98009ADD8D /* bsrw.c in Sources */ = {isa = PBXBuildFile; fileRef = 9274295924647B98009ADD8D /* bsrw.c */; };
 		9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 9236FDEF1DD23F1400B3E86F /* iTunesArtwork */; };
@@ -971,6 +972,7 @@
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
 		925FF2A41ABC53F30085B04C /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		9262B10B24B7791B009B059D /* core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = core.c; path = ../../src/jsmods/core.c; sourceTree = "<group>"; };
+		9272B50527E4EFAD00D9D304 /* mux_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_ogg.c; path = ../../src/filters/mux_ogg.c; sourceTree = "<group>"; };
 		92734634235084A50081AF74 /* storage.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = storage.c; path = ../../src/jsmods/storage.c; sourceTree = "<group>"; };
 		9274295924647B98009ADD8D /* bsrw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bsrw.c; path = ../../src/filters/bsrw.c; sourceTree = "<group>"; };
 		9281B62E21C92D00006B0FD5 /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../share/gui; sourceTree = "<group>"; };
@@ -1982,6 +1984,7 @@
 				92EB6D9A20E4E19500A97A49 /* mux_avi.c */,
 				8959AC80211C9C3C004D2C87 /* mux_gsf.c */,
 				92EB6DB320E4E19600A97A49 /* mux_isom.c */,
+				9272B50527E4EFAD00D9D304 /* mux_ogg.c */,
 				92EB6D6F20E4E19200A97A49 /* mux_ts.c */,
 				92EB6D8720E4E19300A97A49 /* out_audio.c */,
 				92EB6D7020E4E19200A97A49 /* out_file.c */,
@@ -2650,6 +2653,7 @@
 				71CCF3351277045100339E12 /* module.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				92E9DFA62215CE9A00628420 /* g_crypt_openssl.c in Sources */,
+				9272B50627E4EFAD00D9D304 /* mux_ogg.c in Sources */,
 				71CCF3391277045100339E12 /* os_net.c in Sources */,
 				9227B8592799F8E700BF3D1B /* bs_split.c in Sources */,
 				71CCF33A1277045100339E12 /* os_thread.c in Sources */,
