@@ -1150,6 +1150,10 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pay
 				payload+=offset;
 				size-=offset;
 			}
+			if (!rtp->sl_map.config) {
+				gf_odf_ac3_cfg_write(&ac3hdr, &rtp->sl_map.config, &rtp->sl_map.configSize);
+				rtp->sl_map.config_updated = 1;
+			}
 			rtp->on_sl_packet(rtp->udta, payload, ac3hdr.framesize, &rtp->sl_hdr, GF_OK);
 			if (size < ac3hdr.framesize) return;
 			size -= ac3hdr.framesize;
