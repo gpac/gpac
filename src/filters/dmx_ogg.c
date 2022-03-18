@@ -97,6 +97,8 @@ typedef struct
 	ogg_sync_state oy;
 
 	GF_FilterPid *art_opid;
+
+	Bool is_dash;
 } GF_OGGDmxCtx;
 
 void oggdmx_signal_eos(GF_OGGDmxCtx *ctx)
@@ -208,16 +210,24 @@ static void oggdmx_get_stream_info(ogg_packet *oggpacket, OGGInfo *info)
 
 static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStream *st)
 {
+	char szName[20];
+	const char *st_name;
+	u32 id;
 	if (!st->opid) {
 		st->opid = gf_filter_pid_new(filter);
 	}
-//	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(st->serial_no) );
-	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(1 + gf_list_find(ctx->streams, st) ) );
+
+	id = 1 + gf_list_find(ctx->streams, st);
+	gf_filter_pid_set_property(st->opid, GF_PROP_PID_ID, &PROP_UINT(id ) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(st->info.streamType) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_CODECID, &PROP_UINT(st->info.type) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_BITRATE, &PROP_UINT(st->info.bitrate) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(st->info.sample_rate ? st->info.sample_rate : st->info.frame_rate.den) );
 	gf_filter_pid_set_property(st->opid, GF_PROP_PID_PROFILE_LEVEL, &PROP_UINT(0xFE) );
+
+	st_name = gf_stream_type_name(st->info.streamType);
+	sprintf(szName, "%c%d", st_name[0], id);
+	gf_filter_pid_set_name(st->opid, szName);
 
 	//opus DSI is formatted as box (ffmpeg compat) we might want to change that to avoid the box header
 	if (st->info.type==GF_CODECID_OPUS) {
@@ -373,7 +383,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	u64 recompute_ts;
 	GF_Fraction64 dur;
 
-	if (!ctx->index || ctx->duration.num) return;
+	if (!ctx->index || ctx->duration.num || ctx->is_dash) return;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
@@ -480,7 +490,8 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			GF_OGGStream *st;
 			ctx->duration = dur;
 			while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-				gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+				if (st->opid)
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 			}
 		}
 	}
@@ -504,6 +515,7 @@ static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (! ctx->is_file) {
 			return GF_FALSE;
 		}
+		if (evt->play.no_byterange_forward) ctx->is_dash = GF_TRUE;
 		oggdmx_check_dur(filter, ctx);
 
 
