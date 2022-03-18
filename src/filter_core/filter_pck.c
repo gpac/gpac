@@ -947,7 +947,11 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		}
 	}
 
-	if (pid->filter->out_pid_connection_pending || pid->filter->has_pending_pids || pid->init_task_pending) {
+	if (pid->filter->out_pid_connection_pending
+		|| pid->filter->has_pending_pids
+		|| pid->init_task_pending
+		|| (from_filter && pid->filter->postponed_packets)
+	) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s connection pending, queuing packet\n", pck->pid->filter->name, pck->pid->name));
 		if (!pid->filter->postponed_packets) pid->filter->postponed_packets = gf_list_new();
 		gf_list_add(pid->filter->postponed_packets, pck);

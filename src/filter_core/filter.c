@@ -3306,6 +3306,8 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
 		gf_filter_packet_destroy(pck);
 	}
+	gf_list_del(filter->postponed_packets);
+	filter->postponed_packets = NULL;
 
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
