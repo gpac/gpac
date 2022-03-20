@@ -9484,18 +9484,15 @@ Bool gf_opus_parse_header(GF_OpusConfig *ocfg, u8 *data, u32 data_len)
 	return GF_TRUE;
 }
 
-/*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
+/*returns 0 if init error or not an opus frame, otherwise returns the number of audio samples
 in this frame*/
 u32 gf_opus_check_frame(GF_OpusConfig *ocfg, u8 *data, u32 data_length)
 {
 	u32 block_size;
 
-    if (!data || !data_length)
-        return 0;
-	if (!memcmp(data, "OpusHead", sizeof(char)*8))
-		return 0;
-	if (!memcmp(data, "OpusTags", sizeof(char)*8))
-		return 0;
+	if (!data || !data_length) return 0;
+	if (!memcmp(data, "OpusHead", sizeof(char)*8)) return 0;
+	if (!memcmp(data, "OpusTags", sizeof(char)*8)) return 0;
 
 	/*consider the whole packet as Ogg packets and ISOBMFF samples for Opus are framed similarly*/
 	static const int OpusFrameDurIn48k[] = { 480, 960, 1920, 2880, 480, 960, 1920, 2880, 480, 960, 1920, 2880,
