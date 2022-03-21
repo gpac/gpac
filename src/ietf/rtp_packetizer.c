@@ -127,6 +127,8 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, u8 *data, u32 data_size
 		return gp_rtp_builder_do_vvc(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_MP2T:
 		return gp_rtp_builder_do_mp2t(builder, data, data_size, IsAUEnd, FullAUSize);
+	case GF_RTP_PAYT_OPUS:
+		return gp_rtp_builder_do_opus(builder, data, data_size, IsAUEnd, FullAUSize);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -541,6 +543,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char szPayloadName[
 	case GF_RTP_PAYT_EAC3:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "eac3");
+		return GF_TRUE;
+	case GF_RTP_PAYT_OPUS:
+		strcpy(szMediaName, "audio");
+		strcpy(szPayloadName, "opus");
 		return GF_TRUE;
 	case GF_RTP_PAYT_H264_SVC:
 		strcpy(szMediaName, "video");

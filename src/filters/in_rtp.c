@@ -539,8 +539,6 @@ static GF_Err rtpin_process(GF_Filter *filter)
 			break;
 		}
 
-		ctx->eos_probe_start = 0;
-
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
 			if (stream->status==RTP_Running) {
@@ -548,15 +546,15 @@ static GF_Err rtpin_process(GF_Filter *filter)
 				read += rtpin_stream_read(stream);
 			}
 
-			if (stream->flags & RTP_EOS) {
+			if ((stream->flags & RTP_EOS) && !ctx->eos_probe_start)
 				ctx->eos_probe_start = gf_sys_clock();
-			}
 		}
 
 		if (!read) {
 			break;
 		}
 		tot_read+=read;
+		ctx->eos_probe_start = 0;
 	}
 
 	//we wait max 300ms to detect eos

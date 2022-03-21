@@ -447,6 +447,7 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, u8 *data, u32 data_size,
 GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_mp2t(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_vvc(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+GF_Err gp_rtp_builder_do_opus(GP_RTPPacketizer *builder, u8 *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 
 #define RTP_VVC_AGG_NAL		0x1C //28
 #define RTP_VVC_FRAG_NAL	0x1D //29
@@ -477,6 +478,8 @@ struct __tag_rtp_depacketizer
 	GP_RTPSLMap sl_map;
 	/*! RTP clock rate*/
 	u32 clock_rate;
+	/*! audio channels from RTP map*/
+	u32 audio_channels;
 
 	//! clip rect X
 	u32 x;
