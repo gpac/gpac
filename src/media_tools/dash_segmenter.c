@@ -757,6 +757,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	case GF_DASH_PSSH_MPD:
 		e |= gf_dynstrcat(&args, "pssh=m", ":");
 		break;
+	case GF_DASH_PSSH_NONE:
+		e |= gf_dynstrcat(&args, "pssh=n", ":");
+		break;
 	}
 
 

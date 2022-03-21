@@ -2124,7 +2124,7 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 			if (!desc->x_attributes) desc->x_attributes = gf_list_new();
 			gf_list_add(desc->x_attributes, att);
 
-			if (ctx->pssh <= GF_DASH_PSSH_MOOF) {
+			if ((ctx->pssh <= GF_DASH_PSSH_MOOF) || (ctx->pssh == GF_DASH_PSSH_NONE)) {
 				continue;
 			}
 			//(data) binary blob containing (u32)N [(bin128)SystemID(u32)version(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
@@ -2959,6 +2959,7 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	}
 	switch (ctx->pssh) {
 	case GF_DASH_PSSH_MPD:
+	case GF_DASH_PSSH_NONE:
 		sprintf(szSRC, "%cpsshs%cnone", sep_args, sep_name);
 		break;
 	case GF_DASH_PSSH_MOOF:
