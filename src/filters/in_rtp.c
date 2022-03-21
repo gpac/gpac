@@ -562,7 +562,12 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		u32 nb_eos=0;
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
-			if (! (stream->flags & RTP_EOS)) break;
+			if (! (stream->flags & RTP_EOS) ) {
+				if (stream->status!=RTP_Running) {
+					nb_eos++;
+				}
+				break;
+			}
 			if (stream->flags & RTP_EOS_FLUSHED) {
 				nb_eos++;
 				continue;
@@ -587,6 +592,16 @@ static GF_Err rtpin_process(GF_Filter *filter)
 		if (nb_eos==gf_list_count(ctx->streams)) {
 			if (!ctx->is_eos) {
 				ctx->is_eos = GF_TRUE;
+
+				//signal eos on all streams not yet signaled
+				i=0;
+				while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {
+					if (! (stream->flags & RTP_EOS_FLUSHED)) {
+						gf_filter_pid_set_eos(stream->opid);
+						stream->flags |= RTP_EOS_FLUSHED;
+					}
+				}
+
 				if (ctx->session) {
 					/*send teardown*/
 					rtpin_rtsp_teardown(ctx->session, NULL);
