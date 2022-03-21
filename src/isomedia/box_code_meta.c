@@ -774,7 +774,7 @@ void iref_box_del(GF_Box *s)
 
 GF_Err iref_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, s->type);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *iref_box_new()

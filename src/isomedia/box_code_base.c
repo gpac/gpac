@@ -1884,7 +1884,7 @@ GF_Err hnti_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 
 GF_Err hnti_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, s->type);
+	return gf_isom_box_array_read(s, bs);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -5460,7 +5460,7 @@ GF_Err stsd_box_read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(s, 4)
 	gf_bs_read_u32(bs);
 
-	return gf_isom_box_array_read_ex(s, bs, GF_ISOM_BOX_TYPE_STSD);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *stsd_box_new()
@@ -7145,7 +7145,7 @@ void tref_box_del(GF_Box *s)
 
 GF_Err tref_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, s->type);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *tref_box_new()
@@ -8529,10 +8529,14 @@ GF_Err metx_box_read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	ISOM_DECREASE_SIZE(ptr, 8);
 
+	if (ptr->size > (u64)SIZE_MAX) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid size "LLU" in metx\n", ptr->size));
+		return GF_ISOM_INVALID_FILE;
+	}
+
 	size = (u32) ptr->size;
 	str = gf_malloc(sizeof(char)*size);
 	if (!str) return GF_OUT_OF_MEM;
-
 	i=0;
 
 	while (size) {
@@ -10557,7 +10561,7 @@ GF_Err trgr_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 
 GF_Err trgr_box_read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, s->type);
+	return gf_isom_box_array_read(s, bs);
 }
 
 
@@ -11762,7 +11766,7 @@ GF_Err jp2h_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 }
 GF_Err jp2h_box_read(GF_Box *s,GF_BitStream *bs)
 {
-	return gf_isom_box_array_read_ex(s, bs, s->type);
+	return gf_isom_box_array_read(s, bs);
 }
 
 GF_Box *jp2h_box_new()

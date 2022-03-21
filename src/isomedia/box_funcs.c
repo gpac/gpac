@@ -35,7 +35,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u32 *box_type, 
 	GF_Err ret;
 	u64 start;
 	start = gf_bs_get_position(bs);
-	ret = gf_isom_box_parse_ex(outBox, bs, 0, GF_TRUE);
+	ret = gf_isom_box_parse_ex(outBox, bs, 0, GF_TRUE, 0);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
 		if (!*outBox) {
 			// We could not even read the box size, we at least need 8 bytes
@@ -92,7 +92,7 @@ u64 unused_bytes = 0;
 
 #define GF_SKIP_BOX 10
 
-GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
+GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box, u64 parent_size)
 {
 	u32 type, uuid_type, hdr_size, restore_type;
 	u64 size, start, comp_start, end;
@@ -205,7 +205,12 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Read Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(type), size,  start));
 
 	if ( size < hdr_size ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box size "LLD" less than box header size %d\n", size, hdr_size));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLD" less than box header size %d\n", gf_4cc_to_str(type), size, hdr_size));
+		return GF_ISOM_INVALID_FILE;
+	}
+	//if parent size is given, make sure box fits within parent
+	if (parent_size && (parent_size<size)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box %s size "LLU" is larger than remaining parent size "LLU"\n", gf_4cc_to_str(type), size, parent_size ));
 		return GF_ISOM_INVALID_FILE;
 	}
 	restore_type = 0;
@@ -337,7 +342,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 GF_EXPORT
 GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs)
 {
-	return gf_isom_box_parse_ex(outBox, bs, 0, GF_FALSE);
+	return gf_isom_box_parse_ex(outBox, bs, 0, GF_FALSE, 0);
 }
 
 void gf_isom_box_array_reset(GF_List *boxlist)
@@ -375,11 +380,6 @@ void gf_isom_box_array_del_parent(GF_List **child_boxes, GF_List *boxlist)
 	gf_list_del(boxlist);
 }
 
-
-GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
-{
-	return gf_isom_box_array_read_ex(parent, bs, parent->type);
-}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -1716,15 +1716,16 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	return gf_isom_box_new_ex(boxType, 0, 0, GF_FALSE);
 }
 
-GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, u32 parent_type)
+GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs)
 {
 	GF_Err e;
+	u32 parent_type = parent->type;
 	GF_Box *a = NULL;
 	Bool skip_logs = (gf_bs_get_cookie(bs) & GF_ISOM_BS_COOKIE_NO_LOGS ) ? GF_TRUE : GF_FALSE;
 
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (parent->size>=8) {
-		e = gf_isom_box_parse_ex(&a, bs, parent_type, GF_FALSE);
+		e = gf_isom_box_parse_ex(&a, bs, parent_type, GF_FALSE, skip_logs ? 0 : parent->size);
 		if (e) {
 			if (a) gf_isom_box_del(a);
 			return (e==GF_SKIP_BOX) ? GF_OK : e;
