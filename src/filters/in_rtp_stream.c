@@ -715,7 +715,6 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 		size = gf_rtp_read_rtp(stream->rtp_ch, stream->buffer, stream->rtpin->block_size);
 		if (size) {
 			tot_size += size;
-			stream->rtpin->udp_timeout = 0;
 			rtpin_stream_on_rtp_pck(stream, stream->buffer, size);
 		}
 	}
@@ -728,16 +727,25 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	if (stream->rtpin->udp_timeout) {
 		if (!stream->last_udp_time) {
 			stream->last_udp_time = gf_sys_clock();
-		} else if (stream->rtp_ch->net_info.IsUnicast) {
+		} else if (stream->rtp_bytes || stream->rtp_ch->net_info.IsUnicast) {
 			u32 diff = gf_sys_clock() - stream->last_udp_time;
 			if (diff >= stream->rtpin->udp_timeout) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms on stream %d%s\n", diff, stream->ES_ID,
-					(stream->rtpin->session && stream->rtpin->autortsp) ? ", retrying using TCP" : ""));
-
-				if (stream->rtpin->autortsp && stream->rtpin->session && !stream->rtpin->retry_tcp) {
-					stream->rtpin->retry_tcp = GF_TRUE;
+				if (stream->rtp_bytes) {
+					if (! (stream->flags & RTP_EOS)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] No packet received for %d ms on stream %d, assuming EOS\n", diff, stream->ES_ID));
+						stream->flags |= RTP_EOS;
+					}
 				} else {
-					gf_filter_pid_set_eos(stream->opid);
+					if (! (stream->flags & RTP_EOS) && !stream->rtpin->retry_tcp) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms on stream %d%s\n", diff, stream->ES_ID,
+						(stream->rtpin->session && stream->rtpin->autortsp) ? ", retrying using TCP" : ""));
+					}
+
+					if (stream->rtpin->autortsp && stream->rtpin->session && !stream->rtpin->retry_tcp) {
+						stream->rtpin->retry_tcp = GF_TRUE;
+					} else {
+						stream->flags |= RTP_EOS;
+					}
 				}
 			}
 		}

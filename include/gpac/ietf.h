@@ -1413,6 +1413,8 @@ enum
 #endif
 	/*use VVC transport (no RFC yet)*/
 	GF_RTP_PAYT_VVC,
+	/*use opus audio format*/
+	GF_RTP_PAYT_OPUS,
 };
 
 

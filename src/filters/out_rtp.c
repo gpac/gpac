@@ -182,6 +182,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		s16 tl;
 		u32 dsi_len = 0;
 		u32 dsi_enh_len = 0;
+		u32 nb_chan = 0;
         const GF_PropertyValue *p;
 		GF_RTPOutStream *stream = gf_list_get(streams, i);
 		if (!stream->rtp) continue;
@@ -208,6 +209,9 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_HEIGHT);
 		if (p) h = p->value.uint;
 
+		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_NUM_CHANNELS);
+		if (p) nb_chan = p->value.uint;
+
 		p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_PROTECTION_KMS_URI);
 		if (p) KMS = p->value.string;
 
@@ -228,7 +232,7 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 			if (p) h = p->value.uint;
 		}
 
-		gf_rtp_streamer_append_sdp_extended(stream->rtp, stream->id, dsi, dsi_len, dsi_enh, dsi_enh_len, (char *)KMS, w, h, tw, th, tx, ty, tl, is_rtsp, &sdp_media);
+		gf_rtp_streamer_append_sdp_extended(stream->rtp, stream->id, dsi, dsi_len, dsi_enh, dsi_enh_len, (char *)KMS, w, h, tw, th, tx, ty, tl, nb_chan, is_rtsp, &sdp_media);
 
 		if (sdp_media) {
 			gf_fprintf(sdp_out, "%s", sdp_media);

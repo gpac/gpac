@@ -1186,6 +1186,21 @@ static void gf_rtp_parse_eac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *pa
 {
 	gf_rtp_parse_ac3_eac3(rtp, hdr, payload, size, GF_TRUE);
 }
+
+
+static void gf_rtp_parse_opus(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, u8 *payload, u32 size)
+{
+	rtp->sl_hdr.compositionTimeStampFlag = 1;
+	if (rtp->sl_hdr.compositionTimeStamp != hdr->TimeStamp) {
+		rtp->sl_hdr.accessUnitStartFlag = 1;
+		rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	}
+	rtp->sl_hdr.randomAccessPointFlag = 1;
+	rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+	rtp->flags |= GF_RTP_NEW_AU;
+	rtp->sl_hdr.accessUnitStartFlag = 0;
+}
+
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
@@ -1233,6 +1248,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
 	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_LHVC;
 	else if (!stricmp(map->payload_name, "H266")) return GF_RTP_PAYT_VVC;
+	else if (!stricmp(map->payload_name, "opus")) return GF_RTP_PAYT_OPUS;
 	else return 0;
 }
 
@@ -1840,6 +1856,25 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_eac3;
 		break;
+	case GF_RTP_PAYT_OPUS:
+		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
+		rtp->sl_map.CodecID = GF_CODECID_OPUS;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
+		/*assign depacketizer*/
+		rtp->depacketize = gf_rtp_parse_opus;
+
+		if (!rtp->sl_map.config) {
+			GF_OpusConfig opcfg;
+			opcfg.version = 1;
+			opcfg.OutputChannelCount = rtp->audio_channels;
+			opcfg.PreSkip = 0;
+			opcfg.InputSampleRate = rtp->clock_rate;
+			opcfg.OutputGain = 0;
+			opcfg.ChannelMappingFamily = 0;
+			gf_odf_opus_cfg_write(&opcfg, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		}
+
+		break;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 	default:
 		if (rtp->payt >= GF_RTP_PAYT_LAST_STATIC_DEFINED)
@@ -1898,7 +1933,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 	GF_RTPMap *map = NULL;
 	u32 payt;
 	GF_RTPDepacketizer *tmp;
-	u32 clock_rate;
+	u32 clock_rate, nb_chan=0;
 	const GF_RTPStaticMap *static_map = NULL;
 
 	/*check RTP map. For now we only support 1 RTPMap*/
@@ -1917,6 +1952,8 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 			return NULL;
 		}
 		clock_rate = static_map->clock_rate;
+		if (static_map->stream_type==GF_STREAM_AUDIO)
+			nb_chan = 1;
 		payt = hdr_payt;
 	} else {
 		/*check payload type*/
@@ -1932,10 +1969,13 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 				return NULL;
 			}
 			clock_rate = static_map->clock_rate;
+			if (static_map->stream_type==GF_STREAM_AUDIO)
+				nb_chan = 1;
 		} else {
 			payt = gf_rtp_get_payload_type(map, media);
 			if (!payt) return NULL;
 			clock_rate = map->ClockRate;
+			nb_chan = map->AudioChannels;
 		}
 	}
 
@@ -1943,6 +1983,8 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 	if (!tmp) return NULL;
 	tmp->payt = payt;
 	tmp->static_map = static_map;
+	tmp->clock_rate = clock_rate;
+	tmp->audio_channels = nb_chan;
 
 	e = gf_rtp_payt_setup(tmp, map, media);
 	if (e) {
@@ -1951,7 +1993,6 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, u32 hdr_payt, gf
 	}
 
 	assert(tmp->depacketize);
-	tmp->clock_rate = clock_rate;
 	tmp->on_sl_packet = sl_packet_cbk;
 	tmp->udta = udta;
 	return tmp;

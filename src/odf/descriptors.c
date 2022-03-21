@@ -1826,6 +1826,7 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 
 GF_Err gf_odf_opus_cfg_parse_bs(GF_BitStream *bs, GF_OpusConfig *cfg)
 {
+	memset(cfg, 0, sizeof(GF_OpusConfig));
 	cfg->version = gf_bs_read_u8(bs);
 	cfg->OutputChannelCount = gf_bs_read_u8(bs);
 	cfg->PreSkip = gf_bs_read_u16_le(bs);
