@@ -8500,7 +8500,15 @@ static s32 gf_hevc_read_pps_bs_internal(GF_BitStream *bs, HEVCState *hevc)
 	pps->entropy_coding_sync_enabled_flag = gf_bs_read_int_log(bs, 1, "entropy_coding_sync_enabled_flag");
 	if (pps->tiles_enabled_flag) {
 		pps->num_tile_columns = 1 + gf_bs_read_ue_log(bs, "num_tile_columns_minus1");
+		if (pps->num_tile_columns > 22) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_columns %u\n", pps->num_tile_columns));
+			return -1;
+		}
 		pps->num_tile_rows = 1 + gf_bs_read_ue_log(bs, "num_tile_rows_minus1");
+		if (pps->num_tile_rows > 20) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid num_tile_rows %u\n", pps->num_tile_rows));
+			return -1;
+		}
 		pps->uniform_spacing_flag = gf_bs_read_int_log(bs, 1, "uniform_spacing_flag");
 		if (!pps->uniform_spacing_flag) {
 			for (i = 0; i < pps->num_tile_columns - 1; i++) {
