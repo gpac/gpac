@@ -778,7 +778,7 @@ static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size,
 		GF_SAFEALLOC(node, GF_XMLNode)
 		if (!node) return GF_OUT_OF_MEM;
 		node->type = GF_XML_TEXT_TYPE;
-		u64 size_64 = (subs_size * 2) + 3;
+		u32 size_64 = (subs_size * 2) + 3;
 		node->name = gf_malloc(sizeof(char) * size_64);
 		if (!node->name) {
 			gf_free(node);

@@ -1552,7 +1552,7 @@ static void gf_inspect_dump_opus_internal(FILE *dump, u8 *ptr, u32 size, u32 cha
 GF_EXPORT
 void gf_inspect_dump_opus(FILE *dump, u8 *ptr, u64 size, u32 channel_count, Bool dump_crc)
 {
-    gf_inspect_dump_opus_internal(dump, ptr, size, channel_count, dump_crc, NULL);
+    gf_inspect_dump_opus_internal(dump, ptr, (u32) size, channel_count, dump_crc, NULL);
 }
 
 enum {

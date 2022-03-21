@@ -87,7 +87,8 @@ typedef struct _gf_ffenc_ctx
 	u64 cts_first_frame_plus_one;
 
 	//audio state
-	u32 channels, sample_rate, channel_layout, bytes_per_sample;
+	u32 channels, sample_rate, bytes_per_sample;
+	u64 channel_layout;
 	//ffmpeg one
 	u32 sample_fmt;
 	//we store input audio frame in this buffer until we have enough data for one encoder frame
@@ -419,7 +420,7 @@ static void ffenc_generate_dsi(GF_FFEncodeCtx *ctx, const u8 *data, u32 size)
 		GF_M4VParser *mvp;
 		mvp = gf_m4v_parser_new((u8*)data, size, flag);
 		if (gf_m4v_parse_config(mvp, &vcfg) == GF_OK) {
-			dsi_size = gf_m4v_get_object_start(mvp);
+			dsi_size = (u32) gf_m4v_get_object_start(mvp);
 			dsi = gf_malloc(sizeof(u8) * dsi_size);
 			memcpy(dsi, data, dsi_size);
 		}
@@ -1826,7 +1827,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
 			}
 			//- fps num less than input timescale
-			else if (ctx->encoder->framerate.num<ctx->timescale) {
+			else if ((u32) ctx->encoder->framerate.num < ctx->timescale) {
 				//if timescale is a multiple of fps num, rescaling will not introduce rounding error so use fps num
 				if (!(ctx->timescale % ctx->encoder->framerate.num))
 					ctx->encoder->time_base.den = ctx->encoder->framerate.num;
