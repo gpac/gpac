@@ -379,7 +379,7 @@ static GF_Err oggmux_process(GF_Filter *filter)
 			} else {
 				pctx->nb_p++;
 			}
-			if (pctx->nb_p >= (1<<pctx->theora_kgs)) {
+			if (pctx->nb_p >= (u32) (1<<pctx->theora_kgs)) {
 				pctx->nb_i += pctx->nb_p;
 				pctx->nb_p = 0;
 			}
