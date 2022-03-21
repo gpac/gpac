@@ -546,7 +546,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, const 
 		gf_rtp_get_ports(rtp->channel, &port, NULL);
 
 	sprintf(sdp, "m=%s %d RTP/%s %u\n", mediaName, for_rtsp ? 0 : port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
-	if (nb_channels)
+	if (nb_channels > 1)
 		sprintf(sdpLine, "a=rtpmap:%u %s/%u/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution, nb_channels);
 	else
 		sprintf(sdpLine, "a=rtpmap:%u %s/%u\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);

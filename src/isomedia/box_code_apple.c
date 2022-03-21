@@ -44,7 +44,7 @@ GF_Err ilst_box_read(GF_Box *s, GF_BitStream *bs)
 		/*if no ilst type coded, break*/
 		sub_type = gf_bs_peek_bits(bs, 32, 0);
 		if (sub_type) {
-			e = gf_isom_box_parse_ex(&a, bs, s->type, GF_FALSE);
+			e = gf_isom_box_parse_ex(&a, bs, s->type, GF_FALSE, s->size);
 
 			/* the macro will return in this case before we can free */
 			if (!e && ptr->size < a->size) {

@@ -593,7 +593,7 @@ GF_Err gf_isom_load_extra_boxes(GF_ISOFile *movie, u8 *moov_boxes, u32 moov_boxe
 	//we may have terminators in some QT files (4 bytes set to 0 ...)
 	while (gf_bs_available(bs) >= 8) {
 		GF_Box *a_box;
-		e = gf_isom_box_parse_ex((GF_Box**)&a_box, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
+		e = gf_isom_box_parse_ex((GF_Box**)&a_box, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE, 0);
 		if (e || !a_box) goto exit;
 
 		if (a_box->type == GF_ISOM_BOX_TYPE_UDTA) {
@@ -680,7 +680,7 @@ u32 gf_isom_new_track_from_template(GF_ISOFile *movie, GF_ISOTrackID trakID, u32
 		GF_BitStream *bs = gf_bs_new(tk_box, tk_box_size, GF_BITSTREAM_READ);
 		gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS|GF_ISOM_BS_COOKIE_CLONE_TRACK);
 
-		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE);
+		e = gf_isom_box_parse_ex((GF_Box**)&trak, bs, GF_ISOM_BOX_TYPE_MOOV, GF_FALSE, 0);
 		gf_bs_del(bs);
 		if (e) trak = NULL;
 		else if (udta_only) {
@@ -7881,7 +7881,7 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 //	e = gf_isom_box_parse(&tpl_ent, bs);
-	e = gf_isom_box_parse_ex (&tpl_ent, bs, GF_ISOM_BOX_TYPE_STSD, GF_FALSE);
+	e = gf_isom_box_parse_ex(&tpl_ent, bs, GF_ISOM_BOX_TYPE_STSD, GF_FALSE, 0);
 	gf_bs_del(bs);
 	if (e) return e;
 
@@ -8167,7 +8167,7 @@ GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, co
 					gf_bs_seek(bs, 0);
 					while (gf_bs_available(bs)) {
 						GF_Box *new_box;
-						e = gf_isom_box_parse_ex(&new_box, bs, (insert_pos<0) ? box->type : parent_list_box_type, parent_box ? GF_FALSE : GF_TRUE);
+						e = gf_isom_box_parse_ex(&new_box, bs, (insert_pos<0) ? box->type : parent_list_box_type, parent_box ? GF_FALSE : GF_TRUE, 0);
 						if (e) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMFF] failed to parse box\n", box_path));
 							gf_bs_del(bs);
