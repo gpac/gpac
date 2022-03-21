@@ -951,7 +951,9 @@ typedef enum
 	//! PSSH box in moof and MPD
 	GF_DASH_PSSH_MOOF_MPD,
 	//! PSSH box in MPD only
-	GF_DASH_PSSH_MPD
+	GF_DASH_PSSH_MPD,
+	//! Drop PSSH info from mpd and init seg
+	GF_DASH_PSSH_NONE,
 } GF_DASHPSSHMode;
 
 /*!

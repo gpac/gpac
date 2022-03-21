@@ -592,7 +592,8 @@ MP4BoxArg m4b_dash_args[] =
 	"- f: movie fragments\n"
 	"- m: MPD\n"
 	"- mv, vm: in initial movie and MPD\n"
-	"- mf, fm: in movie fragments and MPD", GF_ARG_INT, 0, parse_pssh, 0, ARG_IS_FUN),
+	"- mf, fm: in movie fragments and MPD\n"
+	"- n: remove PSSH from MPD, initial movie and movie fragments", GF_ARG_INT, 0, parse_pssh, 0, ARG_IS_FUN),
 	MP4BOX_ARG("sample-groups-traf", "store sample group descriptions in traf (duplicated for each traf). If not set, sample group descriptions are stored in the initial movie", GF_ARG_BOOL, 0, &samplegroups_in_traf, 0, 0),
 	MP4BOX_ARG("mvex-after-traks", "store `mvex` box after `trak` boxes within the moov box. If not set, `mvex` is before", GF_ARG_BOOL, 0, &mvex_after_traks, 0, 0),
 	MP4BOX_ARG("sdtp-traf", "use `sdtp` box in `traf` (Smooth-like)\n"
@@ -2587,6 +2588,7 @@ u32 parse_pssh(char *arg_val, u32 opt)
 	else if (!strcmp(arg_val, "m")) pssh_mode = GF_DASH_PSSH_MPD;
 	else if (!strcmp(arg_val, "mf") || !strcmp(arg_val, "fm")) pssh_mode = GF_DASH_PSSH_MOOF_MPD;
 	else if (!strcmp(arg_val, "mv") || !strcmp(arg_val, "vm")) pssh_mode = GF_DASH_PSSH_MOOV_MPD;
+	else if (!strcmp(arg_val, "n")) pssh_mode = GF_DASH_PSSH_NONE;
 	else pssh_mode = GF_DASH_PSSH_MOOV;
 	return 0;
 }
