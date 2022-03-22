@@ -997,24 +997,39 @@ second_pass:
 		 	u32 cid = ffmpeg_codecid_to_gpac(codec->id);
 		 	freg->nb_caps = 3;
 
-		 	caps = gf_malloc(sizeof(GF_FilterCapability)*3);
-		 	memset(caps, 0, sizeof(GF_FilterCapability)*3);
-		 	caps[0].code = GF_PROP_PID_STREAM_TYPE;
-		 	caps[0].val.type = GF_PROP_UINT;
-		 	caps[0].val.value.uint = ff_streamtype(codec->type);
-		 	caps[0].flags = GF_CAPS_INPUT_OUTPUT;
+			caps = gf_malloc(sizeof(GF_FilterCapability)*freg->nb_caps);
+			memset(caps, 0, sizeof(GF_FilterCapability)*freg->nb_caps);
+			caps[0].code = GF_PROP_PID_STREAM_TYPE;
+			caps[0].val.type = GF_PROP_UINT;
+			caps[0].val.value.uint = ff_streamtype(codec->type);
+			caps[0].flags = GF_CAPS_INPUT_OUTPUT;
 
-		 	caps[1].code = GF_PROP_PID_CODECID;
-		 	caps[1].val.type = GF_PROP_UINT;
-		 	caps[1].val.value.uint = (type==FF_REG_TYPE_DECODE) ? cid : GF_CODECID_RAW;
-		 	caps[1].flags = GF_CAPS_INPUT;
+			caps[1].code = GF_PROP_PID_CODECID;
+			caps[1].flags = GF_CAPS_INPUT;
+			caps[1].val.type = GF_PROP_UINT;
+			caps[1].val.value.uint = GF_CODECID_RAW;
+			if (type==FF_REG_TYPE_DECODE) {
+				if (cid) {
+					caps[1].val.value.uint = cid;
+				} else {
+					caps[1].val.type = GF_PROP_NAME;
+					caps[1].val.value.string = (char *) codec->long_name;
+				}
+			}
 
-		 	caps[2].code = GF_PROP_PID_CODECID;
-		 	caps[2].val.type = GF_PROP_UINT;
-		 	caps[2].val.value.uint = (type==FF_REG_TYPE_DECODE) ? GF_CODECID_RAW : cid;
-		 	caps[2].flags = GF_CAPS_OUTPUT;
-
-		 	freg->caps =  caps;
+			caps[2].code = GF_PROP_PID_CODECID;
+			caps[2].val.type = GF_PROP_UINT;
+			caps[2].val.value.uint = GF_CODECID_RAW;
+			caps[2].flags = GF_CAPS_OUTPUT;
+			if (type==FF_REG_TYPE_ENCODE) {
+				if (cid) {
+					caps[2].val.value.uint = cid;
+				} else {
+					caps[2].val.type = GF_PROP_NAME;
+					caps[2].val.value.string = (char *) codec->long_name;
+				}
+			}
+			freg->caps =  caps;
 		}
 		else if ((type==FF_REG_TYPE_DEMUX)
 			&& fmt
@@ -1026,7 +1041,7 @@ second_pass:
 			){
 		 	GF_FilterCapability *caps;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-			freg->nb_caps = (fmt->mime_type && fmt->extensions) ? 4 : 2;
+			freg->nb_caps = (fmt->mime_type && fmt->extensions) ? 3 : 2;
 #else
 			freg->nb_caps = 2;
 #endif
@@ -1048,11 +1063,10 @@ second_pass:
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			if (fmt->mime_type && fmt->extensions) {
-				caps[2].flags = 0;
-				caps[3].code = GF_PROP_PID_MIME;
-				caps[3].val.type = GF_PROP_NAME;
-				caps[3].val.value.string = (char *) fmt->mime_type;
-				caps[3].flags = GF_CAPS_INPUT;
+				caps[2].code = GF_PROP_PID_MIME;
+				caps[2].val.type = GF_PROP_NAME;
+				caps[2].val.value.string = (char *) fmt->mime_type;
+				caps[2].flags = GF_CAPS_INPUT;
 			}
 #endif
 			//TODO map codec IDs if known ?
@@ -1068,7 +1082,7 @@ second_pass:
 			){
 			GF_FilterCapability *caps;
 #if LIBAVCODEC_VERSION_MAJOR >= 58
-			freg->nb_caps = (ofmt->mime_type && ofmt->extensions) ? 4 : 2;
+			freg->nb_caps = (ofmt->mime_type && ofmt->extensions) ? 3 : 2;
 #else
 			freg->nb_caps = 2;
 #endif
@@ -1090,11 +1104,10 @@ second_pass:
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 			if (ofmt->mime_type && ofmt->extensions) {
-				caps[2].flags = 0;
-				caps[3].code = GF_PROP_PID_MIME;
-				caps[3].val.type = GF_PROP_NAME;
-				caps[3].val.value.string = (char *) ofmt->mime_type;
-				caps[3].flags = GF_CAPS_OUTPUT;
+				caps[2].code = GF_PROP_PID_MIME;
+				caps[2].val.type = GF_PROP_NAME;
+				caps[2].val.value.string = (char *) ofmt->mime_type;
+				caps[2].flags = GF_CAPS_OUTPUT;
 			}
 #endif
 			//TODO map codec IDs if known ?

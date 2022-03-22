@@ -77,7 +77,7 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 static void dump_all_props(char *pname);
 static void dump_all_colors(void);
 static void dump_all_audio_cicp(void);
-static void dump_all_codec(GF_FilterSession *session);
+static void dump_all_codec(GF_FilterSession *session, GF_SysArgMode argmode);
 static void write_filters_options(GF_FilterSession *fsess);
 static void write_core_options();
 static void write_file_extensions();
@@ -710,10 +710,11 @@ static GF_GPACArg gpac_args[] =
 			"- modules: print available modules\n"
 			"- filters: print name of all available filters\n"
 			"- filters:*: print name of all available filters, including meta filters\n"
-			"- codecs: print the supported builtin codecs\n"
+			"- codecs: print the supported builtin codecs - use `-hx` to include unmapped codecs (ffmpeg, ...)\n"
 			"- props: print the supported builtin PID and packet properties\n"
 			"- props PNAME: print the supported builtin PID and packet properties mentioning `PNAME`\n"
 			"- colors: print the builtin color names and their values\n"
+			"- exts: print the builtin extensions and mime types - use `-hx` to include meta filters (ffmpeg, ...)\n"
 			"- layouts: print the builtin CICP audio channel layout names and their values\n"
 			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"
@@ -1609,7 +1610,7 @@ redo_pass:
 	if (is_help) {
 		if (!pass_exact) {
 			const char *doc_helps[] = {
-				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "filters", "filters:*", "filters:@", NULL
+				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "exts", "filters", "filters:*", "filters:@", NULL
 			};
 			first = GF_FALSE;
 			i=0;
@@ -2007,6 +2008,10 @@ static int gpac_main(int argc, char **argv)
 	        		"Disabled features: %s\n", gf_gpac_version(), gf_sys_features(GF_FALSE), gf_sys_features(GF_TRUE)
 				);
 				gpac_exit(0);
+			} else if (!strcmp(argv[i+1], "exts")) {
+				list_filters = 4;
+				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
+				i++;
 			} else if (!strcmp(argv[i+1], "filters")) {
 				list_filters = 1;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
@@ -2130,7 +2135,7 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
 		} else if (strstr(arg, ":*") || strstr(arg, ":@")) {
-			if (list_filters)
+			if (list_filters && (list_filters<4))
 				list_filters = 3;
 			else
 				print_meta_filters = GF_TRUE;
@@ -2146,9 +2151,6 @@ static int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-sloop")) {
 			nb_loops = -1;
 			if (arg_val) nb_loops = atoi(arg_val);
-			if (nb_loops) {
-				gf_opts_set_key("temp", "peristent-jsrt", "true");
-			}
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*atoi(arg_val);
 		} else if (!strcmp(arg, "-runforx")) {
@@ -2287,6 +2289,13 @@ restart:
 	}
 
 	if (list_filters || print_filter_info) {
+
+		if (gen_doc==1) {
+			list_filters = 4;
+			print_filters(argc, argv, session, argmode);
+			list_filters = 1;
+		}
+
 		if (print_filters(argc, argv, session, argmode)==GF_FALSE)
 			e = GF_FILTER_NOT_FOUND;
 		goto exit;
@@ -2296,7 +2305,7 @@ restart:
 		goto exit;
 	}
 	if (dump_codecs) {
-		dump_all_codec(session);
+		dump_all_codec(session, argmode);
 		goto exit;
 	}
 	if (write_profile || write_extensions || write_core_opts) {
@@ -2616,13 +2625,6 @@ exit:
 		gf_log_reset_file();
 		goto restart;
 	}
-
-#ifdef GPAC_HAS_QJS
-	if (loops_done) {
-		void gf_js_delete_runtime();
-		gf_js_delete_runtime();
-	}
-#endif
 
 	gpac_exit(e<0 ? 1 : 0);
 }
@@ -3116,6 +3118,77 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 	return GF_FALSE;
 }
 
+static void print_ext(Bool is_input, Bool is_output, const char *fext, const char *mime, const char *reg_name)
+{
+	if (!fext && !mime) return;
+	if (is_input == is_output) return;
+
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | ", is_input ? "Input" : "Output");
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s | ", fext ? fext : "n/a");
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s | ", mime ? mime : "n/a");
+		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "[%s](%s)  \n", reg_name, reg_name);
+	} else {
+		gf_sys_format_help(helpout, help_flags, "%s ", is_input ? "Input" : "Output");
+		if (fext) gf_sys_format_help(helpout, help_flags, "ext %s ", fext);
+		if (mime) gf_sys_format_help(helpout, help_flags, "mime %s ", mime);
+		gf_sys_format_help(helpout, help_flags, "filter %s\n", reg_name);
+	}
+}
+
+static void print_exts(const GF_FilterRegister *reg, GF_Filter *filter_inst, GF_SysArgMode argmode)
+{
+	u32 i;
+	Bool is_input=GF_FALSE;
+	Bool is_output=GF_FALSE;
+	const char *fext=NULL, *mime=NULL;
+	const char *reg_name;
+	u32 nb_caps;
+	const GF_FilterCapability *caps;
+
+	if (reg) {
+		if ((argmode==GF_ARGMODE_BASE) && (reg->flags & GF_FS_REG_META)) return;
+
+		caps = reg->caps;
+		nb_caps = reg->nb_caps;
+		reg_name = reg->name;
+	} else if (filter_inst) {
+		caps = gf_filter_get_caps(filter_inst, &nb_caps);
+		reg_name = gf_filter_get_name(filter_inst);
+	} else {
+		return;
+	}
+
+	for (i=0; i<nb_caps; i++) {
+		if (! (caps[i].flags & GF_CAPFLAG_IN_BUNDLE)) {
+			print_ext(is_input, is_output, fext, mime, reg_name);
+			fext = NULL;
+			mime = NULL;
+			is_input = GF_FALSE;
+			is_output = GF_FALSE;
+			continue;
+		}
+		if (caps[i].code==GF_PROP_PID_FILE_EXT) {
+			fext = caps[i].val.value.string;
+			if (!strcmp(fext, "*")) fext = NULL;
+			else {
+				if (caps[i].flags & GF_CAPFLAG_INPUT) is_input = GF_TRUE;
+				if (caps[i].flags & GF_CAPFLAG_OUTPUT) is_output = GF_TRUE;
+			}
+		}
+		if (caps[i].code==GF_PROP_PID_MIME) {
+			mime = caps[i].val.value.string;
+			if (!strcmp(mime, "*")) mime = NULL;
+			else {
+				if (caps[i].flags & GF_CAPFLAG_INPUT) is_input = GF_TRUE;
+				if (caps[i].flags & GF_CAPFLAG_OUTPUT) is_output = GF_TRUE;
+			}
+		}
+	}
+	print_ext(is_input, is_output, fext, mime, reg_name);
+}
+
+
 struct __jsenum_info
 {
 	GF_FilterSession *session;
@@ -3143,7 +3216,10 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 		}
 		ext = gf_file_ext_start(szPath);
 		if (ext) ext[0] = 0;
-		if (jsi->print_filter_info || gen_doc)
+
+		if (list_filters==4) {
+			print_exts(NULL, f, jsi->argmode);
+		} else if (jsi->print_filter_info || gen_doc)
 			print_filter(NULL, jsi->argmode, f, szPath);
 		else
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", szPath, gf_filter_get_description(f));
@@ -3164,6 +3240,7 @@ static Bool jsinfo_dir_enum(void *cbck, char *item_name, char *item_path, GF_Fil
 	return GF_FALSE;
 }
 
+
 static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_SysArgMode argmode)
 {
 	Bool found = GF_FALSE;
@@ -3173,12 +3250,24 @@ static Bool print_filters(int argc, char **argv, GF_FilterSession *session, GF_S
 	u32 lf_len = 0;
 	u32 i, count = gf_fs_filters_registers_count(session);
 
-	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
+	if (list_filters==4) {
+		if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags, "# Extensions and mime types\n");
+			gf_sys_format_help(helpout, help_flags, "Extension name can be used to force output formats using `ext=` option of sink filters.  \nBy default, GPAC does not rely on file extension for source processing unless `-no-probe` option is set, in which case `ext=` option may be set on source filter.  \n");
+			gf_sys_format_help(helpout, help_flags, "_NOTE: This table does not include meta filters (ffmpeg, ...), use `gpac -hx exts` to list them._\n\n");
+			gf_sys_format_help(helpout, help_flags, " Category | Extension | Mime | Filter  \n");
+			gf_sys_format_help(helpout, help_flags, " --- | --- | --- | ---  \n");
+		}
+	} else {
+		if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
+	}
 
 	if (print_filter_info != 1) {
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-			if (gen_doc) {
+			if (list_filters==4) {
+				print_exts(reg, NULL, argmode);
+			} else if (gen_doc) {
 				print_filter(reg, argmode, NULL, NULL);
 			} else if (print_filter_info) {
 				print_filter(reg, argmode, NULL, NULL);
@@ -3507,7 +3596,8 @@ static void dump_all_props(char *pname)
 
 		idx=0;
 		gf_sys_format_help(helpout, help_flags, "# Codecs\n");
-		gf_sys_format_help(helpout, help_flags, "The codec name identifies a codec within GPAC. There can be several names for a given codec. The first name is used as a default file extension when dumping a raw media stream.\n"
+		gf_sys_format_help(helpout, help_flags, "The codec name identifies a codec within GPAC. There can be several names for a given codec. The first name is used as a default file extension when dumping a raw media stream.  \n\n"
+			"_NOTE: This table does not include meta filters (ffmpeg, ...). Use `gpac -hx codecs` to list them._  \n"
 			"  \n");
 
 		gf_sys_format_help(helpout, help_flags, " Name | Description  \n");
@@ -3526,7 +3616,6 @@ static void dump_all_props(char *pname)
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | %d | 0x%016"LLX_SUF"  \n", name, cicp, layout);
 			idx++;
 		}
-
 	} else if (gen_doc==2) {
 		u32 idx=0, cicp;
 		u64 layout;
@@ -3586,11 +3675,14 @@ static void dump_all_audio_cicp(void)
 	}
 }
 
-static void dump_all_codec(GF_FilterSession *session)
+static void dump_all_codec(GF_FilterSession *session, GF_SysArgMode argmode)
 {
+#define PAD_LEN	30
 	GF_PropertyValue rawp, filep, stp;
 	GF_PropertyValue cp, acp;
+	GF_List *meta_codecs = (argmode>GF_ARGMODE_BASE) ? gf_list_new() : NULL;
 	char szFlags[10], szCap[2];
+	u32 i;
 	u32 cidx=0;
 	u32 count = gf_fs_filters_registers_count(session);
 
@@ -3610,8 +3702,22 @@ static void dump_all_codec(GF_FilterSession *session)
 	acp.type = GF_PROP_UINT;
 	szCap[1] = 0;
 
+	if (meta_codecs) {
+		for (i=0; i<count; i++) {
+			u32 j;
+			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+			if (! (reg->flags & GF_FS_REG_META)) continue;
+			for (j=0; j<reg->nb_caps; j++) {
+				if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) continue;
+				if (reg->caps[j].code != GF_PROP_PID_CODECID) continue;
+				if (reg->caps[j].val.type != GF_PROP_NAME) continue;
+				if (gf_list_find(meta_codecs, (void *)reg)<0)
+					gf_list_add(meta_codecs, (void *)reg);
+			}
+		}
+	}
+
 	while (1) {
-		u32 i;
 		const char *lname;
 		const char *sname;
 		const char *mime;
@@ -3631,11 +3737,16 @@ static void dump_all_codec(GF_FilterSession *session)
 
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+
 			if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_STREAM_TYPE, &stp, GF_PROP_PID_STREAM_TYPE, &stp, GF_TRUE)) {
 				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &cp, GF_TRUE)) {
 					enc_found = GF_TRUE;
+					if (gf_list_find(meta_codecs, (void *)reg)>=0)
+						gf_list_del_item(meta_codecs, (void *)reg);
 				} else if (acp.value.uint && gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &rawp, GF_PROP_PID_CODECID, &acp, GF_TRUE)) {
-						enc_found = GF_TRUE;
+					enc_found = GF_TRUE;
+					if (gf_list_find(meta_codecs, (void *)reg)>=0)
+						gf_list_del_item(meta_codecs, (void *)reg);
 				}
 				if ( gf_fs_check_filter_register_cap(reg, GF_PROP_PID_CODECID, &cp, GF_PROP_PID_CODECID, &rawp, GF_TRUE)) {
 					dec_found = GF_TRUE;
@@ -3667,6 +3778,12 @@ static void dump_all_codec(GF_FilterSession *session)
 		mime = gf_codecid_mime(cp.value.uint);
 		rfc4cc = gf_codecid_4cc_type(cp.value.uint);
 		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s: ", sname, szFlags);
+
+		u32 len = (u32) (2 + strlen(sname) + strlen(szFlags));
+		while (len<PAD_LEN) {
+			len++;
+			gf_sys_format_help(helpout, help_flags, " ");
+		}
 		gf_sys_format_help(helpout, help_flags, "%s", lname);
 		if (rfc4cc || mime) {
 			gf_sys_format_help(helpout, help_flags, " (");
@@ -3677,6 +3794,63 @@ static void dump_all_codec(GF_FilterSession *session)
 		}
 		gf_sys_format_help(helpout, help_flags, "\n");
 	}
+
+	if (meta_codecs) {
+		gf_sys_format_help(helpout, help_flags, "# Meta-filters codec support (not mapped to GPAC codec IDs)\n");
+		gf_sys_format_help(helpout, help_flags, "Only encoding and decoding support is listed.\n\n");
+		count = gf_list_count(meta_codecs);
+		for (i=0; i<count; i++) {
+			u32 j, k;
+			Bool has_dec = GF_FALSE, has_enc = GF_FALSE;
+			const char *codec_desc = "Unknown";
+			const GF_FilterRegister *reg = gf_list_get(meta_codecs, i);
+			const char *name = strchr(reg->name, ':');
+			if (name) name++;
+			else name = reg->name;
+			for (j=0; j<reg->nb_caps; j++) {
+				if (reg->caps[j].code != GF_PROP_PID_CODECID) continue;
+				if (reg->caps[j].val.type != GF_PROP_NAME) continue;
+				codec_desc = reg->caps[j].val.value.string;
+				if (reg->caps[j].flags & GF_CAPFLAG_INPUT) has_dec = GF_TRUE;
+				else if (reg->caps[j].flags & GF_CAPFLAG_OUTPUT) has_enc = GF_TRUE;
+				break;
+			}
+			for (k=0; k<count; k++) {
+				if (k==i) continue;;
+				reg = gf_list_get(meta_codecs, k);
+				const char *rname = strchr(reg->name, ':');
+				if (name) rname++;
+				else rname = reg->name;
+				if (strcmp(rname, name)) continue;
+
+				for (j=0; j<reg->nb_caps; j++) {
+					if (reg->caps[j].code != GF_PROP_PID_CODECID) continue;
+					if (reg->caps[j].val.type != GF_PROP_NAME) continue;
+					if (reg->caps[j].flags & GF_CAPFLAG_INPUT) has_dec = GF_TRUE;
+					else if (reg->caps[j].flags & GF_CAPFLAG_OUTPUT) has_enc = GF_TRUE;
+					gf_list_rem(meta_codecs, k);
+					count--;
+				}
+			}
+			strcpy(szFlags, " [");
+			if (has_dec) strcat(szFlags, "D");
+			if (has_enc) strcat(szFlags, "E");
+			strcat(szFlags, "]");
+
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s%s: ", name, szFlags);
+			u32 len = (u32) (2 + strlen(name) + strlen(szFlags));
+			while (len<PAD_LEN) {
+				len++;
+				gf_sys_format_help(helpout, help_flags, " ");
+			}
+			gf_sys_format_help(helpout, help_flags, "%s\n", codec_desc);
+			gf_list_rem(meta_codecs, i);
+			i--;
+			count--;
+		}
+		gf_list_del(meta_codecs);
+	}
+
 	gf_sys_format_help(helpout, help_flags, "\n");
 }
 
