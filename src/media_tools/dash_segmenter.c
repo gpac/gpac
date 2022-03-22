@@ -525,7 +525,7 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 {
 	GF_Err e;
 	u32 i, count;
-	char *sep_ext;
+	char *sep_ext, *o_sep_ext=NULL;
 	char *args=NULL, szArg[1024];
 	Bool multi_period = GF_FALSE;
 	Bool use_filter_chains = GF_FALSE;
@@ -549,16 +549,25 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 		return GF_OUT_OF_MEM;
 	}
 
-	sep_ext = gf_url_colon_suffix(dasher->mpd_name, '=');
-	if (sep_ext) {
-		if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
-		else if (sep_ext[1]=='/') {
-			sep_ext = strchr(sep_ext+1, '/');
-			if (sep_ext) sep_ext = strchr(sep_ext, ':');
-		}
-	}
+
+	sep_ext = strstr(dasher->mpd_name, ":gpac:");
 	if (sep_ext) {
 		sep_ext[0] = 0;
+		o_sep_ext = sep_ext;
+		sep_ext+=5;
+	} else {
+		sep_ext = gf_url_colon_suffix(dasher->mpd_name, '=');
+		if (sep_ext) {
+			if (sep_ext[1] == '\\') sep_ext = strchr(sep_ext+1, ':');
+			else if (sep_ext[1]=='/') {
+				sep_ext = strchr(sep_ext+1, '/');
+				if (sep_ext) sep_ext = strchr(sep_ext, ':');
+			}
+		}
+		if (sep_ext) {
+			sep_ext[0] = 0;
+			o_sep_ext = sep_ext;
+		}
 	}
 
 	if (dasher->segment_duration == (u32) dasher->segment_duration) {
@@ -838,8 +847,8 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 
 	if (args) gf_free(args);
 
-	if (sep_ext) {
-		sep_ext[0] = ':';
+	if (o_sep_ext) {
+		o_sep_ext[0] = ':';
 	}
 
 	if (!dasher->output) {
