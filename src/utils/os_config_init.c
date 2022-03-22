@@ -2129,7 +2129,7 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 
 					if (pipe_start) {
 						pipe_start[0] = 0;
-						fprintf(helpout, "%s,", src_line);
+						fprintf(helpout, "%s ", src_line);
 						pipe_start[0] = '|';
 						src_line = pipe_start+1;
 					} else {

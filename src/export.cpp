@@ -1893,7 +1893,6 @@
 
 #ifdef GPAC_HAS_QJS
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_js_delete_runtime) )
 #endif
 
 

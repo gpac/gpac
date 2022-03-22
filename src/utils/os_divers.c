@@ -1416,6 +1416,11 @@ void gf_sys_close()
 
 		gf_sys_enable_remotery(GF_FALSE, GF_TRUE);
 
+#ifdef GPAC_HAS_QJS
+		void gf_js_delete_runtime();
+		gf_js_delete_runtime();
+#endif
+
 		gf_uninit_global_config(gpac_discard_config);
 
 #ifndef GPAC_DISABLE_LOG

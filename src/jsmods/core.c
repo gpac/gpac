@@ -103,24 +103,16 @@ void gf_js_delete_context(JSContext *ctx)
 
 	js_rt->nb_inst --;
 	if (js_rt->nb_inst == 0) {
-		//persistent context, do not delete runtime but perform GC
-		if (gf_opts_get_bool("temp", "peristent-jsrt")) {
-			JS_RunGC(js_rt->js_runtime);
-			return;
-		}
-
-		qjs_uninit_runtime_libc(js_rt->js_runtime);
-		JS_FreeRuntime(js_rt->js_runtime);
-		gf_list_del(js_rt->allocated_contexts);
-		gf_mx_del(js_rt->mx);
-		gf_free(js_rt);
-		js_rt = NULL;
+		//we delete the runtime in gf_sys_close (we use static vars for class IDs)
+		//but perform GC
+		JS_RunGC(js_rt->js_runtime);
 	}
 }
-GF_EXPORT
+
 void gf_js_delete_runtime()
 {
 	if (js_rt) {
+		qjs_uninit_runtime_libc(js_rt->js_runtime);
 		JS_FreeRuntime(js_rt->js_runtime);
 		gf_list_del(js_rt->allocated_contexts);
 		gf_mx_del(js_rt->mx);

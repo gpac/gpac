@@ -181,13 +181,15 @@ Note: The @ character can be used in place of the * character. String parameter 
 .br
 * filters:*: print name of all available filters, including meta filters
 .br
-* codecs: print the supported builtin codecs
+* codecs: print the supported builtin codecs - use -hx to include unmapped codecs (ffmpeg, ...)
 .br
 * props: print the supported builtin PID and packet properties
 .br
 * props PNAME: print the supported builtin PID and packet properties mentioning PNAME
 .br
 * colors: print the builtin color names and their values
+.br
+* exts: print the builtin extensions and mime types - use -hx to include meta filters (ffmpeg, ...)
 .br
 * layouts: print the builtin CICP audio channel layout names and their values
 .br
@@ -4591,7 +4593,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev72-g9f207b971-master
+build: 2.1-DEV-rev73-g611f48750-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
