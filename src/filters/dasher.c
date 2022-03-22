@@ -168,7 +168,7 @@ typedef struct
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
-	Bool gencues;
+	Bool gencues, force_init;
 	Double ll_part_hb;
 
 	//internal
@@ -3897,7 +3897,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 
 		//we use segment template
 		if (ctx->tpl) {
-			Bool use_single_init;
+			Bool use_single_init, force_init_template=GF_FALSE;
 			GF_MPD_SegmentTemplate *seg_template;
 			u32 start_number = ds->startNumber ? ds->startNumber : 1;
 			u64 seg_duration = (u64)(ds->dash_dur.num) * ds->mpd_timescale / ds->dash_dur.den;
@@ -3907,6 +3907,10 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				single_template = GF_FALSE;
 			} else {
 				use_single_init = (set->bitstream_switching || single_template) ? GF_TRUE : GF_FALSE;
+				if (is_bs_switch && ctx->force_init) {
+					use_single_init = GF_FALSE;
+					single_template = GF_FALSE;
+				}
 			}
 
 			//first rep in set and bs switching or single template, create segment template at set level
@@ -3920,7 +3924,11 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 							seg_template->initialization = force_init_seg_tpl ? gf_strdup(force_init_seg_tpl) : NULL;
 							seg_template->hls_init_name = force_init_seg_tpl ? tile_base_ds->init_seg : NULL;
 						} else {
-							seg_template->initialization = gf_strdup(szInitSegmentTemplate);
+							//bs switching, if we have still template fields init segment template use resolved init file name - cf #2141
+							if (!force_init_template && is_bs_switch && strchr(szInitSegmentTemplate, '$'))
+								seg_template->initialization = gf_strdup(szInitSegmentFilename);
+							else
+								seg_template->initialization = gf_strdup(szInitSegmentTemplate);
 							seg_template->hls_init_name = ds->init_seg;
 						}
 					}
@@ -9358,6 +9366,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(chain), "URL of next MPD for regular chaining", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(force_init), "force init segment creation in bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
