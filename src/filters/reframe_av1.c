@@ -108,7 +108,6 @@ typedef struct
 
 	u32 clli_crc, mdcv_crc;
 	Bool copy_props;
-	Bool patch_pts;
 } GF_AV1DmxCtx;
 
 
@@ -376,6 +375,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 				e = gf_media_parse_ivf_frame_header(bs, &frame_size, &pts);
 				if (!e) gf_bs_skip_bytes(bs, frame_size);
 		 		is_sap = GF_TRUE;
+		 		pts *= ctx->cur_fps.den;
 			}
 			break;
 		default:
@@ -684,7 +684,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u32 pck_size;
 	u64 frame_size = 0, pts = GF_FILTER_NO_TS;
 	GF_FilterPacket *pck;
-	u64 pos, pos_ivf_hdr;
+	u64 pos=0, pos_ivf_hdr;
 	u8 *output;
 
 	if (ctx->bsmode==IVF) {
@@ -698,6 +698,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			return GF_EOS;
 		}
 		if (ctx->pts_from_file) {
+			pts *= ctx->cur_fps.den;
 			pts += ctx->cumulated_dur;
 			if (ctx->last_pts && (ctx->last_pts>pts)) {
 				pts -= ctx->cumulated_dur;
@@ -759,7 +760,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	Bool key_frame = GF_FALSE;
 	u64 frame_size = 0, pts = 0;
-	u64 pos, pos_ivf_hdr;
+	u64 pos=0, pos_ivf_hdr;
 	u32 width = 0, height = 0, renderWidth, renderHeight;
 	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
@@ -782,9 +783,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		}
 
 		if (ctx->pts_from_file) {
-			if (ctx->patch_pts) {
-				pts *= ctx->cur_fps.den;
-			}
+			pts *= ctx->cur_fps.den;
 			pts += ctx->cumulated_dur;
 			if (ctx->last_pts && (ctx->last_pts-1>pts)) {
 				pts -= ctx->cumulated_dur;
@@ -792,15 +791,6 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 				ctx->cumulated_dur = ctx->last_pts-1 + ctx->cur_fps.den;
 				ctx->cumulated_dur -= pts;
 				pts = ctx->cumulated_dur;
-			}
-			if (!ctx->patch_pts && ctx->last_pts && (pts>ctx->last_pts-1) && (pts - ctx->last_pts+1 < ctx->cur_fps.den)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[IVF/VP9] Corrupted timestamp "LLU" less than IVF timebase %u, assuming PTS is a frame count\n", pts, ctx->cur_fps.den));
-				ctx->patch_pts = GF_TRUE;
-				pts *= ctx->cur_fps.den;
-			}
-			else if (ctx->patch_pts && ctx->last_pts && (pts>ctx->last_pts-1) && (pts - ctx->last_pts+1 >= ctx->cur_fps.den*ctx->cur_fps.den)) {
-				ctx->patch_pts = GF_FALSE;
-				pts /= ctx->cur_fps.den;
 			}
 			ctx->last_pts = pts+1;
 		}
@@ -871,7 +861,6 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	} else {
 		gf_filter_pck_set_cts(pck, ctx->cts);
 	}
-
 
 	if (key_frame) {
 		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
