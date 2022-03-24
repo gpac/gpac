@@ -1439,8 +1439,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					gf_filter_pck_set_property(pck, GF_PROP_PCK_END_RANGE, &PROP_BOOL(GF_TRUE));
 				}
 
-				if (!ch->item_id)
+				if (!ch->item_id) {
 					isor_set_sample_groups_and_aux_data(read, ch, pck);
+				}
+				if (ch->sample_data_offset && !gf_sys_is_test_mode())
+					gf_filter_pck_set_byte_offset(pck, ch->sample_data_offset);
 
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
