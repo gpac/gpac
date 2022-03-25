@@ -1730,6 +1730,11 @@ u32 get_pix_rgba(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix) & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF);
 }
+u32 get_pix_grba(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix+1) & 0xFF, *(pix) & 0xFF, *(pix+2) & 0xFF);
+}
 u32 get_pix_abgr(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
@@ -1764,6 +1769,11 @@ u32 get_pix_rgb_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF);
+}
+u32 get_pix_gbr_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	return GF_COL_ARGB(0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF, *pix & 0xFF);
 }
 u32 get_pix_bgr_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
@@ -2314,8 +2324,15 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		_this->tx_get_pixel = get_pix_rgba;
 		_this->is_transparent = 1;
 		break;
+	case GF_PIXEL_UYVA444_PACK:
+		_this->tx_get_pixel = get_pix_grba;
+		_this->is_transparent = 1;
+		break;
 	case GF_PIXEL_YUV444_PACK:
 		_this->tx_get_pixel = get_pix_rgb_24;
+		break;
+	case GF_PIXEL_VYU444_PACK:
+		_this->tx_get_pixel = get_pix_gbr_24;
 		break;
 	case GF_PIXEL_YUV444_10_PACK:
 		_this->tx_get_pixel = get_pix_yuv444_10;
@@ -2444,6 +2461,7 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 			stride = 4 * width;
 		break;
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		_this->Bpp = 4;
 		_this->is_yuv = GF_TRUE;
 		break;
@@ -2452,6 +2470,7 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 		_this->is_yuv = GF_TRUE;
 		break;
 	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 		_this->Bpp = 3;
 		_this->is_yuv = GF_TRUE;
 		break;

@@ -543,25 +543,48 @@ static char *gl_shader_fun_yuv4_pack = \
 "vec2 texc;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
-yuv = texture2D(_gf_%s_1, texc).gbr;\n\
+yuv = texture2D(_gf_%s_1, texc);\n\
 yuv.w = 1.0;\n\
 yuv = _gf_%s_mx * yuv;\n\
 yuv.w = 1.0;\n\
 return yuv;\n\
 ";
 
+static char *gl_shader_fun_vyu4_pack = \
+"vec2 texc;\n\
+vec4 yuv;\n\
+texc = _gpacTexCoord.st;\n\
+yuv.rgb = texture2D(_gf_%s_1, texc).gbr;\n\
+yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = 1.0;\n\
+return yuv;\n\
+";
+
+
 static char *gl_shader_fun_yuv4a_pack = \
 "vec2 texc;\n\
 vec4 tex;\n\
 vec4 yuv;\n\
 texc = _gpacTexCoord.st;\n\
-tex = texture2D(_gf_%s_1, texc).rgba;\n\
-yuv.r = tex.g;\n\
-yuv.g = tex.r;\n\
-yuv.b = tex.b;\n\
+tex = texture2D(_gf_%s_1, texc);\n\
+yuv.rgb = tex.rgb;\n\
 yuv.w = 1.0;\n\
 yuv = _gf_%s_mx * yuv;\n\
+yuv.w = tex.a;\n\
+return yuv;\n\
+";
+
+static char *gl_shader_fun_uyv4a_pack = \
+"vec2 texc;\n\
+vec4 tex;\n\
+vec4 yuv;\n\
+texc = _gpacTexCoord.st;\n\
+tex = texture2D(_gf_%s_1, texc);\n\
+yuv.rgb = tex.grb;\n\
 yuv.w = 1.0;\n\
+yuv = _gf_%s_mx * yuv;\n\
+yuv.w = tex.a;\n\
 return yuv;\n\
 ";
 
@@ -835,9 +858,17 @@ Bool gf_gl_txw_insert_fragment_shader(u32 pix_fmt, const char *tx_name, char **f
 		shader_vars = gl_shader_vars_yuv4_pack;
 		shader_fun = gl_shader_fun_yuv4_pack;
 		break;
+	case GF_PIXEL_VYU444_PACK:
+		shader_vars = gl_shader_vars_yuv4_pack;
+		shader_fun = gl_shader_fun_vyu4_pack;
+		break;
 	case GF_PIXEL_YUVA444_PACK:
 		shader_vars = gl_shader_vars_yuv4_pack;
 		shader_fun = gl_shader_fun_yuv4a_pack;
+		break;
+	case GF_PIXEL_UYVA444_PACK:
+		shader_vars = gl_shader_vars_yuv4_pack;
+		shader_fun = gl_shader_fun_uyv4a_pack;
 		break;
 	case GF_PIXEL_YUV444_10_PACK:
 		shader_vars = gl_shader_vars_yuv4_pack;
@@ -1042,8 +1073,10 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 		break;
 
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		tx->has_alpha = GF_TRUE;
 	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 	case GF_PIXEL_YUV444_10_PACK:
 		tx->uv_w = tx->width;
 		tx->uv_h = tx->height;
@@ -1329,16 +1362,24 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[0]);
 				ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 
-				if (tx->pix_fmt==GF_PIXEL_YUV444_PACK)
+				switch (tx->pix_fmt) {
+				case  GF_PIXEL_YUV444_PACK:
+				case  GF_PIXEL_VYU444_PACK:
 					linesize = 3 * tx->width;
-				else if (tx->pix_fmt==GF_PIXEL_YUVA444_PACK)
+					break;
+				case GF_PIXEL_YUVA444_PACK:
+				case GF_PIXEL_UYVA444_PACK:
 					linesize = 4 * tx->width;
-				else if (tx->pix_fmt==GF_PIXEL_YUV444_10_PACK)
+					break;
+				case GF_PIXEL_YUV444_10_PACK:
 					linesize = 4 * tx->width;
-				else if (tx->pix_fmt==GF_PIXEL_V210)
+					break;
+				case GF_PIXEL_V210:
 					linesize = tx->width * 16 / 6;
-				else
+					break;
+				default:
 					linesize = tx->width/2 * tx->bytes_per_pix * 4;
+				}
 
 				p_stride = stride_luma;
 				count = tx->height;
@@ -1355,9 +1396,9 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 				glBindTexture(GL_TEXTURE_2D, tx->textures[0] );
 				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, tx->PBOs[0]);
 
-				if (tx->pix_fmt==GF_PIXEL_YUV444_PACK)
+				if ((tx->pix_fmt==GF_PIXEL_YUV444_PACK) || (tx->pix_fmt==GF_PIXEL_VYU444_PACK))
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tx->width, tx->height, 0, GL_RGB, tx->memory_format, NULL);
-				else if (tx->pix_fmt==GF_PIXEL_YUVA444_PACK)
+				else if ((tx->pix_fmt==GF_PIXEL_YUVA444_PACK) || (tx->pix_fmt==GF_PIXEL_UYVA444_PACK))
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tx->width, tx->height, 0, GL_RGBA, tx->memory_format, NULL);
 				else if (tx->pix_fmt==GF_PIXEL_YUV444_10_PACK)
 					glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tx->width, tx->height, 0, GL_RGBA, tx->memory_format, NULL);
@@ -1448,14 +1489,20 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 
 		use_stride = GF_FALSE;
 		if ((tx->pix_fmt==GF_PIXEL_YUV444_PACK)
+			|| (tx->pix_fmt==GF_PIXEL_VYU444_PACK)
 			|| (tx->pix_fmt==GF_PIXEL_YUVA444_PACK)
+			|| (tx->pix_fmt==GF_PIXEL_UYVA444_PACK)
 			|| (tx->pix_fmt==GF_PIXEL_YUV444_10_PACK)
 			|| (tx->pix_fmt==GF_PIXEL_V210)
 		) {
 			u32 tx_width = tx->width;
 			u32 nb_bytes = 3;
 			GLuint fmt = GL_RGB;
-			if (tx->pix_fmt!=GF_PIXEL_YUV444_PACK) {
+			switch (tx->pix_fmt) {
+			case GF_PIXEL_YUV444_PACK:
+			case GF_PIXEL_VYU444_PACK:
+				break;
+			default:
 				nb_bytes = 4;
 				fmt = GL_RGBA;
 			}

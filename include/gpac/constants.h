@@ -237,9 +237,13 @@ typedef enum
 	/*!444 YUV, 10 bits, little endian*/
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0'),
 	/*!444 YUV packed*/
-	GF_PIXEL_YUV444_PACK	=	GF_4CC('Y','4','4','p'),
+	GF_PIXEL_YUV444_PACK	=	GF_4CC('Y','U','V','4'),
+	/*!444 VYU packed (v308) */
+	GF_PIXEL_VYU444_PACK	=	GF_4CC('V','Y','U','4'),
 	/*!444 YUV+Alpha packed*/
 	GF_PIXEL_YUVA444_PACK	=	GF_4CC('Y','A','4','p'),
+	/*!444 UYVA packed (v408) */
+	GF_PIXEL_UYVA444_PACK	=	GF_4CC('U','Y','V','A'),
 	/*!444 YUV 10 bit packed little endian (v410)*/
 	GF_PIXEL_YUV444_10_PACK	=	GF_4CC('Y','4','1','p'),
 	/*!422 YUV 10 bit packed in v210 format*/
