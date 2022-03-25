@@ -256,6 +256,32 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	codecid = prop->value.uint;
 
 	odm = gf_filter_pid_get_udta(pid);
+
+	//in filter mode, check we can handle creating a canvas from input video format. If not, negociate a supported format
+	if (!ctx->player) {
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
+		if (prop && (!odm || (odm->mo && (odm->mo->pixelformat != prop->value.uint)))) {
+			GF_EVGSurface *test_c = gf_evg_surface_new(GF_FALSE);
+			GF_Err e = gf_evg_surface_attach_to_buffer(test_c, (u8 *) prop, 48, 48, 0, 0, prop->value.uint);
+			gf_evg_surface_delete(test_c);
+			if (e) {
+				u32 new_fmt;
+				Bool transparent = gf_pixel_fmt_is_transparent(prop->value.uint);
+				if (gf_pixel_fmt_is_yuv(prop->value.uint)) {
+					if (!transparent && gf_pixel_is_wide_depth(prop->value.uint)>8) {
+						new_fmt = GF_PIXEL_YUV444_10;
+					} else {
+						new_fmt = transparent ? GF_PIXEL_YUVA444_PACK : GF_PIXEL_YUV444_PACK;
+					}
+				} else {
+					new_fmt = transparent ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+				}
+				gf_filter_pid_negociate_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(new_fmt) );
+				return GF_OK;
+			}
+		}
+	}
+
 	if (odm) {
 		Bool notify_quality = GF_FALSE;
 		if (mtype==GF_STREAM_SCENE) { }

@@ -2261,17 +2261,10 @@ static void gf_filter_renegociate_output(GF_Filter *filter, Bool force_afchain_i
 							continue;
 						filter_dst = pidi->filter;
 
-						if (filter_dst->freg->reconfigure_output) {
-							assert(!filter_dst->caps_negociate);
-							filter_dst->caps_negociate = pid->caps_negociate;
-							safe_int_inc(&filter_dst->caps_negociate->reference_count);
+						//prevent filter from unloading in case we have to disconnect the pid
+						if (!filter_dst->sticky) filter_dst->sticky = 2;
+						gf_filter_renegociate_output_dst(pid, filter, filter_dst, pidi, NULL);
 
-							gf_fs_post_task(filter->session, gf_filter_reconfigure_output_task, filter_dst, NULL, "filter reconfigure output", NULL);
-						} else {
-							//disconnect pid, but prevent filter from unloading
-							if (!filter_dst->sticky) filter_dst->sticky = 2;
-							gf_filter_renegociate_output_dst(pid, filter, filter_dst, pidi, NULL);
-						}
 					}
 				}
 				//we are disconnected (unload of a previous adaptation filter)

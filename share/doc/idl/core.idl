@@ -337,10 +337,22 @@ unsigned long ntohs(unsigned long value);
 unsigned long pixfmt_size(DOMString pix_fmt, unsigned long width, unsigned long height);
 
 /*! checks if pixel format is potentially transparent (uses alpha)
-\param pcm_fmt PCM format name
+\param pix_fmt pixel format name
 \return true if transparent, false otherwise
 */
-unsigned long pixfmt_transparent(DOMString pcm_fmt);
+boolean pixfmt_transparent(DOMString pix_fmt);
+
+/*! checks if pixel format is YUV
+\param pix_fmt pixel format name
+\return true if YUV, false otherwise
+*/
+boolean pixfmt_yuv(DOMString pix_fmt);
+
+/*! checks bit depth of component in pixel format
+\param pix_fmt pixel format name
+\return number of bits per component
+*/
+boolean pixfmt_depth(DOMString pix_fmt);
 
 /*! gets size in bytes of an audio sample in the given format
 \param pcm_fmt PCM format name

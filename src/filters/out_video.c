@@ -494,6 +494,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		load_gl_tx_matrix(ctx);
 		return GF_OK;
 	}
+
 	ctx->full_range = full_range;
 	ctx->cmx = cmx;
 	if (ctx->c_w && ctx->c_h) {
@@ -636,6 +637,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	case GF_PIXEL_YUYV:
 	case GF_PIXEL_YVYU:
 	case GF_PIXEL_VYUY:
+	case GF_PIXEL_V210:
 		ctx->uv_w = ctx->width/2;
 		ctx->uv_h = ctx->height;
 		if (!ctx->uv_stride) {
@@ -681,7 +683,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//not yet set, happens with some decoders/stream settings - wait until first frame is available and PF is known
 		return GF_OK;
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Pixel format %s unknown\n", gf_4cc_to_str(ctx->pfmt)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MMIO, ("[VideoOut] Pixel format %s not supported\n", gf_pixel_fmt_name(ctx->pfmt) ));
 		return GF_OK;
 	}
 
