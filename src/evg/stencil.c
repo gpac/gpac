@@ -2046,7 +2046,136 @@ u32 get_pix_vyuy(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 	u8 luma = (x%2) ? pY[3] : pY[1];
 	return GF_COL_ARGB(0xFF, luma, u, v);
 }
+u32 get_pix_yuv444_10(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 vy, vu, vv;
+	u32 val;
+	u8 *p_src = _this->pixels + y * _this->stride + x*4;
+	val = p_src[3]; val<<=8;
+	val |= p_src[2]; val<<=8;
+	val |= p_src[1]; val<<=8;
+	val |= p_src[0];
 
+	vu = (u8) ( ((val>>2) & 0x3FF) >> 2);
+	vy = (u8) ( ((val>>12) & 0x3FF) >> 2);
+	vv = (u8) ( ((val>>22)) >> 2);
+
+	return GF_COL_ARGB(0xFF, vy, vu, vv);
+}
+u64 get_pix_yuv444_10_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u16 vy, vu, vv;
+	u32 val;
+	u8 *p_src = _this->pixels + y * _this->stride + x*4;
+	val = p_src[3]; val<<=8;
+	val |= p_src[2]; val<<=8;
+	val |= p_src[1]; val<<=8;
+	val |= p_src[0];
+
+	vu = (u16) ( ((val>>2) & 0x3FF) << 6);
+	vy = (u16) ( ((val>>12) & 0x3FF) << 6);
+	vv = (u16) ( ((val>>22)) << 6);
+	return GF_COLW_ARGB(0xFFFF, vy, vu, vv);
+}
+
+u32 get_pix_v210(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 vy, vu, vv;
+	u32 val1, val2;
+	u32 x_offset = x%6;
+	x-=x_offset;
+	u8 *p_src = _this->pixels + y * _this->stride + (x * 16) / 6;
+	if (x_offset>=4) p_src += 8;
+	else if (x_offset>=2) p_src += 4;
+
+	val1 = p_src[3]; val1<<=8;
+	val1 |= p_src[2]; val1<<=8;
+	val1 |= p_src[1]; val1<<=8;
+	val1 |= p_src[0];
+
+	if (x_offset==0) {
+		vu = (u8) ( ((val1) & 0x3FF) >> 2);
+		vy = (u8) ( ((val1>>10) & 0x3FF) >> 2);
+		vv = (u8) ( ((val1>>20) & 0x3FF) >> 2);
+	} else {
+		val2 = p_src[7]; val2<<=8;
+		val2 |= p_src[6]; val2<<=8;
+		val2 |= p_src[5]; val2<<=8;
+		val2 |= p_src[4];
+
+		if (x_offset==1) {
+			vu = (u8) ( ((val1) & 0x3FF) >> 2);
+			vv = (u8) ( ((val1>>20) & 0x3FF) >> 2);
+			vy = (u8) ( ((val2) & 0x3FF) >> 2);
+		} else if (x_offset==2) {
+			vu = (u8) ( ((val1>>10) & 0x3FF) >> 2);
+			vy = (u8) ( ((val1>>20) & 0x3FF) >> 2);
+			vv = (u8) ( ((val2) & 0x3FF) >> 2);
+		} else if (x_offset==3) {
+			vu = (u8) ( ((val1>>10) & 0x3FF) >> 2);
+			vv = (u8) ( ((val2) & 0x3FF) >> 2);
+			vy = (u8) ( ((val2>>10) & 0x3FF) >> 2);
+		} else if (x_offset==4) {
+			vu = (u8) ( ((val1>>20) & 0x3FF) >> 2);
+			vy = (u8) ( ((val2) & 0x3FF) >> 2);
+			vv = (u8) ( ((val2>>10) & 0x3FF) >> 2);
+		} else {
+			vu = (u8) ( ((val1>>20) & 0x3FF) >> 2);
+			vv = (u8) ( ((val2>>10) & 0x3FF) >> 2);
+			vy = (u8) ( ((val2>>20) & 0x3FF) >> 2);
+		}
+	}
+	return GF_COL_ARGB(0xFF, vy, vu, vv);
+}
+u64 get_pix_v210_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u16 vy, vu, vv;
+	u32 val1, val2;
+	u32 x_offset = x%6;
+	x-=x_offset;
+	u8 *p_src = _this->pixels + y * _this->stride + (x * 16) / 6;
+	if (x_offset>=4) p_src += 8;
+	else if (x_offset>=2) p_src += 4;
+
+	val1 = p_src[3]; val1<<=8;
+	val1 |= p_src[2]; val1<<=8;
+	val1 |= p_src[1]; val1<<=8;
+	val1 |= p_src[0];
+
+	if (x_offset==0) {
+		vu = (u16) ( ((val1) & 0x3FF) << 6);
+		vy = (u16) ( ((val1>>10) & 0x3FF) << 6);
+		vv = (u16) ( ((val1>>20) & 0x3FF) << 6);
+	} else {
+		val2 = p_src[7]; val2<<=8;
+		val2 |= p_src[6]; val2<<=8;
+		val2 |= p_src[5]; val2<<=8;
+		val2 |= p_src[4];
+
+		if (x_offset==1) {
+			vu = (u16) ( ((val1) & 0x3FF) << 6);
+			vv = (u16) ( ((val1>>20) & 0x3FF) << 6);
+			vy = (u16) ( ((val2) & 0x3FF) << 6);
+		} else if (x_offset==2) {
+			vu = (u16) ( ((val1>>10) & 0x3FF) << 6);
+			vy = (u16) ( ((val1>>20) & 0x3FF) << 6);
+			vv = (u16) ( ((val2) & 0x3FF) << 6);
+		} else if (x_offset==3) {
+			vu = (u16) ( ((val1>>10) & 0x3FF) << 6);
+			vv = (u16) ( ((val2) & 0x3FF) << 6);
+			vy = (u16) ( ((val2>>10) & 0x3FF) << 6);
+		} else if (x_offset==4) {
+			vu = (u16) ( ((val1>>20) & 0x3FF) << 6);
+			vy = (u16) ( ((val2) & 0x3FF) << 6);
+			vv = (u16) ( ((val2>>10) & 0x3FF) << 6);
+		} else {
+			vu = (u16) ( ((val1>>20) & 0x3FF) << 6);
+			vv = (u16) ( ((val2>>10) & 0x3FF) << 6);
+			vy = (u16) ( ((val2>>20) & 0x3FF) << 6);
+		}
+	}
+	return GF_COLW_ARGB(0xFFFF, vy, vu, vv);
+}
 
 u64 default_get_pixel_wide(struct __evg_texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 {
@@ -2188,6 +2317,16 @@ static void texture_set_callbacks(EVG_Texture *_this)
 	case GF_PIXEL_YUV444_PACK:
 		_this->tx_get_pixel = get_pix_rgb_24;
 		break;
+	case GF_PIXEL_YUV444_10_PACK:
+		_this->tx_get_pixel = get_pix_yuv444_10;
+		_this->tx_get_pixel_wide = get_pix_yuv444_10_wide;
+		_this->is_wide = 1;
+		break;
+	case GF_PIXEL_V210:
+		_this->tx_get_pixel = get_pix_v210;
+		_this->tx_get_pixel_wide = get_pix_v210_wide;
+		_this->is_wide = 1;
+		break;
 	default:
 		return;
 	}
@@ -2308,9 +2447,22 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 		_this->Bpp = 4;
 		_this->is_yuv = GF_TRUE;
 		break;
+	case GF_PIXEL_YUV444_10_PACK:
+		_this->Bpp = 4;
+		_this->is_yuv = GF_TRUE;
+		break;
 	case GF_PIXEL_YUV444_PACK:
 		_this->Bpp = 3;
 		_this->is_yuv = GF_TRUE;
+		break;
+	case GF_PIXEL_V210:
+		_this->Bpp = 2;
+		_this->is_yuv = GF_TRUE;
+		if (!stride) {
+			stride = width;
+			while (stride % 48) stride++;
+			stride = stride * 16 / 6; //4 x 32 bits to represent 6 pixels
+		}
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

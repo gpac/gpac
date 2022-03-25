@@ -668,7 +668,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 \param full_parse if GF_TRUE, complete parsing of the header will be done
 \return GF_TRUE if success
 */
-Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_parse);
+Bool gf_eac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Config *hdr, Bool full_parse);
 
 /*! parses an EAC-3 header from a bitstream and checks for next frale/blocks presence
 \param bs bitstream to parse

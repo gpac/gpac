@@ -240,8 +240,10 @@ typedef enum
 	GF_PIXEL_YUV444_PACK	=	GF_4CC('Y','4','4','p'),
 	/*!444 YUV+Alpha packed*/
 	GF_PIXEL_YUVA444_PACK	=	GF_4CC('Y','A','4','p'),
-	/*!444 YUV 10 bit packed*/
+	/*!444 YUV 10 bit packed little endian (v410)*/
 	GF_PIXEL_YUV444_10_PACK	=	GF_4CC('Y','4','1','p'),
+	/*!422 YUV 10 bit packed in v210 format*/
+	GF_PIXEL_V210			= GF_4CC('v','2','1','0'),
 
 	/*!Unknown format exposed a single OpenGL texture to be consumed using samplerExternalOES*/
 	GF_PIXEL_GL_EXTERNAL	=	GF_4CC('E','X','G','L')
@@ -598,9 +600,6 @@ typedef enum
 
 	/*! codecid for USAC / xHE-AACv2 audio */
 	GF_CODECID_USAC = GF_4CC('u','s','a','c'),
-
-	GF_CODECID_V210 = GF_4CC('v','2','1','0'),
-
 
 	/*! codecid for MPEG-1 Audio streams, layer 1*/
 	GF_CODECID_MPEG_AUDIO_L1 = GF_4CC('m','p','a','1'),

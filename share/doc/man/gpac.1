@@ -3672,9 +3672,14 @@ Packed YUV 444 8 bit
 Packed YUV+alpha 444 8 bit
 .br
 .TP
-.B yuv444p_10 (ext *.y4lp)
+.B v410 (ext *.v410)
 .br
-Packed YUV 444 10 bit
+Packed UYV 444 10 bit LE
+.br
+.TP
+.B v210 (ext *.v210)
+.br
+Packed UYVY 422 10 bit LE
 .br
 .TP
 .B grey (ext *.grey)
@@ -4472,11 +4477,6 @@ VVC Subpicture Video
 xHEAAC / USAC Audio
 .br
 .TP
-.B v210
-.br
-v210 YUV 422 10 bits
-.br
-.TP
 .B ffv1
 .br
 FFMPEG Video Codec 1
@@ -4593,7 +4593,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev73-g611f48750-master
+build: 2.1-DEV-rev76-gaa0ea3570-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

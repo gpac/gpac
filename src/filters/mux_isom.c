@@ -1836,12 +1836,6 @@ sample_entry_setup:
 	case GF_CODECID_LASER:
 		use_m4sys = GF_TRUE;
 		break;
-	case GF_CODECID_V210:
-		m_subtype = GF_QT_SUBTYPE_YUV422_10;
-		comp_name = "v210 YUV 422 10 bit";
-		use_gen_sample_entry = GF_TRUE;
-		unknown_generic = GF_FALSE;
-		break;
 
 	case GF_CODECID_RAW:
 		m_subtype = codec_id;

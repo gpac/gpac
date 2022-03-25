@@ -68,12 +68,19 @@ typedef struct
 
 	u32 o_bpp, offset_w, offset_h;
 	GF_EVGSurface *surf;
+
+	Bool unpack_v410, repack_v410, unpack_v210, repack_v210;
+	u32 orig_in_stride, repack_stride;
+	u8 *unpack_buf, *repack_buf;
 } GF_FFSWScaleCtx;
+
+//#include <gpac/bitstream.h>
+#include <libavutil/intreadwrite.h>
 
 static GF_Err ffsws_process(GF_Filter *filter)
 {
 	const char *data;
-	u8 *output;
+	u8 *output, *pck_data;
 	u32 osize;
 	s32 res;
 	u8 *src_planes[5];
@@ -126,17 +133,128 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	if (data) {
 		src_planes[0] = (u8 *) data;
 
-		if (ctx->nb_src_planes==1) {
-		} else if (ctx->nb_src_planes==2) {
+		if (ctx->unpack_v410) {
+			u32 i, j;
+			for (j=0; j<ctx->h; j++) {
+				const u8 *p_src = data + j * ctx->orig_in_stride;
+				u8 *p_y = ctx->unpack_buf + j * ctx->w * 2;
+				u8 *p_u = p_y + ctx->h * ctx->w * 2;
+				u8 *p_v = p_u + ctx->h * ctx->w * 2;
+
+				for (i=0; i<ctx->w; i++) {
+					u32 val = AV_RL32(p_src);
+					*(u16*) p_u = (val>>2) & 0x3FF;
+					*(u16*) p_y = (val>>12) & 0x3FF;
+					*(u16*) p_v = (val>>22);
+
+					p_u+=2;
+					p_v+=2;
+					p_y+=2;
+					p_src+=4;
+				}
+			}
+			src_planes[0] = ctx->unpack_buf;
 			src_planes[1] = src_planes[0] + ctx->src_stride[0]*ctx->h;
-		} else if (ctx->nb_src_planes==3) {
-			src_planes[1] = src_planes[0] + ctx->src_stride[0] * ctx->h;
-			src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
-		} else if (ctx->nb_src_planes==4) {
-			src_planes[1] = src_planes[0] + ctx->src_stride[0] * ctx->h;
-			src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
-			src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
+			src_planes[2] = src_planes[1] + ctx->src_stride[1]*ctx->h;
+		} else if (ctx->unpack_v210) {
+			u32 i, j;
+			for (j=0; j<ctx->h; j++) {
+				u32 cur_w = 0;
+				const u8 *p_src = data + j * ctx->orig_in_stride;
+				u8 *p_y = ctx->unpack_buf + j * ctx->w * 2;
+				u8 *p_u = ctx->unpack_buf + j * ctx->w + ctx->h * ctx->w * 2;
+				u8 *p_v = p_u + ctx->h * ctx->w;
+
+				for (i=0; i<ctx->w; i+=6) {
+					u32 val;
+					u16 u, v, y;
+					//first word is xx Cr0 Y0 Cb0
+					val = AV_RL32(p_src);
+					u = (val) & 0x3FF;
+					*(u16*) p_y = (val>>10) & 0x3FF;
+					v = (val>>20) & 0x3FF;
+					*(u16*) p_u = u;
+					*(u16*) p_v = v;
+					p_u+=2;
+					p_v+=2;
+					p_y+=2;
+					p_src+=4;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+
+					//second word is xx Y2 Cb1 Y1
+					val = AV_RL32(p_src);
+					y = (val) & 0x3FF;
+
+					*(u16*) p_y = y;
+					p_y+=2;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+
+					u = (val>>10) & 0x3FF;
+					y = (val>>20) & 0x3FF;
+					p_src+=4;
+
+					//third word is xx Cb2 Y3 Cr1
+					val = AV_RL32(p_src);
+					v = (val) & 0x3FF;
+					*(u16*) p_y = y;
+					*(u16*) p_u = u;
+					*(u16*) p_v = v;
+					p_u+=2;
+					p_v+=2;
+					p_y+=2;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+
+					y = (val>>10) & 0x3FF;
+					*(u16*) p_y = y;
+					p_y+=2;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+
+					u = (val>>20) & 0x3FF;
+					p_src+=4;
+
+					//fourth word is xx Y5 Cr2 Y4
+					val = AV_RL32(p_src);
+					y = (val) & 0x3FF;
+					v = (val>>10) & 0x3FF;
+
+					*(u16*) p_y = y;
+					*(u16*) p_u = u;
+					*(u16*) p_v = v;
+					p_u+=2;
+					p_v+=2;
+					p_y+=2;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+
+					y = (val>>20) & 0x3FF;
+					*(u16*) p_y = y;
+					p_y+=2;
+					p_src+=4;
+					cur_w++;
+					if (cur_w>=ctx->w) break;
+				}
+			}
+			src_planes[0] = ctx->unpack_buf;
+			src_planes[1] = src_planes[0] + ctx->src_stride[0]*ctx->h;
+			src_planes[2] = src_planes[1] + ctx->src_stride[1]*ctx->h;
+		} else {
+			if (ctx->nb_src_planes==1) {
+			} else if (ctx->nb_src_planes==2) {
+				src_planes[1] = src_planes[0] + ctx->src_stride[0]*ctx->h;
+			} else if (ctx->nb_src_planes==3) {
+				src_planes[1] = src_planes[0] + ctx->src_stride[0] * ctx->h;
+				src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
+			} else if (ctx->nb_src_planes==4) {
+				src_planes[1] = src_planes[0] + ctx->src_stride[0] * ctx->h;
+				src_planes[2] = src_planes[1] + ctx->src_stride[1] * ctx->src_uv_height;
+				src_planes[3] = src_planes[2] + ctx->src_stride[2] * ctx->src_uv_height;
+			}
 		}
+
 	} else if (frame_ifce && frame_ifce->get_plane) {
 		u32 i=0;
 		for (i=0; i<ctx->nb_src_planes; i++) {
@@ -148,6 +266,12 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NOT_SUPPORTED;
 	}
+
+	pck_data = output;
+	if (ctx->repack_v410 || ctx->repack_v210) {
+		output = ctx->repack_buf;
+	}
+
 	dst_planes[0] = output;
 	dst_planes[0] += ctx->dst_stride[0] * ctx->offset_h + ctx->offset_w*ctx->o_bpp;
 
@@ -194,7 +318,108 @@ static GF_Err ffsws_process(GF_Filter *filter)
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (ctx->swap_idx_1 || ctx->swap_idx_2) {
+
+	if (ctx->repack_v410) {
+		u32 i, j;
+		output = pck_data;
+		for (j=0; j<ctx->oh; j++) {
+			u8 *p_dst = output + j * ctx->repack_stride;
+			u8 *p_y = ctx->repack_buf + j * ctx->ow * 2;
+			u8 *p_u = p_y + ctx->oh * ctx->ow * 2;
+			u8 *p_v = p_u + ctx->oh * ctx->ow * 2;
+
+			for (i=0; i<ctx->ow; i++) {
+				u32 val = 0;
+				val = *(u16 *) p_v; val<<=10;
+				val |= *(u16 *) p_y; val<<=10;
+				val |= *(u16 *) p_u; val<<=2;
+
+				p_dst[0] = val & 0xFF;
+				p_dst[1] = (val>>8) & 0xFF;
+				p_dst[2] = (val>>16) & 0xFF;
+				p_dst[3] = (val>>24) & 0xFF;
+
+				p_u+=2;
+				p_v+=2;
+				p_y+=2;
+				p_dst+=4;
+			}
+		}
+	}
+	else if (ctx->repack_v210) {
+		u32 i, j;
+		output = pck_data;
+		for (j=0; j<ctx->oh; j++) {
+			u8 *p_dst = output + j * ctx->repack_stride;
+			u8 *p_y = ctx->repack_buf + j * ctx->ow * 2;
+			u8 *p_u = ctx->repack_buf + ctx->oh * ctx->ow * 2 + j * ctx->ow;
+			u8 *p_v = p_u + ctx->oh * ctx->ow;
+			u32 cur_uv_w=0;
+
+			for (i=0; i<ctx->ow; i+=6) {
+				u32 val = 0;
+				val = *(u16 *) p_u;
+				p_u+=2;
+				val |= ((u32) *(u16 *) p_y) << 10;
+				p_y+=2;
+				val |= ((u32) *(u16 *) p_v) << 20;
+				p_v+=2;
+
+#define PUT_WORD_LE \
+				p_dst[0] = val & 0xFF;\
+				p_dst[1] = (val>>8) & 0xFF;\
+				p_dst[2] = (val>>16) & 0xFF;\
+				p_dst[3] = (val>>24) & 0xFF;\
+				p_dst+=4;\
+
+				PUT_WORD_LE
+
+				val = *(u16 *) p_y;
+				p_y+=2;
+
+				cur_uv_w+=2;
+				if (cur_uv_w>=ctx->ow) {
+					PUT_WORD_LE
+					break;
+				}
+				val |= ((u32) *(u16 *) p_u) << 10;
+				p_u+=2;
+				val |= ((u32) *(u16 *) p_y) << 20;
+				p_y+=2;
+
+				PUT_WORD_LE
+
+				val = *(u16 *) p_v;
+				p_v+=2;
+				val |= ((u32) *(u16 *) p_y) << 10;
+				p_y+=2;
+
+				cur_uv_w+=2;
+				if (cur_uv_w>=ctx->ow) {
+					PUT_WORD_LE
+					break;
+				}
+
+				val |= ((u32) *(u16 *) p_u) << 20;
+				p_u+=2;
+
+				PUT_WORD_LE
+
+				val = *(u16 *) p_y;
+				p_y+=2;
+				val |= ((u32) *(u16 *) p_v) << 10;
+				p_v+=2;
+				val |= ((u32) *(u16 *) p_y) << 20;
+				p_y+=2;
+
+				PUT_WORD_LE
+
+				cur_uv_w+=2;
+				if (cur_uv_w>=ctx->ow)
+					break;
+			}
+		}
+	}	else if (ctx->swap_idx_1 || ctx->swap_idx_2) {
 		u32 i, j;
 		for (i=0; i<ctx->h; i++) {
 			u8 *dst = output + ctx->dst_stride[0]*i;
@@ -400,8 +625,32 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		nb_par = 0;
 		Bool res;
 		u32 mode = get_sws_mode(ctx->scale, &nb_par);
-		u32 ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ofmt);
-		u32 ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->ofmt);
+
+		u32 ff_src_pfmt, ff_dst_pfmt;
+		ctx->unpack_v410 = ctx->repack_v410 = GF_FALSE;
+		ctx->unpack_v210 = ctx->repack_v210 = GF_FALSE;
+		//v410 and v210 as treated as codecs in ffmpeg, we deal with them as pixel formats
+		if (ofmt == GF_PIXEL_YUV444_10_PACK) {
+			ctx->unpack_v410 = GF_TRUE;
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10);
+		} else if (ofmt == GF_PIXEL_V210) {
+			ctx->unpack_v210 = GF_TRUE;
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10);
+		} else {
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ofmt);
+		}
+		if (ctx->ofmt == GF_PIXEL_YUV444_10_PACK) {
+			ctx->repack_v410 = GF_TRUE;
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10);
+		} else if (ctx->ofmt == GF_PIXEL_V210) {
+			ctx->repack_v210 = GF_TRUE;
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10);
+		} else {
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->ofmt);
+		}
+
+		if ((ff_src_pfmt==AV_PIX_FMT_NONE) || (ff_dst_pfmt==AV_PIX_FMT_NONE))
+			return GF_NOT_SUPPORTED;
 
 		//get layout info for source
 		memset(ctx->src_stride, 0, sizeof(ctx->src_stride));
@@ -413,8 +662,23 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Failed to query source pixel format characteristics\n"));
 			return GF_NOT_SUPPORTED;
 		}
-		if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
-		if (ctx->nb_src_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
+		if (ctx->unpack_v410) {
+			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*3*2);
+			ctx->nb_src_planes = 3;
+			ctx->orig_in_stride = ctx->src_stride[0];
+			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = 2*w;
+			ctx->src_uv_height = h;
+		} else if (ctx->unpack_v210) {
+			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*2*2);
+			ctx->nb_src_planes = 3;
+			ctx->orig_in_stride = ctx->src_stride[0];
+			ctx->src_stride[0] = 2*w;
+			ctx->src_stride[2] = ctx->src_stride[1] = w;
+			ctx->src_uv_height = h;
+		} else {
+			if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
+			if (ctx->nb_src_planes==4) ctx->src_stride[3] = ctx->src_stride[0];
+		}
 
 		ctx->o_bpp = gf_pixel_get_bytes_per_pixel(ofmt);
 		//get layout info for dest
@@ -427,7 +691,23 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		if (ctx->nb_planes==3) ctx->dst_stride[2] = ctx->dst_stride[1];
 		if (ctx->nb_planes==4) ctx->dst_stride[3] = ctx->dst_stride[0];
 
-
+		if (ctx->repack_v410) {
+			ctx->nb_planes = 3;
+			ctx->repack_stride = ctx->dst_stride[0];
+			ctx->repack_buf = gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 3 * 2);
+			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->dst_stride[0] = 2 * ctx->ow;
+			ctx->dst_uv_height = ctx->oh;
+			ctx->o_bpp = 2;
+		}
+		else if (ctx->repack_v210) {
+			ctx->nb_planes = 3;
+			ctx->repack_stride = ctx->dst_stride[0];
+			ctx->repack_buf = gf_realloc(ctx->repack_buf, ctx->ow * ctx->oh * 2 * 2);
+			ctx->dst_stride[0] = 2 * ctx->ow;
+			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->ow;
+			ctx->dst_uv_height = ctx->oh;
+			ctx->o_bpp = 2;
+		}
 		if (nb_par) {
 			if ((nb_par==1) && (ctx->p1!=GF_MAX_DOUBLE) ) {
 				par[0] = ctx->p1;
@@ -490,9 +770,17 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ow));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->oh));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->dst_stride[0]));
-	if (ctx->nb_planes>1)
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
+
+	if (ctx->repack_v410 || ctx->repack_v210) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->repack_stride));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->dst_stride[0]));
+		if (ctx->nb_planes>1)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, &PROP_UINT(ctx->dst_stride[1]));
+		else
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL );
+	}
 
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->ofmt));
@@ -504,6 +792,12 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, NULL );
 	}
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLAP_X, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLAP_Y, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLAP_W, NULL);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLAP_H, NULL);
+
 	return GF_OK;
 }
 
@@ -525,6 +819,8 @@ static void ffsws_finalize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->swscaler) sws_freeContext(ctx->swscaler);
+	if (ctx->unpack_buf) gf_free(ctx->unpack_buf);
+	if (ctx->repack_buf) gf_free(ctx->repack_buf);
 	gf_evg_surface_delete(ctx->surf);
 	return;
 }
@@ -618,6 +914,7 @@ GF_FilterRegister FFSWSRegister = {
 	.args = FFSWSArgs,
 	.configure_pid = ffsws_configure_pid,
 	SETCAPS(FFSWSCaps),
+	.flags = GF_FS_REG_ALLOW_CYCLIC,
 	.initialize = ffsws_initialize,
 	.finalize = ffsws_finalize,
 	.process = ffsws_process,

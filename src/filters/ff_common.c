@@ -113,7 +113,7 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{0},
 };
 
-u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
+enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt)
 {
 	u32 i=0;
 	while (FF2GPAC_PixelFormats[i].gpac_pf) {
@@ -122,10 +122,10 @@ u32 ffmpeg_pixfmt_from_gpac(u32 pfmt)
 		i++;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
-	return 0;
+	return AV_PIX_FMT_NONE;
 }
 
-u32 ffmpeg_pixfmt_to_gpac(u32 pfmt, Bool no_warn)
+u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn)
 {
 	const AVPixFmtDescriptor *ffdesc = av_pix_fmt_desc_get(pfmt);
 	if (!ffdesc) {
@@ -377,9 +377,6 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 #ifdef FFMPEG_ENABLE_VVC
 	{AV_CODEC_ID_VVC, GF_CODECID_VVC, 0},
 #endif
-
-	{AV_CODEC_ID_V210, GF_CODECID_V210, 0},
-
 	{AV_CODEC_ID_TRUEHD, GF_CODECID_TRUEHD, 0},
 	{AV_CODEC_ID_FFV1, GF_CODECID_FFV1, 0},
 	{0}

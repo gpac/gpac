@@ -159,7 +159,6 @@ CodecIDReg CodecRegistry [] = {
 	{GF_CODECID_VVC, 0, GF_STREAM_VISUAL, "VVC Video", "vvc|266|h266", "vvc1", "video/vvc"},
 	{GF_CODECID_VVC_SUBPIC, 0, GF_STREAM_VISUAL, "VVC Subpicture Video", "vvs1", "vvs1", "video/x-vvc-subpic", .alt_codecid=GF_CODECID_VVC},
 	{GF_CODECID_USAC, GF_CODECID_AAC_MPEG4, GF_STREAM_AUDIO, "xHEAAC / USAC Audio", "usac|xheaac", "mp4a", "audio/x-xheaac"},
-	{GF_CODECID_V210, 0, GF_STREAM_VISUAL, "v210 YUV 422 10 bits", "v210", "v210", "video/x-raw-v210"},
 	{GF_CODECID_FFV1, 0, GF_STREAM_VISUAL, "FFMPEG Video Codec 1", "ffv1", NULL, "video/x-ffv1"},
 };
 
@@ -252,8 +251,6 @@ GF_CodecID gf_codec_id_from_isobmf(u32 isobmftype)
 	case GF_ISOM_SUBTYPE_VVC1:
 	case GF_ISOM_SUBTYPE_VVI1:
 		return GF_CODECID_VVC;
-	case GF_QT_SUBTYPE_YUV422_10:
-		return GF_CODECID_V210;
 	case GF_ISOM_SUBTYPE_VP08:
 		return GF_CODECID_VP8;
 	case GF_ISOM_SUBTYPE_VP09:
@@ -1056,7 +1053,8 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_YUVA444, "yuv444a", "Planar YUV+alpha 444 8 bit", "yp4a"},
 	{GF_PIXEL_YUV444_PACK, "yuv444p", "Packed YUV 444 8 bit", "yv4p"},
 	{GF_PIXEL_YUVA444_PACK, "yuv444ap", "Packed YUV+alpha 444 8 bit", "y4ap"},
-	{GF_PIXEL_YUV444_10_PACK, "yuv444p_10", "Packed YUV 444 10 bit", "y4lp"},
+	{GF_PIXEL_YUV444_10_PACK, "v410", "Packed UYV 444 10 bit LE"},
+	{GF_PIXEL_V210, "v210", "Packed UYVY 422 10 bit LE"},
 
 	//first non-yuv format
 	{GF_PIXEL_GREYSCALE, "grey", "Greyscale 8 bit"},
@@ -1429,6 +1427,17 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		stride_uv = 0;
 		uv_height = 0;
 		break;
+	case GF_PIXEL_V210:
+		if (no_in_stride) {
+			stride = width;
+			while (stride % 48) stride++;
+			stride = stride * 16 / 6; //4 x 32 bits to represent 6 pixels
+		} else {
+			stride = *out_stride;
+		}
+		planes=1;
+		size = height * stride;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported pixel format %s, cannot get size info\n", gf_pixel_fmt_name(pixfmt) ));
 		return GF_FALSE;
@@ -1476,6 +1485,7 @@ u32 gf_pixel_is_wide_depth(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUYV_10:
 	case GF_PIXEL_YVYU_10:
 	case GF_PIXEL_YUV444_10_PACK:
+	case GF_PIXEL_V210:
 		return 10;
 	default:
 		return 8;
@@ -1546,6 +1556,7 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUV444_PACK:
 	case GF_PIXEL_YUVA444_PACK:
 	case GF_PIXEL_YUV444_10_PACK:
+	case GF_PIXEL_V210:
 		return 1;
 
 	case GF_PIXEL_GL_EXTERNAL:
@@ -1632,7 +1643,8 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 		return 4;
 	case GF_PIXEL_YUV444_10_PACK:
 		return 3;
-
+	case GF_PIXEL_V210:
+		return 3;
 	case GF_PIXEL_GL_EXTERNAL:
 		return 1;
 	default:
@@ -1660,7 +1672,8 @@ static struct pixfmt_to_qt
 	{GF_PIXEL_YUV, GF_QT_SUBTYPE_IYUV},
 	{GF_PIXEL_YVU, GF_QT_SUBTYPE_YV12},
 	{GF_PIXEL_RGBA, GF_QT_SUBTYPE_RGBA},
-	{GF_PIXEL_ABGR, GF_QT_SUBTYPE_ABGR}
+	{GF_PIXEL_ABGR, GF_QT_SUBTYPE_ABGR},
+	{GF_PIXEL_V210, GF_QT_SUBTYPE_YUV422_10}
 };
 
 GF_EXPORT

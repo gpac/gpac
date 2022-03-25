@@ -581,6 +581,8 @@ function update_stats()
 			}
 			p = f.ipid_props(0, 'SAR');
 			if (p) str += ' SAR ' + p.n + '/' + p.d;			
+			p = f.ipid_props(0, 'PixelFormat');
+			if (p) str += ' pf ' + p;
 		} else {
 			p = f.ipid_props(0, 'SampleRate');
 			if (p) {
@@ -589,6 +591,8 @@ function update_stats()
 				if (p) str += ' ' + p;
 				p = f.ipid_props(0, 'ChannelLayout');
 				if (p) str += ' ' + p;
+				p = f.ipid_props(0, 'AudioFormat');
+				if (p) str += ' fmt ' + p;
 			} 
 		}
 

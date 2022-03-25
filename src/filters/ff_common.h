@@ -75,8 +75,8 @@ enum{
 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
 
-u32 ffmpeg_pixfmt_from_gpac(u32 pfmt);
-u32 ffmpeg_pixfmt_to_gpac(u32 pfmt, Bool no_warn);
+enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt);
+u32 ffmpeg_pixfmt_to_gpac(enum AVPixelFormat pfmt, Bool no_warn);
 //return GPAC pix format from codec tag
 u32 ffmpeg_pixfmt_from_codec_tag(u32 codec_tag, Bool *is_full_range);
 //check if FF pixfmt is an old format fullrange

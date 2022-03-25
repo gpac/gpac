@@ -261,9 +261,6 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			else
  				pix_fmt = GF_PIXEL_RGB;
 			break;
-		case GF_QT_SUBTYPE_YUV422_10:
-			codec_id = GF_CODECID_V210;
-			break;
 
 		case GF_ISOM_SUBTYPE_IPCM:
 			if (gf_isom_get_pcm_config(read->mov, track, stsd_idx, &pcm_flags, &pcm_size) == GF_OK) {
@@ -349,10 +346,9 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			break;
 		}
 
-
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
-			if (!codec_id) {
+			if (!codec_id || (codec_id==GF_CODECID_RAW)) {
 				pix_fmt=0;
 				if (streamtype==GF_STREAM_VISUAL) {
 					pix_fmt = gf_pixel_fmt_from_qt_type(m_subtype);

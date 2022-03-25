@@ -1954,6 +1954,14 @@ static JSValue js_pixfmt_size(JSContext *ctx, JSValueConst this_val, int argc, J
 	return JS_NewInt32(ctx, osize);
 }
 
+static JSValue js_pixfmt_depth(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_PropertyValue prop;
+	if (argc<1) return GF_JS_EXCEPTION(ctx);
+	GF_Err e = jsf_ToProp_ex(NULL, ctx, argv[0], 0, &prop, GF_PROP_PIXFMT);
+	if (e) return GF_JS_EXCEPTION(ctx);
+	return JS_NewInt32(ctx, gf_pixel_is_wide_depth(prop.value.uint));
+}
 static JSValue js_pixfmt_transparent(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	GF_PropertyValue prop;
@@ -2515,6 +2523,7 @@ static const JSCFunctionListEntry sys_funcs[] = {
 	JS_CFUNC_DEF("pixfmt_size", 0, js_pixfmt_size),
 	JS_CFUNC_DEF("pixfmt_transparent", 0, js_pixfmt_transparent),
 	JS_CFUNC_DEF("pixfmt_yuv", 0, js_pixfmt_yuv),
+	JS_CFUNC_DEF("pixfmt_depth", 0, js_pixfmt_depth),
 	JS_CFUNC_DEF("pcmfmt_depth", 0, js_pcmfmt_depth),
 	JS_CFUNC_DEF("color_lerp", 0, js_color_lerp),
 	JS_CFUNC_DEF("color_component", 0, js_color_get_component),

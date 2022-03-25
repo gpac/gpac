@@ -612,6 +612,21 @@ function configure_vout()
 	if (filter.gpu) {
 		print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Video output ' + filter.vsize.x + 'x' + filter.vsize.y + ' FPS ' + filter.fps.n + '/' + filter.fps.d + ' OpenGL pixfmt ' + filter.pfmt);
 	} else {
+		let test_canvas=null;
+		try {
+			test_canvas = new evg.Canvas(48, 48, filter.pfmt);
+		} catch (e) {
+			let change_fmt;
+		  if (sys.pixfmt_yuv(filter.pfmt)) {
+				let bpp = sys.pixfmt_depth(filter.pfmt);
+				change_fmt = (bpp>8) ? 'yp4l' : 'yuv4';
+		  } else {
+				change_fmt = 'rgb';
+		  }
+			print(GF_LOG_WARNING, 'Pixel format ' + filter.pfmt + ' not supported by rasterizer, defaulting to ' + change_fmt);
+			filter.pfmt = change_fmt;
+		}
+
 		print(GF_LOG_INFO, (filter.live ? 'Live ' : '' ) + 'Video output ' + filter.vsize.x + 'x' + filter.vsize.y + ' FPS ' + filter.fps.n + '/' + filter.fps.d + ' pixfmt ' + filter.pfmt);
 	}
 
@@ -758,6 +773,7 @@ filter.configure_pid = function(pid)
 		pid.reconfigure = true;
 		pid.mirror = pid.get_prop('Mirror');
 		pid.rotate = pid.get_prop('Rotate');
+		pid.pfmt_check = 0;
 	}	
 	else if (p == 'Audio') {
 		//silently ignore
@@ -2142,7 +2158,17 @@ function process_video()
 				pid_background = ctx.opaque_pid;
 				pid_background_forward = (ctx.scene && ctx.scene.mod.identity()) || false;
 
-				if (!pid_background.pck) {
+				//first time we try using this pid as base for canvas, check if pixel format is supported as canvas target
+				if (ctx.opaque_pid.pfmt_check==0) {
+					ctx.opaque_pid.pfmt_check = 1;
+					try {
+						let cnv = new evg.Canvas(48, 48, pid.pfmt);
+					} catch (e) {
+						ctx.opaque_pid.pfmt_check = 2;
+					}
+				}
+
+				if (!pid_background.pck || (ctx.opaque_pid.pfmt_check == 2)) {
 					pid_background_forward = false;
 					pid_background = null;
 					has_opaque = false;
