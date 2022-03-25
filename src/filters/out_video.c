@@ -646,17 +646,16 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 		ctx->is_yuv = GF_TRUE;
 		break;
-	case GF_PIXEL_YUV444_PACK:
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
+		ctx->has_alpha = GF_TRUE;
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 	case GF_PIXEL_YUV444_10_PACK:
 		ctx->uv_w = ctx->width;
 		ctx->uv_h = ctx->height;
 		ctx->uv_stride = ctx->stride;
 		ctx->is_yuv = GF_TRUE;
-		if (ctx->pfmt==GF_PIXEL_YUVA444_PACK) {
-			ctx->has_alpha = GF_TRUE;
-			//ctx->pfmt = GF_PIXEL_YUV444;
-		}
 		break;
 
 	case GF_PIXEL_ALPHAGREY:

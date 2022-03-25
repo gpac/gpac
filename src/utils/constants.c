@@ -1045,14 +1045,16 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_YUYV_10, "yuyl", "Packed YUYV 422 10->16 bit"},
 	{GF_PIXEL_YVYU_10, "yvyl", "Packed YVYU 422 10->16 bit"},
 	{GF_PIXEL_NV12, "nv12", "Semi-planar YUV 420 8 bit, Y plane and UV packed plane"},
-	{GF_PIXEL_NV21, "nv21", "Semi-planar YUV 420 8 bit, Y plane and VU packed plane"},
+	{GF_PIXEL_NV21, "nv21", "Semi-planar YVU 420 8 bit, Y plane and VU packed plane"},
 	{GF_PIXEL_NV12_10, "nv1l", "Semi-planar YUV 420 10 bit, Y plane and UV plane"},
-	{GF_PIXEL_NV21_10, "nv2l", "Semi-planar YUV 420 8 bit, Y plane and VU plane"},
+	{GF_PIXEL_NV21_10, "nv2l", "Semi-planar YVU 420 8 bit, Y plane and VU plane"},
 	{GF_PIXEL_YUVA, "yuva", "Planar YUV+alpha 420 8 bit"},
 	{GF_PIXEL_YUVD, "yuvd", "Planar YUV+depth  420 8 bit"},
 	{GF_PIXEL_YUVA444, "yuv444a", "Planar YUV+alpha 444 8 bit", "yp4a"},
 	{GF_PIXEL_YUV444_PACK, "yuv444p", "Packed YUV 444 8 bit", "yv4p"},
+	{GF_PIXEL_VYU444_PACK, "v308", "Packed VYU 444 8 bit"},
 	{GF_PIXEL_YUVA444_PACK, "yuv444ap", "Packed YUV+alpha 444 8 bit", "y4ap"},
+	{GF_PIXEL_UYVA444_PACK, "v408", "Packed UYV+alpha 444 8 bit"},
 	{GF_PIXEL_YUV444_10_PACK, "v410", "Packed UYV 444 10 bit LE"},
 	{GF_PIXEL_V210, "v210", "Packed UYVY 422 10 bit LE"},
 
@@ -1405,11 +1407,13 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		size = height * stride;
 		break;
 	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 		stride = no_in_stride ? 3 * width : *out_stride;
 		planes=1;
 		size = height * stride;
 		break;
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		stride = no_in_stride ? 4 * width : *out_stride;
 		planes=1;
 		size = height * stride;
@@ -1464,6 +1468,7 @@ Bool gf_pixel_fmt_is_transparent(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVA444:
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		return GF_TRUE;
 	default:
 		break;
@@ -1554,7 +1559,9 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YVYU_10:
 		return 2;
 	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 	case GF_PIXEL_YUV444_10_PACK:
 	case GF_PIXEL_V210:
 		return 1;
@@ -1638,8 +1645,10 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 	case GF_PIXEL_YVYU_10:
 		return 3;
 	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
 		return 3;
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		return 4;
 	case GF_PIXEL_YUV444_10_PACK:
 		return 3;
@@ -1662,15 +1671,15 @@ static struct pixfmt_to_qt
 	{GF_PIXEL_RGB, GF_QT_SUBTYPE_RAW},
 	{GF_PIXEL_YUYV, GF_QT_SUBTYPE_YUYV},
 	{GF_PIXEL_UYVY, GF_QT_SUBTYPE_UYVY},
-	{GF_PIXEL_YUV444_PACK, GF_QT_SUBTYPE_YUV444},
-	{GF_PIXEL_YUVA444_PACK, GF_QT_SUBTYPE_YUVA444},
+	{GF_PIXEL_VYU444_PACK, GF_QT_SUBTYPE_YUV444},
+	{GF_PIXEL_UYVA444_PACK, GF_QT_SUBTYPE_YUVA444},
 	{GF_PIXEL_UYVY_10, GF_QT_SUBTYPE_YUV422_16},
 	{GF_PIXEL_YVYU, GF_QT_SUBTYPE_YVYU},
 	{GF_PIXEL_YUV444_10_PACK, GF_QT_SUBTYPE_YUV444_10},
 	{GF_PIXEL_YUV, GF_QT_SUBTYPE_YUV420},
 	{GF_PIXEL_YUV, GF_QT_SUBTYPE_I420},
 	{GF_PIXEL_YUV, GF_QT_SUBTYPE_IYUV},
-	{GF_PIXEL_YVU, GF_QT_SUBTYPE_YV12},
+	{GF_PIXEL_YUV, GF_QT_SUBTYPE_YV12},
 	{GF_PIXEL_RGBA, GF_QT_SUBTYPE_RGBA},
 	{GF_PIXEL_ABGR, GF_QT_SUBTYPE_ABGR},
 	{GF_PIXEL_V210, GF_QT_SUBTYPE_YUV422_10}

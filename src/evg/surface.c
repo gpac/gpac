@@ -275,6 +275,12 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 		surf->idx_g=1;
 		surf->idx_b=2;
 		break;
+	case GF_PIXEL_UYVA444_PACK:
+		surf->idx_a=3;
+		surf->idx_r=1;
+		surf->idx_g=0;
+		surf->idx_b=2;
+		break;
 	case GF_PIXEL_BGRA:
 		surf->idx_a=3;
 		surf->idx_r=2;
@@ -383,6 +389,7 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 		surf->not_8bits = GF_TRUE;
 		break;
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		surf->is_transparent = GF_TRUE;
 		BPP = 4;
 		break;
@@ -578,6 +585,7 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 		return evg_surface_clear_yuv444p_10(surf, clear, color);
 
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		return evg_surface_clear_argb(surf, clear, gf_evg_argb_to_ayuv(surf, color) );
 	default:
 		return GF_BAD_PARAM;
@@ -760,6 +768,7 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		}
 		break;
 	case GF_PIXEL_YUVA444_PACK:
+	case GF_PIXEL_UYVA444_PACK:
 		surf->yuv_type = EVG_YUV;
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
