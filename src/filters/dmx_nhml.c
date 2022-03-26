@@ -306,7 +306,7 @@ static void nhmldmx_set_props(GF_NHMLDmxCtx *ctx, GF_XMLNode *props, GF_FilterPa
 		if (has_bs) {
 			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			prop_val.type = GF_PROP_DATA_NO_COPY;
-			gf_xml_parse_bit_sequence_bs(childnode, ctx->src_url, bs);
+			gf_xml_parse_bit_sequence_bs(childnode, ctx->src_url, NULL, bs);
 			gf_bs_get_content(bs, &prop_val.value.data.ptr, &prop_val.value.data.size);
 			gf_bs_del(bs);
 			reset = GF_FALSE;
@@ -409,7 +409,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 
 	xml = gf_fopen(xml_file, "rb");
 	if (!xml) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: file %s not found", xml_file ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: file %s not found\n", xml_file ));
 		goto exit;
 	}
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
@@ -418,7 +418,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 	if (read==3) {
 		gf_fseek(xml, 0, SEEK_SET);
 		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: XML file %s uses unsupported BOM, please convert to plain UTF-8 or ANSI first", xml_file));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: XML file %s uses unsupported BOM, please convert to plain UTF-8 or ANSI first\n", xml_file));
 			goto exit;
 		}
 	}
@@ -454,7 +454,7 @@ static GF_Err nhml_sample_from_xml(GF_NHMLDmxCtx *ctx, char *xml_file, char *xml
 		breaker.to_pos = gf_fsize(xml);
 	}
 	if (breaker.to_pos < breaker.from_pos) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: xmlFrom %s is located after xmlTo %s", xmlFrom, xmlTo));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure: xmlFrom %s is located after xmlTo %s\n", xmlFrom, xmlTo));
 		goto exit;
 	}
 
@@ -688,7 +688,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 
 				if (url) gf_free(url);
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot open dictionary file %s: %s", att->value, gf_error_to_string(e) ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot open dictionary file %s: %s\n", att->value, gf_error_to_string(e) ));
 					continue;
 				}
 			}
@@ -782,7 +782,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 
 	specInfoSize = 0;
 	if (!streamType && !mtype && !codec_tag) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] parsing %s file - StreamType or MediaType not specified", szImpName));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] parsing %s file - StreamType or MediaType not specified\n", szImpName));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -810,7 +810,7 @@ static GF_Err nhmldmx_config_output(GF_Filter *filter, GF_NHMLDmxCtx *ctx, GF_XM
 		ctx->samp_buffer_size = 0;
 		e = nhml_sample_from_xml(ctx, ctx->media_file, szXmlFrom, szXmlHeaderEnd);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] failed to load XML header: %s", gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] failed to load XML header: %s\n", gf_error_to_string(e) ));
 			if (init_name) gf_free(init_name);
 			return e;
 		}
@@ -1005,7 +1005,7 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	ctx->src_url = p->value.string;
 	nhml = gf_fopen(ctx->src_url, "rt");
 	if (!nhml) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot find %s file %s", szImpName, ctx->src_url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot find %s file %s\n", szImpName, ctx->src_url));
 		return GF_URL_ERROR;
 	}
 
@@ -1027,14 +1027,14 @@ static GF_Err nhmldmx_init_parsing(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 	e = gf_xml_dom_parse(ctx->parser, p->value.string, NULL, NULL);
 	if (e) {
 		gf_fclose(nhml);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file: Line %d - %s", szImpName, gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file: Line %d - %s\n", szImpName, gf_xml_dom_get_line(ctx->parser), gf_xml_dom_get_error(ctx->parser) ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	gf_fclose(nhml);
 
 	ctx->root = gf_xml_dom_get_root(ctx->parser);
 	if (!ctx->root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - no root node found", szImpName ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error parsing %s file - no root node found\n", szImpName ));
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -1254,7 +1254,7 @@ retry_sai:
 						childnode = ref_sai;
 						goto retry_sai;
 					} else {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot locate SAI with id %s, ignoring SAI", att->value));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Cannot locate SAI with id %s, ignoring SAI\n", att->value));
 						valid=GF_FALSE;
 					}
 				}
@@ -1267,7 +1267,7 @@ retry_sai:
 		if (!valid) continue;
 
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_xml_parse_bit_sequence_bs(childnode, ctx->src_url, bs);
+		gf_xml_parse_bit_sequence_bs(childnode, ctx->src_url, NULL, bs);
 
 		u8 *sai_data;
 		u32 sai_size;
@@ -1304,6 +1304,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 		u64 offset=0, byte_offset = GF_FILTER_NO_BO;
 		Bool redundant_rap, append, has_subbs;
 		u32 compress_type;
+		char *base_media_file = NULL;
 		char *base_data = NULL;
 		if (node->type) continue;
 		if (stricmp(node->name, ctx->is_dims ? "DIMSUnit" : "NHNTSample") ) {
@@ -1368,6 +1369,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				} else if (!strnicmp(att->value, "gmem://", 7)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Invalid url %s for NHML import\n", att->value));
 				} else {
+					base_media_file = att->value;
 					char *url = gf_url_concatenate(ctx->src_url, att->value);
 					if (!url) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] Failed to get full url for %s\n", att->value));
@@ -1479,7 +1481,7 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
 				if (!f) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure in sample %d: file %s not found", ctx->sample_num, close ? szMediaTemp : ctx->media_file));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] import failure in sample %d: file %s not found\n", ctx->sample_num, close ? szMediaTemp : ctx->media_file));
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
 				close = GF_TRUE;
@@ -1490,12 +1492,14 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				byte_offset = offset;
 			}
 
-			if (f) {
-				if (!ctx->samp_buffer_size) {
-					u64 ssize = gf_fsize(f);
-					assert(ssize < 0x80000000);
-					ctx->samp_buffer_size = (u32) ssize;
-				}
+			//use full file only if no subbs
+			if (!ctx->samp_buffer_size && !has_subbs && f) {
+				u64 ssize = gf_fsize(f);
+				assert(ssize < 0x80000000);
+				ctx->samp_buffer_size = (u32) ssize;
+			}
+
+			if (f && ctx->samp_buffer_size) {
 				gf_fseek(f, offset, SEEK_SET);
 
 				if (ctx->is_dims) {
@@ -1527,24 +1531,33 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Failed to fully read sample %d: dataLength %d read %d\n", ctx->sample_num, ctx->samp_buffer_size, read));
 					}
 				}
-				if (close) gf_fclose(f);
 			} else {
 				e = GF_OK;
 			}
+			if (f && close) gf_fclose(f);
 		}
 
 		if (e) return e;
 
 		//child BS present, parse them
 		if (has_subbs) {
-			nhml_get_bs(&ctx->bs_w, ctx->samp_buffer, ctx->samp_buffer_size, GF_BITSTREAM_WRITE);
+			u8 *output;
+			//we must create a tmp bitstream, we don't know how much we will write in the XML bit sequence
+			GF_BitStream *bs_tmp = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (ctx->samp_buffer_size) {
-				gf_bs_seek(ctx->bs_w, ctx->samp_buffer_size);
+				gf_bs_write_data(bs_tmp, ctx->samp_buffer, ctx->samp_buffer_size);
 			}
-			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, ctx->bs_w);
-			gf_bs_get_content(ctx->bs_w, &ctx->samp_buffer, &ctx->samp_buffer_size);
-			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc)
+			if (!base_media_file) base_media_file = ctx->media_file;
+			gf_xml_parse_bit_sequence_bs(sample_child ? sample_child : node, ctx->src_url, base_media_file, bs_tmp);
+			gf_bs_get_content(bs_tmp, &output, &ctx->samp_buffer_size);
+			gf_bs_del(bs_tmp);
+
+			if (ctx->samp_buffer_size > ctx->samp_buffer_alloc) {
 				ctx->samp_buffer_alloc = ctx->samp_buffer_size;
+				ctx->samp_buffer = gf_realloc(ctx->samp_buffer, ctx->samp_buffer_size);;
+			}
+			memcpy(ctx->samp_buffer, output, ctx->samp_buffer_size);
+			gf_free(output);
 		}
 		if (!ctx->samp_buffer_size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHMLDmx] No media file associated with sample %d!\n", ctx->sample_num));
@@ -1567,13 +1580,13 @@ static GF_Err nhmldmx_send_sample(GF_Filter *filter, GF_NHMLDmxCtx *ctx)
 				gf_bs_write_u16(ctx->bs_w, ctx->samp_buffer_size-2);
 			}
 #else
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: your version of GPAC was compiled with no libz support. Abort."));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] Error: your version of GPAC was compiled with no libz support, aborting\n"));
 			return GF_NOT_SUPPORTED;
 #endif
 		}
 
 		if (ctx->is_dims && (ctx->samp_buffer_size > 0xFFFF)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] DIMS import failure: sample %d data is too long - maximum size allowed: 65532 bytes", ctx->sample_num));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHMLDmx] DIMS import failure: sample %d data is too long - maximum size allowed: 65532 bytes\n", ctx->sample_num));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (ctx->samp_buffer_size) {

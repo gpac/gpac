@@ -2113,7 +2113,7 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	}\
 
 
-GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, GF_BitStream *bs_orig)
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media_file, GF_BitStream *bs_orig)
 {
 	u32 i, j;
 	GF_Err e = GF_OK;
@@ -2128,6 +2128,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		u32 size = 0;
 		u64 offset = 0;
 		s64 value = 0;
+		Bool use_file = GF_FALSE;
 		bin128 word128;
 		Float val_float = 0;
 		Double val_double = 0;
@@ -2144,7 +2145,7 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 		if (node->type) continue;
 
 		if (stricmp(node->name, "BS") ) {
-			e = gf_xml_parse_bit_sequence_bs(node, parent_url, bs);
+			e = gf_xml_parse_bit_sequence_bs(node, parent_url, base_media_file, bs);
 			if (e) goto exit;
 			continue;
 		}
@@ -2163,10 +2164,13 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				has_double = GF_TRUE;
 			} else if (!stricmp(att->name, "mediaOffset") || !stricmp(att->name, "dataOffset")) {
 				XML_SCAN_INT(LLU, offset);
+				use_file = GF_TRUE;
 			} else if (!stricmp(att->name, "dataLength")) {
 				XML_SCAN_INT("%u", size);
+				use_file = GF_TRUE;
 			} else if (!stricmp(att->name, "mediaFile") || !stricmp(att->name, "dataFile")) {
 				szFile = att->value;
+				use_file = GF_TRUE;
 			} else if (!stricmp(att->name, "text") || !stricmp(att->name, "string")) {
 				szString = att->value;
 			} else if (!stricmp(att->name, "fcc")) {
@@ -2214,6 +2218,9 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 				}
 			}
 		}
+
+		if (use_file && !szFile)
+			szFile = base_media_file;
 
 		if (szString) {
 			u32 len = (u32) strlen(szString);
@@ -2377,7 +2384,7 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (!bs) return GF_OUT_OF_MEM;
 
-	gf_xml_parse_bit_sequence_bs(bsroot, parent_url, bs);
+	gf_xml_parse_bit_sequence_bs(bsroot, parent_url, NULL, bs);
 
 	gf_bs_align(bs);
 	gf_bs_get_content(bs, data, data_size);

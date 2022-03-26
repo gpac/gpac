@@ -412,10 +412,11 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, const char *parent_url, u8 
 Parses XML bit sequence in an existing bitstream object. The syntax for the XML is the same as in \ref gf_xml_parse_bit_sequence
 \param bsroot the root node of XML document describing the bitstream to create
 \param parent_url URL of the parent document
+\param base_media URL of base media file if any, relative to parent url. May be NULL
 \param bs target bitstream to write the result into. The bitstream must be a dynamic write bitstream object
 \return error code or GF_OK
  */
-GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, GF_BitStream *bs);
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, const char *base_media, GF_BitStream *bs);
 
 
 /*! @} */
