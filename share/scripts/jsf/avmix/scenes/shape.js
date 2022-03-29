@@ -47,6 +47,7 @@ Predefined keywords can be used in input text, identified as \`$KEYWORD$\`. The 
 - mem: replaced by current memory usage of process
 - version: replaced by GPAC version
 - fversion: replaced by GPAC full version
+- P4CC, PropName: replaced by corresponding PID property
 
 ## Custom paths
 
@@ -578,7 +579,17 @@ function set_text(txt)
       }
       else if (kword=='fversion') {
         item = sys.version_full;
+      } else {
+        try {
+          let p = ipid.get_prop(item);
+          if (!p) p = ipid.get_info(item);
+          if (typeof p != 'undefined') {
+            if (p==null) item = 'n/a';
+            else item = '' + p;
+          }
+        } catch (e) {}
       }
+
       new_line += item;
 
       if (timeout) { 
