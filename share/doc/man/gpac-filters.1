@@ -8180,6 +8180,201 @@ reset_switch (bool, default: false): reset decoder at config change
 .br
 
 .br
+.SH thumbs
+.LP
+.br
+Description: Thumbnail collection generator
+.br
+Version: 1.0
+.br
+Author: GPAC team
+.br
+
+.br
+This filter generates screenshots from a video stream.
+.br
+
+.br
+The input video is downsampled by the .I scale factor. The output size is configured based on the number of images per line and per column in the .I grid. 
+.br
+Once configured, the output size is no longer modified.
+.br
+
+.br
+The .I snap option indicates to use one video frame every given seconds. If value is 0, all input frames are used.
+.br
+
+.br
+If the number of rows is 0, it will be computed based on the source duration and desired .I snap time, and will default to 10 if it cannot be resolved.
+.br
+
+.br
+To output one image per input frame, use :grid=1x1.
+.br
+
+.br
+If a single image per output frame is used, the default value for .I snap is 0 and for .I scale is 1.
+.br
+Otherwise, the default value for .I snap is 1 second and for .I scale is 10.
+.br
+
+.br
+A single line of text can be inserted over each frame. Predefined keywords can be used in input text, identified as $KEYWORD$:
+.br
+* ts: replaced by packet timestamp
+.br
+* timescale: replaced by PID timescale
+.br
+* time: replaced by packet time as HH:MM:SS.ms
+.br
+* cpu: replaced by current CPU usage of process
+.br
+* mem: replaced by current memory usage of process
+.br
+* version: replaced by GPAC version
+.br
+* fversion: replaced by GPAC full version
+.br
+* mae: replaced by Mean Absolute Error with previous frame
+.br
+* mse: replaced by Mean Square Error with previous frame
+.br
+* P4CC, PropName: replaced by corresponding PID property
+.br
+
+.br
+Example
+.br
+gpac -i src reframer:saps=1 thumbs:snap=30:grid=6x30 -o dump/$num$.png
+.br
+
+.br
+This will generate images from key-frames only, inserting one image every 30 seconds. Using key-frame filtering is much faster but may give unexpected results if there are not enough key-frames in the source.
+.br
+
+.br
+Example
+.br
+gpac -i src thumbs:snap=0:grid=5x5 -o dump/$num$.png
+.br
+
+.br
+This will generate one image containing 25 frames every second at 25 fps.
+.br
+
+.br
+If a single image per output frame is used and the scaling factor is 1, the input packet is reused as input with text and graphics overlaid.
+.br
+
+.br
+Example
+.br
+gpac -i src thumbs:grid=1x1:txt='Frame $time$' -o dump/$num$.png
+.br
+
+.br
+This will inject text over each frame and keep timing and other packet properties.
+.br
+
+.br
+A json output can be specified in input .I list to let applications retrieve frame position in output image from its timing.
+.br
+
+.br
+.SH Scene change detection
+.LP
+.br
+
+.br
+The filter can compute the absolute and/or square error metrics between consecutive images and drop image if the computed metric is less than the given threshold.
+.br
+If both .I mae and .I mse thresholds are 0, scene detection is not performed (default).
+.br
+If both .I mae and .I mse thresholds are not 0, the frame is added if it passes both thresholds.
+.br
+
+.br
+For both metrics, a value of 0 means all pixels are the same, a value of 100 means all pixels have 100% intensity difference (e.g. black versus white).
+.br
+
+.br
+The scene detection is performed after the .I snap filtering and uses:
+.br
+- the previous frame in the stream, whether it was added or not, if .I scref is not set,
+.br
+- the last added frame otherwise.
+.br
+
+.br
+Typical thresholds for scene cut detection are 14 to 20 for .I mae and 5 to 7 for .I mse.
+.br
+
+.br
+Since this is a costly process, it is recommended to use it combined with key-frames selection:
+.br
+
+.br
+Example
+.br
+gpac -i src reframer:saps=1 thumbs:mae=15 -o dump/$num$.png
+.br
+
+.br
+
+.br
+The .I maxsnap option can be used to force insertion after the given time if no scene cut is found.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+grid (v2di, default: 6x0):     number of images per lines and columns
+.br
+scale (dbl, default: -1):      scale factor for input size
+.br
+mae (uint, default: 0, minmax: 0,100): scene diff threshold using Mean Absolute Error
+.br
+mse (uint, default: 0, minmax: 0,100): scene diff threshold using Mean Square Error
+.br
+lw (dbl, default: 0.0):        line width between images in pixels
+.br
+lc (str, default: white):      line color
+.br
+clear (str, default: white):   clear color
+.br
+snap (dbl, default: -1):       duration between images, 0 for all images
+.br
+maxsnap (dbl, default: -1):    maximum duration between two thumbnails when scene change detection is enabled
+.br
+pfmt (pfmt, default: rgb):     output pixel format
+.br
+txt (str, default: ):          text to insert per thumbnail
+.br
+tc (str, default: white):      text color
+.br
+tb (str, default: black):      text shadow
+.br
+font (str, default: SANS):     font to use
+.br
+fs (dbl, default: 10):         font size to use in percent of scaled height
+.br
+tv (dbl, default: 0):          text vertical position in percent of scaled height
+.br
+thread (sint, default: -1):    number of threads for software rasterizer, -1 for all available cores
+.br
+blt (bool, default: true):     use blit instead of software rasterizer
+.br
+scref (bool, default: false):  use last inserted image as reference for scene change detection
+.br
+dropfirst (bool, default: false): drop first image
+.br
+list (str, default: null):     export json list of frame times and positions to given file
+.br
+lxy (bool, default: false):    add explict x and y in json export
+.br
+
+.br
 .SH avmix
 .LP
 .br
@@ -9581,6 +9776,8 @@ Predefined keywords can be used in input text, identified as $KEYWORD$. The foll
 .br
 * fversion: replaced by GPAC full version
 .br
+* P4CC, PropName: replaced by corresponding PID property
+.br
 
 .br
 .SS Custom paths
@@ -10123,7 +10320,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev77-gf671116f3-master
+build: 2.1-DEV-rev80-gf7baad5d7-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

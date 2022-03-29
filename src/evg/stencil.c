@@ -2707,6 +2707,11 @@ u32 gf_evg_stencil_get_pixel_yuv(GF_EVGStencil *st, s32 x, s32 y)
 	return gf_evg_stencil_get_pixel_intern((EVG_Texture *)st, x, y, GF_TRUE);
 }
 
+u32 gf_evg_stencil_get_pixel_fast(GF_EVGStencil *st, s32 x, s32 y)
+{
+	return ((EVG_Texture *)st)->tx_get_pixel((EVG_Texture *)st, x, y, NULL);
+}
+
 
 
 static u64 gf_evg_stencil_get_pixel_wide_intern(EVG_Texture *_this, s32 x, s32 y, Bool want_yuv)

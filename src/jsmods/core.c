@@ -174,6 +174,7 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
     int i=0;
     Bool first=GF_TRUE;
     s32 logl = GF_LOG_INFO;
+    Bool no_new_line = GF_FALSE;
     JSValue v, g;
     const char *c_logname=NULL;
     const char *log_name = "JS";
@@ -233,14 +234,20 @@ static JSValue js_print_ex(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 				js_dump_error_exc(ctx, argv[i]);
 			}
 		}
+        if (i+1==argc) {
+			u32 len = (u32) strlen(str);
+			if (len && (str[len-1]=='\r')) no_new_line = GF_TRUE;
+		}
         JS_FreeCString(ctx, str);
         first=GF_FALSE;
     }
+    if (!no_new_line) {
 #ifndef GPAC_DISABLE_LOG
- 	GF_LOG(logl, ltool, ("\n"));
+		GF_LOG(logl, ltool, ("\n"));
 #else
-	fprintf(stderr, "\n");
+		fprintf(stderr, "\n");
 #endif
+	}
 	if (c_logname) JS_FreeCString(ctx, c_logname);
 	return JS_UNDEFINED;
 }

@@ -2022,7 +2022,6 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
-				9272B50327E34CDF00D9D304 /* mux_ogg.c */,
 				925E564B2798B87300BBD530 /* bs_agg.c */,
 				926D48FC27957D8400E3C68C /* bs_split.c */,
 				9274295724647AB8009ADD8D /* bsrw.c */,
@@ -2081,6 +2080,7 @@
 				922E29812051940C00C8DCBB /* mux_avi.c */,
 				9206823320EA96AA0041169F /* mux_gsf.c */,
 				9290F5101FAB4C2C0038C30D /* mux_isom.c */,
+				9272B50327E34CDF00D9D304 /* mux_ogg.c */,
 				9256B38A208662FB00088537 /* mux_ts.c */,
 				92E164AE20F8EBB60024A9CA /* nvdec */,
 				922E29822051940C00C8DCBB /* out_audio.c */,

@@ -1117,6 +1117,16 @@ interface Texture {
 	\return the converted value
 	*/
 	Object get_pixel(unsigned long x, unsigned long y, optional bool as_array=false);
+
+	/*! gets MAE (Mean Absolute Error) and/or MSE (Mean Square Error) metric of texture compared with another texture. Both textures shall have the same size and pixel format.
+	\param diff_with texture to compute difference with
+	\param mode string indicating metric(s) to compute as a comma-separated list. Currently only 'mae' and 'mse' are supported.
+	\param split_planes if true, metrics are computed per plane, otherwise averaged on all planes. For YUV textures, if this is not set, metric is only computed on luma plane and alpha plane if present.
+	\return an array of object, each containing 'mae' and 'mse' properties. Values are numbers between 0 (all identical) and 100 (all pixels have full intensity difference).
+
+	If split_planes is false, the array contains a single object. Otherwise, it contains 4 objects if alpha plane or 3 otherwise, in {R,G,B,A} or {Y,U,V,A} order.
+	*/
+	Array diff_score(Texture diff_with, optional DOMString mode="mae", optional boolean split_planes=false);
 };
 
 /*! convolution kernel interface*/

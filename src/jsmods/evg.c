@@ -6251,6 +6251,189 @@ static JSValue texture_get_pad_color(JSContext *c, JSValueConst obj, int argc, J
 	return JS_NewString(c, szCol);
 }
 
+u32 gf_evg_stencil_get_pixel_fast(GF_EVGStencil *st, s32 x, s32 y);
+
+static JSValue texture_diff_score(JSContext *c, JSValueConst obj, int argc, JSValueConst *argv)
+{
+	u32 i, j;
+	Bool is_yuv=GF_FALSE;
+	Bool has_alpha=GF_FALSE;
+	Bool split_sums=GF_FALSE;
+	Bool do_mae = GF_FALSE, do_mse = GF_FALSE;
+	Double mae_r=0, mae_g=0, mae_b=0, mae_a=0;
+	Double mse_r=0, mse_g=0, mse_b=0, mse_a=0;
+	GF_JSTexture *tx = JS_GetOpaque(obj, texture_class_id);
+	if (!tx || !tx->stencil || !argc) return GF_JS_EXCEPTION(c);
+	GF_JSTexture *tx_with = JS_GetOpaque(argv[0], texture_class_id);
+	if (!tx_with || !tx_with->stencil) return GF_JS_EXCEPTION(c);
+
+	if (tx_with->width != tx->width) return GF_JS_EXCEPTION(c);
+	if (tx_with->height != tx->height) return GF_JS_EXCEPTION(c);
+	if (tx_with->pf != tx->pf) return GF_JS_EXCEPTION(c);
+
+	if (argc>1) {
+		u32 idx=1;
+		if (JS_IsString(argv[1])) {
+			const char * str = JS_ToCString(c, argv[1]);
+			if (strstr(str, "mae")) do_mae = GF_TRUE;
+			if (strstr(str, "mse")) do_mse = GF_TRUE;
+			idx++;
+			JS_FreeCString(c, str);
+		}
+		if ((argc>idx) && JS_ToBool(c, argv[idx])) {
+			split_sums = GF_TRUE;
+		}
+	}
+	if (!do_mae && !do_mse) do_mae = GF_TRUE;
+
+	if (!split_sums && gf_pixel_fmt_is_yuv(tx->pf)) {
+		is_yuv = GF_TRUE;
+	}
+
+	has_alpha = gf_pixel_fmt_is_transparent(tx->pf);
+
+	for (j=0; j<tx->height; j++) {
+		u64 mae_line_r=0, mae_line_g=0, mae_line_b=0, mae_line_a=0;
+		u64 mse_line_r=0, mse_line_g=0, mse_line_b=0, mse_line_a=0;
+		for (i=0; i<tx->width; i++) {
+			u32 pval, pval2;
+			if (is_yuv) {
+				pval = gf_evg_stencil_get_pixel_fast(tx->stencil, i, j);
+				pval2 = gf_evg_stencil_get_pixel_fast(tx_with->stencil, i, j);
+			} else {
+				pval = gf_evg_stencil_get_pixel_fast(tx->stencil, i, j);
+				pval2 = gf_evg_stencil_get_pixel_fast(tx_with->stencil, i, j);
+			}
+			s32 this_c = GF_COL_R(pval);
+			s32 prev_c = GF_COL_R(pval2);
+			if (do_mse) mse_line_r += (this_c-prev_c)*(this_c-prev_c);
+			if (do_mae) {
+				if (prev_c<this_c) mae_line_r += this_c-prev_c;
+				else mae_line_r += prev_c-this_c;
+			}
+
+			if (has_alpha) {
+				this_c = GF_COL_A(pval);
+				prev_c = GF_COL_A(pval2);
+				if (do_mse) mse_line_a += (this_c-prev_c)*(this_c-prev_c);
+				if (do_mae) {
+					if (prev_c<this_c) mae_line_a += this_c-prev_c;
+					else mae_line_a += prev_c-this_c;
+				}
+			}
+
+			if (is_yuv) continue;
+
+			this_c = GF_COL_G(pval);
+			prev_c = GF_COL_G(pval2);
+			if (do_mse) mse_line_g += (this_c-prev_c)*(this_c-prev_c);
+			if (do_mae) {
+				if (prev_c<this_c) mae_line_g += this_c-prev_c;
+				else mae_line_g += prev_c-this_c;
+			}
+
+			this_c = GF_COL_B(pval);
+			prev_c = GF_COL_B(pval2);
+			if (do_mse) mse_line_b += (this_c-prev_c)*(this_c-prev_c);
+			if (do_mae) {
+				if (prev_c<this_c) mae_line_b += this_c-prev_c;
+				else mae_line_b += prev_c-this_c;
+			}
+		}
+		mae_r += mae_line_r;
+		mae_g += mae_line_g;
+		mae_b += mae_line_b;
+		mae_a += mae_line_a;
+
+		mse_r += mse_line_r;
+		mse_g += mse_line_g;
+		mse_b += mse_line_b;
+		mse_a += mse_line_a;
+	}
+
+	u64 div = tx->height * tx->width * 255;
+	u64 div_mse = div * 255;
+
+	u32 nb_p=1;
+	Double mae = mae_r;
+	Double mse = mse_r;
+	mae_r /= div;
+	mse_r /= div_mse;
+	if (has_alpha) {
+		mae += mae_a;
+		mse += mse_a;
+		nb_p=2;
+		mae_a /= div;
+		mse_a /= div_mse;
+	}
+	if (!is_yuv) {
+		mae += mae_g + mae_b;
+		mse += mse_g + mse_b;
+		nb_p = 4;
+		mae_g /= div;
+		mae_b /= div;
+		mse_g /= div_mse;
+		mse_b /= div_mse;
+	}
+#define FCLAMP(_v)\
+		if (_v<0) _v = 0;\
+		else if (_v>1.0) _v = 1.0;\
+
+
+	if (!split_sums) {
+		JSValue ar = JS_NewArray(c);
+		if (JS_IsException(ar)) return GF_JS_EXCEPTION(c);
+		JSValue v = JS_NewObject(c);
+		if (JS_IsException(v)) return GF_JS_EXCEPTION(c);
+
+		mae /= div * nb_p;
+		mse /= div_mse * nb_p;
+		FCLAMP(mae)
+		FCLAMP(mse)
+		JS_SetPropertyStr(c, v, "mae", JS_NewFloat64(c, mae*100));
+		JS_SetPropertyStr(c, v, "mse", JS_NewFloat64(c, mse*100));
+		JS_SetPropertyUint32(c, ar, 0, v);
+		return ar;
+	}
+
+	JSValue ar = JS_NewArray(c);
+	if (JS_IsException(ar)) return GF_JS_EXCEPTION(c);
+	FCLAMP(mae_r)
+	FCLAMP(mae_g)
+	FCLAMP(mae_b)
+	FCLAMP(mae_a)
+	FCLAMP(mse_r)
+	FCLAMP(mse_g)
+	FCLAMP(mse_b)
+	FCLAMP(mse_a)
+
+	JSValue v = JS_NewObject(c);
+	if (JS_IsException(v)) return GF_JS_EXCEPTION(c);
+	JS_SetPropertyStr(c, v, "mae", JS_NewFloat64(c, mae_r*100));
+	JS_SetPropertyStr(c, v, "mse", JS_NewFloat64(c, mse_r*100));
+	JS_SetPropertyUint32(c, ar, 0, v);
+
+	v = JS_NewObject(c);
+	if (JS_IsException(v)) return GF_JS_EXCEPTION(c);
+	JS_SetPropertyStr(c, v, "mae", JS_NewFloat64(c, mae_g*100));
+	JS_SetPropertyStr(c, v, "mse", JS_NewFloat64(c, mse_g*100));
+	JS_SetPropertyUint32(c, ar, 1, v);
+
+	v = JS_NewObject(c);
+	if (JS_IsException(v)) return GF_JS_EXCEPTION(c);
+	JS_SetPropertyStr(c, v, "mae", JS_NewFloat64(c, mae_b*100));
+	JS_SetPropertyStr(c, v, "mse", JS_NewFloat64(c, mse_b*100));
+	JS_SetPropertyUint32(c, ar, 2, v);
+
+	if (has_alpha) {
+		v = JS_NewObject(c);
+		if (JS_IsException(v)) return GF_JS_EXCEPTION(c);
+		JS_SetPropertyStr(c, v, "mae", JS_NewFloat64(c, mae_a*100));
+		JS_SetPropertyStr(c, v, "mse", JS_NewFloat64(c, mse_a*100));
+		JS_SetPropertyUint32(c, ar, 3, v);
+	}
+	return  ar;
+}
 
 static const JSCFunctionListEntry texture_funcs[] =
 {
@@ -6284,6 +6467,7 @@ static const JSCFunctionListEntry texture_funcs[] =
 	JS_CFUNC_DEF("set_named", 0, texture_set_named),
 	JS_CFUNC_DEF("set_pad_color", 0, texture_set_pad_color),
 	JS_CFUNC_DEF("get_pad_color", 0, texture_get_pad_color),
+	JS_CFUNC_DEF("diff_score", 0, texture_diff_score),
 };
 
 
