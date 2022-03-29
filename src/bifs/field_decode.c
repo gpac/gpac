@@ -205,6 +205,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (sfcb->buffer) {
 			gf_free(sfcb->buffer);
 			sfcb->buffer = NULL;
+			sfcb->bufferSize = 0;
 		}
 		while (gf_list_count(sfcb->commandList)) {
 			GF_Command *com = (GF_Command*)gf_list_get(sfcb->commandList, 0);
