@@ -637,13 +637,15 @@ static void xml_sax_skip_xml_proc(GF_SAXParser *parser)
 
 static void xml_sax_parse_entity(GF_SAXParser *parser)
 {
-	char szName[1024];
+	char szC[2];
+	char *ent_name=NULL;
 	u32 i = 0;
 	XML_Entity *ent = (XML_Entity *)gf_list_last(parser->entities);
 	char *skip_chars = " \t\n\r";
 	i=0;
 	if (ent && ent->value) ent = NULL;
 	if (ent) skip_chars = NULL;
+	szC[1]=0;
 
 	while (parser->current_pos+i < parser->line_size) {
 		u8 c = parser->buffer[parser->current_pos+i];
@@ -655,16 +657,20 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 		if (!ent && (c=='%')) {
 			parser->current_pos+=i+1;
 			parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
+			if (ent_name) gf_free(ent_name);
 			return;
 		}
 		else if (!ent && ((c=='\"') || (c=='\'')) ) {
-			szName[i] = 0;
 			GF_SAFEALLOC(ent, XML_Entity);
 			if (!ent) {
 				parser->sax_state = SAX_STATE_ALLOC_ERROR;
+				if (ent_name) gf_free(ent_name);
 				return;
 			}
-			ent->name = gf_strdup(szName);
+			if (!ent_name) gf_dynstrcat(&ent_name, "", NULL);
+
+			ent->name = ent_name;
+			ent_name=NULL;
 			ent->namelen = (u32) strlen(ent->name);
 			ent->sep = c;
 			parser->current_pos += 1+i;
@@ -674,6 +680,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			gf_list_add(parser->entities, ent);
 			skip_chars = NULL;
 		} else if (ent && c==ent->sep) {
+			if (ent_name) gf_free(ent_name);
 			xml_sax_store_text(parser, i);
 
 			ent->value = xml_get_current_text(parser);
@@ -685,12 +692,14 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			parser->sax_state = SAX_STATE_SKIP_DOCTYPE;
 			return;
 		} else if (!ent) {
-			szName[i] = c;
+			szC[0] = c;
+			gf_dynstrcat(&ent_name, szC, NULL);
 			i++;
 		} else {
 			i++;
 		}
 	}
+	if (ent_name) gf_free(ent_name);
 	xml_sax_store_text(parser, i);
 }
 
