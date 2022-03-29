@@ -4731,7 +4731,7 @@ single_retry:
 			gf_list_add(loaded_filters, new_f);
 		}
 
-		if (!(filter_dst->freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
+		if (!(filter_dst->freg->flags & (GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))) {
 			assert(pid->pid->filter->freg != filter_dst->freg);
 		}
 
@@ -4969,7 +4969,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 {
 	assert(pid->pid);
 	assert(pid->filter != filter);
-	if (!(filter->freg->flags & GF_FS_REG_ALLOW_CYCLIC)) {
+	if (!(filter->freg->flags & (GF_FS_REG_ALLOW_CYCLIC|GF_FS_REG_SCRIPT|GF_FS_REG_CUSTOM))) {
 		assert(pid->filter->freg != filter->freg);
 	}
 	assert(filter->freg->configure_pid);
