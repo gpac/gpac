@@ -94,6 +94,13 @@ Bool gf_url_is_local(const char *pathName)
 }
 
 GF_EXPORT
+Bool gf_url_is_relative(const char *pathName)
+{
+	u32 mode = URL_GetProtocolType(pathName);
+	return (mode==GF_URL_TYPE_RELATIVE) ? GF_TRUE : GF_FALSE;
+}
+
+GF_EXPORT
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
 	char* sep;
@@ -329,9 +336,29 @@ static char *gf_url_concatenate_ex(const char *parentName, const char *pathName,
 	else if (!had_sep_count && (pathName[0]=='.') && (tmp[0]=='.') && ((tmp[1]=='/') || (tmp[1]=='\\') ) ) {
 		u32 nb_path_sep=0;
 		u32 len = (u32) strlen(tmp);
+
 		for (i=0; i<len; i++) {
 			if ((tmp[i]=='/') || (tmp[i]=='\\') )
 				nb_path_sep++;
+		}
+
+		const char *p_src = pathName+2;
+		const char *p_tmp = tmp+2;
+		//strip if same beginning
+		while (1) {
+			char *sep = strchr(p_src, '/');
+			if (!sep) sep = strchr(p_src, '\\');
+			if (!sep) break;
+			u32 sep_len = (u32) (sep - p_src);
+			if (!sep_len) break;
+			if (sep_len > len) break;
+			if (strncmp(p_tmp, p_src, sep_len)) break;
+			if ((p_tmp[sep_len] != '/') && (p_tmp[sep_len] != '\\')) break;
+			p_src += sep_len+1;
+			name += sep_len+1;
+			p_tmp += sep_len+1;
+			len -= sep_len;
+			nb_path_sep--;
 		}
 		strcpy(tmp, "");
 		while (nb_path_sep--)

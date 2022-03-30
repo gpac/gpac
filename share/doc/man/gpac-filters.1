@@ -1611,7 +1611,7 @@ Each first packet of a segment will have the following properties attached:
 .br
 * `FileNumber`: current segment number
 .br
-* `FileName`: current segment file name without manifest base url
+* `FileName`: current segment file name without manifest (MPD or master HLS) base url
 .br
 * `DFPStart`: set with value 0 if this is the first packet in the period, absent otherwise
 .br
@@ -1645,9 +1645,11 @@ Each output PID will have the following properties assigned:
 .br
 * `stl_timescale`: timescale used by SegmentTimeline, or 0 if no SegmentTimeline
 .br
-* `init_url`: unresolved intialization URL (as it appears in the manifest)
+* `init_url`: unresolved intialization URL (as it appears in the MPD or in the variant playlist)
 .br
 * `manifest_url`: manifest URL
+.br
+* `hls_variant_name`: HLS variant playlist name (as it appears in the HLS master playlist)
 .br
 
 .br
@@ -5376,6 +5378,8 @@ chain_fbk (str):               URL of fallback MPD
 gencues (bool, default: false): only insert segment boundaries and do not generate manifests
 .br
 force_init (bool, default: false): force init segment creation in bitstream switching mode
+.br
+keep_src (bool, default: false): keep source URLs in manifest generation mode
 .br
 
 .br
@@ -10320,7 +10324,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev80-gf7baad5d7-master
+build: 2.1-DEV-rev86-g670237d27-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
