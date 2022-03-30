@@ -3608,10 +3608,15 @@ JSModuleDef *qjs_module_loader(JSContext *ctx, const char *module_name, void *op
 		u8 *buf;
 		JSValue func_val;
 		char *url;
+		GF_Err e;
 		const char *par_url = jsf_get_script_filename(ctx);
 		url = gf_url_concatenate(par_url, module_name);
 
-		GF_Err e = gf_file_load_data(url ? url : module_name, &buf, &buf_len);
+		if (gf_file_exists(url ? url : module_name)) {
+			e = gf_file_load_data(url ? url : module_name, &buf, &buf_len);
+		} else {
+			e = GF_URL_ERROR;
+		}
 		if (url) gf_free(url);
 
 		if (e != GF_OK) {

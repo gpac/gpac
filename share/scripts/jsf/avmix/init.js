@@ -1,8 +1,12 @@
-import {WebGLContext} from 'webgl'
 import * as evg from 'evg'
 import { Sys as sys } from 'gpaccore'
 import { AudioMixer as amix } from 'gpaccore'
 import * as os from 'os'
+
+//import {WebGLContext} from 'webgl'
+
+let WebGLContext = null;
+import('webgl').then(obj => { WebGLContext = obj.WebGLContext;}).catch(err => {});
 
 
 const UPDATE_PID = 1;
@@ -528,6 +532,10 @@ filter.initialize = function()
 	if (filter.maxdepth<=0)
 		filter.maxdepth = 100;
 
+	if ((WebGLContext == null) && this.gpu) {
+		print(GF_LOG_INFO, 'GPAC compiled without WebGL, using software mode');
+		this.gpu = 0;
+	}
 	if (this.gpu) {
 		video_width = filter.vsize.x;
 		video_height = filter.vsize.y;
@@ -846,9 +854,11 @@ filter.remove_pid = function(pid)
   if (index < 0) return;
   pids.splice(index, 1);
 
-  index = pid.source.pids.indexOf(pid);
-  if (index>=0)
-		pid.source.pids.splice(index, 1);
+  if (typeof pid.source != 'undefined') {
+	  index = pid.source.pids.indexOf(pid);
+	  if (index>=0)
+			pid.source.pids.splice(index, 1);
+  }
 
 	do_traverse(root_scene, scene => {
 		for (let i=0; i<scene.mod.pids.length; i++) {
