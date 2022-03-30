@@ -1780,7 +1780,7 @@ static struct _itags {
 	{"thanks", NULL, GF_ISOM_ITUNE_THANKS, 0, GF_ITAG_STR, 0},
 	{"online_info", NULL, GF_ISOM_ITUNE_ONLINE, 0, GF_ITAG_STR, 0},
 	{"exec_producer", NULL, GF_ISOM_ITUNE_EXEC_PRODUCER, 0, GF_ITAG_STR, 0},
-
+	{"genre", NULL, GF_ISOM_ITUNE_GENRE_USER, GF_ID3V2_FRAME_TCON, GF_ITAG_ID3_GENRE, 0},
 };
 
 GF_EXPORT

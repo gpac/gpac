@@ -4243,10 +4243,14 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	GF_ItemListBox *ilst;
 	GF_MetaBox *meta;
 	GF_DataBox *dbox = NULL;
+	Bool found=GF_FALSE;
 	u32 itype, tag_val;
 	s32 tag_idx;
 	*data = NULL;
 	*data_len = 0;
+	*out_int_val = 0;
+	*out_int_val2 = 0;
+	*out_flags = 0;
 
 	meta = (GF_MetaBox *) gf_isom_get_meta_extensions(mov, GF_FALSE);
 	if (!meta) return GF_URL_ERROR;
@@ -4258,6 +4262,7 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 	while ( (info=(GF_ListItemBox*)gf_list_enum(ilst->child_boxes, &i))) {
 		GF_DataBox *data_box = NULL;
 		if (gf_itags_find_by_itag(info->type)<0) {
+			tag_val = info->type;
 			if (info->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 				data_box = (GF_DataBox *) gf_isom_box_find_child(info->child_boxes, GF_ISOM_BOX_TYPE_DATA);
 				if (!data_box) continue;
@@ -4269,12 +4274,21 @@ GF_Err gf_isom_apple_enum_tag(GF_ISOFile *mov, u32 idx, GF_ISOiTunesTag *out_tag
 		}
 		if (child_index==idx) {
 			dbox = data_box;
+			found = GF_TRUE;
 			break;
 		}
 		child_index++;
 	}
-	if (!dbox) return GF_URL_ERROR;
 
+	if (!dbox) {
+		if (found) {
+			*data = NULL;
+			*data_len = 1;
+			*out_tag = tag_val;
+			return GF_OK;
+		}
+		return GF_URL_ERROR;
+	}
 	*out_flags = dbox->flags;
 	*out_tag = tag_val;
 	if (!dbox->data) {

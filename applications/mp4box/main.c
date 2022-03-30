@@ -5414,7 +5414,7 @@ static GF_Err do_itunes_tag()
 					next_tag_idx = 0;
 				}
 				//unrecognized tag tag
-				else {
+				else if (strlen(sep+1)) {
 					M4_LOG(GF_LOG_WARNING, ("Unrecognize tag \"%s\", assuming part of previous tag\n", sep+1));
 				}
 			}
@@ -5459,7 +5459,14 @@ static GF_Err do_itunes_tag()
 		if (!val || (val[0]==':') || !val[0] || !stricmp(val, "NULL") ) val = NULL;
 
 		//if val is NULL, use tlen=1 to force removal of tag
-		tlen = val ? (u32) strlen(val) : 1;
+		if (val) {
+			tlen = (u32) strlen(val);
+			while (tlen && ( (val[tlen-1]=='\n') || (val[tlen-1]=='\r')))
+				tlen--;
+		} else {
+			tlen = 1;
+		}
+
 		if (clear) {
 			e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_RESET, NULL, 0, 0, 0);
 		}

@@ -824,6 +824,27 @@ u32 PrintBuiltInBoxes(char *argval, u32 do_cov)
         }
 	}
 	fprintf(stdout, "</Boxes>\n");
+	if (do_cov) {
+		i=0;
+		//check all tags are registered in box factory
+		while (1) {
+			s32 res = gf_itags_get_type(i);
+			if (res==-1) break;
+			u32 itype = gf_itags_get_itag(i);
+			if (!itype) {
+				i++;
+				continue;
+			}
+            GF_Box *b=gf_isom_box_new(itype);
+            Bool valid = (!b || (b->type==GF_ISOM_BOX_TYPE_UNKNOWN)) ? GF_FALSE : GF_TRUE;
+			if (b) gf_isom_box_del(b);
+			if (!valid) {
+				M4_LOG(GF_LOG_ERROR, ("Tag %s not registered in box factory\n", gf_4cc_to_str(itype) ));
+				return 2;
+			}
+			i++;
+		}
+	}
 	return 1;
 }
 
