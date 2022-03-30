@@ -66,6 +66,7 @@ static void dump_data_attribute(FILE *trace, char *name, u8 *data, u32 data_size
 static void dump_data_string(FILE *trace, char *data, u32 dataLength)
 {
 	u32 i;
+	if (!data) return;
 	for (i=0; i<dataLength; i++) {
 		switch ((unsigned char) data[i]) {
 		case '\'':
@@ -82,6 +83,8 @@ static void dump_data_string(FILE *trace, char *data, u32 dataLength)
 			break;
 		case '<':
 			gf_fprintf(trace, "&lt;");
+			break;
+		case 0:
 			break;
 		default:
 			gf_fprintf(trace, "%c", (u8) data[i]);
@@ -1484,11 +1487,6 @@ GF_Err unkn_box_dump(GF_Box *a, FILE * trace)
 
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done(name, a, trace);
-#ifdef GPAC_ENABLE_COVERAGE
-	if (gf_sys_is_cov_mode()) {
-		dump_data_string(NULL, NULL, 0);
-	}
-#endif
 	return GF_OK;
 }
 
@@ -3979,13 +3977,38 @@ GF_Err ilst_item_box_dump(GF_Box *a, FILE * trace)
 		default:
 			if (dbox && dbox->data) {
 				gf_fprintf(trace, " value=\"");
-				if (!unknown && (itype==GF_ITAG_STR)) {
+				switch (itype) {
+				case GF_ITAG_STR:
 					dump_data_string(trace, dbox->data, dbox->dataSize);
-				}
-				else if (!unknown && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
-					dump_data_string(trace, dbox->data, dbox->dataSize);
-				} else {
-					dump_data(trace, dbox->data, dbox->dataSize);
+					break;
+				case GF_ITAG_INT8:
+					if (dbox->dataSize)
+						gf_fprintf(trace, "%d", dbox->data[0]);
+					break;
+				case GF_ITAG_INT16:
+					if (dbox->dataSize>1) {
+						u16 v = dbox->data[0];
+						v<<=8;
+						v |= dbox->data[1];
+						gf_fprintf(trace, "%d", v);
+					}
+					break;
+				case GF_ITAG_INT32:
+					if (dbox->dataSize>3) {
+						u32 v = dbox->data[0]; v<<=8;
+						v |= dbox->data[1]; v<<=8;
+						v |= dbox->data[2]; v<<=8;
+						v |= dbox->data[3];
+						gf_fprintf(trace, "%d", v);
+					}
+					break;
+				default:
+					if (!unknown && gf_utf8_is_legal(dbox->data, dbox->dataSize) ) {
+						dump_data_string(trace, dbox->data, dbox->dataSize);
+					} else {
+						dump_data(trace, dbox->data, dbox->dataSize);
+					}
+				break;
 				}
 				gf_fprintf(trace, "\" ");
 			}
