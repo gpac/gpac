@@ -167,6 +167,9 @@ typedef struct
 
 	const char *hls_key_uri;
 	bin128 hls_key_IV;
+
+	char *current_url;
+	Bool url_changed;
 } GF_DASHGroup;
 
 static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group);
@@ -251,6 +254,11 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				if (seg_name) {
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENAME, &PROP_STRING(seg_name) );
 					gf_filter_pck_set_property(ref, GF_PROP_PCK_FILENUM, &PROP_UINT(seg_number) );
+					if (group->url_changed && group->current_url) {
+						gf_filter_pck_set_property(ref, GF_PROP_PCK_FRAG_RANGE, NULL);
+						gf_filter_pck_set_property(ref, GF_PROP_PID_URL, &PROP_STRING(group->current_url));
+						group->url_changed = GF_FALSE;
+					}
 
 					if (is_filemode) {
 						u64 ts;
@@ -1047,6 +1055,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 				group->seg_filter_src = NULL;
 			}
 			if (group->template) gf_free(group->template);
+			if (group->current_url) gf_free(group->current_url);
 			gf_free(group);
 			gf_dash_set_group_udta(ctx->dash, i, NULL);
 		}
@@ -2529,6 +2538,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 		if (ctx->forward) {
 			GF_DASHQualityInfo q;
 			const char *init_seg = NULL;
+			const char *hls_variant = NULL;
 			const char *dash_url = gf_dash_get_url(ctx->dash);
 			u32 segment_timeline_timescale = 0;
 
@@ -2544,7 +2554,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 					gf_filter_pid_set_property(opid, GF_PROP_PID_CODEC, &PROP_STRING(q.codec));
 			}
 			if (group->template) gf_free(group->template);
-			group->template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg);
+			group->template = gf_dash_group_get_template(ctx->dash, group->idx, &segment_timeline_timescale, &init_seg, &hls_variant);
 			if (!group->template) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASHDmx] Cannot extract template string for %s\n", dash_url ));
 				gf_filter_pid_set_property(opid, GF_PROP_PID_TEMPLATE, NULL);
@@ -2556,6 +2566,7 @@ static void dashdmx_notify_group_quality(GF_DASHDmxCtx *ctx, GF_DASHGroup *group
 				gf_filter_pid_set_property_str(opid, "stl_timescale", segment_timeline_timescale ? &PROP_UINT(segment_timeline_timescale) : NULL);
 				gf_filter_pid_set_property_str(opid, "init_url", init_seg ? &PROP_STRING(init_seg) : NULL);
 				gf_filter_pid_set_property_str(opid, "manifest_url", dash_url ? &PROP_STRING(dash_url) : NULL);
+				gf_filter_pid_set_property_str(opid, "hls_variant_name", hls_variant ? &PROP_STRING(hls_variant) : NULL);
 			}
 			gf_filter_pid_set_property(opid, GF_PROP_PID_REP_ID, &PROP_STRING(q.ID) );
 
@@ -2783,6 +2794,10 @@ fetch_next:
 		evt.seek.source_switch = next_url_init_or_switch_segment;
 		evt.seek.is_init_segment = GF_TRUE;
 		evt.seek.skip_cache_expiration = GF_TRUE;
+		if (ctx->forward) {
+			if (group->current_url) gf_free(group->current_url);
+			group->current_url = gf_strdup(next_url_init_or_switch_segment);
+		}
 
 		group->prev_is_init_segment = GF_TRUE;
 
@@ -2816,6 +2831,17 @@ fetch_next:
 
 	if (group->in_is_cryptfile) {
 		gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
+	}
+
+	if (ctx->forward) {
+		if (group->current_url && strcmp(group->current_url, next_url)) {
+			gf_free(group->current_url);
+			group->current_url = NULL;
+		}
+		if (!group->current_url) {
+			group->current_url = gf_strdup(next_url);
+			group->url_changed = GF_TRUE;
+		}
 	}
 
 	GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH, NULL);
@@ -3329,7 +3355,7 @@ GF_FilterRegister DASHDmxRegister = {
 	"Each first packet of a segment will have the following properties attached:\n"
 	"- `CueStart`: indicate this is a segment start\n"
 	"- `FileNumber`: current segment number\n"
-	"- `FileName`: current segment file name without manifest base url\n"
+	"- `FileName`: current segment file name without manifest (MPD or master HLS) base url\n"
 	"- `DFPStart`: set with value `0` if this is the first packet in the period, absent otherwise\n"
 	"\n"
 	"If [-forward]() is set to `mani`, the first packet of a segment dispatched after a manifest update will also carry the manifest payload as a property:\n"
@@ -3346,8 +3372,9 @@ GF_FilterRegister DASHDmxRegister = {
 	"- `DashDur`: set to the average segment duration as indicated in the manifest\n"
 	"- `source_template`: set to true to indicate the source template is known\n"
 	"- `stl_timescale`: timescale used by SegmentTimeline, or 0 if no SegmentTimeline\n"
-	"- `init_url`: unresolved intialization URL (as it appears in the manifest)\n"
+	"- `init_url`: unresolved intialization URL (as it appears in the MPD or in the variant playlist)\n"
 	"- `manifest_url`: manifest URL\n"
+	"- `hls_variant_name`: HLS variant playlist name (as it appears in the HLS master playlist)\n"
 	"\n"
 	"When the [dasher](dasher) is used together with this mode, this will force all generated segments to have the same name, duration and fragmentation properties as the input ones. It is therefore not recommended for sessions stored/generated on local storage to generate the output in the same directory.\n"
 	)

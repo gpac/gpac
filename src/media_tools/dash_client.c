@@ -3161,9 +3161,9 @@ static void m3u8_setup_timeline(GF_DASH_Group *group, GF_MPD_Representation *rep
 		if (s->hls_ll_chunk_type == 1)
 			continue;
 		if (tsb_depth > timeshift) {
-			group->download_segment_index = i-1;
 			break;
 		}
+		group->download_segment_index = i-1;
 	}
 }
 
@@ -9529,13 +9529,14 @@ u32 gf_dash_group_get_num_components(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
-char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_timeline_timescale, const char **init_url)
+char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_timeline_timescale, const char **init_url, const char **hls_variant)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	GF_MPD_Representation *rep;
 	const char *tpl;
 	char *solved_template;
 	if (init_url) *init_url = NULL;
+	if (hls_variant) *hls_variant = NULL;
 	if (segment_timeline_timescale) *segment_timeline_timescale = 0;
 
 	if (!group) return NULL;
@@ -9578,6 +9579,11 @@ char *gf_dash_group_get_template(GF_DashClient *dash, u32 idx, u32 *segment_time
 			}
 		}
 		*init_url = init;
+	}
+	if (hls_variant && rep && rep->segment_list) {
+		*hls_variant = rep->segment_list->previous_xlink_href;
+		if (! *hls_variant)
+			*hls_variant = rep->segment_list->xlink_href;
 	}
 
 	if (tpl) {

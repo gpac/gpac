@@ -199,6 +199,10 @@ typedef struct
 	u32 init_flags_splice_start, init_flags_splice_end;
 	Double init_start, init_stop;
 	Bool force_splice_resume;
+
+	u32 sigfrag_mode;
+	//for isobmf cat mode in sigfrag
+	char *rel_url, *abs_url, *init_url;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -470,6 +474,12 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	gf_filter_pid_copy_properties(opid, iopid->ipid);
 
+	if (ctx->sigfrag_mode && ctx->file_path) {
+		gf_filter_pid_set_property_str(iopid->opid, "manifest_url", &PROP_STRING(ctx->file_path));
+		if (ctx->init_url)
+			gf_filter_pid_set_property_str(iopid->opid, "init_url", &PROP_STRING(ctx->init_url));
+	}
+
 	//if file pid is defined, merge its properties. This will allow forwarding user-defined properties,
 	// eg -i list.txt:#MyProp=toto to all PIDs coming from the sources
 	if (ctx->file_pid) {
@@ -630,7 +640,7 @@ static Bool filelist_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 {
 	char *res_url = NULL;
-	char *sep;
+	char *sep, *o_url = szURL;
 	if (ctx->file_path) {
 		res_url = gf_url_concatenate(ctx->file_path, szURL);
 		szURL = res_url;
@@ -644,6 +654,8 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 	case 3:
 		if (ctx->last_is_isom) {
 			ctx->do_cat = GF_TRUE;
+			if (ctx->sigfrag_mode == 1)
+				ctx->sigfrag_mode = 2;
 		}
 		break;
 	//this is a movie, reload
@@ -651,11 +663,43 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 	case 1:
 		ctx->do_cat = GF_FALSE;
 		ctx->last_is_isom = GF_TRUE;
+		if (sep && strstr(sep+1, "sigfrag")) {
+			ctx->sigfrag_mode = 1;
+		}
 		break;
 	default:
 		ctx->do_cat = GF_FALSE;
 		ctx->last_is_isom = GF_FALSE;
+		ctx->sigfrag_mode = 0;
+		if (ctx->rel_url) {
+			gf_free(ctx->rel_url);
+			ctx->rel_url = NULL;
+		}
+		if (ctx->abs_url) {
+			gf_free(ctx->abs_url);
+			ctx->abs_url = NULL;
+		}
+		if (ctx->init_url) {
+			gf_free(ctx->init_url);
+			ctx->init_url = NULL;
+		}
 	}
+
+	if (ctx->sigfrag_mode) {
+		if (ctx->rel_url) gf_free(ctx->rel_url);
+		ctx->rel_url = gf_strdup(o_url);
+		char *sep2 = gf_url_colon_suffix(ctx->rel_url, '=');
+		if (sep2) sep2[0] = 0;
+		if (ctx->sigfrag_mode==1) {
+			if (ctx->init_url) gf_free(ctx->init_url);
+			ctx->init_url = ctx->rel_url;
+			ctx->rel_url = NULL;
+		}
+
+		if (ctx->abs_url) gf_free(ctx->abs_url);
+		ctx->abs_url = gf_strdup(szURL);
+	}
+
 	if (sep) sep[0] = ':';
 	if (res_url)
 		gf_free(res_url);
@@ -1773,6 +1817,15 @@ void filelist_send_packet(GF_FileListCtx *ctx, FileListPid *iopid, GF_FilterPack
 		}
 	}
 
+	if (ctx->sigfrag_mode && ctx->abs_url) {
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PID_URL, &PROP_STRING(ctx->abs_url));
+		if (ctx->rel_url) {
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_FILENAME, &PROP_STRING(ctx->rel_url));
+		}
+		gf_free(ctx->abs_url);
+		ctx->abs_url = NULL;
+	}
+
 	gf_filter_pck_send(dst_pck);
 
 	if (!iopid->audio_samples_to_keep) {
@@ -2706,6 +2759,9 @@ static void filelist_finalize(GF_Filter *filter)
 	if (ctx->dyn_period_id) gf_free(ctx->dyn_period_id);
 	if (ctx->splice_props) gf_free(ctx->splice_props);
 	if (ctx->splice_pid_props) gf_free(ctx->splice_pid_props);
+	if (ctx->init_url) gf_free(ctx->init_url);
+	if (ctx->rel_url) gf_free(ctx->rel_url);
+	if (ctx->abs_url) gf_free(ctx->abs_url);
 }
 
 static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -2789,7 +2845,6 @@ static const GF_FilterArgs GF_FileListArgs[] =
 	"- av: force decoding of audio and video inputs\n"
 	"- a: force decoding of audio inputs\n"
 	"- v: force decoding of video inputs", GF_PROP_UINT, "no", "av|a|v|no", GF_FS_ARG_HINT_NORMAL},
-
 	{0}
 };
 

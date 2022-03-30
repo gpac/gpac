@@ -242,7 +242,6 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		//but still further fragments to be pushed
 		if (!read->start_range && !read->end_range)
 			read->refresh_fragmented = GF_TRUE;
-		read->seg_name_changed = GF_TRUE;
 
 		for (i=0; i<gf_list_count(read->channels); i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
@@ -1415,14 +1414,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 						}
 						if (finfo.sidx_end) {
 							gf_filter_pck_set_property(pck, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(finfo.sidx_start , finfo.sidx_end));
-						}
-
-						if (read->seg_name_changed) {
-							const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);
-							read->seg_name_changed = GF_FALSE;
-							if (p && p->value.string) {
-								gf_filter_pck_set_property(pck, GF_PROP_PID_URL, &PROP_STRING(p->value.string));
-							}
 						}
 					}
 				}

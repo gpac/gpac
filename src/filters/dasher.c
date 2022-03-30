@@ -153,7 +153,7 @@ typedef struct
 	char *title, *source, *info, *cprt, *lang;
 	char *chain, *chain_fbk;
 	GF_PropStringList location, base;
-	Bool check_dur, skip_seg, loop, reschedule, scope_deps;
+	Bool check_dur, skip_seg, loop, reschedule, scope_deps, keep_src;
 	Double refresh, tsb, subdur;
 	u64 *_p_gentime, *_p_mpdtime;
 	Bool cmpd, dual, sreg, pswitch;
@@ -3785,28 +3785,72 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 					strcpy(szInitSegmentFilename, gf_file_basename(ds->src_url));
 
 					if (ctx->out_path && mpd_url) {
-						char *url, *mpd_out;
+						Bool gf_url_is_relative(const char *pathName);
+						Bool keep_src = GF_FALSE;
+						char *url, *mpd_out, *mpd_src_alloc=NULL;
 						mpd_out = gf_file_basename(ctx->out_path);
 						u32 len = (u32) (mpd_out - ctx->out_path);
 						char *mpd_src = mpd_url->value.string;
-						if (!strncmp(ctx->out_path, mpd_url->value.string, len))
-							mpd_src += len;
-
-						const GF_PropertyValue *init_url = gf_filter_pid_get_property_str(ds->ipid, "init_url");
-						if (init_url) {
-							url = gf_url_concatenate(mpd_src, init_url->value.string);
-							strcpy(szInitSegmentFilename, url);
-							strcpy(szInitSegmentTemplate, url);
-							gf_free(url);
-						} else {
-							//no init segment URL
-							strcpy(szInitSegmentFilename, "");
-							strcpy(szInitSegmentTemplate, "");
+						if (ctx->keep_src) {
+							keep_src = GF_TRUE;
 						}
+						else if (!strncmp(ctx->out_path, mpd_url->value.string, len))
+							mpd_src += len;
+						else if (gf_url_is_relative(ctx->out_path) && gf_url_is_relative(mpd_src)) {
+							char *opath=NULL, *ipath=NULL;
+							if (ctx->out_path[0]!='.') gf_dynstrcat(&opath, "./", NULL);
+							gf_dynstrcat(&opath, ctx->out_path, NULL);
+							if (mpd_src[0]!='.') gf_dynstrcat(&ipath, "./", NULL);
+							gf_dynstrcat(&ipath, mpd_src, NULL);
 
-						url = gf_url_concatenate(mpd_src, ds->template);
-						strcpy(szSegmentName, url);
-						gf_free(url);
+							mpd_src_alloc = gf_url_concatenate_parent(opath, ipath);
+							mpd_src = mpd_src_alloc;
+							if (opath) gf_free(opath);
+							if (ipath) gf_free(ipath);
+						} else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Non-relative URLs used in manifest generation mode, cannot determine output locations. Source URLs will be kept\n"));
+							keep_src = GF_TRUE;
+						}
+						if (mpd_src && !strncmp(mpd_src, "./", 2)) mpd_src+=2;
+
+						char *init_url=NULL;
+						const GF_PropertyValue *p = gf_filter_pid_get_property_str(ds->ipid, "init_url");
+						const GF_PropertyValue *hls_variant = gf_filter_pid_get_property_str(ds->ipid, "hls_variant_name");
+						if (p) {
+							if (hls_variant) {
+								init_url = gf_url_concatenate(hls_variant->value.string, p->value.string);
+							} else {
+								init_url = gf_strdup(p->value.string);
+							}
+						}
+						if (keep_src) {
+							strcpy(szInitSegmentFilename, init_url);
+							strcpy(szInitSegmentTemplate, init_url);
+							strcpy(szSegmentName, ds->template);
+						} else {
+							if (init_url) {
+								url = gf_url_concatenate(mpd_src, init_url);
+								strcpy(szInitSegmentFilename, url);
+								strcpy(szInitSegmentTemplate, url);
+								gf_free(url);
+							} else {
+								//no init segment URL
+								strcpy(szInitSegmentFilename, "");
+								strcpy(szInitSegmentTemplate, "");
+							}
+
+							if (hls_variant) {
+								char *tpl_int = gf_url_concatenate(hls_variant->value.string, ds->template);
+								url = gf_url_concatenate(mpd_src, tpl_int);
+								gf_free(tpl_int);
+							} else {
+								url = gf_url_concatenate(mpd_src, ds->template);
+							}
+							strcpy(szSegmentName, url);
+							gf_free(url);
+						}
+						if (init_url) gf_free(init_url);
+						if (mpd_src_alloc) gf_free(mpd_src_alloc);
 					}
 				 }
 			} else {
@@ -5976,6 +6020,9 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			if (ctx->muxtype==DASHER_MUX_RAW) continue;
 			if (ctx->cmaf) continue;
 			if (strcmp(a_ds->rep_id, ds->rep_id)) continue;
+			else if (ctx->sigfrag) {
+				if (a_ds->src_url && ds->src_url && strcmp(a_ds->src_url, ds->src_url)) continue;
+			}
 			if (a_ds->template && ds->template && strcmp(a_ds->template, ds->template)) continue;
 
 
@@ -6033,6 +6080,41 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 			ctx->def_max_seg_dur = (u32) ((ds->dash_dur.num * 1000) / ds->dash_dur.den);
 	}
 
+	if (ctx->sigfrag) {
+		Bool has_rep_conflict = GF_FALSE;
+		//make sure all representation have unique ids
+		for (i=0; i<count; i++) {
+			u32 nb_changed=0;
+			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			if (ds->muxed_base) continue;
+			for (j=0; j<count; j++) {
+				char szRep[20];
+				GF_DashStream *a_ds;
+				if (j == i) continue;
+				a_ds = gf_list_get(ctx->current_period->streams, j);
+				if (a_ds->muxed_base) continue;
+
+				if (strcmp(ds->rep_id, a_ds->rep_id)) continue;
+				if (ds->template && strstr(ds->template, "$RepresentationID$")) {
+					has_rep_conflict = GF_TRUE;
+					continue;
+				}
+
+				nb_changed++;
+				sprintf(szRep, "%d", nb_changed);
+				gf_free(a_ds->rep_id);
+				a_ds->rep_id = NULL;
+				gf_dynstrcat(&a_ds->rep_id, ds->rep_id, NULL);
+				gf_dynstrcat(&a_ds->rep_id, "_", NULL);
+				gf_dynstrcat(&a_ds->rep_id, szRep, NULL);
+				gf_free(a_ds->rep->id);
+				a_ds->rep->id = gf_strdup(a_ds->rep_id);
+			}
+		}
+		if (has_rep_conflict && ctx->do_mpd) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Several representations with same ID and using $RepresentationID$ template, cannot change IDs. Resulting MPD is not strictly DASH compliant\n"));
+		}
+	}
 
 	if (ctx->loop && max_adur.num) {
 		if (max_adur.num * min_adur.den != min_adur.num * max_adur.den) {
@@ -6772,23 +6854,39 @@ static void dasher_flush_segment(GF_DasherCtx *ctx, GF_DashStream *ds, Bool is_l
 	}
 }
 
-static char *dasher_strip_base(GF_DasherCtx *ctx, char *url)
+//seg_name is relative to the source manifest (MPD or master HLS) for segments
+static char *dasher_strip_base(GF_DasherCtx *ctx, GF_DashStream *ds, char *seg_url, char *seg_name)
 {
-	char *manifest_path = ctx->out_path;
-	char *file_path = url;
-	char *res = url;
+	if (ctx->keep_src) return gf_strdup(seg_name);
 
-	if (!manifest_path || !url) return NULL;
-	
-	if (!strncmp(manifest_path, "./", 2)) manifest_path+=2;
-	if (!strncmp(file_path, "./", 2)) file_path+=2;
+	const GF_PropertyValue *mpd_url = gf_filter_pid_get_property_str(ds->ipid, "manifest_url");
+	if (!mpd_url || !ctx->out_path) return gf_strdup(seg_url);
 
-	const char *base_manifest = gf_file_basename(manifest_path);
-	u32 diff = (u32) (base_manifest - manifest_path);
-	if (!strncmp(file_path, manifest_path, diff)) {
-		res = file_path + diff;
+	Bool gf_url_is_relative(const char *pathName);
+	char *url, *mpd_out, *mpd_src_alloc=NULL;
+	mpd_out = gf_file_basename(ctx->out_path);
+	u32 len = (u32) (mpd_out - ctx->out_path);
+	char *mpd_src = mpd_url->value.string;
+
+	if (!strncmp(ctx->out_path, mpd_url->value.string, len)) {
+		mpd_src += len;
+	} else if (gf_url_is_relative(ctx->out_path) && gf_url_is_relative(mpd_src)) {
+		char *opath=NULL, *ipath=NULL;
+		if (ctx->out_path[0]!='.') gf_dynstrcat(&opath, "./", NULL);
+		gf_dynstrcat(&opath, ctx->out_path, NULL);
+		if (mpd_src[0]!='.') gf_dynstrcat(&ipath, "./", NULL);
+		gf_dynstrcat(&ipath, mpd_src, NULL);
+
+		mpd_src_alloc = gf_url_concatenate_parent(opath, ipath);
+		mpd_src = mpd_src_alloc;
+		if (opath) gf_free(opath);
+		if (ipath) gf_free(ipath);
+	} else {
+		return gf_strdup(seg_name);
 	}
-	return res;
+
+	url = gf_url_concatenate(mpd_src, seg_name);
+	return url;
 }
 
 static GFINLINE
@@ -6931,12 +7029,6 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 				ds->rep->groupID = p->value.string;
 
 			ds->rep->dash_dur = ds->dash_dur;
-			if (ctx->sigfrag) {
-				const GF_PropertyValue *pid_url = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
-				if (pid_url && pid_url->value.string) {
-					ds->rep->hls_single_file_name = dasher_strip_base(ctx, pid_url->value.string);
-				}
-			}
 
 			if (!ds->rep->hls_single_file_name) {
 				switch (ctx->muxtype) {
@@ -7034,11 +7126,11 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
 			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PID_URL);
-			if (frag_url && frag_url->value.string) {
-				char *f_url = dasher_strip_base(ctx, frag_url->value.string);
-				seg_state->filename = gf_strdup(f_url);
-			}
-			else if (frag_range) {
+			const GF_PropertyValue *frag_name = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENAME);
+
+			if (frag_url && frag_name) {
+				seg_state->filename = dasher_strip_base(ctx, ds, frag_url->value.string, frag_name->value.string);
+			} else if (frag_range) {
 				seg_state->file_offset = frag_range->value.lfrac.num;
 				seg_state->file_size = (u32) (frag_range->value.lfrac.den - seg_state->file_offset);
 
@@ -7064,7 +7156,6 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 						seg_state->file_size -= (u32) sidx_size;
 					}
 				}
-
 			} else {
 				gf_list_del_item(ds->rep->state_seg_list, seg_state);
 				gf_free(seg_state);
@@ -7143,14 +7234,16 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (ctx->sigfrag) {
 			const GF_PropertyValue *frag_range = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FRAG_RANGE);
 			const GF_PropertyValue *frag_url = gf_filter_pck_get_property(in_pck, GF_PROP_PID_URL);
-			if (frag_url && frag_url->value.string) {
-				seg_url->media = gf_strdup(dasher_strip_base(ctx, frag_url->value.string));
+			const GF_PropertyValue *frag_name = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_FILENAME);
+			if (frag_url && frag_name) {
+				seg_url->media = dasher_strip_base(ctx, ds, frag_url->value.string, frag_name->value.string);
 				if (ds->rep->segment_list && ds->rep->segment_list->initialization_segment && !ds->rep->segment_list->initialization_segment->sourceURL) {
 
 					frag_url = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_URL);
-					if (frag_url && frag_url->value.string) {
+					frag_name = gf_filter_pid_get_property_str(ds->ipid, "init_url");
+					if (frag_url && frag_name) {
 						u32 j, nb_base;
-						ds->rep->segment_list->initialization_segment->sourceURL = gf_strdup(dasher_strip_base(ctx, frag_url->value.string) );
+						ds->rep->segment_list->initialization_segment->sourceURL = dasher_strip_base(ctx, ds, frag_url->value.string, frag_name->value.string);
 
 						nb_base = gf_list_count(ds->rep->base_URLs);
 						for (j=0; j<nb_base; j++) {
@@ -7232,7 +7325,7 @@ send_packet:
 		}
 	}
 
-	if (seg_state) {
+	if (seg_state && !ctx->sigfrag) {
 		seg_state->filepath = gf_strdup(szSegmentFullPath);
 		seg_state->filename = gf_strdup(szSegmentName);
 	}
@@ -9367,6 +9460,8 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(chain_fbk), "URL of fallback MPD", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_init), "force init segment creation in bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keep_src), "keep source URLs in manifest generation mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+
 	{0}
 };
 
