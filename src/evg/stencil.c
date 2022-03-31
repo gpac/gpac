@@ -1843,6 +1843,10 @@ u32 get_pix_yuv420p(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 #define GET_LE_10BIT_AS_8(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) >> 2 )
 #define GET_LE_10BIT_AS_16(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) << 6 )
 
+//#define GET_LE_10BIT_LEFT_AS_8(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) >> 8 )
+#define GET_LE_10BIT_LEFT_AS_8(_ptr) (_ptr[1] )
+#define GET_LE_10BIT_LEFT_AS_16(_ptr) ( (((u16)(_ptr)[1])<<8 | (u16)(_ptr)[0] ) & 0xFFC0 )
+
 #define GET_BE_10BIT_AS_8(_ptr) ( (*(u16 *)(_ptr)) >> 2 )
 #define GET_BE_10BIT_AS_16(_ptr) ( (*(u16 *)(_ptr)) << 6 )
 
@@ -1850,6 +1854,10 @@ u32 get_pix_yuv420p(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 
 #define GET_LE_10BIT_AS_8(_ptr) ( (*(u16 *)(_ptr)) >> 2 )
 #define GET_LE_10BIT_AS_16(_ptr) ( (*(u16 *)(_ptr)) << 6 )
+
+#define GET_LE_10BIT_LEFT_AS_8(_ptr) ( (*(u16 *)(_ptr)) >> 8 )
+#define GET_LE_10BIT_LEFT_AS_16(_ptr) ( (*(u16 *)(_ptr)) & 0xFFC0 )
+
 
 #define GET_BE_10BIT_AS_8(_ptr) ( (((u16)(_ptr)[0])<<8 | (u16)(_ptr)[1] ) >> 2 )
 #define GET_BE_10BIT_AS_16(_ptr) ( (((u16)(_ptr)[0])<<8 | (u16)(_ptr)[1] ) << 6 )
@@ -2187,6 +2195,34 @@ u64 get_pix_v210_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 	return GF_COLW_ARGB(0xFFFF, vy, vu, vv);
 }
 
+u32 get_pix_yuyv_10(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 vy, vu, vv;
+	Bool odd = x%2;
+	u8 *p_src = _this->pixels + y * _this->stride + (x/2)*8;
+
+	vu = GET_LE_10BIT_LEFT_AS_8(p_src + _this->off_u);
+	if (odd)
+		vy = GET_LE_10BIT_LEFT_AS_8(p_src + _this->off_y+4);
+	else
+		vy = GET_LE_10BIT_LEFT_AS_8(p_src + _this->off_y);
+	vv = GET_LE_10BIT_LEFT_AS_8(p_src + _this->off_v);
+	return GF_COL_ARGB(0xFF, vy, vu, vv);
+}
+u64 get_pix_yuyv_10_wide(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u16 vy, vu, vv;
+	u32 odd = x%2;
+	u8 *p_src = _this->pixels + y * _this->stride + (x/2)*8;
+
+	vu = GET_LE_10BIT_LEFT_AS_16(p_src + _this->off_u);
+	if (odd)
+		vy = GET_LE_10BIT_LEFT_AS_16(p_src + _this->off_y+4);
+	else
+		vy = GET_LE_10BIT_LEFT_AS_16(p_src + _this->off_y);
+	vv = GET_LE_10BIT_LEFT_AS_16(p_src + _this->off_v);
+	return GF_COLW_ARGB(0xFFFF, vy, vu, vv);
+}
 u64 default_get_pixel_wide(struct __evg_texture *_this, u32 x, u32 y, EVGRasterCtx *rctx)
 {
 	return evg_col_to_wide( _this->tx_get_pixel(_this, x, y, rctx) );
@@ -2344,6 +2380,38 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		_this->tx_get_pixel_wide = get_pix_v210_wide;
 		_this->is_wide = 1;
 		break;
+	case GF_PIXEL_YUYV_10:
+		_this->off_y=0;
+		_this->off_u=2;
+		_this->off_v=4;
+		_this->tx_get_pixel = get_pix_yuyv_10;
+		_this->tx_get_pixel_wide = get_pix_yuyv_10_wide;
+		_this->is_wide = 1;
+		break;
+	case GF_PIXEL_YVYU_10:
+		_this->off_y=0;
+		_this->off_u=4;
+		_this->off_v=2;
+		_this->tx_get_pixel = get_pix_yuyv_10;
+		_this->tx_get_pixel_wide = get_pix_yuyv_10_wide;
+		_this->is_wide = 1;
+		break;
+	case GF_PIXEL_UYVY_10:
+		_this->off_y=2;
+		_this->off_u=0;
+		_this->off_v=4;
+		_this->tx_get_pixel = get_pix_yuyv_10;
+		_this->tx_get_pixel_wide = get_pix_yuyv_10_wide;
+		_this->is_wide = 1;
+		break;
+	case GF_PIXEL_VYUY_10:
+		_this->off_y=2;
+		_this->off_u=4;
+		_this->off_v=2;
+		_this->tx_get_pixel = get_pix_yuyv_10;
+		_this->tx_get_pixel_wide = get_pix_yuyv_10_wide;
+		_this->is_wide = 1;
+		break;
 	default:
 		return;
 	}
@@ -2457,6 +2525,16 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 	case GF_PIXEL_VYUY:
 		_this->is_yuv = GF_TRUE;
 		_this->Bpp = 1;
+		if (!stride)
+			stride = 4 * width;
+		break;
+
+	case GF_PIXEL_YUYV_10:
+	case GF_PIXEL_YVYU_10:
+	case GF_PIXEL_UYVY_10:
+	case GF_PIXEL_VYUY_10:
+		_this->is_yuv = GF_TRUE;
+		_this->Bpp = 2;
 		if (!stride)
 			stride = 4 * width;
 		break;
@@ -2710,6 +2788,10 @@ u32 gf_evg_stencil_get_pixel_yuv(GF_EVGStencil *st, s32 x, s32 y)
 u32 gf_evg_stencil_get_pixel_fast(GF_EVGStencil *st, s32 x, s32 y)
 {
 	return ((EVG_Texture *)st)->tx_get_pixel((EVG_Texture *)st, x, y, NULL);
+}
+u64 gf_evg_stencil_get_pixel_wide_fast(GF_EVGStencil *st, s32 x, s32 y)
+{
+	return ((EVG_Texture *)st)->tx_get_pixel_wide((EVG_Texture *)st, x, y, NULL);
 }
 
 

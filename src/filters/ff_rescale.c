@@ -67,15 +67,26 @@ typedef struct
 	Bool fullrange;
 
 	u32 o_bpp, offset_w, offset_h;
-	GF_EVGSurface *surf;
 
 	Bool unpack_v410, repack_v410, unpack_v210, repack_v210;
 	u32 orig_in_stride, repack_stride;
 	u8 *unpack_buf, *repack_buf;
+
+	u32 unpack_generic, unpack_depth;
+	Bool unpack_yuv, unpack_alpha;
+
+	u32 repack_generic, repack_depth;
+	Bool repack_yuv, repack_alpha;
+
+	GF_EVGSurface *surf;
+	GF_EVGStencil *tx;
+	GF_Path *path;
 } GF_FFSWScaleCtx;
 
-//#include <gpac/bitstream.h>
 #include <libavutil/intreadwrite.h>
+
+u32 gf_evg_stencil_get_pixel_fast(GF_EVGStencil *st, s32 x, s32 y);
+u64 gf_evg_stencil_get_pixel_wide_fast(GF_EVGStencil *st, s32 x, s32 y);
 
 static GF_Err ffsws_process(GF_Filter *filter)
 {
@@ -118,7 +129,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	frame_ifce = gf_filter_pck_get_frame_interface(pck);
 	//we may have buffer input (padding) but shall not have smaller
 	if (osize && (ctx->out_src_size > osize) ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatched in source osize, expected %d got %d - stride issue ?\n", ctx->out_src_size, osize));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFSWS] Mismatch in source osize, expected %d got %d - stride issue ?\n", ctx->out_src_size, osize));
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NOT_SUPPORTED;
 	}
@@ -241,6 +252,72 @@ static GF_Err ffsws_process(GF_Filter *filter)
 			src_planes[0] = ctx->unpack_buf;
 			src_planes[1] = src_planes[0] + ctx->src_stride[0]*ctx->h;
 			src_planes[2] = src_planes[1] + ctx->src_stride[1]*ctx->h;
+		} else if (ctx->unpack_generic) {
+			GF_Err e = gf_evg_stencil_set_texture_planes(ctx->tx, ctx->w, ctx->h, ctx->s_pfmt, data, ctx->orig_in_stride, NULL, NULL, 0, NULL, 0);
+			if (e) return e;
+
+			u32 i, j;
+			Bool wide = GF_FALSE;
+			Bool alpha = ctx->unpack_alpha;
+			u32 Bpp = ctx->unpack_yuv ? 1 : (alpha ? 4 : 3);
+			u32 bshift = 0;
+			if (ctx->unpack_yuv && (ctx->unpack_depth>8)) {
+				wide = GF_TRUE;
+				Bpp = 2;
+				bshift = 16 - ctx->unpack_depth;
+			}
+			for (j=0; j<ctx->h; j++) {
+				u8 *p_u, *p_v, *p_a=NULL;
+				u8 *p_y = ctx->unpack_buf + j * ctx->w * Bpp;
+				if (ctx->unpack_yuv) {
+					p_u = p_y + ctx->h * ctx->w * Bpp;
+					p_v = p_u + ctx->h * ctx->w * Bpp;
+					if (alpha)
+						p_a = p_v + ctx->h * ctx->w * Bpp;
+				}
+
+				for (i=0; i<ctx->w; i++) {
+					if (ctx->unpack_yuv) {
+						if (wide) {
+							u64 col = gf_evg_stencil_get_pixel_wide_fast(ctx->tx, i ,j);
+							*(u16*)p_y = GF_COLW_R(col) >> bshift;
+							*(u16*)p_u = GF_COLW_G(col) >> bshift;
+							*(u16*)p_v = GF_COLW_B(col) >> bshift;
+							if (alpha)
+								*(u16*)p_a = GF_COLW_A(col) >> bshift;
+						} else {
+							u32 col = gf_evg_stencil_get_pixel_fast(ctx->tx, i ,j);
+							*p_y = GF_COL_R(col);
+							*p_u = GF_COL_G(col);
+							*p_v = GF_COL_B(col);
+							if (alpha)
+								*p_a = GF_COL_A(col);
+						}
+						p_y+=Bpp;
+						p_u+=Bpp;
+						p_v+=Bpp;
+						if (alpha)
+							p_a+=Bpp;
+					} else {
+						u32 col = gf_evg_stencil_get_pixel_fast(ctx->tx, i ,j);
+						p_y[0] = GF_COL_R(col);
+						p_y[1] = GF_COL_G(col);
+						p_y[2] = GF_COL_B(col);
+						if (alpha) {
+							p_y[3] = GF_COL_A(col);
+							p_y+=4;
+						} else {
+							p_y+=3;
+						}
+					}
+				}
+			}
+
+			src_planes[0] = ctx->unpack_buf;
+			if (ctx->unpack_yuv) {
+				src_planes[1] = src_planes[0] + ctx->src_stride[0]*ctx->h;
+				src_planes[2] = src_planes[1] + ctx->src_stride[1]*ctx->h;
+			}
 		} else {
 			if (ctx->nb_src_planes==1) {
 			} else if (ctx->nb_src_planes==2) {
@@ -268,7 +345,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 	}
 
 	pck_data = output;
-	if (ctx->repack_v410 || ctx->repack_v210) {
+	if (ctx->repack_v410 || ctx->repack_v210 || ctx->repack_generic) {
 		output = ctx->repack_buf;
 	}
 
@@ -419,7 +496,12 @@ static GF_Err ffsws_process(GF_Filter *filter)
 					break;
 			}
 		}
-	}	else if (ctx->swap_idx_1 || ctx->swap_idx_2) {
+	} else if (ctx->repack_generic) {
+		gf_evg_surface_attach_to_buffer(ctx->surf, pck_data, ctx->ow, ctx->oh, 0, ctx->repack_stride, ctx->ofmt);
+		gf_evg_stencil_set_texture(ctx->tx, ctx->repack_buf, ctx->ow, ctx->oh, ctx->dst_stride[0], ctx->repack_generic);
+		gf_evg_surface_set_path(ctx->surf, ctx->path);
+		gf_evg_surface_fill(ctx->surf, ctx->tx);
+	} else if (ctx->swap_idx_1 || ctx->swap_idx_2) {
 		u32 i, j;
 		for (i=0; i<ctx->h; i++) {
 			u8 *dst = output + ctx->dst_stride[0]*i;
@@ -629,24 +711,54 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		u32 ff_src_pfmt, ff_dst_pfmt;
 		ctx->unpack_v410 = ctx->repack_v410 = GF_FALSE;
 		ctx->unpack_v210 = ctx->repack_v210 = GF_FALSE;
+		ctx->unpack_generic = ctx->repack_generic = 0;
+
 		//v410 and v210 as treated as codecs in ffmpeg, we deal with them as pixel formats
 		if (ofmt == GF_PIXEL_YUV444_10_PACK) {
 			ctx->unpack_v410 = GF_TRUE;
-			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10);
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10, GF_FALSE);
 		} else if (ofmt == GF_PIXEL_V210) {
 			ctx->unpack_v210 = GF_TRUE;
-			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10);
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10, GF_FALSE);
 		} else {
-			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ofmt);
+			ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ofmt, GF_TRUE);
+			if (ff_src_pfmt==AV_PIX_FMT_NONE) {
+				if (gf_evg_stencil_set_texture(ctx->tx, (u8*)ctx, 4, 2, 0, ofmt)==GF_OK) {
+					ctx->unpack_yuv = gf_pixel_fmt_is_yuv(ofmt);
+					ctx->unpack_depth = gf_pixel_is_wide_depth(ofmt);
+					ctx->unpack_alpha = gf_pixel_fmt_is_transparent(ofmt);
+					if (ctx->unpack_yuv) {
+						if (ctx->unpack_alpha) ctx->unpack_generic = GF_PIXEL_YUVA444;
+						else ctx->unpack_generic = (ctx->unpack_depth>8) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+					} else {
+						ctx->unpack_generic = ctx->unpack_alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+					}
+					ff_src_pfmt = ffmpeg_pixfmt_from_gpac(ctx->unpack_generic, GF_FALSE);
+				}
+			}
 		}
 		if (ctx->ofmt == GF_PIXEL_YUV444_10_PACK) {
 			ctx->repack_v410 = GF_TRUE;
-			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10);
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV444_10, GF_FALSE);
 		} else if (ctx->ofmt == GF_PIXEL_V210) {
 			ctx->repack_v210 = GF_TRUE;
-			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10);
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(GF_PIXEL_YUV422_10, GF_FALSE);
 		} else {
-			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->ofmt);
+			ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->ofmt, GF_TRUE);
+			if (ff_dst_pfmt == AV_PIX_FMT_NONE) {
+				if (gf_evg_surface_attach_to_buffer(ctx->surf, (u8 *) ctx, 4, 2, 0, 0, ctx->ofmt)==GF_OK) {
+					ctx->repack_yuv = gf_pixel_fmt_is_yuv(ctx->ofmt);
+					ctx->repack_depth = gf_pixel_is_wide_depth(ctx->ofmt);
+					ctx->repack_alpha = gf_pixel_fmt_is_transparent(ctx->ofmt);
+					if (ctx->repack_yuv) {
+						if (ctx->repack_alpha) ctx->repack_generic = GF_PIXEL_YUVA444;
+						else ctx->repack_generic = (ctx->repack_depth>8) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+					} else {
+						ctx->repack_generic = ctx->repack_alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+					}
+					ff_dst_pfmt = ffmpeg_pixfmt_from_gpac(ctx->repack_generic, GF_FALSE);
+				}
+			}
 		}
 
 		if ((ff_src_pfmt==AV_PIX_FMT_NONE) || (ff_dst_pfmt==AV_PIX_FMT_NONE))
@@ -674,6 +786,14 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->orig_in_stride = ctx->src_stride[0];
 			ctx->src_stride[0] = 2*w;
 			ctx->src_stride[2] = ctx->src_stride[1] = w;
+			ctx->src_uv_height = h;
+		} else if (ctx->unpack_generic) {
+			u32 planes = ctx->unpack_alpha ? 4 : 3;
+			u32 Bpp = (ctx->unpack_depth>8) ? 2 : 1;
+			ctx->unpack_buf = gf_realloc(ctx->unpack_buf, w*h*planes*Bpp);
+			ctx->nb_src_planes = ctx->unpack_yuv ? planes : 1;
+			ctx->orig_in_stride = ctx->src_stride[0];
+			ctx->src_stride[2] = ctx->src_stride[1] = ctx->src_stride[0] = Bpp*w;
 			ctx->src_uv_height = h;
 		} else {
 			if (ctx->nb_src_planes==3) ctx->src_stride[2] = ctx->src_stride[1];
@@ -707,6 +827,19 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 			ctx->dst_stride[2] = ctx->dst_stride[1] = ctx->ow;
 			ctx->dst_uv_height = ctx->oh;
 			ctx->o_bpp = 2;
+		}
+		else if (ctx->repack_generic) {
+			u32 osize;
+			ctx->repack_stride = ctx->dst_stride[0];
+			ctx->dst_stride[0] = ctx->dst_stride[1] = ctx->dst_stride[2] = ctx->dst_stride[3] = 0;
+			gf_pixel_get_size_info(ctx->repack_generic, ctx->ow, ctx->oh, &osize, &ctx->dst_stride[0] , &ctx->dst_stride[1], &ctx->nb_planes, &ctx->dst_uv_height);
+			ctx->repack_buf = gf_realloc(ctx->repack_buf, osize);
+			ctx->dst_stride[2] = ctx->dst_stride[1];
+			if (ctx->repack_alpha)
+				ctx->dst_stride[3] = ctx->dst_stride[0];
+
+			gf_path_reset(ctx->path);
+			gf_path_add_rect_center(ctx->path, 0, 0, INT2FIX(ctx->ow), INT2FIX(ctx->oh));
 		}
 		if (nb_par) {
 			if ((nb_par==1) && (ctx->p1!=GF_MAX_DOUBLE) ) {
@@ -771,7 +904,7 @@ static GF_Err ffsws_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->ow));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->oh));
 
-	if (ctx->repack_v410 || ctx->repack_v210) {
+	if (ctx->repack_v410 || ctx->repack_v210 || ctx->repack_generic) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->repack_stride));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE_UV, NULL );
 	} else {
@@ -805,7 +938,9 @@ static GF_Err ffsws_initialize(GF_Filter *filter)
 {
 	GF_FFSWScaleCtx *ctx = gf_filter_get_udta(filter);
 	ffmpeg_setup_logs(GF_LOG_MEDIA);
-	ctx->surf = gf_evg_surface_new(GF_FALSE);
+	ctx->surf = gf_evg_surface_new(GF_TRUE);
+	ctx->tx = gf_evg_stencil_new(GF_STENCIL_TEXTURE);
+	ctx->path = gf_path_new();
 
 	if (ctx->osar.num &&
 	 ((ctx->osar.num<0) || (ctx->osar.num < (s32) ctx->osar.den))
@@ -822,6 +957,8 @@ static void ffsws_finalize(GF_Filter *filter)
 	if (ctx->unpack_buf) gf_free(ctx->unpack_buf);
 	if (ctx->repack_buf) gf_free(ctx->repack_buf);
 	gf_evg_surface_delete(ctx->surf);
+	gf_evg_stencil_delete(ctx->tx);
+	gf_path_del(ctx->path);
 	return;
 }
 

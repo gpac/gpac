@@ -1597,7 +1597,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (type==GF_STREAM_VISUAL) {
 		u32 force_pfmt = AV_PIX_FMT_NONE;
 		if (ctx->pfmt) {
-			u32 ff_pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
+			u32 ff_pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 			i=0;
 			while (codec->pix_fmts) {
 				if (codec->pix_fmts[i] == AV_PIX_FMT_NONE) break;
@@ -1618,7 +1618,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				change_input_fmt = force_pfmt;
 			}
 		}
-		ctx->pixel_fmt = ffmpeg_pixfmt_from_gpac(pfmt);
+		ctx->pixel_fmt = ffmpeg_pixfmt_from_gpac(pfmt, GF_FALSE);
 		//check pixel format
 		if (force_pfmt == AV_PIX_FMT_NONE) {
 			change_input_fmt = AV_PIX_FMT_NONE;
@@ -1687,7 +1687,7 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 					return GF_NOT_SUPPORTED;
 				}
 			} else if (ctx->pfmt) {
-				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
+				ff_pmft = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 			}
 			pfmt = ffmpeg_pixfmt_to_gpac(ff_pmft, GF_FALSE);
 			gf_filter_pid_negociate_property(ctx->in_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(pfmt) );
