@@ -684,7 +684,7 @@ GF_Err av1dmx_parse_ivf(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	u32 pck_size;
 	u64 frame_size = 0, pts = GF_FILTER_NO_TS;
 	GF_FilterPacket *pck;
-	u64 pos=0, pos_ivf_hdr;
+	u64 pos=0, pos_ivf_hdr=0;
 	u8 *output;
 
 	if (ctx->bsmode==IVF) {
@@ -760,7 +760,7 @@ GF_Err av1dmx_parse_vp9(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 {
 	Bool key_frame = GF_FALSE;
 	u64 frame_size = 0, pts = 0;
-	u64 pos=0, pos_ivf_hdr;
+	u64 pos=0, pos_ivf_hdr=0;
 	u32 width = 0, height = 0, renderWidth, renderHeight;
 	u32 num_frames_in_superframe = 0, superframe_index_size = 0, i = 0;
 	u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];

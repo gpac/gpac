@@ -1010,7 +1010,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (codec_id==GF_CODECID_RAW) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 			if (p) {
-				avst->codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint);
+				avst->codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint, GF_FALSE);
 				avst->codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag(avst->codecpar->format);
 			}
 		}

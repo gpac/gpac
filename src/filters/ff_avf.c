@@ -203,7 +203,7 @@ static GF_Err ffavf_setup_outputs(GF_Filter *filter, GF_FFAVFilterCtx *ctx)
 		}
 		if (opid->is_video) {
 			if (ctx->pfmt) {
-				enum AVPixelFormat pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt);
+				enum AVPixelFormat pfmt = ffmpeg_pixfmt_from_gpac(ctx->pfmt, GF_FALSE);
 				ret = av_opt_set_bin(opid->io_filter_ctx, "pix_fmts", (uint8_t*)&pfmt, sizeof(pfmt), AV_OPT_SEARCH_CHILDREN);
 				if (ret < 0) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFAVF] Fail to set %s pixel format: %s\n", avf->name, av_err2str(ret) ));
@@ -786,7 +786,7 @@ static GF_Err ffavf_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
 		if (!p) return GF_OK; //not ready yet
 		gf_pfmt = p->value.uint;
-		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt);
+		pix_fmt = ffmpeg_pixfmt_from_gpac(gf_pfmt, GF_FALSE);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
 		if (p && p->value.frac.num && p->value.frac.den) sar = p->value.frac;

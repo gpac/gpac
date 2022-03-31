@@ -1043,8 +1043,8 @@ static JSValue canvas_blit(JSContext *c, JSValueConst obj, int argc, JSValueCons
 	tx = JS_GetOpaque(argv[0], texture_class_id);
 	if (!tx) return GF_JS_EXCEPTION(c);
 
-	pf_src = ffmpeg_pixfmt_from_gpac(tx->pf);
-	pf_dst = ffmpeg_pixfmt_from_gpac(canvas->pf);
+	pf_src = ffmpeg_pixfmt_from_gpac(tx->pf, GF_FALSE);
+	pf_dst = ffmpeg_pixfmt_from_gpac(canvas->pf, GF_FALSE);
 	if ((pf_src==AV_PIX_FMT_NONE) || (pf_dst==AV_PIX_FMT_NONE))
 		return js_throw_err(c, GF_NOT_SUPPORTED);
 

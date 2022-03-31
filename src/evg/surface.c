@@ -281,6 +281,16 @@ static void evg_surface_set_components_idx(GF_EVGSurface *surf)
 		surf->idx_g=0;
 		surf->idx_b=2;
 		break;
+	case GF_PIXEL_YUV444_PACK:
+		surf->idx_r=0;
+		surf->idx_g=1;
+		surf->idx_b=2;
+		break;
+	case GF_PIXEL_VYU444_PACK:
+		surf->idx_r=1;
+		surf->idx_g=2;
+		surf->idx_b=0;
+		break;
 	case GF_PIXEL_BGRA:
 		surf->idx_a=3;
 		surf->idx_r=2;
@@ -393,10 +403,18 @@ GF_Err gf_evg_surface_attach_to_buffer(GF_EVGSurface *surf, u8 *pixels, u32 widt
 		surf->is_transparent = GF_TRUE;
 		BPP = 4;
 		break;
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
+		BPP = 3;
+		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 	if (!pitch_x) pitch_x = BPP;
+	if (!pitch_y) {
+		gf_pixel_get_size_info(pixelFormat, width, height, NULL, &pitch_y, NULL, NULL, NULL);
+	}
+
 	surf->pitch_x = pitch_x;
 	surf->pitch_y = pitch_y;
 	if (!surf->raster_ctx.stencil_pix_run || (surf->width != width)) {
@@ -587,6 +605,10 @@ GF_Err gf_evg_surface_clear(GF_EVGSurface *surf, GF_IRect *rc, u32 color)
 	case GF_PIXEL_YUVA444_PACK:
 	case GF_PIXEL_UYVA444_PACK:
 		return evg_surface_clear_argb(surf, clear, gf_evg_argb_to_ayuv(surf, color) );
+
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
+		return evg_surface_clear_rgb(surf, clear, gf_evg_argb_to_ayuv(surf, color) );
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -810,6 +832,9 @@ static Bool setup_grey_callback(GF_EVGSurface *surf, Bool for_3d, Bool multi_ste
 		}
 		break;
 
+	case GF_PIXEL_YUV444_PACK:
+	case GF_PIXEL_VYU444_PACK:
+		surf->yuv_type = EVG_YUV;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 		if (use_const) {

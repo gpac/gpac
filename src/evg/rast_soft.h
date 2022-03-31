@@ -211,6 +211,7 @@ typedef struct __evg_texture
 
 	u32 pad_rbg, fill_pad_color;
 	u64 fill_pad_color_wide;
+	u32 off_y, off_u, off_v;
 } EVG_Texture;
 
 /*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/

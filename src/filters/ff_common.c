@@ -113,7 +113,7 @@ static const GF_FF_PFREG FF2GPAC_PixelFormats[] =
 	{0},
 };
 
-enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt)
+enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt, Bool no_warn)
 {
 	u32 i=0;
 	while (FF2GPAC_PixelFormats[i].gpac_pf) {
@@ -121,7 +121,9 @@ enum AVPixelFormat ffmpeg_pixfmt_from_gpac(u32 pfmt)
 			return FF2GPAC_PixelFormats[i].ff_pf;
 		i++;
 	}
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+	if (!no_warn) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FFMPEG] Unmapped GPAC pixel format %s, patch welcome\n", gf_4cc_to_str(pfmt) ));
+	}
 	return AV_PIX_FMT_NONE;
 }
 
