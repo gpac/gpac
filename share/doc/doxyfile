@@ -776,7 +776,7 @@ WARN_LOGFILE           = doxygen_warnings.txt
 # Note: If this tag is empty the current directory is searched.
 
 #for some weird reason on OSX enumeration does not work properly, add IDL files by hand
-INPUT=../../include/gpac/ ../../README.md ../../share/doc/idl/core.idl ../../share/doc/idl/jsf.idl ../../share/doc/idl/xhr.idl ../../share/doc/idl/evg.idl ../../share/doc/idl/scenejs.idl ../../share/doc/idl/storage.idl ../../share/doc/idl/webgl.idl ../../share/doc/idl/filtersession.idl ../../share/doc/idl/dash_algo.idl  ../../share/doc/idl/nodejs.idl ../../share/python/libgpac.py
+INPUT=../../include/gpac/ ../../README.md ../../share/doc/idl/core.idl ../../share/doc/idl/jsf.idl ../../share/doc/idl/xhr.idl ../../share/doc/idl/evg.idl ../../share/doc/idl/scenejs.idl ../../share/doc/idl/storage.idl ../../share/doc/idl/webgl.idl ../../share/doc/idl/filtersession.idl ../../share/doc/idl/dash_algo.idl  ../../share/doc/idl/nodejs.idl ../../share/python/libgpac/libgpac.py
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
