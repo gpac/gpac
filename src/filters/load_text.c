@@ -4160,7 +4160,7 @@ static const GF_FilterArgs VTTTX3GArgs[] =
 
 GF_FilterRegister VTTTX3GRegister = {
 	.name = "vtt2tx3g",
-	GF_FS_SET_DESCRIPTION("Subtitle loader")
+	GF_FS_SET_DESCRIPTION("WebVTT to TX3G")
 	GF_FS_SET_HELP("This filter rewrites unframed WebVTT to TX3G / QT Timed Text (binary format)\n"
 	"\n"
 	"Unframed WebVTT packets consist in single cues:\n"
