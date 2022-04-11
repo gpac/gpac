@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer
@@ -212,6 +212,10 @@ typedef struct __evg_texture
 	u32 pad_rbg, fill_pad_color;
 	u64 fill_pad_color_wide;
 	u32 off_y, off_u, off_v;
+
+	const u8 *palette;
+	u32 palette_colors, palette_comp, palette_pfmt;
+	u32 pidx_a, pidx_r, pidx_g, pidx_b;
 } EVG_Texture;
 
 /*return u32 * for 8 bits destination surfaces, u64 *for wide color destination surfaces*/

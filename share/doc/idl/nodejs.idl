@@ -723,6 +723,9 @@ attribute readonly boolean eos_received;
 /*! True if PID would block - see \ref gf_filter_pid_would_block*/
 attribute readonly boolean would_block;
 
+/*! True if PID is sparse - see \ref gf_filter_pid_is_sparse*/
+attribute readonly boolean sparse;
+
 /*! maximum buffer of PID in microseconds - see \ref gf_filter_pid_get_max_buffer and \ref gf_filter_pid_set_max_buffer*/
 attribute unsigned long long max_buffer;
 

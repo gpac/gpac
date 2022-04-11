@@ -30,6 +30,7 @@
 #include "ff_common.h"
 
 #include <libavfilter/avfilter.h>
+#include <gpac/isomedia.h>
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE) || defined (WIN32)
@@ -51,6 +52,89 @@ typedef struct
 	u32 nb_arg_skip;
 	Bool free_help;
 } GF_FFRegistryExt;
+
+typedef struct
+{
+	const char *ff_name;
+	u32 gpac_p4cc;
+	u32 gpac_tag;
+} GF_FF_TAGREG;
+
+static const GF_FF_TAGREG FF2GPAC_Tags[] =
+{
+	{"album", 0, GF_ISOM_ITUNE_ALBUM},
+	{"album_artist", 0, GF_ISOM_ITUNE_ALBUM_ARTIST},
+	{"artist", 0, GF_ISOM_ITUNE_ARTIST},
+	{"comment", 0, GF_ISOM_ITUNE_ALBUM_ARTIST},
+	{"composer", 0, GF_ISOM_ITUNE_COMPOSER},
+	{"copyright", 0, GF_ISOM_ITUNE_COPYRIGHT},
+//	{"creation_time", 0, 0},
+	{"date", 0, GF_ISOM_ITUNE_CREATED},
+	{"disc", 0, GF_ISOM_ITUNE_DISK},
+	{"encoder", 0, GF_ISOM_ITUNE_TOOL},
+	{"encoded_by", 0, GF_ISOM_ITUNE_ENCODER},
+	{"genre", 0, GF_ISOM_ITUNE_GENRE},
+	{"language", GF_PROP_PID_LANGUAGE, 0},
+	{"performer", 0, GF_ISOM_ITUNE_PERFORMER},
+	{"service_name", GF_PROP_PID_SERVICE_NAME, 0},
+	{"service_provider", GF_PROP_PID_SERVICE_PROVIDER, 0},
+	{"title", 0, GF_ISOM_ITUNE_NAME},
+	{"track", 0, GF_ISOM_ITUNE_TRACK},
+	{NULL, 0, 0}
+};
+
+void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata)
+{
+	u32 i=0;
+	while (FF2GPAC_Tags[i].ff_name) {
+		const GF_PropertyValue *p = NULL;
+		if (FF2GPAC_Tags[i].gpac_p4cc) {
+			p = gf_filter_pid_get_property(pid, FF2GPAC_Tags[i].gpac_p4cc);
+		} else {
+			const char *name = gf_itags_get_name(FF2GPAC_Tags[i].gpac_tag);
+			if (name)
+				p = gf_filter_pid_get_property_str(pid, name);
+		}
+		if (p) {
+			switch (p->type) {
+			case GF_PROP_NAME:
+			case GF_PROP_STRING:
+				if (p->value.string)
+					av_dict_set(metadata, FF2GPAC_Tags[i].ff_name, p->value.string, 0);
+				break;
+			default:
+				break;
+			}
+		}
+		i++;
+	}
+}
+
+void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid)
+{
+	AVDictionaryEntry *ent=NULL;
+	while (metadata) {
+		ent = av_dict_get(metadata, "", ent, AV_DICT_IGNORE_SUFFIX);
+		if (!ent) break;
+		u32 i=0;
+		while (FF2GPAC_Tags[i].ff_name) {
+			if (strcmp(FF2GPAC_Tags[i].ff_name, ent->key)) {
+				i++;
+				continue;
+			}
+			if (FF2GPAC_Tags[i].gpac_p4cc) {
+				gf_filter_pid_set_property(pid, FF2GPAC_Tags[i].gpac_p4cc, &PROP_STRING(ent->value) );
+			} else {
+				const char *name = gf_itags_get_name(FF2GPAC_Tags[i].gpac_tag);
+				if (name)
+					gf_filter_pid_set_property_str(pid, name, &PROP_STRING(ent->value));
+				if (FF2GPAC_Tags[i].gpac_tag == GF_ISOM_ITUNE_NAME)
+					gf_filter_pid_set_property(pid, GF_PROP_PID_ISOM_HANDLER, &PROP_STRING(ent->value) );
+			}
+			break;
+		}
+	}
+}
 
 typedef struct
 {
@@ -381,6 +465,15 @@ static const GF_FF_CIDREG FF2GPAC_CodecIDs[] =
 #endif
 	{AV_CODEC_ID_TRUEHD, GF_CODECID_TRUEHD, 0},
 	{AV_CODEC_ID_FFV1, GF_CODECID_FFV1, 0},
+
+	{AV_CODEC_ID_SUBRIP, GF_CODECID_SUBS_TEXT, 0},
+	{AV_CODEC_ID_SUBRIP, GF_CODECID_SIMPLE_TEXT, 0},
+	{AV_CODEC_ID_TEXT, GF_CODECID_SIMPLE_TEXT, 0},
+	{AV_CODEC_ID_WEBVTT, GF_CODECID_WEBVTT, 0},
+	{AV_CODEC_ID_SSA, GF_CODECID_SUBS_SSA, 0},
+	{AV_CODEC_ID_ASS, GF_CODECID_SUBS_SSA, 0},
+	{AV_CODEC_ID_DVB_SUBTITLE, GF_CODECID_DVB_SUBS, 0},
+	{AV_CODEC_ID_DVB_TELETEXT, GF_CODECID_DVB_TELETEXT, 0},
 	{0}
 };
 

@@ -74,7 +74,7 @@ struct __txtin_ctx
 
 	Bool is_setup;
 
-	GF_Err (*text_process)(GF_Filter *filter, GF_TXTIn *ctx);
+	GF_Err (*text_process)(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck);
 
 	s32 unicode_type;
 
@@ -83,6 +83,7 @@ struct __txtin_ctx
 	GF_BitStream *bs_w;
 	Bool first_samp;
 	Bool hdr_parsed;
+	Bool unframed;
 
 	//state vars for srt
 	u32 state, default_color;
@@ -119,6 +120,8 @@ struct __txtin_ctx
 	Bool do_suspend;
 #endif
 
+	Bool vtt_to_tx3g;
+	Bool srt_to_tx3g;
 
 	GF_List *intervals;
 };
@@ -147,6 +150,7 @@ enum
 	GF_TXTIN_MODE_WEBVTT,
 	GF_TXTIN_MODE_TTML,
 	GF_TXTIN_MODE_SWF_SVG,
+	GF_TXTIN_MODE_SSA,
 };
 
 #define REM_TRAIL_MARKS(__str, __sep) while (1) {	\
@@ -158,7 +162,7 @@ enum
 	}	\
  
 
-s32 gf_text_get_utf_type(FILE *in_src)
+s32 gf_text_get_utf_type(GF_TXTIn *ctx, FILE *in_src)
 {
 	u32 read;
 	unsigned char BOM[5];
@@ -168,13 +172,15 @@ s32 gf_text_get_utf_type(FILE *in_src)
 
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
 		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
+		if (!BOM[2] && !BOM[3])
+			return -1;
 		gf_fseek(in_src, 2, SEEK_SET);
 		return 3;
 	}
 	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
 		/*UTF32 not supported*/
-		if (!BOM[2] && !BOM[3]) return -1;
+		if (!BOM[2] && !BOM[3])
+			return -1;
 		gf_fseek(in_src, 2, SEEK_SET);
 		return 2;
 	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
@@ -185,7 +191,15 @@ s32 gf_text_get_utf_type(FILE *in_src)
 		gf_fseek(in_src, 0, SEEK_SET);
 		return 0;
 	}
-	return -1;
+	const char *opt = gf_opts_get_key("core", "charset");
+	if (opt) {
+		if (!stricmp(opt, "utf8") || !stricmp(opt, "utf-8")) return 1;
+		if (!stricmp(opt, "utf16") || !stricmp(opt, "utf-16")) return 2;
+		if (!stricmp(opt, "utf16be") || !stricmp(opt, "utf-16be") || !stricmp(opt, "utf-16-be") || !stricmp(opt, "utf16-be")) return 3;
+		return 0;
+	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Unknown text encoding for PID %s, defaulting to passthrough - use `-charset` to override\n", gf_filter_pid_get_name(ctx->ipid)));
+	return 0;
 }
 static void ttxt_dom_progress(void *cbk, u64 cur_samp, u64 count)
 {
@@ -193,14 +207,14 @@ static void ttxt_dom_progress(void *cbk, u64 cur_samp, u64 count)
 	ctx->end = count;
 }
 
-static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
+static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt)
 {
 	char szLine[2048];
 	u32 val;
 	s32 uni_type;
 	FILE *test = gf_fopen(filename, "rb");
 	if (!test) return GF_URL_ERROR;
-	uni_type = gf_text_get_utf_type(test);
+	uni_type = gf_text_get_utf_type(ctx, test);
 
 	if (uni_type>1) {
 		const u16 *sptr;
@@ -244,6 +258,8 @@ static GF_Err gf_text_guess_format(const char *filename, u32 *fmt)
 
 	else if (!strncmp(szLine, "FWS", 3) || !strncmp(szLine, "CWS", 3))
 		*fmt = GF_TXTIN_MODE_SWF_SVG;
+	else if (!strncmp(szLine, "[Script Info]", 13) )
+		*fmt = GF_TXTIN_MODE_SSA;
 
 	gf_fclose(test);
 	return GF_OK;
@@ -357,7 +373,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 #endif
 		return;
 	}
-	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT)  || (ctx->fmt == GF_TXTIN_MODE_SUB)) {
+	if ((ctx->fmt == GF_TXTIN_MODE_SRT) || (ctx->fmt == GF_TXTIN_MODE_WEBVTT) || (ctx->fmt == GF_TXTIN_MODE_SUB) || (ctx->fmt == GF_TXTIN_MODE_SSA)) {
 		u64 pos = gf_ftell(ctx->src);
 		gf_fseek(ctx->src, 0, SEEK_SET);
 		while (!gf_feof(ctx->src)) {
@@ -377,6 +393,26 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 						end = 1000 * eframe / 25;
 					if (end > (u64) dur.num) dur.num = (s64) end;
 				}
+			} else if (ctx->fmt == GF_TXTIN_MODE_SSA) {
+				if (strncmp(szLine, "Dialogue: ", 10)) continue;
+				char *start_p = strchr(szLine+10, ',');
+				if (!start_p) continue;
+				char *end_p = strchr(start_p+1, ',');
+				if (!end_p) continue;
+				end_p[0] = 0;
+				end_p +=1;
+				start_p = strchr(end_p, ',');
+				if (start_p) start_p[0] = 0;
+
+				u32 eh, em, es, ems;
+				if (sscanf(end_p, "%u:%u:%u.%u", &eh, &em, &es, &ems) != 4) {
+					eh = 0;
+					if (sscanf(end_p, "%u:%u.%u", &em, &es, &ems) != 3) {
+						continue;
+					}
+				}
+				end = (3600*eh + 60*em + es)*1000 + ems;
+				if (end > (u64) dur.num) dur.num = (s64) end;
 			} else {
 				u32 eh, em, es, ems;
 				char *start = strstr(szLine, "-->");
@@ -497,12 +533,14 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	u8 *dsi;
 	GF_TextSampleDescriptor *sd;
 
-	ctx->src = gf_fopen(ctx->file_name, "rb");
+	if (!ctx->unframed)
+		ctx->src = gf_fopen(ctx->file_name, "rb");
+
 	if (!ctx->src) return GF_URL_ERROR;
 
 	file_size = (u32) gf_fsize(ctx->src);
 
-	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
+	ctx->unicode_type = gf_text_get_utf_type(ctx, ctx->src);
 	if (ctx->unicode_type<0) {
 		gf_fclose(ctx->src);
 		ctx->src = NULL;
@@ -513,15 +551,18 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	if (!ctx->timescale) ctx->timescale = 1000;
 	OCR_ES_ID = ID = 0;
 
-	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
+	if (!ctx->unframed) {
+		if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
 
-	if (!ID) ID = 1;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
-	if (OCR_ES_ID) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(OCR_ES_ID) );
+		if (!ID) ID = 1;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
+		if (OCR_ES_ID) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(OCR_ES_ID) );
+	}
+
 	if (ctx->width) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	if (ctx->height) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	if (ctx->zorder) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ZORDER, &PROP_SINT(ctx->zorder) );
@@ -557,13 +598,18 @@ static GF_Err txtin_setup_srt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_odf_desc_del((GF_Descriptor *)sd);
 
 	ctx->default_color = ctx->style.text_color;
-	ctx->samp = gf_isom_new_text_sample();
-	ctx->state = 0;
-	ctx->end = ctx->prev_end = ctx->start = 0;
 	ctx->first_samp = GF_TRUE;
-	ctx->curLine = 0;
 
-	txtin_probe_duration(ctx);
+	ctx->samp = gf_isom_new_text_sample();
+	ctx->prev_end = 0;
+	if (!ctx->unframed) {
+		ctx->state = 0;
+		ctx->end = ctx->start = 0;
+		ctx->curLine = 0;
+
+		txtin_probe_duration(ctx);
+	}
+
 	return GF_OK;
 }
 
@@ -598,22 +644,239 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	gf_filter_pck_send(dst_pck);
 }
 
-static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set_start_c, Bool *set_end_c)
 {
-	u32 i;
-	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, j, rem_styles;
-	Bool set_start_char, set_end_char, rem_color;
-	u32 line, len;
-	char szLine[2048], szText[2048], *ptr;
+	u32 i, char_line, j, rem_styles, len;
+	Bool rem_color;
+	char *ptr = szLine;
 	unsigned short uniLine[5000], uniText[5000], *sptr;
+	char szText[2048];
+
+	len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
+	if (len == GF_UTF8_FAIL) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
+		ctx->state = 0;
+		len = 0;
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+
+	i=j=0;
+	rem_styles = 0;
+	rem_color = 0;
+	while (i<len) {
+		u32 font_style = 0;
+		u32 style_nb_chars = 0;
+		u32 style_def_type = 0;
+
+		if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+			style_nb_chars = 3;
+			style_def_type = 1;
+		}
+		else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+			style_def_type = 2;
+			style_nb_chars = 4;
+		}
+		else if (uniLine[i]=='<')  {
+			const unsigned short* src = uniLine + i;
+			u32 alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
+			if (alen == GF_UTF8_FAIL) alen = 0;
+			szLine[alen] = 0;
+			strlwr(szLine);
+			if (!strncmp(szLine, "<font ", 6) ) {
+				char *a_sep = strstr(szLine, "color");
+				if (a_sep) a_sep = strchr(a_sep, '"');
+				if (a_sep) {
+					char *e_sep = strchr(a_sep+1, '"');
+					if (e_sep) {
+						e_sep[0] = 0;
+						font_style = gf_color_parse(a_sep+1);
+						e_sep[0] = '"';
+						e_sep = strchr(e_sep+1, '>');
+						if (e_sep) {
+							style_nb_chars = (u32) (1 + e_sep - szLine);
+							style_def_type = 1;
+						}
+					}
+
+				}
+			}
+			else if (!strncmp(szLine, "</font>", 7) ) {
+				style_nb_chars = 7;
+				style_def_type = 2;
+				font_style = 0xFFFFFFFF;
+			}
+
+
+			else if (!strncmp(szLine, "<strike>", 8) ) {
+				style_nb_chars = 8;
+				style_def_type = 1;
+			}
+			else if (!strncmp(szLine, "</strike>", 9) ) {
+				style_nb_chars = 9;
+				style_def_type = 2;
+				font_style = 0xFFFFFFFF;
+			}
+			//skip unknown
+			else {
+				char *a_sep = strstr(szLine, ">");
+				if (a_sep) {
+					style_nb_chars = (u32) (1 + a_sep - szLine);
+					i += style_nb_chars;
+					continue;
+				}
+			}
+
+		}
+
+		/*start of new style*/
+		if (style_def_type==1)  {
+			/*store prev style*/
+			if (*set_end_c) {
+				assert(*set_start_c);
+				gf_isom_text_add_style(ctx->samp, &ctx->style);
+				*set_end_c = *set_start_c = GF_FALSE;
+				ctx->style.style_flags &= ~rem_styles;
+				rem_styles = 0;
+				if (rem_color) {
+					ctx->style.text_color = ctx->default_color;
+					rem_color = 0;
+				}
+			}
+			if (*set_start_c && (ctx->style.startCharOffset != j)) {
+				ctx->style.endCharOffset = *char_l + j;
+				if (ctx->style.style_flags) gf_isom_text_add_style(ctx->samp, &ctx->style);
+			}
+			switch (uniLine[i+1]) {
+			case 'b':
+			case 'B':
+				ctx->style.style_flags |= GF_TXT_STYLE_BOLD;
+				*set_start_c = GF_TRUE;
+				ctx->style.startCharOffset = *char_l + j;
+				break;
+			case 'i':
+			case 'I':
+				ctx->style.style_flags |= GF_TXT_STYLE_ITALIC;
+				*set_start_c = GF_TRUE;
+				ctx->style.startCharOffset = *char_l + j;
+				break;
+			case 'u':
+			case 'U':
+				ctx->style.style_flags |= GF_TXT_STYLE_UNDERLINED;
+				*set_start_c = GF_TRUE;
+				ctx->style.startCharOffset = *char_l + j;
+				break;
+			case 's':
+			case 'S':
+				ctx->style.style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
+				*set_start_c = GF_TRUE;
+				ctx->style.startCharOffset = *char_l + j;
+				break;
+			case 'f':
+			case 'F':
+				if (font_style) {
+					ctx->style.text_color = font_style;
+					*set_start_c = GF_TRUE;
+					ctx->style.startCharOffset = *char_l + j;
+				}
+				break;
+			}
+			i += style_nb_chars;
+			continue;
+		}
+
+		/*end of prev style*/
+		if (style_def_type==2)  {
+			switch (uniLine[i+2]) {
+			case 'b':
+			case 'B':
+				rem_styles |= GF_TXT_STYLE_BOLD;
+				*set_end_c = GF_TRUE;
+				ctx->style.endCharOffset = *char_l + j;
+				break;
+			case 'i':
+			case 'I':
+				rem_styles |= GF_TXT_STYLE_ITALIC;
+				*set_end_c = GF_TRUE;
+				ctx->style.endCharOffset = *char_l + j;
+				break;
+			case 'u':
+			case 'U':
+				rem_styles |= GF_TXT_STYLE_UNDERLINED;
+				*set_end_c = GF_TRUE;
+				ctx->style.endCharOffset = *char_l + j;
+				break;
+			case 's':
+			case 'S':
+				rem_styles |= GF_TXT_STYLE_STRIKETHROUGH;
+				*set_end_c = GF_TRUE;
+				ctx->style.endCharOffset = *char_l + j;
+				break;
+			case 'f':
+			case 'F':
+				if (font_style) {
+					rem_color = 1;
+					*set_end_c = GF_TRUE;
+					ctx->style.endCharOffset = *char_l + j;
+				}
+			}
+			i+=style_nb_chars;
+			continue;
+		}
+		/*store style*/
+		if (*set_end_c) {
+			gf_isom_text_add_style(ctx->samp, &ctx->style);
+			*set_end_c = GF_FALSE;
+			*set_start_c = GF_TRUE;
+			ctx->style.startCharOffset = *char_l + j;
+			ctx->style.style_flags &= ~rem_styles;
+			rem_styles = 0;
+			ctx->style.text_color = ctx->default_color;
+			rem_color = 0;
+		}
+
+		uniText[j] = uniLine[i];
+		j++;
+		i++;
+	}
+	/*store last style*/
+	if (*set_end_c) {
+		gf_isom_text_add_style(ctx->samp, &ctx->style);
+		*set_end_c = GF_FALSE;
+		*set_start_c = GF_TRUE;
+		ctx->style.startCharOffset = *char_l + j;
+		ctx->style.style_flags &= ~rem_styles;
+	}
+
+	char_line = j;
+	uniText[j] = 0;
+
+	sptr = (u16 *) uniText;
+	len = gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
+	if (len == GF_UTF8_FAIL) len = 0;
+
+	gf_isom_text_add_text(ctx->samp, szText, len);
+	*char_l += char_line;
+	return GF_OK;
+}
+
+static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
+{
+	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len;
+	Bool set_start_char, set_end_char;
+	u32 line;
+	char szLine[2048], *ptr;
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		return txtin_setup_srt(filter, ctx);
+		GF_Err e = txtin_setup_srt(filter, ctx);
+		if (e || !ctx->unframed) return e;
 	}
 	if (!ctx->opid) return GF_NOT_SUPPORTED;
-	if (!ctx->playstate) return GF_OK;
-	else if (ctx->playstate==2) return GF_EOS;
+
+	if (!ctx->unframed) {
+		if (!ctx->playstate) return GF_OK;
+		else if (ctx->playstate==2) return GF_EOS;
+	}
 
 	txt_line = 0;
 	set_start_char = set_end_char = GF_FALSE;
@@ -680,7 +943,8 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx)
 				ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
 				gf_isom_text_reset(ctx->samp);
 
-				gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
+				if (!ctx->unframed)
+					gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src )) );
 			}
 			ctx->state = 0;
 			if (!sOK) break;
@@ -744,220 +1008,18 @@ force_line:
 			}
 
 			ptr = (char *) szLine;
-			{
-				len = gf_utf8_mbstowcs(uniLine, 5000, (const char **) &ptr);
-				if (len == GF_UTF8_FAIL) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] Invalid UTF data (line %d)\n", ctx->curLine));
-					ctx->state = 0;
-					len = 0;
-				}
-			}
-			i=j=0;
-			rem_styles = 0;
-			rem_color = 0;
-			while (i<len) {
-				u32 font_style = 0;
-				u32 style_nb_chars = 0;
-				u32 style_def_type = 0;
 
-				if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
-					style_nb_chars = 3;
-					style_def_type = 1;
-				}
-				else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
-					style_def_type = 2;
-					style_nb_chars = 4;
-				}
-				else if (uniLine[i]=='<')  {
-					const unsigned short* src = uniLine + i;
-					u32 alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
-					if (alen == GF_UTF8_FAIL) alen = 0;
-					szLine[alen] = 0;
-					strlwr(szLine);
-					if (!strncmp(szLine, "<font ", 6) ) {
-						char *a_sep = strstr(szLine, "color");
-						if (a_sep) a_sep = strchr(a_sep, '"');
-						if (a_sep) {
-							char *e_sep = strchr(a_sep+1, '"');
-							if (e_sep) {
-								e_sep[0] = 0;
-								font_style = gf_color_parse(a_sep+1);
-								e_sep[0] = '"';
-								e_sep = strchr(e_sep+1, '>');
-								if (e_sep) {
-									style_nb_chars = (u32) (1 + e_sep - szLine);
-									style_def_type = 1;
-								}
-							}
-
-						}
-					}
-					else if (!strncmp(szLine, "</font>", 7) ) {
-						style_nb_chars = 7;
-						style_def_type = 2;
-						font_style = 0xFFFFFFFF;
-					}
-
-
-					else if (!strncmp(szLine, "<strike>", 8) ) {
-						style_nb_chars = 8;
-						style_def_type = 1;
-					}
-					else if (!strncmp(szLine, "</strike>", 9) ) {
-						style_nb_chars = 9;
-						style_def_type = 2;
-						font_style = 0xFFFFFFFF;
-					}
-					//skip unknown
-					else {
-						char *a_sep = strstr(szLine, ">");
-						if (a_sep) {
-							style_nb_chars = (u32) (1 + a_sep - szLine);
-							i += style_nb_chars;
-							continue;
-						}
-					}
-
-				}
-
-				/*start of new style*/
-				if (style_def_type==1)  {
-					/*store prev style*/
-					if (set_end_char) {
-						assert(set_start_char);
-						gf_isom_text_add_style(ctx->samp, &ctx->style);
-						set_end_char = set_start_char = GF_FALSE;
-						ctx->style.style_flags &= ~rem_styles;
-						rem_styles = 0;
-						if (rem_color) {
-							ctx->style.text_color = ctx->default_color;
-							rem_color = 0;
-						}
-					}
-					if (set_start_char && (ctx->style.startCharOffset != j)) {
-						ctx->style.endCharOffset = char_len + j;
-						if (ctx->style.style_flags) gf_isom_text_add_style(ctx->samp, &ctx->style);
-					}
-					switch (uniLine[i+1]) {
-					case 'b':
-					case 'B':
-						ctx->style.style_flags |= GF_TXT_STYLE_BOLD;
-						set_start_char = GF_TRUE;
-						ctx->style.startCharOffset = char_len + j;
-						break;
-					case 'i':
-					case 'I':
-						ctx->style.style_flags |= GF_TXT_STYLE_ITALIC;
-						set_start_char = GF_TRUE;
-						ctx->style.startCharOffset = char_len + j;
-						break;
-					case 'u':
-					case 'U':
-						ctx->style.style_flags |= GF_TXT_STYLE_UNDERLINED;
-						set_start_char = GF_TRUE;
-						ctx->style.startCharOffset = char_len + j;
-						break;
-					case 's':
-					case 'S':
-						ctx->style.style_flags |= GF_TXT_STYLE_STRIKETHROUGH;
-						set_start_char = GF_TRUE;
-						ctx->style.startCharOffset = char_len + j;
-						break;
-					case 'f':
-					case 'F':
-						if (font_style) {
-							ctx->style.text_color = font_style;
-							set_start_char = GF_TRUE;
-							ctx->style.startCharOffset = char_len + j;
-						}
-						break;
-					}
-					i += style_nb_chars;
-					continue;
-				}
-
-				/*end of prev style*/
-				if (style_def_type==2)  {
-					switch (uniLine[i+2]) {
-					case 'b':
-					case 'B':
-						rem_styles |= GF_TXT_STYLE_BOLD;
-						set_end_char = GF_TRUE;
-						ctx->style.endCharOffset = char_len + j;
-						break;
-					case 'i':
-					case 'I':
-						rem_styles |= GF_TXT_STYLE_ITALIC;
-						set_end_char = GF_TRUE;
-						ctx->style.endCharOffset = char_len + j;
-						break;
-					case 'u':
-					case 'U':
-						rem_styles |= GF_TXT_STYLE_UNDERLINED;
-						set_end_char = GF_TRUE;
-						ctx->style.endCharOffset = char_len + j;
-						break;
-					case 's':
-					case 'S':
-						rem_styles |= GF_TXT_STYLE_STRIKETHROUGH;
-						set_end_char = GF_TRUE;
-						ctx->style.endCharOffset = char_len + j;
-						break;
-					case 'f':
-					case 'F':
-						if (font_style) {
-							rem_color = 1;
-							set_end_char = GF_TRUE;
-							ctx->style.endCharOffset = char_len + j;
-						}
-					}
-					i+=style_nb_chars;
-					continue;
-				}
-				/*store style*/
-				if (set_end_char) {
-					gf_isom_text_add_style(ctx->samp, &ctx->style);
-					set_end_char = GF_FALSE;
-					set_start_char = GF_TRUE;
-					ctx->style.startCharOffset = char_len + j;
-					ctx->style.style_flags &= ~rem_styles;
-					rem_styles = 0;
-					ctx->style.text_color = ctx->default_color;
-					rem_color = 0;
-				}
-
-				uniText[j] = uniLine[i];
-				j++;
-				i++;
-			}
-			/*store last style*/
-			if (set_end_char) {
-				gf_isom_text_add_style(ctx->samp, &ctx->style);
-				set_end_char = GF_FALSE;
-				set_start_char = GF_TRUE;
-				ctx->style.startCharOffset = char_len + j;
-				ctx->style.style_flags &= ~rem_styles;
-			}
-
-			char_line = j;
-			uniText[j] = 0;
-
-			sptr = (u16 *) uniText;
-			len = gf_utf8_wcstombs(szText, 5000, (const u16 **) &sptr);
-			if (len == GF_UTF8_FAIL) len = 0;
-
-			gf_isom_text_add_text(ctx->samp, szText, len);
-			char_len += char_line;
+			parse_srt_line(ctx, szLine, &char_len, &set_start_char, &set_end_char);
 			txt_line ++;
 			break;
 		}
 
-		if (gf_filter_pid_would_block(ctx->opid))
+		if (!ctx->unframed && gf_filter_pid_would_block(ctx->opid))
 			return GF_OK;
 	}
 
 	/*final flush*/	
-	if (ctx->end && ! ctx->noflush) {
+	if (!ctx->unframed && ctx->end && ! ctx->noflush) {
 		gf_isom_text_reset(ctx->samp);
 		txtin_process_send_text_sample(ctx, ctx->samp, ctx->end, 0, GF_TRUE);
 		ctx->end = 0;
@@ -1046,30 +1108,37 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	Bool is_srt;
 	char *ext;
 
-	ctx->src = gf_fopen(ctx->file_name, "rb");
+	if (!ctx->unframed)
+		ctx->src = gf_fopen(ctx->file_name, "rb");
+
 	if (!ctx->src) return GF_URL_ERROR;
 
 	file_size = (u32) gf_fsize(ctx->src);
 
-	ctx->unicode_type = gf_text_get_utf_type(ctx->src);
+	ctx->unicode_type = gf_text_get_utf_type(ctx, ctx->src);
 	if (ctx->unicode_type<0) {
 		gf_fclose(ctx->src);
 		ctx->src = NULL;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] Unsupported SRT UTF encoding\n"));
 		return GF_NOT_SUPPORTED;
 	}
-	ext = gf_file_ext_start(ctx->file_name);
-	is_srt = (ext && !strnicmp(ext, ".srt", 4)) ? GF_TRUE : GF_FALSE;
-
+	if (!ctx->unframed) {
+		ext = gf_file_ext_start(ctx->file_name);
+		is_srt = (ext && !strnicmp(ext, ".srt", 4)) ? GF_TRUE : GF_FALSE;
+	} else {
+		is_srt = GF_TRUE;
+	}
 
 	if (!ctx->timescale) ctx->timescale = 1000;
 	OCR_ES_ID = ID = 0;
 
 	if (!ctx->opid) ctx->opid = gf_filter_pid_new(filter);
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_WEBVTT) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
+	if (!ctx->unframed) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_WEBVTT) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
+	}
 
 	w = ctx->width;
 	h = ctx->height;
@@ -1092,25 +1161,44 @@ static GF_Err txtin_webvtt_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	//get the header
 	e = gf_webvtt_parser_parse(ctx->vttparser);
 
-	txtin_probe_duration(ctx);
+	if (!ctx->unframed)
+		txtin_probe_duration(ctx);
 	return e;
 }
 
-static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err txtin_process_webvtt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e;
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
-		return txtin_webvtt_setup(filter, ctx);
+		GF_Err e = txtin_webvtt_setup(filter, ctx);
+		if (e || !ctx->unframed) return e;
 	}
 	if (!ctx->vttparser) return GF_NOT_SUPPORTED;
+
 	if (ctx->seek_state==1) {
 		ctx->seek_state = 2;
 		gf_webvtt_parser_restart(ctx->vttparser);
 	}
+	if (ctx->unframed) {
+		const GF_PropertyValue *p;
+		const char *vtt_pre=NULL, *vtt_cueid=NULL, *vtt_settings=NULL;
+		p = gf_filter_pck_get_property_str(ipck, "vtt_pre");
+		if (p) vtt_pre = p->value.string;
+		p = gf_filter_pck_get_property_str(ipck, "vtt_cueid");
+		if (p) vtt_cueid = p->value.string;
+		p = gf_filter_pck_get_property_str(ipck, "vtt_settings");
+		if (p) vtt_settings = p->value.string;
 
-	e = gf_webvtt_parser_parse(ctx->vttparser);
+		e = gf_webvtt_parser_parse_payload(ctx->vttparser,
+			gf_timestamp_rescale(ctx->start, ctx->timescale, 1000),
+			gf_timestamp_rescale(ctx->end, ctx->timescale, 1000),
+			vtt_pre, vtt_cueid, vtt_settings);
+	} else {
+		e = gf_webvtt_parser_parse(ctx->vttparser);
+	}
+
 	if (e < GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTIn] WebVTT process error %s\n", gf_error_to_string(e) ));
 	}
@@ -1194,10 +1282,10 @@ static void ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode **out_body_node)
 	}
 }
 
-static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
+u64 ttml_get_timestamp_ex(char *value, u32 tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps)
 {
 	u32 h, m, s, ms, f, sf;
-	s64 ts = -1;
+	u64 ts = GF_FILTER_NO_TS;
 	u32 len = (u32) strlen(value);
 
 	//tick metrick - cannot be fractional
@@ -1205,8 +1293,8 @@ static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 		value[len-1] = 0;
 		ts = (s64) (atoi(value) * 1000);
 		value[len-1] = 't';
-		if (ctx->tick_rate)
-			ts /= ctx->tick_rate;
+		if (tick_rate)
+			ts /= tick_rate;
 	}
 	//hours metric, can be fractional
 	else if (len && (value[len-1]=='h')) {
@@ -1244,51 +1332,55 @@ static s64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
 		}
 		value[len-1] = 'f';
 
-		if (!ctx->ttml_fps_num) {
+		if (! *ttml_fps_num) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
-			ctx->ttml_fps_num = 25;
-			ctx->ttml_fps_den = 1;
+			*ttml_fps_num = 25;
+			*ttml_fps_den = 1;
 		}
-		if (sf && !ctx->ttml_sfps) {
+		if (sf && ! *ttml_sfps) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
-			ctx->ttml_sfps = 1;
+			*ttml_sfps = 1;
 		}
-		ts = ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		ts = ((s64) 1000 * f * *ttml_fps_den) / *ttml_fps_num;
 		if (sf)
-			ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+			ts += ((s64) 1000 * sf * *ttml_fps_den / *ttml_sfps) / *ttml_fps_num;
 	}
 	else if (sscanf(value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 		ts = (h*3600 + m*60+s)*1000+ms;
 	}
 	else if (sscanf(value, "%u:%u:%u:%u.%u", &h, &m, &s, &f, &sf) == 5) {
 		ts = (h*3600 + m*60+s)*1000;
-		if (!ctx->ttml_fps_num) {
+		if (! *ttml_fps_num) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
-			ctx->ttml_fps_num = 25;
-			ctx->ttml_fps_den = 1;
+			*ttml_fps_num = 25;
+			*ttml_fps_den = 1;
 		}
-		if (!ctx->ttml_sfps) {
+		if (! *ttml_sfps) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates subframes but no subFrameRate set, assuming 1\n"));
-			ctx->ttml_sfps = 1;
+			*ttml_sfps = 1;
 		}
-		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
-		ts += ((s64) 1000 * sf * ctx->ttml_fps_den / ctx->ttml_sfps) / ctx->ttml_fps_num;
+		ts += ((s64) 1000 * f * *ttml_fps_den) / *ttml_fps_num;
+		ts += ((s64) 1000 * sf * *ttml_fps_den / *ttml_sfps) / *ttml_fps_num;
 	}
 	else if (sscanf(value, "%u:%u:%u:%u", &h, &m, &s, &f) == 4) {
 		ts = (h*3600 + m*60+s)*1000;
-		if (!ctx->ttml_fps_num) {
+		if (! *ttml_fps_num) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] time indicates frames but no frame rate set, assuming 25 FPS\n"));
-			ctx->ttml_fps_num = 25;
-			ctx->ttml_fps_den = 1;
+			*ttml_fps_num = 25;
+			*ttml_fps_den = 1;
 		}
-		ts += ((s64) 1000 * f * ctx->ttml_fps_den) / ctx->ttml_fps_num;
+		ts += ((s64) 1000 * f * *ttml_fps_den) / *ttml_fps_num;
 	}
 	else if (sscanf(value, "%u:%u:%u", &h, &m, &s) == 3) {
 		ts = (h*3600 + m*60+s)*1000;
 	}
 	return ts;
 }
+static u64 ttml_get_timestamp(GF_TXTIn *ctx, char *value)
+{
+	return ttml_get_timestamp_ex(value, ctx->tick_rate, &ctx->ttml_fps_num, &ctx->ttml_fps_den, &ctx->ttml_sfps);
 
+}
 static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval **out_interval)
 {
 	u32 i;
@@ -1669,13 +1761,74 @@ static GF_Err ttml_setup_intervals(GF_TXTIn *ctx)
 	return GF_OK;
 }
 
+GF_Err ttml_parse_root(GF_XMLNode *root, const char **lang, u32 *tick_rate, u32 *ttml_fps_num, u32 *ttml_fps_den, u32 *ttml_sfps)
+{
+	/*** root (including language) ***/
+	GF_XMLAttribute *att;
+	u32 i;
+	u32 sub_fps_num = 0;
+	u32 sub_fps_den = 0;
+	i=0;
+	*lang = NULL;
+	*tick_rate = 0;
+	*ttml_fps_num = 0;
+	*ttml_fps_den = 0;
+	*ttml_sfps = 0;
+
+	while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
+		const char *att_name;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML] Found root attribute name %s, value %s\n", att->name, att->value));
+
+		att_name = strchr(att->name, ':');
+		if (att_name) att_name++;
+		else att_name = att->name;
+
+		if (!strcmp(att->name, "xmlns")) {
+			if (strcmp(att->value, TTML_NAMESPACE)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] XML Namespace %s not recognized, expecting %s\n", att->name, att->value, TTML_NAMESPACE));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+		}
+		else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
+			*lang = att->value;
+		}
+		else if (!strcmp(att_name, "tickRate") && att->value) {
+			*tick_rate = atoi(att->value);
+		}
+		else if (!strcmp(att_name, "frameRate") && att->value) {
+			*ttml_fps_num = atoi(att->value);
+			*ttml_fps_den = 1;
+		}
+		else if (!strcmp(att_name, "frameRateMultiplier") && att->value) {
+			char *sep = strchr(att->value, ' ');
+			if (!sep) sep = strchr(att->value, '\t');
+			if (sep) {
+				u8 c = sep[0];
+				sep[0] = 0;
+				sub_fps_num = atoi(sep);
+				sep[0] = c;
+				while ((sep[0]==' ') || (sep[0]=='\t'))
+					sep++;
+				sub_fps_den = atoi(sep);
+			}
+		}
+		else if (!strcmp(att_name, "subFrameRate") && att->value) {
+			*ttml_sfps = atoi(att->value);
+		}
+	}
+
+	if (sub_fps_num && sub_fps_den && *ttml_fps_num) {
+		*ttml_fps_num *= sub_fps_num;
+		*ttml_fps_den = sub_fps_den;
+	}
+	return GF_OK;
+}
+
 static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 {
 	GF_Err e;
 	u32 i, nb_children, ID;
 	u64 file_size;
-	s32 sub_fps_num, sub_fps_den;
-	GF_XMLAttribute *att;
 	GF_XMLNode *root, *node, *body_node;
 	const char *lang = ctx->lang;
 
@@ -1711,59 +1864,11 @@ static GF_Err gf_text_ttml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 
 	root = gf_xml_dom_get_root(ctx->parser);
 
-
-	/*** root (including language) ***/
-	sub_fps_num = 0;
-	sub_fps_den = 0;
-	i=0;
-	while ( (att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
-		const char *att_name;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[TTML] Found root attribute name %s, value %s\n", att->name, att->value));
-
-		att_name = strchr(att->name, ':');
-		if (att_name) att_name++;
-		else att_name = att->name;
-
-		if (!strcmp(att->name, "xmlns")) {
-			if (strcmp(att->value, TTML_NAMESPACE)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TTML] XML Namespace %s not recognized, expecting %s\n", att->name, att->value, TTML_NAMESPACE));
-				ctx->non_compliant_ttml = GF_TRUE;
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-		}
-		else if (!strcmp(att->name, "xml:lang") && att->value && strlen(att->value)) {
-			lang = att->value;
-		}
-		else if (!strcmp(att_name, "tickRate") && att->value) {
-			ctx->tick_rate = atoi(att->value);
-		}
-		else if (!strcmp(att_name, "frameRate") && att->value) {
-			ctx->ttml_fps_num = atoi(att->value);
-			ctx->ttml_fps_den = 1;
-		}
-		else if (!strcmp(att_name, "frameRateMultiplier") && att->value) {
-			char *sep = strchr(att->value, ' ');
-			if (!sep) sep = strchr(att->value, '\t');
-			if (sep) {
-				u8 c = sep[0];
-				sep[0] = 0;
-				sub_fps_num = atoi(sep);
-				sep[0] = c;
-				while ((sep[0]==' ') || (sep[0]=='\t'))
-					sep++;
-				sub_fps_den = atoi(sep);
-			}
-		}
-		else if (!strcmp(att_name, "subFrameRate") && att->value) {
-			ctx->ttml_sfps = atoi(att->value);
-		}
+	e = ttml_parse_root(root, &lang, &ctx->tick_rate, &ctx->ttml_fps_num, &ctx->ttml_fps_den, &ctx->ttml_sfps);
+	if (e) {
+		ctx->non_compliant_ttml = GF_TRUE;
+		return e;
 	}
-
-	if (sub_fps_num && sub_fps_den && ctx->ttml_fps_num) {
-		ctx->ttml_fps_num *= sub_fps_num;
-		ctx->ttml_fps_den = sub_fps_den;
-	}
-
 	//locate body
 	nb_children = gf_list_count(root->content);
 	body_node = NULL;
@@ -1881,7 +1986,7 @@ static Bool ttml_check_range(TTMLInterval *interval, s64 ts_begin, s64 ts_end)
 	return GF_FALSE;
 }
 
-static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e;
 	GF_XMLNode *root;
@@ -2247,7 +2352,7 @@ static GF_Err gf_text_swf_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	return e;
 }
 
-static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e=GF_OK;
 
@@ -2294,7 +2399,7 @@ static GF_Err gf_text_process_swf(GF_Filter *filter, GF_TXTIn *ctx)
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
-static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 i, j, len, line;
 	GF_TextSample *samp;
@@ -2415,6 +2520,217 @@ static GF_Err gf_text_process_sub(GF_Filter *filter, GF_TXTIn *ctx)
 	return GF_EOS;
 }
 
+static GF_Err gf_text_process_ssa(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
+{
+	u32 i, j, len, line;
+	GF_TextSample *samp;
+	char szLine[2048], szText[2048];
+
+	//same setup as for srt
+	if (!ctx->is_setup) {
+		ctx->is_setup = GF_TRUE;
+		GF_Err e = txtin_setup_srt(filter, ctx);
+		if (e || !ctx->unframed) return e;
+	}
+	if (!ctx->opid) return GF_NOT_SUPPORTED;
+	if (!ctx->unframed) {
+		if (!ctx->playstate) return GF_OK;
+		else if (ctx->playstate==2) return GF_EOS;
+	}
+
+	if (ctx->seek_state==1) {
+		ctx->seek_state = 2;
+		gf_fseek(ctx->src, 0, SEEK_SET);
+	}
+
+	line = 0;
+
+	while (1) {
+		char *start_p, *end_p;
+		u32 eh, em, es, ems, nb_c;
+		char *sOK = gf_text_get_utf8_line(szLine, 2048, ctx->src, ctx->unicode_type);
+		if (!sOK) break;
+
+		REM_TRAIL_MARKS(szLine, "\r\n\t ")
+
+		line++;
+		len = (u32) strlen(szLine);
+		if (!len) continue;
+
+		if (!ctx->unframed) {
+			if (strncmp(szLine, "Dialogue: ", 10)) continue;
+
+			start_p = strchr(szLine+10, ',');
+			if (!start_p) continue;
+			end_p = strchr(start_p+1, ',');
+			if (!end_p) continue;
+			end_p[0] = 0;
+			start_p++;
+			if (sscanf(start_p, "%u:%u:%u.%u", &eh, &em, &es, &ems) != 4) {
+				eh = 0;
+				if (sscanf(start_p, "%u:%u.%u", &em, &es, &ems) != 3) {
+					continue;
+				}
+			}
+			ctx->start = (3600*eh + 60*em + es)*1000 + ems;
+
+			start_p = end_p+1;
+			end_p = strchr(start_p, ',');
+			if (!end_p) continue;
+			end_p[0] = 0;
+
+			if (sscanf(start_p, "%u:%u:%u.%u", &eh, &em, &es, &ems) != 4) {
+				eh = 0;
+				if (sscanf(start_p, "%u:%u.%u", &em, &es, &ems) != 3) {
+					continue;
+				}
+			}
+			ctx->end = (3600*eh + 60*em + es)*1000 + ems;
+			//skip 6 commas
+			start_p = end_p+1;
+			nb_c=6;
+		} else {
+			start_p = szLine;
+			nb_c=8;
+		}
+
+		while (nb_c) {
+			end_p = strchr(start_p, ',');
+			if (!end_p) break;
+			start_p = end_p+1;
+			nb_c--;
+		}
+		if (nb_c) continue;
+
+		if (ctx->start > ctx->end) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TXTIn] corrupted SSA frame (line %d) - ends (at %u ms) before start of current frame (%u ms) - skipping\n", line, ctx->end, ctx->start));
+			continue;
+		}
+
+		/*make stream start at 0 by inserting a fake AU*/
+		if (ctx->first_samp && (ctx->start > 0)) {
+			txtin_process_send_text_sample(ctx, ctx->samp, 0, (u32) ctx->start, GF_TRUE);
+			ctx->first_samp = GF_FALSE;
+		}
+		else if (ctx->prev_end && (ctx->start != ctx->prev_end) && (ctx->state<=2)) {
+			GF_TextSample * empty_samp = gf_isom_new_text_sample();
+			txtin_process_send_text_sample(ctx, empty_samp, ctx->prev_end, (u32) (ctx->start - ctx->prev_end), GF_TRUE );
+			gf_isom_delete_text_sample(empty_samp);
+		}
+
+		u32 char_len=0;
+		Bool set_start_char=GF_FALSE, set_end_char=GF_FALSE;
+		ctx->style.startCharOffset = ctx->style.endCharOffset = 0;
+		gf_isom_text_reset(ctx->samp);
+
+		memset(szText, 0, 2048);
+		i=j=0;
+		while (1) {
+			char c = start_p[i];
+			if (c == 0) {
+				szText[j] = 0;
+				break;
+			}
+			if (c=='\\') {
+				if ((start_p[i+1] == 'N') || (start_p[i+1] == 'n')) {
+					szText[j] = 0;
+					parse_srt_line(ctx, szText, &char_len, &set_start_char, &set_end_char);
+
+					j=0;
+					i+=2;
+					memset(szText, 0, 2048);
+					gf_isom_text_add_text(ctx->samp, "\n", 1);
+					char_len += 1;
+					continue;
+				}
+			} else if (c=='{') {
+				if (start_p[i+1] == '\\') {
+					u32 style = 0;
+					u32 color=0;
+					Bool is_end = 0;
+					if (start_p[i+2] == 'i') style = 1;
+					else if (start_p[i+2] == 'b') style = 2;
+					else if (start_p[i+2] == 'u') style = 3;
+					else if (start_p[i+2] == 'c') {
+						if ((start_p[i+3] == '&') && (strlen(start_p+i+4)>8)) {
+							char *col_p = start_p + i+5;
+							style = 4;
+							char szT[3];
+							u32 r, g, b;
+							szT[2]=0;
+							szT[0]=col_p[0];
+							szT[1]=col_p[1];
+							sscanf(szT, "%x", &g);
+							szT[0]=col_p[2];
+							szT[1]=col_p[3];
+							sscanf(szT, "%x", &b);
+							szT[0]=col_p[4];
+							szT[1]=col_p[5];
+							sscanf(szT, "%x", &r);
+							color = GF_COL_ARGB(0xFF, r, g, b);
+						}
+						else if (start_p[i+3] == '}') {
+							is_end=GF_TRUE;
+							style = 4;
+						}
+					}
+					else if (start_p[i+2] == 's') style = 5;
+
+					if (start_p[i+3] == '0') is_end=GF_TRUE;
+					while (start_p[i] && (start_p[i]!='}')) i++;
+					i++;
+
+					if (style==1) {
+						if (is_end) {strcat(szText, "</i>"); j+=4;}
+						else {strcat(szText, "<i>"); j+=3;}
+					} else if (style==2) {
+						if (is_end) {strcat(szText, "</b>"); j+=4;}
+						else {strcat(szText, "<b>"); j+=3;}
+					} else if (style==3) {
+						if (is_end) {strcat(szText, "</u>"); j+=4;}
+						else {strcat(szText, "<u>"); j+=3;}
+					} else if (style==4) {
+						if (is_end) {strcat(szText, "</font>"); j+=7;}
+						else {
+							char szFont[100];
+							sprintf(szFont, "<font color=\"0x%X\">", color);
+							strcat(szText, szFont);
+							j+=(u32) strlen(szFont);
+						}
+					} else if (style==5) {
+						if (is_end) {strcat(szText, "</strike>"); j+=9;}
+						else {strcat(szText, "<strike>"); j+=8;}
+					}
+					continue;
+				}
+			}
+			szText[j] = c;
+			j++;
+			i++;
+		}
+		if (szText[0])
+			parse_srt_line(ctx, szText, &char_len, &set_start_char, &set_end_char);
+
+		txtin_process_send_text_sample(ctx, ctx->samp,  ctx->start, (u32) (ctx->end -  ctx->start), GF_TRUE);
+		ctx->prev_end = ctx->end;
+
+		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DOWN_BYTES, &PROP_LONGUINT( gf_ftell(ctx->src)) );
+
+		if (gf_filter_pid_would_block(ctx->opid))
+			return GF_OK;
+	}
+	/*final flush*/
+	if (ctx->end && !ctx->noflush) {
+		samp = gf_isom_new_text_sample();
+		txtin_process_send_text_sample(ctx, samp, ctx->end, 0, GF_TRUE);
+		gf_isom_delete_text_sample(samp);
+	}
+
+	gf_filter_pid_set_info_str( ctx->opid, "ttxt:last_dur", &PROP_UINT(0) );
+
+	return GF_EOS;
+}
+
 
 
 static u32 ttxt_get_color(char *val)
@@ -2507,6 +2823,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_TX3G) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(file_size) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 	if (!ID) ID = 1;
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_ID, &PROP_UINT(ID) );
@@ -2670,7 +2987,7 @@ static GF_Err txtin_setup_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 	return GF_OK;
 }
 
-static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 j, k;
 	GF_XMLNode *root, *ext;
@@ -2834,7 +3151,32 @@ static GF_Err txtin_process_ttxt(GF_Filter *filter, GF_TXTIn *ctx)
 		}
 		ctx->first_samp = GF_FALSE;
 
-		txtin_process_send_text_sample(ctx, samp, ts, 0, GF_TRUE);
+		u64 next_sample_start=0;
+		for (j=ctx->cur_child_idx+1; j < ctx->nb_children; j++) {
+			node = (GF_XMLNode*) gf_list_get(root->content, j);
+
+			if (node->type) {
+				continue;
+			}
+			/*sample text*/
+			else if (strcmp(node->name, "TextSample")) continue;
+
+			j=0;
+			while ( (att=(GF_XMLAttribute*)gf_list_enum(node->attributes, &j))) {
+				if (!strcmp(att->name, "sampleTime")) {
+					u32 h, m, s, ms;
+					if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
+						next_sample_start = (h*3600 + m*60 + s)*1000 + ms;
+					} else {
+						next_sample_start = (u32) (atof(att->value) * 1000);
+					}
+				}
+			}
+			break;
+		}
+		if (next_sample_start>=ts) next_sample_start -= ts;
+
+		txtin_process_send_text_sample(ctx, samp, ts, (u32) next_sample_start, GF_TRUE);
 
 		gf_isom_delete_text_sample(samp);
 
@@ -2979,7 +3321,7 @@ static GF_Err txtin_texml_setup(GF_Filter *filter, GF_TXTIn *ctx)
 	return GF_OK;
 }
 
-static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx)
+static GF_Err txtin_process_texml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	u32 j, k;
 	GF_StyleRecord styles[50];
@@ -3339,8 +3681,51 @@ static GF_Err txtin_process(GF_Filter *filter)
 	Bool start, end;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
+		if (ctx->unframed) {
+			if (gf_filter_pid_is_eos(ctx->ipid)) {
+				if (ctx->end) {
+					if (ctx->vttparser) {
+						gf_webvtt_parser_flush(ctx->vttparser);
+					}
+					else if (!ctx->noflush) {
+						gf_isom_text_reset(ctx->samp);
+						txtin_process_send_text_sample(ctx, ctx->samp, ctx->end, 0, GF_TRUE);
+					}
+					ctx->end = 0;
+				}
+				gf_filter_pid_set_eos(ctx->opid);
+				return GF_EOS;
+			}
+		}
 		return GF_OK;
 	}
+
+	if (ctx->unframed) {
+		const u8 *data;
+		u32 size;
+		data = gf_filter_pck_get_data(pck, &size);
+		e = GF_OK;
+		if (data) {
+			ctx->src = gf_file_temp(NULL);
+			gf_fwrite(data, size, ctx->src);
+			gf_fseek(ctx->src, 0, SEEK_SET);
+			//init state as parsing SRT payload
+			ctx->state = 2;
+			ctx->start = gf_filter_pck_get_cts(pck);
+			ctx->end = ctx->start + gf_filter_pck_get_duration(pck);
+			ctx->curLine = 0;
+
+			e = ctx->text_process(filter, ctx, pck);
+			if (ctx->src) {
+				gf_fclose(ctx->src);
+				ctx->src = NULL;
+			}
+			if (e==GF_EOS) e = GF_OK;
+		}
+		gf_filter_pid_drop_packet(ctx->ipid);
+		return e;
+	}
+
 	gf_filter_pck_get_framing(pck, &start, &end);
 	if (!end) {
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -3348,9 +3733,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 	}
 	//file is loaded
 
-	e = ctx->text_process(filter, ctx);
-
-
+	e = ctx->text_process(filter, ctx, NULL);
 	if (e==GF_EOS) {
 		//keep input alive until end of stream, so that we keep getting called
 		gf_filter_pid_drop_packet(ctx->ipid);
@@ -3377,6 +3760,7 @@ static void ttxtin_reset(GF_TXTIn *ctx)
 static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Err e;
+	u32 codec_id=0;
 	const char *src = NULL;
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
@@ -3389,44 +3773,93 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
-	//we must have a file path
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
-	if (prop && prop->value.string) src = prop->value.string;
-	if (!src)
-		return GF_NOT_SUPPORTED;
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+	if (ctx->srt_to_tx3g) {
+		ctx->unframed = GF_TRUE;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		ctx->timescale = prop ? prop->value.uint : 1000;
+	}
+	else if (ctx->vtt_to_tx3g) {
+		ctx->unframed = GF_TRUE;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		ctx->timescale = prop ? prop->value.uint : 1000;
+	}
+	else if (prop && (
+		(prop->value.uint==GF_CODECID_SUBS_TEXT)
+		|| (prop->value.uint==GF_CODECID_WEBVTT)
+		|| (prop->value.uint==GF_CODECID_SUBS_SSA)
+	)) {
+		codec_id = prop->value.uint;
+		ctx->unframed = GF_TRUE;
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+		ctx->timescale = prop ? prop->value.uint : 1000;
+	} else {
+		//otherwise we must have a file path
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+		if (prop && prop->value.string) src = prop->value.string;
+
+		if (!src)
+			return GF_NOT_SUPPORTED;
+	}
 
 	if (!ctx->ipid) {
 		GF_FilterEvent fevt;
 		ctx->ipid = pid;
 
-		//we work with full file only, send a play event on source to indicate that
-		GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
-		fevt.play.start_range = 0;
-		fevt.base.on_pid = ctx->ipid;
-		fevt.play.full_file_only = GF_TRUE;
-		gf_filter_pid_send_event(ctx->ipid, &fevt);
-		ctx->file_name = gf_strdup(src);
+		if (src) {
+			//we work with full file only, send a play event on source to indicate that
+			GF_FEVT_INIT(fevt, GF_FEVT_PLAY, pid);
+			fevt.play.start_range = 0;
+			fevt.base.on_pid = ctx->ipid;
+			fevt.play.full_file_only = GF_TRUE;
+			gf_filter_pid_send_event(ctx->ipid, &fevt);
+			ctx->file_name = gf_strdup(src);
+		}
 	} else {
 		if (pid != ctx->ipid) {
 			return GF_REQUIRES_NEW_INSTANCE;
 		}
-		if (!strcmp(ctx->file_name, src)) return GF_OK;
+		if (src) {
+			if (!strcmp(ctx->file_name, src)) return GF_OK;
 
-		ttxtin_reset(ctx);
-		ctx->is_setup = GF_FALSE;
-		gf_free(ctx->file_name);
-		ctx->file_name = gf_strdup(src);
+			ttxtin_reset(ctx);
+			ctx->is_setup = GF_FALSE;
+			gf_free(ctx->file_name);
+			ctx->file_name = gf_strdup(src);
+		}
 	}
-	//guess type
-	e = gf_text_guess_format(ctx->file_name, &ctx->fmt);
-	if (e) return e;
-	if (!ctx->fmt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTLoad] Unknown text format for %s\n", ctx->file_name));
-		return GF_NOT_SUPPORTED;
+	if (src) {
+		//guess type
+		e = gf_text_guess_format(ctx, ctx->file_name, &ctx->fmt);
+		if (e) return e;
+		if (!ctx->fmt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[TXTLoad] Unknown text format for %s\n", ctx->file_name));
+			return GF_NOT_SUPPORTED;
+		}
+	} else {
+		if (ctx->vtt_to_tx3g)
+			ctx->fmt = GF_TXTIN_MODE_SRT;
+		else if (ctx->srt_to_tx3g)
+			ctx->fmt = GF_TXTIN_MODE_SRT;
+		else if (codec_id == GF_CODECID_WEBVTT)
+			ctx->fmt = GF_TXTIN_MODE_WEBVTT;
+		else if (codec_id == GF_CODECID_SUBS_SSA)
+			ctx->fmt = GF_TXTIN_MODE_SSA;
+		else
+			ctx->fmt = GF_TXTIN_MODE_SRT;
+		if (!ctx->opid)
+			ctx->opid = gf_filter_pid_new(filter);
 	}
 
 	if (ctx->webvtt && (ctx->fmt == GF_TXTIN_MODE_SRT))
 		ctx->fmt = GF_TXTIN_MODE_WEBVTT;
+
+	if (!src) {
+		gf_filter_pid_copy_properties(ctx->opid, pid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, (ctx->fmt == GF_TXTIN_MODE_WEBVTT) ? &PROP_UINT(GF_CODECID_WEBVTT) : &PROP_UINT(GF_CODECID_TX3G));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, NULL);
+	}
 
 	switch (ctx->fmt) {
 	case GF_TXTIN_MODE_SRT:
@@ -3449,6 +3882,9 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	case GF_TXTIN_MODE_TTML:
 		ctx->text_process = gf_text_process_ttml;
 		break;
+	case GF_TXTIN_MODE_SSA:
+		ctx->text_process = gf_text_process_ssa;
+		break;
 #ifndef GPAC_DISABLE_SWF_IMPORT
 	case GF_TXTIN_MODE_SWF_SVG:
 		ctx->text_process = gf_text_process_swf;
@@ -3464,6 +3900,8 @@ static GF_Err txtin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	if (ctx->unframed) return GF_FALSE;
+
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
 		if (ctx->playstate==1) return GF_TRUE;
@@ -3581,13 +4019,32 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 static const GF_FilterCapability TXTInCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt|x-subtitle/sub|subtitle/sub|text/sub|x-subtitle/ttxt|subtitle/ttxt|text/ttxt|x-subtitle/vtt|subtitle/vtt|text/vtt|x-quicktime/text|quicktime/text|subtitle/ttml|text/ttml|application/xml+ttml|application/x-shockwave-flash"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "srt|ttxt|sub|vtt|txml|ttml|swf|ssa|ass"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "x-subtitle/srt|subtitle/srt|text/srt|x-subtitle/sub|subtitle/sub|text/sub|x-subtitle/ttxt|subtitle/ttxt|text/ttxt|x-subtitle/vtt|subtitle/vtt|text/vtt|x-quicktime/text|quicktime/text|subtitle/ttml|text/ttml|application/xml+ttml|application/x-shockwave-flash|subtitle/ssa|text/ssa"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
+	{0},
+	//unframed SRT
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	{0},
+	//unframed WebVTT
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	{0},
+	//unframed SSA
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_SSA),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	{0},
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
@@ -3615,7 +4072,7 @@ static const GF_FilterArgs TXTInArgs[] =
 GF_FilterRegister TXTInRegister = {
 	.name = "txtin",
 	GF_FS_SET_DESCRIPTION("Subtitle loader")
-	GF_FS_SET_HELP("This filter reads subtitle data from input file PID to produce subtitle frames on a single PID.\n"
+	GF_FS_SET_HELP("This filter reads subtitle data from input PID to produce subtitle frames on a single PID.\n"
 	"The filter supports the following formats:\n"
 	"- SRT: https://en.wikipedia.org/wiki/SubRip\n"
 	"- WebVTT: https://www.w3.org/TR/webvtt1/\n"
@@ -3623,6 +4080,7 @@ GF_FilterRegister TXTInRegister = {
 	"- QT 3GPP Text XML (TexML): Apple QT6, likely deprecated\n"
 	"- TTML: https://www.w3.org/TR/ttml2/\n"
 	"- SUB: one subtitle per line formatted as `{start_frame}{end_frame}text`\n"
+	"- SSA (Substation Alpha): basic parsing support for common files\n"
 	"\n"
 	"Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal frame format is: \n"
 	"- WebVTT (and srt if desired): ISO/IEC 14496-30 VTT cues\n"
@@ -3652,8 +4110,6 @@ GF_FilterRegister TXTInRegister = {
 	"EX gpac -i test.ttml --ttml_zero=T10:00:00 [...]\n"
 	"EX MP4Box -add test.ttml --ttml_zero=10:00:00 [...]\n"
 
-
-
 	)
 
 	.private_size = sizeof(GF_TXTIn),
@@ -3674,11 +4130,133 @@ const GF_FilterRegister *txtin_register(GF_FilterSession *session)
 	return &TXTInRegister;
 }
 
+static GF_Err vtt2tx3g_initialize(GF_Filter *filter)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	txtin_initialize(filter);
+	ctx->vtt_to_tx3g = GF_TRUE;
+	return GF_OK;
+}
+
+static const GF_FilterCapability VTTTX3GCaps[] =
+{
+	//unframed WebVTT
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+};
+
+#define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
+
+static const GF_FilterArgs VTTTX3GArgs[] =
+{
+	{ OFFS(fontname), "default font", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, 0},
+	{0}
+};
+
+GF_FilterRegister VTTTX3GRegister = {
+	.name = "vtt2tx3g",
+	GF_FS_SET_DESCRIPTION("Subtitle loader")
+	GF_FS_SET_HELP("This filter rewrites unframed WebVTT to TX3G / QT Timed Text (binary format)\n"
+	"\n"
+	"Unframed WebVTT packets consist in single cues:\n"
+	"- cue payload as packet payload\n"
+	"- prefix as packet string property `vtt_pre`\n"
+	"- cue ID as packet string property `vtt_cueid`\n"
+	"- cue settings as packet string property `vtt_settings`\n"
+	"- packet timing contains the cue timing (start and duration)\n"
+	)
+
+	.private_size = sizeof(GF_TXTIn),
+	.flags = GF_FS_REG_MAIN_THREAD,
+	.args = VTTTX3GArgs,
+	SETCAPS(VTTTX3GCaps),
+	.process = txtin_process,
+	.configure_pid = txtin_configure_pid,
+	.process_event = txtin_process_event,
+	.probe_data = txtin_probe_data,
+	.initialize = vtt2tx3g_initialize,
+	.finalize = txtin_finalize
+};
+
+const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
+{
+	return &VTTTX3GRegister;
+}
+
+static GF_Err rfsrt_initialize(GF_Filter *filter)
+{
+	GF_TXTIn *ctx = gf_filter_get_udta(filter);
+	txtin_initialize(filter);
+	ctx->srt_to_tx3g = GF_TRUE;
+	return GF_OK;
+}
+
+static const GF_FilterCapability RFSRTCaps[] =
+{
+	//unframed WebVTT
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
+//	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+};
+
+#define OFFS(_n)	#_n, offsetof(GF_TXTIn, _n)
+
+static const GF_FilterArgs RFSRTArgs[] =
+{
+	{ OFFS(fontname), "default font", GF_PROP_STRING, NULL, NULL, 0},
+	{ OFFS(fontsize), "default font size", GF_PROP_UINT, "18", NULL, 0},
+	{0}
+};
+
+GF_FilterRegister RFSRTRegister = {
+	.name = "rfsrt",
+	GF_FS_SET_DESCRIPTION("SRT reframer")
+	GF_FS_SET_HELP("This filter rewrites unframed SRT to TX3G / QT Timed Text (binary format)\n"
+	"\n"
+	"An unframed SRT packet consists in a single SRT cue as packet payload and packet timing contains the cue timing (start and duration).\n"
+	)
+
+	.private_size = sizeof(GF_TXTIn),
+	.flags = GF_FS_REG_MAIN_THREAD,
+	.args = RFSRTArgs,
+	SETCAPS(RFSRTCaps),
+	.process = txtin_process,
+	.configure_pid = txtin_configure_pid,
+	.process_event = txtin_process_event,
+	.probe_data = txtin_probe_data,
+	.initialize = rfsrt_initialize,
+	.finalize = txtin_finalize
+};
+
+const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)
+{
+	return &RFSRTRegister;
+}
 
 #else
 const GF_FilterRegister *txtin_register(GF_FilterSession *session)
 {
 	return NULL;
 }
+
+const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+const GF_FilterRegister *rfsrt_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
 #endif // GPAC_DISABLE_ISOM_WRITE
 

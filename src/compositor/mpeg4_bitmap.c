@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -126,6 +126,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 }
 
 #ifndef GPAC_DISABLE_3D
+
 static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	GF_Node *appear;
@@ -139,6 +140,9 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
+	if (!asp.fill_texture) return;
+	if (!asp.fill_texture->data && !asp.fill_texture->frame_ifce) return;
+	if (asp.fill_texture->frame_ifce && !asp.fill_texture->frame_ifce->get_plane) return;
 
 	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
 	/*check for material key materialKey*/
@@ -170,6 +174,9 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	DrawableContext *ctx = tr_state->ctx;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
+	if (!ctx->aspect.fill_texture) return;
+	if (!ctx->aspect.fill_texture->data && !ctx->aspect.fill_texture->frame_ifce) return;
+	if (ctx->aspect.fill_texture->frame_ifce && !ctx->aspect.fill_texture->frame_ifce->get_plane) return;
 
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;

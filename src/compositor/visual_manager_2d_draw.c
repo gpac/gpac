@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -86,7 +86,7 @@ static void draw_clipper(GF_VisualManager *visual, struct _drawable_context *ctx
 	gf_path_del(cliper);
 }
 
-static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, GF_EVGStencil * stencil, GF_TraverseState *tr_state, Bool is_erase)
+void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, GF_EVGStencil * stencil, GF_TraverseState *tr_state, Bool is_erase)
 {
 	Bool has_modif = GF_FALSE;
 	GF_IRect clip;

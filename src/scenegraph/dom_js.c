@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2019
+ *			Copyright (c) Telecom ParisTech 2007-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -1708,10 +1708,25 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
+		u32 ns_code = ns ? gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, (char *) ns) : 0;
 		while (att) {
-			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				ret = JS_NewString(c, *(char**)att->data );
-				goto exit;
+			if (att->tag==TAG_DOM_ATT_any) {
+				Bool found = GF_FALSE;
+				if (!strcmp(att->name, name) && (ns_code == att->xmlns))
+					found = GF_TRUE;
+				else if (ns) {
+					char *nssep = strchr(att->name, ':');
+					if (nssep && !strcmp(nssep+1, name)) {
+						u32 ns_len = nssep - att->name;
+						//todo check namespace
+						if (!strcmp(ns, "*") || !strncmp(ns, att->name, ns_len))
+							found = GF_TRUE;
+					}
+				}
+				if (found) {
+					ret = JS_NewString(c, *(char**)att->data );
+					goto exit;
+				}
 			}
 			att = (GF_DOMFullAttribute *) att->next;
 		}

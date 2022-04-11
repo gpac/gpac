@@ -1595,6 +1595,12 @@
     <ClCompile Include="..\..\src\filters\tssplit.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\ttml_conv.c">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\filters\write_tx3g.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\dec_mediacodec.c">
       <Filter>filters</Filter>
     </ClCompile>

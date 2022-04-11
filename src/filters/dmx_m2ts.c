@@ -59,7 +59,7 @@ typedef struct
 {
 	//opts
 	const char *temi_url;
-	Bool dsmcc, seeksrc, sigfrag;
+	Bool dsmcc, seeksrc, sigfrag, dvbtxt;
 
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
@@ -72,7 +72,7 @@ typedef struct
 	u64 file_size;
 	Bool in_seek;
 	Bool initial_play_done;
-	u32 nb_playing;
+	u32 nb_playing, nb_stop_pending;
 
 	//duration estimation
 	GF_Fraction64 duration;
@@ -365,6 +365,20 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			orig_stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_EAC3;
 			break;
+		case GF_M2TS_DVB_SUBTITLE:
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_DVB_SUBS;
+			stream->flags |= GF_M2TS_ES_FULL_AU;
+			break;
+		case GF_M2TS_DVB_TELETEXT:
+			if (!ctx->dvbtxt) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] DVB teletext pid skipped, use --dvbtxt to enable\n", stream->stream_type));
+				return;
+			}
+			stype = GF_STREAM_TEXT;
+			codecid = GF_CODECID_DVB_TELETEXT;
+			stream->flags |= GF_M2TS_ES_FULL_AU;
+			break;
 		default:
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TSDmx] Stream type 0x%02X not supported - ignoring pid\n", stream->stream_type));
 			return;
@@ -385,6 +399,17 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 	stream->user = opid;
 	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+
+	u32 d_type = orig_stype ? orig_stype : stype;
+	switch (d_type) {
+	case GF_STREAM_AUDIO:
+	case GF_STREAM_VISUAL:
+		stream->flags |= GF_M2TS_CHECK_DISC;
+		break;
+	default:
+		stream->flags &= ~GF_M2TS_CHECK_DISC;
+		break;
+	}
 
 	stname = gf_stream_type_name(stype);
 	sprintf(szName, "P%d%c%d", stream->program->number, stname[0], 1+gf_list_find(stream->program->streams, stream));
@@ -442,7 +467,20 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		if (szLang[2]==' ') szLang[2] = 0;
 		gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(szLang) );
 	}
+	if (codecid == GF_CODECID_DVB_SUBS) {
+		char szLang[4];
+		memcpy(szLang, stream->sub.language, 3);
+		szLang[3]=0;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_LANGUAGE, &PROP_STRING(szLang) );
 
+		u8 dsi[5];
+		dsi[0] = stream->sub.composition_page_id>>8;
+		dsi[1] = stream->sub.composition_page_id & 0xFF;
+		dsi[2] = stream->sub.ancillary_page_id>>8;
+		dsi[3] = stream->sub.ancillary_page_id & 0xFF;
+		dsi[4] = stream->sub.type;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(dsi, 5));
+	}
 
 	if (ctx->duration.num>1) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ctx->duration) );
@@ -461,7 +499,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		}
 	}
 
-	if (stream->dv_info[0]) {
+	if ((stream->flags & GF_M2TS_ES_IS_PES) && (stream->dv_info[0])) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA(stream->dv_info, 24) );
 		u32 dvtype=0;
 		if (stream->dv_info[24]) {
@@ -540,25 +578,44 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 	GF_FilterPid *opid;
 	GF_FilterPacket *dst_pck;
 	u8 * data;
+	//we don't have end of frame signaling by default
+	Bool au_end = GF_FALSE;
+	GF_FilterSAPType sap_type = GF_FILTER_SAP_NONE;
 
 	/*pcr not initialized, don't send any data*/
 //	if (! pck->stream->program->first_dts) return;
 	if (!pck->stream->user) return;
 	opid = pck->stream->user;
 
-	dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len, &data);
-	if (!dst_pck) return;
+	u8 *ptr = pck->data;
+	u32 len = pck->data_len;
 
-	memcpy(data, pck->data, pck->data_len);
-	//we don't have end of frame signaling
-	gf_filter_pck_set_framing(dst_pck, (pck->flags & GF_M2TS_PES_PCK_AU_START) ? GF_TRUE : GF_FALSE, GF_FALSE);
+	//skip dataID and stream ID
+	if (pck->stream->stream_type==GF_M2TS_DVB_SUBTITLE) {
+		ptr+=2;
+		len-=2;
+	}
+	//for now GF_M2TS_ES_FULL_AU is only used for text, all rap
+	if (pck->stream->flags & GF_M2TS_ES_FULL_AU) {
+		au_end = GF_TRUE;
+		sap_type = GF_FILTER_SAP_1;
+	}
+
+	dst_pck = gf_filter_pck_new_alloc(opid, len, &data);
+	if (!dst_pck) return;
+	memcpy(data, ptr, len);
+
+	gf_filter_pck_set_framing(dst_pck, (pck->flags & GF_M2TS_PES_PCK_AU_START) ? GF_TRUE : GF_FALSE, au_end);
 
 	if (pck->flags & GF_M2TS_PES_PCK_AU_START) {
+		if (pck->flags & GF_M2TS_PES_PCK_RAP)
+			sap_type = GF_FILTER_SAP_1;
+
 		gf_filter_pck_set_cts(dst_pck, pck->PTS);
 		if (pck->DTS != pck->PTS) {
 			gf_filter_pck_set_dts(dst_pck, pck->DTS);
 		}
-		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+		gf_filter_pck_set_sap(dst_pck, sap_type);
 	}
 	m2tdmx_merge_temi(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
 
@@ -566,6 +623,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
+	ctx->nb_stop_pending = 0;
 	gf_filter_pck_send(dst_pck);
 }
 
@@ -952,17 +1010,10 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (is_remove) {
 		ctx->ipid = NULL;
-		u32 i, count = gf_list_count(ctx->ts->programs);
+		u32 i, count = gf_filter_get_opid_count(filter);
 		for (i=0; i<count; i++) {
-			GF_M2TS_Program *prog = gf_list_get(ctx->ts->programs, i);
-			u32 j, count2 = gf_list_count(prog->streams);
-			for (j=0; j<count2; j++) {
-				GF_M2TS_ES *es = gf_list_get(prog->streams, j);
-				if (es->user) {
-					GF_FilterPid *opid = es->user;
-					gf_filter_pid_remove(opid);
-				}
-			}
+			GF_FilterPid *opid = gf_filter_get_opid(filter, i);
+			gf_filter_pid_remove( opid);
 		}
 		return GF_OK;
 	}
@@ -1089,6 +1140,8 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	if (!com->base.on_pid) return GF_FALSE;
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
+		if (com->play.initial_broadcast_play==2)
+			return GF_TRUE;
 		pes = m2tsdmx_get_stream(ctx, com->base.on_pid);
 		if (!pes) {
 			if (com->base.on_pid == ctx->eit_pid) {
@@ -1105,8 +1158,20 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 
 		/*this is a multiplex, only trigger the play command for the first activated stream*/
 		ctx->nb_playing++;
-		if (ctx->nb_playing>1) return GF_TRUE;
 
+		if (ctx->nb_playing>1) {
+			Bool skip_com = GF_TRUE;
+			//PLAY/STOP may arrive at different times depending on the length of filter chains on each PID
+			//we stack number of STOP received and trigger seek when we have the same amount of play
+			if (ctx->nb_stop_pending==ctx->nb_playing) {
+				skip_com = GF_FALSE;
+			}
+			if (skip_com) {
+				return GF_TRUE;
+			}
+		}
+
+		ctx->nb_stop_pending = 0;
 		//not file, don't cancel the event
 		if (!ctx->is_file) {
 			ctx->initial_play_done = GF_TRUE;
@@ -1127,15 +1192,13 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		if (!ctx->initial_play_done) {
 			ctx->initial_play_done = GF_TRUE;
 			//seek will not change the current source state, don't send a seek
-			if (!file_pos)
-				return GF_TRUE;
+			if (!file_pos) return GF_TRUE;
 		}
 
 		//file and seek, cancel the event and post a seek event to source
 		ctx->in_seek = GF_TRUE;
 		//we seek so consider the mux tuned in
 		ctx->mux_tune_state = DMX_TUNE_DONE;
-
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = file_pos;
@@ -1150,11 +1213,14 @@ static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 			}
 			return GF_FALSE;
 		}
-		/* In case of EOS, we may receive a stop command after no one is playing */
-		if (ctx->nb_playing)
-			ctx->nb_playing--;
-
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
+
+		if (com->play.initial_broadcast_play==2)
+			return GF_TRUE;
+
+		ctx->nb_stop_pending++;
+		if (ctx->nb_playing) ctx->nb_playing--;
+
 		//don't cancel event if still playing
 		return ctx->nb_playing ? GF_TRUE : GF_FALSE;
 
@@ -1234,12 +1300,19 @@ restart:
 		nb_streams = gf_filter_get_opid_count(filter);
 		for (i=0; i<nb_streams; i++) {
 			GF_FilterPid *opid = gf_filter_get_opid(filter, i);
-			if ( gf_filter_pid_would_block(opid) ) {
+			if (!gf_filter_pid_is_playing(opid)) {
+				would_block++;
+			} else if ( gf_filter_pid_would_block(opid) ) {
 				would_block++;
 			}
 		}
-		if (would_block && (would_block==nb_streams))
+		if (would_block && (would_block==nb_streams)) {
+			//keep filter alive
+			if (ctx->nb_playing) {
+				gf_filter_ask_rt_reschedule(filter, 0);
+			}
 			return GF_OK;
+		}
 
 		check_block = GF_FALSE;
 	}
@@ -1279,6 +1352,8 @@ static const GF_FilterCapability M2TSDmxCaps[] =
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_METADATA),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
@@ -1292,6 +1367,7 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 	{ OFFS(dsmcc), "enable DSMCC receiver", GF_PROP_BOOL, "no", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksrc), "seek local source file back to origin once all programs are setup", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(sigfrag), "signal segment boundaries on output packets for DASH or HLS sources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dvbtxt), "export DVB teletext streams", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 

@@ -249,7 +249,6 @@ extension = {
                 } else {
                     ext.local_url = false;
                 }
-
                 ext.root_odm = scene.get_object_manager(ext.current_url);
                 ext.reverse_playback_supported = ext.root_odm.reverse_playback_supported;
 
@@ -292,8 +291,9 @@ extension = {
                 //force display size notif on controler to trigger resize of the window
                 ext.controler.on_display_size(ext.controler.width, ext.controler.height);
             }
-
-//            ext.root_odm = scene.get_object_manager(ext.current_url);
+            //when doing stop + play
+            if (!ext.root_odm)
+                ext.root_odm = scene.get_object_manager(ext.current_url);
             ext.set_state(ext.GF_STATE_PLAY);
 
             //override scene size info
@@ -1323,6 +1323,8 @@ extension = {
             this.movie_control.mediaStartTime = 0;
             this.controler.media_line.set_value(0);
             this.controler.play.switch_icon(this.icon_play);
+            this.controler.media_list.hide();
+            this.controler.channels.hide();
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
             this.stats_resources = [];
@@ -1624,7 +1626,6 @@ extension = {
         this.services = [];
 
         var root_odm = this.root_odm;
-
         if (root_odm) {
             for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
                 var m = root_odm.get_resource(res_i);
@@ -1727,11 +1728,14 @@ extension = {
 			} ) (extension);
 
 			wnd.make_item = function (text, obj) {
-				wnd.add_menu_item(text, function () {
-								  obj.select()
-								  });
+                let pref = "";
+                if (m.status == 'Playing') pref= "* ";
+                else if (m.status == 'Paused') pref= "* ";
+				wnd.add_menu_item(pref+text, function () {
+				  obj.select();
+			  });
 			}
-			
+
 			for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
 				var m = root_odm.get_resource(res_i);
 				if (root_odm.selected_service != m.service_id) continue;
@@ -1740,10 +1744,10 @@ extension = {
 					var text = 'Video #'+m.id;
 					wnd.make_item(text, m);
 				} else if (m.type=='Audio' && (nb_audio>1)) {
-					var text = 'Audio '+m.lang;
+					var text = 'Audio ('+m.lang+')';
 					wnd.make_item(text, m);
-				} else if (m.type=='Text' && (nb_subs>1)) {
-					var text = 'Subtitle '+m.lang;
+				} else if (m.type=='Text') {
+					var text = 'Subtitle ('+m.lang+')';
 					wnd.make_item(text, m);
 				}
 			}

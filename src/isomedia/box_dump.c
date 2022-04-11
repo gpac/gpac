@@ -861,8 +861,11 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 {
 	GF_List *list = NULL;
 	GF_Err e = GF_OK;
-	if (!data) return;
-
+	if (!data) {
+		gf_fprintf(trace, ">\n");
+		return;
+	}
+	
 	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	gf_bs_set_cookie(bs, GF_ISOM_BS_COOKIE_NO_LOGS);
 	while (gf_bs_available(bs)) {
@@ -3012,7 +3015,7 @@ static void tx3g_dump_style_nobox(FILE * trace, GF_StyleRecord *rec, u32 *shift_
 	gf_fprintf(trace, "/>\n");
 }
 
-static char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
+char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 {
 	u32 h, m, s, ms;
 	ts = (u32) (ts*1000 / timescale);
@@ -3028,13 +3031,241 @@ static char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 	return szDur;
 }
 
+void dump_ttxt_header(FILE *dump, GF_Tx3gSampleEntryBox *txt_e, u32 def_width, u32 def_height)
+{
+	gf_fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
+	switch (txt_e->horizontal_justification) {
+	case 1:
+		gf_fprintf(dump, "center");
+		break;
+	case -1:
+		gf_fprintf(dump, "right");
+		break;
+	default:
+		gf_fprintf(dump, "left");
+		break;
+	}
+	gf_fprintf(dump, "\" verticalJustification=\"");
+	switch (txt_e->vertical_justification) {
+	case 1:
+		gf_fprintf(dump, "center");
+		break;
+	case -1:
+		gf_fprintf(dump, "bottom");
+		break;
+	default:
+		gf_fprintf(dump, "top");
+		break;
+	}
+	gf_fprintf(dump, "\" ");
+	tx3g_dump_rgba8(dump, "backColor", txt_e->back_color);
+	gf_fprintf(dump, " verticalText=\"%s\"", (txt_e->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
+	gf_fprintf(dump, " fillTextRegion=\"%s\"", (txt_e->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
+	gf_fprintf(dump, " continuousKaraoke=\"%s\"", (txt_e->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
+	Bool has_scroll = GF_FALSE;
+	if (txt_e->displayFlags & GF_TXT_SCROLL_IN) {
+		has_scroll = GF_TRUE;
+		if (txt_e->displayFlags & GF_TXT_SCROLL_OUT) gf_fprintf(dump, " scroll=\"InOut\"");
+		else gf_fprintf(dump, " scroll=\"In\"");
+	} else if (txt_e->displayFlags & GF_TXT_SCROLL_OUT) {
+		has_scroll = GF_TRUE;
+		gf_fprintf(dump, " scroll=\"Out\"");
+	} else {
+		gf_fprintf(dump, " scroll=\"None\"");
+	}
+	if (has_scroll) {
+		u32 mode = (txt_e->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
+		switch (mode) {
+		case GF_TXT_SCROLL_CREDITS:
+			gf_fprintf(dump, " scrollMode=\"Credits\"");
+			break;
+		case GF_TXT_SCROLL_MARQUEE:
+			gf_fprintf(dump, " scrollMode=\"Marquee\"");
+			break;
+		case GF_TXT_SCROLL_DOWN:
+			gf_fprintf(dump, " scrollMode=\"Down\"");
+			break;
+		case GF_TXT_SCROLL_RIGHT:
+			gf_fprintf(dump, " scrollMode=\"Right\"");
+			break;
+		default:
+			gf_fprintf(dump, " scrollMode=\"Unknown\"");
+			break;
+		}
+	}
+	gf_fprintf(dump, ">\n");
+	gf_fprintf(dump, "<FontTable>\n");
+	if (txt_e->font_table) {
+		u32 j;
+		for (j=0; j<txt_e->font_table->entry_count; j++) {
+			gf_fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt_e->font_table->fonts[j].fontName, txt_e->font_table->fonts[j].fontID);
+
+		}
+	}
+	gf_fprintf(dump, "</FontTable>\n");
+	if ((txt_e->default_box.bottom == txt_e->default_box.top) || (txt_e->default_box.right == txt_e->default_box.left)) {
+		txt_e->default_box.top = txt_e->default_box.left = 0;
+		txt_e->default_box.right = def_width / 65536;
+		txt_e->default_box.bottom = def_height / 65536;
+	}
+	tx3g_dump_box_nobox(dump, &txt_e->default_box);
+	tx3g_dump_style_nobox(dump, &txt_e->default_style, NULL, 0);
+	gf_fprintf(dump, "</TextSampleDescription>\n");
+}
+
+void dump_ttxt_sample(FILE *dump, GF_TextSample *s_txt, u64 ts, u32 timescale, u32 di, Bool box_dump)
+{
+	GF_Box *a;
+	u32 len, j;
+	u32 shift_offset[20];
+	u32 so_count;
+	char szDur[100];
+	gf_fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(ts, timescale, szDur, GF_FALSE), di);
+
+	if (!box_dump) {
+		if (s_txt->highlight_color) {
+			gf_fprintf(dump, " ");
+			tx3g_dump_rgba8(dump, "highlightColor", s_txt->highlight_color->hil_color);
+		}
+		if (s_txt->scroll_delay) {
+			Double delay = s_txt->scroll_delay->scroll_delay;
+			delay /= timescale;
+			gf_fprintf(dump, " scrollDelay=\"%g\"", delay);
+		}
+		if (s_txt->wrap) gf_fprintf(dump, " wrap=\"%s\"", (s_txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
+	}
+
+	so_count = 0;
+
+	gf_fprintf(dump, " xml:space=\"preserve\">");
+	if (s_txt->len) {
+		unsigned short utf16Line[10000];
+		/*UTF16*/
+		if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
+			/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
+			memcpy((char *) utf16Line, s_txt->text+2, sizeof(char) * (s_txt->len));
+			len = gf_utf8_wcslen((const u16*)utf16Line);
+		} else {
+			char *str;
+			str = s_txt->text;
+			len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
+		}
+		if (len != GF_UTF8_FAIL) {
+			utf16Line[len] = 0;
+			for (j=0; j<len; j++) {
+				if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
+					gf_fprintf(dump, "\n");
+					if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) {
+						shift_offset[so_count] = j;
+						so_count++;
+						j++;
+					}
+				}
+				else {
+					switch (utf16Line[j]) {
+					case '\'':
+						gf_fprintf(dump, "&apos;");
+						break;
+					case '\"':
+						gf_fprintf(dump, "&quot;");
+						break;
+					case '&':
+						gf_fprintf(dump, "&amp;");
+						break;
+					case '>':
+						gf_fprintf(dump, "&gt;");
+						break;
+					case '<':
+						gf_fprintf(dump, "&lt;");
+						break;
+					default:
+						if (utf16Line[j] < 128) {
+							gf_fprintf(dump, "%c", (u8) utf16Line[j]);
+						} else {
+							gf_fprintf(dump, "&#%d;", utf16Line[j]);
+						}
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (box_dump) {
+
+		if (s_txt->highlight_color)
+			gf_isom_box_dump((GF_Box*) s_txt->highlight_color, dump);
+		if (s_txt->scroll_delay)
+			gf_isom_box_dump((GF_Box*) s_txt->scroll_delay, dump);
+		if (s_txt->wrap)
+			gf_isom_box_dump((GF_Box*) s_txt->wrap, dump);
+		if (s_txt->box)
+			gf_isom_box_dump((GF_Box*) s_txt->box, dump);
+		if (s_txt->styles)
+			gf_isom_box_dump((GF_Box*) s_txt->styles, dump);
+	} else {
+
+		if (s_txt->box) tx3g_dump_box_nobox(dump, &s_txt->box->box);
+		if (s_txt->styles) {
+			for (j=0; j<s_txt->styles->entry_count; j++) {
+				tx3g_dump_style_nobox(dump, &s_txt->styles->styles[j], shift_offset, so_count);
+			}
+		}
+	}
+	j=0;
+	while ((a = (GF_Box *)gf_list_enum(s_txt->others, &j))) {
+		if (box_dump) {
+			gf_isom_box_dump((GF_Box*) a, dump);
+			continue;
+		}
+
+		switch (a->type) {
+		case GF_ISOM_BOX_TYPE_HLIT:
+			gf_fprintf(dump, "<Highlight ");
+			tx3g_print_char_offsets(dump, ((GF_TextHighlightBox *)a)->startcharoffset, ((GF_TextHighlightBox *)a)->endcharoffset, shift_offset, so_count);
+			gf_fprintf(dump, "/>\n");
+			break;
+		case GF_ISOM_BOX_TYPE_HREF:
+		{
+			GF_TextHyperTextBox *ht = (GF_TextHyperTextBox *)a;
+			gf_fprintf(dump, "<HyperLink ");
+			tx3g_print_char_offsets(dump, ht->startcharoffset, ht->endcharoffset, shift_offset, so_count);
+			gf_fprintf(dump, "URL=\"%s\" URLToolTip=\"%s\"/>\n", ht->URL ? ht->URL : "", ht->URL_hint ? ht->URL_hint : "");
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_BLNK:
+			gf_fprintf(dump, "<Blinking ");
+			tx3g_print_char_offsets(dump, ((GF_TextBlinkBox *)a)->startcharoffset, ((GF_TextBlinkBox *)a)->endcharoffset, shift_offset, so_count);
+			gf_fprintf(dump, "/>\n");
+			break;
+		case GF_ISOM_BOX_TYPE_KROK:
+		{
+			u32 k;
+			Double t;
+			GF_TextKaraokeBox *krok = (GF_TextKaraokeBox *)a;
+			t = krok->highlight_starttime;
+			t /= timescale;
+			gf_fprintf(dump, "<Karaoke startTime=\"%g\">\n", t);
+			for (k=0; k<krok->nb_entries; k++) {
+				t = krok->records[k].highlight_endtime;
+				t /= timescale;
+				gf_fprintf(dump, "<KaraokeRange ");
+				tx3g_print_char_offsets(dump, krok->records[k].start_charoffset, krok->records[k].end_charoffset, shift_offset, so_count);
+				gf_fprintf(dump, "endTime=\"%g\"/>\n", t);
+			}
+			gf_fprintf(dump, "</Karaoke>\n");
+		}
+			break;
+		}
+	}
+
+	gf_fprintf(dump, "</TextSample>\n");
+
+}
 static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
 {
-	u32 i, j, count, di, nb_descs, shift_offset[20], so_count;
+	u32 i, count, di, nb_descs;
 	u64 last_DTS;
-	u32 len;
-	GF_Box *a;
-	Bool has_scroll;
 	char szDur[100];
 	GF_Tx3gSampleEntryBox *txt_e;
 	Bool box_dump = (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE;
@@ -3079,83 +3310,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		if (box_dump) {
 			gf_isom_box_dump((GF_Box*) txt_e, dump);
 		} else if  (txt_e->type==GF_ISOM_BOX_TYPE_TX3G) {
-			gf_fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
-			switch (txt_e->horizontal_justification) {
-			case 1:
-				gf_fprintf(dump, "center");
-				break;
-			case -1:
-				gf_fprintf(dump, "right");
-				break;
-			default:
-				gf_fprintf(dump, "left");
-				break;
-			}
-			gf_fprintf(dump, "\" verticalJustification=\"");
-			switch (txt_e->vertical_justification) {
-			case 1:
-				gf_fprintf(dump, "center");
-				break;
-			case -1:
-				gf_fprintf(dump, "bottom");
-				break;
-			default:
-				gf_fprintf(dump, "top");
-				break;
-			}
-			gf_fprintf(dump, "\" ");
-			tx3g_dump_rgba8(dump, "backColor", txt_e->back_color);
-			gf_fprintf(dump, " verticalText=\"%s\"", (txt_e->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
-			gf_fprintf(dump, " fillTextRegion=\"%s\"", (txt_e->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
-			gf_fprintf(dump, " continuousKaraoke=\"%s\"", (txt_e->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
-			has_scroll = GF_FALSE;
-			if (txt_e->displayFlags & GF_TXT_SCROLL_IN) {
-				has_scroll = GF_TRUE;
-				if (txt_e->displayFlags & GF_TXT_SCROLL_OUT) gf_fprintf(dump, " scroll=\"InOut\"");
-				else gf_fprintf(dump, " scroll=\"In\"");
-			} else if (txt_e->displayFlags & GF_TXT_SCROLL_OUT) {
-				has_scroll = GF_TRUE;
-				gf_fprintf(dump, " scroll=\"Out\"");
-			} else {
-				gf_fprintf(dump, " scroll=\"None\"");
-			}
-			if (has_scroll) {
-				u32 mode = (txt_e->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
-				switch (mode) {
-				case GF_TXT_SCROLL_CREDITS:
-					gf_fprintf(dump, " scrollMode=\"Credits\"");
-					break;
-				case GF_TXT_SCROLL_MARQUEE:
-					gf_fprintf(dump, " scrollMode=\"Marquee\"");
-					break;
-				case GF_TXT_SCROLL_DOWN:
-					gf_fprintf(dump, " scrollMode=\"Down\"");
-					break;
-				case GF_TXT_SCROLL_RIGHT:
-					gf_fprintf(dump, " scrollMode=\"Right\"");
-					break;
-				default:
-					gf_fprintf(dump, " scrollMode=\"Unknown\"");
-					break;
-				}
-			}
-			gf_fprintf(dump, ">\n");
-			gf_fprintf(dump, "<FontTable>\n");
-			if (txt_e->font_table) {
-				for (j=0; j<txt_e->font_table->entry_count; j++) {
-					gf_fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt_e->font_table->fonts[j].fontName, txt_e->font_table->fonts[j].fontID);
-
-				}
-			}
-			gf_fprintf(dump, "</FontTable>\n");
-			if ((txt_e->default_box.bottom == txt_e->default_box.top) || (txt_e->default_box.right == txt_e->default_box.left)) {
-				txt_e->default_box.top = txt_e->default_box.left = 0;
-				txt_e->default_box.right = trak->Header->width / 65536;
-				txt_e->default_box.bottom = trak->Header->height / 65536;
-			}
-			tx3g_dump_box_nobox(dump, &txt_e->default_box);
-			tx3g_dump_style_nobox(dump, &txt_e->default_style, NULL, 0);
-			gf_fprintf(dump, "</TextSampleDescription>\n");
+			dump_ttxt_header(dump, txt_e, trak->Header->width, trak->Header->height);
 		} else {
 			GF_TextSampleEntryBox *text = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, i);
 			gf_fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
@@ -3215,149 +3370,13 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			continue;
 		}
 
-		gf_fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE), di);
-
-		if (!box_dump) {
-			if (s_txt->highlight_color) {
-				gf_fprintf(dump, " ");
-				tx3g_dump_rgba8(dump, "highlightColor", s_txt->highlight_color->hil_color);
-			}
-			if (s_txt->scroll_delay) {
-				Double delay = s_txt->scroll_delay->scroll_delay;
-				delay /= trak->Media->mediaHeader->timeScale;
-				gf_fprintf(dump, " scrollDelay=\"%g\"", delay);
-			}
-			if (s_txt->wrap) gf_fprintf(dump, " wrap=\"%s\"", (s_txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
-		}
-
-		so_count = 0;
-
-		gf_fprintf(dump, " xml:space=\"preserve\">");
+		dump_ttxt_sample(dump, s_txt, s->DTS, trak->Media->mediaHeader->timeScale, di, box_dump);
 		if (!s_txt->len) {
 			last_DTS = (u32) trak->Media->mediaHeader->duration;
 		} else {
-			unsigned short utf16Line[10000];
 			last_DTS = s->DTS;
-			/*UTF16*/
-			if ((s_txt->len>2) && ((unsigned char) s_txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) s_txt->text[1] == (unsigned char) 0xFF)) {
-				/*copy 2 more chars because the lib always add 2 '0' at the end for UTF16 end of string*/
-				memcpy((char *) utf16Line, s_txt->text+2, sizeof(char) * (s_txt->len));
-				len = gf_utf8_wcslen((const u16*)utf16Line);
-			} else {
-				char *str;
-				str = s_txt->text;
-				len = gf_utf8_mbstowcs((u16*)utf16Line, 10000, (const char **) &str);
-			}
-			if (len != GF_UTF8_FAIL) {
-				utf16Line[len] = 0;
-				for (j=0; j<len; j++) {
-					if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
-						gf_fprintf(dump, "\n");
-						if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) {
-							shift_offset[so_count] = j;
-							so_count++;
-							j++;
-						}
-					}
-					else {
-						switch (utf16Line[j]) {
-						case '\'':
-							gf_fprintf(dump, "&apos;");
-							break;
-						case '\"':
-							gf_fprintf(dump, "&quot;");
-							break;
-						case '&':
-							gf_fprintf(dump, "&amp;");
-							break;
-						case '>':
-							gf_fprintf(dump, "&gt;");
-							break;
-						case '<':
-							gf_fprintf(dump, "&lt;");
-							break;
-						default:
-							if (utf16Line[j] < 128) {
-								gf_fprintf(dump, "%c", (u8) utf16Line[j]);
-							} else {
-								gf_fprintf(dump, "&#%d;", utf16Line[j]);
-							}
-							break;
-						}
-					}
-				}
-			}
 		}
 
-		if (box_dump) {
-
-			if (s_txt->highlight_color)
-				gf_isom_box_dump((GF_Box*) s_txt->highlight_color, dump);
-			if (s_txt->scroll_delay)
-				gf_isom_box_dump((GF_Box*) s_txt->scroll_delay, dump);
-			if (s_txt->wrap)
-				gf_isom_box_dump((GF_Box*) s_txt->wrap, dump);
-			if (s_txt->box)
-				gf_isom_box_dump((GF_Box*) s_txt->box, dump);
-			if (s_txt->styles)
-				gf_isom_box_dump((GF_Box*) s_txt->styles, dump);
-		} else {
-
-			if (s_txt->box) tx3g_dump_box_nobox(dump, &s_txt->box->box);
-			if (s_txt->styles) {
-				for (j=0; j<s_txt->styles->entry_count; j++) {
-					tx3g_dump_style_nobox(dump, &s_txt->styles->styles[j], shift_offset, so_count);
-				}
-			}
-		}
-		j=0;
-		while ((a = (GF_Box *)gf_list_enum(s_txt->others, &j))) {
-			if (box_dump) {
-				gf_isom_box_dump((GF_Box*) a, dump);
-				continue;
-			}
-
-			switch (a->type) {
-			case GF_ISOM_BOX_TYPE_HLIT:
-				gf_fprintf(dump, "<Highlight ");
-				tx3g_print_char_offsets(dump, ((GF_TextHighlightBox *)a)->startcharoffset, ((GF_TextHighlightBox *)a)->endcharoffset, shift_offset, so_count);
-				gf_fprintf(dump, "/>\n");
-				break;
-			case GF_ISOM_BOX_TYPE_HREF:
-			{
-				GF_TextHyperTextBox *ht = (GF_TextHyperTextBox *)a;
-				gf_fprintf(dump, "<HyperLink ");
-				tx3g_print_char_offsets(dump, ht->startcharoffset, ht->endcharoffset, shift_offset, so_count);
-				gf_fprintf(dump, "URL=\"%s\" URLToolTip=\"%s\"/>\n", ht->URL ? ht->URL : "", ht->URL_hint ? ht->URL_hint : "");
-			}
-			break;
-			case GF_ISOM_BOX_TYPE_BLNK:
-				gf_fprintf(dump, "<Blinking ");
-				tx3g_print_char_offsets(dump, ((GF_TextBlinkBox *)a)->startcharoffset, ((GF_TextBlinkBox *)a)->endcharoffset, shift_offset, so_count);
-				gf_fprintf(dump, "/>\n");
-				break;
-			case GF_ISOM_BOX_TYPE_KROK:
-			{
-				u32 k;
-				Double t;
-				GF_TextKaraokeBox *krok = (GF_TextKaraokeBox *)a;
-				t = krok->highlight_starttime;
-				t /= trak->Media->mediaHeader->timeScale;
-				gf_fprintf(dump, "<Karaoke startTime=\"%g\">\n", t);
-				for (k=0; k<krok->nb_entries; k++) {
-					t = krok->records[k].highlight_endtime;
-					t /= trak->Media->mediaHeader->timeScale;
-					gf_fprintf(dump, "<KaraokeRange ");
-					tx3g_print_char_offsets(dump, krok->records[k].start_charoffset, krok->records[k].end_charoffset, shift_offset, so_count);
-					gf_fprintf(dump, "endTime=\"%g\"/>\n", t);
-				}
-				gf_fprintf(dump, "</Karaoke>\n");
-			}
-				break;
-			}
-		}
-
-		gf_fprintf(dump, "</TextSample>\n");
 		gf_isom_sample_del(&s);
 		gf_isom_delete_text_sample(s_txt);
 		gf_set_progress("TTXT Extract", i, count);
@@ -3376,9 +3395,169 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 }
 
 #include <gpac/webvtt.h>
+
+GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBox *txtd, Bool vtt_dump)
+{
+	u32 len, j, k;
+	if (!txt || !txt->len) {
+		gf_fprintf(dump, "\n");
+	} else {
+		u32 styles, char_num, new_styles, color, new_color;
+		u16 utf16Line[10000];
+
+		/*UTF16*/
+		if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
+			memcpy(utf16Line, txt->text+2, sizeof(char)*txt->len);
+			( ((char *)utf16Line)[txt->len] ) = 0;
+			len = txt->len;
+		} else {
+			u8 *str = (u8 *) (txt->text);
+			len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
+			if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
+			utf16Line[len] = 0;
+		}
+		char_num = 0;
+		styles = 0;
+		new_styles = txtd->default_style.style_flags;
+		color = new_color = txtd->default_style.text_color;
+
+		for (j=0; j<len; j++) {
+			Bool is_new_line;
+
+			if (txt->styles) {
+				new_styles = txtd->default_style.style_flags;
+				new_color = txtd->default_style.text_color;
+				for (k=0; k<txt->styles->entry_count; k++) {
+					if (txt->styles->styles[k].startCharOffset>char_num) continue;
+					if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
+
+					if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH)) {
+						new_styles = txt->styles->styles[k].style_flags;
+						new_color = txt->styles->styles[k].text_color;
+						break;
+					}
+				}
+			}
+			if (new_styles != styles) {
+				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
+				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
+				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
+				if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
+
+				if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
+				if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
+				if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
+				if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
+
+				styles = new_styles;
+			}
+			if (!vtt_dump && (new_color != color)) {
+				if (new_color ==txtd->default_style.text_color) {
+					gf_fprintf(dump, "</font>");
+				} else {
+					gf_fprintf(dump, "<font color=\"%s\">", gf_color_get_name(new_color) );
+				}
+				color = new_color;
+			}
+
+			/*not sure if styles must be reseted at line breaks in srt...*/
+			is_new_line = GF_FALSE;
+			if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
+				if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
+				gf_fprintf(dump, "\n");
+				is_new_line = GF_TRUE;
+			}
+
+			if (!is_new_line) {
+				u32 sl;
+				char szChar[30];
+				s16 swT[2], *swz;
+				swT[0] = utf16Line[j];
+				swT[1] = 0;
+				swz= (s16 *)swT;
+				sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
+				if (sl == GF_UTF8_FAIL) sl=0;
+				szChar[sl]=0;
+				gf_fprintf(dump, "%s", szChar);
+			}
+			char_num++;
+		}
+		new_styles = 0;
+		if (new_styles != styles) {
+			if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
+			if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
+			if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
+			if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
+
+//				styles = 0;
+		}
+
+		if (color != txtd->default_style.text_color) {
+			gf_fprintf(dump, "</font>");
+//				color = txtd->default_style.text_color;
+		}
+		gf_fprintf(dump, "\n");
+	}
+	return GF_OK;
+}
+
+static void vttmx_timestamp_dump(GF_BitStream *bs, GF_WebVTTTimestamp *ts, Bool dump_hour, Bool write_srt)
+{
+	char szTS[200];
+	szTS[0] = 0;
+	if (dump_hour) {
+		sprintf(szTS, "%02u:", ts->hour);
+		gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+	}
+	sprintf(szTS, "%02u:%02u%c%03u", ts->min, ts->sec, write_srt ? ',' : '.', ts->ms);
+	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+}
+
+void webvtt_write_cue_bs(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt)
+{
+	Bool write_hour = GF_FALSE;
+	if (!cue) return;
+	if (!write_srt && cue->pre_text) {
+		gf_bs_write_data(bs, cue->pre_text, (u32) strlen(cue->pre_text));
+		gf_bs_write_data(bs, "\n\n", 2);
+	}
+	if (!write_srt && cue->id) {
+		u32 len = (u32) strlen(cue->id) ;
+		gf_bs_write_data(bs, cue->id, len);
+		if (len && (cue->id[len-1]!='\n'))
+			gf_bs_write_data(bs, "\n", 1);
+	}
+
+	if (gf_opts_get_bool("core", "webvtt-hours")) write_hour = GF_TRUE;
+	else if (cue->start.hour || cue->end.hour) write_hour = GF_TRUE;
+	else if (write_srt) write_hour = GF_TRUE;
+
+	vttmx_timestamp_dump(bs, &cue->start, write_hour, write_srt);
+	gf_bs_write_data(bs, " --> ", 5);
+	vttmx_timestamp_dump(bs, &cue->end, write_hour, write_srt);
+
+	if (!write_srt && cue->settings) {
+		gf_bs_write_data(bs, " ", 1);
+		gf_bs_write_data(bs, cue->settings, (u32) strlen(cue->settings));
+	}
+	gf_bs_write_data(bs, "\n", 1);
+	if (cue->text)
+		gf_bs_write_data(bs, cue->text, (u32) strlen(cue->text));
+
+	if (!write_srt)
+		gf_bs_write_data(bs, "\n\n", 2);
+	else
+		gf_bs_write_data(bs, "\n", 1);
+
+	if (!write_srt && cue->post_text) {
+		gf_bs_write_data(bs, cue->post_text, (u32) strlen(cue->post_text));
+		gf_bs_write_data(bs, "\n\n", 2);
+	}
+}
+
 static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
 {
-	u32 i, j, k, count, di, len, ts, cur_frame;
+	u32 i, j, count, di, ts, cur_frame;
 	u64 start, end;
 	GF_Tx3gSampleEntryBox *txtd;
 	char szDur[100];
@@ -3409,6 +3588,8 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	default:
 		return GF_NOT_SUPPORTED;
 	}
+	s64 ts_offset=0;
+	gf_isom_get_edit_list_type(the_file, track, &ts_offset);
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
@@ -3417,7 +3598,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
 		if (!s) continue;
 
-		start = s->DTS;
+		start = s->DTS+ts_offset;
 		if (s->dataLength==2) {
 			gf_isom_sample_del(&s);
 			continue;
@@ -3425,7 +3606,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		if (i+1<count) {
 			GF_ISOSample *next = gf_isom_get_sample_info(the_file, track, i+2, NULL, NULL);
 			if (next) {
-				end = next->DTS;
+				end = next->DTS+ts_offset;
 				gf_isom_sample_del(&next);
 			}
 		} else {
@@ -3443,7 +3624,6 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		if (is_wvtt) {
 			u64 start_ts, end_ts;
-			void webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue, Bool write_srt);
 			GF_List *cues;
 			u32 nb_cues;
 			u8 *data;
@@ -3468,7 +3648,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			for (j = 0; j < gf_list_count(cues); j++) {
 				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, j);
-				webvtt_write_cue(bs, cue, GF_TRUE);
+				webvtt_write_cue_bs(bs, cue, GF_TRUE);
 				gf_webvtt_cue_del(cue);
 			}
 			gf_list_del(cues);
@@ -3500,109 +3680,13 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, di-1);
 
-		if (!txt || !txt->len) {
-			gf_fprintf(dump, "\n");
-		} else {
-			u32 styles, char_num, new_styles, color, new_color;
-			u16 utf16Line[10000];
+		GF_Err e = dump_ttxt_sample_srt(dump, txt, txtd, GF_FALSE);
 
-			/*UTF16*/
-			if ((txt->len>2) && ((unsigned char) txt->text[0] == (unsigned char) 0xFE) && ((unsigned char) txt->text[1] == (unsigned char) 0xFF)) {
-				memcpy(utf16Line, txt->text+2, sizeof(char)*txt->len);
-				( ((char *)utf16Line)[txt->len] ) = 0;
-				len = txt->len;
-			} else {
-				u8 *str = (u8 *) (txt->text);
-				len = gf_utf8_mbstowcs(utf16Line, 10000, (const char **) &str);
-				if (len == GF_UTF8_FAIL) return GF_NON_COMPLIANT_BITSTREAM;
-				utf16Line[len] = 0;
-			}
-			char_num = 0;
-			styles = 0;
-			new_styles = txtd->default_style.style_flags;
-			color = new_color = txtd->default_style.text_color;
-
-			for (j=0; j<len; j++) {
-				Bool is_new_line;
-
-				if (txt->styles) {
-					new_styles = txtd->default_style.style_flags;
-					new_color = txtd->default_style.text_color;
-					for (k=0; k<txt->styles->entry_count; k++) {
-						if (txt->styles->styles[k].startCharOffset>char_num) continue;
-						if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
-
-						if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH)) {
-							new_styles = txt->styles->styles[k].style_flags;
-							new_color = txt->styles->styles[k].text_color;
-							break;
-						}
-					}
-				}
-				if (new_styles != styles) {
-					if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "<b>");
-					if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "<i>");
-					if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "<u>");
-					if ((new_styles & GF_TXT_STYLE_STRIKETHROUGH) && !(styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "<strike>");
-
-					if ((styles & GF_TXT_STYLE_STRIKETHROUGH) && !(new_styles & GF_TXT_STYLE_STRIKETHROUGH)) gf_fprintf(dump, "</strike>");
-					if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) gf_fprintf(dump, "</u>");
-					if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) gf_fprintf(dump, "</i>");
-					if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) gf_fprintf(dump, "</b>");
-
-					styles = new_styles;
-				}
-				if (new_color != color) {
-					if (new_color ==txtd->default_style.text_color) {
-						gf_fprintf(dump, "</font>");
-					} else {
-						gf_fprintf(dump, "<font color=\"%s\">", gf_color_get_name(new_color) );
-					}
-					color = new_color;
-				}
-
-				/*not sure if styles must be reseted at line breaks in srt...*/
-				is_new_line = GF_FALSE;
-				if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
-					if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
-					gf_fprintf(dump, "\n");
-					is_new_line = GF_TRUE;
-				}
-
-				if (!is_new_line) {
-					u32 sl;
-					char szChar[30];
-					s16 swT[2], *swz;
-					swT[0] = utf16Line[j];
-					swT[1] = 0;
-					swz= (s16 *)swT;
-					sl = gf_utf8_wcstombs(szChar, 30, (const unsigned short **) &swz);
-					if (sl == GF_UTF8_FAIL) sl=0;
-					szChar[sl]=0;
-					gf_fprintf(dump, "%s", szChar);
-				}
-				char_num++;
-			}
-			new_styles = 0;
-			if (new_styles != styles) {
-				if (styles & GF_TXT_STYLE_STRIKETHROUGH) gf_fprintf(dump, "</strike>");
-				if (styles & GF_TXT_STYLE_UNDERLINED) gf_fprintf(dump, "</u>");
-				if (styles & GF_TXT_STYLE_ITALIC) gf_fprintf(dump, "</i>");
-				if (styles & GF_TXT_STYLE_BOLD) gf_fprintf(dump, "</b>");
-
-//				styles = 0;
-			}
-
-			if (color != txtd->default_style.text_color) {
-				gf_fprintf(dump, "</font>");
-//				color = txtd->default_style.text_color;
-			}
-			gf_fprintf(dump, "\n");
-		}
 		gf_isom_sample_del(&s);
 		gf_isom_delete_text_sample(txt);
 		gf_fprintf(dump, "\n");
 		gf_set_progress("SRT Extract", i, count);
+		if (e) return e;
 	}
 	if (count) gf_set_progress("SRT Extract", i, count);
 	return GF_OK;

@@ -133,7 +133,6 @@ static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 
 	//unblock pid
 	if (pid->would_block) {
-		assert(pid->would_block);
 		safe_int_dec(&pid->would_block);
 
 		assert(pid->filter->would_block);
@@ -214,6 +213,31 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid)
 
 	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_STREAM_TYPE);
 	if (p) mtype = p->value.uint;
+
+	Bool was_sparse = pid->is_sparse;
+	p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_SPARSE);
+	if (p) {
+		pid->is_sparse = p->value.boolean;
+	} else {
+		u32 otype = mtype;
+		p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		if (p) otype = p->value.uint;
+		switch (otype) {
+		case GF_STREAM_AUDIO:
+		case GF_STREAM_VISUAL:
+		case GF_STREAM_FILE:
+			pid->is_sparse = GF_FALSE;
+			break;
+		default:
+			pid->is_sparse = GF_TRUE;
+			break;
+		}
+	}
+	if (was_sparse && !pid->is_sparse)
+		safe_int_dec(&pid->filter->nb_sparse_pids);
+	else if (!was_sparse && pid->is_sparse)
+		safe_int_inc(&pid->filter->nb_sparse_pids);
+
 
 	pid->stream_type = mtype;
 	pid->codecid = codecid;
@@ -4912,6 +4936,12 @@ single_retry:
 
 
 	filter->num_out_pids_not_connected ++;
+	//remove sparse info
+	if (pid->is_sparse) {
+		assert(filter->nb_sparse_pids);
+		safe_int_dec(&filter->nb_sparse_pids);
+		pid->is_sparse = 0;
+	}
 
 	GF_FilterEvent evt;
 	if (filter_found_but_pid_excluded) {
@@ -4939,9 +4969,11 @@ single_retry:
 		pid->not_connected = 1;
 	}
 	GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+	evt.play.initial_broadcast_play = 2;
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
+	evt.play.initial_broadcast_play = 2;
 	gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 
 	gf_filter_pid_set_eos(pid);
@@ -5730,6 +5762,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 {
 	GF_FilterPacketInstance *pcki;
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
@@ -5739,6 +5772,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		return NULL;
 	}
 
+restart:
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
 	if (!pcki) {
@@ -5753,8 +5787,9 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (gf_filter_pid_filter_internal_packet(pidinst, pcki))  {
-		return gf_filter_pid_get_packet(pid);
+	if (gf_filter_pid_filter_internal_packet(pidinst, pcki)) {
+		//avoid recursion
+		goto restart;
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
@@ -5833,6 +5868,35 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	return (GF_FilterPacket *)pcki;
 }
 
+static GF_FilterPacketInstance *gf_filter_pid_probe_next_packet(GF_FilterPidInst *pidinst)
+{
+	u32 i=0;
+	//get first packet that is not an internal command
+	//if packet is a clock, consume it
+	while (1) {
+		GF_FilterPacketInstance *pcki = (GF_FilterPacketInstance *)gf_fq_get(pidinst->packets, i);
+		if (!pcki) break;
+		i++;
+
+		u32 ctype = (pcki->pck->info.flags & GF_PCK_CMD_MASK);
+		if (ctype == GF_PCK_CMD_PID_EOS ) {
+			break;
+		} else if (ctype == GF_PCK_CMD_PID_REM) {
+			break;
+		}
+		ctype = (pcki->pck->info.flags & GF_PCK_CKTYPE_MASK) >> GF_PCK_CKTYPE_POS;
+
+		if (ctype) {
+			if (pcki->pid->handles_clock_references) return NULL;
+
+			gf_filter_pid_filter_internal_packet(pidinst, pcki);
+			return gf_filter_pid_probe_next_packet(pidinst);
+		}
+		return pcki;
+	}
+	return NULL;
+}
+
 GF_EXPORT
 Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 {
@@ -5844,20 +5908,20 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 	}
 	if (pidinst->discard_packets) return GF_FALSE;
 
-	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
+	pcki = gf_filter_pid_probe_next_packet(pidinst);
 	//no packets
 	if (!pcki) {
 		return GF_FALSE;
 	}
 	assert(pcki->pck);
-
-	if (gf_filter_pid_filter_internal_packet(pidinst, pcki))  {
-		return gf_filter_pid_get_first_packet_cts(pid, cts);
-	}
-
 	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_FALSE;
-	*cts = pcki->pck->info.cts;
+
+	GF_PropertyMap *map = gf_list_get(pidinst->pid->properties, 0);
+	if (map)
+		*cts = gf_timestamp_rescale(pcki->pck->info.cts, pcki->pck->pid_props->timescale, map->timescale);
+	else
+		*cts = pcki->pck->info.cts;
 	return GF_TRUE;
 }
 
@@ -5872,19 +5936,36 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	if (pidinst->discard_packets) return GF_TRUE;
 
-	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
+	pcki = gf_filter_pid_probe_next_packet(pidinst);
 	//no packets
 	if (!pcki) {
 		return GF_TRUE;
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.flags & (GF_PCK_CMD_MASK|GF_PCK_CKTYPE_MASK)) {
-		return GF_TRUE;
-	}
 	if (pidinst->requires_full_data_block && !(pcki->pck->info.flags & GF_PCKF_BLOCK_END))
 		return GF_TRUE;
 	return (pcki->pck->data_length || pcki->pck->frame_ifce) ? GF_FALSE : GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_filter_pid_first_packet_is_blocking_ref(GF_FilterPid *pid)
+{
+	GF_FilterPacketInstance *pcki;
+	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to read packet CTS on an output PID in filter %s\n", pid->filter->name));
+		return GF_FALSE;
+	}
+	if (pidinst->discard_packets) return GF_FALSE;
+
+	pcki = gf_filter_pid_probe_next_packet(pidinst);
+	//no packets
+	if (!pcki) {
+		return GF_FALSE;
+	}
+	assert(pcki->pck);
+	return gf_filter_pck_is_blocking_ref(pcki->pck);
 }
 
 
@@ -6218,8 +6299,10 @@ GF_EXPORT
 Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 {
 	Bool would_block=GF_FALSE;
+	Bool result=GF_FALSE;
+#ifdef DEBUG_BLOCKMODE
 	Bool blockmode_broken=GF_FALSE;
-
+#endif
 	if (PID_IS_INPUT(pid)) {
 		return GF_FALSE;
 	}
@@ -6233,23 +6316,42 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		if (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER >= pid->max_buffer_unit * pid->playback_speed_scaler) {
 			would_block = GF_TRUE;
 		}
+#ifdef DEBUG_BLOCKMODE
 		if ((pid->num_destinations==1) && !pid->filter->blockmode_broken && ( (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER > 100 * pid->max_buffer_unit * pid->playback_speed_scaler) ) ) {
 			blockmode_broken = GF_TRUE;
 		}
+#endif
 	} else if (pid->max_buffer_time) {
 		if (pid->buffer_duration * GF_FILTER_SPEED_SCALER > pid->max_buffer_time * pid->playback_speed_scaler) {
 			would_block = GF_TRUE;
 		}
+#ifdef DEBUG_BLOCKMODE
 		if ((pid->num_destinations==1) && !pid->filter->blockmode_broken && (pid->buffer_duration * GF_FILTER_SPEED_SCALER > 100 * pid->max_buffer_time * pid->playback_speed_scaler) ) {
 			blockmode_broken = GF_TRUE;
 		}
+#endif
 	}
+
+#ifdef DEBUG_BLOCKMODE
 	if (blockmode_broken) {
-		//don't throw a warning since some filters may dispatch a large burst of packets (eg isom muxer)
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s block mode not respected: %u units "LLU" us vs %u max units "LLU" max buffer\n", pid->pid->filter->name, pid->pid->name, pid->nb_buffer_unit, pid->buffer_duration, pid->max_buffer_unit, pid->max_buffer_time));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s PID %s block mode not respected: %u units "LLU" us vs %u max units "LLU" max buffer\n", pid->pid->filter->name, pid->pid->name, pid->nb_buffer_unit, pid->buffer_duration, pid->max_buffer_unit, pid->max_buffer_time));
 
 		pid->filter->blockmode_broken = GF_TRUE;
 	}
+#endif
+
+	result = would_block;
+	//if PID is sparse and filter has more than one active output:
+	//- force the pid to move to blocking state
+	//- return the true status so that filters checking gf_filter_pid_would_block will dispatch frame if any
+	//
+	//This avoids considering a demux filter (with e.g., AV+text) as non-blocking when all its non-sparse PIDs are blocked
+	if (!pid->would_block && pid->is_sparse && !pid->not_connected
+		&& (pid->filter->num_output_pids > 1+pid->filter->num_out_pids_not_connected)
+		//don't do this if only sparse pids are connected
+		&& (pid->filter->nb_sparse_pids + pid->filter->num_out_pids_not_connected < pid->filter->num_output_pids)
+	)
+		would_block = GF_TRUE;
 
 	if (would_block && !pid->would_block) {
 		safe_int_inc(&pid->would_block);
@@ -6268,7 +6370,14 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	}
 	assert(pid->filter->would_block <= pid->filter->num_output_pids);
 	gf_mx_v(pid->filter->tasks_mx);
-	return would_block;
+	return result;
+}
+
+GF_EXPORT
+Bool gf_filter_pid_is_sparse(GF_FilterPid *pid)
+{
+	if (!pid) return GF_FALSE;
+	return pid->pid->is_sparse;
 }
 
 static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool check_pid_full, Bool force_update)
@@ -6284,21 +6393,32 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		if (!pidinst->pid) return 0;
 		filter = pidinst->pid->filter;
 		if (check_pid_full) {
-			Bool buffer_full = GF_FALSE;
+			u32 buffer_full = GF_FALSE;
+			Bool buffer_valid = GF_FALSE;
 
-			if (pidinst->pid->max_buffer_unit && (pidinst->pid->max_buffer_unit<=pidinst->pid->nb_buffer_unit))
-				buffer_full = GF_TRUE;
+			if (pidinst->pid->max_buffer_unit) {
+				buffer_valid = GF_TRUE;
+				if (pidinst->pid->max_buffer_unit<=pidinst->pid->nb_buffer_unit)
+					buffer_full = GF_TRUE;
+			}
+			if (pidinst->pid->max_buffer_time) {
+				buffer_valid = GF_TRUE;
+				if (pidinst->pid->max_buffer_time<=pidinst->pid->buffer_duration)
+					buffer_full = GF_TRUE;
+			}
 
-			if (pidinst->pid->max_buffer_time && (pidinst->pid->max_buffer_time<=pidinst->pid->buffer_duration))
-				buffer_full = GF_TRUE;
-
-			if (!buffer_full)
-				return 0;
+			if (buffer_valid) {
+				if (!buffer_full) {
+					return 0;
+				}
+				if (pidinst->pid->max_buffer_unit<=pidinst->pid->nb_buffer_unit)
+					return GF_FILTER_NO_TS;
+			}
 		}
 
 		//this is a very costly recursive call until each source, and is likely to be an overkill
 		//if many PIDs (large tiling configurations for example)
-		//we cache the last computed value and only update every 10ms
+		//we cache the last computed value and only update every 10 ms
 		if (!force_update && (pidinst->filter->last_schedule_task_time - pidinst->last_buf_query_clock < 10000)) {
 			return pidinst->last_buf_query_dur;
 		}
@@ -6308,7 +6428,7 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 		gf_mx_p(filter->tasks_mx);
 		count = filter->num_input_pids;
 		for (i=0; i<count; i++) {
-			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), 0, force_update);
+			u64 dur = gf_filter_pid_query_buffer_duration_internal( gf_list_get(filter->input_pids, i), GF_FALSE, force_update);
 			if (dur > duration)
 				duration = dur;
 
@@ -6339,7 +6459,7 @@ static u64 gf_filter_pid_query_buffer_duration_internal(GF_FilterPid *pid, Bool 
 			count2 = pidinst->filter->num_output_pids;
 			for (j=0; j<count2; j++) {
 				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
-				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, 0, GF_FALSE);
+				u64 dur = gf_filter_pid_query_buffer_duration_internal(pid_n, GF_FALSE, GF_FALSE);
 				if (dur > max_dur ) max_dur = dur;
 			}
 		}
@@ -6450,6 +6570,7 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	pidi->buffer_duration = 0;
 	pidi->nb_eos_signaled = 0;
 	pidi->pid->has_seen_eos = GF_FALSE;
+	pidi->last_clock_type = 0;
 
 	assert(pidi->pid->filter->stream_reset_pending);
 	safe_int_dec(& pidi->pid->filter->stream_reset_pending );
@@ -6793,6 +6914,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		}
 		for (i=0; i<pid->num_destinations && do_reset; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			pidi->last_clock_type = 0;
 
 			if (!pidi->discard_packets) {
 				safe_int_inc(&pidi->discard_packets);
@@ -7435,7 +7557,7 @@ const GF_PropertyValue *gf_filter_pid_caps_query(GF_FilterPid *pid, u32 prop_4cc
 	if (PID_IS_INPUT(pid)) {
 		u32 k;
 		GF_Filter *dst = pid->filter->cap_dst_filter;
-		//the first entry in destination filters may be the fnal destination and won't hold any caps query
+		//the first entry in destination filters may be the final destination and won't hold any caps query
 		//we therefore use the last entry which points to the next filter in the chain
 		if (!dst) dst = gf_list_last(pid->filter->destination_filters);
 		if (!dst) dst = gf_list_get(pid->filter->destination_links, 0);

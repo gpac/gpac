@@ -57,10 +57,6 @@
 #endif
 
 
-//rendering/translating to internal supported formats for text streams is not yet implemented
-//#define FF_SUB_SUPPORT
-
-
 GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
 void ffmpeg_setup_logs(u32 log_class);
 
@@ -105,3 +101,6 @@ void ffmpeg_register_set_dyn_help(GF_FilterRegister *reg);
 GF_Err ffmpeg_extradata_from_gpac(u32 gpac_codec_id, const u8 *dsi_in, u32 dsi_in_size, u8 **dsi_out, u32 *dsi_out_size);
 //output allocated with gf_malloc
 GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 **dsi_out, u32 *dsi_out_size);
+
+void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata);
+void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid);

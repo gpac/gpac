@@ -2,7 +2,12 @@
 
 ## Filters
 - 2-pass encoding for FFmpeg codecs other than libx264
-
+- Conversion filters for VTT, TXG3 and TTML
+- SubstationAlpha subtitle import (basic)
+- DVB subpictures in M2TS mux and demux
+- FFMPEG (mostly for Matroska) subtitle import and export (SRT/SSA to TX3G, TX3G to SRT, WebVTT and DVB subpictures)
+- subtitle delay and position adjustment in compositor
+- audio delay adjustment in compositor
 
 # 22/02/2022: GPAC 2.0
 

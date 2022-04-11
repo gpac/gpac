@@ -2259,8 +2259,14 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 		else if (!strcmp(key, "t")) gf_fprintf(dump, "\t" );
 		else if (!strcmp(key, "data")) {
 			u32 i;
-			for (i=0; i<size; i++) {
-				gf_fprintf(dump, "%02X", (unsigned char) data[i]);
+			if ((pctx->stream_type==GF_STREAM_TEXT) && gf_utf8_is_legal(data, size)) {
+				for (i=0; i<size; i++) {
+					gf_fprintf(dump, "%c", data[i]);
+				}
+			} else {
+				for (i=0; i<size; i++) {
+					gf_fprintf(dump, "%02X", (unsigned char) data[i]);
+				}
 			}
 		}
 		else if (!strcmp(key, "lp")) {
@@ -2284,6 +2290,27 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 			u8 flags = gf_filter_pck_get_dependency_flags(pck);
 			flags &= 0x3;
 			gf_fprintf(dump, "%u", flags);
+		}
+		else if (!strcmp(key, "start") || !strcmp(key, "end") || !strcmp(key, "startc") || !strcmp(key, "endc")) {
+			u64 ts = gf_filter_pck_get_cts(pck);
+			if (ts==GF_FILTER_NO_TS) gf_fprintf(dump, "N/A");
+			else {
+				if (!strcmp(key, "end"))
+					ts += gf_filter_pck_get_duration(pck);
+				ts *= 1000;
+				ts /= gf_filter_pid_get_timescale(pctx->src_pid);
+
+				u32 h, m, s, ms;
+				u64 time = ts/1000;
+				h = time/3600;
+				m = time/60 - h*60;
+				s = time - m*60 - h*3660;
+				ms = ts - 1000*time;
+				if (!strcmp(key, "startc") || !strcmp(key, "endc"))
+					gf_fprintf(dump, "%02d:%02d:%02d,%03d", h, m, s, ms);
+				else
+					gf_fprintf(dump, "%02d:%02d:%02d.%03d", h, m, s, ms);
+			}
 		}
 		else if (!strcmp(key, "ck")) {
 			GF_FilterClockType ck_type = gf_filter_pck_get_clock_type(pck);
@@ -2371,6 +2398,15 @@ void gf_m4v_parser_set_inspect(GF_M4VParser *m4v);
 u32 gf_m4v_parser_get_obj_type(GF_M4VParser *m4v);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
+static const char *get_frame_type_name(u32 ftype)
+{
+	switch (ftype) {
+	case 2: return "B";
+	case 1: return "P";
+	case 0: return "I";
+	default: return "unknown";
+	}
+}
 static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 {
 	u8 ftype;
@@ -2408,7 +2444,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				break;
 
 			case M4V_VOP_START_CODE:
-				gf_fprintf(dump, " name=\"VOP\" RAP=\"%d\" frameType=\"%d\" timeInc=\"%d\" isCoded=\"%d\"", (ftype==0) ? 1 : 0, ftype, tinc, is_coded);
+				gf_fprintf(dump, " name=\"VOP\" RAP=\"%d\" frameType=\"%s\" timeInc=\"%d\" isCoded=\"%d\"", (ftype==1) ? 1 : 0, get_frame_type_name(ftype), tinc, is_coded);
 				break;
 			case M4V_GOV_START_CODE:
 				gf_fprintf(dump, " name=\"GOV\"");
@@ -2439,7 +2475,7 @@ static void inspect_dump_mpeg124(PidCtx *pctx, char *data, u32 size, FILE *dump)
 				gf_fprintf(dump, " name=\"SeqStartEXT\" width=\"%d\" height=\"%d\" PL=\"%d\"", pctx->dsi.width, pctx->dsi.height, pctx->dsi.VideoPL);
 				break;
 			case M2V_PIC_START_CODE:
-				gf_fprintf(dump, " name=\"PicStart\" frameType=\"%d\" isCoded=\"%d\"", ftype, is_coded);
+				gf_fprintf(dump, " name=\"PicStart\" frameType=\"%s\" isCoded=\"%d\"", get_frame_type_name(ftype), is_coded);
 				break;
 			case M2V_GOP_START_CODE:
 				gf_fprintf(dump, " name=\"GOPStart\"");
@@ -4421,11 +4457,15 @@ const GF_FilterRegister InspectRegister = {
 	"- crc: 32 bit CRC of packet\n"
 	"- lf or n: insert new line\n"
 	"- t: insert tab\n"
-	"- data: hex dump of packet (__big output!__)\n"
+	"- data: hex dump of packet (__big output!__) or as string if legal UTF-8\n"
 	"- lp: leading picture flag\n"
 	"- depo: depends on other packet flag\n"
 	"- depf: is depended on other packet flag\n"
 	"- red: redundant coding flag\n"
+	"- start: packet composition time as HH:MM:SS.ms\n"
+	"- startc: packet composition time as HH:MM:SS,ms\n"
+	"- end: packet end time as HH:MM:SS.ms\n"
+	"- endc: packet end time as HH:MM:SS,ms\n"
 	"- ck: clock type used for PCR discontinuities\n"
 	"- pcr: MPEG-2 TS last PCR, n/a if not available\n"
 	"- pcrd: difference between last PCR and decoding time, n/a if no PCR available\n"

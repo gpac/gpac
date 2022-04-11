@@ -83,7 +83,8 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 			j = 0;
 			while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j))) {
 				ck->init_timestamp += ms_diff;
-				ck->media_time_at_init += ms_diff;
+				ck->media_ts_orig += ms_diff;
+				ck->media_time_orig += ms_diff;
 				//make sure we don't touch clock while doing resume/pause below
 				if (force_resume_pause)
 					ck->nb_paused++;

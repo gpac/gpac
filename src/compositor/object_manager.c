@@ -421,6 +421,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		if (odm->buffer_min_ms * 1000 > evt.buffer_req.max_playout_us)
 			odm->buffer_min_ms = 0;
+
+		if (gf_filter_pid_is_sparse(for_pid ? for_pid : odm->pid))
+			odm->buffer_min_ms = odm->buffer_max_ms = odm->buffer_playout_ms = 0;
+
 	}
 
 	/*setup mediaobject info except for top-level OD*/
@@ -489,21 +493,29 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal
 	we also force a prefetch for object declared outside the OD stream to make sure we don't loose any data before object declaration and play
 	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
-	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && gf_odm_should_auto_select(odm) && (odm->parentscene->selected_service_id == odm->ServiceID)) {
-		Bool force_play = GF_FALSE;
+	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->ServiceID)) {
 
-		if (odm->state==GF_ODM_STATE_STOP) {
-			odm->flags |= GF_ODM_PREFETCH;
-			force_play = GF_TRUE;
-		}
+		if (gf_odm_should_auto_select(odm)) {
+			Bool force_play = GF_FALSE;
 
-		if (force_play) {
-			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
-			odm->parentscene->selected_service_id = odm->ServiceID;
+			if (odm->state==GF_ODM_STATE_STOP) {
+				odm->flags |= GF_ODM_PREFETCH;
+				force_play = GF_TRUE;
+			}
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] Inserted from input service %s - forcing play\n", odm->ID, odm->scene_ns->url));
-			odm->flags &= ~GF_ODM_NOT_SETUP;
+			if (force_play) {
+				odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
+				odm->parentscene->selected_service_id = odm->ServiceID;
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] Inserted from input service %s - forcing play\n", odm->ID, odm->scene_ns->url));
+				odm->flags &= ~GF_ODM_NOT_SETUP;
+				gf_odm_start(odm);
+			}
+		} else {
+			//otherwise issue play/stop to stop the stream
+			//the play is needed because some filters (m2ts demux) start considering the pid is active (for reframers)
 			gf_odm_start(odm);
+			gf_odm_stop(odm, GF_FALSE);
 		}
 	}
 
@@ -586,6 +598,10 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	}
 #endif
 
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+	if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	if (prop) es_id = prop->value.uint;
+
 	if (odm->ck) {
 		ck = odm->ck;
 		goto clock_setup;
@@ -663,18 +679,12 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 		assert(ck_namespace);
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-	if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-	if (prop) es_id = prop->value.uint;
 
 	ck = gf_clock_attach(ck_namespace, scene, clockID, es_id, flag);
 	if (!ck) return GF_OUT_OF_MEM;
 
 	ck->service_id = odm->ServiceID;
 	clock_inherited = GF_FALSE;
-
-	if (es_id==ck->clock_id)
-		odm->owns_clock = GF_TRUE;
 
 	if (scene->root_od->subscene && scene->root_od->subscene->is_dynamic_scene && !scene->root_od->ck)
 		scene->root_od->ck = ck;
@@ -683,6 +693,9 @@ clock_setup:
 	assert(ck);
 	odm->ck = ck;
 	odm->clock_inherited = clock_inherited;
+
+	if (es_id==ck->clock_id)
+		odm->owns_clock = GF_TRUE;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	odm->timestamp_offset = prop ? prop->value.longsint : 0;
@@ -772,6 +785,14 @@ void gf_odm_play(GF_ObjectManager *odm)
 		/*reset*/
 		gf_filter_pck_unref(odm->mo->pck);
 		odm->mo->pck = NULL;
+		//reset all textures pointing to this stream
+		u32 i, count = gf_list_count(scene->compositor->textures);
+		for (i=0; i<count; i++) {
+			GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(scene->compositor->textures, i);
+			if (!txh || (txh->stream != odm->mo)) break;
+			txh->data = NULL;
+			txh->frame_ifce = NULL;
+		}
 	}
 
 	if (odm->parentscene) {
@@ -928,10 +949,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 	if (odm->state != GF_ODM_STATE_PLAY) {
 		odm->state = GF_ODM_STATE_PLAY;
 
-		odm->nb_buffering ++;
-		scene->nb_buffering++;
-		//start buffering
-		gf_clock_buffer_on(odm->ck);
+		if (odm->buffer_max_ms) {
+			odm->nb_buffering ++;
+			scene->nb_buffering++;
+			//start buffering
+			gf_clock_buffer_on(odm->ck);
+		}
 
 		odm->has_seen_eos = GF_FALSE;
 
@@ -1453,18 +1476,17 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 	}
 }
 
-static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *pid, Bool *signal_eob)
+/*DO NOT use get_packet here, we don't want to trigger reconfig*/
+static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *pid, Bool check_full_buffer, Bool *signal_eob)
 {
 	u32 timescale;
-	u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, GF_FALSE)/1000;
+	u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid, check_full_buffer)/1000;
 	if (odm->ck && ! odm->ck->clock_init) {
 		u64 time;
-		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
-		if (!pck) return GF_TRUE;
-		timescale = gf_filter_pck_get_timescale(pck);
+		if (!gf_filter_pid_get_first_packet_cts(pid, &time))
+			return GF_TRUE;
+		timescale = gf_filter_pid_get_timescale(pid);
 
-		time = gf_filter_pck_get_cts(pck);
-		if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
 		if (time==GF_FILTER_NO_TS) {
 			//this usually happens with BT/XMT playback
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("No timestamp on first packet, using 0\n"));
@@ -1478,8 +1500,10 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 			time-= -odm->timestamp_offset;
 		}
 
-		time *= 1000;
-		time /= timescale;
+		//this happens for direct file loaders calling this (btplay & co)
+		if (timescale) {
+			time = gf_timestamp_rescale(time, timescale, 1000);
+		}
 		gf_clock_set_time(odm->ck, (u32) time);
 		odm->media_current_time = 0;
 		if (odm->parentscene) {
@@ -1488,7 +1512,7 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		}
 		gf_odm_check_clock_mediatime(odm);
 
-		if (pck && gf_filter_pck_is_blocking_ref(pck))
+		if (gf_filter_pid_first_packet_is_blocking_ref(pid))
 			odm->blocking_media = GF_TRUE;
 	}
 
@@ -1522,6 +1546,7 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 	return GF_FALSE;
 }
 
+/*DO NOT use get_packet here, we don't want to trigger reconfig*/
 Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
 	u32 timescale;
@@ -1529,34 +1554,45 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_Scene *scene;
 	GF_FilterClockType ck_type;
 	u64 clock_reference;
-	GF_FilterPacket *pck;
-	Bool check_disc = GF_TRUE;
+	u64 pck_time = 0;
+	Bool has_pck = GF_FALSE;
+	Bool check_disc = GF_FALSE;
+	Bool check_full_buffer = GF_TRUE;
 
 	assert(odm);
 
-	if (!pid)
+	if (!pid) {
+		check_full_buffer = GF_FALSE;
 		pid = odm->pid;
+	}
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
 	if (!scene) return GF_FALSE;
-	pck = gf_filter_pid_get_packet(pid);
+
+	if (!gf_filter_pid_first_packet_is_empty(pid)) {
+		if (gf_filter_pid_get_first_packet_cts(pid, &pck_time))
+			has_pck = GF_TRUE;
+	}
 	ck_type = gf_filter_pid_get_clock_info(pid, &clock_reference, &timescale);
 
-	if (!odm->ck->clock_init && ck_type) {
-		clock_reference *= 1000;
-		clock_reference /= timescale;
-		gf_clock_set_time(odm->ck, (u32) clock_reference);
-		if (odm->parentscene)
-			odm->parentscene->root_od->media_start_time = 0;
+	if (!odm->ck->clock_init) {
+		if (ck_type) {
+			clock_reference = gf_timestamp_rescale(clock_reference, timescale, 1000);
+			gf_clock_set_time(odm->ck, (u32) clock_reference);
+			if (odm->parentscene) odm->parentscene->root_od->media_start_time = 0;
+		}
+		else if (has_pck && odm->owns_clock && !odm->ck->clock_init) {
+			u32 clock = gf_timestamp_rescale(pck_time, gf_filter_pid_get_timescale(pid), 1000);
+			gf_clock_set_time(odm->ck, clock);
+		}
 	}
-
 	if (odm->nb_buffering) {
 	 	GF_ODMExtraPid *xpid;
 	 	u32 i=0;
-	 	Bool ret = odm_update_buffer(scene, odm, pid, &signal_eob);
+		Bool ret = odm_update_buffer(scene, odm, pid, check_full_buffer, &signal_eob);
 	 	if (ret) return GF_TRUE;
 		while (odm->nb_buffering && (xpid = gf_list_enum(odm->extra_pids, &i))) {
-			ret = odm_update_buffer(scene, odm, xpid->pid, &signal_eob);
+			ret = odm_update_buffer(scene, odm, xpid->pid, GF_FALSE, &signal_eob);
 			if (ret) return GF_TRUE;
 		}
 	}
@@ -1569,7 +1605,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (!an_odm->pid) continue;
 
 			if (an_odm->nb_buffering)
-	 			odm_update_buffer(scene, an_odm, an_odm->pid, &signal_eob);
+				odm_update_buffer(scene, an_odm, an_odm->pid, GF_FALSE, &signal_eob);
 		}
 	} else if (!odm->blocking_media && odm->buffer_min_ms && odm->pid && odm->ck && odm->ck->clock_init && !gf_filter_pid_has_seen_eos(odm->pid) ) {
 		u64 buffer_duration = gf_filter_pid_query_buffer_duration(odm->pid, GF_FALSE)/1000;
@@ -1587,10 +1623,12 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 	if (odm->parentscene && odm->parentscene->root_od->addon)
 		check_disc = GF_FALSE;
+	else if ((odm->type== GF_STREAM_VISUAL) || (odm->type== GF_STREAM_AUDIO))
+		check_disc = GF_TRUE;
+
 	//handle both PCR discontinuities or TS looping when no PCR disc is present/signaled
-	if (pck && check_disc) {
+	if (has_pck && check_disc) {
 		s32 diff=0;
-		u64 pck_time = 0;
 		u32 clock_time = gf_clock_time(odm->ck);
 		s32 diff_to = 0;
 		if (ck_type) {
@@ -1604,8 +1642,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
 				odm->ck->ocr_discontinuity_time = (u32) (1+clock_reference);
 		}
-		pck_time = gf_filter_pck_get_cts(pck);
-		timescale = gf_filter_pck_get_timescale(pck);
+		timescale = gf_filter_pid_get_timescale(pid);
 		if (pck_time != GF_FILTER_NO_TS) {
 			pck_time *= 1000;
 			pck_time /= timescale;
@@ -1629,7 +1666,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (diff_pck_old_clock > diff_pck_new_clock) {
 				u32 i, count;
 				GF_Scene *in_scene = odm->subscene ? odm->subscene : odm->parentscene;
-				GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPTIME, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
 
 				count = gf_list_count(in_scene->resources);
 				for (i=0; i<count; i++) {
@@ -1640,6 +1677,12 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 				odm->ck->clock_init = GF_FALSE;
 				gf_clock_set_time(odm->ck, odm->ck->ocr_discontinuity_time ? odm->ck->ocr_discontinuity_time - 1 : (u32) clock_reference);
 				odm->ck->ocr_discontinuity_time = 0;
+				//if we had media time mapping, get media time in last clock value and reassign mapping
+				if (odm->ck->has_media_time_shift) {
+					u32 mtime = gf_clock_to_media_time(odm->ck, clock_time);
+					odm->ck->media_time_orig = mtime;
+					odm->ck->media_ts_orig = clock_reference;
+				}
 			}
 		}
 	} else if (ck_type) {
@@ -2002,7 +2045,7 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	u64 timestamp;
 	u32 timescale;
 	u32 i;
-	Double media_time, shift;
+	Double media_time;
 	GF_Scene *scene;
 	const GF_PropertyValue *p;
 	GF_PropertyEntry *pe=NULL;
@@ -2021,11 +2064,8 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	gf_filter_release_property(pe);
 	media_time = p->value.number;
 
-	shift = (Double) timestamp;
-	shift /= timescale;
-	shift -= ((Double)odm->ck->init_timestamp)/1000;
-	media_time += shift;
-	odm->ck->media_time_at_init = (u32) (media_time * 1000);
+	odm->ck->media_ts_orig = gf_timestamp_rescale(timestamp, timescale, 1000);
+	odm->ck->media_time_orig = (u32) (media_time * 1000);
 	odm->ck->has_media_time_shift = GF_TRUE;
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;

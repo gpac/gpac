@@ -1031,6 +1031,8 @@ enum
 	GF_PROP_PID_ZORDER = GF_4CC('V', 'Z','I','X'),
 	GF_PROP_PID_TRANS_X = GF_4CC('V','T','R','X'),
 	GF_PROP_PID_TRANS_Y = GF_4CC('V','T','R','Y'),
+	GF_PROP_PID_TRANS_X_INV = GF_4CC('V','T','R','x'),
+	GF_PROP_PID_TRANS_Y_INV = GF_4CC('V','T','R','y'),
 	GF_PROP_PID_HIDDEN = GF_4CC('H','I','D','E'),
 	GF_PROP_PID_CROP_POS = GF_4CC('V','C','X','Y'),
 	GF_PROP_PID_ORIG_SIZE = GF_4CC('V','O','W','H'),
@@ -1198,11 +1200,11 @@ enum
 	GF_PROP_PID_VR_POSE = GF_4CC('P','P','O','S'),
 	GF_PROP_PID_CUBE_MAP_PAD = GF_4CC('P','C','M','P'),
 	GF_PROP_PID_EQR_CLAMP = GF_4CC('P','E','Q','C'),
+	GF_PROP_PID_SPARSE = GF_4CC('P','S','P','A'),
 
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
 	GF_PROP_PID_TIMESHIFT_SEGS = GF_4CC('P','T','S','N'),
-
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
@@ -1589,7 +1591,10 @@ typedef struct
 
 	/*! GF_FEVT_PLAY only, set when PLAY event is sent upstream to audio out, indicates HW buffer reset*/
 	u8 hw_buffer_reset;
-	/*! GF_FEVT_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
+	/*!
+		1: indicates this is the first PLAY on an element inserted from broadcast/live (GF_FEVT_PLAY only)
+		2: indicates this is a PLAY preceeding a STOP or a STOP for a PID being disconnected (GF_FEVT_PLAY and GF_FEVT_STOP)
+	*/
 	u8 initial_broadcast_play;
 	/*! params for GF_FEVT_PLAY only
 		0: range is in media time
@@ -3550,7 +3555,7 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *PID, Bool requires_full_bloc
 
 /*! Gets cumulated buffer duration of PID (recursive until source)
 \param PID the target filter PID
-\param check_pid_full if GF_TRUE, returns 0 if the PID buffer is not yet full
+\param check_pid_full if GF_TRUE, returns 0 if the PID buffer is not yet full, or GF_FILTER_NO_TS if pid buffer is full
 \return the duration in us, or -1 if session is in final flush
 */
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *PID, Bool check_pid_full);
@@ -3611,6 +3616,12 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *PID);
 */
 Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *PID);
 
+/*! Checks if the first packet on an input PID is a blocking ref.
+\param PID the target filter PID
+\return GF_TRUE if  packet is valid and blocking, GF_FALSE otherwise
+*/
+Bool gf_filter_pid_first_packet_is_blocking_ref(GF_FilterPid *PID);
+
 /*! Gets the first packet in the input PID buffer.
 This may trigger a reconfigure signal on the filter. If reconfigure is not OK, returns NULL and the PID passed to the filter NO LONGER EXISTS (implicit remove)
 The packet is still present in the PID buffer until explicitly removed by \ref gf_filter_pid_drop_packet
@@ -3651,6 +3662,20 @@ This function should be called by eg demuxers to regulate the rate at which they
 \return GF_TRUE if PID would enter blocking state , GF_FALSE otherwise
 */
 Bool gf_filter_pid_would_block(GF_FilterPid *PID);
+
+/*! Checks if the PID is sparse. A sparse PID may have holes in its timeline.
+
+A sparse PID is always considered blocking for the regulation, even if \ref gf_filter_pid_would_block for this PID can return FALSE (buffers not full).
+This avoids unblocking a filter when only its sparse output PIDs are not full (typically text streams).
+
+A PID is sparse if:
+- it has the property GF_PROP_PID_SPARSE set to true
+- or it does not have the property GF_PROP_PID_SPARSE defined and it is not an audio, video or file stream.
+
+\param PID the target filter PID
+\return GF_TRUE if PID is sparse , GF_FALSE otherwise
+*/
+Bool gf_filter_pid_is_sparse(GF_FilterPid *PID);
 
 /*! Shortcut to access the timescale of the PID - faster than get property as the timescale is locally cached for buffer management
 \param PID the target filter PID

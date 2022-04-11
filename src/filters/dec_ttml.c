@@ -41,7 +41,7 @@ typedef struct
 	//opts
 	char *script;
 	char *color, *font;
-	Float fontSize, lineSpacing, txtx, txty;
+	Float fontSize, lineSpacing;
 	u32 txtw, txth, valign;
 
 	GF_FilterPid *ipid, *opid;
@@ -63,7 +63,11 @@ typedef struct
 
 	GF_BitStream *subs_bs;
 	s32 notify_clock;
+	s32 txtx, txty;
+	u32 fsize, vp_w, vp_h;
 
+	s64 delay;
+	u32 timescale;
 } GF_TTMLDec;
 
 void ttmldec_update_size_info(GF_TTMLDec *ctx)
@@ -92,6 +96,8 @@ void ttmldec_update_size_info(GF_TTMLDec *ctx)
 	}
 
 	gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
+	ctx->vp_w = w;
+	ctx->vp_h = h;
 
 	sprintf(szVB, "0 0 %d %d", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
@@ -148,6 +154,7 @@ void ttmldec_setup_scene(GF_TTMLDec *ctx)
 
 static GF_Err ttmldec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	const GF_PropertyValue *p;
 	GF_TTMLDec *ctx = (GF_TTMLDec *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -171,6 +178,11 @@ static GF_Err ttmldec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	ctx->timescale = p ? p->value.longsint : 1000;
 
 	return GF_OK;
 }
@@ -246,10 +258,33 @@ JSContext *ttmldec_get_js_context(GF_TTMLDec *ctx)
 	JSContext *svg_script_get_context(GF_SceneGraph *sg);
 	JSContext *c = svg_script_get_context(sg);
 
+	if ((ctx->txtx != ctx->scene->compositor->subtx)
+		|| (ctx->txty != ctx->scene->compositor->subty)
+		|| (ctx->fsize != ctx->scene->compositor->subfs)
+	) {
+		ctx->txtx = ctx->scene->compositor->subtx;
+		ctx->txty = ctx->scene->compositor->subty;
+		ctx->fsize = ctx->scene->compositor->subfs;
+		ctx->update_args = GF_TRUE;
+	}
+
+
 	if (ctx->update_args) {
 		JSValue global = JS_GetGlobalObject(c);
 
-		JS_SetPropertyStr(c, global, "fontSize", JS_NewFloat64(c, ctx->fontSize));
+		u32 fs = MAX(ctx->fsize, ctx->fontSize);
+		u32 def_font_size = ctx->scene->compositor->subfs;
+		if (!def_font_size) {
+			if (ctx->vp_h > 2000) def_font_size = 80;
+			else if (ctx->vp_h > 700) def_font_size = 40;
+			else def_font_size = 20;
+		}
+
+		if (!fs || (def_font_size>fs)) {
+			fs = def_font_size;
+		}
+
+		JS_SetPropertyStr(c, global, "fontSize", JS_NewFloat64(c, fs));
 		JS_SetPropertyStr(c, global, "fontFamily", JS_NewString(c, ctx->font));
 		JS_SetPropertyStr(c, global, "textColor", JS_NewString(c, ctx->color));
 		JS_SetPropertyStr(c, global, "lineSpaceFactor", JS_NewFloat64(c, ctx->lineSpacing));
@@ -273,7 +308,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	const u8 *pck_data;
 	char *pck_alloc=NULL, *ttml_doc;
 	u64 cts;
-	u32 timescale, obj_time;
+	u32 obj_time;
 	u32 pck_size;
 	JSValue fun_val;
 	JSValue global;
@@ -308,7 +343,14 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		return GF_OK;
 
 	cts = gf_filter_pck_get_cts( pck );
-	timescale = gf_filter_pck_get_timescale(pck);
+	s64 delay = ctx->scene->compositor->subd;
+	if (delay)
+		delay = gf_timestamp_rescale_signed(delay, 1000, ctx->timescale);
+	delay += ctx->delay;
+
+	if (delay>=0) cts += delay;
+	else if (cts > -delay) cts -= -delay;
+	else cts = 0;
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
 
@@ -344,8 +386,8 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / timescale), obj_time, filter);
+	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
+		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / ctx->timescale), obj_time, filter);
 		return GF_OK;
 	}
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
@@ -406,7 +448,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 
 		argv[1] = JS_NewInt64(c, obj_time);
 		scene_ck = gf_filter_pck_get_duration(pck);
-		scene_ck /= timescale;
+		scene_ck /= ctx->timescale;
 		argv[2] = JS_NewFloat64(c, scene_ck);
 
 		ret = JS_Call(c, fun_val, global, 3, argv);
@@ -497,8 +539,6 @@ static const GF_FilterArgs TTMLDecArgs[] =
 	"- center: align text at center of text area\n"
 	"- top: align text at top of text area", GF_PROP_UINT, "bottom", "bottom|center|top", GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(txtx), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(txty), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
 	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}

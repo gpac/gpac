@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2020
+ *			Copyright (c) Telecom ParisTech 2007-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript Compositor extensions
@@ -697,7 +697,11 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 	case GJS_OM_PROP_TYPE:
 		if (odm->type==GF_STREAM_SCENE) str = "Scene";
 		else if (odm->type==GF_STREAM_OD) str = "OD";
-		else if (odm->type==GF_STREAM_VISUAL) str = "Video";
+		else if (odm->type==GF_STREAM_VISUAL) {
+			//handle all sparse video as text (we could check the original stream type)
+			if (odm->flags & GF_ODM_IS_SPARSE) str = "Text";
+			else str = "Video";
+		}
 		else if (odm->type==GF_STREAM_AUDIO) str = "Audio";
 		else if (odm->type==GF_STREAM_TEXT) str = "Text";
 		else if (odm->subscene) str = "Subscene";
@@ -709,7 +713,9 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		return JS_NewInt32(ctx, odm->mo ? odm->mo->num_channels : 0);
 	case GJS_OM_PROP_LANG:
 		gf_odm_get_object_info(odm, &odi);
-		return JS_NewString(ctx, odi.lang_code ? odi.lang_code : gf_4cc_to_str(odi.lang) );
+		if (odi.lang_code) return JS_NewString(ctx, odi.lang_code);
+		else if (odi.lang) return JS_NewString(ctx, gf_4cc_to_str(odi.lang) );
+		return JS_NewString(ctx, "und");
 	case GJS_OM_PROP_WIDTH:
 		return JS_NewInt32(ctx, odm->mo ? odm->mo->width : 0);
 	case GJS_OM_PROP_HEIGHT:

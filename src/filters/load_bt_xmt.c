@@ -397,6 +397,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 		//init clocks
 		gf_odm_check_buffering(priv->scene->root_od, priv->in_pid);
+		gf_clock_set_time(priv->scene->root_od->ck, 0);
 		gf_filter_pck_get_framing(pck, &is_start, &is_end);
 		gf_filter_pid_drop_packet(priv->in_pid);
 	}

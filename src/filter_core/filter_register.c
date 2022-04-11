@@ -164,6 +164,14 @@ const GF_FilterRegister *cryptfin_register(GF_FilterSession *session);
 const GF_FilterRegister *cryptfout_register(GF_FilterSession *session);
 const GF_FilterRegister *restamp_register(GF_FilterSession *session);
 const GF_FilterRegister *oggmux_register(GF_FilterSession *session);
+const GF_FilterRegister *vtt2tx3g_register(GF_FilterSession *session);
+const GF_FilterRegister *rfsrt_register(GF_FilterSession *session);
+const GF_FilterRegister *ttxtuf_register(GF_FilterSession *session);
+const GF_FilterRegister *tx3g2srt_register(GF_FilterSession *session);
+const GF_FilterRegister *tx3g2vtt_register(GF_FilterSession *session);
+const GF_FilterRegister *tx3g2ttml_register(GF_FilterSession *session);
+const GF_FilterRegister *ttmlconv_register(GF_FilterSession *session);
+const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session);
 
 void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
@@ -284,6 +292,14 @@ void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_register(fsess, bsrw_register(a_sess));
 	gf_fs_add_filter_register(fsess, bs_split_register(a_sess));
 	gf_fs_add_filter_register(fsess, bs_agg_register(a_sess));
+	gf_fs_add_filter_register(fsess, ttxtuf_register(a_sess));
+	gf_fs_add_filter_register(fsess, tx3g2srt_register(a_sess));
+	gf_fs_add_filter_register(fsess, tx3g2vtt_register(a_sess));
+	gf_fs_add_filter_register(fsess, tx3g2ttml_register(a_sess));
+	gf_fs_add_filter_register(fsess, vtt2tx3g_register(a_sess) );
+	gf_fs_add_filter_register(fsess, rfsrt_register(a_sess) );
+	gf_fs_add_filter_register(fsess, ttmlconv_register(a_sess) );
+	gf_fs_add_filter_register(fsess, ttmlconv2_register(a_sess) );
 
 	gf_fs_add_filter_register(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_register(fsess, ffdec_register(a_sess) );

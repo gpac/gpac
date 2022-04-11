@@ -230,7 +230,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		duration += ctx->cur_fps.den;
 		cur_dur += ctx->cur_fps.den;
 		//only index at I-frame start
-		if (pos && (ftype==0) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
+		if (pos && (ftype==1) && (cur_dur >= ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
@@ -485,6 +485,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 				gf_filter_pck_discard(pck);
 			}
 		}
+		ctx->cts = 0;
 		//don't cancel event
 		return GF_FALSE;
 
@@ -707,6 +708,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
 					gf_filter_pck_set_cts(dst_pck, GF_FILTER_NO_TS);
 					gf_filter_pck_set_dts(dst_pck, GF_FILTER_NO_TS);
+					gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_NONE);
 					memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
 					gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 
@@ -982,8 +984,13 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		size = 0;
 		e = gf_m4v_parse_frame(ctx->vparser, &ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
 
-		//only for m1v/m2v, for m4v we mah have fstart>0 when we strip VO and VISOBJ
+		//only for m1v/m2v, for m4v we may have fstart>0 when we strip VO and VISOBJ
 		if (ctx->is_mpg12 && fstart && (fstart<remain)) {
+			//start code (4 bytes) in header, adjst frame start and size
+			if (sc_type_forced) {
+				fstart += 4;
+				size-=4;
+			}
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) fstart, &pck_data);
 			if (!dst_pck) return GF_OUT_OF_MEM;
 
@@ -1027,45 +1034,49 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			full_frame = GF_TRUE;
 		}
 
-		if (!is_coded) {
-			/*if prev is B and we're parsing a packed bitstream discard n-vop*/
-			if (ctx->forced_packed && ctx->b_frames) {
-				ctx->is_packed = GF_TRUE;
-				assert(remain>=size);
-				start += size;
-				remain -= (s32) size;
-				continue;
+		if (ftype) {
+			if (!is_coded) {
+				/*if prev is B and we're parsing a packed bitstream discard n-vop*/
+				if (ctx->forced_packed && ctx->b_frames) {
+					ctx->is_packed = GF_TRUE;
+					assert(remain>=size);
+					start += size;
+					remain -= (s32) size;
+					continue;
+				}
+				/*policy is to import at variable frame rate, skip*/
+				if (ctx->vfr) {
+					ctx->is_vfr = GF_TRUE;
+					mpgviddmx_update_time(ctx);
+					assert(remain>=size);
+					start += size;
+					remain -= (s32) size;
+					continue;
+				}
+				/*policy is to keep non coded frame (constant frame rate), add*/
 			}
-			/*policy is to import at variable frame rate, skip*/
-			if (ctx->vfr) {
-				ctx->is_vfr = GF_TRUE;
-				mpgviddmx_update_time(ctx);
-				assert(remain>=size);
-				start += size;
-				remain -= (s32) size;
-				continue;
-			}
-			/*policy is to keep non coded frame (constant frame rate), add*/
-		}
 
-		if (ftype==2) {
-			//count number of B-frames since last ref
-			ctx->b_frames++;
-			ctx->nb_b++;
+			if (ftype==3) {
+				//count number of B-frames since last ref
+				ctx->b_frames++;
+				ctx->nb_b++;
+			} else {
+				//flush all pending packets
+				mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
+				//remember the CTS of the last ref
+				ctx->last_ref_cts = ctx->cts;
+				if (ctx->max_b < ctx->b_frames) ctx->max_b = ctx->b_frames;
+
+				ctx->b_frames = 0;
+				if (ftype==2)
+					ctx->nb_p++;
+				else
+					ctx->nb_i++;
+			}
+			ctx->nb_frames++;
 		} else {
-			//flush all pending packets
-			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE, GF_FALSE);
-			//remember the CTS of the last ref
-			ctx->last_ref_cts = ctx->cts;
-			if (ctx->max_b < ctx->b_frames) ctx->max_b = ctx->b_frames;
-			
-			ctx->b_frames = 0;
-			if (ftype)
-				ctx->nb_p++;
-			else
-				ctx->nb_i++;
+			full_frame = GF_FALSE;
 		}
-		ctx->nb_frames++;
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);
 		if (!dst_pck) return GF_OUT_OF_MEM;
@@ -1087,27 +1098,35 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset + start - (u8 *) data);
 			}
 		}
-		assert(pck_data[0] == 0);
-		assert(pck_data[1] == 0);
-		assert(pck_data[2] == 0x01);
-
-		gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
-		gf_filter_pck_set_cts(dst_pck, ctx->cts);
-		gf_filter_pck_set_dts(dst_pck, ctx->dts);
-		if (ctx->input_is_au_start) {
-			ctx->input_is_au_start = GF_FALSE;
-		} else {
-			//we use the carousel flag temporarly to indicate the cts must be recomputed
-			gf_filter_pck_set_carousel_version(dst_pck, 1);
+		if (ftype) {
+			assert(pck_data[0] == 0);
+			assert(pck_data[1] == 0);
+			assert(pck_data[2] == 1);
 		}
-		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
-		if (ctx->cur_fps.den > 0) gf_filter_pck_set_duration(dst_pck, ctx->cur_fps.den);
-		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
-		ctx->frame_started = GF_TRUE;
 
-		mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
+		if (ftype) {
+			gf_filter_pck_set_framing(dst_pck, GF_TRUE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
+			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+			gf_filter_pck_set_dts(dst_pck, ctx->dts);
 
-		mpgviddmx_update_time(ctx);
+			if (ctx->input_is_au_start) {
+				ctx->input_is_au_start = GF_FALSE;
+			} else {
+				//we use the carousel flag temporarly to indicate the cts must be recomputed
+				gf_filter_pck_set_carousel_version(dst_pck, 1);
+			}
+			gf_filter_pck_set_sap(dst_pck, (ftype==1) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
+			if (ctx->cur_fps.den > 0) gf_filter_pck_set_duration(dst_pck, ctx->cur_fps.den);
+			if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
+			ctx->frame_started = GF_TRUE;
+
+			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
+
+			mpgviddmx_update_time(ctx);
+		} else {
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, (full_frame || ctx->input_is_au_end) ? GF_TRUE : GF_FALSE);
+			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE, GF_FALSE);
+		}
 
 		if (!full_frame) {
 			if (copy_last_bytes) {

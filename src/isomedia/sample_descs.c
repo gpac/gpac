@@ -1295,7 +1295,7 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	}
 
 	if (!mime) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Text (Metadata, Subtitle or SimpleText) SampleEntry: mime is mandatory. Using text/plain.\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Text (Metadata, Subtitle or SimpleText) missing mime, using text/plain.\n"));
 		mime = "text/plain";
 	}
 

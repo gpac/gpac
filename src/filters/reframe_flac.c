@@ -251,6 +251,7 @@ static Bool flac_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->is_playing = GF_FALSE;
 		if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 		ctx->src_pck = NULL;
+		ctx->cts = 0;
 		//don't cancel event
 		return GF_FALSE;
 
@@ -456,6 +457,9 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale && pck) {
 		cts = gf_filter_pck_get_cts(pck);
+		//init cts at first packet
+		if (!ctx->cts && (cts != GF_FILTER_NO_TS))
+			ctx->cts = cts;
 	}
 
 	if (cts == GF_FILTER_NO_TS) {

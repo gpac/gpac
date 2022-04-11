@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / OpenGL tools used by compositor filter, vout filter and WebGL bindings
@@ -1285,6 +1285,8 @@ Bool gf_gl_txw_upload(GF_GLTextureWrapper *tx, const u8 *data, GF_FilterFrameInt
 		}
 	} else {
 		u32 st_o;
+		if (!frame_ifce->get_plane)
+			return GF_FALSE;
 		if (tx->nb_textures)
 			frame_ifce->get_plane(frame_ifce, 0, &data, &stride_luma);
 		if (tx->nb_textures>1)

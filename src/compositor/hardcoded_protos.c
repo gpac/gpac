@@ -35,7 +35,7 @@
 
 #define CHECK_FIELD(__name, __index, __type) \
 	if (gf_node_get_field(node, __index, &field) != GF_OK) {\
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] Cannot get field index %d\n", __index));\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] Cannot get field index %d for proto %s\n", __index, __name));\
 		return GF_FALSE; \
 	}\
 	if (field.fieldType != __type) {\
@@ -880,22 +880,9 @@ static Bool Untransform_GetNode(GF_Node *node, Untransform *tr)
 }
 
 
-static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
+void TraverseUntransformEx(GF_Node *node, void *rs, GroupingNode2D *grp)
 {
-	UntransformStack *stack = (UntransformStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-
-	if (is_destroy) {
-		gf_free(stack);
-		return;
-	}
-
-	if (tr_state->traversing_mode==TRAVERSE_SORT) {
-		if (gf_node_dirty_get(node)) {
-			Untransform_GetNode(node, &stack->untr); /*lets place it below*/
-			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
-		}
-	}
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -920,7 +907,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_set_viewport(tr_state->visual, tr_state->camera->proj_vp);
 			visual_3d_projection_matrix_modified(tr_state->visual);
 
-			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+			gf_node_traverse_children(node, tr_state);
 
 			gf_mx_copy(tr_state->model_matrix, mx_model);
 			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
@@ -939,7 +926,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 			tr_state->ray.dir.z = -FIX_ONE;
 			tr_state->visual->compositor->hit_square_dist=0;
 
-			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+			gf_node_traverse_children(node, tr_state);
 
 			gf_mx_copy(tr_state->model_matrix, mx_model);
 			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
@@ -950,7 +937,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 				tr_state->visual->compositor->hit_square_dist = prev_dist;
 
 		} else {
-			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+			gf_node_traverse_children(node, tr_state);
 
 			gf_mx_copy(tr_state->model_matrix, mx_model);
 			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
@@ -963,12 +950,27 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx2d_copy(mx2d_backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
 
-		group_2d_traverse((GF_Node *)&stack->untr, (GroupingNode2D *)stack, tr_state);
+		group_2d_traverse(node, grp, tr_state);
 
 		gf_mx2d_copy(tr_state->transform, mx2d_backup);
-
-
 	}
+}
+static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
+{
+	UntransformStack *stack = (UntransformStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		gf_free(stack);
+		return;
+	}
+	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		if (gf_node_dirty_get(node)) {
+			Untransform_GetNode(node, &stack->untr); /*lets place it below*/
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+		}
+	}
+	TraverseUntransformEx((GF_Node *)&stack->untr, tr_state, (GroupingNode2D *)stack);
 }
 
 void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)

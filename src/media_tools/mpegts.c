@@ -2035,12 +2035,14 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
 		u32 len;
 		Bool has_pes_header = GF_TRUE;
+		Bool has_data = GF_TRUE;
 		u32 stream_id = pes->pck_data[3];
 		Bool same_pts = GF_FALSE;
 
 		switch (stream_id) {
-		case GF_M2_STREAMID_PROGRAM_STREAM_MAP:
 		case GF_M2_STREAMID_PADDING:
+			has_data = GF_FALSE;
+		case GF_M2_STREAMID_PROGRAM_STREAM_MAP:
 		case GF_M2_STREAMID_PRIVATE_2:
 		case GF_M2_STREAMID_ECM:
 		case GF_M2_STREAMID_EMM:
@@ -2108,6 +2110,8 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			len = 9 + pesh.hdr_data_len;
 
 		} else {
+			if (!has_data) goto exit;
+			
 			/*3-byte start-code + 1 byte streamid*/
 			len = 4;
 			memset(&pesh, 0, sizeof(pesh));
@@ -2126,7 +2130,10 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->pck_data_len, len));
 			}
-		} else if (pes->reframe) {
+			goto exit;
+		}
+
+		if (pes->reframe) {
 			u32 remain = 0;
 			u32 offset = len;
 
@@ -2178,6 +2185,8 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 	} else if (pes->pck_data_len) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Bad PES Header, discarding packet (maybe stream is encrypted ?)\n", pes->pid));
 	}
+
+exit:
 	pes->pck_data_len = 0;
 	pes->pes_len = 0;
 	pes->rap = 0;
@@ -2646,7 +2655,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 				}
 			}
-			else if ( (es->program->last_pcr_value < es->program->before_last_pcr_value) ) {
+			else if ((es->flags & GF_M2TS_CHECK_DISC) && (es->program->last_pcr_value < es->program->before_last_pcr_value) ) {
 				s64 diff_in_us = (s64) (es->program->last_pcr_value - es->program->before_last_pcr_value) / 27;
 				//if less than 200 ms before PCR loop at the last PCR, this is a PCR loop
 				if (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value < 5400000 /*2*2700000*/) {

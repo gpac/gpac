@@ -287,6 +287,7 @@ enum
 	GF_ISOM_SUBTYPE_METX		= GF_4CC( 'm', 'e', 't', 'x' ),
 	GF_ISOM_SUBTYPE_TX3G		= GF_4CC( 't', 'x', '3', 'g' ),
 	GF_ISOM_SUBTYPE_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
+	GF_ISOM_SUBTYPE_SUBTITLE	= GF_4CC( 's', 'b', 't', 'l' ),
 
 
 	GF_ISOM_SUBTYPE_RTP			= GF_4CC( 'r', 't', 'p', ' ' ),
@@ -367,6 +368,9 @@ enum
 
 	GF_QT_SUBTYPE_TMCD = GF_4CC( 't', 'm', 'c', 'd' ),
 
+	/*GPAC extensions*/
+	GF_ISOM_SUBTYPE_DVB_SUBS	= GF_4CC( 'd', 'v', 'b', 's' ),
+	GF_ISOM_SUBTYPE_DVB_TELETEXT	= GF_4CC( 'd', 'v', 'b', 't' ),
 };
 
 

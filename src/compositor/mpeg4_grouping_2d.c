@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -132,6 +132,7 @@ typedef struct
 	GF_Matrix2D mat;
 	u8 is_identity;
 	u8 is_null;
+	u8 is_untransform;
 } Transform2DStack;
 
 static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_TraverseState *tr_state)
@@ -167,6 +168,7 @@ static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_Traver
 	}
 }
 
+void TraverseUntransformEx(GF_Node *node, void *rs, GroupingNode2D *grp);
 
 static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -201,7 +203,19 @@ static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		ptr->is_null = (!tr->scale.x || !tr->scale.y) ? 1 : 0;
 	}
-	traverse_transform(node, ptr, tr_state);
+
+	if (ptr->is_untransform) {
+		TraverseUntransformEx(node, tr_state, (GroupingNode2D *)ptr);
+	} else {
+		traverse_transform(node, ptr, tr_state);
+	}
+}
+void transform2d_set_untransform(GF_Node *node)
+{
+	Transform2DStack *stack;
+	if (gf_node_get_tag(node)!=TAG_MPEG4_Transform2D) return;
+	stack = (Transform2DStack *)gf_node_get_private(node);
+	stack->is_untransform = 1;
 }
 
 void compositor_init_transform2d(GF_Compositor *compositor, GF_Node *node)

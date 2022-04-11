@@ -2976,6 +2976,9 @@ _libgpac.gf_filter_pid_would_block.argtypes = [_gf_filter_pid]
 _libgpac.gf_filter_pid_would_block.restype = gf_bool
 _libgpac.gf_filter_pid_set_loose_connect.argtypes = [_gf_filter_pid]
 
+_libgpac.gf_filter_pid_is_sparse.argtypes = [_gf_filter_pid]
+_libgpac.gf_filter_pid_is_sparse.restype = gf_bool
+
 _libgpac.gf_filter_pid_set_framing_mode.argtypes = [_gf_filter_pid, gf_bool]
 
 _libgpac.gf_filter_pid_get_max_buffer.argtypes = [_gf_filter_pid]
@@ -3094,6 +3097,9 @@ class FilterPid:
             ##True if PID would block, readonly - see \ref gf_filter_pid_would_block
             #\hideinitializer
             self.would_block=0
+            ##True if PID is sparse, readonly - see \ref gf_filter_pid_is_sparse
+            #\hideinitializer
+            self.sparse=0
             ##maximum buffer of PID in microseconds - see \ref gf_filter_pid_get_max_buffer and \ref gf_filter_pid_set_max_buffer
             #\hideinitializer
             self.max_buffer=0
@@ -3550,6 +3556,12 @@ class FilterPid:
     @property
     def would_block(self):
         return _libgpac.gf_filter_pid_would_block(self._pid)
+
+    ##True if PID is sparse - see \ref gf_filter_pid_is_sparse
+    #\return
+    @property
+    def sparse(self):
+        return _libgpac.gf_filter_pid_is_sparse(self._pid)
 
     ##maximum buffer of PID in microseconds - see \ref gf_filter_pid_get_max_buffer and \ref gf_filter_pid_set_max_buffer
     #\return

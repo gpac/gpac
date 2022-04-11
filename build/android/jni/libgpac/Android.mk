@@ -259,6 +259,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/tileagg.c \
 	../../../../src/filters/tilesplit.c \
 	../../../../src/filters/tssplit.c \
+	../../../../src/filters/ttml_conv.c \
 	../../../../src/filters/unit_test_filter.c \
 	../../../../src/filters/vcrop.c \
 	../../../../src/filters/vflip.c \
@@ -266,6 +267,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/write_nhml.c \
 	../../../../src/filters/write_nhnt.c \
 	../../../../src/filters/write_qcp.c \
+	../../../../src/filters/write_tx3g.c \
 	../../../../src/filters/write_vtt.c \
 	../../../../src/ietf/rtcp.c \
 	../../../../src/ietf/rtp.c \

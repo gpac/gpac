@@ -92,7 +92,7 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 .br
 * t: insert tab
 .br
-* data: hex dump of packet (big output!)
+* data: hex dump of packet (big output!) or as string if legal UTF-8
 .br
 * lp: leading picture flag
 .br
@@ -101,6 +101,14 @@ When the option is not present, all properties are dumped. Otherwise, only prope
 * depf: is depended on other packet flag
 .br
 * red: redundant coding flag
+.br
+* start: packet composition time as HH:MM:SS.ms
+.br
+* startc: packet composition time as HH:MM:SS,ms
+.br
+* end: packet end time as HH:MM:SS.ms
+.br
+* endc: packet end time as HH:MM:SS,ms
 .br
 * ck: clock type used for PCR discontinuities
 .br
@@ -703,6 +711,16 @@ gaze_x (sint, default: 0, updatable): horizontal gaze coordinate (0=left, width=
 gaze_y (sint, default: 0, updatable): vertical gaze coordinate (0=top, height=bottom)
 .br
 gazer_enabled (bool, default: false, updatable): enable gaze event dispatch
+.br
+subtx (sint, default: 0, updatable): horizontal translation in pixels towards right for subtitles renderers
+.br
+subty (sint, default: 0, updatable): vertical translation in pixels towards right for subtitles renderers
+.br
+subfs (uint, default: 0, updatable): font size for subtitles renderers (0 means automatic)
+.br
+subd (sint, default: 0, updatable): subtitle delay in milliseconds for subtitles renderers
+.br
+audd (sint, default: 0, updatable): audio delay in milliseconds
 .br
 
 .br
@@ -1311,6 +1329,8 @@ dsmcc (bool, default: no):     enable DSMCC receiver
 seeksrc (bool, default: true): seek local source file back to origin once all programs are setup
 .br
 sigfrag (bool, default: false): signal segment boundaries on output packets for DASH or HLS sources
+.br
+dvbtxt (bool, default: false): export DVB teletext streams
 .br
 
 .br
@@ -2078,6 +2098,18 @@ This will wrap the unknown stream using VIUK code point in stsd and wrap any dec
 .br
 
 .br
+If .I pad_sparse is set, the filter watches the property Sparse on incoming PID to decide whether empty packets should be injected to keep packet duration info.
+.br
+Such packets are only injected when a whole in the timeline is detected.
+.br
+- if Sparse is absent, empty packet is inserted for unknown text and metadata streams
+.br
+- if Sparse is true, empty packet is inserted for all stream types
+.br
+- if Sparse is false, empty packet is never injected
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -2324,6 +2356,8 @@ cmaf (enum, default: no):      use CMAF guidelines (turns on mvex, truns_first, 
 * cmf2: use CMAF cmf2 guidelines (turns on nofragdef)
 .br
 
+.br
+pad_sparse (bool, default: true): inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks
 .br
 
 .br
@@ -2581,7 +2615,7 @@ Description: Subtitle loader
 .br
 
 .br
-This filter reads subtitle data from input file PID to produce subtitle frames on a single PID.
+This filter reads subtitle data from input PID to produce subtitle frames on a single PID.
 .br
 The filter supports the following formats:
 .br
@@ -2596,6 +2630,8 @@ The filter supports the following formats:
 * TTML: https://www.w3.org/TR/ttml2/
 .br
 * SUB: one subtitle per line formatted as {start_frame}{end_frame}text
+.br
+* SSA (Substation Alpha): basic parsing support for common files
 .br
 
 .br
@@ -2751,10 +2787,6 @@ color (str, default: white, updatable): text color
 .br
 lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
 .br
-txtx (flt, default: 5, updatable): horizontal offset
-.br
-txty (flt, default: 5, updatable): vertical offset
-.br
 txtw (uint, default: 400):     default width in standalone rendering
 .br
 txth (uint, default: 200):     default height in standalone rendering
@@ -2798,10 +2830,6 @@ valign (enum, default: bottom, updatable): vertical alignment
 
 .br
 lineSpacing (flt, default: 1.0, updatable): line spacing as scaling factor to font size
-.br
-txtx (flt, default: 5, updatable): horizontal offset
-.br
-txty (flt, default: 5, updatable): vertical offset
 .br
 txtw (uint, default: 400):     default width in standalone rendering
 .br
@@ -3433,14 +3461,14 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .br
 
 .br
-.SH writevtt
+.SH ufvtt
 .LP
 .br
-Description: WebVTT writer
+Description: WebVTT unframer
 .br
 
 .br
-This filter converts a single ISOBMFF WebVTT stream to a WebVTT output file.
+This filter converts a single ISOBMFF WebVTT stream to its unframed format.
 .br
 
 .br
@@ -3449,7 +3477,7 @@ This filter converts a single ISOBMFF WebVTT stream to a WebVTT output file.
 .br
 exporter (bool, default: false): compatibility with old exporter, displays export results
 .br
-merge (bool, default: false):  merge VTT cue if needed
+merge_cues (bool, default: true): merge VTT cues (undo ISOBMFF cue split)
 .br
 
 .br
@@ -7129,6 +7157,173 @@ svcqid (bool, default: false): use qualityID instead of dependencyID for SVC spl
 .br
 
 .br
+.SH ufttxt
+.LP
+.br
+Description: TX3G unframer
+.br
+
+.br
+This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+exporter (bool, default: false): compatibility with old exporter, displays export results
+.br
+
+.br
+.SH tx3g2srt
+.LP
+.br
+Description: TX3G writer
+.br
+
+.br
+This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+exporter (bool, default: false): compatibility with old exporter, displays export results
+.br
+
+.br
+.SH tx3g2vtt
+.LP
+.br
+Description: TX3G writer
+.br
+
+.br
+This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+exporter (bool, default: false): compatibility with old exporter, displays export results
+.br
+
+.br
+.SH tx3g2ttml
+.LP
+.br
+Description: TX3G to TTML
+.br
+
+.br
+This filter converts ISOBMFF TX3G frames from a single stream to TTML frames.
+.br
+
+.br
+Each output TTML frame is a complete TTML document.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH vtt2tx3g
+.LP
+.br
+Description: Subtitle loader
+.br
+
+.br
+This filter rewrites unframed WebVTT to TX3G / QT Timed Text (binary format)
+.br
+
+.br
+Unframed WebVTT packets consist in single cues:
+.br
+- cue payload as packet payload
+.br
+- prefix as packet string property vtt_pre
+.br
+- cue ID as packet string property vtt_cueid
+.br
+- cue settings as packet string property vtt_settings
+.br
+- packet timing contains the cue timing (start and duration)
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+fontname (str):                default font
+.br
+fontsize (uint, default: 18):  default font size
+.br
+
+.br
+.SH rfsrt
+.LP
+.br
+Description: SRT reframer
+.br
+
+.br
+This filter rewrites unframed SRT to TX3G / QT Timed Text (binary format)
+.br
+
+.br
+An unframed SRT packet consists in a single SRT cue as packet payload and packet timing contains the cue timing (start and duration).
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+fontname (str):                default font
+.br
+fontsize (uint, default: 18):  default font size
+.br
+
+.br
+.SH ttml2vtt
+.LP
+.br
+Description: TTML to VTT converter
+.br
+
+.br
+This filter converts TTML frames to unframed WebVTT
+.
+.br
+Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH ttml2srt
+.LP
+.br
+Description: TTML to VTT converter
+.br
+
+.br
+This filter converts TTML frames to unframed SRT
+.
+.br
+Conversion is quite limited: only the first div is analyzed and only basic styling is implemented.
+.br
+
+.br
+No options
+.br
+
+.br
 .SH ffdmx
 .LP
 .br
@@ -7542,6 +7737,8 @@ ffiles (bool, default: false): force complete files to be created for each segme
 ffmt (str):                    force ffmpeg output format for the given URL
 .br
 block_size (uint, default: 4096): block size used to read file when using avio context
+.br
+keepts (bool, default: true):  do not shift input timeline back to 0
 .br
 * (str):                       any possible options defined for AVFormatContext and sub-classes (see gpac -hx ffmx and gpac -hx ffmx:*)
 .br
@@ -10324,7 +10521,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev86-g670237d27-master
+build: 2.1-DEV-rev89-g7f060bbb7-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

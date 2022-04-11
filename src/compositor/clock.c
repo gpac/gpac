@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file scene part of GPAC / Scene Compositor sub-project
@@ -143,8 +143,8 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->init_timestamp = 0;
 	ck->start_time = 0;
 	ck->has_seen_eos = 0;
-	ck->media_time_at_init = 0;
-	ck->has_media_time_shift = 0;
+	//do NOT reset media timestamp mapping once the clock is init
+	//if discontinuities are found the media time mapping will be adjusted then
 	ck->timeline_id++;
 }
 
@@ -230,9 +230,9 @@ u32 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val)
 {
 	u32 t = clock_val;
 	if (ck && ck->has_media_time_shift) {
-		if (t>ck->init_timestamp) t -= ck->init_timestamp;
+		if (t > ck->media_ts_orig) t -= ck->media_ts_orig;
 		else t=0;
-		t += ck->media_time_at_init;
+		t += ck->media_time_orig;
 	}
 	return t;
 }

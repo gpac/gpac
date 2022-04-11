@@ -1,8 +1,8 @@
 /*
  *          GPAC - Multimedia Framework C SDK
  *
- *          Authors: Cyril Concolato
- *          Copyright (c) Telecom ParisTech 2000-2021
+ *          Authors: Cyril Concolato, Jean Le Feuvre
+ *          Copyright (c) Telecom ParisTech 2000-2022
  *                  All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -272,6 +272,13 @@ static GF_Err wvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 	GF_VTTCueBox *cuebox;
 	if (!cue) return GF_OK;
 
+	if (cue->pre_text) {
+		GF_Box *b = boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTA, cue->pre_text, NULL);
+		e = gf_isom_box_size(b);
+		if (!e) e = gf_isom_box_write(b, bs);
+		gf_isom_box_del(b);
+	}
+
 	cuebox = (GF_VTTCueBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VTCC_CUE);
 
 	if (cue->id) {
@@ -409,7 +416,8 @@ typedef enum {
 
 struct _webvtt_parser {
 	GF_WebVTTParserState state;
-	Bool is_srt, suspend, is_eof;
+	Bool is_srt, suspend, is_eof, prev_line_empty, in_comment;
+	char *comment_text;
 
 	/* List of non-overlapping GF_WebVTTSample */
 	GF_List *samples;
@@ -615,6 +623,10 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 		gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
 		gf_list_rem(parser->samples, 0);
 	}
+	if (parser->comment_text) gf_free(parser->comment_text);
+	parser->comment_text = NULL;
+	parser->prev_line_empty = GF_FALSE;
+	parser->in_comment = GF_FALSE;
 	parser->last_duration = 0;
 	parser->on_header_parsed = NULL;
 	parser->on_sample_parsed = NULL;
@@ -911,13 +923,12 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 	return e;
 }
 
-GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
+GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cue)
 {
 	char szLine[2048];
 	char *sOK;
 	u32 len;
 	GF_Err e;
-	GF_WebVTTCue *cue = NULL;
 	char *prevLine = NULL;
 	char *header = NULL;
 	u32 header_len = 0;
@@ -997,7 +1008,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				} else {
 					/* discard the previous line */
 					/* should we do something with it ? callback ?*/
-					if (prevLine) {
+					if (prevLine && !parser->in_comment) {
 						gf_free(prevLine);
 						prevLine = NULL;
 					}
@@ -1006,13 +1017,23 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 						szLine[len] = '\n';
 						len++;
 					}
-					prevLine = gf_strdup(szLine);
+					if (prevLine)
+						gf_dynstrcat(&prevLine, szLine, NULL);
+					else
+						prevLine = gf_strdup(szLine);
+					if (parser->prev_line_empty && (!strncmp(prevLine, "NOTE ", 5) || !strcmp(prevLine, "NOTE\n")))
+						parser->in_comment = GF_TRUE;
 					/* stay in the same state */
 					break;
 				}
 			} else {
 				/* discard the previous line */
 				/* should we do something with it ? callback ?*/
+				if (parser->in_comment && !parser->comment_text) {
+					parser->comment_text = prevLine;
+					prevLine = NULL;
+					parser->in_comment = GF_FALSE;
+				}
 				if (prevLine) {
 					gf_free(prevLine);
 					prevLine = NULL;
@@ -1035,6 +1056,11 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 					gf_free(prevLine);
 					prevLine = NULL;
 				}
+				if (parser->comment_text) {
+					gf_webvtt_cue_add_property(cue, WEBVTT_PRECUE_TEXT, parser->comment_text, (u32) strlen(parser->comment_text));
+					gf_free(parser->comment_text);
+					parser->comment_text = NULL;
+				}
 				e = gf_webvtt_parser_parse_timings_settings(parser, cue, szLine, len);
 				if (e) {
 					if (cue) gf_webvtt_cue_del(cue);
@@ -1051,18 +1077,28 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 			}
 			break;
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
+			if (sOK && len && !strncmp(szLine, "NOTE ", 5)) {
+				if (had_marks) {
+					szLine[len] = '\n';
+					len++;
+				}
+				gf_webvtt_cue_add_property(cue, WEBVTT_POSTCUE_TEXT, szLine, len);
+				parser->in_comment = GF_TRUE;
+				len = 0;
+			}
 			if (sOK && len) {
 				if (had_marks) {
 					szLine[len] = '\n';
 					len++;
 				}
-				gf_webvtt_cue_add_property(cue, WEBVTT_PAYLOAD, szLine, len);
+				gf_webvtt_cue_add_property(cue, parser->in_comment ? WEBVTT_POSTCUE_TEXT : WEBVTT_PAYLOAD, szLine, len);
 				/* remain in the same state as a cue payload can have multiple lines */
 				break;
 			} else {
 				/* end of the current cue */
 				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
 				cue = NULL;
+				parser->in_comment = GF_FALSE;
 
 				if (!sOK) {
 					parser->is_eof = GF_TRUE;
@@ -1074,6 +1110,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
 				}
 			}
 		}
+		parser->prev_line_empty = len ? GF_FALSE : GF_TRUE;
 	}
 	if (header) gf_free(header);
 	header = NULL;
@@ -1097,6 +1134,38 @@ exit:
 	if (cue) gf_webvtt_cue_del(cue);
 	if (prevLine) gf_free(prevLine);
 	if (header) gf_free(header);
+	return e;
+}
+
+GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser)
+{
+	return gf_webvtt_parser_parse_internal(parser, NULL);
+}
+
+GF_Err gf_webvtt_parser_flush(GF_WebVTTParser *parser)
+{
+	while (gf_list_count(parser->samples) > 0) {
+		GF_WebVTTSample *sample = (GF_WebVTTSample *)gf_list_get(parser->samples, 0);
+		parser->last_duration = (sample->end > sample->start) ? sample->end - sample->start : 0;
+		gf_list_rem(parser->samples, 0);
+		parser->on_sample_parsed(parser->user, sample);
+	}
+	return GF_OK;
+}
+
+GF_Err gf_webvtt_parser_parse_payload(GF_WebVTTParser *parser, u64 start, u64 end, const char *vtt_pre, const char *vtt_cueid, const char *vtt_settings)
+{
+	GF_WebVTTCue *cue = gf_webvtt_cue_new();
+	parser->state = WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD;
+	gf_webvtt_timestamp_set(&cue->start, start);
+	gf_webvtt_timestamp_set(&cue->end, end);
+
+	if (vtt_cueid) cue->id = gf_strdup(vtt_cueid);
+	if (vtt_settings) cue->settings = gf_strdup(vtt_settings);
+	if (vtt_pre) cue->pre_text = gf_strdup(vtt_pre);
+
+	GF_Err e = gf_webvtt_parser_parse_internal(parser, cue);
+	parser->is_eof = GF_FALSE;
 	return e;
 }
 

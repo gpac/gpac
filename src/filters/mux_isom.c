@@ -77,6 +77,7 @@ typedef struct
 	GF_FilterPid *ipid;
 	u32 track_num, track_id;
 	GF_ISOSample sample;
+	u32 prev_duration;
 
 	u32 src_timescale;
 	u32 tk_timescale;
@@ -103,8 +104,6 @@ typedef struct
 	Bool skip_bitrate_update;
 	Bool has_open_gop;
 	GF_FilterSAPType gdr_type;
-
-	Bool next_is_first_sample;
 
 	u32 media_profile_level;
 
@@ -188,6 +187,8 @@ typedef struct
 
 	u8 *dyn_pssh;
 	u32 dyn_pssh_len;
+
+	Bool sparse_inject;
 
 	GF_FilterPacket *dgl_copy;
 } TrackWriter;
@@ -284,7 +285,7 @@ typedef struct
 	Bool ctrni;
 #endif
 	Bool mfra;
-	Bool forcesync, refrag;
+	Bool forcesync, refrag, pad_sparse;
 	u32 itags;
 	Double start;
 
@@ -803,6 +804,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool skip_dsi = GF_FALSE;
 	Bool is_text_subs = GF_FALSE;
 	Bool force_colr = GF_FALSE;
+	u32 gen_dsi_wrap = 0;
 	u32 m_subtype=0;
 	u32 m_subtype_src=0;
 	u32 m_subtype_alt_raw=0;
@@ -1062,6 +1064,11 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		}
 		is_prores = GF_TRUE;
 		break;
+	case GF_CODECID_TX3G:
+	case GF_CODECID_WEBVTT:
+	case GF_CODECID_DVB_SUBS:
+		if (!dsi && !enh_dsi) return GF_OK;
+		break;
 	default:
 		break;
 	}
@@ -1145,6 +1152,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 		u32 tk_idx=0;
 		u32 mtype=0;
 		u32 target_timescale = 0;
+		Bool hdlr_name_set=GF_FALSE;
 
 		if (ctx->make_qt && (tkw->stream_type==GF_STREAM_VISUAL)) {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
@@ -1221,6 +1229,30 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			ctx->moovts = tkw->tk_timescale;
 			gf_isom_set_timescale(ctx->file, (u32) ctx->moovts);
 		}
+		if (ctx->pad_sparse) {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_SPARSE);
+			if (p) {
+				tkw->sparse_inject = p->value.boolean;
+			} else {
+				switch (tkw->stream_type) {
+				case GF_STREAM_TEXT:
+				case GF_STREAM_METADATA:
+					switch (tkw->codecid) {
+					case GF_CODECID_TEXT_MPEG4:
+					case GF_CODECID_TX3G:
+					case GF_CODECID_WEBVTT:
+					case GF_CODECID_SUBS_XML:
+					case GF_CODECID_SUBPIC:
+					case GF_CODECID_TMCD:
+						break;
+					default:
+						tkw->sparse_inject = GF_TRUE;
+						break;
+					}
+					break;
+				}
+			}
+		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MUX_INDEX);
 		if (p) {
@@ -1288,7 +1320,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			//this should be removed and hashes regenerated
 			gf_isom_set_track_layout_info(ctx->file, tkw->track_num, 0, 0, 0, 0, 0);
 
-			if (!gf_sys_is_test_mode()) {
+			if (!gf_sys_is_test_mode() && !gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER)) {
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_URL);
 				if (tkw->track_num && p && p->value.string) {
 					char szHName[1025];
@@ -1306,7 +1338,6 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 			return e;
 		}
 		tkw->track_id = gf_isom_get_track_id(ctx->file, tkw->track_num);
-		tkw->next_is_first_sample = GF_TRUE;
 
 		if (ctx->cmaf) {
 			gf_isom_set_track_flags(ctx->file, tkw->track_num, GF_ISOM_TK_ENABLED|GF_ISOM_TK_IN_MOVIE|GF_ISOM_TK_IN_PREVIEW, GF_ISOM_TKFLAGS_SET);
@@ -1329,15 +1360,27 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		//if we have a subtype set for the pid, use it
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SUBTYPE);
-		if (p) gf_isom_set_media_type(ctx->file, tkw->track_num, p->value.uint);
+		if (p) {
+			mtype = p->value.uint;
+			gf_isom_set_media_type(ctx->file, tkw->track_num, mtype);
+		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_HANDLER);
 		if (p && p->value.string) {
 			gf_isom_set_handler_name(ctx->file, tkw->track_num, p->value.string);
+			hdlr_name_set = GF_TRUE;
 		}
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_ALT_GROUP);
 		if (p && p->value.uint) {
 			gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, p->value.uint);
+		} else if (!p && !gf_sys_is_test_mode()) {
+			//we by default set groups for audio and subs if group is not present
+			if (mtype==GF_ISOM_SUBTYPE_SUBTITLE) {
+				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 2);
+			}
+			if (tkw->stream_type==GF_STREAM_AUDIO) {
+				gf_isom_set_alternate_group_id(ctx->file, tkw->track_num, 1);
+			}
 		}
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_ISOM_TRACK_MATRIX);
@@ -1347,7 +1390,13 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SRC_MAGIC);
 		if (p) {
-			gf_isom_set_track_magic(ctx->file, tkw->track_num, p->value.longuint);
+			u64 magic = 0;
+			if (hdlr_name_set) {
+				magic |= 1;
+				magic <<= 32;
+			}
+			magic |= p->value.longuint;
+			gf_isom_set_track_magic(ctx->file, tkw->track_num, magic);
 		}
 		if (tk_idx) {
 			gf_isom_set_track_index(ctx->file, tkw->track_num, tk_idx, mp4mux_track_reorder, ctx);
@@ -1781,6 +1830,26 @@ sample_entry_setup:
 		comp_name = "WebVTT";
 		is_text_subs = GF_TRUE;
 		break;
+	case GF_CODECID_DVB_SUBS:
+		use_gen_sample_entry = GF_TRUE;
+		comp_name = "DVB Subtitles";
+		m_subtype = GF_ISOM_SUBTYPE_DVB_SUBS;
+		gen_dsi_wrap = GF_4CC('d', 'v', 's', 'C');
+		gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_MEDIA_SUBT);
+		if (!width && !height) {
+			mp4_mux_get_video_size(ctx, &width, &height);
+		}
+		break;
+	case GF_CODECID_DVB_TELETEXT:
+		use_gen_sample_entry = GF_TRUE;
+		comp_name = "DVB Subtitles";
+		m_subtype = GF_ISOM_SUBTYPE_DVB_TELETEXT;
+		gf_isom_set_media_type(ctx->file, tkw->track_num, GF_ISOM_MEDIA_SUBT);
+		if (!width && !height) {
+			mp4_mux_get_video_size(ctx, &width, &height);
+		}
+		break;
+
 	case GF_CODECID_SUBPIC:
 		use_m4sys = GF_TRUE;
 		override_stype = GF_STREAM_ND_SUBPIC;
@@ -2691,6 +2760,7 @@ sample_entry_setup:
 		if (dsi) {
 			udesc.extension_buf = dsi->value.data.ptr;
 			udesc.extension_buf_size = dsi->value.data.size;
+			udesc.ext_box_wrap = gen_dsi_wrap;
 			p = gf_filter_pid_get_property_str(pid, "DSIWrap");
 			if (p) {
 				if (p->type==GF_PROP_UINT) udesc.ext_box_wrap = p->value.uint;
@@ -3984,7 +4054,6 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		duration /= timescale;
 	}
 
-
 	tkw->sample.IsRAP = 0;
 	if (tkw->codecid==GF_CODECID_RAW) {
 		sap_type = GF_FILTER_SAP_1;
@@ -4062,6 +4131,25 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 
 	if (tkw->cenc_state && tkw->clear_stsd_idx && !gf_filter_pck_get_crypt_flags(pck)) {
 		sample_desc_index = tkw->clear_stsd_idx;
+	}
+
+	if (tkw->sparse_inject && (prev_dts!=GF_FILTER_NO_TS) && (prev_dts!=GF_FILTER_NO_TS) && tkw->prev_duration) {
+		u64 est_time = prev_dts + tkw->prev_duration;
+		if (est_time < tkw->sample.DTS) {
+			u64 ins_dur;
+			GF_ISOSample s;
+			memset(&s, 0, sizeof(GF_ISOSample));
+			s.DTS = est_time;
+
+			s.IsRAP = SAP_TYPE_1;
+			ins_dur = tkw->sample.DTS - est_time;
+			if (for_fragment) {
+				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &s, tkw->stsd_idx, ins_dur, 0, 0, 0);
+			} else {
+				e = gf_isom_add_sample(ctx->file, tkw->track_num, tkw->stsd_idx, &s);
+				gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, ins_dur);
+			}
+		}
 	}
 
 	if (tkw->use_dref) {
@@ -4344,9 +4432,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 	}
 
-
-	tkw->next_is_first_sample = GF_FALSE;
-
+	tkw->prev_duration = duration;
 	if (duration && !for_fragment && !tkw->raw_audio_bytes_per_sample)
 		gf_isom_set_last_sample_duration(ctx->file, tkw->track_num, duration);
 
@@ -6016,7 +6102,12 @@ retry_pck:
 
 		//compute offsets
 		dts_diff = gf_timestamp_rescale(first_ts_min, 1000000, tkw->src_timescale);
-		dts_diff = (s64) tkw->ts_shift - dts_diff;
+		//if single text track don't reset back to 0
+		if ((count==1) && (tkw->stream_type == GF_STREAM_TEXT)) {
+
+		} else {
+			dts_diff = (s64) tkw->ts_shift - dts_diff;
+		}
 		if (ctx->is_rewind) dts_diff = -dts_diff;
 		//negative could happen due to rounding, ignore them
 		if (dts_diff<=0) continue;
@@ -7085,6 +7176,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		"- cmf2: use CMAF `cmf2` guidelines (turns on `nofragdef`)"
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(start), "set playback start offset for MP4Box import only. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
+	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -7157,6 +7249,12 @@ GF_FilterRegister MP4MuxRegister = {
 	"The filter watches the property `DSIWrap` (4CC as int or string) on incoming PID to wrap decoder configuration in a box of given type (unknown wrapping)\n"
 	"EX -i unkn.mkv:#ISOMSubtype=VIUK:#DSIWrap=cfgv -o t.mp4\n"
 	"This will wrap the unknown stream using `VIUK` code point in `stsd` and wrap any decoder configuration data in a `cfgv` box.\n"
+	"\n"
+	"If [-pad_sparse]() is set, the filter watches the property `Sparse` on incoming PID to decide whether empty packets should be injected to keep packet duration info.\n"
+	"Such packets are only injected when a whole in the timeline is detected.\n"
+	"- if `Sparse` is absent, empty packet is inserted for unknown text and metadata streams\n"
+	"- if `Sparse` is true, empty packet is inserted for all stream types\n"
+	"- if `Sparse` is false, empty packet is never injected\n"
 	)
 	.private_size = sizeof(GF_MP4MuxCtx),
 	.args = MP4MuxArgs,

@@ -532,6 +532,8 @@ typedef enum
 	GF_FILTER_CLONE_PROBE,
 } GF_FilterCloneType;
 
+//#define DEBUG_BLOCKMODE
+
 struct __gf_filter
 {
 	const GF_FilterRegister *freg;
@@ -554,6 +556,7 @@ struct __gf_filter
 
 	//indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1
 	u32 max_extra_pids;
+	volatile u32 nb_sparse_pids;
 
 	u32 subsession_id, subsource_id;
 
@@ -682,8 +685,11 @@ struct __gf_filter
 #endif
 
 	volatile u32 would_block; //concurrent inc/dec
+#ifdef DEBUG_BLOCKMODE
 	//sets once broken blocking mode has been detected
 	Bool blockmode_broken;
+#endif
+
 	//requested by a filter to disable blocking
 	Bool prevent_blocking;
 
@@ -952,6 +958,9 @@ struct __gf_filter_pid
 	u64 buffer_duration;
 	//true if the pid carries raw media
 	Bool raw_media;
+	//true if pid is sparse (may not have data for a long time)
+	//a sparse pid always triggers blocking if parent filter has more than one output
+	Bool is_sparse;
 	//for stats only
 	u32 stream_type, codecid;
 

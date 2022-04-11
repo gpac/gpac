@@ -1123,6 +1123,8 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser);
 void gf_webvtt_parser_del(GF_WebVTTParser *parser);
 void gf_webvtt_parser_suspend(GF_WebVTTParser *vttparser);
 void gf_webvtt_parser_restart(GF_WebVTTParser *parser);
+GF_Err gf_webvtt_parser_parse_payload(GF_WebVTTParser *parser, u64 start, u64 end, const char *vtt_pre, const char *vtt_cueid, const char *vtt_settings);
+GF_Err gf_webvtt_parser_flush(GF_WebVTTParser *parser);
 
 #include <gpac/webvtt.h>
 void gf_webvtt_parser_cue_callback(GF_WebVTTParser *parser, void (*on_cue_read)(void *, GF_WebVTTCue *), void *udta);

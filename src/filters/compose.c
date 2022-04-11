@@ -55,6 +55,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	Bool ret;
 	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
 	if (!ctx) return GF_BAD_PARAM;
+	if (!ctx->vout) return GF_OK;
 
 	if (ctx->check_eos_state == 2)
 		return GF_EOS;
@@ -205,6 +206,30 @@ static void merge_properties(GF_Compositor *ctx, GF_FilterPid *pid, u32 mtype, G
 	}
 }
 
+static void compositor_setup_vout(GF_Compositor *ctx)
+{
+	//declare video output pid
+	GF_FilterPid *pid;
+	pid = ctx->vout = gf_filter_pid_new(ctx->filter);
+	gf_filter_pid_set_name(pid, "vout");
+	//compositor initiated for RT playback, vout pid may not be connected
+	if (! (ctx->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
+		gf_filter_pid_set_loose_connect(pid);
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
+	if (ctx->timescale)
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
+	else
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt ? ctx->opfmt : GF_PIXEL_RGB) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->output_width) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->output_height) );
+
+	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps) );
+}
+
 static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ObjectManager *odm;
@@ -242,9 +267,16 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			} else if (scene->dims_url.OD_ID == ID) {
 				scene->dims_url.OD_ID = 0;
 				gf_scene_regenerate(scene);
+			} else if (scene->subs_url.OD_ID == ID) {
+				scene->subs_url.OD_ID = 0;
+				gf_scene_regenerate(scene);
 			}
 		}
 		return GF_OK;
+	}
+
+	if (!ctx->vout) {
+		compositor_setup_vout(ctx);
 	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
@@ -284,6 +316,13 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	if (odm) {
 		Bool notify_quality = GF_FALSE;
+
+		if (gf_filter_pid_is_sparse(pid)) {
+			odm->flags |= GF_ODM_IS_SPARSE;
+		} else {
+			odm->flags &= ~GF_ODM_IS_SPARSE;
+		}
+
 		if (mtype==GF_STREAM_SCENE) { }
 		else if (mtype==GF_STREAM_OD) { }
 		//change of stream type for a given object, no use case yet
@@ -712,7 +751,6 @@ static GF_Err compose_initialize(GF_Filter *filter)
 {
 	GF_Err e;
 	GF_FilterSessionCaps sess_caps;
-	GF_FilterPid *pid;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
 
 	ctx->magic = COMPOSITOR_MAGIC;
@@ -774,27 +812,14 @@ static GF_Err compose_initialize(GF_Filter *filter)
 //			}
 		}
 		compositor_setup_aout(ctx);
+
+		//create vout right away
+		compositor_setup_vout(ctx);
+
+		//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
+		gf_filter_post_process_task(filter);
 	}
-	
-	//declare video output pid
-	pid = ctx->vout = gf_filter_pid_new(filter);
-	gf_filter_pid_set_name(pid, "vout");
-	//compositor initiated for RT playback, vout pid may not be connected
-	if (! (ctx->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
-		gf_filter_pid_set_loose_connect(pid);
-
-	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
-	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-	if (ctx->timescale)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->timescale) );
-	else
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(ctx->fps.num) );
-
-	gf_filter_pid_set_property(pid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt ? ctx->opfmt : GF_PIXEL_RGB) );
-	gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->output_width) );
-	gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->output_height) );
-
-	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps) );
+	//if not player mode, wait for pid connection to create vout, otherwise pid linking could fail
 
 	//for coverage
 #ifdef GPAC_ENABLE_COVERAGE
@@ -802,9 +827,6 @@ static GF_Err compose_initialize(GF_Filter *filter)
 		compose_update_arg(filter, NULL, NULL);
 	}
 #endif
-
-	//always request a process task since we don't depend on input packets arrival (animations, pure scene presentations)
-	gf_filter_post_process_task(filter);
 
 	gf_filter_set_event_target(filter, GF_TRUE);
 	if (ctx->player==2) {
@@ -1026,6 +1048,12 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(gaze_x), "horizontal gaze coordinate (0=left, width=right)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(gaze_y), "vertical gaze coordinate (0=top, height=bottom)", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(gazer_enabled), "enable gaze event dispatch", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+
+	{ OFFS(subtx), "horizontal translation in pixels towards right for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(subty), "vertical translation in pixels towards right for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(subfs), "font size for subtitles renderers (0 means automatic)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(subd), "subtitle delay in milliseconds for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(audd), "audio delay in milliseconds", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{0}
 };
 

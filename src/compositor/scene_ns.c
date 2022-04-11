@@ -333,6 +333,9 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			scene->compositor->audio_renderer->scene_ready = GF_FALSE;
 		}
 	}
+	if (gf_filter_pid_is_sparse(pid)) {
+		odm->flags |= GF_ODM_IS_SPARSE;
+	}
 
 	//register PID with ODM, but don't call setup object
 	gf_odm_register_pid(odm, pid, GF_TRUE);

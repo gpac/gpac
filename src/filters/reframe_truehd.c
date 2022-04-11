@@ -410,6 +410,7 @@ static Bool truehd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
+		ctx->cts = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -498,6 +499,9 @@ GF_Err truehd_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale && pck) {
 		cts = gf_filter_pck_get_cts(pck);
+		//init cts at first packet
+		if (!ctx->cts && (cts != GF_FILTER_NO_TS))
+			ctx->cts = cts;
 	}
 
 	if (cts == GF_FILTER_NO_TS) {

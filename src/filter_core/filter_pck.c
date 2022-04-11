@@ -1070,7 +1070,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 		}
 
-		if (!pck->info.duration && pid->min_pck_duration)
+		//set duration if pid is not sparse. If sparse (text & co) don't set it because we will likely get it wrong
+		if (!pid->is_sparse && !pck->info.duration && pid->min_pck_duration)
 			pck->info.duration = (u32) duration;
 
 		//may happen if we don't have DTS, only CTS signaled and B-frames

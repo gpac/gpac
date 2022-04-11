@@ -267,6 +267,7 @@ static Bool proresdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	case GF_FEVT_STOP:
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
+		ctx->cts = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
