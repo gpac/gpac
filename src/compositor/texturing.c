@@ -213,10 +213,12 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	if (!txh->stream) {
 		txh->data = NULL;
+		txh->frame_ifce = NULL;
 		return;
 	}
 	if (txh->stream->config_changed) {
 		txh->data = NULL;
+		txh->frame_ifce = NULL;
 	}
 
 	/*already refreshed*/

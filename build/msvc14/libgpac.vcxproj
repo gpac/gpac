@@ -360,6 +360,7 @@
     <ClCompile Include="..\..\src\filters\tileagg.c" />
     <ClCompile Include="..\..\src\filters\tilesplit.c" />
     <ClCompile Include="..\..\src\filters\tssplit.c" />
+    <ClCompile Include="..\..\src\filters\ttml_conv.c" />
     <ClCompile Include="..\..\src\filters\unit_test_filter.c" />
     <ClCompile Include="..\..\src\filters\vcrop.c" />
     <ClCompile Include="..\..\src\filters\vflip.c" />
@@ -367,6 +368,7 @@
     <ClCompile Include="..\..\src\filters\write_nhml.c" />
     <ClCompile Include="..\..\src\filters\write_nhnt.c" />
     <ClCompile Include="..\..\src\filters\write_qcp.c" />
+    <ClCompile Include="..\..\src\filters\write_tx3g.c" />
     <ClCompile Include="..\..\src\filters\write_vtt.c" />
     <ClCompile Include="..\..\src\filter_core\filter.c" />
     <ClCompile Include="..\..\src\filter_core\filter_pck.c" />

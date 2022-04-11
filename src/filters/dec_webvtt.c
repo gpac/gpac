@@ -43,7 +43,7 @@ typedef struct
 	//opts
 	char *script;
 	char *color, *font;
-	Float fontSize, lineSpacing, txtx, txty;
+	Float fontSize, lineSpacing;
 	u32 txtw, txth;
 
 	GF_FilterPid *ipid, *opid;
@@ -68,7 +68,14 @@ typedef struct
 	/* Scene graph for the subtitle content */
 	GF_SceneGraph *scenegraph;
 
+	u32 timescale;
+	s64 delay;
+	u64 cue_end;
+
 	Bool update_args;
+	s32 txtx, txty;
+	u32 fsize;
+	u32 vp_w, vp_h;
 } GF_VTTDec;
 
 void vttd_update_size_info(GF_VTTDec *ctx)
@@ -91,6 +98,7 @@ void vttd_update_size_info(GF_VTTDec *ctx)
 
 		if (!w) w = ctx->txtw;
 		if (!h) h = ctx->txth;
+		else if (h<=3*ctx->fontSize) h *= 2;
 
 		gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 		gf_scene_force_size(ctx->scene, w, h);
@@ -108,7 +116,8 @@ void vttd_update_size_info(GF_VTTDec *ctx)
 	sprintf(szVB, "0 0 %d %d", w, h);
 	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(root, &info, szVB, 0);
-
+	ctx->vp_w = w;
+	ctx->vp_h = h;
 }
 
 void vttd_setup_scene(GF_VTTDec *ctx)
@@ -156,7 +165,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	u32 entry_type;
 	GF_BitStream *bs;
 	u32 dsi_crc;
-	const GF_PropertyValue *dsi;
+	const GF_PropertyValue *p;
 	GF_VTTDec *ctx = (GF_VTTDec *)gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -171,28 +180,10 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ctx->ipid && !gf_filter_pid_check_caps(pid)) return GF_NOT_SUPPORTED;
 	assert(!ctx->ipid || (ctx->ipid == pid));
 
-	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dsi) return GF_NOT_SUPPORTED;
-
-	dsi_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
-	if (dsi_crc == ctx->dsi_crc) return GF_OK;
-	ctx->dsi_crc = dsi_crc;
-
-	//parse DSI
-	bs = gf_bs_new(dsi->value.data.ptr, dsi->value.data.size, GF_BITSTREAM_READ);
-	entry_type = gf_bs_read_u32(bs);
-	if (entry_type == GF_ISOM_BOX_TYPE_WVTT) {
-		GF_Box *b;
-		gf_isom_box_parse(&b, bs);
-		ctx->dsi = ((GF_StringBox *)b)->string;
-		((GF_StringBox *)b)->string = NULL;
-		gf_isom_box_del(b);
-	} else {
-		ctx->dsi = gf_malloc( dsi->value.data.size + 1);
-		memcpy(ctx->dsi, dsi->value.data.ptr, dsi->value.data.size);
-		ctx->dsi[dsi->value.data.size] = 0;
-	}
-	gf_bs_del(bs);
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	ctx->timescale = p ? p->value.longsint : 1000;
 
 	ctx->ipid = pid;
 	if (!ctx->opid) {
@@ -203,6 +194,30 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+
+	//decoder config not yet ready
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (!p) return GF_OK;
+
+	dsi_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
+	if (dsi_crc == ctx->dsi_crc) return GF_OK;
+	ctx->dsi_crc = dsi_crc;
+
+	//parse DSI
+	bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+	entry_type = gf_bs_read_u32(bs);
+	if (entry_type == GF_ISOM_BOX_TYPE_WVTT) {
+		GF_Box *b;
+		gf_isom_box_parse(&b, bs);
+		ctx->dsi = ((GF_StringBox *)b)->string;
+		((GF_StringBox *)b)->string = NULL;
+		gf_isom_box_del(b);
+	} else {
+		ctx->dsi = gf_malloc( p->value.data.size + 1);
+		memcpy(ctx->dsi, p->value.data.ptr, p->value.data.size);
+		ctx->dsi[p->value.data.size] = 0;
+	}
+	gf_bs_del(bs);
 
 	return GF_OK;
 }
@@ -277,10 +292,33 @@ JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
 	JSContext *svg_script_get_context(GF_SceneGraph *sg);
 	JSContext *c = svg_script_get_context(sg);
 
+	if ((ctx->txtx != ctx->scene->compositor->subtx)
+		|| (ctx->txty != ctx->scene->compositor->subty)
+		|| (ctx->fsize != ctx->scene->compositor->subfs)
+	) {
+		ctx->txtx = ctx->scene->compositor->subtx;
+		ctx->txty = ctx->scene->compositor->subty;
+		ctx->fsize = ctx->scene->compositor->subfs;
+		ctx->update_args = GF_TRUE;
+	}
+
+
 	if (ctx->update_args) {
 		JSValue global = JS_GetGlobalObject(c);
 
-		JS_SetPropertyStr(c, global, "fontSize", JS_NewFloat64(c, ctx->fontSize));
+		u32 fs = MAX(ctx->fsize, ctx->fontSize);
+		u32 def_font_size = ctx->scene->compositor->subfs;
+		if (!def_font_size) {
+			if (ctx->vp_h > 2000) def_font_size = 80;
+			else if (ctx->vp_h > 700) def_font_size = 40;
+			else def_font_size = 20;
+		}
+
+		if (!fs || (def_font_size>fs)) {
+			fs = def_font_size;
+		}
+
+		JS_SetPropertyStr(c, global, "fontSize", JS_NewFloat64(c, fs));
 		JS_SetPropertyStr(c, global, "fontFamily", JS_NewString(c, ctx->font));
 		JS_SetPropertyStr(c, global, "textColor", JS_NewString(c, ctx->color));
 		JS_SetPropertyStr(c, global, "lineSpaceFactor", JS_NewFloat64(c, ctx->lineSpacing));
@@ -294,7 +332,7 @@ JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
 }
 
 
-static GF_Err vttd_js_add_cue(GF_VTTDec *ctx, GF_Node *node, const char *id, const char *start, const char *end, const char *settings, const char *payload)
+static GF_Err vttd_js_add_cue(GF_VTTDec *ctx, GF_Node *node, const char *id, const char *start, const char *end, const char *settings, const char *payload, char *comment)
 {
 	GF_Err e=GF_OK;
 	JSValue fun_val;
@@ -308,13 +346,14 @@ static GF_Err vttd_js_add_cue(GF_VTTDec *ctx, GF_Node *node, const char *id, con
 	if (!JS_IsFunction(c, fun_val) ) {
 		e = GF_BAD_PARAM;
 	} else {
-		JSValue ret, argv[5];
+		JSValue ret, argv[6];
 
 		argv[0] = JS_NewString(c, id ? id : "");
 		argv[1] = JS_NewString(c, start ? start : "");
 		argv[2] = JS_NewString(c, end ? end : "");
 		argv[3] = JS_NewString(c, settings ? settings : "");
 		argv[4] = JS_NewString(c, payload ? payload : "");
+		argv[5] = JS_NewString(c, comment ? comment : "");
 
 		ret = JS_Call(c, fun_val, global, 5, argv);
 		if (JS_IsException(ret)) {
@@ -327,6 +366,7 @@ static GF_Err vttd_js_add_cue(GF_VTTDec *ctx, GF_Node *node, const char *id, con
 		JS_FreeValue(c, argv[2]);
 		JS_FreeValue(c, argv[3]);
 		JS_FreeValue(c, argv[4]);
+		JS_FreeValue(c, argv[5]);
 	}
 	JS_FreeValue(c, global);
 	JS_FreeValue(c, fun_val);
@@ -369,7 +409,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	GF_List *cues;
 	const char *pck_data;
 	u64 cts;
-	u32 timescale, obj_time;
+	u32 obj_time;
 	u32 pck_size;
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
 
@@ -382,7 +422,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	}
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
-	if (!pck) {
+	if (!pck && !ctx->cue_end) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -394,18 +434,40 @@ static GF_Err vttd_process(GF_Filter *filter)
 	if (!ctx->odm->ck)
 		return GF_OK;
 
-	cts = gf_filter_pck_get_cts( pck );
-	timescale = gf_filter_pck_get_timescale(pck);
-
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
+	obj_time = gf_clock_time(ctx->odm->ck);
+
+	if (ctx->cue_end) {
+		u32 c_end = gf_timestamp_rescale(ctx->cue_end, ctx->timescale, 1000);
+		if (c_end <= obj_time) {
+			vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
+			ctx->cue_end = 0;
+		}
+		if (!pck) {
+			if (ctx->cue_end && gf_filter_pid_is_eos(ctx->ipid))
+				gf_sc_sys_frame_pending(ctx->scene->compositor, 0.1, obj_time, filter);
+			return GF_OK;
+		}
+	}
+
+	cts = gf_filter_pck_get_cts( pck );
+	s64 delay = ctx->scene->compositor->subd;
+	if (delay)
+		delay = gf_timestamp_rescale_signed(delay, 1000, ctx->timescale);
+	delay += ctx->delay;
+
+	if (delay>=0) cts += delay;
+	else if (cts > -delay) cts -= -delay;
+	else cts = 0;
 
 	//we still process any frame before our clock time even when buffering
-	obj_time = gf_clock_time(ctx->odm->ck);
-	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / timescale), obj_time, filter);
+	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
+		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / ctx->timescale), obj_time, filter);
 		return GF_OK;
 	}
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
+
+	ctx->cue_end = cts + gf_filter_pck_get_duration(pck);
 
 	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0, 0);
 	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
@@ -416,7 +478,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 			gf_list_rem(cues, 0);
 			sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
 			sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
-			vttd_js_add_cue(ctx, ctx->scenegraph->RootNode, cue->id, start, end, cue->settings, cue->text);
+			vttd_js_add_cue(ctx, ctx->scenegraph->RootNode, cue->id, start, end, cue->settings, cue->text, cue->pre_text);
 
 			gf_webvtt_cue_del(cue);
 		}
@@ -455,6 +517,14 @@ static GF_Err vttd_initialize(GF_Filter *filter)
 void vttd_finalize(GF_Filter *filter)
 {
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
+
+	if (ctx->scenegraph) {
+		if (ctx->graph_registered) {
+			gf_scene_register_extra_graph(ctx->scene, ctx->scenegraph, GF_TRUE);
+		}
+		gf_sg_del(ctx->scenegraph);
+	}
+
 	if (ctx->cues) gf_list_del(ctx->cues);
 	if (ctx->dsi) gf_free(ctx->dsi);
 }
@@ -467,8 +537,6 @@ static const GF_FilterArgs VTTDecArgs[] =
 	{ OFFS(fontSize), "font size", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(color), "text color", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(txtx), "horizontal offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(txty), "vertical offset", GF_PROP_FLOAT, "5", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
 	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
 	{0}
@@ -487,8 +555,8 @@ GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	GF_FS_SET_DESCRIPTION("WebVTT decoder")
 	GF_FS_SET_HELP("This filter decodes WebVTT streams into a SVG scene graph of the compositor filter.\n"
-		"The scene graph creation is done through JavaScript.\n"
-		"The filter options are used to override the JS global variables of the WebVTT renderer.")
+	"The scene graph creation is done through JavaScript.\n"
+	"The filter options are used to override the JS global variables of the WebVTT renderer.")
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,

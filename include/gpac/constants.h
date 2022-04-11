@@ -511,6 +511,11 @@ typedef enum
 	/*! codecid for subtitle/text streams in tx3g / apple text format*/
 	GF_CODECID_TX3G = GF_4CC( 't', 'x', '3', 'g' ),
 
+	/*! codecid for SSA / ASS text streams (only demux -> tx3f conv)*/
+	GF_CODECID_SUBS_SSA = GF_4CC( 'a', 's', 's', 'a' ),
+
+	GF_CODECID_DVB_SUBS = GF_4CC( 'd', 'v', 'b', 's' ),
+	GF_CODECID_DVB_TELETEXT = GF_4CC( 'd', 'v', 'b', 't' ),
 	/*!
 		\brief OGG DecoderConfig
 

@@ -677,7 +677,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 
 			/*val = */gf_bs_read_u8(m4v->bs);
 			val = gf_bs_read_u8(m4v->bs);
-			*frame_type = ((val >> 3) & 0x7) - 1;
+			*frame_type = ((val >> 3) & 0x7);
 			break;
 		case M2V_GOP_START_CODE:
 			if (firstObj) {
@@ -750,7 +750,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi
 			hasVOP = 1;
 
 			/*coding type*/
-			*frame_type = gf_bs_read_int(m4v->bs, 2);
+			*frame_type = 1 + gf_bs_read_int(m4v->bs, 2);
 			/*modulo time base*/
 			secs = 0;
 			while (gf_bs_read_int(m4v->bs, 1) != 0)

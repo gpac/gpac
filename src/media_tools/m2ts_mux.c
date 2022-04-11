@@ -849,7 +849,13 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				}
 				break;
 			default:
-				if (es->force_reg_desc) {
+				if (es->ifce->codecid==GF_CODECID_DVB_SUBS) {
+					es_info_length += 2 + 5+3;
+				}
+				else if (es->ifce->codecid==GF_CODECID_DVB_TELETEXT) {
+					es_info_length += 2 + 2+3;
+				}
+				else if (es->force_reg_desc) {
 					es_info_length += 2 + 4;
 					if (!es->ifce->ra_code)
 						es_info_length += 4;
@@ -1015,6 +1021,41 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				//4bits compatid + 4 bits 0
 				gf_bs_write_u8(bs, es->ifce->dv_info[4]);
 			}
+
+			if (es->ifce->codecid==GF_CODECID_DVB_SUBS) {
+				gf_bs_write_int(bs,	GF_M2TS_DVB_SUBTITLING_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	8, 8);
+				gf_bs_write_u8(bs, (es->ifce->lang>>16) & 0xFF);
+				gf_bs_write_u8(bs, (es->ifce->lang>>6) & 0xFF);
+				gf_bs_write_u8(bs, (es->ifce->lang) & 0xFF);
+				if (es->ifce->decoder_config && (es->ifce->decoder_config_size==5)) {
+					gf_bs_write_u8(bs, es->ifce->decoder_config[4]);
+					gf_bs_write_u8(bs, es->ifce->decoder_config[0]);
+					gf_bs_write_u8(bs, es->ifce->decoder_config[1]);
+					gf_bs_write_u8(bs, es->ifce->decoder_config[2]);
+					gf_bs_write_u8(bs, es->ifce->decoder_config[3]);
+				} else {
+					gf_bs_write_u8(bs, 0x10); //use normal type, we coud use for hard of hearing (0x20)
+					gf_bs_write_u16(bs, 0);
+					gf_bs_write_u16(bs, 0);
+				}
+			}
+			else if (es->ifce->codecid==GF_CODECID_DVB_TELETEXT) {
+				gf_bs_write_int(bs,	GF_M2TS_DVB_SUBTITLING_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	5, 8);
+				gf_bs_write_u8(bs, (es->ifce->lang>>16) & 0xFF);
+				gf_bs_write_u8(bs, (es->ifce->lang>>6) & 0xFF);
+				gf_bs_write_u8(bs, (es->ifce->lang) & 0xFF);
+				if (es->ifce->decoder_config && (es->ifce->decoder_config_size==2)) {
+					gf_bs_write_u8(bs, es->ifce->decoder_config[0]);
+					gf_bs_write_u8(bs, es->ifce->decoder_config[1]);
+				} else {
+					gf_bs_write_int(bs, 0x02, 5);
+					gf_bs_write_int(bs, 0, 3);
+					gf_bs_write_int(bs, 0, 8);
+				}
+			}
+
 
 			if (es->loop_descriptors)
 			{
@@ -1535,6 +1576,15 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 	}
 		break;
 	default:
+		if (stream->ifce->codecid==GF_CODECID_DVB_SUBS) {
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u8(bs, 0x20);
+			gf_bs_write_u8(bs, 0);
+			gf_bs_write_data(bs, stream->curr_pck.data, stream->curr_pck.data_len);
+			gf_free(stream->curr_pck.data);
+			gf_bs_get_content(bs, &stream->curr_pck.data, &stream->curr_pck.data_len);
+			gf_bs_del(bs);
+		}
 		break;
 	}
 
@@ -2642,9 +2692,20 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 		break;
 	case GF_STREAM_TEXT:
 		stream->mpeg2_stream_id = 0xBD;
-		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
-		gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
-		gf_m2ts_stream_add_metadata_descriptor(stream);
+		stream->force_single_au = GF_TRUE;
+		switch (ifce->codecid) {
+		case GF_CODECID_DVB_SUBS:
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			break;
+		case GF_CODECID_DVB_TELETEXT:
+			stream->mpeg2_stream_type = GF_M2TS_PRIVATE_DATA;
+			break;
+		default:
+			stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
+			gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
+			gf_m2ts_stream_add_metadata_descriptor(stream);
+			break;
+		}
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported codec %s, signaling as raw data\n", gf_codecid_name(ifce->codecid) ));

@@ -1788,6 +1788,7 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->is_playing = GF_FALSE;
 		ctx->nal_store_size = 0;
 		ctx->resume_from = 0;
+		ctx->cts = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:

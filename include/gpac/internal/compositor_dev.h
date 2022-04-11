@@ -305,6 +305,9 @@ struct __tag_compositor
 	
 	u32 ogl, mode2d;
 
+	s32 subtx, subty, subd, audd;
+	u32 subfs;
+
 	/*display size*/
 	u32 display_width, display_height;
 
@@ -1324,6 +1327,7 @@ typedef struct
 	Bool need_release;
 	u32 is_open;
 	Bool is_muted;
+	Bool is_playing;
 	Bool register_with_renderer, register_with_parent;
 
 	GF_SoundInterface *snd;
@@ -1732,7 +1736,7 @@ struct _gf_scene
 	u32 selected_service_id;
 
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
-	SFURL visual_url, audio_url, text_url, dims_url;
+	SFURL visual_url, audio_url, text_url, dims_url, subs_url;
 
 	Bool is_tiled_srd;
 	u32 srd_type;
@@ -1932,8 +1936,10 @@ struct _object_clock
 	u32 last_ts_rendered;
 	u32 service_id;
 
-	//media time in ms corresponding to the init tmiestamp of the clock
-	u32 media_time_at_init;
+	//media time in ms
+	u32 media_time_orig;
+	//media timestamp in ms corresponding to the media time
+	u32 media_ts_orig;
 	Bool has_media_time_shift;
 
 	u32 ocr_discontinuity_time;
@@ -2033,6 +2039,9 @@ enum
 	GF_ODM_TILED_SHARED_CLOCK = (1<<16),
 	/*flag indicates TEMI info is associated with PID*/
 	GF_ODM_HAS_TEMI = (1<<17),
+
+	/*flag indicates this visual pid is a text subtitle*/
+	GF_ODM_IS_SPARSE = (1<<18),
 };
 
 enum

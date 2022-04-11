@@ -46,10 +46,11 @@ typedef struct
 	AVRational in_scale;
 	Bool in_seg_flush;
 	u32 cts_shift;
-
+	s64 ts_shift;
 	Bool ready;
 	Bool suspended;
 	Bool reconfig_stream;
+	Bool webvtt;
 } GF_FFMuxStream;
 
 enum{
@@ -74,7 +75,7 @@ typedef struct
 	char *dst, *mime, *ffmt;
 	Double start, speed;
 	u32 block_size;
-	Bool interleave, nodisc, ffiles, noinit;
+	Bool interleave, nodisc, ffiles, noinit, keepts;
 
 	AVFormatContext *muxer;
 	//decode options
@@ -109,6 +110,10 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 {
 	u32 i, nb_pids;
+	u64 min_ts=0;
+	u64 min_delay_skip=0;
+	u32 min_delay_ts=0;
+	u32 min_timescale=1000;
 	int res;
 
 	assert(ctx->status==FFMX_STATE_AVIO_OPEN);
@@ -137,6 +142,45 @@ static GF_Err ffmx_init_mux(GF_Filter *filter, GF_FFMuxCtx *ctx)
 			st->ts_rescale = GF_FALSE;
 		} else {
 			st->ts_rescale = GF_TRUE;
+		}
+		if (!ctx->keepts) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ipid);
+			u64 ts = gf_filter_pck_get_dts(pck);
+			if (ts == GF_FILTER_NO_TS) ts = gf_filter_pck_get_cts(pck);
+			if (ts == GF_FILTER_NO_TS) continue;
+
+			if (!min_ts || (min_ts * st->in_scale.den > ts * min_timescale)) {
+				min_ts = ts;
+				min_timescale = st->in_scale.den;
+			}
+		}
+
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DELAY);
+		if (p) {
+			if (p->value.longsint < 0) {
+				if (!min_delay_skip || (gf_timestamp_greater(-p->value.longsint, st->in_scale.den, min_delay_skip, min_delay_ts))) {
+					min_delay_skip = -p->value.longsint;
+					min_delay_ts = st->in_scale.den;
+				}
+			}
+		}
+	}
+
+	for (i=0; i<nb_pids; i++) {
+		GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+		GF_FFMuxStream *st = gf_filter_pid_get_udta(ipid);
+
+		//get pid delay
+		const GF_PropertyValue *p = gf_filter_pid_get_property(ipid, GF_PROP_PID_DELAY);
+		s64 delay = p ? p->value.longsint : 0;
+		//add min skip, delay is now >=0
+		delay += gf_timestamp_rescale(min_delay_skip, min_delay_ts, st->in_scale.den);
+		//may happen due to rounding
+		if (delay<0) delay=0;
+		st->ts_shift = delay;
+
+		if (!ctx->keepts) {
+			st->ts_shift = st->ts_shift - gf_timestamp_rescale(min_ts, min_timescale, st->in_scale.den);
 		}
 	}
 
@@ -513,6 +557,41 @@ void ffmx_inject_config(GF_FilterPid *pid, GF_FFMuxStream *st, AVPacket *pkt)
 		}
 	}
 }
+static void ffmx_inject_webvtt(GF_FilterPacket *ipck, AVPacket *pkt)
+{
+	u32 len;
+	u8 *data;
+	const GF_PropertyValue *p;
+	const char *vtt_pre=NULL, *vtt_cueid=NULL, *vtt_settings=NULL;
+	p = gf_filter_pck_get_property_str(ipck, "vtt_pre");
+	if (p) vtt_pre = p->value.string;
+	p = gf_filter_pck_get_property_str(ipck, "vtt_cueid");
+	if (p) vtt_cueid = p->value.string;
+	p = gf_filter_pck_get_property_str(ipck, "vtt_settings");
+	if (p) vtt_settings = p->value.string;
+
+	if (vtt_cueid) {
+		len = (u32) strlen(vtt_cueid);
+		data = av_packet_new_side_data(pkt, AV_PKT_DATA_WEBVTT_IDENTIFIER, len);
+		if (data) memcpy(data, vtt_cueid, len);
+	}
+	if (vtt_settings) {
+		len = (u32) strlen(vtt_settings);
+		data = av_packet_new_side_data(pkt, AV_PKT_DATA_WEBVTT_SETTINGS, len);
+		if (data) memcpy(data, vtt_settings, len);
+	}
+	if (vtt_pre) {
+		len = (u32) strlen(vtt_pre);
+		data = av_packet_new_side_data(pkt, AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL, len+8);
+		if (data) {
+			//set additional blockID = 1 (64 BE int)
+			memset(data, 0, 7);
+			data[7] = 1;
+			memcpy(data+8, vtt_pre, len);
+		}
+	}
+}
+
 
 static GF_Err ffmx_process(GF_Filter *filter)
 {
@@ -667,12 +746,18 @@ static GF_Err ffmx_process(GF_Filter *filter)
 			if (sap==GF_FILTER_SAP_1) pkt->flags = AV_PKT_FLAG_KEY;
 			pkt->data = (u8 *) gf_filter_pck_get_data(ipck, &pkt->size);
 
+			if (st->ts_shift) {
+				pkt->dts = pkt->dts + st->ts_shift;
+				pkt->pts = pkt->pts + st->ts_shift;
+			}
 			if (st->ts_rescale) {
 				av_packet_rescale_ts(pkt, st->in_scale, st->stream->time_base);
 			}
 
 			if (st->reconfig_stream) {
 				ffmx_inject_config(ipid, st, pkt);
+			} else if (st->webvtt) {
+				ffmx_inject_webvtt(ipck, pkt);
 			}
 
 			if (ctx->interleave) {
@@ -684,10 +769,9 @@ static GF_Err ffmx_process(GF_Filter *filter)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Fail to write packet %sto %s - error %s\n", st->reconfig_stream ? "with reconfig side data " : "", AVFMT_URL(ctx->muxer), av_err2str(res) ));
 				e = GF_IO_ERR;
 			}
-			if (st->reconfig_stream) {
-				av_packet_free_side_data(pkt);
-				st->reconfig_stream = 0;
-			}
+
+			if (pkt->side_data) av_packet_free_side_data(pkt);
+			st->reconfig_stream = 0;
 
 			gf_filter_pid_drop_packet(ipid);
 			ctx->nb_pck_in_seg++;
@@ -914,6 +998,9 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (!st->stream) return GF_NOT_SUPPORTED;
 	}
 	avst = st->stream;
+	st->webvtt = GF_FALSE;
+	if ((codec_id==GF_CODECID_WEBVTT) && !strcmp( ctx->muxer->oformat->name, "matroska"))
+		st->webvtt = GF_TRUE;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 
@@ -993,7 +1080,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (p) avst->codecpar->bit_rate = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
-	if (p) st->cts_shift = p->value.uint;
+	st->cts_shift = p ? p->value.uint : 0;
 
 	if (streamtype==GF_STREAM_VISUAL) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
@@ -1019,6 +1106,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (p) {
 			avst->codecpar->sample_aspect_ratio.num = p->value.frac.num;
 			avst->codecpar->sample_aspect_ratio.den = p->value.frac.den;
+			avst->sample_aspect_ratio = avst->codecpar->sample_aspect_ratio;
 		}
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
 		if (p) avst->codecpar->color_primaries = p->value.uint;
@@ -1034,15 +1122,6 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_CHROMALOC);
 		if (p) avst->codecpar->chroma_location = p->value.uint;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
-		if (p && avst->r_frame_rate.num && avst->r_frame_rate.den) {
-			s64 delay = p->value.longsint;
-			delay *= avst->r_frame_rate.num;
-			delay /= avst->r_frame_rate.den;
-			avst->codecpar->video_delay = (s32) delay;
-		}
-
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout;
@@ -1083,6 +1162,8 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		int trailing_padding;
 		*/
 	}
+
+	ffmpeg_tags_from_gpac(pid, &avst->metadata);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DASH_MODE);
 	if (p && (p->value.uint==1)) {
@@ -1183,14 +1264,20 @@ static const GF_FilterCapability FFMuxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
-
-#ifdef FF_SUB_SUPPORT
+	{0},
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
-#endif
+	CAP_BOOL(GF_CAPS_INPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
+	{0},
+	//these  ones are framed (DVB subs, simple text)
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_CODECID, GF_CODECID_DVB_SUBS),
 };
 
 GF_FilterRegister FFMuxRegister = {
@@ -1241,6 +1328,7 @@ static const GF_FilterArgs FFMuxArgs[] =
 	{ OFFS(ffiles), "force complete files to be created for each segment in DASH modes", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ffmt), "force ffmpeg output format for the given URL", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(block_size), "block size used to read file when using avio context", GF_PROP_UINT, "4096", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(keepts), "do not shift input timeline back to 0", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ "*", -1, "any possible options defined for AVFormatContext and sub-classes (see `gpac -hx ffmx` and `gpac -hx ffmx:*`)", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}
 };

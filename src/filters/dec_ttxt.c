@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / 3GPP/MPEG4 text renderer filter
@@ -83,7 +83,8 @@ typedef struct
 	u32 dsi_crc;
 	Bool is_tx3g;
 	Bool is_playing, graph_registered, is_eos;
-
+	u32 timescale;
+	s64 delay;
 
 	GF_TextConfig *cfg;
 	GF_BitStream *bs_r;
@@ -103,12 +104,19 @@ typedef struct
 	u32 scroll_type, scroll_mode;
 	Fixed scroll_time, scroll_delay;
 	Bool timer_active;
+
+	Bool simple_text;
+	u8 *static_text;
+	u32 txt_static_alloc;
+	u64 sample_end;
 } GF_TTXTDec;
 
 
 static void ttd_set_blink_fraction(GF_Node *node, GF_Route *route);
 static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route);
 static void ttd_reset_display(GF_TTXTDec *ctx);
+static void ttd_setup_scene(GF_TTXTDec *ctx);
+static void ttd_toggle_display(GF_TTXTDec *ctx);
 
 /*the WORST thing about 3GP in MPEG4 is positioning of the text track...*/
 static void ttd_update_size_info(GF_TTXTDec *ctx)
@@ -159,6 +167,15 @@ static void ttd_update_size_info(GF_TTXTDec *ctx)
 		/*otherwise override (mainly used for SRT & TTXT file direct loading*/
 		ctx->cfg->text_width = w;
 		ctx->cfg->text_height = h;
+
+		u32 i=0;
+		GF_TextSampleDescriptor *td;
+		while ((td = gf_list_enum(ctx->cfg->sample_descriptions, &i))) {
+			td->default_pos.left = 0;
+			td->default_pos.top = 0;
+			td->default_pos.right = w;
+			td->default_pos.bottom = h;
+		}
 	}
 
 	/*ok override video size with main scene size*/
@@ -229,40 +246,17 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) codecid = p->value.uint;
 
-	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!dsi) return GF_NOT_SUPPORTED;
-
 	if (st != GF_STREAM_TEXT) return GF_NOT_SUPPORTED;
 
-	dsi_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
-	if (dsi_crc == ctx->dsi_crc) return GF_OK;
-	ctx->dsi_crc = dsi_crc;
+	ctx->timescale = gf_filter_pid_get_timescale(pid);
 
-	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
-	ctx->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	if (codecid == GF_CODECID_TEXT_MPEG4) {
-		e = gf_odf_get_text_config(dsi->value.data.ptr, dsi->value.data.size, codecid, ctx->cfg);
-		if (e) {
-			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
-			ctx->cfg = NULL;
-			return e;
-		}
-		ctx->is_tx3g = GF_FALSE;
-	} else if (codecid == GF_CODECID_TX3G) {
-		GF_TextSampleDescriptor * sd = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
-		if (!sd) {
-			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
-			ctx->cfg = NULL;
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		if (!sd->default_style.text_color)
-			sd->default_style.text_color = 0xFFFFFFFF;
-
-		gf_list_add(ctx->cfg->sample_descriptions, sd);
-		ctx->is_tx3g = GF_TRUE;
+	ctx->simple_text = GF_FALSE;
+	switch (codecid) {
+	case GF_CODECID_SUBS_TEXT:
+	case GF_CODECID_SIMPLE_TEXT:
+		ctx->simple_text = GF_TRUE;
+		break;
 	}
-	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p && !ctx->cfg->timescale) ctx->cfg->timescale = p->value.uint;
 
 	ctx->ipid = pid;
 	if (!ctx->opid) {
@@ -274,6 +268,74 @@ static GF_Err ttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
 
+	if (ctx->simple_text) {
+		if (!ctx->cfg) ctx->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+		if (!gf_list_count(ctx->cfg->sample_descriptions)) {
+			GF_TextSampleDescriptor *txtc;
+			GF_SAFEALLOC(txtc, GF_TextSampleDescriptor);
+			gf_list_add(ctx->cfg->sample_descriptions, txtc);
+			txtc->sample_index = 1;
+			/*
+			txtc->font_count = 1;
+			txtc->fonts[0].fontID = 1;
+			txtc->fonts[0].fontName = gf_strdup(ctx->fontname ? ctx->fontname : "Serif");
+			txtc->default_style.fontID = 1;
+			txtc->default_style.font_size = ctx->fontsize;
+			*/
+			txtc->back_color = 0x00000000;	/*transparent*/
+			txtc->default_style.text_color = 0xFFFFFFFF;	/*white*/
+			txtc->default_style.style_flags = 0;
+			txtc->horiz_justif = 1; /*center of scene*/
+			txtc->vert_justif = (s8) -1;	/*bottom of scene*/
+		}
+	} else {
+		Bool needs_init = GF_TRUE;
+		//check dsi is ready
+		dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+		if (!dsi) return GF_OK;
+
+		dsi_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
+		if (dsi_crc == ctx->dsi_crc) return GF_OK;
+		ctx->dsi_crc = dsi_crc;
+
+		if (ctx->cfg) {
+			needs_init = GF_FALSE;
+			gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
+		}
+		ctx->cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+		if (codecid == GF_CODECID_TEXT_MPEG4) {
+			e = gf_odf_get_text_config(dsi->value.data.ptr, dsi->value.data.size, codecid, ctx->cfg);
+			if (e) {
+				gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
+				ctx->cfg = NULL;
+				return e;
+			}
+			ctx->is_tx3g = GF_FALSE;
+		} else if (codecid == GF_CODECID_TX3G) {
+			GF_TextSampleDescriptor * sd = gf_odf_tx3g_read(dsi->value.data.ptr, dsi->value.data.size);
+			if (!sd) {
+				gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
+				ctx->cfg = NULL;
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
+			if (!sd->default_style.text_color)
+				sd->default_style.text_color = 0xFFFFFFFF;
+
+			gf_list_add(ctx->cfg->sample_descriptions, sd);
+			ctx->is_tx3g = GF_TRUE;
+		}
+
+		if (needs_init && ctx->odm && ctx->scene) {
+			ttd_setup_scene(ctx);
+			ttd_toggle_display(ctx);
+		}
+	}
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	if (p && !ctx->cfg->timescale) ctx->cfg->timescale = p->value.uint;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
+	ctx->delay = p ? p->value.longsint : 0;
 	return GF_OK;
 }
 
@@ -519,13 +581,16 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 		color = tsd->default_style.text_color;
 		if (!color && !tsd->back_color)
 			color = 0xFFFFFFFF;
-		if (!fontSize) {
-			if (ctx->cfg->text_height > 2000)
-				fontSize = 80;
-			else if (ctx->cfg->text_height > 700)
-				fontSize = 40;
-			else
-				fontSize = 20;
+
+		u32 def_font_size = ctx->scene->compositor->subfs;
+		if (!def_font_size) {
+			if (ctx->cfg->text_height > 2000) def_font_size = 80;
+			else if (ctx->cfg->text_height > 700) def_font_size = 40;
+			else def_font_size = 20;
+		}
+
+		if (!fontSize || (def_font_size>fontSize)) {
+			fontSize = def_font_size;
 		}
 	} else {
 		fontName = ttd_find_font(tsd, tc->srec->fontID);
@@ -619,6 +684,7 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 	start_char = tc->start_char;
 	for (i=tc->start_char; i<tc->end_char; i++) {
 		Bool new_line = GF_FALSE;
+		if (utf16_txt[i] == '\r') continue;
 		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == '\r') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029))
 			new_line = GF_TRUE;
 
@@ -659,6 +725,8 @@ static void ttd_new_text_chunk(GF_TTXTDec *ctx, GF_TextSampleDescriptor *tsd, M_
 				len = gf_utf8_wcstombs(szLine, 5000, (const unsigned short **) &sp);
 				if (len == GF_UTF8_FAIL) len = 0;
 				szLine[len] = 0;
+				if (len && (szLine[len-1]=='\r'))
+					szLine[len-1] = 0;
 
 				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
 				st->buffer = gf_strdup(szLine);
@@ -812,6 +880,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 		br.right = ctx->cfg->text_width;
 		br.bottom = ctx->cfg->text_height;
 	}
+
 	thw = br.right - br.left;
 	thh = br.bottom - br.top;
 	if (!thw || !thh) {
@@ -859,11 +928,13 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 	offset = br.left - tw/2 + thw;
 	if (offset + thw < - tw/2) offset = - tw/2 + thw;
 	else if (offset - thw > tw/2) offset = tw/2 - thw;
+	offset += ctx->scene->compositor->subtx;
 	ctx->tr_box->translation.x = INT2FIX(offset);
 
 	offset = th/2 - br.top - thh;
 	if (offset + thh > th/2) offset = th/2 - thh;
 	else if (offset - thh < -th/2) offset = -th/2 + thh;
+	offset += ctx->scene->compositor->subty;
 	ctx->tr_box->translation.y = INT2FIX(offset);
 
 	gf_node_dirty_set((GF_Node *)ctx->tr_box, 0, GF_TRUE);
@@ -987,7 +1058,7 @@ static void ttd_apply_sample(GF_TTXTDec *ctx, GF_TextSample *txt, u32 sample_des
 	}
 	gf_list_del(chunks);
 
-	if (form->groupsIndex.vals[form->groupsIndex.count-1] != -1)
+	if (form->groupsIndex.count && (form->groupsIndex.vals[form->groupsIndex.count-1] != -1))
 		ttd_add_line(form);
 
 	/*rewrite form groupIndex - group is fine (eg one child per group)*/
@@ -1201,16 +1272,34 @@ static Bool ttd_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		ctx->odm = NULL;
 		ctx->scene = NULL;
 	 } else {
-		 ttd_setup_scene(ctx);
-		 ttd_toggle_display(ctx);
+		if (ctx->cfg) {
+			ttd_setup_scene(ctx);
+			ttd_toggle_display(ctx);
+		}
 	 }
 	 return GF_TRUE;
 }
 
+static GF_Err ttd_render_simple_text(GF_TTXTDec *ctx, const char *pck_data, u32 pck_size, u32 sample_duration)
+{
+	GF_TextSample static_txts;
+	memset(&static_txts, 0, sizeof (GF_TextSample));
+	if (ctx->txt_static_alloc < pck_size+1) {
+		ctx->static_text = gf_realloc(ctx->static_text, pck_size+1);
+		if (ctx->static_text) ctx->txt_static_alloc = pck_size+1;
+		else return GF_OUT_OF_MEM;
+	}
+	memcpy(ctx->static_text, pck_data, pck_size);
+	ctx->static_text[pck_size] = 0;
+	static_txts.text = ctx->static_text;
+	static_txts.len = pck_size;
+	ttd_apply_sample(ctx, &static_txts, 1, GF_FALSE, sample_duration);
+	return GF_OK;
+}
 static GF_Err ttd_process(GF_Filter *filter)
 {
 	const char *pck_data;
-	u32 pck_size, obj_time, timescale;
+	u32 pck_size, obj_time;
 	u64 cts;
 	GF_FilterPacket *pck;
 	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
@@ -1236,28 +1325,61 @@ static GF_Err ttd_process(GF_Filter *filter)
 			}
 			return GF_EOS;
 		}
-		return GF_OK;
+		if (!ctx->sample_end)
+			return GF_OK;
 	}
 	ctx->is_eos = GF_FALSE;
 
 	//object clock shall be valid
 	assert(ctx->odm->ck);
-	cts = gf_filter_pck_get_cts( pck );
-	timescale = gf_filter_pck_get_timescale(pck);
+	if (pck) {
+		s64 delay;
+		cts = gf_filter_pck_get_cts( pck );
+
+		delay = ctx->scene->compositor->subd;
+		if (delay)
+			delay = gf_timestamp_rescale_signed(delay, 1000, ctx->timescale);
+		delay += ctx->delay;
+
+		if (delay>=0) cts += delay;
+		else if (cts > -delay) cts -= -delay;
+		else cts = 0;
+	} else {
+		cts = ctx->sample_end;
+	}
+	if (ctx->sample_end && (ctx->sample_end<cts)) {
+		cts = ctx->sample_end;
+		pck = NULL;
+	}
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
-	if (gf_timestamp_greater(cts, timescale, obj_time, 1000)) {
+
+	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
 		Double ts_offset = (Double) cts;
-		ts_offset /= timescale;
+		ts_offset /= ctx->timescale;
 
 		gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time, filter);
 		return GF_OK;
 	}
 
+	if (!pck) {
+		GF_Err e = ttd_render_simple_text(ctx, NULL, 0, 0);
+		ctx->sample_end = 0;
+		return e;
+	}
+
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
+
+	if (ctx->simple_text) {
+		u32 sample_duration = gf_filter_pck_get_duration(pck);
+		GF_Err e = ttd_render_simple_text(ctx, pck_data, pck_size, sample_duration);
+		gf_filter_pid_drop_packet(ctx->ipid);
+		ctx->sample_end = sample_duration + cts;
+		return e;
+	}
 	gf_bs_reassign_buffer(ctx->bs_r, pck_data, pck_size);
 
 	while (gf_bs_available(ctx->bs_r)) {
@@ -1318,6 +1440,8 @@ void ttd_finalize(GF_Filter *filter)
 
 	if (ctx->cfg) gf_odf_desc_del((GF_Descriptor *) ctx->cfg);
 	gf_bs_del(ctx->bs_r);
+
+	if (ctx->static_text) gf_free(ctx->static_text);
 }
 
 
@@ -1337,6 +1461,8 @@ static const GF_FilterCapability TTXTDecCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TX3G),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
+	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 };

@@ -45,8 +45,8 @@ var height = rect.height;
 ttml_dbg_msg("TTML Rendered Loaded size: " + width + "x" + height);
 
 //filter-assignable variables - if changing names, also do it in filters/dec_ttml.c
-var xOffset = 5;
-var yOffset = 5;
+var xOffset = 0;
+var yOffset = 0;
 var fontSize = 20;
 var textColor = "white";
 var fontFamily = "SANS";
@@ -60,23 +60,23 @@ document.documentElement.appendChild(display_area);
 
 function create_text_area(settings) {
 	var t = document.createElement("textArea");
-	t.setAttribute("x", xOffset + settings.x_offset);
-	t.setAttribute("y", yOffset);
+	t.setAttribute("x", settings.x_offset);
+	t.setAttribute("y", -5);
 	var w, h;
 	if (settings.align_top==2) {
 		t.setAttribute("display-align", "before");
-		h=height - 2*yOffset;
+		h=height ;
 	} else if (settings.align_top==1) {
 		t.setAttribute("display-align", "center");
-		h=height - 2*yOffset;
+		h=height ;//- 2*yOffset;
 	} else {
 		t.setAttribute("display-align", "after");
-		h = height - 2*yOffset - settings.linePosition;
+		h = height - settings.linePosition ;//- 2*yOffset;
 	}
-	w = settings.size - 2*(xOffset + settings.x_offset);
+	w = settings.size - 2*( settings.x_offset);
 	t.setAttribute("height", h);
 	t.setAttribute("width", w);
-	ttml_dbg_msg("Creating textArea size " + w + " x " + h + " - xoffset: " + xOffset);
+	ttml_dbg_msg("Creating textArea size " + w + " x " + h + " - offset: " + xOffset + " x " + yOffset);
 	
 	t.setAttribute("fill", textColor);
 
@@ -89,17 +89,24 @@ function create_text_area(settings) {
 	t.setAttribute("text-align", settings.align);
 	t.setAttribute("line-increment", lineSpaceFactor*fontSize);
 
+
+	let g = document.createElement("g");
+	let mx = g.getMatrixTrait('transform');
+   mx.mTranslate(xOffset, -yOffset);
+	g.setMatrixTrait('transform', mx);
+	display_area.appendChild(g);
+
 	if (ttml_view_area) {
 		var r = document.createElement("rect");
-		r.setAttribute("x", xOffset+settings.x_offset);
-		r.setAttribute("y", yOffset);
+		r.setAttribute("x", settings.x_offset);
+		r.setAttribute("y", -5);
 		r.setAttribute("fill", "cyan");
 		r.setAttribute("width", w);
 		r.setAttribute("height", h);
-		display_area.appendChild(r);
+		g.appendChild(r);
 	}
 
-	display_area.appendChild(t);
+	g.appendChild(t);
 	ttml_dbg_msg("textArea created: "+t);
 	return t;
 }
@@ -112,6 +119,7 @@ function add_text_span(parent, text, styles) {
 		if (styles.italic) span.setAttribute("font-style", "italic");
 		if (styles.underlined) span.setAttribute("text-decoration", "underline");
 		if (styles.bold) span.setAttribute("font-weight", "bold");
+		if (styles.colors) span.setAttribute("fill", ""+styles.color);
 	}
 	span.textContent = text;
 	parent.appendChild(span);
@@ -176,6 +184,25 @@ function push_ttml_text_node(textArea, node, styles)
 	var children = node.childNodes;
 		ttml_dbg_msg("child " + node.nodeName + " children " + children.length);
 
+	let nb_italic = styles.italic;
+	let nb_bold = styles.bold;
+	let nb_underlined = styles.underlined;
+	let nb_colors = styles.colors;
+	let color = styles.color;
+	let att = node.getAttributeNS('*', 'fontStyle');
+	if ((att == 'italic') || (att == 'oblique')) styles.italic++;
+
+	att = node.getAttributeNS('*', 'fontWeight');
+	if (att == 'bold') styles.bold++;
+
+	att = node.getAttributeNS('*', 'textDecoration');
+	if (att == 'underlined') styles.underlined++;
+
+	att = node.getAttributeNS('*', 'color');
+	if ((att != null) && att.length) {
+		styles.colors++;
+		styles.color = att;
+	}
 	for (var i=0; i<children.length; i++) {
 		var t = children.item(i);
 		if (t.nodeName ==='br') {
@@ -208,6 +235,12 @@ function push_ttml_text_node(textArea, node, styles)
 		ttml_dbg_msg("child " + t.nodeName + " txt " + t.textContent);
 		add_text_span(textArea, t.textContent, styles);
 	}
+	styles.italic = nb_italic;
+	styles.bold = nb_bold;
+	styles.underlined = nb_underlined;
+	styles.colors = nb_colors;
+	styles.color = color;
+
 }
 
 let sample_end = 0;
@@ -220,7 +253,7 @@ function on_ttml_sample(ttmldoc, scene_time, pck_dur)
 	display_area.textContent = '';
 	var body = ttmldoc.getElementsByTagName("body");
 	var samples = ttmldoc.getElementsByTagName("p");
-	var styles = {"italic": 0, "underlined": 0, "bold": 0};
+	var styles = {"italic": 0, "underlined": 0, "bold": 0, "colors": 0, color: null};
 
 	if (samples.length>1) {
 		alert("TTML sample has " + samples.length + " defined, only the last sample will be displayed");

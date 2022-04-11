@@ -43,6 +43,9 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 	Fixed speed;
 	Bool done;
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
+
+restart:
+
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
 
@@ -67,6 +70,7 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 		else
 			ai->input_ifce.is_buffering = gf_mo_is_buffering(ai->stream);
 		*size = 0;
+		if (!ai->stream->odm->state) ai->is_playing = GF_FALSE;
 		return NULL;
 	}
 	ai->need_release = GF_TRUE;
@@ -81,6 +85,11 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
+
+	if (ai->compositor->audd<0) obj_time += -ai->compositor->audd;
+	else if (obj_time > ai->compositor->audd) obj_time -= ai->compositor->audd;
+	else obj_time=0;
+
 	if (ai->compositor->bench_mode) {
 		drift = 0;
 	} else {
@@ -120,18 +129,21 @@ static u8 *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 *planar_siz
 	/*adjust drift*/
 	if (audio_delay_ms) {
 		s32 resync_delay = speed > 0 ? FIX2INT(speed * MAX_RESYNC_TIME) : FIX2INT(-speed * MAX_RESYNC_TIME);
+		if (!ai->is_playing) resync_delay = 0;
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>resync_delay) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = GF_FALSE;
-			return gf_audio_input_fetch_frame(callback, size, planar_size, audio_delay_ms);
+			//avoid recursion
+			goto restart;
 		}
 		if (ai->stream->odm && ai->stream->odm->ck)
 			resync_delay = ai->stream->odm->ck->audio_delay - drift;
 		else
 			resync_delay = -drift;
-			
+
+		ai->is_playing = GF_TRUE;
 		if (resync_delay < 0) resync_delay = -resync_delay;
 
 		if (resync_delay > MIN_DRIFT_ADJUST) {

@@ -168,7 +168,7 @@ void gf_m4v_parser_reset(GF_M4VParser *m4v, u8 obj_type);
 thus you can seek the bitstream to copy the payload without re-seeking it
 \param m4v the mpeg video parser
 \param dsi pointer to the decoder specific info parsed
-\param frame_type set to the frame type (I:0, P:1, B:2)
+\param frame_type set to the frame type (I:1, P:2, B:3, 0: no frame header found)
 \param time_inc set to the time increment since last frame
 \param size set to the size of the compressed frame
 \param start set to the position of the first byte in the buffer/bitstream

@@ -2379,7 +2379,8 @@ static Bool dashdmx_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 			gf_dash_set_speed(ctx->dash, fevt->play.speed);
 
 		initial_play = ctx->initial_play;
-		if (fevt->play.initial_broadcast_play) initial_play = GF_TRUE;
+		if (fevt->play.initial_broadcast_play==1)
+			initial_play = GF_TRUE;
 
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice, unless start range is not default one (0) */
 		if (!ctx->nb_playing) {

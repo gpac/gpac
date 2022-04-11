@@ -296,6 +296,16 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width,
 */
 GF_Err gf_evg_stencil_set_texture_planes(GF_EVGStencil *stencil, u32 width, u32 height, GF_PixelFormat pixelFormat, const u8 *y_or_rgb, u32 stride, const u8 *u_plane, const u8 *v_plane, u32 uv_stride, const u8 *alpha_plane, u32 alpha_stride);
 
+
+/*! sets texture palette, only for greyscale textures.
+\param stencil the target stencil
+\param palette palette data
+\param pix_fmt palette pixel format, must be RGB/BGR or any RGBA format
+\param nb_cols number of colors in palette
+\return error if any
+*/
+GF_Err gf_evg_stencil_set_palette(GF_EVGStencil *stencil, const u8 *palette, u32 pix_fmt, u32 nb_cols);
+
 /*! callback function prototype for parametric textures
 \param cbk user data callback
 \param x horizontal coordinate in texture, ranging between 0 and width-1, (0,0) being top-left pixel, or horizontal coordinate of destination pixel on surface

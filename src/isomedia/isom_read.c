@@ -3539,6 +3539,23 @@ GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *movie, Bool do_convert)
 	return GF_OK;
 }
 
+static void gf_isom_gen_desc_get_dsi(GF_GenericSampleDescription *udesc, GF_List *child_boxes)
+{
+	if (!child_boxes) return;
+	GF_UnknownBox *a=NULL;
+	u32 i=0;
+	while ((a=gf_list_enum(child_boxes, &i))) {
+		if (a->type == GF_ISOM_BOX_TYPE_UNKNOWN) break;
+		a = NULL;
+	}
+	if (!a) return;
+	udesc->extension_buf = (char*)gf_malloc(sizeof(char) * a->dataSize);
+	if (udesc->extension_buf) {
+		udesc->extension_buf_size = a->dataSize;
+		memcpy(udesc->extension_buf, a->data, a->dataSize);
+		udesc->ext_box_wrap = a->original_4cc;
+	}
+}
 
 GF_EXPORT
 GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex)
@@ -3591,6 +3608,8 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 				return NULL;
 			}
 			memcpy(udesc->extension_buf, entry->data, entry->data_size);
+		} else {
+			gf_isom_gen_desc_get_dsi(udesc, entry->child_boxes);
 		}
 		return udesc;
 	case GF_ISOM_BOX_TYPE_GNRA:
@@ -3616,6 +3635,8 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 				return NULL;
 			}
 			memcpy(udesc->extension_buf, gena->data, gena->data_size);
+		} else {
+			gf_isom_gen_desc_get_dsi(udesc, entry->child_boxes);
 		}
 		return udesc;
 	case GF_ISOM_BOX_TYPE_GNRM:
@@ -3635,6 +3656,8 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 				return NULL;
 			}
 			memcpy(udesc->extension_buf, genm->data, genm->data_size);
+		} else {
+			gf_isom_gen_desc_get_dsi(udesc, entry->child_boxes);
 		}
 		return udesc;
 	}

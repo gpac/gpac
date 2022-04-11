@@ -400,6 +400,8 @@ readonly attribute boolean eos_seen;
 readonly attribute boolean eos_received;
 /*! blocking state - see \ref gf_filter_pid_would_block*/
 readonly attribute boolean would_block;
+/*! sparse status - see \ref gf_filter_pid_is_sparse*/
+readonly attribute boolean sparse;
 /*! name of parent filter*/
 readonly attribute DOMString filter_name;
 /*! name of source filter*/

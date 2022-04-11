@@ -95,6 +95,7 @@ typedef struct
 	u32 cfg_crc;
 	u32 codecid;
 	Bool is_hardware;
+	Bool wait_rap;
 
 	GF_Err last_error;
 	
@@ -327,17 +328,22 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 
-	if (ctx->ofmt==1) {
+	switch (ctx->ofmt) {
+	case GF_PIXEL_YUV:
 		kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
 		ctx->pix_fmt = GF_PIXEL_YUV;
-	} else if (ctx->ofmt==2) {
+		break;
+	case GF_PIXEL_RGB:
 		kColorSpace = kCVPixelFormatType_24RGB;
 		ctx->pix_fmt = GF_PIXEL_RGB;
-	} else {
+		break;
+	default:
 		kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
 		ctx->pix_fmt = GF_PIXEL_NV12;
+		break;
 	}
 
+	ctx->wait_rap = GF_TRUE;
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
 	pid = gf_list_get(ctx->streams, 0);
@@ -1499,6 +1505,7 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	gf_list_add(ctx->frames_res, vtbframe);
 	return GF_OK;
 }
+
 static GF_Err vtbdec_process(GF_Filter *filter)
 {
     OSStatus status;
@@ -1553,7 +1560,11 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ref_pid);
 		return GF_OK;
 	}
-
+	if (ctx->wait_rap && !gf_filter_pck_get_sap(pck)) {
+		gf_filter_pid_drop_packet(ref_pid);
+		return GF_OK;
+	}
+	ctx->wait_rap = GF_FALSE;
 	in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
 
 	//discard empty packets

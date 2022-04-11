@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato, Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2006-2019
+ *			Copyright (c) Telecom ParisTech 2006-2022
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -722,7 +722,11 @@ enum
 	/*! flag used by importers/readers to mark streams that have been seen already in PMT process (update/found)*/
 	GF_M2TS_ES_ALREADY_DECLARED = 1<<18,
 	/*! flag indicates TEMI info is declared on this stream*/
-	GF_M2TS_ES_TEMI_INFO = 1<<19
+	GF_M2TS_ES_TEMI_INFO = 1<<19,
+	/*! flag indicates each PES is a full AU*/
+	GF_M2TS_ES_FULL_AU = 1<<20,
+	/*! flag indicates ES is not sparse (AV), used to check discontinuity - set by user*/
+	GF_M2TS_CHECK_DISC = 1<<21,
 };
 
 /*! macro for abstract Section/PES stream object, only used for type casting*/

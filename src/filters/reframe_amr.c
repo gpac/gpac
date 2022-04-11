@@ -320,6 +320,7 @@ static Bool amrdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	case GF_FEVT_STOP:
 		ctx->is_playing = GF_FALSE;
+		ctx->cts = 0;
 		//don't cancel event
 		return GF_FALSE;
 

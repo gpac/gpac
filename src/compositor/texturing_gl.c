@@ -1297,7 +1297,9 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_EVGStencil * stencil)
 
 void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh, Bool do_freeze)
 {
-	if (!txh->stream || !txh->tx_io)
+	if (!txh->stream || !txh->tx_io || !txh->stream->odm)
+		return;
+	if (txh->stream->odm->flags & GF_ODM_IS_SPARSE)
 		return;
 
 	if (do_freeze) {

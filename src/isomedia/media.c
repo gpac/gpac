@@ -644,6 +644,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 			return GF_IO_ERR;
 		}
 		mdia->BytesMissing = 0;
+	} else {
+		(*samp)->dataLength = 0;
 	}
 
 	//finally rewrite the sample if this is an OD Access Unit or NAL-based one

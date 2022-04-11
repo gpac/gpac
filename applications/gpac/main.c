@@ -1321,7 +1321,7 @@ static void gpac_sig_handler(int sig)
 			signal_catched = GF_TRUE;
 			if (is_inter) {
 				in_sig_handler = GF_TRUE;
-				fprintf(stderr, "\nToggle reports (r) or flush session before exit (Y/f/n) ? \n");
+				fprintf(stderr, "\nToggle reports (r), or exit with fast (Y), full (f) or no (n) session flush ? \n");
 rescan:
 				res = scanf("%c", &input);
 				if (res!=1) input=0;

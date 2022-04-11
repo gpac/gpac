@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / software 2D rasterizer module
@@ -1722,62 +1722,62 @@ GF_EVGStencil *evg_texture_brush()
 
 u32 get_pix_argb(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix) & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF, *(pix+3) & 0xFF);
 }
 u32 get_pix_rgba(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix) & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF);
 }
 u32 get_pix_grba(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix+1) & 0xFF, *(pix) & 0xFF, *(pix+2) & 0xFF);
 }
 u32 get_pix_abgr(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix) & 0xFF, *(pix+3) & 0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF);
 }
 u32 get_pix_bgra(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF, *(pix) & 0xFF);
 }
 u32 get_pix_rgbx(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix) & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF);
 }
 u32 get_pix_xrgb(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF, *(pix+3) & 0xFF);
 }
 u32 get_pix_xbgr(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+3) & 0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF);
 }
 u32 get_pix_bgrx(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF, *(pix) & 0xFF);
 }
 u32 get_pix_rgb_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF);
 }
 u32 get_pix_gbr_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF, *pix & 0xFF);
 }
 u32 get_pix_bgr_24(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, * (pix+1) & 0xFF, *pix & 0xFF);
 }
 u32 get_pix_444(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
@@ -1800,7 +1800,7 @@ u32 get_pix_555(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 }
 u32 get_pix_565(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	u32 r = (pix[0]>>3) & 0x1f;
 	u32 g = (pix[0])&0x7;
 	g<<=3;
@@ -1808,16 +1808,32 @@ u32 get_pix_565(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 	u32 b = pix[1] & 0x1f;
 	return GF_COL_ARGB(0xFF, (r << 3), (g << 2), (b << 3));
 }
+u32 get_pix_palette_alpha(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u32 val = *pix;
+	if (val >= _this->palette_colors) return GF_COL_ARGB(0xFF, 0xFF, 0xFF, 0xFF);
+	pix = (u8*)_this->palette + val*4;
+	return GF_COL_ARGB(pix[_this->pidx_a], pix[_this->pidx_r], pix[_this->pidx_g], pix[_this->pidx_b]);
+}
+u32 get_pix_palette(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
+{
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u32 val = *pix;
+	if (val >= _this->palette_colors) return GF_COL_ARGB(0xFF, 0xFF, 0xFF, 0xFF);
+	pix = (u8*)_this->palette + val*3;
+	return GF_COL_ARGB(0xFF, pix[_this->pidx_r], pix[_this->pidx_g], pix[_this->pidx_b]);
+}
 u32 get_pix_grey(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	u8 val = *pix;
 	return GF_COL_ARGB(0xFF, val, val, val);
 }
 u32 get_pix_alphagrey(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	u8 a, g;
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	a = *pix;
 	g = *(pix+1);
 	return GF_COL_ARGB(a, g, g, g);
@@ -1825,7 +1841,7 @@ u32 get_pix_alphagrey(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 u32 get_pix_greyalpha(EVG_Texture *_this, u32 x, u32 y, EVGRasterCtx *ctx)
 {
 	u8 a, g;
-	char *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
+	u8 *pix = _this->pixels + y * _this->stride + _this->Bpp*x;
 	g = *pix;
 	a = *(pix+1);
 	return GF_COL_ARGB(a, g, g, g);
@@ -2284,7 +2300,13 @@ static void texture_set_callbacks(EVG_Texture *_this)
 		_this->tx_get_pixel = get_pix_565;
 		return;
 	case GF_PIXEL_GREYSCALE:
-		_this->tx_get_pixel = get_pix_grey;
+		if (_this->palette && _this->palette_colors) {
+			if (_this->palette_comp==4)
+				_this->tx_get_pixel = get_pix_palette_alpha;
+			else
+				_this->tx_get_pixel = get_pix_palette;
+		} else
+			_this->tx_get_pixel = get_pix_grey;
 		return;
 	case GF_PIXEL_ALPHAGREY:
 		_this->tx_get_pixel = get_pix_alphagrey;
@@ -2474,6 +2496,8 @@ static GF_Err gf_evg_stencil_set_texture_internal(GF_EVGStencil * st, u32 width,
 
 	_this->pixels = NULL;
 	_this->is_yuv = GF_FALSE;
+	_this->palette = NULL;
+	_this->palette_colors = 0;
 
 	switch (pixelFormat) {
 	case GF_PIXEL_ARGB:
@@ -2591,6 +2615,64 @@ GF_Err gf_evg_stencil_set_texture(GF_EVGStencil *stencil, u8 *pixels, u32 width,
 	return gf_evg_stencil_set_texture_internal(stencil, width, height, pixelFormat, pixels, stride, NULL, NULL, 0, NULL, 0);
 }
 
+GF_EXPORT
+GF_Err gf_evg_stencil_set_palette(GF_EVGStencil *stencil, const u8 *palette, u32 pix_fmt, u32 nb_cols)
+{
+	EVG_Texture *_this = (EVG_Texture *) stencil;
+	if (!_this || (_this->type != GF_STENCIL_TEXTURE) || !palette || !nb_cols)
+		return GF_BAD_PARAM;
+	if (_this->pixel_format != GF_PIXEL_GREYSCALE) return GF_BAD_PARAM;
+	_this->palette = palette;
+	_this->palette_colors = nb_cols;
+	_this->palette_pfmt = pix_fmt;
+	switch (pix_fmt) {
+	case GF_PIXEL_RGB:
+		_this->palette_comp = 3;
+		_this->pidx_r=0;
+		_this->pidx_g=1;
+		_this->pidx_b=2;
+		break;
+	case GF_PIXEL_BGR:
+		_this->palette_comp = 3;
+		_this->pidx_r=2;
+		_this->pidx_g=1;
+		_this->pidx_b=0;
+		break;
+	case GF_PIXEL_RGBA:
+		_this->palette_comp = 4;
+		_this->pidx_r=0;
+		_this->pidx_g=1;
+		_this->pidx_b=2;
+		_this->pidx_a=3;
+		break;
+	case GF_PIXEL_ARGB:
+		_this->palette_comp = 4;
+		_this->pidx_r=1;
+		_this->pidx_g=2;
+		_this->pidx_b=3;
+		_this->pidx_a=0;
+		break;
+	case GF_PIXEL_ABGR:
+		_this->palette_comp = 4;
+		_this->pidx_r=3;
+		_this->pidx_g=2;
+		_this->pidx_b=1;
+		_this->pidx_a=0;
+		break;
+	case GF_PIXEL_BGRA:
+		_this->palette_comp = 4;
+		_this->pidx_r=2;
+		_this->pidx_g=1;
+		_this->pidx_b=0;
+		_this->pidx_a=3;
+		break;
+	default:
+		_this->palette = NULL;
+		_this->palette_colors = 0;
+		return GF_NOT_SUPPORTED;
+	}
+	return GF_OK;
+}
 GF_EXPORT
 GF_Err gf_evg_stencil_get_texture_planes(GF_EVGStencil *stencil, u8 **pY_or_RGB, u8 **pU, u8 **pV, u8 **pA, u32 *stride, u32 *stride_uv)
 {

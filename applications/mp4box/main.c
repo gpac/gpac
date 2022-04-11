@@ -3380,6 +3380,11 @@ u32 mp4box_parse_args(int argc, char **argv)
 		else if (!strncmp(arg, "-p=", 3)) {
 			continue;
 		}
+#ifndef GPAC_MEMORY_TRACKING
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+			continue;
+		}
+#endif
 
 		//parse argument
 		else if (mp4box_parse_single_arg(argc, argv, arg, &i)) {

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -856,8 +856,13 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	/*reset previous composite texture*/
 	if (compositor->prev_hit_appear != compositor->hit_appear) {
 		if (compositor->prev_hit_appear) {
-			compositor_compositetexture_handle_event(compositor, compositor->prev_hit_appear, ev, GF_TRUE);
-			if (!compositor->grabbed_sensor) compositor->prev_hit_appear = NULL;
+			//reset previ appear node to avoid potential recursions
+			GF_Node *hit_appear = compositor->prev_hit_appear;
+			compositor->prev_hit_appear = NULL;
+			compositor_compositetexture_handle_event(compositor, hit_appear, ev, GF_TRUE);
+			//restore if we have a hit
+			if (compositor->grabbed_sensor)
+				compositor->prev_hit_appear = hit_appear;
 		}
 	}
 

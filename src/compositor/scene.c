@@ -337,6 +337,7 @@ static void gf_scene_reset_urls(GF_Scene *scene)
 	SFURL_RESET(scene->audio_url);
 	SFURL_RESET(scene->visual_url);
 	SFURL_RESET(scene->text_url);
+	SFURL_RESET(scene->subs_url);
 	SFURL_RESET(scene->dims_url);
 }
 
@@ -1288,10 +1289,47 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 {
+	const GF_PropertyValue *p;
 	u32 w, h;
-	gf_scene_get_video_size(mo, &w, &h);
+	Bool is_subs_pic = GF_FALSE;
+	//if picture subtitle don't resize unless standalone playback
+	if (gf_list_count(scene->resources)>1) {
+		p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+		if (p && (p->value.uint==GF_STREAM_TEXT)) is_subs_pic = GF_TRUE;
+	}
+	if (!is_subs_pic) {
+		gf_scene_get_video_size(mo, &w, &h);
+		if (w && h) gf_scene_force_size(scene, w, h);
+		return;
+	}
+	//subpic stream, update props
+	w = scene->compositor->scene_width;
+	h = scene->compositor->scene_height;
 
-	if (w && h) gf_scene_force_size(scene, w, h);
+	M_Transform2D *tr = (M_Transform2D *) gf_sg_find_node_by_name(scene->graph, "TR_SUBT_IMG");
+	if (!tr) return;
+
+	tr->translation.x = 0;
+	p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_X_INV);
+	if (p) {
+		if (p) tr->translation.x = -INT2FIX(w/2) + INT2FIX(p->value.sint+mo->width/2);
+	} else {
+		p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_X);
+		if (p) tr->translation.x = p->value.sint;
+	}
+	tr->translation.x += scene->compositor->subtx;
+
+	tr->translation.y = 0;
+	p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_Y_INV);
+	if (p) {
+		tr->translation.y = INT2FIX( (s32)h/2 - p->value.sint);
+	} else {
+		p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_Y);
+		if (p) tr->translation.y = INT2FIX(p->value.sint);
+	}
+	tr->translation.y += scene->compositor->subty;
+	gf_node_changed((GF_Node *)tr, NULL);
+
 }
 
 #ifndef GPAC_DISABLE_VRML
@@ -1369,7 +1407,13 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			if (!odm->ID)
 				continue;
 
-			if (type==GF_STREAM_TEXT) {
+			//only used to set subtile pictures
+			if (type==GF_STREAM_UNKNOWN) {
+				if (odm->type != GF_STREAM_VISUAL) continue;
+				const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+				if (!p || (p->value.uint!=GF_STREAM_TEXT)) continue;
+			}
+			else if (type==GF_STREAM_TEXT) {
 				if (odm->type!=type) continue;
 			}
 			else if (type==GF_STREAM_SCENE) {
@@ -1380,8 +1424,12 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			}
 			else {
 				if (odm->type!=type) continue;
-				//todo: select preferred media format ?
+				if (type==GF_STREAM_VISUAL) {
+					const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+					if (p && (p->value.uint!=type)) continue;
+				}
 			}
+			//todo: select preferred media format ?
 
 			if (scene->selected_service_id && (scene->selected_service_id != odm->ServiceID)) {
 				//objects inserted from broadcast may have been played but not yet registered with the scene, we need to force a stop
@@ -1507,13 +1555,21 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *name, const ch
 	return node;
 }
 
+void transform2d_set_untransform(GF_Node *node);
 
-static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, const char *texture_name, const char *name_geo)
+static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, const char *texture_name, const char *name_geo, Bool is_untransform)
 {
 	M_MovieTexture *mt;
 	GF_Node *n1, *n2;
 
 	/*create a shape and bitmap node*/
+	if (is_untransform) {
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, NULL);
+		transform2d_set_untransform(n2);
+		gf_node_list_add_child( &((GF_ParentNode *)root)->children, n2);
+		gf_node_register(n2, root);
+		root = n2;
+	}
 	n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, tr_name);
 	gf_node_list_add_child( &((GF_ParentNode *)root)->children, n2);
 	gf_node_register(n2, root);
@@ -1532,7 +1588,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
-	if (scene->srd_type) {
+	if (scene->srd_type && !is_untransform) {
 		GF_Node *app = n2;
 
 		if (scene->vr_type) {
@@ -1548,7 +1604,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		((M_Material2D *)n2)->filled = GF_TRUE;
 		((M_Appearance *)app)->material = n2;
 		gf_node_register(n2, app);
-	} else if (scene->vr_type) {
+	} else if (scene->vr_type && !is_untransform) {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
@@ -1641,7 +1697,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_node_register(n2, n1);
 		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
 
-		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
+		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1", GF_FALSE);
+		create_movie(scene, n1, "TR_SUBT_IMG", "DYN_SUBT_IMG", "DYN_GEOM_SUBT_IMG", GF_TRUE);
 
 		if (! scene->vr_type) {
 			M_Transform2D *addon_tr;
@@ -1680,6 +1737,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+
 		}
 		//VR mode, add VR headup
 		else {
@@ -1779,7 +1837,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			sprintf(szGeom, "DYN_GEOM%d", i+1);
 			n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 			if (!n2) {
-				create_movie(scene, n1, szName, szTex, szGeom);
+				create_movie(scene, n1, szName, szTex, szGeom, GF_FALSE);
 			}
 		}
 		assert(max_x>min_x);
@@ -1841,6 +1899,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 	} else {
 		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
+
+		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_SUBT_IMG");
+		set_media_url(scene, &scene->subs_url, (GF_Node*)mt, &mt->url, GF_STREAM_UNKNOWN);
 	}
 
 
@@ -1991,6 +2052,7 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 		scene->visual_url.OD_ID = 0;
 		scene->text_url.OD_ID = 0;
 		scene->dims_url.OD_ID = 0;
+		scene->subs_url.OD_ID = 0;
 		scene->force_size_set = 0;
 		//reset clock since we change service IDs, but request a PLAY from the current time
 		if (scene->root_od->ck) {
@@ -2033,10 +2095,19 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 
 
-	if (odm->state) {
-		if (check_odm_deactivate(&scene->audio_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1")) ) return;
-		if (check_odm_deactivate(&scene->visual_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1") )) return;
-		if (check_odm_deactivate(&scene->text_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT") )) return;
+	//check if we are asking to (de)select one of our active media
+	Bool pre_selected = GF_FALSE;
+	if (check_odm_deactivate(&scene->audio_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1")) ) pre_selected=GF_TRUE;
+	else if (check_odm_deactivate(&scene->visual_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1") )) pre_selected=GF_TRUE;
+	else if (check_odm_deactivate(&scene->text_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT") )) pre_selected=GF_TRUE;
+	else if (check_odm_deactivate(&scene->subs_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_SUBT_IMG") )) pre_selected=GF_TRUE;
+	if (pre_selected) {
+		if (odm->state) {
+			gf_odm_stop(odm, GF_FALSE);
+		} else {
+			gf_odm_play(odm);
+		}
+		return;
 	}
 
 
@@ -2161,6 +2232,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		odm_activate(&scene->audio_url, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO1"));
 		odm_activate(&scene->visual_url, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1"));
 		odm_activate(&scene->text_url, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT"));
+		odm_activate(&scene->subs_url, gf_sg_find_node_by_name(scene->graph, "DYN_SUBT_IMG"));
 
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);

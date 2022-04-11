@@ -980,6 +980,7 @@ static u32 FS_PROP_PID_TIMESCALE = 12;
 static u32 FS_PROP_PID_MIN_PCK_DUR = 13;
 static u32 FS_PROP_PID_PLAYING = 14;
 static u32 FS_PROP_PID_NEXT_TS = 15;
+static u32 FS_PROP_PID_SPARSE = 16;
 
 #define FILTERPID\
 	GF_FilterPid *pid=NULL;\
@@ -1031,6 +1032,10 @@ napi_value filterpid_getter(napi_env env, napi_callback_info info)
 	}
 	if (magic == &FS_PROP_PID_WOULD_BLOCK) {
 		NAPI_CALL( napi_get_boolean(env, gf_filter_pid_would_block(pid), &ret) );
+		return ret;
+	}
+	if (magic == &FS_PROP_PID_SPARSE) {
+		NAPI_CALL( napi_get_boolean(env, gf_filter_pid_is_sparse(pid), &ret) );
 		return ret;
 	}
 	if (magic == &FS_PROP_PID_MAX_BUFFER) {
@@ -2864,6 +2869,7 @@ static NAPI_FilterPid *wrap_filter_pid(napi_env env, GF_Filter *filter, GF_Filte
 		{ "has_seen_eos", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_HAS_SEEN_EOS},
 		{ "eos_received", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_HAS_RECEIVED},
 		{ "would_block", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_WOULD_BLOCK},
+		{ "sparse", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_SPARSE},
 		{ "max_buffer", NULL, NULL, filterpid_getter, filterpid_setter, NULL, napi_enumerable, &FS_PROP_PID_MAX_BUFFER},
 		{ "buffer", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_BUFFER},
 		{ "buffer_full", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_BUFFER_FULL},

@@ -531,8 +531,11 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = NULL;
 
-	if (!mo->odm || !mo->odm->pid)
+	if (!mo->odm || !mo->odm->pid || !mo->odm->state) {
+		mo->frame = NULL;
+		mo->frame_ifce = NULL;
 		return NULL;
+	}
 
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {

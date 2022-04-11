@@ -9,8 +9,8 @@ var width = rect.width;
 var height = rect.height;
 
 //filter-assignable variables - if changing names, also do it in filters/dec_webvtt.c
-var xOffset = 5;
-var yOffset = 5;
+var xOffset = 0;
+var yOffset = 0;
 var fontSize = 20;
 var textColor = "white";
 var fontFamily = "SANS";
@@ -29,9 +29,10 @@ function reportMessage(msg) {
 }
 
 function createTextArea(settingsObj) {
+
 	var t = document.createElement("textArea");
 	t.setAttribute("x", xOffset+settingsObj.xPosition);
-	t.setAttribute("y", yOffset);
+	t.setAttribute("y", yOffset- fontSize);
 	var w, h;
 	if (settingsObj.fromTop) {
 		t.setAttribute("display-align", "before");
@@ -40,7 +41,7 @@ function createTextArea(settingsObj) {
 		t.setAttribute("display-align", "after");
 		h = height-2*yOffset-settingsObj.linePosition;
 	}
-	w = settingsObj.size-2*xOffset;
+	w = settingsObj.size;
 	t.setAttribute("height", h);
 	t.setAttribute("width", w);
 	reportMessage("Creating textArea size " + w + " x " + h);
@@ -50,6 +51,17 @@ function createTextArea(settingsObj) {
 	t.setAttribute("font-family", fontFamily);
 	t.setAttribute("text-align", settingsObj.align);
 	t.setAttribute("line-increment", lineSpaceFactor*fontSize);
+
+/*	if (w < width) {
+		var r = document.createElement("rect");
+		r.setAttribute("height", h);
+		r.setAttribute("width", w);
+		r.setAttribute("x", xOffset+settingsObj.xPosition);
+		r.setAttribute("y", yOffset-5);
+		r.setAttribute("fill", "cyan");
+		cueArea.appendChild(r);
+	}
+*/
 	cueArea.appendChild(t);
 	reportMessage("textArea created: "+t);
 	return t;
@@ -101,7 +113,7 @@ function parseCueSettings(cueSettings){
 	}
 
 	// Compute real values
-	if (compositeCueSettings.line !== undefined) {
+	if (typeof compositeCueSettings.line != 'undefined') {
 		if (compositeCueSettings.line.match(/\%/)) {
 			obj.linePosition = parseFloat(compositeCueSettings.line.replace(/\%/ig,""));
 			if (isNaN(obj.linePosition)) {
@@ -125,19 +137,20 @@ function parseCueSettings(cueSettings){
 	} else {
 		obj.linePosition = nbCues*lineSpaceFactor*fontSize;
 	}
-	reportMessage("linePosition: "+obj.linePosition);
-	if (compositeCueSettings.position !== undefined) {
+
+	let position_auto=true;
+	if (typeof compositeCueSettings.position != 'undefined') {
 		obj.xPosition = parseFloat(compositeCueSettings.position.replace(/\%/ig,""));
 		if (isNaN(obj.xPosition)) {
-			obj.xPosition = 50;
+			obj.xPosition = 0;
 		} else {
 			obj.xPosition *= width/100;
+			position_auto = false;
 		}
 	} else {
-		obj.xPosition = 50;
+		obj.xPosition = 0;
 	}
-	reportMessage("xPosition: "+obj.xPosition);
-	if (compositeCueSettings.size !== undefined) {
+	if (typeof compositeCueSettings.size != 'undefined') {
 		obj.size = parseFloat(compositeCueSettings.size.replace(/\%/ig,""));
 		if (isNaN(obj.size)) {
 			obj.size = 100;
@@ -145,28 +158,40 @@ function parseCueSettings(cueSettings){
 	} else {
 		obj.size = 100;
 	}
+	if (obj.size==100) position_auto = false;
 	obj.size *= width/100;
-	
-	reportMessage("size: "+obj.size);
-	if (compositeCueSettings.align !== undefined) {
-		if (compositeCueSettings.align === "middle") {
-			obj.align = "center";
-		} else if (compositeCueSettings.align === "left") {
+
+	//default to center
+	if (position_auto) {
+		obj.xPosition = width/2 - obj.size/2;
+	}
+
+	if (typeof compositeCueSettings.align != 'undefined') {
+		if (compositeCueSettings.align === "left") {
+			obj.align = "start";
+			if (position_auto) {
+				obj.xPosition = 0;
+			}
+		} else if (compositeCueSettings.align === "start") {
 			obj.align = "start";
 		} else if (compositeCueSettings.align === "right") {
 			obj.align = "end";
-		} else if (compositeCueSettings.align === "start") {
-			obj.align = "start";
+			if (position_auto) {
+				obj.xPosition = width - obj.size;
+			}
 		} else if (compositeCueSettings.align === "end") {
 			obj.align = "end";
+		/*} else if (compositeCueSettings.align === "middle") {
+			obj.align = "center";
+		*/
 		} else {
 			obj.align = "center";
 		}
 	} else {
 		obj.align = "center";
 	}
-	reportMessage("align: "+obj.align);
-	reportMessage("cue settings parsed: "+obj);
+
+	reportMessage("cue settings parsed: linePosition "+obj.linePosition + " xPosition "+obj.xPosition + " size "+obj.size+ " align "+obj.align + ' position_auto ' + position_auto);
 	return obj;
 }
 

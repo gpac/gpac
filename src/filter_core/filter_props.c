@@ -1363,8 +1363,10 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_WIDTH_MAX, "MaxWidth", "Maximum width (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT_MAX, "MaxHeight", "Maximum height (video / text / graphics) of all enhancement layers", GF_PROP_UINT},
 	{ GF_PROP_PID_ZORDER, "ZOrder", "Z-order of the video, from 0 (first) to max int (last)", GF_PROP_SINT},
-	{ GF_PROP_PID_TRANS_X, "TransX", "Horizontal translation of the video", GF_PROP_SINT},
-	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video", GF_PROP_SINT},
+	{ GF_PROP_PID_TRANS_X, "TransX", "Horizontal translation of the video (positive towards right)", GF_PROP_SINT},
+	{ GF_PROP_PID_TRANS_Y, "TransY", "Vertical translation of the video (positive towards up)", GF_PROP_SINT},
+	{ GF_PROP_PID_TRANS_X_INV, "TransXRight", "Horizontal offset of the video from right (positive towards right), for cases where reference width is unknown", GF_PROP_SINT},
+	{ GF_PROP_PID_TRANS_Y_INV, "TransYTop", "Vertical translation of the video (0 is top, positive towards down), for cases where reference height is unknown", GF_PROP_SINT},
 	{ GF_PROP_PID_HIDDEN, "Hidden", "PID is hidden in visual/audio rendering", GF_PROP_BOOL},
 
 	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
@@ -1554,6 +1556,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_ORIG_CRYPT_SCHEME, "OrigCryptoScheme", "Original crypto scheme on a decrypted PID", GF_PROP_UINT, 0},
 	{ GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_SPARSE, "Sparse", "PID has potentially empty times between packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from beginning of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_SKIP_PRES, "SkipPres", "Packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK},

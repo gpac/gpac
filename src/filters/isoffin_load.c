@@ -346,6 +346,15 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			break;
 		}
 
+		case GF_ISOM_SUBTYPE_DVB_SUBS:
+			codec_id = GF_CODECID_DVB_SUBS;
+			load_default = GF_TRUE;
+			break;
+		case GF_ISOM_SUBTYPE_DVB_TELETEXT:
+			codec_id = GF_CODECID_DVB_TELETEXT;
+			load_default = GF_TRUE;
+			break;
+
 		default:
 			codec_id = gf_codec_id_from_isobmf(m_subtype);
 			if (!codec_id || (codec_id==GF_CODECID_RAW)) {

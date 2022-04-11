@@ -194,7 +194,6 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 
 		gf_odm_check_buffering(odm, pid);
 
-
 		//we still process any frame before our clock time even when buffering
 		obj_time = gf_clock_time(odm->ck);
 		if (ts_offset * 1000 > obj_time) {

@@ -233,6 +233,8 @@
 		925975082215BAC30007E02B /* evg.h in Headers */ = {isa = PBXBuildFile; fileRef = 925975072215BAC30007E02B /* evg.h */; };
 		925CE3451FA2E642004EC6F5 /* decrypt_cenc_isma.c in Sources */ = {isa = PBXBuildFile; fileRef = 925CE3441FA2E641004EC6F5 /* decrypt_cenc_isma.c */; };
 		925E564C2798B87300BBD530 /* bs_agg.c in Sources */ = {isa = PBXBuildFile; fileRef = 925E564B2798B87300BBD530 /* bs_agg.c */; };
+		926209BF27F6026A0024415A /* write_tx3g.c in Sources */ = {isa = PBXBuildFile; fileRef = 926209BE27F6026A0024415A /* write_tx3g.c */; };
+		926209C127FC630A0024415A /* ttml_conv.c in Sources */ = {isa = PBXBuildFile; fileRef = 926209C027FC630A0024415A /* ttml_conv.c */; };
 		926245981FD691A000184072 /* ff_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 926245971FD691A000184072 /* ff_common.h */; };
 		9265307A27AD295200DEBE4B /* restamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 9265307927AD295200DEBE4B /* restamp.c */; };
 		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
@@ -895,6 +897,8 @@
 		925E564B2798B87300BBD530 /* bs_agg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bs_agg.c; path = filters/bs_agg.c; sourceTree = "<group>"; };
 		92609BD2252F56CC00DB821E /* export.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = export.cpp; sourceTree = "<group>"; };
 		92609BD3252F570200DB821E /* share */ = {isa = PBXFileReference; lastKnownFileType = folder; name = share; path = ../../share; sourceTree = "<group>"; };
+		926209BE27F6026A0024415A /* write_tx3g.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_tx3g.c; path = filters/write_tx3g.c; sourceTree = "<group>"; };
+		926209C027FC630A0024415A /* ttml_conv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ttml_conv.c; path = filters/ttml_conv.c; sourceTree = "<group>"; };
 		926245971FD691A000184072 /* ff_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ff_common.h; path = filters/ff_common.h; sourceTree = "<group>"; };
 		9265307927AD295200DEBE4B /* restamp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = restamp.c; path = filters/restamp.c; sourceTree = "<group>"; };
 		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
@@ -2121,6 +2125,7 @@
 				92A08DBC20D946B6003589FF /* tileagg.c */,
 				92C236DC25769BA500CD59A9 /* tilesplit.c */,
 				9286070E239576D900FDA1ED /* tssplit.c */,
+				926209C027FC630A0024415A /* ttml_conv.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 				92E318D020651834007BE021 /* vcrop.c */,
 				9212C0FA222D7AC000FE3580 /* vflip.c */,
@@ -2128,6 +2133,7 @@
 				926F15561FE986B000C40779 /* write_nhml.c */,
 				926F15541FE964CF00C40779 /* write_nhnt.c */,
 				9288350B1FE82E63002F603D /* write_qcp.c */,
+				926209BE27F6026A0024415A /* write_tx3g.c */,
 				926F15521FE867B000C40779 /* write_vtt.c */,
 			);
 			name = filters;
@@ -2517,6 +2523,7 @@
 				92B9A5AC1F8660D700A24FE4 /* svg_media.c in Sources */,
 				9251E5442524EB9800CEB84D /* reframe_mhas.c in Sources */,
 				920101B718D5A445003D1ACA /* os_module.c in Sources */,
+				926209BF27F6026A0024415A /* write_tx3g.c in Sources */,
 				92B9A5A41F8660D700A24FE4 /* scene.c in Sources */,
 				922CF1251FCEE5D600F2F6A4 /* dmx_mpegps.c in Sources */,
 				925730802056948D009DB328 /* rewrite_nalu.c in Sources */,
@@ -2825,6 +2832,7 @@
 				92BB856C1F7BFB63009BC9C8 /* reframe_adts.c in Sources */,
 				9239B8D6207369E5005F7264 /* enc_jpg.c in Sources */,
 				92B9A5961F8660D700A24FE4 /* font_engine.c in Sources */,
+				926209C127FC630A0024415A /* ttml_conv.c in Sources */,
 				922E29842051940C00C8DCBB /* out_audio.c in Sources */,
 				922CF1271FCF169900F2F6A4 /* dmx_avi.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,

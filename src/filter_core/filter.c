@@ -3150,6 +3150,15 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		pid->has_seen_eos = GF_TRUE;
 		nb_inst = pid->num_destinations;
+		//happens if the pid was disconnected
+		if (!nb_inst && !mark_only && pid->not_connected) {
+			gf_list_rem(filter->output_pids, i);
+			i--;
+			count--;
+			filter->num_output_pids = gf_list_count(filter->output_pids);
+			gf_filter_pid_del(pid);
+			continue;
+		}
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter, keep_end_connections);

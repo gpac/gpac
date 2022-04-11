@@ -48,6 +48,7 @@
 
 static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
+#include <gpac/color.h>
 
 typedef struct _gf_ffdec_ctx
 {
@@ -107,6 +108,9 @@ typedef struct _gf_ffdec_ctx
 	AVPacket *pkt;
 #endif
 
+	Bool prev_sub_valid, warned_txt;
+	GF_IRect irc;
+	GF_FilterFrameInterface sub_ifce;
 } GF_FFDecodeCtx;
 
 static GF_Err ffdec_initialize(GF_Filter *filter)
@@ -114,6 +118,7 @@ static GF_Err ffdec_initialize(GF_Filter *filter)
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
+	ctx->sar.den = 1;
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 59)
 	ctx->pkt = av_packet_alloc();
@@ -797,7 +802,13 @@ dispatch_next:
 //	return ffdec_process_audio(filter, ctx);
 }
 
-#ifdef FF_SUB_SUPPORT
+void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2);
+
+static void ffsub_packet_destructor(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
+{
+
+}
+
 static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ctx)
 {
 	AVPacket *pkt;
@@ -817,15 +828,9 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 	if (pck) pkt->data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (!is_eos) {
-		u64 dts;
 		pkt->pts = gf_filter_pck_get_cts(pck);
-
-		//copy over SAP and duration in dts
-		dts = gf_filter_pck_get_sap(pck);
-		dts <<= 32;
-		dts |= gf_filter_pck_get_duration(pck);
-		pkt->dts = dts;
-
+		pkt->dts = pkt->pts;
+		pkt->duration = gf_filter_pck_get_duration(pck);
 		pkt->size = in_size;
 	} else {
 		pkt->size = 0;
@@ -837,11 +842,23 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 	//this will handle eos as well
 	if ((len<0) || !gotpic) {
 		FF_RELEASE_PCK(pkt)
-		if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
+		if (pck) {
+			if (ctx->prev_sub_valid) {
+				ctx->prev_sub_valid = GF_FALSE;
+				GF_FilterPacket *opck = gf_filter_pck_new_frame_interface(ctx->out_pid, &ctx->sub_ifce, ffsub_packet_destructor);
+				if (opck) {
+					gf_filter_pck_merge_properties(pck, opck);
+					gf_filter_pck_set_dts(opck, gf_filter_pck_get_cts(pck));
+					gf_filter_pck_send(opck);
+				}
+			}
+			gf_filter_pid_drop_packet(ctx->in_pid);
+		}
 		if (len<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ctx->in_pid), pkt->pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
+
 		if (is_eos) {
 			gf_filter_pid_set_eos(ctx->out_pid);
 			return GF_EOS;
@@ -849,21 +866,85 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 		return GF_OK;
 	}
 	//TODO - do we want to remap to TX3G/other and handle the rendering some place else, or do we do the rendering here ?
+	if (subs.num_rects) {
+		u32 i, nb_img=0;
+		ctx->irc.width = ctx->irc.height = 0;
+		for (i=0; i<subs.num_rects; i++) {
+			AVSubtitleRect *rc = subs.rects[i];
+			//todo ? deal with text formats (most are handled through other filters)
+			if (rc->type != SUBTITLE_BITMAP) {
+				if (!ctx->warned_txt) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Non bitmap subtitles not supported, patch welcome\n"));
+					ctx->warned_txt = GF_TRUE;
+				}
+				continue;
+			}
+			if (!rc->nb_colors) continue;
+			GF_IRect a_rc;
+			a_rc.x = rc->x;
+			a_rc.y = rc->y;
+			a_rc.width = rc->w;
+			a_rc.height = rc->h;
+			gf_irect_union(&ctx->irc, &a_rc);
+			nb_img++;
+		}
+		if (!nb_img) goto exit;
+		if (!ctx->irc.width || !ctx->irc.height) goto exit;
 
+		u8 *output;
+		GF_FilterPacket *opck = gf_filter_pck_new_alloc(ctx->out_pid, 4*ctx->irc.width*ctx->irc.height, &output);
+		if (!opck) goto exit;
 
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->irc.width));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->irc.height));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_X_INV, &PROP_SINT(ctx->irc.x));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_Y_INV, &PROP_SINT(ctx->irc.y));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGBA));
+
+		memset(output, 0, 4*ctx->irc.width*ctx->irc.height);
+		for (i=0; i<subs.num_rects; i++) {
+			u32 j, k;
+			AVSubtitleRect *rc = subs.rects[i];
+			if (rc->type != SUBTITLE_BITMAP) continue;
+			if (!rc->nb_colors) continue;
+			u32 *palette = (u32 *) rc->data[1];
+			rc->x -= ctx->irc.x;
+			rc->y = ctx->irc.y - rc->y;
+			for (j=0; j<rc->h; j++) {
+				u8 *dst = output + 4*ctx->irc.width*(rc->y+j) + 4*rc->x;
+				u8 *src = rc->data[0] + rc->linesize[0]*j;
+				for (k=0; k<rc->w; k++) {
+					u32 pval = *src;
+					if (pval>=rc->nb_colors) continue;
+					u32 col = palette[pval];
+					dst[0] = GF_COL_R(col);
+					dst[1] = GF_COL_G(col);
+					dst[2] = GF_COL_B(col);
+					dst[3] = GF_COL_A(col);
+					dst+=4;
+					src++;
+				}
+			}
+		}
+
+		gf_filter_pck_merge_properties(pck, opck);
+		gf_filter_pck_set_dts(opck, gf_filter_pck_get_cts(pck));
+		gf_filter_pck_send(opck);
+		ctx->prev_sub_valid = GF_TRUE;
+	}
+
+exit:
 	avsubtitle_free(&subs);
-	if (pck) gf_filter_pid_drop_packet(ctx->in_pid);
+	if (pck)
+		gf_filter_pid_drop_packet(ctx->in_pid);
+
 	FF_RELEASE_PCK(pkt)
 	return GF_OK;
 }
-#endif
 
 static GF_Err ffdec_process(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
-	if (gf_filter_pid_would_block(ctx->out_pid))
-		return GF_OK;
-
 	return ctx->process(filter, ctx);
 }
 
@@ -906,9 +987,7 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	switch (type) {
 	case GF_STREAM_AUDIO:
 	case GF_STREAM_VISUAL:
-#ifdef FF_SUB_SUPPORT
 	case GF_STREAM_TEXT:
-#endif
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -1189,6 +1268,15 @@ reuse_codec_context:
 		if (ctx->pixel_fmt) {
 			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT( ctx->pixel_fmt) );
 		}
+		//if SAR is given ignore sar detection
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
+		if (prop) {
+			ctx->sar.num = 0;
+			ctx->sar.den = 0;
+		} else if (ctx->sar.num) {
+			ctx->sar.num = 0;
+			ctx->sar.den = 1;
+		}
 
 	} else if (type==GF_STREAM_AUDIO) {
 		ctx->process = ffdec_process_audio;
@@ -1236,9 +1324,17 @@ reuse_codec_context:
 		}
 
 	} else {
-#ifdef FF_SUB_SUPPORT
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT( GF_STREAM_VISUAL) );
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT));
+		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_SPARSE, &PROP_BOOL(GF_TRUE));
+		if (ctx->irc.width) {
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->irc.width));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->irc.height));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_X_INV, &PROP_SINT(ctx->irc.x));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_TRANS_Y_INV, &PROP_SINT(ctx->irc.y));
+			gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_RGBA));
+		}
 		ctx->process = ffdec_process_subtitle;
-#endif
 	}
 	return GF_OK;
 }
@@ -1307,19 +1403,19 @@ static const GF_FilterCapability FFDecodeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_RAW),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-
-#ifdef FF_SUB_SUPPORT
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_TEXT_MPEG4),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_TX3G),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_WEBVTT),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SUBS_XML),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SIMPLE_TEXT),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SUBS_TEXT),
+	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_CODECID, GF_CODECID_SUBS_SSA),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-#endif
-
 };
 
 GF_FilterRegister FFDecodeRegister = {

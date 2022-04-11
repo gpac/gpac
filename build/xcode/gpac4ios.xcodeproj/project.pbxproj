@@ -395,6 +395,8 @@
 		9296BF2422CFBB3900DC9742 /* reframe_flac.c in Sources */ = {isa = PBXBuildFile; fileRef = 9296BF2322CFBB3900DC9742 /* reframe_flac.c */; };
 		9298677A2357A0DA008A2CC6 /* webgl.h in Headers */ = {isa = PBXBuildFile; fileRef = 929867782357A0DA008A2CC6 /* webgl.h */; };
 		9298677F235A1587008A2CC6 /* gltools.c in Sources */ = {isa = PBXBuildFile; fileRef = 9298677E235A1587008A2CC6 /* gltools.c */; };
+		929A29272801EBD700635DEB /* ttml_conv.c in Sources */ = {isa = PBXBuildFile; fileRef = 929A29252801EBD700635DEB /* ttml_conv.c */; };
+		929A29282801EBD700635DEB /* write_tx3g.c in Sources */ = {isa = PBXBuildFile; fileRef = 929A29262801EBD700635DEB /* write_tx3g.c */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
 		929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929716EF8BC200B7C64F /* icon_ipad_retina.png */; };
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
@@ -997,6 +999,8 @@
 		9296BF2322CFBB3900DC9742 /* reframe_flac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_flac.c; path = ../../src/filters/reframe_flac.c; sourceTree = "<group>"; };
 		929867782357A0DA008A2CC6 /* webgl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = webgl.h; path = ../../src/jsmods/webgl.h; sourceTree = "<group>"; };
 		9298677E235A1587008A2CC6 /* gltools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = gltools.c; sourceTree = "<group>"; };
+		929A29252801EBD700635DEB /* ttml_conv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ttml_conv.c; path = ../../src/filters/ttml_conv.c; sourceTree = "<group>"; };
+		929A29262801EBD700635DEB /* write_tx3g.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = write_tx3g.c; path = ../../src/filters/write_tx3g.c; sourceTree = "<group>"; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
 		929A929716EF8BC200B7C64F /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad_retina.png; path = ../../applications/osmo4_ios/Resources/icon_ipad_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
@@ -2022,6 +2026,7 @@
 				8959AC83211C9C3C004D2C87 /* rewrite_obu.c */,
 				92EB6DB520E4E19600A97A49 /* tileagg.c */,
 				928607102395C0DE00FDA1ED /* tssplit.c */,
+				929A29252801EBD700635DEB /* ttml_conv.c */,
 				92EB6DC620E4E19700A97A49 /* unit_test_filter.c */,
 				92EB6DBC20E4E19700A97A49 /* vcrop.c */,
 				9212C0FC222D7B3700FE3580 /* vflip.c */,
@@ -2029,6 +2034,7 @@
 				92EB6D8820E4E19300A97A49 /* write_nhml.c */,
 				92EB6DA320E4E19500A97A49 /* write_nhnt.c */,
 				92EB6D7920E4E19200A97A49 /* write_qcp.c */,
+				929A29262801EBD700635DEB /* write_tx3g.c */,
 				92EB6D9620E4E19400A97A49 /* write_vtt.c */,
 			);
 			name = filters;
@@ -2374,6 +2380,7 @@
 				71CCF25A1277045100339E12 /* camera.c in Sources */,
 				92EB6E1B20E4E19700A97A49 /* dec_vtb.c in Sources */,
 				71CCF25B1277045100339E12 /* compositor.c in Sources */,
+				929A29272801EBD700635DEB /* ttml_conv.c in Sources */,
 				92EB6E3220E4E58E00A97A49 /* clock.c in Sources */,
 				71CCF25C1277045100339E12 /* compositor_2d.c in Sources */,
 				71CCF25D1277045100339E12 /* compositor_3d.c in Sources */,
@@ -2651,6 +2658,7 @@
 				92EB6DF020E4E19700A97A49 /* dec_vorbis.c in Sources */,
 				9274295A24647B98009ADD8D /* bsrw.c in Sources */,
 				71CCF3351277045100339E12 /* module.c in Sources */,
+				929A29282801EBD700635DEB /* write_tx3g.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				92E9DFA62215CE9A00628420 /* g_crypt_openssl.c in Sources */,
 				9272B50627E4EFAD00D9D304 /* mux_ogg.c in Sources */,

@@ -4062,8 +4062,24 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 {
 	if (!compositor->player) {
 		compositor->sys_frames_pending = GF_TRUE;
-		if (from_filter)
-			gf_filter_ask_rt_reschedule(from_filter, 0);
+		if (!from_filter) return;
+
+		//clock is not realtime but frame base, estimate hom fast we generate frames
+		//if last frame time diff is less than 1s, consider the output is not consumed in real-time
+		//and reschedule asap
+		//otherwise reschedule in 1 ms
+		//This is needed to avoid high cpu usage when output is realtime (compositor->vout)
+		u32 fidx = compositor->current_frame;
+		u32 run_time = compositor->frame_time[fidx];
+		if (fidx) fidx--;
+		else fidx = GF_SR_FPS_COMPUTE_SIZE-1;
+		run_time -= compositor->frame_time[fidx];
+		if (run_time<1000) {
+			//request in 1 us (0 would only reschedule filter if pending packets which may not always be the case, cf vtt dec)
+			gf_filter_ask_rt_reschedule(from_filter, 1);
+		} else {
+			gf_filter_ask_rt_reschedule(from_filter, 1000);
+		}
 	} else {
 		u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
 

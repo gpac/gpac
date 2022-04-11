@@ -362,6 +362,7 @@ void gf_ar_send_packets(GF_AudioRenderer *ar)
 			) {
 				written = ar->buffer_size;
 			} else {
+				//truncate to 0 since we will get called back in gf_ar_pck_done
 				gf_filter_pck_truncate(pck, 0);
 				gf_filter_pck_discard(pck);
 

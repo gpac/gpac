@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -216,6 +216,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	} else {
 		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, GF_FALSE);
 	}
+
 	/*ignore texture transform for bitmap*/
 	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, NULL);
 	if (tr_state->mesh_num_textures) {
