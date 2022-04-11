@@ -1869,7 +1869,7 @@ The syntax is available at https://wiki.gpac.io/Common-Encryption
 .br
 The DRM config file can be set per PID using the property DecryptInfo (highest priority), CryptInfo (lower priority) or set at the filter level using .I cfile (lowest priority).
 .br
-When the file is set per PID, the first CryptInfo with the same ID is used, otherwise the first CryptInfo is used. When the file is set globally (not per PID), the first CrypTrack in the DRM config file with the same ID is used, otherwise the first CrypTrack with ID 0 or not set is used.
+When the file is set per PID, the first CryptInfo with the same ID is used, otherwise the first CryptInfo is used.When the file is set globally (not per PID), the first CrypTrack in the DRM config file with the same ID is used, otherwise the first CrypTrack with ID 0 or not set is used.
 .br
 
 .br
@@ -7178,7 +7178,7 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .SH tx3g2srt
 .LP
 .br
-Description: TX3G writer
+Description: TX3G to SRT
 .br
 
 .br
@@ -7196,7 +7196,7 @@ exporter (bool, default: false): compatibility with old exporter, displays expor
 .SH tx3g2vtt
 .LP
 .br
-Description: TX3G writer
+Description: TX3G to WebVTT
 .br
 
 .br
@@ -7233,7 +7233,7 @@ No options
 .SH vtt2tx3g
 .LP
 .br
-Description: Subtitle loader
+Description: WebVTT to TX3G
 .br
 
 .br
@@ -7291,7 +7291,7 @@ fontsize (uint, default: 18):  default font size
 .SH ttml2vtt
 .LP
 .br
-Description: TTML to VTT converter
+Description: TTML to WebVTT
 .br
 
 .br
@@ -7309,7 +7309,7 @@ No options
 .SH ttml2srt
 .LP
 .br
-Description: TTML to VTT converter
+Description: TTML to SRT
 .br
 
 .br
@@ -10521,7 +10521,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev89-g7f060bbb7-master
+build: 2.1-DEV-rev93-g5edeb7118-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

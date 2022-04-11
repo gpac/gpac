@@ -589,7 +589,7 @@ static GF_Err tx3g2srt_initialize(GF_Filter *filter)
 
 GF_FilterRegister TX3G2SRTRegister = {
 	.name = "tx3g2srt",
-	GF_FS_SET_DESCRIPTION("TX3G writer")
+	GF_FS_SET_DESCRIPTION("TX3G to SRT")
 	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
@@ -628,7 +628,7 @@ static GF_Err tx3g2vtt_initialize(GF_Filter *filter)
 
 GF_FilterRegister TTX2VTTRegister = {
 	.name = "tx3g2vtt",
-	GF_FS_SET_DESCRIPTION("TX3G writer")
+	GF_FS_SET_DESCRIPTION("TX3G to WebVTT")
 	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
