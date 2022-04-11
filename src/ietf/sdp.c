@@ -612,6 +612,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 				if (pos <= 0) break;
 				timing->OffsetFromStart[timing->NbRepeatOffsets] = SDP_MakeSeconds(comp);
 				timing->NbRepeatOffsets += 1;
+				if (timing->NbRepeatOffsets == GF_SDP_MAX_TIMEOFFSET) break;
 			}
 			break;
 		case 'z':
@@ -625,6 +626,7 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 				pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
 				timing->AdjustmentOffset[timing->NbZoneOffsets] = SDP_MakeSeconds(comp);
 				timing->NbZoneOffsets += 1;
+				if (timing->NbZoneOffsets == GF_SDP_MAX_TIMEOFFSET) break;
 			}
 			break;
 		case 'k':
