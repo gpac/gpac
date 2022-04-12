@@ -765,6 +765,9 @@ WARN_FORMAT            = "$file:$line: $text"
 
 WARN_LOGFILE           = doxygen_warnings.txt
 
+WARN_AS_ERROR	 = FAIL_ON_WARNINGS
+
+
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
