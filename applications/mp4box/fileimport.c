@@ -463,9 +463,21 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 		gf_isom_sample_del(&samp);
 	}
 
-	u64 mdur = gf_isom_get_media_duration(dest, track);
-	mdur /= nb_samples;
-	u32 timescale = gf_isom_get_media_timescale(dest, track);
+	//get dur and timescale to compute fps
+	//we don't divide mdur by nb_samples but rather multiple timescale with nb_samples
+	//this avoid rounding errors with non FPS-aligned input timescale (eg mkv using 1000 regardless of FPS)
+	u64 mdur;
+	u64 timescale = gf_isom_get_media_timescale(dest, track);
+	mdur = gf_isom_get_media_duration(dest, track);
+	if (timescale % 1000 == 0) {
+		timescale/=1000;
+		mdur/=1000;
+	}
+	else if (timescale % 1001 == 0) {
+		timescale/=1001;
+		mdur/=1001;
+	}
+	timescale *= nb_samples;
 
 	_dovi.dv_level = gf_dolby_vision_level(w, h, timescale, mdur, is_avc ? GF_CODECID_AVC : GF_CODECID_HEVC);
 	return gf_isom_set_dolby_vision_profile(dest, track, 1, &_dovi);

@@ -155,10 +155,10 @@ GF_EXPORT
 u32 gf_dolby_vision_level(u32 width, u32 height, u64 fps_num, u64 fps_den, u32 codecid)
 {
 	u32 dv_level = 0;
+	u32 fps = fps_den ? (u32) (fps_num/fps_den) : 25;
 	u64 level_check = width;
-	level_check *= height * fps_num;
-	if (fps_den)
-		level_check /= fps_den;
+	level_check *= height * fps;
+
 	if (codecid==GF_CODECID_AVC) {
 		if (level_check <= 1280*720*24) dv_level = 1;
 		else if (level_check <= 1280*720*30) dv_level = 2;
