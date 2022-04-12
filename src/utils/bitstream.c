@@ -375,9 +375,12 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 		bs_flush_write_cache(bs);
 
 	is_eos = gf_feof(bs->stream);
+	//cache not fully read, reset EOS
+	if (bs->cache_read && (bs->cache_read_pos<bs->cache_read_size))
+		is_eos = GF_FALSE;
 
 	/*we are in FILE mode, test for end of file*/
-	if (!is_eos || bs->cache_read) {
+	if (!is_eos) {
 		u8 res;
 		Bool loc_eos=GF_FALSE;
 		assert(bs->position<=bs->size);
@@ -408,7 +411,10 @@ bs_eof:
 		bs->EndOfStream(bs->par);
 		if (!bs->overflow_state) bs->overflow_state = 1;
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
+		if (!bs->overflow_state) {
+			bs->overflow_state = 1;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
+		}
 	}
 	assert(bs->position <= 1+bs->size);
 	return 0;
