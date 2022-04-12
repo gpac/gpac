@@ -3760,7 +3760,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				break;
 			}
 		} else {
-			not_hevc++;
+			if ((nal_type!=GF_HEVC_NALU_DV_RPU) && (nal_type!=GF_HEVC_NALU_DV_EL))
+				not_hevc++;
 		}
 
 		nal_type = data[0] & 0x1F;
@@ -3779,7 +3780,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 				break;
 			}
 		} else {
-			not_avc++;
+			if ((nal_type!=GF_AVC_NALU_DV_RPU) && (nal_type!=GF_AVC_NALU_DV_EL))
+				not_avc++;
 		}
 
 		//check vvc - 2nd bit reserved to 0
