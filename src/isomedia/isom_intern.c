@@ -373,7 +373,8 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);
 
 		if (e >= 0) {
-
+			//safety check, should never happen
+			if (!a) return GF_ISOM_INVALID_FILE;
 		} else if (e == GF_ISOM_INCOMPLETE_FILE) {
 			/*our mdat is uncomplete, only valid for READ ONLY files...*/
 			if (mov->openMode != GF_ISOM_OPEN_READ) {
