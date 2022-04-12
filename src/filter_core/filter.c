@@ -1286,6 +1286,7 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 		Bool absolute_url = GF_FALSE;
 		Bool internal_url = GF_FALSE;
 		Bool internal_arg = GF_FALSE;
+		char *xml_start = NULL;
 		char *sep = NULL;
 
 		//look for our arg separator - if arg[0] is also a separator, consider the entire string until next double sep as the parameter
@@ -1312,6 +1313,24 @@ static void filter_parse_dyn_args(GF_Filter *filter, const char *args, GF_Filter
 
 		if (!opaque_arg) {
 			//we don't use gf_fs_path_escape_colon here because we also analyse whether the URL is internal or not, and we don't want to do that on each arg
+			if (sep) {
+				//escape XML inputs: simply search for ">:" (: being the arg sep), if not found consider the entire string the arg value
+				xml_start = strchr(args, '<');
+				if (xml_start && (xml_start<sep)) {
+					char szEnd[3];
+					szEnd[0] = '>';
+					szEnd[1] = filter->session->sep_args;
+					szEnd[2] = 0;
+					char *xml_end = strstr(xml_start, szEnd);
+					if (!xml_end) {
+						len = (u32) strlen(args);
+						sep = NULL;
+					} else {
+						sep = xml_end+1;
+						len = (u32) (sep-args);
+					}
+				}
+			}
 
 			if (filter->session->sep_args == ':') {
 				if (sep && !strncmp(args, szSrc, 4) && !strncmp(args+4, "gcryp://", 8)) {
@@ -1475,6 +1494,7 @@ skip_date:
 			}
 			if (sep) {
 				escaped = (sep[1] == filter->session->sep_args) ? NULL : strstr(sep, szEscape);
+				if (escaped && xml_start && (escaped>xml_start)) escaped = NULL;
 				if (escaped) {
 					sep = escaped;
 				}
@@ -1528,27 +1548,11 @@ skip_date:
 		}
 
 
-		//escape some XML inputs
 		if (sep) {
-			char *xml_start = strchr(args, '<');
 			len = (u32) (sep-args);
-			if (xml_start) {
-				u32 xlen = (u32) (xml_start-args);
-				if ((xlen < len) && (args[len-1] != '>')) {
-					while (1) {
-						sep = strchr(sep+1, filter->session->sep_args);
-						if (!sep) {
-							len = (u32) strlen(args);
-							break;
-						}
-						len = (u32) (sep-args);
-						if (args[len-1] != '>') break;
-					}
-				}
-
-			}
+		} else {
+			len = (u32) strlen(args);
 		}
-		else len = (u32) strlen(args);
 
 		if (len>=alloc_len) {
 			alloc_len = len+1;

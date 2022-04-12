@@ -3642,21 +3642,17 @@ static void gf_filter_pid_set_args_internal(GF_Filter *filter, GF_FilterPid *pid
 		}
 		if (sep) {
 			char *xml_start = strchr(args, '<');
-			u32 len = (u32) (sep-args);
-			if (xml_start) {
-				u32 xlen = (u32) (xml_start-args);
-				if ((xlen < len) && (args[len-1] != '>')) {
-					while (1) {
-						sep = strchr(sep+1, sep_args);
-						if (!sep) {
-							break;
-						}
-						len = (u32) (sep-args);
-						if (args[len-1] == '>')
-							break;
-					}
+			if (xml_start && (xml_start<sep)) {
+				char szEnd[3];
+				szEnd[0] = '>';
+				szEnd[1] = filter->session->sep_args;
+				szEnd[2] = 0;
+				char *xml_end = strstr(xml_start, szEnd);
+				if (!xml_end) {
+					sep = NULL;
+				} else {
+					sep = xml_end+1;
 				}
-
 			}
 		}
 
