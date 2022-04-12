@@ -46,7 +46,7 @@ enum
 
 
 typedef enum {
-	CENC_FULL_SAMPLE,
+	CENC_FULL_SAMPLE=1,
 
 	/*below types may have several ranges (clear/encrypted) per sample*/
 	CENC_AVC, /*AVC, nalu-based*/
@@ -710,6 +710,8 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 				if (!cstr->av1_state) return GF_OUT_OF_MEM;
 				break;
 			}
+		} else {
+			is_reinit = GF_FALSE;
 		}
 
 
@@ -966,6 +968,11 @@ static GF_Err cenc_enc_configure(GF_CENCEncCtx *ctx, GF_CENCStream *cstr, const 
 					cstr->kidx = 0;
 				}
 				memcpy(cstr->keys[0].key, cstr->tci->keys[cstr->kidx].key, 16);
+			}
+			GF_Err e = gf_crypt_init(cstr->keys[i].crypt, cstr->keys[i].key, cstr->tci->keys[i].IV);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[CENC] Cannot initialize AES-128 %s\n", cstr->ctr_mode ? "CTR" : "CBC"));
+				return e;
 			}
 		}
 
