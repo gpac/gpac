@@ -2119,8 +2119,16 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		first_opt = sep;
 		opts = sep+1;
 		while (opts) {
+			char *xml_start = strchr(opts, '<');
 			//none of our options use filenames, so don't check for '='
 			sep = gf_url_colon_suffix(opts, 0);
+			//escape XML
+			if (xml_start && (xml_start<sep)) {
+				char *xml_end = strstr(opts, ">:");
+				if (xml_end) sep = xml_end+1;
+				else sep = NULL;
+			}
+
 			if (sep && !strncmp(sep, "://", 3) && strncmp(sep, ":@", 2)) sep = gf_url_colon_suffix(sep+3, 0);
 			if (sep) sep[0] = 0;
 
