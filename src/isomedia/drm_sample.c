@@ -418,6 +418,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	u32 original_format;
 	GF_Err e;
 	u32 gnr_type=0;
+	u32 *overwrite_type=NULL;
 	GF_SampleEntryBox *sea;
 	GF_ProtectionSchemeInfoBox *sinf;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -429,14 +430,16 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	original_format = sea->type;
 	if (original_format==GF_ISOM_BOX_TYPE_GNRA) {
 		gnr_type = original_format;
-		original_format = ((GF_GenericAudioSampleEntryBox*)sea)->EntryType;
+		overwrite_type = &((GF_GenericAudioSampleEntryBox*)sea)->EntryType;
 	} else if (original_format==GF_ISOM_BOX_TYPE_GNRV) {
 		gnr_type = original_format;
-		original_format = ((GF_GenericVisualSampleEntryBox*)sea)->EntryType;
+		overwrite_type = &((GF_GenericVisualSampleEntryBox*)sea)->EntryType;
 	} else if (original_format==GF_ISOM_BOX_TYPE_GNRM) {
 		gnr_type = original_format;
-		original_format = ((GF_GenericSampleEntryBox*)sea)->EntryType;
+		overwrite_type = &((GF_GenericSampleEntryBox*)sea)->EntryType;
 	}
+	if (overwrite_type)
+		original_format = *overwrite_type;
 
 	/* Replacing the Media Type */
 	switch (sea->type) {
@@ -509,9 +512,11 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		return GF_BAD_PARAM;
 	default:
 		if (sea->internal_type == GF_ISOM_SAMPLE_ENTRY_AUDIO) {
-			sea->type = GF_ISOM_BOX_TYPE_ENCA;
+			if (overwrite_type) *overwrite_type = GF_ISOM_BOX_TYPE_ENCA;
+			else sea->type = GF_ISOM_BOX_TYPE_ENCA;
 		} else if (sea->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
-			sea->type = GF_ISOM_BOX_TYPE_ENCV;
+			if (overwrite_type) *overwrite_type = GF_ISOM_BOX_TYPE_ENCV;
+			else sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] unsupported entry type %s for CENC.\n", gf_4cc_to_str(sea->type) ));
 			return GF_BAD_PARAM;
