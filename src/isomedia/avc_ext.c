@@ -3523,6 +3523,11 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 			op->layers_info[j].layer_id = gf_bs_read_int(bs, 6);
 			op->layers_info[j].is_outputlayer = gf_bs_read_int(bs, 1) ? GF_TRUE : GF_FALSE;
 			op->layers_info[j].is_alternate_outputlayer = gf_bs_read_int(bs, 1) ? GF_TRUE : GF_FALSE;
+
+			if (gf_bs_is_overflow(bs)) {
+				gf_free(op);
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 		}
 		op->minPicWidth = gf_bs_read_u16(bs);
 		op->minPicHeight = gf_bs_read_u16(bs);
@@ -3542,6 +3547,10 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 			op->maxBitRate = gf_bs_read_u32(bs);
 			op->avgBitRate = gf_bs_read_u32(bs);
 		}
+		if (gf_bs_is_overflow(bs)) {
+			gf_free(op);
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 		gf_list_add(ptr->operating_points, op);
 	}
 	count = gf_bs_read_u8(bs);
@@ -3560,6 +3569,10 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		for (j = 0; j < 16; j++) {
 			if (ptr->scalability_mask & (1 << j))
 				dep->dimension_identifier[j] = gf_bs_read_u8(bs);
+		}
+		if (gf_bs_is_overflow(bs)) {
+			gf_free(dep);
+			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		gf_list_add(ptr->dependency_layers, dep);
 	}
