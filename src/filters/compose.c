@@ -592,10 +592,17 @@ static GF_Err compose_reconfig_output(GF_Filter *filter, GF_FilterPid *pid)
 				}
 			}
 #endif
-			ctx->opfmt = p->value.uint;
-			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt) );
-			gf_pixel_get_size_info(ctx->opfmt, ctx->display_width, ctx->display_height, NULL, &stride, NULL, NULL, NULL);
-			gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride) );
+			if (ctx->opfmt != p->value.uint) {
+				ctx->opfmt = p->value.uint;
+				gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->opfmt) );
+				gf_pixel_get_size_info(ctx->opfmt, ctx->display_width, ctx->display_height, NULL, &stride, NULL, NULL, NULL);
+				gf_filter_pid_set_property(ctx->vout, GF_PROP_PID_STRIDE, &PROP_UINT(stride) );
+				if (!ctx->player) {
+					ctx->new_width = ctx->display_width;
+					ctx->new_height = ctx->display_height;
+					ctx->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
+				}
+			}
 		}
 		
 		w = h = 0;
