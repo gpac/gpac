@@ -8503,8 +8503,7 @@ GF_Err gf_isom_add_sample_aux_info_internal(GF_TrackBox *trak, void *_traf, u32 
 		saiz->default_sample_info_size = size;
 	} else {
 		if (sampleNumber > saiz->sample_alloc) {
-			if (!saiz->sample_alloc) saiz->sample_alloc = sampleNumber;
-			else saiz->sample_alloc *= 2;
+			saiz->sample_alloc = sampleNumber+10;
 			saiz->sample_info_size = (u8*)gf_realloc(saiz->sample_info_size, sizeof(u8)*(saiz->sample_alloc));
 		}
 
