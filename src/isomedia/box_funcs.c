@@ -310,8 +310,10 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
+		if (is_root_box && (e==GF_SKIP_BOX))
+			e = GF_ISOM_INVALID_FILE;
 
-		if (!skip_logs) {
+		if (!skip_logs && (e!=GF_SKIP_BOX)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" (start "LLU") failed (%s) - skipping\n", gf_4cc_to_str(type), start, gf_error_to_string(e)));
 		}
 		//we don't try to reparse known boxes that have been failing (too dangerous)
