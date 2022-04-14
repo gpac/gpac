@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP/RTSP input filter
@@ -269,13 +269,14 @@ struct __rtpin_stream
 	u32 rtcp_check_start;
 	u32 first_rtp_ts;
 	s64 ts_adjust;
-	//source NTP of first packet received, ercomputed at first RTCP sender report
+	//source NTP of first packet received, recomputed at first RTCP sender report
 	u64 init_ntp_us;
 
 	u32 min_dur_us, min_dur_rtp;
 	u32 prev_cts;
 
 	u32 sr, nb_ch;
+	Bool map_utc, map_media_time;
 };
 
 /*creates new RTP stream from SDP info*/

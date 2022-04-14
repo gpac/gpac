@@ -1087,7 +1087,7 @@ u64 gf_net_parse_date(const char *date);
 /*!
 \brief returns 64-bit UTC timestamp from year, month, day, hour, min and sec
 \param year the year
-\param month the month
+\param month the month, from 0 to 11
 \param day the day
 \param hour the hour
 \param min the min

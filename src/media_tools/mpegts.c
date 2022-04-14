@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
  *
@@ -2791,7 +2791,10 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, u8 *data, u32 data_size)
 			return e;
 		}
 		/*process*/
-		e |= gf_m2ts_process_packet(ts, (unsigned char *)data + pos);
+		GF_Err pck_e = gf_m2ts_process_packet(ts, (unsigned char *)data + pos);
+		if (pck_e==GF_NOT_SUPPORTED) pck_e = GF_OK;
+		e |= pck_e;
+
 		pos += pck_size;
 	}
 	return e;

@@ -558,7 +558,7 @@ static GF_Err rtpin_process(GF_Filter *filter)
 	}
 
 	//we wait max 300ms to detect eos
-	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > 300) ) {
+	if (ctx->eos_probe_start && (gf_sys_clock() - ctx->eos_probe_start > 1000) ) {
 		u32 nb_eos=0;
 		i=0;
 		while ((stream = (GF_RTPInStream *)gf_list_enum(ctx->streams, &i))) {

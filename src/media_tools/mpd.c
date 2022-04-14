@@ -2425,6 +2425,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 	seq_num = pe->element.playlist.media_seq_min;
 	seq_num += pe->element.playlist.discontinuity;
 
+	u64 seg_utc = 0;
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
@@ -2489,7 +2490,13 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, const char
 
 		segment_url->duration = (u64) (rep->segment_list->timescale * elt->duration_info);
 
-		segment_url->hls_utc_time = elt->utc_start_time;
+		if (elt->utc_start_time) {
+			seg_utc = elt->utc_start_time;
+		}
+
+		segment_url->hls_utc_time = seg_utc;
+		if (seg_utc)
+			seg_utc += (u32) (elt->duration_info*1000);
 
 		//we keep the same seq num for each part
 		segment_url->hls_seq_num = seq_num;

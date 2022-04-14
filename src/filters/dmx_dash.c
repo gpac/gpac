@@ -56,6 +56,12 @@ enum
 	BMIN_MPD,
 };
 
+enum {
+	FLAG_PERIOD_SWITCH = 1,
+	FLAG_TIME_OVERFLOW = 1<<1,
+	FLAG_FIRST_IN_SEG = 1<<2,
+};
+
 typedef struct
 {
 	//opts
@@ -139,7 +145,8 @@ typedef struct
 	Bool wait_for_pck;
 	Bool eos_detected;
 	u32 next_dependent_rep_idx, current_dependent_rep_idx;
-
+	u64 utc_map;
+	
 	GF_DownloadSession *sess;
 	Bool is_timestamp_based, pto_setup;
 	Bool prev_is_init_segment;
@@ -283,8 +290,9 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			dashdmx_set_string_list_prop(ref, GF_PROP_PCK_HLS_VARIANT_NAME, &ctx->hls_variants_names);
 		}
 
-		if (gf_filter_pid_get_udta_flags(out_pid)) {
-			gf_filter_pid_set_udta_flags(out_pid, 0);
+		u32 flags = gf_filter_pid_get_udta_flags(out_pid);
+		if (flags & FLAG_PERIOD_SWITCH) {
+			gf_filter_pid_set_udta_flags(out_pid, flags & ~FLAG_PERIOD_SWITCH);
 			gf_filter_pck_set_property(ref, GF_PROP_PID_DASH_PERIOD_START, &PROP_LONGUINT(0) );
 		}
 		gf_filter_pck_send(ref);
@@ -292,14 +300,25 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 	}
 
 	if (!ctx->is_dash) {
-		gf_filter_pck_forward(in_pck, out_pid);
+		GF_FilterPacket *dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
+		if (!dst_pck) return;
+		gf_filter_pck_merge_properties(in_pck, dst_pck);
 
-		if (!group->pto_setup) {
-			cts = gf_filter_pck_get_cts(in_pck);
-			gf_filter_pid_set_property_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
-			gf_filter_pid_set_property_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
-			group->pto_setup = GF_TRUE;
+		u32 flags = gf_filter_pid_get_udta_flags(out_pid);
+		if (! (flags & FLAG_FIRST_IN_SEG) ) {
+			if (!group->pto_setup) {
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(ctx->media_start_range) );
+				group->pto_setup = GF_TRUE;
+			}
+
+			if (group->utc_map) {
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_UTC_TIME, & PROP_LONGUINT(group->utc_map) );
+			}
+			flags |= FLAG_FIRST_IN_SEG;
+			gf_filter_pid_set_udta_flags(out_pid, flags);
+
 		}
+		gf_filter_pck_send(dst_pck);
 
 		gf_filter_pid_drop_packet(in_pid);
 		return;
@@ -323,6 +342,7 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 			u32 mpd_timescale;
 			gf_dash_group_get_presentation_time_offset(ctx->dash, group->idx, &pto, &mpd_timescale);
 			group->pto_setup = 1;
+			do_map_time = GF_TRUE;
 
 			//we are forwarding segment boundaries and potentially rebuilding manifest based on the source time
 			//do not adjust timestamps
@@ -406,9 +426,9 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 				//if DTS larger than max TS, drop packet
 				if ( (s64) _dts > (s64) scale_max_cts) {
 					flags = gf_filter_pid_get_udta_flags(out_pid);
-					if (!flags) {
+					if (!(flags & FLAG_TIME_OVERFLOW)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASHDmx] Packet decode timestamp "LLU" larger than max CTS in period "LLU" - dropping all further packets\n", adj_cts, scale_max_cts));
-						gf_filter_pid_set_udta_flags(out_pid, 1);
+						gf_filter_pid_set_udta_flags(out_pid, flags | FLAG_TIME_OVERFLOW);
 					}
 					gf_filter_pid_drop_packet(in_pid);
 					return;
@@ -442,8 +462,8 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 		dts += scale_timesdisc_offset;
 		cts += scale_timesdisc_offset;
 	} else if (!group->pto_setup) {
-		do_map_time = 1;
-		group->pto_setup = 1;
+		do_map_time = GF_TRUE;
+		group->pto_setup = GF_TRUE;
 	}
 
 	dst_pck = gf_filter_pck_new_ref(out_pid, 0, 0, in_pck);
@@ -454,13 +474,21 @@ static void dashdmx_forward_packet(GF_DASHDmxCtx *ctx, GF_FilterPacket *in_pck, 
 	gf_filter_pck_set_dts(dst_pck, dts);
 	gf_filter_pck_set_cts(dst_pck, cts);
 	gf_filter_pck_set_seek_flag(dst_pck, seek_flag);
+
+
+	u32 flags = gf_filter_pid_get_udta_flags(out_pid);
+	if (! (flags & FLAG_FIRST_IN_SEG) ) {
+		flags |= FLAG_FIRST_IN_SEG;
+		gf_filter_pid_set_udta_flags(out_pid, flags);
+		if (do_map_time)
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(ctx->media_start_range) );
+
+		if (group->utc_map)
+			gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_UTC_TIME, & PROP_LONGUINT(group->utc_map) );
+	}
+
 	gf_filter_pck_send(dst_pck);
 	gf_filter_pid_drop_packet(in_pid);
-
-	if (do_map_time) {
-		gf_filter_pid_set_property_str(out_pid, "time:timestamp", &PROP_LONGUINT(cts) );
-		gf_filter_pid_set_property_str(out_pid, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
-	}
 }
 
 
@@ -1159,7 +1187,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 
 			//in forward mode, signal period switch at packet level but don't touch timestamps for now
 			if (ctx->forward) {
-				gf_filter_pid_set_udta_flags(opid, 1);
+				gf_filter_pid_set_udta_flags(opid, FLAG_PERIOD_SWITCH);
 				continue;
 			}
 			u32 timescale = gf_filter_pid_get_timescale(opid);
@@ -1792,6 +1820,7 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		opid = dashdmx_create_output_pid(ctx, pid, &run_status, group);
 		gf_filter_pid_set_udta(opid, group);
 		gf_filter_pid_set_udta(pid, opid);
+		//reste all flags
 		gf_filter_pid_set_udta_flags(opid, 0);
 		group->nb_pids ++;
 
@@ -2744,7 +2773,7 @@ fetch_next:
 
 	e = gf_dash_group_get_next_segment_location(ctx->dash, group_idx, dependent_representation_index, &next_url, &start_range, &end_range,
 		        NULL, &next_url_init_or_switch_segment, &switch_start_range , &switch_end_range,
-		        &src_url, &has_scalable_next, &key_url, &key_IV);
+		        &src_url, &has_scalable_next, &key_url, &key_IV, &group->utc_map);
 
 	if (e == GF_EOS) {
 		group->eos_detected = GF_TRUE;
@@ -3023,6 +3052,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 								gf_dash_group_push_tfrf(ctx->dash, group->idx, p->value.ptr, gf_filter_pid_get_timescale(an_ipid));
 							}
 							gf_filter_release_property(pe);
+
+							u32 flags = gf_filter_pid_get_udta_flags(an_opid);
+							gf_filter_pid_set_udta_flags(an_opid, flags & ~FLAG_FIRST_IN_SEG);
 						}
 						dashdmx_update_group_stats(ctx, group);
 						group->stats_uploaded = GF_TRUE;
@@ -3053,6 +3085,9 @@ GF_Err dashdmx_process(GF_Filter *filter)
 
 						gf_filter_pid_clear_eos(an_ipid, GF_TRUE);
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASHDmx] Clearing EOS on pids from group %d\n", group->idx));
+
+						u32 flags = gf_filter_pid_get_udta_flags(an_opid);
+						gf_filter_pid_set_udta_flags(an_opid, flags & ~FLAG_FIRST_IN_SEG);
 					}
 					dashdmx_switch_segment(ctx, group);
 					gf_filter_prevent_blocking(filter, GF_FALSE);

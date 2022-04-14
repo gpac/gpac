@@ -1137,6 +1137,8 @@ void gf_filter_pid_reconfigure_task_discard(GF_FSTask *task)
 		while (gf_filter_pid_get_packet((GF_FilterPid *) pidi)) {
 			gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
 		}
+		//move back to regular discard
+		pidi->discard_inputs = 1;
 	}
 }
 void gf_filter_pid_disconnect_task(GF_FSTask *task)
@@ -6992,6 +6994,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		gf_mx_v(f->tasks_mx);
 		return;
 	}
+
 	if (!task->pid) dispatched_filters = gf_list_new();
 
 	//otherwise forward event to each input PID
