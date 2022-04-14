@@ -315,8 +315,8 @@ static const tag_to_name HEVCNalNames[] =
 	{GF_HEVC_NALU_SEI_SUFFIX, "SEI Suffix"},
 	{GF_HEVC_NALU_FF_AGGREGATOR, "HEVCAggregator"},
 	{GF_HEVC_NALU_FF_EXTRACTOR, "HEVCExtractor"},
-	{GF_HEVC_NALU_DV_RPU, "UNSPEC_DolbiVision_RPU"},
-	{GF_HEVC_NALU_DV_EL, "UNSPEC_DolbiVision_EL"}
+	{GF_HEVC_NALU_DV_RPU, "UNSPEC_DolbyVision_RPU"},
+	{GF_HEVC_NALU_DV_EL, "UNSPEC_DolbyVision_EL"}
 };
 
 static const char *get_hevc_nal_name(u32 nal_type)
