@@ -885,6 +885,8 @@ typedef struct tag_m2ts_pes
 	Bool is_resume;
 	/*! DolbiVison info, last byte set to 1 if non-compatible signaling*/
 	u8 dv_info[25];
+
+	u64 map_utc, map_utc_pcr, map_pcr;
 } GF_M2TS_PES;
 
 /*! reserved streamID for PES headers*/
@@ -929,11 +931,17 @@ typedef struct
 /*! TDT/TOT (Time and Date table) information*/
 typedef struct
 {
+	/*! year*/
 	u16 year;
+	/*! month, from 0 to 11*/
 	u8 month;
+	/*! day, from 1 to 31*/
 	u8 day;
+	/*! hour*/
 	u8 hour;
+	/*! minute*/
 	u8 minute;
+	/*! second*/
 	u8 second;
 } GF_M2TS_TDT_TOT;
 

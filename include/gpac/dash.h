@@ -495,11 +495,12 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 \param has_next_segment set to GF_TRUE if next segment location is known (unthreaded mode) or next segment is downloaded (threaded mode) (optional, may be NULL)
 \param key_url set to the key URL of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL). The URL is either a URN or a resolved URL
 \param key_IV set to the key initialization vector of the next segment for MPEG-2 TS full segment encryption (optional, may be NULL)
+\param utc set to UTC mapping for first sample of segment, 0 if none defined
 \return GF_BUFFER_TOO_SMALL if no segment found, GF_EOS if end of session, GF_URL_REMOVED if segment is disabled (but all output info is OK, this can be ignored and considered as GF_OK by the user) or error if any
 */
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 group_idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range,
         s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range,
-        const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV);
+        const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc);
 
 /*! gets some info on the segment
 \param dash the target dash client

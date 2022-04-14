@@ -1936,10 +1936,18 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 			return;
 	}
 
-	if (p4cc==GF_PROP_PID_DOWNLOAD_SESSION)
+	switch (p4cc) {
+	case GF_PROP_PID_DOWNLOAD_SESSION:
+	case GF_PROP_PCK_END_RANGE:
 		return;
-	if (p4cc==GF_PROP_PCK_END_RANGE)
-		return;
+	case GF_PROP_PCK_SENDER_NTP:
+	case GF_PROP_PCK_RECEIVER_NTP:
+	case GF_PROP_PCK_UTC_TIME:
+	case GF_PROP_PCK_MEDIA_TIME:
+		if (gf_sys_is_test_mode())
+			return;
+		break;
+	}
 
 	if ((att->type==GF_PROP_DATA) && (ctx->analyze || ctx->xml)) {
 #ifndef GPAC_DISABLE_AV_PARSERS

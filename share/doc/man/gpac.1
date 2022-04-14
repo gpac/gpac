@@ -2869,16 +2869,6 @@ Display height of service
 Repeat rate in ms for systems carousel data
 .br
 .TP
-.B UTC (UTCD,luint,D )
-.br
-UTC date and time of PID
-.br
-.TP
-.B UTCTimestamp (UTCT,luint,D )
-.br
-Timestamp corresponding to UTC date and time
-.br
-.TP
 .B AudioVolume (AVOL,uint,D )
 .br
 Volume of audio
@@ -2961,12 +2951,17 @@ URL (local file only) of crypt info file for this PID - see decrypter help
 .TP
 .B SenderNTP (NTPS,luint,DP)
 .br
-NTP time at sender side or grabber side
+NTP 64 bits timestamp at sender side or grabber side
 .br
 .TP
 .B ReceiverNTP (NTPR,luint,DP)
 .br
-Receiver NTP time (usually associated with the sender NTP property)
+Receiver NTP (64 bits timestamp) usually associated with the sender NTP property
+.br
+.TP
+.B UTC (UTCD,luint,DP)
+.br
+UTC timestamp (in milliseconds) of parent packet
 .br
 .TP
 .B Encrypted (EPCK,bool,  )
@@ -3080,6 +3075,11 @@ End of DASH segment
 .B CueStart (PCUS,bool, P)
 .br
 Set on packets marking the beginning of a DASH/HLS segment for cue-driven segmentation - see dasher help
+.br
+.TP
+.B MediaTime (MTIM,dbl,D )
+.br
+Corresponding media time of the parent packet (0 being the origin)
 .br
 .TP
 .B MaxFrameSize (MFRS,uint,D )
@@ -4646,7 +4646,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev93-g5edeb7118-master
+build: 2.1-DEV-rev106-g4478f5669-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

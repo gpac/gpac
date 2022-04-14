@@ -3159,6 +3159,8 @@ The formats allowed for times specifiers are:
 .br
 * 'F'NUM: specify time as frame number
 .br
+* XML DateTime: specify absolute UTC time
+.br
   
 .br
 In this mode, the timestamps are rewritten to form a continuous timeline.
@@ -3271,6 +3273,25 @@ This can be avoided using .I no_audio_seek, but this will introduce audio delay.
 .br
 
 .br
+.SH UTC-based range extraction
+.LP
+.br
+The filter can perform range extraction based on UTC time rather than media time. In this mode, the end time must be:
+.br
+* a UTC date: range extraction will stop after this date
+.br
+* a time in second: range extraction will stop after the specified duration
+.br
+
+.br
+The UTC reference is specified using .I utc_ref.
+.br
+If UTC signal from media source is used, the filter will probe for .I utc_probe before considering the source has no UTC signal.
+.br
+
+.br
+The properties SenderNTP and, if absent, UTC of source packets are checked for establishing the UTC reference.
+.br
 .SH Other split actions
 .LP
 .br
@@ -3360,6 +3381,18 @@ props (strl):                  extra output PID properties per extraction range
 no_audio_seek (bool, default: false): disable seek mode on audio streams (no change of priming duration)
 .br
 probe_ref (bool, default: false): allow extracted range to be longer in case of B-frames with reference frames presented outside of range
+.br
+utc_ref (enum, default: any):  set reference mode for UTC range extraction
+.br
+* local: use UTC of local host
+.br
+* any: use UTC of media, or UTC of local host if not found in media after probing time
+.br
+* media: use UTC of media (abort if none found)
+.br
+
+.br
+utc_probe (uint, default: 5000): timeout in millisenconds to try to acquire UTC reference from media
 .br
 
 .br
@@ -10521,7 +10554,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev93-g5edeb7118-master
+build: 2.1-DEV-rev106-g4478f5669-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

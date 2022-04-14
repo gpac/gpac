@@ -616,6 +616,24 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 			gf_filter_pck_set_dts(dst_pck, pck->DTS);
 		}
 		gf_filter_pck_set_sap(dst_pck, sap_type);
+
+		if (pck->stream->flags & GF_M2TS_ES_IS_PES) {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)pck->stream;
+			if (pes->map_utc) {
+				s64 diff = pck->PTS;
+				diff -= pes->map_utc_pcr;
+				diff = gf_timestamp_rescale_signed(diff, 90000, 1000);
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_UTC_TIME, &PROP_LONGUINT(pes->map_utc+diff) );
+				pes->map_utc=0;
+			}
+			if (pes->map_pcr) {
+				Double diff = pck->PTS;
+				diff -= pes->map_pcr;
+				diff /= 90000;
+				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(ctx->media_start_range+diff) );
+				pes->map_pcr=0;
+			}
+		}
 	}
 	m2tdmx_merge_temi(opid, (GF_M2TS_ES *)pck->stream, dst_pck);
 
@@ -623,8 +641,9 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		pck->stream->is_seg_start = GF_FALSE;
 		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CUE_START, &PROP_BOOL(GF_TRUE));
 	}
-	ctx->nb_stop_pending = 0;
+
 	gf_filter_pck_send(dst_pck);
+	ctx->nb_stop_pending = 0;
 }
 
 static GF_M2TS_ES *m2tsdmx_get_m4sys_stream(GF_M2TSDmxCtx *ctx, u32 m4sys_es_id)
@@ -849,9 +868,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 			gf_filter_pck_send(dst_pck);
 
-			if (map_time) {
-				gf_filter_pid_set_info_str(stream->user, "time:timestamp", &PROP_LONGUINT(pcr) );
-				gf_filter_pid_set_info_str(stream->user, "time:media", &PROP_DOUBLE(ctx->media_start_range) );
+			if (map_time && (stream->flags & GF_M2TS_ES_IS_PES) ) {
+				((GF_M2TS_PES*)stream)->map_pcr = pcr;
 			}
 		}
 
@@ -872,13 +890,14 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			u32 j, count2 = gf_list_count(prog->streams);
 			for (j=0; j<count2; j++) {
 				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
-				if (stream->user) {
-					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIME, & PROP_LONGUINT(utc_ts) );
-					gf_filter_pid_set_info(stream->user, GF_PROP_PID_UTC_TIMESTAMP, & PROP_LONGUINT(prog->last_pcr_value / 300) );
+				if (stream->user && (stream->flags & GF_M2TS_ES_IS_PES)) {
+					GF_M2TS_PES*pes = (GF_M2TS_PES*)stream;
+					pes->map_utc = utc_ts;
+					pes->map_utc_pcr = prog->last_pcr_value/300;
 				}
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
-				                                       tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second, prog->last_pcr_value/300, prog->number));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d-%02d-%02dT%02d:%02d:%02d and PCR time "LLD" on program %d\n",
+				                                       tdt->year, tdt->month+1, tdt->day, tdt->hour, tdt->minute, tdt->second, prog->last_pcr_value/300, prog->number));
 		}
 	}
 		break;
@@ -1295,7 +1314,7 @@ restart:
 	if (ctx->in_seek) {
 		gf_m2ts_reset_parsers(ctx->ts);
 		ctx->in_seek = GF_FALSE;
-	} else if (check_block) {
+	} else if (check_block && !ctx->wait_for_progs) {
 		u32 i, nb_streams, would_block = 0;
 		nb_streams = gf_filter_get_opid_count(filter);
 		for (i=0; i<nb_streams; i++) {

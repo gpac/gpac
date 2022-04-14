@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / IETF RTP/RTSP/SDP sub-project
@@ -820,7 +820,13 @@ GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rt
 	streamer->channel->forced_ntp_frac = force_ntp_type ? ntp_frac : 0;
 	if (force_ntp_type==2)
 		streamer->channel->next_report_time = 0;
-	return gf_rtp_send_rtcp_report(streamer->channel);
+
+	GF_Err e = gf_rtp_send_rtcp_report(streamer->channel);
+	if (force_ntp_type) {
+		streamer->channel->forced_ntp_sec = 0;
+		streamer->channel->forced_ntp_frac = 0;
+	}
+	return e;
 }
 
 GF_EXPORT

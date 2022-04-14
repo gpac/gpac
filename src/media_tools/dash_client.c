@@ -229,6 +229,7 @@ typedef struct
 	char *key_url;
 	bin128 key_IV;
 	u32 seg_number;
+	u64 utc_map;
 	const char *seg_name_start;
 	GF_Fraction64 time;
 
@@ -6524,7 +6525,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	char *new_base_seg_url=NULL;
 	char *key_url=NULL;
 	bin128 key_iv;
-	u64 start_range, end_range;
+	u64 start_range, end_range, seg_utc=0;
 	Bool use_byterange;
 	u32 llhls_live_edge_type=0;
 	u32 representation_index;
@@ -6735,6 +6736,8 @@ llhls_rety:
 			if (group->last_segment_time) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 			}
+
+			seg_utc = segment_ast;
 		}
         group->time_at_last_request = gf_sys_clock();
     }
@@ -6744,6 +6747,12 @@ llhls_rety:
 	/* At this stage, there are some segments left to be downloaded */
 	e = gf_dash_resolve_url(dash->mpd, rep, group, base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL, &start_number);
 
+	if (dash->is_m3u8 && rep->segment_list && (dyn_type==GF_MPD_TYPE_DYNAMIC)) {
+		GF_MPD_SegmentURL *seg = gf_list_get(rep->segment_list->segment_URLs, group->download_segment_index);
+		if (seg) {
+			seg_utc = seg->hls_utc_time;
+		}
+	}
 
 	if ((e==GF_EOS)	&& group->llhls_edge_chunk && group->llhls_edge_chunk->hls_ll_chunk_type) {
 		//no more segments, force update now
@@ -6879,7 +6888,7 @@ llhls_rety:
 
 	cache_entry->time.num = gf_dash_get_segment_start_time_with_timescale(group, &seg_dur, &seg_scale);
 	cache_entry->time.den = seg_scale;
-
+	cache_entry->utc_map = seg_utc;
 	cache_entry->seg_number = group->download_segment_index + start_number;
 	cache_entry->seg_name_start = dash_strip_base_url(cache_entry->url, base_url);
 	group->loop_detected = GF_FALSE;
@@ -8985,7 +8994,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 }
 
 GF_EXPORT
-GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV)
+GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range, s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range, const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV, u64 *utc)
 {
 	GF_DASH_Group *group;
 	u32 index;
@@ -8999,6 +9008,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	if (original_url) *original_url = NULL;
 	if (switching_index) *switching_index = -1;
 	if (has_next_segment) *has_next_segment = GF_FALSE;
+	if (utc) *utc = 0;
 
 	group = gf_list_get(dash->groups, idx);
 
@@ -9053,6 +9063,7 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	if (original_url) *original_url = group->cached[index].url;
 	if (key_url) *key_url = group->cached[index].key_url;
 	if (key_IV) memcpy((*key_IV), group->cached[index].key_IV, sizeof(bin128));
+	if (utc) *utc = group->cached[index].utc_map;
 
 	if (!group->base_rep_index_plus_one && (group->cached[index].representation_index != group->prev_active_rep_index)) {
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->cached[0].representation_index);

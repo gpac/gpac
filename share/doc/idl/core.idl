@@ -137,14 +137,14 @@ unsigned long long get_utc();
 
 /*! gets UTC timestamp for a given date - see \ref gf_net_get_utc_ts
 \param year date's year
-\param month date's month of the year
-\param day date's day of the week
+\param month date's month of the year, 0 to 11
+\param day date's day of the week, 1 to 31
 \param hour date's hours
 \param min date's minutes
 \param sec date's seconds
 \return UTC 64 bit timestamp
 */
-unsigned long long get_utc();
+unsigned long long get_utc(unsigned long year, unsigned long month, unsigned long day, unsigned long hour, unsigned long min, unsigned long sec);
 
 
 /*! gets UTC clock from a date - see \ref gf_net_parse_date

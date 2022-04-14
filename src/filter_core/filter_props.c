@@ -1410,8 +1410,6 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "Display width of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "Display height of service", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_CAROUSEL_RATE, "CarouselRate", "Repeat rate in ms for systems carousel data", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PID_UTC_TIMESTAMP, "UTCTimestamp", "Timestamp corresponding to UTC date and time", GF_PROP_LUINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_VOLUME, "AudioVolume", "Volume of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_PAN, "AudioPan", "Balance/Pan of audio", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AUDIO_PRIORITY, "AudioPriority", "Audio thread priority", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -1428,8 +1426,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_OMA_CLEAR_LEN, "PlaintextLen", "OMA size of plaintext data", GF_PROP_LUINT},
 	{ GF_PROP_PID_CRYPT_INFO, "CryptInfo", "URL (local file only) of crypt info file for this PID, use `clear` to force passthrough", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_DECRYPT_INFO, "DecryptInfo", "URL (local file only) of crypt info file for this PID - see decrypter help", GF_PROP_STRING, GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "NTP time at sender side or grabber side", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
-	{ GF_PROP_PCK_RECEIVER_NTP, "ReceiverNTP", "Receiver NTP time (usually associated with the sender NTP property)", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "NTP 64 bits timestamp at sender side or grabber side", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_RECEIVER_NTP, "ReceiverNTP", "Receiver NTP (64 bits timestamp) usually associated with the sender NTP property", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PCK_UTC_TIME, "UTC", "UTC timestamp (in milliseconds) of parent packet", GF_PROP_LUINT, GF_PROP_FLAG_PCK | GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PID_ENCRYPTED, "Encrypted", "Packets for the stream are by default encrypted (however the encryption state is carried in packet crypt flags) - changes are signaled through PID info change (no reconfigure)", GF_PROP_BOOL},
 	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "OMA Preview range ", GF_PROP_LUINT},
@@ -1451,6 +1450,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PCK_FILESUF, "FileSuffix", "File suffix name, replacement for $FS$ in tile templates", GF_PROP_STRING, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_EODS, "EODS", "End of DASH segment", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_CUE_START, "CueStart", "Set on packets marking the beginning of a DASH/HLS segment for cue-driven segmentation - see dasher help", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
+	{ GF_PROP_PCK_MEDIA_TIME, "MediaTime", "Corresponding media time of the parent packet (0 being the origin)", GF_PROP_DOUBLE, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MAX_FRAME_SIZE, "MaxFrameSize", "Max size of frame in stream - changes are signaled through PID info change (no reconfigure)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_AVG_FRAME_SIZE, "AvgFrameSize", "Average size of frame in stream (ISOBMFF only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_MAX_TS_DELTA, "MaxTSDelta", "Maximum DTS delta between frames (ISOBMFF only, static property)", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
@@ -1830,6 +1830,26 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 	return dump;
 }
 
+/*time is given in ms*/
+static void prop_print_utc_date(char dump[GF_PROP_DUMP_ARG_SIZE], u64 time)
+{
+	time_t gtime;
+	struct tm *t;
+	u32 sec;
+	u32 ms;
+	gtime = time / 1000;
+	sec = (u32)(time / 1000);
+	ms = (u32)(time - ((u64)sec) * 1000);
+
+	t = gf_gmtime(&gtime);
+	sec = t->tm_sec;
+	//see issue #859, no clue how this happened...
+	if (sec > 60)
+		sec = 60;
+	snprintf(dump, GF_PROP_DUMP_ARG_SIZE-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, sec, ms);
+	dump[GF_PROP_DUMP_ARG_SIZE-1]=0;
+}
+
 GF_EXPORT
 const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], u32 dump_data_mode)
 {
@@ -1845,6 +1865,16 @@ const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PR
 		else if (att->value.uint == GF_PLAYBACK_MODE_REWIND) return "rewind";
 		else if (att->value.uint == GF_PLAYBACK_MODE_FASTFORWARD) return "forward";
 		else return "none";
+
+
+	case GF_PROP_PCK_SENDER_NTP:
+	case GF_PROP_PCK_RECEIVER_NTP:
+		prop_print_utc_date(dump, gf_net_ntp_to_utc(att->value.longuint));
+		return dump;
+	case GF_PROP_PCK_UTC_TIME:
+		prop_print_utc_date(dump, att->value.longuint);
+		return dump;
+
 	default:
 		if (att->type==GF_PROP_UINT) {
 			u32 type = gf_props_4cc_get_type(p4cc);

@@ -1510,7 +1510,6 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 			odm->parentscene->root_od->media_start_time = 0;
 			odm->parentscene->root_od->media_current_time = 0;
 		}
-		gf_odm_check_clock_mediatime(odm);
 
 		if (gf_filter_pid_first_packet_is_blocking_ref(pid))
 			odm->blocking_media = GF_TRUE;
@@ -1564,6 +1563,10 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (!pid) {
 		check_full_buffer = GF_FALSE;
 		pid = odm->pid;
+	} else {
+		//when a pid is given, this is a non-AV codec (bifs/od, svg, text), try to map media timeline
+		//otherwise we cannot since we don't want to use get_packet here
+		gf_odm_check_clock_mediatime(odm);
 	}
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
@@ -2048,20 +2051,18 @@ void gf_odm_check_clock_mediatime(GF_ObjectManager *odm)
 	Double media_time;
 	GF_Scene *scene;
 	const GF_PropertyValue *p;
-	GF_PropertyEntry *pe=NULL;
-	if (!odm->owns_clock) return;
-
-	if (odm->ck->has_media_time_shift) return;
+	if (!odm->owns_clock || odm->ck->has_media_time_shift) return;
 
 	timescale = gf_filter_pid_get_timescale(odm->pid);
 	if (!timescale) return;
 
-	p = gf_filter_pid_get_info_str(odm->pid, "time:timestamp", &pe);
+	GF_FilterPacket *pck = gf_filter_pid_get_packet(odm->pid);
+	if (!pck) return;
+
+	timestamp = gf_filter_pck_get_cts(pck);
+	if (timestamp == GF_FILTER_NO_TS) return;
+	p = gf_filter_pck_get_property(pck, GF_PROP_PCK_MEDIA_TIME);
 	if (!p) return;
-	timestamp = p->value.longuint;
-	p = gf_filter_pid_get_info_str(odm->pid, "time:media", &pe);
-	if (!p) return;
-	gf_filter_release_property(pe);
 	media_time = p->value.number;
 
 	odm->ck->media_ts_orig = gf_timestamp_rescale(timestamp, timescale, 1000);

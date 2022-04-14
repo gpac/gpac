@@ -581,6 +581,7 @@ retry:
 			*eos = mo->is_eos;
 			return NULL;
 		} else {
+			gf_odm_check_clock_mediatime(mo->odm);
 			gf_filter_pck_ref(&mo->pck);
 			gf_filter_pid_drop_packet(mo->odm->pid);
 			check_temi(mo);
@@ -757,6 +758,7 @@ retry:
 			//delete our packet
 			gf_filter_pck_unref(mo->pck);
 			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
+			gf_odm_check_clock_mediatime(mo->odm);
 			assert(mo->pck);
 			gf_filter_pck_ref( &mo->pck);
 			check_temi(mo);

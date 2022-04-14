@@ -337,6 +337,7 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				}
 			}
 			gf_odm_update_duration(odm, pid);
+			//we can safely call this here since we are in reconfigure
 			gf_odm_check_clock_mediatime(odm);
 			notify_quality = GF_TRUE;
 		}
@@ -702,9 +703,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				gf_odm_service_media_event_with_download(odm, GF_EVENT_MEDIA_PROGRESS, down_size, tot_size, bps/8, 0, 0);
 			}
 		}
-
 		gf_filter_release_property(pe);
-		gf_odm_check_clock_mediatime(odm);
 	}
 		return GF_TRUE;
 

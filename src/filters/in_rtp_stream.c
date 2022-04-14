@@ -206,7 +206,33 @@ static void rtp_sl_packet_cbk(void *udta, u8 *payload, u32 size, GF_SLHeader *hd
 		stream->depacketizer->sl_map.config_updated = 0;
 		gf_filter_pid_set_property(stream->opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(stream->depacketizer->sl_map.config, stream->depacketizer->sl_map.configSize) );
 	}
+	if (stream->map_utc) {
+		u64 utc_time = stream->rtp_ch->last_SR_NTP_sec;
+		utc_time <<= 32;
+		utc_time |= stream->rtp_ch->last_SR_NTP_frac;
+		utc_time = gf_net_ntp_to_utc(utc_time);
 
+		s64 ts_diff = (s64) cts;
+		ts_diff -= stream->rtp_ch->last_SR_rtp_time;
+		ts_diff = gf_timestamp_rescale_signed(ts_diff, stream->rtp_ch->TimeScale, 1000);
+		utc_time += ts_diff;
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_UTC_TIME, & PROP_LONGUINT(utc_time) );
+		stream->map_utc = GF_FALSE;
+	}
+
+	if (stream->map_media_time) {
+		Double media_time = 0;
+		if (stream->rtsp) {
+			//gf_rtp_get_current_time is from init with rtsp rtp_info, so it mathes current packet NPT time
+			media_time = stream->current_start + gf_rtp_get_current_time(stream->rtp_ch);
+		}
+		gf_filter_pck_set_property(pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(media_time) );
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
+										 hdr->packetSequenceNumber, cts, media_time, stream->rtp_ch->rtp_first_SN, stream->rtp_ch->rtp_time
+										));
+		stream->map_media_time = GF_FALSE;
+	}
 
 	if (stream->rtp_ch->packet_loss)
 		gf_filter_pck_set_corrupted(pck, 1);
@@ -568,16 +594,7 @@ void rtpin_stream_on_rtp_pck(GF_RTPInStream *stream, char *pck, u32 size)
 
 		/*this is the first packet on the channel (no PAUSE)*/
 		if (stream->check_rtp_time == RTP_SET_TIME_RTP) {
-			Double media_time = 0;
-			if (stream->rtsp) {
-				media_time = stream->current_start + ch_time;
-			}
-			gf_filter_pid_set_property_str(stream->opid, "time:timestamp", &PROP_LONGUINT(hdr.TimeStamp) );
-			gf_filter_pid_set_property_str(stream->opid, "time:media", &PROP_DOUBLE(media_time) );
-
-			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
-			                                 hdr.SequenceNumber, hdr.TimeStamp, stream->current_start + ch_time, stream->rtp_ch->rtp_first_SN, stream->rtp_ch->rtp_time
-			                                ));
+			stream->map_media_time = GF_TRUE;
 
 			/*skip RTCP clock init when RTSP is used*/
 			if (stream->rtsp) stream->rtcp_init = GF_TRUE;
@@ -678,6 +695,9 @@ static void rtpin_stream_on_rtcp_pck(GF_RTPInStream *stream, char *pck, u32 size
 		if (stream->rtpin->rtcpsync)
 			rtpin_adjust_sync(stream->rtpin);
 	}
+	if (has_sr && stream->opid && (stream->status==RTP_Running)) {
+		stream->map_utc = GF_TRUE;
+	}
 
 	if (e == GF_EOS) {
 		stream->flags |= RTP_EOS;
@@ -720,8 +740,12 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 	}
 
 	/*and send the report*/
-	if (tot_size && (stream->flags & RTP_ENABLE_RTCP))
-		gf_rtp_send_rtcp_report(stream->rtp_ch);
+	if (tot_size) {
+		if (stream->flags & RTP_ENABLE_RTCP)
+			gf_rtp_send_rtcp_report(stream->rtp_ch);
+		stream->last_udp_time = 0;
+		return tot_size;
+	}
 
 	/*detect timeout*/
 	if (stream->rtpin->udp_timeout) {
@@ -750,7 +774,7 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 			}
 		}
 	}
-	return tot_size;
+	return 0;
 }
 
 #endif /*GPAC_DISABLE_STREAMING*/
