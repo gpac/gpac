@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre, Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2005-2021
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -1232,10 +1232,10 @@ GF_Box *senc_box_new()
 void senc_box_del(GF_Box *s)
 {
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
-	while (gf_list_count(ptr->samp_aux_info)) {
-		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, 0);
-		if (sai) gf_isom_cenc_samp_aux_info_del(sai);
-		gf_list_rem(ptr->samp_aux_info, 0);
+	while (1) {
+		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_pop_back(ptr->samp_aux_info);
+		if (!sai) break;
+		gf_isom_cenc_samp_aux_info_del(sai);
 	}
 	if (ptr->samp_aux_info) gf_list_del(ptr->samp_aux_info);
 	gf_free(s);

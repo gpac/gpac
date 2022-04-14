@@ -863,13 +863,21 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	e = stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS, &dur);
 	if (e < 0) return e;
 	DTS += dur;
-	trak->Media->mediaHeader->duration = DTS;
 
 	//do not do that for old arch compat which was not taking into account cts offset
-	if (gf_sys_old_arch_compat() || !trak->Media->information->sampleTable->CompositionOffset)
+	if (gf_sys_old_arch_compat() || !trak->Media->information->sampleTable->CompositionOffset) {
+		trak->Media->mediaHeader->duration = DTS;
 		return GF_OK;
-
+	}
 	//try to set duration according to spec: "should be the largest composition timestamp plus the duration of that sample"
+	s32 cts_o;
+	stbl_GetSampleCTS(trak->Media->information->sampleTable->CompositionOffset, nbSamp, &cts_o);
+	if (cts_o>0) DTS += cts_o;
+	if (DTS>trak->Media->mediaHeader->duration)
+		trak->Media->mediaHeader->duration = DTS;
+
+	//this can be more precise in some corner cases but takes way too long - we keep code for reference
+#if 0
 	//browse from sample_num_max_cts_delta (updated in read and edit to point to sample number with max cts offset)
 	u32 s_idx, min = trak->Media->information->sampleTable->CompositionOffset->sample_num_max_cts_delta;
 	if (!min) return GF_OK;
@@ -885,6 +893,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		}
 	}
 	trak->Media->mediaHeader->duration = DTS;
+#endif
 	return GF_OK;
 }
 
