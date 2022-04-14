@@ -789,6 +789,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool needs_track = GF_FALSE;
 	u32 needs_sample_entry = 0; //1: change of codecID, 2 change of decoder config
 	Bool use_gen_sample_entry = GF_FALSE;
+	Bool skip_crypto = GF_FALSE;
 	Bool use_3gpp_config = GF_FALSE;
 	Bool use_ac3_entry = GF_FALSE;
 	Bool use_flac_entry = GF_FALSE;
@@ -823,6 +824,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	Bool unknown_generic = GF_FALSE;
 	u32 multi_pid_final_stsd_idx = 0;
 	u32 audio_pli=0;
+	u32 prev_codecid=0;
 	Bool force_tk_layout = GF_FALSE;
 	Bool force_mix_xps = GF_FALSE;
 	Bool make_inband_headers = GF_FALSE;
@@ -977,6 +979,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	}
 
 	//check change of pid config
+	prev_codecid = tkw->codecid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	if (p) {
 		if (p->value.uint!=tkw->codecid) needs_sample_entry = 1;
@@ -1572,6 +1575,16 @@ sample_entry_setup:
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ISOM_SUBTYPE);
 	if (p) m_subtype_src = p->value.uint;
 
+	//if crypto scheme type changes, we will need a new sample entry
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
+	if (p && (tkw->scheme_type != p->value.uint))
+		needs_sample_entry = 1;
+	else if (!p && tkw->scheme_type)
+		needs_sample_entry = 1;
+	else if (tkw->scheme_type) {
+		if (codec_id == prev_codecid)
+			skip_crypto = GF_TRUE;
+	}
 
 	//get our subtype
 	switch (codec_id) {
@@ -1730,11 +1743,15 @@ sample_entry_setup:
 	case GF_CODECID_AVC:
 	case GF_CODECID_SVC:
 		if (ctx->xps_inband==XPS_IB_AUTO) {
-			if (m_subtype_src == GF_ISOM_SUBTYPE_AVC3_H264) {
-				m_subtype = GF_ISOM_SUBTYPE_AVC3_H264;
+			switch (m_subtype_src) {
+			case GF_ISOM_SUBTYPE_AVC3_H264:
+			case GF_ISOM_SUBTYPE_DVAV:
+				m_subtype = m_subtype_src;
 				xps_inband = XPS_IB_ALL;
-			} else {
+				break;
+			default:
 				m_subtype = GF_ISOM_SUBTYPE_AVC_H264;
+				break;
 			}
 		} else {
 			xps_inband = ctx->xps_inband;
@@ -1751,11 +1768,15 @@ sample_entry_setup:
 	case GF_CODECID_HEVC:
 	case GF_CODECID_LHVC:
 		if (ctx->xps_inband==XPS_IB_AUTO) {
-			if (m_subtype_src == GF_ISOM_SUBTYPE_HEV1) {
-				m_subtype = GF_ISOM_SUBTYPE_HEV1;
+			switch (m_subtype_src) {
+			case GF_ISOM_SUBTYPE_HEV1:
+			case GF_ISOM_SUBTYPE_DVHE:
+				m_subtype = m_subtype_src;
 				xps_inband = XPS_IB_ALL;
-			} else {
+				break;
+			default:
 				m_subtype = GF_ISOM_SUBTYPE_HVC1;
+				break;
 			}
 		} else {
 			xps_inband = ctx->xps_inband;
@@ -2860,7 +2881,7 @@ multipid_stsd_setup:
 		}
 	}
 
-	if (tkw->is_encrypted) {
+	if (tkw->is_encrypted && !skip_crypto) {
 		const char *scheme_uri=NULL;
 		const char *kms_uri=NULL;
 		u32 scheme_version=0;
@@ -2944,7 +2965,7 @@ multipid_stsd_setup:
 			}
 			gf_isom_set_generic_protection(ctx->file, tkw->track_num, tkw->stsd_idx, scheme_type, scheme_version, (char*)scheme_uri, (char*)kms_uri);
 		}
-	} else {
+	} else if (!tkw->is_encrypted) {
 		//in case we used track template
 		gf_isom_remove_samp_enc_box(ctx->file, tkw->track_num);
 		gf_isom_remove_samp_group_box(ctx->file, tkw->track_num);
