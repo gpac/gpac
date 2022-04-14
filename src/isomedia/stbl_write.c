@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / ISO Media File Format sub-project
@@ -273,7 +273,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 		if (offset<0) ctts->version=1;
 		if (ABS(offset) >= ctts->max_cts_delta) {
 			ctts->max_cts_delta = ABS(offset);
-			ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+			//ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
 		}
 		return GF_OK;
 	}
@@ -289,7 +289,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 		if (e) return e;
 		if (ABS(offset) >= ctts->max_cts_delta) {
 			ctts->max_cts_delta = ABS(offset);
-			ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+			//ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
 		}
 		return GF_OK;
 	}
@@ -310,7 +310,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, s32 offset)
 				sampNum ++;
 				if (ABS(offset) >= ctts->max_cts_delta) {
 					ctts->max_cts_delta = ABS(offset);
-					ctts->sample_num_max_cts_delta = sampNum;
+					//ctts->sample_num_max_cts_delta = sampNum;
 				}
 			}
 			CTSs[sampNum] = ctts->entries[i].decodingOffset;
@@ -1890,7 +1890,7 @@ GF_Err stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 
 	if (ABS(offset) >= ctts->max_cts_delta) {
 		ctts->max_cts_delta = ABS(offset);
-		ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
+		//ctts->sample_num_max_cts_delta = ctts->w_LastSampleNumber;
 	}
 
 	return GF_OK;

@@ -1031,7 +1031,6 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	}
 	if (e) return e;
 
-
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	return SetTrackDuration(trak);
