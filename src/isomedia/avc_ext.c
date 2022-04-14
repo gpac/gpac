@@ -2458,7 +2458,7 @@ GF_AV1Config *gf_isom_av1_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry) return NULL;
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
-	if (!entry->av1_config|| !entry->av1_config->config) return NULL;
+	if (!entry->av1_config || !entry->av1_config->config) return NULL;
 	return AV1_DuplicateConfig(entry->av1_config->config);
 }
 
@@ -2487,7 +2487,7 @@ GF_DOVIDecoderConfigurationRecord *gf_isom_dovi_config_get(GF_ISOFile* the_file,
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, DescriptionIndex - 1);
 	if (!entry) return NULL;
 	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return NULL;
-	if (!entry->size || !entry->dovi_config) return NULL;
+	if (!entry->dovi_config) return NULL;
 	return DOVI_DuplicateConfig(&entry->dovi_config->DOVIConfig);
 }
 
