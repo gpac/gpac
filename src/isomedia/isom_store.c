@@ -2450,7 +2450,13 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 			gf_bs_seek(movie->editFileMap->bs, gf_bs_get_size(movie->editFileMap->bs) );
 
 			if ((movie->storageMode==GF_ISOM_STORE_FASTSTART) && mdat_start && mdat_size) {
+				u32 pad = mdat_start;
+				//make sure the bitstream has the right offset - this is require for box using offsets into other boxes (typically saio)
 				moov_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				while (pad) {
+					gf_bs_write_u8(moov_bs, 0);
+					pad--;
+				}
 			}
 			//write as non-seekable
 			e = WriteFlat(&mw, 0, movie->editFileMap->bs, GF_TRUE, GF_FALSE, moov_bs);
@@ -2482,8 +2488,8 @@ GF_Err WriteToFile(GF_ISOFile *movie, Bool for_fragments)
 
 				gf_bs_get_content(moov_bs, &moov_data, &moov_size);
 				gf_bs_del(moov_bs);
-
-				movie->on_block_patch(movie->on_block_out_usr_data, moov_data, moov_size, mdat_start, GF_TRUE);
+				//the first mdat_start bytes are dummy, cf above
+				movie->on_block_patch(movie->on_block_out_usr_data, moov_data+mdat_start, moov_size-mdat_start, mdat_start, GF_TRUE);
 				gf_free(moov_data);
 			}
 		} else {
