@@ -179,19 +179,20 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 	}
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if ((ctx->fps.num) && prop) {
-		u64 dur = prop->value.uint;
+	if ((ctx->fps.num) && prop->value.lfrac.den) {
+		GF_Fraction64 ndur = prop->value.lfrac;
 		if (ctx->fps.num>0) {
 			if (fps_scaler.num) {
-				dur *= fps_scaler.num;
-				dur /= fps_scaler.den;
+				ndur.num *= fps_scaler.num;
+				ndur.num /= fps_scaler.den;
+				gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ndur));
 			} else {
 				gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DURATION, NULL);
 			}
 		} else {
-			dur /= -ctx->fps.num;
-			dur *= ctx->fps.den;
-			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DURATION, &PROP_LONGUINT(dur));
+			ndur.num /= -ctx->fps.num;
+			ndur.num *= ctx->fps.den;
+			gf_filter_pid_set_property(pctx->opid, GF_PROP_PID_DURATION, &PROP_FRAC64(ndur));
 		}
 	}
 

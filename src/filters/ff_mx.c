@@ -1071,7 +1071,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	avst->duration = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p && p->value.lfrac.den) {
-		avst->duration = p->value.lfrac.num;
+		avst->duration = (p->value.lfrac.num<0) ? -p->value.lfrac.num : p->value.lfrac.num;
 		avst->duration *= avst->time_base.den;
 		avst->duration /= p->value.lfrac.den;
 	}

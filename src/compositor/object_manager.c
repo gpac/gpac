@@ -718,10 +718,10 @@ void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_PropertyEntry *pe = NULL;
 	const GF_PropertyValue *prop;
 	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION, &pe);
-	if (prop) {
-		dur = prop->value.lfrac.num;
+	if (prop && prop->value.lfrac.den) {
+		dur = (prop->value.lfrac.num<0) ? -prop->value.lfrac.num : prop->value.lfrac.num;
 		dur *= 1000;
-		if (prop->value.lfrac.den) dur /= prop->value.lfrac.den;
+		dur /= prop->value.lfrac.den;
 	}
 	gf_filter_release_property(pe);
 	

@@ -146,8 +146,9 @@ GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const c
 			if (!stream->rtp) continue;
 
 			p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DURATION);
-			if (p) {
+			if (p && p->value.lfrac.den) {
 				Double dur = (Double) p->value.lfrac.num;
+				if (dur<0) dur = -dur;
 				dur /= p->value.lfrac.den;
 				if (dur>max_dur) max_dur = dur;
 			}

@@ -58,13 +58,6 @@ u32 gf_latm_get_value(GF_BitStream *bs);
 
 #define GF_SVC_SSPS_ID_SHIFT	16
 
-/*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
-is positionned AFTER start code*/
-u32 gf_media_nalu_is_start_code(GF_BitStream *bs);
-
-/*returns size of chunk between current and next startcode (excluding startcode sizes), 0 if no more startcodes (eos)*/
-u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs);
-
 /*return nb bytes from current data until the next start code and set the size of the next start code (3 or 4 bytes)
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);

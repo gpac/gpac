@@ -4819,78 +4819,6 @@ void gf_bs_write_se(GF_BitStream *bs, s32 num)
 	gf_bs_write_ue(bs, v);
 }
 
-u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
-{
-	u8 s1, s2, s3, s4;
-	Bool is_sc = 0;
-	u64 pos = gf_bs_get_position(bs);
-	s1 = gf_bs_read_int(bs, 8);
-	s2 = gf_bs_read_int(bs, 8);
-	if (!s1 && !s2) {
-		s3 = gf_bs_read_int(bs, 8);
-		if (s3 == 0x01) is_sc = 3;
-		else if (!s3) {
-			s4 = gf_bs_read_int(bs, 8);
-			if (s4 == 0x01) is_sc = 4;
-		}
-	}
-	gf_bs_seek(bs, pos + is_sc);
-	return is_sc;
-}
-
-/*read that amount of data at each IO access rather than fetching byte by byte...*/
-#define AVC_CACHE_SIZE	4096
-
-static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
-{
-	u32 v, bpos, nb_cons_zeros = 0;
-	char avc_cache[AVC_CACHE_SIZE];
-	u64 end, cache_start, load_size;
-	u64 start = gf_bs_get_position(bs);
-	if (start < 3) return 0;
-
-	load_size = 0;
-	bpos = 0;
-	cache_start = 0;
-	end = 0;
-	v = 0xffffffff;
-	while (!end) {
-		/*refill cache*/
-		if (bpos == (u32)load_size) {
-			if (!gf_bs_available(bs)) break;
-			load_size = gf_bs_available(bs);
-			if (load_size > AVC_CACHE_SIZE) load_size = AVC_CACHE_SIZE;
-			bpos = 0;
-			cache_start = gf_bs_get_position(bs);
-			gf_bs_read_data(bs, avc_cache, (u32)load_size);
-		}
-		v = ( (v<<8) & 0xFFFFFF00) | ((u32) avc_cache[bpos]);
-		bpos++;
-
-		if (locate_trailing) {
-			if ((v & 0x000000FF) == 0) nb_cons_zeros++;
-			else nb_cons_zeros = 0;
-		}
-
-		if (v == 0x00000001) end = cache_start + bpos - 4;
-		else if ((v & 0x00FFFFFF) == 0x00000001) end = cache_start + bpos - 3;
-	}
-
-	gf_bs_seek(bs, start);
-	if (!end) end = gf_bs_get_size(bs);
-	if (locate_trailing) {
-		if (nb_cons_zeros >= 3)
-			return (u32)(end - start - nb_cons_zeros);
-	}
-	return (u32)(end - start);
-}
-
-GF_EXPORT
-u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
-{
-	return gf_media_nalu_locate_start_code_bs(bs, 0);
-}
-
 GF_EXPORT
 u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 {
@@ -6410,7 +6338,6 @@ u32 gf_avc_reformat_sei(u8 *buffer, u32 nal_size, Bool isobmf_rewrite, AVCState 
 	if (bs_dest) gf_bs_del(bs_dest);
 	return nal_size;
 }
-
 
 static u8 avc_hevc_get_sar_idx(u32 w, u32 h)
 {

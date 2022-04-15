@@ -3723,7 +3723,7 @@ void gf_filter_pid_init_play_event(GF_FilterPid *pid, GF_FilterEvent *evt, Doubl
 		p = gf_filter_pid_get_property_first(pid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.den) {
 			evt->play.start_range *= -100;
-			evt->play.start_range *= p->value.lfrac.num;
+			evt->play.start_range *= (p->value.lfrac.num<0) ? -p->value.lfrac.num : p->value.lfrac.num;
 			evt->play.start_range /= 100 * p->value.lfrac.den;
 		}
 	}
