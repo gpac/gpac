@@ -1523,6 +1523,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 							break;
 						case GF_M2TS_RA_STREAM_DOVI:
 							break;
+						case GF_M2TS_RA_STREAM_AV1:
+							es->stream_type = GF_M2TS_VIDEO_AV1;
+							break;
 
 						case GF_M2TS_RA_STREAM_GPAC:
 							if (len==8) {
