@@ -785,8 +785,9 @@ static Bool tsmux_setup_esi(GF_TSMuxCtx *ctx, GF_M2TS_Mux_Program *prog, M2Pid *
 	}
 
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_DURATION);
-	if (p) {
+	if (p && p->value.lfrac.den) {
 		tspid->esi.duration = (Double) p->value.lfrac.num;
+		if (tspid->esi.duration<0) tspid->esi.duration=-tspid->esi.duration;
 		tspid->esi.duration /= p->value.lfrac.den;
 	}
 	p = gf_filter_pid_get_property(tspid->ipid, GF_PROP_PID_BITRATE);

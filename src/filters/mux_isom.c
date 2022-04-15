@@ -383,6 +383,7 @@ static GF_Err mp4mx_setup_dash_vod(GF_MP4MuxCtx *ctx, TrackWriter *tkw)
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
 		if (p && p->value.lfrac.den) {
 			Double mdur = (Double) p->value.lfrac.num;
+			if (mdur<0) mdur = -mdur;
 			mdur /= p->value.lfrac.den;
 			if (ctx->media_dur < mdur) ctx->media_dur = mdur;
 		}
@@ -4984,11 +4985,12 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 		def_fake_scale = tkw->src_timescale;
 
 		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
-		if (p && p->value.lfrac.num>0 && p->value.lfrac.den) {
+		if (p && p->value.lfrac.den) {
 			tkw->pid_dur = p->value.lfrac;
-			if (max_dur.num * (s64) p->value.lfrac.den < (s64) max_dur.den * p->value.lfrac.num) {
-				max_dur.num = p->value.lfrac.num;
-				max_dur.den = p->value.lfrac.den;
+			if (tkw->pid_dur.num<0) tkw->pid_dur.num = -tkw->pid_dur.num;
+			if (max_dur.num * (s64) tkw->pid_dur.den < (s64) max_dur.den * tkw->pid_dur.num) {
+				max_dur.num = tkw->pid_dur.num;
+				max_dur.den = tkw->pid_dur.den;
 			}
 		}
 #ifdef GF_ENABLE_CTRN

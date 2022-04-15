@@ -299,7 +299,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	FILE *stream;
 	GF_Err e;
 	GF_BitStream *bs;
-	u64 duration, cur_dur, last_cdur, rate, max_pts, last_pts;
+	u64 duration, cur_dur, last_cdur, file_size, max_pts, last_pts, probe_size=0;
 	AV1State av1state;
 	const char *filepath=NULL;
 	const GF_PropertyValue *p;
@@ -324,12 +324,14 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (!p || (p->value.longuint > 20000000)) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AV1/VP9] Source file larger than 20M, skipping indexing\n"));
+				if (!gf_sys_is_test_mode())
+					probe_size = 20000000;
 			} else {
 				ctx->index = -ctx->index;
 			}
 		}
 	}
-	if (ctx->index<=0)
+	if ((ctx->index<=0 )&& !probe_size)
 		return;
 
 	stream = gf_fopen_ex(filepath, NULL, "rb", GF_TRUE);
@@ -346,6 +348,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 	if (ctx->file_hdr_size) {
 		gf_bs_seek(bs, ctx->file_hdr_size);
 	}
+	file_size = gf_bs_available(bs);
 	gf_av1_init_state(&av1state);
 	av1state.skip_frames = GF_TRUE;
 	av1state.config = gf_odf_av1_cfg_new();
@@ -357,6 +360,10 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		Bool is_sap=GF_FALSE;
 		u64 pts = GF_FILTER_NO_TS;
 		u64 frame_start = gf_bs_get_position(bs);
+
+		if (probe_size && (frame_start>probe_size))
+			break;
+
 		gf_av1_reset_state(&av1state, GF_FALSE);
 
 		/*we process each TU and extract only the necessary OBUs*/
@@ -401,7 +408,7 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 		 	is_sap = GF_TRUE;
 
 		//only index at I-frame start
-		if (frame_start && is_sap && (cur_dur > ctx->index * ctx->cur_fps.num) ) {
+		if (!probe_size && frame_start && is_sap && (cur_dur > ctx->index * ctx->cur_fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(AV1Idx)*ctx->index_alloc_size);
@@ -413,22 +420,27 @@ static void av1dmx_check_dur(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 			cur_dur = 0;
 		}
 	}
-	rate = gf_bs_get_position(bs);
+	if (probe_size)
+		probe_size = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 	gf_fclose(stream);
 	gf_odf_av1_cfg_del(av1state.config);
 	gf_av1_reset_state(&av1state, GF_TRUE);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->cur_fps.num != duration * ctx->duration.den)) {
+		if (probe_size) {
+			duration *= file_size / probe_size;
+		}
 		ctx->duration.num = (s32) duration;
+		if (probe_size) ctx->duration.num = -ctx->duration.num;
 		ctx->duration.den = ctx->cur_fps.num;
 
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
 
 		if (ctx->duration.num && (!gf_sys_is_test_mode() || gf_opts_get_bool("temp", "force_indexing"))) {
-			rate *= 8 * ctx->duration.den;
-			rate /= ctx->duration.num;
-			ctx->bitrate = (u32) rate;
+			file_size *= 8 * ctx->duration.den;
+			file_size /= ctx->duration.num;
+			ctx->bitrate = (u32) file_size;
 		}
 	}
 }

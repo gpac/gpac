@@ -227,7 +227,8 @@ GF_Err nhntdump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->first = GF_TRUE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.lfrac;
+	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
+
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
 }

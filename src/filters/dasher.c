@@ -5924,7 +5924,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 
 		if (ctx->loop) {
 			prop = gf_filter_pid_get_property(ds->ipid, GF_PROP_PID_DURATION);
-			if (prop && prop->value.lfrac.den) {
+			//only check true media dur
+			if (prop && prop->value.lfrac.den && (prop->value.lfrac.num>0)) {
 				GF_Fraction64 d;
 				d.num = prop->value.lfrac.num;
 				d.den = prop->value.lfrac.den;

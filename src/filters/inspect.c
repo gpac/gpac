@@ -3087,13 +3087,22 @@ static void inspect_reset_parsers(PidCtx *pctx, void *keep_parser_address)
 }
 #endif
 
-static void format_duration(u64 dur, u64 timescale, FILE *dump)
+static void format_duration(s64 dur, u64 timescale, FILE *dump)
 {
 	u32 h, m, s, ms;
-	if ((dur==(u64) -1) || (dur==(u32) -1))  {
+	const char *name = "duration";
+	if (dur==-1) {
 		gf_fprintf(dump, " duration unknown");
 		return;
 	}
+	//duration probing was disabled
+	if (!timescale)
+		return;
+	if (dur<0) {
+		dur = -dur;
+		name = "estimated duration";
+	}
+
 	dur = (u64) (( ((Double) (s64) dur)/timescale)*1000);
 	h = (u32) (dur / 3600000);
 	m = (u32) (dur/ 60000) - h*60;
@@ -3101,14 +3110,14 @@ static void format_duration(u64 dur, u64 timescale, FILE *dump)
 	ms = (u32) (dur) - h*3600000 - m*60000 - s*1000;
 	if (h<=24) {
 		if (h)
-			gf_fprintf(dump, " duration %02d:%02d:%02d.%03d", h, m, s, ms);
+			gf_fprintf(dump, " %s %02d:%02d:%02d.%03d", name, h, m, s, ms);
 		else
-			gf_fprintf(dump, " duration %02d:%02d.%03d", m, s, ms);
+			gf_fprintf(dump, " %s %02d:%02d.%03d", name, m, s, ms);
 	} else {
 		u32 d = (u32) (dur / 3600000 / 24);
 		h = (u32) (dur/3600000)-24*d;
 		if (d<=365) {
-			gf_fprintf(dump, " duration %d Days, %02d:%02d:%02d.%03d", d, h, m, s, ms);
+			gf_fprintf(dump, " %s %d Days, %02d:%02d:%02d.%03d", name, d, h, m, s, ms);
 		} else {
 			u32 y=0;
 			while (d>365) {
@@ -3116,7 +3125,7 @@ static void format_duration(u64 dur, u64 timescale, FILE *dump)
 				d-=365;
 				if (y%4) d--;
 			}
-			gf_fprintf(dump, " duration %d Years %d Days, %02d:%02d:%02d.%03d", y, d, h, m, s, ms);
+			gf_fprintf(dump, " %s %d Years %d Days, %02d:%02d:%02d.%03d", name, y, d, h, m, s, ms);
 		}
 	}
 }
@@ -3171,7 +3180,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	if (p) gf_fprintf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p && (p->value.lfrac.num>0)) format_duration((u64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
+	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) gf_fprintf(dump, " timescale %d", p->value.uint);

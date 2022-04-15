@@ -306,8 +306,7 @@ GF_Err nhmldump_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	ctx->is_stpp = (cid==GF_CODECID_SUBS_XML) ? GF_TRUE : GF_FALSE;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
-	if (p) ctx->duration = p->value.lfrac;
-
+	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
 
 	if (ctx->opid_nhml)
 		gf_filter_pid_set_name(ctx->opid_nhml, "nhml");

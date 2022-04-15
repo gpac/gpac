@@ -162,9 +162,9 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 	ctx->nb_frames = 0;
 	ctx->file_size = gf_bs_available(bs);
 
+	u64 frame_start = 0;
 	duration = 0;
 	while (gf_bs_available(bs)) {
-		u64 frame_start = gf_bs_get_position(bs);
 		u32 fsize = gf_bs_read_u32(bs);
 		u32 fmark = gf_bs_read_u32(bs);
 		gf_bs_seek(bs, frame_start + fsize);
@@ -178,6 +178,7 @@ static void proresdmx_check_dur(GF_Filter *filter, GF_ProResDmxCtx *ctx)
 		ctx->frame_sizes = gf_realloc(ctx->frame_sizes, sizeof(u32)*idx_size);
 		ctx->frame_sizes[ctx->nb_frames] = fsize;
 		ctx->nb_frames++;
+		frame_start += fsize;
 	}
 	rate = gf_bs_get_position(bs);
 	gf_bs_del(bs);
