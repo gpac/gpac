@@ -288,7 +288,8 @@ typedef enum
 	GF_M2TS_MPE_SECTIONS            = 0x90,
 	GF_M2TS_SUBTITLE_DVB			= 0x100,
 	GF_M2TS_AUDIO_OPUS				= 0x101,
-	
+	GF_M2TS_VIDEO_AV1				= 0x102,
+
 	GF_M2TS_DVB_TELETEXT			= 0x152,
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,
@@ -309,7 +310,7 @@ enum
 	GF_M2TS_RA_STREAM_DTS3	= GF_4CC('D','T','S','3'),
 	GF_M2TS_RA_STREAM_OPUS	= GF_4CC('O','p','u','s'),
 	GF_M2TS_RA_STREAM_DOVI	= GF_4CC('D','O','V','I'),
-
+	GF_M2TS_RA_STREAM_AV1	= GF_4CC('A','V','0','1'),
 
 	GF_M2TS_RA_STREAM_GPAC	= GF_4CC('G','P','A','C')
 };

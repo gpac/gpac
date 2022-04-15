@@ -828,6 +828,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			case GF_M2TS_VIDEO_VC1:
 			case GF_M2TS_AUDIO_DTS:
 			case GF_M2TS_AUDIO_OPUS:
+			case GF_M2TS_VIDEO_AV1:
 				//reg desc
 				es_info_length += 2 + 4;
 				type = GF_M2TS_PRIVATE_DATA;
@@ -979,6 +980,12 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				gf_bs_write_int(bs,	4, 8);
 				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_OPUS);
 				break;
+			case GF_M2TS_VIDEO_AV1:
+				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
+				gf_bs_write_int(bs,	4, 8);
+				gf_bs_write_u32(bs,	GF_M2TS_RA_STREAM_AV1);
+				break;
+
 			default:
 				if (es->force_reg_desc && es->ifce && es->ifce->codecid) {
 					gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8);
@@ -2606,6 +2613,11 @@ static void gf_m2ts_program_stream_format_updated(GF_M2TS_Mux_Stream *stream)
 		case GF_CODECID_SMPTE_VC1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_VC1;
 			break;
+		case GF_CODECID_AV1:
+			stream->mpeg2_stream_type = GF_M2TS_VIDEO_AV1;
+			stream->force_single_au = GF_TRUE;
+			break;
+
 		default:
 			if (!ifce->ra_code) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Unsupported mpeg2-ts video type for codec %s, signaling as PES private using codec 4CC %s in registration descriptor\n", gf_codecid_name(ifce->codecid), gf_4cc_to_str(ifce->codecid) ));

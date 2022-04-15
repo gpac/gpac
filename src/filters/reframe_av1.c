@@ -275,7 +275,7 @@ GF_Err av1dmx_check_format(GF_Filter *filter, GF_AV1DmxCtx *ctx, GF_BitStream *b
 			ctx->bsmode = UNSUPPORTED;
 			return e;
 		}
-		if (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER) {
+		if (!ctx->timescale && (ctx->state.obu_type != OBU_TEMPORAL_DELIMITER)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[AV1Dmx] Error OBU stream start with %s, not a temporal delimiter - NOT SUPPORTED\n", gf_av1_get_obu_name(ctx->state.obu_type) ));
 			gf_filter_setup_failure(filter, e);
 			ctx->bsmode = UNSUPPORTED;
@@ -1007,6 +1007,10 @@ GF_Err av1dmx_parse_av1(GF_Filter *filter, GF_AV1DmxCtx *ctx)
 
 	//check pid state
 	av1dmx_check_pid(filter, ctx);
+
+	//fixme, we need to flush at each DFG start - for now we assume one PES = one DFG as we do in the muxer
+	if (ctx->timescale && (e==GF_BUFFER_TOO_SMALL))
+		e = GF_OK;
 
 	if (e) return e;
 
