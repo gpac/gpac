@@ -1134,7 +1134,7 @@ GF_Err diST_box_read(GF_Box *s, GF_BitStream *bs)
 
 	i=0;
 	str[0]=0;
-	while (1) {
+	while (i<1024) {
 		str[i] = gf_bs_read_u8(bs);
 		if (!str[i]) break;
 		i++;
