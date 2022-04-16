@@ -1129,12 +1129,13 @@ void diST_box_del(GF_Box *s)
 GF_Err diST_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	char str[1024];
+	const u32 len = 1024;
+	char str[len];
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
 
 	i=0;
 	str[0]=0;
-	while (i<1024) {
+	while (i < len) {
 		str[i] = gf_bs_read_u8(bs);
 		if (!str[i]) break;
 		i++;
