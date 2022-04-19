@@ -6334,7 +6334,7 @@ typedef enum
 	GF_ISOM_ITUNE_GROUP 			= GF_4CC( 0xA9, 'g', 'r', 'p' ),
 	GF_ISOM_ITUNE_WRITER 			= GF_4CC( 0xA9, 'w', 'r', 't' ),
 	GF_ISOM_ITUNE_COMMENT 			= GF_4CC( 0xA9, 'c', 'm', 't' ),
-	GF_ISOM_ITUNE_GENRE_USER		= GF_4CC( 0xA9, 'g', 'n', 'r'),
+	GF_ISOM_ITUNE_GENRE_USER		= GF_4CC( 0xA9, 'g', 'e', 'n'),
 	GF_ISOM_ITUNE_GENRE 			= GF_4CC( 'g', 'n', 'r', 'e' ),
 	GF_ISOM_ITUNE_CREATED 			= GF_4CC( 0xA9, 'd', 'a', 'y' ),
 	GF_ISOM_ITUNE_TRACKNUMBER 		= GF_4CC( 't', 'r', 'k', 'n' ),
