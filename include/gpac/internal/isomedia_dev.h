@@ -486,6 +486,8 @@ enum
 	GF_QT_BOX_TYPE_FIEL = GF_4CC('f','i','e','l'),
 	GF_QT_BOX_TYPE_GAMA = GF_4CC('g','a','m','a'),
 	GF_QT_BOX_TYPE_CHRM = GF_4CC('c','h','r','m'),
+	GF_QT_BOX_TYPE_STPS = GF_4CC('s','t','p','s'),
+	GF_QT_BOX_TYPE_CIOS = GF_4CC('c','i','o','s'),
 
 	/* from drm_sample.c */
 	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
@@ -2506,7 +2508,7 @@ typedef struct __tag_meta_box
 	GF_ItemReferenceBox *item_refs;
 	GF_GroupListBox *groups_list;
 
-	u8 use_item_sample_sharing, use_item_item_sharing;
+	u8 use_item_sample_sharing, use_item_item_sharing, write_qt;
 } GF_MetaBox;
 
 typedef struct

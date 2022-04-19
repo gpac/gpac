@@ -1206,25 +1206,34 @@ GF_Err stss_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_SyncSampleBox *p;
 	u32 i;
+	const char *name, *entname;
 
 	if (dump_skip_samples)
 		return GF_OK;
 
 	p = (GF_SyncSampleBox *)a;
-	gf_isom_box_dump_start(a, "SyncSampleBox", trace);
+	if (a->type==GF_ISOM_BOX_TYPE_STSS) {
+		name = "SyncSampleBox";
+		entname = "SyncSampleEntry";
+	} else {
+		name = "PartialSyncSampleBox";
+		entname = "PartialSyncSampleEntry";
+	}
+	gf_isom_box_dump_start(a, name, trace);
 	gf_fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
 
 	if (!p->sampleNumbers && p->size) {
-		gf_fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
+		if (a->type==GF_ISOM_BOX_TYPE_STSS)
+			gf_fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
 	} else if (p->sampleNumbers) {
 		for (i=0; i<p->nb_entries; i++) {
-			gf_fprintf(trace, "<SyncSampleEntry sampleNumber=\"%u\"/>\n", p->sampleNumbers[i]);
+			gf_fprintf(trace, "<%s sampleNumber=\"%u\"/>\n", entname, p->sampleNumbers[i]);
 		}
 	}
 	if (!p->size) {
-			gf_fprintf(trace, "<SyncSampleEntry sampleNumber=\"\"/>\n");
+			gf_fprintf(trace, "<%s sampleNumber=\"\"/>\n", entname);
 	}
-	gf_isom_box_dump_done("SyncSampleBox", a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 

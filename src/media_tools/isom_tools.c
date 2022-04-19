@@ -1080,6 +1080,7 @@ GF_Err gf_media_get_color_info(GF_ISOFile *file, u32 track, u32 sampleDescriptio
 	return GF_NOT_SUPPORTED;
 }
 
+GF_Err gf_isom_set_meta_qt(GF_ISOFile *file);
 
 GF_EXPORT
 GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
@@ -1149,6 +1150,8 @@ GF_Err gf_media_check_qt_prores(GF_ISOFile *mp4)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ProRes] Cannot change brand from \"%s\" to \"qt  \", flat storage used. Try using different storage mode\n", gf_4cc_to_str(brand)));
 		}
 	}
+
+	gf_isom_set_meta_qt(mp4);
 
 	if (!video_tk) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[QTFF] No visual track\n"));

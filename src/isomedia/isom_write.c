@@ -4269,7 +4269,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		Bool use_alis = GF_FALSE;
 		if (! (flags & GF_ISOM_CLONE_TRACK_NO_QT)) {
 			GF_Box *b = gf_list_get(new_tk->Media->information->dataInformation->dref->child_boxes, 0);
-			if (b && b->type==GF_QT_BOX_TYPE_ALIS)
+			if (b && (b->type==GF_QT_BOX_TYPE_ALIS))
 				use_alis = GF_TRUE;
 		}
 		gf_isom_box_array_del(new_tk->Media->information->dataInformation->dref->child_boxes);
@@ -8568,3 +8568,22 @@ GF_Err gf_isom_add_sample_aux_info(GF_ISOFile *file, u32 track, u32 sampleNumber
 }
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
+
+
+GF_Err gf_isom_set_meta_qt(GF_ISOFile *file)
+{
+	u32 i, count;
+	if (!file) return GF_BAD_PARAM;
+	GF_Err e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	if (file->moov->meta)
+		file->moov->meta->write_qt = 1;
+
+	count = gf_list_count(file->moov->trackList);
+	for (i=0; i<count; i++) {
+		GF_TrackBox *trak = gf_list_get(file->moov->trackList, i);
+		if (trak->meta)
+			trak->meta->write_qt = 1;
+	}
+	return GF_OK;
+}

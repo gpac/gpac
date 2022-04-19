@@ -101,12 +101,34 @@ GF_Err meta_on_child_box(GF_Box *s, GF_Box *a, Bool is_rem)
 
 GF_Err meta_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	u64 pos = gf_bs_get_position(bs);
 	u64 size = s->size;
-	GF_Err e = gf_isom_box_array_read(s, bs);
-	/*try to hack around QT files which don't use a full box for meta, rewind 4 bytes*/
-	if (e && (pos>4) ) {
-		gf_bs_seek(bs, pos-4);
+	//probe 4->8 bytes, if equal to one of the following this is a QT meta
+	u32 qt_type = (pos>8) ? gf_bs_peek_bits(bs, 32, 4) : 0;
+	switch (qt_type) {
+	case GF_4CC('h', 'd', 'l', 'r'):
+	case GF_4CC('m', 'h', 'd', 'r'):
+	case GF_4CC('k', 'e', 'y', 's'):
+	case GF_4CC('i', 'l', 's', 't'):
+	case GF_4CC('c', 't', 'r', 'y'):
+	case GF_4CC('l', 'a', 'n', 'g'):
+		break;
+	default:
+		qt_type = 0;
+		break;
+	}
+	GF_Err e = GF_EOS;
+	if (!qt_type) {
+		ISOM_DECREASE_SIZE(s, 4)
+		ptr->version = gf_bs_read_u8(bs);
+		ptr->flags = gf_bs_read_u24(bs);
+		e = gf_isom_box_array_read(s, bs);
+	}
+
+	/*try to hack around QT files which don't use a full box for meta, reparse*/
+	if (e && (pos>8) ) {
+		gf_bs_seek(bs, pos);
 		meta_reset(s);
 		s->size = size+4;
 		e = gf_isom_box_array_read(s, bs);
@@ -117,6 +139,10 @@ GF_Err meta_box_read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err meta_box_write(GF_Box *s, GF_BitStream *bs)
 {
+	GF_MetaBox *ptr = (GF_MetaBox *)s;
+	if (ptr->write_qt) {
+		return gf_isom_box_write_header(s, bs);
+	}
 	return gf_isom_full_box_write(s, bs);
 }
 
@@ -134,6 +160,9 @@ GF_Err meta_box_size(GF_Box *s)
 	gf_isom_check_position(s, (GF_Box *)ptr->item_refs, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->item_props, &pos);
 	gf_isom_check_position(s, (GF_Box *)ptr->groups_list, &pos);
+
+	if (!ptr->write_qt)
+		s->size+=4;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

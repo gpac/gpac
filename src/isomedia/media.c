@@ -694,8 +694,14 @@ GF_Err Media_CheckDataEntry(GF_MediaBox *mdia, u32 dataEntryIndex)
 
 	//ok, not self contained, let's go for it...
 	//we only support alias and URL boxes
-	if ((entry->type != GF_ISOM_BOX_TYPE_URL) && (entry->type != GF_QT_BOX_TYPE_ALIS) )
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_URL:
+	case GF_QT_BOX_TYPE_ALIS:
+	case GF_QT_BOX_TYPE_CIOS:
+		break;
+	default:
 		return GF_NOT_SUPPORTED;
+	}
 
 	if (mdia->mediaTrack->moov->mov->openMode == GF_ISOM_OPEN_WRITE) {
 		e = gf_isom_datamap_new(entry->location, NULL, GF_ISOM_DATA_MAP_READ, &map);
@@ -730,6 +736,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	if (a->flags & 1) return 1;
 	/*QT specific*/
 	if (a->type == GF_QT_BOX_TYPE_ALIS) return 1;
+	if (a->type == GF_QT_BOX_TYPE_CIOS) return 1;
 	return 0;
 }
 
