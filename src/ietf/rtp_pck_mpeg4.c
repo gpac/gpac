@@ -421,6 +421,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size,
 	}
 
 	if (!nalu) return GF_OK;
+	if (nalu_size<1) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*need a new RTP packet*/
 	if (!builder->bytesInPacket) {
@@ -559,6 +560,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size
 	}
 
 	if (!nalu) return GF_OK;
+	if (nalu_size<2) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*need a new RTP packet*/
 	if (!builder->bytesInPacket) {
@@ -714,6 +716,7 @@ GF_Err gp_rtp_builder_do_vvc(GP_RTPPacketizer *builder, u8 *nalu, u32 nalu_size,
 	}
 
 	if (!nalu) return GF_OK;
+	if (nalu_size<2) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*need a new RTP packet*/
 	if (!builder->bytesInPacket) {
