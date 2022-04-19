@@ -647,7 +647,7 @@ retry:
 		gf_filter_pid_try_pull(mo->odm->pid);
 	}
 	if (!retry_pull && (force_decode_mode==1)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] At %d could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[ODM%d] Could not force a pull from pid - POTENTIAL blank frame after TS %u\n", mo->odm->ID, mo->timestamp));
 	}
 
 	/*resync*/

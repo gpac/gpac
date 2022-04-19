@@ -1077,7 +1077,7 @@ static struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_BTRT, btrt, "sample_entry"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PASP, pasp, "video_sample_entry ipco"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_CLAP, clap, "video_sample_entry ipco"),
-	FBOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_META, meta, "file moov trak moof traf udta", 0),	//apple uses meta in moov->udta
+	BOX_DEFINE_CHILD( GF_ISOM_BOX_TYPE_META, meta, "file moov trak moof traf udta"),	//apple uses meta in moov->udta
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_XML, xml, "meta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_BXML, bxml, "meta", 0),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_ILOC, iloc, "meta", 2),
@@ -1455,6 +1455,7 @@ static struct box_registry_entry {
 	BOX_DEFINE_S(GF_QT_BOX_TYPE_TAPT, def_parent, "trak", "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_GMIN, gmin, "gmhd", 0, "apple"),
 	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_ALIS, alis, "dref", 0, 1, "apple"),
+	FBOX_DEFINE_FLAGS_S( GF_QT_BOX_TYPE_CIOS, alis, "dref", 0, 1, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_CLEF, clef, "tapt", 0, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_PROF, clef, "tapt", 0, "apple"),
 	FBOX_DEFINE_S( GF_QT_BOX_TYPE_ENOF, clef, "tapt", 0, "apple"),
@@ -1513,7 +1514,8 @@ static struct box_registry_entry {
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_RGBA, video_sample_entry, "stsd", "apple"),
 	BOX_DEFINE_S_CHILD( GF_QT_SUBTYPE_ABGR, video_sample_entry, "stsd", "apple"),
 	
-	
+	FBOX_DEFINE_S(GF_QT_BOX_TYPE_STPS, stss, "stbl", 0, "apple"),
+
 	//dolby boxes
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S_CHILD( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
