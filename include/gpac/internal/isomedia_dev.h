@@ -2508,7 +2508,7 @@ typedef struct __tag_meta_box
 	GF_ItemReferenceBox *item_refs;
 	GF_GroupListBox *groups_list;
 
-	u8 use_item_sample_sharing, use_item_item_sharing, write_qt;
+	u8 use_item_sample_sharing, use_item_item_sharing, is_qt, write_qt;
 } GF_MetaBox;
 
 typedef struct
@@ -4660,6 +4660,7 @@ GF_Box *gf_isom_create_meta_extensions(GF_ISOFile *mov, Bool for_xtra);
 #ifndef GPAC_DISABLE_ISOM_DUMP
 GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
 GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace);
+GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version);
 void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace);
 Bool gf_isom_box_is_file_level(GF_Box *s);
 #endif
