@@ -131,6 +131,7 @@ GF_Err meta_box_read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_seek(bs, pos);
 		meta_reset(s);
 		s->size = size+4;
+		ptr->is_qt = GF_TRUE;
 		e = gf_isom_box_array_read(s, bs);
 	}
 	return e;

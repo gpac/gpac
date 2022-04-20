@@ -2053,7 +2053,7 @@ u32 gf_isom_get_supported_box_type(u32 idx)
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
+GF_Err gf_isom_box_dump_start_ex(GF_Box *a, const char *name, FILE * trace, Bool force_version)
 {
 	gf_fprintf(trace, "<%s ", name);
 	if (a->size > 0xFFFFFFFF) {
@@ -2077,7 +2077,7 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 		gf_fprintf(trace, "}\" ");
 	}
 
-	if (a->registry->max_version_plus_one) {
+	if (a->registry->max_version_plus_one || force_version) {
 		gf_fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ((GF_FullBox*)a)->version,((GF_FullBox*)a)->flags);
 	}
 	gf_fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
@@ -2087,6 +2087,10 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 		gf_fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
 	}
 	return GF_OK;
+}
+GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
+{
+	return gf_isom_box_dump_start_ex(a, name, trace, GF_FALSE);
 }
 
 GF_Err gf_isom_box_dump(void *ptr, FILE * trace)

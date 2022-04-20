@@ -2132,7 +2132,8 @@ GF_Err twrp_box_dump(GF_Box *a, FILE * trace)
 
 GF_Err meta_box_dump(GF_Box *a, FILE * trace)
 {
-	gf_isom_box_dump_start(a, "MetaBox", trace);
+	GF_MetaBox *ptr = (GF_MetaBox *)a;
+	gf_isom_box_dump_start_ex(a, "MetaBox", trace, ptr->is_qt ? GF_FALSE : GF_TRUE);
 	gf_fprintf(trace, ">\n");
 	gf_isom_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
