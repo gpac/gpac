@@ -1299,7 +1299,7 @@ static GF_Err ttd_render_simple_text(GF_TTXTDec *ctx, const char *pck_data, u32 
 static GF_Err ttd_process(GF_Filter *filter)
 {
 	const char *pck_data;
-	u32 pck_size, obj_time;
+	u32 pck_size;
 	u64 cts;
 	GF_FilterPacket *pck;
 	GF_TTXTDec *ctx = gf_filter_get_udta(filter);
@@ -1351,19 +1351,10 @@ static GF_Err ttd_process(GF_Filter *filter)
 		cts = ctx->sample_end;
 		pck = NULL;
 	}
+	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
 
-	gf_odm_check_buffering(ctx->odm, ctx->ipid);
-
-	//we still process any frame before our clock time even when buffering
-	obj_time = gf_clock_time(ctx->odm->ck);
-
-	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
-		Double ts_offset = (Double) cts;
-		ts_offset /= ctx->timescale;
-
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ts_offset, obj_time, filter);
+	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts))
 		return GF_OK;
-	}
 
 	if (!pck) {
 		GF_Err e = ttd_render_simple_text(ctx, NULL, 0, 0);

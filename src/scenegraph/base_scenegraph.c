@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -151,6 +151,8 @@ GF_EXPORT
 void gf_sg_del(GF_SceneGraph *sg)
 {
 	if (!sg) return;
+	if (sg->destroy_cookie)
+		*sg->destroy_cookie = GF_TRUE;
 
 #ifndef GPAC_DISABLE_VRML
 	if (sg->global_qp) {
@@ -2525,3 +2527,8 @@ GF_Err gf_sg_init_from_xml_node(GF_SceneGraph *document, GF_DOMXMLNODE root_node
 	return gf_sg_load_dom_node(document, root_node, NULL);
 }
 
+
+void gf_sg_set_destroy_cookie(GF_SceneGraph *sg, Bool *cookie)
+{
+	sg->destroy_cookie = cookie;
+}

@@ -353,6 +353,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	else cts = 0;
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
+	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
@@ -363,7 +364,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		fun_val = JS_GetPropertyStr(c, global, "on_ttml_clock");
 		if (JS_IsFunction(c, fun_val) ) {
 			JSValue ret, argv[1];
-			argv[0] = JS_NewInt64(c, obj_time);
+			argv[0] = JS_NewInt64(c, gf_clock_time_absolute(ctx->odm->ck) );
 
 			ret = JS_Call(c, fun_val, global, 1, argv);
 			if (JS_IsException(ret)) {
@@ -386,10 +387,9 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / ctx->timescale), obj_time, filter);
+	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts))
 		return GF_OK;
-	}
+
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 	subs = gf_filter_pck_get_property(pck, GF_PROP_PCK_SUBS);
 

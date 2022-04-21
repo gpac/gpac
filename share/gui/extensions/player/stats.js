@@ -211,7 +211,7 @@ extension.view_stats = function () {
 
             iw.on_close = function (width, height) {
                 this.timer.stop();
-                this.odm.gui.info_wnd = null;
+                if (this.odm) this.odm.gui.info_wnd = null;
             }
 
             iw.area = gw_new_text_area(iw, '');

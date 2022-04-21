@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -176,7 +176,6 @@ static void gf_inline_check_restart(GF_Scene *scene)
 	if (scene->root_od->media_ctrl && scene->root_od->media_ctrl->control->loop) {
 		GF_Clock *ck = gf_odm_get_media_clock(scene->root_od);
 		if (ck->has_seen_eos && !ck->nb_paused) {
-			u32 now = gf_clock_time(ck);
 			u64 dur = scene->duration;
 			if (scene->root_od->media_ctrl->current_seg) {
 				/*only process when all segments are played*/
@@ -187,8 +186,9 @@ static void gf_inline_check_restart(GF_Scene *scene)
 			}
 			else {
 				Double s, e;
+				u64 now = gf_clock_time_absolute(ck);
 				s = now;
-				s/=1000;
+				s /= 1000;
 				e = -1;
 				MC_GetRange(scene->root_od->media_ctrl, &s, &e);
 				if ((e>=0) && (e<GF_MAX_FLOAT)) dur = (u32) (e*1000);

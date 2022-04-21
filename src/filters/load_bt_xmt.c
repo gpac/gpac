@@ -397,7 +397,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 		//init clocks
 		gf_odm_check_buffering(priv->scene->root_od, priv->in_pid);
-		gf_clock_set_time(priv->scene->root_od->ck, 0);
+		gf_clock_set_time(priv->scene->root_od->ck, 0, 1000);
 		gf_filter_pck_get_framing(pck, &is_start, &is_end);
 		gf_filter_pid_drop_packet(priv->in_pid);
 	}
@@ -517,11 +517,12 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
+		Bool flush_all = GF_FALSE;
 		u32 stream_time = gf_clock_time(priv->scene->root_od->ck);
 
 		//compositor is in end of stream mode, flush all commands
 		if (priv->scene->compositor->check_eos_state==2)
-			stream_time=0xFFFFFFFF;
+			flush_all = GF_TRUE;
 
 		/*handle SWF media extraction*/
 		if ((sc->streamType == GF_STREAM_OD) && (priv->load_flags==1)) continue;
@@ -540,9 +541,9 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		/*seek*/
 		if (!sc->last_au_time) {
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-				u32 au_time = (u32) gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
+				u32 au_time = (u32) gf_timestamp_to_clocktime(au->timing, sc->timeScale);
 
-				if (au_time > stream_time)
+				if (!flush_all && (gf_clock_diff(priv->scene->root_od->ck, stream_time, au_time)>0) )
 					break;
 				if (au->flags & GF_SM_AU_RAP) last_rap = j-1;
 			}
@@ -550,7 +551,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-			u32 au_time = (u32) gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
+			u32 au_time = (u32) gf_timestamp_to_clocktime(au->timing, sc->timeScale);
 
 			if (au_time + 1 <= sc->last_au_time) {
 				/*remove first replace command*/
@@ -568,17 +569,15 @@ static GF_Err ctxload_process(GF_Filter *filter)
 				continue;
 			}
 
-			if (au_time > stream_time) {
-				Double ts_offset;
-				u32 t = au_time - stream_time;
-				if (!min_next_time_ms || (min_next_time_ms>t))
-					min_next_time_ms = t;
+			s32 early = flush_all ? 0 : gf_clock_diff(priv->scene->root_od->ck, stream_time, au_time);
+			if (early>0) {
+				if (!min_next_time_ms || (min_next_time_ms > early))
+					min_next_time_ms = early;
 
 				updates_pending++;
 
-				ts_offset = (Double) au->timing;
-				ts_offset /= sc->timeScale;
-				gf_sc_sys_frame_pending(priv->scene->compositor, ts_offset, stream_time, filter);
+				u64 cts = gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
+				gf_sc_sys_frame_pending(priv->scene->compositor, cts, stream_time, filter);
 				break;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));

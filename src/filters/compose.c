@@ -119,7 +119,10 @@ static GF_Err compose_process(GF_Filter *filter)
 			}
 		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
+		} else if (ctx->sys_frames_pending) {
+			ctx->check_eos_state = 0;
 		}
+
 		if (ctx->timeout && (ctx->check_eos_state == 1) && !gf_filter_connections_pending(filter)) {
 			u32 now = gf_sys_clock();
 			if (!ctx->last_check_pass)

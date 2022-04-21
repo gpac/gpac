@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Graph sub-project
@@ -221,7 +221,7 @@ struct __tag_scene_graph
 	/*global qp used in BIFS coding*/
 	GF_Node *global_qp;
 #endif
-
+	Bool *destroy_cookie;
 
 #ifndef GPAC_DISABLE_SVG
 	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
