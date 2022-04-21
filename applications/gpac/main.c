@@ -4202,9 +4202,10 @@ static Bool gpac_expand_alias_arg(char *param, char *prefix, char *suffix, int a
 static Bool gpac_expand_alias(int o_argc, char **o_argv)
 {
 	u32 i, a_idx;
+	Bool has_xopt=GF_FALSE;
 	int argc = o_argc;
 
-	//move all options at the beginning
+	//move all options at the beginning, except anything specified after xopt
 	char **argv = gf_malloc(sizeof(char*) * argc);
 	if (!argv) return GF_FALSE;
 
@@ -4212,8 +4213,11 @@ static Bool gpac_expand_alias(int o_argc, char **o_argv)
 	argv[0] = o_argv[0];
 	for (i=1; i< (u32) argc; i++) {
 		//alias, do not push
-		if ( gf_opts_get_key("gpac.alias", o_argv[i]) != NULL)
+		const char *alias = gf_opts_get_key("gpac.alias", o_argv[i]);
+		if (alias != NULL) {
+			if (strstr(alias, "xopt")) break;
 			continue;
+		}
 		//not an option, do not push
 		if (o_argv[i][0] != '-') continue;
 		argv[a_idx] = o_argv[i];
@@ -4222,8 +4226,12 @@ static Bool gpac_expand_alias(int o_argc, char **o_argv)
 	for (i=1; i< (u32) argc; i++) {
 		//option and not an alias, do not push
 		if (o_argv[i][0] == '-') {
-			if ((char*) gf_opts_get_key("gpac.alias", o_argv[i]) == NULL)
-				continue;
+			if (!has_xopt) {
+				const char *alias = gf_opts_get_key("gpac.alias", o_argv[i]);
+				if (alias == NULL)
+					continue;
+				if (strstr(alias, "xopt")) has_xopt = GF_TRUE;
+			}
 		}
 		argv[a_idx] = o_argv[i];
 		a_idx++;
