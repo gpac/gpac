@@ -278,6 +278,9 @@ static JSValue scenejs_getProperty(JSContext *ctx, JSValueConst this_val, int pr
 	case GJS_SCENE_PROP_SENSORS_ACTIVE:
 		return JS_NewBool(ctx, compositor->orientation_sensors_active);
 
+	case GJS_SCENE_PROP_FOCUS_HIGHLIGHT:
+		return JS_NewBool(ctx, !compositor->disable_focus_highlight);
+
 	case GJS_SCENE_PROP_ZOOM:
 		if (compositor->root_scene && compositor->root_scene->graph->script_action) {
 			GF_JSAPIParam jspar;
@@ -355,7 +358,7 @@ static JSValue scenejs_setProperty(JSContext *ctx, JSValueConst this_val, JSValu
 		gf_sc_set_option(compositor, GF_OPT_NAVIGATION_TYPE, 0);
 		break;
 	case GJS_SCENE_PROP_FOCUS_HIGHLIGHT:
-		compositor->disable_focus_highlight = JS_ToBool(ctx, value);
+		compositor->disable_focus_highlight = !JS_ToBool(ctx, value);
 		break;
 	case GJS_SCENE_PROP_SENSORS_ACTIVE:
 	{
@@ -863,8 +866,8 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 		} else if (scene->main_addon_selected) {
 			GF_Clock *ck = scene->root_od->ck;
 			if (ck) {
-				u32 now = gf_clock_time(ck) ;
-				u32 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
+				u64 now = gf_clock_time_absolute(ck) ;
+				u64 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
 				dval = ((Double) live) / 1000.0;
 				dval -= ((Double) now) / 1000.0;
 
@@ -959,7 +962,7 @@ static JSValue odm_getProperty(JSContext *ctx, JSValueConst this_val, int magic)
 			GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 				if (an_odm->duration) {
-					Double now = gf_clock_time(scene->root_od->ck) / 1000.0;
+					Double now = gf_clock_time_absolute(scene->root_od->ck) / 1000.0;
 					now -= ((Double) an_odm->addon->media_pts) / 90000.0;
 					now += ((Double) an_odm->addon->media_timestamp) / an_odm->addon->media_timescale;
 					return JS_NewFloat64(ctx, now);

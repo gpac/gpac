@@ -591,7 +591,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 	if (!term || !compositor->root_scene) return 0;
 	ck = compositor->root_scene->root_od->ck;
 	if (!ck) return 0;
-	return gf_clock_media_time(ck);
+	return (u32) gf_clock_media_time(ck);
 }
 
 GF_EXPORT

@@ -438,7 +438,7 @@ static u64 convert_ts_to_ms(GF_MediaObject *mo, u64 ts, u32 timescale, Bool *dis
 		}
 	}
 
-	ts = gf_timestamp_rescale(ts, timescale, 1000);
+	ts = gf_timestamp_to_clocktime(ts, timescale);
 	
 	//if addon, translate back into main content timing
 	if (mo->odm->parentscene && mo->odm->parentscene->root_od->addon) {
@@ -719,8 +719,10 @@ retry:
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fetching is given by the caller
 		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
-			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms) ) )
-		{
+			&& (mo->timestamp==pck_ts)
+			&& next_ts
+			&& ( (gf_clock_diff(mo->odm->ck, 1 + obj_time + upload_time_ms, next_ts)<0) || (gf_clock_diff(mo->odm->ck, 1 + obj_time_orig + upload_time_ms, next_ts)<0) )
+		) {
 			//drop current and go to next - we use the same loop as regular resync below
 			resync = GF_MO_FETCH_RESYNC;
 			move_to_next_only = GF_TRUE;
@@ -731,7 +733,7 @@ retry:
 		u32 nb_dropped = 0;
 		while (next_ts) {
 			if (!move_to_next_only) {
-				if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
+				if ( gf_clock_diff(mo->odm->ck, obj_time, pck_ts)>0)
 					break;
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
@@ -742,7 +744,7 @@ retry:
 				}
 
 				/*figure out closest time*/
-				if (mo->odm->ck->speed > 0 ? next_ts > obj_time : next_ts < obj_time) {
+				if (gf_clock_diff(mo->odm->ck, obj_time, next_ts)>0) {
 					*eos = GF_FALSE;
 					break;
 				}
@@ -803,15 +805,15 @@ retry:
 	mo->frame_ifce = gf_filter_pck_get_frame_interface(mo->pck);
 
 	diff = (s32) ( (mo->speed >= 0) ? ( (s64) pck_ts - (s64) obj_time) : ( (s64) obj_time - (s64) pck_ts) );
+	diff = gf_clock_diff(mo->odm->ck, obj_time, pck_ts);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
 	if (mo->is_eos) {
 		diff = 1000*gf_filter_pck_get_duration(mo->pck) / timescale;
 		if (!diff) diff = 100;
 	} else {
-		diff = next_ts ? next_ts : (pck_ts + 1000*gf_filter_pck_get_duration(mo->pck) / timescale);
-		diff = (s32) ( (mo->speed >= 0) ? ( (s64) diff - (s64) obj_time) : ( (s64) obj_time - (s64) diff) );
-
+		if (!next_ts) next_ts = pck_ts + gf_timestamp_rescale(gf_filter_pck_get_duration(mo->pck), timescale, 1000);
+		diff = gf_clock_diff(mo->odm->ck, obj_time, next_ts);
 		mo->odm->ck->has_seen_eos = GF_FALSE;
 	}
 	mo->ms_until_next = FIX2INT(diff * mo->speed);
@@ -824,11 +826,8 @@ retry:
 
 	if ((mo->timestamp != pck_ts) || is_first) {
 		const GF_PropertyValue *v;
-		u32 media_time;
-		u64 dur = gf_filter_pck_get_duration(mo->pck);
-		dur *= 1000;
-		dur /= timescale;
-		mo->frame_dur = (u32) dur;
+		u64 media_time;
+		mo->frame_dur = (u32) gf_timestamp_rescale(gf_filter_pck_get_duration(mo->pck), timescale, 1000);
 		mo->last_fetch_time = obj_time;
 
 		mo->timestamp = (u32) pck_ts;

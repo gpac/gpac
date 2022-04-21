@@ -361,10 +361,15 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 	}
 }
 
+void gf_sg_set_destroy_cookie(GF_SceneGraph *sg, Bool *cookie);
+
 GF_EXPORT
 Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n)
 {
 	if (et) {
+		//take care of event process destroying the parent scene graph
+		Bool sg_destroyed = GF_FALSE;
+		gf_sg_set_destroy_cookie(sg, &sg_destroyed);
 		if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE ||
 		        et->ptr_type == GF_DOM_EVENT_TARGET_DOCUMENT ||
 		        et->ptr_type == GF_DOM_EVENT_TARGET_XHR ||
@@ -429,7 +434,10 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 				}
 				/*canceled*/
 				if (event->event_phase & GF_DOM_EVENT_PHASE_CANCEL_ALL) {
-					gf_dom_listener_process_add(sg);
+					if (!sg_destroyed) {
+						gf_sg_set_destroy_cookie(sg, NULL);
+						gf_dom_listener_process_add(sg);
+					}
 					return GF_FALSE;
 				}
 
@@ -445,11 +453,17 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
 			}
 			/*propagation stopped*/
 			if (event->event_phase & (GF_DOM_EVENT_PHASE_CANCEL|GF_DOM_EVENT_PHASE_CANCEL_ALL) ) {
-				gf_dom_listener_process_add(sg);
+				if (!sg_destroyed) {
+					gf_sg_set_destroy_cookie(sg, NULL);
+					gf_dom_listener_process_add(sg);
+				}
 				return GF_FALSE;
 			}
 		}
-		gf_dom_listener_process_add(sg);
+		if (!sg_destroyed) {
+			gf_sg_set_destroy_cookie(sg, NULL);
+			gf_dom_listener_process_add(sg);
+		}
 		/*if the current target is a node, we can bubble*/
 		return n ? GF_TRUE : GF_FALSE;
 	} else {

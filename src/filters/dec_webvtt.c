@@ -409,7 +409,6 @@ static GF_Err vttd_process(GF_Filter *filter)
 	GF_List *cues;
 	const char *pck_data;
 	u64 cts;
-	u32 obj_time;
 	u32 pck_size;
 	GF_VTTDec *ctx = (GF_VTTDec *) gf_filter_get_udta(filter);
 
@@ -434,18 +433,15 @@ static GF_Err vttd_process(GF_Filter *filter)
 	if (!ctx->odm->ck)
 		return GF_OK;
 
-	gf_odm_check_buffering(ctx->odm, ctx->ipid);
-	obj_time = gf_clock_time(ctx->odm->ck);
-
 	if (ctx->cue_end) {
-		u32 c_end = gf_timestamp_rescale(ctx->cue_end, ctx->timescale, 1000);
-		if (c_end <= obj_time) {
+		u32 obj_time = gf_clock_time(ctx->odm->ck);
+		if (gf_clock_diff(ctx->odm->ck, obj_time, ctx->cue_end)<=0) {
 			vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 			ctx->cue_end = 0;
 		}
 		if (!pck) {
 			if (ctx->cue_end && gf_filter_pid_is_eos(ctx->ipid))
-				gf_sc_sys_frame_pending(ctx->scene->compositor, 0.1, obj_time, filter);
+				gf_sc_sys_frame_pending(ctx->scene->compositor, ctx->cue_end, obj_time, filter);
 			return GF_OK;
 		}
 	}
@@ -459,15 +455,14 @@ static GF_Err vttd_process(GF_Filter *filter)
 	if (delay>=0) cts += delay;
 	else if (cts > -delay) cts -= -delay;
 	else cts = 0;
+	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
 
-	//we still process any frame before our clock time even when buffering
-	if (gf_timestamp_greater(cts, ctx->timescale, obj_time, 1000)) {
-		gf_sc_sys_frame_pending(ctx->scene->compositor, ((Double) cts / ctx->timescale), obj_time, filter);
+	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts))
 		return GF_OK;
-	}
+
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
 
-	ctx->cue_end = cts + gf_filter_pck_get_duration(pck);
+	ctx->cue_end = cts + gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 
 	cues = gf_webvtt_parse_cues_from_data(pck_data, pck_size, 0, 0);
 	vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);

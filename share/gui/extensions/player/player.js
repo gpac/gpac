@@ -191,7 +191,9 @@ extension = {
                         scene.exit(1);                    
                     }
 
-                    var notif = gw_new_message(null, 'Error opening file!', 'Failed to open ' + this.url[0] + '\n\nReason: ' + Sys.error_string(evt.error));
+                    var url = this.url[0];
+                    if (url.startsWith('gpac://')) url = url.slice(7);
+                    var notif = gw_new_message(null, 'Error opening file!', 'Failed to open "' + url + '"\n\n' + Sys.error_string(evt.error));
                     notif.show();
 
                     var url = ext.movie.children[0].url.length ? ext.movie.children[0].url[0] : '';
@@ -402,6 +404,7 @@ extension = {
                     this.extension.playlist_next();
                 } else {
                     this.extension.set_state(this.extension.GF_STATE_STOP);
+                    this.extension.set_time(0);
                 }
             }
         }
@@ -1312,7 +1315,10 @@ extension = {
         if (state == this.state) return;
 
         if (state == this.GF_STATE_STOP) {
-            if (this.stats_wnd) this.stats_wnd.close_all();
+            if (this.stats_wnd) {
+                this.stats_wnd.close_all();
+                this.stats_wnd = null;
+            }
             this.stopped_url = '' + this.current_url;
             if (this.controlled_renderer) this.controlled_renderer.Stop();
             else {

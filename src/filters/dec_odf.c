@@ -218,7 +218,7 @@ void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 				odm->mo->type = GF_MEDIA_OBJECT_UNDEF;
 				gf_list_add(scene->scene_objects, odm->mo);
 
-				gf_clock_set_time(odm->ck, 0);
+				gf_clock_set_time(odm->ck, 0, 1000);
 			}
 #endif
 			return;
@@ -336,9 +336,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 	GF_Err e;
 	GF_ODCom *com;
 	GF_ODCodec *oddec;
-	Double ts_offset;
 	u64 cts, now;
-	u32 obj_time;
 	u32 count, i;
 	const char *data;
 	u32 size, ESID=0;
@@ -379,18 +377,10 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		if (prop) ESID = prop->value.uint;
 
 		cts = gf_filter_pck_get_cts( pck );
-		ts_offset = (Double) cts;
-		ts_offset /= gf_filter_pck_get_timescale(pck);
+		cts = gf_timestamp_to_clocktime(cts, gf_filter_pck_get_timescale(pck));
 
-		gf_odm_check_buffering(odm, pid);
-
-
-		//we still process any frame before our clock time even when buffering
-		obj_time = gf_clock_time(odm->ck);
-		if (ts_offset * 1000 > obj_time) {
-			gf_sc_sys_frame_pending(scene->compositor, ts_offset, obj_time, filter);
+		if (!gf_sc_check_sys_frame(scene, odm, pid, filter, cts))
 			continue;
-		}
 
 		now = gf_sys_clock_high_res();
 		oddec = gf_odf_codec_new();
@@ -456,7 +446,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		gf_odf_codec_del(oddec);
 
 		now = gf_sys_clock_high_res() - now;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] ODM%d #CH%d at %d decoded AU TS %u in "LLU" us\n", odm->ID, ESID, obj_time, cts, now));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] ODM%d #CH%d decoded AU TS %u in "LLU" us\n", odm->ID, ESID, cts, now));
 	}
 
 	return GF_OK;

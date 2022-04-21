@@ -1607,7 +1607,14 @@ typedef struct
 
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
 
-void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time, GF_Filter *from_filter);
+void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, GF_Filter *from_filter);
+Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u32 cts);
+
+/*
+get diff in ms (independent of clock absolute speed value, only speed sign) between a clock value and a timestamp in ms
+return value is positive if timestamp is ahead (in the future of the clock timeline) of clock, negative if in the past (late)
+*/
+s32 gf_clock_diff(GF_Clock *ck, u32 ck_time, u32 cts);
 
 Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
@@ -1776,7 +1783,8 @@ struct _gf_scene
 	GF_List *declared_addons;
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
-	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
+	u32 sys_clock_at_main_activation;
+	u64 obj_clock_at_main_activation;
 
 	//0: no pause - 1: paused and trigger pause command to net, 2: only clocks are paused but commands not sent
 	u32 first_frame_pause_type;
@@ -1846,7 +1854,7 @@ void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time);
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u64 absolute_clock_time);
 void gf_scene_reset_addons(GF_Scene *scene);
 void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect);
 
@@ -1923,6 +1931,9 @@ struct _object_clock
 	mediaControl and others that would break stream dependencies*/
 	Bool clock_init, has_seen_eos, no_time_ctrl;
 	u32 init_timestamp, start_time, pause_time, nb_paused;
+	//number of loops (x 0xFFFFFFFFUL) at init time, used to recompute absolute 64bit clock value if needed
+	u32 init_ts_loops;
+
 	/*the number of streams buffering on this clock*/
 	u32 nb_buffering;
 	/*associated media control if any*/
@@ -1937,12 +1948,13 @@ struct _object_clock
 	u32 service_id;
 
 	//media time in ms
-	u32 media_time_orig;
-	//media timestamp in ms corresponding to the media time
-	u32 media_ts_orig;
+	u64 media_time_orig;
+	//absolute media timestamp in ms corresponding to the media time
+	u64 media_ts_orig;
 	Bool has_media_time_shift;
 
-	u32 ocr_discontinuity_time;
+	//in ms without 32bit modulo
+	u64 ocr_discontinuity_time;
 	//we increment this one at each reset, and ask the filter chain to mark packets with this flag
 	u32 timeline_id;
 };
@@ -1962,16 +1974,16 @@ void gf_clock_reset(GF_Clock *ck);
 /*return clock time in ms*/
 u32 gf_clock_time(GF_Clock *ck);
 /*return media time in ms*/
-u32 gf_clock_media_time(GF_Clock *ck);
+u64 gf_clock_media_time(GF_Clock *ck);
 
-/*translates from clock time in ms to media time in ms*/
-u32 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val);
+/*translates from clock time in ms to absolute media time in ms*/
+u64 gf_clock_to_media_time(GF_Clock *ck, u32 clock_val);
 
 /*return time in ms since clock started - may be different from clock time when seeking or live*/
 u32 gf_clock_elapsed_time(GF_Clock *ck);
 
 /*sets clock time - FIXME: drift updates for OCRs*/
-void gf_clock_set_time(GF_Clock *ck, u32 TS);
+void gf_clock_set_time(GF_Clock *ck, u64 ref_TS, u32 timescale);
 /*return clock time in ms without drift adjustment - used by audio objects only*/
 u32 gf_clock_real_time(GF_Clock *ck);
 /*pause the clock*/
@@ -1991,6 +2003,11 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed);
 audio is usually send to the sound card quite ahead of time, depending on the output compositor settings*/
 void gf_clock_set_audio_delay(GF_Clock *ck, s32 ms_delay);
 
+//convert a 64-bit timestamp to clock time in ms. Clock times are always on 32 bits
+u32 gf_timestamp_to_clocktime(u64 ts, u32 timescale);
+
+//get absolute clock time in ms, including wrapping due to 32bit counting
+u64 gf_clock_time_absolute(GF_Clock *ck);
 
 /*OD manager*/
 
@@ -2126,8 +2143,9 @@ struct _od_manager
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
 	u32 state;
-	/* during playback: timing as evaluated by the composition memory or the scene codec - this is the timestamp + media time at clock init*/
-	u32 media_current_time;
+	/* during playback: timing as evaluated by the composition memory or the scene codec, in absolute media time
+	or in absolute clock time if no media time mapping*/
+	u64 media_current_time;
 	/*full object duration 0 if unknown*/
 	u64 duration;
 	/*

@@ -162,7 +162,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 				GF_Clock *ck = gf_odm_get_media_clock(odm);
 				if (ck->has_seen_eos && (1000*time>=(Double) (s64)odm->subscene->duration)) {
 					if (media_sens->sensor->isActive) {
-						/*force notification of time (ntify the scene duration rather than the current clock*/
+						/*force notification of time (notify the scene duration rather than the current clock*/
 						media_sens->sensor->mediaCurrentTime = (Double) odm->subscene->duration;
 						media_sens->sensor->mediaCurrentTime /= 1000;
 						gf_node_event_out((GF_Node *) media_sens->sensor, 1/*"mediaCurrentTime"*/);

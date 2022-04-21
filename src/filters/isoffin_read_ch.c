@@ -303,6 +303,7 @@ void isor_reader_get_sample_from_item(ISOMChannel *ch)
 void isor_reader_get_sample(ISOMChannel *ch)
 {
 	GF_Err e;
+	Bool skip_sample=GF_FALSE;
 	u32 sample_desc_index;
 	if (ch->sample) return;
 
@@ -455,6 +456,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				isor_reader_get_sample(ch);
 				return;
 			}
+		} else {
+			skip_sample = GF_TRUE;
 		}
 	}
 
@@ -506,7 +509,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			} else {
 				if (ch->sample_num>sample_count) ch->sample_num = sample_count;
 			}
-		} else {
+		} else if (!skip_sample) {
 			e = gf_isom_last_error(ch->owner->mov);
 			GF_LOG((e==GF_ISOM_INCOMPLETE_FILE) ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(e) ));
 

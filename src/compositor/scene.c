@@ -43,14 +43,15 @@ Double gf_scene_get_time(void *_is)
 {
 	GF_Scene *scene = (GF_Scene *)_is;
 #if 1
-	u32 ret;
+	u64 ret;
 	GF_Clock *ck;
 	assert(scene);
 	assert(scene->root_od);
 	ck = scene->root_od->ck;
 	if (!ck) return 0.0;
-	ret = gf_clock_time(ck);
-	if (scene->root_od->media_stop_time && (scene->root_od->media_stop_time<ret)) ret = (u32) scene->root_od->media_stop_time;
+	ret = gf_clock_time_absolute(ck);
+	if (scene->root_od->media_stop_time && (scene->root_od->media_stop_time<ret))
+		ret = scene->root_od->media_stop_time;
 	return ret/1000.0;
 #else
 	return scene->simulation_time;
@@ -356,6 +357,8 @@ void gf_scene_del(GF_Scene *scene)
 	}
 	gf_list_del(scene->extern_protos);
 #endif
+
+	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);
 
 	/*delete the scene graph*/
 	gf_sg_del(scene->graph);
@@ -1959,7 +1962,7 @@ void gf_scene_resume_live(GF_Scene *subscene) { }
 GF_EXPORT
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor) {}
 GF_EXPORT
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time) { }
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u64 absolute_clock_time) { }
 
 #endif	/*GPAC_DISABLE_VRML*/
 
@@ -2191,7 +2194,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 }
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time)
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u64 absolute_clock_time)
 {
 	GF_DOM_Event devt;
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, scene->compositor->dbgpvr ? "ADDON_SCENE" : "PVR_SCENE");
@@ -2215,7 +2218,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		//main addon is vod not live, store clock
 		if (! odm->timeshift_depth &&  !scene->sys_clock_at_main_activation) {
 			scene->sys_clock_at_main_activation = gf_sys_clock();
-			scene->obj_clock_at_main_activation = current_clock_time;
+			scene->obj_clock_at_main_activation = absolute_clock_time;
 		}
 
 
@@ -2344,7 +2347,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 				//we're timeshifting through the main addon, activate it
 				if (from_time < -1) {
-					gf_scene_select_main_addon(scene, odm, GF_TRUE, gf_clock_time(ck));
+					gf_scene_select_main_addon(scene, odm, GF_TRUE, gf_clock_time_absolute(ck) );
 
 					/*no timeshift, this is a VoD associated with the live broadcast: get current time*/
 					if (! odm->timeshift_depth) {
@@ -2394,7 +2397,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 		gf_clock_reset(ck);
 
 		//used by SVG for JSAPIs..;
-		if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0);
+		if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0, 1000);
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Scene] Restarting scene from current clock %d\n", gf_clock_time(ck) ));
 	}
@@ -2717,7 +2720,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 	}
 
 	if (!check_buffering && scene) {
-		if (scene->root_od->ID) {
+		if (scene->root_od->pid_id) {
 			initialized = GF_TRUE;
 			if (scene->root_od->parentscene && (scene->root_od->state != GF_ODM_STATE_STOP)) return 0;
 		}

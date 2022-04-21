@@ -200,7 +200,7 @@ globalThis.initialize = function () {
           
     for (i = 1; i < Sys.args.length; i++) {
       var arg = Sys.args[i];
-      if (arg=='-h') {
+      if ((arg=='-h') || (arg=='-ha') || (arg=='-hx') || (arg=='-hh')) {
           print_help();
           scene.exit();                    
           return;

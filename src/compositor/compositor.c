@@ -2096,8 +2096,13 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 		fidx = compositor->current_frame;
 		run_time = compositor->frame_time[fidx];
 		fidx = (fidx+1)% GF_SR_FPS_COMPUTE_SIZE;
-		assert(run_time >= compositor->frame_time[fidx]);
-		run_time -= compositor->frame_time[fidx];
+		s64 diff = run_time;
+		diff -= compositor->frame_time[fidx];
+		if (diff<0) {
+			diff += 0xFFFFFFFFUL;
+			assert(diff >= 0);
+		}
+		run_time = (u32) diff;
 		frames = GF_SR_FPS_COMPUTE_SIZE-1;
 	}
 
@@ -3939,7 +3944,7 @@ void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *ev
 	gf_mx_v(compositor->evq_mx);
 }
 
-static void sc_cleanup_event_queue(GF_List *evq, GF_Node *node, GF_SceneGraph *sg)
+void sc_cleanup_event_queue(GF_List *evq, GF_Node *node, GF_SceneGraph *sg)
 {
 	u32 i, count = gf_list_count(evq);
 	for (i=0; i<count; i++) {
@@ -4058,10 +4063,13 @@ GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
 	return gf_filter_get_download_manager(compositor->filter);
 }
 
-void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 obj_time, GF_Filter *from_filter)
+void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, GF_Filter *from_filter)
 {
 	if (!compositor->player) {
-		compositor->sys_frames_pending = GF_TRUE;
+		if (!compositor->sys_frames_pending) {
+			compositor->sys_frames_pending = GF_TRUE;
+			gf_filter_post_process_task(compositor->filter);
+		}
 		if (!from_filter) return;
 
 		//clock is not realtime but frame base, estimate hom fast we generate frames
@@ -4070,10 +4078,12 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 		//otherwise reschedule in 1 ms
 		//This is needed to avoid high cpu usage when output is realtime (compositor->vout)
 		u32 fidx = compositor->current_frame;
-		u32 run_time = compositor->frame_time[fidx];
+		s64 run_time = compositor->frame_time[fidx];
 		if (fidx) fidx--;
 		else fidx = GF_SR_FPS_COMPUTE_SIZE-1;
 		run_time -= compositor->frame_time[fidx];
+		if (run_time<0)
+			run_time += 0xFFFFFFFFUL;
 		if (run_time<1000) {
 			//request in 1 us (0 would only reschedule filter if pending packets which may not always be the case, cf vtt dec)
 			gf_filter_ask_rt_reschedule(from_filter, 1);
@@ -4081,7 +4091,11 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 			gf_filter_ask_rt_reschedule(from_filter, 1000);
 		}
 	} else {
-		u32 wait_ms = (u32) (ts_offset * 1000 - obj_time);
+		u32 wait_ms;
+		if (cts < obj_time) wait_ms = (u32) (0xFFFFFFFFUL + cts - obj_time);
+		else wait_ms = cts - obj_time;
+		if (wait_ms>1000)
+			wait_ms = 1000;
 
 		if (!compositor->ms_until_next_frame || ((s32) wait_ms < compositor->ms_until_next_frame)) {
 			compositor->ms_until_next_frame = (s32) wait_ms;
@@ -4089,8 +4103,34 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, Double ts_offset, u32 ob
 		if (from_filter) {
 			gf_filter_ask_rt_reschedule(from_filter, wait_ms*500);
 		}
+		//in player mode, force scene ready as soon as we have a pending frame
+		//otherwise the audio renderer will not increase current time
+		compositor->audio_renderer->scene_ready = GF_TRUE;
 	}
 }
+
+
+Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u32 cts)
+{
+	Bool is_early=GF_FALSE;
+	assert(odm);
+
+	if (for_pid)
+		gf_odm_check_buffering(odm, for_pid);
+
+	u32 obj_time = gf_clock_time(odm->ck);
+	if (cts > obj_time)
+		is_early = GF_TRUE;
+	else if ((obj_time>0x7FFFFFFF) && (cts<0x7FFFFFFF))
+		is_early = GF_TRUE;
+
+	if (is_early) {
+		gf_sc_sys_frame_pending(scene->compositor, cts, obj_time, from_filter);
+		return GF_FALSE;
+	}
+	return GF_TRUE;
+}
+
 
 Bool gf_sc_check_gl_support(GF_Compositor *compositor)
 {
@@ -4110,4 +4150,3 @@ Bool gf_sc_check_gl_support(GF_Compositor *compositor)
 #endif
 
 }
-

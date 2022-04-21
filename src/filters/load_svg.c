@@ -409,7 +409,7 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 					gf_sm_load_init(&svgin->loader);
 
 				if (svgin->scene->root_od->ck && !svgin->scene->root_od->ck->clock_init)
-					gf_clock_set_time(svgin->scene->root_od->ck, 0);
+					gf_clock_set_time(svgin->scene->root_od->ck, 0, 1000);
 
 				//init clocks
 				gf_odm_check_buffering(svgin->scene->root_od, svgin->in_pid);

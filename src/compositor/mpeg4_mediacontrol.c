@@ -206,7 +206,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 			gf_clock_pause(ck);
-			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
+			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time_absolute(ck) );
 		}
 
 		if (ctrl_od->subscene) {
@@ -239,7 +239,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 
 		//dynamic scene with speed direction, we need to re-start everything to issue new PLAY requests
 		if (in_scene->is_dynamic_scene && (gf_mulfix(ck->speed, speed) < 0)) {
-			u32 time = gf_clock_time(ck);
+			u64 time = gf_clock_time_absolute(ck);
 			gf_clock_set_speed(ck, speed);
 
 			//enable main addon
@@ -247,7 +247,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 				i=0;
 				while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 					if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
+						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, time );
 						break;
 					}
 				}
@@ -663,7 +663,7 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 	/*synth media, trigger if end of segment run-time*/
 	if (!odm->type || ((odm->type!=GF_STREAM_VISUAL) && (odm->type!=GF_STREAM_AUDIO))) {
 		GF_Clock *ck = gf_odm_get_media_clock(odm);
-		u32 now = gf_clock_time(ck);
+		u64 now = gf_clock_time_absolute(ck);
 		u64 dur = odm->subscene ? odm->subscene->duration : odm->duration;
 		cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (odm->subscene && odm->subscene->needs_restart) return 0;
