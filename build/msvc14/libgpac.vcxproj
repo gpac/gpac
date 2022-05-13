@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug - MP4Box_only|Win32">
@@ -77,7 +77,6 @@
     <ClInclude Include="..\..\include\gpac\internal\scenegraph_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\smjs_api.h" />
     <ClInclude Include="..\..\include\gpac\internal\swf_dev.h" />
-    <ClInclude Include="..\..\include\gpac\internal\terminal_dev.h" />
     <ClInclude Include="..\..\include\gpac\internal\vobsub.h" />
     <ClInclude Include="..\..\include\gpac\crypt_tools.h" />
     <ClInclude Include="..\..\include\gpac\iso639.h" />
@@ -105,7 +104,6 @@
     <ClInclude Include="..\..\include\gpac\nodes_mpeg4.h" />
     <ClInclude Include="..\..\include\gpac\nodes_svg.h" />
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h" />
-    <ClInclude Include="..\..\include\gpac\options.h" />
     <ClInclude Include="..\..\include\gpac\path2d.h" />
     <ClInclude Include="..\..\include\gpac\Remotery.h" />
     <ClInclude Include="..\..\include\gpac\revision.h" />
@@ -118,13 +116,10 @@
     <ClInclude Include="..\..\include\gpac\setup.h" />
     <ClInclude Include="..\..\include\gpac\svg_types.h" />
     <ClInclude Include="..\..\include\gpac\sync_layer.h" />
-    <ClInclude Include="..\..\include\gpac\terminal.h" />
-    <ClInclude Include="..\..\include\gpac\term_info.h" />
     <ClInclude Include="..\..\include\gpac\thread.h" />
     <ClInclude Include="..\..\include\gpac\token.h" />
     <ClInclude Include="..\..\include\gpac\tools.h" />
     <ClInclude Include="..\..\include\gpac\unicode.h" />
-    <ClInclude Include="..\..\include\gpac\user.h" />
     <ClInclude Include="..\..\include\gpac\utf.h" />
     <ClInclude Include="..\..\include\gpac\version.h" />
     <ClInclude Include="..\..\include\gpac\webvtt.h" />
@@ -557,7 +552,6 @@
     <ClCompile Include="..\..\src\scene_manager\swf_parse.c" />
     <ClCompile Include="..\..\src\scene_manager\swf_svg.c" />
     <ClCompile Include="..\..\src\scene_manager\text_to_bifs.c" />
-    <ClCompile Include="..\..\src\terminal\terminal.c" />
     <ClCompile Include="..\..\src\utils\alloc.c" />
     <ClCompile Include="..\..\src\utils\base_encoding.c" />
     <ClCompile Include="..\..\src\utils\bitstream.c" />

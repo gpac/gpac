@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/open_file"
+        android:checkable="false"
+        android:enabled="true"
+        android:title="@string/open_file"
+        android:visible="true" />
+
+    <item
+        android:id="@+id/open_url"
+        android:checkable="false"
+        android:enabled="true"
+        android:title="@string/open_url"
+        android:visible="true" />
+
+	<item
+		android:id="@+id/runGPAC"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/runGPAC"
+		android:visible="true" />
+
+	<item
+		android:id="@+id/reloadLast"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/reloadLast"
+		android:visible="true" />
+
+	<item
+		android:id="@+id/runMP4Box"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/runMP4Box"
+		android:visible="true" />
+
+	<!-- item
+		android:id="@+id/testAuth"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/testAuth"
+		android:visible="true" / -->
+
+
+	<item
+		android:id="@+id/quit"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/quit"
+		android:visible="true" />
+</menu>

@@ -552,7 +552,7 @@ static GF_Err aout_initialize(GF_Filter *filter)
 	if (!ctx->bnum || !ctx->bdur) ctx->bnum = ctx->bdur = 0;
 
 	os_wnd_handler = NULL;
-	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	sOpt = gf_opts_get_key("temp", "window-handle");
 	if (sOpt) sscanf(sOpt, "%p", &os_wnd_handler);
 	e = ctx->audio_out->Setup(ctx->audio_out, os_wnd_handler, ctx->bnum, ctx->bdur);
 
@@ -714,6 +714,11 @@ GF_FilterRegister AudioOutRegister = {
 	"If [-clock]() is set, the filter will report system time (in us) and corresponding packet CTS for other filters to use for AV sync.\n")
 	.private_size = sizeof(GF_AudioOutCtx),
 	.args = AudioOutArgs,
+#ifdef GPAC_CONFIG_ANDROID
+	//on android pin on man thread so that all events/commands come from main thread
+	//we use a dedicated thread for filling the audio
+	.flags = GF_FS_REG_MAIN_THREAD,
+#endif
 	SETCAPS(AudioOutCaps),
 	.initialize = aout_initialize,
 	.finalize = aout_finalize,

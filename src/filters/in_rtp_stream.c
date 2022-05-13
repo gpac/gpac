@@ -501,15 +501,15 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	Float bps;
 	if (!stream->rtp_ch) return;
 
-	gf_filter_pid_set_info_str(stream->opid, "nets:loss", &PROP_FLOAT( gf_rtp_get_loss(stream->rtp_ch) ) );
+	gf_filter_pid_set_info_str(stream->opid, "rtp:loss", &PROP_FLOAT( gf_rtp_get_loss(stream->rtp_ch) ) );
 	if (stream->rtsp && (stream->flags & RTP_INTERLEAVED)) {
-		gf_filter_pid_set_info_str(stream->opid, "nets:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rctpid", &PROP_UINT( gf_rtp_get_hight_interleave_id(stream->rtp_ch) ) );
+		gf_filter_pid_set_info_str(stream->opid, "rtp:interleaved", &PROP_UINT( gf_rtsp_get_session_port(stream->rtsp->session) ) );
+		gf_filter_pid_set_info_str(stream->opid, "rtp:rtpid", &PROP_UINT( gf_rtp_get_low_interleave_id(stream->rtp_ch) ) );
+		gf_filter_pid_set_info_str(stream->opid, "rtp:rctpid", &PROP_UINT( gf_rtp_get_hight_interleave_id(stream->rtp_ch) ) );
 
 	} else {
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_first ) );
-		gf_filter_pid_set_info_str(stream->opid, "nets:rtcpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_last ) );
+		gf_filter_pid_set_info_str(stream->opid, "rtp:rtpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_first ) );
+		gf_filter_pid_set_info_str(stream->opid, "rtp:rtcpp", &PROP_UINT( stream->rtp_ch->net_info.client_port_last ) );
 	}
 	if (stream->stat_stop_time) {
 		time = stream->stat_stop_time - stream->stat_start_time;
@@ -521,17 +521,17 @@ static void rtpin_stream_update_stats(GF_RTPInStream *stream)
 	bps = 8.0f * stream->rtp_bytes;
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:bw_down", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_info_str(stream->opid, "rtp:bw_down", &PROP_UINT( (u32) bps ) );
 
 	bps = 8.0f * stream->rtcp_bytes;
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:ctrl_bw_down", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_info_str(stream->opid, "rtp:ctrl_bw_down", &PROP_UINT( (u32) bps ) );
 
 	bps = 8.0f * gf_rtp_get_tcp_bytes_sent(stream->rtp_ch);
 	bps *= 1000;
 	bps /= time;
-	gf_filter_pid_set_info_str(stream->opid, "nets:ctrl_bw_up", &PROP_UINT( (u32) bps ) );
+	gf_filter_pid_set_info_str(stream->opid, "rtp:ctrl_bw_up", &PROP_UINT( (u32) bps ) );
 }
 
 

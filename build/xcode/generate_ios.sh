@@ -10,9 +10,9 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 rev="$REVISION-$BRANCH"
 if [ "$rev" != "" ]
 then
-	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist > ../../applications/osmo4_ios/osmo4ios-Info.plist.new
-	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist.new > ../../applications/osmo4_ios/osmo4ios-Info.plist
-	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
+	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/gpac/ios-Info.plist > ../../applications/gpac/ios-Info.plist.new
+	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/gpac/ios-Info.plist.new > ../../applications/gpac/ios-Info.plist
+	rm ../../applications/gpac/ios-Info.plist.new
 fi
 
 if [ "$rev" != "" ]
@@ -23,21 +23,21 @@ else
 	full_version="$version-$(date +%Y%m%d)"
 fi
 
-echo "*** Compile and archive osmo4ios ***"
-xcodebuild archive -project gpac4ios.xcodeproj -scheme osmo4ios -archivePath osmo4ios.xcarchive
+echo "*** Compile and archive gpac4ios ***"
+xcodebuild archive -project gpac4ios.xcodeproj -scheme osmo4ios -archivePath gpac4ios.xcarchive
 if [ $? != 0 ] ; then
 	exit 1
 fi
 
 echo "*** Generate IPA ***"
 mkdir -p Payload
-mv osmo4ios.xcarchive/Products/Applications/osmo4ios.app Payload/
+mv gpac4ios.xcarchive/Products/Applications/osmo4ios.app Payload/
 if [ ! -d "../../bin/iOS" ]; then
 	mkdir -p "../../bin/iOS"
 fi
-zip -r "../../bin/iOS/osmo4-$full_version-ios.ipa" Payload
+zip -r "../../bin/iOS/gpac-$full_version-ios.ipa" Payload
 rm -rf Payload
-rm -rf osmo4ios.xcarchive
+rm -rf gpac4ios.xcarchive
 #git pull
 
 echo "*** GPAC generation for iOS completed ($full_version)! ***"

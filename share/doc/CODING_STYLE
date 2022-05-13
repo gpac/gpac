@@ -60,7 +60,7 @@ All destructor like functions should be of style gf_zzz_del
 This is a short overview of the gpac source repository. 
 
 - *gpac/applications/*
-    various apps of GPAC, including MP4Box, MP4Client, gpac and other players for iOS and Android
+    various apps of GPAC, including MP4Box, gpac, platform-specific ports and test apps
 - *gpac/bin/*
     output path of build system
 - *gpac/build/*
@@ -127,8 +127,6 @@ This is a short overview of the gpac source repository.
     memory representation of the scene, importers (BT/XMT/SWF/QT), dumpers and encoding
 - *gpac/src/scenegraph/*
     scene Graph API (MPEG4/VRML/X3D/SVG) - BIFS/VRML/X3D nodes are generated using gpac/applications/generators/*
-- *gpac/src/terminal/*
-    client application engine. This is a simple wrapper around the filter engine of GPAC.
 - *gpac/src/utils/*
     all generic objects used throughout the lib (list, bitstream, thread, mutex...). The OS specific files are prefixed os_* .
 - *gpac/testsuite/*

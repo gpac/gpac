@@ -703,11 +703,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		iFs.Close();
 		FlushItemList();
 		return GF_OK;
-#elif defined(GPAC_CONFIG_ANDROID)
-		dir = getenv("EXTERNAL_STORAGE");
-		if (!dir) dir = "/sdcard";
-#elif defined(GPAC_CONFIG_IOS)
-		dir = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
+#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
+		dir = (char *) gf_opts_get_key("core", "docs-dir");
 #endif
 	}
 
@@ -1620,6 +1617,18 @@ int gf_fprintf(FILE *stream, const char *format, ...)
 		res = vfprintf(stream, format, args);
 	}
 	va_end(args);
+	return res;
+}
+
+GF_EXPORT
+int gf_vfprintf(FILE *stream, const char *format, va_list args)
+{
+	int	res;
+	if (gf_fileio_check(stream)) {
+		res = gf_fileio_printf((GF_FileIO *)stream, format, args);
+	} else {
+		res = vfprintf(stream, format, args);
+	}
 	return res;
 }
 

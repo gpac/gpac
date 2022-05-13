@@ -53,7 +53,7 @@ endif
 endif
 
 #common obj
-OBJS=main.o filedump.o fileimport.o
+OBJS=mp4box.o filedump.o fileimport.o
 ifeq ($(DISABLE_STREAMING),no)
 OBJS+=live.o
 endif

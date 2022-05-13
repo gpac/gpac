@@ -160,7 +160,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_Compositor *compositor, u32 init_flags)
 	ar->non_rt_output = 1;
 	ar->volume = MIN(100, compositor->avol);
 	ar->pan = MIN(100, compositor->apan);
-	if (! (init_flags & GF_TERM_NO_AUDIO) ) {
+	if (!compositor->noaudio ) {
 		gf_ar_setup_output_format(ar);
 	}
 	gf_mixer_set_max_speed(ar->mixer, compositor->max_aspeed);

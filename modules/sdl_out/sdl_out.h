@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2020
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / SDL audio and video module
@@ -84,6 +84,9 @@ typedef struct
 	u8 *back_buffer_pixels;
 
 	SDL_Texture *pool_rgb, *pool_rgba, *pool_yuv;
+
+	u32 high_dpi_w, low_dpi_w;
+	u32 high_dpi_h, low_dpi_h;
 
 #else
 	SDL_Surface *screen;

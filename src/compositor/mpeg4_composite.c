@@ -46,7 +46,8 @@ typedef struct
 	Bool first, unsupported;
 	GF_List *sensors, *previous_sensors, *temp_sensors, *temp_previous_sensors;
 	GF_Node *prev_hit_appear;
-
+	//revent recursions
+	Bool in_handle_event;
 	GF_TraverseState *tr_state;
 
 #ifdef GPAC_USE_TINYGL
@@ -741,8 +742,11 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	stack = gf_node_get_private(ap->texture);
 	if (!stack->txh.tx_io) return 0;
 
-	children = NULL;
+	if (stack->in_handle_event)
+		return 0;
 
+	children = NULL;
+	stack->in_handle_event = GF_TRUE;
 
 	if (!is_flush) {
 		txcoord.x = compositor->hit_texcoords.x;
@@ -865,6 +869,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 		compositor->prev_hit_appear = prev_appear;
 		compositor->hit_appear = appear;
 	}
+	stack->in_handle_event = GF_FALSE;
 
 	return res;
 }

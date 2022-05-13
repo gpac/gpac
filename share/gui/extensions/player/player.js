@@ -50,6 +50,9 @@ extension = {
 	medialist_wnd: null,
     reverse_playback_supported: false,
 	view_stereo: 0,
+	orient_lock: 0,
+	init_w: 0,
+	init_h: 0,
 
     stats_wnd: null,
     stats_data: [],
@@ -74,7 +77,8 @@ extension = {
 
     ext_filter_event: function (evt) {
 		if (this.disabled) return false;
-		
+		let items;
+
         switch (evt.type) {
 		case GF_EVENT_MOUSEUP:
 			if ((gwskin.last_hit_x == evt.mouse_x) && (gwskin.last_hit_y == evt.mouse_y)) {
@@ -92,6 +96,13 @@ extension = {
 		case GF_EVENT_QUALITY_SWITCHED:
 			if (this.stats_wnd) {
 				this.stats_wnd.quality_changed();
+			}
+			return true;
+		case GF_EVENT_DBLCLICK:
+			if (gwskin.mobile_device && this.root_odm) {
+				let ori = this.orient_lock ? 0 : scene.orientation;
+				scene.orientation = ori;
+				this.orient_lock = !this.orient_lock;
 			}
 			return true;
 		case GF_EVENT_TIMESHIFT_UPDATE:
@@ -119,8 +130,24 @@ extension = {
 			}
 			return true;
 		case GF_EVENT_NAVIGATE:
-			this.set_movie_url(evt.target_url);
+            items = evt.url.split(',');
+            if (items.length==1) {
+    			this.set_movie_url(evt.url);
+                this.set_playlist_mode(false);
+            } else {
+                this.playlist_load(items, true);
+            }
 			return true;
+        case GF_EVENT_DROPFILE:
+            items = evt.dropfiles;
+            if (items.length==1) {
+                this.set_movie_url(items[0]);
+                this.set_playlist_mode(false);
+            } else {
+                this.playlist_load(items, true);
+            }
+            return true;
+
 		case GF_EVENT_KEYDOWN:
 			//alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
 			if (evt.keycode == 'F1') {
@@ -181,7 +208,6 @@ extension = {
 
         this.movie.children[0].on_scene_size = function (evt) {
             var ext = this.extension;
-
             if (!this.callback_done) {
                 this.callback_done = true;
 
@@ -306,6 +332,11 @@ extension = {
                 w = evt.width;
                 h = evt.height;
 
+                if (this.extension.init_w && this.extension.init_h) {
+					w = this.extension.init_w;
+					h = this.extension.init_h;
+				}
+
                 if (w > scene.screen_width) {
 					h *= scene.screen_width;
 					h /= w;
@@ -355,12 +386,17 @@ extension = {
             e.height = evt.height;
             gwlib_filter_event(e);
         }
+        this.movie.children[0].on_codec_slow = function(evt) {
+			msg = gw_new_message(null, 'Codec too slow', 'Cannot play back at required speed ' + this.extension.movie_control.mediaSpeed);
+			msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
+			msg.show();
+		}
 
         this.movie.children[0].addEventListener('gpac_scene_attached', this.movie.children[0].on_scene_size, 0);
         this.movie.children[0].addEventListener('gpac_addon_found', this.movie.children[0].on_addon_found, 0);
         this.movie.children[0].addEventListener('gpac_streamlist_changed', this.movie.children[0].on_streamlist_changed, 0);
         this.movie.children[0].addEventListener('gpac_scene_size', this.movie.children[0].on_scene_size_modify, 0);
-
+        this.movie.children[0].addEventListener('gpac_codec_slow', this.movie.children[0].on_codec_slow, 0);
 
         this.movie.children[0].on_media_progress = function (evt) {
             if (evt.buffering) {
@@ -425,7 +461,6 @@ extension = {
             this.extension.reload_stats();
             this.extension.controler.layout();
         }
-
 
         this.movie.children[0].addEventListener('progress', this.movie.children[0].on_media_progress, 0);
         this.movie.children[0].addEventListener('playing', this.movie.children[0].on_media_playing, 0);
@@ -712,7 +747,7 @@ extension = {
 
         wnd.home = null;
         if (!gwskin.browser_mode) {
-            wnd.home = gw_new_icon(wnd.infobar, 'osmo');
+            wnd.home = gw_new_icon(wnd.infobar, 'gpac');
             wnd.home.extension = this;
             wnd.home.on_click = function () {
                 this.extension.controler.hide();
@@ -1006,44 +1041,34 @@ extension = {
             //check our args
             var i;
             //get URL when loading compositor in GUI mode with src option set
-            var url_arg = scene.get_option('temp', 'gui_load_url');
-            var prog_name = Sys.args[0]; 
-            var check_gpac_args = 1;
-            if (url_arg && (url_arg.indexOf('://') < 0) )
-                url_arg = 'gpac://' + url_arg;
+            var init_urls = [];
+            var url_arg = scene.get_option('temp', 'gui_load_urls');
 
-            //check mp4client or MP4Client
-            if (prog_name && (prog_name.indexOf('lient')>=0))
-                check_gpac_args = 0;
-            
+            if (url_arg && (url_arg.indexOf(',')>0)) {
+				init_urls = url_arg.split(',');
+            } else if (url_arg) {
+                init_urls.push(url_arg);
+            }
+
+            var prog_name = Sys.args[0];
+            var check_gpac_args = 1;
+
             for (i = 1; i < Sys.args.length; i++) {
                 var arg = Sys.args[i];
                 if (!arg) break;
 
-                if (check_gpac_args==1) {
-                    if (arg=='-xopt') check_gpac_args=2;
+                if (check_gpac_args) {
+                    if (arg=='-xopt') check_gpac_args = 0;
                     continue;
                 }
 
-                //that's our file
+                //that's a URL
                 if (arg.charAt(0) != '-') {
                     //do not reopen ourselves !
                     if (arg.indexOf('gui.bt') >= 0) continue;
 
-                    if (arg.indexOf('://') < 0) url_arg = 'gpac://' + arg;
-                    else url_arg = arg;
+                    init_urls.push(arg);
                     continue;
-                }
-
-                //MP4Client options taking 2 args
-                if (!check_gpac_args) {
-                    if ((arg == '-rti') || (arg == '-rtix') || (arg == '-p') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
-                        || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-mosaic') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift')
-                        || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for') || (arg == '-bl')
-                    ) {
-                        i++;
-                        continue;
-                    }
                 }
 
                 if (arg.startsWith('-service=')) {
@@ -1052,6 +1077,8 @@ extension = {
                     this.default_addon = arg.substring(7);
                 } else if (arg == '-loop') {
                     this.initial_loop = true;
+                } else if (arg == '-fs') {
+                    scene.fullscreen = true;
                 } else if ((arg == '-stats') || (arg == '-stat')) {
                     this.show_stats_init = true;
                 } else if (arg == '-gui-test') {
@@ -1059,8 +1086,15 @@ extension = {
                     this.show_stats_init = true;
                 } else if (arg.startsWith('-speed=')) {
                     this.initial_speed = Number(arg.substring(7));
-                } else if (arg.startsWith('-play-from=')) {
-                    this.initial_start = Number(arg.substring(11));
+                } else if (arg.startsWith('-start=')) {
+                    this.initial_start = Number(arg.substring(7));
+                } else if (arg.startsWith('-size=')) {
+					let s = arg.substring(6).split('x');
+					if (s.length==2) {
+						this.init_w = Number(s[0]);
+						this.init_h = Number(s[1]);
+						scene.set_size(this.init_w, this.init_h);
+					}
                 } else {
                     continue;
                 }
@@ -1073,7 +1107,9 @@ extension = {
             gwskin.media_clock = 0;
             gwskin.restore_session = this.create_restore_session(this);
 
-            if (url_arg != null) {
+            if (init_urls.length==1) {
+                url_arg = init_urls[0];
+                if (url_arg.indexOf('://') < 0) url_arg = 'gpac://' + url_arg;
                 this.set_playlist_mode(false);
                 var def_addon = this.default_addon;
                 this.set_movie_url(url_arg);
@@ -1082,6 +1118,9 @@ extension = {
                 return;
             }
             this.set_playlist_mode(true);
+            if (init_urls.length) {
+                this.playlist_load(init_urls, true);
+            }
         }
 
         this.controler.show();
@@ -1222,6 +1261,7 @@ extension = {
                 str = '-';
             }
         }
+
         if (this.test_mode && (value>3)) {
             scene.exit(3);                    
         }

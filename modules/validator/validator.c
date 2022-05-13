@@ -28,7 +28,6 @@
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/xml.h>
-#include <gpac/options.h>
 
 typedef struct __validation_module
 {
@@ -865,7 +864,7 @@ static void validator_test_open(GF_Validator *validator)
 //deprecated		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 		if (validator->is_recording)
 			validator->snapshot_next_frame = GF_TRUE;
-		gf_sc_connect_from_time_ex(validator->compositor, filename, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(validator->compositor, filename, 0, 0, 0, NULL);
 
 	}
 //	validator->ck = validator->compositor->root_scene->scene_codec ? validator->compositor->root_scene->scene_codec->ck : validator->compositor->root_scene->dyn_ck;
@@ -980,7 +979,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 
 	switch (action) {
 
-	/* Upon starting of the terminal, we parse (possibly an XVL file), an XVS file, and start the first test sequence */
+	/* Upon starting of the compositor, we parse (possibly an XVL file), an XVS file, and start the first test sequence */
 	case GF_COMPOSITOR_EXT_START:
 		validator->compositor = (GF_Compositor *) param;
 
@@ -1072,9 +1071,9 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		}
 		return GF_TRUE;
 
-	/* when the terminal stops, we close the XVS parser and XVL parser if any, restore the config,
+	/* when the compositor stops, we close the XVS parser and XVL parser if any, restore the config,
 	and free all validator data (the validator will be destroyed when the module is unloaded)
-	Note: we don't need to disconnect the terminal since it's already stopping */
+	Note: we don't need to disconnect the compositor since it's already stopping */
 	case GF_COMPOSITOR_EXT_STOP:
 		gf_filter_remove_event_listener(validator->compositor->filter, &validator->evt_filter);
 		validator_xvs_close(validator);
@@ -1095,7 +1094,7 @@ static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
 		break;
 
-	/* When called in the main loop of the terminal, we don't do anything in the recording mode.
+	/* When called in the main loop of the compositor, we don't do anything in the recording mode.
 	   In the playing/validating mode, we need to check if an event needs to be dispatched or if snapshots need to be made,
 	   until there is no more event, in which case we trigger either the load of the next XVS or the quit */
 	case GF_COMPOSITOR_EXT_PROCESS:

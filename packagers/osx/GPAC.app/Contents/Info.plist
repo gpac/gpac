@@ -13,7 +13,7 @@
 				<string>xmt</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 BIFS Text</string>
 			<key>CFBundleTypeRole</key>
@@ -26,7 +26,7 @@
 				<string>x3d</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_model.icns</string>
+			<string>gpac_model.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Web3D VRML/X3D File</string>
 			<key>CFBundleTypeRole</key>
@@ -38,7 +38,7 @@
 				<string>svg</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>W3C SVG File</string>
 			<key>CFBundleTypeRole</key>
@@ -50,7 +50,7 @@
 				<string>saf</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 SAF/LASeR File</string>
 			<key>CFBundleTypeRole</key>
@@ -62,7 +62,7 @@
 				<string>flv</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Flash Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -74,7 +74,7 @@
 				<string>pls</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Shoutcast playlist</string>
 			<key>CFBundleTypeRole</key>
@@ -87,7 +87,7 @@
 				<string>m3u8</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Playlist file</string>
 			<key>CFBundleTypeRole</key>
@@ -100,7 +100,7 @@
 				<string>aif</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>AIFF file</string>
 			<key>CFBundleTypeRole</key>
@@ -112,7 +112,7 @@
 				<string>sdp</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Session Description Protocol File</string>
 			<key>CFBundleTypeRole</key>
@@ -124,7 +124,7 @@
 				<string>wav</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>WAVE Audio File</string>
 			<key>CFBundleTypeRole</key>
@@ -136,7 +136,7 @@
 				<string>vob</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>DVD Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -149,7 +149,7 @@
 				<string>ac3</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Digital Audio</string>
 			<key>CFBundleTypeRole</key>
@@ -161,7 +161,7 @@
 				<string>aac</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>AAC file</string>
 			<key>CFBundleTypeRole</key>
@@ -173,7 +173,7 @@
 				<string>ogm</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Ogg MPEG-4 Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -185,7 +185,7 @@
 				<string>ogg</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
 				<string>audio/ogg</string>
@@ -201,7 +201,7 @@
 				<string>ogv</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
 				<string>video/ogg</string>
@@ -217,7 +217,7 @@
 				<string>avi</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>AVI container</string>
 			<key>CFBundleTypeRole</key>
@@ -231,7 +231,7 @@
 				<string>qt</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
 				<string>video/quicktime</string>
@@ -247,7 +247,7 @@
 				<string>asf</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Advanced Streaming Format</string>
 			<key>CFBundleTypeRole</key>
@@ -259,7 +259,7 @@
 				<string>wma</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Windows Media Audio</string>
 			<key>CFBundleTypeRole</key>
@@ -272,7 +272,7 @@
 				<string>wm</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Windows Media Video</string>
 			<key>CFBundleTypeRole</key>
@@ -287,7 +287,7 @@
 				<string>mpeg2</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>multiplexed MPEG-1/2</string>
 			<key>CFBundleTypeRole</key>
@@ -299,7 +299,7 @@
 				<string>m1v</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-1 Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -315,7 +315,7 @@
 				<string>mpa</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG Audio File</string>
 			<key>CFBundleTypeRole</key>
@@ -328,7 +328,7 @@
 				<string>ps</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-2 Program Stream</string>
 			<key>CFBundleTypeRole</key>
@@ -343,7 +343,7 @@
 				<string>mt2s</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeMIMETypes</key>
 			<array>
 				<string>video/mp2t</string>
@@ -360,7 +360,7 @@
 				<string>mpv</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-2 Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -372,7 +372,7 @@
 				<string>m4i</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 Application</string>
 			<key>CFBundleTypeRole</key>
@@ -385,7 +385,7 @@
 				<string>mpeg4</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_generic.icns</string>
+			<string>gpac_generic.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 File</string>
 			<key>CFBundleTypeRole</key>
@@ -397,7 +397,7 @@
 				<string>m4v</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -409,7 +409,7 @@
 				<string>m4a</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>MPEG-4 Audio File</string>
 			<key>CFBundleTypeRole</key>
@@ -421,7 +421,7 @@
 				<string>3gp</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>3GPP File</string>
 			<key>CFBundleTypeRole</key>
@@ -433,7 +433,7 @@
 				<string>mka</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_audio.icns</string>
+			<string>gpac_audio.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Matroska Audio File</string>
 			<key>CFBundleTypeRole</key>
@@ -445,7 +445,7 @@
 				<string>mkv</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Matroska Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -457,7 +457,7 @@
 				<string>webm</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_video.icns</string>
+			<string>gpac_video.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>WebM Video File</string>
 			<key>CFBundleTypeRole</key>
@@ -469,7 +469,7 @@
 				<string>srt</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_subs.icns</string>
+			<string>gpac_subs.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>Subrip Subtitle File</string>
 			<key>CFBundleTypeRole</key>
@@ -485,7 +485,7 @@
 				<string>ttxt</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
-			<string>osmo_subs.icns</string>
+			<string>gpac_subs.icns</string>
 			<key>CFBundleTypeName</key>
 			<string>3GPP Subtitle File</string>
 			<key>CFBundleTypeRole</key>
@@ -497,23 +497,26 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Osmo4</string>
+	<string>gpac</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Copyright © 2003-2020 Telecom Paris</string>
+	<string>Copyright © 2003-2022 Telecom Paris</string>
 	<key>CFBundleIconFile</key>
-	<string>osmo.icns</string>
+	<string>gpac.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.enst.gpac</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Osmo4</string>
+	<string>GPAC</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>LSEnvironment</key>
+	<dict>
+		<key>GPAC_GUI</key>
+		<string>yes</string>
+	</dict>
 	<key>CFBundleShortVersionString</key>
-<!-- Please do not remove the comment in the next line
-     It allows mkdmg.sh to perform a Version remplacement -->
-	<string>9.9.9</string><!-- VERSION_REV_REPLACE -->
+	<string>2.1-DEV</string>
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleURLTypes</key>
@@ -559,10 +562,12 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>GPAC needs camera access to handle this URL</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>GPAC needs microphone access to handle this URL</string>
 	<key>CFBundleVersion</key>
-<!-- Please do not remove the comment in the next line
-     It allows mkdmg.sh to perform a Version remplacement -->
-	<string>9999</string><!-- BUILD_REV_REPLACE -->
+	<string>12.0.0</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.5.0</string>
 	<key>NSMainNibFile</key>

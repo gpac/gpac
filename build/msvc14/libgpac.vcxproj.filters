@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="include">
@@ -33,9 +33,6 @@
     </Filter>
     <Filter Include="utils">
       <UniqueIdentifier>{8bbc563e-abf0-404a-9661-85d8795b63e1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="terminal">
-      <UniqueIdentifier>{a7234dfd-5749-46dc-8ee2-586084f8d11d}</UniqueIdentifier>
     </Filter>
     <Filter Include="scenegraph">
       <UniqueIdentifier>{ceeb1cac-c751-485b-b5f3-abec90144298}</UniqueIdentifier>
@@ -166,9 +163,6 @@
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\internal\swf_dev.h">
-      <Filter>include\internal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\internal\terminal_dev.h">
       <Filter>include\internal</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\internal\vobsub.h">
@@ -321,9 +315,6 @@
     <ClInclude Include="..\..\include\gpac\nodes_x3d.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\options.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\path2d.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -357,12 +348,6 @@
     <ClInclude Include="..\..\include\gpac\sync_layer.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\include\gpac\term_info.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\terminal.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\include\gpac\thread.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -373,9 +358,6 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\unicode.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\include\gpac\user.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\include\gpac\utf.h">
@@ -1009,9 +991,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\scenegraph\xml_ns.c">
       <Filter>scenegraph</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\terminal\terminal.c">
-      <Filter>terminal</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\alloc.c">
       <Filter>utils</Filter>

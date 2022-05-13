@@ -42,7 +42,7 @@ extern "C" {
 \ingroup playback_grp
 \brief Event system used by GPAC playback.
 
-This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
+This section documents the event structures used by thethe compositor, input modules and output rendering modules for communication.
 @{
  */
 
@@ -119,6 +119,21 @@ typedef struct
 	u32 unicode_char;
 } GF_EventChar;
 
+/*! Display orientation */
+typedef enum
+{
+	/*! Unknown display orientation */
+    GF_DISPLAY_MODE_UNKNOWN=0,
+    /*! portrait display orientation*/
+    GF_DISPLAY_MODE_PORTRAIT,
+    /*! landscape display orientation (+90deg anti-clockwise from portrait)*/
+    GF_DISPLAY_MODE_LANDSCAPE,
+    /*! inverted landscape display orientation (-90deg anti-clockwise from portrait)*/
+    GF_DISPLAY_MODE_LANDSCAPE_INV,
+    /*! upside down portrait display orientation (+180deg anti-clockwise from portrait)*/
+    GF_DISPLAY_MODE_PORTRAIT_INV
+} GF_DisplayOrientationType;
+
 /*! Window resize event
 	event proc return value: ignored
 */
@@ -128,6 +143,8 @@ typedef struct
 	u8 type;
 	/*width and height*/
 	u32 width, height;
+	/*display orientation */
+	GF_DisplayOrientationType orientation;
 } GF_EventSize;
 
 /*! Video setup (2D or 3D) event
@@ -218,7 +235,7 @@ typedef struct
 
 /*! Hyperlink navigation event
 	event proc return value: 0 if URL not supported, 1 if accepted (it is the user responsability to load the url)
-	YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK THE TERMINAL
+	YOU SHALL NOT DIRECTLY OPEN THE NEW URL IN THE EVENT PROC, THIS WOULD DEADLOCK THE COMPOSITOR
 */
 typedef struct
 {
@@ -285,7 +302,7 @@ typedef struct
 } GF_EventConnect;
 
 /*! Addon connection notification event
-	event proc return value: 1 to indicate the terminal should attempt a default layout for this addon, 0: nothing will be done
+	event proc return value: 1 to indicate the compositor should attempt a default layout for this addon, 0: nothing will be done
 */
 typedef struct
 {
@@ -353,9 +370,25 @@ typedef struct
 {
 	/*GF_EVENT_SENSOR_ORIENTATION*/
 	u8 type;
-	/*device orientation as quaternion if w is not 0, or as radians otherwise*/
+	/* device orientation as quaternion if w is not 0, or as radians otherwise*/
 	Float x, y, z, w;
 } GF_EventSensor;
+
+/*! GPS sensor change event
+	event proc return value: ignored
+*/
+typedef struct
+{
+	/*GF_EVENT_SENSOR_GPS*/
+	u8 type;
+	/* position in degrees*/
+	Double longitude, latitude;
+	/* altitude in meters above the WGS84 reference ellipsoid*/
+	Double altitude;
+	Float accuracy, bearing;
+	//ms since unix EPOCH
+	u64 timestamp;
+} GF_EventGPS;
 
 
 /*! Orientation sensor activation event
@@ -395,6 +428,7 @@ typedef union
 	GF_EventKey key;
 	GF_EventChar character;
 	GF_EventSensor sensor;
+	GF_EventGPS gps;
 	GF_EventSize size;
 	GF_EventShow show;
 	GF_EventDuration duration;

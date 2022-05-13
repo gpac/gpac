@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
-    <pkg-ref id="com.enst.gpac"/>
+    <pkg-ref id="io.gpac.gpac"/>
     <options customize="never" require-scripts="false"/>
     <choices-outline>
         <line choice="default">
-            <line choice="com.enst.gpac"/>
+            <line choice="io.gpac.gpac"/>
         </line>
     </choices-outline>
     <choice id="default"/>
-    <choice id="com.enst.gpac" visible="false">
-        <pkg-ref id="com.enst.gpac"/>
+    <choice id="io.gpac.gpac" visible="false">
+        <pkg-ref id="io.gpac.gpac"/>
     </choice>
-    <pkg-ref id="com.enst.gpac" version="0.7.2" onConclusion="none">tmppkg.pkg</pkg-ref>
+    <pkg-ref id="io.gpac.gpac" version="0.7.2" onConclusion="none">tmppkg.pkg</pkg-ref>
 
     <title>GPAC Framework rev</title>
    <license file="full_license.txt"></license>

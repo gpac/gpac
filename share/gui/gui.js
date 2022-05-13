@@ -85,10 +85,10 @@ globalThis.initialize = function () {
     //var icon;
     var i, count, wid;
 
-    scene.caption = 'Osmo4';
+    scene.caption = 'GPAC';
 
-    gw_display_width = parseInt(scene.get_option('General', 'LastWidth'));
-    gw_display_height = parseInt(scene.get_option('General', 'LastHeight'));
+    gw_display_width = parseInt(scene.get_option('GUI', 'LastWidth'));
+    gw_display_height = parseInt(scene.get_option('GUI', 'LastHeight'));
     if (!scene.fullscreen && (!gw_display_width || !gw_display_height)) {
         gw_display_width = 320;
         gw_display_height = 240;
@@ -229,7 +229,7 @@ globalThis.initialize = function () {
 function print_help()
 {
     globalThis._gpac_log_name = "";
-    print(-2, "GPAC GUI Help\nOptions are specified as '-opt' or '-opt=value'.\n");
+    print(-2, "GPAC GUI command-line help\nOptions are specified as `-opt` or `-opt=value`.\nSee `gpac -h[x] compositor` for rendering options.\n");
 
     //launch all default ext
     var i;
@@ -238,7 +238,10 @@ function print_help()
           && (typeof all_extensions[i].clopts != 'undefined')
           && all_extensions[i].icon.ext_description.autostart) {
          
-        print(-2, '' + all_extensions[i].icon.ext_description.name + ' extension');
+        print(-2, '# ' + all_extensions[i].icon.ext_description.name + ' extension');
+
+        if (typeof all_extensions[i].description != 'undefined')
+          print(-2, '' + all_extensions[i].description);
 
         if (typeof all_extensions[i].clusage != 'undefined')
           print(-2, 'Usage: ' + all_extensions[i].clusage);
@@ -284,8 +287,8 @@ function on_resize(evt) {
     gw_display_width = evt.width;
     gw_display_height = evt.height;
     if (!scene.fullscreen) {
-        scene.set_option('General', 'LastWidth', '' + gw_display_width);
-        scene.set_option('General', 'LastHeight', '' + gw_display_height);
+        scene.set_option('GUI', 'LastWidth', '' + gw_display_width);
+        scene.set_option('GUI', 'LastHeight', '' + gw_display_height);
     }
 /*
     var v = 12;

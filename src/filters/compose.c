@@ -37,16 +37,6 @@ GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 GF_Err compose_odf_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
 GF_Err compose_odf_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 
-#define COMPOSITOR_MAGIC	GF_4CC('c','o','m','p')
-//a bit ugly, used by terminal (old APIs)
-GF_Compositor *gf_sc_from_filter(GF_Filter *filter)
-{
-	GF_Compositor *ctx = (GF_Compositor *) gf_filter_get_udta(filter);
-	if (ctx->magic != COMPOSITOR_MAGIC) return NULL;
-	if (ctx->magic_ptr != ctx) return NULL;
-
-	return ctx;
-}
 
 static GF_Err compose_process(GF_Filter *filter)
 {
@@ -59,6 +49,23 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	if (ctx->check_eos_state == 2)
 		return GF_EOS;
+
+	/*need to reload*/
+	if (ctx->reload_state == 1) {
+		ctx->reload_state = 0;
+		gf_sc_disconnect(ctx);
+		ctx->reload_state = 2;
+	}
+	if (ctx->reload_state == 2) {
+		if (!ctx->root_scene) {
+			ctx->reload_state = 0;
+			if (ctx->reload_url) {
+				gf_sc_connect_from_time(ctx, ctx->reload_url, 0, 0, 0, NULL);
+				gf_free(ctx->reload_url);
+				ctx->reload_url = NULL;
+			}
+		}
+	}
 
 	ctx->last_error = GF_OK;
 	if (ctx->reload_config) {
@@ -216,8 +223,7 @@ static void compositor_setup_vout(GF_Compositor *ctx)
 	pid = ctx->vout = gf_filter_pid_new(ctx->filter);
 	gf_filter_pid_set_name(pid, "vout");
 	//compositor initiated for RT playback, vout pid may not be connected
-	if (! (ctx->init_flags & GF_TERM_NO_DEF_AUDIO_OUT))
-		gf_filter_pid_set_loose_connect(pid);
+	gf_filter_pid_set_loose_connect(pid);
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW) );
 	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
@@ -741,7 +747,7 @@ static void compose_finalize(GF_Filter *filter)
 }
 void compositor_setup_aout(GF_Compositor *ctx)
 {
-	if (! (ctx->init_flags & GF_TERM_NO_AUDIO) && ctx->audio_renderer && !ctx->audio_renderer->aout) {
+	if (!ctx->noaudio && ctx->audio_renderer && !ctx->audio_renderer->aout) {
 		GF_FilterPid *pid = ctx->audio_renderer->aout = gf_filter_pid_new(ctx->filter);
 		gf_filter_pid_set_udta(pid, ctx);
 		gf_filter_pid_set_name(pid, "aout");
@@ -762,8 +768,6 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	GF_FilterSessionCaps sess_caps;
 	GF_Compositor *ctx = gf_filter_get_udta(filter);
 
-	ctx->magic = COMPOSITOR_MAGIC;
-	ctx->magic_ptr = (void *) ctx;
 	ctx->filter = filter;
 
 	if (gf_filter_is_dynamic(filter)) {
@@ -810,11 +814,11 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	if (ctx->player) {
 
 		//load audio filter chain, declaring audio output pid first
-		if (! (ctx->init_flags & (GF_TERM_NO_AUDIO|GF_TERM_NO_DEF_AUDIO_OUT)) ) {
+		if (!ctx->noaudio) {
 			GF_Filter *audio_out = gf_filter_load_filter(filter, "aout", &e);
 			ctx->audio_renderer->non_rt_output = 0;
 			if (!audio_out) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Terminal] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load audio output filter (%s) - audio disabled\n", gf_error_to_string(e) ));
 			}
 //			else {
 //				gf_filter_reconnect_output(filter);
@@ -839,15 +843,16 @@ static GF_Err compose_initialize(GF_Filter *filter)
 
 	gf_filter_set_event_target(filter, GF_TRUE);
 	if (ctx->player==2) {
-		const char *gui_path = gf_opts_get_key("General", "StartupFile");
+		const char *gui_path = gf_opts_get_key("core", "startup-file");
 		if (gui_path) {
-			gf_sc_connect_from_time_ex(ctx, gui_path, 0, 0, 0, NULL);
-			gf_opts_set_key("temp", "gui_load_url", ctx->src);
+			gf_sc_connect_from_time(ctx, gui_path, 0, 0, 0, NULL);
+			if (ctx->src)
+				gf_opts_set_key("temp", "gui_load_urls", ctx->src);
 		}
 	}
 	//src set, connect it (whether player mode or not)
 	else if (ctx->src) {
-		gf_sc_connect_from_time_ex(ctx, ctx->src, 0, 0, 0, NULL);
+		gf_sc_connect_from_time(ctx, ctx->src, 0, 0, 0, NULL);
 	}
 	return GF_OK;
 }

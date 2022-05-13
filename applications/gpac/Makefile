@@ -41,9 +41,14 @@ endif
 
 
 #common objs - insert after ../static if any to overwrite list of objects
-OBJS= main.o
+OBJS=gpac.o compositor_tools.o gpac_help.o
 
 SRCS := $(OBJS:.o=.c)
+
+ifeq ($(CONFIG_DARWIN),yes)
+OBJS+= carbon_hook.o
+LDFLAGS += -framework Carbon
+endif
 
 ifeq ($(CONFIG_WIN32),yes)
 OBJS+=$(SRC_PATH)/manifest.o

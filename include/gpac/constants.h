@@ -1664,7 +1664,6 @@ enum
 	GF_PROJ360_MESH
 };
 
-
 /*! @} */
 
 #ifdef __cplusplus

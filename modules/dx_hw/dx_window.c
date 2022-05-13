@@ -25,7 +25,6 @@
 
 
 #include "dx_hw.h"
-#include <gpac/user.h>
 #include <gpac/utf.h>
 #include "resource.h"
 
@@ -677,7 +676,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	memset(&wc, 0, sizeof(WNDCLASS));
 #ifndef _WIN32_WCE
 	wc.style = CS_BYTEALIGNWINDOW;
-	wc.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(IDI_OSMO_ICON) );
+	wc.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(IDI_GPAC_ICON) );
 #ifdef UNICODE
 	wc.lpszClassName = L"GPAC DirectDraw Output";
 #else
@@ -694,20 +693,20 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 
 	flags = ctx->switch_res;
 	ctx->switch_res = GF_FALSE;
-	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
+	ctx->force_alpha = (flags & GF_VOUT_WINDOW_NO_DECORATION) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->os_hwnd) {
 #ifndef _WIN32_WCE
 		u32 styles;
 #endif
-		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = GF_TRUE;
+		if (flags & GF_VOUT_WINDOWLESS) ctx->windowless = GF_TRUE;
 
 
 #ifdef _WIN32_WCE
 		ctx->os_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
 
-		if (flags & GF_TERM_WINDOW_NO_DECORATION) {
+		if (flags & GF_VOUT_WINDOW_NO_DECORATION) {
 			styles = WS_POPUP | WS_THICKFRAME;
 		} else if (ctx->windowless) {
 			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_POPUP;
@@ -727,7 +726,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		}
 		DragAcceptFiles(ctx->os_hwnd, TRUE);
 
-		if (flags & GF_TERM_INIT_HIDE) {
+		if (flags & GF_VOUT_INIT_HIDE) {
 			ShowWindow(ctx->os_hwnd, SW_HIDE);
 		} else {
 			SetForegroundWindow(ctx->os_hwnd);
@@ -843,7 +842,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 
 	if (ctx->os_hwnd) {
 		/*override window proc*/
-		if (!(flags & GF_TERM_NO_WINDOWPROC_OVERRIDE) ) {
+		if (!(flags & GF_VOUT_NO_WINDOWPROC_OVERRIDE) ) {
 #ifdef _WIN64
 			ctx->orig_wnd_proc = GetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC);
 			SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, (LONG_PTR) DD_WindowProc);
@@ -856,7 +855,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	}
 	ctx->switch_res = flags;
 
-	if (flags & GF_TERM_WINDOW_NO_THREAD) {
+	if (flags & GF_VOUT_WINDOW_NO_THREAD) {
 		DD_InitWindows(dr, ctx);
 	} else {
 		/*create event thread*/

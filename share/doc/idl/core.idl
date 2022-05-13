@@ -70,8 +70,8 @@ void prompt_echo_off(boolean echo_off);
 void prompt_code(unsigned long code);
 
 
-/*! gets stdin terminal size - see \ref gf_prompt_get_size
-\return terminal size object, or null if not available
+/*! gets stdin TTY size - see \ref gf_prompt_get_size
+\return TTY size object, or null if not available
 */
 WinRect prompt_size();
 
@@ -511,12 +511,12 @@ readonly unsigned long version_micro;
 
 };
 
-/*! object used for terminal size info - cannot be created through constructor*/
+/*! object used for TTY size info - cannot be created through constructor*/
 interface WinRect {
-/*! width of terminal in characters*/
+/*! width of TTY in characters*/
 attribute readonly unsigned long w;
 
-/*! height of terminal in characters*/
+/*! height of TTY in characters*/
 attribute readonly unsigned long h;
 };
 
