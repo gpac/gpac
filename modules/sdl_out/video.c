@@ -1006,10 +1006,13 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			ctx->last_mouse_move = SDL_GetTicks();
 			gpac_evt.type = GF_EVENT_MOUSEMOVE;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
 			if (ctx->low_dpi_w && ctx->low_dpi_h) {
 				gpac_evt.mouse.x = (u32) ( (u64) sdl_evt.motion.x * ctx->high_dpi_w / ctx->low_dpi_w);
 				gpac_evt.mouse.y = (u32) ( (u64) sdl_evt.motion.y * ctx->high_dpi_h / ctx->low_dpi_h);
-			} else {
+			} else
+#endif
+			{
 				gpac_evt.mouse.x = sdl_evt.motion.x;
 				gpac_evt.mouse.y = sdl_evt.motion.y;
 			}
@@ -1019,10 +1022,13 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			ctx->last_mouse_move = SDL_GetTicks();
+#if SDL_VERSION_ATLEAST(2,0,0)
 			if (ctx->low_dpi_w && ctx->low_dpi_h) {
 				gpac_evt.mouse.x = (u32) ( (u64) sdl_evt.motion.x * ctx->high_dpi_w / ctx->low_dpi_w);
 				gpac_evt.mouse.y = (u32) ( (u64) sdl_evt.motion.y * ctx->high_dpi_h / ctx->low_dpi_h);
-			} else {
+			} else
+#endif
+			{
 				gpac_evt.mouse.x = sdl_evt.motion.x;
 				gpac_evt.mouse.y = sdl_evt.motion.y;
 			}
@@ -1753,6 +1759,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	}
 		return GF_OK;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
 	case GF_EVENT_SET_ORIENTATION:
 	{
 		switch (evt->size.orientation) {
@@ -1766,6 +1773,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		}
 		return GF_OK;
 	}
+#endif
+
 	}
 	return GF_OK;
 }
