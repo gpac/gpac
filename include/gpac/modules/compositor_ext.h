@@ -31,9 +31,10 @@
 extern "C" {
 #endif
 
+#include <gpac/module.h>
 #include <gpac/compositor.h>
 
-/*interface name and version for Terminal Extensions services*/
+/*interface name and version for compositor extensions services*/
 #define GF_COMPOSITOR_EXT_INTERFACE		GF_4CC('C','O','X', '1')
 
 typedef struct _gf_compositor_ext GF_CompositorExt;
@@ -47,12 +48,12 @@ typedef struct {
 
 enum
 {
-	/*start terminal extension. If 0 is returned, the module will be unloaded
+	/*start extension. If 0 is returned, the module will be unloaded
 		associated param: GF_Compositor *compositor
 		@return: 1 if OK, 0 otherwise (in which case the extensions will be removed without calling stop)
 	*/
 	GF_COMPOSITOR_EXT_START = 1,
-	/*stop terminal extension
+	/*stop extension
 		associated param: NULL
 		@return: ignored
 	*/
@@ -80,7 +81,6 @@ enum
 	GF_COMPOSITOR_EXTENSION_JS = 1<<2,
 };
 
-
 struct _gf_compositor_ext
 {
 	/* interface declaration*/
@@ -89,8 +89,8 @@ struct _gf_compositor_ext
 	/*caps of the module*/
 	u32 caps;
 
-	/*terminal extension proc
-	 termext: pointer to the module
+	/*compositor extension proc
+	 comp_ext: pointer to the module
 	 action: action type of this call
 	 param: associated param of the call
 	*/

@@ -282,7 +282,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	}
 
 	memset(&b2v, 0, sizeof(BIFSVID));
-	user.init_flags = GF_TERM_NO_AUDIO;
+	user.init_flags = 0;
 	/* Initialization of the compositor */
 	b2v.sr = gf_sc_new(&user, 0, NULL);
 	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
@@ -492,7 +492,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 
 	needs_raw = 0;
-	user.init_flags = GF_TERM_NO_AUDIO | GF_TERM_FORCE_3D;
+	user.init_flags = 0;
 	b2v.sr = gf_sc_new(&user, 0, NULL);
 	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 

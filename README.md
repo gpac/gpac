@@ -70,17 +70,8 @@ MP4Box is a multi-purpose MP4 file manipulation for the prompt, featuring media 
 
 
 ## gpac 
-GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box and MP4Client.
+GPAC includes a filter engine in charge of stream management and used by most applications in GPAC - [read this post](https://wiki.gpac.io/Rearchitecture) for more discussion on how this impacts MP4Box.
 The gpac application is a direct interface to the filter engine of GPAC, allowing any combinaison of filters not enabled by other applications. See `gpac -h`, `man gpac`, `man gpac-filters` or [our wiki](https://wiki.gpac.io/Filters) for more details.
-
-## MP4Client (deprecated)
-MP4Client is a media player built upon libgpac, featuring a rich media interactive composition engine with MPEG-4 BIFS, SVG, VRML/X3D support.
-For GPAC configuration instruction, check `MP4Client -h` ,  `man MP4Client` or [our wiki](https://wiki.gpac.io/mp4client).
-
-__Warning__
-MP4Client is deprecated and will be removed in the next release. Start modifying your scripts:
-- replace `MP4Client URL` with `gpac -play URL` (audio/video playback only) or `gpac -mp4c URL` (if compositor is needed)
-- replace `MP4Client -gui URL` with `gpac -gui URL`.
 
 # Getting started
 ## Download
@@ -126,7 +117,7 @@ The v0.8.X release (the last one using the legacy architecture) is officially de
 
 ## V2.X
 Targets:
-- [ ] drop MP4Client and GF_Terminal API
+- [x] drop MP4Client/Osmo4 and GF_Terminal API
 - [ ] User authentication for HTTP and RTSP servers
 - [ ] DASH event support
 - [ ] Web integration (emscripten, Remotery UI)
@@ -135,5 +126,5 @@ Targets:
 - [ ] GUI cleanup ?
 - [ ] deprecate `:filemode` in ROUTE
 - [ ] support ClearKey Content Protection (CCP)
-- [ ] FFMPEG subtitle support
+- [x] FFMPEG subtitle support
 

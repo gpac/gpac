@@ -26,9 +26,6 @@
 
 #include "dx_hw.h"
 
-#include <gpac/user.h>
-
-
 #ifdef _WIN32_WCE
 #ifdef GPAC_USE_GLES1X
 #endif
@@ -474,7 +471,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	DDCONTEXT
 
 	if (dd->cur_hwnd) {
-		if (!(init_flags & GF_TERM_INIT_HIDE)) {
+		if (!(init_flags & GF_VOUT_INIT_HIDE)) {
 			ShowWindow(dd->cur_hwnd, SW_SHOW);
 		}
 		return GF_OK;

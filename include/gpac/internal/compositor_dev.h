@@ -35,7 +35,6 @@ extern "C" {
 /*bridge between the rendering engine and the systems media engine*/
 #include <gpac/mediaobject.h>
 #include <gpac/filters.h>
-#include <gpac/term_info.h>
 
 /*raster2D API*/
 #include <gpac/evg.h>
@@ -58,7 +57,9 @@ extern "C" {
 typedef struct _gf_scene GF_Scene;
 typedef struct _gf_addon_media GF_AddonMedia;
 typedef struct _object_clock GF_Clock;
-//typedef struct _od_manager GF_ObjectManager;
+
+/*! Media object manager*/
+typedef struct _od_manager GF_ObjectManager;
 
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt);
 
@@ -202,9 +203,6 @@ enum
 
 struct __tag_compositor
 {
-	u32 magic;	//must be "comp"
-	void *magic_ptr; //must point to this structure
-
 	u32 init_flags;
 	void *os_wnd;
 
@@ -310,6 +308,7 @@ struct __tag_compositor
 
 	/*display size*/
 	u32 display_width, display_height;
+	GF_DisplayOrientationType disp_ori;
 
 	/*visual output location on window (we may draw background color outside of it)
 		vp_x & vp_y: horizontal & vertical offset of the drawing area in the video output
@@ -704,7 +703,6 @@ struct __tag_compositor
 
 	Bool validator_mode;
 
-	//moved from old GF_Terminal
 	struct _gf_scene *root_scene;
 	Bool drop;
 	Bool sclock;
@@ -735,6 +733,10 @@ struct __tag_compositor
 	 */
 	GF_List *nodes_pending;
 	GF_List *extensions, *unthreaded_extensions;
+
+	u32 reload_state;
+	char *reload_url;
+
 };
 
 typedef struct
@@ -1599,7 +1601,7 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh);
 typedef struct
 {
 	void *udta;
-	/*called when new video frame is ready to be flushed on screen. time is the terminal global clock in ms*/
+	/*called when new video frame is ready to be flushed on screen. time is the compositor global clock in ms*/
 	void (*on_video_frame)(void *udta, u32 time);
 	/*called when video output has been resized*/
 	void (*on_video_reconfig)(void *udta, u32 width, u32 height, u8 bpp);
@@ -1837,7 +1839,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod);
 
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
-not root one. Returns 1 if handled (cf user.h, navigate event)*/
+not root one. Returns 1 if handled - cf \ref GF_EventNavigate*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 
@@ -2197,6 +2199,7 @@ struct _od_manager
 
 	Bool ignore_sys;
 	u64 last_filesize_signaled;
+	Bool too_slow;
 };
 
 GF_ObjectManager *gf_odm_new();
@@ -2466,26 +2469,23 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
 
 
-/*post extended user mouse interaction to terminal
+/*post extended user mouse interaction to compositor
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
 	@xxx_but_down: specify whether the mouse button is down(2) or up (1), 0 if unchanged
 	@wheel: specify current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
 */
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *event);
 
-/*post extended user key interaction to terminal
+/*post extended user key interaction to compositor
 	@key_code: GPAC DOM code of input key
 	@hw_code: hardware code of input key
 	@isKeyUp: set if key is released
 */
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, u32 hw_code, Bool isKeyUp);
 
-/*post extended user character interaction to terminal
+/*post extended user character interaction to compositor
 	@character: unicode character input
 */
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character);
 
 GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd);
@@ -2497,13 +2497,79 @@ void InitKeySensor(GF_Scene *scene, GF_Node *node);
 void InitStringSensor(GF_Scene *scene, GF_Node *node);
 
 
+/*! Media Object information*/
+typedef struct
+{
+	u32 ODID;
+	u32 ServiceID;
+	u32 pid_id, ocr_id;
+	Double duration;
+	Double current_time;
+	/*0: stopped, 1: playing, 2: paused, 3: not setup, 4; setup failed.*/
+	u32 status;
+
+	Bool raw_media;
+	Bool generated_scene;
+
+	/*name of module handling the service service */
+	const char *service_handler;
+	/*name of service*/
+	const char *service_url;
+	/*service redirect object*/
+	const char *remote_url;
+	/*set if the service is owned by this object*/
+	Bool owns_service;
+
+	/*stream buffer:
+		-2: stream is not playing
+		-1: stream has no buffering
+		>=0: amount of media data present in buffer, in ms
+	*/
+	s32 buffer;
+	u32 min_buffer, max_buffer;
+	/*number of AUs in DB (cumulated on all input channels)*/
+	u32 db_unit_count;
+	/*number of CUs in composition memory (if any) and CM capacity*/
+	u32 cb_unit_count, cb_max_count;
+	/*inidciate that thye composition memory is bypassed for this decoder (video only) */
+	Bool direct_video_memory;
+	/*clock delay in ms of object clock: this is the delay set by the audio renderer to keep AV in sync
+	and corresponds to the amount of ms to delay non-audio streams to keep sync*/
+	s32 clock_drift;
+	/*codec name*/
+	const char *codec_name;
+	/*object type - match streamType (cf constants.h)*/
+	u32 od_type;
+	/*audio properties*/
+	u32 sample_rate, afmt, num_channels;
+	/*video properties (w & h also used for scene codecs)*/
+	u32 width, height, pixelFormat, par;
+
+	/*average birate over last second and max bitrate over one second at decoder input according to media timeline - expressed in bits per sec*/
+	u32 avg_bitrate, max_bitrate;
+	/*average birate over last second and max bitrate over one second at decoder input according to processing time - expressed in bits per sec*/
+	u32 avg_process_bitrate, max_process_bitrate;
+	u32 nb_dec_frames, nb_dropped;
+	u32 first_frame_time, last_frame_time;
+	u64 total_dec_time, irap_total_dec_time;
+	u32 max_dec_time, irap_max_dec_time;
+	u32 au_duration;
+	u32 nb_iraps;
+	s32 ntp_diff;
+	//0 if mono, 2 or more otherwise
+	u32 nb_views;
+
+	/*4CC of original protection scheme used*/
+	u32 protection;
+
+	u32 lang;
+	const char *lang_code;
+
+	/*name of media if not defined in OD framework*/
+	const char *media_url;
+} GF_MediaInfo;
+//todo deprecate ?
 GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info);
-
-
-
-void gf_sc_connect_from_time_ex(GF_Compositor *compositor, const char *URL, u64 startTime, u32 pause_at_first_frame, Bool secondary_scene, const char *parent_path);
-
-void gf_sc_disconnect(GF_Compositor *compositor);
 
 
 /*restart object and takes care of media control/clock dependencies*/

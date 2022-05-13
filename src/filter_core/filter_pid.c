@@ -651,6 +651,35 @@ static void gf_filter_pid_inst_swap(GF_Filter *filter, GF_FilterPidInst *dst)
 	}
 }
 
+//check all packets scheduled on main thread, unflag dest filter nb_main_thread_forced and set dest to NULL
+//we must do that because the packets may be destroyed after the pid instance is detached
+//so the destination filter would be NULL by then
+void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
+{
+	u32 i, count;
+	if (!pidinst->filter) return;
+
+	count = gf_fq_count(pidinst->packets);
+	for (i=0; i<count; i++) {
+		GF_FilterPacketInstance *pcki = gf_fq_get(pidinst->packets, i);
+		if (!pcki) break;
+		if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
+			assert(pidinst->filter->nb_main_thread_forced);
+			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
+		}
+	}
+	count = gf_list_count(pidinst->pck_reassembly);
+	for (i=0; i<count; i++) {
+		GF_FilterPacketInstance *pcki = gf_list_get(pidinst->pck_reassembly, i);
+		if (!pcki) break;
+		if (pcki->pck->info.flags & GF_PCKF_FORCE_MAIN) {
+			assert(pidinst->filter->nb_main_thread_forced);
+			safe_int_dec(&pidinst->filter->nb_main_thread_forced);
+		}
+	}
+	pidinst->filter = NULL;
+}
+
 static void task_canceled(GF_FSTask *task)
 {
 
@@ -832,7 +861,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		//detach filter from pid instance
-		pidinst->filter = NULL;
+		gf_filter_instance_detach_pid(pidinst);
 		gf_mx_v(pidinst->pid->filter->tasks_mx);
 
 		//if connect and error, direct delete of pid
@@ -1030,7 +1059,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 		pidinst->pid->num_pidinst_del_pending ++;
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
 		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
-		pidinst->filter = NULL;
+		gf_filter_instance_detach_pid(pidinst);
 		gf_mx_v(pidinst->pid->filter->tasks_mx);
 
 		//disconnected the last input, flag as removed
@@ -4132,7 +4161,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	//swap pid is pending on the possible destination filter
 	if (filter->swap_pidinst_src || filter->swap_pidinst_dst) {
 		task->requeue_request = GF_TRUE;
-		task->can_swap = GF_TRUE;
+		task->can_swap = 1;
 		return;
 	}
 	if (filter->caps_negociate) {
@@ -6098,10 +6127,12 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (pck->pid_props)
 		timescale = pck->pid_props->timescale;
 
-	if (pck->info.flags & GF_PCKF_FORCE_MAIN) {
+	//if not detached, undo main_thread flag - cf gf_filter_instance_detach_pid
+	if (pidinst->filter && (pck->info.flags & GF_PCKF_FORCE_MAIN)) {
 		assert(pidinst->filter->nb_main_thread_forced);
 		safe_int_dec(&pidinst->filter->nb_main_thread_forced);
 	}
+
 	gf_filter_pidinst_update_stats(pidinst, pck);
 	if (timescale && (pck->info.cts!=GF_FILTER_NO_TS)) {
 		pidinst->last_ts_drop.num = pck->info.cts;
@@ -6718,7 +6749,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	//if some pids are still detached, wait for the connection before processing this event
 	if (f->detached_pid_inst) {
 		TASK_REQUEUE(task)
-		task->can_swap = GF_TRUE;
+		task->can_swap = 1;
 		return;
 	}
 
@@ -6888,6 +6919,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		Bool do_reset = GF_TRUE;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
 		GF_FilterPid *pid = p->pid;
+		gf_mx_p(pid->filter->tasks_mx);
 		//we need to force a PID reset when the first PLAY is > 0, since some filters may have dispatched packets during the initialization
 		//phase
 		if (evt->base.type==GF_FEVT_PLAY) {
@@ -6923,13 +6955,18 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 			assert(pid->discard_input_packets);
 
+			gf_mx_v(pid->filter->tasks_mx);
+
 			//post task on destination filter
 			if (evt->base.type==GF_FEVT_STOP)
 				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_stop_task, pidi->filter, NULL, "reset_stop_pid", pidi);
 			else
 				gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
+
+			gf_mx_p(pid->filter->tasks_mx);
 		}
 		pid->nb_reaggregation_pending = 0;
+		gf_mx_v(pid->filter->tasks_mx);
 	}
 	
 	gf_mx_p(f->tasks_mx);

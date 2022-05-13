@@ -24,7 +24,6 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
-#include <gpac/options.h>
 #include <gpac/utf.h>
 #include <gpac/modules/hardcoded_proto.h>
 #include <gpac/modules/compositor_ext.h>
@@ -667,7 +666,7 @@ static GF_Err gf_sc_load_driver(GF_Compositor *compositor)
 		return GF_IO_ERR;
 	}
 
-	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	sOpt = gf_opts_get_key("temp", "window-display");
 	if (sOpt) sscanf(sOpt, "%p", &os_disp);
 
 	compositor->video_out->evt_cbk_hdl = compositor;
@@ -738,13 +737,10 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	compositor->init_flags = 0;
 	compositor->os_wnd = NULL;
-	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	sOpt = gf_opts_get_key("temp", "window-handle");
 	if (sOpt) sscanf(sOpt, "%p", &compositor->os_wnd);
-	sOpt = gf_opts_get_key("Temp", "InitFlags");
+	sOpt = gf_opts_get_key("temp", "window-flags");
 	if (sOpt) compositor->init_flags = atoi(sOpt);
-
-	if (compositor->noaudio)
-		compositor->init_flags |= GF_TERM_NO_AUDIO;
 
 	/*force initial for 2D/3D setup*/
 	compositor->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
@@ -756,13 +752,15 @@ GF_Err gf_sc_load(GF_Compositor *compositor)
 	}
 
 	if (!compositor->player)
-		compositor->init_flags = GF_TERM_INIT_HIDE;
+		compositor->init_flags = GF_VOUT_INIT_HIDE;
 
 	if (gf_opts_get_key("temp", "gpac-help")) {
-		compositor->init_flags |= GF_TERM_NO_VIDEO | GF_TERM_NO_AUDIO;
+		gf_opts_set_key("temp", "no-video", "yes");
+		compositor->noaudio = GF_TRUE;
 	}
 
-	if (compositor->init_flags & GF_TERM_NO_VIDEO) {
+	//used for GUI help and in bench mode without vout
+	if (gf_opts_get_bool("temp", "no-video")) {
 		compositor->video_out = &null_vout;
 		compositor->ogl = GF_SC_GLMODE_OFF;
 	} else if (compositor->player || (compositor->drv==GF_SC_DRV_ON)  || (compositor->ogl==GF_SC_GLMODE_HYBRID) ){
@@ -1061,6 +1059,7 @@ void gf_sc_unload(GF_Compositor *compositor)
 
 	gf_sc_lock(compositor, GF_FALSE);
 	gf_mx_del(compositor->mx);
+	if (compositor->reload_url) gf_free(compositor->reload_url);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));
 }
 
@@ -1334,7 +1333,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 
 		/*default back color is black*/
-		if (! (compositor->init_flags & GF_TERM_WINDOWLESS)) {
+		if (! (compositor->init_flags & GF_VOUT_WINDOWLESS)) {
 			if (compositor->bc) {
 				compositor->back_color = compositor->bc;
 			} else {
@@ -1360,7 +1359,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 				vb = info.far_ptr;
 		}
 		/*default back color is white*/
-		if (is_svg && ! (compositor->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
+		if (is_svg && ! (compositor->init_flags & GF_VOUT_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
 
 		/*hack for SVG where size is set in % - negotiate a canvas size*/
 		if (!compositor->has_size_info && w && h && vb) {
@@ -1394,7 +1393,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		}
 
 		/*default back color is key color*/
-		if (compositor->init_flags & GF_TERM_WINDOWLESS) {
+		if (compositor->init_flags & GF_VOUT_WINDOWLESS) {
 			if (compositor->ckey) compositor->back_color = compositor->ckey;
 		}
 
@@ -1636,8 +1635,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 0);
 }
 
+static void gf_sc_set_play_state_internal(GF_Compositor *compositor, u32 PlayState, Bool reset_audio, Bool pause_clocks);
+
 GF_EXPORT
-GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
+GF_Err gf_sc_set_option(GF_Compositor *compositor, GF_CompositorOption type, u32 value)
 {
 	GF_Err e;
 	gf_sc_lock(compositor, 1);
@@ -1850,6 +1851,14 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->multiview_mode = value;
 		break;
 
+	case GF_OPT_HTTP_MAX_RATE:
+	{
+		GF_DownloadManager *dm = gf_filter_get_download_manager(compositor->filter);
+		if (!dm) return GF_SERVICE_ERROR;
+		gf_dm_set_data_rate(dm, value);
+		e = GF_OK;
+		break;
+	}
 
 	default:
 		e = GF_BAD_PARAM;
@@ -1904,7 +1913,7 @@ Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 }
 
 GF_EXPORT
-u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
+u32 gf_sc_get_option(GF_Compositor *compositor, GF_CompositorOption type)
 {
 	switch (type) {
 	case GF_OPT_PLAY_STATE:
@@ -2035,6 +2044,7 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 	return e;
 }
 
+GF_EXPORT
 GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 view_idx, GF_CompositorGrabMode depth_dump_mode)
 {
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
@@ -2455,6 +2465,23 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 		/*remove the use flag*/
 		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
+}
+
+GF_EXPORT
+void gf_sc_invalidate_next_frame(GF_Compositor *compositor)
+{
+	if (compositor) {
+		//force frame draw type
+		compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+		//reset frame produced flag and run until it is set (backbuffer ready to be swapped)
+		compositor->frame_was_produced = GF_FALSE;
+	}
+}
+
+GF_EXPORT
+Bool gf_sc_frame_was_produced(GF_Compositor *compositor)
+{
+	return compositor ? compositor->frame_was_produced : GF_TRUE;
 }
 
 
@@ -2914,7 +2941,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		flush_time = gf_sys_clock();
 #endif
 
-		if (compositor->init_flags & GF_TERM_INIT_HIDE)
+		if (compositor->init_flags & GF_VOUT_INIT_HIDE)
 			compositor->skip_flush = 1;
 
 		//new frame generated, emit packet
@@ -3399,8 +3426,17 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
+	//special case for gui, we may get the callback before the script is initialized even of the scene is created
+	//so we always store it in the config file
+	if ((!compositor || (compositor->player==2)) && (event->type==GF_EVENT_NAVIGATE)) {
+		gf_opts_set_key("temp", "gui_load_urls", event->navigate.to_url);
+		if (compositor && !compositor->root_scene) return GF_FALSE;
+	}
 	/*not assigned yet*/
-	if (!compositor || !compositor->visual || compositor->discard_input_events) return GF_FALSE;
+	if (!compositor || !compositor->visual || compositor->discard_input_events) {
+		return GF_FALSE;
+	}
+
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
@@ -3481,6 +3517,21 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			} else {
 				/*remove pending resize notif but not resize requests*/
 				compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
+			}
+			if (compositor->disp_ori != event->size.orientation) {
+				u32 i;
+				compositor->disp_ori = event->size.orientation;
+				for (i=0; i<gf_list_count(compositor->textures); i++) {
+					GF_TextureHandler *txh = gf_list_get(compositor->textures, i);
+					if (!txh || !txh->stream || !txh->stream->odm || !txh->stream->width) continue;
+					gf_mo_update_caps_ex(txh->stream, GF_FALSE);
+					if (txh->stream->odm->parentscene
+						&& txh->stream->odm->parentscene->is_dynamic_scene
+						&& (txh->stream->odm->state==GF_ODM_STATE_PLAY)
+					) {
+						gf_scene_force_size_to_video(txh->stream->odm->parentscene, txh->stream);
+					}
+				}
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}
@@ -3794,7 +3845,7 @@ Bool gf_sc_pick_in_clipper(GF_TraverseState *tr_state, GF_Rect *clip)
 	return GF_TRUE;
 }
 
-
+GF_EXPORT
 Bool gf_sc_has_text_selection(GF_Compositor *compositor)
 {
 	return (compositor->store_text_state==GF_SC_TSEL_FROZEN) ? GF_TRUE : GF_FALSE;
@@ -4149,4 +4200,871 @@ Bool gf_sc_check_gl_support(GF_Compositor *compositor)
 	return GF_TRUE;
 #endif
 
+}
+
+GF_EXPORT
+u32 gf_sc_get_time_in_ms(GF_Compositor *sc)
+{
+	if (!sc || !sc->root_scene) return 0;
+	GF_Clock *ck = sc->root_scene->root_od->ck;
+	if (!ck) return 0;
+	return (u32) gf_clock_media_time(ck);
+}
+
+GF_EXPORT
+void gf_sc_switch_quality(GF_Compositor *compositor, Bool up)
+{
+	if (compositor)
+		gf_scene_switch_quality(compositor->root_scene, up);
+}
+
+GF_EXPORT
+void gf_sc_toggle_addons(GF_Compositor *compositor, Bool show_addons)
+{
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->is_dynamic_scene) return;
+#ifndef GPAC_DISABLE_VRML
+	gf_scene_toggle_addons(compositor->root_scene, show_addons);
+#endif
+}
+
+#include <gpac/avparse.h>
+
+GF_EXPORT
+GF_Err gf_sc_set_speed(GF_Compositor *compositor, Fixed speed)
+{
+	GF_Fraction fps;
+	u32 i, j;
+	GF_SceneNamespace *ns;
+	Bool restart = 0;
+	if (!compositor || !speed) return GF_BAD_PARAM;
+
+	u32 scene_time = gf_sc_get_time_in_ms(compositor);
+	if (speed<0) {
+		i=0;
+		while ( (ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i)) ) {
+			u32 k=0;
+			GF_ObjectManager *odm;
+			if (!ns->owner || !ns->owner->subscene) continue;
+
+			while ( (odm = gf_list_enum(ns->owner->subscene->resources, &k))) {
+				const GF_PropertyValue *p = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_PLAYBACK_MODE);
+				if (!p || (p->value.uint!=GF_PLAYBACK_MODE_REWIND))
+					return GF_NOT_SUPPORTED;
+			}
+		}
+	}
+
+	/*adjust all clocks on all services, if possible*/
+	i=0;
+	while ( (ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i)) ) {
+		GF_Clock *ck;
+		ns->set_speed = speed;
+		j=0;
+		while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j)) ) {
+			//we will have to reissue a PLAY command since playback direction changed
+			if ( gf_mulfix(ck->speed,speed) < 0)
+				restart = 1;
+			gf_clock_set_speed(ck, speed);
+
+			if (ns->owner) {
+				gf_odm_set_speed(ns->owner, speed, GF_FALSE);
+				if (ns->owner->subscene) {
+					u32 k=0;
+					GF_ObjectManager *odm;
+					GF_Scene *scene = ns->owner->subscene;
+					while ( (odm = gf_list_enum(scene->resources, &k))) {
+						gf_odm_set_speed(odm, speed, GF_FALSE);
+					}
+				}
+			}
+		}
+	}
+
+	if (restart) {
+		if (compositor->root_scene->is_dynamic_scene) {
+			gf_scene_restart_dynamic(compositor->root_scene, scene_time, 0, 0);
+		}
+	}
+
+	if (speed<0)
+		speed = -speed;
+
+	fps = compositor->fps;
+	if (fps.den<1000) {
+		fps.num = fps.num * (u32) (1000 * FIX2FLT(speed));
+		fps.den *= 1000;
+	} else {
+		fps.num = (u32) (fps.num * FIX2FLT(speed));
+	}
+	gf_media_get_reduced_frame_rate(&fps.num, &fps.den);
+	gf_sc_set_fps(compositor, fps);
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_sc_is_supported_url(GF_Compositor *compositor, const char *fileName, Bool use_parent_url)
+{
+	char *parent_url = NULL;
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->root_od || !compositor->root_scene->root_od->scene_ns)
+		return GF_FALSE;
+
+	if (use_parent_url)
+		parent_url = compositor->root_scene->root_od->scene_ns->url;
+	return gf_filter_is_supported_source(compositor->filter, fileName, parent_url);
+}
+
+#include <gpac/network.h>
+/*get rendering option*/
+static u32 gf_sc_get_option_internal(GF_Compositor *compositor, u32 type)
+{
+	if (!compositor) return 0;
+	switch (type) {
+	case GF_OPT_HAS_JAVASCRIPT:
+		return gf_sg_has_scripting();
+	case GF_OPT_IS_FINISHED:
+		return gf_sc_check_end_of_scene(compositor, 0);
+	case GF_OPT_IS_OVER:
+		return gf_sc_check_end_of_scene(compositor, 1);
+	case GF_OPT_MAIN_ADDON:
+		return compositor->root_scene ? compositor->root_scene->main_addon_selected : 0;
+
+	case GF_OPT_PLAY_STATE:
+		if (compositor->step_mode) return GF_STATE_STEP_PAUSE;
+		if (compositor->root_scene) {
+			GF_Clock *ck = compositor->root_scene->root_od->ck;
+			if (!ck) return GF_STATE_PAUSED;
+
+//			if (ck->Buffering) return GF_STATE_PLAYING;
+		}
+		if (compositor->play_state != GF_STATE_PLAYING) return GF_STATE_PAUSED;
+		return GF_STATE_PLAYING;
+	case GF_OPT_CAN_SELECT_STREAMS:
+		return (compositor->root_scene && compositor->root_scene->is_dynamic_scene) ? 1 : 0;
+	case GF_OPT_HTTP_MAX_RATE:
+	{
+		GF_DownloadManager *dm = gf_filter_get_download_manager(compositor->filter);
+		if (!dm) return 0;
+		return gf_dm_get_data_rate(dm);
+	}
+	case GF_OPT_VIDEO_BENCH:
+		return compositor->bench_mode ? GF_TRUE : GF_FALSE;
+	case GF_OPT_ORIENTATION_SENSORS_ACTIVE:
+		return compositor->orientation_sensors_active;
+	default:
+		return gf_sc_get_option(compositor, type);
+	}
+}
+
+GF_EXPORT
+void gf_sc_navigate_to(GF_Compositor *compositor, const char *toURL)
+{
+	if (!compositor) return;
+	if (!toURL && !compositor->root_scene) return;
+
+	if (compositor->reload_url) gf_free(compositor->reload_url);
+	compositor->reload_url = NULL;
+
+	if (toURL) {
+		if (compositor->root_scene && compositor->root_scene->root_od && compositor->root_scene->root_od->scene_ns)
+			compositor->reload_url = gf_url_concatenate(compositor->root_scene->root_od->scene_ns->url, toURL);
+		if (!compositor->reload_url) compositor->reload_url = gf_strdup(toURL);
+	}
+	compositor->reload_state = 1;
+}
+
+
+static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, Bool force_resume_pause)
+{
+	/*only play/pause if connected*/
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->root_od) return GF_BAD_PARAM;
+
+	if (ms_diff) {
+		u32 i, j;
+		GF_SceneNamespace *ns;
+		GF_Clock *ck;
+
+		if (compositor->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
+
+		gf_sc_lock(compositor, 1);
+		i = 0;
+		while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
+			j = 0;
+			while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j))) {
+				ck->init_timestamp += ms_diff;
+				ck->media_ts_orig += ms_diff;
+				ck->media_time_orig += ms_diff;
+				//make sure we don't touch clock while doing resume/pause below
+				if (force_resume_pause)
+					ck->nb_paused++;
+			}
+		}
+		compositor->step_mode = GF_TRUE;
+		compositor->use_step_mode = GF_TRUE;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+
+		//resume/pause to trigger codecs state change
+		if (force_resume_pause) {
+			mediacontrol_resume(compositor->root_scene->root_od, 0);
+			mediacontrol_pause(compositor->root_scene->root_od);
+
+			//release our safety
+			i = 0;
+			while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
+				j = 0;
+				while (ns->clocks && (ck = (GF_Clock *)gf_list_enum(ns->clocks, &j))) {
+					ck->nb_paused--;
+				}
+			}
+		}
+
+		gf_sc_lock(compositor, 0);
+
+	}
+	return GF_OK;
+}
+
+
+static void gf_sc_set_play_state_internal(GF_Compositor *compositor, u32 PlayState, Bool reset_audio, Bool pause_clocks)
+{
+	Bool resume_live = 0;
+	u32 prev_state;
+
+	/*only play/pause if connected*/
+	if (!compositor || !compositor->root_scene) return;
+
+	prev_state = compositor->play_state;
+	compositor->use_step_mode = GF_FALSE;
+
+	if (PlayState==GF_STATE_PLAY_LIVE) {
+		PlayState = GF_STATE_PLAYING;
+		resume_live = 1;
+		if (compositor->play_state == GF_STATE_PLAYING) {
+			compositor->play_state = GF_STATE_PAUSED;
+			mediacontrol_pause(compositor->root_scene->root_od);
+		}
+	}
+
+	/*and if not already paused/playing*/
+	if ((compositor->play_state == GF_STATE_PLAYING) && (PlayState == GF_STATE_PLAYING)) return;
+	if ((compositor->play_state != GF_STATE_PLAYING) && (PlayState == GF_STATE_PAUSED)) return;
+
+	/*pause compositor*/
+	if ((PlayState==GF_STATE_PLAYING) && reset_audio)
+		gf_sc_set_option(compositor, GF_OPT_PLAY_STATE, 0xFF);
+	else
+		gf_sc_set_option(compositor, GF_OPT_PLAY_STATE, PlayState);
+
+	/* step mode specific */
+	if (PlayState==GF_STATE_STEP_PAUSE) {
+		if (prev_state==GF_STATE_PLAYING) {
+			mediacontrol_pause(compositor->root_scene->root_od);
+			compositor->play_state = GF_STATE_PAUSED;
+		} else {
+			u32 diff=1;
+			if (compositor->ms_until_next_frame>0) diff = compositor->ms_until_next_frame;
+			gf_sc_step_clocks_intern(compositor, diff, GF_TRUE);
+		}
+		return;
+	}
+
+	/* nothing to change*/
+	if (compositor->play_state == PlayState) return;
+	compositor->play_state = PlayState;
+
+	if (compositor->root_scene->first_frame_pause_type && (PlayState == GF_STATE_PLAYING))
+		compositor->root_scene->first_frame_pause_type = 0;
+
+	if (!pause_clocks) return;
+
+	if (PlayState != GF_STATE_PLAYING) {
+		mediacontrol_pause(compositor->root_scene->root_od);
+	} else {
+		mediacontrol_resume(compositor->root_scene->root_od, resume_live);
+	}
+
+}
+
+
+
+GF_EXPORT
+u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_first_frame)
+{
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->root_od) return 0;
+	if (compositor->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) return 1;
+
+	if (pause_at_first_frame==2) {
+		if (gf_sc_get_option_internal(compositor, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
+			pause_at_first_frame = 1;
+		else
+			pause_at_first_frame = 0;
+	}
+
+	/*for dynamic scene OD resources are static and all object use the same clock, so don't restart the root
+	OD, just act as a mediaControl on all playing streams*/
+	if (compositor->root_scene->is_dynamic_scene) {
+
+		/*exit pause mode*/
+		gf_sc_set_play_state_internal(compositor, GF_STATE_PLAYING, 1, 1);
+
+		if (pause_at_first_frame)
+			gf_sc_set_play_state_internal(compositor, GF_STATE_STEP_PAUSE, 0, 0);
+
+		gf_sc_lock(compositor, 1);
+		gf_scene_restart_dynamic(compositor->root_scene, from_time, 0, 0);
+		gf_sc_lock(compositor, 0);
+		return 2;
+	}
+
+	/*pause everything*/
+	gf_sc_set_play_state_internal(compositor, GF_STATE_PAUSED, 0, 1);
+	/*stop root*/
+	gf_odm_stop(compositor->root_scene->root_od, 1);
+	gf_scene_disconnect(compositor->root_scene, 0);
+
+	compositor->root_scene->root_od->media_start_time = from_time;
+
+	gf_odm_start(compositor->root_scene->root_od);
+	gf_sc_set_play_state_internal(compositor, GF_STATE_PLAYING, 0, 1);
+	if (pause_at_first_frame)
+		gf_sc_set_option(compositor, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+	return 2;
+}
+
+GF_EXPORT
+void gf_sc_connect_from_time(GF_Compositor *compositor, const char *URL, u64 startTime, u32 pause_at_first_frame, Bool secondary_scene, const char *parent_path)
+{
+	GF_Scene *scene;
+	GF_ObjectManager *odm;
+	Bool is_self = GF_FALSE;
+	if (!URL || !strlen(URL))
+		is_self = GF_TRUE;
+
+	if (compositor->root_scene) {
+		if (is_self && !compositor->root_scene->root_od->ck) {
+			odm = compositor->root_scene->root_od;
+			odm->media_start_time = startTime;
+			/*render first visual frame and pause*/
+			if (pause_at_first_frame) {
+				gf_sc_set_play_state_internal(compositor, GF_STATE_STEP_PAUSE, 0, 0);
+				compositor->root_scene->first_frame_pause_type = pause_at_first_frame;
+			}
+			return;
+		}
+
+		if (compositor->root_scene->root_od && compositor->root_scene->root_od->scene_ns) {
+			const char *main_url = compositor->root_scene->root_od->scene_ns->url;
+			if (is_self || (main_url && !strcmp(main_url, URL))) {
+				gf_sc_play_from_time(compositor, startTime, pause_at_first_frame);
+				return;
+			}
+		}
+		if (is_self) return;
+		
+		/*disconnect*/
+		gf_sc_disconnect(compositor);
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Connecting to %s\n", URL));
+
+	assert(!compositor->root_scene);
+
+	/*create a new scene*/
+	scene = gf_scene_new(compositor, NULL);
+	odm = gf_odm_new();
+	scene->root_od = odm;
+	odm->subscene = scene;
+	//by default all scenes are dynamic, until we get a BIFS attached
+	scene->is_dynamic_scene = GF_TRUE;
+
+	odm->media_start_time = startTime;
+
+	// we are not in compositor:process at this point of time since the compositor thread drives the compositor
+	compositor->root_scene = scene;
+
+	/*render first visual frame and pause*/
+	if (pause_at_first_frame) {
+		gf_sc_set_play_state_internal(compositor, GF_STATE_STEP_PAUSE, 0, 0);
+		scene->first_frame_pause_type = pause_at_first_frame;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] root scene created\n", URL));
+
+	if (!strnicmp(URL, "views://", 8)) {
+		gf_scene_generate_views(compositor->root_scene, (char *) URL+8, (char*)parent_path);
+		return;
+	}
+	else if (!strnicmp(URL, "mosaic://", 9)) {
+		gf_scene_generate_mosaic(compositor->root_scene, (char *) URL+9, (char*)parent_path);
+		return;
+	}
+
+	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path, NULL);
+}
+
+GF_EXPORT
+void gf_sc_disconnect(GF_Compositor *compositor)
+{
+	/*resume*/
+	if (compositor->play_state != GF_STATE_PLAYING) gf_sc_set_play_state_internal(compositor, GF_STATE_PLAYING, 1, 1);
+
+	if (compositor->root_scene && compositor->root_scene->root_od) {
+		GF_ObjectManager *root = compositor->root_scene->root_od;
+		gf_sc_lock(compositor, GF_TRUE);
+		compositor->root_scene = NULL;
+		gf_odm_disconnect(root, 2);
+		gf_sc_lock(compositor, GF_FALSE);
+	}
+}
+
+
+#include <gpac/scene_manager.h>
+
+static Bool check_in_scene(GF_Scene *scene, GF_ObjectManager *odm)
+{
+	u32 i;
+	GF_ObjectManager *ptr, *root;
+	if (!scene) return 0;
+	root = scene->root_od;
+	if (odm == root) return 1;
+	scene = root->subscene;
+
+	i=0;
+	while ((ptr = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
+		if (ptr == odm) return 1;
+		if (check_in_scene(ptr->subscene, odm)) return 1;
+	}
+	return 0;
+}
+
+GF_EXPORT
+GF_Err gf_sc_dump_scene_ex(GF_Compositor *compositor, char *rad_name, char **filename, Bool xml_dump, Bool skip_protos, GF_ObjectManager *scene_od)
+{
+#ifndef GPAC_DISABLE_SCENE_DUMP
+	GF_SceneGraph *sg;
+	GF_ObjectManager *odm;
+	GF_SceneDumper *dumper;
+	GF_List *extra_graphs;
+	u32 mode;
+	u32 i;
+	char *ext;
+	GF_Err e;
+
+	if (!compositor || !compositor->root_scene) return GF_BAD_PARAM;
+	if (!scene_od) {
+		if (!compositor->root_scene) return GF_BAD_PARAM;
+		odm = compositor->root_scene->root_od;
+	} else {
+		odm = scene_od;
+		if (! check_in_scene(compositor->root_scene, scene_od))
+			odm = compositor->root_scene->root_od;
+	}
+
+	if (odm->subscene) {
+		if (!odm->subscene->graph) return GF_IO_ERR;
+		sg = odm->subscene->graph;
+		extra_graphs = odm->subscene->extra_scenes;
+	} else {
+		if (!odm->parentscene->graph) return GF_IO_ERR;
+		sg = odm->parentscene->graph;
+		extra_graphs = odm->parentscene->extra_scenes;
+	}
+
+	mode = xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT;
+	/*figure out best dump format based on extension*/
+	ext = odm->scene_ns ? gf_file_ext_start(odm->scene_ns->url) : NULL;
+	if (ext) {
+		char szExt[20];
+		strcpy(szExt, ext);
+		strlwr(szExt);
+		if (!strcmp(szExt, ".wrl")) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_VRML;
+		else if(!strncmp(szExt, ".x3d", 4) || !strncmp(szExt, ".x3dv", 5) ) mode = xml_dump ? GF_SM_DUMP_X3D_XML : GF_SM_DUMP_X3D_VRML;
+		else if(!strncmp(szExt, ".bt", 3) || !strncmp(szExt, ".xmt", 4) || !strncmp(szExt, ".mp4", 4) ) mode = xml_dump ? GF_SM_DUMP_XMTA : GF_SM_DUMP_BT;
+	}
+
+	dumper = gf_sm_dumper_new(sg, rad_name, GF_FALSE, ' ', mode);
+
+	if (!dumper) return GF_IO_ERR;
+	e = gf_sm_dump_graph(dumper, skip_protos, 0);
+	for (i = 0; i < gf_list_count(extra_graphs); i++) {
+		GF_SceneGraph *extra = (GF_SceneGraph *)gf_list_get(extra_graphs, i);
+		gf_sm_dumper_set_extra_graph(dumper, extra);
+		e = gf_sm_dump_graph(dumper, skip_protos, 0);
+	}
+#ifdef GPAC_ENABLE_COVERAGE
+	if (gf_sys_is_cov_mode()) {
+		gf_sm_dumper_set_extra_graph(dumper, NULL);
+		gf_sm_dump_get_name(dumper);
+	}
+#endif
+
+	if (filename) *filename = gf_strdup(gf_sm_dump_get_name(dumper));
+	gf_sm_dumper_del(dumper);
+	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+GF_EXPORT
+GF_Err gf_sc_dump_scene(GF_Compositor *compositor, char *rad_name, char **filename, Bool xml_dump, Bool skip_protos)
+{
+	return gf_sc_dump_scene_ex(compositor, rad_name, filename, xml_dump, skip_protos, NULL);
+}
+
+#include <gpac/internal/scenegraph_dev.h>
+
+GF_EXPORT
+GF_Err gf_sc_scene_update(GF_Compositor *compositor, char *type, char *com)
+{
+#ifndef GPAC_DISABLE_SMGR
+	GF_Err e;
+	GF_StreamContext *sc;
+	Bool is_xml = 0;
+	Double time = 0;
+	u32 i, tag;
+	GF_SceneLoader load;
+
+	if (!compositor || !com) return GF_BAD_PARAM;
+
+	if (type && (!stricmp(type, "application/ecmascript") || !stricmp(type, "js")) )  {
+#if defined(GPAC_HAS_QJS) && !defined(GPAC_DISABLE_SVG)
+		u32 tag;
+		GF_Node *root = gf_sg_get_root_node(compositor->root_scene->graph);
+		if (!root) return GF_BAD_PARAM;
+		tag = gf_node_get_tag(root);
+		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+			if (compositor->root_scene->graph->svg_js) {
+				GF_Err svg_exec_script(struct __tag_svg_script_ctx *svg_js, GF_SceneGraph *sg, const char *com);
+				return svg_exec_script(compositor->root_scene->graph->svg_js, compositor->root_scene->graph, (char *)com);
+			}
+			return GF_NOT_FOUND;
+		}
+		return GF_NOT_SUPPORTED;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
+	}
+
+	if (!type && !strncmp(com, "gpac ", 5)) {
+		com += 5;
+		//new add-on
+		if (compositor->root_scene && !strncmp(com, "add ", 4)) {
+			GF_AssociatedContentLocation addon_info;
+			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+			addon_info.external_URL = com + 4;
+			addon_info.timeline_id = -100;
+			gf_scene_register_associated_media(compositor->root_scene, &addon_info);
+			return GF_OK;
+		}
+		//new splicing add-on
+		if (compositor->root_scene && !strncmp(com, "splice ", 7)) {
+			char *sep;
+			Double start, end;
+			Bool is_pts = GF_FALSE;
+			GF_AssociatedContentLocation addon_info;
+			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+			com += 7;
+			if (!strnicmp(com, "pts ", 4)) {
+				is_pts = GF_TRUE;
+				com += 4;
+			}
+			sep = strchr(com, ':');
+			start = 0;
+			end = -1;
+			if (sep) {
+				sep[0]=0;
+				if (sscanf(com, "%lf-%lf", &start, &end) != 2) {
+					end = -1;
+					sscanf(com, "%lf", &start);
+				}
+				sep[0]=':';
+				addon_info.external_URL = sep+1;
+			}
+			//splice end, locate first splice with no end set and set it
+			else if (sscanf(com, "%lf", &end)==1) {
+				u32 count = gf_list_count(compositor->root_scene->declared_addons);
+				for (i=0; i<count; i++) {
+					GF_AddonMedia *addon = gf_list_get(compositor->root_scene->declared_addons, i);
+					if (addon->is_splicing && (addon->splice_end<0) ) {
+						addon->splice_end = end;
+						break;
+					}
+				}
+				return GF_OK;
+			} else {
+				//splice now, until end of spliced media
+				addon_info.external_URL = com;
+			}
+			addon_info.is_splicing = GF_TRUE;
+			addon_info.timeline_id = -100;
+			addon_info.splice_start_time = start;
+			addon_info.splice_end_time = end;
+			addon_info.splice_time_pts = is_pts;
+			gf_scene_register_associated_media(compositor->root_scene, &addon_info);
+			return GF_OK;
+		}
+		//select object
+		if (compositor->root_scene && !strncmp(com, "select ", 7)) {
+			u32 idx = atoi(com+7);
+			gf_scene_select_object(compositor->root_scene, gf_list_get(compositor->root_scene->resources, idx));
+			return GF_OK;
+		}
+		return GF_OK;
+	}
+
+	memset(&load, 0, sizeof(GF_SceneLoader));
+	load.localPath = gf_opts_get_key("core", "cache");
+	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
+	load.type = GF_SM_LOAD_BT;
+
+	if (!compositor->root_scene) {
+
+		/*create a new scene*/
+		compositor->root_scene = gf_scene_new(compositor, NULL);
+		compositor->root_scene->root_od = gf_odm_new();
+		compositor->root_scene->root_od->parentscene = NULL;
+		compositor->root_scene->root_od->subscene = compositor->root_scene;
+
+		load.ctx = gf_sm_new(compositor->root_scene->graph);
+	} else if (compositor->root_scene->root_od) {
+		u32 nb_ch = 0;
+		load.ctx = gf_sm_new(compositor->root_scene->graph);
+
+		if (compositor->root_scene->root_od->pid) nb_ch++;
+		if (compositor->root_scene->root_od->extra_pids) nb_ch += gf_list_count(compositor->root_scene->root_od->extra_pids);
+		for (i=0; i<nb_ch; i++) {
+			u32 stream_type, es_id, oti;
+			const GF_PropertyValue *p;
+			GF_FilterPid *pid = compositor->root_scene->root_od->pid;
+			if (i) {
+				GF_ODMExtraPid *xpid = gf_list_get(compositor->root_scene->root_od->extra_pids, i-1);
+				pid = xpid->pid;
+			}
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+			if (!p) continue;
+			stream_type = p->value.uint;
+			switch (stream_type) {
+			case GF_STREAM_OD:
+			case GF_STREAM_SCENE:
+			case GF_STREAM_PRIVATE_SCENE:
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+				if (!p)
+					p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+				es_id = p ? p->value.uint : 0;
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
+				oti = p ? p->value.uint : 1;
+
+				sc = gf_sm_stream_new(load.ctx, es_id, stream_type, oti);
+				if (stream_type==GF_STREAM_PRIVATE_SCENE) sc->streamType = GF_STREAM_SCENE;
+				p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+				sc->timeScale = p ? p->value.uint : 1000;
+				break;
+			}
+		}
+	} else {
+		return GF_BAD_PARAM;
+	}
+	load.ctx->max_node_id = gf_sg_get_max_node_id(compositor->root_scene->graph);
+
+	i=0;
+	while ((com[i] == ' ') || (com[i] == '\r') || (com[i] == '\n') || (com[i] == '\t')) i++;
+	if (com[i]=='<') is_xml = 1;
+
+	load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
+	time = gf_scene_get_time(compositor->root_scene);
+
+
+	if (type && (!stricmp(type, "application/x-laser+xml") || !stricmp(type, "laser"))) {
+		load.type = GF_SM_LOAD_XSR;
+		time = gf_scene_get_time(compositor->root_scene);
+	}
+	else if (type && (!stricmp(type, "image/svg+xml") || !stricmp(type, "svg")) ) {
+		load.type = GF_SM_LOAD_XSR;
+		time = gf_scene_get_time(compositor->root_scene);
+	}
+	else if (type && (!stricmp(type, "model/x3d+xml") || !stricmp(type, "x3d")) ) load.type = GF_SM_LOAD_X3D;
+	else if (type && (!stricmp(type, "model/x3d+vrml") || !stricmp(type, "x3dv")) ) load.type = GF_SM_LOAD_X3DV;
+	else if (type && (!stricmp(type, "model/vrml") || !stricmp(type, "vrml")) ) load.type = GF_SM_LOAD_VRML;
+	else if (type && (!stricmp(type, "application/x-xmt") || !stricmp(type, "xmt")) ) load.type = GF_SM_LOAD_XMTA;
+	else if (type && (!stricmp(type, "application/x-bt") || !stricmp(type, "bt")) ) load.type = GF_SM_LOAD_BT;
+	else if (gf_sg_get_root_node(compositor->root_scene->graph)) {
+		tag = gf_node_get_tag(gf_sg_get_root_node(compositor->root_scene->graph));
+		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
+			load.type = GF_SM_LOAD_XSR;
+			time = gf_scene_get_time(compositor->root_scene);
+		} else if (tag>=GF_NODE_RANGE_FIRST_X3D) {
+			load.type = is_xml ? GF_SM_LOAD_X3D : GF_SM_LOAD_X3DV;
+		} else {
+			load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
+			time = gf_scene_get_time(compositor->root_scene);
+		}
+	}
+
+	e = gf_sm_load_init(&load);
+	if (!e) e = gf_sm_load_string(&load, com, 1);
+	gf_sm_load_done(&load);
+	if (!e) {
+		u32 j, au_count, st_count;
+		st_count = gf_list_count(load.ctx->streams);
+		for (i=0; i<st_count; i++) {
+			sc = (GF_StreamContext*)gf_list_get(load.ctx->streams, i);
+			au_count = gf_list_count(sc->AUs);
+			for (j=0; j<au_count; j++) {
+				GF_AUContext *au = (GF_AUContext *)gf_list_get(sc->AUs, j);
+				e = gf_sg_command_apply_list(compositor->root_scene->graph, au->commands, time);
+				if (e) break;
+			}
+		}
+	}
+	if (!compositor->root_scene->graph_attached) {
+		if (!load.ctx->scene_width || !load.ctx->scene_height) {
+//			load.ctx->scene_width = term->compositor->width;
+//			load.ctx->scene_height = term->compositor->height;
+		}
+		gf_sg_set_scene_size_info(compositor->root_scene->graph, load.ctx->scene_width, load.ctx->scene_height, load.ctx->is_pixel_metrics);
+		gf_scene_attach_to_compositor(compositor->root_scene);
+	}
+	gf_sm_del(load.ctx);
+	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
+GF_EXPORT
+void gf_sc_select_service(GF_Compositor *compositor, u32 service_id)
+{
+	if (!compositor || !compositor->root_scene) return;
+#ifndef GPAC_DISABLE_VRML
+	gf_scene_set_service_id(compositor->root_scene, service_id);
+#endif
+}
+
+
+GF_EXPORT
+const char *gf_sc_get_url(GF_Compositor *compositor)
+{
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->root_od || !compositor->root_scene->root_od->scene_ns) return NULL;
+	return compositor->root_scene->root_od->scene_ns->url;
+}
+
+GF_EXPORT
+const void *gf_sc_get_main_pid(GF_Compositor *compositor)
+{
+	if (!compositor || !compositor->root_scene) return NULL;
+	GF_ObjectManager *odm = compositor->root_scene->root_od;
+	if (odm->pid) return odm->pid;
+
+	if (odm->subscene) {
+		GF_ObjectManager *anodm = gf_list_get(odm->subscene->resources, 0);
+		if (!anodm) return NULL;
+		return anodm->pid;
+	}
+	return NULL;
+}
+
+GF_EXPORT
+const char *gf_sc_get_world_info(GF_Compositor *compositor, GF_List *descriptions)
+{
+	GF_Node *info;
+	if (!compositor || !compositor->root_scene || !compositor->root_scene->world_info) return NULL;
+	info = (GF_Node*) compositor->root_scene->world_info;
+
+	if (gf_node_get_tag(info) == TAG_SVG_title) {
+		SVG_Element *elt = (SVG_Element *)info;
+		GF_ChildNodeItem *l = elt->children;
+		while (l) {
+			if (gf_node_get_tag(l->node)==TAG_DOMText) {
+				GF_DOMText *txt = (GF_DOMText *)l->node;
+				return txt->textContent;
+			}
+			l = l->next;
+		}
+	} else {
+#ifndef GPAC_DISABLE_VRML
+		M_WorldInfo *wi = (M_WorldInfo *) info;
+		if (descriptions) {
+			u32 i;
+			for (i=0; i<wi->info.count; i++) {
+				gf_list_add(descriptions, wi->info.vals[i]);
+			}
+		}
+		return wi->title.buffer;
+#endif
+	}
+	return "GPAC";
+}
+
+GF_EXPORT
+GF_Err gf_sc_add_object(GF_Compositor *compositor, const char *url, Bool auto_play)
+{
+	GF_MediaObject *mo=NULL;
+	//this needs refinement
+	SFURL sfurl;
+	MFURL mfurl;
+	if (!url || !compositor->root_scene || !compositor->root_scene->is_dynamic_scene) return GF_BAD_PARAM;
+
+	sfurl.OD_ID = GF_MEDIA_EXTERNAL_ID;
+	sfurl.url = (char *) url;
+	mfurl.count = 1;
+	mfurl.vals = &sfurl;
+	/*only text tracks are supported for now...*/
+	mo = gf_scene_get_media_object(compositor->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
+	if (mo) {
+		/*check if we must deactivate it*/
+		if (mo->odm) {
+			if (mo->num_open && !auto_play) {
+				gf_scene_select_object(compositor->root_scene, mo->odm);
+			}
+		} else {
+			gf_list_del_item(compositor->root_scene->scene_objects, mo);
+			gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+			gf_free(mo);
+			mo = NULL;
+		}
+	}
+	return mo ? GF_OK : GF_NOT_SUPPORTED;
+}
+
+
+GF_EXPORT
+Double gf_sc_get_simulation_frame_rate(GF_Compositor *compositor, u32 *nb_frames_drawn)
+{
+	Double fps;
+	if (!compositor) return 0.0;
+	if (nb_frames_drawn) *nb_frames_drawn = compositor->frame_number;
+	fps = compositor->fps.num;
+	fps /= compositor->fps.den;
+	return fps;
+}
+
+GF_EXPORT
+u32 gf_sc_get_elapsed_time_in_ms(GF_Compositor *compositor)
+{
+	u32 i, count;
+	if (!compositor || !compositor->root_scene) return 0;
+
+	count = gf_list_count(compositor->root_scene->namespaces);
+	for (i=0; i<count; i++) {
+		GF_SceneNamespace *sns = gf_list_get(compositor->root_scene->namespaces, i);
+		GF_Clock *ck = gf_list_get(sns->clocks, 0);
+		if (ck) return gf_clock_elapsed_time(ck);
+	}
+	return 0;
+}
+
+GF_EXPORT
+u32 gf_sc_get_current_service_id(GF_Compositor *compositor)
+{
+	SFURL *the_url;
+	GF_MediaObject *mo;
+	if (!compositor || !compositor->root_scene) return 0;
+	if (!compositor->root_scene->is_dynamic_scene) return compositor->root_scene->root_od->ServiceID;
+
+	if (compositor->root_scene->visual_url.OD_ID || compositor->root_scene->visual_url.url)
+		the_url = &compositor->root_scene->visual_url;
+	else
+		the_url = &compositor->root_scene->audio_url;
+
+	mo = gf_scene_find_object(compositor->root_scene, the_url->OD_ID, the_url->url);
+	if (mo && mo->odm) return mo->odm->ServiceID;
+	return 0;
 }

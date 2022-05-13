@@ -143,7 +143,6 @@ restart:
 		else
 			resync_delay = -drift;
 
-		ai->is_playing = GF_TRUE;
 		if (resync_delay < 0) resync_delay = -resync_delay;
 
 		if (resync_delay > MIN_DRIFT_ADJUST) {
@@ -151,6 +150,7 @@ restart:
 			gf_mo_adjust_clock(ai->stream, drift);
 		}
 	}
+	ai->is_playing = GF_TRUE;
 	return frame;
 }
 

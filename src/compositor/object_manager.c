@@ -375,7 +375,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		assert(odm->subscene->root_od==odm);
 		odm->subscene->is_dynamic_scene = GF_TRUE;
 	} else if (odm->pid) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Terminal] Setting up object streams\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("[Compositor] Setting up object streams\n"));
 
 		e = gf_odm_setup_pid(odm, for_pid);
 		if (e) {
@@ -413,6 +413,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		if (prop && prop->value.boolean) {
 			odm->buffer_playout_ms = odm->buffer_max_ms = 1; //1 ms
 			odm->buffer_min_ms = 0;
+		}
+		prop = gf_filter_pid_get_property(for_pid ? for_pid : odm->pid, GF_PROP_PID_RAWGRAB);
+		if (prop && prop->value.uint) {
+			odm->buffer_playout_ms = 0;
+			odm->buffer_min_ms = 0;
+			odm->buffer_max_ms = 0;
 		}
 
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
@@ -881,7 +887,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 
 	com.play.speed = clock->speed;
-	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+	if (scene->compositor->max_vspeed && (ABS(com.play.speed) > ABS(scene->compositor->max_vspeed)))
 		com.play.drop_non_ref = GF_TRUE;
 
 #ifndef GPAC_DISABLE_VRML
@@ -898,7 +904,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 
 		com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
-		if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+		if (scene->compositor->max_vspeed && (ABS(com.play.speed) > ABS(scene->compositor->max_vspeed)))
 			com.play.drop_non_ref = GF_TRUE;
 		/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 		if ((ctrl->stream != odm->mo) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range)
@@ -952,7 +958,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		odm->state = GF_ODM_STATE_PLAY;
 
 		if (odm->buffer_max_ms) {
-			odm->nb_buffering ++;
+			odm->nb_buffering++;
 			scene->nb_buffering++;
 			//start buffering
 			gf_clock_buffer_on(odm->ck);
@@ -976,7 +982,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				com.base.on_pid = xpid->pid;
 				odm->has_seen_eos = GF_FALSE;
 
-				odm->nb_buffering ++;
+				odm->nb_buffering++;
 				scene->nb_buffering++;
 				//start buffering
 				gf_clock_buffer_on(odm->ck);
@@ -1078,7 +1084,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		scene->nb_buffering -= odm->nb_buffering;
 		while (odm->nb_buffering && odm->ck) {
 			gf_clock_buffer_off(odm->ck);
-			odm->nb_buffering --;
+			odm->nb_buffering--;
 		}
 		if (!scene->nb_buffering) {
 			gf_scene_buffering_info(scene, GF_TRUE);
@@ -1335,7 +1341,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	GF_FEVT_INIT(com, GF_FEVT_RESUME, odm->pid);
 	com.play.speed = odm->ck->speed;
 	if (ctrl) com.play.speed  = ctrl->control->mediaSpeed;
-	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+	if (scene->compositor->max_vspeed && (ABS(com.play.speed) > ABS(scene->compositor->max_vspeed)))
 		com.play.drop_non_ref = GF_TRUE;
 
 	gf_clock_resume(odm->ck);
@@ -1384,8 +1390,9 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 
 	GF_FEVT_INIT(com, GF_FEVT_SET_SPEED, odm->pid);
 
+	odm->too_slow = GF_FALSE;
 	com.play.speed = FIX2FLT(speed);
-	if (ABS(com.play.speed)>scene->compositor->max_vspeed)
+	if (scene->compositor->max_vspeed && (ABS(com.play.speed) > ABS(scene->compositor->max_vspeed)))
 		com.play.drop_non_ref = GF_TRUE;
 
 	gf_filter_pid_send_event(odm->pid, &com);
@@ -1516,7 +1523,7 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 
 	//TODO abort buffering when errors are found on the input chain !!
 	if (odm->blocking_media || (buffer_duration >= odm->buffer_playout_ms)) {
-		odm->nb_buffering --;
+		odm->nb_buffering--;
 		assert(scene->nb_buffering);
 		scene->nb_buffering--;
 		if (!scene->nb_buffering) {
@@ -1525,7 +1532,7 @@ static Bool odm_update_buffer(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterP
 		if (odm->ck)
 			gf_clock_buffer_off(odm->ck);
 	} else if (gf_filter_pid_has_seen_eos(pid) ) {
-		odm->nb_buffering --;
+		odm->nb_buffering--;
 		assert(scene->nb_buffering);
 		scene->nb_buffering--;
 		//if eos while buffering, consider the last rebuffer an error
@@ -1584,6 +1591,12 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		}
 		else if (has_pck && odm->owns_clock && !odm->ck->clock_init) {
 			gf_clock_set_time(odm->ck, pck_time, gf_filter_pid_get_timescale(pid) );
+
+			if (gf_filter_pid_first_packet_is_blocking_ref(pid)) {
+				odm->blocking_media = GF_TRUE;
+				if (odm->nb_buffering)
+					odm_update_buffer(scene, odm, pid, check_full_buffer, &signal_eob);
+			}
 		}
 	}
 	if (odm->nb_buffering) {
@@ -1647,7 +1660,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			pck_time = gf_timestamp_to_clocktime(pck_time, timescale);
 			pck_time += 1;
 			diff = (u32) ((u64) clock_time - pck_time);
-			diff_to = odm->ck->ocr_discontinuity_time ? 500 : 8000;
+			diff_to = (s32) (odm->ck->ocr_discontinuity_time ? 500 : 8000) * ABS(odm->ck->speed);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
 

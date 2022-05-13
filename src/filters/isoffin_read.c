@@ -53,7 +53,7 @@ static GFINLINE Bool isor_is_local(const char *url)
 }
 
 
-static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
+static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_eos)
 {
 	char *url;
 	char *tmp, *src;
@@ -135,9 +135,13 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	e = gf_isom_open_progressive(url, read->start_range, read->end_range, read->sigfrag, &read->mov, &read->missing_bytes);
 
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
-		gf_free(url);
-		read->moov_not_loaded = 1;
-		return GF_OK;
+		if (input_is_eos) {
+			e = GF_ISOM_INVALID_FILE;
+		} else {
+			gf_free(url);
+			read->moov_not_loaded = 1;
+			return GF_OK;
+		}
 	}
 
 	read->input_loaded = GF_TRUE;
@@ -449,7 +453,7 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		evt.play.full_file_only=1;
 		gf_filter_pid_send_event(pid, &evt);
 	}
-	return isoffin_setup(filter, read);
+	return isoffin_setup(filter, read, GF_FALSE);
 }
 
 GF_Err isoffin_initialize(GF_Filter *filter)
@@ -465,7 +469,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 
 	if (read->src) {
 		read->input_loaded = GF_TRUE;
-		return isoffin_setup(filter, read);
+		return isoffin_setup(filter, read, GF_TRUE);
 	}
 	else if (read->mov) {
 		read->extern_mov = GF_TRUE;
@@ -1238,7 +1242,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (read->mem_load_mode)
 			return GF_OK;
 		read->moov_not_loaded = GF_FALSE;
-		return isoffin_setup(filter, read);
+		return isoffin_setup(filter, read, in_is_eos);
 	}
 
 	if (read->refresh_fragmented) {
@@ -1477,6 +1481,9 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				}
 				return ch->last_state;
 			} else {
+				if ((ch->last_state==GF_OK) && ch->sap_only)
+					gf_filter_ask_rt_reschedule(filter, 1);
+
 				read->force_fetch = GF_TRUE;
 				break;
 			}

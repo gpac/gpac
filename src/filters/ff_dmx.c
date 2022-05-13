@@ -423,7 +423,7 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
+GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 {
 	u32 i;
 	u32 nb_a, nb_v, nb_t, clock_id;
@@ -571,8 +571,8 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, Bool is_grab)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CODECID, &PROP_UINT(gpac_codec_id) );
 		}
 
-		if (is_grab)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_BOOL(GF_TRUE) );
+		if (grab_type)
+			gf_filter_pid_set_property(pid, GF_PROP_PID_RAWGRAB, &PROP_UINT(grab_type) );
 		else if (ctx->demuxer->iformat) {
 			if ((ctx->demuxer->iformat->flags & AVFMT_SEEK_TO_PTS) || ctx->demuxer->iformat->read_seek)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
@@ -865,7 +865,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, ctx->log_class, ("[%s] file %s opened - %d streams\n", ctx->fname, ctx->src, ctx->demuxer->nb_streams));
 
 	ffmpeg_report_options(filter, options, ctx->options);
-	return ffdmx_init_common(filter, ctx, GF_FALSE);
+	return ffdmx_init_common(filter, ctx, 0);
 }
 
 
@@ -1053,6 +1053,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		default_fmt = "dshow";
 #elif defined(__DARWIN) || defined(__APPLE__)
 		default_fmt = "avfoundation";
+#elif defined(GPAC_CONFIG_ANDROID)
+		default_fmt = "android_camera";
 #else
 		default_fmt = "video4linux2";
 #endif
@@ -1061,11 +1063,11 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	if (default_fmt) {
 		dev_fmt = av_find_input_format(default_fmt);
 		if (dev_fmt == NULL) {
-			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot find the input format %s\n", ctx->fname, ctx->fmt));
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Cannot find the input format %s\n", ctx->fname, default_fmt));
 		}
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 		else if (dev_fmt->priv_class->category != AV_CLASS_CATEGORY_DEVICE_VIDEO_INPUT && dev_fmt->priv_class->category != AV_CLASS_CATEGORY_DEVICE_AUDIO_INPUT) {
-			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s]] %s is neither a video nor an audio input device\n", ctx->fname, ctx->fmt));
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s]] %s is neither a video nor an audio input device\n", ctx->fname, default_fmt));
 			dev_fmt = NULL;
 		}
 #else
@@ -1152,20 +1154,19 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	}
 
 	if (res < 0) {
-		if (options) {
-			av_dict_free(&options);
-			options = NULL;
-			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
-			res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, NULL);
-		}
-		if (res<0) {
-			av_dict_set(&options, "framerate", "30", 0);
-			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
+		av_dict_set(&options, "framerate", "30", 0);
+		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
+		res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
+		if (res < 0) {
+			av_dict_set(&options, "framerate", "25", 0);
+			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ctx->fname, res));
 			res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
-			if (res < 0) {
-				av_dict_set(&options, "framerate", "25", 0);
-				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ctx->fname, res));
-				res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
+
+			if ((res<0) && options) {
+				av_dict_free(&options);
+				options = NULL;
+				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
+				res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, NULL);
 			}
 		}
 	}
@@ -1179,6 +1180,11 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	av_dump_format(ctx->demuxer, 0, ctx->dev, 0);
 	ctx->raw_data = GF_TRUE;
 	ctx->audio_idx = ctx->video_idx = -1;
+	u32 grab_type = 1;
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
+	if (!strcmp(ctx->dev, "1") || strstr(ctx->dev, "Front") || strstr(ctx->dev, "front") )
+		grab_type = 2;
+#endif
 
 	res = avformat_find_stream_info(ctx->demuxer, ctx->options ? &ctx->options : NULL);
 
@@ -1246,7 +1252,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, ctx->log_class, ("[%s] using muxed capture av:// without copy on %s, this might introduce packet losses due to blocking modes or delayed consumption of the frames. If experiencing problems, either set [-copy]() to `AV` or consider using two filters video:// and audio://\n", ctx->fname, (!ctx->copy_audio && !ctx->copy_video) ? "audio and video streams" : ctx->copy_video ? "audio stream" : "video stream"));
 		}
 	}
-	return ffdmx_init_common(filter, ctx, GF_TRUE);
+	return ffdmx_init_common(filter, ctx, grab_type);
 }
 
 static GF_FilterProbeScore ffavin_probe_url(const char *url, const char *mime)
@@ -1324,7 +1330,7 @@ static const GF_FilterArgs FFAVInArgs[] =
 const int FFAVIN_STATIC_ARGS = (sizeof (FFAVInArgs) / sizeof (GF_FilterArgs)) - 1;
 
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=20) && !defined(GPAC_DISABLE_DOC)
+#if (LIBAVCODEC_VERSION_MAJOR >= 58) && (LIBAVCODEC_VERSION_MINOR>=18) && !defined(GPAC_DISABLE_DOC)
 #define FF_PROBE_DEVICES
 #endif
 

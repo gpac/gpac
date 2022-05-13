@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "71A19B1912796B5600ACFF58"
                BuildableName = "osmo4ios.app"
-               BlueprintName = "osmo4ios"
+               BlueprintName = "GPAC"
                ReferencedContainer = "container:gpac4ios.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,7 +32,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "osmo4ios.app"
-            BlueprintName = "osmo4ios"
+            BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -55,10 +55,28 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "osmo4ios.app"
-            BlueprintName = "osmo4ios"
+            BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "-gui video://:dev=0:video_size=1920x1080"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-p=:reload -gui video://:dev=1:video_size=1920x1080"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-gui"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-h ffavin"
+            isEnabled = "NO">
+         </CommandLineArgument>
+      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -72,7 +90,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "osmo4ios.app"
-            BlueprintName = "osmo4ios"
+            BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

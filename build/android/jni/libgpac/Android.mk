@@ -25,15 +25,8 @@ LOCAL_LDLIBS    += -lft2 -ljpegdroid -lopenjpeg -lpng -lfaad -lmad -lnghttp2 -lz
 #ffmpeg
 LOCAL_LDLIBS    += -lavcodec -lavformat -lswresample -lavfilter -lavutil -lavdevice -lswscale
 
-#mediacodec - removed  ljavaenv from original settings
+#mediacodec
 LOCAL_LDLIBS    += -llog -lOpenMAXAL -lmediandk -landroid
-
-#LOCAL_SHARED_LIBRARIES    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
-#LOCAL_SHARED_LIBRARIES    += -lGLESv2 -ldl
-#LOCAL_SHARED_LIBRARIES    += -lft2 -ljpegdroid -lopenjpeg -lpng -lz
-
-#LOCAL_EXPORT_LDLIBS= -lft2 -ljpeg -lopenjpeg -lpng -lz
-
 
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
 LOCAL_CFLAGS += -DNO_MALLINFO
@@ -396,7 +389,6 @@ LOCAL_SRC_FILES := \
 	../../../../src/scene_manager/swf_parse.c \
 	../../../../src/scene_manager/swf_svg.c \
 	../../../../src/scene_manager/text_to_bifs.c \
-	../../../../src/terminal/terminal.c \
 	../../../../src/utils/alloc.c \
 	../../../../src/utils/base_encoding.c \
 	../../../../src/utils/bitstream.c \

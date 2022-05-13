@@ -90,7 +90,28 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','5')
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','6')
+
+/*! window creation flags*/
+typedef enum
+{
+	/*display should be hidden upon initialization*/
+	GF_VOUT_INIT_HIDE = 1,
+	/*disables video output module - used for bench mode without video*/
+	GF_VOUT_NO_VIDEO = 1<<1,
+	/*works without window thread*/
+	GF_VOUT_WINDOW_NO_THREAD = 1<<2,
+	/*lets the main user handle window events (needed for browser plugins)*/
+	GF_VOUT_NO_WINDOWPROC_OVERRIDE = 1<<3,
+	/*works without title bar*/
+	GF_VOUT_WINDOW_NO_DECORATION = 1<<4,
+
+	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
+	GF_VOUT_WINDOW_TRANSPARENT = 1<<5,
+	/*works in windowless mode - experimental, only supported on Win32*/
+	GF_VOUT_WINDOWLESS = 1<<6
+} GF_VideoOutputWindowFlags;
+
 
 /*
 			video output interface
@@ -116,9 +137,11 @@ typedef struct _video_out
 	/* interface declaration*/
 	GF_DECL_MODULE_INTERFACE
 
-	/*setup system - if os_handle is NULL the driver shall create the output display (common case)
-	the other case is currently only used by child windows on win32 and winCE
-	@init_flags: a list of initialization flags as specified in user.h*/
+	/*setup video output
+	\param vout: target video output
+	\param os_handle: existing OS-specific window handle (HWND for win32, Window for X11). If NULL the module will create the output window
+	\param os_display: existing OS-specific display handle (currently not used)
+	\param init_flags: bit mask of initialization flags - see GF_VideoOutputWindowFlags*/
 	GF_Err (*Setup)(struct _video_out *vout, void *os_handle, void *os_display, u32 init_flags);
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);

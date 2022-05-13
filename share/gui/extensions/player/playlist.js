@@ -377,6 +377,13 @@ extension.add_playlist_item = function(file)
 	
 	this.set_playlist_mode(true);
 }
+extension.playlist_load = function(items, do_play)
+{
+    this.reset_playlist();
+    items.forEach(it => { this.add_playlist_item(it); });
+    this.set_playlist_mode(true);
+    if (do_play) this.playlist_next();
+}
 
 extension.reset_playlist = function()
 {

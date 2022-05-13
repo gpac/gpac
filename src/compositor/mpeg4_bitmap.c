@@ -142,7 +142,7 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
 	if (!asp.fill_texture) return;
 	if (!asp.fill_texture->data && !asp.fill_texture->frame_ifce) return;
-	if (asp.fill_texture->frame_ifce && !asp.fill_texture->frame_ifce->get_plane) return;
+	if (asp.fill_texture->frame_ifce && !asp.fill_texture->frame_ifce->get_plane && !asp.fill_texture->frame_ifce->get_gl_texture) return;
 
 	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
 	/*check for material key materialKey*/
@@ -176,7 +176,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	if (!ctx->aspect.fill_texture) return;
 	if (!ctx->aspect.fill_texture->data && !ctx->aspect.fill_texture->frame_ifce) return;
-	if (ctx->aspect.fill_texture->frame_ifce && !ctx->aspect.fill_texture->frame_ifce->get_plane) return;
+	if (ctx->aspect.fill_texture->frame_ifce && !ctx->aspect.fill_texture->frame_ifce->get_plane && !ctx->aspect.fill_texture->frame_ifce->get_gl_texture) return;
 
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;

@@ -488,7 +488,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Failed to fetch initial sample %d for track %d\n", ch->sample_num, ch->track));
 					ch->last_state = GF_ISOM_INVALID_FILE;
 				} else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] File truncated, aborting read for track %d\n", ch->track));
+					if (!ch->eos_sent) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] File truncated, aborting read for track %d\n", ch->track));
+					}
 					ch->last_state = GF_EOS;
 				}
 			}

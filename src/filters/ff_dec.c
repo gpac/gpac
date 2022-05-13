@@ -1379,6 +1379,9 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//for video, this will reset the decoder
 			ctx->flush_done = GF_TRUE;
 		}
+		//flush draining state
+		if (ctx->decoder && ctx->flush_done)
+			avcodec_flush_buffers(ctx->decoder);
 	}
 
 	return GF_FALSE;

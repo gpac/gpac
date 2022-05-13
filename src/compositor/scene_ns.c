@@ -537,6 +537,8 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	if (frag) frag[0] = '#';
 	if (!odm->scene_ns->source_filter) {
 		Bool remove_scene=GF_FALSE;
+		Bool remove_filter=GF_FALSE;
+		GF_Compositor *compositor = scene->compositor;
 		GF_Scene *target_scene = odm->subscene ? NULL : odm->parentscene;
 
 		gf_filter_lock_all(scene->compositor->filter, GF_FALSE);
@@ -552,6 +554,9 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 				}
 			}
 		}
+
+		if (compositor->player && !odm->parentscene) remove_filter = GF_TRUE;
+
 		if (odm->mo) odm->mo->connect_state = MO_CONNECT_FAILED;
 		odm->skip_disconnect_state = 1;
 		//prevent scene from being disconnected - this can happen if a script catches the event and triggers a disonnection of the parent scene
@@ -568,6 +573,10 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, target_scene->root_od, "remove_odm");
 		} else {
 			gf_filter_post_task(scene->compositor->filter, scene_ns_remove_object, odm, "remove_odm");
+		}
+		if (remove_filter) {
+			gf_filter_remove(compositor->filter);
+			compositor->check_eos_state = 3;
 		}
 		return;
 	}

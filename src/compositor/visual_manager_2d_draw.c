@@ -27,7 +27,6 @@
 #include "drawable.h"
 #include "nodes_stacks.h"
 #include "texturing.h"
-#include <gpac/options.h>
 
 //#define SKIP_DRAW
 
@@ -56,7 +55,7 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 	if (! visual->CheckAttached(visual) ) return;
 
 	if (!BackColor && !visual->offscreen && !visual->compositor->dyn_filter_mode) {
-		if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+		if ( !(visual->compositor->init_flags & GF_VOUT_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color;
 		}
 	}
@@ -129,7 +128,7 @@ void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, GF_EVGS
 		}
 	}
 #ifndef GPAC_DISABLE_3D
-	if (!is_erase)
+	if (!is_erase && (visual==visual->compositor->visual))
 		visual->nb_objects_on_canvas_since_last_ogl_flush++;
 #endif
 	if (has_modif) {

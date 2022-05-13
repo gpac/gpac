@@ -1417,6 +1417,7 @@ GF_FilterRegister OHEVCDecRegister = {
 #ifdef GPAC_HAS_OPENHEVC
 
 #ifndef GPAC_OPENHEVC_STATIC
+#include <gpac/module.h>
 
 GPAC_MODULE_EXPORT
 GF_FilterRegister *RegisterFilter(GF_FilterSession *session)

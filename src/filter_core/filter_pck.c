@@ -412,7 +412,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc_destructor(GF_FilterPid *pid, u32 data_
 	GF_FilterPacket *pck = gf_filter_pck_new_alloc_internal(pid, data_size, data);
 	if (pck && destruct) {
 		pck->destructor = destruct;
-		if (pid->filter->freg->flags & GF_FS_REG_MAIN_THREAD)
+		if (pid->filter->nb_main_thread_forced)
 			pck->info.flags |= GF_PCKF_FORCE_MAIN;
 	}
 	return pck;
@@ -446,7 +446,7 @@ GF_FilterPacket *gf_filter_pck_new_shared_internal(GF_FilterPid *pid, const u8 *
 	}
 	gf_filter_pck_reset_props(pck, pid);
 
-	if (destruct && (pid->filter->freg->flags & GF_FS_REG_MAIN_THREAD))
+	if (destruct && pid->filter->nb_main_thread_forced)
 		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 
 	assert(pck->pid);
@@ -520,6 +520,7 @@ GF_FilterPacket *gf_filter_pck_new_frame_interface(GF_FilterPid *pid, GF_FilterF
 	pck->destructor = destruct;
 	pck->frame_ifce = frame_ifce;
 	pck->filter_owns_mem = 2;
+	//GL frame interface must be processed by main thread
 	if (frame_ifce && frame_ifce->get_gl_texture)
 		pck->info.flags |= GF_PCKF_FORCE_MAIN;
 	return pck;
@@ -1115,7 +1116,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 	assert(pck->pid);
 	count = pck->pid->num_destinations;
-	//check if processing this packet must be done on main thread (OpenGL interface or source filter asked fo this) 
+	//check if processing this packet must be done on main thread (OpenGL interface or source filter asked for this)
 	Bool force_main_thread = (pck->info.flags & GF_PCKF_FORCE_MAIN) ? GF_TRUE : GF_FALSE;
 
 	for (i=0; i<count; i++) {
@@ -1183,6 +1184,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		nb_dispatch++;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
+
+		duration = 0;
 
 		if (cktype) {
 			safe_int_inc(&dst->filter->pending_packets);
@@ -1283,22 +1286,22 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			}
 
 		} else {
-			duration=0;
+			u32 pck_dur=0;
 			//store start of block info
 			if (pck->info.flags & GF_PCKF_BLOCK_START) {
 				dst->first_block_started = GF_TRUE;
-				duration = pck->info.duration;
+				pck_dur = pck->info.duration;
 			}
 			if (pck->info.flags & GF_PCKF_BLOCK_END) {
 				//we didn't get a start for this end of block use the packet duration
 				if (!dst->first_block_started) {
-					duration=pck->info.duration;
+					pck_dur=pck->info.duration;
 				}
 				dst->first_block_started = GF_FALSE;
 			}
 
-			if (duration && timescale) {
-				duration = gf_timestamp_rescale(duration, timescale, 1000000);
+			if (pck_dur && timescale) {
+				duration = gf_timestamp_rescale(pck_dur, timescale, 1000000);
 				safe_int64_add(&dst->buffer_duration, duration);
 			}
 			safe_int_inc(&dst->filter->pending_packets);
@@ -1316,6 +1319,12 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			//will be updated during packet drop of target
 			if (pid->nb_buffer_unit < nb_pck) pid->nb_buffer_unit = nb_pck;
 			if ((s64) pid->buffer_duration < dst->buffer_duration) pid->buffer_duration = dst->buffer_duration;
+			//if computed duration of packet is larger than pid max_buffer_time, update
+			//this is to make sure playback at speed > 1 won't trigger blocking state
+			//otherwise we would have max_buffer_time=1ms (default) and a single AU dispatched would block unless speed is AU_DUR_ms/1ms ...
+			if (duration && pid->max_buffer_time && (pid->max_buffer_time<duration))
+				pid->max_buffer_time = duration;
+				
 			gf_mx_v(pid->filter->tasks_mx);
 
 			//post process task

@@ -318,6 +318,34 @@ void gf_mo_update_caps_ex(GF_MediaObject *mo, Bool check_unchanged)
 				mo->rotate = 0;
 			}
 		}
+		//camera
+		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_RAWGRAB);
+		if (v) {
+			//front cam, flip
+			if (v->value.uint==2) {
+				u32 oflip = mo->flip;
+				if (mo->flip & 2) mo->flip &= ~2;
+				else mo->flip |= 2;
+				if (oflip != mo->flip) changed = GF_TRUE;
+			}
+
+			//front or back cam, auto-flip object based on device orientation
+			if (mo->odm->parentscene && mo->odm->parentscene->compositor->disp_ori) {
+				s32 nb_rot = mo->rotate;
+				switch (mo->odm->parentscene->compositor->disp_ori) {
+				case GF_DISPLAY_MODE_LANDSCAPE_INV: nb_rot+=2; break;
+				case GF_DISPLAY_MODE_LANDSCAPE: break;
+				case GF_DISPLAY_MODE_PORTRAIT: nb_rot+=3; break;
+				case GF_DISPLAY_MODE_PORTRAIT_INV: nb_rot+=1; break;
+				default: break;
+				}
+				nb_rot = nb_rot%4;
+				if (nb_rot != mo->rotate) {
+					changed = GF_TRUE;
+					mo->rotate = nb_rot;
+				}
+			}
+		}
 
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAR);
 		if (v) {
@@ -731,6 +759,7 @@ retry:
 	}
 	if (resync!=GF_MO_FETCH) {
 		u32 nb_dropped = 0;
+		u64 latest_ts=next_ts;
 		while (next_ts) {
 			if (!move_to_next_only) {
 				if ( gf_clock_diff(mo->odm->ck, obj_time, pck_ts)>0)
@@ -782,13 +811,28 @@ retry:
 
 			next_ts = 0;
 			if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts)) {
-				next_ts = convert_ts_to_ms(mo, next_ts, timescale, &discard);
+				latest_ts = next_ts = convert_ts_to_ms(mo, next_ts, timescale, &discard);
 			}
 			if (move_to_next_only)
 				break;
 		}
-	}
 
+		if (latest_ts) {
+			Bool too_slow = GF_FALSE;
+			if (mo->odm->ck->speed>0) {
+				if (latest_ts + 10000 < obj_time)
+					too_slow = GF_TRUE;
+			} else {
+				if (latest_ts > obj_time + 10000)
+					too_slow = GF_TRUE;
+			}
+			if (too_slow != mo->odm->too_slow) {
+				mo->odm->too_slow = too_slow;
+				if (mo->odm->parentscene && too_slow)
+					gf_scene_notify_event(mo->odm->parentscene, GF_EVENT_CODEC_SLOW, NULL, NULL, GF_OK, GF_FALSE);
+			}
+		}
+	}
 
 	mo->frame = (char *) gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
@@ -1298,6 +1342,8 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 #endif
 
 	if (mo->odm->scene_ns && mo->odm->scene_ns->owner && (mo->odm->scene_ns->owner->flags & GF_ODM_INHERIT_TIMELINE))
+		return;
+	if (mo->odm->parentscene && mo->odm->parentscene->is_dynamic_scene)
 		return;
 
 	gf_odm_set_speed(mo->odm, speed, GF_TRUE);

@@ -7,4 +7,4 @@ LOCAL_C_INCLUDES  += $(LOCAL_PATH)/../libgpac/
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)/
 LOCAL_LDLIBS    += -L../libs/$(TARGET_ARCH_ABI)
-LOCAL_LDLIBS    += -lgpac -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lz
+LOCAL_LDLIBS    += -lgpac -lft2 -ljpegdroid -lopenjpeg -lpng -lz

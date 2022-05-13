@@ -173,12 +173,12 @@ static const struct dom_event_def {
 	{ GF_EVENT_MAIN_ADDON_STATE, "gpac_main_addon_state", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_STREAMLIST, "gpac_streamlist_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TIMESHIFT_DEPTH, "gpac_timeshift_depth_changed", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_CODEC_SLOW, "gpac_codec_slow", GF_DOM_EVENT_GPAC},
 
 
 #if 0
 	{ GF_EVENT_DBLCLICK, "gpac_dbl_click", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SIZE, "gpac_size_changed", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_SCENE_SIZE, "gpac_scene_size", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SHOWHIDE, "gpac_show_hide", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SET_CURSOR, "gpac_set_cursor", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SET_CAPTION, "gpac_set_caption", GF_DOM_EVENT_GPAC},
@@ -196,7 +196,6 @@ static const struct dom_event_def {
 	{ GF_EVENT_MESSAGE, "gpac_on_message", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_PROGRESS, "gpac_on_progress", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_VIEWPOINTS, "gpac_viewpoints_changed", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_STREAMLIST, "gpac_streamlist_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_METADATA, "gpac_metadata_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_MIGRATE, "gpac_session_migrate", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_DISCONNECT, "gpac_request_disconnect", GF_DOM_EVENT_GPAC},

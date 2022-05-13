@@ -300,6 +300,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	gf_opts_set_key("FontCache", "FontFixed", ftpriv->font_fixed);
 	gf_opts_set_key("FontCache", "FontSerif", ftpriv->font_serif);
 	gf_opts_set_key("FontCache", "FontSans", ftpriv->font_sans);
+	gf_opts_save();
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font directories scanned\n"));
 }
@@ -493,6 +494,7 @@ static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
 
 static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 styles)
 {
+	GF_Err e = GF_OK;
 	char *fname;
 	char *fontName;
 	const char *opt;
@@ -536,42 +538,74 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	}
 	fname = gf_malloc(sizeof(char) * (strlen(fontName) + 50));
 
-	{
-		int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
+	int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
+
 checkFont:
-		strcpy(fname, fontName);
-		if (styles & GF_FONT_WEIGHT_BOLD & checkStyles) strcat(fname, " Bold");
-		if (styles & GF_FONT_ITALIC & checkStyles) strcat(fname, " Italic");
+	strcpy(fname, fontName);
+	if (checkStyles & GF_FONT_WEIGHT_BOLD) strcat(fname, " Bold");
+	if (checkStyles & GF_FONT_ITALIC) strcat(fname, " Italic");
 
-		opt = gf_opts_get_key("FontCache", fname);
+	opt = gf_opts_get_key("FontCache", fname);
 
-		if (opt) {
-			FT_Face face;
+	if (opt) {
+		u32 i, num_faces;
+		FT_Face face;
+
+		//check font is in cache
+		ftpriv->active_face = ft_font_in_cache(ftpriv, fname, checkStyles);
+		if (ftpriv->active_face) {
 			gf_free(fname);
-			if (FT_New_Face(ftpriv->library, opt, 0, & face )) return GF_IO_ERR;
-			if (!face) return GF_IO_ERR;
-			gf_list_add(ftpriv->loaded_fonts, face);
-			ftpriv->active_face = face;
 			return GF_OK;
 		}
-		if (checkStyles) {
-			/* If we tried font + bold + italic -> we will try font + [bold | italic]
-			   If we tried font + [bold | italic] -> we try font
-			     */
-			if (checkStyles == (GF_FONT_WEIGHT_BOLD | GF_FONT_ITALIC))
-				checkStyles = GF_FONT_WEIGHT_BOLD;
-			else if (checkStyles == GF_FONT_WEIGHT_BOLD && (styles & GF_FONT_ITALIC))
-				checkStyles = GF_FONT_ITALIC;
-			else if (checkStyles == GF_FONT_WEIGHT_BOLD || checkStyles == GF_FONT_ITALIC)
-				checkStyles = 0;
-			goto checkFont;
+
+		//load face
+		if (FT_New_Face(ftpriv->library, opt, 0, & face) || !face) {
+			e = GF_IO_ERR;
+			goto exit;
+		}
+
+		//handle collections, figure out which face matches our styles
+		num_faces = face->num_faces;
+		for (i=0; i<num_faces; i++) {
+			if ( ft_check_face(face, NULL, checkStyles)) {
+				gf_free(fname);
+				gf_list_add(ftpriv->loaded_fonts, face);
+				ftpriv->active_face = face;
+				return GF_OK;
+			}
+			FT_Done_Face(face);
+			if (i+1==num_faces) break;
+
+			/*load next font in collection*/
+			if (FT_New_Face(ftpriv->library, opt, i+1, & face ))
+				break;
+			if (!face)
+				break;
 		}
 	}
+	if (checkStyles) {
+		//we tried bold italic, try bold
+		if (checkStyles == (GF_FONT_WEIGHT_BOLD | GF_FONT_ITALIC))
+			checkStyles = GF_FONT_WEIGHT_BOLD;
+		//we tried bold at previous pass, and input styles had italic, try italic
+		else if ((checkStyles == GF_FONT_WEIGHT_BOLD) && (styles & GF_FONT_ITALIC))
+			checkStyles = GF_FONT_ITALIC;
+		//otherwise try with no style
+		else if ((checkStyles == GF_FONT_WEIGHT_BOLD) || (checkStyles == GF_FONT_ITALIC))
+			checkStyles = 0;
+		goto checkFont;
+	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
+exit:
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[FreeType] Error loading font %s (%s): %s\n", fontName, fname, gf_error_to_string(e) ));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[FreeType] Font %s (%s) not found\n", fontName, fname));
+		e = GF_NOT_SUPPORTED;
+	}
 	gf_free(fname);
 	gf_opts_set_key("temp_freetype", OrigFontName, "not found");
-	return GF_NOT_SUPPORTED;
+	return e;
 }
 
 static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, u32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v)

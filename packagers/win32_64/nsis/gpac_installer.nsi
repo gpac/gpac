@@ -39,8 +39,8 @@ FunctionEnd
   !include "MUI2.nsh"
 
 WindowIcon on
-Icon "${GPAC_ROOT}\share\doc\osmo4.ico"
-UninstallIcon "${GPAC_ROOT}\share\doc\osmo4.ico"
+Icon "${GPAC_ROOT}\share\doc\gpac.ico"
+UninstallIcon "${GPAC_ROOT}\share\doc\gpac.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -250,11 +250,15 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\share\doc\osmo4.ico"
+  File "${GPAC_ROOT}\share\doc\gpac.ico"
+
+  File "${GPAC_BIN}\gpac.exe"
   File "${GPAC_BIN}\libgpac.dll"
+  File "${GPAC_BIN}\gm_dx_hw.dll"
+
+  ;all our deps
   File "${GPAC_BIN}\libcryptoMD.dll"
   File "${GPAC_BIN}\libsslMD.dll"
-
   File "${GPAC_BIN}\avcodec-*.dll"
   File "${GPAC_BIN}\avdevice-*.dll"
   File "${GPAC_BIN}\avfilter-*.dll"
@@ -266,27 +270,7 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\libx264-*.dll"
   File "${GPAC_BIN}\OpenSVCDecoder.dll"
 
-  ;create default cache
-  SetOutPath $INSTDIR\cache
-
-  SetOutPath $INSTDIR
-
-  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
-  WriteUninstaller "uninstall.exe"
-
-SectionEnd
-
-;player install
-Section "GPAC Player" SecOsmo4
-  SectionIn 1
-
-  File "${GPAC_BIN}\MP4Client.exe"
-
-  File "${GPAC_BIN}\gm_dx_hw.dll"
-
-  ;copy shared res
+  ;copy shared resources
   SetOutPath $INSTDIR\share
   File "${GPAC_ROOT}\share\default.cfg"
   SetOutPath $INSTDIR\share\res
@@ -297,7 +281,6 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"
   File "${GPAC_ROOT}\share\gui\gwlib.js"
-;  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
   SetOutPath $INSTDIR\share\gui\icons
   File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
   SetOutPath $INSTDIR\share\gui\extensions
@@ -306,10 +289,6 @@ Section "GPAC Player" SecOsmo4
   ;copy scripts
   SetOutPath $INSTDIR\share\scripts
   File /r /x .git ${GPAC_ROOT}\share\scripts\*
-
-  ;copy python
-  SetOutPath $INSTDIR\share\python
-  File /r /x .git ${GPAC_ROOT}\share\python\*
 
   ;copy shaders
   SetOutPath $INSTDIR\share\shaders
@@ -323,11 +302,24 @@ Section "GPAC Player" SecOsmo4
   SetOutPath $INSTDIR\share\vis
   File /r /x .git ${GPAC_ROOT}\share\vis\*
 
+  ;copy python
+  SetOutPath $INSTDIR\share\python
+  File /r /x .git ${GPAC_ROOT}\share\python\*
+
+  ;create default cache
+  SetOutPath $INSTDIR\cache
   SetOutPath $INSTDIR
+
+  ;update registry
+  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
+  WriteUninstaller "uninstall.exe"
+
+  Call AddToPath
 SectionEnd
 
 SubSection "GPAC Plugins" SecPlugins
-
 
 Section "FreeType" SecFT
   SectionIn 1
@@ -366,15 +358,6 @@ Section "MP4Box" SecMP4B
   Push $INSTDIR
   Call AddToPath
 SectionEnd
-
-Section "gpac" SecGPACBIN
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\gpac.exe"
-  Push $INSTDIR
-  Call AddToPath
-SectionEnd
-
 
 Section "GPAC SDK" SecSDK
   SectionIn 1
@@ -430,12 +413,11 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\GPAC"
   CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4.lnk" "$INSTDIR\MP4Client.exe" ""
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (with Console).lnk" "$INSTDIR\MP4Client.exe" "-guid"
+  CreateShortCut "$SMPROGRAMS\GPAC\GPAC.lnk" "$INSTDIR\gpac.exe" ""
+  CreateShortCut "$SMPROGRAMS\GPAC\GPAC (with Console).lnk" "$INSTDIR\gpac.exe" "-gui"
   CreateShortCut "$SMPROGRAMS\GPAC\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\History.lnk" "$INSTDIR\changelog.txt"
-  CreateShortCut "$SMPROGRAMS\GPAC\Configuration Info.lnk" "$INSTDIR\configuration.html"
 SectionEnd
 
 SubSectionEnd
@@ -444,15 +426,13 @@ SubSectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "GPAC Player"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
@@ -462,7 +442,7 @@ SubSectionEnd
 
 Function .onInstSuccess
 ;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the player?" IDNO NoLaunch
-;  Exec $INSTDIR\Osmo4.exe
+;  Exec $INSTDIR\gpac.exe
 ;  NoLaunch:
 FunctionEnd
 
@@ -479,7 +459,6 @@ Section "Uninstall"
   ; remove registry keys
   ${DeleteRegKeyAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC"
   ${DeleteRegKeyAuth} HKCU "SOFTWARE\GPAC"
-  ${DeleteRegKeyAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
   ${DeleteRegKeyAuth} HKCR GPAC\mp4\DefaultIcon
   ${DeleteRegKeyAuth} HKCR GPAC\mp4\shell\open\command
   ${DeleteRegKeyAuth} HKCR GPAC\mp4
@@ -505,8 +484,8 @@ Section "Uninstall"
   SetShellVarContext all
   Delete "$SMPROGRAMS\GPAC\*.*"
   RMDir "$SMPROGRAMS\GPAC"
-  Delete "$QUICKLAUNCH\Osmo4.lnk"
-  Delete "$DESKTOP\Osmo4.lnk"
+  Delete "$QUICKLAUNCH\GPAC.lnk"
+  Delete "$DESKTOP\GPAC.lnk"
 
 SectionEnd
 

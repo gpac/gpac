@@ -31,7 +31,6 @@
 #include <gpac/network.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/nodes_x3d.h>
-#include <gpac/options.h>
 
 /*SVG properties*/
 #ifndef GPAC_DISABLE_SVG
@@ -965,7 +964,7 @@ restart:
 		    (OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID))
 		    ||
 		    /*dynamic OD scheme - !! obj->OD_ID may different from GF_MEDIA_EXTERNAL_ID when ODs are
-		    directly added to the terminal by the service*/
+		    directly added to the compositor by the service*/
 		    ((OD_ID == GF_MEDIA_EXTERNAL_ID)
 		     /*if object type unknown (media control, media sensor), return first obj matching URL
 		     otherwise check types*/
@@ -1544,7 +1543,7 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *name, const ch
 		if (url)
 			url->vals = gf_malloc(sizeof(SFURL));
 		if (!url || !url->vals) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate VR proto\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Compositor] Failed to allocate VR proto\n"));
 			return NULL;
 		}
 		url->count=1;
@@ -3106,7 +3105,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	if (!addon) {
 		GF_SAFEALLOC(addon, GF_AddonMedia);
 		if (!addon) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Terminal] Failed to allocate media addon\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPTIME, ("[Compositor] Failed to allocate media addon\n"));
 			return;
 		}
 		addon->timeline_id = addon_info->timeline_id;

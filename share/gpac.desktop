@@ -1,10 +1,10 @@
 [Desktop Entry]
 Version=1.0
-Name=MP4Client
+Name=GPAC
 Comment=GPAC Media Player
 GenericName=Media Player
 Keywords=Media Player
-Exec=MP4Client -gui %u
+Exec=gpac -gui %u
 Terminal=false
 Type=Application
 Icon=gpac
@@ -15,4 +15,4 @@ Actions=new-window
 
 [Desktop Action new-window]
 Name=Open a New Window
-Exec=MP4Client
+Exec=gpac -gui

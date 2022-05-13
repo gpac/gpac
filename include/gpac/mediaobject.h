@@ -42,7 +42,7 @@ extern "C" {
 \ingroup playback_grp
 \brief Interface between compositor and decoding engine for media data access.
 
-This section documents the API between the compositor of GPAC and the decoding engine (terminal)
+This section documents the API between the compositor of GPAC and the decoding engine (filter pids)
 
 @{
  */

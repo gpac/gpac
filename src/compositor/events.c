@@ -26,7 +26,6 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 #include "mpeg4_grouping.h"
-#include <gpac/options.h>
 #include <gpac/utf.h>
 
 static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt, Bool prev_focus);
@@ -132,6 +131,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 }
 
 
+GF_EXPORT
 GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 {
 	u16 *conv_buf;

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -208,6 +208,8 @@ struct _visual_manager
 	//can flush only the minimum part of the texture
 	GF_RectArray hybgl_drawn;
 	u32 nb_objects_on_canvas_since_last_ogl_flush;
+	//for defer rendering
+	u32 prev_hybgl_canvas_not_empty;
 
 	u32 nb_views, current_view, autostereo_type, camlay;
 
