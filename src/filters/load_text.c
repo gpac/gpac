@@ -864,7 +864,7 @@ static GF_Err txtin_process_srt(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacke
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len;
 	Bool set_start_char, set_end_char;
 	u32 line;
-	char szLine[2048], *ptr;
+	char szLine[2048];
 
 	if (!ctx->is_setup) {
 		ctx->is_setup = GF_TRUE;
@@ -1006,8 +1006,6 @@ force_line:
 				gf_isom_text_add_text(ctx->samp, "\n", 1);
 				char_len += 1;
 			}
-
-			ptr = (char *) szLine;
 
 			parse_srt_line(ctx, szLine, &char_len, &set_start_char, &set_end_char);
 			txt_line ++;

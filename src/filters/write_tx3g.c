@@ -431,11 +431,11 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_TextSample *txt;
-		Bool is_utf_16=0;
-		u32 type, /*length, */sample_index, sample_duration;
+		//Bool is_utf_16=GF_FALSE;
+		u32 type, /*length, */sample_index;
 
 		if (!ctx->is_tx3g) {
-			is_utf_16 = (Bool)gf_bs_read_int(ctx->bs_r, 1);
+			/*is_utf_16 = (Bool) */gf_bs_read_int(ctx->bs_r, 1);
 			gf_bs_read_int(ctx->bs_r, 4);
 			type = gf_bs_read_int(ctx->bs_r, 3);
 			/*length = */gf_bs_read_u16(ctx->bs_r);
@@ -446,11 +446,11 @@ GF_Err tx3gmx_process(GF_Filter *filter)
 			}
 			sample_index = gf_bs_read_u8(ctx->bs_r);
 			/*duration*/
-			sample_duration = gf_bs_read_u24(ctx->bs_r);
+			//sample_duration = gf_bs_read_u24(ctx->bs_r);
 		} else {
 			sample_index = 1;
 			/*duration*/
-			sample_duration = gf_filter_pck_get_duration(pck);
+			//sample_duration = gf_filter_pck_get_duration(pck);
 		}
 		/*txt length is parsed with the sample*/
 		txt = gf_isom_parse_text_sample(ctx->bs_r);

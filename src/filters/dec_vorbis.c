@@ -83,6 +83,9 @@ void vorbisdec_set_props(GF_VorbisDecCtx *ctx)
 	case 6:
 		chan_mask = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SURROUND_LEFT | GF_AUDIO_CH_SURROUND_RIGHT | GF_AUDIO_CH_LFE;
 		break;
+	default:
+		chan_mask = GF_AUDIO_CH_FRONT_CENTER;
+		break;
 	}
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, &PROP_LONGUINT(chan_mask) );
 }
