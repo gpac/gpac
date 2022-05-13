@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / mediacodec decoder filter
@@ -1263,6 +1263,8 @@ GF_FilterRegister GF_MCDecCtxRegister = {
 	.args = MCDecArgs,
 	SETCAPS(MCDecCaps),
 #if defined(GPAC_CONFIG_ANDROID) && defined(GPAC_HAS_MEDIACODEC)
+	//on android, we must always use the same thread since it will require JNI access
+	.flags = GF_FS_REG_SINGLE_THREAD,
 	.private_size = sizeof(GF_MCDecCtx),
 	.initialize = mcdec_initialize,
 	.finalize = mcdec_finalize,

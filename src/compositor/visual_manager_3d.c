@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -28,7 +28,6 @@
 #include "visual_manager.h"
 #include "texturing.h"
 #include "nodes_stacks.h"
-#include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_3D
 
@@ -445,7 +444,7 @@ static void visual_3d_draw_background(GF_TraverseState *tr_state, u32 layer_type
 			/*if composite visual, clear with alpha = 0*/
 			if (tr_state->visual==tr_state->visual->compositor->visual) {
 				alpha = FIX_ONE;
-				if (tr_state->visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT) {
+				if (tr_state->visual->compositor->init_flags & GF_VOUT_WINDOW_TRANSPARENT) {
 					alpha = 0;
 				} else if (tr_state->visual->compositor->dyn_filter_mode) {
 					alpha = 0;

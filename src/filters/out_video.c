@@ -56,12 +56,13 @@
 static char *default_glsl_vertex = "\
 	attribute vec4 gfVertex;\n\
 	attribute vec4 gfTexCoord;\n\
+	uniform mat4 gfModViewProjMatrix;\n\
 	uniform mat4 gfTextureMatrix;\n\
 	uniform bool hasTextureMatrix;\n\
 	varying vec2 TexCoord;\n\
 	void main(void)\n\
 	{\n\
-		gl_Position = gl_ModelViewProjectionMatrix * gfVertex;\n\
+		gl_Position = gfModViewProjMatrix * gfVertex;\n\
 		if (hasTextureMatrix) {\n\
 			TexCoord = vec2(gfTextureMatrix * gfTexCoord);\n\
 		} else {\n\
@@ -135,8 +136,9 @@ typedef struct
 	//if source is raw live grab (webcam/etc), we don't trust cts and always draw the frame
 	//this is needed for cases where we have a sudden jump in timestamps as is the case with ffmpeg: not doing so would
 	//hold the frame until its CTS is reached, triggering drops at capture time
-	Bool raw_grab;
-
+	u32 raw_grab;
+	GF_DisplayOrientationType screen_orientation;
+	
 #ifdef VOUT_USE_OPENGL
 	GLint glsl_program;
 	GF_SHADERID vertex_shader;
@@ -414,7 +416,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_RAWGRAB);
-	ctx->raw_grab = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
+	ctx->raw_grab = p ? p->value.uint : 0;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
 	full_range = (p && p->value.boolean) ? GF_TRUE : GF_FALSE;
@@ -701,8 +703,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	if (ctx->disp<MODE_2D) {
 		char *frag_shader_src = NULL;
-		GF_Matrix mx;
-		Float ft_hw, ft_hh;
 
 		ctx->glsl_program = glCreateProgram();
 		ctx->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -711,7 +711,16 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 		gf_gl_txw_setup(&ctx->tx, ctx->pfmt, ctx->width, ctx->height, ctx->stride, ctx->uv_stride, ctx->linear, NULL, ctx->full_range, ctx->cmx);
 
+#ifdef GPAC_USE_GLES2
+		gf_dynstrcat(&frag_shader_src, "#version 100\n"\
+			"#ifdef GL_FRAGMENT_PRECISION_HIGH\n"\
+			"precision highp float;\n"\
+			"#else\n"\
+			"precision mediump float;\n"\
+			"#endif\n", NULL);
+#else
 		gf_dynstrcat(&frag_shader_src, "#version 120\n", NULL);
+#endif
 
 		gf_gl_txw_insert_fragment_shader(ctx->tx.pix_fmt, "maintx", &frag_shader_src, GF_FALSE);
 		gf_dynstrcat(&frag_shader_src, "varying vec2 TexCoord;\n"
@@ -739,16 +748,6 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, ctx->width, ctx->height);
-
-		gf_mx_init(mx);
-		ft_hw = ((Float)ctx->width)/2;
-		ft_hh = ((Float)ctx->height)/2;
-		gf_mx_ortho(&mx, -ft_hw, ft_hw, -ft_hh, ft_hh, 50, -50);
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(mx.m);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 
 		glClear(GL_DEPTH_BUFFER_BIT);
 		glDisable(GL_NORMALIZE);
@@ -821,6 +820,7 @@ static Bool vout_on_event(void *cbk, GF_Event *evt)
 				gf_filter_pid_send_event(ctx->pid, &fevt);
 			}
 		}
+		ctx->screen_orientation = evt->size.orientation;
 		break;
 	case GF_EVENT_CLICK:
 	case GF_EVENT_MOUSEUP:
@@ -939,15 +939,15 @@ static GF_Err vout_initialize(GF_Filter *filter)
 
 	os_wnd_handler = os_disp_handler = NULL;
 	init_flags = 0;
-	sOpt = gf_opts_get_key("Temp", "OSWnd");
+	sOpt = gf_opts_get_key("temp", "window-handle");
 	if (sOpt) sscanf(sOpt, "%p", &os_wnd_handler);
-	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	sOpt = gf_opts_get_key("temp", "window-display");
 	if (sOpt) sscanf(sOpt, "%p", &os_disp_handler);
-	sOpt = gf_opts_get_key("Temp", "InitFlags");
+	sOpt = gf_opts_get_key("temp", "window-flags");
 	if (sOpt) sscanf(sOpt, "%d", &init_flags);
 
 	if (ctx->hide)
-		init_flags |= GF_TERM_INIT_HIDE;
+		init_flags |= GF_VOUT_INIT_HIDE;
 
 	e = ctx->video_out->Setup(ctx->video_out, os_wnd_handler, os_disp_handler, init_flags);
 	if (e!=GF_OK) {
@@ -1126,6 +1126,21 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		break;
 	}
 
+	u32 nb_rot=ctx->pid_vrot;
+	//camera grab and screen orientation is set, rotate video
+	if (ctx->raw_grab && ctx->screen_orientation) {
+		switch (ctx->screen_orientation) {
+		case GF_DISPLAY_MODE_LANDSCAPE_INV: nb_rot+=2; break;
+		case GF_DISPLAY_MODE_LANDSCAPE: break;
+		case GF_DISPLAY_MODE_PORTRAIT: nb_rot+=3; break;
+		case GF_DISPLAY_MODE_PORTRAIT_INV: nb_rot+=1; break;
+		default: break;
+		}
+		//front camera, flip along vertical (auto-mirror mode)
+		if (ctx->raw_grab == 2)
+			flip_v = GF_TRUE;
+	}
+
 	if (flip_h) {
 		GLfloat v = textureVertices[0];
 		textureVertices[0] = textureVertices[2] = textureVertices[4];
@@ -1137,7 +1152,7 @@ static void vout_draw_gl_quad(GF_VideoOutCtx *ctx, Bool flip_texture)
 		textureVertices[3] = textureVertices[5] = v;
 	}
 
-	for (i=0; i < ctx->pid_vrot; i++)  {
+	for (i=0; i < nb_rot; i++)  {
 		GLfloat vx = textureVertices[0];
 		GLfloat vy = textureVertices[1];
 
@@ -1229,6 +1244,7 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	GF_FilterFrameInterface *frame_ifce;
 
 	vout_make_gl_current(ctx);
+	glUseProgram(ctx->glsl_program);
 
 	if (ctx->display_changed) {
 		u32 v_w, v_h;
@@ -1245,6 +1261,17 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		} else {
 			v_w = w;
 			v_h = h;
+		}
+		if (ctx->raw_grab && ctx->screen_orientation) {
+			switch (ctx->screen_orientation) {
+			case GF_DISPLAY_MODE_PORTRAIT:
+			case GF_DISPLAY_MODE_PORTRAIT_INV:
+				v_w = h;
+				v_h = w;
+				break;
+			default:
+				break;
+			}
 		}
 
 		//if we fill width to display width and height is outside
@@ -1267,8 +1294,21 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 			gf_free(ctx->dump_buffer);
 			ctx->dump_buffer = NULL;
 		}
+		gf_mx_init(mx);
+		hw = ((Float)ctx->display_width)/2;
+		hh = ((Float)ctx->display_height)/2;
+		gf_mx_ortho(&mx, -hw, hw, -hh, hh, 10, -5);
+
+		int loc = glGetUniformLocation(ctx->glsl_program, "gfModViewProjMatrix");
+		if (loc>=0)
+			glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
 
 		ctx->display_changed = GF_FALSE;
+
+		//also load proj matrix for overlay draw
+		glMatrixMode(GL_PROJECTION);
+		glLoadMatrixf(mx.m);
+		glMatrixMode(GL_MODELVIEW);
 	}
 
 	glViewport(0, 0, ctx->display_width, ctx->display_height);
@@ -1283,16 +1323,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 	if (frame_ifce && (frame_ifce->flags & GF_FRAME_IFCE_MAIN_GLFB)) {
 		goto exit;
 	}
-
-	gf_mx_init(mx);
-	hw = ((Float)ctx->display_width)/2;
-	hh = ((Float)ctx->display_height)/2;
-	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 10, -5);
-	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(mx.m);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
 
 	if (ctx->has_alpha) {
 		Float r, g, b;
@@ -1323,8 +1353,6 @@ static void vout_draw_gl(GF_VideoOutCtx *ctx, GF_FilterPacket *pck)
 		glClearColor(r, g, b, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
-
-	glUseProgram(ctx->glsl_program);
 
 	if (frame_ifce && frame_ifce->get_gl_texture) {
 		vout_draw_gl_hw_textures(ctx, frame_ifce);

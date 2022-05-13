@@ -134,16 +134,21 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 }
 
 static gf_on_progress_cbk prog_cbk = NULL;
-static void *user_cbk;
+static void *user_cbk = NULL;
+#if defined(GPAC_CONFIG_IOS) || defined(GPAC_CONFIG_ANDROID)
+static Bool gpac_no_color_logs = GF_TRUE;
+#else
 static Bool gpac_no_color_logs = GF_FALSE;
+#endif
 
 GF_EXPORT
 void gf_set_progress(const char *title, u64 done, u64 total)
 {
 	if (done>=total)
 		done=total;
-	if (prog_cbk) {
-		prog_cbk(user_cbk, title, done, total);
+	if (prog_cbk || user_cbk) {
+		if (prog_cbk)
+			prog_cbk(user_cbk, title, done, total);
 	}
 #ifndef _WIN32_WCE
 	else {
@@ -612,6 +617,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 	return GF_FALSE;
 }
 
+GF_EXPORT
 const char *gf_log_tool_name(GF_LOG_Tool log_tool)
 {
 	if (log_tool>=GF_LOG_TOOL_MAX) return "unknown";

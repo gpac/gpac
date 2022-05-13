@@ -87,7 +87,6 @@ binary-arch: build install
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs Changelog
-#	dh_installdocs doc/configuration.html
 	dh_installmenu
 #	dh_installman doc/man/*.1
 	dh_link

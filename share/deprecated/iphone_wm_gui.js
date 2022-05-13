@@ -40,8 +40,8 @@ function adaptLayoutToSize() {
     if (l_deb < log_level) {
         alert("[UI] adaptLayoutToSize");
     }
-    display_width = parseInt(scene.get_option('General', 'LastWidth'));
-    display_height = parseInt(scene.get_option('General', 'LastHeight'));
+    display_width = parseInt(scene.get_option('GUI', 'LastWidth'));
+    display_height = parseInt(scene.get_option('GUI', 'LastHeight'));
     alert("display "+display_width+" "+display_height);
     if (!scene.fullscreen && display_width && display_height) {
      scene.set_size(display_width, display_height);

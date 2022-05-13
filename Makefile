@@ -49,9 +49,6 @@ sggen:
 mods:
 	$(MAKE) -C modules all
 
-instmoz:
-	$(MAKE) -C applications/osmozilla install
-
 depend:
 	$(MAKE) -C src dep
 	$(MAKE) -C applications dep
@@ -69,6 +66,7 @@ distclean:
 	rm -f config.mak config.h config.log
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
+	@find . -type f -name '*.dep*' -delete
 	@rm -f coverage.info 2> /dev/null
 	@rm -f bin/gcc/gm_*$(DYN_LIB_SUFFIX) 2> /dev/null
 	@rm -f bin/gcc/gf_*$(DYN_LIB_SUFFIX) 2> /dev/null
@@ -77,7 +75,7 @@ doc:
 	@cd $(SRC_PATH)/share/doc && doxygen
 
 man:
-	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && MP4Client -genman && gpac -genman
+	@cd $(SRC_PATH)/share/doc/man && MP4Box -genman && gpac -genman
 
 test_suite:
 	@cd $(SRC_PATH)/testsuite && ./make_tests.sh -precommit -p=0
@@ -125,13 +123,6 @@ ifeq ($(DISABLE_ISOFF),no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 endif
-ifneq ($(STATIC_BINARY),yes)
-ifeq ($(DISABLE_PLAYER),no)
-	if [ -f bin/gcc/MP4Client$(EXE_SUFFIX) ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
-	fi
-endif
-endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)"
 ifneq ($(STATIC_BINARY),yes)
 	$(INSTALL) bin/gcc/gm_*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)" || true
@@ -144,7 +135,6 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(man_dir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(man_dir)/man1"
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4box.1 $(DESTDIR)$(prefix)/$(man_dir)/man1/
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/mp4client.1 $(DESTDIR)$(prefix)/$(man_dir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac.1 $(DESTDIR)$(prefix)/$(man_dir)/man1/
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/share/doc/man/gpac-filters.1 $(DESTDIR)$(prefix)/$(man_dir)/man1/
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
@@ -197,11 +187,6 @@ lninstall:
 ifeq ($(DISABLE_ISOFF),no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 endif
-ifneq ($(STATIC_BINARY),yes)
-ifeq ($(DISABLE_PLAYER),no)
-	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
-endif
-endif
 ifeq ($(CONFIG_DARWIN),yes)
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX)
 	ln -sf $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_SONAME)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(lib_dir)/libgpac.$(VERSION_MAJOR)$(DYN_LIB_SUFFIX)
@@ -230,10 +215,8 @@ uninstall:
 	$(MAKE) uninstall-lib
 	rm -rf $(DESTDIR)$(prefix)/$(lib_dir)/$(moddir)
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
-	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
 	rm -rf $(DESTDIR)$(prefix)/bin/gpac
 	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/mp4box.1
-	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/mp4client.1
 	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/gpac.1
 	rm -rf $(DESTDIR)$(prefix)/$(man_dir)/man1/gpac-filters.1
 	rm -rf $(DESTDIR)$(prefix)/share/gpac
@@ -317,13 +300,6 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
-#	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
-#		echo "Local revision and remote revision are not congruent; you may have local commit."; \
-#		echo "Please consider pushing your commit before generating an installer"; \
-#		exit 1; \
-#	fi
-	rm "bin/gcc/MP4Client"
-	$(MAKE) -C applications/mp4client
 	./mkdmg.sh $(arch)
 endif
 
@@ -346,7 +322,6 @@ help:
 	@echo "lib: builds GPAC library only (libgpac.so)"
 	@echo "apps: builds programs only"
 	@echo "modules: builds modules only"
-	@echo "instmoz: build and local install of osmozilla"
 	@echo "sggen: builds scene graph generators"
 	@echo
 	@echo "clean: clean src repository"

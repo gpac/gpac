@@ -37,7 +37,6 @@
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-#include <gpac/options.h>
 #include <gpac/xml.h>
 
 
@@ -46,7 +45,6 @@
 #include "../scenegraph/qjs_common.h"
 
 #include <gpac/internal/compositor_dev.h>
-#include <gpac/term_info.h>
 
 typedef struct
 {
@@ -149,6 +147,7 @@ enum {
 	GJS_SCENE_PROP_HAS_OPENGL,
 	GJS_SCENE_PROP_ZOOM,
 	GJS_SCENE_PROP_TEXT_SEL,
+	GJS_SCENE_PROP_DISP_ORIENTATION,
 
 };
 
@@ -259,7 +258,6 @@ static JSValue scenejs_getProperty(JSContext *ctx, JSValueConst this_val, int pr
 			return JS_NewInt32(ctx, compositor->osize.y);
 		return JS_NewInt32(ctx, compositor->video_out->max_screen_height);
 
-
 	case GJS_SCENE_PROP_FPS:
 		return JS_NewFloat64(ctx, gf_sc_get_fps(compositor, 0) );
 
@@ -300,6 +298,10 @@ static JSValue scenejs_getProperty(JSContext *ctx, JSValueConst this_val, int pr
 		str = (char *) gf_sc_get_selected_text(compositor);
 		if (!str) str = "";
 		return JS_NewString(ctx, str);
+
+
+	case GJS_SCENE_PROP_DISP_ORIENTATION:
+		return JS_NewInt32(ctx, compositor->disp_ori);
 	}
 	return JS_UNDEFINED;
 }
@@ -374,6 +376,16 @@ static JSValue scenejs_setProperty(JSContext *ctx, JSValueConst this_val, JSValu
 		}
 	}
 		break;
+	case GJS_SCENE_PROP_DISP_ORIENTATION:
+		if (JS_ToInt32(ctx, &ival, value)) return GF_JS_EXCEPTION(ctx);
+		if (compositor->video_out && compositor->video_out->ProcessEvent) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.size.type = GF_EVENT_SET_ORIENTATION;
+			evt.size.orientation = ival;
+			compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+		}
+		break;
 	}
 	return JS_UNDEFINED;
 }
@@ -398,7 +410,7 @@ static JSValue scenejs_get_option(JSContext *ctx, JSValueConst this_val, int arg
 		key_name = JS_ToCString(ctx, argv[1]);
 	}
 
-	if (sec_name && !stricmp(sec_name, "General") && key_name && !strcmp(key_name, "Version")) {
+	if (sec_name && !stricmp(sec_name, "core") && key_name && !strcmp(key_name, "version")) {
 		opt = gf_gpac_version();
 	} else if (sec_name && key_name) {
 		if (!strcmp(sec_name, "Compositor")) {
@@ -1696,6 +1708,7 @@ static const JSCFunctionListEntry scenejs_funcs[] = {
 	JS_CGETSET_MAGIC_DEF("sensors_active", scenejs_getProperty, scenejs_setProperty, GJS_SCENE_PROP_SENSORS_ACTIVE),
 	JS_CGETSET_MAGIC_DEF("zoom", scenejs_getProperty, NULL, GJS_SCENE_PROP_ZOOM),
 	JS_CGETSET_MAGIC_DEF("text_selection", scenejs_getProperty, NULL, GJS_SCENE_PROP_TEXT_SEL),
+	JS_CGETSET_MAGIC_DEF("orientation", scenejs_getProperty, scenejs_setProperty, GJS_SCENE_PROP_DISP_ORIENTATION),
 	JS_CFUNC_DEF("get_option", 0, scenejs_get_option),
 	JS_CFUNC_DEF("set_option", 0, scenejs_set_option),
 	JS_CFUNC_DEF("set_size", 0, scenejs_set_size),

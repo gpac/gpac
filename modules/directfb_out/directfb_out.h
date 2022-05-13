@@ -29,8 +29,12 @@
 typedef struct __DirectFBVidCtx DirectFBVidCtx;
 
 typedef enum {
-	WINDOW_X11 = 1,
-	WINDOW_SDL = 1 << 1,
+	WINDOW_X11 = 0,
+	WINDOW_SDL,
+	WINDOW_VNC,
+	WINDOW_OSX,
+	WINDOW_FBDEV,
+	WINDOW_DEVMEM,
 } WINDOW_MODE;
 
 typedef enum {
@@ -47,7 +51,7 @@ typedef enum {
 u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf);
 u32 DirectFBVid_TranslatePixelFormatFromGPAC(u32 gpacpf);
 size_t DirectFBVid_GetCtxSizeOf(void);
-void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, WINDOW_MODE window_mode);
+void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, char *dfb_system);
 void DirectFBVid_CtxSetFlipMode(DirectFBVidCtx *ctx, FLIP_MODE flip_mode);
 void DirectFBVid_CtxPrimaryProcessGetAccelerationMask(DirectFBVidCtx *ctx);
 u32 DirectFBVid_ProcessMessageQueueWrapper(DirectFBVidCtx *ctx, u8 *type, u32 *flags, u32 *key_code, s32 *x, s32 *y, u32 *button);
@@ -62,10 +66,6 @@ void *DirectFBVid_CtxGetPrimary(DirectFBVidCtx *ctx);
 u32 DirectFBVid_CtxGetPixelFormat(DirectFBVidCtx *ctx);
 Bool DirectFBVid_CtxIsHwMemory(DirectFBVidCtx *ctx);
 u32 DirectFBVid_CtxPrimaryFlip(DirectFBVidCtx *ctx);
-void DirectFBVid_CtxSetDisableDisplay(DirectFBVidCtx *ctx, Bool val);
-Bool DirectFBVid_CtxGetDisableDisplay(DirectFBVidCtx *ctx);
-void DirectFBVid_CtxSetDisableAcceleration(DirectFBVidCtx *ctx, Bool val);
-Bool DirectFBVid_CtxGetDisableAcceleration(DirectFBVidCtx *ctx);
 void DirectFBVid_CtxSetIsInit(DirectFBVidCtx *ctx, Bool val);
 u32 DirectFBVid_ShutdownWrapper(DirectFBVidCtx *ctx);
 u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_src_height, u32 video_src_pixel_format, char *video_src_buffer, s32 video_src_pitch_y, u32 src_wnd_x, u32 src_wnd_y, u32 src_wnd_w, u32 src_wnd_h, u32 dst_wnd_x, u32 dst_wnd_y, u32 dst_wnd_w, u32 dst_wnd_h, u32 overlay_type);

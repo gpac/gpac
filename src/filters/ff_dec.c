@@ -903,7 +903,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 
 		memset(output, 0, 4*ctx->irc.width*ctx->irc.height);
 		for (i=0; i<subs.num_rects; i++) {
-			u32 j, k;
+			int j, k;
 			AVSubtitleRect *rc = subs.rects[i];
 			if (rc->type != SUBTITLE_BITMAP) continue;
 			if (!rc->nb_colors) continue;
@@ -914,7 +914,7 @@ static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ct
 				u8 *dst = output + 4*ctx->irc.width*(rc->y+j) + 4*rc->x;
 				u8 *src = rc->data[0] + rc->linesize[0]*j;
 				for (k=0; k<rc->w; k++) {
-					u32 pval = *src;
+					int pval = *src;
 					if (pval>=rc->nb_colors) continue;
 					u32 col = palette[pval];
 					dst[0] = GF_COL_R(col);
@@ -1379,6 +1379,9 @@ static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			//for video, this will reset the decoder
 			ctx->flush_done = GF_TRUE;
 		}
+		//flush draining state
+		if (ctx->decoder && ctx->flush_done)
+			avcodec_flush_buffers(ctx->decoder);
 	}
 
 	return GF_FALSE;

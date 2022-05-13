@@ -111,6 +111,10 @@ void gf_js_delete_context(JSContext *ctx)
 
 void gf_js_delete_runtime()
 {
+	//prevent destruction of the runtime if asked (used for android)
+	if (gf_opts_get_bool("temp", "static-jsrt"))
+		return;
+
 	if (js_rt) {
 		qjs_uninit_runtime_libc(js_rt->js_runtime);
 		JS_FreeRuntime(js_rt->js_runtime);
@@ -976,18 +980,15 @@ static JSValue js_sys_prop_get(JSContext *ctx, JSValueConst this_val, int magic)
 		}
 		break;
 	case JS_SYS_LAST_WORK_DIR:
-		res = gf_opts_get_key("General", "LastWorkingDir");
+		res = gf_opts_get_key("core", "last-dir");
 #ifdef WIN32
 		if (!res) res = getenv("HOMEPATH");
 		if (!res) res = "C:\\";
 #elif defined(GPAC_CONFIG_DARWIN)
 		if (!res) res = getenv("HOME");
 		if (!res) res = "/Users";
-#elif defined(GPAC_CONFIG_ANDROID)
-		if (!res) res = getenv("EXTERNAL_STORAGE");
-		if (!res) res = "/sdcard";
-#elif defined(GPAC_CONFIG_IOS)
-		if (!res) res = (char *) gf_opts_get_key("General", "iOSDocumentsDir");
+#elif defined(GPAC_CONFIG_ANDROID) || defined(GPAC_CONFIG_IOS)
+		if (!res) res = (char *) gf_opts_get_key("core", "docs-dir");
 #else
 		if (!res) res = getenv("HOME");
 		if (!res) res = "/home/";
@@ -1055,7 +1056,7 @@ static JSValue js_sys_prop_set(JSContext *ctx, JSValueConst this_val, JSValueCon
 	case JS_SYS_LAST_WORK_DIR:
 		if (!JS_IsString(value)) return GF_JS_EXCEPTION(ctx);
 		prop_val = JS_ToCString(ctx, value);
-		gf_opts_set_key("General", "LastWorkingDir", prop_val);
+		gf_opts_set_key("core", "last-dir", prop_val);
 		JS_FreeCString(ctx, prop_val);
 		break;
 	}

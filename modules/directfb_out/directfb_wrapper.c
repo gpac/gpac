@@ -66,7 +66,7 @@ struct __DirectFBVidCtx
 
 	/* screen width, height */
 	u32 width, height, pixel_format;
-	Bool use_systems_memory, disable_acceleration, disable_aa, is_init, disable_display;
+	Bool use_systems_memory, disable_aa, is_init;
 
 	/* acceleration */
 	int accel_drawline, accel_fillrect;
@@ -196,7 +196,7 @@ static DFBEnumerationResult enum_input_device(DFBInputDeviceID device_id, DFBInp
  * 	- initialize and create DirectFB surface
  **/
 u32 DirectFBVid_TranslatePixelFormatToGPAC(u32 dfbpf);
-void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, u32 window_mode)
+void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, char *dfb_system)
 {
 	DFBResult err;
 	DFBSurfaceDescription dsc;
@@ -210,12 +210,11 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, u32 window_mode)
 		char *argv_ro[2];
 		//http://directfb.org/wiki/index.php/Configuring_DirectFB
 		argv_ro[0]=argv[0]=strdup("gpac");
-		// graphis system used is X11
-		if (window_mode == WINDOW_SDL) {
-			argv_ro[1]=argv[1]=strdup("--dfb:system=sdl");
-		} else {
-			argv_ro[1]=argv[1]=strdup("--dfb:system=x11");
-		}
+		char dev_name[100];
+		snprintf(dev_name, "--dfb:system=%s", dfb_system ? dfb_system : "x11");
+		dev_name[99]=0;
+		strlwr(dev_name);
+		argv_ro[1] = argv[1] = strdup(dev_name);
 
 		// screen resolution 640x480
 		//~ argv_ro[2]=argv[2]=strdup("--dfb:mode=640x480");
@@ -342,46 +341,6 @@ u32 DirectFBVid_CtxPrimaryFlip(DirectFBVidCtx *ctx)
 
 
 /**
- *	function DirectFBVid_CtxSetDisableDisplay
- * 	- set disable display value
- **/
-void DirectFBVid_CtxSetDisableDisplay(DirectFBVidCtx *ctx, Bool val)
-{
-	ctx->disable_display = val;
-}
-
-
-/**
- *	function DirectFBVid_CtxGetDisableDisplay
- * 	- boolean showing whether display is enabled/disabled
- **/
-Bool DirectFBVid_CtxGetDisableDisplay(DirectFBVidCtx *ctx)
-{
-	return ctx->disable_display;
-}
-
-
-/**
- *	function DirectFBVid_CtxSetDisableAcceleration
- * 	- boolean showing whether hardware accelerator is enabled/disabled
- **/
-void DirectFBVid_CtxSetDisableAcceleration(DirectFBVidCtx *ctx, Bool val)
-{
-	ctx->disable_acceleration = val;
-}
-
-
-/**
- *	function DirectFBVid_CtxGetDisableAcceleration
- * 	- return disable_acceleration value
- **/
-Bool DirectFBVid_CtxGetDisableAcceleration(DirectFBVidCtx *ctx)
-{
-	return ctx->disable_acceleration;
-}
-
-
-/**
  *	function DirectFBVid_CtxSetIsInit
  * 	- boolean showing whether DirectFB is initialized
  **/
@@ -463,7 +422,6 @@ u32 DirectFBVid_BlitWrapper(DirectFBVidCtx *ctx, u32 video_src_width, u32 video_
 	DFBRectangle dfbsrc, dfbdst;
 
 	if (overlay_type != 0) return 1;
-	if (ctx->disable_display) return 0;
 
 	memset(&srcdesc, 0, sizeof(srcdesc));
 

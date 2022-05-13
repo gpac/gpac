@@ -11,8 +11,14 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../libgpac/
 LOCAL_LDLIBS    += -L../libs/$(TARGET_ARCH_ABI)
 LOCAL_LDLIBS    += -llog -lgpac
 
-#LOCAL_CFLAGS +=	-DGPAC_GUI_ONLY
-LOCAL_CFLAGS +=	-DDEBUG_MODE
-LOCAL_SRC_FILES :=  ../../../../applications/osmo4_android_studio/app/src/main/jni/wrapper_jni.cpp ../../../../applications/osmo4_android_studio/app/src/main/jni/wrapper.cpp
+#GPAC JNI wrapper
+LOCAL_SRC_FILES :=  ../../../../applications/gpac_android/src/main/jni/gpac_jni.cpp
+#gpac main and help
+LOCAL_SRC_FILES +=../../../../applications/gpac/gpac.c ../../../../applications/gpac/gpac_help.c
+#mp4box
+LOCAL_SRC_FILES +=  ../../../../applications/mp4box/filedump.c \
+					../../../../applications/mp4box/fileimport.c \
+					../../../../applications/mp4box/live.c \
+					../../../../applications/mp4box/mp4box.c
 
 include $(BUILD_SHARED_LIBRARY)

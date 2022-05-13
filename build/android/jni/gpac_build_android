@@ -1,75 +1,93 @@
 #!/bin/bash -e
 
-echo -e "\n\033[32m If you have problem using this script, read the README in  trunk/gpac/build/android \033[0m\n"
-
 NDK=0
 SDK=0
 JDK=0
 REBUILD=0
 CLEAN=0
+#DEBUG="NDK_DEBUG=0"
+DEBUG="NDK_DEBUG=0 APP_OPTIM=release"
+#default should be assembleRelease but not working with gradle 2, to fix 
+GRADLE_FLAG="assembleDebug"
+VERB=""
 
-for i in $*
-do
+#parse options
+for i in $* ; do
 
 #! Check for force rebuild
- if [ "$i" = "-force_rebuild" ]
-then
+if [ "$i" = "-force_rebuild" ] ; then
   echo -e "\033[31m Usage: $0 Force Rebuild : Activated \033[0m"
   REBUILD=1
 fi
 
- if [ "$i" = "-clean" ]
-then
+if [ "$i" = "-clean" ]; then
   CLEAN=1
 fi
 
+if [ "$i" = "-debug" ]; then
+  DEBUG="NDK_DEBUG=1"
+  GRADLE_FLAG="assembleDebug"
+fi
+
+if [ "$i" = "-v" ]; then
+  VERB="V=1"
+fi
+
 #! Check for the NDK path
- if [ "${i%=*}" = "-ndk" ]
-then
+if [ "${i%=*}" = "-ndk" ] ; then
   echo -e "\033[31m Usage: $0 Path to Android NDK : Ok \033[0m"
   NDK=1
   export PATH="$(echo $i | cut -d"=" -f2):$PATH"
 fi
 
 #! Check for the SDK path
- if [ "${i%=*}" = "-sdk" ]
-then
+if [ "${i%=*}" = "-sdk" ] ; then
   echo -e "\033[31m Usage: $0 Path to Android SDK : Ok \033[0m"
   SDK=1
   export PATH="$(echo $i | cut -d"=" -f2)/tools:$PATH"
   export ANDROID_HOME="$(echo $i | cut -d"=" -f2)/"
-
 fi
 
 #! Check for the JDK path
- if [ "${i%=*}" = "-jdk" ]
-then
-  echo -e "\033[31m Usage: $0 Path to JDK : Ok \033[0m"
-  JDK=1
-  export JAVA_HOME="$(echo $i | cut -d"=" -f2)"
+if [ "${i%=*}" = "-jdk" ] ; then
+ echo -e "\033[31m Usage: $0 Path to JDK : Ok \033[0m"
+ JDK=1
+ export JAVA_HOME="$(echo $i | cut -d"=" -f2)"
+fi
+
+if [ "$i" = "-h" ]; then
+echo "Usage: "
+echo "-ndk=PATH: path to android NDK"
+echo "-sdk=PATH: path to android SDK (for command-line build of APK)"
+echo "-jdk=PATH: path to JDK (for command-line build of APK)"
+echo "-force_rebuild: forces clean before build"
+echo "-clean: remove objs and libs"
+echo "-debug: build with debug symbols "
+echo "-h: print this screen"
+echo "-v: verbose build"
+echo ""
+echo -e "\n\033[32m If you have problem using this script, check wiki.gpac.io/GPAC-Build-Guide-for-Android or gpac/build/android/README \033[0m\n"
+exit 0
 fi
 
 done
+#args
+
 
 if [ $NDK -eq 0 ]
 then
-  echo "\nUsage: $0 PATH_TO_ANDROID_NDK [ADDITIONAL_NDK-BUILD arguments] : You must give as first argument the directory path of the NDK, add -ndk=PATH_TO_NDK"
+  echo "\nUsage: $0 ndk=PATH_TO_ANDROID_NDK [ADDITIONAL_NDK-BUILD arguments] : You must give as first argument the directory path of the NDK, add -ndk=PATH_TO_NDK"
   exit 1
 fi
 
 if [ $SDK -eq 0 ]
 then
-  echo -e "\n\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -sdk=PATH_TO_SDK\033[0m"
+  echo -e "\n\033[34m You have not give the directory path of SDK, build of GPAC.apk not possible. Build it with Android Studio or add -sdk=PATH_TO_SDK\033[0m"
 fi
 
 if [ $JDK -eq 0 ]
 then
-  echo -e "\n\033[34m Usage: $0 PATH_TO_JDK : You have not give the directory path of JDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -jdk=PATH_TO_JDK \033[0m"
-fi
-
-if [ $REBUILD -eq 0 ]
-then
-  echo -e "\n\033[33m Usage: $0 Force Rebuild : Add -force_rebuild to rebuild the whole solution \033[0m"
+  echo -e "\n\033[34m Usage: $0 PATH_TO_JDK : You have not give the directory path of JDK, build of GPAC.apk not possible. Build it with with Android Studio or add -jdk=PATH_TO_JDK \033[0m"
 fi
 
 if [ -z $JAVA_HOME ]
@@ -94,7 +112,7 @@ cd $BUILDPATH
 export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
 
-echo "Building lib gpac ..."
+echo "Building libgpac"
 cd ../../../
 BASEPATH=$(pwd)
 #check revision.h is here
@@ -107,40 +125,33 @@ cd $BUILDPATH
 
 if [ $CLEAN -eq 1 ]
 then
-echo -n "Cleaning all from $BUILDPATH..."
+echo -n "Cleaning all from $BUILDPATH"
 ndk-build clean
-cd $BASEPATH/applications/osmo4_android_studio/
+cd $BASEPATH/applications/gpac_android/
 ./gradlew clean
 cd -
 exit 0
 fi
 
-echo -n "Buiding all libs from $BUILDPATH..."
+echo -n "Buiding all libs from $BUILDPATH"
 if [ $REBUILD -eq 1 ]
 then
 ndk-build clean
-cd $BASEPATH/applications/osmo4_android_studio/
+cd $BASEPATH/applications/gpac_android/
 ./gradlew clean
 cd -
-ndk-build -B
+ndk-build -B $VERB $DEBUG
 else
-ndk-build
+ndk-build $VERB $DEBUG
 fi
 echo "[OK] build successful."
 
-#echo "Copying modules to modules dir..."
 cd ../libs/
-#for i in $(find . -name 'gm*.so')
-#do
-#	echo -n "$i..."
-#	cp "$i" "$BASEPATH/applications/osmo4_android/res/raw/"
-#done
-#echo
-#echo "[OK] success."
 
-LIBS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/libs"
+
+LIBS_DIR="$BASEPATH/applications/gpac_android/src/main/libs"
 mkdir -p $LIBS_DIR
-echo "Copying libs to libs dir $LIBS_DIR ..."
+echo "GPAC.apk: Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . -name '*.so')
 do
 	echo -n " Copy $i"
@@ -150,26 +161,12 @@ do
 	cp "$i" "$LIBS_DIR/$i"
 done
 echo
-echo "[OK] success module for Osmo4."
+echo "Done."
 
-
-LIBS_DIR="$BASEPATH/applications/mp4box_android/app/src/main/libs"
-mkdir -p $LIBS_DIR
-echo "Copying libs to libs dir $LIBS_DIR ..."
-for i in $(find . \( -name '*.so' \) )
-do
-	echo " Copy $i"
-	TMP_DIR=$(dirname $i)
-	mkdir -p "$LIBS_DIR/$TMP_DIR"
-	cp "$i" "$LIBS_DIR/$i"
-done
-echo
-echo "[OK] success module for MP4box."
-
-LIBS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/libs"
+LIBS_DIR="$BASEPATH/applications/gpac_android/src/main/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
-echo "Copying all extra libs to $LIBS_DIR ..."
+echo "GPAC.apk: Copying all extra libs to $LIBS_DIR ..."
 for i in $(find . \( -name '*.so' \))
 do
 	echo " Copy $i"
@@ -177,59 +174,35 @@ do
 	mkdir -p "$LIBS_DIR/$TMP_DIR"
 	cp "$i" "$LIBS_DIR/$i"
 done
-echo "[OK] success extra lib for Osmo4."
+echo "Done."
 
-LIBS_DIR="$BASEPATH/applications/mp4box_android/app/src/main/libs"
-mkdir -p $LIBS_DIR
-cd "$BASEPATH/extra_lib/lib/android"
-echo "Copying all extra libs to $LIBS_DIR ..."
-
-for i in $(find . \( -name '*.so' \) )
-do
-	echo " Copy $i"
-	TMP_DIR=$(dirname $i)
-	mkdir -p "$LIBS_DIR/$TMP_DIR"
-	cp "$i" "$LIBS_DIR/$i"
-done
-echo "[OK] success extra lib MP4box."
-
-ASSETS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/assets/"
+ASSETS_DIR="$BASEPATH/applications/gpac_android/src/main/assets/share"
 mkdir -p $ASSETS_DIR
 
-echo "Copying shared resources (GUI, scripts, shaders...) to $ASSETS_DIR ..."
+echo "GPAC.apk: Copying shared resources (GUI, scripts, shaders...) to $ASSETS_DIR ..."
 cp -R "$BASEPATH/share/gui" $ASSETS_DIR
 cp -R "$BASEPATH/share/shaders" $ASSETS_DIR
 cp -R "$BASEPATH/share/scripts" $ASSETS_DIR
 cp -R "$BASEPATH/share/res" $ASSETS_DIR
-echo "[OK] success shared resources for Osmo4."
+echo "Done."
 
 if [ \( $SDK -eq 1 \) -a \( $JDK -eq 1 \) ]
 then
 
 	TAG="$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )"
 
-	echo "Building osmo4 apk"
-	cd $BASEPATH/applications/osmo4_android_studio/
-	./gradlew assembleDebug
+	echo "Building GPAC.apk"
+	cd $BASEPATH/applications/gpac_android/
+	./gradlew $GRADLE_FLAG
 	cd -
-	if [ -f $BASEPATH/osmo4-$TAG-rev$version.apk ]
+	if [ -f $BASEPATH/gpac-$TAG-rev$version.apk ]
 	then
-	echo -e "\nOld Osmo4.apk found. Removing it ..."
-	rm $BASEPATH/osmo4-$TAG-rev$version.apk
+	echo -e "\nOld GPAC.apk found. Removing it ..."
+	rm $BASEPATH/gpac-$TAG-rev$version.apk
 	fi
 
-	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$TAG-rev$version.apk
-	echo "[OK] success Building osmo4 apk"
-
-	echo "Building mp4box apk"
-	cd $BASEPATH/applications/mp4box_android/
-	./gradlew assembleDebug
-	cd -
-
-	# uncomment to copy apk to public build dir
-	# rm -f $BASEPATH/mp4box-$TAG-rev$version.apk
-	# cp $BASEPATH/applications/mp4box_android/app/build/outputs/apk/app-debug.apk $BASEPATH/mp4box-$TAG-rev$version.apk
-	echo "[OK] success Building mp4box apk"
+	cp $BASEPATH/applications/gpac_android/build/outputs/apk/gpac_android-debug.apk $BASEPATH/gpac-$TAG-rev$version.apk
+	echo "[OK] success Building GPAC apk"
 else
 	echo "Run project with Android studio to generate APK"
 fi

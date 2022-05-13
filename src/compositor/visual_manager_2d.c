@@ -721,7 +721,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		if (!hyb_force_redraw && !hyb_force_background) {
 #ifndef GPAC_DISABLE_3D
 			//force canvas draw
-			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
+			if ((visual==visual->compositor->visual) && visual->prev_hybgl_canvas_not_empty)
+				visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
 #endif
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
 			goto exit;
@@ -796,7 +797,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		visual->has_modif=0;
 #ifndef GPAC_DISABLE_3D
 		//force canvas flush
-		visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
+		if ((visual==visual->compositor->visual) && visual->prev_hybgl_canvas_not_empty)
+			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
 #endif
 		goto exit;
 	}
@@ -818,6 +820,13 @@ skip_background:
 #endif
 
 	visual->draw_node_index = 0;
+
+#ifndef GPAC_DISABLE_3D
+	//consider nothing is drawn on hyblg canvas. If any of the refresh area(s) triggers painting on the canvas
+	//the variable will be set while flushing
+	if (visual==visual->compositor->visual)
+		visual->prev_hybgl_canvas_not_empty = GF_FALSE;
+#endif
 
 	ctx = visual->context;
 	while (ctx && ctx->drawable) {

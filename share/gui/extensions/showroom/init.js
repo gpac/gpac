@@ -2,7 +2,7 @@
 my_ext = {
     whoami: "GPAC-GUI-Extension",
     name: "Showroom",
-    icon: "osmo.bt",
+    icon: "gpac.bt",
     author: "JeanLF",
     description: "GPAC demonstrations",
     url: "http://gpac.io/",

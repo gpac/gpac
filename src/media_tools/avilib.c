@@ -2107,7 +2107,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 						int wfes;
 
 						if ((u32) (hdrl_len - i) < sizeof(alWAVEFORMATEX))
-							wfes = hdrl_len - i;
+							wfes = (int) (hdrl_len - i);
 						else
 							wfes = sizeof(alWAVEFORMATEX);
 						wfe = (alWAVEFORMATEX *)gf_malloc(sizeof(alWAVEFORMATEX));

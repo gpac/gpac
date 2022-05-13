@@ -46,7 +46,6 @@ cp bin/gcc/libgpac.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
 if [ -f bin/gcc/libopenhevc.1.dylib ]; then
     cp bin/gcc/libopenhevc.1.dylib tmpdmg/GPAC.app/Contents/MacOS/lib
 fi
-cp bin/gcc/MP4Client tmpdmg/GPAC.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/GPAC.app/Contents/MacOS/MP4Box
 cp bin/gcc/gpac tmpdmg/GPAC.app/Contents/MacOS/gpac
 
@@ -60,10 +59,8 @@ do
 done
 
 echo rewriting APPS dependencies
-install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
-install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib gpac
 

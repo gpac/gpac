@@ -42,7 +42,7 @@ typedef struct
 
 	u8 *buf;
 	u32 buf_alloc;
-	s64 last_end_ts;
+	u64 last_end_ts;
 
 	Bool srt_conv;
 } TTMLConvCtx;
@@ -217,13 +217,12 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 	body = ttml_get_body(root);
 	nb_children = body ? gf_list_count(body->content) : 0;
 	for (i=0; i<nb_children; i++) {
-		GF_XMLAttribute *div_reg = NULL;
 		GF_XMLNode *div = gf_list_get(body->content, i);
 		if (div->type) continue;
 		if (strcmp(div->name, "div")) continue;
 
 		div_idx++;
-		div_reg = ttml_get_attr(div, "region");
+//		div_reg = ttml_get_attr(div, "region");
 
 		j=0;
 		while ( (p = gf_list_enum(div->content, &j)) ) {
@@ -255,7 +254,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 				goto exit;
 			}
 			ttmlconv_dump_node(ctx, p, dump);
-			u32 size = gf_ftell(dump);
+			u32 size = (u32) gf_ftell(dump);
 			gf_fseek(dump, 0, SEEK_SET);
 			u8 *output;
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
@@ -271,7 +270,7 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 			gf_filter_pck_set_cts(dst_pck, p_start_ts);
-			gf_filter_pck_set_duration(dst_pck, p_end_ts-p_start_ts);
+			gf_filter_pck_set_duration(dst_pck, (u32) (p_end_ts-p_start_ts));
 			gf_filter_pck_send(dst_pck);
 		}
 	}

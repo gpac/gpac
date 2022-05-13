@@ -394,6 +394,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_int) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_get_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_opts_default_shared_directory) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_opts_save) )
 
 
 #ifndef GPAC_DISABLE_PLAYER
@@ -1896,62 +1897,27 @@
 
 
 #ifndef GPAC_DISABLE_PLAYER
-/*terminal.h exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_del) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_connect) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_disconnect) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_navigate_to) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_play_from_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_set_option) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_option) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_framerate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_time_in_ms) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_elapsed_time_in_ms) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_viewpoint) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_set_viewpoint) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_root_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object_count) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_object_subscene_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_select_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_select_service) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_find_service) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_toggle_addons) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_download_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_channel_net_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_world_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_dump_scene) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_set_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_user_event) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_connect_from_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_add_object) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_is_supported_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_simulation_frame_rate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_service_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_text_selection) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_paste_text) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_connect_with_path) )
+//compositor exports
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigate_to) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_play_from_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_time_in_ms) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_select_service) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_toggle_addons) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_main_pid) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_world_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_current_service_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_dump_scene) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_simulation_frame_rate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_supported_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_register) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_unregister) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_scenegraph) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_send_event) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_switch_quality) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_visual_output_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_scene_update) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_process_step) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_screen_buffer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_release_screen_buffer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_offscreen_buffer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_print_graph) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_is_type_supported) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_print_stats) )
-
-/*terminal_dev exports*/
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_switch_quality) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_scene_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_time) )
@@ -1973,10 +1939,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_resume_live) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_timeshift_depth) )
 
-#endif
-
-#ifndef GPAC_DISABLE_PLAYER
-/*compositor.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_load) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_unload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_fps) )
@@ -2002,7 +1964,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_over) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_navigation_supported) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_on_event) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_has_text_selection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_selected_text) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_paste_text) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_offscreen_buffer) )
 
 
 #ifndef GPAC_DISABLE_SVG
@@ -2039,7 +2005,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
 
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time_ex) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_connect_from_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_disconnect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_send_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_downloader) )
@@ -2417,6 +2383,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_load_destination) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_post_user_task ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_post_user_task_main ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_abort ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_last_task ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_in_final_flush) )

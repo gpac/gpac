@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -73,7 +73,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	if (st->input.stream && st->input.stream_finished) {
 		if (gf_mo_get_loop(st->input.stream, ac->loop)) {
 			gf_sc_audio_restart(&st->input);
-		} else if (ac->isActive && gf_mo_should_deactivate(st->input.stream)) {
+		} else if (ac->isActive && (ac->startTime<ac->startTime) && gf_mo_should_deactivate(st->input.stream)) {
 			/*deactivate*/
 			audioclip_deactivate(st, ac);
 		}

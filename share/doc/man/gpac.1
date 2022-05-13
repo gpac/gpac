@@ -42,16 +42,6 @@ The possible options for gpac are:
 
 .br
 .TP
-.B \-mem-track
-.br
-enable memory tracker
-.br
-.TP
-.B \-mem-track-stack
-.br
-enable memory tracker with stack dumping
-.br
-.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -456,25 +446,43 @@ Alias documentation will then appear in gpac help.
 .SH Configuration file
 .LP
 .br
-GPAC uses a configuration file to modify default options of libgpac and filters. This configuration file is located in $HOME/.gpac/GPAC.cfg.
+GPAC uses a configuration file to modify default options of libgpac and filters. This file is called GPAC.cfg and is located:
 .br
-Applications in GPAC can also specify a different configuration file through the .I -p option to indicate a profile. This allows different configurations for different usages and simplifies command line typing.
+- on Windows platforms, in C:\Users\FOO\AppData\Roaming\GPAC or in C:\Program Files\GPAC.
 .br
-Example
+- on iOS platforms, in a .gpac folder in the app storage directory.
 .br
-gpac -p=foo []
+- on Android platforms, in /sdcard/GPAC/ if this directory exists, otherwise in /data/data/io.gpac.gpac/GPAC.
+.br
+- on other platforms, in a $HOME/.gpac/.
 .br
 
+.br
+Applications in GPAC can also specify a different configuration file through the .I -p profile option. EX gpac -p=foo []
 .br
 This will load configuration from $HOME/.gpac/foo/GPAC.cfg, creating it if needed.
 .br
 The reserved name 0 is used to disable configuration file writing.
 .br
-By default the configuration file only holds a few system specific options and directories. It is possible to serialize the entire set of options to the configuration file, using .I -wc .I -wf. This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
+
 .br
-The options specified in the configuration file may be overridden by the values in restrict.cfg file located in GPAC share system directory (e.g. /usr/share/gpac), if present; this allows enforcing system-wide configuration values.
+The configuration file is structured in sections, each made of one or more keys:
 .br
-Note: The methods describe in this section apply to any application in GPAC transferring their arguments to libgpac. This is the case for gpac, MP4Box, MP4Client/Osmo4.
+- section foo is declared as [foo]\n
+.br
+- key bar with value N is declared as bar=N\n. The key value N is not interpreted and always handled as ASCII text.
+.br
+
+.br
+By default the configuration file only holds a few system specific options and directories. It is possible to serialize the entire set of options to the configuration file, using .I -wc .I -wf.
+.br
+This should be avoided as the resulting configuration file size will be quite large, hence larger memory usage for the applications.
+.br
+The options specified in the configuration file may be overridden by the values in restrict.cfg file located in GPAC share system directory (e.g. /usr/share/gpac or C:\Program Files\GPAC), if present; this allows enforcing system-wide configuration values.
+.br
+Note: The methods describe in this section apply to any application in GPAC transferring their arguments to libgpac. This is the case for gpac and MP4Box.
+.br
+
 .br
 .SH Core options
 .LP
@@ -483,7 +491,9 @@ The options from libgpac core can also be assigned though the config file from s
 .br
 Example
 .br
-[core]threads=2
+[core]
+.br
+threads=2
 .br
 
 .br
@@ -498,7 +508,9 @@ It is possible to alter the default value of a filter option by modifying the co
 .br
 Example
 .br
-[filter@rtpin]interleave=yes
+[filter@rtpin]
+.br
+interleave=yes
 .br
 
 .br
@@ -664,6 +676,21 @@ disable compliance tests for inputs (ISOBMFF for now). This will likely result i
 .B \-unhandled-rejection
 .br
 dump unhandled promise rejections
+.br
+.TP
+.B \-startup-file (string)
+.br
+startup file of compositor in GUI mode
+.br
+.TP
+.B \-docs-dir (string)
+.br
+default documents directoty (for GUI on iOS and Android)
+.br
+.TP
+.B \-last-dir (string)
+.br
+last working directory (for GUI)
 .br
 .TP
 .B \-cache (string)
@@ -925,7 +952,17 @@ set output texture ID when using glfbo output. The OpenGL context shall be initi
 .TP
 .B \-video-output (string)
 .br
-indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the OpenGL texture identified by .I glfbo-txid.  In this mode, the application is responsible for sending event to the terminal
+indicate the name of the video output module to use (see gpac -h modules). The reserved name glfbo is used in player mode to draw in the OpenGL texture identified by .I glfbo-txid.  In this mode, the application is responsible for sending event to the compositor
+.br
+.TP
+.B \-dfb-sys (string, default: x11)
+.br
+system DirectFB (x11, sdl, vnc, fbdev, osx ordevmem)
+.br
+.TP
+.B \-dfb-flip (string, default: waitsync)
+.br
+vsync mode for DirectFB (waitsync, wait, sync or swap)
 .br
 .TP
 .B \-audio-output (string)
@@ -2122,6 +2159,14 @@ Defined keywords:
 .br
 * $GJS: replaced by the first path from global share directory and paths set through .I -js-dirs that contains the file name following the macro, e.g. $GJS/source.js
 .br
+* $GDOCS: replaced by system path to:
+.br
+  - application document directory for iOS
+.br
+  - EXTERNAL_STORAGE environment variable if present or /sdcard otherwise for Android
+.br
+  - user home directory for other platforms
+.br
 * $GLANG: replaced by the global config language option .I -lang
 .br
 * $GUA: replaced by the global config user agent option .I -user-agent
@@ -2711,7 +2756,7 @@ Video in this PID is an alpha map
 .TP
 .B Mirror (VMIR,uint,  )
 .br
-Mirror mode (0: no mirror, 1: along Y-axis, 2: along X-axis)
+Mirror mode (as bit mask with flags 0: no mirror, 1: along Y-axis, 2: along X-axis)
 .br
 .TP
 .B Rotate (VROT,uint,  )
@@ -3417,9 +3462,9 @@ Serialized moof box corresponding to the start of a movie fragment or segment (w
 Set to true if packet is a complete DASH init segment file
 .br
 .TP
-.B RawGrab (PGRB,bool,D )
+.B RawGrab (PGRB,uint,D )
 .br
-PID is a raw media grabber (webcam, microphone, etc...)
+PID is a raw media grabber (webcam, microphone, etc...). Value 2 is used for front camera
 .br
 .TP
 .B KeepAfterEOS (PKAE,bool,D )
@@ -4646,10 +4691,10 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev112-g275394b43-master
+build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
 .SH SEE ALSO
 .LP
-gpac-filters(1), MP4Client(1), MP4Box(1)
+gpac-filters(1),MP4Box(1)

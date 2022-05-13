@@ -149,7 +149,7 @@ Note: when dumping in interleaved mode, there is no guarantee that the packets w
 .SH Options (expert):
 .LP
 .br
-log (str, default: stdout, minmax: fileName, stderr, stdout or null): set inspect log filename
+log (str, default: stdout, minmax: fileName, stderr, stdout, GLOG or null): set probe log filename to print number of streams, GLOG uses GPAC logs app@info(default for android)
 .br
 mode (enum, default: pck):     dump mode
 .br
@@ -253,7 +253,7 @@ It is up to the app developer to query input PIDs of the prober and take appropr
 .SH Options (expert):
 .LP
 .br
-log (str, default: stdout, minmax: fileName, stderr, stdout or null): set probe log filename to print number of streams
+log (str, default: stdout, minmax: fileName, stderr, stdout GLOG or null): set probe log filename to print number of streams, GLOG uses GPAC logs app@info(default for android)
 .br
 
 .br
@@ -10554,10 +10554,10 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev112-g275394b43-master
+build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
 .SH SEE ALSO
 .LP
-gpac(1), MP4Client(1), MP4Box(1)
+gpac(1), MP4Box(1)

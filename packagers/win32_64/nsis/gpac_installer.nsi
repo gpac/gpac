@@ -39,8 +39,8 @@ FunctionEnd
   !include "MUI2.nsh"
 
 WindowIcon on
-Icon "${GPAC_ROOT}\share\doc\osmo4.ico"
-UninstallIcon "${GPAC_ROOT}\share\doc\osmo4.ico"
+Icon "${GPAC_ROOT}\share\doc\gpac.ico"
+UninstallIcon "${GPAC_ROOT}\share\doc\gpac.ico"
 
 ;--------------------------------
 ;Interface Settings
@@ -73,7 +73,7 @@ Function customPage
 	nsDialogs::Create 1018
 	Pop $DIALOG
 
-  ${NSD_CreateLabel} 0 0 100% 120u "Multimedia technologies are often covered by various patents which are most of the time hard to identify. These patents may or may not apply in your local jurisdiction. By installing this software, you acknowledge that you may have to pay royaltee fees in order to legally use this software. Do not proceed with this setup if you do not understand or do not agree with these terms. In any case, the authors and/or distributors bears no liability for any infringing usage of this software, which is provided for educational or research purposes."
+  ${NSD_CreateLabel} 0 0 100% 120u "Multimedia technologies are often covered by various patents which are most of the time hard to identify. These patents may or may not apply in your local jurisdiction.$\r$\nBy installing this software, you acknowledge that you may have to pay royaltee fees in order to legally use this software.$\r$\n$\r$\nDo not proceed with this setup if you do not understand or do not agree with these terms.$\r$\n$\r$\nIn any case, the authors and/or distributors bears no liability for any infringing usage of this software, which is provided for educational or research purposes."
 	Pop $Label
 
   ${NSD_CreateCheckBox} 0 -30 100% 12u "I understand and accept the conditions"
@@ -87,6 +87,8 @@ FunctionEnd
 
 ;--------------------------------
 ;Pages
+
+!define MUI_WELCOMEPAGE_TITLE  "Welcome to GPAC ${GPAC_VERSION} Setup"
 
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "${GPAC_ROOT}\COPYING"
@@ -201,47 +203,6 @@ FunctionEnd
 
 !define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
 
-Function InsertGDIPLUS
-   Push $R0
-   Push $R1
-   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentVersion
-   StrCmp $R0 "" 0 lbl_winnt
-
-   ;NOT NT
-   ReadRegStr $R0 HKLM SOFTWARE\Microsoft\Windows\CurrentVersion VersionNumber
-
-   StrCpy $R1 $R0 1
-   ; win95, NOT SUPPORTED
-   StrCmp $R1 '4' 0 lbl_err_95
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '4.0' lbl_err_95
-   ;winME or 98 otherwise
-   StrCmp $R1 '4.9' lbl_add lbl_add
-
-lbl_err_nt:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on NT 3 Systems"
-   Goto lbl_done
-
-lbl_err_95:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on Windows 95 and older Systems"
-   Goto lbl_done
-
-lbl_winnt:
-   StrCpy $R1 $R0 1
-   StrCmp $R1 '3' lbl_err_nt
-   StrCmp $R1 '4' lbl_add
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '5.0' lbl_add	;2000
-   StrCmp $R1 '5.1' lbl_xp	;XP
-   StrCmp $R1 '5.2' lbl_done	;.NET server
-
-lbl_add:
-
-lbl_xp:
-
-lbl_done:
-FunctionEnd
-
 ;GPAC core
 Section "GPAC Core" SecGPAC
   SectionIn RO
@@ -250,11 +211,15 @@ Section "GPAC Core" SecGPAC
   File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
-  File "${GPAC_ROOT}\share\doc\osmo4.ico"
+  File "${GPAC_ROOT}\share\doc\gpac.ico"
+
+  File "${GPAC_BIN}\gpac.exe"
   File "${GPAC_BIN}\libgpac.dll"
+  File "${GPAC_BIN}\gm_dx_hw.dll"
+
+  ;all our deps
   File "${GPAC_BIN}\libcryptoMD.dll"
   File "${GPAC_BIN}\libsslMD.dll"
-
   File "${GPAC_BIN}\avcodec-*.dll"
   File "${GPAC_BIN}\avdevice-*.dll"
   File "${GPAC_BIN}\avfilter-*.dll"
@@ -266,27 +231,7 @@ Section "GPAC Core" SecGPAC
   File "${GPAC_BIN}\libx264-*.dll"
   File "${GPAC_BIN}\OpenSVCDecoder.dll"
 
-  ;create default cache
-  SetOutPath $INSTDIR\cache
-
-  SetOutPath $INSTDIR
-
-  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
-  WriteUninstaller "uninstall.exe"
-
-SectionEnd
-
-;player install
-Section "GPAC Player" SecOsmo4
-  SectionIn 1
-
-  File "${GPAC_BIN}\MP4Client.exe"
-
-  File "${GPAC_BIN}\gm_dx_hw.dll"
-
-  ;copy shared res
+  ;copy shared resources
   SetOutPath $INSTDIR\share
   File "${GPAC_ROOT}\share\default.cfg"
   SetOutPath $INSTDIR\share\res
@@ -297,7 +242,6 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\share\gui\gui.bt"
   File "${GPAC_ROOT}\share\gui\gui.js"
   File "${GPAC_ROOT}\share\gui\gwlib.js"
-;  File "${GPAC_ROOT}\share\gui\mpegu-core.js"
   SetOutPath $INSTDIR\share\gui\icons
   File /r /x .git ${GPAC_ROOT}\share\gui\icons\*
   SetOutPath $INSTDIR\share\gui\extensions
@@ -307,10 +251,6 @@ Section "GPAC Player" SecOsmo4
   SetOutPath $INSTDIR\share\scripts
   File /r /x .git ${GPAC_ROOT}\share\scripts\*
 
-  ;copy python
-  SetOutPath $INSTDIR\share\python
-  File /r /x .git ${GPAC_ROOT}\share\python\*
-
   ;copy shaders
   SetOutPath $INSTDIR\share\shaders
   File /r /x .git ${GPAC_ROOT}\share\shaders\*
@@ -319,15 +259,21 @@ Section "GPAC Player" SecOsmo4
   SetOutPath $INSTDIR\share\lang
   File /r /x .git ${GPAC_ROOT}\share\lang\*
 
-  ;copy vis
-  SetOutPath $INSTDIR\share\vis
-  File /r /x .git ${GPAC_ROOT}\share\vis\*
-
+  ;create default cache
+  SetOutPath $INSTDIR\cache
   SetOutPath $INSTDIR
+
+  ;update registry
+  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
+  WriteUninstaller "uninstall.exe"
+
+  Push $INSTDIR
+  Call AddToPath
 SectionEnd
 
 SubSection "GPAC Plugins" SecPlugins
-
 
 Section "FreeType" SecFT
   SectionIn 1
@@ -341,7 +287,12 @@ SectionEnd
 
 Section "SDL" SecSDL
   SectionIn 1
+!if /FileExists "${GPAC_BIN}\SDL.dll"
   File "${GPAC_BIN}\SDL.dll"
+!endif
+!if /FileExists "${GPAC_BIN}\SDL2.dll"
+  File "${GPAC_BIN}\SDL2.dll"
+!endif
   File "${GPAC_BIN}\gm_sdl_out.dll"
 SectionEnd
 
@@ -367,14 +318,18 @@ Section "MP4Box" SecMP4B
   Call AddToPath
 SectionEnd
 
-Section "gpac" SecGPACBIN
+Section "Remotery Visualizer" SecRMT
   SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\gpac.exe"
-  Push $INSTDIR
-  Call AddToPath
+  SetOutPath $INSTDIR\share\vis
+  File /r /x .git ${GPAC_ROOT}\share\vis\*
 SectionEnd
 
+
+Section "Python Bindings" SecPython
+  SectionIn 1
+  SetOutPath $INSTDIR\share\python
+  File /r /x .git ${GPAC_ROOT}\share\python\*
+SectionEnd
 
 Section "GPAC SDK" SecSDK
   SectionIn 1
@@ -419,7 +374,7 @@ DetailPrint "Running VS2015 re-distributable setup..."
 SectionEnd
 
 
-SubSection "GPAC Shortcuts"
+SubSection "GPAC Shortcuts" SecShortcuts
 
 Section "Add Start Menu Shortcuts"
   SectionIn 1
@@ -430,12 +385,11 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\GPAC"
   CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4.lnk" "$INSTDIR\MP4Client.exe" ""
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (with Console).lnk" "$INSTDIR\MP4Client.exe" "-guid"
+  CreateShortCut "$SMPROGRAMS\GPAC\GPAC.lnk" "$INSTDIR\gpac.exe" ""
+  CreateShortCut "$SMPROGRAMS\GPAC\Remotery GPAC.lnk" "$INSTDIR\share\vis\index.html" ""
   CreateShortCut "$SMPROGRAMS\GPAC\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\History.lnk" "$INSTDIR\changelog.txt"
-  CreateShortCut "$SMPROGRAMS\GPAC\Configuration Info.lnk" "$INSTDIR\configuration.html"
 SectionEnd
 
 SubSectionEnd
@@ -444,25 +398,25 @@ SubSectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "GPAC Player"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for content packaging (MP4, DASH, HLS)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPACBIN} "gpac command-line tool for various multimedia operations"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "Headers and library files needed to develop modules for GPAC or applications based on GPAC"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPython} "Python bindings for libgpac"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecRMT} "Remotery HTML visualizer"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "SDL Audio and Video output"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
-
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} "System menu shortucts"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
 Function .onInstSuccess
 ;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the player?" IDNO NoLaunch
-;  Exec $INSTDIR\Osmo4.exe
+;  Exec $INSTDIR\gpac.exe
 ;  NoLaunch:
 FunctionEnd
 
@@ -479,7 +433,6 @@ Section "Uninstall"
   ; remove registry keys
   ${DeleteRegKeyAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC"
   ${DeleteRegKeyAuth} HKCU "SOFTWARE\GPAC"
-  ${DeleteRegKeyAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
   ${DeleteRegKeyAuth} HKCR GPAC\mp4\DefaultIcon
   ${DeleteRegKeyAuth} HKCR GPAC\mp4\shell\open\command
   ${DeleteRegKeyAuth} HKCR GPAC\mp4
@@ -505,8 +458,8 @@ Section "Uninstall"
   SetShellVarContext all
   Delete "$SMPROGRAMS\GPAC\*.*"
   RMDir "$SMPROGRAMS\GPAC"
-  Delete "$QUICKLAUNCH\Osmo4.lnk"
-  Delete "$DESKTOP\Osmo4.lnk"
+  Delete "$QUICKLAUNCH\GPAC.lnk"
+  Delete "$DESKTOP\GPAC.lnk"
 
 SectionEnd
 
@@ -677,34 +630,6 @@ FunctionEnd
 ###########################################
 #            Utility Functions            #
 ###########################################
-
-; IsNT
-; no input
-; output, top of the stack = 1 if NT or 0 if not
-;
-; Usage:
-;   Call IsNT
-;   Pop $R0
-;  ($R0 at this point is 1 or 0)
-
-!macro IsNT un
-Function ${un}IsNT
-  Push $0
-  ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentVersion
-  StrCmp $0 "" 0 IsNT_yes
-  ; we are not NT.
-  Pop $0
-  Push 0
-  Return
-
-  IsNT_yes:
-    ; NT!!!
-    Pop $0
-    Push 1
-FunctionEnd
-!macroend
-!insertmacro IsNT ""
-!insertmacro IsNT "un."
 
 ; StrStr
 ; input, top of stack = string to search for

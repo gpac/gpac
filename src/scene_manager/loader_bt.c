@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Management sub-project
@@ -31,8 +31,6 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 #include <gpac/nodes_x3d.h>
-/*for key codes...*/
-#include <gpac/user.h>
 #include <gpac/color.h>
 
 

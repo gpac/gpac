@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2021
+ *			Copyright (c) Telecom ParisTech 2007-2022
  *			All rights reserved
  *
  *  This file is part of GPAC / JavaScript XmlHttpRequest bindings
@@ -41,7 +41,6 @@
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-#include <gpac/options.h>
 #include <gpac/xml.h>
 
 

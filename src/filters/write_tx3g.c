@@ -192,7 +192,7 @@ static void tx3gmx_write_config(TX3GMxCtx *ctx)
 	dump_ttxt_header(dump, &samp_ent, w, h);
 	gf_fprintf(dump, "</TextStreamHeader>\n");
 
-	u32 size = gf_ftell(dump);
+	u32 size = (u32) gf_ftell(dump);
 	u8 *dsi = gf_malloc(size);
 	if (dsi) {
 		gf_fseek(dump, 0, SEEK_SET);

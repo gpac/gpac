@@ -989,6 +989,9 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	else
 		tx->mx_cicp = matrix_coef_or_neg;
 
+	if (!tx->stride)
+		gf_pixel_get_size_info(tx->pix_fmt, tx->width, tx->height, NULL, &tx->stride, &tx->uv_stride, NULL, &tx->uv_h);
+
 	switch (tx->pix_fmt) {
 	case GF_PIXEL_YUV444_10:
 		tx->bit_depth = 10;
@@ -1068,8 +1071,6 @@ Bool gf_gl_txw_setup(GF_GLTextureWrapper *tx, u32 pix_fmt, u32 width, u32 height
 	case GF_PIXEL_V210:
 		tx->is_yuv = GF_TRUE;
 		tx->nb_textures = 1;
-		if (!tx->stride)
-			gf_pixel_get_size_info(tx->pix_fmt, width, height, NULL, &tx->stride, NULL, NULL, NULL);
 		break;
 
 	case GF_PIXEL_YUVA444_PACK:

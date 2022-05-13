@@ -28,7 +28,6 @@
 
 #ifndef GPAC_DISABLE_3D
 
-#include <gpac/options.h>
 #include <gpac/nodes_mpeg4.h>
 #include "gl_inc.h"
 
@@ -3599,7 +3598,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif
 
 #endif /*GPAC_USE_GLES1X*/
-	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
+	} else { /*if (compositor->user && (compositor->user->init_flags & GF_VOUT_WINDOW_TRANSPARENT))*/
 		u32 size;
 		fb->pitch_x = 3;
 		if (!compositor->opfmt && compositor->dyn_filter_mode) {

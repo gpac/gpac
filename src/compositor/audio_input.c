@@ -87,7 +87,7 @@ restart:
 	obj_time += audio_delay_ms;
 
 	if (ai->compositor->audd<0) obj_time += -ai->compositor->audd;
-	else if (obj_time > ai->compositor->audd) obj_time -= ai->compositor->audd;
+	else if (obj_time > (u32) ai->compositor->audd) obj_time -= ai->compositor->audd;
 	else obj_time=0;
 
 	if (ai->compositor->bench_mode) {
@@ -119,11 +119,14 @@ restart:
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift < 0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %u at OTB %u with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
-		ai->need_release = GF_FALSE;
-		gf_mo_release_data(ai->stream, 0, -1);
-		*size = 0;
-		return NULL;
+		//if not playing, start if audio is due in less than 50ms
+		if (ai->is_playing || (drift < -50)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %u at OTB %u with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
+			ai->need_release = GF_FALSE;
+			gf_mo_release_data(ai->stream, 0, -1);
+			*size = 0;
+			return NULL;
+		}
 	}
 #endif
 	/*adjust drift*/
@@ -143,7 +146,6 @@ restart:
 		else
 			resync_delay = -drift;
 
-		ai->is_playing = GF_TRUE;
 		if (resync_delay < 0) resync_delay = -resync_delay;
 
 		if (resync_delay > MIN_DRIFT_ADJUST) {
@@ -151,6 +153,7 @@ restart:
 			gf_mo_adjust_clock(ai->stream, drift);
 		}
 	}
+	ai->is_playing = GF_TRUE;
 	return frame;
 }
 

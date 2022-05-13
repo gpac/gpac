@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="open_file">Open file</string>
+    <string name="open_url">Open URL</string>
+    <string name="open_url_ok">Load</string>
+    <string name="open_cmd_ok">Run</string>
+    <string name="quit">Exit</string>
+    <string name="really_quit">Are you sure that you want to quit ?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="app_name">GPAC</string>
+    <string name="copying_native_libs">Copying module %1$s to %2$s…</string>
+    <string name="displayPopupFormat">%1$s\n%2$s</string>
+    <string name="reloadLast">Reload last URL</string>
+    <string name="reloadSession">Reload last command</string>
+    <string name="runGPAC">Run gpac</string>
+    <string name="abortSession">Abort Session</string>
+    <string name="runMP4Box">Run MP4Box</string>
+    <string name="selectURL">Enter URL</string>
+    <string name="selectGPAC">Type gpac command line</string>
+    <string name="selectMP4Box">Type MP4Box command line</string>
+    <string name="selectFile">Select a file to open</string>
+    <string name="usernameLabel">Username: </string>
+    <string name="usernameHint">username</string>
+    <string name="passwordLabel">Password: </string>
+    <string name="passwordHint">password</string>
+    <string name="directory">Directory</string>
+    <string name="gpacLoading">GPAC is loading…</string>
+    <string name="requestPermissionStorage">You need to give permission to access External Storage</string>
+    <!-- string name="testAuth">Test Auth</string -->
+    <string name="authName">Authentication Required</string>
+
+
+</resources>
