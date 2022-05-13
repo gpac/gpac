@@ -217,13 +217,12 @@ GF_Err ttmlconv_process(GF_Filter *filter)
 	body = ttml_get_body(root);
 	nb_children = body ? gf_list_count(body->content) : 0;
 	for (i=0; i<nb_children; i++) {
-		GF_XMLAttribute *div_reg = NULL;
 		GF_XMLNode *div = gf_list_get(body->content, i);
 		if (div->type) continue;
 		if (strcmp(div->name, "div")) continue;
 
 		div_idx++;
-		div_reg = ttml_get_attr(div, "region");
+//		div_reg = ttml_get_attr(div, "region");
 
 		j=0;
 		while ( (p = gf_list_enum(div->content, &j)) ) {
