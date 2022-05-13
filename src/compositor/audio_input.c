@@ -119,11 +119,14 @@ restart:
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift < 0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %u at OTB %u with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
-		ai->need_release = GF_FALSE;
-		gf_mo_release_data(ai->stream, 0, -1);
-		*size = 0;
-		return NULL;
+		//if not playing, start if audio is due in less than 50ms
+		if (ai->is_playing || (drift < -50)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early of %d (CTS %u at OTB %u with audio delay %d ms)\n", drift + audio_delay_ms, ts, obj_time, audio_delay_ms));
+			ai->need_release = GF_FALSE;
+			gf_mo_release_data(ai->stream, 0, -1);
+			*size = 0;
+			return NULL;
+		}
 	}
 #endif
 	/*adjust drift*/
