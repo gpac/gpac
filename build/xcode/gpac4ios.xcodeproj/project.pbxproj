@@ -309,8 +309,6 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		8925C0EE25DD6F8900AFB064 /* libnghttp2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8925C0ED25DD6F8900AFB064 /* libnghttp2.a */; };
-		8943DF492816E3CF009134DD /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8943DF482816E3CF009134DD /* Metal.framework */; };
-		8943DF4B2816E4D8009134DD /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8943DF4A2816E4D8009134DD /* GameController.framework */; };
 		8959AC77211C9A26004D2C87 /* dmx_gsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC76211C9A26004D2C87 /* dmx_gsf.c */; };
 		8959AC79211C9B29004D2C87 /* reframe_av1.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC78211C9B29004D2C87 /* reframe_av1.c */; };
 		8959AC88211C9C3C004D2C87 /* in_pipe.c in Sources */ = {isa = PBXBuildFile; fileRef = 8959AC7E211C9C3C004D2C87 /* in_pipe.c */; };
@@ -357,7 +355,6 @@
 		924AB68128143DF500EC006F /* ios_main.m in Sources */ = {isa = PBXBuildFile; fileRef = 924AB68028143DF500EC006F /* ios_main.m */; };
 		924AB6832816F1DA00EC006F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 924AB6822816F1DA00EC006F /* Metal.framework */; };
 		924AB6852816F1E200EC006F /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 924AB6842816F1E200EC006F /* GameController.framework */; };
-		924AB6872816F20300EC006F /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 924AB6862816F20300EC006F /* CoreHaptics.framework */; };
 		9251E540251E398700CEB84D /* res in Resources */ = {isa = PBXBuildFile; fileRef = 9251E53F251E398600CEB84D /* res */; };
 		9251E542251E39A300CEB84D /* scripts in Resources */ = {isa = PBXBuildFile; fileRef = 9251E541251E39A300CEB84D /* scripts */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
@@ -913,8 +910,6 @@
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
 		8925C0ED25DD6F8900AFB064 /* libnghttp2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnghttp2.a; path = ../../extra_lib/lib/iOS/libnghttp2.a; sourceTree = "<group>"; };
-		8943DF482816E3CF009134DD /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		8943DF4A2816E4D8009134DD /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		8959AC76211C9A26004D2C87 /* dmx_gsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_gsf.c; path = ../../src/filters/dmx_gsf.c; sourceTree = "<group>"; };
 		8959AC78211C9B29004D2C87 /* reframe_av1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_av1.c; path = ../../src/filters/reframe_av1.c; sourceTree = "<group>"; };
 		8959AC7E211C9C3C004D2C87 /* in_pipe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_pipe.c; path = ../../src/filters/in_pipe.c; sourceTree = "<group>"; };
@@ -1182,7 +1177,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				924AB6872816F20300EC006F /* CoreHaptics.framework in Frameworks */,
 				924AB6852816F1E200EC006F /* GameController.framework in Frameworks */,
 				924AB6832816F1DA00EC006F /* Metal.framework in Frameworks */,
 				8925C0EE25DD6F8900AFB064 /* libnghttp2.a in Frameworks */,
@@ -2181,9 +2175,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		71A19B1912796B5600ACFF58 /* GPAC */ = {
+		71A19B1912796B5600ACFF58 /* gpac4ios */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 71A19B1F12796B5800ACFF58 /* Build configuration list for PBXNativeTarget "GPAC" */;
+			buildConfigurationList = 71A19B1F12796B5800ACFF58 /* Build configuration list for PBXNativeTarget "gpac4ios" */;
 			buildPhases = (
 				71A19B1612796B5600ACFF58 /* Resources */,
 				71A19B1712796B5600ACFF58 /* Sources */,
@@ -2195,7 +2189,7 @@
 			dependencies = (
 				047ACFD416DF56BF00F2BF65 /* PBXTargetDependency */,
 			);
-			name = GPAC;
+			name = gpac4ios;
 			productName = gpac4ios;
 			productReference = 71A19B1A12796B5600ACFF58 /* gpac4ios.app */;
 			productType = "com.apple.product-type.application";
@@ -2248,7 +2242,7 @@
 			projectRoot = "";
 			targets = (
 				71CCF1301277037A00339E12 /* libgpac_static */,
-				71A19B1912796B5600ACFF58 /* GPAC */,
+				71A19B1912796B5600ACFF58 /* gpac4ios */,
 			);
 		};
 /* End PBXProject section */
@@ -2962,7 +2956,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		71A19B1F12796B5800ACFF58 /* Build configuration list for PBXNativeTarget "GPAC" */ = {
+		71A19B1F12796B5800ACFF58 /* Build configuration list for PBXNativeTarget "gpac4ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				71A19B1D12796B5700ACFF58 /* Debug */,
