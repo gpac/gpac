@@ -183,7 +183,7 @@ static GF_Err vttd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->delay = p ? p->value.longsint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	ctx->timescale = p ? p->value.longsint : 1000;
+	ctx->timescale = p ? p->value.uint: 1000;
 
 	ctx->ipid = pid;
 	if (!ctx->opid) {
@@ -306,7 +306,7 @@ JSContext *vtt_script_get_context(GF_VTTDec *ctx, GF_SceneGraph *sg)
 	if (ctx->update_args) {
 		JSValue global = JS_GetGlobalObject(c);
 
-		u32 fs = MAX(ctx->fsize, ctx->fontSize);
+		u32 fs = (u32) MAX(ctx->fsize, ctx->fontSize);
 		u32 def_font_size = ctx->scene->compositor->subfs;
 		if (!def_font_size) {
 			if (ctx->vp_h > 2000) def_font_size = 80;
@@ -435,13 +435,13 @@ static GF_Err vttd_process(GF_Filter *filter)
 
 	if (ctx->cue_end) {
 		u32 obj_time = gf_clock_time(ctx->odm->ck);
-		if (gf_clock_diff(ctx->odm->ck, obj_time, ctx->cue_end)<=0) {
+		if (gf_clock_diff(ctx->odm->ck, obj_time, (u32) ctx->cue_end)<=0) {
 			vttd_js_remove_cues(ctx, ctx->scenegraph->RootNode);
 			ctx->cue_end = 0;
 		}
 		if (!pck) {
 			if (ctx->cue_end && gf_filter_pid_is_eos(ctx->ipid))
-				gf_sc_sys_frame_pending(ctx->scene->compositor, ctx->cue_end, obj_time, filter);
+				gf_sc_sys_frame_pending(ctx->scene->compositor, (u32) ctx->cue_end, obj_time, filter);
 			return GF_OK;
 		}
 	}
@@ -453,7 +453,7 @@ static GF_Err vttd_process(GF_Filter *filter)
 	delay += ctx->delay;
 
 	if (delay>=0) cts += delay;
-	else if (cts > -delay) cts -= -delay;
+	else if (cts > (u64) -delay) cts -= -delay;
 	else cts = 0;
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
 

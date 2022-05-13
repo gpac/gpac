@@ -1968,6 +1968,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_selected_text) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_paste_text) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_object) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_offscreen_buffer) )
 
 
 #ifndef GPAC_DISABLE_SVG

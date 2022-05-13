@@ -4161,7 +4161,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 }
 
 
-Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u32 cts)
+Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms)
 {
 	Bool is_early=GF_FALSE;
 	assert(odm);
@@ -4170,13 +4170,13 @@ Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid 
 		gf_odm_check_buffering(odm, for_pid);
 
 	u32 obj_time = gf_clock_time(odm->ck);
-	if (cts > obj_time)
+	if (cts_in_ms > obj_time)
 		is_early = GF_TRUE;
-	else if ((obj_time>0x7FFFFFFF) && (cts<0x7FFFFFFF))
+	else if ((obj_time>0x7FFFFFFF) && (cts_in_ms<0x7FFFFFFF))
 		is_early = GF_TRUE;
 
 	if (is_early) {
-		gf_sc_sys_frame_pending(scene->compositor, cts, obj_time, from_filter);
+		gf_sc_sys_frame_pending(scene->compositor, (u32)cts_in_ms, obj_time, from_filter);
 		return GF_FALSE;
 	}
 	return GF_TRUE;

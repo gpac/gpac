@@ -6272,7 +6272,7 @@ static JSValue texture_diff_score(JSContext *c, JSValueConst obj, int argc, JSVa
 	if (tx_with->pf != tx->pf) return GF_JS_EXCEPTION(c);
 
 	if (argc>1) {
-		u32 idx=1;
+		int idx=1;
 		if (JS_IsString(argv[1])) {
 			const char * str = JS_ToCString(c, argv[1]);
 			if (strstr(str, "mae")) do_mae = GF_TRUE;

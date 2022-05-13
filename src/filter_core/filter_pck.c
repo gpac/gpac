@@ -1185,7 +1185,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
 
-		duration = 0;
+		u64 us_duration = 0;
 
 		if (cktype) {
 			safe_int_inc(&dst->filter->pending_packets);
@@ -1220,8 +1220,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 						dst->nb_reagg_pck++;
 
 					if (pck->info.duration && timescale) {
-						duration = gf_timestamp_rescale(pck->info.duration, timescale, 1000000);
-						safe_int64_add(&dst->buffer_duration, duration);
+						us_duration = gf_timestamp_rescale(pck->info.duration, timescale, 1000000);
+						safe_int64_add(&dst->buffer_duration, us_duration);
 					}
 					inst->pck->info.flags |= GF_PCKF_BLOCK_START;
 					safe_int_inc(&dst->filter->pending_packets);
@@ -1301,8 +1301,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			}
 
 			if (pck_dur && timescale) {
-				duration = gf_timestamp_rescale(pck_dur, timescale, 1000000);
-				safe_int64_add(&dst->buffer_duration, duration);
+				us_duration = gf_timestamp_rescale(pck_dur, timescale, 1000000);
+				safe_int64_add(&dst->buffer_duration, us_duration);
 			}
 			safe_int_inc(&dst->filter->pending_packets);
 //
@@ -1322,8 +1322,8 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			//if computed duration of packet is larger than pid max_buffer_time, update
 			//this is to make sure playback at speed > 1 won't trigger blocking state
 			//otherwise we would have max_buffer_time=1ms (default) and a single AU dispatched would block unless speed is AU_DUR_ms/1ms ...
-			if (duration && pid->max_buffer_time && (pid->max_buffer_time<duration))
-				pid->max_buffer_time = duration;
+			if (us_duration && pid->max_buffer_time && (pid->max_buffer_time<us_duration))
+				pid->max_buffer_time = us_duration;
 				
 			gf_mx_v(pid->filter->tasks_mx);
 

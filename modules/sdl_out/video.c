@@ -562,9 +562,10 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 
 		if (flags & SDL_WINDOW_ALLOW_HIGHDPI) {
-			int w, h, _h;
+			int w, h;
 			SDL_GL_GetDrawableSize(ctx->screen, &w, &h);
 #if SDL_VERSION_ATLEAST(2,0,9)
+			int _h;
 			switch (SDL_GetDisplayOrientation(0)) {
 			case SDL_ORIENTATION_LANDSCAPE:
 			case SDL_ORIENTATION_LANDSCAPE_FLIPPED:
@@ -576,8 +577,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				break;
 			}
 #endif
-			if (w>dr->max_screen_width) dr->max_screen_width = w;
-			if (h>dr->max_screen_height) dr->max_screen_height = h;
+			if ((u32) w > dr->max_screen_width) dr->max_screen_width = w;
+			if ((u32) h > dr->max_screen_height) dr->max_screen_height = h;
 		}
 
 

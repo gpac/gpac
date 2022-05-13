@@ -101,19 +101,11 @@ static u32 init_h = 0;
 static u32 last_x, last_y;
 static Bool right_down = GF_FALSE;
 
-Float scale = 1;
 #endif
 
 
 static GF_Filter *comp_filter = NULL;
 static GF_Compositor *compositor = NULL;
-
-#if defined(WIN32) && !defined(_WIN32_WCE)
-static void hide_shell();
-#else
-#define hide_shell(_ARG)
-
-#endif
 
 
 GF_GPACArg mp4c_args[] =
@@ -121,7 +113,6 @@ GF_GPACArg mp4c_args[] =
 #ifdef DESKTOP_GUI
 	GF_DEF_ARG("size", NULL, "specify visual size WxH. If not set, scene size or video size is used", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED),
 	GF_DEF_ARG("fs", NULL, "start in fullscreen mode", NULL, NULL, GF_ARG_BOOL, 0),
-	GF_DEF_ARG("scale", NULL, "scale video output by given factor", NULL, NULL, GF_ARG_DOUBLE, 0),
 #endif
 
  	GF_DEF_ARG("bm", NULL, "benchmark compositor without video out", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED),
@@ -673,11 +664,6 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 		case GF_KEY_ESCAPE:
 			gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !gf_sc_get_option(compositor, GF_OPT_FULLSCREEN));
 			break;
-		case GF_KEY_C:
-			if (evt->key.flags & (GF_KEY_MOD_CTRL|GF_KEY_MOD_ALT)) {
-				hide_shell(shell_visible ? 1 : 0);
-			}
-			break;
 		case GF_KEY_F:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_sc_get_fps(compositor, 0));
 			break;
@@ -813,15 +799,11 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 	case GF_EVENT_SCENE_SIZE:
 
 #ifdef DESKTOP_GUI
-		if ((forced_width && forced_height) || (scale!=1)) {
+		if (forced_width && forced_height) {
 			GF_Event size;
 			u32 nw = forced_width ? forced_width : evt->size.width;
 			u32 nh = forced_height ? forced_height : evt->size.height;
 
-			if (scale != 1) {
-				nw  = (u32)(nw * scale);
-				nh = (u32)(nh * scale);
-			}
 			if ((nw != evt->size.width) || (nh != evt->size.height)) {
 				size.type = GF_EVENT_SIZE;
 				size.size.width = nw;
@@ -1002,7 +984,6 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 		}
 	}
 	else if (!strcmp(arg, "-fs")) start_fs = 1;
-	else if (!stricmp(arg, "-scale")) scale = arg_val ? atof(arg_val) : 1;
 #endif
 	else if (!strcmp(arg, "-nk")) no_keyboard = GF_TRUE;
 	/*arguments only used in non-gui mode*/
@@ -1077,10 +1058,6 @@ void load_compositor(GF_Filter *filter)
 	}
 #endif
 
-	if (compositor_mode==LOAD_GUI) {
-		hide_shell(1);
-	}
-
 	char szArgs[20];
 	sprintf(szArgs, "%d", window_flags);
 	gf_opts_set_key("temp", "window-flags", szArgs);
@@ -1090,7 +1067,7 @@ void load_compositor(GF_Filter *filter)
 	compositor = gf_filter_get_udta(comp_filter);
 	if (start_fs) gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, 1);
 	if (play_from || pause_at_first)
-		gf_sc_connect_from_time(compositor, NULL, play_from*1000, pause_at_first, GF_FALSE, NULL);
+		gf_sc_connect_from_time(compositor, NULL, (u64) (play_from*1000), pause_at_first, GF_FALSE, NULL);
 
 #if (defined(__DARWIN__) || defined(__APPLE__)) && !defined(GPAC_CONFIG_IOS)
 	/*the output window is init, inject carbon event watcher on open doc, only in GUI mode (when launched by Finder)
@@ -1236,7 +1213,6 @@ static void mp4c_coverage()
 	gpac_open_urls("./media/auxiliary_files/logo.jpg");
 	switch_bench(1);
 	do_set_speed(1.0);
-	hide_shell(0);
 }
 #endif
 
@@ -1252,10 +1228,12 @@ void unload_compositor()
 	}
 #endif
 
+#ifdef WIN32
+	static void close_console();
+	close_console();
+#endif
 
-	if (compositor_mode==LOAD_GUI) {
-		hide_shell(2);
-	}
+
 #ifdef DESKTOP_GUI
 	if (caption) gf_free(caption);
 	caption = NULL;
@@ -1643,10 +1621,6 @@ static void mp4c_take_screenshot(Bool for_coverage)
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
-static Bool shell_visible = GF_TRUE;
-
-static HWND console_hwnd = NULL;
-static Bool owns_wnd = GF_FALSE;
 #include <tlhelp32.h>
 #include <Psapi.h>
 static DWORD getParentPID(DWORD pid)
@@ -1677,52 +1651,53 @@ static void getProcessName(DWORD pid, PUCHAR fname, DWORD sz)
 		CloseHandle(h);
 	}
 }
-static void hide_shell(u32 cmd_type)
+
+static Bool owns_wnd = GF_FALSE;
+HWND console_hwnd = NULL;
+Bool gpac_is_global_launch()
 {
-	typedef HWND (WINAPI *GetConsoleWindowT)(void);
+	typedef HWND(WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
-	if (!console_hwnd) {
-		char parentName[GF_MAX_PATH];
-		DWORD dwProcessId = 0;
-		DWORD dwParentProcessId = 0;
-		DWORD dwParentParentProcessId = 0;
-		GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT)GetProcAddress(hk32, "GetConsoleWindow");
-		console_hwnd = GetConsoleWindow();
-		dwProcessId = GetCurrentProcessId();
-		dwParentProcessId = getParentPID(dwProcessId);
-		if (dwParentProcessId)
-				dwParentParentProcessId = getParentPID(dwParentProcessId);
-		//get parent process name, check for explorer
+	char parentName[GF_MAX_PATH];
+	DWORD dwProcessId = 0;
+	DWORD dwParentProcessId = 0;
+	DWORD dwParentParentProcessId = 0;
+	Bool no_parent_check = GF_FALSE;
+	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT)GetProcAddress(hk32, "GetConsoleWindow");
+	console_hwnd = GetConsoleWindow();
+	dwProcessId = GetCurrentProcessId();
+	dwParentProcessId = getParentPID(dwProcessId);
+	if (dwParentProcessId)
+		dwParentParentProcessId = getParentPID(dwParentProcessId);
+	//get parent process name, check for explorer
+	parentName[0] = 0;
+	getProcessName(dwParentProcessId, parentName, GF_MAX_PATH);
+	if (strstr(parentName, "explorer")) {
+		owns_wnd = GF_TRUE;
+	}
+#if 0
+	//get parent parent process name, check for devenv (or any other ide name ...)
+	else if (dwParentParentProcessId) {
+		owns_wnd = GF_FALSE;
 		parentName[0] = 0;
-		getProcessName(dwParentProcessId, parentName, GF_MAX_PATH);
-		if (strstr(parentName, "explorer")) {
+		getProcessName(dwParentParentProcessId, parentName, GF_MAX_PATH);
+		if (strstr(parentName, "devenv")) {
 			owns_wnd = GF_TRUE;
 		}
-		//get parent parent process name, check for devenv (or any other ide name ...)
-		else if (dwParentParentProcessId) {
-			owns_wnd = GF_FALSE;
-			parentName[0] = 0;
-			getProcessName(dwParentParentProcessId, parentName, GF_MAX_PATH);
-			if (strstr(parentName, "devenv")) {
-				owns_wnd = GF_TRUE;
-			}
-		} else {
-			owns_wnd = GF_FALSE;
-		}
 	}
-	if (!owns_wnd || !console_hwnd) return;
-
-	if (cmd_type==0) {
-		ShowWindow(console_hwnd, SW_SHOW);
-		shell_visible = GF_TRUE;
+#endif
+	else {
+		owns_wnd = GF_FALSE;
 	}
-	else if (cmd_type==1) {
-		ShowWindow(console_hwnd, SW_HIDE);
-		shell_visible = GF_FALSE;
-	}
-	else if (cmd_type == 2) {
-		PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
-	}
+	if (!owns_wnd) return GF_FALSE;
+	ShowWindow(console_hwnd, SW_HIDE);
+	return GF_TRUE;
 }
+static void close_console()
+{
+	if (owns_wnd && console_hwnd)
+		PostMessage(console_hwnd, WM_CLOSE, 0, 0);
+}
+
 #endif
 

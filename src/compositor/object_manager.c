@@ -361,7 +361,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 	/*restore OD ID */
 	if (odm->media_current_time) {
-		odm->ID = odm->media_current_time;
+		odm->ID = (u32) odm->media_current_time;
 		odm->media_current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
 	}
@@ -839,7 +839,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 	/*play from current time*/
 	else {
-		ck_time = gf_clock_media_time(clock);
+		ck_time = (Double) gf_clock_media_time(clock);
 		ck_time /= 1000;
 		start_range_is_clock = 1;
 	}
@@ -859,7 +859,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				ck_time = (Double) odm->parentscene->root_od->addon->media_pts;
 				ck_time /= 90000;
 			} else {
-				ck_time = gf_clock_time_absolute(clock);
+				ck_time = (Double) gf_clock_time_absolute(clock);
 				ck_time /= 1000;
 			}
 		}
@@ -1660,7 +1660,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			pck_time = gf_timestamp_to_clocktime(pck_time, timescale);
 			pck_time += 1;
 			diff = (u32) ((u64) clock_time - pck_time);
-			diff_to = (s32) (odm->ck->ocr_discontinuity_time ? 500 : 8000) * ABS(odm->ck->speed);
+			diff_to = (s32) (odm->ck->ocr_discontinuity_time ? 500 : 8000) * ABS(FIX2INT(odm->ck->speed) );
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPTIME, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
 
@@ -1933,16 +1933,16 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	if (pid) {
 		/*since we don't remove ODs that failed setup, check for clock*/
 		if (odm->ck) {
-			info->current_time = odm->media_current_time;
+			//info->current_time = (Double) odm->media_current_time;
 			info->ntp_diff = odm->last_drawn_frame_ntp_diff;
-			info->current_time = gf_clock_media_time(odm->ck);
+			info->current_time = (Double) gf_clock_media_time(odm->ck);
 
 		}
 		info->current_time /= 1000;
 		info->nb_dropped = odm->nb_dropped;
 	} else if (odm->subscene) {
 		if (odm->subscene->root_od && odm->subscene->root_od->ck) {
-			info->current_time = gf_clock_media_time(odm->subscene->root_od->ck);
+			info->current_time = (Double) gf_clock_media_time(odm->subscene->root_od->ck);
 			info->current_time /= 1000;
 		}
 		info->duration = (Double) (s64)odm->subscene->duration;

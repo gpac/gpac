@@ -49,7 +49,7 @@ Double gf_scene_get_time(void *_is)
 	ck = scene->root_od->ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time_absolute(ck);
-	if (scene->root_od->media_stop_time && (scene->root_od->media_stop_time<ret))
+	if ((scene->root_od->media_stop_time>0) && ((u64) scene->root_od->media_stop_time<ret))
 		ret = scene->root_od->media_stop_time;
 	return ret/1000.0;
 #else
@@ -1317,7 +1317,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 		if (p) tr->translation.x = -INT2FIX(w/2) + INT2FIX(p->value.sint+mo->width/2);
 	} else {
 		p = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TRANS_X);
-		if (p) tr->translation.x = p->value.sint;
+		if (p) tr->translation.x = INT2FIX(p->value.sint);
 	}
 	tr->translation.x += scene->compositor->subtx;
 

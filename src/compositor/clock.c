@@ -152,8 +152,8 @@ void gf_clock_set_time(GF_Clock *ck, u64 ref_TS, u32 timescale)
 {
 	if (!ck->clock_init) {
 		u64 real_ts_ms = gf_timestamp_rescale(ref_TS, timescale, 1000);
-		ck->init_ts_loops = real_ts_ms / 0xFFFFFFFFUL;
-		ck->init_timestamp = real_ts_ms % 0xFFFFFFFFUL;
+		ck->init_ts_loops = (u32) (real_ts_ms / 0xFFFFFFFFUL);
+		ck->init_timestamp = (u32) (real_ts_ms % 0xFFFFFFFFUL);
 		ck->clock_init = 1;
 		ck->audio_delay = 0;
 		/*update starttime and pausetime even in pause mode*/
@@ -308,7 +308,7 @@ u32 gf_timestamp_to_clocktime(u64 ts, u32 timescale)
 
 	ts = gf_timestamp_rescale(ts, timescale, 1000);
 	ts = ts % 0xFFFFFFFFUL;
-	return ts;
+	return (u32) ts;
 }
 
 u64 gf_clock_time_absolute(GF_Clock *ck)
