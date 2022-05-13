@@ -24,14 +24,14 @@ else
 fi
 
 echo "*** Compile and archive gpac4ios ***"
-xcodebuild archive -project gpac4ios.xcodeproj -scheme osmo4ios -archivePath gpac4ios.xcarchive
+xcodebuild archive -project gpac4ios.xcodeproj -scheme gpac4ios -archivePath gpac4ios.xcarchive
 if [ $? != 0 ] ; then
 	exit 1
 fi
 
 echo "*** Generate IPA ***"
 mkdir -p Payload
-mv gpac4ios.xcarchive/Products/Applications/osmo4ios.app Payload/
+mv gpac4ios.xcarchive/Products/Applications/gpac4ios.app Payload/
 if [ ! -d "../../bin/iOS" ]; then
 	mkdir -p "../../bin/iOS"
 fi
@@ -40,4 +40,4 @@ rm -rf Payload
 rm -rf gpac4ios.xcarchive
 #git pull
 
-echo "*** GPAC generation for iOS completed ($full_version)! ***"
+echo "*** GPAC generation for iOS completed ($full_version) ! ***"

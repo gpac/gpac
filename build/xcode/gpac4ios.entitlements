@@ -6,7 +6,7 @@
 	<array/>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>$(AppIdentifierPrefix)osmo4ios</string>
+		<string>$(AppIdentifierPrefix)gpac4ios</string>
 	</array>
 </dict>
 </plist>

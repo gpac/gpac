@@ -615,7 +615,7 @@
 		71A1999C1278778800ACFF58 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sdl_out.c; sourceTree = "<group>"; };
 		71A1999D1278778800ACFF58 /* sdl_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sdl_out.h; sourceTree = "<group>"; };
 		71A1999E1278778800ACFF58 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
-		71A19B1A12796B5600ACFF58 /* osmo4ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = osmo4ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		71A19B1A12796B5600ACFF58 /* gpac4ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gpac4ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		71A19BB112797D1B00ACFF58 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		71A19BC312797D9200ACFF58 /* libobjc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libobjc.dylib; path = usr/lib/libobjc.dylib; sourceTree = SDKROOT; };
 		71A19BCC12797DBA00ACFF58 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
@@ -1331,7 +1331,7 @@
 			isa = PBXGroup;
 			children = (
 				71CCF1311277037A00339E12 /* libgpac_static.a */,
-				71A19B1A12796B5600ACFF58 /* osmo4ios.app */,
+				71A19B1A12796B5600ACFF58 /* gpac4ios.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2192,8 +2192,8 @@
 				047ACFD416DF56BF00F2BF65 /* PBXTargetDependency */,
 			);
 			name = GPAC;
-			productName = osmo4ios;
-			productReference = 71A19B1A12796B5600ACFF58 /* osmo4ios.app */;
+			productName = gpac4ios;
+			productReference = 71A19B1A12796B5600ACFF58 /* gpac4ios.app */;
 			productType = "com.apple.product-type.application";
 		};
 		71CCF1301277037A00339E12 /* libgpac_static */ = {
@@ -2751,7 +2751,7 @@
 				OTHER_CPLUSPLUSFLAGS = "";
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paristech.gpac";
-				PRODUCT_NAME = osmo4ios;
+				PRODUCT_NAME = gpac4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -2797,7 +2797,7 @@
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.telecom-paristech.gpac";
-				PRODUCT_NAME = osmo4ios;
+				PRODUCT_NAME = gpac4ios;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
