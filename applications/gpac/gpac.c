@@ -1626,434 +1626,6 @@ static void gpac_print_report(GF_FilterSession *fsess, Bool is_init, Bool is_fin
 	fflush(stderr);
 }
 
-/*
-	Coverage
-*/
-
-
-#ifdef GPAC_ENABLE_COVERAGE
-#include <gpac/utf.h>
-#include <gpac/base_coding.h>
-#include <gpac/network.h>
-#include <gpac/iso639.h>
-#include <gpac/token.h>
-#include <gpac/xml.h>
-#include <gpac/thread.h>
-#include <gpac/avparse.h>
-#include <gpac/mpegts.h>
-#include <gpac/scenegraph_vrml.h>
-#include <gpac/rtp_streamer.h>
-#include <gpac/internal/odf_dev.h>
-#include <gpac/internal/media_dev.h>
-#include <gpac/internal/isomedia_dev.h>
-#endif
-static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
-{
-#ifdef GPAC_ENABLE_COVERAGE
-	u32 ucs4_buf[4];
-	u32 i;
-	u8 utf8_buf[7];
-
-	void *mem = gf_calloc(4, sizeof(u32));
-	gf_free(mem);
-
-	if (mem_track == GF_MemTrackerNone) return 0;
-
-	gpac_fsess_task_help(); //for coverage
-	gf_dm_sess_last_error(NULL);
-	gf_log_use_color();
-	gf_4cc_parse("abcd");
-	gf_gpac_abi_micro();
-	gf_audio_fmt_get_layout_from_name("3/2.1");
-	gf_audio_fmt_get_dolby_chanmap(4);
-	gf_itags_get_id3tag(1);
-	i=0;
-	gf_itags_enum_tags(&i, NULL, NULL, NULL);
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
-
-	utf8_buf[0] = 'a';
-	utf8_buf[1] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 1, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for single char\n"));
-		return 1;
-	}
-	utf8_buf[0] = 0xc2;
-	utf8_buf[1] = 0xa3;
-	utf8_buf[2] = 'a';
-	utf8_buf[3] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 2-byte + 1-byte char\n"));
-		return 1;
-	}
-	utf8_buf[0] = 0xe0;
-	utf8_buf[1] = 0xa4;
-	utf8_buf[2] = 0xb9;
-	utf8_buf[3] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 3-byte char\n"));
-		return 1;
-	}
-	utf8_buf[0] = 0xf0;
-	utf8_buf[1] = 0x90;
-	utf8_buf[2] = 0x8d;
-	utf8_buf[3] = 0x88;
-	utf8_buf[4] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 4, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 4-byte char\n"));
-		return 1;
-	}
-
-	utf8_buf[0] = 0xf8;
-	utf8_buf[1] = 0x80;
-	utf8_buf[2] = 0x80;
-	utf8_buf[3] = 0x80;
-	utf8_buf[4] = 0xaf;
-	utf8_buf[5] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 5, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 5-byte char\n"));
-		return 1;
-	}
-	utf8_buf[0] = 0xfc;
-	utf8_buf[1] = 0x80;
-	utf8_buf[2] = 0x80;
-	utf8_buf[3] = 0x80;
-	utf8_buf[4] = 0x80;
-	utf8_buf[5] = 0xaf;
-	utf8_buf[6] = 0;
-	if (! utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 6-byte char\n"));
-		return 1;
-	}
-	//test error case
-	utf8_buf[0] = 0xf8;
-	utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf);
-
-	char buf[5], obuf[3];
-	obuf[0] = 1;
-	obuf[1] = 2;
-	u32 res = gf_base16_encode(obuf, 2, buf, 5);
-	if (res != 4) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 encode fail\n"));
-		return 1;
-	}
-	u32 res2 = gf_base16_decode(buf, res, obuf, 3);
-	if (res2 != 2) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 decode fail\n"));
-		return 1;
-	}
-
-	u8 *zbuf;
-	u32 osize;
-	GF_Err e;
-	u8 *ozbuf;
-
-#ifndef GPAC_DISABLE_ZLIB
-	zbuf = gf_strdup("123451234512345123451234512345");
-	osize=0;
-	e = gf_gz_compress_payload(&zbuf, 1 + (u32) strlen(zbuf), &osize);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib compress fail\n"));
-		gf_free(zbuf);
-		return 1;
-	}
-	ozbuf=NULL;
-	res=0;
-	e = gf_gz_decompress_payload(zbuf, osize, &ozbuf, &res);
-	gf_free(zbuf);
-	if (ozbuf) gf_free(ozbuf);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib decompress fail\n"));
-		return 1;
-	}
-#endif
-
-	zbuf = gf_strdup("123451234512345123451234512345");
-	osize=0;
-	e = gf_lz_compress_payload(&zbuf, 1+(u32) strlen(zbuf), &osize);
-	if (e && (e!= GF_NOT_SUPPORTED)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
-		gf_free(zbuf);
-		return 1;
-	}
-	ozbuf=NULL;
-	res=0;
-	e = gf_lz_decompress_payload(zbuf, osize, &ozbuf, &res);
-	gf_free(zbuf);
-	if (ozbuf) gf_free(ozbuf);
-	if (e && (e!= GF_NOT_SUPPORTED)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
-		return 1;
-	}
-
-	gf_htonl(0xAABBCCDD);
-	gf_ntohl(0xAABBCCDD);
-	gf_htons(0xAABB);
-	gf_ntohs(0xAABB);
-	gf_errno_str(-1);
-
-	/* these two lock the bash shell in test mode
-	gf_prompt_set_echo_off(GF_TRUE);
-	gf_prompt_set_echo_off(GF_FALSE);
-	*/
-
-	gf_net_set_ntp_shift(-1000);
-	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
-	gf_net_get_timezone();
-	gf_net_get_utc_ts(70, 1, 0, 0, 0, 0);
-	gf_net_ntp_diff_ms(1000000, 1000000);
-	gf_lang_get_count();
-	gf_lang_get_2cc(2);
-	GF_Blob b;
-	memset(&b, 0, sizeof(GF_Blob));
-	b.data = (u8 *) "test";
-	b.size = 5;
-	char url[100];
-	u8 *data;
-	u32 size;
-	sprintf(url, "gmem://%p", &b);
-
-	gf_sys_profiler_set_callback(NULL, NULL);
-
-	gf_blob_get(url, &data, &size, NULL);
-	if (!data || strcmp((char *)data, "test")) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
-		return 1;
-	}
-	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
-	gf_sys_get_process_id();
-	data = (u8 *) gf_log_get_tools_levels();
-	if (data) gf_free(data);
-
-	gf_sys_is_quiet();
-	gf_sys_get_argv();
-	gf_mx_get_num_locks(NULL);
-	signal_catched = GF_TRUE;
-
-#ifdef WIN32
-	gpac_sig_handler(CTRL_C_EVENT);
-#else
-	gpac_sig_handler(SIGINT);
-	gpac_sig_handler(SIGTERM);
-#endif
-
-	gf_mkdir("testdir");
-	gf_mkdir("testdir/somedir");
-	strcpy(url, "testdir/somedir/test.bin");
-	FILE *f=gf_fopen(url, "wb");
-	fprintf(f, "some test\n");
-#ifdef GPAC_MEMORY_TRACKING
-	gf_memory_print();
-#endif
-	gf_fclose(f);
-	gf_file_modification_time(url);
-	gf_m2ts_probe_file(url);
-
-	gf_dir_cleanup("testdir");
-	gf_rmdir("testdir");
-
-	//math.c not covered yet by our sample files
-	GF_Matrix2D mx;
-	gf_mx2d_init(mx);
-	gf_mx2d_add_skew(&mx, FIX_ONE, FIX_ONE);
-	gf_mx2d_add_skew_x(&mx, GF_PI/4);
-	gf_mx2d_add_skew_y(&mx, GF_PI/4);
-	GF_Point2D scale, translate;
-	Fixed rotate;
-	gf_mx2d_decompose(&mx, &scale, &rotate, &translate);
-	GF_Rect rc1, rc2;
-	memset(&rc1, 0, sizeof(GF_Rect));
-	memset(&rc2, 0, sizeof(GF_Rect));
-	gf_rect_equal(&rc1, &rc2);
-
-	GF_Matrix mat;
-	gf_mx_init(mat);
-	Fixed yaw, pitch, roll;
-	gf_mx_get_yaw_pitch_roll(&mat, &yaw, &pitch, &roll);
-	gf_mx_ortho_reverse_z(&mat, -20, 20, -20, 20, 0.1, 100.0);
-	gf_mx_perspective_reverse_z(&mat, 0.76, 1.0, 0.1, 100.0);
-
-	GF_Ray ray;
-	GF_Vec center, outPoint;
-	memset(&ray, 0, sizeof(GF_Ray));
-	ray.dir.z = FIX_ONE;
-	memset(&center, 0, sizeof(GF_Vec));
-	gf_ray_hit_sphere(&ray, &center, FIX_ONE, &outPoint);
-
-	gf_closest_point_to_line(center, ray.dir, center);
-
-	GF_Plane plane;
-	plane.d = FIX_ONE;
-	plane.normal = center;
-	gf_plane_intersect_line(&plane, &center, &ray.dir, &outPoint);
-
-	GF_Vec4 rot, quat;
-	rot.x = rot.y = 0;
-	rot.z = FIX_ONE;
-	rot.q = GF_PI/4;
-	quat = gf_quat_from_rotation(rot);
-	gf_quat_get_inv(&quat);
-	gf_quat_rotate(&quat, &ray.dir);
-	gf_quat_slerp(quat, quat, FIX_ONE/2);
-	GF_BBox bbox;
-	memset(&bbox, 0, sizeof(GF_BBox));
-	gf_bbox_equal(&bbox, &bbox);
-
-	GF_Vec v;
-	v.x = v.y = v.z = 0;
-	gf_vec_scale_p(&v, 2*FIX_ONE);
-
-	//token.c
-	char container[1024];
-	gf_token_get_strip("12 34{ 56 : }", 0, "{:", " ", container, 1024);
-
-	//netwok.c
-	char name[GF_MAX_IP_NAME_LEN];
-	gf_sk_get_host_name(name);
-	gf_sk_set_usec_wait(NULL, 1000);
-	u32 fam;
-	u16 port;
-	//to remove once we have rtsp server back
-	gf_sk_get_local_info(NULL, &port, &fam);
-	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
-	gf_sk_send_wait(NULL, NULL, 0, 1);
-
-	//path2D
-	GF_Path *path = gf_path_new();
-	gf_path_add_move_to(path, 0, 0);
-	gf_path_add_quadratic_to(path, 5, 5, 10, 0);
-	gf_path_point_over(path, 4, 0);
-	gf_path_del(path);
-
-	//xml dom - to update once we find a way to integrate atsc demux in tests
-	GF_DOMParser *dom = gf_xml_dom_new();
-	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
-	gf_xml_dom_get_error(dom);
-	gf_xml_dom_get_line(dom);
-	gf_xml_dom_get_root_nodes_count(dom);
-	gf_xml_dom_del(dom);
-
-	//downloader - to update once we find a way to integrate atsc demux in tests
-	GF_DownloadManager *dm = gf_dm_new(NULL);
-	gf_dm_set_auth_callback(dm, NULL, NULL);
-
-	gf_dm_set_data_rate(dm, 0);
-	gf_dm_get_data_rate(dm);
-	gf_dm_set_localcache_provider(dm, NULL, NULL);
-	gf_dm_sess_abort(NULL);
-	gf_dm_del(dm);
-
-	//constants
-	gf_stream_type_afx_name(GPAC_AFX_3DMC);
-	//thread
-	gf_th_stop(NULL);
-	gf_list_swap(NULL, NULL);
-	//bitstream
-	GF_BitStream *bs = gf_bs_new("test", 4, GF_BITSTREAM_READ);
-	gf_bs_bits_available(bs);
-	gf_bs_get_bit_offset(bs);
-	gf_bs_read_vluimsbf5(bs);
-	gf_bs_del(bs);
-	//module
-	gf_module_load_static(NULL);
-
-	gf_mp3_version_name(0);
-	char tsbuf[188];
-	u8 is_pes=GF_TRUE;
-	memset(tsbuf, 0, 188);
-	tsbuf[0] = 0x47;
-	tsbuf[1] = 0x40;
-	tsbuf[4]=0x00;
-	tsbuf[5]=0x00;
-	tsbuf[6]=0x01;
-	tsbuf[10] = 0x80;
-	tsbuf[11] = 0xc0;
-	tsbuf[13] = 0x2 << 4;
-	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
-
-
-	gf_filter_post_task(NULL,NULL,NULL,NULL);
-	gf_filter_get_arg_str(NULL, NULL, NULL);
-	gf_filter_all_sinks_done(NULL);
-
-	gf_opts_discard_changes();
-
-	gf_rtp_reset_ssrc(NULL);
-	gf_rtp_enable_nat_keepalive(NULL, 0);
-	gf_rtp_stop(NULL);
-	gf_rtp_streamer_get_payload_type(NULL);
-	gf_rtsp_unregister_interleave(NULL, 0);
-	gf_rtsp_reset_aggregation(NULL);
-
-	get_cmd('h');
-	gpac_suggest_arg("blcksize");
-	gpac_suggest_filter("outf", GF_FALSE, GF_FALSE);
-	//todo: build tests for these two
-	gf_filter_pid_negociate_property_str(NULL, NULL, NULL);
-	gf_filter_pid_negociate_property_dyn(NULL, NULL, NULL);
-
-	gf_props_parse_type("uint");
-	//this one is just a wrapper around an internal function
-	gf_filter_pck_new_copy(NULL, NULL, NULL);
-	gf_filter_get_max_extra_input_pids(NULL);
-	gf_filter_remove(NULL);
-	gf_filter_reconnect_output(NULL);
-	gf_filter_pid_get_udta_flags(NULL);
-
-	gf_audio_fmt_get_cicp_layout(2, 1, 1);
-	gf_audio_fmt_get_layout_from_cicp(3);
-	gf_audio_fmt_get_layout_name_from_cicp(3);
-	gf_audio_fmt_get_cicp_from_layout(GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
-
-	//old bifs parsing stuff
-	gf_odf_desc_del(gf_odf_desc_new(GF_ODF_ELEM_MASK_TAG));
-	GF_TextConfig *txtc = (GF_TextConfig *)gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
-	gf_odf_get_text_config(NULL, 0, 0, txtc);
-	gf_odf_dump_txtcfg(txtc, NULL, 0, GF_FALSE);
-	gf_odf_desc_del((GF_Descriptor *) txtc);
-
-	//stuff only used by vtbdec
-	gf_hevc_read_pps_bs(NULL, NULL);
-	gf_hevc_read_sps_bs(NULL, NULL);
-	gf_hevc_read_vps_bs(NULL, NULL);
-	gf_mpegv12_get_config(NULL, 0, NULL);
-
-	//hinting stuff
-	GF_HintPacket *hpck = gf_isom_hint_pck_new(GF_ISOM_BOX_TYPE_RTCP_STSD);
-	gf_isom_hint_pck_length(hpck);
-	gf_isom_hint_pck_size(hpck);
-	GF_BitStream *hbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_isom_hint_pck_write(hpck, hbs);
-	u8 *hbuf;
-	u32 hsize;
-	gf_bs_get_content(hbs, &hbuf, &hsize);
-	gf_bs_del(hbs);
-	hbs = gf_bs_new(hbuf, hsize, GF_BITSTREAM_READ);
-	gf_isom_hint_pck_read(hpck, hbs);
-	gf_bs_del(hbs);
-	gf_free(hbuf);
-	gf_isom_hint_pck_del(hpck);
-
-	gf_isom_last_error(NULL);
-	gf_isom_get_media_time(NULL, 0, 0, NULL);
-	gf_isom_get_sample_description_index(NULL, 0, 0);
-
-	gf_sg_has_scripting();
-	gf_node_get_proto_root(NULL);
-	gf_node_proto_is_grouping(NULL);
-	gf_sg_proto_get_id(NULL);
-	gf_sg_proto_instance_set_ised(NULL, 0, NULL, 0);
-
-	gf_audio_fmt_to_isobmf(0);
-	gf_pixel_fmt_probe(0, NULL);
-	gf_net_ntp_to_utc(0);
-	gf_sys_profiler_sampling_enabled();
-
-
-#endif
-	return 0;
-}
-
 static Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	const char *url;
@@ -2489,4 +2061,433 @@ rescan:
 #ifdef WIN32
 	return TRUE;
 #endif
+}
+
+/*
+	Coverage
+*/
+
+#ifdef GPAC_ENABLE_COVERAGE
+#include <gpac/utf.h>
+#include <gpac/base_coding.h>
+#include <gpac/network.h>
+#include <gpac/iso639.h>
+#include <gpac/token.h>
+#include <gpac/xml.h>
+#include <gpac/thread.h>
+#include <gpac/avparse.h>
+#include <gpac/mpegts.h>
+#include <gpac/scenegraph_vrml.h>
+#include <gpac/rtp_streamer.h>
+#include <gpac/internal/odf_dev.h>
+#include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
+#include <gpac/path2d.h>
+#include <gpac/module.h>
+#endif
+static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
+{
+#ifdef GPAC_ENABLE_COVERAGE
+	u32 ucs4_buf[4];
+	u32 i;
+	u8 utf8_buf[7];
+
+	void *mem = gf_calloc(4, sizeof(u32));
+	gf_free(mem);
+
+	if (mem_track == GF_MemTrackerNone) return 0;
+
+	gpac_fsess_task_help(); //for coverage
+	gf_dm_sess_last_error(NULL);
+	gf_log_use_color();
+	gf_4cc_parse("abcd");
+	gf_gpac_abi_micro();
+	gf_audio_fmt_get_layout_from_name("3/2.1");
+	gf_audio_fmt_get_dolby_chanmap(4);
+	gf_itags_get_id3tag(1);
+	i=0;
+	gf_itags_enum_tags(&i, NULL, NULL, NULL);
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[CoreUnitTests] performing tests\n"));
+
+	utf8_buf[0] = 'a';
+	utf8_buf[1] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 1, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for single char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xc2;
+	utf8_buf[1] = 0xa3;
+	utf8_buf[2] = 'a';
+	utf8_buf[3] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 2-byte + 1-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xe0;
+	utf8_buf[1] = 0xa4;
+	utf8_buf[2] = 0xb9;
+	utf8_buf[3] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 3, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 3-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xf0;
+	utf8_buf[1] = 0x90;
+	utf8_buf[2] = 0x8d;
+	utf8_buf[3] = 0x88;
+	utf8_buf[4] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 4, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 4-byte char\n"));
+		return 1;
+	}
+
+	utf8_buf[0] = 0xf8;
+	utf8_buf[1] = 0x80;
+	utf8_buf[2] = 0x80;
+	utf8_buf[3] = 0x80;
+	utf8_buf[4] = 0xaf;
+	utf8_buf[5] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 5, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 5-byte char\n"));
+		return 1;
+	}
+	utf8_buf[0] = 0xfc;
+	utf8_buf[1] = 0x80;
+	utf8_buf[2] = 0x80;
+	utf8_buf[3] = 0x80;
+	utf8_buf[4] = 0x80;
+	utf8_buf[5] = 0xaf;
+	utf8_buf[6] = 0;
+	if (! utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] UCS-4 translation failed for 6-byte char\n"));
+		return 1;
+	}
+	//test error case
+	utf8_buf[0] = 0xf8;
+	utf8_to_ucs4 (ucs4_buf, 6, (unsigned char *) utf8_buf);
+
+	u8 buf[5], obuf[3];
+	obuf[0] = 1;
+	obuf[1] = 2;
+	u32 res = gf_base16_encode(obuf, 2, buf, 5);
+	if (res != 4) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 encode fail\n"));
+		return 1;
+	}
+	u32 res2 = gf_base16_decode(buf, res, obuf, 3);
+	if (res2 != 2) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] base16 decode fail\n"));
+		return 1;
+	}
+
+	u8 *zbuf;
+	u32 osize;
+	GF_Err e;
+	u8 *ozbuf;
+
+#ifndef GPAC_DISABLE_ZLIB
+	zbuf = (u8 *) gf_strdup("123451234512345123451234512345");
+	osize=0;
+	e = gf_gz_compress_payload(&zbuf, 1 + (u32) strlen((char*)zbuf), &osize);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib compress fail\n"));
+		gf_free(zbuf);
+		return 1;
+	}
+	ozbuf=NULL;
+	res=0;
+	e = gf_gz_decompress_payload(zbuf, osize, &ozbuf, &res);
+	gf_free(zbuf);
+	if (ozbuf) gf_free(ozbuf);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] zlib decompress fail\n"));
+		return 1;
+	}
+#endif
+
+	zbuf = (u8 *)gf_strdup("123451234512345123451234512345");
+	osize=0;
+	e = gf_lz_compress_payload(&zbuf, 1+(u32) strlen((char*)zbuf), &osize);
+	if (e && (e!= GF_NOT_SUPPORTED)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma compress fail\n"));
+		gf_free(zbuf);
+		return 1;
+	}
+	ozbuf=NULL;
+	res=0;
+	e = gf_lz_decompress_payload(zbuf, osize, &ozbuf, &res);
+	gf_free(zbuf);
+	if (ozbuf) gf_free(ozbuf);
+	if (e && (e!= GF_NOT_SUPPORTED)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] lzma decompress fail\n"));
+		return 1;
+	}
+
+	gf_htonl(0xAABBCCDD);
+	gf_ntohl(0xAABBCCDD);
+	gf_htons(0xAABB);
+	gf_ntohs(0xAABB);
+	gf_errno_str(-1);
+
+	/* these two lock the bash shell in test mode
+	gf_prompt_set_echo_off(GF_TRUE);
+	gf_prompt_set_echo_off(GF_FALSE);
+	*/
+
+	gf_net_set_ntp_shift(-1000);
+	gf_net_get_ntp_diff_ms(gf_net_get_ntp_ts() );
+	gf_net_get_timezone();
+	gf_net_get_utc_ts(70, 1, 0, 0, 0, 0);
+	gf_net_ntp_diff_ms(1000000, 1000000);
+	gf_lang_get_count();
+	gf_lang_get_2cc(2);
+	GF_Blob b;
+	memset(&b, 0, sizeof(GF_Blob));
+	b.data = (u8 *) "test";
+	b.size = 5;
+	char url[100];
+	u8 *data;
+	u32 size;
+	sprintf(url, "gmem://%p", &b);
+
+	gf_sys_profiler_set_callback(NULL, NULL);
+
+	gf_blob_get(url, &data, &size, NULL);
+	if (!data || strcmp((char *)data, "test")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
+		return 1;
+	}
+	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, NULL);
+	gf_sys_get_process_id();
+	data = (u8 *) gf_log_get_tools_levels();
+	if (data) gf_free(data);
+
+	gf_sys_is_quiet();
+	gf_sys_get_argv();
+	gf_mx_get_num_locks(NULL);
+	signal_catched = GF_TRUE;
+
+#ifdef WIN32
+	gpac_sig_handler(CTRL_C_EVENT);
+#else
+	gpac_sig_handler(SIGINT);
+	gpac_sig_handler(SIGTERM);
+#endif
+
+	gf_mkdir("testdir");
+	gf_mkdir("testdir/somedir");
+	strcpy(url, "testdir/somedir/test.bin");
+	FILE *f=gf_fopen(url, "wb");
+	fprintf(f, "some test\n");
+#ifdef GPAC_MEMORY_TRACKING
+	gf_memory_print();
+#endif
+	gf_fclose(f);
+	gf_file_modification_time(url);
+	gf_m2ts_probe_file(url);
+
+	gf_dir_cleanup("testdir");
+	gf_rmdir("testdir");
+
+	//math.c not covered yet by our sample files
+	GF_Matrix2D mx;
+	gf_mx2d_init(mx);
+	gf_mx2d_add_skew(&mx, FIX_ONE, FIX_ONE);
+	gf_mx2d_add_skew_x(&mx, GF_PI/4);
+	gf_mx2d_add_skew_y(&mx, GF_PI/4);
+	GF_Point2D scale, translate;
+	Fixed rotate;
+	gf_mx2d_decompose(&mx, &scale, &rotate, &translate);
+	GF_Rect rc1, rc2;
+	memset(&rc1, 0, sizeof(GF_Rect));
+	memset(&rc2, 0, sizeof(GF_Rect));
+	gf_rect_equal(&rc1, &rc2);
+
+	GF_Matrix mat;
+	gf_mx_init(mat);
+	Fixed yaw, pitch, roll;
+	gf_mx_get_yaw_pitch_roll(&mat, &yaw, &pitch, &roll);
+	gf_mx_ortho_reverse_z(&mat, -20, 20, -20, 20, 0.1, 100.0);
+	gf_mx_perspective_reverse_z(&mat, 0.76, 1.0, 0.1, 100.0);
+
+	GF_Ray ray;
+	GF_Vec center, outPoint;
+	memset(&ray, 0, sizeof(GF_Ray));
+	ray.dir.z = FIX_ONE;
+	memset(&center, 0, sizeof(GF_Vec));
+	gf_ray_hit_sphere(&ray, &center, FIX_ONE, &outPoint);
+
+	gf_closest_point_to_line(center, ray.dir, center);
+
+	GF_Plane plane;
+	plane.d = FIX_ONE;
+	plane.normal = center;
+	gf_plane_intersect_line(&plane, &center, &ray.dir, &outPoint);
+
+	GF_Vec4 rot, quat;
+	rot.x = rot.y = 0;
+	rot.z = FIX_ONE;
+	rot.q = GF_PI/4;
+	quat = gf_quat_from_rotation(rot);
+	gf_quat_get_inv(&quat);
+	gf_quat_rotate(&quat, &ray.dir);
+	gf_quat_slerp(quat, quat, FIX_ONE/2);
+	GF_BBox bbox;
+	memset(&bbox, 0, sizeof(GF_BBox));
+	gf_bbox_equal(&bbox, &bbox);
+
+	GF_Vec v;
+	v.x = v.y = v.z = 0;
+	gf_vec_scale_p(&v, 2*FIX_ONE);
+
+	//token.c
+	char container[1024];
+	gf_token_get_strip("12 34{ 56 : }", 0, "{:", " ", container, 1024);
+
+	//netwok.c
+	char name[GF_MAX_IP_NAME_LEN];
+	gf_sk_get_host_name(name);
+	gf_sk_set_usec_wait(NULL, 1000);
+	u32 fam;
+	u16 port;
+	//to remove once we have rtsp server back
+	gf_sk_get_local_info(NULL, &port, &fam);
+	gf_sk_receive_wait(NULL, NULL, 0, &fam, 1);
+	gf_sk_send_wait(NULL, NULL, 0, 1);
+
+	//path2D
+	GF_Path *path = gf_path_new();
+	gf_path_add_move_to(path, 0, 0);
+	gf_path_add_quadratic_to(path, 5, 5, 10, 0);
+	gf_path_point_over(path, 4, 0);
+	gf_path_del(path);
+
+	//xml dom - to update once we find a way to integrate atsc demux in tests
+	GF_DOMParser *dom = gf_xml_dom_new();
+	gf_xml_dom_parse_string(dom, "<Dummy>test</Dummy>");
+	gf_xml_dom_get_error(dom);
+	gf_xml_dom_get_line(dom);
+	gf_xml_dom_get_root_nodes_count(dom);
+	gf_xml_dom_del(dom);
+
+	//downloader - to update once we find a way to integrate atsc demux in tests
+	GF_DownloadManager *dm = gf_dm_new(NULL);
+	gf_dm_set_auth_callback(dm, NULL, NULL);
+
+	gf_dm_set_data_rate(dm, 0);
+	gf_dm_get_data_rate(dm);
+	gf_dm_set_localcache_provider(dm, NULL, NULL);
+	gf_dm_sess_abort(NULL);
+	gf_dm_del(dm);
+
+	//constants
+	gf_stream_type_afx_name(GPAC_AFX_3DMC);
+	//thread
+	gf_th_stop(NULL);
+	gf_list_swap(NULL, NULL);
+	//bitstream
+	GF_BitStream *bs = gf_bs_new((u8 *)"test", 4, GF_BITSTREAM_READ);
+	gf_bs_bits_available(bs);
+	gf_bs_get_bit_offset(bs);
+	gf_bs_read_vluimsbf5(bs);
+	gf_bs_del(bs);
+	//module
+	gf_module_load_static(NULL);
+
+	gf_mp3_version_name(0);
+	u8 tsbuf[188];
+	u8 is_pes=GF_TRUE;
+	memset(tsbuf, 0, 188);
+	tsbuf[0] = 0x47;
+	tsbuf[1] = 0x40;
+	tsbuf[4]=0x00;
+	tsbuf[5]=0x00;
+	tsbuf[6]=0x01;
+	tsbuf[10] = 0x80;
+	tsbuf[11] = 0xc0;
+	tsbuf[13] = 0x2 << 4;
+	gf_m2ts_restamp(tsbuf, 188, 1000, &is_pes);
+
+
+	gf_filter_post_task(NULL,NULL,NULL,NULL);
+	gf_filter_get_arg_str(NULL, NULL, NULL);
+	gf_filter_all_sinks_done(NULL);
+
+	gf_opts_discard_changes();
+
+	gf_rtp_reset_ssrc(NULL);
+	gf_rtp_enable_nat_keepalive(NULL, 0);
+	gf_rtp_stop(NULL);
+	gf_rtp_streamer_get_payload_type(NULL);
+	gf_rtsp_unregister_interleave(NULL, 0);
+	gf_rtsp_reset_aggregation(NULL);
+
+	get_cmd('h');
+	gpac_suggest_arg("blcksize");
+	gpac_suggest_filter("outf", GF_FALSE, GF_FALSE);
+	//todo: build tests for these two
+	gf_filter_pid_negociate_property_str(NULL, NULL, NULL);
+	gf_filter_pid_negociate_property_dyn(NULL, NULL, NULL);
+
+	gf_props_parse_type("uint");
+	//this one is just a wrapper around an internal function
+	gf_filter_pck_new_copy(NULL, NULL, NULL);
+	gf_filter_get_max_extra_input_pids(NULL);
+	gf_filter_remove(NULL);
+	gf_filter_reconnect_output(NULL);
+	gf_filter_pid_get_udta_flags(NULL);
+
+	gf_audio_fmt_get_cicp_layout(2, 1, 1);
+	gf_audio_fmt_get_layout_from_cicp(3);
+	gf_audio_fmt_get_layout_name_from_cicp(3);
+	gf_audio_fmt_get_cicp_from_layout(GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT);
+
+	//old bifs parsing stuff
+	gf_odf_desc_del(gf_odf_desc_new(GF_ODF_ELEM_MASK_TAG));
+	GF_TextConfig *txtc = (GF_TextConfig *)gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
+	gf_odf_get_text_config(NULL, 0, 0, txtc);
+	gf_odf_dump_txtcfg(txtc, NULL, 0, GF_FALSE);
+	gf_odf_desc_del((GF_Descriptor *) txtc);
+
+	//stuff only used by vtbdec
+	gf_hevc_read_pps_bs(NULL, NULL);
+	gf_hevc_read_sps_bs(NULL, NULL);
+	gf_hevc_read_vps_bs(NULL, NULL);
+	gf_mpegv12_get_config(NULL, 0, NULL);
+
+	//hinting stuff
+	GF_HintPacket *hpck = gf_isom_hint_pck_new(GF_ISOM_BOX_TYPE_RTCP_STSD);
+	gf_isom_hint_pck_length(hpck);
+	gf_isom_hint_pck_size(hpck);
+	GF_BitStream *hbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_isom_hint_pck_write(hpck, hbs);
+	u8 *hbuf;
+	u32 hsize;
+	gf_bs_get_content(hbs, &hbuf, &hsize);
+	gf_bs_del(hbs);
+	hbs = gf_bs_new(hbuf, hsize, GF_BITSTREAM_READ);
+	gf_isom_hint_pck_read(hpck, hbs);
+	gf_bs_del(hbs);
+	gf_free(hbuf);
+	gf_isom_hint_pck_del(hpck);
+
+	gf_isom_last_error(NULL);
+	gf_isom_get_media_time(NULL, 0, 0, NULL);
+	gf_isom_get_sample_description_index(NULL, 0, 0);
+
+	gf_sg_has_scripting();
+	gf_node_get_proto_root(NULL);
+	gf_node_proto_is_grouping(NULL);
+	gf_sg_proto_get_id(NULL);
+	gf_sg_proto_instance_set_ised(NULL, 0, NULL, 0);
+
+	gf_audio_fmt_to_isobmf(0);
+	gf_pixel_fmt_probe(0, NULL);
+	gf_net_ntp_to_utc(0);
+	gf_sys_profiler_sampling_enabled();
+
+
+#endif
+	return 0;
 }
