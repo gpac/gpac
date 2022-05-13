@@ -267,7 +267,7 @@ static GF_Err ffsws_process(GF_Filter *filter)
 				bshift = 16 - ctx->unpack_depth;
 			}
 			for (j=0; j<ctx->h; j++) {
-				u8 *p_u, *p_v, *p_a=NULL;
+				u8 *p_u=NULL, *p_v=NULL, *p_a=NULL;
 				u8 *p_y = ctx->unpack_buf + j * ctx->w * Bpp;
 				if (ctx->unpack_yuv) {
 					p_u = p_y + ctx->h * ctx->w * Bpp;

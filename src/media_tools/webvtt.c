@@ -503,7 +503,7 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
 	if (*prop) {
 		len = (u32) strlen(*prop);
 		(*prop) = (char*)gf_realloc((*prop), sizeof(char) * (len + text_len + 1) );
-		strncpy((*prop) + len, text_data, text_len);
+		memcpy((*prop) + len, text_data, text_len);
 		(*prop)[len+text_len] = 0;
 	} else {
 		*prop = gf_strdup(text_data);

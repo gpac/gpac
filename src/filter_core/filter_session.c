@@ -29,6 +29,8 @@
 #ifndef GPAC_DISABLE_3D
 #include <gpac/modules/video_out.h>
 #endif
+#include <gpac/module.h>
+
 //#define CHECK_TASK_LIST_INTEGRITY
 
 #ifndef GPAC_DISABLE_PLAYER
