@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "71A19B1912796B5600ACFF58"
-               BuildableName = "osmo4ios.app"
+               BuildableName = "gpac4ios.app"
                BlueprintName = "GPAC"
                ReferencedContainer = "container:gpac4ios.xcodeproj">
             </BuildableReference>
@@ -31,7 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
-            BuildableName = "osmo4ios.app"
+            BuildableName = "gpac4ios.app"
             BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
@@ -54,7 +54,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
-            BuildableName = "osmo4ios.app"
+            BuildableName = "gpac4ios.app"
             BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
@@ -89,7 +89,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
-            BuildableName = "osmo4ios.app"
+            BuildableName = "gpac4ios.app"
             BlueprintName = "GPAC"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>

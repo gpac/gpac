@@ -49,7 +49,7 @@
 #include <mach-o/dyld.h> /*for _NSGetExecutablePath */
 
 #ifdef GPAC_CONFIG_IOS
-#define TEST_MODULE     "osmo4ios"
+#define TEST_MODULE     "gpac4ios"
 #else
 #define TEST_MODULE		"gm_"
 #endif
@@ -993,15 +993,10 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (! gf_cfg_get_key_count(cfg, "core"))
 			nb_old_sec += 1;
 
-#ifndef GPAC_CONFIG_IOS
 		//check GUI is valid, if not recreate a config
 		key = gf_cfg_get_key(cfg, "core", "startup-file");
 		if (key && !gf_file_exists(key))
 			force_new_cfg = GF_TRUE;
-#else
-		//FIXME once we update app name
-		force_new_cfg = GF_TRUE;
-#endif
 
 		if (nb_old_sec || force_new_cfg) {
 			if (nb_old_sec && (!profile || strcmp(profile, "0"))) {
