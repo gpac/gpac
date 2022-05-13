@@ -1038,26 +1038,6 @@ void load_compositor(GF_Filter *filter)
 {
 	const char *str;
 
-#ifndef WIN32
-	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
-#endif
-
-	//to check
-#if 0 && defined(WIN32)
-	if (!compositor_mode) {
-		const char *opt;
-		TCHAR buffer[1024];
-		DWORD res = GetCurrentDirectory(1024, buffer);
-		buffer[res] = 0;
-		opt = gf_opts_get_key("core", "module-dir");
-		if (strstr(opt, buffer)) {
-			compositor_mode=0;
-		} else {
-			compositor_mode=1;
-		}
-	}
-#endif
-
 	char szArgs[20];
 	sprintf(szArgs, "%d", window_flags);
 	gf_opts_set_key("temp", "window-flags", szArgs);

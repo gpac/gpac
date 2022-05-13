@@ -762,7 +762,8 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "video-output", "Android Video Output");
 	gf_cfg_set_key(cfg, "core", "audio-output", "Android Audio Output");
 #else
-	gf_cfg_set_key(cfg, "core", "video-output", "X11 Video Output");
+	//use SDL by default, will fallback to X11 if not found (our X11 wrapper is old and does not have all features of the SDL one)
+	gf_cfg_set_key(cfg, "core", "video-output", "SDL Video Output");
 	gf_cfg_set_key(cfg, "core", "audio-output", "SDL Audio Output");
 #endif
 

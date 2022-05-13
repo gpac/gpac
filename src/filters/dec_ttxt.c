@@ -1375,7 +1375,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 
 	while (gf_bs_available(ctx->bs_r)) {
 		GF_TextSample *txt;
-		Bool is_utf_16=0;
+		Bool is_utf_16;
 		u32 type, /*length, */sample_index, sample_duration;
 
 		if (!ctx->is_tx3g) {
