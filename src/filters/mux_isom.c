@@ -4158,13 +4158,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 	if (tkw->sparse_inject && (prev_dts!=GF_FILTER_NO_TS) && (prev_dts!=GF_FILTER_NO_TS) && tkw->prev_duration) {
 		u64 est_time = prev_dts + tkw->prev_duration;
 		if (est_time < tkw->sample.DTS) {
-			u64 ins_dur;
+			u32 ins_dur;
 			GF_ISOSample s;
 			memset(&s, 0, sizeof(GF_ISOSample));
 			s.DTS = est_time;
 
 			s.IsRAP = SAP_TYPE_1;
-			ins_dur = tkw->sample.DTS - est_time;
+			ins_dur = (u32) (tkw->sample.DTS - est_time);
 			if (for_fragment) {
 				e = gf_isom_fragment_add_sample(ctx->file, tkw->track_id, &s, tkw->stsd_idx, ins_dur, 0, 0, 0);
 			} else {

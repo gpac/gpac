@@ -55,6 +55,7 @@ static const GF_FilterArgs DTOutArgs[] =
 
 static GF_FilterCapability DTOutCaps[3];
 
+#include <gpac/module.h>
 GF_FilterRegister DTOutRegister;
 
 #ifdef GPAC_HAS_DTAPI

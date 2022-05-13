@@ -87,7 +87,7 @@ restart:
 	obj_time += audio_delay_ms;
 
 	if (ai->compositor->audd<0) obj_time += -ai->compositor->audd;
-	else if (obj_time > ai->compositor->audd) obj_time -= ai->compositor->audd;
+	else if (obj_time > (u32) ai->compositor->audd) obj_time -= ai->compositor->audd;
 	else obj_time=0;
 
 	if (ai->compositor->bench_mode) {

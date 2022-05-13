@@ -73,7 +73,7 @@ Function customPage
 	nsDialogs::Create 1018
 	Pop $DIALOG
 
-  ${NSD_CreateLabel} 0 0 100% 120u "Multimedia technologies are often covered by various patents which are most of the time hard to identify. These patents may or may not apply in your local jurisdiction. By installing this software, you acknowledge that you may have to pay royaltee fees in order to legally use this software. Do not proceed with this setup if you do not understand or do not agree with these terms. In any case, the authors and/or distributors bears no liability for any infringing usage of this software, which is provided for educational or research purposes."
+  ${NSD_CreateLabel} 0 0 100% 120u "Multimedia technologies are often covered by various patents which are most of the time hard to identify. These patents may or may not apply in your local jurisdiction.$\r$\nBy installing this software, you acknowledge that you may have to pay royaltee fees in order to legally use this software.$\r$\n$\r$\nDo not proceed with this setup if you do not understand or do not agree with these terms.$\r$\n$\r$\nIn any case, the authors and/or distributors bears no liability for any infringing usage of this software, which is provided for educational or research purposes."
 	Pop $Label
 
   ${NSD_CreateCheckBox} 0 -30 100% 12u "I understand and accept the conditions"
@@ -87,6 +87,8 @@ FunctionEnd
 
 ;--------------------------------
 ;Pages
+
+!define MUI_WELCOMEPAGE_TITLE  "Welcome to GPAC ${GPAC_VERSION} Setup"
 
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "${GPAC_ROOT}\COPYING"
@@ -201,47 +203,6 @@ FunctionEnd
 
 !define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
 
-Function InsertGDIPLUS
-   Push $R0
-   Push $R1
-   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentVersion
-   StrCmp $R0 "" 0 lbl_winnt
-
-   ;NOT NT
-   ReadRegStr $R0 HKLM SOFTWARE\Microsoft\Windows\CurrentVersion VersionNumber
-
-   StrCpy $R1 $R0 1
-   ; win95, NOT SUPPORTED
-   StrCmp $R1 '4' 0 lbl_err_95
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '4.0' lbl_err_95
-   ;winME or 98 otherwise
-   StrCmp $R1 '4.9' lbl_add lbl_add
-
-lbl_err_nt:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on NT 3 Systems"
-   Goto lbl_done
-
-lbl_err_95:
-   MessageBox MB_OK "Microsoft GDI+ cannot be installed on Windows 95 and older Systems"
-   Goto lbl_done
-
-lbl_winnt:
-   StrCpy $R1 $R0 1
-   StrCmp $R1 '3' lbl_err_nt
-   StrCmp $R1 '4' lbl_add
-   StrCpy $R1 $R0 3
-   StrCmp $R1 '5.0' lbl_add	;2000
-   StrCmp $R1 '5.1' lbl_xp	;XP
-   StrCmp $R1 '5.2' lbl_done	;.NET server
-
-lbl_add:
-
-lbl_xp:
-
-lbl_done:
-FunctionEnd
-
 ;GPAC core
 Section "GPAC Core" SecGPAC
   SectionIn RO
@@ -298,14 +259,6 @@ Section "GPAC Core" SecGPAC
   SetOutPath $INSTDIR\share\lang
   File /r /x .git ${GPAC_ROOT}\share\lang\*
 
-  ;copy vis
-  SetOutPath $INSTDIR\share\vis
-  File /r /x .git ${GPAC_ROOT}\share\vis\*
-
-  ;copy python
-  SetOutPath $INSTDIR\share\python
-  File /r /x .git ${GPAC_ROOT}\share\python\*
-
   ;create default cache
   SetOutPath $INSTDIR\cache
   SetOutPath $INSTDIR
@@ -316,6 +269,7 @@ Section "GPAC Core" SecGPAC
   ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
   WriteUninstaller "uninstall.exe"
 
+  Push $INSTDIR
   Call AddToPath
 SectionEnd
 
@@ -333,7 +287,12 @@ SectionEnd
 
 Section "SDL" SecSDL
   SectionIn 1
+!if /FileExists "${GPAC_BIN}\SDL.dll"
   File "${GPAC_BIN}\SDL.dll"
+!endif
+!if /FileExists "${GPAC_BIN}\SDL2.dll"
+  File "${GPAC_BIN}\SDL2.dll"
+!endif
   File "${GPAC_BIN}\gm_sdl_out.dll"
 SectionEnd
 
@@ -357,6 +316,19 @@ Section "MP4Box" SecMP4B
   File "${GPAC_BIN}\MP4Box.exe"
   Push $INSTDIR
   Call AddToPath
+SectionEnd
+
+Section "Remotery Visualizer" SecRMT
+  SectionIn 1
+  SetOutPath $INSTDIR\share\vis
+  File /r /x .git ${GPAC_ROOT}\share\vis\*
+SectionEnd
+
+
+Section "Python Bindings" SecPython
+  SectionIn 1
+  SetOutPath $INSTDIR\share\python
+  File /r /x .git ${GPAC_ROOT}\share\python\*
 SectionEnd
 
 Section "GPAC SDK" SecSDK
@@ -402,7 +374,7 @@ DetailPrint "Running VS2015 re-distributable setup..."
 SectionEnd
 
 
-SubSection "GPAC Shortcuts"
+SubSection "GPAC Shortcuts" SecShortcuts
 
 Section "Add Start Menu Shortcuts"
   SectionIn 1
@@ -414,7 +386,7 @@ Section "Add Start Menu Shortcuts"
   CreateDirectory "$SMPROGRAMS\GPAC"
   CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\GPAC\GPAC.lnk" "$INSTDIR\gpac.exe" ""
-  CreateShortCut "$SMPROGRAMS\GPAC\GPAC (with Console).lnk" "$INSTDIR\gpac.exe" "-gui"
+  CreateShortCut "$SMPROGRAMS\GPAC\Remotery GPAC.lnk" "$INSTDIR\share\vis\index.html" ""
   CreateShortCut "$SMPROGRAMS\GPAC\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\History.lnk" "$INSTDIR\changelog.txt"
@@ -426,17 +398,19 @@ SubSectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for MP4 file manipulation"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for content packaging (MP4, DASH, HLS)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecFT} "FreeType font parsing"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecWAVE} "Windows MME Audio output"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
 ;  !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "GPAC SDL support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "Headers and library files needed to develop modules for GPAC or applications based on GPAC"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPython} "Python bindings for libgpac"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecRMT} "Remotery HTML visualizer"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecSDL} "SDL Audio and Video output"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecValidator} "GPAC Test Validator"
-
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} "System menu shortucts"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
@@ -656,34 +630,6 @@ FunctionEnd
 ###########################################
 #            Utility Functions            #
 ###########################################
-
-; IsNT
-; no input
-; output, top of the stack = 1 if NT or 0 if not
-;
-; Usage:
-;   Call IsNT
-;   Pop $R0
-;  ($R0 at this point is 1 or 0)
-
-!macro IsNT un
-Function ${un}IsNT
-  Push $0
-  ReadRegStr $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" CurrentVersion
-  StrCmp $0 "" 0 IsNT_yes
-  ; we are not NT.
-  Pop $0
-  Push 0
-  Return
-
-  IsNT_yes:
-    ; NT!!!
-    Pop $0
-    Push 1
-FunctionEnd
-!macroend
-!insertmacro IsNT ""
-!insertmacro IsNT "un."
 
 ; StrStr
 ; input, top of stack = string to search for

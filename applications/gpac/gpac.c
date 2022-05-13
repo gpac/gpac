@@ -308,6 +308,17 @@ int gpac_main(int argc, char **argv)
 	Bool has_xopt = GF_FALSE;
 
 	helpout = stdout;
+	
+#ifdef WIN32
+	Bool gpac_is_global_launch();
+	char *argv_w[2];
+	if ((argc == 1) && gpac_is_global_launch()) {
+		argc = 2;
+		argv_w[0] = argv[0];
+		argv_w[1] = "-gui";
+		argv = argv_w;
+	}
+#endif
 
 	//look for mem track and profile, and check for link directives
 	for (i=1; i<argc; i++) {

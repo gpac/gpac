@@ -1717,7 +1717,7 @@ static JSValue xml_element_get_attribute(JSContext *c, JSValueConst obj, int arg
 				else if (ns) {
 					char *nssep = strchr(att->name, ':');
 					if (nssep && !strcmp(nssep+1, name)) {
-						u32 ns_len = nssep - att->name;
+						u32 ns_len = (u32) (nssep - att->name);
 						//todo check namespace
 						if (!strcmp(ns, "*") || !strncmp(ns, att->name, ns_len))
 							found = GF_TRUE;

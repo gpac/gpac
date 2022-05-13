@@ -1387,7 +1387,7 @@ static void ffavin_enum_devices(const char *dev_name, Bool is_audio)
 		gf_dynstrcat(&dev_desc, dev_name, NULL);
 		gf_dynstrcat(&dev_desc, is_audio ? " audio" : " video", NULL);
 		gf_dynstrcat(&dev_desc, " devices\n", NULL);
-		for (u32 i=0; i<dev_list->nb_devices; i++) {
+		for (int i=0; i<dev_list->nb_devices; i++) {
 			char szFmt[20];
 			sprintf(szFmt, "[%d] ", i);
 			gf_dynstrcat(&dev_desc, dev_list->devices[i]->device_name, szFmt);

@@ -1101,7 +1101,7 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 			now = gf_net_get_utc();
 		}
 
-		if (now < ctx->cur_start.num) {
+		if (now < (u64) ctx->cur_start.num) {
 			before = GF_TRUE;
 			u64 time = (ctx->cur_start.num - now) / 1000;
 
@@ -1109,9 +1109,9 @@ static u32 reframer_check_pck_range(GF_Filter *filter, GF_ReframerCtx *ctx, RTSt
 				u32 h, m, s;
 				char szStatus[100];
 				ctx->last_utc_time_s = time+2;
-				h = time/3600;
-				m = time/60 - h*60;
-				s = time - m*60 - h*3660;
+				h = (u32) (time/3600);
+				m = (u32) (time/60 - h*60);
+				s = (u32) (time - m*60 - h*3660);
 				if (h>24) {
 					u32 days = h/24;
 					sprintf(szStatus, "Next range start in %d days", days);

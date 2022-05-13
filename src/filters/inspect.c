@@ -2337,10 +2337,10 @@ static void inspect_dump_packet_fmt(GF_InspectCtx *ctx, FILE *dump, GF_FilterPac
 
 				u32 h, m, s, ms;
 				u64 time = ts/1000;
-				h = time/3600;
-				m = time/60 - h*60;
-				s = time - m*60 - h*3660;
-				ms = ts - 1000*time;
+				h = (u32) (time/3600);
+				m = (u32) (time/60 - h*60);
+				s = (u32) (time - m*60 - h*3660);
+				ms = (u32) (ts - 1000*time);
 				if (!strcmp(key, "startc") || !strcmp(key, "endc"))
 					inspect_printf(dump, "%02d:%02d:%02d,%03d", h, m, s, ms);
 				else

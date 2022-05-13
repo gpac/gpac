@@ -1342,7 +1342,7 @@ static GF_Err ttd_process(GF_Filter *filter)
 		delay += ctx->delay;
 
 		if (delay>=0) cts += delay;
-		else if (cts > -delay) cts -= -delay;
+		else if (cts > (u64) -delay) cts -= -delay;
 		else cts = 0;
 	} else {
 		cts = ctx->sample_end;

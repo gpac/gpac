@@ -192,7 +192,7 @@ static void gf_inline_check_restart(GF_Scene *scene)
 			else {
 				Double s, e;
 				u64 now = gf_clock_time_absolute(ck);
-				s = now;
+				s = (Double) now;
 				s /= 1000;
 				e = -1;
 				MC_GetRange(scene->root_od->media_ctrl, &s, &e);
