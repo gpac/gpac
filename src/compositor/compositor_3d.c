@@ -28,7 +28,6 @@
 #include "visual_manager.h"
 #include "texturing.h"
 #include "nodes_stacks.h"
-#include <gpac/options.h>
 
 #ifndef GPAC_DISABLE_3D
 

@@ -271,7 +271,7 @@ GPAC configuration options:
   --static-modules         use static modules in libgpac rather than dynamic library modules
   --static-build           link statically against libgpac but still allow dependencies to shared libraries (enable --static-modules)
   --enable-static-bin      old name for --static-build, deprecated
-  --static-bin             enable static linking of MP4Box and gpac only (enable --static-build), disable MP4Client and all libraries not linkable statically.
+  --static-bin             enable static linking of MP4Box and gpac only (enable --static-build), disable all libraries not linkable statically.
   --static-mp4box          old name for --static-bin, deprecated
   --enable-depth           enables depth handling in the compositor
   --enable-qjs-stack       enables stack depth checking in QuickJS (WILL CRASH in multithreaded modes)
@@ -318,8 +318,8 @@ Configuration options for libgpac - all options can be enabled with --enable-opt
   --disable-vobsub         disable VobSub support
   --disable-sman           disable scene manager
   --disable-ttxt           disable TTXT (3GPP / MPEG-4 Timed Text) support
-  --disable-player         disable player (terminal and compositor)
-  --disable-scenegraph     disable scenegraph, scene parsers and player (terminal and compositor)
+  --disable-player         disable player (compositor)
+  --disable-scenegraph     disable scenegraph, scene parsers and player (compositor)
   --disable-hevc           disable HEVC support
   --disable-route          disable ROUTE (ATSC3) support
   --disable-crypto         disable crypto support
@@ -3370,9 +3370,9 @@ echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
-    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/terminal src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg src/quickjs src/jsmods"
+    SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/filter_core src/filters src/crypto src/media_tools src/scene_manager src/compositor src/laser src/evg src/quickjs src/jsmods"
 
-    APP_DIRS="applications/gpac applications/mp4box applications/mp4client"
+    APP_DIRS="applications/gpac applications/mp4box"
 
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"

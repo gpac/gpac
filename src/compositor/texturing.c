@@ -24,7 +24,6 @@
  */
 
 #include "texturing.h"
-#include <gpac/options.h>
 
 #include "nodes_stacks.h"
 

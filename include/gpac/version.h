@@ -46,7 +46,7 @@
 
 // WARNING: when bumping, reflect the changes in share/python/libgpac.py !!
 /*! ABI Major number of libgpac */
-#define GPAC_VERSION_MAJOR 11
+#define GPAC_VERSION_MAJOR 12
 /*! ABI Minor number of libgpac */
 #define GPAC_VERSION_MINOR 0
 /*! ABI Micro number of libgpac */

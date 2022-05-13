@@ -30,7 +30,6 @@
 #include <gpac/filters.h>
 
 
-
 //#define FAKE_DT_API
 
 #if defined(GPAC_HAS_DTAPI) && !defined(FAKE_DT_API)

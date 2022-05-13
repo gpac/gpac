@@ -26,7 +26,6 @@
 #include "x11_out.h"
 #include <gpac/constants.h>
 #include <gpac/utf.h>
-#include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
@@ -1042,7 +1041,6 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 		XUnmapWindow (xWindow->display, xWindow->full_wnd);
 		XMapWindow (xWindow->display, xWindow->wnd);
 		XUngrabKeyboard(xWindow->display, CurrentTime);
-		/*looks like this makes osmozilla crash*/
 		//if (xWindow->par_wnd) XSetInputFocus(xWindow->display, xWindow->wnd, RevertToNone, CurrentTime);
 
 		GF_Event evt;
@@ -1234,7 +1232,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		                              xWindow->visual, 0, NULL);
 	}
 
-	if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
+	if (!(xWindow->init_flags & GF_VOUT_INIT_HIDE)) {
 		XMapWindow (xWindow->display, (Window) xWindow->wnd);
 	}
 
@@ -1257,7 +1255,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot select input focus\n"));
 	}
 	XSync(xWindow->display, False);
-	if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
+	if (!(xWindow->init_flags & GF_VOUT_INIT_HIDE)) {
 		XMapWindow (xWindow->display, (Window) xWindow->wnd);
 	}
 	XSizeHints *Hints = XAllocSizeHints ();
@@ -1286,7 +1284,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	XkbSetDetectableAutoRepeat(xWindow->display, autorepeat, &supported);
 
 
-	if (xWindow->init_flags & GF_TERM_WINDOW_NO_DECORATION) {
+	if (xWindow->init_flags & GF_VOUT_WINDOW_NO_DECORATION) {
 #define PROP_MOTIF_WM_HINTS_ELEMENTS 5
 #define MWM_HINTS_DECORATIONS (1L << 1)
 		struct {
@@ -1523,12 +1521,11 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 
 	//window already setup and this restup asks for visible, show window
 	if (xWindow->wnd) {
-		if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
+		if (!(xWindow->init_flags & GF_VOUT_INIT_HIDE)) {
 			XMapWindow (xWindow->display, (Window) xWindow->wnd);
 		}
 	}
 
-	/*OSMOZILLA HACK*/
 	if (os_display) xWindow->no_select_input = 1;
 
 	/*the rest is done THROUGH THE MAIN RENDERER TRHEAD!!*/

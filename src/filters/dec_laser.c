@@ -35,7 +35,6 @@ typedef struct
 {
 	GF_Scene *scene;
 	GF_ObjectManager *odm;
-//	GF_Terminal *app;
 	GF_LASeRCodec *codec;
 	u32 PL, nb_streams;
 	Bool is_playing;

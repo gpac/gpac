@@ -35,16 +35,6 @@ Unless specified otherwise, an option of type integer expects a trackID value fo
   
 .br
 .TP
-.B \-mem-track
-.br
-enable memory tracker
-.br
-.TP
-.B \-mem-track-stack
-.br
-enable memory tracker with stack dumping
-.br
-.TP
 .B \-p (string)
 .br
 use indicated profile for the global GPAC config. If not found, config file is created. If a file path is indicated, this will load profile from that file. Otherwise, this will create a directory of the specified name and store new config there. Reserved name 0 means a new profile, not stored to disk. Works using -p=NAME or -p NAME
@@ -2744,7 +2734,7 @@ online_info (A9url) string
 .br
 exec_producer (A9xpd) string
 .br
-genre (A9gnr) string (ID3 genre tag)
+genre (A9gen) string (ID3 genre tag)
 .br
 .SH Live Scene Encoder Options
 .LP
@@ -2839,10 +2829,10 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev112-g275394b43-master
+build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
 .SH SEE ALSO
 .LP
-gpac(1), MP4Client(1)
+gpac(1)

@@ -4339,34 +4339,6 @@ void gf_dm_sess_abort(GF_DownloadSession * sess)
 	}
 }
 
-#if 0 //unused
-/*!
-\brief gets private data
- *
- *Gets private data associated with the session.
-\param sess the download session
-\return the private data
-\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
- */
-void *gf_dm_sess_get_private(GF_DownloadSession * sess)
-{
-	return sess ? sess->ext : NULL;
-}
-
-/*!
-\brief sets private data
- *
- *associate private data with the session.
-\param sess the download session
-\param private_data the private data
-\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
- */
-void gf_dm_sess_set_private(GF_DownloadSession * sess, void *private_data)
-{
-	if (sess) sess->ext = private_data;
-}
-#endif
-
 /*!
  * Sends the HTTP headers
 \param sess The GF_DownloadSession

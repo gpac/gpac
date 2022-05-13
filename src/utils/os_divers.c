@@ -906,25 +906,26 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		for (i=1; i<argc; i++) {
 			Bool consumed;
 			GF_Err e;
-			Bool use_sep=GF_FALSE;
+			Bool use_sep = GF_FALSE;
 			Bool bool_value = GF_TRUE;
+			char szArg[1024];
 			char *arg_val;
 			const char *arg = argv[i];
 			if (!arg) continue;
 
 			arg_val = strchr(arg, '=');
 			if (arg_val) {
-				arg_val[0]=0;
+				u32 len = (u32) (arg_val-arg);
+				if (len>1023) len = 1023;
+				strncpy(szArg, arg, len);
+				szArg[len]=0;
 				arg_val++;
-				use_sep=GF_TRUE;
+				arg = szArg;
+				use_sep = GF_TRUE;
 			} else if (i+1<argc) {
 				arg_val = (char *) argv[i+1];
 			}
 			if ((arg[0] != '-') || ! arg[1]) {
-				if (use_sep) {
-					arg_val--;
-					arg_val[0]='=';
-				}
 				continue;
 			}
 			if (arg_val && (!strcmp(arg_val, "no") || !strcmp(arg_val, "false") || !strcmp(arg_val, "°0") ) )
@@ -974,10 +975,6 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 
 				if (consumed && !use_sep)
 					i += 1;
-			}
-			if (use_sep) {
-				arg_val--;
-				arg_val[0]='=';
 			}
 		}
 
@@ -1266,6 +1263,47 @@ const char *gf_sys_localized(const char *sec_name, const char *key_name, const c
 	return def_val;
 }
 
+static void gf_sys_refresh_cache()
+{
+	u32 i, count;
+	count = gf_opts_get_section_count();
+	for (i=0; i<count; i++) {
+		const char *opt;
+		u32 sec, frac, exp;
+		Bool force_delete;
+		const char *file;
+		const char *name = gf_opts_get_section_name(i);
+		if (strncmp(name, "@cache=", 7)) continue;
+
+		file = gf_opts_get_key(name, "cacheFile");
+		opt = gf_opts_get_key(name, "expireAfterNTP");
+		if (!opt) {
+			if (file) gf_file_delete((char*) file);
+			gf_opts_del_section(name);
+			i--;
+			count--;
+			continue;
+		}
+
+		force_delete = 0;
+		if (file && gf_file_exists(file)) {
+			force_delete = 1;
+		}
+		sscanf(opt, "%u", &exp);
+		gf_net_get_ntp(&sec, &frac);
+		if (exp && (exp<sec)) force_delete=1;
+
+		if (force_delete) {
+			if (file) gf_file_delete(file);
+
+			gf_opts_del_section(name);
+			i--;
+			count--;
+			continue;
+		}
+	}
+}
+
 GF_EXPORT
 GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 {
@@ -1373,6 +1411,7 @@ GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile)
 
 		gf_init_global_config(profile);
 
+		gf_sys_refresh_cache();
 
 	}
 	sys_init += 1;
@@ -1442,6 +1481,10 @@ void gf_sys_close()
 			gf_free(gpac_argv_state);
 			gpac_argv_state = NULL;
 		}
+		gpac_argc = 0;
+		gpac_argv = NULL;
+		memory_at_gpac_startup = 0;
+		gpac_test_mode = gpac_old_arch = gpac_discard_config = GF_FALSE;
 	}
 }
 
@@ -2035,7 +2078,7 @@ const char * gf_get_default_cache_directory_ex(Bool do_create)
 #elif defined(WIN32)
 	GetTempPath(GF_MAX_PATH, szCacheDir);
 #elif defined(GPAC_CONFIG_ANDROID)
-	strcpy(szCacheDir, "/data/data/com.gpac.Osmo4/cache");
+	strcpy(szCacheDir, "/data/data/io.gpac.gpac/cache");
 #else
 	strcpy(szCacheDir, "/tmp");
 #endif
@@ -2275,24 +2318,6 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock) {
 }
 
 #endif //global lock uni-used
-
-
-#ifdef GPAC_CONFIG_ANDROID
-
-fm_callback_func fm_cbk = NULL;
-static void *fm_cbk_obj = NULL;
-
-void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func) {
-	fm_cbk = cbk_func;
-	fm_cbk_obj = cbk_obj;
-}
-
-void gf_fm_request_call(u32 type, u32 param, int *value) {
-	if (fm_cbk)
-		fm_cbk(fm_cbk_obj, type, param, value);
-}
-
-#endif //GPAC_CONFIG_ANDROID
 
 
 static u32 ntp_shift = GF_NTP_SEC_1900_TO_1970;

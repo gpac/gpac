@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2017
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -27,7 +27,7 @@
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
 #include <gpac/nodes_svg.h>
-#include <gpac/options.h>
+
 #ifndef GPAC_DISABLE_VRML
 
 void InitMediaControl(GF_Scene *scene, GF_Node *node);

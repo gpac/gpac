@@ -411,21 +411,73 @@ typedef enum
 /*!
 \brief System setup
 
-Inits the system high-resolution clock if any, CPU usage manager, random number and GPAC global config. It is strongly recommended to call this function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
+Inits system tools (GPAC global config, high-resolution clock if any, CPU usage manager, random number, ...).
+
+You MUST call this function before calling any libgpac function, typically only once at startup.
 
 The profile allows using a different global config file than the default, and may be a name (without / or \\) or point to an existing config file.
 \note This can be called several times but only the first call will result in system setup.
+
 \param mem_tracker_type memory tracking mode
 \param profile name of the profile to load, NULL for default.
 \return Error code if any
  */
 GF_Err gf_sys_init(GF_MemTrackerType mem_tracker_type, const char *profile);
+
 /*!
 \brief System closing
-Closes the system high-resolution clock and any CPU associated resources.
-\note This can be called several times but the system will be closed when no more users are counted.
+
+Closes allocated system resources opened by \ref gf_sys_init.
+\note This can be called several times but systems resources will be closed when no more users are accounted for.
+
+When JavaScript APIs are loaded, the JS runtime is destroyed in this function call.
+If your application needs to reload GPAC a second time after this, you MUST prevent JS runtime destruction otherwise the application will crash due to static JS class definitions refering to freed memory.
+To prevent destruction, make sure you have called
+ \code gf_opts_set_key("temp", "static-jsrt", "true"); \endcode
+
+before calling \ref gf_sys_close. For example:
+
+\code
+gf_sys_init(GF_MemTrackerNone, NULL);
+//run your code, eg a filter session
+
+//prevent JSRT destruction
+gf_opts_set_key("temp", "static-jsrt", "true");
+gf_sys_close();
+
+//The JSRT is still valid
+
+gf_sys_init(GF_MemTrackerNone, NULL);
+//run your code, eg another filter session
+
+//do NOT prevent JSRT, parent app will exit after this call
+gf_sys_close();
+
+\endcode
+
  */
 void gf_sys_close();
+
+
+#if defined(GPAC_CONFIG_ANDROID)
+
+/*!
+\brief Android paths setup
+
+Sets application data and external storage paths for android, to be called by JNI wrappers BEFORE \ref gf_sys_init is called.
+If not set, default are:
+- app_data is /data/data/io.gpac.gpac
+- ext_storage is /sdcard
+
+The default profile used on android is located in $ext_storage/GPAC/ if that directory exists, otherwise in $app_data/GPAC
+
+\param app_data application data path, with no trailing path separator
+\param ext_storage external storage location, with no trailing path separator
+*/
+void gf_sys_set_android_paths(const char *app_data, const char *ext_storage);
+
+#endif // GPAC_CONFIG_ANDROID
+
 
 /*!
 \brief System arguments
@@ -686,7 +738,7 @@ typedef enum
 	GF_LOG_INTERACT,
 	/*! Log message from compositor*/
 	GF_LOG_COMPOSE,
-	/*! Log message from the terminal/compositor, indicating media object state*/
+	/*! Log message from the compositor, indicating media object state*/
 	GF_LOG_COMPTIME,
 	/*! Log for video object cache */
 	GF_LOG_CACHE,
@@ -712,7 +764,7 @@ typedef enum
 	GF_LOG_SCHEDULER,
 	/*! Log for all ROUTE message */
 	GF_LOG_ROUTE,
-	/*! Log for all messages coming from GF_Terminal or script alert()*/
+	/*! Log for all messages coming from script*/
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
 	GF_LOG_APP,
@@ -788,6 +840,15 @@ Checks if a given tool is logged for the given level
 \return 1 if logged, 0 otherwise
 */
 Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
+
+/*!
+\brief Log tool name
+
+Gets log  tool name
+\param log_tool tool to check
+\return name, or "unknwon" if not known
+*/
+const char *gf_log_tool_name(GF_LOG_Tool log_tool);
 
 /*!
 \brief Log level getter
@@ -932,11 +993,11 @@ Gets the current character entered at prompt if any.
 char gf_prompt_get_char();
 
 /*!
-\brief Get prompt terminal size
+\brief Get prompt TTY size
 
 Gets the stdin prompt size (columns and rows)
-\param width set to number of rows in the terminal
-\param height set to number of columns in the terminal
+\param width set to number of rows in the TTY
+\param height set to number of columns in the TTY
 \return error if any
 */
 GF_Err gf_prompt_get_size(u32 *width, u32 *height);
@@ -1369,6 +1430,18 @@ Wrapper to properly handle calls to fprintf()
 \return same as fprintf
 */
 int gf_fprintf(FILE *stream, const char *format, ...);
+
+/*!
+\brief file writing helper
+
+Wrapper to properly handle calls to vfprintf()
+\param stream same as vfprintf
+\param format same as vfprintf
+\param args same as vfprintf
+\return same as fprintf
+*/
+int gf_vfprintf(FILE *stream, const char *format, va_list args);
+
 /*!
 \brief file flush helper
 
@@ -2032,6 +2105,12 @@ const char *gf_opts_get_key_restricted(const char *secName, const char *keyName)
 GF_Err gf_opts_discard_changes();
 
 /*!
+ * Force immediate write of config
+\return error code
+ */
+GF_Err gf_opts_save();
+
+/*!
  * Returns file name of global config
 \return file name of global config or NULL if libgpac is not initialized
  */
@@ -2081,12 +2160,8 @@ Bool gf_opts_default_shared_directory(char *path_buffer);
 
 //! @endcond
 
+
 /* \cond dummy */
-#ifdef GPAC_CONFIG_ANDROID
-typedef void (*fm_callback_func)(void *cbk_obj, u32 type, u32 param, int *value);
-extern void gf_fm_request_set_callback(void *cbk_obj, fm_callback_func cbk_func);
-void gf_fm_request_call(u32 type, u32 param, int *value);
-#endif //GPAC_CONFIG_ANDROID
 
 /*to call whenever the OpenGL library is opened - this function is needed to bind OpenGL and remotery, and to load
 OpenGL extensions on windows

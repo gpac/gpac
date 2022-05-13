@@ -27,7 +27,6 @@
 
 #include "visual_manager.h"
 #include "nodes_stacks.h"
-#include <gpac/options.h>
 #include "texturing.h"
 
 #include "gl_inc.h"
@@ -41,7 +40,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (!visual->is_attached) return;
 
 	if (!BackColor && !visual->offscreen && !is_offscreen_clear) {
-		if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+		if ( !(visual->compositor->init_flags & GF_VOUT_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color & 0x00FFFFFF;
 		}
 	}
@@ -84,6 +83,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	//if no object drawn since the last flush, no need to draw the texture
 	if (!compositor->visual->nb_objects_on_canvas_since_last_ogl_flush)
 		goto exit;
+
+	compositor->visual->prev_hybgl_canvas_not_empty = GF_TRUE;
 
 	memset(&a_tr_state, 0, sizeof(GF_TraverseState));
 	a_tr_state.color_mat.identity = 1;
@@ -363,7 +364,7 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 		GF_Window src_wnd, dst_wnd;
 
 		if (!BackColor && !visual->offscreen) {
-			if ( !(visual->compositor->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+			if ( !(visual->compositor->init_flags & GF_VOUT_WINDOW_TRANSPARENT)) {
 				BackColor = visual->compositor->back_color;
 			}
 		}

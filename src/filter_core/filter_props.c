@@ -1378,7 +1378,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	"- Dx,Dy,Dw,Dh: Position and Size of the input video in the reconstructed output, expressed in the output referential given by `SRDRef`", GF_PROP_UINT_LIST},
 
 	{ GF_PROP_PID_ALPHA, "Alpha", "Video in this PID is an alpha map", GF_PROP_BOOL},
-	{ GF_PROP_PID_MIRROR, "Mirror", "Mirror mode (0: no mirror, 1: along Y-axis, 2: along X-axis)", GF_PROP_UINT},
+	{ GF_PROP_PID_MIRROR, "Mirror", "Mirror mode (as bit mask with flags 0: no mirror, 1: along Y-axis, 2: along X-axis)", GF_PROP_UINT},
 	{ GF_PROP_PID_ROTATE, "Rotate", "Video rotation as value*90 degree anti-clockwise", GF_PROP_UINT},
 	{ GF_PROP_PID_CLAP_W, "ClapW", "Width of clean aperture in luma pixels", GF_PROP_FRACTION},
 	{ GF_PROP_PID_CLAP_H, "ClapH", "Height of clean aperture in luma pixels", GF_PROP_FRACTION},
@@ -1529,7 +1529,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 
 	{ GF_PROP_PCK_INIT, "InitSeg", "Set to true if packet is a complete DASH init segment file", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
 
-	{ GF_PROP_PID_RAWGRAB, "RawGrab", "PID is a raw media grabber (webcam, microphone, etc...)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_RAWGRAB, "RawGrab", "PID is a raw media grabber (webcam, microphone, etc...). Value 2 is used for front camera", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_KEEP_AFTER_EOS, "KeepAfterEOS", "PID must be kept alive after EOS (LASeR and BIFS)", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_COVER_ART, "CoverArt", "PID cover art image data. If associated data is NULL, the data is carried in the PID", GF_PROP_DATA, GF_PROP_FLAG_GSF_REM},
 

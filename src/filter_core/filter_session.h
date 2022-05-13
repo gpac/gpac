@@ -29,7 +29,6 @@
 #include <gpac/list.h>
 #include <gpac/thread.h>
 #include <gpac/filters.h>
-#include <gpac/user.h>
 
 #ifdef GPAC_HAS_QJS
 #include "../scenegraph/qjs_common.h"
@@ -283,7 +282,8 @@ struct __gf_fs_task
 	//decrementing the counter
 	Bool notified;
 	Bool requeue_request;
-	Bool can_swap;
+	//if set, task can be pushed back in filter task list. If set to 2, filter is kept for scheduling event if mast task
+	u32 can_swap;
 	Bool blocking;
 	Bool force_main;
 
@@ -312,7 +312,8 @@ typedef struct __gf_fs_thread
 	GF_Thread *th;
 	struct __gf_filter_session *fsess;
 	u32 th_id;
-	
+	u32 nb_filters_pinned;
+
 	Bool has_seen_eot; //set when no more tasks in global queue
 
 	u64 nb_tasks;
@@ -583,7 +584,7 @@ struct __gf_filter
 	volatile Bool scheduled_for_next_task;
 	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
-	u32 process_th_id;
+	u32 process_th_id, restrict_th_idx;
 	//user data for the filter implementation
 	void *filter_udta;
 
@@ -834,6 +835,8 @@ void gf_filter_process_inline(GF_Filter *filter);
 void gf_filter_pid_retry_caps_negotiate(GF_FilterPid *src_pid, GF_FilterPid *pid, GF_Filter *dst_filter);
 
 void gf_filter_reset_pending_packets(GF_Filter *filter);
+
+void gf_filter_instance_detach_pid(GF_FilterPidInst *pidi);
 
 typedef struct
 {

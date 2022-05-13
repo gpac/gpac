@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -213,6 +213,8 @@ typedef enum {
 	GF_EVENT_VIDEO_SETUP,
 	//set current GL context for the calling thread
 	GF_EVENT_SET_GL,
+	//set display orientation - value is given by \ref GF_EventSize
+	GF_EVENT_SET_ORIENTATION,
 	/*queries the list of system colors - only exchanged between compositor and video output*/
 	GF_EVENT_SYS_COLORS,
 
@@ -221,15 +223,15 @@ typedef enum {
 	/*queries for text to be copied - from video output to compositor only*/
 	GF_EVENT_COPY_TEXT,
 
-	/*terminal events*/
+	/*compositor events*/
 	GF_EVENT_CONNECT,	/*signal URL is connected*/
 	GF_EVENT_DURATION,	/*signal duration of presentation*/
 	GF_EVENT_EOS,	/*signal End of scene playback*/
 	GF_EVENT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVENT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
 	GF_EVENT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/
-	GF_EVENT_MESSAGE, /*message from the MPEG-4 terminal*/
-	GF_EVENT_PROGRESS, /*progress message from the MPEG-4 terminal*/
+	GF_EVENT_MESSAGE, /*message from the compositor*/
+	GF_EVENT_PROGRESS, /*progress message from the compositor*/
 	GF_EVENT_VIEWPOINTS,	/*indicates viewpoint list has changed - no struct associated*/
 	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
@@ -254,8 +256,10 @@ typedef enum {
 	GF_EVENT_MAIN_ADDON_STATE,
 
 	GF_EVENT_ADDON_DETECTED,
+	GF_EVENT_CODEC_SLOW,
 
 	GF_EVENT_SENSOR_ORIENTATION,
+	GF_EVENT_SENSOR_GPS,
 	GF_EVENT_SENSOR_REQUEST,
 } GF_EventType;
 
@@ -478,7 +482,7 @@ typedef enum {
 } GF_KeyCode;
 
 
-/*! key modifiers state - set by terminal (not set by video driver)*/
+/*! key modifiers state*/
 typedef enum
 {
 	GF_KEY_MOD_SHIFT = (1),

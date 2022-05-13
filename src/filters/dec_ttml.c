@@ -182,7 +182,7 @@ static GF_Err ttmldec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	ctx->delay = p ? p->value.longsint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	ctx->timescale = p ? p->value.longsint : 1000;
+	ctx->timescale = p ? p->value.uint : 1000;
 
 	return GF_OK;
 }
@@ -272,7 +272,7 @@ JSContext *ttmldec_get_js_context(GF_TTMLDec *ctx)
 	if (ctx->update_args) {
 		JSValue global = JS_GetGlobalObject(c);
 
-		u32 fs = MAX(ctx->fsize, ctx->fontSize);
+		u32 fs = (u32) MAX(ctx->fsize, ctx->fontSize);
 		u32 def_font_size = ctx->scene->compositor->subfs;
 		if (!def_font_size) {
 			if (ctx->vp_h > 2000) def_font_size = 80;
@@ -349,7 +349,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	delay += ctx->delay;
 
 	if (delay>=0) cts += delay;
-	else if (cts > -delay) cts -= -delay;
+	else if (cts > (u64) -delay) cts -= -delay;
 	else cts = 0;
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);

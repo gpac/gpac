@@ -67,7 +67,7 @@ int AMediaCodec_releaseOutputBuffer(AMediaCodec*, size_t idx, int render);
 int AMediaFormat_delete(AMediaFormat *);
 AMediaFormat *AMediaCodec_getOutputFormat(AMediaCodec *);
 int AMediaCodec_delete(AMediaCodec *);
-int ANativeWindow_release(window);
+void ANativeWindow_release(ANativeWindow *);
 
 #define AMEDIA_OK	0
 #define AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED	1
@@ -106,6 +106,8 @@ const char* AMEDIAFORMAT_KEY_STRIDE = "stride";
 #include <media/NdkMediaExtractor.h>
 #include <media/NdkMediaFormat.h>
 #include <jni.h>
+
+void ANativeWindow_release(ANativeWindow *);
 
 #endif
 

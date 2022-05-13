@@ -34,7 +34,7 @@
 #include <jni.h>
 
 #include "dec_mediacodec.h"
-#define RANDOM_JAVA_APP_CLASS "com/gpac/Osmo4/GPACInstance"
+
 #define ALL_CODECS 1
 
 static jclass cSurfaceTexture = NULL;
@@ -92,6 +92,8 @@ cache_calassloader_failed:
 	return ret;
 }
 
+#ifndef GPAC_STATIC_MODULES
+
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	JNIEnv* env = NULL;
@@ -116,6 +118,15 @@ JavaVM* GetJavaVM()
 	return javaVM;
 }
 
+#else
+
+//if static modules, these are defined in main wrapper
+JavaVM* GetJavaVM();
+JNIEnv* GetEnv();
+
+#endif
+
+
 u32 mcdec_exit_callback(void * param) {
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[MCDec] Detach decoder thread\n"));
@@ -123,7 +134,7 @@ u32 mcdec_exit_callback(void * param) {
 	return GF_OK;
 }
 
-GF_Err mcdec_create_surface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex)
+GF_Err mcdec_create_surface(GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, GF_MCDecSurfaceTexture * surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jobject otmp= NULL;
@@ -320,6 +331,7 @@ GF_Err mcdec_update_surface(GF_MCDecSurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
+	//we must check this, as the calling thread is not always the decoder thread
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
@@ -344,6 +356,7 @@ GF_Err mcdec_get_transform_matrix(GF_Matrix * mx, GF_MCDecSurfaceTexture surface
 	jfloat *body;
 	GF_Err ret = GF_BAD_PARAM;
 	
+	//we must check this, as the calling thread is not always the decoder thread
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
 		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
@@ -402,7 +415,11 @@ GF_Err mcdec_delete_surface(GF_MCDecSurfaceTexture  surfaceTex)
 	cMediaFormat = NULL;
 	(*env)->DeleteGlobalRef(env, surfaceTex.oSurfaceTex);
 	surfaceTex.oSurfaceTex = NULL;
-	
+
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->DetachCurrentThread(GetJavaVM() );
+	}
+
 	return GF_OK;
 }
 

@@ -161,7 +161,7 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 {
 	GF_FilterSession *fs = (GF_FilterSession *)ptr;
 	if (evt->type==GF_EVENT_QUIT) {
-		gf_fs_abort(fs, GF_FS_FLUSH_FAST);
+		gf_fs_abort(fs, (evt->message.error) ? GF_FS_FLUSH_NONE : GF_FS_FLUSH_FAST);
 	}
 	if (evt->type==GF_EVENT_MESSAGE) {
 		if (evt->message.error) {
@@ -1565,6 +1565,20 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		}
 		current_filter = task->filter;
 
+		if (current_filter && current_filter->restrict_th_idx && (thid != current_filter->restrict_th_idx)) {
+			//reschedule task to secondary list
+			if (!task->notified) {
+				task->notified = GF_TRUE;
+				safe_int_inc(&fsess->tasks_pending);
+			}
+			gf_fq_add(fsess->tasks, task);
+			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+			current_filter = NULL;
+			continue;
+		}
+
+		assert(!current_filter || !current_filter->restrict_th_idx || (thid == current_filter->restrict_th_idx));
+
 		//this is a crude way of scheduling the next task, we should
 		//1- have a way to make sure we will not repost after a time-consuming task
 		//2- have a way to wait for the given amount of time rather than just do a sema_wait/notify in loop
@@ -1794,7 +1808,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		if (task->filter)
 			task->filter->last_schedule_task_time = task_time;
 
-		task->can_swap = GF_FALSE;
+		task->can_swap = 0;
 		task->requeue_request = GF_FALSE;
 		task->run_task(task);
 		requeue = task->requeue_request;
@@ -1811,13 +1825,24 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
+			Bool last_task = GF_FALSE;
 			current_filter->nb_tasks_done++;
 			current_filter->time_process += task_time;
 			consecutive_filter_tasks++;
 
 			gf_mx_p(current_filter->tasks_mx);
+			if (gf_fq_count(current_filter->tasks)==1) {
+				//if task is set to immediate reschedule, don't consider this is the last task
+				//and check consecutive_filter_tasks - this will keep the active filter running
+				//when the last task is a process task and the filter is not blocking
+				//FIXME: commented out as this breaks ssome tests, needs further checking
+				//if (task->can_swap!=2)
+				{
+					last_task = GF_TRUE;
+				}
+			}
 			//if last task
-			if ( (gf_fq_count(current_filter->tasks)==1)
+			if ( last_task
 				//if requeue request and stream reset pending (we must exit the filter task loop for the reset task to pe processed)
 				|| (requeue && current_filter->stream_reset_pending)
 				//or requeue request and pid swap pending (we must exit the filter task loop for the swap task to pe processed)
@@ -1926,6 +1951,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//main thread
 				if (task->filter && (task->filter->freg->flags & GF_FS_REG_MAIN_THREAD)) {
 					gf_fq_add(fsess->main_thread_tasks, task);
+
+					//FIXME, we sometimes miss a sema notfiy resulting in secondary tasks being locked
+					//until we find the cause, notify secondary sema if non-main-thread tasks are scheduled and we are the only task in main
+					if (use_main_sema && (thid==0) && fsess->threads && (gf_fq_count(fsess->main_thread_tasks)==1) && gf_fq_count(fsess->tasks)) {
+						gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+					}
 				} else {
 					gf_fq_add(fsess->tasks, task);
 				}
@@ -2855,6 +2886,8 @@ static GF_Filter *locate_alias_sink(GF_Filter *filter, const char *url, const ch
 	return NULL;
 }
 
+Bool filter_solve_gdocs(const char *url, char szPath[GF_MAX_PATH]);
+
 GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter, Bool for_source, Bool no_args_inherit, Bool *probe_only)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
@@ -2897,7 +2930,13 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 	if (filter) {
 		sURL = (char *) url;
 	} else {
+		char szSolvedPath[GF_MAX_PATH];
 		Bool is_local;
+
+		if (!strncmp(url, "$GDOCS", 6)) {
+			if (filter_solve_gdocs(url, szSolvedPath))
+				url = szSolvedPath;
+		}
 		/*used by GUIs scripts to skip URL concatenation*/
 		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 		/*opera-style localhost URLs*/
@@ -3639,6 +3678,7 @@ static void do_fs_user_task(GF_FSTask *task, Bool free_log_name)
 			gf_free((char *) task->log_name);
 		task->requeue_request = GF_FALSE;
 	} else {
+		assert(task->requeue_request);
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
 	}
 }
@@ -3652,8 +3692,7 @@ static void gf_fs_user_task_free_log(GF_FSTask *task)
 }
 
 
-GF_EXPORT
-GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
+static GF_Err gf_fs_post_user_task_internal(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name, Bool force_main)
 {
 	GF_UserTask *utask;
 	char *_log_name;
@@ -3665,8 +3704,20 @@ GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_Fi
 	utask->task_execute = task_execute;
 	//dup mem for user task
 	_log_name = gf_strdup(log_name ? log_name : "user_task");
-	gf_fs_post_task_ex(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask, GF_FALSE, fsess->force_main_thread_tasks, GF_FALSE);
+	gf_fs_post_task_ex(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask, GF_FALSE, force_main, GF_FALSE);
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_fs_post_user_task(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
+{
+	return gf_fs_post_user_task_internal(fsess, task_execute, udta_callback, log_name, fsess->force_main_thread_tasks);
+}
+
+GF_EXPORT
+GF_Err gf_fs_post_user_task_main(GF_FilterSession *fsess, Bool (*task_execute) (GF_FilterSession *fsess, void *callback, u32 *reschedule_ms), void *udta_callback, const char *log_name)
+{
+	return gf_fs_post_user_task_internal(fsess, task_execute, udta_callback, log_name, GF_TRUE);
 }
 
 GF_EXPORT
@@ -3943,10 +3994,10 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	session->gl_driver->evt_cbk_hdl = session;
 
 	os_disp_handler = NULL;
-	sOpt = gf_opts_get_key("Temp", "OSDisp");
+	sOpt = gf_opts_get_key("temp", "window-display");
 	if (sOpt) sscanf(sOpt, "%p", &os_disp_handler);
 
-	e = session->gl_driver->Setup(session->gl_driver, NULL, os_disp_handler, GF_TERM_INIT_HIDE);
+	e = session->gl_driver->Setup(session->gl_driver, NULL, os_disp_handler, GF_VOUT_INIT_HIDE);
 	if (e!=GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Failed to setup Video Driver %s!\n", session->gl_driver->module_name));
 		gf_modules_close_interface((GF_BaseInterface *)session->gl_driver);

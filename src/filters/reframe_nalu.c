@@ -410,7 +410,7 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
-static u32 naludmx_next_start_code(GF_BitStream *bs, u64 offset, u64 fsize, u32 *sc_size)
+static u64 naludmx_next_start_code(GF_BitStream *bs, u64 offset, u64 fsize, u32 *sc_size)
 {
 	u32 pos=0, nb_zeros=0;
 	while (offset+pos<fsize) {
@@ -681,7 +681,7 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 			break;
 	}
 	if (probe_size)
-		probe_size = gf_bs_get_position(bs);
+		probe_size = (u32) gf_bs_get_position(bs);
 
 	gf_bs_del(bs);
 	gf_fclose(stream);

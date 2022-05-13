@@ -794,7 +794,6 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 
 	GF_ModuleManager *pm = (GF_ModuleManager *) cbck;
 
-	if (strstr(item_name, "nposmozilla")) return 0;
 	if (strncmp(item_name, "gm_", 3)) return 0;
 	if (gf_module_is_loaded(pm, item_name) ) return 0;
 

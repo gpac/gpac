@@ -571,13 +571,13 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 			s32 early = flush_all ? 0 : gf_clock_diff(priv->scene->root_od->ck, stream_time, au_time);
 			if (early>0) {
-				if (!min_next_time_ms || (min_next_time_ms > early))
+				if (!min_next_time_ms || (min_next_time_ms > (u32) early))
 					min_next_time_ms = early;
 
 				updates_pending++;
 
 				u64 cts = gf_timestamp_rescale(au->timing, sc->timeScale, 1000);
-				gf_sc_sys_frame_pending(priv->scene->compositor, cts, stream_time, filter);
+				gf_sc_sys_frame_pending(priv->scene->compositor, (u32) cts, stream_time, filter);
 				break;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[CtxLoad] %s applying AU time %d\n", priv->file_name, au_time ));

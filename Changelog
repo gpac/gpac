@@ -15,6 +15,12 @@
 - UTC-based range extraction in reframer
 - Thumbnail generator filter
 
+## Misc
+- Removed GF_Terminal API
+- Removed MP4Client, merged old behaviour in gpac -mp4c
+- Removed osmo4ios, direct compilation of gpac is now used on iOS
+- Removed Android Osmo4 and MP4Box, replaced by GPAC for Android which can run GUI as well as MP4Box and gpac command lines
+
 
 # 22/02/2022: GPAC 2.0
 

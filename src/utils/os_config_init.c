@@ -49,7 +49,7 @@
 #include <mach-o/dyld.h> /*for _NSGetExecutablePath */
 
 #ifdef GPAC_CONFIG_IOS
-#define TEST_MODULE     "osmo4ios"
+#define TEST_MODULE     "gpac4ios"
 #else
 #define TEST_MODULE		"gm_"
 #endif
@@ -59,10 +59,7 @@
 #ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
-#ifdef GPAC_CONFIG_ANDROID
-#define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
-#define DEFAULT_ANDROID_PATH_CFG	"/sdcard/osmo"
-#endif
+
 #define CFG_FILE_NAME	"GPAC.cfg"
 
 #if defined(GPAC_CONFIG_WIN32)
@@ -261,18 +258,44 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #endif
 }
 
-/*FIXME - the paths defined here MUST be coherent with the paths defined in applications/osmo4_android/src/com/gpac/Osmo4/GpacConfig.java'*/
 #elif defined(GPAC_CONFIG_ANDROID)
+static char android_app_data[512];
+static char android_external_storage[512];
+
+/*
+	Called by GPAC JNI wrappers. If not set, default to app_data=/data/data/io.gpac.gpac and ext_storage=/sdcard
+*/
+GF_EXPORT
+void gf_sys_set_android_paths(const char *app_data, const char *ext_storage)
+{
+	if (app_data && (strlen(app_data)<512)) {
+		strcpy(android_app_data, app_data);
+	}
+	if (ext_storage && (strlen(ext_storage)<512)) {
+		strcpy(android_external_storage, ext_storage);
+	}
+}
+
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	if (!file_path) return 0;
 
 	if (path_type==GF_PATH_APP) {
-		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
+		strcpy(file_path, android_app_data[0] ? android_app_data : "/data/data/io.gpac.gpac");
 		return 1;
 	} else if (path_type==GF_PATH_CFG) {
-		strcpy(file_path, DEFAULT_ANDROID_PATH_CFG);
+		const char *res = android_external_storage[0] ? android_external_storage : getenv("EXTERNAL_STORAGE");
+		if (!res) res = "/sdcard";
+		strcpy(file_path, res);
+		strcat(file_path, "/GPAC");
+		//GPAC folder exists in external storage, use profile from this location
+		if (gf_dir_exists(file_path)) {
+			return 1;
+		}
+		//otherwise use profile in app data store
+		strcpy(file_path, android_app_data[0] ? android_app_data : "/data/data/io.gpac.gpac");
+		strcat(file_path, "/GPAC");
 		return 1;
 	} else if (path_type==GF_PATH_SHARE) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
@@ -296,8 +319,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #define SYMBIAN_GPAC_GUI_DIR	"\\private\\F01F9075\\gui"
 #define SYMBIAN_GPAC_MODULES_DIR	"\\sys\\bin"
 #else
-#define SYMBIAN_GPAC_CFG_DIR	"\\system\\apps\\Osmo4"
-#define SYMBIAN_GPAC_GUI_DIR	"\\system\\apps\\Osmo4\\gui"
+#define SYMBIAN_GPAC_CFG_DIR	"\\system\\apps\\GPAC"
+#define SYMBIAN_GPAC_GUI_DIR	"\\system\\apps\\GPAC\\gui"
 #define SYMBIAN_GPAC_MODULES_DIR	GPAC_CFG_DIR
 #endif
 
@@ -591,8 +614,9 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, const char *file_pat
 	sep = strstr(res, ".gpac");
 	assert(sep);
 	sep[0] = 0;
-	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
-	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
+	gf_cfg_set_key(cfg, "core", "docs-dir", res);
+	if (!gf_cfg_get_key(cfg, "core", "last-dir"))
+		gf_cfg_set_key(cfg, "core", "last-dir", res);
 
 	strcat(res, "cache/");
 	cache_dir = res;
@@ -696,13 +720,27 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	if (get_default_install_path(szPath, GF_PATH_APP)) {
 		strcat(szPath, "/cache");
 		gf_cfg_set_key(cfg, "core", "cache", szPath);
+		strcat(szPath, "/.nomedia");
+		//create .nomedia in cache and in app dir
+		if (!gf_file_exists(szPath)) {
+			FILE *f = gf_fopen(szPath, "w");
+			if (f) gf_fclose(f);
+		}
+		get_default_install_path(szPath, GF_PATH_APP);
+		strcat(szPath, "/.nomedia");
+		if (!gf_file_exists(szPath)) {
+			FILE *f = gf_fopen(szPath, "w");
+			if (f) gf_fclose(f);
+		}
 	}
 #else
 	/*get default temporary directoy */
 	gf_cfg_set_key(cfg, "core", "cache", gf_get_default_cache_directory_ex(GF_FALSE));
 #endif
 
+#if defined(WIN32)
 	gf_cfg_set_key(cfg, "core", "ds-disable-notif", "no");
+#endif
 
 	/*Setup font engine to FreeType by default, and locate TrueType font directory on the system*/
 	gf_cfg_set_key(cfg, "core", "font-reader", "FreeType Font Reader");
@@ -724,20 +762,30 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 	gf_cfg_set_key(cfg, "core", "video-output", "Android Video Output");
 	gf_cfg_set_key(cfg, "core", "audio-output", "Android Audio Output");
 #else
-	gf_cfg_set_key(cfg, "core", "video-output", "X11 Video Output");
+	//use SDL by default, will fallback to X11 if not found (our X11 wrapper is old and does not have all features of the SDL one)
+	gf_cfg_set_key(cfg, "core", "video-output", "SDL Video Output");
 	gf_cfg_set_key(cfg, "core", "audio-output", "SDL Audio Output");
 #endif
 
+
+#if !defined(GPAC_CONFIG_IOS) && !defined(GPAC_CONFIG_ANDROID)
 	gf_cfg_set_key(cfg, "core", "switch-vres", "no");
 	gf_cfg_set_key(cfg, "core", "hwvmem", "auto");
+#endif
 
+#ifdef GPAC_CONFIG_ANDROID
+	const char *opt = opt = android_external_storage[0] ? android_external_storage : getenv("EXTERNAL_STORAGE");
+	if (!opt) opt = "/sdcard";
+	gf_cfg_set_key(cfg, "core", "docs-dir", opt);
+	gf_cfg_set_key(cfg, "core", "last-dir", opt);
+#endif
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_SHARE) ) {
 		char gui_path[GF_MAX_PATH+100];
 		sprintf(gui_path, "%s%cgui%cgui.bt", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		if (gf_file_exists(gui_path)) {
-			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+			gf_cfg_set_key(cfg, "core", "startup-file", gui_path);
 		}
 
 		/*shaders are at the same location*/
@@ -793,7 +841,7 @@ static void check_modules_dir(GF_Config *cfg)
 		char *sep;
 		char shader_path[GF_MAX_PATH];
 		strcat(path, "/gui/gui.bt");
-		gf_cfg_set_key(cfg, "General", "StartupFile", path);
+		gf_cfg_set_key(cfg, "core", "startup-file", path);
 		//get rid of "/gui/gui.bt"
 		sep = strrchr(path, '/');
 		sep[0] = 0;
@@ -813,7 +861,7 @@ static void check_modules_dir(GF_Config *cfg)
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
 		opt = gf_cfg_get_key(cfg, "core", "module-dir");
-		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
+		//for OSX, we can have an install in /usr/... and an install in /Applications/GPAC.app - always change
 #if defined(__DARWIN__) || defined(__APPLE__)
 		if (!opt || strcmp(opt, path))
 			gf_cfg_set_key(cfg, "core", "module-dir", path);
@@ -853,14 +901,14 @@ static void check_modules_dir(GF_Config *cfg)
 	}
 
 	/*if startup file was disabled, do not attempt to correct it*/
-	if (gf_cfg_get_key(cfg, "General", "StartupFile")==NULL) return;
+	if (gf_cfg_get_key(cfg, "core", "startup-file")==NULL) return;
 
 	if ( get_default_install_path(path, GF_PATH_SHARE) ) {
-		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
+		opt = gf_cfg_get_key(cfg, "core", "startup-file");
 		if (strstr(opt, "gui.bt") && strcmp(opt, path) && strstr(path, ".app") ) {
 #if defined(__DARWIN__) || defined(__APPLE__)
 			strcat(path, "/gui/gui.bt");
-			gf_cfg_set_key(cfg, "General", "StartupFile", path);
+			gf_cfg_set_key(cfg, "core", "startup-file", path);
 #endif
 		}
 	}
@@ -894,7 +942,6 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (prof_opt) {
 			prof_len -= (u32) strlen(prof_opt);
 			if (strstr(prof_opt, "reload")) force_new_cfg = GF_TRUE;
-
 			prof_opt[0] = 0;
 		}
 	}
@@ -936,13 +983,20 @@ static GF_Config *gf_cfg_init(const char *profile)
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	//config file not compatible with old arch, check it:
 	if (cfg) {
+		const char *key;
 		u32 nb_old_sec = gf_cfg_get_key_count(cfg, "Compositor");
 		nb_old_sec += gf_cfg_get_key_count(cfg, "MimeTypes");
 		nb_old_sec += gf_cfg_get_key_count(cfg, "Video");
 		nb_old_sec += gf_cfg_get_key_count(cfg, "Audio");
 		nb_old_sec += gf_cfg_get_key_count(cfg, "Systems");
+		nb_old_sec += gf_cfg_get_key_count(cfg, "General");
 		if (! gf_cfg_get_key_count(cfg, "core"))
 			nb_old_sec += 1;
+
+		//check GUI is valid, if not recreate a config
+		key = gf_cfg_get_key(cfg, "core", "startup-file");
+		if (key && !gf_file_exists(key))
+			force_new_cfg = GF_TRUE;
 
 		if (nb_old_sec || force_new_cfg) {
 			if (nb_old_sec && (!profile || strcmp(profile, "0"))) {
@@ -950,6 +1004,19 @@ static GF_Config *gf_cfg_init(const char *profile)
 			}
 			gf_cfg_del(cfg);
 			cfg = create_default_config(szPath, profile);
+		} else {
+			//check fonts are valid, if not reload fonts
+			Bool rescan_fonts = GF_FALSE;
+			key = gf_cfg_get_key_name(cfg, "FontCache", 0);
+			if (!key)
+				rescan_fonts = GF_TRUE;
+			else {
+				key = gf_cfg_get_key(cfg, "FontCache", key);
+				if (key && !gf_file_exists(key))
+					rescan_fonts = GF_TRUE;
+			}
+			if (rescan_fonts)
+				gf_opts_set_key("core", "rescan-fonts", "yes");
 		}
 	}
 	//no config file found
@@ -1126,6 +1193,12 @@ GF_Err gf_opts_discard_changes()
 	return gf_cfg_discard_changes(gpac_global_config);
 }
 
+GF_EXPORT
+GF_Err gf_opts_save()
+{
+	return gf_cfg_save(gpac_global_config);
+}
+
 #include <gpac/main.h>
 
 GF_GPACArg GPAC_Args[] = {
@@ -1210,6 +1283,11 @@ GF_GPACArg GPAC_Args[] = {
  GF_DEF_ARG("bs-cache-size", NULL, "cache size for bitstream read and write from file (0 disable cache, slower IOs)", "512", NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("no-check", NULL, "disable compliance tests for inputs (ISOBMFF for now). This will likely result in random crashes", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
  GF_DEF_ARG("unhandled-rejection", NULL, "dump unhandled promise rejections", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("startup-file", NULL, "startup file of compositor in GUI mode", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("docs-dir", NULL, "default documents directoty (for GUI on iOS and Android)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+ GF_DEF_ARG("last-dir", NULL, "last working directory (for GUI)", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_CORE),
+
+
  GF_DEF_ARG("cache", NULL, "cache directory location", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-on", NULL, "enable HTTP proxy", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
  GF_DEF_ARG("proxy-name", NULL, "set HTTP proxy address", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_HTTP),
@@ -1278,9 +1356,11 @@ GF_DEF_ARG("full-link", NULL, "throw error if any PID in the filter graph cannot
  GF_DEF_ARG("glfbo-txid", NULL, "set output texture ID when using `glfbo` output. The OpenGL context shall be initialized and gf_term_process shall be called with the OpenGL context active", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
  GF_DEF_ARG("video-output", NULL, "indicate the name of the video output module to use (see `gpac -h modules`)."
 	" The reserved name `glfbo` is used in player mode to draw in the OpenGL texture identified by [-glfbo-txid](). "
-	" In this mode, the application is responsible for sending event to the terminal"
+	" In this mode, the application is responsible for sending event to the compositor"
  , NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
- GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("dfb-sys", NULL, "system DirectFB (x11, sdl, vnc, fbdev, osx ordevmem)", "x11", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("dfb-flip", NULL, "vsync mode for DirectFB (waitsync, wait, sync or swap)", "waitsync", NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_VIDEO),
+ GF_DEF_ARG("audio-output", NULL, "indicate the name of the audio output module to use", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
  GF_DEF_ARG("alsa-devname", NULL, "set ALSA dev name", NULL, NULL, GF_ARG_STRING, GF_ARG_HINT_ADVANCED|GF_ARG_SUBSYS_AUDIO),
  GF_DEF_ARG("force-alsarate", NULL, "force ALSA and OSS output sample rate", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
  GF_DEF_ARG("ds-disable-notif", NULL, "disable DirectSound audio buffer notifications when supported", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT|GF_ARG_SUBSYS_AUDIO),
@@ -1753,7 +1833,11 @@ static u32 help_buf_size=0;
 
 void gf_sys_cleanup_help()
 {
-	if (help_buf) gf_free(help_buf);
+	if (help_buf) {
+		gf_free(help_buf);
+		help_buf = NULL;
+		help_buf_size = 0;
+	}
 }
 
 
@@ -1868,6 +1952,15 @@ void gf_sys_format_help(FILE *helpout, u32 flags, const char *fmt, ...)
 		check_char_balanced(help_buf, '\'');
 	}
 #endif
+
+/*#ifdef GPAC_CONFIG_ANDROID
+	//on android use logs for help print
+	if (!gen_doc) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s", help_buf));
+		return;
+	}
+#endif
+*/
 
 	line = help_buf;
 	while (line[0]) {

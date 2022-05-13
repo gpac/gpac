@@ -24,7 +24,6 @@
 */
 
 #include "sdl_out.h"
-#include <gpac/user.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -486,6 +485,10 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
 		if (ctx->fullscreen) flags |= SDL_FULLSCREEN_FLAGS;
+#ifdef GPAC_CONFIG_IOS
+		flags |= SDL_FULLSCREEN_FLAGS | SDL_WINDOW_ALLOW_HIGHDPI;
+#endif
+
 #else
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
@@ -527,7 +530,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 
-#if SDL_VERSION_ATLEAST(2,0,0) && !defined(GPAC_CONFIG_IOS)
+#if !defined(GPAC_CONFIG_IOS)
 			SDLVid_SetIcon(ctx);
 #endif
 
@@ -557,6 +560,27 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			hw_reset = GF_TRUE;
 		}
+
+		if (flags & SDL_WINDOW_ALLOW_HIGHDPI) {
+			int w, h;
+			SDL_GL_GetDrawableSize(ctx->screen, &w, &h);
+#if SDL_VERSION_ATLEAST(2,0,9)
+			int _h;
+			switch (SDL_GetDisplayOrientation(0)) {
+			case SDL_ORIENTATION_LANDSCAPE:
+			case SDL_ORIENTATION_LANDSCAPE_FLIPPED:
+				break;
+			default:
+				_h = h;
+				h = w;
+				w = _h;
+				break;
+			}
+#endif
+			if ((u32) w > dr->max_screen_width) dr->max_screen_width = w;
+			if ((u32) h > dr->max_screen_height) dr->max_screen_height = h;
+		}
+
 
 		if (!ctx->disable_vsync)
 			ctx->disable_vsync = gf_opts_get_bool("core", "disable-vsync");
@@ -809,14 +833,13 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 #include <gpac/utf.h>
 #endif
 
-
 Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
 	SDL_Event sdl_evt;
 	GF_Event gpac_evt;
 
 #ifdef GPAC_CONFIG_IOS
-	while (SDL_WaitEventTimeout(&sdl_evt, 0)) {
+	while (SDL_WaitEventTimeout(&sdl_evt, 1)) {
 #else
 	while (SDL_PollEvent(&sdl_evt)) {
 #endif
@@ -827,8 +850,33 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			switch (sdl_evt.window.event) {
 			case SDL_WINDOWEVENT_SIZE_CHANGED:
 				gpac_evt.type = GF_EVENT_SIZE;
+#if SDL_VERSION_ATLEAST(2,0,10) && GPAC_CONFIG_IOS
+				{
+					int w, h;
+					SDL_GL_GetDrawableSize(ctx->screen, &w, &h);
+					gpac_evt.size.width = w;
+					gpac_evt.size.height = h;
+
+					ctx->high_dpi_w = w;
+					ctx->low_dpi_w = sdl_evt.window.data1;
+					ctx->high_dpi_h = h;
+					ctx->low_dpi_h = sdl_evt.window.data2;
+				}
+#else
 				gpac_evt.size.width = sdl_evt.window.data1;
 				gpac_evt.size.height = sdl_evt.window.data2;
+#endif
+
+
+#if SDL_VERSION_ATLEAST(2,0,9)
+				switch (SDL_GetDisplayOrientation(0)) {
+				case SDL_ORIENTATION_UNKNOWN: gpac_evt.size.orientation = GF_DISPLAY_MODE_UNKNOWN; break;
+				case SDL_ORIENTATION_LANDSCAPE: gpac_evt.size.orientation = GF_DISPLAY_MODE_LANDSCAPE; break;
+				case SDL_ORIENTATION_LANDSCAPE_FLIPPED: gpac_evt.size.orientation = GF_DISPLAY_MODE_LANDSCAPE_INV; break;
+				case SDL_ORIENTATION_PORTRAIT: gpac_evt.size.orientation = GF_DISPLAY_MODE_PORTRAIT; break;
+				case SDL_ORIENTATION_PORTRAIT_FLIPPED: gpac_evt.size.orientation = GF_DISPLAY_MODE_PORTRAIT_INV; break;
+				}
+#endif
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
 			case SDL_WINDOWEVENT_EXPOSED:
@@ -951,19 +999,33 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 			break;
 
+		/* rescale mouse event (not multitouch) to highDPI coords - not yet supported in SDL, see https://github.com/libsdl-org/SDL/issues/2999*/
+
 		/*mouse*/
 		case SDL_MOUSEMOTION:
 			ctx->last_mouse_move = SDL_GetTicks();
 			gpac_evt.type = GF_EVENT_MOUSEMOVE;
-			gpac_evt.mouse.x = sdl_evt.motion.x;
-			gpac_evt.mouse.y = sdl_evt.motion.y;
+
+			if (ctx->low_dpi_w && ctx->low_dpi_h) {
+				gpac_evt.mouse.x = (u32) ( (u64) sdl_evt.motion.x * ctx->high_dpi_w / ctx->low_dpi_w);
+				gpac_evt.mouse.y = (u32) ( (u64) sdl_evt.motion.y * ctx->high_dpi_h / ctx->low_dpi_h);
+			} else {
+				gpac_evt.mouse.x = sdl_evt.motion.x;
+				gpac_evt.mouse.y = sdl_evt.motion.y;
+			}
+
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			ctx->last_mouse_move = SDL_GetTicks();
-			gpac_evt.mouse.x = sdl_evt.motion.x;
-			gpac_evt.mouse.y = sdl_evt.motion.y;
+			if (ctx->low_dpi_w && ctx->low_dpi_h) {
+				gpac_evt.mouse.x = (u32) ( (u64) sdl_evt.motion.x * ctx->high_dpi_w / ctx->low_dpi_w);
+				gpac_evt.mouse.y = (u32) ( (u64) sdl_evt.motion.y * ctx->high_dpi_h / ctx->low_dpi_h);
+			} else {
+				gpac_evt.mouse.x = sdl_evt.motion.x;
+				gpac_evt.mouse.y = sdl_evt.motion.y;
+			}
 			gpac_evt.type = (sdl_evt.type==SDL_MOUSEBUTTONUP) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
 			switch (sdl_evt.button.button) {
 			case SDL_BUTTON_LEFT:
@@ -1099,8 +1161,8 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 		show_window = GF_TRUE;
 	}
 
-	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
-	ctx->hidden = (init_flags & GF_TERM_INIT_HIDE) ? GF_TRUE : GF_FALSE;
+	ctx->force_alpha = (init_flags & GF_VOUT_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
+	ctx->hidden = (init_flags & GF_VOUT_INIT_HIDE) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->hidden && show_window) {
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -1690,6 +1752,20 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #endif
 	}
 		return GF_OK;
+
+	case GF_EVENT_SET_ORIENTATION:
+	{
+		switch (evt->size.orientation) {
+		case GF_DISPLAY_MODE_PORTRAIT: SDL_SetHint(SDL_HINT_ORIENTATIONS, "Portrait"); break;
+		case GF_DISPLAY_MODE_PORTRAIT_INV: SDL_SetHint(SDL_HINT_ORIENTATIONS, "PortraitUpsideDown"); break;
+		case GF_DISPLAY_MODE_LANDSCAPE: SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeRight"); break;
+		case GF_DISPLAY_MODE_LANDSCAPE_INV: SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft"); break;
+		case GF_DISPLAY_MODE_UNKNOWN:
+			SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight Portrait PortraitUpsideDown");
+			break;
+		}
+		return GF_OK;
+	}
 	}
 	return GF_OK;
 }

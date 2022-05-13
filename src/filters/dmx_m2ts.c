@@ -632,7 +632,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 				pes->map_utc=0;
 			}
 			if (pes->map_pcr) {
-				Double diff = pck->PTS;
+				Double diff = (Double) pck->PTS;
 				diff -= pes->map_pcr;
 				diff /= 90000;
 				gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_MEDIA_TIME, &PROP_DOUBLE(ctx->media_start_range+diff) );

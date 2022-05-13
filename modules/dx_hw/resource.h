@@ -5,7 +5,7 @@
 #define IDC_HAND_PTR                    103
 #define IDC_COLLIDE                     104
 #define IDI_ICON1                       105
-#define IDI_OSMO_ICON                   105
+#define IDI_GPAC_ICON                   105
 #define IDC_HAND_CLOSE                  148
 #define IDC_HAND_OPEN                   149
 #define IDC_ZOOM_IN                     150

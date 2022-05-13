@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.gpac.gpac"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <uses-feature
+        android:name="lge.hardware.real3d.barrier.landscape"
+        android:required="false" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.gyroscope"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.accelerometer"
+        android:required="false" />
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+
+    <application
+        android:icon="@drawable/icon"
+        android:label="@string/app_name">
+        <uses-library
+            android:name="com.lge.real3d"
+            android:required="false" />
+
+        <activity
+            android:name=".GPAC"
+            android:noHistory="true"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/app_name">
+
+            android:theme="@android:style/Theme.AppCompat">
+            <intent-filter>
+
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+
+            </intent-filter>
+            <intent-filter android:label="Open with GPAC">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data
+                    android:mimeType="audio/*"
+                    android:scheme="http" />
+
+                <data android:mimeType="audio/*" />
+
+                <data
+                    android:mimeType="video/*"
+                    android:scheme="http" />
+
+                <data android:mimeType="video/*" />
+
+                <data
+                    android:mimeType="x-subtitle/*"
+                    android:scheme="http" />
+
+                <data android:mimeType="x-subtitle/*" />
+
+                <data
+                    android:mimeType="application/x-mpegurl"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/x-mpegurl" />
+
+                <data android:scheme="udp" />
+
+                <data android:scheme="rtsp" />
+
+                <data
+                    android:mimeType="application/vnd.apple.mpegurl"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/vnd.apple.mpegurl" />
+
+                <data
+                    android:mimeType="application/x-isomedia"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/x-isomedia" />
+
+                <data
+                    android:mimeType="application/mp4"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/mp4" />
+
+                <data
+                    android:mimeType="application/sdp"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/sdp" />
+
+                <data
+                    android:mimeType="application/x-bt"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/x-bt" />
+
+                <data
+                    android:mimeType="application/x-xmt"
+                    android:scheme="http" />
+
+                <data
+                    android:mimeType="application/dash+xml"
+                    android:scheme="http" />
+
+                <data android:mimeType="application/x-xmt" />
+
+                <data
+                    android:pathPattern="*.mp4"
+                    android:scheme="file"
+                    />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".extra.FileChooserActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/app_name"
+            android:permission="android.permission.WRITE_EXTERNAL_STORAGE">
+            <intent-filter android:priority="1">
+
+                <action android:name="org.openintents.action.PICK_FILE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" />
+
+            </intent-filter>
+        </activity>
+        <activity android:name=".extra.URLAuthenticate"
+            android:label="@string/authName"
+            android:theme="@android:style/Theme.Dialog"
+            android:excludeFromRecents="true"/>
+
+    </application>
+
+</manifest>

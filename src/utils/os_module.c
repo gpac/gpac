@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -208,7 +208,6 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 
 	GF_ModuleManager *pm = (GF_ModuleManager*)cbck;
 
-	if (strstr(item_name, "nposmozilla")) return GF_FALSE;
 	if (strncmp(item_name, "gf_", 3) && strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return GF_FALSE;
 	if (gf_module_is_loaded(pm, item_name) ) return GF_FALSE;
 
