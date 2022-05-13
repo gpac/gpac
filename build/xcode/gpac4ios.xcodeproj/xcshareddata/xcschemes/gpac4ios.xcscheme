@@ -16,7 +16,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "71A19B1912796B5600ACFF58"
                BuildableName = "gpac4ios.app"
-               BlueprintName = "GPAC"
+               BlueprintName = "gpac4ios"
                ReferencedContainer = "container:gpac4ios.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -32,7 +32,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "gpac4ios.app"
-            BlueprintName = "GPAC"
+            BlueprintName = "gpac4ios"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -55,7 +55,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "gpac4ios.app"
-            BlueprintName = "GPAC"
+            BlueprintName = "gpac4ios"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -90,7 +90,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "71A19B1912796B5600ACFF58"
             BuildableName = "gpac4ios.app"
-            BlueprintName = "GPAC"
+            BlueprintName = "gpac4ios"
             ReferencedContainer = "container:gpac4ios.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
