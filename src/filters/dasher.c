@@ -7554,9 +7554,13 @@ void dasher_format_report(GF_Filter *filter, GF_DasherCtx *ctx)
 			if (max_ts<mpdtime)
 				max_ts = mpdtime;
 		}
-		if (pc > (s32) total_pc) total_pc = (u32) pc;
+		//don't use max, do an average
+		total_pc += pc;
 		gf_dynstrcat(&szStatus, szDS, " ");
 	}
+	if (count)
+		total_pc /= count;
+
 	if (total_pc!=10000) {
 		sprintf(szDS, " / MPD %.2fs %d %%", max_ts, total_pc/100);
 		gf_dynstrcat(&szStatus, szDS, NULL);
@@ -7757,13 +7761,18 @@ static GF_Err dasher_process(GF_Filter *filter)
 					is_queue_flush = GF_TRUE;
 				}
 
-				//text streams, insert an empty segment if we are one segment behind last produced segment on other pids
-				//we don't generate if behing this last time in case a packet comes in
-				//
-				//TODO: extend this to send empty segments for other streams (audio, video) in case of signal loss ??
+				/*text streams, insert an empty segment if we are one segment behind last produced segment on other pids
+				- we don't generate if behind this last time in case a next packet comes in
+				- we only insert an empty segment if PID is done (eos) or if we generate for real-time
+
+				We cannot apply this in non real-time before end of stream, as we would end up starting a segment while next packet could be in the past (previous seg)
+
+				TODO: extend this to send empty segments for other streams (audio, video) in case of signal loss ??
+				*/
 				if (!pck
 					&& (ds->stream_type==GF_STREAM_TEXT)
 					&& !ds->muxed_base
+					&& (gf_filter_pid_is_eos(ds->ipid) || (ctx->dmode==GF_MPD_TYPE_DYNAMIC))
 				) {
 					u64 ddur_ms = (1000*ds->dash_dur.num)/ds->dash_dur.den;
 					while (ds->last_min_segment_start_time + ddur_ms < ctx->last_min_segment_start_time) {
@@ -8001,8 +8010,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->segment_template->presentation_time_offset = pto_adj;
 						else if (ds->set->segment_list)
 							ds->set->segment_list->presentation_time_offset = pto_adj;
-						else if (ds->rep->segment_base)
+						else if (ds->rep->segment_base) {
 							ds->rep->segment_base->presentation_time_offset = pto_adj;
+							ds->rep->segment_base->timescale = ds->mpd_timescale;
+						}
 
 						ds->presentation_time_offset = pto;
 					}
