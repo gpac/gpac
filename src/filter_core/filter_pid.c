@@ -27,6 +27,8 @@
 #include <gpac/constants.h>
 #include <gpac/bitstream.h>
 
+static void free_evt(GF_FilterEvent *evt);
+
 static void pcki_del(GF_FilterPacketInstance *pcki)
 {
 	assert(pcki->pck->reference_count);
@@ -682,7 +684,16 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 
 static void task_canceled(GF_FSTask *task)
 {
-
+	if (task->class_type==TASK_TYPE_EVENT) {
+		GF_FilterEvent *evt = task->udta;
+		free_evt(evt);
+	}
+	else if (task->class_type==TASK_TYPE_SETUP) {
+		gf_free(task->udta);
+	}
+	else if (task->class_type==TASK_TYPE_USER) {
+		gf_free(task->udta);
+	}
 }
 
 
@@ -697,6 +708,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	u32 i, count;
 	GF_Err e;
 	Bool new_pid_inst=GF_FALSE;
+	Bool remove_filter=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
 	GF_Filter *alias_orig = NULL;
 
@@ -935,6 +947,9 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 						GF_FEVT_INIT(evt, GF_FEVT_CONNECT_FAIL, pid);
 						gf_filter_pid_send_event_internal(pid, &evt, GF_TRUE);
 					}
+					if (!filter->num_input_pids && !filter->num_output_pids) {
+						remove_filter = GF_TRUE;
+					}
 				}
 			} else if (filter->has_out_caps) {
 				Bool unload_filter = GF_TRUE;
@@ -1085,6 +1100,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				}
 			}
 		}
+		if (remove_filter && !filter->sticky)
+			gf_filter_post_remove(filter);
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid);
@@ -5034,7 +5051,7 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 	assert(filter->freg->configure_pid);
 	safe_int_inc(&filter->session->pid_connect_tasks_pending);
 	safe_int_inc(&filter->in_pid_connection_pending);
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_connect_task, filter, pid, "pid_connect", NULL, GF_TRUE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE);
 }
 
 
@@ -5047,7 +5064,7 @@ void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 	if (filter->session->force_main_thread_tasks)
 		force_main_thread = GF_TRUE;
 
-	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE);
+	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE, TASK_TYPE_NONE);
 }
 
 GF_EXPORT
@@ -7059,7 +7076,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		safe_int_inc(&pid->filter->num_events_queued);
 		
-		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? (GF_FilterPid *) pid_inst : NULL, "downstream_event", an_evt);
+		gf_fs_post_task_class(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, task->pid ? (GF_FilterPid *) pid_inst : NULL, "downstream_event", an_evt, TASK_TYPE_EVENT);
 	}
 	gf_mx_v(f->tasks_mx);
 	if (dispatched_filters) gf_list_del(dispatched_filters);
@@ -7089,7 +7106,7 @@ void gf_filter_pid_send_event_upstream(GF_FSTask *task)
 
 				an_evt = dup_evt(evt);
 				an_evt->base.on_pid = (GF_FilterPid *)pidi;
-				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", an_evt);
+				gf_fs_post_task_class(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", an_evt, TASK_TYPE_EVENT);
 			}
 		}
 	}
@@ -7130,7 +7147,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 
 				up_evt = dup_evt(an_evt);
 				up_evt->base.on_pid = (GF_FilterPid *)pidi;
-				gf_fs_post_task(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", up_evt);
+				gf_fs_post_task_class(pidi->filter->session, gf_filter_pid_send_event_upstream, pidi->filter, NULL, "upstream_event", up_evt, TASK_TYPE_EVENT);
 			}
 		}
 		free_evt(an_evt);
@@ -7164,7 +7181,7 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		an_evt->base.on_pid = evt->base.on_pid->pid;
 		safe_int_inc(&target_pid->pid->filter->num_events_queued);
 	}
-	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", an_evt);
+	gf_fs_post_task_class(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, target_pid, "downstream_event", an_evt, TASK_TYPE_EVENT);
 }
 
 GF_EXPORT
@@ -7212,9 +7229,9 @@ void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt, Bool upstream)
 		safe_int_inc(&evt->base.on_pid->filter->num_events_queued);
 	}
 	if (upstream)
-		gf_fs_post_task(filter->session, gf_filter_pid_send_event_upstream, filter, evt->base.on_pid, "upstream_event", an_evt);
+		gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_upstream, filter, evt->base.on_pid, "upstream_event", an_evt, TASK_TYPE_EVENT);
 	else
-		gf_fs_post_task(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt);
+		gf_fs_post_task_class(filter->session, gf_filter_pid_send_event_downstream, filter, evt->base.on_pid, "downstream_event", an_evt, TASK_TYPE_EVENT);
 }
 
 
