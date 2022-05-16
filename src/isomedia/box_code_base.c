@@ -5906,6 +5906,7 @@ void stts_box_del(GF_Box *s)
 GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
+	Bool logged=GF_FALSE;
 	GF_TimeToSampleBox *ptr = (GF_TimeToSampleBox *)s;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -5935,7 +5936,10 @@ GF_Err stts_box_read(GF_Box *s, GF_BitStream *bs)
 
 		if (!ptr->entries[i].sampleDelta) {
 			if ((i+1<ptr->nb_entries) ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stts entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+				if (!logged) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stts entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+					logged=GF_TRUE;
+				}
 				ptr->entries[i].sampleDelta = 1;
 			} else if (ptr->entries[i].sampleCount>1) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one stts entry at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
