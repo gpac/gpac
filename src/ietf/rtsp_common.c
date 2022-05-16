@@ -58,7 +58,6 @@ GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess)
 
 void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size)
 {
-	u32 i;
 	s32 start;
 	char *buffer;
 	char *cl_str;
@@ -73,23 +72,21 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 
 	//if found add the 2 "\r\n" and parse it
 	*body_start = start + 4;
+	*body_size = 0;
 
 	//get the content length
 	cl_str = strstr(buffer, "Content-Length: ");
 	if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
 
 	if (cl_str) {
-		char val[30];
+		char *sep;
 		cl_str += 16;
-		i = 0;
-		while (cl_str[i] != '\r') {
-			val[i] = cl_str[i];
-			i += 1;
+		sep = strchr(cl_str, '\r');
+		if (sep) {
+			sep[0] = 0;
+			*body_size = atoi(cl_str);
+			sep[0] = '\r';
 		}
-		val[i] = 0;
-		*body_size = atoi(val);
-	} else {
-		*body_size = 0;
 	}
 }
 

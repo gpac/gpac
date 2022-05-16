@@ -398,6 +398,12 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 	//copy the body if any
 	if (!e && rsp->Content_Length) {
+		u32 rsp_size = sess->CurrentSize - sess->CurrentPos;
+		if (rsp_size < rsp->Content_Length) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Invalid content length %u - Response was: \n%s\n", rsp->Content_Length, sess->tcp_buffer+sess->CurrentPos));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		rsp->body = (char *)gf_malloc(sizeof(char) * (rsp->Content_Length));
 		memcpy(rsp->body, sess->tcp_buffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
 	}
