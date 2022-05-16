@@ -1106,8 +1106,8 @@ void load_compositor(GF_Filter *filter)
 		rti_update_time_ms = 500;
 		bench_mode_start = gf_sys_clock();
 	}
-
 }
+
 
 #ifdef GPAC_ENABLE_COVERAGE
 static void mp4c_coverage()
@@ -1196,6 +1196,10 @@ static void mp4c_coverage()
 }
 #endif
 
+#if defined(WIN32) && !defined(_WIN32_WCE)
+static void close_console();
+#endif
+
 void unload_compositor()
 {
 	if (rti_file) update_rti("Disconnected\n");
@@ -1208,8 +1212,7 @@ void unload_compositor()
 	}
 #endif
 
-#ifdef WIN32
-	static void close_console();
+#if defined(WIN32) && !defined(_WIN32_WCE)
 	close_console();
 #endif
 
