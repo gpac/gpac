@@ -12872,8 +12872,11 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
-			data2 = gf_malloc(sizeof(char) * (prop_size));
+			//add 2 extra bytes for UTF16 case string dump
+			data2 = gf_malloc(sizeof(char) * (prop_size+2));
 			gf_bs_read_data(bs, data2, prop_size);
+			data2[prop_size] = 0;
+			data2[prop_size+1] = 0;
 			tag_size-=prop_size;
 		} else {
 			prop_size = 0;
