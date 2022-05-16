@@ -295,13 +295,31 @@ struct __gf_fs_task
 	GF_FilterPid *pid;
 	const char *log_name;
 	void *udta;
+	u32 class_type;
 };
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
+
+//task type used to free up resources when a filter task is being canceled (configure error)
+typedef enum
+{
+	//no free required
+	TASK_TYPE_NONE=0,
+	//task udta is a GF_FilterEvent
+	TASK_TYPE_EVENT,
+	//task udta is a struct _gf_filter_setup_failure (simple free needed)
+	TASK_TYPE_SETUP,
+	//task udta is a GF_UserTask structure (simple free needed)
+	TASK_TYPE_USER,
+} GF_TaskClassType;
+
+
 /* extended version of gf_fs_post_task
 force_direct_call shall only be true for gf_filter_process_task
 */
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call);
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, GF_TaskClassType class_type);
+
+void gf_fs_post_task_class(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, GF_TaskClassType class_type);
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task);
 

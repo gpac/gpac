@@ -874,7 +874,7 @@ static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
 }
 #endif
 
-void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call)
+void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, Bool is_configure, Bool force_main_thread, Bool force_direct_call, u32 class_type)
 {
 	GF_FSTask *task;
 	Bool notified = GF_FALSE;
@@ -942,6 +942,7 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 	task->run_task = task_fun;
 	task->log_name = log_name;
 	task->udta = udta;
+	task->class_type = class_type;
 
 	if (filter && is_configure) {
 		if (filter->freg->flags & GF_FS_REG_CONFIGURE_MAIN_THREAD)
@@ -1009,7 +1010,12 @@ void gf_fs_post_task_ex(GF_FilterSession *fsess, gf_fs_task_callback task_fun, G
 
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
 {
-	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE, GF_FALSE, GF_FALSE);
+	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE, GF_FALSE, GF_FALSE, TASK_TYPE_NONE);
+}
+
+void gf_fs_post_task_class(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta, u32 class_id)
+{
+	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, udta, GF_FALSE, GF_FALSE, GF_FALSE, class_id);
 }
 
 Bool gf_fs_check_filter_register_cap_ex(const GF_FilterRegister *f_reg, u32 incode, GF_PropertyValue *cap_input, u32 outcode, GF_PropertyValue *cap_output, Bool exact_match_only, Bool out_cap_excluded)
@@ -3706,7 +3712,8 @@ static GF_Err gf_fs_post_user_task_internal(GF_FilterSession *fsess, Bool (*task
 	utask->task_execute = task_execute;
 	//dup mem for user task
 	_log_name = gf_strdup(log_name ? log_name : "user_task");
-	gf_fs_post_task_ex(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask, GF_FALSE, force_main, GF_FALSE);
+	//we don't use TASK_TYPE_USER because this is not a filter task
+	gf_fs_post_task_ex(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask, GF_FALSE, force_main, GF_FALSE, TASK_TYPE_NONE);
 	return GF_OK;
 }
 
@@ -3732,7 +3739,7 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 	utask->callback = udta;
 	utask->task_execute_filter = task_execute;
 	utask->fsess = filter->session;
-	gf_fs_post_task(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask);
+	gf_fs_post_task_class(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask, TASK_TYPE_USER);
 	return GF_OK;
 }
 

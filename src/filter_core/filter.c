@@ -2887,7 +2887,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 	if (use_direct_dispatch) {
 		safe_int_inc(&filter->process_task_queued);
-		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE);
+		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE, TASK_TYPE_NONE);
 	} else if (safe_int_inc(&filter->process_task_queued) <= 1) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->freg->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
@@ -3026,8 +3026,8 @@ static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
 	}
 
 	if (st->do_disconnect) {
-		//post setup°failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
-		gf_fs_post_task(st->filter->session, gf_filter_setup_failure_task, st->filter, NULL, "setup_failure", st);
+		//post setup_failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
+		gf_fs_post_task_class(st->filter->session, gf_filter_setup_failure_task, st->filter, NULL, "setup_failure", st, TASK_TYPE_SETUP);
 	} else {
 		gf_free(st);
 	}
@@ -3048,10 +3048,10 @@ void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force
 		filter->removed = 1;
 	}
 	if (filter->on_setup_error_filter) {
-		gf_fs_post_task(filter->session, gf_filter_setup_failure_notify_task, filter->on_setup_error_filter, NULL, "setup_failure_notify", stack);
+		gf_fs_post_task_class(filter->session, gf_filter_setup_failure_notify_task, filter->on_setup_error_filter, NULL, "setup_failure_notify", stack, TASK_TYPE_SETUP);
 	} else if (force_disconnect) {
-		//post setup°failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
-		gf_fs_post_task(filter->session, gf_filter_setup_failure_task, filter, NULL, "setup_failure", stack);
+		//post setup_failure task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
+		gf_fs_post_task_class(filter->session, gf_filter_setup_failure_task, filter, NULL, "setup_failure", stack, TASK_TYPE_SETUP);
 	}
 }
 
@@ -3186,7 +3186,7 @@ void gf_filter_post_remove(GF_Filter *filter)
 	filter->finalized = GF_TRUE;
 
 	//post remove task ON THE FILTER, otherwise we might end up having 2 threads on the active filter
-	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE);
+	gf_fs_post_task_ex(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL, GF_FALSE, filter->session->force_main_thread_tasks, GF_FALSE, TASK_TYPE_NONE);
 }
 
 static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter, Bool keep_end_connections)
