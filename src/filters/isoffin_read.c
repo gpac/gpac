@@ -176,7 +176,12 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 		gf_isom_text_set_streaming_mode(read->mov, GF_TRUE);
 
 	gf_free(url);
-	return isor_declare_objects(read);
+	e = isor_declare_objects(read);
+	if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
+		gf_filter_setup_failure(filter, e);
+		e = GF_FILTER_NOT_SUPPORTED;
+	}
+	return e;
 }
 
 static void isoffin_delete_channel(ISOMChannel *ch)

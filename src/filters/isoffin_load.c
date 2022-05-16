@@ -1338,6 +1338,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 	Bool highest_stream;
 	Bool single_media_found = GF_FALSE;
 	Bool use_iod = GF_FALSE;
+	Bool tk_found = GF_FALSE;
 	GF_Err e;
 	Bool isom_contains_video = GF_FALSE;
 	GF_Descriptor *od = gf_isom_get_root_od(read->mov);
@@ -1371,6 +1372,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Bad format for tkid option %s, no match\n", read->tkid));
 				return GF_BAD_PARAM;
 			}
+			tk_found = GF_TRUE;
 		}
 
 		switch (mtype) {
@@ -1478,6 +1480,15 @@ GF_Err isor_declare_objects(ISOMReader *read)
 
 			if (read->itt) break;
 		}
+	} else {
+		if (!tk_found) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] TrackID %s not found in file\n", read->tkid ));
+			return GF_BAD_PARAM;
+		}
+	}
+	if (! gf_list_count(read->channels)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] No suitable tracks in file\n"));
+		return GF_NOT_SUPPORTED;
 	}
 	
 	/*if cover art, declare a video pid*/
@@ -1491,7 +1502,7 @@ GF_Err isor_declare_objects(ISOMReader *read)
 			GF_FilterPid *cover_pid=NULL;
 			e = gf_filter_pid_raw_new(read->filter, NULL, NULL, NULL, NULL, (char *) tag, tlen, GF_FALSE, &cover_pid);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP3Dmx] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] error setting up video pid for cover art: %s\n", gf_error_to_string(e) ));
 			}
 			if (cover_pid) {
 				u8 *out_buffer;
