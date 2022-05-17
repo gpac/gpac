@@ -445,69 +445,9 @@ static void switch_bench(u32 is_on)
 }
 
 #ifdef GPAC_ENABLE_COVERAGE
-#define getch() 0
-#define read_line_input(_line, _maxSize, _showContent) GF_FALSE
-
-#else
-
-#ifndef WIN32
-#include <termios.h>
-int getch() {
-	struct termios old;
-	struct termios new;
-	int rc;
-	if (tcgetattr(0, &old) == -1) {
-		return -1;
-	}
-	new = old;
-	new.c_lflag &= ~(ICANON | ECHO);
-	new.c_cc[VMIN] = 1;
-	new.c_cc[VTIME] = 0;
-	if (tcsetattr(0, TCSANOW, &new) == -1) {
-		return -1;
-	}
-	rc = getchar();
-	(void) tcsetattr(0, TCSANOW, &old);
-	return rc;
-}
-#else
-int getch() {
-	return getchar();
-}
+#define gf_getch() 0
+#define gf_read_line_input(_line, _maxSize, _showContent) GF_FALSE
 #endif
-
-/**
- * Reads a line of input from stdin
- * @param line the buffer to fill
- * @param maxSize the maximum size of the line to read
- * @param showContent boolean indicating if the line read should be printed on stderr or not
- */
-static Bool read_line_input(char * line, int maxSize, Bool showContent) {
-	char read;
-	int i = 0;
-	if (fflush( stderr ))
-		perror("Failed to flush buffer %s");
-	do {
-		line[i] = '\0';
-		if (i >= maxSize - 1)
-			return GF_FALSE;
-		read = getch();
-		if (read == 8 || read == 127) {
-			if (i > 0) {
-				fprintf(stderr, "\b \b");
-				i--;
-			}
-		} else if (read > 32) {
-			fputc(showContent ? read : '*', stderr);
-			line[i++] = read;
-		}
-		fflush(stderr);
-	} while (read != '\n');
-	if (!read)
-		return GF_FALSE;
-	return GF_TRUE;
-}
-#endif //!GPAC_ENABLE_COVERAGE
 
 static void do_set_speed(Fixed desired_speed)
 {
@@ -857,10 +797,10 @@ Bool mp4c_event_proc(void *ptr, GF_Event *evt)
 			nb_retry--;
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
-			if (!read_line_input(evt->auth.user, 50, 1))
+			if (!gf_read_line_input(evt->auth.user, 50, 1))
 				continue;
 			fprintf(stderr, "\npassword: ");
-			if (!read_line_input(evt->auth.password, 50, 0))
+			if (!gf_read_line_input(evt->auth.password, 50, 0))
 				continue;
 			fprintf(stderr, "*********\n");
 		}
@@ -893,14 +833,14 @@ static void set_navigation()
 		fprintf(stderr, "Content/compositor doesn't allow user-selectable navigation\n");
 	} else if (type==1) {
 		fprintf(stderr, "Select Navigation (\'N\'one, \'E\'xamine, \'S\'lide): ");
-		nav = do_coverage ? 'N' : getch();
+		nav = do_coverage ? 'N' : gf_getch();
 		if (nav=='N') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='E') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_EXAMINE);
 		else if (nav=='S') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
 		else fprintf(stderr, "Unknown selector \'%c\' - only \'N\',\'E\',\'S\' allowed\n", nav);
 	} else if (type==2) {
 		fprintf(stderr, "Select Navigation (\'N\'one, \'W\'alk, \'F\'ly, \'E\'xamine, \'P\'an, \'S\'lide, \'G\'ame, \'V\'R, \'O\'rbit): ");
-		nav = do_coverage ? 'N' : getch();
+		nav = do_coverage ? 'N' : gf_getch();
 		if (nav=='N') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='W') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_WALK);
 		else if (nav=='F') e = gf_sc_set_option(compositor, GF_OPT_NAVIGATION, GF_NAVIGATE_FLY);
