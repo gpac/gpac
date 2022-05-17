@@ -211,7 +211,7 @@ void DirectFBVid_InitAndCreateSurface(DirectFBVidCtx *ctx, char *dfb_system)
 		//http://directfb.org/wiki/index.php/Configuring_DirectFB
 		argv_ro[0]=argv[0]=strdup("gpac");
 		char dev_name[100];
-		snprintf(dev_name, "--dfb:system=%s", dfb_system ? dfb_system : "x11");
+		snprintf(dev_name, 99, "--dfb:system=%s", dfb_system ? dfb_system : "x11");
 		dev_name[99]=0;
 		strlwr(dev_name);
 		argv_ro[1] = argv[1] = strdup(dev_name);
