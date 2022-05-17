@@ -101,6 +101,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_parse_frac) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gmtime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strnistr) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_getch) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_read_line_input) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_modify_tools_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools_levels) )

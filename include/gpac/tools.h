@@ -1074,6 +1074,26 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
  */
 GF_Err gf_blob_release(const char *blob_url);
 
+
+
+/*!
+\brief Portable getch()
+
+Returns immediately a typed char from stdin
+\return the typed char
+*/
+int gf_getch();
+
+/*!
+\brief Reads a line of input from stdin
+\param line the buffer to fill
+\param maxSize the maximum size of the line to read
+\param showContent boolean indicating if the line read should be printed on stderr or not
+\return GF_TRUE if some content was read, GF_FALSE otherwise
+*/
+u32 gf_read_line_input(char * line, int maxSize, Bool showContent);
+
+
 /*!
 \addtogroup time_grp
 \brief Time manipulation tools
