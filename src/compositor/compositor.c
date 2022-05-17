@@ -4123,7 +4123,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 		}
 		if (!from_filter) return;
 
-		//clock is not realtime but frame base, estimate hom fast we generate frames
+		//clock is not realtime but frame base, estimate how fast we generate frames
 		//if last frame time diff is less than 1s, consider the output is not consumed in real-time
 		//and reschedule asap
 		//otherwise reschedule in 1 ms
