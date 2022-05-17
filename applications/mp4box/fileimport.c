@@ -1982,9 +1982,9 @@ extern Double interleaving_time;
 
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
 {
-	Bool chunk_extraction, rap_split, split_until_end;
+	Bool chunk_extraction, rap_split, split_until_end, use_splitrange=GF_TRUE;
 	GF_Err e;
-	char *ext, szName[GF_MAX_PATH], szFile[GF_MAX_PATH+100], szArgs[100];
+	char *ext, szName[GF_MAX_PATH], szFile[GF_MAX_PATH+100], szArgs[1000];
 	Double chunk_start = (Double) chunk_start_time;
 	char *filter_args = NULL;
 	GF_FilterSession *fs;
@@ -2034,7 +2034,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		strcat(szFile, "_$num%03d$");
 	}
 
-	gf_dynstrcat(&filter_args, "reframer:splitrange", NULL);
+	gf_dynstrcat(&filter_args, "reframer", NULL);
+
 	if (rap_split) {
 		gf_dynstrcat(&filter_args, ":xs=SAP", NULL);
 	} else if (split_size_kb) {
@@ -2059,34 +2060,68 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		}
 
 		if (split_range_str) {
-			Bool is_time = GF_FALSE;
-			char c;
-			//S-E syntax
-			char *end = (char *) strchr(split_range_str, '-');
-			if (!end) {
-				//S:E syntax
-				end = (char *) strchr(split_range_str, ':');
-				//if another `:` assume time format
-				if (end && strchr(end+1, ':'))
-					is_time = GF_TRUE;
-			} else if (strchr(split_range_str, ':')) {
-				is_time = GF_TRUE;
-			}
-			if (!end) {
-				gf_free(filter_args);
-				M4_LOG(GF_LOG_ERROR, ("Invalid range specifer %s, expecting START-END or START:END\n", split_range_str ));
-				gf_fs_del(fs);
-				return GF_BAD_PARAM;
-			}
+			Bool first = GF_TRUE;
+			char *xs_a=NULL, *xe_a=NULL;
+			gf_dynstrcat(&xs_a, ":xs=", NULL);
+			gf_dynstrcat(&xe_a, ":xe=", NULL);
+			while (1) {
+				char c;
+				char *next_t = strchr(split_range_str, ',');
+				if (next_t) next_t[0] = 0;
+				Bool is_time = GF_FALSE;
 
-			c = end[0];
-			end[0] = 0;
-			if (is_time) {
-				sprintf(szArgs, ":xs=T%s:xe=T%s", split_range_str, end+1);
-			} else {
-				sprintf(szArgs, ":xs=%s:xe=%s", split_range_str, end+1);
+				//S-E syntax
+				char *end = (char *) strchr(split_range_str, '-');
+				if (!end) {
+					//S:E syntax
+					end = (char *) strchr(split_range_str, ':');
+					//if another `:` assume time format
+					if (end && strchr(end+1, ':'))
+						is_time = GF_TRUE;
+				} else if (strchr(split_range_str, ':')) {
+					is_time = GF_TRUE;
+				}
+				if (!end) {
+					gf_free(filter_args);
+					M4_LOG(GF_LOG_ERROR, ("Invalid range specifer %s, expecting START-END or START:END\n", split_range_str ));
+					gf_fs_del(fs);
+					if (next_t) next_t[0] = ',';
+					return GF_BAD_PARAM;
+				}
+
+				if (!first) {
+					gf_dynstrcat(&xs_a, ",", NULL);
+					gf_dynstrcat(&xe_a, ",", NULL);
+				}
+				first = GF_FALSE;
+				c = end[0];
+				end[0] = 0;
+				if (is_time) {
+					gf_dynstrcat(&xs_a, "T", NULL);
+					gf_dynstrcat(&xe_a, "T", NULL);
+				}
+				gf_dynstrcat(&xs_a, split_range_str, NULL);
+				gf_dynstrcat(&xe_a, end+1, NULL);
+				end[0] = c;
+				if (!next_t) break;
+				next_t[0] = ',';
+				split_range_str = next_t + 1;
 			}
-			end[0] = c;
+			if (xs_a) {
+				gf_dynstrcat(&filter_args, xs_a, NULL);
+				gf_free(xs_a);
+			}
+			if (xe_a) {
+				gf_dynstrcat(&filter_args, xe_a, NULL);
+				gf_free(xe_a);
+			}
+			szArgs[0]=0;
+			//if output set and no template, don't use split range
+			if (outName) {
+				xs_a = strchr(outName, '$');
+				if (!xs_a || !strchr(xs_a+1, '$'))
+					use_splitrange = GF_FALSE;
+			}
 		} else if (split_until_end) {
 			Double end=0;
 			if (split_dur<-2) {
@@ -2104,12 +2139,14 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		} else {
 			sprintf(szArgs, ":xs=%u/1000:xe=%u/1000", (u32) (chunk_start*1000), (u32) ((chunk_start+split_dur) * 1000) );
 		}
-		gf_dynstrcat(&filter_args, szArgs, NULL);
+		if (szArgs[0])
+			gf_dynstrcat(&filter_args, szArgs, NULL);
+
 		if (!outName) {
 			sprintf(szFile, "%s_$FS$", szName);
 		}
 	} else if (split_dur) {
-		sprintf(szArgs, ":xs=D%u", (u32) (split_dur*1000));
+		sprintf(szArgs, ":xs=D%g", split_dur);
 		gf_dynstrcat(&filter_args, szArgs, NULL);
 		if (adjust_split_end) {
 			gf_dynstrcat(&filter_args, ":xadjust", NULL);
@@ -2120,6 +2157,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		M4_LOG(GF_LOG_ERROR, ("Unrecognized split syntax\n"));
 		return GF_BAD_PARAM;
 	}
+
+	if (use_splitrange)
+		gf_dynstrcat(&filter_args, ":splitrange", NULL);
 
 	reframe = gf_fs_load_filter(fs, filter_args, &e);
 	gf_free(filter_args);

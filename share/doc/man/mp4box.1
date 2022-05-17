@@ -985,7 +985,7 @@ Time ranges are specified as follows:
 .br
 * `S-E`: S start and E end times, formatted as HH:MM:SS.ms, MM:SS.ms or time in seconds (int, double, fraction)
 .br
-* `S:E`: S start time and E end times in seconds (int, double, fraction)
+* `S:E`: S start time and E end times in seconds (int, double, fraction). If E is prefixed with D, this sets E = S + time
 .br
 * `S:end` or `S:end-N`: S start time in seconds (int, double), N number of seconds (int, double) before the end
 .br
@@ -1012,6 +1012,8 @@ MP4Box splitting runs a filter session using the reframer filter as follows:
 The default output storage mode is to full interleave and will require a temp file for each output. This behavior can be modified using -flat, -newfs, -inter and -frag.
 .br
 The output file name(s) can be specified using -out and templates (e.g. -out split$num%04d$.mp4 produces split0001.mp4, split0002.mp4, ...).
+.br
+Multiple time ranges can be specified as a comma-seperated list for -splitx, -splitz and -splitg.
 .br
   
 .br
@@ -2853,7 +2855,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev143-g85028fa94-master
+build: 2.1-DEV-rev155-g6bbb9e089-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

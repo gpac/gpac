@@ -595,7 +595,7 @@ static void PrintSplitUsage()
 		"  \n"
 		"Time ranges are specified as follows:\n"
 		"- `S-E`: `S` start and `E` end times, formatted as `HH:MM:SS.ms`, `MM:SS.ms` or time in seconds (int, double, fraction)\n"
-		"- `S:E`: `S` start time and `E` end times in seconds (int, double, fraction)\n"
+		"- `S:E`: `S` start time and `E` end times in seconds (int, double, fraction). If `E` is prefixed with `D`, this sets `E = S + time`\n"
 		"- `S:end` or `S:end-N`: `S` start time in seconds (int, double), `N` number of seconds (int, double) before the end\n"
 		"  \n"
 		"MP4Box splitting runs a filter session using the `reframer` filter as follows:\n"
@@ -609,6 +609,7 @@ static void PrintSplitUsage()
 		"  \n"
 		"The default output storage mode is to full interleave and will require a temp file for each output. This behavior can be modified using `-flat`, `-newfs`, `-inter` and `-frag`.\n"
 		"The output file name(s) can be specified using `-out` and templates (e.g. `-out split$num%%04d$.mp4` produces split0001.mp4, split0002.mp4, ...).\n"
+		"Multiple time ranges can be specified as a comma-seperated list for `-splitx`, `-splitz` and `-splitg`.\n"
 		"  \n"
 	);
 
@@ -6389,7 +6390,8 @@ int mp4box_main(int argc, char **argv)
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size || split_range_str) {
-		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, seg_at_rap, split_range_str, fs_dump_flags);
+		e = split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, seg_at_rap, split_range_str, fs_dump_flags);
+		if (e) goto err_exit;
 
 		/*never save file when splitting is desired*/
 		open_edit = GF_FALSE;
