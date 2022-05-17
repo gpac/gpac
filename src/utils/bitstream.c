@@ -61,7 +61,7 @@ struct __tag_bitstream
 	u32 cache_write_size, buffer_written;
 
 	Bool remove_emul_prevention_byte;
-	u32 nb_zeros;
+	u32 nb_zeros, nb_removed;
 
 	GF_Err (*on_block_out)(void *cbk, u8 *data, u32 block_size);
 	void *usr_data;
@@ -91,7 +91,7 @@ GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const u8 *buffer, u64 BufferSize)
 		bs->current = 0;
 		bs->nbBits = 8;
 		bs->current = 0;
-		bs->nb_zeros = 0;
+		bs->nb_zeros = bs->nb_removed = 0;
 		return GF_OK;
 	}
 	if (bs->bsmode==GF_BITSTREAM_WRITE) {
@@ -312,9 +312,17 @@ void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove)
 {
 	if (bs) {
 		bs->remove_emul_prevention_byte = do_remove;
-		bs->nb_zeros = 0;
+		bs->nb_zeros = bs->nb_removed = 0;
 	}
 }
+
+GF_EXPORT
+u32 gf_bs_get_emulation_byte_removed(GF_BitStream *bs)
+{
+	if (bs) return bs->nb_removed;
+	return 0;
+}
+
 
 /*returns 1 if aligned wrt current mode, 0 otherwise*/
 Bool gf_bs_is_align(GF_BitStream *bs)
@@ -364,6 +372,7 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 		if (bs->remove_emul_prevention_byte) {
 			if ((bs->nb_zeros==2) && (res==0x03) && (bs->position<bs->size) && (bs->original[bs->position]<0x04)) {
 				bs->nb_zeros = 0;
+				bs->nb_removed++;
 				res = bs->original[bs->position++];
 			}
 			if (!res) bs->nb_zeros++;
@@ -394,6 +403,7 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 				u8 next = gf_bs_load_byte(bs, &loc_eos);
 				if (next < 0x04) {
 					bs->nb_zeros = 0;
+					bs->nb_removed++;
 					res = next;
 					bs->position++;
 				} else {
@@ -1364,7 +1374,7 @@ GF_EXPORT
 u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 {
 	u64 curPos;
-	u32 curBits, ret, current, nb_zeros;
+	u32 curBits, ret, current, nb_zeros, nb_removed;
 
 	if ( (bs->bsmode != GF_BITSTREAM_READ) && (bs->bsmode != GF_BITSTREAM_FILE_READ)) return 0;
 	if (!numBits || (bs->size < bs->position + byte_offset)) return 0;
@@ -1374,6 +1384,7 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 	curBits = bs->nbBits;
 	current = bs->current;
 	nb_zeros = bs->nb_zeros;
+	nb_removed = bs->nb_removed;
 
 	if (byte_offset) {
 		if (bs->remove_emul_prevention_byte) {
@@ -1393,6 +1404,7 @@ u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 	bs->nbBits = curBits;
 	bs->current = current;
 	bs->nb_zeros = nb_zeros;
+	bs->nb_removed = nb_removed;
 	return ret;
 }
 

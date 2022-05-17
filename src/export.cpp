@@ -275,8 +275,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_byte) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_u16_le) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_write_u32_le) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_enable_emulation_byte_removal ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_emulation_byte_removed ) )
 
 /* Thread */
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_new) )
