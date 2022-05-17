@@ -140,8 +140,15 @@ typedef enum {
 
 typedef struct
 {
+	u32 ID_or_num;
+	//0: regular trackID, 1: track number, 2: video(N), 3: audio(N), 4: text(N)
+	u8 type;
+} TrackIdentifier;
+
+typedef struct
+{
 	TrackActionType act_type;
-	GF_ISOTrackID trackID;
+	TrackIdentifier target_track;
 	char lang[10];
 	GF_Fraction delay;
 	const char *kms;
@@ -154,11 +161,10 @@ typedef struct
 	char *string;
 	u32 udta_type;
 	char *kind_scheme, *kind_value;
-	u32 newTrackID;
+	TrackIdentifier newTrackID;
 	s32 clap_wnum, clap_wden, clap_hnum, clap_hden, clap_honum, clap_hoden, clap_vonum, clap_voden;
 	s32 mx[9];
 	u64 time;
-	u8 dump_track_type;
 } TrackAction;
 
 enum
@@ -180,9 +186,9 @@ typedef enum {
 typedef struct
 {
 	TSELActionType act_type;
-	GF_ISOTrackID trackID;
+	TrackIdentifier target_track;
+	TrackIdentifier reference_track;
 
-	GF_ISOTrackID refTrackID;
 	u32 criteria[30];
 	u32 nb_criteria;
 	Bool is_switchGroup;
@@ -444,8 +450,8 @@ MP4BoxArg m4b_gen_args[] =
 		"  - SMPTE codes: `h:m:s;nb_f/fps chapter_name` and `h:m:s;nb_f chapter_name` with `nb_f` the number of frames and `fps` the framerate with 1 chapter per line\n"
 		"  - Common syntax: `CHAPTERX=h:m:s[:ms or .ms]` on first line and `CHAPTERXNAME=name` on next line (reverse order accepted)", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &chap_file, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("chapqt", "set chapter information from given file, using QT signaling for text tracks", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &chap_file_qt, 0, ARG_OPEN_EDIT),
- 	MP4BOX_ARG_S("set-track-id", "id1:id2", "change id of track with id1 to id2", 0, parse_track_action, TRACK_ACTION_SET_ID, ARG_IS_FUN),
- 	MP4BOX_ARG_S("swap-track-id", "id1:id2", "swap the id between tracks with id1 to id2", 0, parse_track_action, TRACK_ACTION_SWAP_ID, ARG_IS_FUN),
+	MP4BOX_ARG_S("set-track-id", "tkID:id2", "change id of track to id2", 0, parse_track_action, TRACK_ACTION_SET_ID, ARG_IS_FUN),
+	MP4BOX_ARG_S("swap-track-id", "tkID1:tkID1", "swap the id between tracks with id1 to id2", 0, parse_track_action, TRACK_ACTION_SWAP_ID, ARG_IS_FUN),
  	MP4BOX_ARG("rem", "remove given track from file", GF_ARG_INT, 0, parse_track_action, TRACK_ACTION_REM_TRACK, ARG_IS_FUN),
  	MP4BOX_ARG("rap", "remove all non-RAP samples from given track", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_rap_ref, 0, ARG_IS_FUN | ARG_EMPTY),
  	MP4BOX_ARG("refonly", "remove all non-reference pictures from given track", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_rap_ref, 1, ARG_IS_FUN | ARG_EMPTY),
@@ -472,11 +478,11 @@ MP4BoxArg m4b_gen_args[] =
  	MP4BOX_ARG_S("name", "tkID=NAME", "set track handler name to NAME (UTF-8 string)", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_SET_HANDLER_NAME, ARG_IS_FUN),
  	MP4BOX_ARG("itags", "set iTunes tags to file, see `-h tags`", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, &itunes_tags, 0, ARG_OPEN_EDIT),
  	MP4BOX_ARG("group-add", "create a new grouping information in the file. Format is a colon-separated list of following options:\n"
-	        "- refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the "
+	        "- refTrack=ID: track used as a group reference. If not set, the track will belong to the same group as the "
 	        "previous trackID specified. If 0 or no previous track specified, a new alternate group will be created\n"
 	        "- switchID=ID: ID of the switch group to create. If 0, a new ID will be computed for you. If <0, disables SwitchGroup\n"
 	        "- criteria=string: list of space-separated 4CCs\n"
-	        "- trackID=ID: ID of the track to add to this group\n"
+	        "- trackID=ID: track to add to this group\n"
 	        "  \n"
 	        "Warning: Options modify state as they are parsed, `trackID=1:criteria=lang:trackID=2` is different from `criteria=lang:trackID=1:trackID=2`"
 	        "\n", GF_ARG_STRING, GF_ARG_HINT_ADVANCED, parse_tsel_args, TSEL_ACTION_SET_PARAM, ARG_IS_FUN),
@@ -484,7 +490,7 @@ MP4BoxArg m4b_gen_args[] =
 	MP4BOX_ARG("group-rem-track", "remove given track from its group", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_tsel_args, TSEL_ACTION_REMOVE_TSEL, ARG_IS_FUN),
 	MP4BOX_ARG("group-rem", "remove the track's group", GF_ARG_INT, GF_ARG_HINT_ADVANCED, parse_tsel_args, TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP, ARG_IS_FUN),
 	MP4BOX_ARG("group-clean", "remove all group information from all tracks", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &clean_groups, 0, ARG_OPEN_EDIT),
-	MP4BOX_ARG_S("ref", "id:XXXX:refID", "add a reference of type 4CC from track ID to track refID", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_REFERENCE, ARG_IS_FUN),
+	MP4BOX_ARG_S("ref", "tkID:XXXX:refID", "add a reference of type 4CC from track ID to track refID", GF_ARG_HINT_ADVANCED, parse_track_action, TRACK_ACTION_REFERENCE, ARG_IS_FUN),
 	MP4BOX_ARG("keep-utc", "keep UTC timing in the file after edit", GF_ARG_BOOL, GF_ARG_HINT_ADVANCED, &keep_utc, 0, 0),
 	MP4BOX_ARG_S("udta", "tkID:[OPTS]", "set udta for given track or movie if tkID is 0. OPTS is a colon separated list of:\n"
 	        "- type=CODE: 4CC code of the UDTA (not needed for `box=` option)\n"
@@ -529,10 +535,15 @@ void PrintGeneralUsage()
 		"  \n"
 		"MP4Box usually generates a temporary file when creating a new IsoMedia file. The location of this temporary file is OS-dependent, and it may happen that the drive/partition the temporary file is created on has not enough space or no write access. In such a case, you can specify a temporary file location with [-tmp]().\n"
 		"  \n"
+		"Track identifier for track-based operations (usually referred to as `tkID` in the help) use the following syntax:\n"
+		"- INT: target is track with ID `INT`\n"
+		"- n`INT`: target is track number `INT`\n"
+		"- `audio`, `video`, `text`: target is first `audio`, `video` or `text` track\n"
+		"- `audioN`, `videoN`, `textN`: target is the `N`th `audio`, `video` or `text` track, with `N=1` being the first track of desired type\n"
+		"  \n"
 		"Option values:\n"
-		"Unless specified otherwise, an option of type `integer` expects a trackID value following it."
-		"An option of type `boolean` expects no following value."
-		"Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.\n"
+		"Unless specified otherwise, a track operation option of type `integer` expects a track identifer value following it.\n"
+		"An option of type `boolean` expects no following value.\n"
 		"  \n"
 	);
 
@@ -2093,11 +2104,38 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
+static void parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
+{
+	if (!strcmp(arg_val, "*")) {
+		if (allow_all)
+			tkid->ID_or_num = (u32) -1;
+	} else {
+		if (!strncmp(arg_val, "video", 5)) {
+			arg_val += 5;
+			tkid->type = 2;
+		}
+		else if (!strncmp(arg_val, "audio", 5)) {
+			arg_val += 5;
+			tkid->type = 3;
+		}
+		else if (!strncmp(arg_val, "text", 4)) {
+			arg_val += 4;
+			tkid->type = 4;
+		}
+		else if (!strnicmp(arg_val, "n", 1)) {
+			arg_val += 1;
+			tkid->type = 1;
+		}
+
+		if (arg_val[0])
+			tkid->ID_or_num = atoi(arg_val);
+	}
+}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 static Bool parse_tsel_args(char *opts, TSELActionType act)
 {
-	GF_ISOTrackID refTrackID = 0;
+	TrackIdentifier refTrackID = {0, 0};
 	Bool has_switch_id;
 	u32 switch_id = 0;
 	u32 criteria[30];
@@ -2117,8 +2155,9 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		if (next) next[0] = 0;
 
 
-		if (!strnicmp(szSlot, "refTrack=", 9)) refTrackID = atoi(szSlot+9);
-		else if (!strnicmp(szSlot, "switchID=", 9)) {
+		if (!strnicmp(szSlot, "refTrack=", 9)) {
+			parse_track_id(&refTrackID, szSlot+9, GF_FALSE);
+		} else if (!strnicmp(szSlot, "switchID=", 9)) {
 			if (atoi(szSlot+9)<0) {
 				switch_id = 0;
 				has_switch_id = 0;
@@ -2149,15 +2188,20 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 
 			memset(tsel_act, 0, sizeof(TSELAction));
 			tsel_act->act_type = act;
-			tsel_act->trackID = strchr(szSlot, '=') ? atoi(szSlot+8) : atoi(szSlot);
-			tsel_act->refTrackID = refTrackID;
+			char *tk_id = strchr(szSlot, '=');
+			if (!tk_id) tk_id = szSlot;
+			else tk_id++;
+
+			parse_track_id(&tsel_act->target_track, tk_id, GF_FALSE);
+
+			tsel_act->reference_track = refTrackID;
 			tsel_act->switchGroupID = switch_id;
 			tsel_act->is_switchGroup = has_switch_id;
 			tsel_act->nb_criteria = nb_criteria;
 			memcpy(tsel_act->criteria, criteria, sizeof(u32)*nb_criteria);
 
-			if (!refTrackID)
-				refTrackID = tsel_act->trackID;
+			if (!refTrackID.ID_or_num)
+				refTrackID = tsel_act->target_track;
 
 			open_edit = GF_TRUE;
 		}
@@ -2309,10 +2353,18 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	}
 
 	if ((act_type==TRACK_ACTION_SET_ID) || (act_type==TRACK_ACTION_SWAP_ID)) {
-		if (sscanf(param, "%d:%u", &tka->trackID, &tka->newTrackID) != 2) {
+		char *sep = strchr(param, ':');
+		if (!sep) {
 			M4_LOG(GF_LOG_ERROR, ("Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", param));
 			return GF_FALSE;
 		}
+		sep[0] = 0;
+		parse_track_id(&tka->target_track, param, GF_FALSE);
+		sep[0] = ':';
+		if (act_type==TRACK_ACTION_SWAP_ID)
+			parse_track_id(&tka->newTrackID, sep+1, GF_FALSE);
+		else
+			tka->newTrackID.ID_or_num = atoi(sep+1);
 		return GF_TRUE;
 	}
 	if (act_type==TRACK_ACTION_SET_PAR) {
@@ -2323,7 +2375,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 
 		if (!stricmp(ext+1, "none"))
@@ -2355,7 +2407,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		if (stricmp(ext + 1, "none")) {
 			if (sscanf(ext + 1, "%d,%d,%d,%d,%d,%d,%d,%d", &tka->clap_wnum, &tka->clap_wden, &tka->clap_hnum, &tka->clap_hden, &tka->clap_honum, &tka->clap_hoden, &tka->clap_vonum, &tka->clap_voden) != 8) {
@@ -2374,7 +2426,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		if (!stricmp(ext + 1, "none")) {
 			memset(tka->mx, 0, sizeof(s32)*9);
@@ -2400,7 +2452,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		tka->string = gf_strdup(ext+1);
 		return GF_TRUE;
@@ -2415,7 +2467,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		} else {
 			strncpy(tka->lang, ext + 1, 10-1);
 			ext[0] = 0;
-			tka->trackID = atoi(param);
+			parse_track_id(&tka->target_track, param, GF_FALSE);
 			ext[0] = '=';
 		}
 		return GF_TRUE;
@@ -2431,7 +2483,8 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			ext = strchr(param, '=');
 			if (ext) {
 				ext[0] = 0;
-				if (sscanf(param, "%d", &tka->trackID) == 1) {
+				parse_track_id(&tka->target_track, param, GF_FALSE);
+				if (tka->target_track.ID_or_num) {
 					scheme_start = ext + 1;
 				} else {
 					scheme_start = param;
@@ -2466,7 +2519,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		if (sscanf(ext+1, "%d/%u", &tka->delay.num, &tka->delay.den) != 2) {
 			tka->delay.num = atoi(ext + 1);
@@ -2482,7 +2535,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 
 		char *ext2 = strchr(ext, ':');
@@ -2493,7 +2546,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		ext2[0] = 0;
 		strncpy(tka->lang, ext+1, 9);
 		ext2[0] = ':';
-		tka->newTrackID = (s32) atoi(ext2 + 1);
+		parse_track_id(&tka->newTrackID, ext2 + 1, GF_FALSE);
 		return GF_TRUE;
 	}
 	if (act_type==TRACK_ACTION_SET_HANDLER_NAME) {
@@ -2503,7 +2556,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext[0] = 0;
-		tka->trackID = atoi(param);
+		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		tka->hdl_name = ext + 1;
 		return GF_TRUE;
@@ -2518,7 +2571,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		} else {
 			tka->kms = ext + 1;
 			ext[0] = 0;
-			tka->trackID = atoi(param);
+			parse_track_id(&tka->target_track, param, GF_FALSE);
 			ext[0] = '=';
 		}
 		return GF_TRUE;
@@ -2528,7 +2581,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		char *ext = strchr(arg_val, '=');
 		if (ext) {
 			ext[0] = 0;
-			tka->trackID = atoi(arg_val);
+			parse_track_id(&tka->target_track, arg_val, GF_FALSE);
 			ext[0] = '=';
 			arg_val = ext+1;
 		}
@@ -2574,22 +2627,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		}
 	}
 	if (arg_val) {
-		if (!strcmp(arg_val, "*")) {
-			tka->trackID = (u32) -1;
-		} else {
-			if (act_type==TRACK_ACTION_RAW_EXTRACT) {
-				if (!strncmp(arg_val, "video", 5)) {
-					arg_val += 5;
-					tka->dump_track_type = 1;
-				}
-				else if (!strncmp(arg_val, "audio", 5)) {
-					arg_val += 5;
-					tka->dump_track_type = 2;
-				}
-			}
-			if (arg_val[0])
-				tka->trackID = atoi(arg_val);
-		}
+		parse_track_id(&tka->target_track, arg_val, GF_TRUE);
 	}
 	return GF_TRUE;
 }
@@ -4782,7 +4820,6 @@ static GF_Err do_dash()
 	return e;
 }
 
-
 static GF_Err do_export_tracks_non_isobmf()
 {
 	u32 i;
@@ -4796,8 +4833,9 @@ static GF_Err do_export_tracks_non_isobmf()
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.in_name = inName;
 		mdump.flags = tka->dump_type;
-		mdump.trackID = tka->trackID;
-		mdump.track_type = tka->dump_track_type;
+		mdump.trackID = tka->target_track.ID_or_num;
+		if (tka->target_track.type>1)
+			mdump.track_type = tka->target_track.type-1;
 		mdump.sample_num = tka->sample_num;
 
 		if (dump_std) {
@@ -4853,6 +4891,35 @@ static GF_Err do_dump_iod()
 	return e;
 }
 
+static u32 get_track_id(GF_ISOFile *file, TrackIdentifier *tkid)
+{
+	u32 cur_tk=0, i, count = gf_isom_get_track_count(file);
+	if (tkid->type==4) {
+		if (!tkid->ID_or_num || (count < tkid->ID_or_num)) return 0;
+		return gf_isom_get_track_id(file, tkid->ID_or_num-1);
+	}
+	if (tkid->type==0) {
+		return tkid->ID_or_num;
+	}
+	for (i=0; i<count; i++) {
+		u32 mtype = gf_isom_get_media_type(file, i+1);
+		if (tkid->type==2) {
+			if (!gf_isom_is_video_handler_type(mtype)) continue;
+		}
+		else if (tkid->type==3) {
+			if (mtype != GF_ISOM_MEDIA_AUDIO) continue;
+		} else if (tkid->type==4) {
+			if ((mtype != GF_ISOM_MEDIA_TEXT) && (mtype != GF_ISOM_MEDIA_SUBT)) continue;
+		} else {
+			continue;
+		}
+		cur_tk++;
+		if (tkid->ID_or_num && (cur_tk != tkid->ID_or_num)) continue;
+		return gf_isom_get_track_id(file, i+1);
+	}
+	return 0;
+}
+
 static GF_Err do_export_tracks()
 {
 	GF_Err e;
@@ -4866,8 +4933,14 @@ static GF_Err do_export_tracks()
 		memset(&mdump, 0, sizeof(mdump));
 		mdump.file = file;
 		mdump.flags = tka->dump_type;
-		mdump.trackID = tka->trackID;
 		mdump.sample_num = tka->sample_num;
+		mdump.trackID = get_track_id(file, &tka->target_track);
+		if (!mdump.trackID) {
+			M4_LOG(GF_LOG_ERROR, ("Track not found\n"));
+			e = GF_BAD_PARAM;
+			return e;
+		}
+
 		if (tka->out_name) {
 			mdump.out_name = tka->out_name;
 		} else if (outName) {
@@ -4882,7 +4955,7 @@ static GF_Err do_export_tracks()
 			sprintf(szFile, "%s_export", outfile);
 			mdump.out_name = szFile;
 		}
-		if (tka->trackID==(u32) -1) {
+		if (tka->target_track.ID_or_num==(u32) -1) {
 			for (j=0; j<gf_isom_get_track_count(file); j++) {
 				mdump.trackID = gf_isom_get_track_id(file, j+1);
 				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
@@ -5166,17 +5239,25 @@ static GF_Err do_tsel_act()
 	u32 i;
 	GF_Err e;
 	for (i=0; i<nb_tsel_acts; i++) {
+		u32 refID, trackID = get_track_id(file, &tsel_acts[i].target_track);
+		if (!trackID) {
+			M4_LOG(GF_LOG_ERROR, ("Track not found\n"));
+			e = GF_BAD_PARAM;
+			return e;
+		}
+
 		switch (tsel_acts[i].act_type) {
 		case TSEL_ACTION_SET_PARAM:
+			refID = get_track_id(file, &tsel_acts[i].reference_track);
 			e = gf_isom_set_track_switch_parameter(file,
-			                                       gf_isom_get_track_by_id(file, tsel_acts[i].trackID),
-			                                       tsel_acts[i].refTrackID ? gf_isom_get_track_by_id(file, tsel_acts[i].refTrackID) : 0,
+			                                       gf_isom_get_track_by_id(file, trackID),
+			                                       refID,
 			                                       tsel_acts[i].is_switchGroup ? 1 : 0,
 			                                       &tsel_acts[i].switchGroupID,
 			                                       tsel_acts[i].criteria, tsel_acts[i].nb_criteria);
 			if (e == GF_BAD_PARAM) {
 				u32 alternateGroupID, nb_groups;
-				gf_isom_get_track_switch_group_count(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), &alternateGroupID, &nb_groups);
+				gf_isom_get_track_switch_group_count(file, gf_isom_get_track_by_id(file, trackID), &alternateGroupID, &nb_groups);
 				if (alternateGroupID) {
 					M4_LOG(GF_LOG_ERROR, ("Error - for adding more tracks to group, using: -group-add -refTrack=ID1:[criteria:]trackID=ID2\n"));
 				} else {
@@ -5187,12 +5268,12 @@ static GF_Err do_tsel_act()
 			do_save = GF_TRUE;
 			break;
 		case TSEL_ACTION_REMOVE_TSEL:
-			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 0);
+			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, trackID), 0);
 			if (e) return e;
 			do_save = GF_TRUE;
 			break;
 		case TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP:
-			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 1);
+			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, trackID), 1);
 			if (e) return e;
 			do_save = GF_TRUE;
 			break;
@@ -5260,16 +5341,19 @@ static GF_Err do_track_act()
 		u32 i;
 		GF_Err e = GF_OK;
 		TrackAction *tka = &tracks[j];
-		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
+		u32 trackID = get_track_id(file, &tka->target_track);
+		u32 track = trackID ? gf_isom_get_track_by_id(file, trackID) : 0;
+
+		u32 newTrackID = get_track_id(file, &tka->newTrackID);
 
 		timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {
 		case TRACK_ACTION_REM_TRACK:
 			e = gf_isom_remove_track(file, track);
 			if (e) {
-				M4_LOG(GF_LOG_ERROR, ("Error Removing track ID %d: %s\n", tka->trackID, gf_error_to_string(e)));
+				M4_LOG(GF_LOG_ERROR, ("Error Removing track ID %d: %s\n", trackID, gf_error_to_string(e)));
 			} else {
-				M4_LOG(GF_LOG_INFO, ("Removing track ID %d\n", tka->trackID));
+				M4_LOG(GF_LOG_INFO, ("Removing track ID %d\n", trackID));
 			}
 			do_save = GF_TRUE;
 			break;
@@ -5346,42 +5430,42 @@ static GF_Err do_track_act()
 			}
 			break;
 		case TRACK_ACTION_SET_ID:
-			if (!tka->trackID && (gf_isom_get_track_count(file) == 1)) {
+			if (!trackID && (gf_isom_get_track_count(file) == 1)) {
 				M4_LOG(GF_LOG_WARNING, ("Warning: track id is not specified, but file has only one track - assume that you want to change id for this track\n"));
 				track = 1;
 			}
 			if (track) {
 				u32 newTrack;
-				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
+				newTrack = gf_isom_get_track_by_id(file, newTrackID);
 				if (newTrack != 0) {
 					M4_LOG(GF_LOG_WARNING, ("Cannot set track id with value %d because a track already exists - ignoring", tka->newTrackID));
 				} else {
-					e = gf_isom_set_track_id(file, track, tka->newTrackID);
+					e = gf_isom_set_track_id(file, track, newTrackID);
 					if (e) return e;
 					do_save = GF_TRUE;
 				}
 			} else {
-				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID));
+				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", trackID));
 			}
 			break;
 		case TRACK_ACTION_SWAP_ID:
 			if (track) {
 				u32 tk1, tk2;
-				tk1 = gf_isom_get_track_by_id(file, tka->trackID);
-				tk2 = gf_isom_get_track_by_id(file, tka->newTrackID);
+				tk1 = gf_isom_get_track_by_id(file, trackID);
+				tk2 = gf_isom_get_track_by_id(file, newTrackID);
 				if (!tk1 || !tk2) {
 					M4_LOG(GF_LOG_WARNING, ("Error: Cannot swap track IDs because not existing - ignoring"));
 				} else {
 					e = gf_isom_set_track_id(file, tk2, 0);
 					if (e) return e;
-					e = gf_isom_set_track_id(file, tk1, tka->newTrackID);
+					e = gf_isom_set_track_id(file, tk1, newTrackID);
 					if (e) return e;
-					e = gf_isom_set_track_id(file, tk2, tka->trackID);
+					e = gf_isom_set_track_id(file, tk2, trackID);
 					if (e) return e;
 					do_save = GF_TRUE;
 				}
 			} else {
-				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID));
+				M4_LOG(GF_LOG_WARNING, ("Error: Cannot change id for track %d because it does not exist - ignoring", trackID));
 			}
 			break;
 		case TRACK_ACTION_SET_PAR:
@@ -5413,7 +5497,7 @@ static GF_Err do_track_act()
 			}
 			break;
 		case TRACK_ACTION_REFERENCE:
-			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), tka->newTrackID);
+			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), newTrackID);
 			do_save = GF_TRUE;
 			break;
 		case TRACK_ACTION_REM_NON_RAP:
@@ -5433,7 +5517,7 @@ static GF_Err do_track_act()
 			do_save = GF_TRUE;
 			break;
 		case TRACK_ACTION_SET_TIME:
-			if (!tka->trackID) {
+			if (!trackID) {
 				e = gf_isom_set_creation_time(file, tka->time, tka->time);
 				if (e) return e;
 				for (i=0; i<gf_isom_get_track_count(file); i++) {

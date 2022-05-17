@@ -28,11 +28,35 @@ MP4Box usually generates a temporary file when creating a new IsoMedia file. The
 .br
   
 .br
-Option values:
+Track identifier for track-based operations (usually referred to as tkID in the help) use the following syntax:
 .br
-Unless specified otherwise, an option of type integer expects a trackID value following it.An option of type boolean expects no following value.Note: Track operations identify tracks through their ID (usually referred to as tkID in the help), not their order.
+* INT: target is track with ID INT
+.br
+* n`INT`: target is track number INT
+.br
+* `audio`, `video`, `text`: target is first audio, video or text track
+.br
+* `audioN`, `videoN`, `textN`: target is the Nth audio, video or text track, with N=1 being the first track of desired type
 .br
   
+.br
+Option values:
+.br
+Unless specified otherwise, a track operation option of type integer expects a track identifer value following it.
+.br
+An option of type boolean expects no following value.
+.br
+  
+.br
+.TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
 .br
 .TP
 .B \-p (string)
@@ -163,12 +187,12 @@ set chapter information from given file. The following formats are supported (bu
 set chapter information from given file, using QT signaling for text tracks
 .br
 .TP
-.B \-set-track-id id1:id2
+.B \-set-track-id tkID:id2
 .br
-change id of track with id1 to id2
+change id of track to id2
 .br
 .TP
-.B \-swap-track-id id1:id2
+.B \-swap-track-id tkID1:tkID1
 .br
 swap the id between tracks with id1 to id2
 .br
@@ -268,13 +292,13 @@ set iTunes tags to file, see -h tags
 .br
 create a new grouping information in the file. Format is a colon-separated list of following options:
 .br
-* refTrack=ID: ID of the track used as a group reference. If not set, the track will belong to the same group as the previous trackID specified. If 0 or no previous track specified, a new alternate group will be created
+* refTrack=ID: track used as a group reference. If not set, the track will belong to the same group as the previous trackID specified. If 0 or no previous track specified, a new alternate group will be created
 .br
 * switchID=ID: ID of the switch group to create. If 0, a new ID will be computed for you. If <0, disables SwitchGroup
 .br
 * criteria=string: list of space-separated 4CCs
 .br
-* trackID=ID: ID of the track to add to this group
+* trackID=ID: track to add to this group
 .br
   
 .br
@@ -298,7 +322,7 @@ remove the track's group
 remove all group information from all tracks
 .br
 .TP
-.B \-ref id:XXXX:refID
+.B \-ref tkID:XXXX:refID
 .br
 add a reference of type 4CC from track ID to track refID
 .br
@@ -2829,7 +2853,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
+build: 2.1-DEV-rev143-g85028fa94-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

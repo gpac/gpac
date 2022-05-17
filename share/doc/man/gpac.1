@@ -42,6 +42,16 @@ The possible options for gpac are:
 
 .br
 .TP
+.B \-mem-track
+.br
+enable memory tracker
+.br
+.TP
+.B \-mem-track-stack
+.br
+enable memory tracker with stack dumping
+.br
+.TP
 .B \-ltf
 .br
 load test-unit filters (used for for unit tests only)
@@ -555,7 +565,7 @@ This is equivalent to specifying -o dump.264:profile=Baseline.
 .br
   
 .br
-For both syntax, it is possible to specify the filter registry name of the option, using --FNAME:OPTNAME=VAL or --FNAME@OPTNAME=VAL.
+For both syntaxes, it is possible to specify the filter registry name of the option, using --FNAME:OPTNAME=VAL or --FNAME@OPTNAME=VAL.
 .br
 In this case the option will only be set for filters which are instances of registry FNAME. This is used when several registries use same option names.
 .br
@@ -4691,7 +4701,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
+build: 2.1-DEV-rev143-g85028fa94-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

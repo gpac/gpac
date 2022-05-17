@@ -5990,6 +5990,8 @@ Description: NVidia decoder
 .br
 This filter decodes MPEG-2, MPEG-4 Part 2, AVC|H264 and HEVC streams through NVidia decoder. It allows GPU frame dispatch or direct frame copy.
 .br
+If the SDK is not available, the configuration key nvdec@disabled will be written in configuration file to avoid future load attempts.
+.br
 
 .br
 .SH Options (expert):
@@ -10554,7 +10556,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev122-ga4015fa4f-rip-gfterminal
+build: 2.1-DEV-rev143-g85028fa94-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

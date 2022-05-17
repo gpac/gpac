@@ -1220,7 +1220,7 @@ typedef struct __track_exporter
 	FILE *dump_file;
 	/*! filter session dump flags*/
 	u32 print_stats_graph;
-	/*! track type: 0: none specified, 1: video, 2: audio*/
+	/*! track type: 0: none specified, 1: video, 2: audio, 3: text*/
 	u32 track_type;
 } GF_MediaExporter;
 
@@ -1232,7 +1232,7 @@ typedef struct __track_exporter
 GF_Err gf_media_export(GF_MediaExporter *dump);
 
 #ifndef GPAC_DISABLE_VTT
-/*! dumps a webvtt tracl to a given file
+/*! dumps a webvtt track to a given file
 \param dumper media dumper object
 \param trackNumber the target track to dump
 \param merge if GF_TRUE, merge vtt cues while dumping them
