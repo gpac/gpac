@@ -4485,8 +4485,9 @@ Bool gf_filter_pck_is_blocking_ref(GF_FilterPacket *pck);
 
 
 /*!
-\addtogroup fs_props Filter Properties
-\ingroup filters__cust_grp
+\addtogroup filters__cust_grp Custom Filter
+\ingroup filters_grp
+
 \brief Custom Filter
 
 Custom filters are filters created by the app with no associated registry.
