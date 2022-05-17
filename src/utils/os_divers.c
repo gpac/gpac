@@ -2857,3 +2857,58 @@ u32 gf_sys_get_process_id()
 	return GetCurrentProcessId();
 }
 #endif
+
+#ifndef WIN32
+#include <termios.h>
+GF_EXPORT
+int gf_getch() {
+	struct termios old;
+	struct termios new;
+	int rc;
+	if (tcgetattr(0, &old) == -1) {
+		return -1;
+	}
+	new = old;
+	new.c_lflag &= ~(ICANON | ECHO);
+	new.c_cc[VMIN] = 1;
+	new.c_cc[VTIME] = 0;
+	if (tcsetattr(0, TCSANOW, &new) == -1) {
+		return -1;
+	}
+	rc = getchar();
+	(void) tcsetattr(0, TCSANOW, &old);
+	return rc;
+}
+#else
+GF_EXPORT
+int gf_getch() {
+	return getchar();
+}
+#endif
+
+GF_EXPORT
+Bool gf_read_line_input(char * line, int maxSize, Bool showContent) {
+	char read;
+	int i = 0;
+	if (fflush( stderr ))
+		perror("Failed to flush buffer %s");
+	do {
+		line[i] = '\0';
+		if (i >= maxSize - 1)
+			return GF_FALSE;
+		read = gf_getch();
+		if (read == 8 || read == 127) {
+			if (i > 0) {
+				fprintf(stderr, "\b \b");
+				i--;
+			}
+		} else if (read > 32) {
+			fputc(showContent ? read : '*', stderr);
+			line[i++] = read;
+		}
+		fflush(stderr);
+	} while (read != '\n');
+	if (!read)
+		return GF_FALSE;
+	return GF_TRUE;
+}
