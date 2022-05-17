@@ -906,6 +906,10 @@ setup_route:
 		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 	}
 
+	if (group->dash->mpd->suggested_presentation_delay) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Applying suggested presentation delay of %ums\n", group->dash->mpd->suggested_presentation_delay));
+		availabilityStartTime += group->dash->mpd->suggested_presentation_delay;
+	}
 
 #ifdef FORCE_DESYNC
 	availabilityStartTime -= FORCE_DESYNC;
