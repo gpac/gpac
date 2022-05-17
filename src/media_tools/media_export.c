@@ -1100,6 +1100,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 					} else if (dumper->track_type) {
 						if ((dumper->track_type==1) && (tki->stream_type!=GF_STREAM_VISUAL)) continue;
 						if ((dumper->track_type==2) && (tki->stream_type!=GF_STREAM_AUDIO)) continue;
+						if ((dumper->track_type==3) && (tki->stream_type!=GF_STREAM_TEXT)) continue;
 					}
 
 					found = GF_TRUE;
@@ -1319,7 +1320,7 @@ static GF_Err gf_media_export_filters(GF_MediaExporter *dumper)
 	}
 
 	if (dumper->track_type) {
-		const char *mtype = (dumper->track_type==1) ? "video" : "audio";
+		const char *mtype = (dumper->track_type==1) ? "video" : ((dumper->track_type==2) ? "audio" : "text");
 		if (dumper->trackID) {
 			sprintf(szSubArgs, "%s%d", mtype, dumper->trackID);
 		} else {

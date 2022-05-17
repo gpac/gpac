@@ -11,6 +11,9 @@
 - subtitle delay and position adjustment
 - audio delay adjustment
 
+## MP4Box
+- allow numbers and media types as identifiers for track actions
+
 ## Filters
 - UTC-based range extraction in reframer
 - Thumbnail generator filter
