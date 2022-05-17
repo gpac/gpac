@@ -382,7 +382,7 @@ GF_Err reframer_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	return GF_OK;
 }
 
-static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode)
+static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx_plus_one, u32 *extract_mode, Bool *is_dur)
 {
 	u64 v;
 	value->num  =0;
@@ -390,6 +390,8 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 
 	if (extract_mode)
 		*extract_mode = EXTRACT_RANGE;
+	if (is_dur)
+		*is_dur = GF_FALSE;
 
 	if (date[0] == 'T') {
 		u32 h=0, m=0, s=0, ms=0;
@@ -433,12 +435,21 @@ static Bool reframer_parse_date(char *date, GF_Fraction64 *value, u64 *frame_idx
 	if ((date[0]=='D') || (date[0]=='d')) {
 		if (extract_mode)
 			*extract_mode = EXTRACT_DUR;
+		if (is_dur)
+			*is_dur = GF_TRUE;
+
 		if (sscanf(date+1, LLD"/"LLU, &value->num, &value->den)==2) {
+			return GF_TRUE;
+		}
+		if (strchr(date+1, '.')) {
+			Double res = atof(date+1);
+			value->den = 1000000;
+			value->num = (s64) (res * value->den);
 			return GF_TRUE;
 		}
 		if (sscanf(date+1, LLU, &v)==1) {
 			value->num = v;
-			value->den = 1000;
+			value->den = 1;
 			return GF_TRUE;
 		}
 	}
@@ -525,7 +536,7 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 	if (!end_date) ctx->range_type = RANGE_OPEN;
 	else ctx->range_type = RANGE_CLOSED;
 
-	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode)) {
+	if (!reframer_parse_date(start_date, &ctx->cur_start, &ctx->start_frame_idx_plus_one, &ctx->extract_mode, NULL)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse start date, assuming end of ranges\n"));
 		//done
 		ctx->range_type = RANGE_DONE;
@@ -590,13 +601,20 @@ static void reframer_load_range(GF_ReframerCtx *ctx)
 		}
 	}
 	if (end_date) {
-		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL)) {
+		Bool is_dur = GF_FALSE;
+		if (!reframer_parse_date(end_date, &ctx->cur_end, &ctx->end_frame_idx_plus_one, NULL, &is_dur)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] cannot parse end date, assuming open range\n"));
 			ctx->range_type = RANGE_OPEN;
-		}
-		else if (gf_timestamp_greater_or_equal(ctx->cur_start.num, ctx->cur_start.den, ctx->cur_end.num, ctx->cur_end.den) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] End range before start range, assuming open range\n"));
-			ctx->range_type = RANGE_OPEN;
+		} else {
+			if (is_dur) {
+				ctx->cur_end.num = gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, ctx->cur_start.den);
+				ctx->cur_end.den = ctx->cur_start.den;
+				ctx->cur_end.num += ctx->cur_start.num;
+			}
+			if (gf_timestamp_greater_or_equal(ctx->cur_start.num, ctx->cur_start.den, ctx->cur_end.num, ctx->cur_end.den) ) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] End range before start range, assuming open range\n"));
+				ctx->range_type = RANGE_OPEN;
+			}
 		}
 	}
 
@@ -2649,8 +2667,8 @@ GF_FilterRegister ReframerRegister = {
 		"The formats allowed for times specifiers are:\n"
 		"- 'T'H:M:S, 'T'M:S: specify time in hours, minutes, seconds\n"
 		"- 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds\n"
-		"- INT, FLOAT: specify time in seconds\n"
-		"- NUM/DEN: specify time in seconds as fraction\n"
+		"- INT, FLOAT, NUM/DEN: specify time in seconds (number or fraction)\n"
+		"- 'D'INT, 'D'FLOAT, 'D'NUM/DEN: specify end time as offset to start time in seconds (number or fraction) - only valid for [-xe]()\n"
 		"- 'F'NUM: specify time as frame number\n"
 		"- XML DateTime: specify absolute UTC time\n"
 		"  \n"
@@ -2664,8 +2682,8 @@ GF_FilterRegister ReframerRegister = {
 		"- if a following start range is set, the end range is set to this next start\n"
 		"- otherwise, the end range is open\n"
 		"\n"
-		"EX gpac -i m.mp4 reframer:xs=0,10,25:xe=5 [dst]\n"
-		"This will extract the time ranges [0s,5s], [10s,25s] and all media starting from 25s\n"
+		"EX gpac -i m.mp4 reframer:xs=0,10,25:xe=5,20 [dst]\n"
+		"This will extract the time ranges [0s,5s], [10s,20s] and all media starting from 25s\n"
 		"EX gpac -i m.mp4 reframer:xs=0,10,25 [dst]\n"
 		"This will extract the time ranges [0s,10s], [10s,25s] and all media starting from 25s\n"
 		"\n"
@@ -2712,7 +2730,7 @@ GF_FilterRegister ReframerRegister = {
 		"The filter can perform splitting of the source using [-xs]() option.\n"
 		"The additional formats allowed for [-xs]() option are:\n"
 		"- `SAP`: split source at each SAP/RAP\n"
-		"- `D`VAL: split source by chunks of `VAL` ms\n"
+		"- `D`VAL: split source by chunks of `VAL` seconds\n"
 		"- `D`NUM/DEN: split source by chunks of `NUM/DEN` seconds\n"
 		"- `S`VAL: split source by chunks of estimated size `VAL` bytes (can use property multipliers, e.g. `m`)\n"
 		"\n"

@@ -3153,9 +3153,9 @@ The formats allowed for times specifiers are:
 .br
 * 'T'H:M:S.MS, 'T'M:S.MS, 'T'S.MS: specify time in hours, minutes, seconds and milliseconds
 .br
-* INT, FLOAT: specify time in seconds
+* INT, FLOAT, NUM/DEN: specify time in seconds (number or fraction)
 .br
-* NUM/DEN: specify time in seconds as fraction
+* 'D'INT, 'D'FLOAT, 'D'NUM/DEN: specify end time as offset to start time in seconds (number or fraction) - only valid for .I xe
 .br
 * 'F'NUM: specify time as frame number
 .br
@@ -3189,11 +3189,11 @@ If no end range is found for a given start range:
 .br
 Example
 .br
-gpac -i m.mp4 reframer:xs=0,10,25:xe=5 [dst]
+gpac -i m.mp4 reframer:xs=0,10,25:xe=5,20 [dst]
 .br
 
 .br
-This will extract the time ranges [0s,5s], [10s,25s] and all media starting from 25s
+This will extract the time ranges [0s,5s], [10s,20s] and all media starting from 25s
 .br
 Example
 .br
@@ -3301,7 +3301,7 @@ The additional formats allowed for .I xs option are:
 .br
 * `SAP`: split source at each SAP/RAP
 .br
-* `D`VAL: split source by chunks of VAL ms
+* `D`VAL: split source by chunks of VAL seconds
 .br
 * `D`NUM/DEN: split source by chunks of NUM/DEN seconds
 .br
@@ -10556,7 +10556,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev143-g85028fa94-master
+build: 2.1-DEV-rev153-gd81eae0ce-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
