@@ -1990,8 +1990,6 @@ static void gpac_sig_handler(int sig)
 #endif
 		nb_loops = 0;
 		if (session) {
-			char input=0;
-			int res;
 			if (signal_catched) {
 				if (signal_processed) {
 					fprintf(stderr, "catched SIGINT|SIGTERM twice and session not responding, forcing exit.\n");
@@ -2001,11 +1999,12 @@ static void gpac_sig_handler(int sig)
 
 			signal_catched = GF_TRUE;
 			if (is_inter) {
+				char input;
 				in_sig_handler = GF_TRUE;
 				fprintf(stderr, "\nToggle reports (r), or exit with fast (Y), full (f) or no (n) session flush ? \n");
 rescan:
-				res = scanf("%c", &input);
-				if (res!=1) input=0;
+				input = gf_getch();
+				if (!input || input == 0x0A || input == 0x0D) input = 'Y'; // user pressed "return"
 				switch (input) {
 				case 'Y':
 				case 'y':
