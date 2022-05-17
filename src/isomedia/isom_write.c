@@ -5072,7 +5072,9 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		GF_EdtsEntry *ent;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(trak->editBox->editList->entryList, &i))) {
-			ent->mediaTime = (u32) (scale*ent->mediaTime);
+			//only update if media time is >=0 (neg means empty edit)
+			if (ent->mediaTime>=0)
+				ent->mediaTime = (u32) (scale*ent->mediaTime);
 		}
 	}
 	if (! stbl || !stbl->TimeToSample || !stbl->TimeToSample->nb_entries) {
