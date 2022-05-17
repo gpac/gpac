@@ -665,6 +665,13 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argna
 	return GF_FALSE;
 }
 
+void task_canceled(GF_FSTask *task);
+static void gf_task_del(void *p)
+{
+	GF_FSTask *t = (GF_FSTask *) p;
+	task_canceled(t);
+	gf_free(p);
+}
 
 GF_EXPORT
 void gf_fs_del(GF_FilterSession *fsess)
@@ -762,14 +769,14 @@ void gf_fs_del(GF_FilterSession *fsess)
 	}
 
 	if (fsess->tasks)
-		gf_fq_del(fsess->tasks, gf_void_del);
+		gf_fq_del(fsess->tasks, gf_task_del);
 
 	if (fsess->tasks_reservoir)
 		gf_fq_del(fsess->tasks_reservoir, gf_void_del);
 
 	if (fsess->threads) {
 		if (fsess->main_thread_tasks)
-			gf_fq_del(fsess->main_thread_tasks, gf_void_del);
+			gf_fq_del(fsess->main_thread_tasks, gf_task_del);
 
 		while (gf_list_count(fsess->threads)) {
 			GF_SessionThread *sess_th = gf_list_pop_back(fsess->threads);
@@ -3660,7 +3667,7 @@ typedef struct
 #endif
 } GF_UserTask;
 
-static void do_fs_user_task(GF_FSTask *task, Bool free_log_name)
+static void gf_fs_user_task(GF_FSTask *task)
 {
 	u32 reschedule_ms=0;
 	GF_UserTask *utask = (GF_UserTask *)task->udta;
@@ -3682,21 +3689,12 @@ static void do_fs_user_task(GF_FSTask *task, Bool free_log_name)
 		gf_free(utask);
 		task->udta = NULL;
 		//we duplicated the name for user tasks
-		if (free_log_name)
-			gf_free((char *) task->log_name);
+		gf_free((char *) task->log_name);
 		task->requeue_request = GF_FALSE;
 	} else {
 		assert(task->requeue_request);
 		task->schedule_next_time = gf_sys_clock_high_res() + 1000*reschedule_ms;
 	}
-}
-static void gf_fs_user_task(GF_FSTask *task)
-{
-	do_fs_user_task(task, GF_FALSE);
-}
-static void gf_fs_user_task_free_log(GF_FSTask *task)
-{
-	do_fs_user_task(task, GF_TRUE);
 }
 
 
@@ -3712,8 +3710,7 @@ static GF_Err gf_fs_post_user_task_internal(GF_FilterSession *fsess, Bool (*task
 	utask->task_execute = task_execute;
 	//dup mem for user task
 	_log_name = gf_strdup(log_name ? log_name : "user_task");
-	//we don't use TASK_TYPE_USER because this is not a filter task
-	gf_fs_post_task_ex(fsess, gf_fs_user_task_free_log, NULL, NULL, _log_name, utask, GF_FALSE, force_main, GF_FALSE, TASK_TYPE_NONE);
+	gf_fs_post_task_ex(fsess, gf_fs_user_task, NULL, NULL, _log_name, utask, GF_FALSE, force_main, GF_FALSE, TASK_TYPE_USER);
 	return GF_OK;
 }
 
@@ -3739,7 +3736,15 @@ GF_Err gf_filter_post_task(GF_Filter *filter, Bool (*task_execute) (GF_Filter *f
 	utask->callback = udta;
 	utask->task_execute_filter = task_execute;
 	utask->fsess = filter->session;
-	gf_fs_post_task_class(filter->session, gf_fs_user_task, filter, NULL, task_name ? task_name : "user_task", utask, TASK_TYPE_USER);
+	char *_log_name=NULL;
+	if (task_name) {
+		_log_name = gf_strdup(task_name);
+	} else {
+		gf_dynstrcat(&_log_name, filter->name, NULL);
+		gf_dynstrcat(&_log_name, "_task", NULL);
+	}
+
+	gf_fs_post_task_class(filter->session, gf_fs_user_task, filter, NULL, _log_name, utask, TASK_TYPE_USER);
 	return GF_OK;
 }
 

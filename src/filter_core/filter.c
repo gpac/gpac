@@ -31,6 +31,7 @@ void gf_void_del(void *p)
 {
 	gf_free(p);
 }
+
 void gf_filterpacket_del(void *p)
 {
 	GF_FilterPacket *pck=(GF_FilterPacket *)p;

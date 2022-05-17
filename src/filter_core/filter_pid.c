@@ -682,7 +682,7 @@ void gf_filter_instance_detach_pid(GF_FilterPidInst *pidinst)
 	pidinst->filter = NULL;
 }
 
-static void task_canceled(GF_FSTask *task)
+void task_canceled(GF_FSTask *task)
 {
 	if (task->class_type==TASK_TYPE_EVENT) {
 		GF_FilterEvent *evt = task->udta;
@@ -693,6 +693,8 @@ static void task_canceled(GF_FSTask *task)
 	}
 	else if (task->class_type==TASK_TYPE_USER) {
 		gf_free(task->udta);
+		gf_free((char *)task->log_name);
+		task->log_name = NULL;
 	}
 }
 
