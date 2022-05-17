@@ -4935,12 +4935,8 @@ static GF_Err do_export_tracks()
 		mdump.file = file;
 		mdump.flags = tka->dump_type;
 		mdump.sample_num = tka->sample_num;
+		//this can be 0
 		mdump.trackID = get_track_id(file, &tka->target_track);
-		if (!mdump.trackID) {
-			M4_LOG(GF_LOG_ERROR, ("Track not found\n"));
-			e = GF_BAD_PARAM;
-			return e;
-		}
 
 		if (tka->out_name) {
 			mdump.out_name = tka->out_name;
