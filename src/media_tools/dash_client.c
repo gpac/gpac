@@ -154,12 +154,12 @@ struct __dash_client
 
 	Bool ignore_xlink;
 
-	u32 suggested_presentation_delay;
+	s32 suggested_presentation_delay;
 
 	//0: not ROUTE - 1: ROUTE but clock not init - 2: ROUTE clock init
 	u32 route_clock_state;
 	//ROUTE AST shift in ms
-	u32 route_ast_shift;
+	s32 route_ast_shift;
 	u32 route_skip_segments_ms;
     Bool route_low_latency;
 	u32 route_last_retune;
@@ -908,8 +908,8 @@ setup_route:
 		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 	}
 
-	if (group->dash->mpd->suggested_presentation_delay || group->dash->suggested_presentation_delay) {
-		u32 spd = group->dash->suggested_presentation_delay ? group->dash->suggested_presentation_delay : group->dash->mpd->suggested_presentation_delay;
+	if (group->dash->mpd->suggested_presentation_delay || group->dash->suggested_presentation_delay != GF_INT_MIN) {
+		s32 spd = group->dash->suggested_presentation_delay != GF_INT_MIN ? group->dash->suggested_presentation_delay : group->dash->mpd->suggested_presentation_delay;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Applying suggested presentation delay of %ums\n", spd));
 		availabilityStartTime += spd;
 	}
@@ -9952,13 +9952,13 @@ void gf_dash_ignore_xlink(GF_DashClient *dash, Bool ignore_xlink)
 }
 
 GF_EXPORT
-void gf_dash_set_suggested_presentation_delay(GF_DashClient *dash, u32 spd)
+void gf_dash_set_suggested_presentation_delay(GF_DashClient *dash, s32 spd)
 {
 	dash->suggested_presentation_delay = spd;
 }
 
 GF_EXPORT
-void gf_dash_set_route_ast_shift(GF_DashClient *dash, u32 ast_shift)
+void gf_dash_set_route_ast_shift(GF_DashClient *dash, s32 ast_shift)
 {
 	dash->route_ast_shift = ast_shift;
 }
