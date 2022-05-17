@@ -581,13 +581,22 @@ Flushes bitstream contet to disk
 void gf_bs_flush(GF_BitStream *bs);
 
 /*!
-\brief AVC&HEVC Annex B mode, only used for read mode
+\brief NALU-based Annex B mode, only used for read mode
 
-Enables or disable emulation byte prevention for AVC and HEVC annex B formats in read mode. This does NOT apply to \ref gf_bs_read_data nor  \ref gf_bs_skip_bytes
+Enables or disable emulation byte prevention for NALU-based  annex B formats in read mode. This does NOT apply to \ref gf_bs_read_data nor  \ref gf_bs_skip_bytes
 \param bs the target bitstream
 \param do_remove if true, emulation prevention bytes will be removed
  */
 void gf_bs_enable_emulation_byte_removal(GF_BitStream *bs, Bool do_remove);
+
+/*!
+\brief NALU-based Annex B mode, only used for read mode
+
+Enables or disable emulation byte prevention for NALU-based  annex B formats in read mode.
+\param bs the target bitstream
+\return number of bytes currently removed
+ */
+u32 gf_bs_get_emulation_byte_removed(GF_BitStream *bs);
 
 /*!
 \brief Inserts a data block, moving bytes to the end

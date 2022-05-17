@@ -7230,7 +7230,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, VVCState *vvc)
 {
-	u32 ptype, psize, hdr;
+	u32 ptype, psize, hdr, i;
+	u8 *dst_ptr;
 	u64 start;
 	GF_BitStream *bs;
 
@@ -7244,7 +7245,7 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
-		u32 consumed;
+		u32 consumed, nb_zeros;
 		ptype = 0;
 		while (gf_bs_peek_bits(bs, 8, 0)==0xFF) {
 			gf_bs_read_int(bs, 8);
@@ -7264,40 +7265,54 @@ static void gf_hevc_vvc_parse_sei(char *buffer, u32 nal_size, HEVCState *hevc, V
 			break;
 		}
 
+		nb_zeros = gf_bs_get_emulation_byte_removed(bs);
+
 		switch (ptype) {
 		case 4: /*user registered ITU-T T35*/
 			if (hevc) {
 				avc_parse_itu_t_t35_sei(bs, &hevc->sei.dovi);
 			}
 			break;
+		//clli
 		case 144:
-			//clli
+			dst_ptr = hevc ? hevc->clli_data : vvc->clli_data;
+			//do not use read data due to possible EPB
+			for (i=0; i<4; i++)
+				dst_ptr[i] = gf_bs_read_u8(bs);
+
 			if (hevc) {
-				gf_bs_read_data(bs, hevc->clli_data, 4);
 				hevc->clli_valid = 1;
 			} else {
-				gf_bs_read_data(bs, vvc->clli_data, 4);
 				vvc->clli_valid = 1;
 			}
 			break;
+		//mdcv
 		case 137:
-			//mdcv
+			dst_ptr = hevc ? hevc->mdcv_data : vvc->mdcv_data;
+			//do not use read data due to possible EPB
+			for (i=0; i<24; i++)
+				dst_ptr[i] = gf_bs_read_u8(bs);
+
 			if (hevc) {
-				gf_bs_read_data(bs, hevc->mdcv_data, 24);
 				hevc->mdcv_valid = 1;
 			} else {
-				gf_bs_read_data(bs, vvc->mdcv_data, 24);
 				vvc->mdcv_valid = 1;
 			}
 			break;
 		default:
 			break;
 		}
+		nb_zeros = gf_bs_get_emulation_byte_removed(bs) - nb_zeros;
 
 		gf_bs_align(bs);
 		consumed = (u32) (gf_bs_get_position(bs) - start);
+		consumed -= nb_zeros;
 		psize-=consumed;
-		gf_bs_skip_bytes(bs, psize);
+		//do not use skip bytes due to possible EPB
+		while (psize) {
+			gf_bs_read_u8(bs);
+			psize--;
+		}
 		if (gf_bs_available(bs) <= 2)
 			break;
 	}
