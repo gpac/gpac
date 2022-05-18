@@ -1782,6 +1782,7 @@ skip_date:
 				internal_arg = GF_TRUE;
 			}
 			else if (!value && gf_file_exists(szArg)) {
+				internal_arg = GF_TRUE;
 				if (!for_script && (argfile_level<5) ) {
 					char szLine[2001];
 					FILE *arg_file = gf_fopen(szArg, "rt");
@@ -1793,6 +1794,13 @@ skip_date:
 						res_line = gf_fgets(szLine, 2000, arg_file);
 						if (!res_line) break;
 						llen = (u32) strlen(szLine);
+						//make sure we have a legal UTF8 file
+						if (! gf_utf8_is_legal(szLine, llen)) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter argument file \"%s\" is not a valid UTF-8 file, ignoring\n", szArg));
+							internal_arg = GF_FALSE;
+							break;
+						}
+
 						while (llen && strchr(" \n\r\t", szLine[llen-1])) {
 							szLine[llen-1]=0;
 							llen--;
@@ -1812,7 +1820,6 @@ skip_date:
 				} else if (!for_script) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter argument file has too many nested levels of sub-files, maximum allowed is 5\n"));
 				}
-				internal_arg = GF_TRUE;
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_Err e = GF_OK;
@@ -3378,6 +3385,7 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 {
 	u32 i;
 	char *src_url=NULL;
+	char *src_args=NULL;
 	GF_Filter *target_filter=NULL;
 	GF_Err e;
 	const GF_FilterArgs *src_arg=NULL;
@@ -3434,7 +3442,25 @@ Bool gf_filter_swap_source_register(GF_Filter *filter)
 
 	target_filter = filter->target_filter;
 	filter->finalized = GF_FALSE;
-	gf_fs_load_source_dest_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL);
+
+	//reload using same args
+	src_args = NULL;
+	if (filter->src_args) {
+		src_args = filter->src_args;
+		filter->src_args = NULL;
+	}
+	else if (filter->orig_args) {
+		src_args = filter->orig_args;
+		filter->orig_args = NULL;
+	}
+	if (filter->orig_args) {
+		gf_free(filter->orig_args);
+		filter->orig_args = NULL;
+	}
+
+	gf_fs_load_source_dest_internal(filter->session, src_url, src_args, NULL, &e, filter, filter->target_filter ? filter->target_filter : filter->dst_filter, GF_TRUE, filter->no_dst_arg_inherit, NULL);
+	if (src_args) gf_free(src_args);
+
 	//we manage to reassign an input registry
 	if (e==GF_OK) {
 		gf_free(src_url);
