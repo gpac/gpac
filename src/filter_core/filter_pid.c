@@ -1431,6 +1431,8 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 	if (pent) {
 		u32 matched=0;
 		u32 type=0;
+		u32 ptype = pent->prop.value.uint;
+
 		if (!strnicmp(frag_name, "audio", 5)) {
 			matched=5;
 			type=GF_STREAM_AUDIO;
@@ -1446,13 +1448,29 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 		} else if (!strnicmp(frag_name, "text", 4)) {
 			matched=4;
 			type=GF_STREAM_TEXT;
+		} else {
+			//frag name is a 4CC, check if we have an isom handler set
+			//if same 4CC consider we have a match
+			if (strlen(frag_name)==4) {
+				pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_ISOM_HANDLER);
+				if (pent && (pent->prop.value.uint == gf_4cc_parse(frag_name)) ) {
+					matched=4;
+					type = ptype;
+				}
+			}
 		}
+		//stream is encrypted and desired type is not, get original stream type
+		if ((ptype == GF_STREAM_ENCRYPTED) && type && (type != GF_STREAM_ENCRYPTED) ) {
+			pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_ORIG_STREAM_TYPE);
+			if (pent) ptype = pent->prop.value.uint;
+		}
+
 		if (matched &&
-			( (!is_neg && (type != pent->prop.value.uint)) || (is_neg && (type == pent->prop.value.uint)) )
+			( (!is_neg && (type != ptype)) || (is_neg && (type == ptype)) )
 		) {
 			//special case: if we request a non-file stream but the pid is a file, we will need a demux to
 			//move from file to A/V/... streams, so we accept any #MEDIA from file streams
-			if (pent->prop.value.uint == GF_STREAM_FILE) {
+			if (ptype == GF_STREAM_FILE) {
 				*prop_not_found = GF_TRUE;
 				return GF_TRUE;
 			}
