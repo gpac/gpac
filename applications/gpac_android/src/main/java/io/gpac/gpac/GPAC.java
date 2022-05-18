@@ -84,6 +84,10 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.content.res.AssetManager;
 import android.os.Environment;
+import android.Manifest;
+import android.support.v4.app.ActivityCompat;
+import android.os.Build;
+import android.content.pm.PackageManager;
 
 import android.os.Handler;
 import android.os.Message;
@@ -171,6 +175,8 @@ public class GPAC extends Activity {
 	private boolean in_session = false;
 	private boolean session_aborted = false;
 
+	private static final int WRITE_PERM_REQUEST = 112;
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -224,6 +230,14 @@ public class GPAC extends Activity {
 
 		//create layout + GLSurface
         setContentView(R.layout.main);
+
+
+		if (Build.VERSION.SDK_INT >= 23) {
+		    String[] PERMISSIONS = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
+		    if (!hasPermissions(context, PERMISSIONS)) {
+		        ActivityCompat.requestPermissions((Activity) context, PERMISSIONS, WRITE_PERM_REQUEST );
+		    }
+		}
 
 		final View contentView = (LinearLayout)findViewById(R.id.surface_gl);
 		View decor_view = getWindow().getDecorView();
@@ -317,6 +331,29 @@ public class GPAC extends Activity {
 		//done
 	}
 
+	private static boolean hasPermissions(Context context, String[] permissions) {
+	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
+	        for (String permission : permissions) {
+	            if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+	                return false;
+	            }
+	        }
+	    }
+	    return true;
+	}
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+	    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+	    switch (requestCode) {
+	        case WRITE_PERM_REQUEST: {
+	            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+	            } else {
+	                displayPopup("The app was not allowed to write in your storage", "Error Requesting file write permissions");
+	            }
+	        }
+	    }
+	}
     /*
      * Copy /share elements
      *
@@ -745,6 +782,16 @@ public class GPAC extends Activity {
             case R.id.quit:
                 this.finish();
                 return true;
+            case R.id.resetConfig:
+				displayPopup("Loaded new configuration file", "GPAC config reset");
+				if (in_session) {
+					session_aborted=true;
+					abort_session();
+				}
+				reset_config();
+                openURLasync("gpac -h");
+                return true;
+                
 /*			case R.id.testAuth:
                 Intent intent = new Intent(GPAC.this, URLAuthenticate.class);
 				intent.putExtra("URL", "http://bar.foo/test");
@@ -1416,5 +1463,6 @@ public class GPAC extends Activity {
     public native String error_to_string(int err_code);
 
 	public native void abort_session();
+    private native void reset_config();
 
 }

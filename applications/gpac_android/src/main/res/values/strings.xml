@@ -32,6 +32,7 @@
     <string name="requestPermissionStorage">You need to give permission to access External Storage</string>
     <!-- string name="testAuth">Test Auth</string -->
     <string name="authName">Authentication Required</string>
+    <string name="resetConfig">Reset GPAC config</string>
 
 
 </resources>

@@ -573,6 +573,11 @@ JNIEXPORT void JNICALL gpac_jni_abort_session(JNIEnv * env, jobject obj)
 	gpac_abort();
 }
 
+JNIEXPORT void JNICALL gpac_jni_reset_config(JNIEnv * env, jobject obj)
+{
+	gf_opts_set_key("core", "reset", "yes");
+}
+
 //from  https://codelab.wordpress.com/2014/11/03/how-to-use-standard-output-streams-for-logging-in-android-apps/
 #include <unistd.h>
 static int pipe_fd[2];
@@ -814,6 +819,7 @@ static JNINativeMethod sMethods[] = {
 	{	"load_service", "(Ljava/lang/String;)I", (void*)gpac_jni_load_service},
 	{	"error_to_string", "(I)Ljava/lang/String;", (void*)gpac_jni_error_to_string},
 	{	"abort_session", "()V", (void*)gpac_jni_abort_session},
+	{	"reset_config", "()V", (void*)gpac_jni_reset_config},
 	NULL
 };
 

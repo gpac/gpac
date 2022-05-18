@@ -36,6 +36,13 @@
 		android:title="@string/runMP4Box"
 		android:visible="true" />
 
+	<item
+		android:id="@+id/resetConfig"
+		android:checkable="false"
+		android:enabled="true"
+		android:title="@string/resetConfig"
+		android:visible="true" />
+
 	<!-- item
 		android:id="@+id/testAuth"
 		android:checkable="false"
