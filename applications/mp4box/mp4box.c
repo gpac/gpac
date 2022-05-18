@@ -368,7 +368,7 @@ u32 parse_u32(char *val, char *log_name)
 {
 	u32 res;
 	if (sscanf(val, "%u", &res)==1) return res;
-	M4_LOG(GF_LOG_WARNING, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
+	M4_LOG(GF_LOG_ERROR, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
 	return 0;
 }
 
@@ -376,7 +376,7 @@ s32 parse_s32(char *val, char *log_name)
 {
 	s32 res;
 	if (sscanf(val, "%d", &res)==1) return res;
-	M4_LOG(GF_LOG_WARNING, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
+	M4_LOG(GF_LOG_ERROR, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
 	return 0;
 }
 
