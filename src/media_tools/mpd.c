@@ -2655,8 +2655,10 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 {
 	if (s->timescale) gf_fprintf(out, " timescale=\"%d\"", s->timescale);
 	if (s->presentation_time_offset) gf_fprintf(out, " presentationTimeOffset=\""LLU"\"", s->presentation_time_offset);
-	if (s->index_range_exact) gf_fprintf(out, " indexRangeExact=\"true\"");
-	if (s->index_range) gf_fprintf(out, " indexRange=\""LLD"-"LLD"\"", s->index_range->start_range, s->index_range->end_range);
+	if (s->index_range && s->index_range->end_range) {
+		if (s->index_range_exact) gf_fprintf(out, " indexRangeExact=\"true\"");
+		if (s->index_range) gf_fprintf(out, " indexRange=\""LLD"-"LLD"\"", s->index_range->start_range, s->index_range->end_range);
+	}
 	if (s->availability_time_offset) gf_fprintf(out, " availabilityTimeOffset=\"%g\"", s->availability_time_offset);
 	if ((s32) s->time_shift_buffer_depth > 0)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", s->time_shift_buffer_depth, GF_TRUE);
