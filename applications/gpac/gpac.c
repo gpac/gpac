@@ -254,6 +254,22 @@ static int gpac_exit_fun(int code, char **alias_argv, int alias_argc)
 	return 0;
 }
 
+u32 get_u32(char *val, char *log_name)
+{
+	u32 res;
+	if (sscanf(val, "%u", &res)==1) return res;
+	GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
+	return 0;
+}
+s32 get_s32(char *val, char *log_name)
+{
+	s32 res;
+	if (sscanf(val, "%d", &res)==1) return res;
+	GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
+	return 0;
+}
+
+
 #define gpac_exit(_code) \
 	return gpac_exit_fun(_code, alias_argv, alias_argc)
 
@@ -647,17 +663,17 @@ int gpac_main(int argc, char **argv)
 			sflags |= GF_FS_FLAG_LOAD_META;
 		} else if (!strcmp(arg, "-sloop")) {
 			nb_loops = -1;
-			if (arg_val) nb_loops = atoi(arg_val);
+			if (arg_val) nb_loops = get_s32(arg_val, "sloop");
 		} else if (!strcmp(arg, "-runfor")) {
-			if (arg_val) runfor = 1000*atoi(arg_val);
+			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
 		} else if (!strcmp(arg, "-runforx")) {
-			if (arg_val) runfor = 1000*atoi(arg_val);
+			if (arg_val) runfor = 1000*get_u32(arg_val, "runforx");
 			runfor_exit = GF_TRUE;
 		} else if (!strcmp(arg, "-runfors")) {
-			if (arg_val) runfor = 1000*atoi(arg_val);
+			if (arg_val) runfor = 1000*get_u32(arg_val, "runfors");
 			exit_mode = 1;
 		} else if (!strcmp(arg, "-runforl")) {
-			if (arg_val) runfor = 1000*atoi(arg_val);
+			if (arg_val) runfor = 1000*get_u32(arg_val, "runforl");
 			exit_mode = 2;
 		} else if (!strcmp(arg, "-uncache")) {
 			const char *cache_dir = gf_opts_get_key("core", "cache");
@@ -966,7 +982,7 @@ restart:
 					reverse_order = GF_TRUE;
 					link++;
 				}
-				link_filter_idx = atoi(link+1);
+				link_filter_idx = get_u32(link+1, "Link filter index");
 				if (link_filter_idx < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
 					e = GF_BAD_PARAM;

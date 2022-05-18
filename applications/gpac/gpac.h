@@ -37,6 +37,10 @@
 //gpac is loaded with gui but uses event proc (ios only for now)
 #define LOAD_GUI_CBK	4
 
+u32 get_u32(char *val, char *log_name);
+s32 get_s32(char *val, char *log_name);
+
+
 void load_compositor(GF_Filter *f);
 void unload_compositor(void);
 Bool mp4c_event_proc(void *ptr, GF_Event *evt);

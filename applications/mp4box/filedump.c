@@ -4246,7 +4246,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	if (out_name) {
 		char *pid = strrchr(out_name, '#');
 		if (pid) {
-			dumper.dump_pid = atoi(pid+1);
+			dumper.dump_pid = parse_u32(pid+1, "PID");
 			pid[0] = 0;
 			sprintf(dumper.dump, "%s_%d.raw", out_name, dumper.dump_pid);
 			dumper.pes_out = gf_fopen(dumper.dump, "wb");

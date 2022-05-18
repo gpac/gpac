@@ -370,23 +370,23 @@ int live_session(int argc, char **argv)
 		char *arg = argv[i];
 		if (arg[0] != '-') filename = arg;
 		else if (!strnicmp(arg, "-dst=", 5)) dst = arg+5;
-		else if (!strnicmp(arg, "-port=", 6)) dst_port = atoi(arg+6);
+		else if (!strnicmp(arg, "-port=", 6)) dst_port = parse_u32(arg+6, "port");
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_name = arg+5;
-		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
-		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
+		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = parse_u32(arg+5, "mtu");
+		else if (!strnicmp(arg, "-ttl=", 5)) ttl = parse_u32(arg+5, "ttl");
 		else if (!strnicmp(arg, "-no-rap", 7)) no_rap = 1;
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
 		else if (!strnicmp(arg, "-udp=", 5)) {
-			sk_port = atoi(arg+5);
+			sk_port = parse_u32(arg+5, "udp");
 			udp = 1;
 		}
 		else if (!strnicmp(arg, "-tcp=", 5)) {
-			sk_port = atoi(arg+5);
+			sk_port = parse_u32(arg+5, "tcp");
 			udp = 0;
 		}
 		else if (!stricmp(arg, "-run-for")) {
-			runfor = 1 + 1000 * atoi(argv[i+1]);
+			runfor = 1 + 1000 * parse_u32(argv[i+1], "run-for");
 			i++;
 		}
 	}
@@ -598,18 +598,18 @@ int live_session(int argc, char **argv)
 					while (1) {
 						char *sep = strchr(flag, ' ');
 						if (sep) sep[0] = 0;
-						if (!strnicmp(flag, "esid=", 5)) es_id = atoi(flag+5);
-						else if (!strnicmp(flag, "period=", 7)) period = atoi(flag+7);
-						else if (!strnicmp(flag, "ts=", 3)) ts_delta = atoi(flag+3);
-						else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = atoi(flag+9);
-						else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = atoi(flag+8);
+						if (!strnicmp(flag, "esid=", 5)) es_id = parse_u32(flag+5, "esid");
+						else if (!strnicmp(flag, "period=", 7)) period = parse_u32(flag+7, "period");
+						else if (!strnicmp(flag, "ts=", 3)) ts_delta = parse_u32(flag+3, "ts");
+						else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = parse_u32(flag+9, "carousel");
+						else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = parse_u32(flag+8, "restamp");
 
-						else if (!strnicmp(flag, "discard=", 8)) discard_pending = atoi(flag+8);
-						else if (!strnicmp(flag, "aggregate=", 10)) aggregate_au = atoi(flag+10);
-						else if (!strnicmp(flag, "force_rap=", 10)) force_rap = atoi(flag+10);
-						else if (!strnicmp(flag, "rap=", 4)) signal_rap = atoi(flag+4);
-						else if (!strnicmp(flag, "critical=", 9)) signal_critical = atoi(flag+9);
-						else if (!strnicmp(flag, "vers_inc=", 9)) version_inc = atoi(flag+9);
+						else if (!strnicmp(flag, "discard=", 8)) discard_pending = parse_u32(flag+8, "discard");
+						else if (!strnicmp(flag, "aggregate=", 10)) aggregate_au = parse_u32(flag+10, "aggregate");
+						else if (!strnicmp(flag, "force_rap=", 10)) force_rap = parse_u32(flag+10, "force_rap");
+						else if (!strnicmp(flag, "rap=", 4)) signal_rap = parse_u32(flag+4, "rap");
+						else if (!strnicmp(flag, "critical=", 9)) signal_critical = parse_u32(flag+9, "critical");
+						else if (!strnicmp(flag, "vers_inc=", 9)) version_inc = parse_u32(flag+9, "vers_inc");
 						if (sep) {
 							sep[0] = ' ';
 							flag = sep+1;

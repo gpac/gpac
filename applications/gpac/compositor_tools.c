@@ -912,7 +912,7 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 		rti_file = arg_val;
 		use_rtix = GF_TRUE;
 	} else if (!strcmp(arg, "-rti-refresh")) {
-		rti_update_time_ms = arg_val ? atoi(arg_val) : 0;
+		rti_update_time_ms = arg_val ? get_s32(arg_val, "rti-refresh") : 0;
 	} else if (!strcmp(arg, "-cov")) {
 		do_coverage = GF_TRUE;
 	}
@@ -959,7 +959,7 @@ Bool mp4c_parse_arg(char *arg, char *arg_val)
 #endif
 		else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 		else if (!stricmp(arg, "-com")) send_command = arg_val;
-		else if (!stricmp(arg, "-service")) initial_service_id = arg_val ? atoi(arg_val) : 0;
+		else if (!stricmp(arg, "-service")) initial_service_id = arg_val ? get_u32(arg_val, "service") : 0;
 		else {
 			return GF_FALSE;
 		}

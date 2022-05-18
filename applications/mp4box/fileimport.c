@@ -360,7 +360,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 		else if (!strcmp(sep+1, "hlg2100")) dv_compat_id=4;
 		else if (!strcmp(sep+1, "bt2020")) dv_compat_id=5;
 		else if (!strcmp(sep+1, "brd")) dv_compat_id=6;
-		else if ((sep[1]>='0') && (sep[1]<='9')) dv_compat_id=atoi(sep+1);
+		else if ((sep[1]>='0') && (sep[1]<='9')) dv_compat_id = parse_u32(sep+1, "DV compatibility mode");
 		else {
 			M4_LOG(GF_LOG_WARNING, ("DV compatibility mode %s not recognized, using none\n", sep+1));
 		}
@@ -373,7 +373,7 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	if (!strcmp(dv_profile_str, "none")) {
 		remove = GF_TRUE;
 	} else {
-		dv_profile = atoi(dv_profile_str);
+		dv_profile = parse_u32(dv_profile_str, "DV profile");
 		if (dv_profile==8) {
 			if ((dv_compat_id!=1) && (dv_compat_id!=2)) {
 				M4_LOG(GF_LOG_ERROR, ("DV profile 8 must indicate a compatibility mode `hdr10` or `bt709`\n"));
@@ -648,7 +648,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	clap_wn = clap_wd = clap_hn = clap_hd = clap_hon = clap_hod = clap_von = clap_vod = 0;
 	GF_ISOMTrackFlagOp track_flags_mode=0;
 	u32 roll_change=0;
-	u32 roll = 0;
+	s32 roll = 0;
 	Bool src_is_isom = GF_FALSE;
 
 	dv_profile[0] = 0;
@@ -739,7 +739,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			CHECK_FAKEIMPORT("dur")
 
 			if (strchr(ext, '-')) {
-				import.duration.num = atoi(ext+5);
+				import.duration.num = parse_s32(ext+5, "dur");
 				import.duration.den = 1;
 			} else {
 				gf_parse_frac(ext+5, &import.duration);
@@ -758,7 +758,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		else if (!strnicmp(ext+1, "delay=", 6)) {
 			if (sscanf(ext+7, "%d/%u", &delay.num, &delay.den)!=2) {
-				delay.num = atoi(ext+7);
+				delay.num = parse_s32(ext+7, "delay");
 				delay.den = 1000; //in ms
 			}
 		}
@@ -844,7 +844,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			do_disable = !stricmp(ext+1, "disable=no") ? 2 : 1;
 		}
 		else if (!strnicmp(ext+1, "group=", 6)) {
-			group = atoi(ext+7);
+			group = parse_u32(ext+7, "group");
 			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
 		}
 		else if (!strnicmp(ext+1, "fps=", 4)) {
@@ -868,7 +868,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!stricmp(ext+1, "rap")) rap_only = 1;
 		else if (!stricmp(ext+1, "refs")) refs_only = 1;
 		else if (!stricmp(ext+1, "trailing")) { CHECK_FAKEIMPORT("trailing") import_flags |= GF_IMPORT_KEEP_TRAILING; }
-		else if (!strnicmp(ext+1, "agg=", 4)) { CHECK_FAKEIMPORT("agg") frames_per_sample = atoi(ext+5); }
+		else if (!strnicmp(ext+1, "agg=", 4)) { CHECK_FAKEIMPORT("agg") frames_per_sample = parse_u32(ext+5, "agg"); }
 		else if (!stricmp(ext+1, "dref")) { CHECK_FAKEIMPORT("dref")  import_flags |= GF_IMPORT_USE_DATAREF; }
 		else if (!stricmp(ext+1, "keep_refs")) { CHECK_FAKEIMPORT("keep_refs") import_flags |= GF_IMPORT_KEEP_REFS; }
 		else if (!stricmp(ext+1, "nodrop")) { CHECK_FAKEIMPORT("nodrop") import_flags |= GF_IMPORT_NO_FRAME_DROP; }
@@ -924,7 +924,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!stricmp(ext+1, "xps_inbandx")) { CHECK_FAKEIMPORT("xps_inbandx") xps_inband = 2; }
 		else if (!stricmp(ext+1, "au_delim")) { CHECK_FAKEIMPORT("au_delim") keep_audelim = GF_TRUE; }
 		else if (!strnicmp(ext+1, "max_lid=", 8) || !strnicmp(ext+1, "max_tid=", 8)) {
-			s32 val = atoi(ext+9);
+			s32 val = parse_u32(ext+9, "Max TID/LID");
 			CHECK_FAKEIMPORT_2("max_lid/lhvcmode")
 			if (val < 0) {
 				M4_LOG(GF_LOG_ERROR, ("Warning: request max layer/temporal id is negative - ignoring\n"));
@@ -965,22 +965,22 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 
 		else if (!strnicmp(ext+1, "rescale=", 8)) {
 			if (sscanf(ext+9, "%u/%u", &rescale_num, &rescale_den) != 2) {
-				rescale_num = atoi(ext+9);
+				rescale_num = parse_u32(ext+9, "rescale");
 				rescale_den = 0;
 			}
 		}
 		else if (!strnicmp(ext+1, "sampdur=", 8)) {
 			if (sscanf(ext+9, "%u/%u", &rescale_den, &rescale_num) != 2) {
-				rescale_den = atoi(ext+9);
+				rescale_den = parse_u32(ext+9, "sampdur");
 				rescale_num = 0;
 			}
 			rescale_override = GF_TRUE;
 		}
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
-			new_timescale = atoi(ext+11);
+			new_timescale = parse_u32(ext+11, "timescale");
 		}
 		else if (!strnicmp(ext+1, "moovts=", 7)) {
-			moov_timescale = atoi(ext+8);
+			moov_timescale = parse_u32(ext+8, "moovts");
 		}
 
 		else if (!stricmp(ext+1, "noedit")) { import_flags |= GF_IMPORT_NO_EDIT_LIST; }
@@ -999,23 +999,23 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			else if (!stricmp(ext+9, "extended")) profile = 88;
 			else if (!stricmp(ext+9, "main")) profile = 77;
 			else if (!stricmp(ext+9, "baseline")) profile = 66;
-			else profile = atoi(ext+9);
+			else profile = parse_u32(ext+9, "profile");
 		}
 		else if (!strnicmp(ext+1, "level=", 6)) {
 			if( atof(ext+7) < 6 )
 				level = (int)(10*atof(ext+7)+.5);
 			else
-				level = atoi(ext+7);
+				level = parse_u32(ext+7, "level");
 		}
 		else if (!strnicmp(ext+1, "compat=", 7)) {
-			compat = atoi(ext+8);
+			compat = parse_u32(ext+8, "compat");
 		}
 
 		else if (!strnicmp(ext+1, "novpsext", 8)) { CHECK_FAKEIMPORT("novpsext") import_flags |= GF_IMPORT_NO_VPS_EXTENSIONS; }
 		else if (!strnicmp(ext+1, "keepav1t", 8)) { CHECK_FAKEIMPORT("keepav1t") import_flags |= GF_IMPORT_KEEP_AV1_TEMPORAL_OBU; }
 
 		else if (!strnicmp(ext+1, "font=", 5)) { CHECK_FAKEIMPORT("font") import.fontName = gf_strdup(ext+6); }
-		else if (!strnicmp(ext+1, "size=", 5)) { CHECK_FAKEIMPORT("size") import.fontSize = atoi(ext+6); }
+		else if (!strnicmp(ext+1, "size=", 5)) { CHECK_FAKEIMPORT("size") import.fontSize = parse_u32(ext+6, "size"); }
 		else if (!strnicmp(ext+1, "text_layout=", 12)) {
 			if ( sscanf(ext+13, "%dx%dx%dx%d", &txtw, &txth, &txtx, &txty)==4) {
 				text_layout = 1;
@@ -1070,7 +1070,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext+1, "rate=", 5)) {
-			force_rate = atoi(ext+6);
+			force_rate = parse_s32(ext+6, "rate");
 		}
 		else if (!stricmp(ext+1, "stats") || !stricmp(ext+1, "fstat"))
 			print_stats_graph |= 1;
@@ -1115,13 +1115,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			else
 				M4_LOG(GF_LOG_ERROR, ("Unrecognized audio sample entry mode %s, ignoring\n", mode));
 		}
-		else if (!strnicmp(ext+1, "audio_roll=", 11)) { roll_change = 3; roll = atoi(ext+12); }
-		else if (!strnicmp(ext+1, "roll=", 5)) { roll_change = 1; roll = atoi(ext+6); }
-		else if (!strnicmp(ext+1, "proll=", 6)) { roll_change = 2; roll = atoi(ext+7); }
+		else if (!strnicmp(ext+1, "audio_roll=", 11)) { roll_change = 3; roll = parse_s32(ext+12, "audio_roll"); }
+		else if (!strnicmp(ext+1, "roll=", 5)) { roll_change = 1; roll = parse_s32(ext+6, "roll"); }
+		else if (!strnicmp(ext+1, "proll=", 6)) { roll_change = 2; roll = parse_s32(ext+7, "proll"); }
 		else if (!strcmp(ext+1, "stz2")) {
 			use_stz2 = GF_TRUE;
 		} else if (!strnicmp(ext+1, "bitdepth=", 9)) {
-			bitdepth=atoi(ext+10);
+			bitdepth = parse_u32(ext+10, "bitdepth");
 		}
 		else if (!strnicmp(ext+1, "hdr=", 4)) {
 			hdr_file = gf_strdup(ext+5);
@@ -1251,13 +1251,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			if (!strnicmp(ext+1, "lastsampdur=", 12)) {
 				if (sscanf(ext+13, "%d/%u", &last_sample_dur.num, &last_sample_dur.den)==2) {
 				} else {
-					last_sample_dur.num = atoi(ext+13);
+					last_sample_dur.num = parse_s32(ext+13, "lastsampdur");
 					last_sample_dur.den = 1000;
 				}
 			}
 		}
 		else if (!strnicmp(ext+1, "ID=", 3)) {
-			import.target_trackID = (u32) atoi(ext+4);
+			import.target_trackID = (u32) parse_u32(ext+4, "ID");
 		}
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -1308,8 +1308,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
 		else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
 		else if (!strnicmp(ext, "pict", 4)) do_pict = 1;
-		else if (!strnicmp(ext, "trackID=", 8)) track_id = atoi(&ext[8]);
-		else track_id = atoi(ext);
+		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
+		else track_id = parse_u32(ext, "ID");
 	}
 	else if (ext) {
 		ext++;
@@ -1326,8 +1326,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		else if (!strnicmp(ext, "video", 5)) do_video = 1;
         else if (!strnicmp(ext, "auxv", 4)) do_auxv = 1;
         else if (!strnicmp(ext, "pict", 4)) do_pict = 1;
-		else if (!strnicmp(ext, "trackID=", 8)) track_id = atoi(&ext[8]);
-		else if (!strnicmp(ext, "PID=", 4)) track_id = atoi(&ext[4]);
+		else if (!strnicmp(ext, "trackID=", 8)) track_id = parse_u32(&ext[8], "trackID");
+		else if (!strnicmp(ext, "PID=", 4)) track_id = parse_u32(&ext[4], "ID");
 		else if (!strnicmp(ext, "program=", 8)) {
 			for (i=0; i<import.nb_progs; i++) {
 				if (!stricmp(import.pg_info[i].name, ext+8)) {
@@ -1338,10 +1338,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 			}
 		}
 		else if (!strnicmp(ext, "prog_id=", 8)) {
-			prog_id = atoi(ext+8);
+			prog_id = parse_u32(ext+8, "prog_id");
 			do_all = 0;
 		}
-		else track_id = atoi(ext);
+		else track_id = parse_u32(ext, "ID");
 
 		//figure out trackID
 		if (do_audio || do_video || do_auxv || do_pict || track_id) {
@@ -3829,7 +3829,7 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 			j = 0;
 			while ((att = gf_list_enum(stream->attributes, &j))) {
 				if (!strcmp(att->name, "id")) {
-					u32 id = atoi(att->value);
+					u32 id = parse_u32(att->value, "id");
 					track = gf_isom_get_track_by_id(movie, id);
 					if (!track) {
 						fprintf(stderr, "HDR XML: no track with ID %d, ignoring attribute\n", id);
@@ -3848,23 +3848,23 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 			if (!strcmp(box->name, "mdcv")) {
 				k = 0;
 				while ((att = gf_list_enum(box->attributes, &k))) {
-					if (!strcmp(att->name, "display_primaries_0_x")) mdcv.display_primaries[0].x = atoi(att->value);
-					else if (!strcmp(att->name, "display_primaries_0_y")) mdcv.display_primaries[0].y = atoi(att->value);
-					else if (!strcmp(att->name, "display_primaries_1_x")) mdcv.display_primaries[1].x = atoi(att->value);
-					else if (!strcmp(att->name, "display_primaries_1_y")) mdcv.display_primaries[1].y = atoi(att->value);
-					else if (!strcmp(att->name, "display_primaries_2_x")) mdcv.display_primaries[2].x = atoi(att->value);
-					else if (!strcmp(att->name, "display_primaries_2_y")) mdcv.display_primaries[2].y = atoi(att->value);
-					else if (!strcmp(att->name, "white_point_x")) mdcv.white_point_x = atoi(att->value);
-					else if (!strcmp(att->name, "white_point_y")) mdcv.white_point_y = atoi(att->value);
-					else if (!strcmp(att->name, "max_display_mastering_luminance")) mdcv.max_display_mastering_luminance = atoi(att->value);
-					else if (!strcmp(att->name, "min_display_mastering_luminance")) mdcv.min_display_mastering_luminance = atoi(att->value);
+					if (!strcmp(att->name, "display_primaries_0_x")) mdcv.display_primaries[0].x = parse_u32(att->value, "display_primaries_0_x");
+					else if (!strcmp(att->name, "display_primaries_0_y")) mdcv.display_primaries[0].y = parse_u32(att->value, "display_primaries_0_y");
+					else if (!strcmp(att->name, "display_primaries_1_x")) mdcv.display_primaries[1].x = parse_u32(att->value, "display_primaries_1_x");
+					else if (!strcmp(att->name, "display_primaries_1_y")) mdcv.display_primaries[1].y = parse_u32(att->value, "display_primaries_1_y");
+					else if (!strcmp(att->name, "display_primaries_2_x")) mdcv.display_primaries[2].x = parse_u32(att->value, "display_primaries_2_x");
+					else if (!strcmp(att->name, "display_primaries_2_y")) mdcv.display_primaries[2].y = parse_u32(att->value, "display_primaries_2_y");
+					else if (!strcmp(att->name, "white_point_x")) mdcv.white_point_x = parse_u32(att->value, "white_point_x");
+					else if (!strcmp(att->name, "white_point_y")) mdcv.white_point_y = parse_u32(att->value, "white_point_y");
+					else if (!strcmp(att->name, "max_display_mastering_luminance")) mdcv.max_display_mastering_luminance = parse_u32(att->value, "max_display_mastering_luminance");
+					else if (!strcmp(att->name, "min_display_mastering_luminance")) mdcv.min_display_mastering_luminance = parse_u32(att->value, "min_display_mastering_luminance");
 					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
 				}
 			} else if (!strcmp(box->name, "clli")) {
 				k = 0;
 				while ((att = gf_list_enum(box->attributes, &k))) {
-					if (!strcmp(att->name, "max_content_light_level")) clli.max_content_light_level = atoi(att->value);
-					else if (!strcmp(att->name, "max_pic_average_light_level")) clli.max_pic_average_light_level = atoi(att->value);
+					if (!strcmp(att->name, "max_content_light_level")) clli.max_content_light_level = parse_u32(att->value, "max_content_light_level");
+					else if (!strcmp(att->name, "max_pic_average_light_level")) clli.max_pic_average_light_level = parse_u32(att->value, "max_pic_average_light_level");
 					else fprintf(stderr, "HDR XML: ignoring box \"%s\" attribute \"%s\"\n", box->name, att->name);
 				}
 			} else {
