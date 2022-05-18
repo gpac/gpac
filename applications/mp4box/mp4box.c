@@ -71,7 +71,7 @@ static u32 mp4box_cleanup(u32 ret_code);
 
 typedef struct
 {
-	GF_ISOTrackID trackID;
+	TrackIdentifier track_id;
 	char *line;
 } SDPLine;
 
@@ -98,7 +98,7 @@ typedef struct
 {
 	MetaActionType act_type;
 	Bool root_meta, use_dref;
-	GF_ISOTrackID trackID;
+	TrackIdentifier track_id;
 	u32 meta_4cc;
 	char *szPath, *szName, *mime_type, *enc_type, *keep_props;
 	u32 item_id;
@@ -137,13 +137,6 @@ typedef enum {
 	TRACK_ACTION_SET_TIME,
 	TRACK_ACTION_SET_MEDIA_TIME,
 } TrackActionType;
-
-typedef struct
-{
-	u32 ID_or_num;
-	//0: regular trackID, 1: track number, 2: video(N), 3: audio(N), 4: text(N)
-	u8 type;
-} TrackIdentifier;
 
 typedef struct
 {
@@ -229,11 +222,11 @@ Bool insert_utc, chunk_mode, HintCopy, hint_no_offset, do_bin_xml, frag_real_tim
 Bool mvex_after_traks, daisy_chain_sidx, use_ssix, single_segment, single_file, segment_timeline, has_add_image;
 Bool strict_cues, use_url_template, seg_at_rap, frag_at_rap, memory_frags, keep_utc, has_next_arg, no_cache, no_loop;
 
-u32 stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
+u32 stat_level, hint_flags, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act;
 u32 nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, minor_version, conv_type, nb_tsel_acts;
-u32 program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps, dump_saps_mode, force_new, compress_moov;
-u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, box_patch_trackID, print_info;
-u32 size_top_box, fs_dump_flags, dump_chap, dump_udta_type, dump_udta_track, moov_pading, sdtp_in_traf, segment_marker, timescale, dash_scale;
+u32 program_number, time_shift_depth, initial_moof_sn, dump_std, import_subtitle, dump_saps_mode, force_new, compress_moov;
+u32 track_dump_type, dump_isom, dump_timestamps, dump_nal_type, do_flat, print_info;
+u32 size_top_box, fs_dump_flags, dump_chap, dump_udta_type, moov_pading, sdtp_in_traf, segment_marker, timescale, dash_scale;
 u32 MTUSize, run_for, dash_cumulated_time, dash_prev_time, dash_now_time, adjust_split_end, nb_mpd_base_urls, nb_dash_inputs;
 
 u64 initial_tfdt;
@@ -245,7 +238,6 @@ char *raw_cat, *seg_name, *dash_ctx_file, *compress_top_boxes, *high_dynamc_rang
 char *do_mpd_conv, *dash_start_date, *dash_profile_extension, *dash_cues, *do_wget, *mux_name, *seg_ext, *init_seg_ext, *dash_title, *dash_source;
 char *dash_more_info, *split_range_str;
 
-GF_ISOTrackID trackID;
 GF_DASH_ContentLocationMode cp_location_mode;
 GF_MemTrackerType mem_track;
 GF_DASHPSSHMode pssh_mode;
@@ -269,6 +261,13 @@ GF_DashSegmenterInput *dash_inputs;
 FILE *logfile;
 GF_ISOFile *file;
 
+TrackIdentifier info_track_id;
+TrackIdentifier ttxt_track_id;
+TrackIdentifier dump_nal_track;
+TrackIdentifier dump_saps_track;
+TrackIdentifier box_patch_track;
+TrackIdentifier dump_udta_track;
+
 
 static void init_global_vars()
 {
@@ -289,18 +288,16 @@ static void init_global_vars()
 
 	//u32
 	arg_parse_res = nb_mpd_base_urls = nb_dash_inputs = help_flags = 0;
-	stat_level = hint_flags = info_track_id = import_flags = nb_add = nb_cat = crypt = 0;
+	stat_level = hint_flags = import_flags = nb_add = nb_cat = crypt = 0;
 	agg_samples = nb_sdp_ex = max_ptime = split_size = nb_meta_act = nb_track_act = 0;
 	rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = old_interleave = minor_version = 0;
-	conv_type = nb_tsel_acts = program_number = dump_nal = time_shift_depth = initial_moof_sn = dump_std = 0;
-	import_subtitle = dump_saps = dump_saps_mode = force_new = compress_moov = 0;
-	track_dump_type = dump_isom = dump_timestamps = dump_nal_type = do_flat = box_patch_trackID = print_info = 0;
-	size_top_box = fs_dump_flags = dump_chap = dump_udta_type = dump_udta_track = moov_pading = sdtp_in_traf = 0;
+	conv_type = nb_tsel_acts = program_number = time_shift_depth = initial_moof_sn = dump_std = 0;
+	import_subtitle = dump_saps_mode = force_new = compress_moov = 0;
+	track_dump_type = dump_isom = dump_timestamps = dump_nal_type = do_flat = print_info = 0;
+	size_top_box = fs_dump_flags = dump_chap = dump_udta_type = moov_pading = sdtp_in_traf = 0;
 	segment_marker = timescale = adjust_split_end = run_for = dash_cumulated_time = dash_prev_time = dash_now_time = 0;
 	dash_scale = 1000;
 	MTUSize = 1450;
-	//GF_TrackID
-	trackID = 0;
 
 	//s32
 	subsegs_per_sidx = laser_resolution = ast_offset_ms = 0;
@@ -328,6 +325,13 @@ static void init_global_vars()
 #endif
 	import_fps.num = 0;
 	import_fps.den = 0;
+
+	memset(&info_track_id, 0, sizeof(TrackIdentifier));
+	memset(&ttxt_track_id, 0, sizeof(TrackIdentifier));
+	memset(&dump_nal_track, 0, sizeof(TrackIdentifier));
+	memset(&dump_saps_track, 0, sizeof(TrackIdentifier));
+	memset(&box_patch_track, 0, sizeof(TrackIdentifier));
+	memset(&dump_udta_track, 0, sizeof(TrackIdentifier));
 
 	//allocated
 	metas = NULL;
@@ -378,6 +382,41 @@ s32 parse_s32(char *val, char *log_name)
 	if (sscanf(val, "%d", &res)==1) return res;
 	M4_LOG(GF_LOG_ERROR, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
 	return 0;
+}
+
+static Bool parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
+{
+	tkid->ID_or_num = 0;
+	tkid->type = 0;
+
+	if (!strcmp(arg_val, "*")) {
+		if (allow_all) {
+			tkid->ID_or_num = (u32) -1;
+			return GF_TRUE;
+		}
+		return GF_FALSE;
+	}
+	if (!strncmp(arg_val, "video", 5)) {
+		arg_val += 5;
+		tkid->type = 2;
+	}
+	else if (!strncmp(arg_val, "audio", 5)) {
+		arg_val += 5;
+		tkid->type = 3;
+	}
+	else if (!strncmp(arg_val, "text", 4)) {
+		arg_val += 4;
+		tkid->type = 4;
+	}
+	else if (!strnicmp(arg_val, "n", 1)) {
+		arg_val += 1;
+		tkid->type = 1;
+	}
+
+	if (!arg_val[0]) return (tkid->type>1) ? GF_TRUE : GF_FALSE;
+	tkid->ID_or_num = parse_u32(arg_val, "ID");
+	if (!tkid->ID_or_num) return GF_FALSE;
+	return GF_TRUE;
 }
 
 /*
@@ -1794,19 +1833,19 @@ u32 parse_sdp_ext(char *arg_val, u32 param)
 	id = strchr(arg_val, ':');
 	if (id) {
 		id[0] = 0;
-		if (sscanf(arg_val, "%u", &sdp_lines[nb_sdp_ex].trackID) == 1) {
+		if (parse_track_id(&sdp_lines[nb_sdp_ex].track_id, arg_val, GF_FALSE)) {
 			id[0] = ':';
 			sdp_lines[nb_sdp_ex].line = id + 1;
 		}
 		else {
 			id[0] = ':';
 			sdp_lines[nb_sdp_ex].line = arg_val;
-			sdp_lines[nb_sdp_ex].trackID = 0;
 		}
 	}
 	else {
 		sdp_lines[nb_sdp_ex].line = arg_val;
-		sdp_lines[nb_sdp_ex].trackID = 0;
+		sdp_lines[nb_sdp_ex].track_id.type = 0;
+		sdp_lines[nb_sdp_ex].track_id.ID_or_num = 0;
 	}
 	open_edit = GF_TRUE;
 	nb_sdp_ex++;
@@ -1826,7 +1865,6 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 
 	memset(meta, 0, sizeof(MetaAction));
 	meta->act_type = act_type;
-	meta->trackID = 0;
 	meta->root_meta = 1;
 	open_edit = GF_TRUE;
 
@@ -1863,7 +1901,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
-			sscanf(szSlot, "tk=%u", &meta->trackID);
+			parse_track_id(&meta->track_id, szSlot+3, GF_FALSE);
 			if (act_type == META_ACTION_ADD_ITEM)
 				meta->root_meta = 0;
 		}
@@ -2119,33 +2157,6 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 
-static void parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
-{
-	if (!strcmp(arg_val, "*")) {
-		if (allow_all)
-			tkid->ID_or_num = (u32) -1;
-	} else {
-		if (!strncmp(arg_val, "video", 5)) {
-			arg_val += 5;
-			tkid->type = 2;
-		}
-		else if (!strncmp(arg_val, "audio", 5)) {
-			arg_val += 5;
-			tkid->type = 3;
-		}
-		else if (!strncmp(arg_val, "text", 4)) {
-			arg_val += 4;
-			tkid->type = 4;
-		}
-		else if (!strnicmp(arg_val, "n", 1)) {
-			arg_val += 1;
-			tkid->type = 1;
-		}
-
-		if (arg_val[0])
-			tkid->ID_or_num = parse_u32(arg_val, "ID");
-	}
-}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 static Bool parse_tsel_args(char *opts, TSELActionType act)
@@ -2670,13 +2681,13 @@ u32 parse_comp_box(char *arg_val, u32 opt)
 }
 u32 parse_dnal(char *arg_val, u32 opt)
 {
-	dump_nal = parse_u32(arg_val, "ID");
+	parse_track_id(&dump_nal_track, arg_val, GF_FALSE);
 	dump_nal_type = opt;
 	return 0;
 }
 u32 parse_dsap(char *arg_val, u32 opt)
 {
-	dump_saps = parse_u32(arg_val, "ID");
+	parse_track_id(&dump_saps_track, arg_val, GF_FALSE);
 	dump_saps_mode = opt;
 	return 0;
 }
@@ -2730,7 +2741,8 @@ u32 parse_sdtp(char *arg_val, u32 opt)
 u32 parse_rap_ref(char *arg_val, u32 opt)
 {
 	if (arg_val) {
-		if (sscanf(arg_val, "%d", &trackID) == 1) {
+		TrackIdentifier tkid;
+		if (parse_track_id(&tkid, arg_val, GF_FALSE)) {
 			parse_track_action(arg_val, opt ? TRACK_ACTION_REM_NON_REFS : TRACK_ACTION_REM_NON_RAP);
 		}
 	}
@@ -2972,12 +2984,8 @@ u32 parse_file_info(char *arg_val, u32 opt)
 		return 0;
 	}
 	if (arg_val) {
-		if (sscanf(arg_val, "%u", &info_track_id) == 1) {
-			char szTk[20];
-			sprintf(szTk, "%u", info_track_id);
-			if (strcmp(szTk, arg_val)) info_track_id = 0;
-		}
-		if (!info_track_id) return 3;
+		if (!parse_track_id(&info_track_id, arg_val, GF_FALSE))
+			return 3;
 	}
 	return 0;
 }
@@ -2987,7 +2995,7 @@ u32 parse_boxpatch(char *arg_val, u32 opt)
 	char *sep = strchr(box_patch_filename, '=');
 	if (sep) {
 		sep[0] = 0;
-		box_patch_trackID = parse_u32(box_patch_filename, "ID");
+		parse_track_id(&box_patch_track, box_patch_filename, GF_FALSE);
 		sep[0] = '=';
 		box_patch_filename = sep+1;
 	}
@@ -3008,7 +3016,7 @@ u32 parse_dump_udta(char *code, u32 opt)
 	sep = strchr(code, ':');
 	if (sep) {
 		sep[0] = 0;
-		dump_udta_track = parse_u32(code, "ID");
+		parse_track_id(&dump_udta_track, code, GF_FALSE);
 		sep[0] = ':';
 		code = sep + 1;
 	}
@@ -3051,18 +3059,14 @@ u32 parse_ttxt(char *arg_val, u32 opt)
 		dump_ttxt = GF_TRUE;
 
 	import_subtitle = 1;
-	trackID = 0;
+	ttxt_track_id.type = 0;
+	ttxt_track_id.ID_or_num = 0;
 
 	if (arg_val && (!strcmp(arg_val, "*") || !strcmp(arg_val, "@") || !strcmp(arg_val, "all")) ) {
-		trackID = (u32)-1;
+		ttxt_track_id.ID_or_num = (u32)-1;
 	} else if (arg_val) {
-		if (sscanf(arg_val, "%u", &trackID) == 1) {
-			char szTk[20];
-			sprintf(szTk, "%d", trackID);
-			if (strcmp(szTk, arg_val))
-				trackID = 0;
-		}
-		if (!trackID) return 3;
+		if (parse_track_id(&ttxt_track_id, arg_val, GF_FALSE)==GF_FALSE)
+			return 3;
 	}
 	return 0;
 }
@@ -4913,9 +4917,9 @@ static GF_Err do_dump_iod()
 static u32 get_track_id(GF_ISOFile *file, TrackIdentifier *tkid)
 {
 	u32 cur_tk=0, i, count = gf_isom_get_track_count(file);
-	if (tkid->type==4) {
+	if (tkid->type==1) {
 		if (!tkid->ID_or_num || (count < tkid->ID_or_num)) return 0;
-		return gf_isom_get_track_id(file, tkid->ID_or_num-1);
+		return gf_isom_get_track_id(file, tkid->ID_or_num);
 	}
 	if (tkid->type==0) {
 		return tkid->ID_or_num;
@@ -4998,8 +5002,9 @@ static GF_Err do_meta_act()
 		Bool self_ref;
 #endif
 		MetaAction *meta = &metas[i];
+		u32 tk_id = get_track_id(file, &meta->track_id);
 
-		if (meta->trackID) tk = gf_isom_get_track_by_id(file, meta->trackID);
+		if (tk_id) tk = gf_isom_get_track_by_id(file, tk_id);
 
 		switch (meta->act_type) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -5054,7 +5059,7 @@ static GF_Err do_meta_act()
 			} else if (!meta->szPath || (meta->image_props && meta->image_props->sample_num && meta->image_props->use_reference)) {
 				e = GF_OK;
 				self_ref = GF_TRUE;
-				src_tk_id = meta->trackID;
+				src_tk_id = tk_id;
 			} else if (meta->szPath) {
 				if (meta->image_props && gf_isom_probe_file(meta->szPath) && !meta->image_props->tile_mode) {
 					meta->image_props->src_file = gf_isom_open(meta->szPath, GF_ISOM_OPEN_READ, NULL);
@@ -5692,8 +5697,9 @@ static void set_sdp_ext()
 {
 	u32 i, j;
 	for (i=0; i<nb_sdp_ex; i++) {
-		if (sdp_lines[i].trackID) {
-			u32 track = gf_isom_get_track_by_id(file, sdp_lines[i].trackID);
+		u32 trackID = get_track_id(file, &sdp_lines[i].track_id);
+		if (trackID) {
+			u32 track = gf_isom_get_track_by_id(file, trackID);
 			if (gf_isom_get_media_type(file, track)!=GF_ISOM_MEDIA_HINT) {
 				s32 ref_count;
 				u32 k, count = gf_isom_get_track_count(file);
@@ -6058,7 +6064,7 @@ int mp4box_main(int argc, char **argv)
 	}
 #endif
 
-	if (import_subtitle && !trackID)
+	if (import_subtitle && !ttxt_track_id.type && !ttxt_track_id.ID_or_num)
 		return do_import_sub();
 
 
@@ -6245,7 +6251,8 @@ int mp4box_main(int argc, char **argv)
 					hash_file(inName, dump_std);
 				} else if (print_info) {
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-					convert_file_info(inName, info_track_id);
+					e = convert_file_info(inName, &info_track_id);
+					if (e) goto err_exit;
 #endif
 				} else {
 					if (mux_name) {
@@ -6342,7 +6349,10 @@ int mp4box_main(int argc, char **argv)
 		if (!file) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot print info on a non ISOM file (%s)\n", inName));
 		} else {
-			if (info_track_id) DumpTrackInfo(file, info_track_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE, GF_FALSE);
+			u32 info_tk_id = get_track_id(file, &info_track_id);
+			if (info_tk_id) {
+				DumpTrackInfo(file, info_tk_id, 1, (print_info==2) ? GF_TRUE : GF_FALSE, GF_FALSE);
+			}
 			else DumpMovieInfo(file, (print_info==2) ? GF_TRUE : GF_FALSE);
 		}
 	}
@@ -6352,18 +6362,19 @@ int mp4box_main(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if ((dump_ttxt || dump_srt) && trackID) {
 
-		if (trackID == (u32)-1) {
+	if (dump_ttxt || dump_srt) {
+		u32 ttxt_tkid = get_track_id(file, &ttxt_track_id);
+		if (ttxt_tkid == (u32)-1) {
 			for (j=0; j<gf_isom_get_track_count(file); j++) {
-				trackID = gf_isom_get_track_id(file, j+1);
-				dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+				ttxt_tkid = gf_isom_get_track_id(file, j+1);
+				dump_isom_timed_text(file, ttxt_tkid, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
 									GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
 			}
 
 		}
-		else {
-			dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+		else if (ttxt_tkid) {
+			dump_isom_timed_text(file, ttxt_tkid, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
 								GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
 		}
 	}
@@ -6375,11 +6386,14 @@ int mp4box_main(int argc, char **argv)
 #endif
 
 	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_timestamps);
-	if (dump_nal) {
-		e = dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_type);
+
+	u32 dump_tkid = get_track_id(file, &dump_nal_track);
+	if (dump_tkid) {
+		e = dump_isom_nal(file, dump_tkid, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_nal_type);
 		if (e) goto err_exit;
 	}
-	if (dump_saps) dump_isom_saps(file, dump_saps, dump_saps_mode, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	dump_tkid = get_track_id(file, &dump_saps_track);
+	if (dump_tkid) dump_isom_saps(file, dump_tkid, dump_saps_mode, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 
 	if (do_hash) {
 		e = hash_file(inName, dump_std);
@@ -6395,7 +6409,10 @@ int mp4box_main(int argc, char **argv)
 	if (dump_chunk) dump_isom_chunks(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_chap) dump_isom_chapters(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_chap);
-	if (dump_udta_type) dump_isom_udta(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_udta_type, dump_udta_track);
+	if (dump_udta_type) {
+		dump_tkid = get_track_id(file, &dump_udta_track);
+		dump_isom_udta(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_udta_type, dump_tkid);
+	}
 
 	if (dump_iod) {
 		e = do_dump_iod();
@@ -6583,7 +6600,7 @@ int mp4box_main(int argc, char **argv)
 		do_save = GF_TRUE;
 	}
 	if (box_patch_filename) {
-		e = gf_isom_apply_box_patch(file, box_patch_trackID, box_patch_filename, GF_FALSE);
+		e = gf_isom_apply_box_patch(file, get_track_id(file, &box_patch_track), box_patch_filename, GF_FALSE);
 		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("Failed to apply box patch %s: %s\n", box_patch_filename, gf_error_to_string(e) ));
 			goto err_exit;

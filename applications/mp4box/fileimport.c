@@ -113,14 +113,16 @@ extern u32 fs_dump_flags;
 
 void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist);
 
-void convert_file_info(char *inName, GF_ISOTrackID trackID)
+GF_Err convert_file_info(char *inName, TrackIdentifier *track_id)
 {
 	GF_Err e;
-	u32 i;
+	u32 i, cur=1;
 	Bool found;
 	GF_MediaImporter import;
 	memset(&import, 0, sizeof(GF_MediaImporter));
-	import.trackID = trackID;
+	if (!track_id->type)
+		import.trackID = track_id->ID_or_num;
+
 	import.in_name = inName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
 	import.print_stats_graph = fs_dump_flags;
@@ -128,15 +130,15 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 	e = gf_media_import(&import);
 	if (e) {
 		M4_LOG(GF_LOG_ERROR, ("Error probing file %s: %s\n", inName, gf_error_to_string(e)));
-		return;
+		return e;
 	}
-	if (trackID) {
-		fprintf(stderr, "Import probing results for track %s#%d:\n", inName, trackID);
+	if (track_id->ID_or_num) {
+		fprintf(stderr, "Import probing results for %s track %s%d:\n", inName, track_id->type ? "#" : "ID ", track_id->ID_or_num);
 	} else {
 		fprintf(stderr, "Import probing results for %s:\n", inName);
 		if (!import.nb_tracks) {
 			M4_LOG(GF_LOG_WARNING, ("File has no selectable tracks\n"));
-			return;
+			return GF_OK;
 		}
 		fprintf(stderr, "File has %d tracks\n", import.nb_tracks);
 	}
@@ -145,11 +147,31 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 	}
 	found = 0;
 	for (i=0; i<import.nb_tracks; i++) {
-		if (trackID && (trackID != import.tk_info[i].track_num)) continue;
-		if (!trackID) fprintf(stderr, "- Track %d type: ", import.tk_info[i].track_num);
+		u32 stype = import.tk_info[i].stream_type;
+		switch (track_id->type) {
+		case 0: //by trackID
+			if (track_id->ID_or_num && (track_id->ID_or_num != import.tk_info[i].track_num) ) continue;
+			break;
+		case 1: //by track nul
+			if (track_id->ID_or_num && (track_id->ID_or_num != i+1) ) continue;
+			break;
+		case 2: //by video
+			if (stype != GF_STREAM_VISUAL) continue;
+			break;
+		case 3: //by audio
+			if (stype != GF_STREAM_AUDIO) continue;
+			break;
+		case 4: //by text
+			if (stype != GF_STREAM_VISUAL) continue;
+			break;
+		}
+		if ((track_id->type>1) && track_id->ID_or_num && (track_id->ID_or_num<cur)) continue;
+		cur++;
+
+		if (!track_id->ID_or_num) fprintf(stderr, "- Track %d type: ", import.tk_info[i].track_num);
 		else fprintf(stderr, "Track type: ");
 
-		switch (import.tk_info[i].stream_type) {
+		switch (stype) {
 		case GF_STREAM_VISUAL:
 			if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_AUXV)  fprintf(stderr, "Auxiliary Video");
 			else if (import.tk_info[i].media_subtype == GF_ISOM_MEDIA_PICT)  fprintf(stderr, "Picture Sequence");
@@ -209,16 +231,19 @@ void convert_file_info(char *inName, GF_ISOTrackID trackID)
 			fprintf(stderr, "\tSampleRate %d - %d channels\n", import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
 		}
 
-		if (trackID) {
+		if (track_id->ID_or_num || (track_id->type>1)) {
 			found = 1;
 			break;
 		}
 	}
 	fprintf(stderr, "\n");
-	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));
-	if (!found && trackID) {
-		M4_LOG(GF_LOG_ERROR, ("Cannot find track %d in file\n", trackID));
+
+	if (!found && track_id->ID_or_num) {
+		M4_LOG(GF_LOG_ERROR, ("Cannot find track %d in file\n", track_id->ID_or_num));
+		return GF_BAD_PARAM;
 	}
+	M4_LOG(GF_LOG_INFO, ("For more details, use `gpac -i %s inspect[:deep][:analyze=on|bs]`\n", gf_file_basename(inName)));
+	return GF_OK;
 }
 
 static GF_Err set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)

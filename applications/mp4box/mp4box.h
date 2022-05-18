@@ -48,6 +48,13 @@ void mp4box_log(const char *fmt, ...);
 u32 parse_u32(char *val, char *log_name);
 s32 parse_s32(char *val, char *log_name);
 
+typedef struct
+{
+	u32 ID_or_num;
+	//0: regular trackID, 1: track number, 2: video(N), 3: audio(N), 4: text(N)
+	u8 type;
+} TrackIdentifier;
+
 
 typedef enum {
 	GF_FILE_TYPE_NOT_SUPPORTED	= 0,
@@ -61,7 +68,7 @@ typedef enum {
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-void convert_file_info(char *inName, GF_ISOTrackID trackID);
+GF_Err convert_file_info(char *inName, TrackIdentifier *track_id);
 #endif
 
 Bool mp4box_check_isom_fileopt(char *opt);
