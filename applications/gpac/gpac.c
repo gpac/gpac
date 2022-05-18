@@ -258,14 +258,14 @@ u32 get_u32(char *val, char *log_name)
 {
 	u32 res;
 	if (sscanf(val, "%u", &res)==1) return res;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
 	return 0;
 }
 s32 get_s32(char *val, char *log_name)
 {
 	s32 res;
 	if (sscanf(val, "%d", &res)==1) return res;
-	GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
 	return 0;
 }
 
