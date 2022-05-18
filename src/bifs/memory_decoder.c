@@ -193,8 +193,8 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	codec->scenegraph->global_qp = node;
 
 	/*register TWICE: once for the command, and for the scenegraph globalQP*/
-	gf_node_unregister(node, NULL);
-	gf_node_unregister(node, NULL);
+	gf_node_register(node, NULL);
+	gf_node_register(node, NULL);
 
 	com = gf_sg_command_new(codec->current_graph, GF_SG_GLOBAL_QUANTIZER);
 	inf = gf_sg_command_field_new(com);
