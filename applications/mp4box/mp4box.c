@@ -414,7 +414,9 @@ static Bool parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
 	}
 
 	if (!arg_val[0]) return (tkid->type>1) ? GF_TRUE : GF_FALSE;
-	tkid->ID_or_num = parse_u32(arg_val, "ID");
+	//don't use parse_u32 we don't want a warning
+	if (sscanf(arg_val, "%u", &tkid->ID_or_num) != 1)
+		tkid->ID_or_num = 0;
 	if (!tkid->ID_or_num) return GF_FALSE;
 	return GF_TRUE;
 }
