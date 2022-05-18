@@ -364,7 +364,21 @@ typedef u32 (*parse_arg_fun2)(char *arg_name, char *arg_val, u32 param);
 static u32 parse_meta_args(char *opts, MetaActionType act_type);
 static Bool parse_tsel_args(char *opts, TSELActionType act);
 
+u32 parse_u32(char *val, char *log_name)
+{
+	u32 res;
+	if (sscanf(val, "%u", &res)==1) return res;
+	M4_LOG(GF_LOG_WARNING, ("%s must be an unsigned integer (got %s), using 0\n", log_name, val));
+	return 0;
+}
 
+s32 parse_s32(char *val, char *log_name)
+{
+	s32 res;
+	if (sscanf(val, "%d", &res)==1) return res;
+	M4_LOG(GF_LOG_WARNING, ("%s must be a signed integer (got %s), using 0\n", log_name, val));
+	return 0;
+}
 
 /*
  * 		START OF ARGS PARSING AND HELP
@@ -740,7 +754,7 @@ void PrintDASHUsage()
 		"- :pdur=VALUE: sets the duration of the associated period to VALUE seconds (fraction) (alias for period_duration:VALUE). This is only used when no input media is specified (remote period insertion), e.g. `:period=X:xlink=Z:pdur=Y`\n"
 		"- :ddur=VALUE: override target DASH segment duration to VALUE seconds (fraction) for this input (alias for duration:VALUE)\n"
 		"- :xlink=VALUE: set the xlink value for the period containing this element. Only the xlink declared on the first rep of a period will be used\n"
-		"- :asID=VALUE: set the AdaptationSet ID to NAME\n"
+		"- :asID=VALUE: set the AdaptationSet ID to VALUE (unsigned int)\n"
 		"- :role=VALUE: set the role of this representation (cf DASH spec). Media with different roles belong to different adaptation sets.\n"
 		"- :desc_p=VALUE: add a descriptor at the Period level. Value must be a properly formatted XML element.\n"
 		"- :desc_as=VALUE: add a descriptor at the AdaptationSet level. Value must be a properly formatted XML element. Two input files with different values will be in different AdaptationSet elements.\n"
@@ -1854,7 +1868,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 				meta->root_meta = 0;
 		}
 		else if (!strnicmp(szSlot, "id=", 3)) {
-			meta->item_id = atoi(szSlot+3);
+			meta->item_id = parse_u32(szSlot+3, "id");
 		}
 		else if (!strnicmp(szSlot, "type=", 5)) {
 			meta->item_type = GF_4CC(szSlot[5], szSlot[6], szSlot[7], szSlot[8]);
@@ -1918,14 +1932,14 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			sub_next = strchr(szSlot+position, ',');
 			while (sub_next != NULL) {
 				*sub_next = 0;
-				meta->image_props->overlay_offsets[offset_index].horizontal = atoi(prev);
+				meta->image_props->overlay_offsets[offset_index].horizontal = parse_u32(prev, "image-overlay-offsets[].horizontal");
 				*sub_next = ',';
 				sub_next++;
 				prev = sub_next;
 				if (sub_next) {
 					sub_next = strchr(sub_next, ',');
 					if (sub_next) *sub_next = 0;
-					meta->image_props->overlay_offsets[offset_index].vertical = atoi(prev);
+					meta->image_props->overlay_offsets[offset_index].vertical = parse_u32(prev, "image-overlay-offsets[].horizontal");
 					if (sub_next) {
 						*sub_next = ',';
 						sub_next++;
@@ -1946,7 +1960,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			CHECK_IMGPROP
 			if (strchr(szSlot+11, ',') == NULL) {
 				meta->image_props->num_channels = 1;
-				meta->image_props->bits_per_channel[0] = atoi(szSlot+11);
+				meta->image_props->bits_per_channel[0] = parse_u32(szSlot+11, "image-pixi");
 			} else {
 				meta->image_props->num_channels = 3;
 				sscanf(szSlot+11, "%u,%u,%u", &(meta->image_props->bits_per_channel[0]), &(meta->image_props->bits_per_channel[1]), &(meta->image_props->bits_per_channel[2]));
@@ -1958,7 +1972,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "rotation=", 9)) {
 			CHECK_IMGPROP
-			meta->image_props->angle = atoi(szSlot+9);
+			meta->image_props->angle = parse_u32(szSlot+9, "rotation");
 		}
 		else if (!strnicmp(szSlot, "mirror-axis=", 12)) {
 			CHECK_IMGPROP
@@ -1990,11 +2004,11 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "it=", 3)) {
 			CHECK_IMGPROP
-			meta->image_props->item_ref_id = atoi(szSlot+3);
+			meta->image_props->item_ref_id = parse_u32(szSlot+3, "it");
 		}
 		else if (!strnicmp(szSlot, "itp=", 4)) {
 			CHECK_IMGPROP
-			meta->image_props->item_ref_id = atoi(szSlot+4);
+			meta->image_props->item_ref_id = parse_u32(szSlot+4, "itp");
 			meta->image_props->copy_props = 1;
 		}
 		else if (!strnicmp(szSlot, "time=", 5)) {
@@ -2016,7 +2030,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "samp=", 5)) {
 			CHECK_IMGPROP
-			meta->image_props->sample_num = atoi(szSlot+5);
+			meta->image_props->sample_num = parse_u32(szSlot+5, "samp");
 			meta->root_meta = 1;
 		}
 		else if (!strnicmp(szSlot, "group=", 6)) {
@@ -2049,7 +2063,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 		}
 		else if (!strnicmp(szSlot, "av1_op_index=", 13)) {
 			CHECK_IMGPROP
-			meta->image_props->av1_op_index = atoi(szSlot+13);
+			meta->image_props->av1_op_index = parse_u32(szSlot+13, "av1_op_index");
 		}
 		else if (!stricmp(szSlot, "replace")) {
 			meta->replace = GF_TRUE;
@@ -2091,7 +2105,7 @@ static u32 parse_meta_args(char *opts, MetaActionType act_type)
 			case META_ACTION_REM_ITEM:
 			case META_ACTION_SET_PRIMARY_ITEM:
 			case META_ACTION_DUMP_ITEM:
-				meta->item_id = atoi(szSlot);
+				meta->item_id = parse_u32(szSlot, "Item ID");
 				break;
 			default:
 				break;
@@ -2129,7 +2143,7 @@ static void parse_track_id(TrackIdentifier *tkid, char *arg_val, Bool allow_all)
 		}
 
 		if (arg_val[0])
-			tkid->ID_or_num = atoi(arg_val);
+			tkid->ID_or_num = parse_u32(arg_val, "ID");
 	}
 }
 
@@ -2159,11 +2173,11 @@ static Bool parse_tsel_args(char *opts, TSELActionType act)
 		if (!strnicmp(szSlot, "refTrack=", 9)) {
 			parse_track_id(&refTrackID, szSlot+9, GF_FALSE);
 		} else if (!strnicmp(szSlot, "switchID=", 9)) {
-			if (atoi(szSlot+9)<0) {
+			if (parse_s32(szSlot+9, "switchID")<0) {
 				switch_id = 0;
 				has_switch_id = 0;
 			} else {
-				switch_id = atoi(szSlot+9);
+				switch_id = parse_u32(szSlot+9, "switchID");
 				has_switch_id = 1;
 			}
 		}
@@ -2256,7 +2270,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
 				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
 				di->nb_baseURL++;
-			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
+			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = parse_u32(opts+10, "bandwidth");
 			else if (!strnicmp(opts, "role=", 5)) {
 				di->roles = gf_realloc(di->roles, sizeof (char *) * (di->nb_roles+1));
 				di->roles[di->nb_roles] = gf_strdup(opts+5);
@@ -2300,11 +2314,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "period_duration=", 16)) gf_parse_frac(opts+16, &di->period_duration);
 			else if (!strnicmp(opts, "ddur=", 5)) gf_parse_frac(opts+5, &di->dash_duration);
 			else if (!strnicmp(opts, "duration=", 9)) gf_parse_frac(opts+9, &di->dash_duration);
-			else if (!strnicmp(opts, "asID=", 5)) di->asID = atoi(opts+5);
-			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = atoi(opts+3);
+			else if (!strnicmp(opts, "asID=", 5)) di->asID = parse_u32(opts+5, "asID");
+			else if (!strnicmp(opts, "sn=", 3)) di->startNumber = parse_u32(opts+3, "sn");
 			else if (!strnicmp(opts, "tpl=", 4)) di->seg_template = gf_strdup(opts+4);
 			else if (!strnicmp(opts, "hls=", 4)) di->hls_pl = gf_strdup(opts+4);
-			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = atoi(opts+8);
+			else if (!strnicmp(opts, "trackID=", 8)) di->track_id = parse_u32(opts+8, "trackID");
 			else if (!strnicmp(opts, "@", 1)) {
 				Bool old_syntax = (opts[1]=='@') ? GF_TRUE : GF_FALSE;
 				if (sep) sep[0] = ':';
@@ -2365,7 +2379,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		if (act_type==TRACK_ACTION_SWAP_ID)
 			parse_track_id(&tka->newTrackID, sep+1, GF_FALSE);
 		else
-			tka->newTrackID.ID_or_num = atoi(sep+1);
+			tka->newTrackID.ID_or_num = parse_u32(sep+1, "ID");
 		return GF_TRUE;
 	}
 	if (act_type==TRACK_ACTION_SET_PAR) {
@@ -2523,7 +2537,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		parse_track_id(&tka->target_track, param, GF_FALSE);
 		ext[0] = '=';
 		if (sscanf(ext+1, "%d/%u", &tka->delay.num, &tka->delay.den) != 2) {
-			tka->delay.num = atoi(ext + 1);
+			tka->delay.num = parse_s32(ext + 1, "delay");
 			tka->delay.den = 1000;
 		}
 		return GF_TRUE;
@@ -2622,7 +2636,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			} else if (!strncmp("type=", param, 4)) {
 				tka->udta_type = GF_4CC(param[5], param[6], param[7], param[8]);
 			} else if (tka->dump_type == GF_EXPORT_RAW_SAMPLES) {
-				tka->sample_num = atoi(param);
+				tka->sample_num = parse_u32(param, "Sample number");
 			}
 #endif
 		}
@@ -2656,13 +2670,13 @@ u32 parse_comp_box(char *arg_val, u32 opt)
 }
 u32 parse_dnal(char *arg_val, u32 opt)
 {
-	dump_nal = atoi(arg_val);
+	dump_nal = parse_u32(arg_val, "ID");
 	dump_nal_type = opt;
 	return 0;
 }
 u32 parse_dsap(char *arg_val, u32 opt)
 {
-	dump_saps = atoi(arg_val);
+	dump_saps = parse_u32(arg_val, "ID");
 	dump_saps_mode = opt;
 	return 0;
 }
@@ -2759,10 +2773,9 @@ u32 parse_multi_rtp(char *arg_val, u32 opt)
 	hint_flags |= GP_RTP_PCK_USE_MULTI;
 #endif
 	if (arg_val)
-		max_ptime = atoi(arg_val);
+		max_ptime = parse_u32(arg_val, "maxptime");
 	return 0;
 }
-
 
 u32 parse_senc_param(char *arg_val, u32 opt)
 {
@@ -2770,23 +2783,23 @@ u32 parse_senc_param(char *arg_val, u32 opt)
 	switch (opt) {
 	case 0: //-sync
 		smenc_opts.flags |= GF_SM_ENCODE_RAP_INBAND;
-		smenc_opts.rap_freq = atoi(arg_val);
+		smenc_opts.rap_freq = parse_u32(arg_val, "sync");
 		break;
 	case 1: //-shadow
 		smenc_opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
 		smenc_opts.flags |= GF_SM_ENCODE_RAP_SHADOW;
-		smenc_opts.rap_freq = atoi(arg_val);
+		smenc_opts.rap_freq = parse_u32(arg_val, "shadow");
 		break;
 	case 2: //-carousel
 		smenc_opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
-		smenc_opts.rap_freq = atoi(arg_val);
+		smenc_opts.rap_freq = parse_u32(arg_val, "carousel");
 		break;
 	case 3: //-auto-quant
-		smenc_opts.resolution = atoi(arg_val);
+		smenc_opts.resolution = parse_s32(arg_val, "auto-quant");
 		smenc_opts.auto_quant = 1;
 		break;
 	case 4: //-global-quant
-		smenc_opts.resolution = atoi(arg_val);
+		smenc_opts.resolution = parse_s32(arg_val, "global-quant");
 		smenc_opts.auto_quant = 2;
 		break;
 	case 5: //-ctx-in or -inctx
@@ -2880,10 +2893,10 @@ u32 parse_split(char *arg_val, u32 opt)
 		if (scale > 1) {
 			char c = unit[0];
 			unit[0] = 0;
-			split_size = scale * (u32)atoi(arg_val);
+			split_size = scale * parse_u32(arg_val, "Split size");
 			unit[0] = c;
 		} else {
-			split_size = (u32)atoi(arg_val);
+			split_size = (u32)parse_u32(arg_val, "Split size");
 		}
 		split_duration = 0;
 		break;
@@ -2924,7 +2937,7 @@ u32 parse_brand(char *b, u32 opt)
 			if (!strncmp(b+5, "0x", 2))
 				sscanf(b+5, "0x%x", &minor_version);
 			else
-				minor_version = atoi(b + 5);
+				minor_version = parse_u32(b + 5, "version");
 		}
 		break;
 	case 1: //-ab
@@ -2974,7 +2987,7 @@ u32 parse_boxpatch(char *arg_val, u32 opt)
 	char *sep = strchr(box_patch_filename, '=');
 	if (sep) {
 		sep[0] = 0;
-		box_patch_trackID = atoi(box_patch_filename);
+		box_patch_trackID = parse_u32(box_patch_filename, "ID");
 		sep[0] = '=';
 		box_patch_filename = sep+1;
 	}
@@ -2995,7 +3008,7 @@ u32 parse_dump_udta(char *code, u32 opt)
 	sep = strchr(code, ':');
 	if (sep) {
 		sep[0] = 0;
-		dump_udta_track = atoi(code);
+		dump_udta_track = parse_u32(code, "ID");
 		sep[0] = ':';
 		code = sep + 1;
 	}
@@ -3022,7 +3035,7 @@ u32 parse_dump_ts(char *arg_val, u32 opt)
 	dump_timestamps = 1;
 	if (arg_val) {
 		if (isdigit(arg_val[0])) {
-			program_number = atoi(arg_val);
+			program_number = parse_u32(arg_val, "Program");
 		} else {
 			return 3;
 		}
@@ -3394,7 +3407,12 @@ u32 mp4box_parse_single_arg_class(int argc, char **argv, char *arg, u32 *arg_ind
 		}
 		* (u64 *) arg_desc->arg_ptr = v;
 	} else {
-		u32 v = atoi(arg_val);
+		s32 v;
+		if (sscanf(arg_val, "%d", &v) != 1) {
+			M4_LOG(GF_LOG_ERROR, ("Value for %s shall not be an integer - please check usage\n", arg));
+			arg_parse_res = 2;
+			return GF_TRUE;
+		}
 		if (arg_desc->parse_flags & ARG_DIV_1000) {
 			v /= 1000;
 		}
@@ -4177,7 +4195,7 @@ static u32 do_write_udp()
 	char *sep = strrchr(udp_dest, ':');
 	if (sep) {
 		sep[0] = 0;
-		port = atoi(sep+1);
+		port = parse_u32(sep+1, "port");
 	}
 	e = gf_sk_bind( sock, NULL, port, udp_dest, port, 0);
 	if (sep) sep[0] = ':';

@@ -45,6 +45,9 @@ void mp4box_log(const char *fmt, ...);
 #define M4_LOG(_a, _b) mp4box_log _b
 #endif
 
+u32 parse_u32(char *val, char *log_name);
+s32 parse_s32(char *val, char *log_name);
+
 
 typedef enum {
 	GF_FILE_TYPE_NOT_SUPPORTED	= 0,
