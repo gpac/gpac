@@ -908,8 +908,11 @@ setup_route:
 		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 	}
 
-	if (group->dash->mpd->suggested_presentation_delay || group->dash->suggested_presentation_delay != GF_INT_MIN) {
-		s32 spd = group->dash->suggested_presentation_delay != GF_INT_MIN ? group->dash->suggested_presentation_delay : group->dash->mpd->suggested_presentation_delay;
+	if (group->dash->mpd->suggested_presentation_delay || group->dash->suggested_presentation_delay) {
+		s32 spd = 0;
+		if (group->dash->suggested_presentation_delay != GF_INT_MIN)
+			spd = group->dash->suggested_presentation_delay + group->dash->mpd->suggested_presentation_delay;
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Applying suggested presentation delay of %ums\n", spd));
 		availabilityStartTime += spd;
 	}

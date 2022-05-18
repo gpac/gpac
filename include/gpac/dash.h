@@ -1067,9 +1067,9 @@ void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, u32 de
 */
 void gf_dash_group_store_stats(GF_DashClient *dash, u32 group_idx, u32 dep_rep_idx, u32 bytes_per_sec, u64 file_size, Bool is_broadcast, u64 us_since_start);
 
-/*! Shifts the availabilityStartTime. This value overwrites the SuggestedPresentationDelay value parsed in the DASH manifest
+/*! Shifts the computed availabilityStartTime by offsetting (or resetting) the SuggestedPresentationDelay value parsed in the DASH manifest
 \param dash the target dash client
-\param spd availabilityStartTime shift in milliseconds. Positive values shift the clock in the future, negative ones in the past
+\param spd availabilityStartTime shift in milliseconds. Positive values shift the clock in the future, negative ones in the past, "-I" will force the SuggestedPresentationDelay value to zero
 */
 void gf_dash_set_suggested_presentation_delay(GF_DashClient *dash, s32 spd);
 
