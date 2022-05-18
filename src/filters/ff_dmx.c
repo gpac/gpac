@@ -423,6 +423,104 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
+#include <gpac/mpeg4_odf.h>
+#include <gpac/avparse.h>
+/* probe DSI syntax - if valid according to our own representation, we're good to go otherwise we'll need a reframer
+
+This is needed because libavformat does not always expose the same dsi syntax depending on mux types (!)
+*/
+static u32 ffdmx_valid_should_reframe(u32 gpac_codec_id, u8 *dsi, u32 dsi_size)
+{
+	GF_AC3Config ac3;
+	GF_M4ADecSpecInfo aaccfg;
+	GF_AVCConfig *avcc;
+	GF_HEVCConfig *hvcc;
+	GF_VVCConfig *vvcc;
+	GF_AV1Config *av1c;
+	GF_VPConfig *vpxc;
+
+	if (!dsi_size) dsi = NULL;
+
+	switch (gpac_codec_id) {
+	//force reframer for the following formats if no DSI is found
+	case GF_CODECID_AC3:
+	case GF_CODECID_EAC3:
+		if (dsi && (gf_odf_ac3_config_parse(dsi, dsi_size, (gpac_codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3) == GF_OK))
+			return 0;
+		return 1;
+
+	case GF_CODECID_AAC_MPEG4:
+	case GF_CODECID_AAC_MPEG2_MP:
+	case GF_CODECID_AAC_MPEG2_LCP:
+	case GF_CODECID_AAC_MPEG2_SSRP:
+		if (dsi && (gf_m4a_get_config(dsi, dsi_size, &aaccfg) == GF_OK))
+			return 0;
+		return 1;
+
+	case GF_CODECID_FLAC:
+		if (!dsi) return 1;
+		break;
+	case GF_CODECID_AVC:
+		avcc = dsi ? gf_odf_avc_cfg_read(dsi, dsi_size) : NULL;
+		if (avcc) {
+			gf_odf_avc_cfg_del(avcc);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_HEVC:
+		hvcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_size, GF_FALSE) : NULL;
+		if (hvcc) {
+			gf_odf_hevc_cfg_del(hvcc);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_VVC:
+		vvcc = dsi ? gf_odf_vvc_cfg_read(dsi, dsi_size) : NULL;
+		if (vvcc) {
+			gf_odf_vvc_cfg_del(vvcc);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_AV1:
+		av1c = dsi ? gf_odf_av1_cfg_read(dsi, dsi_size) : NULL;
+		if (av1c) {
+			gf_odf_av1_cfg_del(av1c);
+			return 0;
+		}
+		return 1;
+	case GF_CODECID_VP8:
+	case GF_CODECID_VP9:
+		vpxc = dsi ? gf_odf_vp_cfg_read(dsi, dsi_size) : NULL;
+		if (vpxc) {
+			gf_odf_vp_cfg_del(vpxc);
+			return 0;
+		}
+		return 1;
+	//force reframer for the following formats regardless of DSI and drop it
+	case GF_CODECID_MPEG1:
+	case GF_CODECID_MPEG2_422:
+	case GF_CODECID_MPEG2_SNR:
+	case GF_CODECID_MPEG2_HIGH:
+	case GF_CODECID_MPEG2_MAIN:
+	case GF_CODECID_MPEG2_SIMPLE:
+	case GF_CODECID_MPEG2_SPATIAL:
+	case GF_CODECID_MPEG4_PART2:
+		return 1;
+
+	//SRT or other subs: sample data is the raw text but timing is at packet level, force a reframer to parse styles and other
+	//keep dsi if any (for webvtt in mkv)
+	case GF_CODECID_SUBS_TEXT:
+	case GF_CODECID_WEBVTT:
+	case GF_CODECID_SUBS_SSA:
+		return 2;
+
+	//all other codecs are reframed
+	default:
+		break;
+	}
+	return 0;
+}
+
 GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 {
 	u32 i;
@@ -578,46 +676,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 				gf_filter_pid_set_property(pid, GF_PROP_PID_PLAYBACK_MODE, &PROP_UINT(GF_PLAYBACK_MODE_FASTFORWARD ) );
 		}
 
-		switch (gpac_codec_id) {
-		//force reframer for the following formats if no DSI is found
-		case GF_CODECID_AC3:
-		case GF_CODECID_EAC3:
-		case GF_CODECID_AAC_MPEG4:
-		case GF_CODECID_AAC_MPEG2_MP:
-		case GF_CODECID_AAC_MPEG2_LCP:
-		case GF_CODECID_AAC_MPEG2_SSRP:
-		case GF_CODECID_FLAC:
-		case GF_CODECID_TRUEHD:
-		case GF_CODECID_AVC:
-		case GF_CODECID_HEVC:
-		case GF_CODECID_VVC:
-		case GF_CODECID_AV1:
-		case GF_CODECID_VP8:
-		case GF_CODECID_VP9:
-			if (!exdata_size) {
-				force_reframer = 1;
-			}
-			break;
-		//force reframer for the following formats regardless of DSI and drop it
-		case GF_CODECID_MPEG1:
-		case GF_CODECID_MPEG2_422:
-		case GF_CODECID_MPEG2_SNR:
-		case GF_CODECID_MPEG2_HIGH:
-		case GF_CODECID_MPEG2_MAIN:
-		case GF_CODECID_MPEG2_SIMPLE:
-		case GF_CODECID_MPEG2_SPATIAL:
-		case GF_CODECID_MPEG4_PART2:
-			force_reframer = 1;
-			break;
 
-		//SRT or other subs: sample data is the raw text but timing is at packet level, force a reframer to parse styles and other
-		//keep dsi if any (for webvtt in mkv)
-		case GF_CODECID_SUBS_TEXT:
-		case GF_CODECID_WEBVTT:
-		case GF_CODECID_SUBS_SSA:
-			force_reframer = 2;
-			break;
-		}
+		u32 lt = gf_log_get_tool_level(GF_LOG_CODING);
+		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_QUIET);
+		force_reframer = ffdmx_valid_should_reframe(gpac_codec_id, (u8 *) exdata, exdata_size);
+		gf_log_set_tool_level(GF_LOG_CODING, lt);
 
 		if (expose_ffdec) {
 			const char *cname = avcodec_get_name(codec_id);
