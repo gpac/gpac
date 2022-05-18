@@ -1365,6 +1365,8 @@ GF_Err isor_declare_objects(ISOMReader *read)
 				if (mtype!=GF_ISOM_MEDIA_AUDIO) continue;
 			} else if (!strcmp(read->tkid, "video")) {
 				if (mtype!=GF_ISOM_MEDIA_VISUAL) continue;
+			} else if (!strcmp(read->tkid, "text")) {
+				if ((mtype!=GF_ISOM_MEDIA_TEXT) && (mtype!=GF_ISOM_MEDIA_SUBT)) continue;
 			} else if (strlen(read->tkid)==4) {
 				u32 t = GF_4CC(read->tkid[0], read->tkid[1], read->tkid[2], read->tkid[3]);
 				if (mtype!=t) continue;
