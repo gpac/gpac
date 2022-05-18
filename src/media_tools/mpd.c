@@ -3519,11 +3519,12 @@ static const char *gf_mpd_m3u8_get_init_seg(const GF_MPD_Period *period, const G
 	return url;
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session)
+static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period *period, const GF_MPD_AdaptationSet *as, GF_MPD_Representation *rep, char *m3u8_name, u32 hls_version, Double max_part_dur_session, const char *force_base_url)
 {
 	u32 i, count;
 	GF_DASH_SegmentContext *sctx;
 	FILE *out;
+	char *force_url=NULL;
 	const char *last_kms = NULL;
 	Bool close_file = GF_FALSE;
 
@@ -3576,7 +3577,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			gf_fprintf(out,"#EXT-X-I-FRAMES-ONLY\n");
 		}
 		if (rep->hls_single_file_name) {
-			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", rep->hls_single_file_name);
+			if (force_base_url)
+				force_url = gf_url_concatenate(force_base_url, rep->hls_single_file_name);
+
+			gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : rep->hls_single_file_name);
+
+			if (force_url) {
+				gf_free(force_url);
+				force_url = NULL;
+			}
 		}
 
 		for (i=0; i<count; i++) {
@@ -3630,7 +3639,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 					Bool write_br = GF_FALSE;
 					dur = sctx->frags[k].duration;
 					dur /= rep->timescale;
-					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=\"%s", dur, sctx->filename);
+
+					if (force_base_url)
+						force_url = gf_url_concatenate(force_base_url, sctx->filename);
+
+					gf_fprintf(out, "#EXT-X-PART:DURATION=%g,URI=\"%s", dur, force_url ? force_url : sctx->filename);
+					if (force_url ) {
+						gf_free(force_url);
+						force_url = NULL;
+					}
 
 					if (mpd->force_llhls_mode==1) write_br = GF_TRUE;
 					else if (mpd->force_llhls_mode==2) write_br = GF_FALSE;
@@ -3667,11 +3684,18 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 						else next_br_start_plus_one = 1;
 					}
 
-					if (next_seg_idx)
-						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s.%d\"\n", sctx->filename, next_seg_idx);
-					else if (next_br_start_plus_one)
-						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\",BYTERANGE-START="LLU"\n", sctx->filename, next_br_start_plus_one-1);
+					if (force_base_url)
+						force_url = gf_url_concatenate(force_base_url, sctx->filename);
 
+					if (next_seg_idx)
+						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s.%d\"\n", force_url ? force_url : sctx->filename, next_seg_idx);
+					else if (next_br_start_plus_one)
+						gf_fprintf(out, "#EXT-X-PRELOAD-HINT:TYPE=PART,URI=\"%s\",BYTERANGE-START="LLU"\n", force_url ? force_url : sctx->filename, next_br_start_plus_one-1);
+
+					if (force_url) {
+						gf_free(force_url);
+						force_url = NULL;
+					}
 				}
 				//generate rendition report
 				if (mpd->llhls_rendition_reports) {
@@ -3719,7 +3743,16 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			dur = (Double) sctx->dur;
 			dur /= rep->timescale;
 			gf_fprintf(out,"#EXTINF:%g,\n", dur);
-			gf_fprintf(out,"%s\n", sctx->filename);
+
+			if (force_base_url)
+				force_url = gf_url_concatenate(force_base_url, sctx->filename);
+
+			gf_fprintf(out,"%s\n", force_url ? force_url : sctx->filename);
+
+			if (force_url) {
+				gf_free(force_url);
+				force_url = NULL;
+			}
 		}
 	} else {
 		GF_MPD_BaseURL *base_url=NULL;
@@ -3737,10 +3770,19 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		assert(base_url);
 
 		if (init) {
+
+			if (force_base_url)
+				force_url = gf_url_concatenate(force_base_url, base_url->URL);
+
 			if (init->byte_range) {
-				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\",BYTERANGE=\"%d@"LLU"\"\n", force_url ? force_url : base_url->URL, (u32) (1+init->byte_range->end_range - init->byte_range->start_range), init->byte_range->start_range);
 			} else {
-				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", base_url->URL);
+				gf_fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n", force_url ? force_url : base_url->URL);
+			}
+
+			if (force_url) {
+				gf_free(force_url);
+				force_url = NULL;
 			}
 		}
 
@@ -3754,7 +3796,15 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 			dur /= rep->timescale;
 			gf_fprintf(out,"#EXTINF:%g\n", dur);
 			gf_fprintf(out,"#EXT-X-BYTERANGE:%d@"LLU"\n", sctx->file_size, sctx->file_offset);
-			gf_fprintf(out,"%s\n", base_url->URL);
+			if (force_base_url)
+				force_url = gf_url_concatenate(force_base_url, base_url->URL);
+
+			gf_fprintf(out,"%s\n", force_url ? force_url : base_url->URL);
+
+			if (force_url) {
+				gf_free(force_url);
+				force_url = NULL;
+			}
 		}
 	}
 
@@ -3781,7 +3831,7 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	Bool use_ind_segments = GF_TRUE;
 	Bool is_fmp4 = GF_FALSE;
 	char *szVariantName;
-	char *m3u8_name_rad, *sep;
+	char *m3u8_name_rad, *sep, *force_base_url=NULL;
 	u32 nb_audio=0;
 	u32 nb_cc=0;
 	u32 nb_subs=0;
@@ -3846,6 +3896,13 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 	sep = strrchr(m3u8_name_rad, '.');
 	if (sep) sep[0] = 0;
 	szVariantName = gf_malloc(sizeof(char) * (100 + strlen(m3u8_name_rad)) );
+
+
+	if (mpd->hls_abs_url) {
+		GF_MPD_BaseURL *burl = gf_list_get(mpd->base_URLs, 0);
+		if (burl)
+			force_base_url = burl->URL;
+	}
 
 	//if live low lat, update parts dur
 	Double max_part_dur_session=0;
@@ -3933,7 +3990,9 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 			if (!name) {
 				name = gf_file_basename(rep->m3u8_var_name);
 			}
-			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session);
+
+			e = gf_mpd_write_m3u8_playlist(mpd, period, as, rep, name, hls_version, max_part_dur_session,
+				((mpd->hls_abs_url==1) || (mpd->hls_abs_url==3)) ? force_base_url : NULL);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] IO error while opening m3u8 files\n"));
 				return GF_IO_ERR;
@@ -4002,8 +4061,14 @@ GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, co
 				name = szSuffixName;
 			}
 
-			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, name, is_primary ? period : NULL, nb_audio, nb_subs, nb_cc);
+
+			char *force_url = NULL;
+			if (force_base_url && ((mpd->hls_abs_url==2) || (mpd->hls_abs_url==3)))
+				force_url = gf_url_concatenate(force_base_url, name);
+
+			gf_mpd_write_m3u8_playlist_tags(as, i, rep, out, force_url ? force_url : name, is_primary ? period : NULL, nb_audio, nb_subs, nb_cc);
 			gf_fprintf(out, "\n");
+			if (force_url) gf_free(force_url);
 		}
 	}
 	gf_free(m3u8_name_rad);

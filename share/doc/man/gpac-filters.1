@@ -5422,6 +5422,18 @@ ll_rend_rep (bool, default: true): inject rendition reports for LL-HLS
 .br
 ll_part_hb (dbl, default: -1): user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session
 .br
+hls_absu (enum, default: no):  use absolute url in HLS generation using first URL in base
+.br
+* no: do not use absolute URL
+.br
+* var: use absolute URL only in variant playlists
+.br
+* mas: use absolute URL only in master playlist
+.br
+* both: use absolute URL everywhere
+.br
+
+.br
 cmaf (enum, default: no):      use cmaf guidelines
 .br
 * no: CMAF not enforced
@@ -10556,7 +10568,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev164-gc535bad50-master
+build: 2.1-DEV-rev170-g633b8d3c4-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

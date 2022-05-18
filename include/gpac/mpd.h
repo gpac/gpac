@@ -894,6 +894,8 @@ typedef struct {
 	Bool llhls_rendition_reports;
 	/*! user-defined  PART-HOLD-BACK, auto computed if <=0*/
 	Double llhls_part_holdback;
+	//als absolute url flag
+	u32 hls_abs_url;
 } GF_MPD;
 
 /*! parses an MPD Element (and subtree) from DOM
