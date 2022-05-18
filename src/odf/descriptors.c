@@ -605,17 +605,20 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		u32 size = gf_bs_read_int(bs, 16);
 		if ((size>gf_bs_available(bs)) || (size<2)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
 		GF_SAFEALLOC(sl, GF_NALUFFParam );
 		if (!sl) {
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
 		sl->size = size;
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		if (!sl->data) {
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
@@ -628,17 +631,20 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 		u32 size = gf_bs_read_int(bs, 16);
 		if ((size>gf_bs_available(bs)) || (size<2)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
 		GF_SAFEALLOC(sl, GF_NALUFFParam );
 		if (!sl) {
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
 		sl->size = size;
 		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		if (!sl->data) {
+			gf_bs_del(bs);
 			gf_odf_avc_cfg_del(avcc);
 			return NULL;
 		}
@@ -661,17 +667,20 @@ GF_AVCConfig *gf_odf_avc_cfg_read(u8 *dsi, u32 dsi_size)
 				u32 size = gf_bs_read_int(bs, 16);
 				if ((size>gf_bs_available(bs)) || (size<2)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AVC] Wrong param set size %d\n", size));
+					gf_bs_del(bs);
 					gf_odf_avc_cfg_del(avcc);
 					return NULL;
 				}
 				GF_SAFEALLOC(sl, GF_NALUFFParam );
 				if (!sl) {
+					gf_bs_del(bs);
 					gf_odf_avc_cfg_del(avcc);
 					return NULL;
 				}
 				sl->size = size;
 				sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 				if (!sl->data) {
+					gf_bs_del(bs);
 					gf_odf_avc_cfg_del(avcc);
 					return NULL;
 				}
