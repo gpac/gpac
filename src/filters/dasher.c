@@ -3695,6 +3695,8 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 			if (ext_sub) {
 				if (!strcmp(ext_sub, "subx"))
 					ext_sub = "ttml";
+				if (!strcmp(ext_sub, "tx3g"))
+					ext_sub = "srt";
 
 				strncpy(szRawExt, ext_sub, 19);
 				szRawExt[19] = 0;
@@ -3703,6 +3705,16 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 				def_ext = szRawExt;
 				skip_init = GF_TRUE;
 				ds->rawmux = GF_TRUE;
+
+				if (ds->rep->mime_type) gf_free(ds->rep->mime_type);
+				const char *mime = gf_codecid_mime(ds->codec_id);
+				if (!mime) mime = "text/plain";
+				ds->rep->mime_type = gf_strdup(mime);
+
+				if (ds->rep->codecs) {
+					gf_free(ds->rep->codecs);
+					ds->rep->codecs = NULL;
+				}
 			}
 		}
 
