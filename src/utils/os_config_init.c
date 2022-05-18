@@ -732,6 +732,15 @@ static GF_Config *create_default_config(char *file_path, const char *profile)
 			FILE *f = gf_fopen(szPath, "w");
 			if (f) gf_fclose(f);
 		}
+		//add a tmp as well, tmpfile() does not work on android
+		get_default_install_path(szPath, GF_PATH_APP);
+		strcat(szPath, "/gpac_tmp");
+		gf_cfg_set_key(cfg, "core", "tmp", szPath);
+		strcat(szPath, "/.nomedia");
+		if (!gf_file_exists(szPath)) {
+			FILE *f = gf_fopen(szPath, "w");
+			if (f) gf_fclose(f);
+		}
 	}
 #else
 	/*get default temporary directoy */
@@ -916,6 +925,17 @@ static void check_modules_dir(GF_Config *cfg)
 #endif
 }
 
+#ifdef GPAC_CONFIG_ANDROID
+
+static Bool delete_tmp_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	if (gf_file_delete(item_path) != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CACHE, ("[CORE] Failed to cleanup temp file %s\n", item_path));
+	}
+	return GF_FALSE;
+}
+#endif
+
 
 /*!
 \brief configuration file initialization
@@ -998,6 +1018,10 @@ static GF_Config *gf_cfg_init(const char *profile)
 		if (key && !gf_file_exists(key))
 			force_new_cfg = GF_TRUE;
 
+		//check if reset flag is set in existing config
+		if (gf_cfg_get_key(cfg, "core", "reset"))
+			force_new_cfg = GF_TRUE;
+
 		if (nb_old_sec || force_new_cfg) {
 			if (nb_old_sec && (!profile || strcmp(profile, "0"))) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[core] Incompatible config file %s found in %s - creating new file\n", CFG_FILE_NAME, szPath ));
@@ -1057,6 +1081,18 @@ skip_cfg:
 
 exit:
 	if (prof_opt) prof_opt[0] = ':';
+
+	//clean tmp
+#ifdef GPAC_CONFIG_ANDROID
+	if (cfg) {
+		const char *tmp = gf_cfg_get_key(cfg, "core", "tmp");
+		if (!strstr(tmp, "/gpac_tmp")) tmp=NULL;
+		if (tmp) {
+			gf_enum_directory(tmp, GF_FALSE, delete_tmp_files, (void*)cfg, NULL);
+		}
+	}
+#endif
+
 	return cfg;
 }
 
