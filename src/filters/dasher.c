@@ -170,6 +170,7 @@ typedef struct
 	Bool ll_preload_hint, ll_rend_rep;
 	Bool gencues, force_init;
 	Double ll_part_hb;
+	u32 hls_absu;
 
 	//internal
 	Bool in_error;
@@ -4613,6 +4614,7 @@ static GF_Err dasher_write_and_send_manifest(GF_DasherCtx *ctx, u64 last_period_
 		ctx->mpd->llhls_preload = ctx->ll_preload_hint;
 		ctx->mpd->llhls_rendition_reports = ctx->ll_rend_rep;
 		ctx->mpd->llhls_part_holdback = ctx->ll_part_hb;
+		ctx->mpd->hls_abs_url = ctx->hls_absu;
 
 		if (ctx->llhls==3)
 			ctx->mpd->force_llhls_mode = m3u8_second_pass ? 2 : 1;
@@ -9474,6 +9476,14 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(ll_preload_hint), "inject preload hint for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_rend_rep), "inject rendition reports for LL-HLS", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(ll_part_hb), "user-defined part hold-back for LLHLS, negative value means 3 times max part duration in session", GF_PROP_DOUBLE, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
+
+	{ OFFS(hls_absu), "use absolute url in HLS generation using first URL in [base]()\n"
+	"- no: do not use absolute URL\n"
+	"- var: use absolute URL only in variant playlists\n"
+	"- mas: use absolute URL only in master playlist\n"
+	"- both: use absolute URL everywhere"
+		, GF_PROP_UINT, "no", "no|var|mas|both", GF_FS_ARG_HINT_ADVANCED},
+
 	{ OFFS(cmaf), "use cmaf guidelines\n"
 		"- no: CMAF not enforced\n"
 		"- cmfc: use CMAF `cmfc` guidelines\n"
