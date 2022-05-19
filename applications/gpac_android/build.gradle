@@ -17,7 +17,7 @@ allprojects {
 }
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 28
     buildToolsVersion "25.0.2"
 
     defaultConfig {
