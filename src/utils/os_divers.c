@@ -1884,8 +1884,103 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	return 1;
 }
 
-//linux
+//ios
+#elif defined(GPAC_CONFIG_IOS)
+
+#import <mach/mach.h>
+#import <assert.h>
+
+Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
+{
+	u64 u_k_time = 0;
+    kern_return_t kr;
+    task_info_data_t tinfo;
+    mach_msg_type_number_t task_info_count;
+    task_basic_info_t basic_info;
+    thread_array_t thread_list;
+    mach_msg_type_number_t thread_count;
+    thread_info_data_t thinfo;
+    mach_msg_type_number_t thread_info_count;
+    thread_basic_info_t basic_info_th;
+    u32 j, tot_cpu = 0, nb_threads = 0;
+
+	u32 entry_time = gf_sys_clock();
+	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
+		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
+		return GF_FALSE;
+	}
+
+    task_info_count = TASK_INFO_MAX;
+    kr = task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)tinfo, &task_info_count);
+    if (kr != KERN_SUCCESS) {
+        return GF_FALSE;
+    }
+
+    basic_info = (task_basic_info_t)tinfo;
+    the_rti.gpac_memory = the_rti.process_memory = basic_info->resident_size;
+
+    // get threads in the task
+    kr = task_threads(mach_task_self(), &thread_list, &thread_count);
+    if (kr != KERN_SUCCESS) {
+        return GF_FALSE;
+    }
+    if (thread_count > 0)
+        nb_threads = (u32) thread_count;
+
+    for (j = 0; j < nb_threads; j++)   {
+        thread_info_count = THREAD_INFO_MAX;
+        kr = thread_info(thread_list[j], THREAD_BASIC_INFO,
+                         (thread_info_t)thinfo, &thread_info_count);
+        if (kr != KERN_SUCCESS) {
+			vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
+            return GF_FALSE;
+        }
+
+        basic_info_th = (thread_basic_info_t)thinfo;
+
+        if (!(basic_info_th->flags & TH_FLAGS_IDLE)) {
+            u64 tot_sec = basic_info_th->user_time.seconds + basic_info_th->system_time.seconds;
+            tot_sec *= 1000000;
+            tot_sec += basic_info_th->user_time.microseconds + basic_info_th->system_time.microseconds;
+            u_k_time += tot_sec;
+			tot_cpu += basic_info_th->cpu_usage;
+        }
+
+    } // for each thread
+
+    the_rti.process_cpu_usage = (tot_cpu * 100) / TH_USAGE_SCALE;
+	the_rti.total_cpu_usage = the_rti.process_cpu_usage;
+
+    kr = vm_deallocate(mach_task_self(), (vm_offset_t)thread_list, thread_count * sizeof(thread_t));
+    assert(kr == KERN_SUCCESS);
+
+
+	if (last_update_time) {
+		the_rti.sampling_period_duration = (entry_time - last_update_time);
+		the_rti.process_cpu_time_diff = 0;
+		/*move to ms*/
+		the_rti.total_cpu_time_diff = (u32) (u_k_time - last_cpu_u_k_time) / 1000;
+
+		/*we're not that accurate....*/
+		if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration)
+			the_rti.sampling_period_duration = the_rti.total_cpu_time_diff;
+	} else {
+		mem_at_startup = the_rti.physical_memory_avail;
+	}
+
+#ifdef GPAC_MEMORY_TRACKING
+	the_rti.gpac_memory = gpac_allocated_memory;
+#endif
+	last_cpu_u_k_time = u_k_time;
+	last_update_time = entry_time;
+	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
+
+	last_update_time = entry_time;
+	return GF_TRUE;
+}
+
 #else
+
 
 Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 {
