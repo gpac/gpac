@@ -2251,6 +2251,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_utc_drift_estimate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_algo) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_route_ast_shift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_suggested_presentation_delay) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_ignore_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_components) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_all_groups_done) )

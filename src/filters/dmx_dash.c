@@ -65,7 +65,7 @@ enum {
 typedef struct
 {
 	//opts
-	s32 shift_utc, route_shift;
+	s32 shift_utc, spd, route_shift;
 	u32 max_buffer, tiles_rate, segstore, delay40X, exp_threshold, switch_count, bwcheck;
 	s32 auto_switch;
 	s32 init_timeshift;
@@ -2184,6 +2184,7 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 
 	gf_dash_set_algo(ctx->dash, algo);
 	gf_dash_set_utc_shift(ctx->dash, ctx->shift_utc);
+	gf_dash_set_suggested_presentation_delay(ctx->dash, ctx->spd);
 	gf_dash_set_route_ast_shift(ctx->dash, ctx->route_shift);
 	gf_dash_enable_utc_drift_compensation(ctx->dash, ctx->server_utc);
 	gf_dash_set_tile_adaptation_mode(ctx->dash, ctx->tile_mode, ctx->tiles_rate);
@@ -3280,6 +3281,7 @@ static const GF_FilterArgs DASHDmxArgs[] =
 		"- mpd: use the indicated min buffer time of the MPD", GF_PROP_UINT, "auto", "no|auto|mpd", 0},
 
 	{ OFFS(shift_utc), "shift DASH UTC clock in ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(spd), "suggested presentation delay in ms", GF_PROP_SINT, "-I", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(route_shift), "shift ROUTE requests time by given ms", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(server_utc), "use `ServerUTC` or `Date` HTTP headers instead of local UTC", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(screen_res), "use screen resolution in selection phase", GF_PROP_BOOL, "yes", NULL, GF_FS_ARG_HINT_ADVANCED},
