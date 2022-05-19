@@ -1627,7 +1627,6 @@ Bool gf_opts_load_option(const char *arg_name, const char *val, Bool *consumed_n
 				if (sec_hdr_done)
 					fprintf(stdout, "\n");
 			}
-			exit(0);
 		}
 		return GF_TRUE;
 	}

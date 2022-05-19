@@ -783,13 +783,21 @@ public class GPAC extends Activity {
                 this.finish();
                 return true;
             case R.id.resetConfig:
-				displayPopup("Loaded new configuration file", "GPAC config reset");
 				if (in_session) {
 					session_aborted=true;
 					abort_session();
 				}
 				reset_config();
-                openURLasync("gpac -h");
+		        runOnUiThread(new Runnable() {
+
+		            @Override
+		            public void run() {
+		                Toast toast = Toast.makeText(GPAC.this, "GPAC Configuration file reset", Toast.LENGTH_SHORT);
+		                toast.show();
+		            }
+		        });
+		        
+                openURLasync("gpac -cfg");
                 return true;
                 
 /*			case R.id.testAuth:
