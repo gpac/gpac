@@ -3922,7 +3922,8 @@ static const char *naludmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSc
 
 	if (!nb_sps_avc || !nb_pps_avc) nb_avc=0;
 	if (!nb_sps_hevc || !nb_pps_hevc || !nb_vps_hevc) nb_hevc=0;
-	if (!nb_sps_vvc || !nb_pps_vvc || !nb_vps_vvc) nb_vvc=0;
+	//VPS is optional in VVC, don't check for its presence
+	if (!nb_sps_vvc || !nb_pps_vvc) nb_vvc=0;
 	if (not_avc) nb_avc=0;
 	if (not_hevc) nb_hevc=0;
 	if (not_vvc) nb_vvc=0;
