@@ -167,6 +167,7 @@ public class GPAC extends Activity {
     private String currentURL;
 
     private int last_orientation = 0;
+	private boolean has_display_cutout = false;
 
     private String last_displayed_message;
     //logs view for command line
@@ -208,6 +209,10 @@ public class GPAC extends Activity {
 
             return;
         }
+
+		if (Build.VERSION.SDK_INT >= 28) {
+			getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+		}
 
 		//locate data dirs and external storage
 		Context context = getApplicationContext();
@@ -1052,7 +1057,11 @@ public class GPAC extends Activity {
         try {
 			int width = gpac_gl_view.getWidth();
 			int height = gpac_gl_view.getHeight();
-            gpac_jni_handle = init(this, width, height, init_url, external_storage_dir, gpac_data_dir );
+			if (Build.VERSION.SDK_INT >= 28) {
+				if ( getWindow().getDecorView().getRootWindowInsets().getDisplayCutout() != null)
+					has_display_cutout = true;
+		    }
+            gpac_jni_handle = init(this, width, height, has_display_cutout, init_url, external_storage_dir, gpac_data_dir );
 			if (gpac_jni_handle == 0) {
 				throw new Exception("Error while creating instance, no handle created!\n" + sb.toString()); //$NON-NLS-1$
 			}
@@ -1392,7 +1401,7 @@ public class GPAC extends Activity {
      * @param gui_dir
      * @return
      */
-    private native long init(GPAC main_act, int width, int height, String url_to_open, String profile, String data_dir);
+    private native long init(GPAC main_act, int width, int height, boolean has_display_cutout, String url_to_open, String profile, String data_dir);
 
     /**
      * Opens an URL

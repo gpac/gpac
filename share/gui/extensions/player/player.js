@@ -696,26 +696,29 @@ extension = {
 
         wnd.snd_low = gw_new_icon(wnd.infobar, 'audio');
         wnd.snd_low.extension = this;
-        wnd.snd_ctrl = gw_new_slider(wnd.infobar);
-        wnd.snd_ctrl.extension = this;
-        wnd.snd_ctrl.stick_to_previous = true;
-        wnd.snd_low.add_icon('audio_mute');
-        wnd.snd_low.on_click = function () {
-            if (this.extension.muted) {
-                scene.volume = this.extension.muted;
-                this.extension.muted = 0;
-                this.switch_icon(0);
-            } else {
-                this.extension.muted = scene.volume ? scene.volume : 1;
-                scene.volume = 0;
-                this.switch_icon(1);
-            }
-        }
-        wnd.snd_ctrl.on_slide = function (value, type) {
-            if (this.extension.muted) this.extension.controler.snd_low.on_click();
-            scene.volume = value;
-        }
-        wnd.snd_ctrl.set_value(scene.volume);
+		wnd.snd_low.add_icon('audio_mute');
+		wnd.snd_low.on_click = function () {
+			if (this.extension.muted) {
+				scene.volume = this.extension.muted;
+				this.extension.muted = 0;
+				this.switch_icon(0);
+			} else {
+				this.extension.muted = scene.volume ? scene.volume : 1;
+				scene.volume = 0;
+				this.switch_icon(1);
+			}
+		}
+		wnd.snd_ctrl = null;
+        if (!gwskin.mobile_device) {
+			wnd.snd_ctrl = gw_new_slider(wnd.infobar);
+			wnd.snd_ctrl.extension = this;
+			wnd.snd_ctrl.stick_to_previous = true;
+			wnd.snd_ctrl.on_slide = function (value, type) {
+				if (this.extension.muted) this.extension.controler.snd_low.on_click();
+				scene.volume = value;
+			}
+			wnd.snd_ctrl.set_value(scene.volume);
+		}
 
         wnd.open = null;
         if (!gwskin.browser_mode) {

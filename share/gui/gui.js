@@ -87,8 +87,8 @@ globalThis.initialize = function () {
 
     scene.caption = 'GPAC';
 
-    gw_display_width = parseInt(scene.get_option('GUI', 'LastWidth'));
-    gw_display_height = parseInt(scene.get_option('GUI', 'LastHeight'));
+    gw_display_width = parseInt(scene.get_option('GUI', 'width'));
+    gw_display_height = parseInt(scene.get_option('GUI', 'height'));
     if (!scene.fullscreen && (!gw_display_width || !gw_display_height)) {
         gw_display_width = 320;
         gw_display_height = 240;
@@ -102,7 +102,6 @@ globalThis.initialize = function () {
     //request event listeners on the window - GPAC specific BIFS extensions !!! We don't allow using the event proc for size events
     root.addEventListener('resize', on_resize, 0);
 
-    
     /*load the UI lib*/
     Browser.loadScript('gwlib.js', false);
     gwlib_init(ui_root);
@@ -287,8 +286,8 @@ function on_resize(evt) {
     gw_display_width = evt.width;
     gw_display_height = evt.height;
     if (!scene.fullscreen) {
-        scene.set_option('GUI', 'LastWidth', '' + gw_display_width);
-        scene.set_option('GUI', 'LastHeight', '' + gw_display_height);
+        scene.set_option('GUI', 'width', '' + gw_display_width);
+        scene.set_option('GUI', 'height', '' + gw_display_height);
     }
 /*
     var v = 12;
