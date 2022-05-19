@@ -1017,12 +1017,16 @@ function gwlib_init(root_node) {
 
     if ((device == 'ios') || (device == 'android')) gwskin.mobile_device = true;
     else gwskin.mobile_device = false;
-    
+
+    var cutout = scene.get_option('temp', 'display-cutout');
+    gwskin.display_cutout = (cutout == 'yes') ? true : false;
+
     if (gwskin.mobile_device) {
         var size = scene.screen_width;
         if (size > scene.screen_height) size = scene.screen_height;
-        gwskin_set_default_control_height(size/6);
-        gwskin_set_default_icon_height(size/12);
+
+        gwskin_set_default_control_height(size/8);
+        gwskin_set_default_icon_height(size/10);
     }
     
 	gwskin_set_white_blue();
@@ -3499,7 +3503,7 @@ function gw_new_plotter(parent) {
     obj.add_serie = function (legend, units, r, g, b) {
         var s = gw_new_curve2d('plot');
         s.set_color(r, g, b);
-
+		s.set_line_width(gwskin.default_icon_height/8);
         s.dlg = this;
         s.legend = legend;
         s.units = units;

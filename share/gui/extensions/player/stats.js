@@ -442,65 +442,70 @@ extension.view_stats = function () {
 
 
     wnd.on_display_size = function (width, height) {
-        var w;
+        var w, w_select;
         var h = 2 * gwskin.default_icon_height;
+        var icon_h = gwskin.default_icon_height;
 
         if (gwskin.mobile_device) {
             w = width;
+            icon_h *= 0.66;
+			if (this.has_select)
+				w_select = 4*icon_h;
         } else {
             w = 20 * gwskin.default_text_font_size;
             w += 4 * gwskin.default_icon_height;
+			if (this.has_select) {
+				w_select = 6*icon_h;
+				w += w_select;
+			}
         }
-
-        if (this.has_select)
-            w += 6 * gwskin.default_icon_height;
 
         for (var i = 0; i < this.extension.stats_resources.length; i++) {
             var res = this.extension.stats_resources[i];
             var aw = w;
 
             if (res.gui.info) {
-				res.gui.info.set_size(1.5 * gwskin.default_icon_height, gwskin.default_icon_height);
+				res.gui.info.set_size(1.5 * icon_h, icon_h);
 				aw -= res.gui.info.width;
 			}
             if (res.gui.buffer) {
-                res.gui.buffer.set_size(2 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
+                res.gui.buffer.set_size(2 * icon_h, 0.75 * icon_h);
             }
             if (res.gui.play) {
-                res.gui.play.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+                res.gui.play.set_size(icon_h, icon_h);
             }
-            aw -= 4 * gwskin.default_icon_height;
+            aw -= 4 * icon_h;
 
             if (res.gui.select) {
-                res.gui.select.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
-                aw -= gwskin.default_icon_height;
-                res.gui.select_label.set_size(6 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
-                aw -= 4 * gwskin.default_icon_height;
+                res.gui.select.set_size(icon_h, icon_h);
+                aw -= icon_h;
+                res.gui.select_label.set_size(w_select, 0.75 * icon_h);
+                aw -= 4 * icon_h;
             }
 
 
-            res.gui.txt.set_size(aw, gwskin.default_icon_height);
+            res.gui.txt.set_size(aw, icon_h);
             res.gui.txt.set_width(aw);
-            h += gwskin.default_icon_height;
+            h += icon_h;
         }
 
         if (this.plot) {
-            this.plot.set_size(w, 8 * gwskin.default_icon_height);
-            h += 8 * gwskin.default_icon_height;
+            this.plot.set_size(w, 8 * icon_h);
+            h += 8 * icon_h;
         }
 
         if (this.http_control) {
-            this.http_text.set_size(11 * gwskin.default_text_font_size, gwskin.default_icon_height);
-            var ch = 0.5 * gwskin.default_icon_height;
-            this.http_control.set_size(w - 11 * gwskin.default_text_font_size, ch, ch, ch);
-            h += gwskin.default_icon_height;
+            this.http_text.set_size(10 * gwskin.default_text_font_size, icon_h);
+            var ch = 0.5 * icon_h;
+            this.http_control.set_size(w - 10 * gwskin.default_text_font_size, ch, ch, ch);
+            h += icon_h;
         }
 		
 		if (this.srd_modes) {
-			var cw = 0.75 * gwskin.default_icon_height;
-			this.srd_text.set_size(12 * gwskin.default_text_font_size, gwskin.default_icon_height);
-			this.srd_modes.set_size(w - 12 * gwskin.default_text_font_size - gwskin.default_icon_height, cw);
-			this.srd_select.set_size(gwskin.default_icon_height, cw);
+			var cw = 0.75 * icon_h;
+			this.srd_text.set_size(12 * gwskin.default_text_font_size, icon_h);
+			this.srd_modes.set_size(w - 12 * gwskin.default_text_font_size - icon_h, cw);
+			this.srd_select.set_size(icon_h, cw);
 		}
 
         this.set_size(w, h);
@@ -519,10 +524,13 @@ extension.view_stats = function () {
         }
     }
 
-    var label = 'Statistics (' + Sys.nb_cores + ' cores - ';
+    var label = 'Statistics (' + Sys.nb_cores + ' cores';
     let mem = Sys.physical_memory;
-    if (mem > 1000000000) label += '' + Math.round(mem / 1000 / 1000 / 1000) + ' GB RAM)';
-    else label += '' + Math.round(mem / 1000 / 1000) + ' MB RAM)';
+    if (mem) {
+		if (mem > 1000000000) label += ' - ' + Math.round(mem / 1000 / 1000 / 1000) + ' GB RAM';
+		else label += ' - ' + Math.round(mem / 1000 / 1000) + ' MB RAM';
+	}
+	label += ')';
 
     wnd.set_label(label);
 

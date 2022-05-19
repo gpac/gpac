@@ -11,7 +11,12 @@ extension.open_local_file = function () {
 
     filebrowse.on_display_size = function (width, height) {
         if (gwskin.mobile_device) {
-            this.set_size(width, height);
+			dh = 0;
+			if (gwskin.display_cutout) {
+				dh = gwskin.default_control_height;
+			}
+            this.set_size(width, height-dh);
+            this.move(0, -dh/2);
         } else {
             var w = width / 2;
             if (w < 200) w = width - 20;

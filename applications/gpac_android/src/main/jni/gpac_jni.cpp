@@ -76,6 +76,7 @@ typedef struct
 
 	u32 last_width, last_height;
 
+	Bool has_display_cutout;
 	int	no_gui;
 	int	do_log;
 	FILE *log_file;
@@ -184,6 +185,7 @@ static GF_Err gpac_init_gui(GPAC_JNI *gpac)
 		gf_log_set_callback(gpac, gpac_jni_on_log);
 		gpac->do_log = 1;
 	}
+	gf_opts_set_key("temp", "display-cutout", gpac->has_display_cutout ? "yes" : "no");
 
 	opt = gf_opts_get_key("core", "startup-file");
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GUI path is %s\n", opt ? opt : "NOT SET!") );
@@ -215,7 +217,7 @@ static GF_Err gpac_init_gui(GPAC_JNI *gpac)
 	return GF_OK;
 }
 
-JNIEXPORT jlong JNICALL gpac_jni_init(JNIEnv * env, jclass obj, jobject gpac_class_obj, jint width, jint height, jstring _url_to_open, jstring _ext_storage, jstring _app_data_dir)
+JNIEXPORT jlong JNICALL gpac_jni_init(JNIEnv * env, jclass obj, jobject gpac_class_obj, jint width, jint height, jboolean has_display_cutout, jstring _url_to_open, jstring _ext_storage, jstring _app_data_dir)
 {
 	GF_Err e = GF_OK;
 	int success = 1;
@@ -246,6 +248,7 @@ JNIEXPORT jlong JNICALL gpac_jni_init(JNIEnv * env, jclass obj, jobject gpac_cla
 
 	gpac->last_width = width;
 	gpac->last_height = height;
+	gpac->has_display_cutout = has_display_cutout ? GF_TRUE : GF_FALSE;
 	gf_sys_set_android_paths(app_data_dir, ext_storage);
 
 	e = gpac_init_gui(gpac);
@@ -806,7 +809,7 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className, const JN
 
 /* name, signature, funcPtr */
 static JNINativeMethod sMethods[] = {
-	{	"init", "(Lio/gpac/gpac/GPAC;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)J", (void*)&gpac_jni_init},
+	{	"init", "(Lio/gpac/gpac/GPAC;IIZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)J", (void*)&gpac_jni_init},
 	{	"uninit", "()V", (void*)gpac_jni_uninit},
 	{	"render_frame", "()V", (void*)gpac_jni_render_frame},
 	{	"set_size", "(III)V", (void*)gpac_jni_set_size},
