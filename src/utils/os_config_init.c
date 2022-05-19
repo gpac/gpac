@@ -1086,7 +1086,7 @@ exit:
 #ifdef GPAC_CONFIG_ANDROID
 	if (cfg) {
 		const char *tmp = gf_cfg_get_key(cfg, "core", "tmp");
-		if (!strstr(tmp, "/gpac_tmp")) tmp=NULL;
+		if (tmp && !strstr(tmp, "/gpac_tmp")) tmp=NULL;
 		if (tmp) {
 			gf_enum_directory(tmp, GF_FALSE, delete_tmp_files, (void*)cfg, NULL);
 		}
