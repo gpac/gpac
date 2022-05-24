@@ -3711,7 +3711,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 							o_sctx = gf_list_last(o_rep->state_seg_list);
 							if (!o_sctx || !o_sctx->llhls_mode) continue;
 							//not clear in the spec, we assume what is listed must be the last PART completely produced
-							//if no frag and a segemnt exists before, use last part of that segment
+							//if no frag and a segment exists before, use last part of that segment
 							if (!o_sctx->nb_frags) {
 								u32 idx = gf_list_count(o_rep->state_seg_list);
 								if (idx<2) continue;

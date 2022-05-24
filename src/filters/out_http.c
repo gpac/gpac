@@ -1735,7 +1735,7 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		if (p && p->value.uint) {
 			if (ctx->mem_fileio && (p->value.uint > (u32) ctx->max_cache_segs)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max segments cache set to %d, may result in client errors\n\tTry increasing segemnt buffer using --max_cache_segs\n", p->value.uint, ctx->max_cache_segs));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_HTTP, ("[HTTPOut] Timeshift buffer of %d segments but max segments cache set to %d, may result in client errors\n\tTry increasing segment buffer using --max_cache_segs\n", p->value.uint, ctx->max_cache_segs));
 			} else {
 				pctx->max_segs = p->value.uint;
 			}
