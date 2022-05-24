@@ -2964,7 +2964,7 @@ int gf_getch() {
 		return -1;
 	}
 	new = old;
-	new.c_lflag &= ~(ICANON | ECHO);
+	new.c_lflag &= ~(ICANON | ECHO | ISIG);
 	new.c_cc[VMIN] = 1;
 	new.c_cc[VTIME] = 0;
 	if (tcsetattr(0, TCSANOW, &new) == -1) {
