@@ -76,7 +76,7 @@ typedef enum
 \param segment_name target buffer where the segment name is formatted - size must be GF_MAX_PATH
 \param rep_id ID of the target representation
 \param base_url base URL, may be NULL
-\param seg_rad_name base name of the output segements (eg, myfile_ZZZ), shall not be NULL, may be empty ("")
+\param seg_rad_name base name of the output segmeents (eg, myfile_ZZZ), shall not be NULL, may be empty ("")
 \param seg_ext segment extensions
 \param start_time start time of the segment in MPD timescale
 \param bandwidth bandwidth used for the representation
@@ -413,7 +413,7 @@ typedef struct
 {
 	/*! disabled*/
 	Bool disabled;
-	/*! name of cahed init segemnt URL (usually local cache or gmem:// url)*/
+	/*! name of cahed init segment URL (usually local cache or gmem:// url)*/
 	char *cached_init_segment_url;
 	/*! if set indicates the associated gmem memory is owned by this representation*/
 	Bool owned_gmem;

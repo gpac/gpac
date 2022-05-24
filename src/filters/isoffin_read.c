@@ -988,7 +988,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			}
 
 			if ((evt->play.start_range || read->is_partial_download)  && (max_offset != GF_FILTER_NO_BO) ) {
-
 				//send a seek request
 				read->is_partial_download = GF_TRUE;
 				read->wait_for_source = GF_TRUE;
@@ -998,7 +997,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 				fevt.seek.start_offset = max_offset;
 				gf_filter_pid_send_event(read->pid, &fevt);
 				gf_isom_set_byte_offset(read->mov, is_sidx_seek ? 0 : max_offset);
-
 			}
 		}
 		//always request a process task upon a play
@@ -1270,7 +1268,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);
 
-			if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
+			if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to refresh current segment: %s\n", gf_error_to_string(e) ));
 				read->refresh_fragmented = GF_FALSE;
 			} else {
