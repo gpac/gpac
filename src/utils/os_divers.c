@@ -2752,7 +2752,7 @@ u64 gf_net_parse_date(const char *val)
 		//use 1 ms
 		return 1;
 	}
-	if (current_time == 0) {
+	if (current_time == 0 && secs == 0.0) {
 		//use 1 ms
 		return 1;
 	}
