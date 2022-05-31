@@ -753,7 +753,7 @@ col_g += col_g1 * 8;\n\
 ocol.r = col_r / 31.0;\n\
 ocol.g = col_g / 31.0;\n\
 ocol.b = col_b / 31.0;\n\
-ocol.a = 1.0:\n\
+ocol.a = 1.0;\n\
 return ocol;\
 ";
 
