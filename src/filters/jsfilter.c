@@ -4173,6 +4173,7 @@ static GF_Err jsfilter_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		//force cleanup of all refs
 		gf_js_call_gc(jsf->ctx);
 
+		JS_SetOpaque(pctx->jsobj, NULL);
 		JS_FreeValue(jsf->ctx, pctx->jsobj);
 		gf_list_del_item(jsf->pids, pctx);
 		gf_filter_pid_set_udta(pid, NULL);
