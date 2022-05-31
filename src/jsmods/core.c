@@ -501,6 +501,14 @@ static JSValue js_bs_get_data(JSContext *ctx, JSValueConst this_val, int argc, J
 {
 	return js_bs_data_io(ctx, this_val, argc, argv, 0);
 }
+
+static JSValue js_bs_get_4cc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GET_JSBS
+	u32 fcc = gf_bs_read_u32(bs);
+	return JS_NewString(ctx, gf_4cc_to_str(fcc) );
+}
+
 static JSValue js_bs_skip_bytes(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	s32 nb_bytes;
@@ -670,6 +678,23 @@ static JSValue js_bs_insert_data(JSContext *ctx, JSValueConst this_val, int argc
 	return js_bs_data_io(ctx, this_val, argc, argv, 2);
 }
 
+static JSValue js_bs_put_4cc(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	u32 val;
+	GET_JSBS
+	if (!bs || (argc!=1)) return GF_JS_EXCEPTION(ctx);
+	if (!JS_IsString(argv[0])) return GF_JS_EXCEPTION(ctx);
+	const char *str = JS_ToCString(ctx, argv[0]);
+	if (!str || (strlen(str) != 4)) {
+		if (str) JS_FreeCString(ctx, str);
+		return GF_JS_EXCEPTION(ctx);
+	}
+	val = GF_4CC(str[0], str[1], str[2], str[3]);
+	JS_FreeCString(ctx, str);
+	gf_bs_write_u32(bs, val);
+	return JS_UNDEFINED;
+}
+
 static JSValue js_bs_get_content(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	u8 *data;
@@ -787,6 +812,7 @@ static const JSCFunctionListEntry bitstream_funcs[] = {
 	JS_CFUNC_DEF("get_float", 0, js_bs_get_float),
 	JS_CFUNC_DEF("get_double", 0, js_bs_get_double),
 	JS_CFUNC_DEF("get_data", 0, js_bs_get_data),
+	JS_CFUNC_DEF("get_4cc", 0, js_bs_get_4cc),
 	JS_CFUNC_DEF("put_u8", 0, js_bs_put_u8),
 	JS_CFUNC_DEF("put_s8", 0, js_bs_put_s8),
 	JS_CFUNC_DEF("put_u16", 0, js_bs_put_u16),
@@ -803,6 +829,7 @@ static const JSCFunctionListEntry bitstream_funcs[] = {
 	JS_CFUNC_DEF("put_float", 0, js_bs_put_float),
 	JS_CFUNC_DEF("put_double", 0, js_bs_put_double),
 	JS_CFUNC_DEF("put_data", 0, js_bs_put_data),
+	JS_CFUNC_DEF("put_4cc", 0, js_bs_put_4cc),
 	JS_CFUNC_DEF("insert_data", 0, js_bs_insert_data),
 	JS_CFUNC_DEF("get_content", 0, js_bs_get_content),
 	JS_CFUNC_DEF("transfer", 0, js_bs_transfer),
