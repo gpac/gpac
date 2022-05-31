@@ -1192,6 +1192,14 @@ static GF_Err dump_isom_nal_ex(GF_ISOFile *file, GF_ISOTrackID trackID, FILE *du
 					DUMP_ARRAY(ar->nalus, "VVCPPS", "vvcC", 0)
 				} else if (ar->type==GF_VVC_NALU_VID_PARAM) {
 					DUMP_ARRAY(ar->nalus, "VVCVPS", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_DEC_PARAM) {
+					DUMP_ARRAY(ar->nalus, "VVCDecParam", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_OPI) {
+					DUMP_ARRAY(ar->nalus, "VVCOPI", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_APS_PREFIX) {
+					DUMP_ARRAY(ar->nalus, "VVCAPSPrefix", "vvcC", 0)
+				} else if (ar->type==GF_VVC_NALU_SEI_PREFIX) {
+					DUMP_ARRAY(ar->nalus, "VVCSEIPrefix", "vvcC", 0)
 				} else {
 					DUMP_ARRAY(ar->nalus, "VVCUnknownPS", "vvcC", 0)
 				}
