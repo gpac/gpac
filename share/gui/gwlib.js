@@ -3503,7 +3503,7 @@ function gw_new_plotter(parent) {
     obj.add_serie = function (legend, units, r, g, b) {
         var s = gw_new_curve2d('plot');
         s.set_color(r, g, b);
-		s.set_line_width(gwskin.default_icon_height/8);
+		s.set_line_width(gwskin.default_icon_height/10);
         s.dlg = this;
         s.legend = legend;
         s.units = units;
