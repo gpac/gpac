@@ -383,7 +383,7 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 	if (bs->cache_write)
 		bs_flush_write_cache(bs);
 
-	is_eos = gf_feof(bs->stream);
+	is_eos = bs->stream ? gf_feof(bs->stream) : GF_TRUE;
 	//cache not fully read, reset EOS
 	if (bs->cache_read && (bs->cache_read_pos<bs->cache_read_size))
 		is_eos = GF_FALSE;
