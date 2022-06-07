@@ -190,6 +190,9 @@ typedef enum
 	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
+	/*generic pixel format uncv from ISO/IEC 23001-17*/
+	GF_PIXEL_UNCV = GF_4CC('u', 'n', 'c', 'v'),
+
 	/*!YUV packed 422 format*/
 	GF_PIXEL_YUYV		=	GF_4CC('Y','U','Y','V'),
 	/*!YUV packed 422 format*/
