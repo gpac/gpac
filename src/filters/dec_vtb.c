@@ -96,6 +96,8 @@ typedef struct
 	u32 codecid;
 	Bool is_hardware;
 	Bool wait_rap;
+	s32 cmx;
+	Bool full_range;
 
 	GF_Err last_error;
 	
@@ -1028,6 +1030,11 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+
+		if (ctx->full_range)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(ctx->full_range));
+		if (ctx->cmx>=0)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx));
 		return GF_OK;
 	}
 	//need a reset !
@@ -1118,13 +1125,15 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_odf_avc_cfg_del(cfg);
 
 			if ((ctx->active_sps>=0) && ctx->avc.sps[ctx->active_sps].vui_parameters_present_flag) {
-				Bool full_range = ctx->avc.sps[ctx->active_sps].vui.video_full_range_flag;
-				u32 cmx = ctx->avc.sps[ctx->active_sps].vui.matrix_coefficients;
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(cmx));
+				ctx->full_range = ctx->avc.sps[ctx->active_sps].vui.video_full_range_flag;
+				ctx->cmx = ctx->avc.sps[ctx->active_sps].vui.matrix_coefficients;
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(ctx->full_range));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx));
 			} else {
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, NULL);
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, NULL);
+				ctx->full_range = GF_FALSE;
+				ctx->cmx = -1;
 			}
 			return e;
 		}
@@ -1184,13 +1193,15 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			gf_odf_hevc_cfg_del(cfg);
 
 			if ((ctx->active_sps>=0) && ctx->hevc.sps[ctx->active_sps].vui_parameters_present_flag) {
-				Bool full_range = ctx->hevc.sps[ctx->active_sps].video_full_range_flag;
-				u32 cmx = ctx->hevc.sps[ctx->active_sps].matrix_coeffs;
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(full_range));
-				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT(cmx));
+				ctx->full_range = ctx->hevc.sps[ctx->active_sps].video_full_range_flag;
+				ctx->cmx = ctx->hevc.sps[ctx->active_sps].matrix_coeffs;
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, &PROP_BOOL(ctx->full_range));
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, &PROP_UINT((u32) ctx->cmx));
 			} else {
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_RANGE, NULL);
 				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_COLR_MX, NULL);
+				ctx->cmx = -1;
+				ctx->full_range = GF_FALSE;
 			}
 			return e;
 		}
