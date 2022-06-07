@@ -367,6 +367,8 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 
  				if (pix_fmt) {
 					codec_id = GF_CODECID_RAW;
+					if (pix_fmt==GF_PIXEL_UNCV)
+						load_default = GF_TRUE;
 				} else {
 					load_default = GF_TRUE;
 				}

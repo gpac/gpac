@@ -1084,6 +1084,7 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_RGBS, "rgbs", "RGB 24 bits stereo (side-by-side) - to be removed\n"},
 	{GF_PIXEL_RGBAS, "rgbas", "RGBA 32 bits stereo (side-by-side) - to be removed\n"},
 	{GF_PIXEL_GL_EXTERNAL, "extgl", "External OpenGL texture of unknown format, to be used with samplerExternalOES\n"},
+	{GF_PIXEL_UNCV, "uncv", "Generic uncompressed format ISO/IEC 23001-17"},
 	{0}
 };
 
