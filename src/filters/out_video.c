@@ -190,6 +190,7 @@ static GF_Err vout_draw_frame(GF_VideoOutCtx *ctx);
 static void vout_make_gl_current(GF_VideoOutCtx *ctx)
 {
 	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_GL;
 	ctx->video_out->ProcessEvent(ctx->video_out, &evt);
 }
@@ -537,6 +538,9 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		ctx->display_width = ctx->wsize.x;
 		ctx->display_height = ctx->wsize.y;
 		ctx->display_changed = GF_TRUE;
+	} else {
+		//force program matrix recompute
+		ctx->display_changed = GF_TRUE;
 	}
 
 	ctx->owsize.x = ctx->display_width;
@@ -689,27 +693,26 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 
 #ifdef VOUT_USE_OPENGL
-	if (ctx->disp<MODE_2D) {
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = GF_EVENT_SET_GL;
-		ctx->video_out->ProcessEvent(ctx->video_out, &evt);
+	if (ctx->glsl_program) {
+		vout_make_gl_current(ctx);
+		DEL_SHADER(ctx->vertex_shader);
+		DEL_SHADER(ctx->fragment_shader);
+		DEL_PROGRAM(ctx->glsl_program );
+		gf_gl_txw_reset(&ctx->tx);
 	}
-	
-	vout_make_gl_current(ctx);
-	DEL_SHADER(ctx->vertex_shader);
-	DEL_SHADER(ctx->fragment_shader);
-	DEL_PROGRAM(ctx->glsl_program );
-	gf_gl_txw_reset(&ctx->tx);
 
 	if (ctx->disp<MODE_2D) {
 		char *frag_shader_src = NULL;
 
+		GL_CHECK_ERR()
 		ctx->glsl_program = glCreateProgram();
 		ctx->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 		vout_compile_shader(ctx->vertex_shader, "vertex", default_glsl_vertex);
 
 		ctx->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
 		gf_gl_txw_setup(&ctx->tx, ctx->pfmt, ctx->width, ctx->height, ctx->stride, ctx->uv_stride, ctx->linear, NULL, ctx->full_range, ctx->cmx);
+
+		GL_CHECK_ERR()
 
 #ifdef GPAC_USE_GLES2
 		gf_dynstrcat(&frag_shader_src, "#version 100\n"\
@@ -765,6 +768,8 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 
 		load_gl_tx_matrix(ctx);
+
+		ctx->num_textures = ctx->tx.nb_textures;
 
 	} else
 #endif //VOUT_USE_OPENGL
