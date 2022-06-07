@@ -2672,7 +2672,9 @@ typedef enum
 	/*! set this flag to avoid cloning track as a QT track while cloning track*/
 	GF_ISOM_CLONE_TRACK_NO_QT = 1<<1,
 	/*! drop track ID while importing*/
-	GF_ISOM_CLONE_TRACK_DROP_ID = 1<<2
+	GF_ISOM_CLONE_TRACK_DROP_ID = 1<<2,
+	/*! reset media duration when cloning */
+	GF_ISOM_CLONE_RESET_DURATION = 1<<3
 } GF_ISOTrackCloneFlags;
 
 /*! clones a track. This clones everything except media data and sample info (DTS, CTS, RAPs, etc...), and also clones sample descriptions

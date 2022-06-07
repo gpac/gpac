@@ -4261,6 +4261,9 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		}
 	}
 
+	if (flags & GF_ISOM_CLONE_RESET_DURATION)
+		new_tk->Media->mediaHeader->duration = 0;
+
 	if (!new_tk->Media->information->dataInformation->dref) return GF_BAD_PARAM;
 
 	/*reset data ref*/
@@ -7659,7 +7662,7 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 		GF_EditListBox *elst = trak->editBox->editList;
 		i=0;
 		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
-			if ((ent->mediaTime>=0) && (ent->mediaRate==1) && (ent->segmentDuration > trackDuration))
+			if ((ent->mediaTime>=0) && (ent->mediaRate==0x10000) && (ent->segmentDuration > trackDuration))
 				ent->segmentDuration = trackDuration;
 
 			if (!ent->segmentDuration) {

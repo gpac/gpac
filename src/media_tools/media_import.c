@@ -450,7 +450,8 @@ static GF_Err gf_import_isomedia_track(GF_MediaImporter *import)
 		if (dst && strstr(dst, ".mov"))
 			clone_flags = 0;
 	}
-
+	clone_flags |= GF_ISOM_CLONE_RESET_DURATION;
+	
 	if (import->flags & GF_IMPORT_USE_DATAREF)
 		clone_flags |= GF_ISOM_CLONE_TRACK_KEEP_DREF;
 	if (import->target_trackID && (import->target_trackID==(u32)-1))
