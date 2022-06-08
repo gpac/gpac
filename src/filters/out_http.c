@@ -76,7 +76,7 @@ typedef struct
 	//options
 	char *dst, *user_agent, *ifce, *cache_control, *ext, *mime, *wdir, *cert, *pkey, *reqlog;
 	GF_PropStringList rdirs;
-	Bool close, hold, quit, post, dlist, ice;
+	Bool close, hold, quit, post, dlist, ice, reopen;
 	u32 port, block_size, maxc, maxp, timeout, hmode, sutc, cors, max_client_errors;
 	s32 max_cache_segs;
 
@@ -179,7 +179,6 @@ typedef struct __httpout_session
 
 	Bool headers_done;
 
-	u32 play_state;
 	Double start_range;
 
 	FILE *resource;
@@ -1020,14 +1019,20 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	if (parameter->reply == GF_HTTP_DELETE)
 		count = 0;
 
+	Bool no_longer_avail = GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_HTTPOutInput *in = gf_list_get(sess->ctx->inputs, i);
 		assert(in->path[0] == '/');
 		//matching name and input pid not done: file has been created and is in progress
 		//if input pid done, try from file
-		if (!strcmp(in->path, url) && !in->done) {
-			source_pid = in;
-			break;
+		if (!strcmp(in->path, url)) {
+			//source done in server mode with no storage, no longer available unless reopen is set
+			if (in->done && !sess->ctx->rdirs.nb_items && (!sess->ctx->reopen || gf_filter_pid_is_eos(in->ipid))) {
+				no_longer_avail = GF_TRUE;
+			} else if (!in->done) {
+				source_pid = in;
+				break;
+			}
 		}
 		if (in->hls_chunk_path && !strcmp(in->hls_chunk_path, url) && !in->done) {
 			source_pid = in;
@@ -1095,7 +1100,10 @@ static void httpout_sess_io(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			sess->reply_code = 404;
 			gf_dynstrcat(&response_body, "Resource ", NULL);
 			gf_dynstrcat(&response_body, url, NULL);
-			gf_dynstrcat(&response_body, " cannot be resolved", NULL);
+			if (no_longer_avail)
+				gf_dynstrcat(&response_body, " is no longer available", NULL);
+			else
+				gf_dynstrcat(&response_body, " cannot be resolved", NULL);
 			goto exit;
 		}
 	}
@@ -1742,8 +1750,17 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		}
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_IS_MANIFEST);
-		if (p && p->value.boolean) pctx->is_manifest = GF_TRUE;
-
+		if (p && p->value.boolean) {
+			pctx->is_manifest = GF_TRUE;
+			if (!ctx->hmode && !ctx->rdirs.nb_items) {
+				if (!ctx->reopen) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set is meaningless\n"));
+					return GF_FILTER_NOT_SUPPORTED;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Using DASH/HLS in server mode with no directory set will result in unconsistent file states, use at your own risks\n"));
+				}
+			}
+		}
         res_path = NULL;
 		if (ctx_orig->dst) {
             res_path = ctx_orig->dst;
@@ -2693,7 +2710,7 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 
     if (in->is_open && !is_delete) return GF_FALSE;
     if (!in->upload) {
-        //singe session mode, not recording, nothing to do
+        //single session mode, not recording, nothing to do
         if (ctx->single_mode) {
 			in->done = GF_FALSE;
 			in->is_open = GF_TRUE;
@@ -2949,15 +2966,19 @@ static void httpout_close_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 			count = gf_list_count(ctx->active_sessions);
 			for (i=0; i<count; i++) {
 				GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
+				if (!sess->http_sess || sess->done) continue;
 				if (sess->in_source != in) continue;
-				assert(sess->nb_bytes);
-				if (!sess->is_h2)
-					gf_dm_sess_send(sess->http_sess, "0\r\n\r\n", 5);
+				//if we sent bytes, flush - otherwise session has just started
+				if (sess->nb_bytes) {
+					if (!sess->is_h2)
+						gf_dm_sess_send(sess->http_sess, "0\r\n\r\n", 5);
 
-				//signal we're done sending the body
-				gf_dm_sess_send(sess->http_sess, NULL, 0);
+					//signal we're done sending the body
+					gf_dm_sess_send(sess->http_sess, NULL, 0);
 
-				log_request_done(sess);
+					log_request_done(sess);
+					sess->done = GF_TRUE;
+				}
 			}
 		}
 	}
@@ -3078,11 +3099,14 @@ retry:
 				}
 				gf_fflush(in->hls_chunk);
 			}
+		} else {
+			out = pck_size;
 		}
 
 		for (i=0; i<count; i++) {
 			GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 			if (sess->in_source != in) continue;
+			if (sess->done) continue;
 
 			if (sess->send_init_data && in->tunein_data_size && !sess->file_in_progress) {
 				if (!sess->is_h2) {
@@ -3098,7 +3122,6 @@ retry:
 				sess->nb_bytes += in->tunein_data_size;
 			}
 			sess->send_init_data = GF_FALSE;
-			out = pck_size;
 
 			/*source is read from disk but a different file handle is used, force refresh by using fseek (so use fsize and seek back to current pos)*/
 			if (sess->file_in_progress) {
@@ -3144,6 +3167,7 @@ static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 	for (i=0; i<count; i++) {
 		GF_HTTPOutSession *sess = gf_list_get(ctx->active_sessions, i);
 		if (sess->in_source != in) continue;
+		if (sess->done) continue;
 
 		if (!sess->file_in_progress && !gf_sk_group_sock_is_set(ctx->sg, sess->socket, GF_SK_SELECT_WRITE))
 			return GF_FALSE;
@@ -3342,6 +3366,10 @@ next_pck:
 
 		//no destination and not holding packets (either first connection not here or disabled), trash packet
 		if (!ctx->hmode && !ctx->rdirs.nb_items && !in->nb_dest && !in->hold) {
+			if (end) {
+				httpout_close_input(ctx, in);
+				httpout_close_input_llhls(ctx, in);
+			}
 			gf_filter_pid_drop_packet(in->ipid);
 			continue;
 		}
@@ -3489,8 +3517,10 @@ static GF_Err httpout_process(GF_Filter *filter)
 			if (sess->in_source) continue;
 
 			//regular download
-			httpout_process_session(filter, ctx, sess);
-			//closed, remove
+			if (sess->http_sess)
+				httpout_process_session(filter, ctx, sess);
+
+			//closed, remove - the session may have been closed previously but not removed from our list
 			if (! sess->http_sess) {
 				httpout_del_session(sess);
 				i--;
@@ -3641,6 +3671,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(ice), "insert ICE meta-data in response headers in sink mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_client_errors), "force disconnection after specified number of consecutive errors from HTTTP 1.1 client (ignored in H/2 or when `close` is set)", GF_PROP_UINT, "20", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(max_cache_segs), "maximum number of segments cached per HAS quality (see filter help)", GF_PROP_SINT, "5", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(reopen), "in server mode with no read dir, accept requests on files already over but with input pid not in end of stream", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
@@ -3698,6 +3729,10 @@ GF_FilterRegister HTTPOutRegister = {
 		"The server will also look for any property called `ice-*` on the input PID and inject them.\n"
 		"EX gpac -i source.mp3:#ice-Genre=CoolRock -o http://IP/live.mp3 --ice\n"
 		"This will inject the header `ice-Genre: CoolRock` in the response."
+		"  \n"
+		"Once one complete input file is sent, it is no longer available for download unless [-reopen]() is set and input PID is not over.\n"
+		"  \n"
+		"This mode should not be used with multiple files muxers such as DASH or HLS.\n"
 		"  \n"
 		"# HTTP server file sink\n"
 		"In this mode, the filter will write input PIDs to files in the first read directory specified, acting as a file output sink.\n"
