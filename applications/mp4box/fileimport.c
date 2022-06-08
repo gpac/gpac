@@ -400,8 +400,8 @@ static GF_Err set_dv_profile(GF_ISOFile *dest, u32 track, char *dv_profile_str)
 	} else {
 		dv_profile = parse_u32(dv_profile_str, "DV profile");
 		if (dv_profile==8) {
-			if ((dv_compat_id!=1) && (dv_compat_id!=2)) {
-				M4_LOG(GF_LOG_ERROR, ("DV profile 8 must indicate a compatibility mode `hdr10` or `bt709`\n"));
+			if ((dv_compat_id!=1) && (dv_compat_id!=2) && (dv_compat_id!=4)) {
+				M4_LOG(GF_LOG_ERROR, ("DV profile 8 must indicate a compatibility mode `hdr10`, `bt709` or `hlg2100`\n"));
 				return GF_BAD_PARAM;
 			}
 		}
