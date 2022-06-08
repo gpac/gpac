@@ -6722,7 +6722,7 @@ Bool gf_isom_get_tile_info(GF_ISOFile *isom_file, u32 trackNumber, u32 sample_gr
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param sample_number the target sample
-\param sgrp_idx the current index. Must be et to 0 on first call, incremented by this call on each success, must not be NULL
+\param sgrp_idx the current index. Must be set to 0 on first call, incremented by this call on each success, must not be NULL
 \param sgrp_type set to the grouping type, or set to 0 if no more sample group descriptions, must not be NULL
 \param sgrp_parameter set to the grouping_type_parameter or 0 if not defined
 \param sgrp_data set to the sample group description data

@@ -939,8 +939,7 @@ void isor_set_sample_groups_and_aux_data(ISOMReader *read, ISOMChannel *ch, GF_F
 		u32 grp_type=0, grp_size=0, grp_parameter=0;
 		const u8 *grp_data=NULL;
 		GF_Err e = gf_isom_enum_sample_group(read->mov, ch->track, ch->sample_num, &grp_idx, &grp_type, &grp_parameter, &grp_data, &grp_size);
-		if (e) continue;
-		if (!grp_type) break;
+		if (e || !grp_type) break;
 		if (!grp_size || !grp_data) continue;
 
 		if (grp_type == GF_4CC('P','S','S','H')) {
