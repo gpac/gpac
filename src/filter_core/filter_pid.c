@@ -4185,6 +4185,7 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid;
 	GF_Filter *dynamic_filter_clone = NULL;
 	Bool filter_found_but_pid_excluded = GF_FALSE;
+	Bool possible_link_found_implicit_mode = GF_FALSE;
 	u32 pid_is_file = 0;
 	const char *filter_id;
 
@@ -4712,11 +4713,17 @@ single_retry:
 				} else {
 					//register as possible destination link. If a filter already registered is a destination of this possible link
 					//only the possible link will be kept
-					add_possible_link_destination(possible_linked_resolutions, filter_dst);
+					if (!possible_link_found_implicit_mode)
+						add_possible_link_destination(possible_linked_resolutions, filter_dst);
 
-					//implicit link mode: if possible destination is not a sink, stop checking
+					//implicit link mode: if possible destination is not a sink, stop checking for possible links
+					//continue however first pass in case we have a direct match with a dynamic filter, eg:
+					//tiled_input.mpd -> compositor -> ...
+					//the first pid will resolve to dashin + tileagg
+					//the second pid from dashin must link to tileagg, but if we stop the pass 0 loop
+					//it would link to compositor with a new tileagg filter
 					if (!use_explicit_link && (filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE) && !is_sink) {
-						break;
+						possible_link_found_implicit_mode = GF_TRUE;
 					}
 				}
 				continue;
@@ -5077,12 +5084,14 @@ void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid)
 
 void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid)
 {
-	Bool force_main_thread=GF_FALSE;
+//	Bool force_main_thread=GF_FALSE;
 	if (pid->init_task_pending) return;
 
 	safe_int_inc(&pid->init_task_pending);
-	if (filter->session->force_main_thread_tasks)
-		force_main_thread = GF_TRUE;
+//	if (filter->session->force_main_thread_tasks)
+	//force pid_init on main thread to avoid concurrent graph resolutions. While it works well for simple cases, it is problematic
+	//for complex chains involving a lot of filters (typically gui loading icons)
+	Bool force_main_thread = GF_TRUE;
 
 	gf_fs_post_task_ex(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL, GF_FALSE, force_main_thread, GF_FALSE, TASK_TYPE_NONE);
 }
