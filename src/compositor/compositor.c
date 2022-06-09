@@ -3024,7 +3024,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					res *= compositor->fps.den;
 					res *= 1000;
 					res /= compositor->fps.num;
-					assert(res>=compositor->scene_sampled_clock);
 					compositor->scene_sampled_clock = (u32) res;
 				}
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Send video frame TS %u (%u ms) - next frame scene clock %d ms - passthrough %p\n", frame_ts, (frame_ts*1000)/compositor->fps.num, compositor->scene_sampled_clock, compositor->passthrough_txh));
@@ -3110,8 +3109,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				compositor->scene_sampled_clock = (u32) res;
 			}
 
-			if (compositor->check_eos_state && all_tx_done && !has_timed_nodes)
-				compositor->check_eos_state = 2;
+			if (all_tx_done && !has_timed_nodes) {
+				//we were in eos, notify we are done
+				if (compositor->check_eos_state)
+					compositor->check_eos_state = 2;
+				//we were not in eos, force flushing pending audio
+				else
+					compositor->flush_audio = GF_TRUE;
+			}
 		}
 	}
 	compositor->reset_graphics = 0;
@@ -4497,6 +4502,13 @@ u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_
 			pause_at_first_frame = 1;
 		else
 			pause_at_first_frame = 0;
+	}
+
+	//in case we seek in non-player mode, adjust frame number to desired seek time
+	//this is not really precise (we don't take into account seek) but is enough for vout UI
+	if (!compositor->player) {
+		u64 output_ts = gf_timestamp_rescale(from_time, 1000, compositor->fps.num);
+		compositor->frame_number = output_ts / compositor->fps.den;
 	}
 
 	/*for dynamic scene OD resources are static and all object use the same clock, so don't restart the root

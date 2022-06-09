@@ -560,7 +560,7 @@ u8 *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = NULL;
 
-	if (!mo->odm || !mo->odm->pid || !mo->odm->state) {
+	if (!mo->odm || !mo->odm->pid) {
 		mo->frame = NULL;
 		mo->frame_ifce = NULL;
 		return NULL;
@@ -597,7 +597,7 @@ retry:
 	if (!mo->pck) {
 		mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 		if (!mo->pck) {
-			if (gf_filter_pid_is_eos(mo->odm->pid)) {
+			if (gf_filter_pid_is_eos(mo->odm->pid) || !mo->odm->state) {
 				if (!mo->is_eos) {
 					mo->is_eos = GF_TRUE;
 					mediasensor_update_timing(mo->odm, GF_TRUE);

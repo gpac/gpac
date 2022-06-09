@@ -237,6 +237,7 @@ static void compositor_setup_vout(GF_Compositor *ctx)
 	gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->output_height) );
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC(ctx->fps) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, NULL);
 }
 
 static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -570,7 +571,12 @@ static GF_Err compose_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_sg_reset(scene->graph);
 
 		gf_scene_regenerate(scene);
+
+		if (!ctx->player)
+			gf_filter_pid_set_property_str(ctx->vout, "InteractiveScene", scene_vr_type ? &PROP_UINT(2) : NULL);
 	}
+	else if (!ctx->player)
+		gf_filter_pid_set_property_str(ctx->vout, "InteractiveScene", &PROP_UINT(1));
 
 	merge_properties(ctx, pid, mtype, scene);
 	return GF_OK;
@@ -719,6 +725,33 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_USER:
 		return gf_sc_user_event(gf_filter_get_udta(filter), (GF_Event *) &evt->user_event.event);
 
+	//handle play for non-player mode only
+	case GF_FEVT_PLAY:
+	{
+		GF_Compositor *compositor = gf_filter_get_udta(filter);
+		u32 range_start = (u32) (evt->play.start_range*1000);
+		if (!compositor->player && !evt->play.initial_broadcast_play && (range_start != gf_sc_get_time_in_ms(compositor)))
+			gf_sc_play_from_time(compositor, evt->play.start_range*1000, GF_FALSE);
+	}
+		break;
+	//handle stop for non-player mode only
+	case GF_FEVT_STOP:
+	{
+		GF_Compositor *compositor = gf_filter_get_udta(filter);
+		if (!compositor->player && !evt->play.initial_broadcast_play) {
+			if (compositor->root_scene->is_dynamic_scene) {
+				u32 i, count = gf_list_count(compositor->root_scene->resources);
+				for (i=0; i<count; i++) {
+					GF_ObjectManager *odm = gf_list_get(compositor->root_scene->resources, i);
+					gf_odm_stop(odm, GF_TRUE);
+				}
+			} else {
+				gf_odm_stop(compositor->root_scene->root_od, 1);
+			}
+		}
+	}
+		break;
+
 	default:
 		break;
 	}
@@ -758,6 +791,7 @@ void compositor_setup_aout(GF_Compositor *ctx)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(44100) );
 		gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(2) );
 		gf_filter_pid_set_max_buffer(ctx->audio_renderer->aout, 1000*ctx->abuf);
+		gf_filter_pid_set_property(pid, GF_PROP_PID_DELAY, NULL);
 		gf_filter_pid_set_loose_connect(pid);
 	}
 }

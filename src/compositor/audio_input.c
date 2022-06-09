@@ -116,6 +116,12 @@ restart:
 		}
 	}
 
+	//flush audio (compositor in non-player mode is exiting), don't check drift
+	if (ai->compositor->flush_audio) {
+		drift = 0;
+		audio_delay_ms = 0;
+	}
+
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift < 0) {
