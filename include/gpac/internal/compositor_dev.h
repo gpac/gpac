@@ -375,6 +375,7 @@ struct __tag_compositor
 	//in non player mode, check for eos
 	u32 check_eos_state;
 	u32 last_check_pass;
+	Bool flush_audio;
 
 	/*set whenever 3D HW ctx changes (need to rebuild dlists/textures if any used)*/
 	u32 reset_graphics;
@@ -2210,7 +2211,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url, Bool for_addon);
 
-/*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
+/*disconnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
 /*setup PID attached to this object*/
 GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid);

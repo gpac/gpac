@@ -162,27 +162,36 @@ if (vout) {
 	}, "check_vout_pids");
 }
 
+let last_x=0, last_y=0;
+
 session.set_event_fun( (evt)=> {
 	if (evt.type != GF_FEVT_USER) return 0;
 
 	switch (evt.ui_type) {
 	case GF_EVENT_MOUSEDOWN:
+		last_x = evt.mouse_x;
+		last_y = evt.mouse_y;
 		break;
 
 	case GF_EVENT_MOUSEUP:
-		if (overlay_type==OL_PLAY) 
+		if ((last_x != evt.mouse_x) || (last_y != evt.mouse_y)) return 0;
+
+		if (overlay_type==OL_PLAY) {
 			if (prog_interact(evt)) return 0;
+		}
 		if (ol_visible) {
 			toggle_overlay();
+			return true;
 		} else if (!audio_only) {
 			overlay_type=OL_PLAY;
 			toggle_overlay();
+			return true;
 		}
 		break;
 
 	case GF_EVENT_KEYDOWN:
-		process_keyboard(evt);
-		break;
+		return process_keyboard(evt);
+
 	case GF_EVENT_SIZE:
 		if (do_coverage) {
 			overlay_type=OL_PLAY;
@@ -204,7 +213,7 @@ session.set_event_fun( (evt)=> {
 		break;
 	default:
 	}
-	return 0;
+	return false;
 }
 );
 
@@ -220,15 +229,22 @@ function coverage_tests()
 	session.fire_event(evt, src);
 }
 
-
+let interactive_scene=0;
 function check_duration()
 {
 	if (duration!=-1) return (duration>=0) ? true : false;
 	let dur;
-	if (audio_only)
+	if (audio_only) {
 		dur = aout.ipid_props(0, 'Duration');
-	else
+		interactive_scene = aout.ipid_props(0, 'InteractiveScene');
+	} else {
 		dur = vout.ipid_props(0, 'Duration');
+		interactive_scene = vout.ipid_props(0, 'InteractiveScene');
+	}
+	if (interactive_scene==1) {
+		duration = 0;
+		return;
+	}
 	if (dur==null) return;
 	duration = dur.n;
 	duration /= dur.d;
@@ -784,49 +800,55 @@ function set_speed(speed)
 
 function process_keyboard(evt)
 {
+	if (interactive_scene==1) return false;
+
 	switch (evt.keycode) {
 	case GF_KEY_B:
 		if (evt.keymods & GF_KEY_MOD_SHIFT) speed *= 1.2;
 		else speed *= 2;
 		set_speed(speed);
-		return;
+		return true;
 	case GF_KEY_V:
 		if (evt.keymods & GF_KEY_MOD_SHIFT) speed /= 1.2;
 		else speed /= 2;
 		set_speed(speed);
-		return;
+		return true;
 	case GF_KEY_N:
 		speed = 1;
 		set_speed(speed);
-		return;
+		return true;
 	case GF_KEY_SPACE:
 		paused = !paused;
 		set_speed(paused ? 0 : speed);
-		return;
+		return true;
 	case GF_KEY_S:
 		paused = 2;
 		vout.update('step', '1');
 		if (aout) aout.update('speed', '0');
 		check_duration();
-		return;
+		return true;
 	case GF_KEY_RIGHT:
+		if (interactive_scene) return false;
 		do_seek(1, evt.keymods, false);
-		return;
+		return true;
 	case GF_KEY_LEFT:
+		if (interactive_scene) return false;
 		do_seek(-1, evt.keymods, false);
-		return;
+		return true;
 	case GF_KEY_UP:
+		if (interactive_scene) return false;
 		do_seek(1, evt.keymods, true);
-		return;
+		return true;
 	case GF_KEY_DOWN:
+		if (interactive_scene) return false;
 		do_seek(-1, evt.keymods, true);
-		return;
+		return true;
 
 	case GF_KEY_F:
 		if (audio_only) return;
 		fullscreen = !fullscreen;
 		vout.update('fullscreen', ''+fullscreen);
-		return;
+		return true;
 
 	case GF_KEY_H:
 		//hide player
@@ -840,7 +862,7 @@ function process_keyboard(evt)
 			overlay_type=OL_PLAY;
 			toggle_overlay();
 		}
-		return;
+		return true;
 	case GF_KEY_I:
 		//hide player
 		if (audio_only && (overlay_type==OL_PLAY)) {
@@ -853,14 +875,14 @@ function process_keyboard(evt)
 			overlay_type=OL_PLAY;
 			toggle_overlay();
 		}
-		return;
+		return true;
 	case GF_KEY_P:
 		//do not untoggle for audio only
 		if (audio_only) return;
 		overlay_type=OL_PLAY;
 		if (!ol_visible) init_wnd=true;
 		toggle_overlay();
-		return;
+		return true;
 	case GF_KEY_R:
 		if (audio_only) return;
 		rot = vout.get_arg('vrot');
@@ -870,7 +892,7 @@ function process_keyboard(evt)
 		else if (rot==1) vout.update('vrot', '90');
 		else if (rot==2) vout.update('vrot', '180');
 		else vout.update('vrot', '270');
-		return;
+		return true;
 	case GF_KEY_M:
 		if (audio_only) return;
 		flip = vout.get_arg('vflip');
@@ -884,4 +906,5 @@ function process_keyboard(evt)
 	default:
 		break;
 	}
+	return false;
 }

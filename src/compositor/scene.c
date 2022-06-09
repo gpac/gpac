@@ -2401,6 +2401,15 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPTIME, ("[Scene] Restarting scene from current clock %d\n", gf_clock_time(ck) ));
 	}
 
+	//in case we sent a stop on objects directly (to stop scene), collect stop objects bound to scene
+	if (!scene->compositor->player && !gf_list_count(to_restart)) {
+		i=0;
+		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+			if ((odm->state == GF_ODM_STATE_STOP) && odm->mo && odm->mo->num_open && gf_odm_shares_clock(odm, ck)) {
+				gf_list_add(to_restart, odm);
+			}
+		}
+	}
 
 	/*restart objects*/
 	i=0;
