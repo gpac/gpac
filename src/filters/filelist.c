@@ -2876,7 +2876,7 @@ GF_FilterRegister FileListRegister = {
 		"\n"
 		"The resulting file list can be sorted using [-fsort]().\n"
 		"If the sort mode is `datex` and source files are images or single frame files, the following applies:\n"
-		"- options [-floop](), [-revert]() and [-dur]() are ignored\n"
+		"- options [-floop](), [-revert]() and [-fdur]() are ignored\n"
 		"- the files are sorted by modification time\n"
 		"- the first frame is assigned a timestamp of 0\n"
 		"- each frame (coming from each file) is assigned a duration equal to the difference of modification time between the file and the next file\n"
