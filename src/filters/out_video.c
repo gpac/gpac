@@ -1230,7 +1230,6 @@ static void vout_draw_gl_hw_textures(GF_VideoOutCtx *ctx, GF_FilterFrameInterfac
 		ctx->tx.internal_textures = GF_FALSE;
 	}
 	ctx->tx.frame_ifce = hwf;
-	gf_gl_txw_bind(&ctx->tx, "maintx", ctx->glsl_program, 0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
