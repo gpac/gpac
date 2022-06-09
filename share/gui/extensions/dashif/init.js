@@ -1,6 +1,6 @@
 
 my_ext = {
-    whoami: "GPAC-GUI-Extension",
+    whoami: "GPAC-GUI-Extension-DIS",
     name: "DASH-IF sequences",
     icon: "dashif.svg",
     author: "JeanLF",
