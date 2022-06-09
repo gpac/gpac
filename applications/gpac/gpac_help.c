@@ -1145,6 +1145,14 @@ static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
 		char *sep = strchr(arg, '@');
 		if (sep) {
 			sep[0] = 0;
+
+			if (!strcmp(arg, argname)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Argument \"%s%s\" was set but not used by any filter\n",
+				(atype==2) ? "-+" : (atype ? "--" : szSep), argname));
+				sep[0] = '@';
+				return;
+			}
+
 			enum_vals = strstr(sep+1, argname);
 			if (enum_vals) {
 				if (!f_found) {
