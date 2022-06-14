@@ -136,7 +136,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 /**
  * Creates an Playlist element.
  * This element can be either a playlist of a stream according to first parameter.
-\param NULL if element could not be created. Elements will be deleted recursively.
+ * \return The PlaylistElement or NULL if it could not be created. Elements will be deleted recursively.
  */
 static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, s_accumulated_attributes *attribs)
 {

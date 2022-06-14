@@ -4105,7 +4105,7 @@ struct __tag_isom {
 	void *on_block_out_usr_data;
 	u32 on_block_out_block_size;
 
-	//in block disptach mode we don't have the full file, keep the position
+	//in block dispatch mode we don't have the full file, keep the position
 	u64 fragmented_file_pos;
 	u8 *block_buffer;
 	u32 block_buffer_size;
