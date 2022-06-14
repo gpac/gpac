@@ -1739,7 +1739,7 @@ try_next_segment:
 			if (parse_sub_playlist && !elt)
 				break;
 
-			//get base URL of child  manifest, only needed when injecting base URL
+			//get base URL of child manifest, only needed when injecting base URL
 			variant_base_url = gf_strdup(pe->url);
 
 			sep = strrchr(variant_base_url, '/');
