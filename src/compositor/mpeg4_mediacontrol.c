@@ -157,6 +157,8 @@ void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck))
 			continue;
+		if (!ctrl_od->ck || !ctrl_od->pid)
+			continue;
 
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 			gf_clock_resume(ck);
@@ -202,6 +204,8 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck))
+			continue;
+		if (!ctrl_od->ck || !ctrl_od->pid)
 			continue;
 
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {

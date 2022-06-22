@@ -221,7 +221,6 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 
 
 	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
-	glClearColor(0, 1, 1, 1);
 
 	visual->camera.vp.x = visual->camera.vp.y = 0;
 	visual->camera.vp.width = visual->camera.width = INT2FIX(compositor->vp_width);

@@ -72,6 +72,7 @@ struct __txtin_ctx
 	u32 seek_state;
 	Double start_range;
 
+	Bool is_loaded;
 	Bool is_setup;
 
 	GF_Err (*text_process)(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck);
@@ -417,6 +418,7 @@ static void txtin_probe_duration(GF_TXTIn *ctx)
 				u32 eh, em, es, ems;
 				char *start = strstr(szLine, "-->");
 				if (!start) continue;
+				start+=3;
 				while (start[0] && ((start[0] == ' ') || (start[0] == '\t'))) start++;
 
 				if (sscanf(start, "%u:%u:%u,%u", &eh, &em, &es, &ems) != 4) {
@@ -3678,6 +3680,8 @@ static GF_Err txtin_process(GF_Filter *filter)
 	GF_Err e;
 	Bool start, end;
 	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (pck) ctx->is_loaded = GF_FALSE;
+
 	if (!pck) {
 		if (ctx->unframed) {
 			if (gf_filter_pid_is_eos(ctx->ipid)) {
@@ -3695,7 +3699,8 @@ static GF_Err txtin_process(GF_Filter *filter)
 				return GF_EOS;
 			}
 		}
-		return GF_OK;
+		if (!ctx->is_loaded)
+			return GF_OK;
 	}
 
 	if (ctx->unframed) {
@@ -3724,17 +3729,22 @@ static GF_Err txtin_process(GF_Filter *filter)
 		return e;
 	}
 
-	gf_filter_pck_get_framing(pck, &start, &end);
-	if (!end) {
-		gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OK;
+	if (pck) {
+		gf_filter_pck_get_framing(pck, &start, &end);
+		if (!end) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+		//file is loaded
+		ctx->is_loaded = GF_TRUE;
 	}
-	//file is loaded
 
 	e = ctx->text_process(filter, ctx, NULL);
 	if (e==GF_EOS) {
 		//keep input alive until end of stream, so that we keep getting called
-		gf_filter_pid_drop_packet(ctx->ipid);
+		if (pck)
+			gf_filter_pid_drop_packet(ctx->ipid);
+
 		if (gf_filter_pid_is_eos(ctx->ipid))
 			gf_filter_pid_set_eos(ctx->opid);
 	}
@@ -3902,18 +3912,24 @@ static Bool txtin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->playstate==1) return GF_TRUE;
+		if (ctx->playstate==1) return ctx->unframed ? GF_FALSE : GF_TRUE;
+		if ((ctx->playstate==2) && !ctx->unframed)
+			gf_filter_post_process_task(filter);
+
 		ctx->playstate = 1;
-		if ((ctx->start_range < 0.1) && (evt->play.start_range<0.1)) return GF_TRUE;
+		if ((ctx->start_range < 0.1) && (evt->play.start_range<0.1)) return ctx->unframed ? GF_FALSE : GF_TRUE;
 		ctx->start_range = evt->play.start_range;
 		ctx->seek_state = 1;
-		//cancel play event, we work with full file
-		return GF_TRUE;
+		//cancel play event if we work with full file
+		return ctx->unframed ? GF_FALSE : GF_TRUE;
 
 	case GF_FEVT_STOP:
 		ctx->playstate = 2;
-		//cancel play event, we work with full file
-		return GF_TRUE;
+
+		ttxtin_reset(ctx);
+		ctx->is_setup = GF_FALSE;
+		//cancel play event if we work with full file
+		return ctx->unframed ? GF_FALSE : GF_TRUE;
 	default:
 		return GF_FALSE;
 	}
