@@ -249,6 +249,8 @@ typedef struct
 	u64 min_segment_start_time, last_min_segment_start_time;
 
 	u32 def_max_seg_dur;
+
+	GF_Fraction64 min_cts_period;
 } GF_DasherCtx;
 
 typedef enum
@@ -5905,6 +5907,8 @@ static GF_Err dasher_setup_period(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashS
 	min_dur.num = min_adur.num = max_adur.num = 0;
 	min_dur.den = min_adur.den = max_adur.den = 1;
 	srd_rep_idx = 2; //2 for compat with old arch
+	ctx->min_cts_period.num = 0;
+	ctx->min_cts_period.den = 0;
 
 	count = gf_list_count(ctx->current_period->streams);
 	//setup representations
@@ -7729,9 +7733,25 @@ static GF_Err dasher_process(GF_Filter *filter)
 		return GF_EOS;
 	if (ctx->setup_failure) return ctx->setup_failure;
 
+	count = gf_list_count(ctx->current_period->streams);
+	if (!ctx->min_cts_period.den) {
+		u64 min_ts=0, min_timescale = 0;
+		for (i=0; i<count; i++) {
+			GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(ds->ipid);
+			if (!pck) return GF_OK;
+			u64 ts = gf_filter_pck_get_cts(pck) + ds->pts_minus_cts;
+			if (!min_ts || gf_timestamp_less(ts, ds->timescale, min_ts, min_timescale)) {
+				min_ts = ts;
+				min_timescale = ds->timescale;
+			}
+		}
+		ctx->min_cts_period.num = min_ts;
+		ctx->min_cts_period.den = min_timescale;
+	}
+
 	nb_init = has_init = nb_reg_done = 0;
 
-	count = gf_list_count(ctx->current_period->streams);
 	for (i=0; i<count; i++) {
 		GF_DashStream *base_ds;
 		GF_DashStream *ds = gf_list_get(ctx->current_period->streams, i);
@@ -8016,6 +8036,11 @@ static GF_Err dasher_process(GF_Filter *filter)
 						if (ds->timescale != ds->mpd_timescale) {
 							pto_adj = gf_timestamp_rescale(pto_adj, ds->timescale, ds->mpd_timescale);
 						}
+						if (ctx->min_cts_period.den) {
+							u64 diff = gf_timestamp_rescale(ctx->min_cts_period.num, ctx->min_cts_period.den, ds->mpd_timescale);
+							pto_adj = diff;
+						}
+
 						if (ds->rep->segment_list)
 							ds->rep->segment_list->presentation_time_offset = pto_adj;
 						else if (ds->rep->segment_template)
