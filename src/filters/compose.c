@@ -110,6 +110,7 @@ static GF_Err compose_process(GF_Filter *filter)
 
 	if (!ctx->player) {
 		Bool forced_eos = GF_FALSE;
+		Bool was_over = GF_FALSE;
 		/*remember to check for eos*/
 		if (ctx->dur<0) {
 			if (ctx->frame_number >= (u32) -ctx->dur)
@@ -126,6 +127,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			}
 		} else if (!ret && !ctx->frame_was_produced && !ctx->audio_frames_sent && !ctx->check_eos_state && !nb_sys_streams_active) {
 			ctx->check_eos_state = 1;
+			was_over = GF_TRUE;
 		} else if (ctx->sys_frames_pending) {
 			ctx->check_eos_state = 0;
 		}
@@ -173,7 +175,7 @@ static GF_Err compose_process(GF_Filter *filter)
 			}
 			return forced_eos ? GF_SERVICE_ERROR : GF_EOS;
 		}
-		ctx->check_eos_state = 0;
+		ctx->check_eos_state = was_over ? 1 : 0;
 		//always repost a process task since we maye have things to draw even though no new input
 		gf_filter_post_process_task(filter);
 		return ctx->last_error;
@@ -725,20 +727,24 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 	case GF_FEVT_USER:
 		return gf_sc_user_event(gf_filter_get_udta(filter), (GF_Event *) &evt->user_event.event);
 
-	//handle play for non-player mode only
+	//handle play for non-player mode, dynamic scenes only
 	case GF_FEVT_PLAY:
 	{
 		GF_Compositor *compositor = gf_filter_get_udta(filter);
-		u32 range_start = (u32) (evt->play.start_range*1000);
-		if (!compositor->player && !evt->play.initial_broadcast_play && (range_start != gf_sc_get_time_in_ms(compositor)))
+		s32 diff = (s32) (evt->play.start_range*1000);
+		diff -= (s32) gf_sc_get_time_in_ms(compositor);
+		if (!compositor->player && compositor->root_scene->is_dynamic_scene && !evt->play.initial_broadcast_play
+			&& (abs(diff)>=1000)
+		) {
 			gf_sc_play_from_time(compositor, evt->play.start_range*1000, GF_FALSE);
+		}
 	}
 		break;
-	//handle stop for non-player mode only
+	//handle stop for non-player mode, dynamic scenes only
 	case GF_FEVT_STOP:
 	{
 		GF_Compositor *compositor = gf_filter_get_udta(filter);
-		if (!compositor->player && !evt->play.initial_broadcast_play) {
+		if (!compositor->player && compositor->root_scene->is_dynamic_scene && !evt->play.initial_broadcast_play) {
 			if (compositor->root_scene->is_dynamic_scene) {
 				u32 i, count = gf_list_count(compositor->root_scene->resources);
 				for (i=0; i<count; i++) {
