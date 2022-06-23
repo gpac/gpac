@@ -635,10 +635,18 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (sample_count && (streamtype==GF_STREAM_VISUAL)) {
 			u64 mdur = gf_isom_get_media_duration(read->mov, track);
 			//if ts_offset is negative (skip), update media dur before computing fps
-			if (!gf_sys_old_arch_compat() && (ch->ts_offset<0))
-				mdur -= (u32) -ch->ts_offset;
-
-			mdur /= sample_count;
+			if (!gf_sys_old_arch_compat()) {
+				u32 sdur = gf_isom_get_avg_sample_delta(read->mov, ch->track);
+				if (sdur) {
+					mdur = sdur;
+				} else {
+					if (ch->ts_offset<0)
+						mdur -= (u32) -ch->ts_offset;
+					mdur /= sample_count;
+				}
+			} else {
+				mdur /= sample_count;
+			}
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT(ch->timescale, (u32) mdur));
 		}
 
