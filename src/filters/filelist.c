@@ -454,8 +454,10 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	opid = iopid->opid;
 
 	if (ctx->keep_splice && (ctx->splice_state==FL_SPLICE_ACTIVE) && iopid->splice_ipid) {
-		assert(!iopid->opid_aux);
-		iopid->opid_aux = gf_filter_pid_new(filter);
+		//we may already have opid_aux setup (in case of reconfig)
+		if (!iopid->opid_aux)
+			iopid->opid_aux = gf_filter_pid_new(filter);
+
 		opid = iopid->opid_aux;
 
 		gf_filter_pid_set_property_str(iopid->opid, "period_switch", &PROP_BOOL(GF_TRUE));
