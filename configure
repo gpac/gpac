@@ -739,6 +739,9 @@ CXXFLAGS="$CFLAGS"
 if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
+if docc $CFLAGS -std=gnu99 ; then
+    CFLAGS="$CFLAGS -std=gnu99"
+fi
 
 
 #GCC opt
