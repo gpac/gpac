@@ -749,22 +749,25 @@ function toggle_overlay()
 	vout.update('oldata', ol_buffer);
 	vout.lock(false);
 	if (!oltask_scheduled) {
-		session.post_task( () => {
-			oltask_scheduled=false;
-			if (audio_only && aout.ipid_props(0, 'eos') ) {
-				//we don't lock vout because the overlay buffer is still valid
-				vout.update('oldata', null);
-				return false;
-			}
-			if (session.last_task) {
-				return false;
-			}
-			update_overlay();
-			if (!ol_visible) return false;
-			if (overlay_type==OL_NONE) return false;
-			oltask_scheduled=true;
-			return task_reschedule;
-		}, "overlay_update");
+		try {
+			session.post_task( () => {
+				oltask_scheduled=false;
+				if (audio_only && aout.ipid_props(0, 'eos') ) {
+					//we don't lock vout because the overlay buffer is still valid
+					vout.update('oldata', null);
+					return false;
+				}
+				if (session.last_task) {
+					return false;
+				}
+				update_overlay();
+				if (!ol_visible) return false;
+				if (overlay_type==OL_NONE) return false;
+				oltask_scheduled=true;
+				return task_reschedule;
+			}, "overlay_update");
+			oltask_scheduled = true;
+		} catch (e) {}
 	}
 }
 
