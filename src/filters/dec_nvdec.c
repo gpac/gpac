@@ -1404,8 +1404,7 @@ GF_Err nvdec_send_hw_frame(NVDecCtx *ctx, NVDecFrame *f)
 	nvdec_merge_pck_props(ctx, f, dst_pck);
 	if (gf_filter_pck_get_seek_flag(dst_pck)) {
 		gf_filter_pck_discard(dst_pck);
-		memset(f, 0, sizeof(NVDecFrame));
-		gf_list_add(ctx->frames_res, f);
+		//no need to add frame to frame res, done in pck_release
 	} else {
 		gf_filter_pck_send(dst_pck);
 	}
@@ -1428,7 +1427,6 @@ static void init_cuda_sdk()
 		CUresult res;
 		int device_count;
 	    res = cuInit(0, __CUDA_API_VERSION);
-		nb_cuvid_inst++;
 		cuvid_load_state = 1;
 		if (res == CUDA_ERROR_SHARED_OBJECT_INIT_FAILED) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] cuda lib not found on system\n") );
@@ -1443,15 +1441,16 @@ static void init_cuda_sdk()
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] no device found\n" ) );
 				} else {
 					cuvid_load_state = 2;
+					nb_cuvid_inst++;
 				}
 			}
 		}
 #endif
-
 	} else {
 		nb_cuvid_inst++;
 	}
 }
+
 
 static GF_Err nvdec_initialize(GF_Filter *filter)
 {
@@ -1488,15 +1487,6 @@ static void nvdec_finalize(GF_Filter *filter)
 		gf_free(ctx->dec_inst);
 	}
 
-
-	assert(nb_cuvid_inst);
-	nb_cuvid_inst--;
-	if (!nb_cuvid_inst) {
-		if (cuda_ctx) cuCtxDestroy(cuda_ctx);
-		cuda_ctx = NULL;
-		cuUninit();
-		cuvid_load_state = 0;
-	}
 	while (gf_list_count(ctx->frames)) {
 		NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
 		gf_free(f);
@@ -1570,6 +1560,17 @@ GF_FilterRegister NVDecRegister = {
 	.process_event = nvdec_process_event
 };
 
+static void nvdec_register_free(GF_FilterSession *session, GF_FilterRegister *freg)
+{
+	assert(nb_cuvid_inst);
+	nb_cuvid_inst--;
+	if (!nb_cuvid_inst) {
+		if (cuda_ctx) cuCtxDestroy(cuda_ctx);
+		cuda_ctx = NULL;
+		cuUninit();
+		cuvid_load_state = 0;
+	}
+}
 
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 {
@@ -1592,7 +1593,7 @@ const GF_FilterRegister *nvdec_register(GF_FilterSession *session)
 		}
 		NVDecRegister.version = "! Warning: CUVID SDK NOT AVAILABLE ON THIS SYSTEM !";
 	}
-
+	NVDecRegister.register_free = nvdec_register_free;
 	return &NVDecRegister;
 }
 
