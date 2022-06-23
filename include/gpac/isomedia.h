@@ -1105,6 +1105,13 @@ u32 gf_isom_get_avg_sample_size(GF_ISOFile *isom_file, u32 trackNumber);
 */
 u32 gf_isom_get_max_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 
+/*! gets average sample duration in track, i.e. the sample delta occuring most often
+\param isom_file the target ISO file
+\param trackNumber the target track
+\return average  sample delta in media timescale
+*/
+u32 gf_isom_get_avg_sample_delta(GF_ISOFile *the_file, u32 trackNumber);
+
 /*! gets max sample CTS offset (CTS-DTS) in track
 \param isom_file the target ISO file
 \param trackNumber the target track

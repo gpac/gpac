@@ -1988,6 +1988,24 @@ u32 gf_isom_get_max_sample_delta(GF_ISOFile *the_file, u32 trackNumber)
 }
 
 GF_EXPORT
+u32 gf_isom_get_avg_sample_delta(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->TimeToSample) return 0;
+
+	GF_TimeToSampleBox *stts = trak->Media->information->sampleTable->TimeToSample;
+	u32 i, nb_ent = 0, min = 0;
+	for (i=0; i<stts->nb_entries; i++) {
+		if (!nb_ent || nb_ent < stts->entries[i].sampleCount) {
+			min = stts->entries[i].sampleDelta;
+			nb_ent = stts->entries[i].sampleCount;
+		}
+	}
+	return min;
+}
+
+
+GF_EXPORT
 u32 gf_isom_get_max_sample_cts_offset(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
