@@ -325,6 +325,10 @@ typedef struct
 	char *user;
 	/*password (provided buffer can hold 50 bytes)*/
 	char *password;
+	/*async function to call back once pass is entered. If NULL, user/password must be set in the event*/
+	void (*on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
+	/*user data for async function*/
+	void *async_usr_data;
 } GF_EventAuthorize;
 
 

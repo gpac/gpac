@@ -374,7 +374,7 @@ static GF_Err vout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		return GF_OK;
 	}
 	assert(!ctx->pid || (ctx->pid==pid));
-	if (!gf_filter_pid_check_caps(pid))
+	if (pid && !gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
 	w = h = pfmt = timescale = stride = 0;
@@ -991,7 +991,14 @@ static GF_Err vout_initialize(GF_Filter *filter)
 	}
 #endif
 
+	ctx->width = ctx->display_width = 320;
+	ctx->height = ctx->display_height = 240;
+	ctx->owsize.x = ctx->display_width;
+	ctx->owsize.y = ctx->display_height;
+	ctx->display_changed = GF_TRUE;
 	gf_filter_set_event_target(filter, GF_TRUE);
+
+	gf_filter_post_process_task(filter);
 	return GF_OK;
 }
 
@@ -1065,6 +1072,7 @@ static void vout_draw_overlay(GF_VideoOutCtx *ctx)
 	glMatrixMode(GL_TEXTURE);
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
@@ -1578,14 +1586,16 @@ static GF_Err vout_process(GF_Filter *filter)
 
 	if (ctx->force_vout) {
 		ctx->force_vout = GF_FALSE;
-		ctx->width = ctx->display_width = ctx->olwnd.z;
-		ctx->height = ctx->display_height = ctx->olwnd.w;
-		resize_video_output(ctx, ctx->width, ctx->height);
-		ctx->owsize.x = ctx->display_width;
-		ctx->owsize.y = ctx->display_height;
+		if (ctx->olwnd.z && ctx->olwnd.w) {
+			ctx->width = ctx->display_width = ctx->olwnd.z;
+			ctx->height = ctx->display_height = ctx->olwnd.w;
+			resize_video_output(ctx, ctx->width, ctx->height);
+			ctx->owsize.x = ctx->display_width;
+			ctx->owsize.y = ctx->display_height;
+		}
 	}
 	if (ctx->force_reconfig_pid) {
-		vout_configure_pid(filter, ctx->pid, GF_FALSE);
+		if (ctx->pid) vout_configure_pid(filter, ctx->pid, GF_FALSE);
 		ctx->force_reconfig_pid = GF_FALSE;
 	}
 	ctx->video_out->ProcessEvent(ctx->video_out, NULL);
@@ -1622,6 +1632,7 @@ static GF_Err vout_process(GF_Filter *filter)
 		//we don't lock here since we don't access the pointer
 		if (ctx->oldata.ptr && ctx->update_oldata)
 			return vout_draw_frame(ctx);
+		gf_filter_post_process_task(filter);
 		return ctx->oldata.ptr ? GF_OK : GF_EOS;
 	}
 

@@ -2881,6 +2881,7 @@ enum
 	JSF_EVENT_USER_KEYCODE,
 	JSF_EVENT_USER_KEYNAME,
 	JSF_EVENT_USER_KEYMODS,
+	JSF_EVENT_USER_TEXT_CHAR,
 	JSF_EVENT_USER_MOUSE_X,
 	JSF_EVENT_USER_MOUSE_Y,
 	JSF_EVENT_USER_WHEEL,
@@ -3028,6 +3029,7 @@ static Bool jsf_check_evt(u32 evt_type, u8 ui_type, int magic)
 			case JSF_EVENT_USER_KEYNAME:
 			case JSF_EVENT_USER_KEYMODS:
 			case JSF_EVENT_USER_HWKEY:
+			case JSF_EVENT_USER_TEXT_CHAR:
 			case JSF_EVENT_USER_DROPFILES:
 				return GF_TRUE;
 			default:
@@ -3348,6 +3350,29 @@ static JSValue jsf_event_get_prop(JSContext *ctx, JSValueConst this_val, int mag
 		return JS_NULL;
 #endif
 
+	case JSF_EVENT_USER_TEXT_CHAR:
+	{
+		u32 unic = evt->user_event.event.character.unicode_char;
+		char szSTR[5];
+		memset(szSTR, 0, 5);
+		if (unic<0x80) {
+			szSTR[0] = (char) unic&0xFF;
+		} else if (unic<0x0800) {
+			szSTR[0] = ((char) (unic>>6)&0x1F) | 0xC0;
+			szSTR[1] = ((char) (unic) & 0x3F) | 0x80;
+		} else if (unic<0x010000) {
+			szSTR[0] = ((char) (unic>>12)&0x0F) | 0xE0;
+			szSTR[1] = ((char) (unic>>6) & 0x3F) | 0x80;
+			szSTR[2] = ((char) (unic) & 0x3F) | 0x80;
+		} else {
+			szSTR[0] = ((char) (unic>>24)&0x07) | 0xF0;
+			szSTR[1] = ((char) (unic>>12) & 0x3F) | 0x80;
+			szSTR[2] = ((char) (unic>>6) & 0x3F) | 0x80;
+			szSTR[3] = ((char) (unic) & 0x3F) | 0x80;
+		}
+		return JS_NewString(ctx, szSTR);
+	}
+
 	case JSF_EVENT_USER_MOUSE_X:
 		if (evt->user_event.event.type==GF_EVENT_MULTITOUCH)
 			return JS_NewFloat64(ctx, FIX2FLT(evt->user_event.event.mtouch.x) );
@@ -3451,6 +3476,7 @@ static const JSCFunctionListEntry jsf_event_funcs[] =
     JS_CGETSET_MAGIC_DEF("keycode", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_KEYCODE),
     JS_CGETSET_MAGIC_DEF("keyname", jsf_event_get_prop, NULL, JSF_EVENT_USER_KEYNAME),
     JS_CGETSET_MAGIC_DEF("keymods", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_KEYMODS),
+    JS_CGETSET_MAGIC_DEF("char", jsf_event_get_prop, NULL, JSF_EVENT_USER_TEXT_CHAR),
     JS_CGETSET_MAGIC_DEF("mouse_x", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_X),
     JS_CGETSET_MAGIC_DEF("mouse_y", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_MOUSE_Y),
     JS_CGETSET_MAGIC_DEF("wheel", jsf_event_get_prop, jsf_event_set_prop, JSF_EVENT_USER_WHEEL),

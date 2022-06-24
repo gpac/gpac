@@ -426,7 +426,7 @@ void gf_url_to_fs_path(char *sURL)
 
 //TODO handle reserved characters
 const char *pce_special = " %";
-const char *pce_encoded = "0123456789ABCDEF";
+const char *pce_encoded = "0123456789ABCDEFabcdef";
 
 char *gf_url_percent_encode(const char *path)
 {

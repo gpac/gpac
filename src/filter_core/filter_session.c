@@ -176,10 +176,40 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 	}
 
 #ifdef GPAC_HAS_QJS
-	if (fs->on_evt_task)
-		return jsfs_on_event(fs, evt);
+	if (fs->on_evt_task && jsfs_on_event(fs, evt))
+		return GF_TRUE;
 #endif
-	return 0;
+
+	if (evt->type==GF_EVENT_AUTHORIZATION) {
+#ifdef GPAC_HAS_QJS
+		if (fs->on_auth_task && jsfs_on_auth(fs, evt))
+			return GF_TRUE;
+#endif
+
+
+		assert( evt->type == GF_EVENT_AUTHORIZATION);
+		assert( evt->auth.user);
+		assert( evt->auth.password);
+		assert( evt->auth.site_url);
+
+		fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
+		fprintf(stderr, "login   : ");
+		if (!gf_read_line_input(evt->auth.user, 50, 1))
+			return GF_FALSE;
+		fprintf(stderr, "\npassword: ");
+		if (!gf_read_line_input(evt->auth.password, 50, 0))
+			return GF_FALSE;
+		fprintf(stderr, "*********\n");
+
+		if (evt->auth.on_usr_pass) {
+			//evt->auth.on_usr_pass(evt->auth.async_usr_data, evt->auth.user, evt->auth.password);
+			evt->auth.password[0] = 0;
+		}
+
+		return GF_TRUE;
+	}
+
+	return GF_FALSE;
 }
 
 
@@ -3582,7 +3612,7 @@ u8 gf_filter_get_sep(GF_Filter *filter, GF_FilterSessionSepType sep_type)
 	}
 }
 
-static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
+static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta)
 {
 	GF_Event evt;
 	GF_FilterSession *fsess = (GF_FilterSession *)usr_cbk;
@@ -3590,6 +3620,8 @@ static Bool gf_fsess_get_user_pass(void *usr_cbk, const char *site_url, char *us
 	evt.auth.site_url = site_url;
 	evt.auth.user = usr_name;
 	evt.auth.password = password;
+	evt.auth.on_usr_pass = async_pass;
+	evt.auth.async_usr_data = async_udta;
 	return gf_fs_forward_gf_event(fsess, &evt, GF_FALSE, GF_FALSE);
 }
 

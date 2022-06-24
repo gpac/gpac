@@ -1416,6 +1416,15 @@ static JSValue scenejs_get_object_manager(JSContext *ctx, JSValueConst this_val,
 				if (!strncmp(an_url, "file://", 7)) an_url = an_url + 7;
 				if (!strncmp(an_url, url, url_len))
 					break;
+
+				if (strstr(an_url, "://")) {
+					char *pc_url = gf_url_percent_encode(an_url);
+					if (!strncmp(pc_url, url, url_len)) {
+						gf_free(pc_url);
+						break;
+					}
+					gf_free(pc_url);
+				}
 			}
 			odm = NULL;
 		}

@@ -1562,14 +1562,13 @@ GF_FilterRegister NVDecRegister = {
 
 static void nvdec_register_free(GF_FilterSession *session, GF_FilterRegister *freg)
 {
-	assert(nb_cuvid_inst);
-	nb_cuvid_inst--;
-	if (!nb_cuvid_inst) {
+	if (nb_cuvid_inst==1) {
 		if (cuda_ctx) cuCtxDestroy(cuda_ctx);
 		cuda_ctx = NULL;
 		cuUninit();
 		cuvid_load_state = 0;
 	}
+	nb_cuvid_inst--;
 }
 
 const GF_FilterRegister *nvdec_register(GF_FilterSession *session)

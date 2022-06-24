@@ -109,14 +109,27 @@ void gf_dm_del(GF_DownloadManager *dm);
 /*!
 \brief callback function for authentication
 
+This function is called back after user and password has been entered
+\param usr_cbk opaque user data passed by download manager
+\param usr_name the user name for the desired site, or NULL if the authentication was canceled
+\param password the password for the desired site and user, or NULL if the authentication was canceled
+\param store_info if TRUE, credentials will be stored in gpac config
+*/
+typedef void (*gf_dm_on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
+/*!
+\brief function for authentication
+
 The gf_dm_get_usr_pass type is the type for the callback of the \ref gf_dm_set_auth_callback function used for password retrieval
+
 \param usr_cbk opaque user data
 \param site_url url of the site the user and password are requested for
 \param usr_name the user name for this site. The allocated space for this buffer is 50 bytes. \note this varaibale may already be formatted.
 \param password the password for this site and user. The allocated space for this buffer is 50 bytes.
-\return 0 if user didn't fill in the information which will result in an authentication failure, 1 otherwise.
+\param async_pass async function to call back when user and pass have been entered. If NULL, sync call will be performed
+\param async_udta async user data to pass back to the async function. If NULL, sync call will be performed
+\return GF_FALSE if user didn't fill in the information which will result in an authentication failure, GF_TRUE otherwise (info was filled if not async, or request was posted).
 */
-typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
+typedef Bool (*gf_dm_get_usr_pass)(void *usr_cbk, const char *site_url, char *usr_name, char *password, gf_dm_on_usr_pass async_pass, void *async_udta);
 
 /*!
 \brief password retrieval assignment

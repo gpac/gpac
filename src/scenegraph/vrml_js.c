@@ -3250,7 +3250,7 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSValue obj, 
 	{
 		MFString *f = (MFString *) field->far_ptr;
 		for (i=0; i<f->count; i++) {
-			jsf->mfvals[i] = JS_NewString(priv->js_ctx, f->vals[i]);
+			jsf->mfvals[i] = JS_NewString(priv->js_ctx, f->vals[i] ? f->vals[i] : "");
 		}
 	}
 	break;

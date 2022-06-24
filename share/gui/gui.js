@@ -221,8 +221,65 @@ globalThis.initialize = function () {
 
      //let's do the layout   
     layout();
-    gwskin.enable_focus(true);    
+    gwskin.enable_focus(true);
 
+
+	session.set_auth_fun( (site, user, pass, auth_cbk) => {
+        var popup = gw_new_window_full(null, true, 'Authentication for ' + site);
+        popup.area = gw_new_grid_container(popup);
+        popup.area.dlg = popup;
+        popup.area.spread_h = true;
+
+		popup.user='';
+		popup.pass='';
+		popup.state=0;
+		popup.auth_cbk = auth_cbk;
+        popup.name = gw_new_text(popup.area, 'Username');
+        popup.store = gw_new_checkbox(popup.area, 'Remember Me');
+
+        popup.edit = gw_new_text_edit(popup.area, user);
+        popup.edit.dlg = popup;
+        scene.set_focus(popup.edit);
+        popup.edit.on_text = function (val) {
+            if (val != '') {
+				if (popup.state==0) {
+					popup.user=val;
+					popup.state = 1;
+					popup.name.set_label('Password');
+					popup.edit.reset(true);
+					scene.set_focus(popup.edit.edit);
+				} else if (popup.state==1) {
+					print('done');
+					popup.pass=val;
+					popup.state = 2;
+					this.dlg.close();
+				}
+            } else {
+				this.dlg.close();
+			}
+		}
+
+        popup.on_display_size = function (w, h) {
+			let ed_h = 2 * gwskin.default_text_font_size;
+			if (gwskin.mobile_device) ed_h *= 1.5;
+            this.name.set_size(w/2, ed_h);
+            this.store.set_size(w/2, ed_h);
+            this.edit.set_size(w, ed_h);
+            this.set_size(w, 2*ed_h + gwskin.default_icon_height);
+			this.move(0, 0);
+        }
+
+        popup.on_display_size(gw_display_width, gw_display_height);
+        popup.set_alpha(1.0);
+
+        popup.on_close = function () {
+			this.auth_cbk.done(this.user, this.pass, this.store.checked);
+			this.pass='';
+			this.auth_cbk = null;
+        }
+        popup._init_focus = popup.edit.edit;
+        popup.show();
+	});
 }
 
 function print_help()

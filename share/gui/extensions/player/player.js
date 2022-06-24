@@ -219,6 +219,10 @@ extension = {
 
                     var url = this.url[0];
                     if (url.startsWith('gpac://')) url = url.slice(7);
+                    names = url.split('%2f');
+                    if (names.length==1)
+						names = url.split('/');
+                    url = names[names.length-1];
                     var notif = gw_new_message(null, 'Error opening file!', 'Failed to open "' + url + '"\n\n' + Sys.error_string(evt.error));
                     notif.show();
 

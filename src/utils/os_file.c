@@ -1750,7 +1750,7 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 	
 	//handle PROTO://ADD:PORT/
 	if ((sep[1]=='/') && (sep[2]=='/')) {
-		char *next_colon, *next_slash;
+		char *next_colon, *next_slash, *userpass;
 		sep++;
 		//skip all // (eg PROTO://////////////mytest/)
 		while (sep[0]=='/')
@@ -1766,6 +1766,11 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 		//find closest : or /, if : is before / consider this is a port or an IPv6 address and check next : after /
 		next_colon = strchr(sep, ':');
 		next_slash = strchr(sep, '/');
+		userpass = strchr(sep, '@');
+		//if ':' is before '@' with '@' before next '/', consider this is `user:pass@SERVER`
+		if (userpass && next_colon && next_slash && (userpass<next_slash) && (userpass>next_colon))
+			next_colon = strchr(userpass, ':');
+
 		if (next_colon && next_slash && ((next_slash - sep) > (next_colon - sep)) ) {
 			const char *last_colon;
 			u32 i, port, nb_colons=0, nb_dots=0, nb_non_alnums=0;
