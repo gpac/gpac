@@ -123,6 +123,7 @@ typedef struct __gf_user_credentials
 	char username[50];
 	char digest[1024];
 	Bool valid;
+	u32 async_state;
 } gf_user_credentials_struct;
 
 enum REQUEST_TYPE
@@ -284,7 +285,7 @@ struct __gf_download_manager
 	GF_Mutex *cache_mx;
 	char *cache_directory;
 
-	Bool (*get_user_password)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
+	gf_dm_get_usr_pass get_user_password;
 	void *usr_cbk;
 
 	GF_List *sessions;
@@ -991,30 +992,68 @@ void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
 /*returns 1 if cache is currently open for write*/
 Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry);
 
+#include <gpac/crypt.h>
+
+static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password, Bool store_info);
+
 /**
  * Find a User's credentials for a given site
  */
-static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_DownloadManager *dm, const char *server_name) {
+static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_DownloadManager *dm, const char *server_name)
+{
+	gf_user_credentials_struct * cred;
 	u32 count, i;
 	if (!dm || !dm->credentials || !server_name || !strlen(server_name))
 		return NULL;
 	count = gf_list_count( dm->credentials);
 	for (i = 0 ; i < count; i++) {
-		gf_user_credentials_struct * cred = (gf_user_credentials_struct*)gf_list_get(dm->credentials, i );
+		cred = (gf_user_credentials_struct*)gf_list_get(dm->credentials, i );
 		assert( cred );
 		if (!strcmp(cred->site, server_name))
 			return cred;
 	}
+
+	char *key = (char*) gf_opts_get_key("credentials", server_name);
+	if (key) {
+		bin128 k;
+		const char *credk = gf_opts_get_key("core", "cred");
+		if (credk) {
+			FILE *f = gf_fopen(credk, "r");
+			if (f) {
+				gf_fread(k, 16, f);
+				gf_fclose(f);
+			} else {
+				credk = NULL;
+			}
+		}
+		char *sep = credk ? strrchr(key, ':') : NULL;
+		if (sep) {
+			char szP[1024];
+			GF_SAFEALLOC(cred, gf_user_credentials_struct);
+			if (!cred) return NULL;
+			sep[0] = 0;
+			strcpy(cred->username, key);
+			strcpy(szP, sep+1);
+			sep[0] = ':';
+
+			GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
+			gf_crypt_init(gfc, k, NULL);
+			gf_crypt_decrypt(gfc, szP, (u32) strlen(szP));
+			gf_crypt_close(gfc);
+
+			gf_user_credentials_save_digest(dm, cred, szP, GF_FALSE);
+			return cred;
+		}
+	}
 	return NULL;
 }
-
 /**
  * \brief Saves the digest for authentication of password and username
 \param dm The download manager
 \param creds The credentials to fill
 \param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password) {
+static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password, Bool store_info) {
 	int size;
 	char pass_buf[1024], range_buf[1024];
 	if (!dm || !creds || !password)
@@ -1024,7 +1063,61 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 	range_buf[size] = 0;
 	strcpy(creds->digest, range_buf);
 	creds->valid = GF_TRUE;
+	if (store_info) {
+		u32 plen = (u32) strlen(password);
+		char *key = NULL;
+		char szPATH[GF_MAX_PATH];
+		const char *cred = gf_opts_get_key("core", "cred");
+		if (!cred) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] No credential key defined, will not store password - use -cred=PATH_TO_KEY to specify it\n"));
+			return GF_OK;
+		}
+
+		FILE *f = gf_fopen(cred, "r");
+		bin128 k;
+		if (!f) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Failed to open credential key %s, will not store password\n", cred));
+			return GF_OK;
+		}
+		gf_fread(k, 16, f);
+		gf_fclose(f);
+
+		GF_Crypt *gfc = gf_crypt_open(GF_AES_128, GF_CTR);
+		gf_crypt_init(gfc, k, NULL);
+		strcpy(szPATH, password);
+		gf_crypt_encrypt(gfc, szPATH, plen);
+		gf_crypt_close(gfc);
+		szPATH[plen] = 0;
+		gf_dynstrcat(&key, creds->username, NULL);
+		gf_dynstrcat(&key, szPATH, ":");
+		gf_opts_set_key("credentials", creds->site, key);
+		gf_free(key);
+		gf_opts_save();
+	}
 	return GF_OK;
+}
+
+
+static void on_user_pass(void *udta, const char *user, const char *pass, Bool store_info)
+{
+	GF_DownloadSession *sess = (GF_DownloadSession *)udta;
+	if (sess->creds) {
+		u32 len = user ? strlen(user) : 0;
+		if (len && (user != sess->creds->username)) {
+			if (len> 49) len = 49;
+			strncpy(sess->creds->username, user, len);
+			sess->creds->username[len]=0;
+		}
+		if (user && pass) {
+			GF_Err e = gf_user_credentials_save_digest(sess->dm, sess->creds, pass, store_info);
+			if (e != GF_OK) {
+				sess->creds->valid = GF_FALSE;
+			}
+		} else {
+			sess->creds->valid = GF_FALSE;
+		}
+		sess->creds->async_state = 2;
+	}
 }
 
 /**
@@ -1033,19 +1126,24 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 \param creds The credentials to fill
 \param GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds)
+static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds, GF_DownloadSession *for_sess)
 {
 	char szPASS[50];
 	if (!dm || !creds)
 		return GF_BAD_PARAM;
 	memset(szPASS, 0, 50);
-	if (!dm->get_user_password || !dm->get_user_password(dm->usr_cbk, creds->site, creds->username, szPASS)) {
+	if (!dm->get_user_password) return GF_AUTHENTICATION_FAILURE;
+	for_sess->creds = creds;
+	creds->async_state = 1;
+	if (!dm->get_user_password(dm->usr_cbk, creds->site, creds->username, szPASS, on_user_pass, for_sess)) {
+		creds->async_state = 0;
+		for_sess->creds = NULL;
 		return GF_AUTHENTICATION_FAILURE;
 	}
-	return gf_user_credentials_save_digest(dm, creds, szPASS);
+	return GF_OK;
 }
 
-static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * dm, const char * server_name, const char * username, const char * password, Bool valid)
+static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * dm, const char * server_name, const char * username, const char * password, Bool valid, GF_DownloadSession *for_sess)
 {
 	gf_user_credentials_struct * creds;
 	if (!dm)
@@ -1060,13 +1158,15 @@ static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadMana
 		gf_list_insert(dm->credentials, creds, 0);
 	}
 	creds->valid = valid;
-	strncpy(creds->username, username ? username : "", 49);
-	creds->username[49] = 0;
+	if (username) {
+		strncpy(creds->username, username, 49);
+		creds->username[49] = 0;
+	}
 	strcpy(creds->site, server_name);
 	if (username && password && valid)
-		gf_user_credentials_save_digest(dm, creds, password);
+		gf_user_credentials_save_digest(dm, creds, password, GF_FALSE);
 	else {
-		if (GF_OK != gf_user_credentials_ask_password(dm, creds)) {
+		if (GF_OK != gf_user_credentials_ask_password(dm, creds, for_sess)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP,
 			       ("[HTTP] Failed to get password information.\n"));
 			gf_list_rem( dm->credentials, 0);
@@ -2408,7 +2508,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool
 			if (! sess->dm) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTP] Did not found any download manager, credentials not supported\n"));
 			} else
-				sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, info.userName, info.password, info.userName && info.password);
+				sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, info.userName, info.password, info.userName && info.password, NULL);
 		}
 	}
 	if (free_proto) gf_free((char *) info.protocol);
@@ -3595,9 +3695,7 @@ retry_cache:
 }
 
 GF_EXPORT
-void gf_dm_set_auth_callback(GF_DownloadManager *dm,
-                             Bool (*get_user_password)(void *usr_cbk, const char *site_url, char *usr_name, char *password),
-                             void *usr_cbk)
+void gf_dm_set_auth_callback(GF_DownloadManager *dm, gf_dm_get_usr_pass get_user_password, void *usr_cbk)
 {
 	if (dm) {
 		dm->get_user_password = get_user_password;
@@ -4894,6 +4992,31 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	Bool upgrade_to_http2 = GF_FALSE;
 #endif
 
+	if (sess->creds && sess->creds->async_state) {
+		if (sess->creds->async_state==1)
+			return GF_OK;
+		sess->creds->async_state = 0;
+		if (!sess->creds->valid) {
+			gf_dm_disconnect(sess, HTTP_CLOSE);
+			sess->status = GF_NETIO_STATE_ERROR;
+			par.error = GF_AUTHENTICATION_FAILURE;
+			par.msg_type = GF_NETIO_DISCONNECTED;
+			gf_dm_sess_user_io(sess, &par);
+			e = GF_AUTHENTICATION_FAILURE;
+			sess->last_error = e;
+			goto exit;
+		}
+
+		sess->status = GF_NETIO_SETUP;
+		e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
+		if (e) {
+			sess->status = GF_NETIO_STATE_ERROR;
+			sess->last_error = e;
+			gf_dm_sess_notify_state(sess, sess->status, e);
+		}
+		return e;
+	}
+
 
 	if (sess->server_mode) {
 		assert( sess->status == GF_NETIO_CONNECTED );
@@ -5555,8 +5678,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	}
 	case 401:
 	{
+		if (sess->creds && sess->creds->valid) {
+			gf_opts_set_key("credentials", sess->creds->site, NULL);
+			sess->creds->valid = GF_FALSE;
+		}
 		/* Do we have a credentials struct ? */
-		sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, NULL, NULL, GF_FALSE);
+		sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, NULL, NULL, GF_FALSE, sess);
 		if (!sess->creds) {
 			/* User credentials have not been filled properly, we have to abort */
 			gf_dm_disconnect(sess, HTTP_CLOSE);
@@ -5570,6 +5697,13 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		gf_dm_disconnect(sess, HTTP_NO_CLOSE);
 		sess->status = GF_NETIO_SETUP;
+
+		if (sess->creds->async_state==1) {
+			//force a wait for reply until we have resolved user pass
+			sess->status = GF_NETIO_WAIT_FOR_REPLY;
+			return GF_OK;
+		}
+
 		e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
 		if (e) {
 			sess->status = GF_NETIO_STATE_ERROR;

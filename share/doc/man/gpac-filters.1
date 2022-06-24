@@ -1134,6 +1134,79 @@ forcemp3 (bool, default: true): force mp3 signaling for MPEG-2 Audio layer 3
 .br
 
 .br
+.SH faad
+.LP
+.br
+Description: FAAD decoder
+.br
+
+.br
+This filter decodes AAC streams through faad library.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH maddec
+.LP
+.br
+Description: MAD decoder
+.br
+
+.br
+This filter decodes MPEG 1/2 audio streams through libmad library.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH xviddec
+.LP
+.br
+Description: XVid decoder
+.br
+
+.br
+This filter decodes MPEG-4 part 2 (and DivX) through libxvidcore library.
+.br
+
+.br
+.SH Options (expert):
+.LP
+.br
+deblock_y (bool, default: false): enable Y deblocking
+.br
+deblock_uv (bool, default: false): enable UV deblocking
+.br
+film_effect (bool, default: false): enable film effect
+.br
+dering_y (bool, default: false): enable Y deblocking
+.br
+dering_uv (bool, default: false): enable UV deblocking
+.br
+
+.br
+.SH j2kdec
+.LP
+.br
+Description: OpenJPEG2000 decoder
+.br
+Version: 2.x
+.br
+
+.br
+This filter decodes JPEG2000 streams through OpenJPEG2000 library.
+.br
+
+.br
+No options
+.br
+
+.br
 .SH rfac3
 .LP
 .br
@@ -1149,6 +1222,21 @@ This filter parses AC3 and E-AC3 files/data and outputs corresponding audio PID 
 .LP
 .br
 index (dbl, default: 1.0):     indexing window length
+.br
+
+.br
+.SH a52dec
+.LP
+.br
+Description: A52 decoder
+.br
+
+.br
+This filter decodes AC3 streams through a52dec library.
+.br
+
+.br
+No options
 .br
 
 .br
@@ -1198,6 +1286,21 @@ Description: Vorbis decoder
 
 .br
 This filter decodes Vorbis streams through libvorbis library.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH theoradec
+.LP
+.br
+Description: Theora decoder
+.br
+
+.br
+This filter decodes Theora streams through libtheora library.
 .br
 
 .br
@@ -3271,7 +3374,7 @@ nosap (bool, default: false):  do not cut at SAP when extracting range (may resu
 .br
 splitrange (bool, default: false): signal file boundary at each extraction first packet for template-base file generation
 .br
-seeksafe (dbl, default: 10.0): rewind play requests by given seconds (to make sur I-frame preceding start is catched)
+seeksafe (dbl, default: 10.0): rewind play requests by given seconds (to make sure the I-frame preceding start is catched)
 .br
 tcmdrw (bool, default: true):  rewrite TCMD samples when splitting
 .br
@@ -3291,7 +3394,7 @@ utc_ref (enum, default: any):  set reference mode for UTC range extraction
 .br
 
 .br
-utc_probe (uint, default: 5000): timeout in millisenconds to try to acquire UTC reference from media
+utc_probe (uint, default: 5000): timeout in milliseconds to try to acquire UTC reference from media
 .br
 
 .br
@@ -3960,7 +4063,7 @@ The resulting file list can be sorted using .I fsort.
 .br
 If the sort mode is datex and source files are images or single frame files, the following applies:
 .br
-- options .I floop, .I revert and .I dur are ignored
+- options .I floop, .I revert and .I fdur are ignored
 .br
 - the files are sorted by modification time
 .br
@@ -10477,7 +10580,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev199-g8e29f6e8b-master
+build: 2.1-DEV-rev221-ge0cac167f-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

@@ -216,6 +216,7 @@ extension.open_local_file = function () {
                 this.dlg.enable();
             }
         }
+        popup._init_focus = popup.edit.edit;
         popup.show();
     }
 

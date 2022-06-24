@@ -358,6 +358,100 @@ Bool jsfs_on_event(GF_FilterSession *fs, GF_Event *evt)
 	return res;
 }
 
+typedef struct
+{
+	void (*on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
+	void *async_usr_data;
+} JSFAuthContext;
+
+static JSClassID jsf_auth_class_id;
+static void jsf_auth_finalizer(JSRuntime *rt, JSValue val)
+{
+	JSFAuthContext *actx = JS_GetOpaque(val, jsf_auth_class_id);
+    if (!actx) return;
+
+	if (actx->on_usr_pass) {
+		actx->on_usr_pass(actx->async_usr_data, NULL, NULL, GF_FALSE);
+	}
+    gf_free(actx);
+}
+static JSClassDef jsf_auth_class = {
+    "AsyncAuth",
+    .finalizer = jsf_auth_finalizer
+};
+
+static JSValue js_auth_done(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	JSFAuthContext *actx = JS_GetOpaque(this_val, jsf_auth_class_id);
+	Bool store = GF_FALSE;
+	if (!actx) return GF_JS_EXCEPTION(ctx);
+	const char *user, *pass;
+
+	user = argc ? JS_ToCString(ctx, argv[0]) : NULL;
+	pass = (argc>1) ? JS_ToCString(ctx, argv[1]) : NULL;
+	if (argc==3)
+		store = JS_ToBool(ctx, argv[2]);
+
+	if (!user || !user[0] || !pass || !pass[0])
+		actx->on_usr_pass(actx->async_usr_data, NULL, NULL, GF_FALSE);
+	else
+		actx->on_usr_pass(actx->async_usr_data, user, pass, store);
+
+	//callback done, set to null. If object gets destroyed without the done() being called, we will callback with failure
+	actx->on_usr_pass = NULL;
+	if (user) JS_FreeCString(ctx, user);
+	if (pass) JS_FreeCString(ctx, pass);
+	return JS_UNDEFINED;
+}
+
+static const JSCFunctionListEntry jsf_auth_funcs[] = {
+	JS_CFUNC_DEF("done", 0, js_auth_done),
+};
+
+
+Bool jsfs_on_auth(GF_FilterSession *fs, GF_Event *evt)
+{
+	JSValue args[4], ret, obj;
+	Bool res = GF_TRUE;
+	JSContext *ctx;
+	assert(fs->on_auth_task);
+	ctx = fs->on_auth_task->ctx;
+	gf_js_lock(ctx, GF_TRUE);
+
+	JSFAuthContext *actx;
+	GF_SAFEALLOC(actx, JSFAuthContext);
+	if (!actx) {
+		gf_js_lock(ctx, GF_FALSE);
+		return GF_FALSE;
+	}
+	actx->on_usr_pass = evt->auth.on_usr_pass;
+	actx->async_usr_data = evt->auth.async_usr_data;
+	obj = JS_NewObjectClass(ctx, jsf_auth_class_id);
+	JS_SetOpaque(obj, actx);
+
+	args[0] = JS_NewString(ctx, evt->auth.site_url);
+	args[1] = JS_NewString(ctx, evt->auth.user);
+	args[2] = JS_NewString(ctx, evt->auth.password);
+	args[3] = obj;
+
+	ret = JS_Call(ctx, fs->on_auth_task->fun, fs->on_auth_task->_obj, 4, args);
+
+	JS_FreeValue(ctx, args[0]);
+	JS_FreeValue(ctx, args[1]);
+	JS_FreeValue(ctx, args[2]);
+	JS_FreeValue(ctx, args[3]);
+
+	if (JS_IsException(ret)) {
+		js_dump_error(ctx);
+		res = GF_FALSE;
+	}
+	JS_FreeValue(ctx, ret);
+
+	js_std_loop(ctx);
+	gf_js_lock(ctx, GF_FALSE);
+	return res;
+}
+
 
 static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, u32 cbk_type)
 {
@@ -378,6 +472,8 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 		task = fs->del_f_task;
 	} else if (cbk_type==4) {
 		task = fs->on_evt_task;
+	} else if (cbk_type==5) {
+		task = fs->on_auth_task;
 	} else {
 		count = gf_list_count(fs->jstasks);
 		for (i=0; i<count; i++) {
@@ -401,6 +497,8 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 			fs->del_f_task = NULL;
 		else if (cbk_type == 4)
 			fs->on_evt_task = NULL;
+		else if (cbk_type == 5)
+			fs->on_auth_task = NULL;
 
 		return JS_UNDEFINED;
 	}
@@ -432,6 +530,8 @@ static JSValue jsfs_set_fun_callback(JSContext *ctx, JSValueConst this_val, int 
 		fs->del_f_task = task;
 	else if (cbk_type == 4)
 		fs->on_evt_task = task;
+	else if (cbk_type == 5)
+		fs->on_auth_task = task;
     return JS_UNDEFINED;
 }
 
@@ -450,6 +550,10 @@ static JSValue jsfs_set_del_filter_fun(JSContext *ctx, JSValueConst this_val, in
 static JSValue jsfs_set_event_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 4);
+}
+static JSValue jsfs_set_auth_fun(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsfs_set_fun_callback(ctx, this_val, argc, argv, 5);
 }
 
 enum
@@ -1254,6 +1358,7 @@ static const JSCFunctionListEntry fs_funcs[] = {
     JS_CFUNC_DEF("fire_event", 0, jsfs_fire_event),
     JS_CFUNC_DEF("reporting", 0, jsfs_reporting),
     JS_CFUNC_DEF("new_filter", 0, jsfs_new_filter),
+    JS_CFUNC_DEF("set_auth_fun", 0, jsfs_set_auth_fun),
 
 };
 
@@ -1310,6 +1415,12 @@ GF_Err gf_fs_load_js_api(JSContext *c, GF_FilterSession *fs)
 
 	JS_NewClassID(&fs_f_class_id);
 	JS_NewClass(rt, fs_f_class_id, &fs_f_class);
+
+	JS_NewClassID(&jsf_auth_class_id);
+	JS_NewClass(rt, jsf_auth_class_id, &jsf_auth_class);
+	JSValue proto = JS_NewObjectClass(c, jsf_auth_class_id);
+	JS_SetPropertyFunctionList(c, proto, jsf_auth_funcs, countof(jsf_auth_funcs));
+	JS_SetClassProto(c, jsf_auth_class_id, proto);
 
 
 	fs_obj = JS_NewObjectClass(c, fs_class_id);

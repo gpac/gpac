@@ -66,7 +66,9 @@ const OL_NONE = 0;
 const OL_HELP = 1;
 const OL_STATS = 2;
 const OL_PLAY = 3;
+const OL_AUTH = 4;
 let overlay_type = OL_NONE;
+let overlay_type_bck = OL_NONE;
 
 let brush = new evg.SolidBrush();
 brush.set_color('white');
@@ -106,6 +108,11 @@ function setup_overlay()
 		target_height = Math.floor(disp_size.y/2);
 		task_reschedule = 250;
 		break;
+	case OL_AUTH:
+		target_width = Math.floor(4*disp_size.x/5);
+		target_height = Math.floor(4*disp_size.y/5);
+		task_reschedule = 100;
+		break;
 	default:
 		if (!ol_width)
 				ol_width = Math.floor(disp_size.x/3);
@@ -115,7 +122,7 @@ function setup_overlay()
 	}
 	init_wnd=true;
 
-	if (audio_only) {
+	if (audio_only || !vout.nb_ipid) {
 		target_width = ol_width = disp_size.x;
 		target_height = ol_height = disp_size.y;
 	}
@@ -191,6 +198,38 @@ session.set_event_fun( (evt)=> {
 
 	case GF_EVENT_KEYDOWN:
 		return process_keyboard(evt);
+	case GF_EVENT_TEXTINPUT:
+		if (overlay_type==OL_AUTH) {
+			if (auth_state==0) {
+				if ((evt.char == '\n') || (evt.char == '\r'))
+					auth_state = 1;
+				else if (evt.char == '\b')
+					auth_name = auth_name.slice(0, auth_name.length - 1);
+				else
+					auth_name += ''+evt.char;
+			} else if (auth_state==1) {
+				if ((evt.char == '\n') || (evt.char == '\r')) {
+					auth_state = 2;
+					auth_requests[0].done(auth_name, auth_pass);
+					auth_name = '';
+					auth_pass = '';
+					auth_requests.shift();
+					if (auth_requests.length) {
+						auth_state = 0;
+					} else {
+						auth_state = 0;
+						toggle_overlay();
+						overlay_type = overlay_type_bck;
+						if (overlay_type) toggle_overlay();
+					}
+				} else if (evt.char == '\b')
+					auth_pass = auth_pass.slice(0, auth_pass.length - 1);
+				else
+					auth_pass += ''+evt.char;
+			}
+			auth_modified = true;
+		}
+		return false;
 
 	case GF_EVENT_SIZE:
 		if (do_coverage) {
@@ -233,11 +272,11 @@ let interactive_scene=0;
 function check_duration()
 {
 	if (duration!=-1) return (duration>=0) ? true : false;
-	let dur;
+	let dur=null;
 	if (audio_only) {
 		dur = aout.ipid_props(0, 'Duration');
 		interactive_scene = aout.ipid_props(0, 'InteractiveScene');
-	} else {
+	} else if (vout.nb_ipid) {
 		dur = vout.ipid_props(0, 'Duration');
 		interactive_scene = vout.ipid_props(0, 'InteractiveScene');
 	}
@@ -705,6 +744,65 @@ function update_stats()
 	vout.update('oldata', ol_buffer);
 }
 
+let auth_name="";
+let auth_pass="";
+let auth_state=0;
+let auth_modified = false;
+
+let auth_requests = [];
+
+function update_auth()
+{
+	if (init_wnd) {
+		let pos = '' + Math.floor(disp_size.x/2 - ol_width/2) + 'x' + Math.floor(ol_height/2 - disp_size.y/2) + 'x'+ol_width+'x'+ol_height;
+		vout.update('olwnd', pos);
+		init_wnd=false;
+		progress_bar_path=null;
+		auth_modified = true;
+
+		auth_name = auth_requests[0].user;
+		auth_pass = auth_requests[0].pass;
+	}
+	if (!auth_modified) return false;
+	auth_modified = false;
+
+	ol_canvas.clearf(1, 1, 1, 1);
+	let str = ['Authentication for ' + auth_requests[0].site];
+	if (auth_state) {
+		str.push('Enter password');
+		let p = '';
+		let i = auth_pass.length;
+		while (i) {
+			p+='*';
+			i--;
+		}
+		str.push(p);
+	} else {
+		str.push('Enter user name');
+		str.push(auth_name);
+	}
+	let fs = Math.floor(0.1*ol_height);
+	if (fs > 60) fs=60;
+	text.fontsize = fs;
+	text.lineSpacing = 1.5*fs;
+	text.align = GF_TEXT_ALIGN_CENTER;
+	text.baseline = GF_TEXT_BASELINE_TOP;
+	text.set_text(str);
+
+	let txtdim = text.measure();
+	let mx = new evg.Matrix2D();
+	mx.translate(- txtdim.width/2, -0);
+
+	ol_canvas.matrix = mx;
+	ol_canvas.path = text;
+	brush.set_color('black');
+	ol_canvas.fill(brush);
+	brush.set_color('white');
+
+
+	//we could lock vout to avoid any tearing ...
+	vout.update('oldata', ol_buffer);
+}
 
 function update_overlay()
 {
@@ -719,9 +817,13 @@ function update_overlay()
 	if (overlay_type==OL_PLAY) {
 		update_play();
 	}
-	//play screen
+	//stats screen
 	if (overlay_type==OL_STATS) {
 		update_stats();
+	}
+	//auth screen
+	if (overlay_type==OL_AUTH) {
+		update_auth();
 	}
 }
 
@@ -804,6 +906,10 @@ function set_speed(speed)
 function process_keyboard(evt)
 {
 	if (interactive_scene==1) return false;
+
+	if (overlay_type==OL_AUTH) {
+		return true;
+	}
 
 	switch (evt.keycode) {
 	case GF_KEY_B:
@@ -911,3 +1017,16 @@ function process_keyboard(evt)
 	}
 	return false;
 }
+
+session.set_auth_fun( (site, user, pass, auth_cbk) => {
+	overlay_type_bck = overlay_type;
+	overlay_type = OL_AUTH;
+	auth_cbk.site = site;
+	auth_cbk.user = user ? user : "";
+	auth_cbk.pass = pass ? pass : "";
+	auth_requests.push(auth_cbk);
+
+	if (overlay_type_bck) toggle_overlay();
+	toggle_overlay();
+});
+
