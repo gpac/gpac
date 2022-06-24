@@ -6507,9 +6507,9 @@ GF_Err gf_dm_force_headers(GF_DownloadManager *dm, const DownloadedCacheEntry en
 		gf_dm_sess_reload_cached_headers(NULL);
 		gf_dm_refresh_cache_entry(NULL);
 		gf_dm_session_thread(NULL);
-		gf_user_credentials_save_digest(NULL, NULL, NULL);
-		gf_user_credentials_ask_password(NULL, NULL);
-		gf_user_credentials_register(NULL, NULL, NULL, NULL, GF_FALSE);
+		gf_user_credentials_save_digest(NULL, NULL, NULL, GF_FALSE);
+		gf_user_credentials_ask_password(NULL, NULL, NULL);
+		gf_user_credentials_register(NULL, NULL, NULL, NULL, GF_FALSE, NULL);
 		gf_cache_are_headers_processed(NULL);
 		gf_cache_get_start_range(NULL);
 		gf_cache_get_end_range(NULL);
