@@ -1772,7 +1772,7 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 			sprintf(szName, "_gf_%s_mx", tx_name);
 			loc = glGetUniformLocation(gl_program, szName);
 			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to locate texture %s in shader\n", szName));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to locate matrix coefficients %s in shader\n", szName));
 				return GF_FALSE;
 			}
 			glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
@@ -1822,6 +1822,8 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 		gf_mx_init(txmx);
 		for (i=0; i<tx->nb_textures; i++) {
 			u32 gl_format = GL_TEXTURE_2D;
+			//everything we do is on this texture unit, including what the parent filter does when fetching the gl texture
+			glActiveTexture(texture_unit + i);
 			if (tx->frame_ifce && tx->frame_ifce->get_gl_texture(tx->frame_ifce, i, &gl_format, &tx->textures[i], &txmx) != GF_OK) {
 				if (!i) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[GL] Failed to get frame interface OpenGL texture ID for plane %d\n", i));
@@ -1835,7 +1837,7 @@ Bool gf_gl_txw_bind(GF_GLTextureWrapper *tx, const char *tx_name, u32 gl_program
 #endif
 			if (!tx->textures[i])
 				break;
-			glActiveTexture(texture_unit + i);
+
 			glBindTexture(gl_format, tx->textures[i]);
 			glTexParameteri(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
