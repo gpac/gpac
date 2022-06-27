@@ -4508,7 +4508,7 @@ u32 gf_sc_play_from_time(GF_Compositor *compositor, u64 from_time, u32 pause_at_
 	//this is not really precise (we don't take into account seek) but is enough for vout UI
 	if (!compositor->player) {
 		u64 output_ts = gf_timestamp_rescale(from_time, 1000, compositor->fps.num);
-		compositor->frame_number = output_ts / compositor->fps.den;
+		compositor->frame_number = (u32) (output_ts / compositor->fps.den);
 	}
 
 	/*for dynamic scene OD resources are static and all object use the same clock, so don't restart the root
