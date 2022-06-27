@@ -3421,7 +3421,7 @@ sample_entry_done:
 					}
 				}
 			}
-			tkw->ts_delay = p->value.sint;
+			tkw->ts_delay = p->value.longsint;
 		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
 			tkw->probe_min_ctts = GF_TRUE;
 		}
@@ -5729,6 +5729,13 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 			if (tkw->cts_next < ncts)
 				tkw->cts_next = ncts;
 
+			//compute ts after delay/skip for fragment interleaving
+			u64 check_ts;
+			if ((tkw->ts_delay<0) && (cts < -tkw->ts_delay))
+				check_ts = 0;
+			else
+				check_ts = cts+tkw->ts_delay;
+
 			//we have samples and either a request to flush fragment or a emsg, start new fragment
 			if (tkw->samples_in_frag && (orig_frag_bounds || (gf_filter_pck_get_property_str(pck, "grp_EMSG")!=NULL))) {
 				tkw->fragment_done = GF_TRUE;
@@ -5742,7 +5749,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				if (tkw->dur_in_frag && gf_timestamp_greater_or_equal(tkw->dur_in_frag, tkw->src_timescale, ctx->cdur.num, ctx->cdur.den)) {
 					frag_done = GF_TRUE;
 				} else if ((ctx->store==MP4MX_MODE_SFRAG)
-					&& gf_timestamp_greater_or_equal(cts - tkw->ts_delay, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
+					&& gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
 				) {
 					GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 					if ((sap && sap<GF_FILTER_SAP_3)) {
@@ -5750,7 +5757,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					}
 				}
 				if (frag_done) {
-					ctx->adjusted_next_frag_start = gf_timestamp_rescale(cts - tkw->ts_delay, tkw->src_timescale, ctx->cdur.den);
+					ctx->adjusted_next_frag_start = gf_timestamp_rescale(check_ts, tkw->src_timescale, ctx->cdur.den);
 //
 					tkw->fragment_done = GF_TRUE;
 					nb_done ++;
@@ -5764,7 +5771,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					ctx->frag_timescale = tkw->src_timescale;
 				}
 			} else if (!ctx->flush_seg && !ctx->dash_mode
-				&& gf_timestamp_greater_or_equal(cts - tkw->ts_delay, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
+				&& gf_timestamp_greater_or_equal(check_ts, tkw->src_timescale, ctx->adjusted_next_frag_start, ctx->cdur.den)
 			 ) {
 				GF_FilterSAPType sap = mp4_mux_get_sap(ctx, pck);
 				//consider roll SAP as sap1 for the fragmentation
@@ -5776,7 +5783,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->samples_in_frag = 0;
 					nb_done ++;
 					if (ctx->store==MP4MX_MODE_SFRAG) {
-						ctx->adjusted_next_frag_start = gf_timestamp_rescale(cts - tkw->ts_delay, tkw->src_timescale, ctx->cdur.den);
+						ctx->adjusted_next_frag_start = gf_timestamp_rescale(check_ts, tkw->src_timescale, ctx->cdur.den);
 					}
 					break;
 				}
@@ -5789,7 +5796,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 					tkw->samples_in_frag = 0;
 					nb_done ++;
 					if (ctx->store==MP4MX_MODE_SFRAG) {
-						ctx->adjusted_next_frag_start = gf_timestamp_rescale(cts - tkw->ts_delay, tkw->src_timescale, ctx->cdur.den);
+						ctx->adjusted_next_frag_start = gf_timestamp_rescale(check_ts, tkw->src_timescale, ctx->cdur.den);
 					}
 					break;
 				}
@@ -5804,6 +5811,7 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 
 				tkw->insert_tfdt = GF_FALSE;
 				if (tkw->patch_tfdt)
+					//if patch_tfdt is true, tkw->ts_delay is always >0
 					gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts + tkw->ts_delay);
 				else
 					gf_isom_set_traf_base_media_decode_time(ctx->file, tkw->track_id, odts);
