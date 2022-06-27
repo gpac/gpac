@@ -736,7 +736,7 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!compositor->player && compositor->root_scene->is_dynamic_scene && !evt->play.initial_broadcast_play
 			&& (abs(diff)>=1000)
 		) {
-			gf_sc_play_from_time(compositor, evt->play.start_range*1000, GF_FALSE);
+			gf_sc_play_from_time(compositor, (u64) (evt->play.start_range*1000), GF_FALSE);
 		}
 	}
 		break;

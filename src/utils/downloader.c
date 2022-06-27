@@ -1058,7 +1058,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 	char pass_buf[1024], range_buf[1024];
 	if (!dm || !creds || !password)
 		return GF_BAD_PARAM;
-	sprintf(pass_buf, "%s:%s", creds->username, password);
+	snprintf(pass_buf, 1024, "%s:%s", creds->username, password);
 	size = gf_base64_encode(pass_buf, (u32) strlen(pass_buf), range_buf, 1024);
 	range_buf[size] = 0;
 	strcpy(creds->digest, range_buf);
@@ -1102,7 +1102,7 @@ static void on_user_pass(void *udta, const char *user, const char *pass, Bool st
 {
 	GF_DownloadSession *sess = (GF_DownloadSession *)udta;
 	if (sess->creds) {
-		u32 len = user ? strlen(user) : 0;
+		u32 len = user ? (u32) strlen(user) : 0;
 		if (len && (user != sess->creds->username)) {
 			if (len> 49) len = 49;
 			strncpy(sess->creds->username, user, len);
