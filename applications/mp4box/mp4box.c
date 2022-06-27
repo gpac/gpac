@@ -138,11 +138,12 @@ typedef enum {
 	TRACK_ACTION_SET_MEDIA_TIME,
 } TrackActionType;
 
+#define LANG_SIZE	50
 typedef struct
 {
 	TrackActionType act_type;
 	TrackIdentifier target_track;
-	char lang[10];
+	char lang[LANG_SIZE];
 	GF_Fraction delay;
 	const char *kms;
 	const char *hdl_name;
@@ -2496,12 +2497,12 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 	if (act_type==TRACK_ACTION_SET_LANGUAGE) {
 		char *ext = strchr(param, '=');
 		if (!strnicmp(param, "all=", 4)) {
-			strncpy(tka->lang, param + 4, 10-1);
+			strncpy(tka->lang, param + 4, LANG_SIZE-1);
 		}
 		else if (!ext) {
-			strncpy(tka->lang, param, 10-1);
+			strncpy(tka->lang, param, LANG_SIZE-1);
 		} else {
-			strncpy(tka->lang, ext + 1, 10-1);
+			strncpy(tka->lang, ext + 1, LANG_SIZE-1);
 			ext[0] = 0;
 			parse_track_id(&tka->target_track, param, GF_FALSE);
 			ext[0] = '=';
@@ -2580,7 +2581,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 			return GF_FALSE;
 		}
 		ext2[0] = 0;
-		strncpy(tka->lang, ext+1, 9);
+		strncpy(tka->lang, ext+1, LANG_SIZE-1);
 		ext2[0] = ':';
 		parse_track_id(&tka->newTrackID, ext2 + 1, GF_FALSE);
 		return GF_TRUE;
