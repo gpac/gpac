@@ -42054,6 +42054,7 @@ static JSValue js_math_random(JSContext *ctx, JSValueConst this_val,
 #if defined(_MSC_VER)
 static double const_floor(double x) { return floor(x); }
 static double const_ceil(double x) { return ceil(x); }
+static double const_log2(double x) { return log2(x); }
 #endif
 
 static const JSCFunctionListEntry js_math_funcs[] = {
@@ -42091,7 +42092,9 @@ static const JSCFunctionListEntry js_math_funcs[] = {
     JS_CFUNC_SPECIAL_DEF("atanh", 1, f_f, atanh ),
     JS_CFUNC_SPECIAL_DEF("expm1", 1, f_f, expm1 ),
     JS_CFUNC_SPECIAL_DEF("log1p", 1, f_f, log1p ),
-    JS_CFUNC_SPECIAL_DEF("log2", 1, f_f, log2 ),
+#if defined(_MSC_VER)
+    JS_CFUNC_SPECIAL_DEF("log2", 1, f_f, const_log2),
+#endif
     JS_CFUNC_SPECIAL_DEF("log10", 1, f_f, log10 ),
     JS_CFUNC_SPECIAL_DEF("cbrt", 1, f_f, cbrt ),
     JS_CFUNC_DEF("hypot", 2, js_math_hypot ),
