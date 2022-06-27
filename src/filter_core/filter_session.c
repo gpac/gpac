@@ -202,10 +202,9 @@ static Bool fs_default_event_proc(void *ptr, GF_Event *evt)
 		fprintf(stderr, "*********\n");
 
 		if (evt->auth.on_usr_pass) {
-			//evt->auth.on_usr_pass(evt->auth.async_usr_data, evt->auth.user, evt->auth.password);
+			evt->auth.on_usr_pass(evt->auth.async_usr_data, evt->auth.user, evt->auth.password, GF_FALSE);
 			evt->auth.password[0] = 0;
 		}
-
 		return GF_TRUE;
 	}
 
