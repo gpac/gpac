@@ -1340,7 +1340,9 @@ void gf_odm_resume(GF_ObjectManager *odm)
 
 	GF_FEVT_INIT(com, GF_FEVT_RESUME, odm->pid);
 	com.play.speed = odm->ck->speed;
+#ifndef GPAC_DISABLE_VRML
 	if (ctrl) com.play.speed  = ctrl->control->mediaSpeed;
+#endif
 	if (scene->compositor->max_vspeed && (ABS(com.play.speed) > ABS(scene->compositor->max_vspeed)))
 		com.play.drop_non_ref = GF_TRUE;
 

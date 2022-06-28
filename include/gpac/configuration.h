@@ -217,6 +217,9 @@ This section documents the base data types of GPAC.
 #define GPAC_DISABLE_ZLIB
 #endif
 
+/*disables QuickJS libc*/
+//#define GPAC_DISABLE_QJS_LIBC
+
 /*disables SVG scene graph*/
 //#define GPAC_DISABLE_SVG
 

@@ -4980,6 +4980,7 @@ const char *gf_sc_get_world_info(GF_Compositor *compositor, GF_List *description
 	if (!compositor || !compositor->root_scene || !compositor->root_scene->world_info) return NULL;
 	info = (GF_Node*) compositor->root_scene->world_info;
 
+#ifndef GPAC_DISABLE_SVG
 	if (gf_node_get_tag(info) == TAG_SVG_title) {
 		SVG_Element *elt = (SVG_Element *)info;
 		GF_ChildNodeItem *l = elt->children;
@@ -4990,7 +4991,9 @@ const char *gf_sc_get_world_info(GF_Compositor *compositor, GF_List *description
 			}
 			l = l->next;
 		}
-	} else {
+	} else
+#endif
+	{
 #ifndef GPAC_DISABLE_VRML
 		M_WorldInfo *wi = (M_WorldInfo *) info;
 		if (descriptions) {

@@ -93,8 +93,10 @@ struct __txtin_ctx
 	u32 curLine;
 	GF_StyleRecord style;
 
+#ifndef GPAC_DISABLE_VTT
 	//WebVTT state
 	GF_WebVTTParser *vttparser;
+#endif
 
 	//TTXT state
 	GF_DOMParser *parser;
@@ -3686,10 +3688,13 @@ static GF_Err txtin_process(GF_Filter *filter)
 		if (ctx->unframed) {
 			if (gf_filter_pid_is_eos(ctx->ipid)) {
 				if (ctx->end) {
+#ifndef GPAC_DISABLE_VTT
 					if (ctx->vttparser) {
 						gf_webvtt_parser_flush(ctx->vttparser);
 					}
-					else if (!ctx->noflush) {
+					else
+#endif
+					if (!ctx->noflush) {
 						gf_isom_text_reset(ctx->samp);
 						txtin_process_send_text_sample(ctx, ctx->samp, ctx->end, 0, GF_TRUE);
 					}
@@ -3757,8 +3762,10 @@ static void ttxtin_reset(GF_TXTIn *ctx)
 	ctx->samp = NULL;
 	if (ctx->src) gf_fclose(ctx->src);
 	ctx->src = NULL;
+#ifndef GPAC_DISABLE_VTT
 	if (ctx->vttparser) gf_webvtt_parser_del(ctx->vttparser);
 	ctx->vttparser = NULL;
+#endif
 	if (ctx->parser) gf_xml_dom_del(ctx->parser);
 	ctx->parser = NULL;
 	if (ctx->parser_working_copy) gf_xml_dom_del(ctx->parser_working_copy);
