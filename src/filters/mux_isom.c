@@ -2633,11 +2633,15 @@ sample_entry_setup:
 
 		tkw->skip_bitrate_update = GF_TRUE;
 	} else if (use_webvtt) {
+#ifndef GPAC_DISABLE_VTT
 		e = gf_isom_new_webvtt_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi ? dsi->value.data.ptr : NULL);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new %s sample description: %s\n", gf_4cc_to_str(m_subtype), gf_error_to_string(e)));
 			return e;
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 		tkw->skip_bitrate_update = GF_TRUE;
 	} else if (use_mj2) {
 		e = gf_isom_new_mj2k_description(ctx->file, tkw->track_num, NULL, NULL, &tkw->stsd_idx, dsi ? dsi->value.data.ptr : NULL, dsi ? dsi->value.data.size : 0);

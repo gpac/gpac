@@ -25,8 +25,6 @@
 
 #include <gpac/setup.h>
 
-#ifndef GPAC_DISABLE_QJS_LIBC
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -87,6 +85,9 @@ typedef void (*mysighandler_t)(int sig_num);
 #ifndef PATH_MAX
 #define PATH_MAX GF_MAX_PATH
 #endif
+
+
+#ifndef GPAC_DISABLE_QJS_LIBC
 
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;

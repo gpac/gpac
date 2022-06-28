@@ -30,6 +30,8 @@
 #include <gpac/internal/media_dev.h>
 
 
+#ifndef GPAC_DISABLE_VTT
+
 typedef struct
 {
 	//opts
@@ -284,3 +286,5 @@ const GF_FilterRegister *vttmx_register(GF_FilterSession *session)
 {
 	return &WebVTTMxRegister;
 }
+
+#endif /*GPAC_DISABLE_VTT*/

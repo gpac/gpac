@@ -1308,7 +1308,9 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 	w = scene->compositor->scene_width;
 	h = scene->compositor->scene_height;
 
-	M_Transform2D *tr = (M_Transform2D *) gf_sg_find_node_by_name(scene->graph, "TR_SUBT_IMG");
+#ifndef GPAC_DISABLE_VRML
+	M_Transform2D *tr = NULL;
+	tr = (M_Transform2D *) gf_sg_find_node_by_name(scene->graph, "TR_SUBT_IMG");
 	if (!tr) return;
 
 	tr->translation.x = 0;
@@ -1331,7 +1333,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 	}
 	tr->translation.y += scene->compositor->subty;
 	gf_node_changed((GF_Node *)tr, NULL);
-
+#endif /*GPAC_DISABLE_VRML*/
 }
 
 #ifndef GPAC_DISABLE_VRML
