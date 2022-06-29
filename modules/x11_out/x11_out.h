@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2020
+ *			Copyright (c) Telecom ParisTech 2005-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / X11 video output module
@@ -39,7 +39,7 @@ extern "C"
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && defined(GPAC_HAS_X11_GLX)
 #define GPAC_HAS_OPENGL
 #endif
 
@@ -56,12 +56,6 @@ extern "C"
 #ifdef GPAC_HAS_X11_XV
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
-#endif
-
-#if defined(ENABLE_JOYSTICK) || defined(ENABLE_JOYSTICK_NO_CURSOR)
-#include <linux/joystick.h>
-#include <unistd.h>
-#include <fcntl.h>
 #endif
 
 #define X11VID()	XWindow *xWindow = (XWindow *)vout->opaque;
@@ -120,10 +114,6 @@ typedef struct
 	GLXPixmap gl_offscreen;
 	Window gl_wnd;
 	u32 offscreen_type;
-#endif
-#if defined(ENABLE_JOYSTICK) || defined(ENABLE_JOYSTICK_NO_CURSOR)
-	/*joystick device file descriptor*/
-	s32 prev_x, prev_y, fd;
 #endif
 } XWindow;
 

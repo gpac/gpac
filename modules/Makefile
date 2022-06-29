@@ -3,21 +3,6 @@ include ../config.mak
 #all OS and lib independent
 PLUGDIRS=validator
 
-#disabled for now
-#netctrl
-
-ifneq ($(CONFIG_ZLIB),no)
-#disabled for now
-#PLUGDIRS+=widgetman
-ifeq ($(DISABLE_VRML),no)
-ifeq ($(DISABLE_LOADER_BT),no)
-#disabled for now
-#PLUGDIRS+=osd
-endif
-endif
-
-endif
-
 
 ifeq ($(CONFIG_FT),no)
 else

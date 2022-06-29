@@ -32,7 +32,7 @@
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
+#if !defined(GPAC_DISABLE_MPD)
 
 #define DEFAULT_PERIOD_ID	 "_gf_dash_def_period"
 
@@ -529,6 +529,7 @@ static void dasher_check_outpath(GF_DasherCtx *ctx)
 
 static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
+#ifndef GPAC_DISABLE_CRYPTO
 	GF_Err e;
 	u32 pid_id=1;
 	u32 i, count;
@@ -585,8 +586,10 @@ static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 			ds->iv_low <<= 8;
 		}
 	}
-
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
@@ -2078,7 +2081,6 @@ static const char *get_drm_kms_name(const char *canURN)
 
 static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStream *ds, GF_MPD_AdaptationSet *for_set)
 {
-	char sCan[40];
 	u32 prot_scheme=0;
 	u32 i, count;
 	const GF_PropertyValue *p;
@@ -2104,8 +2106,11 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 		p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 		if (p) prot_scheme = p->value.uint;
 
+
+#ifndef GPAC_DISABLE_ISOM
 		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)
 		) {
+			char sCan[40];
 			const GF_PropertyValue *ki;
 			u32 j, nb_pssh;
 			GF_XMLAttribute *att;
@@ -2209,7 +2214,9 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				}
 				gf_free(pssh_data);
 			}
-		} else {
+		} else
+#endif // GPAC_DISABLE_ISOM
+		{
 			if (ctx->do_mpd) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Protection scheme %s has no official DASH mapping, using URI \"urn:gpac:dash:mp4protection:2018\"\n", gf_4cc_to_str(prot_scheme)));
 			}
@@ -9303,7 +9310,9 @@ static void dasher_finalize(GF_Filter *filter)
 		GF_DashStream *ds = gf_list_pop_back(ctx->pids);
 		dasher_reset_stream(filter, ds, GF_TRUE);
 		if (ds->packet_queue) gf_list_del(ds->packet_queue);
+#ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
+#endif
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
@@ -9323,7 +9332,9 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_free(ctx->next_period);
 	if (ctx->out_path) gf_free(ctx->out_path);
 	gf_list_del(ctx->postponed_pids);
+#ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
+#endif
 }
 
 #define MPD_EXTS "mpd|m3u8|3gm|ism"
@@ -9759,5 +9770,9 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return &DasherRegister;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
+#else
+const GF_FilterRegister *dasher_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif /*#if !defined(GPAC_DISABLE_MPD)*/

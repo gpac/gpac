@@ -43,8 +43,13 @@ else
 CFLAGS+=$(OGL_INCLS)
 EXTRALIBS+=$(OGL_LIBS)
 ifeq ($(CONFIG_DARWIN),yes)
-EXTRALIBS+=-lGL -lGLU
+EXTRALIBS+=-framework OpenGL
 endif
+
+ifeq ($(USE_X11_GLX),yes)
+CFLAGS+=-DGPAC_HAS_X11_GLX
+endif
+
 endif
 endif
 

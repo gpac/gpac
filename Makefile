@@ -275,11 +275,6 @@ install-lib:
 
 	$(INSTALL) $(INSTFLAGS) -m 644 config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h" || true
 
-ifeq ($(GPAC_ENST),yes)
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/include/gpac/enst"
-	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
-endif
-
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(lib_dir)"
 	$(INSTALL) $(INSTFLAGS) -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(lib_dir)" || true
 

@@ -284,9 +284,6 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track, Bool non_ref_only)
 GF_EXPORT
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 {
-#ifdef GPAC_DISABLE_CORE_TOOLS
-	return GF_NOT_SUPPORTED;
-#else
 	u8 block[4096];
 	u32 read;
 	u64 size, tot;
@@ -356,7 +353,6 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 	gf_fclose(in);
 	return e;
-#endif
 }
 
 #ifndef GPAC_DISABLE_ISOM

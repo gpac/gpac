@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2017-2021
+ *			Copyright (c) Telecom ParisTech 2017-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / HTTP input filter using GPAC http stack
@@ -27,7 +27,6 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/download.h>
-
 
 typedef enum
 {

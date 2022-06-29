@@ -230,7 +230,9 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 	Bool recfg;
 	if (!ar) return;
 
+#ifndef GPAC_DISABLE_PLAYER
 	compositor_setup_aout(ar->compositor);
+#endif //GPAC_DISABLE_PLAYER
 
 	/*lock mixer*/
 	gf_mixer_lock(ar->mixer, GF_TRUE);

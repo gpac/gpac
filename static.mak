@@ -1,61 +1,19 @@
 
-NEED_LOCAL_LIB=no
 LINKLIBS=
-
-ifeq ($(DISABLE_CORE_TOOLS),no)
 
 #1 - zlib support
 ifeq ($(CONFIG_ZLIB),local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
-NEED_LOCAL_LIB=yes
 endif
 ifneq ($(CONFIG_ZLIB),no)
 LINKLIBS+=-lz
 endif
 
 #2 - ssl support
-ifeq ($(HAS_OPENSSL),yes)
+ifneq ($(HAS_OPENSSL),no)
+CFLAGS+=$(SSL_CFLAGS)
 LINKLIBS+=$(SSL_LIBS)
 endif
-
-#3 - QuickJS support
-ifeq ($(CONFIG_JS),no)
-else
-SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
-ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB=yes
-endif
-LINKLIBS+=$(JS_LIBS)
-endif
-
-endif
-
-#4 - JPEG support
-ifeq ($(CONFIG_JPEG),no)
-else
-LINKLIBS+= -ljpeg
-#local lib
-ifeq ($(CONFIG_JPEG),local)
-NEED_LOCAL_LIB=yes
-MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
-FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
-endif
-endif
-
-
-#5 - PNG support
-ifeq ($(CONFIG_PNG),no)
-else
-LINKLIBS+= -lpng
-ifeq ($(CONFIG_PNG),local)
-NEED_LOCAL_LIB=yes
-MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
-FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
-endif
-endif
-
-
-
 
 ## libgpac compositor compilation options
 COMPOSITOR_CFLAGS=
@@ -73,10 +31,6 @@ EXTRALIBS+= $(OGL_LIBS)
 COMPOSITOR_CFLAGS+=$(OGL_INCLS)
 endif
 
-ifeq ($(NEED_LOCAL_LIB),yes)
-EXTRALIBS+=-L../extra_lib/lib/gcc
-endif
-
 EXTRALIBS+=$(LINKLIBS)
 
 ifeq ($(GPAC_USE_TINYGL),yes)
@@ -85,21 +39,10 @@ else
 COMPOSITOR_CFLAGS+=-DGPAC_HAS_GLU
 endif
 
-ifeq ($(ENABLE_JOYSTICK),yes)
-COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
-endif
-
 
 ## libgpac media tools compilation options
 ifeq ($(GPACREADONLY),yes)
 MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
-endif
-
-
-ifeq ($(GPAC_ENST),yes)
-OBJS+=$(LIBGPAC_ENST)
-EXTRALIBS+=-liconv
-MEDIATOOLS_CFLAGS+=-DGPAC_ENST_PRIVATE
 endif
 
 
@@ -212,7 +155,3 @@ endif
 #end of static modules
 endif
 
-
-ifeq ($(CONFIG_VTB),yes)
-EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
-endif

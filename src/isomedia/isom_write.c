@@ -7935,16 +7935,6 @@ GF_Err gf_isom_update_sample_description_from_template(GF_ISOFile *file, u32 tra
 }
 
 
-#ifdef GPAC_DISABLE_CORE_TOOLS
-
-GF_EXPORT
-GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename, Bool for_fragments)
-{
-	return GF_NOT_SUPPORTED;
-}
-
-#else
-
 #include <gpac/xml.h>
 GF_EXPORT
 GF_Err gf_isom_apply_box_patch(GF_ISOFile *file, GF_ISOTrackID globalTrackID, const char *box_patch_filename, Bool for_fragments)
@@ -8202,9 +8192,6 @@ err_exit:
 	if (box_data) gf_free(box_data);
 	return e;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
-
 
 GF_EXPORT
 GF_Err gf_isom_set_track_magic(GF_ISOFile *movie, u32 trackNumber, u64 magic)
@@ -8572,8 +8559,6 @@ GF_Err gf_isom_add_sample_aux_info(GF_ISOFile *file, u32 track, u32 sampleNumber
 	return gf_isom_add_sample_aux_info_internal(trak, NULL, sampleNumber, aux_type, aux_info, data, size);
 }
 
-#endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
-
 
 GF_Err gf_isom_set_meta_qt(GF_ISOFile *file)
 {
@@ -8592,3 +8577,5 @@ GF_Err gf_isom_set_meta_qt(GF_ISOFile *file)
 	}
 	return GF_OK;
 }
+#endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
+

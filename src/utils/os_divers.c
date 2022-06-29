@@ -1000,7 +1000,6 @@ GF_Err gf_sys_set_args(s32 argc, const char **argv)
 		}
 		//now that we have parsed all options, load restrict
 		gf_cfg_load_restrict();
-
 	}
 	//for OSX we allow overwrite of argc/argv due to different behavior between console-mode apps and GUI
 #if !defined(__DARWIN__) && !defined(__APPLE__)

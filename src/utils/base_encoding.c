@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -25,8 +25,6 @@
 
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 static const char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -447,5 +445,3 @@ GF_Err gf_lz_compress_payload(u8 **data, u32 data_len, u32 *max_size)
 	return GF_NOT_SUPPORTED;
 }
 #endif /*GPAC_HAS_LZMA*/
-
-#endif /* GPAC_DISABLE_CORE_TOOLS*/

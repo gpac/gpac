@@ -717,6 +717,7 @@ GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *sd)
 GF_EXPORT
 GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size)
 {
+#ifndef GPAC_DISABLE_ISOM
 	u32 i;
 	u32 gpp_read_rgba(GF_BitStream *bs);
 	void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec);
@@ -742,10 +743,14 @@ GF_TextSampleDescriptor *gf_odf_tx3g_read(u8 *dsi, u32 dsi_size)
 	}
 	gf_bs_del(bs);
 	return txtc;
+#else
+	return NULL;
+#endif
 }
 
 GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, u8 **outData, u32 *outSize)
 {
+#ifndef GPAC_DISABLE_ISOM
 	u32 j;
 	void gpp_write_rgba(GF_BitStream *bs, u32 col);
 	void gpp_write_box(GF_BitStream *bs, GF_BoxRecord *rec);
@@ -772,6 +777,9 @@ GF_Err gf_odf_tx3g_write(GF_TextSampleDescriptor *a, u8 **outData, u32 *outSize)
 	gf_bs_get_content(bs, outData, outSize);
 	gf_bs_del(bs);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 /*TextConfig*/

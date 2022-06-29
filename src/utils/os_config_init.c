@@ -23,8 +23,6 @@
  *
  */
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 #include <gpac/config_file.h>
 
 
@@ -2526,5 +2524,3 @@ retry_char:
 		return GF_TRUE;
 	return GF_FALSE;
 }
-
-#endif
