@@ -14,14 +14,6 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-ifeq ($(ENABLE_JOYSTICK),yes)
-CFLAGS+=-DENABLE_JOYSTICK
-endif
-
-ifeq ($(ENABLE_JOYSTICK_NO_CURSOR),yes)
-CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
-endif
-
 #common obj
 OBJS= dektec_video.o
 

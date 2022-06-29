@@ -31,8 +31,6 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 enum
 {
 	DECINFO_NO=0,
@@ -1047,6 +1045,7 @@ static GF_Err writegen_flush_ttxt(GF_GenDumpCtx *ctx)
 #include <gpac/webvtt.h>
 static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u32 timescale, Bool write_srt)
 {
+#ifndef GPAC_DISABLE_VTT
 	char szTS[200];
 	szTS[0] = 0;
 	GF_WebVTTTimestamp start, end;
@@ -1074,6 +1073,7 @@ static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u
 	}
 	sprintf(szTS, "%02u:%02u%c%03u", end.min, end.sec, write_srt ? ',' : '.', end.ms);
 	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+#endif
 }
 
 GF_Err writegen_process(GF_Filter *filter)
@@ -1866,5 +1866,3 @@ const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 
 	return &GenDumpRegister;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/

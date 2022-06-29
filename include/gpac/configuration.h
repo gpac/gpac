@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2008-2012
+ *			Copyright (c) Telecom ParisTech 2008-2022
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -206,9 +206,6 @@ This section documents the base data types of GPAC.
 
 /*disables scene manager */
 //#define GPAC_DISABLE_SMGR
-
-/*disables core tools */
-//#define GPAC_DISABLE_CORE_TOOLS
 
 /*disables zlib */
 #ifndef GPAC_MP4BOX_MINI

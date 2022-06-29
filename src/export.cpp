@@ -355,14 +355,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_timezone) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_is_ipv6) )
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_decode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_decode) )
-#endif
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_bin128_parse) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get) )
@@ -430,7 +426,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_3cc) )
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new_simple) )
@@ -493,7 +488,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
-#endif
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
@@ -2101,11 +2095,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_rap) )
 #endif /*GPAC_DISABLE_LASER*/
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 /*download.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
-#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*to be removed once TS fragmenter is moved to libgpac */
@@ -2161,14 +2153,12 @@
 #endif
 
 /* dvb_mpe.h */
-#ifdef GPAC_ENST_PRIVATE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_get_freq_from_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
-#endif
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_new) )

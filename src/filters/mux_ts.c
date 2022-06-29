@@ -30,13 +30,6 @@
 #include <gpac/webvtt.h>
 
 
-#ifndef GPAC_DISABLE_MPEG2TS_MUX
-
-
-#define M2TS_FILE_EXTS "ts|m2t|mts|dmb|trp"
-#define M2TS_MIMES "video/mpeg-2|video/mp2t|video/mpeg|audio/mp2t"
-
-
 void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char *file_exts, const char *mime_types, const char *def_ext)
 {
 	Bool found=GF_FALSE;
@@ -67,6 +60,13 @@ void mux_assign_mime_file_ext(GF_FilterPid *ipid, GF_FilterPid *opid, const char
 	if (!found)
 		gf_filter_pid_set_property(opid, GF_PROP_PID_MIME, &PROP_STRING("*") );
 }
+
+#ifndef GPAC_DISABLE_MPEG2TS_MUX
+
+
+#define M2TS_FILE_EXTS "ts|m2t|mts|dmb|trp"
+#define M2TS_MIMES "video/mpeg-2|video/mp2t|video/mpeg|audio/mp2t"
+
 
 
 
@@ -1993,6 +1993,13 @@ GF_FilterRegister TSMuxRegister = {
 const GF_FilterRegister *tsmux_register(GF_FilterSession *session)
 {
 	return &TSMuxRegister;
+}
+
+#else
+
+const GF_FilterRegister *tsmux_register(GF_FilterSession *session)
+{
+	return NULL;
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/

@@ -23,8 +23,6 @@
  *
  */
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 #if defined(WIN32) || defined(_WIN32_WCE)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -1953,5 +1951,3 @@ u16 gf_ntohs(u16 val)
 {
 	return ntohs(val);
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/

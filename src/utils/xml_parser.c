@@ -27,8 +27,6 @@
 #include <gpac/utf.h>
 #include <gpac/network.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 #ifndef GPAC_DISABLE_ZLIB
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
@@ -2438,8 +2436,6 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
 	return GF_BAD_PARAM;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 void gf_xml_dump_string(FILE* file, const char *before, const char *str, const char *after)
 {

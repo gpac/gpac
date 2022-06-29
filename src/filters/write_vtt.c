@@ -286,5 +286,10 @@ const GF_FilterRegister *vttmx_register(GF_FilterSession *session)
 {
 	return &WebVTTMxRegister;
 }
+#else
+const GF_FilterRegister *vttmx_register(GF_FilterSession *session)
+{
+	return NULL;
+}
 
 #endif /*GPAC_DISABLE_VTT*/

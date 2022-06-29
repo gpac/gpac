@@ -493,4 +493,10 @@ const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session)
 	return &M2TSSplitRegister;
 }
 
+#else
+const GF_FilterRegister *m2tssplit_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
 #endif /*GPAC_DISABLE_MPEG2TS*/

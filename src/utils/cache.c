@@ -2,7 +2,7 @@
  *					GPAC Multimedia Framework
  *
  *			Authors: Jean Le Feuvre, Pierre Souchay
- *			Copyright (c) Telecom ParisTech 2010-2020
+ *			Copyright (c) Telecom ParisTech 2010-2022
  *					All rights reserved
  *
  *   This file is part of GPAC / common tools sub-project
@@ -22,8 +22,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #include <gpac/cache.h>
 #include <gpac/network.h>
@@ -1073,4 +1071,3 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
     return GF_TRUE;
 }
 
-#endif
