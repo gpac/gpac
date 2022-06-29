@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # GPAC configure script
 #     (c) 2003-2022 Telecom ParisTech
@@ -147,7 +147,7 @@ push_feature()
     all_features[$idx+1]="$desc"
 }
 
-#all features enabled with --enable- or --disable- 
+#all features enabled with --enable- or --disable-
 #if first character is !, feature is disabled by default otherwise enabled by default
 
 push_feature "log" "logging support"
@@ -275,7 +275,7 @@ GPAC core configuration:
 Extra libraries configuration:
 You can turn a library off or force using the local version in gpac/extra_lib/
   --use-FOO=no             disable library FOO
-  --use-FOO=local          force using local version of library FOO from gpac/extra_lib/include and gpac/extra_lib/lib 
+  --use-FOO=local          force using local version of library FOO from gpac/extra_lib/include and gpac/extra_lib/lib
   --use-FOO=system         force using system version only of library FOO
 
 Extra libraries used are: $all_packages
@@ -284,7 +284,7 @@ EOF
 cat << EOF
 
 Features for libgpac configuration:
-Feature FOO can be enabled with --enable-FOO or disabled with --enable-FOO 
+Feature FOO can be enabled with --enable-FOO or disabled with --enable-FOO
 EOF
 
 for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
@@ -296,8 +296,8 @@ for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
         desc=${desc:1}
     fi
 
-    while [ ${#name} -le 12 ] 
-    do 
+    while [ ${#name} -le 12 ]
+    do
         name="$name "
     done
 
@@ -427,7 +427,7 @@ set_package ()
 
     echo "no package pck $1 - please check help (-h)"
     exit 1
-} 
+}
 
 #parse all options
 for opt do
@@ -519,7 +519,7 @@ for opt do
             ;;
         --disable-x11-shm) append disabled_packages "x11_shm"
             ;;
-        --disable-x11-xv) append disabled_packages "x11_xv" 
+        --disable-x11-xv) append disabled_packages "x11_xv"
             ;;
         --disable-all) disable_all_features
             ;;
@@ -1070,7 +1070,7 @@ config_package_test ()
         fi
     fi
 
-    if [ -z "$package_src" ] ; then 
+    if [ -z "$package_src" ] ; then
         return
     fi
 
@@ -1196,7 +1196,7 @@ config_pck_quick ()
             return
             ;;
         esac
-    done 
+    done
 
     echo "$3" > $TMPC
     if docc $LDFLAGS $2 ; then
@@ -1843,7 +1843,7 @@ fi
 else
 enable_qjs="no"
 echo "QuickJS Support: no"
-fi   
+fi
 
 
 if test "$disable_player" = "yes" ; then
