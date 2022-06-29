@@ -86,9 +86,6 @@ typedef void (*mysighandler_t)(int sig_num);
 #define PATH_MAX GF_MAX_PATH
 #endif
 
-
-#ifndef GPAC_DISABLE_QJS_LIBC
-
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 
@@ -110,6 +107,9 @@ typedef SSIZE_T ssize_t;
 #define pipe(_a)  _pipe(_a, 1024, 0)
 
 #endif
+
+
+#ifndef GPAC_DISABLE_QJS_LIBC
 
 /* enable the os.Worker API. We rely on GF_Thread */
 #define USE_WORKER
