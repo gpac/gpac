@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh 
 #
 # GPAC configure script
 #     (c) 2003-2022 Telecom ParisTech
@@ -102,49 +102,43 @@ INSTFLAGS=""
 is_64="no"
 
 
-has_pulseaudio="no"
-has_oss="no"
-has_alsa="no"
-has_jack="no"
-has_directfb="no"
+#flags not set by generic lib config
 has_x11="no"
-
 has_x11_shm="no"
 has_x11_xv="no"
 has_x11_glx="no"
 ffmpeg_vvc="no"
 
-
-has_opengl="no"
-has_ipv6="no"
-has_dvb4linux="no"
-has_openjpeg="no"
-has_hid="no"
-has_sock_un="no"
-has_lzma="no"
-
-has_vtb="no"
 has_strlcpy="no"
 
 ffmpeg_extra_ldflags=""
-has_st_nsec="no"
 
-
-declare -a all_features
+nb_features=0
+all_features=""
+all_descs=""
 
 push_feature()
 {
     name=$1
-    var=${name//[-]/_}
+    #var=${name//[-]/_}
+    var=$(printf '%s' "$name" | tr '-' '_')
     desc="$2"
-    if [[ ${desc:0:1} == "!" ]] ; then
+
+    fc=`echo $desc | cut -c1-1`
+    if test "$fc" = "!" ; then
         eval "disable_$var=\"yes\""
     else
         eval "disable_$var=\"no\""
     fi
-    idx=${#all_features[@]}
-    all_features[$idx]="$1"
-    all_features[$idx+1]="$desc"
+
+    if [ -z $all_features ] ; then
+        all_features="$1"
+        all_descs="$desc"
+    else
+        all_features="$all_features|$1"
+        all_descs="$all_descs|$desc"
+    fi
+    nb_features=$((nb_features+1))
 }
 
 #all features enabled with --enable- or --disable-
@@ -207,12 +201,37 @@ push_feature "qjs-stack" "!stack depth checking in QuickJS (WILL CRASH in multit
 push_feature "nvdec" "NVDec support"
 push_feature "tinygl" "!TinyGL support"
 
+ar_it=""
+get_item()
+{
+    idx=$1
+    IFS='|' 
+    set -- $2
+    eval "ar_it=\${$idx}"
+    IFS=' '
+}
+get_item2()
+{
+    idx=$1
+    set -- $2
+    eval "ar_it=\${$idx}"
+}
+
+
+nb_it=0
+get_size()
+{
+    nb_it=`echo "$1" | wc -w`
+}
 
 #zlib MUST be first
 all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad a52 xvid faad ffmpeg freenect vorbis theora ogg nghttp2"
-all_packages+=" oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl"
+all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb"
 disabled_packages=""
 
+for pck in $all_packages ; do
+    eval "has_$pck=\"no\""
+done
 
 logs="config.log"
 echo "Logs for GPAC configure $GPAC_CONFIGURATION" > $logs
@@ -275,7 +294,7 @@ GPAC core configuration:
 Extra libraries configuration:
 You can turn a library off or force using the local version in gpac/extra_lib/
   --use-FOO=no             disable library FOO
-  --use-FOO=local          force using local version of library FOO from gpac/extra_lib/include and gpac/extra_lib/lib
+  --use-FOO=local          force use of library FOO in gpac/extra_lib/include, gpac/extra_lib/lib
   --use-FOO=system         force using system version only of library FOO
 
 Extra libraries used are: $all_packages
@@ -287,13 +306,18 @@ Features for libgpac configuration:
 Feature FOO can be enabled with --enable-FOO or disabled with --enable-FOO
 EOF
 
-for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
-    name="${all_features[idx]}"
-    desc="${all_features[idx+1]}"
+idx=1
+while [ $idx -le $nb_features ]; do
+    get_item $idx "$all_features"
+    name="$ar_it"
+    get_item $idx "$all_descs"
+    desc="$ar_it"
+
     enabled="on"
-    if [[ ${desc:0:1} == "!" ]] ; then
+    fc=`echo $desc | cut -c1-1`
+    if test "$fc" = "!" ; then
         enabled="disabled"
-        desc=${desc:1}
+        desc=`echo $desc | cut -c2-`
     fi
 
     while [ ${#name} -le 12 ]
@@ -301,8 +325,8 @@ for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
         name="$name "
     done
 
-    idx=$((idx+1))
     echo "  $name $desc (default: $enabled)"
+    idx=$((idx+1))
 done
 
 cat << EOF
@@ -320,30 +344,36 @@ append() {
     if [ -z "$2" ] ; then
         return
     fi
-
     prepend="no"
     if test "$3" = "yes" ; then
         prepend="yes"
     fi
 
-    IFS=' '
-    str_arr=""
-    read -ra str_arr <<< "$2"
+    all_vars="$2"
+    get_size "$all_vars"
+    nb_items=$nb_it
 
     skip="no"
     var=$1
-    shift
-    for (( idx=0; idx < ${#str_arr[*]}; idx++)) ; do
-        n="${str_arr[idx]}"
+
+    idx=1
+    while [ $idx -le $nb_items ]; do
+        get_item2 $idx "$all_vars"
+        n="$ar_it"
+
         if test "$n" = "-framework" ; then
-            n="${str_arr[idx]} ${str_arr[idx+1]}"
             idx=$((idx+1))
+            get_item2 $idx "$all_vars"
+            n2="$ar_it"            
+            n="$n $n2"
         fi
 
         eval "tmpv=\"\$$var\""
-        if [[ "$tmpv" == *"$n"* ]]; then
-            continue
-        fi
+        case "$tmpv" in
+        *"$n"*) idx=$((idx+1))
+		continue
+		;;
+        esac
 
         if [ -z "$var" ] ; then
             eval "$var=\"$n"
@@ -352,6 +382,7 @@ append() {
         else
             eval "$var=\"\$$var $n\""
         fi
+        idx=$((idx+1))
     done
 }
 
@@ -361,37 +392,44 @@ set_feature()
     name="$1"
     disable_feat="$2"
 
-    for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
-        iname="${all_features[idx]}"
+
+    idx=1
+    while [ $idx -le $nb_features ]; do
+        get_item $idx "$all_features"
+        iname="$ar_it"
+
         if test "$iname" = "$name" ; then
-            var=${name//[-]/_}
+            var=$(printf '%s' "$name" | tr '-' '_')
             eval "disable_$var=\"$disable_feat\""
             return
         fi
-    idx=$((idx+1))
+        idx=$((idx+1))
     done
 
     #allow --disable for packages
     if test "$disable_feat" = "yes" ; then
         for i in $all_packages ; do
             pck_name="$i"
-            if [[ "$name" == "$pck_name"* ]]; then
-                append disabled_packages "$name "
+            case "$name" in
+            "$pck_name"*) append disabled_packages "$name "
                 return
-            fi
+                ;;
+            esac
         done
     fi
 
-    echo "Unknown feature \"$name\" - please check help (-h)"
-    exit 1
+    echo "! Unknown feature \"$name\", ignoring - please check help (-h) ! "
 }
 
 #disable all features
 disable_all_features()
 {
-    for (( idx=0; idx < ${#all_features[*]}; idx++)) ; do
-        name="${all_features[idx]}"
-        var=${name//[-]/_}
+
+    idx=1
+    while [ $idx -le $nb_features ]; do
+        get_item $idx "$all_features"
+        name="$ar_it"
+        var=$(printf '%s' "$name" | tr '-' '_')
         eval "disable_$var=\"yes\""
         idx=$((idx+1))
     done
@@ -413,8 +451,8 @@ set_package ()
 {
     for i in $all_packages ; do
         pck_name="$i="
-        if [[ "$1" == "$pck_name"* ]]; then
-            opt=`echo $1 | cut -d '=' -f 2`
+        case "$1" in
+        "$pck_name"*) opt=`echo $1 | cut -d '=' -f 2`
             if [ "$opt" = "local" -o "$opt" = "system" -o "$opt" = "no" ] ; then
                 lib_args="$lib_args $1"
             else
@@ -422,7 +460,8 @@ set_package ()
                 exit 1
             fi
             return
-        fi
+            ;;
+        esac
     done
 
     echo "no package pck $1 - please check help (-h)"
@@ -525,21 +564,23 @@ for opt do
             ;;
         --isomedia-only) disable_all_features
             #disable all packages except first one "zlib"
-            disabled_packages=${all_packages:5}
+            disabled_packages=`echo $opt | cut -c6-`
             append disabled_packages "x11 sdl directx "
             #enable all parsers, dash and isobmff related
             enable_features "parsers import export isom-dump isoff isoff-write isoff-hint isoff-frag isoff-hds ttxt ttml vtt mpd dash hevc"
             ;;
-        --use-*) set_package "${opt:6}"
+        --use-*) v=`echo $opt | cut -c7-`
+        	set_package "$v"
             ;;
         --disable-ipv6) append disabled_packages "ipv6 "
             ;;
-        --disable-*) set_feature "${opt:10}" "yes"
+        --disable-*) v=`echo $opt | cut -c11-`
+	        set_feature "$v" "yes"
             ;;
-        --enable-*) set_feature "${opt:9}" "no"
+        --enable-*) v=`echo $opt | cut -c10-`
+        	set_feature "$v" "no"
             ;;
-        *) echo "Unrecognized option $opt - please check help (-h)"
-            exit 1
+        *) echo "! Unrecognized option $opt, ignoring !"
             ;;
     esac
 done
@@ -927,20 +968,23 @@ fi
 
 
 #check dlopen support
+has_dlopen="no"
 cat > $TMPC << EOF
 #include <dlfcn.h>
 int main( void ) { dlopen("foo", 0); return 0; }
 EOF
 
 if docc ; then
-    dlopen="yes"
+    has_dlopen="yes"
 elif docc $LDFLAGS -ldl ; then
     GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
+    has_dlopen="yes"
 fi
 
 
 
 #check st_mtim.tv_nsec support
+has_st_nsec="no"
 cat > $TMPC << EOF
 #include <sys/stat.h>
 int main( void ) { struct stat st; st.st_mtim.tv_nsec = 0; return 0; }
@@ -1154,11 +1198,12 @@ config_package ()
     pck_ldflags=""
 
     tmpv=$1
-    if [[ "$disabled_packages" == *"$tmpv "* ]]; then
-        shift
+    case "$disabled_packages" in
+    *"$tmpv "*) shift
         eval "has_$tmpv=\"no\""
         return
-    fi
+        ;;
+    esac
 
     libgpac_flags="no"
 
@@ -1184,7 +1229,7 @@ config_package ()
     pck_cxx="no"
 }
 
-config_pck_quick ()
+check_has_lib ()
 {
     has_pck="no"
 
@@ -1217,8 +1262,18 @@ if test "$disable_codecs" = "yes"; then
 fi
 
 if test "$static_bin" = "yes"; then
-    #we cannot use these produce a static bin, no static lib on most distributions
+    static_modules="yes"
+    static_build="yes"
+
+    #we cannot use these to produce a static bin, no static lib on most distributions
     append disabled_packages "openjpeg ffmpeg ogg theora vorbis openhevc freenect platinum"
+
+    #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
+    append disabled_packages "ssl"
+    #we cannot use ipv6 due to getaddrinfo not being present
+    append disabled_packages "ipv6"
+
+    append disabled_packages "lzma vtb sdl oss alsa jack pulseaudio directfb x11 dvb4linux directx"
 fi
 
 if test "$disable_parsers" = "yes" ; then
@@ -1367,18 +1422,9 @@ int main( void ) { return 0; }'
 #look for VideoToolBox support
 if test "$darwin" = "yes" ; then
 vtb_ldflags="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox"
-cat > $TMPC << EOF
-#include <VideoToolbox/VideoToolbox.h>
-int main( void ) { return 0; }
-EOF
-
-if docc $LDFLAGS $vtb_ldflags ; then
-    has_vtb="yes"
-    append libgpac_extralibs "$vtb_ldflags"
+check_has_lib vtb "$vtb_ldflags" '#include <VideoToolbox/VideoToolbox.h>
+int main( void ) { return 0; }'
 fi
-
-fi
-
 
 
 #look for OSS support
@@ -1397,14 +1443,14 @@ EOF
 
 else
 
-config_pck_quick oss "" '#include <sys/ioctl.h>
+check_has_lib oss "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
 int main( void ) { return 0; }'
 
 if test "$has_oss" = "no" ; then
-config_pck_quick oss "" '#include <sys/ioctl.h>
+check_has_lib oss "" '#include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <soundcard.h>
@@ -1414,7 +1460,7 @@ fi
 fi
 
 #look for IPv6
-config_pck_quick ipv6 "$extralibs" '#include <string.h>
+check_has_lib ipv6 "$extralibs" '#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1432,46 +1478,46 @@ return 0;
 
 
 
-config_pck_quick dvb4linux "" '#include <linux/dvb/dmx.h>
+check_has_lib dvb4linux "" '#include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
 int main( void ) {return 0;}'
 
-config_pck_quick alsa "" '#include <alsa/asoundlib.h>
+check_has_lib alsa "" '#include <alsa/asoundlib.h>
 int main( void ) {return 0;}'
 
 
-config_pck_quick pulseaudio "" '#include <pulse/pulseaudio.h>
+check_has_lib pulseaudio "" '#include <pulse/pulseaudio.h>
 int main( void ) {return 0;}'
 
-config_pck_quick jack "" '#include <jack/jack.h>
+check_has_lib jack "" '#include <jack/jack.h>
 int main( void ) {return 0;}'
 
 
 directfb_lib="-ldirectfb -lfusion -ldirect"
-config_pck_quick directfb "$directfb_lib" '#include <directfb.h>
+check_has_lib directfb "$directfb_lib" '#include <directfb.h>
 int main( void ) {return 0;}'
 
 
 #config X11
-config_pck_quick x11 "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
+check_has_lib x11 "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 int main( void ) { return 0; }'
 
 if test "$has_x11" = "yes" ; then
     #look for X11 shared memory support
-    config_pck_quick x11_shm "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
+    check_has_lib x11_shm "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 #include <X11/extensions/XShm.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 int main( void ) { return 0; }'
 
     #look for XVideo support
-    config_pck_quick x11_xv "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
+    check_has_lib x11_xv "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
 int main( void ) { return 0; }'
 
     #look for glx support
-    config_pck_quick x11_glx "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
+    check_has_lib x11_glx "-I$X11_PATH/include -L$X11_PATH/lib" '#include <X11/Xlib.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
 int main( void ) { return 0; }'
@@ -1481,15 +1527,15 @@ fi
 
 #look for hid support
 hid_lib="-lhidapi-hidraw"
-config_pck_quick hid "$hid_lib" '#include <hidapi/hidapi.h>
+check_has_lib hid "$hid_lib" '#include <hidapi/hidapi.h>
 int main( void ) { hid_init(); hid_exit(); return 0; }'
 
 #look for lzma support
-config_pck_quick lzma "-llzma" '#include <lzma.h>
+check_has_lib lzma "-llzma" '#include <lzma.h>
 int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9); return 0; }'
 
 #look for joystick support
-#config_pck_quick joystick "" '#include <linux/joystick.h>
+#check_has_lib joystick "" '#include <linux/joystick.h>
 #int main( void ) { return 0; }'
 
 
@@ -1506,7 +1552,7 @@ if test "$has_zlib" = "no" ; then
     exit 1
 fi
 
-if test "$dlopen" = "no"; then
+if test "$has_dlopen" = "no"; then
     if test "$win32" = "no"; then
       echo "error: dlopen not found on system"
       exit 1
@@ -1514,6 +1560,7 @@ if test "$dlopen" = "no"; then
 fi
 
 #look for OpenGL support or for TinyGL support
+has_opengl="no"
 LINK3D=""
 INCL3D=""
 DarwinGL="no"
@@ -1534,7 +1581,8 @@ EOF
 
 fi
 
-if test "$disable_3d" = "no" ; then
+#we cannot use openGL to produce a static bin
+if test "$disable_3d" = "no" -a "$static_bin" = "no" ; then
     if test "$win32" = "yes" ; then
         if test "$cygwin" = "yes" ; then
             LINK3D="-lw32api/opengl32 -lw32api/glu32"
@@ -1564,7 +1612,7 @@ fi
 has_tinygl=no
 if test "$disable_tinygl" = "no"  ;then
 
-config_pck_quick tinygl "-lTinyGL" '#include <GL/gl.h>
+check_has_lib tinygl "-lTinyGL" '#include <GL/gl.h>
 int main( void ) { int a ; a = TINYGL ; return 0;}'
 
     if test "$has_tinygl" = "yes"  ;then
@@ -1581,22 +1629,22 @@ dx_path="system"
 has_directx="no"
 if test "$win32" = "yes" ; then
 
-config_pck_quick directx "-lddraw" '#include <ddraw.h>
+check_has_lib directx "-lddraw" '#include <ddraw.h>
 int main( void ) { return 0; }'
 
 if test "has_directx" = "no" ; then
     dx_path="$dxsdk_path"
-    config_pck_quick directx "-I$dxsdk_path/include -L$dxsdk_path/lib -lddraw" '#include <ddraw.h>
+    check_has_lib directx "-I$dxsdk_path/include -L$dxsdk_path/lib -lddraw" '#include <ddraw.h>
 int main( void ) { return 0; }'
     fi
 fi
 
 
-#look for SDL support - we don't use config_pck_quick for the time being
-if [[ "$disabled_packages" != *"sdl "* ]]; then
-has_sdl=no
-else
-sdl_too_old=no
+#look for SDL support - we don't use check_has_lib for the time being
+case "$disabled_packages" in
+*"sdl "*) has_sdl=no
+    ;;
+*) sdl_too_old=no
 has_sdl=no
 
 sdl_config="sdl2-config"
@@ -1665,8 +1713,8 @@ EOF
     fi
   fi
 fi
-
-fi
+;;
+esac
 #end SDL check
 
 
@@ -1712,28 +1760,6 @@ if test x"$mandir" = x""; then
     mandir="share/man"
 fi
 
-
-if test "$static_bin" = "yes"; then
-    static_modules="yes"
-    static_build="yes"
-    #we cannot use openssl vanilla since it is usually built with DSO and requires dlopen
-    has_ssl="no"
-    #we cannot use ipv6 due to getaddrinfo not being present
-    has_ipv6="no"
-    has_lzma="no"
-    has_vtb="no"
-    #we cannot use openGL nor audio/video output to produce a static bin
-    has_opengl="no"
-    has_sdl="no"
-    has_oss="no"
-    has_alsa="no"
-    has_jack="no"
-    has_pulseaudio="no"
-    has_directfb="no"
-    has_x11="no"
-    has_dvb4linux="no"
-    has_directx="no"
-fi
 
 if test "$disable_player" = "yes" ; then
     disable_scenegraph="yes"
@@ -1834,11 +1860,10 @@ echo "IPV6 Support: $has_ipv6"
 
 if test $disable_qjs = "no" ; then
 enable_qjs="yes"
-echo "QuickJS Support: yes"
 if test $disable_qjs_libc = "no" ; then
-echo "QuickJS Support: yes with libc support"
+echo "QuickJS Support: yes (with qjs-libc)"
 else
-echo "QuickJS Support: yes (no libc support)"
+echo "QuickJS Support: yes (no qjs-libc)"
 fi
 else
 enable_qjs="no"

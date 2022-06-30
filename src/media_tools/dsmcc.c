@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jonathan Sillan
- *			Copyright (c) Telecom ParisTech 2011-2020
+ *			Authors: Jonathan Sillan, Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2011-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / media tools sub-project
@@ -608,9 +608,9 @@ static GF_Err dsmcc_module_complete(GF_M2TS_DSMCC_OVERLORD* dsmcc_overlord,GF_M2
 			/*process buffer*/
 			if(dsmcc_module->Gzip) {
 				u32 uncomp_size;
-				char* uncompressed_data;
+				u8* uncompressed_data;
 
-				gf_gz_decompress_payload(dsmcc_module->buffer,dsmcc_module->byte_sift,&uncompressed_data, &uncomp_size);
+				gf_gz_decompress_payload(dsmcc_module->buffer,dsmcc_module->byte_sift, &uncompressed_data, &uncomp_size);
 				//dsmcc_process_biop_data(dsmcc_overlord,dsmcc_module,uncompressed_data,dsmcc_module->original_size);
 
 				if(dsmcc_module->original_size == uncomp_size) {
@@ -1197,7 +1197,6 @@ static GF_Err dsmcc_process_biop_stream_event(GF_BitStream* bs,GF_M2TS_DSMCC_BIO
 		BIOP_StreamEvent->EventList = (GF_M2TS_DSMCC_BIOP_EVENT_LIST*)gf_calloc(BIOP_StreamEvent->eventNames_count,sizeof(GF_M2TS_DSMCC_BIOP_EVENT_LIST));
 		for(i=0; i<BIOP_StreamEvent->eventNames_count; i++) {
 			BIOP_StreamEvent->EventList[i].eventName_length = gf_bs_read_int(bs,8);
-			BIOP_StreamEvent->EventList[i].eventName_length;
 			if(BIOP_StreamEvent->EventList[i].eventName_length) {
 				BIOP_StreamEvent->EventList[i].eventName_data_byte = (char*)gf_calloc(BIOP_StreamEvent->EventList[i].eventName_length,sizeof(char));
 				gf_bs_read_data(bs,BIOP_StreamEvent->EventList[i].eventName_data_byte,(u8)(BIOP_StreamEvent->EventList[i].eventName_length));
