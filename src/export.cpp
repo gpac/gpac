@@ -2153,12 +2153,13 @@
 #endif
 
 /* dvb_mpe.h */
+#ifdef GPAC_ENABLE_MPE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_get_freq_from_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_print_info) )
+#endif
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_new) )

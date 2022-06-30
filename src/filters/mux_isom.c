@@ -3425,7 +3425,7 @@ sample_entry_done:
 					}
 				}
 			}
-			tkw->ts_delay = p->value.longsint;
+			tkw->ts_delay = (s32) p->value.longsint;
 		} else if (tkw->stream_type==GF_STREAM_VISUAL) {
 			tkw->probe_min_ctts = GF_TRUE;
 		}
