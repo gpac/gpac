@@ -2,8 +2,8 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/alsa
 
-CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(OSS_CFLAGS)
-LDFLAGS+=$(OSS_LDFLAGS)
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(oss_cflags)
+LDFLAGS+=$(oss_ldflags)
 
 ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g

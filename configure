@@ -96,8 +96,6 @@ CXXFLAGS=""
 GPAC_SH_FLAGS=-lpthread
 DYN_LIB_SUFFIX=".so"
 X11_PATH="/usr/X11R6"
-OSS_CFLAGS=""
-OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
 
@@ -229,8 +227,11 @@ all_packages="zlib opensvc openhevc platinum freetype ssl jpeg openjpeg png mad 
 all_packages="$all_packages oss dvb4linux alsa pulseaudio jack directfb hid lzma tinygl vtb"
 disabled_packages=""
 
+#init all has_FOO=no and set FOO_cflags=
 for pck in $all_packages ; do
     eval "has_$pck=\"no\""
+
+    eval "cflags_$pck=\"\""
 done
 
 logs="config.log"
@@ -376,7 +377,7 @@ append() {
         esac
 
         if [ -z "$var" ] ; then
-            eval "$var=\"$n"
+            eval "$var=\"$n\""
         elif test "$prepend" = "yes" ; then
             eval "$var=\"$n \$$var\""
         else
@@ -1197,35 +1198,21 @@ config_package ()
     pck_cflags=""
     pck_ldflags=""
 
-    tmpv=$1
+    pname="$1"
     case "$disabled_packages" in
-    *"$tmpv "*) shift
-        eval "has_$tmpv=\"no\""
+    *"$pname "*) shift
+        eval "has_$pname=\"no\""
         return
         ;;
     esac
 
-    libgpac_flags="no"
-
-    case $2 in
-    libgpac_*) libgpac_flags="yes"
-        ;;
-    esac
-
-    config_package_test "$4" "$5" "$6" "$7" "$8"
+    config_package_test "$2" "$3" "$4" "$5" "$6"
     if test "$has_pck" != "no" ; then
-        prepend="no"
-        if test "$libgpac_flags" = "yes" -a "$has_pck" = "local"; then
-            prepend="yes"
-        fi
-        append "$2" "$pck_cflags" $prepend
-        append "$3" "$pck_ldflags" $prepend
+        eval "cflags_$pname=\"$pck_cflags\""
+        eval "ldflags_$pname=\"$pck_ldflags\""
     fi
 
-    var=$1
-    shift
-    eval "has_$var=\"$has_pck\""
-
+    eval "has_$pname=\"$has_pck\""
     pck_cxx="no"
 }
 
@@ -1286,7 +1273,7 @@ fi
 
 #start with zlib to disable png and freetype if forced to no
 
-config_package zlib CFLAGS LDFLAGS "zlib" "" "-lz" "zlib" '#include <string.h>
+config_package zlib "zlib" "" "-lz" "zlib" '#include <string.h>
 #include <stdio.h>
 #include <zlib.h>
 int main( void ) { if (strcmp(zlibVersion(), ZLIB_VERSION)) { puts("zlib version differs !!!"); return 1; } return 0; }'
@@ -1296,22 +1283,22 @@ if test "$has_zlib" = "force-no" ; then
     append disabled_packages "png freetype"
 fi
 
-config_package opensvc libgpac_cflags libgpac_extralibs "OpenSVC" "" "-lOpenSVCDec" "" '#include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
+config_package opensvc "OpenSVC" "" "-lOpenSVCDec" "" '#include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
 int main( void ) { return 0; }'
 
 
 #look for openhevc support
-config_package openhevc ohevc_cflags ohevc_ldflags "openhevc" "" "-lopenhevc -lm -lpthread" "" '#include <stdio.h>
+config_package openhevc "openhevc" "" "-lopenhevc -lm -lpthread" "" '#include <stdio.h>
 #include <libopenhevc/openhevc.h>
 int main( void ) { oh_init(1, 1); return 0; }
 '
 
 pck_cxx="yes"
-config_package platinum plat_cflags plat_cflags "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread" "platinum" '#include <Platinum.h>
+config_package platinum "platinum" "" "-lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread" "platinum" '#include <Platinum.h>
 int main( void ) { return 0; }'
 
 
-config_package freetype ft_cflags ft_lflags "freetype2" "" "-lfreetype" "freetype" '#include <ft2build.h>
+config_package freetype "freetype2" "" "-lfreetype" "freetype" '#include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
@@ -1326,38 +1313,38 @@ else
     ssl_lflags="-lssl -lcrypto"
 fi
 
-config_package ssl ssl_cflags ssl_lflags "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
+config_package ssl "openssl" "" "$ssl_lflags" "" '#include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
 int main( void ) { return 0; }'
 
 
-config_package jpeg libgpac_cflags libgpac_extralibs "libjpeg" "" "-ljpeg" "jpeg" '#include <stdio.h>
+config_package jpeg "libjpeg" "" "-ljpeg" "jpeg" '#include <stdio.h>
 #include <jpeglib.h>
 int main( void ) { return 0; }'
 
 
 
-config_package openjpeg libgpac_cflags libgpac_extralibs "libopenjp2" "" "-lopenjp2" "openjp2" '#include <stdio.h>
+config_package openjpeg "libopenjp2" "" "-lopenjp2" "openjp2" '#include <stdio.h>
 #include <openjpeg.h>
 int main( void ) { return 0; }'
 
 if test "has_openjpeg" = "no" ; then
-config_package openjpeg libgpac_cflags libgpac_extralibs "libopenjpeg" "" "-lopenjpeg" "openjpeg" '#include <stdio.h>
+config_package openjpeg "libopenjpeg" "" "-lopenjpeg" "openjpeg" '#include <stdio.h>
 #include <openjpeg.h>
 int main( void ) { return 0; }'
 fi
 
 
-config_package png libgpac_cflags libgpac_extralibs "libpng" "" "-lpng -lz" "png" '#include <png.h>
+config_package png "libpng" "" "-lpng -lz" "png" '#include <png.h>
 int main( void ) { return 0; }'
 
 
-config_package mad libgpac_cflags libgpac_extralibs "mad" "" "-lmad" "" '#include <mad.h>
+config_package mad "mad" "" "-lmad" "" '#include <mad.h>
 int main( void ) { return 0; }'
 
-config_package a52 libgpac_cflags libgpac_extralibs "liba52" "" "-la52" "" '#include <inttypes.h>
+config_package a52 "liba52" "" "-la52" "" '#include <inttypes.h>
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 #include <a52dec/mm_accel.h>
@@ -1366,16 +1353,16 @@ int main( void ) { return 0; }'
 
 
 
-config_package xvid libgpac_cflags libgpac_extralibs "xvid" "" "-lxvidcore -lpthread" "" '#include <xvid.h>
+config_package xvid "xvid" "" "-lxvidcore -lpthread" "" '#include <xvid.h>
 int main( void ) { return 0; }'
 
-config_package faad libgpac_cflags libgpac_extralibs "faad2" "" "-lfaad" "" '#include <faad.h>
+config_package faad "faad2" "" "-lfaad" "" '#include <faad.h>
 int main( void ) { return 0; }'
 
 
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lavdevice -lswscale -lavfilter $ffmpeg_extra_ldflags"
 
-config_package ffmpeg libgpac_cflags libgpac_extralibs "libavcodec libavformat libswscale libavdevice libavutil libavfilter" "" "$ffmpeg_lflags" "" '#include <libavcodec/avcodec.h>
+config_package ffmpeg "libavcodec libavformat libswscale libavdevice libavutil libavfilter" "" "$ffmpeg_lflags" "" '#include <libavcodec/avcodec.h>
 int main(void) {
     return 0;
 }'
@@ -1399,33 +1386,32 @@ fi
 #end ffmpeg specific tests
 
 
-config_package freenect freenect_flags freenect_ld "libfreenect" "" "-lfreenect" "freenect" '#include <libfreenect/libfreenect.h>
+config_package freenect "libfreenect" "" "-lfreenect" "freenect" '#include <libfreenect/libfreenect.h>
 int main( void ) { return 0; }'
 
 
-config_package vorbis libgpac_cflags libgpac_extralibs "vorbis" "" "-lvorbis" "" '#include <vorbis/codec.h>
+config_package vorbis "vorbis" "" "-lvorbis" "" '#include <vorbis/codec.h>
 int main( void ) { return 0; }'
 
 
-config_package theora libgpac_cflags libgpac_extralibs "theora" "" "-ltheora -logg" "" '#include <theora/theora.h>
+config_package theora "theora" "" "-ltheora -logg" "" '#include <theora/theora.h>
 int main( void ) { return 0; }'
 
 
-config_package ogg libgpac_cflags libgpac_extralibs "ogg" "" "-logg" "" '#include <ogg/ogg.h>
+config_package ogg "ogg" "" "-logg" "" '#include <ogg/ogg.h>
 int main( void ) { return 0; }'
 
-config_package nghttp2 libgpac_cflags libgpac_extralibs "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
+config_package nghttp2 "libnghttp2" "" "-lnghttp2" "" '#include <stdio.h>
 #include <nghttp2/nghttp2.h>
 int main( void ) { return 0; }'
 
 
 #look for VideoToolBox support
 if test "$darwin" = "yes" ; then
-vtb_ldflags="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox"
-check_has_lib vtb "$vtb_ldflags" '#include <VideoToolbox/VideoToolbox.h>
+ldflags_vtb="-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox"
+check_has_lib vtb "$ldflags_vtb" '#include <VideoToolbox/VideoToolbox.h>
 int main( void ) { return 0; }'
 fi
-
 
 #look for OSS support
 if test "$darwin" = "yes" ; then
@@ -1437,8 +1423,8 @@ EOF
 
     if docc -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss $LDFLAGS 2>>$logs ; then
         has_oss="yes"
-        OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
-        OSS_LDFLAGS="-L$alt_macosx_dir/lib -loss"
+        oss_cflags="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
+        oss_ldflags="-L$alt_macosx_dir/lib -loss"
     fi
 
 else
@@ -2043,7 +2029,7 @@ if test "$disable_streaming" = "yes" ; then
     echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
 fi
 if test "$disable_dvbx" = "no" ; then
-    echo "DVB MPE and DSM-CC disabled"
+    echo "DVB MPE and DSM-CC enabled"
     echo "#define GPAC_ENABLE_MPE" >> $TMPH
     echo "#define GPAC_ENABLE_DSMCC" >> $TMPH
 fi
@@ -2158,7 +2144,7 @@ echo "XVID: $has_xvid"
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
 if test "$ffmpeg_vvc" = "yes" ; then
-ffopts+="VVC "
+    ffopts="$ffopts VVC "
 fi
 fi
 
@@ -2470,6 +2456,21 @@ if test "$has_nghttp2" != "no" ; then
     echo "#define GPAC_HAS_HTTP2" >> $TMPH
 fi
 
+#dump all cflags
+for pcklib in $all_packages ; do
+    eval "has_pck=\$has_$pcklib"
+    if test "$has_pck" = "no" ; then
+        lib_cflags=""
+        lib_ldflags=""
+    else
+        eval "lib_cflags=\$cflags_$pcklib"
+        eval "lib_ldflags=\$ldflags_$pcklib"
+    fi
+    echo $pcklib"_cflags="$lib_cflags >> config.mak
+    echo $pcklib"_ldflags="$lib_ldflags >> config.mak
+done
+
+
 
 echo "DISABLE_PLAYER=$disable_player" >> config.mak
 echo "DISABLE_STREAMING=$disable_streaming" >> config.mak
@@ -2540,20 +2541,13 @@ fi
 
 echo "HAS_OPENSSL=$has_ssl" >> config.mak
 if test "$has_ssl" != "no" ; then
-    echo "SSL_CFLAGS=$ssl_cflags" >> config.mak
-    echo "SSL_LIBS=$ssl_lflags" >> config.mak
     echo "#define GPAC_HAS_SSL" >> $TMPH
 fi
 
 echo "CONFIG_SDL=$has_sdl" >> config.mak
 if test "$has_sdl" != "no" ; then
-    echo "SDL_CFLAGS=$sdl_cflags" >> config.mak
-    echo "SDL_LIBS=$sdl_lib_flags" >> config.mak
-fi
-
-if test "$has_freetype" != "no" ; then
-    echo "FT_CFLAGS=$ft_cflags" >> config.mak
-    echo "FT_LIBS=$ft_lflags" >> config.mak
+    echo "sdl_cflags=$sdl_cflags" >> config.mak
+    echo "sdl_ldflags=$sdl_lib_flags" >> config.mak
 fi
 
 
@@ -2586,8 +2580,6 @@ fi
 
 echo "CONFIG_OPENHEVC=$has_openhevc" >> config.mak
 if test "$has_openhevc" != "no" ; then
-    echo "OHEVC_CFLAGS=$ohevc_cflags" >> config.mak
-    echo "OHEVC_LDFLAGS=$ohevc_ldflags" >> config.mak
     echo "#define GPAC_HAS_OPENHEVC" >> $TMPH
     if test "$static_modules" = "yes" ; then
         echo "#define GPAC_OPENHEVC_STATIC" >> $TMPH
@@ -2597,12 +2589,6 @@ fi
 echo "LINUX_DVB=$has_dvb4linux" >> config.mak
 if test "$has_dvb4linux" != "no"; then
     echo "#define GPAC_HAS_LINUX_DVB" >> $TMPH
-fi
-
-if test "$has_oss" != "no"; then
-    echo "OSS_INC_TYPE=$has_oss" >> config.mak
-    echo "OSS_CFLAGS=$OSS_CFLAGS" >> config.mak
-    echo "OSS_LDFLAGS=$OSS_LDFLAGS" >> config.mak
 fi
 
 echo "CONFIG_DIRECTFB=$has_directfb" >> config.mak

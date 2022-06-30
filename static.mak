@@ -11,8 +11,8 @@ endif
 
 #2 - ssl support
 ifneq ($(HAS_OPENSSL),no)
-CFLAGS+=$(SSL_CFLAGS)
-LINKLIBS+=$(SSL_LIBS)
+CFLAGS+=$(ssl_cflags)
+LINKLIBS+=$(ssl_ldflags)
 endif
 
 ## libgpac compositor compilation options
@@ -68,13 +68,13 @@ OBJS+=../modules/validator/validator.o
 
 ifneq ($(CONFIG_FT),no)
 OBJS+=../modules/ft_font/ft_font.o
-EXTRALIBS+= $(FT_LIBS)
-CFLAGS+=-DGPAC_HAS_FREETYPE $(FT_CFLAGS)
+EXTRALIBS+= $(freetype_ldflags)
+CFLAGS+=-DGPAC_HAS_FREETYPE $(freetype_cflags)
 endif
 
 ifeq ($(CONFIG_SDL),yes)
-CFLAGS+=-DGPAC_HAS_SDL $(SDL_CFLAGS)
-EXTRALIBS+= $(SDL_LIBS)
+CFLAGS+=-DGPAC_HAS_SDL $(sdl_cflags)
+EXTRALIBS+= $(sdl_ldflags)
 OBJS+=../modules/sdl_out/sdl_out.o ../modules/sdl_out/audio.o ../modules/sdl_out/video.o
 endif
 
