@@ -42094,6 +42094,8 @@ static const JSCFunctionListEntry js_math_funcs[] = {
     JS_CFUNC_SPECIAL_DEF("log1p", 1, f_f, log1p ),
 #if defined(_MSC_VER)
     JS_CFUNC_SPECIAL_DEF("log2", 1, f_f, const_log2),
+#else
+    JS_CFUNC_SPECIAL_DEF("log2", 1, f_f, log2),
 #endif
     JS_CFUNC_SPECIAL_DEF("log10", 1, f_f, log10 ),
     JS_CFUNC_SPECIAL_DEF("cbrt", 1, f_f, cbrt ),
