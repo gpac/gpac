@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ft_font
 
-CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(FT_CFLAGS)
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(freetype_cflags)
 
 ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
@@ -26,9 +26,9 @@ endif
 
 
 ifneq ($(STATICBUILD),yes)
-LINKVAR=-L../../bin/gcc -lgpac $(FT_LIBS)
+LINKVAR=-L../../bin/gcc -lgpac $(freetype_ldflags)
 else
-LINKVAR=-L../../bin/gcc -lgpac_static $(FT_LIBS)
+LINKVAR=-L../../bin/gcc -lgpac_static $(freetype_ldflags)
 endif
 
 

@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/dec_openhevc
 
-CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(OHEVC_CFLAGS)
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(openhevc_cflags)
 
 ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
@@ -15,9 +15,9 @@ LDFLAGS+=-pg
 endif
 
 ifeq ($(CONFIG_DARWIN),yes)
-LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS)
+LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags)
 else
-LINKFLAGS+=-L../../bin/gcc $(OHEVC_LDFLAGS) -Wl,-Bsymbolic
+LINKFLAGS+=-L../../bin/gcc $(openhevc_ldflags) -Wl,-Bsymbolic
 endif
 
 #common obj

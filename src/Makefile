@@ -224,8 +224,15 @@ LIBGPAC_FILTERS+=filters/bs_agg.o filters/bs_split.o filters/bsrw.o filters/comp
 
 ifeq ($(STATIC_MODULES),yes)
 LIBGPAC_FILTERS_OHEVC=filters/dec_openhevc.o
-FILTERS_OHEVC_CFLAGS=$(OHEVC_CFLAGS)
+FILTERS_OHEVC_CFLAGS=$(openhevc_cflags)
 endif
+
+
+CFLAGS+=$(zlib_cflags) $(opensvc_cflags) $(ssl_cflags) $(jpeg_cflags) $(openjpeg_cflags) $(png_cflags) $(mad_cflags) $(a52_cflags) $(xvid_cflags) $(faad_cflags)
+CFLAGS+=$(ffmpeg_cflags) $(ogg_cflags) $(vorbis_cflags) $(theora_cflags) $(nghttp2_cflags) $(vtb_cflags)
+EXTRALIBS+=$(zlib_ldflags) $(opensvc_ldflags) $(ssl_ldflags) $(jpeg_ldflags) $(openjpeg_ldflags) $(png_ldflags) $(mad_ldflags) $(a52_ldflags) $(xvid_ldflags) $(faad_ldflags)
+EXTRALIBS+=$(ffmpeg_ldflags) $(ogg_ldflags) $(vorbis_ldflags) $(theora_ldflags) $(nghttp2_ldflags) $(vtb_ldflags)
+
 
 ##libgpac library output
 LIB=libgpac$(DYN_LIB_SUFFIX)
@@ -252,7 +259,7 @@ ALL_LIBS=
 
 ifeq ($(STATIC_MODULES),yes)
 ifneq ($(CONFIG_OPENHEVC),no)
-ALL_LIBS+=$(OHEVC_LDFLAGS)
+ALL_LIBS+=$(openhevc_ldflags)
 endif
 endif
 ALL_LIBS+=$(LIBGPAC_LDFLAGS) $(EXTRALIBS)
