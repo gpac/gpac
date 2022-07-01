@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 #
 # GPAC configure script
 #     (c) 2003-2022 Telecom ParisTech
@@ -203,7 +203,7 @@ ar_it=""
 get_item()
 {
     idx=$1
-    IFS='|' 
+    IFS='|'
     set -- $2
     eval "ar_it=\${$idx}"
     IFS=' '
@@ -366,7 +366,7 @@ append() {
         if test "$n" = "-framework" ; then
             idx=$((idx+1))
             get_item2 $idx "$all_vars"
-            n2="$ar_it"            
+            n2="$ar_it"
             n="$n $n2"
         fi
 
