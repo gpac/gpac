@@ -257,13 +257,13 @@ endif
 
 ALL_LIBS=
 
+ALL_LIBS+=$(LIBGPAC_LDFLAGS) $(EXTRALIBS)
+
 ifeq ($(STATIC_MODULES),yes)
 ifneq ($(CONFIG_OPENHEVC),no)
 ALL_LIBS+=$(openhevc_ldflags)
 endif
 endif
-ALL_LIBS+=$(LIBGPAC_LDFLAGS) $(EXTRALIBS)
-
 
 SRCS := $(OBJS:.o=.c)
 
