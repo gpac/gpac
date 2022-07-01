@@ -210,26 +210,26 @@ ifeq ($(DISABLE_LASER),no)
 LIBGPAC_LASER=laser/lsr_enc.o laser/lsr_dec.o laser/lsr_tables.o
 endif
 
-## libgpac objects gathering:
-OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
 
 SCENEGRAPH_CFLAGS=
 MEDIATOOLS_CFLAGS=
 
-##include static modules and other deps for libgpac
-include ../static.mak
-
-LIBGPAC_FILTERS+=filters/bs_agg.o filters/bs_split.o filters/bsrw.o filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_mediacodec.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_theora.o filters/dec_ttml.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/ff_common.o filters/ff_avf.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/ff_mx.o filters/filelist.o filters/hevcmerge.o filters/hevcsplit.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_route.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/io_fcryp.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/jsfilter.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/mux_ogg.o filters/out_audio.o  filters/out_file.o filters/out_http.o filters/out_pipe.o filters/out_route.o filters/out_rtp.o filters/out_rtsp.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_latm.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_flac.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mhas.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_prores.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/reframe_truehd.o filters/resample_audio.o filters/restamp.o  filters/tileagg.o filters/tilesplit.o filters/tssplit.o filters/ttml_conv.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mhas.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vflip.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_tx3g.o filters/write_vtt.o ../modules/dektec_out/dektec_video_decl.o filters/dec_opensvc.o
-
+LIBGPAC_FILTERS+=filters/bs_agg.o filters/bs_split.o filters/bsrw.o filters/compose.o filters/dasher.o filters/dec_ac52.o filters/dec_bifs.o filters/dec_faad.o filters/dec_img.o filters/dec_j2k.o filters/dec_laser.o filters/dec_mad.o filters/dec_mediacodec.o filters/dec_nvdec.o filters/dec_nvdec_sdk.o filters/dec_odf.o filters/dec_theora.o filters/dec_ttml.o filters/dec_ttxt.o filters/dec_vorbis.o filters/dec_vtb.o filters/dec_webvtt.o filters/dec_xvid.o filters/decrypt_cenc_isma.o filters/dmx_avi.o filters/dmx_dash.o filters/dmx_gsf.o filters/dmx_m2ts.o filters/dmx_mpegps.o filters/dmx_nhml.o filters/dmx_nhnt.o filters/dmx_ogg.o filters/dmx_saf.o filters/dmx_vobsub.o filters/enc_jpg.o filters/enc_png.o filters/encrypt_cenc_isma.o filters/filelist.o filters/hevcmerge.o filters/hevcsplit.o filters/in_dvb4linux.o filters/in_file.o filters/in_http.o filters/in_pipe.o filters/in_route.o filters/in_rtp.o filters/in_rtp_rtsp.o filters/in_rtp_sdp.o filters/in_rtp_signaling.o filters/in_rtp_stream.o filters/in_sock.o filters/inspect.o filters/io_fcryp.o filters/isoffin_load.o filters/isoffin_read.o filters/isoffin_read_ch.o filters/jsfilter.o filters/load_bt_xmt.o filters/load_svg.o filters/load_text.o filters/mux_avi.o filters/mux_gsf.o filters/mux_isom.o filters/mux_ts.o filters/mux_ogg.o filters/out_audio.o  filters/out_file.o filters/out_http.o filters/out_pipe.o filters/out_route.o filters/out_rtp.o filters/out_rtsp.o filters/out_sock.o filters/out_video.o filters/reframer.o filters/reframe_ac3.o filters/reframe_adts.o filters/reframe_latm.o filters/reframe_amr.o filters/reframe_av1.o filters/reframe_flac.o filters/reframe_h263.o filters/reframe_img.o filters/reframe_mhas.o filters/reframe_mp3.o filters/reframe_mpgvid.o filters/reframe_nalu.o filters/reframe_prores.o filters/reframe_qcp.o filters/reframe_rawvid.o filters/reframe_rawpcm.o filters/reframe_truehd.o filters/resample_audio.o filters/restamp.o  filters/tileagg.o filters/tilesplit.o filters/tssplit.o filters/ttml_conv.o filters/unit_test_filter.o filters/rewind.o filters/rewrite_adts.o filters/rewrite_mhas.o filters/rewrite_mp4v.o filters/rewrite_nalu.o filters/rewrite_obu.o filters/vflip.o filters/vcrop.o filters/write_generic.o filters/write_nhml.o filters/write_nhnt.o filters/write_qcp.o filters/write_tx3g.o filters/write_vtt.o ../modules/dektec_out/dektec_video_decl.o filters/dec_opensvc.o
+LIBGPAC_FILTERS_FFMPEG=filters/ff_common.o filters/ff_avf.o filters/ff_dec.o filters/ff_dmx.o filters/ff_enc.o filters/ff_rescale.o filters/ff_mx.o 
 
 ifeq ($(STATIC_MODULES),yes)
 LIBGPAC_FILTERS_OHEVC=filters/dec_openhevc.o
 FILTERS_OHEVC_CFLAGS=$(openhevc_cflags)
 endif
 
+## libgpac objects gathering:
+OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_CRYPTO) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER) $(LIBGPAC_EVG) $(LIBGPAC_FILTERS) $(LIBGPAC_FILTERS_FFMPEG) $(LIBGPAC_FILTERS_OHEVC) $(LIBGPAC_QUICKJS) $(LIBGPAC_JSMODS)
 
-CFLAGS+=$(zlib_cflags) $(opensvc_cflags) $(ssl_cflags) $(jpeg_cflags) $(openjpeg_cflags) $(png_cflags) $(mad_cflags) $(a52_cflags) $(xvid_cflags) $(faad_cflags)
-CFLAGS+=$(ffmpeg_cflags) $(ogg_cflags) $(vorbis_cflags) $(theora_cflags) $(nghttp2_cflags) $(vtb_cflags)
+
+##include static modules and other deps for libgpac
+include ../static.mak
+
+#todo, we may need to trick ld for library path...
 EXTRALIBS+=$(zlib_ldflags) $(opensvc_ldflags) $(ssl_ldflags) $(jpeg_ldflags) $(openjpeg_ldflags) $(png_ldflags) $(mad_ldflags) $(a52_ldflags) $(xvid_ldflags) $(faad_ldflags)
 EXTRALIBS+=$(ffmpeg_ldflags) $(ogg_ldflags) $(vorbis_ldflags) $(theora_ldflags) $(nghttp2_ldflags) $(vtb_ldflags)
 
@@ -293,6 +293,12 @@ filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
+filters_ffmpeg: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
+filters_ffmpeg: $(LIBGPAC_FILTERS_FFMPEG)
+.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
+.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
+
+
 filters_ohevc: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
 filters_ohevc: $(LIBGPAC_FILTERS_OHEVC)
 .deps/filters/dec_openhevc.dep: CFLAGS += $(FILTERS_OHEVC_CFLAGS)
@@ -302,8 +308,54 @@ jsmods: $(LIBGPAC_JSMODS)
 .deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
 .deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
 
+#set cflags for all ext lib
+filters/dec_opensvc.o: CFLAGS += $(opensvc_cflags)
+filters/dec_opensvc.o: filters/dec_opensvc.c
 
-../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) compositor scenegraph media_tools crypto filters filters_ohevc jsmods $(OBJS)
+filters/dec_j2k.o: CFLAGS += $(openjpeg_cflags)
+filters/dec_j2k.o: filters/dec_j2k.c
+
+filters/dec_mad.o: CFLAGS += $(mad_cflags)
+filters/dec_mad.o: filters/dec_mad.c
+
+filters/dec_ac52.o: CFLAGS += $(a52_cflags)
+filters/dec_ac52.o: filters/dec_ac52.c
+
+filters/dec_xvid.o: CFLAGS += $(xvid_cflags)
+filters/dec_xvid.o: filters/dec_xvid.c
+
+filters/dec_faad.o: CFLAGS += $(faad_cflags)
+filters/dec_faad.o: filters/dec_faad.c
+
+filters/dec_faad.o: CFLAGS += $(faad_cflags)
+filters/dec_faad.o: filters/dec_faad.c
+
+filters/dec_theora.o: CFLAGS += $(ogg_cflags) $(theora_cflags)
+filters/dec_theora.o: filters/dec_theora.c
+
+filters/dec_vorbis.o: CFLAGS += $(ogg_cflags) $(vorbis_cflags)
+filters/dec_vorbis.o: filters/dec_vorbis.c
+
+filters/dec_vtb.o: CFLAGS += $(vtb_cflags)
+filters/dec_vtb.o: filters/dec_vorbis.c
+
+filters/enc_jpg.o: CFLAGS += $(jpeg_cflags) 
+filters/enc_jpg.o: filters/enc_jpg.c
+
+filters/enc_png.o: CFLAGS += $(zlib_cflags) $(png_cflags)
+filters/enc_png.o: filters/enc_png.c
+
+media_tools/img.o: CFLAGS += $(jpeg_cflags) $(zlib_cflags) $(png_cflags)
+media_tools/img.o: media_tools/img.c
+
+utils/downloader.o: CFLAGS += $(nghttp2_cflags) $(ssl_cflags)
+utils/downloader.o: utils/downloader.c
+
+crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
+crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
+
+
+../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) compositor scenegraph media_tools crypto filters filters_ffmpeg filters_ohevc jsmods $(OBJS)
 #	@echo "OBJS $(OBJS)"
 #	@echo "LIBS $(ALL_LIBS)"
 
@@ -311,7 +363,7 @@ ifeq ($(CONFIG_DARWIN),yes)
 
 	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
-ifneq ($(STATICBUILD),yes)
+ifneq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
 endif
 
@@ -319,7 +371,7 @@ else
 
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
-ifneq ($(STATICBUILD),yes)
+ifneq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(ALL_LIBS) $(LDFLAGS)
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
