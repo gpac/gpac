@@ -41,7 +41,8 @@ ifeq ($(CONFIG_HID),yes)
 #PLUGDIRS+=psvr
 endif
 
-ifeq ($(CONFIG_OPENHEVC),yes)
+ifeq ($(CONFIG_OPENHEVC),no)
+else
 PLUGDIRS+=dec_openhevc
 endif
 
