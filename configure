@@ -295,8 +295,9 @@ GPAC core configuration:
 Extra libraries configuration:
 You can turn a library off or force using the local version in gpac/extra_lib/
   --use-FOO=no             disable library FOO
-  --use-FOO=local          force use of library FOO in gpac/extra_lib/include, gpac/extra_lib/lib
+  --use-FOO=local          force use of library FOO in gpac/extra_lib/include, gpac/extra_lib/lib/gcc/bin/
   --use-FOO=system         force using system version only of library FOO
+  --use-FOO=PATH           force use of library FOO in \$PATH/include, \$PATH/lib
 
 Extra libraries used are: $all_packages
 EOF
@@ -455,6 +456,8 @@ set_package ()
         case "$1" in
         "$pck_name"*) opt=`echo $1 | cut -d '=' -f 2`
             if [ "$opt" = "local" -o "$opt" = "system" -o "$opt" = "no" ] ; then
+                lib_args="$lib_args $1"
+            elif [ -d "$opt" ]; then
                 lib_args="$lib_args $1"
             else
                 echo "Invalid package option $opt - please check help (-h)"
@@ -1073,13 +1076,15 @@ pck_cxx="no"
 config_package_test ()
 {
     package_name=$1
-    package_cflags=$2
-    package_ldflags=$3
-    local_inc_dir=$4
-    package_src="$5"
+    pkg_cfg_name=$2
+    package_cflags=$3
+    package_ldflags=$4
+    local_inc_dir=$5
+    package_src="$6"
 
     forced=""
-    optname="--use-$package_name="
+    custom="no"
+    optname="$package_name="
     for opt in $lib_args ; do
         case "$opt" in
         $optname*) forced=`echo $opt | cut -d '=' -f 2`
@@ -1098,17 +1103,22 @@ config_package_test ()
         "local") ;;
         "system") ;;
         "") ;;
-        *) echo "Invalid value $forced for $optname"
-            exit 1
+        *)  if [ -d "$forced" ]; then
+                custom="yes"
+            else
+                echo "Invalid value $forced for $optname"
+                exit 1
+            fi
             ;;
         esac
     fi
 
-    if test "$forced" != "local" ; then
+    #test pkgconfig
+    if test "$forced" != "local" -a "$custom" != "yes" ; then
         if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-            if $pkg_config --exists $package_name ; then
-                pck_cflags=`$pkg_config --cflags $package_name`
-                pck_ldflags=`$pkg_config --libs $package_name`
+            if $pkg_config --exists $pkg_cfg_name ; then
+                pck_cflags=`$pkg_config --cflags $pkg_cfg_name`
+                pck_ldflags=`$pkg_config --libs $pkg_cfg_name`
                 has_pck="system (pkgconfig)"
                 return
             fi
@@ -1153,6 +1163,15 @@ config_package_test ()
     fi
 
     echo "$package_src" > $TMPC
+
+    if test "$custom" = "yes" ; then
+        if docc -I"$forced//include" -L$forced//lib $package_ldflags ; then
+            pck_cflags="-I$forced//include $package_cflags"
+            pck_ldflags="-L$forced//lib $package_ldflags"
+            has_pck="custom"
+        fi
+        return
+    fi
 
     if test "$forced" != "local" ; then
         if docc $package_cflags $LDFLAGS $package_ldflags ; then
@@ -1206,7 +1225,7 @@ config_package ()
         ;;
     esac
 
-    config_package_test "$2" "$3" "$4" "$5" "$6"
+    config_package_test "$1" "$2" "$3" "$4" "$5" "$6"
     if test "$has_pck" != "no" ; then
         eval "cflags_$pname=\"$pck_cflags\""
         eval "ldflags_$pname=\"$pck_ldflags\""
@@ -1530,6 +1549,12 @@ int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9);
 #always force static modules when static build is used, we cannot have one exe with libgpac_static using a module with libgpac dynamic, this would cause bugs with gf_sys_init()
 if test "$static_build" = "yes"; then
 static_modules="yes"
+
+if test "$has_openhevc" != "no" -a "$has_ffmpeg!=no"; then
+    #we cannot have both openhevc and ffmpeg in static build
+    has_openhevc="no"
+fi
+
 fi
 
 
@@ -2554,7 +2579,7 @@ fi
 echo "DEBUGBUILD=$debuginfo" >> config.mak
 echo "GPROFBUILD=$gprof_build" >> config.mak
 echo "STATIC_BINARY=$static_bin" >> config.mak
-echo "STATICBUILD=$static_build" >> config.mak
+echo "STATIC_BUILD=$static_build" >> config.mak
 
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then

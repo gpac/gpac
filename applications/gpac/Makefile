@@ -24,7 +24,7 @@ EXT=
 PROG=gpac
 endif
 
-ifeq ($(STATICBUILD),yes)
+ifeq ($(STATIC_BUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
 LINKFLAGS+=$(shell pkg-config ../../gpac.pc --libs --static | sed 's/-lgpac //'  )

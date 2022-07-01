@@ -30,7 +30,7 @@ all: $(LIB)
 
 $(LIB): $(OBJS)
 	$(CXX) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(LDFLAGS)
-ifeq ($(STATICBUILD),yes)
+ifeq ($(STATIC_BUILD),yes)
 	$(CXX) $(SHFLAGS) -o ../../bin/gcc/gm_dektec_out-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(LDFLAGS)
 endif
 
