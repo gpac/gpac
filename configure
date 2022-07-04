@@ -2680,17 +2680,16 @@ if test "$source_path_used" = "yes" ; then
 
 
     cur_dir="`pwd`"
-    cd "$source_path/"
-    MOD_DIRS="`ls -d modules/*/`"
     cd "$cur_dir"
 
     mkdir -p modules
     ln -sf "$source_path/modules/Makefile" modules/Makefile
 
-    for dir in $MOD_DIRS ; do
-        if [ -f "$source_path/$dir/Makefile" ]; then
+    for moddir in "$source_path/modules/"* ; do
+        if [ -d "$moddir"  -a -f "$moddir/Makefile" ]; then
+            dir="${moddir#"$source_path/"}"
             mkdir -p "$dir"
-            ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
+            ln -sf "$moddir/Makefile" "$dir/Makefile"
         fi
     done
     if test "$has_directx" = "yes"; then
