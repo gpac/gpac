@@ -1397,8 +1397,12 @@ int main(void) {
 }
 EOF
 
-if docc $libgpac_cflags $libgpac_extralibs $extralibs ; then
+#compile file but do not link
+if $cc -o $TMPO -c $TMPC $ffmpeg_cflags 0>/dev/null 2>$TMPL ; then
     ffmpeg_vvc="yes"
+    dolog $ffmpeg_cflags
+else
+    dolog $ffmpeg_cflags
 fi
 
 fi
@@ -1542,7 +1546,6 @@ int main( void ) { lzma_options_lzma opt_lzma2; lzma_lzma_preset(&opt_lzma2, 9);
 #look for joystick support
 #check_has_lib joystick "" '#include <linux/joystick.h>
 #int main( void ) { return 0; }'
-
 
 
 
@@ -1759,6 +1762,7 @@ fi
 if test "$debuginfo" = "no"; then
     CFLAGS="$CFLAGS -DNDEBUG"
 fi
+
 
 #set gnu90 once all packages have been chcked, otherwise we will use it in docxx
 if docc $CFLAGS -std=gnu99 ; then
@@ -2169,14 +2173,14 @@ echo "XVID: $has_xvid"
 ffopts=""
 if test "$has_ffmpeg" != "no" ; then
 if test "$ffmpeg_vvc" = "yes" ; then
-    ffopts="$ffopts VVC "
+    ffopts="VVC $ffopts "
 fi
 fi
 
-if [ -z $ffops ] ; then
+if [ -z $ffopts ] ; then
 echo "FFMPEG: $has_ffmpeg"
 else
-echo "FFMPEG: $has_ffmpeg with support for $ffopts"
+echo "FFMPEG: $has_ffmpeg - "$ffopts"supported"
 fi
 
 
