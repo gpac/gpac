@@ -276,26 +276,21 @@ crypto: $(LIBGPAC_CRYPTO)
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)
 scenegraph: $(LIBGPAC_SCENE)
 .deps/scenegraph/%: CFLAGS += $(SCENEGRAPH_CFLAGS)
-.deps/scenegraph/%: CFLAGS += $(SCENEGRAPH_CFLAGS)
 
 media_tools: CFLAGS += $(MEDIATOOLS_CFLAGS)
 media_tools: $(LIBGPAC_MEDIATOOLS)
-.deps/media_tools/%: CFLAGS += $(MEDIATOOLS_CFLAGS)
 .deps/media_tools/%: CFLAGS += $(MEDIATOOLS_CFLAGS)
 
 compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
-.deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 
 filters: CFLAGS += $(FILTERS_CFLAGS)
 filters: $(LIBGPAC_FILTERS)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
-.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
 filters_ffmpeg: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
 filters_ffmpeg: $(LIBGPAC_FILTERS_FFMPEG)
-.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
 .deps/filters/%: CFLAGS += $(FILTERS_CFLAGS) $(ffmpeg_cflags)
 
 
@@ -306,7 +301,9 @@ filters_ohevc: $(LIBGPAC_FILTERS_OHEVC)
 jsmods: CFLAGS += $(JSMODS_CFLAGS)
 jsmods: $(LIBGPAC_JSMODS)
 .deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
-.deps/jsmods/%: CFLAGS += $(JSMODS_CFLAGS)
+
+jsmods/evg.o: CFLAGS += $(ffmpeg_cflags)
+.deps/jsmods/evg.%: CFLAGS += $(ffmpeg_cflags)
 
 #set cflags for all ext lib
 filters/dec_opensvc.o: CFLAGS += $(opensvc_cflags)
@@ -339,7 +336,7 @@ filters/dec_vorbis.o: CFLAGS += $(ogg_cflags) $(vorbis_cflags)
 filters/dec_vorbis.o: filters/dec_vorbis.c
 
 filters/dec_vtb.o: CFLAGS += $(vtb_cflags)
-filters/dec_vtb.o: filters/dec_vorbis.c
+filters/dec_vtb.o: filters/dec_vtb.c
 
 filters/enc_jpg.o: CFLAGS += $(jpeg_cflags)
 filters/enc_jpg.o: filters/enc_jpg.c
