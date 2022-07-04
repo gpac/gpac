@@ -169,6 +169,16 @@ typedef unsigned int size_t;
 
 #define snprintf _snprintf
 
+/*! minimum api versions to use for windows apis with mingw */
+#if (defined(__MINGW32__) || defined(__MINGW64__))
+#if (defined(_WIN32_WINNT) && _WIN32_WINNT < 0x0601)
+#undef _WIN32_WINNT
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
+#endif
+
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 
@@ -433,6 +443,12 @@ typedef struct {
 #if (defined (WIN32) || defined (_WIN32_WCE)) && (defined(__MINGW32__) || !defined(__GNUC__))
 
 #if defined(__MINGW32__)
+
+#ifdef __USE_MINGW_ANSI_STDIO
+#undef __USE_MINGW_ANSI_STDIO
+#endif
+#define __USE_MINGW_ANSI_STDIO 1
+
 /*! macro for cross-platform suffix used for formatting s64 integers in logs and printf routines*/
 #define LLD_SUF "lld"
 /*! macro for cross-platform suffix used for formatting u64 integers in logs and printf routines*/

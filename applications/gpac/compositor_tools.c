@@ -1547,7 +1547,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
 #include <tlhelp32.h>
-#include <Psapi.h>
+#include <psapi.h>
 static DWORD getParentPID(DWORD pid)
 {
 	DWORD ppid = 0;
@@ -1627,4 +1627,3 @@ static void close_console()
 #endif
 
 #endif //#ifndef GPAC_DISABLE_PLAYER
-
