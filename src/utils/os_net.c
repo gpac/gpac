@@ -23,6 +23,8 @@
  *
  */
 
+#include <gpac/network.h>
+
 #if defined(WIN32) || defined(_WIN32_WCE)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -88,9 +90,6 @@
 static int wsa_init = 0;
 
 
-#include <gpac/network.h>
-
-
 /*end-win32*/
 
 #else
@@ -113,7 +112,6 @@ static int wsa_init = 0;
 #include <sys/types.h>
 #include <arpa/inet.h>
 
-#include <gpac/network.h>
 
 /*not defined on solaris*/
 #if !defined(INADDR_NONE)
