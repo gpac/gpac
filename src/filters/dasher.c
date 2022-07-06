@@ -51,6 +51,7 @@ enum
 	DASHER_BS_SWITCH_ON,
 	DASHER_BS_SWITCH_INBAND,
 	DASHER_BS_SWITCH_INBAND_PPS,
+	DASHER_BS_SWITCH_BOTH,
 	DASHER_BS_SWITCH_FORCE,
 	DASHER_BS_SWITCH_MULTI,
 };
@@ -324,7 +325,7 @@ typedef struct _dash_stream
 	//the parent adaptation set
 	GF_MPD_AdaptationSet *set;
 	Bool owns_set;
-	//set to 1 if full inband params, 2 if pps/aps only, 0 otherwise
+	//set to 1 if full inband params, 2 if pps/aps only, 3 if both inband and outband, 0 otherwise
 	u32 inband_params;
 	GF_List *multi_pids;
 	GF_List *multi_tracks;
@@ -2749,7 +2750,7 @@ static void rewrite_dep_ids(GF_DasherCtx *ctx, GF_DashStream *base_ds)
 static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_AdaptationSet *set)
 {
 	u32 i, j, count;
-	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE;
+	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS) || (ctx->bs_switch==DASHER_BS_SWITCH_BOTH)) ? GF_TRUE : GF_FALSE;
 	Bool use_multi = (ctx->bs_switch==DASHER_BS_SWITCH_MULTI) ? GF_TRUE : GF_FALSE;
 	GF_MPD_Representation *base_rep = gf_list_get(set->representations, 0);
 	GF_DashStream *base_ds;
@@ -2773,11 +2774,9 @@ static void dasher_check_bitstream_swicthing(GF_DasherCtx *ctx, GF_MPD_Adaptatio
 	if (count==1) {
 		if (ctx->bs_switch==DASHER_BS_SWITCH_FORCE) set->bitstream_switching=GF_TRUE;
 		else if (use_inband) {
-			if (base_ds->codec_id==GF_CODECID_VVC) {
-				base_ds->inband_params = (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS) ? 2 : 1;
-			} else {
-				base_ds->inband_params = 1;
-			}
+			base_ds->inband_params = ctx->bs_switch==DASHER_BS_SWITCH_BOTH ? 3 : 1;
+			if (base_ds->codec_id==GF_CODECID_VVC && ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)
+				base_ds->inband_params = 2;
 		}
 		return;
 	}
@@ -2951,9 +2950,19 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 		}
 	}
 
-	//override xps inband declaration in args
-	sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name,
-		(ds->inband_params==2) ? "pps" : (ds->inband_params ? "all" : "no") );
+	{
+		//override xps inband declaration in args
+		char *xps_inband;
+		if (ds->inband_params==1)
+			xps_inband = "all";
+		if (ds->inband_params==2)
+			xps_inband = "pps";
+		else if (ds->inband_params==3)
+			xps_inband = "both";
+		else
+			xps_inband = "no";
+		sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name, xps_inband);
+	}
 	gf_dynstrcat(&szDST, szSRC, NULL);
 
 	if (ctx->no_fragments_defaults) {
@@ -3298,7 +3307,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 	GF_List *multi_pids = NULL;
 	u32 set_timescale = 0;
 	Bool init_template_done=GF_FALSE;
-	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS)) ? GF_TRUE : GF_FALSE;
+	Bool use_inband = ((ctx->bs_switch==DASHER_BS_SWITCH_INBAND) || (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS) || (ctx->bs_switch==DASHER_BS_SWITCH_BOTH)) ? GF_TRUE : GF_FALSE;
 	Bool template_use_source = GF_FALSE;
 	Bool split_rep_names = GF_FALSE;
 	Bool split_set_names = GF_FALSE;
@@ -3600,7 +3609,7 @@ static void dasher_setup_sources(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD_Ad
 		}
 
 		if (use_inband) {
-			ds->inband_params = 1;
+			ds->inband_params = ctx->bs_switch==DASHER_BS_SWITCH_BOTH ? 3 : 1;
 			if ((ds->codec_id==GF_CODECID_VVC) && (ctx->bs_switch==DASHER_BS_SWITCH_INBAND_PPS))
 				ds->inband_params = 2;
 		}
@@ -9398,9 +9407,10 @@ static const GF_FilterArgs DasherArgs[] =
 	"- off: disables BS switching\n"
 	"- on: enables it if same decoder configuration is possible\n"
 	"- inband: moves decoder config inband if possible\n"
+	"- both: inband and outband parameter sets\n"
 	"- pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)\n"
 	"- force: enables it even if only one representation\n"
-	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|pps|force|multi", GF_FS_ARG_HINT_ADVANCED},
+	"- multi: uses multiple stsd entries in ISOBMFF", GF_PROP_UINT, "def", "def|off|on|inband|pps|both|force|multi", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(template), "template string to use to generate segment name", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(segext), "file extension to use for segments", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(initext), "file extension to use for the init segment", GF_PROP_STRING, NULL, NULL, 0},
@@ -9735,7 +9745,7 @@ GF_FilterRegister DasherRegister = {
 " - noinit: disables output of init segment for the multiplexer (used to handle bitstream switching with single init in DASH)\n"
 " - frag: indicates multiplexer shall use fragmented format (used for ISOBMFF mostly)\n"
 " - subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user\n"
-" - xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band\n"
+" - xps_inband=all|no|both: indicates AVC/HEVC/... parameter sets shall be sent inband, out of band, or both\n"
 " - nofragdef: indicates fragment defaults should be set in each segment rather than in init segment\n"
 "\n"
 "The segmenter adds the following properties to the output PIDs:\n"

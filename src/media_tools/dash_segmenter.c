@@ -606,6 +606,9 @@ static GF_Err gf_dasher_setup(GF_DASHSegmenter *dasher)
 	case GF_DASH_BSMODE_INBAND_PPS:
 		e |= gf_dynstrcat(&args, "bs_switch=pps", ":");
 		break;
+	case GF_DASH_BSMODE_BOTH:
+		e |= gf_dynstrcat(&args, "bs_switch=both", ":");
+		break;
 	case GF_DASH_BSMODE_MERGED:
 		e |= gf_dynstrcat(&args, "bs_switch=on", ":");
 		break;
