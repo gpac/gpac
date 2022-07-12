@@ -7110,7 +7110,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	"- inter: perform precise interleave of the file using [-cdur]() (requires temporary storage of all media)\n"
 	"- flat: write samples as they arrive and `moov` at end (fastest mode)\n"
 	"- fstart: write samples as they arrive and `moov` before `mdat`\n"
-	"- tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
+	"- tight: uses per-sample interleaving of all tracks (requires temporary storage of all media)\n"
 	"- frag: fragments the file using cdur duration\n"
 	"- sfrag: fragments the file using cdur duration but adjusting to start with SAP1/3", GF_PROP_UINT, "inter", "inter|flat|fstart|tight|frag|sfrag", 0},
 	{ OFFS(cdur), "chunk duration for flat and interleaving modes or fragment duration for fragmentation modes\n"

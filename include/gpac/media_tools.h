@@ -719,12 +719,14 @@ typedef enum
 	GF_DASH_BSMODE_INBAND,
 	/*! out of band parameter sets except PPS and APS, used for VVC */
 	GF_DASH_BSMODE_INBAND_PPS,
+	/*! both inband and out of band parameter sets */
+	GF_DASH_BSMODE_BOTH, //Romain
 	/*! attempts to merge parameter sets in a single sample entry */
 	GF_DASH_BSMODE_MERGED,
 	/*! parameter sets are in different sample entries */
 	GF_DASH_BSMODE_MULTIPLE_ENTRIES,
 	/*! forces GF_DASH_BSMODE_INBAND even if only one file is used*/
-	GF_DASH_BSMODE_SINGLE
+	GF_DASH_BSMODE_SINGLE,
 } GF_DashSwitchingMode;
 
 
