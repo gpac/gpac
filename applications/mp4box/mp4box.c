@@ -3757,7 +3757,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 
 		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("Error while hinting (%s)\n", gf_error_to_string(e)));
-			if (!nb_done) return e;
+			return e;
 		}
 		init_payt++;
 		nb_done ++;
