@@ -1599,7 +1599,9 @@ static void naludmx_update_clli_mdcv(GF_NALUDmxCtx *ctx, Bool reset_crc)
 static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 {
 	u8 dv_cfg[24];
-
+	if (!ctx->opid)
+		return;
+		
 	switch (ctx->dv_mode) {
 	case DVMODE_NONE:
 	case DVMODE_CLEAN:
