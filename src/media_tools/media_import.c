@@ -1500,6 +1500,20 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (importer->streamFormat && !strcmp(importer->streamFormat, "VTT")) e |= gf_dynstrcat(&args, "webvtt", ":");
 
+	//SRT-related legacy params
+	if (importer->fontName) {
+		e |= gf_dynstrcat(&args, "fontname=", ":");
+		e |= gf_dynstrcat(&args, importer->fontName, NULL);
+	}
+	if (importer->fontName) {
+		sprintf(szSubArg, "fontsize=%d", importer->fontSize);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
+	if (importer->text_width && importer->text_height) {
+		sprintf(szSubArg, "width=%d:height=%d:txtx=%d:txty=%d", importer->text_width, importer->text_height, importer->text_x, importer->text_y);
+		e |= gf_dynstrcat(&args, szSubArg, ":");
+	}
+
 	if (importer->source_magic) {
 		sprintf(szSubArg, "#SrcMagic="LLU, importer->source_magic);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
@@ -1508,7 +1522,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		sprintf(szSubArg, "#MuxIndex=%d", importer->track_index);
 		e |= gf_dynstrcat(&args, szSubArg, ":");
 	}
-
 	if (e) {
 		if (!importer->run_in_session)
 			gf_fs_del(fsess);
