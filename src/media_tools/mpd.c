@@ -2722,7 +2722,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
-	if (ms->start_number != (u32) -1) gf_fprintf(out, " startNumber=\"%d\"", ms->start_number);
+	if ((int)ms->start_number >= 0) gf_fprintf(out, " startNumber=\"%d\"", ms->start_number);
 	if (ms->duration) gf_fprintf(out, " duration=\""LLD"\"", ms->duration);
 
 
