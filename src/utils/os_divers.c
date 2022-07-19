@@ -2694,10 +2694,10 @@ u64 gf_net_parse_date(const char *val)
 	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
 	}
-	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000 && current_time < INT32_MAX) {
+	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000 && current_time < GF_INT_MAX) {
 		return current_time * 1000; // guessed raw duration since UTC0 in seconds
 	}
-	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000000ULL && current_time < INT32_MAX * 1000ULL) {
+	else if (sscanf(val, LLU, &current_time) == 1 && current_time > 1000000000000ULL && current_time < GF_INT_MAX * 1000ULL) {
 		return current_time; // guessed duration since UTC0 in milliseconds
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot parse date string %s\n", val));
