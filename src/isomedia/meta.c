@@ -1013,7 +1013,6 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.hOffset = 0;
 		searchprop.vOffset = 0;
 	}
-#if 1
 	if (image_props->hSpacing || image_props->vSpacing) {
 		searchprop.hSpacing = image_props->hSpacing;
 		searchprop.vSpacing = image_props->vSpacing;
@@ -1030,7 +1029,6 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		searchprop.hSpacing = 0;
 		searchprop.vSpacing = 0;
 	}
-#endif
 	if (image_props->clap_wnum || image_props->clap_wden || image_props->clap_hnum || image_props->clap_hden || image_props->clap_honum || image_props->clap_hoden || image_props->clap_vonum || image_props->clap_voden) {
 		searchprop.clap_wnum = image_props->clap_wnum;
 		searchprop.clap_wden = image_props->clap_wden;
