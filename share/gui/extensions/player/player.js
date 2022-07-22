@@ -665,6 +665,10 @@ extension = {
             }
         }
 
+        wnd.chapters = gw_new_icon(wnd.infobar, 'chapters');
+        wnd.chapters.extension = this;
+        wnd.chapters.hide();
+
         wnd.loop = gw_new_icon(wnd.infobar, 'play_once');
         wnd.loop.extension = this;
         wnd.loop.add_icon(gwskin.images.play_loop);
@@ -896,6 +900,11 @@ extension = {
 
                 if (this.extension.root_odm && !this.extension.dynamic_scene && !this.extension.root_odm.is_over)
                     is_over = false;
+
+
+				if (this.chapters.visible) {
+                    full_w += control_icon_size;
+				}
 
             } else {
                 this.stats.hide();
@@ -1679,6 +1688,8 @@ extension = {
         this.services = [];
 
         var root_odm = this.root_odm;
+        let chaps = null;
+        this.controler.chapters.hide();
         if (root_odm) {
             for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
                 var m = root_odm.get_resource(res_i);
@@ -1694,7 +1705,38 @@ extension = {
                     this.services.push(m);
                 }
             }
+			chaps = root_odm.get_chapters();
         }
+
+		if (chaps) {
+			if (!this.controler.chapters.visible) {
+				this.controler.chapters.show();
+				this.controler.layout();
+			}
+
+			this.controler.chapters.on_click = function () {
+
+				if (this.extension.channels_wnd) {
+					this.extension.channels_wnd.close();
+					return;
+				}
+				var wnd = gw_new_popup(this.extension.controler.channels, 'up');
+				this.extension.channels_wnd = wnd;
+				wnd.extension = this.extension;
+
+				wnd.on_close = function () {
+					this.extension.channels_wnd = null;
+				}
+
+				chaps.forEach(chap => {
+					wnd.add_menu_item(chap.name, function () {
+						this.extension.movie_control.mediaStartTime = chap.start/1000.0;
+					});
+				});
+				wnd.on_display_size(gw_display_width, gw_display_height);
+				wnd.show();
+			}
+		}
 
         if (this.services.length <= 1) {
             this.controler.channels.hide();

@@ -3233,6 +3233,17 @@ sample_entry_done:
 		if (ctx->tktpl && p && p->value.data.ptr) {
 			gf_isom_update_sample_description_from_template(ctx->file, tkw->track_num, tkw->stsd_idx, p->value.data.ptr, p->value.data.size);
 		}
+
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHAP_TIMES);
+		const GF_PropertyValue *p2 = gf_filter_pid_get_property(pid, GF_PROP_PID_CHAP_NAMES);
+		if (p && p2 && (p->value.uint_list.nb_items == p2->value.string_list.nb_items)) {
+			u32 j;
+			gf_isom_remove_chapter(ctx->file, 0, 0);
+			for (j=0; j<p->value.uint_list.nb_items; j++) {
+				gf_isom_add_chapter(ctx->file, 0, p->value.uint_list.vals[j], p2->value.string_list.vals[j]);
+			}
+		}
+
 	}
 
 	if (tkw->is_encrypted) {

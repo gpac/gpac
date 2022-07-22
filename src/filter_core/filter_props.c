@@ -945,7 +945,7 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 }
 #endif
 
-static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue *value, Bool is_old_prop)
+static GF_Err gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue *value, Bool is_old_prop)
 {
 	char *src_ptr;
 	//remember source pointer
@@ -960,6 +960,7 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 
 	if (prop->prop.type == GF_PROP_STRING) {
 		prop->prop.value.string = value->value.string ? gf_strdup(value->value.string) : NULL;
+		if (value->value.string && !prop->prop.value.string) return GF_OUT_OF_MEM;
 	} else if (prop->prop.type == GF_PROP_STRING_NO_COPY) {
 		prop->prop.value.string = value->value.string;
 		prop->prop.type = GF_PROP_STRING;
@@ -969,6 +970,10 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 		if (prop->alloc_size < value->value.data.size) {
 			prop->alloc_size = value->value.data.size;
 			prop->prop.value.data.ptr = gf_realloc(prop->prop.value.data.ptr, sizeof(char) * value->value.data.size);
+			if (!prop->prop.value.data.ptr) {
+				prop->alloc_size = 0;
+				return GF_OUT_OF_MEM;
+			}
 			assert(prop->alloc_size);
 		}
 		memcpy(prop->prop.value.data.ptr, value->value.data.ptr, value->value.data.size);
@@ -985,15 +990,31 @@ static void gf_props_assign_value(GF_PropertyEntry *prop, const GF_PropertyValue
 		else if (prop->prop.type == GF_PROP_SINT_LIST) it_size = sizeof(s32);
 		else if (prop->prop.type == GF_PROP_VEC2I_LIST) it_size = sizeof(GF_PropVec2i);
 		prop->prop.value.uint_list.vals = gf_malloc(it_size * value->value.uint_list.nb_items);
-		if (value->value.uint_list.nb_items)
-			memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
+		if (!value->value.uint_list.nb_items) return GF_OUT_OF_MEM;
+		memcpy(prop->prop.value.uint_list.vals, value->value.uint_list.vals, it_size * value->value.uint_list.nb_items);
 		prop->prop.value.uint_list.nb_items = value->value.uint_list.nb_items;
 	}
+	else if (prop->prop.type == GF_PROP_STRING_LIST_COPY) {
+		u32 i;
+		prop->prop.type = GF_PROP_STRING_LIST;
+		prop->prop.value.string_list.nb_items = value->value.string_list.nb_items;
+		prop->prop.value.string_list.vals = gf_malloc(sizeof(char*)*value->value.string_list.nb_items);
+		if (!prop->prop.value.string_list.vals) return GF_OUT_OF_MEM;
+		memset(prop->prop.value.string_list.vals, 0, sizeof(char*)*value->value.string_list.nb_items);
+		for (i=0; i<prop->prop.value.string_list.nb_items; i++) {
+			if (value->value.string_list.vals[i]) {
+				prop->prop.value.string_list.vals[i] = gf_strdup(value->value.string_list.vals[i]);
+				if (!prop->prop.value.string_list.vals[i]) return GF_OUT_OF_MEM;
+			}
+		}
+	}
+	return GF_OK;
 }
 
 GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
 	GF_PropertyEntry *prop;
+	GF_Err e;
 #if GF_PROPS_HASHTABLE_SIZE
 	u32 i, count;
 #endif
@@ -1039,7 +1060,11 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		prop->name_alloc=GF_TRUE;
 	}
 
-	gf_props_assign_value(prop, value, GF_FALSE);
+	e = gf_props_assign_value(prop, value, GF_FALSE);
+	if (e) {
+		gf_props_del_property(prop);
+		return e;
+	}
 
 #if GF_PROPS_HASHTABLE_SIZE
 	return gf_list_add(map->hash_table[hash], prop);
@@ -1557,6 +1582,9 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TIMESHIFT_SEGS, "TSBSegs", "Time shift in number of segments for HAS streams, only set by dashin and dasher filters", GF_PROP_UINT, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_IS_MANIFEST, "IsManifest", "PID is a HAS manifest", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
 	{ GF_PROP_PID_SPARSE, "Sparse", "PID has potentially empty times between packets", GF_PROP_BOOL, GF_PROP_FLAG_GSF_REM},
+
+	{ GF_PROP_PID_CHAP_TIMES, "ChapTimes", "Chapter start times", GF_PROP_UINT_LIST, GF_PROP_FLAG_GSF_REM},
+	{ GF_PROP_PID_CHAP_NAMES, "ChapNames", "Chapter names", GF_PROP_STRING_LIST, GF_PROP_FLAG_GSF_REM},
 
 	{ GF_PROP_PCK_SKIP_BEGIN, "SkipBegin", "Amount of media to skip from beginning of packet in PID timescale", GF_PROP_UINT, GF_PROP_FLAG_PCK},
 	{ GF_PROP_PCK_SKIP_PRES, "SkipPres", "Packet and any following with CTS greater than this packet shall not be presented (used by reframer to create edit lists)", GF_PROP_BOOL, GF_PROP_FLAG_PCK},
