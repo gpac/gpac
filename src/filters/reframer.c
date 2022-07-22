@@ -2220,6 +2220,7 @@ refetch_streams:
 			}
 
 			//OK every stream has now packets starting at the min_ts, ready to go
+			const GF_PropertyValue *chap_times=NULL, *chap_names=NULL;
 			ctx->nb_video_frames_since_start = 0;
 			for (i=0; i<count; i++) {
 				GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
@@ -2245,6 +2246,13 @@ refetch_streams:
 						st->nb_frames_until_start = 0;
 					}
 				}
+
+				if (!chap_times && ctx->cur_start.den) {
+					chap_times = gf_filter_pid_get_property(st->ipid, GF_PROP_PID_CHAP_TIMES);
+					chap_names = gf_filter_pid_get_property(st->ipid, GF_PROP_PID_CHAP_NAMES);
+					if (!chap_times || !chap_names || (chap_times->value.uint_list.nb_items!=chap_names->value.string_list.nb_items))
+						chap_times = chap_names = NULL;
+				}
 			}
 			ctx->nb_video_frames_since_start_at_range_start = ctx->nb_video_frames_since_start;
 
@@ -2260,6 +2268,63 @@ refetch_streams:
 #ifdef DEBUG_RF_MEM_USAGE
 			reframer_dump_mem(ctx, "Starting new range");
 #endif
+
+			if (chap_times) {
+				GF_PropertyValue ch;
+				GF_PropUIntList new_times;
+				GF_PropStringList new_names;
+				u32 first_chap_idx=0, last_chap_idx=chap_times->value.uint_list.nb_items;
+				u32 cut_time = (u32) gf_timestamp_rescale(min_ts, min_timescale, 1000);
+				u32 out_time = 0;
+				if (ctx->range_type == RANGE_CLOSED) {
+					out_time = (u32) gf_timestamp_rescale(ctx->cur_end.num, ctx->cur_end.den, 1000);
+				}
+
+				for (i=0; i<chap_times->value.uint_list.nb_items; i++) {
+					if (chap_times->value.uint_list.vals[i] <= cut_time)
+						first_chap_idx = i;
+					if (!out_time) continue;
+
+					if (chap_times->value.uint_list.vals[i] == out_time)
+						break;
+
+					if (chap_times->value.uint_list.vals[i] > out_time) {
+						last_chap_idx = i+1;
+						break;
+					}
+				}
+				new_times.nb_items = last_chap_idx - first_chap_idx;
+				new_times.vals = gf_malloc(sizeof(u32)*new_times.nb_items);
+				new_names.nb_items = new_times.nb_items;
+				new_names.vals = gf_malloc(sizeof(char *)*new_names.nb_items);
+				u32 k=0;
+				for (i=first_chap_idx; i<last_chap_idx; i++) {
+					s64 time = chap_times->value.uint_list.vals[i];
+					time -= cut_time;
+					if (time<0) time = 0;
+					new_times.vals[k] = (u32) time;
+					new_names.vals[k] = gf_strdup(chap_names->value.string_list.vals[i]);
+					k++;
+				}
+
+				//set chapter properties
+				for (i=0; i<count; i++) {
+					GF_FilterPid *ipid = gf_filter_get_ipid(filter, i);
+					RTStream *st = gf_filter_pid_get_udta(ipid);
+
+					ch.type = GF_PROP_UINT_LIST;
+					ch.value.uint_list = new_times;
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_CHAP_TIMES, &ch);
+
+					ch.type = GF_PROP_STRING_LIST_COPY;
+					ch.value.string_list = new_names;
+					gf_filter_pid_set_property(st->opid, GF_PROP_PID_CHAP_NAMES, &ch);
+				}
+				gf_free(new_times.vals);
+				ch.type = GF_PROP_STRING_LIST;
+				ch.value.string_list = new_names;
+				gf_props_reset_single(&ch);
+			}
 		}
 		if (!ctx->in_range && !ctx->flush_samples)
 			return GF_OK;

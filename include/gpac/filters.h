@@ -793,8 +793,10 @@ typedef enum
 	/*! 4CC on unsigned 32 bit integer*/
 	GF_PROP_4CC			=	25,
 	/*! 4CC list on unsigned 32 bit integer, memory is ALWAYS duplicated when setting the property*/
-	GF_PROP_4CC_LIST			=	26,
-
+	GF_PROP_4CC_LIST	=	26,
+	/*! string list, memory is duplicated when setting the property - to use only with property assignment functions*/
+	GF_PROP_STRING_LIST_COPY = 27,
+	
 	/*! last non-enum property*/
 	GF_PROP_LAST_NON_ENUM,
 
@@ -1215,6 +1217,9 @@ enum
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
 	GF_PROP_PID_TIMESHIFT_SEGS = GF_4CC('P','T','S','N'),
+
+	GF_PROP_PID_CHAP_TIMES = GF_4CC('C','H','P','T'),
+	GF_PROP_PID_CHAP_NAMES = GF_4CC('C','H','P','N'),
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),

@@ -845,6 +845,8 @@ gwskin.images.view360 = 'icons/image.svg';
 gwskin.labels.view360 = 'VR';
 gwskin.images.sensors = 'icons/compass.svg';
 gwskin.labels.sensors = 'Orientation';
+gwskin.images.chapters = 'icons/chapter.svg';
+gwskin.labels.chapters = 'Chapters';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";
@@ -3649,7 +3651,7 @@ function gw_new_popup(anchor, type)
           var s = children[i].get_label().length;
           if (s>max_s) max_s = s;
         }
-
+		max_s *= 0.66;
         for (var i=0; i<children.length; i++) {
             children[i].set_size(max_s * gwskin.default_text_font_size, gwskin.default_icon_height);
         }

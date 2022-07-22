@@ -30,51 +30,36 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-#if 0	//deprecated - we need to rework chapter information to deal with static chapters and chapter tracks
-void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
+static void isor_get_chapters(GF_ISOFile *file, GF_FilterPid *opid)
 {
-	GF_Segment *prev_seg;
-	u64 prev_start;
-	u64 start;
 	u32 i, count;
-	if (!iod || gf_list_count(iod->OCIDescriptors)) return;
+	GF_PropertyValue p;
+	GF_PropUIntList times;
+	GF_PropStringList names;
 	count = gf_isom_get_chapter_count(file, 0);
 	if (!count) return;
 
-	prev_seg = NULL;
-	start = prev_start = 0;
+	times.vals = gf_malloc(sizeof(u32)*count);
+	names.vals = gf_malloc(sizeof(char *)*count);
+	times.nb_items = names.nb_items = count;
+
 	for (i=0; i<count; i++) {
 		const char *name;
-		GF_Segment *seg;
+		u64 start;
 		gf_isom_get_chapter(file, 0, i+1, &start, &name);
-		seg = (GF_Segment *) gf_odf_desc_new(GF_ODF_SEGMENT_TAG);
-		seg->startTime = (Double) (s64) start;
-		seg->startTime /= 1000;
-		seg->SegmentName = gf_strdup(name);
-		gf_list_add(iod->OCIDescriptors, seg);
-		if (prev_seg) {
-			prev_seg->Duration = (Double) (s64) (start - prev_start);
-			prev_seg->Duration /= 1000;
-		} else if (start) {
-			prev_seg = (GF_Segment *) gf_odf_desc_new(GF_ODF_SEGMENT_TAG);
-			prev_seg->startTime = 0;
-			prev_seg->Duration = (Double) (s64) (start);
-			prev_seg->Duration /= 1000;
-			gf_list_insert(iod->OCIDescriptors, prev_seg, 0);
-		}
-		prev_seg = seg;
-		prev_start = start;
+		times.vals[i] = (u32) start;
+		names.vals[i] = gf_strdup(name);
 	}
-	if (prev_seg) {
-		start = 1000*gf_isom_get_duration(file);
-		start /= gf_isom_get_timescale(file);
-		if (start>prev_start) {
-			prev_seg->Duration = (Double) (s64) (start - prev_start);
-			prev_seg->Duration /= 1000;
-		}
-	}
+	p.type = GF_PROP_UINT_LIST;
+	p.value.uint_list = times;
+	gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, &p);
+	gf_free(times.vals);
+
+	p.type = GF_PROP_STRING_LIST;
+	p.value.string_list = names;
+	gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &p);
+	//no free for string lists
 }
-#endif
 
 static void isor_export_ref(ISOMReader *read, ISOMChannel *ch, u32 rtype, char *rname)
 {
@@ -1019,6 +1004,7 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 			gf_filter_pid_set_property_str(ch->pid, "isom:modification_date", &PROP_LONGUINT(modif_date));
 		}
 
+		isor_get_chapters(read->mov, ch->pid);
 	}
 
 	//all stsd specific init/reconfig

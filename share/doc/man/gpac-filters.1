@@ -2161,7 +2161,7 @@ store (enum, default: inter):  file storage mode
 .br
 * fstart: write samples as they arrive and moov before mdat
 .br
-* tight:  uses per-sample interleaving of all tracks (requires temporary storage of all media)
+* tight: uses per-sample interleaving of all tracks (requires temporary storage of all media)
 .br
 * frag: fragments the file using cdur duration
 .br
@@ -4142,6 +4142,8 @@ Note: When sources are ISOBMFF files or segments on local storage or GF_FileIO o
 .br
 * sprops=STR: assigns properties described in STR to all PIDs of the main content during a splice (cf below). STR is formatted according to gpac -h doc using the default parameter set.
 .br
+* chap=NAME: assigns chapter name at the start of next URL (filter always removes source chapter names).
+.br
 
 .br
 The following global options (applying to the filter, not the sources) may also be set in the playlist:
@@ -5145,7 +5147,7 @@ Output multiplexers allowing segmented output must obey the following:
 .br
  * subs_sidx=0: indicates an SIDX shall be generated - only added if not already specified by user
 .br
- * xps_inband=all|no: indicates AVC/HEVC/... parameter sets shall be sent inband or out of band
+ * xps_inband=all|no|both: indicates AVC/HEVC/... parameter sets shall be sent inband, out of band, or both
 .br
  * nofragdef: indicates fragment defaults should be set in each segment rather than in init segment
 .br
@@ -5211,6 +5213,8 @@ bs_switch (enum, default: def): bitstream switching mode (single init segment)
 * on: enables it if same decoder configuration is possible
 .br
 * inband: moves decoder config inband if possible
+.br
+* both: inband and outband parameter sets
 .br
 * pps: moves PPS and APS inband, keep VPS,SPS and DCI out of band (used for VVC RPR)
 .br
@@ -10580,7 +10584,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev221-ge0cac167f-master
+build: 2.1-DEV-rev252-gd48595585-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
