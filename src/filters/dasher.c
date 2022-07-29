@@ -2953,14 +2953,12 @@ static void dasher_open_destination(GF_Filter *filter, GF_DasherCtx *ctx, GF_MPD
 	{
 		//override xps inband declaration in args
 		char *xps_inband;
-		if (ds->inband_params==1)
-			xps_inband = "all";
-		if (ds->inband_params==2)
-			xps_inband = "pps";
-		else if (ds->inband_params==3)
-			xps_inband = "both";
-		else
-			xps_inband = "no";
+		switch (ds->inband_params) {
+		case 1: xps_inband = "all"; break;
+		case 2: xps_inband = "pps"; break;
+		case 3: xps_inband = "both"; break;
+		default: xps_inband = "no"; break;
+		}
 		sprintf(szSRC, "%cxps_inband%c%s", sep_args, sep_name, xps_inband);
 	}
 	gf_dynstrcat(&szDST, szSRC, NULL);
