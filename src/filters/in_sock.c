@@ -181,6 +181,9 @@ static GF_Err sockin_initialize(GF_Filter *filter)
 	gf_sk_set_buffer_size(ctx->sock_c.socket, 0, ctx->block_size);
 	gf_sk_set_block_mode(ctx->sock_c.socket, (!ctx->is_udp && ctx->block) ? GF_FALSE : GF_TRUE);
 
+	if (!ctx->is_udp)
+		gf_filter_set_blocking(filter, GF_TRUE);
+
 	ctx->buffer = gf_malloc(ctx->block_size + 1);
 	if (!ctx->buffer) return GF_OUT_OF_MEM;
 	//ext/mime given and not mpeg2, disable probe

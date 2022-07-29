@@ -4902,7 +4902,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 	GF_MPD_Period const * const period, GF_MPD_AdaptationSet const * const set, GF_MPD_Representation const * const rep,
 	u64 *out_segment_start_time, u64 *out_opt_segment_duration, u32 *out_opt_scale)
 {
-	u64 duration = 0, start_time = 0;
+	u64 duration = 0, start_time = 0, pto = 0;
 	u32 timescale = 0;
 	GF_List *seglist = NULL;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -4921,23 +4921,27 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 			if (period->segment_list->duration) duration = period->segment_list->duration;
 			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
 			if (period->segment_list->segment_timeline) timeline = period->segment_list->segment_timeline;
+			if (period->segment_list->presentation_time_offset) pto = period->segment_list->presentation_time_offset;
 			if (gf_list_count(period->segment_list->segment_URLs)) seglist = period->segment_list->segment_URLs;
 		}
 		if (set->segment_list) {
 			if (set->segment_list->duration) duration = set->segment_list->duration;
 			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
 			if (set->segment_list->segment_timeline) timeline = set->segment_list->segment_timeline;
+			if (set->segment_list->presentation_time_offset) pto = set->segment_list->presentation_time_offset;
 			if (gf_list_count(set->segment_list->segment_URLs)) seglist = set->segment_list->segment_URLs;
 		}
 		if (rep->segment_list) {
 			if (rep->segment_list->duration) duration = rep->segment_list->duration;
 			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+			if (rep->segment_list->presentation_time_offset) pto = rep->segment_list->presentation_time_offset;
 			if (gf_list_count(rep->segment_list->segment_URLs)) seglist = rep->segment_list->segment_URLs;
 		}
 		if (!timescale) timescale = 1;
 
 		if (timeline) {
 			start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+			start_time -= pto;
 		}
 		else if (duration) {
 			start_time = in_segment_index * duration;
@@ -4970,22 +4974,26 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 		if (period->segment_template->duration) duration = period->segment_template->duration;
 		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
+		if (period->segment_template->presentation_time_offset) pto = period->segment_template->presentation_time_offset;
 
 	}
 	if (set->segment_template) {
 		if (set->segment_template->duration) duration = set->segment_template->duration;
 		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
+		if (set->segment_template->presentation_time_offset) pto = set->segment_template->presentation_time_offset;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
+		if (rep->segment_template->presentation_time_offset) pto = rep->segment_template->presentation_time_offset;
 	}
 	if (!timescale) timescale = 1;
 
 	if (timeline) {
 		start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+		start_time -= pto;
 	}
 	else {
 		start_time = in_segment_index * duration;

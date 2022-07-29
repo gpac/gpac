@@ -120,6 +120,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		flags |= GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
 		ctx->cache = GF_HTTPIN_STORE_NONE;
 	}
+	gf_filter_set_blocking(filter, GF_TRUE);
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
