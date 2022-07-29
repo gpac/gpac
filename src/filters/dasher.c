@@ -758,9 +758,9 @@ exit:
 			if (p && p->value.uint) {
 				ds->stl = GF_TRUE;
 				ds->mpd_timescale = p->value.uint;
+			} else if (ctx->stl) {
+				ds->mpd_timescale = ds->timescale;
 			}
-			else
-				ds->stl = GF_FALSE;
 		}
 	}
 	return e;
@@ -3227,6 +3227,7 @@ static void dasher_open_pid(GF_Filter *filter, GF_DasherCtx *ctx, GF_DashStream 
 
 static Bool dasher_template_use_source_url(const char *template)
 {
+	if (!template) return GF_FALSE;
 	if (strstr(template, "$File$") != NULL) return GF_TRUE;
 	else if (strstr(template, "$FSRC$") != NULL) return GF_TRUE;
 	else if (strstr(template, "$SourcePath$") != NULL) return GF_TRUE;

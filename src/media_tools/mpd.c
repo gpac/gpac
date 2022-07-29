@@ -1875,7 +1875,8 @@ retry_import:
 			if (!strcmp(M3U8_UNKNOWN_MIME_TYPE, mimeTypeForM3U8Segments)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
 			}
-			if (elt && elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
+			char *fext = (elt && elt->init_segment_url) ? gf_file_ext_start(elt->init_segment_url) : NULL;
+			if (fext && (!stricmp(fext, ".mp4") || !stricmp(fext, ".m4s")) ) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
 			} else {
 				rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
@@ -1961,6 +1962,34 @@ retry_import:
 
 				if (rel_url) gf_free(rel_url);
 				if (variant_base_url) gf_free(variant_base_url);
+
+				if (use_segment_timeline) {
+					GF_MPD_SegmentTimelineEntry *prev_e = NULL;
+					u64 start_time = 0;
+					rep->segment_template->timescale = 1000;
+					GF_SAFEALLOC(rep->segment_template->segment_timeline, GF_MPD_SegmentTimeline);
+					if (!rep->segment_template->segment_timeline) return GF_OUT_OF_MEM;
+
+					rep->segment_template->segment_timeline->entries = gf_list_new();
+					for (k=0; k<count_elements; k++) {
+						u64 dur;
+						GF_MPD_SegmentTimelineEntry *se;
+						elt = gf_list_get(pe->element.playlist.elements, k);
+
+						dur = (u64) ( elt->duration_info * rep->segment_template->timescale);
+						if (prev_e && (prev_e->duration == dur)) {
+							prev_e->repeat_count++;
+						} else {
+							GF_SAFEALLOC(se, GF_MPD_SegmentTimelineEntry);
+							if (!se) return GF_OUT_OF_MEM;
+							se->duration = (u32) dur;
+							se->start_time = start_time;
+							gf_list_add(rep->segment_template->segment_timeline->entries, se);
+							prev_e = se;
+						}
+						start_time += dur;
+					}
+				}
 				continue;
 			}
 
@@ -1976,7 +2005,7 @@ retry_import:
 				//if byte-range media file, add base URL
 				byte_range_media_file
 				//otherwise if we have different location for HLS vs MPD url or if child playlist is not in same path as master HLS
-				|| (rel_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
+				|| (rel_url || variant_base_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
 			)) {
 				GF_MPD_BaseURL *url;
 				GF_SAFEALLOC(url, GF_MPD_BaseURL);
@@ -1999,9 +2028,11 @@ retry_import:
 					} else {
 						url->URL = gf_strdup(rel_url);
 					}
-				}
-				else
+				} else if (variant_base_url) {
+					url->URL = gf_strdup(variant_base_url);
+				} else {
 					url->URL = gf_strdup(elt->url);
+				}
 			}
 			if (rel_url) gf_free(rel_url);
 			//no longer needed
