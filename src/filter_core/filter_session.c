@@ -1489,6 +1489,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				}
 				if (!task) {
 					task = gf_fq_pop(fsess->tasks);
+					//if task is blocking, don't use it, let a secondary thread deal with it
 					if (task && task->blocking) {
 						gf_fq_add(fsess->tasks, task);
 						task = NULL;
