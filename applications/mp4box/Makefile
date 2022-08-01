@@ -24,7 +24,11 @@ endif
 ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
-LINKFLAGS+=$(shell pkg-config ../../gpac.pc --libs --static | sed 's/-lgpac //'  )
+ifneq ($(PKG_CONFIG), no)
+LINKFLAGS+=$(shell $(PKG_CONFIG) ../../gpac.pc --libs --static | sed 's/-lgpac //'  )
+else
+LINKFLAGS+= -lgpac_static
+endif
 LINKFLAGS+= $(GPAC_SH_FLAGS)
 LINKFLAGS+=$(EXTRALIBS)
 else
