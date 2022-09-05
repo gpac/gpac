@@ -936,7 +936,11 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	}
 
 	if (!ctx->ttml_root) {
-		ctx->ttml_root = gf_xml_dom_detach_root(dom);
+		root_global = gf_xml_dom_detach_root(dom);
+		if (root_global) {
+			if (gf_list_count(root_global->content) > 0) ctx->ttml_root = root_global;
+			else gf_free(root_global);
+		}
 		goto exit;
 	}
 	root_global = ctx->ttml_root;
@@ -954,6 +958,12 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 
 	body_pck = ttml_get_body(root_pck);
 	body_global = ttml_get_body(root_global);
+	if (body_pck && !body_global) {
+		gf_list_del_item(root_pck->content, body_pck);
+		gf_list_add(root_global->content, body_pck);
+		goto exit;
+	}
+
 	div_idx = 0;
 	nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
 	for (k=0; k<nb_children; k++) {
