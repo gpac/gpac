@@ -2085,6 +2085,7 @@ void dump_all_props(char *pname)
 		for (i=GF_PROP_FORBIDEN+1; i<GF_PROP_LAST_DEFINED; i++) {
 			if (i==GF_PROP_STRING_NO_COPY) continue;
 			if (i==GF_PROP_DATA_NO_COPY) continue;
+			if (i==GF_PROP_STRING_LIST_COPY) continue;
 			if ((i>=GF_PROP_LAST_NON_ENUM) && (i<GF_PROP_FIRST_ENUM)) continue;
 
 			if (gen_doc==2) {

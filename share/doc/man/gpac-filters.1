@@ -5651,6 +5651,12 @@ The pipe input can create the pipe if not found using .I mkp. On windows hosts, 
 .br
 On non windows hosts, the created pipe will delete the pipe file upon filter destruction.
 .br
+The pipe can be kept alive after a broken pipe is detected using .I ka. This is typically used when clients crash/exits and resumes.
+.br
+When a keep-alive pipe is broken, input data is discarded and the filter will keep trashing data as fast as possible.
+.br
+It is therefore recommended to use this mode with real-time inputs (use a reframer if needed).
+.br
 
 .br
 .SH Options (expert):
@@ -5671,6 +5677,8 @@ speed (dbl, default: 1.0):     set playback speed. If negative and start is 0, s
 mkp (bool, default: false):    create pipe if not found
 .br
 block_size (uint, default: 5000): buffer size used to write to pipe, windows only
+.br
+ka (bool, default: false):     keep pipe alive when broken pipe is detected
 .br
 
 .br
@@ -10584,7 +10592,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev254-g0102c5d4d-master
+build: 2.1-DEV-rev269-gb2e4ad812-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
