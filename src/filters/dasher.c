@@ -8434,6 +8434,7 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->starts_with_sap = sap_type;
 					}
 
+					seg_over = GF_TRUE;
 					if (ds == base_ds) {
 						base_ds->adjusted_next_seg_start = cts;
 					}
