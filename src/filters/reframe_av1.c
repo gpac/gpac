@@ -460,7 +460,6 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->cts = 0;
 		}
 		if (! ctx->is_file) {
-			ctx->buf_size = 0;
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -506,6 +505,7 @@ static Bool av1dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		//don't cancel event
 		ctx->is_playing = GF_FALSE;
 		ctx->cts = 0;
+		ctx->buf_size = 0;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
