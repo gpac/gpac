@@ -54,7 +54,7 @@ typedef struct
 	//options
 	Double start, speed;
 	char *dst, *mime, *ext;
-	Bool dynext, mkp;
+	Bool dynext, mkp, ka;
 	u32 block_size;
 
 
@@ -313,7 +313,7 @@ static GF_Err pipeout_process(GF_Filter *filter)
 {
 	GF_FilterPacket *pck;
 	const GF_PropertyValue *fname, *p;
-	Bool start, end;
+	Bool start, end, broken=GF_FALSE;
 	const char *pck_data;
 	u32 pck_size;
 	s32 nb_write;
@@ -383,11 +383,16 @@ static GF_Err pipeout_process(GF_Filter *filter)
 			if (! WriteFile(ctx->pipe, pck_data, pck_size, (LPDWORD) &nb_write, NULL)) {
 				nb_write = 0;
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: error %d\n", nb_write, pck_size, GetLastError() ));
+
+				if (GetLastError() == ERROR_BROKEN_PIPE)
+					broken = GF_TRUE;
 			}
 #else
 			nb_write = (s32) write(ctx->fd, pck_data, pck_size);
 			if (nb_write != pck_size) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, pck_size, gf_errno_str(errno)));
+				if (errno == EPIPE)
+					broken = GF_TRUE;
 			}
 #endif
 		} else if (hwf) {
@@ -426,11 +431,16 @@ static GF_Err pipeout_process(GF_Filter *filter)
 						if (!WriteFile(ctx->pipe, out_ptr, lsize, (LPDWORD) &nb_write, NULL)) {
 							nb_write = 0;
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %d\n", nb_write, pck_size, GetLastError()));
+
+							if (GetLastError() == ERROR_BROKEN_PIPE)
+								broken = GF_TRUE;
 						}
 #else
 						nb_write = (s32) write(ctx->fd, out_ptr, lsize);
 						if (nb_write != lsize) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Write error, wrote %d bytes but had %u to write: %s\n", nb_write, lsize, gf_errno_str(errno)));
+							if (errno == EPIPE)
+								broken = GF_TRUE;
 						}
 #endif
 						out_ptr += out_stride;
@@ -444,6 +454,12 @@ static GF_Err pipeout_process(GF_Filter *filter)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[PipeOut] Output file handle is not opened, discarding %d bytes\n", pck_size));
 	}
 	gf_filter_pid_drop_packet(ctx->pid);
+
+	if (broken && !ctx->ka) {
+		gf_filter_pid_set_discard(ctx->pid, GF_TRUE);
+		end = GF_TRUE;
+	}
+
 	if (end) {
 		pipeout_open_close(ctx, NULL, NULL, 0, GF_FALSE);
 	}
@@ -470,6 +486,7 @@ static const GF_FilterArgs PipeOutArgs[] =
 	{ OFFS(speed), "set playback speed. If negative and start is 0, start is set to -1", GF_PROP_DOUBLE, "1.0", NULL, 0},
 	{ OFFS(mkp), "create pipe if not found", GF_PROP_BOOL, "false", NULL, 0 },
 	{ OFFS(block_size), "buffer size used to write to pipe, windows only", GF_PROP_UINT, "5000", NULL, GF_FS_ARG_HINT_ADVANCED },
+	{ OFFS(ka), "keep pipe alive when broken pipe is detected", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -497,6 +514,10 @@ GF_FilterRegister PipeOutRegister = {
 		"\n"
 		"The pipe input can create the pipe if not found using [-mkp](). On windows hosts, this will create a pipe server.\n"
 		"On non windows hosts, the created pipe will delete the pipe file upon filter destruction."
+		"\n"
+		"The pipe can be kept alive after a broken pipe is detected using [-ka](). This is typically used when clients crash/exits and resumes.\n"
+		"When a keep-alive pipe is broken, input data is discarded and the filter will keep trashing data as fast as possible.\n"
+		"It is therefore recommended to use this mode with real-time inputs (use a [reframer](reframer) if needed)."
 	"")
 	.private_size = sizeof(GF_PipeOutCtx),
 	.args = PipeOutArgs,

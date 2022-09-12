@@ -1080,6 +1080,7 @@ restart:
 #else
 		signal(SIGINT, gpac_sig_handler);
 		signal(SIGTERM, gpac_sig_handler);
+		signal(SIGPIPE, gpac_sig_handler);
 #endif
 	}
 
