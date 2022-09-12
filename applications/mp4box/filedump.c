@@ -3358,9 +3358,9 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		fprintf(stderr, "\t3GPP DIMS stream - size %d x %d - Profile %d - Level %d\n", w, h, dims.profile, dims.level);
 		fprintf(stderr, "\tpathComponents: %d - useFullRequestHost: %s\n", dims.pathComponents, dims.fullRequestHost ? "yes" : "no");
 		fprintf(stderr, "\tstream type: %s - redundant: %s\n", dims.streamType ? "primary" : "secondary", (dims.containsRedundant==1) ? "main" : ((dims.containsRedundant==2) ? "redundant" : "main+redundant") );
-		if (dims.textEncoding[0]) fprintf(stderr, "\ttext encoding %s\n", dims.textEncoding);
-		if (dims.contentEncoding[0]) fprintf(stderr, "\tcontent encoding %s\n", dims.contentEncoding);
-		if (dims.content_script_types) fprintf(stderr, "\tscript languages %s\n", dims.content_script_types);
+		if (dims.textEncoding && dims.textEncoding[0]) fprintf(stderr, "\ttext encoding %s\n", dims.textEncoding);
+		if (dims.contentEncoding && dims.contentEncoding[0]) fprintf(stderr, "\tcontent encoding %s\n", dims.contentEncoding);
+		if (dims.content_script_types && dims.content_script_types[0]) fprintf(stderr, "\tscript languages %s\n", dims.content_script_types);
 	} else if (mtype==GF_ISOM_MEDIA_HINT) {
 		u32 refTrack;
 		s32 refCount = gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_HINT);
