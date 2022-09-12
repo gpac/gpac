@@ -8450,11 +8450,13 @@ static GF_Err dasher_process(GF_Filter *filter)
 			//- we have an asto set (low latency)
 			//- this is not an audio stream or all samples are SAPs
 			//- we use cues
+			//- we use strict_sap=intra mode
 			else if (seg_over && ds->nb_samples_in_source && !ctx->loop
 				&& (ds->nb_pck+1 == ds->nb_samples_in_source)
 				&& !ds->inband_cues && !ds->cues
 				&& !ctx->asto
 				&& ! ((ds->sync_points_type==DASHER_SYNC_NONE) && (ds->stream_type!=GF_STREAM_AUDIO))
+				&& (ctx->strict_sap!=DASHER_SAP_INTRA_ONLY)
 			) {
 				seg_over = GF_FALSE;
 			}
