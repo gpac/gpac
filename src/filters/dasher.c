@@ -78,6 +78,7 @@ enum
 	DASHER_SAP_OFF=0,
 	DASHER_SAP_SIG,
 	DASHER_SAP_ON,
+	DASHER_SAP_INTRA_ONLY,
 };
 
 enum
@@ -7982,6 +7983,9 @@ static GF_Err dasher_process(GF_Filter *filter)
 			dts = gf_filter_pck_get_dts(pck);
 			if (dts==GF_FILTER_NO_TS) dts = cts;
 
+			if ((ctx->strict_sap==DASHER_SAP_INTRA_ONLY) && (sap_type>=4))
+				sap_type = 0;
+
 			pcont_cts = cts;
 
 			if (!ds->rep_init) {
@@ -8430,7 +8434,6 @@ static GF_Err dasher_process(GF_Filter *filter)
 							ds->set->starts_with_sap = sap_type;
 					}
 
-					seg_over = GF_TRUE;
 					if (ds == base_ds) {
 						base_ds->adjusted_next_seg_start = cts;
 					}
@@ -9383,7 +9386,7 @@ static const GF_FilterCapability DasherCaps[] =
 #define OFFS(_n)	#_n, offsetof(GF_DasherCtx, _n)
 static const GF_FilterArgs DasherArgs[] =
 {
-	{ OFFS(segdur), "target segment duration in seconds. A value less than or equal to 0 means to 1.0 second", GF_PROP_FRACTION, "0/0", NULL, 0},
+	{ OFFS(segdur), "target segment duration in seconds. A value less than or equal to 0 defaults to 1.0 second", GF_PROP_FRACTION, "0/0", NULL, 0},
 	{ OFFS(tpl), "use template mode (multiple segment, template URLs)", GF_PROP_BOOL, "true", NULL, 0},
 	{ OFFS(stl), "use segment timeline (ignored in on_demand mode)", GF_PROP_BOOL, "false", NULL, 0},
 	{ OFFS(dmode), "dash content mode\n"
@@ -9472,7 +9475,9 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(strict_sap), "strict mode for sap\n"
 	"- off: ignore SAP types for PID other than video, enforcing _startsWithSAP=1_\n"
 	"- sig: same as [-off]() but keep _startsWithSAP_ to the true SAP value\n"
-	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile", GF_PROP_UINT, "off", "off|sig|on", GF_FS_ARG_HINT_EXPERT},
+	"- on: warn if any PID uses SAP 3 or 4 and switch to FULL profile\n"
+	"- intra: ignore SAP types greater than 3 on all media types"
+	, GF_PROP_UINT, "off", "off|sig|on|intra", GF_FS_ARG_HINT_EXPERT},
 
 	{ OFFS(subs_sidx), "number of subsegments per sidx. negative value disables sidx. Only used to inherit sidx option of destination", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(cmpd), "skip line feed and spaces in MPD XML for compactness", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
