@@ -1730,6 +1730,7 @@ GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 	if (!co64->offsets) return GF_OUT_OF_MEM;
 	co64->offsets[co64->nb_entries] = offset;
 	co64->alloc_size = co64->nb_entries;
+        co64->nb_entries += 1;
 	return GF_OK;
 }
 
