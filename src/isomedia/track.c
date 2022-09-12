@@ -441,6 +441,17 @@ GF_TrunEntry *traf_get_sample_entry(GF_TrackFragmentBox *traf, u32 sample_index)
 }
 #endif
 
+static u32 saio_get_index(GF_TrackFragmentBox *traf, u32 sample_idx)
+{
+	u32 k, all_samples=0, saio_idx=0;
+	for (k=0; k<gf_list_count(traf->TrackRuns); k++) {
+		GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, k);
+		all_samples+=trun->nb_samples;
+		if (sample_idx<all_samples) break;
+		saio_idx++;
+	}
+	return saio_idx;
+}
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragmentBox *moof_box, u64 moof_offset, s32 compressed_diff, u64 *cumulated_offset)
 {
@@ -1086,8 +1097,13 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 					const u8 *key_info=NULL;
 					u32 key_info_size, samp_num;
 					u64 cur_position;
-					if (nb_saio != 1)
-						offset = saio->offsets[i] + moof_offset;
+					if (nb_saio != 1) {
+						u32 saio_idx = saio_get_index(traf, i);
+						if (saio_idx>=saio->entry_count)
+							return GF_ISOM_INVALID_FILE;
+
+						offset = saio->offsets[saio_idx] + moof_offset;
+					}
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
 					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
@@ -1135,8 +1151,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 
 					e = gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, samp_num, offset, size);
 					if (e) return e;
-					if (nb_saio == 1)
-						offset += size;
+					//always increment size even for saio.nb_entries>1
+					offset += size;
 				}
 			}
 		} else if (traf->sample_encryption) {
@@ -1181,16 +1197,22 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 		}
 		u64 offset = saio->offsets[0] + moof_offset;
 		u32 nb_saio = saio->entry_count;
-		if ((nb_saio>1) && (saio->entry_count != saiz->sample_count)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of size and offset mismatch in auxiliary type %s aux info type %d, cannot merge SAI\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+		if ((nb_saio>1) && (saio->entry_count != gf_list_count(traf->TrackRuns))) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of SAI offset does not match number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
 			continue;
 		}
 
 		u32 sai_max_size=0;
 		u8 *sai = NULL;
 		for (j=0; j < saiz->sample_count; j++) {
-			if (nb_saio != 1)
+			if (nb_saio != 1) {
+				u32 saio_idx = saio_get_index(traf, i);
+				if (saio_idx>=saio->entry_count) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Number of offset less than number of fragments, cannot merge SAI %s aux info type %d\n", gf_4cc_to_str(saiz->aux_info_type), saiz->aux_info_type_parameter));
+					break;
+				}
 				offset = saio->offsets[j] + moof_offset;
+			}
 			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 
 			u64 cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
@@ -1210,8 +1232,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_MovieFragment
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] Failed to merge sai data: %s\n", gf_error_to_string(e) ));
 			}
 
-			if (nb_saio == 1)
-				offset += size;
+			//always increment size even for saio.nb_entries>1
+			offset += size;
 		}
 		if (sai) gf_free(sai);
 	}
