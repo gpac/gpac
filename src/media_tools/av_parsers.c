@@ -8995,12 +8995,12 @@ block:
 	fscod = gf_bs_read_int_log(bs, 2, "fscod");
 	if (fscod == 0x3) {
 		fscod = gf_bs_read_int_log(bs, 2, "fscod2");
-		numblkscod += 6;
+		numblkscod = 3;
 	}
 	else {
-		numblkscod += gf_bs_read_int_log(bs, 2, "numblkscod");
+		numblkscod = gf_bs_read_int_log(bs, 2, "numblkscod");
 	}
-	assert(numblkscod <= 9);
+	assert(numblkscod <= 3);
 
 
 	if ((hdr->substreams >> substreamid) & 0x1) {
