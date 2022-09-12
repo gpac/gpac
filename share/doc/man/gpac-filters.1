@@ -5166,7 +5166,7 @@ The segmenter adds the following properties to the output PIDs:
 .SH Options (expert):
 .LP
 .br
-segdur (frac, default: 0/0):   target segment duration in seconds. A value less than or equal to 0 means to 1.0 second
+segdur (frac, default: 0/0):   target segment duration in seconds. A value less than or equal to 0 defaults to 1.0 second
 .br
 tpl (bool, default: true):     use template mode (multiple segment, template URLs)
 .br
@@ -5353,6 +5353,8 @@ strict_sap (enum, default: off): strict mode for sap
 * sig: same as .I off but keep _startsWithSAP_ to the true SAP value
 .br
 * on: warn if any PID uses SAP 3 or 4 and switch to FULL profile
+.br
+* intra: ignore SAP types greater than 3 on all media types
 .br
 
 .br
@@ -10592,7 +10594,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev269-gb2e4ad812-master
+build: 2.1-DEV-rev270-g291513361-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
