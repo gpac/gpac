@@ -5607,7 +5607,14 @@ Bool gf_isom_sample_is_fragment_start(GF_ISOFile *movie, u32 trackNumber, u32 sa
 	return GF_FALSE;
 }
 
-
+GF_EXPORT
+Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *movie, u64 *start, u64 *end)
+{
+	if (!movie || !start || !end) return GF_FALSE;
+	*start = movie->root_sidx_start_offset;
+	*end = movie->root_sidx_end_offset;
+	return GF_TRUE;
+}
 
 
 GF_EXPORT

@@ -7217,7 +7217,14 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 		if (ctx->gencues) return;
 
 		if (ctx->sigfrag) {
-			const GF_PropertyValue *p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SIDX_RANGE);
+			Bool has_root_sidx = GF_TRUE;
+			const GF_PropertyValue *p = gf_filter_pid_get_property(ds->ipid, GF_PROP_PCK_SIDX_RANGE);
+			if (!p) {
+				p = gf_filter_pck_get_property(in_pck, GF_PROP_PCK_SIDX_RANGE);
+				has_root_sidx = GF_FALSE;
+			}
+
+
 			if (p) {
 				if (ds->rep->segment_base && !ds->rep->segment_base->index_range) {
 					GF_SAFEALLOC(ds->rep->segment_base->index_range, GF_MPD_ByteRange);
@@ -7237,7 +7244,7 @@ static void dasher_mark_segment_start(GF_DasherCtx *ctx, GF_DashStream *ds, GF_F
 							ds->rep->segment_base->initialization_segment->byte_range->end_range = p->value.lfrac.num-1;
 						}
 					}
-				} else {
+				} else if (!has_root_sidx) {
 					ctx->in_error = GF_TRUE;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[Dasher] Several SIDX found but trying to regenerate an on-demand MPD, source file is not compatible. Try re-dashing the content or use main or full profiles\n"));
 				}

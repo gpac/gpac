@@ -910,6 +910,14 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 				}
 			}
 		}
+
+		if (read->sigfrag) {
+			u64 start, end;
+			if (gf_isom_get_root_sidx_offsets(read->mov, &start, &end)) {
+				if (end)
+					gf_filter_pid_set_property(ch->pid, GF_PROP_PCK_SIDX_RANGE, &PROP_FRAC64_INT(start , end));
+			}
+		}
 	}
 
 	//update decoder configs
