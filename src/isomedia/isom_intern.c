@@ -218,7 +218,8 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 
 			while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
 				u32 i;
-				trun->flags |= GF_ISOM_TRUN_FLAGS;
+				if (! (trun->flags & GF_ISOM_TRUN_FIRST_FLAG))
+					trun->flags |= GF_ISOM_TRUN_FLAGS;
 				for (i=0; i<trun->nb_samples; i++) {
 					GF_TrunEntry *entry = &trun->samples[i];
 					const u8 info = traf->sdtp->sample_info[sample_index];
@@ -610,7 +611,10 @@ static GF_Err gf_isom_parse_movie_boxes_internal(GF_ISOFile *mov, u32 *boxType, 
 					mov->root_sidx = (GF_SegmentIndexBox *) a;
 					mov->sidx_start_offset = mov->current_top_box_start;
 					mov->sidx_end_offset = gf_bs_get_position(mov->movieFileMap->bs);
-
+					if (!mov->root_sidx_end_offset) {
+						mov->root_sidx_end_offset = mov->sidx_end_offset;
+						mov->root_sidx_start_offset = mov->sidx_start_offset;
+					}
 				}
 				else if (a->type==GF_ISOM_BOX_TYPE_STYP) {
 					mov->styp_start_offset = mov->current_top_box_start;

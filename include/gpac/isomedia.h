@@ -4097,6 +4097,13 @@ This is mostly used to recreate identical segment information when refragmenting
 \param isom_file the target ISO file
 */
 void gf_isom_enable_traf_map_templates(GF_ISOFile *isom_file);
+/*! get byte range of root sidx if any
+\param isom_file the target ISO file
+\param start set to start offset (0=first byte) of the root sidx
+\param end set to end offset (0 if no sidx) of the root sidx
+\return true if success
+*/
+Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *movie, u64 *start, u64 *end);
 
 /*! Segment boundary information*/
 typedef struct
