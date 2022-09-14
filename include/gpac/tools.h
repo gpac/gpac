@@ -1074,7 +1074,18 @@ GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *blob
  */
 GF_Err gf_blob_release(const char *blob_url);
 
+/*!
+ * Registers a new blob
+\param blob  blob object
+\return URL of blob object (ie gmem://%p), must be freed by user
+ */
+char *gf_blob_register(GF_Blob *blob);
 
+/*!
+ * Unegisters a blob. This must be called before destroying a registered blob
+\param blob  blob object
+ */
+void gf_blob_unregister(GF_Blob *blob);
 
 /*!
 \brief Portable getch()

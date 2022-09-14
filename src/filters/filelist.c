@@ -765,7 +765,7 @@ static void push_chapter(GF_FileListCtx *ctx, char *chap_name)
 
 	ctx->chap_times.vals = gf_realloc(ctx->chap_times.vals, sizeof(u32)*(ctx->chap_times.nb_items+1));
 	ctx->chap_names.vals = gf_realloc(ctx->chap_names.vals, sizeof(char*)*(ctx->chap_names.nb_items+1));
-	ctx->chap_times.vals[ctx->chap_times.nb_items] = start;
+	ctx->chap_times.vals[ctx->chap_times.nb_items] = (u32) start;
 	ctx->chap_names.vals[ctx->chap_names.nb_items] = gf_strdup(chap_name);
 	ctx->chap_times.nb_items++;
 	ctx->chap_names.nb_items++;

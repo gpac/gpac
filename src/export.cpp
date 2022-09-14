@@ -346,6 +346,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_ntohl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ntohs) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_blob_register) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_blob_unregister) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_blob_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_blob_release) )
 

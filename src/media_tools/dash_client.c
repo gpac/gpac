@@ -5541,7 +5541,6 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 				if (init_in_base) {
-					char szName[100];
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 					if (!rep->segment_list->initialization_segment) {
 						e = GF_OUT_OF_MEM;
@@ -5565,8 +5564,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
 						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
 
-						sprintf(szName, "gmem://%p", &rep->playback.init_segment);
-						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+						rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
                         gf_blob_release(cache_name);
 					} else {
@@ -5580,8 +5578,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
-								sprintf(szName, "gmem://%p", &rep->playback.init_segment);
-								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+								rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 							}
 						}
