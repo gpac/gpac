@@ -169,6 +169,13 @@ typedef unsigned int size_t;
 
 #define snprintf _snprintf
 
+/*	the _USING_V110_SDK71_ macro will be defined when using
+	msvc toolsets like v140_xp, v141_xp, etc.
+*/
+#if (WINVER <= 0x0502 || _USING_V110_SDK71_)
+#define GPAC_BUILD_FOR_WINXP
+#endif
+
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/
 

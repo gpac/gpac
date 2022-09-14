@@ -68,6 +68,55 @@ The thread object allows executing some code independently of the main process o
 #include <windows.h>
 #include <winbase.h>
 
+
+#ifdef GPAC_BUILD_FOR_WINXP
+
+/* Addendum by M. Lackner: Wrap InterlockedExchangeAdd64() around
+   InterlockedCompareExchange64() and name it specifically as an XP
+   function for 32-bit builds only */
+#ifndef GPAC_64_BITS
+#pragma intrinsic(_InterlockedCompareExchange64)
+#define InterlockedCompareExchange64xp _InterlockedCompareExchange64
+static inline LONGLONG InterlockedExchangeAdd64xp(_Inout_ LONGLONG volatile *Addend, _In_ LONGLONG Value)
+{
+	LONGLONG Old;
+	do {
+		Old = *Addend;
+	} while (InterlockedCompareExchange64xp(Addend, Old + Value, Old) != Old);
+	return Old;
+}
+#endif
+/* End of addendum */
+
+
+/*! atomic integer increment */
+#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
+/*! atomic integer decrement */
+#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
+/*! atomic integer addition */
+
+/* Modified by M. Lackner for XP & XP x64 compatibility */
+/* InterlockedAdd and InterlockedAdd64 do not exist on Win XP, so we use
+the older InterlockedExchangeAdd and a newly written InterlockedExchangeAdd64xp
+static inline function.
+See:
+https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexchangeadd
+https://docs.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedexchangeadd64
+*/
+
+#define safe_int_add(__v, inc_val) InterlockedExchangeAdd((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) InterlockedExchangeAdd((int *) (__v), -dec_val)
+#ifdef GPAC_64_BITS
+#define safe_int64_add(__v, inc_val) InterlockedExchangeAdd64((LONGLONG *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) InterlockedExchangeAdd64((LONGLONG *) (__v), -dec_val)
+#else
+#define safe_int64_add(__v, inc_val) InterlockedExchangeAdd64xp((LONGLONG *) (__v), inc_val)
+#define safe_int64_sub(__v, dec_val) InterlockedExchangeAdd64xp((LONGLONG *) (__v), -dec_val)
+#endif
+/* End of modification by M. Lackner */
+
+#else //not winxp
+
 /*! atomic integer increment */
 #define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
 /*! atomic integer decrement */
@@ -81,7 +130,9 @@ The thread object allows executing some code independently of the main process o
 /*! atomic large integer subtraction */
 #define safe_int64_sub(__v, dec_val) InterlockedAdd64((LONG64 *) (__v), -dec_val)
 
-#else
+#endif //winxp
+
+#else //not windows
 
 #ifdef GPAC_NEED_LIBATOMIC
 
