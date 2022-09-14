@@ -490,7 +490,11 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		entry->cache_blob.mx = mx;
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
-		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
+		char *burl = gf_blob_register(&entry->cache_blob);
+		if (burl) {
+			strcpy(entry->cache_filename, burl);
+			gf_free(burl);
+		}
 		return entry;
 	}
 
@@ -664,7 +668,11 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		}
 		entry->cache_blob.data = entry->mem_storage;
 		entry->cache_blob.size = entry->contentLength;
-		sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
+		char *burl = gf_blob_register(&entry->cache_blob);
+		if (burl) {
+			strcpy(entry->cache_filename, burl);
+			gf_free(burl);
+		}
 		gf_mx_v(entry->cache_blob.mx);
 
 		if (!entry->mem_allocated) {
@@ -711,7 +719,11 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 			entry->mem_allocated = new_size;
 			entry->cache_blob.data = entry->mem_storage;
 			entry->cache_blob.size = entry->contentLength;
-			sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
+			char *burl = gf_blob_register(&entry->cache_blob);
+			if (burl) {
+				strcpy(entry->cache_filename, burl);
+				gf_free(burl);
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
 		}
 		memcpy(entry->mem_storage + entry->written_in_cache, data, size);
@@ -812,6 +824,13 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free ( entry->cache_filename );
 		entry->cache_filename = NULL;
 	}
+	gf_blob_unregister(&entry->cache_blob);
+
+	if (entry->external_blob) {
+		gf_blob_unregister(entry->external_blob);
+		entry->external_blob = NULL;
+	}
+
 	if ( entry->properties ) {
 		const char * propfile = NULL;
 		if (entry->deletableFilesOnDelete)
@@ -1021,6 +1040,10 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
 
     if (!blob) {
         entry->flags = DELETED;
+        if (entry->external_blob) {
+			gf_blob_unregister(entry->external_blob);
+			entry->external_blob = NULL;
+		}
         return GF_TRUE;
     }
     if (blob->mx)
@@ -1029,8 +1052,14 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
     if (!copy) {
         if (entry->mem_allocated) gf_free(entry->mem_storage);
 		entry->mem_storage = (u8 *) blob->data;
-        if (!entry->written_in_cache)
-            sprintf(entry->cache_filename, "gmem://%p", blob);
+        if (!entry->written_in_cache) {
+			char *burl = gf_blob_register(blob);
+			if (burl) {
+				strcpy(entry->cache_filename, burl);
+				gf_free(burl);
+			}
+		}
+
 		entry->written_in_cache = blob->size;
 		entry->mem_allocated = 0;
 		entry->cache_blob.data = NULL;
@@ -1049,8 +1078,13 @@ Bool gf_cache_set_content(const DownloadedCacheEntry entry, GF_Blob *blob, Bool 
             entry->mem_allocated = new_size;
             entry->cache_blob.data = entry->mem_storage;
             entry->cache_blob.size = entry->contentLength;
-            if (!entry->written_in_cache)
-                sprintf(entry->cache_filename, "gmem://%p", &entry->cache_blob);
+            if (!entry->written_in_cache) {
+				char *burl = gf_blob_register(&entry->cache_blob);
+				if (burl) {
+					strcpy(entry->cache_filename, burl);
+					gf_free(burl);
+				}
+            }
             GF_LOG(GF_LOG_DEBUG, GF_LOG_CACHE, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
         }
         memcpy(entry->mem_storage, blob->data, blob->size);

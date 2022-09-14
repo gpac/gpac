@@ -2262,14 +2262,17 @@ static u32 gpac_unit_tests(GF_MemTrackerType mem_track)
 	memset(&b, 0, sizeof(GF_Blob));
 	b.data = (u8 *) "test";
 	b.size = 5;
-	char url[100];
+	char url[100], *burl;
 	u8 *data;
 	u32 size;
-	sprintf(url, "gmem://%p", &b);
 
+	burl = gf_blob_register(&b);
 	gf_sys_profiler_set_callback(NULL, NULL);
 
-	gf_blob_get(url, &data, &size, NULL);
+	gf_blob_get(burl, &data, &size, NULL);
+	gf_blob_unregister(&b);
+	gf_free(burl);
+
 	if (!data || strcmp((char *)data, "test")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[CoreUnitTests] blob url parsing fail\n"));
 		return 1;

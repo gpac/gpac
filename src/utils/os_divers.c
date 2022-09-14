@@ -1220,6 +1220,77 @@ Bool gf_sys_profiler_sampling_enabled()
 	return GF_FALSE;
 }
 
+#include <gpac/list.h>
+GF_List *all_blobs = NULL;
+
+GF_EXPORT
+GF_Err gf_blob_get(const char *blob_url, u8 **out_data, u32 *out_size, u32 *out_flags)
+{
+	GF_Blob *blob = NULL;
+	if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+	if (!blob)
+		return GF_BAD_PARAM;
+	if (gf_list_find(all_blobs, blob)<0)
+		return GF_URL_REMOVED;
+	if (blob->data && blob->mx)
+		gf_mx_p(blob->mx);
+	if (out_data) *out_data = blob->data;
+	if (out_size) *out_size = blob->size;
+	if (out_flags) *out_flags = blob->flags;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_blob_release(const char *blob_url)
+{
+    GF_Blob *blob = NULL;
+    if (strncmp(blob_url, "gmem://", 7)) return GF_BAD_PARAM;
+    if (sscanf(blob_url, "gmem://%p", &blob) != 1) return GF_BAD_PARAM;
+    if (!blob)
+		return GF_BAD_PARAM;
+	if (gf_list_find(all_blobs, blob)<0)
+		return GF_URL_REMOVED;
+    if (blob->data && blob->mx)
+        gf_mx_v(blob->mx);
+    return GF_OK;
+}
+
+GF_EXPORT
+char *gf_blob_register(GF_Blob *blob)
+{
+	char szPath[200];
+	if (!blob) return NULL;
+	sprintf(szPath, "gmem://%p", blob);
+	if (!all_blobs) {
+		all_blobs = gf_list_new();
+	} else {
+		gf_list_del_item(all_blobs, blob);
+	}
+	gf_list_add(all_blobs, blob);
+
+	return gf_strdup(szPath);
+}
+
+GF_EXPORT
+void gf_blob_unregister(GF_Blob *blob)
+{
+	if (!blob) return;
+	if (all_blobs) gf_list_del_item(all_blobs, blob);
+}
+
+GF_Blob *gf_blob_from_url(const char *blob_url)
+{
+	GF_Blob *blob = NULL;
+	if (strncmp(blob_url, "gmem://", 7)) return NULL;
+	if (sscanf(blob_url, "gmem://%p", &blob) != 1) return NULL;
+	if (!blob)
+		return NULL;
+	if (gf_list_find(all_blobs, blob)<0)
+		return NULL;
+	return blob;
+}
+
 void gf_init_global_config(const char *profile);
 void gf_uninit_global_config(Bool discard_config);
 
@@ -1485,6 +1556,10 @@ void gf_sys_close()
 		gpac_argv = NULL;
 		memory_at_gpac_startup = 0;
 		gpac_test_mode = gpac_old_arch = gpac_discard_config = GF_FALSE;
+
+		gf_list_del(all_blobs);
+		all_blobs = NULL;
+
 	}
 }
 

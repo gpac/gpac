@@ -1241,17 +1241,21 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
 
 	if (ptr->playback.cached_init_segment_url) {
+		//free blob created to hold base64 embedded data
 		if (ptr->playback.owned_gmem && !strnicmp(ptr->playback.cached_init_segment_url, "gmem://", 7)) {
-			u32 size;
-			char *mem_address;
-			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%d@%p", &size, &mem_address) != 2) {
-				assert(0);
+			GF_Blob *mem_blob;
+			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%p", &mem_blob) == 1) {
+				gf_blob_unregister(mem_blob);
+				if (mem_blob->data) gf_free(mem_blob->data);
+				gf_free(mem_blob);
 			}
-			gf_free(mem_address);
 		}
 		gf_free(ptr->playback.cached_init_segment_url);
 	}
-	if (ptr->playback.init_segment.data) gf_free(ptr->playback.init_segment.data);
+	if (ptr->playback.init_segment.data) {
+		gf_blob_unregister(&ptr->playback.init_segment);
+		gf_free(ptr->playback.init_segment.data);
+	}
 	if (ptr->playback.key_url) gf_free(ptr->playback.key_url);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
@@ -5763,7 +5767,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 			while (gf_list_count(set->representations)>1) {
 				FILE *f = gf_file_temp(NULL);
 				u32 size;
-				char *data, szAdd[100];
+				char *data, *blob_add;
 				GF_Blob blob;
 				GF_DOMParser *dom;
 				GF_XMLNode *root;
@@ -5788,18 +5792,22 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				gf_fseek(f, 0, SEEK_SET);
 				size = (u32) gf_fread(data, size, f);
 				data[size]=0;
+
 				memset(&blob, 0, sizeof(GF_Blob));
 				blob.data = data;
 				blob.size = size;
-				sprintf(szAdd, "gmem://%p", &blob);
+
+				blob_add = gf_blob_register(&blob);
 
 				//parse
 				dom = gf_xml_dom_new();
-				gf_xml_dom_parse(dom, szAdd, NULL, NULL);
+				gf_xml_dom_parse(dom, blob_add, NULL, NULL);
 				root = gf_xml_dom_get_root(dom);
 				gf_mpd_parse_adaptation_set(mpd, new_as, root);
 				gf_xml_dom_del(dom);
 				gf_free(data);
+				if (blob_add) gf_free(blob_add);
+				gf_blob_unregister(&blob);
 				gf_fclose(f);
 
 				

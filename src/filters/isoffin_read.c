@@ -515,7 +515,10 @@ static void isoffin_finalize(GF_Filter *filter)
 	read->mov = NULL;
 
 	if (read->mem_blob.data) gf_free(read->mem_blob.data);
-	if (read->mem_url) gf_free(read->mem_url);
+	if (read->mem_url) {
+		gf_blob_unregister(&read->mem_blob);
+		gf_free(read->mem_url);
+	}
 }
 
 void isor_declare_pssh(ISOMChannel *ch)
@@ -1042,9 +1045,7 @@ static void isoffin_push_buffer(GF_Filter *filter, ISOMReader *read, const u8 *p
 	GF_Err e;
 
 	if (!read->mem_url) {
-		char szPath[200];
-		sprintf(szPath, "gmem://%p", &read->mem_blob);
-		read->mem_url = gf_strdup(szPath);
+		read->mem_url = gf_blob_register(&read->mem_blob);
 	}
 	read->mem_blob.data = gf_realloc(read->mem_blob.data, read->mem_blob.size + data_size);
 	memcpy(read->mem_blob.data + read->mem_blob.size, pck_data, data_size);
