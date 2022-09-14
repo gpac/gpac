@@ -218,8 +218,10 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 
 			while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
 				u32 i;
-				if (! (trun->flags & GF_ISOM_TRUN_FIRST_FLAG))
-					trun->flags |= GF_ISOM_TRUN_FLAGS;
+				//use sample flags
+				trun->flags |= GF_ISOM_TRUN_FLAGS;
+				//remove first sample flag (cannot be used with sample flags)
+				trun->flags &= ~GF_ISOM_TRUN_FIRST_FLAG;
 				for (i=0; i<trun->nb_samples; i++) {
 					GF_TrunEntry *entry = &trun->samples[i];
 					const u8 info = traf->sdtp->sample_info[sample_index];
