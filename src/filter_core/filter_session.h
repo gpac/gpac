@@ -505,6 +505,9 @@ struct __gf_filter_session
 	void *rt_udta;
 	Bool force_main_thread_tasks;
 
+	void *ext_gl_udta;
+	gf_fs_gl_activate ext_gl_callback;
+
 #ifdef GF_FS_ENABLE_LOCALES
 	GF_List *uri_relocators;
 	GF_FSLocales locales;
@@ -529,7 +532,7 @@ typedef struct
 
 #ifndef GPAC_DISABLE_3D
 GF_Err gf_fs_check_gl_provider(GF_FilterSession *session);
-GF_Err gf_fs_set_gl(GF_FilterSession *session);
+GF_Err gf_fs_set_gl(GF_FilterSession *session, Bool do_activate);
 #endif
 
 typedef enum

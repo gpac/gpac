@@ -621,7 +621,7 @@ FilterPacket new_packet();
 /*! creates a new output packet using string as payload
 \param str the string to use
 \param use_shared creates a shared packet, holding a GC reference to the string until release - see gf_filter_pck_new_shared
-\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function takes no parameter and uses the pid as this object
+\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function has two parameters pid (output pid of the packet destroyed) and packet (the packet destroyed)
 \return new packet or null*/
 FilterPacket new_packet(DOMString str, optional boolean use_shared=false, optional function destroy_callback_fun=null);
 
@@ -633,7 +633,7 @@ FilterPacket new_packet(unsigned long size);
 /*! creates a new output packet using ArrayBuffer as payload
 \param ab the ArrayBuffer to use (views are also allowed)
 \param use_shared creates a shared packet, holding a GC reference to the array buffer until release - see gf_filter_pck_new_shared
-\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function takes no parameter and uses the pid as this object
+\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function has two parameters pid (output pid of the packet destroyed) and packet (the packet destroyed)
 \return new packet or null*/
 FilterPacket new_packet(ArrayBuffer ab, optional boolean use_shared=false, optional function destroy_callback_fun=null);
 
@@ -650,10 +650,19 @@ FilterPacket new_packet(FilterPacket pck, optional boolean use_shared=false, opt
 /*! creates a new output packet from a source packet
 \param pck the source packet to use
 \param use_shared creates a shared packet - see gf_filter_pck_new_shared
-\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function takes no parameter and uses the pid as this object. Ignored if use_shared is false
+\param destroy_callback_fun when shared mode is used, specify a callback function to be used upon destruction of the packet. The function has two parameters pid (output pid of the packet destroyed) and packet (the packet destroyed). Ignored if use_shared is false
 \return new packet or null
 */
-FilterPacket new_packet(FilterPacket pck, optional boolean use_shared=false, optional function destroy_callback_fun=false);
+FilterPacket new_packet(FilterPacket pck, optional boolean use_shared=false, optional function destroy_callback_fun=null);
+
+
+/*! creates a new output packet for OpenGL texture interface
+\param fetch_texture_fun specify a callback function to use to fetch textures. The function has three parameters pid (output pid of the packet queried), packet (the packet queried) and plane_index (the plane/texture index). The function shall return null if error, or an object with attributes "id" (a WebGL texture or openGL texture identifier) and "fmt" (openGL texture format, e.g. GL_TEXTURE_2D).
+\param destroy_callback_fun specify a callback function to be used upon destruction of the packet. The function has two parameters pid (output pid of the packet destroyed) and packet (the packet destroyed).
+\param is_blocking indicates if this frame is blocking (filter cannot dispatch new frame until this frame is destroyed)
+\return new packet or null
+*/
+FilterPacket new_packet(function fetch_texture_fun, optional function destroy_callback_fun=null, optional boolean is_blocking=false);
 
 
 /*! forwards a source packet to outout - see \ref gf_filter_pck_forward
@@ -719,6 +728,9 @@ readonly attribute ArrayBuffer data;
 
 /*! set to true if data of the packet is available through a GF_FilterFrameInterface object*/
 readonly attribute boolean frame_ifce;
+
+/*! set to true if data of the packet is available through a GF_FilterFrameInterface object on openGL textures*/
+readonly attribute boolean frame_ifce_gl;
 
 /*! set to true if packet has properties other than default ones - see gf_filter_pck_has_properties*/
 readonly attribute boolean has_properties;
@@ -805,7 +817,7 @@ void copy_props(FilterPacket from);
 
 The resulting packet is in read/write mode and may have its own memory allocated.
 This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-The resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+The resulting packet can be explicitly discarded using \ref discard, otherwise will be garbage collected.
 
 \param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
 \return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)

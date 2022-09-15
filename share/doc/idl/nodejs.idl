@@ -1055,7 +1055,7 @@ void discard();
 /*! creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
 The resulting packet is read/write mode and may have its own memory allocated.
 This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+the resulting packet can be explicitly discarded using \ref discard, otherwise will be garbage collected.
 \param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
 \return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
 */
