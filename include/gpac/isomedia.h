@@ -1110,7 +1110,7 @@ u32 gf_isom_get_max_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 \param trackNumber the target track
 \return average  sample delta in media timescale
 */
-u32 gf_isom_get_avg_sample_delta(GF_ISOFile *the_file, u32 trackNumber);
+u32 gf_isom_get_avg_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! gets max sample CTS offset (CTS-DTS) in track
 \param isom_file the target ISO file
@@ -4103,7 +4103,7 @@ void gf_isom_enable_traf_map_templates(GF_ISOFile *isom_file);
 \param end set to end offset (0 if no sidx) of the root sidx
 \return true if success
 */
-Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *movie, u64 *start, u64 *end);
+Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *isom_file, u64 *start, u64 *end);
 
 /*! Segment boundary information*/
 typedef struct
