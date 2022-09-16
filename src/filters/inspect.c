@@ -3205,7 +3205,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-	if (p) inspect_printf(dump, " language \"%s\"", p->value.string);
+	if (p && stricmp(p->value.string, "und")) inspect_printf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
@@ -4207,14 +4207,6 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!pctx) return GF_OUT_OF_MEM;
 	if (ctx->analyze)
 		pctx->bs = gf_bs_new((u8 *)pctx, 0, GF_BITSTREAM_READ);
-	if (!ctx->buffer) {
-		pctx->buffer_done = GF_TRUE;
-	} else {
-		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
-		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
-		evt.buffer_req.pid_only = GF_TRUE;
-		gf_filter_pid_send_event(pid, &evt);
-	}
 
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
@@ -4224,6 +4216,18 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->stream_type = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	pctx->codec_id = p ? p->value.uint : 0;
+
+	if (!ctx->buffer) {
+		pctx->buffer_done = GF_TRUE;
+	} else {
+		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
+		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+		//if pid is decoded media, don't ask for buffer requirement on pid, set it at decoder level
+		evt.buffer_req.pid_only = gf_filter_pid_has_decoder(pid) ? GF_FALSE : GF_TRUE;
+		gf_filter_pid_send_event(pid, &evt);
+	}
+
+
 
 	w = h = sr = ch = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);

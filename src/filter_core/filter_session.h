@@ -1019,6 +1019,7 @@ struct __gf_filter_pid
 	GF_Filter *caps_dst_filter;
 
 	Bool ext_not_trusted;
+	Bool user_buffer_forced;
 
 	Bool require_source_id;
 	//only used in filter_check_caps

@@ -3494,7 +3494,8 @@ typedef enum
 {
 	/*! statistics are fetched on the current PID's parent filter. If the PID is an output PID, the statistics are fetched on all the destinations for that PID*/
 	GF_STATS_LOCAL = 0,
-	/*! statistics are fetched on the current PID's parent filter. The statistics are fetched on all input of the parent filter*/
+	/*! statistics are fetched on the current PID's parent filter. The statistics are fetched on all input of the parent filter
+	If the pid is an output pid, this is equivalent to GF_STATS_LOCAL*/
 	GF_STATS_LOCAL_INPUTS,
 	/*! statistics are fetched on all inputs of the next decoder filter up the chain (towards the sink)*/
 	GF_STATS_DECODER_SINK,
@@ -3503,7 +3504,9 @@ typedef enum
 	/*! statistics are fetched on all inputs of the next encoder filter up the chain (towards the sink)*/
 	GF_STATS_ENCODER_SINK,
 	/*! statistics are fetched on all inputs of the previous encoder filter down the chain (towards the source)*/
-	GF_STATS_ENCODER_SOURCE
+	GF_STATS_ENCODER_SOURCE,
+	/*! statistics are fetched on all inputs of the next sink filter of the chain*/
+	GF_STATS_SINK
 } GF_FilterPidStatsLocation;
 
 /*! Gets statistics for the PID
@@ -3893,6 +3896,12 @@ GF_Err gf_filter_pid_ignore_blocking(GF_FilterPid *PID, Bool do_ignore);
 */
 u64 gf_filter_pid_get_next_ts(GF_FilterPid *PID);
 
+/*! Checks if a decoder is present in parent chain of this pid.
+This is a recursive call on input chain. The function is typically used when setting up buffer levels on raw media pids.
+\param PID the target filter PID
+\return GF_TRUE if a decoder is present in input chain, GF_FALSE otherwise
+*/
+Bool gf_filter_pid_has_decoder(GF_FilterPid *PID);
 
 /*! @} */
 
