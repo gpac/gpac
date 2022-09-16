@@ -1730,6 +1730,7 @@ GF_Err stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 	if (!co64->offsets) return GF_OUT_OF_MEM;
 	co64->offsets[co64->nb_entries] = offset;
 	co64->alloc_size = co64->nb_entries;
+        co64->nb_entries += 1;
 	return GF_OK;
 }
 
@@ -1805,7 +1806,7 @@ GF_Err stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap)
 	return GF_OK;
 }
 
-GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end, u32 nb_pack_samples)
+GF_Err stbl_AppendTrafMap(GF_ISOFile *mov, GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end, u32 nb_pack_samples)
 {
 	GF_TrafToSampleMap *tmap;
 	GF_TrafMapEntry *tmap_ent;

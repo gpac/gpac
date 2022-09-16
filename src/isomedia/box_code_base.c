@@ -12607,7 +12607,8 @@ void csgp_box_del(GF_Box *a)
 	if (p->patterns) {
 		u32 i;
 		for (i=0; i<p->pattern_count; i++) {
-			gf_free(p->patterns[i].sample_group_description_indices);
+			if (p->patterns[i].sample_group_description_indices)
+				gf_free(p->patterns[i].sample_group_description_indices);
 		}
 		gf_free(p->patterns);
 	}
@@ -12660,7 +12661,9 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->patterns = gf_malloc(sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
 	if (!ptr->patterns) return GF_OUT_OF_MEM;
+	memset(ptr->patterns, 0, sizeof(GF_CompactSampleGroupPattern) * ptr->pattern_count);
 
+	u64 patterns_sizes=0;
 	bits = 0;
 	for (i=0; i<ptr->pattern_count; i++) {
 		ptr->patterns[i].length = gf_bs_read_int(bs, pattern_size);
@@ -12671,6 +12674,13 @@ GF_Err csgp_box_read(GF_Box *s, GF_BitStream *bs)
 			ISOM_DECREASE_SIZE(ptr, bits);
 			bits=0;
 		}
+		patterns_sizes+=ptr->patterns[i].length;
+		if (patterns_sizes * index_size > ptr->size*8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern cumulated sizes "LLU" larger than box size "LLU"\n", patterns_sizes, ptr->size));
+			ptr->patterns[i].sample_group_description_indices = NULL;
+			return GF_ISOM_INVALID_FILE;
+		}
+
 		if ( (u64)ptr->patterns[i].length > (u64)SIZE_MAX/sizeof(u32) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] compact sample gorup pattern #%d value (%lu) invalid\n", i, ptr->patterns[i].length));
 			ptr->patterns[i].sample_group_description_indices = NULL;
@@ -12876,11 +12886,12 @@ GF_Err xtra_box_read(GF_Box *s, GF_BitStream *bs)
 			prop_type = gf_bs_read_u16(bs);
 			prop_size -= 6;
 			ISOM_DECREASE_SIZE_NO_ERR(ptr, prop_size)
-			//add 2 extra bytes for UTF16 case string dump
-			data2 = gf_malloc(sizeof(char) * (prop_size+2));
+			//add 3 extra bytes for UTF16 case string dump (3 because we need 0-aligned short value)
+			data2 = gf_malloc(sizeof(char) * (prop_size+3));
 			gf_bs_read_data(bs, data2, prop_size);
 			data2[prop_size] = 0;
 			data2[prop_size+1] = 0;
+			data2[prop_size+2] = 0;
 			tag_size-=prop_size;
 		} else {
 			prop_size = 0;

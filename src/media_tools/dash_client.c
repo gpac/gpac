@@ -349,9 +349,10 @@ struct __dash_group
 
 	/* maximum representation index we want to download*/
 	u32 max_complementary_rep_index;
-	//start time and timescales of currently downloaded segment
+	//MPD start time, timescale and PTO of currently downloaded segment
 	u64 current_start_time;
 	u32 current_timescale;
+	u64 current_pto;
 
 	void *udta;
 
@@ -1031,6 +1032,7 @@ setup_route:
 
 	timeline = NULL;
 	timescale=1;
+	u64 rep_pto = 0;
 	start_number=0;
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
@@ -1039,18 +1041,21 @@ setup_route:
 		if (group->period->segment_list->timescale) timescale = group->period->segment_list->timescale;
 		if (group->period->segment_list->start_number) start_number = group->period->segment_list->start_number;
 		if (group->period->segment_list->availability_time_offset) ast_offset = group->period->segment_list->availability_time_offset;
+		if (group->period->segment_list->presentation_time_offset) rep_pto = group->period->segment_list->presentation_time_offset;
 	}
 	if (group->adaptation_set->segment_list) {
 		if (group->adaptation_set->segment_list->segment_timeline) timeline = group->adaptation_set->segment_list->segment_timeline;
 		if (group->adaptation_set->segment_list->timescale) timescale = group->adaptation_set->segment_list->timescale;
 		if (group->adaptation_set->segment_list->start_number) start_number = group->adaptation_set->segment_list->start_number;
 		if (group->adaptation_set->segment_list->availability_time_offset) ast_offset = group->adaptation_set->segment_list->availability_time_offset;
+		if (group->adaptation_set->segment_list->presentation_time_offset) rep_pto = group->adaptation_set->segment_list->presentation_time_offset;
 	}
 	if (rep->segment_list) {
 		if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
 		if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
 		if (rep->segment_list->start_number) start_number = rep->segment_list->start_number;
 		if (rep->segment_list->availability_time_offset) ast_offset = rep->segment_list->availability_time_offset;
+		if (rep->segment_list->presentation_time_offset) rep_pto = rep->segment_list->presentation_time_offset;
 	}
 
 	if (group->period->segment_template) {
@@ -1058,18 +1063,21 @@ setup_route:
 		if (group->period->segment_template->timescale) timescale = group->period->segment_template->timescale;
 		if (group->period->segment_template->start_number) start_number = group->period->segment_template->start_number;
 		if (group->period->segment_template->availability_time_offset) ast_offset = group->period->segment_template->availability_time_offset;
+		if (group->period->segment_template->presentation_time_offset) rep_pto = group->period->segment_template->presentation_time_offset;
 	}
 	if (group->adaptation_set->segment_template) {
 		if (group->adaptation_set->segment_template->segment_timeline) timeline = group->adaptation_set->segment_template->segment_timeline;
 		if (group->adaptation_set->segment_template->timescale) timescale = group->adaptation_set->segment_template->timescale;
 		if (group->adaptation_set->segment_template->start_number) start_number = group->adaptation_set->segment_template->start_number;
 		if (group->adaptation_set->segment_template->availability_time_offset) ast_offset = group->adaptation_set->segment_template->availability_time_offset;
+		if (group->adaptation_set->segment_template->presentation_time_offset) rep_pto = group->adaptation_set->segment_template->presentation_time_offset;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->start_number) start_number = rep->segment_template->start_number;
 		if (rep->segment_template->availability_time_offset) ast_offset = rep->segment_template->availability_time_offset;
+		if (rep->segment_template->presentation_time_offset) rep_pto = rep->segment_template->presentation_time_offset;
 	}
 	if (start_number==(u32) -1)
 		start_number = 1;
@@ -1092,6 +1100,8 @@ setup_route:
 		current_time_rescale = current_time;
 		current_time_rescale *= timescale;
 		current_time_rescale /= 1000;
+		//warning, MPD time in SegmentTimeline is (t-pto), so add pto to current time rescaled before comaring to t@s
+		current_time_rescale += rep_pto;
 
 		count = gf_list_count(timeline->entries);
 		for (i=0; i<count; i++) {
@@ -1115,6 +1125,7 @@ setup_route:
 			group->dash->mpd->minimum_update_period = (u32) last_s_dur;
 		}
 
+		u32 segdur_in_timeline=0;
 		for (i=0; i<count; i++) {
 			u32 repeat;
 			GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
@@ -1126,7 +1137,7 @@ setup_route:
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] current time "LLU" is before start time "LLU" of first segment in timeline (timescale %d) by %g sec - using first segment as starting point\n", current_time_rescale, segtime, timescale, (segtime-current_time_rescale)*1.0/timescale));
 					group->download_segment_index = seg_idx;
 					group->nb_segments_in_rep = count;
-					group->start_playback_range = (segtime)*1.0/timescale;
+					group->start_playback_range = 0;
 					group->ast_at_init = availabilityStartTime;
 					group->ast_offset = (u32) (ast_offset*1000);
 					group->broken_timing = GF_TRUE;
@@ -1141,7 +1152,7 @@ setup_route:
 
 					group->download_segment_index = seg_idx;
 					group->nb_segments_in_rep = seg_idx + count - i;
-					group->start_playback_range = (current_time)/1000.0;
+					group->start_playback_range = (current_time)/1000.0 - ((Double)segdur_in_timeline)/timescale;
 					group->ast_at_init = availabilityStartTime;
 					group->ast_offset = (u32) (ast_offset*1000);
 
@@ -1155,6 +1166,7 @@ setup_route:
 				repeat--;
 				seg_idx++;
 				last_s_dur=ent->duration;
+				segdur_in_timeline += ent->duration;
 			}
 		}
 		//check if we're ahead of time but "reasonnably" ahead (max 1 min) - otherwise consider the timing is broken
@@ -1652,7 +1664,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 }
 
 
-static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u64 *segment_duration, u32 *scale)
+static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u64 *segment_duration, u32 *scale, u64 *current_pto)
 {
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	GF_MPD_AdaptationSet *set = group->adaptation_set;
@@ -1664,6 +1676,35 @@ static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u
 		period, set, rep,
 		&start_time, segment_duration, scale);
 
+	if (current_pto) {
+		u32 pto_ts=1;
+		if (period->segment_list && period->segment_list->presentation_time_offset) {
+			*current_pto = period->segment_list->presentation_time_offset;
+			pto_ts = period->segment_list->timescale;
+		}
+		if (set->segment_list && set->segment_list->presentation_time_offset) {
+			*current_pto = set->segment_list->presentation_time_offset;
+			pto_ts = set->segment_list->timescale;
+		}
+		if (rep->segment_list && rep->segment_list->presentation_time_offset) {
+			*current_pto = rep->segment_list->presentation_time_offset;
+			pto_ts = rep->segment_list->timescale;
+		}
+		if (period->segment_template && period->segment_template->presentation_time_offset) {
+			*current_pto = period->segment_template->presentation_time_offset;
+			pto_ts = period->segment_template->timescale;
+		}
+		if (set->segment_template && set->segment_template->presentation_time_offset) {
+			*current_pto = set->segment_template->presentation_time_offset;
+			pto_ts = set->segment_template->timescale;
+		}
+		if (rep->segment_template && rep->segment_template->presentation_time_offset) {
+			*current_pto = rep->segment_template->presentation_time_offset;
+			pto_ts = rep->segment_template->timescale;
+		}
+		if (scale)
+			*current_pto = gf_timestamp_rescale(*current_pto, pto_ts, *scale);
+	}
 	return start_time;
 }
 
@@ -1673,7 +1714,7 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 	u64 dur = 0;
 	u32 scale = 1000;
 
-	start = gf_dash_get_segment_start_time_with_timescale(group, &dur, &scale);
+	start = gf_dash_get_segment_start_time_with_timescale(group, &dur, &scale, NULL);
 	if (segment_duration) {
 		*segment_duration = (Double) dur;
 		*segment_duration /= scale;
@@ -1767,11 +1808,11 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 	if (!old_timeline && !new_timeline) return GF_OK;
 
 	if (group) {
-		group->current_start_time = gf_dash_get_segment_start_time_with_timescale(group, NULL, &group->current_timescale);
+		group->current_start_time = gf_dash_get_segment_start_time_with_timescale(group, NULL, &group->current_timescale, &group->current_pto);
 	} else {
 		for (i=0; i<gf_list_count(dash->groups); i++) {
 			GF_DASH_Group *a_group = gf_list_get(dash->groups, i);
-			a_group->current_start_time = gf_dash_get_segment_start_time_with_timescale(a_group, NULL, &a_group->current_timescale);
+			a_group->current_start_time = gf_dash_get_segment_start_time_with_timescale(a_group, NULL, &a_group->current_timescale, &group->current_pto);
 		}
 	}
 
@@ -1786,7 +1827,7 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		u32 prev_idx = group->download_segment_index;
 #endif
 		group->nb_segments_in_rep = nb_new_segs;
-		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time, group->current_timescale, timescale ? timescale : group->current_timescale);
+		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time+group->current_pto, group->current_timescale, timescale ? timescale : group->current_timescale);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", group->download_segment_index , prev_idx, group->current_start_time));
 	} else {
@@ -1796,7 +1837,7 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 			u32 prev_idx = a_group->download_segment_index;
 #endif
 			a_group->nb_segments_in_rep = nb_new_segs;
-			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time, a_group->current_timescale, timescale ? timescale : a_group->current_timescale);
+			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time+a_group->current_pto, a_group->current_timescale, timescale ? timescale : a_group->current_timescale);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", a_group->download_segment_index , prev_idx, a_group->current_start_time));
 		}
@@ -4970,6 +5011,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 		seg_dur = 0;
 		nb_dependent_rep = 0;
+		u32 first_w=0, first_h=0;
+		Bool check_bs_switch = GF_FALSE;
 		for (j=0; j<gf_list_count(set->representations); j++) {
 			Double dur;
 			u32 nb_seg, k;
@@ -4982,6 +5025,23 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				group->bitstream_switching = GF_FALSE;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] bitstreamSwitching set for onDemand content - ignoring flag\n"));
 			}
+
+			if (!j) {
+				first_w = rep->width;
+				first_h = rep->height;
+				if (rep->codecs) {
+					//for hvc1 and avc1 check we have the same with/height. If not consider MPD broken and force no bitstream switching
+					if (!strncmp(rep->codecs, "avc1", 4) || !strncmp(rep->codecs, "hvc1", 4)) {
+						check_bs_switch = GF_TRUE;
+					}
+				}
+			} else if (check_bs_switch && group->bitstream_switching) {
+				if ((first_w != rep->width) || (first_h != rep->height)) {
+					group->bitstream_switching = GF_FALSE;
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] bitstreamSwitching set, no inband params and different width/height detected  - ignoring flag\n"));
+				}
+			}
+
 
 			if (dash->dash_io->dash_codec_supported) {
 				Bool res = dash->dash_io->dash_codec_supported(dash->dash_io, rep->codecs, rep->width, rep->height, (rep->scan_type==GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0, rep->framerate ? rep->framerate->num : 0, rep->framerate ? rep->framerate->den : 0, rep->samplerate);
@@ -5481,7 +5541,6 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 				if (init_in_base) {
-					char szName[100];
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 					if (!rep->segment_list->initialization_segment) {
 						e = GF_OUT_OF_MEM;
@@ -5505,8 +5564,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						rep->playback.init_segment.data = gf_malloc(sizeof(char) * rep->playback.init_segment.size);
 						memcpy(rep->playback.init_segment.data, mem_address, sizeof(char) * rep->playback.init_segment.size);
 
-						sprintf(szName, "gmem://%p", &rep->playback.init_segment);
-						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+						rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
                         gf_blob_release(cache_name);
 					} else {
@@ -5520,8 +5578,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							if (res != rep->playback.init_segment.size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
-								sprintf(szName, "gmem://%p", &rep->playback.init_segment);
-								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+								rep->segment_list->initialization_segment->sourceURL = gf_blob_register(&rep->playback.init_segment);
 								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 							}
 						}
@@ -6668,10 +6725,12 @@ llhls_rety:
 					if (dash->mpd->minimum_update_period) {
 						if (now - group->time_at_first_reload_required < dash->mpd->minimum_update_period)
 							return GF_DASH_DownloadCancel;
-					} else if (dyn_type==GF_MPD_TYPE_DYNAMIC) {
-						//use group last modification time
+					}
+
+					//dyn mode, check group last modification time, if time elapsed less than 2 seg dur, wait
+					if (dyn_type==GF_MPD_TYPE_DYNAMIC) {
 						timer = now - group->last_mpd_change_time;
-						if (timer < 2 * group->segment_duration * 2000)
+						if (timer < 2 * group->segment_duration * 1000)
 							return GF_DASH_DownloadCancel;
 					}
 
@@ -6896,7 +6955,7 @@ llhls_rety:
 		key_url = NULL;
 	}
 
-	cache_entry->time.num = gf_dash_get_segment_start_time_with_timescale(group, &seg_dur, &seg_scale);
+	cache_entry->time.num = gf_dash_get_segment_start_time_with_timescale(group, &seg_dur, &seg_scale, NULL);
 	cache_entry->time.den = seg_scale;
 	cache_entry->utc_map = seg_utc;
 	cache_entry->seg_number = group->download_segment_index + start_number;

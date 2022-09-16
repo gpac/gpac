@@ -101,6 +101,16 @@ GF_Err gf_mkdir(const char* DirPathName)
 	}
 #elif defined (WIN32)
 	int res;
+
+	//don't try creation for UNC root:  \\foo\bar\name will trigger creation for "", "\\foo" and "\\foo\bar", ignore these
+	if (!strcmp(DirPathName, "")) return GF_OK;
+	if (!strncmp(DirPathName, "\\\\", 2)) {
+		char *sep = strchr(DirPathName + 2, '\\');
+		if (!sep) return GF_OK;
+		sep = strchr(sep + 1, '\\');
+		if (!sep) return GF_OK;
+	}
+
 	wchar_t* wcsDirPathName = gf_utf8_to_wcs(DirPathName);
 	if (!wcsDirPathName)
 		return GF_IO_ERR;
@@ -1747,7 +1757,16 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 	if (!strncmp(path, "gfio://", 7) || !strncmp(path, "gmem://", 7)) {
 		return strchr(path+7, ':');
 	}
-	
+
+	//handle "\\foo\Z:\bar"
+	if ((path[0] == '\\') && (path[1] == '\\')) {
+		char *next = strchr(path+2, '\\');
+		if (next) next = strchr(next + 1, '\\');
+		if (next)
+			return gf_url_colon_suffix(next + 1, assign_sep);
+	}
+
+
 	//handle PROTO://ADD:PORT/
 	if ((sep[1]=='/') && (sep[2]=='/')) {
 		char *next_colon, *next_slash, *userpass;
@@ -1802,6 +1821,17 @@ char* gf_url_colon_suffix(const char *path, char assign_sep)
 		if (assign) file_ext = NULL;
 		if (file_ext && (file_ext>sep)) {
 			sep = strchr(file_ext, ':');
+		}
+		if (assign && (strlen(assign) > 4)) {
+			if ((assign[2] == ':') && ((assign[3] == '\\') || (assign[3] == '/'))) {
+				return gf_url_colon_suffix(assign + 1, 0);
+			}
+			if ((assign[1] == '\\') && (assign[2] == '\\')) {
+				char *next = strchr(assign + 3, '\\');
+				if (next) next = strchr(next+1, '\\');
+				if (next && (next>sep))
+					return gf_url_colon_suffix(next, 0);
+			}
 		}
 	}
 	return sep;

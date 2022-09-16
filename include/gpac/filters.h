@@ -714,6 +714,22 @@ void *gf_fs_get_rt_udta(GF_FilterSession *session);
  */
 Bool gf_fs_fire_event(GF_FilterSession *session, GF_Filter *filter, GF_FilterEvent *evt, Bool upstream);
 
+
+/*! callback functions for external monitoring of filter creation or destruction
+\param udta user data passed back to callback
+\param do_activate if true context must be activated for calling thread, otherwise context is no longer used
+\return error if any
+ */
+typedef	GF_Err (*gf_fs_gl_activate)(void *udta, Bool do_activate);
+
+/*! assign callbacks for filter creation and destruction monitoring
+\param session filter session
+\param on_gl_activate openGL context activation callback, must not be NULL
+\param udta user data for callbacks, may be NULL
+\return error if any
+ */
+GF_Err gf_fs_set_external_gl_provider(GF_FilterSession *session, gf_fs_gl_activate on_gl_activate, void *udta);
+
 /*! @} */
 
 
@@ -793,8 +809,10 @@ typedef enum
 	/*! 4CC on unsigned 32 bit integer*/
 	GF_PROP_4CC			=	25,
 	/*! 4CC list on unsigned 32 bit integer, memory is ALWAYS duplicated when setting the property*/
-	GF_PROP_4CC_LIST			=	26,
-
+	GF_PROP_4CC_LIST	=	26,
+	/*! string list, memory is duplicated when setting the property - to use only with property assignment functions*/
+	GF_PROP_STRING_LIST_COPY = 27,
+	
 	/*! last non-enum property*/
 	GF_PROP_LAST_NON_ENUM,
 
@@ -1215,6 +1233,9 @@ enum
 	GF_PROP_PID_SCENE_NODE = GF_4CC('P','S','N','D'),
 	GF_PROP_PID_ORIG_CRYPT_SCHEME = GF_4CC('P','O','C','S'),
 	GF_PROP_PID_TIMESHIFT_SEGS = GF_4CC('P','T','S','N'),
+
+	GF_PROP_PID_CHAP_TIMES = GF_4CC('C','H','P','T'),
+	GF_PROP_PID_CHAP_NAMES = GF_4CC('C','H','P','N'),
 
 	//internal for HLS playlist reference, gives a unique ID identifying media mux, and indicated in packets carrying child playlists
 	GF_PROP_PCK_HLS_REF = GF_4CC('H','P','L','R'),
@@ -2878,9 +2899,10 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter);
 \note There may be several OpenGL context created in the filter session, depending on activated filters. A filter using OpenGL must call this function before issuing any OpenGL calls
 
 \param filter filter asking for OpenGL context activation
+\param do_activate if true, context must be activated for the calling thread, otherwise context is being released
 \return error code if any
 */
-GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter);
+GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter, Bool do_activate);
 
 
 /*! Count the number of source filters for the given filter matching the given protocol type.

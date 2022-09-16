@@ -1110,7 +1110,7 @@ u32 gf_isom_get_max_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 \param trackNumber the target track
 \return average  sample delta in media timescale
 */
-u32 gf_isom_get_avg_sample_delta(GF_ISOFile *the_file, u32 trackNumber);
+u32 gf_isom_get_avg_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! gets max sample CTS offset (CTS-DTS) in track
 \param isom_file the target ISO file
@@ -2239,7 +2239,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *isom_file, u32 trackNumber, u64 timestamp
 /*! deletes copyright
 \param isom_file the target ISO file
 \param trackNumber the target track
-\param index the 1-based index of the copyright notice to remove, or 0 to remove all copyrights
+\param index the 1-based index of the copyright notice to remove, or 0 to remove all chapters
 \return error if any
 */
 GF_Err gf_isom_remove_chapter(GF_ISOFile *isom_file, u32 trackNumber, u32 index);
@@ -4097,6 +4097,13 @@ This is mostly used to recreate identical segment information when refragmenting
 \param isom_file the target ISO file
 */
 void gf_isom_enable_traf_map_templates(GF_ISOFile *isom_file);
+/*! get byte range of root sidx if any
+\param isom_file the target ISO file
+\param start set to start offset (0=first byte) of the root sidx
+\param end set to end offset (0 if no sidx) of the root sidx
+\return true if success
+*/
+Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *isom_file, u64 *start, u64 *end);
 
 /*! Segment boundary information*/
 typedef struct

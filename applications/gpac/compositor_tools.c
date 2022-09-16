@@ -1548,6 +1548,7 @@ static void mp4c_take_screenshot(Bool for_coverage)
 
 #include <tlhelp32.h>
 #include <psapi.h>
+
 static DWORD getParentPID(DWORD pid)
 {
 	DWORD ppid = 0;

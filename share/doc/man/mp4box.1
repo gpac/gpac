@@ -502,7 +502,11 @@ extract file IOD in raw format
 .TP
 .B \-mpd (string)
 .br
-convert given HLS or smooth manifest (local or remote http) to MPD.  
+convert given HLS or smooth manifest (local or remote http) to MPD - options -url-template and -segment-timelinecan be used in this mode.  
+.br
+Note: This only provides basic conversion, for more advanced conversions, see gpac -h dasher
+.br
+  
 .br
 Warning: This is not compatible with other DASH options and does not convert associated segments
 .br
@@ -2855,7 +2859,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev221-ge0cac167f-master
+build: 2.1-DEV-rev279-g3409f09a6-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

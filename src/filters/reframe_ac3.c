@@ -267,8 +267,6 @@ static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		if (!ctx->is_playing) {
 			ctx->is_playing = GF_TRUE;
 			ctx->cts = 0;
-			ctx->ac3_buffer_size = 0;
-			ctx->resume_from = 0;
 		}
 		if (! ctx->is_file) {
 			return GF_FALSE;
@@ -366,6 +364,12 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		if (!pck_size) {
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
+		}
+
+		//max EAC3 frame is 4096, AC3 is 3840 - if we store more than 2 frames consider we have garbage
+		if (ctx->ac3_buffer_size>10000) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] Trashing %d garbage bytes\n", ctx->ac3_buffer_size));
+			ctx->ac3_buffer_size = 0;
 		}
 
 		if (ctx->byte_offset != GF_FILTER_NO_BO) {
@@ -526,12 +530,17 @@ static void ac3dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
-static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)
 {
 	GF_AC3Config ahdr;
 	u32 nb_frames=0;
 	Bool has_broken_frames = GF_FALSE;
 	u32 pos=0;
+	const u8 *data = _data;
+	u32 size = _size;
+	u32 nb_ac3_frames=0;
+
+	//check AC3
 	while (1) {
 		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
 		 	break;
@@ -539,23 +548,26 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 		if (pos) {
 			nb_frames=0;
 			has_broken_frames = GF_TRUE;
-			//what is before is bigger than max ac3 frame size (1920), this is packaged ac3 (mkv) at best
-			if (pos > 2000)
+			//what is before is bigger than max ac3 frame size (1920 words), this is packaged ac3 (mkv) at best
+			if (pos > 4000)
 				break;
 		}
 		nb_frames++;
-		if (fsize > size+pos) break;
+		if (fsize > size+pos) {
+			if (!pos && (nb_frames==1)) nb_frames++;
+			break;
+		}
 		if (nb_frames>4) break;
 		if (size < fsize+pos) break;
 		size -= fsize+pos;
 		data += fsize+pos;
 	}
-	if (nb_frames>2) {
-		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
-		return "audio/ac3";
-	}
+	nb_ac3_frames = nb_frames;
 
-	//try eac3
+	//check EAC3
+	data = _data;
+	size = _size;
+	nb_frames = 0;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		if (!gf_eac3_parser_bs(bs, &ahdr, GF_FALSE))
@@ -565,9 +577,20 @@ static const char *ac3dmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 			has_broken_frames = GF_TRUE;
 		nb_frames++;
 		gf_bs_skip_bytes(bs, ahdr.framesize);
+		if (!pos && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
 		pos+=ahdr.framesize;
+		if (nb_frames>4) break;
 	}
 	gf_bs_del(bs);
+
+	if (nb_frames<nb_ac3_frames) {
+		nb_frames = 0;
+	}
+	if (nb_ac3_frames>=2) {
+		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
+		return "audio/ac3";
+	}
+
 	if (nb_frames>=2) {
 		*score = has_broken_frames ? GF_FPROBE_MAYBE_NOT_SUPPORTED : GF_FPROBE_SUPPORTED;
 		return "audio/eac3";

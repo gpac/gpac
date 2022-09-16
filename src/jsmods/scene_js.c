@@ -1382,6 +1382,33 @@ static JSValue gjs_odm_declare_addon(JSContext *ctx, JSValueConst this_val, int 
 	return JS_UNDEFINED;
 }
 
+static JSValue gjs_odm_get_chapters(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	GF_ObjectManager *odm = JS_GetOpaque(this_val, odm_class_id);
+	if (!odm) return GF_JS_EXCEPTION(ctx);
+
+	if (odm->subscene) odm = gf_list_get(odm->subscene->resources, 0);
+	if (! odm->pid) return JS_NULL;
+
+	const GF_PropertyValue *times = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_CHAP_TIMES);
+	const GF_PropertyValue *names = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_CHAP_NAMES);
+	if (!times || !names || (times->value.uint_list.nb_items!=times->value.string_list.nb_items))
+		return JS_NULL;
+
+	JSValue ret = JS_NewArray(ctx);
+	u32 i, count=times->value.uint_list.nb_items;
+	for (i=0; i<count; i++) {
+		char *name;
+		JSValue obj = JS_NewObject(ctx);
+		JS_SetPropertyStr(ctx, obj, "start", JS_NewInt32(ctx, times->value.uint_list.vals[i]));
+		name = names->value.string_list.vals[i];
+		if (!name) name = "";
+		JS_SetPropertyStr(ctx, obj, "name", JS_NewString(ctx, name));
+		JS_SetPropertyUint32(ctx, ret, i, obj);
+	}
+	return ret;
+}
+
 static JSValue scenejs_get_object_manager(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	JSValue anobj;
@@ -1803,6 +1830,7 @@ static const JSCFunctionListEntry odm_funcs[] = {
 	JS_CFUNC_DEF("select", 0, gjs_odm_select),
 	JS_CFUNC_DEF("get_srd", 0, gjs_odm_get_srd),
 	JS_CFUNC_DEF("in_parent_chain", 0, gjs_odm_in_parent_chain),
+	JS_CFUNC_DEF("get_chapters", 0, gjs_odm_get_chapters),
 };
 
 #include "../filter_core/filter_session.h"

@@ -273,7 +273,7 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 //
 //		READERS
 //
-GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSize)
+static GF_Err gf_odf_read_descriptor_internal(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSize)
 {
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG :
@@ -368,7 +368,17 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 	return GF_OK;
 }
 
-
+GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSize)
+{
+	u64 cookie = gf_bs_get_cookie(bs);
+	//we allow 100 max desc in a hierarchy - see issue 2216
+	if (cookie>100)
+		return GF_NON_COMPLIANT_BITSTREAM;
+	gf_bs_set_cookie(bs, cookie+1);
+	GF_Err e = gf_odf_read_descriptor_internal(bs, desc, DescSize);
+	gf_bs_set_cookie(bs, cookie);
+	return e;
+}
 
 
 

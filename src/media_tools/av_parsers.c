@@ -5160,7 +5160,17 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 	sps->level_idc = level_idc;
 	sps->prof_compat = pcomp;
 	sps->log2_max_frame_num = gf_bs_read_ue_log(bs, "log2_max_frame_num") + 4;
+	if (sps->log2_max_frame_num>16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid SPS: log2_max_frame_num_minus4 shall be less than 12, but is %d\n", sps->log2_max_frame_num-4));
+		sps->log2_max_frame_num=0;
+		return -1;
+	}
 	sps->poc_type = gf_bs_read_ue_log(bs, "poc_type");
+	if (sps->poc_type>2) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid SPS: pic_order_cnt_type shall be less than 2, but is %d\n", sps->poc_type));
+		sps->log2_max_frame_num=0;
+		return -1;
+	}
 	sps->chroma_format = chroma_format_idc;
 	sps->luma_bit_depth_m8 = luma_bd;
 	sps->chroma_bit_depth_m8 = chroma_bd;
@@ -8985,12 +8995,12 @@ block:
 	fscod = gf_bs_read_int_log(bs, 2, "fscod");
 	if (fscod == 0x3) {
 		fscod = gf_bs_read_int_log(bs, 2, "fscod2");
-		numblkscod += 6;
+		numblkscod = 3;
 	}
 	else {
-		numblkscod += gf_bs_read_int_log(bs, 2, "numblkscod");
+		numblkscod = gf_bs_read_int_log(bs, 2, "numblkscod");
 	}
-	assert(numblkscod <= 9);
+	assert(numblkscod <= 3);
 
 
 	if ((hdr->substreams >> substreamid) & 0x1) {

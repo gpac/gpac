@@ -7843,7 +7843,7 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "Init", 4)) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "XInit", 4)) {
+		} else if (!strncmp(name, "XInit", 5)) {
 			do_skip = GF_TRUE;
 		} else if (!strncmp(name, "Path", 4)) {
 			do_skip = GF_TRUE;

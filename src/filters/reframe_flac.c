@@ -37,12 +37,14 @@ typedef struct
 {
 	u32 block_size;
 	u32 sample_rate;
+	u32 channels;
 } FLACHeader;
 
 typedef struct
 {
 	//filter args
 	Double index;
+	Bool docrc;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -62,7 +64,7 @@ typedef struct
 	Bool in_error;
 
 	Bool initialized;
-	u32 sample_rate, nb_channels, bits_per_sample, block_size;
+	u32 sample_rate, nb_channels, bits_per_sample, block_size, ch_layout;
 
 	u8 *flac_buffer;
 	u32 flac_buffer_size, flac_buffer_alloc, resume_from;
@@ -155,6 +157,23 @@ static void flac_dmx_check_dur(GF_Filter *filter, GF_FLACDmxCtx *ctx)
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
 }
 
+static u64 flac_channel_layout(u32 in_lay)
+{
+	u64 ch_lay=0;
+	switch (in_lay) {
+	case 0: ch_lay = GF_AUDIO_CH_FRONT_CENTER; break;
+	case 1: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT; break;
+	case 2: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER; break;
+	case 3: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT; break;
+	case 4: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT; break;
+	case 5: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT | GF_AUDIO_CH_LFE; break;
+	case 6: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_REAR_CENTER; break;
+	case 7: ch_lay = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_SIDE_SURROUND_LEFT | GF_AUDIO_CH_SIDE_SURROUND_RIGHT | GF_AUDIO_CH_LFE | GF_AUDIO_CH_REAR_SURROUND_LEFT | GF_AUDIO_CH_REAR_SURROUND_RIGHT; break;
+	default: break;
+	}
+	return ch_lay;
+}
+
 static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u32 dsi_size)
 {
 	u32 crc = gf_crc_32(dsi, dsi_size);
@@ -192,6 +211,10 @@ static void flac_dmx_check_pid(GF_Filter *filter, GF_FLACDmxCtx *ctx, u8 *dsi, u
 
 	if (ctx->bitrate) {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_BITRATE, & PROP_UINT(ctx->bitrate));
+	}
+	if (ctx->ch_layout>1) {
+		u64 layout = flac_channel_layout(ctx->ch_layout);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, & PROP_LONGUINT(layout));
 	}
 
 }
@@ -321,6 +344,50 @@ u8 flac_dmx_crc8(u8 *data, u32 len)
 	return crc;
 }
 
+
+static const u32 flac_dmx_crc16_table[256] = {
+	0x0000, 0x0580, 0x0F80, 0x0A00, 0x1B80, 0x1E00, 0x1400, 0x1180,
+	0x3380, 0x3600, 0x3C00, 0x3980, 0x2800, 0x2D80, 0x2780, 0x2200,
+	0x6380, 0x6600, 0x6C00, 0x6980, 0x7800, 0x7D80, 0x7780, 0x7200,
+	0x5000, 0x5580, 0x5F80, 0x5A00, 0x4B80, 0x4E00, 0x4400, 0x4180,
+	0xC380, 0xC600, 0xCC00, 0xC980, 0xD800, 0xDD80, 0xD780, 0xD200,
+	0xF000, 0xF580, 0xFF80, 0xFA00, 0xEB80, 0xEE00, 0xE400, 0xE180,
+	0xA000, 0xA580, 0xAF80, 0xAA00, 0xBB80, 0xBE00, 0xB400, 0xB180,
+	0x9380, 0x9600, 0x9C00, 0x9980, 0x8800, 0x8D80, 0x8780, 0x8200,
+	0x8381, 0x8601, 0x8C01, 0x8981, 0x9801, 0x9D81, 0x9781, 0x9201,
+	0xB001, 0xB581, 0xBF81, 0xBA01, 0xAB81, 0xAE01, 0xA401, 0xA181,
+	0xE001, 0xE581, 0xEF81, 0xEA01, 0xFB81, 0xFE01, 0xF401, 0xF181,
+	0xD381, 0xD601, 0xDC01, 0xD981, 0xC801, 0xCD81, 0xC781, 0xC201,
+	0x4001, 0x4581, 0x4F81, 0x4A01, 0x5B81, 0x5E01, 0x5401, 0x5181,
+	0x7381, 0x7601, 0x7C01, 0x7981, 0x6801, 0x6D81, 0x6781, 0x6201,
+	0x2381, 0x2601, 0x2C01, 0x2981, 0x3801, 0x3D81, 0x3781, 0x3201,
+	0x1001, 0x1581, 0x1F81, 0x1A01, 0x0B81, 0x0E01, 0x0401, 0x0181,
+	0x0383, 0x0603, 0x0C03, 0x0983, 0x1803, 0x1D83, 0x1783, 0x1203,
+	0x3003, 0x3583, 0x3F83, 0x3A03, 0x2B83, 0x2E03, 0x2403, 0x2183,
+	0x6003, 0x6583, 0x6F83, 0x6A03, 0x7B83, 0x7E03, 0x7403, 0x7183,
+	0x5383, 0x5603, 0x5C03, 0x5983, 0x4803, 0x4D83, 0x4783, 0x4203,
+	0xC003, 0xC583, 0xCF83, 0xCA03, 0xDB83, 0xDE03, 0xD403, 0xD183,
+	0xF383, 0xF603, 0xFC03, 0xF983, 0xE803, 0xED83, 0xE783, 0xE203,
+	0xA383, 0xA603, 0xAC03, 0xA983, 0xB803, 0xBD83, 0xB783, 0xB203,
+	0x9003, 0x9583, 0x9F83, 0x9A03, 0x8B83, 0x8E03, 0x8403, 0x8183,
+	0x8002, 0x8582, 0x8F82, 0x8A02, 0x9B82, 0x9E02, 0x9402, 0x9182,
+	0xB382, 0xB602, 0xBC02, 0xB982, 0xA802, 0xAD82, 0xA782, 0xA202,
+	0xE382, 0xE602, 0xEC02, 0xE982, 0xF802, 0xFD82, 0xF782, 0xF202,
+	0xD002, 0xD582, 0xDF82, 0xDA02, 0xCB82, 0xCE02, 0xC402, 0xC182,
+	0x4382, 0x4602, 0x4C02, 0x4982, 0x5802, 0x5D82, 0x5782, 0x5202,
+	0x7002, 0x7582, 0x7F82, 0x7A02, 0x6B82, 0x6E02, 0x6402, 0x6182,
+	0x2002, 0x2582, 0x2F82, 0x2A02, 0x3B82, 0x3E02, 0x3402, 0x3182,
+	0x1382, 0x1602, 0x1C02, 0x1982, 0x0802, 0x0D82, 0x0782, 0x0202
+};
+
+static u32 flac_dmx_crc16(const u8 *data, u32 len)
+{
+	u32 crc = 0;
+	const u8 *end = data+len;
+    while (data < end)
+        crc = flac_dmx_crc16_table[((u8) crc) ^ *data++] ^ (crc >> 8);
+	return crc;
+}
 static u32 flac_dmx_block_sizes[] =
 {
 	0, 192, 576, 1152, 2304, 4608, 0, 0, 256, 512, 1024, 2048, 4096, 8192, 16384,  32768
@@ -330,22 +397,50 @@ static u32 flac_dmx_samplerates[] =
 	0, 88200, 176400, 192000, 8000, 16000, 22050, 24000, 32000, 44100, 48000, 96000
 };
 
+#define FLAC_CHANNELS       8
+#define FLAC_MID_SIDE       3
+
 static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHeader *hdr)
 {
-	u32 block_size, sample_rate, res, top, pos, crc, crc_hdr;
+	u32 block_strategy, block_size, sample_rate, res, top, pos, crc, crc_hdr, ch_lay;
 
+	//we parse max frame header + first byte of subframe
+	if (size<17)
+		return GF_FALSE;
 	gf_bs_reassign_buffer(ctx->bs, data, size);
-	gf_bs_read_int(ctx->bs, 15);
-	/*block_strategy = */gf_bs_read_int(ctx->bs, 1);
+	gf_bs_mark_overflow(ctx->bs, GF_TRUE);
+	u32 sync = gf_bs_read_int(ctx->bs, 15);
+	if (sync != 0x7FFC)
+		return GF_FALSE;
+
+	block_strategy = gf_bs_read_int(ctx->bs, 1);
 	block_size = gf_bs_read_int(ctx->bs, 4);
+	if (!block_size)
+		return GF_FALSE;
 	sample_rate = gf_bs_read_int(ctx->bs, 4);
-	/*u32 channel_layout = */gf_bs_read_int(ctx->bs, 4);
-	/*u32 bps = */gf_bs_read_int(ctx->bs, 3);
-	gf_bs_read_int(ctx->bs, 1);
+	if (sample_rate==0xF)
+		return GF_FALSE;
+
+	ch_lay = gf_bs_read_int(ctx->bs, 4);
+    if (ch_lay < FLAC_CHANNELS) {
+    } else if (ch_lay < FLAC_CHANNELS + FLAC_MID_SIDE) {
+        ch_lay = 1;
+    } else {
+		return GF_FALSE;
+    }
+
+
+	u32 bps = gf_bs_read_int(ctx->bs, 3);
+    if (bps == 3)
+		return GF_FALSE;
+	//reserved=0
+	if (gf_bs_read_int(ctx->bs, 1))
+		return GF_FALSE;
 
 	res = gf_bs_read_u8(ctx->bs);
 	top = (res & 128) >> 1;
-	if ((res & 0xC0) == 0x80 || (res >= 0xFE)) return GF_FALSE;
+	if ((res & 0xC0) == 0x80 || (res >= 0xFE))
+		return GF_FALSE;
 	while (res & top) {
 		s32 tmp = gf_bs_read_u8(ctx->bs);
 		tmp -= 128;
@@ -388,8 +483,26 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 	if (crc != crc_hdr) {
 		return GF_FALSE;
 	}
+    // subframe reserved zero bit
+    if (gf_bs_read_int(ctx->bs, 1) != 0)
+        return GF_FALSE;
+    // subframe type
+    crc = gf_bs_read_int(ctx->bs, 6);
+    if ((crc == 0) || (crc == 1)
+		|| ((crc >= 8) && (crc <= 12))
+		|| (crc >= 32)
+	) {
+	} else {
+        return GF_FALSE;
+    }
+
+	if (gf_bs_is_overflow(ctx->bs))
+		return GF_FALSE;
+
+
 	hdr->sample_rate = sample_rate;
 	hdr->block_size = block_size;
+	hdr->channels = ch_lay;
 	return GF_TRUE;
 }
 
@@ -476,7 +589,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 		ctx->resume_from = 0;
 	}
 
-	while (remain>2) {
+	while (remain>20) {
 		u32 next_frame=0, nb_samp;
 		u32 cur_size = remain-2;
 		u8 *cur_buf = start+2;
@@ -490,12 +603,27 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 				hdr_start = memchr(cur_buf, 0xFF, cur_size);
 				if (!hdr_start) break;
 				next_frame = (u32) (hdr_start-start);
-				if (next_frame == remain)
+				if (next_frame + 17 >= remain) {
+					hdr_start = NULL;
 					break;
+				}
 
 				if ((hdr_start[1]&0xFC) == 0xF8) {
-					if (flac_parse_header(ctx, hdr_start, (u32) remain - next_frame, &hdr))
-						break;
+					if (flac_parse_header(ctx, hdr_start, (u32) remain - next_frame, &hdr)) {
+						if (!ctx->initialized)
+							break;
+
+						//no change of sample rate or channel layout, we assume this is a valid frame
+						if (!ctx->docrc && (hdr.sample_rate == ctx->sample_rate) && (hdr.channels==ctx->ch_layout))
+							break;
+						//check crc of frame
+						u32 frame_crc = flac_dmx_crc16(start, next_frame-2);
+						u32 crc_foot = start[next_frame-1];
+						crc_foot<<=8;
+						crc_foot |= start[next_frame-2];
+						if (frame_crc==crc_foot)
+							break;
+					}
 				}
 				cur_buf = hdr_start+1;
 				cur_size = (u32) (cur_buf - start);
@@ -560,6 +688,7 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 					gf_filter_pid_drop_packet(ctx->ipid);
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
+			ctx->ch_layout = hdr.channels;
 			flac_dmx_check_pid(filter, ctx, ctx->flac_buffer+4, dsi_end-4);
 			remain -= size;
 			start += size;
@@ -580,6 +709,13 @@ GF_Err flac_dmx_process(GF_Filter *filter)
 		if (hdr.sample_rate != ctx->sample_rate) {
 			ctx->sample_rate = hdr.sample_rate;
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
+		}
+		if (hdr.channels != ctx->ch_layout) {
+			ctx->ch_layout = hdr.channels;
+			if (hdr.channels>1) {
+				u64 layout = flac_channel_layout(hdr.channels);
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CHANNEL_LAYOUT, & PROP_LONGUINT(layout));
+			}
 		}
 
 		nb_samp = hdr.block_size;
@@ -686,6 +822,7 @@ static const GF_FilterCapability FLACDmxCaps[] =
 static const GF_FilterArgs FLACDmxArgs[] =
 {
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(docrc), "perform CRC check after each frame", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 
@@ -693,7 +830,11 @@ static const GF_FilterArgs FLACDmxArgs[] =
 GF_FilterRegister FLACDmxRegister = {
 	.name = "rfflac",
 	GF_FS_SET_DESCRIPTION("FLAC reframer")
-	GF_FS_SET_HELP("This filter parses FLAC files/data and outputs corresponding audio PID and frames.")
+	GF_FS_SET_HELP("This filter parses FLAC files/data and outputs corresponding audio PID and frames.\n"
+	"\n"
+	"By default the reframer will only check CRC footer of frames if a change in sample rate or channel mapping is detected.\n"
+	"This should accomodate for most configurations, but CRC check can be enforced using [-docrc]().\n"
+	"")
 	.private_size = sizeof(GF_FLACDmxCtx),
 	.args = FLACDmxArgs,
 	.finalize = flac_dmx_finalize,

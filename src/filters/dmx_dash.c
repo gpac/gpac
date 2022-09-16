@@ -2244,6 +2244,10 @@ static GF_Err dashdmx_initialize(GF_Filter *filter)
 		dashdmx_on_filter_setup_error(NULL, NULL, GF_OK);
 	}
 #endif
+
+	//we are blocking in live mode for manifest update 
+	gf_filter_set_blocking(filter, GF_TRUE);
+
 	return GF_OK;
 }
 
