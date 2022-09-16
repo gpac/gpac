@@ -542,8 +542,11 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 
 	//check AC3
 	while (1) {
-		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) )
+		ahdr.sample_rate = 0;
+		if (! gf_ac3_parser((u8 *) data, size, &pos, &ahdr, GF_FALSE) ) {
+			if (ahdr.sample_rate) nb_frames++;
 		 	break;
+		}
 		u32 fsize = ahdr.framesize;
 		if (pos) {
 			nb_frames=0;
@@ -570,8 +573,11 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	nb_frames = 0;
 	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
-		if (!gf_eac3_parser_bs(bs, &ahdr, GF_FALSE))
+		ahdr.sample_rate = 0;
+		if (!gf_eac3_parser_bs(bs, &ahdr, GF_FALSE)) {
+			if (ahdr.sample_rate) nb_frames++;
 			break;
+		}
 
 		if (pos != (u32) gf_bs_get_position(bs))
 			has_broken_frames = GF_TRUE;

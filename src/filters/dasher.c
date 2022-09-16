@@ -282,7 +282,7 @@ typedef struct _dash_stream
 	char *template;
 	char *xlink;
 	char *hls_vp_name;
-	u32 nb_surround, nb_lfe;
+	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
 	GF_PropVec4i srd;
 	DasherHDRType hdr_type;
@@ -1338,6 +1338,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
+					ds->atmos_complexity_type = ac3.is_ec3 ? ac3.complexity_index_type : 0;
 					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);
 					for (i=0; i<ac3.streams[0].nb_dep_sub; ++i) {
 						assert(ac3.streams[0].nb_dep_sub == 1);
@@ -2360,6 +2361,14 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		gf_mpd_del_list(ds->rep->audio_channels, gf_mpd_descriptor_free, GF_TRUE);
 
 		gf_list_add(ds->rep->audio_channels, desc);
+		if (ds->atmos_complexity_type) {
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionType:2018", "JOC");
+			gf_list_add(ds->rep->supplemental_properties, desc);
+
+			sprintf(value, "%d", ds->atmos_complexity_type);
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionComplexityIndex:2018", value);
+			gf_list_add(ds->rep->supplemental_properties, desc);
+		}
 	} else {
 	}
 
