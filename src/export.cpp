@@ -2634,6 +2634,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_is_playing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_ignore_blocking) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_next_ts) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_has_decoder) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )

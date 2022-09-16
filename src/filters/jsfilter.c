@@ -179,6 +179,7 @@ enum
 	JSF_PID_MIN_PCK_DUR,
 	JSF_PID_IS_PLAYING,
 	JSF_PID_NEXT_TS,
+	JSF_PID_HAS_DECODER,
 };
 typedef struct
 {
@@ -2132,6 +2133,9 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		dur = gf_filter_pid_get_next_ts(pctx->pid);
 		if (dur==GF_FILTER_NO_TS) return JS_NULL;
 		return JS_NewInt64(ctx, dur);
+
+	case JSF_PID_HAS_DECODER:
+		return JS_NewBool(ctx, gf_filter_pid_has_decoder(pctx->pid) );
 	}
     return JS_UNDEFINED;
 }
@@ -2926,6 +2930,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("min_pck_dur", jsf_pid_get_prop, NULL, JSF_PID_MIN_PCK_DUR),
     JS_CGETSET_MAGIC_DEF("playing", jsf_pid_get_prop, NULL, JSF_PID_IS_PLAYING),
     JS_CGETSET_MAGIC_DEF("next_ts", jsf_pid_get_prop, NULL, JSF_PID_NEXT_TS),
+    JS_CGETSET_MAGIC_DEF("has_decoder", jsf_pid_get_prop, NULL, JSF_PID_HAS_DECODER),
     JS_CFUNC_DEF("send_event", 0, jsf_pid_send_event),
     JS_CFUNC_DEF("enum_properties", 0, jsf_pid_enum_properties),
     JS_CFUNC_DEF("get_prop", 0, jsf_pid_get_property),
@@ -4440,6 +4445,7 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_STATS_DECODER_SOURCE)
 	DEF_CONST(GF_STATS_ENCODER_SINK)
 	DEF_CONST(GF_STATS_ENCODER_SOURCE)
+	DEF_CONST(GF_STATS_SINK)
 
 	DEF_CONST(GF_FILTER_CLOCK_NONE)
 	DEF_CONST(GF_FILTER_CLOCK_PCR)
