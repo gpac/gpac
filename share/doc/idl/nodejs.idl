@@ -757,6 +757,9 @@ attribute readonly boolean playing;
 attribute readonly unsigned long long next_ts;
 
 
+/*! Set to true if input chain has a decoder - see \ref gf_filter_pid_has_decoder*/
+attribute readonly boolean has_decoder;
+
 
 /*! send an event on the pid - see \ref gf_filter_pid_send_event
 \param evt filter event to send
