@@ -1906,7 +1906,7 @@ static GF_Err vout_process(GF_Filter *filter)
 				return GF_OK;
 			}
 			if (ABS(diff)>2000) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d is "LLD" us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
+				GF_LOG((diff<0) ? GF_LOG_DEBUG : GF_LOG_INFO, GF_LOG_MMIO, ("[VideoOut] At %d ms frame cts "LLU"/%d is "LLD" us too %s\n", gf_sys_clock(), cts, ctx->timescale, diff<0 ? -diff : diff, diff<0 ? "early" : "late"));
 			} else {
 				diff = 0;
 			}

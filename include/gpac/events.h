@@ -317,17 +317,17 @@ typedef struct
 */
 typedef struct
 {
-	/*GF_EVENT_AUTHORIZATION*/
+	/*! GF_EVENT_AUTHORIZATION*/
 	u8 type;
-	/*the URL the auth request is for*/
+	/*! the URL the auth request is for*/
 	const char *site_url;
-	/*user name (provided buffer can hold 50 bytes). It may already be formatted, or an empty ("") string*/
+	/*! user name (provided buffer can hold 50 bytes). It may already be formatted, or an empty ("") string*/
 	char *user;
-	/*password (provided buffer can hold 50 bytes)*/
+	/*! password (provided buffer can hold 50 bytes)*/
 	char *password;
-	/*async function to call back once pass is entered. If NULL, user/password must be set in the event*/
+	/*! async function to call back once pass is entered. If NULL, user/password must be set in the event*/
 	void (*on_usr_pass)(void *usr_cbk, const char *usr_name, const char *password, Bool store_info);
-	/*user data for async function*/
+	/*! user data for async function*/
 	void *async_usr_data;
 } GF_EventAuthorize;
 
@@ -337,9 +337,9 @@ typedef struct
 */
 typedef struct
 {
-	/*GF_EVENT_SYS_COLORS*/
+	/*! GF_EVENT_SYS_COLORS*/
 	u8 type;
-	/*ARGB colors, in order:
+	/*! ARGB colors, in order:
 	ActiveBorder, ActiveCaption, AppWorkspace, Background, ButtonFace, ButtonHighlight, ButtonShadow,
 	ButtonText, CaptionText, GrayText, Highlight, HighlightText, InactiveBorder, InactiveCaption,
 	InactiveCaptionText, InfoBackground, InfoText, Menu, MenuText, Scrollbar, ThreeDDarkShadow,

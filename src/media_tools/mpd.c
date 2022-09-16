@@ -1241,17 +1241,21 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
 
 	if (ptr->playback.cached_init_segment_url) {
+		//free blob created to hold base64 embedded data
 		if (ptr->playback.owned_gmem && !strnicmp(ptr->playback.cached_init_segment_url, "gmem://", 7)) {
-			u32 size;
-			char *mem_address;
-			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%d@%p", &size, &mem_address) != 2) {
-				assert(0);
+			GF_Blob *mem_blob;
+			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%p", &mem_blob) == 1) {
+				gf_blob_unregister(mem_blob);
+				if (mem_blob->data) gf_free(mem_blob->data);
+				gf_free(mem_blob);
 			}
-			gf_free(mem_address);
 		}
 		gf_free(ptr->playback.cached_init_segment_url);
 	}
-	if (ptr->playback.init_segment.data) gf_free(ptr->playback.init_segment.data);
+	if (ptr->playback.init_segment.data) {
+		gf_blob_unregister(&ptr->playback.init_segment);
+		gf_free(ptr->playback.init_segment.data);
+	}
 	if (ptr->playback.key_url) gf_free(ptr->playback.key_url);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
@@ -1875,7 +1879,8 @@ retry_import:
 			if (!strcmp(M3U8_UNKNOWN_MIME_TYPE, mimeTypeForM3U8Segments)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
 			}
-			if (elt && elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
+			char *fext = (elt && elt->init_segment_url) ? gf_file_ext_start(elt->init_segment_url) : NULL;
+			if (fext && (!stricmp(fext, ".mp4") || !stricmp(fext, ".m4s")) ) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
 			} else {
 				rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
@@ -1961,6 +1966,34 @@ retry_import:
 
 				if (rel_url) gf_free(rel_url);
 				if (variant_base_url) gf_free(variant_base_url);
+
+				if (use_segment_timeline) {
+					GF_MPD_SegmentTimelineEntry *prev_e = NULL;
+					u64 start_time = 0;
+					rep->segment_template->timescale = 1000;
+					GF_SAFEALLOC(rep->segment_template->segment_timeline, GF_MPD_SegmentTimeline);
+					if (!rep->segment_template->segment_timeline) return GF_OUT_OF_MEM;
+
+					rep->segment_template->segment_timeline->entries = gf_list_new();
+					for (k=0; k<count_elements; k++) {
+						u64 dur;
+						GF_MPD_SegmentTimelineEntry *se;
+						elt = gf_list_get(pe->element.playlist.elements, k);
+
+						dur = (u64) ( elt->duration_info * rep->segment_template->timescale);
+						if (prev_e && (prev_e->duration == dur)) {
+							prev_e->repeat_count++;
+						} else {
+							GF_SAFEALLOC(se, GF_MPD_SegmentTimelineEntry);
+							if (!se) return GF_OUT_OF_MEM;
+							se->duration = (u32) dur;
+							se->start_time = start_time;
+							gf_list_add(rep->segment_template->segment_timeline->entries, se);
+							prev_e = se;
+						}
+						start_time += dur;
+					}
+				}
 				continue;
 			}
 
@@ -1976,7 +2009,7 @@ retry_import:
 				//if byte-range media file, add base URL
 				byte_range_media_file
 				//otherwise if we have different location for HLS vs MPD url or if child playlist is not in same path as master HLS
-				|| (rel_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
+				|| (rel_url || variant_base_url || strchr(elt->url, '/') || strchr(elt->url, '\\'))
 			)) {
 				GF_MPD_BaseURL *url;
 				GF_SAFEALLOC(url, GF_MPD_BaseURL);
@@ -1999,9 +2032,11 @@ retry_import:
 					} else {
 						url->URL = gf_strdup(rel_url);
 					}
-				}
-				else
+				} else if (variant_base_url) {
+					url->URL = gf_strdup(variant_base_url);
+				} else {
 					url->URL = gf_strdup(elt->url);
+				}
 			}
 			if (rel_url) gf_free(rel_url);
 			//no longer needed
@@ -2722,7 +2757,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
-	if (ms->start_number != (u32) -1) gf_fprintf(out, " startNumber=\"%d\"", ms->start_number);
+	if ((int)ms->start_number >= 0) gf_fprintf(out, " startNumber=\"%d\"", ms->start_number);
 	if (ms->duration) gf_fprintf(out, " duration=\""LLD"\"", ms->duration);
 
 
@@ -4871,7 +4906,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 	GF_MPD_Period const * const period, GF_MPD_AdaptationSet const * const set, GF_MPD_Representation const * const rep,
 	u64 *out_segment_start_time, u64 *out_opt_segment_duration, u32 *out_opt_scale)
 {
-	u64 duration = 0, start_time = 0;
+	u64 duration = 0, start_time = 0, pto = 0;
 	u32 timescale = 0;
 	GF_List *seglist = NULL;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -4890,23 +4925,27 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 			if (period->segment_list->duration) duration = period->segment_list->duration;
 			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
 			if (period->segment_list->segment_timeline) timeline = period->segment_list->segment_timeline;
+			if (period->segment_list->presentation_time_offset) pto = period->segment_list->presentation_time_offset;
 			if (gf_list_count(period->segment_list->segment_URLs)) seglist = period->segment_list->segment_URLs;
 		}
 		if (set->segment_list) {
 			if (set->segment_list->duration) duration = set->segment_list->duration;
 			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
 			if (set->segment_list->segment_timeline) timeline = set->segment_list->segment_timeline;
+			if (set->segment_list->presentation_time_offset) pto = set->segment_list->presentation_time_offset;
 			if (gf_list_count(set->segment_list->segment_URLs)) seglist = set->segment_list->segment_URLs;
 		}
 		if (rep->segment_list) {
 			if (rep->segment_list->duration) duration = rep->segment_list->duration;
 			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+			if (rep->segment_list->presentation_time_offset) pto = rep->segment_list->presentation_time_offset;
 			if (gf_list_count(rep->segment_list->segment_URLs)) seglist = rep->segment_list->segment_URLs;
 		}
 		if (!timescale) timescale = 1;
 
 		if (timeline) {
 			start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+			start_time -= pto;
 		}
 		else if (duration) {
 			start_time = in_segment_index * duration;
@@ -4939,22 +4978,26 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 		if (period->segment_template->duration) duration = period->segment_template->duration;
 		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
+		if (period->segment_template->presentation_time_offset) pto = period->segment_template->presentation_time_offset;
 
 	}
 	if (set->segment_template) {
 		if (set->segment_template->duration) duration = set->segment_template->duration;
 		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
+		if (set->segment_template->presentation_time_offset) pto = set->segment_template->presentation_time_offset;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
+		if (rep->segment_template->presentation_time_offset) pto = rep->segment_template->presentation_time_offset;
 	}
 	if (!timescale) timescale = 1;
 
 	if (timeline) {
 		start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+		start_time -= pto;
 	}
 	else {
 		start_time = in_segment_index * duration;
@@ -5724,7 +5767,7 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 			while (gf_list_count(set->representations)>1) {
 				FILE *f = gf_file_temp(NULL);
 				u32 size;
-				char *data, szAdd[100];
+				char *data, *blob_add;
 				GF_Blob blob;
 				GF_DOMParser *dom;
 				GF_XMLNode *root;
@@ -5749,18 +5792,22 @@ GF_Err gf_mpd_split_adaptation_sets(GF_MPD *mpd)
 				gf_fseek(f, 0, SEEK_SET);
 				size = (u32) gf_fread(data, size, f);
 				data[size]=0;
+
 				memset(&blob, 0, sizeof(GF_Blob));
 				blob.data = data;
 				blob.size = size;
-				sprintf(szAdd, "gmem://%p", &blob);
+
+				blob_add = gf_blob_register(&blob);
 
 				//parse
 				dom = gf_xml_dom_new();
-				gf_xml_dom_parse(dom, szAdd, NULL, NULL);
+				gf_xml_dom_parse(dom, blob_add, NULL, NULL);
 				root = gf_xml_dom_get_root(dom);
 				gf_mpd_parse_adaptation_set(mpd, new_as, root);
 				gf_xml_dom_del(dom);
 				gf_free(data);
+				if (blob_add) gf_free(blob_add);
+				gf_blob_unregister(&blob);
 				gf_fclose(f);
 
 				

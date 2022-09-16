@@ -2639,6 +2639,7 @@ fi
 echo "CONFIG_HID=$has_hid" >> config.mak
 echo "HID_LDFLAGS=$hid_lib" >> config.mak
 
+echo "PKG_CONFIG=$pkg_config" >> config.mak
 
 if [ -n "$X11_PATH" ] ; then
 if test "$is_64" = "yes"; then

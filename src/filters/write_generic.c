@@ -668,6 +668,7 @@ GF_XMLAttribute *ttml_get_attr(GF_XMLNode *node, char *name)
 	}
 	return NULL;
 }
+
 static GF_XMLNode *ttml_locate_div(GF_XMLNode *body, const char *region_name, u32 div_idx)
 {
 	u32 i=0, loc_div_idx=0;
@@ -687,6 +688,17 @@ static GF_XMLNode *ttml_locate_div(GF_XMLNode *body, const char *region_name, u3
 	}
 	if (region_name) {
 		return ttml_locate_div(body, NULL, div_idx);
+	}
+	return NULL;
+}
+
+static GF_XMLNode *ttml_get_head(GF_XMLNode *root)
+{
+	u32 i=0;
+	GF_XMLNode *child;
+	while (root && (child = gf_list_enum(root->content, &i)) ) {
+		if (child->type) continue;
+		if (!strcmp(child->name, "head")) return child;
 	}
 	return NULL;
 }
@@ -719,6 +731,31 @@ static Bool ttml_same_attr(GF_XMLNode *n1, GF_XMLNode *n2)
 		if (!found) return GF_FALSE;
 	}
 	return GF_TRUE;
+}
+
+static void ttml_merge_head(GF_XMLNode *node_src, GF_XMLNode *node_dst)
+{
+	u32 i=0;
+	GF_XMLNode *child_src;
+	while ( (child_src = gf_list_enum(node_src->content, &i)) ) {
+		Bool found = GF_FALSE;
+		u32 j=0;
+		GF_XMLNode *child_dst;
+		while ( (child_dst = gf_list_enum(node_dst->content, &j)) ) {
+			if (!strcmp(child_src->name, child_dst->name) && ttml_same_attr(child_dst, child_src)) {
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (found) {
+			ttml_merge_head(child_src, child_dst);
+			continue;
+		}
+		i--;
+		gf_list_rem(node_src->content, i);
+		gf_list_add(node_dst->content, child_src);
+	}
+	return;
 }
 
 static GF_Err ttml_embed_data(GF_XMLNode *node, u8 *aux_data, u32 aux_data_size, u8 *subs_data, u32 subs_data_size)
@@ -856,7 +893,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	GF_DOMParser *dom;
 	u32 txt_size, nb_children;
 	u32 i, k, div_idx;
-	GF_XMLNode *root_pck, *p_global, *p_pck, *body_pck, *body_global;
+	GF_XMLNode *root_pck, *root_global, *p_global, *p_pck, *body_pck, *body_global, *head_pck, *head_global;
 
 	if (subs) {
 		if (subs->value.data.size < 14)
@@ -900,10 +937,21 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		ctx->ttml_root = gf_xml_dom_detach_root(dom);
 		goto exit;
 	}
+	root_global = ctx->ttml_root;
 
+	head_global = ttml_get_head(root_global);
+	head_pck = ttml_get_head(root_pck);
+	if (head_pck) {
+		if (!head_global) {
+			gf_list_del_item(root_pck->content, head_pck);
+			gf_list_add(root_global->content, head_pck);
+		} else {
+			ttml_merge_head(head_pck, head_global);
+		}
+	}
 
 	body_pck = ttml_get_body(root_pck);
-	body_global = ttml_get_body(ctx->ttml_root);
+	body_global = ttml_get_body(root_global);
 	div_idx = 0;
 	nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
 	for (k=0; k<nb_children; k++) {

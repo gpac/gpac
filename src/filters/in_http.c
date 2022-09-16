@@ -119,6 +119,7 @@ static GF_Err httpin_initialize(GF_Filter *filter)
 		flags |= GF_NETIO_SESSION_NOT_CACHED|GF_NETIO_SESSION_MEMORY_CACHE|GF_NETIO_SESSION_KEEP_FIRST_CACHE;
 		ctx->cache = GF_HTTPIN_STORE_NONE;
 	}
+	gf_filter_set_blocking(filter, GF_TRUE);
 
 	server = strstr(ctx->src, "://");
 	if (server) server += 3;
@@ -274,6 +275,7 @@ static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			GF_FilterPacket *pck;
 			gf_filter_pid_raw_new(filter, ctx->src, ctx->src, NULL, NULL, NULL, 0, GF_FALSE, &ctx->pid);
 			ctx->is_end = GF_TRUE;
+			ctx->prev_was_init_segment = GF_TRUE;
 			pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
 			if (!pck) return GF_TRUE;
 			gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);

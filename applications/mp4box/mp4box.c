@@ -1227,7 +1227,7 @@ MP4BoxArg m4b_extr_args[] =
  	MP4BOX_ARG("dvbhdemux", "demultiplex DVB-H file into IP Datagrams sent on the network", GF_ARG_BOOL, 0, &dvbhdemux, 0, 0),
  	MP4BOX_ARG("raw-layer", "same as [-raw]() but skips SVC/MVC/LHVC extractors when extracting", GF_ARG_INT, 0, parse_track_dump, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER, ARG_IS_FUN),
  	MP4BOX_ARG("diod", "extract file IOD in raw format", GF_ARG_BOOL, 0, &dump_iod, 0, 0),
- 	MP4BOX_ARG("mpd", "convert given HLS or smooth manifest (local or remote http) to MPD.  \nWarning: This is not compatible with other DASH options and does not convert associated segments", GF_ARG_STRING, 0, &do_mpd_conv, 0, 0),
+ 	MP4BOX_ARG("mpd", "convert given HLS or smooth manifest (local or remote http) to MPD - options `-url-template` and `-segment-timeline`can be used in this mode.  \nNote: This only provides basic conversion, for more advanced conversions, see `gpac -h dasher`\n  \nWarning: This is not compatible with other DASH options and does not convert associated segments", GF_ARG_STRING, 0, &do_mpd_conv, 0, 0),
  	{0}
 };
 
@@ -3757,7 +3757,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 
 		if (e) {
 			M4_LOG(GF_LOG_ERROR, ("Error while hinting (%s)\n", gf_error_to_string(e)));
-			if (!nb_done) return e;
+			return e;
 		}
 		init_payt++;
 		nb_done ++;

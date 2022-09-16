@@ -1099,12 +1099,28 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (prop_index < 0) {
 			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_AUXC);
 			if (!auxC) return GF_OUT_OF_MEM;
-			auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
+
+			//always use mpegB code points (2nd edition of HEIF recommends it)
+			if (gf_opts_get_bool("core", "heif-hevc-urn")) {
+				u32 cfg_type = image_props->config ? ((GF_Box *) image_props->config)->type : 0;
+				switch (cfg_type) {
+				case GF_ISOM_BOX_TYPE_HVCC:
+				case GF_ISOM_BOX_TYPE_LHVC:
+					auxC->aux_urn = gf_strdup("urn:mpeg:hevc:2015:auxid:1");
+					break;
+				default:
+					auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
+					break;
+				}
+			} else {
+				auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
+			}
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
 		searchprop.alpha = GF_FALSE;
+		if (image_props->num_channels) image_props->num_channels = 1;
 	}
 	if (image_props->depth) {
 		searchprop.depth = image_props->depth;
@@ -1112,12 +1128,28 @@ static GF_Err meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Im
 		if (prop_index < 0) {
 			GF_AuxiliaryTypePropertyBox *auxC = (GF_AuxiliaryTypePropertyBox *)gf_isom_box_new_parent(&ipco->child_boxes, GF_ISOM_BOX_TYPE_AUXC);
 			if (!auxC) return GF_OUT_OF_MEM;
-			auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:depth");
+
+			//always use mpegB code points (2nd edition of HEIF recommends it)
+			if (gf_opts_get_bool("core", "heif-hevc-urn")) {
+				u32 cfg_type = image_props->config ? ((GF_Box *) image_props->config)->type : 0;
+				switch (cfg_type) {
+				case GF_ISOM_BOX_TYPE_HVCC:
+				case GF_ISOM_BOX_TYPE_LHVC:
+					auxC->aux_urn = gf_strdup("urn:mpeg:hevc:2015:auxid:2");
+					break;
+				default:
+					auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:depth");
+					break;
+				}
+			} else {
+				auxC->aux_urn = gf_strdup("urn:mpeg:mpegB:cicp:systems:auxiliary:depth");
+			}
 			prop_index = gf_list_count(ipco->child_boxes) - 1;
 		}
 		e = meta_add_item_property_association(ipma, item_ID, prop_index + 1, GF_TRUE);
 		if (e) return e;
-		searchprop.alpha = GF_FALSE;
+		searchprop.depth = GF_FALSE;
+		if (image_props->num_channels) image_props->num_channels = 1;
 	}
 	if (image_props->num_channels) {
 		u32 k;

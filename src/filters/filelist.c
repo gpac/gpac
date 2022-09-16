@@ -203,6 +203,10 @@ typedef struct
 	u32 sigfrag_mode;
 	//for isobmf cat mode in sigfrag
 	char *rel_url, *abs_url, *init_url;
+
+
+	GF_PropUIntList chap_times;
+	GF_PropStringList chap_names;
 } GF_FileListCtx;
 
 static const GF_FilterCapability FileListCapsSrc[] =
@@ -566,6 +570,21 @@ static GF_Err filelist_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 	}
 
+	if (ctx->chap_times.nb_items) {
+		GF_PropertyValue p;
+		p.type = GF_PROP_UINT_LIST;
+		p.value.uint_list = ctx->chap_times;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, &p);
+
+		p.type = GF_PROP_STRING_LIST_COPY;
+		p.value.string_list =  ctx->chap_names;
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, &p);
+	} else {
+		//we don't concatenate chapters for now
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_TIMES, NULL);
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CHAP_NAMES, NULL);
+	}
+
 	if (ctx->splice_state==FL_SPLICE_BEFORE) {
 		if (!ctx->splice_ctrl) ctx->splice_ctrl = iopid;
 		else if (iopid->stream_type==GF_STREAM_VISUAL) ctx->splice_ctrl = iopid;
@@ -744,6 +763,19 @@ static void filelist_parse_splice_time(char *aval, GF_Fraction64 *frac, u32 *fla
 	gf_parse_lfrac(aval, frac);
 }
 
+static void push_chapter(GF_FileListCtx *ctx, char *chap_name)
+{
+	u64 start = gf_timestamp_rescale(ctx->dts_offset.num, ctx->dts_offset.den, 1000);
+
+	ctx->chap_times.vals = gf_realloc(ctx->chap_times.vals, sizeof(u32)*(ctx->chap_times.nb_items+1));
+	ctx->chap_names.vals = gf_realloc(ctx->chap_names.vals, sizeof(char*)*(ctx->chap_names.nb_items+1));
+	ctx->chap_times.vals[ctx->chap_times.nb_items] = (u32) start;
+	ctx->chap_names.vals[ctx->chap_names.nb_items] = gf_strdup(chap_name);
+	ctx->chap_times.nb_items++;
+	ctx->chap_names.nb_items++;
+}
+
+
 static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL[GF_MAX_PATH], Bool is_splice_update)
 {
 	u32 len;
@@ -754,6 +786,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	u64 start_range=0, end_range=0;
 	Double start=0, stop=0;
 	GF_Fraction64 splice_start, splice_end;
+	char chap_name[1024];
 	Bool do_cat=0;
 	Bool do_del=0;
 	Bool is_end=0;
@@ -809,6 +842,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 
 	splice_start.num = splice_end.num = 0;
 	splice_start.den = splice_end.den = 0;
+	chap_name[0]=0;
 
 	f = gf_fopen(ctx->file_path, "rt");
 	while (f) {
@@ -864,12 +898,18 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 
 			while (args) {
 				char c;
+				Bool skip_first=GF_FALSE;
 				char *sep, *aval = NULL;
 				while (args[0]==' ') args++;
 
 				sep = strchr(args, ' ');
 				if (strncmp(args, "props", 5))
 					aval = strchr(args, ',');
+
+				if (!strncmp(args, "chap=\"", 6)) {
+					sep = strchr(args+7, '\"');
+					if (sep) skip_first = GF_TRUE;
+				}
 
 				if (sep && aval && (aval < sep))
 					sep = aval;
@@ -884,6 +924,7 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				if (aval) {
 					aval[0] = 0;
 					aval++;
+					if (skip_first) aval++;
 				}
 
 				if (!strcmp(args, "repeat")) {
@@ -939,6 +980,9 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 				} else if (!strcmp(args, "sprops")) {
 					if (ctx->splice_props) gf_free(ctx->splice_props);
 					ctx->splice_props = aval ? gf_strdup(aval) : NULL;
+				} else if (!strcmp(args, "chap") && aval) {
+					strncpy(chap_name, aval, 1023);
+					chap_name[1023]=0;
 				} else {
 					if (!ctx->unknown_params || !strstr(ctx->unknown_params, args)) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[FileList] Unrecognized directive %s, ignoring\n", args));
@@ -1074,6 +1118,8 @@ static Bool filelist_next_url(GF_Filter *filter, GF_FileListCtx *ctx, char szURL
 	ctx->start_range = start_range;
 	ctx->end_range = end_range;
 	filelist_check_implicit_cat(ctx, szURL);
+	if (chap_name[0])
+		push_chapter(ctx, chap_name);
 	return GF_TRUE;
 }
 
@@ -2768,6 +2814,12 @@ static void filelist_finalize(GF_Filter *filter)
 	if (ctx->init_url) gf_free(ctx->init_url);
 	if (ctx->rel_url) gf_free(ctx->rel_url);
 	if (ctx->abs_url) gf_free(ctx->abs_url);
+
+	if (ctx->chap_times.vals) gf_free(ctx->chap_times.vals);
+	GF_PropertyValue p;
+	p.type = GF_PROP_STRING_LIST;
+	p.value.string_list = ctx->chap_names;
+	gf_props_reset_single(&p);
 }
 
 static const char *filelist_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
@@ -2921,6 +2973,7 @@ GF_FilterRegister FileListRegister = {
 		"- keep: keeps spliced period in output (cf below).\n"
 		"- mark: only inject marker for the splice period and do not load any replacement content (cf below).\n"
 		"- sprops=STR: assigns properties described in `STR` to all PIDs of the main content during a splice (cf below). `STR` is formatted according to `gpac -h doc` using the default parameter set.\n"
+		"- chap=NAME: assigns chapter name at the start of next URL (filter always removes source chapter names).\n"
 		"\n"
 		"The following global options (applying to the filter, not the sources) may also be set in the playlist:\n"
 		"- ka=N: force [-ka]() option to `N` millisecond refresh.\n"

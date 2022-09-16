@@ -1522,7 +1522,7 @@ typedef struct
 	GF_ColourInformationBox *colr;
 } GF_J2KHeaderBox;
 
-typedef struct
+typedef struct __full_video_sample_entry
 {
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
 	GF_ESDBox *esd;
@@ -1556,6 +1556,14 @@ typedef struct
 	/*iPod's hack*/
 	GF_UnknownUUIDBox *ipod_ext;
 
+	//for generic video sample entry
+
+	//box type as specified in the file (not this box's type!!)
+	u32 EntryType;
+	//opaque description data (ESDS in MP4, SMI in SVQ3, ...)
+	u8 *data;
+	u32 data_size;
+
 } GF_MPEGVisualSampleEntryBox;
 
 static const u8 GF_ISOM_IPOD_EXT[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24, 0x4F, 0xC5, 0xBA, 0x39, 0xA5, 0x1B, 0xCF, 0x03, 0x23, 0xF3} };
@@ -1563,16 +1571,7 @@ static const u8 GF_ISOM_IPOD_EXT[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24,
 Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry);
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry);
 
-/*this is the default visual sdst (to handle unknown media)*/
-typedef struct
-{
-	GF_ISOM_VISUAL_SAMPLE_ENTRY
-	/*box type as specified in the file (not this box's type!!)*/
-	u32 EntryType;
-	/*opaque description data (ESDS in MP4, SMI in SVQ3, ...)*/
-	u8 *data;
-	u32 data_size;
-} GF_GenericVisualSampleEntryBox;
+typedef struct __full_video_sample_entry GF_GenericVisualSampleEntryBox;
 
 enum
 {
@@ -1702,7 +1701,7 @@ typedef struct
 } GF_PCMConfigBox;
 
 
-typedef struct
+typedef struct __full_audio_sample_entry
 {
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
 	//for MPEG4 audio
@@ -1726,18 +1725,16 @@ typedef struct
 	//for FLAC
 	GF_FLACConfigBox *cfg_flac;
 
-} GF_MPEGAudioSampleEntryBox;
-
-/*this is the default visual sdst (to handle unknown media)*/
-typedef struct
-{
-	GF_ISOM_AUDIO_SAMPLE_ENTRY
-	/*box type as specified in the file (not this box's type!!)*/
+	//for generic audio sample entry
+	//box type as specified in the file (not this box's type!!)
 	u32 EntryType;
-	/*opaque description data (ESDS in MP4, ...)*/
+	//opaque description data (ESDS in MP4, ...)
 	u8 *data;
 	u32 data_size;
-} GF_GenericAudioSampleEntryBox;
+
+} GF_MPEGAudioSampleEntryBox;
+
+typedef struct __full_audio_sample_entry GF_GenericAudioSampleEntryBox;
 
 
 typedef struct
@@ -2079,7 +2076,7 @@ typedef struct
 	u8 patch_piff_psec;
 } GF_SampleTableBox;
 
-GF_Err stbl_AppendTrafMap(GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end, u32 nb_pack_samples);
+GF_Err stbl_AppendTrafMap(GF_ISOFile *mov, GF_SampleTableBox *stbl, Bool is_seg_start, u64 seg_start_offset, u64 frag_start_offset, u8 *moof_template, u32 moof_template_size, u64 sidx_start, u64 sidx_end, u32 nb_pack_samples);
 
 typedef struct __tag_media_info_box
 {
@@ -4077,6 +4074,7 @@ struct __tag_isom {
 
 	Bool store_traf_map;
 	Bool signal_frag_bounds;
+	u64 root_sidx_start_offset, root_sidx_end_offset;
 	u64 sidx_start_offset, sidx_end_offset;
 	u64 styp_start_offset;
 	u64 mdat_end_offset;

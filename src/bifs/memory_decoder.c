@@ -75,14 +75,15 @@ static GF_Err BM_ParseMultipleIndexedReplace(GF_BifsDecoder *codec, GF_BitStream
 
 		if (field.fieldType==GF_SG_VRML_SFNODE) {
 			inf->new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
-			if (codec->LastError) goto err;
+			e = codec->LastError;
 			inf->field_ptr = &inf->new_node;
-			gf_node_register(inf->new_node, NULL);
+			if (inf->new_node)
+				gf_node_register(inf->new_node, NULL);
 		} else {
 			field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 			e = gf_bifs_dec_sf_field(codec, bs, node, &field, GF_TRUE);
-			if (e) goto err;
 		}
+		if (e) goto err;
 		count--;
 	}
 err:
