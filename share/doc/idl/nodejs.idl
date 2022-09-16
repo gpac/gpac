@@ -1274,7 +1274,7 @@ attribute readonly unsigned long display_width;
 /*! display height in pixels of object*/
 attribute readonly unsigned long display_height;
 
-/*! index of current quality*/
+/*! index of current quality or last downloaded quality*/
 attribute readonly unsigned long active_quality_idx;
 
 /*! minimum buffer in milliseconds, below witch rebuffer occurs*/

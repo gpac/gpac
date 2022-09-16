@@ -1913,7 +1913,7 @@ class DASHGroupStatistics(Structure):
         self.display_width = 0
         ##display height in pixels of object
         self.display_height = 0
-        ##index of current quality
+        ##index of current quality or of last downloaded segment quality if previous was skipped
         self.active_quality_idx = 0
         ##minimum buffer in milliseconds, below witch rebuffer occurs
         self.buffer_min = 0
