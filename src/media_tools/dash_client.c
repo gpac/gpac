@@ -4474,6 +4474,12 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		return;
 	}
 	group->rate_adaptation_postponed = GF_FALSE;
+	if (base_group->disabled) {
+		if (new_index!=-2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] base group disabled but group is not disabled by algo, forcing disabling\n"));
+			new_index = -2;
+		}
+	}
 	if (new_index < 0) {
 		if (new_index == -2) {
 			group->disabled = GF_TRUE;
@@ -6946,8 +6952,11 @@ llhls_rety:
 	cache_entry->flags = group->loop_detected ? SEG_FLAG_LOOP_DETECTED : 0;
 	cache_entry->dep_group_idx = group->depend_on_group ? group->depend_on_group->current_dep_idx : group->current_dep_idx;
 	if (has_dep_following) cache_entry->flags |= SEG_FLAG_DEP_FOLLOWING;
-	if (group->disabled)
+	if (group->disabled) {
 		cache_entry->flags |= SEG_FLAG_DISABLED;
+		//a group can only be disabled for the current segment, not doing so would trigger EOS if all groups are deactivated
+		group->disabled = GF_FALSE;
+	}
 	if (key_url) {
 		cache_entry->key_url = key_url;
 		memcpy(cache_entry->key_IV, key_iv, sizeof(bin128));
