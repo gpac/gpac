@@ -981,6 +981,7 @@ static u32 FS_PROP_PID_MIN_PCK_DUR = 13;
 static u32 FS_PROP_PID_PLAYING = 14;
 static u32 FS_PROP_PID_NEXT_TS = 15;
 static u32 FS_PROP_PID_SPARSE = 16;
+static u32 FS_PROP_PID_HAS_DECODER = 17;
 
 #define FILTERPID\
 	GF_FilterPid *pid=NULL;\
@@ -1089,6 +1090,10 @@ napi_value filterpid_getter(napi_env env, napi_callback_info info)
 		} else {
 			NAPI_CALL( napi_create_int64(env, (s64) cts, &ret) );
 		}
+        return ret;
+	}
+	if (magic == &FS_PROP_PID_HAS_DECODER) {
+		NAPI_CALL( napi_get_boolean(env, gf_filter_pid_has_decoder(pid), &ret) );
         return ret;
 	}
 	return NULL;
@@ -2880,6 +2885,7 @@ static NAPI_FilterPid *wrap_filter_pid(napi_env env, GF_Filter *filter, GF_Filte
 		{ "min_pck_dur", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_MIN_PCK_DUR},
 		{ "playing", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_PLAYING},
 		{ "next_ts", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_NEXT_TS},
+		{ "has_decoder", NULL, NULL, filterpid_getter, NULL, NULL, napi_enumerable, &FS_PROP_PID_HAS_DECODER},
 
 		{ "remove", 0, filterpid_remove, 0, 0, 0, napi_enumerable, 0 },
 		{ "enum_props", 0, filterpid_enum_props, 0, 0, 0, napi_enumerable, 0 },
@@ -4721,6 +4727,7 @@ static napi_status InitConstants(napi_env env, napi_value exports)
 	DEF_CONST(GF_STATS_DECODER_SOURCE)
 	DEF_CONST(GF_STATS_ENCODER_SINK)
 	DEF_CONST(GF_STATS_ENCODER_SOURCE)
+	DEF_CONST(GF_STATS_SINK)
 
 	DEF_CONST(GF_FILTER_CLOCK_NONE)
 	DEF_CONST(GF_FILTER_CLOCK_PCR)

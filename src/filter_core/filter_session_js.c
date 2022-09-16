@@ -1508,6 +1508,13 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 {
 	u32 i, count=gf_list_count(fs->jstasks);
 
+	gf_js_lock(js_ctx, GF_TRUE);
+	fs->new_f_task = NULL;
+	fs->del_f_task = NULL;
+	fs->on_evt_task = NULL;
+	fs->on_auth_task = NULL;
+	gf_js_lock(js_ctx, GF_FALSE);
+
 	for (i=0; i<count; i++) {
 		JSFS_Task *task = gf_list_get(fs->jstasks, i);
 		if (js_ctx && (task->ctx != js_ctx))
@@ -1523,7 +1530,6 @@ void gf_fs_unload_script(GF_FilterSession *fs, void *js_ctx)
 		i--;
 		count--;
 	}
-
 	if (fs->js_ctx) {
 		gf_js_delete_context(fs->js_ctx);
 		fs->js_ctx = NULL;
