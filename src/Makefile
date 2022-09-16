@@ -349,6 +349,7 @@ media_tools/img.o: media_tools/img.c
 
 utils/downloader.o: CFLAGS += $(nghttp2_cflags) $(ssl_cflags)
 utils/downloader.o: utils/downloader.c
+.deps/utils/downloader.dep: CFLAGS += $(nghttp2_cflags) $(ssl_cflags)
 
 crypto/g_crypt_openssl.o: CFLAGS += $(ssl_cflags)
 crypto/g_crypt_openssl.o: crypto/g_crypt_openssl.c
