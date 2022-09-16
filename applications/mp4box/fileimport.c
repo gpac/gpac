@@ -2002,7 +2002,7 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 }
 
 extern u32 do_flat;
-extern Bool do_frag;
+extern Bool do_frag, use_mfra;
 extern Double interleaving_time;
 
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
@@ -2232,6 +2232,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
 		strcat(szFile, szArgs);
 	}
+	if (use_mfra)
+		strcat(szFile, ":mfra");
 
 	dst = gf_fs_load_destination(fs, szFile, NULL, NULL, &e);
 	if (!dst) {
