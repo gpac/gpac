@@ -2420,6 +2420,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_rt_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_external_gl_provider) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg_str ) )
