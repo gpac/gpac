@@ -1610,7 +1610,8 @@ typedef struct __ac3_config
 	u16 substreams; //bit-mask, used for channel map > 5.1
 
 	//! \endcond private
-
+	Bool atmos_ec3_ext;
+	u8 complexity_index_type;
 } GF_AC3Config;
 
 

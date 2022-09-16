@@ -3501,6 +3501,15 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			gf_odf_dovi_cfg_del(dovi);
 		}
 	}
+
+	if (dsi && (codec_id==GF_CODECID_EAC3)) {
+		GF_AC3Config ac3cfg;
+		gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE, &ac3cfg);
+		if (ac3cfg.atmos_ec3_ext)
+			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
+	}
+
+
 	inspect_printf(dump, "\n");
 }
 

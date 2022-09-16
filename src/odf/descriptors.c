@@ -1785,7 +1785,13 @@ GF_Err gf_odf_ac3_cfg_write(GF_AC3Config *cfg, u8 **data, u32 *size)
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	GF_Err e = gf_odf_ac3_cfg_write_bs(cfg, bs);
 
+	if (cfg->is_ec3 && (cfg->atmos_ec3_ext || cfg->complexity_index_type)) {
+		gf_bs_write_int(bs, 0, 7);
+		gf_bs_write_int(bs, cfg->atmos_ec3_ext, 1);
+		gf_bs_write_u8(bs, cfg->complexity_index_type);
+	}
 	gf_bs_get_content(bs, data, size);
+
 	gf_bs_del(bs);
 	return e;
 }
@@ -1836,6 +1842,11 @@ GF_Err gf_odf_ac3_config_parse(u8 *dsi, u32 dsi_len, Bool is_ec3, GF_AC3Config *
 	if (!cfg || !dsi) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi, dsi_len, GF_BITSTREAM_READ);
 	e = gf_odf_ac3_config_parse_bs(bs, is_ec3, cfg);
+	if (is_ec3 && gf_bs_available(bs)>=2) {
+		gf_bs_read_int(bs, 7);
+		cfg->atmos_ec3_ext = gf_bs_read_int(bs, 1);
+		cfg->complexity_index_type = gf_bs_read_u8(bs);
+	}
 	gf_bs_del(bs);
 	return e;
 }

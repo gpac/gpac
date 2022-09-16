@@ -41,7 +41,17 @@
 #include <unistd.h>
 
 #else //WIN32
+
+#ifdef __MINGW32__
+// force mingw windows api level high enough for GetModuleFileNameExA
+#if !defined(_WIN32_WINNT) || _WIN32_WINNT  < 0x0601
+#undef _WIN32_WINNT
+#define _WIN32_WINNT  0x0601
+#endif
+#endif
+
 #include <windows.h> /*for GetModuleFileName*/
+
 #endif	//WIN32
 
 extern u32 compositor_mode;
