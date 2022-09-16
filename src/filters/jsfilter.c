@@ -4953,6 +4953,10 @@ static void jsfilter_finalize(GF_Filter *filter)
 			if (a_f == jsf->filter) continue;;
 			jsfs_on_filter_destroyed(a_f);
 		}
+		if (!JS_IsUndefined(jsf->filter->jsval)) {
+			JS_FreeValue(jsf->ctx, jsf->filter->jsval);
+			jsf->filter->jsval = JS_UNDEFINED;
+		}
 		gf_mx_v(jsf->filter->session->filters_mx);
 		gf_js_delete_context(jsf->ctx);
 	} else {
