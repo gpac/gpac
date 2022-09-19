@@ -278,6 +278,19 @@ uint8_t *wgl_GetArrayBuffer(JSContext *ctx, u32 *size, JSValueConst obj)
 	res = JS_GetArrayBuffer(ctx, &psize, v);
 	JS_FreeValue(ctx, v);
 	*size = (u32) psize;
+
+	v = JS_GetPropertyStr(ctx, obj, "byteOffset");
+	if (!JS_IsUndefined(v)) {
+		u64 offset;
+		JS_ToInt64(ctx, &offset, v);
+		JS_FreeValue(ctx, v);
+		v = JS_GetPropertyStr(ctx, obj, "byteLength");
+		JS_ToInt32(ctx, size, v);
+		JS_FreeValue(ctx, v);
+		res += offset;
+		return res;
+	}
+
 	return res;
 }
 
@@ -1865,7 +1878,7 @@ GF_Err webgl_get_plane(GF_FilterFrameInterface *ifce, u32 plane_idx, const u8 **
 
 	if (glc->fetch_required_pfmt) {
 		u32 i, hy;
-		jsf_set_gl_active(glc->ctx);
+		jsf_set_gl_active(glc->ctx, GF_TRUE);
 
 		if (glc->creation_attrs.primary) {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1913,6 +1926,7 @@ GF_Err webgl_get_plane(GF_FilterFrameInterface *ifce, u32 plane_idx, const u8 **
 			memcpy(glc->pix_data + i * glc->pix_stride, glc->pix_data + (glc->height - 1 - i) * glc->pix_stride, glc->pix_stride);
 			memcpy(glc->pix_data + (glc->height - 1 - i) * glc->pix_stride, glc->pix_line, glc->pix_stride);
 		}
+		jsf_set_gl_active(glc->ctx, GF_FALSE);
 	}
 
 	*outPlane = glc->pix_data;
@@ -2150,13 +2164,21 @@ static JSValue wgl_texture_name(JSContext *ctx, JSValueConst this_val, int argc,
 	return JS_NewString(ctx, named_tx->tx_name);
 }
 
+Bool wgl_texture_get_id(JSContext *ctx, JSValueConst txval, u32 *tx_id)
+{
+	GF_WebGLObject *tx = tx = JS_GetOpaque(txval, WebGLTexture_class_id);
+	if (!tx || !tx->gl_id) return GF_FALSE;
+	*tx_id = tx->gl_id;
+	return GF_TRUE;
+}
+
 static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activate)
 {
 	if (activate) {
 		u32 i, count;
 		//clear error
 		glGetError();
-		jsf_set_gl_active(ctx);
+		jsf_set_gl_active(ctx, GF_TRUE);
 
 		if (glc->creation_attrs.primary) {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2205,6 +2227,8 @@ static JSValue wgl_activate_gl(JSContext *ctx, GF_WebGLContext *glc, Bool activa
 		glDisable(GL_TEXTURE_2D);
 		//clear error
 		glGetError();
+
+		jsf_set_gl_active(ctx, GF_FALSE);
 	}
 	return JS_UNDEFINED;
 }

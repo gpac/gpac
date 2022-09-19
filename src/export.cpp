@@ -357,14 +357,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_timezone) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_has_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_is_ipv6) )
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_decode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_decode) )
-#endif
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_bin128_parse) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_token_get) )
@@ -432,7 +428,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_3cc) )
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new_simple) )
@@ -495,7 +490,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
-#endif
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
@@ -1169,6 +1163,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_progress_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apply_box_patch) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
@@ -1550,6 +1545,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #ifndef GPAC_DISABLE_OGG
@@ -2103,11 +2099,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_rap) )
 #endif /*GPAC_DISABLE_LASER*/
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 /*download.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
-#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*to be removed once TS fragmenter is moved to libgpac */
@@ -2163,13 +2157,12 @@
 #endif
 
 /* dvb_mpe.h */
-#ifdef GPAC_ENST_PRIVATE
+#ifdef GPAC_ENABLE_MPE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_get_freq_from_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_print_info) )
 #endif
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
@@ -2420,6 +2413,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_is_supported_source) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_filter_creation_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fs_get_rt_udta) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fs_set_external_gl_provider) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_send_update ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg ) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_get_arg_str ) )
@@ -2633,6 +2627,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_is_playing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_ignore_blocking) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_next_ts) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_has_decoder) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )

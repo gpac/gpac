@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2007-2012
+ *			Copyright (c) Telecom ParisTech 2007-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -23,7 +23,6 @@
  *
  */
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #include <gpac/utf.h>
 
@@ -764,7 +763,4 @@ char* gf_wcs_to_utf8(const wchar_t* str)
 	return result;
 }
 #endif
-
-#endif /* GPAC_DISABLE_CORE_TOOLS */
-
 

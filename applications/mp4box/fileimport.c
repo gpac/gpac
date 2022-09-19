@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -75,15 +75,12 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		return e;
 	}
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (!strnicmp(src, "base64", 6)) {
 		src += 7;
 		size = (u32) strlen(src);
 		data = gf_malloc(sizeof(char) * size);
 		size = gf_base64_decode((u8 *)src, size, data, size);
-	} else
-#endif
-	if (is_string) {
+	} else if (is_string) {
 		data = (u8 *) src;
 		size = (u32) strlen(src)+1;
 		is_box_array = 0;
@@ -675,6 +672,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 	u32 roll_change=0;
 	s32 roll = 0;
 	Bool src_is_isom = GF_FALSE;
+	s32 dlb_mode = -2;
 
 	dv_profile[0] = 0;
 	rvc_predefined = 0;
@@ -1034,6 +1032,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 		}
 		else if (!strnicmp(ext+1, "compat=", 7)) {
 			compat = parse_u32(ext+8, "compat");
+		}
+		else if (!strnicmp(ext+1, "dlba=", 5)) {
+			if (!strcmp(ext+6, "no")) dlb_mode=0;
+			else if (!strcmp(ext+6, "auto")) dlb_mode=-1;
+			else if (sscanf(ext+6, "%d", &dlb_mode) != 1) {
+				GOTO_EXIT("Unrecognized dolby atmos mode")
+			}
 		}
 
 		else if (!strnicmp(ext+1, "novpsext", 8)) { CHECK_FAKEIMPORT("novpsext") import_flags |= GF_IMPORT_NO_VPS_EXTENSIONS; }
@@ -1784,6 +1789,28 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				break;
 			}
 		}
+		if ((dlb_mode>=-1) && (gf_isom_get_media_subtype(dest, track, 1)==GF_ISOM_SUBTYPE_EC3)) {
+			GF_AC3Config *ac3c = gf_isom_ac3_config_get(dest, track, 1);
+			if (ac3c) {
+				if (dlb_mode==0) {
+					ac3c->is_ec3 = GF_TRUE;
+					ac3c->atmos_ec3_ext=0;
+					ac3c->complexity_index_type=0;
+				} else {
+					u32 di;
+					GF_ISOSample *samp = gf_isom_get_sample(dest, track, 1, &di);
+					u32 pos;
+					gf_eac3_parser(samp->data, samp->dataLength, &pos, ac3c, GF_TRUE);
+
+					if (dlb_mode>0) {
+						ac3c->atmos_ec3_ext = 1;
+						ac3c->complexity_index_type = dlb_mode;
+					}
+				}
+				gf_isom_ac3_config_update(dest, track, 1, ac3c);
+				gf_free(ac3c);
+			}
+		}
 	}
 
 	if (chapter_name) {
@@ -2002,7 +2029,7 @@ static Bool on_split_event(void *_udta, GF_Event *evt)
 }
 
 extern u32 do_flat;
-extern Bool do_frag;
+extern Bool do_frag, use_mfra;
 extern Double interleaving_time;
 
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double InterleavingTime, Double chunk_start_time, u32 adjust_split_end, char *outName, Bool force_rap_split, const char *split_range_str, u32 fs_dump_flags)
@@ -2232,6 +2259,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		sprintf(szArgs, ":cdur=%g", interleaving_time);
 		strcat(szFile, szArgs);
 	}
+	if (use_mfra)
+		strcat(szFile, ":mfra");
 
 	dst = gf_fs_load_destination(fs, szFile, NULL, NULL, &e);
 	if (!dst) {
@@ -3570,7 +3599,6 @@ exit:
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	char szCheck[100];
@@ -3918,20 +3946,6 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 	gf_xml_dom_del(parser);
 	return e;
 }
-
-#else
-GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
-{
-	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot package file\n"));
-	return NULL;
-}
-
-GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, u32 track, char* file_name)
-{
-	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot process HDR parameter file\n"));
-	return GF_OK;
-}
-#endif //#ifndef GPAC_DISABLE_CORE_TOOLS
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

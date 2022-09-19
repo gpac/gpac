@@ -30,6 +30,7 @@
 #include <gpac/route.h>
 #include <gpac/network.h>
 
+#if !defined(GPAC_DISABLE_ROUTE)
 
 enum
 {
@@ -2223,8 +2224,13 @@ GF_FilterRegister ROUTEOutRegister = {
 	.use_alias = routeout_use_alias
 };
 
-
 const GF_FilterRegister *routeout_register(GF_FilterSession *session)
 {
 	return &ROUTEOutRegister;
 }
+#else
+const GF_FilterRegister *routeout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif

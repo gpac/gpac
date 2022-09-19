@@ -715,6 +715,35 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 }
 
 GF_EXPORT
+GF_Err gf_isom_ac3_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC3Config *cfg)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	GF_MPEGAudioSampleEntryBox *entry;
+
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !cfg || !sampleDescriptionIndex) return GF_BAD_PARAM;
+
+	if (!the_file->keep_utc)
+		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	entry = gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, sampleDescriptionIndex-1);
+	if (!entry) return GF_BAD_PARAM;
+	if (!entry->cfg_ac3) return GF_BAD_PARAM;
+
+	if (entry->cfg_ac3->cfg.is_ec3) {
+		if (!cfg->is_ec3) return GF_BAD_PARAM;
+	} else {
+		if (cfg->is_ec3) return GF_BAD_PARAM;
+	}
+	memcpy(&entry->cfg_ac3->cfg, cfg, sizeof(GF_AC3Config));
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_flac_config_new(GF_ISOFile *the_file, u32 trackNumber, u8 *metadata, u32 metadata_size, const char *URLname, const char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;

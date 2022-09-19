@@ -941,6 +941,10 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibility flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("dlba", NULL, "`S` force DolbyAtmos mode for EAC3. Value can be\n"
+		"- no: disable Atmos signaling\n"
+		"- auto: use Atmos signaling from first sample\n"
+		"- N: force Atmos signaling using complexibility type index N", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("size", NULL, "specify font size for text import (default `18`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("text_layout", NULL, "specify the track text layout as WxHxXxY\n"
@@ -2627,7 +2631,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		time.tm_isdst = 0;
 		time.tm_year -= 1900;
 		time.tm_mon -= 1;
-		tka->time = 2082758400;
+		tka->time = GF_ISOM_MAC_TIME_OFFSET;
 		tka->time += mktime(&time);
 		return GF_TRUE;
 	}
@@ -3914,7 +3918,6 @@ GF_FileType get_file_type_by_ext(char *inName)
 }
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 {
 	GF_Err e;
@@ -3969,7 +3972,6 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 	gf_free(data);
 	return e;
 }
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 static u64 do_size_top_boxes(char *inName, char *compress_top_boxes, u32 mode)
 {
@@ -4236,7 +4238,6 @@ static u32 convert_mpd()
 	GF_MPD *mpd;
 	char *mpd_base_url = NULL;
 	if (!strnicmp(inName, "http://", 7) || !strnicmp(inName, "https://", 8)) {
-#if !defined(GPAC_DISABLE_CORE_TOOLS)
 		e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0, &mpd_base_url);
 		if (e != GF_OK) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e)));
@@ -4244,11 +4245,6 @@ static u32 convert_mpd()
 			return mp4box_cleanup(1);
 		}
 		remote = GF_TRUE;
-#else
-		gf_free(mpd_base_url);
-		M4_LOG(GF_LOG_ERROR, ("HTTP Downloader disabled in this build\n"));
-		return mp4box_cleanup(1);
-#endif
 
 		if (outName)
 			strcpy(outfile, outName);
@@ -6031,7 +6027,6 @@ int mp4box_main(int argc, char **argv)
 		return mp4box_cleanup(e ? 1 : 0);
 	}
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_wget != NULL) {
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
@@ -6040,7 +6035,6 @@ int mp4box_main(int argc, char **argv)
 		}
 		return mp4box_cleanup(0);
 	}
-#endif
 
 	if (udp_dest)
 		return do_write_udp();
@@ -6254,10 +6248,8 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, outName, program_number);
 #endif
-#ifndef GPAC_DISABLE_CORE_TOOLS
 				} else if (do_bin_xml) {
 					xml_bs_to_bin(inName, outName, dump_std);
-#endif
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
 				} else if (print_info) {
@@ -6410,12 +6402,10 @@ int mp4box_main(int argc, char **argv)
 		e = hash_file(inName, dump_std);
 		if (e) goto err_exit;
 	}
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_bin_xml) {
 		e = xml_bs_to_bin(inName, outName, dump_std);
 		if (e) goto err_exit;
 	}
-#endif
 
 	if (dump_chunk) dump_isom_chunks(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);

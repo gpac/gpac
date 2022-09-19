@@ -31,8 +31,6 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 enum
 {
 	DECINFO_NO=0,
@@ -936,7 +934,11 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 	}
 
 	if (!ctx->ttml_root) {
-		ctx->ttml_root = gf_xml_dom_detach_root(dom);
+		root_global = gf_xml_dom_detach_root(dom);
+		if (root_global) {
+			if (gf_list_count(root_global->content) > 0) ctx->ttml_root = root_global;
+			else gf_xml_dom_node_del(root_global);
+		}
 		goto exit;
 	}
 	root_global = ctx->ttml_root;
@@ -954,6 +956,12 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 
 	body_pck = ttml_get_body(root_pck);
 	body_global = ttml_get_body(root_global);
+	if (body_pck && !body_global) {
+		gf_list_del_item(root_pck->content, body_pck);
+		gf_list_add(root_global->content, body_pck);
+		goto exit;
+	}
+
 	div_idx = 0;
 	nb_children = body_pck ? gf_list_count(body_pck->content) : 0;
 	for (k=0; k<nb_children; k++) {
@@ -1095,6 +1103,7 @@ static GF_Err writegen_flush_ttxt(GF_GenDumpCtx *ctx)
 #include <gpac/webvtt.h>
 static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u32 timescale, Bool write_srt)
 {
+#ifndef GPAC_DISABLE_VTT
 	char szTS[200];
 	szTS[0] = 0;
 	GF_WebVTTTimestamp start, end;
@@ -1122,6 +1131,7 @@ static void webvtt_timestamps_dump(GF_BitStream *bs, u64 start_ts, u64 end_ts, u
 	}
 	sprintf(szTS, "%02u:%02u%c%03u", end.min, end.sec, write_srt ? ',' : '.', end.ms);
 	gf_bs_write_data(bs, szTS, (u32) strlen(szTS) );
+#endif
 }
 
 GF_Err writegen_process(GF_Filter *filter)
@@ -1914,5 +1924,3 @@ const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 
 	return &GenDumpRegister;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/

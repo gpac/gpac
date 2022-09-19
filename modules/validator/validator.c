@@ -29,6 +29,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/xml.h>
 
+#ifndef GPAC_DISABLE_PLAYER
+
 typedef struct __validation_module
 {
 	GF_Compositor *compositor;
@@ -1196,3 +1198,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_STATIC_DECLARATION( validator )
+
+
+#endif //#ifndef GPAC_DISABLE_PLAYER
+

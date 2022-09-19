@@ -669,8 +669,12 @@ static void filelist_check_implicit_cat(GF_FileListCtx *ctx, char *szURL)
 	//we use default session separator set in filelist
 	sep = gf_url_colon_suffix(szURL, '=');
 	if (sep) sep[0] = 0;
-
-	switch (gf_isom_probe_file(szURL)) {
+#ifndef GPAC_DISABLE_ISOM
+	u32 isom_mode = gf_isom_probe_file(szURL);
+#else
+	u32 isom_mode=0;
+#endif
+	switch (isom_mode) {
 	//this is a fragment
 	case 3:
 		if (ctx->last_is_isom) {

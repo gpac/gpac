@@ -4495,6 +4495,10 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 			gf_fprintf(trace, "<EC3StreamConfig fscod=\"%d\" bsid=\"%d\" bsmod=\"%d\" acmod=\"%d\" lfon=\"%d\" asvc=\"%d\" num_sub_dep=\"%d\" chan_loc=\"%d\"/>\n",
 			        p->cfg.streams[i].fscod, p->cfg.streams[i].bsid, p->cfg.streams[i].bsmod, p->cfg.streams[i].acmod, p->cfg.streams[i].lfon, p->cfg.streams[i].asvc, p->cfg.streams[i].nb_dep_sub, p->cfg.streams[i].chan_loc);
 		}
+		if (p->cfg.atmos_ec3_ext || p->cfg.complexity_index_type) {
+			gf_fprintf(trace, "<ExtendedConfig flag_ec3_extension_type_a=\"%d\" complexity_index_type_a=\"%d\"/>\n",
+				p->cfg.atmos_ec3_ext, p->cfg.complexity_index_type);
+		}
 		gf_isom_box_dump_done("EC3SpecificBox", a, trace);
 	} else {
 		gf_isom_box_dump_start(a, "AC3SpecificBox", trace);

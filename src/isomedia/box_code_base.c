@@ -8788,9 +8788,23 @@ void dac3_box_del(GF_Box *s)
 
 GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
+	u64 pos;
 	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
-	return gf_odf_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	pos = gf_bs_get_position(bs);
+	e = gf_odf_ac3_config_parse_bs(bs, ptr->cfg.is_ec3, &ptr->cfg);
+	if (e) return e;
+	pos = gf_bs_get_position(bs) - pos;
+	ISOM_DECREASE_SIZE(ptr, pos);
+
+	if (ptr->size>=2) {
+		ptr->size-=2;
+		gf_bs_read_int(bs, 7);
+		ptr->cfg.atmos_ec3_ext = gf_bs_read_int(bs, 1);
+		ptr->cfg.complexity_index_type = gf_bs_read_u8(bs);
+	}
+	return e;
 }
 
 
@@ -8806,7 +8820,15 @@ GF_Err dac3_box_write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->cfg.is_ec3) s->type = GF_ISOM_BOX_TYPE_DAC3;
 	if (e) return e;
 	
-	return gf_odf_ac3_cfg_write_bs(&ptr->cfg, bs);
+	e = gf_odf_ac3_cfg_write_bs(&ptr->cfg, bs);
+	if (e) return e;
+
+	if (ptr->cfg.atmos_ec3_ext || ptr->cfg.complexity_index_type) {
+		gf_bs_write_int(bs, 0, 7);
+		gf_bs_write_int(bs, ptr->cfg.atmos_ec3_ext, 1);
+		gf_bs_write_u8(bs, ptr->cfg.complexity_index_type);
+	}
+	return e;
 }
 
 GF_Err dac3_box_size(GF_Box *s)
@@ -8823,6 +8845,9 @@ GF_Err dac3_box_size(GF_Box *s)
 		}
 	} else {
 		s->size += 3;
+	}
+	if (ptr->cfg.atmos_ec3_ext || ptr->cfg.complexity_index_type) {
+		s->size += 2;
 	}
 	return GF_OK;
 }

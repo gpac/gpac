@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -22,8 +22,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #include <gpac/token.h>
 
@@ -133,5 +131,3 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 	}
 	return -1;
 }
-
-#endif

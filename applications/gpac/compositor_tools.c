@@ -25,6 +25,8 @@
 
 #include "gpac.h"
 
+#ifndef GPAC_DISABLE_PLAYER
+
 #include <gpac/main.h>
 #include <gpac/events.h>
 #include <gpac/filters.h>
@@ -39,7 +41,9 @@
 #include <unistd.h>
 
 #else //WIN32
+
 #include <windows.h> /*for GetModuleFileName*/
+
 #endif	//WIN32
 
 extern u32 compositor_mode;
@@ -1545,7 +1549,8 @@ static void mp4c_take_screenshot(Bool for_coverage)
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
 #include <tlhelp32.h>
-#include <Psapi.h>
+#include <psapi.h>
+
 static DWORD getParentPID(DWORD pid)
 {
 	DWORD ppid = 0;
@@ -1594,6 +1599,7 @@ Bool gpac_is_global_launch()
 		dwParentParentProcessId = getParentPID(dwParentProcessId);
 	//get parent process name, check for explorer
 	parentName[0] = 0;
+#ifndef GPAC_BUILD_FOR_WINXP
 	getProcessName(dwParentProcessId, parentName, GF_MAX_PATH);
 	if (strstr(parentName, "explorer")) {
 		owns_wnd = GF_TRUE;
@@ -1613,6 +1619,7 @@ Bool gpac_is_global_launch()
 		owns_wnd = GF_FALSE;
 	}
 	if (!owns_wnd) return GF_FALSE;
+#endif //GPAC_BUILD_FOR_WINXP
 	ShowWindow(console_hwnd, SW_HIDE);
 	return GF_TRUE;
 }
@@ -1624,3 +1631,4 @@ static void close_console()
 
 #endif
 
+#endif //#ifndef GPAC_DISABLE_PLAYER

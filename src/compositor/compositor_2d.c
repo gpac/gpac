@@ -31,7 +31,6 @@
 
 #include "gl_inc.h"
 
-
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear)
 {
@@ -850,7 +849,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
 			u32 push_time = gf_sys_clock();
+#ifndef GPAC_DISABLE_PLAYER
 			e = gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
+#else
+			e = GF_NOT_SUPPORTED;
+#endif
 			store_blit_times(txh, push_time);
 			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 			if (e) {

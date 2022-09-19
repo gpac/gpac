@@ -30,6 +30,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/color.h>
 
+#if !defined(GPAC_DISABLE_ISOM_DUMP) && !defined(GPAC_DISABLE_ISOM)
+
 
 typedef struct
 {
@@ -189,7 +191,9 @@ static void tx3gmx_write_config(TX3GMxCtx *ctx)
 	} else {
 		gf_fprintf(dump, "<TextStreamHeader>\n");
 	}
+#ifndef GPAC_DISABLE_ISOM_DUMP
 	dump_ttxt_header(dump, &samp_ent, w, h);
+#endif
 	gf_fprintf(dump, "</TextStreamHeader>\n");
 
 	u32 size = (u32) gf_ftell(dump);
@@ -684,3 +688,24 @@ const GF_FilterRegister *tx3g2ttml_register(GF_FilterSession *session)
 {
 	return &TX3G2TTMLRegister;
 }
+
+#else
+const GF_FilterRegister *ttxtuf_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *tx3g2srt_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *tx3g2vtt_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *tx3g2ttml_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif //#if !defined(GPAC_DISABLE_ISOM_DUMP) && !defined(GPAC_DISABLE_ISOM)
+
+

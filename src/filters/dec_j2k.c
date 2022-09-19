@@ -2,7 +2,7 @@
 *			GPAC - Multimedia Framework C SDK
 *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
 *					All rights reserved
 *
 *  This file is part of GPAC / openjpeg2k decoder filter
@@ -33,6 +33,7 @@
 #endif
 
 #include <gpac/constants.h>
+#include <gpac/bitstream.h>
 #include <gpac/isomedia.h>
 
 #include <openjpeg.h>

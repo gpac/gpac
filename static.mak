@@ -1,61 +1,19 @@
 
-NEED_LOCAL_LIB=no
 LINKLIBS=
-
-ifeq ($(DISABLE_CORE_TOOLS),no)
 
 #1 - zlib support
 ifeq ($(CONFIG_ZLIB),local)
 CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
-NEED_LOCAL_LIB=yes
 endif
 ifneq ($(CONFIG_ZLIB),no)
 LINKLIBS+=-lz
 endif
 
 #2 - ssl support
-ifeq ($(HAS_OPENSSL),yes)
-LINKLIBS+=$(SSL_LIBS)
+ifneq ($(HAS_OPENSSL),no)
+CFLAGS+=$(ssl_cflags)
+LINKLIBS+=$(ssl_ldflags)
 endif
-
-#3 - QuickJS support
-ifeq ($(CONFIG_JS),no)
-else
-SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
-ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB=yes
-endif
-LINKLIBS+=$(JS_LIBS)
-endif
-
-endif
-
-#4 - JPEG support
-ifeq ($(CONFIG_JPEG),no)
-else
-LINKLIBS+= -ljpeg
-#local lib
-ifeq ($(CONFIG_JPEG),local)
-NEED_LOCAL_LIB=yes
-MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
-FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
-endif
-endif
-
-
-#5 - PNG support
-ifeq ($(CONFIG_PNG),no)
-else
-LINKLIBS+= -lpng
-ifeq ($(CONFIG_PNG),local)
-NEED_LOCAL_LIB=yes
-MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
-FILTERS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
-endif
-endif
-
-
-
 
 ## libgpac compositor compilation options
 COMPOSITOR_CFLAGS=
@@ -73,20 +31,12 @@ EXTRALIBS+= $(OGL_LIBS)
 COMPOSITOR_CFLAGS+=$(OGL_INCLS)
 endif
 
-ifeq ($(NEED_LOCAL_LIB),yes)
-EXTRALIBS+=-L../extra_lib/lib/gcc
-endif
-
 EXTRALIBS+=$(LINKLIBS)
 
 ifeq ($(GPAC_USE_TINYGL),yes)
 COMPOSITOR_CFLAGS+=-I"$(SRC_PATH)/../TinyGL/include"
 else
 COMPOSITOR_CFLAGS+=-DGPAC_HAS_GLU
-endif
-
-ifeq ($(ENABLE_JOYSTICK),yes)
-COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
 endif
 
 
@@ -96,15 +46,14 @@ MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
 endif
 
 
-ifeq ($(GPAC_ENST),yes)
-OBJS+=$(LIBGPAC_ENST)
-EXTRALIBS+=-liconv
-MEDIATOOLS_CFLAGS+=-DGPAC_ENST_PRIVATE
+ifeq ($(STATIC_BINARY),yes)
+CFLAGS+= -DGPAC_MP4BOX_MINI
 endif
 
 
-ifeq ($(STATIC_BINARY),yes)
-CFLAGS+= -DGPAC_MP4BOX_MINI
+ifeq ($(STATIC_BUILD),yes)
+LINKFLAGS+=$(zlib_ldflags) $(opensvc_ldflags) $(ssl_ldflags) $(jpeg_ldflags) $(openjpeg_ldflags) $(png_ldflags) $(mad_ldflags) $(a52_ldflags) $(xvid_ldflags) $(faad_ldflags)
+LINKFLAGS+=$(ffmpeg_ldflags) $(ogg_ldflags) $(vorbis_ldflags) $(theora_ldflags) $(nghttp2_ldflags) $(vtb_ldflags)
 endif
 
 
@@ -125,13 +74,13 @@ OBJS+=../modules/validator/validator.o
 
 ifneq ($(CONFIG_FT),no)
 OBJS+=../modules/ft_font/ft_font.o
-EXTRALIBS+= $(FT_LIBS)
-CFLAGS+=-DGPAC_HAS_FREETYPE $(FT_CFLAGS)
+EXTRALIBS+= $(freetype_ldflags)
+CFLAGS+=-DGPAC_HAS_FREETYPE $(freetype_cflags)
 endif
 
 ifeq ($(CONFIG_SDL),yes)
-CFLAGS+=-DGPAC_HAS_SDL $(SDL_CFLAGS)
-EXTRALIBS+= $(SDL_LIBS)
+CFLAGS+=-DGPAC_HAS_SDL $(sdl_cflags)
+EXTRALIBS+= $(sdl_ldflags)
 OBJS+=../modules/sdl_out/sdl_out.o ../modules/sdl_out/audio.o ../modules/sdl_out/video.o
 endif
 
@@ -165,7 +114,7 @@ endif
 
 ifeq ($(HAS_OPENGL),yes)
 ifeq ($(CONFIG_DARWIN),yes)
-EXTRALIBS+=-lGL -lGLU
+#EXTRALIBS+=-lGL -lGLU
 endif
 endif
 
@@ -212,7 +161,3 @@ endif
 #end of static modules
 endif
 
-
-ifeq ($(CONFIG_VTB),yes)
-EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
-endif

@@ -2,7 +2,7 @@ include ../../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/testapps/hevcbench
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(SDL_CFLAGS) $(OGL_INCLS) $(OHEVC_CFLAGS)
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(sdl_cflags) $(OGL_INCLS) $(openhevc_cflags)
 
 ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
@@ -25,7 +25,7 @@ else
 EXT=
 PROG=hevcbench
 endif
-LINKFLAGS+=-lgpac $(SDL_LIBS) $(OGL_LIBS) $(OHEVC_LDFLAGS)
+LINKFLAGS+=-lgpac $(sdl_ldflags) $(OGL_LIBS) $(openhevc_ldflags)
 
 
 SRCS := $(OBJS:.o=.c) 
