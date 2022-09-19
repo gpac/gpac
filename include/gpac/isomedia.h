@@ -6342,6 +6342,9 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *isom_file, Bool root_meta, u32 t
 
 /*! @} */
 
+
+#endif //GPAC_DISABLE_ISOM
+
 /*!
 \addtogroup isotags_grp iTunes tagging
 \ingroup iso_grp
@@ -6437,6 +6440,8 @@ Country Code 	sfID 	32-bit integer 	Identifies in which iTunes Store a file was 
 	*/
 
 } GF_ISOiTunesTag;
+
+#ifndef GPAC_DISABLE_ISOM
 
 /*! gets the given itunes tag info.
 \warning 'genre' may be coded by ID, the libisomedia doesn't translate the ID. In such a case, the result data is set to NULL and the data_len to the genre ID

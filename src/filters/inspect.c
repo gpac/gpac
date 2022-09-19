@@ -1921,6 +1921,7 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 	}
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
 {
 	u8 nibble;
@@ -1949,6 +1950,7 @@ static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
 
 	inspect_printf(dump, "/>\n");
 }
+#endif
 
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att, PidCtx *pctx)
 {
@@ -2635,12 +2637,12 @@ void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc
 	inspect_format_tmcd_internal(data, size, tmcd_flags, tc_num, tc_den, tmcd_fpt, szFmt, NULL, GF_FALSE, NULL);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
 {
 	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
 {
 	GF_Err e;
@@ -3290,6 +3292,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	inspect_printf(dump, " codec");
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {
 		u32 i, j, k;
 		HEVCState *hvcs = NULL;
@@ -3447,7 +3450,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (vcfg.chroma_fmt) inspect_printf(dump, " %s", gf_avc_hevc_get_chroma_format_name(vcfg.chroma_fmt) );
 			if (!vcfg.progresive) inspect_printf(dump, " interlaced");
 		}
-	} else {
+	} else
+#endif//GPAC_DISABLE_AV_PARSERS
+	{
 		if (codec_id==GF_CODECID_FFMPEG) {
 			p = gf_filter_pid_get_property_str(pid, "ffmpeg:codec");
 			if (p) {

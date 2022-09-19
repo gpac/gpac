@@ -24,7 +24,7 @@ EXT=
 PROG=gpac
 endif
 
-ifeq ($(STATICBUILD),yes)
+ifeq ($(STATIC_BUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
 ifneq ($(PKG_CONFIG), no)

@@ -211,7 +211,7 @@ default_sync:
 			} else {
 				esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 				if (mime_type && !strcmp(mime_type, "application/rvc-config+xml+gz") ) {
-#if !defined(GPAC_DISABLE_CORE_TOOLS) && !defined(GPAC_DISABLE_ZLIB)
+#if !defined(GPAC_DISABLE_ZLIB)
 					gf_gz_decompress_payload(rvc_cfg_data, rvc_cfg_size, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
 					gf_free(rvc_cfg_data);
 #endif

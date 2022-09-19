@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/sdl_out
 
-CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(SDL_CFLAGS)
+CFLAGS=-I"$(SRC_PATH)/include" $(OPTFLAGS) $(sdl_cflags)
 
 ifeq ($(DEBUGBUILD),yes)
 CFLAGS+=-g
@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKFLAGS=-L../../bin/gcc -lgpac $(SDL_LIBS)
+LINKFLAGS=-L../../bin/gcc -lgpac $(sdl_ldflags)
 
 ifeq ($(CONFIG_DARWIN),yes)
 LINKFLAGS+=-framework OpenGL

@@ -33,8 +33,6 @@
 #include <gpac/cache.h>
 #include <gpac/filters.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
-
 #ifdef GPAC_HAS_SSL
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
@@ -1013,6 +1011,7 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 			return cred;
 	}
 
+#ifndef GPAC_DISABLE_CRYPTO
 	char *key = (char*) gf_opts_get_key("credentials", server_name);
 	if (key) {
 		bin128 k;
@@ -1045,6 +1044,7 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
 			return cred;
 		}
 	}
+#endif
 	return NULL;
 }
 /**
@@ -1063,6 +1063,8 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 	range_buf[size] = 0;
 	strcpy(creds->digest, range_buf);
 	creds->valid = GF_TRUE;
+
+#ifndef GPAC_DISABLE_CRYPTO
 	if (store_info) {
 		u32 plen = (u32) strlen(password);
 		char *key = NULL;
@@ -1094,6 +1096,7 @@ static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_
 		gf_free(key);
 		gf_opts_save();
 	}
+#endif
 	return GF_OK;
 }
 
@@ -6624,5 +6627,3 @@ void gf_dm_sess_flush_h2(GF_DownloadSession *sess)
 #endif
 }
 
-
-#endif

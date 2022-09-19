@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2006-2012
+ *			Copyright (c) Telecom ParisTech 2006-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG2-TS sub-project
@@ -39,7 +39,7 @@ void gf_dvb_mpe_init(GF_M2TS_Demuxer *ts);
 void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts);
 GF_M2TS_ES *gf_dvb_mpe_section_new();
 void gf_dvb_mpe_section_del(GF_M2TS_ES *es);
-void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts);
+void gf_dvb_mpe_print_info(GF_M2TS_Demuxer *ts);
 
 #endif //GPAC_DISABLE_MPEG2TS
 

@@ -29,7 +29,7 @@ all: $(LIB)
 
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(LDFLAGS)
-ifeq ($(STATICBUILD),yes)
+ifeq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_validator-static$(DYN_LIB_SUFFIX) $(OBJS) -L../../bin/gcc -lgpac_static $(LDFLAGS)
 endif
 

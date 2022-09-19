@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -33,8 +33,6 @@ extern "C" {
 #include <gpac/tools.h>
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 /*!
 \file <gpac/xml.h>
@@ -424,7 +422,5 @@ GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, const char *parent_url, 
 #ifdef __cplusplus
 }
 #endif
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif		/*_XML_PARSER_H_*/

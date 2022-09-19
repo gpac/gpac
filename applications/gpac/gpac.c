@@ -129,7 +129,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 			evt_ret_val = event->message.error;
 		gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
 	}
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 	else if (custom_event_proc) {
 		return mp4c_event_proc(opaque, event);
 	}
@@ -141,7 +141,7 @@ static Bool gpac_event_proc(void *opaque, GF_Event *event)
 static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *reschedule_ms)
 {
 	if (enable_prompt && gf_prompt_has_input()) {
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 		if ((compositor_mode==LOAD_MP4C) && mp4c_handle_prompt(gf_prompt_get_char())) {
 
 		} else
@@ -150,7 +150,7 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 			return GF_FALSE;
 	}
 
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 	if ((compositor_mode==LOAD_MP4C) && mp4c_task()) {
 		gf_fs_abort(fsess, GF_FS_FLUSH_NONE);
 	}
@@ -482,7 +482,7 @@ int gpac_main(int argc, char **argv)
 				gpac_fsess_task_help();
 				gpac_exit(0);
 			} else if (!strcmp(argv[i+1], "mp4c")) {
-#ifdef GPAC_CONFIG_ANDROID
+#if defined(GPAC_CONFIG_ANDROID) || defined(GPAC_DISABLE_PLAYER)
 				gf_sys_format_help(helpout, help_flags, "-mp4c unavailable for android\n");
 #else
 				mp4c_help(argmode);
@@ -753,7 +753,7 @@ int gpac_main(int argc, char **argv)
 			}
 			else if (gf_sys_is_gpac_arg(arg) ) {
 			}
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 			else if ((compositor_mode==LOAD_MP4C) && mp4c_parse_arg(arg, arg_val)) {
 			}
 #endif
@@ -934,7 +934,7 @@ restart:
 					gf_free(updated_args);
 				} else {
 					filter = gf_fs_load_filter(session, arg, &e);
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 					if (filter && compositor_mode && !strncmp(arg, "compositor", 10)) {
 						load_compositor(filter);
 					}
@@ -1159,7 +1159,7 @@ exit:
 	if (dump_graph)
 		gf_fs_print_connections(session);
 
-#ifndef GPAC_CONFIG_ANDROID
+#if !defined(GPAC_CONFIG_ANDROID) && !defined(GPAC_DISABLE_PLAYER)
 	if (compositor_mode)
 		unload_compositor();
 #endif

@@ -28,6 +28,9 @@
 #endif
 
 #include <gpac/setup.h>
+
+#ifndef GPAC_DISABLE_PLAYER
+
 //declare prototype, don't include gpac.h due to conflict in Fixed type between gpac and OSX
 void carbon_remove_hook(void);
 void carbon_set_hook(void);
@@ -82,3 +85,4 @@ void carbon_set_hook()
 }
 
 
+#endif // GPAC_DISABLE_PLAYER

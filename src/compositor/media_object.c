@@ -600,7 +600,9 @@ retry:
 			if (gf_filter_pid_is_eos(mo->odm->pid) || !mo->odm->state) {
 				if (!mo->is_eos) {
 					mo->is_eos = GF_TRUE;
+#ifndef GPAC_DISABLE_VRML
 					mediasensor_update_timing(mo->odm, GF_TRUE);
+#endif
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					gf_odm_signal_eos_reached(mo->odm);
 				}
@@ -661,7 +663,9 @@ retry:
 			if (gf_filter_pid_is_eos(mo->odm->pid)) {
 				if (!mo->is_eos) {
 					*eos = mo->is_eos = GF_TRUE;
+#ifndef GPAC_DISABLE_VRML
 					mediasensor_update_timing(mo->odm, GF_TRUE);
+#endif
 					gf_odm_on_eos(mo->odm, mo->odm->pid);
 					force_decode_mode=0;
 					if (!mo->pck)
