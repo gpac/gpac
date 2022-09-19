@@ -3710,7 +3710,7 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *isom_file, u32 trackNumber, GF_D
 GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-/*! creates an AC3 sample description
+/*! creates an AC3 or EAC3 sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param cfg the AC3 config for this sample description
@@ -3720,6 +3720,16 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 \return error if any
 */
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC3Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! updates an AC3 or EAC3 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param cfg the AC3 config for this sample description
+\return error if any
+*/
+GF_Err gf_isom_ac3_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC3Config *cfg);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*! gets TrueHD  sample description info

@@ -1822,6 +1822,17 @@ remove VPS extensions from HEVC VPS
 keep AV1 temporal delimiter OBU in samples, might help if source file had losses
 .br
 .TP
+.B dlba (string)
+.br
+S force DolbyAtmos mode for EAC3. Value can be
+.br
+* no: disable Atmos signaling
+.br
+* auto: use Atmos signaling from first sample
+.br
+* N: force Atmos signaling using complexibility type index N
+.br
+.TP
 .B font (string)
 .br
 specify font name for text import (default Serif)
@@ -2859,7 +2870,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev279-g3409f09a6-master
+build: 2.1-DEV-rev286-ge68fbe2cd-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
