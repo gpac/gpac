@@ -364,7 +364,7 @@ static void ffenc_generate_dsi(GF_FFEncodeCtx *ctx, const u8 *data, u32 size)
 	case GF_CODECID_AC3:
 		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 		if (flag) {
-			if (gf_eac3_parser_header_bs(bs, &ac3hdr) == GF_TRUE) {
+			if (gf_eac3_parser_bs(bs, &ac3hdr, GF_FALSE) == GF_TRUE) {
 				ac3hdr.is_ec3=GF_TRUE;
 				gf_odf_ac3_cfg_write(&ac3hdr, &dsi, &dsi_size);
 			}

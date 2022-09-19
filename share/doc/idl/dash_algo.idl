@@ -175,7 +175,7 @@ attribute readonly unsigned long display_width;
 /*! display height of the object in pixels, 0 if no video in object*/
 attribute readonly unsigned long display_height;
 
-/*! index of active quality at the time the algo is run*/
+/*! index of active quality at the time the algo is run, or of last downloaded quality if previous segment was skipped */
 attribute readonly unsigned long active_quality;
 
 /*! minimum buffer level in milliseconds below witch rebuffer will happen*/
