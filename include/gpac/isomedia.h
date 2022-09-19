@@ -810,6 +810,9 @@ u64 gf_isom_get_duration(GF_ISOFile *isom_file);
 \return the duration of the movie*/
 u64 gf_isom_get_original_duration(GF_ISOFile *isom_file);
 
+/*! time offset since UNIX EPOC for MP4/QT/MJ2K files*/
+#define GF_ISOM_MAC_TIME_OFFSET 2082844800
+
 /*! gets the creation info of the movie
 \param isom_file the target ISO file
 \param creationTime set to the creation time of the movie

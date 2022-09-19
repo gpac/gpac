@@ -2631,7 +2631,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		time.tm_isdst = 0;
 		time.tm_year -= 1900;
 		time.tm_mon -= 1;
-		tka->time = 2082758400;
+		tka->time = GF_ISOM_MAC_TIME_OFFSET;
 		tka->time += mktime(&time);
 		return GF_TRUE;
 	}
