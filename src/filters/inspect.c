@@ -1921,6 +1921,7 @@ static void dump_temi_time(GF_InspectCtx *ctx, PidCtx *pctx, FILE *dump, const c
 	}
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
 {
 	u8 nibble;
@@ -1949,6 +1950,7 @@ static void gf_inspect_dump_truehd_frame(FILE *dump, GF_BitStream *bs)
 
 	inspect_printf(dump, "/>\n");
 }
+#endif
 
 static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, const char *pname, const GF_PropertyValue *att, PidCtx *pctx)
 {
@@ -2635,12 +2637,12 @@ void gf_inspect_format_timecode(const u8 *data, u32 size, u32 tmcd_flags, u32 tc
 	inspect_format_tmcd_internal(data, size, tmcd_flags, tc_num, tc_den, tmcd_fpt, szFmt, NULL, GF_FALSE, NULL);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_tmcd(GF_InspectCtx *ctx, PidCtx *pctx, const u8 *data, u32 size, FILE *dump)
 {
 	inspect_format_tmcd_internal(data, size, pctx->tmcd_flags, pctx->tmcd_rate.num, pctx->tmcd_rate.den, pctx->tmcd_fpt, NULL, pctx->bs, ctx->fftmcd, dump);
 }
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 static void inspect_dump_vpx(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 frame_size, Bool dump_crc, PidCtx *pctx, u32 vpversion)
 {
 	GF_Err e;
@@ -3203,7 +3205,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 	}
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
-	if (p) inspect_printf(dump, " language \"%s\"", p->value.string);
+	if (p && stricmp(p->value.string, "und")) inspect_printf(dump, " language \"%s\"", p->value.string);
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p) format_duration((s64) p->value.lfrac.num, (u32) p->value.lfrac.den, dump);
@@ -3290,6 +3292,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 
 	inspect_printf(dump, " codec");
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if ((codec_id==GF_CODECID_HEVC) || (codec_id==GF_CODECID_LHVC) || (codec_id==GF_CODECID_HEVC_TILES)) {
 		u32 i, j, k;
 		HEVCState *hvcs = NULL;
@@ -3447,7 +3450,9 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (vcfg.chroma_fmt) inspect_printf(dump, " %s", gf_avc_hevc_get_chroma_format_name(vcfg.chroma_fmt) );
 			if (!vcfg.progresive) inspect_printf(dump, " interlaced");
 		}
-	} else {
+	} else
+#endif//GPAC_DISABLE_AV_PARSERS
+	{
 		if (codec_id==GF_CODECID_FFMPEG) {
 			p = gf_filter_pid_get_property_str(pid, "ffmpeg:codec");
 			if (p) {
@@ -3496,6 +3501,15 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			gf_odf_dovi_cfg_del(dovi);
 		}
 	}
+
+	if (dsi && (codec_id==GF_CODECID_EAC3)) {
+		GF_AC3Config ac3cfg;
+		gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, GF_TRUE, &ac3cfg);
+		if (ac3cfg.atmos_ec3_ext)
+			inspect_printf(dump, " Atmos (CIT %d)", ac3cfg.complexity_index_type);
+	}
+
+
 	inspect_printf(dump, "\n");
 }
 
@@ -4193,14 +4207,6 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if (!pctx) return GF_OUT_OF_MEM;
 	if (ctx->analyze)
 		pctx->bs = gf_bs_new((u8 *)pctx, 0, GF_BITSTREAM_READ);
-	if (!ctx->buffer) {
-		pctx->buffer_done = GF_TRUE;
-	} else {
-		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
-		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
-		evt.buffer_req.pid_only = GF_TRUE;
-		gf_filter_pid_send_event(pid, &evt);
-	}
 
 	pctx->src_pid = pid;
 	gf_filter_pid_set_udta(pid, pctx);
@@ -4210,6 +4216,18 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx->stream_type = p ? p->value.uint : 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CODECID);
 	pctx->codec_id = p ? p->value.uint : 0;
+
+	if (!ctx->buffer) {
+		pctx->buffer_done = GF_TRUE;
+	} else {
+		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, pid);
+		evt.buffer_req.max_buffer_us = ctx->buffer * 1000;
+		//if pid is decoded media, don't ask for buffer requirement on pid, set it at decoder level
+		evt.buffer_req.pid_only = gf_filter_pid_has_decoder(pid) ? GF_FALSE : GF_TRUE;
+		gf_filter_pid_send_event(pid, &evt);
+	}
+
+
 
 	w = h = sr = ch = 0;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);

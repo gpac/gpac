@@ -4201,6 +4201,7 @@ void gf_filter_register_opengl_provider(GF_Filter *filter, Bool do_register)
 #ifndef GPAC_DISABLE_3D
 	GF_Err e;
 	if (filter->removed || filter->finalized) return;
+	if (filter->session->ext_gl_callback) return;
 
 	if (do_register) {
 		if (gf_list_find(filter->session->gl_providers, filter)<0)
@@ -4239,11 +4240,11 @@ GF_Err gf_filter_request_opengl(GF_Filter *filter)
 }
 
 GF_EXPORT
-GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter)
+GF_Err gf_filter_set_active_opengl_context(GF_Filter *filter, Bool do_activate)
 {
 #ifndef GPAC_DISABLE_3D
 	if (filter->finalized || filter->removed) return GF_OK;
-	return gf_fs_set_gl(filter->session);
+	return gf_fs_set_gl(filter->session, do_activate);
 #else
 	return GF_NOT_SUPPORTED;
 #endif

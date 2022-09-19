@@ -6864,12 +6864,15 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			evt->base.on_pid->user_min_playout_time = evt->buffer_req.min_playout_us;
 			evt->base.on_pid->max_buffer_unit = 0;
+			evt->base.on_pid->user_buffer_forced = evt->buffer_req.pid_only;
 			//update blocking state
 			if (evt->base.on_pid->would_block)
 				gf_filter_pid_check_unblock(evt->base.on_pid);
 			else
 				gf_filter_pid_would_block(evt->base.on_pid);
 			canceled = GF_TRUE;
+		} else {
+			evt->base.on_pid->user_buffer_forced = GF_FALSE;
 		}
 	} else if (evt->base.on_pid && (evt->base.type == GF_FEVT_PLAY)
 		&& (evt->base.on_pid->pid->is_playing || (((GF_FilterPid *) evt->base.on_pid->pid)->not_connected==2))
@@ -7365,7 +7368,10 @@ static GF_Filter *filter_locate_enc_dec_sink(GF_Filter *filter, Bool locate_deco
 		for (j=0; j<pid->num_destinations; j++) {
 			GF_Filter *res;
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-			if (pidi->is_decoder_input) return pidi->filter;
+			if (( (pidi->is_decoder_input || pid->user_buffer_forced) && locate_decoder)
+				|| (pidi->is_encoder_input && !locate_decoder)
+			)
+				return pidi->filter;
 			res = filter_locate_enc_dec_sink(pidi->filter, locate_decoder);
 			if (res) return res;
 		}
@@ -7381,7 +7387,9 @@ static GF_Filter *filter_locate_enc_dec_src(GF_Filter *filter, Bool locate_decod
 	for (i=0; i<filter->num_input_pids; i++) {
 		GF_Filter *res;
 		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
-		if (pidi->is_decoder_input) {
+		if ((pidi->is_decoder_input && locate_decoder)
+			|| (pidi->is_encoder_input && !locate_decoder)
+		) {
 			gf_mx_v(filter->tasks_mx);
 			return filter;
 		}
@@ -7395,7 +7403,24 @@ static GF_Filter *filter_locate_enc_dec_src(GF_Filter *filter, Bool locate_decod
 	return NULL;
 }
 
+static GF_Filter *filter_locate_sink(GF_Filter *filter)
+{
+	u32 i, j;
 
+	if (!filter->num_output_pids) {
+		return filter;
+	}
+	for (i=0; i<filter->num_output_pids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		for (j=0; j<pid->num_destinations; j++) {
+			GF_Filter *res;
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			res = filter_locate_sink(pidi->filter);
+			if (res) return res;
+		}
+	}
+	return NULL;
+}
 GF_EXPORT
 GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats, GF_FilterPidStatsLocation location)
 {
@@ -7433,6 +7458,9 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 		for_decoder = GF_FALSE;
 	case GF_STATS_DECODER_SINK:
 		filter = filter_locate_enc_dec_sink(pidi->pid->filter, for_decoder);
+		break;
+	case GF_STATS_SINK:
+		filter = filter_locate_sink(pidi->pid->filter);
 		break;
 	}
 	if (!filter) {
@@ -8299,4 +8327,26 @@ GF_Err gf_filter_pid_set_udta_flags(GF_FilterPid *pid, u32 flags)
 		((GF_FilterPidInst *)pid)->udta_flags = flags;
 	}
 	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_filter_pid_has_decoder(GF_FilterPid *pid)
+{
+	u32 i;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_FALSE;
+	}
+	if (pid->pid->nb_decoder_inputs)
+		return GF_TRUE;
+	gf_mx_p(pid->pid->filter->tasks_mx);
+	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
+		if (gf_filter_pid_has_decoder((GF_FilterPid *) pidi)) {
+			gf_mx_v(pid->pid->filter->tasks_mx);
+			return GF_TRUE;
+		}
+	}
+	gf_mx_v(pid->pid->filter->tasks_mx);
+	return GF_FALSE;
 }

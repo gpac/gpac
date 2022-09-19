@@ -524,7 +524,9 @@ static Bool dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 	return GF_FALSE;
 }
 
+#ifndef GPAC_DISABLE_CRYPTO
 void gf_cryptfin_set_kms(GF_Filter *f, const char *key_url, bin128 key_IV);
+#endif
 
 /*locates input service (demuxer) based on mime type or segment name*/
 static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const char *mime, const char *init_segment_name, u64 start_range, u64 end_range)
@@ -628,7 +630,13 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	//if HLS AES-CBC, set key BEFORE discarding segment URL (if TS, discarding the segment will discard the key uri)
 	if (key_uri) {
 		if (crypto_type==1) {
+#ifndef GPAC_DISABLE_CRYPTO
 			gf_cryptfin_set_kms(group->seg_filter_src, key_uri, key_IV);
+#else
+			gf_free(sURL);
+			return GF_NOT_SUPPORTED;
+#endif
+
 		} else {
 			group->hls_key_uri = key_uri;
 			memcpy(group->hls_key_IV, key_IV, sizeof(bin128));
@@ -2821,7 +2829,9 @@ fetch_next:
 
 	if (next_url_init_or_switch_segment && !group->init_switch_seg_sent) {
 		if (group->in_is_cryptfile) {
+#ifndef GPAC_DISABLE_CRYPTO
 			gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
+#endif
 		}
 		GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH,  NULL);
 		evt.seek.start_offset = switch_start_range;
@@ -2865,7 +2875,9 @@ fetch_next:
 	}
 
 	if (group->in_is_cryptfile) {
+#ifndef GPAC_DISABLE_CRYPTO
 		gf_cryptfin_set_kms(group->seg_filter_src, key_url, key_IV);
+#endif
 	}
 
 	if (ctx->forward) {

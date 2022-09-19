@@ -32,6 +32,8 @@
 #include <gpac/xml.h>
 
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
+
 typedef struct
 {
 	//only one input pid declared
@@ -362,3 +364,16 @@ const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session)
 	return &TTMLConv2Register;
 }
 
+#else
+
+const GF_FilterRegister *ttmlconv_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+const GF_FilterRegister *ttmlconv2_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+#endif //#if !defined(GPAC_DISABLE_ISOM_WRITE) 

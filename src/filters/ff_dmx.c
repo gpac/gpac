@@ -1021,12 +1021,14 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 		pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
 		memcpy(pb.buf, data, sizeof(char)*size);
 		pb.buf_size = size;
-		probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
+		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 		gf_free(pb.buf);
 	} else {
 		pb.buf =  (char *) data;
 		pb.buf_size = size - AVPROBE_PADDING_SIZE;
-		probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
+		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
 	}
 
 	if (!probe_fmt) return NULL;

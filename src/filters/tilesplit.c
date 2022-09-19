@@ -592,5 +592,12 @@ const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
 	return &TileSplitRegister;
 }
 
+#else
+
+const GF_FilterRegister *tilesplit_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
 #endif /* !defined(GPAC_DISABLE_HEVC) && !defined(GPAC_DISABLE_AV_PARSERS) */
 

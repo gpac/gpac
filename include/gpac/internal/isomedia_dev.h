@@ -3952,10 +3952,6 @@ void gf_isom_datamap_flush(GF_DataMap *map);
 		Movie stuff
 */
 
-
-/*time def for MP4/QT/MJ2K files*/
-#define GF_ISOM_MAC_TIME_OFFSET 2082844800
-
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 #define GF_ISOM_FORMAT_FRAG_FLAGS(pad, sync, deg) ( ( (pad) << 17) | ( ( !(sync) ) << 16) | (deg) );
 #define GF_ISOM_GET_FRAG_PAD(flag) ( (flag) >> 17) & 0x7

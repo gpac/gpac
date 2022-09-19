@@ -43,8 +43,13 @@ else
 CFLAGS+=$(OGL_INCLS)
 EXTRALIBS+=$(OGL_LIBS)
 ifeq ($(CONFIG_DARWIN),yes)
-EXTRALIBS+=-lGL -lGLU
+EXTRALIBS+=-framework OpenGL
 endif
+
+ifeq ($(USE_X11_GLX),yes)
+CFLAGS+=-DGPAC_HAS_X11_GLX
+endif
+
 endif
 endif
 
@@ -64,7 +69,7 @@ all: $(LIB)
 
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) -lX11 -L../../bin/gcc -lgpac $(EXTRALIBS) $(LDFLAGS)
-ifeq ($(STATICBUILD),yes)
+ifeq ($(STATIC_BUILD),yes)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_x11_out-static$(DYN_LIB_SUFFIX) $(OBJS) -lX11 -L../../bin/gcc -lgpac_static $(EXTRALIBS) $(LDFLAGS)
 endif
 

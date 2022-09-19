@@ -23,7 +23,7 @@
  *
  */
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
+#include <gpac/network.h>
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -89,9 +89,6 @@
 /*the number of sockets used. This because the WinSock lib needs init*/
 static int wsa_init = 0;
 
-
-#include <gpac/network.h>
-
 /*end-win32*/
 
 #else
@@ -114,7 +111,6 @@ static int wsa_init = 0;
 #include <sys/types.h>
 #include <arpa/inet.h>
 
-#include <gpac/network.h>
 
 /*not defined on solaris*/
 #if !defined(INADDR_NONE)
@@ -2135,5 +2131,3 @@ u16 gf_ntohs(u16 val)
 {
 	return ntohs(val);
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/

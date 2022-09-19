@@ -241,8 +241,8 @@ except OSError:
             os._exit(1)
 
 #change this to reflect API we encapsulate. An incomatibility in either of these will throw a warning
-GF_ABI_MAJOR=11
-GF_ABI_MINOR=0
+GF_ABI_MAJOR=12
+GF_ABI_MINOR=1
 
 gpac_abi_major=_libgpac.gf_gpac_abi_major()
 gpac_abi_minor=_libgpac.gf_gpac_abi_minor()
@@ -1375,6 +1375,15 @@ def on_filter_new_del(cbk, _filter, is_del):
 
  return 0
 
+
+_libgpac.gf_fs_set_external_gl_provider.argtypes = [_gf_filter_session, c_void_p, py_object]
+@CFUNCTYPE(c_int, c_void_p, gf_bool)
+def on_gl_ctx_activate(cbk, set_active):
+ sess = cast(cbk, py_object).value
+ if hasattr(sess, 'on_gl_activate'):
+    sess.on_gl_activate(set_active)
+ return 0
+
 ##\endcond
 
 
@@ -1451,6 +1460,17 @@ class FilterSession:
     #\return
     def on_filter_del(self, filter):
         pass
+
+    ## called whenever a GL context must be activated, typically used by classes deriving from FilterSession
+    #\param do_activate set to true if openGL context ust be activated for calling thread
+    #\return
+    def on_gl_activate(self, do_activate):
+        return 0
+
+    ## call this function to prevent openGL context creation in libgpac, delegating GL context management to the calling app
+    #\return
+    def external_opengl_provider(self):
+        _libgpac.gf_fs_set_external_gl_provider(self._sess, on_gl_ctx_activate, py_object(self))
 
     ##\cond private
     def _to_filter(self, f):
@@ -1893,7 +1913,7 @@ class DASHGroupStatistics(Structure):
         self.display_width = 0
         ##display height in pixels of object
         self.display_height = 0
-        ##index of current quality
+        ##index of current quality or of last downloaded segment quality if previous was skipped
         self.active_quality_idx = 0
         ##minimum buffer in milliseconds, below witch rebuffer occurs
         self.buffer_min = 0
@@ -3716,8 +3736,20 @@ _libgpac.gf_filter_pck_get_dependency_flags.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_get_dependency_flags.restype = c_uint
 _libgpac.gf_filter_pck_set_dependency_flags.argtypes = [_gf_filter_packet, c_uint]
 
+
+class FrameInterface(Structure):
+    _fields_ = [
+        ("get_plane", c_void_p),
+        ("get_gl_texture", c_void_p),
+        ("flags", c_uint),
+        ("user_data", c_void_p)
+    ]
+
+get_gl_tex_fun = CFUNCTYPE(c_int, POINTER(FrameInterface), c_uint, POINTER(c_uint), POINTER(c_uint), POINTER(c_void_p))
+
+
 _libgpac.gf_filter_pck_get_frame_interface.argtypes = [_gf_filter_packet]
-_libgpac.gf_filter_pck_get_frame_interface.restype = c_void_p
+_libgpac.gf_filter_pck_get_frame_interface.restype = POINTER(FrameInterface)
 
 _libgpac.gf_filter_pck_is_blocking_ref.argtypes = [_gf_filter_packet]
 _libgpac.gf_filter_pck_is_blocking_ref.restype = gf_bool
@@ -3751,6 +3783,18 @@ _libgpac.gf_filter_pck_dangling_copy.argtypes = [_gf_filter_packet, _gf_filter_p
 _libgpac.gf_filter_pck_dangling_copy.restype = _gf_filter_packet
 
 ##\endcond private
+
+## OpenGL texture info 
+class GLTextureInfo:
+  ##\cond private
+  def __init__(self, gl_id, gl_format):
+  ##\endcond
+    ##OpenGL texture ID
+    #\hideinitializer
+    self.id = gl_id
+    ##OpenGL texture format (e.g., GL_TEXTURE_2D)
+    #\hideinitializer
+    self.format = gl_format
 
 ##filter packet object
 class FilterPacket:
@@ -3824,6 +3868,9 @@ class FilterPacket:
             ##true if packet holds a GF_FrameInterface object and not a data packet, readonly
             #\hideinitializer
             self.frame_ifce=0
+            ##true if packet holds a GF_FrameInterface object providing OpenGL only access and not a data packet, readonly
+            #\hideinitializer
+            self.frame_ifce_gl=0
             ##Custom properties present, readonly - see \ref gf_filter_pck_has_properties
             #\hideinitializer
             self.has_properties=0
@@ -3895,7 +3942,7 @@ class FilterPacket:
     ##creates a new packet cloning a source packet - see \ref gf_filter_pck_dangling_copy.
     #The resulting packet is read/write mode and may have its own memory allocated.
     #This is typically used by sink filters wishing to access underling GPU data of a packet using frame interface.
-    #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garrbage collected.
+    #the resulting packet can be explicitly discarded using \ref discard, otherwise will be garbage collected.
     #\param cached_pck if set, will be reuse for creation of new packet. This can greatly reduce memory allocations
     #\return the new FilterPacket or None if failure or None if failure ( if grabbing the frame into a local copy failed)
     def clone(self, cached_pck=None):
@@ -3973,6 +4020,26 @@ class FilterPacket:
         if self._is_src:
             raise Exception('Cannot truncate an source packet')
         _libgpac.gf_filter_pck_truncate(self._pck, size)
+
+
+    ##return OpenGL texture info for a given color plane of a frame interface packet
+    #\param idx index of texture to fetch. The number of texture depends on the underlying pixel format
+    #\return GLTextureInfo object or None if error
+    def get_gl_texture(self, idx):
+        p = _libgpac.gf_filter_pck_get_frame_interface(self._pck)
+        if not p:
+            return None
+        if not p.contents.get_gl_texture:
+            return None
+
+        get_tex = get_gl_tex_fun(p.contents.get_gl_texture)
+        gl_format=c_uint(0)
+        gl_tex_id=c_uint(0)
+        ret = get_tex(p, idx, byref(gl_format), byref(gl_tex_id), None)
+        if ret:
+            return None
+        obj = GLTextureInfo(gl_tex_id.value, gl_format.value)
+        return obj
 
     ##\cond private: until end, all packet properties
     @property
@@ -4186,6 +4253,17 @@ class FilterPacket:
         if p:
             return True
         return False
+
+    @property
+    def frame_ifce_gl(self):
+        p = _libgpac.gf_filter_pck_get_frame_interface(self._pck)
+        if not p:
+            return False
+        if p.contents == 0:
+            return False
+        if p.contents.get_gl_texture == None:
+            return False
+        return True
 
     ##\endcond private
 

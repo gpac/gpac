@@ -6931,10 +6931,18 @@ This filter parses FLAC files/data and outputs corresponding audio PID and frame
 .br
 
 .br
+By default the reframer will only check CRC footer of frames if a change in sample rate or channel mapping is detected.
+.br
+This should accomodate for most configurations, but CRC check can be enforced using .I docrc.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
 index (dbl, default: 1.0):     indexing window length
+.br
+docrc (bool, default: false):  perform CRC check after each frame
 .br
 
 .br
@@ -10594,7 +10602,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev270-g291513361-master
+build: 2.1-DEV-rev286-ge68fbe2cd-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

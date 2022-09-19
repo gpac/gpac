@@ -179,6 +179,7 @@ enum
 	JSF_PID_MIN_PCK_DUR,
 	JSF_PID_IS_PLAYING,
 	JSF_PID_NEXT_TS,
+	JSF_PID_HAS_DECODER,
 };
 typedef struct
 {
@@ -412,7 +413,7 @@ GF_Err jsf_request_opengl(JSContext *c)
 
 	return gf_filter_request_opengl(jsf->filter);
 }
-GF_Err jsf_set_gl_active(JSContext *c)
+GF_Err jsf_set_gl_active(JSContext *c, Bool do_activate)
 {
 	GF_JSFilterCtx *jsf;
 	JSValue global = JS_GetGlobalObject(c);
@@ -423,7 +424,7 @@ GF_Err jsf_set_gl_active(JSContext *c)
 	jsf = JS_GetOpaque(filter_obj, jsf_filter_class_id);
 	JS_FreeValue(c, filter_obj);
 
-	return gf_filter_set_active_opengl_context(jsf->filter);
+	return gf_filter_set_active_opengl_context(jsf->filter, do_activate);
 }
 
 Bool jsf_is_packet(JSContext *c, JSValue obj)
@@ -2132,6 +2133,9 @@ static JSValue jsf_pid_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		dur = gf_filter_pid_get_next_ts(pctx->pid);
 		if (dur==GF_FILTER_NO_TS) return JS_NULL;
 		return JS_NewInt64(ctx, dur);
+
+	case JSF_PID_HAS_DECODER:
+		return JS_NewBool(ctx, gf_filter_pid_has_decoder(pctx->pid) );
 	}
     return JS_UNDEFINED;
 }
@@ -2467,9 +2471,16 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 		GF_JSPckCtx *pckc = gf_list_get(pctx->shared_pck, i);
 		if (pckc->pck == pck) {
 			if (!JS_IsUndefined(pckc->cbck_val)) {
-				JSValue res = JS_Call(pctx->jsf->ctx, pckc->cbck_val, pctx->jsobj, 0, NULL);
+				JSValue args[2];
+				args[0] = JS_DupValue(pctx->jsf->ctx, pctx->jsobj);
+				args[1] = JS_DupValue(pctx->jsf->ctx, pckc->jsobj);
+				JSValue res = JS_Call(pctx->jsf->ctx, pckc->cbck_val, pctx->jsobj, 1, args);
+				JS_FreeValue(pctx->jsf->ctx, args[0]);
+				JS_FreeValue(pctx->jsf->ctx, args[1]);
+
 				JS_FreeValue(pctx->jsf->ctx, res);
 				JS_FreeValue(pctx->jsf->ctx, pckc->cbck_val);
+				JS_FreeValue(pctx->jsf->ctx, pckc->jsobj);
 				pckc->cbck_val = JS_UNDEFINED;
 			}
 			JS_FreeValue(pctx->jsf->ctx, pckc->ref_val);
@@ -2484,6 +2495,79 @@ void jsf_pck_shared_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *p
 	gf_js_lock(pctx->jsf->ctx, GF_FALSE);
 }
 
+typedef struct
+{
+	GF_JSPidCtx *pctx;
+	GF_JSPckCtx *pck_ctx;
+	JSValue fun;
+	GF_FilterFrameInterface f_ifce;
+} JSGLFIfce;
+
+static void jsf_pck_gl_ifce_del(GF_Filter *filter, GF_FilterPid *PID, GF_FilterPacket *pck)
+{
+	GF_JSPidCtx *pctx = gf_filter_pid_get_udta(PID);
+	gf_js_lock(pctx->jsf->ctx, GF_TRUE);
+	GF_FilterFrameInterface *f_ifce = gf_filter_pck_get_frame_interface(pck);
+	if (f_ifce) {
+		JSGLFIfce *jsgl = f_ifce->user_data;
+		JS_FreeValue(pctx->jsf->ctx, jsgl->fun);
+		JS_FreeValue(pctx->jsf->ctx, jsgl->pck_ctx->jsobj);
+		gf_free(jsgl);
+	}
+	gf_js_lock(pctx->jsf->ctx, GF_FALSE);
+
+	jsf_pck_shared_del(filter, PID, pck);
+}
+
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+Bool wgl_texture_get_id(JSContext *ctx, JSValueConst txval, u32 *tx_id);
+#endif
+
+static GF_Err jsf_pck_gl_get_texture(GF_FilterFrameInterface *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix)
+{
+	JSValue arg[3], ret, v;
+	GF_Err e = GF_OK;
+	JSGLFIfce *jsgl = frame->user_data;
+	JSContext *ctx = jsgl->pctx->jsf->ctx;
+	if (!gl_tex_format || !gl_tex_id)
+		return GF_NOT_SUPPORTED;
+
+	gf_js_lock(ctx, GF_TRUE);
+
+	arg[0] = JS_DupValue(ctx, jsgl->pctx->jsobj);
+	arg[1] = JS_DupValue(ctx, jsgl->pck_ctx->jsobj);
+	arg[2] = JS_NewInt32(ctx, plane_idx);
+	ret = JS_Call(ctx, jsgl->fun, jsgl->pctx->jsobj, 3, arg);
+	if (JS_IsException(ret)) {
+		js_dump_error(ctx);
+		e = GF_NOT_SUPPORTED;
+	} else if (JS_IsNull(ret) || !JS_IsObject(ret)) {
+		e = GF_NOT_SUPPORTED;
+	} else {
+		v = JS_GetPropertyStr(ctx, ret, "id");
+		if (JS_IsObject(v)) {
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+			if (! wgl_texture_get_id(ctx, v, gl_tex_id))
+#endif
+				e = GF_NOT_SUPPORTED;
+		} else if (JS_ToInt32(ctx, gl_tex_id, v)) {
+			e = GF_NOT_SUPPORTED;
+		}
+		JS_FreeValue(ctx, v);
+		v = JS_GetPropertyStr(ctx, ret, "fmt");
+		if (JS_ToInt32(ctx, gl_tex_format, v))
+			e = GF_NOT_SUPPORTED;
+		JS_FreeValue(ctx, v);
+
+		//todo matrix
+	}
+	JS_FreeValue(ctx, arg[0]);
+	JS_FreeValue(ctx, arg[1]);
+	JS_FreeValue(ctx, ret);
+	gf_js_lock(ctx, GF_FALSE);
+	return e;
+}
+
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 JSValue webgl_get_frame_interface(JSContext *ctx, int argc, JSValueConst *argv, GF_FilterPid *for_pid, gf_fsess_packet_destructor *pck_del, GF_FilterFrameInterface **f_ifce);
@@ -2495,6 +2579,7 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	u8 *data, *ab_data;
 	JSValue obj;
 	Bool use_shared=GF_FALSE;
+	Bool use_gl_ifce=GF_FALSE;
 	GF_JSPckCtx *pckc;
 	GF_JSPidCtx *pctx = JS_GetOpaque(this_val, jsf_pid_class_id);
 
@@ -2521,8 +2606,13 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 	pckc->ref_val = JS_UNDEFINED;
 	pckc->data_ab = JS_UNDEFINED;
 
-	if (argc>1)
-		use_shared = JS_ToBool(ctx, argv[1]);
+	if (argc>1) {
+		if (JS_IsFunction(ctx, argv[0])) {
+			use_gl_ifce = GF_TRUE;
+		} else {
+			use_shared = JS_ToBool(ctx, argv[1]);
+		}
+	}
 
 	if (!argc) {
 		pckc->pck = gf_filter_pck_new_alloc(pctx->pid, 0, NULL);
@@ -2550,8 +2640,11 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
 			pckc->flags = GF_JS_PCK_IS_SHARED;
-			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
+			if ((argc>2) && JS_IsFunction(ctx, argv[2])) {
 				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
+				//dup packet obj, it must be kept alive until destructor is called
+				pckc->jsobj = JS_DupValue(ctx, pckc->jsobj);
+			}
 		} else {
 			u8 *pdata=NULL;
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, len, &pdata);
@@ -2594,8 +2687,11 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 			if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
 			gf_list_add(pctx->shared_pck, pckc);
 			pckc->flags = GF_JS_PCK_IS_SHARED;
-			if ((argc>2) && JS_IsFunction(ctx, argv[2]))
+			if ((argc>2) && JS_IsFunction(ctx, argv[2])) {
 				pckc->cbck_val = JS_DupValue(ctx, argv[2]);
+				//dup packet obj, it must be kept alive until destructor is called
+				pckc->jsobj = JS_DupValue(ctx, pckc->jsobj);
+			}
 		} else {
 			pckc->pck = gf_filter_pck_new_alloc(pctx->pid, (u32) ab_size, &data);
 			if (!data) {
@@ -2603,6 +2699,34 @@ static JSValue jsf_pid_new_packet(JSContext *ctx, JSValueConst this_val, int arg
 				return js_throw_err(ctx, GF_OUT_OF_MEM);
 			}
 			memcpy(data, ab_data, ab_size);
+		}
+		goto pck_done;
+	}
+	/*try GL interface*/
+	if (use_gl_ifce) {
+		JSGLFIfce *gl_ifce;
+		GF_SAFEALLOC(gl_ifce, JSGLFIfce);
+		gl_ifce->pctx = pctx;
+		gl_ifce->pck_ctx = pckc;
+		gl_ifce->fun = JS_DupValue(ctx, argv[0] );
+		gl_ifce->f_ifce.user_data = gl_ifce;
+		gl_ifce->f_ifce.get_gl_texture = jsf_pck_gl_get_texture;
+		gl_ifce->f_ifce.flags = GF_FRAME_IFCE_BLOCKING;
+		pckc->pck = gf_filter_pck_new_frame_interface(pctx->pid, &gl_ifce->f_ifce, jsf_pck_gl_ifce_del);
+		if (!pctx->shared_pck) pctx->shared_pck = gf_list_new();
+		gf_list_add(pctx->shared_pck, pckc);
+		//dup packet obj since se need it in the fetch texture callback
+		pckc->jsobj = JS_DupValue(ctx, pckc->jsobj);
+		if ((argc>1) && JS_IsFunction(ctx, argv[1])) {
+			pckc->cbck_val = JS_DupValue(ctx, argv[1]);
+			//dup packet obj, it must be kept alive until destructor is called
+			pckc->jsobj = JS_DupValue(ctx, pckc->jsobj);
+			if ((argc>2) && JS_ToBool(ctx, argv[2])) {
+				pckc->flags = GF_JS_PCK_IS_SHARED;
+			}
+		}
+		if ((argc>1) && JS_IsBool(argv[1]) && JS_ToBool(ctx, argv[1])) {
+			pckc->flags = GF_JS_PCK_IS_SHARED;
 		}
 		goto pck_done;
 	}
@@ -2806,6 +2930,7 @@ static const JSCFunctionListEntry jsf_pid_funcs[] = {
     JS_CGETSET_MAGIC_DEF("min_pck_dur", jsf_pid_get_prop, NULL, JSF_PID_MIN_PCK_DUR),
     JS_CGETSET_MAGIC_DEF("playing", jsf_pid_get_prop, NULL, JSF_PID_IS_PLAYING),
     JS_CGETSET_MAGIC_DEF("next_ts", jsf_pid_get_prop, NULL, JSF_PID_NEXT_TS),
+    JS_CGETSET_MAGIC_DEF("has_decoder", jsf_pid_get_prop, NULL, JSF_PID_HAS_DECODER),
     JS_CFUNC_DEF("send_event", 0, jsf_pid_send_event),
     JS_CFUNC_DEF("enum_properties", 0, jsf_pid_enum_properties),
     JS_CFUNC_DEF("get_prop", 0, jsf_pid_get_property),
@@ -3554,6 +3679,7 @@ enum
 	JSF_PCK_SIZE,
 	JSF_PCK_DATA,
 	JSF_PCK_FRAME_IFCE,
+	JSF_PCK_FRAME_IFCE_GL,
 	JSF_PCK_HAS_PROPERTIES,
 };
 
@@ -3754,6 +3880,13 @@ static JSValue jsf_pck_get_prop(JSContext *ctx, JSValueConst this_val, int magic
 		if (gf_filter_pck_get_frame_interface(pck) != NULL)
 			return JS_NewBool(ctx, 1);
 		else return JS_NewBool(ctx, 0);
+	case JSF_PCK_FRAME_IFCE_GL:
+	{
+		GF_FilterFrameInterface *fifce  = gf_filter_pck_get_frame_interface(pck);
+		if (fifce && fifce->get_gl_texture)
+			return JS_NewBool(ctx, 1);
+		return JS_NewBool(ctx, 0);
+	}
 
 	case JSF_PCK_HAS_PROPERTIES:
 		return JS_NewBool(ctx, gf_filter_pck_has_properties(pck) );
@@ -4120,6 +4253,7 @@ static const JSCFunctionListEntry jsf_pck_funcs[] =
     JS_CGETSET_MAGIC_DEF("size", jsf_pck_get_prop, NULL, JSF_PCK_SIZE),
     JS_CGETSET_MAGIC_DEF("data", jsf_pck_get_prop, NULL, JSF_PCK_DATA),
     JS_CGETSET_MAGIC_DEF("frame_ifce", jsf_pck_get_prop, NULL, JSF_PCK_FRAME_IFCE),
+    JS_CGETSET_MAGIC_DEF("frame_ifce_gl", jsf_pck_get_prop, NULL, JSF_PCK_FRAME_IFCE_GL),
     JS_CGETSET_MAGIC_DEF("has_properties", jsf_pck_get_prop, NULL, JSF_PCK_HAS_PROPERTIES),
 
     JS_CFUNC_DEF("set_readonly", 0, jsf_pck_set_readonly),
@@ -4311,6 +4445,7 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_STATS_DECODER_SOURCE)
 	DEF_CONST(GF_STATS_ENCODER_SINK)
 	DEF_CONST(GF_STATS_ENCODER_SOURCE)
+	DEF_CONST(GF_STATS_SINK)
 
 	DEF_CONST(GF_FILTER_CLOCK_NONE)
 	DEF_CONST(GF_FILTER_CLOCK_PCR)
@@ -4817,6 +4952,10 @@ static void jsfilter_finalize(GF_Filter *filter)
 			GF_Filter *a_f = gf_list_get(jsf->filter->session->filters, i);
 			if (a_f == jsf->filter) continue;;
 			jsfs_on_filter_destroyed(a_f);
+		}
+		if (!JS_IsUndefined(jsf->filter->jsval)) {
+			JS_FreeValue(jsf->ctx, jsf->filter->jsval);
+			jsf->filter->jsval = JS_UNDEFINED;
 		}
 		gf_mx_v(jsf->filter->session->filters_mx);
 		gf_js_delete_context(jsf->ctx);

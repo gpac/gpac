@@ -4020,6 +4020,12 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	const char *sOpt;
 	void *os_disp_handler;
 
+	if (session->ext_gl_callback) {
+		e = session->ext_gl_callback(session->ext_gl_udta, GF_TRUE);
+		if (e==GF_OK) gf_opengl_init();
+		return e;
+	}
+
 	if (!session->nb_gl_filters) return GF_OK;
 	if (gf_list_count(session->gl_providers)) return GF_OK;
 
@@ -4068,9 +4074,13 @@ GF_Err gf_fs_check_gl_provider(GF_FilterSession *session)
 	return GF_OK;
 }
 
-GF_Err gf_fs_set_gl(GF_FilterSession *session)
+GF_Err gf_fs_set_gl(GF_FilterSession *session, Bool do_activate)
 {
 	GF_Event evt;
+	if (session->ext_gl_callback) {
+		return session->ext_gl_callback(session->ext_gl_udta, do_activate);
+	}
+
 	if (!session->gl_driver) return GF_BAD_PARAM;
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SET_GL;
@@ -4080,6 +4090,7 @@ GF_Err gf_fs_set_gl(GF_FilterSession *session)
 GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter)
 {
 	if (!filter || !filter->session || !filter->session->gl_driver) return NULL;
+	if (filter->session->ext_gl_callback) return NULL;
 
 	if (! (filter->session->gl_driver->hw_caps & GF_VIDEO_HW_INTERNAL))
 		return NULL;
@@ -4093,6 +4104,7 @@ GF_VideoOutput *gf_filter_claim_opengl_provider(GF_Filter *filter)
 Bool gf_filter_unclaim_opengl_provider(GF_Filter *filter, GF_VideoOutput * video_out)
 {
 	if (!filter || !video_out) return GF_FALSE;
+	if (filter->session->ext_gl_callback) return GF_FALSE;
 
 	if (! (video_out->hw_caps & GF_VIDEO_HW_INTERNAL))
 		return GF_FALSE;
@@ -4229,7 +4241,15 @@ void *gf_fs_get_rt_udta(GF_FilterSession *session)
 	return session->rt_udta;
 }
 
-
+GF_EXPORT
+GF_Err gf_fs_set_external_gl_provider(GF_FilterSession *session, gf_fs_gl_activate on_gl_activate, void *udta)
+{
+	if (!session || !on_gl_activate || session->ext_gl_callback) return GF_BAD_PARAM;
+	if (gf_list_count(session->filters)) return GF_BAD_PARAM;
+	session->ext_gl_udta = udta;
+	session->ext_gl_callback = on_gl_activate;
+	return GF_OK;
+}
 #ifdef GF_FS_ENABLE_LOCALES
 
 static Bool fsess_find_res(GF_FSLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)

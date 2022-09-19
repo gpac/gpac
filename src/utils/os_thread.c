@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -22,8 +22,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #ifdef GPAC_CONFIG_ANDROID
 #include <jni.h>
@@ -884,5 +882,3 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 
 #endif
 }
-
-#endif

@@ -29,7 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/maths.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
+#ifndef GPAC_DISABLE_MPD
 
 #define MPD_STORE_EXTENSION_ATTR(_elem)	\
 			if (!_elem->x_attributes) _elem->x_attributes = gf_list_new();	\
@@ -3595,7 +3595,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(const GF_MPD *mpd, const GF_MPD_Period 
 		gf_fprintf(out,"%s\n", rep->hls_variant_tags[i]);
 	}
 
-	if (as->starts_with_sap<SAP_TYPE_3)
+	if (as->starts_with_sap<GF_FILTER_SAP_3)
 		gf_fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
 
 	if (mpd->m3u8_time && rep->timescale_mpd && (mpd->type == GF_MPD_TYPE_DYNAMIC)) {
@@ -5833,4 +5833,4 @@ GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id)
 }
 
 
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
+#endif /*GPAC_DISABLE_MPD*/

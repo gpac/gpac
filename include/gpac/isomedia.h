@@ -810,6 +810,9 @@ u64 gf_isom_get_duration(GF_ISOFile *isom_file);
 \return the duration of the movie*/
 u64 gf_isom_get_original_duration(GF_ISOFile *isom_file);
 
+/*! time offset since UNIX EPOC for MP4/QT/MJ2K files*/
+#define GF_ISOM_MAC_TIME_OFFSET 2082844800
+
 /*! gets the creation info of the movie
 \param isom_file the target ISO file
 \param creationTime set to the creation time of the movie
@@ -1110,7 +1113,7 @@ u32 gf_isom_get_max_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 \param trackNumber the target track
 \return average  sample delta in media timescale
 */
-u32 gf_isom_get_avg_sample_delta(GF_ISOFile *the_file, u32 trackNumber);
+u32 gf_isom_get_avg_sample_delta(GF_ISOFile *isom_file, u32 trackNumber);
 
 /*! gets max sample CTS offset (CTS-DTS) in track
 \param isom_file the target ISO file
@@ -3710,7 +3713,7 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *isom_file, u32 trackNumber, GF_D
 GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-/*! creates an AC3 sample description
+/*! creates an AC3 or EAC3 sample description
 \param isom_file the target ISO file
 \param trackNumber the target track
 \param cfg the AC3 config for this sample description
@@ -3720,6 +3723,16 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *isom_file, u32 trackNumber, u32
 \return error if any
 */
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *isom_file, u32 trackNumber, GF_AC3Config *cfg, const char *URLname, const char *URNname, u32 *outDescriptionIndex);
+
+/*! updates an AC3 or EAC3 sample description
+\param isom_file the target ISO file
+\param trackNumber the target track
+\param sampleDescriptionIndex the target sample description index
+\param cfg the AC3 config for this sample description
+\return error if any
+*/
+GF_Err gf_isom_ac3_config_update(GF_ISOFile *isom_file, u32 trackNumber, u32 sampleDescriptionIndex, GF_AC3Config *cfg);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*! gets TrueHD  sample description info
@@ -4103,7 +4116,7 @@ void gf_isom_enable_traf_map_templates(GF_ISOFile *isom_file);
 \param end set to end offset (0 if no sidx) of the root sidx
 \return true if success
 */
-Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *movie, u64 *start, u64 *end);
+Bool gf_isom_get_root_sidx_offsets(GF_ISOFile *isom_file, u64 *start, u64 *end);
 
 /*! Segment boundary information*/
 typedef struct
@@ -6329,6 +6342,9 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *isom_file, Bool root_meta, u32 t
 
 /*! @} */
 
+
+#endif //GPAC_DISABLE_ISOM
+
 /*!
 \addtogroup isotags_grp iTunes tagging
 \ingroup iso_grp
@@ -6424,6 +6440,8 @@ Country Code 	sfID 	32-bit integer 	Identifies in which iTunes Store a file was 
 	*/
 
 } GF_ISOiTunesTag;
+
+#ifndef GPAC_DISABLE_ISOM
 
 /*! gets the given itunes tag info.
 \warning 'genre' may be coded by ID, the libisomedia doesn't translate the ID. In such a case, the result data is set to NULL and the data_len to the genre ID

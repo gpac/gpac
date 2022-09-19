@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2019
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -45,8 +45,6 @@ This section documents the base encoding and decoding functions of the GPAC fram
  */
 
 #include <gpac/tools.h>
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 /*!
 \brief base64 encoder
@@ -102,7 +100,5 @@ u32 gf_base16_decode(u8 *in_buffer, u32 in_buffer_size, u8 *out_buffer, u32 out_
 #ifdef __cplusplus
 }
 #endif
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif		/*_GF_BASE_CODING_H_*/

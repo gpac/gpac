@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -400,8 +400,6 @@ Returns the original resource URL associated with the session
 \return the associated URL
  */
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
-
-#ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
 Downloads a file over the network using a download manager
 \param dm The download manager to use, function will use all associated cache resources
@@ -426,8 +424,6 @@ This function is deprecated, please use gf_dm_wget_with_cache instead
 \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
-
-#endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
 Re-setup an existing, completed session to download a new URL. If same server/port/protocol is used, the same socket will be reused if the session has the GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.

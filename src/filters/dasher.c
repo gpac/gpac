@@ -32,7 +32,7 @@
 #include <gpac/network.h>
 #include <gpac/crypt_tools.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
+#if !defined(GPAC_DISABLE_MPD)
 
 #define DEFAULT_PERIOD_ID	 "_gf_dash_def_period"
 
@@ -282,7 +282,7 @@ typedef struct _dash_stream
 	char *template;
 	char *xlink;
 	char *hls_vp_name;
-	u32 nb_surround, nb_lfe;
+	u32 nb_surround, nb_lfe, atmos_complexity_type;
 	u64 ch_layout;
 	GF_PropVec4i srd;
 	DasherHDRType hdr_type;
@@ -531,6 +531,7 @@ static void dasher_check_outpath(GF_DasherCtx *ctx)
 
 static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 {
+#ifndef GPAC_DISABLE_CRYPTO
 	GF_Err e;
 	u32 pid_id=1;
 	u32 i, count;
@@ -587,8 +588,10 @@ static GF_Err dasher_hls_setup_crypto(GF_DasherCtx *ctx, GF_DashStream *ds)
 			ds->iv_low <<= 8;
 		}
 	}
-
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static u32 dasher_get_dep_bitrate(GF_DasherCtx *ctx, GF_DashStream *ds)
@@ -1338,6 +1341,7 @@ static GF_Err dasher_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 					gf_odf_ac3_config_parse(dsi->value.data.ptr, dsi->value.data.size, (ds->codec_id==GF_CODECID_EAC3) ? GF_TRUE : GF_FALSE, &ac3);
 
 					ds->nb_lfe = ac3.streams[0].lfon ? 1 : 0;
+					ds->atmos_complexity_type = ac3.is_ec3 ? ac3.complexity_index_type : 0;
 					_nb_ch = gf_ac3_get_channels(ac3.streams[0].acmod);
 					for (i=0; i<ac3.streams[0].nb_dep_sub; ++i) {
 						assert(ac3.streams[0].nb_dep_sub == 1);
@@ -2080,7 +2084,6 @@ static const char *get_drm_kms_name(const char *canURN)
 
 static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStream *ds, GF_MPD_AdaptationSet *for_set)
 {
-	char sCan[40];
 	u32 prot_scheme=0;
 	u32 i, count;
 	const GF_PropertyValue *p;
@@ -2106,8 +2109,11 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 		p = gf_filter_pid_get_property(a_ds->ipid, GF_PROP_PID_PROTECTION_SCHEME_TYPE);
 		if (p) prot_scheme = p->value.uint;
 
+
+#ifndef GPAC_DISABLE_ISOM
 		if ((prot_scheme==GF_ISOM_CENC_SCHEME) || (prot_scheme==GF_ISOM_CBC_SCHEME) || (prot_scheme==GF_ISOM_CENS_SCHEME) || (prot_scheme==GF_ISOM_CBCS_SCHEME)
 		) {
+			char sCan[40];
 			const GF_PropertyValue *ki;
 			u32 j, nb_pssh;
 			GF_XMLAttribute *att;
@@ -2211,7 +2217,9 @@ static GF_List *dasher_get_content_protection_desc(GF_DasherCtx *ctx, GF_DashStr
 				}
 				gf_free(pssh_data);
 			}
-		} else {
+		} else
+#endif // GPAC_DISABLE_ISOM
+		{
 			if (ctx->do_mpd) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[Dasher] Protection scheme %s has no official DASH mapping, using URI \"urn:gpac:dash:mp4protection:2018\"\n", gf_4cc_to_str(prot_scheme)));
 			}
@@ -2360,6 +2368,14 @@ static void dasher_update_rep(GF_DasherCtx *ctx, GF_DashStream *ds)
 		gf_mpd_del_list(ds->rep->audio_channels, gf_mpd_descriptor_free, GF_TRUE);
 
 		gf_list_add(ds->rep->audio_channels, desc);
+		if (ds->atmos_complexity_type) {
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionType:2018", "JOC");
+			gf_list_add(ds->rep->supplemental_properties, desc);
+
+			sprintf(value, "%d", ds->atmos_complexity_type);
+			desc = gf_mpd_descriptor_new(NULL, "tag:dolby.com,2018:dash:EC3_ExtensionComplexityIndex:2018", value);
+			gf_list_add(ds->rep->supplemental_properties, desc);
+		}
 	} else {
 	}
 
@@ -9324,7 +9340,9 @@ static void dasher_finalize(GF_Filter *filter)
 		GF_DashStream *ds = gf_list_pop_back(ctx->pids);
 		dasher_reset_stream(filter, ds, GF_TRUE);
 		if (ds->packet_queue) gf_list_del(ds->packet_queue);
+#ifndef GPAC_DISABLE_CRYPTO
 		if (ds->cinfo) gf_crypt_info_del(ds->cinfo);
+#endif
 		gf_free(ds);
 	}
 	gf_list_del(ctx->pids);
@@ -9344,7 +9362,9 @@ static void dasher_finalize(GF_Filter *filter)
 	gf_free(ctx->next_period);
 	if (ctx->out_path) gf_free(ctx->out_path);
 	gf_list_del(ctx->postponed_pids);
+#ifndef GPAC_DISABLE_CRYPTO
 	if (ctx->cinfo) gf_crypt_info_del(ctx->cinfo);
+#endif
 }
 
 #define MPD_EXTS "mpd|m3u8|3gm|ism"
@@ -9783,5 +9803,9 @@ const GF_FilterRegister *dasher_register(GF_FilterSession *session)
 {
 	return &DasherRegister;
 }
-
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
+#else
+const GF_FilterRegister *dasher_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+#endif /*#if !defined(GPAC_DISABLE_MPD)*/

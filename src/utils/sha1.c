@@ -1,4 +1,3 @@
-#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #ifndef _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_DEPRECATE 1
@@ -769,6 +768,4 @@ void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA])
 }
 #endif
 
-
-#endif
 

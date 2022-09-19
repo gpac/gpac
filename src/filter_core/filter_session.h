@@ -455,8 +455,11 @@ struct __gf_filter_session
 	u32 in_event_listener;
 
 	GF_DownloadManager *download_manager;
+
+#ifndef GPAC_DISABLE_PLAYER
 	struct _gf_ft_mgr *font_manager;
-	
+#endif
+
 	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
 	u32 default_pid_buffer_max_units;
 
@@ -505,6 +508,9 @@ struct __gf_filter_session
 	void *rt_udta;
 	Bool force_main_thread_tasks;
 
+	void *ext_gl_udta;
+	gf_fs_gl_activate ext_gl_callback;
+
 #ifdef GF_FS_ENABLE_LOCALES
 	GF_List *uri_relocators;
 	GF_FSLocales locales;
@@ -529,7 +535,7 @@ typedef struct
 
 #ifndef GPAC_DISABLE_3D
 GF_Err gf_fs_check_gl_provider(GF_FilterSession *session);
-GF_Err gf_fs_set_gl(GF_FilterSession *session);
+GF_Err gf_fs_set_gl(GF_FilterSession *session, Bool do_activate);
 #endif
 
 typedef enum
@@ -1013,6 +1019,7 @@ struct __gf_filter_pid
 	GF_Filter *caps_dst_filter;
 
 	Bool ext_not_trusted;
+	Bool user_buffer_forced;
 
 	Bool require_source_id;
 	//only used in filter_check_caps
