@@ -8964,9 +8964,10 @@ static void eac3_update_channels(GF_AC3Config *hdr)
 	}
 	if (hdr->streams[0].lfon) nb_ch++;
 	hdr->channels = nb_ch;
+	hdr->is_ec3 = 1;
 }
 
-static Bool gf_eac3_parser_internal(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse, Bool hdr_only)
+static Bool gf_eac3_parser_internal(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
 	u32 fscod, bsid, acmod, freq, framesize, syncword, substreamid, lfon, numblkscod, strmtyp, frmsiz;
 	u64 pos;
@@ -9018,10 +9019,12 @@ block:
 		if (substreamid) {
 			if (gf_bs_seek(bs, pos + framesize) != GF_OK) {
 				gf_bs_seek(bs, pos);
+				hdr->is_ec3 = 1;
 				return GF_FALSE;
 			}
 			if ((gf_bs_available(bs) < 6) || !AC3_FindSyncCodeBS(bs)) {
 				gf_bs_seek(bs, pos);
+				hdr->is_ec3 = 1;
 				return GF_FALSE;
 			}
 			goto block;
@@ -9071,13 +9074,11 @@ block:
 	hdr->framesize = framesize;
 	if (strmtyp != 1) {
 		hdr->streams[substreamid].lfon = lfon;
-		if (full_parse) {
-			hdr->streams[substreamid].bsid = bsid;
-			hdr->streams[substreamid].bsmod = 0;
-			hdr->streams[substreamid].acmod = acmod;
-			hdr->streams[substreamid].fscod = fscod;
-			hdr->brcode = 0;
-		}
+		hdr->streams[substreamid].bsid = bsid;
+		hdr->streams[substreamid].bsmod = 0;
+		hdr->streams[substreamid].acmod = acmod;
+		hdr->streams[substreamid].fscod = fscod;
+		hdr->brcode = 0;
 		hdr->nb_streams++;
 		//not clear if this is only for the independent streams
 		hdr->brcode += ((frmsiz+1) * freq) / (numblks[numblkscod < 4 ? numblkscod : 3]*16) / 1000;
@@ -9087,7 +9088,7 @@ block:
 	}
 
 	//start of header only, we are done - chan info might be wrong
-	if (hdr_only) {
+	if (!full_parse) {
 		eac3_update_channels(hdr);
 		gf_bs_seek(bs, pos);
 		return GF_TRUE;
@@ -9184,6 +9185,7 @@ block:
 			}
 		}
 	}
+	eac3_update_channels(hdr);
 
 
 	if (numblkscod < 6) { //we need 6 blocks to make a sample
@@ -9196,7 +9198,6 @@ block:
 			return GF_FALSE;
 		goto block;
 	}
-
 	gf_bs_seek(bs, pos);
 	return GF_TRUE;
 }
@@ -9204,7 +9205,7 @@ block:
 GF_EXPORT
 Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
-	return gf_eac3_parser_internal(bs, hdr, full_parse, GF_FALSE);
+	return gf_eac3_parser_internal(bs, hdr, full_parse);
 }
 
 GF_EXPORT
@@ -9218,15 +9219,9 @@ Bool gf_eac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Config *hdr, Bool full_
 	if (*pos >= buflen) return GF_FALSE;
 
 	bs = gf_bs_new((const char*)(buf + *pos), buflen, GF_BITSTREAM_READ);
-	ret = gf_eac3_parser_internal(bs, hdr, full_parse, GF_TRUE);
+	ret = gf_eac3_parser_internal(bs, hdr, full_parse);
 	gf_bs_del(bs);
 	return ret;
-}
-
-GF_EXPORT
-Bool gf_eac3_parser_header_bs(GF_BitStream *bs, GF_AC3Config *hdr)
-{
-	return gf_eac3_parser_internal(bs, hdr, GF_TRUE, GF_TRUE);
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

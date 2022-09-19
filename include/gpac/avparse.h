@@ -665,25 +665,18 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 \param buffer_size size of buffer to parse
 \param pos set to start offset (in bytes) of the AC3 header parsed
 \param hdr will be filled by parser
-\param full_parse if GF_TRUE, complete parsing of the header will be done
+\param full_parse if GF_TRUE, complete parsing of the header and check for next frame/blocks presence will be done
 \return GF_TRUE if success
 */
 Bool gf_eac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Config *hdr, Bool full_parse);
 
-/*! parses an EAC-3 header from a bitstream and checks for next frale/blocks presence
+/*! parses an EAC-3 header from a bitstream
 \param bs bitstream to parse
 \param hdr will be filled by parser
-\param full_parse if GF_TRUE, complete parsing of the header will be done
+\param full_parse if GF_TRUE, complete parsing of the header and check for next frame/blocks presence will be done
 \return GF_TRUE if success
 */
 Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
-
-/*! parses an EAC-3 header from a bitstream but does'nt check for next frames/blocks
-\param bs bitstream to parse
-\param hdr will be filled by parser
-\return GF_TRUE if success
-*/
-Bool gf_eac3_parser_header_bs(GF_BitStream *bs, GF_AC3Config *hdr);
 
 /*! gets the number of channels in an AC3 frame
 \param acmod acmod of the associated frame header
