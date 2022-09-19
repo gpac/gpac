@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2020
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools ROUTE (ATSC3, DVB-I) demux sub-project
@@ -25,7 +25,7 @@
 
 #include <gpac/route.h>
 
-#if !defined(GPAC_DISABLE_ROUTE) && !defined(GPAC_DISABLE_CORE_TOOLS)
+#if !defined(GPAC_DISABLE_ROUTE)
 
 #include <gpac/network.h>
 #include <gpac/bitstream.h>
@@ -2044,4 +2044,4 @@ void gf_route_dmx_debug_tsi(GF_ROUTEDmx *routedmx, u32 tsi)
 	if (routedmx) routedmx->debug_tsi = tsi;
 }
 
-#endif /* !GPAC_DISABLE_ROUTE && !GPAC_DISABLE_CORE_TOOLS */
+#endif /* !GPAC_DISABLE_ROUTE */

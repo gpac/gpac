@@ -3918,7 +3918,6 @@ GF_FileType get_file_type_by_ext(char *inName)
 }
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 {
 	GF_Err e;
@@ -3973,7 +3972,6 @@ static GF_Err xml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 	gf_free(data);
 	return e;
 }
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 static u64 do_size_top_boxes(char *inName, char *compress_top_boxes, u32 mode)
 {
@@ -4240,7 +4238,6 @@ static u32 convert_mpd()
 	GF_MPD *mpd;
 	char *mpd_base_url = NULL;
 	if (!strnicmp(inName, "http://", 7) || !strnicmp(inName, "https://", 8)) {
-#if !defined(GPAC_DISABLE_CORE_TOOLS)
 		e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0, &mpd_base_url);
 		if (e != GF_OK) {
 			M4_LOG(GF_LOG_ERROR, ("Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e)));
@@ -4248,11 +4245,6 @@ static u32 convert_mpd()
 			return mp4box_cleanup(1);
 		}
 		remote = GF_TRUE;
-#else
-		gf_free(mpd_base_url);
-		M4_LOG(GF_LOG_ERROR, ("HTTP Downloader disabled in this build\n"));
-		return mp4box_cleanup(1);
-#endif
 
 		if (outName)
 			strcpy(outfile, outName);
@@ -6035,7 +6027,6 @@ int mp4box_main(int argc, char **argv)
 		return mp4box_cleanup(e ? 1 : 0);
 	}
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_wget != NULL) {
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
@@ -6044,7 +6035,6 @@ int mp4box_main(int argc, char **argv)
 		}
 		return mp4box_cleanup(0);
 	}
-#endif
 
 	if (udp_dest)
 		return do_write_udp();
@@ -6258,10 +6248,8 @@ int mp4box_main(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, outName, program_number);
 #endif
-#ifndef GPAC_DISABLE_CORE_TOOLS
 				} else if (do_bin_xml) {
 					xml_bs_to_bin(inName, outName, dump_std);
-#endif
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
 				} else if (print_info) {
@@ -6414,12 +6402,10 @@ int mp4box_main(int argc, char **argv)
 		e = hash_file(inName, dump_std);
 		if (e) goto err_exit;
 	}
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_bin_xml) {
 		e = xml_bs_to_bin(inName, outName, dump_std);
 		if (e) goto err_exit;
 	}
-#endif
 
 	if (dump_chunk) dump_isom_chunks(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);

@@ -25,6 +25,8 @@
 
 #include "gpac.h"
 
+#ifndef GPAC_DISABLE_PLAYER
+
 #include <gpac/main.h>
 #include <gpac/events.h>
 #include <gpac/filters.h>
@@ -1634,3 +1636,5 @@ static void close_console()
 }
 
 #endif
+
+#endif //#ifndef GPAC_DISABLE_PLAYER

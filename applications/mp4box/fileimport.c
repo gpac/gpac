@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / mp4box application
@@ -75,15 +75,12 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		return e;
 	}
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (!strnicmp(src, "base64", 6)) {
 		src += 7;
 		size = (u32) strlen(src);
 		data = gf_malloc(sizeof(char) * size);
 		size = gf_base64_decode((u8 *)src, size, data, size);
-	} else
-#endif
-	if (is_string) {
+	} else if (is_string) {
 		data = (u8 *) src;
 		size = (u32) strlen(src)+1;
 		is_box_array = 0;
@@ -3602,7 +3599,6 @@ exit:
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	char szCheck[100];
@@ -3950,20 +3946,6 @@ GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile *movie, u32 track, char *file
 	gf_xml_dom_del(parser);
 	return e;
 }
-
-#else
-GF_ISOFile *package_file(char *file_name, char *fcc, Bool make_wgt)
-{
-	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot package file\n"));
-	return NULL;
-}
-
-GF_Err parse_high_dynamc_range_xml_desc(GF_ISOFile* movie, u32 track, char* file_name)
-{
-	M4_LOG(GF_LOG_ERROR, ("XML Not supported in this build of GPAC - cannot process HDR parameter file\n"));
-	return GF_OK;
-}
-#endif //#ifndef GPAC_DISABLE_CORE_TOOLS
 
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

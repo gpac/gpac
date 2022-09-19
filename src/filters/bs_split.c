@@ -28,6 +28,8 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/mpeg4_odf.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	GF_FilterPid *opid;
@@ -1481,7 +1483,13 @@ GF_FilterRegister BSSplitRegister = {
 	.process = bs_split_process
 };
 
+#endif
+
 const GF_FilterRegister *bs_split_register(GF_FilterSession *session)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	return (const GF_FilterRegister *) &BSSplitRegister;
+#else
+	return NULL;
+#endif
 }

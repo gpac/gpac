@@ -29,7 +29,7 @@
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
 
-#ifndef GPAC_DISABLE_CORE_TOOLS
+#ifndef GPAC_DISABLE_MPD
 
 /*!
 \file <gpac/mpd.h>
@@ -1237,6 +1237,6 @@ GF_Err gf_mpd_load_cues(const char *cues_file, u32 stream_id, u32 *cues_timescal
 GF_MPD_Descriptor *gf_mpd_get_descriptor(GF_List *desclist, char *scheme_id);
 
 /*! @} */
-#endif /*GPAC_DISABLE_CORE_TOOLS*/
+#endif /*GPAC_DISABLE_MPD*/
 
 #endif // _MPD_H_

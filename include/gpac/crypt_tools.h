@@ -46,6 +46,7 @@ This section documents the helper tools (mostly crypt info file) used in ISMA an
 @{
  */
 
+#include <gpac/list.h>
 #include <gpac/isomedia.h>
 
 /*! Supported encryption scheme types */

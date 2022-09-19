@@ -30,6 +30,8 @@
 #include <gpac/crypt.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_CRYPTO
+
 enum
 {
 	KEY_STATE_NONE=0,
@@ -651,3 +653,20 @@ GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
 	}
 	return gf_list_add(ctx->keys, key_info);
 }
+
+
+#else
+const GF_FilterRegister *cryptfin_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+const GF_FilterRegister *cryptfout_register(GF_FilterSession *session)
+{
+	return NULL;
+}
+
+GF_Err gf_cryptfout_push_key(GF_Filter *filter, bin128 *key, bin128 *IV)
+{
+	return GF_NOT_SUPPORTED;
+}
+#endif

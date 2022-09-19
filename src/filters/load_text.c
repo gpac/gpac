@@ -31,6 +31,7 @@
 #include <gpac/xml.h>
 #include <gpac/token.h>
 #include <gpac/color.h>
+#include <gpac/network.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
 
@@ -39,7 +40,7 @@
 #include <gpac/internal/swf_dev.h>
 #endif
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_CORE_TOOLS)
+#if !defined(GPAC_DISABLE_ISOM_WRITE)
 
 #define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 

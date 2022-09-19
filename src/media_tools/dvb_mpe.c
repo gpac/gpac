@@ -1,3 +1,28 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jonathan Sillan, Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2011-2022
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / media tools sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
 #include <gpac/internal/dvb_mpe_dev.h>
 #include <gpac/network.h>
 #include <string.h>
@@ -874,7 +899,7 @@ next :
 }
 
 GF_EXPORT
-void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
+void gf_dvb_mpe_print_info(GF_M2TS_Demuxer *ts)
 {
 	u32 i_streams,i,j,l;
 	GF_M2TS_IP_Target *ip_targets;

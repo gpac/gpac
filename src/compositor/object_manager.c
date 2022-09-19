@@ -86,10 +86,10 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_odm_reset_media_control(odm, 0);
 	gf_list_del(odm->ms_stack);
 	gf_list_del(odm->mc_stack);
-#endif
 
 	if (odm->type == GF_STREAM_INTERACT)
 		gf_input_sensor_delete(odm);
+#endif
 
 	if (odm->raw_frame_sema) gf_sema_del(odm->raw_frame_sema);
 
