@@ -1163,6 +1163,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_progress_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_apply_box_patch) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_box_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_tmcd_config_new) )
@@ -1544,6 +1545,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #ifndef GPAC_DISABLE_OGG

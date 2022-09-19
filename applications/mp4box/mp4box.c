@@ -941,6 +941,10 @@ static MP4BoxArg m4b_imp_fileopt_args [] = {
 	GF_DEF_ARG("compat", NULL, "`S` force the profile compatibility flags for the H.264 content", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("novpsext", NULL, "remove VPS extensions from HEVC VPS", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("keepav1t", NULL, "keep AV1 temporal delimiter OBU in samples, might help if source file had losses", NULL, NULL, GF_ARG_BOOL, 0),
+	GF_DEF_ARG("dlba", NULL, "`S` force DolbyAtmos mode for EAC3. Value can be\n"
+		"- no: disable Atmos signaling\n"
+		"- auto: use Atmos signaling from first sample\n"
+		"- N: force Atmos signaling using complexibility type index N", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("font", NULL, "specify font name for text import (default `Serif`)", NULL, NULL, GF_ARG_STRING, 0),
 	GF_DEF_ARG("size", NULL, "specify font size for text import (default `18`)", NULL, NULL, GF_ARG_INT, 0),
 	GF_DEF_ARG("text_layout", NULL, "specify the track text layout as WxHxXxY\n"
@@ -2627,7 +2631,7 @@ static Bool create_new_track_action(char *arg_val, u32 act_type, u32 dump_type)
 		time.tm_isdst = 0;
 		time.tm_year -= 1900;
 		time.tm_mon -= 1;
-		tka->time = 2082758400;
+		tka->time = GF_ISOM_MAC_TIME_OFFSET;
 		tka->time += mktime(&time);
 		return GF_TRUE;
 	}

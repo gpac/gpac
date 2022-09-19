@@ -249,6 +249,28 @@ static GF_Err tileagg_process(GF_Filter *filter)
 		if (gf_filter_pid_is_eos(ctx->base_ipid)) {
 			return tileagg_set_eos(filter, ctx);
 		}
+
+		if (ctx->wait_pid != ctx->base_id) {
+			ctx->wait_start = gf_sys_clock();
+			ctx->wait_pid = ctx->base_id;
+			return GF_OK;
+		} else if (!ctx->ttimeout || (gf_sys_clock() - ctx->wait_start < ctx->ttimeout)) {
+			gf_filter_ask_rt_reschedule(filter, 0);
+			return GF_OK;
+		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TileAgg] No frames on tile base pid %s after %d ms, discarding all tiles\n", gf_filter_pid_get_name(ctx->base_ipid), gf_sys_clock() - ctx->wait_start ));
+		ctx->wait_pid = 0;
+		ctx->wait_start = 0;
+		count = gf_list_count(ctx->ipids);
+		for (i=0; i<count; i++) {
+			GF_TileAggInput *pctx = gf_list_get(ctx->ipids, i);
+			if (pctx->pid==ctx->base_ipid) continue;
+			while (1) {
+				GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->pid);
+				if (!pck) break;
+				gf_filter_pid_drop_packet(pctx->pid);
+			}
+		}
 		return GF_OK;
 	}
 

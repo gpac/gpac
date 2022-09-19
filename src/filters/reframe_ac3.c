@@ -568,6 +568,7 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 	nb_ac3_frames = nb_frames;
 
 	//check EAC3
+	pos=0;
 	data = _data;
 	size = _size;
 	nb_frames = 0;
