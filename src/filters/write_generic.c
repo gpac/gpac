@@ -939,7 +939,7 @@ static GF_Err writegen_push_ttml(GF_GenDumpCtx *ctx, char *data, u32 data_size, 
 		root_global = gf_xml_dom_detach_root(dom);
 		if (root_global) {
 			if (gf_list_count(root_global->content) > 0) ctx->ttml_root = root_global;
-			else gf_free(root_global);
+			else gf_xml_dom_node_del(root_global);
 		}
 		goto exit;
 	}
