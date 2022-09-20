@@ -3017,7 +3017,6 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		DUMP_IND(sdump);
 		gf_fprintf(sdump->trace, "}\n");
 	}
-#endif
 
 	if (has_scene_replace && sdump->XMLDump) {
 		sdump->indent--;
@@ -3027,6 +3026,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 			EndElement(sdump, "Replace", 1);
 		}
 	}
+#endif
 
 	sdump->indent = prev_ind;
 	sdump->skip_scene_replace = prev_skip;
