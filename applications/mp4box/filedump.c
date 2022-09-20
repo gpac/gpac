@@ -58,7 +58,9 @@
 #include <gpac/download.h>
 #include <gpac/mpd.h>
 
+#ifndef GPAC_DISABLE_SWF_IMPORT
 extern u32 swf_flags;
+#endif
 extern Float swf_flatten_angle;
 extern GF_FileType get_file_type_by_ext(char *inName);
 extern u32 fs_dump_flags;
@@ -150,7 +152,9 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.fileName = file;
 	load.ctx = ctx;
+#ifndef GPAC_DISABLE_SWF_IMPORT
 	load.swf_import_flags = swf_flags;
+#endif
 	if (dump_mode == GF_SM_DUMP_SVG) {
 		load.swf_import_flags |= GF_SM_SWF_USE_SVG;
 		load.svgOutFile = inName;
@@ -811,7 +815,9 @@ u32 PrintBuiltInBoxes(char *argval, u32 do_cov)
 	fprintf(stdout, "<Boxes>\n");
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
+#ifndef GPAC_DISABLE_ISOM_DUMP
 		gf_isom_dump_supported_box(i, stdout);
+#endif
         if (do_cov) {
 			u32 btype = gf_isom_get_supported_box_type(i);
             GF_Box *b=gf_isom_box_new(btype);
@@ -2316,9 +2322,11 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 	return GF_OK;
 }
 
-
 GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_mode)
 {
+#ifdef GPAC_DISABLE_ISOM_DUMP
+	return GF_NOT_SUPPORTED;
+#else
 	FILE *t;
 	u32 i, count;
 	u32 chap_tk = 0;
@@ -2392,6 +2400,7 @@ GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, u3
 	}
 	if (inName) gf_fclose(t);
 	return GF_OK;
+#endif /*GPAC_DISABLE_ISOM_DUMP*/
 }
 
 
