@@ -840,6 +840,9 @@ GF_FilterRegister RTPInRegister = {
 const GF_FilterRegister *rtpin_register(GF_FilterSession *session)
 {
 #ifndef GPAC_DISABLE_STREAMING
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_in_proto", RTPInRegister.name, "rtp,rtsp,rtspu,satip");
+	}
 	return &RTPInRegister;
 #else
 	return NULL;

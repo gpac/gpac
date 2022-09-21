@@ -100,30 +100,29 @@ GF_Err qcpmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 	}
 
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("qcp") );
 	switch (ctx->codecid) {
 	case GF_CODECID_QCELP:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("qcp") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcp") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcelp") );
 		ctx->qcp_type = 1;
 		memcpy(ctx->GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 		break;
 	case GF_CODECID_EVRC_PV:
 	case GF_CODECID_EVRC:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("evc") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcp") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/evrc-qcp") );
 		memcpy(ctx->GUID, QCP_EVRC_GUID, sizeof(char)*16);
 		ctx->qcp_type = 3;
 		break;
 	case GF_CODECID_SMV:
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("smv") );
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcp") );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/smv-qcp") );
 		ctx->qcp_type = 2;
 		memcpy(ctx->GUID, QCP_SMV_GUID, sizeof(char)*16);
 		break;
+	default:
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcelp") );
+		break;
 	}
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FILE_EXT, &PROP_STRING("qcp") );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_MIME, &PROP_STRING("audio/qcp") );
 	ctx->first = GF_TRUE;
 
 	if (ctx->exporter) {
@@ -362,7 +361,7 @@ static const GF_FilterCapability QCPMxCaps[] =
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "qcp"),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/qcp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/qcelp|audio/evrc-qcp|audio/smv-qcp"),
 };
 
 

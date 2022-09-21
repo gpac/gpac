@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2018-2021
+ *			Copyright (c) Telecom ParisTech 2018-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / RAW PCM reframer filter
@@ -44,6 +44,10 @@ typedef struct
 	GF_FilterPacket *out_pck;
 	u8 *out_data;
 	Bool reverse_play, done;
+
+	u32 probe_wave, wav_hdr_size;
+	u8 *probe_data;
+	u32 probe_data_size;
 } GF_PCMReframeCtx;
 
 
@@ -66,28 +70,32 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
 	if (!ctx->safmt) {
-		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
 		if (p && p->value.string) ctx->safmt = gf_audio_fmt_parse(p->value.string);
 	}
 	if (!ctx->safmt) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio format, cannot parse\n"));
-		return GF_BAD_PARAM;
-	}
-	if (!ctx->sr) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio sample rate, cannot parse\n"));
-		return GF_BAD_PARAM;
-	}
-	if (!ctx->ch) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio ch, cannot parse\n"));
-		return GF_BAD_PARAM;
+		ctx->probe_wave = 1;
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event(pid, &evt);
+		return GF_OK;
+	} else {
+		if (!ctx->sr) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio sample rate, cannot parse\n"));
+			return GF_BAD_PARAM;
+		}
+		if (!ctx->ch) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Missing audio ch, cannot parse\n"));
+			return GF_BAD_PARAM;
+		}
+		ctx->Bps = gf_audio_fmt_bit_depth(ctx->safmt) / 8;
 	}
 	if (!ctx->framelen) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[PCMReframe] Missing audio framelen, using 1024\n"));
 		ctx->framelen = 1024;
 	}
 
-	ctx->Bps = gf_audio_fmt_bit_depth(ctx->safmt) / 8;
 	ctx->frame_size = ctx->framelen * ctx->Bps * ctx->ch;
 
 	if (!ctx->opid)
@@ -97,6 +105,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	gf_filter_pid_set_framing_mode(ctx->ipid, GF_FALSE);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(GF_CODECID_RAW));
+
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->ch));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->framelen));
@@ -115,6 +124,7 @@ GF_Err pcmreframe_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_re
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
 	if (p && p->value.longuint) {
 		u64 nb_frames = p->value.longuint;
+		if (ctx->probe_wave) nb_frames -= ctx->wav_hdr_size;
 		nb_frames /= ctx->Bps * ctx->ch;
 		ctx->total_frames = p->value.longuint;
 		ctx->total_frames /= ctx->frame_size;
@@ -168,7 +178,7 @@ static Bool pcmreframe_process_event(GF_Filter *filter, const GF_FilterEvent *ev
 		}
 		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
-		fevt.seek.start_offset = ctx->filepos;
+		fevt.seek.start_offset = ctx->filepos + ctx->wav_hdr_size;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);
 
 		//cancel event
@@ -238,6 +248,102 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
+	if (ctx->probe_wave==1) {
+		Bool wav_ok = GF_TRUE;
+		GF_BitStream *bs;
+		if (ctx->probe_data) {
+			ctx->probe_data = gf_realloc(ctx->probe_data, ctx->probe_data_size+pck_size);
+			memcpy(ctx->probe_data + ctx->probe_data_size, data, pck_size);
+			ctx->probe_data_size += pck_size;
+			bs = gf_bs_new(ctx->probe_data, ctx->probe_data_size, GF_BITSTREAM_READ);
+		} else {
+			bs = gf_bs_new(data, pck_size, GF_BITSTREAM_READ);
+		}
+		u32 type = gf_bs_read_u32(bs);
+		if (type!=GF_4CC('R', 'I', 'F', 'F')) {
+			wav_ok = GF_FALSE;
+		}
+		gf_bs_read_u32(bs);
+		u32 wtype = gf_bs_read_u32(bs);
+		if (wtype!=GF_4CC('W', 'A', 'V', 'E')) {
+			wav_ok = GF_FALSE;
+		}
+		while (gf_bs_available(bs)) {
+			type = gf_bs_read_u32(bs);
+			u32 csize = gf_bs_read_u32_le(bs); //subchunk size
+			if (type==GF_4CC('d', 'a', 't', 'a')) {
+				break;
+			}
+
+			if (type!=GF_4CC('f', 'm', 't', ' ')) {
+				gf_bs_skip_bytes(bs, csize);
+				continue;
+			}
+			//parse fmt
+			u16 atype = gf_bs_read_u16_le(bs);
+			ctx->ch = gf_bs_read_u16_le(bs);
+			ctx->sr = gf_bs_read_u32_le(bs);
+			gf_bs_read_u32_le(bs); //byte rate
+			gf_bs_read_u16_le(bs); // block align
+			u32 bps = gf_bs_read_u16_le(bs);
+			if (atype==3) {
+				if (bps==32) {
+					ctx->safmt = GF_AUDIO_FMT_FLT;
+				} else {
+					wav_ok = GF_FALSE;
+				}
+			} else if (atype==1) {
+				if (bps==32) {
+					ctx->safmt = GF_AUDIO_FMT_S32;
+				} else if (bps==24) {
+					ctx->safmt = GF_AUDIO_FMT_S24;
+				} else if (bps==16) {
+					ctx->safmt = GF_AUDIO_FMT_S16;
+				} else if (bps==8) {
+					ctx->safmt = GF_AUDIO_FMT_U8;
+				} else {
+					wav_ok = GF_FALSE;
+				}
+			}
+		}
+		if (gf_bs_is_overflow(bs)) {
+			if (!ctx->probe_data) {
+				ctx->probe_data = gf_malloc(pck_size);
+				memcpy(ctx->probe_data, data, pck_size);
+				ctx->probe_data_size = pck_size;
+			}
+			if (ctx->probe_data_size<=10000) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				return GF_OK;
+			}
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[PCMReframe] Cannot find wave data chink afetr %d bytes, aborting\n", ctx->probe_data_size));
+			wav_ok = GF_FALSE;
+		}
+
+		ctx->wav_hdr_size = gf_bs_get_position(bs);
+
+		gf_bs_del(bs);
+		if (!wav_ok) {
+			gf_filter_pid_drop_packet(ctx->ipid);
+			if (ctx->opid)
+				gf_filter_pid_set_eos(ctx->opid);
+			gf_filter_pid_set_discard(ctx->ipid, GF_TRUE);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[PCMReframe] Invalid or unsupported WAVE header, aborting\n", ctx->probe_data_size));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+
+		ctx->probe_wave = 2;
+		pcmreframe_configure_pid(filter, ctx->ipid, GF_FALSE);
+		if (ctx->probe_data) {
+			pck_size = ctx->probe_data_size;
+			data = ctx->probe_data;
+		}
+		pck_size -= ctx->wav_hdr_size;
+		data+=ctx->wav_hdr_size;
+		byte_offset = 0;
+	}
+	byte_offset+= ctx->wav_hdr_size;
+
 	while (pck_size) {
 		if (!ctx->out_pck) {
 			ctx->out_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->frame_size, &ctx->out_data);
@@ -282,7 +388,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 				gf_filter_pid_drop_packet(ctx->ipid);
 				//post a seek, this will trash remaining packets in buffers
 				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
-				fevt.seek.start_offset = ctx->filepos;
+				fevt.seek.start_offset = ctx->filepos + ctx->wav_hdr_size;
 				gf_filter_pid_send_event(ctx->ipid, &fevt);
 				return GF_OK;
 			}
@@ -290,13 +396,40 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 		}
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
+
+	if (ctx->probe_data) {
+		gf_free(ctx->probe_data);
+		ctx->probe_data = NULL;
+		ctx->probe_data_size = 0;
+	}
 	return GF_OK;
 }
+
+static const char *pcmreframe_probe_data(const u8 *data, u32 size, GF_FilterProbeScore *score)
+{
+	if (size<20) return NULL;
+
+	GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	u32 code = gf_bs_read_u32(bs);
+	if (code == GF_4CC('R', 'I', 'F', 'F')) {
+		gf_bs_read_u32(bs);
+		code = gf_bs_read_u32(bs);
+		if (code == GF_4CC('W', 'A', 'V', 'E')) {
+			*score = GF_FPROBE_SUPPORTED;
+			gf_bs_del(bs);
+			return "audio/wav";
+		}
+	}
+	gf_bs_del(bs);
+	return NULL;
+}
+
 
 static void pcmreframe_finalize(GF_Filter *filter)
 {
 	GF_PCMReframeCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->out_pck) gf_filter_pck_discard(ctx->out_pck);
+	if (ctx->probe_data) gf_free(ctx->probe_data);
 }
 
 static GF_FilterCapability PCMReframeCaps[] =
@@ -304,9 +437,13 @@ static GF_FilterCapability PCMReframeCaps[] =
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "pcm"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-pcm"),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_RAW),
-	CAP_BOOL(GF_CAPS_OUTPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_RAW),
+	CAP_BOOL(GF_CAPS_OUTPUT_STATIC_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	{0},
+	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "wav"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/wav"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_PCMReframeCtx, _n)
@@ -323,14 +460,15 @@ static GF_FilterArgs PCMReframeArgs[] =
 GF_FilterRegister PCMReframeRegister = {
 	.name = "rfpcm",
 	GF_FS_SET_DESCRIPTION("PCM reframer")
-	GF_FS_SET_HELP("This filter parses raw PCM file/data and outputs corresponding raw audio PID and frames.")
+	GF_FS_SET_HELP("This filter parses raw PCM file/data or WAVE files and outputs corresponding raw audio PID and frames.")
 	.private_size = sizeof(GF_PCMReframeCtx),
 	.args = PCMReframeArgs,
 	SETCAPS(PCMReframeCaps),
 	.finalize = pcmreframe_finalize,
 	.configure_pid = pcmreframe_configure_pid,
 	.process = pcmreframe_process,
-	.process_event = pcmreframe_process_event
+	.process_event = pcmreframe_process_event,
+	.probe_data = pcmreframe_probe_data
 };
 
 

@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2021
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / image (jpg/png/bmp/j2k) reframer filter
@@ -207,9 +207,6 @@ GF_Err img_process(GF_Filter *filter)
 			} else if (!stricmp(ext, "pngds")) {
 				codecid = GF_CODECID_PNG;
 				pf = GF_PIXEL_RGBDS;
-			} else if (!stricmp(ext, "pngs")) {
-				codecid = GF_CODECID_PNG;
-				pf = GF_PIXEL_RGBS;
 			} else if (!stricmp(ext, "bmp") || !strcmp(mime, "image/png")) {
 				codecid = GF_CODECID_RAW;
 			}
@@ -400,8 +397,8 @@ static const char * img_probe_data(const u8 *data, u32 size, GF_FilterProbeScore
 static const GF_FilterCapability ReframeImgCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|bmp|png|pngd|pngds|pngs"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "image/jpg|image/jp2|image/bmp|image/png|image/x-png+depth|image/x-png+depth+mask|image/x-png+stereo"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "jpg|jpeg|jp2|j2k|bmp|png"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "image/jpg|image/jp2|image/bmp|image/png"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_PNG),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_JPEG),
@@ -420,7 +417,12 @@ static const GF_FilterArgs ReframeImgArgs[] =
 GF_FilterRegister ReframeImgRegister = {
 	.name = "rfimg",
 	GF_FS_SET_DESCRIPTION("JPG/J2K/PNG/BMP reframer")
-	GF_FS_SET_HELP("This filter parses JPG/J2K/PNG/BMP files/data and outputs corresponding visual PID and frames.")
+	GF_FS_SET_HELP("This filter parses JPG/J2K/PNG/BMP files/data and outputs corresponding visual PID and frames.\n"
+	"\n"
+	"The following extensions for PNG change the pixel format for RGBA images:\n"
+	"- pngd: use RGB+depth map pixel format\n"
+	"- pngds: use RGB+depth(7bits)+shape(MSB of alpha channel) pixel format\n"
+	"")
 	.private_size = sizeof(GF_ReframeImgCtx),
 	.args = ReframeImgArgs,
 	SETCAPS(ReframeImgCaps),

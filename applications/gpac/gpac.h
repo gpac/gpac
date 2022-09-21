@@ -76,7 +76,10 @@ void gpac_load_suggested_filter_args(void);
 void dump_all_props(char *pname);
 void dump_all_colors(void);
 void dump_all_audio_cicp(void);
-void dump_all_codec(GF_SysArgMode argmode);
+void dump_all_codecs(GF_SysArgMode argmode);
+void dump_all_formats(GF_SysArgMode argmode);
+void dump_all_proto_schemes(GF_SysArgMode argmode);
+
 void write_core_options(void );
 void write_file_extensions(void );
 void write_filters_options(void);

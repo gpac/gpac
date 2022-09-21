@@ -388,8 +388,20 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 				if (!strcmp(szExt, "wav")) {
 					ctx->is_wav = GF_TRUE;
 					//request PCMs16 ?
-//					ctx->target_afmt = GF_AUDIO_FMT_S16;
-					ctx->target_afmt = sfmt;
+					switch (sfmt) {
+					case GF_AUDIO_FMT_FLTP:
+						ctx->target_afmt = GF_AUDIO_FMT_FLT;
+						break;
+					case GF_AUDIO_FMT_FLT:
+					case GF_AUDIO_FMT_S16:
+					case GF_AUDIO_FMT_S24:
+					case GF_AUDIO_FMT_S32:
+						ctx->target_afmt = sfmt;
+						break;
+					default:
+						ctx->target_afmt = GF_AUDIO_FMT_S16;
+						break;
+					}
 				} else {
 					ctx->target_afmt = gf_audio_fmt_parse(szExt);
 					strcpy(szExt, gf_audio_fmt_sname(ctx->target_afmt));
@@ -642,7 +654,11 @@ static void writegen_write_wav_header(GF_GenDumpCtx *ctx)
 
 	gf_bs_write_data(ctx->bs, subchunk1ID, 4);
 	gf_bs_write_u32_le(ctx->bs, 16); //subchunk1 size
-	gf_bs_write_u16_le(ctx->bs, 1); //audio format
+	//audio format
+	if (afmt==GF_AUDIO_FMT_FLT)
+		gf_bs_write_u16_le(ctx->bs, 3);
+	else
+		gf_bs_write_u16_le(ctx->bs, 1);
 	gf_bs_write_u16_le(ctx->bs, nb_ch);
 	gf_bs_write_u32_le(ctx->bs, sample_rate);
 	gf_bs_write_u32_le(ctx->bs, sample_rate * nb_ch * bps / 8); //byte rate
@@ -1516,7 +1532,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MVC),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "264|h264|avc|svc|mvc"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "264|h264|avc|svc|mvc|26l|h26l"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/avc|video/h264|video/svc|video/mvc"),
 	{0},
 
@@ -1526,7 +1542,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_LHVC),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "265|h265|hvc|hevc|shvc|lhvc"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "265|h265|hvc|hevc|shvc|mhvc|lhvc"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/hevc|video/lhvc|video/shvc|video/mhvc"),
 	{0},
 
@@ -1546,7 +1562,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_MPEG4_PART2),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT,GF_PROP_PID_UNFRAMED, GF_TRUE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "cmp|m4ve|m4v"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "cmp|m4v"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "video/mp4v-es"),
 	{0},
 
@@ -1669,7 +1685,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AMR),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_AMR_WB),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "amr"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "amr|awb"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/amr"),
 	{0},
 
@@ -1740,7 +1756,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_QCELP),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "qcelp"),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/qcelp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/x-qcelp"),
 	{0},
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_THEORA),
@@ -1782,7 +1798,7 @@ static GF_FilterCapability GenDumpCaps[] =
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_INPUT,GF_PROP_PID_CODECID, GF_CODECID_TRUEHD),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mlp"),
+	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "mlp|thd|truehd"),
 	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "audio/truehd"),
 	{0},
 

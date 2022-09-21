@@ -8804,6 +8804,9 @@ GF_Err dac3_box_read(GF_Box *s, GF_BitStream *bs)
 		ptr->cfg.atmos_ec3_ext = gf_bs_read_int(bs, 1);
 		ptr->cfg.complexity_index_type = gf_bs_read_u8(bs);
 	}
+	//the rest is reserved
+	gf_bs_skip_bytes(bs, ptr->size);
+	ptr->size = 0;
 	return e;
 }
 

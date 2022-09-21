@@ -869,13 +869,13 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 				mime = "audio/amr-wb";
 				break;
 			case GF_ISOM_SUBTYPE_3GP_EVRC:
-				mime = "audio/evrc";
+				mime = "audio/x-evrc-es";
 				break;
 			case GF_ISOM_SUBTYPE_3GP_QCELP:
-				mime = "audio/qcelp";
+				mime = "audio/x-qcelp-es";
 				break;
 			case GF_ISOM_SUBTYPE_3GP_SMV:
-				mime = "audio/smv";
+				mime = "audio/x-smv-es";
 				break;
 			}
 			if (!mime) continue;

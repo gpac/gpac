@@ -2226,6 +2226,9 @@ GF_FilterRegister ROUTEOutRegister = {
 
 const GF_FilterRegister *routeout_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_out_proto", ROUTEOutRegister.name, "atsc,route");
+	}
 	return &ROUTEOutRegister;
 }
 #else

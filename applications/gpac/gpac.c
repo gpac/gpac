@@ -313,6 +313,8 @@ int gpac_main(int argc, char **argv)
 	char *view_conn_for_filter = NULL;
 	Bool view_filter_conn = GF_FALSE;
 	Bool dump_codecs = GF_FALSE;
+	Bool dump_formats = GF_FALSE;
+	Bool dump_proto_schemes = GF_FALSE;
 	Bool has_alias = GF_FALSE;
 	Bool alias_set = GF_FALSE;
 	GF_FilterSession *tmp_sess;
@@ -504,6 +506,14 @@ int gpac_main(int argc, char **argv)
 				dump_codecs = GF_TRUE;
 				sflags |= GF_FS_FLAG_LOAD_META | GF_FS_FLAG_NO_GRAPH_CACHE;
 				i++;
+			} else if (!strcmp(argv[i+1], "formats") || !strcmp(argv[i+1], "exts")) {
+				dump_formats = GF_TRUE;
+				sflags |= GF_FS_FLAG_LOAD_META | GF_FS_FLAG_NO_GRAPH_CACHE;
+				i++;
+			} else if (!strcmp(argv[i+1], "protocols")) {
+				dump_proto_schemes = GF_TRUE;
+				sflags |= GF_FS_FLAG_LOAD_META | GF_FS_FLAG_NO_GRAPH_CACHE;
+				i++;
 			} else if (!strcmp(argv[i+1], "links")) {
 				view_filter_conn = GF_TRUE;
 				if ((i+2<argc)	&& (argv[i+2][0] != '-')) {
@@ -521,10 +531,6 @@ int gpac_main(int argc, char **argv)
 	        		"Disabled features: %s\n", gf_gpac_version(), gf_sys_features(GF_FALSE), gf_sys_features(GF_TRUE)
 				);
 				gpac_exit(0);
-			} else if (!strcmp(argv[i+1], "exts")) {
-				list_filters = 4;
-				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
-				i++;
 			} else if (!strcmp(argv[i+1], "filters")) {
 				list_filters = 1;
 				sflags |= GF_FS_FLAG_NO_GRAPH_CACHE;
@@ -648,7 +654,7 @@ int gpac_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-graph")) {
 			dump_graph = GF_TRUE;
 		} else if (strstr(arg, ":*") || strstr(arg, ":@")) {
-			if (list_filters && (list_filters<4))
+			if (list_filters)
 				list_filters = 3;
 			else
 				print_meta_filters = GF_TRUE;
@@ -779,13 +785,16 @@ int gpac_main(int argc, char **argv)
 	if (dump_stats && gf_sys_get_rti(0, &rti, 0) ) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("System info: %d MB RAM - %d cores - main thread ID %d\n", (u32) (rti.physical_memory/1024/1024), rti.nb_cores, gf_th_id() ));
 	}
-	if ((list_filters>=2) || print_meta_filters || dump_codecs || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
+	if ((list_filters>=2) || print_meta_filters || dump_codecs || dump_formats || print_filter_info) sflags |= GF_FS_FLAG_LOAD_META;
 
 	if (view_filter_conn || list_filters || (print_filter_info && (argmode == GF_ARGMODE_ALL)) )
 		gf_opts_set_key("temp", "gendoc", "yes");
 
 	if (list_filters || print_filter_info)
 		gf_opts_set_key("temp", "helponly", "yes");
+
+	if (dump_proto_schemes || (gen_doc==1))
+		gf_opts_set_key("temp", "get_proto_schemes", "yes");
 
 
 #if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_CONFIG_IOS)
@@ -821,8 +830,8 @@ restart:
 	if (list_filters || print_filter_info) {
 
 		if (gen_doc==1) {
-			list_filters = 4;
-			print_filters(argc, argv, argmode);
+			dump_all_formats(argmode);
+			dump_all_proto_schemes(argmode);
 			list_filters = 1;
 		}
 
@@ -835,7 +844,15 @@ restart:
 		goto exit;
 	}
 	if (dump_codecs) {
-		dump_all_codec(argmode);
+		dump_all_codecs(argmode);
+		goto exit;
+	}
+	if (dump_formats) {
+		dump_all_formats(argmode);
+		goto exit;
+	}
+	if (dump_proto_schemes) {
+		dump_all_proto_schemes(argmode);
 		goto exit;
 	}
 	if (write_profile || write_extensions || write_core_opts) {

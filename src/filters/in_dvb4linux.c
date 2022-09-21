@@ -438,6 +438,10 @@ const GF_FilterRegister *dvblin_register(GF_FilterSession *session)
 	if (!gf_opts_get_bool("temp", "gendoc"))
 		return NULL;
 	DVBLinuxRegister.version = "! Warning: DVB4Linux NOT AVAILABLE IN THIS BUILD !";
+#else
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_in_proto", DVBLinuxRegister.name, "dvb");
+	}
 #endif
 	return &DVBLinuxRegister;
 }

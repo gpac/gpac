@@ -616,6 +616,13 @@ GF_FilterRegister SockInRegister = {
 
 const GF_FilterRegister *sockin_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+#ifdef GPAC_HAS_SOCK_UN
+		gf_opts_set_key("temp_in_proto", SockInRegister.name, "tcp,udp,tcpu,udpu");
+#else
+		gf_opts_set_key("temp_in_proto", SockInRegister.name, "tcp,udp");
+#endif
+	}
 	return &SockInRegister;
 }
 

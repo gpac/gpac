@@ -597,7 +597,7 @@ GF_AudioFormat gf_audio_fmt_parse(const char *af_name)
 			return GF_AudioFormats[i].sfmt;
 		i++;
 	}
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unsupported audio format %s\n", af_name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Unsupported audio format %s\n", af_name));
 	return 0;
 }
 
@@ -1081,8 +1081,6 @@ static const GF_PixFmt GF_PixelFormats[] =
 	{GF_PIXEL_BGRX, "bgrx", "BGRx 32 bits (8 bits / component)"},
 	{GF_PIXEL_RGBD, "rgbd", "RGB+depth 32 bits (8 bits / component)"},
 	{GF_PIXEL_RGBDS, "rgbds", "RGB+depth+bit shape (8 bits / RGB component, 7 bit depth (low bits) + 1 bit shape)"},
-	{GF_PIXEL_RGBS, "rgbs", "RGB 24 bits stereo (side-by-side) - to be removed\n"},
-	{GF_PIXEL_RGBAS, "rgbas", "RGBA 32 bits stereo (side-by-side) - to be removed\n"},
 	{GF_PIXEL_GL_EXTERNAL, "extgl", "External OpenGL texture of unknown format, to be used with samplerExternalOES\n"},
 	{GF_PIXEL_UNCV, "uncv", "Generic uncompressed format ISO/IEC 23001-17"},
 	{0}
@@ -1289,7 +1287,6 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 	case GF_PIXEL_XBGR:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
-	case GF_PIXEL_RGBAS:
 		stride = no_in_stride ? 4*width : *out_stride;
 		size = stride * height;
 		planes=1;
@@ -1302,7 +1299,6 @@ Bool gf_pixel_get_size_info(GF_PixelFormat pixfmt, u32 width, u32 height, u32 *o
 		break;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
-	case GF_PIXEL_RGBS:
 		stride = no_in_stride ? 3*width : *out_stride;
 		size = stride * height;
 		planes=1;
@@ -1469,7 +1465,6 @@ Bool gf_pixel_fmt_is_transparent(GF_PixelFormat pixfmt)
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_ABGR:
 	case GF_PIXEL_BGRA:
-	case GF_PIXEL_RGBAS:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_YUVA444:
 	case GF_PIXEL_YUVA444_PACK:
@@ -1524,12 +1519,10 @@ u32 gf_pixel_get_bytes_per_pixel(GF_PixelFormat pixfmt)
 	case GF_PIXEL_ABGR:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
-	case GF_PIXEL_RGBAS:
 	case GF_PIXEL_RGB_DEPTH:
 		return 4;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
-	case GF_PIXEL_RGBS:
 		return 3;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVU:
@@ -1606,15 +1599,11 @@ u32 gf_pixel_get_nb_comp(GF_PixelFormat pixfmt)
 		return 4;
 	case GF_PIXEL_RGBDS:
 		return 5;
-	case GF_PIXEL_RGBAS:
-		return 5;
 	case GF_PIXEL_RGB_DEPTH:
 		return 4;
 	case GF_PIXEL_RGB:
 	case GF_PIXEL_BGR:
 		return 3;
-	case GF_PIXEL_RGBS:
-		return 4;
 	case GF_PIXEL_YUV:
 	case GF_PIXEL_YVU:
 		return 3;

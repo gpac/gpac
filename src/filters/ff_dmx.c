@@ -1000,6 +1000,13 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 	if (!strncmp(url, "audio://", 8)) return GF_FPROBE_NOT_SUPPORTED;
 	if (!strncmp(url, "av://", 5)) return GF_FPROBE_NOT_SUPPORTED;
 	if (!strncmp(url, "pipe://", 7)) return GF_FPROBE_NOT_SUPPORTED;
+
+	const char *ext = gf_file_ext_start(url);
+	if (ext) {
+		const AVInputFormat *f = av_find_input_format(ext+1);
+		if (!f)
+			return GF_FPROBE_MAYBE_NOT_SUPPORTED;
+	}
 	return GF_FPROBE_MAYBE_SUPPORTED;
 }
 
@@ -1022,13 +1029,17 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 		memcpy(pb.buf, data, sizeof(char)*size);
 		pb.buf_size = size;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
+		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		gf_free(pb.buf);
 	} else {
 		pb.buf =  (char *) data;
 		pb.buf_size = size - AVPROBE_PADDING_SIZE;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
+		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 		if (!probe_fmt) probe_fmt = av_probe_input_format3(&pb, GF_FALSE, &ffscore);
+		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;
 	}
 
 	if (!probe_fmt) return NULL;
@@ -1484,6 +1495,9 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 {
 	ffmpeg_build_register(session, &FFAVInRegister, FFAVInArgs, FFAVIN_STATIC_ARGS, FF_REG_TYPE_DEV_IN);
 
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_in_proto", FFAVInRegister.name, "video,audio,av");
+	}
 	if (!gf_opts_get_bool("temp", "helponly") || gf_opts_get_bool("temp", "gendoc"))
 		return &FFAVInRegister;
 	
@@ -1517,7 +1531,6 @@ const GF_FilterRegister *ffavin_register(GF_FilterSession *session)
 		ffmpeg_register_set_dyn_help(&FFAVInRegister);
 	}
 #endif
-
 	return &FFAVInRegister;
 }
 
