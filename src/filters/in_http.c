@@ -639,6 +639,9 @@ GF_FilterRegister HTTPInRegister = {
 
 const GF_FilterRegister *httpin_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_in_proto", HTTPInRegister.name, "http,https,gmem");
+	}
 	return &HTTPInRegister;
 }
 

@@ -3108,7 +3108,7 @@ u32 parse_help(char *arg_val, u32 opt)
 	else if (!strcmp(arg_val, "dump")) PrintDumpUsage();
 	else if (!strcmp(arg_val, "import")) PrintImportUsage();
 	else if (!strcmp(arg_val, "format")) {
-		M4_LOG(GF_LOG_WARNING, ("deprecated, see [filters documentation](Filters)\n"));
+		M4_LOG(GF_LOG_WARNING, ("see [filters documentation](Filters), `gpac -h codecs`, `gpac -h formats` and `gpac -h protocols` \n"));
 	}
 	else if (!strcmp(arg_val, "hint")) PrintHintUsage();
 	else if (!strcmp(arg_val, "encode")) PrintEncodeUsage();

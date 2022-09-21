@@ -3800,6 +3800,9 @@ GF_FilterRegister HTTPOutRegister = {
 
 const GF_FilterRegister *httpout_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_out_proto", HTTPOutRegister.name, "http,https");
+	}
 	return &HTTPOutRegister;
 }
 

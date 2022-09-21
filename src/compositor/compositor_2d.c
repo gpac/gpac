@@ -636,7 +636,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		switch (txh->pixelformat) {
 		case GF_PIXEL_RGB:
 		case GF_PIXEL_BGR:
-		case GF_PIXEL_RGBS:
 		case GF_PIXEL_RGBD:
 //		case GF_PIXEL_RGB_555:
 //		case GF_PIXEL_RGB_565:
@@ -649,7 +648,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
-		case GF_PIXEL_RGBAS:
 		case GF_PIXEL_RGBDS:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
 				use_soft_stretch = GF_FALSE;

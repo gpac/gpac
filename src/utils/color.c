@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2022
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -1919,7 +1919,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 			//check rgb->rgb copy
 			switch (dst->pixel_format) {
 			case GF_PIXEL_RGB:
-			case GF_PIXEL_RGBS:
 			case GF_PIXEL_BGR:
 				e = color_write_rgb_to_24(dst, src, src_wnd);
 				break;
@@ -1958,7 +1957,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_rgb_565;
 		break;
 	case GF_PIXEL_RGB:
-	case GF_PIXEL_RGBS:
 		load_line = load_line_rgb_24;
 		break;
 	case GF_PIXEL_BGR:
@@ -1973,7 +1971,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_bgra;
 		break;
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_RGBAS:
 		has_alpha = GF_TRUE;
 	case GF_PIXEL_RGBX:
 		load_line = load_line_rgb_32;
@@ -3984,7 +3981,6 @@ u32 get_bpp(u32 pf)
 	case GF_PIXEL_RGB_565:
 		return 2;
 	case GF_PIXEL_RGB:
-	case GF_PIXEL_RGBS:
 	case GF_PIXEL_BGR:
 		return 3;
 	case GF_PIXEL_RGBX:
@@ -3992,7 +3988,6 @@ u32 get_bpp(u32 pf)
 	case GF_PIXEL_XRGB:
 	case GF_PIXEL_XBGR:
 	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBAS:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
 		return 4;
@@ -4068,7 +4063,6 @@ static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs
 	if (isBGR) {
 		switch (vs_src->pixel_format) {
 		case GF_PIXEL_RGB:
-		case GF_PIXEL_RGBS:
 			for (i = 0; i<h; i++) {
 				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
 				cur = src + i*vs_src->pitch_y;
@@ -4113,7 +4107,6 @@ static GF_Err color_write_rgb_to_32(GF_VideoSurface *vs_dst, GF_VideoSurface *vs
 	else {
 		switch (vs_src->pixel_format) {
 		case GF_PIXEL_RGB:
-		case GF_PIXEL_RGBS:
 			for (i = 0; i<h; i++) {
 				dst = (u8*)vs_dst->video_buffer + i*vs_dst->pitch_y;
 				cur = src + i*vs_src->pitch_y;

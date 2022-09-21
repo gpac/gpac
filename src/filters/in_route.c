@@ -968,6 +968,9 @@ GF_FilterRegister ROUTEInRegister = {
 
 const GF_FilterRegister *routein_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_in_proto", ROUTEInRegister.name, "atsc,route");
+	}
 	return &ROUTEInRegister;
 }
 

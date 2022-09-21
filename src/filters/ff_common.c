@@ -1084,7 +1084,14 @@ second_pass:
 #ifndef GPAC_DISABLE_DOC
 		freg->description = description;
 #endif
-		 if ((type==FF_REG_TYPE_ENCODE) || (type==FF_REG_TYPE_DECODE)) {
+		if (protocol_pass && gf_opts_get_bool("temp", "get_proto_schemes")) {
+			if (type==FF_REG_TYPE_DEMUX)
+				gf_opts_set_key("temp_in_proto", freg->name, subname);
+			else if (type==FF_REG_TYPE_MUX)
+				gf_opts_set_key("temp_out_proto", freg->name, subname);
+		}
+
+		if ((type==FF_REG_TYPE_ENCODE) || (type==FF_REG_TYPE_DECODE)) {
 		 	GF_FilterCapability *caps;
 		 	u32 cid = ffmpeg_codecid_to_gpac(codec->id);
 		 	freg->nb_caps = 3;

@@ -182,10 +182,6 @@ typedef enum
 	GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
 	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
 	GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
-	/*!Stereo RGB24 */
-	GF_PIXEL_RGBS		=	GF_4CC('R', 'G', 'B', 'S'),
-	/*!Stereo RGBA. Component ordering in bytes is R-G-B-A. */
-	GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
 	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_DEPTH = GF_4CC('R', 'G', 'B', 'd'),

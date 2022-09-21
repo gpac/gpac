@@ -696,14 +696,14 @@ static const char *qcpdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 	gf_bs_del(bs);
 	if (!is_qcp) return NULL;
 	*score = GF_FPROBE_SUPPORTED;
-	return "audio/qcp";
+	return "audio/qcelp";
 }
 
 static const GF_FilterCapability QCPDmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "qcp"),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/qcp"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/qcelp|audio/evr-qcp|audio/smv-qcp"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_QCELP),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_CODECID, GF_CODECID_SMV),

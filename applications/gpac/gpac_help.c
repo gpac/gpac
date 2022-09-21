@@ -670,10 +670,11 @@ static GF_GPACArg gpac_args[] =
 			"- filters: print name of all available filters\n"
 			"- filters:*: print name of all available filters, including meta filters\n"
 			"- codecs: print the supported builtin codecs - use `-hx` to include unmapped codecs (ffmpeg, ...)\n"
+			"- formats: print the supported formats (`-ha`: print filter names, `-hx`: include meta filters (ffmpeg,...), `-hh`: print mime types)\n"
+			"- protocols: print the supported protocol schemes (`-ha`: print filter names, `-hx`: include meta filters (ffmpeg,...), `-hh`: print all)\n"
 			"- props: print the supported builtin PID and packet properties\n"
 			"- props PNAME: print the supported builtin PID and packet properties mentioning `PNAME`\n"
 			"- colors: print the builtin color names and their values\n"
-			"- exts: print the builtin extensions and mime types - use `-hx` to include meta filters (ffmpeg, ...)\n"
 			"- layouts: print the builtin CICP audio channel layout names and their values\n"
 			"- links: print possible connections between each supported filters (use -hx to view src->dst cap bundle detail)\n"
 			"- links FNAME: print sources and sinks for filter `FNAME` (either builtin or JS filter)\n"
@@ -993,7 +994,7 @@ redo_pass:
 	if (is_help) {
 		if (!pass_exact) {
 			const char *doc_helps[] = {
-				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "links", "bin", "exts", "filters", "filters:*", "filters:@", "mp4c", NULL
+				"log", "core", "modules", "doc", "alias", "props", "colors", "layouts", "cfg", "prompt", "codecs", "formats", "exts", "protocols", "links", "bin", "filters", "filters:*", "filters:@", "mp4c", NULL
 			};
 			first = GF_FALSE;
 			i=0;
@@ -1400,51 +1401,50 @@ static void print_filter(const GF_FilterRegister *reg, GF_SysArgMode argmode, GF
 	if (gen_doc==1) {
 		char szName[1024];
 		sprintf(szName, "%s.md", reg_name);
-		if (gen_doc==1) {
-			gf_fclose(helpout);
-			helpout = gf_fopen(szName, "w");
-			fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg_desc);
-			fprintf(helpout, "%s", auto_gen_md_warning);
 
-			if (!sidebar_md) {
-				char *sbbuf = NULL;
-				if (gf_file_exists("_Sidebar.md")) {
-					char szLine[1024];
-					u32 end_pos=0;
-					sidebar_md = gf_fopen("_Sidebar.md", "r");
-					gf_fseek(sidebar_md, 0, SEEK_SET);
-					while (!feof(sidebar_md)) {
-						char *read = gf_fgets(szLine, 1024, sidebar_md);
-						if (!read) break;
-						if (!strncmp(szLine, "**Filters Help**", 16)) {
-							end_pos = (u32) gf_ftell(sidebar_md);
-							break;
-						}
-					}
-					if (!end_pos) end_pos = (u32) gf_ftell(sidebar_md);
-					if (end_pos) {
-						sbbuf = gf_malloc(end_pos+1);
-						gf_fseek(sidebar_md, 0, SEEK_SET);
-						end_pos = (u32) gf_fread(sbbuf, end_pos, sidebar_md);
-						sbbuf[end_pos]=0;
-						gf_fclose(sidebar_md);
+		gf_fclose(helpout);
+		helpout = gf_fopen(szName, "w");
+		fprintf(helpout, "[**HOME**](Home) » [**Filters**](Filters) » %s\n", reg_desc);
+		fprintf(helpout, "%s", auto_gen_md_warning);
+
+		if (!sidebar_md) {
+			char *sbbuf = NULL;
+			if (gf_file_exists("_Sidebar.md")) {
+				char szLine[1024];
+				u32 end_pos=0;
+				sidebar_md = gf_fopen("_Sidebar.md", "r");
+				gf_fseek(sidebar_md, 0, SEEK_SET);
+				while (!feof(sidebar_md)) {
+					char *read = gf_fgets(szLine, 1024, sidebar_md);
+					if (!read) break;
+					if (!strncmp(szLine, "**Filters Help**", 16)) {
+						end_pos = (u32) gf_ftell(sidebar_md);
+						break;
 					}
 				}
-				sidebar_md = gf_fopen("_Sidebar.md", "w");
-				if (sbbuf) {
-					fprintf(sidebar_md, "%s\n  \n", sbbuf);
-					gf_free(sbbuf);
+				if (!end_pos) end_pos = (u32) gf_ftell(sidebar_md);
+				if (end_pos) {
+					sbbuf = gf_malloc(end_pos+1);
+					gf_fseek(sidebar_md, 0, SEEK_SET);
+					end_pos = (u32) gf_fread(sbbuf, end_pos, sidebar_md);
+					sbbuf[end_pos]=0;
+					gf_fclose(sidebar_md);
 				}
 			}
-			fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
+			sidebar_md = gf_fopen("_Sidebar.md", "w");
+			if (sbbuf) {
+				fprintf(sidebar_md, "%s\n  \n", sbbuf);
+				gf_free(sbbuf);
+			}
+		}
+		fprintf(sidebar_md, "[[%s (%s)|%s]]  \n", reg_desc, reg_name, reg_name);
 #ifndef GPAC_DISABLE_DOC
 
-			if (!reg_help) {
-				fprintf(stderr, "filter %s without help, forbidden\n", reg_name);
-				exit(1);
-			}
-#endif
+		if (!reg_help) {
+			fprintf(stderr, "filter %s without help, forbidden\n", reg_name);
+			exit(1);
 		}
+#endif
 
 #ifndef GPAC_DISABLE_DOC
 		gf_sys_format_help(helpout, help_flags, "# %s\n", reg_desc);
@@ -1714,76 +1714,6 @@ static Bool strstr_nocase(const char *text, const char *subtext, u32 subtext_len
 	return GF_FALSE;
 }
 
-static void print_ext(Bool is_input, Bool is_output, const char *fext, const char *mime, const char *reg_name)
-{
-	if (!fext && !mime) return;
-	if (is_input == is_output) return;
-
-	if (gen_doc==1) {
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | ", is_input ? "Input" : "Output");
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s | ", fext ? fext : "n/a");
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s | ", mime ? mime : "n/a");
-		gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "[%s](%s)  \n", reg_name, reg_name);
-	} else {
-		gf_sys_format_help(helpout, help_flags, "%s ", is_input ? "Input" : "Output");
-		if (fext) gf_sys_format_help(helpout, help_flags, "ext %s ", fext);
-		if (mime) gf_sys_format_help(helpout, help_flags, "mime %s ", mime);
-		gf_sys_format_help(helpout, help_flags, "filter %s\n", reg_name);
-	}
-}
-
-static void print_exts(const GF_FilterRegister *reg, GF_Filter *filter_inst, GF_SysArgMode argmode)
-{
-	u32 i;
-	Bool is_input=GF_FALSE;
-	Bool is_output=GF_FALSE;
-	const char *fext=NULL, *mime=NULL;
-	const char *reg_name;
-	u32 nb_caps;
-	const GF_FilterCapability *caps;
-
-	if (reg) {
-		if ((argmode==GF_ARGMODE_BASE) && (reg->flags & GF_FS_REG_META)) return;
-
-		caps = reg->caps;
-		nb_caps = reg->nb_caps;
-		reg_name = reg->name;
-	} else if (filter_inst) {
-		caps = gf_filter_get_caps(filter_inst, &nb_caps);
-		reg_name = gf_filter_get_name(filter_inst);
-	} else {
-		return;
-	}
-
-	for (i=0; i<nb_caps; i++) {
-		if (! (caps[i].flags & GF_CAPFLAG_IN_BUNDLE)) {
-			print_ext(is_input, is_output, fext, mime, reg_name);
-			fext = NULL;
-			mime = NULL;
-			is_input = GF_FALSE;
-			is_output = GF_FALSE;
-			continue;
-		}
-		if (caps[i].code==GF_PROP_PID_FILE_EXT) {
-			fext = caps[i].val.value.string;
-			if (!strcmp(fext, "*")) fext = NULL;
-			else {
-				if (caps[i].flags & GF_CAPFLAG_INPUT) is_input = GF_TRUE;
-				if (caps[i].flags & GF_CAPFLAG_OUTPUT) is_output = GF_TRUE;
-			}
-		}
-		if (caps[i].code==GF_PROP_PID_MIME) {
-			mime = caps[i].val.value.string;
-			if (!strcmp(mime, "*")) mime = NULL;
-			else {
-				if (caps[i].flags & GF_CAPFLAG_INPUT) is_input = GF_TRUE;
-				if (caps[i].flags & GF_CAPFLAG_OUTPUT) is_output = GF_TRUE;
-			}
-		}
-	}
-	print_ext(is_input, is_output, fext, mime, reg_name);
-}
-
 
 struct __jsenum_info
 {
@@ -1801,6 +1731,7 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 	if (jsi->js_dir && strcmp(item_name, "init.js")) {
 		return GF_FALSE;
 	}
+
 	f = gf_fs_load_filter(jsi->session, item_path, NULL);
 	if (f) {
 		char szPath[GF_MAX_PATH];
@@ -1813,9 +1744,7 @@ static Bool jsinfo_enum(void *cbck, char *item_name, char *item_path, GF_FileEnu
 		ext = gf_file_ext_start(szPath);
 		if (ext) ext[0] = 0;
 
-		if (list_filters==4) {
-			print_exts(NULL, f, jsi->argmode);
-		} else if (jsi->print_filter_info || gen_doc)
+		if (jsi->print_filter_info || gen_doc)
 			print_filter(NULL, jsi->argmode, f, szPath);
 		else
 			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s: %s\n", szPath, gf_filter_get_description(f));
@@ -1846,24 +1775,12 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 	u32 lf_len = 0;
 	u32 i, count = gf_fs_filters_registers_count(session);
 
-	if (list_filters==4) {
-		if (gen_doc==1) {
-			gf_sys_format_help(helpout, help_flags, "# Extensions and mime types\n");
-			gf_sys_format_help(helpout, help_flags, "Extension name can be used to force output formats using `ext=` option of sink filters.  \nBy default, GPAC does not rely on file extension for source processing unless `-no-probe` option is set, in which case `ext=` option may be set on source filter.  \n");
-			gf_sys_format_help(helpout, help_flags, "_NOTE: This table does not include meta filters (ffmpeg, ...), use `gpac -hx exts` to list them._\n\n");
-			gf_sys_format_help(helpout, help_flags, " Category | Extension | Mime | Filter  \n");
-			gf_sys_format_help(helpout, help_flags, " --- | --- | --- | ---  \n");
-		}
-	} else {
-		if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
-	}
+	if (!gen_doc && list_filters) gf_sys_format_help(helpout, help_flags, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 
 	if (print_filter_info != 1) {
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
-			if (list_filters==4) {
-				print_exts(reg, NULL, argmode);
-			} else if (gen_doc) {
+			if (gen_doc) {
 				print_filter(reg, argmode, NULL, NULL);
 			} else if (print_filter_info) {
 				print_filter(reg, argmode, NULL, NULL);
@@ -1968,6 +1885,7 @@ Bool print_filters(int argc, char **argv, GF_SysArgMode argmode)
 		const char *js_dirs = gf_opts_get_key("core", "js-dirs");
 		char szPath[GF_MAX_PATH];
 		struct __jsenum_info jsi;
+		memset(&jsi, 0, sizeof(struct __jsenum_info));
 		jsi.argmode = argmode;
 		jsi.session = session;
 		jsi.print_filter_info = print_filter_info;
@@ -2272,7 +2190,7 @@ void dump_all_audio_cicp(void)
 	}
 }
 
-void dump_all_codec(GF_SysArgMode argmode)
+void dump_all_codecs(GF_SysArgMode argmode)
 {
 #define PAD_LEN	30
 	GF_PropertyValue rawp, filep, stp;
@@ -2284,8 +2202,8 @@ void dump_all_codec(GF_SysArgMode argmode)
 	u32 count = gf_fs_filters_registers_count(session);
 
 	gf_sys_format_help(helpout, help_flags, "Codec support in filters, listed as `built_in_name[|variant] [FLAGS]: full_name (mime)` with possible FLAGS values:\n");
-	gf_sys_format_help(helpout, help_flags, "  - I: Raw format input (demultiplexer) support\n");
-	gf_sys_format_help(helpout, help_flags, "  - O: Raw format output (multiplexer) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - I: Raw format input (elementary stream parser) support\n");
+	gf_sys_format_help(helpout, help_flags, "  - O: Raw format output (elementary stream writer) support\n");
 	gf_sys_format_help(helpout, help_flags, "  - D: Decoder support\n");
 	gf_sys_format_help(helpout, help_flags, "  - E: Encoder support\n");
 	gf_sys_format_help(helpout, help_flags, "\nNote: Raw output may still be possible even when no output serializer is given\n\n");
@@ -2450,6 +2368,439 @@ void dump_all_codec(GF_SysArgMode argmode)
 
 	gf_sys_format_help(helpout, help_flags, "\n");
 }
+
+typedef struct
+{
+	char *ext;
+	char *mime;
+	GF_List *demuxers, *muxers;
+	Bool meta_only;
+} FMTHandler;
+
+//quick hack for a few of our filters to avoid crazy long lists of mimes
+static const char *get_best_mime(char *ext)
+{
+	if (!strcmp(ext, "mp4") || !strcmp(ext, "iso") || !strcmp(ext, "ismv")) return "video/mp4|audio/mp4|application/mp4";
+	if (!strcmp(ext, "mpg4")) return "application/mp4";
+	if (!strcmp(ext, "m4a")) return "audio/mp4";
+	if (!strcmp(ext, "m4i")) return "application/mp4";
+	if (!strcmp(ext, "3gp") || !strcmp(ext, "3gpp")) return "video/3gpp|audio/3gpp";
+	if (!strcmp(ext, "3g2") || !strcmp(ext, "3gp2")) return "video/3gp2|audio/3gp2";
+	if (!strcmp(ext, "m4s")) return "video/iso.segment|audio/iso.segment";
+	if (!strcmp(ext, "iff") || !strcmp(ext, "heif")) return "image/heif";
+	if (!strcmp(ext, "heic")) return "image/heic";
+	if (!strcmp(ext, "avci") || !strcmp(ext, "avif")) return "image/avci";
+	if (!strcmp(ext, "mj2")) return "video/jp2";
+	if (!strcmp(ext, "mov") || !strcmp(ext, "qt")) return "video/quicktime";
+	if (!strcmp(ext, "bt") || !strcmp(ext, "btz") || !strcmp(ext, "bt.gz")) return "application/x-bt";
+	if (!strcmp(ext, "xmt") || !strcmp(ext, "xmtz") || !strcmp(ext, "xmt.gz")) return "application/x-xmt";
+	if (!strcmp(ext, "wrl") || !strcmp(ext, "wrl.gz")) return "model/vrml";
+	if (!strcmp(ext, "x3dv") || !strcmp(ext, "x3dvz") || !strcmp(ext, "x3dv.gz")) return "model/x3d+vrml";
+	if (!strcmp(ext, "x3d") || !strcmp(ext, "x3dz") || !strcmp(ext, "x3d.gz")) return "model/x3d+xml";
+	if (!strcmp(ext, "swf")) return "application/x-shockwave-flash";
+	if (!strcmp(ext, "xsr")) return "application/x-LASeR+xml";
+	if (!strcmp(ext, "svg") || !strcmp(ext, "svgz") || !strcmp(ext, "svg.gz")) return "image/svg+xml";
+	if (!strcmp(ext, "jpg") || !strcmp(ext, "jpeg")) return "image/jpg";
+	if (!strcmp(ext, "jp2") || !strcmp(ext, "j2k")) return "image/jp2";
+	if (!strcmp(ext, "bmp")) return "image/bmp";
+	if (!strcmp(ext, "png")) return "image/png";
+	if (!strcmp(ext, "aac") || !strcmp(ext, "adts")) return "audio/aac";
+	if (!strcmp(ext, "latm")) return "audio/aac+latm";
+	if (!strcmp(ext, "usac") || !strcmp(ext, "xheaac")) return "audio/xheaac+latm";
+	if (!strcmp(ext, "amr") || !strcmp(ext, "awb")) return "audio/amr";
+	if (!strcmp(ext, "evc")) return "audio/x-evc";
+	if (!strcmp(ext, "smv")) return "audio/x-smv";
+	if (!strcmp(ext, "oga") || !strcmp(ext, "spx") || !strcmp(ext, "opus")) return "audio/ogg";
+	if (!strcmp(ext, "ogg") || !strcmp(ext, "ogv")) return "video/ogg";
+	if (!strcmp(ext, "oggm")) return "application/ogg";
+	if (!strcmp(ext, "ts") || !strcmp(ext, "m2t") || !strcmp(ext, "mts") || !strcmp(ext, "dmb") || !strcmp(ext, "trp")) return "video/mp2t";
+	if (!strcmp(ext, "ac3")) return "audio/ac3";
+	if (!strcmp(ext, "eac3")) return "audio/eac3";
+	if (!strcmp(ext, "mpd")) return "application/dash+xml";
+	if (!strcmp(ext, "m3u8")) return "application/vnd.apple.mpegurl";
+	if (!strcmp(ext, "ism")) return "application/vnd.ms-sstr+xml";
+	if (!strcmp(ext, "3gm")) return "application/vnd.3gpp.mpd";
+	if (!strcmp(ext, "264") || !strcmp(ext, "avc") || !strcmp(ext, "h264") || !strcmp(ext, "26l") || !strcmp(ext, "h26l")) return "video/h264";
+	if (!strcmp(ext, "svc")) return "video/svc";
+	if (!strcmp(ext, "mvc")) return "video/mvc";
+	if (!strcmp(ext, "265") || !strcmp(ext, "hvc") || !strcmp(ext, "h265") || !strcmp(ext, "hevc")) return "video/hevc";
+	if (!strcmp(ext, "shvc")) return "video/shvc";
+	if (!strcmp(ext, "mhvc")) return "video/mhvc";
+	if (!strcmp(ext, "lvc") || !strcmp(ext, "lhvc")) return "video/lhvc";
+	if (!strcmp(ext, "266") || !strcmp(ext, "vvc") || !strcmp(ext, "h266") || !strcmp(ext, "lvvc")) return "video/vvc";
+	if (!strcmp(ext, "srt")) return "subtitle/srt";
+	if (!strcmp(ext, "ttxt")) return "subtitle/x-ttxt";
+	if (!strcmp(ext, "vtt")) return "subtitle/vtt";
+	if (!strcmp(ext, "sub")) return "subtitle/sub";
+	if (!strcmp(ext, "txml")) return "x-quicktime/text";
+	if (!strcmp(ext, "ttml")) return "subtitle/ttml";
+	if (!strcmp(ext, "ass") || !strcmp(ext, "ssa")) return "subtitle/ssa";
+	if (!strcmp(ext, "mkv") || !strcmp(ext, "mks")) return "video/x-matroska";
+	if (!strcmp(ext, "mka")) return "audio/x-matroska";
+	if (!strcmp(ext, "webm")) return "video/webm";
+	return NULL;
+}
+static void push_ext_mime(GF_List *all_fmts, const char *exts, Bool is_output, const GF_FilterRegister *reg, const char *mime)
+{
+	FMTHandler *hdl;
+	if (!exts) return;
+	if (!strcmp(exts, "*")) return;
+
+	char *names = gf_strdup(exts);
+	char *name = names;
+	while (name) {
+		Bool found = GF_FALSE;
+		char *sep = strchr(name, '|');
+		char *sep2 = strchr(name, ',');
+		if (sep2 && sep && (sep2<sep)) sep = sep2;
+		else if (sep2 && !sep) sep=sep2;
+
+		if (sep) sep[0] = 0;
+		hdl = NULL;
+		u32 i, count = gf_list_count(all_fmts);
+		for (i=0; i<count; i++) {
+			hdl = gf_list_get(all_fmts, i);
+			if (!strcmp(hdl->ext, name)) {
+				found=GF_TRUE;
+				break;
+			}
+		}
+		if (!found || !hdl) {
+			GF_SAFEALLOC(hdl, FMTHandler);
+			while (name[0]==' ')
+				name = name+1;
+			hdl->ext = gf_strdup(name);
+			hdl->demuxers = gf_list_new();
+			hdl->muxers = gf_list_new();
+			if (reg->flags & GF_FS_REG_META)
+				hdl->meta_only = GF_TRUE;
+			gf_list_add(all_fmts, hdl);
+		}
+		if (mime && !hdl->mime) {
+			const char *small_mime = get_best_mime(hdl->ext);
+			if (small_mime)
+				hdl->mime = gf_strdup(small_mime);
+			else {
+				hdl->mime = gf_strdup(mime);
+			}
+		}
+		if (!(reg->flags & GF_FS_REG_META))
+			hdl->meta_only = GF_TRUE;
+
+		if (is_output) {
+			if (gf_list_find(hdl->muxers, (void*) reg)<0) {
+				gf_list_add(hdl->muxers, (void*) reg);
+			}
+		} else {
+			if (gf_list_find(hdl->demuxers, (void*) reg)<0) {
+				gf_list_add(hdl->demuxers, (void*)reg);
+			}
+		}
+		if (!sep) break;
+		name = sep+1;
+	}
+	gf_free(names);
+}
+
+void dump_all_formats(GF_SysArgMode argmode)
+{
+	u32 i, count = gf_fs_filters_registers_count(session);
+	GF_List *all_fmts = gf_list_new();
+	GF_List *all_inputs = gf_list_new();
+
+	for (i=0; i<count; i++) {
+		u32 j, nb_in=0;
+		const char *in_ext=NULL;
+		const char *out_ext=NULL;
+		const char *in_mime=NULL;
+		const char *out_mime=NULL;
+		Bool ext_static = GF_FALSE;
+		Bool st_static = GF_FALSE;
+		u32 in_st_type = GF_STREAM_UNKNOWN;
+		u32 out_st_type = GF_STREAM_UNKNOWN;
+		const GF_FilterRegister *reg = gf_fs_get_filter_register(session, i);
+		if ((argmode<GF_ARGMODE_EXPERT) && (reg->flags&GF_FS_REG_META)) continue;
+
+		for (j=0; j<reg->nb_caps; j++) {
+			if (!(reg->caps[j].flags & GF_CAPFLAG_IN_BUNDLE)) {
+				//special case for meta filters, declaring only input ext (demux) or output ext (mux)
+				if (reg->flags & GF_FS_REG_META) {
+					if (in_ext && (out_st_type==GF_STREAM_UNKNOWN)) out_st_type = GF_STREAM_VISUAL;
+					if (out_ext && (in_st_type==GF_STREAM_UNKNOWN)) in_st_type = GF_STREAM_VISUAL;
+				}
+
+				if (in_ext && (in_st_type==GF_STREAM_FILE) && !out_ext && (out_st_type!=GF_STREAM_UNKNOWN))
+					push_ext_mime(all_fmts, in_ext, GF_FALSE, reg, in_mime);
+				if (out_ext && (out_st_type==GF_STREAM_FILE) && !in_ext && (in_st_type!=GF_STREAM_UNKNOWN))
+					push_ext_mime(all_fmts, out_ext, GF_TRUE, reg, out_mime);
+
+				if (!ext_static) {
+					in_ext=NULL;
+					out_ext=NULL;
+				}
+				if (!st_static) {
+					in_st_type = GF_STREAM_UNKNOWN;
+					out_st_type = GF_STREAM_UNKNOWN;
+				}
+				continue;
+			}
+			if (reg->caps[j].flags & GF_CAPFLAG_INPUT) nb_in++;
+
+			if (reg->caps[j].code == GF_PROP_PID_FILE_EXT) {
+				if ((reg->caps[j].val.type != GF_PROP_NAME)
+					&& (reg->caps[j].val.type != GF_PROP_STRING)
+					&& (reg->caps[j].val.type != GF_PROP_STRING_NO_COPY)
+				) continue;
+				char *ext = reg->caps[j].val.value.string;
+				if (!ext || !ext[0]) continue;
+
+				if (reg->caps[j].flags & GF_CAPFLAG_STATIC) ext_static = GF_TRUE;
+				if (reg->caps[j].flags & GF_CAPFLAG_INPUT) {
+					in_ext = ext;
+					in_st_type = GF_STREAM_FILE;
+				}
+				if (reg->caps[j].flags & GF_CAPFLAG_OUTPUT) {
+					out_ext = ext;
+					out_st_type = GF_STREAM_FILE;
+				}
+			} else if (reg->caps[j].code == GF_PROP_PID_MIME) {
+				if ((reg->caps[j].val.type != GF_PROP_NAME)
+					&& (reg->caps[j].val.type != GF_PROP_STRING)
+					&& (reg->caps[j].val.type != GF_PROP_STRING_NO_COPY)
+				) continue;
+				char *m = reg->caps[j].val.value.string;
+				if (!m || !m[0]) continue;
+				if (reg->caps[j].flags & GF_CAPFLAG_INPUT) in_mime = m;
+				if (reg->caps[j].flags & GF_CAPFLAG_OUTPUT) out_mime = m;
+			} else if (reg->caps[j].code == GF_PROP_PID_STREAM_TYPE) {
+				if (reg->caps[j].flags & GF_CAPFLAG_STATIC) st_static = GF_TRUE;
+				u32 st = reg->caps[j].val.value.uint;
+				//special case for filters advertising any stream, consider not file
+				if ((st==GF_STREAM_UNKNOWN) && (reg->caps[j].flags&GF_CAPFLAG_EXCLUDED))
+					st = GF_STREAM_VISUAL;
+				if (reg->caps[j].flags & GF_CAPFLAG_INPUT) in_st_type = st;
+				if (reg->caps[j].flags & GF_CAPFLAG_OUTPUT) out_st_type = st;
+			}
+		}
+
+		if (reg->flags & GF_FS_REG_META) {
+			if (in_ext && (out_st_type==GF_STREAM_UNKNOWN)) out_st_type = GF_STREAM_VISUAL;
+			if (out_ext && (in_st_type==GF_STREAM_UNKNOWN)) in_st_type = GF_STREAM_VISUAL;
+		}
+		if (in_ext && (in_st_type==GF_STREAM_FILE) && !out_ext && (out_st_type!=GF_STREAM_UNKNOWN))
+			push_ext_mime(all_fmts, in_ext, GF_FALSE, reg, in_mime);
+		if (out_ext && (out_st_type==GF_STREAM_FILE) && !in_ext && (in_st_type!=GF_STREAM_UNKNOWN))
+			push_ext_mime(all_fmts, out_ext, GF_TRUE, reg, out_mime);
+
+
+		if (reg->nb_caps && !nb_in && reg->probe_url && !strchr(reg->name, ':')) {
+			gf_list_add(all_inputs, (void*)reg);
+		}
+	}
+
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, help_flags, "# Extensions and mime types\n");
+		gf_sys_format_help(helpout, help_flags, "Extension name can be used to force output formats using `ext=` option of sink filters.  \nBy default, GPAC does not rely on file extension for source processing unless `-no-probe` option is set, in which case `ext=` option may be set on source filter.  \n");
+		gf_sys_format_help(helpout, help_flags, "_NOTE: This table does not include meta filters (ffmpeg, ...), use `gpac -hx formats` to list them._\n\n");
+		gf_sys_format_help(helpout, help_flags, " Extension | Input Filter(s) | Output Filter(s) | Mime(s) \n");
+		gf_sys_format_help(helpout, help_flags, " --- | --- | --- | ---  \n");
+	} else {
+		gf_sys_format_help(helpout, help_flags, "Format support in filters, by file extension\n");
+		gf_sys_format_help(helpout, help_flags, "\nNote: Some demuxers may only rely on data probing and not declare file extensions used for formats, resulting in formats not listed as supported for inputs\n\n");
+	}
+
+	count = gf_list_count(all_fmts);
+	for (i=0; i<count; i++) {
+		u32 j, c2;
+		FMTHandler *hdl = gf_list_get(all_fmts, i);
+		if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "%s | ", hdl->ext);
+		} else {
+			gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s:", hdl->ext);
+
+		}
+		c2 = gf_list_count(hdl->demuxers);
+		if (!c2 && hdl->meta_only) {
+			char szFileName[100];
+			sprintf(szFileName, "test.%s", hdl->ext);
+			c2 = gf_list_count(all_inputs);
+			for (j=0; j<c2; j++) {
+				const GF_FilterRegister *reg = gf_list_get(all_inputs, j);
+				GF_FilterProbeScore score = reg->probe_url(szFileName, NULL);
+				if (score>=GF_FPROBE_MAYBE_SUPPORTED) {
+					gf_list_add(hdl->demuxers, (void*)reg);
+					break;
+				}
+			}
+			c2 = gf_list_count(hdl->demuxers);
+		}
+		if (c2 && (gen_doc!=1)) {
+			gf_sys_format_help(helpout, help_flags, " Demux");
+		}
+
+		if (c2) {
+			if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED)) {
+				if (gen_doc!=1)
+					gf_sys_format_help(helpout, help_flags, " (");
+				for (j=0; j<c2; j++) {
+					const GF_FilterRegister *reg = gf_list_get(hdl->demuxers, j);
+					if (j) gf_sys_format_help(helpout, help_flags, " ");
+					gf_sys_format_help(helpout, help_flags, "%s", reg->name);
+				}
+				if (gen_doc!=1)
+					gf_sys_format_help(helpout, help_flags, ")");
+			}
+		} else if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "n/a");
+		}
+
+		if (gen_doc==1)
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, " | ");
+
+		c2 = gf_list_count(hdl->muxers);
+		if (c2) {
+			if (gen_doc!=1)
+				gf_sys_format_help(helpout, help_flags, " Mux");
+			if ((gen_doc==1) || (argmode>=GF_ARGMODE_ADVANCED)) {
+				if (gen_doc!=1)
+					gf_sys_format_help(helpout, help_flags, " (");
+				for (j=0; j<c2; j++) {
+					const GF_FilterRegister *reg = gf_list_get(hdl->muxers, j);
+					if (j) gf_sys_format_help(helpout, help_flags, " ");
+					gf_sys_format_help(helpout, help_flags, "%s", reg->name);
+				}
+				if (gen_doc!=1)
+					gf_sys_format_help(helpout, help_flags, ")");
+			}
+		} else if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, "n/a");
+		}
+		if (gen_doc==1)
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR, " | ");
+
+		if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags | GF_PRINTARG_NL_TO_BR | GF_PRINTARG_ESCAPE_PIPE, "%s \n", hdl->mime ? hdl->mime : "n/a");
+		} else {
+			if (hdl->mime && (argmode>GF_ARGMODE_EXPERT)) {
+				gf_sys_format_help(helpout, help_flags, " MIME %s", hdl->mime);
+			}
+			gf_sys_format_help(helpout, help_flags, "\n");
+		}
+	}
+
+	while (gf_list_count(all_fmts)) {
+		FMTHandler *hdl = gf_list_pop_back(all_fmts);
+		gf_free(hdl->ext);
+		if (hdl->mime) gf_free(hdl->mime);
+		gf_list_del(hdl->demuxers);
+		gf_list_del(hdl->muxers);
+		gf_free(hdl);
+	}
+	gf_list_del(all_fmts);
+	gf_list_del(all_inputs);
+}
+
+typedef struct
+{
+	char *proto;
+	GF_List *in, *out;
+} PROTOHandler;
+
+void dump_all_proto_schemes(GF_SysArgMode argmode)
+{
+	GF_List *all_protos = gf_list_new();
+	u32 k, i, count;
+	for (k=0; k<2; k++) {
+		const char *sname = k ? "temp_out_proto" : "temp_in_proto";
+		count = gf_opts_get_key_count(sname);
+		for (i=0; i<count; i++) {
+			const char *f = gf_opts_get_key_name(sname, i);
+			if (!f) continue;
+			if ((argmode<GF_ARGMODE_EXPERT) && strchr(f, ':')) continue;
+
+			char *proto = (char*)gf_opts_get_key(sname, f);
+			if (!proto) continue;
+
+			while (proto) {
+				PROTOHandler *pe=NULL;
+				char *sep = strchr(proto, ',');
+				if (sep) sep[0] = 0;
+				u32 j=0;
+				while ((pe = gf_list_enum(all_protos, &j) )) {
+					if (!strcmp(pe->proto, proto)) {
+						break;
+					}
+				}
+				if (!pe) {
+					GF_SAFEALLOC(pe, PROTOHandler);
+					pe->proto = gf_strdup(proto);
+					pe->in = gf_list_new();
+					pe->out = gf_list_new();
+					gf_list_add(all_protos, pe);
+				}
+				if (k)
+					gf_list_add(pe->out, (void *)f);
+				else
+					gf_list_add(pe->in, (void *)f);
+
+				if (!sep) break;
+				proto = sep+1;
+			}
+		}
+	}
+
+	if (gen_doc==1) {
+		gf_sys_format_help(helpout, help_flags, "# Protocol Schemes\n");
+		gf_sys_format_help(helpout, help_flags, "_NOTE: This table does not include meta filters (ffmpeg, ...), use `gpac -hx protocols` to list them._\n\n");
+		gf_sys_format_help(helpout, help_flags, " Scheme | Input Filter(s) | Output Filter(s)\n");
+		gf_sys_format_help(helpout, help_flags, " --- | --- | ---  \n");
+	} else {
+		gf_sys_format_help(helpout, help_flags, "\nSupported protocols schemes (listed as `scheme: in (filters) out (filters)`):\n");
+	}
+	count = gf_list_count(all_protos);
+	for (i=0; i<count; i++) {
+		u32 j, k, c2;
+		PROTOHandler *pe = gf_list_get(all_protos, i);
+
+		if (gen_doc==1) {
+			gf_sys_format_help(helpout, help_flags|GF_PRINTARG_NL_TO_BR, "%s | ", pe->proto);
+		} else {
+			gf_sys_format_help(helpout, help_flags|GF_PRINTARG_HIGHLIGHT_FIRST, "%s:", pe->proto);
+		}
+		for (k=0; k<2; k++) {
+			GF_List *list = k ? pe->out : pe->in;
+			const char *lab = k ? "in" : "out";
+			c2 = gf_list_count(list);
+			if (c2) {
+				if (gen_doc!=1)
+					gf_sys_format_help(helpout, help_flags, " %s", lab);
+
+				if ((gen_doc==1) || (argmode==GF_ARGMODE_ADVANCED) || (argmode==GF_ARGMODE_ALL)) {
+					if (gen_doc!=1)
+						gf_sys_format_help(helpout, help_flags, " (");
+					for (j=0;j<c2; j++) {
+						char *f = gf_list_get(list, j);
+						if (j) gf_sys_format_help(helpout, help_flags, " ");
+						gf_sys_format_help(helpout, help_flags, "%s", f);
+					}
+					if (gen_doc!=1)
+						gf_sys_format_help(helpout, help_flags, ")");
+				}
+			} else if (gen_doc==1) {
+				gf_sys_format_help(helpout, help_flags, " n/a");
+			}
+			if ((gen_doc==1) && !k)
+				gf_sys_format_help(helpout, help_flags, " | ");
+		}
+		gf_sys_format_help(helpout, help_flags, "\n");
+		gf_free(pe->proto);
+		gf_list_del(pe->in);
+		gf_list_del(pe->out);
+		gf_free(pe);
+	}
+	gf_list_del(all_protos);
+}
+
 
 /*********************************************************
 			Config file writing functions

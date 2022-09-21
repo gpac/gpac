@@ -1240,16 +1240,10 @@ static GF_FilterProbeScore rtspout_probe_url(const char *url, const char *mime)
 
 static const GF_FilterCapability RTSPOutCaps[] =
 {
-	//anything else (not file and framed) result in manifest PID
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
-
-	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_FILE_EXT, "sdp"),
-	CAP_STRING(GF_CAPS_OUTPUT, GF_PROP_PID_MIME, "application/sdp"),
 	{0},
-	//anything else (not file and framed) result in media pids not file
 	CAP_UINT(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER,  GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED | GF_CAPFLAG_LOADED_FILTER, GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
@@ -1332,6 +1326,9 @@ GF_FilterRegister RTSPOutRegister = {
 
 const GF_FilterRegister *rtspout_register(GF_FilterSession *session)
 {
+	if (gf_opts_get_bool("temp", "get_proto_schemes")) {
+		gf_opts_set_key("temp_out_proto", RTSPOutRegister.name, "rtsp");
+	}
 	return &RTSPOutRegister;
 }
 
