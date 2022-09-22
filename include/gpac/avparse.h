@@ -678,6 +678,12 @@ Bool gf_eac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Config *hdr, Bo
 */
 Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 
+/*! gets the number of channels from chan_loc info of EAC3 config
+\param chan_loc acmod of the associated frame header
+\return number of channels
+*/
+u32 gf_eac3_get_chan_loc_count(u32 chan_loc);
+
 /*! gets the number of channels in an AC3 frame
 \param acmod acmod of the associated frame header
 \return number of channels
@@ -685,7 +691,7 @@ Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse);
 u32 gf_ac3_get_channels(u32 acmod);
 /*! gets the bitrate of an AC3 frame
 \param brcode brcode of the associated frame header
-\return bitrate
+\return bitrate in bps
 */
 u32 gf_ac3_get_bitrate(u32 brcode);
 

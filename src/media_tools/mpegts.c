@@ -1361,6 +1361,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_AUDIO_AC3:
 		case GF_M2TS_AUDIO_EC3:
 		case GF_M2TS_AUDIO_DTS:
+		case GF_M2TS_AUDIO_TRUEHD:
 		case GF_M2TS_AUDIO_OPUS:
 		case GF_M2TS_MHAS_MAIN:
 		case GF_M2TS_MHAS_AUX:
@@ -1502,10 +1503,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						/* cf https://smpte-ra.org/registered-mpeg-ts-ids */
 						switch (reg_desc_format) {
 						case GF_M2TS_RA_STREAM_AC3:
-							es->stream_type = GF_M2TS_AUDIO_AC3;
+							//don't overwrite if alread EAC3 or TrueHD
+							if ((es->stream_type != GF_M2TS_AUDIO_EC3) && (es->stream_type != GF_M2TS_AUDIO_TRUEHD))
+								es->stream_type = GF_M2TS_AUDIO_AC3;
 							break;
 						case GF_M2TS_RA_STREAM_EAC3:
-							es->stream_type = GF_M2TS_AUDIO_EC3;
+							//don't overwrite if alread AC3 or TrueHD
+							if ((es->stream_type != GF_M2TS_AUDIO_AC3) && (es->stream_type != GF_M2TS_AUDIO_TRUEHD))
+								es->stream_type = GF_M2TS_AUDIO_EC3;
 							break;
 						case GF_M2TS_RA_STREAM_VC1:
 							es->stream_type = GF_M2TS_VIDEO_VC1;
@@ -2077,7 +2082,9 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 			if (pesh.PTS) {
 				if (pesh.PTS == pes->PTS) {
 					same_pts = GF_TRUE;
-					if (!pes->is_resume) {
+					if ((pes->stream_type==GF_M2TS_AUDIO_TRUEHD) || (pes->stream_type==GF_M2TS_AUDIO_EC3)) {
+						same_pts = GF_FALSE;
+					} else if (!pes->is_resume) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
 					}
 				}
@@ -2093,7 +2100,10 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u32 force_flush_ty
 #ifndef GPAC_DISABLE_LOG
 				{
 					if (!pes->is_resume && pes->DTS && (pesh.DTS == pes->DTS)) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
+						if ((pes->stream_type==GF_M2TS_AUDIO_TRUEHD) || (pes->stream_type==GF_M2TS_AUDIO_EC3)) {
+						} else {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
+						}
 					}
 					if (pesh.DTS < pes->DTS) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));

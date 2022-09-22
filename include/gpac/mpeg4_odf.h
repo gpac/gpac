@@ -1566,7 +1566,7 @@ GF_Err gf_odf_dovi_cfg_write_bs(GF_DOVIDecoderConfigurationRecord *cfg, GF_BitSt
 void gf_odf_dovi_cfg_del(GF_DOVIDecoderConfigurationRecord *cfg);
 
 
-/*! AC-3 config record extension for EAC-3 - see dolby specs*/
+/*! AC-3 and E-AC3 stream info */
 typedef struct __ec3_stream
 {
 	/*! AC3 fs code*/
@@ -1581,36 +1581,37 @@ typedef struct __ec3_stream
 	u8 lfon;
 	/*! asvc mode, only for EC3*/
 	u8 asvc;
-	/*! deps, only for EC3*/
+	/*! number of channels, including lfe*/
+	u8 channels;
+	/*! number of dependent substreams, only for EC3*/
 	u8 nb_dep_sub;
-	/*! channel loc, only for EC3*/
-	u8 chan_loc;
+	/*! channel locations for dependent substreams, only for EC3*/
+	u16 chan_loc;
 } GF_AC3StreamInfo;
 
-/*! AC3 config record*/
+/*! AC3 config record  - see dolby specs ETSI TS 102 366 */
 typedef struct __ac3_config
 {
-	/*! indicates if ec3*/
-	u8 is_ec3;
-	/*! if AC3 this is the bitrate code, otherwise cumulated data rate of EC3 streams*/
-	u16 brcode;
-	/*! number of streams :
+	/*! streams info - for AC3, always the first*/
+	GF_AC3StreamInfo streams[8];
+	/*! number of independent streams :
 		1 for AC3
-		max 8 for EC3, main stream is included
+		max 8 for EC3
 	*/
 	u8 nb_streams;
-	/*! streams info*/
-	GF_AC3StreamInfo streams[8];
-
-	//! \cond  used in parsing not part of the AC3 config record
-	u32 bitrate;
+	/*! indicates if frame is ec3*/
+	u8 is_ec3;
+	/*! if AC3 this is the bitrate code
+	,	 otherwise cumulated data rate of EAC3 streams in kbps
+	*/
+	u16 brcode;
+	/*! sample rate - all additional streams shall have the same sample rate as first independent stream in EC3*/
 	u32 sample_rate;
+	/*! size of the complete frame*/
 	u32 framesize;
-	u32 channels;
-	u16 substreams; //bit-mask, used for channel map > 5.1
-
-	//! \endcond private
-	Bool atmos_ec3_ext;
+	/*! atmos EC3 flag*/
+	u8 atmos_ec3_ext;
+	/*! atmos complexity index*/
 	u8 complexity_index_type;
 } GF_AC3Config;
 

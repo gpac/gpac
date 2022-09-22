@@ -1548,6 +1548,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_eac3_get_chan_loc_count) )
+
 #ifndef GPAC_DISABLE_OGG
 #pragma comment (linker, EXPORT_SYMBOL(gf_vorbis_parse_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_vorbis_check_frame) )

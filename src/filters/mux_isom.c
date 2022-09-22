@@ -1051,6 +1051,7 @@ static GF_Err mp4_mux_setup_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_tr
 	case GF_CODECID_AC3:
 	case GF_CODECID_EAC3:
 	case GF_CODECID_OPUS:
+	case GF_CODECID_TRUEHD:
 		if (!dsi && !enh_dsi) return GF_OK;
 		break;
 	case GF_CODECID_APCH:
