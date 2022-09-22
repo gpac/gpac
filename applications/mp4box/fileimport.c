@@ -3218,7 +3218,9 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.fileName = in;
 	load.ctx = ctx;
+#ifndef GPAC_DISABLE_SWF_IMPORT
 	load.swf_import_flags = swf_flags;
+#endif
 	load.swf_flatten_limit = swf_flatten_angle;
 	/*since we're encoding we must get MPEG4 nodes only*/
 	load.flags = GF_SM_LOAD_MPEG4_STRICT;
