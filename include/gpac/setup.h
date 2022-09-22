@@ -172,7 +172,8 @@ typedef unsigned int size_t;
 /*	the _USING_V110_SDK71_ macro will be defined when using
 	msvc toolsets like v140_xp, v141_xp, etc.
 */
-#if (WINVER <= 0x0502 || _USING_V110_SDK71_)
+
+#if ( (defined(WINVER) && WINVER <= 0x0502) || _USING_V110_SDK71_)
 #define GPAC_BUILD_FOR_WINXP
 #endif
 

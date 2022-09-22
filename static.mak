@@ -2,11 +2,9 @@
 LINKLIBS=
 
 #1 - zlib support
-ifeq ($(CONFIG_ZLIB),local)
-CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
-endif
 ifneq ($(CONFIG_ZLIB),no)
-LINKLIBS+=-lz
+CFLAGS+=$(zlib_cflags)
+LINKLIBS+=$(zlib_ldflags)
 endif
 
 #2 - ssl support
