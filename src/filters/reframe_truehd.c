@@ -51,11 +51,15 @@ typedef struct
 {
 	//filter args
 	Double index;
+	Bool auxac3;
 
-	//only one input pid declared
+	//only one input pid
 	GF_FilterPid *ipid;
-	//only one output pid declared
+	//truehd output pid
 	GF_FilterPid *opid;
+	//aux AC3 output pid
+	GF_FilterPid *aux_opid;
+	GF_Filter *filter;
 
 	GF_BitStream *bs;
 	u64 file_pos, cts;
@@ -73,11 +77,16 @@ typedef struct
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
 
+	//ref src pck
 	GF_FilterPacket *src_pck;
+	//current src, not ref
+	GF_FilterPacket *src_current;
 
 	TrueHDIdx *indexes;
 	u32 index_alloc_size, index_size;
 	Bool copy_props;
+
+	GF_AC3Header ac3_hdr;
 } GF_TrueHDDmxCtx;
 
 
@@ -99,6 +108,7 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	if (! gf_filter_pid_check_caps(pid))
 		return GF_NOT_SUPPORTED;
 
+	ctx->filter = filter;
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
@@ -112,15 +122,75 @@ GF_Err truehd_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	return GF_OK;
 }
 
-static GF_Err truehd_parse_frame(GF_BitStream *bs, TrueHDHdr *hdr)
+static void truehd_aux_ac3(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, GF_AC3Header *hdr)
+{
+	u8 *data;
+	u32 size;
+
+	if (!ctx->aux_opid) {
+		ctx->aux_opid = gf_filter_pid_new(ctx->filter);
+		if (!ctx->aux_opid) return;
+		gf_filter_pid_set_name(ctx->aux_opid, "aux_ac3");
+	}
+
+	if (memcmp(&ctx->ac3_hdr, hdr, sizeof(GF_AC3Header))) {
+		memcpy(&ctx->ac3_hdr, hdr, sizeof(GF_AC3Header));
+
+		//copy properties from output pid
+		gf_filter_pid_copy_properties(ctx->aux_opid, ctx->opid);
+		//don't change codec type if reframing an ES (for HLS SAES)
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_CODECID, & PROP_UINT( GF_CODECID_AC3));
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
+
+		if (ctx->duration.num)
+			gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_DURATION, & PROP_FRAC64(ctx->duration));
+
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : hdr->sample_rate));
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(hdr->sample_rate));
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(hdr->streams[0].channels) );
+
+		gf_odf_ac3_cfg_write(hdr, &data, &size);
+		gf_filter_pid_set_property(ctx->aux_opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(data, size) );
+	}
+
+	GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->aux_opid, hdr->framesize, &data);
+	gf_bs_read_data(bs, data, hdr->framesize);
+	gf_filter_pck_merge_properties(ctx->src_pck ? ctx->src_pck : ctx->src_current, dst_pck);
+	gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
+
+	gf_filter_pck_set_dts(dst_pck, ctx->cts);
+	gf_filter_pck_set_cts(dst_pck, ctx->cts);
+	gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+	gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
+	gf_filter_pck_send(dst_pck);
+}
+
+static GF_Err truehd_parse_frame(GF_TrueHDDmxCtx *ctx, GF_BitStream *bs, TrueHDHdr *hdr)
 {
 	memset(hdr, 0, sizeof(TrueHDHdr));
 
 	u32 avail = (u32) gf_bs_available(bs);
+	hdr->frame_size = 0;
 	//we need 8 bytes for base header (up to sync marker)
-	if (avail<8) {
-		hdr->frame_size = 0;
+	if (avail<8)
 		return GF_OK;
+
+	u32 sync = gf_bs_peek_bits(bs, 16, 0);
+	if (sync==0x0B77) {
+		GF_AC3Header ac3hdr;
+		if (!gf_ac3_parser_bs(bs, &ac3hdr, GF_TRUE))
+			return GF_OK;
+		//make sure we have the complete frame + 8 byte of TrueHD header
+		if (gf_bs_available(bs) < ac3hdr.framesize + 8)
+			return GF_BUFFER_TOO_SMALL;
+
+		if (ctx && ctx->auxac3) {
+			truehd_aux_ac3(ctx, bs, &ac3hdr);
+		} else {
+			gf_bs_skip_bytes(bs, ac3hdr.framesize);
+		}
+		avail = (u32) gf_bs_available(bs);
 	}
 
 	/*u8 nibble = */gf_bs_read_int(bs, 4);
@@ -226,7 +296,7 @@ static void truehd_check_dur(GF_Filter *filter, GF_TrueHDDmxCtx *ctx)
 	while (	gf_bs_available(bs) > 8 ) {
 		TrueHDHdr hdr;
 		u64 pos = gf_bs_get_position(bs);
-		GF_Err e = truehd_parse_frame(bs, &hdr);
+		GF_Err e = truehd_parse_frame(NULL, bs, &hdr);
 		if (e) break;
 
 		if (hdr.sync) {
@@ -458,6 +528,8 @@ GF_Err truehd_process(GF_Filter *filter)
 			if (!ctx->truehd_buffer_size) {
 				if (ctx->opid)
 					gf_filter_pid_set_eos(ctx->opid);
+				if (ctx->aux_opid)
+					gf_filter_pid_set_eos(ctx->aux_opid);
 				if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);
 				ctx->src_pck = NULL;
 				return GF_EOS;
@@ -511,6 +583,7 @@ GF_Err truehd_process(GF_Filter *filter)
 
 	remain = ctx->truehd_buffer_size;
 	start = ctx->truehd_buffer;
+	ctx->src_current = pck;
 
 	if (ctx->resume_from) {
 		start += ctx->resume_from - 1;
@@ -529,7 +602,11 @@ GF_Err truehd_process(GF_Filter *filter)
 		u32 frame_start, bytes_to_drop=0;
 
 		frame_start = (u32) gf_bs_get_position(ctx->bs);
-		e = truehd_parse_frame(ctx->bs, &hdr);
+		e = truehd_parse_frame(ctx, ctx->bs, &hdr);
+		if (e==GF_BUFFER_TOO_SMALL) {
+			e = GF_OK;
+			break;
+		}
 		if (e) {
 			remain = 0;
 			break;
@@ -568,11 +645,16 @@ GF_Err truehd_process(GF_Filter *filter)
 				ctx->cts = cts;
 			cts = GF_FILTER_NO_TS;
 		}
+		if (!ctx->sample_rate) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[TrueHDDmx] Invalid TrueHD frame, no sample rate found\n"));
+			remain = 0;
+			break;
+		}
 
 		if (!ctx->in_seek) {
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, hdr.frame_size, &output);
 			if (!dst_pck) return GF_OUT_OF_MEM;
-			if (ctx->src_pck) gf_filter_pck_merge_properties(ctx->src_pck, dst_pck);
+			gf_filter_pck_merge_properties(ctx->src_pck ? ctx->src_pck : ctx->src_current, dst_pck);
 
 			memcpy(output, frame, hdr.frame_size);
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
@@ -583,6 +665,8 @@ GF_Err truehd_process(GF_Filter *filter)
 
 			if (ctx->byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, ctx->byte_offset + hdr.frame_size);
+			} else {
+				gf_filter_pck_set_byte_offset(dst_pck, GF_FILTER_NO_BO);
 			}
 
 			gf_filter_pck_send(dst_pck);
@@ -620,7 +704,7 @@ GF_Err truehd_process(GF_Filter *filter)
 		ctx->truehd_buffer_size = 0;
 		return truehd_process(filter);
 	} else {
-		if (remain) {
+		if (remain && (remain<ctx->truehd_buffer_size)) {
 			memmove(ctx->truehd_buffer, start, remain);
 		}
 		ctx->truehd_buffer_size = remain;
@@ -644,7 +728,7 @@ static const char *truehd_probe_data(const u8 *data, u32 size, GF_FilterProbeSco
 	while (gf_bs_available(bs) > 8 ) {
 		TrueHDHdr hdr;
 		u64 pos = gf_bs_get_position(bs);
-		GF_Err e = truehd_parse_frame(bs, &hdr);
+		GF_Err e = truehd_parse_frame(NULL, bs, &hdr);
 		if (e || !hdr.frame_size) {
 			nb_frames = 0;
 			break;
@@ -678,6 +762,7 @@ static const GF_FilterCapability TrueHDDmxCaps[] =
 static const GF_FilterArgs TrueHDDmxArgs[] =
 {
 	{ OFFS(index), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, 0},
+	{ OFFS(auxac3), "expose auxiliary AC-3 stream if present", GF_PROP_BOOL, "false", NULL, 0},
 	{0}
 };
 

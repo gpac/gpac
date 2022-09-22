@@ -107,7 +107,7 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 		if (p && p->value.string && strstr(p->value.string, "eac3")) ctx->is_eac3 = GF_TRUE;
 		else {
 			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-			if (p && p->value.string && strstr(p->value.string, "eac3")) ctx->is_eac3 = GF_TRUE;
+			if (p && p->value.string && (strstr(p->value.string, "eac3")||strstr(p->value.string, "ec3"))) ctx->is_eac3 = GF_TRUE;
 		}
 	}
 	if (ctx->is_eac3) {
@@ -211,7 +211,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		ac3dmx_check_dur(filter, ctx);
 	}
-	if ((ctx->sample_rate == ctx->hdr.sample_rate) && (ctx->nb_ch == ctx->hdr.channels) && !ctx->copy_props) return;
+	if ((ctx->sample_rate == ctx->hdr.sample_rate) && (ctx->nb_ch == ctx->hdr.streams[0].channels) && !ctx->copy_props) return;
 
 	ctx->copy_props = GF_FALSE;
 	//copy properties at init or reconfig
@@ -228,7 +228,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 
 
-	ctx->nb_ch = ctx->hdr.channels;
+	ctx->nb_ch = ctx->hdr.streams[0].channels;
 	if (!ctx->timescale) {
 		//we change sample rate, change cts
 		if (ctx->cts && (ctx->sample_rate != ctx->hdr.sample_rate)) {
@@ -424,14 +424,18 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		Bool res;
 		u32 sync_pos, bytes_to_drop=0;
 
-
 		res = ctx->ac3_parser_bs(ctx->bs, &ctx->hdr, GF_TRUE);
 
 		sync_pos = (u32) gf_bs_get_position(ctx->bs);
 
 		//startcode not found or not enough bytes, gather more
-		if (!res || (remain < sync_pos + ctx->hdr.framesize))
+		if (!res || (remain < sync_pos + ctx->hdr.framesize)) {
+			if (sync_pos && ctx->hdr.framesize) {
+				start += sync_pos;
+				remain -= sync_pos;
+			}
 			break;
+		}
 
 		ac3dmx_check_pid(filter, ctx);
 
@@ -513,7 +517,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		ctx->ac3_buffer_size = 0;
 		return ac3dmx_process(filter);
 	} else {
-		if (remain) {
+		if (remain && (remain < ctx->ac3_buffer_size)) {
 			memmove(ctx->ac3_buffer, start, remain);
 		}
 		ctx->ac3_buffer_size = remain;
@@ -533,7 +537,7 @@ static void ac3dmx_finalize(GF_Filter *filter)
 static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeScore *score)
 {
 	GF_AC3Config ahdr;
-	u32 nb_frames=0;
+	u32 i, nb_frames=0;
 	Bool has_broken_frames = GF_FALSE;
 	u32 pos=0;
 	const u8 *data = _data;
@@ -582,7 +586,9 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 
 		if (pos != (u32) gf_bs_get_position(bs))
 			has_broken_frames = GF_TRUE;
-		nb_frames++;
+		nb_frames += ahdr.nb_streams;
+		for (i=0; i<ahdr.nb_streams; i++)
+			nb_frames += ahdr.streams[i].nb_dep_sub;
 		gf_bs_skip_bytes(bs, ahdr.framesize);
 		if (!pos && (nb_frames==1) && !gf_bs_available(bs)) nb_frames++;
 		pos+=ahdr.framesize;
@@ -609,7 +615,7 @@ static const char *ac3dmx_probe_data(const u8 *_data, u32 _size, GF_FilterProbeS
 static const GF_FilterCapability AC3DmxCaps[] =
 {
 	CAP_UINT(GF_CAPS_INPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
-	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3|eac3"),
+	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_FILE_EXT, "ac3|eac3|ec3"),
 	CAP_STRING(GF_CAPS_INPUT, GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3|audio/x-eac3|audio/eac3"),
 	CAP_UINT(GF_CAPS_OUTPUT, GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_UINT(GF_CAPS_OUTPUT_STATIC, GF_PROP_PID_CODECID, GF_CODECID_AC3),

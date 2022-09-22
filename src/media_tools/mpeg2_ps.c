@@ -1018,9 +1018,9 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
 			GF_AC3Config hdr;
 			memset(&hdr, 0, sizeof(GF_AC3Config));
 			gf_ac3_parser(buffer, buflen, &pos, &hdr, 0);
-			sptr->bitrate = hdr.bitrate;
+			sptr->bitrate = gf_ac3_get_bitrate(hdr.brcode);
 			sptr->freq = hdr.sample_rate;
-			sptr->channels = hdr.channels;
+			sptr->channels = hdr.streams[0].channels;
 			sptr->samples_per_frame = 256 * 6;
 		} else {
 			return;

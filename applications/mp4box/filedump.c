@@ -3347,12 +3347,11 @@ void DumpTrackInfo(GF_ISOFile *file, GF_ISOTrackID trackID, Bool full_dump, Bool
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
 			nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
-			for (i=0; i<ac3->streams[0].nb_dep_sub; ++i) {
-				assert(ac3->streams[0].nb_dep_sub == 1);
-				nb_ch += gf_ac3_get_channels(ac3->streams[0].chan_loc);
+			if (ac3->streams[0].nb_dep_sub) {
+				nb_ch += gf_eac3_get_chan_loc_count(ac3->streams[0].chan_loc);
 			}
 			if (ac3->streams[0].lfon) lfe = ".1";
-			br = ac3->is_ec3 ? ac3->brcode : gf_ac3_get_bitrate(ac3->brcode);
+			br = ac3->is_ec3 ? (ac3->brcode*1000) : gf_ac3_get_bitrate(ac3->brcode);
 			is_ec3 = ac3->is_ec3;
 			if (is_ec3) {
 				atmos = ac3->atmos_ec3_ext;

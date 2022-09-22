@@ -2717,7 +2717,7 @@ static void inspect_dump_ac3_eac3(GF_InspectCtx *ctx, FILE *dump, u8 *ptr, u64 f
 	memset(&hdr, 0, sizeof(GF_AC3Header));
 	gf_ac3_parser_bs(pctx->bs, &hdr, GF_TRUE);
 	if (ctx->analyze<INSPECT_ANALYZE_BS) {
-		inspect_printf(dump, "bitrate=\"%u\" channels=\"%u\" framesize=\"%u\"", hdr.bitrate, hdr.channels, hdr.framesize);
+		inspect_printf(dump, "bitrate=\"%u\" channels=\"%u\" framesize=\"%u\"", hdr.is_ec3 ? hdr.brcode*1000 : gf_ac3_get_bitrate(hdr.brcode), hdr.streams[0].channels, hdr.framesize);
 		if (hdr.is_ec3) {
 			inspect_printf(dump, " nb_streams=\"%u\" ", hdr.nb_streams);
 		}

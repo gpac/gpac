@@ -4490,7 +4490,7 @@ GF_Err dac3_box_dump(GF_Box *a, FILE * trace)
 		a->type = GF_ISOM_BOX_TYPE_DEC3;
 		gf_isom_box_dump_start(a, "EC3SpecificBox", trace);
 		a->type = GF_ISOM_BOX_TYPE_DAC3;
-		gf_fprintf(trace, "nb_streams=\"%d\" data_rate=\"%d\">\n", p->cfg.nb_streams, p->cfg.brcode);
+		gf_fprintf(trace, "nb_streams=\"%d\" data_rate=\"%d\">\n", p->cfg.nb_streams, p->cfg.brcode*1000);
 		for (i=0; i<p->cfg.nb_streams; i++) {
 			gf_fprintf(trace, "<EC3StreamConfig fscod=\"%d\" bsid=\"%d\" bsmod=\"%d\" acmod=\"%d\" lfon=\"%d\" asvc=\"%d\" num_sub_dep=\"%d\" chan_loc=\"%d\"/>\n",
 			        p->cfg.streams[i].fscod, p->cfg.streams[i].bsid, p->cfg.streams[i].bsmod, p->cfg.streams[i].acmod, p->cfg.streams[i].lfon, p->cfg.streams[i].asvc, p->cfg.streams[i].nb_dep_sub, p->cfg.streams[i].chan_loc);

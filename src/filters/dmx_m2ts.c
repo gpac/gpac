@@ -209,7 +209,6 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 			return;
 		}
 	} else {
-
 		switch (stream->stream_type) {
 		case GF_M2TS_VIDEO_MPEG1:
 			stype = GF_STREAM_VISUAL;
@@ -317,6 +316,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		case GF_M2TS_AUDIO_EC3:
 			stype = GF_STREAM_AUDIO;
 			codecid = GF_CODECID_EAC3;
+			unframed = GF_TRUE;
+			break;
+		case GF_M2TS_AUDIO_TRUEHD:
+			stype = GF_STREAM_AUDIO;
+			codecid = GF_CODECID_TRUEHD;
+			unframed = GF_TRUE;
 			break;
 		case GF_M2TS_AUDIO_DTS:
 			stype = GF_STREAM_AUDIO;

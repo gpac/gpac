@@ -1346,10 +1346,10 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 	assert(pck->reference_count);
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		if (!nb_dispatch) {
-			if (nb_discard) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("All PID destinations on filter %s are in discard mode - discarding\n", pid->filter->name));
+			if (count) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("All destinations of PID %s:%s are in discard mode - discarding\n", pid->filter->name, pid->name));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("No PID destination on filter %s for packet - discarding\n", pid->filter->name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s:%s has no destination for packet - discarding\n", pid->filter->name, pid->name));
 			}
 		}
 		gf_filter_packet_destroy(pck);
