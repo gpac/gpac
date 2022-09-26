@@ -413,7 +413,7 @@ typedef struct
 	u8 chroma_loc_info_present_flag;
 	u32 chroma_sample_loc_type_top_field, chroma_sample_loc_type_bottom_field;
 
-	u8 neutra_chroma_indication_flag, field_seq_flag, frame_field_info_present_flag;
+	u8 neutral_chroma_indication_flag, field_seq_flag, frame_field_info_present_flag;
 	u8 default_display_window_flag;
 	u32 left_offset, right_offset, top_offset, bottom_offset;
 	u8 hrd_parameters_present_flag;

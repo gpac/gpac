@@ -715,7 +715,7 @@ static void gf_inspect_dump_nalu_internal(FILE *dump, u8 *ptr, u32 ptr_size, Boo
 			inspect_printf(dump, "\" chroma_loc_info_present_flag=\"%d", sps->chroma_loc_info_present_flag);
 			inspect_printf(dump, "\" chroma_sample_loc_type_top_field=\"%d", sps->chroma_sample_loc_type_top_field);
 			inspect_printf(dump, "\" chroma_sample_loc_type_bottom_field=\"%d", sps->chroma_sample_loc_type_bottom_field);
-			inspect_printf(dump, "\" neutra_chroma_indication_flag=\"%d", sps->neutra_chroma_indication_flag);
+			inspect_printf(dump, "\" neutral_chroma_indication_flag=\"%d", sps->neutral_chroma_indication_flag);
 			inspect_printf(dump, "\" field_seq_flag=\"%d", sps->field_seq_flag);
 			inspect_printf(dump, "\" frame_field_info_present_flag=\"%d", sps->frame_field_info_present_flag);
 			inspect_printf(dump, "\" default_display_window_flag=\"%d", sps->default_display_window_flag);

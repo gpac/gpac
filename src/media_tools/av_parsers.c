@@ -6369,8 +6369,8 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	s32 aspect_ratio_idc = -1;
 	u32 ar_n=0, ar_d=0;
 	Bool overscan_info_present_flag = 0;
-	u32 overscan_info=0;
-	u32 video_signal_type_present_flag=0;
+	u32 overscan_info = 0;
+	u32 video_signal_type_present_flag = 0;
 	u32 video_format = 5;
 	u32 video_full_range_flag = 0;
 	u32 colour_description_present_flag = 0;
@@ -6443,6 +6443,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				}
 			}
 		}
+
 		if (is_vvc) {
 			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
 			if (vui_chroma_loc_info_present_flag) {
@@ -6655,7 +6656,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
 		gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
 	}
-	/*otherwise we copy over the bits from the input bitrate*/
+	/*otherwise we copy over the bits from the input bitstream*/
 }
 
 GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
@@ -8316,7 +8317,7 @@ static s32 gf_hevc_read_sps_bs_internal(GF_BitStream *bs, HEVCState *hevc, u8 la
 			sps->chroma_sample_loc_type_bottom_field = gf_bs_read_ue_log(bs, "chroma_sample_loc_type_bottom_field");
 		}
 
-		sps->neutra_chroma_indication_flag = gf_bs_read_int_log(bs, 1, "neutra_chroma_indication_flag");
+		sps->neutral_chroma_indication_flag = gf_bs_read_int_log(bs, 1, "neutral_chroma_indication_flag");
 		sps->field_seq_flag = gf_bs_read_int_log(bs, 1, "field_seq_flag");
 		sps->frame_field_info_present_flag = gf_bs_read_int_log(bs, 1, "frame_field_info_present_flag");
 

@@ -1083,7 +1083,7 @@ static GF_Err hevcmerge_check_sps_pps(GF_HEVCMergeCtx *ctx, HEVCTilePidCtx *pid_
 		CHECK_SPS_VAL(chroma_loc_info_present_flag)
 		CHECK_SPS_VAL(chroma_sample_loc_type_top_field)
 		CHECK_SPS_VAL(chroma_sample_loc_type_bottom_field)
-		CHECK_SPS_VAL(neutra_chroma_indication_flag)
+		CHECK_SPS_VAL(neutral_chroma_indication_flag)
 		CHECK_SPS_VAL(field_seq_flag)
 		CHECK_SPS_VAL(frame_field_info_present_flag)
 		CHECK_SPS_VAL(default_display_window_flag)
