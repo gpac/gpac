@@ -8331,7 +8331,7 @@ This filter rewrites timing (offsets and rate) of packets.
 .br
 
 .br
-The specified delay per stream class can be either positive (stream presented later) or negative (stream presented sooner).
+The delays (global or per stream class) can be either positive (stream presented later) or negative (stream presented sooner).
 .br
 
 .br
@@ -8361,6 +8361,8 @@ Note: frames are simply copied or dropped with no motion compensation.
 .LP
 .br
 fps (frac, default: 0/1):      target fps
+.br
+delay (frac, default: 0/1, updatable): delay to add to all streams
 .br
 delay_v (frac, default: 0/1, updatable): delay to add to video streams
 .br
@@ -10631,7 +10633,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev318-g147511483-master
+build: 2.1-DEV-rev321-gc68d8a53e-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
