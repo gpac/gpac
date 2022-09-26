@@ -420,7 +420,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *freg,
 		}
 	}
 	if (filter) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Created filter register %s args %s\n", freg->name, filter->orig_args ? filter->orig_args : "none"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Created filter register %s (%p) args %s\n", freg->name, filter, filter->orig_args ? filter->orig_args : "none"));
 	}
 
 	if ((freg->flags & GF_FS_REG_SINGLE_THREAD) && gf_list_count(filter->session->threads)) {
