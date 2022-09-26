@@ -54,7 +54,7 @@ enum
 
 typedef struct
 {
-	GF_Fraction fps, delay_v, delay_a, delay_t, delay_o;
+	GF_Fraction fps, delay, delay_v, delay_a, delay_t, delay_o;
 	u32 rawv;
 
 	GF_List *pids;
@@ -135,7 +135,10 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	u32 timescale = prop ? prop->value.uint : 1000;
-	s64 ts_offset = gf_timestamp_rescale_signed(delay->num, delay->den, timescale);
+	//global delay
+	s64 ts_offset = gf_timestamp_rescale_signed(ctx->delay.num, ctx->delay.den, timescale);
+	//per media-type delay
+	ts_offset = gf_timestamp_rescale_signed(delay->num, delay->den, timescale);
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (prop) {
 		ts_offset += prop->value.longsint;
@@ -417,6 +420,7 @@ static void restamp_finalize(GF_Filter *filter)
 static GF_FilterArgs RestampArgs[] =
 {
 	{ OFFS(fps), "target fps", GF_PROP_FRACTION, "0/1", NULL, 0},
+	{ OFFS(delay), "delay to add to all streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_v), "delay to add to video streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_a), "delay to add to audio streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(delay_t), "delay to add to text streams", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_UPDATE},
@@ -450,7 +454,7 @@ GF_FilterRegister RestampRegister = {
 	GF_FS_SET_DESCRIPTION("Packet timestamp rewriter")
 	GF_FS_SET_HELP("This filter rewrites timing (offsets and rate) of packets.\n"
 	"\n"
-	"The specified delay per stream class can be either positive (stream presented later) or negative (stream presented sooner).\n"
+	"The delays (global or per stream class) can be either positive (stream presented later) or negative (stream presented sooner).\n"
 	"\n"
 	"The specified [-fps]() can be either 0, positive or negative.\n"
 	"- if 0 or if the stream is audio, stream rate is not modified.\n"
