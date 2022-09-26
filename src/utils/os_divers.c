@@ -2089,7 +2089,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	the_rti.process_memory = 0;
 
 	/*FIXME? under LinuxThreads this will only fetch stats for the calling thread, we would have to enumerate /proc to get
-	the complete CPU usage of all therads of the process...*/
+	the complete CPU usage of all threads of the process...*/
 #if 0
 	sprintf(szProc, "/proc/%d/stat", the_rti.pid);
 	f = gf_fopen(szProc, "r");
