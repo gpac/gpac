@@ -3440,6 +3440,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 		if (filter_name && strcmp(src->freg->name, filter_name))
 			continue;
 
+		found = GF_TRUE;
 		if (!src->nb_edges) {
 			if (print_fn)
 				print_fn(stderr, 1, "%s: no sources\n", src->freg->name);
@@ -3448,7 +3449,6 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 			}
 			continue;
 		}
-		found = GF_TRUE;
 		if (print_fn)
 			print_fn(stderr, 1, "%s sources:", src->freg->name);
 		else {

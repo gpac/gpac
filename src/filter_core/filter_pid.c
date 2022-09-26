@@ -1489,7 +1489,13 @@ static Bool filter_pid_check_fragment(GF_FilterPid *src_pid, char *frag_name, Bo
 				pent = gf_filter_pid_get_property_entry(src_pid, GF_PROP_PID_STREAM_TYPE);
 				if (pent && pent->prop.value.uint==type) {
 					idx--;
-					if (!idx) {
+					if (!idx
+						//special case if single output of source, consider it a match
+						//this is needed for cases where intermediate filters are single-pid:
+						//mp4dmx @#video1 @ f1 @ f2 @ f3 @@0#video2 @f4 @f5 @f6
+						//filters f2 and f5 will only output a single pid
+						|| ((count_pid==1) && !src_pid->filter->max_extra_pids)
+					) {
 						if (p==src_pid) return GF_TRUE;
 						break;
 					}
@@ -4449,7 +4455,7 @@ single_retry:
 			//dst was not set, we may try to connect to this filter if it allows several input
 			//this is typically the case for muxers instantiated dynamically
 			if (!filter_dst->max_extra_pids) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has explicit dest %s matching but no extra pid possible\n", pid->name, filter_dst->name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PID %s has explicit dest %s (%p) matching but no extra pid possible\n", pid->name, filter_dst->name, filter_dst));
 				continue;
 			}
 		}
