@@ -659,8 +659,7 @@ GF_Err truehd_process(GF_Filter *filter)
 			memcpy(output, frame, hdr.frame_size);
 			gf_filter_pck_set_dts(dst_pck, ctx->cts);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			if (hdr.sync)
-				gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
+			gf_filter_pck_set_sap(dst_pck, hdr.sync ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_TRUE);
 
 			if (ctx->byte_offset != GF_FILTER_NO_BO) {
