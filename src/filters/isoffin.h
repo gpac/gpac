@@ -58,7 +58,7 @@ enum
 typedef struct
 {
 	//options
-	char *src;
+	char *src, *initseg;
 	Bool allt, noedit, itt, itemid;
 	u32 smode;
 	u32 stsd;

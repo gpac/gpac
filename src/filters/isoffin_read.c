@@ -125,7 +125,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read, Bool input_is_e
 		return GF_NOT_SUPPORTED;
 	}
 	read->start_range = read->end_range = 0;
-	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
+	prop = read->pid ? gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE) : NULL;
 	if (prop) {
 		read->start_range = prop->value.lfrac.num;
 		read->end_range = prop->value.lfrac.den;
@@ -412,6 +412,9 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		isoffin_disconnect(read);
 		return GF_OK;
 	}
+	if (read->initseg) {
+		read->pid = pid;
+	}
 	//check if we have a file path; if not, this is a pure stream of boxes (no local file cache)
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || !prop->value.string) {
@@ -493,6 +496,11 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 			e = isor_declare_objects(read);
 
 		gf_filter_post_process_task(filter);
+	}
+	else if (read->initseg) {
+		read->src = read->initseg;
+		e = isoffin_setup(filter, read, GF_TRUE);
+		read->src = NULL;
 	}
 	return e;
 }
@@ -1564,6 +1572,7 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	"- auto: resolves to `keep` for `smode=splix` (dasher mode), `rem` otherwise"
 	, GF_PROP_UINT, "auto", "auto|keep|rem", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nodata), "do not load sample data", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(initseg), "local init segment name when input is a single ISOBMFF segment", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
