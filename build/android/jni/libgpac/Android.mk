@@ -254,6 +254,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/tssplit.c \
 	../../../../src/filters/ttml_conv.c \
 	../../../../src/filters/unit_test_filter.c \
+	../../../../src/filters/unframer.c \
 	../../../../src/filters/vcrop.c \
 	../../../../src/filters/vflip.c \
 	../../../../src/filters/write_generic.c \

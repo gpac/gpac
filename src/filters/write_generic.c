@@ -86,6 +86,8 @@ typedef struct
 	Bool need_ttxt_footer;
 	u8 *write_buf;
 	u32 write_alloc;
+
+	Bool unframe_only;
 } GF_GenDumpCtx;
 
 
@@ -488,6 +490,12 @@ GF_Err writegen_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
 	if (p && (p->value.lfrac.num>0)) ctx->duration = p->value.lfrac;
+
+	if (ctx->unframe_only) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CODECID, &PROP_UINT(cid));
+	}
 
 	gf_filter_pid_set_framing_mode(pid, GF_TRUE);
 	return GF_OK;
@@ -1940,4 +1948,41 @@ const GF_FilterRegister *writegen_register(GF_FilterSession *session)
 	}
 
 	return &GenDumpRegister;
+}
+
+
+static GF_Err writeuf_initialize(GF_Filter *filter)
+{
+	GF_GenDumpCtx *ctx = gf_filter_get_udta(filter);
+	ctx->unframe_only = GF_TRUE;
+	return GF_OK;
+}
+
+/* writeuf: same as writegen but declare unframed output cap rather than mime / ext , used to force unframed format for all streams handled by writegen */
+static GF_FilterCapability GenDumpXCaps[] =
+{
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT|GF_CAPFLAG_EXCLUDED, GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_UINT(GF_CAPS_INPUT_OUTPUT|GF_CAPFLAG_EXCLUDED, GF_PROP_PID_CODECID, GF_CODECID_NONE),
+	CAP_BOOL(GF_CAPS_INPUT_EXCLUDED, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_BOOL(GF_CAPS_OUTPUT, GF_PROP_PID_UNFRAMED, GF_TRUE),
+	//prevent connection of this filter to file outputs, we only connect to unframer or all reframers
+	CAP_STRING(GF_CAPS_OUTPUT|GF_CAPFLAG_OPTIONAL, GF_PROP_PID_FILE_EXT, "__ignore"),
+};
+
+
+const GF_FilterRegister WriteUFRegister = {
+	.name = "writeuf",
+	GF_FS_SET_DESCRIPTION("Stream to unframed format")
+	GF_FS_SET_HELP("Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.\n")
+	.private_size = sizeof(GF_GenDumpCtx),
+	.initialize = writeuf_initialize,
+	.finalize = writegen_finalize,
+	SETCAPS(GenDumpXCaps),
+	.configure_pid = writegen_configure_pid,
+	.process = writegen_process
+};
+const GF_FilterRegister *writeuf_register(GF_FilterSession *session)
+{
+
+	return &WriteUFRegister;
 }
