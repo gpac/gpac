@@ -357,6 +357,7 @@
     <ClCompile Include="..\..\src\filters\tssplit.c" />
     <ClCompile Include="..\..\src\filters\ttml_conv.c" />
     <ClCompile Include="..\..\src\filters\unit_test_filter.c" />
+    <ClCompile Include="..\..\src\filters\unframer.c" />
     <ClCompile Include="..\..\src\filters\vcrop.c" />
     <ClCompile Include="..\..\src\filters\vflip.c" />
     <ClCompile Include="..\..\src\filters\write_generic.c" />

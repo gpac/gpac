@@ -3441,19 +3441,13 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 			continue;
 
 		found = GF_TRUE;
-		if (!src->nb_edges) {
-			if (print_fn)
-				print_fn(stderr, 1, "%s: no sources\n", src->freg->name);
-			else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: no sources\n", src->freg->name));
-			}
-			continue;
-		}
 		if (print_fn)
-			print_fn(stderr, 1, "%s sources:", src->freg->name);
+			print_fn(stderr, 1, "%s sources:%s", src->freg->name, src->nb_edges ? "" : " none");
 		else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sources:", src->freg->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s sources:%s", src->freg->name, src->nb_edges ? "" : " none"));
 		}
+		if (!src->nb_edges)
+			continue;
 
 		for (j=0; j<src->nb_edges; j++) {
 			if (gf_list_find(done, (void *) src->edges[j].src_reg->freg->name)<0) {
@@ -3496,6 +3490,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 	}
 
 	if (found && filter_name) {
+		u32 nb_sinks=0;
 		if (print_fn)
 			print_fn(stderr, 1, "%s sinks:", filter_name);
 		else {
@@ -3513,6 +3508,7 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 				if (strcmp(src->edges[j].src_reg->freg->name, filter_name)) continue;
 
 				if (gf_list_find(done, (void *) src->freg->name)<0) {
+					nb_sinks++;
 					if (print_fn)
 						print_fn(stderr, 0, " %s", src->freg->name);
 					else {
@@ -3545,9 +3541,9 @@ void gf_fs_print_all_connections(GF_FilterSession *session, char *filter_name, v
 			gf_list_reset(done);
 		}
 		if (print_fn)
-			print_fn(stderr, 1, " \n");
+			print_fn(stderr, 1, "%s\n", nb_sinks ? " " : " none");
 		else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, (" \n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s\n", nb_sinks ? " " : " none"));
 		}
 	}
 

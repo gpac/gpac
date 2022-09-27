@@ -8408,6 +8408,50 @@ rcfg (frac, default: 0/1):     stream config re-injection frequency in seconds
 .br
 
 .br
+.SH unframer
+.LP
+.br
+Description: Stream unframer
+.br
+
+.br
+This filter is used to force reframing of input sources using the same internal framing as GPAC (e.g. ISOBMFF) but with broken framing or signaling.
+.br
+Example
+.br
+gpac -i src.mp4 unframer -o dst.mp4
+.br
+
+.br
+This will:
+.br
+- force input PIDs of unframer to be in serialized form (AnnexB, ADTS, ...)
+.br
+- trigger reframers to be instanciated after the unframer filter.
+.br
+Using the unframer filter avoids doing a dump to disk then reimport or other complex data piping.
+.br
+
+.br
+No options
+.br
+
+.br
+.SH writeuf
+.LP
+.br
+Description: Stream to unframed format
+.br
+
+.br
+Generic single stream to unframed format converter, used when converting PIDs. This filter should not be explicitly loaded.
+.br
+
+.br
+No options
+.br
+
+.br
 .SH dtout
 .LP
 .br
@@ -10633,7 +10677,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev321-gc68d8a53e-master
+build: 2.1-DEV-rev323-g820c631a1-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

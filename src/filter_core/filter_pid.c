@@ -2444,7 +2444,7 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
 
 				nb_matched++;
-			} else if (!nb_matched && !prop_found && (an_out_cap->flags & GF_CAPFLAG_EXCLUDED) && (cur_dst_bundle<nb_in_bundles) ) {
+			} else if (!nb_matched && !prop_found && (an_out_cap->flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL)) && (cur_dst_bundle<nb_in_bundles) ) {
 				if (!bundles_cap_found[cur_dst_bundle])
 					bundles_cap_found[cur_dst_bundle] = cap_loaded_filter_only ? 2 : 1;
 
@@ -2468,8 +2468,9 @@ u32 gf_filter_caps_to_caps_match(const GF_FilterRegister *src, u32 src_bundle_id
 					bundles_in_ok[k] |= 1<<2;
 			}
 		}
+
 		//not matched and not excluded, skip until next bundle
-		if (!nb_matched && !(out_cap->flags & GF_CAPFLAG_EXCLUDED)) {
+		if (!nb_matched && !(out_cap->flags & (GF_CAPFLAG_EXCLUDED|GF_CAPFLAG_OPTIONAL))) {
 			all_caps_matched = GF_FALSE;
 		}
 	}

@@ -1385,6 +1385,9 @@
     <ClCompile Include="..\..\src\filters\unit_test_filter.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\unframer.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\filters\vcrop.c">
       <Filter>filters</Filter>
     </ClCompile>
