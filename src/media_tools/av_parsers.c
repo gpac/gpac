@@ -8999,8 +8999,8 @@ static void eac3_update_channels(GF_AC3Config *hdr)
 
 static Bool gf_eac3_parser_internal(GF_BitStream *bs, GF_AC3Config *hdr, Bool full_parse)
 {
-	u32 fscod, bsid, acmod, freq, framesize, syncword, substreamid, lfon, numblkscod, strmtyp, frmsiz, bsmod, hdr_pos;
-	u64 pos;
+	u32 fscod, bsid, acmod, freq, framesize, syncword, substreamid, lfon, numblkscod, strmtyp, frmsiz, bsmod;
+	u64 pos, hdr_pos;
 	u16 chanmap;
 	Bool main_indep_found = GF_FALSE;
 	s32 cur_main_id = -1;
