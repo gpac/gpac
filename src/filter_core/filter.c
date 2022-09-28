@@ -1179,7 +1179,7 @@ static const char *gf_filter_load_arg_config(GF_Filter *filter, const char *sec_
 				if (len != alen) continue;
 				strncpy(szArg, o_arg, 100);
 				szArg[ MIN(flen + alen, 100) ] = 0;
-				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL);
+				gf_fs_push_arg(session, szArg, GF_TRUE, GF_ARGTYPE_LOCAL, NULL, NULL);
 
 				if (sep) return sep+1;
 				//no arg value means boolean true
@@ -1697,6 +1697,7 @@ skip_date:
 				break;
 			}
 		}
+		GF_Filter *meta_filter = NULL;
 		if (!strlen(szArg)) {
 			found = GF_TRUE;
 		} else if (!found) {
@@ -1829,13 +1830,15 @@ skip_date:
 					e = filter->freg->update_arg(filter, szArg, &argv);
 					if (argv.value.string) gf_free(argv.value.string);
 				}
-				if (!(filter->freg->flags&GF_FS_REG_SCRIPT) && (e==GF_OK) )
+				if (!(filter->freg->flags&GF_FS_REG_SCRIPT) && (e==GF_OK) ) {
 					found = GF_TRUE;
+					meta_filter = filter;
+				}
 			}
 		}
 
 		if (!internal_arg && !opaque_arg && !opts_optional)
-			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL, NULL);
+			gf_fs_push_arg(filter->session, szArg, found, GF_ARGTYPE_LOCAL, meta_filter, NULL);
 
 skip_arg:
 		if (escaped) {
@@ -1980,9 +1983,9 @@ void gf_filter_check_output_reconfig(GF_Filter *filter)
 	}
 }
 
-static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *cur_pidinst, Bool *needs_flush)
+static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *src_pidinst, Bool *needs_flush)
 {
-	GF_FilterPidInst *pidinst = cur_pidinst;
+	GF_FilterPidInst *pidinst = src_pidinst;
 	*needs_flush = GF_FALSE;
 	//locate the true destination
 	while (1) {
@@ -1996,8 +1999,12 @@ static GF_FilterPidInst *filter_relink_get_upper_pid(GF_FilterPidInst *cur_pidin
 		//we have a fan-out, we cannot replace the filter graph after that point
 		//this would affect the other branches of the upper graph
 		if (opid->num_destinations != 1) break;
-		pidinst = gf_list_get(opid->destinations, 0);
+		GF_FilterPidInst *cur_pidinst = gf_list_get(opid->destinations, 0);
+		//target is sink, abort if not direct target of the pid instance we want to remove - this prevents replacing muxer
+		if ((pidinst != src_pidinst) && (cur_pidinst->filter->num_output_pids==0))
+			break;
 
+		pidinst = cur_pidinst;
 		if (gf_fq_count(pidinst->packets))
 			(*needs_flush) = GF_TRUE;
 	}
@@ -2075,6 +2082,10 @@ void gf_filter_relink_dst(GF_FilterPidInst *from_pidinst)
 		}
 		gf_mx_v(cur_filter->tasks_mx);
 		cur_filter = an_inpid->pid->filter;
+
+		if (!cur_filter->dynamic_filter) {
+			break;
+		}
 	}
 
 	if (!link_from_pid) {
@@ -4399,7 +4410,7 @@ GF_Err gf_filter_update_status(GF_Filter *filter, u32 percent, char *szStatus)
 	return GF_OK;
 }
 
-void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_found)
+void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_found, const char *sub_opt_name)
 {
 	if (!filter->session || filter->removed || filter->finalized) return;
 	if (filter->orig_args) {
@@ -4414,7 +4425,7 @@ void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_f
 	//meta filters may report unused options set when setting up the filter, and not specified
 	//at prompt, ignore them
 	//the argtype will be ignored here
-	gf_fs_push_arg(filter->session, arg, was_found, GF_ARGTYPE_META_REPORTING, filter);
+	gf_fs_push_arg(filter->session, arg, was_found, GF_ARGTYPE_META_REPORTING, filter, sub_opt_name);
 	gf_mx_v(filter->session->filters_mx);
 }
 

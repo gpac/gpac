@@ -313,130 +313,7 @@ static void ffenc_copy_pid_props(GF_FFEncodeCtx *ctx)
 	}
 }
 
-static void ffenc_generate_dsi(GF_FFEncodeCtx *ctx, const u8 *data, u32 size)
-{
-	GF_VPConfig *vpc=NULL;
-	GF_AC3Header ac3hdr;
-	u32 dsi_size=0;
-	u8 *dsi=NULL;
-	GF_BitStream *bs;
-	GF_Err e;
-	Bool flag=GF_FALSE;
 
-	ctx->gen_dsi = GF_FALSE;
-	switch (ctx->codecid) {
-	case GF_CODECID_VP8:
-	case GF_CODECID_VP10:
-		vpc = gf_odf_vp_cfg_new();
-		vpc->profile = 1;
-		vpc->level = 10;
-		vpc->bit_depth = 8;
-		vpc->colour_primaries = ctx->encoder->color_primaries;
-		vpc->transfer_characteristics = ctx->encoder->color_trc;
-		vpc->matrix_coefficients = ctx->encoder->colorspace;
-		break;
-	case GF_CODECID_VP9:
-	{
-		Bool key_frame = GF_FALSE;
-		u32 width = 0, height = 0, renderWidth, renderHeight;
-		u32 num_frames_in_superframe = 0, superframe_index_size = 0, i;
-		u32 frame_sizes[VP9_MAX_FRAMES_IN_SUPERFRAME];
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-		e = gf_vp9_parse_superframe(bs, size, &num_frames_in_superframe, frame_sizes, &superframe_index_size);
-		if (!e) {
-			vpc = gf_odf_vp_cfg_new();
-			for (i = 0; i < num_frames_in_superframe; ++i) {
-				u64 pos2 = gf_bs_get_position(bs);
-				if (gf_vp9_parse_sample(bs, vpc, &key_frame, &width, &height, &renderWidth, &renderHeight) != GF_OK) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[VP9Dmx] Error parsing frame\n"));
-					gf_odf_vp_cfg_del(vpc);
-					vpc = NULL;
-					break;
-				}
-				gf_bs_seek(bs, pos2 + frame_sizes[i]);
-			}
-		}
-		gf_bs_del(bs);
-	}
-		break;
-	case GF_CODECID_EAC3:
-		flag = GF_TRUE;
-	case GF_CODECID_AC3:
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-		if (flag) {
-			if (gf_eac3_parser_bs(bs, &ac3hdr, GF_FALSE) == GF_TRUE) {
-				ac3hdr.is_ec3=GF_TRUE;
-				gf_odf_ac3_cfg_write(&ac3hdr, &dsi, &dsi_size);
-			}
-		} else {
-			if (gf_ac3_parser_bs(bs, &ac3hdr, GF_TRUE) == GF_TRUE) {
-				gf_odf_ac3_cfg_write(&ac3hdr, &dsi, &dsi_size);
-			}
-		}
-		gf_bs_del(bs);
-		break;
-	case GF_CODECID_TRUEHD:
-	{
-		u32 format, peak_rate, sync, valid=0;
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-
-		/*nibble, frame size and time = */gf_bs_read_u32(bs);
-		sync = gf_bs_read_u32(bs);
-		if (sync == 0xF8726FBA) {
-			format = gf_bs_read_u32(bs);
-			u16 sig = gf_bs_read_u16(bs);
-			if (sig == 0xB752) {
-				gf_bs_read_u16(bs);
-				gf_bs_read_u16(bs);
-				gf_bs_read_int(bs, 1);
-				peak_rate = gf_bs_read_int(bs, 15);
-				valid = 1;
-			}
-		}
-		gf_bs_del(bs);
-
-		if (valid) {
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			gf_bs_write_u32(bs, format);
-			gf_bs_write_int(bs, peak_rate, 15);
-			gf_bs_write_int(bs, 0, 1);
-			gf_bs_write_u32(bs, 0);
-			gf_bs_get_content(bs, &dsi, &dsi_size);
-			gf_bs_del(bs);
-		}
-	}
-		break;
-	case GF_CODECID_MPEG1:
-	case GF_CODECID_MPEG2_422:
-	case GF_CODECID_MPEG2_SNR:
-	case GF_CODECID_MPEG2_HIGH:
-	case GF_CODECID_MPEG2_MAIN:
-	case GF_CODECID_MPEG2_SIMPLE:
-	case GF_CODECID_MPEG2_SPATIAL:
-		flag = GF_TRUE;
-	case GF_CODECID_MPEG4_PART2:
-	{
-		GF_M4VDecSpecInfo vcfg;
-		GF_M4VParser *mvp;
-		mvp = gf_m4v_parser_new((u8*)data, size, flag);
-		if (gf_m4v_parse_config(mvp, &vcfg) == GF_OK) {
-			dsi_size = (u32) gf_m4v_get_object_start(mvp);
-			dsi = gf_malloc(sizeof(u8) * dsi_size);
-			memcpy(dsi, data, dsi_size);
-		}
-		gf_m4v_parser_del(mvp);
-	}
-		break;
-	}
-
-	if (vpc) {
-		gf_odf_vp_cfg_write(vpc, &dsi, &dsi_size,  vpc->codec_initdata_size ? GF_TRUE : GF_FALSE);
-		gf_odf_vp_cfg_del(vpc);
-	}
-
-	if (dsi)
-		gf_filter_pid_set_property(ctx->out_pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA_NO_COPY(dsi, dsi_size));
-}
 
 static u64 ffenc_get_cts(GF_FFEncodeCtx *ctx, GF_FilterPacket *pck)
 {
@@ -930,7 +807,8 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		}
 	}
 	if (ctx->gen_dsi) {
-		ffenc_generate_dsi(ctx, output, size);
+		ffmpeg_generate_gpac_dsi(ctx->out_pid, ctx->codecid, ctx->encoder->color_primaries, ctx->encoder->color_trc, ctx->encoder->colorspace, output, size);
+		ctx->gen_dsi = GF_FALSE;
 	}
 
 	ffenc_log_video(filter, ctx, pkt, gf_filter_reporting_enabled(filter));
@@ -1352,7 +1230,8 @@ static GF_Err ffenc_process_audio(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 		gf_filter_pck_unref(src_pck);
 	}
 	if (ctx->gen_dsi) {
-		ffenc_generate_dsi(ctx, output, pkt->size);
+		ffmpeg_generate_gpac_dsi(ctx->out_pid, ctx->codecid, ctx->encoder->color_primaries, ctx->encoder->color_trc, ctx->encoder->colorspace, output, size);
+		ctx->gen_dsi = GF_FALSE;
 	}
 
 	gf_filter_pck_set_cts(dst_pck, pkt->pts + ctx->ts_shift);

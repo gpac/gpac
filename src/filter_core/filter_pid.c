@@ -709,6 +709,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 {
 	u32 i, count;
 	GF_Err e;
+	Bool refire_events=GF_FALSE;
 	Bool new_pid_inst=GF_FALSE;
 	Bool remove_filter=GF_FALSE;
 	GF_FilterPidInst *pidinst=NULL;
@@ -744,6 +745,8 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 				//and treat as new pid inst
 				if (ctype == GF_PID_CONF_CONNECT) {
 					new_pid_inst=GF_TRUE;
+					if (!pid->filter->nb_pids_playing && (pidinst->is_playing || pidinst->is_paused))
+						refire_events = GF_TRUE;
 				}
 				assert(pidinst->detach_pending);
 				safe_int_dec(&pidinst->detach_pending);
@@ -1093,6 +1096,22 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 	if (ctype==GF_PID_CONF_CONNECT) {
 		assert(pid->filter->out_pid_connection_pending);
 		if (safe_int_dec(&pid->filter->out_pid_connection_pending) == 0) {
+
+			//we must resent play/pause events when a new pid is reattached to an old pid instance
+			//in case one of the injected filter(s) monitors play state of the pids (eg reframers)
+			if (refire_events) {
+				GF_FilterEvent evt;
+				if (pidinst->is_playing) {
+					pidinst->is_playing = GF_FALSE;
+					GF_FEVT_INIT(evt, GF_FEVT_PLAY, (GF_FilterPid*)pidinst);
+					gf_filter_pid_send_event((GF_FilterPid *)pidinst, &evt);
+				}
+				if (pidinst->is_paused) {
+					pidinst->is_paused = GF_FALSE;
+					GF_FEVT_INIT(evt, GF_FEVT_PAUSE, (GF_FilterPid*)pidinst);
+					gf_filter_pid_send_event((GF_FilterPid *)pidinst, &evt);
+				}
+			}
 
 			if (e==GF_OK) {
 				//postponed packets dispatched by source while setting up PID, flush through process()
@@ -4238,7 +4257,8 @@ static void gf_filter_pid_init_task(GF_FSTask *task)
 	}
 	//this is a sink or a mux - only use ID if defined on filter whether explicitly loaded or not ( some filters e.g. dasher,flist will self-assign an ID)
 	else {
-		filter_id = filter->id;
+		//if clone use ID from clone otherwise linking will likely fail
+		filter_id = filter->cloned_from ? filter->cloned_from->id : filter->id;
 	}
 
 	//we lock the instantiated filter list for the entire resolution process

@@ -35,6 +35,7 @@
 #include <libavdevice/avdevice.h>
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
+#include <libavcodec/bsf.h>
 
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 #define AVFMT_URL(_mux) _mux->filename
@@ -54,6 +55,8 @@
 #define FF_INIT_PCK(ctx, _pkt) { pkt = ctx->pkt; }
 #define FF_OFMT_CAST
 #define FF_IFMT_CAST
+
+#define FFMPEG_HAS_BSF
 #endif
 
 
@@ -67,6 +70,9 @@ enum{
 	FF_REG_TYPE_ENCODE,
 	FF_REG_TYPE_MUX,
 	FF_REG_TYPE_AVF,
+#ifdef FFMPEG_HAS_BSF
+	FF_REG_TYPE_BSF,
+#endif
 };
 
 void ffmpeg_build_register(GF_FilterSession *session, GF_FilterRegister *orig_reg, const GF_FilterArgs *default_args, u32 nb_def_args, u32 reg_type);
@@ -104,3 +110,15 @@ GF_Err ffmpeg_extradata_to_gpac(u32 gpac_codec_id, const u8 *data, u32 size, u8 
 
 void ffmpeg_tags_from_gpac(GF_FilterPid *pid, AVDictionary **metadata);
 void ffmpeg_tags_to_gpac(AVDictionary *metadata, GF_FilterPid *pid);
+
+void ffmpeg_generate_gpac_dsi(GF_FilterPid *out_pid, u32 gpac_codec_id, u32 color_primaries, u32 transfer_characteristics, u32 colorspace, const u8 *data, u32 size);
+
+/*fills codecpar from pid properties. This assumes the codecpar was properly initialized.
+codec_id, codec_type, and extradata are NOT set by this function
+*/
+GF_Err ffmpeg_codec_par_from_gpac(GF_FilterPid *pid, AVCodecParameters *codecpar, u32 ffmpeg_timescale);
+
+/*sets pid properties from codecpar:
+codec_id, codec_type, and extradata are NOT set by this function
+*/
+GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid, u32 ffmpeg_timescale);

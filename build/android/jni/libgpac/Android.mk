@@ -184,6 +184,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/filters/encrypt_cenc_isma.c \
 	../../../../src/filters/ff_common.c \
 	../../../../src/filters/ff_avf.c \
+	../../../../src/filters/ff_bsf.c \
 	../../../../src/filters/ff_dec.c \
 	../../../../src/filters/ff_dmx.c \
 	../../../../src/filters/ff_enc.c \

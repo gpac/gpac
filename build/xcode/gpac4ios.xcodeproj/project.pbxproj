@@ -379,6 +379,7 @@
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
 		928E0BD828E2FC5F00F2BA27 /* unframer.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E0BD728E2FC5F00F2BA27 /* unframer.c */; };
+		928E0BDC28E43D8200F2BA27 /* ff_bsf.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E0BDB28E43D8200F2BA27 /* ff_bsf.c */; };
 		928EB67525271B5800E47747 /* rewrite_mhas.c in Sources */ = {isa = PBXBuildFile; fileRef = 928EB67425271B5800E47747 /* rewrite_mhas.c */; };
 		9290E74E25263F4F00BC0EE3 /* reframe_mhas.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290E74D25263F4E00BC0EE3 /* reframe_mhas.c */; };
 		92910FAA233A44110052365D /* jsfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92910FA9233A44110052365D /* jsfilter.c */; };
@@ -981,6 +982,7 @@
 		928B2D111BE11BC100CAC65D /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../extra_lib/lib/iOS/libcrypto.a; sourceTree = "<group>"; };
 		928B2D121BE11BC100CAC65D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../extra_lib/lib/iOS/libssl.a; sourceTree = "<group>"; };
 		928E0BD728E2FC5F00F2BA27 /* unframer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unframer.c; path = ../../src/filters/unframer.c; sourceTree = "<group>"; };
+		928E0BDB28E43D8200F2BA27 /* ff_bsf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_bsf.c; path = ../../src/filters/ff_bsf.c; sourceTree = "<group>"; };
 		928EB67425271B5800E47747 /* rewrite_mhas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rewrite_mhas.c; path = ../../src/filters/rewrite_mhas.c; sourceTree = "<group>"; };
 		9290E74D25263F4E00BC0EE3 /* reframe_mhas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mhas.c; path = ../../src/filters/reframe_mhas.c; sourceTree = "<group>"; };
 		92910FA9233A44110052365D /* jsfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jsfilter.c; path = ../../src/filters/jsfilter.c; sourceTree = "<group>"; };
@@ -1955,6 +1957,7 @@
 				92EB6D7A20E4E19200A97A49 /* ff_common.c */,
 				92EB6DBD20E4E19700A97A49 /* ff_common.h */,
 				928607142398F4C800FDA1ED /* ff_avf.c */,
+				928E0BDB28E43D8200F2BA27 /* ff_bsf.c */,
 				92EB6D7120E4E19200A97A49 /* ff_dec.c */,
 				92EB6DAC20E4E19600A97A49 /* ff_dmx.c */,
 				92EB6DC120E4E19700A97A49 /* ff_enc.c */,
@@ -2429,6 +2432,7 @@
 				71CCF2861277045100339E12 /* offscreen_cache.c in Sources */,
 				71CCF2881277045100339E12 /* svg_base.c in Sources */,
 				8959AC8A211C9C3C004D2C87 /* mux_gsf.c in Sources */,
+				928E0BDC28E43D8200F2BA27 /* ff_bsf.c in Sources */,
 				71CCF2891277045100339E12 /* svg_filters.c in Sources */,
 				71CCF28A1277045100339E12 /* svg_font.c in Sources */,
 				92EB6DCC20E4E19700A97A49 /* dec_openhevc.c in Sources */,

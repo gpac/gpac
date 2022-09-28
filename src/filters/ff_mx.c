@@ -831,6 +831,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	Bool check_disc = GF_FALSE;
 	u32 streamtype, codec_id;
 	u32 ff_codec_id, ff_st, ff_codec_tag;
+	GF_Err e;
 	const GF_PropertyValue *p, *dsi;
 	GF_FFMuxStream *st;
 	GF_FFMuxCtx *ctx = (GF_FFMuxCtx *) gf_filter_get_udta(filter);
@@ -1054,7 +1055,7 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	avst->codecpar->codec_tag = ff_codec_tag;
 
 	if (dsi && dsi->value.data.ptr) {
-		GF_Err e = ffmpeg_extradata_from_gpac(codec_id, dsi->value.data.ptr, dsi->value.data.size, &avst->codecpar->extradata, &avst->codecpar->extradata_size);
+		e = ffmpeg_extradata_from_gpac(codec_id, dsi->value.data.ptr, dsi->value.data.size, &avst->codecpar->extradata, &avst->codecpar->extradata_size);
 		if (e) return e;
 	}
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -1082,46 +1083,17 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_CTS_SHIFT);
 	st->cts_shift = p ? p->value.uint : 0;
 
-	if (streamtype==GF_STREAM_VISUAL) {
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH);
-		if (p) avst->codecpar->width = p->value.uint;
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_HEIGHT);
-		if (p) avst->codecpar->height = p->value.uint;
+	e = ffmpeg_codec_par_from_gpac(pid, avst->codecpar, st->in_scale.den);
+	if (e) return e;
 
+	if (streamtype==GF_STREAM_VISUAL) {
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_FPS);
 		if (p) {
 			avst->r_frame_rate.num = p->value.frac.num;
 			avst->r_frame_rate.den = p->value.frac.den;
 			avst->avg_frame_rate = avst->r_frame_rate;
 		}
-		if (codec_id==GF_CODECID_RAW) {
-			p = gf_filter_pid_get_property(pid, GF_PROP_PID_PIXFMT);
-			if (p) {
-				avst->codecpar->format = ffmpeg_pixfmt_from_gpac(p->value.uint, GF_FALSE);
-				avst->codecpar->codec_tag = avcodec_pix_fmt_to_codec_tag(avst->codecpar->format);
-			}
-		}
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_SAR);
-		if (p) {
-			avst->codecpar->sample_aspect_ratio.num = p->value.frac.num;
-			avst->codecpar->sample_aspect_ratio.den = p->value.frac.den;
-			avst->sample_aspect_ratio = avst->codecpar->sample_aspect_ratio;
-		}
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_PRIMARIES);
-		if (p) avst->codecpar->color_primaries = p->value.uint;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_RANGE);
-		if (p) avst->codecpar->color_range = (p->value.uint==1) ? AVCOL_RANGE_JPEG : AVCOL_RANGE_MPEG;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_TRANSFER);
-		if (p) avst->codecpar->color_trc = p->value.uint;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_MX);
-		if (p) avst->codecpar->color_space = p->value.uint;
-
-		p = gf_filter_pid_get_property(pid, GF_PROP_PID_COLR_CHROMALOC);
-		if (p) avst->codecpar->chroma_location = p->value.uint;
+		avst->sample_aspect_ratio = avst->codecpar->sample_aspect_ratio;
 	}
 	else if (streamtype==GF_STREAM_AUDIO) {
 		u64 ch_layout;
@@ -1140,12 +1112,12 @@ static GF_Err ffmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			if (p) avst->codecpar->format =  ffmpeg_audio_fmt_from_gpac(p->value.uint);
 		}
 
-		ch_layout = AV_CH_LAYOUT_MONO;
+		ch_layout = GF_AUDIO_CH_FRONT_CENTER;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_CHANNEL_LAYOUT);
 		if (p)
 			ch_layout = p->value.longuint;
 		else if (avst->codecpar->channels==2)
-			ch_layout = AV_CH_LAYOUT_STEREO;
+			ch_layout = GF_AUDIO_CH_FRONT_LEFT|GF_AUDIO_CH_FRONT_RIGHT;
 		avst->codecpar->channel_layout = ffmpeg_channel_layout_from_gpac(ch_layout);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);

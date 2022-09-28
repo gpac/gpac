@@ -1107,7 +1107,7 @@ redo_pass:
 	}
 }
 
-static void gpac_suggest_filter_arg(GF_Config *opts, char *argname, u32 atype)
+static void gpac_suggest_filter_arg(GF_Config *opts, const char *argname, u32 atype)
 {
 	char *keyname;
 	const char *keyval;
@@ -1206,12 +1206,21 @@ void gpac_check_session_args()
 {
 	GF_Config *opts = NULL;
 	u32 idx = 0;
-	char *argname;
+	const char *argname, *meta_name, *meta_opt;
 	u32 argtype;
 
 	while (1) {
-		if (gf_fs_enum_unmapped_options(session, &idx, &argname, &argtype)==GF_FALSE)
+		if (gf_fs_enum_unmapped_options(session, &idx, &argname, &argtype, &meta_name, &meta_opt)==GF_FALSE)
 			break;
+
+		if (meta_name) {
+			if (meta_opt) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Filter %s:%s value \"%s\" set but not used\n", meta_name, meta_opt, argname));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Filter %s:%s option set but not used\n", meta_name, argname));
+			}
+			continue;
+		}
 
 		if (!opts) {
 			const char *cfg_path = gf_opts_get_filename();

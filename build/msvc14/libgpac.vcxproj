@@ -284,6 +284,7 @@
     <ClCompile Include="..\..\src\filters\enc_png.c" />
     <ClCompile Include="..\..\src\filters\ff_common.c" />
     <ClCompile Include="..\..\src\filters\ff_avf.c" />
+    <ClCompile Include="..\..\src\filters\ff_bsf.c" />
     <ClCompile Include="..\..\src\filters\ff_dec.c" />
     <ClCompile Include="..\..\src\filters\ff_dmx.c" />
     <ClCompile Include="..\..\src\filters\ff_enc.c" />

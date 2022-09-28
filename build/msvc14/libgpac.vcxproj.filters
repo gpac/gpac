@@ -1568,6 +1568,9 @@
     <ClCompile Include="..\..\src\filters\ff_avf.c">
       <Filter>filters</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\filters\ff_bsf.c">
+      <Filter>filters</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\evg\raster3d.c">
       <Filter>evg</Filter>
     </ClCompile>
