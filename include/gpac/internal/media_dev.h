@@ -304,6 +304,8 @@ typedef struct
 
 	//if set all video info is removed
 	Bool remove_video_info;
+	//if set timing info is removed
+	Bool remove_vui_timing_info;
 	//new fullrange, -1 to use info from bitstream
 	s32 fullrange;
 	//new vidformat flag, -1 to use info from bitstream
