@@ -76,6 +76,7 @@ struct s_playlistElement {
 	char *title;
 	char *codecs;
 	char *language;
+	char *name;
 	char *audio_group;
 	char *video_group;
 	char *url;
@@ -84,6 +85,7 @@ struct s_playlistElement {
 	//informative UTC start time
 	u64 utc_start_time;
 	u32 discontinuity;
+	u32 channels;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;

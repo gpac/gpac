@@ -1518,6 +1518,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 	mpd->time_shift_buffer_depth = (u32) -1; /*infinite by default*/
 	mpd->type = is_end ? GF_MPD_TYPE_STATIC : GF_MPD_TYPE_DYNAMIC;
+	mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 
 
 	sep = strrchr(m3u8_file, '/');
@@ -1765,7 +1766,8 @@ try_next_segment:
 
 			width = pe->width;
 			height = pe->height;
-			samplerate = num_channels = 0;
+			samplerate = 0;
+			num_channels = pe->channels;
 
 retry_import:
 
@@ -1869,6 +1871,10 @@ retry_import:
 			/*get rid of level 0 aac*/
 			if (elt && strstr(elt->url, ".aac"))
 				rep->playback.disabled = GF_TRUE;
+
+			//if hls advertises more than our importer, use hls info (some files signal always stereo in audio sample entry)
+			if (num_channels && pe->channels && (num_channels<pe->channels))
+				num_channels = pe->channels;
 
 			e = gf_list_add(set->representations, rep);
 			if (e) return e;

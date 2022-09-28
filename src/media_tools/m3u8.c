@@ -40,6 +40,8 @@ typedef struct _s_accumulated_attributes {
 	int stream_id;
 	char *codecs;
 	char *language;
+	char *name;
+	u32 channels;
 	MediaType type;
 	union {
 		char *audio;
@@ -55,6 +57,8 @@ typedef struct _s_accumulated_attributes {
 	Bool is_master_playlist;
 	Bool is_media_segment;
 	Bool is_playlist_ended;
+	Bool is_default;
+	Bool is_autoselect;
 	u64 playlist_utc_timestamp;
 	u64 byte_range_start, byte_range_end;
 	u64 init_byte_range_start, init_byte_range_end;
@@ -102,6 +106,9 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 	}
 	if (e->language) {
 		gf_free(e->language);
+	}
+	if (e->name) {
+		gf_free(e->name);
 	}
 	if (e->audio_group) {
 		gf_free(e->audio_group);
@@ -155,6 +162,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->title = (attribs->title ? gf_strdup(attribs->title) : NULL);
 	e->codecs = (attribs->codecs ? gf_strdup(attribs->codecs) : NULL);
 	e->language = (attribs->language ? gf_strdup(attribs->language) : NULL);
+	e->name = (attribs->name ? gf_strdup(attribs->name) : NULL);
 	e->drm_method = attribs->key_method;
 	e->init_segment_url = attribs->init_url ? gf_strdup(attribs->init_url) : NULL;
 	e->init_byte_range_start = attribs->init_byte_range_start;
@@ -196,6 +204,8 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 				gf_free(e->codecs);
 			if (e->language)
 				gf_free(e->language);
+			if (e->name)
+				gf_free(e->name);
 			if (e->audio_group)
 				gf_free(e->audio_group);
 			if (e->video_group)
@@ -210,6 +220,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 			e->title = NULL;
 			e->codecs = NULL;
 			e->language = NULL;
+			e->name = NULL;
 			e->audio_group = NULL;
 			e->video_group = NULL;
 			e->key_uri = NULL;
@@ -692,26 +703,31 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Misformed #EXT-X-MEDIA:LANGUAGE=%s. Quotes are incorrect.\n", ret[i]+5));
 				}
 			} else if (safe_start_equals("NAME=", ret[i])) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-MEDIA:NAME not supported\n"));
-				//attributes->name = gf_strdup(ret[i]+5);
+				if (attributes->name) gf_free(attributes->name);
+				attributes->name = gf_strdup(ret[i]+5+1);
+				u32 len = (u32) strlen(attributes->name);
+				if (len) attributes->name[len-1]=0;
 			} else if (safe_start_equals("DEFAULT=", ret[i])) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-MEDIA:DEFAULT not supported\n"));
 				if (!strncmp(ret[i]+8, "YES", 3)) {
-					//TODO
+					attributes->is_default = GF_TRUE;
 				} else if (!strncmp(ret[i]+8, "NO", 2)) {
-					//TODO
+					attributes->is_default = GF_FALSE;
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:DEFAULT=%s\n", ret[i]+8));
 				}
 			} else if (safe_start_equals("AUTOSELECT=", ret[i])) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-MEDIA:AUTOSELECT not supported\n"));
 				if (!strncmp(ret[i]+11, "YES", 3)) {
-					//TODO
+					attributes->is_autoselect = GF_TRUE;
 				} else if (!strncmp(ret[i]+11, "NO", 2)) {
-					//TODO
+					attributes->is_autoselect = GF_TRUE;
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:AUTOSELECT=%s\n", ret[i]+11));
 				}
+			} else if (safe_start_equals("CHANNELS=", ret[i])) {
+				sscanf(ret[i] + 9, "\"%u\"", &attributes->channels);
+
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Attribute %s not supported\n", ret[i]));
 			}
 
 			i++;
@@ -937,6 +953,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			gf_list_add(stream->variants, curr_playlist);
 			curr_playlist->width = attribs->width;
 			curr_playlist->height = attribs->height;
+			curr_playlist->channels = attribs->channels;
 		} else {
 			/* Normal Playlist */
 			assert((*playlist)->streams);
@@ -1020,6 +1037,8 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	attribs->playlist_utc_timestamp = 0;
 	attribs->bandwidth = 0;
 	attribs->stream_id = 0;
+	attribs->is_default = 0;
+	attribs->is_autoselect = 0;
 	if (attribs->codecs != NULL) {
 		gf_free(attribs->codecs);
 		attribs->codecs = NULL;
@@ -1027,6 +1046,10 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	if (attribs->language != NULL) {
 		gf_free(attribs->language);
 		attribs->language = NULL;
+	}
+	if (attribs->name != NULL) {
+		gf_free(attribs->name);
+		attribs->name = NULL;
 	}
 	if (attribs->group.audio != NULL) {
 		gf_free(attribs->group.audio);
