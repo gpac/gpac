@@ -56,7 +56,8 @@
 #define FF_IFMT_CAST
 #endif
 
-#if (LIBAVCODEC_VERSION_MAJOR > 57)
+//consider stable bsf api after major version 59
+#if (LIBAVCODEC_VERSION_MAJOR > 58)
 #define FFMPEG_HAS_BSF
 #include <libavcodec/bsf.h>
 #endif
