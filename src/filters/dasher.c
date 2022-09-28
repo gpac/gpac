@@ -170,7 +170,7 @@ typedef struct
 	//inherited from mp4mx
 	GF_Fraction cdur;
 	Bool ll_preload_hint, ll_rend_rep;
-	Bool gencues, force_init;
+	Bool gencues, force_init, gxns;
 	Double ll_part_hb;
 	u32 hls_absu;
 
@@ -1668,6 +1668,7 @@ static GF_Err dasher_setup_mpd(GF_DasherCtx *ctx)
 	ctx->mpd->locations = gf_list_new();
 	ctx->mpd->program_infos = gf_list_new();
 	ctx->mpd->periods = gf_list_new();
+	ctx->mpd->use_gpac_ext = ctx->gxns;
 	//created by default because we store xmlns in it
 	ctx->mpd->x_attributes = gf_list_new();
 	if (ctx->buf<0) {
@@ -8654,6 +8655,10 @@ static GF_Err dasher_process(GF_Filter *filter)
 				ds->current_seg_state->encrypted = GF_TRUE;
 			//TODO check drift between MPD start time and min CTS in segment (not just first CTS in segment)
 
+			if (ctx->gxns && !ds->rep->first_tfdt_plus_one && !ds->muxed_base) {
+				ds->rep->first_tfdt_plus_one = 1 + gf_filter_pck_get_dts(dst);
+				ds->rep->first_tfdt_timescale = ds->timescale;
+			}
 			//send packet
 			gf_filter_pck_send(dst);
 
@@ -9564,6 +9569,7 @@ static const GF_FilterArgs DasherArgs[] =
 	{ OFFS(gencues), "only insert segment boundaries and do not generate manifests", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(force_init), "force init segment creation in bitstream switching mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(keep_src), "keep source URLs in manifest generation mode", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(gxns), "insert some gpac extensions in manifest (for now, only tfdt of first segment)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 
 	{0}
 };
