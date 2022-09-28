@@ -55,7 +55,9 @@
 #define FF_INIT_PCK(ctx, _pkt) { pkt = ctx->pkt; }
 #define FF_OFMT_CAST
 #define FF_IFMT_CAST
+#endif
 
+#if (LIBAVCODEC_VERSION_MAJOR > 57)
 #define FFMPEG_HAS_BSF
 #endif
 
