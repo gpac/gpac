@@ -6359,7 +6359,7 @@ static u8 avc_hevc_get_sar_idx(u32 w, u32 h)
 	return 0xFF;
 }
 
-static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, GF_BitStream *mod, Bool is_vvc)
+static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, GF_BitStream *mod, GF_CodecID codec)
 {
 	/* VUI present flag*/
 	Bool vui_present_flag = gf_bs_read_int(orig, 1);
@@ -6377,6 +6377,20 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	u32 colour_primaries = 2;
 	u32 transfer_characteristics = 2;
 	u32 matrix_coefficients = 2;
+	//HEVC
+	Bool neutral_chroma_indication_flag = GF_FALSE;
+	Bool field_seq_flag = GF_FALSE;
+	Bool frame_field_info_present_flag = GF_FALSE;
+	Bool default_display_window_flag = GF_FALSE;
+	u32 def_disp_win_left_offset = 0;
+	u32 def_disp_win_right_offset = 0;
+	u32 def_disp_win_top_offset = 0;
+	u32 def_disp_win_bottom_offset = 0;
+	//AVC & HEVC
+	Bool timing_info_present_flag = GF_FALSE;
+	//HEVC
+	Bool poc_proportional_to_timing_flag = GF_FALSE;
+	Bool vui_hrd_parameters_present_flag = GF_FALSE;
 	//VVC
 	Bool progressive_source_flag = 1;
 	Bool interlaced_source_flag = 0;
@@ -6385,14 +6399,14 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	Bool aspect_ratio_constant_flag = 1;
 	u32 vui_start_pos = 0;
 	u32 orig_vvc_payload_size = 0;
-	Bool vui_chroma_loc_info_present_flag=0;
-	u32 chroma_loc1=0, chroma_loc2=0;
+	Bool vui_chroma_loc_info_present_flag = 0;
+	u32 chroma_loc1=0, chroma_loc2 = 0;
 	u32 final_vvc_payload_size = 8; //4 first bits + 4 flags (ar, overscan and colour desc, chroma pos)
 	u32 mod_vui_start_pos = 0;
 
 	//if VUI is present, read all SAR and overscan values
 	if (vui_present_flag) { /* VUI found in input bitstream */
-		if (is_vvc) {
+		if (codec == GF_CODECID_VVC) {
 			//align
 			orig_vvc_payload_size = 8 * ( 1 + gf_bs_read_ue(orig) );
 			gf_bs_align(orig);
@@ -6406,7 +6420,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		aspect_ratio_info_present_flag = gf_bs_read_int(orig, 1);
 
 		if (aspect_ratio_info_present_flag) {
-			if (is_vvc) {
+			if (codec == GF_CODECID_VVC) {
 				aspect_ratio_constant_flag = gf_bs_read_int(orig, 1);
 			}
 			aspect_ratio_idc = gf_bs_read_int(orig, 8); /*aspect_ratio_idc*/
@@ -6426,7 +6440,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		video_signal_type_present_flag = gf_bs_read_int(orig, 1);
 
 		if (video_signal_type_present_flag) {
-			if (!is_vvc) {
+			if (codec != GF_CODECID_VVC) {
 				video_format = gf_bs_read_int(orig, 3);
 				video_full_range_flag = gf_bs_read_int(orig, 1);
 				colour_description_present_flag = gf_bs_read_int(orig, 1);
@@ -6438,13 +6452,25 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				colour_primaries = gf_bs_read_int(orig, 8);
 				transfer_characteristics = gf_bs_read_int(orig, 8);
 				matrix_coefficients = gf_bs_read_int(orig, 8);
-				if (is_vvc) {
+				if (codec == GF_CODECID_VVC) {
 					video_full_range_flag = gf_bs_read_int(orig, 1);
 				}
 			}
 		}
 
-		if (is_vvc) {
+		if (codec == GF_CODECID_HEVC) {
+			neutral_chroma_indication_flag = gf_bs_read_int(orig, 1);
+			field_seq_flag = gf_bs_read_int(orig, 1);
+			frame_field_info_present_flag = gf_bs_read_int(orig, 1);
+			default_display_window_flag = gf_bs_read_int(orig, 1);
+			if (default_display_window_flag) {
+				def_disp_win_left_offset = gf_bs_read_ue(orig);
+				def_disp_win_right_offset = gf_bs_read_ue(orig);
+				def_disp_win_top_offset = gf_bs_read_ue(orig);
+				def_disp_win_bottom_offset = gf_bs_read_ue(orig);
+			}
+		}
+		if (codec == GF_CODECID_VVC) {
 			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
 			if (vui_chroma_loc_info_present_flag) {
 				if (progressive_source_flag && !interlaced_source_flag) {
@@ -6452,6 +6478,63 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				} else {
 					chroma_loc1 = gf_bs_read_ue(orig);
 					chroma_loc2 = gf_bs_read_ue(orig);
+				}
+			}
+		} else { //AVC, HEVC
+			timing_info_present_flag = gf_bs_read_int(orig, 1);
+			if (timing_info_present_flag) {
+				/*num_units_in_tick = */gf_bs_read_int(orig, 32);
+				/*time_scale = */gf_bs_read_int(orig, 32);
+				if (codec == GF_CODECID_AVC) {
+					/*fixed_frame_rate_flag = */gf_bs_read_int(orig, 1);
+				} else if (codec == GF_CODECID_HEVC) {
+					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
+					if (poc_proportional_to_timing_flag)
+						/*vui_num_ticks_poc_diff_one_minus1 = */gf_bs_read_ue(orig);
+					vui_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+					if (vui_hrd_parameters_present_flag) {
+						//hrd_parameters(1, sps_max_sub_layers_minus1)
+						const Bool commonInfPresentFlag = GF_TRUE;
+						//const int maxNumSubLayersMinus1 = 0; // typical value: actual value is located in SPS
+						if (commonInfPresentFlag) {
+							Bool nal_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+							Bool vcl_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
+							if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
+								Bool sub_pic_hrd_params_present_flag = gf_bs_read_int(orig, 1);
+								if (sub_pic_hrd_params_present_flag) {
+								/*tick_divisor_minus2 = */gf_bs_read_int(orig, 8);
+								/*du_cpb_removal_delay_increment_length_minus1 = */gf_bs_read_int(orig, 5);
+								/*sub_pic_cpb_params_in_pic_timing_sei_flag = */gf_bs_read_int(orig, 1);
+								/*dpb_output_delay_du_length_minus1 = */gf_bs_read_int(orig, 5);
+							}
+							/*bit_rate_scale = */gf_bs_read_int(orig, 4);
+							/*cpb_size_scale = */gf_bs_read_int(orig, 4);
+							if (sub_pic_hrd_params_present_flag)
+								/*cpb_size_du_scale = */gf_bs_read_int(orig, 4);
+								/*initial_cpb_removal_delay_length_minus1 = */gf_bs_read_int(orig, 5);
+								/*au_cpb_removal_delay_length_minus1 = */gf_bs_read_int(orig, 5);
+								/*dpb_output_delay_length_minus1 = */gf_bs_read_int(orig, 5);
+							}
+						}
+#if 0 //see comment above
+						for (i = 0; i <= maxNumSubLayersMinus1; ++i) {
+							low_delay_hrd_flag = GF_FALSE;
+							fixed_pic_rate_general_flag/*[i]*/ = gf_bs_read_int(orig, 1);
+							if (!fixed_pic_rate_general_flag/*[i]*/)
+								/*fixed_pic_rate_within_cvs_flag[i] = */gf_bs_read_int(orig, 1);
+							if (fixed_pic_rate_within_cvs_flag/*[i]*/)
+								/*elemental_duration_in_tc_minus1[i] = */gf_bs_read_ue(orig, 1);
+							else
+								low_delay_hrd_flag/*[i]*/ = gf_bs_read_int(orig, 1);
+							if (!low_delay_hrd_flag/*[i]*/)
+								cpb_cnt_minus1[i]gf_bs_read_ue(orig, 1);
+							if (nal_hrd_parameters_present_flag )
+								sub_layer_hrd_parameters(i);
+							if (vcl_hrd_parameters_present_flag )
+								sub_layer_hrd_parameters(i);
+						}
+#endif
+					}
 				}
 			}
 		}
@@ -6476,7 +6559,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		ar_n = vui_info->ar_num;
 		ar_d = vui_info->ar_den;
 		aspect_ratio_idc = avc_hevc_get_sar_idx((u32) ar_n, (u32) ar_d);
-		if (is_vvc) {
+		if (codec == GF_CODECID_VVC) {
 			final_vvc_payload_size += 9;
 			if (aspect_ratio_idc==0xFF)
 				final_vvc_payload_size += 32;
@@ -6507,7 +6590,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				video_signal_type_present_flag = 0;
 		}
 
-		if (is_vvc) {
+		if (codec == GF_CODECID_VVC) {
 			if (!video_full_range_flag && !colour_description_present_flag) {
 				video_signal_type_present_flag = 0;
 			} else {
@@ -6516,7 +6599,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 	}
 
-	if (is_vvc && vui_chroma_loc_info_present_flag) {
+	if (codec == GF_CODECID_VVC && vui_chroma_loc_info_present_flag) {
 		if (progressive_source_flag && !interlaced_source_flag) {
 			final_vvc_payload_size += gf_get_ue_nb_bits(chroma_loc1);
 		} else {
@@ -6527,7 +6610,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 	//always rewrite VUI
 	gf_bs_write_int(mod, 1, 1);
-	if (is_vvc) {
+	if (codec == GF_CODECID_VVC) {
 		while (final_vvc_payload_size%8)
 			final_vvc_payload_size++;
 		final_vvc_payload_size/=8;
@@ -6545,7 +6628,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 	gf_bs_write_int(mod, aspect_ratio_info_present_flag, 1);
 	if (aspect_ratio_info_present_flag) {
-		if (is_vvc)
+		if (codec == GF_CODECID_VVC)
 			gf_bs_write_int(mod, aspect_ratio_constant_flag, 1);
 
 		gf_bs_write_int(mod, aspect_ratio_idc, 8);
@@ -6565,7 +6648,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 	gf_bs_write_int(mod, video_signal_type_present_flag, 1);
 	if (video_signal_type_present_flag) {
-		if (!is_vvc) {
+		if (codec != GF_CODECID_VVC) {
 			gf_bs_write_int(mod, video_format, 3);
 			gf_bs_write_int(mod, video_full_range_flag, 1);
 			gf_bs_write_int(mod, colour_description_present_flag, 1);
@@ -6577,7 +6660,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_write_int(mod, colour_primaries, 8);
 			gf_bs_write_int(mod, transfer_characteristics, 8);
 			gf_bs_write_int(mod, matrix_coefficients, 8);
-			if (is_vvc)
+			if (codec == GF_CODECID_VVC)
 				gf_bs_write_int(mod, video_full_range_flag, 1);
 		}
 
@@ -6592,7 +6675,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 	}
 
-	if (is_vvc) {
+	if (codec == GF_CODECID_VVC) {
 		//write vui_chroma_loc_info_present_flag
 		gf_bs_write_int(mod, vui_chroma_loc_info_present_flag, 1);
 		if (vui_chroma_loc_info_present_flag) {
@@ -6645,6 +6728,23 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_align(mod);
 		}
 		return;
+	} else {
+		if (codec == GF_CODECID_HEVC) {
+			gf_bs_write_int(mod, neutral_chroma_indication_flag, 1);
+			gf_bs_write_int(mod, field_seq_flag, 1);
+			gf_bs_write_int(mod, frame_field_info_present_flag, 1);
+			gf_bs_write_int(mod, default_display_window_flag, 1);
+			if (default_display_window_flag) {
+				 gf_bs_write_ue(mod, def_disp_win_left_offset);
+				 gf_bs_write_ue(mod, def_disp_win_right_offset);
+				 gf_bs_write_ue(mod, def_disp_win_top_offset);
+				 gf_bs_write_ue(mod, def_disp_win_bottom_offset);
+			}
+		}
+
+		if (vui_info->remove_vui_timing_info) {
+			gf_bs_write_int(mod, 0, 1);
+		}
 	}
 
 	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
@@ -6699,7 +6799,7 @@ GF_Err gf_avc_change_vui(GF_AVCConfig *avcc, GF_VUIInfo *vui_info)
 			bit_offset--;
 		}
 
-		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_FALSE);
+		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_CODECID_AVC);
 
 		/*finally copy over remaining*/
 		while (gf_bs_bits_available(orig)) {
@@ -8705,7 +8805,7 @@ GF_Err gf_hevc_change_vui(GF_HEVCConfig *hvcc, GF_VUIInfo *vui_info)
 			bit_offset--;
 		}
 
-		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_FALSE);
+		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_CODECID_HEVC);
 
 		/*finally copy over remaining*/
 		while (gf_bs_bits_available(orig)) {
@@ -12002,7 +12102,7 @@ GF_Err gf_vvc_change_vui(GF_VVCConfig *vvcc, GF_VUIInfo *vui_info)
 			bit_offset--;
 		}
 
-		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_TRUE);
+		avc_hevc_vvc_rewrite_vui(vui_info, orig, mod, GF_CODECID_VVC);
 
 		/*finally copy over remaining*/
 		while (gf_bs_bits_available(orig)) {

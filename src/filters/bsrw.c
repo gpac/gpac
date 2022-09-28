@@ -54,7 +54,7 @@ struct _bsrw_ctx
 	GF_Fraction sar;
 	s32 m4vpl, prof, lev, pcomp, pidc, pspace, gpcflags;
 	s32 cprim, ctfc, cmx, vidfmt;
-	Bool rmsei, fullrange, novsi;
+	Bool rmsei, fullrange, novsi, novuitiming;
 
 	GF_List *pids;
 	Bool reconfigure;
@@ -421,6 +421,7 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	pctx->vui.color_prim = ctx->cprim;
 	pctx->vui.fullrange = ctx->fullrange;
 	pctx->vui.remove_video_info = ctx->novsi;
+	pctx->vui.remove_vui_timing_info = ctx->novuitiming;
 	pctx->vui.color_tfc = ctx->ctfc;
 	pctx->vui.video_format = ctx->vidfmt;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -432,6 +433,7 @@ static void init_vui(GF_BSRWCtx *ctx, BSRWPid *pctx)
 	if (ctx->cprim>-1) return;
 	if (ctx->fullrange) return;
 	if (ctx->novsi) return;
+	if (ctx->novuitiming) return;
 	if (ctx->ctfc>-1) return;
 	if (ctx->vidfmt>-1) return;
 	//all default
@@ -659,6 +661,7 @@ static GF_FilterArgs BSRWArgs[] =
 	{ OFFS(m4vpl), "set ProfileLevel for MPEG-4 video part two", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(fullrange), "video full range flag", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(novsi), "remove video_signal_type from VUI in AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
+	{ OFFS(novuitiming), "remove timing_info from VUI in AVC|H264 and HEVC", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(prof), "profile indication for AVC|H264", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(lev), "level indication for AVC|H264, level_idc for VVC", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
 	{ OFFS(pcomp), "profile compatibility for AVC|H264", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_UPDATE},
