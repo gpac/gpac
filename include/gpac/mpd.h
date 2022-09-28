@@ -653,6 +653,10 @@ typedef struct {
 
 	/*! target part (cmaf chunk) duration for HLS LL*/
 	Double hls_ll_part_dur;
+
+	/*! tfdt of first segment*/
+	u64 first_tfdt_plus_one;
+	u32 first_tfdt_timescale;
 } GF_MPD_Representation;
 
 /*! AdaptationSet*/
@@ -877,6 +881,7 @@ typedef struct {
 
 	/*! indicates the GPAC state info should be written*/
 	Bool write_context;
+	Bool use_gpac_ext;
 	/*! indicates this is the last static serialization of a previously dynamic MPD*/
 	Bool was_dynamic;
 	/*! indicates the HLS variant files shall be created, otherwise temp files are used*/

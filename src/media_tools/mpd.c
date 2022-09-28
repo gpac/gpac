@@ -3141,6 +3141,10 @@ static void gf_mpd_print_representation(GF_MPD_Representation *rep, FILE *out, B
 	if (rep->quality_ranking) gf_fprintf(out, " qualityRanking=\"%d\"", rep->quality_ranking);
 	if (rep->dependency_id) gf_fprintf(out, " dependencyId=\"%s\"", rep->dependency_id);
 	if (rep->media_stream_structure_id) gf_fprintf(out, " mediaStreamStructureId=\"%s\"", rep->media_stream_structure_id);
+	if (rep->first_tfdt_plus_one) {
+		gf_fprintf(out, " gpac:first_tfdt=\""LLU"\"", rep->first_tfdt_plus_one-1);
+		gf_fprintf(out, " gpac:tfdt_timescale=\""LLU"\"", rep->first_tfdt_timescale);
+	}
 
 	if (bck_codecs) {
 		gf_free(rep->codecs);
@@ -4150,7 +4154,7 @@ GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out, Bool compact)
 	mpd_write_generation_comment(mpd, out);
 	gf_fprintf(out, "<MPD xmlns=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"));
 
-	if (mpd->write_context) {
+	if (mpd->write_context || mpd->use_gpac_ext) {
 	 	gf_fprintf(out, " xmlns:gpac=\"urn:gpac:filters:dasher:2018\"" );
 	}
 
