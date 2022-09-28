@@ -35,7 +35,6 @@
 #include <libavdevice/avdevice.h>
 #include <libswscale/swscale.h>
 #include <libavutil/channel_layout.h>
-#include <libavcodec/bsf.h>
 
 #if (LIBAVFORMAT_VERSION_MAJOR < 59)
 #define AVFMT_URL(_mux) _mux->filename
@@ -59,6 +58,7 @@
 
 #if (LIBAVCODEC_VERSION_MAJOR > 57)
 #define FFMPEG_HAS_BSF
+#include <libavcodec/bsf.h>
 #endif
 
 
