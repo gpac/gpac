@@ -2758,7 +2758,8 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
 	if ((int)ms->start_number >= 0) gf_fprintf(out, " startNumber=\"%d\"", ms->start_number);
-	if (ms->duration) gf_fprintf(out, " duration=\""LLD"\"", ms->duration);
+	//"The attribute @duration and the element SegmentTimeline shall not be present at the same time" ...
+	if (ms->duration && !ms->segment_timeline) gf_fprintf(out, " duration=\""LLD"\"", ms->duration);
 
 
 	if (!ms->bitstream_switching_url && !ms->segment_timeline && !ms->initialization_segment && !ms->representation_index) {
