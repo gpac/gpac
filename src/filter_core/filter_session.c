@@ -427,7 +427,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 			if ((arg[1]!='-') && (arg[1]!='+')) continue;
 			char *sep = strchr(arg, '=');
 			if (sep) sep[0] = 0;
-			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]=='-') ? GF_ARGTYPE_GLOBAL : GF_ARGTYPE_META, NULL);
+			gf_fs_push_arg(fsess, arg+2, GF_FALSE, (arg[1]=='-') ? GF_ARGTYPE_GLOBAL : GF_ARGTYPE_META, NULL, NULL);
 
 			//force indexing in reframers when dash template with bandwidth is used
 			if (sep && !strcmp(arg+2, "template") && strstr(sep+1, "$Bandwidth$")) {
@@ -447,7 +447,7 @@ GF_FilterSession *gf_fs_new(s32 nb_threads, GF_FilterSchedulerType sched_type, u
 	return fsess;
 }
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter)
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter, const char *sub_opt_name)
 {
 	u32 meta_len = meta_filter ? (u32) strlen(meta_filter->freg->name) : 0;
 	Bool create_if_not_found = GF_TRUE;
@@ -455,69 +455,66 @@ void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found
 		return;
 
 	//ignore any meta argument reported (found or not) that is not already present
-	if (type==GF_ARGTYPE_META_REPORTING) {
+	//if sub_opt_name, we must create an entry
+	if (!sub_opt_name && (type==GF_ARGTYPE_META_REPORTING)) {
 		create_if_not_found = GF_FALSE;
 	}
-	if (!was_found) {
-		Bool afound = GF_FALSE;
-		u32 k, acount;
-		if (!session->parsed_args) session->parsed_args = gf_list_new();
-		acount = gf_list_count(session->parsed_args);
-		for (k=0; k<acount; k++) {
-			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
-			if (!strcmp(ai->argname, szArg)) {
-				afound = GF_TRUE;
-				break;
+	if (!session->parsed_args) session->parsed_args = gf_list_new();
+
+	u32 k, acount = gf_list_count(session->parsed_args);
+	GF_FSArgItem *ai=NULL;
+	for (k=0; k<acount; k++) {
+		ai = gf_list_get(session->parsed_args, k);
+		if (!strcmp(ai->argname, szArg))
+			break;
+
+		if (meta_len
+			&& !strncmp(ai->argname, meta_filter->freg->name, meta_len)
+			&& ((ai->argname[meta_len]==':') || (ai->argname[meta_len]=='@'))
+			&& !strcmp(ai->argname+meta_len+1, szArg)
+		) {
+			break;
+		}
+		ai = NULL;
+	}
+	if (!ai && create_if_not_found) {
+		GF_SAFEALLOC(ai, GF_FSArgItem);
+		if (ai) {
+			ai->argname = gf_strdup(szArg);
+			ai->type = type;
+			if ((type==GF_ARGTYPE_META_REPORTING) && meta_filter) {
+				ai->meta_filter = meta_filter->freg->name;
+				ai->meta_opt = sub_opt_name;
 			}
-			if (meta_len
-				&& !strncmp(ai->argname, meta_filter->freg->name, meta_len)
-				&& ((ai->argname[meta_len]==':') || (ai->argname[meta_len]=='@'))
-				&& !strcmp(ai->argname+meta_len+1, szArg)
-			) {
-				afound = GF_TRUE;
-				break;
+			gf_list_add(session->parsed_args, ai );
+		}
+	}
+	if (!ai) return;
+
+	if (type==GF_ARGTYPE_META_REPORTING) {
+		//meta option declared as true by default at init but notified as not found
+		if (ai->meta_state==3) {
+			ai->meta_state = 0;
+			if (!was_found) ai->opt_found = 0;
+		}
+		if (!ai->meta_state) {
+			ai->opt_found = 0;
+			ai->meta_state = 1;
+			if (!ai->meta_filter) {
+				ai->meta_filter = meta_filter->freg->name;
+				ai->meta_opt = sub_opt_name;
 			}
 		}
-		if (!afound && create_if_not_found) {
-			GF_FSArgItem *ai;
-			GF_SAFEALLOC(ai, GF_FSArgItem);
-			if (ai) {
-				ai->argname = gf_strdup(szArg);
-				ai->type = type;
-				gf_list_add(session->parsed_args, ai );
-			}
-		}
-	} else {
-		u32 k, acount;
-		Bool found = GF_FALSE;
-		if (!session->parsed_args) session->parsed_args = gf_list_new();
-		acount = gf_list_count(session->parsed_args);
-		for (k=0; k<acount; k++) {
-			GF_FSArgItem *ai = gf_list_get(session->parsed_args, k);
-			if (!strcmp(ai->argname, szArg)) {
-				ai->found = was_found;
-				found = GF_TRUE;
-				break;
-			}
-			if (meta_len
-				&& !strncmp(ai->argname, meta_filter->freg->name, meta_len)
-				&& ((ai->argname[meta_len]==':') || (ai->argname[meta_len]=='@'))
-				&& !strcmp(ai->argname+meta_len+1, szArg)
-			) {
-				ai->found = was_found;
-				found = GF_TRUE;
-				break;
-			}
-		}
-		if (!found && create_if_not_found) {
-			GF_FSArgItem *ai;
-			GF_SAFEALLOC(ai, GF_FSArgItem);
-			if (ai) {
-				ai->argname = gf_strdup(szArg);
-				ai->type = type;
-				ai->found = GF_TRUE;
-				gf_list_add(session->parsed_args, ai );
-			}
+		if (was_found)
+			ai->meta_state = 2;
+	} else if (was_found && !ai->meta_state) {
+		ai->opt_found = 1;
+		//initial declaration from filter setup: meta args are declared as true by default
+		if (type==GF_ARGTYPE_LOCAL) {
+			//forbid further meta state change
+			ai->meta_state = 1;
+			//meta option, mark as not found
+			if (meta_filter) ai->meta_state = 3;
 		}
 	}
 }
@@ -678,7 +675,7 @@ void gf_propalloc_del(void *it)
 
 
 GF_EXPORT
-Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argname, u32 *argtype)
+Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, const char **argname, u32 *argtype, const char **meta_filter, const char **meta_sub_opt)
 {
 	if (!fsess || !fsess->parsed_args) return GF_FALSE;
 	u32 i, count = gf_list_count(fsess->parsed_args);
@@ -686,9 +683,11 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *fsess, u32 *idx, char **argna
 	for (i=*idx; i<count; i++) {
 		GF_FSArgItem *ai = gf_list_get(fsess->parsed_args, i);
 		(*idx)++;
-		if (ai->found) continue;
+		if (ai->opt_found || (ai->meta_state==2)) continue;
 		if (argname) *argname = ai->argname;
 		if (argtype) *argtype = ai->type;
+		if (meta_filter) *meta_filter = ai->meta_filter;
+		if (meta_sub_opt) *meta_sub_opt = ai->meta_opt;
 		return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -2697,13 +2696,13 @@ GF_EXPORT
 void gf_fs_print_unused_args(GF_FilterSession *fsess, const char *ignore_args)
 {
 	u32 idx = 0;
-	char *argname;
+	const char *argname;
 	u32 argtype;
 
 	while (1) {
 		Bool found = GF_FALSE;
 		const char *loc_arg;
-		if (gf_fs_enum_unmapped_options(fsess, &idx, &argname, &argtype)==GF_FALSE)
+		if (gf_fs_enum_unmapped_options(fsess, &idx, &argname, &argtype, NULL, NULL)==GF_FALSE)
 			break;
 
 		loc_arg = ignore_args;

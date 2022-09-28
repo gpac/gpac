@@ -700,7 +700,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 
 			//avc/hevc read by ffmpeg is still in annex B format
 			if (ctx->demuxer->iformat) {
-				if (!strcmp(ctx->demuxer->iformat->name, "h264") || !strcmp(ctx->demuxer->iformat->name, "hevc")) {
+				if (!strcmp(ctx->demuxer->iformat->name, "h264")
+					|| !strcmp(ctx->demuxer->iformat->name, "hevc")
+					|| !strcmp(ctx->demuxer->iformat->name, "vvc")
+				) {
 					force_reframer = 1;
 				}
 			}
@@ -1025,8 +1028,9 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	//not setting this crashes some probers in ffmpeg
 	pb.filename = "";
 	if (size <= AVPROBE_PADDING_SIZE) {
-		pb.buf = gf_malloc(sizeof(char)*(size+AVPROBE_PADDING_SIZE) );
+		pb.buf = gf_malloc(sizeof(char) * (size+AVPROBE_PADDING_SIZE) );
 		memcpy(pb.buf, data, sizeof(char)*size);
+		memset(pb.buf+size, 0, sizeof(char)*AVPROBE_PADDING_SIZE);
 		pb.buf_size = size;
 		probe_fmt = av_probe_input_format3(&pb, GF_TRUE, &ffscore);
 		if (ffscore<=AVPROBE_SCORE_RETRY/2) probe_fmt=NULL;

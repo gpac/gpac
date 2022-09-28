@@ -349,17 +349,19 @@ typedef enum {
 	GF_ARGTYPE_LOCAL = 0, //:arg syntax
 	GF_ARGTYPE_GLOBAL, //--arg syntax
 	GF_ARGTYPE_META, //old -+arg syntax
-	GF_ARGTYPE_META_REPORTING
+	GF_ARGTYPE_META_REPORTING,
 } GF_FSArgItemType;
 
 typedef struct
 {
 	char *argname;
 	GF_FSArgItemType type;
-	Bool found;
+	const char *meta_filter, *meta_opt;
+	u8 opt_found;
+	u8 meta_state;
 } GF_FSArgItem;
 
-void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter);
+void gf_fs_push_arg(GF_FilterSession *session, const char *szArg, Bool was_found, GF_FSArgItemType type, GF_Filter *meta_filter, const char *sub_opt_name);
 
 enum
 {

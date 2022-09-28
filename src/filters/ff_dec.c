@@ -1439,7 +1439,7 @@ GF_FilterRegister FFDecodeRegister = {
 	"- name: FFMPEG codec name\n"
 	"- `+': is set and extra data is set and formatted as an ISOBMFF box, removes box header\n"
 	"\n"
-	"EX gpac -i source --ffcmap=BKV1@binkvideo vout\n"
+	"EX gpac -i source.mp4 --ffcmap=BKV1@binkvideo vout\n"
 	"This will map an ISOBMFF track declared with coding type `BKV1` to binkvideo.\n"
 	)
 	.private_size = sizeof(GF_FFDecodeCtx),

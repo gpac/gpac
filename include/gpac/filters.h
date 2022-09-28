@@ -617,14 +617,16 @@ typedef struct
 GF_Err gf_fs_get_filter_stats(GF_FilterSession *session, u32 idx, GF_FilterStats *stats);
 
 
-/*! Enumerates filter and meta-filter arguments not matched in the session
+/*! Enumerates filter and meta-filter arguments not matched in the session. All output parameters may be NULL.
 \param session filter session
 \param idx index of argument to query, 0 being first argument; this value is automatically incremented
 \param argname set to argument name
 \param argtype set to argument type: 0 was a filter param (eg :arg=val), 1 was a global arg (eg --arg=val) and 2 was a global meta arg (eg -+arg=val)
+\param meta_name set to meta filter name if any (for local filter args only)
+\param meta_opt set to meta filter suboption name if any (for local filter args only)
 \return GF_TRUE if success, GF_FALSE if nothing more to enumerate
 */
-Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, char **argname, u32 *argtype);
+Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, const char **argname, u32 *argtype, const char **meta_name, const char **meta_opt);
 
 
 
@@ -2985,9 +2987,10 @@ Bool gf_filter_end_of_session(GF_Filter *filter);
 know the set of available options at initialize() time.
 \param filter target filter
 \param arg name of the argument not used/found
-\param was_found indicate that this option was found
+\param was_found indicate if option was found ot not
+\param sub_opt_name indicate sub-option name, or NULL for regular options. This is used to track unused values in multiple-values options
 */
-void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_found);
+void gf_filter_report_meta_option(GF_Filter *filter, const char *arg, Bool was_found, const char *sub_opt_name);
 
 /*! used by script to set a per-instance description
 \param filter target filter
