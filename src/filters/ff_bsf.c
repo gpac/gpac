@@ -341,7 +341,7 @@ static GF_Err ffbsf_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst, avpck->pts);
 			gf_filter_pck_set_dts(dst, avpck->dts);
-			gf_filter_pck_set_duration(dst, avpck->duration);
+			gf_filter_pck_set_duration(dst, (u32) avpck->duration);
 
 			gf_filter_pck_send(dst);
 

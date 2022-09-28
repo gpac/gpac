@@ -1055,11 +1055,15 @@ static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_Download
  */
 static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password, Bool store_info) {
 	int size;
-	char pass_buf[1024], range_buf[1024];
+	char *pass_buf = NULL;
+	char range_buf[1024];
 	if (!dm || !creds || !password)
 		return GF_BAD_PARAM;
-	snprintf(pass_buf, 1024, "%s:%s", creds->username, password);
+	gf_dynstrcat(&pass_buf, creds->username, NULL);
+	gf_dynstrcat(&pass_buf, password, ":");
+	if (!pass_buf) return GF_OUT_OF_MEM;
 	size = gf_base64_encode(pass_buf, (u32) strlen(pass_buf), range_buf, 1024);
+	gf_free(pass_buf);
 	range_buf[size] = 0;
 	strcpy(creds->digest, range_buf);
 	creds->valid = GF_TRUE;

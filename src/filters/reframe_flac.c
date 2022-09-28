@@ -384,8 +384,9 @@ static u32 flac_dmx_crc16(const u8 *data, u32 len)
 {
 	u32 crc = 0;
 	const u8 *end = data+len;
-    while (data < end)
-        crc = flac_dmx_crc16_table[((u8) crc) ^ *data++] ^ (crc >> 8);
+    while (data < end) {
+		crc = flac_dmx_crc16_table[((u8) crc) ^ *data++] ^ (crc >> 8);
+	}
 	return crc;
 }
 static u32 flac_dmx_block_sizes[] =
@@ -402,7 +403,7 @@ static u32 flac_dmx_samplerates[] =
 
 static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHeader *hdr)
 {
-	u32 block_strategy, block_size, sample_rate, res, top, pos, crc, crc_hdr, ch_lay;
+	u32 block_size, sample_rate, res, top, pos, crc, crc_hdr, ch_lay;
 
 	//we parse max frame header + first byte of subframe
 	if (size<17)
@@ -413,7 +414,7 @@ static Bool flac_parse_header(GF_FLACDmxCtx *ctx, char *data, u32 size, FLACHead
 	if (sync != 0x7FFC)
 		return GF_FALSE;
 
-	block_strategy = gf_bs_read_int(ctx->bs, 1);
+	/*block_strategy = */gf_bs_read_int(ctx->bs, 1);
 	block_size = gf_bs_read_int(ctx->bs, 4);
 	if (!block_size)
 		return GF_FALSE;

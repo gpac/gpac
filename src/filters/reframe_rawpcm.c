@@ -320,7 +320,7 @@ GF_Err pcmreframe_process(GF_Filter *filter)
 			wav_ok = GF_FALSE;
 		}
 
-		ctx->wav_hdr_size = gf_bs_get_position(bs);
+		ctx->wav_hdr_size = (u32) gf_bs_get_position(bs);
 
 		gf_bs_del(bs);
 		if (!wav_ok) {
