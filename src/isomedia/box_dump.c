@@ -3441,11 +3441,12 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 					if (txt->styles->styles[k].startCharOffset>char_num) continue;
 					if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
 
-					if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH)) {
+					if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED | GF_TXT_STYLE_STRIKETHROUGH))
 						new_styles = txt->styles->styles[k].style_flags;
+					if (txt->styles->styles[k].text_color)
 						new_color = txt->styles->styles[k].text_color;
-						break;
-					}
+
+					break;
 				}
 			}
 			if (new_styles != styles) {
@@ -3465,7 +3466,15 @@ GF_Err dump_ttxt_sample_srt(FILE *dump, GF_TextSample *txt, GF_Tx3gSampleEntryBo
 				if (new_color ==txtd->default_style.text_color) {
 					gf_fprintf(dump, "</font>");
 				} else {
-					gf_fprintf(dump, "<font color=\"%s\">", gf_color_get_name(new_color) );
+					const char *cname = gf_color_get_name(new_color);
+					if (cname) {
+						gf_fprintf(dump, "<font color=\"%s\">", cname);
+					} else {
+						if (new_color >> 24 < 0xFF)
+							gf_fprintf(dump, "<font color=\"#%X\">", new_color);
+						else
+							gf_fprintf(dump, "<font color=\"#%06X\">", new_color&0x00FFFFFF);
+					}
 				}
 				color = new_color;
 			}

@@ -689,20 +689,38 @@ static GF_Err parse_srt_line(GF_TXTIn *ctx, char *szLine, u32 *char_l, Bool *set
 			strlwr(szLine);
 			if (!strncmp(szLine, "<font ", 6) ) {
 				char *a_sep = strstr(szLine, "color");
-				if (a_sep) a_sep = strchr(a_sep, '"');
+				if (a_sep) a_sep = strstr(szLine, "=");
+				if (a_sep) a_sep++;
+				while (a_sep && a_sep[0]) {
+					if (a_sep[0]!=' ') break;
+					a_sep++;
+				}
 				if (a_sep) {
-					char *e_sep = strchr(a_sep+1, '"');
+					char *e_sep;
+					if ((a_sep[0]=='"') || ((a_sep[0]=='\''))) {
+						e_sep = strchr(a_sep+1, a_sep[0]);
+						a_sep++;
+					} else {
+						e_sep=a_sep;
+						while (e_sep[0]) {
+							if (e_sep[0]==' ') break;
+							if (e_sep[0]=='>') break;
+							e_sep++;
+						}
+					}
+
 					if (e_sep) {
+						char c_sep = e_sep[0];
 						e_sep[0] = 0;
-						font_style = gf_color_parse(a_sep+1);
-						e_sep[0] = '"';
-						e_sep = strchr(e_sep+1, '>');
+						font_style = gf_color_parse(a_sep);
+						e_sep[0] = c_sep;
+						if (c_sep!='>')
+							e_sep = strchr(e_sep+1, '>');
 						if (e_sep) {
 							style_nb_chars = (u32) (1 + e_sep - szLine);
 							style_def_type = 1;
 						}
 					}
-
 				}
 			}
 			else if (!strncmp(szLine, "</font>", 7) ) {
