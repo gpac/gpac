@@ -6481,6 +6481,12 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				}
 			}
 		} else { //AVC, HEVC
+			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
+			if (vui_chroma_loc_info_present_flag) {
+				chroma_loc1 = gf_bs_read_ue(orig); //chroma_sample_loc_type_top_field
+				chroma_loc2 = gf_bs_read_ue(orig); //chroma_sample_loc_type_bottom_field
+			}
+
 			timing_info_present_flag = gf_bs_read_int(orig, 1);
 			if (timing_info_present_flag) {
 				/*num_units_in_tick = */gf_bs_read_int(orig, 32);
@@ -6729,6 +6735,12 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 		return;
 	} else {
+		gf_bs_write_int(mod, vui_chroma_loc_info_present_flag, 1);
+		if (vui_chroma_loc_info_present_flag) {
+			gf_bs_write_ue(mod, chroma_loc1); //chroma_sample_loc_type_top_field
+			gf_bs_write_ue(mod, chroma_loc2); //chroma_sample_loc_type_bottom_field
+		}
+
 		if (codec == GF_CODECID_HEVC) {
 			gf_bs_write_int(mod, neutral_chroma_indication_flag, 1);
 			gf_bs_write_int(mod, field_seq_flag, 1);
@@ -6749,8 +6761,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 
 	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
 	if (!vui_present_flag) {
-		gf_bs_write_int(mod, 0, 1);		/*chroma_location_info_present_flag */
-		gf_bs_write_int(mod, 0, 1);		/*timing_info_present_flag*/
+		assert(codec == GF_CODECID_AVC);
 		gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
 		gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
 		gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
