@@ -6040,25 +6040,64 @@ check_eos:
 	return GF_OK;
 }
 
+struct _service_info
+{
+	u32 service_id;
+	u64 first_ts_min;
+};
+static struct _service_info *get_service_info(GF_List *services, TrackWriter *tkw)
+{
+	struct _service_info *si;
+	const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_SERVICE_ID);
+	u32 ID, i, count=gf_list_count(services);
+	ID = p ? p->value.uint : 0;
+
+	for (i=0; i<count; i++) {
+		si = gf_list_get(services, i);
+		if (si->service_id == ID) return si;
+	}
+	GF_SAFEALLOC(si, struct _service_info)
+	si->service_id = ID;
+	si->first_ts_min = (u64) -1;
+	gf_list_add(services, si);
+	return si;
+}
+static void del_service_info(GF_List *services)
+{
+	while (gf_list_count(services)) {
+		struct _service_info *si = gf_list_pop_back(services);
+		gf_free(si);
+	}
+	gf_list_del(services);
+}
+
 static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
-	u32 i, count = gf_list_count(ctx->tracks);
-	Bool not_ready = GF_FALSE;
-	Bool blocking_refs = GF_FALSE;
+	GF_List *services = gf_list_new();
+	u32 i, count;
+	Bool not_ready, blocking_refs, has_ready;
+
+retry_all:
+	count = gf_list_count(ctx->tracks);
+	not_ready = GF_FALSE;
+	blocking_refs = GF_FALSE;
+	has_ready = GF_FALSE;
+
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
-	u64 first_ts_min = (u64) -1;
 	for (i=0; i<count; i++) {
 		u64 ts, dts_min;
 		GF_FilterPacket *pck;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		if (tkw->fake_track) continue;
+		//get associated service
+		struct _service_info *si = get_service_info(services, tkw);
 
 		//already setup (happens when new PIDs are declared after a packet has already been written on other PIDs)
 		if (tkw->nb_samples) {
 			dts_min = gf_timestamp_rescale(tkw->ts_shift, tkw->src_timescale, 1000000);
 
-			if (first_ts_min > dts_min) {
-				first_ts_min = (u64) dts_min;
+			if (si->first_ts_min > dts_min) {
+				si->first_ts_min = (u64) dts_min;
 			}
 			continue;
 		}
@@ -6124,12 +6163,12 @@ retry_pck:
 				}
 				continue;
 			}
+			del_service_info(services);
 			return;
 		}
 		//we may have reorder tracks after the get_packet, redo
 		if (gf_list_find(ctx->tracks, tkw) != i) {
-			mp4_mux_config_timing(ctx);
-			return;
+			goto retry_all;
 		}
 		ts = gf_filter_pck_get_dts(pck);
 		if (ts==GF_FILTER_NO_TS)
@@ -6139,30 +6178,35 @@ retry_pck:
 
 		dts_min = gf_timestamp_rescale(ts, tkw->src_timescale, 1000000);
 
-		if (first_ts_min > dts_min) {
-			first_ts_min = (u64) dts_min;
+		if (si->first_ts_min > dts_min) {
+			si->first_ts_min = (u64) dts_min;
+			has_ready = GF_TRUE;
 		}
 		tkw->ts_shift = ts;
 	}
 
 	if (not_ready) {
-		if (blocking_refs && (first_ts_min!=(u64)-1)) {
+		if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
 		} else {
+			del_service_info(services);
 			return;
 		}
 	}
-
-	if (first_ts_min==(u64)-1)
-		first_ts_min = 0;
+	for (i=0; i<gf_list_count(services); i++) {
+		struct _service_info *si = gf_list_get(services, i);
+		if (si->first_ts_min==(u64)-1)
+			si->first_ts_min = 0;
+	}
 
 	//for all packets with dts greater than min dts, we need to add a pause
 	for (i=0; i<count; i++) {
 		s64 dts_diff, dur;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
+		struct _service_info *si = get_service_info(services, tkw);
 
 		//compute offsets
-		dts_diff = gf_timestamp_rescale(first_ts_min, 1000000, tkw->src_timescale);
+		dts_diff = gf_timestamp_rescale(si->first_ts_min, 1000000, tkw->src_timescale);
 		//if single text track don't reset back to 0
 		if ((count==1) && (tkw->stream_type == GF_STREAM_TEXT)) {
 
@@ -6185,6 +6229,7 @@ retry_pck:
 	}
 
 	ctx->config_timing = GF_FALSE;
+	del_service_info(services);
 }
 
 void mp4_mux_format_report(GF_Filter *filter, GF_MP4MuxCtx *ctx, u64 done, u64 total)
