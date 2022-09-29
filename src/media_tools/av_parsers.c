@@ -6605,7 +6605,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 		}
 	}
 
-	if (codec == GF_CODECID_VVC && vui_chroma_loc_info_present_flag) {
+	if ((codec == GF_CODECID_VVC) && vui_chroma_loc_info_present_flag) {
 		if (progressive_source_flag && !interlaced_source_flag) {
 			final_vvc_payload_size += gf_get_ue_nb_bits(chroma_loc1);
 		} else {
