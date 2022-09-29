@@ -6043,6 +6043,8 @@ check_eos:
 static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
 	u32 i, count = gf_list_count(ctx->tracks);
+	Bool not_ready = GF_FALSE;
+	Bool blocking_refs = GF_FALSE;
 	//compute min dts of first packet on each track - this assume all tracks are synchronized, might need adjustment for MPEG4 Systems
 	u64 first_ts_min = (u64) -1;
 	for (i=0; i<count; i++) {
@@ -6068,10 +6070,13 @@ retry_pck:
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] PID has no input packet and configuration not known after 10 retries, aborting initial timing sync\n"));
 				continue;
 			}
-			return;
+			not_ready = GF_TRUE;
+			continue;
 		}
 
 		if (pck) {
+			if (gf_filter_pck_is_blocking_ref(pck))
+				blocking_refs = GF_TRUE;
 			if (tkw->wait_sap) {
 				GF_FilterSAPType sap = gf_filter_pck_get_sap(pck);
 				Bool seek = gf_filter_pck_get_seek_flag(pck);
@@ -6139,6 +6144,15 @@ retry_pck:
 		}
 		tkw->ts_shift = ts;
 	}
+
+	if (not_ready) {
+		if (blocking_refs && (first_ts_min!=(u64)-1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
+		} else {
+			return;
+		}
+	}
+
 	if (first_ts_min==(u64)-1)
 		first_ts_min = 0;
 
