@@ -556,7 +556,7 @@ static const GF_FilterArgs TX3GMxArgs[] =
 GF_FilterRegister TTXTMxRegister = {
 	.name = "ufttxt",
 	GF_FS_SET_DESCRIPTION("TX3G unframer")
-	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.")
+	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to TTXT (xml format) unframed stream.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
 	.initialize = tx3gmx_initialize,
@@ -594,7 +594,7 @@ static GF_Err tx3g2srt_initialize(GF_Filter *filter)
 GF_FilterRegister TX3G2SRTRegister = {
 	.name = "tx3g2srt",
 	GF_FS_SET_DESCRIPTION("TX3G to SRT")
-	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.")
+	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to an SRT unframed stream.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
 	.initialize = tx3g2srt_initialize,
@@ -633,7 +633,7 @@ static GF_Err tx3g2vtt_initialize(GF_Filter *filter)
 GF_FilterRegister TTX2VTTRegister = {
 	.name = "tx3g2vtt",
 	GF_FS_SET_DESCRIPTION("TX3G to WebVTT")
-	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.")
+	GF_FS_SET_HELP("This filter converts a single ISOBMFF TX3G stream to a WebVTT unframed stream.")
 	.private_size = sizeof(TX3GMxCtx),
 	.args = TX3GMxArgs,
 	.initialize = tx3g2vtt_initialize,
@@ -671,7 +671,7 @@ static GF_Err tx3g2ttml_initialize(GF_Filter *filter)
 GF_FilterRegister TX3G2TTMLRegister = {
 	.name = "tx3g2ttml",
 	GF_FS_SET_DESCRIPTION("TX3G to TTML")
-	GF_FS_SET_HELP("This filter converts ISOBMFF TX3G frames from a single stream to TTML frames.\n"
+	GF_FS_SET_HELP("This filter converts ISOBMFF TX3G stream to a TTML stream.\n"
 	"\n"
 	"Each output TTML frame is a complete TTML document.")
 	.private_size = sizeof(TX3GMxCtx),
