@@ -6862,6 +6862,18 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (pid->num_destinations && !for_pidi
 			&& ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_STOP) || (evt->base.type==GF_FEVT_CONNECT_FAIL))
 		) {
+			//we incremented discard counter on every destination in gf_filter_pid_send_event_internal for stop, decrement
+			//this typically happen when pid has 2 destinations, one OK and the other one failed to configure
+			if (evt->base.type==GF_FEVT_STOP) {
+				for (i=0; i<pid->num_destinations; i++) {
+					for_pidi = gf_list_get(pid->destinations, i);
+					if (for_pidi->discard_packets) {
+						assert(pid->discard_input_packets);
+						safe_int_dec(&for_pidi->discard_packets);
+						safe_int_dec(&pid->discard_input_packets );
+					}
+				}
+			}
 			free_evt(evt);
 			return;
 		}
