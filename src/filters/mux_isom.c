@@ -326,7 +326,7 @@ typedef struct
 	Bool sidx_size_exact;
 
 	u32 *seg_sizes;
-	u32 nb_seg_sizes, alloc_seg_sizes;
+	u32 nb_seg_sizes, alloc_seg_sizes, nb_config_retry;
 	Bool config_timing;
 
 	u32 major_brand_set;
@@ -6110,6 +6110,7 @@ retry_pck:
 				continue;
 			}
 			not_ready = GF_TRUE;
+			tkw->ts_shift = 0;
 			continue;
 		}
 
@@ -6163,8 +6164,9 @@ retry_pck:
 				}
 				continue;
 			}
-			del_service_info(services);
-			return;
+			not_ready = GF_TRUE;
+			tkw->ts_shift = 0;
+			continue;
 		}
 		//we may have reorder tracks after the get_packet, redo
 		if (gf_list_find(ctx->tracks, tkw) != i) {
@@ -6186,13 +6188,17 @@ retry_pck:
 	}
 
 	if (not_ready) {
-		if (blocking_refs && has_ready) {
+		ctx->nb_config_retry++;
+		if (ctx->nb_config_retry>10000) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs, aborting initial timing sync\n"));
+		} else if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
 		} else {
 			del_service_info(services);
 			return;
 		}
 	}
+	ctx->nb_config_retry = 0;
 	for (i=0; i<gf_list_count(services); i++) {
 		struct _service_info *si = gf_list_get(services, i);
 		if (si->first_ts_min==(u64)-1)
