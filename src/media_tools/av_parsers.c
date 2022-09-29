@@ -6388,9 +6388,13 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 	u32 def_disp_win_bottom_offset = 0;
 	//AVC & HEVC
 	Bool timing_info_present_flag = GF_FALSE;
+	u32 num_units_in_tick = 0;
+	u32 time_scale = 0;
+	//AVC
+	Bool fixed_frame_rate_flag;
 	//HEVC
 	Bool poc_proportional_to_timing_flag = GF_FALSE;
-	Bool vui_hrd_parameters_present_flag = GF_FALSE;
+	u32 vui_num_ticks_poc_diff_one_minus1 = 0;
 	//VVC
 	Bool progressive_source_flag = 1;
 	Bool interlaced_source_flag = 0;
@@ -6458,18 +6462,6 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			}
 		}
 
-		if (codec == GF_CODECID_HEVC) {
-			neutral_chroma_indication_flag = gf_bs_read_int(orig, 1);
-			field_seq_flag = gf_bs_read_int(orig, 1);
-			frame_field_info_present_flag = gf_bs_read_int(orig, 1);
-			default_display_window_flag = gf_bs_read_int(orig, 1);
-			if (default_display_window_flag) {
-				def_disp_win_left_offset = gf_bs_read_ue(orig);
-				def_disp_win_right_offset = gf_bs_read_ue(orig);
-				def_disp_win_top_offset = gf_bs_read_ue(orig);
-				def_disp_win_bottom_offset = gf_bs_read_ue(orig);
-			}
-		}
 		if (codec == GF_CODECID_VVC) {
 			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
 			if (vui_chroma_loc_info_present_flag) {
@@ -6480,6 +6472,7 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 					chroma_loc2 = gf_bs_read_ue(orig);
 				}
 			}
+			//LAST bit read for VVC
 		} else { //AVC, HEVC
 			vui_chroma_loc_info_present_flag = gf_bs_read_int(orig, 1);
 			if (vui_chroma_loc_info_present_flag) {
@@ -6487,64 +6480,36 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 				chroma_loc2 = gf_bs_read_ue(orig); //chroma_sample_loc_type_bottom_field
 			}
 
+			if (codec == GF_CODECID_HEVC) {
+				neutral_chroma_indication_flag = gf_bs_read_int(orig, 1);
+				field_seq_flag = gf_bs_read_int(orig, 1);
+				frame_field_info_present_flag = gf_bs_read_int(orig, 1);
+				default_display_window_flag = gf_bs_read_int(orig, 1);
+				if (default_display_window_flag) {
+					def_disp_win_left_offset = gf_bs_read_ue(orig);
+					def_disp_win_right_offset = gf_bs_read_ue(orig);
+					def_disp_win_top_offset = gf_bs_read_ue(orig);
+					def_disp_win_bottom_offset = gf_bs_read_ue(orig);
+				}
+			}
+
 			timing_info_present_flag = gf_bs_read_int(orig, 1);
 			if (timing_info_present_flag) {
-				/*num_units_in_tick = */gf_bs_read_int(orig, 32);
-				/*time_scale = */gf_bs_read_int(orig, 32);
+				num_units_in_tick = gf_bs_read_int(orig, 32);
+				time_scale = gf_bs_read_int(orig, 32);
 				if (codec == GF_CODECID_AVC) {
-					/*fixed_frame_rate_flag = */gf_bs_read_int(orig, 1);
+					fixed_frame_rate_flag = gf_bs_read_int(orig, 1);
+
+					//LAST bit read for AVC
 				} else if (codec == GF_CODECID_HEVC) {
 					poc_proportional_to_timing_flag = gf_bs_read_int(orig, 1);
 					if (poc_proportional_to_timing_flag)
 						/*vui_num_ticks_poc_diff_one_minus1 = */gf_bs_read_ue(orig);
-					vui_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
-					if (vui_hrd_parameters_present_flag) {
-						//hrd_parameters(1, sps_max_sub_layers_minus1)
-						const Bool commonInfPresentFlag = GF_TRUE;
-						//const int maxNumSubLayersMinus1 = 0; // typical value: actual value is located in SPS
-						if (commonInfPresentFlag) {
-							Bool nal_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
-							Bool vcl_hrd_parameters_present_flag = gf_bs_read_int(orig, 1);
-							if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
-								Bool sub_pic_hrd_params_present_flag = gf_bs_read_int(orig, 1);
-								if (sub_pic_hrd_params_present_flag) {
-								/*tick_divisor_minus2 = */gf_bs_read_int(orig, 8);
-								/*du_cpb_removal_delay_increment_length_minus1 = */gf_bs_read_int(orig, 5);
-								/*sub_pic_cpb_params_in_pic_timing_sei_flag = */gf_bs_read_int(orig, 1);
-								/*dpb_output_delay_du_length_minus1 = */gf_bs_read_int(orig, 5);
-							}
-							/*bit_rate_scale = */gf_bs_read_int(orig, 4);
-							/*cpb_size_scale = */gf_bs_read_int(orig, 4);
-							if (sub_pic_hrd_params_present_flag)
-								/*cpb_size_du_scale = */gf_bs_read_int(orig, 4);
-								/*initial_cpb_removal_delay_length_minus1 = */gf_bs_read_int(orig, 5);
-								/*au_cpb_removal_delay_length_minus1 = */gf_bs_read_int(orig, 5);
-								/*dpb_output_delay_length_minus1 = */gf_bs_read_int(orig, 5);
-							}
-						}
-#if 0 //see comment above
-						for (i = 0; i <= maxNumSubLayersMinus1; ++i) {
-							low_delay_hrd_flag = GF_FALSE;
-							fixed_pic_rate_general_flag/*[i]*/ = gf_bs_read_int(orig, 1);
-							if (!fixed_pic_rate_general_flag/*[i]*/)
-								/*fixed_pic_rate_within_cvs_flag[i] = */gf_bs_read_int(orig, 1);
-							if (fixed_pic_rate_within_cvs_flag/*[i]*/)
-								/*elemental_duration_in_tc_minus1[i] = */gf_bs_read_ue(orig, 1);
-							else
-								low_delay_hrd_flag/*[i]*/ = gf_bs_read_int(orig, 1);
-							if (!low_delay_hrd_flag/*[i]*/)
-								cpb_cnt_minus1[i]gf_bs_read_ue(orig, 1);
-							if (nal_hrd_parameters_present_flag )
-								sub_layer_hrd_parameters(i);
-							if (vcl_hrd_parameters_present_flag )
-								sub_layer_hrd_parameters(i);
-						}
-#endif
-					}
+
+					//LAST bit read for HEVC
 				}
 			}
 		}
-		//not VVC: don't read the rest
 	}
 
 	//recompute values
@@ -6613,6 +6578,9 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			final_vvc_payload_size += gf_get_ue_nb_bits(chroma_loc2);
 		}
 	}
+	//remove VUI timing
+	if (vui_info->remove_vui_timing_info)
+		timing_info_present_flag = 0;
 
 	//always rewrite VUI
 	gf_bs_write_int(mod, 1, 1);
@@ -6733,39 +6701,56 @@ static void avc_hevc_vvc_rewrite_vui(GF_VUIInfo *vui_info, GF_BitStream *orig, G
 			gf_bs_write_int(mod, 1, 1); //vui_payload_bit_equal_to_one
 			gf_bs_align(mod);
 		}
+		//VVC done
 		return;
-	} else {
-		gf_bs_write_int(mod, vui_chroma_loc_info_present_flag, 1);
-		if (vui_chroma_loc_info_present_flag) {
-			gf_bs_write_ue(mod, chroma_loc1); //chroma_sample_loc_type_top_field
-			gf_bs_write_ue(mod, chroma_loc2); //chroma_sample_loc_type_bottom_field
-		}
+	}
 
-		if (codec == GF_CODECID_HEVC) {
-			gf_bs_write_int(mod, neutral_chroma_indication_flag, 1);
-			gf_bs_write_int(mod, field_seq_flag, 1);
-			gf_bs_write_int(mod, frame_field_info_present_flag, 1);
-			gf_bs_write_int(mod, default_display_window_flag, 1);
-			if (default_display_window_flag) {
-				 gf_bs_write_ue(mod, def_disp_win_left_offset);
-				 gf_bs_write_ue(mod, def_disp_win_right_offset);
-				 gf_bs_write_ue(mod, def_disp_win_top_offset);
-				 gf_bs_write_ue(mod, def_disp_win_bottom_offset);
-			}
-		}
+	//AVC and HEVC
+	gf_bs_write_int(mod, vui_chroma_loc_info_present_flag, 1);
+	if (vui_chroma_loc_info_present_flag) {
+		gf_bs_write_ue(mod, chroma_loc1); //chroma_sample_loc_type_top_field
+		gf_bs_write_ue(mod, chroma_loc2); //chroma_sample_loc_type_bottom_field
+	}
 
-		if (vui_info->remove_vui_timing_info) {
-			gf_bs_write_int(mod, 0, 1);
+	if (codec == GF_CODECID_HEVC) {
+		gf_bs_write_int(mod, neutral_chroma_indication_flag, 1);
+		gf_bs_write_int(mod, field_seq_flag, 1);
+		gf_bs_write_int(mod, frame_field_info_present_flag, 1);
+		gf_bs_write_int(mod, default_display_window_flag, 1);
+		if (default_display_window_flag) {
+			 gf_bs_write_ue(mod, def_disp_win_left_offset);
+			 gf_bs_write_ue(mod, def_disp_win_right_offset);
+			 gf_bs_write_ue(mod, def_disp_win_top_offset);
+			 gf_bs_write_ue(mod, def_disp_win_bottom_offset);
+		}
+	}
+
+	gf_bs_write_int(mod, timing_info_present_flag, 1);
+	if (timing_info_present_flag) {
+		gf_bs_write_int(mod, num_units_in_tick, 32);
+		gf_bs_write_int(mod, time_scale, 32);
+		if (codec == GF_CODECID_AVC) {
+			gf_bs_write_int(mod, fixed_frame_rate_flag, 1);
+		} else if (codec == GF_CODECID_HEVC) {
+			gf_bs_write_int(mod, poc_proportional_to_timing_flag, 1);
+			if (poc_proportional_to_timing_flag)
+				gf_bs_write_ue(mod, vui_num_ticks_poc_diff_one_minus1);
 		}
 	}
 
 	/*no VUI in input bitstream but we just inserted one, set all remaining vui flags to 0*/
 	if (!vui_present_flag) {
-		assert(codec == GF_CODECID_AVC);
-		gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
-		gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
-		gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
-		gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+		if (codec == GF_CODECID_AVC) {
+			gf_bs_write_int(mod, 0, 1);		/*nal_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1);		/*vcl_hrd_parameters_present*/
+			gf_bs_write_int(mod, 0, 1);		/*pic_struct_present*/
+			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+		} else if (codec == GF_CODECID_HEVC) {
+			if (timing_info_present_flag) {
+				gf_bs_write_int(mod, 0, 1);		/*vui_hrd_parameters_present_flag*/
+			}
+			gf_bs_write_int(mod, 0, 1);		/*bitstream_restriction*/
+		}
 	}
 	/*otherwise we copy over the bits from the input bitstream*/
 }
