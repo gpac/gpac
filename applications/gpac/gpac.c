@@ -999,11 +999,14 @@ restart:
 					reverse_order = GF_TRUE;
 					link++;
 				}
-				link_filter_idx = get_u32(link+1, "Link filter index");
-				if (link_filter_idx < 0) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
-					e = GF_BAD_PARAM;
-					goto exit;
+				link_filter_idx = 0;
+				if (strlen(link)>1) {
+					link_filter_idx = get_u32(link+1, "Link filter index");
+					if (link_filter_idx < 0) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Wrong filter index %d, must be positive\n", link_filter_idx));
+						e = GF_BAD_PARAM;
+						goto exit;
+					}
 				}
 			} else {
 				link_filter_idx = 0;
