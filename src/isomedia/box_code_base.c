@@ -11921,11 +11921,16 @@ GF_Err dvcC_box_read(GF_Box *s, GF_BitStream *bs)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC reserved bits are not zero\n"));
 		}
 	}
-	if (ptr->DOVIConfig.dv_profile==8) {
-		if (!ptr->DOVIConfig.dv_bl_signal_compatibility_id || (ptr->DOVIConfig.dv_bl_signal_compatibility_id>2) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC profile 8 but compatibility ID %d is not 1 or 2, patching to 2\n", ptr->DOVIConfig.dv_bl_signal_compatibility_id));
-			ptr->DOVIConfig.dv_bl_signal_compatibility_id = 2;
-		}
+	switch (ptr->DOVIConfig.dv_bl_signal_compatibility_id) {
+	case 0:
+	case 1:
+	case 2:
+	case 4:
+	case 6:
+		break;
+	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] dvcC compatibility ID %d is not valid (only 0, 1, 2, 4 or 6 defined), patching to 0\n", ptr->DOVIConfig.dv_bl_signal_compatibility_id));
+		ptr->DOVIConfig.dv_bl_signal_compatibility_id = 0;
 	}
 	return GF_OK;
 }
