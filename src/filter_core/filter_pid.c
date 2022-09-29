@@ -4606,7 +4606,14 @@ single_retry:
 						continue;
 					}
 				}
-				use_explicit_link = GF_TRUE;
+				//if we are a dynamic filter linking to a destination filter without ID (no link directive) and
+				//implicit mode is used, use implicit linking
+				//otherwise force explicit linking
+				//this avoids that dyn filters loaded for a link targeting an implicitly link filter link to a later filter:
+				//avsource enc_v @ FX output
+				//if enc_v loads a filter FA to connect to FX, we don't want FA->output
+				if (!filter->dynamic_filter || filter_dst->id || !(filter->session->flags & GF_FS_FLAG_IMPLICIT_MODE))
+					use_explicit_link = GF_TRUE;
 			}
 			//if no source ID on the dst filter, this means the dst filter accepts any possible connections from out filter
 			//unless prevented for this pid
