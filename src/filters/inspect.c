@@ -3497,7 +3497,7 @@ static void inspect_dump_pid_as_info(GF_InspectCtx *ctx, FILE *dump, GF_FilterPi
 			if (dovi->rpu_present_flag) inspect_printf(dump, " rpu");
 			if (dovi->bl_present_flag) inspect_printf(dump, " base");
 			if (dovi->el_present_flag) inspect_printf(dump, " el");
-			if (dovi->dv_bl_signal_compatibility_id) inspect_printf(dump, " compat %d", dovi->dv_bl_signal_compatibility_id);
+			if (dovi->dv_bl_signal_compatibility_id) inspect_printf(dump, " compatID %d", dovi->dv_bl_signal_compatibility_id);
 			gf_odf_dovi_cfg_del(dovi);
 		}
 	}

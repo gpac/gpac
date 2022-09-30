@@ -1615,22 +1615,118 @@ static void naludmx_set_dolby_vision(GF_NALUDmxCtx *ctx)
 	u32 dv_level = gf_dolby_vision_level(ctx->width, ctx->height, ctx->cur_fps.num, ctx->cur_fps.den, ctx->codecid);
 
 	if (ctx->dv_profile==8) {
-		if (!ctx->dv_compatid) {
+		if (ctx->dv_compatid<2) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] DV profile 8 used but dv_compatid not set, defaulting to bt709 (=2)\n", ctx->log_name));
-			ctx->dv_compatid = 2;
+			ctx->dv_compatid = 3;
 		}
 	}
+	u32 dv_ccid = ctx->dv_compatid ? (ctx->dv_compatid-1) : 0;
+	u32 dv_profile_id = ctx->dv_profile;
+
+
+	//auto-detect DV profile, check  range, color primaries, EOTF, matrix, and chroma sample location type
+	if (!ctx->dv_profile) {
+		Bool vui_present = GF_FALSE;
+		Bool has_non_def = GF_FALSE;
+		u32 luma_bit_depth=8;
+		u32 fr = 0;
+		u32 cp = 2;
+		u32 tc = 2;
+		u32 mx = 2;
+		u32 cl = 0;
+		if (ctx->avc_state && (ctx->avc_state->last_sps_idx>=0)) {
+			AVC_SPS *sps = &ctx->avc_state->sps[ctx->avc_state->last_sps_idx];
+			luma_bit_depth = sps->luma_bit_depth_m8+8;
+			if (sps->vui_parameters_present_flag) {
+				vui_present = GF_TRUE;
+				if (sps->vui.video_signal_type_present_flag) {
+					fr = sps->vui.video_full_range_flag;
+					has_non_def = GF_TRUE;
+				}
+				if (sps->vui.chroma_location_info_present_flag) {
+					cl = (sps->chroma_format==1) ?  sps->vui.chroma_sample_loc_type_top_field : 2;
+					has_non_def = GF_TRUE;
+				}
+				if (sps->vui.colour_description_present_flag) {
+					cp = sps->vui.colour_primaries;
+					tc = sps->vui.transfer_characteristics;
+					mx = sps->vui.matrix_coefficients;
+					has_non_def = GF_TRUE;
+				}
+			}
+		}
+		else if (ctx->hevc_state && (ctx->hevc_state->last_parsed_sps_id>=0)) {
+			HEVC_SPS *sps = &ctx->hevc_state->sps[ctx->hevc_state->last_parsed_sps_id];
+			luma_bit_depth = sps->bit_depth_luma;
+			if (sps->vui_parameters_present_flag) {
+				vui_present = GF_TRUE;
+				if (sps->chroma_loc_info_present_flag)
+					cl = (sps->chroma_format_idc==1) ?  sps->chroma_sample_loc_type_top_field : 2;
+
+				//check profile compat:  range, color primaries, EOTF, matrix, and chroma sample location type
+				if (sps->video_signal_type_present_flag) {
+					fr = sps->video_full_range_flag;
+					has_non_def = GF_TRUE;
+				}
+				if (sps->colour_description_present_flag) {
+					cp = sps->colour_primaries;
+					tc = sps->transfer_characteristic;
+					mx = sps->matrix_coeffs;
+					has_non_def = GF_TRUE;
+				}
+			}
+		}
+
+		if ((fr==1) && (cp==2) && (tc==2) && (mx==2) && (cl==0)) dv_ccid=0;
+		else if ((fr==0) && (cp==9) && (tc==16) && (mx==9) && (cl==0)) dv_ccid=1;
+		else if ((fr==0) && (cp==1) && (tc==1) && (mx==1) && (cl==0)) dv_ccid=2;
+		else if ((fr==0) && (cp==9) && (tc==18) && (mx==9) && (cl==2)) dv_ccid=4;
+		else if ((fr==0) && (cp==9) && (tc==14) && (mx==9) && (cl==0)) dv_ccid=4;
+		else if ((fr==0) && (cp==9) && (tc==16) && (mx==9) && (cl==2)) dv_ccid=6;
+
+		//we consider that if no VUI but an EL is present, this will be profile 4 compat SRD
+		if (!vui_present && ctx->nb_dv_el)
+			dv_ccid = 2;
+
+
+		if (dv_ccid==2) {
+			if (ctx->nb_dv_el) dv_profile_id = 4;
+			else if (luma_bit_depth==8) dv_profile_id = 9;
+			else dv_profile_id = 8; //or 4
+		}
+		//DV spec: "Note: H.265 (2018-02) requires top-left chroma siting (VUI = 2), if the decoded video is intended for interpretation
+		// according to ITU-R BT.2020-2 or ITU-R BT.2100-1. Previously, H.265 (2016-12) described the default chroma siting as center left (VUI = 0)."
+		//we consider that dv_ccid=6 is allowed for profile 8 ( DV without EL) - this is not clearly written in the spec but matches deployed bitstreams
+		else if (dv_ccid==6) {
+			dv_profile_id = ctx->nb_dv_el ? 7 : 8;
+		}
+		else if ((dv_ccid==1) || (dv_ccid==4)) dv_profile_id = 8;
+		//default to 5 if no EL, 4 if EL
+		else dv_profile_id = ctx->nb_dv_el ? 4 : 5;
+
+		//DV spec: "Note: As of the effective date of this specification, all commercially produced profile 4 and profile 5 Dolby Vision bitstreams
+		// have used center-left siting during chroma downsampling, and are distributed without the VUI value for chroma sample location type.
+		// Those bitstreams are compliant with this specification."
+		//we treat bitstreams not explicitly signaling vui info as valid and assign the CCID according to DV spec
+		if (!has_non_def) {
+			if (dv_profile_id == 4) dv_ccid = 2;
+			else if (dv_profile_id == 5) dv_ccid = 0;
+		}
+	}
+	//not in auto mode, restore value
+	if (ctx->dv_compatid)
+		dv_ccid = ctx->dv_compatid-1;
 
 	memset(dv_cfg, 0, sizeof(u8)*24);
 	GF_BitStream *bs = gf_bs_new(dv_cfg, 24, GF_BITSTREAM_WRITE);
 	gf_bs_write_u8(bs, 1); //version major
 	gf_bs_write_u8(bs, 0); //version minor
-	gf_bs_write_int(bs, ctx->dv_profile, 7);
+	gf_bs_write_int(bs, dv_profile_id, 7);
 	gf_bs_write_int(bs, dv_level, 6);
 	gf_bs_write_int(bs, ctx->nb_dv_rpu ? 1 : 0, 1); //rpu present
 	gf_bs_write_int(bs, ctx->nb_dv_el ? 1 : 0, 1); //el present
 	gf_bs_write_int(bs, 1, 1); //bl_present_flag always true, we don't split streams
-	gf_bs_write_int(bs, ctx->dv_compatid, 4);
+	gf_bs_write_int(bs, dv_ccid, 4);
 	//the rest is zero-reserved
 	gf_bs_write_int(bs, 0, 28);
 	gf_bs_write_u32(bs, 0);
@@ -3701,6 +3797,14 @@ static GF_Err naludmx_initialize(GF_Filter *filter)
 		ctx->nal_length = 4;
 		break;
 	}
+
+	//if profile is forced and comapt_id is in auto mode, fail
+	if (!ctx->dv_compatid) {
+		if (ctx->dv_profile) {
+			ctx->dv_compatid=1;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] DV profile forced but compatID in auto mode, using no compatibility\n", ctx->log_name));
+		}
+	}
 	return GF_OK;
 }
 
@@ -4007,19 +4111,19 @@ static const GF_FilterArgs NALUDmxArgs[] =
 	{ OFFS(dv_mode), "signaling for DolbyVision\n"
 	"- none: never signal DV profile\n"
 	"- auto: signal DV profile if RPU or EL are found\n"
-	"- force: always signal DV profile\n"
 	"- clean: do not signal and remove RPU and EL NAL units\n"
-	"- single: remove EL NAL units"
-	, GF_PROP_UINT, "auto", "none|auto|force|clean|single", GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(dv_profile), "profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9)", GF_PROP_UINT, "5", NULL, GF_FS_ARG_HINT_ADVANCED},
+	"- single: signal DV profile if RPU are found and remove EL NAL units"
+	, GF_PROP_UINT, "auto", "none|auto|clean|single", GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(dv_profile), "profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9), 0 for auto-detect", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(dv_compatid), "cross-compatibility ID for DolbyVision\n"
-		"- none: do not signal compatibility\n"
+		"- auto: auto-detect\n"
+		"- none: no cross-compatibility\n"
 		"- hdr10: CTA HDR10, as specified by EBU TR 03\n"
 		"- bt709: SDR BT.709\n"
 		"- hlg709: HLG BT.709 gamut in ITU-R BT.2020\n"
 		"- hlg2100: HLG BT.2100 gamut in ITU-R BT.2020\n"
 		"- bt2020: SDR BT.2020\n"
-		"- brd: Ultra HD Blu-ray Disc HDR", GF_PROP_UINT, "none", "none|hdr10|bt709|hlg709|hlg2100|bt2020|brd", GF_FS_ARG_HINT_ADVANCED},
+		"- brd: Ultra HD Blu-ray Disc HDR", GF_PROP_UINT, "auto", "auto|none|hdr10|bt709|hlg709|hlg2100|bt2020|brd", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(bsdbg), "debug NAL parsing in `parser@debug` logs\n"
 		"- off: not enabled\n"
 		"- on: enabled\n"

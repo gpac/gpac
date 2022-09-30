@@ -5281,6 +5281,9 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 		sps->vui.colour_primaries = 2;
 		sps->vui.transfer_characteristics = 2;
 		sps->vui.matrix_coefficients = 2;
+		//When the chroma_sample_loc_type_top_field and chroma_sample_loc_type_bottom_field are not present, the values of chroma_sample_loc_type_top_field and chroma_sample_loc_type_bottom_field shall be inferred to be equal to 0.
+		sps->vui.chroma_sample_loc_type_top_field = sps->vui.chroma_sample_loc_type_bottom_field = 0;
+
 		/* now read values if possible */
 		sps->vui.video_signal_type_present_flag = gf_bs_read_int_log(bs, 1, "video_signal_type_present_flag");
 		if (sps->vui.video_signal_type_present_flag) {
@@ -5294,9 +5297,10 @@ static s32 gf_avc_read_sps_bs_internal(GF_BitStream *bs, AVCState *avc, u32 subs
 			}
 		}
 
-		if (gf_bs_read_int_log(bs, 1, "chroma_location_info_present_flag")) {
-			gf_bs_read_ue_log(bs, "chroma_sample_location_type_top_field");
-			gf_bs_read_ue_log(bs, "chroma_sample_location_type_bottom_field");
+		sps->vui.chroma_location_info_present_flag = gf_bs_read_int_log(bs, 1, "chroma_location_info_present_flag");
+		if (sps->vui.chroma_location_info_present_flag) {
+			sps->vui.chroma_sample_loc_type_top_field = gf_bs_read_ue_log(bs, "chroma_sample_location_type_top_field");
+			sps->vui.chroma_sample_loc_type_bottom_field = gf_bs_read_ue_log(bs, "chroma_sample_location_type_bottom_field");
 		}
 
 		sps->vui.timing_info_present_flag = gf_bs_read_int_log(bs, 1, "timing_info_present_flag");
@@ -6148,6 +6152,7 @@ s32 gf_avc_parse_nalu(GF_BitStream *bs, AVCState *avc)
 		avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);
 		if (gf_bs_is_overflow(bs)) return -1;
 		if (avc->last_ps_idx < 0) return -1;
+		avc->last_sps_idx = avc->last_ps_idx;
 		return 0;
 
 	case GF_AVC_NALU_PIC_PARAM:

@@ -509,33 +509,23 @@ static void isor_declare_track(ISOMReader *read, ISOMChannel *ch, u32 track, u32
 		if (!gf_sys_is_test_mode())
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TRACK_NUM, &PROP_UINT(track) );
 
-		//Dolby Vision
-		switch (m_subtype) {
-		case GF_ISOM_SUBTYPE_DVHE:
-		case GF_ISOM_SUBTYPE_DVH1:
-		case GF_ISOM_SUBTYPE_DVA1:
-		case GF_ISOM_SUBTYPE_DVAV:
-		case GF_ISOM_SUBTYPE_DAV1:
-		{
-			GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, stsd_idx);
-			if (dovi) {
-				u8 *data = NULL;
-				u32 size = 0;
-				GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-				gf_odf_dovi_cfg_write_bs(dovi, bs);
-				gf_bs_get_content(bs, &data, &size);
-				gf_filter_pid_set_property(pid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA_NO_COPY(data, size));
-				gf_bs_del(bs);
-				gf_odf_dovi_cfg_del(dovi);
+		//Dolby Vision - check for any video type
+		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(read->mov, track, stsd_idx);
+		if (dovi) {
+			u8 *data = NULL;
+			u32 size = 0;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_odf_dovi_cfg_write_bs(dovi, bs);
+			gf_bs_get_content(bs, &data, &size);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DOLBY_VISION, &PROP_DATA_NO_COPY(data, size));
+			gf_bs_del(bs);
+			gf_odf_dovi_cfg_del(dovi);
 
-				if (gf_isom_get_reference_count(read->mov, track, GF_4CC('v','d','e','p'))) {
-					GF_ISOTrackID ref_id=0;
-					gf_isom_get_reference_ID(read->mov, track, GF_4CC('v','d','e','p'), 1, &ref_id);
-					if (ref_id) gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ref_id));
-				}
+			if (gf_isom_get_reference_count(read->mov, track, GF_4CC('v','d','e','p'))) {
+				GF_ISOTrackID ref_id=0;
+				gf_isom_get_reference_ID(read->mov, track, GF_4CC('v','d','e','p'), 1, &ref_id);
+				if (ref_id) gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(ref_id));
 			}
-		}
-			break;
 		}
 
 		//create our channel
