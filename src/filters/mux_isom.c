@@ -286,6 +286,7 @@ typedef struct
 #endif
 	Bool mfra;
 	Bool forcesync, refrag, pad_sparse;
+	Bool force_dv;
 	u32 itags;
 	Double start;
 
@@ -3192,6 +3193,8 @@ sample_entry_done:
 				GF_DOVIDecoderConfigurationRecord *dvcc = gf_odf_dovi_cfg_read_bs(bs);
 				gf_bs_del(bs);
 				if (dvcc) {
+					if (ctx->force_dv)
+						dvcc->force_dv = 1;
 					gf_isom_set_dolby_vision_profile(ctx->file, tkw->track_num, tkw->stsd_idx, dvcc);
 
 					if (!dvcc->bl_present_flag) {
@@ -7289,6 +7292,8 @@ static const GF_FilterArgs MP4MuxArgs[] =
 		, GF_PROP_UINT, "no", "no|cmfc|cmf2", GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(start), "set playback start offset for MP4Box import only. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+
 	{0}
 };
 

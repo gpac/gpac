@@ -108,6 +108,9 @@ typedef struct
 	u8 video_format;
 	Bool video_full_range_flag;
 
+	Bool chroma_location_info_present_flag;
+	u8 chroma_sample_loc_type_top_field, chroma_sample_loc_type_bottom_field;
+
 	Bool colour_description_present_flag;
 	u8 colour_primaries;
 	u8 transfer_characteristics;
@@ -252,7 +255,7 @@ typedef struct
 
 	Bool is_svc;
 	u8 last_nal_type_parsed;
-	s8 last_ps_idx;
+	s8 last_ps_idx, last_sps_idx;
 } AVCState;
 
 typedef struct

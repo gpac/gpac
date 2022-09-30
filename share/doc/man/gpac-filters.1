@@ -2371,6 +2371,8 @@ cmaf (enum, default: no):      use CMAF guidelines (turns on mvex, truns_first, 
 .br
 pad_sparse (bool, default: true): inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks
 .br
+force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC compatibility is signaled
+.br
 
 .br
 .SH rfqcp
@@ -2545,19 +2547,19 @@ dv_mode (enum, default: auto): signaling for DolbyVision
 .br
 * auto: signal DV profile if RPU or EL are found
 .br
-* force: always signal DV profile
-.br
 * clean: do not signal and remove RPU and EL NAL units
 .br
-* single: remove EL NAL units
+* single: signal DV profile if RPU are found and remove EL NAL units
 .br
 
 .br
-dv_profile (uint, default: 5): profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9)
+dv_profile (uint, default: 0): profile for DolbyVision (currently defined profiles are 4, 5, 7, 8, 9), 0 for auto-detect
 .br
-dv_compatid (enum, default: none): cross-compatibility ID for DolbyVision
+dv_compatid (enum, default: auto): cross-compatibility ID for DolbyVision
 .br
-* none: do not signal compatibility
+* auto: auto-detect
+.br
+* none: no cross-compatibility
 .br
 * hdr10: CTA HDR10, as specified by EBU TR 03
 .br
@@ -7108,6 +7110,8 @@ fullrange (bool, default: false, updatable): video full range flag
 .br
 novsi (bool, default: false, updatable): remove video_signal_type from VUI in AVC|H264 and HEVC
 .br
+novuitiming (bool, default: false, updatable): remove timing_info from VUI in AVC|H264 and HEVC
+.br
 prof (sint, default: -1, updatable): profile indication for AVC|H264
 .br
 lev (sint, default: -1, updatable): level indication for AVC|H264, level_idc for VVC
@@ -7257,7 +7261,7 @@ Description: TX3G unframer
 .br
 
 .br
-This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+This filter converts a single ISOBMFF TX3G stream to TTXT (xml format) unframed stream.
 .br
 
 .br
@@ -7275,7 +7279,7 @@ Description: TX3G to SRT
 .br
 
 .br
-This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+This filter converts a single ISOBMFF TX3G stream to an SRT unframed stream.
 .br
 
 .br
@@ -7293,7 +7297,7 @@ Description: TX3G to WebVTT
 .br
 
 .br
-This filter converts a single ISOBMFF TX3G stream to a TTXT, SRT, WebVTT or TTML output file.
+This filter converts a single ISOBMFF TX3G stream to a WebVTT unframed stream.
 .br
 
 .br
@@ -7311,7 +7315,7 @@ Description: TX3G to TTML
 .br
 
 .br
-This filter converts ISOBMFF TX3G frames from a single stream to TTML frames.
+This filter converts ISOBMFF TX3G stream to a TTML stream.
 .br
 
 .br
@@ -10725,7 +10729,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev336-g621f1cab7-master
+build: 2.1-DEV-rev350-gfaec89573-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
