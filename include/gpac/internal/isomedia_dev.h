@@ -4616,6 +4616,7 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(u8 *da
 #ifndef GPAC_DISABLE_VTT
 
 GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);
+u32 gf_isom_webvtt_cues_count(void *s);
 
 typedef struct
 {

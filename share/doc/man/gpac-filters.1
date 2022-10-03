@@ -2373,6 +2373,8 @@ pad_sparse (bool, default: true): inject sample with no data (size 0) to keep du
 .br
 force_dv (bool, default: false): force DV sample entry types even when AVC/HEVC compatibility is signaled
 .br
+tsalign (bool, default: true): enable timeline realignment to 0 for first sample in fragmented mode
+.br
 
 .br
 .SH rfqcp
@@ -2662,13 +2664,23 @@ Input files must be in UTF-8 or UTF-16 format, with or without BOM. The internal
 .SH TTML Support
 .LP
 .br
-The .I ttml_dur option controls how the TTML document is split into packets:
+If .I ttml_split option is set, the TTML document is split in independent time segments by inspecting all overlapping subtitles in the body.
 .br
-- if negative (default), TTML document is split in independent time segments by inspecting all overlapping subtitles in the body
+Empty periods in TTML will result in empty TTML documents or will be skipped if .I no_empty option is set.
 .br
-- if 0, the input document is not split, forwarded as a single frame with CTS matching the first active time in document and a duration equal to the document duration
+
 .br
-- if >0, the input document is not split, forwarded as a single frame with CTS=0 and the specified duration in timescale units.
+The first sample has a CTS assigned as indicated by .I ttml_cts:
+.br
+- a numerator of -2 indicates the first CTS is 0
+.br
+- a numerator of -1 indicates the first CTS is the first active time in document
+.br
+- a numerator >= 0 indicates the CTS to use for first sample
+.br
+
+.br
+When TTML splitting is disabled, the duration of the TTML sample is given by .I ttml_dur if not 0, or set to the document duration
 .br
 
 .br
@@ -2739,11 +2751,17 @@ zorder (sint, default: 0):     default z-order of the PID
 .br
 timescale (uint, default: 1000): default timescale of the PID
 .br
-ttml_dur (sint, default: -1):  force single sample mode
+ttml_split (bool, default: true): split ttml doc in non-overlapping samples
+.br
+ttml_cts (lfrac, default: -1/1): first sample cts - see filter help
+.br
+ttml_dur (frac, default: 0/1): sample duration when not spliting split - see filter help
 .br
 ttml_embed (bool, default: false): force embedding TTML resources
 .br
 ttml_zero (str):               set subtitle zero time for TTML
+.br
+no_empty (bool, default: false): do not send empty samples
 .br
 
 .br
@@ -3177,7 +3195,7 @@ The formats allowed for times specifiers are:
 .br
   
 .br
-In this mode, the timestamps are rewritten to form a continuous timeline.
+In this mode, the timestamps are rewritten to form a continuous timeline, unless .I xots is set.
 .br
 When multiple ranges are given, the filter will try to seek if needed and supported by source.
 .br
@@ -3381,6 +3399,8 @@ xround (enum, default: before): adjust start time of extraction range to I-frame
 
 .br
 xadjust (bool, default: false): adjust end time of extraction range to be before next I-frame
+.br
+xots (bool, default: false):   keep original timestamps after extraction
 .br
 nosap (bool, default: false):  do not cut at SAP when extracting range (may result in broken streams)
 .br
@@ -8434,6 +8454,8 @@ rawv (enum, default: no):      copy video frames
 .br
 
 .br
+tsinit (lfrac, default: -1/1): initial timestamp to resync to, negative values disables resync
+.br
 
 .br
 .SH oggmx
@@ -10729,7 +10751,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev350-gfaec89573-master
+build: 2.1-DEV-rev351-gc99924ffd-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
