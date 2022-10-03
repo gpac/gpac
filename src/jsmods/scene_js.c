@@ -1388,7 +1388,7 @@ static JSValue gjs_odm_get_chapters(JSContext *ctx, JSValueConst this_val, int a
 	if (!odm) return GF_JS_EXCEPTION(ctx);
 
 	if (odm->subscene) odm = gf_list_get(odm->subscene->resources, 0);
-	if (! odm->pid) return JS_NULL;
+	if (!odm || ! odm->pid) return JS_NULL;
 
 	const GF_PropertyValue *times = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_CHAP_TIMES);
 	const GF_PropertyValue *names = gf_filter_pid_get_property(odm->pid, GF_PROP_PID_CHAP_NAMES);
