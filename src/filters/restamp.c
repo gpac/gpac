@@ -31,7 +31,7 @@
 typedef struct
 {
 	GF_FilterPid *ipid, *opid;
-	s64 ts_offset;
+	s64 ts_offset, ts_shift_plus_one;
 	Bool raw_vid_copy;
 	Bool is_audio, is_video;
 	s64 last_min_dts;
@@ -55,10 +55,13 @@ enum
 typedef struct
 {
 	GF_Fraction fps, delay, delay_v, delay_a, delay_t, delay_o;
+	GF_Fraction64 tsinit;
 	u32 rawv;
 
 	GF_List *pids;
 	Bool reconfigure;
+	Bool config_timing;
+	u32 config_retry;
 } RestampCtx;
 
 
@@ -92,6 +95,7 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_udta(pid, pctx);
 		pctx->opid = gf_filter_pid_new(filter);
 		if (!pctx->opid) return GF_OUT_OF_MEM;
+		ctx->config_timing = GF_TRUE;
 	}
 
 	pctx->raw_vid_copy = GF_FALSE;
@@ -138,7 +142,9 @@ static GF_Err restamp_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	//global delay
 	s64 ts_offset = gf_timestamp_rescale_signed(ctx->delay.num, ctx->delay.den, timescale);
 	//per media-type delay
-	ts_offset = gf_timestamp_rescale_signed(delay->num, delay->den, timescale);
+	if (delay)
+		ts_offset += gf_timestamp_rescale_signed(delay->num, delay->den, timescale);
+
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
 	if (prop) {
 		ts_offset += prop->value.longsint;
@@ -210,6 +216,10 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 {
 	if (ots == GF_FILTER_NO_TS) return ots;
 	u64 ts;
+
+	if (pctx->ts_shift_plus_one) {
+		ots = ots + (pctx->ts_shift_plus_one-1);
+	}
 	//ots + pctx->ts_offset<0
 	if ((pctx->ts_offset<0) && (ots < (u64) -pctx->ts_offset)) {
 		pctx->ts_offset += (s64) ots + pctx->ts_offset;;
@@ -272,11 +282,67 @@ static u64 restamp_get_timestamp(RestampCtx *ctx, RestampPid *pctx, u64 ots)
 	return ts;
 }
 
+static void restamp_config_timing(GF_Filter *filter, RestampCtx *ctx)
+{
+	Bool not_ready=GF_FALSE;
+	Bool has_blocking=GF_FALSE;
+	u64 min_ts;
+	u32 min_timescale=0;
+
+	if ((ctx->tsinit.num<0) || !ctx->tsinit.den) {
+		ctx->config_timing = GF_FALSE;;
+		return;
+	}
+
+
+	u32 i, count = gf_list_count(ctx->pids);
+	for (i=0; i<count; i++) {
+		RestampPid *pctx = gf_list_get(ctx->pids, i);
+		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->ipid);
+		if (!pck) {
+			if (!gf_filter_pid_is_eos(pctx->ipid))
+				not_ready = GF_TRUE;
+			continue;
+		}
+		if (gf_filter_pck_is_blocking_ref(pck))
+			has_blocking=GF_TRUE;
+
+		u64 ts = gf_filter_pck_get_dts(pck);
+		if (ts==GF_FILTER_NO_TS)
+			ts = gf_filter_pck_get_cts(pck);
+
+		if (!min_timescale || (min_ts < gf_timestamp_rescale(ts, pctx->timescale, min_timescale))) {
+			min_timescale = pctx->timescale;
+			min_ts = ts;
+		}
+	}
+	if (not_ready && !has_blocking) {
+		ctx->config_retry++;
+		if (ctx->config_retry<10000)
+			return;
+	}
+	ctx->config_retry=0;
+
+	for (i=0; i<count; i++) {
+		RestampPid *pctx = gf_list_get(ctx->pids, i);
+
+		pctx->ts_shift_plus_one = - (s64) gf_timestamp_rescale_signed(min_ts, min_timescale, pctx->timescale);
+		pctx->ts_shift_plus_one += gf_timestamp_rescale(ctx->tsinit.num, ctx->tsinit.den, pctx->timescale);
+		pctx->ts_shift_plus_one += 1;
+	}
+	ctx->config_timing = GF_FALSE;;
+}
+
 
 static GF_Err restamp_process(GF_Filter *filter)
 {
 	u32 i, count;
 	RestampCtx *ctx = (RestampCtx *) gf_filter_get_udta(filter);
+
+	if (ctx->config_timing) {
+		restamp_config_timing(filter, ctx);
+		if (ctx->config_timing) return GF_OK;
+	}
 
 	count = gf_list_count(ctx->pids);
 	for (i=0; i<count; i++) {
@@ -304,6 +370,8 @@ static GF_Err restamp_process(GF_Filter *filter)
 
 			if (!pctx->raw_vid_copy) {
 				opck = gf_filter_pck_new_ref(pctx->opid, 0, 0, pck);
+				if (!opck) return GF_OUT_OF_MEM;
+				gf_filter_pck_merge_properties(pck, opck);
 				ts = restamp_get_timestamp(ctx, pctx, gf_filter_pck_get_dts(pck) );
 				if (ts != GF_FILTER_NO_TS)
 					gf_filter_pck_set_dts(opck, ts);
@@ -353,6 +421,8 @@ static GF_Err restamp_process(GF_Filter *filter)
 				}
 				assert(pctx->pck_ref);
 				opck = gf_filter_pck_new_ref(pctx->opid, 0, 0, pctx->pck_ref);
+				if (!opck) return GF_OUT_OF_MEM;
+				gf_filter_pck_merge_properties(pck, opck);
 				if (ts != GF_FILTER_NO_TS)
 					gf_filter_pck_set_cts(opck, ts);
 				pctx->nb_frames++;
@@ -430,6 +500,7 @@ static GF_FilterArgs RestampArgs[] =
 		"- force: force decoding all video streams\n"
 		"- dyn: decoding video streams if not all intra"
 	, GF_PROP_UINT, "no", "no|force|dyn", 0},
+	{ OFFS(tsinit), "initial timestamp to resync to, negative values disables resync", GF_PROP_FRACTION64, "-1/1", NULL, 0},
 	{0}
 };
 
