@@ -144,7 +144,7 @@ typedef struct
 	Double speed;
 	u32 raw;
 	GF_PropStringList xs, xe;
-	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref;
+	Bool nosap, splitrange, xadjust, tcmdrw, no_audio_seek, probe_ref, xots;
 	u32 xround, utc_ref, utc_probe;
 	Double seeksafe;
 	GF_PropStringList props;
@@ -971,15 +971,17 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 					}
 				}
 			}
+			if (!ctx->xots) {
+				ts += st->tk_delay;
+				ts += st->ts_at_range_end;
+				ts -= st->ts_at_range_start_plus_one - 1;
 
-			ts += st->tk_delay;
-			ts += st->ts_at_range_end;
-			ts -= st->ts_at_range_start_plus_one - 1;
-
-			if (ts<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
-				ts = 0;
+				if (ts<0) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Reframer] Negative TS while splitting, something went wrong during range estimation, forcing to 0\n"));
+					ts = 0;
+				}
 			}
+
 			if (st->probe_ref_frame_ts && (gf_filter_pck_get_dts(pck) + st->tk_delay + 1 == st->probe_ref_frame_ts)) {
 				gf_filter_pck_set_property(new_pck, GF_PROP_PCK_SKIP_PRES, &PROP_BOOL(GF_TRUE));
 			}
@@ -989,7 +991,7 @@ Bool reframer_send_packet(GF_Filter *filter, GF_ReframerCtx *ctx, RTStream *st, 
 				gf_filter_pck_set_dts(new_pck, ts);
 			}
 		}
-		if (!st->is_raw) {
+		if (!st->is_raw && !ctx->xots) {
 			ts = gf_filter_pck_get_dts(pck) + cts_offset;
 			if (ts != GF_FILTER_NO_TS) {
 				ts += st->tk_delay;
@@ -2683,6 +2685,7 @@ static const GF_FilterArgs ReframerArgs[] =
 	"- after: use first I-frame (if any) following or matching range start\n"
 	"- closest: use I-frame closest to range start", GF_PROP_UINT, "before", "before|seek|after|closest", GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(xadjust), "adjust end time of extraction range to be before next I-frame", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(xots), "keep original timestamps after extraction", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(nosap), "do not cut at SAP when extracting range (may result in broken streams)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(splitrange), "signal file boundary at each extraction first packet for template-base file generation", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(seeksafe), "rewind play requests by given seconds (to make sure the I-frame preceding start is catched)", GF_PROP_DOUBLE, "10.0", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -2737,7 +2740,7 @@ GF_FilterRegister ReframerRegister = {
 		"- 'F'NUM: specify time as frame number\n"
 		"- XML DateTime: specify absolute UTC time\n"
 		"  \n"
-		"In this mode, the timestamps are rewritten to form a continuous timeline.\n"
+		"In this mode, the timestamps are rewritten to form a continuous timeline, unless [-xots]() is set.\n"
 		"When multiple ranges are given, the filter will try to seek if needed and supported by source.\n"
 		"\n"
 		"EX gpac -i m.mp4 reframer:xs=T00:00:10,T00:01:10,T00:02:00:xe=T00:00:20,T00:01:20 [dst]\n"
