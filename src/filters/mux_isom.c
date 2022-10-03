@@ -123,7 +123,7 @@ typedef struct
 	s32 ts_delay, negctts_shift;
 	Bool insert_tfdt, probe_min_ctts;
 	u64 first_dts_in_seg, next_seg_cts, cts_next;
-	u64 offset_dts;
+	s64 tfdt_offset;
 	u32 samples_in_frag;
 	Bool patch_tfdt;
 
@@ -286,7 +286,7 @@ typedef struct
 #endif
 	Bool mfra;
 	Bool forcesync, refrag, pad_sparse;
-	Bool force_dv;
+	Bool force_dv, tsalign;
 	u32 itags;
 	Double start;
 
@@ -5129,7 +5129,7 @@ static GF_Err mp4_mux_initialize_movie(GF_MP4MuxCtx *ctx)
 
 
 		if (ctx->tfdt.den && ctx->tfdt.num) {
-			tkw->offset_dts = gf_timestamp_rescale(ctx->tfdt.num, ctx->tfdt.den, tkw->tk_timescale);
+			tkw->tfdt_offset = gf_timestamp_rescale(ctx->tfdt.num, ctx->tfdt.den, tkw->tk_timescale);
 		}
 
 		if (tkw->fake_track) {
@@ -5394,7 +5394,7 @@ static GF_Err mp4_mux_start_fragment(GF_MP4MuxCtx *ctx, GF_FilterPacket *pck)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Unable set fragment options: %s\n", gf_error_to_string(e) ));
 		}
 		tkw->fragment_done = GF_FALSE;
-		tkw->insert_tfdt = (has_tfdt || ctx->tfdt_traf) ? GF_TRUE : ctx->insert_tfdt;
+		tkw->insert_tfdt = (has_tfdt || ctx->tfdt_traf || tkw->tfdt_offset) ? GF_TRUE : ctx->insert_tfdt;
 		tkw->dur_in_frag = 0;
 
 		if (ctx->trun_inter) {
@@ -5826,7 +5826,15 @@ static GF_Err mp4_mux_process_fragmented(GF_Filter *filter, GF_MP4MuxCtx *ctx)
 				if (odts==GF_FILTER_NO_TS)
 					odts = gf_filter_pck_get_cts(pck);
 
-				if (tkw->offset_dts) odts += tkw->offset_dts;
+				if (tkw->tfdt_offset) {
+					//first sample, set offset dts such that first sample dts - offset_dts = target time
+					if (tkw->nb_samples==0) {
+						u64 target = tkw->tfdt_offset;
+						tkw->tfdt_offset = odts - target;
+
+					}
+					odts = odts - tkw->tfdt_offset;
+				}
 
 				tkw->insert_tfdt = GF_FALSE;
 				if (tkw->patch_tfdt)
@@ -6076,6 +6084,10 @@ static void del_service_info(GF_List *services)
 
 static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
+	if ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign) {
+		ctx->config_timing = GF_FALSE;
+		return;
+	}
 	GF_List *services = gf_list_new();
 	u32 i, count;
 	Bool not_ready, blocking_refs, has_ready;
@@ -6687,6 +6699,9 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 		gf_isom_enable_compression(ctx->file, ctx->compress, flags);
 	}
 
+	if ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign)
+		ctx->insert_tfdt = GF_TRUE;
+
 	if (ctx->cmaf) {
 		//cf table 3, 4, 5 of CMAF
 		ctx->mvex = GF_TRUE;
@@ -7293,6 +7308,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(start), "set playback start offset for MP4Box import only. A negative value means percent of media duration with -1 equal to duration", GF_PROP_DOUBLE, "0.0", NULL, GF_FS_ARG_HINT_HIDE},
 	{ OFFS(pad_sparse), "inject sample with no data (size 0) to keep durations in unknown sparse text and metadata tracks", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(force_dv), "force DV sample entry types even when AVC/HEVC compatibility is signaled", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(tsalign), "enable timeline realignment to 0 for first sample in fragmented mode", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 
 	{0}
 };
