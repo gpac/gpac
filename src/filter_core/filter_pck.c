@@ -862,16 +862,6 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 		return GF_BAD_PARAM;
 	}
 
-	if (pid->discard_input_packets) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reset pending, discarding input packet\n", pid->filter->name, pid->name));
-		safe_int_inc(&pck->reference_count);
-		assert(pck->reference_count);
-		if (safe_int_dec(&pck->reference_count) == 0) {
-			gf_filter_packet_destroy(pck);
-		}
-		return GF_OK;
-	}
-
 	is_cmd_pck = (pck->info.flags & GF_PCK_CMD_MASK);
 
 	//special case for source filters (no input pids), mark as playing once we have a packet sent

@@ -6652,7 +6652,6 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s input PID %s (from %s) resetting buffer\n", task->filter->name, pidi->pid->name, pidi->pid->filter->name ));
-	assert(pidi->pid->discard_input_packets);
 
 	if (had_eos) *had_eos = GF_FALSE;
 	
@@ -6687,8 +6686,8 @@ static void gf_filter_pid_reset_task_ex(GF_FSTask *task, Bool *had_eos)
 	pidi->pid->nb_buffer_unit = 0;
 	pidi->pid->buffer_duration = 0;
 	gf_filter_pid_check_unblock(pidi->pid);
-	safe_int_dec(& pidi->pid->discard_input_packets );
 }
+
 static void gf_filter_pid_reset_task(GF_FSTask *task)
 {
 	gf_filter_pid_reset_task_ex(task, NULL);
@@ -6848,9 +6847,11 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		case GF_FEVT_PLAY:
 		case GF_FEVT_SOURCE_SEEK:
 			for_pidi->is_playing = GF_TRUE;
+			for_pidi->play_queued = 0;
 			break;
 		case GF_FEVT_STOP:
 			for_pidi->is_playing = GF_FALSE;
+			for_pidi->stop_queued = 0;
 			break;
 		case GF_FEVT_PAUSE:
 			for_pidi->is_paused = GF_TRUE;
@@ -6869,16 +6870,13 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		if (pid->num_destinations && !for_pidi
 			&& ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_STOP) || (evt->base.type==GF_FEVT_CONNECT_FAIL))
 		) {
-			//we incremented discard counter on every destination in gf_filter_pid_send_event_internal for stop, decrement
+			//we incremented discard counter in gf_filter_pid_send_event_internal for stop, decrement
 			//this typically happen when pid has 2 destinations, one OK and the other one failed to configure
 			if (evt->base.type==GF_FEVT_STOP) {
 				for (i=0; i<pid->num_destinations; i++) {
 					for_pidi = gf_list_get(pid->destinations, i);
-					if (for_pidi->discard_packets) {
-						assert(pid->discard_input_packets);
+					if (for_pidi->discard_packets)
 						safe_int_dec(&for_pidi->discard_packets);
-						safe_int_dec(&pid->discard_input_packets );
-					}
 				}
 			}
 			free_evt(evt);
@@ -6951,11 +6949,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			//undo this
 			if (pidi->discard_packets) {
 				safe_int_dec(&pidi->discard_packets);
-				assert(pidi->pid->discard_input_packets);
-				safe_int_dec(& pidi->pid->discard_input_packets );
 			}
 		}
-
 		if (!evt->base.on_pid->pid->is_playing) {
 			if ((f->num_input_pids==f->num_output_pids) && (f->num_input_pids==1)) {
 				gf_filter_pid_set_discard(gf_list_get(f->input_pids, 0), GF_TRUE);
@@ -7043,12 +7038,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 			if (!pidi->discard_packets) {
 				safe_int_inc(&pidi->discard_packets);
-				safe_int_inc(& pid->discard_input_packets );
 			}
 
 			safe_int_inc(& pid->filter->stream_reset_pending );
-
-			assert(pid->discard_input_packets);
 
 			gf_mx_v(pid->filter->tasks_mx);
 
@@ -7146,7 +7138,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		//mark pid instance as about to be reset to avoid processing PID destroy task before
 		if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 			safe_int_inc(&pid_inst->discard_packets);
-			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
 
 		an_evt = dup_evt(evt);
@@ -7237,19 +7228,61 @@ void gf_filter_pid_send_event_internal(GF_FilterPid *pid, GF_FilterEvent *evt, B
 		|| (evt->base.type == GF_FEVT_PLAY)
 		|| (evt->base.type==GF_FEVT_SOURCE_SEEK)
 	) {
-		u32 i;
+		u32 i, nb_playing=0;
+		Bool do_reset = GF_TRUE;
 		gf_mx_p(pid->pid->filter->tasks_mx);
+
 		for (i=0; i<pid->pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
+			if (pidi->is_playing || pidi->play_queued) nb_playing++;
+			if (pidi->stop_queued) nb_playing--;
+
+			//pre-check pid instance play state
+			if (pidi == (GF_FilterPidInst *)evt->base.on_pid) {
+				//if STOP and pid instance already stop, silently discard
+				if ((evt->base.type == GF_FEVT_STOP) && !pidi->is_playing && !pidi->play_queued) {
+					gf_mx_v(pid->pid->filter->tasks_mx);
+					return;
+				}
+				//if PLAY and pid instance already playing, silently discard
+				else if ((evt->base.type == GF_FEVT_PLAY) && pidi->is_playing && !pidi->stop_queued) {
+					gf_mx_v(pid->pid->filter->tasks_mx);
+					return;
+				}
+			}
+		}
+		//do not set discard_packets flag on pid instance when:
+		//- pid has at least one active output and we play one
+		//- pid has more than one active output and we stop one
+		if (evt->base.type == GF_FEVT_STOP) {
+			if (nb_playing>1)
+				do_reset = GF_FALSE;
+
+			if (PID_IS_INPUT(pid)) {
+				((GF_FilterPidInst*)evt->base.on_pid)->stop_queued = 1;
+			}
+		} else {
+			if (nb_playing)
+				do_reset = GF_FALSE;
+			if (PID_IS_INPUT(pid)) {
+				((GF_FilterPidInst*)evt->base.on_pid)->play_queued = 1;
+			}
+		}
+
+		for (i=0; i<pid->pid->num_destinations; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
+
+			if (!do_reset && (pidi != (GF_FilterPidInst*)evt->base.on_pid))
+				continue;
+
 			if (evt->base.type == GF_FEVT_PLAY) {
 				pidi->is_end_of_stream = GF_FALSE;
-//				gf_filter_pid_clear_eos(pid, GF_FALSE);
 			} else {
 				//flag pid instance to discard all packets (cf above note)
 				safe_int_inc(&pidi->discard_packets);
-				safe_int_inc(& pidi->pid->discard_input_packets );
 			}
 		}
+
 		gf_mx_v(pid->pid->filter->tasks_mx);
 	}
 
