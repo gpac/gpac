@@ -919,6 +919,7 @@ struct __gf_filter_pid_inst
 	u64 first_frame_time;
 	Bool is_end_of_stream;
 	Bool is_playing, is_paused;
+	u8 play_queued, stop_queued;
 	
 	volatile u32 nb_eos_signaled;
 
@@ -964,7 +965,6 @@ struct __gf_filter_pid
 	Bool not_connected_ok;
 	Bool removed;
 	Bool direct_dispatch;
-	volatile u32 discard_input_packets;
 	volatile u32 init_task_pending;
 	volatile Bool props_changed_since_connect;
 	//number of shared packets (shared, frame interfaces or reference) still out there
