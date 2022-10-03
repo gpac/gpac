@@ -797,6 +797,7 @@ static const char *ctxload_probe_data(const u8 *probe_data, u32 size, GF_FilterP
 
 	e = gf_utf_get_utf8_string_from_bom(probe_data, size, &dst, &res);
 	if (e) return NULL;
+	probe_data = res;
 
 	//strip all spaces and \r\n
 	while (probe_data[0] && strchr("\n\r\t ", (char) probe_data[0]))

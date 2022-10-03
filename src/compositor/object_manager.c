@@ -275,7 +275,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 	//if (odm->type == GF_STREAM_VISUAL) return GF_TRUE;
 
 	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) {
-		return GF_TRUE;
+		return GF_FALSE;
 	}
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
@@ -288,7 +288,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 		GF_ObjectManager *an_odm = gf_list_get(odm->parentscene->resources, i);
 		if (an_odm==odm) continue;
 		if (an_odm->type != odm->type) continue;
-		//same type - if the first one has been autumatically activated, do not activate this one
+		//same type - if the first one has been automatically activated, do not activate this one
 		if (an_odm->state == GF_ODM_STATE_PLAY) return GF_FALSE;
 	}
 	return GF_TRUE;
@@ -592,6 +592,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	const GF_PropertyValue *prop;
 	u32 OD_OCR_ID=0;
 	u32 es_id=0;
+	u32 ckid_use_odid = 0;
 
 	/*find the clock for this new channel*/
 	ck = NULL;
@@ -674,8 +675,10 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (!clockID) {
 		if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
 			clockID = (u32) (intptr_t) odm->scene_ns;
+			ckid_use_odid = clockID;
 		} else {
 			clockID = odm->ID;
+			ckid_use_odid = clockID;
 		}
 	}
 
@@ -703,6 +706,8 @@ clock_setup:
 	odm->clock_inherited = clock_inherited;
 
 	if (es_id==ck->clock_id)
+		odm->owns_clock = GF_TRUE;
+	else if (ckid_use_odid && (ckid_use_odid==ck->clock_id))
 		odm->owns_clock = GF_TRUE;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DELAY);
