@@ -59,10 +59,12 @@ struct __txtin_ctx
 	u32 width, height, txtx, txty, fontsize;
 	s32 zorder;
 	const char *fontname, *lang, *ttml_zero;
-	Bool nodefbox, noflush, webvtt, ttml_embed;
+	Bool nodefbox, noflush, webvtt, ttml_embed, no_empty;
 	u32 timescale;
 	GF_Fraction fps;
-	s32 ttml_dur;
+	Bool ttml_split;
+	GF_Fraction64 ttml_cts;
+	GF_Fraction ttml_dur;
 
 
 	GF_FilterPid *ipid, *opid;
@@ -128,6 +130,7 @@ struct __txtin_ctx
 	Bool srt_to_tx3g;
 
 	GF_List *intervals;
+	u64 cts_first_interval;
 };
 
 typedef struct
@@ -213,7 +216,7 @@ static void ttxt_dom_progress(void *cbk, u64 cur_samp, u64 count)
 
 static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt)
 {
-	char szLine[2048];
+	char szLine[2048], *line;
 	u32 val;
 	s32 uni_type;
 	FILE *test = gf_fopen(filename, "rb");
@@ -239,13 +242,19 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 	}
 	REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
+	//strip all spaces and \r\n\t
+	line = szLine;
+	while (line[0] && strchr("\n\r\t ", (char) line[0]))
+		line ++;
+
+
 	*fmt = GF_TXTIN_MODE_NONE;
-	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TXTIN_MODE_SUB;
-	else if (szLine[0] == '<') {
+	if ((line[0]=='{') && strstr(line, "}{")) *fmt = GF_TXTIN_MODE_SUB;
+	else if (line[0] == '<') {
 		char *ext = gf_file_ext_start(filename);
 		if (ext && !strnicmp(ext, ".ttxt", 5)) *fmt = GF_TXTIN_MODE_TTXT;
 		else if (ext && !strnicmp(ext, ".ttml", 5)) *fmt = GF_TXTIN_MODE_TTML;
-		ext = strstr(szLine, "?>");
+		ext = strstr(line, "?>");
 		if (ext) ext += 2;
 		if (ext && !ext[0]) {
 			if (!gf_fgets(szLine, 2048, test))
@@ -253,16 +262,16 @@ static GF_Err gf_text_guess_format(GF_TXTIn *ctx, const char *filename, u32 *fmt
 		}
 		if (strstr(szLine, "x-quicktime-tx3g") || strstr(szLine, "text3GTrack")) *fmt = GF_TXTIN_MODE_TEXML;
 		else if (strstr(szLine, "TextStream")) *fmt = GF_TXTIN_MODE_TTXT;
-		else if (strstr(szLine, "tt")) *fmt = GF_TXTIN_MODE_TTML;
+		else if (strstr(szLine, "<tt ") || strstr(szLine, ":tt ")) *fmt = GF_TXTIN_MODE_TTML;
 	}
-	else if (strstr(szLine, "WEBVTT") )
+	else if (strstr(line, "WEBVTT") )
 		*fmt = GF_TXTIN_MODE_WEBVTT;
-	else if (strstr(szLine, " --> ") )
+	else if (strstr(line, " --> ") )
 		*fmt = GF_TXTIN_MODE_SRT; /* might want to change the default to WebVTT */
 
-	else if (!strncmp(szLine, "FWS", 3) || !strncmp(szLine, "CWS", 3))
+	else if (!strncmp(line, "FWS", 3) || !strncmp(line, "CWS", 3))
 		*fmt = GF_TXTIN_MODE_SWF_SVG;
-	else if (!strncmp(szLine, "[Script Info]", 13) )
+	else if (!strncmp(line, "[Script Info]", 13) )
 		*fmt = GF_TXTIN_MODE_SSA;
 
 	gf_fclose(test);
@@ -623,6 +632,9 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	GF_FilterPacket *dst_pck;
 	u8 *pck_data;
 	u32 size;
+
+	if ((!txt_samp->text || !txt_samp->len) && ctx->no_empty)
+		return;
 
 	if (ctx->seek_state==2) {
 		Double end = (Double) (ts+duration);
@@ -1093,7 +1105,11 @@ static void gf_webvtt_flush_sample(void *user, GF_WebVTTSample *samp)
 		ctx->seek_state = 0;
 	}
 
-	s = gf_isom_webvtt_to_sample(samp);
+	if (ctx->no_empty && !gf_isom_webvtt_cues_count(samp))
+		s = NULL;
+	else
+		s = gf_isom_webvtt_to_sample(samp);
+
 	if (s) {
 		GF_FilterPacket *pck;
 		u8 *pck_data;
@@ -1419,7 +1435,7 @@ static GF_Err ttml_push_interval(GF_TXTIn *ctx, s64 begin, s64 end, TTMLInterval
 		interval = gf_list_get(ctx->intervals, i);
 
 		//generate a single sample for the input, merge interval
-		if (ctx->ttml_dur>=0) {
+		if (! ctx->ttml_split) {
 			if (interval->begin > begin) interval->begin = begin;
 			if (interval->end < end) interval->end = end;
 			*out_interval = interval;
@@ -2007,6 +2023,48 @@ static Bool ttml_check_range(TTMLInterval *interval, s64 ts_begin, s64 ts_end)
 	return GF_FALSE;
 }
 
+static GF_Err ttml_send_empty_sample(GF_TXTIn *ctx, u64 sample_start, u64 sample_end)
+{
+	//we are not splitting, don't inject empty sample
+	if (! ctx->ttml_split) return GF_OK;
+	if (ctx->no_empty) return GF_OK;
+
+	GF_List *bck = ctx->root_working_copy->content;
+	ctx->root_working_copy->content = gf_list_new();
+	char *samp_text = gf_xml_dom_serialize_root((GF_XMLNode*)ctx->root_working_copy, GF_FALSE, GF_FALSE);
+	gf_list_del(ctx->root_working_copy->content);
+	bck = ctx->root_working_copy->content = bck;
+	if (!samp_text) return GF_OUT_OF_MEM;
+
+	char *txt_str = ttxt_parse_string(samp_text, GF_TRUE);
+	if (!txt_str) txt_str = "";
+	u32 txt_len = (u32) strlen(txt_str);
+	u8 *pck_data;
+	GF_FilterPacket *pck = gf_filter_pck_new_alloc(ctx->opid, txt_len, &pck_data);
+	if (!pck) {
+		gf_free(samp_text);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(pck_data, txt_str, txt_len);
+	gf_free(samp_text);
+
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
+
+	u64 cts = gf_timestamp_rescale(sample_start, 1000, ctx->timescale);
+	if (ctx->ttml_cts.num>=0) {
+		cts += gf_timestamp_rescale(ctx->ttml_cts.num, ctx->ttml_cts.den, ctx->timescale);
+		cts -= ctx->cts_first_interval;
+	}
+	gf_filter_pck_set_cts(pck, cts);
+
+	if (sample_end >= sample_start) {
+		u64 dur = gf_timestamp_rescale(sample_end - sample_start, 1000, ctx->timescale);
+		gf_filter_pck_set_duration(pck, (u32) dur);
+	}
+
+	return gf_filter_pck_send(pck);
+}
+
 static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPacket *ipck)
 {
 	GF_Err e;
@@ -2191,14 +2249,14 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 		}
 
 		if (ctx->first_samp) {
-			interval->begin = 0; /*in MP4 we must start at T=0*/
-			ctx->first_samp = GF_FALSE;
+			ctx->cts_first_interval = 0;
+			//start from 0
+			if (ctx->ttml_cts.num==-1) {
+				interval->begin = 0;
+			} else if (ctx->ttml_cts.num>=0) {
+				ctx->cts_first_interval = gf_timestamp_rescale(interval->begin, 1000, ctx->timescale);
+			}
 		}
-
-		ctx->last_sample_duration = interval->end - interval->begin;
-
-		ctx->end = interval->end;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", interval->begin, interval->end, interval->end - ctx->end, ctx->last_sample_duration, ctx->end));
 
 		if (ctx->seek_state==2) {
 			Double end = (Double) interval->end;
@@ -2206,6 +2264,17 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			if (end<ctx->start_range) skip_pck = GF_TRUE;
 			else ctx->seek_state = 0;
 		}
+
+
+		if (!ctx->first_samp && (ctx->end < interval->begin)) {
+			ttml_send_empty_sample(ctx, ctx->end, interval->begin);
+		}
+
+		ctx->first_samp = GF_FALSE;
+		ctx->last_sample_duration = interval->end - interval->begin;
+
+		ctx->end = interval->end;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", interval->begin, interval->end, interval->end - ctx->end, ctx->last_sample_duration, ctx->end));
 
 		if (!skip_pck) {
 			pck = gf_filter_pck_new_alloc(ctx->opid, txt_len+res_len, &pck_data);
@@ -2216,14 +2285,20 @@ static GF_Err gf_text_process_ttml(GF_Filter *filter, GF_TXTIn *ctx, GF_FilterPa
 			memcpy(pck_data, txt_str, txt_len);
 			gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
-			if (ctx->ttml_dur>0) {
-				gf_filter_pck_set_cts(pck, 0);
-				gf_filter_pck_set_duration(pck, (u32) ctx->ttml_dur);
-				ctx->last_sample_duration = (u64) ctx->ttml_dur * 1000 / ctx->timescale;
+			u64 cts = gf_timestamp_rescale(interval->begin, 1000, ctx->timescale);
+			if (ctx->ttml_cts.num>=0) {
+				cts += gf_timestamp_rescale(ctx->ttml_cts.num, ctx->ttml_cts.den, ctx->timescale);
+				cts -= ctx->cts_first_interval;
+			}
+			gf_filter_pck_set_cts(pck, cts);
+
+			if (!ctx->ttml_split && (ctx->ttml_dur.num>0) && ctx->ttml_dur.den) {
+				ctx->last_sample_duration = gf_timestamp_rescale(ctx->ttml_dur.num, ctx->ttml_dur.den, ctx->timescale);
+				gf_filter_pck_set_duration(pck, (u32) ctx->last_sample_duration);
 			} else {
-				gf_filter_pck_set_cts(pck, (ctx->timescale * interval->begin)/1000);
 				if (interval->end >= interval->begin) {
-					gf_filter_pck_set_duration(pck, (u32) ((ctx->timescale * (interval->end - interval->begin) )/1000) );
+					u64 dur = gf_timestamp_rescale(interval->end - interval->begin, 1000, ctx->timescale);
+					gf_filter_pck_set_duration(pck, (u32) dur);
 				}
 			}
 
@@ -4015,7 +4090,12 @@ static const char *txtin_probe_data(const u8 *data, u32 data_size, GF_FilterProb
 	char *res=NULL;
 	GF_Err e = gf_utf_get_utf8_string_from_bom((char *)data, data_size, &dst, &res);
 	if (e) return NULL;
-	
+
+	data = res;
+	//strip all spaces and \r\n\t
+	while (data[0] && strchr("\n\r\t ", (char) data[0]))
+		data ++;
+
 #define PROBE_OK(_score, _mime) \
 		*score = _score;\
 		if (dst) gf_free(dst);\
@@ -4103,9 +4183,12 @@ static const GF_FilterArgs TXTInArgs[] =
 	{ OFFS(txty), "default vertical offset of text area: -1 (bottom), 0 (center) or 1 (top)", GF_PROP_UINT, "0", NULL, 0},
 	{ OFFS(zorder), "default z-order of the PID", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(timescale), "default timescale of the PID", GF_PROP_UINT, "1000", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(ttml_dur), "force single sample mode", GF_PROP_SINT, "-1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_split), "split ttml doc in non-overlapping samples", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_cts), "first sample cts - see filter help", GF_PROP_FRACTION64, "-1/1", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(ttml_dur), "sample duration when not spliting split - see filter help", GF_PROP_FRACTION, "0/1", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttml_embed), "force embedding TTML resources", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ttml_zero), "set subtitle zero time for TTML", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(no_empty), "do not send empty samples", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{0}
 };
 
@@ -4128,10 +4211,15 @@ GF_FilterRegister TXTInRegister = {
 	"- Others: 3GPP/QT Timed Text\n"
 	"\n"
 	"# TTML Support\n"
-	"The [-ttml_dur]() option controls how the TTML document is split into packets:\n"
-	"- if negative (default), TTML document is split in independent time segments by inspecting all overlapping subtitles in the body\n"
-	"- if 0, the input document is not split, forwarded as a single frame with `CTS` matching the first active time in document and a duration equal to the document duration\n"
-	"- if >0, the input document is not split, forwarded as a single frame with `CTS=0` and the specified duration in `timescale` units.\n"
+	"If [-ttml_split]() option is set, the TTML document is split in independent time segments by inspecting all overlapping subtitles in the body.\n"
+	"Empty periods in TTML will result in empty TTML documents or will be skipped if [-no_empty]() option is set.\n"
+	"\n"
+	"The first sample has a CTS assigned as indicated by [-ttml_cts]():\n"
+	"- a numerator of -2 indicates the first CTS is 0\n"
+	"- a numerator of -1 indicates the first CTS is the first active time in document\n"
+	"- a numerator >= 0 indicates the CTS to use for first sample\n"
+	"\n"
+	"When TTML splitting is disabled, the duration of the TTML sample is given by [-ttml_dur]() if not 0, or set to the document duration\n"
 	"\n"
 	"By default, media resources are kept as declared in TTML2 documents.\n"
 	"\n"

@@ -340,6 +340,14 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 	res->IsRAP = RAP;
 	return res;
 }
+
+u32 gf_isom_webvtt_cues_count(void *s)
+{
+	GF_WebVTTSample *samp = (GF_WebVTTSample *)s;
+	if (!samp) return 0;
+	return gf_list_count(samp->cues);
+}
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
