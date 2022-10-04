@@ -429,7 +429,7 @@ static GF_Err gl_vout_evt(struct _video_out *vout, GF_Event *evt)
 	if (!evt || (evt->type != GF_EVENT_VIDEO_SETUP)) return GF_OK;
 
 	if (!compositor->player && (compositor->passthrough_pfmt != GF_PIXEL_RGB)) {
-		u32 pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		u32 pfmt = compositor->forced_alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 		compositor->passthrough_pfmt = pfmt;
 		compositor->opfmt = pfmt;
 		if (compositor->vout) {
@@ -469,7 +469,7 @@ static GF_Err rawvout_lock(struct _video_out *vout, GF_VideoSurface *vi, Bool do
 		if (!pfmt && compositor->passthrough_txh) pfmt = compositor->passthrough_txh->pixelformat;
 
 		if (!pfmt) {
-			pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+			pfmt = compositor->forced_alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 		}
 
 		memset(vi, 0, sizeof(GF_VideoSurface));
@@ -502,7 +502,7 @@ static GF_Err rawvout_evt(struct _video_out *vout, GF_Event *evt)
 
 	pfmt = compositor->opfmt;
 	if (!pfmt) {
-		pfmt = compositor->dyn_filter_mode ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
+		pfmt = compositor->forced_alpha ? GF_PIXEL_RGBA : GF_PIXEL_RGB;
 	}
 
 	compositor->passthrough_pfmt = pfmt;
@@ -2926,6 +2926,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				emit_frame = GF_FALSE;
 			else if (compositor->fonts_pending>0)
 				emit_frame = GF_FALSE;
+			else if (compositor->clipframe && (!compositor->visual->frame_bounds.width || !compositor->visual->frame_bounds.height)) {
+				emit_frame = GF_FALSE;
+			}
 			else
 				emit_frame = GF_TRUE;
 
@@ -2956,18 +2959,80 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			} else {
 				//assign udta of frame interface event when using shared packet, as it is used to test when frame is released
 				compositor->frame_ifce.user_data = compositor;
-				if (compositor->video_out==&raw_vout) {
-					pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_frame_ifce_done);
-				} else {
-					compositor->frame_ifce.get_plane = gf_sc_frame_ifce_get_plane;
-					compositor->frame_ifce.get_gl_texture = NULL;
-#ifndef GPAC_DISABLE_3D
-					if (compositor->fbo_tx_id) {
-						compositor->frame_ifce.get_gl_texture = gf_sc_frame_ifce_get_gl_texture;
+
+				u32 nb_bpp=0;
+				u32 pf = compositor->passthrough_pfmt;
+				if (compositor->video_out!=&raw_vout)
+					pf = compositor->opfmt;
+				if (!pf && compositor->forced_alpha)
+					pf = GF_PIXEL_RGBA;
+
+				u32 c_w=compositor->display_width, c_h=compositor->display_height;
+				if (compositor->clipframe) {
+					switch (pf) {
+					case GF_PIXEL_ARGB:
+					case GF_PIXEL_RGBA:
+						nb_bpp = 4;
+						break;
+					case GF_PIXEL_RGB:
+					case GF_PIXEL_BGR:
+						nb_bpp = 3;
+						break;
 					}
+					if (nb_bpp) {
+						c_w = compositor->visual->frame_bounds.width;
+						c_h = compositor->visual->frame_bounds.height;
+
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_WIDTH, &PROP_UINT(c_w));
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(c_h));
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, NULL);
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, NULL);
+					}
+				}
+				if ((c_w==compositor->display_width) && (c_h==compositor->display_height)) {
+					if (compositor->video_out==&raw_vout) {
+						pck = gf_filter_pck_new_shared(compositor->vout, compositor->framebuffer, compositor->framebuffer_size, gf_sc_frame_ifce_done);
+					} else {
+						compositor->frame_ifce.get_plane = gf_sc_frame_ifce_get_plane;
+						compositor->frame_ifce.get_gl_texture = NULL;
+#ifndef GPAC_DISABLE_3D
+						if (compositor->fbo_tx_id) {
+							compositor->frame_ifce.get_gl_texture = gf_sc_frame_ifce_get_gl_texture;
+						}
 #endif
-					compositor->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
-					pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
+						compositor->frame_ifce.flags = GF_FRAME_IFCE_BLOCKING;
+						pck = gf_filter_pck_new_frame_interface(compositor->vout, &compositor->frame_ifce, gf_sc_frame_ifce_done);
+					}
+				} else {
+					u32 j, osize = c_w * c_h * nb_bpp;
+					Bool release_fb=GF_FALSE;
+					u8 *output;
+					u32 offset_x = compositor->visual->frame_bounds.x + compositor->display_width/2;
+					u32 offset_y = compositor->display_height/2 - compositor->visual->frame_bounds.y;
+					u8 *src=NULL;
+					pck = NULL;
+					if (compositor->video_out==&raw_vout) {
+						src = compositor->framebuffer;
+					} else {
+						if (gf_sc_get_screen_buffer(compositor, &compositor->fb, 0) == GF_OK) {
+							src = compositor->fb.video_buffer;
+							release_fb = GF_TRUE;
+						}
+					}
+					if (src) {
+						src += offset_x * nb_bpp + offset_y * nb_bpp * compositor->display_width;
+						pck = gf_filter_pck_new_alloc(compositor->vout, osize, &output);
+						if (output) {
+							for (j=0; j<c_h; j++) {
+								memcpy(output, src, nb_bpp*c_w);
+								output += nb_bpp*c_w;
+								src += nb_bpp * compositor->display_width;
+							}
+						}
+						compositor->frame_ifce.user_data = NULL;
+						if (release_fb)
+							gf_sc_release_screen_buffer(compositor, &compositor->fb);
+					}
 				}
 
 				if (!pck) {
@@ -2988,13 +3053,24 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 						frame_ts = compositor->frame_number * compositor->fps.den;
 					}
 					gf_filter_pck_set_cts(pck, frame_ts);
+
+					if (compositor->hint_extra_scene_cts) {
+						gf_filter_pck_set_cts(pck, compositor->hint_extra_scene_cts);
+						compositor->hint_extra_scene_cts = 0;
+					}
+					if (compositor->hint_extra_scene_dur) {
+						gf_filter_pck_set_duration(pck, compositor->hint_extra_scene_dur);
+						compositor->hint_extra_scene_dur = 0;
+					}
 				}
 			}
 			if (pck_frame_ts) {
 				u64 ts = gf_timestamp_rescale(pck_frame_ts, compositor->passthrough_timescale, 1000);
 				frame_ts = (u32) ts;
 			}
+
 			gf_filter_pck_send(pck);
+
 			gf_sc_ar_update_video_clock(compositor->audio_renderer, frame_ts);
 
 			if (!compositor->player) {
@@ -4166,7 +4242,7 @@ void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, G
 }
 
 
-Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms)
+Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms, u32 dur_in_ms)
 {
 	Bool is_early=GF_FALSE;
 	assert(odm);
@@ -4183,6 +4259,12 @@ Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid 
 	if (is_early) {
 		gf_sc_sys_frame_pending(scene->compositor, (u32)cts_in_ms, obj_time, from_filter);
 		return GF_FALSE;
+	}
+	if (scene->compositor->vfr) {
+		u32 ts = scene->compositor->timescale;
+		if (!ts) ts = scene->compositor->fps.num;
+		scene->compositor->hint_extra_scene_cts = gf_timestamp_rescale(cts_in_ms, 1000, ts);
+		scene->compositor->hint_extra_scene_dur = gf_timestamp_rescale(dur_in_ms, 1000, ts);
 	}
 	return GF_TRUE;
 }

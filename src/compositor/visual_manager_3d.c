@@ -446,7 +446,7 @@ static void visual_3d_draw_background(GF_TraverseState *tr_state, u32 layer_type
 				alpha = FIX_ONE;
 				if (tr_state->visual->compositor->init_flags & GF_VOUT_WINDOW_TRANSPARENT) {
 					alpha = 0;
-				} else if (tr_state->visual->compositor->dyn_filter_mode) {
+				} else if (tr_state->visual->compositor->forced_alpha) {
 					alpha = 0;
 				}
 			}
@@ -1962,6 +1962,31 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 
 void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
+	if (0 && mesh && tr_state->visual->compositor->clipframe) {
+		void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box);
+		GF_Matrix mx;
+		GF_BBox bounds = mesh->bounds;
+		gf_mx_copy(mx, tr_state->camera->modelview);
+		gf_mx_add_matrix(&mx, &tr_state->model_matrix);
+
+		gf_mx_apply_bbox(&mx, &bounds);
+		//get persp-transformed bounds, all coords will be in NDC [-1,1]
+		gf_mx_apply_bbox_4x4(&tr_state->camera->projection, &bounds);
+
+		GF_Rect rc;
+		rc.x = gf_mulfix(bounds.min_edge.x/2, tr_state->camera->vp.width);
+		rc.y = gf_mulfix(bounds.max_edge.y/2, tr_state->camera->vp.height);
+		rc.width = gf_mulfix(bounds.max_edge.x/2, tr_state->camera->vp.width) - rc.x;
+		rc.height = rc.y - gf_mulfix(bounds.min_edge.y/2, tr_state->camera->vp.height);
+		//no need to apply vp x/y offset, we are already centered
+		GF_IRect irc = gf_rect_pixelize(&rc);
+		if (!tr_state->visual->surf_rect.width) {
+			rc = gf_rect_center(INT2FIX(tr_state->visual->compositor->display_width), INT2FIX((tr_state->visual->compositor->display_height)));
+			tr_state->visual->surf_rect = gf_rect_pixelize(&rc);
+		}
+		gf_irect_intersect(&irc, &tr_state->visual->surf_rect);
+		gf_irect_union(&tr_state->visual->frame_bounds, &irc);
+	}
 	if (mesh->mesh_type) {
 		if (visual_3d_setup_material(tr_state, mesh->mesh_type, NULL)) {
 			visual_3d_mesh_paint(tr_state, mesh);

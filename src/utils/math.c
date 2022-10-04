@@ -1808,7 +1808,7 @@ GF_EXPORT
 void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *box)
 {
 	u32 i;
-	GF_Vec v[4];
+	GF_Vec v[8];
 	v[0] = box->min_edge;
 	v[1] = box->min_edge;
 	v[1].x = box->max_edge.x;
@@ -1816,9 +1816,18 @@ void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *box)
 	v[2].y = box->max_edge.y;
 	v[3] = box->min_edge;
 	v[3].z = box->max_edge.z;
+
+	v[4] = box->max_edge;
+	v[5] = box->max_edge;
+	v[5].x = box->min_edge.x;
+	v[6] = box->max_edge;
+	v[6].y = box->min_edge.y;
+	v[7] = box->max_edge;
+	v[7].z = box->min_edge.z;
+
 	box->max_edge.x = box->max_edge.y = box->max_edge.z = -FIX_MAX;
 	box->min_edge.x = box->min_edge.y = box->min_edge.z = FIX_MAX;
-	for (i=0; i<4; i++) {
+	for (i=0; i<8; i++) {
 		gf_mx_apply_vec(mx, &v[i]);
 		if (box->min_edge.x > v[i].x) box->min_edge.x = v[i].x;
 		if (box->min_edge.y > v[i].y) box->min_edge.y = v[i].y;
@@ -1829,6 +1838,52 @@ void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *box)
 	}
 	gf_bbox_refresh(box);
 }
+
+void gf_mx_apply_bbox_4x4(GF_Matrix *mx, GF_BBox *box)
+{
+	u32 i;
+	GF_Vec v[8];
+	v[0] = box->min_edge;
+	v[1] = box->min_edge;
+	v[1].x = box->max_edge.x;
+	v[2] = box->min_edge;
+	v[2].y = box->max_edge.y;
+	v[3] = box->min_edge;
+	v[3].z = box->max_edge.z;
+
+	v[4] = box->max_edge;
+	v[5] = box->max_edge;
+	v[5].x = box->min_edge.x;
+	v[6] = box->max_edge;
+	v[6].y = box->min_edge.y;
+	v[7] = box->max_edge;
+	v[7].z = box->min_edge.z;
+
+	box->max_edge.x = box->max_edge.y = box->max_edge.z = -FIX_MAX;
+	box->min_edge.x = box->min_edge.y = box->min_edge.z = FIX_MAX;
+	for (i=0; i<8; i++) {
+		GF_Vec4 vec;
+		vec.x = v[i].x;
+		vec.y = v[i].y;
+		vec.z = v[i].z;
+		vec.q = FIX_ONE;
+		gf_mx_apply_vec_4x4(mx, &vec);
+		if (!vec.q) continue;
+		vec.q = gf_divfix(FIX_ONE, vec.q);
+		vec.x = gf_mulfix(vec.x, vec.q);
+		vec.y = gf_mulfix(vec.y, vec.q);
+		vec.z = gf_mulfix(vec.z, vec.q);
+
+		if (box->min_edge.x > vec.x) box->min_edge.x = vec.x;
+		if (box->min_edge.y > vec.y) box->min_edge.y = vec.y;
+		if (box->min_edge.z > vec.z) box->min_edge.z = vec.z;
+		if (box->max_edge.x < vec.x) box->max_edge.x = vec.x;
+		if (box->max_edge.y < vec.y) box->max_edge.y = vec.y;
+		if (box->max_edge.z < vec.z) box->max_edge.z = vec.z;
+	}
+	gf_bbox_refresh(box);
+}
+
 
 // Apply the rotation portion of a matrix to a vector.
 GF_EXPORT

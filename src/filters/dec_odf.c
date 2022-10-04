@@ -379,7 +379,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		cts = gf_filter_pck_get_cts( pck );
 		cts = gf_timestamp_to_clocktime(cts, gf_filter_pck_get_timescale(pck));
 
-		if (!gf_sc_check_sys_frame(scene, odm, pid, filter, cts))
+		if (!gf_sc_check_sys_frame(scene, odm, pid, filter, cts, 0))
 			continue;
 
 		now = gf_sys_clock_high_res();

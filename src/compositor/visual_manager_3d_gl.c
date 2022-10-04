@@ -3601,13 +3601,13 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_VOUT_WINDOW_TRANSPARENT))*/
 		u32 size;
 		fb->pitch_x = 3;
-		if (!compositor->opfmt && compositor->dyn_filter_mode) {
+		if (!compositor->opfmt && compositor->forced_alpha) {
 			fb->pitch_x = 4;
 		} else if (compositor->opfmt==GF_PIXEL_RGBA) {
 			fb->pitch_x = 4;
 		}
 
-		fb->pitch_y = fb->pitch_x * compositor->vp_width;
+		fb->pitch_y = fb->pitch_x * fb->width;
 		size = fb->pitch_y * fb->height;
 		if (compositor->screen_buffer_alloc_size < size) {
 			compositor->screen_buffer_alloc_size = size;

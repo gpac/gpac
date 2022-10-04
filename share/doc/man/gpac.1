@@ -1262,6 +1262,8 @@ Each filter exposes a set of argument to configure itself, using property types 
 .br
 * N-dimension (vectors): formatted as DIM1xDIM2[xDIM3[xDIM4]] values, without unit multiplier.
 .br
+  * For 2D integer vectors, the following resolution names can be used: 360, 480, 576, 720, 1080, hd, 2k, 2160, 4k, 4320, 8k
+.br
 * string: formatted as:
 .br
   * `value`: copies value to string.
@@ -1953,6 +1955,8 @@ KEYWORD is case sensitive, and may be present multiple times in the string. Supp
 * p4cc=ABCD: uses PID property with 4CC value ABCD
 .br
 * pname=VAL: uses PID property with name VAL
+.br
+* cts, dts, dur, sap: uses properties of first packet in PID at template resolution time
 .br
 * OTHER: locates property 4CC for the given name, or property name if no 4CC matches.
 .br
@@ -4714,7 +4718,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev351-gc99924ffd-master
+build: 2.1-DEV-rev358-g1dbc2498f-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

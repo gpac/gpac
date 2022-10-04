@@ -95,10 +95,10 @@ static GF_Err pngenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	ctx->pixel_format = prop->value.uint;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE);
-	if (prop) ctx->stride = prop->value.uint;
+	ctx->stride = prop ? prop->value.uint : 0;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STRIDE_UV);
-	if (prop) ctx->stride_uv = prop->value.uint;
+	ctx->stride_uv = prop ? prop->value.uint : 0;
 
 	gf_pixel_get_size_info(ctx->pixel_format, ctx->width, ctx->height, NULL, &ctx->stride, &ctx->stride_uv, &ctx->nb_planes, &ctx->uv_height);
 

@@ -1352,8 +1352,9 @@ static GF_Err ttd_process(GF_Filter *filter)
 		pck = NULL;
 	}
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
+	u32 dur = gf_timestamp_rescale( gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 
-	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts))
+	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts, dur))
 		return GF_OK;
 
 	if (!pck) {

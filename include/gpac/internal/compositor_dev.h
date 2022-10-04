@@ -269,8 +269,10 @@ struct __tag_compositor
 	//autofps option
 	Bool vfr;
 	Bool nojs;
-	Bool dyn_filter_mode;
+	Bool forced_alpha;
 	Bool noback;
+	Bool clipframe;
+
 	//frame duration in ms, used to match closest frame in input video streams
 	u32 frame_duration;
 	Bool frame_was_produced;
@@ -305,6 +307,9 @@ struct __tag_compositor
 
 	s32 subtx, subty, subd, audd;
 	u32 subfs;
+
+	u64 hint_extra_scene_cts;
+	u32 hint_extra_scene_dur;
 
 	/*display size*/
 	u32 display_width, display_height;
@@ -1611,7 +1616,7 @@ typedef struct
 GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
 
 void gf_sc_sys_frame_pending(GF_Compositor *compositor, u32 cts, u32 obj_time, GF_Filter *from_filter);
-Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms);
+Bool gf_sc_check_sys_frame(GF_Scene *scene, GF_ObjectManager *odm, GF_FilterPid *for_pid, GF_Filter *from_filter, u64 cts_in_ms, u32 dur_in_ms);
 
 /*
 get diff in ms (independent of clock absolute speed value, only speed sign) between a clock value and a timestamp in ms
