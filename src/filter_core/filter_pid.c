@@ -7827,12 +7827,14 @@ GF_EXPORT
 GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate[GF_MAX_PATH], char szFinalName[GF_MAX_PATH], u32 file_idx, const char *file_suffix, const char *filename)
 {
 	u32 k;
+	GF_FilterPacket *pck;
 	char szFormat[30], szTemplateVal[GF_MAX_PATH], szPropVal[GF_PROP_DUMP_ARG_SIZE];
 	char *name = szTemplate;
 	if (!strchr(szTemplate, '$')) {
 		strcpy(szFinalName, szTemplate);
 		return GF_OK;
 	}
+	pck = gf_filter_pid_get_packet(pid);
 	
 	k = 0;
 	while (name[0]) {
@@ -7927,6 +7929,9 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			} else {
 				prop_4cc = GF_4CC(name[5],name[6],name[7],name[8]);
 				prop_val = gf_filter_pid_get_property_first(pid, prop_4cc);
+				if (!prop_val && pck) {
+					prop_val = gf_filter_pck_get_property(pck, prop_4cc);
+				}
 				if (!prop_val) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] no pid property of type %s\n", name+5));
 					is_ok = GF_FALSE;
@@ -7934,25 +7939,30 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 			}
 		} else if (!strncmp(name, "pname=", 6)) {
 			prop_val = gf_filter_pid_get_property_str_first(pid, name+6);
+			if (!prop_val && pck) {
+				prop_val = gf_filter_pck_get_property_str(pck, name+6);
+			}
 			if (!prop_val) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] no pid property named %s\n", name+6));
 				is_ok = GF_FALSE;
 			}
-		} else if (!strncmp(name, "Number", 6)) {
+		}
+		//DASH reserved
+		else if (!strcmp(name, "Number")) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "Time", 4)) {
+		} else if (!strcmp(name, "Time")) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "RepresentationID", 16)) {
+		} else if (!strcmp(name, "RepresentationID")) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "Bandwidth", 9)) {
+		} else if (!strcmp(name, "Bandwidth")) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "SubNumber", 9)) {
+		} else if (!strcmp(name, "SubNumber")) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "Init", 4)) {
+		} else if (!strncmp(name, "Init", 4) && (name[4]=='=')) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "XInit", 5)) {
+		} else if (!strncmp(name, "XInit", 5) && (name[5]=='=')) {
 			do_skip = GF_TRUE;
-		} else if (!strncmp(name, "Path", 4)) {
+		} else if (!strncmp(name, "Path", 4) && (name[4]=='=')) {
 			do_skip = GF_TRUE;
 		} else {
 			char *next_eq = strchr(name, '=');
@@ -7962,15 +7972,37 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				//not matching, try with name
 				if (!prop_4cc) {
 					prop_val = gf_filter_pid_get_property_str_first(pid, name);
-					if (!prop_val) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Unrecognized template %s\n", name));
-						is_ok = GF_FALSE;
-					}
+					if (!prop_val && pck)
+						prop_val = gf_filter_pck_get_property_str(pck, name);
 				} else {
 					prop_val = gf_filter_pid_get_property_first(pid, prop_4cc);
-					if (!prop_val) {
-						is_ok = GF_FALSE;
+					if (!prop_val && pck)
+						prop_val = gf_filter_pck_get_property(pck, prop_4cc);
+				}
+
+				if (!prop_val && pck) {
+					if (!strcmp(name, "cts")) {
+						prop_val_patched.type = GF_PROP_LUINT;
+						prop_val_patched.value.longuint = gf_filter_pck_get_cts(pck);
+						prop_val = &prop_val_patched;
+					} else if (!strcmp(name, "dts")) {
+						prop_val_patched.type = GF_PROP_LUINT;
+						prop_val_patched.value.longuint = gf_filter_pck_get_dts(pck);
+						prop_val = &prop_val_patched;
+					} else if (!strcmp(name, "dur")) {
+						prop_val_patched.type = GF_PROP_UINT;
+						prop_val_patched.value.uint = gf_filter_pck_get_duration(pck);
+						prop_val = &prop_val_patched;
+					} else if (!strcmp(name, "sap")) {
+						prop_val_patched.type = GF_PROP_UINT;
+						prop_val_patched.value.uint = gf_filter_pck_get_sap(pck);
+						prop_val = &prop_val_patched;
 					}
+				}
+
+				if (!prop_val) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Unrecognized template %s\n", name));
+					is_ok = GF_FALSE;
 				}
 			} else {
 				u32 i, len = (u32) (next_sep ? 1+(next_sep - name) : strlen(name) );

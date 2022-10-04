@@ -283,10 +283,37 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_VEC2I:
 		if (!value || (sscanf(value, "%dx%d", &p.value.vec2i.x, &p.value.vec2i.y) != 2)) {
-			if (value && strcmp(value, "0x0") && strcmp(value, "0")) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
+			//allow following keywords for video resolution
+			if (value && !strcmp(value, "720")) {
+				p.value.vec2i.x = 1280;
+				p.value.vec2i.y = 720;
+			} else if (value && (!strcmp(value, "1080") || !stricmp(value, "hd")) ) {
+				p.value.vec2i.x = 1920;
+				p.value.vec2i.y = 1080;
+			} else if (value && !strcmp(value, "360") ) {
+				p.value.vec2i.x = 640;
+				p.value.vec2i.y = 360;
+			} else if (value && !strcmp(value, "480") ) {
+				p.value.vec2i.x = 640;
+				p.value.vec2i.y = 480;
+			} else if (value && !strcmp(value, "576") ) {
+				p.value.vec2i.x = 720;
+				p.value.vec2i.y = 576;
+			} else if (value && !stricmp(value, "2k") ) {
+				p.value.vec2i.x = 2048;
+				p.value.vec2i.y = 1080;
+			} else if (value && (!strcmp(value, "2160") || !stricmp(value, "4k")) ) {
+				p.value.vec2i.x = 3840;
+				p.value.vec2i.y = 2160;
+			} else if (value && (!strcmp(value, "4320") || !stricmp(value, "8k")) ) {
+				p.value.vec2i.x = 7680;
+				p.value.vec2i.y = 4320;
+			} else {
+				if (value && strcmp(value, "0x0") && strcmp(value, "0")) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for vec2i arg %s - using {0,0}\n", value, name));
+				}
+				p.value.vec2i.x = p.value.vec2i.y = 0;
 			}
-			p.value.vec2i.x = p.value.vec2i.y = 0;
 		}
 		break;
 	case GF_PROP_VEC2:
