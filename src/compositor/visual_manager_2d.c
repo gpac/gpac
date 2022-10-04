@@ -267,6 +267,8 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	visual->has_modif = 0;
 	visual->has_overlays = 0;
 
+	memset(&visual->frame_bounds, 0, sizeof(GF_IRect));
+	
 	visual_2d_setup_projection(visual, tr_state);
 	if (!visual->top_clipper.width || !visual->top_clipper.height)
 		return GF_OK;

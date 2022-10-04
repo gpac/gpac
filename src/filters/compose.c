@@ -811,8 +811,14 @@ static GF_Err compose_initialize(GF_Filter *filter)
 	ctx->filter = filter;
 
 	if (gf_filter_is_dynamic(filter)) {
-		ctx->dyn_filter_mode = GF_TRUE;
+		ctx->forced_alpha = GF_TRUE;
 		ctx->vfr = GF_TRUE;
+	} else if (ctx->bc && !GF_COL_A(ctx->bc)) {
+		ctx->forced_alpha = GF_TRUE;
+	} else if ((ctx->opfmt == GF_PIXEL_RGBA) || (ctx->opfmt == GF_PIXEL_ARGB) || (ctx->opfmt == GF_PIXEL_YUVA)) {
+		ctx->forced_alpha = GF_TRUE;
+	} else if (ctx->noback) {
+		ctx->forced_alpha = GF_TRUE;
 	}
 
 	//playout buffer not greater than max buffer
@@ -1108,6 +1114,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(subfs), "font size for subtitles renderers (0 means automatic)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(subd), "subtitle delay in milliseconds for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(audd), "audio delay in milliseconds", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(clipframe), "visual output is clipped to bounding rectangle", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1154,6 +1161,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	"- `rgb` when the filter is explicitly loaded by the application\n"
 	"- `rgba` when the filter is loaded during a link resolution\n"
 	"This can be changed by assigning the [-opfmt]() option.\n"
+	"If either [-opfmt]() specifies alpha channel or [-bc]() is not 0 but has alpha=0, background creation in default scene will be skipped.\n"
 	"\n"
 	"In filter-only mode, the special URL `gpid://` is used to locate PIDs in the scene description, in order to design scenes independently from source media.\n"
 	"When such a PID is associated to a `Background2D` node in BIFS (no SVG mapping yet), the compositor operates in pass-through mode.\n"

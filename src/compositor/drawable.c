@@ -847,6 +847,8 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 
 		return res;
 	}
+	if (tr_state->visual->compositor->clipframe)
+		gf_irect_union(&tr_state->visual->frame_bounds, &ctx->bi->clip);
 
 	/*keep track of node drawn, whether direct or indirect drawing*/
 	if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {

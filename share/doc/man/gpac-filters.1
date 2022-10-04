@@ -306,6 +306,8 @@ The default output pixel format in filter mode is:
 .br
 This can be changed by assigning the .I opfmt option.
 .br
+If either .I opfmt specifies alpha channel or .I bc is not 0 but has alpha=0, background creation in default scene will be skipped.
+.br
 
 .br
 In filter-only mode, the special URL gpid:// is used to locate PIDs in the scene description, in order to design scenes independently from source media.
@@ -721,6 +723,8 @@ subfs (uint, default: 0, updatable): font size for subtitles renderers (0 means 
 subd (sint, default: 0, updatable): subtitle delay in milliseconds for subtitles renderers
 .br
 audd (sint, default: 0, updatable): audio delay in milliseconds
+.br
+clipframe (bool, default: false): visual output is clipped to bounding rectangle
 .br
 
 .br
@@ -10751,7 +10755,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev351-gc99924ffd-master
+build: 2.1-DEV-rev358-g1dbc2498f-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

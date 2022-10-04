@@ -132,6 +132,8 @@ struct _visual_manager
 	/*top clipper (may be different than surf_rect when a viewport is active)*/
 	GF_IRect top_clipper;
 
+	GF_IRect frame_bounds;
+
 	u32 last_had_back;
 
 	/*signals that the hardware surface is attached to buffer/device/stencil*/

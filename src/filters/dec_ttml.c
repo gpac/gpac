@@ -308,7 +308,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 	const u8 *pck_data;
 	char *pck_alloc=NULL, *ttml_doc;
 	u64 cts;
-	u32 obj_time;
+	u32 obj_time, dur;
 	u32 pck_size;
 	JSValue fun_val;
 	JSValue global;
@@ -354,6 +354,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 
 	gf_odm_check_buffering(ctx->odm, ctx->ipid);
 	cts = gf_timestamp_to_clocktime(cts, ctx->timescale);
+	dur = gf_timestamp_rescale(gf_filter_pck_get_duration(pck), ctx->timescale, 1000);
 
 	//we still process any frame before our clock time even when buffering
 	obj_time = gf_clock_time(ctx->odm->ck);
@@ -387,7 +388,7 @@ static GF_Err ttmldec_process(GF_Filter *filter)
 		if (e) return e;
 	}
 
-	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts))
+	if (!gf_sc_check_sys_frame(ctx->scene, ctx->odm, ctx->ipid, filter, cts, dur))
 		return GF_OK;
 
 	pck_data = gf_filter_pck_get_data(pck, &pck_size);
