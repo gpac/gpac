@@ -1697,7 +1697,14 @@ static GF_Err ffenc_configure_pid_ex(GF_Filter *filter, GF_FilterPid *pid, Bool 
 			//by default use input timescale as timebase for encoder, but:
 			//
 			// - mpeg12enc (maybe other codecs?) uses timebase to compute framerate so 1/25000 will fail, we must pass the fps
-			if ((codec->id==AV_CODEC_ID_MPEG1VIDEO) || (codec->id==AV_CODEC_ID_MPEG2VIDEO)) {
+			if ((codec->id==AV_CODEC_ID_MPEG1VIDEO)
+				|| (codec->id==AV_CODEC_ID_MPEG2VIDEO)
+				|| (codec->id==AV_CODEC_ID_H264)
+				|| (codec->id==AV_CODEC_ID_HEVC)
+#ifdef FFMPEG_ENABLE_VVC
+				|| (codec->id==AV_CODEC_ID_VVC)
+#endif
+			) {
 				ctx->encoder->time_base.num = ctx->encoder->framerate.den;
 				ctx->encoder->time_base.den = ctx->encoder->framerate.num;
 			}
