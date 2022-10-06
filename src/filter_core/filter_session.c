@@ -2242,6 +2242,8 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 						GF_FilterPid *pid = gf_list_get(pidi->pid->filter->input_pids, k);
 						GF_FEVT_INIT(evt, GF_FEVT_STOP, pid);
 						gf_filter_pid_send_event(pid, &evt);
+						//and force pid to be in eos, since we do a fast flush EOS may not be dispatched by input filter(s)
+						gf_filter_pid_set_eos(pid->pid);
 					}
 					gf_mx_v(pidi->pid->filter->tasks_mx);
 				}
@@ -2249,6 +2251,8 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 				else {
 					GF_FEVT_INIT(evt, GF_FEVT_STOP, (GF_FilterPid *) pidi);
 					gf_filter_pid_send_event((GF_FilterPid *) pidi, &evt);
+					//and force pid to be in eos, since we do a fast flush EOS may not be dispatched by input filter(s)
+					gf_filter_pid_set_eos(pidi->pid);
 				}
 			}
 		}
