@@ -7588,6 +7588,16 @@ gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...
 .br
 
 .br
+You may need to escape the .I dev option if the format uses ':' as separator, as is the case for AVFoundation:
+.br
+Example
+.br
+gpac -i av://::dev=0:1 ...
+.br
+
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -10755,7 +10765,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev358-g1dbc2498f-master
+build: 2.1-DEV-rev367-g0fef0797e-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

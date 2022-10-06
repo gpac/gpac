@@ -2460,7 +2460,7 @@ Bool gf_sys_word_match(const char *orig, const char *dst)
 		if (s1 && !s2) return GF_FALSE;
 		if (!s1 && s2) return GF_FALSE;
 
-		if (strstr(dst, orig))
+		if (gf_strnistr(dst, orig, MIN(olen, dlen)))
 			return GF_TRUE;
 		return GF_FALSE;
 	}

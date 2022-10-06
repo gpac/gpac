@@ -64,7 +64,12 @@ loop execution of session, creating a session at each loop, mainly used for test
 .TP
 .B \-runfor (int)
 .br
-run for the given amount of milliseconds
+run for the given amount of milliseconds, exit with full session flush
+.br
+.TP
+.B \-runforf (int)
+.br
+run for the given amount of milliseconds, exit with fast session flush
 .br
 .TP
 .B \-runforx (int)
@@ -2748,7 +2753,7 @@ PID is hidden in visual/audio rendering
 .TP
 .B CropOrigin (VCXY,v2di,  )
 .br
-Position in source window, X,Y indicates coord in source
+Position in source window, X,Y indicate coordinates in source (0,0 for top-left)
 .br
 .TP
 .B OriginalSize (VOWH,v2di,  )
@@ -4718,7 +4723,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev358-g1dbc2498f-master
+build: 2.1-DEV-rev367-g0fef0797e-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
