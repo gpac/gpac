@@ -67,6 +67,7 @@ static Bool load_test_filters = GF_FALSE;
 static s32 nb_loops = 0;
 static s32 runfor = 0;
 static Bool runfor_exit = GF_FALSE;
+static Bool runfor_fast = GF_FALSE;
 static u32 exit_mode = 0;
 static Bool enable_prompt = GF_FALSE;
 static u32 enable_reports = 0;
@@ -87,7 +88,7 @@ static void reset_static_vars()
 
 	//bools
 	dump_stats = dump_graph = print_meta_filters = load_test_filters = GF_FALSE;
-	runfor_exit = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
+	runfor_exit = runfor_fast = enable_prompt = use_step_mode = in_sig_handler = custom_event_proc = GF_FALSE;
 	//s32
 	nb_loops = runfor = 0;
 	//u32
@@ -172,12 +173,12 @@ static Bool gpac_fsess_task(GF_FilterSession *fsess, void *callback, u32 *resche
 				}
 			}
 			if (nb_loops || loops_done) {
-				gf_fs_abort(fsess, runfor_exit ? GF_FS_FLUSH_NONE : GF_FS_FLUSH_ALL);
+				gf_fs_abort(fsess, runfor_exit ? GF_FS_FLUSH_NONE : (runfor_fast ? GF_FS_FLUSH_FAST : GF_FS_FLUSH_ALL));
 				run_start_time = 0;
 			} else {
 				if (runfor_exit)
 					exit(0);
-				gf_fs_abort(fsess, GF_FS_FLUSH_ALL);
+				gf_fs_abort(fsess, runfor_fast ? GF_FS_FLUSH_FAST : GF_FS_FLUSH_ALL);
 			}
 			return GF_FALSE;
 		}
@@ -672,6 +673,9 @@ int gpac_main(int argc, char **argv)
 			if (arg_val) nb_loops = get_s32(arg_val, "sloop");
 		} else if (!strcmp(arg, "-runfor")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
+		} else if (!strcmp(arg, "-runforf")) {
+			if (arg_val) runfor = 1000*get_u32(arg_val, "runfor");
+			runfor_fast = GF_TRUE;
 		} else if (!strcmp(arg, "-runforx")) {
 			if (arg_val) runfor = 1000*get_u32(arg_val, "runforx");
 			runfor_exit = GF_TRUE;

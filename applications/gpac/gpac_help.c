@@ -633,10 +633,11 @@ static GF_GPACArg gpac_args[] =
 #endif
 	GF_DEF_ARG("ltf", NULL, "load test-unit filters (used for for unit tests only)", NULL, NULL, GF_ARG_BOOL, GF_ARG_HINT_EXPERT),
 	GF_DEF_ARG("sloop", NULL, "loop execution of session, creating a session at each loop, mainly used for testing. If no value is given, loops forever", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- 	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- 	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- 	GF_DEF_ARG("runfors", NULL, "run for the given amount of milliseconds and exit with segfault (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
- 	GF_DEF_ARG("runforl", NULL, "run for the given amount of milliseconds and wait forever at end (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("runfor", NULL, "run for the given amount of milliseconds, exit with full session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("runforf", NULL, "run for the given amount of milliseconds, exit with fast session flush", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("runforx", NULL, "run for the given amount of milliseconds and exit with no cleanup", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("runfors", NULL, "run for the given amount of milliseconds and exit with segfault (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
+	GF_DEF_ARG("runforl", NULL, "run for the given amount of milliseconds and wait forever at end (tests)", NULL, NULL, GF_ARG_INT, GF_ARG_HINT_EXPERT),
 
 	GF_DEF_ARG("stats", NULL, "print stats after execution", NULL, NULL, GF_ARG_BOOL, 0),
 	GF_DEF_ARG("graph", NULL, "print graph after execution", NULL, NULL, GF_ARG_BOOL, 0),
@@ -1057,7 +1058,7 @@ redo_pass:
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
 							found = GF_TRUE;
 						}
-						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest core option: \n"));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest core option: \n"));
 					}
 					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("-%s: %s\n", arg->name, arg->description));
 				}
@@ -1089,11 +1090,33 @@ redo_pass:
 							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
 							found = GF_TRUE;
 						}
-						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("Closest matching filter options:\n", fname));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest matching filter options:\n", fname));
 					}
 					gf_sys_format_help(helpout, help_flags | GF_PRINTARG_HIGHLIGHT_FIRST, "%s.%s \n", reg->name, arg->arg_name);
 				}
 			}
+
+
+			first = GF_FALSE;
+			i=0;
+			const GF_BuiltInProperty *prop_info;
+			while ((prop_info = gf_props_get_description(i))) {
+				i++;
+				if (!prop_info->name || !prop_info->description) continue;
+				
+				if (gf_sys_word_match(fname, prop_info->name)) {
+					if (!first) {
+						first = GF_TRUE;
+						if (!found) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("No such filter %s\n", fname));
+							found = GF_TRUE;
+						}
+						GF_LOG(GF_LOG_WARNING, GF_LOG_APP, ("\nClosest property name: \n"));
+					}
+					GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s: %s\n", prop_info->name, prop_info->description));
+				}
+			}
+
 		}
 	}
 	if (!found) {

@@ -1406,7 +1406,7 @@ GF_BuiltInProperty GF_BuiltInProps [] =
 	{ GF_PROP_PID_TRANS_Y_INV, "TransYTop", "Vertical translation of the video (0 is top, positive towards down), for cases where reference height is unknown", GF_PROP_SINT},
 	{ GF_PROP_PID_HIDDEN, "Hidden", "PID is hidden in visual/audio rendering", GF_PROP_BOOL},
 
-	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicates coord in source", GF_PROP_VEC2I},
+	{ GF_PROP_PID_CROP_POS, "CropOrigin", "Position in source window, X,Y indicate coordinates in source (0,0 for top-left)", GF_PROP_VEC2I},
 	{ GF_PROP_PID_ORIG_SIZE, "OriginalSize", "Original resolution of video", GF_PROP_VEC2I},
 	{ GF_PROP_PID_SRD, "SRD", "Position and size of the video in the referential given by SRDRef", GF_PROP_VEC4I},
 	{ GF_PROP_PID_SRD_REF, "SRDRef", "Width and Height of the SRD referential", GF_PROP_VEC2I},
