@@ -8010,7 +8010,9 @@ GF_Err gf_filter_pid_resolve_file_template_ex(GF_FilterPid *pid, char szTemplate
 				}
 
 				if (!prop_val) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Unrecognized template %s\n", name));
+					if (!prop_4cc) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[Filter] Unrecognized template %s\n", name));
+					}
 					is_ok = GF_FALSE;
 				}
 			} else {
