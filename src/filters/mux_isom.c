@@ -99,6 +99,7 @@ typedef struct
 	u32 nb_samples, samples_in_stsd;
 	u32 nb_frames_per_sample;
 	u64 ts_shift;
+	u64 si_min_ts_plus_one;
 	Bool has_subs;
 
 	Bool skip_bitrate_update;
@@ -327,7 +328,7 @@ typedef struct
 	Bool sidx_size_exact;
 
 	u32 *seg_sizes;
-	u32 nb_seg_sizes, alloc_seg_sizes, nb_config_retry;
+	u32 nb_seg_sizes, alloc_seg_sizes, config_retry_start;
 	Bool config_timing;
 
 	u32 major_brand_set;
@@ -370,6 +371,8 @@ typedef struct
 	u64 wait_dts_plus_one;
 	u32 wait_dts_timescale;
 } GF_MP4MuxCtx;
+
+static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust);
 
 static void mp4_mux_set_hevc_groups(GF_MP4MuxCtx *ctx, TrackWriter *tkw);
 
@@ -4046,6 +4049,13 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		tkw->sample.CTS_Offset = (s32) ((s64) cts - (s64) tkw->sample.DTS);
 	}
 
+	//do our best to patch init ts if timing config aborted
+	if (tkw->si_min_ts_plus_one) {
+		u64 si_min_ts = tkw->si_min_ts_plus_one - 1;
+		tkw->si_min_ts_plus_one = 0;
+		tkw->ts_shift = tkw->sample.DTS;
+		mp4_mux_update_init_edit(ctx, tkw, si_min_ts, GF_FALSE);
+	}
 	//tkw->ts_shift is in source timescale, apply it before rescaling TSs/duration
 	if (tkw->ts_shift) {
 		if (ctx->is_rewind) {
@@ -4198,7 +4208,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		if (data_offset != GF_FILTER_NO_BO) {
 			e = gf_isom_add_sample_reference(ctx->file, tkw->track_num, sample_desc_index, &tkw->sample, data_offset);
 			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" as reference: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" from %s as reference: %s\n", tkw->sample.DTS, gf_filter_pid_get_name(tkw->ipid), gf_error_to_string(e) ));
 			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot add sample reference at DTS "LLU" , input sample data is not continous in source\n", tkw->sample.DTS ));
@@ -4290,7 +4300,7 @@ static GF_Err mp4_mux_process_sample(GF_MP4MuxCtx *ctx, TrackWriter *tkw, GF_Fil
 		}
 
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" - prev DTS "LLU": %s\n", tkw->sample.DTS, prev_dts, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" from %s - prev DTS "LLU": %s\n", tkw->sample.DTS, gf_filter_pid_get_name(tkw->ipid), prev_dts, gf_error_to_string(e) ));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 		}
@@ -6082,6 +6092,29 @@ static void del_service_info(GF_List *services)
 	gf_list_del(services);
 }
 
+static void mp4_mux_update_init_edit(GF_MP4MuxCtx *ctx, TrackWriter *tkw, u64 min_ts_service, Bool skip_adjust)
+{
+	//compute offsets
+	u64 dts_diff = gf_timestamp_rescale(min_ts_service, 1000000, tkw->src_timescale);
+
+	if (!skip_adjust) {
+		dts_diff = (s64) tkw->ts_shift - dts_diff;
+	}
+	if (ctx->is_rewind) dts_diff = -dts_diff;
+	//negative could happen due to rounding, ignore them
+	if (dts_diff<=0) return;
+
+	// dts_diff > 0, we need to delay the track
+	u64 dur = gf_timestamp_rescale(dts_diff, tkw->src_timescale, ctx->moovts);
+	if (dur) {
+		gf_isom_remove_edits(ctx->file, tkw->track_num);
+
+		gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
+		gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
+		tkw->empty_init_dur = (u64) dur;
+	}
+}
+
 static void mp4_mux_config_timing(GF_MP4MuxCtx *ctx)
 {
 	if ((ctx->store>=MP4MX_MODE_FRAG) && !ctx->tsalign) {
@@ -6181,6 +6214,7 @@ retry_pck:
 			}
 			not_ready = GF_TRUE;
 			tkw->ts_shift = 0;
+			tkw->si_min_ts_plus_one = 1;
 			continue;
 		}
 		//we may have reorder tracks after the get_packet, redo
@@ -6200,20 +6234,23 @@ retry_pck:
 			has_ready = GF_TRUE;
 		}
 		tkw->ts_shift = ts;
+		tkw->si_min_ts_plus_one = 0;
 	}
 
 	if (not_ready) {
-		ctx->nb_config_retry++;
-		if (ctx->nb_config_retry>10000) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs, aborting initial timing sync\n"));
-		} else if (blocking_refs && has_ready) {
+		if (blocking_refs && has_ready) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Blocking input packets present, aborting initial timing sync\n"));
+		}
+		//this may be quite long until we have a packet in case input pid is video encoding 
+		else if (ctx->config_retry_start && (gf_sys_clock() - ctx->config_retry_start > 10000)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] No input packets present on one or more inputs for more than 10s, aborting initial timing sync\n"));
 		} else {
+			ctx->config_retry_start = gf_sys_clock();
 			del_service_info(services);
 			return;
 		}
 	}
-	ctx->nb_config_retry = 0;
+	ctx->config_retry_start = 0;
 	for (i=0; i<gf_list_count(services); i++) {
 		struct _service_info *si = gf_list_get(services, i);
 		if (si->first_ts_min==(u64)-1)
@@ -6222,31 +6259,15 @@ retry_pck:
 
 	//for all packets with dts greater than min dts, we need to add a pause
 	for (i=0; i<count; i++) {
-		s64 dts_diff, dur;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		struct _service_info *si = get_service_info(services, tkw);
+		if (tkw->si_min_ts_plus_one) {
+			tkw->si_min_ts_plus_one = si->first_ts_min + 1;
+			continue;
+		}
 
-		//compute offsets
-		dts_diff = gf_timestamp_rescale(si->first_ts_min, 1000000, tkw->src_timescale);
 		//if single text track don't reset back to 0
-		if ((count==1) && (tkw->stream_type == GF_STREAM_TEXT)) {
-
-		} else {
-			dts_diff = (s64) tkw->ts_shift - dts_diff;
-		}
-		if (ctx->is_rewind) dts_diff = -dts_diff;
-		//negative could happen due to rounding, ignore them
-		if (dts_diff<=0) continue;
-
-		// dts_diff > 0, we need to delay the track
-		dur = gf_timestamp_rescale(dts_diff, tkw->src_timescale, ctx->moovts);
-		if (dur) {
-			gf_isom_remove_edits(ctx->file, tkw->track_num);
-
-			gf_isom_set_edit(ctx->file, tkw->track_num, 0, dur, dts_diff, GF_ISOM_EDIT_EMPTY);
-			gf_isom_set_edit(ctx->file, tkw->track_num, dur, 0, 0, GF_ISOM_EDIT_NORMAL);
-			tkw->empty_init_dur = (u64) dur;
-		}
+		mp4_mux_update_init_edit(ctx, tkw, si->first_ts_min, ((count==1) && (tkw->stream_type == GF_STREAM_TEXT)) ? GF_TRUE : GF_FALSE);
 	}
 
 	ctx->config_timing = GF_FALSE;
