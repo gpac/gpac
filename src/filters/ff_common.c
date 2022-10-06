@@ -579,7 +579,7 @@ static int gpac_to_ffmpeg_log_level(GF_LOG_Level level)
 
 static GF_LOG_Tool gpac_to_ffmpeg_log_tool(AVClass* avc)
 {
-	if (!avc) return GF_LOG_CORE;
+	if (!avc) return GF_LOG_MEDIA;
 	switch (avc->category) {
 	case AV_CLASS_CATEGORY_INPUT:
 	case AV_CLASS_CATEGORY_OUTPUT:
@@ -604,7 +604,7 @@ static GF_LOG_Tool gpac_to_ffmpeg_log_tool(AVClass* avc)
 	case AV_CLASS_CATEGORY_DEVICE_INPUT:
 		return GF_LOG_MMIO;
 	default:
-		return GF_LOG_CORE;
+		return GF_LOG_MEDIA;
 	}
 }
 

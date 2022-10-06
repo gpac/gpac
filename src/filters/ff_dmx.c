@@ -94,6 +94,7 @@ typedef struct
 	u8 *avio_ctx_buffer;
 	AVIOContext *avio_ctx;
 	FILE *gfio;
+	GF_Fraction fps_forced;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
@@ -602,6 +603,11 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 			codec_framerate = stream->avg_frame_rate;
 #endif
 
+		//if fps was detected by ffavin, use it (r_frame_rate is unreliable, just a guess)
+		if (ctx->fps_forced.num) {
+			codec_framerate.num = ctx->fps_forced.num;
+			codec_framerate.den = ctx->fps_forced.den;
+		}
 		switch(codec_type) {
 		case AVMEDIA_TYPE_AUDIO:
 			pid = gf_filter_pid_new(filter);
@@ -1210,7 +1216,8 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 		dev_name = (char *) szPatchedName;
 	}
 #if defined(__APPLE__) && !defined(GPAC_CONFIG_IOS)
-	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio) {
+	else if (!strncmp(dev_fmt->priv_class->class_name, "AVFoundation", 12) && wants_audio && !wants_video) {
+		//for avfoundation if no video, we must use ":audio_dev_idx"
 		if (ctx->dev[0] != ':') {
 			strcpy(szPatchedName, ":");
 			strcat(szPatchedName, ctx->dev);
@@ -1229,24 +1236,53 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
 	if ( (res < 0) && !stricmp(ctx->dev, "screen-capture-recorder") ) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", ctx->fname, res));
+		av_dict_free(&options);
+		options = NULL;
+		av_dict_copy(&options, ctx->options, 0);
 		av_dict_set(&options, "video_size", NULL, 0);
 		res = avformat_open_input(&ctx->demuxer, ctx->dev, FF_IFMT_CAST dev_fmt, &options);
 	}
 
 	if (res < 0) {
+		av_dict_free(&options);
+		options = NULL;
+		av_dict_copy(&options, ctx->options, 0);
 		av_dict_set(&options, "framerate", "30", 0);
+		ctx->fps_forced.num = 30;
+		ctx->fps_forced.den = 1;
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 30 fps\n", ctx->fname, res));
 		res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
 		if (res < 0) {
+			av_dict_free(&options);
+			options = NULL;
+			av_dict_copy(&options, ctx->options, 0);
 			av_dict_set(&options, "framerate", "25", 0);
 			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying with 25 fps\n", ctx->fname, res));
+			ctx->fps_forced.num = 25;
 			res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, &options);
 
 			if ((res<0) && options) {
 				av_dict_free(&options);
 				options = NULL;
+				ctx->fps_forced.num = 0;
 				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Error %d opening input - retrying without options\n", ctx->fname, res));
 				res = avformat_open_input(&ctx->demuxer, dev_name, FF_IFMT_CAST dev_fmt, NULL);
+			}
+		}
+	} else {
+		AVDictionaryEntry *key = NULL;
+		while (1) {
+			key = av_dict_get(ctx->options, "", key, AV_DICT_IGNORE_SUFFIX);
+			if (!key) break;
+			if (!strcmp(key->key, "framerate")) {
+				char *fps = key->value;
+				if (strchr(fps, '.')) {
+					ctx->fps_forced.num = (u32) (atoi(fps)*1000);
+					ctx->fps_forced.den = 1000;
+				} else {
+					ctx->fps_forced.num = atoi(fps);
+					ctx->fps_forced.den = 1;
+				}
 			}
 		}
 	}
@@ -1374,6 +1410,8 @@ GF_FilterRegister FFAVInRegister = {
 	"EX ffmpeg -f libndi_newtek -i MY_NDI_TEST ...\n"
 	"EX gpac -i av://:fmt=libndi_newtek:dev=MY_NDI_TEST ...\n"
 	"\n"
+	"You may need to escape the [-dev]() option if the format uses ':' as separator, as is the case for AVFoundation:\n"
+	"EX gpac -i av://::dev=0:1 ...\n"
 	)
 	.private_size = sizeof(GF_FFDemuxCtx),
 	SETCAPS(FFAVInCaps),
