@@ -2957,6 +2957,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 				compositor->passthrough_pck = NULL;
 				pck_frame_ts = gf_filter_pck_get_cts(pck);
 			} else {
+				u32 offset_x=0, offset_y=0;
+
 				//assign udta of frame interface event when using shared packet, as it is used to test when frame is released
 				compositor->frame_ifce.user_data = compositor;
 
@@ -2969,6 +2971,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 				u32 c_w=compositor->display_width, c_h=compositor->display_height;
 				if (compositor->clipframe) {
+					offset_x = compositor->visual->frame_bounds.x + compositor->display_width/2;
+					offset_y = compositor->display_height/2 - compositor->visual->frame_bounds.y;
 					switch (pf) {
 					case GF_PIXEL_ARGB:
 					case GF_PIXEL_RGBA:
@@ -2987,6 +2991,10 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_HEIGHT, &PROP_UINT(c_h));
 						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE, NULL);
 						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_STRIDE_UV, NULL);
+
+
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_CROP_POS, &PROP_VEC2I_INT(offset_x, offset_y));
+						gf_filter_pid_set_property(compositor->vout, GF_PROP_PID_ORIG_SIZE, &PROP_VEC2I_INT(compositor->display_width, compositor->display_height));
 					}
 				}
 				if ((c_w==compositor->display_width) && (c_h==compositor->display_height)) {
@@ -3007,8 +3015,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 					u32 j, osize = c_w * c_h * nb_bpp;
 					Bool release_fb=GF_FALSE;
 					u8 *output;
-					u32 offset_x = compositor->visual->frame_bounds.x + compositor->display_width/2;
-					u32 offset_y = compositor->display_height/2 - compositor->visual->frame_bounds.y;
 					u8 *src=NULL;
 					pck = NULL;
 					if (compositor->video_out==&raw_vout) {
