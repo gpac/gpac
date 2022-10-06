@@ -421,20 +421,29 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		gf_mx_v(filter->tasks_mx);
 		return;
 	}
-	//no more destinations on pid, destroy it
+	//no more destinations on pid, unblock if blocking
 	if (pid->would_block) {
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 	}
-	
-	gf_list_del_item(filter->output_pids, pid);
-	filter->num_output_pids = gf_list_count(filter->output_pids);
-	gf_filter_pid_del(pid);
 
-	//no more pids on filter, destroy it
-	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids) && !filter->finalized) {
-		gf_filter_post_remove(filter);
+	//we cannot remove an output pid since the filter may still check status on that pid or try to dispatch packets
+	//removal/destruction must come from the filter
+	//we only count the number of output pids that have been internally discarded by this function, and trigger filter removal if last
+	pid->removed = GF_TRUE;
+
+	//filter still active and has no input, check if there are no more output pids valid. If so, remove filter
+	if (!gf_list_count(filter->input_pids) && !filter->finalized) {
+		u32 i, nb_opid_rem=0;
+		for (i=0; i<filter->num_output_pids; i++) {
+			GF_FilterPid *apid = gf_list_get(filter->output_pids, i);
+			if (apid->removed) nb_opid_rem++;
+		}
+		if (gf_list_count(filter->output_pids)==nb_opid_rem) {
+			gf_filter_post_remove(filter);
+		}
 	}
+
 	gf_mx_v(filter->tasks_mx);
 }
 
