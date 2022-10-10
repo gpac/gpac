@@ -544,7 +544,7 @@ FilterProperty query_caps(DOMString name, optional boolean is_user);
 boolean disconnected;
 unsigned long average_process_rate;
 unsigned long max_process_rate;
-unsigned long avgerage_bitrate;
+unsigned long average_bitrate;
 unsigned long max_bitrate;
 unsigned long nb_processed;
 unsigned long max_process_time;

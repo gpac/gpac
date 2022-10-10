@@ -520,6 +520,36 @@ class FilterStats(Structure):
 	]
     ## \endcond
 
+## filter pid statistics object, as defined in libgpac and usable as a Python object
+#Fields have the same types, names and semantics as \ref GF_FilterPidStatistics
+class FilterPidStatistics(Structure):
+    ## \cond private
+	_fields_ = [
+		("disconnected", c_uint),
+		("average_process_rate", c_uint),
+		("max_process_rate", c_uint),
+		("average_bitrate", c_uint),
+		("max_bitrate", c_uint),
+		("nb_processed", c_uint),
+		("max_process_time", c_uint),
+		("total_process_time", c_ulonglong),
+		("first_process_time", c_ulonglong),
+		("last_process_time", c_ulonglong),
+		("min_frame_dur", c_uint),
+		("nb_saps", c_uint),
+		("max_sap_process_time", c_uint),
+		("total_sap_process_time", c_ulonglong),
+		("max_buffer_time", c_ulonglong),
+		("max_playout_time", c_ulonglong),
+		("min_playout_time", c_ulonglong),
+		("buffer_time", c_ulonglong),
+		("nb_buffer_units", c_uint),
+		("last_rt_report", c_ulonglong),
+		("rtt", c_uint),
+		("jitter", c_uint),
+		("loss_rate", c_uint)
+	]
+    ## \endcond
 ## filter argument object, as defined in libgpac and usable as a Python object
 #Fields have the same types, names and semantics as \ref GF_FilterArgs
 class FilterArg(Structure):
@@ -1167,6 +1197,29 @@ GF_CAPS_INPUT_OUTPUT_OPT = (GF_CAPFLAG_IN_BUNDLE|GF_CAPFLAG_INPUT|GF_CAPFLAG_OUT
 
 
 ##\hideinitializer
+#see GF_STATS_LOCAL
+GF_STATS_LOCAL = 0
+##\hideinitializer
+#see GF_STATS_LOCAL_INPUTS
+GF_STATS_LOCAL_INPUTS = 1
+##\hideinitializer
+#see GF_STATS_DECODER_SINK
+GF_STATS_DECODER_SINK = 2
+##\hideinitializer
+#see GF_STATS_DECODER_SOURCE
+GF_STATS_DECODER_SOURCE = 3
+##\hideinitializer
+#see GF_STATS_ENCODER_SINK
+GF_STATS_ENCODER_SINK = 4
+##\hideinitializer
+#see GF_STATS_ENCODER_SOURCE
+GF_STATS_ENCODER_SOURCE = 5
+##\hideinitializer
+#see GF_STATS_SINK
+GF_STATS_SINK = 6
+
+
+##\hideinitializer
 #see \ref GF_SCRIPT_INFO
 GF_SCRIPT_INFO = 3
 ##\hideinitializer
@@ -1682,6 +1735,8 @@ _libgpac.gf_filter_pid_get_info_str.argtypes = [_gf_filter_pid, c_char_p, POINTE
 _libgpac.gf_filter_pid_get_info_str.restype = POINTER(PropertyValue)
 _libgpac.gf_filter_release_property.argtypes = [POINTER(_gf_property_entry)]
 
+_libgpac.gf_filter_pid_get_statistics.argtypes = [_gf_filter, POINTER(FilterPidStatistics), c_uint]
+
 _libgpac.gf_props_type_is_enum.argtypes = [c_uint]
 _libgpac.gf_props_type_is_enum.restype = c_int
 
@@ -2195,9 +2250,10 @@ class Filter:
     ## send option update to this filter - see \ref gf_fs_send_update
     #\param name name of option (string)
     #\param value value of option (string)
+	#\param propagate_mask flags indicating if updates must be send to up-chain filters (2), down-chain filters (1), both (3) or only on filter (0)
     #\return
-    def update(self, name, value):
-        _libgpac.gf_fs_send_update(None, None, self._filter, name, value, 0)
+    def update(self, name, value, propagate_mask=0):
+        _libgpac.gf_fs_send_update(None, None, self._filter, name.encode('utf-8'), value.encode('utf-8'), propagate_mask)
 
     ## set a given filter as source for this filter - see \ref gf_filter_set_source
     #
@@ -2318,6 +2374,34 @@ class Filter:
     #\return
     def opid_enum_props(self, idx, callback_obj):
         self._pid_enum_props(idx, callback_obj, False)
+
+    ##Gets the statistics of an input pid of filter - see \ref gf_filter_pid_get_statistics
+    #\param idx index of input pid
+    #\param mode search mode for stats cf \ref GF_FilterPidStatsLocation
+    #\return FilterPidStatistics object
+    def ipid_stats(self, idx, mode=0):
+        pid = _libgpac.gf_filter_get_ipid(self._filter, idx)
+        if not pid:
+            raise Exception('No PID with index ' + str(idx) + ' in filter ' + self.name )
+        stats = FilterPidStatistics()
+        err = _libgpac.gf_filter_pid_get_statistics(pid, byref(stats), mode)
+        if err<0:
+            raise Exception('Failed to fetch filter pid stats: ' + e2s(err))
+        return stats
+
+    ##Gets the statistics of an output pid of filter - see \ref gf_filter_pid_get_statistics
+    #\param idx index of output pid
+    #\param mode search mode for stats cf \ref GF_FilterPidStatsLocation
+    #\return FilterPidStatistics object
+    def opid_stats(self, idx, mode=0):
+        pid = _libgpac.gf_filter_get_opid(self._filter, idx)
+        if not pid:
+            raise Exception('No PID with index ' + str(idx) + ' in filter ' + self.name )
+        stats = FilterPidStatistics()
+        err = _libgpac.gf_filter_pid_get_statistics(pid, byref(stats), mode)
+        if err<0:
+            raise Exception('Failed to fetch filter pid stats: ' + e2s(err))
+        return stats
 
     ##gets the filter at the source of an input pid
     #\param idx index of input PID

@@ -993,19 +993,23 @@ GF_Err jsf_ToProp_ex(GF_Filter *filter, JSContext *ctx, JSValue value, u32 p4cc,
 static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
 	const char *aname;
+	u32 prop_mask=0;
 	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
-	if (!f || (argc!=2) )
+	if (!f || (argc<2) )
 		return GF_JS_EXCEPTION(ctx);
 
 	aname = JS_ToCString(ctx, argv[0]);
 	if (!aname) return GF_JS_EXCEPTION(ctx);
+	if (argc>2) {
+		JS_ToInt32(ctx, &prop_mask, argv[2]);
+	}
 	if (JS_IsString(argv[1])) {
 		const char *aval = JS_ToCString(ctx, argv[1]);
 		if (!aval) {
 			JS_FreeCString(ctx, aname);
 			return GF_JS_EXCEPTION(ctx);
 		}
-		gf_fs_send_update(f->session, NULL, f, aname, aval, 0);
+		gf_fs_send_update(f->session, NULL, f, aname, aval, prop_mask);
 		JS_FreeCString(ctx, aval);
 		JS_FreeCString(ctx, aname);
 		return JS_UNDEFINED;
@@ -1025,7 +1029,7 @@ static JSValue jsff_update(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 			return err;
 		}
 		gf_props_dump_val(&p, szDump, GF_PROP_DUMP_DATA_PTR, NULL);
-		gf_fs_send_update(f->session, NULL, f, aname, szDump, 0);
+		gf_fs_send_update(f->session, NULL, f, aname, szDump, prop_mask);
 		gf_props_reset_single(&p);
 	}
 
@@ -1128,6 +1132,74 @@ static JSValue jsff_bind(JSContext *ctx, JSValueConst this_val, int argc, JSValu
 	return js_throw_err_msg(ctx, GF_BAD_PARAM, "filter class %s has no JS bind capabilities", f->freg->name);
 }
 
+static JSValue jsff_get_stats(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, Bool is_input)
+{
+	JSValue res;
+	u32 mode=GF_STATS_LOCAL;
+	GF_Filter *f = JS_GetOpaque(this_val, fs_f_class_id);
+	u32 idx;
+	if (!f || (argc<1) )
+		return GF_JS_EXCEPTION(ctx);
+
+	if (JS_ToInt32(ctx, &idx, argv[0]))
+		return GF_JS_EXCEPTION(ctx);
+
+	GF_FilterPid *pid;
+	if (is_input) pid = gf_filter_get_ipid(f, idx);
+	else pid = gf_filter_get_opid(f, idx);
+	if (!pid)
+		return GF_JS_EXCEPTION(ctx);
+
+	if (argc>1)
+		JS_ToInt32(ctx, &mode, argv[1]);
+
+	GF_FilterPidStatistics stats;
+	gf_filter_pid_get_statistics(pid, &stats, (GF_FilterPidStatsLocation) mode);
+	res = JS_NewObject(ctx);
+	if (JS_IsException(res)) return res;
+
+	JS_SetPropertyStr(ctx, res, "disconnected", stats.disconnected ? JS_TRUE : JS_FALSE);
+#define SET_U32(_name) \
+	JS_SetPropertyStr(ctx, res, #_name, JS_NewInt32(ctx, stats._name));
+
+#define SET_U64(_name) \
+	JS_SetPropertyStr(ctx, res, #_name, JS_NewInt64(ctx, stats._name));
+
+	SET_U32(average_process_rate)
+	SET_U32(max_process_rate)
+	SET_U32(average_bitrate)
+	SET_U32(max_bitrate)
+	SET_U32(nb_processed)
+	SET_U32(max_process_time)
+	SET_U64(total_process_time)
+	SET_U64(first_process_time)
+	SET_U64(last_process_time)
+	SET_U32(min_frame_dur)
+	SET_U32(nb_saps)
+	SET_U32(max_sap_process_time)
+	SET_U64(total_sap_process_time)
+	SET_U64(max_buffer_time)
+	SET_U64(max_playout_time)
+	SET_U64(min_playout_time)
+	SET_U64(buffer_time)
+	SET_U32(nb_buffer_units)
+	SET_U64(last_rt_report)
+	SET_U32(rtt)
+	SET_U32(jitter)
+	SET_U32(loss_rate)
+	return res;
+}
+
+static JSValue jsff_ipid_stats(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsff_get_stats(ctx, this_val, argc, argv, GF_TRUE);
+}
+
+static JSValue jsff_opid_stats(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+	return jsff_get_stats(ctx, this_val, argc, argv, GF_FALSE);
+}
+
 #define JS_CGETSET_MAGIC_DEF_ENUM(name, fgetter, fsetter, magic) { name, JS_PROP_CONFIGURABLE|JS_PROP_ENUMERABLE, JS_DEF_CGETSET_MAGIC, magic, .u = { .getset = { .get = { .getter_magic = fgetter }, .set = { .setter_magic = fsetter } } } }
 
 static const JSCFunctionListEntry fs_f_funcs[] = {
@@ -1170,6 +1242,8 @@ static const JSCFunctionListEntry fs_f_funcs[] = {
 	JS_CFUNC_DEF("insert", 0, jsff_insert_filter),
 	JS_CFUNC_DEF("bind", 0, jsff_bind),
 	JS_CFUNC_DEF("lock", 0, jsff_lock),
+	JS_CFUNC_DEF("ipid_stats", 0, jsff_ipid_stats),
+	JS_CFUNC_DEF("opid_stats", 0, jsff_opid_stats),
 };
 
 static JSValue jsfs_new_filter_obj(JSContext *ctx, GF_Filter *f)

@@ -1094,9 +1094,14 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 
 			GF_List *flist = gf_list_new();
 			if (arg->recursive & GF_FILTER_UPDATE_UPSTREAM) {
+				gf_mx_p(task->filter->tasks_mx);
 				for (i=0; i<task->filter->num_output_pids; i++) {
+					u32 j;
 					GF_FilterPid *pid = gf_list_get(task->filter->output_pids, i);
-					if (gf_list_find(flist, pid->filter)<0) gf_list_add(flist, pid->filter);
+					for (j=0; j<pid->num_destinations; j++) {
+						GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+						if (gf_list_find(flist, pidi->filter)<0) gf_list_add(flist, pidi->filter);
+					}
 				}
 				for (i=0; i<gf_list_count(flist); i++) {
 					GF_Filter *a_f = gf_list_get(flist, i);
@@ -1104,7 +1109,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 					gf_fs_send_update(task->filter->session, NULL, a_f, arg->name, arg->val, GF_FILTER_UPDATE_UPSTREAM);
 				}
 				gf_list_reset(flist);
-
+				gf_mx_v(task->filter->tasks_mx);
 			}
 			if (arg->recursive & GF_FILTER_UPDATE_DOWNSTREAM) {
 				gf_mx_p(task->filter->tasks_mx);
@@ -2526,7 +2531,7 @@ static GFINLINE void check_filter_error(GF_Filter *filter, GF_Err e, Bool for_re
 		}
 		gf_mx_v(filter->tasks_mx);
 		filter->session->last_process_error = out_e;
-		filter->disabled = GF_TRUE;
+		filter->disabled = GF_FILTER_DISABLED;
 	}
 }
 
@@ -2651,6 +2656,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 
 	filter->in_process_callback = GF_FALSE;
 	gf_rmt_end();
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process done\n", filter->name));
 
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {
@@ -2908,10 +2914,10 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 		safe_int_inc(&filter->process_task_queued);
 		gf_fs_post_task_ex(filter->session, gf_filter_process_task, filter, NULL, "process", NULL, GF_FALSE, GF_FALSE, GF_TRUE, TASK_TYPE_NONE);
 	} else if (safe_int_inc(&filter->process_task_queued) <= 1) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s added to scheduler\n", filter->name));
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->freg->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s skip post process task\n", filter->name));
 		assert(filter->session->run_status
 		 		|| filter->session->in_final_flush
 		 		|| filter->disabled
@@ -4774,7 +4780,7 @@ void gf_filter_abort(GF_Filter *filter)
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		gf_filter_pid_set_eos(pid);
 	}
-	filter->disabled = 1;
+	filter->disabled = GF_FILTER_DISABLED;
 	gf_mx_v(filter->tasks_mx);
 }
 

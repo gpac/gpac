@@ -634,9 +634,9 @@ Bool gf_fs_enum_unmapped_options(GF_FilterSession *session, u32 *idx, const char
 typedef enum
 {
 	/*! the update event can be sent down the source chain*/
-	GF_FILTER_UPDATE_DOWNSTREAM = 1<<1,
+	GF_FILTER_UPDATE_DOWNSTREAM = 1,
 	/*! the update event can be sent up the filter chain*/
-	GF_FILTER_UPDATE_UPSTREAM = 1<<2,
+	GF_FILTER_UPDATE_UPSTREAM = 1<<1,
 } GF_EventPropagateType;
 
 /*! Enumerates filter and meta-filter arguments not matched in the session
@@ -1386,7 +1386,7 @@ typedef enum
 	GF_PROP_DUMP_DATA_INFO,
 	/*! dump data to parsable property, as ADDRESS+'@'+POINTER*/
 	GF_PROP_DUMP_DATA_PTR,
-} GF_PropDumDataMode;
+} GF_PropDumpDataMode;
 
 /*! Dumps a property value to string
 \param att property value
@@ -1395,7 +1395,7 @@ typedef enum
 \param min_max_enum optional, gives the min/max or enum string when the property is a filter argument
 \return string
 */
-const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumDataMode dump_data_mode, const char *min_max_enum);
+const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_mode, const char *min_max_enum);
 
 /*! Dumps a property value to string, resolving any built-in types (pix formats, codec id, ...)
 \param p4cc property 4CC
@@ -1404,7 +1404,7 @@ const char *gf_props_dump_val(const GF_PropertyValue *att, char dump[GF_PROP_DUM
 \param dump_data_mode data dump mode
 \return string
 */
-const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumDataMode dump_data_mode);
+const char *gf_props_dump(u32 p4cc, const GF_PropertyValue *att, char dump[GF_PROP_DUMP_ARG_SIZE], GF_PropDumpDataMode dump_data_mode);
 
 /*! Resets a property value, freeing allocated data or strings depending on the property type
 \param prop property 4CC
@@ -3458,7 +3458,7 @@ typedef struct
 	/*! max process rate on that PID in bits per seconds*/
 	u32 max_process_rate;
 	/*! average bitrate for that PID*/
-	u32 avgerage_bitrate;
+	u32 average_bitrate;
 	/*! max bitrate for that PID*/
 	u32 max_bitrate;
 	/*! number of packets processed on that PID*/
@@ -3490,6 +3490,16 @@ typedef struct
 	u64 buffer_time;
 	/*! number of units in input buffer of the filter - only set when querying decoder stats*/
 	u32 nb_buffer_units;
+
+	/*! last RT info update time in microsec (cf \ref gf_sys_clock_high_res)  - input pid only */
+	u64 last_rt_report;
+	/*! estimated round-trip time in ms - input pid only */
+	u32 rtt;
+	/*! estimated interarrival jitter in microseconds - input pid only */
+	u32 jitter;
+	/*! loss rate in per-thousand - input pid only */
+	u32 loss_rate;
+
 } GF_FilterPidStatistics;
 
 /*! Direction for stats querying*/
@@ -3905,6 +3915,17 @@ This is a recursive call on input chain. The function is typically used when set
 \return GF_TRUE if a decoder is present in input chain, GF_FALSE otherwise
 */
 Bool gf_filter_pid_has_decoder(GF_FilterPid *PID);
+
+
+/*! Sets real-time stats on PID (input PID only for now)
+
+\param PID the target filter PID
+\param rtt_ms estimated round-trip time in ms
+\param jitter_us estimated packet inter-arrival jitter in us
+\param loss_rate loss rate in per-thousand
+\return error if any
+*/
+GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *PID, u32 rtt_ms, u32 jitter_us, u32 loss_rate);
 
 /*! @} */
 

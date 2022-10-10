@@ -249,6 +249,21 @@ FilterProperty opid_props(unsigned long idx, DOMString name);
 */
 void opid_props(unsigned long idx, function fun_callback);
 
+/*! get statistics on input pid
+\param idx the index of the input pid to query
+\param mode mode used to query stats - cf \ref GF_FilterPidStatsLocation
+\return object matching \ref GF_FilterPidStatistics
+*/
+Object ipid_stats(unsigned long idx, optional unsigned int mode=0);
+
+/*! get statistics on output pid
+\param idx the index of the output pid to query
+\param mode mode used to query stats - cf \ref GF_FilterPidStatsLocation
+\return object matching \ref GF_FilterPidStatistics
+*/
+Object opid_stats(unsigned long idx, optional unsigned int mode=0);
+
+
 /*! Gets source filter for an input pid
 \param idx the index of the input pid to query
 \return input filter or null
@@ -276,8 +291,9 @@ FilterProperty get_arg(DOMString arg_name);
 /*! sends argument update to filter
 \param arg_name name of argument to update
 \param arg_val value of argument to update. Can be a string or a native type which will be serialized based on the argument type
+\param propagate_mask flags indicating if updates must be send to up-chain filters (2), down-chain filters (1), both (3) or only on filter (0)
 */
-void update(DOMString arg_name, DOMString arg_val);
+void update(DOMString arg_name, DOMString arg_val, unsigned int propagate_mask=0);
 
 /*! removes filter from graph*/
 void remove();

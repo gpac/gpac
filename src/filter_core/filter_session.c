@@ -2138,7 +2138,7 @@ static void filter_abort_task(GF_FSTask *task)
 
 	task->pid->filter->freg->process_event(task->pid->filter, &evt);
 	gf_filter_pid_set_eos(task->pid);
-	task->pid->filter->disabled = GF_TRUE;
+	task->pid->filter->disabled = GF_FILTER_DISABLED;
 	safe_int_dec(&task->pid->filter->abort_pending);
 
 }
@@ -2175,7 +2175,8 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 
 		if (!filter->num_input_pids) {
 			u32 j, k, l;
-			filter->disabled = GF_TRUE;
+			if (!filter->disabled)
+				filter->disabled = GF_FILTER_DISABLED;
 			for (j=0; j<filter->num_output_pids; j++) {
 				const GF_PropertyValue *p;
 				GF_FilterPid *pid = gf_list_get(filter->output_pids, j);
@@ -2223,7 +2224,7 @@ GF_Err gf_fs_abort(GF_FilterSession *fsess, GF_FSFlushType flush_type)
 					gf_mx_p(filter->tasks_mx);
 					//no filter_abort pending, disable the filter
 					if (force_disable)
-						pidi->filter->disabled = GF_TRUE;
+						pidi->filter->disabled = GF_FILTER_DISABLED;
 				}
 			}
 		}
@@ -2625,6 +2626,8 @@ static void gf_fs_print_not_connected_filters(GF_FilterSession *fsess, GF_List *
 		GF_Filter *f = gf_list_get(fsess->filters, i);
 		//only dump not connected ones
 		if (f->num_input_pids || f->num_output_pids || f->multi_sink_target || f->nb_tasks_done) continue;
+		if (f->disabled==GF_FILTER_DISABLED_HIDE) continue;
+
 		if (ignore_sinks) {
 			Bool has_outputs;
 			if (f->forced_caps)

@@ -1087,7 +1087,7 @@ GF_Err gf_filter_pck_send_internal(GF_FilterPacket *pck, Bool from_filter)
 			else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, sap_type, seek, pck->info.duration, bstart, bend));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, sap_type, seek, pck->info.duration, bstart, bend));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d size %d\n", pck->pid->filter->name, pck->pid->name, sap_type, seek, pck->info.duration, bstart, bend, pck->data_length));
 			}
 		}
 #endif

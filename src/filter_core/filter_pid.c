@@ -4983,7 +4983,7 @@ single_retry:
 		assert(pid->init_task_pending);
 		safe_int_dec(&pid->init_task_pending);
 		gf_mx_v(filter->session->filters_mx);
-		pid->filter->disabled = GF_FALSE;
+		pid->filter->disabled = GF_FILTER_ENABLED;
 		gf_list_del(linked_dest_filters);
         gf_list_del(force_link_resolutions);
         gf_list_del(possible_linked_resolutions);
@@ -5095,7 +5095,7 @@ single_retry:
 		&& !parent_chain_has_dyn_pids(pid->filter)
 		&& (pid->filter->num_out_pids_not_connected == pid->filter->num_output_pids)
 	) {
-		pid->filter->disabled = GF_TRUE;
+		pid->filter->disabled = GF_FILTER_DISABLED;
 
 		if (can_reassign_filter) {
 			gf_filter_setup_failure(pid->filter, GF_FILTER_NOT_FOUND);
@@ -7400,7 +7400,7 @@ static void filter_pid_inst_collect_stats(GF_FilterPidInst *pidi, GF_FilterPidSt
 {
 	if (!pidi->pid) return;
 
-	stats->avgerage_bitrate += pidi->avg_bit_rate;
+	stats->average_bitrate += pidi->avg_bit_rate;
 	if (!stats->first_process_time || (stats->first_process_time > pidi->first_frame_time))
 		stats->first_process_time = pidi->first_frame_time;
 	if (stats->last_process_time < pidi->last_pck_fetch_time)
@@ -7433,6 +7433,13 @@ static void filter_pid_inst_collect_stats(GF_FilterPidInst *pidi, GF_FilterPidSt
 
 	if (stats->buffer_time < pidi->pid->buffer_duration)
 		stats->buffer_time = pidi->pid->buffer_duration;
+
+	if (pidi->last_rt_report) {
+		stats->last_rt_report = pidi->last_rt_report;
+		stats->rtt = pidi->rtt;
+		stats->jitter = pidi->jitter;
+		stats->loss_rate = pidi->loss_rate;
+	}
 }
 
 static void filter_pid_collect_stats(GF_List *pidi_list, GF_FilterPidStatistics *stats)
@@ -8456,7 +8463,7 @@ Bool gf_filter_pid_has_decoder(GF_FilterPid *pid)
 {
 	u32 i;
 	if (PID_IS_OUTPUT(pid)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query decoder presence on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
 	}
 	if (pid->pid->nb_decoder_inputs)
@@ -8472,3 +8479,20 @@ Bool gf_filter_pid_has_decoder(GF_FilterPid *pid)
 	gf_mx_v(pid->pid->filter->tasks_mx);
 	return GF_FALSE;
 }
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_rt_stats(GF_FilterPid *pid, u32 rtt_ms, u32 jitter_us, u32 loss_rate)
+{
+	GF_FilterPidInst *pidi;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set real-time stats on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	pidi = (GF_FilterPidInst*)pid;
+	pidi->last_rt_report = gf_sys_clock_high_res();
+	pidi->rtt = rtt_ms;
+	pidi->jitter = jitter_us;
+	pidi->loss_rate = loss_rate;
+	return GF_OK;
+}
+
