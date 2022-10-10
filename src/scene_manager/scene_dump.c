@@ -772,7 +772,8 @@ static void gf_dump_vrml_simple_field(GF_SceneDumper *sdump, GF_FieldInfo field,
 	}
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) {
 		if (sdump->XMLDump) StartAttribute(sdump, "value");
-		gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, parent);
+		if (field.far_ptr)
+			gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, parent);
 		if (sdump->XMLDump) EndAttribute(sdump);
 	} else {
 		GenMFField *mffield;
@@ -916,7 +917,8 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) {
 		StartAttribute(sdump, field.name);
-		gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, node);
+		if (field.far_ptr)
+			gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, node);
 		EndAttribute(sdump);
 	} else {
 		GenMFField *mffield = (GenMFField *) field.far_ptr;
@@ -1233,7 +1235,8 @@ static void gf_dump_vrml_proto_field(GF_SceneDumper *sdump, GF_Node *node, GF_Fi
 			} else {
 				gf_fprintf(sdump->trace, " %s=\"", GetXMTFieldTypeValueName(field.fieldType));
 			}
-			gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, node);
+			if (field.far_ptr)
+				gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0, node);
 			gf_fprintf(sdump->trace, "\"/>\n");
 		}
 	} else {
