@@ -1485,6 +1485,8 @@ ofmt (pfmt, default: nv12):    set default pixel format for decoded video. If no
 .br
 disable_hw (bool, default: false): disable hardware decoding
 .br
+wait_sync (bool, default: false, updatable): wait for sync frame before decoding
+.br
 
 .br
 .SH mcdec
@@ -2935,9 +2937,11 @@ rtcp_timeout (uint, default: 5000): default timeout for RTCP traffic in ms. Afte
 .br
 autortsp (bool, default: true): automatically reconfig RTSP interleaving if UDP timeout
 .br
-first_packet_drop (uint, default: 0): set number of first RTP packet to drop (0 if no drop)
+first_packet_drop (uint, default: 0, updatable): set number of first RTP packet to drop (0 if no drop)
 .br
-frequency_drop (uint, default: 0): drop 1 out of N packet (0 disable dropping)
+frequency_drop (uint, default: 0, updatable): drop 1 out of N packet (0 disable dropping)
+.br
+loss_rate (sint, default: -1, updatable): loss rate to signal in RTCP, -1 means real loss rate, otherwise a per-thousand of packet lost
 .br
 user_agent (str, default: $GUA): user agent string, by default solved from GPAC preferences
 .br
@@ -6542,6 +6546,10 @@ When enabled, a GET on a directory will return a simple HTML listing of the cont
 .br
   
 .br
+Warning: the server is currently using blocking IOs for sockets and will likely not scale for many input clients.
+.br
+  
+.br
 .SH Simple HTTP server
 .LP
 .br
@@ -6768,7 +6776,7 @@ cert (str):                    certificate file in PEM format to use for TLS mod
 .br
 pkey (str):                    private key file in PEM format to use for TLS mode
 .br
-block_size (uint, default: 10000): block size used to read and write TCP socket
+block_size (uint, default: 100000): block size used to read and write TCP socket
 .br
 user_agent (str, default: $GUA): user agent string, by default solved from GPAC preferences
 .br
@@ -7796,6 +7804,14 @@ The filter will look for property logpass on input PID to set 2-pass log filenam
 .br
 
 .br
+Arguments may be updated at runtime. If .I rld is set, the encoder will be flushed then reloaded with new options.
+.br
+If codec is video and .I fintra is set, reload will happen at next forced intra; otherwise, reload happens at next encode.
+.br
+The .I rld option is usually needed for dynamic updates of rate control parameters, since most encoders in ffmpeg do not support it.
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -7810,6 +7826,8 @@ all_intra (bool, default: false, updatable): only produce intra frames
 ls (bool, default: false):     log stats
 .br
 rc (bool, default: false):     reset encoder when forcing intra frame (some encoders might not support intra frame forcing)
+.br
+rld (bool, default: false, updatable): force reloading of encoder when arguments are updated
 .br
 * (str):                       any possible options defined for AVCodecContext and sub-classes. see gpac -hx ffenc and gpac -hx ffenc:*
 .br
@@ -10765,7 +10783,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev367-g0fef0797e-master
+build: 2.1-DEV-rev372-ge17d36881-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br

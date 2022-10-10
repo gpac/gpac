@@ -1202,8 +1202,7 @@ static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_
 		}
 		return GF_OK;
 	}
-	//updates of arguments, not supported for ffmpeg decoders
-	return GF_NOT_SUPPORTED;
+	return ffmpeg_update_arg(ctx->muxer, arg_name, arg_val);
 }
 
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
