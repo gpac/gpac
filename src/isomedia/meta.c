@@ -174,6 +174,8 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->item_ID==iinf->item_ID) {
 			if (iloc->data_reference_index) {
+				if (!meta->file_locations || !meta->file_locations->dref)
+					return GF_ISOM_INVALID_FILE;
 				GF_Box *a = (GF_Box *)gf_list_get(meta->file_locations->dref->child_boxes, iloc->data_reference_index-1);
 				if (!a) return GF_ISOM_INVALID_FILE;
 				if (a->type==GF_ISOM_BOX_TYPE_URL) {
