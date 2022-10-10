@@ -344,6 +344,7 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 	}
 	decfield.fieldIndex = inf->fieldIndex;
 	decfield.fieldType = inf->fieldType;
+	decfield.name = targetField.name;
 
 	if (inf->fieldType==GF_SG_VRML_SFNODE) {
 		decfield.far_ptr = inf->field_ptr = &inf->new_node;
