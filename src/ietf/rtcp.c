@@ -141,8 +141,8 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 
 			ch->first_SR = 0;
 
-			//common encoding for SR and RR
-			goto process_reports;
+			//common encoding for SR and RR, for now we don't process reports on SR
+			break;
 
 
 		case 201:
@@ -150,31 +150,31 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, u8 *pck, u32 pck_size, Bool *has_sr
 			/*sender_ssrc = */gf_bs_read_u32(ch->bs_r);
 			rtcp_hdr.Length -= 1;
 
-process_reports:
-
-#if 0
-			//process all reports - we actually don't since we do not handle sources
-			//to add
+			ch->nb_rctp_rr=0;
+			//process all reports
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				//ssrc slot
-				cur_ssrc = gf_bs_read_u32(ch->bs_r);
+				if (i>=MAX_RTCP_RR) break;
+
+				GF_RTCP_Report *rr = &ch->rtcp_rr[i];
+				ch->nb_rctp_rr++;
+				//ssrc
+				rr->ssrc = gf_bs_read_u32(ch->bs_r);
 				//frac lost
-				gf_bs_read_u8(ch->bs_r);
+				rr->frac_lost = gf_bs_read_u8(ch->bs_r);
 				//cumulative lost
-				gf_bs_read_u24(ch->bs_r);
+				rr->total_loss = gf_bs_read_u24(ch->bs_r);
 				//extended seq num
-				gf_bs_read_u32(ch->bs_r);
+				rr->last_rtp_sn = gf_bs_read_u32(ch->bs_r);
 				//jitter
-				gf_bs_read_u32(ch->bs_r);
+				rr->jitter = gf_bs_read_u32(ch->bs_r);
 				//LSR
-				gf_bs_read_u32(ch->bs_r);
+				rr->last_sr = gf_bs_read_u32(ch->bs_r);
 				//DLSR
-				gf_bs_read_u32(ch->bs_r);
+				rr->delay_last_sr = gf_bs_read_u32(ch->bs_r);
 
 				rtcp_hdr.Length -= 6;
 			}
 			//remaining bytes? we skip (this includes padding and crypto - not supported)
-#endif
 			break;
 
 		//SDES
@@ -312,7 +312,6 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 		//num payload bytes sent
 		gf_bs_write_u32(bs, ch->num_payload_bytes);
 
-
 		size += 20;
 		//nota: as we only support single-way channels we are done for SR...
 		return size;
@@ -329,6 +328,10 @@ static u32 RTCP_FormatReport(GF_RTPChannel *ch, GF_BitStream *bs, u32 NTP_Time)
 	if (!expect_diff || (loss_diff <= 0)) loss_diff = 0;
 	else loss_diff = (loss_diff<<8) / expect_diff;
 
+	if (ch->force_loss_rate) {
+		loss_diff = ch->force_loss_rate-1;
+		ch->force_loss_rate = 0;
+	}
 	gf_bs_write_u8(bs, loss_diff);
 
 	//update and write cumulative loss
@@ -487,6 +490,14 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch)
 }
 
 GF_EXPORT
+void gf_rtp_set_loss_rate(GF_RTPChannel *ch, u32 loss_rate)
+{
+	if (!ch) return;
+	if (loss_rate>1000) ch->force_loss_rate = 256;
+	else ch->force_loss_rate = 1 + (loss_rate*255)/1000;
+}
+
+GF_EXPORT
 GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 {
 	u32 Time, report_size;
@@ -499,7 +510,6 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch)
 	if (!ch->forced_ntp_sec && ch->first_SR) return GF_OK;
 	Time = gf_rtp_get_report_time();
 	if ( Time < ch->next_report_time) return GF_OK;
-
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	//pck were received/sent send the RR/SR
