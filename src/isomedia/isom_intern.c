@@ -218,23 +218,25 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 
 			while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
 				u32 i;
+				Bool aborted=GF_FALSE;
 				//use sample flags
 				trun->flags |= GF_ISOM_TRUN_FLAGS;
 				//remove first sample flag (cannot be used with sample flags)
 				trun->flags &= ~GF_ISOM_TRUN_FIRST_FLAG;
 				for (i=0; i<trun->nb_samples; i++) {
 					GF_TrunEntry *entry = &trun->samples[i];
+					if (sample_index >= traf->sdtp->sampleCount) {
+						aborted = GF_TRUE;
+						break;
+					}
 					const u8 info = traf->sdtp->sample_info[sample_index];
 					entry->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(info >> 6, info >> 4, info >> 2, info);
 					sample_index++;
-					if (sample_index > traf->sdtp->sampleCount) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TRAF box of track id=%u contained an inconsistent SDTP.\n", traf->tfhd->trackID));
-						return;
-					}
 				}
+				if (aborted) break;
 			}
-			if (sample_index < traf->sdtp->sampleCount) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TRAF box of track id=%u list less samples than SDTP.\n", traf->tfhd->trackID));
+			if (sample_index != traf->sdtp->sampleCount) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TRAF box of track id=%u list %d samples but SDTP %d.\n", traf->tfhd->trackID, sample_index, traf->sdtp->sampleCount));
 			}
 			gf_isom_box_del_parent(&traf->child_boxes, (GF_Box*)traf->sdtp);
 			traf->sdtp = NULL;
