@@ -34,11 +34,11 @@
 #include <gpac/network.h>
 
 //socket and SSL context ownership is transfered to the download session object
-GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, GF_Err *e);
+GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server, void *ssl_ctx, gf_dm_user_io user_io, void *usr_cbk, GF_Err *e);
 GF_DownloadSession *gf_dm_sess_new_subsession(GF_DownloadSession *sess, u32 stream_id, void *usr_cbk, GF_Err *e);
 u32 gf_dm_sess_subsession_count(GF_DownloadSession *);
 
-
+GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *);
 GF_Err gf_dm_sess_send(GF_DownloadSession *sess, u8 *data, u32 size);
 void gf_dm_sess_clear_headers(GF_DownloadSession *sess);
 void  gf_dm_sess_set_header(GF_DownloadSession *sess, const char *name, const char *value);
@@ -127,6 +127,7 @@ typedef struct __httpout_input
 
 	//for PUT mode, NULL in server mode
 	GF_DownloadSession *upload;
+	GF_Socket *upload_sock;
 	Bool is_h2;
 	u32 cur_header;
 
@@ -1785,7 +1786,6 @@ static GF_Err httpout_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					gf_free(pctx);
 					return e;
 				}
-//				gf_sk_group_register(ctx->sg, pctx->socket);
 			} else {
 				if (!pctx->path) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] Output path not specified\n"));
@@ -1896,7 +1896,7 @@ static void httpout_check_new_session(GF_HTTPOutCtx *ctx)
 	}
 #endif
 
-	sess->http_sess = gf_dm_sess_new_server(new_conn, ssl_c, httpout_sess_io, sess, &e);
+	sess->http_sess = gf_dm_sess_new_server(gf_filter_get_download_manager(ctx->filter), new_conn, ssl_c, httpout_sess_io, sess, &e);
 	if (!sess->http_sess) {
 		gf_sk_del(new_conn);
 		GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] Failed to create HTTP server session from %s: %s\n", sess->peer_address, gf_error_to_string(e) ));
@@ -2079,6 +2079,11 @@ static GF_Err httpout_initialize(GF_Filter *filter)
 	if (!ctx->port)
 		ctx->port = 80;
 
+	gf_filter_set_blocking(filter, GF_TRUE);
+	//load DM if we are pushing (for rate limit)
+	if (ctx->hmode==MODE_SOURCE)
+		gf_filter_get_download_manager(ctx->filter);
+
 	ctx->server_sock = gf_sk_new(GF_SOCK_TYPE_TCP);
 	e = gf_sk_bind(ctx->server_sock, NULL, ctx->port, ip, 0, GF_SOCK_REUSE_PORT);
 	if (!e) e = gf_sk_listen(ctx->server_sock, ctx->maxc);
@@ -2201,7 +2206,11 @@ static void httpout_finalize(GF_Filter *filter)
 		if (in->resource) gf_fclose(in->resource);
 		if (in->llhls_upload) gf_dm_sess_del(in->llhls_upload);
 		if (in->llhls_url) gf_free(in->llhls_url);
-		if (in->upload) gf_dm_sess_del(in->upload);
+		if (in->upload) {
+			if (in->upload_sock)
+				gf_sk_group_unregister(ctx->sg, in->upload_sock);
+			gf_dm_sess_del(in->upload);
+		}
 		if (in->file_deletes) {
 			while (gf_list_count(in->file_deletes)) {
 				char *url = gf_list_pop_back(in->file_deletes);
@@ -2785,7 +2794,11 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 			if (old) gf_free(old);
 		}
 		if (o_url) gf_free(o_url);
-		
+
+		if (in->upload_sock) {
+			gf_sk_group_unregister(ctx->sg, in->upload_sock);
+			in->upload_sock = NULL;
+		}
 		e = gf_dm_sess_setup_from_url(in->upload, in->path, GF_TRUE);
 		if (!e) {
 			in->cur_header = 0;
@@ -3157,9 +3170,17 @@ static Bool httpout_input_write_ready(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in)
 		return GF_TRUE;
 
 	if (in->upload) {
-/*		if (!gf_sk_group_sock_is_set(ctx->sg, in->socket, GF_SK_SELECT_WRITE))
+		if (!in->upload_sock) {
+			in->upload_sock = gf_dm_sess_get_socket(in->upload);
+			if (!in->upload_sock) return GF_FALSE;
+			gf_sk_group_register(ctx->sg, in->upload_sock);
+			gf_sk_group_select(ctx->sg, 10, GF_SK_SELECT_BOTH);
+			gf_sk_set_buffer_size(in->upload_sock, GF_FALSE, ctx->block_size);
+			gf_sk_set_buffer_size(in->upload_sock, GF_TRUE, ctx->block_size);
+
+		}
+		if (!gf_sk_group_sock_is_set(ctx->sg, in->upload_sock, GF_SK_SELECT_WRITE))
 			return GF_FALSE;
-*/
 		return GF_TRUE;
 	}
 
@@ -3472,7 +3493,6 @@ next_pck:
 			httpout_close_input(ctx, in);
 			httpout_close_input_llhls(ctx, in);
 		}
-
 		goto next_pck;
 	}
 
@@ -3645,7 +3665,7 @@ static const GF_FilterArgs HTTPOutArgs[] =
 	{ OFFS(wdir), "directory to expose for write", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(cert), "certificate file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
 	{ OFFS(pkey), "private key file in PEM format to use for TLS mode", GF_PROP_STRING, NULL, NULL, 0},
-	{ OFFS(block_size), "block size used to read and write TCP socket", GF_PROP_UINT, "10000", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(block_size), "block size used to read and write TCP socket", GF_PROP_UINT, "100000", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(user_agent), "user agent string, by default solved from GPAC preferences", GF_PROP_STRING, "$GUA", NULL, 0},
 	{ OFFS(close), "close HTTP connection after each request", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT},
 	{ OFFS(maxc), "maximum number of connections, 0 is unlimited", GF_PROP_UINT, "100", NULL, GF_FS_ARG_HINT_EXPERT},
@@ -3702,6 +3722,8 @@ GF_FilterRegister HTTPOutRegister = {
 		"Listing can be enabled on server using [-dlist]().\n"
 		"When disabled, a GET on a directory will fail.\n"
 		"When enabled, a GET on a directory will return a simple HTML listing of the content inspired from Apache.\n"
+		"  \n"
+		"Warning: the server is currently using blocking IOs for sockets and will likely not scale for many input clients.\n"
 		"  \n"
 		"# Simple HTTP server\n"
 		"In this mode, the filter does not need any input connection and exposes all files in the directories given by [-rdirs]().\n"
