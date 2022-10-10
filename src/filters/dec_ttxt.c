@@ -133,7 +133,29 @@ static void ttd_update_size_info(GF_TTXTDec *ctx)
 		} else if (ctx->cfg->text_width && ctx->cfg->text_height) {
 			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->cfg->text_width, ctx->cfg->text_height, GF_TRUE);
 		} else {
-			gf_sg_set_scene_size_info(ctx->scenegraph, ctx->txtw, ctx->txth, GF_TRUE);
+			u32 w=0, h=0;
+			const GF_PropertyValue *p;
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
+			if (p) w = p->value.uint;
+			p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
+			if (p) h = p->value.uint;
+
+			if (ctx->scene->compositor->osize.x
+				&& ctx->scene->compositor->osize.y
+				&& gf_filter_is_dynamic(ctx->scene->compositor->filter)
+			) {
+				w = ctx->scene->compositor->osize.x;
+				h = ctx->scene->compositor->osize.y;
+			}
+
+			if (ctx->scene->compositor->osize.x && ctx->scene->compositor->osize.y) {
+				w = ctx->scene->compositor->osize.x;
+				h = ctx->scene->compositor->osize.y;
+			}
+			if (!w) w = ctx->txtw;
+			if (!h) h = ctx->txth;
+
+			gf_sg_set_scene_size_info(ctx->scenegraph, w, h, GF_TRUE);
 		}
 		gf_sg_get_scene_size_info(ctx->scenegraph, &w, &h);
 		if (!w || !h) return;
@@ -1442,8 +1464,8 @@ static const GF_FilterArgs TTXTDecArgs[] =
 {
 	{ OFFS(texture), "use texturing for output text", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(outline), "draw text outline", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
-	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
-	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -1463,7 +1485,13 @@ GF_FilterRegister TTXTDecRegister = {
 	.name = "ttxtdec",
 	GF_FS_SET_DESCRIPTION("TTXT/TX3G decoder")
 	GF_FS_SET_HELP("This filter decodes TTXT/TX3G streams into a BIFS scene graph of the compositor filter.\n"
-	"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n")
+		"The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Documentation\n"
+		"\n"
+		"In stand-alone rendering (no associated video), the filter will use:\n"
+		"- `Width` and `Height` properties of input pid if any\n"
+		"- otherwise, `osize` option of compositor if set\n"
+		"- otherwise, [-txtw]() and [-txth]()\n"
+	)
 	.private_size = sizeof(GF_TTXTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = TTXTDecArgs,
