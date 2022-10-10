@@ -1926,7 +1926,7 @@ void gf_isom_meta_restore_items_ref(GF_ISOFile *movie, GF_MetaBox *meta)
 				continue;
 
 			stsz = trak->Media->information->sampleTable->SampleSize;
-			if (!stsz->sampleCount) continue;
+			if (!stsz || !stsz->sampleCount) continue;
 			for (k=0; k<stsz->sampleCount; k++) {
 				GF_Err e;
 				u32 chunk, di, samp_size;
