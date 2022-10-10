@@ -1686,7 +1686,7 @@ class FilterSession:
 
     @http_max_bitrate.setter
     def http_max_bitrate(self, value):
-        return _libgpac.gf_fs_set_http_max_rate(self._sess, value)
+        _libgpac.gf_fs_set_http_max_rate(self._sess, value)
 
     ##\endcond
 
