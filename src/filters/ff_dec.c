@@ -54,9 +54,6 @@ typedef struct _gf_ffdec_ctx
 {
 	GF_PropStringList ffcmap;
 
-	//internal data
-	Bool initialized;
-
 	Bool owns_context;
 	AVCodecContext *decoder;
 	//decode options
@@ -116,7 +113,6 @@ typedef struct _gf_ffdec_ctx
 static GF_Err ffdec_initialize(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ctx = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
-	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
 	ctx->sar.den = 1;
 
@@ -1346,7 +1342,7 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	GF_FFDecodeCtx *ctx = gf_filter_get_udta(filter);
 
 	//initial parsing of arguments
-	if (!ctx->initialized) {
+	if (!ctx->decoder) {
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
 			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
@@ -1360,8 +1356,7 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		}
 		return GF_OK;
 	}
-	//updates of arguments, not supported for ffmpeg decoders
-	return GF_NOT_SUPPORTED;
+	return ffmpeg_update_arg(ctx->decoder, arg_name, arg_val);
 }
 
 static Bool ffdec_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

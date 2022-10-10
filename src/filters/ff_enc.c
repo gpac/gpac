@@ -39,13 +39,12 @@ typedef struct _gf_ffenc_ctx
 	//opts
 	Bool all_intra;
 	char *c;
-	Bool ls;
+	Bool ls, rld;
 	u32 pfmt;
 	GF_Fraction fintra;
 	Bool rc;
 
 	//internal data
-	Bool initialized;
 	Bool gen_dsi;
 
 	u32 gop_size;
@@ -138,6 +137,7 @@ typedef struct _gf_ffenc_ctx
 #endif
 
 	u32 premul_timescale;
+	Bool args_updated;
 
 	FILE *logfile_pass1;
 } GF_FFEncodeCtx;
@@ -174,7 +174,6 @@ static GF_Err ffenc_initialize(GF_Filter *filter)
 {
 	u32 codec_id;
 	GF_FFEncodeCtx *ctx = (GF_FFEncodeCtx *) gf_filter_get_udta(filter);
-	ctx->initialized = GF_TRUE;
 	ctx->src_packets = gf_list_new();
 	ctx->sdbs = gf_bs_new((u8*)ctx, 1, GF_BITSTREAM_READ);
 
@@ -493,6 +492,10 @@ static GF_Err ffenc_process_video(GF_Filter *filter, struct _gf_ffenc_ctx *ctx)
 	}
 
 	if (force_intra) {
+		if (ctx->args_updated) {
+			force_intra = 2;
+			ctx->args_updated = GF_FALSE;
+		}
 		//file switch we force a full reset to force injecting xPS in the stream
 		//we could also inject them manually but we don't have them !!
 		if ((ctx->rc && ctx->nb_frames_in) || (force_intra==2)) {
@@ -1947,6 +1950,8 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	Bool do_override = GF_FALSE;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
 
+	if (!strcmp(arg_name, "rld")) return GF_OK;
+
 	if (!strcmp(arg_name, "global_header"))	return GF_OK;
 	else if (!strcmp(arg_name, "local_header"))	return GF_OK;
 	else if (!strcmp(arg_name, "low_delay"))	ctx->low_delay = GF_TRUE;
@@ -1974,7 +1979,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	}
 
 	//initial parsing of arguments
-	if (!ctx->initialized) {
+	if (!ctx->encoder) {
 		const char *arg_val_str;
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
@@ -1995,8 +2000,45 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		}
 		return GF_OK;
 	}
-	//updates of arguments, not supported for ffmpeg decoders
-	return GF_NOT_SUPPORTED;
+	//updates of arguments
+	u64 value=0;
+	switch (arg_val->type) {
+	case GF_PROP_STRING:
+	{
+		GF_PropertyValue res = gf_props_parse_value(GF_PROP_LUINT, arg_name, arg_val->value.string, NULL, 0);
+		value = res.value.longuint;
+	}
+		break;
+	case GF_PROP_UINT: value = arg_val->value.uint; break;
+	case GF_PROP_LUINT: value = arg_val->value.longuint; break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	if (ctx->rld) {
+		Bool skip=GF_FALSE;
+		char szVal[100];
+		sprintf(szVal, LLU, value);
+		AVDictionaryEntry *key = av_dict_get(ctx->options, arg_name, NULL, 0);
+		if (key) {
+			if ((arg_val->type==GF_PROP_STRING) && !strcmp(key->value, arg_val->value.string))
+				skip=GF_TRUE;
+			else if (!strcmp(key->value, szVal))
+				skip=GF_TRUE;
+		}
+		if (!skip) {
+			av_dict_set(&ctx->options, arg_name, szVal, 0);
+			//if video and fintra is set, reload args at next intra
+			if (ctx->width && (ctx->fintra.num>=0)) {
+				ctx->args_updated = GF_TRUE;
+			} else {
+				ctx->reconfig_pending = GF_TRUE;
+				ctx->force_reconfig = GF_TRUE;
+			}
+		}
+		return GF_OK;
+	}
+	return ffmpeg_update_arg(ctx->encoder, arg_name, arg_val);
 }
 
 static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -2053,6 +2095,10 @@ GF_FilterRegister FFEncodeRegister = {
 		"If [-fintra]() is not set and the output of the encoder is a DASH session in live profile without segment timeline, [-fintra]() will be set to the target segment duration and [-rc]() will be set.\n"
 		"\n"
 		"The filter will look for property `logpass` on input PID to set 2-pass log filename, otherwise defaults to `ffenc2pass-PID.log`.\n"
+		"\n"
+		"Arguments may be updated at runtime. If [-rld]() is set, the encoder will be flushed then reloaded with new options.\n"
+		"If codec is video and [-fintra]() is set, reload will happen at next forced intra; otherwise, reload happens at next encode.\n"
+		"The [-rld]() option is usually needed for dynamic updates of rate control parameters, since most encoders in ffmpeg do not support it.\n"
 	)
 	.private_size = sizeof(GF_FFEncodeCtx),
 	SETCAPS(FFEncodeCaps),
@@ -2075,6 +2121,7 @@ static const GF_FilterArgs FFEncodeArgs[] =
 	{ OFFS(all_intra), "only produce intra frames", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE|GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ls), "log stats", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(rc), "reset encoder when forcing intra frame (some encoders might not support intra frame forcing)", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_ADVANCED},
+	{ OFFS(rld), "force reloading of encoder when arguments are updated", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 
 	{ "*", -1, "any possible options defined for AVCodecContext and sub-classes. see `gpac -hx ffenc` and `gpac -hx ffenc:*`", GF_PROP_STRING, NULL, NULL, GF_FS_ARG_META},
 	{0}

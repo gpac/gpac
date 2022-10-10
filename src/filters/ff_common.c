@@ -724,6 +724,9 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 	if (opt->name[0] == 0)
 		arg.flags = GF_FS_ARG_META;
 
+	if (!(opt->flags & AV_OPT_FLAG_READONLY))
+		arg.flags |= GF_FS_ARG_UPDATE;
+
 	switch (opt->type) {
 	case AV_OPT_TYPE_INT64:
 	case AV_OPT_TYPE_INT:
@@ -2059,6 +2062,20 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 		if (codecpar->bits_per_raw_sample)
 			gf_filter_pid_set_property(opid, GF_PROP_PID_AUDIO_BPS, &PROP_UINT(codecpar->bits_per_raw_sample));
 	}
+	return GF_OK;
+}
+
+
+GF_Err ffmpeg_update_arg(void *ctx, const char *arg_name, const GF_PropertyValue *arg_val)
+{
+	char dumpbuf[GF_PROP_DUMP_ARG_SIZE];
+	int ret;
+	const char *val = gf_props_dump_val(arg_val, dumpbuf, GF_PROP_DUMP_DATA_NONE, NULL);
+
+	if (!val && (arg_val->type == GF_PROP_STRING)) val = "1";
+
+	ret = av_opt_set(ctx, arg_name, val, AV_OPT_SEARCH_CHILDREN);
+	if (ret<0) return GF_NOT_SUPPORTED;
 	return GF_OK;
 }
 #endif

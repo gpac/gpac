@@ -61,7 +61,6 @@ typedef struct
 	const char *fname;
 	u32 log_class;
 
-	Bool initialized;
 	Bool raw_data;
 	//input file
 	AVFormatContext *demuxer;
@@ -406,7 +405,7 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
 
 	//initial parsing of arguments
-	if (!ctx->initialized) {
+	if (!ctx->demuxer) {
 		switch (arg_val->type) {
 		case GF_PROP_STRING:
 			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
@@ -420,8 +419,7 @@ static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		}
 		return GF_OK;
 	}
-	//updates of arguments, not supported for ffmpeg demuxers
-	return GF_NOT_SUPPORTED;
+	return ffmpeg_update_arg(ctx->demuxer, arg_name, arg_val);
 }
 
 #include <gpac/mpeg4_odf.h>
@@ -850,7 +848,6 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 	ffmpeg_setup_logs(ctx->log_class);
 
-	ctx->initialized = GF_TRUE;
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
 		ffdmx_update_arg(filter, NULL, NULL);
@@ -1128,7 +1125,7 @@ static GF_Err ffavin_initialize(GF_Filter *filter)
 	ffmpeg_setup_logs(ctx->log_class);
 
 	avdevice_register_all();
-	ctx->initialized = GF_TRUE;
+
 	if (!ctx->src) {
 		GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] No source URL specified, expecting video://, audio:/ or av://\n", ctx->fname));
 		return GF_SERVICE_ERROR;
