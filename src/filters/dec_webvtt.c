@@ -96,6 +96,10 @@ void vttd_update_size_info(GF_VTTDec *ctx)
 		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
 		if (p) h = p->value.uint;
 
+		if (ctx->scene->compositor->osize.x && ctx->scene->compositor->osize.y) {
+			w = ctx->scene->compositor->osize.x;
+			h = ctx->scene->compositor->osize.y;
+		}
 		if (!w) w = ctx->txtw;
 		if (!h) h = ctx->txth;
 		else if (h<=3*ctx->fontSize) h *= 2;
@@ -533,8 +537,8 @@ static const GF_FilterArgs VTTDecArgs[] =
 	{ OFFS(fontSize), "font size", GF_PROP_FLOAT, "20", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(color), "text color", GF_PROP_STRING, "white", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
 	{ OFFS(lineSpacing), "line spacing as scaling factor to font size", GF_PROP_FLOAT, "1.0", NULL, GF_FS_ARG_HINT_ADVANCED|GF_FS_ARG_UPDATE},
-	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, 0},
-	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, 0},
+	{ OFFS(txtw), "default width in standalone rendering", GF_PROP_UINT, "400", NULL, GF_FS_ARG_HINT_EXPERT},
+	{ OFFS(txth), "default height in standalone rendering", GF_PROP_UINT, "200", NULL, GF_FS_ARG_HINT_EXPERT},
 	{0}
 };
 
@@ -551,8 +555,14 @@ GF_FilterRegister VTTDecRegister = {
 	.name = "vttdec",
 	GF_FS_SET_DESCRIPTION("WebVTT decoder")
 	GF_FS_SET_HELP("This filter decodes WebVTT streams into a SVG scene graph of the compositor filter.\n"
-	"The scene graph creation is done through JavaScript.\n"
-	"The filter options are used to override the JS global variables of the WebVTT renderer.")
+		"The scene graph creation is done through JavaScript.\n"
+		"The filter options are used to override the JS global variables of the WebVTT renderer."
+		"\n"
+		"In stand-alone rendering (no associated video), the filter will use:\n"
+		"- `Width` and `Height` properties of input pid if any\n"
+		"- otherwise, `osize` option of compositor if set\n"
+		"- otherwise, [-txtw]() and [-txth]()\n"
+	)
 	.private_size = sizeof(GF_VTTDec),
 	.flags = GF_FS_REG_MAIN_THREAD,
 	.args = VTTDecArgs,

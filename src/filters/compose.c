@@ -1110,7 +1110,7 @@ static GF_FilterArgs CompositorArgs[] =
 	{ OFFS(gazer_enabled), "enable gaze event dispatch", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 
 	{ OFFS(subtx), "horizontal translation in pixels towards right for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
-	{ OFFS(subty), "vertical translation in pixels towards right for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
+	{ OFFS(subty), "vertical translation in pixels towards top for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(subfs), "font size for subtitles renderers (0 means automatic)", GF_PROP_UINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(subd), "subtitle delay in milliseconds for subtitles renderers", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},
 	{ OFFS(audd), "audio delay in milliseconds", GF_PROP_SINT, "0", NULL, GF_FS_ARG_HINT_EXPERT|GF_FS_ARG_UPDATE},

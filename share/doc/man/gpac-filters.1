@@ -716,7 +716,7 @@ gazer_enabled (bool, default: false, updatable): enable gaze event dispatch
 .br
 subtx (sint, default: 0, updatable): horizontal translation in pixels towards right for subtitles renderers
 .br
-subty (sint, default: 0, updatable): vertical translation in pixels towards right for subtitles renderers
+subty (sint, default: 0, updatable): vertical translation in pixels towards top for subtitles renderers
 .br
 subfs (uint, default: 0, updatable): font size for subtitles renderers (0 means automatic)
 .br
@@ -2784,6 +2784,16 @@ The TTXT documentation is available at https://wiki.gpac.io/TTXT-Format-Document
 .br
 
 .br
+In stand-alone rendering (no associated video), the filter will use:
+.br
+- Width and Height properties of input pid if any
+.br
+- otherwise, osize option of compositor if set
+.br
+- otherwise, .I txtw and .I txth
+.br
+
+.br
 .SH Options (expert):
 .LP
 .br
@@ -2809,6 +2819,14 @@ This filter decodes WebVTT streams into a SVG scene graph of the compositor filt
 The scene graph creation is done through JavaScript.
 .br
 The filter options are used to override the JS global variables of the WebVTT renderer.
+.br
+In stand-alone rendering (no associated video), the filter will use:
+.br
+- Width and Height properties of input pid if any
+.br
+- otherwise, osize option of compositor if set
+.br
+- otherwise, .I txtw and .I txth
 .br
 
 .br
@@ -2843,6 +2861,16 @@ This filter decodes TTML streams into a SVG scene graph of the compositor filter
 The scene graph creation is done through JavaScript.
 .br
 The filter options are used to override the JS global variables of the TTML renderer.
+.br
+
+.br
+In stand-alone rendering (no associated video), the filter will use:
+.br
+- Width and Height properties of input pid if any
+.br
+- otherwise, osize option of compositor if set
+.br
+- otherwise, .I txtw and .I txth
 .br
 
 .br
@@ -10783,7 +10811,7 @@ Authors: GPAC developers, see git repo history (-log)
 .br
 For bug reports, feature requests, more information and source code, visit https://github.com/gpac/gpac
 .br
-build: 2.1-DEV-rev372-ge17d36881-master
+build: 2.1-DEV-rev373-g3f16d2f23-master
 .br
 Copyright: (c) 2000-2022 Telecom Paris distributed under LGPL v2.1+ - http://gpac.io
 .br
