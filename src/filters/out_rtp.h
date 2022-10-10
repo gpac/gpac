@@ -94,6 +94,8 @@ typedef struct
 	u32 ctrl_id;
 	u32 rtp_id, rtcp_id;
 	u32 mcast_port;
+
+	u32 rtp_timescale;
 } GF_RTPOutStream;
 
 GF_Err rtpout_create_sdp(GF_List *streams, Bool is_rtsp, const char *ip, const char *info, const char *sess_name, const char *url, const char *email, u32 base_pid_id, FILE **sdp_tmp, u64 *session_id);

@@ -83,6 +83,17 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, const void * pck, u32 pck_size, u
 /*gets the output of the queue. Packet Data IS YOURS to delete*/
 void *gf_rtp_reorderer_get(GF_RTPReorder *po, u32 *pck_size, Bool force_flush);
 
+#define MAX_RTCP_RR	4
+
+typedef struct
+{
+	u32 ssrc;
+	u32 frac_lost;
+	u32 total_loss;
+	u32 last_rtp_sn;
+	u64 jitter;
+	u32 last_sr, delay_last_sr;
+} GF_RTCP_Report;
 
 /*the RTP channel with both RTP and RTCP sockets and buffers
 each channel is identified by a control string given in RTSP Describe
@@ -133,6 +144,7 @@ struct __tag_rtp_channel
 	u32 num_pck_sent, num_payload_bytes;
 	u32 forced_ntp_sec, forced_ntp_frac;
 
+	u32 force_loss_rate;
 	Bool no_auto_rtcp;
 	/*RTCP info*/
 	char *s_name, *s_email, *s_location, *s_phone, *s_tool, *s_note, *s_priv;
@@ -167,6 +179,9 @@ struct __tag_rtp_channel
 
 	gf_rtp_tcp_callback send_interleave;
 	void *interleave_cbk1, *interleave_cbk2;
+
+	GF_RTCP_Report rtcp_rr[MAX_RTCP_RR];
+	u32 nb_rctp_rr;
 };
 
 /*gets UTC in the channel RTP timescale*/

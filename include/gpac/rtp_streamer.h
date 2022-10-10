@@ -242,6 +242,36 @@ u16 gf_rtp_streamer_get_next_rtp_sn(GF_RTPStreamer *streamer);
 */
 GF_Err gf_rtp_streamer_set_interleave_callbacks(GF_RTPStreamer *streamer, GF_Err (*RTP_TCPCallback)(void *cbk1, void *cbk2, Bool is_rtcp, u8 *pck, u32 pck_size), void *cbk1, void *cbk2);
 
+
+/*! callback function for procesing RTCP  receiver reports
+\param cbk user data passed to \ref  gf_rtp_streamer_read_rtcp
+\param ssrc ssrc for this report, 0 if same as ssrc of channel
+\param rtt_ms round-trip time estimate in ms
+\param jitter_rtp_ts inter-arrival jitter in RTP channel timescale
+\param loss_rate loss rate in per-thousands
+*/
+typedef void (*gf_rtcp_rr_callback)(void *cbk1, u32 ssrc, u32 rtt_ms, u32 jitter_rtp_ts, u32 loss_rate);
+
+/*! process rtcp reports if any
+\param streamer the target RTP streamer
+\param rtcp_cbk callback function for RTCP reports
+\param udta user data to use for callback function
+\return error if any, GF_EOS if empty
+*/
+GF_Err gf_rtp_streamer_read_rtcp(GF_RTPStreamer *streamer, gf_rtcp_rr_callback rtcp_cbk, void *udta);
+
+/*! gets ssrc of this streamer
+\param streamer the target RTP streamer
+\return ssrc ID
+*/
+u32 gf_rtp_streamer_get_ssrc(GF_RTPStreamer *streamer);
+
+/*! gets rtp timescale of this streamer
+\param streamer the target RTP streamer
+\return timescale
+*/
+u32 gf_rtp_streamer_get_timescale(GF_RTPStreamer *streamer);
+
 /*! @} */
 
 #ifdef __cplusplus

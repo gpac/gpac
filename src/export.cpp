@@ -1357,6 +1357,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_decode_rtp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_decode_rtcp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_send_rtcp_report) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_set_loss_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_send_bye) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_send_packet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_is_unicast) )
@@ -2630,6 +2631,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_ignore_blocking) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_get_next_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_has_decoder) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_filter_pid_set_rt_stats) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_filter_bind_dash_algo_callbacks) )

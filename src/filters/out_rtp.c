@@ -532,6 +532,9 @@ GF_Err rtpout_init_streamer(GF_RTPOutStream *stream, const char *ipdest, Bool in
 	p = gf_filter_pid_get_property(stream->pid, GF_PROP_PID_DELAY);
 	stream->ts_delay = p ? p->value.longsint : 0;
 
+	stream->rtp_timescale = gf_rtp_streamer_get_timescale(stream->rtp);
+
+
 	payt++;
 	stream->microsec_ts_scale_frac.num = 1000000;
 	stream->microsec_ts_scale_frac.den = stream->timescale;
@@ -839,6 +842,17 @@ static Bool rtpout_init_clock(GF_RTPOutCtx *ctx)
 	return GF_TRUE;
 }
 
+static void rtpout_process_rtcp(void *cbk, u32 ssrc, u32 rtt_ms, u32 jitter_rtp_ts, u32 loss_rate)
+{
+	GF_RTPOutStream *stream = cbk;
+	if (ssrc) return;
+	u64 jitter_us = gf_timestamp_rescale(jitter_rtp_ts, stream->rtp_timescale, 1000000);
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTCP stats for PID %s: rtt %u ms jitter "LLU" us loss rate %d / 1000\n\n", gf_filter_pid_get_name(stream->pid), rtt_ms, jitter_us, loss_rate));
+
+	gf_filter_pid_set_rt_stats(stream->pid, rtt_ms, jitter_us, loss_rate);
+}
+
+
 GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Bool loop, s32 delay, u32 *active_stream_idx, u64 sys_clock_at_init, u64 *active_min_ts_microsec, u64 microsec_ts_init, Bool *wait_for_loop, u32 *repost_delay_us, Bool *first_RTCP_sent, u32 base_pid_id)
 {
 	GF_Err e = GF_OK;
@@ -859,6 +873,9 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		for (i=0; i<count; i++) {
 			stream = gf_list_get(streams, i);
 			if (!stream->rtp) continue;
+
+			//process rtcp (we only do that once we are done sending a full au
+			gf_rtp_streamer_read_rtcp(stream->rtp, rtpout_process_rtcp, stream);
 
 			/*load next AU*/
 			if (!stream->pck) {
@@ -978,8 +995,9 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 		*repost_delay_us = (u32) repost_in;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] next RTP packet (stream %d DTS "LLU") scheduled in "LLU" us, requesting filter reschedule in "LLU" us - clock "LLU" us\n", *active_stream_idx, stream->current_dts, diff, repost_in, clock));
 		return GF_OK;
-	} else if (diff<=-1000) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") too late by %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, -diff, clock));
+	} else if (diff<=-2000) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") too late by %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, -diff, clock));
+		*repost_delay_us=0;
 	} else if (diff>0){
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTPOut] RTP session stream %d - sending packet %d (DTS "LLU") ahead of %d us - clock "LLU" us\n", *active_stream_idx, stream->pck_num, stream->current_dts, diff, clock));
 	}
@@ -1099,7 +1117,6 @@ GF_Err rtpout_process_rtp(GF_List *streams, GF_RTPOutStream **active_stream, Boo
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTPOut] Error sending RTP packet %d: %s\n", stream->pck_num, gf_error_to_string(e) ));
 	}
-
 	*active_stream = NULL;
 	return e;
 

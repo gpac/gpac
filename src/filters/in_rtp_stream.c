@@ -741,8 +741,11 @@ u32 rtpin_stream_read(GF_RTPInStream *stream)
 
 	/*and send the report*/
 	if (tot_size) {
-		if (stream->flags & RTP_ENABLE_RTCP)
+		if (stream->flags & RTP_ENABLE_RTCP) {
+			if (stream->rtpin->loss_rate>=0)
+				gf_rtp_set_loss_rate(stream->rtp_ch, (u32) stream->rtpin->loss_rate);
 			gf_rtp_send_rtcp_report(stream->rtp_ch);
+		}
 		stream->last_udp_time = 0;
 		return tot_size;
 	}
