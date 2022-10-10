@@ -83,6 +83,7 @@ typedef struct
 	u32 reorder, ofmt;
 	Bool no_copy;
 	Bool disable_hw;
+	Bool wait_sync;
 
 	//internal
 //	GF_FilterPid *ipid;
@@ -351,7 +352,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		break;
 	}
 
-	ctx->wait_rap = GF_TRUE;
+	ctx->wait_rap = ctx->wait_sync;
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
 	pid = gf_list_get(ctx->streams, 0);
@@ -2075,6 +2076,7 @@ static const GF_FilterArgs VTBDecArgs[] =
 	{ OFFS(no_copy), "dispatch decoded frames as OpenGL textures (true) or as copied packets (false) ", GF_PROP_BOOL, "true", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(ofmt), "set default pixel format for decoded video. If not found, fall back to `nv12`", GF_PROP_PIXFMT, "nv12", NULL, GF_FS_ARG_HINT_ADVANCED},
 	{ OFFS(disable_hw), "disable hardware decoding", GF_PROP_BOOL, "false", NULL, 0},
+	{ OFFS(wait_sync), "wait for sync frame before decoding", GF_PROP_BOOL, "false", NULL, GF_FS_ARG_UPDATE},
 	{}
 };
 
