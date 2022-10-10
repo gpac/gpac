@@ -147,6 +147,9 @@ GF_Err reftype_box_dump(GF_Box *a, FILE * trace)
 	GF_TrackReferenceTypeBox *p = (GF_TrackReferenceTypeBox *)a;
 	if (!p->reference_type) return GF_OK;
 	p->type = p->reference_type;
+	//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+	if (p->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+		p->type = GF_4CC('u','k','n','w');
 
 	gf_isom_box_dump_start(a, "TrackReferenceTypeBox", trace);
 	gf_fprintf(trace, ">\n");
@@ -168,6 +171,9 @@ GF_Err ireftype_box_dump(GF_Box *a, FILE * trace)
 	if (!p->reference_type) return GF_OK;
 
 	p->type = p->reference_type;
+	//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+	if (p->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+		p->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "ItemReferenceBox", trace);
 	gf_fprintf(trace, "from_item_id=\"%d\">\n", p->from_item_id);
 	for (i = 0; i < p->reference_count; i++) {
@@ -895,9 +901,12 @@ static void gnr_dump_exts(u8 *data, u32 data_size, FILE *trace)
 GF_Err gnrm_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericSampleEntryBox *p = (GF_GenericSampleEntryBox *)a;
-	if (p->EntryType)
+	if (p->EntryType) {
 		a->type = p->EntryType;
-
+		//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+		if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+			a->type = GF_4CC('u','k','n','w');
+	}
 	gf_isom_box_dump_start(a, "SampleDescriptionEntryBox", trace);
 	gf_fprintf(trace, "DataReferenceIndex=\"%d\" ExtensionDataSize=\"%d\"", p->dataReferenceIndex, p->data_size);
 	a->type = GF_ISOM_BOX_TYPE_GNRM;
@@ -910,9 +919,12 @@ GF_Err gnrm_box_dump(GF_Box *a, FILE * trace)
 GF_Err gnrv_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericVisualSampleEntryBox *p = (GF_GenericVisualSampleEntryBox *)a;
-	if (p->EntryType)
+	if (p->EntryType) {
 		a->type = p->EntryType;
-
+		//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+		if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+			a->type = GF_4CC('u','k','n','w');
+	}
 	gf_isom_box_dump_start(a, "VisualSampleDescriptionBox", trace);
 	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\"",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, isalnum(p->compressor_name[0]) ? p->compressor_name : p->compressor_name+1, p->bit_depth);
@@ -927,9 +939,12 @@ GF_Err gnrv_box_dump(GF_Box *a, FILE * trace)
 GF_Err gnra_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericAudioSampleEntryBox *p = (GF_GenericAudioSampleEntryBox *)a;
-	if (p->EntryType)
+	if (p->EntryType) {
 		a->type = p->EntryType;
-
+		//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+		if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+			a->type = GF_4CC('u','k','n','w');
+	}
 	gf_isom_box_dump_start(a, "AudioSampleDescriptionBox", trace);
 	gf_fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" ChannelCount=\"%d\" BitsPerSample=\"%d\" Samplerate=\"%d\"",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->channel_count, p->bitspersample, p->samplerate_hi);
@@ -5804,6 +5819,9 @@ GF_Err trgt_box_dump(GF_Box *a, FILE * trace)
 {
 	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *) a;
 	a->type = ptr->group_type;
+	//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+	if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+		a->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "TrackGroupTypeBox", trace);
 	a->type = GF_ISOM_BOX_TYPE_TRGT;
 	gf_fprintf(trace, "track_group_id=\"%d\">\n", ptr->track_group_id);
@@ -5824,6 +5842,9 @@ GF_Err grptype_box_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *) a;
 	a->type = ptr->grouping_type;
+	//don't allow UNKN as type (possible buffer overflow when typecasting to GF_UnknownBox)
+	if (a->type==GF_ISOM_BOX_TYPE_UNKNOWN)
+		a->type = GF_4CC('u','k','n','w');
 	gf_isom_box_dump_start(a, "EntityToGroupTypeBox", trace);
 	a->type = GF_ISOM_BOX_TYPE_GRPT;
 	gf_fprintf(trace, "group_id=\"%d\">\n", ptr->group_id);
