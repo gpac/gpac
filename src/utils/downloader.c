@@ -76,6 +76,7 @@ typedef SSIZE_T ssize_t;
 
 //let's be agressive with socket buffer size
 #define GF_DOWNLOAD_BUFFER_SIZE		131072
+#define GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE		GF_DOWNLOAD_BUFFER_SIZE/20
 
 
 #ifdef GPAC_HAS_HTTP2
@@ -1868,7 +1869,13 @@ GF_Err gf_dm_sess_send_reply(GF_DownloadSession *sess, u32 reply_code, const cha
 
 
 		len = (u32) strlen(rsp_buf);
-		e = gf_sk_send(sess->sock, rsp_buf, len);
+#ifdef GPAC_HAS_SSL
+		if (sess->ssl) {
+			e = gf_ssl_write(sess->ssl, rsp_buf, count);
+		} else
+#endif
+			e = gf_sk_send(sess->sock, rsp_buf, len);
+
 		gf_free(rsp_buf);
 		rsp_buf = NULL;
 
@@ -2736,7 +2743,7 @@ static GF_DownloadSession *gf_dm_sess_new_internal(GF_DownloadManager * dm, cons
 }
 
 GF_EXPORT
-GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server,
+GF_DownloadSession *gf_dm_sess_new_server(GF_DownloadManager *dm, GF_Socket *server,
 		void *ssl_sock_ctx,
         gf_dm_user_io user_io,
         void *usr_cbk,
@@ -2762,7 +2769,7 @@ GF_DownloadSession *gf_dm_sess_new_server(GF_Socket *server,
 	}
 #endif //GPAC_HAS_HTTP2 && GPAC_HAS_SSL
 
-	sess = gf_dm_sess_new_internal(NULL, NULL, 0, user_io, usr_cbk, server, e);
+	sess = gf_dm_sess_new_internal(dm, NULL, 0, user_io, usr_cbk, server, e);
 
 #ifdef GPAC_HAS_SSL
 	if (sess) {
@@ -3669,7 +3676,7 @@ retry_cache:
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 	//when rate is limited, use smaller smaller read size
 	if (dm->limit_data_rate) {
-		dm->read_buf_size = 1024;
+		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE;
 	}
 
 	dm->disable_cache = gf_opts_get_bool("core", "no-cache");
@@ -6334,7 +6341,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 		//when rate is limited, use smaller smaller read size
-		if (dm->limit_data_rate) dm->read_buf_size = 1024;
+		if (dm->limit_data_rate) dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE_LIMIT_RATE;
 
 #ifdef GPAC_ENABLE_COVERAGE
 		if (gf_sys_is_cov_mode()) {
@@ -6631,3 +6638,7 @@ void gf_dm_sess_flush_h2(GF_DownloadSession *sess)
 #endif
 }
 
+GF_Socket *gf_dm_sess_get_socket(GF_DownloadSession *sess)
+{
+	return sess ? sess->sock : NULL;
+}
