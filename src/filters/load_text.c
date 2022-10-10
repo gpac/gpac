@@ -633,6 +633,8 @@ static void txtin_process_send_text_sample(GF_TXTIn *ctx, GF_TextSample *txt_sam
 	u8 *pck_data;
 	u32 size;
 
+	if (!txt_samp)
+		return;
 	if ((!txt_samp->text || !txt_samp->len) && ctx->no_empty)
 		return;
 
@@ -3807,7 +3809,7 @@ static GF_Err txtin_process(GF_Filter *filter)
 		u32 size;
 		data = gf_filter_pck_get_data(pck, &size);
 		e = GF_OK;
-		if (data) {
+		if (data && size) {
 			ctx->src = gf_file_temp(NULL);
 			gf_fwrite(data, size, ctx->src);
 			gf_fseek(ctx->src, 0, SEEK_SET);
