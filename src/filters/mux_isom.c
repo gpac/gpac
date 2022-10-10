@@ -3425,14 +3425,12 @@ sample_entry_done:
 					gf_isom_remove_edits(ctx->file, tkw->track_num);
 					tkw->patch_tfdt = GF_TRUE;
 				} else {
-					s64 dur = 100*p->value.longsint;
-					dur *= (u32) ctx->moovts;
-					dur /= tkw->src_timescale;
-					if ((ctx->moovts < (s32) tkw->src_timescale) && (dur>150)) {
-						dur /= 100;
-						dur ++;
-					} else {
-						dur /= 100;
+					s64 dur = gf_timestamp_rescale_signed(p->value.longsint, tkw->src_timescale, ctx->moovts);
+					s64 diff_low = (s64) p->value.longuint - dur * tkw->src_timescale / ctx->moovts;
+					//we are loosing precision, check if true value is closer to next representable value in movie timescale
+					if (diff_low>0) {
+						s64 diff_high = (dur+1) * tkw->src_timescale / ctx->moovts - (s64) p->value.longuint;
+						if (diff_high < diff_low) dur++;
 					}
 					if (remove_edits) {
 						gf_isom_remove_edits(ctx->file, tkw->track_num);
