@@ -2440,7 +2440,7 @@ static JSValue jsf_pid_get_statistics(JSContext *ctx, JSValueConst this_val, int
 	SET_PROPB(disconnected)
 	SET_PROP32(average_process_rate)
 	SET_PROP32(max_process_rate)
-	SET_PROP32(avgerage_bitrate)
+	SET_PROP32(average_bitrate)
 	SET_PROP32(max_bitrate)
 	SET_PROP32(nb_processed)
 	SET_PROP32(max_process_time)
@@ -4458,6 +4458,14 @@ void js_load_constants(JSContext *ctx, JSValue global_obj)
 	DEF_CONST(GF_FILTER_SAP_4)
 	DEF_CONST(GF_FILTER_SAP_4_PROL)
 
+	DEF_CONST(GF_STATS_LOCAL)
+	DEF_CONST(GF_STATS_LOCAL_INPUTS)
+	DEF_CONST(GF_STATS_DECODER_SINK)
+	DEF_CONST(GF_STATS_DECODER_SOURCE)
+	DEF_CONST(GF_STATS_ENCODER_SINK)
+	DEF_CONST(GF_STATS_ENCODER_SOURCE)
+	DEF_CONST(GF_STATS_SINK)
+
 	DEF_CONST(GF_EOS);
 	DEF_CONST(GF_OK)
 	DEF_CONST(GF_BAD_PARAM)
@@ -5041,7 +5049,7 @@ static GF_Err jsfilter_update_arg(GF_Filter *filter, const char *arg_name, const
 			JS_DeleteProperty(jsf->ctx, global_obj, prop, 0);
 			JS_FreeValue(jsf->ctx, global_obj);
 			JS_FreeAtom(jsf->ctx, prop);
-			filter->disabled = GF_TRUE;
+			filter->disabled = GF_FILTER_DISABLED_HIDE;
 			jsf->filter_obj = JS_UNDEFINED;
 		}
 		gf_js_lock(jsf->ctx, GF_FALSE);

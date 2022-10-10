@@ -1871,7 +1871,7 @@ static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info, Bool scalable
 	GF_FilterPidStatistics stats;
 	gf_filter_pid_get_statistics(pid, &stats, scalable_addon ? GF_STATS_LOCAL : GF_STATS_LOCAL_INPUTS);
 
-	info->avg_bitrate = stats.avgerage_bitrate;
+	info->avg_bitrate = stats.average_bitrate;
 	info->max_bitrate = stats.max_bitrate;
 	info->nb_dec_frames = stats.nb_processed;
 	info->max_dec_time = stats.max_process_time;

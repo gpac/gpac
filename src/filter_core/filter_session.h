@@ -560,6 +560,14 @@ typedef enum
 	GF_FILTER_CLONE_PROBE,
 } GF_FilterCloneType;
 
+
+typedef enum
+{
+	GF_FILTER_ENABLED = 0,
+	GF_FILTER_DISABLED,
+	GF_FILTER_DISABLED_HIDE,
+} GF_FilterDisableType;
+
 //#define DEBUG_BLOCKMODE
 
 struct __gf_filter
@@ -617,7 +625,7 @@ struct __gf_filter
 
 	Bool has_out_caps;
 
-	Bool disabled;
+	GF_FilterDisableType disabled;
 	//set to true before calling filter process() callback, and reset to false right after
 	Bool in_process_callback;
 	Bool no_probe;
@@ -873,6 +881,7 @@ typedef struct
 	GF_EventPropagateType recursive;
 } GF_FilterUpdate;
 
+
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
 {
@@ -946,6 +955,16 @@ struct __gf_filter_pid_inst
 
 	u64 last_buf_query_clock;
 	u64 last_buf_query_dur;
+
+	/*! last RT info update time - input pid only */
+	u64 last_rt_report;
+	/*! estimated round-trip time in ms - input pid only */
+	u32 rtt;
+	/*! estimated interarrival jitter in microseconds - input pid only */
+	u32 jitter;
+	/*! loss rate in per-thousand - input pid only */
+	u32 loss_rate;
+
 };
 
 struct __gf_filter_pid
