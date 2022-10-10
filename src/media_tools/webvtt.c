@@ -1037,9 +1037,15 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			} else {
 				/* discard the previous line */
 				/* should we do something with it ? callback ?*/
-				if (parser->in_comment && !parser->comment_text) {
-					parser->comment_text = prevLine;
-					prevLine = NULL;
+				if (parser->in_comment) {
+					if (!parser->comment_text) {
+						parser->comment_text = prevLine;
+						prevLine = NULL;
+					} else {
+						gf_dynstrcat(&parser->comment_text, prevLine, "\n");
+						gf_free(prevLine);
+						prevLine = NULL;
+					}
 					parser->in_comment = GF_FALSE;
 				}
 				if (prevLine) {
@@ -1085,14 +1091,18 @@ GF_Err gf_webvtt_parser_parse_internal(GF_WebVTTParser *parser, GF_WebVTTCue *cu
 			}
 			break;
 		case WEBVTT_PARSER_STATE_WAITING_CUE_PAYLOAD:
-			if (sOK && len && !strncmp(szLine, "NOTE ", 5)) {
-				if (had_marks) {
-					szLine[len] = '\n';
-					len++;
+			if (sOK && len) {
+				if (!strncmp(szLine, "NOTE ", 5)) {
+					if (had_marks) {
+						szLine[len] = '\n';
+						len++;
+					}
+					gf_webvtt_cue_add_property(cue, WEBVTT_POSTCUE_TEXT, szLine, len);
+					parser->in_comment = GF_TRUE;
+					len = 0;
+				} else if (parser->in_comment) {
+					parser->in_comment = GF_FALSE;
 				}
-				gf_webvtt_cue_add_property(cue, WEBVTT_POSTCUE_TEXT, szLine, len);
-				parser->in_comment = GF_TRUE;
-				len = 0;
 			}
 			if (sOK && len) {
 				if (had_marks) {
