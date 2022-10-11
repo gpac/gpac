@@ -401,25 +401,8 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 static GF_Err ffdmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	s32 res;
 	GF_FFDemuxCtx *ctx = gf_filter_get_udta(filter);
-
-	//initial parsing of arguments
-	if (!ctx->demuxer) {
-		switch (arg_val->type) {
-		case GF_PROP_STRING:
-			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
-			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to set option %s:%s\n", ctx->fname, arg_name, arg_val ));
-			}
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, ctx->log_class, ("[%s] Failed to set option %s:%s, unrecognized type %d\n", ctx->fname, arg_name, arg_val, arg_val->type ));
-			return GF_NOT_SUPPORTED;
-		}
-		return GF_OK;
-	}
-	return ffmpeg_update_arg(ctx->demuxer, arg_name, arg_val);
+	return ffmpeg_update_arg(ctx->fname, ctx->demuxer, &ctx->options, arg_name, arg_val);
 }
 
 #include <gpac/mpeg4_odf.h>
@@ -850,7 +833,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 #ifdef GPAC_ENABLE_COVERAGE
 	if (gf_sys_is_cov_mode()) {
-		ffdmx_update_arg(filter, NULL, NULL);
+		ffdmx_update_arg(filter, "foo", &PROP_STRING_NO_COPY("bar"));
 		ffmpeg_pixfmt_from_codec_tag(0, NULL);
 	}
 #endif

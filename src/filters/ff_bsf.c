@@ -376,24 +376,8 @@ static void ffbsf_finalize(GF_Filter *filter)
 
 static GF_Err ffbsf_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	int ret;
-	char *arg_value;
 	GF_FFBSFCtx *ctx = gf_filter_get_udta(filter);
-
-	if (!ctx->bsfc) {
-		arg_value = NULL;
-		if  (arg_val->type == GF_PROP_STRING) {
-			arg_value = arg_val->value.string;
-			if (!arg_value) arg_value = "1";
-		}
-
-		ret = av_dict_set(&ctx->options, arg_name, arg_value, 0);
-		if (ret<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[FFBSF] Failed to set option %s:%s\n", arg_name, arg_val ));
-		}
-		return GF_OK;
-	}
-	return ffmpeg_update_arg(ctx->bsfc, arg_name, arg_val);
+	return ffmpeg_update_arg("FFBSF", ctx->bsfc, &ctx->options, arg_name, arg_val);
 }
 
 static Bool ffbsf_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

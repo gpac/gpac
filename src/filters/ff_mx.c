@@ -1184,25 +1184,8 @@ static void ffmx_finalize(GF_Filter *filter)
 
 static GF_Err ffmx_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	s32 res;
 	GF_FFMuxCtx *ctx = gf_filter_get_udta(filter);
-
-	//initial parsing of arguments
-	if (!ctx->muxer) {
-		switch (arg_val->type) {
-		case GF_PROP_STRING:
-			res = av_dict_set(&ctx->options, arg_name, arg_val->value.string, 0);
-			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to set option %s:%s\n", arg_name, arg_val ));
-			}
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMux] Failed to set option %s:%s, unrecognized type %d\n", arg_name, arg_val, arg_val->type ));
-			return GF_NOT_SUPPORTED;
-		}
-		return GF_OK;
-	}
-	return ffmpeg_update_arg(ctx->muxer, arg_name, arg_val);
+	return ffmpeg_update_arg("FFMux", ctx->muxer, &ctx->options, arg_name, arg_val);
 }
 
 static GF_FilterProbeScore ffmx_probe_url(const char *url, const char *mime)
