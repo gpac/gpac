@@ -101,8 +101,11 @@ GF_Err gf_rtp_streamer_init_rtsp(GF_RTPStreamer *rtp, u32 path_mtu, GF_RTSPTrans
 {
 	GF_Err res;
 
-	if (!rtp->channel) rtp->channel = gf_rtp_new();
-
+	if (!rtp->channel) {
+		rtp->channel = gf_rtp_new();
+		if (!rtp->channel) return GF_OUT_OF_MEM;
+		rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
+	}
 	res = gf_rtp_setup_transport(rtp->channel, tr, tr->destination);
 	if (res !=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot setup RTP transport info: %s\n", gf_error_to_string(res) ));
@@ -122,6 +125,9 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 	GF_Err res;
 
 	rtp->channel = gf_rtp_new();
+	if (!rtp->channel) return GF_OUT_OF_MEM;
+	rtp->channel->TimeScale = rtp->packetizer->sl_config.timestampResolution;
+
 	gf_rtp_set_ports(rtp->channel, 0);
 	memset(&tr, 0, sizeof(GF_RTSPTransport));
 
@@ -491,7 +497,6 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 codecid, u32 timeScale,
 	}
 
 	stream->in_timescale = timeScale;
-	stream->channel->TimeScale = slc.timestampResolution;
 
 	stream->buffer_alloc = MTU+12;
 	stream->buffer = (char*)gf_malloc(sizeof(char) * stream->buffer_alloc);
