@@ -3176,6 +3176,11 @@ static void load_xmt_done(GF_SceneLoader *load)
 	}
 	if (parser->x3d_root) gf_free(parser->x3d_root);
 	gf_list_del(parser->nodes);
+	//we may have one root desc remaining if error
+	if (gf_list_count(parser->descriptors)) {
+		GF_Descriptor *desc = gf_list_get(parser->descriptors, 0);
+		gf_odf_desc_del(desc);
+	}
 	gf_list_del(parser->descriptors);
 	gf_list_del(parser->def_nodes);
 	gf_list_del(parser->peeked_nodes);
