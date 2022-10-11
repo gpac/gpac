@@ -2066,16 +2066,26 @@ GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid,
 }
 
 
-GF_Err ffmpeg_update_arg(void *ctx, const char *arg_name, const GF_PropertyValue *arg_val)
+GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	char dumpbuf[GF_PROP_DUMP_ARG_SIZE];
 	int ret;
 	const char *val = gf_props_dump_val(arg_val, dumpbuf, GF_PROP_DUMP_DATA_NONE, NULL);
 
-	if (!val && (arg_val->type == GF_PROP_STRING)) val = "1";
+	if (!val && (arg_val->type == GF_PROP_STRING))
+		val = "1";
 
-	ret = av_opt_set(ctx, arg_name, val, AV_OPT_SEARCH_CHILDREN);
-	if (ret<0) return GF_NOT_SUPPORTED;
+	if (ctx) {
+		ret = av_opt_set(ctx, arg_name, val, AV_OPT_SEARCH_CHILDREN);
+	} else if (options) {
+		ret = av_dict_set(options, arg_name, val, 0);
+	} else {
+		return GF_BAD_PARAM;
+	}
+	if (ret<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[%s] Failed to set option %s to %s: %s\n", log_name, arg_name, arg_val, av_err2str(ret)));
+		return GF_BAD_PARAM;
+	}
 	return GF_OK;
 }
 #endif

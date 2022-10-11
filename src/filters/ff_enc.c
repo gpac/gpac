@@ -1945,7 +1945,6 @@ static GF_Err ffenc_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
-	s32 res;
 	char szOverrideOpt[1000];
 	Bool do_override = GF_FALSE;
 	GF_FFEncodeCtx *ctx = gf_filter_get_udta(filter);
@@ -1980,25 +1979,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 	//initial parsing of arguments
 	if (!ctx->encoder) {
-		const char *arg_val_str;
-		switch (arg_val->type) {
-		case GF_PROP_STRING:
-			if (do_override)
-				arg_val_str = szOverrideOpt;
-			else {
-				arg_val_str = arg_val->value.string;
-				if (!arg_val_str) arg_val_str = "1";
-			}
-			res = av_dict_set(&ctx->options, arg_name, arg_val_str, 0);
-			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s:%s\n", arg_name, arg_val_str ));
-			}
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFEnc] Failed to set option %s, unrecognized type %d\n", arg_name, arg_val->type ));
-			return GF_NOT_SUPPORTED;
-		}
-		return GF_OK;
+		return ffmpeg_update_arg("FFEnc", NULL, &ctx->options, arg_name, arg_val);
 	}
 	//updates of arguments
 	u64 value=0;
@@ -2038,7 +2019,7 @@ static GF_Err ffenc_update_arg(GF_Filter *filter, const char *arg_name, const GF
 		}
 		return GF_OK;
 	}
-	return ffmpeg_update_arg(ctx->encoder, arg_name, arg_val);
+	return ffmpeg_update_arg("FFEnc", ctx->encoder, NULL, arg_name, arg_val);
 }
 
 static Bool ffenc_process_event(GF_Filter *filter, const GF_FilterEvent *evt)

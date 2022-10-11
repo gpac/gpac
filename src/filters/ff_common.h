@@ -126,4 +126,4 @@ codec_id, codec_type, and extradata are NOT set by this function
 */
 GF_Err ffmpeg_codec_par_to_gpac(AVCodecParameters *codecpar, GF_FilterPid *opid, u32 ffmpeg_timescale);
 
-GF_Err ffmpeg_update_arg(void *avclass_ctx, const char *arg_name, const GF_PropertyValue *arg_val);
+GF_Err ffmpeg_update_arg(const char *log_name, void *ctx, AVDictionary **options, const char *arg_name, const GF_PropertyValue *arg_val);
