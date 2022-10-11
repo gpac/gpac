@@ -3060,7 +3060,8 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 			if (sep) sep[0] = fsess->sep_args;
 		}
 	}
-	sep = (char *)gf_fs_path_escape_colon(fsess, sURL);
+	Bool needs_escape;
+	sep = (char *)gf_fs_path_escape_colon_ex(fsess, sURL, &needs_escape);
 
 	sprintf(szForceReg, "gfreg%c", fsess->sep_name);
 	force_freg = NULL;
@@ -3150,19 +3151,33 @@ restart:
 	if (sep) sep[0] = fsess->sep_args;
 
 	user_args_len = user_args ? (u32) strlen(user_args) : 0;
-	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 8/*for potential :gpac: */  :0) ) );
-
+	args = gf_malloc(sizeof(char)*5);
+	
 	sprintf(args, "%s%c", for_source ? "src" : "dst", fsess->sep_name);
-	strcat(args, sURL);
+	//path is using ':' and has options specified, inject :gpac before first option
+	if (sep && needs_escape) {
+		sep[0]=0;
+		gf_dynstrcat(&args, sURL, NULL);
+		gf_dynstrcat(&args, ":gpac", NULL);
+		sep[0] = fsess->sep_args;
+		gf_dynstrcat(&args, sep, NULL);
+	} else {
+		gf_dynstrcat(&args, sURL, NULL);
+	}
+	//path is using ':' and has no specified, inject :gpac: at end
+	if (needs_escape && !sep && !user_args_len)
+		gf_dynstrcat(&args, ":gpac:", NULL);
+
 	if (user_args_len) {
-		if (fsess->sep_args==':') strcat(args, ":gpac:");
+		if (fsess->sep_args==':')
+			gf_dynstrcat(&args, ":gpac:", NULL);
 		else {
 			char szSep[2];
 			szSep[0] = fsess->sep_args;
 			szSep[1] = 0;
-			strcat(args, szSep);
+			gf_dynstrcat(&args, szSep, NULL);
 		}
-		strcat(args, user_args);
+		gf_dynstrcat(&args, user_args, NULL);
 	}
 
 	e = GF_OK;

@@ -41,9 +41,10 @@ void gf_filterpacket_del(void *p)
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script);
 
-const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
+const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path, Bool *needs_escape)
 {
 	const char *res;
+	if (needs_escape) *needs_escape = GF_FALSE;
 	if (!path) return NULL;
 	if (sess->sep_args != ':')
 		return strchr(path, sess->sep_args);
@@ -81,7 +82,35 @@ const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 			if (port) res = sep2;
 		}
 	}
+	//if we have an explicit :gpac: separator, don't further analyze what is before
+	char *sep = strstr(path, ":gpac");
+	if (sep && ((sep[5]==':') || (sep[5]==0)))
+		return sep;
+	//for local files, check if file exists for each ':' specified
+	//this allows for file path with ':' 
+	if (!strncmp(path, "file://", 7) || !strstr(path, "://")) {
+		sep = (char*)res;
+		while (1) {
+			if (sep) sep[0] = 0;
+			char *frag = strrchr(path, '#');
+			if (frag) frag[0] = 0;
+			Bool ok = gf_file_exists(path);
+			if (frag) frag[0] = '#';
+			if (sep) sep[0] = ':';
+			if (ok) {
+				if (needs_escape) *needs_escape = GF_TRUE;
+				return sep;
+			}
+			if (!sep) break;
+			sep = strchr(sep+1, ':');
+		}
+	}
 	return res;
+}
+const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
+{
+	return gf_fs_path_escape_colon_ex(sess, path, NULL);
+
 }
 
 static const char *gf_filter_get_args_stripped(GF_FilterSession *fsess, const char *in_args, Bool is_dst)
