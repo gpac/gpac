@@ -1188,6 +1188,9 @@ static GF_Err ffdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	if (codec->capabilities & AV_CODEC_CAP_AUTO_THREADS)
 		ctx->decoder->thread_count = 0;
 
+	prop = gf_filter_pid_get_property_str(pid, "ffdmx:blockalign");
+	ctx->decoder->block_align = prop ? prop->value.uint : 0;
+
 	//clone options (in case we need to destroy/recreate the codec) and open codec
 	av_dict_copy(&options, ctx->options, 0);
 	res = avcodec_open2(ctx->decoder, codec, &options);

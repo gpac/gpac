@@ -557,6 +557,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		u32 codec_field_order = codec->field_order;
 		u32 codec_tag = codec->codec_tag;
 		u32 codec_pixfmt = codec->pix_fmt;
+		u32 codec_blockalign = 0;
 		AVRational codec_framerate = {0, 0};
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 		codec_framerate = codec->framerate;
@@ -579,6 +580,7 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		u32 codec_pixfmt = (codec_type==AVMEDIA_TYPE_VIDEO) ? stream->codecpar->format : 0;
 		s32 codec_sample_fmt = (codec_type==AVMEDIA_TYPE_AUDIO) ? stream->codecpar->format : 0;
 		u32 codec_bitrate = (u32) stream->codecpar->bit_rate;
+		u32 codec_blockalign = (u32) stream->codecpar->block_align;
 		AVRational codec_framerate = stream->r_frame_rate;
 		if (!stream->r_frame_rate.num || !stream->r_frame_rate.den)
 			codec_framerate = stream->avg_frame_rate;
@@ -760,7 +762,6 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if ((gpac_codec_id==GF_CODECID_WEBVTT) && strstr(ctx->demuxer->iformat->name, "matroska"))
 			ctx->pids_ctx[i].mkv_webvtt = GF_TRUE;
 
-
 		if (codec_sample_fmt>0) {
 			u32 sfmt = 0;
 			switch (codec_sample_fmt) {
@@ -788,6 +789,10 @@ GF_Err ffdmx_init_common(GF_Filter *filter, GF_FFDemuxCtx *ctx, u32 grab_type)
 		if (gf_file_exists(ctx->src)) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE));
 		}
+
+		if (codec_blockalign)
+			gf_filter_pid_set_property_str(pid, "ffdmx:blockalign", &PROP_UINT(codec_blockalign));
+
 	}
 
 	if (!nb_a && !nb_v && !nb_t)
@@ -1033,12 +1038,12 @@ static const char *ffdmx_probe_data(const u8 *data, u32 size, GF_FilterProbeScor
 	}
 
 	if (!probe_fmt) return NULL;
+	//TODO try to refine based on ffprobe score
+	*score = GF_FPROBE_MAYBE_SUPPORTED;
 	if (probe_fmt->mime_type) {
-		//TODO try to refine based on ffprobe score
-		*score = GF_FPROBE_MAYBE_SUPPORTED;
 		return probe_fmt->mime_type;
 	}
-	return NULL;
+	return "video/x-ffmpeg";
 }
 
 #define OFFS(_n)	#_n, offsetof(GF_FFDemuxCtx, _n)
