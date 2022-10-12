@@ -3061,7 +3061,7 @@ GF_Filter *gf_fs_load_source_dest_internal(GF_FilterSession *fsess, const char *
 		}
 	}
 	Bool needs_escape;
-	sep = (char *)gf_fs_path_escape_colon_ex(fsess, sURL, &needs_escape);
+	sep = (char *)gf_fs_path_escape_colon_ex(fsess, sURL, &needs_escape, for_source);
 
 	sprintf(szForceReg, "gfreg%c", fsess->sep_name);
 	force_freg = NULL;

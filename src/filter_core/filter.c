@@ -41,75 +41,96 @@ void gf_filterpacket_del(void *p)
 
 static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type, Bool for_script);
 
-const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path, Bool *needs_escape)
+const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path, Bool *needs_escape, Bool for_source)
 {
 	const char *res;
+	char szEsc[6];
 	if (needs_escape) *needs_escape = GF_FALSE;
 	if (!path) return NULL;
-	if (sess->sep_args != ':')
-		return strchr(path, sess->sep_args);
+	if (sess->sep_args != ':') {
+		res = strchr(path, sess->sep_args);
+	} else {
 
-	res = gf_url_colon_suffix(path, sess->sep_name);
-	//if path is one of this proto, check if we have a port specified
-	if (!strncmp(path, "tcp://", 6)
-		|| !strncmp(path, "udp://", 6)
-		|| !strncmp(path, "tcpu://", 7)
-		|| !strncmp(path, "udpu://", 7)
-		|| !strncmp(path, "rtp://", 6)
-		|| !strncmp(path, "route://", 8)
-	) {
-		char *sep2 = res ? strchr(res+1, ':') : NULL;
-		char *sep3 = res ? strchr(res+1, '/') : NULL;
-		if (sep2 && sep3 && (sep2>sep3)) {
-			sep2 = strchr(sep3, ':');
-		}
-		if (sep2 || sep3 || res) {
-			u32 port = 0;
-			if (sep2) {
-				sep2[0] = 0;
-				if (sep3) sep3[0] = 0;
+		res = gf_url_colon_suffix(path, sess->sep_name);
+		//if path is one of this proto, check if we have a port specified
+		if (!strncmp(path, "tcp://", 6)
+			|| !strncmp(path, "udp://", 6)
+			|| !strncmp(path, "tcpu://", 7)
+			|| !strncmp(path, "udpu://", 7)
+			|| !strncmp(path, "rtp://", 6)
+			|| !strncmp(path, "route://", 8)
+		) {
+			char *sep2 = res ? strchr(res+1, ':') : NULL;
+			char *sep3 = res ? strchr(res+1, '/') : NULL;
+			if (sep2 && sep3 && (sep2>sep3)) {
+				sep2 = strchr(sep3, ':');
 			}
-			else if (sep3) sep3[0] = 0;
-			if (sscanf(res+1, "%d", &port)==1) {
-				char szPort[20];
-				snprintf(szPort, 20, "%d", port);
-				if (strcmp(res+1, szPort))
-					port = 0;
-			}
-			if (sep2) sep2[0] = ':';
-			if (sep3) sep3[0] = '/';
+			if (sep2 || sep3 || res) {
+				u32 port = 0;
+				if (sep2) {
+					sep2[0] = 0;
+					if (sep3) sep3[0] = 0;
+				}
+				else if (sep3) sep3[0] = 0;
+				if (sscanf(res+1, "%d", &port)==1) {
+					char szPort[20];
+					snprintf(szPort, 20, "%d", port);
+					if (strcmp(res+1, szPort))
+						port = 0;
+				}
+				if (sep2) sep2[0] = ':';
+				if (sep3) sep3[0] = '/';
 
-			if (port) res = sep2;
+				if (port) res = sep2;
+			}
 		}
 	}
+	if (!res) return NULL;
+	//double sep, allways consider this is a forced escape
+	if (res[1]==sess->sep_args) return res;
+
+	sprintf(szEsc, "%cgpac", sess->sep_args);
 	//if we have an explicit :gpac: separator, don't further analyze what is before
-	char *sep = strstr(path, ":gpac");
-	if (sep && ((sep[5]==':') || (sep[5]==0)))
+	char *sep = strstr(path, szEsc);
+	if (sep && ((sep[5]==sess->sep_args) || (sep[5]==0)))
 		return sep;
-	//for local files, check if file exists for each ':' specified
+	//for local files, check if file/dir exists for each ':' specified
 	//this allows for file path with ':' 
 	if (!strncmp(path, "file://", 7) || !strstr(path, "://")) {
 		sep = (char*)res;
 		while (1) {
 			if (sep) sep[0] = 0;
-			char *frag = strrchr(path, '#');
-			if (frag) frag[0] = 0;
-			Bool ok = gf_file_exists(path);
-			if (frag) frag[0] = '#';
-			if (sep) sep[0] = ':';
+			Bool ok;
+			//for source check if file exists
+			if (for_source) {
+				char *frag = strrchr(path, '#');
+				if (frag) frag[0] = 0;
+				ok = gf_file_exists(path);
+				if (frag) frag[0] = '#';
+			}
+			//for dest check if target dir exists
+			else {
+				char *frag = strrchr(path, '/');
+				if (frag) frag[0] = 0;
+				ok = gf_dir_exists(path);
+				if (frag) frag[0] = '/';
+			}
+			//file/dir exists and has ':' in its name, we will need to escape options
+			if (ok && needs_escape && strchr(path, sess->sep_args))
+				*needs_escape = GF_TRUE;
+			if (sep) sep[0] = sess->sep_args;
 			if (ok) {
-				if (needs_escape) *needs_escape = GF_TRUE;
 				return sep;
 			}
 			if (!sep) break;
-			sep = strchr(sep+1, ':');
+			sep = strchr(sep+1, sess->sep_args);
 		}
 	}
 	return res;
 }
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path)
 {
-	return gf_fs_path_escape_colon_ex(sess, path, NULL);
+	return gf_fs_path_escape_colon_ex(sess, path, NULL, GF_FALSE);
 
 }
 
