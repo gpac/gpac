@@ -612,6 +612,8 @@ typedef enum
 	/*! codecid for MPEG-1 Audio streams, layer 1*/
 	GF_CODECID_MPEG_AUDIO_L1 = GF_4CC('m','p','a','1'),
 
+	GF_CODECID_MSPEG4_V3 = GF_4CC('D','I','V','3'),
+
 	//fake codec IDs for RTP
 	GF_CODECID_FAKE_MP2T = GF_4CC('M','P','2','T')
 } GF_CodecID;
