@@ -938,7 +938,8 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 		single_source->ratio_aligned = 0;
 		single_source->bit_depth = 0;
 		if (am->ar) {
-			am->must_reconfig = GF_TRUE;
+			//if we are already configured and change of audio config, try reusing the same config
+			//am->must_reconfig = GF_TRUE;
 			gf_mixer_reconfig(am);
 			gf_mixer_lock(am, GF_FALSE);
 			return 0;

@@ -431,7 +431,6 @@ void gf_sc_ar_send_or_reconfig(GF_AudioRenderer *ar)
 		/*unlock mixer*/
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Compositor] sending audio packets\n"));
 	gf_ar_send_packets(ar);
 }
 
