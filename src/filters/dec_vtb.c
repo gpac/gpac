@@ -797,6 +797,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     case kVTVideoDecoderMalfunctionErr:
         return GF_IO_ERR;
     case kVTVideoDecoderBadDataErr :
+    case -8969:
         return GF_NOT_SUPPORTED;
 
 	case kVTPixelTransferNotSupportedErr:
@@ -805,7 +806,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
     case 0:
         break;
     default:
-        return GF_SERVICE_ERROR;
+		return GF_NOT_SUPPORTED;
     }
 	
 	//good to go !
