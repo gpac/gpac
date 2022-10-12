@@ -372,6 +372,7 @@ static u32 aout_fill_output(void *ptr, u8 *buffer, u32 buffer_size)
 				ctx->pck_offset += nb_copy;
 				return done;
 			}
+			ctx->last_cts += (size / ctx->bytes_per_sample) * ctx->sr;
 			ctx->pck_offset = 0;
 		}
 		gf_filter_pid_drop_packet(ctx->pid);
