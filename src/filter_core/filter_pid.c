@@ -870,6 +870,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_P
 			filter->session->last_connect_error = e;
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Failed to reconfigure PID %s:%s in filter %s: %s, reloading filter graph\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
+			gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
 			gf_filter_relink_dst(pidinst);
 		}
 	} else {
