@@ -1199,7 +1199,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, GF_Fraction
 				GOTO_EXIT("parsing colr option");
 			}
 		}
+		else if (!strnicmp(ext + 1, "dvp=", 4)) {
+			strncpy(dv_profile, ext + 5, 99);
+			dv_profile[99]=0;
+		}
+		//old name
 		else if (!strnicmp(ext + 1, "dv-profile=", 11)) {
+			M4_LOG(GF_LOG_WARNING, ("Deprecated option name, use `:dvp=` instead\n"));
 			strncpy(dv_profile, ext + 12, 99);
 			dv_profile[99]=0;
 		}
@@ -2600,6 +2606,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 	for (i=0; i<nb_tracks; i++) {
 		u64 last_DTS, dest_track_dur_before_cat;
 		u32 nb_edits = 0;
+		Bool merge_nal_video = 1;
 		Bool skip_lang_test = 1;
 		Bool use_ts_dur = 1;
 		Bool merge_edits = 0;
@@ -2666,6 +2673,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				if (subtype_dst != subtype_src) {
 					dst_tk_sample_entry = dst_tk;
 					dst_tk = 0;
+					merge_nal_video=0;
 				}
 			}
 		}
@@ -2740,7 +2748,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				}
 			}
 
-			if (!dst_tk) {
+			if (!dst_tk && merge_nal_video) {
 				/*merge AVC config if possible*/
 				if ((stype == GF_ISOM_SUBTYPE_AVC_H264)
 				        || (stype == GF_ISOM_SUBTYPE_AVC2_H264)
@@ -2852,6 +2860,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 
 		gf_isom_enable_raw_pack(orig, i+1, 2048);
 
+		Bool adjust_first_sample=GF_FALSE;
+		if (count && (gf_isom_get_sample_duration(dest, dst_tk, count)==0)) {
+			adjust_first_sample = GF_TRUE;
+		}
 		last_DTS = 0;
 		count = gf_isom_get_sample_count(orig, i+1);
 		for (j=0; j<count; j++) {
@@ -2865,6 +2877,10 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			last_DTS = samp->DTS;
 			samp->DTS =  (u64) (ts_scale * samp->DTS + (new_track ? 0 : insert_dts));
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
+			if (adjust_first_sample) {
+				samp->DTS++;
+				adjust_first_sample = 0;
+			}
 
 			if (gf_isom_is_self_contained(orig, i+1, di)) {
 				if (orig_nal_len && dst_nal_len) {
@@ -2916,10 +2932,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 			gf_isom_set_edit(dest, dst_tk, 0, (u64) (s64) (insert_dts*rescale), 0, GF_ISOM_EDIT_EMPTY);
 			gf_isom_set_edit(dest, dst_tk, (u64) (s64) (insert_dts*rescale), (u64) (s64) (media_dur*rescale), 0, GF_ISOM_EDIT_NORMAL);
 		} else if (merge_edits) {
-			/*convert from media time to track time*/
-			u32 movts_dst = gf_isom_get_timescale(dest);
-			u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
-			u32 trackts_orig = gf_isom_get_media_timescale(orig, i+1);
 
 			/*get the first edit normal mode and add the new track dur*/
 			for (j=nb_edits; j>0; j--) {
@@ -2928,23 +2940,14 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, GF_
 				gf_isom_get_edit(dest, dst_tk, j, &editTime, &segmentDuration, &mediaTime, &editMode);
 
 				if (editMode==GF_ISOM_EDIT_NORMAL) {
-					Double prev_dur = (Double) (s64) dest_track_dur_before_cat;
-					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
-
-					/*safety test: some files have broken edit lists. If no more than 2 entries, check that the segment duration
-					is less or equal to the movie duration*/
-					if (prev_dur * movts_dst < segmentDuration * trackts_dst) {
-						M4_LOG(GF_LOG_WARNING, ("Warning: suspicious edit list entry found: duration %g sec but longest track duration before cat is %g - fixing it\n", (Double) (s64) segmentDuration/movts_dst, prev_dur/trackts_dst));
-						segmentDuration = (dest_track_dur_before_cat - mediaTime) * movts_dst;
-						segmentDuration /= trackts_dst;
-					}
-
-					//express original dur in new timescale
-					dur /= trackts_orig;
-					dur *= movts_dst;
-
-					segmentDuration += (u64) (s64) dur;
-					gf_isom_modify_edit(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
+					u64 new_dur = gf_isom_get_media_duration(dest, dst_tk);
+					if ((mediaTime>0) && (mediaTime<new_dur))
+						new_dur -= mediaTime;
+					/*convert from media time to track/moov time*/
+					u32 movts_dst = gf_isom_get_timescale(dest);
+					u32 trackts_dst = gf_isom_get_media_timescale(dest, dst_tk);
+					new_dur = gf_timestamp_rescale(new_dur, trackts_dst, movts_dst);
+					gf_isom_modify_edit(dest, dst_tk, j, new_dur, mediaTime, editMode);
 					break;
 				}
 			}
