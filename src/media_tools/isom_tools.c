@@ -4120,7 +4120,7 @@ GF_Err rfc6381_codec_name_default(char *szCodec, u32 subtype, u32 codec_id)
 #ifndef GPAC_DISABLE_ISOM
 
 GF_EXPORT
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband, Bool force_sbr)
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, u32 stsd_idx, char *szCodec, Bool force_inband, Bool force_sbr)
 {
 	GF_ESD *esd;
 	GF_Err e;
@@ -4128,19 +4128,19 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
+	u32 subtype = gf_isom_get_media_subtype(movie, track, stsd_idx);
 
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		u32 originalFormat=0;
-		if (gf_isom_is_ismacryp_media(movie, track, 1)) {
-			e = gf_isom_get_ismacryp_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-		} else if (gf_isom_is_omadrm_media(movie, track, 1)) {
-			e = gf_isom_get_omadrm_info(movie, track, 1, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-		} else if(gf_isom_is_cenc_media(movie, track, 1)) {
-			e = gf_isom_get_cenc_info(movie, track, 1, &originalFormat, NULL, NULL);
+		if (gf_isom_is_ismacryp_media(movie, track, stsd_idx)) {
+			e = gf_isom_get_ismacryp_info(movie, track, stsd_idx, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		} else if (gf_isom_is_omadrm_media(movie, track, stsd_idx)) {
+			e = gf_isom_get_omadrm_info(movie, track, stsd_idx, &originalFormat, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+		} else if(gf_isom_is_cenc_media(movie, track, stsd_idx)) {
+			e = gf_isom_get_cenc_info(movie, track, stsd_idx, &originalFormat, NULL, NULL);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, 1)) ));
-			e = gf_isom_get_original_format_type(movie, track, 1, &originalFormat);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ISOM Tools] Unknown protection scheme type %s\n", gf_4cc_to_str( gf_isom_is_media_encrypted(movie, track, stsd_idx)) ));
+			e = gf_isom_get_original_format_type(movie, track, stsd_idx, &originalFormat);
 		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] Error fetching protection information\n"));
@@ -4152,7 +4152,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 	switch (subtype) {
 	case GF_ISOM_SUBTYPE_MPEG4:
-		esd = gf_isom_get_esd(movie, track, 1);
+		esd = gf_isom_get_esd(movie, track, stsd_idx);
 		if (esd && esd->decoderConfig) {
 			switch (esd->decoderConfig->streamType) {
 			case GF_STREAM_AUDIO:
@@ -4185,8 +4185,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AVC2_H264:
 	case GF_ISOM_SUBTYPE_AVC3_H264:
 	case GF_ISOM_SUBTYPE_AVC4_H264:
-		//FIXME: in avc1 with multiple descriptor, we should take the right description index
-		avcc = gf_isom_avc_config_get(movie, track, 1);
+		avcc = gf_isom_avc_config_get(movie, track, stsd_idx);
 		if (force_inband) {
 			if (subtype==GF_ISOM_SUBTYPE_AVC_H264)
 				subtype = GF_ISOM_SUBTYPE_AVC3_H264;
@@ -4203,8 +4202,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 	case GF_ISOM_SUBTYPE_SVC_H264:
 	case GF_ISOM_SUBTYPE_MVC_H264:
-		avcc = gf_isom_mvc_config_get(movie, track, 1);
-		if (!avcc) avcc = gf_isom_svc_config_get(movie, track, 1);
+		avcc = gf_isom_mvc_config_get(movie, track, stsd_idx);
+		if (!avcc) avcc = gf_isom_svc_config_get(movie, track, stsd_idx);
 		if (avcc) {
 			e = rfc_6381_get_codec_avc(szCodec, subtype, avcc);
 			gf_odf_avc_cfg_del(avcc);
@@ -4226,13 +4225,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (subtype==GF_ISOM_SUBTYPE_HVC1) subtype = GF_ISOM_SUBTYPE_HEV1;
 			else if (subtype==GF_ISOM_SUBTYPE_HVC2) subtype = GF_ISOM_SUBTYPE_HEV2;
 		}
-		hvcc = gf_isom_hevc_config_get(movie, track, 1);
+		hvcc = gf_isom_hevc_config_get(movie, track, stsd_idx);
 		if (!hvcc) {
-			hvcc = gf_isom_lhvc_config_get(movie, track, 1);
+			hvcc = gf_isom_lhvc_config_get(movie, track, stsd_idx);
 		}
 		if (subtype==GF_ISOM_SUBTYPE_HVT1) {
 			u32 refTrack;
-			gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, 1, &refTrack);
+			gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, stsd_idx, &refTrack);
 			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 			hvcc = gf_isom_hevc_config_get(movie, refTrack, 1);
 		}
@@ -4250,12 +4249,12 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #if !defined(GPAC_DISABLE_AV1) && !defined(GPAC_DISABLE_AV_PARSERS)
 	case GF_ISOM_SUBTYPE_AV01:
 	{
-		GF_AV1Config *av1c = gf_isom_av1_config_get(movie, track, 1);
+		GF_AV1Config *av1c = gf_isom_av1_config_get(movie, track, stsd_idx);
 		if (av1c) {
 			u32 colour_type;
 			COLR colr;
 			memset(&colr, 0, sizeof(colr));
-			if (GF_OK == gf_isom_get_color_info(movie, track, 1, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
+			if (GF_OK == gf_isom_get_color_info(movie, track, stsd_idx, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
 				colr.override = GF_TRUE;
 			}
 			e = rfc_6381_get_codec_av1(szCodec, subtype, av1c, colr);
@@ -4270,12 +4269,12 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_VP08:
 	case GF_ISOM_SUBTYPE_VP09:
 	{
-		GF_VPConfig *vpcc = gf_isom_vp_config_get(movie, track, 1);
+		GF_VPConfig *vpcc = gf_isom_vp_config_get(movie, track, stsd_idx);
 		if (vpcc) {
 			u32 colour_type;
 			COLR colr;
 			memset(&colr, 0, sizeof(colr));
-			if (GF_OK == gf_isom_get_color_info(movie, track, 1, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
+			if (GF_OK == gf_isom_get_color_info(movie, track, stsd_idx, &colour_type, &colr.colour_primaries, &colr.transfer_characteristics, &colr.matrix_coefficients, &colr.full_range)) {
 				colr.override = GF_TRUE;
 			}
 			e = rfc_6381_get_codec_vpx(szCodec, subtype, vpcc, colr);
@@ -4292,7 +4291,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_DVAV:
 	case GF_ISOM_SUBTYPE_DAV1:
 	{
-		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(movie, track, 1);
+		GF_DOVIDecoderConfigurationRecord *dovi = gf_isom_dovi_config_get(movie, track, stsd_idx);
 		if (!dovi) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[ISOM Tools] No config found for Dolby Vision file (\"%s\") when computing RFC6381.\n", gf_4cc_to_str(subtype)));
 			return GF_NON_COMPLIANT_BITSTREAM;
@@ -4306,7 +4305,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_VVC1:
 	case GF_ISOM_SUBTYPE_VVI1:
 	{
-		GF_VVCConfig *vvcc = gf_isom_vvc_config_get(movie, track, 1);
+		GF_VVCConfig *vvcc = gf_isom_vvc_config_get(movie, track, stsd_idx);
 		if (vvcc) {
 			if (force_inband) subtype = GF_ISOM_SUBTYPE_VVI1;
 
@@ -4323,7 +4322,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_MH3D_MHM1:
 	case GF_ISOM_SUBTYPE_MH3D_MHM2:
 	{
-		esd = gf_media_map_esd(movie, track, 1);
+		esd = gf_media_map_esd(movie, track, stsd_idx);
 		if (!esd || !esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo
 			|| !esd->decoderConfig->decoderSpecificInfo->data
 		) {
