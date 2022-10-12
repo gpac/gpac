@@ -945,6 +945,21 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					assert(remain>=4);
 					start += 4;
 					remain -= 4;
+				} else if (!ctx->width) {
+					gf_bs_reassign_buffer(ctx->bs, start, remain);
+					PL = ctx->dsi.VideoPL;
+					e = gf_m4v_parse_config(ctx->vparser, &ctx->dsi);
+					if (ctx->dsi.width) {
+						u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);
+						if (vosh_start<0) vosh_start = 0;
+						vosh_end = start - (u8 *)data + obj_size;
+						vosh_end -= vosh_start;
+						mpgviddmx_check_pid(filter, ctx,(u32)  vosh_end, data+vosh_start);
+						skip_pck = GF_TRUE;
+						assert(remain>=(s32) obj_size);
+						start += obj_size;
+						remain -= obj_size;
+					}
 				}
 				break;
 			}
