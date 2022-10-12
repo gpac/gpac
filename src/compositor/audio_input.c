@@ -73,6 +73,11 @@ restart:
 		if (!ai->stream->odm->state) ai->is_playing = GF_FALSE;
 		return NULL;
 	}
+	if (ai->stream->config_changed) {
+		gf_mo_release_data(ai->stream, 0, -1);
+		*size = 0;
+		return NULL;
+	}
 	ai->need_release = GF_TRUE;
 
 	//step mode, return the frame without sync check
@@ -212,11 +217,14 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 
 	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->afmt , &aifc->chan, &aifc->ch_layout, &aifc->forced_layout);
 
-	if (!for_recf)
+	if (!for_recf && !ai->stream->config_changed)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
 	if (aifc->samplerate && aifc->chan && aifc->afmt && ((aifc->chan<=2) || aifc->ch_layout))  {
-		ai->stream->config_changed = GF_FALSE;
+		if (ai->stream->config_changed) {
+			ai->stream->config_changed = GF_FALSE;
+			return GF_FALSE;
+		}
 		return GF_TRUE;
 	}
 	//still not ready !
