@@ -2768,18 +2768,24 @@ static Bool httpout_open_input(GF_HTTPOutCtx *ctx, GF_HTTPOutInput *in, const ch
 		} else {
 			sep = name;
 		}
-		if (sep && (sep[0] != '/')) {
-			char *new_url = NULL;
-			gf_dynstrcat(&new_url, "/", NULL);
-			gf_dynstrcat(&new_url, sep, NULL);
-			if (o_url) gf_free(o_url);
-			sep = o_url = new_url;
-		}
+    }
+    //default to name
+    if (!sep && ctx->dst && in->path) {
+		sep = name;
     }
     if (!sep) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_HTTP, ("[HTTPOut] %s output file %s but cannot guess path !\n", is_delete ? "Deleting" : "Opening",  name));
 		return GF_FALSE;
 	}
+
+	if (sep[0] != '/') {
+		char *new_url = NULL;
+		gf_dynstrcat(&new_url, "/", NULL);
+		gf_dynstrcat(&new_url, sep, NULL);
+		if (o_url) gf_free(o_url);
+		sep = o_url = new_url;
+	}
+
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_HTTP, ("[HTTPOut] %s output file %s\n", is_delete ? "Deleting" : "Opening", sep+1));
 	if (in->upload) {
