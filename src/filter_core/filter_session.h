@@ -1171,7 +1171,7 @@ void gf_filter_post_process_task_internal(GF_Filter *filter, Bool use_direct_dis
 
 //get next option after path, NULL if not found
 const char *gf_fs_path_escape_colon(GF_FilterSession *sess, const char *path);
-const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path, Bool *needs_escape);
+const char *gf_fs_path_escape_colon_ex(GF_FilterSession *sess, const char *path, Bool *needs_escape, Bool for_source);
 
 void gf_fs_check_graph_load(GF_FilterSession *fsess, Bool for_load);
 
